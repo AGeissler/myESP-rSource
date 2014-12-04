@@ -139,7 +139,6 @@ C*******************************************************************************
 #include "plant.h"
 #include "building.h"
 #include "power.h"
-C CETC named constants 
 #include "CETC_definitions.h"
 C provides pba, vrb and lion
 #include "Battery.h"

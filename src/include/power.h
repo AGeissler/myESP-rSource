@@ -411,9 +411,9 @@ C Special materials
       COMMON/ENETSPM/PSPM(MSPMNOD),QSPM(MSPMNOD),
      &VSPM(MSPMNOD)
 
-      real pspm			!- real power of special material
-      real qspm			!- reactive power load/generation of special material
-      complex vspm		!- voltage of special material node
+      real pspm    !- real power of special material
+      real qspm    !- reactive power load/generation of special material
+      complex vspm !- voltage of special material node
 
 C The connected hybrid components
       COMMON/HYBE/NHYBCOM,HYBCOMNO(MHYCOM),HYCOMTYP(MHYCOM),

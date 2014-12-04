@@ -102,9 +102,9 @@ C Initialization status of power-only components
       COMMON/ENetPowComp/bComp_initialized
       logical bComp_Initialized(MPOWCOM)
 
+      INTEGER ENETMAXI,ENETSLVT,ENODCVGF
             
-      INTEGER ENETMAXI,ENETSLVT,
-     &ENODCVGF,ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP,NTSTPP
+      INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP,NTSTPP
 
       REAL RADPHA,ENETACVG,ENETVLIM,ENETVCVG
 
@@ -166,7 +166,7 @@ C Matrix parameters
           JACOBEL(IJR,IJC)=0.0
   90  CONTINUE
   80  CONTINUE
-										
+
 C Set power-only component initialization flags to false.
 C Power-only component data requiring initialization will
 C set these data to true after initialization is complete.
@@ -1335,7 +1335,8 @@ C ******************************************************************************
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/POPHELP/H(60)
 
-      INTEGER ENETMAXI,ENETSLVT,ENODCVGF,DEFMAXI
+      INTEGER ENETMAXI,ENETSLVT,ENODCVGF
+      INTEGER DEFMAXI
        
       REAL ENETVCVG,ENETACVG,ENETVLIM,DEFVCVG,DEFACVG
 

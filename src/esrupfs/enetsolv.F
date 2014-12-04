@@ -124,7 +124,8 @@ C The electrical network solution parameters.
 
       COMMON/OUTIN/IUOUT,IUIN
 
-      INTEGER ENETMAXI,ENETSLVT,ENODCVGF,IENTER
+      INTEGER ENETMAXI,ENETSLVT,ENODCVGF
+      INTEGER IENTER
 
       REAL ENETVCVG,ENETACVG,ENETVLIM
 
@@ -240,10 +241,12 @@ C Subroutine ENETSETIM sets the electrical network simulation time variables ENE
 C and ENETIMEP based on the simulation type.
 C
       SUBROUTINE ENETSETIM
+#include "building.h"
+#include "plant.h"
+#include "power.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/C6/INDCFG
-      COMMON/ENETIME/ENETIMEF,ENETIMEP
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PTIME/PTIMEP,PTIMEF  
 
@@ -611,6 +614,7 @@ C Plant component electrical data
 C Typecasting
       REAL PFP,PWRP,BVOLTP
       INTEGER iplant_calcV_LOC,iPV_calcV_LOC,NPEL,IPFP,IPHP
+      INTEGER ENETMAXI,ENETSLVT,ENODCVGF
 
 
 C Trace.
@@ -741,6 +745,7 @@ C Hybrid components that calculate nodal voltages
       LOGICAL CVGCHK
       REAL PFP,PWRP,BVOLTP
       INTEGER iplant_calcV_LOC,iPV_calcV_LOC,NPEL,IPFP,IPHP
+      INTEGER ENETMAXI,ENETSLVT,ENODCVGF
 
 
 C Solve the basic matrix equation:
@@ -910,6 +915,7 @@ C Trace
 
 C Set the convergence flag to true
       LOGICAL CVGCHK
+      INTEGER ENETMAXI,ENETSLVT,ENODCVGF
 
       CVGCHK=.TRUE.
 
