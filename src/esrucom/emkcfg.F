@@ -784,7 +784,7 @@ cx ... could/should be added here, surely?
 C Renewable energy system (elec) controller control file
       if(ireselecctl.gt.0.and.reselecflnam(1:2).ne.'  ')then
         WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*resel  ',
-     &    reselecflnam(1:lnblnk(spflnam))
+     &    reselecflnam(1:lnblnk(reselecflnam))
       endif
 
 C Write model contents file if known.

@@ -135,11 +135,13 @@ C         Give warning and exit this subroutine
 
 C===================================================================================
 C=============================== simple control mode ===============================
-C This routine simply applies a constant power draw on each battery found.
+C This routine applies a power draw according to the global varialbe "house_load".
+C The variable 'house_load' is written to in subroutine POWOC_Outside_ld() and
+C receives values from an ".fcl" file.
 C
 C <<< common "battery_state" allows for only one battery in a given system!! >>>
 C
-C It is meant mostly for debugging.
+C This control mode is meant mostly for debugging.
 C===================================================================================
       SUBROUTINE simple_ctl
       IMPLICIT NONE
@@ -153,6 +155,11 @@ C Common block definitions
       integer   iuout           !- write unit number
       integer   iuin            !- read unit number
 
+C External load determined in subroutine POWOC_Outside_ld
+C (Power only component type 12)
+      common/Res_elec_ctl/house_load
+      real     house_load ! The house load in (W)
+
 C Local variables
       integer IPWC
 
@@ -160,7 +167,7 @@ C Local variables
 
 C This control mode has very limited functionality. Warn user.
       write(outstr,'(2A)') 'Renewable energy system (elec)',
-     &     ' control mode 1 was entered -- constant battery load!'
+     &     ' control mode 1 was entered -- house_load used!'
       call edisp(iuout,outstr)
 
       do 10 IPWC=1,NPOWCOM
@@ -170,17 +177,20 @@ C     Initiate variables accordingly
         IF( POWCOMID(IPWC) .EQ. pba) THEN      ! Lead-acid battery
 C         Demand in Watts imposed on the battery
 C         +ve indicates discharging the battery, -ve charge
-          batDemandP = 150
+C         'house_load' is negative!
+          batDemandP = -house_load
 
         ELSEIF(POWCOMID(IPWC) .EQ. vrb) THEN   ! VRB
 C         Demand in Watts imposed on the battery
 C         +ve indicates discharging the battery, -ve charge
-          batDemandP = 200
+C         'house_load' is negative!
+          batDemandP = -house_load
 
-        ELSEIF(POWCOMID(IPWC) .EQ. lion) THEN !Lithium-ion battery
+        ELSEIF(POWCOMID(IPWC) .EQ. lion) THEN ! Lithium-ion battery
 C         Demand in Watts imposed on the battery
-C         -ve indicates discharging the battery, +ve charge <<???>>
-          batDemandP = -300
+C         +ve indicates discharging the battery, -ve charge
+C         'house_load' is negative!
+          batDemandP = -house_load
 
         ENDIF
 
@@ -193,8 +203,8 @@ C===============================================================================
 C============================ low cost control mode ================================
 C
 C This routine applies a low cost control strategy on the system
-C renewable energy source in electrical network
-C including PV, battery and others
+C renewable energy source in electrical network including PV, battery and
+C others.
 C
 C Author: A. Geissler
 C===================================================================================
@@ -749,7 +759,7 @@ C # Comments are denoted by the number sign and are ignored.
 C # This file contains inputs required by the renewable energy systems
 C # (elec) controller (subroutine RES_elec_ctl).
 C # Inputs required by controller in the following order:
-C 2            # (0)  control mode (1, 2 or 3) << only '2' usable >>
+C 2            # (0)  control mode (1, 2 or 3) << only '1' & '2' usable >>
 C 3            # (1)  node number of the AC bus
 C 3            # (2)  node number of the DC bus
 C 2            # (3)  index number of the battery power-only component
@@ -806,7 +816,7 @@ C     Read control mode dependant inputs ...
       ! Mode 1                        !
       !-------------------------------!
       if (RES_elec_ctl_mode .eq. 1) then
-C     << to be defined >>
+C       << no further action necessary, to date >>
 
       !-------------------------------!
       ! Mode 2                        !
