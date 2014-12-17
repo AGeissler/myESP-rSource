@@ -189,8 +189,23 @@ C         'house_load' is negative!
         ELSEIF(POWCOMID(IPWC) .EQ. lion) THEN ! Lithium-ion battery
 C         Demand in Watts imposed on the battery
 C         +ve indicates discharging the battery, -ve charge
-C         'house_load' is negative!
-          batDemandP = -house_load
+          do 15 IPWC2=1,NPOWCOM
+            do 16 IPH=1,3
+              if (POWCONEN(IPWC2,IPH) .EQ. POWCONEN(IPWC,IPH)) then
+C               Current POWOC is connected to battery
+                if (POWCOMID(IPWC2) .EQ. 12) then
+C                 load is being read from .fcl file
+C                 'house_load' is negative!
+                  batDemandP = -house_load
+
+                elseif (POWCOMID(IPWC2) .eq. 24) then
+C                 Load is being read from TDF file
+C                 'PPOWOC()' is negative!
+                  batDemandP = -PPOWOC(IPWC2)
+                endif
+              endif
+   16       continue ! loop through phases
+   15     continue ! loop through POWOCs
 
         ENDIF
 
