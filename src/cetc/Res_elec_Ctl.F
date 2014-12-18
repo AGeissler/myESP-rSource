@@ -135,13 +135,20 @@ C         Give warning and exit this subroutine
 
 C===================================================================================
 C=============================== simple control mode ===============================
-C This routine applies a power draw according to the global varialbe "house_load".
-C The variable 'house_load' is written to in subroutine POWOC_Outside_ld() and
-C receives values from an ".fcl" file.
+C This routine applies a power draw according to data from a file.
+C
+C Options:
+C 1) battery is connected with a POWOC of type 12, data is read from ".fcl" file
+C    with a maximum resolution of 12 entries per hour (5-min-data)
+C
+C 2) battery is connected with a POWOC of type 24, data is read from TDF file
+C    with a maximum resolution according to TDF specs (1-min-data tested)
 C
 C <<< common "battery_state" allows for only one battery in a given system!! >>>
 C
-C This control mode is meant mostly for debugging.
+C This control mode is meant mostly for testing / debugging purposes.
+C
+C Author: A. Geissler
 C===================================================================================
       SUBROUTINE simple_ctl
       IMPLICIT NONE
@@ -150,58 +157,40 @@ C===============================================================================
 #include "power.h"
 #include "BATTERY.h"
 
-C Common block definitions
-      common/outin/iuout,iuin
-      integer   iuout           !- write unit number
-      integer   iuin            !- read unit number
-
 C External load determined in subroutine POWOC_Outside_ld
 C (Power only component type 12)
       common/Res_elec_ctl/house_load
       real     house_load ! The house load in (W)
 
 C Local variables
-      integer IPWC
+      integer IPWC,IPWCLD,INODE
 
-      character outstr*124
-
-C This control mode has very limited functionality. Warn user.
-      write(outstr,'(2A)') 'Renewable energy system (elec)',
-     &     ' control mode 1 was entered -- house_load used!'
-      call edisp(iuout,outstr)
-
+C     loop through all power only components
       do 10 IPWC=1,NPOWCOM
 
-C     Switch which type of battery is installed.
-C     Initiate variables accordingly
-        IF( POWCOMID(IPWC) .EQ. pba) THEN      ! Lead-acid battery
-C         Demand in Watts imposed on the battery
+        IF( (POWCOMID(IPWC).EQ.pba) .or.  ! Lead-acid battery
+     &      (POWCOMID(IPWC).EQ.vrb) .or.  ! VRB
+     &      (POWCOMID(IPWC).EQ.lion)      ! Lithium-ion battery
+     &    ) THEN
+C         We have a battery!
 C         +ve indicates discharging the battery, -ve charge
-C         'house_load' is negative!
-          batDemandP = -house_load
+C         'house_load' and PPOWOC() are negative!
 
-        ELSEIF(POWCOMID(IPWC) .EQ. vrb) THEN   ! VRB
-C         Demand in Watts imposed on the battery
-C         +ve indicates discharging the battery, -ve charge
-C         'house_load' is negative!
-          batDemandP = -house_load
-
-        ELSEIF(POWCOMID(IPWC) .EQ. lion) THEN ! Lithium-ion battery
-C         Demand in Watts imposed on the battery
-C         +ve indicates discharging the battery, -ve charge
-          do 15 IPWC2=1,NPOWCOM
-            do 16 IPH=1,3
-              if (POWCONEN(IPWC2,IPH) .EQ. POWCONEN(IPWC,IPH)) then
+C         Again loop through all power only components to look for
+C         which POWOC is connected to the same node as the battery
+          do 15 IPWCLD=1,NPOWCOM
+            do 16 INODE=1,3
+              if(POWCONEN(IPWCLD,INODE).EQ.POWCONEN(IPWC,INODE))then
 C               Current POWOC is connected to battery
-                if (POWCOMID(IPWC2) .EQ. 12) then
+                if (POWCOMID(IPWCLD) .EQ. 12) then
 C                 load is being read from .fcl file
 C                 'house_load' is negative!
                   batDemandP = -house_load
 
-                elseif (POWCOMID(IPWC2) .eq. 24) then
+                elseif (POWCOMID(IPWCLD) .eq. 24) then
 C                 Load is being read from TDF file
 C                 'PPOWOC()' is negative!
-                  batDemandP = -PPOWOC(IPWC2)
+                  batDemandP = -PPOWOC(IPWCLD)
                 endif
               endif
    16       continue ! loop through phases
