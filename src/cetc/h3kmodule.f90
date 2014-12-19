@@ -297,7 +297,7 @@ MODULE h3kmodule
          rvEPowBattSysDschrgLd,rvEPowBattTemp,rvEPowBattLfUsed,rvEPowBattLfUsedCum, &
          rvEPowBattLfUseFac,rvEPowBattChrgCyc,rvEPowBattManChrgPh,rvEPowBattManChrgPhInc, &
          rvEPowBattTmeLstFulChrg,rvEPowBattBdTreatFlg,rvEPowBattCtrlScn,rvEPowBattLiOnCycUsed, &
-         rvEPowBattLionRInt
+         rvEPowBattLionRInt,rvEPowBattLionCap
 
    !Used by RE-H2-ctl.F
    Type(ReportVariable) :: rvCtrlReH2NPwElAct,rvCtrlReH2NPwBattChrg,rvCtrlReH2NPwBattDschrg, &
@@ -3453,6 +3453,12 @@ CONTAINS
       rvEPowBattLionRInt%VariableType = '(Ohm)'
       rvEPowBattLionRInt%Description = 'Internal resistance of Li-Ion battery'
       Call AddVariable(rvEPowBattLionRInt)
+
+      rvEPowBattLionCap%VariableName = 'electrical_net/power_only_components/*/misc_data/Capacity'
+      rvEPowBattLionCap%MetaType = 'units'
+      rvEPowBattLionCap%VariableType = '(Ah)'
+      rvEPowBattLionCap%Description = 'Capacity of Li-Ion battery'
+      Call AddVariable(rvEPowBattLionCap)
 
       !Used by RE-H2-ctl.F
       rvCtrlReH2NPwElAct%VariableName = 'control/re_h2_ctl/net_power_balance/electrolyzer_active'

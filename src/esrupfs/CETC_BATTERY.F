@@ -166,7 +166,7 @@ C      INTEGER StopTime             ! time step to start debugging
 
       INTEGER iNameLength          ! Store the variable's name length (for Reporting)
 
-      real RInt_Lion  ! Function declaration
+      real RInt_Lion,BatteryCap_Lion  ! Function declarations
 
 C-------- For debugging only ----------------------------------------------------------------
 C      DumTime = 0
@@ -537,6 +537,10 @@ C    Calculate and report max battery heater power in W
 
       Call AddToReport(rvEPowBattLionRInt%Identifier,
      &      RInt_Lion(IPWC,batDODFin,batMode,batCurFin),
+     &      powcomnam(IPWC)(1:iNameLength))
+
+      Call AddToReport(rvEPowBattLionCap%Identifier,
+     &      BatteryCap_Lion(IPWC,batTFin,batCurFin),
      &      powcomnam(IPWC)(1:iNameLength))
 
       RETURN
