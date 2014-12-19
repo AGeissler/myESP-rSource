@@ -296,7 +296,8 @@ MODULE h3kmodule
          rvEPowBattHPow,rvEPowBattPowBal,rvEPowBattSysLd,rvEPowBattSysChrgLd, &
          rvEPowBattSysDschrgLd,rvEPowBattTemp,rvEPowBattLfUsed,rvEPowBattLfUsedCum, &
          rvEPowBattLfUseFac,rvEPowBattChrgCyc,rvEPowBattManChrgPh,rvEPowBattManChrgPhInc, &
-         rvEPowBattTmeLstFulChrg,rvEPowBattBdTreatFlg,rvEPowBattCtrlScn,rvEPowBattLiOnCycUsed
+         rvEPowBattTmeLstFulChrg,rvEPowBattBdTreatFlg,rvEPowBattCtrlScn,rvEPowBattLiOnCycUsed, &
+         rvEPowBattLionRInt
 
    !Used by RE-H2-ctl.F
    Type(ReportVariable) :: rvCtrlReH2NPwElAct,rvCtrlReH2NPwBattChrg,rvCtrlReH2NPwBattDschrg, &
@@ -3446,6 +3447,12 @@ CONTAINS
       rvEPowBattLiOnCycUsed%VariableType = '(-)'
       rvEPowBattLiOnCycUsed%Description = 'Li-on cycles used'
       Call AddVariable(rvEPowBattLiOnCycUsed)
+
+      rvEPowBattLionRInt%VariableName = 'electrical_net/power_only_components/*/misc_data/RInt'
+      rvEPowBattLionRInt%MetaType = 'units'
+      rvEPowBattLionRInt%VariableType = '(Ohm)'
+      rvEPowBattLionRInt%Description = 'Internal resistance of Li-Ion battery'
+      Call AddVariable(rvEPowBattLionRInt)
 
       !Used by RE-H2-ctl.F
       rvCtrlReH2NPwElAct%VariableName = 'control/re_h2_ctl/net_power_balance/electrolyzer_active'

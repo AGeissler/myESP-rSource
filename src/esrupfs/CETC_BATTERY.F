@@ -166,6 +166,8 @@ C      INTEGER StopTime             ! time step to start debugging
 
       INTEGER iNameLength          ! Store the variable's name length (for Reporting)
 
+      real RInt_Lion  ! Function declaration
+
 C-------- For debugging only ----------------------------------------------------------------
 C      DumTime = 0
 C      StopTime = 2427
@@ -217,6 +219,8 @@ C Following time steps -> Initialise parameters to their final value at the prev
 C************** Get mode (charge/discharge)
       IF (mandChargeCycle .NE. 1) THEN      ! Normal operation, the battery mode is determined
                                             ! by the controller based upon the overall power balance
+cxxx    << probably a good spot to improve short timestep behaviour by
+cxxx       testing with eclose()! >>
         IF (batDemandP .EQ. 0. ) THEN
            batMode = 2   ! Idle
            batLoad = batDemandP
@@ -529,6 +533,10 @@ C    Calculate and report max battery heater power in W
 
       Call AddToReport(rvEPowBattLiOnCycUsed%Identifier,
      &      cycles_used_Lion,
+     &      powcomnam(IPWC)(1:iNameLength))
+
+      Call AddToReport(rvEPowBattLionRInt%Identifier,
+     &      RInt_Lion(IPWC,batDODFin,batMode,batCurFin),
      &      powcomnam(IPWC)(1:iNameLength))
 
       RETURN
