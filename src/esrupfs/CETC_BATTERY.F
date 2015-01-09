@@ -3361,8 +3361,12 @@ C     Account for degradation
       IF (cycles_used_Lion .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
         cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
      &    *cellCapRef
-      ELSE ! The battery is beyond useful life and if falling off
-        cellCap = (8.8-.8*cycles_used_Lion/POWCDAT(IPWC,81))
+      ELSE ! The battery is beyond useful life and is falling off
+cx        cellCap = (8.8-.8*cycles_used_Lion/POWCDAT(IPWC,81))
+cx     &    *cellCapRef
+cx                <<add parameter "degradation factor" to change degradation
+cx                  in post-useful life phase ??>>
+        cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion)
      &    *cellCapRef
       ENDIF
 
@@ -4372,7 +4376,8 @@ C POWCDAT (IPWC,21): E2
 C POWCDAT (IPWC,22): E1
 C POWCDAT (IPWC,23): E0
 C---------------------------
-C Rint as a function of DOD at REFERENCE CURRENT of a single cell Rint(DOD) = Rint5*DOD^5 +  Rint4*DOD^4 + Rint3*DOD^3 + Rint2*DOD^2 + Rint1*DOD + Rint0
+C Rint as a function of DOD at REFERENCE CURRENT of a single cell
+C        Rint(DOD) = Rint5*DOD^5 +  Rint4*DOD^4 + Rint3*DOD^3 + Rint2*DOD^2 + Rint1*DOD + Rint0
 C This is determined by polyfitting the difference between the OCV and Vref divided
 C by the reference current using the OCV DOD scale (see Neil Saldanha's thesis for more info)
 C---------------------------
