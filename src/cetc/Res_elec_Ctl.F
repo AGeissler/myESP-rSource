@@ -326,7 +326,7 @@ C---- function definitions ----------------------------------------------
                                 ! integer parameter passed to it.
 
 C ---
-      DEBUG = .true.          ! toggle debug mode
+      DEBUG = .false.          ! toggle debug mode
 
 C---- Initiate variables according to battery type ----------------------
 
@@ -1176,7 +1176,7 @@ C 'Network interaction'
       real fNetworkBalance
 
       logical DEBUG
-      DEBUG = .true.  ! toggle debug mode
+      DEBUG = .false.  ! toggle debug mode
 
 C Return if RESElec control not active.
       if ( iRESElecCtl .ne. 1 ) return
