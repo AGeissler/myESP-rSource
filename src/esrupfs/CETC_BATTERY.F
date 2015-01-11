@@ -3366,7 +3366,7 @@ cx        cellCap = (8.8-.8*cycles_used_Lion/POWCDAT(IPWC,81))
 cx     &    *cellCapRef
 cx                <<add parameter "degradation factor" to change degradation
 cx                  in post-useful life phase ??>>
-        cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion)
+        cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
      &    *cellCapRef
       ENDIF
 
