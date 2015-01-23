@@ -171,7 +171,7 @@ MODULE h3kmodule
 
    !Used by complex_fenestration.F
    Type(ReportVariable) :: rvCFCazimuth,rvCFCelevation,rvSolarIncidentDirect,rvSolarIncidentDiff, &
-         rvCFCtranDir, rvCFCtranDiff,rvCFCvertprofileangle
+         rvCFCtranDir, rvCFCtranDiff,rvCFCvertprofileangle,rvSolarIncidentDirectShaded,rvSolarIncidentDiffShaded
 
    !Used by water_tanks.F
    Type(ReportVariable) :: rvPltSDHWSumDHWTankFuel,rvPltSDHWSumDHWTankElec,rvPltWaterTemp, &
@@ -1678,7 +1678,31 @@ CONTAINS
       rvClimateSnownDepth%Description = 'Depth of the snow on the ground'
       Call AddVariable(rvClimateSnownDepth)
 
-      ! Used by complex_fenestration.F
+      rvSolarIncidentDirect%VariableName = 'building/*/*/SolIncDir'
+      rvSolarIncidentDirect%MetaType = 'units'
+      rvSolarIncidentDirect%VariableType = 'W/m2'
+      rvSolarIncidentDirect%Description = 'Solar incident direct radiation '
+      Call AddVariable(rvSolarIncidentDirect)
+
+      rvSolarIncidentDiff%VariableName = 'building/*/*/SolIncDiff'
+      rvSolarIncidentDiff%MetaType = 'units'
+      rvSolarIncidentDiff%VariableType = 'W/m2'
+      rvSolarIncidentDiff%Description = 'Solar incident diffuse radiation '
+      Call AddVariable(rvSolarIncidentDiff)
+
+      rvSolarIncidentDirectShaded%VariableName = 'building/*/*/SolIncDirShad'
+      rvSolarIncidentDirectShaded%MetaType = 'units'
+      rvSolarIncidentDirectShaded%VariableType = 'W/m2'
+      rvSolarIncidentDirectShaded%Description = 'Solar incident direct radiation w/ shading '
+      Call AddVariable(rvSolarIncidentDirectShaded)
+
+      rvSolarIncidentDiffShaded%VariableName = 'building/*/*/SolIncDiffShad'
+      rvSolarIncidentDiffShaded%MetaType = 'units'
+      rvSolarIncidentDiffShaded%VariableType = 'W/m2'
+      rvSolarIncidentDiffShaded%Description = 'Solar incident diffuse radiation w/ shading '
+      Call AddVariable(rvSolarIncidentDiffShaded)
+
+      ! Used by complex fenestration (CFC)
       rvCFCazimuth%VariableName = 'CFC/*/*/azimuth'
       rvCFCazimuth%MetaType = 'units'
       rvCFCazimuth%VariableType = 'degrees'
@@ -1690,18 +1714,6 @@ CONTAINS
       rvCFCelevation%VariableType = 'degrees'
       rvCFCelevation%Description = 'Solar elevation '
       Call AddVariable(rvCFCelevation)
-
-      rvSolarIncidentDirect%VariableName = 'CFC/*/*/SolIncDir'
-      rvSolarIncidentDirect%MetaType = 'units'
-      rvSolarIncidentDirect%VariableType = 'W/m2'
-      rvSolarIncidentDirect%Description = 'Solar incident direct radiation '
-      Call AddVariable(rvSolarIncidentDirect)
-
-      rvSolarIncidentDiff%VariableName = 'CFC/*/*/SolIncDiff'
-      rvSolarIncidentDiff%MetaType = 'units'
-      rvSolarIncidentDiff%VariableType = 'W/m2'
-      rvSolarIncidentDiff%Description = 'Solar incident diffuse radiation '
-      Call AddVariable(rvSolarIncidentDiff)
 
       rvCFCtranDir%VariableName = 'CFC/*/*/CFCtranDir'
       rvCFCtranDir%MetaType = 'units'
