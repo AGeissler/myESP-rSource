@@ -983,7 +983,7 @@ C.........Pad zone index to 'XX'
 C.......Switch for surface name output here
         if (ReportBoolConfig ("use_surfacenames")) then
           write (cSurf_Chars,'(A)')
-     &       sname(iZone,I)(1:lnsname(icomp,I))
+     &       sname(icomp,I)(1:lnsname(icomp,I))
         else
 C.........Pad surface index to 'XX'
           if ( I .gt. 9 ) then
