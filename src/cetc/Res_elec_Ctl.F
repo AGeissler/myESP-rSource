@@ -654,6 +654,7 @@ C===============================================================================
 #include "building.h"
 #include "plant.h"
 #include "power.h"
+#include "BATTERY.h"
 #include "BinaryDataFile.h"
 
 C-----------------------------------------------------------------------------------------
@@ -730,6 +731,7 @@ C-------------------------------------------------------------------------------
 
       logical   bFileError            !- boolean signalling file error
       logical   xst                   !- boolean to signal that input file exists
+      logical   bBatteryNew
 
       real      SOC_MAX               !- maximum state of charge of battery
       real      SOC_MIN               !- minimum state of charge of battery
@@ -755,7 +757,6 @@ C filename is blank or unknown
         STOP 'Need renewable energy sys ctl file: unresolvable error.'
       endif
 
-
 C-----------------------------------------------------------------------------------------
 C Read input file of format (example file):
 C
@@ -763,22 +764,25 @@ C # Comments are denoted by the number sign and are ignored.
 C # This file contains inputs required by the renewable energy systems
 C # (elec) controller (subroutine RES_elec_ctl).
 C # Inputs required by controller in the following order:
-C 2            # (0)  control mode (1, 2 or 3) << only '1' & '2' usable >>
-C 3            # (1)  node number of the AC bus
-C 3            # (2)  node number of the DC bus
-C 2            # (3)  index number of the battery power-only component
-C 3            # (4)  index number of PCU that is connected between the PV and the DC bus
-C 6            # (5)  index number of the DC-AC converter (a PCU power-only component)
-C 5            # (6)  index number of the grid-connection power-only component
-C 25           # (7)  battery SOC at which PV is used for charging
-C 100          # (8)  battery SOC at which PV use for charging is ended
-C 25           # (9)  battery SOC at which grid is used for charging
-C 100          # (10) battery SOC at which grid use for charging is ended
-C 400.         # (11) controller deadband for PV battery charge (W)
-C 0            # (12) grid rate toggle
-C ./gridrate.fcl # (12a) if (12) is set to "2"
-C 0            # (13) grid refund toggle
-C ./gridrefund.fcl #(13a) if (13) is set to "2"
+C 2                # (0)  control mode (1, 2 or 3) << only '1' & '2' usable >>
+C 3                # (1)  node number of the AC bus
+C 3                # (2)  node number of the DC bus
+C 2                # (3)  index number of the battery power-only component
+C 3                # (4)  index number of PCU that is connected between the PV and the DC bus
+C 6                # (5)  index number of the DC-AC converter (a PCU power-only component)
+C 5                # (6)  index number of the grid-connection power-only component
+C 25               # (7)  battery SOC at which PV is used for charging
+C 100              # (8)  battery SOC at which PV use for charging is ended
+C 25               # (9)  battery SOC at which grid is used for charging
+C 100              # (10) battery SOC at which grid use for charging is ended
+C 400.             # (11) controller deadband for PV battery charge (W)
+C 3000.            # (12) battery cycles already used at simulation start
+C 0                # (13)  grid rate toggle
+C 0.16             # (13a) grid rate "low" threshold if (13) is set to "2"
+C ./gridrate.fcl   # (13b) grid rate file if (13) is set to "2"
+C 0                # (14)  grid refund toggle
+C 0.22             # (14a) grid refund "high" threshold if (14) is set to "2"
+C ./gridrefund.fcl # (14b) grid refund file if (14) is set to "2"
 C-----------------------------------------------------------------------------------------
 
 C Notify user that renewable energy system (elec) control file is being processed
@@ -826,6 +830,9 @@ C       << no further action necessary, to date >>
       ! Mode 2                        !
       !-------------------------------!
       elseif (RES_elec_ctl_mode .eq. 2) then
+
+C << count number of lines to follow to check for file integrity??
+C    Would be good, but difficult due to variable file length allowed for ... >>
 
 C     (1)
 C     Read the node number of the AC bus.
@@ -992,6 +999,35 @@ C     Read the controller deadband for PV battery loading
       endif
 
 C     (12)
+C     Read the number of cycles the battery has already used (this is
+C     mainly for 2nd life usage ...
+
+      call stripc(ireselecfl_ascii,outstr,0,nd,1,
+     &                                  'file cycles used',ier)
+      if ( ier .ne. 0 ) then
+        write(iuout,*) 'File read error reading bat. cycles used'
+        bFileError = .true.
+      endif
+      k = 0
+      call egetwr(outstr,k,cycles_used_Lion,0.,50000.,
+     &            'W','cycles used',ier)
+      if ( ier .ne. 0 ) then
+        write(iuout,*) 'Error reading bat. cycles used'
+        bFileError = .true.
+        write(cErrLoc,'(A)')'cycles used'
+      endif
+    ! Check if cycles used equal zero and set abuseFlag accordingly
+    ! (avoid resetting of cycles_used_Lion in InitSimulation()
+    ! of Battery.F (line 595 ff.))
+      call eclose(cycles_used_Lion,0,0.1,bBatteryNew)
+      if (bBatteryNew) then
+        abuseFlag=0
+      else
+        abuseFlag=1
+cx        write(*,*)"** abuseFlag=",abuseFlag
+      endif
+
+C     (13)
 C     Read the grid rate toggle
 C       0 ... bGridRateLow is set .false.
 C       1 ... bGridRateLow is set .true.
@@ -1015,6 +1051,7 @@ C             2) valid file name with grid rate values
       endif
 
       if (iGridRateToggle .eq. 2) then
+C       (13a)
 C       Read GridRateThreshold value
         call stripc(ireselecfl_ascii,outstr,0,nd,1,
      &                             'grid rate threshold stripc',ier)
@@ -1032,6 +1069,7 @@ C       Read GridRateThreshold value
         endif
 
 C       Read data file name
+C       (13b)
         call stripc(ireselecfl_ascii,outstr,0,nd,1,
      &                               'grid rate data filename',ier)
         if ( ier .ne. 0 ) then
@@ -1046,7 +1084,7 @@ C       Read data file name
 
       endif ! GridRateToggle .eq. 2
 
-C     (13)
+C     (14)
 C     Read the file name for PV refund rate
 C       0 ... bGridRefundHigh is set .false.
 C       1 ... bGridRefundHigh is set .true.
@@ -1071,6 +1109,7 @@ C             2) valid file name with grid refund values
 
       if (iGridRefundToggle .eq.2) then
 C     Read GridRefundThreshold value
+C       (14a)
         call stripc(ireselecfl_ascii,outstr,0,nd,1,
      &                                  'grid refund threshold',ier)
         if ( ier .ne. 0 ) then
@@ -1087,6 +1126,7 @@ C     Read GridRefundThreshold value
         endif
 
 C       Read data file name
+C       (14b)
         call stripc(ireselecfl_ascii,outstr,0,nd,1,
      &                               'grid refund data filename',ier)
         if ( ier .ne. 0 ) then
