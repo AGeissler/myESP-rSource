@@ -592,7 +592,12 @@ C ************** Initialisation
          batTempInit = POWCDAT(IPWC,9)
          batDODInit = POWCDAT(IPWC,10)
          mandChargeCycle = 0 ! This is to get by a road block set by the lead acid later
-         cycles_used_Lion = 0 ! This is the amount of cycles the cell has used for degradation
+         if (abuseFlag.eq.0) then
+           cycles_used_Lion = 0 ! This is the amount of cycles the cell has used for degradation
+                                ! if abuseFlag is set .ne.0 (in Res_elec_Ctl.F, approx. line 1000),
+                                ! the value is not changed, here!
+         endif
+cx         write(*,*)"*** cycles_used_Lion=",cycles_used_Lion
          loVoltLion = 0 ! These are flags initially set to zero to check that Li-on battery is within
          hiVoltLion = 0 ! safe limits
          loTempLion = 0
