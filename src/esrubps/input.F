@@ -1594,8 +1594,8 @@ C H2-dep_controller: end
 C RES (elec) controller: start
 C Experimental renewable energy system (elec) controller. 
 C Use with caution
-      if ( ireselecctl .eq. 1 ) then
-C        Read control file
+      if ( (ireselecctl .eq. 1) .and. (ICOMP.eq.1) ) then
+C        Read control file (once)
          call RES_elec_ctl_Read
       endif
 C RES (elec) controller: end
