@@ -787,7 +787,7 @@ C-------------------------------------------------------------------------------
 
 C Notify user that renewable energy system (elec) control file is being processed
 
-      call usrmsg( 'Reading RES elec control file ... ',
+      call usrmsg( ' Reading RES elec control file ... ',
      &             ' ','P')
 
 C Open the input file
@@ -1166,8 +1166,8 @@ C Error handling
 C Reposition file to first line.
       rewind(ireselecfl_ascii)
 
-C Notify user that residential h2 cogen control file processing is complete.
-      call usrmsg( 'Reading RES elec control file ... done.',
+C Notify user that control file processing is complete.
+      call usrmsg( ' Reading RES elec control file ... done.',
      &             ' ', 'P')
 
       RETURN
