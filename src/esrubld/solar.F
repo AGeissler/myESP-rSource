@@ -401,6 +401,7 @@ C rows respectively.
       logical znotair
 
 C.....DECLARATIONS for H3Kreporting object
+      real SolIncAreaFrac
       CHARACTER*12 cZone_Chars   ! zname(MCOM)
       Character*12 cSurf_Chars   ! sname(MCOM,MS)
 
@@ -1022,11 +1023,18 @@ C...........Pad surface index to 'XX'
      &      cZone_Chars,
      &      cSurf_Chars)
 
-          call AddToReport(
-     &      rvSolarShadeFrac%identifier,
-     &      SNA(ICOMP,I)*(EXDIF(I)+EXDIR(I))/(SRADDO(I)+SRADF(I)),
-     &      cZone_Chars,
-     &      cSurf_Chars)
+          if ((SRADDO(I)+SRADF(I)).gt.0.) then
+            SolIncAreaFrac=SNA(ICOMP,I)*(EXDIF(I)+EXDIR(I))/
+     &                                       (SRADDO(I)+SRADF(I))
+          else
+            SolIncAreaFrac=0.
+          endif
+
+            call AddToReport(
+     &        rvSolarShadeFrac%identifier,
+     &        SolIncAreaFrac,
+     &        cZone_Chars,
+     &        cSurf_Chars)
 
         endif ! external?
  16   CONTINUE ! loop through all surfaces in current zone for radinc
