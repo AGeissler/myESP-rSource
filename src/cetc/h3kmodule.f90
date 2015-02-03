@@ -171,7 +171,8 @@ MODULE h3kmodule
 
    !Used by complex_fenestration.F
    Type(ReportVariable) :: rvCFCazimuth,rvCFCelevation,rvSolarIncidentDirect,rvSolarIncidentDiff, &
-         rvCFCtranDir, rvCFCtranDiff,rvCFCvertprofileangle,rvSolarIncidentDirectShaded,rvSolarIncidentDiffShaded
+         rvCFCtranDir, rvCFCtranDiff,rvCFCvertprofileangle,rvSolarIncidentDirectShaded, &
+         rvSolarIncidentDiffShaded,rvSolarShadeFrac
 
    !Used by water_tanks.F
    Type(ReportVariable) :: rvPltSDHWSumDHWTankFuel,rvPltSDHWSumDHWTankElec,rvPltWaterTemp, &
@@ -1701,6 +1702,12 @@ CONTAINS
       rvSolarIncidentDiffShaded%VariableType = 'W/m2'
       rvSolarIncidentDiffShaded%Description = 'Solar incident diffuse radiation w/ shading '
       Call AddVariable(rvSolarIncidentDiffShaded)
+
+      rvSolarShadeFrac%VariableName = 'building/*/*/SolShadFrac'
+      rvSolarShadeFrac%MetaType = 'units'
+      rvSolarShadeFrac%VariableType = 'm2'
+      rvSolarShadeFrac%Description = 'Fractional solar area = area*Inc_shaded/Inc_not-shaded '
+      Call AddVariable(rvSolarShadeFrac)
 
       ! Used by complex fenestration (CFC)
       rvCFCazimuth%VariableName = 'CFC/*/*/azimuth'

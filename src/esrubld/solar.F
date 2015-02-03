@@ -956,67 +956,79 @@ C << use? and what about the case of ITPREP being zero >>
 C Loop through all zone surfaces and write h3k output of solar
 C incidence on surface with and without taking shading into account
       DO 16 I=1,NC
-        EXSHAD(I)=PO(ICOMP,I,IHRF)
-        EXSHADF(I)=POF(ICOMP,I,IHRF)
-        EXDIR(I)=SRADDO(I)*(1.-EXSHAD(I))
-        EXDIF(I)=SRADF(I)*(1.-EXSHADF(I))
-        EXRAD(I)=EXDIR(I)+EXDIF(I)
+        IF(IE(ICOMP,I).NE.0) THEN
+C         Not external construction, do nothing
 
-        call eclose(EXRAD(I), 0.0,0.001,bCloseToZero)
-        if ( bCloseToZero ) then
-          EXDIR(I) = 0.
-          EXDIF(I) = 0.
-        endif
+        ELSE
 
-C.......Switch for zone name output here
-        if (ReportBoolConfig("use_zonenames")) then
-          write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
-        else
-C.........Pad zone index to 'XX'
-          if ( icomp .gt. 9 ) then
-            write (cZone_Chars,'(A,I2)') 'zone_',icomp
-          else
-            write (cZone_Chars,'(A,I1)') 'zone_0',icomp
+          EXSHAD(I)=PO(ICOMP,I,IHRF)
+          EXSHADF(I)=POF(ICOMP,I,IHRF)
+          EXDIR(I)=SRADDO(I)*(1.-EXSHAD(I))
+          EXDIF(I)=SRADF(I)*(1.-EXSHADF(I))
+          EXRAD(I)=EXDIR(I)+EXDIF(I)
+
+          call eclose(EXRAD(I), 0.0,0.001,bCloseToZero)
+          if ( bCloseToZero ) then
+            EXDIR(I) = 0.
+            EXDIF(I) = 0.
           endif
-        endif ! use_zonenames
 
-C.......Switch for surface name output here
-        if (ReportBoolConfig ("use_surfacenames")) then
-          write (cSurf_Chars,'(A)')
-     &       sname(icomp,I)(1:lnsname(icomp,I))
-        else
-C.........Pad surface index to 'XX'
-          if ( I .gt. 9 ) then
-            write (cSurf_Chars,'(A,I2)') 'surface_',I
+C.........Switch for zone name output here
+          if (ReportBoolConfig("use_zonenames")) then
+            write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
           else
-            write (cSurf_Chars,'(A,I1)') 'surface_0',I
-          endif
-        endif ! use_surfacenames
+C...........Pad zone index to 'XX'
+            if ( icomp .gt. 9 ) then
+              write (cZone_Chars,'(A,I2)') 'zone_',icomp
+            else
+              write (cZone_Chars,'(A,I1)') 'zone_0',icomp
+            endif
+          endif ! use_zonenames
 
-        call AddToReport(
+C.........Switch for surface name output here
+          if (ReportBoolConfig ("use_surfacenames")) then
+            write (cSurf_Chars,'(A)')
+     &         sname(icomp,I)(1:lnsname(icomp,I))
+          else
+C...........Pad surface index to 'XX'
+            if ( I .gt. 9 ) then
+              write (cSurf_Chars,'(A,I2)') 'surface_',I
+            else
+              write (cSurf_Chars,'(A,I1)') 'surface_0',I
+            endif
+          endif ! use_surfacenames
+
+          call AddToReport(
      &      rvSolarIncidentDirect%identifier,
      &      SRADDO(I),
      &      cZone_Chars,
      &      cSurf_Chars)
 
-        call AddToReport(
+          call AddToReport(
      &      rvSolarIncidentDiff%identifier,
      &      SRADF(I),
      &      cZone_Chars,
      &      cSurf_Chars)
 
-        call AddToReport(
+          call AddToReport(
      &      rvSolarIncidentDirectShaded%identifier,
      &      EXDIR(I),
      &      cZone_Chars,
      &      cSurf_Chars)
 
-        call AddToReport(
+          call AddToReport(
      &      rvSolarIncidentDiffShaded%identifier,
      &      EXDIF(I),
      &      cZone_Chars,
      &      cSurf_Chars)
 
+          call AddToReport(
+     &      rvSolarShadeFrac%identifier,
+     &      SNA(ICOMP,I)*(EXDIF(I)+EXDIR(I))/(SRADDO(I)+SRADF(I)),
+     &      cZone_Chars,
+     &      cSurf_Chars)
+
+        endif ! external?
  16   CONTINUE ! loop through all surfaces in current zone for radinc
                ! h3k output
 
