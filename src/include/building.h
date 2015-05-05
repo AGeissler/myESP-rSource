@@ -60,7 +60,7 @@ C Variable thermo-physical properties.
       PARAMETER (MDATA=12)     !- Defining data items.
 
 C Special materials.
-      PARAMETER (MSPMNOD=40)   !- Special materials.
+      PARAMETER (MSPMNOD=600)  !- Special materials.
       PARAMETER (MSPMDAT=21)   !- Defining data items.
 
 C Casual gains.

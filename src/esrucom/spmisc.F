@@ -227,7 +227,7 @@ C Write out nodal information
       write(ispmfil,'(i4,a)') nspmnod,
      &'  # Number of special material nodes.'
       do 10 isp=1,nspmnod
-        write(ispmfil,'(a,i3)') '# Node No:',isp
+        write(ispmfil,'(a,i4)') '# Node No:',isp
         write(ispmfil,'(a,a)') spmlabel(isp),' # label'
         write(ispmfil,'(a)')'# Zone Surf Node Type Opq/Trn'
         write(ispmfil,'(2x,i2,2x,i2,2x,i2,2x,i2,2x,i2)')
