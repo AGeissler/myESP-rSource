@@ -2258,21 +2258,21 @@ C......Include only if h3k reports on building/zone_*/surf_*/node_* variables
 !       the way this is design, unless the <dump_all_data> is set to true
 !       or you request one of these node values then the loop will be bypassed.
 !
-!          do iNode = 1, (nndc (iZone, iSurface )-1)
-!             if ( iNode .gt. 9 ) then
-!               write(cNode_Chars, '(I2)')  iNode
-!             else
-!               write(cNode_Chars, '(A,I1)') '0', iNode
-!             endif
-!
-!C...........MLC layer temperature
-!C...........->Report data
-!            Call AddToReport(rvNodeTemp%Identifier,
-!     &         tfc(iZone,iSurface,iNode),
-!     &         cZone_Chars,
-!     &         cSurf_Chars,
-!     &         cNode_Chars)
-!          enddo  ! <- end iNode = 1,N of iSurface 1,N of iZone
+           do iNode = 1, (nndc (iZone, iSurface )-1)
+             if ( iNode .gt. 9 ) then
+               write(cNode_Chars, '(I2)')  iNode
+             else
+               write(cNode_Chars, '(A,I1)') '0', iNode
+             endif
+
+C............MLC layer temperature
+C............->Report data
+             Call AddToReport(rvNodeTemp%Identifier,
+     &         tfc(iZone,iSurface,iNode),
+     &         cZone_Chars,
+     &         cSurf_Chars,
+     &         cNode_Chars)
+           enddo  ! <- end iNode = 1,N of iSurface 1,N of iZone
          endif ! <- end lIncl_Node
       enddo ! <- end iSurface 1,N of iZone
 
