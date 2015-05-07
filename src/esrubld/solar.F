@@ -1012,6 +1012,18 @@ C...........Pad surface index to 'XX'
      &      cSurf_Chars)
 
           call AddToReport(
+     &      rvShadingFractionDirect%identifier,
+     &      EXSHAD(I),
+     &      cZone_Chars,
+     &      cSurf_Chars)
+
+          call AddToReport(
+     &      rvShadingFractionDiffuse%identifier,
+     &      EXSHADF(I),
+     &      cZone_Chars,
+     &      cSurf_Chars)
+
+          call AddToReport(
      &      rvSolarIncidentDirectShaded%identifier,
      &      EXDIR(I),
      &      cZone_Chars,

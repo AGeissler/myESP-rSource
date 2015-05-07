@@ -171,7 +171,8 @@ MODULE h3kmodule
 
    !Used by complex_fenestration.F
    Type(ReportVariable) :: rvCFCazimuth,rvCFCelevation,rvSolarIncidentDirect,rvSolarIncidentDiff, &
-         rvCFCtranDir, rvCFCtranDiff,rvCFCvertprofileangle,rvSolarIncidentDirectShaded, &
+         rvShadingFractionDirect,rvShadingFractionDiffuse, &
+         rvCFCtranDir,rvCFCtranDiff,rvCFCvertprofileangle,rvSolarIncidentDirectShaded, &
          rvSolarIncidentDiffShaded,rvSolarShadeFrac
 
    !Used by water_tanks.F
@@ -1690,6 +1691,19 @@ CONTAINS
       rvSolarIncidentDiff%VariableType = 'W/m2'
       rvSolarIncidentDiff%Description = 'Solar incident diffuse radiation '
       Call AddVariable(rvSolarIncidentDiff)
+
+! ExShad and ExShadF could be moved from solar.f to spmatl.f ...
+      rvShadingFractionDirect%VariableName = 'building/*/*/ExShad'
+      rvShadingFractionDirect%MetaType = 'units'
+      rvShadingFractionDirect%VariableType = '-'
+      rvShadingFractionDirect%Description = 'Direct shaded portion of surface expressed as factor '
+      Call AddVariable(rvShadingFractionDirect)
+
+      rvShadingFractionDiffuse%VariableName = 'building/*/*/ExShadF'
+      rvShadingFractionDiffuse%MetaType = 'units'
+      rvShadingFractionDiffuse%VariableType = '-'
+      rvShadingFractionDiffuse%Description = 'Diffuse shaded portion of surface expressed as factor '
+      Call AddVariable(rvShadingFractionDiffuse)
 
       rvSolarIncidentDirectShaded%VariableName = 'building/*/*/SolIncDirShad'
       rvSolarIncidentDirectShaded%MetaType = 'units'
