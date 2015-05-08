@@ -1189,7 +1189,7 @@ C              power output;
 C          3 - direct radiation power loss, the incident flux is set
 C              to the diffuse component only (the power output of all
 C              cells falls to that of the shaded cells).
-C   16 - miscellaneous loss factor used to derates the panel power
+C   16 - miscellaneous loss factor used to derate the panel power
 C        to account for uncertainty in the manufacturer's rating,
 C        ageing, soiling, snow cover,blocking diodes and wiring.
 
@@ -1583,13 +1583,14 @@ C purposes only.
 C Obtain effective irradiance reaching module (unlike the spmcmp1
 C model, this variable takes into account the reflectance of the
 C module's front cover).
-       fQPnl=(exdir(ispmloc(ispmnod,2))*fTrans_IncAng+
-     &           exdif(ispmloc(ispmnod,2))*fTrans_60)/
-     &           fTrans_0
+cx       fQPnl=(exdir(ispmloc(ispmnod,2))*fTrans_IncAng+
+cx     &           exdif(ispmloc(ispmnod,2))*fTrans_60)/
+cx     &           fTrans_0
 
 C Impose specified shading treatment.
        if(exshad(ispmloc(ispmnod,2)).gt.1E-6)then
 
+cx << divide by fTrans_0 seems arbitrary in the below calculations ... is it correct? >>
 C External shading case.
          if(iShad.eq.iIgnore.or.iShad.eq.iProportion)then
             fQPnl=(exdir(ispmloc(ispmnod,2))*fTrans_IncAng+
@@ -1635,7 +1636,7 @@ C as the open circuit voltage.
 C Calculate the maximum module power.
           fPVPower=fImpRef*fVmpRef*fIsc*fVoc/
      &               (fIscRef*fVocRef)*
-     &               iNPBrch*iSCell*iNPnnls
+     &               iNPBrch*iSCell*iNPnnls*(1.-fMiscLossFactor)
 
 C Calculate the module voltage.
           fPVVoltage=fVmp*iSCell
