@@ -29,7 +29,7 @@ C Modified by: Neil Saldanha January 2010 to include Li-on battery parameters
 C This common declares all the general variables required for the battery model
 C These variables describe the state of the battery at the end of a time step
 C which corresponds to the state of the battery at the begining of the next step
-C 
+C
 C---------------------------------------------------------------------------------
 C Declaration of variables as common
 C---------------------------------------------------------------------------------
@@ -51,7 +51,9 @@ C-------------------------------------------------------------------------------
      & hiVoltLion,
      & loTempLion,
      & hiTempLion,
-     & cycles_used_Lion
+     & cycles_used_Lion,
+     & cellCapIni,
+     & cycleIni
 
 C---------------------------------------------------------------------------------
 C Declaration of variable type and definition
@@ -61,7 +63,7 @@ C (by not performing full charge cycles regularly)
       INTEGER abuseFlag
 
 C Flag for active battery life control (-)
-      INTEGER activeBatLifeControl 
+      INTEGER activeBatLifeControl
 C       activeBatLifeControl = 0 : no active battery life control
 C       activeBatLifeControl = 1 : active battery life control
 
@@ -101,7 +103,7 @@ C If the time step value is not equal to the previous value -> time step changed
       INTEGER nPreviousTS
 
 C--------------------------------------------------------------------------------
-C Battery demand 
+C Battery demand
 C + Discharge -> energy demanded by system to the battery
 C - Charge -> energy provided by system to the batter
       REAL batDemandP
@@ -125,9 +127,15 @@ C-------------------------------------------------------------------------------
 
 C-------------------------------------------------------------------------------
 C Li-on degradation, number of cycles used
-C-------------------------------------------------------------------------------      
+C-------------------------------------------------------------------------------
       REAL cycles_used_Lion
-      
+
+C-------------------------------------------------------------------------------
+C Li-on 2nd life, initial cell capacity, cycles
+C-------------------------------------------------------------------------------
+      REAL cellCapIni, cycleIni
+
+
 C---------------------------
 C Battery type signatures
 C---------------------------
