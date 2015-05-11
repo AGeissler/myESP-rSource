@@ -166,8 +166,6 @@ C      INTEGER StopTime             ! time step to start debugging
 
       INTEGER iNameLength          ! Store the variable's name length (for Reporting)
 
-      REAL ageing_time             ! calendaric ageing factor
-
 C-------- For debugging only ----------------------------------------------------------------
 C      DumTime = 0
 C      StopTime = 2427
@@ -207,8 +205,7 @@ C See if the time step has been changed and, if so, do the proper initialisation
       IF (nTimeStep .GT. nPreviousTS) THEN
 C First time step -> initialise all parameters at the beginning of the simulation
         IF(nTimeStep .EQ. 1) THEN
-          Call InitSimulation(IPWC,batTIni,batDODIni,cellCapIni,
-     &                        ageing_time,cycles_used_Lion)
+          Call InitSimulation(IPWC,batTIni,batDODIni)
 C Following time steps -> Initialise parameters to their final value at the previous time step
         ELSE
           Call InitTimeStep(IPWC,batTFin,batDODFin,batTIni,batDODIni,
@@ -335,8 +332,7 @@ C    Evaluate the battery life fraction used in this timestep
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
      &               batVolt,batTFin,batDODFin,batCurFin,pIntHeatFin,
      &               hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &               gas_constant,cycles_used_Lion,batSOC,
-     &               ageing_time)
+     &               gas_constant,cycles_used_lion)
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat - pHeaters - pParasitic
          ENDIF
@@ -370,8 +366,7 @@ C    Evaluate the battery life fraction used in this timestep
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
      &               batVolt,batTFin,batDODFin,batCurFin,pIntHeatFin,
      &               hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &               gas_constant,cycles_used_Lion,batSOC,
-     &               ageing_time)
+     &               gas_constant,cycles_used_lion)
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat + pHeaters + pParasitic
          ENDIF
@@ -561,9 +556,7 @@ C
 C See BATTERY.h for definition of other variables
 C
 C *********************************************************************
-      SUBROUTINE InitSimulation(IPWC,batTempInit,batDODInit,
-     &                          cellCapIni,ageing_time,
-     &                          cycles_used_Lion)
+      SUBROUTINE InitSimulation(IPWC,batTempInit,batDODInit)
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
@@ -578,7 +571,6 @@ C *********************************************************************
 
 C PARAMETERS FROM SIGNATURE
        REAL batTempInit,batDODInit
-       REAL ageing_time,ageing_cycle
        INTEGER IPWC
 
 C-------------------------------------------------------------------------
@@ -586,7 +578,7 @@ C Local variables
 C-------------------------------------------------------------------------
 C       INTEGER iii                  ! for debugging only
        REAL gamma1, gamma2, gamma3, gamma4, cellCapRef,
-     &      stateOfHealth
+     &      ageing_cycle, cellCapIni, cycleIni
 
 
 C ************** Initialisation
@@ -631,11 +623,10 @@ cx         write(*,*)"*** cycles_used_Lion=",cycles_used_Lion
                  ageing_time = 0.
                  ageing_cycle = 0.
 	         ELSE
-                 stateOfHealth = cellCapIni/cellCapRef
                  ageing_cycle = gamma1 + gamma2*cycleIni
      &                        + gamma3*cycleIni**2
      &                        + gamma4*cycleIni**3
-                 ageing_time = stateOfHealth - ageing_cycle
+                 ageing_time = (cellCapIni/cellCapRef) - ageing_cycle
                  cycles_used_Lion = cycleIni
              ENDIF
          ELSE
@@ -3336,10 +3327,12 @@ C Declaration of functions used
 C************** Calculation
       IF(batMode .EQ. 0) THEN   !Charge
         FinalDOD_Lion = DODIni - batCur*dtTStep/
-     &                  BatteryCap_Lion(IPWC,batTemp,batCur)
+     &                  BatteryCap_Lion(IPWC,batTemp,batCur,DODIni,
+     &                  dtTStep)
       ELSE  !Discharge
         FinalDOD_Lion = DODIni + batCur*dtTStep/
-     &                  BatteryCap_Lion(IPWC,batTemp,batCur)
+     &                  BatteryCap_Lion(IPWC,batTemp,batCur,DODIni,
+     &                  dtTStep)
       ENDIF
       END
 
@@ -3365,8 +3358,7 @@ C OUTPUTS:
 C -returns the battery's capacity (Ah)
 C
 C *********************************************************************
-      REAL FUNCTION BatteryCap_Lion(IPWC,batTemp,batCur,batSOC,
-     &                              ageing_time)
+      REAL FUNCTION BatteryCap_Lion(IPWC,batTemp,batCur,DODIni,dtTStep)
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
@@ -3378,12 +3370,11 @@ C *********************************************************************
       INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
-      REAL batTemp, batCur, batSOC, ageing_time
+      REAL batTemp,batCur,DODIni,dtTStep
       INTEGER IPWC
 
 C Battery parameters
-      REAL cellCap
-      REAL cellCapRef
+      REAL cellCap, cellCapRef, capIni
       INTEGER nParal
 
 C Coefficients for the capacity equation
@@ -3404,27 +3395,33 @@ C************** Calculations
 C     Determine temperature (beta) and current (alpha) factors to scale reference capacity by
 
       beta = temp_factor_lion(IPWC,batTemp)
-
       alpha = rate_factor_lion(IPWC,batCur)
 
 C     Account for degradation
 
-cx     IF (cycles_used_Lion .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
-cx        cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
-cx     &    *cellCapRef
-cx      ELSE ! The battery is beyond useful life and is falling off
-cx        cellCap = (8.8-.8*cycles_used_Lion/POWCDAT(IPWC,81))
-cx     &    *cellCapRef
+      capIni = POWCDAT(IPWC,83)		! only used to check if more than 81 parameters available
+
+C	  Check if the parameter file has more than 81 entries
+C	  If not use the old degradation method
+
+      IF (capIni .EQ. 0) THEN
+           IF (cycles_used_Lion .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
+               cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
+     &         *cellCapRef
+           ELSE ! The battery is beyond useful life and is falling off
+             cellCap = (8.8-.8*cycles_used_Lion/POWCDAT(IPWC,81))
+     &       *cellCapRef
 cx                <<add parameter "degradation factor" to change degradation
 cx                  in post-useful life phase ??>>
-cx        cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
-cx     &    *cellCapRef
-cx      ENDIF
+             cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
+     &       *cellCapRef
+           ENDIF
+      ELSE
+	       cellCap = cellCapRef*SOH_Lion(IPWC,batTemp,DODIni,dtTStep)
+      ENDIF
 
 C     Capacity of the battery is the capacity of one cell times the number of cells in parallel
-C
 
-      cellCap = cellCapRef*SOH_Lion(IPWC,batTemp,batSOC,ageing_time)
       BatteryCap_Lion = beta*alpha*cellCap*nParal
 
 C     Make sure no negative value is returned
@@ -4002,7 +3999,7 @@ C
 C OUTPUTS:
 C tbd
 c *************************************************************************
-      REAL FUNCTION SOH_Lion(IPWC,batTemp,batSOC,ageing_time)
+      REAL FUNCTION SOH_Lion(IPWC,batTemp,DODIni,dtTStep)
 
       IMPLICIT NONE
 #include "building.h"
@@ -4014,21 +4011,18 @@ c *************************************************************************
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
 
-      common/pctstp/ntstpp
-      integer ntstpp            ! number of plant timesteps / building timestep
 
 C PARAMETERS FROM SIGNATURE
-      REAL batTemp,batSOC
+      REAL batTemp,DODIni,dtTStep
       INTEGER IPWC
 
 C Local Parameters
 
-      REAL batSOCRef,batTOper
+      REAL batSOCRef,batTOper,batSOC
 
 C Ageing Parameters
 
       REAL ageing_cycle,		! Cyclic ageing factor
-     &     ageing_time,			! Calendric ageing factor
      &     ageing_time_ref,		! Calendric ageing factor under reference conditions (A_0)
      &     ageing_temp_factor,	! Temperature factor b
      &     ageing_soc_factor	! State of charge factor c
@@ -4054,11 +4048,14 @@ C************** Initialisation
 
 C *********** Calculate ageing factors
 
+      batSOC = (1. - DODIni)*100
+
+
       ageing_time = ageing_time + ageing_time_ref
      & *((exp(2
-     & *((batTemp - batTOper)/(ageing_temp_factor/log(2))
-     & +(batSOC - batSOCRef)/(ageing_soc_factor/log(2)))
-     & ))*float(ntstpp))**0.5
+     & *((batTemp - batTOper)/(ageing_temp_factor/log(2.))
+     & +(batSOC - batSOCRef)/(ageing_soc_factor/log(2.)))
+     & ))*(dtTStep*24))**0.5
 
 
       ageing_cycle = gamma1 + gamma2*cycles_used_Lion
@@ -4068,7 +4065,7 @@ C *********** Calculate ageing factors
 
 C *********** Calculate remaining capacity
 
-      SOH_Lion = 1-(ageing_cycle+ageing_time)
+      SOH_Lion = 1.-(ageing_cycle+ageing_time)
 
       RETURN
       END
@@ -4107,8 +4104,7 @@ c *********************************************************************
      &                    maxC,maxP,pLoad,pBat,pHeaters,pParasitic,
      &                    batVolt,batTFin,batDODFin,batCur,pIntHeat,
      &                    hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &                    gas_constant,cycles_used_Lion,batSOC,
-     &                    ageing_time)
+     &                    gas_constant,cycles_used_lion)
 
       IMPLICIT NONE
 #include "building.h"
@@ -4124,8 +4120,7 @@ c *********************************************************************
 
 C PARAMETERS FROM SIGNATURE (see routine comments for description)
       REAL batTIni,zoneT,DODIni,dtTStep,maxC,maxP,pLoad,pBat,pHeaters,
-     &     pParasitic,batVolt,batTFin,batDODFin,batCur,pIntHeat,
-     &     batSOC,ageing_time
+     &     pParasitic,batVolt,batTFin,batDODFin,batCur,pIntHeat
 
       INTEGER IPWC, batMode
       INTEGER hiVoltLion,loVoltLion,hiTempLion,loTempLion
@@ -4154,8 +4149,8 @@ C      REAL availpower,      ! Available power from the battery (W)
      &     relax,           ! relaxation factor
      &     pLoad_or,        ! original load offered
      &     neededHeat,      ! heat needed to return to safe operation
-     &     cycles_used_Lion,! number of cycles exhausted for degradation
-     &     maxPheaters      ! maximum heat possible based on current
+     &     maxPheaters,     ! maximum heat possible based on current
+     &     cycles_used_lion !
 
 C************** Initialisation
       nParal = int(POWCDAT(IPWC,1))
@@ -4195,7 +4190,7 @@ C safe limits
 
 C         The needed energy in watts to return to safe points
           needed_power = (POWCDAT(IPWC,15)-DODIni)                 !delta DOD
-     &        *BatteryCap_Lion(IPWC,batTIni,batCur,batSOC,ageing_time)                !battery capacity
+     &        *BatteryCap_Lion(IPWC,batTIni,batCur,DODIni,dtTStep) !battery capacity
      &        *AvgVolt(IPWC,batTIni,DODIni,batMode,dtTStep,dummy)  !voltage
      &        /dtTStep                                             !time step
           batCur = CurForPow(IPWC,batTIni,DODIni,batMode,dtTStep,
@@ -4236,7 +4231,7 @@ C safe limits
      &        .LT. max_iteration )
           dummy = batCur
           needed_power = (DODIni-POWCDAT(IPWC,14))                 !delta DOD
-     &        *BatteryCap_Lion(IPWC,batTIni,batCur,batSOC,ageing_time)                !battery capacity
+     &        *BatteryCap_Lion(IPWC,batTIni,batCur,DODIni,dtTStep) !battery capacity
      &        *AvgVolt(IPWC,batTIni,DODIni,batMode,dtTStep,dummy)  !voltage
      &        /dtTStep                                             !time step
           batCur = CurForPow(IPWC,
