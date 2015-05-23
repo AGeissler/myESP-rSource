@@ -3341,12 +3341,9 @@ C Declaration of functions used
 C************** Calculation
       IF(batMode .EQ. 0) THEN   !Charge
         FinalDOD_Lion = DODIni - batCur*dtTStep/
-     &                  BatteryCap_Lion(IPWC,batTemp,batCur,DODIni,
-     &                  dtTStep)
-      ELSE  !Discharge
+     &                  BatteryCap_Lion(IPWC,batTemp,batCur)
         FinalDOD_Lion = DODIni + batCur*dtTStep/
-     &                  BatteryCap_Lion(IPWC,batTemp,batCur,DODIni,
-     &                  dtTStep)
+     &                  BatteryCap_Lion(IPWC,batTemp,batCur)
       ENDIF
       END
 
@@ -3372,7 +3369,7 @@ C OUTPUTS:
 C -returns the battery's capacity (Ah)
 C
 C *********************************************************************
-      REAL FUNCTION BatteryCap_Lion(IPWC,batTemp,batCur,DODIni,dtTStep)
+      REAL FUNCTION BatteryCap_Lion(IPWC,batTemp,batCur)
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
@@ -3384,11 +3381,11 @@ C *********************************************************************
       INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
-      REAL batTemp,batCur,DODIni,dtTStep
+      REAL batTemp,batCur
       INTEGER IPWC
 
 C Battery parameters
-      REAL cellCap, cellCapRef, capIni
+      REAL cellCap, cellCapRef
       INTEGER nParal
 
 C Coefficients for the capacity equation
@@ -3397,7 +3394,6 @@ C Coefficients for the capacity equation
 C Declaration of functions used
       REAL temp_factor_lion
       REAL rate_factor_lion
-      REAL SOH_Lion
 
 C************** Initialisation
 
@@ -3412,13 +3408,9 @@ C     Determine temperature (beta) and current (alpha) factors to scale referenc
       alpha = rate_factor_lion(IPWC,batCur)
 
 C     Account for degradation
+C     Check if Parameter 82 is set. If not use the old degradation method
 
-      capIni = POWCDAT(IPWC,82)		! only used to check if more than 81 parameters available
-
-C	  Check if the parameter file has more than 81 entries
-C	  If not use the old degradation method
-
-      IF (capIni .EQ. 0) THEN
+      IF (POWCDAT(IPWC,82) .EQ. 0.0) THEN
            IF (cycles_used_Lion .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
                cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
      &         *cellCapRef
@@ -3431,7 +3423,6 @@ cx                  in post-useful life phase ??>>
      &       *cellCapRef
            ENDIF
       ELSE
-cx               WRITE(IUOUT,*) 'state_of_health= ',state_of_health ! debugging  -> -Infinity
 cx	       cellCap = cellCapRef*state_of_health
 	       cellCap = cellCapRef*(0.8+0.2*state_of_health) ! Debug only
       ENDIF
@@ -4034,6 +4025,18 @@ c *************************************************************************
       integer ntstpp            ! number of plant timesteps / building timestep
 
 
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       INTEGER IHRP            !-hour of present time-step
+       INTEGER IHRF            !-hour of future time-step
+       INTEGER IDYP            !-year day number of present day
+       INTEGER IDYF            !-year day number of future day
+       INTEGER IDWP            !-day of the week of present day
+       INTEGER IDWF            !-day of the week of future day
+       INTEGER NSINC           !-number of building-side time increments
+                               !-since start of simulation
+       INTEGER ITS             !-current building time-step within
+                               !-current hour
+
 C PARAMETERS FROM SIGNATURE
       REAL batTemp,DODIni
       INTEGER IPWC
@@ -4046,10 +4049,10 @@ C Ageing Parameters
 
       REAL ageing_cycle,		! Cyclic ageing factor
      &     ageing_time_ref,		! Calendric ageing factor under reference conditions (A_0)
-     &     ageing_temp_factor,	! Temperature factor b
-     &     ageing_soc_factor,	! State of charge factor c
-     &     calc_a_time	! 
-
+     &     ageing_temp_factor,	        ! Temperature factor b
+     &     ageing_soc_factor,	        ! State of charge factor c
+     &     calc_a_time,	                ! ageing factor per timestep
+     &     dummy2	                ! number of timesteps, debug only
 
 C cyclic ageing polynomial factors
 
@@ -4067,38 +4070,44 @@ C************** Initialisation
       ageing_temp_factor = POWCDAT(IPWC,89)
       ageing_soc_factor = POWCDAT(IPWC,90)
       batSOCRef  = POWCDAT(IPWC,91)
-      batSOC = (1. - DODIni)
+cx      batSOC = (1. - DODIni)
+      batSOC = 0.5   ! debug only
+      batTemp = 25.0 ! debug only
+
 
 C *********** Calculate ageing factors
 
-      WRITE(IUOUT,*) 'batSOC= ',batSOC
-      WRITE(IUOUT,*) 'batSOCRef= ',batSOCRef
-      WRITE(IUOUT,*) 'ageing_time_ref= ',ageing_time_ref
-      WRITE(IUOUT,*) 'batTemp= ',batTemp
-      WRITE(IUOUT,*) 'batTOper= ',batTOper
-      WRITE(IUOUT,*) 'ageing_temp_factor= ',ageing_temp_factor/log(2.)
-      WRITE(IUOUT,*) 'ageing_soc_factor= ',ageing_soc_factor/log(2.)
-      WRITE(IUOUT,*) 'TIMSEC= ',TIMSEC
+cx      WRITE(IUOUT,*) 'batSOC= ',batSOC
+cx      WRITE(IUOUT,*) 'batSOCRef= ',batSOCRef
+cx      WRITE(IUOUT,*) 'ageing_time_ref= ',ageing_time_ref
+cx      WRITE(IUOUT,*) 'batTemp= ',batTemp
+cx      WRITE(IUOUT,*) 'batTOper= ',batTOper
+cx      WRITE(IUOUT,*) 'ageing_temp_factor= ',ageing_temp_factor/log(2.)
+cx      WRITE(IUOUT,*) 'ageing_soc_factor= ',ageing_soc_factor/log(2.)
+cx      WRITE(IUOUT,*) 'TIMSEC= ',TIMSEC
 
 
-      calc_a_time = ageing_time_ref
-     & *((exp(2
+      calc_a_time = ageing_time_ref    ! calculate the ageing_factor for one timestep
+     & *((exp(2                        ! this one is correct
      & *((batTemp - batTOper)/(ageing_temp_factor/log(2.))
      & +(batSOC - batSOCRef)/(ageing_soc_factor/log(2.)))
-     & ))*(TIMSEC/86400))**0.5  ! Convert seconds to days
+     & ))*(TIMSEC/86400))**0.5         ! Convert TIMSEC to days
 
-cx      ageing_time = ageing_time+calc_a_time/3600   ! 3600 only for debuging
-      ageing_time = ageing_time+calc_a_time
+      ageing_time = ageing_time+calc_a_time  ! Troublemaker debug
 
       ageing_cycle = gamma1 + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
      & 	           + gamma4*cycles_used_Lion**3
 
+      dummy2 = dummy2 + 1.
 
       WRITE(IUOUT,*) 'ageing_cycle= ',ageing_cycle
       WRITE(IUOUT,*) 'ageing_time= ',ageing_time
       WRITE(IUOUT,*) 'calc_a_time= ',calc_a_time
-
+      WRITE(IUOUT,*) 'NSINC= ',NSINC
+      WRITE(IUOUT,*) 'TIMSEC= ',TIMSEC
+      WRITE(IUOUT,*) 'ntstpp= ',ntstpp
+      WRITE(IUOUT,*) 'dummy2= ',dummy2
 
 C *********** Calculate state of health
 
@@ -4228,7 +4237,7 @@ C safe limits
 
 C         The needed energy in watts to return to safe points
           needed_power = (POWCDAT(IPWC,15)-DODIni)                 !delta DOD
-     &        *BatteryCap_Lion(IPWC,batTIni,batCur,DODIni,dtTStep) !battery capacity
+     &        *BatteryCap_Lion(IPWC,batTIni,batCur)                !battery capacity
      &        *AvgVolt(IPWC,batTIni,DODIni,batMode,dtTStep,dummy)  !voltage
      &        /dtTStep                                             !time step
           batCur = CurForPow(IPWC,batTIni,DODIni,batMode,dtTStep,
@@ -4269,7 +4278,7 @@ C safe limits
      &        .LT. max_iteration )
           dummy = batCur
           needed_power = (DODIni-POWCDAT(IPWC,14))                 !delta DOD
-     &        *BatteryCap_Lion(IPWC,batTIni,batCur,DODIni,dtTStep) !battery capacity
+     &        *BatteryCap_Lion(IPWC,batTIni,batCur)                !battery capacity
      &        *AvgVolt(IPWC,batTIni,DODIni,batMode,dtTStep,dummy)  !voltage
      &        /dtTStep                                             !time step
           batCur = CurForPow(IPWC,
@@ -4413,10 +4422,12 @@ C  Find out how much of the battery cycle life has depleted
      &                   abs(batDODFin-DODIni)
      &                   /float(ntstpp) !account for no. of plant steps/building step
 
-C  Calculate the SOH
+C  Calculate the SOH only if remaining capacity (Parameter 82) is set
 
-      state_of_health = SOH_Lion(IPWC,batTIni,DODIni)
+      IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
+          state_of_health = SOH_Lion(IPWC,batTIni,DODIni)
 cx      WRITE(IUOUT,*) 'state_of_health= ',state_of_health
+      ENDIF
 
       END
 
