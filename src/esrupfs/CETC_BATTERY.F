@@ -4092,9 +4092,9 @@ cx      WRITE(IUOUT,*) 'ageing_soc_factor= ',ageing_soc_factor/log(2.)
      & *((exp(2                        ! Troublemaker debug
      & *((batTemp - batTOper)/(ageing_temp_factor/log(2.))
      & +(batSOC - batSOCRef)/(ageing_soc_factor/log(2.)))
-     & ))*(TIMSEC/86400))**0.5
+     & ))*(TIMSEC/86400/13440))**0.5   ! Korrektes Resultat mit zus. Teilen durch Anzahl Timesteps
 
-      ageing_time = ageing_time+calc_a_time    ! Troublemaker debug
+      ageing_time = ageing_time+calc_a_time
 
       ageing_cycle = gamma1 + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
