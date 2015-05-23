@@ -621,7 +621,7 @@ cx         write(*,*)"*** cycles_used_Lion=",cycles_used_Lion
          ageing_time = 0.
          ageing_cycle = 0.
          state_of_health = 1.
-         IF (cellCapIni .NE. 0.0) THEN  ! Backwards-compatibility if Parameter 82 is set 0.0 
+         IF (cellCapIni .NE. 0.0) THEN  ! Backwards-compatibility if Parameter 82 is set
              IF (cellCapIni .EQ. CellCapRef) THEN ! and Parameter 83 same as Parameter 3
                  ageing_time = 0.
                  ageing_cycle = 0.
@@ -644,12 +644,14 @@ cx         write(*,*)"*** cycles_used_Lion=",cycles_used_Lion
          ENDIF
        ENDIF
 
-       write(*,*) "age_time= ",ageing_time ! debugging
-       write(*,*) "age_cycle= ",ageing_cycle
-       write(*,*) "cycles_used_Lion= ",cycles_used_Lion
-       write(*,*) "state_of_health= ",state_of_health
 
 C   For debugging only:
+
+cx       write(*,*) "age_time= ",ageing_time ! debugging
+cx       write(*,*) "age_cycle= ",ageing_cycle
+cx       write(*,*) "cycles_used_Lion= ",cycles_used_Lion
+cx       write(*,*) "state_of_health= ",state_of_health
+
 C         iii = 1
 C         DO WHILE (iii <= 60)
 C           WRITE (IUOUT,*) ' item ', iii, ' = ', POWCDAT(IPWC,iii)
@@ -4084,16 +4086,15 @@ cx      WRITE(IUOUT,*) 'batTemp= ',batTemp
 cx      WRITE(IUOUT,*) 'batTOper= ',batTOper
 cx      WRITE(IUOUT,*) 'ageing_temp_factor= ',ageing_temp_factor/log(2.)
 cx      WRITE(IUOUT,*) 'ageing_soc_factor= ',ageing_soc_factor/log(2.)
-cx      WRITE(IUOUT,*) 'TIMSEC= ',TIMSEC
 
 
-      calc_a_time = ageing_time_ref    ! calculate the ageing_factor for one timestep
-     & *((exp(2                        ! this one is correct
+      calc_a_time = ageing_time_ref    ! Calculate calendric ageing per timestep
+     & *((exp(2                        ! Troublemaker debug
      & *((batTemp - batTOper)/(ageing_temp_factor/log(2.))
      & +(batSOC - batSOCRef)/(ageing_soc_factor/log(2.)))
-     & ))*(TIMSEC/86400))**0.5         ! Convert TIMSEC to days
+     & ))*(TIMSEC/86400))**0.5
 
-      ageing_time = ageing_time+calc_a_time  ! Troublemaker debug
+      ageing_time = ageing_time+calc_a_time    ! Troublemaker debug
 
       ageing_cycle = gamma1 + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
@@ -4101,12 +4102,12 @@ cx      WRITE(IUOUT,*) 'TIMSEC= ',TIMSEC
 
       dummy2 = dummy2 + 1.
 
-      WRITE(IUOUT,*) 'ageing_cycle= ',ageing_cycle
+cx      WRITE(IUOUT,*) 'ageing_cycle= ',ageing_cycle
       WRITE(IUOUT,*) 'ageing_time= ',ageing_time
       WRITE(IUOUT,*) 'calc_a_time= ',calc_a_time
-      WRITE(IUOUT,*) 'NSINC= ',NSINC
-      WRITE(IUOUT,*) 'TIMSEC= ',TIMSEC
-      WRITE(IUOUT,*) 'ntstpp= ',ntstpp
+cx      WRITE(IUOUT,*) 'NSINC= ',NSINC
+cx      WRITE(IUOUT,*) 'TIMSEC= ',TIMSEC
+cx      WRITE(IUOUT,*) 'ntstpp= ',ntstpp
       WRITE(IUOUT,*) 'dummy2= ',dummy2
 
 C *********** Calculate state of health
