@@ -52,7 +52,8 @@ C-------------------------------------------------------------------------------
      & loTempLion,
      & hiTempLion,
      & cycles_used_Lion,
-     & ageing_time
+     & ageing_time,
+     & state_of_health
 
 C---------------------------------------------------------------------------------
 C Declaration of variable type and definition
@@ -127,7 +128,7 @@ C-------------------------------------------------------------------------------
 C-------------------------------------------------------------------------------
 C Li-on degradation, number of cycles used & calendaric ageing factor
 C-------------------------------------------------------------------------------      
-      REAL cycles_used_Lion, ageing_time
+      REAL cycles_used_Lion, ageing_time, state_of_health
   
 C---------------------------
 C Battery type signatures
