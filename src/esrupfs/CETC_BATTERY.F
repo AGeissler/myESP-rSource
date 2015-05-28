@@ -325,14 +325,12 @@ C    Evaluate the battery life fraction used in this timestep
          ELSEIF( POWCOMID(IPWC) .EQ. vrb) THEN      ! VRB
            CALL DoDischarge_VRB(IPWC,batTIni,zoneT,batDODIni,dtTStep,
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
-     &               batVolt,batTFin,batDODFin,batCurFin, pIntHeatFin)
+     &               batVolt,batTFin,batDODFin,batCurFin,pIntHeatFin)
 
          ELSEIF( POWCOMID(IPWC) .EQ. lion) THEN      ! Li-on
            CALL Lion_BMS(IPWC,batTIni,zoneT,batDODIni,dtTStep,batMode,
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
-     &               batVolt,batTFin,batDODFin,batCurFin,pIntHeatFin,
-     &               hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &               gas_constant,cycles_used_lion,state_of_health)
+     &               batVolt,batCurFin,pIntHeatFin)
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat - pHeaters - pParasitic
          ENDIF
@@ -364,9 +362,7 @@ C    Evaluate the battery life fraction used in this timestep
          ELSEIF( POWCOMID(IPWC) .EQ. lion) THEN      ! Li-on
            CALL Lion_BMS(IPWC,batTIni,zoneT,batDODIni,dtTStep,batMode,
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
-     &               batVolt,batTFin,batDODFin,batCurFin,pIntHeatFin,
-     &               hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &               gas_constant,cycles_used_lion,state_of_health)
+     &               batVolt,batCurFin,pIntHeatFin)
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat + pHeaters + pParasitic
          ENDIF
@@ -601,15 +597,12 @@ C ************** Initialisation
          timeSinceLastFullCharge = 0.
 
        ELSEIF ( POWCOMID(IPWC) .EQ. lion ) THEN  ! Li-on
-         batTempInit = POWCDAT(IPWC,9) ! not necessary
-         batDODInit = POWCDAT(IPWC,10) ! not necessary
          mandChargeCycle = 0 ! This is to get by a road block set by the lead acid later
          IF (abuseFlag.eq.0) THEN
            cycles_used_Lion = 0 ! This is the amount of cycles the cell has used for degradation
                                 ! if abuseFlag is set .ne.0 (in Res_elec_Ctl.F, approx. line 1000),
                                 ! the value is not changed, here!
          ENDIF
-cx         write(*,*)"*** cycles_used_Lion=",cycles_used_Lion
          loVoltLion = 0 ! These are flags initially set to zero to check that Li-on battery is within
          hiVoltLion = 0 ! safe limits
          loTempLion = 0
@@ -634,7 +627,7 @@ cx         write(*,*)"*** cycles_used_Lion=",cycles_used_Lion
      &                        + gamma3*cycleIni**2
      &                        + gamma4*cycleIni**3
                  ageing_time = 1.0-(cellCapIni/cellCapRef)-ageing_cycle
-                 IF (ageing_time .LE. 0.0) THEN  ! Debug only
+                 IF (ageing_time .LE. 0.0) THEN
                      ageing_time = 0.0
                  ENDIF
                  cycles_used_Lion = cycleIni
@@ -1181,7 +1174,7 @@ C      input parameters are finalized.
          RIntEnd = RInt_VRB(IPWC,batTemp,DODEnd,batCurrent,batMode)
          RIntAvg = RInt_VRB(IPWC,batTemp,(DODInit+DODEnd)/2.0,
      &             batCurrent,batMode)
-      ELSEIF ( POWCOMID(IPWC) .EQ. lion) THEN  !Lion
+      ELSEIF ( POWCOMID(IPWC) .EQ. lion) THEN  ! Lion
          upperBoundDOD = POWCDAT(IPWC,14)
          lowerBoundDOD = POWCDAT(IPWC,15)
          DODEnd = FinalDOD_Lion(IPWC,batTemp,DODInit,batMode,dtTStep,
@@ -3358,6 +3351,7 @@ C 51 BatteryCap_Lion
 C**************************************************************************
 C
 C Initial Creation Date: January, 2010 by Neil Saldanha
+C Modified by Andreas Bucher May 2015
 C
 C - This subroutine returns the capacity of the battery
 C   as a function of its temperature, current
@@ -3381,9 +3375,6 @@ C *********************************************************************
 #include "power.h"
 #include "BATTERY.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout          !- write unit number
-      INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTemp,batCur
@@ -3428,8 +3419,10 @@ cx                  in post-useful life phase ??>>
      &       *cellCapRef
            ENDIF
       ELSE
-cx	       cellCap = cellCapRef*state_of_health
-	       cellCap = cellCapRef*(0.8+0.2*state_of_health) ! Debug only
+cx	       cellCap = cellCapRef*state_of_health 
+	       cellCap = cellCapRef*(0.8+0.2*state_of_health)
+cx             use the first calculation method of cellCap if the parameters 
+cx             of a 2nd life cell were defined as described in Andreas Bucher's thesis
       ENDIF
 
 C     Capacity of the battery is the capacity of one cell times the number of cells in parallel
@@ -3437,11 +3430,12 @@ C     Capacity of the battery is the capacity of one cell times the number of ce
       BatteryCap_Lion = beta*alpha*cellCap*nParal
 
 C     Make sure no negative value is returned
-cx      IF (BatteryCap_Lion .LE. 0.0) THEN
-cx        WRITE(IUOUT,*) 'Warning Battery Model: Negative or ',
-cx     &                 'Nul capacity in function BatteryCap_Lion'
-cx        BatteryCap_Lion = 0.01
-cx      ENDIF
+
+      IF (BatteryCap_Lion .LE. 0.0) THEN
+        WRITE(*,*) 'Warning Battery Model: Negative or ',
+     &             'Nul capacity in function BatteryCap_Lion'
+        BatteryCap_Lion = 0.01
+      ENDIF
 
       END
 
@@ -3471,9 +3465,6 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout          !- write unit number
-      INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTemp
@@ -3546,8 +3537,8 @@ C     Linear interpolate to find temp factor based on present battery temperatur
         temp_factor_lion = beta_8
 
       ELSE ! really shouldn't happen
-        WRITE(IUOUT,*) 'Warning Battery Model: odd temperature ',
-     &                 'factor in function temp_factor_lion'
+        WRITE(*,*) 'Warning Battery Model: odd temperature ',
+     &             'factor in function temp_factor_lion'
         temp_factor_lion = 1.
       ENDIF
 
@@ -3579,9 +3570,6 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout          !- write unit number
-      INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batCur
@@ -3655,8 +3643,8 @@ C     Linear interpolate to find temp factor based on present battery temperatur
         rate_factor_lion = alpha_8
 
       ELSE ! really shouldn't happen
-        WRITE(IUOUT,*) 'Warning Battery Model: odd current ',
-     &                 'factor in function rate_factor_lion'
+        WRITE(*,*) 'Warning Battery Model: odd current ',
+     &             'factor in function rate_factor_lion'
         rate_factor_lion = 1.
       ENDIF
 
@@ -3688,22 +3676,11 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout          !- write unit number
-      INTEGER iuin           !- read unit number
 
 C Common holding NSINC (no of building time step increments) for debugging only
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-       INTEGER IHRP            !-hour of present time-step
-       INTEGER IHRF            !-hour of future time-step
-       INTEGER IDYP            !-year day number of present day
-       INTEGER IDYF            !-year day number of future day
-       INTEGER IDWP            !-day of the week of present day
-       INTEGER IDWF            !-day of the week of future day
+       COMMON/SIMTIM/NSINC
        INTEGER NSINC           !-number of building-side time increments
-                               !-since start of simulation
-       INTEGER ITS             !-current building time-step within
-                               !-current hour
+
 
 C PARAMETERS FROM SIGNATURE
       REAL batDOD, batTemp
@@ -3753,6 +3730,7 @@ C others
 
 
 C     Free voltage of the battery is the free voltage of a cell time the number of cells in series
+
       OCV_Lion = ((E5*batDOD**5. + E4*batDOD**4. + E3*batDOD**3. +
      &               E2*batDOD**2. + E1*batDOD + E0) - deltaVforT)
      &               *float(nSerie)
@@ -3760,14 +3738,15 @@ C     Free voltage of the battery is the free voltage of a cell time the number 
 C     Make sure value is within boundaries
 C     This check is partly bypassed if the lead-acid battery is performing a mandatory
 C     charge cycle, because then the voltage is expected to surpass the batMaxVolt
+
       IF ((OCV_Lion + deltaVforT*float(nSerie)) .GT. batMaxVolt) THEN
-        WRITE(IUOUT,*) 'Warning Battery Model: Free voltage above ',
-     &                  ' max in function OCV_Lion', (NSINC)
+        WRITE(*,*) 'Warning Battery Model: Free voltage above ',
+     &             'max in function OCV_Lion', (NSINC)
         OCV_Lion = batMaxVolt - deltaVforT
 
       ELSEIF((OCV_Lion + deltaVforT*float(nSerie)) .LT. batMinVolt) THEN
-        WRITE(IUOUT,*) 'Warning Battery Model: Free voltage below ',
-     &                 'min in function OCV_Lion', (NSINC)
+        WRITE(*,*) 'Warning Battery Model: Free voltage below ',
+     &             'min in function OCV_Lion', (NSINC)
         OCV_Lion = batMinVolt - deltaVforT
       ENDIF
       END
@@ -3802,9 +3781,6 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout          !- write unit number
-      INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batDOD, batCur
@@ -3882,7 +3858,7 @@ C************** Calculation
 
 C Make sure no negative value is returned
       IF (RInt_Lion .LE. 0.0) THEN
-         WRITE(IUOUT,*) 'Warning Battery Model: Negative or Nul ',
+         WRITE(*,*) 'Warning Battery Model: Negative or Nul ',
      &                  ' resistance in routine Rint_Lion'
          RInt_Lion = 0.01
       ENDIF
@@ -3911,9 +3887,6 @@ c *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout          !- write unit number
-      INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTemp
@@ -3986,7 +3959,7 @@ C     Linear interpolate to find voltage offset factor based on present battery 
         voltage_offset_temp = offset_8
 
       ELSE ! really shouldn't happen
-        WRITE(IUOUT,*) 'Warning Battery Model: odd voltage offset ',
+        WRITE(*,*) 'Warning Battery Model: odd voltage offset ',
      &                 'factor in function voltage_offset_temp'
         voltage_offset_temp = 0.
       ENDIF
@@ -4023,7 +3996,7 @@ c *************************************************************************
 
 
       COMMON/PCTIME/TIMSEC
-      REAL    TIMSEC          !-length of time increment (seconds per timestep)
+      REAL    TIMSEC            !-length of time increment (seconds per timestep)
 
 
 C PARAMETERS FROM SIGNATURE
@@ -4036,11 +4009,11 @@ C Local Parameters
 
 C Ageing Parameters
 
-      REAL ageing_cycle,		! Cyclic ageing factor
-     &     ageing_time_ref,		! Calendric ageing factor under reference conditions (A_0)
-     &     ageing_temp_factor,	        ! Temperature factor b
-     &     ageing_soc_factor,	        ! State of charge factor c
-     &     calc_a_time	                ! ageing factor per timestep
+      REAL ageing_cycle,        ! Cyclic ageing factor
+     &     ageing_time_ref,     ! Calendric ageing factor under reference conditions (A_0)
+     &     ageing_temp_factor,  ! Temperature factor b
+     &     ageing_soc_factor,   ! State of charge factor c
+     &     calc_a_time	        ! ageing factor per timestep
 
 
 C cyclic ageing polynomial factors
@@ -4091,9 +4064,23 @@ C Calculate state of health
 
 C Debug
 
-cx      WRITE(*,*) 'ageing_cycle= ',ageing_cycle
-cx      WRITE(*,*) 'ageing_time= ',ageing_time
-cx      WRITE(*,*) 'calc_a_time= ',calc_a_time
+      IF (ageing_cycle .LE. 0.0) THEN
+         WRITE(*,*) 'Warning Battery Model: Negative or Null',
+     &              ' ageing_cycle factor in SOH_Lion'
+         ageing_cycle = 0.01
+      ELSEIF (ageing_time .LE. 0.0) THEN
+         WRITE(*,*) 'Warning Battery Model: Negative or Null',
+     &              ' ageing_time factor in SOH_Lion'
+         ageing_time = 0.01
+      ELSEIF (state_of_health .LE. 0.0) THEN
+         WRITE(*,*) 'Warning Battery Model: Negative or Null',
+     &              ' state_of_health in SOH_Lion'
+         state_of_health = 1.0
+      ELSEIF (state_of_health .GE. 0.0) THEN
+         WRITE(*,*) 'Warning Battery Model: state_of_health',
+     &              ' exceeded 100% in SOH_Lion'
+         state_of_health = 1.0
+      ENDIF
 
 
       RETURN
@@ -4104,6 +4091,7 @@ C Lion_BMS
 C**************************************************************************
 C
 C Created By Neil Saldanha January 2010
+C Modified by Andreas Bucher May 2015
 C
 C - This subroutine
 C
@@ -4131,28 +4119,23 @@ C
 c *********************************************************************
       SUBROUTINE Lion_BMS(IPWC,batTIni,zoneT,DODIni,dtTStep,batMode,
      &                    maxC,maxP,pLoad,pBat,pHeaters,pParasitic,
-     &                    batVolt,batTFin,batDODFin,batCur,pIntHeat,
-     &                    hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &                    gas_constant,cycles_used_lion,state_of_health)
+     &                    batVolt,batCur,pIntHeat)
 
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
 #include "power.h"
+#include "BATTERY.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout          !- write unit number
-      INTEGER iuin           !- read unit number
 
       common/pctstp/ntstpp
       integer ntstpp            ! number of plant timesteps / building timestep
 
 C PARAMETERS FROM SIGNATURE (see routine comments for description)
       REAL batTIni,zoneT,DODIni,dtTStep,maxC,maxP,pLoad,pBat,pHeaters,
-     &     pParasitic,batVolt,batTFin,batDODFin,batCur,pIntHeat
+     &     pParasitic,batVolt,batCur,pIntHeat
 
       INTEGER IPWC, batMode
-      INTEGER hiVoltLion,loVoltLion,hiTempLion,loTempLion
 
 C Declaration of functions used
       REAL FinalDOD_Lion, CurForPow, AvgVolt, InternalHeat, RInt_Lion,
@@ -4172,15 +4155,13 @@ C      REAL availpower,      ! Available power from the battery (W)
      &     heatersRes,       ! Heater resistance in ohms
      &     hA,               ! heat loss factor W/oC
      &     mCp,              ! thermal mass
-     &     gas_constant,     ! gas constant (8.314..)
      &     needed_power,     ! charge/discharge needed to bring battery back into safe limits
      &     dummy,            ! dummy variable for iterations
      &     relax,            ! relaxation factor
      &     pLoad_or,         ! original load offered
      &     neededHeat,       ! heat needed to return to safe operation
-     &     maxPheaters,      ! maximum heat possible based on current
-     &     cycles_used_lion, ! cycles used during simulation
-     &     state_of_health   ! state of health of the simulated cell
+     &     maxPheaters       ! maximum heat possible based on current
+
 
 C************** Initialisation
       nParal = int(POWCDAT(IPWC,1))
@@ -4231,7 +4212,7 @@ C         The needed energy in watts to return to safe points
         pLoad = needed_power
 
         IF (iteration .EQ. max_iteration) THEN
-          WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
+          WRITE(*,*) 'Warning Battery Model: Troublesome',
      &                   'Convergeance in Lion_BMS hiVoltage flag'
         ENDIF
 
@@ -4272,13 +4253,13 @@ C safe limits
         pLoad = needed_power
 
         IF (iteration .EQ. max_iteration) THEN
-          WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
-     &                   'Convergeance in Lion_BMS loVoltage flag'
+          WRITE(*,*) 'Warning Battery Model: Troublesome',
+     &               'Convergeance in Lion_BMS loVoltage flag'
         ENDIF
 
         IF (batMode_or .NE. 0) THEN ! discharge or idle, can't happen
-                                 ! figure out charge needed over next time step
-                                 ! to bring into safe limits
+                                    ! figure out charge needed over next time step
+                                    ! to bring into safe limits
 
 C         Re-evaluate the max current and power that you could discharge now that you changed modes
           maxC = MaxCurrent(IPWC,batTIni,DODIni,batMode,dtTStep)
@@ -4349,7 +4330,7 @@ C figure out heat needed from battery to bring back into safe limits
         END DO
 
         IF (iteration .EQ. max_iteration) THEN
-          WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
+          WRITE(*,*) 'Warning Battery Model: Troublesome',
      &                   'Convergeance in Lion_BMS loTemp flag'
         ENDIF
 
@@ -4409,7 +4390,7 @@ C  Calculate the SOH only if remaining capacity (Parameter 82) is set
 
       IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
           state_of_health = SOH_Lion(IPWC,batTIni,DODIni)
-cx      WRITE(IUOUT,*) 'state_of_health= ',state_of_health
+cx      WRITE(*,*) 'state_of_health= ',state_of_health
       ENDIF
 
       END

@@ -36,24 +36,25 @@ C-------------------------------------------------------------------------------
       common/BATTERY_STATE/
      & abuseFlag,
      & activeBatLifeControl,
-     & batTFin,
+     & ageing_time,
+     & batDemandP,
      & batDODFin,
      & batLifeUsed,
+     & batTFin,
      & cumBatLifeUsed,
+     & cycles_used_Lion,
+     & hiTempLion,
+     & hiVoltLion,
      & lifeUseFactor,
-     & mandChargeCycle,
+     & loTempLion,
+     & loVoltLion,
      & mandChargePhase,
      & mandChargePhaseIncrease,
-     & timeSinceLastFullCharge,
+     & mandChargeCycle,
      & nPreviousTS,
-     & batDemandP,
-     & loVoltLion,
-     & hiVoltLion,
-     & loTempLion,
-     & hiTempLion,
-     & cycles_used_Lion,
-     & ageing_time,
-     & state_of_health
+     & state_of_health,
+     & timeSinceLastFullCharge
+
 
 C---------------------------------------------------------------------------------
 C Declaration of variable type and definition
