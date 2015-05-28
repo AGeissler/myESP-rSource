@@ -4003,10 +4003,12 @@ C - This subroutine calculates the ageing of a cell/battery according
 C   to Andreas Bucher's thesis
 C
 C INPUTS:
-C tbd
+C -IPWC: Power-only component index number
+C -batTemp: The battery's current temperature (oC)
+C -DODIni: The battery's current depth of discharge
 C
 C OUTPUTS:
-C tbd
+C state_of_health: The SOH of a cell
 c *************************************************************************
       REAL FUNCTION SOH_Lion(IPWC,batTemp,DODIni)
 
@@ -4016,28 +4018,10 @@ c *************************************************************************
 #include "power.h"
 #include "BATTERY.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout          !- write unit number
-      INTEGER iuin           !- read unit number
 
       COMMON/PCTIME/TIMSEC
       REAL    TIMSEC          !-length of time increment (seconds per timestep)
 
-      common/pctstp/ntstpp
-      integer ntstpp            ! number of plant timesteps / building timestep
-
-
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-       INTEGER IHRP            !-hour of present time-step
-       INTEGER IHRF            !-hour of future time-step
-       INTEGER IDYP            !-year day number of present day
-       INTEGER IDYF            !-year day number of future day
-       INTEGER IDWP            !-day of the week of present day
-       INTEGER IDWF            !-day of the week of future day
-       INTEGER NSINC           !-number of building-side time increments
-                               !-since start of simulation
-       INTEGER ITS             !-current building time-step within
-                               !-current hour
 
 C PARAMETERS FROM SIGNATURE
       REAL batTemp,DODIni
@@ -4053,8 +4037,8 @@ C Ageing Parameters
      &     ageing_time_ref,		! Calendric ageing factor under reference conditions (A_0)
      &     ageing_temp_factor,	        ! Temperature factor b
      &     ageing_soc_factor,	        ! State of charge factor c
-     &     calc_a_time,	                ! ageing factor per timestep
-     &     dummy2	                ! number of timesteps, debug only
+     &     calc_a_time	                ! ageing factor per timestep
+
 
 C cyclic ageing polynomial factors
 
@@ -4072,43 +4056,38 @@ C************** Initialisation
       ageing_temp_factor = POWCDAT(IPWC,89)
       ageing_soc_factor = POWCDAT(IPWC,90)
       batSOCRef  = POWCDAT(IPWC,91)
-cx      batSOC = (1. - DODIni)
-      batSOC = 0.5   ! debug only
-      batTemp = 25.0 ! debug only
+      batSOC = (1. - DODIni)
 
 
-C *********** Calculate ageing factors
-
-cx      WRITE(IUOUT,*) 'batSOC= ',batSOC
-cx      WRITE(IUOUT,*) 'batSOCRef= ',batSOCRef
-cx      WRITE(IUOUT,*) 'ageing_time_ref= ',ageing_time_ref
-cx      WRITE(IUOUT,*) 'batTemp= ',batTemp
-cx      WRITE(IUOUT,*) 'batTOper= ',batTOper
-cx      WRITE(IUOUT,*) 'ageing_temp_factor= ',ageing_temp_factor/log(2.)
-cx      WRITE(IUOUT,*) 'ageing_soc_factor= ',ageing_soc_factor/log(2.)
+C *********** Calculations
 
 
-      calc_a_time = ageing_time_ref    ! Calculate calendric ageing per timestep
-     & *((exp(2                        ! Troublemaker debug
+C Calculate calendric ageing per timestep
+
+      calc_a_time = calc_a_time + (exp(2
      & *((batTemp - batTOper)/(ageing_temp_factor/log(2.))
      & +(batSOC - batSOCRef)/(ageing_soc_factor/log(2.)))
-     & ))*(TIMSEC/86400/13440))**0.5   ! Korrektes Resultat mit zus. Teilen durch Anzahl Timesteps
+     & ))*(TIMSEC/86400)
 
-      ageing_time = ageing_time+calc_a_time
+
+C Calculate calendric ageing facotr
+
+      ageing_time = ageing_time_ref*(calc_a_time)**0.5
+
+
+C Calculate cyclic ageing factor
 
       ageing_cycle = gamma1 + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
      & 	           + gamma4*cycles_used_Lion**3
 
-      dummy2 = dummy2 + 1.
 
-cx      WRITE(IUOUT,*) 'ageing_cycle= ',ageing_cycle
-      WRITE(IUOUT,*) 'ageing_time= ',ageing_time
-      WRITE(IUOUT,*) 'calc_a_time= ',calc_a_time
-cx      WRITE(IUOUT,*) 'NSINC= ',NSINC
-cx      WRITE(IUOUT,*) 'TIMSEC= ',TIMSEC
-cx      WRITE(IUOUT,*) 'ntstpp= ',ntstpp
-      WRITE(IUOUT,*) 'dummy2= ',dummy2
+
+      WRITE(*,*) 'ageing_cycle= ',ageing_cycle
+      WRITE(*,*) 'ageing_time= ',ageing_time
+      WRITE(*,*) 'calc_a_time= ',calc_a_time
+
+
 
 C *********** Calculate state of health
 
@@ -4650,3 +4629,16 @@ C---------------------------
 C Battery degradation
 C---------------------------
 C POWCDAT (IPWC,81):   Cycle_cruc   The crucial cycle to indicate the end of the cell's life
+C---------------------------
+C 2nd life cells degradation. Optional, set CellCapIni to 0.0 for the old model
+C---------------------------
+C POWCDAT (IPWC,82):   CellCapIni          Remaining Capacity of a 2nd life cell
+C POWCDAT (IPWC,83):   CycleIni            Number of already used cycles of a 2nd life cell
+C POWCDAT (IPWC,84):   gamma1              The first gamma required for cyclic ageing
+C POWCDAT (IPWC,85):   gamma2              The second gamma required for cyclic ageing
+C POWCDAT (IPWC,86):   gamma3              The third gamma required for cyclic ageing
+C POWCDAT (IPWC,87):   gamma4              The fourth gamma required for cyclic ageing
+C POWCDAT (IPWC,88):   ageing_time_ref     Calendaric ageing of a cell under reference conditions (A_0)
+C POWCDAT (IPWC,89):   ageing_temp_factor  Factor b of the ageing_time formula
+C POWCDAT (IPWC,90):   ageing_soc_factor   Factor c of the ageing_time formula
+C POWCDAT (IPWC,91):   batSOCRef           Reference SOC for degradation (typically 0.5)
