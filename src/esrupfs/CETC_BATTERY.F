@@ -530,6 +530,9 @@ C    Calculate and report max battery heater power in W
      &      cycles_used_Lion,
      &      powcomnam(IPWC)(1:iNameLength))
 
+      Call AddToReport(rvEPowBattLiOnSOH%Identifier,
+     &      state_of_health,
+     &      powcomnam(IPWC)(1:iNameLength))
 
       RETURN
       END
@@ -4082,16 +4085,16 @@ C Calculate cyclic ageing factor
      & 	           + gamma4*cycles_used_Lion**3
 
 
-
-      WRITE(*,*) 'ageing_cycle= ',ageing_cycle
-      WRITE(*,*) 'ageing_time= ',ageing_time
-      WRITE(*,*) 'calc_a_time= ',calc_a_time
-
-
-
-C *********** Calculate state of health
+C Calculate state of health
 
       SOH_Lion = 1.-(ageing_cycle+ageing_time)
+
+C Debug
+
+cx      WRITE(*,*) 'ageing_cycle= ',ageing_cycle
+cx      WRITE(*,*) 'ageing_time= ',ageing_time
+cx      WRITE(*,*) 'calc_a_time= ',calc_a_time
+
 
       RETURN
       END
@@ -4163,21 +4166,21 @@ C Battery Parameters (technology and configuration)
 
 C Local variables
 C      REAL availpower,      ! Available power from the battery (W)
-      REAL self_discharge,  ! self discharge of battery in amps
-     &     ko,              ! self discharge constant in amps
-     &     E_as,            ! activation energy
-     &     heatersRes,      ! Heater resistance in ohms
-     &     hA,              ! heat loss factor W/oC
-     &     mCp,             ! thermal mass
-     &     gas_constant,    ! gas constant (8.314..)
-     &     needed_power,    ! charge/discharge needed to bring battery back into safe limits
-     &     dummy,           ! dummy variable for iterations
-     &     relax,           ! relaxation factor
-     &     pLoad_or,        ! original load offered
-     &     neededHeat,      ! heat needed to return to safe operation
-     &     maxPheaters,     ! maximum heat possible based on current
-     &     cycles_used_lion, !
-     &     state_of_health  !
+      REAL self_discharge,   ! self discharge of battery in amps
+     &     ko,               ! self discharge constant in amps
+     &     E_as,             ! activation energy
+     &     heatersRes,       ! Heater resistance in ohms
+     &     hA,               ! heat loss factor W/oC
+     &     mCp,              ! thermal mass
+     &     gas_constant,     ! gas constant (8.314..)
+     &     needed_power,     ! charge/discharge needed to bring battery back into safe limits
+     &     dummy,            ! dummy variable for iterations
+     &     relax,            ! relaxation factor
+     &     pLoad_or,         ! original load offered
+     &     neededHeat,       ! heat needed to return to safe operation
+     &     maxPheaters,      ! maximum heat possible based on current
+     &     cycles_used_lion, ! cycles used during simulation
+     &     state_of_health   ! state of health of the simulated cell
 
 C************** Initialisation
       nParal = int(POWCDAT(IPWC,1))
