@@ -129,7 +129,7 @@ C-------------------------------------------------------------------------------
 C-------------------------------------------------------------------------------
 C Li-on degradation, number of cycles used & calendaric ageing factor
 C-------------------------------------------------------------------------------      
-      REAL cycles_used_Lion, ageing_time, state_of_health
+      REAL cycles_used_Lion,ageing_time,state_of_health
   
 C---------------------------
 C Battery type signatures

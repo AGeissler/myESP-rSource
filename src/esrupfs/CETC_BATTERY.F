@@ -332,7 +332,7 @@ C    Evaluate the battery life fraction used in this timestep
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
      &               batVolt,batTFin,batDODFin,batCurFin, pIntHeatFin,
      &               hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &               gas_constant, cycles_used_Lion)
+     &               gas_constant,cycles_used_Lion,state_of_health)
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat - pHeaters - pParasitic
          ENDIF
@@ -366,7 +366,7 @@ C    Evaluate the battery life fraction used in this timestep
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
      &               batVolt,batTFin,batDODFin,batCurFin, pIntHeatFin,
      &               hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &               gas_constant, cycles_used_Lion)
+     &               gas_constant,cycles_used_Lion,state_of_health)
 
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat + pHeaters + pParasitic
@@ -600,6 +600,7 @@ C ************** Initialisation
          mandChargePhase = 0
          mandChargePhaseIncrease = 0
          timeSinceLastFullCharge = 0.
+         state_of_health = 1.
 
        ELSEIF ( POWCOMID(IPWC) .EQ. lion ) THEN  ! Li-on
          mandChargeCycle = 0 ! This is to get by a road block set by the lead acid later
@@ -621,12 +622,10 @@ C ************** Initialisation
          gamma4 = POWCDAT(IPWC,87)
          ageing_time = 0.
          ageing_cycle = 0.
-         state_of_health = 1.
          IF (cellCapIni .NE. 0.0) THEN  ! New ageing model if Parameter 82 is set
              IF (cellCapIni .EQ. CellCapRef) THEN ! New ageing model for new cells
                  ageing_time = 0.
                  ageing_cycle = 0.
-                 state_of_health = 1.
                  WRITE(*,*) 'init 100% good' ! Debug only
 	     ELSE ! New ageing model for used cells
                  ageing_cycle = gamma1 + gamma2*cycleIni
@@ -2928,6 +2927,7 @@ C    average ion concentrations
 
 
 
+
 C    Use the Nernst equation to calculate the open circuit voltage
 C    n =1 for VRB
       RT_over_nF = gas_constant * (electrolyteTemp + 273.15)
@@ -3626,6 +3626,7 @@ C corresponding rates discussed in Neil Saldanha's thesis
       alpha_8 = POWCDAT(IPWC,45)
 
 
+
 C************** Calculations
 
 C     Linear interpolate to find temp factor based on present battery temperature
@@ -4155,7 +4156,7 @@ c *********************************************************************
      &                    maxC,maxP,pLoad,pBat,pHeaters,pParasitic,
      &                    batVolt,batTFin,batDODFin,batCur,pIntHeat,
      &                    hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &                    gas_constant, cycles_used_Lion)
+     &                    gas_constant,cycles_used_Lion,state_of_halth)
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
@@ -4170,7 +4171,8 @@ c *********************************************************************
 
 C PARAMETERS FROM SIGNATURE (see routine comments for description)
       REAL batTIni,zoneT,DODIni,dtTStep,maxC,maxP,pLoad,pBat,pHeaters,
-     &     pParasitic, batVolt,batTFin,batDODFin,batCur,pIntHeat
+     &     pParasitic, batVolt,batTFin,batDODFin,batCur,pIntHeat,
+     &     state_of_health
       INTEGER IPWC, batMode
       INTEGER hiVoltLion,loVoltLion,hiTempLion,loTempLion
 
@@ -4186,21 +4188,20 @@ C Battery Parameters (technology and configuration)
 
 C Local variables
 C      REAL availpower,      ! Available power from the battery (W)
-      REAL self_discharge,  ! self discharge of battery in amps
-     &     ko,              ! self discharge constant in amps
-     &     E_as,            ! activation energy
-     &     heatersRes,      ! Heater resistance in ohms
-     &     hA,              ! heat loss factor W/oC
-     &     mCp,             ! thermal mass
-     &     gas_constant,    ! gas constant (8.314..)
-     &     needed_power,    ! charge/discharge needed to bring battery back into safe limits
-     &     dummy,           ! dummy variable for iterations
-     &     relax,           ! relaxation factor
-     &     pLoad_or,        ! original load offered
-     &     neededHeat,      ! heat needed to return to safe operation
-     &     cycles_used_Lion,! number of cycles exhausted for degradation
-     &     maxPheaters,     ! maximum heat possible based on current
-     &     state_of_health  ! SOH of a cell
+      REAL self_discharge,   ! self discharge of battery in amps
+     &     ko,               ! self discharge constant in amps
+     &     E_as,             ! activation energy
+     &     heatersRes,       ! Heater resistance in ohms
+     &     hA,               ! heat loss factor W/oC
+     &     mCp,              ! thermal mass
+     &     gas_constant,     ! gas constant (8.314..)
+     &     needed_power,     ! charge/discharge needed to bring battery back into safe limits
+     &     dummy,            ! dummy variable for iterations
+     &     relax,            ! relaxation factor
+     &     pLoad_or,         ! original load offered
+     &     neededHeat,       ! heat needed to return to safe operation
+     &     cycles_used_Lion, ! number of cycles exhausted for degradation
+     &     maxPheaters       ! maximum heat possible based on current
 
 C************** Initialisation
       nParal = int(POWCDAT(IPWC,1))
@@ -4429,7 +4430,7 @@ C  Calculate the SOH only if remaining capacity (Parameter 82) is set
 
       IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
           state_of_health = SOH_Lion(IPWC,batTIni,DODIni)
-cx      WRITE(*,*) 'state_of_health= ',state_of_health
+      WRITE(*,*) 'state_of_health= ',state_of_health
       ENDIF
 
       END
