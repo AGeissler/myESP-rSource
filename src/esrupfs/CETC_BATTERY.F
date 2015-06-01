@@ -330,7 +330,9 @@ C    Evaluate the battery life fraction used in this timestep
          ELSEIF( POWCOMID(IPWC) .EQ. lion) THEN      ! Li-on
            CALL Lion_BMS(IPWC,batTIni,zoneT,batDODIni,dtTStep,batMode,
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
-     &               batVolt,batCurFin,pIntHeatFin)
+     &               batVolt,batTFin,batDODFin,batCurFin, pIntHeatFin,
+     &               hiVoltLion,loVoltLion,hiTempLion,loTempLion,
+     &               gas_constant, cycles_used_Lion)
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat - pHeaters - pParasitic
          ENDIF
@@ -362,7 +364,10 @@ C    Evaluate the battery life fraction used in this timestep
          ELSEIF( POWCOMID(IPWC) .EQ. lion) THEN      ! Li-on
            CALL Lion_BMS(IPWC,batTIni,zoneT,batDODIni,dtTStep,batMode,
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
-     &               batVolt,batCurFin,pIntHeatFin)
+     &               batVolt,batTFin,batDODFin,batCurFin, pIntHeatFin,
+     &               hiVoltLion,loVoltLion,hiTempLion,loTempLion,
+     &               gas_constant, cycles_used_Lion)
+
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat + pHeaters + pParasitic
          ENDIF
@@ -617,12 +622,13 @@ C ************** Initialisation
          ageing_time = 0.
          ageing_cycle = 0.
          state_of_health = 1.
-         IF (cellCapIni .NE. 0.0) THEN  ! Backwards-compatibility if Parameter 82 is set
-             IF (cellCapIni .EQ. CellCapRef) THEN ! and Parameter 83 same as Parameter 3
+         IF (cellCapIni .NE. 0.0) THEN  ! New ageing model if Parameter 82 is set
+             IF (cellCapIni .EQ. CellCapRef) THEN ! New ageing model for new cells
                  ageing_time = 0.
                  ageing_cycle = 0.
                  state_of_health = 1.
-	         ELSE
+                 WRITE(*,*) 'init 100% good' ! Debug only
+	     ELSE ! New ageing model for used cells
                  ageing_cycle = gamma1 + gamma2*cycleIni
      &                        + gamma3*cycleIni**2
      &                        + gamma4*cycleIni**3
@@ -632,8 +638,9 @@ C ************** Initialisation
                  ENDIF
                  cycles_used_Lion = cycleIni
                  state_of_health = 1.0-(ageing_cycle+ageing_time)
+                 WRITE(*,*) 'init used good' ! Debug only
              ENDIF
-         ELSE
+         ELSE ! Old ageing model
              WRITE(IUOUT,*) 'Warning Battery Model: Factors for ',
      &                      'calendric ageing not determined! ',
      &                      'Old ageing model will be used.'
@@ -2920,6 +2927,7 @@ C    average ion concentrations
       con_H_avg = (con_H_in + con_H_out)/2.0
 
 
+
 C    Use the Nernst equation to calculate the open circuit voltage
 C    n =1 for VRB
       RT_over_nF = gas_constant * (electrolyteTemp + 273.15)
@@ -3340,11 +3348,11 @@ C************** Calculation
       IF(batMode .EQ. 0) THEN   !Charge
         FinalDOD_Lion = DODIni - batCur*dtTStep/
      &                  BatteryCap_Lion(IPWC,batTemp,batCur)
+      ELSE  !Discharge
         FinalDOD_Lion = DODIni + batCur*dtTStep/
      &                  BatteryCap_Lion(IPWC,batTemp,batCur)
       ENDIF
       END
-
 
 C**************************************************************************
 C 51 BatteryCap_Lion
@@ -3409,10 +3417,12 @@ C     Determine temperature (beta) and current (alpha) factors to scale referenc
 C     Account for degradation
 C     Check if Parameter 82 is set. If not use the old degradation method
 
-      IF (POWCDAT(IPWC,82) .EQ. 0.0) THEN
+      IF (POWCDAT(IPWC,82) .EQ. 0.0) THEN ! Old ageing model
            IF (cycles_used_Lion .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
                cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
      &         *cellCapRef
+               WRITE(*,*) 'old good ageing model used' ! Debug only
+               WRITE(*,*) 'cellCap= ', cellCap ! debug only
            ELSE ! The battery is beyond useful life and is falling off
              cellCap = (8.8-.8*cycles_used_Lion/POWCDAT(IPWC,81))
      &       *cellCapRef
@@ -3420,10 +3430,13 @@ cx                <<add parameter "degradation factor" to change degradation
 cx                  in post-useful life phase ??>>
              cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
      &       *cellCapRef
+               WRITE(*,*) 'old bad ageing model used' ! Debug only
            ENDIF
-      ELSE
+      ELSE ! new ageing model
 cx	       cellCap = cellCapRef*state_of_health 
 	       cellCap = cellCapRef*(0.8+0.2*state_of_health)
+               WRITE(*,*) 'new ageing model used' ! debug only
+               WRITE(*,*) 'cellCap= ', cellCap ! debug only
 cx             use the first calculation method of cellCap if the parameters 
 cx             of a 2nd life cell were defined as described in Andreas Bucher's thesis
       ENDIF
@@ -4083,22 +4096,24 @@ C Calculate state of health
 
 C Debug
 
-      IF (ageing_cycle .LE. 0.0) THEN
-         WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
-     &                  ' ageing_cycle factor in SOH_Lion'
-         ageing_cycle = 0.01
-      ELSEIF (ageing_time .LE. 0.0) THEN
+cx      IF (ageing_cycle .LE. 0.0) THEN
+cx         WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
+cx     &                  ' ageing_cycle factor in SOH_Lion'
+cx         ageing_cycle = 0.01
+cx    This can happen because of the polynomial function that is used
+      IF (ageing_time .LE. 0.0) THEN
          WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
      &                  ' ageing_time factor in SOH_Lion'
          ageing_time = 0.01
       ELSEIF (state_of_health .LE. 0.0) THEN
          WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
      &                  ' state_of_health in SOH_Lion'
-         state_of_health = 1.0
-      ELSEIF (state_of_health .GE. 0.0) THEN
-         WRITE(IUOUT,*) 'Warning Battery Model: state_of_health',
-     &                  ' exceeded 100% in SOH_Lion'
-         state_of_health = 1.0
+cx         state_of_health = 0.0
+cx      ELSEIF (state_of_health .GE. 1.0) THEN
+cx         WRITE(IUOUT,*) 'Warning Battery Model: state_of_health',
+cx     &                  ' exceeded 100% in SOH_Lion'
+cx         state_of_health = 1.0
+cx    This also can happen if ageing_cycle is a slight negative number
       ENDIF
 
 
@@ -4138,13 +4153,13 @@ C
 c *********************************************************************
       SUBROUTINE Lion_BMS(IPWC,batTIni,zoneT,DODIni,dtTStep,batMode,
      &                    maxC,maxP,pLoad,pBat,pHeaters,pParasitic,
-     &                    batVolt,batCur,pIntHeat)
-
+     &                    batVolt,batTFin,batDODFin,batCur,pIntHeat,
+     &                    hiVoltLion,loVoltLion,hiTempLion,loTempLion,
+     &                    gas_constant, cycles_used_Lion)
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
 #include "power.h"
-#include "BATTERY.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       INTEGER iuout            !- write unit number
@@ -4155,9 +4170,9 @@ c *********************************************************************
 
 C PARAMETERS FROM SIGNATURE (see routine comments for description)
       REAL batTIni,zoneT,DODIni,dtTStep,maxC,maxP,pLoad,pBat,pHeaters,
-     &     pParasitic,batVolt,batCur,pIntHeat
-
+     &     pParasitic, batVolt,batTFin,batDODFin,batCur,pIntHeat
       INTEGER IPWC, batMode
+      INTEGER hiVoltLion,loVoltLion,hiTempLion,loTempLion
 
 C Declaration of functions used
       REAL FinalDOD_Lion, CurForPow, AvgVolt, InternalHeat, RInt_Lion,
@@ -4171,19 +4186,21 @@ C Battery Parameters (technology and configuration)
 
 C Local variables
 C      REAL availpower,      ! Available power from the battery (W)
-      REAL self_discharge,   ! self discharge of battery in amps
-     &     ko,               ! self discharge constant in amps
-     &     E_as,             ! activation energy
-     &     heatersRes,       ! Heater resistance in ohms
-     &     hA,               ! heat loss factor W/oC
-     &     mCp,              ! thermal mass
-     &     needed_power,     ! charge/discharge needed to bring battery back into safe limits
-     &     dummy,            ! dummy variable for iterations
-     &     relax,            ! relaxation factor
-     &     pLoad_or,         ! original load offered
-     &     neededHeat,       ! heat needed to return to safe operation
-     &     maxPheaters       ! maximum heat possible based on current
-
+      REAL self_discharge,  ! self discharge of battery in amps
+     &     ko,              ! self discharge constant in amps
+     &     E_as,            ! activation energy
+     &     heatersRes,      ! Heater resistance in ohms
+     &     hA,              ! heat loss factor W/oC
+     &     mCp,             ! thermal mass
+     &     gas_constant,    ! gas constant (8.314..)
+     &     needed_power,    ! charge/discharge needed to bring battery back into safe limits
+     &     dummy,           ! dummy variable for iterations
+     &     relax,           ! relaxation factor
+     &     pLoad_or,        ! original load offered
+     &     neededHeat,      ! heat needed to return to safe operation
+     &     cycles_used_Lion,! number of cycles exhausted for degradation
+     &     maxPheaters,     ! maximum heat possible based on current
+     &     state_of_health  ! SOH of a cell
 
 C************** Initialisation
       nParal = int(POWCDAT(IPWC,1))
@@ -4616,6 +4633,7 @@ C POWCDAT (IPWC,68):    beta8   The beta required to discharge/charge at the eig
 C POWCDAT (IPWC,69):    offset8 The voltage offset required to discharge/charge at the eighth temperature (V)
 C---------------------------
 C Extra parameters
+
 C---------------------------
 C POWCDAT (IPWC,70):    k_o self discharge constant in amps (keep zero if unknown or for zero self discharge)
 C POWCDAT (IPWC,71):    E_as    Activation energy for self-discharge in kJ.kmol-1 (keep zero if unknown  or for zero self discharge)
