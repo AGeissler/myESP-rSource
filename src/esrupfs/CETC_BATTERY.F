@@ -626,7 +626,6 @@ C ************** Initialisation
              IF (cellCapIni .EQ. CellCapRef) THEN ! New ageing model for new cells
                  ageing_time = 0.
                  ageing_cycle = 0.
-                 WRITE(*,*) 'init 100% good' ! Debug only
 	     ELSE ! New ageing model for used cells
                  ageing_cycle = gamma1 + gamma2*cycleIni
      &                        + gamma3*cycleIni**2
@@ -637,7 +636,6 @@ C ************** Initialisation
                  ENDIF
                  cycles_used_Lion = cycleIni
                  state_of_health = 1.0-(ageing_cycle+ageing_time)
-                 WRITE(*,*) 'init used good' ! Debug only
              ENDIF
          ELSE ! Old ageing model
              WRITE(IUOUT,*) 'Warning Battery Model: Factors for ',
@@ -3421,8 +3419,6 @@ C     Check if Parameter 82 is set. If not use the old degradation method
            IF (cycles_used_Lion .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
                cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
      &         *cellCapRef
-               WRITE(*,*) 'old good ageing model used' ! Debug only
-               WRITE(*,*) 'cellCap= ', cellCap ! debug only
            ELSE ! The battery is beyond useful life and is falling off
              cellCap = (8.8-.8*cycles_used_Lion/POWCDAT(IPWC,81))
      &       *cellCapRef
@@ -3430,13 +3426,10 @@ cx                <<add parameter "degradation factor" to change degradation
 cx                  in post-useful life phase ??>>
              cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
      &       *cellCapRef
-               WRITE(*,*) 'old bad ageing model used' ! Debug only
            ENDIF
       ELSE ! new ageing model
 cx	       cellCap = cellCapRef*state_of_health 
 	       cellCap = cellCapRef*(0.8+0.2*state_of_health)
-               WRITE(*,*) 'new ageing model used' ! debug only
-               WRITE(*,*) 'cellCap= ', cellCap ! debug only
 cx             use the first calculation method of cellCap if the parameters 
 cx             of a 2nd life cell were defined as described in Andreas Bucher's thesis
       ENDIF
@@ -4156,7 +4149,7 @@ c *********************************************************************
      &                    maxC,maxP,pLoad,pBat,pHeaters,pParasitic,
      &                    batVolt,batTFin,batDODFin,batCur,pIntHeat,
      &                    hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &                    gas_constant,cycles_used_Lion,state_of_halth)
+     &                    gas_constant,cycles_used_Lion,state_of_health)
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
@@ -4431,6 +4424,8 @@ C  Calculate the SOH only if remaining capacity (Parameter 82) is set
       IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
           state_of_health = SOH_Lion(IPWC,batTIni,DODIni)
       WRITE(*,*) 'state_of_health= ',state_of_health
+      ELSE
+          state_of_health = 1.
       ENDIF
 
       END
