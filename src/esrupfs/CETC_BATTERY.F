@@ -3396,6 +3396,7 @@ C Battery parameters
 C Coefficients for the capacity equation
       REAL alpha, beta
 
+
 C Declaration of functions used
       REAL temp_factor_lion
       REAL rate_factor_lion
@@ -4010,7 +4011,7 @@ C
 C OUTPUTS:
 C state_of_health: The SOH of a cell
 c *************************************************************************
-      REAL FUNCTION SOH_Lion(IPWC,batTemp,DODIni)
+      REAL FUNCTION SOH_Lion(IPWC,batTemp,DODIni,batCur)
 
       IMPLICIT NONE
 #include "building.h"
@@ -4026,7 +4027,7 @@ c *************************************************************************
       INTEGER iuin             !- read unit number
 
 C PARAMETERS FROM SIGNATURE
-      REAL batTemp,DODIni
+      REAL batTemp,DODIni,batCur
       INTEGER IPWC
 
 C Local Parameters
@@ -4039,8 +4040,11 @@ C Ageing Parameters
      &     ageing_time_ref,     ! Calendric ageing factor under reference conditions (A_0)
      &     ageing_temp_factor,  ! Temperature factor b
      &     ageing_soc_factor,   ! State of charge factor c
-     &     calc_a_time	        ! ageing factor per timestep
-
+     &     calc_a_time,	        ! ageing factor per timestep
+     &     calc_cyc_alt,
+     &     calc_cyc_sum,
+     &     ageing_cycl_alt,
+     &     cycles_used_dummy
 
 C cyclic ageing polynomial factors
 
@@ -4077,11 +4081,28 @@ C Calculate calendric ageing facotr
       ageing_time = ageing_time_ref*(calc_a_time)**0.5
 
 
-C Calculate cyclic ageing factor
+C Calculate cyclic ageing factor (Popp)
 
       ageing_cycle = gamma1 + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
      & 	           + gamma4*cycles_used_Lion**3
+
+C Alternative cyclic ageing factor (Günther)
+
+      IF (batCur .NE. 0.) THEN
+          calc_cyc_alt = ! ageing per cycle
+     &    +0.0003508*abs(DODIni)**3
+     &    -0.000007239*abs(DODIni)**2
+     &    +0.00005642*abs(DODIni)
+          ageing_cycl_alt=ageing_cycl_alt+calc_cyc_alt*
+     &       (cycles_used_Lion-cycles_used_dummy) ! cyclic ageing
+          WRITE(*,*) 'DODIni= ',DODIni
+          WRITE(*,*) 'calc_cyc_alt= ',calc_cyc_alt
+          WRITE(*,*) 'cageing_cycl_alt= ',ageing_cycl_alt
+          WRITE(*,*) 'ageing_cycle= ',ageing_cycle
+          WRITE(*,*) 'cycles_used_Lion= ',cycles_used_Lion
+          cycles_used_dummy = cycles_used_Lion
+      ENDIF
 
 
 C Calculate state of health
@@ -4090,10 +4111,11 @@ C Calculate state of health
 
 C Debug
 
+
 cx      IF (ageing_cycle .LE. 0.0) THEN
 cx         WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
 cx     &                  ' ageing_cycle factor in SOH_Lion'
-cx         ageing_cycle = 0.01
+cx         ageing_cycle = 0.0
 cx    This can happen because of the polynomial function that is used
       IF (ageing_time .LE. 0.0) THEN
          WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
@@ -4422,8 +4444,8 @@ C  Find out how much of the battery cycle life has depleted
 C  Calculate the SOH only if remaining capacity (Parameter 82) is set
 
       IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
-          state_of_health = SOH_Lion(IPWC,batTIni,DODIni)
-      WRITE(*,*) 'state_of_health= ',state_of_health
+          state_of_health = SOH_Lion(IPWC,batTIni,DODIni,batCur)
+cx      WRITE(*,*) 'state_of_health= ',state_of_health
       ELSE
           state_of_health = 1.
       ENDIF
