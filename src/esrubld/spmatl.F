@@ -1509,8 +1509,19 @@ C if not, issue an error message.
           stop
        endif
 
+C ag@2015 Extend logic to take only layers external of and
+C         including the PV node layer into account (more robust
+C         in regard to layer layout of PV surfaces).
 C Number of layers in PV module surface.
-       iNum_layers=nelts(ispmloc(ispmnod,1),ispmloc(ispmnod,2))
+C Node number ispmloc(ispmnod,3) is PV location
+       if (mod(ispmloc(ispmnod,3),2).gt.0) then
+          call edisp(iuout,' ')
+          write(outs,*)'SMCMP5 fatal error: PV node nr. must be even!'
+          call edisp(iuout,outs)
+          stop
+       endif
+cx       iNum_layers=nelts(ispmloc(ispmnod,1),ispmloc(ispmnod,2))
+       iNum_layers=ispmloc(ispmnod,3)/2
 
 C Initialize array.
        do j=1,5
@@ -1519,7 +1530,15 @@ C Initialize array.
 
 C Determine transmission-absorptance factors of the PV module
 C surface at 5 incidence angles.
+C ag@2015 Extend logic to include transmission of relevant layers (actual
+C         PV modules often have residual transmission!).
+C TMCA    - absorptances for each glazing layer at 5 representative
+C           incidence angles each (standard values)
+C TMCT    - direct solar transmittance at 5 representative
+C           incidence angles for TMC system (standard values).
        do j=1,5
+C         econstr.F, line 920 ff.
+          fTrans_Ads(j)=tmct(ispmloc(ispmnod,1),iTMC_index,j)
           do i=1,iNum_layers
              fTrans_Ads(j)=fTrans_Ads(j)+
      &                       tmca(ispmloc(ispmnod,1),iTMC_index,i,j)
@@ -1590,7 +1609,9 @@ cx     &           fTrans_0
 C Impose specified shading treatment.
        if(exshad(ispmloc(ispmnod,2)).gt.1E-6)then
 
-cx << divide by fTrans_0 seems arbitrary in the below calculations ... is it correct? >>
+C Factor fTrans_IncAng/fTrans_0 below corrects irradiance for reflectance.
+C << missing: reduction of actual irradiance in cell level e.g. due to
+C    increased glass strength or coloured cover glass ... >>
 C External shading case.
          if(iShad.eq.iIgnore.or.iShad.eq.iProportion)then
             fQPnl=(exdir(ispmloc(ispmnod,2))*fTrans_IncAng+
