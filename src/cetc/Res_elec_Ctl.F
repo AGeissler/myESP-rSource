@@ -416,10 +416,10 @@ C       Read current value from file
         endif
       endif
 
-C     Retrieve current values for grid rate
-      if (iGridRateToggle .eq. 0) then
+C     Retrieve current values for grid refund
+      if (iGridRefundToggle .eq. 0) then
         bGridRefundHigh = .false.    
-      elseif (iGridRateToggle .eq. 1) then
+      elseif (iGridRefundToggle .eq. 1) then
         bGridRefundHigh = .true.
       else
 C       Read current value from file
@@ -777,10 +777,10 @@ C 25               # (9)  battery SOC at which grid is used for charging
 C 100              # (10) battery SOC at which grid use for charging is ended
 C 400.             # (11) controller deadband for PV battery charge (W)
 C 3000.            # (12) battery cycles already used at simulation start
-C 0                # (13)  grid rate toggle
+C 0                # (13)  grid rate toggle, 0/1 grid rate low false/true, 2 read file
 C 0.16             # (13a) grid rate "low" threshold if (13) is set to "2"
 C ./gridrate.fcl   # (13b) grid rate file if (13) is set to "2"
-C 0                # (14)  grid refund toggle
+C 0                # (14)  grid refund toggle, 0/1 grid refund high false/true, 2 read file
 C 0.22             # (14a) grid refund "high" threshold if (14) is set to "2"
 C ./gridrefund.fcl # (14b) grid refund file if (14) is set to "2"
 C-----------------------------------------------------------------------------------------
