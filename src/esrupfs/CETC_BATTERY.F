@@ -3397,6 +3397,7 @@ C Coefficients for the capacity equation
       REAL alpha, beta
 
 
+
 C Declaration of functions used
       REAL temp_factor_lion
       REAL rate_factor_lion
@@ -4081,27 +4082,22 @@ C Calculate calendric ageing facotr
       ageing_time = ageing_time_ref*(calc_a_time)**0.5
 
 
+      IF (POWCDAT(IPWC,92) .EQ. 1) THEN
 C Calculate cyclic ageing factor (Popp)
-
-      ageing_cycle = gamma1 + gamma2*cycles_used_Lion
+          ageing_cycle = gamma1 + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
      & 	           + gamma4*cycles_used_Lion**3
-
+      ELSEIF (POWCDAT(IPWC,92) .EQ. 2) THEN
 C Alternative cyclic ageing factor (Günther)
-
-      IF (batCur .NE. 0.) THEN
-          calc_cyc_alt = ! ageing per cycle
-     &    +0.0003508*abs(DODIni)**3
-     &    -0.000007239*abs(DODIni)**2
-     &    +0.00005642*abs(DODIni)
-          ageing_cycl_alt=ageing_cycl_alt+calc_cyc_alt*
-     &       (cycles_used_Lion-cycles_used_dummy) ! cyclic ageing
-          WRITE(*,*) 'DODIni= ',DODIni
-          WRITE(*,*) 'calc_cyc_alt= ',calc_cyc_alt
-          WRITE(*,*) 'cageing_cycl_alt= ',ageing_cycl_alt
-          WRITE(*,*) 'ageing_cycle= ',ageing_cycle
-          WRITE(*,*) 'cycles_used_Lion= ',cycles_used_Lion
-          cycles_used_dummy = cycles_used_Lion
+          IF (batCur .NE. 0.) THEN
+              calc_cyc_alt = ! ageing per cycle
+     &        +0.0003508*abs(DODIni)**3
+     &        -0.000007239*abs(DODIni)**2
+     &        +0.00005642*abs(DODIni)
+              ageing_cycl_alt=ageing_cycl_alt+calc_cyc_alt*
+     &           (cycles_used_Lion-cycles_used_dummy) ! cyclic ageing
+              cycles_used_dummy = cycles_used_Lion
+          ENDIF
       ENDIF
 
 
