@@ -36,7 +36,8 @@ C-------------------------------------------------------------------------------
       common/BATTERY_STATE/
      & abuseFlag,
      & activeBatLifeControl,
-     & ageing_time,
+     & ageing_cycle,
+     & ageing_time_ini,
      & batDemandP,
      & batDODFin,
      & batLifeUsed,
@@ -129,7 +130,8 @@ C-------------------------------------------------------------------------------
 C-------------------------------------------------------------------------------
 C Li-on degradation, number of cycles used & calendaric ageing factor
 C-------------------------------------------------------------------------------      
-      REAL cycles_used_Lion,ageing_time,state_of_health
+      REAL cycles_used_Lion,ageing_cycle
+      REAL ageing_time_ini,state_of_health
   
 C---------------------------
 C Battery type signatures
