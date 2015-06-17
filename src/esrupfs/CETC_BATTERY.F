@@ -4063,12 +4063,11 @@ C Ageing Parameters
      &     ageing_temp_factor,  ! Temperature factor b
      &     ageing_soc_factor,   ! State of charge factor c
      &     calc_a_cycl,         ! cyclic ageing factor per timestep
-     &     calc_a_tim_sum,
+     &     calc_a_tim_sum,      ! used to calculate the ageing time factor
      &     calc_a_time,	        ! calendaric ageing factor per timestep
      &     cycles_used_dummy,   ! dummy to calculate cyclic ageing factor
-     &     cyc_mode,             ! 1=Popp, 2=Gunther
-     &     a_cycle_dummy,
-     &     ts_dummy
+     &     cyc_mode,            ! 1=Popp, 2=Gunther
+     &     ts_dummy             ! counts the timesteps, used to calculate ageing_time
 
 C cyclic ageing polynomial factors
 
@@ -4722,6 +4721,6 @@ C POWCDAT (IPWC,88):   ageing_time_ref     Calendaric ageing of a cell under ref
 C POWCDAT (IPWC,89):   ageing_temp_factor  Factor b of the ageing_time formula
 C POWCDAT (IPWC,90):   ageing_soc_factor   Factor c of the ageing_time formula
 C POWCDAT (IPWC,91):   batSOCRef           Reference SOC for degradation (typically 0.5)
-C POWCDAT (IPWC,92):   ageing_time         Initial ageing_time factor, either calculated or from parameter file
+C POWCDAT (IPWC,92):   ageing_time_ini     Initial ageing_time factor, either calculated or from parameter file
 C POWCDAT (IPWC,93):   ageing_cycle        Initial ageing_cycle factor, either calculated or from parameter file
 C POWCDAT (IPWC,94):   cyc_mode            Method to calculate ageing_cycle (1=Popp, 2=Günther)
