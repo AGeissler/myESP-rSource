@@ -330,9 +330,7 @@ C    Evaluate the battery life fraction used in this timestep
          ELSEIF( POWCOMID(IPWC) .EQ. lion) THEN      ! Li-on
            CALL Lion_BMS(IPWC,batTIni,zoneT,batDODIni,dtTStep,batMode,
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
-     &               batVolt,batTFin,batDODFin,batCurFin, pIntHeatFin,
-     &               hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &               gas_constant,cycles_used_Lion,state_of_health)
+     &               batVolt,batTFin,batCurFin,pIntHeatFin)
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat - pHeaters - pParasitic
          ENDIF
@@ -364,9 +362,7 @@ C    Evaluate the battery life fraction used in this timestep
          ELSEIF( POWCOMID(IPWC) .EQ. lion) THEN      ! Li-on
            CALL Lion_BMS(IPWC,batTIni,zoneT,batDODIni,dtTStep,batMode,
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
-     &               batVolt,batTFin,batDODFin,batCurFin, pIntHeatFin,
-     &               hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &               gas_constant,cycles_used_Lion,state_of_health)
+     &               batVolt,batCurFin,pIntHeatFin)
 
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat + pHeaters + pParasitic
@@ -3416,9 +3412,6 @@ C Battery parameters
 C Coefficients for the capacity equation
       REAL alpha, beta
 
-
-
-
 C Declaration of functions used
       REAL temp_factor_lion
       REAL rate_factor_lion
@@ -3450,7 +3443,7 @@ cx                  in post-useful life phase ??>>
              cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
      &       *cellCapRef
            ENDIF
-      ELSE ! new ageing model
+      ELSE     ! new ageing model
 cx	       cellCap = cellCapRef*state_of_health 
 	       cellCap = cellCapRef*(0.8+0.2*state_of_health)
 cx             use the first calculation method of cellCap if the parameters 
@@ -4045,10 +4038,11 @@ c *************************************************************************
       REAL    TIMSEC            !-length of time increment (seconds per timestep)
 
       COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout            !- write unit number
-      INTEGER iuin             !- read unit number
+      INTEGER iuout             !- write unit number
+      INTEGER iuin              !- read unit number
 
 C PARAMETERS FROM SIGNATURE
+
       REAL batTemp,DODIni,batCur
       INTEGER IPWC
 
@@ -4058,23 +4052,23 @@ C Local Parameters
 
 C Ageing Parameters
 
-      REAL ageing_time,         ! calendaric ageing factor
-     &     ageing_time_ref,     ! Calendric ageing factor under reference conditions (A_0)
-     &     ageing_temp_factor,  ! Temperature factor b
-     &     ageing_soc_factor,   ! State of charge factor c
-     &     calc_a_cycl,         ! cyclic ageing factor per timestep
-     &     calc_a_tim_sum,      ! used to calculate the ageing time factor
-     &     calc_a_time,	        ! calendaric ageing factor per timestep
-     &     cycles_used_dummy,   ! dummy to calculate cyclic ageing factor
-     &     cyc_mode,            ! 1=Popp, 2=Gunther
-     &     ts_dummy             ! counts the timesteps, used to calculate ageing_time
+      REAL ageing_time,         !- calendaric ageing factor
+     &     ageing_time_ref,     !- Calendric ageing factor under reference conditions (A_0)
+     &     ageing_temp_factor,  !- Temperature factor b
+     &     ageing_soc_factor,   !- State of charge factor c
+     &     calc_a_cycl,         !- cyclic ageing factor per timestep
+     &     calc_a_tim_sum,      !- used to calculate the ageing time factor
+     &     calc_a_time,	        !- calendaric ageing factor per timestep
+     &     cycles_used_dummy,   !- dummy to calculate cyclic ageing factor
+     &     cyc_mode,            !- 1=Popp, 2=Gunther
+     &     ts_dummy             !- counts the timesteps, used to calculate ageing_time
 
 C cyclic ageing polynomial factors
 
       REAL gamma1,gamma2,gamma3,gamma4
 
 
-C************** Initialisation
+C *********** Initialisation
 
       batTOper = POWCDAT(IPWC,4)
       gamma1 = POWCDAT(IPWC,84)
@@ -4095,77 +4089,65 @@ C *********** Calculations
 
 C Calculate calendric ageing factor
 
-      calc_a_time=(exp(2*(((batTemp-batTOper)/             ! ageing per timestep
+      calc_a_time=(exp(2*(((batTemp-batTOper)/                      ! cylendric ageing per timestep
      & (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
      & (ageing_soc_factor/log(2.))))))**0.5
 
-      calc_a_tim_sum=calc_a_tim_sum+calc_a_time
+      calc_a_tim_sum=calc_a_tim_sum+calc_a_time                     ! summed up calendric ageing
 
-      ageing_time=ageing_time_ini+ageing_time_ref*
+      ageing_time=ageing_time_ini+ageing_time_ref*                  ! calendric ageing factor
      &    (calc_a_tim_sum/ts_dummy)*(ts_dummy*(TIMSEC/86400))**0.5
       
 
 C Calculate cyclic ageing factor
 
-      IF (cyc_mode .EQ. 1.) THEN                       ! Popp method
-          ageing_cycle = gamma1                        ! cyclic ageing
+      IF (cyc_mode .EQ. 1.) THEN                          ! Popp method
+          ageing_cycle = gamma1                           ! cyclic ageing
      &             + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
      & 	           + gamma4*cycles_used_Lion**3
-      ELSEIF (cyc_mode .EQ. 2.) THEN                   ! Günther method
+      ELSEIF (cyc_mode .EQ. 2.) THEN                      ! Günther method
           IF (batCur .NE. 0.) THEN
-              calc_a_cycl =                            ! cyclic ageing per timestep
+              calc_a_cycl =                               ! cyclic ageing per timestep
      &        +0.0003508*abs(DODIni)**3
      &        -0.000007239*abs(DODIni)**2
      &        +0.00005642*abs(DODIni)
-              ageing_cycle=ageing_cycle+calc_a_cycl    ! cyclic ageing
+              ageing_cycle=ageing_cycle+calc_a_cycl       ! cyclic ageing + initial ageing_cycle factor
      &           *(cycles_used_Lion-cycles_used_dummy) 
               cycles_used_dummy = cycles_used_Lion
           ENDIF
       ENDIF
-
-cx      write(*,*) 'TIMSEC= ',TIMSEC
-cx      write(*,*) 'ts_dummy= ',ts_dummy
-cx      write(*,*) 'calc_a_time= ',calc_a_time
-cx      write(*,*) 'calc_a_tim_sum= ',calc_a_tim_sum
-cx      write(*,*) 'ageing_time= ',ageing_time
-cx      write(*,*) 'ageing_cycle= ',ageing_cycle
-cx      write(*,*) 'batSOC= ',batSOC
-cx      write(*,*) 'batSOCRef= ',batSOCRef
-cx      write(*,*) 'batTemp= ',batTemp
-cx      write(*,*) 'batTOper= ',batTOper
-cx      write(*,*) 'ageing_temp_factor= ',ageing_temp_factor/log(2.)
-cx      write(*,*) 'ageing_soc_factor= ',ageing_soc_factor/log(2.)
-cx      write(*,*) 'cycles_used_Lion= ',cycles_used_Lion
-cx      write(*,*) 'state_of_health= ',state_of_health
-cx      write(*,*) ' '
 
 
 C Calculate state of health
 
       SOH_Lion = 1.-(ageing_cycle+ageing_time)
 
-C Debug
+
+C *********** Debug
 
 
-cx      IF (ageing_cycle .LE. 0.0) THEN
-cx         WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
-cx     &                  ' ageing_cycle factor in SOH_Lion'
-cx         ageing_cycle = 0.0
-cx    This can happen because of the polynomial function that is used
+      write(*,*) 'ts_dummy= ',ts_dummy
+      write(*,*) 'calc_a_time= ',calc_a_time
+      write(*,*) 'ageing_time= ',ageing_time
+      write(*,*) 'ageing_cycle= ',ageing_cycle
+      write(*,*) 'batSOC= ',batSOC
+      write(*,*) 'batTemp= ',batTemp
+      write(*,*) 'cycles_used_Lion= ',cycles_used_Lion
+      write(*,*) 'state_of_health= ',state_of_health
+      write(*,*) ' '
+
+
       IF (ageing_time .LE. 0.0) THEN
          WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
      &                  ' ageing_time factor in SOH_Lion'
          ageing_time = 0.01
+cx    This should not happen
       ELSEIF (state_of_health .LE. 0.0) THEN
          WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
      &                  ' state_of_health in SOH_Lion'
-cx         state_of_health = 0.0
-cx      ELSEIF (state_of_health .GE. 1.0) THEN
-cx         WRITE(IUOUT,*) 'Warning Battery Model: state_of_health',
-cx     &                  ' exceeded 100% in SOH_Lion'
-cx         state_of_health = 1.0
-cx    This also can happen if ageing_cycle is a slight negative number
+cx    This can happen if ageing_cycle is a slight negative number 
+cx    What is caused by the polynomial that is used in Popp method
       ENDIF
 
 
@@ -4185,12 +4167,12 @@ C INPUTS:
 C -IPWC: Power-only component index number
 C -batTIni: The battery's initial temperature (oC)
 C -zoneT: Zone ambient temperature (oC)
-C -DODIni: The battery's initial depth of discharge
+C -batDODIni: The battery's initial depth of discharge
 C -dtTStep: Duration of the time step (hour)
 C -batMode: 0 for charge, 1 for discharge
-C -maxC: The maximum curent that can flow through the battery (Amp)
-C -maxP: The maximum power that can flow through the battery (W)
-C -pLoad: The offer (what can be used) (W)
+C -maxCBat: The maximum curent that can flow through the battery (Amp)
+C -maxPBat: The maximum power that can flow through the battery (W)
+C -batLoad: The offer (what can be used) (W)
 C
 C OUTPUTS:
 C -pParasitic: The power to run the circuitry (W)
@@ -4199,19 +4181,19 @@ C -pBat: The actual power used by the battery (W)
 C -batVolt: Battery average voltage corresponding to these loads (V)
 C -batTFin: Battery temperature at the end of the time step (oC)
 C -batDODFin: Battery DOD at the end of the time step (%)
-C -batCur: Battery current (A)
-C -pIntHeat: Heat generated by the current flowing in the internal resistance of the battery
+C -batCurFin: Battery current (A)
+C -pIntHeatFin: Heat generated by the current flowing in the internal resistance of the battery
 C
 c *********************************************************************
-      SUBROUTINE Lion_BMS(IPWC,batTIni,zoneT,DODIni,dtTStep,batMode,
-     &                    maxC,maxP,pLoad,pBat,pHeaters,pParasitic,
-     &                    batVolt,batTFin,batDODFin,batCur,pIntHeat,
-     &                    hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &                    gas_constant,cycles_used_Lion,state_of_health)
+      SUBROUTINE Lion_BMS(IPWC,batTIni,zoneT,batDODIni,dtTStep,
+     &                    batMode,maxCBat,maxPBat,batLoad,pBat,
+     &                    pHeaters,pParasitic,batVolt,batCurFin,
+     &                    pIntHeatFin)
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
 #include "power.h"
+#include "BATTERY.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       INTEGER iuout            !- write unit number
@@ -4221,11 +4203,9 @@ c *********************************************************************
       integer ntstpp            ! number of plant timesteps / building timestep
 
 C PARAMETERS FROM SIGNATURE (see routine comments for description)
-      REAL batTIni,zoneT,DODIni,dtTStep,maxC,maxP,pLoad,pBat,pHeaters,
-     &     pParasitic, batVolt,batTFin,batDODFin,batCur,pIntHeat,
-     &     state_of_health
+      REAL batTIni,zoneT,batDODIni,dtTStep,maxCBat,maxPBat,batLoad,pBat,
+     &     pHeaters,pParasitic,batVolt,batCurFin,pIntHeatFin
       INTEGER IPWC, batMode
-      INTEGER hiVoltLion,loVoltLion,hiTempLion,loTempLion
 
 C Declaration of functions used
       REAL FinalDOD_Lion, CurForPow, AvgVolt, InternalHeat, RInt_Lion,
@@ -4245,13 +4225,11 @@ C      REAL availpower,      ! Available power from the battery (W)
      &     heatersRes,       ! Heater resistance in ohms
      &     hA,               ! heat loss factor W/oC
      &     mCp,              ! thermal mass
-     &     gas_constant,     ! gas constant (8.314..)
      &     needed_power,     ! charge/discharge needed to bring battery back into safe limits
      &     dummy,            ! dummy variable for iterations
      &     relax,            ! relaxation factor
-     &     pLoad_or,         ! original load offered
+     &     batLoad_or,       ! original load offered
      &     neededHeat,       ! heat needed to return to safe operation
-     &     cycles_used_Lion, ! number of cycles exhausted for degradation
      &     maxPheaters       ! maximum heat possible based on current
 
 C************** Initialisation
@@ -4272,7 +4250,7 @@ C Same with self discharge (changes only if battery is in idle)
 
 C Store the original battery mode and load for reference
       batMode_or = batMode
-      pLoad_or = pLoad
+      batLoad_or = batLoad
 
 C Set a relaxation factor & iterations
       relax = 0.1
@@ -4284,23 +4262,23 @@ C evaluate how much the battery would have to dump over the next time step to br
 C safe limits
         batMode = 1
         dummy = 0.
-        batCur = 100. !initial high guess
+        batCurFin = 100. !initial high guess
 
-        DO WHILE (abs(batCur-dummy) .GT. relax .AND. iteration
+        DO WHILE (abs(batCurFin-dummy) .GT. relax .AND. iteration
      &        .LT. max_iteration )
-          dummy = batCur
+          dummy = batCurFin
 
 C         The needed energy in watts to return to safe points
-          needed_power = (POWCDAT(IPWC,15)-DODIni)                 !delta DOD
-     &        *BatteryCap_Lion(IPWC,batTIni,batCur)                !battery capacity
-     &        *AvgVolt(IPWC,batTIni,DODIni,batMode,dtTStep,dummy)  !voltage
+          needed_power = (POWCDAT(IPWC,15)-batDODIni)                 !delta DOD
+     &        *BatteryCap_Lion(IPWC,batTIni,batCurFin)                !battery capacity
+     &        *AvgVolt(IPWC,batTIni,batDODIni,batMode,dtTStep,dummy)  !voltage
      &        /dtTStep                                             !time step
-          batCur = CurForPow(IPWC,batTIni,DODIni,batMode,dtTStep,
+          batCurFin = CurForPow(IPWC,batTIni,batDODIni,batMode,dtTStep,
      &             needed_power)
           iteration = iteration + 1
         END DO
 
-        pLoad = needed_power
+        batLoad = needed_power
 
         IF (iteration .EQ. max_iteration) THEN
           WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
@@ -4310,13 +4288,13 @@ C         The needed energy in watts to return to safe points
         IF (batMode_or .NE. 1) THEN
 C         Originally in charge or idle mode. Re-evaluate the max current
 C         and power that you could discharge now that you changed modes
-          maxC = MaxCurrent(IPWC,batTIni,DODIni,batMode,dtTStep)
-          maxP = PowForCur(IPWC,batTIni,DODIni,batMode,dtTStep,
-     &                             maxC)
+          maxCBat = MaxCurrent(IPWC,batTIni,batDODIni,batMode,dtTStep)
+          maxPBat = PowForCur(IPWC,batTIni,batDODIni,batMode,dtTStep,
+     &                             maxCBat)
         endif
 
-        IF (pLoad_or .GE. pLoad) THEN ! What can be offered exceeds what needs to be dumped
-          pLoad = pLoad_or !assign load back to original because it is enough to safely return battery
+        IF (batLoad_or .GE. batLoad) THEN ! What can be offered exceeds what needs to be dumped
+          batLoad = batLoad_or !assign load back to original because it is enough to safely return battery
 
         ELSE ! What can be offered doesn't exceed and some will dump to the grid
 
@@ -4327,21 +4305,21 @@ C evaluate how much the battery would have to dump over the next time step to br
 C safe limits
         batMode = 0
         dummy = 0.
-        batCur = 100.
+        batCurFin = 100.
 
-        DO WHILE (abs(batCur-dummy) .GT. relax .AND. iteration
+        DO WHILE (abs(batCurFin-dummy) .GT. relax .AND. iteration
      &        .LT. max_iteration )
-          dummy = batCur
-          needed_power = (DODIni-POWCDAT(IPWC,14))                 !delta DOD
-     &        *BatteryCap_Lion(IPWC,batTIni,batCur)                !battery capacity
-     &        *AvgVolt(IPWC,batTIni,DODIni,batMode,dtTStep,dummy)  !voltage
+          dummy = batCurFin
+          needed_power = (batDODIni-POWCDAT(IPWC,14))                 !delta DOD
+     &        *BatteryCap_Lion(IPWC,batTIni,batCurFin)                !battery capacity
+     &        *AvgVolt(IPWC,batTIni,batDODIni,batMode,dtTStep,dummy)  !voltage
      &        /dtTStep                                             !time step
-          batCur = CurForPow(IPWC,
-     &             batTIni,DODIni,batMode,dtTStep,needed_power)
+          batCurFin = CurForPow(IPWC,
+     &             batTIni,batDODIni,batMode,dtTStep,needed_power)
           iteration = iteration + 1
         END DO
 
-        pLoad = needed_power
+        batLoad = needed_power
 
         IF (iteration .EQ. max_iteration) THEN
           WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
@@ -4353,14 +4331,15 @@ C safe limits
                                     ! to bring into safe limits
 
 C         Re-evaluate the max current and power that you could discharge now that you changed modes
-          maxC = MaxCurrent(IPWC,batTIni,DODIni,batMode,dtTStep)
-          maxP = PowForCur(IPWC,batTIni,DODIni,batMode,dtTStep,maxC)
+          maxCBat = MaxCurrent(IPWC,batTIni,batDODIni,batMode,dtTStep)
+          maxPBat = PowForCur(IPWC,batTIni,batDODIni,batMode,dtTStep
+     &                        ,maxCBat)
 
 C << logic most likely also flawed, as with hiVolt above ... >>
         ELSE ! Battery in charge or idle determine how much excess power the batt needs to charge
 
-          IF (pLoad_or .GE. pLoad) THEN ! What can be offered exceeds what needs to be dumped
-            pLoad = pLoad_or !assign load back to original because it is enough to safely return battery
+          IF (batLoad_or .GE. batLoad) THEN ! What can be offered exceeds what needs to be dumped
+            batLoad = batLoad_or !assign load back to original because it is enough to safely return battery
 
           ELSE ! What can be offered doesn't exceed and some will dump to the grid
 
@@ -4370,9 +4349,9 @@ C << logic most likely also flawed, as with hiVolt above ... >>
 
       ELSEIF (hiTempLion .EQ. 1) THEN      ! Over temp flag is on, battery needs to idle
         batMode = 2
-        pLoad = 0.
+        batLoad = 0.
         self_discharge = max(ko*exponent(-E_as/(gas_constant*batTIni))
-     &                   *(1-DODIni),0.)
+     &                   *(1-batDODIni),0.)
 
 
       ELSEIF (loTempLion .EQ. 1) THEN  ! Under temp flag is on, battery needs heat
@@ -4380,41 +4359,41 @@ C figure out heat needed from battery to bring back into safe limits
 
         batMode = 1 ! Set the battery to discharge
         dummy = 100.
-        batCur = 0.
+        batCurFin = 0.
 
-        maxC = MaxCurrent(IPWC,batTIni,DODIni,batMode,dtTStep)
-        maxP = PowForCur(IPWC,batTIni,DODIni,batMode,dtTStep,
-     &                             maxC)
+        maxCBat = MaxCurrent(IPWC,batTIni,batDODIni,batMode,dtTStep)
+        maxPBat = PowForCur(IPWC,batTIni,batDODIni,batMode,dtTStep,
+     &                             maxCBat)
 
 
 
-        DO WHILE (abs(batCur-dummy) .GT. relax .AND. iteration
+        DO WHILE (abs(batCurFin-dummy) .GT. relax .AND. iteration
      &        .LT. max_iteration )
 
-          dummy = batCur
-          maxPheaters = AvgVolt(IPWC,batTIni,DODIni,batMode,
-     &    dtTStep,maxC)**2./
+          dummy = batCurFin
+          maxPheaters = AvgVolt(IPWC,batTIni,batDODIni,batMode,
+     &    dtTStep,maxCBat)**2./
      &    heatersRes !maximum heat that can be drawn from battery
 
           neededHeat = ((POWCDAT(IPWC,17)-batTIni*exp(-hA*
      &    dtTStep*3600./mCp))
      &    /(1.-exp(-hA*dtTStep*3600./mCp))-zoneT)*hA -
-     &    RInt_Lion(IPWC,DODIni,batMode,batCur)*dummy**2.
+     &    RInt_Lion(IPWC,batDODIni,batMode,batCurFin)*dummy**2.
 
           neededHeat = max(0.,neededHeat) ! prevent a negative error
 
-          pHeaters = min(neededHeat,maxPheaters,maxP) !needed heat can't exceed maximum
+          pHeaters = min(neededHeat,maxPheaters,maxPBat) !needed heat can't exceed maximum
 
           pHeaters = max(0.,pHeaters) ! prevent a negative error
 
           if (batMode_or .eq. 0) then !this was originally in charge, none of the load can be met
-            pLoad = 0.
+            batLoad = 0.
           else
-            pLoad = max((pLoad_or - pHeaters),0.) ! this is what's left to satisfy the imposed discharge
+            batLoad = max((batLoad_or - pHeaters),0.) ! this is what's left to satisfy the imposed discharge
           endif
 
-          batCur = CurForPow(IPWC,batTIni,
-     &             DODIni,batMode,dtTStep,pLoad)
+          batCurFin = CurForPow(IPWC,batTIni,
+     &             batDODIni,batMode,dtTStep,batLoad)
 
           iteration = iteration + 1
 
@@ -4429,7 +4408,7 @@ C figure out heat needed from battery to bring back into safe limits
 
         IF (batMode .EQ. 2) THEN  ! Idle, get self discharge
           self_discharge = max(ko*exponent(-E_as/(gas_constant*batTIni))
-     &                     *(1-DODIni),0.)
+     &                     *(1-batDODIni),0.)
 
         ELSEIF (batMode .EQ. 1) THEN ! Discharge
 
@@ -4440,33 +4419,34 @@ C figure out heat needed from battery to bring back into safe limits
       ENDIF
 
       IF (batMode .EQ. 0) THEN !Charge is the load minus what's needed for heaters and parasitic loads
-        pBat = MIN((pLoad-pHeaters-pParasitic),maxP)
+        pBat = MIN((batLoad-pHeaters-pParasitic),maxPBat)
 
       ELSE !Discharge, the battery has to take up the extra loads
-        pBat = MIN((pLoad+pHeaters+pParasitic),maxP)
+        pBat = MIN((batLoad+pHeaters+pParasitic),maxPBat)
 
       ENDIF
 
 
 C     Evaluate the current on the battery
-      batCur = CurForPow(IPWC,batTIni,DODIni,batMode,dtTStep,pBat)
+      batCurFin = CurForPow(IPWC,batTIni,batDODIni,batMode,dtTStep,pBat)
      &         + self_discharge
 
 C     Evaluate the voltage on the battery
-      batVolt = AvgVolt(IPWC,batTIni,DODIni,batMode,dtTStep,batCur)
+      batVolt = AvgVolt(IPWC,batTIni,batDODIni,batMode,dtTStep
+     &                  ,batCurFin)
 
 C     Evaluate the internal heat generated by the battery
-      pIntHeat = InternalHeat(IPWC,batTIni,DODIni,batMode,dtTStep,
-     &          batCur)
+      pIntHeatFin = InternalHeat(IPWC,batTIni,batDODIni,batMode,dtTStep,
+     &          batCurFin)
 
 C     Get battery's final state
-      batDODFin = FinalDOD_Lion(IPWC,batTIni,DODIni,batMode,
-     &            dtTStep,batCur)
+      batDODFin = FinalDOD_Lion(IPWC,batTIni,batDODIni,batMode,
+     &            dtTStep,batCurFin)
 
 C     Get battery's final temperature
       batTFin = batTIni*exp(-hA*dtTStep*3600./mCp) + (zoneT +
-     &  (RInt_Lion(IPWC,(DODIni+batDODFin)/2.,batMode,batCur)
-     &  *batCur**2. + pHeaters)/hA)*(1. -
+     &  (RInt_Lion(IPWC,(batDODIni+batDODFin)/2.,batMode,batCurFin)
+     &  *batCurFin**2. + pHeaters)/hA)*(1. -
      &  exp(-hA*dtTStep*3600./mCp))
 
 C**To keep the battery at 25 Celcius for debugging
@@ -4474,15 +4454,13 @@ C      batTFin = 25.
 
 C  Find out how much of the battery cycle life has depleted
       cycles_used_Lion = cycles_used_Lion +
-     &                   abs(batDODFin-DODIni)
+     &                   abs(batDODFin-batDODIni)
      &                   /float(ntstpp) !account for no. of plant steps/building step
-cx      WRITE(*,*) 'cycles_used_Lion= ',cycles_used_Lion
 
 C  Calculate the SOH only if remaining capacity (Parameter 82) is set
 
       IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
-          state_of_health = SOH_Lion(IPWC,batTIni,DODIni,batCur)
-cx      WRITE(*,*) 'state_of_health= ',state_of_health
+          state_of_health = SOH_Lion(IPWC,batTIni,batDODIni,batCurFin)
       ELSE
           state_of_health = 1.
       ENDIF
