@@ -4099,7 +4099,7 @@ C Calculate calendric ageing factor
      & (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
      & (ageing_soc_factor/log(2.))))))**0.5
 
-      calc_a_tim_sum=calc_a_tim_sum+calc_a_time           ! 
+      calc_a_tim_sum=calc_a_tim_sum+calc_a_time
 
       ageing_time=ageing_time_ini+ageing_time_ref*
      &    (calc_a_tim_sum/ts_dummy)*(ts_dummy*(TIMSEC/86400))**0.5
@@ -4108,7 +4108,7 @@ C Calculate calendric ageing factor
 C Calculate cyclic ageing factor
 
       IF (cyc_mode .EQ. 1.) THEN                       ! Popp method
-          ageing_cycle = ageing_cycle + gamma1         ! cyclic ageing
+          ageing_cycle = gamma1                        ! cyclic ageing
      &             + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
      & 	           + gamma4*cycles_used_Lion**3
