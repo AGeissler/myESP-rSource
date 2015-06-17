@@ -658,11 +658,12 @@ C ************** Initialisation
                  write(*,*) 'new model, all factors set'                  ! will be used
              ENDIF
          ELSE
-             write(*,*) 'something went wrong, check parameters'
+             WRITE(IUOUT,*) 'something went wrong, check parameters'
          ENDIF
          write(*,*) 'ageing_cycle= ',ageing_cycle
          write(*,*) 'ageing_time_ini= ',ageing_time_ini
          write(*,*) 'state_of_health= ',state_of_health
+         write(*,*) ' '
        ENDIF
 
 
@@ -4057,15 +4058,17 @@ C Local Parameters
 
 C Ageing Parameters
 
-      REAL ageing_time,         ! Calendaric ageing factor
+      REAL ageing_time,         ! calendaric ageing factor
      &     ageing_time_ref,     ! Calendric ageing factor under reference conditions (A_0)
      &     ageing_temp_factor,  ! Temperature factor b
      &     ageing_soc_factor,   ! State of charge factor c
      &     calc_a_cycl,         ! cyclic ageing factor per timestep
+     &     calc_a_tim_sum,
      &     calc_a_time,	        ! calendaric ageing factor per timestep
      &     cycles_used_dummy,   ! dummy to calculate cyclic ageing factor
      &     cyc_mode,             ! 1=Popp, 2=Gunther
-     &     a_cycle_dummy
+     &     a_cycle_dummy,
+     &     ts_dummy
 
 C cyclic ageing polynomial factors
 
@@ -4085,27 +4088,25 @@ C************** Initialisation
       batSOCRef  = POWCDAT(IPWC,91)
       batSOC = (1. - DODIni)
       cyc_mode = int(POWCDAT(IPWC,94))
-
+      ts_dummy=ts_dummy+1
 
 
 C *********** Calculations
 
 
 C Calculate calendric ageing factor
-C << these ageing_time calculations are still wrong>>
 
-      calc_a_time = calc_a_time + (exp(2
-     & *((batTemp - batTOper)/(ageing_temp_factor/log(2.))
-     & +(batSOC - batSOCRef)/(ageing_soc_factor/log(2.)))
-     & ))*(TIMSEC/86400)
+      calc_a_time=(exp(2*(((batTemp-batTOper)/             ! ageing per timestep
+     & (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
+     & (ageing_soc_factor/log(2.))))))**0.5
 
-      ageing_time = ageing_time_ini+ageing_time_ref*(calc_a_time)**0.5
+      calc_a_tim_sum=calc_a_tim_sum+calc_a_time           ! 
 
+      ageing_time=ageing_time_ini+ageing_time_ref*
+     &    (calc_a_tim_sum/ts_dummy)*(ts_dummy*(TIMSEC/86400))**0.5
+      
 
 C Calculate cyclic ageing factor
-C <<both of the calculations could be correct
-C   to be validated with a long simulation>>
-
 
       IF (cyc_mode .EQ. 1.) THEN                       ! Popp method
           ageing_cycle = ageing_cycle + gamma1         ! cyclic ageing
@@ -4124,9 +4125,21 @@ C   to be validated with a long simulation>>
           ENDIF
       ENDIF
 
-      write(*,*) 'ageing_time= ',ageing_time
-      write(*,*) 'ageing_cycle= ',ageing_cycle
-
+cx      write(*,*) 'TIMSEC= ',TIMSEC
+cx      write(*,*) 'ts_dummy= ',ts_dummy
+cx      write(*,*) 'calc_a_time= ',calc_a_time
+cx      write(*,*) 'calc_a_tim_sum= ',calc_a_tim_sum
+cx      write(*,*) 'ageing_time= ',ageing_time
+cx      write(*,*) 'ageing_cycle= ',ageing_cycle
+cx      write(*,*) 'batSOC= ',batSOC
+cx      write(*,*) 'batSOCRef= ',batSOCRef
+cx      write(*,*) 'batTemp= ',batTemp
+cx      write(*,*) 'batTOper= ',batTOper
+cx      write(*,*) 'ageing_temp_factor= ',ageing_temp_factor/log(2.)
+cx      write(*,*) 'ageing_soc_factor= ',ageing_soc_factor/log(2.)
+cx      write(*,*) 'cycles_used_Lion= ',cycles_used_Lion
+cx      write(*,*) 'state_of_health= ',state_of_health
+cx      write(*,*) ' '
 
 
 C Calculate state of health
@@ -4464,13 +4477,13 @@ C  Find out how much of the battery cycle life has depleted
       cycles_used_Lion = cycles_used_Lion +
      &                   abs(batDODFin-DODIni)
      &                   /float(ntstpp) !account for no. of plant steps/building step
-      WRITE(*,*) 'cycles_used_Lion= ',cycles_used_Lion
+cx      WRITE(*,*) 'cycles_used_Lion= ',cycles_used_Lion
 
 C  Calculate the SOH only if remaining capacity (Parameter 82) is set
 
       IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
           state_of_health = SOH_Lion(IPWC,batTIni,DODIni,batCur)
-      WRITE(*,*) 'state_of_health= ',state_of_health
+cx      WRITE(*,*) 'state_of_health= ',state_of_health
       ELSE
           state_of_health = 1.
       ENDIF
@@ -4709,6 +4722,6 @@ C POWCDAT (IPWC,88):   ageing_time_ref     Calendaric ageing of a cell under ref
 C POWCDAT (IPWC,89):   ageing_temp_factor  Factor b of the ageing_time formula
 C POWCDAT (IPWC,90):   ageing_soc_factor   Factor c of the ageing_time formula
 C POWCDAT (IPWC,91):   batSOCRef           Reference SOC for degradation (typically 0.5)
-C POWCDAT (IPWC,92):   ageing_time_ini     Initial ageing_time factor, either calculated or from parameter file
+C POWCDAT (IPWC,92):   ageing_time         Initial ageing_time factor, either calculated or from parameter file
 C POWCDAT (IPWC,93):   ageing_cycle        Initial ageing_cycle factor, either calculated or from parameter file
 C POWCDAT (IPWC,94):   cyc_mode            Method to calculate ageing_cycle (1=Popp, 2=Günther)
