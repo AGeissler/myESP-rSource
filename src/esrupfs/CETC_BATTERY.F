@@ -4093,7 +4093,8 @@ C *********** Initialisation
       batSOCRef  = POWCDAT(IPWC,91)
       batSOC = (1. - DODIni)
       cyc_mode = int(POWCDAT(IPWC,94))
-      ts_dummy=ts_dummy+1
+      ts_dummy=ts_dummy+1                   ! this could lead to problems but a variable that 
+                                            ! contains the current timestep is needed
 
 
 C *********** Calculations
