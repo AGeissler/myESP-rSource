@@ -297,7 +297,7 @@ MODULE h3kmodule
          rvEPowBattSysDschrgLd,rvEPowBattTemp,rvEPowBattLfUsed,rvEPowBattLfUsedCum, &
          rvEPowBattLfUseFac,rvEPowBattChrgCyc,rvEPowBattManChrgPh,rvEPowBattManChrgPhInc, &
          rvEPowBattTmeLstFulChrg,rvEPowBattBdTreatFlg,rvEPowBattCtrlScn,rvEPowBattLiOnCycUsed, &
-         rvEPowBattLiOnSOH
+         rvEPowBattLiOnSOH,rvEPowBattLiOnBatCap
 
    !Used by RE-H2-ctl.F
    Type(ReportVariable) :: rvCtrlReH2NPwElAct,rvCtrlReH2NPwBattChrg,rvCtrlReH2NPwBattDschrg, &
@@ -3453,6 +3453,12 @@ CONTAINS
       rvEPowBattLiOnSOH%VariableType = '(-)'
       rvEPowBattLiOnSOH%Description = 'Li-on state of health'
       Call AddVariable(rvEPowBattLiOnSOH)
+
+      rvEPowBattLiOnBatCap%VariableName = 'electrical_net/power_only_components/*/misc_data/Lion_Battery_Capacity'
+      rvEPowBattLiOnBatCap%MetaType = 'units'
+      rvEPowBattLiOnBatCap%VariableType = '(Ah)'
+      rvEPowBattLiOnBatCap%Description = 'Li-on remaining Battery Capacity'
+      Call AddVariable(rvEPowBattLiOnBatCap)
 
       !Used by RE-H2-ctl.F
       rvCtrlReH2NPwElAct%VariableName = 'control/re_h2_ctl/net_power_balance/electrolyzer_active'

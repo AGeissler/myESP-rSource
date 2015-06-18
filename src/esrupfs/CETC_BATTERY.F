@@ -531,6 +531,10 @@ C    Calculate and report max battery heater power in W
      &      state_of_health,
      &      powcomnam(IPWC)(1:iNameLength))
 
+      Call AddToReport(rvEPowBattLiOnBatCap%Identifier,
+     &      batCapRep,
+     &      powcomnam(IPWC)(1:iNameLength))
+
       RETURN
       END
 
@@ -1815,6 +1819,7 @@ C************** Calculation
       ELSE  !Discharge
          FinalDOD = DODIni + batCur*dtTStep/BatteryCap(IPWC,batTemp)
       ENDIF
+
 
       END
 
@@ -3457,6 +3462,7 @@ cx             of a 2nd life cell were defined as described in Andreas Bucher's 
 C     Capacity of the battery is the capacity of one cell times the number of cells in parallel
 
       BatteryCap_Lion = beta*alpha*cellCap*nParal
+      batCapRep = BatteryCap_Lion
 
 C     Make sure no negative value is returned
 
@@ -4054,6 +4060,9 @@ C Local Parameters
 
       REAL batSOCRef,batTOper,batSOC
 
+      INTEGER ts_dummy,         !- counts the timesteps, used to calculate ageing_time
+     &        cyc_mode          !- 1=Popp, 2=Gunther
+
 C Ageing Parameters
 
       REAL ageing_time,         !- calendaric ageing factor
@@ -4063,9 +4072,8 @@ C Ageing Parameters
      &     calc_a_cycl,         !- cyclic ageing factor per timestep
      &     calc_a_tim_sum,      !- used to calculate the ageing time factor
      &     calc_a_time,	        !- calendaric ageing factor per timestep
-     &     cycles_used_dummy,   !- dummy to calculate cyclic ageing factor
-     &     cyc_mode,            !- 1=Popp, 2=Gunther
-     &     int(ts_dummy)        !- counts the timesteps, used to calculate ageing_time
+     &     cycles_used_dummy    !- dummy to calculate cyclic ageing factor
+
 
 C cyclic ageing polynomial factors
 

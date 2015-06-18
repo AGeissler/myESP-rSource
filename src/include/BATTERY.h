@@ -38,6 +38,7 @@ C-------------------------------------------------------------------------------
      & activeBatLifeControl,
      & ageing_cycle,
      & ageing_time_ini,
+     & batCapRep,
      & batDemandP,
      & batDODFin,
      & batLifeUsed,
@@ -130,7 +131,7 @@ C-------------------------------------------------------------------------------
 C-------------------------------------------------------------------------------
 C Li-on degradation, number of cycles used & calendaric ageing factor
 C-------------------------------------------------------------------------------      
-      REAL cycles_used_Lion,ageing_cycle
+      REAL cycles_used_Lion,ageing_cycle,batCapRep
       REAL ageing_time_ini,state_of_health
   
 C---------------------------
