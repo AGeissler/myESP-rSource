@@ -4060,7 +4060,7 @@ C Local Parameters
 
       REAL batSOCRef,batTOper,batSOC
 
-      INTEGER ts_dummy,         !- counts the timesteps, used to calculate ageing_time
+      INTEGER :: ts_dummy = 0,  !- counts the timesteps, used to calculate ageing_time
      &        cyc_mode          !- 1=Popp, 2=Gunther
 
 C Ageing Parameters
