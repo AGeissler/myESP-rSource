@@ -330,7 +330,7 @@ C    Evaluate the battery life fraction used in this timestep
          ELSEIF( POWCOMID(IPWC) .EQ. lion) THEN      ! Li-on
            CALL Lion_BMS(IPWC,batTIni,zoneT,batDODIni,dtTStep,batMode,
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
-     &               batVolt,batTFin,batCurFin,pIntHeatFin)
+     &               batVolt,batCurFin,pIntHeatFin)
 C    Evaluate the portion of the load that can be met
            pBatSystem = pBat - pHeaters - pParasitic
          ENDIF
@@ -644,10 +644,14 @@ C ************** Initialisation
                      ageing_cycle = (0.0003508*(0.5**3)               ! <<This method is very inaccurate>>
      &               -0.000007239*(0.5**2)+0.00005642*0.5)
      &               *cycleIni
+                 ELSE
+                     ! Parameter 94 not set, set to 1 for Popp or 2 for Gunther cycling method
                  ENDIF
                  ageing_time_ini=1-state_of_health-ageing_cycle       ! calculate ageing_time_ini
                  IF (ageing_time_ini .LE. 0.0) THEN
                      ageing_time_ini = 0.0
+                 ELSE
+                     ! all is fine
                  ENDIF
              ELSE
                  state_of_health=1-(ageing_time_ini+ageing_cycle)     ! ageing factors from the parameter file
@@ -4061,7 +4065,7 @@ C Ageing Parameters
      &     calc_a_time,	        !- calendaric ageing factor per timestep
      &     cycles_used_dummy,   !- dummy to calculate cyclic ageing factor
      &     cyc_mode,            !- 1=Popp, 2=Gunther
-     &     ts_dummy             !- counts the timesteps, used to calculate ageing_time
+     &     int(ts_dummy)        !- counts the timesteps, used to calculate ageing_time
 
 C cyclic ageing polynomial factors
 
@@ -4115,7 +4119,11 @@ C Calculate cyclic ageing factor
               ageing_cycle=ageing_cycle+calc_a_cycl       ! cyclic ageing + initial ageing_cycle factor
      &           *(cycles_used_Lion-cycles_used_dummy) 
               cycles_used_dummy = cycles_used_Lion
+          ELSE
+              ! the battery is not cycled
           ENDIF
+      ELSE
+          ! Parameter 94 not set. Set to 1 for Popp or 2 for Gunther cycling method
       ENDIF
 
 
@@ -4159,7 +4167,7 @@ C Lion_BMS
 C**************************************************************************
 C
 C Created By Neil Saldanha January 2010
-C Modified by Andreas Bucher May 2015
+C Modified by Andreas Bucher June 2015
 C
 C - This subroutine
 C
