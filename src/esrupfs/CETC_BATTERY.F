@@ -627,7 +627,7 @@ C ************** Initialisation
              ageing_cycle = 0.
              state_of_health = 1.
              cycles_used_Lion = 0.
-         ELSEIF (cellCapIni .EQ. 0.) THEN                             ! Random cell, old ageing model
+         ELSEIF (cellCapIni .EQ. 0.) THEN     ! Random cell, old ageing model
              WRITE(IUOUT,*) 'Warning Battery Model: Factors for ',
      &                      'calendric ageing not determined! ',
      &                      'Old ageing model will be used.'
