@@ -36,22 +36,26 @@ C-------------------------------------------------------------------------------
       common/BATTERY_STATE/
      & abuseFlag,
      & activeBatLifeControl,
-     & batTFin,
+     & ageing_cycle,
+     & ageing_time_ini,
+     & batCapRep,
+     & batDemandP,
      & batDODFin,
      & batLifeUsed,
+     & batTFin,
      & cumBatLifeUsed,
+     & cycles_used_Lion,
+     & hiTempLion,
+     & hiVoltLion,
      & lifeUseFactor,
-     & mandChargeCycle,
+     & loTempLion,
+     & loVoltLion,
      & mandChargePhase,
      & mandChargePhaseIncrease,
-     & timeSinceLastFullCharge,
+     & mandChargeCycle,
      & nPreviousTS,
-     & batDemandP,
-     & loVoltLion,
-     & hiVoltLion,
-     & loTempLion,
-     & hiTempLion,
-     & cycles_used_Lion
+     & state_of_health,
+     & timeSinceLastFullCharge
 
 C---------------------------------------------------------------------------------
 C Declaration of variable type and definition
@@ -124,10 +128,11 @@ C-------------------------------------------------------------------------------
       INTEGER loVoltLion, hiVoltLion, loTempLion, hiTempLion
 
 C-------------------------------------------------------------------------------
-C Li-on degradation, number of cycles used
+C Li-on degradation, number of cycles used & calendaric ageing factor
 C-------------------------------------------------------------------------------      
-      REAL cycles_used_Lion
-      
+      REAL cycles_used_Lion,ageing_cycle,batCapRep
+      REAL ageing_time_ini,state_of_health
+  
 C---------------------------
 C Battery type signatures
 C---------------------------
