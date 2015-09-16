@@ -527,13 +527,13 @@ C    Calculate and report max battery heater power in W
      &      cycles_used_Lion,
      &      powcomnam(IPWC)(1:iNameLength))
 
-      Call AddToReport(rvEPowBattLiOnSOH%Identifier,
-     &      state_of_health,
-     &      powcomnam(IPWC)(1:iNameLength))
+cx      Call AddToReport(rvEPowBattLiOnSOH%Identifier,
+cx     &      state_of_health,
+cx     &      powcomnam(IPWC)(1:iNameLength))
 
-      Call AddToReport(rvEPowBattLiOnBatCap%Identifier,
-     &      batCapRep,
-     &      powcomnam(IPWC)(1:iNameLength))
+cx      Call AddToReport(rvEPowBattLiOnBatCap%Identifier,
+cx     &      batCapRep,
+cx     &      powcomnam(IPWC)(1:iNameLength))
 
       RETURN
       END
