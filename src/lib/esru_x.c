@@ -3415,32 +3415,14 @@ void updhelp_(items,nitmsptr,iw,len_items)
   long int  *iw;            /* actual max char width in items    */
   int  len_items;           /* length of help string from f77    */
 {
-<<<<<<< HEAD
-  int   i,j,k;
-  int   nitms = *nitmsptr;
-  char  *item_local = items;	/* working copy of intput string */
-=======
   int	i,j,k;
   int	nitms = *nitmsptr;
   char 	*item_local = items;	/* working copy of intput string */
->>>>>>> c284812307126a50ddaa75444819485212faf116
 
-  help_width = *iw;    /* remember width of current help text */
-  help_lines = nitms;  /* remember number of help lines */
+  help_width = *iw;	/* remember width of current help text */
+  help_lines = nitms;	/* remember number of help lines */
   if(help_lines == 0)return;	/* don't bother if no help */
 
-<<<<<<< HEAD
-  /* use similar logic to updmenu */
-   k = 0;
-   for(i = 0; i < nitms; i++) {	/* for each line...  */
-     for(j = 0; j < 72; j++) {	/* for each character...  */
-       help_list[i][j] = item_local[k];
-       k = k +1;   /* increment for next char in items (a fortran 
-                      string array does not have nulls between strings 
-                      in array, it just looks like one long string) */
-     }
-     help_list[i][71] = '\0';	/* write terminator  */
-=======
 /* use similar logic to updmenu */
   k = 0;
   for(i = 0; i < nitms; i++) {	/* for each line...  */
@@ -3450,7 +3432,6 @@ void updhelp_(items,nitmsptr,iw,len_items)
                      nulls between strings in array, it just looks like one long string) */
     }
     help_list[i][71] = '\0';	/* write terminator  */
->>>>>>> c284812307126a50ddaa75444819485212faf116
   }
   return;
 }
