@@ -731,10 +731,13 @@ C-------------------------------------------------------------------------------
 
       logical   bFileError            !- boolean signalling file error
       logical   xst                   !- boolean to signal that input file exists
-      logical   bBatteryNew
+      logical   bBatteryNew,bLegacyModel
 
       real      SOC_MAX               !- maximum state of charge of battery
       real      SOC_MIN               !- minimum state of charge of battery
+
+      real      cycles_used           !- cycles LiIon battery has already used, for reading from
+                                      !- file, used only with legacy ageing model
 
       parameter( SOC_MAX = 100.,
      &           SOC_MIN = 10. )
@@ -776,7 +779,7 @@ C 100              # (8)  battery SOC at which PV use for charging is ended
 C 25               # (9)  battery SOC at which grid is used for charging
 C 100              # (10) battery SOC at which grid use for charging is ended
 C 400.             # (11) controller deadband for PV battery charge (W)
-C 3000.            # (12) battery cycles already used at simulation start
+C 3000.            # (12) battery cycles already used at simulation start (legacy ageing model, only)
 C 0                # (13)  grid rate toggle, 0/1 grid rate low false/true, 2 read file
 C 0.16             # (13a) grid rate "low" threshold if (13) is set to "2"
 C ./gridrate.fcl   # (13b) grid rate file if (13) is set to "2"
@@ -1009,16 +1012,23 @@ C     mainly for 2nd life usage ...
         bFileError = .true.
       endif
       k = 0
-      call egetwr(outstr,k,cycles_used_Lion,0.,50000.,
+      call egetwr(outstr,k,cycles_used,0.,50000.,
      &            'W','cycles used',ier)
       if ( ier .ne. 0 ) then
         write(iuout,*) 'Error reading bat. cycles used'
         bFileError = .true.
         write(cErrLoc,'(A)')'cycles used'
       endif
+C     Set cycles used only if legacy ageing model is active
+      call eclose(POWCDAT(IPWC_battery,82),0,0.01,bLegacyModel)
+      if (bLegacyModel) then
+        cycles_used_Lion = cycles_used
+      else
+        ! do nothing, here
+      endif
     ! Check if cycles used equal zero and set abuseFlag accordingly
     ! (avoid resetting of cycles_used_Lion in InitSimulation()
-    ! of Battery.F (line 595 ff.))
+    ! of CETC_BATTERY.F (line 595 ff.))
       call eclose(cycles_used_Lion,0,0.1,bBatteryNew)
       if (bBatteryNew) then
         abuseFlag=0
