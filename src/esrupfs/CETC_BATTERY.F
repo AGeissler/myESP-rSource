@@ -4033,7 +4033,7 @@ C OUTPUTS:
 C state_of_health: The SOH of a cell
 c *************************************************************************
       REAL FUNCTION SOH_Lion(IPWC,batTemp,DODIni,batCur)
-
+      use h3kmodule
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
@@ -4075,6 +4075,10 @@ C cyclic ageing polynomial factors
 
       REAL gamma1,gamma2,gamma3,gamma4
 
+      INTEGER iNameLength
+
+C External functions.
+      integer lnblnk
 
 C *********** Initialisation
 
@@ -4136,6 +4140,19 @@ C Calculate state of health
 
       SOH_Lion = 1.-(ageing_cycle+ageing_time)
 
+
+C     Write ageing components to h3k
+
+C.... Get component name's length
+      iNameLength = lnblnk(powcomnam(IPWC))
+
+      Call AddToReport(rvEPowBattLiOnAgeCyc%Identifier,
+     &      ageing_cycle,
+     &      powcomnam(IPWC)(1:iNameLength))
+
+      Call AddToReport(rvEPowBattLiOnAgeTime%Identifier,
+     &      ageing_time,
+     &      powcomnam(IPWC)(1:iNameLength))
 
 C *********** Debug
 

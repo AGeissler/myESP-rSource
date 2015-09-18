@@ -299,7 +299,7 @@ MODULE h3kmodule
          rvEPowBattSysDschrgLd,rvEPowBattTemp,rvEPowBattLfUsed,rvEPowBattLfUsedCum, &
          rvEPowBattLfUseFac,rvEPowBattChrgCyc,rvEPowBattManChrgPh,rvEPowBattManChrgPhInc, &
          rvEPowBattTmeLstFulChrg,rvEPowBattBdTreatFlg,rvEPowBattCtrlScn,rvEPowBattLiOnCycUsed, &
-         rvEPowBattLiOnSOH,rvEPowBattLiOnBatCap
+         rvEPowBattLiOnSOH,rvEPowBattLiOnBatCap,rvEPowBattLiOnAgeCyc,rvEPowBattLiOnAgeTime
 
    !Used by RE-H2-ctl.F
    Type(ReportVariable) :: rvCtrlReH2NPwElAct,rvCtrlReH2NPwBattChrg,rvCtrlReH2NPwBattDschrg, &
@@ -3492,6 +3492,18 @@ CONTAINS
       rvEPowBattLiOnBatCap%VariableType = '(Ah)'
       rvEPowBattLiOnBatCap%Description = 'Li-on remaining Battery Capacity'
       Call AddVariable(rvEPowBattLiOnBatCap)
+
+      rvEPowBattLiOnAgeCyc%VariableName = 'electrical_net/power_only_components/*/misc_data/Lion_cyclic_ageing'
+      rvEPowBattLiOnAgeCyc%MetaType = 'units'
+      rvEPowBattLiOnAgeCyc%VariableType = '(-)'
+      rvEPowBattLiOnAgeCyc%Description = 'Li-on cyclic ageing factor'
+      Call AddVariable(rvEPowBattLiOnAgeCyc)
+
+      rvEPowBattLiOnAgeTime%VariableName = 'electrical_net/power_only_components/*/misc_data/Lion_calendaric_ageing'
+      rvEPowBattLiOnAgeTime%MetaType = 'units'
+      rvEPowBattLiOnAgeTime%VariableType = '(-)'
+      rvEPowBattLiOnAgeTime%Description = 'Li-on calendaric ageing factor'
+      Call AddVariable(rvEPowBattLiOnAgeTime)
 
       !Used by RE-H2-ctl.F
       rvCtrlReH2NPwElAct%VariableName = 'control/re_h2_ctl/net_power_balance/electrolyzer_active'
