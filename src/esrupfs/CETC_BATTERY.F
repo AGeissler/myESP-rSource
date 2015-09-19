@@ -3444,8 +3444,8 @@ C     Check if Parameter 82 is set. If not use the old degradation method
                cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
      &         *cellCapRef
            ELSE ! The battery is beyond useful life and is falling off
-             cellCap = (8.8-.8*cycles_used_Lion/POWCDAT(IPWC,81))
-     &       *cellCapRef
+cx             cellCap = (8.8-.8*cycles_used_Lion/POWCDAT(IPWC,81))
+cx     &       *cellCapRef
 cx                <<add parameter "degradation factor" to change degradation
 cx                  in post-useful life phase ??>>
              cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
