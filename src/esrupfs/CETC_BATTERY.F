@@ -190,7 +190,7 @@ C     The zone information is not required for the current stage since the therm
 C     is not considered. It is put here for the reference of future improvement.
          iZoneIndex = INT(powcdat(IPWC,26))
 
-      ELSEIF(POWCOMID(IPWC) .EQ. lion) THEN !Lithium-ion battery
+      ELSEIF(POWCOMID(IPWC) .EQ. lion) THEN  ! Lithium-ion battery
          iZoneIndex = INT(powcdat(IPWC,72))
 
 C-----Add support for other battery types
@@ -335,7 +335,7 @@ C    Evaluate the battery life fraction used in this timestep
            CALL Lion_BMS(IPWC,batTIni,zoneT,batDODIni,dtTStep,batMode,
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
      &               batVolt,batCurFin,pIntHeatFin)
-C    Evaluate the portion of the load that can be met
+C          Evaluate the portion of the load that can be met
            pBatSystem = pBat - pHeaters - pParasitic
          ENDIF
 C    Evaluate the total power balance of the system
@@ -606,7 +606,8 @@ C ************** Initialisation
          mandChargePhaseIncrease = 0
          timeSinceLastFullCharge = 0.
          state_of_health = 1.
-       ELSEIF ( POWCOMID(IPWC) .EQ. lion ) THEN  ! Li-on
+
+       ELSEIF ( POWCOMID(IPWC) .EQ. lion ) THEN  ! Li-ion
          mandChargeCycle = 0 ! This is to get by a road block set by the lead acid later
          IF (abuseFlag.eq.0) THEN
            cycles_used_Lion = 0 ! This is the amount of cycles the cell has used for degradation
@@ -640,6 +641,7 @@ C ************** Initialisation
              IF (ageing_time_ini .EQ. 0. .AND.
      &           ageing_cycle .EQ. 0.) THEN                           ! ageing factors not set, calculate them
                  state_of_health = ((cellCapIni/cellCapRef)-0.8)/0.2
+
                  IF (POWCDAT(IPWC,94) .EQ. 1) THEN                    ! calculate with Popp method
                      ageing_cycle = gamma1 + gamma2*cycleIni
      & 	                              + gamma3*cycleIni**2
@@ -653,9 +655,13 @@ C ************** Initialisation
      &                              'set to 1 for Popp or ',
      &                              '2 for Gunther cycling method'
                  ENDIF
+
                  ageing_time_ini=1-state_of_health-ageing_cycle       ! calculate ageing_time_ini
+      write(*,*)'ageing_time_ini=',ageing_time_ini,
+     &          '; ageing_cycle=',ageing_cycle,
+     &          '; state_of_health=',state_of_health
                  IF (ageing_time_ini .LE. 0.0) THEN
-                     ageing_time_ini = 0.0
+                   ageing_time_ini = 0.0
                  ELSE
                      ! all is fine
                  ENDIF
@@ -1466,19 +1472,19 @@ C************** Calculation
 C initialise the dummy current to the value of the current at the last iteration
 810   dumCurrent = batCurrent
 
-
-
       IF( POWCOMID(IPWC) .EQ. pba) THEN      ! Lead-acid battery
          DODAvg = FinalDOD(IPWC,batTemp,DODInit,batMode,dtTStep/2.0,
      &                  batCurrent)
          RIntAvg = BatteryRInt(IPWC,batTemp,DODAvg,batCurrent,batMode)
          E0Avg = FreeVoltage(IPWC,DODAvg)
+
       ELSEIF(POWCOMID(IPWC) .EQ. vrb) THEN   ! VRB
          DODAvg = FinalDOD_VRB(IPWC,DODInit,batMode,
      &                  dtTStep/2.0, batCurrent)
          RIntAvg = RInt_VRB(IPWC,batTemp,DODAvg,batCurrent,batMode)
          E0Avg = OCV_VRB(IPWC, DODAvg, batCurrent, batMode)
-      ELSEIF(POWCOMID(IPWC) .EQ. lion) THEN   ! Li-on
+
+      ELSEIF(POWCOMID(IPWC) .EQ. lion) THEN   ! Li-ion
          DODAvg = FinalDOD_Lion(IPWC,batTemp,DODInit,batMode,
      &                    dtTStep/2.0,batCurrent)
          RintAvg = RInt_Lion(IPWC,DODAvg,batMode,batCurrent)
@@ -1489,7 +1495,7 @@ C initialise the dummy current to the value of the current at the last iteration
       IF (batMode .EQ. 0) THEN   ! charge
          batCurrent=(-E0Avg+(E0Avg**2.+4.*batPow*RIntAvg)**0.5)/2./
      &   RIntAvg
-      ELSE  ! Discharge
+      ELSE  ! Discharge or idle
          batCurrent=(E0Avg-(E0Avg**2.-4.*batPow*RIntAvg)**0.5)/2./
      &   RIntAvg
       ENDIF
@@ -4047,6 +4053,22 @@ c *************************************************************************
       INTEGER iuout             !- write unit number
       INTEGER iuin              !- read unit number
 
+C ESP-r COMMONs
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       INTEGER IHRP            !-hour of present time-step
+       INTEGER IHRF            !-hour of future time-step
+       INTEGER IDYP            !-year day number of present day
+       INTEGER IDYF            !-year day number of future day
+       INTEGER IDWP            !-day of the week of present day
+       INTEGER IDWF            !-day of the week of future day
+       INTEGER NSINC           !-number of building-side time increments
+                               !-since start of simulation
+       INTEGER ITS             !-current building time-step within
+                               !-current hour
+
+      common/pstctr/nsincp,nsncpr
+      integer nsincp,nsncpr
+
 C PARAMETERS FROM SIGNATURE
 
       REAL batTemp,DODIni,batCur
@@ -4056,8 +4078,8 @@ C Local Parameters
 
       REAL batSOCRef,batTOper,batSOC
 
-      INTEGER, SAVE :: ts_dummy = 0,  ! counts the timesteps, used to calculate ageing_time
-     &        cyc_mode                ! Cycling ageing method 1=Popp, 2=Gunther
+      INTEGER, SAVE :: ts_dummy = 0, ! counts the timesteps, used to calculate ageing_time
+     &        cyc_mode               ! Cycling ageing method 1=Popp, 2=Gunther
 
 C Ageing Parameters
 
@@ -4068,8 +4090,14 @@ C Ageing Parameters
      &     calc_a_cycl,         ! cyclic ageing factor per timestep
      &     calc_a_tim_sum,      ! used to calculate the ageing time factor
      &     calc_a_time,	        ! calendaric ageing factor per timestep
-     &     cycles_used_dummy    ! dummy to calculate cyclic ageing factor
+     &     Delta_Cycle,         !
+     &     Delta_DOD            ! DOD difference between DOD_t and DOD_t-1
 
+C Static parameters
+      REAL, SAVE :: cycles_used_old, ! cyclic ageing factor of last time step
+     &              DOD_old          ! DOD of last time step
+
+c POWCDAT(IPWC,83) cycleIni
 
 C cyclic ageing polynomial factors
 
@@ -4081,6 +4109,10 @@ C External functions.
       integer lnblnk
 
 C *********** Initialisation
+      if (NSINC .eq. 1) then
+        cycles_used_old = cycles_used_Lion
+        DOD_old = DODIni
+      endif
 
       batTOper = POWCDAT(IPWC,4)
       gamma1 = POWCDAT(IPWC,84)
@@ -4093,58 +4125,72 @@ C *********** Initialisation
       batSOCRef  = POWCDAT(IPWC,91)
       batSOC = (1. - DODIni)
       cyc_mode = int(POWCDAT(IPWC,94))
-      ts_dummy=ts_dummy+1                   ! this could lead to problems but a variable that 
-                                            ! contains the current timestep is needed
-
+      ts_dummy=ts_dummy+1             ! this could lead to problems but a variable that
+                                      ! contains the current timestep is needed
 
 C *********** Calculations
 
-
 C Calculate calendric ageing factor
 
-      calc_a_time=(exp(2*(((batTemp-batTOper)/                      ! calendric ageing per timestep
-     & (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
-     & (ageing_soc_factor/log(2.))))))**0.5
+        calc_a_time=(exp(2*(((batTemp-batTOper)/                  ! calendaric ageing per timestep
+     &   (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
+     &   (ageing_soc_factor/log(2.))))))**0.5
 
-      calc_a_tim_sum=calc_a_tim_sum+calc_a_time                     ! summed up calendric ageing
+        calc_a_tim_sum=calc_a_tim_sum+calc_a_time                 ! summed up calendaric ageing
 
-      ageing_time=ageing_time_ini+ageing_time_ref*                  ! calendric ageing + initial calendric ageing
-     &    (calc_a_tim_sum/ts_dummy)*(ts_dummy*(TIMSEC/86400))**0.5
-      
+C       << ageing time ini should probably be used only once at initialization?? >>
+        ageing_time=ageing_time_ini+ageing_time_ref*              ! calendaric ageing + initial calendaric ageing
+     &   (calc_a_tim_sum/ts_dummy)*(ts_dummy*(TIMSEC/86400))**0.5
 
 C Calculate cyclic ageing factor
 
-      IF (cyc_mode .EQ. 1.) THEN                          ! Popp method
-          ageing_cycle = gamma1                           ! Total cyclic ageing
+        IF (cyc_mode .EQ. 1.) THEN                          ! Popp method
+          ageing_cycle = gamma1                             ! Total cyclic ageing
      &             + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
      & 	           + gamma4*cycles_used_Lion**3
-      ELSEIF (cyc_mode .EQ. 2.) THEN                      ! Günther method
+
+        ELSEIF (cyc_mode .EQ. 2.) THEN                      ! Günther method
           IF (batCur .NE. 0.) THEN
-              calc_a_cycl =                               ! Cyclic ageing per timestep
-     &        +0.0003508*abs(DODIni)**3
-     &        -0.000007239*abs(DODIni)**2
-     &        +0.00005642*abs(DODIni)
-              ageing_cycle=ageing_cycle+calc_a_cycl       ! cyclic ageing + initial ageing_cycle factor
-     &           *(cycles_used_Lion-cycles_used_dummy) 
-              cycles_used_dummy = cycles_used_Lion
-          ELSE
-              ! the battery is not cycled
+C           Differenz in DOD between last and this time step
+            Delta_DOD = DODIni-DOD_old
+C           Differenz in number of cycles between last and this time step
+            Delta_Cycle = cycles_used_Lion-cycles_used_old
+C           Store current values for next time step
+            DOD_old = DODIni
+            cycles_used_old = cycles_used_Lion
+
+C           Cyclic ageing per timestep, Guenther model
+            calc_a_cycl =
+     &        +0.0003508*abs(Delta_DOD)**3
+     &        -0.000007239*abs(Delta_DOD)**2
+     &        +0.00005642*abs(Delta_DOD)
+
+C           Increment cyclic ageing
+            ageing_cycle = ageing_cycle + (calc_a_cycl*Delta_Cycle)
+
+       write(*,'(2(a,I3),6(a,E11.5))')'NSINC=',NSINC,
+     &    '; nsincp=',nsincp,
+     &    '; batCur=',batCur,'; DOD=',DODIni,
+     &    '; D_DOD=',Delta_DOD,'; calc_a_cyc=',calc_a_cycl,
+     &    '; D_Cyc=',Delta_Cycle,'; age_cyc=',ageing_cycle
+
+          ELSE ! batCur .eq. 0
+            ! the battery is not cycled
           ENDIF
-      ELSE
+        ELSE
           ! Parameter 94 not set. Set to 1 for Popp or 2 for Gunther cycling method
-      ENDIF
+        ENDIF
 
 
 C Calculate state of health
 
       SOH_Lion = 1.-(ageing_cycle+ageing_time)
 
-
 C     Write ageing components to h3k
 
 C.... Get component name's length
-      iNameLength = lnblnk(powcomnam(IPWC))
+        iNameLength = lnblnk(powcomnam(IPWC))
 
       Call AddToReport(rvEPowBattLiOnAgeCyc%Identifier,
      &      ageing_cycle,
@@ -4156,17 +4202,10 @@ C.... Get component name's length
 
 C *********** Debug
 
-
       IF (ageing_time .LE. 0.0) THEN
-         WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
+        WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
      &                  ' ageing_time factor in SOH_Lion'
-         ageing_time = 0.01
-cx    This should not happen
-      ELSEIF (state_of_health .LE. 0.0) THEN
-         WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
-     &                  ' state_of_health in SOH_Lion'
-cx    This can happen if ageing_cycle is a slight negative number 
-cx    What is caused by the polynomial that is used in Popp method
+        ageing_time = 0.0
       ENDIF
 
 
@@ -4342,7 +4381,7 @@ C safe limits
 
         IF (iteration .EQ. max_iteration) THEN
           WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
-     &                   'Convergeance in Lion_BMS loVoltage flag'
+     &                   'Convergence in Lion_BMS loVoltage flag'
         ENDIF
 
         IF (batMode_or .NE. 0) THEN ! discharge or idle, can't happen
@@ -4420,7 +4459,7 @@ C figure out heat needed from battery to bring back into safe limits
 
         IF (iteration .EQ. max_iteration) THEN
           WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
-     &                   'Convergeance in Lion_BMS loTemp flag'
+     &                   'Convergence in Lion_BMS loTemp flag'
         ENDIF
 
       ELSE ! Normal operation
@@ -4437,10 +4476,11 @@ C figure out heat needed from battery to bring back into safe limits
 
       ENDIF
 
-      IF (batMode .EQ. 0) THEN !Charge is the load minus what's needed for heaters and parasitic loads
+      IF (batMode .EQ. 0) THEN ! Charge is the load minus what's needed for heaters and parasitic loads
         pBat = MIN((batLoad-pHeaters-pParasitic),maxPBat)
 
-      ELSE !Discharge, the battery has to take up the extra loads
+      ELSE ! Discharge or idle, the battery has to take up the extra loads
+        if (batMode .eq. 2) batLoad=0 ! no external load on bat ... (?)
         pBat = MIN((batLoad+pHeaters+pParasitic),maxPBat)
 
       ENDIF
@@ -4471,7 +4511,7 @@ C     Get battery's final temperature
 C**To keep the battery at 25 Celcius for debugging
 C      batTFin = 25.
 
-C  Find out how much of the battery cycle life has depleted
+C     Track battery cycles used
       cycles_used_Lion = cycles_used_Lion +
      &                   abs(batDODFin-batDODIni)
      &                   /float(ntstpp) !account for no. of plant steps/building step
@@ -4479,7 +4519,7 @@ C  Find out how much of the battery cycle life has depleted
 C  Calculate the SOH only if remaining capacity (Parameter 82) is set
 
       IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
-          state_of_health = SOH_Lion(IPWC,batTIni,batDODIni,batCurFin)
+          state_of_health = SOH_Lion(IPWC,batTIni,batDODFin,batCurFin)
       ELSE
           state_of_health = 1.
       ENDIF
