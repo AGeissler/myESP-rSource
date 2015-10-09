@@ -82,28 +82,37 @@ C External functions.
 
 
 C ESP-r COMMONs
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-       INTEGER IHRP            !-hour of present time-step
-       INTEGER IHRF            !-hour of future time-step
-       INTEGER IDYP            !-year day number of present day
-       INTEGER IDYF            !-year day number of future day
-       INTEGER IDWP            !-day of the week of present day
-       INTEGER IDWF            !-day of the week of future day
-       INTEGER NSINC           !-number of building-side time increments
-                               !-since start of simulation
-       INTEGER ITS             !-current building time-step within
-                               !-current hour
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      INTEGER IHRP            !-hour of present time-step
+      INTEGER IHRF            !-hour of future time-step
+      INTEGER IDYP            !-year day number of present day
+      INTEGER IDYF            !-year day number of future day
+      INTEGER IDWP            !-day of the week of present day
+      INTEGER IDWF            !-day of the week of future day
+      INTEGER NSINC           !-number of building-side time increments
+                              !-since start of simulation
+      INTEGER ITS             !-current building time-step within
+                              !-current hour
 
-       COMMON/PCTIME/TIMSEC
-       REAL    TIMSEC          !-length of time increment (second)
+      COMMON/C6/INDCFG
+      INTEGER :: INDCFG
+
+
+      COMMON/PCTIME/TIMSEC
+      REAL    TIMSEC          !-length of time increment (second)
+
+      common/pstctr/nsincp,nsncpr
+      integer nsincp          ! number of plant side time increments
+      integer nsncpr          ! number of ??
+
 
 C      COMMON/OUTIN/IUOUT,IUIN
 C      INTEGER iuout            !- write unit number
 C      INTEGER iuin             !- read unit number
 
-       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
-       real    tfa            !- air node temperature, future time-row
-       real    qfa            !- energy injected at air node, future time-row
+      COMMON/FVALA/TFA(MCOM),QFA(MCOM)
+      real    tfa            !- air node temperature, future time-row
+      real    qfa            !- energy injected at air node, future time-row
 
 
 C Common block holding information on the battery's current operation.
@@ -176,9 +185,13 @@ C         DumTime = 1
 C      ENDIF
 C--------------------------------------------------------------------------------------------
 
-C---------------------------------------------------------------------------
+      if (INDCFG.EQ.3) then
+C       We have a plant and thus follow plant time steps (!)
+        nTimeStep = nsincp
+      else
+        nTimeStep = NSINC
+      endif
 
-      nTimeStep = NSINC
       dtTStep = TIMSEC / 3600.           ! convert to hour
 
       IF( POWCOMID(IPWC) .EQ. pba) THEN      ! Lead-acid battery
@@ -4054,20 +4067,25 @@ c *************************************************************************
       INTEGER iuin              !- read unit number
 
 C ESP-r COMMONs
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-       INTEGER IHRP            !-hour of present time-step
-       INTEGER IHRF            !-hour of future time-step
-       INTEGER IDYP            !-year day number of present day
-       INTEGER IDYF            !-year day number of future day
-       INTEGER IDWP            !-day of the week of present day
-       INTEGER IDWF            !-day of the week of future day
-       INTEGER NSINC           !-number of building-side time increments
-                               !-since start of simulation
-       INTEGER ITS             !-current building time-step within
-                               !-current hour
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      INTEGER IHRP            !-hour of present time-step
+      INTEGER IHRF            !-hour of future time-step
+      INTEGER IDYP            !-year day number of present day
+      INTEGER IDYF            !-year day number of future day
+      INTEGER IDWP            !-day of the week of present day
+      INTEGER IDWF            !-day of the week of future day
+      INTEGER NSINC           !-number of building-side time increments
+                              !-since start of simulation
+      INTEGER ITS             !-current building time-step within
+                              !-current hour
 
       common/pstctr/nsincp,nsncpr
       integer nsincp,nsncpr
+
+C Basic RES (elec) controller inputs
+      common/reselec/RES_elec_ctl_mode, RES_elec_ctl_scenario
+      integer RES_elec_ctl_mode     ! control mode 1, 2 or 3 << Note: currently only 2 is coded >>
+      integer RES_elec_ctl_scenario ! control scenario active
 
 C PARAMETERS FROM SIGNATURE
 
@@ -4130,58 +4148,57 @@ C *********** Initialisation
 
 C *********** Calculations
 
-C Calculate calendric ageing factor
+C Calculate calendaric ageing factor
 
-        calc_a_time=(exp(2*(((batTemp-batTOper)/                  ! calendaric ageing per timestep
+      calc_a_time=(exp(2*(((batTemp-batTOper)/                  ! calendaric ageing per timestep
      &   (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
      &   (ageing_soc_factor/log(2.))))))**0.5
 
-        calc_a_tim_sum=calc_a_tim_sum+calc_a_time                 ! summed up calendaric ageing
+      calc_a_tim_sum = calc_a_tim_sum+calc_a_time                 ! summed up calendaric ageing
 
-C       << ageing time ini should probably be used only once at initialization?? >>
-        ageing_time=ageing_time_ini+ageing_time_ref*              ! calendaric ageing + initial calendaric ageing
+      ageing_time = ageing_time_ini + ageing_time_ref*            ! calendaric ageing + initial calendaric ageing
      &   (calc_a_tim_sum/ts_dummy)*(ts_dummy*(TIMSEC/86400))**0.5
 
 C Calculate cyclic ageing factor
 
-        IF (cyc_mode .EQ. 1.) THEN                          ! Popp method
-          ageing_cycle = gamma1                             ! Total cyclic ageing
+      IF (cyc_mode .EQ. 1.) THEN                          ! Popp method
+        ageing_cycle = gamma1                             ! Total cyclic ageing
      &             + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
      & 	           + gamma4*cycles_used_Lion**3
 
-        ELSEIF (cyc_mode .EQ. 2.) THEN                      ! Günther method
-          IF (batCur .NE. 0.) THEN
-C           Differenz in DOD between last and this time step
-            Delta_DOD = DODIni-DOD_old
-C           Differenz in number of cycles between last and this time step
-            Delta_Cycle = cycles_used_Lion-cycles_used_old
-C           Store current values for next time step
-            DOD_old = DODIni
-            cycles_used_old = cycles_used_Lion
+      ELSEIF (cyc_mode .EQ. 2.) THEN                      ! Günther method
+        IF (batCur .NE. 0.) THEN
+C         Difference in DOD between last and this time step
+          Delta_DOD = DODIni-DOD_old
+C         Difference in number of cycles between last and this time step
+          Delta_Cycle = cycles_used_Lion-cycles_used_old
+C         Store current values for next time step
+          DOD_old = DODIni
+          cycles_used_old = cycles_used_Lion
 
-C           Cyclic ageing per timestep, Guenther model
-            calc_a_cycl =
-     &        +0.0003508*abs(Delta_DOD)**3
-     &        -0.000007239*abs(Delta_DOD)**2
-     &        +0.00005642*abs(Delta_DOD)
+C         Cyclic ageing per timestep, Guenther model
+         calc_a_cycl =
+     &       +0.0003508*abs(Delta_DOD)**3
+     &       -0.000007239*abs(Delta_DOD)**2
+     &       +0.00005642*abs(Delta_DOD)
 
-C           Increment cyclic ageing
-            ageing_cycle = ageing_cycle + (calc_a_cycl*Delta_Cycle)
+C        Increment cyclic ageing
+         ageing_cycle = ageing_cycle + (calc_a_cycl*Delta_Cycle)
 
-       write(*,'(2(a,I3),6(a,E11.5))')'NSINC=',NSINC,
-     &    '; nsincp=',nsincp,
-     &    '; batCur=',batCur,'; DOD=',DODIni,
-     &    '; D_DOD=',Delta_DOD,'; calc_a_cyc=',calc_a_cycl,
-     &    '; D_Cyc=',Delta_Cycle,'; age_cyc=',ageing_cycle
+cx        write(*,'(3(a,I3),7(a,E11.5))')'NSINC=',NSINC,
+cx     &    '; nsincp=',nsincp,'; RES_ctl=',RES_elec_ctl_scenario,
+cx     &    '; batDemandP=',batDemandP,
+cx     &    '; batCur=',batCur,'; DOD=',DODIni,
+cx     &    '; D_DOD=',Delta_DOD,'; calc_a_cyc=',calc_a_cycl,
+cx     &    '; D_Cyc=',Delta_Cycle,'; age_cyc=',ageing_cycle
 
-          ELSE ! batCur .eq. 0
+        ELSE ! batCur .eq. 0
             ! the battery is not cycled
-          ENDIF
-        ELSE
-          ! Parameter 94 not set. Set to 1 for Popp or 2 for Gunther cycling method
         ENDIF
-
+      ELSE
+          ! Parameter 94 not set. Set to 1 for Popp or 2 for Gunther cycling method
+      ENDIF
 
 C Calculate state of health
 
@@ -4227,7 +4244,7 @@ C -batTIni: The battery's initial temperature (oC)
 C -zoneT: Zone ambient temperature (oC)
 C -batDODIni: The battery's initial depth of discharge
 C -dtTStep: Duration of the time step (hour)
-C -batMode: 0 for charge, 1 for discharge
+C -batMode: 0 for charge, 1 for discharge, 2 for idle
 C -maxCBat: The maximum curent that can flow through the battery (Amp)
 C -maxPBat: The maximum power that can flow through the battery (W)
 C -batLoad: The offer (what can be used) (W)
@@ -4487,16 +4504,16 @@ C figure out heat needed from battery to bring back into safe limits
 
 
 C     Evaluate the current on the battery
-      batCurFin = CurForPow(IPWC,batTIni,batDODIni,batMode,dtTStep,pBat)
-     &         + self_discharge
+      batCurFin = CurForPow(IPWC,batTIni,batDODIni,batMode,
+     &                                 dtTStep,pBat) + self_discharge
 
 C     Evaluate the voltage on the battery
-      batVolt = AvgVolt(IPWC,batTIni,batDODIni,batMode,dtTStep
-     &                  ,batCurFin)
+      batVolt = AvgVolt(IPWC,batTIni,batDODIni,batMode,dtTStep,
+     &                   batCurFin)
 
 C     Evaluate the internal heat generated by the battery
-      pIntHeatFin = InternalHeat(IPWC,batTIni,batDODIni,batMode,dtTStep,
-     &          batCurFin)
+      pIntHeatFin = InternalHeat(IPWC,batTIni,batDODIni,batMode,
+     &                                             dtTStep,batCurFin)
 
 C     Get battery's final state
       batDODFin = FinalDOD_Lion(IPWC,batTIni,batDODIni,batMode,

@@ -293,6 +293,7 @@ C---- local variables ---------------------------------------------------
 
       real P_residual         ! difference between PV and P_total_load
       real batDODMax          ! Maximum depth of discharge
+      real batDOD             ! local copy of batDODFin
       real fBatDemandP_old    !
       real fGridRate
       real fGridRefund
@@ -338,12 +339,13 @@ cx        batDODMax = ??
         batDODMax = POWCDAT(IPWC_battery,14)
       ENDIF
 
+      batDOD = batDODFin
 C     Depth of discharge '0' with tolerance 0.005 (0.5%) is viewed as "full"
-      call eclose(batDODFin,0.,0.005, bBatteryFull)
+      call eclose(batDOD,0.,0.005,bBatteryFull)
 
 C     Check against depth of discharge 'batDODMax', for which battery is
 C     considered "empty"
-      call eclose(batDODFin,batDODMax,0.01,bBatteryEmpty)
+      call eclose(batDOD,batDODMax,0.005,bBatteryEmpty)
 
 C----------------------------------------------------------------------------------------
 C     Save battery data from last call
@@ -510,7 +512,7 @@ C       PV can not cover full load
           P_residual = P_total_load - PV_power_to_DCbus ! (W)
 
 C         Does battery have available capacity for discharge?
-          if ( .not. bBatteryEmpty) then
+          if ( .not. bBatteryEmpty ) then
 C           Is electricity from grid cheap?
             if (bGridRateLow) then
               RES_elec_ctl_scenario = 5
@@ -538,6 +540,7 @@ C               then import remaining energy required from grid
           else
             RES_elec_ctl_scenario = 8
 C           Battery is empty, import residual load from grid
+            batDemandP = 0.0
             import_from_grid = P_residual
           endif ! .not.BatteryEmpty
         endif ! PV .ge. E_ges
@@ -545,7 +548,7 @@ C           Battery is empty, import residual load from grid
       else
 C     No PV output available (night time)
 
-        if ( .not. bBatteryEmpty) then
+        if ( .not. bBatteryEmpty ) then
 C         Is import of electricity from grid cheap?
           if (bGridRateLow) then
             RES_elec_ctl_scenario = 9
@@ -575,7 +578,7 @@ C         Battery is empty, import from grid
           batDemandP = 0.0
           import_from_grid = P_total_load
 
-        endif ! .not.BatteryEmpty
+        endif ! .not.bBatteryEmpty
       endif ! PV .gt. 0
 
 C*** DEBUG ===
@@ -583,11 +586,12 @@ C*** DEBUG ===
         write(*,*)'hvacl=',hvacl,
      &     ', occuptl=',occupantl,
      &     ', PVgen=',PV_power_to_DCbus,
-c     &     ', BatFull ?',bBatteryFull,
-c     &     ', BatEmpty?',bBatteryEmpty,
+     &     ', BatFull ?',bBatteryFull,
+     &     ', BatEmpty?',bBatteryEmpty,
      &     ', batDODFin=',batDODFin,
      &     ', Ctl-scen=',RES_elec_ctl_scenario,
-     &     ', batDemandP=',batDemandP
+     &     ', batDemandP=',batDemandP,
+     &     ', maxPBatDis=',maxPBatDischarge_common
       endif
 C ====
 
@@ -606,7 +610,8 @@ C       Plt controls have not changed, and additional interdomain iteration is u
         bRESElec_ctl_unconverged = .false.
       else
 C       Plt controls have changed, and additional iteration is required.
-        bRESElec_ctl_unconverged = .true.
+cx        bRESElec_ctl_unconverged = .true.
+        bRESElec_ctl_unconverged = .false.
       endif
 
       END ! low cost control mode
