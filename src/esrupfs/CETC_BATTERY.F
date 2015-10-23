@@ -232,8 +232,6 @@ C Following time steps -> Initialise parameters to their final value at the prev
 C************** Get mode (charge/discharge)
       IF (mandChargeCycle .NE. 1) THEN      ! Normal operation, the battery mode is determined
                                             ! by the controller based upon the overall power balance
-cxxx    << probably a good spot to improve short timestep behaviour by
-cxxx       testing with eclose()! >>
         IF (batDemandP .EQ. 0. ) THEN
            batMode = 2   ! Idle
            batLoad = batDemandP
@@ -609,6 +607,7 @@ C ************** Initialisation
 
        batTempInit = POWCDAT(IPWC,9)
        batDODInit = POWCDAT(IPWC,10)
+       nPreviousTS = 1
 
        IF( POWCOMID(IPWC) .EQ. pba) THEN      ! Lead-acid battery
          lifeUseFactor = 0
@@ -660,8 +659,8 @@ C ************** Initialisation
      & 	                              + gamma3*cycleIni**2
      & 	                              + gamma4*cycleIni**3
                  ELSEIF (POWCDAT(IPWC,94) .EQ. 2) THEN                ! calculate with Günther method
-                     ageing_cycle = (0.0003508*(0.5**3)               ! <<This method is very inaccurate>>
-     &               -0.000007239*(0.5**2)+0.00005642*0.5)
+                     ageing_cycle = (3.165E-04*(0.5**3)               ! <<This method is very inaccurate>>
+     &                +4.456E-05*(0.5**2)+3.890E-05*0.5)
      &               *cycleIni
                  ELSE
                      WRITE(IUOUT,*) 'Parameter 94 not set, ', 
@@ -670,9 +669,9 @@ C ************** Initialisation
                  ENDIF
 
                  ageing_time_ini=1-state_of_health-ageing_cycle       ! calculate ageing_time_ini
-      write(*,*)'ageing_time_ini=',ageing_time_ini,
-     &          '; ageing_cycle=',ageing_cycle,
-     &          '; state_of_health=',state_of_health
+cx      write(*,*)'ageing_time_ini=',ageing_time_ini,
+cx     &          '; ageing_cycle=',ageing_cycle,
+cx     &          '; state_of_health=',state_of_health
                  IF (ageing_time_ini .LE. 0.0) THEN
                    ageing_time_ini = 0.0
                  ELSE
@@ -1326,8 +1325,8 @@ C *********************************************************************
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
-#include "BATTERY.h"
 #include "power.h"
+#include "BATTERY.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       INTEGER iuout          !- write unit number
@@ -1374,6 +1373,12 @@ C************** Calculation
      &                    dtTStep/2.0,batCur)
          E0Avg = OCV_Lion(IPWC,DODAvg,batTemp)
          RintAvg = RInt_Lion(IPWC,DODAvg,batMode,batCur)
+
+cx      write(*,*)'***maxPB, batCur=',batCur,
+cx     &  '; DODAvg=',DODAvg,
+cx     &  '; E0Avg=',E0Avg,
+cx     &  '; RintAvg=',RintAvg
+
       ENDIF
 
 
@@ -3480,6 +3485,9 @@ C     Capacity of the battery is the capacity of one cell times the number of ce
       BatteryCap_Lion = beta*alpha*cellCap*nParal
       batCapRep = BatteryCap_Lion
 
+cx      write(*,*)'***BatCap  beta=',beta,'; alpha=',alpha,
+cx     &  '; cellCap=',cellCap,'; SOH=',state_of_health
+
 C     Make sure no negative value is returned
 
       IF (BatteryCap_Lion .LE. 0.0) THEN
@@ -3827,7 +3835,7 @@ C INPUTS:
 C -batTemp: The battery's temperature (oC)
 C -batDOD: The battery's depth of discharge
 C -batI: The battery's current
-C -BatMode: 0 for charge, 1 for discharge
+C -batMode: 0 for charge, 1 for discharge
 C -IPWC: Power-only component index number
 C
 C OUTPUTS:
@@ -4044,14 +4052,16 @@ C - This subroutine calculates the ageing of a cell/battery according
 C   to Andreas Bucher's thesis
 C
 C INPUTS:
-C -IPWC: Power-only component index number
+C -IPWC:    Power-only component index number
+C -batMode: 0 for charge, 1 for discharge, 2 for idle
 C -batTemp: The battery's current temperature (oC)
-C -DODIni: The battery's current depth of discharge
+C -DODIni:  The battery's current depth of discharge
+C -batCur:  The battery's current current (A)
 C
 C OUTPUTS:
 C state_of_health: The SOH of a cell
 c *************************************************************************
-      REAL FUNCTION SOH_Lion(IPWC,batTemp,DODIni,batCur)
+      REAL FUNCTION SOH_Lion(IPWC,batMode,batTemp,DODIni,batCur)
       use h3kmodule
       IMPLICIT NONE
 #include "building.h"
@@ -4090,14 +4100,17 @@ C Basic RES (elec) controller inputs
 C PARAMETERS FROM SIGNATURE
 
       REAL batTemp,DODIni,batCur
-      INTEGER IPWC
+      INTEGER IPWC,batMode
 
 C Local Parameters
 
       REAL batSOCRef,batTOper,batSOC
+      integer cyc_mode
 
-      INTEGER, SAVE :: ts_dummy = 0, ! counts the timesteps, used to calculate ageing_time
-     &        cyc_mode               ! Cycling ageing method 1=Popp, 2=Gunther
+      logical DEBUG
+
+cx      INTEGER, SAVE :: ts_dummy = 0, ! counts the timesteps, used to calculate ageing_time
+cx     &        cyc_mode               ! Cycling ageing method 1=Popp, 2=Gunther
 
 C Ageing Parameters
 
@@ -4115,6 +4128,8 @@ C Static parameters
       REAL, SAVE :: cycles_used_old, ! cyclic ageing factor of last time step
      &              DOD_old          ! DOD of last time step
 
+      Integer, save :: batMode_old   ! batMode from last time step
+
 c POWCDAT(IPWC,83) cycleIni
 
 C cyclic ageing polynomial factors
@@ -4127,9 +4142,13 @@ C External functions.
       integer lnblnk
 
 C *********** Initialisation
+
+      DEBUG = .false.
+
       if (NSINC .eq. 1) then
         cycles_used_old = cycles_used_Lion
         DOD_old = DODIni
+        batMode_old = batMode
       endif
 
       batTOper = POWCDAT(IPWC,4)
@@ -4143,62 +4162,81 @@ C *********** Initialisation
       batSOCRef  = POWCDAT(IPWC,91)
       batSOC = (1. - DODIni)
       cyc_mode = int(POWCDAT(IPWC,94))
-      ts_dummy=ts_dummy+1             ! this could lead to problems but a variable that
+cx      ts_dummy=ts_dummy+1             ! this could lead to problems but a variable that
                                       ! contains the current timestep is needed
 
 C *********** Calculations
 
 C Calculate calendaric ageing factor
 
-      calc_a_time=(exp(2*(((batTemp-batTOper)/                  ! calendaric ageing per timestep
+      calc_a_time=(exp(2*(((batTemp-batTOper)/               ! calendaric ageing per timestep
      &   (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
      &   (ageing_soc_factor/log(2.))))))**0.5
 
-      calc_a_tim_sum = calc_a_tim_sum+calc_a_time                 ! summed up calendaric ageing
+      calc_a_tim_sum = calc_a_tim_sum+calc_a_time            ! summed up calendaric ageing
 
-      ageing_time = ageing_time_ini + ageing_time_ref*            ! calendaric ageing + initial calendaric ageing
-     &   (calc_a_tim_sum/ts_dummy)*(ts_dummy*(TIMSEC/86400))**0.5
+      ageing_time = ageing_time_ini + ageing_time_ref        ! calendaric ageing + initial calendaric ageing
+     &                *(calc_a_tim_sum/nPreviousTS)
+     &                *(nPreviousTS*(TIMSEC/86400.))**0.5
 
 C Calculate cyclic ageing factor
 
-      IF (cyc_mode .EQ. 1.) THEN                          ! Popp method
+      IF (cyc_mode .EQ. 1.) THEN
+C       Popp method
         ageing_cycle = gamma1                             ! Total cyclic ageing
      &             + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
      & 	           + gamma4*cycles_used_Lion**3
 
-      ELSEIF (cyc_mode .EQ. 2.) THEN                      ! Günther method
-        IF (batCur .NE. 0.) THEN
-C         Difference in DOD between last and this time step
-          Delta_DOD = DODIni-DOD_old
-C         Difference in number of cycles between last and this time step
-          Delta_Cycle = cycles_used_Lion-cycles_used_old
-C         Store current values for next time step
-          DOD_old = DODIni
-          cycles_used_old = cycles_used_Lion
+      ELSEIF (cyc_mode .EQ. 2.) THEN
+C       Guenther method
+C       Reference: Guenther, C. et. al. "Model-based investigation of electric
+C                   vehicle battery aging by means of vehicle-to-grid scenario
+C                   simulations", Journal of Power Sources 239 (2013), p. 604-610.
+C       Depending on cycle depth the cyclic ageing is calculated from
+C       a general polynomial. Cycle depth is evaluated after a switch between
+C       charge/discharge (disregarding idle time steps), i.e. most likely
+C       not each time step.
+        IF (batMode.ne.2) then
+C         Battery not idle this time step
+          IF (batMode .NE. batMode_old) THEN
+C           Difference in DOD between last mode change
+            Delta_DOD = DODIni-DOD_old
 
-C         Cyclic ageing per timestep, Guenther model
-         calc_a_cycl =
-     &       +0.0003508*abs(Delta_DOD)**3
-     &       -0.000007239*abs(Delta_DOD)**2
-     &       +0.00005642*abs(Delta_DOD)
+C           Cyclic ageing per timestep, Guenther model
+            calc_a_cycl = 3.165E-04*abs(Delta_DOD)**3
+     &                      + 4.456E-05*abs(Delta_DOD)**2
+     &                      + 3.890E-05*abs(Delta_DOD)
 
-C        Increment cyclic ageing
-         ageing_cycle = ageing_cycle + (calc_a_cycl*Delta_Cycle)
+C           Increment cyclic ageing
+            ageing_cycle = ageing_cycle + calc_a_cycl
 
-cx        write(*,'(3(a,I3),7(a,E11.5))')'NSINC=',NSINC,
-cx     &    '; nsincp=',nsincp,'; RES_ctl=',RES_elec_ctl_scenario,
-cx     &    '; batDemandP=',batDemandP,
-cx     &    '; batCur=',batCur,'; DOD=',DODIni,
-cx     &    '; D_DOD=',Delta_DOD,'; calc_a_cyc=',calc_a_cycl,
-cx     &    '; D_Cyc=',Delta_Cycle,'; age_cyc=',ageing_cycle
+C           Update "old" mode and DOD to current values
+            batMode_old = batMode
+            DOD_old = DODIni
 
-        ELSE ! batCur .eq. 0
-            ! the battery is not cycled
+          ENDIF ! batMode .ne. batMode_old
+
+        ELSE ! batMode eq. 2
+            ! the battery is idle and not cycled
         ENDIF
       ELSE
           ! Parameter 94 not set. Set to 1 for Popp or 2 for Gunther cycling method
       ENDIF
+
+      if (DEBUG) then
+        write(*,'(4(a,I3),7(a,E11.5))')'NSINC=',NSINC,
+     &    '; Timestep=',nPreviousTS,
+     &    '; RES_ctl=',RES_elec_ctl_scenario,
+     &    '; batMode=',batMode,
+     &    '; batDemandP=',batDemandP,
+     &    '; batCur=',batCur,
+     &    '; DOD=',DODIni,
+     &    '; D_DOD=',Delta_DOD,
+     &    '; calc_a_cyc=',calc_a_cycl,
+     &    '; age_cyc=',ageing_cycle,
+     &    '; age_time=',ageing_time
+      endif
 
 C Calculate state of health
 
@@ -4536,7 +4574,8 @@ C     Track battery cycles used
 C  Calculate the SOH only if remaining capacity (Parameter 82) is set
 
       IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
-          state_of_health = SOH_Lion(IPWC,batTIni,batDODFin,batCurFin)
+          state_of_health = SOH_Lion(IPWC,batMode,batTIni,
+     &                                            batDODFin,batCurFin)
       ELSE
           state_of_health = 1.
       ENDIF
