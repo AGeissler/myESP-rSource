@@ -4201,6 +4201,7 @@ C       not each time step.
 C         Battery not idle this time step
           IF (batMode .NE. batMode_old) THEN
 C           Difference in DOD between last mode change
+cx << use "SOE"? How? Does it make a difference? >>
             Delta_DOD = DODIni-DOD_old
 
 C           Cyclic ageing per timestep, Guenther model
@@ -4208,8 +4209,10 @@ C           Cyclic ageing per timestep, Guenther model
      &                      + 4.456E-05*abs(Delta_DOD)**2
      &                      + 3.890E-05*abs(Delta_DOD)
 
-C           Increment cyclic ageing
-            ageing_cycle = ageing_cycle + calc_a_cycl
+C           Increment cyclic ageing, use only half the value calculated
+C           with polynomial eqn. above as the polynomial eqn. is based
+C           on full cycles and we end up here after "half cycles"!
+            ageing_cycle = ageing_cycle + 0.5*calc_a_cycl
 
 C           Update "old" mode and DOD to current values
             batMode_old = batMode
