@@ -639,7 +639,7 @@ C ************** Initialisation
          gamma2 = POWCDAT(IPWC,85)
          gamma3 = POWCDAT(IPWC,86)
          gamma4 = POWCDAT(IPWC,87)
-         IF (cellCapIni .EQ. CellCapRef .AND. cycleIni .EQ. 0.) THEN  ! New cell, new ageing model
+         IF (cellCapIni .EQ. cellCapRef .AND. cycleIni .EQ. 0.) THEN  ! New cell, new ageing model
              ageing_time_ini = 0.
              ageing_cycle = 0.
              state_of_health = 1.
@@ -648,7 +648,16 @@ C ************** Initialisation
              WRITE(IUOUT,*) 'Warning Battery Model: Factors for ',
      &                      'calendric ageing not determined! ',
      &                      'Old ageing model will be used.'
-         ELSEIF (cellCapIni .NE. 0. .AND. cycleIni .NE. 0.) THEN      ! Second life cell, new ageing model
+C        *******************************************************
+C        Second life cell, new ageing model
+cx << initialisation seems somewhat unclear. SOH is a function of both
+cx    calendaric ageing and cyclic ageing. If SOH is calculated from
+cx    remaining capacity, the sum of calendaric and cyclic ageing is
+cx    pre-defined! Setting ageing_time_ini to zero if < 0 (see line
+cx    679 seems arbitrary!!
+cx << Haan & Zah, p. 32 "calendaric life defined for cap. loss of 20 %
+cx    (i.e. 80% remaining capacity after end of calendaric life)"
+         ELSEIF (cellCapIni .NE. 0. .AND. cycleIni .NE. 0.) THEN
              cycles_used_Lion = cycleIni
              IF (ageing_time_ini .EQ. 0. .AND.
      &           ageing_cycle .EQ. 0.) THEN                           ! ageing factors not set, calculate them
@@ -668,7 +677,8 @@ C ************** Initialisation
      &                              '2 for Gunther cycling method'
                  ENDIF
 
-                 ageing_time_ini=1-state_of_health-ageing_cycle       ! calculate ageing_time_ini
+cx        !!!!! good idea????
+                 ageing_time_ini=1.-state_of_health-ageing_cycle       ! calculate ageing_time_ini
 cx      write(*,*)'ageing_time_ini=',ageing_time_ini,
 cx     &          '; ageing_cycle=',ageing_cycle,
 cx     &          '; state_of_health=',state_of_health
@@ -678,7 +688,9 @@ cx     &          '; state_of_health=',state_of_health
                      ! all is fine
                  ENDIF
              ELSE
-                 state_of_health=1-(ageing_time_ini+ageing_cycle)     ! use ageing factors from the parameter file
+C              ageing_time_ini & ageing_cycle(_ini) are given via
+C              parameter file
+               state_of_health=1-(ageing_time_ini+ageing_cycle)
              ENDIF
          ELSE
              WRITE(IUOUT,*) 'something went wrong, check parameters'
@@ -4156,7 +4168,12 @@ C *********** Initialisation
       gamma2 = POWCDAT(IPWC,85)
       gamma3 = POWCDAT(IPWC,86)
       gamma4 = POWCDAT(IPWC,87)
+C     reference calendaric ageing factor, 1/sqrt(d80),
+C     where d80 is the shelf life in days after which 80% capacity
+C     remains
+cx << definition to be verified >>
       ageing_time_ref = POWCDAT(IPWC,88)
+
       ageing_temp_factor = POWCDAT(IPWC,89)
       ageing_soc_factor = POWCDAT(IPWC,90)
       batSOCRef  = POWCDAT(IPWC,91)
@@ -4173,6 +4190,7 @@ C Calculate calendaric ageing factor
      &   (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
      &   (ageing_soc_factor/log(2.))))))**0.5
 
+cx << calc_a_tim_sum seems to be an implicit "save" parameter ... DANGER!
       calc_a_tim_sum = calc_a_tim_sum+calc_a_time            ! summed up calendaric ageing
 
       ageing_time = ageing_time_ini + ageing_time_ref        ! calendaric ageing + initial calendaric ageing
@@ -4194,9 +4212,10 @@ C       Reference: Guenther, C. et. al. "Model-based investigation of electric
 C                   vehicle battery aging by means of vehicle-to-grid scenario
 C                   simulations", Journal of Power Sources 239 (2013), p. 604-610.
 C       Depending on cycle depth the cyclic ageing is calculated from
-C       a general polynomial. Cycle depth is evaluated after a switch between
-C       charge/discharge (disregarding idle time steps), i.e. most likely
-C       not each time step.
+C       a general polynomial.
+C       Thereby, cycle depth is evaluated after a switch between
+C       charge/discharge or vice versa (disregarding idle time steps),
+C       i.e. most likely not each time step.
         IF (batMode.ne.2) then
 C         Battery not idle this time step
           IF (batMode .NE. batMode_old) THEN
@@ -4813,7 +4832,7 @@ C POWCDAT (IPWC,84):   gamma1              The first gamma required for cyclic a
 C POWCDAT (IPWC,85):   gamma2              The second gamma required for cyclic ageing
 C POWCDAT (IPWC,86):   gamma3              The third gamma required for cyclic ageing
 C POWCDAT (IPWC,87):   gamma4              The fourth gamma required for cyclic ageing
-C POWCDAT (IPWC,88):   ageing_time_ref     Calendaric ageing of a cell under reference conditions (A_0)
+C POWCDAT (IPWC,88):   ageing_time_ref     Calendaric ageing of a cell under reference conditions (A_0; 1/sqrt(d80)?)
 C POWCDAT (IPWC,89):   ageing_temp_factor  Factor b of the ageing_time formula
 C POWCDAT (IPWC,90):   ageing_soc_factor   Factor c of the ageing_time formula
 C POWCDAT (IPWC,91):   batSOCRef           Reference SOC for degradation (typically 0.5)
