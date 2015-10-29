@@ -571,8 +571,8 @@ C INPUTS: Data from the heather file containing the initial state of the battery
 C -IPWC: Index of the power-only component associated with the model
 C
 C OUTPUTS:
-C -BatTempInit: Battery temperature at the beginning of the simulation (oC)
-C -BatDODInit: Battery Depth Of Discharge at the beginning of  the simulation (%)
+C -batTempInit: Battery temperature at the beginning of the simulation (oC)
+C -batDODInit: Battery Depth Of Discharge at the beginning of  the simulation (%)
 C
 C See BATTERY.h for definition of other variables
 C
@@ -591,65 +591,62 @@ C *********************************************************************
 
 
 C PARAMETERS FROM SIGNATURE
-       REAL batTempInit,batDODInit
-       INTEGER IPWC
+      REAL batTempInit,batDODInit
+      INTEGER IPWC
 
 C-------------------------------------------------------------------------
 C Local variables
 C-------------------------------------------------------------------------
-C       INTEGER iii                  ! for debugging only
-       REAL gamma1, gamma2, gamma3, gamma4, cellCapRef,
-     &      cellCapIni, cycleIni
+      logical DEBUG
 
+      REAL gamma1, gamma2, gamma3, gamma4, cellCapRef,
+     &      cellCap_ini, cycles_ini,
+     &      ageing_cycle_0, ageing_time_0,
+     &      SOH_ini
+
+      DEBUG=.false.
 
 C ************** Initialisation
 
+      batTempInit = POWCDAT(IPWC,9)
+      batDODInit = POWCDAT(IPWC,10)
+      nPreviousTS = 1
 
-       batTempInit = POWCDAT(IPWC,9)
-       batDODInit = POWCDAT(IPWC,10)
-       nPreviousTS = 1
+      IF( POWCOMID(IPWC) .EQ. pba) THEN      ! Lead-acid battery
+        lifeUseFactor = 0
+        batLifeUsed = 0.
+        cumBatLifeUsed = 0.
+        mandChargeCycle = 0
+        mandChargePhase = 0
+        mandChargePhaseIncrease = 0
+        timeSinceLastFullCharge = 0.
+        state_of_health = 1.
 
-       IF( POWCOMID(IPWC) .EQ. pba) THEN      ! Lead-acid battery
-         lifeUseFactor = 0
-         batLifeUsed = 0.
-         cumBatLifeUsed = 0.
-         mandChargeCycle = 0
-         mandChargePhase = 0
-         mandChargePhaseIncrease = 0
-         timeSinceLastFullCharge = 0.
-         state_of_health = 1.
+      ELSEIF ( POWCOMID(IPWC) .EQ. lion ) THEN  ! Li-ion
+        mandChargeCycle = 0 ! This is to get by a road block set by the lead acid later
 
-       ELSEIF ( POWCOMID(IPWC) .EQ. lion ) THEN  ! Li-ion
-         mandChargeCycle = 0 ! This is to get by a road block set by the lead acid later
-         IF (abuseFlag.eq.0) THEN
-           cycles_used_Lion = 0 ! This is the amount of cycles the cell has used for degradation
-                                ! if abuseFlag is set .ne.0 (in Res_elec_Ctl.F, approx. line 1000),
-                                ! the value is not changed, here!
-         ENDIF
-         loVoltLion = 0 ! These are flags initially set to zero to check that Li-on battery is within
-         hiVoltLion = 0 ! safe limits
-         loTempLion = 0
-         hiTempLion = 0
-         cellCapRef = POWCDAT(IPWC,3)
-         cellCapIni = POWCDAT(IPWC,82)
-         cycleIni = POWCDAT(IPWC,83)
-         ageing_time_ini = POWCDAT(IPWC,92)
-         ageing_cycle = POWCDAT(IPWC,93)
-         gamma1 = POWCDAT(IPWC,84)
-         gamma2 = POWCDAT(IPWC,85)
-         gamma3 = POWCDAT(IPWC,86)
-         gamma4 = POWCDAT(IPWC,87)
-         IF (cellCapIni .EQ. cellCapRef .AND. cycleIni .EQ. 0.) THEN  ! New cell, new ageing model
-             ageing_time_ini = 0.
-             ageing_cycle = 0.
-             state_of_health = 1.
-             cycles_used_Lion = 0.
-         ELSEIF (cellCapIni .EQ. 0.) THEN     ! Random cell, old ageing model
-             WRITE(IUOUT,*) 'Warning Battery Model: Factors for ',
-     &                      'calendric ageing not determined! ',
-     &                      'Old ageing model will be used.'
-C        *******************************************************
-C        Second life cell, new ageing model
+        loVoltLion = 0 ! These are flags initially set to zero to check that Li-on battery is within
+        hiVoltLion = 0 ! safe limits
+        loTempLion = 0
+        hiTempLion = 0
+
+        cellCapRef = POWCDAT(IPWC,3)
+
+C       Check for extended degradation model use
+        if ( NPOWCDAT(IPWC) .gt. 81) then
+          cellCap_ini = POWCDAT(IPWC,82)
+          cycles_ini = POWCDAT(IPWC,83)
+
+          gamma1 = POWCDAT(IPWC,84)
+          gamma2 = POWCDAT(IPWC,85)
+          gamma3 = POWCDAT(IPWC,86)
+          gamma4 = POWCDAT(IPWC,87)
+
+          ageing_time_0 = POWCDAT(IPWC,92)
+          ageing_cycle_0 = POWCDAT(IPWC,93)
+
+C         *******************************************************
+C         New ageing model
 cx << initialisation seems somewhat unclear. SOH is a function of both
 cx    calendaric ageing and cyclic ageing. If SOH is calculated from
 cx    remaining capacity, the sum of calendaric and cyclic ageing is
@@ -657,54 +654,79 @@ cx    pre-defined! Setting ageing_time_ini to zero if < 0 (see line
 cx    679 seems arbitrary!!
 cx << Haan & Zah, p. 32 "calendaric life defined for cap. loss of 20 %
 cx    (i.e. 80% remaining capacity after end of calendaric life)"
-         ELSEIF (cellCapIni .NE. 0. .AND. cycleIni .NE. 0.) THEN
-             cycles_used_Lion = cycleIni
-             IF (ageing_time_ini .EQ. 0. .AND.
-     &           ageing_cycle .EQ. 0.) THEN                           ! ageing factors not set, calculate them
-                 state_of_health = ((cellCapIni/cellCapRef)-0.8)/0.2
 
-                 IF (POWCDAT(IPWC,94) .EQ. 1) THEN                    ! calculate with Popp method
-                     ageing_cycle = gamma1 + gamma2*cycleIni
-     & 	                              + gamma3*cycleIni**2
-     & 	                              + gamma4*cycleIni**3
-                 ELSEIF (POWCDAT(IPWC,94) .EQ. 2) THEN                ! calculate with Günther method
-                     ageing_cycle = (3.165E-04*(0.5**3)               ! <<This method is very inaccurate>>
-     &                +4.456E-05*(0.5**2)+3.890E-05*0.5)
-     &               *cycleIni
-                 ELSE
-                     WRITE(IUOUT,*) 'Parameter 94 not set, ', 
-     &                              'set to 1 for Popp or ',
-     &                              '2 for Gunther cycling method'
-                 ENDIF
+          IF (ageing_time_0 .EQ. 0. .AND.
+     &          ageing_cycle_0 .EQ. 0.) THEN
+C           Initial ageing factors are not set, calculate them
+            SOH_ini = ((cellCap_ini/cellCapRef)-0.8)/0.2
 
-cx        !!!!! good idea????
-                 ageing_time_ini=1.-state_of_health-ageing_cycle       ! calculate ageing_time_ini
-cx      write(*,*)'ageing_time_ini=',ageing_time_ini,
-cx     &          '; ageing_cycle=',ageing_cycle,
-cx     &          '; state_of_health=',state_of_health
-                 IF (ageing_time_ini .LE. 0.0) THEN
-                   ageing_time_ini = 0.0
-                 ELSE
-                     ! all is fine
-                 ENDIF
-             ELSE
-C              ageing_time_ini & ageing_cycle(_ini) are given via
-C              parameter file
-               state_of_health=1-(ageing_time_ini+ageing_cycle)
-             ENDIF
-         ELSE
-             WRITE(IUOUT,*) 'something went wrong, check parameters'
-         ENDIF
-       ENDIF
+            IF (POWCDAT(IPWC,94) .EQ. 1) THEN
+C             Calculate initial cyclic ageing factor with Popp method
+              ageing_cycle_0 = gamma1 + gamma2*cycles_ini
+     & 	                              + gamma3*cycles_ini**2
+     & 	                              + gamma4*cycles_ini**3
 
+            ELSEIF (POWCDAT(IPWC,94) .EQ. 2) THEN
+C             Calculate initial cyclic ageing factor with Günther method
+              ageing_cycle_0 = (3.165E-04*(0.5**3)
+     &                          +4.456E-05*(0.5**2)
+     &                          +3.890E-05*0.5)*cycles_ini
 
-C   For debugging only:
+            ELSE
+              WRITE(IUOUT,*)'Parameter 94 not set, set to 1 for ',
+     &                      'Popp or 2 for Guenther cycling method'
+            ENDIF
 
-C         iii = 1
-C         DO WHILE (iii <= 60)
-C           WRITE (IUOUT,*) ' item ', iii, ' = ', POWCDAT(IPWC,iii)
-C           iii = iii + 1
-C         ENDDO
+C           Calculate initial calendaric ageing factor
+            ageing_time_0 = 1. - SOH_ini - ageing_cycle_0
+            ageing_time_0 = max(0.0,ageing_time_0)
+
+          ELSE
+C           ageing_time_ini & ageing_cycle_ini are given via
+C           parameter file
+            SOH_ini = 1. - (ageing_time_0 + ageing_cycle_0)
+          ENDIF
+
+C       Old ageing model
+        else
+
+          IF (abuseFlag.eq.0) THEN
+            cycles_ini = 0 ! This is the amount of cycles the cell has used for degradation
+                           ! if abuseFlag is set .ne.0 (in Res_elec_Ctl.F, approx. line 1000),
+                           ! the value is not changed, here!
+          ELSE
+            cycles_ini = cycles_used_Lion ! in old model, used cycles may be set elsewhere!
+          ENDIF
+
+          IF (cycles_ini .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
+            cellCap_ini = (1.-0.2*cycles_ini/POWCDAT(IPWC,81))
+     &                                                     *cellCapRef
+          ELSE ! The battery is beyond useful life and is falling off
+            cellCap_ini = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_ini))
+     &                                                     *cellCapRef
+          ENDIF
+
+          SOH_ini = ((cellCap_ini/cellCapRef)-0.8)/0.2
+
+          ageing_time_0 = 0. ! model does not have calendaric ageing
+          ageing_cycle_0 = 1. - SOH_ini
+
+        endif ! which degradation model?
+
+C       Set the common variables
+        ageing_cycle = ageing_cycle_0
+        ageing_time_ini = ageing_time_0
+        cycles_used_Lion = cycles_ini
+        state_of_health = SOH_ini
+
+        if (DEBUG) then
+          write(*,*)'ageing_time_ini=',ageing_time_ini,
+     &            '; ageing_cycle=',ageing_cycle,
+     &            '; state_of_health=',state_of_health,
+     &            '; cycles_used=',cycles_used_Lion
+        endif
+
+      ENDIF ! switch battery types
 
       RETURN
       END
@@ -3475,22 +3497,21 @@ C     Determine temperature (beta) and current (alpha) factors to scale referenc
 C     Account for degradation
 C     Check if Parameter 82 is set. If not use the old degradation method
 
-      IF (POWCDAT(IPWC,82) .EQ. 0.0) THEN ! Old ageing model
-           IF (cycles_used_Lion .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
-               cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
-     &         *cellCapRef
-           ELSE ! The battery is beyond useful life and is falling off
-cx             cellCap = (8.8-.8*cycles_used_Lion/POWCDAT(IPWC,81))
-cx     &       *cellCapRef
-cx                <<add parameter "degradation factor" to change degradation
-cx                  in post-useful life phase ??>>
-             cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
-     &       *cellCapRef
-           ENDIF
-      ELSE     ! new ageing model
-cx	       cellCap = cellCapRef*state_of_health 
-	       cellCap = cellCapRef*(0.8+0.2*state_of_health)
-      ENDIF
+cx      if ( NPOWCDAT(IPWC) gt. 81) then
+C       New ageing model
+cx	       cellCap = cellCapRef*state_of_health
+        cellCap = cellCapRef*(0.8+0.2*state_of_health)
+
+cx      else
+C       Old ageing model
+cx        IF (cycles_used_Lion .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
+cx            cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
+cx     &      *cellCapRef
+cx        ELSE ! The battery is beyond useful life and is falling off
+cx          cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
+cx     &    *cellCapRef
+cx        ENDIF
+cx      ENDIF
 
 C     Capacity of the battery is the capacity of one cell times the number of cells in parallel
 
@@ -4124,9 +4145,9 @@ C Local Parameters
 cx      INTEGER, SAVE :: ts_dummy = 0, ! counts the timesteps, used to calculate ageing_time
 cx     &        cyc_mode               ! Cycling ageing method 1=Popp, 2=Gunther
 
-C Ageing Parameters
+C Ageing Parameters (new model)
 
-      REAL ageing_time,         ! calendaric ageing factor
+      REAL ageing_time,         ! Total calendaric ageing factor
      &     ageing_time_ref,     ! Calendric ageing factor under reference conditions (A_0)
      &     ageing_temp_factor,  ! Temperature factor b
      &     ageing_soc_factor,   ! State of charge factor c
@@ -4136,17 +4157,19 @@ C Ageing Parameters
      &     Delta_Cycle,         !
      &     Delta_DOD            ! DOD difference between DOD_t and DOD_t-1
 
-C Static parameters
+C     Static parameters
       REAL, SAVE :: cycles_used_old, ! cyclic ageing factor of last time step
      &              DOD_old          ! DOD of last time step
 
       Integer, save :: batMode_old   ! batMode from last time step
 
-c POWCDAT(IPWC,83) cycleIni
+c     POWCDAT(IPWC,83) cycleIni
 
-C cyclic ageing polynomial factors
-
+C     cyclic ageing polynomial factors
       REAL gamma1,gamma2,gamma3,gamma4
+
+C Ageing parameters xx model
+      real cellCap, cellCapRef
 
       INTEGER iNameLength
 
@@ -4163,22 +4186,26 @@ C *********** Initialisation
         batMode_old = batMode
       endif
 
-      batTOper = POWCDAT(IPWC,4)
-      gamma1 = POWCDAT(IPWC,84)
-      gamma2 = POWCDAT(IPWC,85)
-      gamma3 = POWCDAT(IPWC,86)
-      gamma4 = POWCDAT(IPWC,87)
-C     reference calendaric ageing factor, 1/sqrt(d80),
-C     where d80 is the shelf life in days after which 80% capacity
-C     remains
-cx << definition to be verified >>
-      ageing_time_ref = POWCDAT(IPWC,88)
 
-      ageing_temp_factor = POWCDAT(IPWC,89)
-      ageing_soc_factor = POWCDAT(IPWC,90)
-      batSOCRef  = POWCDAT(IPWC,91)
-      batSOC = (1. - DODIni)
-      cyc_mode = int(POWCDAT(IPWC,94))
+C     Check for extended degradation model use
+      if ( NPOWCDAT(IPWC) .gt. 81) then
+
+        batTOper = POWCDAT(IPWC,4)
+        gamma1 = POWCDAT(IPWC,84)
+        gamma2 = POWCDAT(IPWC,85)
+        gamma3 = POWCDAT(IPWC,86)
+        gamma4 = POWCDAT(IPWC,87)
+C       reference calendaric ageing factor, 1/sqrt(d80),
+C       where d80 is the shelf life in days after which 80% capacity
+C       remains
+cx << definition to be verified >>
+        ageing_time_ref = POWCDAT(IPWC,88)
+
+        ageing_temp_factor = POWCDAT(IPWC,89)
+        ageing_soc_factor = POWCDAT(IPWC,90)
+        batSOCRef  = POWCDAT(IPWC,91)
+        batSOC = (1. - DODIni)
+        cyc_mode = int(POWCDAT(IPWC,94))
 cx      ts_dummy=ts_dummy+1             ! this could lead to problems but a variable that
                                       ! contains the current timestep is needed
 
@@ -4186,88 +4213,103 @@ C *********** Calculations
 
 C Calculate calendaric ageing factor
 
-      calc_a_time=(exp(2*(((batTemp-batTOper)/               ! calendaric ageing per timestep
-     &   (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
-     &   (ageing_soc_factor/log(2.))))))**0.5
+        calc_a_time=(exp(2*(((batTemp-batTOper)/               ! calendaric ageing per timestep
+     &     (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
+     &     (ageing_soc_factor/log(2.))))))**0.5
 
 cx << calc_a_tim_sum seems to be an implicit "save" parameter ... DANGER!
-      calc_a_tim_sum = calc_a_tim_sum+calc_a_time            ! summed up calendaric ageing
+        calc_a_tim_sum = calc_a_tim_sum + calc_a_time       ! Summed up calendaric ageing for simulation period
 
-      ageing_time = ageing_time_ini + ageing_time_ref        ! calendaric ageing + initial calendaric ageing
+        ageing_time = ageing_time_ini + ageing_time_ref     ! Calendaric ageing including initial ageing
      &                *(calc_a_tim_sum/nPreviousTS)
      &                *(nPreviousTS*(TIMSEC/86400.))**0.5
 
 C Calculate cyclic ageing factor
 
-      IF (cyc_mode .EQ. 1.) THEN
-C       Popp method
-        ageing_cycle = gamma1                             ! Total cyclic ageing
+        IF (cyc_mode .EQ. 1) THEN
+C         Popp method
+          ageing_cycle = gamma1                             ! Total cyclic ageing
      &             + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
      & 	           + gamma4*cycles_used_Lion**3
 
-      ELSEIF (cyc_mode .EQ. 2.) THEN
-C       Guenther method
-C       Reference: Guenther, C. et. al. "Model-based investigation of electric
+        ELSE ! (cyc_mode .EQ. 2) THEN
+C         Guenther method
+C         Reference: Guenther, C. et. al. "Model-based investigation of electric
 C                   vehicle battery aging by means of vehicle-to-grid scenario
 C                   simulations", Journal of Power Sources 239 (2013), p. 604-610.
-C       Depending on cycle depth the cyclic ageing is calculated from
-C       a general polynomial.
-C       Thereby, cycle depth is evaluated after a switch between
-C       charge/discharge or vice versa (disregarding idle time steps),
-C       i.e. most likely not each time step.
-        IF (batMode.ne.2) then
-C         Battery not idle this time step
-          IF (batMode .NE. batMode_old) THEN
-C           Difference in DOD between last mode change
+C         Depending on cycle depth the cyclic ageing is calculated from
+C         a general polynomial.
+C         Thereby, cycle depth is evaluated after a switch between
+C         charge/discharge or vice versa (disregarding idle time steps),
+C         i.e. most likely not each time step.
+          IF (batMode.ne.2) then
+C           Battery not idle this time step
+            IF (batMode .NE. batMode_old) THEN
+C             Difference in DOD between last mode change
 cx << use "SOE"? How? Does it make a difference? >>
-            Delta_DOD = DODIni-DOD_old
+              Delta_DOD = DODIni-DOD_old
 
-C           Cyclic ageing per timestep, Guenther model
-            calc_a_cycl = 3.165E-04*abs(Delta_DOD)**3
+C             Cyclic ageing per timestep, Guenther model
+              calc_a_cycl = 3.165E-04*abs(Delta_DOD)**3
      &                      + 4.456E-05*abs(Delta_DOD)**2
      &                      + 3.890E-05*abs(Delta_DOD)
 
-C           Increment cyclic ageing, use only half the value calculated
-C           with polynomial eqn. above as the polynomial eqn. is based
-C           on full cycles and we end up here after "half cycles"!
-            ageing_cycle = ageing_cycle + 0.5*calc_a_cycl
+C             Increment cyclic ageing, use only half the value calculated
+C             with polynomial eqn. above as the polynomial eqn. is based
+C             on full cycles and we end up here after "half cycles"!
+              ageing_cycle = ageing_cycle + 0.5*calc_a_cycl
 
-C           Update "old" mode and DOD to current values
-            batMode_old = batMode
-            DOD_old = DODIni
+C             Update "old" mode and DOD to current values
+              batMode_old = batMode
+              DOD_old = DODIni
 
-          ENDIF ! batMode .ne. batMode_old
+            ENDIF ! batMode .ne. batMode_old
 
-        ELSE ! batMode eq. 2
-            ! the battery is idle and not cycled
+          ELSE ! batMode eq. 2
+              ! the battery is idle and not cycled
+          ENDIF
         ENDIF
-      ELSE
-          ! Parameter 94 not set. Set to 1 for Popp or 2 for Gunther cycling method
-      ENDIF
 
-      if (DEBUG) then
-        write(*,'(4(a,I3),7(a,E11.5))')'NSINC=',NSINC,
-     &    '; Timestep=',nPreviousTS,
-     &    '; RES_ctl=',RES_elec_ctl_scenario,
-     &    '; batMode=',batMode,
-     &    '; batDemandP=',batDemandP,
-     &    '; batCur=',batCur,
-     &    '; DOD=',DODIni,
-     &    '; D_DOD=',Delta_DOD,
-     &    '; calc_a_cyc=',calc_a_cycl,
-     &    '; age_cyc=',ageing_cycle,
-     &    '; age_time=',ageing_time
-      endif
+        if (DEBUG) then
+          write(*,'(4(a,I3),7(a,E11.5))')'NSINC=',NSINC,
+     &      '; Timestep=',nPreviousTS,
+     &      '; RES_ctl=',RES_elec_ctl_scenario,
+     &      '; batMode=',batMode,
+     &      '; batDemandP=',batDemandP,
+     &      '; batCur=',batCur,
+     &      '; DOD=',DODIni,
+     &      '; D_DOD=',Delta_DOD,
+     &      '; calc_a_cyc=',calc_a_cycl,
+     &      '; age_cyc=',ageing_cycle,
+     &      '; age_time=',ageing_time
+        endif
 
-C Calculate state of health
+C       Calculate state of health
+        SOH_Lion = 1.-(ageing_cycle+ageing_time)
 
-      SOH_Lion = 1.-(ageing_cycle+ageing_time)
+C     Use old model
+      else
+        cellCapRef = POWCDAT(IPWC,3)
+
+        IF (cycles_used_Lion .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
+            cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
+     &                                                     *cellCapRef
+        ELSE ! The battery is beyond useful life and is falling off
+          cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
+     &                                                     *cellCapRef
+        ENDIF
+
+        SOH_Lion = ((cellCap/cellCapRef)-0.8)/0.2
+
+        ageing_time = 0. ! model does not have calendaric ageing
+        ageing_cycle = 1. - SOH_Lion
+
+      endif ! which ageing model?
 
 C     Write ageing components to h3k
-
 C.... Get component name's length
-        iNameLength = lnblnk(powcomnam(IPWC))
+      iNameLength = lnblnk(powcomnam(IPWC))
 
       Call AddToReport(rvEPowBattLiOnAgeCyc%Identifier,
      &      ageing_cycle,
@@ -4279,12 +4321,11 @@ C.... Get component name's length
 
 C *********** Debug
 
-      IF (ageing_time .LE. 0.0) THEN
-        WRITE(IUOUT,*) 'Warning Battery Model: Negative or Null',
+      IF (ageing_time .LT. 0.0) THEN
+        WRITE(IUOUT,*) 'Warning Battery Model: Negative',
      &                  ' ageing_time factor in SOH_Lion'
         ageing_time = 0.0
       ENDIF
-
 
       RETURN
       END
@@ -4595,12 +4636,12 @@ C     Track battery cycles used
 
 C  Calculate the SOH only if remaining capacity (Parameter 82) is set
 
-      IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
+cx      IF (POWCDAT(IPWC,82) .NE. 0.0) THEN
           state_of_health = SOH_Lion(IPWC,batMode,batTIni,
      &                                            batDODFin,batCurFin)
-      ELSE
-          state_of_health = 1.
-      ENDIF
+cx      ELSE
+cx          state_of_health = 1.
+cx      ENDIF
 
       END
 
