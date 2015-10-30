@@ -386,10 +386,17 @@ C Now display components menu
         ipc=1
         call selpc(ipc,mcomp,pcnam1,k)
         if(ipc.eq.0) goto 5
+
+      write(*,*)'mcomp(1)=',mcomp(1),';'
+
         indx=ipcndx(mcomp(1))
+
+      write(*,*)'indx=',indx,';'
+
         mcomp(1)=indx
         ipcn =nnode(mcomp(1))
 
+      write(*,*)'ipcn=',ipcn,';'
 
 c If selected component has more than one node, then get desired node.
         if(ipcn.gt.1) then
@@ -408,6 +415,9 @@ C Save selected component and node numbers.
         endif
         NPGET=NPGET+1
         lname=MIN0(lnblnk(pcname(indx)),11)
+
+      write(*,*)'lname=',lname
+
         write(PREFIX,'(a)') pcname(indx)(1:lname)
 
 C Now save information for the specific selection.
