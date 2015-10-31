@@ -92,10 +92,10 @@ C this clash.
       common/ntype/isv(mpcom,mnodec)
       COMMON/SYSLABEL/SPLABEL(MSYSRS),GPLABEL(MSYSRS)
 
-      dimension mcomp(mpcom), ipcndx(mpcom), ivals(15)
+      dimension mcomp(mpcom), ipcndx(mpnode), ivals(15)
       CHARACTER ITEM(26)*23
       character outs*124,xfile*144,tg*1,delim*1,MTITLE*22
-      character pcname*15,pcnam1(mpcom)*15,adopdsc*30
+      character pcname*15,pcnam1(mpnode)*15,adopdsc*30
       character aoutstr(15)*30
       character SPLABEL*32,GPLABEL*20,SUFFIX*6,PREFIX*14
       integer IWM  ! for radio button
@@ -386,17 +386,10 @@ C Now display components menu
         ipc=1
         call selpc(ipc,mcomp,pcnam1,k)
         if(ipc.eq.0) goto 5
-
-      write(*,*)'mcomp(1)=',mcomp(1),';'
-
         indx=ipcndx(mcomp(1))
-
-      write(*,*)'indx=',indx,';'
-
         mcomp(1)=indx
         ipcn =nnode(mcomp(1))
 
-      write(*,*)'ipcn=',ipcn,';'
 
 c If selected component has more than one node, then get desired node.
         if(ipcn.gt.1) then
@@ -415,9 +408,6 @@ C Save selected component and node numbers.
         endif
         NPGET=NPGET+1
         lname=MIN0(lnblnk(pcname(indx)),11)
-
-      write(*,*)'lname=',lname
-
         write(PREFIX,'(a)') pcname(indx)(1:lname)
 
 C Now save information for the specific selection.
