@@ -599,12 +599,16 @@ C Local variables
 C-------------------------------------------------------------------------
       logical DEBUG
 
-      REAL gamma1, gamma2, gamma3, gamma4, cellCapRef,
-     &      cellCap_ini, cycles_ini,
-     &      ageing_cycle_0, ageing_time_0,
-     &      SOH_ini
+      REAL gamma1, gamma2, gamma3, gamma4, cellCapRef,batNomLife,
+     &      cellCapIni, batAgeIni,
+     &      a_cyc_0, a_cal_0, cycles_ini,
+     &      SOHIni
 
-      DEBUG=.false.
+      real dummy,residual,fstr_Ni,f_Ni,pAge
+
+      integer iteration,maxIter
+
+      DEBUG=.true.
 
 C ************** Initialisation
 
@@ -622,6 +626,9 @@ C ************** Initialisation
         timeSinceLastFullCharge = 0.
         state_of_health = 1.
 
+
+C ************* Li-Ion ***********
+
       ELSEIF ( POWCOMID(IPWC) .EQ. lion ) THEN  ! Li-ion
         mandChargeCycle = 0 ! This is to get by a road block set by the lead acid later
 
@@ -634,57 +641,121 @@ C ************** Initialisation
 
 C       Check for extended degradation model use
         if ( NPOWCDAT(IPWC) .gt. 81) then
-          cellCap_ini = POWCDAT(IPWC,82)
-          cycles_ini = POWCDAT(IPWC,83)
 
-          gamma1 = POWCDAT(IPWC,84)
-          gamma2 = POWCDAT(IPWC,85)
-          gamma3 = POWCDAT(IPWC,86)
-          gamma4 = POWCDAT(IPWC,87)
+C         Copy parameters to local variables
+          cellCapIni = POWCDAT(IPWC,82)
+          batAgeIni = POWCDAT(IPWC,83)
+          batNomLife = POWCDAT(IPWC,88)
 
-          ageing_time_0 = POWCDAT(IPWC,92)
-          ageing_cycle_0 = POWCDAT(IPWC,93)
+          if (batAgeIni*1.1 .ge. batNomLife) then
+C         Surely not enough life left in battery (bad input parameters)
+
+            WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
+     &          'data for Lion battery, i.e. initial age too near',
+     &          'nominal calendaric battery life expectance'
+            WRITE(IUOUT,*) '  => Check battery parameters #83 and #88!'
+
+cx            call epagend ! whats this?
+            STOP
+          endif
+
+          gamma1 = POWCDAT(IPWC,84) ! offset (Popp, only)
+          gamma2 = POWCDAT(IPWC,85) ! *x
+          gamma3 = POWCDAT(IPWC,86) ! *x^2
+          gamma4 = POWCDAT(IPWC,87) ! *x^3
+
+
+          a_cal_0 = POWCDAT(IPWC,92)
+          a_cyc_0 = POWCDAT(IPWC,93)
 
 C         *******************************************************
-C         New ageing model
-cx << initialisation seems somewhat unclear. SOH is a function of both
-cx    calendaric ageing and cyclic ageing. If SOH is calculated from
-cx    remaining capacity, the sum of calendaric and cyclic ageing is
-cx    pre-defined! Setting ageing_time_ini to zero if < 0 (see line
-cx    679 seems arbitrary!!
-cx << Haan & Zah, p. 32 "calendaric life defined for cap. loss of 20 %
-cx    (i.e. 80% remaining capacity after end of calendaric life)"
+C         New degradation model initialization
 
-          IF (ageing_time_0 .EQ. 0. .AND.
-     &          ageing_cycle_0 .EQ. 0.) THEN
-C           Initial ageing factors are not set, calculate them
-            SOH_ini = ((cellCap_ini/cellCapRef)-0.8)/0.2
+          SOHIni = ((cellCapIni/cellCapRef)-0.8)/0.2
 
-            IF (POWCDAT(IPWC,94) .EQ. 1) THEN
-C             Calculate initial cyclic ageing factor with Popp method
-              ageing_cycle_0 = gamma1 + gamma2*cycles_ini
-     & 	                              + gamma3*cycles_ini**2
-     & 	                              + gamma4*cycles_ini**3
+          if (a_cal_0 .EQ. 0.) then
+C           Initial value for calendaric ageing is not provided
+            if (a_cyc_0 .EQ. 0.) then
+C           Initial value for cyclic ageing is not provided
 
-            ELSEIF (POWCDAT(IPWC,94) .EQ. 2) THEN
-C             Calculate initial cyclic ageing factor with Günther method
-              ageing_cycle_0 = (3.165E-04*(0.5**3)
-     &                          +4.456E-05*(0.5**2)
-     &                          +3.890E-05*0.5)*cycles_ini
+C             Calculate both a_cal_0 .AND. a_cyc_0 assuming that both
+C             are non-zero and together lead to the given cellCapIni
+C             value.
+              pAge    = 2.**(1./batNomLife) - 1.
+              a_cal_0 = (1 + pAge)**batAgeIni - 1.
 
-            ELSE
-              WRITE(IUOUT,*)'Parameter 94 not set, set to 1 for ',
-     &                      'Popp or 2 for Guenther cycling method'
+              a_cyc_0 = 1. - a_cal_0 - SOHIni
+
+            else ! a_cyc_0 value is provided
+C             Calculate a_cal_0 via given a_cyc_0 and cellCapIni
+              a_cal_0 = 1. - a_cyc_0 - SOHIni
+
+            endif ! a_cyc_0 = 0?
+
+          else
+C           Initial value for calendaric ageing is given
+
+            if (a_cyc_0 .EQ. 0.) then
+C           Initial value for cyclic ageing is not provided
+
+C             Calculate a_cyc_0 via given a_cal_0 and cellCapIni
+              a_cyc_0 = 1. - a_cal_0
+     &                  - (cellCapIni/cellCapRef - 0.8)/0.2
+
+            else ! a_cyc_0 value is provided
+C             Both a_cyc_0 and a_cal_0 are provided, nothing to be
+C             done!
+
+            endif ! a_cyc_0 = 0?
+          endif ! a_cal_0 = 0?
+
+C         Calculate equivalent number of cycles at simulation start
+C         depending on ageing model used.
+          IF (POWCDAT(IPWC,94) .EQ. 1) THEN
+            iteration = 0
+            maxIter = 20
+            residual = 1.
+C           Popp method
+            cycles_ini = 0.8*POWCDAT(IPWC,81) ! initial value for iteration
+
+            do while (abs(cycles_ini-dummy).gt.residual
+     &                                     .and.iteration.lt.maxIter)
+              dummy = cycles_ini
+
+              f_Ni = a_cyc_0 - (gamma1 + gamma2*dummy
+     &                                 + gamma3*dummy**2
+     & 	                               + gamma4*dummy**3)
+
+              fstr_Ni = -1. * (gamma2 + 2*gamma3*dummy
+     &                                + 3*gamma4*dummy**2)
+
+              cycles_ini = dummy - f_Ni/fstr_Ni
+
+              iteration = iteration + 1
+
+              if (DEBUG) then
+                write(*,*)'iter=',iteration,'; f_Ni=',f_Ni,
+     &           '; fstr_Ni=',fstr_Ni,
+     &           '; cycles_ini=',cycles_ini,';'
+              endif
+
+            end do
+
+            IF (iteration .EQ. maxIter) THEN
+              WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
+     &          'Convergence in Lion initialisation (Popp, cycles_ini)'
             ENDIF
 
-C           Calculate initial calendaric ageing factor
-            ageing_time_0 = 1. - SOH_ini - ageing_cycle_0
-            ageing_time_0 = max(0.0,ageing_time_0)
+          ELSEIF (POWCDAT(IPWC,94) .EQ. 2) THEN
+C           Günther method
+C           The initial number of cycles is calculated from the cyclic
+C           ageing polynom with depth of cycle = 1.
+            cycles_ini = a_cyc_0 / (gamma2 + gamma3 + gamma4)
 
           ELSE
-C           ageing_time_ini & ageing_cycle_ini are given via
-C           parameter file
-            SOH_ini = 1. - (ageing_time_0 + ageing_cycle_0)
+            WRITE(IUOUT,*)'Parameter 94 not set, set to 1 for ',
+     &                    'Popp or 2 for Guenther cycling method'
+            STOP
           ENDIF
 
 C       Old ageing model
@@ -699,25 +770,25 @@ C       Old ageing model
           ENDIF
 
           IF (cycles_ini .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
-            cellCap_ini = (1.-0.2*cycles_ini/POWCDAT(IPWC,81))
+            cellCapIni = (1.-0.2*cycles_ini/POWCDAT(IPWC,81))
      &                                                     *cellCapRef
           ELSE ! The battery is beyond useful life and is falling off
-            cellCap_ini = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_ini))
+            cellCapIni = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_ini))
      &                                                     *cellCapRef
           ENDIF
 
-          SOH_ini = ((cellCap_ini/cellCapRef)-0.8)/0.2
+          SOHIni = ((cellCapIni/cellCapRef)-0.8)/0.2
 
-          ageing_time_0 = 0. ! model does not have calendaric ageing
-          ageing_cycle_0 = 1. - SOH_ini
+          a_cal_0 = 0. ! model does not have calendaric ageing
+          a_cyc_0 = 1. - SOHIni
 
         endif ! which degradation model?
 
 C       Set the common variables
-        ageing_cycle = ageing_cycle_0
-        ageing_time_ini = ageing_time_0
+        ageing_cycle = a_cyc_0
+        ageing_time_ini = a_cal_0
         cycles_used_Lion = cycles_ini
-        state_of_health = SOH_ini
+        state_of_health = SOHIni
 
         if (DEBUG) then
           write(*,*)'ageing_time_ini=',ageing_time_ini,
@@ -3495,23 +3566,7 @@ C     Determine temperature (beta) and current (alpha) factors to scale referenc
       alpha = rate_factor_lion(IPWC,batCur)
 
 C     Account for degradation
-C     Check if Parameter 82 is set. If not use the old degradation method
-
-cx      if ( NPOWCDAT(IPWC) gt. 81) then
-C       New ageing model
-cx	       cellCap = cellCapRef*state_of_health
-        cellCap = cellCapRef*(0.8+0.2*state_of_health)
-
-cx      else
-C       Old ageing model
-cx        IF (cycles_used_Lion .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
-cx            cellCap = (1.-0.2*cycles_used_Lion/POWCDAT(IPWC,81))
-cx     &      *cellCapRef
-cx        ELSE ! The battery is beyond useful life and is falling off
-cx          cellCap = (0.8-0.8*(1.-POWCDAT(IPWC,81)/cycles_used_Lion))
-cx     &    *cellCapRef
-cx        ENDIF
-cx      ENDIF
+      cellCap = cellCapRef*(0.8+0.2*state_of_health)
 
 C     Capacity of the battery is the capacity of one cell times the number of cells in parallel
 
@@ -4199,7 +4254,7 @@ C       reference calendaric ageing factor, 1/sqrt(d80),
 C       where d80 is the shelf life in days after which 80% capacity
 C       remains
 cx << definition to be verified >>
-        ageing_time_ref = POWCDAT(IPWC,88)
+        ageing_time_ref = SQRT(1./(365*POWCDAT(IPWC,88)))
 
         ageing_temp_factor = POWCDAT(IPWC,89)
         ageing_soc_factor = POWCDAT(IPWC,90)
@@ -4251,9 +4306,9 @@ cx << use "SOE"? How? Does it make a difference? >>
               Delta_DOD = DODIni-DOD_old
 
 C             Cyclic ageing per timestep, Guenther model
-              calc_a_cycl = 3.165E-04*abs(Delta_DOD)**3
-     &                      + 4.456E-05*abs(Delta_DOD)**2
-     &                      + 3.890E-05*abs(Delta_DOD)
+              calc_a_cycl = gamma4*abs(Delta_DOD)**3
+     &                      + gamma3*abs(Delta_DOD)**2
+     &                      + gamma2*abs(Delta_DOD)
 
 C             Increment cyclic ageing, use only half the value calculated
 C             with polynomial eqn. above as the polynomial eqn. is based
@@ -4865,18 +4920,18 @@ C Battery degradation
 C---------------------------
 C POWCDAT (IPWC,81):   Cycle_cruc   The crucial cycle to indicate the end of the cell's life
 C---------------------------
-C 2nd life cells degradation. Optional, set CellCapIni to 0.0 for the old model
+C Advanced degradation models (used when NPOWCDAT(IPWC) > 81).
 C---------------------------
-C POWCDAT (IPWC,82):   CellCapIni          Remaining Capacity of a 2nd life cell
-C POWCDAT (IPWC,83):   CycleIni            Number of already used cycles of a 2nd life cell
+C POWCDAT (IPWC,82):   CellCapIni          Initial Capacity of cell (Ah)
+C POWCDAT (IPWC,83):   batAgeIni           Age of battery at simulation start (years) ; can be fractional
 C POWCDAT (IPWC,84):   gamma1              The first gamma required for cyclic ageing
 C POWCDAT (IPWC,85):   gamma2              The second gamma required for cyclic ageing
 C POWCDAT (IPWC,86):   gamma3              The third gamma required for cyclic ageing
 C POWCDAT (IPWC,87):   gamma4              The fourth gamma required for cyclic ageing
-C POWCDAT (IPWC,88):   ageing_time_ref     Calendaric ageing of a cell under reference conditions (A_0; 1/sqrt(d80)?)
+C POWCDAT (IPWC,88):   batNomLife          Nominal cell life span under reference conditions (years)
 C POWCDAT (IPWC,89):   ageing_temp_factor  Factor b of the ageing_time formula
 C POWCDAT (IPWC,90):   ageing_soc_factor   Factor c of the ageing_time formula
 C POWCDAT (IPWC,91):   batSOCRef           Reference SOC for degradation (typically 0.5)
-C POWCDAT (IPWC,92):   ageing_time_ini     Initial ageing_time factor, either calculated or from parameter file
-C POWCDAT (IPWC,93):   ageing_cycle        Initial ageing_cycle factor, either calculated or from parameter file
+C POWCDAT (IPWC,92):   a_cal_0             Initial ageing_time factor, calculated if 0.
+C POWCDAT (IPWC,93):   a_cyc_0             Initial ageing_cycle factor, calculated if 0.
 C POWCDAT (IPWC,94):   cyc_mode            Method to calculate ageing_cycle (1=Popp, 2=Günther)
