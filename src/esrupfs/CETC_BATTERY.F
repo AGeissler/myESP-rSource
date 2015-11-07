@@ -608,7 +608,7 @@ C-------------------------------------------------------------------------
 
       integer iteration,maxIter
 
-      DEBUG=.true.
+      DEBUG=.false.
 
 C ************** Initialisation
 
@@ -644,8 +644,8 @@ C       Check for extended degradation model use
 
 C         Copy parameters to local variables
           cellCapIni = POWCDAT(IPWC,82)
-          batAgeIni = POWCDAT(IPWC,83)
-          batNomLife = POWCDAT(IPWC,88)
+          batNomLife = POWCDAT(IPWC,83)
+          batAgeIni = POWCDAT(IPWC,84)
 
           if (batAgeIni*1.1 .ge. batNomLife) then
 C         Surely not enough life left in battery (bad input parameters)
@@ -654,22 +654,40 @@ C         Surely not enough life left in battery (bad input parameters)
      &          'data for Lion battery, i.e. initial age too near',
      &          'nominal calendaric battery life expectance'
             WRITE(IUOUT,*) '  => Check battery parameters #83 and #88!'
-
 cx            call epagend ! whats this?
             STOP
           endif
 
-          gamma1 = POWCDAT(IPWC,84) ! offset (Popp, only)
-          gamma2 = POWCDAT(IPWC,85) ! *x
-          gamma3 = POWCDAT(IPWC,86) ! *x^2
-          gamma4 = POWCDAT(IPWC,87) ! *x^3
-
+          gamma1 = POWCDAT(IPWC,85) ! offset (Popp, only)
+          gamma2 = POWCDAT(IPWC,86) ! *x
+          gamma3 = POWCDAT(IPWC,87) ! *x^2
+          gamma4 = POWCDAT(IPWC,88) ! *x^3
 
           a_cal_0 = POWCDAT(IPWC,92)
           a_cyc_0 = POWCDAT(IPWC,93)
 
 C         *******************************************************
 C         New degradation model initialization
+C         The underlying theory is that the capacity degradation as given
+C         by cellCapIni (which should be somewhat lower than cellCapRef)
+C         is due to both calendaric ageing and cycling.
+C
+C         1. Calendaric ageing
+C           is calculated during runtime based on a modified Arrhenius
+C           eqn. according to
+C
+C             a_cal = A_0*sqrt(sum_i( ... ))
+C
+C           where A_0 equals sqrt(1/(365*batNomLife)), batNomLife in years.
+C
+C         2. Cyclic ageing
+C           is calculated by either the "Popp" method or the "Guenther"
+C           method.
+C           References:
+C             Popp, X: "", ...
+C             Guenther, C. et. al. "Model-based investigation of electric
+C               vehicle battery aging by means of vehicle-to-grid scenario
+C               simulations", Journal of Power Sources 239 (2013), p. 604-610.
 
           SOHIni = ((cellCapIni/cellCapRef)-0.8)/0.2
 
@@ -686,9 +704,21 @@ C             value.
 
               a_cyc_0 = 1. - a_cal_0 - SOHIni
 
+C             Check resulting parameter a_cyc_0 (rudimentary check!)
+              if (a_cyc_0 .lt. 0.) then
+                WRITE(IUOUT,*)'Warning Battery Model: Troublesome',
+     &               'data for Lion battery.'
+                WRITE(IUOUT,*)
+     &               '  => Check battery parameters #82. #83 and #88!'
+cx                call epagend ! whats this?
+                STOP
+              endif
+
             else ! a_cyc_0 value is provided
 C             Calculate a_cal_0 via given a_cyc_0 and cellCapIni
+C             Enforce value > 0
               a_cal_0 = 1. - a_cyc_0 - SOHIni
+              a_cal_0 = max(0.0,a_cal_0)
 
             endif ! a_cyc_0 = 0?
 
@@ -715,9 +745,10 @@ C         depending on ageing model used.
             iteration = 0
             maxIter = 20
             residual = 1.
-C           Popp method
             cycles_ini = 0.8*POWCDAT(IPWC,81) ! initial value for iteration
 
+C           Popp method; calculation of cycles requires iterative approach,
+C           Newton-Raphson method used.
             do while (abs(cycles_ini-dummy).gt.residual
      &                                     .and.iteration.lt.maxIter)
               dummy = cycles_ini
@@ -749,8 +780,13 @@ C           Popp method
           ELSEIF (POWCDAT(IPWC,94) .EQ. 2) THEN
 C           Günther method
 C           The initial number of cycles is calculated from the cyclic
-C           ageing polynom with depth of cycle = 1.
-            cycles_ini = a_cyc_0 / (gamma2 + gamma3 + gamma4)
+C           ageing polynom with an average depth of cycle = 0.95 (the
+C           inverse of the polynom value equals the nominal cycle life
+C           for an average cycle depth of 1.0, however, this leads to
+C           very low initial cycle numbers ...).
+            cycles_ini = a_cyc_0 / (gamma2*0.95
+     &                               + gamma3*0.95**2
+     &                               + gamma4*0.95**3)
 
           ELSE
             WRITE(IUOUT,*)'Parameter 94 not set, set to 1 for ',
@@ -762,10 +798,11 @@ C       Old ageing model
         else
 
           IF (abuseFlag.eq.0) THEN
-            cycles_ini = 0 ! This is the amount of cycles the cell has used for degradation
-                           ! if abuseFlag is set .ne.0 (in Res_elec_Ctl.F, approx. line 1000),
-                           ! the value is not changed, here!
+C           We likely have a new battery, set cycles used to zero.
+            cycles_ini = 0
           ELSE
+C           If abuseFlag is set .ne.0 (in Res_elec_Ctl.F, approx. line 1000),
+C           the value is initialised to the value given in the RES control file.
             cycles_ini = cycles_used_Lion ! in old model, used cycles may be set elsewhere!
           ENDIF
 
@@ -4246,15 +4283,15 @@ C     Check for extended degradation model use
       if ( NPOWCDAT(IPWC) .gt. 81) then
 
         batTOper = POWCDAT(IPWC,4)
-        gamma1 = POWCDAT(IPWC,84)
-        gamma2 = POWCDAT(IPWC,85)
-        gamma3 = POWCDAT(IPWC,86)
-        gamma4 = POWCDAT(IPWC,87)
+        gamma1 = POWCDAT(IPWC,85)
+        gamma2 = POWCDAT(IPWC,86)
+        gamma3 = POWCDAT(IPWC,87)
+        gamma4 = POWCDAT(IPWC,88)
 C       reference calendaric ageing factor, 1/sqrt(d80),
 C       where d80 is the shelf life in days after which 80% capacity
 C       remains
 cx << definition to be verified >>
-        ageing_time_ref = SQRT(1./(365*POWCDAT(IPWC,88)))
+        ageing_time_ref = SQRT(1./(365*POWCDAT(IPWC,83)))
 
         ageing_temp_factor = POWCDAT(IPWC,89)
         ageing_soc_factor = POWCDAT(IPWC,90)
@@ -4513,7 +4550,7 @@ C         The needed energy in watts to return to safe points
 
         IF (iteration .EQ. max_iteration) THEN
           WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
-     &                   'Convergeance in Lion_BMS hiVoltage flag'
+     &                   'Convergence in Lion_BMS hiVoltage flag'
         ENDIF
 
         IF (batMode_or .NE. 1) THEN
@@ -4923,12 +4960,12 @@ C---------------------------
 C Advanced degradation models (used when NPOWCDAT(IPWC) > 81).
 C---------------------------
 C POWCDAT (IPWC,82):   CellCapIni          Initial Capacity of cell (Ah)
-C POWCDAT (IPWC,83):   batAgeIni           Age of battery at simulation start (years) ; can be fractional
-C POWCDAT (IPWC,84):   gamma1              The first gamma required for cyclic ageing
-C POWCDAT (IPWC,85):   gamma2              The second gamma required for cyclic ageing
-C POWCDAT (IPWC,86):   gamma3              The third gamma required for cyclic ageing
-C POWCDAT (IPWC,87):   gamma4              The fourth gamma required for cyclic ageing
-C POWCDAT (IPWC,88):   batNomLife          Nominal cell life span under reference conditions (years)
+C POWCDAT (IPWC,83):   batNomLife          Nominal cell life span under reference conditions (years)
+C POWCDAT (IPWC,84):   batAgeIni           Age of battery at simulation start (years) ; can be fractional
+C POWCDAT (IPWC,85):   gamma1              The first gamma required for cyclic ageing
+C POWCDAT (IPWC,86):   gamma2              The second gamma required for cyclic ageing
+C POWCDAT (IPWC,87):   gamma3              The third gamma required for cyclic ageing
+C POWCDAT (IPWC,88):   gamma4              The fourth gamma required for cyclic ageing
 C POWCDAT (IPWC,89):   ageing_temp_factor  Factor b of the ageing_time formula
 C POWCDAT (IPWC,90):   ageing_soc_factor   Factor c of the ageing_time formula
 C POWCDAT (IPWC,91):   batSOCRef           Reference SOC for degradation (typically 0.5)
