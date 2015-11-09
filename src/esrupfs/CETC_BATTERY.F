@@ -639,22 +639,30 @@ C ************* Li-Ion ***********
 
         cellCapRef = POWCDAT(IPWC,3)
 
-C       Check for extended degradation model use
         if ( NPOWCDAT(IPWC) .gt. 81) then
+C         New extended battery degradation model used
 
 C         Copy parameters to local variables
           cellCapIni = POWCDAT(IPWC,82)
           batNomLife = POWCDAT(IPWC,83)
           batAgeIni = POWCDAT(IPWC,84)
 
+C         Calculate initial state of health value for given remaining
+C         battery capacity for usual "end of life" definition (SOH = 1)
+C         when remaining capacity equals 80% of nominal capacity.
+          SOHIni = ((cellCapIni/cellCapRef)-0.8)/0.2
+
+C         Do some basic input value validation tests
+cx << test SOHIni? >>
+
           if (batAgeIni*1.1 .ge. batNomLife) then
 C         Surely not enough life left in battery (bad input parameters)
 
-            WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
-     &          'data for Lion battery, i.e. initial age too near',
-     &          'nominal calendaric battery life expectance'
+            WRITE(IUOUT,*) 'FATAL: Battery Model, troublesome',
+     &          'data for Lion battery (initial age too close to',
+     &          'nominal calendaric battery life expectance).'
             WRITE(IUOUT,*) '  => Check battery parameters #83 and #88!'
-cx            call epagend ! whats this?
+            call epagend ! page and close window if open.
             STOP
           endif
 
@@ -679,6 +687,8 @@ C
 C             a_cal = A_0*sqrt(sum_i( ... ))
 C
 C           where A_0 equals sqrt(1/(365*batNomLife)), batNomLife in years.
+C           Reference:
+C             Popp, X: "", ...
 C
 C         2. Cyclic ageing
 C           is calculated by either the "Popp" method or the "Guenther"
@@ -689,8 +699,6 @@ C             Guenther, C. et. al. "Model-based investigation of electric
 C               vehicle battery aging by means of vehicle-to-grid scenario
 C               simulations", Journal of Power Sources 239 (2013), p. 604-610.
 
-          SOHIni = ((cellCapIni/cellCapRef)-0.8)/0.2
-
           if (a_cal_0 .EQ. 0.) then
 C           Initial value for calendaric ageing is not provided
             if (a_cyc_0 .EQ. 0.) then
@@ -699,6 +707,8 @@ C           Initial value for cyclic ageing is not provided
 C             Calculate both a_cal_0 .AND. a_cyc_0 assuming that both
 C             are non-zero and together lead to the given cellCapIni
 C             value.
+C             Hereby, a_cal_0 is calculated based on a "compound interest"
+C             type of approach using a_cal_0 = 1 for batAgeIni = batNomLife.
               pAge    = 2.**(1./batNomLife) - 1.
               a_cal_0 = (1 + pAge)**batAgeIni - 1.
 
@@ -706,11 +716,11 @@ C             value.
 
 C             Check resulting parameter a_cyc_0 (rudimentary check!)
               if (a_cyc_0 .lt. 0.) then
-                WRITE(IUOUT,*)'Warning Battery Model: Troublesome',
-     &               'data for Lion battery.'
+                WRITE(IUOUT,*)'FATAL: Battery Model, Troublesome',
+     &               'age data for Lion battery.'
                 WRITE(IUOUT,*)
-     &               '  => Check battery parameters #82. #83 and #88!'
-cx                call epagend ! whats this?
+     &               '  => Check battery parameters #82, #83 and #88!'
+                call epagend ! page and close window if open.
                 STOP
               endif
 
@@ -789,12 +799,13 @@ C           very low initial cycle numbers ...).
      &                               + gamma4*0.95**3)
 
           ELSE
-            WRITE(IUOUT,*)'Parameter 94 not set, set to 1 for ',
+            WRITE(IUOUT,*)'FATAL: Parameter 94 not set, set to 1 for ',
      &                    'Popp or 2 for Guenther cycling method'
+            call epagend ! page and close window if open.
             STOP
           ENDIF
 
-C       Old ageing model
+C       Legacy code ageing model
         else
 
           IF (abuseFlag.eq.0) THEN
@@ -803,7 +814,7 @@ C           We likely have a new battery, set cycles used to zero.
           ELSE
 C           If abuseFlag is set .ne.0 (in Res_elec_Ctl.F, approx. line 1000),
 C           the value is initialised to the value given in the RES control file.
-            cycles_ini = cycles_used_Lion ! in old model, used cycles may be set elsewhere!
+            cycles_ini = cycles_used_Lion
           ENDIF
 
           IF (cycles_ini .LE. POWCDAT(IPWC,81)) THEN ! Battery is still in useful life region
@@ -816,7 +827,7 @@ C           the value is initialised to the value given in the RES control file.
 
           SOHIni = ((cellCapIni/cellCapRef)-0.8)/0.2
 
-          a_cal_0 = 0. ! model does not have calendaric ageing
+          a_cal_0 = 0. ! Legacy model does not have calendaric ageing
           a_cyc_0 = 1. - SOHIni
 
         endif ! which degradation model?
