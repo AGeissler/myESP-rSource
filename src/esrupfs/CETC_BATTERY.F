@@ -653,13 +653,20 @@ C         when remaining capacity equals 80% of nominal capacity.
           SOHIni = ((cellCapIni/cellCapRef)-0.8)/0.2
 
 C         Do some basic input value validation tests
-cx << test SOHIni? >>
+          if (SOHIni .lt. -3.5) then
+C           Surely not enough life left in battery (bad input parameters)
+            WRITE(IUOUT,*) 'FATAL: Battery Model, troublesome ',
+     &          'data for Lion battery (initial SOH too close to ',
+     &          'battery life expectance).'
+            WRITE(IUOUT,*) '  => Check battery parameters #3 and #82!'
+            call epagend ! page and close window if open.
+            STOP
+          endif
 
           if (batAgeIni*1.1 .ge. batNomLife) then
-C         Surely not enough life left in battery (bad input parameters)
-
-            WRITE(IUOUT,*) 'FATAL: Battery Model, troublesome',
-     &          'data for Lion battery (initial age too close to',
+C           Surely not enough life left in battery (bad input parameters)
+            WRITE(IUOUT,*) 'FATAL: Battery Model, troublesome ',
+     &          'data for Lion battery (initial age too close to ',
      &          'nominal calendaric battery life expectance).'
             WRITE(IUOUT,*) '  => Check battery parameters #83 and #88!'
             call epagend ! page and close window if open.
@@ -675,29 +682,12 @@ C         Surely not enough life left in battery (bad input parameters)
           a_cyc_0 = POWCDAT(IPWC,93)
 
 C         *******************************************************
-C         New degradation model initialization
-C         The underlying theory is that the capacity degradation as given
-C         by cellCapIni (which should be somewhat lower than cellCapRef)
-C         is due to both calendaric ageing and cycling.
+C         New degradation model initialization (see SOH_Lion() for
+C         model description.
 C
-C         1. Calendaric ageing
-C           is calculated during runtime based on a modified Arrhenius
-C           eqn. according to
-C
-C             a_cal = A_0*sqrt(sum_i( ... ))
-C
-C           where A_0 equals sqrt(1/(365*batNomLife)), batNomLife in years.
-C           Reference:
-C             Popp, X: "", ...
-C
-C         2. Cyclic ageing
-C           is calculated by either the "Popp" method or the "Guenther"
-C           method.
-C           References:
-C             Popp, X: "", ...
-C             Guenther, C. et. al. "Model-based investigation of electric
-C               vehicle battery aging by means of vehicle-to-grid scenario
-C               simulations", Journal of Power Sources 239 (2013), p. 604-610.
+C         For initialization, it is assumed that the capacity degradation
+C         as given by cellCapIni (which should be somewhat lower than
+C         cellCapRef) is due to both calendaric ageing and cycling.
 
           if (a_cal_0 .EQ. 0.) then
 C           Initial value for calendaric ageing is not provided
@@ -716,7 +706,7 @@ C             type of approach using a_cal_0 = 1 for batAgeIni = batNomLife.
 
 C             Check resulting parameter a_cyc_0 (rudimentary check!)
               if (a_cyc_0 .lt. 0.) then
-                WRITE(IUOUT,*)'FATAL: Battery Model, Troublesome',
+                WRITE(IUOUT,*)'FATAL: Battery Model, Troublesome ',
      &               'age data for Lion battery.'
                 WRITE(IUOUT,*)
      &               '  => Check battery parameters #82, #83 and #88!'
@@ -724,23 +714,25 @@ C             Check resulting parameter a_cyc_0 (rudimentary check!)
                 STOP
               endif
 
-            else ! a_cyc_0 value is provided
-C             Calculate a_cal_0 via given a_cyc_0 and cellCapIni
-C             Enforce value > 0
+            else
+C             Parameter a_cyc_0 value is provided, calculate a_cal_0
+C             with this value and SOHIni.
               a_cal_0 = 1. - a_cyc_0 - SOHIni
+C             Enforce value > 0.
               a_cal_0 = max(0.0,a_cal_0)
 
             endif ! a_cyc_0 = 0?
 
           else
-C           Initial value for calendaric ageing is given
+C           Initial value for calendaric ageing a_cal_0 is given
 
             if (a_cyc_0 .EQ. 0.) then
 C           Initial value for cyclic ageing is not provided
 
 C             Calculate a_cyc_0 via given a_cal_0 and cellCapIni
-              a_cyc_0 = 1. - a_cal_0
-     &                  - (cellCapIni/cellCapRef - 0.8)/0.2
+              a_cyc_0 = 1. - a_cal_0 - SOHIni
+C             Enforce value > 0.
+              a_cyc_0 = max(0.0,a_cyc_0)
 
             else ! a_cyc_0 value is provided
 C             Both a_cyc_0 and a_cal_0 are provided, nothing to be
@@ -751,6 +743,8 @@ C             done!
 
 C         Calculate equivalent number of cycles at simulation start
 C         depending on ageing model used.
+cx << couldn't it simply be a_cyc_0*POWCDAT(IPWC,81), i.e. the calculated
+cx    cyclic ageing factor multiplied by the nominal cycle life?? >>
           IF (POWCDAT(IPWC,94) .EQ. 1) THEN
             iteration = 0
             maxIter = 20
@@ -783,7 +777,7 @@ C           Newton-Raphson method used.
             end do
 
             IF (iteration .EQ. maxIter) THEN
-              WRITE(IUOUT,*) 'Warning Battery Model: Troublesome',
+              WRITE(IUOUT,*) 'Warning Battery Model: Troublesome ',
      &          'Convergence in Lion initialisation (Popp, cycles_ini)'
             ENDIF
 
@@ -4182,10 +4176,35 @@ C**************************************************************************
 C SOH_Lion
 C**************************************************************************
 C
-C Created By Andreas Bucher May 2015
+C Created By Andreas Bucher, May 2015
+C Extended by Achim Geissler, November 2015
 C
 C - This subroutine calculates the ageing of a cell/battery according
-C   to Andreas Bucher's thesis
+C   to Andreas Bucher's BSc thesis.
+C
+C   The underlying theory is that capacity degradation is due to both
+C   calendaric (time dependant) ageing and cycling.
+C
+C   1. Calendaric ageing
+C     is calculated during runtime based on a modified Arrhenius
+C     eqn. according to
+C
+C       a_cal = A_0*sqrt(Int[0...t](exp(2((T(t)-T0)/b+(SOC(t)-SOC0)/c))))
+C
+C     where A_0 equals sqrt(1/(365*batNomLife)), batNomLife in years.
+C     Reference:
+C       Popp, H: "Effect of vehicle-to-grid applications on the ageing
+C            of Li-Ion batteries", MSc Thesis, Vienna, 2014 (in German).
+C
+C   2. Cyclic ageing
+C     is calculated by either the "Popp" method or the "Guenther"
+C     method, see descriptions below.
+C     References:
+C       Popp, H: "Effect of vehicle-to-grid applications on the ageing
+C          of Li-Ion batteries", MSc Thesis, Vienna, 2014 (in German).
+C       Guenther, C. et. al. "Model-based investigation of electric
+C          vehicle battery aging by means of vehicle-to-grid scenario
+C          simulations", Journal of Power Sources 239 (2013), p. 604-610.
 C
 C INPUTS:
 C -IPWC:    Power-only component index number
@@ -4289,7 +4308,6 @@ C *********** Initialisation
         batMode_old = batMode
       endif
 
-
 C     Check for extended degradation model use
       if ( NPOWCDAT(IPWC) .gt. 81) then
 
@@ -4331,6 +4349,10 @@ C Calculate cyclic ageing factor
 
         IF (cyc_mode .EQ. 1) THEN
 C         Popp method
+C
+C         Cyclic ageing depends on total number of cycles and is
+C         described by a 3rd order polynomial which ideally is
+C         based on measurements of the battery used.
           ageing_cycle = gamma1                             ! Total cyclic ageing
      &             + gamma2*cycles_used_Lion
      & 	           + gamma3*cycles_used_Lion**2
@@ -4338,14 +4360,12 @@ C         Popp method
 
         ELSE ! (cyc_mode .EQ. 2) THEN
 C         Guenther method
-C         Reference: Guenther, C. et. al. "Model-based investigation of electric
-C                   vehicle battery aging by means of vehicle-to-grid scenario
-C                   simulations", Journal of Power Sources 239 (2013), p. 604-610.
-C         Depending on cycle depth the cyclic ageing is calculated from
-C         a general polynomial.
-C         Thereby, cycle depth is evaluated after a switch between
-C         charge/discharge or vice versa (disregarding idle time steps),
-C         i.e. most likely not each time step.
+C
+C         Depending on cycle depth, the cyclic ageing is calculated from
+C         a general polynomial. Cycle depth is evaluated after a switch
+C         between charge/discharge or vice versa (disregarding idle
+C         time steps), i.e. evaluation is most likely not done each
+C         time step.
           IF (batMode.ne.2) then
 C           Battery not idle this time step
             IF (batMode .NE. batMode_old) THEN
