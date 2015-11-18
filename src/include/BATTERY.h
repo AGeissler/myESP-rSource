@@ -43,6 +43,7 @@ C-------------------------------------------------------------------------------
      & batDODFin,
      & batLifeUsed,
      & batTFin,
+     & batSOE,
      & cumBatLifeUsed,
      & cycles_used_Lion,
      & hiTempLion,
@@ -72,6 +73,9 @@ C       activeBatLifeControl = 1 : active battery life control
 
 C Battery temperature (C)
       REAL batTFin
+
+C Battery state of energy (Wh)
+      REAL batSOE
 
 C Battery Depth Of Discharge (%)
       REAL batDODFin

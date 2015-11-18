@@ -4274,14 +4274,14 @@ C Ageing Parameters (new model)
      &     ageing_temp_factor,  ! Temperature factor b
      &     ageing_soc_factor,   ! State of charge factor c
      &     calc_a_cycl,         ! cyclic ageing factor per timestep
-     &     calc_a_tim_sum,      ! used to calculate the ageing time factor
      &     calc_a_time,	        ! calendaric ageing factor per timestep
      &     Delta_Cycle,         !
      &     Delta_DOD            ! DOD difference between DOD_t and DOD_t-1
 
 C     Static parameters
       REAL, SAVE :: cycles_used_old, ! cyclic ageing factor of last time step
-     &              DOD_old          ! DOD of last time step
+     &              DOD_old,         ! DOD of last time step
+     &              calc_a_tim_sum   ! Ageing time factor summation
 
       Integer, save :: batMode_old   ! batMode from last time step
 
@@ -4332,18 +4332,19 @@ cx      ts_dummy=ts_dummy+1             ! this could lead to problems but a vari
 
 C *********** Calculations
 
-C Calculate calendaric ageing factor
-
-        calc_a_time=(exp(2*(((batTemp-batTOper)/               ! calendaric ageing per timestep
+C       Calculate calendaric ageing factor
+C       ... for this time step
+        calc_a_time=(exp(2*(((batTemp-batTOper)/
      &     (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
      &     (ageing_soc_factor/log(2.))))))**0.5
 
-cx << calc_a_tim_sum seems to be an implicit "save" parameter ... DANGER!
-        calc_a_tim_sum = calc_a_tim_sum + calc_a_time       ! Summed up calendaric ageing for simulation period
+C       ... sum up with past time steps
+        calc_a_tim_sum = calc_a_tim_sum + calc_a_time
 
-        ageing_time = ageing_time_ini + ageing_time_ref     ! Calendaric ageing including initial ageing
-     &                *(calc_a_tim_sum/nPreviousTS)
-     &                *(nPreviousTS*(TIMSEC/86400.))**0.5
+C       ... and finally the overall calendaric ageing factor.
+        ageing_time = ageing_time_ini + ageing_time_ref
+     &                             *(calc_a_tim_sum/nPreviousTS)
+     &                             *(nPreviousTS*(TIMSEC/86400.))**0.5
 
 C Calculate cyclic ageing factor
 
@@ -4501,6 +4502,19 @@ c *********************************************************************
       INTEGER iuout            !- write unit number
       INTEGER iuin             !- read unit number
 
+C ESP-r COMMONs
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      INTEGER IHRP            !-hour of present time-step
+      INTEGER IHRF            !-hour of future time-step
+      INTEGER IDYP            !-year day number of present day
+      INTEGER IDYF            !-year day number of future day
+      INTEGER IDWP            !-day of the week of present day
+      INTEGER IDWF            !-day of the week of future day
+      INTEGER NSINC           !-number of building-side time increments
+                              !-since start of simulation
+      INTEGER ITS             !-current building time-step within
+                              !-current hour
+
       common/pctstp/ntstpp
       integer ntstpp            ! number of plant timesteps / building timestep
 
@@ -4515,10 +4529,10 @@ C Declaration of functions used
 
 C Local variables
 C Battery Parameters (technology and configuration)
-      INTEGER nParal, nSerie,    !Number of battery cells connected in parallel and in series
-     &        batMode_or,        !original batMode
-     &        iteration,         !iterations
-     &        max_iteration      !max iteration
+      INTEGER nParal, nSeries,   ! Number of battery cells connected in parallel and in series
+     &        batMode_or,        ! original batMode
+     &        iteration,         ! iterations
+     &        max_iteration      ! max iteration
 
 C      REAL availpower,      ! Available power from the battery (W)
       REAL self_discharge,   ! self discharge of battery in amps
@@ -4532,21 +4546,44 @@ C      REAL availpower,      ! Available power from the battery (W)
      &     relax,            ! relaxation factor
      &     batLoad_or,       ! original load offered
      &     neededHeat,       ! heat needed to return to safe operation
-     &     maxPheaters       ! maximum heat possible based on current
+     &     maxPheaters,      ! maximum heat possible based on current
+     &     cellCapRef,
+     &     maxVolt,
+     &     minVolt
+
+C     SOE variables
+      real batNomStorableEnergy,
+     &     batStorableEnergy,
+     &     batEnergyTurnover,
+     &     DeltaSOE
+
+      real, save :: batAvailableEnergy
 
       LOGICAL DEBUG
 
-      DEBUG=.false.
+      DEBUG=.true.
 
 C************** Initialisation
       nParal = int(POWCDAT(IPWC,1))
-      nSerie = int(POWCDAT(IPWC,2))
+      nSeries = int(POWCDAT(IPWC,2))
+      cellCapRef = POWCDAT(IPWC,3)
+      maxVolt = POWCDAT(IPWC,5)
+      minVolt = POWCDAT(IPWC,6)
+
+      if (NSINC .eq. 1) then
+C       Assume battery is fully charged at simulation begin but
+C       take SOH into account.
+        batAvailableEnergy = cellCapRef*nParal
+     &                       *(maxVolt+minVolt)*0.5*nSeries
+     &                       *(0.8+0.2*state_of_health)
+      endif
+
       pParasitic = (POWCDAT(IPWC,70))
       ko = (POWCDAT(IPWC,70))*float(nParal)
       E_as = (POWCDAT(IPWC,71))
-      heatersRes = POWCDAT(IPWC,13)*float(nSerie)/(float(nParal)) !Should that be plus or time series & parallel?
+      heatersRes = POWCDAT(IPWC,13)*float(nSeries)/(float(nParal)) !Should that be plus or time series & parallel?
       hA = POWCDAT(IPWC,12) !This will now be treated as a single full battery *(float(nParal)+float(nSerie))
-      mCp = POWCDAT(IPWC,11)*(float(nParal)+float(nSerie))
+      mCp = POWCDAT(IPWC,11)*(float(nParal)+float(nSeries))
 
 C Initial heater electric draw in W, this will change if the low temp flag is on
       pHeaters = 0.
@@ -4744,28 +4781,32 @@ C     Evaluate the voltage on the battery
 
 C     Calculate state of energy SOE for current time step.
 C     Nominally available Energy = (nominal Capacity)*(nominal Voltage)
-cx      batNomStorableEnergy =
-cx     &              cellCapRef*nParal*(maxVolt+minVolt)*0.5*nSeries
+cx << only do this once? >>
+      batNomStorableEnergy =
+     &              cellCapRef*nParal*(maxVolt+minVolt)*0.5*nSeries
 C     Available Energy at current time step based on SOH of preceding
 C     time step.
-cx      batStorableEnergy =
-cx     &            batNomStorableEnergy*(0.8+0.2*state_of_health)
+      batStorableEnergy =
+     &            batNomStorableEnergy*(0.8+0.2*state_of_health)
 C     Energy turnover this timestep.
-cx      batEnergyTurnover = batCurFin*batVolt*dtTStep
-cx      if (batMode.eq.0) then
+      batEnergyTurnover = batCurFin*batVolt*dtTStep
+
+      if (batMode.eq.0) then
 C       Charge.
-cx        batAvailableEnergy += batEnergyTurnover
-cx        batAvailableEnergy = min(batNomStorableEnergy,batAvailableEnergy)
-cx      elseif (batMode.eq.1) then
+        batAvailableEnergy = batAvailableEnergy + batEnergyTurnover
+        batAvailableEnergy =
+     &                  min(batNomStorableEnergy,batAvailableEnergy)
+      elseif (batMode.eq.1) then
 C       Discharge.
-cx        batAvailableEnergy -= batEnergyTurnover
-cx        batAvailableEnergy = max(0.0,batAvailableEnergy)
-cx      else ! idle
+        batAvailableEnergy = batAvailableEnergy - batEnergyTurnover
+        batAvailableEnergy = max(0.0,batAvailableEnergy)
+      else ! idle
         ! do nothing
-cx      endif
-cx      DeltaSOE=batSOE
-cx      batSOE = batAvailableEnergy/batStorableEnergy
-cx      DeltaSOE=DeltaSOE-batSOE
+      endif
+
+      DeltaSOE=batSOE
+      batSOE = batAvailableEnergy/batStorableEnergy
+      DeltaSOE=DeltaSOE-batSOE
 
 C     Evaluate the internal heat generated by the battery
       pIntHeatFin = InternalHeat(IPWC,batTIni,batDODIni,batMode,
@@ -4795,13 +4836,15 @@ C     Calculate the SOH for this time step
 
 C ** Debug output
       if (DEBUG) then
-        write(*,'(2(a,I3),6(a,E11.5))')
+        write(*,'(2(a,I3),8(a,E11.5))')
      &    '; Timestep=',nPreviousTS,
      &    '; batMode=',batMode,
+     &    '; SOH=',state_of_health,
      &    '; StblEn=',batStorableEnergy,
      &    '; EnTovr=',batEnergyTurnover,
      &    '; AvEn=',batAvailableEnergy,
      &    '; SOE=',batSOE,
+     &    '; D_SOE=',DeltaSOE,
      &    '; DOD=',batDODFin,
      &    '; D_DOD=',batDODFin-batDODIni
       endif
