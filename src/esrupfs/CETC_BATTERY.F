@@ -700,13 +700,13 @@ C             value.
 C             Hereby, a_cal_0 is calculated based on a "compound interest"
 C             type of approach using a_cal_0 = 1 for batAgeIni = batNomLife.
               pAge    = 2.**(1./batNomLife) - 1.
-              a_cal_0 = (1 + pAge)**batAgeIni - 1.
+              a_cal_0 = (1. + pAge)**batAgeIni - 1.
 
               a_cyc_0 = 1. - a_cal_0 - SOHIni
 
 C             Check resulting parameter a_cyc_0 (rudimentary check!)
               if (a_cyc_0 .lt. 0.) then
-                WRITE(IUOUT,*)'FATAL: Battery Model, Troublesome ',
+                WRITE(IUOUT,*)'FATAL: Battery Model, troublesome ',
      &               'age data for Lion battery.'
                 WRITE(IUOUT,*)
      &               '  => Check battery parameters #82, #83 and #88!'
@@ -718,7 +718,7 @@ C             Check resulting parameter a_cyc_0 (rudimentary check!)
 C             Parameter a_cyc_0 value is provided, calculate a_cal_0
 C             with this value and SOHIni.
               a_cal_0 = 1. - a_cyc_0 - SOHIni
-C             Enforce value > 0.
+C             Enforce value >= 0.
               a_cal_0 = max(0.0,a_cal_0)
 
             endif ! a_cyc_0 = 0?
@@ -731,12 +731,20 @@ C           Initial value for cyclic ageing is not provided
 
 C             Calculate a_cyc_0 via given a_cal_0 and cellCapIni
               a_cyc_0 = 1. - a_cal_0 - SOHIni
-C             Enforce value > 0.
+C             Enforce value >= 0.
               a_cyc_0 = max(0.0,a_cyc_0)
 
             else ! a_cyc_0 value is provided
 C             Both a_cyc_0 and a_cal_0 are provided, nothing to be
 C             done!
+cx << validation check?? Both SOHIni as well as a_cyc_0 and a_cal_0
+cx    are set via parameters, ... check if they are compatible??
+cx    OR reset SOHIni via these and ignore given initial capacity? >>
+
+cx << ... second option seems preferable, additionally issue a warning,
+cx    if given initial remaining capacity is far off?
+cx              SOHIni = 1. - a_cyc_0 - a_cal_0
+cx              cellCapIni_cal = (0.2*SOHIni+0.8)*cellCapRef
 
             endif ! a_cyc_0 = 0?
           endif ! a_cal_0 = 0?
@@ -4320,7 +4328,7 @@ C       reference calendaric ageing factor, 1/sqrt(d80),
 C       where d80 is the shelf life in days after which 80% capacity
 C       remains
 cx << definition to be verified >>
-        ageing_time_ref = SQRT(1./(365*POWCDAT(IPWC,83)))
+        ageing_time_ref = SQRT(1./(365.*POWCDAT(IPWC,83)))
 
         ageing_temp_factor = POWCDAT(IPWC,89)
         ageing_soc_factor = POWCDAT(IPWC,90)
