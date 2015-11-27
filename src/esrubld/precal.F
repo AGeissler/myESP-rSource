@@ -658,9 +658,9 @@ C Debug
             else
               PERSN=FLOORA(ICOMP)/CMGS(IDAY,I)
             endif
-            CGSENC(ICOMP,IDAY,ITYP,IPER)=PERSN*95.0*CONC(IDAY,I)
-            CGSENR(ICOMP,IDAY,ITYP,IPER)=PERSN*95.0*RADC(IDAY,I)
-            CGLAT(ICOMP,IDAY,ITYP,IPER)=PERSN*45.0
+            CGSENC(ICOMP,IDAY,ITYP,IPER)=PERSN*70.0*CONC(IDAY,I)
+            CGSENR(ICOMP,IDAY,ITYP,IPER)=PERSN*70.0*RADC(IDAY,I)
+            CGLAT(ICOMP,IDAY,ITYP,IPER)=PERSN*50.0
           else
             write(6,*) 'unknown m2/object',ICGUnit(iday,I),ITYP
           endif
