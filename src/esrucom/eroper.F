@@ -2603,11 +2603,11 @@ C If -1 and m2/person is zero, the intention is no occupancy.
                 else
                   PERSN(IP,ITYP)=FLOOR/CMGS(idty,I)
                 endif
-                CMGSA(IP,ITYP)=CMGSA(IP,ITYP) + PERSN(IP,ITYP)*95.0
-                CMGLA(IP,ITYP)=CMGLA(IP,ITYP) + PERSN(IP,ITYP)*45.0
-                RADCA(IP,ITYP)=RADCA(IP,ITYP) + PERSN(IP,ITYP)*95.0*
+                CMGSA(IP,ITYP)=CMGSA(IP,ITYP) + PERSN(IP,ITYP)*70.0
+                CMGLA(IP,ITYP)=CMGLA(IP,ITYP) + PERSN(IP,ITYP)*50.0
+                RADCA(IP,ITYP)=RADCA(IP,ITYP) + PERSN(IP,ITYP)*70.0*
      &            RADC(IDTY,I)
-                CONCA(IP,ITYP)=CONCA(IP,ITYP) + PERSN(IP,ITYP)*95.0*
+                CONCA(IP,ITYP)=CONCA(IP,ITYP) + PERSN(IP,ITYP)*50.0*
      &            CONC(IDTY,I)
                 if(CMGSA(IP,ITYP).gt.0.0)then
                   RADFAC(IP,ITYP)= RADCA(IP,ITYP)/CMGSA(IP,ITYP)
