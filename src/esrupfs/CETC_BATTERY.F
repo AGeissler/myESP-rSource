@@ -151,7 +151,7 @@ C      INTEGER StopTime             ! time step to start debugging
      &     maxPBat,maxPBatCharge,maxPBatDischarge, maxCBat,
      &     maxCBatCharge,maxCBatDischarge,batCurFin,
      &     pIntHeatFin,pParasitic,
-     &     cycles_used
+     &     cycles_used,batSOEvar,batSOHvar
 
       REAL ChargeCur               ! Charge current during mandatory charge cycles (Amp)
       REAL ChargePower             ! Charge power during mandatory charge cycles (W)
@@ -185,13 +185,6 @@ C      IF ( NSINC .EQ. StopTime ) THEN
 C         DumTime = 1
 C      ENDIF
 C--------------------------------------------------------------------------------------------
-
-      if (INDCFG.EQ.3) then
-C       We have a plant and thus follow plant time steps (!)
-        nTimeStep = nsincp
-      else
-        nTimeStep = NSINC
-      endif
 
       if (INDCFG.EQ.3) then
 C       We have a plant and thus follow plant time steps (!)
@@ -345,6 +338,8 @@ C     batTIni and batDODIni are set in InitTimeStep() !
         loTemp=loTempLion(IPWC)
         hiTemp=hiTempLion(IPWC)
         cycles_used = cycles_used_Lion(IPWC)
+        batSOEvar=batSOE(IPWC)
+        batSOHvar=state_of_health(IPWC)
       ENDIF
 
 C     Now do main calculation for this time step.
@@ -378,7 +373,7 @@ C         Evaluate the battery life fraction used in this timestep
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
      &               batVolt,batTFin,batDODFin,batCurFin,pIntHeatFin,
      &               hiVolt,loVolt,hiTemp,loTemp,
-     &               cycles_used)
+     &               cycles_used,batSOEvar,batSOHvar)
 
 C         Evaluate the portion of the load that can be met
           pBatSystem = pBat - pHeaters - pParasitic
@@ -416,7 +411,7 @@ C         Evaluate the battery life fraction used in this timestep
      &               maxCBat,maxPBat,batLoad,pBat,pHeaters,pParasitic,
      &               batVolt,batTFin,batDODFin,batCurFin,pIntHeatFin,
      &               hiVolt,loVolt,hiTemp,loTemp,
-     &               cycles_used)
+     &               cycles_used,batSOEvar,batSOHvar)
 
 C         Evaluate the portion of the req'd charge load that can be met
           pBatSystem = pBat + pHeaters + pParasitic
@@ -437,6 +432,8 @@ C       Pass LiIon specific output values to commons
         loTempLion(IPWC)=loTemp
         hiTempLion(IPWC)=hiTemp
         cycles_used_Lion(IPWC)=cycles_used
+        batSOE(IPWC)=batSOEvar
+        state_of_health=batSOHvar
       ENDIF
 
 C     2. For all battery types
@@ -595,11 +592,11 @@ C    Calculate and report max battery heater power in W
      &      powcomnam(IPWC)(1:iNameLength))
 
       Call AddToReport(rvEPowBattLiOnSOH%Identifier,
-     &      state_of_health,
+     &      state_of_health(IPWC),
      &      powcomnam(IPWC)(1:iNameLength))
 
       Call AddToReport(rvEPowBattLiOnBatCap%Identifier,
-     &      batCapRep,
+     &      batCapRep(IPWC),
      &      powcomnam(IPWC)(1:iNameLength))
 
       RETURN
@@ -4295,7 +4292,7 @@ C
 C OUTPUTS:
 C state_of_health: The SOH of a cell
 c *************************************************************************
-      REAL FUNCTION SOH_Lion(IPWC,batMode,batCur)
+      REAL FUNCTION SOH_Lion(IPWC,batMode,batTFin,batDODFin,batCur)
       use h3kmodule
       IMPLICIT NONE
 #include "building.h"
@@ -4333,7 +4330,7 @@ C Basic RES (elec) controller inputs
 
 C PARAMETERS FROM SIGNATURE
 
-      REAL batCur
+      REAL batTFin,batDODFin,batCur
       INTEGER IPWC,batMode
 
 C Local Parameters
@@ -4404,7 +4401,7 @@ cx << definition to be verified >>
         ageing_temp_factor = POWCDAT(IPWC,89)
         ageing_soc_factor = POWCDAT(IPWC,90)
         batSOCRef  = POWCDAT(IPWC,91)
-        batSOC = (1. - DODIni)
+        batSOC = (1. - batDODFin)
         cyc_mode = int(POWCDAT(IPWC,94))
 cx      ts_dummy=ts_dummy+1             ! this could lead to problems but a variable that
                                       ! contains the current timestep is needed
@@ -4413,7 +4410,7 @@ C *********** Calculations
 
 C       Calculate calendaric ageing factor
 C       ... for this time step
-        calc_a_time=(exp(2*(((batTemp-batTOper)/
+        calc_a_time=(exp(2*(((batTFin-batTOper)/
      &     (ageing_temp_factor/log(2.)))+((batSOC-batSOCRef)/
      &     (ageing_soc_factor/log(2.))))))**0.5
 
@@ -4434,9 +4431,9 @@ C         Cyclic ageing depends on total number of cycles and is
 C         described by a 3rd order polynomial which ideally is
 C         based on measurements of the battery used.
           ageing_cycle(IPWC) = gamma1                             ! Total cyclic ageing
-     &             + gamma2*cycles_used_Lion
-     & 	           + gamma3*cycles_used_Lion**2
-     & 	           + gamma4*cycles_used_Lion**3
+     &             + gamma2*cycles_used_Lion(IPWC)
+     & 	           + gamma3*cycles_used_Lion(IPWC)**2
+     & 	           + gamma4*cycles_used_Lion(IPWC)**3
 
         ELSE ! (cyc_mode .EQ. 2) THEN
 C         Guenther method
@@ -4454,7 +4451,7 @@ cx << use "SOE"? How? Does it make a difference? >>
 cx U*I = VA = W
 cx State of Energy ... U(t)*I(t)
 cx
-              Delta_DOD = batDOD(IPWC)-DOD_old
+              Delta_DOD = batDODFin-DOD_old
 
 C             Cyclic ageing per timestep, Guenther model
               calc_a_cycl = gamma4*abs(Delta_DOD)**3
@@ -4468,7 +4465,7 @@ C             on full cycles and we end up here after "half cycles"!
 
 C             Update "old" mode and DOD to current values
               batMode_old = batMode
-              DOD_old = batDOD(IPWC)
+              DOD_old = batDODFin
 
             ENDIF ! batMode .ne. batMode_old
 
@@ -4484,7 +4481,7 @@ C             Update "old" mode and DOD to current values
      &      '; batMode=',batMode,
      &      '; batDemandP=',batDemandP(IPWC),
      &      '; batCur=',batCur,
-     &      '; DOD=',batDOD(IPWC),
+     &      '; DOD=',batDODFin,
      &      '; D_DOD=',Delta_DOD,
      &      '; calc_a_cyc=',calc_a_cycl,
      &      '; age_cyc=',ageing_cycle(IPWC),
@@ -4572,11 +4569,12 @@ c *********************************************************************
      &                    maxC,maxP,batLoad,pBat,pHeaters,pParasitic,
      &                    batVolt,batTFin,batDODFin,batCur,pIntHeat,
      &                    hiVoltLion,loVoltLion,hiTempLion,loTempLion,
-     &                    cycles_used)
+     &                    cycles_used,batSOEvar,batSOHvar)
       IMPLICIT NONE
 #include "building.h"
 #include "plant.h"
 #include "power.h"
+cx ... activate BATTERY.h again? Would very much shorten the signature ...
 CC #include "BATTERY.h"
 
       COMMON/OUTIN/IUOUT,IUIN
@@ -4596,15 +4594,20 @@ C ESP-r COMMONs
       INTEGER ITS             !-current building time-step within
                               !-current hour
 
-      common/pctstp/ntstpp
-      integer ntstpp            ! number of plant timesteps / building timestep
+      common/pstctr/nsincp,nsncpr
+      integer nsincp,nsncpr
+
+cx      common/pctstp/ntstpp
+cx      integer ntstpp            ! number of plant timesteps / building timestep
 
 C PARAMETERS FROM SIGNATURE (see routine comments for description)
       REAL batTIni,zoneT,DODIni,dtTStep,maxC,maxP,batLoad,pBat,
      &     pHeaters,
-     &     pParasitic, batVolt,batTFin,batDODFin,batCur,pIntHeat,
-     &     hiVoltLion,loVoltLion,hiTempLion,loTempLion,cycles_used
-      INTEGER IPWC, batMode
+     &     pParasitic,batVolt,batTFin,batDODFin,batCur,pIntHeat,
+     &     cycles_used,batSOEvar,batSOHvar
+
+      INTEGER IPWC, batMode,
+     &        hiVoltLion,loVoltLion,hiTempLion,loTempLion
 
 C Declaration of functions used
       REAL FinalDOD_Lion, CurForPow, AvgVolt, InternalHeat, RInt_Lion,
@@ -4630,7 +4633,9 @@ C      REAL availpower,      ! Available power from the battery (W)
      &     batLoad_or,      ! original load offered
      &     neededHeat,      ! heat needed to return to safe operation
      &     maxPheaters,     ! maximum heat possible based on current
-     &     cellCapRef
+     &     cellCapRef,
+     &     maxVolt,
+     &     minVolt
 
 C     SOE variables
       real batNomStorableEnergy,
@@ -4656,7 +4661,7 @@ C       Assume battery is fully charged at simulation begin but
 C       take SOH into account.
         batAvailableEnergy = cellCapRef*nParal
      &                       *(maxVolt+minVolt)*0.5*nSeries
-     &                       *(0.8+0.2*state_of_health)
+     &                       *(0.8+0.2*batSOHvar)
       endif
 
       pParasitic = (POWCDAT(IPWC,70))
@@ -4712,9 +4717,8 @@ C         The needed energy in watts to return to safe points
         IF (batMode_or .NE. 1) THEN
 C         Originally in charge or idle mode. Re-evaluate the max current
 C         and power that you could discharge now that you changed modes
-          maxCBat = MaxCurrent(IPWC,batTIni,DODIni,batMode,dtTStep)
-          maxPBat = PowForCur(IPWC,batTIni,DODIni,batMode,dtTStep,
-     &                             maxCBat)
+          maxC = MaxCurrent(IPWC,batTIni,DODIni,batMode,dtTStep)
+          maxP = PowForCur(IPWC,batTIni,DODIni,batMode,dtTStep,maxC)
         endif
 
         IF (batLoad_or .GE. batLoad) THEN ! What can be offered exceeds what needs to be dumped
@@ -4755,9 +4759,8 @@ C safe limits
                                     ! to bring into safe limits
 
 C         Re-evaluate the max current and power that you could discharge now that you changed modes
-          maxCBat = MaxCurrent(IPWC,batTIni,DODIni,batMode,dtTStep)
-          maxPBat = PowForCur(IPWC,batTIni,DODIni,batMode,dtTStep
-     &                        ,maxCBat)
+          maxC = MaxCurrent(IPWC,batTIni,DODIni,batMode,dtTStep)
+          maxP = PowForCur(IPWC,batTIni,DODIni,batMode,dtTStep,maxC)
 
 C << logic most likely also flawed, as with hiVolt above ... >>
         ELSE ! Battery in charge or idle determine how much excess power the batt needs to charge
@@ -4785,27 +4788,25 @@ C figure out heat needed from battery to bring back into safe limits
         dummy = 100.
         batCur = 0.
 
-        maxCBat = MaxCurrent(IPWC,batTIni,DODIni,batMode,dtTStep)
-        maxPBat = PowForCur(IPWC,batTIni,DODIni,batMode,dtTStep,
-     &                             maxCBat)
-
+        maxC = MaxCurrent(IPWC,batTIni,DODIni,batMode,dtTStep)
+        maxP = PowForCur(IPWC,batTIni,DODIni,batMode,dtTStep,maxC)
 
         DO WHILE (abs(batCur-dummy) .GT. relax .AND. iteration
      &        .LT. max_iteration )
 
           dummy = batCur
           maxPheaters = AvgVolt(IPWC,batTIni,DODIni,batMode,
-     &    dtTStep,maxCBat)**2./
-     &    heatersRes !maximum heat that can be drawn from battery
+     &                        dtTStep,maxC)**2 /
+     &                        heatersRes !maximum heat that can be drawn from battery
 
-          neededHeat = ((POWCDAT(IPWC,17)-batTIni*exp(-hA*
-     &    dtTStep*3600./mCp))
-     &    /(1.-exp(-hA*dtTStep*3600./mCp))-zoneT)*hA -
-     &    RInt_Lion(IPWC,DODIni,batMode,batCur)*dummy**2.
+          neededHeat = ((POWCDAT(IPWC,17)-batTIni*exp(-hA
+     &                   * dtTStep*3600./mCp))
+     &                   /(1.-exp(-hA*dtTStep*3600./mCp))-zoneT)*hA
+     &                 - RInt_Lion(IPWC,DODIni,batMode,batCur)*dummy**2
 
           neededHeat = max(0.,neededHeat) ! prevent a negative error
 
-          pHeaters = min(neededHeat,maxPheaters,maxPBat) !needed heat can't exceed maximum
+          pHeaters = min(neededHeat,maxPheaters,maxP) !needed heat can't exceed maximum
 
           pHeaters = max(0.,pHeaters) ! prevent a negative error
 
@@ -4842,11 +4843,11 @@ C figure out heat needed from battery to bring back into safe limits
       ENDIF
 
       IF (batMode .EQ. 0) THEN ! Charge is the load minus what's needed for heaters and parasitic loads
-        pBat = MIN((pLoad-pHeaters-pParasitic),maxP)
+        pBat = MIN((batLoad-pHeaters-pParasitic),maxP)
 
       ELSE ! Discharge or idle, the battery has to take up the extra loads
         if (batMode .eq. 2) batLoad=0 ! no external load on bat ... (?)
-        pBat = MIN((batLoad+pHeaters+pParasitic),maxPBat)
+        pBat = MIN((batLoad+pHeaters+pParasitic),maxP)
 
       ENDIF
 
@@ -4863,10 +4864,11 @@ C     Nominally available Energy = (nominal Capacity)*(nominal Voltage)
 cx << only do this once? >>
       batNomStorableEnergy =
      &              cellCapRef*nParal*(maxVolt+minVolt)*0.5*nSeries
+
 C     Available Energy at current time step based on SOH of preceding
 C     time step.
-      batStorableEnergy =
-     &            batNomStorableEnergy*(0.8+0.2*state_of_health)
+      batStorableEnergy = batNomStorableEnergy*(0.8+0.2*batSOHvar)
+
 C     Energy turnover this timestep.
       batEnergyTurnover = batCur*batVolt*dtTStep
 
@@ -4883,9 +4885,9 @@ C       Discharge.
         ! do nothing
       endif
 
-      DeltaSOE=batSOE(IPWC)
-      batSOE(IPWC) = batAvailableEnergy/batStorableEnergy
-      DeltaSOE=DeltaSOE-batSOE(IPWC)
+      DeltaSOE=batSOEvar
+      batSOEvar = batAvailableEnergy/batStorableEnergy
+      DeltaSOE=DeltaSOE-batSOEvar
 
 C     Evaluate the internal heat generated by the battery
       pIntHeat = InternalHeat(IPWC,batTIni,DODIni,batMode,dtTStep,
@@ -4903,31 +4905,26 @@ C     Get battery's final temperature
 C**To keep the battery at 25 Celcius for debugging
 C      batTFin = 25.
 
-C  Find out how much of the battery cycle life has depleted
+C     Track battery cycles used
       cycles_used = cycles_used + abs(batDODFin-DODIni)
 cx     &                   /float(ntstpp) !account for no. of plant steps/building step
-C     Track battery cycles used
-      cycles_used_Lion = cycles_used_Lion +
-     &                   abs(batDODFin-DODIni)
-     &                   /float(ntstpp) !account for no. of plant steps/building step
 
 C     Calculate the SOH for this time step
-      state_of_health = SOH_Lion(IPWC,batMode,batTIni,
-     &                                            batDODFin,batCur)
+      batSOHvar = SOH_Lion(IPWC,batMode,batTFin,batDODFin,batCur)
 
 C ** Debug output
       if (DEBUG) then
-        write(*,'(2(a,I3),8(a,E11.5))')
-     &    '; Timestep=',nPreviousTS,
+        write(*,'(2(a,I5),8(a,E11.5))')
+     &    '; Timestep=',nsincp,   !nPreviousTS,
      &    '; batMode=',batMode,
-     &    '; SOH=',state_of_health,
+     &    '; SOH=',batSOHvar,
      &    '; StblEn=',batStorableEnergy,
      &    '; EnTovr=',batEnergyTurnover,
      &    '; AvEn=',batAvailableEnergy,
-     &    '; SOE=',batSOE,
+     &    '; SOE=',batSOEvar,
      &    '; D_SOE=',DeltaSOE,
      &    '; DOD=',batDODFin,
-     &    '; D_DOD=',batDODFin-batDODIni
+     &    '; D_DOD=',batDODFin-DODIni
       endif
 C ****
 

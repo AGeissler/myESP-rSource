@@ -339,7 +339,6 @@ C---- local variables ---------------------------------------------------
 
       real P_residual         ! difference between PV and P_total_load
       real batDODMax          ! Maximum depth of discharge
-      real batDOD             ! local copy of batDODFin
       real fBatDemandP_old    !
       real fGridRate
       real fGridRefund
@@ -385,7 +384,6 @@ cx        batDODMax = ??
         batDODMax = POWCDAT(IPWC_battery,14)
       ENDIF
 
-      batDOD = batDODFin
 C     Depth of discharge '0' with tolerance 0.005 (0.5%) is viewed as "full"
       call eclose(batDOD(IPWC_battery),0.,0.005, bBatteryFull)
 
