@@ -192,6 +192,9 @@ MODULE h3kmodule
    !Used by solar_collectors.F
    Type(ReportVariable) :: rvPltSDHWSumRecH,rvPltSDHWsumAvailSolEn
 
+   !Used by moistr.F
+   Type(ReportVariable) :: rvBldMstRHsrf
+
    !Used by pcomp2.F
    !Claude - potential error found rvPltDefrostStat
    Type(ReportVariable) :: rvPltQAddedH,rvPltWCHPumpEInput,rvPltHOut,rvPltCOP, &
@@ -1917,6 +1920,13 @@ CONTAINS
       rvPltSDHWsumAvailSolEn%VariableType = '(W)'
       rvPltSDHWsumAvailSolEn%Description = 'SDHW system: insolation on collector'
       Call AddVariable(rvPltSDHWsumAvailSolEn)
+
+      !Used by moistr.F
+      rvBldMstRHsrf%VariableName = 'building/*/*/surf_relhum'
+      rvBldMstRHsrf%MetaType = 'units'
+      rvBldMstRHsrf%VariableType = '(%)'
+      rvBldMstRHsrf%Description = 'Relative humidity at surface (for mould analysis)'
+      Call AddVariable(rvBldMstRHsrf)
 
       !Used by pcomp2.F
       rvPltQAddedH%VariableName = 'plant/*/misc_data/Q_added_heat'

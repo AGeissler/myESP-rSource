@@ -1591,9 +1591,17 @@ C IME=MNDC(ICOMP,I).
 
 C *********************************************************************
 C WRITRH writes the relative humidity results.
+C
+C January 2016, Achim Geissler:
+C Extended to also write to h3k output
+C  - bug: called first during actual simulation period, it seems. First
+C         value written is zero, therefor!
 C *********************************************************************
       SUBROUTINE WRITRH(ICOMP)
+      use h3kmodule
 #include "building.h"
+C geometry.h for zname.
+#include "geometry.h"
 
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
@@ -1608,7 +1616,23 @@ C *********************************************************************
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
 
+C.....DECLARATIONS for H3Kreporting object
+      CHARACTER*12 cZone_Chars   ! zname(MCOM)
+      Character*12 cSurf_Chars   ! sname(MCOM,MS)
+
       dimension RHsrf(MS),TCsrf(MS)
+
+C.....Switch for zone name output here
+      if (ReportBoolConfig("use_zonenames")) then
+        write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
+      else
+C.......Pad zone index to 'XX'
+        if ( icomp .gt. 9 ) then
+           write (cZone_Chars,'(A,I2)') 'zone_',icomp
+        else
+           write (cZone_Chars,'(A,I1)') 'zone_0',icomp
+        endif
+      endif ! use_zonenames
 
       NDAY=INT(NSINC/(24*NTSTEP))
       IF(NDAY.GE.ITCNST)THEN
@@ -1628,6 +1652,29 @@ C *********************************************************************
           Tdb=TCsrf(I)
           Ps=Psat01(Tdb)
           RHsrf(I)=Pn(I,NM)/Ps*100.0
+
+C.........Switch for surface name output here
+          isurf=I
+          if (ReportBoolConfig ("use_surfacenames")) then
+            write (cSurf_Chars,'(A)')
+     &          sname(ICOMP,isurf)(1:lnsname(ICOMP,isurf))
+          else
+C...........Pad surface index to 'XX'
+            if ( isurf .gt. 9 ) then
+              write (cSurf_Chars,'(A,I2)') 'surface_',isurf
+            else
+              write (cSurf_Chars,'(A,I1)') 'surface_0',isurf
+            endif
+          endif ! use_surfacenames
+
+C XML output for each surface.
+          Call AddToReport(
+     &             rvBldMstRHsrf%Identifier,
+     &             RHsrf(I),
+     &             cZone_Chars,
+     &             cSurf_Chars)
+
+
    10   CONTINUE
 
 C Note: adjust format if MS>48.
