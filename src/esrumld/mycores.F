@@ -75,7 +75,7 @@ C << this should become part of model cfg file >>
 
       dimension item(mould+5)
       real maxrh,minrh,maxt,mint
-      character outs*124, head*32, item*42, mdbnam*72, outstr*124
+      character outs*124, head*32, item*42, mdbnam*144, outstr*124
       character mldnam*48,grow*1,str*1,KEY*1
       character*72 DFCFD,DECMPDBFL,DICONDBFL
       integer nitem,ino  ! max items and current menu item
