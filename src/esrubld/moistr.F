@@ -46,6 +46,7 @@ C        several moisture control volumes in whole or partion.
 C HTRANF calculate the heat of transformation for a complete moisture
 C        control volume.
 C LYRPRP gets the thermophysical properties for a layer.
+C WRITRH writes the relative humidity results.
 
 C *********************************************************************
 
