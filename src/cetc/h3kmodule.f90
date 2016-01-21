@@ -193,7 +193,7 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvPltSDHWSumRecH,rvPltSDHWsumAvailSolEn
 
    !Used by moistr.F
-   Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode
+   Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode,rvBldMstStorage
 
    !Used by pcomp2.F
    !Claude - potential error found rvPltDefrostStat
@@ -1933,6 +1933,12 @@ CONTAINS
       rvBldMstRHnode%VariableType = '(%)'
       rvBldMstRHnode%Description = 'Relative humidity at mnode (for mould analysis)'
       Call AddVariable(rvBldMstRHnode)
+
+      rvBldMstStorage%VariableName = 'building/*/*/*/mst_storage'
+      rvBldMstStorage%MetaType = 'units'
+      rvBldMstStorage%VariableType = '(??)'
+      rvBldMstStorage%Description = 'Moisture storage term at mnode (for mould analysis)'
+      Call AddVariable(rvBldMstStorage)
 
       !Used by pcomp2.F
       rvPltQAddedH%VariableName = 'plant/*/misc_data/Q_added_heat'

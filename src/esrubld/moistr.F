@@ -1612,6 +1612,7 @@ C geometry.h for zname.
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)
       COMMON/MOIST09/IMSTR
       COMMON/MOIST23/TMPp(MS,MNM),TMPf(MS,MNM)
+cx      COMMON/MOIST26/XIpfair,RXIVpf(MS,MNM)
       COMMON/GR3D150/INDX3,DTIME
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
@@ -1693,6 +1694,15 @@ C           Relative humidity at "mould node"
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
+
+C           Moisture storage
+            Call AddToReport(
+     &             rvBldMstStorage%Identifier,
+     &             Fn(iSurf,iNode),
+     &             cZone_Chars,
+     &             cSurf_Chars,
+     &             cNode_Chars)
+
           enddo  ! <- end iSurf 1,MN of ICOMP
 
    10   CONTINUE
