@@ -1619,6 +1619,7 @@ C geometry.h for zname.
 C.....DECLARATIONS for H3Kreporting object
       CHARACTER*12 cZone_Chars   ! zname(MCOM)
       Character*12 cSurf_Chars   ! sname(MCOM,MS)
+      CHARACTER*8  cNode_Chars   !
 
       dimension RHsrf(MS),TCsrf(MS)
 
@@ -1654,7 +1655,7 @@ C.......Pad zone index to 'XX'
           RHsrf(I)=Pn(I,NM)/Ps*100.0
 
 C.........Switch for surface name output here
-          isurf=I
+          iSurf=I
           if (ReportBoolConfig ("use_surfacenames")) then
             write (cSurf_Chars,'(A)')
      &          sname(ICOMP,isurf)(1:lnsname(ICOMP,isurf))
@@ -1667,13 +1668,32 @@ C...........Pad surface index to 'XX'
             endif
           endif ! use_surfacenames
 
-C XML output for each surface.
-          Call AddToReport(
-     &             rvBldMstRHsrf%Identifier,
-     &             RHsrf(I),
-     &             cZone_Chars,
-     &             cSurf_Chars)
+C         XML output for each node of surface iSurf.
+          do iNode = 1,mndc(ICOMP,iSurf)
+            if ( iNode .gt. 9 ) then
+              write(cNode_Chars, '(A,I2)') 'mnode_', iNode
+            else
+              write(cNode_Chars, '(A,I1)') 'mnode_0', iNode
+            endif
 
+C           Vapour pressure at "mould node"
+C           (Nodes *not* necessarily identical to construction nodes!)
+            Call AddToReport(
+     &             rvBldMstVapPressNode%Identifier,
+     &             Pn(iSurf,iNode),
+     &             cZone_Chars,
+     &             cSurf_Chars,
+     &             cNode_Chars)
+
+C           Relative humidity at "mould node"
+            Ps=Psat01(TMPf(iSurf,iNode))
+            Call AddToReport(
+     &             rvBldMstRHnode%Identifier,
+     &             Pn(iSurf,iNode)/Ps*100.0,
+     &             cZone_Chars,
+     &             cSurf_Chars,
+     &             cNode_Chars)
+          enddo  ! <- end iSurf 1,MN of ICOMP
 
    10   CONTINUE
 

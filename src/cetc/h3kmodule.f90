@@ -193,7 +193,7 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvPltSDHWSumRecH,rvPltSDHWsumAvailSolEn
 
    !Used by moistr.F
-   Type(ReportVariable) :: rvBldMstRHsrf
+   Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode
 
    !Used by pcomp2.F
    !Claude - potential error found rvPltDefrostStat
@@ -1922,11 +1922,17 @@ CONTAINS
       Call AddVariable(rvPltSDHWsumAvailSolEn)
 
       !Used by moistr.F
-      rvBldMstRHsrf%VariableName = 'building/*/*/surf_relhum'
-      rvBldMstRHsrf%MetaType = 'units'
-      rvBldMstRHsrf%VariableType = '(%)'
-      rvBldMstRHsrf%Description = 'Relative humidity at surface (for mould analysis)'
-      Call AddVariable(rvBldMstRHsrf)
+      rvBldMstVapPressNode%VariableName = 'building/*/*/*/vappress'
+      rvBldMstVapPressNode%MetaType = 'units'
+      rvBldMstVapPressNode%VariableType = '(Pa)'
+      rvBldMstVapPressNode%Description = 'Vapour pressure at mnode (for mould analysis)'
+      Call AddVariable(rvBldMstVapPressNode)
+
+      rvBldMstRHnode%VariableName = 'building/*/*/*/relhum'
+      rvBldMstRHnode%MetaType = 'units'
+      rvBldMstRHnode%VariableType = '(%)'
+      rvBldMstRHnode%Description = 'Relative humidity at mnode (for mould analysis)'
+      Call AddVariable(rvBldMstRHnode)
 
       !Used by pcomp2.F
       rvPltQAddedH%VariableName = 'plant/*/misc_data/Q_added_heat'
