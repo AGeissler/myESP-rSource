@@ -46,6 +46,7 @@ C        several moisture control volumes in whole or partion.
 C HTRANF calculate the heat of transformation for a complete moisture
 C        control volume.
 C LYRPRP gets the thermophysical properties for a layer.
+C WRITRH writes the relative humidity results.
 
 C *********************************************************************
 
@@ -1297,10 +1298,11 @@ c        Pnew=(SUM-Fn(I,IM))/DOMAIN
         IF(RH.GT.RHmax)THEN
           RH=RHmax
           Pn(I,IM)=RH*Ps
-          Fnew=SNGL(SUM)-Pn(I,IM)*DOMAIN
-          Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
-          IF(Fn(I,IM).LT.0.0)Fn(I,IM)=0.0
         ENDIF
+        Fnew=SNGL(SUM)-Pn(I,IM)*DOMAIN
+        Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
+        IF(Fn(I,IM).LT.0.0)Fn(I,IM)=0.0
+cx        ENDIF
    20 CONTINUE
 
 C Air node.
@@ -1332,10 +1334,11 @@ c      Pnew=(SUM-Fnair)/DOMAIN
       IF(RH.GT.RHmax)THEN
         RH=RHmax
         Pnair=RH*Ps
-        Fnew=SNGL(SUM)-Pnair*DOMAIN
-        Fnair=RLXlnF*Fnew+RRLXlnF*Fnsave
-        IF(Fnair.LT.0.0)Fnair=0.0
       ENDIF
+      Fnew=SNGL(SUM)-Pnair*DOMAIN
+      Fnair=RLXlnF*Fnew+RRLXlnF*Fnsave
+      IF(Fnair.LT.0.0)Fnair=0.0
+cx      ENDIF
       RETURN
       END
 
