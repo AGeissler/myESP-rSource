@@ -119,12 +119,12 @@ C Set the future pressures equal to the new pressures.
           ENDIF
           RETURN
 
-C Re-stablish and solve the energy matrix.
+C Re-establish and solve the energy matrix.
         ELSE
 
 C Set the present values of thermal properties equal to the saved values 
 C from the first iteration (since it is based on one time step lagging).
-          IF(ITRM.EQ.1)CALL MTHPES(ICOMP)
+          IF(ITRM.EQ.1) CALL MTHPES(ICOMP)
 
 C Estimate the future values for thermophysical properties.
           CALL MTHFEI(ICOMP)
@@ -1230,7 +1230,7 @@ C Modify the boundary vector to count for;
       END
 
 C *********************************************************************
-C MZMITR solves the zone moisture matrix by Gauss Siedal method.
+C MZMITR solves the zone moisture matrix by Gauss Seidel method.
 C *********************************************************************
       SUBROUTINE MZMITR(ICOMP)
 #include "building.h"
@@ -1453,9 +1453,9 @@ C *********************************************************************
       NC=NCONST(ICOMP)
       DO 10 I=1,NC
         NM=MNDC(ICOMP,I)
-      DO 10 IM=1,NM
-        Pf(ICOMP,I,IM)=Pn(I,IM)
-        Ff(ICOMP,I,IM)=Fn(I,IM)
+        DO 10 IM=1,NM
+          Pf(ICOMP,I,IM)=Pn(I,IM)
+          Ff(ICOMP,I,IM)=Fn(I,IM)
    10 CONTINUE
       RETURN
       END
