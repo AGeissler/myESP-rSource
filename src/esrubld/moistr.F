@@ -913,24 +913,24 @@ C Estimate the future time moisture storage term.
             Uh=SORP(ICOMP,I,IL,1)
             CFF=SORP(ICOMP,I,IL,2)
             EXPT=SORP(ICOMP,I,IL,3)
-            RXI=SNGL(XI03(RH1p,RH1,Uh,CFF,EXPT))
-            IF(IM.EQ.1)THEN
-              DELX2=DELXm/2.0
+            RXI=SNGL(XI03(RH1p,RH1,Uh,CFF,EXPT)) ! kg/m3 in current moisture node
+            IF(IM.EQ.1)THEN ! outermost moisture node of material layer IL
+              DELX2=DELXm/2.0 ! m (thickness of moisture node "layer")
               RXI2=RXI
               RXIVpf(I,ITM1)=Asrf*(DELX1*RXI1+DELX2*RXI2)
-            ELSEIF(IM.EQ.NMP1)THEN
+            ELSEIF(IM.EQ.NMP1)THEN ! innermost moisture node of material layer IL
               DELX1=DELXm/2.0
               RXI1=RXI
-            ELSE
-              RXIVpf(I,ITM1)=Asrf*DELXm*RXI
+            ELSE ! all intermittent nodes in material layer IL
+              RXIVpf(I,ITM1)=Asrf*DELXm*RXI ! kg in surf I and moisture node ITM1
             ENDIF
-   50     CONTINUE
-   40   CONTINUE
+   50     CONTINUE  ! loop IM (moisture nodes)
+   40   CONTINUE    ! loop IL (material layer nodes)
 
 C Estimate the future time moisture capacity for surface node.
         ITM1=ITM1+1
         RXIVpf(I,ITM1)=Asrf*DELX1*RXI1
-   30 CONTINUE
+   30 CONTINUE ! loop I (surface in zone)
       RETURN
       END
 
@@ -1003,7 +1003,7 @@ C *********************************************************************
       common/trcm01/ep(MS),ef(MS),TERMcpl
       character outs*124
 
-C Consider each multilayered construction within current  zone.
+C Consider each multilayered construction within current zone.
       SUMA1=0.
       SUMA2=0.
       SUMA3=0.
