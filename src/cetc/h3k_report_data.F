@@ -115,7 +115,6 @@ C GFA(MCOM)            ! zone futue  relative humidity values
       common/FVALG/GFA(MCOM)
       real gfa
 
-
 C TPC(MCOM,MS,MN),     ! - present construction temperature (oC)
 C QPC(MCOM)            ! - construction heat injection (W)
       COMMON/PVALC/TPC(MCOM,MS,MN),QPC(MCOM)
@@ -323,7 +322,7 @@ C.....Sky temperature and cloud cover; ground temperature,
       COMMON/OUTIN/IUOUT,IUIN
       INTEGER :: IUOUT,IUIN
 
-C.....Surface aszimuth (deg from north) and elevation angles (walls: 0 deg, ceilings: 90 deg, floors: -90 deg)      
+C.....Surface azimuth (deg from north) and elevation angles (walls: 0 deg, ceilings: 90 deg, floors: -90 deg)
       COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       real PAZI, PELV     
 
@@ -1493,11 +1492,29 @@ C.......ZONE LABEL (use dummy value of -1)
      &      cZone_Chars,
      &      ZONE_LABEL(1:LEN_TRIM(ZONE_LABEL)))
       end if
-      
+
 C.....AIR POINT TEMPERATURE
       call AddToReport (
      &         rvAirPointTemperature%Identifier,
      &         TFA(iZone),
+     &         cZone_Chars)
+
+C.....Zone internal gains
+      call AddToReport (
+     &         rvAirPointRadiantGains%Identifier,
+     &         Cas_Rad_dat(iZone), !  - Radiant (W)
+     &         cZone_Chars)
+      call AddToReport (
+     &         rvAirPointConvectiveGains%Identifier,
+     &         Cas_Con_dat(iZone), !  - Convective (W)
+     &         cZone_Chars)
+      call AddToReport (
+     &         rvAirPointLatentGains%Identifier,
+cx     &         Cas_Lat_dat(iZone), !  - Latent (W)
+C     Saturated steam injection, esrubld/subsys.F, mzvapc, line 2227
+     &         Cas_Lat_dat(iZone)/(
+     &            2501000.+1860.*0.5*(TFA(iZone) +
+     &                     TPA(iZone))), !  - Latent (kg)
      &         cZone_Chars)
 
 C.....Window position from BCL25 controller
@@ -1667,9 +1684,10 @@ C.....Zone air change rate (AIM2)
 
       call AddToReport (
      &         rvEnvInfBalanceAir%Identifier,
-     &         ZMBI(iZone,1),
+     &         ZMBI(iZone,1), ! kg/s ?!
      &         cZone_Chars)
 
+C ... use air density at time step level?
       call AddToReport (
      &         rvEnvInfBalanceAirExchange%Identifier,
      &         ZMBI(iZone,1) / 1.275  * 3600. / vol(iZone),

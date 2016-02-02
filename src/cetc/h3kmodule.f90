@@ -88,7 +88,8 @@ MODULE h3kmodule
    !Used by h3k_report_data.F
    Type(ReportVariable) :: rvHeatFluxRadiationShortwave, rvHeatFluxRadiationShortwaveUnitArea, &
          rvHeatFluxAboveGradeNet, rvHeatFluxSpecifiedBCsNet, rvHeatFluxBelowGradeNet, &
-         rvHeatFluxCENPartitionNet, rvAirPointTemperature, rvWindowsPosition, rvAirFlowModel, &
+         rvHeatFluxCENPartitionNet, rvAirPointTemperature, rvAirPointRadiantGains, rvAirPointConvectiveGains, &
+         rvAirPointLatentGains, rvWindowsPosition, rvAirFlowModel, &
          rvAirPointRelativeHumidity, rvSuppliedEnergyNet, rvSuppliedEnergyHeating, &
          rvSuppliedEnergyCooling, rvSuppliedEnergyNetPerm2, rvSuppliedEnergyHeatingPerm2, &
          rvSuppliedEnergyCoolingPerm2, rvThermalLoadsHeatingTotal, rvThermalLoadsCoolingTotal, &
@@ -445,6 +446,24 @@ CONTAINS
       rvAirPointTemperature%VariableType = '(oC)'
       rvAirPointTemperature%Description = 'Zone air-point temperature'
       Call AddVariable(rvAirPointTemperature)
+
+      rvAirPointRadiantGains%VariableName = 'building/*/air_point/radiant_gains'
+      rvAirPointRadiantGains%MetaType = 'units'
+      rvAirPointRadiantGains%VariableType = '(W)'
+      rvAirPointRadiantGains%Description = 'Zone air-point internal gains, radiant'
+      Call AddVariable(rvAirPointRadiantGains)
+
+      rvAirPointConvectiveGains%VariableName = 'building/*/air_point/convective_gains'
+      rvAirPointConvectiveGains%MetaType = 'units'
+      rvAirPointConvectiveGains%VariableType = '(W)'
+      rvAirPointConvectiveGains%Description = 'Zone air-point internal gains, convective'
+      Call AddVariable(rvAirPointConvectiveGains)
+
+      rvAirPointLatentGains%VariableName = 'building/*/air_point/latent_gains'
+      rvAirPointLatentGains%MetaType = 'units'
+      rvAirPointLatentGains%VariableType = '(W)'
+      rvAirPointLatentGains%Description = 'Zone air-point internal gains, latent'
+      Call AddVariable(rvAirPointLatentGains)
 
       rvWindowsPosition%VariableName = 'building/*/windows/position'
       rvWindowsPosition%MetaType = 'units'

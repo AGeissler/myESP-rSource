@@ -1153,6 +1153,7 @@ C injected as a weighted mix of convection and radiation.
 C STORE future row casual and radiant gains
       Cas_Con_dat(icomp) = QCASC(2)  ! W
       Cas_Rad_dat(icomp) = QCASR(2)  ! W
+      Cas_Lat_dat(icomp) = QLATN(2)  ! W
 
 C Remember future values for next timestep.
       QCCS(ICOMP)=QCASC(2)
