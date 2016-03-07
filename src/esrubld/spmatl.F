@@ -1514,7 +1514,9 @@ C Check that surface associated with the PV module is transparent;
 C if not, issue an error message.
       if(iTMC_index.eq.0)then
         call edisp(iuout,' ')
-        write(outs,*)'SMCMP5 fatal error: PV surface must be a TMC!'
+        write(outs,*)'SMCMP5 fatal error: PV surface must be a TMC! ',
+     &    '  Location: Zone ',ispmloc(ISPMNOD,1),', Surface ',
+     &    ispmloc(ISPMNOD,2)
         call edisp(iuout,outs)
         stop
       endif
