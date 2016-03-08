@@ -3,7 +3,7 @@
 
 C Moisture model common for file version and active
 C model storage
-      common/moist85/iMoistModel(MCOMP),iMoistVer(MCOMP)
+      common/moist85/iMoistModel(MCOM),iMoistVer(MCOM)
 
       integer iMoistModel  !  Moisture model used:
                            !  LEGACY = 1
