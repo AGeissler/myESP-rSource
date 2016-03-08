@@ -63,22 +63,28 @@ C Uh    max hygroscopic moisture content (kg/kg)
 C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
 C *********************************************************************
-      FUNCTION U01(RH,Uh,CFF,EXPT)
+      FUNCTION U01(iMM,RH,Uh,CFF,EXPT)
       COMMON/MOIST17/RHmax
 
       IF(RH.GT.RHmax)RH=RHmax
-      U01=Uh*(1.0-ALOG(RH)/CFF)**(-1.0/EXPT)
+      if (iMM.eq.1) then
+C       Legacy model
+        U01=Uh*(1.0-ALOG(RH)/CFF)**(-1.0/EXPT)
+      elseif (iMM.eq.2) then
+C       Otto model
+
+      endif
       IF(U01.LT.0.0)STOP 'Error (703): negative moisture content.'
       RETURN
       END
 C *********************************************************************
 C U02   moisture content (kg/kg dry material)
 C *********************************************************************
-      FUNCTION U02(RH,Uh,CFF,EXPT,DNSTY)
+      FUNCTION U02(iMM,RH,Uh,CFF,EXPT,DNSTY)
       COMMON/MOIST17/RHmax
 
       IF(RH.GT.RHmax)RH=RHmax
-      U02=U01(RH,Uh,CFF,EXPT)/DNSTY
+      U02=U01(iMM,RH,Uh,CFF,EXPT)/DNSTY
       IF(U02.LT.0.0)STOP 'Error (704): negative moisture content.'
       RETURN
       END
@@ -94,14 +100,20 @@ C Uh    max hygroscopic moisture content (kg/kg)
 C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
 C *********************************************************************
-      FUNCTION XI01(RH,Uh,CFF,EXPT)
+      FUNCTION XI01(iMM,RH,Uh,CFF,EXPT)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
       DOUBLE PRECISION XI01
       SMALL=1.0E-15
 
       IF(RH.GT.RHmax)RH=RHmax
-      XI01=Uh/(EXPT*CFF*RH)*(1.0-ALOG(RH)/CFF)**(-(EXPT+1.0)/EXPT)
+      if (iMM.eq.1) then
+C       Legacy model
+        XI01=Uh/(EXPT*CFF*RH)*(1.0-ALOG(RH)/CFF)**(-(EXPT+1.0)/EXPT)
+      elseif (iMM.eq.2) then
+C       Otto model
+
+      endif
       IF(XI01.LT.DBLE(SMALL))then
         call edisp(iuout,'XI01: (705) very small moisture capacity.')
         call epwait
@@ -114,14 +126,14 @@ C *********************************************************************
 C *********************************************************************
 C XI02  moisture capacity (kg/kg)
 C *********************************************************************
-      FUNCTION XI02(RH,Uh,CFF,EXPT,DNSTY)
+      FUNCTION XI02(iMM,RH,Uh,CFF,EXPT,DNSTY)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
       DOUBLE PRECISION XI01, XI02
       SMALL=1.0E-15
 
       IF(RH.GT.RHmax)RH=RHmax
-      XI02=XI01(RH,Uh,CFF,EXPT)/DNSTY
+      XI02=XI01(iMM,RH,Uh,CFF,EXPT)/DNSTY
       IF(XI02.LT.DBLE(SMALL))then
         call edisp(iuout,'XI02: (706) very small moisture capacity.')
         call epwait
@@ -134,7 +146,7 @@ C *********************************************************************
 C *********************************************************************
 C XI03  moisture capacity (kg/m3).  The numerical equivalent for XI01.
 C *********************************************************************
-      FUNCTION XI03(RHp,RHf,Uh,CFF,EXPT)
+      FUNCTION XI03(iMM,RHp,RHf,Uh,CFF,EXPT)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
       DOUBLE PRECISION XI01, XI03
@@ -144,12 +156,12 @@ C *********************************************************************
       IF(RHf.GT.RHmax)RHf=RHmax
       RHfp=RHf-RHp
       IF(ABS(RHfp).LT.1.0e-6)THEN
-        XI03=XI01(RHp,Uh,CFF,EXPT)
+        XI03=XI01(iMM,RHp,Uh,CFF,EXPT)
       ELSE
-        Up=U01(RHp,Uh,CFF,EXPT)
-        Uf=U01(RHf,Uh,CFF,EXPT)
+        Up=U01(iMM,RHp,Uh,CFF,EXPT)
+        Uf=U01(iMM,RHf,Uh,CFF,EXPT)
         XI03=(Uf-Up)/RHfp
-        IF(XI03.LT.0.0)XI03=XI01(RHp,Uh,CFF,EXPT)
+        IF(XI03.LT.0.0)XI03=XI01(iMM,RHp,Uh,CFF,EXPT)
       ENDIF
       IF(XI03.LT.DBLE(SMALL))then
         call edisp(iuout,'XI03: very small moisture capacity.')
