@@ -76,6 +76,7 @@ C         isotherm model switch (legacy or Otto)
             iMoistModel(icomp)=OTTO
           else
             goto 104
+          endif
         endif
       endif
 

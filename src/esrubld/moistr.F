@@ -734,6 +734,7 @@ C MZMCFF calculates the future moisture parameters.
 C *********************************************************************
       SUBROUTINE MZMCFF(ICOMP)
 #include "building.h"
+#include "moist.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
@@ -913,7 +914,8 @@ C Estimate the future time moisture storage term.
             Uh=SORP(ICOMP,I,IL,1)
             CFF=SORP(ICOMP,I,IL,2)
             EXPT=SORP(ICOMP,I,IL,3)
-            RXI=SNGL(XI03(RH1p,RH1,Uh,CFF,EXPT)) ! kg/m3 in current moisture node
+            iMM=iMoistModel(ICOMP)
+            RXI=SNGL(XI03(iMM,RH1p,RH1,Uh,CFF,EXPT)) ! kg/m3 in current moisture node
             IF(IM.EQ.1)THEN ! outermost moisture node of material layer IL
               DELX2=DELXm/2.0 ! m (thickness of moisture node "layer")
               RXI2=RXI
