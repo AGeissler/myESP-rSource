@@ -36,8 +36,13 @@ C espriou.h provides current file.
       COMMON/MOIST06/ISORP(MCOM,MS,ME),SORP(MCOM,MS,ME,3)
       COMMON/MOIST07/ITVAPD(MCOM,MS,ME),TVAPD(MCOM,MS,ME)
 
+      logical dll
+      character dllsubr*12,dllmesg*124
       CHARACTER LMSTR*72,OUTSTR*124,outs*124
       IER=0
+
+C Check if running in dll mode.
+      call isadll(dll)
 
 C Open existing ASCII moisture data file as unit IUNIT.
       CALL EFOPSEQ(IUNIT,LMSTR,1,IER)
@@ -78,6 +83,10 @@ C         isotherm model switch (legacy or Otto)
             goto 104
           endif
         endif
+      else
+C       Rewind legacy file for read and set model to LEGACY
+        REWIND(IUNIT,ERR=999)
+        iMoistModel(icomp)=LEGACY
       endif
 
 C Read the moisture node distribution information.
@@ -165,13 +174,15 @@ C Read thermal vapor diffusion coefficient for each layer.
    70 CONTINUE
 
 c Close zone moisture data file.
-      CALL ERPFREE(IUNIT,ISTAT)
+   6  CALL ERPFREE(IUNIT,ISTAT)
 
 c Trace output ?
       IF(ITRC.GE.1)THEN
         CALL EDISP(ITRU,'Zone moisture data file successfully read.')
       ENDIF
       RETURN
+
+C Error messages
 
  101  write(outs,'(3a)') 'EMSTRR: error reading ',OUTSTR(1:50),'...'
       call edisp(iuout,outs)
@@ -200,6 +211,20 @@ c Trace output ?
       ier=1
       CALL ERPFREE(IUNIT,ISTAT)
       return
+
+C File rewind errors.
+  999 if(dll)then
+        dllsubr='ersys'
+        WRITE(dllmesg,'(2a)') 
+     &  ' Error rewinding moisture definition file ',LMSTR(1:32)
+        ier=2
+        return
+      else
+        CALL USRMSG('Error rewinding moisture definition file:',
+     &    LMSTR,'W')
+        IER=1
+        GOTO 6
+      endif 
 
       END
 

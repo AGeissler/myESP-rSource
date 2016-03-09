@@ -62,6 +62,14 @@ C RH    relative humidity
 C Uh    max hygroscopic moisture content (kg/kg)
 C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
+C
+C Otto Model: PhD Thesis by Frank Otto, 1995, University of Kassel
+C   "The Influence of Sorption Processes on Indoor Air Humidity"
+C   (in German).
+C   Parameter mapping:
+C     Uh -> a1
+C    CFF -> a2
+C   EXPT -> a3
 C *********************************************************************
       FUNCTION U01(iMM,RH,Uh,CFF,EXPT)
       COMMON/MOIST17/RHmax
@@ -72,7 +80,7 @@ C       Legacy model
         U01=Uh*(1.0-ALOG(RH)/CFF)**(-1.0/EXPT)
       elseif (iMM.eq.2) then
 C       Otto model
-
+        U01=1000.*(exp(Uh*RH+CFF*RH**2+EXPT*RH**3)-1.)
       endif
       IF(U01.LT.0.0)STOP 'Error (703): negative moisture content.'
       RETURN
@@ -99,6 +107,11 @@ C RH    relative humidity (-)
 C Uh    max hygroscopic moisture content (kg/kg)
 C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
+C
+C Otto Model parameter mapping:
+C     Uh -> a1
+C    CFF -> a2
+C   EXPT -> a3
 C *********************************************************************
       FUNCTION XI01(iMM,RH,Uh,CFF,EXPT)
       COMMON/OUTIN/IUOUT,IUIN
@@ -112,7 +125,8 @@ C       Legacy model
         XI01=Uh/(EXPT*CFF*RH)*(1.0-ALOG(RH)/CFF)**(-(EXPT+1.0)/EXPT)
       elseif (iMM.eq.2) then
 C       Otto model
-
+        XI01=1000.*exp(Uh*RH+CFF*RH**2+EXPT*RH**3)
+     &         *(3*EXPT*RH**2+2*CFF*RH+Uh)
       endif
       IF(XI01.LT.DBLE(SMALL))then
         call edisp(iuout,'XI01: (705) very small moisture capacity.')
@@ -356,15 +370,40 @@ C VPRMa   vapour permeability factor a
 C VPRMb   vapour permeability factor b
 C VPRMc   vapour permeability factor c
 C RH      relative humidity (-)
+C
+C Otto Model: PhD Thesis by Frank Otto, 1995, University of Kassel
+C   "The Influence of Sorption Processes on Indoor Air Humidity"
+C   (in German).
+C   Parameter mapping:
+C   VPRMa -> a0
+C   VPRMb -> a2
+C   VPRMc -> a4
+C   a1 = a3 = 0.
 C *********************************************************************
-      FUNCTION DELT01(RH,VPRMa,VPRMb,VPRMc)
+      FUNCTION DELT01(iMM,RH,VPRMa,VPRMb,VPRMc)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
       character outs*124
+      real my
       SMALL=1.0E-15
 
       IF(RH.GT.RHmax)RH=RHmax
-      DELT01=1.89923e-10*(VPRMa+VPRMb*EXP(VPRMc*RH))
+      if (iMM.eq.1) then
+C       Legacy model
+        DELT01=1.89923e-10*(VPRMa+VPRMb*EXP(VPRMc*RH))
+      elseif (iMM.eq.2) then
+C       Otto model
+        my=exp(VPRMa+VPRMb*RH**2+VPRMc*RH**4)
+        if (my.gt.0) then
+          DELT01=1.883e-10/my
+        else
+          write(outs,'(a,4F12.6,a)')
+     &     'DELT01: small my for: VPRMa VPRMb VPRMc RH',
+     &      VPRMa,VPRMb,VPRMc,RH,' resetting to .1'
+          call edisp(iuout,outs)
+          DELT01=1.883e-9
+        endif
+      endif
       IF(DELT01.LT.SMALL)then
         write(outs,'(a,4F12.6,a)') 
      &   'DELT01: small vapour perm for: VPRMa VPRMb VPRMc RH',

@@ -183,6 +183,7 @@ C INITMZ initiates the zone moisture variables.
 C *********************************************************************
       SUBROUTINE INITMZ(ICOMP)
 #include "building.h"
+#include "moist.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
@@ -201,6 +202,7 @@ C *********************************************************************
       COMMON/MOIST53/Ppair(MCOM),Fpair(MCOM),Spair(MCOM)
       COMMON/MOIST54/Pfair(MCOM),Ffair(MCOM),Sfair(MCOM)
       character outs*124
+      integer iMM
 
       TC=15.0
       RH=0.5
@@ -238,8 +240,9 @@ C *********************************************************************
             UM0=PERM(ICOMP,I,IL,1)
             UM100=PERM(ICOMP,I,IL,2)
             B=PERM(ICOMP,I,IL,3)
+            iMM=iMoistModel(ICOMP)
+            DX=DELT01(iMM,RH,UM0,UM100,B)
 C If small value then report which part of model was the problem.
-            DX=DELT01(RH,UM0,UM100,B)
             if(DX.lt.1.0E-12)then
               write(outs,'(a,3i3)') 
      &          'INITMZ: DELT01 small at zone surf layer: ',icomp,i,IL
@@ -768,8 +771,12 @@ C *********************************************************************
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
 
+      integer iMM
       DOUBLE PRECISION XI03
       character outs*124
+
+C Set moisture model for this zone
+      iMM=iMoistModel(ICOMP)
 
 C Calculate the future time vapour ratio for air.
       TCfair=TFA(ICOMP)
@@ -856,7 +863,7 @@ C values are small then probably glass so just set dELTf1.
               if((UM0.lt.1.0e-12).or.UM100.lt.1.0e-12)then
                 DELTf1=1.0e-12
               else
-                DELTf1=DELT01(RH1,UM0,UM100,B)
+                DELTf1=DELT01(iMM,RH1,UM0,UM100,B)
                 if(DELTf1.lt.1.0E-12)then
                   write(outs,'(a,3i3)') 
      &            'MZMCFF DELTf1 small at zone surf layer: ',icomp,i,IL
@@ -879,7 +886,7 @@ C Check for small return values and identify source.
               if((UM0.lt.1.0e-12).or.UM100.lt.1.0e-12)then
                 DELTf2=1.0e-12
               else
-                DELTf2=DELT01(RH2,UM0,UM100,B)
+                DELTf2=DELT01(iMM,RH2,UM0,UM100,B)
                 if(DELTf2.lt.1.0E-12)then
                   write(outs,'(a,3i3)') 
      &            'MZMCFF DELTf2 small at zone surf layer: ',icomp,i,IL
@@ -914,7 +921,6 @@ C Estimate the future time moisture storage term.
             Uh=SORP(ICOMP,I,IL,1)
             CFF=SORP(ICOMP,I,IL,2)
             EXPT=SORP(ICOMP,I,IL,3)
-            iMM=iMoistModel(ICOMP)
             RXI=SNGL(XI03(iMM,RH1p,RH1,Uh,CFF,EXPT)) ! kg/m3 in current moisture node
             IF(IM.EQ.1)THEN ! outermost moisture node of material layer IL
               DELX2=DELXm/2.0 ! m (thickness of moisture node "layer")
