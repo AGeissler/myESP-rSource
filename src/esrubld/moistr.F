@@ -171,7 +171,7 @@ C *********************************************************************
       RLXlnT=0.1
       DTfalse=3600.0
       MITRM=500
-      RITRMP=1.0
+      RITRMP=0.075
       RITRMF=0.001
       RHmax=0.99
       PATMpa=101325.0
@@ -243,7 +243,7 @@ C *********************************************************************
             iMM=iMoistModel(ICOMP)
             DX=DELT01(iMM,RH,UM0,UM100,B)
 C If small value then report which part of model was the problem.
-            if(DX.lt.1.0E-12)then
+            if(DX.lt.0.99E-15)then
               write(outs,'(a,3i3)') 
      &          'INITMZ: DELT01 small at zone surf layer: ',icomp,i,IL
               call edisp(iuout,outs)

@@ -127,6 +127,7 @@ C       Legacy model
 C       Otto model
         XI01=1000.*exp(Uh*RH+CFF*RH**2+EXPT*RH**3)
      &         *(3*EXPT*RH**2+2*CFF*RH+Uh)
+        XI01=max(1.0E-15,XI01)
       endif
       IF(XI01.LT.DBLE(SMALL))then
         call edisp(iuout,'XI01: (705) very small moisture capacity.')
@@ -175,7 +176,7 @@ C *********************************************************************
         Up=U01(iMM,RHp,Uh,CFF,EXPT)
         Uf=U01(iMM,RHf,Uh,CFF,EXPT)
         XI03=(Uf-Up)/RHfp
-        IF(XI03.LT.0.0)XI03=XI01(iMM,RHp,Uh,CFF,EXPT)
+        IF(XI03.LE.0.0)XI03=XI01(iMM,RHp,Uh,CFF,EXPT)
       ENDIF
       IF(XI03.LT.DBLE(SMALL))then
         call edisp(iuout,'XI03: very small moisture capacity.')
@@ -394,7 +395,7 @@ C       Legacy model
       elseif (iMM.eq.2) then
 C       Otto model
         my=exp(VPRMa+VPRMb*RH**2+VPRMc*RH**4)
-        if (my.gt.0) then
+        if (my.gt.0.) then
           DELT01=1.883e-10/my
         else
           write(outs,'(a,4F12.6,a)')
@@ -409,7 +410,7 @@ C       Otto model
      &   'DELT01: small vapour perm for: VPRMa VPRMb VPRMc RH',
      &    VPRMa,VPRMb,VPRMc,RH,' resetting to 1.0E-13'
         call edisp(iuout,outs)
-        DELT01=1.0E-13
+        DELT01=1.0E-15
       endif
       RETURN
       END
