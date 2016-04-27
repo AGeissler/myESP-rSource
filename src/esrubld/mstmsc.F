@@ -127,7 +127,7 @@ C       Legacy model
 C       Otto model
         XI01=1000.*exp(Uh*RH+CFF*RH**2+EXPT*RH**3)
      &         *(3*EXPT*RH**2+2*CFF*RH+Uh)
-        XI01=max(1.0E-15,XI01)
+        XI01=max(DBLE(SMALL),XI01)
       endif
       IF(XI01.LT.DBLE(SMALL))then
         call edisp(iuout,'XI01: (705) very small moisture capacity.')
