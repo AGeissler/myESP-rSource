@@ -165,14 +165,17 @@ C *********************************************************************
       COMMON/MOIST16/PATMpa
       COMMON/MOIST17/RHmax
 
-      GAMm=0.5
-      RLXln=0.1
-      RLXlnF=0.01
-      RLXlnT=0.1
+      common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
+
       DTfalse=3600.0
+
+      GAMm=0.5
+      RLXln=0.1    ! RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
+      RLXlnF=0.01  ! RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
+      RLXlnT=0.1   ! RLX T_new + (1-RLX) T_old
       MITRM=500
-      RITRMP=0.075
-      RITRMF=0.001
+      RITRMP=0.075 ! (Pf-Pn) FACTOR < RITRMP ? => O.K. (both for zone air and layers!)
+      RITRMF=0.001 ! (Ff-Fn) FACTOR < RITRMF ? => O.K. (both for zone air and layers!)
       RHmax=0.99
       PATMpa=101325.0
       RETURN
