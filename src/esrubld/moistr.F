@@ -311,6 +311,7 @@ C **********************************************************************
       COMMON/GR1D03/BCNV,ILUMP(MCOM,MS)
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)
       COMMON/MOIST23/TMPp(MS,MNM),TMPf(MS,MNM)
+      COMMON/MOIST50/TMNp(MCOM,MS,MNM) ! ag@20160503
       character outs*124
 
       NC=NCONST(ICOMP)
@@ -360,6 +361,7 @@ C Trap for division by zero.
             ENDIF
             RATIO=XINTP/DELXh
             TMPp(I,INMT)=RATIO*(T2P-T1P)+T1P
+            TMNp(ICOMP,I,INMT)=TMPp(I,INMT) ! save with zone info
             XSUMM=XSUMM+DELXm
    30     CONTINUE
         ELSE
@@ -367,6 +369,7 @@ C Trap for division by zero.
           DO 40 IL=1,NE
             INMT=INMT+1
             TMPp(I,INMT)=TPC(ICOMP,I,IRN)
+            TMNp(ICOMP,I,INMT)=TMPp(I,INMT) ! save with zone info
             THICK=THRMLI(ICOMP,I,IL,4)
             NNT=NNDL(ICOMP,I,IL)
 
@@ -408,12 +411,14 @@ C Trap zero division.
               ENDIF
               RATIO=XINTP/DELXh
               TMPp(I,INMT)=RATIO*(T2P-T1P)+T1P
+              TMNp(ICOMP,I,INMT)=TMPp(I,INMT) ! save with zone info
    50       CONTINUE
             IRN=IRN+NNDL(ICOMP,I,IL)
    40     CONTINUE
         ENDIF
         INMT=INMT+1
         TMPp(I,INMT)=TPS(ICOMP,I)
+        TMNp(ICOMP,I,INMT)=TMPp(I,INMT) ! save with zone info
    10 CONTINUE
       RETURN
       END
@@ -920,7 +925,7 @@ C Estimate the future time thermal vapor diffusion coefficient.
               endif
             ENDIF
 
-C Estimate the future time moisture storage term.
+C Estimate the future time moisture storage capacity term.
             Uh=SORP(ICOMP,I,IL,1)
             CFF=SORP(ICOMP,I,IL,2)
             EXPT=SORP(ICOMP,I,IL,3)
@@ -1605,17 +1610,9 @@ C IME=MNDC(ICOMP,I).
 
 C *********************************************************************
 C WRITRH writes the relative humidity results.
-C
-C January 2016, Achim Geissler:
-C Extended to also write to h3k output
-C  - bug: called first during actual simulation period, it seems. First
-C         value written is zero, therefor!
 C *********************************************************************
       SUBROUTINE WRITRH(ICOMP)
-      use h3kmodule
 #include "building.h"
-C geometry.h for zname.
-#include "geometry.h"
 
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
@@ -1631,24 +1628,7 @@ C geometry.h for zname.
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
 
-C.....DECLARATIONS for H3Kreporting object
-      CHARACTER*12 cZone_Chars   ! zname(MCOM)
-      Character*12 cSurf_Chars   ! sname(MCOM,MS)
-      CHARACTER*8  cNode_Chars   !
-
       dimension RHsrf(MS),TCsrf(MS)
-
-C.....Switch for zone name output here
-      if (ReportBoolConfig("use_zonenames")) then
-        write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
-      else
-C.......Pad zone index to 'XX'
-        if ( icomp .gt. 9 ) then
-           write (cZone_Chars,'(A,I2)') 'zone_',icomp
-        else
-           write (cZone_Chars,'(A,I1)') 'zone_0',icomp
-        endif
-      endif ! use_zonenames
 
       NDAY=INT(NSINC/(24*NTSTEP))
       IF(NDAY.GE.ITCNST)THEN
@@ -1669,21 +1649,101 @@ C.......Pad zone index to 'XX'
           Ps=Psat01(Tdb)
           RHsrf(I)=Pn(I,NM)/Ps*100.0
 
+   10   CONTINUE
+
+C Note: adjust format if MS>48.
+        WRITE(IMSTR,'(F10.5,48F5.1)')TIMES,RHair,(RHsrf(I),I=1,NC)
+        WRITE(IMSTR,'(10X,48F5.1)')TCair,(TCsrf(I),I=1,NC)
+      ENDIF
+      RETURN
+      END
+
+C *********************************************************************
+C H3K_transport_mould_data writes the detailed moisture results to h3k
+C output. This subroutine is called in bmatsv.F, approx. line 1490.
+C
+C May 2016, Achim Geissler
+C
+C *********************************************************************
+      SUBROUTINE H3K_transport_mould_data(ICOMP)
+      use h3kmodule
+      implicit none
+#include "building.h"
+C geometry.h for zname.
+#include "geometry.h"
+
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      integer       IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+
+C.....Surface area data
+      common/prec1/sna(mcom,ms)
+      real sna                 ! Area of a surface
+
+      COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
+     &             NPGAP(MCOM,MS,MGP)
+      integer NCONST,NELTS,NGAPS,NPGAP
+
+      COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)
+      integer MNDS,MNDZ,MNDC,MNDL
+
+      COMMON/MOIST09/IMSTR
+      integer IMSTR
+
+      COMMON/MOIST26/XIpfair,RXIVpf(MS,MNM)
+      real XIpfair,RXIVpf
+
+      COMMON/MOIST50/TMNp(MCOM,MS,MNM) ! ag@20160503
+      real TMNf
+
+      COMMON/MOIST52/Pf(MCOM,MS,MNM),Ff(MCOM,MS,MNM),Sf(MCOM)
+      real Pf,Ff,Sf
+
+C.....Subroutine signature
+      integer ICOMP
+
+C     Local variables
+      integer NC,iSurf,NM,iNode
+
+      real Ps
+
+C     DECLARATIONS for H3Kreporting object
+      CHARACTER*12 cZone_Chars   ! zname(MCOM)
+      Character*12 cSurf_Chars   ! sname(MCOM,MS)
+      CHARACTER*8  cNode_Chars   !
+
+C     FUNCTIONS
+      real Psat01
+
+C.....Switch for zone name output here
+      if (ReportBoolConfig("use_zonenames")) then
+        write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
+      else
+C.......Pad zone index to 'XX'
+        if ( ICOMP .gt. 9 ) then
+           write (cZone_Chars,'(A,I2)') 'zone_',ICOMP
+        else
+           write (cZone_Chars,'(A,I1)') 'zone_0',ICOMP
+        endif
+      endif ! use_zonenames
+
+        NC=NCONST(ICOMP)
+        DO 10 iSurf=1,NC
+          NM=MNDC(ICOMP,iSurf)
+
 C.........Switch for surface name output here
-          iSurf=I
           if (ReportBoolConfig ("use_surfacenames")) then
             write (cSurf_Chars,'(A)')
-     &          sname(ICOMP,isurf)(1:lnsname(ICOMP,isurf))
+     &          sname(ICOMP,isurf)(1:lnsname(ICOMP,iSurf))
           else
 C...........Pad surface index to 'XX'
-            if ( isurf .gt. 9 ) then
-              write (cSurf_Chars,'(A,I2)') 'surface_',isurf
+            if ( iSurf .gt. 9 ) then
+              write (cSurf_Chars,'(A,I2)') 'surface_',iSurf
             else
-              write (cSurf_Chars,'(A,I1)') 'surface_0',isurf
+              write (cSurf_Chars,'(A,I1)') 'surface_0',iSurf
             endif
           endif ! use_surfacenames
 
-C         XML output for each node of surface iSurf.
+C         XML output for each moisture node of surface iSurf.
           do iNode = 1,mndc(ICOMP,iSurf)
             if ( iNode .gt. 9 ) then
               write(cNode_Chars, '(A,I2)') 'mnode_', iNode
@@ -1695,25 +1755,44 @@ C           Vapour pressure at "mould node"
 C           (Nodes *not* necessarily identical to construction nodes!)
             Call AddToReport(
      &             rvBldMstVapPressNode%Identifier,
-     &             Pn(iSurf,iNode),
+cx     &             Pn(iSurf,iNode),
+     &             Pf(ICOMP,iSurf,iNode),
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
 
 C           Relative humidity at "mould node"
-            Ps=Psat01(TMPf(iSurf,iNode))
+            Ps=Psat01(TMNf(ICOMP,iSurf,iNode))
             Call AddToReport(
      &             rvBldMstRHnode%Identifier,
-     &             Pn(iSurf,iNode)/Ps*100.0,
+cx     &             Pn(iSurf,iNode)/Ps*100.0,
+     &             Pf(ICOMP,iSurf,iNode)/Ps*100.0,
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
 
-C           Moisture storage
+C           Moisture storage capacity at "mould node"
+            Call AddToReport(
+     &             rvBldMstStoreCap%Identifier,
+     &             RXIVpf(iSurf,iNode)/SNA(ICOMP,iSurf),
+     &             cZone_Chars,
+     &             cSurf_Chars,
+     &             cNode_Chars)
+
+C           Moisture content ????
+
+C           Moisture storage at "mould node"
             Call AddToReport(
      &             rvBldMstStorage%Identifier,
-cx     &             Fn(iSurf,iNode),
-     &             RXIVpf(iSurf,iNode),
+     &             Ff(ICOMP,iSurf,iNode),
+     &             cZone_Chars,
+     &             cSurf_Chars,
+     &             cNode_Chars)
+
+C           Temperature at "mould node"
+            Call AddToReport(
+     &             rvBldMstTNode%Identifier,
+     &             TMNp(ICOMP,iSurf,iNode),
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
@@ -1722,9 +1801,5 @@ cx     &             Fn(iSurf,iNode),
 
    10   CONTINUE
 
-C Note: adjust format if MS>48.
-        WRITE(IMSTR,'(F10.5,48F5.1)')TIMES,RHair,(RHsrf(I),I=1,NC)
-        WRITE(IMSTR,'(10X,48F5.1)')TCair,(TCsrf(I),I=1,NC)
-      ENDIF
       RETURN
       END

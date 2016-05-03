@@ -194,7 +194,7 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvPltSDHWSumRecH,rvPltSDHWsumAvailSolEn
 
    !Used by moistr.F
-   Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode,rvBldMstStorage
+   Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode,rvBldMstStoreCap,rvBldMstStorage,rvBldMstTNode
 
    !Used by pcomp2.F
    !Claude - potential error found rvPltDefrostStat
@@ -1941,23 +1941,35 @@ CONTAINS
       Call AddVariable(rvPltSDHWsumAvailSolEn)
 
       !Used by moistr.F
-      rvBldMstVapPressNode%VariableName = 'building/*/*/*/vappress'
+      rvBldMstVapPressNode%VariableName = 'building/*/*/*/mn_vappress'
       rvBldMstVapPressNode%MetaType = 'units'
       rvBldMstVapPressNode%VariableType = '(Pa)'
       rvBldMstVapPressNode%Description = 'Vapour pressure at mnode (for mould analysis)'
       Call AddVariable(rvBldMstVapPressNode)
 
-      rvBldMstRHnode%VariableName = 'building/*/*/*/relhum'
+      rvBldMstRHnode%VariableName = 'building/*/*/*/mn_relhum'
       rvBldMstRHnode%MetaType = 'units'
       rvBldMstRHnode%VariableType = '(%)'
       rvBldMstRHnode%Description = 'Relative humidity at mnode (for mould analysis)'
       Call AddVariable(rvBldMstRHnode)
 
-      rvBldMstStorage%VariableName = 'building/*/*/*/mst_storage'
+      rvBldMstStoreCap%VariableName = 'building/*/*/*/mn_mst_store_cap'
+      rvBldMstStoreCap%MetaType = 'units'
+      rvBldMstStoreCap%VariableType = '(kg/m2)'
+      rvBldMstStoreCap%Description = 'Moisture storage capacity at mnode (for mould analysis)'
+      Call AddVariable(rvBldMstStoreCap)
+
+      rvBldMstStorage%VariableName = 'building/*/*/*/mn_mst_storage'
       rvBldMstStorage%MetaType = 'units'
       rvBldMstStorage%VariableType = '(??)'
-      rvBldMstStorage%Description = 'Moisture storage term at mnode (for mould analysis)'
+      rvBldMstStorage%Description = 'Moisture storage at mnode (for mould analysis)'
       Call AddVariable(rvBldMstStorage)
+
+      rvBldMstTNode%VariableName = 'building/*/*/*/mn_temp'
+      rvBldMstTNode%MetaType = 'units'
+      rvBldMstTNode%VariableType = '(C)'
+      rvBldMstTNode%Description = 'Temperature at mnode (for mould analysis)'
+      Call AddVariable(rvBldMstTNode)
 
       !Used by pcomp2.F
       rvPltQAddedH%VariableName = 'plant/*/misc_data/Q_added_heat'
