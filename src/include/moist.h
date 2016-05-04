@@ -1,3 +1,6 @@
+
+      integer LEGACY,OTTO
+
       PARAMETER (LEGACY=1)
       PARAMETER (OTTO=2)
 

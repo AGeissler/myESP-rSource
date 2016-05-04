@@ -82,7 +82,8 @@ C       Legacy model
 C       Otto model
         U01=1000.*(exp(Uh*RH+CFF*RH**2+EXPT*RH**3)-1.)
       endif
-      IF(U01.LT.0.0)STOP 'Error (703): negative moisture content.'
+cx      IF(U01.LT.0.0)STOP 'Error (703): negative moisture content.'
+      IF (U01.LT.0.0) U01=0.001
       RETURN
       END
 C *********************************************************************

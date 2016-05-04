@@ -194,7 +194,8 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvPltSDHWSumRecH,rvPltSDHWsumAvailSolEn
 
    !Used by moistr.F
-   Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode,rvBldMstStoreCap,rvBldMstStorage,rvBldMstTNode
+   Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode,rvBldMstStoreCap,rvBldMstStorage, &
+        rvBldMstStorageMass,rvBldMstTNode
 
    !Used by pcomp2.F
    !Claude - potential error found rvPltDefrostStat
@@ -1959,11 +1960,17 @@ CONTAINS
       rvBldMstStoreCap%Description = 'Moisture storage capacity at mnode (for mould analysis)'
       Call AddVariable(rvBldMstStoreCap)
 
-      rvBldMstStorage%VariableName = 'building/*/*/*/mn_mst_storage'
+      rvBldMstStorage%VariableName = 'building/*/*/*/mn_mst_cont_vol'
       rvBldMstStorage%MetaType = 'units'
-      rvBldMstStorage%VariableType = '(??)'
-      rvBldMstStorage%Description = 'Moisture storage at mnode (for mould analysis)'
+      rvBldMstStorage%VariableType = '(kg/m3)'
+      rvBldMstStorage%Description = 'Moisture content at mnode (for mould analysis)'
       Call AddVariable(rvBldMstStorage)
+
+      rvBldMstStorageMass%VariableName = 'building/*/*/*/mn_mst_cont_mass'
+      rvBldMstStorageMass%MetaType = 'units'
+      rvBldMstStorageMass%VariableType = '(kg/kg)'
+      rvBldMstStorageMass%Description = 'Moisture content at mnode per dry mass (for mould analysis)'
+      Call AddVariable(rvBldMstStorageMass)
 
       rvBldMstTNode%VariableName = 'building/*/*/*/mn_temp'
       rvBldMstTNode%MetaType = 'units'

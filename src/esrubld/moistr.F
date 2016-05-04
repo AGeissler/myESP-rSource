@@ -1671,6 +1671,7 @@ C *********************************************************************
 #include "building.h"
 C geometry.h for zname.
 #include "geometry.h"
+#include "moist.h"
 
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       integer       IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -1683,8 +1684,15 @@ C.....Surface area data
      &             NPGAP(MCOM,MS,MGP)
       integer NCONST,NELTS,NGAPS,NPGAP
 
+      COMMON/VTHP14/THRMLI(MCOM,MS,ME,7)
+      real THRMLI
+
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)
       integer MNDS,MNDZ,MNDC,MNDL
+
+      COMMON/MOIST06/ISORP(MCOM,MS,ME),SORP(MCOM,MS,ME,3)
+      integer ISORP
+      real SORP
 
       COMMON/MOIST09/IMSTR
       integer IMSTR
@@ -1692,8 +1700,9 @@ C.....Surface area data
       COMMON/MOIST26/XIpfair,RXIVpf(MS,MNM)
       real XIpfair,RXIVpf
 
-      COMMON/MOIST50/TMNp(MCOM,MS,MNM) ! ag@20160503
-      real TMNf
+      COMMON/MOIST50/TMNp(MCOM,MS,MNM),U01p(MCOM,MS,MNM),
+     &               U02p(MCOM,MS,MNM) ! ag@20160504
+      real TMNp,U01p,U02p
 
       COMMON/MOIST52/Pf(MCOM,MS,MNM),Ff(MCOM,MS,MNM),Sf(MCOM)
       real Pf,Ff,Sf
@@ -1702,9 +1711,9 @@ C.....Subroutine signature
       integer ICOMP
 
 C     Local variables
-      integer NC,iSurf,NM,iNode
+      integer NC,iSurf,NM,iMNode,NE,iLay,IL
 
-      real Ps
+      real Ps,RH,Uh,CFF,EXPT,DNSTY
 
 C     DECLARATIONS for H3Kreporting object
       CHARACTER*12 cZone_Chars   ! zname(MCOM)
@@ -1712,7 +1721,7 @@ C     DECLARATIONS for H3Kreporting object
       CHARACTER*8  cNode_Chars   !
 
 C     FUNCTIONS
-      real Psat01
+      real Psat01,U01,U02
 
 C.....Switch for zone name output here
       if (ReportBoolConfig("use_zonenames")) then
@@ -1728,7 +1737,6 @@ C.......Pad zone index to 'XX'
 
         NC=NCONST(ICOMP)
         DO 10 iSurf=1,NC
-          NM=MNDC(ICOMP,iSurf)
 
 C.........Switch for surface name output here
           if (ReportBoolConfig ("use_surfacenames")) then
@@ -1744,29 +1752,39 @@ C...........Pad surface index to 'XX'
           endif ! use_surfacenames
 
 C         XML output for each moisture node of surface iSurf.
-          do iNode = 1,mndc(ICOMP,iSurf)
-            if ( iNode .gt. 9 ) then
-              write(cNode_Chars, '(A,I2)') 'mnode_', iNode
+          do iMNode = 1,mndc(ICOMP,iSurf)
+            if ( iMNode .gt. 9 ) then
+              write(cNode_Chars, '(A,I2)') 'mnode_', iMNode
             else
-              write(cNode_Chars, '(A,I1)') 'mnode_0', iNode
+              write(cNode_Chars, '(A,I1)') 'mnode_0', iMNode
             endif
+
+C           Find iLay for each iMNode ...
+            NE=NELTS(ICOMP,iSurf)   ! number of layers in surface
+            NM=0
+            do IL=1,NE
+              NM=NM+MNDL(ICOMP,iSurf,IL) ! moisture nodes per layer
+              if (iMNode.le.NM) iLay=IL
+            enddo ! IL ...
 
 C           Vapour pressure at "mould node"
 C           (Nodes *not* necessarily identical to construction nodes!)
             Call AddToReport(
      &             rvBldMstVapPressNode%Identifier,
-cx     &             Pn(iSurf,iNode),
-     &             Pf(ICOMP,iSurf,iNode),
+cx     &             Pn(iSurf,iMNode),
+     &             Pf(ICOMP,iSurf,iMNode),
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
 
 C           Relative humidity at "mould node"
-            Ps=Psat01(TMNf(ICOMP,iSurf,iNode))
+            Ps=Psat01(TMNp(ICOMP,iSurf,iMNode))
+            RH=Pf(ICOMP,iSurf,iMNode)/Ps*100.0
+
             Call AddToReport(
      &             rvBldMstRHnode%Identifier,
-cx     &             Pn(iSurf,iNode)/Ps*100.0,
-     &             Pf(ICOMP,iSurf,iNode)/Ps*100.0,
+cx     &             Pn(iSurf,iMNode)/Ps*100.0,
+     &             RH,
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
@@ -1774,17 +1792,31 @@ cx     &             Pn(iSurf,iNode)/Ps*100.0,
 C           Moisture storage capacity at "mould node"
             Call AddToReport(
      &             rvBldMstStoreCap%Identifier,
-     &             RXIVpf(iSurf,iNode)/SNA(ICOMP,iSurf),
+     &             RXIVpf(iSurf,iMNode)/SNA(ICOMP,iSurf),
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
 
-C           Moisture content ????
+C           Moisture content at "mould node", kg/m3
+            Uh=SORP(ICOMP,iSurf,iLay,1)
+            CFF=SORP(ICOMP,iSurf,iLay,2)
+            EXPT=SORP(ICOMP,iSurf,iLay,3)
 
-C           Moisture storage at "mould node"
             Call AddToReport(
      &             rvBldMstStorage%Identifier,
-     &             Ff(ICOMP,iSurf,iNode),
+cx     &             Ff(ICOMP,iSurf,iMNode),
+     &             U01(iMoistModel(ICOMP),RH,Uh,CFF,EXPT),
+     &             cZone_Chars,
+     &             cSurf_Chars,
+     &             cNode_Chars)
+
+C           Moisture content at "mould node", kg/kg
+            DNSTY=THRMLI(ICOMP,iSurf,iLay,2)
+
+            Call AddToReport(
+     &             rvBldMstStorageMass%Identifier,
+cx     &             Ff(ICOMP,iSurf,iMNode),
+     &             U02(iMoistModel(ICOMP),RH,Uh,CFF,EXPT,DNSTY),
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
@@ -1792,7 +1824,7 @@ C           Moisture storage at "mould node"
 C           Temperature at "mould node"
             Call AddToReport(
      &             rvBldMstTNode%Identifier,
-     &             TMNp(ICOMP,iSurf,iNode),
+     &             TMNp(ICOMP,iSurf,iMNode),
      &             cZone_Chars,
      &             cSurf_Chars,
      &             cNode_Chars)
