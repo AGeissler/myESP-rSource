@@ -90,7 +90,7 @@ MODULE h3kmodule
          rvHeatFluxAboveGradeNet, rvHeatFluxSpecifiedBCsNet, rvHeatFluxBelowGradeNet, &
          rvHeatFluxCENPartitionNet, rvAirPointTemperature, rvAirPointRadiantGains, rvAirPointConvectiveGains, &
          rvAirPointLatentGains, rvWindowsPosition, rvAirFlowModel, &
-         rvAirPointRelativeHumidity, rvSuppliedEnergyNet, rvSuppliedEnergyHeating, &
+         rvAirPointRelativeHumidity, rvAirPointVapourPressure, rvSuppliedEnergyNet, rvSuppliedEnergyHeating, &
          rvSuppliedEnergyCooling, rvSuppliedEnergyNetPerm2, rvSuppliedEnergyHeatingPerm2, &
          rvSuppliedEnergyCoolingPerm2, rvThermalLoadsHeatingTotal, rvThermalLoadsCoolingTotal, &
          rvThermalLoadsNetLoad, rvThermalLoadsHeatingTotalPerm2, rvThermalLoadsCoolingTotalPerm2, &
@@ -128,7 +128,7 @@ MODULE h3kmodule
          rvClimateSolarDiffuseHorizontalRadiation, rvClimateSolarDirectNormalRadiation, &
          rvClimateDryBulbTemperature, rvClimateRelativeHumidity, rvClimateWindVelocity, &
          rvClimateWindDirection, rvClimateCloudCover, rvClimateSkyTemperature, &
-         rvClimateSkyTemperatureDepression, rvClimateAmbientAirTsat, &
+         rvClimateSkyTemperatureDepression, rvClimateAmbientAirTsat, rvClimateVapourPressure, &
          rvBuildingAllZonesFreeCooling
    Type(ReportVariable) :: rvBuildingTimePresent, rvBuildingTimeFuture,rvBuildingHourPresent, &
          rvBuildingHourFuture,rvBuildingDayNumberPresent, rvBuildingDayNumberFuture,&
@@ -483,6 +483,12 @@ CONTAINS
       rvAirPointRelativeHumidity%VariableType = '(%)'
       rvAirPointRelativeHumidity%Description = 'Zone relative humidity'
       Call AddVariable(rvAirPointRelativeHumidity)
+
+      rvAirPointVapourPressure%VariableName = 'building/*/air_point/vappress'
+      rvAirPointVapourPressure%MetaType = 'units'
+      rvAirPointVapourPressure%VariableType = '(Pa)'
+      rvAirPointVapourPressure%Description = 'Zone vapour pressure'
+      Call AddVariable(rvAirPointVapourPressure)
 
       rvSuppliedEnergyNet%VariableName = 'building/*/supplied_energy/net'
       rvSuppliedEnergyNet%MetaType = 'units'
@@ -1074,6 +1080,12 @@ CONTAINS
       rvClimateRelativeHumidity%VariableType = '(%)'
       rvClimateRelativeHumidity%Description = 'Climate relative humidity'
       Call AddVariable(rvClimateRelativeHumidity)
+
+      rvClimateVapourPressure%VariableName = 'climate/vappress'
+      rvClimateVapourPressure%MetaType = 'units'
+      rvClimateVapourPressure%VariableType = '(Pa)'
+      rvClimateVapourPressure%Description = 'Climate vapour pressure'
+      Call AddVariable(rvClimateVapourPressure)
 
       rvClimateWindVelocity%VariableName = 'climate/wind/velocity'
       rvClimateWindVelocity%MetaType = 'units'

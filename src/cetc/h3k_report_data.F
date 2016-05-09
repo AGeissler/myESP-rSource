@@ -561,7 +561,7 @@ C----------------------------------------------------------------------
       real PCRH2                   ! Function returning relative
                                    ! humidity given zone temperature,
                                    ! moisture content and atm. pressure.
-
+      real Psat01                  ! Saturation vapour pressure (Pa)
 
 
 C----------------------------------------------------------------------
@@ -1541,6 +1541,12 @@ C.....Zone relative humidity
      &         fZoneRH,
      &         cZone_Chars)
 
+C.....Zone vapour pressure
+      call AddToReport (
+     &         rvAirPointVapourPressure%Identifier,
+     &         fZoneRH/100.*Psat01(TFA(iZone)),
+     &         cZone_Chars)
+
 C.....ZONE HEAT INJECTION / EXTRACTION
       call AddToReport (
      &         rvSuppliedEnergyNet%Identifier,
@@ -2351,8 +2357,9 @@ C.....DECLARATIONS for H3Kreporting object
 C----------------------------------------------------------------------
 C     References
 C----------------------------------------------------------------------
-      REAL HUMR      ! Function returning the humidity ratio
+      REAL HUMR     ! Function returning the humidity ratio
       REAL DEWPT    ! Function returning the saturation temperature
+      REAL Psat01   ! Function returning saturation vapour pressure
 
 C.....The following code is used to transport data to
 C.....the H3K reporting object.
@@ -2378,6 +2385,10 @@ C.....Relative humidity
      &    rvClimateRelativeHumidity%Identifier,
      &    HF)
 
+C.....Vapour pressure
+      call AddToReport(
+     &    rvClimateVapourPressure%Identifier,
+     &    HF/100.*Psat01(TF))
 
 C.....WIND VELOCITY
       call AddToReport(
