@@ -765,6 +765,7 @@ C *********************************************************************
       COMMON/MOIST16/PATMpa
       COMMON/MOIST17/RHmax
       COMMON/MOIST21/CPpair,CPfair,RHOpair,RHOfair,Upair,Ufair
+      COMMON/MOIST22/APp(MCOM,MS),APf(MCOM,MS)
       COMMON/MOIST23/TMPp(MS,MNM),TMPf(MS,MNM)
       COMMON/MOIST25/BETAif(MCOM,MS),BETAof(MCOM,MS)
       COMMON/MOIST26/XIpfair,RXIVpf(MS,MNM)
@@ -805,7 +806,8 @@ C Calculate the future time heat capacity for air.
       CPfair=CPmst01(TCfair,Ufair)
       CPsair(ICOMP)=CPfair
 
-C Calculate the moisture capacity for air.
+C Calculate the moisture capacity for the zone air.
+C << and adjacent air ?? >>
       Pvp=Ppair(ICOMP)
       Pvf=Pfair(ICOMP)
       TCp=TPA(ICOMP)
@@ -813,13 +815,26 @@ C Calculate the moisture capacity for air.
       XIpfair=XIair01(Pvp,Pvf,TCp,TCf,PATMpa)
 
 C Estimate the future time convective mass transfer coefficients.
+C << partial use of "zone" values for adjacent boundary ... !!?? >>
       NC=NCONST(ICOMP)
       DO 20 I=1,NC
+C       Internal construction surface, TCfair is future zone air temp.
         ALPHA=HCIF(ICOMP,I)
         BETAif(ICOMP,I)=BETA01(ALPHA,CPfair,TCfair)
+C       External construction surface
         ALPHA=HCOF(ICOMP,I)
-        TCf=ATF(ICOMP,I)
-        BETAof(ICOMP,I)=BETA01(ALPHA,CPfair,TCf)
+        TCf=ATF(ICOMP,I) ! future adjacent temperature
+        if(Psat01(TCf).ne.0.0)then
+          RH=APf(ICOMP,I)/Psat01(TCf)
+        else
+          write(outs,*)
+     &      'Psat01(TCf) for zone ',ICOMP,
+     &      ', surface ',I,' returning zero ',TCf
+          call edisp(iuout,outs)
+        endif
+        AUfair=X03(TCf,RH,PATMpa)
+        ACPfair=CPmst01(TCf,AUfair)
+        BETAof(ICOMP,I)=BETA01(ALPHA,ACPfair,TCf)
    20 CONTINUE
 
 C For construction moisture nodes.

@@ -212,16 +212,21 @@ C *********************************************************************
       RHfp=RHf-RHp
       IF(ABS(RHfp).LT.1.0e-6)THEN
         XIair01=XIair02(Pvp,TCp,Pt)
+        iSource=1
       ELSE
         Xp=X03(TCp,RHp,Pt)
         Xf=X03(TCf,RHf,Pt)
         XIair01=(Xf-Xp)/RHfp
-        IF(XIair01.LT.0.0)XIair01=XIair02(Pvp,TCp,Pt)
+        iSource=2
+        IF(XIair01.LT.0.0) then
+          XIair01=XIair02(Pvp,TCp,Pt)
+          iSource=3
+        ENDIF
       ENDIF
       IF(XIair01.LT.DBLE(SMALL))then
         call edisp(iuout,
      &'XIair01: small moisture cap for case of: Pvp Pvf TCp TCf Pt')
-        write(outs,*) Pvp,Pvf,TCp,TCf,Pt,' resetting'
+        write(outs,*) Pvp,Pvf,TCp,TCf,Pt,iSource,' resetting'
         call edisp(iuout,outs)
         XIair01=1.0E-10
       endif
