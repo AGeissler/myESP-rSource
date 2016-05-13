@@ -170,9 +170,9 @@ C *********************************************************************
       DTfalse=3600.0
 
       GAMm=0.5
-      RLXln=0.3    ! RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
-      RLXlnF=0.1   ! RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
-      RLXlnT=0.3   ! RLX T_new + (1-RLX) T_old
+      RLXln=0.4    !0.1  RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
+      RLXlnF=0.2   !0.01 RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
+      RLXlnT=0.4   !0.1  RLX T_new + (1-RLX) T_old
 
       MITRM=500
 

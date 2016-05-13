@@ -218,16 +218,17 @@ C *********************************************************************
         Xf=X03(TCf,RHf,Pt) ! kg_vap / kg_dry-air
         XIair01=(Xf-Xp)/RHfp
         iSource=2
-        IF(XIair01.LT.0.0) then
+        IF(XIair01.LE.0.0) then
           XIair01=XIair02(Pvp,TCp,Pt)
           iSource=3
         ENDIF
       ENDIF
       IF(XIair01.LT.DBLE(SMALL))then
-        call edisp(iuout,
-     &'XIair01: small moist. cap for case of: Pvp..f Tp..f Psp..f Pt')
-        write(outs,'(6(F8.4,1X),I6,I2,A)')
-     &    Pvp,Pvf,TCp,TCf,Psp,Psf,int(Pt),iSource,' resetting'
+        write(outs,'(A,A)')'XIair01: small moist. cap for case of:',
+     &   ' Pvp Pvf TCp TCf  RHfp Xp Xf  Pabs iS'
+        call edisp(iuout,outs)
+        write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,I2,A)')
+     &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,' resetting'
         call edisp(iuout,outs)
         XIair01=1.0E-10
       endif
