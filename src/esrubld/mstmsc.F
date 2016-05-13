@@ -59,7 +59,7 @@ C relative humidity and sorption isotherms provided by (Marieke 1994,
 C Hansen 1986 Technical reprort 162/86 Technical University of Denmark).
 C U01   moisture content (kg/m3)
 C RH    relative humidity
-C Uh    max hygroscopic moisture content (kg/kg)
+C Uh    max hygroscopic moisture content (kg/m3) ((?? unit??))
 C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
 C
@@ -83,7 +83,7 @@ C       Otto model
         U01=1000.*(exp(Uh*RH+CFF*RH**2+EXPT*RH**3)-1.)
       endif
 cx      IF(U01.LT.0.0)STOP 'Error (703): negative moisture content.'
-      IF (U01.LT.0.0) U01=0.001
+      IF (U01.LT.0.0) U01=0.00001
       RETURN
       END
 C *********************************************************************
@@ -105,7 +105,7 @@ C provided by (Marieke 1994, Hansen 1986 Technical reprort 162/86
 C Technical University of Denmark).
 C XI01  moisture capacity (kg/m3)
 C RH    relative humidity (-)
-C Uh    max hygroscopic moisture content (kg/kg)
+C Uh    max hygroscopic moisture content (kg/m3) ((unit?? ))
 C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
 C
@@ -127,7 +127,7 @@ C       Legacy model
       elseif (iMM.eq.2) then
 C       Otto model
         XI01=1000.*exp(Uh*RH+CFF*RH**2+EXPT*RH**3)
-     &         *(3*EXPT*RH**2+2*CFF*RH+Uh)
+     &         *(3.*EXPT*RH**2+2.*CFF*RH+Uh)
         XI01=max(DBLE(SMALL),XI01)
       endif
       IF(XI01.LT.DBLE(SMALL))then
@@ -214,8 +214,8 @@ C *********************************************************************
         XIair01=XIair02(Pvp,TCp,Pt)
         iSource=1
       ELSE
-        Xp=X03(TCp,RHp,Pt)
-        Xf=X03(TCf,RHf,Pt)
+        Xp=X03(TCp,RHp,Pt) ! kg_vap / kg_dry-air
+        Xf=X03(TCf,RHf,Pt) ! kg_vap / kg_dry-air
         XIair01=(Xf-Xp)/RHfp
         iSource=2
         IF(XIair01.LT.0.0) then
@@ -225,8 +225,9 @@ C *********************************************************************
       ENDIF
       IF(XIair01.LT.DBLE(SMALL))then
         call edisp(iuout,
-     &'XIair01: small moisture cap for case of: Pvp Pvf TCp TCf Pt')
-        write(outs,*) Pvp,Pvf,TCp,TCf,Pt,iSource,' resetting'
+     &'XIair01: small moist. cap for case of: Pvp..f Tp..f Psp..f Pt')
+        write(outs,'(6(F8.4,1X),I6,I2,A)')
+     &    Pvp,Pvf,TCp,TCf,Psp,Psf,int(Pt),iSource,' resetting'
         call edisp(iuout,outs)
         XIair01=1.0E-10
       endif
@@ -250,7 +251,7 @@ C *********************************************************************
       Ps=Psat01(TC)
       RH=Pv/Ps
       IF(RH.GT.RHmax)RH=RHmax
-      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2
+      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-]? Should be kg/m3 !!?
       IF(XIair02.LT.DBLE(SMALL))then
         call edisp(iuout,'XIair02: very small moisture capacity.')
         call epwait

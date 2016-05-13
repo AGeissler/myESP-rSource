@@ -170,12 +170,15 @@ C *********************************************************************
       DTfalse=3600.0
 
       GAMm=0.5
-      RLXln=0.1    ! RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
-      RLXlnF=0.01  ! RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
-      RLXlnT=0.1   ! RLX T_new + (1-RLX) T_old
+      RLXln=0.3    ! RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
+      RLXlnF=0.1   ! RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
+      RLXlnT=0.3   ! RLX T_new + (1-RLX) T_old
+
       MITRM=500
+
       RITRMP=0.075 ! (Pf-Pn) FACTOR < RITRMP ? => O.K. (both for zone air and layers!)
       RITRMF=0.001 ! (Ff-Fn) FACTOR < RITRMF ? => O.K. (both for zone air and layers!)
+
       RHmax=0.99
       PATMpa=101325.0
       RETURN
@@ -311,7 +314,9 @@ C **********************************************************************
       COMMON/GR1D03/BCNV,ILUMP(MCOM,MS)
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)
       COMMON/MOIST23/TMPp(MS,MNM),TMPf(MS,MNM)
-      COMMON/MOIST50/TMNp(MCOM,MS,MNM) ! ag@20160503
+      COMMON/MOIST50/TMNp(MCOM,MS,MNM) ! ag@20160504
+      real TMNp
+
       character outs*124
 
       NC=NCONST(ICOMP)
@@ -787,7 +792,7 @@ C *********************************************************************
 C Set moisture model for this zone
       iMM=iMoistModel(ICOMP)
 
-C Calculate the future time vapour ratio for air.
+C Calculate the future time vapour ratio for zone air.
       TCfair=TFA(ICOMP)
       if(Psat01(TCfair).ne.0.0)then
         RH=Pnair/Psat01(TCfair)
@@ -798,16 +803,15 @@ C Calculate the future time vapour ratio for air.
       Ufair=X03(TCfair,RH,PATMpa)
       Usair(ICOMP)=Ufair
 
-C Calculate the future time density for dry air.
+C Calculate the future time density for dry zone air.
       RHOfair=RHOdry01(TCfair)
       RHOsair(ICOMP)=RHOfair
 
-C Calculate the future time heat capacity for air.
+C Calculate the future time heat capacity for zone air.
       CPfair=CPmst01(TCfair,Ufair)
       CPsair(ICOMP)=CPfair
 
 C Calculate the moisture capacity for the zone air.
-C << and adjacent air ?? >>
       Pvp=Ppair(ICOMP)
       Pvf=Pfair(ICOMP)
       TCp=TPA(ICOMP)
@@ -815,12 +819,12 @@ C << and adjacent air ?? >>
       XIpfair=XIair01(Pvp,Pvf,TCp,TCf,PATMpa)
 
 C Estimate the future time convective mass transfer coefficients.
-C << partial use of "zone" values for adjacent boundary ... !!?? >>
       NC=NCONST(ICOMP)
       DO 20 I=1,NC
 C       Internal construction surface, TCfair is future zone air temp.
         ALPHA=HCIF(ICOMP,I)
         BETAif(ICOMP,I)=BETA01(ALPHA,CPfair,TCfair)
+
 C       External construction surface
         ALPHA=HCOF(ICOMP,I)
         TCf=ATF(ICOMP,I) ! future adjacent temperature
@@ -1715,9 +1719,8 @@ C.....Surface area data
       COMMON/MOIST26/XIpfair,RXIVpf(MS,MNM)
       real XIpfair,RXIVpf
 
-      COMMON/MOIST50/TMNp(MCOM,MS,MNM),U01p(MCOM,MS,MNM),
-     &               U02p(MCOM,MS,MNM) ! ag@20160504
-      real TMNp,U01p,U02p
+      COMMON/MOIST50/TMNp(MCOM,MS,MNM) ! ag@20160504
+      real TMNp
 
       COMMON/MOIST52/Pf(MCOM,MS,MNM),Ff(MCOM,MS,MNM),Sf(MCOM)
       real Pf,Ff,Sf
