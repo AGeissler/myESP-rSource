@@ -1636,6 +1636,7 @@ C-------------------------------------------------------------------------------
 
 C--------
       integer lnblnk
+      ITU=IUOUT  ! assign unit for warning message.
 
 C-------------------------------------------------------------------------------------------
 C From: esrupfs/powow_calc.F, function fGet_nonHVACld(cFileName), line 357 ff.

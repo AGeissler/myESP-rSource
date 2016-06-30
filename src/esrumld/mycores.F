@@ -289,13 +289,13 @@ C ****************** mycograph *****************************
       integer igwid,igheight  ! for use with axiscale
       integer ipos,isize      ! for use with etlabel
       integer iupdown,isym    ! passed to etplot
-      integer iicol
+      integer iicol,iix,iiy
       integer iigl,iigr,iigt,iigb,iigw,iigwh
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 ipos,isize      ! for use with etlabel
       integer*8 iupdown,isym    ! passed to etplot
-      integer*8 iicol
+      integer*8 iicol,iix,iiy
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
 #endif
 
@@ -416,9 +416,11 @@ C Draw on mould growth curves curves.
         endif
    90 continue
                 
-C Draw on the selected points
+C Draw on the selected points.
       do 99 ipt=1,npoint
-        call ecirc(ixt(ipt),iyr(ipt),3,1) 
+        iix=ixt(ipt); iiy=iyr(ipt)
+C        call ecirc(ixt(ipt),iyr(ipt),3,1) 
+        call ecirc(iix,iiy,3,1) 
   99  continue
       call forceflush()
 
@@ -461,13 +463,13 @@ C Help text for this menu.
      &     20.0,'max temp',IER,nbhelp)
          call easkr(rval,'RH %','for point ? ',ymin,'F',ymax,'-',
      &     80.0,'max temp',IER,nbhelp)
-         call u2pixel(tval,rval,ix,iy)
+         call u2pixel(tval,rval,iix,iiy)
          npoint=npoint+1
          tpt(npoint)=tval
          rpt(npoint)=rval
-         ixt(npoint)=ix
-         iyr(npoint)=iy
-         call ecirc(ix,iy,3,1)
+         ixt(npoint)=iix
+         iyr(npoint)=iiy
+         call ecirc(iix,iiy,3,1)
        endif
       ELSEIF(INO.EQ.2)THEN
         val = Xmax
