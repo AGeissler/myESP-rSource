@@ -758,7 +758,11 @@ C the ficticious limit then mark to be skipped. Convert visible
 C transmission to transmissivity (as per Ward 1/12/94 Radiance 2.4 paper).
 C If TMC has an opaque layer then set gvt to a small number.
         if(mlctype(IM)(1:4).NE.'OPAQ')then
-          CALL EROPTDB(ITRC,iuout,OPT,GDESCR,IER)
+          if(mlctype(IM)(1:3).EQ.'CFC')then
+            VTRN=0.65
+          else ! TMC
+            CALL EROPTDB(ITRC,iuout,OPT,GDESCR,IER)
+          endif
           if(VTRN.gt.0.02)then
           gvt1=(sqrt(0.8402528435+(0.007252224*VTRN*VTRN))-0.9166530661)
           gvt=gvt1/0.0036261119/VTRN
