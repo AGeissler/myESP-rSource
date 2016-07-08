@@ -1302,8 +1302,7 @@ C << use call to matchmlcdesc >>
           ifict=0
           call matchmlcdesc(SSMLCN(icn),icf)
           if(ICF.eq.-1.or.SSMLCN(icn)(1:4).eq.'UNKN')then
-            if (SSOTF(icn)(1:4).ne.'OPAQ'.and.
-     &          SSOTF(icn)(1:4).ne.'CFC ') then
+            if (SSOTF(icn)(1:4).ne.'OPAQ') then
               material='unknown_glz'
             else
               material='unknown'
@@ -1327,8 +1326,7 @@ C Aternative glazing descriptions file.
               WRITE(ita2,'(a)') outs
               WRITE(ita2,'(a)') '  '
             endif
-          elseif(SSOTF(icn)(1:4).ne.'OPAQ'.and.
-     &           SSOTF(icn)(1:4).ne.'CFC ')then
+          elseif(SSOTF(icn)(1:4).ne.'OPAQ')then
 
 C Create surface based on the following:
 C  Focus zone - create.
