@@ -1417,9 +1417,6 @@ C Clear the CFC layers common blocks.
 
 C Did not find the correct header so quit with error.
         ier=-2
-
-cx << include error message, here?!!
-
         CALL ERPFREE(IFA,ISTAT)
         return
       endif
