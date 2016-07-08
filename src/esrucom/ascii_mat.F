@@ -1419,7 +1419,7 @@ C Did not find the correct header so quit with error.
         ier=-2
 
 cx << include error message, here?!!
-        write(*,*)" *** something wrong, here !! "
+
         CALL ERPFREE(IFA,ISTAT)
         return
       endif
