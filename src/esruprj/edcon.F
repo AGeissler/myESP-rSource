@@ -1236,6 +1236,10 @@ C with ier=1.
 
 C Establish if CFC layer data arrays have been filled. If not return
 C with ier=1.
+
+cx << shouldn't a "CFCDBOK" check be done here also (or instead of the below)??
+cx
+
       call eclose(cfcver,1.1,0.01,closecfc1)
       if(closecfc1)then
         continue
