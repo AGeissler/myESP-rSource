@@ -4700,7 +4700,7 @@ C facilities. Created by Achim Geissler, June 17 2008.
       implicit none
 
 #include "building.h"
-C for zname
+C for zname, sname
 #include "geometry.h"
 
 C Parameters.
@@ -4719,6 +4719,7 @@ C Commons.
 
 C Local variables.
       character*12 cZone_Chars, cSurf_Chars
+      character*34 cZoneSurfNode
       character*2  cNode_Chars
       integer ndat,idat
 
@@ -4737,28 +4738,31 @@ C.......Pad zone index to 'XX'
         endif
       endif ! use_zonenames
 
-C << the following would ideally require that surface name lengths
-C    are stored in a common like zone name lengths ... filled in
-C    georead() (egeometry.F line 1750 ff.)/ egomin() (egeometry.F line 594)? >>
-
 C.....Switch for surface name output here
-cx      if (ReportBoolConfig ("use_surfacenames")) then
-cx        write (cSurf_Chars,'(A)')
-cx     &          sname(iZone,iSurface)(1:lnsname(icomp,isurf))
-cx      else
+      if (ReportBoolConfig("use_surfacenames")) then
+        write (cSurf_Chars,'(A)')
+     &          sname(iZone,iSurf)(1:lnsname(iZone,iSurf))
+      else
 C.......Pad surface index to 'XX'
         if ( iSurf .gt. 9 ) then
           write (cSurf_Chars,'(A,I2)') 'surface_',iSurf
         else
           write (cSurf_Chars,'(A,I1)') 'surface_0',iSurf
         endif
-c      endif ! use_surfacenames
+      endif ! use_surfacenames
 
       if(inode.gt.9)then
          write(cNode_Chars,'(i2)')inode
       else
          write(cNode_Chars,'(a,i1)') '0',inode
       endif
+
+      write(cZoneSurfNode,'(a)') cZone_Chars
+
+cx << bug in the "detailed report" functions with more than one "*"???
+cx    ag@2016/07/10
+cx      write(cZoneSurfNode,'(a,a,a,a,a)') cZone_Chars,'/',
+cx     &                            cSurf_Chars,'/nd',cNode_Chars
 
       ndat=min0(8,ndatspm(ispmnod)) !- maximum of 8 entries possible
 
@@ -4767,15 +4771,15 @@ C Output available PCM layer data.
          Call AddToReport(rvBuiSpm%Identifier,
      &      dataspm(ispmnod,idat),
      &      spmlabel(ispmnod)(1:lnblnk(spmlabel(ispmnod))),
-     &      '/' // cZone_Chars // '/' // cSurf_Chars
-     &   // '/nd' // cNode_Chars,
-     &      strspm(ispmnod,idat)(1:lnblnk(strspm(ispmnod,idat))))
+     &      cZoneSurfNode(1:lnblnk(cZoneSurfNode)),
+C << the strings "strspm" have a leading '/' ...
+     &      strspm(ispmnod,idat)(2:lnblnk(strspm(ispmnod,idat))))
 
          Call AddToReportDetails(rvBuiSpm%Identifier,
      &      spmlabel(ispmnod)(1:lnblnk(spmlabel(ispmnod))),
-     &      '/' // cZone_Chars // '/' // cSurf_Chars
-     &   // '/nd' // cNode_Chars,
-     &      strspm(ispmnod,idat)(1:lnblnk(strspm(ispmnod,idat))),
+     &      cZoneSurfNode(1:lnblnk(cZoneSurfNode)),
+C << the strings "strspm" have a leading '/' ...
+     &      strspm(ispmnod,idat)(2:lnblnk(strspm(ispmnod,idat))),
      &      'units',
      &      unitspm(ispmnod,idat)(1:lnblnk(unitspm(ispmnod,idat))),
      &      txtspm(ispmnod,idat)(1:lnblnk(txtspm(ispmnod,idat))))
