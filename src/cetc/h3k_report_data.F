@@ -3779,9 +3779,13 @@ C*******************************************************************************
       implicit none
 #include "building.h"
 #include "net_flow.h"
+#include "control.h"
 C.....ESP-r commons
 C      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
 C      CHARACTER LAPROB*72
+
+      COMMON/mfctl/ctlpos(MCNN)
+      REAL ctlpos
 
       COMMON/MFLOW1/NNOD,NCMP,NCNN
 C Network size
@@ -3853,12 +3857,12 @@ C     SAFLW  - node coupled sum of absolute mass flow rates (kg/s)
       DOUBLE PRECISION FLWINV(MNOD),FLWUTV(MNOD)
 
 C.....Local variables
-      integer ii,jj,ICONTM                    ! counters
-      CHARACTER*12 fluid                ! fluid type ('air' or 'water')
-      integer fluid_len          ! lenght of the fluid char
-      integer NDNAM_len          ! lenght of the NDNAM char
-      character*128 Connect_Name ! connection name
-      integer connect_len        ! connection name lenght
+      integer ii,jj,ICONTM,ICC,ICFP  ! counters
+      CHARACTER*12 fluid             ! fluid type ('air' or 'water')
+      integer fluid_len              ! lenght of the fluid char
+      integer NDNAM_len              ! lenght of the NDNAM char
+      character*128 Connect_Name     ! connection name
+      integer connect_len            ! connection name lenght
 
       integer i_neg, i_CompType,i_CompIndex
 
@@ -3939,7 +3943,6 @@ C.........output node data
      &      fluid(1:fluid_len),
      &      NDNAM(ii)(1:NDNAM_len))
 
-
 C........Build connection name
 C........Only use positive side of connections
 
@@ -3956,14 +3959,38 @@ C.........Loop through all interconnections in a flow network
      &             CMNAM(ITPCON(jj))(1:LNBLNK(CMNAM(ITPCON(jj))))
 
                connect_len = LNBLNK(Connect_name)
-       ! pressure drop between nodes of connection ***********************
+
+C...........Connection control data output ******************************
+C           Check if mass flow control function active
+            IF (NCC.GT.0) then
+
+C             Loop through all mass flow control functions
+              DO 100 ICC=1,NCC
+                ICFP=ICC
+
+C               Control setpoint at connection
+                if (ifan(ICFP,1).eq.-3) then
+
+                  call AddToReport(
+     &           rvMfnConnectCtlOnFrac%Identifier,
+     &           ctlpos(ifan(ICFP,2)),
+     &           fluid(1:fluid_len),
+     &           Connect_Name(1:connect_len))
+
+                endif
+
+  100         CONTINUE ! Control function loop
+
+            ENDIF ! Check flow control active
+
+       ! pressure drop between nodes of connection **********************
                call AddToReport(
      &            rvMfnConnectPressureDrop%Identifier,
      &            real(PRES(ii)-PRES(i_neg)),
      &            fluid(1:fluid_len),
      &            Connect_Name(1:connect_len))
 
-        ! flow through connection ****************************************
+        ! flow through connection ***************************************
                call AddToReport(
      &            rvMfnConnectFlowRate%Identifier,
      &            real(FLW1(jj)),
@@ -4052,7 +4079,7 @@ C.........output contaminant concentration
 
         ! whatever *****************************************************
 
-      enddo                     !<- node loop end
+      enddo                    !<- node loop end
 
       return
       end

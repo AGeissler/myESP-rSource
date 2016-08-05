@@ -149,7 +149,7 @@ MODULE h3kmodule
          rvElecNetHybridComponentFlux, rvElecNetPowerOnlyComponents, &
          rvMfnTotalNodeFlowRate,rvMfnTotalNodeVolFlowRate,rvMfnTotalNodeTemp, &
          rvMfnConnectPressureDrop, rvMfnConnectFlowRate,rvMfnConnectVeloc, &
-         rvMfnContamCon, rvZoneLabel
+         rvMfnContamCon, rvMfnConnectCtlOnFrac, rvZoneLabel
 
    !Used by SiteUtilities.F
    Type(ReportVariable) :: rvTFuelAllEndEnergyContent, rvTFuelAllEndQty, &
@@ -1423,6 +1423,12 @@ CONTAINS
       rvMfnContamCon%VariableType = '(kg/kg)'
       rvMfnContamCon%Description = 'mfn contaminant concentration'
       Call AddVariable(rvMfnContamCon)
+
+      rvMfnConnectCtlOnFrac%VariableName = 'mfn/*/*/onfrac'
+      rvMfnConnectCtlOnFrac%MetaType = 'units'
+      rvMfnConnectCtlOnFrac%VariableType = '(-)'
+      rvMfnConnectCtlOnFrac%Description = 'mfn connection control on fraction'
+      Call AddVariable(rvMfnConnectCtlOnFrac)
 
       !Used by SiteUtilities.F
       rvTFuelAllEndEnergyContent%VariableName = 'total_fuel_use/*/all_end_uses/energy_content'
