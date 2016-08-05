@@ -3857,12 +3857,12 @@ C     SAFLW  - node coupled sum of absolute mass flow rates (kg/s)
       DOUBLE PRECISION FLWINV(MNOD),FLWUTV(MNOD)
 
 C.....Local variables
-      integer ii,jj,ICONTM,ICC,ICFP  ! counters
-      CHARACTER*12 fluid             ! fluid type ('air' or 'water')
-      integer fluid_len              ! lenght of the fluid char
-      integer NDNAM_len              ! lenght of the NDNAM char
-      character*128 Connect_Name     ! connection name
-      integer connect_len            ! connection name lenght
+      integer ii,jj,ICONTM,ICC     ! counters
+      CHARACTER*12 fluid           ! fluid type ('air' or 'water')
+      integer fluid_len            ! lenght of the fluid char
+      integer NDNAM_len            ! lenght of the NDNAM char
+      character*128 Connect_Name   ! connection name
+      integer connect_len          ! connection name lenght
 
       integer i_neg, i_CompType,i_CompIndex
 
@@ -3966,17 +3966,19 @@ C           Check if mass flow control function active
 
 C             Loop through all mass flow control functions
               DO 100 ICC=1,NCC
-                ICFP=ICC
 
 C               Control setpoint at connection
-                if (ifan(ICFP,1).eq.-3) then
+                if (ifan(ICC,1).eq.-3) then
+C                 Is the current connection involved?
+                  if (ifan(ICC,2).eq.jj) then
 
-                  call AddToReport(
-     &           rvMfnConnectCtlOnFrac%Identifier,
-     &           ctlpos(ifan(ICFP,2)),
-     &           fluid(1:fluid_len),
-     &           Connect_Name(1:connect_len))
+                    call AddToReport(
+     &                rvMfnConnectCtlOnFrac%Identifier,
+     &                ctlpos(ifan(ICC,2)),
+     &                fluid(1:fluid_len),
+     &                Connect_Name(1:connect_len))
 
+                  endif
                 endif
 
   100         CONTINUE ! Control function loop
