@@ -891,7 +891,7 @@ C values are small then probably glass so just set dELTf1.
                 DELTf1=1.0e-12
               else
                 DELTf1=DELT01(iMM,RH1,UM0,UM100,B)
-                if(DELTf1.lt.1.0E-12)then
+                if(DELTf1.lt.1.0E-14)then
                   write(outs,'(a,3i3)') 
      &            'MZMCFF DELTf1 small at zone surf layer: ',icomp,i,IL
                   call edisp(iuout,outs)
@@ -914,7 +914,7 @@ C Check for small return values and identify source.
                 DELTf2=1.0e-12
               else
                 DELTf2=DELT01(iMM,RH2,UM0,UM100,B)
-                if(DELTf2.lt.1.0E-12)then
+                if(DELTf2.lt.1.0E-14)then
                   write(outs,'(a,3i3)') 
      &            'MZMCFF DELTf2 small at zone surf layer: ',icomp,i,IL
                   call edisp(iuout,outs)
