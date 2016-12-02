@@ -729,18 +729,18 @@ C and set the default viewing angles to 1.2 factor.
         call AZ2UV(dvazim,dvelev,vdx,vdy,vdz)
         if(short)then
           if(okfore.and.okaft)then
-            write(vewcmds(1),'(a,3F6.2,a,3F6.3,a,3F5.2,2(a,F5.1),a)') 
+            write(vewcmds(1),'(a,3F7.1,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
      &       '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &       ' -vu ',vux,vuy,vuz,' -vh ',dvangh,' -vv ',dvangv,
      &       ' -vs 0 -vl 0 -vo 0 -va 0'
           else
-            write(vewcmds(1),'(a,3F6.2,a,3F6.3,a,3F5.2,4(a,F5.1))') 
+            write(vewcmds(1),'(a,3F7.1,a,3F7.3,a,3F5.2,4(a,F5.1))') 
      &       '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &       ' -vu ',vux,vuy,vuz,' -vh ',dvangh,' -vv ',dvangv,
      &       ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
           endif
         else
-          write(vewcmds(1),'(a,3F8.2,a,3F6.3,a,3F5.2,4(a,F5.1))') 
+          write(vewcmds(1),'(a,3F8.2,a,3F7.3,a,3F5.2,4(a,F5.1))') 
      &       '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &       ' -vu ',vux,vuy,vuz,' -vh ',dvangh,' -vv ',dvangv,
      &       ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft

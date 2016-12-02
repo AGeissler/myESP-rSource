@@ -9406,12 +9406,15 @@ For the purposes of ESP-r, the use of WIS is focused on the'
         CALL EASKS(LCNN,' Updated surface connections file ?',' ',
         CALL EASKS(CFGFN,
         CALL EASKS(LCNN,' Updated surface connections file ?',' ',
-*item EDCONN
-'The current mosw description will be placed into this file.'
-'It is suggested that you define a new file (ie. '
-'project.cfg > project_a.cfg).'
+*item EDCONN surface_corner_detect
+'ESP-r provides two methods for scanning for geometric surface'
+'matches - within the topology checking facility and in the surface'
+'attribution [scan for nearby surfaces] option. Both check for a'
+'number of tollerances vis-a-vis how close vertices are, how close'
+'the angles between surface normals are, how close the COG of surfaces'
+'are etc. If your model includes fine details and/or small surfaces'
+'then changing to smaller tollerances helps to constrain the tests.'
 *enditem
-          CALL EASKS(CFGFN,
 *subroutine CONFIG
 *item CONFIG setting_up_topol
 'The process of checking topology in a model usually involves all of'
@@ -17694,6 +17697,15 @@ C          CALL EASKS(LTMP,' Pressure coefficients database?',
 'applications are invoked. '
 *enditem
         CALL EASKXORGTKF(exemfl,'ESP-r exemplars?','(see help)',
+*item SETUP surface_corner_detect
+'ESP-r provides two methods for scanning for geometric surface'
+'matches - within the topology checking facility and in the surface'
+'attribution [scan for nearby surfaces] option. Both check for a'
+'number of tollerances vis-a-vis how close vertices are, how close'
+'the angles between surface normals are, how close the COG of surfaces'
+'are etc. If your model includes fine details and/or small surfaces'
+'then changing to smaller tollerances helps to constrain the tests.'
+*enditem
 *subroutine tdfedit
 *item tdfedit tdf_time_format
 'The selected format for the input of time is currently'

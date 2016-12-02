@@ -1955,15 +1955,15 @@ C The record length of the results file is MS+5 words.
 c Added a 5th computed goto for save level 5
       goto (41,8,9,11,11,41),ISAV1
     8 if(irdact.ne.0)then
-        NWORD=(IDAYS*irdact*NCOMP*24*1+IRECPL)*(MS+5)
+        NWORD=(IDAYS*irdact*NCOMP*24*1+IRECPL)*(MS+12)
       else
-        NWORD=(IDAYS*NTSTEP*NCOMP*24*1+IRECPL)*(MS+5)
+        NWORD=(IDAYS*NTSTEP*NCOMP*24*1+IRECPL)*(MS+12)
       endif
       goto 12
     9 if(irdact.ne.0)then
-        NWORD=(IDAYS*irdact*NCOMP*24*3+IRECPL)*(MS+5)
+        NWORD=(IDAYS*irdact*NCOMP*24*3+IRECPL)*(MS+12)
       else
-        NWORD=(IDAYS*NTSTEP*NCOMP*24*3+IRECPL)*(MS+5)
+        NWORD=(IDAYS*NTSTEP*NCOMP*24*3+IRECPL)*(MS+12)
       endif
       goto 12
    11 NREC=0
@@ -1976,14 +1976,14 @@ c Added a 5th computed goto for save level 5
 
 C << with wider record width is MS+5 still ok for file size prediction ?? >>
       if(irdact.ne.0)then
-        NWORD=(IDAYS*irdact*NREC*24+IRECPL)*(MS+5)
+        NWORD=(IDAYS*irdact*NREC*24+IRECPL)*(MS+12)
       else
-        NWORD=(IDAYS*NTSTEP*NREC*24+IRECPL)*(MS+5)
+        NWORD=(IDAYS*NTSTEP*NREC*24+IRECPL)*(MS+12)
       endif
 
 C There are 4 bytes in a word therefore the number
 C of kilobytes required by the solution file is .....
-   12 BYTE=FLOAT(NWORD)*4.0/1024.0
+   12 BYTE=ABS(FLOAT(NWORD)*4.0/1024.0)
 
 C Determine the number of zone days simulated.
    41 NZTS=(NCOMP*(IDAYS+ITCNST))*NTSTEP*24
@@ -2025,35 +2025,35 @@ c Hot 3000: Added save level 5 zone save level info
       elseif(isave.eq.6)then
         call edisp(icout,' Zone save option     : 6 (No db created)')
       endif
-      write(outs,'(a,I5)') ' No. of warnings      : ',IWARN
+      write(outs,'(a,I6)') ' No. of warnings      : ',IWARN
       call edisp(icout,outs)
       call edisp(icout,' ')
 
       NPTS=NTSTEP*NTSTPP
       TMIN=60.0/NTSTEP
       TMINP=TIMSEC/60.
-      write(outs,'(a,I5,a)')' Simulation period    : ',IDAYS,' day(s)'
+      write(outs,'(a,I6,a)')' Simulation period    : ',IDAYS,' day(s)'
       call edisp(icout,outs)
 
 C Derive string for simulation period.
       CALL EPERSTR(IYEAR,ISDS,1,ISDF,24,1,2,0,PERST1,PERST2,PERST3,IER)
       write(outs,'(16X,A44)')PERST2
       call edisp(icout,outs)
-      write(outs,'(a,I5,a)')' Start-up period      : ',ITCNST,' day(s)'
+      write(outs,'(a,I6,a)')' Start-up period      : ',ITCNST,' day(s)'
       call edisp(icout,outs)
 
       IF(INDCFG.EQ.2)goto 131
       if(irdact.eq.0)then
-        write(outs,'(a,I6,a,F5.2,a)')' Zone time-steps      :',NTSTEP,
+        write(outs,'(a,I7,a,F5.2,a)')' Zone time-steps      :',NTSTEP,
      &    ' / hr ( ',TMIN,' min. intervals saved at each timestep)'
       else
-        write(outs,'(a,I6,a,F5.2,a)')' Zone time-steps      :',NTSTEP,
+        write(outs,'(a,I7,a,F5.2,a)')' Zone time-steps      :',NTSTEP,
      &    ' / hr ( ',TMIN,' min. intervals saved once per hour)'
       endif 
       call edisp(icout,outs)
-      write(outs,'(a,I5)') ' Number of zones      : ',NCOMP
+      write(outs,'(a,I6)') ' Number of zones      : ',NCOMP
       call edisp(icout,outs)
-      write(outs,'(a,I6)') ' Zone-time increments :',NZTS
+      write(outs,'(a,I7)') ' Zone-time increments :',NZTS
       call edisp(icout,outs)
 
       IF(INDCFG.EQ.1)goto 133
@@ -2065,13 +2065,13 @@ C Derive string for simulation period.
       call edisp(icout,    ' Zone results db size : Not applicable')
       goto 135
    42 IF(BYTE.GT.2000.0)goto 14
-      write(outs,'(a,F7.1,a)')' Zone results db size : ',BYTE,' Kbytes'
+      write(outs,'(a,F8.1,a)')' Zone results db size : ',BYTE,' Kbytes'
       if(isave.eq.1.or.isave.eq.2.or.isave.eq.3.or.isave.eq.4)then
         call edisp(icout,outs)
       endif
       goto 135
    14 BYTE=BYTE/1024.0
-      write(outs,'(a,F7.1,a)')' Zone results db size : ',BYTE,' Mbytes'
+      write(outs,'(a,F8.1,a)')' Zone results db size : ',BYTE,' Mbytes'
       if(isave.eq.1.or.isave.eq.2.or.isave.eq.3.or.isave.eq.4)then
         call edisp(icout,outs)
       endif

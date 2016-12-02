@@ -579,6 +579,8 @@ C in specifications, and if found (i) warn user & (ii) set to zero.
 C Debug
 C        write(6,*) '560 precal ',ICGT(iday,I),ICGUnit(iday,I)
         if(ICGUnit(iday,I).eq.0)then
+          write(outs,*) 'found W ',iday,i,ityp,caskeytype(icomp,ityp)
+          if (itrc.gt.1) call edisp(iuout,outs)
           NCGPER(ICOMP,IDAY,ITYP)=NCGPER(ICOMP,IDAY,ITYP)+1
           IPER=NCGPER(ICOMP,IDAY,ITYP)
           TCGS(ICOMP,IDAY,ITYP,IPER)=ICGS(IDAY,I)
@@ -658,9 +660,9 @@ C Debug
             else
               PERSN=FLOORA(ICOMP)/CMGS(IDAY,I)
             endif
-            CGSENC(ICOMP,IDAY,ITYP,IPER)=PERSN*70.0*CONC(IDAY,I)
-            CGSENR(ICOMP,IDAY,ITYP,IPER)=PERSN*70.0*RADC(IDAY,I)
-            CGLAT(ICOMP,IDAY,ITYP,IPER)=PERSN*50.0
+            CGSENC(ICOMP,IDAY,ITYP,IPER)=PERSN*95.0*CONC(IDAY,I)
+            CGSENR(ICOMP,IDAY,ITYP,IPER)=PERSN*95.0*RADC(IDAY,I)
+            CGLAT(ICOMP,IDAY,ITYP,IPER)=PERSN*45.0
           else
             write(6,*) 'unknown m2/object',ICGUnit(iday,I),ITYP
           endif
@@ -700,7 +702,11 @@ C Trace output ?
         call edisp(itu,' ')
 
 C << hard coded assumption of day types and gain types. >>
-        do 900 ID=1,3
+        if(lodslot(icomp,1).ne.0) loop=1
+        if(lodslot(icomp,2).ne.0) loop=2
+        if(lodslot(icomp,3).ne.0) loop=3
+        if(lodslot(icomp,4).ne.0) loop=4
+        do 900 ID=1,4
           call edisp(itu,' --------------')
           call edisp(itu,'Gain  Start    Rad     Conv  Latent')
           call edisp(itu,'slot  time     gain    gain  gain')

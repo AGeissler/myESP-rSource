@@ -177,6 +177,7 @@ C a subroutine rather than as an application.
       use TCC, ONLY:COSIM
 #include "building.h"
 #include "model.h"
+#include "geometry.h"
 #include "plant.h"
 #include "uncertainty.h"
 #include "net_flow.h"
@@ -310,7 +311,10 @@ C Name of current application
 C Flag for enabling h3k customizations 
 
       common/H3KCustom/bEnableH3kExtensions
-      logical bEnableH3kExtensions      
+      logical bEnableH3kExtensions 
+     
+      real UNMETHRS  ! for each zone counter for unmet hours.
+      COMMON/UNMET/UNMETHRS(MCOM)
       
       character cAppName*12
       integer iverb     ! verbosity passed on command line
@@ -416,6 +420,7 @@ C have not been read in.
       MSTRFILE='libmstr'
       do 5 I=1,MCOM
         Lflpar(I)='UNKNOWN'
+        UNMETHRS(I)=0  ! reset counter of unmet hours
  5    continue
 
 C CFD results output. `photon' indicates whether PHOTON phi files will
@@ -1211,6 +1216,12 @@ C Help via the askabout facility in esru_ask.F The zero requests display
 C Clean up and exit.
 C Delete any temporal scratch file if temporal data associated with
 C the model.
+
+C Debug write out unmet hours.
+        write(6,'(a)') 'Unmet hours for each zone at end of simulation.'
+        do I=1,NCOMP
+          write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
+        enddo
         if(ITDFLG.ne.0)then
           CALL ERPFREE(IUTDF,ISTAT)
           lnts=lnblnk(LTDF)
@@ -1375,6 +1386,14 @@ C Depending on computer type set integer size of passed parameters.
 
       SUBROUTINE EMKVIEW(IUO,CFGOK,IER)
       logical cfgok
+      ier=0
+      return
+      end
+      
+      SUBROUTINE EDMLDB2(chgdb,ACTION,isel,IER)
+      logical chgdb
+      character*1 ACTION
+      integer isel,ier
       ier=0
       return
       end

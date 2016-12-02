@@ -1168,9 +1168,9 @@ C set the LPREDEF common block string via call to findwhichdbpath.
         call findwhichdbpath('pre',lworking,ier)
 
 C Debug.
-cx        write(6,*) lworking
-cx        write(6,*) lpredef
-cx        write(6,*) ' ersys ipathpredef is ',ipathpredef
+        write(6,*) lworking
+        write(6,*) lpredef
+        write(6,*) ' ersys ipathpredef is ',ipathpredef
 
       elseif(WORD(1:10).eq.'*stdpredef')then
         ipathpredef=2  ! standard folder for predefined objects database

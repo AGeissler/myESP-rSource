@@ -4959,8 +4959,7 @@ C Phase change material.
       character spmlabel*16,spflnam*72,outs*124,strspm*16,unitspm*16,
      &          txtspm*72
       logical close
-      real val1,val2,val3,val4,val5,val6,val7
-     &                   val8,val9,val10,val11  ! to pass as parameters
+      real val1,val2,val3,val4,val5,val6,val7,val8,val9,val10,val11  ! to pass as parameters
 
 C PCM layer pointers.
       if(icomp.ne.ispmloc(ispmnod,1))then

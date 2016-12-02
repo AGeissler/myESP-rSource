@@ -67,12 +67,12 @@
     0.0000       0.19720      -0.47490       0.41180      -0.14720       0.38000E-01   0.15400E-01    16.000
     3000.
 # No.   i.d.  Comp. name   Phase type  links to nodes 
-    1   10  data          d.c.            2    0    0
+    1   12  data          d.c.            2    0    0
 # description:
   Test of applying .fcl file as a power-only component
 # no. of additional data items:
     1    1
-    0.1000
+    1.0000
   ../nets/input.fcl
 ** end power-only 
 # Listing and Description of components connecting the nodes

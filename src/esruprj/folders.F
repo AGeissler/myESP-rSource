@@ -1540,7 +1540,7 @@ C << to be done >>
       if(lcfcin(IZ)(1:7).eq.'UNKNOWN')then
        WRITE(ITEMS(20),'(A)') 's  CFC constr: '
       else
-       WRITE(ITEMS(20),'(2A)') 's  CFC constr: ',lcfcin(IZ)(1:IWD)
+       WRITE(ITEMS(20),'(2A)')'s  CFC constr: ',lcfcin(IZ)(1:IWD)
       endif
       ITEMS(21)='  _____________________________    '
       ITEMS(22)='* check existence of zone files    '

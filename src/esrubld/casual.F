@@ -109,16 +109,17 @@ C and is used for code related to UK NCM method
       real StoreCap,znElecCasGain
       integer kounter
 
-C Common for occupant/lighting/equipment sensible convective, sensible
+C Common for occupant/lighting/equipment/other sensible convective, sensible
 C radiant and latent W for future and present in each zone.
-C << adapt to include other casual gain >>
       real ctlperocupc,ctlperocupr,ctlperocupl ! occupant after control applied
       real ctlperlightc,ctlperlightr,ctlperlightl ! lighting after control applied
-      real ctlequipc,ctlequipr,ctlequipl ! equipment after control applied
+      real ctlperequipc,ctlperequipr,ctlperequipl ! equipment after control applied
+      real ctlperotherc,ctlperotherr,ctlperotherl ! other after control applied
       common/applyctl/ctlperocupc(MCOM,2),ctlperocupr(MCOM,2),
      &  ctlperocupl(MCOM,2),ctlperlightc(MCOM,2),ctlperlightr(MCOM,2),
-     &  ctlperlightl(MCOM,2),ctlequipc(MCOM,2),ctlequipr(MCOM,2),
-     &  ctlequipl(MCOM,2) 
+     &  ctlperlightl(MCOM,2),ctlperequipc(MCOM,2),ctlperequipr(MCOM,2),
+     &  ctlperequipl(MCOM,2),ctlperotherc(MCOM,2),ctlperotherr(MCOM,2),
+     &  ctlperotherl(MCOM,2) 
 
 C Common for HOT3000 electrical-network -> casual-gain coupling
 C Symopsys: E_to_G_coupling: boolian indicating coupling exists
@@ -411,17 +412,20 @@ C Equipment is an arbitrary choice for this aggregate data.
         QCASC(2)=VAL(ISD)
         ctlperocupc(icomp,2)=0.0
         ctlperlightc(icomp,2)=0.0
-        ctlequipc(icomp,2)=VAL(ISD)
+        ctlperequipc(icomp,2)=VAL(ISD)
+        ctlperotherc(icomp,2)=0.0
 
         QCASR(2)=VAL(ISD+1)
         ctlperocupr(icomp,2)=0.0
         ctlperlightr(icomp,2)=0.0
-        ctlequipr(icomp,2)=VAL(ISD+1)
+        ctlperequipr(icomp,2)=VAL(ISD+1)
+        ctlperotherr(icomp,2)=0.0
 
         QLATN(2)=VAL(ISD+2)
         ctlperocupl(icomp,2)=0.0
         ctlperlightl(icomp,2)=0.0
-        ctlequipl(icomp,2)=VAL(ISD+2)
+        ctlperequipl(icomp,2)=VAL(ISD+2)
+        ctlperotherl(icomp,2)=0.0
         if(traceok)then
           write(outs,*)'casual gains from temporal db=',
      &          VAL(ISD),VAL(ISD+1),VAL(ISD+2)
@@ -438,17 +442,20 @@ C << any need for ICGUnit?  Probably always is W. >>
         QCASC(2)=VAL(ISD)+VAL(ISD+3)+VAL(ISD+6)
         ctlperocupc(icomp,2)=VAL(ISD)
         ctlperlightc(icomp,2)=VAL(ISD+3)
-        ctlequipc(icomp,2)=VAL(ISD+6)
+        ctlperequipc(icomp,2)=VAL(ISD+6)
+        ctlperotherc(icomp,2)=0.0
 
         QCASR(2)=VAL(ISD+1)+VAL(ISD+4)+VAL(ISD+7)
         ctlperocupr(icomp,2)=VAL(ISD+1)
         ctlperlightr(icomp,2)=VAL(ISD+4)
-        ctlequipr(icomp,2)=VAL(ISD+7)
+        ctlperequipr(icomp,2)=VAL(ISD+7)
+        ctlperotherr(icomp,2)=0.0
 
         QLATN(2)=VAL(ISD+2)+VAL(ISD+5)+VAL(ISD+8)
         ctlperocupl(icomp,2)=VAL(ISD+2)
         ctlperlightl(icomp,2)=VAL(ISD+5)
-        ctlequipl(icomp,2)=VAL(ISD+8)
+        ctlperequipl(icomp,2)=VAL(ISD+8)
+        ctlperotherl(icomp,2)=0.0
         if(traceok)then
           write(outs,*)'separate casual gains from temporal db=',
      &        VAL(ISD),VAL(ISD+1),VAL(ISD+2),VAL(ISD+3),VAL(ISD+4),
@@ -708,17 +715,19 @@ C       QTOTGAIN=QTOTOCCUP+QTOTEQUIP+QTOTLIGHT
 
 C Instantiate the future value of each casual gain so that
 C it can be used within MZLS3.
+C << ?? for 4th other slot >>
         ctlperocupc(icomp,2)=QOCCCASC
         ctlperlightc(icomp,2)=QLIGHTCASC
-        ctlequipc(icomp,2)=QEQUIPCASC
+        ctlperequipc(icomp,2)=QEQUIPCASC
+        ctlperotherc(icomp,2)=0.0
         ctlperocupr(icomp,2)=QOCCCASR
         ctlperlightr(icomp,2)=QLIGHTCASR
-        ctlequipr(icomp,2)=QEQUIPCASR
+        ctlperequipr(icomp,2)=QEQUIPCASR
+        ctlperotherr(icomp,2)=0.0
         ctlperocupl(icomp,2)=QOCCLATN
         ctlperlightl(icomp,2)=QLIGHTLATN
-        ctlequipl(icomp,2)=QEQUIPLATN
-
-C << place to adapt for other casual gain >>
+        ctlperequipl(icomp,2)=QEQUIPLATN
+        ctlperotherl(icomp,2)=0.0
 
 C Using LGHT_ncm_Energy(icomp) for the results of the UK's NCM method
 C This will be in Wh units. It will also need to be divided with NTSTEP
@@ -793,7 +802,7 @@ C ventilation values in the zone).
               iitrc=1
               CALL EROPER(IITRC,ITU,IUNIT,icomp,IER)
               CALL MZCASG(icomp)
-              write(6,*) 'called eroper & mzcasg for ',icomp,btimef
+C              write(6,*) 'called eroper & mzcasg for ',icomp,btimef
             endif
           endif
         endif
@@ -961,11 +970,11 @@ C so if SHOCC load, then cgctl equals shcon/CGCSENC ratio.
 
 C Debug...
             if(traceok)then
-C              write(itu,*) 'match ',DSTR,BTIMEF,IPER,IGN,IDAY,ICOMP
-C              write(itu,*) 'Time    Zone   Period   GainSen'
-C              write(itu,*) BTIMEF,ICOMP,IPER,CGSENC(ICOMP,IDAY,IGN,IPER)
-C              write(itu,*) QCASC,QCASR,QLATN,' ctl:',CGCTL(ICOMP,1,1),
-C     &          CGCTL(ICOMP,2,1),CGCTL(ICOMP,1,2),CGCTL(ICOMP,2,2)  
+              write(itu,*) 'match ',DSTR,BTIMEF,IPER,IGN,IDAY,ICOMP
+              write(itu,*) 'Time    Zone   Period   GainSen'
+              write(itu,*) BTIMEF,ICOMP,IPER,CGSENC(ICOMP,IDAY,IGN,IPER)
+              write(itu,*) QCASC,QCASR,QLATN,' ctl:',CGCTL(ICOMP,1,1),
+     &          CGCTL(ICOMP,2,1),CGCTL(ICOMP,1,2),CGCTL(ICOMP,2,2)  
             endif
 
 C Set future electrical loads.
@@ -1154,7 +1163,6 @@ C injected as a weighted mix of convection and radiation.
 C STORE future row casual and radiant gains
       Cas_Con_dat(icomp) = QCASC(2)  ! W
       Cas_Rad_dat(icomp) = QCASR(2)  ! W
-      Cas_Lat_dat(icomp) = QLATN(2)  ! W
 
 C Remember future values for next timestep.
       QCCS(ICOMP)=QCASC(2)

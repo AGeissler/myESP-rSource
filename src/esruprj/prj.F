@@ -145,6 +145,15 @@ C Name of current application
       common/APPNAME/cAppName
       character cAppName*12
 
+C Tollerance for surface matching.
+      real ANGCC  ! angle between surfaces tolerance
+      real CACC   ! tolerance between vertices
+      real DACC   ! angle tolerance along line
+      real COGCC  ! tolerance between surface COG
+      real SNACC  ! tolerance between surface areas
+      integer IACC ! number of matching corners outside dist tolerance
+      common/matching/ANGCC,CACC,DACC,COGCC,SNACC,IACC
+
       integer iverb     ! verbosity passed on command line
       logical OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,MODSIT,CFCDBOK
       logical browse,confirm,XST,ckpath
@@ -275,6 +284,9 @@ C that the default common data files will be defined explicitly).
       ipathapres=0; ipathoptdb=0; ipathpcdb=0; ipathprodb=0
       ipathmat=0; ipathmul=0; ipathclim=0; ipathsbem=0; ipathmsc=0
       ipathmould=0
+
+C Set initial values for surface-to-surface matching.
+      ANGCC=10.0; CACC=0.025; DACC=5.0; COGCC=1.0; SNACC=0.5; IACC=0 
       
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -883,8 +895,10 @@ C Find the index of the MLC which matches each surface.
             DO 9994 I=1,NZSUR(icomp)
               icn1=izstocn(icomp,i)
               ssmlcindex(icn1)=0  ! assume no matching MLC          
+              lnssmlc=lnblnk(SSMLCN(icn1))
               do 5 ii=1,nmlc
-                if(SSMLCN(icn1)(1:12).eq.mlcname(ii)(1:12)) then
+                if(SSMLCN(icn1)(1:lnssmlc).eq.
+     &             mlcname(ii)(1:lnmlcname(ii)))then
                   ssmlcindex(icn1)=ii   ! remember MLC index  
                 endif
   5           continue

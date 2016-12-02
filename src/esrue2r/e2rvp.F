@@ -955,24 +955,24 @@ C near origin can use shorter format.
           rvewsh(indxvew) = trvewsh  ! remember new name
           if(short)then
             if(okfore.and.okaft)then
-              write(doit,'(a,3F6.2,a,3F6.3,a,3F5.2,2(a,F5.1),a)') 
+              write(doit,'(a,3F7.1,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
      &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &        ' -vs 0 -vl 0 -vo 0 -va 0'
             else
-              write(doit,'(a,3F6.2,a,3F6.3,a,3F5.2,4(a,F5.1))') 
+              write(doit,'(a,3F7.1,a,3F7.3,a,3F5.2,4(a,F5.1))') 
      &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &        ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
             endif
           else
             if(okfore.and.okaft)then
-              write(doit,'(a,3F8.2,a,3F6.3,a,3F5.2,2(a,F5.1),a)') 
+              write(doit,'(a,3F8.2,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
      &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &        ' -vs 0 -vl 0 -vo 0 -va 0'
             else
-              write(doit,'(a,3F8.2,a,3F6.3,a,3F5.2,4(a,F5.1))') 
+              write(doit,'(a,3F8.2,a,3F7.3,a,3F5.2,4(a,F5.1))') 
      &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &        ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
@@ -982,24 +982,24 @@ C near origin can use shorter format.
         else
           if(short)then
             if(okfore.and.okaft)then
-              write(doit,'(a,3F6.2,a,3F6.3,a,3F5.2,2(a,F5.1),a)') 
+              write(doit,'(a,3F7.1,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
      &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &        ' -vs 0 -vl 0 -vo 0 -va 0'
             else
-              write(doit,'(a,3F6.2,a,3F6.3,a,3F5.2,4(a,F5.1))') 
+              write(doit,'(a,3F7.1,a,3F7.3,a,3F5.2,4(a,F5.1))') 
      &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &        ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
             endif
           else
             if(okfore.and.okaft)then
-              write(doit,'(a,3F8.2,a,3F6.3,a,3F5.2,2(a,F5.1),a)') 
+              write(doit,'(a,3F8.2,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
      &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &        ' -vs 0 -vl 0 -vo 0 -va 0'
             else
-              write(doit,'(a,3F8.2,a,3F6.3,a,3F5.2,4(a,F5.1))') 
+              write(doit,'(a,3F8.2,a,3F7.3,a,3F5.2,4(a,F5.1))') 
      &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &        ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft

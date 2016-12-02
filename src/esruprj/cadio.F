@@ -2537,13 +2537,16 @@ C If act is g then use GEN bodies.
 
 C Write each surface as a PLA type. Proceed with VIS 0 or 2 depending
 C on if it is transparent. Also mark each with an identity zone:name.
+C Note: does not know quite how to treat CFC and CFC2 so just treats
+C as opaque.
           do J=1,NSUR
             icn=IZSTOCN(newfoc,j)  ! get connection
             lsn=lnblnk(sname(newfoc,j))
             write(zsn,'(3a)') zname(newfoc)(1:lnzname(newfoc)),
      &        ':',sname(newfoc,j)(1:lsn)
             if (SSOTF(icn)(1:4).ne.'OPAQ'.and.
-     &          SSOTF(icn)(1:4).ne.'CFC ') then
+     &          SSOTF(icn)(1:4).ne.'CFC '.and.
+     &          SSOTF(icn)(1:4).ne.'CFC2') then
               write(ioout,'(a)')' VIS '
               write(ioout,'(a)')' 0 '
             else

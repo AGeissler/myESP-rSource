@@ -1499,9 +1499,6 @@ C transport miscellaneous simulation data to reporting object
                  if (IAIRN .ne. 0) THEn
                     call H3K_transport_mfn_data()
                  endif
-                 if ( MSTROK ) then
-                    call H3K_transport_mould_data(icomp)
-                 endif
               endif
 C If TSC type 2 is active then find sum of averages for zone air
 C temperature and zone air energy injection.

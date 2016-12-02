@@ -112,12 +112,12 @@ C with rvu.
 
       call edisp(iuout,' ')
       if(usevtv)then
-        write(outs,'(a,3F8.2,a,3F6.3,a,3F6.3,4(a,F5.1))') 
+        write(outs,'(a,3F8.2,a,3F7.3,a,3F6.3,4(a,F5.1))') 
      &    'rview -vtv -vp ',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &    ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &    ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
       else
-        write(outs,'(a,3F8.2,a,3F6.3,a,3F6.3,4(a,F5.1))') 
+        write(outs,'(a,3F8.2,a,3F7.3,a,3F6.3,4(a,F5.1))') 
      &    'rview -vtl -vp ',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
      &    ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
      &    ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft

@@ -107,7 +107,7 @@ C Path to model and command line file (if any).
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
 C Comfort parameters and hash table.
-      common/cmftpar/WVEL,ACTL,CLO,iocut,iocuset,ioucpz(MCOM,72)
+      common/cmftpar/WVEL,ACTL,CLO,iocut,iocuset
 
 C Project journal on/off, unit number, cmd, file name.
       common/journopt/journio,iuj,journcmd,jfile
@@ -1022,6 +1022,14 @@ C Depending on computer type set integer size of passed parameters.
 
       SUBROUTINE EMKVIEW(IUO,CFGOK,IER)
       logical cfgok
+      ier=0
+      return
+      end
+      
+      SUBROUTINE EDMLDB2(chgdb,ACTION,isel,IER)
+      logical chgdb
+      character*1 ACTION
+      integer isel,ier
       ier=0
       return
       end
