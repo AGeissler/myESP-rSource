@@ -140,6 +140,11 @@ C Data structures associated with CFC layers
       real CFCemissout        ! CFC fabric/material emissivity, outside
       real CFCemissin         ! CFC fabric/material emissivity, inside
       real CFClwtran          ! CFC fabric/material longwave transmittance      
+      real CFCvisreflout      ! CFC fabric/material visual reflectance, outside
+      real CFCvisreflin       ! CFC fabric/material visual reflectance, inside
+      real CFCvistrandir      ! CFC fabric/material visual direct transmittance
+      real CFCvistrantotout   ! CFC fabric/material visual total transmittance, outside
+      real CFCvistrantotin    ! CFC fabric/material visual total transmittance, inside
       real CFCdrpwidth        ! CFC pleated drape width (mm)
       real CFCdrpspacing      ! CFC pleated drape spacing (mm)
       real CFCwireemiss       ! CFC insect screen wire emissivity
@@ -164,7 +169,9 @@ C Data structures associated with CFC layers
      &  CFCsolreflin(MGIT_CFC),CFCsoltrandir(MGIT_CFC),
      &  CFCsoltrantotout(MGIT_CFC), CFCsoltrantotin(MGIT_CFC),
      &  CFCemissout(MGIT_CFC), CFCemissin(MGIT_CFC), 
-     &  CFClwtran(MGIT_CFC),
+     &  CFClwtran(MGIT_CFC),CFCvisreflout(MGIT_CFC),
+     &  CFCvisreflin(MGIT_CFC),CFCvistrandir(MGIT_CFC),
+     &  CFCvistrantotout(MGIT_CFC), CFCvistrantotin(MGIT_CFC),
      &  CFCdrpwidth(MGIT_CFC), CFCdrpspacing(MGIT_CFC),
      &  CFCwireemiss(MGIT_CFC), CFCwirediam(MGIT_CFC),
      &  CFCwirespace(MGIT_CFC), CFCslattran(MGIT_CFC), 

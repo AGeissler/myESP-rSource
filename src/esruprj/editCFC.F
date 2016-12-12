@@ -410,7 +410,7 @@ C import GSLedit data and store in cfc commons
 
 C If CFC2 types found then use native CFClayers db
       ELSEIF((.not.legacy_CFC_xst).and.CFC2_xst)then
-C.......get CFC layer data from CFClayers db commons
+C.......Get CFC layer data from CFClayers db commons
 
 C.......Loop through all surfaces and pick out CFC types
 C.......For each CFC type, get construction details and 
