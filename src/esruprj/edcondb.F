@@ -1298,6 +1298,13 @@ C Add another category to the database << not yet tested >>
           CFCemissout(ILNE)=1.0
           CFCemissin(ILNE)=1.0
           CFClwtran(ILNE)=1.0
+
+          CFCvisreflout(ILNE)=1.0
+          CFCvisreflin(ILNE)=1.0
+          CFCvistrandir(ILNE)=1.0
+          CFCvistrantotout(ILNE)=1.0
+          CFCvistrantotin(ILNE)=1.0
+
           CFCdrpwidth(ILNE)=1.0
           CFCdrpspacing(ILNE)=1.0
           CFCslatorient(ILNE)='HORZ'
@@ -1549,6 +1556,13 @@ C copy the contents of CFC layer > IWHICH into the next lower one.
               CFCemissout(IVV) = CFCemissout(IVV+1)
               CFCemissin(IVV) = CFCemissin(IVV+1)
               CFClwtran(IVV) = CFClwtran(IVV+1)
+
+              CFCvisreflout(IVV) = CFCvisreflout(IVV+1)
+              CFCvisreflin(IVV) = CFCvisreflin(IVV+1)
+              CFCvistrandir(IVV) =  CFCvistrandir(IVV+1)
+              CFCvistrantotout(IVV) = CFCvistrantotout(IVV+1)
+              CFCvistrantotin(IVV) = CFCvistrantotin(IVV+1)
+
               CFCdrpwidth(IVV) = CFCdrpwidth(IVV+1)
               CFCdrpspacing(IVV) = CFCdrpspacing(IVV+1)
               CFCwireemiss(IVV) = CFCwireemiss(IVV+1)
@@ -1627,6 +1641,16 @@ C If there is room add a note about its origin.
                 CFCemissout(ILNE) = CFCemissout(lastcatitem)
                 CFCemissin(ILNE) = CFCemissin(lastcatitem)
                 CFClwtran(ILNE) = CFClwtran(lastcatitem)
+
+                CFCvisreflout(ILNE) = CFCvisreflout(lastcatitem)
+                CFCvisreflin(ILNE) = CFCvisreflin(lastcatitem)
+                CFCvistrandir(ILNE) =
+     &                  CFCvistrandir(lastcatitem)
+                CFCvistrantotout(ILNE) =
+     &                  CFCvistrantotout(lastcatitem)
+                CFCvistrantotin(ILNE) =
+     &                  CFCvistrantotin(lastcatitem)
+
                 CFCdrpwidth(ILNE) = CFCdrpwidth(lastcatitem)
                 CFCdrpspacing(ILNE) = 
      &                  CFCdrpspacing(lastcatitem)
@@ -1714,6 +1738,16 @@ C...........CFC shade or fill gas layer attributes
             CFCemissout(ILNE) = CFCemissout(IWHICH)
             CFCemissin(ILNE) = CFCemissin(IWHICH)
             CFClwtran(ILNE) = CFClwtran(IWHICH)
+
+            CFCvisreflout(ILNE) = CFCvisreflout(IWHICH)
+            CFCvisreflin(ILNE) = CFCvisreflin(IWHICH)
+            CFCvistrandir(ILNE) =
+     &                  CFCvistrandir(IWHICH)
+            CFCvistrantotout(ILNE) =
+     &                  CFCvistrantotout(IWHICH)
+            CFCvistrantotin(ILNE) =
+     &                  CFCvistrantotin(IWHICH)
+
             CFCdrpwidth(ILNE) = CFCdrpwidth(IWHICH)
             CFCdrpspacing(ILNE) = 
      &                  CFCdrpspacing(IWHICH)
@@ -2189,6 +2223,13 @@ C.....CFC shade or fill gas layer attributes
       real locCFCemissout
       real locCFCemissin
       real locCFClwtran
+
+      real locCFCvisreflout
+      real locCFCvisreflin
+      real locCFCvistrandir
+      real locCFCvistrantotout
+      real locCFCvistrantotin
+
       real locCFCdrpwidth
       real locCFCdrpspacing
       real locCFCwireemiss
@@ -2243,6 +2284,13 @@ C Work with local variables.
       locCFCemissout = CFCemissout(index)
       locCFCemissin = CFCemissin(index)
       locCFClwtran = CFClwtran(index)
+
+      locCFCvisreflout = CFCvisreflout(index)
+      locCFCvisreflin = CFCvisreflin(index)
+      locCFCvistrandir = CFCvistrandir(index)
+      locCFCvistrantotout = CFCvistrantotout(index)
+      locCFCvistrantotin = CFCvistrantotin(index)
+
       locCFCdrpwidth = CFCdrpwidth(index)
       locCFCdrpspacing = CFCdrpspacing(index)
       locCFCwireemiss = CFCwireemiss(index)
@@ -2290,8 +2338,14 @@ C.......Show shade layer attributes depending on type
             WRITE(PELM(14),'(A,F7.3)')
      &      'r Longwave tran.         :',locCFClwtran
             WRITE(PELM(15),'(A,A8)')
-     &      's IGDB ID                :',locCFC_IGDB_ID     
-            m=15
+     &      's IGDB ID                :',locCFC_IGDB_ID
+            WRITE(PELM(9),'(A,F7.3)')
+     &      't Visual refl out (-)     :',locCFCvisreflout
+            WRITE(PELM(10),'(A,F7.3)')
+     &      'u Visual refl in (-)      :',locCFCvisreflin
+            WRITE(PELM(11),'(A,F7.3)')
+     &      'v Visual direct tran      :',locCFCvistrandir
+            m=18
       elseif(CFCshdtp(index).eq.iVenBlind)then
             WRITE(PELM(7),'(A)')  'l type >>Ven. blind'
             WRITE(PELM(8),'(A)')
@@ -2446,6 +2500,13 @@ C updating the common blocks.
             CFCemissout(index) = locCFCemissout
             CFCemissin(index) = locCFCemissin
             CFClwtran(index) = locCFClwtran
+
+            CFCvisreflout(index) = locCFCvisreflout
+            CFCvisreflin(index) = locCFCvisreflin
+            CFCvistrandir(index) = locCFCvistrandir
+            CFCvistrantotout(index) = locCFCvistrantotout
+            CFCvistrantotin(index) = locCFCvistrantotin
+
             CFCdrpwidth(index) = locCFCdrpwidth
             CFCdrpspacing(index) = locCFCdrpspacing
             CFCwireemiss(index) = locCFCwireemiss
@@ -2586,7 +2647,23 @@ C.......Edit shade layer attributes depending on type
            elseif(IW.eq.15)then
             CALL EASKS(locCFC_IGDB_ID,'IGDB ID','Confirm:',
      &        8,' ','IGDB ID',IER,nbhelp)
-            modify=.true.             
+            modify=.true.
+           if(IW.eq.16)then
+            CALL EASKR(locCFCvisreflout,
+     &        'Visual refl, outside','confirm:',
+     &        0.00,'W',1.0,'W',1.,'vis refl out',IER,nbhelp)
+            modify=.true.
+           elseif(IW.eq.17)then
+            CALL EASKR(locCFCvisreflin,'Visual refl, inside',
+     &        'confirm:',0.00,'W',1.0,'W',.5,'vis refl in',IER,
+     &         nbhelp)
+            modify=.true.
+           elseif(IW.eq.18)then
+            CALL EASKR(locCFCvistrandir,
+     &        'Visual tran direct',
+     &        'confirm:',0.00,'W',1.00,'W',0.,'vis tran dir',
+     &        IER,nbhelp)
+            modify=.true.
            endif
            goto 3         
         ELSEIF(CFCshdtp(index).eq.iVenBlind)THEN

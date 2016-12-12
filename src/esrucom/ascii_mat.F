@@ -1411,7 +1411,7 @@ C Clear the CFC layers common blocks.
         end do
 
         cfcver = 1.1   ! set initial version of database.
-        CALL EGETWR(OUTSTR,K,VAL(1),1.0,1.2,'-','db cfc version',IER)
+        CALL EGETWR(OUTSTR,K,VAL(1),1.0,1.3,'-','db cfc version',IER)
         if(VAL(1).gt.1.0) cfcver = VAL(1)
       else
 
@@ -1518,15 +1518,29 @@ C Record the name and then check and see if it is a duplicate.
             CALL EGETWR(LOUTSTR,K,VAL(10),0.,0.,'-','lw trans',IER)
             CFCsolreflout(cfcdbitems) = VAL(5)
             CFCsolreflin(cfcdbitems) = VAL(6)
-            CFCsoltrandir(cfcdbitems) =  VAL(7)
+            CFCsoltrandir(cfcdbitems) = VAL(7)
             CFCemissout(cfcdbitems) = VAL(8)
             CFCemissin(cfcdbitems) = VAL(9)
             CFClwtran(cfcdbitems) = VAL(10)
-            if(ND.eq.12)then
-              CALL EGETW(LOUTSTR,K,WORD8,'-','IGDB ID',IER)
-              CFC_IGDB_ID(cfcdbitems) = WORD8              
-            else
-              CFC_IGDB_ID(cfcdbitems) = ''           
+            if (ND.gt.11) then
+              if(ND.eq.12)then ! version 1.1 w/o visual data
+                CALL EGETW(LOUTSTR,K,WORD8,'-','IGDB ID',IER)
+                CFC_IGDB_ID(cfcdbitems) = WORD8
+              else ! version 1.2 w/ visual data
+                CALL EGETWR(LOUTSTR,K,VAL(11),0.,0.,'-',
+     &                    'visl refl out',IER)
+                CALL EGETWR(LOUTSTR,K,VAL(12),0.,0.,'-',
+     &                    'vis refl in',IER)
+                CALL EGETWR(LOUTSTR,K,VAL(13),0.,0.,'-',
+     &                    'vis tran dir',IER)
+                CFCvisreflout(cfcdbitems) = VAL(11)
+                CFCvisreflin(cfcdbitems) = VAL(12)
+                CFCvistrandir(cfcdbitems) = VAL(13)
+            else ! default values ID empty string, values vis = sol
+                CFC_IGDB_ID(cfcdbitems) = ''
+                CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
+                CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
+                CFCvistrandir(cfcdbitems) = CFCsoltrandir(cfcdbitems)
             endif
         else if(CFCshdtp(cfcdbitems).eq.iVenBlind)then
             CALL EGETWR(LOUTSTR,K,VAL(5),0.,0.,'-',
@@ -1550,6 +1564,9 @@ C Record the name and then check and see if it is a duplicate.
             CALL EGETWR(LOUTSTR,K,VAL(16),0.,0.,'-','slat thk',IER)
             CFCsolreflout(cfcdbitems) = VAL(5)
             CFCsolreflin(cfcdbitems) = VAL(6)
+            ! For venetian blinds set vis = sol for slat reflection
+            CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
+            CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
             CFCslattran(cfcdbitems) = VAL(7)
             CFCemissout(cfcdbitems) = VAL(8)
             CFCemissin(cfcdbitems) = VAL(9)
@@ -1581,6 +1598,12 @@ C Record the name and then check and see if it is a duplicate.
             CFCsoltrandir(cfcdbitems) =  VAL(7)
             CFCsoltrantotout(cfcdbitems) = VAL(8)
             CFCsoltrantotin(cfcdbitems) = VAL(9)
+            ! For pleated blinds set vis = sol for all properties
+            CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
+            CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
+            CFCvistrandir(cfcdbitems) = CFCsoltrandir(cfcdbitems)
+            CFCvistrantotout(cfcdbitems) = CFCsoltrantotout(cfcdbitems)
+            CFCvistrantotin(cfcdbitems) = CFCsoltrantotin(cfcdbitems)
             CFCdrpwidth(cfcdbitems) = VAL(10)
             CFCdrpspacing(cfcdbitems) = VAL(11)
         else if (CFCshdtp(cfcdbitems).eq.iRollerBlind)then
@@ -1599,6 +1622,12 @@ C Record the name and then check and see if it is a duplicate.
             CFCsoltrandir(cfcdbitems) =  VAL(7)
             CFCsoltrantotout(cfcdbitems) = VAL(8)
             CFCsoltrantotin(cfcdbitems) = VAL(9)
+            ! For roller blinds set vis = sol for all properties
+            CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
+            CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
+            CFCvistrandir(cfcdbitems) = CFCsoltrandir(cfcdbitems)
+            CFCvistrantotout(cfcdbitems) = CFCsoltrantotout(cfcdbitems)
+            CFCvistrantotin(cfcdbitems) = CFCsoltrantotin(cfcdbitems)
         else if (CFCshdtp(cfcdbitems).eq.iInsectScreen)then
             CALL EGETWR(LOUTSTR,K,VAL(5),0.,0.,'-',
      &                    'sol refl out',IER)
@@ -1619,6 +1648,12 @@ C Record the name and then check and see if it is a duplicate.
             CFCsoltrandir(cfcdbitems) =  VAL(7)
             CFCsoltrantotout(cfcdbitems) = VAL(8)
             CFCsoltrantotin(cfcdbitems) = VAL(9)
+            ! For insect screens set vis = sol for all properties
+            CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
+            CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
+            CFCvistrandir(cfcdbitems) = CFCsoltrandir(cfcdbitems)
+            CFCvistrantotout(cfcdbitems) = CFCsoltrantotout(cfcdbitems)
+            CFCvistrantotin(cfcdbitems) = CFCsoltrantotin(cfcdbitems)
             CFCwireemiss(cfcdbitems) = VAL(10)
             CFCwirediam(cfcdbitems) = VAL(11)
             CFCwirespace(cfcdbitems) = VAL(12)
@@ -1785,12 +1820,13 @@ C common block arrays so that future reads are more efficient.
      &          CFCfillAir(J),CFCfillAr(J),CFCfillKr(J),
      &          CFCfillXe(J),CFCfillSF6(J)
             elseif(CFCshdtp(J).eq.iGlazing)then
-              write(outs,'(f13.3,3F10.3,i2,6F8.3,a8)')
+              write(outs,'(f13.3,3F10.3,i2,3F8.4,3F8.3,a8,3F8.4)')
      &          cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
      &          CFCshdtp(J),
      &          CFCsolreflout(J),CFCsolreflin(J),CFCsoltrandir(J),
      &          CFCemissout(J),CFCemissin(J),CFClwtran(J), 
-     &          CFC_IGDB_ID(J)
+     &          CFC_IGDB_ID(J),CFCvisreflout(J),CFCvisreflin(J),
+     &          CFCvistrandir(J)
             elseif(CFCshdtp(J).eq.iVenBlind)then
               write(outs,'(f13.3,3F10.3,i2,9F8.3,a5,3F8.3)')
      &          cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
