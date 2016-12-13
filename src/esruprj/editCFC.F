@@ -461,7 +461,7 @@ C...........Get shade and glazing layer properties
      &                  CFC_IGDB_ID(cfcarrayindex)
 
                 rim_VisRf(icomp,icfctp,IL)=
-     &                  CFCsvisreflout(cfcarrayindex)
+     &                  CFCvisreflout(cfcarrayindex)
                 rim_VisRb(icomp,icfctp,IL)=
      &                  CFCvisreflin(cfcarrayindex)
                 rim_VisT(icomp,icfctp,IL)=

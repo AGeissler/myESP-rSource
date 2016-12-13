@@ -1536,6 +1536,7 @@ C Record the name and then check and see if it is a duplicate.
                 CFCvisreflout(cfcdbitems) = VAL(11)
                 CFCvisreflin(cfcdbitems) = VAL(12)
                 CFCvistrandir(cfcdbitems) = VAL(13)
+              endif
             else ! default values ID empty string, values vis = sol
                 CFC_IGDB_ID(cfcdbitems) = ''
                 CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)

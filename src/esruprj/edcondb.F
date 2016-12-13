@@ -2648,7 +2648,7 @@ C.......Edit shade layer attributes depending on type
             CALL EASKS(locCFC_IGDB_ID,'IGDB ID','Confirm:',
      &        8,' ','IGDB ID',IER,nbhelp)
             modify=.true.
-           if(IW.eq.16)then
+           elseif(IW.eq.16)then
             CALL EASKR(locCFCvisreflout,
      &        'Visual refl, outside','confirm:',
      &        0.00,'W',1.0,'W',1.,'vis refl out',IER,nbhelp)
