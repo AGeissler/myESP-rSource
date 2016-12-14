@@ -2339,11 +2339,11 @@ C.......Show shade layer attributes depending on type
      &      'r Longwave tran.         :',locCFClwtran
             WRITE(PELM(15),'(A,A8)')
      &      's IGDB ID                :',locCFC_IGDB_ID
-            WRITE(PELM(9),'(A,F7.3)')
+            WRITE(PELM(16),'(A,F7.3)')
      &      't Visual refl out (-)     :',locCFCvisreflout
-            WRITE(PELM(10),'(A,F7.3)')
+            WRITE(PELM(17),'(A,F7.3)')
      &      'u Visual refl in (-)      :',locCFCvisreflin
-            WRITE(PELM(11),'(A,F7.3)')
+            WRITE(PELM(18),'(A,F7.3)')
      &      'v Visual direct tran      :',locCFCvistrandir
             m=18
       elseif(CFCshdtp(index).eq.iVenBlind)then
