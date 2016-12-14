@@ -1506,6 +1506,7 @@ C Record the name and then check and see if it is a duplicate.
 
         CALL EGETWI(LOUTSTR,K,iCFCtype,0,0,'-','shade type',IER)
         CFCshdtp(cfcdbitems) = iCFCtype
+
         if (CFCshdtp(cfcdbitems).eq.iGlazing)then
             CALL EGETWR(LOUTSTR,K,VAL(5),0.,0.,'-',
      &                    'sol refl out',IER)
@@ -1522,11 +1523,13 @@ C Record the name and then check and see if it is a duplicate.
             CFCemissout(cfcdbitems) = VAL(8)
             CFCemissin(cfcdbitems) = VAL(9)
             CFClwtran(cfcdbitems) = VAL(10)
-            if (ND.gt.11) then
-              if(ND.eq.12)then ! version 1.1 w/o visual data
+cx            if (ND.gt.11) then
+cx              if(ND.eq.12)then ! version 1.1 w/o visual data
                 CALL EGETW(LOUTSTR,K,WORD8,'-','IGDB ID',IER)
                 CFC_IGDB_ID(cfcdbitems) = WORD8
-              else ! version 1.2 w/ visual data
+cx              else ! version 1.2 w/ visual data
+cx                CALL EGETW(LOUTSTR,K,WORD8,'-','IGDB ID',IER)
+cx                CFC_IGDB_ID(cfcdbitems) = WORD8
                 CALL EGETWR(LOUTSTR,K,VAL(11),0.,0.,'-',
      &                    'visl refl out',IER)
                 CALL EGETWR(LOUTSTR,K,VAL(12),0.,0.,'-',
@@ -1536,13 +1539,13 @@ C Record the name and then check and see if it is a duplicate.
                 CFCvisreflout(cfcdbitems) = VAL(11)
                 CFCvisreflin(cfcdbitems) = VAL(12)
                 CFCvistrandir(cfcdbitems) = VAL(13)
-              endif
-            else ! default values ID empty string, values vis = sol
-                CFC_IGDB_ID(cfcdbitems) = ''
-                CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
-                CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
-                CFCvistrandir(cfcdbitems) = CFCsoltrandir(cfcdbitems)
-            endif
+cx              endif
+cx            else ! default values ID empty string, values vis = sol
+cx                CFC_IGDB_ID(cfcdbitems) = ''
+cx                CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
+cx                CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
+cx                CFCvistrandir(cfcdbitems) = CFCsoltrandir(cfcdbitems)
+cx            endif
         else if(CFCshdtp(cfcdbitems).eq.iVenBlind)then
             CALL EGETWR(LOUTSTR,K,VAL(5),0.,0.,'-',
      &                    'sol refl out',IER)
