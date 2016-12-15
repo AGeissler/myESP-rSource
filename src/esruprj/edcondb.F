@@ -22,7 +22,7 @@ C edcondb.F comprising:
 C  ELISTMAT: Controls display and editing of materials commons.
 C  ELISTCFC: Controls display and editing of CFClayers commons.
 C  EDONEMAT: Edits a material in the common block at array index index.
-C  EDONECFC: Edits a CFC layer in the common block at arary index.
+C  EDONECFC: Edits a CFC layer in the common block at array index.
 C  EDMLDB: Display/edit a constructions db.
 C  EDMLDB2: Controls display and editing of MLC (v2) commons.
 C  EDWALL: Edit construction common block data.
@@ -1298,6 +1298,7 @@ C Add another category to the database << not yet tested >>
           CFCemissout(ILNE)=1.0
           CFCemissin(ILNE)=1.0
           CFClwtran(ILNE)=1.0
+          CFC_IGDB_ID(ILNE)=' '
 
           CFCvisreflout(ILNE)=1.0
           CFCvisreflin(ILNE)=1.0
@@ -1363,9 +1364,9 @@ C Display the materials of the classification in a menu.
      &    cfccatitems(IC),' entries.'
         PDBM(4)=   '  ___________________________________'
         PDBM(5)=
-     &' Item|Conduc-|Den- |Specif|Description of layer'
+     &'  Item |Conduc-|Den- |Specif|Description of layer'
         PDBM(6)=
-     &'     |tivity |sity |heat  |name   : documentation'
+     &'       |tivity |sity |heat  |name   : documentation'
         M=6
 
         iItem=1
@@ -1382,7 +1383,7 @@ C Remember the array index that goes with the menu position (m).
      &          cfcdbcon(J),cfcdbden(J),
      &          cfcdbsht(J),
      &          cfcname(J)(1:12),': ',cfcdoc(J)(1:21)
-   25         FORMAT(A1,i4, F8.3,F6.0,F7.0,1X,3A)
+   25         FORMAT(A1,i6, F8.3,F6.0,F7.0,1X,3A)
             ENDIF
             iItem = iItem+1
           endif
@@ -1526,16 +1527,16 @@ C Reset flag to show db is current with local arrays.
 
         ELSEIF(INO.EQ.NITMS-3)THEN
 
-C Add delete or copy CFC layer from db.
-          CALL EASKATOG('Options: ',' ','Delete existing CFC layer',
+C Add, delete or copy CFC layer from db.
+          CALL EASKATOG('Options: ',' ','Delete CFC layer',
      &      'Add CFC layer',
-     &      'copy existing CFC layer','cancel',' ',' ','  ',IW,nbhelp)
+     &      'copy CFC layer','cancel',' ',' ','  ',IW,nbhelp)
           IF(IW.EQ.1)THEN
 
 C Ask the user which one to remove then loop through CFC layers and
 C copy the contents of CFC layer > IWHICH into the next lower one.
             CALL USRMSG(' ',' Which item of list? ','-')
-            CALL EMENU('delete CFC layer',PDBM,NITMS,IW)
+            CALL EMENU('Delete CFC layer',PDBM,NITMS,IW)
             IWHICH=iwhicharray(IW)
             DO 791 IVV=IWHICH,cfcdbitems-1
               cfcdbcon(IVV)=cfcdbcon(IVV+1)
@@ -1556,6 +1557,7 @@ C copy the contents of CFC layer > IWHICH into the next lower one.
               CFCemissout(IVV) = CFCemissout(IVV+1)
               CFCemissin(IVV) = CFCemissin(IVV+1)
               CFClwtran(IVV) = CFClwtran(IVV+1)
+              CFC_IGDB_ID(IVV)=CFC_IGDB_ID(IVV+1)
 
               CFCvisreflout(IVV) = CFCvisreflout(IVV+1)
               CFCvisreflin(IVV) = CFCvisreflin(IVV+1)
@@ -1641,6 +1643,7 @@ C If there is room add a note about its origin.
                 CFCemissout(ILNE) = CFCemissout(lastcatitem)
                 CFCemissin(ILNE) = CFCemissin(lastcatitem)
                 CFClwtran(ILNE) = CFClwtran(lastcatitem)
+                CFC_IGDB_ID(ILNE) = CFC_IGDB_ID(lastcatitem)
 
                 CFCvisreflout(ILNE) = CFCvisreflout(lastcatitem)
                 CFCvisreflin(ILNE) = CFCvisreflin(lastcatitem)
@@ -1738,6 +1741,7 @@ C...........CFC shade or fill gas layer attributes
             CFCemissout(ILNE) = CFCemissout(IWHICH)
             CFCemissin(ILNE) = CFCemissin(IWHICH)
             CFClwtran(ILNE) = CFClwtran(IWHICH)
+            CFC_IGDB_ID(ILNE) = CFC_IGDB_ID(IWHICH)
 
             CFCvisreflout(ILNE) = CFCvisreflout(IWHICH)
             CFCvisreflin(ILNE) = CFCvisreflin(IWHICH)

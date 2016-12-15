@@ -1455,6 +1455,7 @@ C class index IC is used for subsequent items.
         CALL EGETRM(LOUTSTR,K,WORD248,'W','categ doc',IER)
         write(cfccatdoc(IC),'(a)') WORD248(1:lnblnk(WORD248))
         goto 41
+
       elseif(WORD(1:5).eq.'*Item'.or.WORD(1:5).eq.'*item')then
 
         cfcdbitems=cfcdbitems+1   ! increment counter
@@ -1523,29 +1524,17 @@ C Record the name and then check and see if it is a duplicate.
             CFCemissout(cfcdbitems) = VAL(8)
             CFCemissin(cfcdbitems) = VAL(9)
             CFClwtran(cfcdbitems) = VAL(10)
-cx            if (ND.gt.11) then
-cx              if(ND.eq.12)then ! version 1.1 w/o visual data
-                CALL EGETW(LOUTSTR,K,WORD8,'-','IGDB ID',IER)
-                CFC_IGDB_ID(cfcdbitems) = WORD8
-cx              else ! version 1.2 w/ visual data
-cx                CALL EGETW(LOUTSTR,K,WORD8,'-','IGDB ID',IER)
-cx                CFC_IGDB_ID(cfcdbitems) = WORD8
-                CALL EGETWR(LOUTSTR,K,VAL(11),0.,0.,'-',
-     &                    'visl refl out',IER)
-                CALL EGETWR(LOUTSTR,K,VAL(12),0.,0.,'-',
-     &                    'vis refl in',IER)
-                CALL EGETWR(LOUTSTR,K,VAL(13),0.,0.,'-',
-     &                    'vis tran dir',IER)
-                CFCvisreflout(cfcdbitems) = VAL(11)
-                CFCvisreflin(cfcdbitems) = VAL(12)
-                CFCvistrandir(cfcdbitems) = VAL(13)
-cx              endif
-cx            else ! default values ID empty string, values vis = sol
-cx                CFC_IGDB_ID(cfcdbitems) = ''
-cx                CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
-cx                CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
-cx                CFCvistrandir(cfcdbitems) = CFCsoltrandir(cfcdbitems)
-cx            endif
+
+            CALL EGETW(LOUTSTR,K,WORD8,'-','IGDB ID',IER)
+            CFC_IGDB_ID(cfcdbitems) = WORD8
+
+            CALL EGETWR(LOUTSTR,K,VAL(11),0.,0.,'-','vis refl out',IER)
+            CALL EGETWR(LOUTSTR,K,VAL(12),0.,0.,'-','vis refl in',IER)
+            CALL EGETWR(LOUTSTR,K,VAL(13),0.,0.,'-','vis tran dir',IER)
+            CFCvisreflout(cfcdbitems) = VAL(11)
+            CFCvisreflin(cfcdbitems) = VAL(12)
+            CFCvistrandir(cfcdbitems) = VAL(13)
+
         else if(CFCshdtp(cfcdbitems).eq.iVenBlind)then
             CALL EGETWR(LOUTSTR,K,VAL(5),0.,0.,'-',
      &                    'sol refl out',IER)
@@ -1761,7 +1750,7 @@ C Parameters
       integer lncat     ! for length of string
       logical closemat1
 
-      tab=','       ! create tab separator.
+      tab=','       ! create comma separator.
       cfccount=0    ! setup initial overall counter
       cfccatcount=0 ! setup initial category counter
 
@@ -1780,18 +1769,81 @@ C Set closemat for the version.
       write(IFA,'(i2,a)') cfccats,'  # number of classifications'
       write(IFA,'(A)') '#  '
       write(IFA,'(A)') '# CFC layers have the following attributes:'
-      write(IFA,'(2A)') '#  conductivity (W/(m-K), density (kg/m**3)',
-     &  ' specific heat (J/(kg-K)'
-      write(IFA,'(A)') '#  default thickness (mm)'
+      write(IFA,'(A)') '#              conductivity (W/(m-K)'
+      write(IFA,'(A)') '#              density (kg/m**3)'
+      write(IFA,'(A)') '#              specific heat (J/(kg-K)'
+      write(IFA,'(A)') '#              default thickness (mm)'
+      write(IFA,'(A)') '#              layer type (-)'
       write(IFA,'(A)') '#  '
+      write(IFA,'(2A)') '# Following attributes depend on ',
+     &                                           'the type of layer:'
+      write(IFA,'(A)') '# '
+      write(IFA,'(A)') '#  Gas gap (type 0):'
+      write(IFA,'(A)') '#              mole fraction, air (%)'
+      write(IFA,'(A)') '#              mole fraction, argon (%)'
+      write(IFA,'(A)') '#              mole fraction, krypton (%)'
+      write(IFA,'(A)') '#              mole fraction, xenon (%)'
+      write(IFA,'(2A)') '#              mole fraction, SF6 (Sulfur ',
+     &                                               'hexafluoride) (%)'
+      write(IFA,'(A)') '#  Glazing (type 1):'
+      write(IFA,'(A)') '#              solar refl out (-)'
+      write(IFA,'(A)') '#              solar refl in (-)'
+      write(IFA,'(A)') '#              solar tran direct (-)'
+      write(IFA,'(A)') '#              emissivity out (-)'
+      write(IFA,'(A)') '#              emissivity in (-)'
+      write(IFA,'(A)') '#              longwave tran (-)'
+      write(IFA,'(A)') '#              ID (-)'
+      write(IFA,'(A)') '#              visual refl out (-)'
+      write(IFA,'(A)') '#              visual refl in (-)'
+      write(IFA,'(A)') '#              visual tran (-)'
+      write(IFA,'(A)') '#  Venetian Blind (type 2):'
+      write(IFA,'(A)') '#              solar refl out (-)'
+      write(IFA,'(A)') '#              solar refl in (-)'
+      write(IFA,'(A)') '#              solar tran direct (-)'
+      write(IFA,'(A)') '#              emissivity out (-)'
+      write(IFA,'(A)') '#              emissivity in (-)'
+      write(IFA,'(A)') '#              longwave tran (-)'
+      write(IFA,'(A)') '#              slat width (mm)'
+      write(IFA,'(A)') '#              slat spacing (mm)'
+      write(IFA,'(A)') '#              slat angle (deg)'
+      write(IFA,'(A)') '#              slat orient (HORZ or VERT)'
+      write(IFA,'(A)') '#              slat crown (mm)'
+      write(IFA,'(2A)') '#              slat width/radius of curva',
+     &                                                  'ture ratio (-)'
+      write(IFA,'(A)') '#              slat thk (mm)'
+      write(IFA,'(A)') '#  Pleated Drape (type 3):'
+      write(IFA,'(A)') '#              solar refl out (-)'
+      write(IFA,'(A)') '#              solar refl in (-)'
+      write(IFA,'(A)') '#              solar tran direct (-)'
+      write(IFA,'(A)') '#              solar total tran out (-)'
+      write(IFA,'(A)') '#              solar total tran in (-)'
+      write(IFA,'(A)') '#              drape pleat width (mm)'
+      write(IFA,'(A)') '#              drape pleat spacing (mm)'
+      write(IFA,'(A)') '#  Roller blind (type 4):'
+      write(IFA,'(A)') '#              solar refl out (-)'
+      write(IFA,'(A)') '#              solar refl in (-)'
+      write(IFA,'(A)') '#              solar tran direct (-)'
+      write(IFA,'(A)') '#              solar total tran out (-)'
+      write(IFA,'(A)') '#              solar total tran in (-)'
+      write(IFA,'(A)') '#  Insect Screen (type 5):'
+      write(IFA,'(A)') '#              solar refl out (-)'
+      write(IFA,'(A)') '#              solar refl in (-)'
+      write(IFA,'(A)') '#              solar tran direct (-)'
+      write(IFA,'(A)') '#              solar total tran out (-)'
+      write(IFA,'(A)') '#              solar total tran in (-)'
+      write(IFA,'(A)') '#              wire emissivity (-))'
+      write(IFA,'(A)') '#              wire diameter (mm)'
+      write(IFA,'(A)') '#              wire spacing (mm)'
+      write(IFA,'(A)') '# '
+
 
 C Loop through each classification (index I) and write out contents.
       do 10 I=1,cfccats
         cfccatcount=0 ! zero items in category counter
         write(IFA,'(A)') 
-     &    '# class index |nb items|description (32 char)'
+     &    '# class |idx |nb items|description (32 char)'
         lncat=lnblnk(cfccatname(I))
-        write(IFA,'(2A,i2,a,i2,2a)') '*class',tab,I,tab,cfccatitems(I),
+        write(IFA,'(2A,i4,a,i4,2a)') '*class',tab,I,tab,cfccatitems(I),
      &    tab,cfccatname(I)(1:lncat)
         lncat=lnblnk(cfccatdoc(I))
         write(IFA,'(a)') cfccatdoc(I)(1:lncat)
@@ -1823,6 +1875,7 @@ C common block arrays so that future reads are more efficient.
      &          CFCshdtp(J),
      &          CFCfillAir(J),CFCfillAr(J),CFCfillKr(J),
      &          CFCfillXe(J),CFCfillSF6(J)
+
             elseif(CFCshdtp(J).eq.iGlazing)then
               write(outs,'(f13.3,3F10.3,i2,3F8.4,3F8.3,a8,3F8.4)')
      &          cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
@@ -1831,6 +1884,7 @@ C common block arrays so that future reads are more efficient.
      &          CFCemissout(J),CFCemissin(J),CFClwtran(J), 
      &          CFC_IGDB_ID(J),CFCvisreflout(J),CFCvisreflin(J),
      &          CFCvistrandir(J)
+
             elseif(CFCshdtp(J).eq.iVenBlind)then
               write(outs,'(f13.3,3F10.3,i2,9F8.3,a5,3F8.3)')
      &          cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
@@ -1840,6 +1894,7 @@ C common block arrays so that future reads are more efficient.
      &          CFCslatwidth(J),CFCslatspacing(J),CFCslatangle(J),
      &          CFCslatorient(J),CFCslatcrown(J),CFCslatwr(J),
      &          CFCslatthk(J)
+
             elseif(CFCshdtp(J).eq.iPleatedDrape)then
               write(outs,'(f13.3,3F10.3,i2,7F8.3)')
      &          cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
@@ -1847,12 +1902,14 @@ C common block arrays so that future reads are more efficient.
      &          CFCsolreflout(J),CFCsolreflin(J),CFCsoltrandir(J),
      &          CFCsoltrantotout(J),CFCsoltrantotin(J),
      &          CFCdrpwidth(J),CFCdrpspacing(J)
+
             elseif(CFCshdtp(J).eq.iRollerBlind)then
               write(outs,'(f13.3,3F10.3,i2,5F8.3)')
      &          cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
      &          CFCshdtp(J),
      &          CFCsolreflout(J),CFCsolreflin(J),CFCsoltrandir(J),
      &          CFCsoltrantotout(J),CFCsoltrantotin(J)
+
             elseif(CFCshdtp(J).eq.iInsectScreen)then
               write(outs,'(f13.3,3F10.3,i2,8F8.3)')
      &          cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),

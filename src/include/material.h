@@ -163,7 +163,7 @@ C Data structures associated with CFC layers
       integer CFCfillKr       ! CFC fill gas % mole fraction, krypton
       integer CFCfillXe       ! CFC fill gas % mole fraction, xenon
       integer CFCfillSF6      ! CFC fill gas % mole fraction, SF6
-      character CFC_IGDB_ID*8 ! CFC IGDB ID for glazings from the IGDB database
+      character CFC_IGDB_ID*6 ! CFC IGDB ID for glazings from the IGDB database
 
       common/dbCFC/CFCshdtp(MGIT_CFC),CFCsolreflout(MGIT_CFC),
      &  CFCsolreflin(MGIT_CFC),CFCsoltrandir(MGIT_CFC),
