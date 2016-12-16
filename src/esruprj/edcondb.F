@@ -5260,7 +5260,7 @@ C 0.10 inside upward flow and 0.17 inside downward flow.
       MLED(M)='! add or delete a layer          '
       M=M+1
       IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
-        MLED(M)='                                 '
+        MLED(M)='* flip layer                     '
       ELSE
         MLED(M)='* adjust layer to reach U-value  '
       ENDIF
@@ -5288,11 +5288,12 @@ C If possible to jump next.
       ILED=-4
 
 C Also compose a list of layers for additions/deletions.
+C<< ? what is this for? Necessar to repeat "low e" output? >>
       check_CFC2_or_MLC_2:
      &IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
 
-        MMLAY(1)=' Layer|CFCl|Thick| Description   '
-        MMLAY(2)='      |db  |(mm) | of CFC layer  '
+        MMLAY(1)=' Layer|CFC |Thick| Description   '
+        MMLAY(2)='      |db# |(mm) | of CFC layer  '
         DO 11, IL=1,LAYERS(IFOC)
         WRITE(MMLAY(IL+2),299)IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
      &         DTHK(IFOC,IL)*1000.0,PNAM(IL)(1:20)
@@ -5463,9 +5464,26 @@ C List the help.
       ELSEIF(ILED.EQ.NLED-4)THEN
 
         check_CFC2_or_MLC_4:
-     &  IF(mlctype(ifoc)(1:4).NE.'CFC2')THEN
+     &  IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
+C        << code to flip layer ... ??
+C        << This would be (very) desirable, as it should not be necessary
+C           to duplicate IGDB entries. However, the original arrays
+C           (emissin, emissout) should not be altered ... ?? Stymied!
 
-C Adjust layer.
+          call edisp(iuout,' Select layer to flip.')
+          IX=1
+          CALL EPMENSV
+          CALL EPICKS(IX,imlay,' ',' Layer to flip: ',
+     &      38,LAYERS(IFOC)+2,MMLAY,'Layer to flip',IER,nbhelp)
+          CALL EPMENRC
+
+          if(IX.eq.1.and.imlay(1).gt.2)then
+            IWHICH=imlay(1)-2
+
+          endif
+
+        ELSE
+C Adjust layer for desired U-value.
           CALL EASKABCD('Adjust options: ',' ',
      &      'Alter (solid) thickness','Alter gap R',
      &      'Find alternative material','Continue',IW,nbhelp)
