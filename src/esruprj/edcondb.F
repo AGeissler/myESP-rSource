@@ -4984,6 +4984,8 @@ C Material properties.
 C CFC layer properties
       integer cfcarrayindex
       logical closecfc1
+      logical not_lowe
+      character*2 lowe
 
 C Note: size of MLED supports a dozen layers in a construction.
       DIMENSION MLED(32),PNAM(ME),MMLAY(ME+2),imlay(ME+2)
@@ -5137,8 +5139,8 @@ C Present editing menu and echo the construction documentation.
       endif
       MLED(9)='  _____________________________  '
       IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
-        MLED(10)=' Layer|CFCl|Thick| Description   '
-        MLED(11)='      |db  |(mm) | of CFC layer  '
+        MLED(10)=' Layer|CFC |Thick|low| Description   '
+        MLED(11)='      |db# |(mm) |e  | of CFC layer  '
       ELSE
         MLED(10)=' Layer|Thick | Description        '
         MLED(11)='      |(mm)  | of material        '
@@ -5168,10 +5170,29 @@ C was confused then cfcarrayindex could be 0.
 
           M=M+1
           CALL EMKEY(M,KEY,IER)
-          WRITE(MLED(M),30)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
-     &      DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
-  30      FORMAT(A1,I4,I5,F7.1,2X,A)
 
+          IF (mlctype(ifoc)(1:4).EQ.'CFC2') THEN
+C           Check where "low e" is looking - later allow for "flip layer"!!
+            call eclose(CFCemissout(ITMCFCDB(IFOC,IL)),
+     &                  CFCemissin(ITMCFCDB(IFOC,IL)),0.001,not_lowe)
+            if (not_lowe) then
+              lowe='  '
+            else
+              if (CFCemissout(ITMCFCDB(IFOC,IL)) .lt.
+     &                    CFCemissin(ITMCFCDB(IFOC,IL))) then
+                lowe=':|'
+              else
+                lowe='|:'
+              endif
+            endif
+            WRITE(MLED(M),31)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
+     &       DTHK(IFOC,IL)*1000.0, lowe, PNAM(IL)(1:19)
+  31        FORMAT(A1,I4,I5,F7.1,A3,2X,A)
+          ELSE
+            WRITE(MLED(M),30)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
+     &      DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
+  30        FORMAT(A1,I4,I5,F7.1,2X,A)
+          ENDIF
         ELSE ! check_CFC2_or_MLC
           matarrayindex=IPRMAT(IFOC,IL)   ! which legacy index
  
