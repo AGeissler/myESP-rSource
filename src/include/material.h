@@ -128,7 +128,8 @@ C If -1 then not a CFC
 C If 0 then confused or missing layer
 C If gt 0 then legitimate db index
       integer ITMCFCDB
-      common/MLCCFC/ITMCFCDB(MMLC,ME)     
+      logical CFC_layer_flipped
+      common/MLCCFC/ITMCFCDB(MMLC,ME),CFC_layer_flipped(MMLC,ME)
      
 C Data structures associated with CFC layers
       integer CFCshdtp        ! CFC shade type (defined in CFC_common.h)

@@ -439,33 +439,56 @@ C...........Get shade and glazing layer properties
 
               if (im_cfcltp(icomp,icfctp,IL).eq.iGlazing) then
 
-                rim_SolRf(icomp,icfctp,IL)=
-     &                  CFCsolreflout(cfcarrayindex)
-                rim_SolRb(icomp,icfctp,IL)=
-     &                  CFCsolreflin(cfcarrayindex)
+                if (CFC_layer_flipped(imlc,IL)) then
+C                 Switch front / back properties
+                  rim_SolRf(icomp,icfctp,IL)=
+     &                    CFCsolreflin(cfcarrayindex)
+                  rim_SolRb(icomp,icfctp,IL)=
+     &                    CFCsolreflout(cfcarrayindex)
+                  rim_lwEf(icomp,icfctp,IL)=
+     &                  CFCemissin(cfcarrayindex)
+                  rim_lwEb(icomp,icfctp,IL)=
+     &                  CFCemissout(cfcarrayindex)
+
+                  rim_VisRf(icomp,icfctp,IL)=
+     &                  CFCvisreflin(cfcarrayindex)
+                  rim_VisRb(icomp,icfctp,IL)=
+     &                  CFCvisreflout(cfcarrayindex)
+
+                else
+C                 Copy values as is from IGDB db
+                  rim_SolRf(icomp,icfctp,IL)=
+     &                    CFCsolreflout(cfcarrayindex)
+                  rim_SolRb(icomp,icfctp,IL)=
+     &                    CFCsolreflin(cfcarrayindex)
+                  rim_lwEf(icomp,icfctp,IL)=
+     &                  CFCemissout(cfcarrayindex)
+                  rim_lwEb(icomp,icfctp,IL)=
+     &                  CFCemissin(cfcarrayindex)
+
+                  rim_VisRf(icomp,icfctp,IL)=
+     &                  CFCvisreflout(cfcarrayindex)
+                  rim_VisRb(icomp,icfctp,IL)=
+     &                  CFCvisreflin(cfcarrayindex)
+
+                endif
+C               Idependant of flip:
                 rim_SolT(icomp,icfctp,IL)=
-     &                  CFCsoltrandir(cfcarrayindex)
-                rim_SolTf_tot(icomp,icfctp,IL)= 
-     &                  CFCsoltrandir(cfcarrayindex)
-                rim_SolTb_tot(icomp,icfctp,IL)=       
-     &                  CFCsoltrandir(cfcarrayindex)
+     &                CFCsoltrandir(cfcarrayindex)
+                rim_SolTf_tot(icomp,icfctp,IL)=
+     &                CFCsoltrandir(cfcarrayindex)
+                rim_SolTb_tot(icomp,icfctp,IL)=
+     &                CFCsoltrandir(cfcarrayindex)
                 rim_SolTf_bd(icomp,icfctp,IL)=0.0
                 rim_SolTb_bd(icomp,icfctp,IL)=0.0
                 rim_lwT(icomp,icfctp,IL)=
-     &                  CFClwtran(cfcarrayindex)
-                rim_lwEf(icomp,icfctp,IL)=
-     &                  CFCemissout(cfcarrayindex)
-                rim_lwEb(icomp,icfctp,IL)=
-     &                  CFCemissin(cfcarrayindex)
+     &                CFClwtran(cfcarrayindex)
                 cim_IGDB_ID(icomp,icfctp,IL)=
-     &                  CFC_IGDB_ID(cfcarrayindex)
+     &                CFC_IGDB_ID(cfcarrayindex)
 
-                rim_VisRf(icomp,icfctp,IL)=
-     &                  CFCvisreflout(cfcarrayindex)
-                rim_VisRb(icomp,icfctp,IL)=
-     &                  CFCvisreflin(cfcarrayindex)
                 rim_VisT(icomp,icfctp,IL)=
-     &                  CFCvistrandir(cfcarrayindex)
+     &                CFCvistrandir(cfcarrayindex)
+
 
               elseif (im_cfcltp(icomp,icfctp,IL).eq.iVenBlind) then
 
@@ -756,13 +779,13 @@ C commons.
         elseif(im_cfcltp(icomp,it,ie).eq.iGlazing)then
 
             if(CFC2_xst .and. cim_IGDB_ID(icomp,it,ie) .ne. '')then
-              write(outs,'(7F8.3,a,a)')rim_SolRf(icomp,it,ie),
+              write(outs,'(7F8.4,a,a)')rim_SolRf(icomp,it,ie),
      &        rim_SolRb(icomp,it,ie),rim_SolT(icomp,it,ie),0.,0.,0.,0.,
      &        '   # glazing, IGDB ID: ', cim_IGDB_ID(icomp,it,ie)
               WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
      &        outs(1:lnblnk(outs))
             else
-              write(outs,'(7F8.3,a)')rim_SolRf(icomp,it,ie),
+              write(outs,'(7F8.4,a)')rim_SolRf(icomp,it,ie),
      &        rim_SolRb(icomp,it,ie),rim_SolT(icomp,it,ie),0.,0.,0.,0.,
      &        '   # glazing '
               WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
@@ -821,7 +844,7 @@ C commons.
      &                        outs(1:lnblnk(outs))
 
           elseif(im_cfcltp(icomp,it,ie).eq.iGlazing)then
-             write(outs,'(3F8.3,a)')rim_VisRf(icomp,it,ie),
+             write(outs,'(3F8.4,a)')rim_VisRf(icomp,it,ie),
      &         rim_VisRb(icomp,it,ie),rim_VisT(icomp,it,ie),
      &         '   # glazing '
              WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)

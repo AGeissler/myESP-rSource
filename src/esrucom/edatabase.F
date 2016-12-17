@@ -292,6 +292,14 @@ C materials db.
 C Increment thickness of MLC.
             THKMLC(I)=THKMLC(I)+DTHK(I,IL)
 
+C Read logical value for "layer flipped?"
+            CALL EGETW(OUTSTR,K,RSTR,'W','CFC layer flipped?',IER)
+            if (RSTR(1:1).eq.'T') then
+              CFC_layer_flipped(I,IL)=.true.
+            else
+              CFC_layer_flipped(I,IL)=.false.
+            endif
+
 C Current MLDB also includes the name of the layer from the
 C CFClayers db.
 
@@ -2147,7 +2155,7 @@ C Parameters
       integer cfcarrayindex
 
       DIMENSION PNAM(ME)
-      CHARACTER NAM*72,PNAM*72
+      CHARACTER NAM*72,PNAM*72,flipped*1
       character lworking*144,fs*1
       integer lndbp   ! for length of standard database path
       logical unixok  ! to check for database path file separators
@@ -2208,7 +2216,7 @@ C The ASCII file will be overwritten if it exists.
 C Write out a file header.
       WRITE(IFMUL,30)LFMUL(1:lnblnk(LFMUL)),LFMAT(1:lnblnk(LFMAT)),
      &               LCFCDB(1:lnblnk(LCFCDB))
-  30  FORMAT('# composite construction db defined in ',A,/,
+  30  FORMAT('# Composite construction db defined in ',A,/,
      &       '# based on materials db ',A,/,
      &       '# and based on CFClayers db ',A)
 
@@ -2286,8 +2294,13 @@ C a gap layer.
           check_CFC2_or_MLC_2:
      &    IF(mlctype(I)(1:4).EQ.'CFC2') THEN
             cfcarrayindex=ITMCFCDB(I,IL)
-            WRITE(IFMUL,'(I5,F10.4,2X,A)')ITMCFCDB(I,IL),
-     &        DTHK(I,IL),PNAM(IL)(1:lnblnk(PNAM(IL)))
+            if (CFC_layer_flipped(I,IL)) then
+              flipped='T'
+            else
+              flipped='F'
+            endif
+            WRITE(IFMUL,'(I5,F10.4,2X,1A,2X,A)')ITMCFCDB(I,IL),
+     &                  DTHK(I,IL),flipped,PNAM(IL)(1:lnblnk(PNAM(IL)))
           ELSE ! check_CFC2_or_MLC_2
             matarrayindex=IPRMAT(I,IL)
             if(matopaq(matarrayindex)(1:1).eq.'g'.or.

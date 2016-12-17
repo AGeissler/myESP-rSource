@@ -2288,6 +2288,7 @@ C Work with local variables.
       locCFCemissout = CFCemissout(index)
       locCFCemissin = CFCemissin(index)
       locCFClwtran = CFClwtran(index)
+      locCFC_IGDB_ID = CFC_IGDB_ID(index)
 
       locCFCvisreflout = CFCvisreflout(index)
       locCFCvisreflin = CFCvisreflin(index)
@@ -2313,7 +2314,6 @@ C Work with local variables.
       locCFCfillKr = CFCfillKr(index)
       locCFCfillXe = CFCfillXe(index)
       locCFCfillSF6 = CFCfillSF6(index)
-      locCFC_IGDB_ID = CFC_IGDB_ID(index)
 
    3  IW=-4
       WRITE(PELM(1),'(A,1X,A)')    'a Name:',tnam(1:32)
@@ -2504,6 +2504,7 @@ C updating the common blocks.
             CFCemissout(index) = locCFCemissout
             CFCemissin(index) = locCFCemissin
             CFClwtran(index) = locCFClwtran
+            CFC_IGDB_ID(index) = locCFC_IGDB_ID
 
             CFCvisreflout(index) = locCFCvisreflout
             CFCvisreflin(index) = locCFCvisreflin
@@ -5172,7 +5173,15 @@ C was confused then cfcarrayindex could be 0.
           CALL EMKEY(M,KEY,IER)
 
           IF (mlctype(ifoc)(1:4).EQ.'CFC2') THEN
-C           Check where "low e" is looking - later allow for "flip layer"!!
+C           Check where "low e" is facing;
+C             - When "flip layer" is implemented, the CFC db array values should
+C               *not* be changed, as the CFC database entries should not be
+C               altered!
+C             - A common "CFC_Layer_flipped(MMLC,ME)" will be necessary, boolean,
+C               to track state. This common should only be used for changing
+C               output when writing the actual .cfc zone file ... ??!!
+C             - The value needs to be stored with the corresponding mlc in
+C               the mlc database ... ??!!
             call eclose(CFCemissout(ITMCFCDB(IFOC,IL)),
      &                  CFCemissin(ITMCFCDB(IFOC,IL)),0.001,not_lowe)
             if (not_lowe) then
@@ -5180,9 +5189,17 @@ C           Check where "low e" is looking - later allow for "flip layer"!!
             else
               if (CFCemissout(ITMCFCDB(IFOC,IL)) .lt.
      &                    CFCemissin(ITMCFCDB(IFOC,IL))) then
-                lowe=':|'
+                if (.not.CFC_layer_flipped(IFOC,IL)) then
+                  lowe=':|'
+                else
+                  lowe='|:'
+                endif
               else
-                lowe='|:'
+                if (.not.CFC_layer_flipped(IFOC,IL)) then
+                  lowe='|:'
+                else
+                  lowe=':|'
+                endif
               endif
             endif
             WRITE(MLED(M),31)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
@@ -5288,7 +5305,7 @@ C If possible to jump next.
       ILED=-4
 
 C Also compose a list of layers for additions/deletions.
-C<< ? what is this for? Necessar to repeat "low e" output? >>
+C<< ? what is this for? Necessary to repeat "low e" output? >>
       check_CFC2_or_MLC_2:
      &IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
 
@@ -5465,11 +5482,6 @@ C List the help.
 
         check_CFC2_or_MLC_4:
      &  IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
-C        << code to flip layer ... ??
-C        << This would be (very) desirable, as it should not be necessary
-C           to duplicate IGDB entries. However, the original arrays
-C           (emissin, emissout) should not be altered ... ?? Stymied!
-
           call edisp(iuout,' Select layer to flip.')
           IX=1
           CALL EPMENSV
@@ -5480,6 +5492,17 @@ C           (emissin, emissout) should not be altered ... ?? Stymied!
           if(IX.eq.1.and.imlay(1).gt.2)then
             IWHICH=imlay(1)-2
 
+C        << code to (bookkeep) for "flip layer" ... ??
+C        << This would be (very) desirable, as it should not be necessary
+C           to duplicate IGDB entries. However, the original CFC db arrays
+C           (emissin, emissout) should not be altered ... ?? Stymied!
+            call eclose(CFCemissout(ITMCFCDB(IFOC,IWHICH)),
+     &                 CFCemissin(ITMCFCDB(IFOC,IWHICH)),0.001,not_lowe)
+            if (not_lowe) then
+              ! do nothing! ((warn?))
+            else
+              CFC_layer_flipped(IFOC,IWHICH)=.true.
+            endif
           endif
 
         ELSE
