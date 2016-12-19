@@ -1347,8 +1347,10 @@ C...............information is, so set to arbitrary non-zero value.
             endif
 
 C CFC emissivity and absorptivity calclated elsewhere so set to 0.0
-            E=0.0
-            A=0.0
+cx << give value to avoid warning messages and likely problems with
+cx    controlled shading devices ???? >>
+            E=0.0002
+            A=0.0002
 
           ELSE ! check_CFC2_or_MLC
             matarrayindex=IPRMAT(IC,IL)   ! which materials array index
