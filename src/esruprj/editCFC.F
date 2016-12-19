@@ -840,22 +840,19 @@ C commons.
              write(outs,'(3F8.3,a)')rim_VisRf(icomp,it,ie),
      &         rim_VisRb(icomp,it,ie),rim_VisT(icomp,it,ie),
      &         '   # slat-type blind '
-             WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
-     &                        outs(1:lnblnk(outs))
+             WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98) outs(1:lnblnk(outs))
 
           elseif(im_cfcltp(icomp,it,ie).eq.iGlazing)then
              write(outs,'(3F8.4,a)')rim_VisRf(icomp,it,ie),
      &         rim_VisRb(icomp,it,ie),rim_VisT(icomp,it,ie),
      &         '   # glazing '
-             WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
-     &                       outs(1:lnblnk(outs))
+             WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98) outs(1:lnblnk(outs))
 
           elseif(im_cfcltp(icomp,it,ie).eq.iGasGap)then
              write(outs,'(3F8.3,a)')rim_VisRf(icomp,it,ie),
      &         rim_VisRb(icomp,it,ie),rim_VisT(icomp,it,ie),
      &         '   # gas gap '
-             WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
-     &                       outs(1:lnblnk(outs))
+             WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98) outs(1:lnblnk(outs))
 
           else
              GOTO 98
