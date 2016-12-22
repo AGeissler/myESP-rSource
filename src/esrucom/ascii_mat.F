@@ -1379,7 +1379,7 @@ C Name of current application - only invoke editing if prj.
       CHARACTER DOIT*300
 
       DIMENSION VAL(19)
-      CHARACTER NDESC*124,OUTSTR*124,WORD*24, WORD4*4, WORD8*8
+      CHARACTER NDESC*124,OUTSTR*124,WORD*24,WORD4*4,WORD6*6,WORD8*8
       character WORD32*32,WORD248*248,LOUTSTR*248
       character namelist*32,nametocheck*32  ! to check for duplicate names
       character outs*132,lltmp*144,longtfile*144,longtfiledos*144
@@ -1525,15 +1525,29 @@ C Record the name and then check and see if it is a duplicate.
             CFCemissin(cfcdbitems) = VAL(9)
             CFClwtran(cfcdbitems) = VAL(10)
 
-            CALL EGETW(LOUTSTR,K,WORD8,'-','IGDB ID',IER)
-            CFC_IGDB_ID(cfcdbitems) = WORD8
+C           Try to keep db read backwards-compatible
+            if (ND.ge.12) then
+              CALL EGETW(LOUTSTR,K,WORD6,'-','IGDB ID',IER)
+              CFC_IGDB_ID(cfcdbitems) = WORD6
 
-            CALL EGETWR(LOUTSTR,K,VAL(11),0.,0.,'-','vis refl out',IER)
-            CALL EGETWR(LOUTSTR,K,VAL(12),0.,0.,'-','vis refl in',IER)
-            CALL EGETWR(LOUTSTR,K,VAL(13),0.,0.,'-','vis tran dir',IER)
-            CFCvisreflout(cfcdbitems) = VAL(11)
-            CFCvisreflin(cfcdbitems) = VAL(12)
-            CFCvistrandir(cfcdbitems) = VAL(13)
+              if (ND.gt.12) then
+                CALL EGETWR(LOUTSTR,K,VAL(11),0.,0.,'-',
+     &                                          'vis refl out',IER)
+                CALL EGETWR(LOUTSTR,K,VAL(12),0.,0.,'-',
+     &                                           'vis refl in',IER)
+                CALL EGETWR(LOUTSTR,K,VAL(13),0.,0.,'-',
+     &                                          'vis tran dir',IER)
+                CFCvisreflout(cfcdbitems) = VAL(11)
+                CFCvisreflin(cfcdbitems) = VAL(12)
+                CFCvistrandir(cfcdbitems) = VAL(13)
+              endif
+            else
+C             Old data base ...
+              CFC_IGDB_ID(cfcdbitems) = ''
+              CFCvisreflout(cfcdbitems) = VAL(5)
+              CFCvisreflin(cfcdbitems) = VAL(6)
+              CFCvistrandir(cfcdbitems) = VAL(7)
+            endif
 
         else if(CFCshdtp(cfcdbitems).eq.iVenBlind)then
             CALL EGETWR(LOUTSTR,K,VAL(5),0.,0.,'-',
