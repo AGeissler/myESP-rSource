@@ -1087,7 +1087,7 @@ C CLSSEL (36 char) is an array for menu items for the selected class.
       CHARACTER KEY*1,PDBM*76,outs*124
       CHARACTER xfile*144,tg*1,delim*1,t32*32,t248*248
       character lworking*144,fs*1
-      logical closemat1
+      logical closecfc1,closecfc2
       logical mod   ! to signal whether an item has been altered.
       logical unixok
       integer NCO,ICO,NITMS,INO,IW  ! max items and current menu item
@@ -1121,8 +1121,9 @@ C Assume no changes to db amd user has not entered password.
 
 C Check that the CFClayers db is not empty.
     4 IER=0
-      call eclose(cfcver,1.1,0.001,closemat1)
-      if(closemat1)then
+      call eclose(cfcver,1.1,0.001,closecfc1)
+      call eclose(cfcver,1.2,0.001,closecfc2)
+      if(closecfc1.or.closecfc2)then
         IF(cfccats.LE.0)THEN
           CALL USRMSG(' CFC layers db is empty.',' ','W')
           IER=1

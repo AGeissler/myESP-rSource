@@ -687,7 +687,7 @@ C espriou.h provides currentfile.
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,layermatch
       LOGICAL        CFCDBOK
 
-      logical closemat1,closemat2,close4, closecfc1
+      logical closemat1,closemat2,close4,closecfc1,closecfc2
       logical unixok
 
       CHARACTER OUTSTR*124,NAM*72,H*72,outs*124
@@ -716,6 +716,7 @@ C Keep track of how many times materials db read fails.
       
 C Flag for CFC layers db version
       closecfc1=.false.
+      closecfc2=.false.
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -771,7 +772,8 @@ C is true then the material arrays could be problematic.
 C Find version of CFClayers database, if not closecfc1
 C is true then the CFC layer arrays could be problematic.
       call eclose(cfcver,1.1,0.01,closecfc1)
-      if(closecfc1)then
+      call eclose(cfcver,1.2,0.01,closecfc2)
+      if(closecfc1.or.closecfc2)then
         continue
       else
         CALL USRMSG('CFC layers database data probably corrupt.',
@@ -1610,7 +1612,7 @@ C based on contents of material.h. Should work for mlcver 0 and 1.
       integer cfcarrayindex ! CFClayers db index
       integer lnam    ! length of material name
       integer lfordoc ! length available for material documentation
-      logical closemat1,closemat2, closecfc1
+      logical closemat1,closemat2,closecfc1,closecfc2
       logical bCloseToZero
       integer lnlist
 
@@ -1681,7 +1683,8 @@ C Check version of materials database.
 
 C Check version of CFClayers database.
       call eclose(cfcver,1.1,0.01,closecfc1)
-      if(closecfc1)then
+      call eclose(cfcver,1.2,0.01,closecfc2)
+      if(closecfc1.or.closecfc2)then
         continue
       else
         CALL EDISP(ITRU,'CFClayers data may be incomplete.')
@@ -2362,7 +2365,7 @@ C Parameters
       integer lfordoc ! length available for material documentation
       integer izero   ! transitional trick for air gap
       logical closemat1,closemat2
-      logical closecfc1
+      logical closecfc1,closecfc2
       
       integer cfcarrayindex
       integer loop,loop2,lnda,lndb,lndc,lndd,lnde,lndf,lndg
@@ -2409,7 +2412,8 @@ C Check version of material database.
 
 C Check version of CFC database.
       call eclose(cfcver,1.1,0.01,closecfc1)
-      if(closecfc1)then
+      call eclose(cfcver,1.2,0.01,closecfc2)
+      if (closecfc1.or.closecfc2) then
         continue
       else
         CALL USRMSG('CFC layers database data not yet filled.',

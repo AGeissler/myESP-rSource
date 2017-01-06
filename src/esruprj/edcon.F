@@ -756,7 +756,7 @@ C Material properties.
 
 C CFClayers db properties
       integer cfcarrayindex
-      logical closecfc1
+      logical closecfc1,closecfc2
 
       DIMENSION ISD(25)
       CHARACTER ISD*56
@@ -788,7 +788,8 @@ C with ier=1.
 C Establish if CFC layer data arrays have been filled. If not return
 C with ier=1.
       call eclose(cfcver,1.1,0.01,closecfc1)
-      if(closecfc1)then
+      call eclose(cfcver,1.2,0.01,closecfc2)
+      if(closecfc1.or.closecfc2)then
         continue
       else
         call usrmsg('The CFC layer arrays are incomplete so editing',
