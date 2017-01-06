@@ -953,11 +953,7 @@ C Estimate contribution to external longwave flux (for CFC output)
 
         DT=((TP+TF)/2.0)-TFC(ICOMP,I,1)
         IF(DT.GE.0.0.AND.DT.LT.0.01)DT=0.01
-cx << logic correct, here:??
-cx        IF(DT.GT.-0.01.AND.DT.LT.0.0)DT=-0.01
-cx << would assume the following is meant (i.e. smallest negative value
-cx    possible is -0.01 ... ??:
-        IF(DT.LT.0.0.AND.DT.LT.-0.01)DT=-0.01
+        IF(DT.GT.-0.01.AND.DT.LT.0.0)DT=-0.01
         HROF(I)=QELWF(I)/DT
 
 C High longwave flux ****** WARNING MESSAGE ******
