@@ -4984,7 +4984,7 @@ C Material properties.
 
 C CFC layer properties
       integer cfcarrayindex
-      logical closecfc1
+      logical closecfc1,closecfc2
       logical not_lowe
       character*2 lowe
 
@@ -5040,7 +5040,8 @@ C is true then the common blocks are filled.
 C Check version of CFC layers database.  If closecfc1
 C is true then the common blocks are filled.
       call eclose(cfcver,1.1,0.01,closecfc1)
-      if(closecfc1)then
+      call eclose(cfcver,1.2,0.01,closecfc2)
+      if(closecfc1.or.closecfc2)then
         continue
       else
         CALL USRMSG('CFC layers database data not yet filled.',
@@ -5140,8 +5141,13 @@ C Present editing menu and echo the construction documentation.
       endif
       MLED(9)='  _____________________________  '
       IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
-        MLED(10)=' Layer|CFC |Thick|low| Description   '
-        MLED(11)='      |db# |(mm) |e  | of CFC layer  '
+        if (closecfc2) then
+          MLED(10)=' Layer|CFC |Thick|low| Description   '
+          MLED(11)='      |db# |(mm) |e  | of CFC layer  '
+        else
+          MLED(10)=' Layer|CFC |Thick| Description   '
+          MLED(11)='      |db# |(mm) | of CFC layer  '
+        endif
       ELSE
         MLED(10)=' Layer|Thick | Description        '
         MLED(11)='      |(mm)  | of material        '
@@ -5172,7 +5178,7 @@ C was confused then cfcarrayindex could be 0.
           M=M+1
           CALL EMKEY(M,KEY,IER)
 
-          IF (mlctype(ifoc)(1:4).EQ.'CFC2') THEN
+          if (closecfc2) then
 C           Check where "low e" is facing;
 C             - When "flip layer" is implemented, the CFC db array values should
 C               *not* be changed, as the CFC database entries should not be
@@ -5183,9 +5189,9 @@ C               output when writing the actual .cfc zone file ... ??!!
 C             - The value needs to be stored with the corresponding mlc in
 C               the mlc database ... ??!!
             call eclose(CFCemissout(ITMCFCDB(IFOC,IL)),
-     &                  CFCemissin(ITMCFCDB(IFOC,IL)),0.001,not_lowe)
+     &                   CFCemissin(ITMCFCDB(IFOC,IL)),0.001,not_lowe)
             if (not_lowe) then
-              lowe='  '
+                lowe='  '
             else
               if (CFCemissout(ITMCFCDB(IFOC,IL)) .lt.
      &                    CFCemissin(ITMCFCDB(IFOC,IL))) then
@@ -5203,11 +5209,11 @@ C               the mlc database ... ??!!
               endif
             endif
             WRITE(MLED(M),31)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
-     &       DTHK(IFOC,IL)*1000.0, lowe, PNAM(IL)(1:19)
+     &                      DTHK(IFOC,IL)*1000.0, lowe, PNAM(IL)(1:19)
   31        FORMAT(A1,I4,I5,F7.1,A3,2X,A)
-          ELSE
+          else
             WRITE(MLED(M),30)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
-     &      DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
+     &                            DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
   30        FORMAT(A1,I4,I5,F7.1,2X,A)
           ENDIF
         ELSE ! check_CFC2_or_MLC
@@ -5276,7 +5282,7 @@ C 0.10 inside upward flow and 0.17 inside downward flow.
       M=M+1
       MLED(M)='! add or delete a layer          '
       M=M+1
-      IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
+      IF(mlctype(ifoc)(1:4).EQ.'CFC2'.and.closecfc2)THEN
         MLED(M)='* flip layer                     '
       ELSE
         MLED(M)='* adjust layer to reach U-value  '
@@ -5481,7 +5487,7 @@ C List the help.
       ELSEIF(ILED.EQ.NLED-4)THEN
 
         check_CFC2_or_MLC_4:
-     &  IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
+     &  IF(mlctype(ifoc)(1:4).EQ.'CFC2'.and.closecfc2)THEN
           call edisp(iuout,' Select layer to flip.')
           IX=1
           CALL EPMENSV
@@ -5492,16 +5498,21 @@ C List the help.
           if(IX.eq.1.and.imlay(1).gt.2)then
             IWHICH=imlay(1)-2
 
-C        << code to (bookkeep) for "flip layer" ... ??
-C        << This would be (very) desirable, as it should not be necessary
-C           to duplicate IGDB entries. However, the original CFC db arrays
-C           (emissin, emissout) should not be altered ... ?? Stymied!
+C           Code to (bookkeep for) "flip layer"
+C           It should not be necessary to duplicate IGDB entries and
+C           the original CFC db arrays (emissin, emissout) should
+C           not be altered!
             call eclose(CFCemissout(ITMCFCDB(IFOC,IWHICH)),
      &                 CFCemissin(ITMCFCDB(IFOC,IWHICH)),0.001,not_lowe)
             if (not_lowe) then
               ! do nothing! ((warn?))
             else
-              CFC_layer_flipped(IFOC,IWHICH)=.true.
+              if (CFC_layer_flipped(IFOC,IWHICH)) then
+C               "Backflip"
+                CFC_layer_flipped(IFOC,IWHICH)=.false.
+              else
+                CFC_layer_flipped(IFOC,IWHICH)=.true.
+              endif
             endif
           endif
 

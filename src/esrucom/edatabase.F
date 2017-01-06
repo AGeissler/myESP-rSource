@@ -60,7 +60,7 @@ C espriou.h provides currentfile.
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,layermatch
       LOGICAL        CFCDBOK
 
-      logical closemat1,closemat2,close4, closecfc1
+      logical closemat1,closemat2,close4,closecfc1,closecfc2
       logical unixok
 
       CHARACTER OUTSTR*124,NAM*72,H*72,outs*124
@@ -87,6 +87,7 @@ C Keep track of how many times materials db read fails.
 
 C Flag for CFC layers db version
       closecfc1=.false.
+      closecfc2=.false.
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -142,7 +143,8 @@ C is true then the material arrays could be problematic.
 C Find version of CFClayers database, if not closecfc1
 C is true then the CFC layer arrays could be problematic.
       call eclose(cfcver,1.1,0.01,closecfc1)
-      if(closecfc1)then
+      call eclose(cfcver,1.2,0.01,closecfc2)
+      if(closecfc1.or.closecfc2)then
         continue
       else
         CALL USRMSG('CFC layers database data probably corrupt.',
@@ -292,12 +294,16 @@ C materials db.
 C Increment thickness of MLC.
             THKMLC(I)=THKMLC(I)+DTHK(I,IL)
 
-C Read logical value for "layer flipped?"
-            CALL EGETW(OUTSTR,K,RSTR,'W','CFC layer flipped?',IER)
-            if (RSTR(1:1).eq.'T') then
-              CFC_layer_flipped(I,IL)=.true.
-            else
-              CFC_layer_flipped(I,IL)=.false.
+C Read logical value for "layer flipped?" if using v. 1.2 CFClayers.db
+C or higher (this is not entirely "clean", as actually the CFClayers.db
+C version has nothing to do with the mlc construction file version ...):
+            if (closecfc2) then
+              CALL EGETW(OUTSTR,K,RSTR,'W','CFC layer flipped?',IER)
+              if (RSTR(1:1).eq.'T') then
+                CFC_layer_flipped(I,IL)=.true.
+              else
+                CFC_layer_flipped(I,IL)=.false.
+              endif
             endif
 
 C Current MLDB also includes the name of the layer from the
@@ -2150,7 +2156,7 @@ C Parameters
       integer lfordoc ! length available for material documentation
       integer izero   ! transitional trick for air gap
       logical closemat1,closemat2
-      logical closecfc1
+      logical closecfc1,closecfc2
       
       integer cfcarrayindex
 
@@ -2194,7 +2200,8 @@ C Check version of material database.
 
 C Check version of material database.
       call eclose(cfcver,1.1,0.01,closecfc1)
-      if(closecfc1)then
+      call eclose(cfcver,1.2,0.01,closecfc2)
+      if(closecfc1.or.closecfc2)then
         continue
       else
         CALL USRMSG('CFC layers database data not yet filled.',
@@ -2294,13 +2301,20 @@ C a gap layer.
           check_CFC2_or_MLC_2:
      &    IF(mlctype(I)(1:4).EQ.'CFC2') THEN
             cfcarrayindex=ITMCFCDB(I,IL)
-            if (CFC_layer_flipped(I,IL)) then
-              flipped='T'
-            else
-              flipped='F'
-            endif
-            WRITE(IFMUL,'(I5,F10.4,2X,1A,2X,A)')ITMCFCDB(I,IL),
+C           Only write out flipped switch if using CFClayers.db v. 1.2
+C           or later ... (see comments above, line 298 ff.)
+            if (closecfc2) then
+              if (CFC_layer_flipped(I,IL)) then
+                flipped='T'
+              else
+                flipped='F'
+              endif
+              WRITE(IFMUL,'(I5,F10.4,2X,1A,2X,A)')ITMCFCDB(I,IL),
      &                  DTHK(I,IL),flipped,PNAM(IL)(1:lnblnk(PNAM(IL)))
+            else ! Version 1.1
+              WRITE(IFMUL,'(I5,F10.4,2X,A)')ITMCFCDB(I,IL),
+     &                  DTHK(I,IL),PNAM(IL)(1:lnblnk(PNAM(IL)))
+            endif
           ELSE ! check_CFC2_or_MLC_2
             matarrayindex=IPRMAT(I,IL)
             if(matopaq(matarrayindex)(1:1).eq.'g'.or.
