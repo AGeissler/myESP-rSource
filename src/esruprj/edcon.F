@@ -1254,7 +1254,7 @@ C Establish if CFC layer data arrays have been filled. If not return
 C with ier=1.
       call eclose(cfcver,1.1,0.01,closecfc1)
       call eclose(cfcver,1.2,0.01,closecfc2)
-      if(closecfc1)then
+      if(closecfc1.or.closecfc2)then
         continue
       else
         call usrmsg('The CFC layer arrays are incomplete so zone',
