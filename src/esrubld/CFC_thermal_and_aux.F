@@ -783,6 +783,7 @@ C Determine longwave exchange between each CFC layer and external
 C surroundings. The mean radiant temperature (teqv) consists
 C of buildings, sky and ground components. 
       IF(iDiaOut.eq.1)then
+C       External blind exists << ... other cases ?? What if retracted ?? >>
         do 180 j=1,nCFCPart,2
           qenv(j)=
      &    (epsf(j)*sigma*(tnd(j*2)**4)*FSfenv(icomp,isurf,j)-

@@ -1520,7 +1520,7 @@ C For 3D zone model, close the associated files.
               ENDIF
 
 C CFC output
-c             call CFCoutput(icomp)
+              call CFCoutput(icomp)
 
    40       continue
 

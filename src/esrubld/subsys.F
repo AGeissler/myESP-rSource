@@ -1101,7 +1101,7 @@ C Debug.
         xx=QELWF(I)/DT
         call eclose(HROF(I),xx,0.01,close)
         if(.NOT.close)write(itu,*)'corrupted hrof',I,HROF(I),xx,
-     &  TFC(ICOMP,I,1)
+     &  TFC(ICOMP,I,1),DT,QELWF(I),TEQV(I)
 
         IF(IE(ICOMP,I).EQ.0)THEN
 
