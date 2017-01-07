@@ -122,7 +122,8 @@ C ******** Calculate effective longwave properties for each CFC layer
 C.........Only calculate at first time-step and when slat angle change occurs
 C.........(effective longwave radiative properties are a function of geometry only).
           diff = abs(vb_phiNew(icomp,icfctp) - vb_phiOld(icomp,icfctp))
-          IF((NSINC.eq.1).or.(diff.lt.0.1))then
+cx               ... slat angle change implies diff > 0.x, no??
+          IF((NSINC.eq.1).or.(diff.gt.0.1))then
 
             do 20 j = 1, ncfc_el(icomp,icfctp)
 
@@ -144,7 +145,7 @@ C...............the outdoors).
                 call vb_eff_diff_properties(tmp_vb_w,tmp_vb_s,
      &            tmp_vb_phi,tmp_lwEF,tmp_lwEB,tmp_lwT,eff_lwE,eff_lwT)
 
-C...............Save effective properties (front reflectance and transmittance) into 
+C...............Save effective properties (front emissivity and transmittance) into
 C...............common variables.
                 rlwEF(icomp,icfctp,j) = eff_lwE
                 rlwT(icomp,icfctp,j)  = eff_lwT
@@ -155,7 +156,7 @@ C...............the indoors) by setting negative slat angle
      &            tmp_vb_phi*(-1.0),tmp_lwEF,tmp_lwEB,tmp_lwT,
      &            eff_lwE,eff_lwT)
 
-C...............Save efective back reflectance into common variable
+C...............Save efective back emissivity into common variable
                 rlwEB(icomp,icfctp,j) = eff_lwE
             
 C...............If shade is retracted, set longwave transmittance to 1.             

@@ -1762,7 +1762,7 @@ C Parameters
 
       integer cfccount,cfccatcount  ! used to increment arrays
       integer lncat     ! for length of string
-      logical closemat1
+      logical closemat1,closemat2
 
       tab=','       ! create comma separator.
       cfccount=0    ! setup initial overall counter
@@ -1774,7 +1774,8 @@ C The ASCII file will be overwritten if it exists.
 
 C Set closemat for the version.
       call eclose(cfcver,1.1,0.001,closemat1)
-      
+      call eclose(cfcver,1.2,0.001,closemat2)
+
       write(IFA,'(A,F3.1)') '*CFClayers ',cfcver
       write(IFA,'(3A)') '*date',tab,cfcdbdate
       write(IFA,'(2A)') '# CFC layers database defined in ',
@@ -1807,9 +1808,11 @@ C Set closemat for the version.
       write(IFA,'(A)') '#              emissivity in (-)'
       write(IFA,'(A)') '#              longwave tran (-)'
       write(IFA,'(A)') '#              ID (-)'
-      write(IFA,'(A)') '#              visual refl out (-)'
-      write(IFA,'(A)') '#              visual refl in (-)'
-      write(IFA,'(A)') '#              visual tran (-)'
+      if (closemat2) then
+        write(IFA,'(A)') '#              visual refl out (-)'
+        write(IFA,'(A)') '#              visual refl in (-)'
+        write(IFA,'(A)') '#              visual tran (-)'
+      endif
       write(IFA,'(A)') '#  Venetian Blind (type 2):'
       write(IFA,'(A)') '#              solar refl out (-)'
       write(IFA,'(A)') '#              solar refl in (-)'
@@ -1822,8 +1825,8 @@ C Set closemat for the version.
       write(IFA,'(A)') '#              slat angle (deg)'
       write(IFA,'(A)') '#              slat orient (HORZ or VERT)'
       write(IFA,'(A)') '#              slat crown (mm)'
-      write(IFA,'(2A)') '#              slat width/radius of curva',
-     &                                                  'ture ratio (-)'
+      write(IFA,'(2A)') '#             ',
+     &                     ' slat width/radius of curvature ratio (-)'
       write(IFA,'(A)') '#              slat thk (mm)'
       write(IFA,'(A)') '#  Pleated Drape (type 3):'
       write(IFA,'(A)') '#              solar refl out (-)'
@@ -1891,6 +1894,7 @@ C common block arrays so that future reads are more efficient.
      &          CFCfillXe(J),CFCfillSF6(J)
 
             elseif(CFCshdtp(J).eq.iGlazing)then
+              if (closemat2) then
               write(outs,'(f13.3,3F10.3,i2,3F8.4,3F8.3,a8,3F8.4)')
      &          cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
      &          CFCshdtp(J),
@@ -1898,6 +1902,14 @@ C common block arrays so that future reads are more efficient.
      &          CFCemissout(J),CFCemissin(J),CFClwtran(J), 
      &          CFC_IGDB_ID(J),CFCvisreflout(J),CFCvisreflin(J),
      &          CFCvistrandir(J)
+              else
+              write(outs,'(f13.3,3F10.3,i2,3F8.3,3F8.3,a8)')
+     &          cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
+     &          CFCshdtp(J),
+     &          CFCsolreflout(J),CFCsolreflin(J),CFCsoltrandir(J),
+     &          CFCemissout(J),CFCemissin(J),CFClwtran(J), 
+     &          CFC_IGDB_ID(J)
+              endif
 
             elseif(CFCshdtp(J).eq.iVenBlind)then
               write(outs,'(f13.3,3F10.3,i2,9F8.3,a5,3F8.3)')

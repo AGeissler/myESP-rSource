@@ -779,13 +779,13 @@ C commons.
         elseif(im_cfcltp(icomp,it,ie).eq.iGlazing)then
 
             if(CFC2_xst .and. cim_IGDB_ID(icomp,it,ie) .ne. '')then
-              write(outs,'(7F8.4,a,a)')rim_SolRf(icomp,it,ie),
+              write(outs,'(7F8.3,a,a)')rim_SolRf(icomp,it,ie),
      &        rim_SolRb(icomp,it,ie),rim_SolT(icomp,it,ie),0.,0.,0.,0.,
      &        '   # glazing, IGDB ID: ', cim_IGDB_ID(icomp,it,ie)
               WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
      &        outs(1:lnblnk(outs))
             else
-              write(outs,'(7F8.4,a)')rim_SolRf(icomp,it,ie),
+              write(outs,'(7F8.3,a)')rim_SolRf(icomp,it,ie),
      &        rim_SolRb(icomp,it,ie),rim_SolT(icomp,it,ie),0.,0.,0.,0.,
      &        '   # glazing '
               WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98)
@@ -843,7 +843,7 @@ C commons.
              WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98) outs(1:lnblnk(outs))
 
           elseif(im_cfcltp(icomp,it,ie).eq.iGlazing)then
-             write(outs,'(3F8.4,a)')rim_VisRf(icomp,it,ie),
+             write(outs,'(3F8.3,a)')rim_VisRf(icomp,it,ie),
      &         rim_VisRb(icomp,it,ie),rim_VisT(icomp,it,ie),
      &         '   # glazing '
              WRITE(IFU,'(A)',IOSTAT=ISTAT,ERR=98) outs(1:lnblnk(outs))
