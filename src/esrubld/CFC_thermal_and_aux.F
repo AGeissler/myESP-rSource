@@ -615,7 +615,7 @@ C Now know all script F configuration factors.
 C Determine heat exchange between each pair of surfaces in CFC 
 C construction and internal zone surfaces.
 
-C assign nodal temperatures and convert to kelvin
+C Assign nodal temperatures and convert to kelvin
       nn=nndc(icomp,isurf)
       do 30 i=1,nn
 C        if(i.lt.nn)then
@@ -625,7 +625,7 @@ C          tsrf=tfs(icomp,isurf)+273.15
 C        end if
   30  continue
 
-C assign emittance to front and back surfaces of cfc type itp
+C Assign emittance to front and back surfaces of cfc type itp
       do 60 n=1,ne,2
         epsf(n)=rlwEF(icomp,icfctp,n)
         epsb(n)=rlwEB(icomp,icfctp,n)
@@ -2550,8 +2550,8 @@ C**************** Ambient, Solar and CFC descriptors *****************
                ivblayr=j
                
                write(97,9991)
-     &           ' CFC SURFACE |  PAZI  |  ANGI  |  PROANG  | HCIF |',
-     &           'HCOF |VBLAYR|   W   |   S   |   PHI   | ORIENT |'
+     & '        CFC SURFACE |  PAZI  |  ANGI  |  PROANG  | HCIF |',
+     &       '  HCOF |VBLAYR|   W     |   S   |   PHI   | ORIENT |'
                write(97,9992)i,pazi(icomp,i),fInc_angle(i),
      &            proang_s(icomp,icfctp,i),
      &           hcif(icomp,i),hcof(icomp,i),ivblayr,vb_w(icomp,icfctp),
@@ -2653,8 +2653,8 @@ C**************** CFC Convection/LW exchange*************************
         ivblayr=j        
         
         write(98,9996)
-     &'   CFC SURFACE |  PAZI  |  ANGI  |  PROANG  | HCIF |',
-     &'HCOF |VBLAYR|   W   |   S   |   PHI   | ORIENT |'
+     & '       CFC SURFACE |  PAZI  |  ANGI  |  PROANG  | HCIF   | ',
+     & 'HCOF  |VBLAYR|   W   |   S    |   PHI   | ORIENT |'
 
         write(98,9997)i,pazi(icomp,i),fInc_angle(i),
      & proang_s(icomp,icfctp,i),
@@ -2702,7 +2702,7 @@ C**************** CFC Convection/LW exchange*************************
 
  14   continue        
         
- 9996     format(A50,A48)
+ 9996     format(2A)
  9997     format(6x,I10,3x,5F9.3,I7,3f9.3,A8)
  8882     format(A57)
  8883     format(3x,I10,3F9.3,I6,I7) 
@@ -2764,7 +2764,7 @@ C**************** CFC Convection/LW exchange*************************
             else
               !do nothing
             end if
- 9999       format(6x,I12,1x,7F8.3,6F13.3,2F8.3)
+ 9999       format(6x,I12,1x,3F8.3,F8.2,3F8.3,6F13.3,2F8.3)
 
  15       continue
         end if
