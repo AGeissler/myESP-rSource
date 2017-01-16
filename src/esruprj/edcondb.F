@@ -4984,6 +4984,7 @@ C CFC layer properties
       logical closecfc1,closecfc2
       logical not_lowe
       character*2 lowe
+      real cfclaythrm
 
 C Note: size of MLED supports a dozen layers in a construction.
       DIMENSION MLED(32),PNAM(ME),MMLAY(ME+2),imlay(ME+2)
@@ -5213,7 +5214,7 @@ C               the mlc database ... ??!!
      &                            DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
   30        FORMAT(A1,I4,I5,F7.1,2X,A)
           ENDIF
-        ELSE ! check_CFC2_or_MLC
+        ELSE ! we have a MLC
           matarrayindex=IPRMAT(IFOC,IL)   ! which legacy index
  
 C And if an air gap reset dbcon and NAM and assign DRAIR if newer materials file
@@ -5513,7 +5514,7 @@ C               "Backflip"
             endif
           endif
 
-        ELSE
+        ELSE  ! we have a non CFC2 mlc
 C Adjust layer for desired U-value.
           CALL EASKABCD('Adjust options: ',' ',
      &      'Alter (solid) thickness','Alter gap R',
@@ -5761,7 +5762,7 @@ C Process the request.
 
       ELSEIF(ILED.EQ.NLED-5)THEN
 
-C +- Layer.
+C ! add or delete a Layer.
         CALL EASKABCD(' Layer options: ',' ',' Delete',
      &    ' Append @ inside face',' Insert','Continue',IW,nbhelp)
         IF(IW.EQ.1)THEN
@@ -6025,6 +6026,10 @@ C              write(6,*) 'iprmat',IPRMAT(IFOC,ILN),matarrayindex
      &        1.0,'W',300.0,'W',100.0,'layer thickness mm',
      &        IER,nbhelp)
             DTHK(IFOC,ILN)=VAL*0.001
+
+cx << check CFC min layer thickness here?>>
+
+
           ELSE
             CALL USRMSG(' ',' Exceeds layer limit!','W')
             ILED=-1
@@ -6389,8 +6394,9 @@ C construction and reset showother.
             showother = .false.
           endif
         endif
-      ELSEIF(ILED.GT.8.AND.ILED.LE.NLED-3)THEN
+      ELSEIF(ILED.GT.8.AND.ILED.LE.NLED-6)THEN
 
+C Edit Layer ...
 C Ask if user wishes to browse through materials to find suitable
 C reference.
         dok=.true.
@@ -6589,6 +6595,19 @@ C Now update LAYDESC & PNAM.
         CALL EASKR(VAL,' ',' Layer thickness (mm): ',
      &    1.0,'W',300.0,'W',100.0,'layer thickness mm',IER,nbhelp)
         DTHK(IFOC,ILED-11)=VAL*0.001
+
+cx << insert CFC2 check for thermal cap. here?
+        if (mlctype(ifoc)(1:4).EQ.'CFC2') then
+C         Check rho cp s - value
+          cfclaythrm=cfcdbden(cfcarrayindex)
+     &                *cfcdbsht(cfcarrayindex)*VAL*0.001
+          if (cfclaythrm.lt.1200.0) then
+C           Issue warning!
+            CALL USRMSG('*** WARNING : Layer very thin!!',
+     &         'Numerical issues likely','W')
+          endif
+        endif
+
         moddb = .true.
         goto 2   ! re-establish the menu strings
       else

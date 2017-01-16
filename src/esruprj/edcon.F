@@ -1312,7 +1312,7 @@ C Remember this change by saving the file.
         ENDIF
 
 C Reset number of layers, if at end of loop it is still 0 then
-C the material was not found and must be asked for.
+C the construction was not found and must be asked for.
         NE(IS)=0
         lnsmlcn=lnblnk(SSMLCN(ioc))
         if(ssmlcindex(ioc).eq.0)then
@@ -1348,13 +1348,12 @@ C...............information is, so set to arbitrary non-zero value.
               endif
             endif
 
-C CFC emissivity and absorptivity calclated elsewhere so set to 0.0
-cx << give value to avoid warning messages and likely problems with
-cx    controlled shading devices ???? >>
-            E=0.0002
-            A=0.0002
+C CFC emissivity and absorptivity calclated elsewhere, set to 0.001
+C to avoid warning messages
+            E=0.001
+            A=0.001
 
-          ELSE ! check_CFC2_or_MLC
+          ELSE ! we have a MLC
             matarrayindex=IPRMAT(IC,IL)   ! which materials array index
 
 C And if matarrayindex is zero then resetn dbcon dbden dbsht.
