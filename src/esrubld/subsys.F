@@ -256,7 +256,7 @@ C  difference between the external ambient and surface temperatures.
 #include "CFC_common.h"
 #include "net_flow.h"
 #include "tdf2.h"
-      
+
       integer lnblnk  ! function definition
 
       common/trc/itrc
@@ -983,6 +983,19 @@ C Don't use correlation if artificial emissivity used (>1)
      &    '  A correlation long wave flux value of',QELWF(I),
      &    ' W/m^2 will be used instead.'
           call edisp(iuout,outs)
+
+cx << insert check for CFC thin layers here??
+c        if (icfcfl(ICOMP,I).ne.0) then
+C         Check rho cp s - value
+c          cfclaythrm=cfcdbden(cfcarrayindex)
+c     &                *cfcdbsht(cfcarrayindex)*VAL*0.001
+c          if (cfclaythrm.lt.1200.0) then
+C           Issue warning!
+c            CALL USRMSG('*** WARNING : Layer very thin!!',
+c     &         'Numerical issues likely','W')
+c          endif
+c        endif
+
         ENDIF
    49   QELWS(ICOMP,I)=QELWF(I)
         QELWB(ICOMP,I)=QELWFB(I)
