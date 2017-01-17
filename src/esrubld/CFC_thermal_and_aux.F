@@ -125,6 +125,21 @@ C.........(effective longwave radiative properties are a function of geometry on
 cx               ... slat angle change implies diff > 0.x, no??
           IF((NSINC.eq.1).or.(diff.gt.0.1))then
 
+cx << insert check for CFC thin layers here??
+cx    PROBLEM: availability of layer (and timestep length?) data ... ???
+cx        if (icfcfl(ICOMP,I).ne.0) then
+C           Check rho cp s / t - value; thermal layer values from
+C           materials.h entries for zone,surface,layer;
+C           Check outermost layer (index 1) only.
+c            cfclaythrm=cfcdbden(cfcarrayindex)
+c     &                *cfcdbsht(cfcarrayindex)*cfcthck()/TIMESEP
+c          if (cfclaythrm.lt.4.0) then
+C           Issue warning! << output function needs change!! >>
+c            CALL USRMSG('*** WARNING : CFC Layer very thin!!',
+c     &         'Numerical issues (e.g. MZELWE errors) likely!','W')
+c          endif
+c        endif
+
             do 20 j = 1, ncfc_el(icomp,icfctp)
 
 C.............Layer is VENETIAN BLIND

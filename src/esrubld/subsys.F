@@ -984,18 +984,6 @@ C Don't use correlation if artificial emissivity used (>1)
      &    ' W/m^2 will be used instead.'
           call edisp(iuout,outs)
 
-cx << insert check for CFC thin layers here??
-c        if (icfcfl(ICOMP,I).ne.0) then
-C         Check rho cp s - value
-c          cfclaythrm=cfcdbden(cfcarrayindex)
-c     &                *cfcdbsht(cfcarrayindex)*VAL*0.001
-c          if (cfclaythrm.lt.1200.0) then
-C           Issue warning!
-c            CALL USRMSG('*** WARNING : Layer very thin!!',
-c     &         'Numerical issues likely','W')
-c          endif
-c        endif
-
         ENDIF
    49   QELWS(ICOMP,I)=QELWF(I)
         QELWB(ICOMP,I)=QELWFB(I)
