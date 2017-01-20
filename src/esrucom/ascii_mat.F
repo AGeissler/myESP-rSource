@@ -75,16 +75,27 @@ C   Stone
 C   Tiles / slate
 C   Wood
 C   Other
-C   
+C
+C Categories for CFC layers db
+C   Gas gap
+C   Glass (IGDB data)
+C   Venetian blinds
+C   Pleated drapes
+C   Roller blinds
+C   Insect screens
 
-C rlegacymat: scan legacy ASCII mat db file and fill common blocks.
-C mkascimat:  creates ascii material file (version 1.1/2) based on
+C rlegacymat: Scan legacy ASCII mat db file and fill common blocks.
+C mkascimat:  Creates ascii material file (version 1.1/2) based on
 C             information in common matdatarray and matnamearray.
-C rascimat:   fills common matdatarray and matnamearray from
+C rascimat:   Fills common matdatarray and matnamearray from
 C             current ASCII material database. 
 C MATFROMBIN: Fills materials common blocks via scan of binary materials
 C             database.
-C scananymat: scans any materials database and fills common blocks.
+C scananymat: Scans any materials database and fills common blocks.
+C scancfcdb:  Checks for CFC layers database and scans via rascicfc.
+C rascicfc:   Fills common cfcdatarray and cfcnamearray from CFC
+C             layers database.
+C mkascicfc:  Writes ascii CFC layers db file (version 1.1 or 1.2)
 
 C ************* rlegacymat 
 C rlegacymat: Fills common matdatarray and matnamearray from
@@ -1555,6 +1566,7 @@ C             Old data base ...
             CALL EGETWR(LOUTSTR,K,VAL(6),0.,0.,'-',
      &                    'sol refl in',IER)
             CALL EGETWR(LOUTSTR,K,VAL(7),0.,0.,'-','slat tran',IER)
+c << insert vis data here?
             CALL EGETWR(LOUTSTR,K,VAL(8),0.,0.,'-','emiss out',IER)
             CALL EGETWR(LOUTSTR,K,VAL(9),0.,0.,'-','emiss in',IER)
             CALL EGETWR(LOUTSTR,K,VAL(10),0.,0.,'-','lw tran',IER)
@@ -1569,15 +1581,23 @@ C             Old data base ...
             CALL EGETWR(LOUTSTR,K,VAL(15),0.,0.,'-',
      &                    'slat wr ratio',IER)
             CALL EGETWR(LOUTSTR,K,VAL(16),0.,0.,'-','slat thk',IER)
+
+c    ... or here ??
+
             CFCsolreflout(cfcdbitems) = VAL(5)
             CFCsolreflin(cfcdbitems) = VAL(6)
             ! For venetian blinds set vis = sol for slat reflection
             CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
             CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
+
             CFCslattran(cfcdbitems) = VAL(7)
             CFCemissout(cfcdbitems) = VAL(8)
             CFCemissin(cfcdbitems) = VAL(9)
             CFClwtran(cfcdbitems) = VAL(10)
+
+c            if (ND.gt.??) then
+cx ... read such that old and new data lines work ??
+
             CFCslatwidth(cfcdbitems) = VAL(11)
             CFCslatspacing(cfcdbitems) = VAL(12)
             CFCslatangle(cfcdbitems) = VAL(13)
@@ -1585,6 +1605,7 @@ C             Old data base ...
             CFCslatcrown(cfcdbitems)  = VAL(14)
             CFCslatwr(cfcdbitems) = VAL(15)
             CFCslatthk(cfcdbitems) = VAL(16)
+
         else if (CFCshdtp(cfcdbitems).eq.iPleatedDrape)then 
             CALL EGETWR(LOUTSTR,K,VAL(5),0.,0.,'-',
      &                    'sol refl out',IER)
@@ -1596,6 +1617,7 @@ C             Old data base ...
      &                    'sol tran tot out',IER)
             CALL EGETWR(LOUTSTR,K,VAL(9),0.,0.,'-',
      &                    'sol tran tot in',IER)
+c << vis data here?
             CALL EGETWR(LOUTSTR,K,VAL(10),0.,0.,'-',
      &                    'pleat width',IER)
             CALL EGETWR(LOUTSTR,K,VAL(11),0.,0.,'-',
@@ -1605,14 +1627,19 @@ C             Old data base ...
             CFCsoltrandir(cfcdbitems) =  VAL(7)
             CFCsoltrantotout(cfcdbitems) = VAL(8)
             CFCsoltrantotin(cfcdbitems) = VAL(9)
-            ! For pleated blinds set vis = sol for all properties
+cx ... read vis data!!
+
             CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
             CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
             CFCvistrandir(cfcdbitems) = CFCsoltrandir(cfcdbitems)
-            CFCvistrantotout(cfcdbitems) = CFCsoltrantotout(cfcdbitems)
-            CFCvistrantotin(cfcdbitems) = CFCsoltrantotin(cfcdbitems)
+
+            ! Set total vis transmission to direct transmission
+            CFCvistrantotout(cfcdbitems) = CFCvistrandir(cfcdbitems)
+            CFCvistrantotin(cfcdbitems) = CFCvistrandir(cfcdbitems)
+
             CFCdrpwidth(cfcdbitems) = VAL(10)
             CFCdrpspacing(cfcdbitems) = VAL(11)
+
         else if (CFCshdtp(cfcdbitems).eq.iRollerBlind)then
             CALL EGETWR(LOUTSTR,K,VAL(5),0.,0.,'-',
      &                    'sol refl out',IER)
@@ -1629,12 +1656,34 @@ C             Old data base ...
             CFCsoltrandir(cfcdbitems) =  VAL(7)
             CFCsoltrantotout(cfcdbitems) = VAL(8)
             CFCsoltrantotin(cfcdbitems) = VAL(9)
-            ! For roller blinds set vis = sol for all properties
-            CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
-            CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
-            CFCvistrandir(cfcdbitems) = CFCsoltrandir(cfcdbitems)
-            CFCvistrantotout(cfcdbitems) = CFCsoltrantotout(cfcdbitems)
-            CFCvistrantotin(cfcdbitems) = CFCsoltrantotin(cfcdbitems)
+
+            if (ND.le.10) then
+              ! For roller blinds w/o vis data in db set vis = sol for
+              ! base properties
+              CFCvisreflout(cfcdbitems) = CFCsolreflout(cfcdbitems)
+              CFCvisreflin(cfcdbitems) = CFCsolreflin(cfcdbitems)
+              CFCvistrandir(cfcdbitems) = CFCsoltrandir(cfcdbitems)
+              CFCvistrantotout(cfcdbitems) = CFCvistrandir(cfcdbitems)
+              CFCvistrantotin(cfcdbitems) = CFCvistrandir(cfcdbitems)
+
+            else ! ND gt. 11, we have vis data in db
+              CALL EGETWR(LOUTSTR,K,VAL(10),0.,0.,'-',
+     &                      'vis refl out',IER)
+              CALL EGETWR(LOUTSTR,K,VAL(11),0.,0.,'-',
+     &                      'vis refl in',IER)
+              CALL EGETWR(LOUTSTR,K,VAL(12),0.,0.,'-',
+     &                      'vis tran dir',IER)
+              CALL EGETWR(LOUTSTR,K,VAL(13),0.,0.,'-',
+     &                      'vis tran tot out',IER)
+              CALL EGETWR(LOUTSTR,K,VAL(14),0.,0.,'-',
+     &                      'vis tran tot in',IER)
+              CFCvisreflout(cfcdbitems) = VAL(10)
+              CFCvisreflin(cfcdbitems) = VAL(11)
+              CFCvistrandir(cfcdbitems) = VAL(12)
+              CFCvistrantotout(cfcdbitems) = VAL(13)
+              CFCvistrantotin(cfcdbitems) = VAL(14)
+            endif
+
         else if (CFCshdtp(cfcdbitems).eq.iInsectScreen)then
             CALL EGETWR(LOUTSTR,K,VAL(5),0.,0.,'-',
      &                    'sol refl out',IER)
@@ -1750,7 +1799,7 @@ C ASCII file LASCI opened on unit IFA.
 #include "esprdbfile.h"
 #include "material.h"
 #include "CFC_common.h"
-      
+
       integer lnblnk  ! function definition
 
 C Parameters
@@ -1842,6 +1891,13 @@ C Set closemat for the version.
       write(IFA,'(A)') '#              solar tran direct (-)'
       write(IFA,'(A)') '#              solar total tran out (-)'
       write(IFA,'(A)') '#              solar total tran in (-)'
+      if (closemat2) then
+        write(IFA,'(A)') '#              visual refl out (-)'
+        write(IFA,'(A)') '#              visual refl in (-)'
+        write(IFA,'(A)') '#              visual tran (-)'
+        write(IFA,'(A)') '#              visual total tran out (-)'
+        write(IFA,'(A)') '#              visual total tran in (-)'
+      endif
       write(IFA,'(A)') '#  Insect Screen (type 5):'
       write(IFA,'(A)') '#              solar refl out (-)'
       write(IFA,'(A)') '#              solar refl in (-)'
@@ -1930,11 +1986,21 @@ C common block arrays so that future reads are more efficient.
      &          CFCdrpwidth(J),CFCdrpspacing(J)
 
             elseif(CFCshdtp(J).eq.iRollerBlind)then
-              write(outs,'(f13.3,3F10.3,i2,5F8.3)')
-     &          cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
-     &          CFCshdtp(J),
-     &          CFCsolreflout(J),CFCsolreflin(J),CFCsoltrandir(J),
-     &          CFCsoltrantotout(J),CFCsoltrantotin(J)
+              if (closemat2) then
+                write(outs,'(f13.3,3F10.3,i2,10F8.3)')
+     &            cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
+     &            CFCshdtp(J),
+     &            CFCsolreflout(J),CFCsolreflin(J),CFCsoltrandir(J),
+     &            CFCsoltrantotout(J),CFCsoltrantotin(J),
+     &            CFCvisreflout(J),CFCvisreflin(J),CFCvistrandir(J),
+     &            CFCvistrantotout(J),CFCvistrantotin(J)
+              else
+                write(outs,'(f13.3,3F10.3,i2,5F8.3)')
+     &            cfcdbcon(J),cfcdbden(J),cfcdbsht(J),cfcdbthick(J),
+     &            CFCshdtp(J),
+     &            CFCsolreflout(J),CFCsolreflin(J),CFCsoltrandir(J),
+     &            CFCsoltrantotout(J),CFCsoltrantotin(J)
+              endif
 
             elseif(CFCshdtp(J).eq.iInsectScreen)then
               write(outs,'(f13.3,3F10.3,i2,8F8.3)')
