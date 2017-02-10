@@ -122,7 +122,23 @@ C ******** Calculate effective longwave properties for each CFC layer
 C.........Only calculate at first time-step and when slat angle change occurs
 C.........(effective longwave radiative properties are a function of geometry only).
           diff = abs(vb_phiNew(icomp,icfctp) - vb_phiOld(icomp,icfctp))
-          IF((NSINC.eq.1).or.(diff.lt.0.1))then
+cx               ... slat angle change implies diff > 0.x, no??
+          IF((NSINC.eq.1).or.(diff.gt.0.1))then
+
+cx << insert check for CFC thin layers here??
+cx    PROBLEM: availability of layer (and timestep length?) data ... ???
+cx        if (icfcfl(ICOMP,I).ne.0) then
+C           Check rho cp s / t - value; thermal layer values from
+C           materials.h entries for zone,surface,layer;
+C           Check outermost layer (index 1) only.
+c            cfclaythrm=cfcdbden(cfcarrayindex)
+c     &                *cfcdbsht(cfcarrayindex)*cfcthck()/TIMESEP
+c          if (cfclaythrm.lt.4.0) then
+C           Issue warning! << output function needs change!! >>
+c            CALL USRMSG('*** WARNING : CFC Layer very thin!!',
+c     &         'Numerical issues (e.g. MZELWE errors) likely!','W')
+c          endif
+c        endif
 
             do 20 j = 1, ncfc_el(icomp,icfctp)
 
@@ -144,7 +160,7 @@ C...............the outdoors).
                 call vb_eff_diff_properties(tmp_vb_w,tmp_vb_s,
      &            tmp_vb_phi,tmp_lwEF,tmp_lwEB,tmp_lwT,eff_lwE,eff_lwT)
 
-C...............Save effective properties (front reflectance and transmittance) into 
+C...............Save effective properties (front emissivity and transmittance) into
 C...............common variables.
                 rlwEF(icomp,icfctp,j) = eff_lwE
                 rlwT(icomp,icfctp,j)  = eff_lwT
@@ -155,7 +171,7 @@ C...............the indoors) by setting negative slat angle
      &            tmp_vb_phi*(-1.0),tmp_lwEF,tmp_lwEB,tmp_lwT,
      &            eff_lwE,eff_lwT)
 
-C...............Save efective back reflectance into common variable
+C...............Save efective back emissivity into common variable
                 rlwEB(icomp,icfctp,j) = eff_lwE
             
 C...............If shade is retracted, set longwave transmittance to 1.             
@@ -614,7 +630,7 @@ C Now know all script F configuration factors.
 C Determine heat exchange between each pair of surfaces in CFC 
 C construction and internal zone surfaces.
 
-C assign nodal temperatures and convert to kelvin
+C Assign nodal temperatures and convert to kelvin
       nn=nndc(icomp,isurf)
       do 30 i=1,nn
 C        if(i.lt.nn)then
@@ -624,7 +640,7 @@ C          tsrf=tfs(icomp,isurf)+273.15
 C        end if
   30  continue
 
-C assign emittance to front and back surfaces of cfc type itp
+C Assign emittance to front and back surfaces of cfc type itp
       do 60 n=1,ne,2
         epsf(n)=rlwEF(icomp,icfctp,n)
         epsb(n)=rlwEB(icomp,icfctp,n)
@@ -783,6 +799,7 @@ C Determine longwave exchange between each CFC layer and external
 C surroundings. The mean radiant temperature (teqv) consists
 C of buildings, sky and ground components. 
       IF(iDiaOut.eq.1)then
+C       External blind exists << ... other cases ?? What if retracted ?? >>
         do 180 j=1,nCFCPart,2
           qenv(j)=
      &    (epsf(j)*sigma*(tnd(j*2)**4)*FSfenv(icomp,isurf,j)-
@@ -1500,6 +1517,8 @@ C...............Double the external convective heat transfer coefficient (calcul
 C...............to account for front and back surface of the outdoor blind layer.
                 if(i_shd(icomp,icfctp).eq.0)then
                   ! if shade is retracted, decouple it from thermal zone
+                  ! ??? what value is used for hcof in other parts of the
+                  !     code when blind retracted ???
                   hcof(icomp,isur)=0.001
                 else  
                   hcof(icomp,isur)=2.*hcof(icomp,isur)
@@ -2296,12 +2315,8 @@ C.....Switch for zone name output here
       if (ReportBoolConfig("use_zonenames")) then
         write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
       else
-C.......Pad zone index to 'XX'
-        if ( icomp .gt. 9 ) then
-           write (cZone_Chars,'(A,I2)') 'zone_',icomp
-        else
-           write (cZone_Chars,'(A,I1)') 'zone_0',icomp
-        endif
+C.......Pad zone index to 'XXX'
+        write (cZone_Chars,'(A,I3.3)') 'zone_',icomp
       endif ! use_zonenames
 
 C << the following would ideally require that surface name lengths
@@ -2313,14 +2328,8 @@ cx      if (ReportBoolConfig ("use_surfacenames")) then
 cx        write (cSurf_Chars,'(A)')
 cx     &          sname(iZone,isurf)(1:lnsname(icomp,isurf))
 cx      else
-C.......Pad surface index to 'XX'
-        if ( isurf .gt. 9 ) then
-cx          write (cSurf_Chars,'(I2)') iSurface
-          write (cSurf_Chars,'(A,I2)') 'surface_',isurf
-        else
-cx          write (cSurf_Chars,'(A,I1)') '0', iSurface
-          write (cSurf_Chars,'(A,I1)') 'surface_0',isurf
-        endif
+C.......Pad surface index to 'XXX'
+          write (cSurf_Chars,'(A,I3.3)') 'surface_',isurf
 cx      endif ! use_surfacenames
 
 c      call AddToReport(
@@ -2546,8 +2555,8 @@ C**************** Ambient, Solar and CFC descriptors *****************
                ivblayr=j
                
                write(97,9991)
-     &           ' CFC SURFACE |  PAZI  |  ANGI  |  PROANG  | HCIF |',
-     &           'HCOF |VBLAYR|   W   |   S   |   PHI   | ORIENT |'
+     & '        CFC SURFACE |  PAZI  |  ANGI  |  PROANG  | HCIF |',
+     &       '  HCOF |VBLAYR|   W     |   S   |   PHI   | ORIENT |'
                write(97,9992)i,pazi(icomp,i),fInc_angle(i),
      &            proang_s(icomp,icfctp,i),
      &           hcif(icomp,i),hcof(icomp,i),ivblayr,vb_w(icomp,icfctp),
@@ -2649,8 +2658,8 @@ C**************** CFC Convection/LW exchange*************************
         ivblayr=j        
         
         write(98,9996)
-     &'   CFC SURFACE |  PAZI  |  ANGI  |  PROANG  | HCIF |',
-     &'HCOF |VBLAYR|   W   |   S   |   PHI   | ORIENT |'
+     & '       CFC SURFACE |  PAZI  |  ANGI  |  PROANG  | HCIF   | ',
+     & 'HCOF  |VBLAYR|   W   |   S    |   PHI   | ORIENT |'
 
         write(98,9997)i,pazi(icomp,i),fInc_angle(i),
      & proang_s(icomp,icfctp,i),
@@ -2698,7 +2707,7 @@ C**************** CFC Convection/LW exchange*************************
 
  14   continue        
         
- 9996     format(A50,A48)
+ 9996     format(2A)
  9997     format(6x,I10,3x,5F9.3,I7,3f9.3,A8)
  8882     format(A57)
  8883     format(3x,I10,3F9.3,I6,I7) 
@@ -2760,7 +2769,7 @@ C**************** CFC Convection/LW exchange*************************
             else
               !do nothing
             end if
- 9999       format(6x,I12,1x,7F8.3,6F13.3,2F8.3)
+ 9999       format(6x,I12,1x,3F8.3,F8.2,3F8.3,6F13.3,2F8.3)
 
  15       continue
         end if
@@ -3242,7 +3251,7 @@ C     -90 (deg.) < vb_phiNew < 90 (deg.)
           if(vb_phiNew(icomp,icfctp).lt.-89.9.or.vb_phiNew(icomp,icfctp)
      &      .gt.89.9)then
 C Send warning error message and overwrite angle to 89.9 deg.
-            write(outs,'(a,a,i2,a,i2,a)')
+            write(outs,'(a,a,i2,a,i3,a)')
      &        'WARNING: Calculated slat angle for CFC',
      &        ' type ',icfctp, 'in zone ',icomp, ' is out of range.'
             CALL EDISP(IUOUT,outs)
@@ -3281,11 +3290,7 @@ C.........Switch for zone name output here
             write (cZone_Chars,'(A)') zname(iZone)(1:lnzname(iZone))
           else
 C...........Pad zone index to 'XX'
-            if ( iZone .gt. 9 ) then
-              write (cZone_Chars,'(A,I2)') 'zone_',iZone
-            else
-              write (cZone_Chars,'(A,I1)') 'zone_0',iZone
-            endif
+            write (cZone_Chars,'(A,I3.3)') 'zone_',iZone
           endif ! use_zonenames
 
           DO 44 j = 1, ncfc(iZone)                  ! Examine each type of CFC in zone.

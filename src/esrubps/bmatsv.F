@@ -165,7 +165,7 @@ C so configuration can be passed to h3kreports
       common/avrage/idaver
 
 C Uncertainty common.
-      COMMON/UATD/UACLIM(6,3),UACTL(7,4),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(7,5),UAMCSA(MNACT)
 
 C Common holding flag indicating presence of hvac data input file:
 C ihvacflag=1 there is hvac file; ihvacflag=0 no hvac file.
@@ -1520,7 +1520,7 @@ C For 3D zone model, close the associated files.
               ENDIF
 
 C CFC output
-C             call CFCoutputH3K(icomp)
+              call CFCoutput(icomp)
 
    40       continue
 

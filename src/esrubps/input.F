@@ -222,7 +222,8 @@ C Path to model and command line file name.
       INTEGER :: iairn,icaas
       common/ffn/iflwn,icffs(mpcon)
       INTEGER :: iflwn,icffs
-
+      real SNA
+      COMMON/PREC1/SNA(MCOM,MS)
       common/prec7/itcnst
       INTEGER :: itcnst
       COMMON/DNORGH/IRTYPE
@@ -297,7 +298,8 @@ C HVAC AIM-2
       LOGICAL spfileok,perok,tstepok,saveok,autook,exitok,startupok
       LOGICAL OK,DOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,XST,CFCDBOK
       LOGICAL GRND3D,MSTROK,MSTRZN
-      logical dll,closemat1,closemat2,unixok,concat,closecfc1
+      logical dll,closemat1,closemat2,unixok,concat
+      logical closecfc1,closecfc2
 
 C GSHP
 C Common holding flag indicating presence of gshp data input file:
@@ -325,7 +327,7 @@ C Status of multi-year climate database
       character lworking*144,fs*1,llclmdb*144
 
       integer IClmErr  ! the error state for climate file opening
-      integer ier, irep
+      integer ier, irep, j
       
       REAL :: clmloc
       INTEGER :: i,iaprob,iglib,irec,istat,itru,iua,llt,nclass
@@ -735,7 +737,8 @@ C In silent running mode, notify user and terminate simulation.
 
           if(ier.eq.0)then
             call eclose(cfcver,1.1,0.001,closecfc1)
-            if(closecfc1) CFCDBOK=.TRUE.
+            call eclose(cfcver,1.2,0.001,closecfc2)
+            if(closecfc1.or.closecfc2) CFCDBOK=.TRUE.
           endif
         endif      
       ENDIF
@@ -1183,12 +1186,19 @@ C Now alter properties for uncertainty analysis.
           elseif (IMET.eq.2) then
             call FCTA(IZ)
           elseif (IMET.ge.3) then
+C            write (36,*) 'before mcsa sna= ',(SNA(1,J),J=1,7)
             call MCSA(IZ)
+C            write (36,*) 'after mcsa sna= ',(SNA(1,J),J=1,7)
           endif
         endif
 
 C Now initiate computation of all time-independent zone properties.
-        CALL MZAREA(IZ)
+        if (ISIM.gt.1) then
+          continue
+        else
+          CALL MZAREA(IZ)
+        endif
+C        write (36,*) 'after mzarea sna= ',(SNA(1,J),J=1,7)
 
         CALL MZVOLM(IZ)
         CALL MZPAZI(IZ)

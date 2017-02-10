@@ -195,6 +195,7 @@ C as a list for copy and delete use.
       M=MHEAD
       DO 10 L=1,ILEN
         llbm=LNBLOCKMAT(ICOMP,L)
+        if(llbm.gt.14) llbm=14
         llbn=LNBLOCKNAME(ICOMP,L)
         WRITE(PICK(L),304)L,BLOCKNAME(ICOMP,L)(1:llbn),
      &    BLOCKMAT(ICOMP,L)(1:llbm)
@@ -1171,6 +1172,7 @@ C geometry files.
         WRITE(VERT(6),'(A,A)')      'f name        : ',
      &    BLOCKNAME(ICOMP,IB)
         llbm=LNBLOCKMAT(ICOMP,IB)
+        if(llbm.gt.16) llbm=16
         WRITE(VERT(7),'(A,A)')      'g construction: ',
      &    BLOCKMAT(ICOMP,IB)(1:llbm)
         WRITE(VERT(8),'(A,F6.2)')   'h opacity   : ',OPOB(ICOMP,IB)
@@ -1227,6 +1229,7 @@ C geometry files.
         WRITE(VERT(11),'(A,A)')     'i name        : ',
      &    BLOCKNAME(ICOMP,IB)
         llbm=LNBLOCKMAT(ICOMP,IB)
+        if(llbm.gt.16) llbm=16
         WRITE(VERT(12),'(A,A)')     'j construction: ',
      &    BLOCKMAT(ICOMP,IB)(1:llbm)
         WRITE(VERT(13),'(A,F6.2)')   'k opacity   : ',OPOB(ICOMP,IB)
@@ -2092,6 +2095,7 @@ C focus of entities or compound objects.
             ENDIF
           else
             llbm=LNVISMAT(ICOMP,L)
+            if(llbm.gt.14) llbm=14
             llbn=LNVISNAME(ICOMP,L)
             WRITE(PICKV(L),'(I3,2X,A,1x,A)')L,VISNAME(ICOMP,L)(1:llbn),
      &        VISMAT(ICOMP,L)(1:llbm)
@@ -2110,6 +2114,7 @@ C to compound objects.
         if(focusobj)then
           do iv=1,nbvis(icomp)
             llbm=LNVISMAT(ICOMP,iv)
+            if(llbm.gt.14) llbm=14
             llbn=LNVISNAME(ICOMP,iv)
             WRITE(PICKV(iv),'(I3,2X,A,1x,A)')iv,
      &        VISNAME(ICOMP,iv)(1:llbn),
@@ -2295,9 +2300,7 @@ C Rotation choices.
               endif
 
               PI = 4.0 * ATAN(1.0)
-              A=-ANGR*PI/180.
-              CA=COS(A)
-              SA=SIN(A)
+              A=-ANGR*PI/180.0; CA=COS(A); SA=SIN(A)
               do ij=1,INPIC
                 IFOC=IVALB(ij)
                 XXX=XOV(ICOMP,IFOC)-X1; YYY=YOV(ICOMP,IFOC)-Y1
@@ -2931,6 +2934,7 @@ C Set menu header text.
         WRITE(VERT(6),'(A,A)')      'f name        : ',
      &    VISNAME(ICOMP,IB)
         llbm=LNVISMAT(ICOMP,IB)
+        if(llbm.gt.16) llbm=16   ! truncate longer MLC names
         WRITE(VERT(7),'(A,A)')      'g construction: ',
      &    VISMAT(ICOMP,IB)(1:llbm)
         WRITE(VERT(8),'(A,F6.2)')   'h opacity     : ',OPOV(ICOMP,IB)
@@ -2983,6 +2987,7 @@ C Set menu header text.
         WRITE(VERT(11),'(A,A)')     'i name        : ',
      &    VISNAME(ICOMP,IB)
         llbm=LNVISMAT(ICOMP,IB)
+        if(llbm.gt.16) llbm=16   ! truncate longer MLC names
         WRITE(VERT(12),'(A,A)')     'j construction: ',
      &    VISMAT(ICOMP,IB)(1:llbm)
         WRITE(VERT(13),'(A,F6.2)')  'k opacity     : ',OPOV(ICOMP,IB)
@@ -3455,8 +3460,8 @@ C Parameters
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
       DIMENSION VERT(25),IVALB(MB)
-      integer ihash(12)
-      DIMENSION NHASH(12)
+      integer ihash(MB)
+      DIMENSION NHASH(MB)
       CHARACTER VERT*33,S12*12,S32*32,NHASH*12
       character*32 PICKV(MB)
 C      character outs*124
@@ -3484,7 +3489,7 @@ C Initial values for bounding box and clear local arrays.
       top=-10.0; base=10.0; left=10.0; right=-10.0
       front=10.0; back=-10.0
       S12='  '; S32='  '
-      do i=1,12
+      do i=1,MB
         nhash(i)='- '
         ihash(i)=0
       enddo
@@ -3575,7 +3580,7 @@ C Set menu header text.
       WRITE(VERT(7),'(4A)')       '  ',nhash(5),' ',nhash(6)
       WRITE(VERT(8),'(4A)')       '  ',nhash(7),' ',nhash(8)
       WRITE(VERT(9),'(4A)')       '  ',nhash(9),' ',nhash(10)
-      WRITE(VERT(10),'(4A)')       '  ',nhash(11),' ',nhash(12)
+      WRITE(VERT(10),'(5A)')       '  ',nhash(11),' ',nhash(12),'..'
       VERT(11)                  =  '  _____________________________ '
       VERT(12)                  =  '  object bounding box           '
       WRITE(VERT(13),'(A,2F7.3,a)')'  left&right :',left,right,'(X)'

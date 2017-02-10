@@ -199,7 +199,7 @@ C Trace output ?
       CALL DAYCLK(IDYP,BTIMEF,ITU)
 
 C Output computed values.
-      write(outs,'(3A,I2,a)')' Zone ',zname(ICOMP),' (',ICOMP,
+      write(outs,'(3A,I3,a)')' Zone ',zname(ICOMP),' (',ICOMP,
      &  ') Inter-surface radiation coefficients'
       call edisp(itu,' ')
       call edisp(itu,outs)
@@ -256,7 +256,7 @@ C  difference between the external ambient and surface temperatures.
 #include "CFC_common.h"
 #include "net_flow.h"
 #include "tdf2.h"
-      
+
       integer lnblnk  ! function definition
 
       common/trc/itrc
@@ -760,6 +760,24 @@ c are non-vertical.
       TWEST=0.0
       TEAST=0.0
       TAVE=0.0
+
+C << probably a block of code needs to be inserted here that checks
+C    CFC constructions for retracted external blinds ... there does
+C    not seem to be any code in this routine that bears out the description
+C    claim that "opaque" constructions only are considered ... !!?? >>
+
+C    Set default layer index to 1 (external surface)
+!     L_idx=1
+
+C....If external shade is retracted in CFC, set TFC layer index to
+C    outermost glass layer
+!     do xx (loop through constructions and find CFC if any )
+!       if(i_shd(icomp,icfctp).eq.0)then
+!         L_idx=??
+!       else
+!       endif
+!   xx continue
+
       DO 30 K=1,NCOMP
       NSUR=NCONST(K)
         DO 40 L=1,NSUR
@@ -947,12 +965,12 @@ C restore last one.
 C Don't use correlation if artificial emissivity used (>1)
         IF(ABS(QELWF(I)).GT.495.0.AND.EE(ICOMP,I).LE.1.)THEN
           call zsid(icomp,I,ZSDES,ZSDESC,ZSDESS)
-          write(outs,'(A,F9.1,A,A,A,F5.1,A,I6)')
+          write(outs,'(A,F12.1,A,A,A,F8.1,A,I6)')
      &    ' MZELWE: a longwave flux of',QELWF(I),
      &    ' W/m^2 has been calculated for ',ZSDESC(1:lnblnk(ZSDESC)),
      &    ' (T=',TFC(ICOMP,I,1)+ZEROK,'K) @ increment',NSINC
           call edisp(iuout,outs)
-          write(outs,'(A,F7.1,A,F5.1,A,F7.1,A,F5.1,A,F7.1,A,F5.1,A)')
+          write(outs,'(A,F10.1,A,F5.1,A,F10.1,A,F5.1,A,F10.1,A,F5.1,A)')
      &    '  Components: sky = ',QELWFK(I),' (T=',TSKY,
      &    '), buildings = ',QELWFB(I),' (T=',TBLD(I),'), ground = ',
      &    QELWFG(I),' (T=',TGRD,')'
@@ -965,6 +983,7 @@ C Don't use correlation if artificial emissivity used (>1)
      &    '  A correlation long wave flux value of',QELWF(I),
      &    ' W/m^2 will be used instead.'
           call edisp(iuout,outs)
+
         ENDIF
    49   QELWS(ICOMP,I)=QELWF(I)
         QELWB(ICOMP,I)=QELWFB(I)
@@ -1079,7 +1098,7 @@ C Debug.
         xx=QELWF(I)/DT
         call eclose(HROF(I),xx,0.01,close)
         if(.NOT.close)write(itu,*)'corrupted hrof',I,HROF(I),xx,
-     &  TFC(ICOMP,I,1)
+     &  TFC(ICOMP,I,1),DT,QELWF(I),TEQV(I)
 
         IF(IE(ICOMP,I).EQ.0)THEN
 

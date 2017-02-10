@@ -44,6 +44,7 @@ C output; IER=0 indicates no error.
 
 C geometry.h provides commons G0/G1/G2/G7/prec2/precz.
 #include "geometry.h"
+C UA1 in uncertainty.h
 #include "uncertainty.h"
 #include "net_flow.h"
 #include "control.h"
@@ -94,8 +95,6 @@ C Defaults.
       character DFCFD*72,DECMPDBFL*72,DICONDBFL*72
       COMMON/DEFLT3/DFCFD,DECMPDBFL,DICONDBFL
 
-C Uncertainty.
-      COMMON/UA1/LUALF,LCNG(MNCNG),LLOC(MNIL)
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
@@ -134,7 +133,6 @@ C Uncertainty.
       integer iappwpc ! application height as % of nominal size
 
       dimension ITEMS(30)
-      character LUALF*72,LCNG*15,LLOC*15
       character*72 LAPROB,DFILE,LPNF,tfile
       character longtfile*144,longtfiledos*144
       character ITEMS*34,ETEXT*82
@@ -1087,7 +1085,7 @@ C Call uncertainty definition controller.
      &    0,'-',0,'-',0,'password',IER,nbhelp)
         if (IPASS.eq.101) then
           call tstamp('>','PRJ: enter uncertainty control')
-          call UNCERTA(LUALF)
+          call UNCERTA()
         endif
       ELSEIF(INO.EQ.23)THEN
 
@@ -4271,6 +4269,10 @@ C << it would be clearer if all model I/O happened there >>
 #include "model.h"
       
       integer lnblnk  ! function definition
+      integer ier
+
+C Parameters.
+      character act*1  !  V (for Viewer) or R (for Radiance)
 
       common/OUTIN/IUOUT,IUIN
       common/FILEP/IFIL
@@ -4284,7 +4286,7 @@ C << it would be clearer if all model I/O happened there >>
       logical concat,OK,DOK,browse,XST,deref,unixok,modcfg
       character dradcf*72,OUTSTR*124,outs*124,outs248*248
       character dvfil*72,ltmp*72
-      character doit*248,tmode*8,act*1
+      character doit*248,tmode*8
       character fs*1,tfile*72
       character longtfile*144,longtfiledos*144,L144*144,lltmp*144
       character brw*8   ! to signal model is being browsed
@@ -4413,8 +4415,9 @@ C And update radpath. The L144 is for future use of EASKXORGTKF
             modcfg=.true.
           endif
 
-          if(lradcf(1:7).eq.'UNKNOWN')then
-            write(lradcf,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.rcf'
+          if(lradcf(1:7).eq.'UNKNOWN')then  ! setup in form of ../rad/xx
+            write(lradcf,'(6a)') '..',fs,'rad',fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.rcf'
 C            write(L144,'(8a)')path(1:lnblnk(path)),fs,'..',fs,'rad',
 C     &        fs,cfgroot(1:lnblnk(cfgroot)),'.rcf'
             modcfg=.true.
@@ -4634,6 +4637,21 @@ C Find out the version number so we know what to do with obstructions later.
             Z(I)=Z(I)+VALZ
    62     continue
           iZBFLG(IICOMP)=0
+  
+          if(nbvis(iicomp).gt.0)then
+
+C Visual object transforms.
+            do ij=1,nbvis(iicomp)
+              XOV(iicomp,ij)=XOV(iicomp,ij)+VALX
+              YOV(iicomp,ij)=YOV(iicomp,ij)+VALY
+              ZOV(iicomp,ij)=ZOV(iicomp,ij)+VALZ
+              do ibe=1,8
+                XVP(iicomp,ij,ibe)=XVP(iicomp,ij,ibe)+VALX
+                YVP(iicomp,ij,ibe)=YVP(iicomp,ij,ibe)+VALY
+                ZVP(iicomp,ij,ibe)=ZVP(iicomp,ij,ibe)+VALZ
+              enddo  ! of ibe
+            enddo    ! of ij
+          endif
 
 C Decide whether to upgrade the geometry file format.
           if(igupgrade.eq.2.and.(.NOT.newgeo))then
@@ -4731,6 +4749,7 @@ C apply the transform and write the file back out.
               endif
             endif
           endif
+
           write(outs,'(3a)') ' Transforming: ',zn(1:lnblnk(zn)),
      &      '...done'
           if(.NOT.silent)CALL USRMSG(' ',outs,'-')
@@ -4787,6 +4806,7 @@ C user can un-do this action.
       integer itrc,iuf,iicomp,ij,iz
       integer ibe   ! loop for faces of obstruction
       real A,pi,XR,YR,XXX,YYY,CA,SA
+      real angr   ! rotation angle
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -4813,6 +4833,30 @@ C Find out version number so we know if upgrade required.
           call georead(IUF,LTMP,IICOMP,1,iuout,IER)
           CALL ESCROT(VAL,x1,y1)
           iZBFLG(IICOMP)=0
+  
+          if(nbvis(iicomp).gt.0)then
+
+C Visual object rotation.
+            ANGR=VAL
+            PI = 4.0 * ATAN(1.0)
+            A=-ANGR*PI/180.
+            CA=COS(A)
+            SA=SIN(A)
+            do ij=1,nbvis(iicomp)
+              XXX=XOV(IICOMP,ij)-X1; YYY=YOV(IICOMP,ij)-Y1
+              XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+              XOV(IICOMP,ij)=XR+X1; YOV(IICOMP,ij)=YR+Y1
+              BANGOV(IICOMP,ij,1)=BANGOV(IICOMP,ij,1)+ANGR
+              do ibe=1,8
+                XXX=XVP(iicomp,ij,ibe)-X1
+                YYY=YVP(iicomp,ij,ibe)-Y1
+                XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+                XVP(iicomp,ij,ibe)=XR+X1
+                YVP(iicomp,ij,ibe)=YR+Y1
+              enddo  ! of ibe
+            enddo    ! of ij
+          endif
+
 
 C Remember user directive for future un-do.
           rotateit(iicomp,1)=0.0

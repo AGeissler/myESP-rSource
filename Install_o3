@@ -459,10 +459,10 @@ if [ "$platform" = "auto-detect" ]; then
       [ "$architecture" != "CYGWIN_NT-6.1" ] &&
       [ "$architecture" != "CYGWIN_NT-6.1-WOW64" ] &&
       [ "$architecture" != "MINGW32_NT-5.1" ] &&
-      [ "$architecture" != "MINGW32_NT-5.0" ] &&
       [ "$architecture" != "MINGW32_NT-5.2" ] &&
       [ "$architecture" != "MINGW32_NT-6.1" ] &&
       [ "$architecture" != "MINGW64_NT-6.1" ] &&
+      [ "$architecture" != "MINGW64_NT-10.0" ] &&
       [ "$architecture" != "MSYS_NT-6.1" ] &&
       [ "$architecture" != "Darwin" ] &&
       [ "$architecture" != "SunOS" ]; then
@@ -576,7 +576,7 @@ if [ "$platform" = "auto-detect" ]; then
    case $architecture in
       Linux)                           platform="linux";;
       CYGWIN_NT-5.2  | CYGWIN_NT-5.1  | CYGWIN_NT-5.0  | CYGWIN_NT-6.0 | CYGWIN_NT-6.1 | CYGWIN_NT-6.1-WOW64 ) platform="cygwin";;
-      MINGW64_NT-6.1 |MINGW32_NT-6.1 | MINGW32_NT-5.2 | MINGW32_NT-5.1 | MINGW32_NT-5.0 | MSYS_NT-6.1 ) platform="mingw";;
+      MINGW64_NT-10.0 | MINGW64_NT-6.1 |MINGW32_NT-6.1 | MINGW32_NT-5.2 | MINGW32_NT-5.1 | MSYS_NT-6.1 ) platform="mingw";;
       Darwin)                          platform="mac";;
       SunOS)                           platform="sun";;
    esac
@@ -1540,6 +1540,7 @@ DESTdir=`echo "$DESTdir" | sed "s/\/$//"`
 
 ESPdir=${DESTdir}/esp-r
 ESPbin=${DESTdir}/esp-r/bin
+ESPBinDir=${DESTdir}/esp-r/bin
 corrupted_tree="no"
 if [ "$create_espr_dir" = "no" ]; then
 
@@ -1646,7 +1647,7 @@ fi
 if [ "${make_msg_file}" = "" ]; then
   echo " "
   echo " Intended shell command:"
-  echo " make MCTYPE=${MCTYPE} MCC=${CC} MCPL=${CPL} MFC=${FC} DESTdir=${DESTdir} ESPdir=${ESPdir} WWLINK=${WWLINK} EXE="${EXE}" XINSTALLDIR=${XINSTALLDIR} CFLAGS=${CFLAGS} FFLAGS=${FFLAGS} LD_FLAGS=${LD_FLAGS} ULIBS=${ULIBS} xml_status=${xml_status} $targets"
+  echo " make MCTYPE=${MCTYPE} MCC=${CC} MCPL=${CPL} MFC=${FC} DESTdir=${DESTdir} ESPdir=${ESPdir} ESPBinDir=${ESPBinDir} WWLINK=${WWLINK} EXE="${EXE}" XINSTALLDIR=${XINSTALLDIR} CFLAGS=${CFLAGS} FFLAGS=${FFLAGS} LD_FLAGS=${LD_FLAGS} ULIBS=${ULIBS} xml_status=${xml_status} $targets"
   echo " "
   echo " where the $xlibs libraries are in ${XINSTALLDIR}"
 fi
@@ -1701,7 +1702,7 @@ else
 
   if [ "${NotAnSvnWorkingCopy}" == "" ]; then 
   
-    VersioningScheme="svn" 
+    VersioningScheme="svn"
     
   else 
    
@@ -2060,7 +2061,7 @@ if [ "${LinkDB}" = "yes" ]; then
   echo "*clm ${DBInstDir}/climate/clm67" >> ${ESPdir}/default
   echo "*prs ${DBInstDir}/databases/pressc.db1" >> ${ESPdir}/default
   echo "*prm ${DBInstDir}/databases/material.db4.a" >> ${ESPdir}/default
-  echo "*mlc ${DBInstDir}/databases/multicon.db4" >> ${ESPdir}/default
+  echo "*mlc ${DBInstDir}/databases/multicon.db5" >> ${ESPdir}/default
   echo "*opt ${DBInstDir}/databases/optics.db2" >> ${ESPdir}/default
   echo "*evn ${DBInstDir}/databases/profiles.db2.a" >> ${ESPdir}/default
   echo "*pdb ${DBInstDir}/databases/plantc.db1" >> ${ESPdir}/default
@@ -2172,16 +2173,12 @@ echo " Installing standard databases. This may take some time."
   rm -f ${DESTdir}/esp-r/climate/clm67
   rm -f ${DESTdir}/esp-r/databases/test.res
   echo " Done."
-  # Construction databases. Note constr_db1.materialdb and constr_db2.materialdb
-  # are subsets of constr_db3.materialdb. Perhaps they can be merged into a single file?
   echo -n "   - Copying materials databases..."
   echo -n "  (${DATdir} - ${DESTdir}/esp-r/databases/ ) "
   cp ${DATdir}/databases/ccht_constr.db1 ${DESTdir}/esp-r/databases/ccht_constr.db1
   cp ${DATdir}/databases/ccht-optics.db1 ${DESTdir}/esp-r/databases/ccht-optics.db1
   cp ${DATdir}/databases/ccht_na_constr.db1 ${DESTdir}/esp-r/databases/ccht_na_constr.db1
   cp ${DATdir}/databases/ccht_material.ascii ${DESTdir}/esp-r/databases/ccht_material.ascii
-  cp ${DATdir}/databases/constr_db1.materialdb ${DESTdir}/esp-r/databases/constr_db1.materialdb
-  cp ${DATdir}/databases/constr_db2.materialdb ${DESTdir}/esp-r/databases/constr_db2.materialdb
   cp ${DATdir}/databases/constr_db3.materialdb ${DESTdir}/esp-r/databases/constr_db3.materialdb
   cp ${DATdir}/databases/cellular.materialdb ${DESTdir}/esp-r/databases/cellular.materialdb
   cp ${DATdir}/databases/north_american.materialdb.a ${DESTdir}/esp-r/databases/north_american.materialdb.a
@@ -2233,7 +2230,7 @@ echo " Installing standard databases. This may take some time."
 
    cd ${DATdir}/databases
    echo -n "   - Copying ASCII databases..."
-   cp components.db1 ccht_mlc.db multicon.db1 multicon.db2 multicon.db3 multicon.db4 multicon.db5 north_american.constrdb optics.db1 optics.db2 optics.db3 ccht-optics.db1 mould.db1 pressc.db1 mscomp.db1 mscomp.db2 *.desc ${DESTdir}/esp-r/databases
+   cp components.db1 ccht_mlc.db multicon.db2 multicon.db3 multicon.db4 multicon.db5 north_american.constrdb optics.db2 optics.db3 ccht-optics.db1 mould.db1 pressc.db1 mscomp.db1 mscomp.db2 *.desc ${DESTdir}/esp-r/databases
    echo " Done."
 
 fi
@@ -2444,7 +2441,8 @@ echo -n " Installing executables... "
 if [ "$debugging" = "no" ]; then
   make ESPdir=${ESPdir} EXE=${EXE} COSIMDir=${COSIMdir} strip  >/dev/null 2>&1
 fi
-make ESPBinDir=${ESPbin} EXE=${EXE} COSIMDir=${COSIMdir} InstBins  >/dev/null 2>&1
+echo "Placing executables in ESPBinDir=${ESPBinDir}"
+make ESPBinDir=${ESPBinDir} EXE=${EXE} COSIMDir=${COSIMdir} InstBins   >/dev/null 2>&1
 if [ "$clean" = "yes" ]; then
   make EXE=${EXE} clean  >/dev/null 2>&1
 fi

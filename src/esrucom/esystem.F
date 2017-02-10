@@ -172,6 +172,7 @@ C default file names for databases
       include "net_flow.h"
       include "tdf2.h"
       include "cfd.h"
+C UA1 from uncertainty.h
       include "uncertainty.h"
       include "gnetwk.h"
       include "dhw_common.h"
@@ -370,9 +371,6 @@ C Assume: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7
       common/wkdtyp/idwe1,idwe2,wkd1,wkd2
       INTEGER :: idwe1,idwe2
 
-C Uncertainty analysis common.
-      COMMON/UA1/LUALF,LCNG(MNCNG),LLOC(MNIL)
-
 C IPV data is from ipvdata.h. If within cfg file then the file
 C name is replaced with 'internal'.
       common/IPVF/lipvdatf
@@ -557,7 +555,6 @@ C Simulation parameters
       character GTGEOM*72
       CHARACTER ectime*24,wkd1*10,wkd2*10,naco*40,type*4
       character*10 wkday(7)
-      character LUALF*72,LCNG*15,LLOC*15
       CHARACTER NDNAM*12
       character sblres*72,sflres*72,splres*72,smstres*72,sipvres*72
       character hvacfile*72,LBSIMP*72,LFClds*72
@@ -2871,7 +2868,10 @@ C Fill in a default zone name if blank or UNKNOWN.
         IF(zname(ICOMP)(1:2).EQ.'  '.OR.
      &     zname(ICOMP)(1:7).EQ.'UNKNOWN')THEN
           IF(ICOMP.LE.9)WRITE(zname(ICOMP),'(A5,I1)')'Zone-',ICOMP
-          IF(ICOMP.GT.9)WRITE(zname(ICOMP),'(A5,I2)')'Zone-',ICOMP
+          IF(ICOMP.GT.9.and.ICOMP.LE.99)then
+            WRITE(zname(ICOMP),'(A5,I2)')'Zone-',ICOMP
+          ENDIF
+          IF(ICOMP.GT.99)WRITE(zname(ICOMP),'(A5,I3)')'Zone-',ICOMP
           lnzname(ICOMP)=lnblnk(zname(ICOMP))  ! update the length of this string.
         ENDIF
         if(zdesc(ICOMP)(1:1).EQ.' ')then

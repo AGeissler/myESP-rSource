@@ -153,6 +153,7 @@ C Predefined entity variables.
 
       real objbb(3),DX,DY,DZ
       character predef*144,temp*12
+      real angr
       
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -319,7 +320,8 @@ C Check if SVFC and SSVFC needs to be updated.
 C Loop through each surface and detect base information. 
       DO 41 I=1,NSUR
         ioc=IZSTOCN(icomp,i)
-
+        if(ioc.lt.1) goto 41  ! is model corrupt skip surf
+	
 C Debug
 C        write(6,*) 'ssmlcindex ',ioc,ssmlcindex(ioc)
         if(SOTHER(I,1)(1:4).eq.'UNKN')attribok=.false.
@@ -403,6 +405,11 @@ C construction on the other side. Logic is the same as in EDSURA.
       if(.NOT.browse)then
         DO 40 is=1,NSUR
           ioc=IZSTOCN(icomp,is)
+          if(ioc.lt.1)then
+            showother=.false.
+            icoth=0  ! not a partition
+            goto 40
+          endif
           if(ICT(ioc).eq.3)then
             showother=.true.
             icoth=IZSTOCN(IC2(ioc),IE2(ioc))
@@ -570,9 +577,9 @@ C Read current zone back in and then update the configuration file.
       endif
       ITEMS(ITEMC+5)='  _____________________________'
       WRITE(ITEMS(ITEMC+6),'(A,i3,a)')
-     &                           'd vertex coordinates     (',NTV,')'
+     &                  'd vertex coordinates     (',NTV,')'  ! ? NZTV
       WRITE(ITEMS(ITEMC+7),'(A,i3,a)')
-     &                           'e surface list & edges   (',NSUR,')'
+     &                  'e surface list & edges   (',NSUR,')'
       ITEMS(ITEMC+8) ='f surface attributes           '
       ITEMS(ITEMC+9) ='  _____________________________'
       if(newgeo)then
@@ -1254,18 +1261,18 @@ C Determine the match in the system topology and update it.
               ELSEIF(IOS.EQ.2)THEN
                 SOTHER(ISS,1)='SIMILAR'
                 write(SOTHER(ISS,2),'(i2.2)')INT(VALT)
-                write(SOTHER(ISS,3),'(i2.2)')INT(VALW)
+                write(SOTHER(ISS,3),'(i3.3)')INT(VALW)
                 SSOTHER(IC,1)='SIMILAR'
                 write(SSOTHER(IC,2),'(i2.2)')INT(VALT)
-                write(SSOTHER(IC,3),'(i2.2)')INT(VALW)
+                write(SSOTHER(IC,3),'(i3.3)')INT(VALW)
                 ICT(IC)=1; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
               ELSEIF(IOS.EQ.3)THEN
                 SOTHER(ISS,1)='CONSTANT'
                 write(SOTHER(ISS,2),'(i2.2)')INT(VALT)
-                write(SOTHER(ISS,3),'(i2.2)')INT(VALW)
+                write(SOTHER(ISS,3),'(i3.3)')INT(VALW)
                 SSOTHER(IC,1)='CONSTANT'
                 write(SSOTHER(IC,2),'(i2.2)')INT(VALT)
-                write(SSOTHER(IC,3),'(i2.2)')INT(VALW)
+                write(SSOTHER(IC,3),'(i3.3)')INT(VALW)
                 ICT(IC)=2; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
               ELSEIF(IOS.EQ.5)THEN
                 SOTHER(ISS,1)='GROUND'
@@ -1277,9 +1284,9 @@ C Determine the match in the system topology and update it.
                 ICT(IC)=4; IC2(IC)=iic2; IE2(IC)=0
               ELSEIF(IOS.EQ.6)THEN
                 SOTHER(ISS,1)='GROUND'; SOTHER(ISS,2)='0'
-                write(SOTHER(ISS,3),'(i2.2)')iie2
+                write(SOTHER(ISS,3),'(i3.3)')iie2
                 SSOTHER(IC,1)='GROUND'; SSOTHER(IC,2)='0'
-                write(SSOTHER(IC,3),'(i2.2)')iie2
+                write(SSOTHER(IC,3),'(i3.3)')iie2
                 ICT(IC)=4; IC2(IC)=0; IE2(IC)=iie2
               ELSEIF(IOS.EQ.7)THEN
                 SOTHER(ISS,1)='ADIABATIC'
@@ -1290,17 +1297,17 @@ C Determine the match in the system topology and update it.
               ELSEIF(IOS.EQ.8)THEN
                 SOTHER(ISS,1)='BASESIMP'
                 write(SOTHER(ISS,2),'(i2.2)')INT(VALT)
-                write(SOTHER(ISS,3),'(i2.2)')INT(VALW)
+                write(SOTHER(ISS,3),'(i3.3)')INT(VALW)
                 SSOTHER(IC,1)='BASESIMP'
                 write(SSOTHER(IC,2),'(i2.2)')INT(VALT)
-                write(SSOTHER(IC,3),'(i2.2)')INT(VALW)
+                write(SSOTHER(IC,3),'(i3.3)')INT(VALW)
               ELSEIF(IOS.EQ.9)THEN
                 SOTHER(ISS,1)='IDENT_CEN'
                 write(SOTHER(ISS,2),'(i2.2)')INT(VALT)
-                write(SOTHER(ISS,3),'(i2.2)')INT(VALW)
+                write(SOTHER(ISS,3),'(i3.3)')INT(VALW)
                 SSOTHER(IC,1)='IDENT_CEN'
                 write(SSOTHER(IC,2),'(i2.2)')INT(VALT)
-                write(SSOTHER(IC,3),'(i2.2)')INT(VALW)
+                write(SSOTHER(IC,3),'(i3.3)')INT(VALW)
                 ICT(IC)=7; IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
               ELSEIF(IOS.EQ.10)THEN
 
@@ -1534,6 +1541,28 @@ C Scan G1 for vertes in this zone and allow user to select one.
           endif
 
           iZBFLG(ICOMP)=0
+  
+          if(nbvis(icomp).gt.0)then
+
+C Visual object rotation.
+            ANGR=VAL
+            PI = 4.0 * ATAN(1.0)
+            A=-ANGR*PI/180.0; CA=COS(A); SA=SIN(A)
+            do ij=1,nbvis(icomp)
+              XXX=XOV(ICOMP,ij)-X1; YYY=YOV(ICOMP,ij)-Y1
+              XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+              XOV(ICOMP,ij)=XR+X1; YOV(ICOMP,ij)=YR+Y1
+              BANGOV(ICOMP,ij,1)=BANGOV(ICOMP,ij,1)+ANGR
+              do ibe=1,8
+                XXX=XVP(icomp,ij,ibe)-X1
+                YYY=YVP(icomp,ij,ibe)-Y1
+                XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+                XVP(icomp,ij,ibe)=XR+X1
+                YVP(icomp,ij,ibe)=YR+Y1
+              enddo  ! of ibe
+            enddo    ! of ij
+          endif
+
           call eclose(gversion(icomp),1.1,0.01,newgeo)
           if(igupgrade.eq.2.and.(.NOT.newgeo))then
             gversion(icomp) =1.1
@@ -1748,6 +1777,22 @@ C If user has not canceled then perform the transform.
             X(I)=X(I)+VALX; Y(I)=Y(I)+VALY; Z(I)=Z(I)+VALZ
           enddo
           iZBFLG(ICOMP)=0
+  
+          if(nbvis(icomp).gt.0)then
+
+C Visual object transforms.
+            do ij=1,nbvis(icomp)
+              XOV(icomp,ij)=XOV(icomp,ij)+VALX
+              YOV(icomp,ij)=YOV(icomp,ij)+VALY
+              ZOV(icomp,ij)=ZOV(icomp,ij)+VALZ
+              do ibe=1,8
+                XVP(icomp,ij,ibe)=XVP(icomp,ij,ibe)+VALX
+                YVP(icomp,ij,ibe)=YVP(icomp,ij,ibe)+VALY
+                ZVP(icomp,ij,ibe)=ZVP(icomp,ij,ibe)+VALZ
+              enddo  ! of ibe
+            enddo    ! of ij
+          endif
+
           call eclose(gversion(icomp),1.1,0.01,newgeo)
           if(igupgrade.eq.2.and.(.NOT.newgeo))then
             gversion(icomp) =1.1
@@ -1825,6 +1870,7 @@ C so now apply the transform to the obstructions (only).
               call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             endif
           endif
+
         elseif(INOR.eq.11.or.INOR.eq.12.or.INOR.eq.13.or.INOR.eq.14)then
 
 C Mirror a zone (cardinal directions only). Ask for NS SN EW WE, then
@@ -1973,7 +2019,6 @@ C Take into account path to the db.
           write(predef,'(3a)') standarddbpath(1:lndbp),fs,
      &      LPREDEF(1:lnblnk(LPREDEF))  ! prepend db folder path
         endif
-C        write(predef,'(a)') lpredef(1:96)
         DX=0.0; DY=0.0; DZ=0.0
 
 C Ask where to place it (get offsets and rotation) and then use GB1
@@ -1987,8 +2032,30 @@ C to temporarily draw it.
  423    CALL EASKR(VALR,' Object rotation (+ = anticlockwise)',
      &    'around its lower left corner:',
      &    -359.0,'W',359.0,'W',0.0,'rotation',IER,nbhelp)
-        write(hold,'(3f8.4)') objorg(1),objorg(2),objorg(3)
-        CALL EASKS(HOLD,'Place object origin @ (X Y Z metres)',
+     
+        call easkabc('Origin choices:',' ','edit object origin',
+     &    'use zone vertex','abort',ibopt,nbhelp)
+        if(ibopt.eq.1)then
+          write(hold,'(3f8.4)') objorg(1),objorg(2),objorg(3)
+        elseif(ibopt.eq.2)then
+
+C User current zone G1 common block to present list of points.
+          inpick=1
+          CALL EPMENSV
+          call EPKVERT(INPICK,IVLST,'Vertices for origin',
+     &      'Select a vertex to define the origin...',' ',nbhelp,ier)
+          CALL EPMENRC
+          if(inpick.eq.1)then
+            iwhich1=IVLST(1)
+            HOLD=' '
+            WRITE(hold,'(1x,3f8.4)')X(iwhich1),Y(iwhich1),Z(iwhich1)
+          else
+            goto 3
+          endif
+        elseif(ibopt.eq.3)then
+          goto 3
+        endif
+        CALL EASKS(HOLD,'Confirm object origin @ (X Y Z metres)',
      &    'i.e. within the room: ',
      &    36,' 0. 0. 0.','transforms XYZ',IER,nbhelp)
         K=0
@@ -2935,7 +3002,7 @@ C IVA array of selections is returned.
       COMMON/C24/IZSTOCN(MCOM,MS)
 
       DIMENSION STMP(MS),IVA(MS),IVALS(MS)
-      character STMP*42,act*1,msg1*32,msg2*32
+      character STMP*46,act*1,msg1*32,msg2*32
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -3030,7 +3097,8 @@ C which are not applicable. The do loop needs to use nzsur so that all
 C surfaces are presented even if only ilimit can be copied.
         DO 11 I=1,NZSUR(IZONE)
          ioc=IZSTOCN(izone,i)
-         lnl=lnblnk(SSMLCN(ioc)) 
+         lnl=lnblnk(SSMLCN(ioc))
+         if(lnl.gt.16) lnl=16  ! truncate MLC name in list
          if(act.eq.'s'.or.act.eq.'S')then
            if(SSOTHER(ioc,1)(1:5).eq.'EXTER')then
              write(STMP(I),'(5a)') SSNAME(ioc),'|',SSOTF(ioc)(1:6),' |',
@@ -3944,9 +4012,9 @@ C Determine the match in the system topology and update it.
           CALL EASKR(VALW,' ','Radiation offset?',
      &           0.0,'W',99999.,'W',0.0,'offset rad',IER,nbhelp)
           write(SOTHER(IS,2),'(i2.2)')INT(VALT)
-          write(SOTHER(IS,3),'(i2.2)')INT(VALW)
+          write(SOTHER(IS,3),'(i3.3)')INT(VALW)
           write(SSOTHER(IC,2),'(i2.2)')INT(VALT)
-          write(SSOTHER(IC,3),'(i2.2)')INT(VALW)
+          write(SSOTHER(IC,3),'(i3.3)')INT(VALW)
           IC2(IC)=INT(VALT); IE2(IC)=INT(VALW)
           showother=.false.
           updoth=.false.
@@ -3962,9 +4030,9 @@ C Determine the match in the system topology and update it.
           IC2(IC)=INT(VALT)
           IE2(IC)=INT(VALW)
           write(SOTHER(IS,2),'(i2.2)')INT(VALT)
-          write(SOTHER(IS,3),'(i2.2)')INT(VALW)
+          write(SOTHER(IS,3),'(i3.3)')INT(VALW)
           write(SSOTHER(IC,2),'(i2.2)')INT(VALT)
-          write(SSOTHER(IC,3),'(i2.2)')INT(VALW)
+          write(SSOTHER(IC,3),'(i3.3)')INT(VALW)
           showother=.false.
           updoth=.false.
         ELSEIF(IVAL(1).EQ.4)THEN
@@ -3989,7 +4057,7 @@ C General image option flags.
 C Write ANOTHER followed by the indices of zone and surface.
             SSOTHER(ic,1)='ANOTHER'
             write(SSOTHER(ic,2),'(i2.2)') iz
-            write(SSOTHER(ic,3),'(i2.2)') iso
+            write(SSOTHER(ic,3),'(i3.3)') iso
             ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
 
 C Sort out the other face attributes.
@@ -4000,7 +4068,7 @@ C Sort out the other face attributes.
 
             SSOTHER(ico,1)='ANOTHER'
             write(SSOTHER(ICO,2),'(i2.2)') IC2(ICO)
-            write(SSOTHER(ICO,3),'(i2.2)') IE2(ICO)
+            write(SSOTHER(ICO,3),'(i3.3)') IE2(ICO)
 
 C Also check the other side construction and see if it matches. If
 C current surface MLC index is known get isymindex for the other side
@@ -4055,7 +4123,7 @@ C be saved along with the changes in the initial surface.
             if(iissmlci.ne.0) ssmlcindex(ico)=iissmlci  ! update if known
             SSOTHER(ico,1)='ANOTHER'
             write(SSOTHER(ico,2),'(i2.2)') IC2(ico)
-            write(SSOTHER(ico,3),'(i2.2)') IE2(ico)
+            write(SSOTHER(ico,3),'(i3.3)') IE2(ico)
             showother=.true.  ! when re-display include info on matched
 
           else
@@ -4125,7 +4193,7 @@ C and display both zones.
 C Write ANOTHER followed by the indices of zone and surface.
               SSOTHER(ic,1)='ANOTHER'
               write(SSOTHER(ic,2),'(i2.2)') iz
-              write(SSOTHER(ic,3),'(i2.2)') iso
+              write(SSOTHER(ic,3),'(i3.3)') iso
               ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
 
 C If applicable find other surface, return its connection number and
@@ -4141,7 +4209,7 @@ C point it to the current surface.
 
                 SSOTHER(ico,1)='ANOTHER'
                 write(SSOTHER(ICO,2),'(i2.2)') IC2(ICO)
-                write(SSOTHER(ICO,3),'(i2.2)') IE2(ICO)
+                write(SSOTHER(ICO,3),'(i3.3)') IE2(ICO)
 
 C Update information needed to display information on the other side
 C of this surface (i.e. if we went from unknown to a partition).
@@ -4277,9 +4345,9 @@ C the action make no changes and jump back to 13 (the menu creation code).
               if(ieri.eq.0)then
                 IC2(IC)=0; IE2(IC)=iie2
                 SOTHER(IS,1)='GROUND'; SOTHER(IS,2)='0'
-                write(SOTHER(IS,3),'(i2.2)')iie2
+                write(SOTHER(IS,3),'(i3.3)')iie2
                 SSOTHER(IC,1)='GROUND'; SSOTHER(IC,2)='0'
-                write(SSOTHER(IC,3),'(i2.2)')iie2
+                write(SSOTHER(IC,3),'(i3.3)')iie2
                 ICT(IC)=4
               elseif(ieri.eq.-3)then
                 goto 13
@@ -4333,10 +4401,10 @@ C action do not instanciate the data.
             IE2(IC)=Ifrac; IC2(IC)=IBS
             SOTHER(IS,1)='BASESIMP'
             write(SOTHER(IS,2),'(i2.2)')Ifrac
-            write(SOTHER(IS,3),'(i2.2)')IBS
+            write(SOTHER(IS,3),'(i3.3)')IBS
             SSOTHER(IC,1)='BASESIMP'
             write(SSOTHER(IC,2),'(i2.2)')Ifrac
-            write(SSOTHER(IC,3),'(i2.2)')IBS
+            write(SSOTHER(IC,3),'(i3.3)')IBS
             ICT(IC)=6
             showother=.false.
           elseif(ieri.eq.-3)then
@@ -4476,7 +4544,7 @@ C Check for cases where original surface elevation is floor or ceiling.
                 iz=ic1(iic3); iso=ie1(iic3) ! decode other zone and surf
                 SSOTHER(ic,1)='ANOTHER'
                 write(SSOTHER(ic,2),'(i2.2)') iz
-                write(SSOTHER(ic,3),'(i2.2)') iso
+                write(SSOTHER(ic,3),'(i3.3)') iso
                 ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
                 updoth=.false.
               elseif(INVT.eq.2)then
@@ -4484,14 +4552,14 @@ C Check for cases where original surface elevation is floor or ceiling.
                 ico=iic3
                 SSOTHER(ic,1)='ANOTHER'
                 write(SSOTHER(ic,2),'(i2.2)') iz
-                write(SSOTHER(ic,3),'(i2.2)') iso
+                write(SSOTHER(ic,3),'(i3.3)') iso
                 ICT(IC)=3; IC2(IC)=IZ; IE2(IC)=ISO
                 IC1(ICO)=IZ; IE1(ICO)=ISO; ICT(ICO)=3
                 IC2(ICO)=IC1(IC); IE2(ICO)=IE1(IC)
 
                 SSOTHER(ico,1)='ANOTHER'
                 write(SSOTHER(ICO,2),'(i2.2)') IC2(ICO)
-                write(SSOTHER(ICO,3),'(i2.2)') IE2(ICO)
+                write(SSOTHER(ICO,3),'(i3.3)') IE2(ICO)
 
 C Update information needed to display information on the other side
 C of this surface (i.e. if we went from unknown to a partition).
@@ -4607,7 +4675,7 @@ C Assign new MLC name and connexion info to the icoth surface.
             if(iissmlci.ne.0) ssmlcindex(icoth)=iissmlci  ! update if known
             SSOTHER(icoth,1)='ANOTHER'
             write(SSOTHER(icoth,2),'(i2.2)') IC2(icoth)
-            write(SSOTHER(icoth,3),'(i2.2)') IE2(icoth)
+            write(SSOTHER(icoth,3),'(i3.3)') IE2(icoth)
 
             call eclose(gversion(IC2(IC)),1.1,0.01,newgeo)
             if(igupgrade.eq.2.and.(.NOT.newgeo))then
@@ -5802,7 +5870,7 @@ C Vertex transforms (start).
      &   ino,idno,nbhelp)
 
 C Based on users selection or jump back point for 'do another one'.
- 243     if(ino.eq.0.or.ino.eq.11)then
+ 243    if(ino.eq.0.or.ino.eq.11)then
           continue
         elseif(ino.eq.1)then
 
@@ -6097,6 +6165,14 @@ C Ask if it should be added.
                   elseif(INVT.eq.3)then
                     goto 147
                   endif
+
+C Update the geometry file.
+                  if(newgeo)then
+                    call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,
+     &                3,IER)
+                  else
+                    call emkgeo(IFIL+2,LGEOM(ICOMP),ICOMP,3,IER)
+                  endif
                 endif
               endif
   147       continue
@@ -6146,7 +6222,7 @@ C list. Logic works by looping down (from one more than the current
 C number of vertices associated with this surface) shifting
 C JVN indices up one until at the current edge (jivjj) and then
 C inserting the new vertex index.
-                   if(NVER(jivj)+1.le.MV)then
+                    if(NVER(jivj)+1.le.MV)then
                       dok=.true.
                       call askok(' ',
      &                  'Insert this (close to edge) vertex?',
@@ -6285,72 +6361,12 @@ C Use ratio calculation to make an aligned point vdislsp along the line.
             dok=.true.
             call askok('Is this aligned vertex ok?',' ',ok,dok,nbhelp)
             if(ok)then
+
+C Update the coordinates in common blocks and return.
               X(IWHICH3)=x3; Y(IWHICH3)=y3; Z(IWHICH3)=z3
               VCOORD(ICOMP,IWHICH3,1)=x3
               VCOORD(ICOMP,IWHICH3,2)=y3
               VCOORD(ICOMP,IWHICH3,3)=z3
-              iwhich3=NTV
-              do 346 ivj=1,NSUR
-                icc=izstocn(icomp,ivj)
-                ivjlimit=NVER(ivj)
-                do 347 ivjj=1,ivjlimit
-                  if(ivjj.eq.ivjlimit)then
-                    iwhich1=JVN(ivj,ivjj)
-                    iwhich2=JVN(ivj,1)
-                  else
-                    iwhich1=JVN(ivj,ivjj)
-                    iwhich2=JVN(ivj,ivjj+1)
-                  endif
-
-C Report length of line. Use method of Ward/Radiance in fvect.c
-                  call pointtoline(iwhich3,iwhich1,iwhich2,offset,
-     &              matchver)
-                  if(.NOT.matchver) goto 347
-                  if(offset.lt.CACC)then
-                    write(outs,'(a,i3,a,3f9.4,a,f6.4,a,i3,a,i3,2a)')
-     &                'New vertex ',iwhich3,' @',
-     &                X(NTV),Y(NTV),Z(NTV),' is close (',offset,
-     &                ') to edge ',IWHICH1,' &',IWHICH2,' of surface ',
-     &                SSNAME(icc)
-                    call edisp(itru,outs)
-
-C If current surface (ivj) can take another vertex expand the
-C list. Logic works by looping down (from one more than the current
-C number of vertices associated with this surface) shifting
-C JVN indices up one until at the current edge (ivjj) and then
-C inserting the new vertex index.
-                    if(NVER(ivj)+1.le.MV)then
-                      dok=.true.
-                      call askok(' ','Insert this vertex?',
-     &                            ok,dok,nbhelp)
-                    else
-                      ok=.false.
-                    endif
-                    if(ok)then
-                      NVER(ivj)=NVER(ivj)+1
-                      IXV=NVER(ivj)+1
-  248                 continue
-                      IXV=IXV-1
-                      JVN(ivj,IXV)=JVN(ivj,IXV-1)
-                      IF(IXV.GT.ivjj+1)GOTO 248
-                      JVN(ivj,ivjj+1)=iwhich3
-                      if(newgeo)then
-                        call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,
-     &                    3,IER)
-                      else
-                        call emkgeo(IFIL+2,LGEOM(ICOMP),ICOMP,3,IER)
-                      endif
-
-C Debug...
-C                     write(6,'(a,42i4)') 'now jvn is ',
-C     &                (JVN(ivj,ii),ii=1,NVER(ivj))
-
-C Surface (ivj) vertex list has been updated. Go on to next surface.
-                      goto 346 
-                    endif
-                  endif
-  347           continue
-  346         continue
             endif
           endif
 
@@ -6853,8 +6869,12 @@ C coordinates in CX CY CZ arrays.
           CALL EPMENRC
           if(NVC.eq.0) goto 92
 
+          do ix=1,NVC
+
+C Merge point into existing lines and zone structure.
+C << test >> call CKADDVERTINSURF(ITRU,ICOMP,cx(ix),cy(ix),cz(ix),IER)
+
 C Replicate logic from ADDVERT below. Consider found if within CACC.
-          do 443 ix=1,NVC
             if(NZTV(icomp)+1.le.MTV)then
               found=.false.
               do 144 ixx = 1,NZTV(icomp)
@@ -6879,7 +6899,14 @@ C add a new vertex to the end of the zone list and update vcoord.
                 VCOORD(ICOMP,ntv,2)=CY(ix)
                 VCOORD(ICOMP,ntv,3)=CZ(ix)
 
-C For a unique vertex also test to see if it is close (+-CACC) to
+C Update the geometry file to remember the new vertex.
+                if(newgeo)then
+                  call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+                else
+                  call emkgeo(IFIL+2,LGEOM(ICOMP),ICOMP,3,IER)
+                endif
+
+C For a unique vertex also test to see if it is close (+-0.003m) to
 C one of the existing lines. Also check the last edge in the surface.
                 iwhich3=NTV
                 do 2246 ivj=1,NSUR
@@ -6933,6 +6960,8 @@ C inserting the new vertex index.
                         JVN(ivj,IXV)=JVN(ivj,IXV-1)
                         IF(IXV.GT.ivjj+1)GOTO 1148
                         JVN(ivj,ivjj+1)=iwhich3
+
+C Update the geometry file to remember changes to edges.
                         if(newgeo)then
                           call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,
      &                      iuout,3,IER)
@@ -6952,7 +6981,7 @@ C Surface (ivj) vertex list has been updated. Go on to next surface.
  2246           continue  ! end of loop of surfs in zone
               endif
             endif
-  443     continue ! end of loop for copied verticies
+          enddo ! end of loop for copied verticies
           ILEN=NZTV(icomp)
           IPACT=CREATE
           CALL EKPAGE(IPACT)
@@ -7039,7 +7068,7 @@ C If there are less than 6 surfaces write our their names.
           call edisp(itru,' ')
           call edisp(itru,'Surfaces which reference this vertex:')
           WRITE(outs,9993) (ISASSO(IH),IH=1,IHIT)
- 9993     FORMAT(10(I2,', '))
+ 9993     FORMAT(10(I3,', '))
           call edisp(itru,outs)
         endif
 
@@ -9018,7 +9047,7 @@ C Read the window dimension details and advise user (if IVA non-zero).
      &          'win width',IER)
               CALL EGETWR(OUTSTR,K,VALH(nbdef),0.,100.,'W',
      &          'win ht',IER)
-              write(outs,'(a,i2,a,f6.3,a,f6.3,a,f6.3,a,f6.3)') 
+              write(outs,'(a,i3,a,f6.3,a,f6.3,a,f6.3,a,f6.3)') 
      &          'Window for surface',ks,': X off ',VALX(nbdef),
      &          ' Z off ',VALZ(nbdef),' width ',VALW(nbdef),
      &          ' height ',VALH(nbdef) 
@@ -9052,7 +9081,7 @@ C Read default doors index (one per surface).
      &          'door width',IER)
               CALL EGETWR(OUTSTR,K,VALDH(nbdor),0.,100.,'W',
      &          'door ht',IER)
-              write(outs,'(a,i2,a,f6.3,a,f6.3,a,f6.3)') 
+              write(outs,'(a,i3,a,f6.3,a,f6.3,a,f6.3)') 
      &          'Door for surface',ks,': X off ',VALDX(nbdor),
      &          ' width ',VALDW(nbdor),
      &          ' height ',VALDH(nbdor) 
@@ -10104,34 +10133,42 @@ C been made.
 
       integer IZSTOCN  ! for each zone:surface a pointer to connection index.
       COMMON/C24/IZSTOCN(MCOM,MS)
+      integer IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN
 
       logical MODGEO
+      character msg*42
 
 C Loop through each surface and detect whether orientation of
 C the surface has changed and needs to be recognised. 
       DO 41 I=1,NZSUR(icomp)
         ioc=IZSTOCN(icomp,i)
-        if(SSPELV(ioc).GE.-1.5.AND.SSPELV(ioc).LE.1.5)then
-          if(SVFC(I).NE.'VERT')then
-            MODGEO=.TRUE.
-            SVFC(I)='VERT'; SSVFC(ioc)='VERT'
-          endif
-        elseif(SSPELV(ioc).GE.88.5.AND.SSPELV(ioc).LE.91.5)then
-          if(SVFC(I).NE.'CEIL')then
-            SVFC(I)='CEIL'; SSVFC(ioc)='CEIL'
-            MODGEO=.TRUE.
-            izsceil(icomp)=I   ! identify as a ceiling
-          endif
-        elseif(SSPELV(ioc).GE.-91.5.AND.SSPELV(ioc).LE.-88.5)then
-          if(SVFC(I).NE.'FLOR')then
-            SVFC(I)='FLOR'; SSVFC(ioc)='FLOR'
-            MODGEO=.TRUE.
-            izsfloor(icomp)=I  ! identify as a floor
-          endif
-        else
-          if(SVFC(I).NE.'SLOP')then
-            SVFC(I)='SLOP'; SSVFC(ioc)='SLOP'
-            MODGEO=.TRUE.
+        if(ioc.le.1)then
+          write(msg,'(a,2i4)') 'No connection for zone surf',icomp,i
+          call edisp(iuout,msg)
+	else
+          if(SSPELV(ioc).GE.-1.5.AND.SSPELV(ioc).LE.1.5)then
+            if(SVFC(I).NE.'VERT')then
+              MODGEO=.TRUE.
+              SVFC(I)='VERT'; SSVFC(ioc)='VERT'
+            endif
+          elseif(SSPELV(ioc).GE.88.5.AND.SSPELV(ioc).LE.91.5)then
+            if(SVFC(I).NE.'CEIL')then
+              SVFC(I)='CEIL'; SSVFC(ioc)='CEIL'
+              MODGEO=.TRUE.
+              izsceil(icomp)=I   ! identify as a ceiling
+            endif
+          elseif(SSPELV(ioc).GE.-91.5.AND.SSPELV(ioc).LE.-88.5)then
+            if(SVFC(I).NE.'FLOR')then
+              SVFC(I)='FLOR'; SSVFC(ioc)='FLOR'
+              MODGEO=.TRUE.
+              izsfloor(icomp)=I  ! identify as a floor
+            endif
+          else
+            if(SVFC(I).NE.'SLOP')then
+              SVFC(I)='SLOP'; SSVFC(ioc)='SLOP'
+              MODGEO=.TRUE.
+            endif
           endif
         endif
    41 CONTINUE

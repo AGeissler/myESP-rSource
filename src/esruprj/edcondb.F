@@ -22,7 +22,7 @@ C edcondb.F comprising:
 C  ELISTMAT: Controls display and editing of materials commons.
 C  ELISTCFC: Controls display and editing of CFClayers commons.
 C  EDONEMAT: Edits a material in the common block at array index index.
-C  EDONECFC: Edits a CFC layer in the common block at arary index.
+C  EDONECFC: Edits a CFC layer in the common block at array index.
 C  EDMLDB: Display/edit a constructions db.
 C  EDMLDB2: Controls display and editing of MLC (v2) commons.
 C  EDWALL: Edit construction common block data.
@@ -1087,7 +1087,7 @@ C CLSSEL (36 char) is an array for menu items for the selected class.
       CHARACTER KEY*1,PDBM*76,outs*124
       CHARACTER xfile*144,tg*1,delim*1,t32*32,t248*248
       character lworking*144,fs*1
-      logical closemat1
+      logical closecfc1,closecfc2
       logical mod   ! to signal whether an item has been altered.
       logical unixok
       integer NCO,ICO,NITMS,INO,IW  ! max items and current menu item
@@ -1121,8 +1121,9 @@ C Assume no changes to db amd user has not entered password.
 
 C Check that the CFClayers db is not empty.
     4 IER=0
-      call eclose(cfcver,1.1,0.001,closemat1)
-      if(closemat1)then
+      call eclose(cfcver,1.1,0.001,closecfc1)
+      call eclose(cfcver,1.2,0.001,closecfc2)
+      if(closecfc1.or.closecfc2)then
         IF(cfccats.LE.0)THEN
           CALL USRMSG(' CFC layers db is empty.',' ','W')
           IER=1
@@ -1298,6 +1299,14 @@ C Add another category to the database << not yet tested >>
           CFCemissout(ILNE)=1.0
           CFCemissin(ILNE)=1.0
           CFClwtran(ILNE)=1.0
+          CFC_IGDB_ID(ILNE)=' '
+
+          CFCvisreflout(ILNE)=1.0
+          CFCvisreflin(ILNE)=1.0
+          CFCvistrandir(ILNE)=1.0
+          CFCvistrantotout(ILNE)=1.0
+          CFCvistrantotin(ILNE)=1.0
+
           CFCdrpwidth(ILNE)=1.0
           CFCdrpspacing(ILNE)=1.0
           CFCslatorient(ILNE)='HORZ'
@@ -1356,9 +1365,9 @@ C Display the materials of the classification in a menu.
      &    cfccatitems(IC),' entries.'
         PDBM(4)=   '  ___________________________________'
         PDBM(5)=
-     &' Item|Conduc-|Den- |Specif|Description of layer'
+     &'  Item |Conduc-|Den- |Specif|Description of layer'
         PDBM(6)=
-     &'     |tivity |sity |heat  |name   : documentation'
+     &'       |tivity |sity |heat  |name   : documentation'
         M=6
 
         iItem=1
@@ -1375,7 +1384,7 @@ C Remember the array index that goes with the menu position (m).
      &          cfcdbcon(J),cfcdbden(J),
      &          cfcdbsht(J),
      &          cfcname(J)(1:12),': ',cfcdoc(J)(1:21)
-   25         FORMAT(A1,i4, F8.3,F6.0,F7.0,1X,3A)
+   25         FORMAT(A1,i6, F8.3,F6.0,F7.0,1X,3A)
             ENDIF
             iItem = iItem+1
           endif
@@ -1519,16 +1528,16 @@ C Reset flag to show db is current with local arrays.
 
         ELSEIF(INO.EQ.NITMS-3)THEN
 
-C Add delete or copy CFC layer from db.
-          CALL EASKATOG('Options: ',' ','Delete existing CFC layer',
+C Add, delete or copy CFC layer from db.
+          CALL EASKATOG('Options: ',' ','Delete CFC layer',
      &      'Add CFC layer',
-     &      'copy existing CFC layer','cancel',' ',' ','  ',IW,nbhelp)
+     &      'copy CFC layer','cancel',' ',' ','  ',IW,nbhelp)
           IF(IW.EQ.1)THEN
 
 C Ask the user which one to remove then loop through CFC layers and
 C copy the contents of CFC layer > IWHICH into the next lower one.
             CALL USRMSG(' ',' Which item of list? ','-')
-            CALL EMENU('delete CFC layer',PDBM,NITMS,IW)
+            CALL EMENU('Delete CFC layer',PDBM,NITMS,IW)
             IWHICH=iwhicharray(IW)
             DO 791 IVV=IWHICH,cfcdbitems-1
               cfcdbcon(IVV)=cfcdbcon(IVV+1)
@@ -1549,6 +1558,14 @@ C copy the contents of CFC layer > IWHICH into the next lower one.
               CFCemissout(IVV) = CFCemissout(IVV+1)
               CFCemissin(IVV) = CFCemissin(IVV+1)
               CFClwtran(IVV) = CFClwtran(IVV+1)
+              CFC_IGDB_ID(IVV)=CFC_IGDB_ID(IVV+1)
+
+              CFCvisreflout(IVV) = CFCvisreflout(IVV+1)
+              CFCvisreflin(IVV) = CFCvisreflin(IVV+1)
+              CFCvistrandir(IVV) =  CFCvistrandir(IVV+1)
+              CFCvistrantotout(IVV) = CFCvistrantotout(IVV+1)
+              CFCvistrantotin(IVV) = CFCvistrantotin(IVV+1)
+
               CFCdrpwidth(IVV) = CFCdrpwidth(IVV+1)
               CFCdrpspacing(IVV) = CFCdrpspacing(IVV+1)
               CFCwireemiss(IVV) = CFCwireemiss(IVV+1)
@@ -1627,6 +1644,17 @@ C If there is room add a note about its origin.
                 CFCemissout(ILNE) = CFCemissout(lastcatitem)
                 CFCemissin(ILNE) = CFCemissin(lastcatitem)
                 CFClwtran(ILNE) = CFClwtran(lastcatitem)
+                CFC_IGDB_ID(ILNE) = CFC_IGDB_ID(lastcatitem)
+
+                CFCvisreflout(ILNE) = CFCvisreflout(lastcatitem)
+                CFCvisreflin(ILNE) = CFCvisreflin(lastcatitem)
+                CFCvistrandir(ILNE) =
+     &                  CFCvistrandir(lastcatitem)
+                CFCvistrantotout(ILNE) =
+     &                  CFCvistrantotout(lastcatitem)
+                CFCvistrantotin(ILNE) =
+     &                  CFCvistrantotin(lastcatitem)
+
                 CFCdrpwidth(ILNE) = CFCdrpwidth(lastcatitem)
                 CFCdrpspacing(ILNE) = 
      &                  CFCdrpspacing(lastcatitem)
@@ -1714,6 +1742,17 @@ C...........CFC shade or fill gas layer attributes
             CFCemissout(ILNE) = CFCemissout(IWHICH)
             CFCemissin(ILNE) = CFCemissin(IWHICH)
             CFClwtran(ILNE) = CFClwtran(IWHICH)
+            CFC_IGDB_ID(ILNE) = CFC_IGDB_ID(IWHICH)
+
+            CFCvisreflout(ILNE) = CFCvisreflout(IWHICH)
+            CFCvisreflin(ILNE) = CFCvisreflin(IWHICH)
+            CFCvistrandir(ILNE) =
+     &                  CFCvistrandir(IWHICH)
+            CFCvistrantotout(ILNE) =
+     &                  CFCvistrantotout(IWHICH)
+            CFCvistrantotin(ILNE) =
+     &                  CFCvistrantotin(IWHICH)
+
             CFCdrpwidth(ILNE) = CFCdrpwidth(IWHICH)
             CFCdrpspacing(ILNE) = 
      &                  CFCdrpspacing(IWHICH)
@@ -2189,6 +2228,13 @@ C.....CFC shade or fill gas layer attributes
       real locCFCemissout
       real locCFCemissin
       real locCFClwtran
+
+      real locCFCvisreflout
+      real locCFCvisreflin
+      real locCFCvistrandir
+      real locCFCvistrantotout
+      real locCFCvistrantotin
+
       real locCFCdrpwidth
       real locCFCdrpspacing
       real locCFCwireemiss
@@ -2243,6 +2289,14 @@ C Work with local variables.
       locCFCemissout = CFCemissout(index)
       locCFCemissin = CFCemissin(index)
       locCFClwtran = CFClwtran(index)
+      locCFC_IGDB_ID = CFC_IGDB_ID(index)
+
+      locCFCvisreflout = CFCvisreflout(index)
+      locCFCvisreflin = CFCvisreflin(index)
+      locCFCvistrandir = CFCvistrandir(index)
+      locCFCvistrantotout = CFCvistrantotout(index)
+      locCFCvistrantotin = CFCvistrantotin(index)
+
       locCFCdrpwidth = CFCdrpwidth(index)
       locCFCdrpspacing = CFCdrpspacing(index)
       locCFCwireemiss = CFCwireemiss(index)
@@ -2261,7 +2315,6 @@ C Work with local variables.
       locCFCfillKr = CFCfillKr(index)
       locCFCfillXe = CFCfillXe(index)
       locCFCfillSF6 = CFCfillSF6(index)
-      locCFC_IGDB_ID = CFC_IGDB_ID(index)
 
    3  IW=-4
       WRITE(PELM(1),'(A,1X,A)')    'a Name:',tnam(1:32)
@@ -2290,8 +2343,14 @@ C.......Show shade layer attributes depending on type
             WRITE(PELM(14),'(A,F7.3)')
      &      'r Longwave tran.         :',locCFClwtran
             WRITE(PELM(15),'(A,A8)')
-     &      's IGDB ID                :',locCFC_IGDB_ID     
-            m=15
+     &      's IGDB ID                : ',locCFC_IGDB_ID
+            WRITE(PELM(16),'(A,F7.3)')
+     &      't Visual refl out (-)    :',locCFCvisreflout
+            WRITE(PELM(17),'(A,F7.3)')
+     &      'u Visual refl in (-)     :',locCFCvisreflin
+            WRITE(PELM(18),'(A,F7.3)')
+     &      'v Visual direct tran     :',locCFCvistrandir
+            m=18
       elseif(CFCshdtp(index).eq.iVenBlind)then
             WRITE(PELM(7),'(A)')  'l type >>Ven. blind'
             WRITE(PELM(8),'(A)')
@@ -2446,6 +2505,14 @@ C updating the common blocks.
             CFCemissout(index) = locCFCemissout
             CFCemissin(index) = locCFCemissin
             CFClwtran(index) = locCFClwtran
+            CFC_IGDB_ID(index) = locCFC_IGDB_ID
+
+            CFCvisreflout(index) = locCFCvisreflout
+            CFCvisreflin(index) = locCFCvisreflin
+            CFCvistrandir(index) = locCFCvistrandir
+            CFCvistrantotout(index) = locCFCvistrantotout
+            CFCvistrantotin(index) = locCFCvistrantotin
+
             CFCdrpwidth(index) = locCFCdrpwidth
             CFCdrpspacing(index) = locCFCdrpspacing
             CFCwireemiss(index) = locCFCwireemiss
@@ -2586,7 +2653,23 @@ C.......Edit shade layer attributes depending on type
            elseif(IW.eq.15)then
             CALL EASKS(locCFC_IGDB_ID,'IGDB ID','Confirm:',
      &        8,' ','IGDB ID',IER,nbhelp)
-            modify=.true.             
+            modify=.true.
+           elseif(IW.eq.16)then
+            CALL EASKR(locCFCvisreflout,
+     &        'Visual refl, outside','confirm:',
+     &        0.00,'W',1.0,'W',1.,'vis refl out',IER,nbhelp)
+            modify=.true.
+           elseif(IW.eq.17)then
+            CALL EASKR(locCFCvisreflin,'Visual refl, inside',
+     &        'confirm:',0.00,'W',1.0,'W',.5,'vis refl in',IER,
+     &         nbhelp)
+            modify=.true.
+           elseif(IW.eq.18)then
+            CALL EASKR(locCFCvistrandir,
+     &        'Visual tran direct',
+     &        'confirm:',0.00,'W',1.00,'W',0.,'vis tran dir',
+     &        IER,nbhelp)
+            modify=.true.
            endif
            goto 3         
         ELSEIF(CFCshdtp(index).eq.iVenBlind)THEN
@@ -3880,8 +3963,8 @@ C Call ctlexp a 2nd time to close the file.
 C Manage categories. Select and alter the category name or documentation
 C or add another category to the database << add not yet tested >>
         if(ACTION.eq.'M'.or.ACTION.eq.'m')then
-          CALL EASKABCD(' Options:',' ',
-     &      'edit category name','edit category documentation',
+          CALL EASKABCD(' Options:',' ','edit category menu',
+     &      'edit category documentation',
      &      'add another category','cancel',irpt,nbhelp)
           if(irpt.eq.1.or.irpt.eq.2)then
             CALL EPMENSV
@@ -3895,20 +3978,14 @@ C or add another category to the database << add not yet tested >>
           endif
           if(irpt.eq.1)then
 
-C Edit classification name and menu.
-            write(t32,'(a)')mlccatname(IC)(1:lnmlccatname(IC))
-            CALL EASKS(t32,' ',' Classification name (<32 char)?',
-     &        32,' ','class name',IER,nbhelp)
-            if(t32(1:2).ne.'  ')then
-              write(mlccatname(IC),'(a)') t32(1:lnblnk(t32))
-              lnmlccatname(IC)=lnblnk(mlccatname(IC))
-              write(t32,'(a)')mlccatname(IC)(1:lnmlccatname(IC))
-              CALL EASKS(t32,' ',' Classification menu (<32 char)?',
-     &          32,' ','class menu',IER,nbhelp)
-              write(mlccatmenu(IC),'(a)') t32(1:lnblnk(t32))
-              chgdb=.true.
-              MODDB=.TRUE.
-            endif
+C Edit classification menu.
+            write(t32,'(a)')mlccatmenu(IC)(1:lnmlcmenu(IC))
+            CALL EASKS(t32,' ',' Classification menu (<32 char)?',
+     &        32,' ','class menu',IER,nbhelp)
+            write(mlccatmenu(IC),'(a)') t32(1:lnblnk(t32))
+            lnmlcmenu(IC)=lnblnk(t32)
+            chgdb=.true.
+            MODDB=.TRUE.
           elseif(irpt.eq.2)then
 
 C Edit classification documentation.
@@ -4821,12 +4898,8 @@ C               ifoc=ifoc+1
           elseif(ACTION.eq.'-')then
             call edisp(iuout,' ')
             call etmldb(2,iuout,IFOC,imerr)
-            dok=.true.
-            CALL ASKOK(outs,'Use it:',OK,dok,1)
-            if(OK)then
-              ISEL=IFOC ! set to selected array index
-              return    ! task complete return to calling subroutine
-            endif
+            ISEL=IFOC ! set to selected array index
+            return    ! task complete return to calling subroutine
           endif
         ENDIF
         GOTO 3  ! regenerate and display inner menu
@@ -4902,10 +4975,14 @@ C Material properties.
 
 C CFC layer properties
       integer cfcarrayindex
-      logical closecfc1
+      logical closecfc1,closecfc2
+      logical not_lowe
+      character*2 lowe
+      real cfclaythrm
 
 C Note: size of MLED supports a dozen layers in a construction.
       DIMENSION MLED(32),PNAM(ME),MMLAY(ME+2),imlay(ME+2)
+      DIMENSION ICLSSEL(30)
       character*72 LTMP
       CHARACTER NAM*72,KEY*1,GDESCR*36
       CHARACTER SOPT*12,LAYD*124
@@ -4956,7 +5033,8 @@ C is true then the common blocks are filled.
 C Check version of CFC layers database.  If closecfc1
 C is true then the common blocks are filled.
       call eclose(cfcver,1.1,0.01,closecfc1)
-      if(closecfc1)then
+      call eclose(cfcver,1.2,0.01,closecfc2)
+      if(closecfc1.or.closecfc2)then
         continue
       else
         CALL USRMSG('CFC layers database data not yet filled.',
@@ -5013,15 +5091,15 @@ C Present editing menu and echo the construction documentation.
    2  WRITE(MLED(1),'(A,1X,A)')'a Construction:',mlcname(ifoc)(1:26)
       call edisp248(iuout,mlcdoc(ifoc),100)
       if(mlcver.eq.1)then
-        WRITE(MLED(2),'(A,1X,A12)')'  Category:',
+        WRITE(MLED(2),'(A,1X,A12)')'b Category:',
      &    mlcincat(ifoc)(1:28)
       else
         MLED(2)='  Category: general'
       endif
       if(mlcver.eq.1)then
-        WRITE(MLED(3),'(A,1X,A)') 'b Menu:',
+        WRITE(MLED(3),'(A,1X,A)') 'c Menu:',
      &    mlcmenu(ifoc)(1:28)
-        WRITE(MLED(4),'(A,1X,2A)')'c Doc:',
+        WRITE(MLED(4),'(A,1X,2A)')'d Doc:',
      &    mlcdoc(ifoc)(1:28),'..'
       else
         WRITE(MLED(3),'(A,1X,A)') '  Menu:',
@@ -5031,15 +5109,15 @@ C Present editing menu and echo the construction documentation.
       endif
 
       IF(mlctype(ifoc)(1:4).EQ.'TRAN')THEN
-        MLED(5)='d General type: Transparent '
+        MLED(5)='e General type: Transparent '
       ELSEIF(mlctype(ifoc)(1:4).EQ.'CFC ')THEN
-        MLED(5)='d General type: Complex Fenestration'
+        MLED(5)='e General type: Complex Fenestration'
       ELSEIF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
-        MLED(5)='d General type: Complex Fenestration 2'
+        MLED(5)='e General type: Complex Fenestration 2'
       ELSE
-        MLED(5)='d General type: Opaque      '
+        MLED(5)='e General type: Opaque      '
       ENDIF
-      WRITE(MLED(6),'(A,1X,A12)')'e Optical properties:',
+      WRITE(MLED(6),'(A,1X,A12)')'f Optical properties:',
      &  mlcoptical(ifoc)(1:20)
       WT=0.0   ! figure out the total thickness
       DO 22, IL=1,LAYERS(IFOC)
@@ -5048,16 +5126,21 @@ C Present editing menu and echo the construction documentation.
       WRITE(MLED(7),'(A,I2,a,F6.1,a)') '  Number of layers:',
      &  LAYERS(IFOC),' (',WT*1000.0,'mm thick)'
       if(showother)then
-        WRITE(MLED(8),'(2a)')  'f Linked with: ',
+        WRITE(MLED(8),'(2a)')  'g Linked with: ',
      &    mlcsymetric(ifoc)(1:26)
       else
-        WRITE(MLED(8),'(2a)')  'e Layers are: ',
+        WRITE(MLED(8),'(2a)')  'g Layers are: ',
      &    mlcsymetric(ifoc)(1:26)
       endif
       MLED(9)='  _____________________________  '
       IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
-        MLED(10)=' Layer|CFCl|Thick| Description   '
-        MLED(11)='      |db  |(mm) | of CFC layer  '
+        if (closecfc2) then
+          MLED(10)=' Layer|CFC |Thick|low| Description   '
+          MLED(11)='      |db# |(mm) |e  | of CFC layer  '
+        else
+          MLED(10)=' Layer|CFC |Thick| Description   '
+          MLED(11)='      |db# |(mm) | of CFC layer  '
+        endif
       ELSE
         MLED(10)=' Layer|Thick | Description        '
         MLED(11)='      |(mm)  | of material        '
@@ -5087,11 +5170,46 @@ C was confused then cfcarrayindex could be 0.
 
           M=M+1
           CALL EMKEY(M,KEY,IER)
-          WRITE(MLED(M),30)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
-     &      DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
-  30      FORMAT(A1,I4,I5,F7.1,2X,A)
 
-        ELSE ! check_CFC2_or_MLC
+          if (closecfc2) then
+C           Check where "low e" is facing;
+C             - When "flip layer" is implemented, the CFC db array values should
+C               *not* be changed, as the CFC database entries should not be
+C               altered!
+C             - A common "CFC_Layer_flipped(MMLC,ME)" will be necessary, boolean,
+C               to track state. This common should only be used for changing
+C               output when writing the actual .cfc zone file ... ??!!
+C             - The value needs to be stored with the corresponding mlc in
+C               the mlc database ... ??!!
+            call eclose(CFCemissout(ITMCFCDB(IFOC,IL)),
+     &                   CFCemissin(ITMCFCDB(IFOC,IL)),0.001,not_lowe)
+            if (not_lowe) then
+                lowe='  '
+            else
+              if (CFCemissout(ITMCFCDB(IFOC,IL)) .lt.
+     &                    CFCemissin(ITMCFCDB(IFOC,IL))) then
+                if (.not.CFC_layer_flipped(IFOC,IL)) then
+                  lowe=':|'
+                else
+                  lowe='|:'
+                endif
+              else
+                if (.not.CFC_layer_flipped(IFOC,IL)) then
+                  lowe='|:'
+                else
+                  lowe=':|'
+                endif
+              endif
+            endif
+            WRITE(MLED(M),31)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
+     &                      DTHK(IFOC,IL)*1000.0, lowe, PNAM(IL)(1:19)
+  31        FORMAT(A1,I4,I5,F7.1,A3,2X,A)
+          else
+            WRITE(MLED(M),30)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
+     &                            DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
+  30        FORMAT(A1,I4,I5,F7.1,2X,A)
+          ENDIF
+        ELSE ! we have a MLC
           matarrayindex=IPRMAT(IFOC,IL)   ! which legacy index
  
 C And if an air gap reset dbcon and NAM and assign DRAIR if newer materials file
@@ -5157,8 +5275,8 @@ C 0.10 inside upward flow and 0.17 inside downward flow.
       M=M+1
       MLED(M)='! add or delete a layer          '
       M=M+1
-      IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
-        MLED(M)='                                 '
+      IF(mlctype(ifoc)(1:4).EQ.'CFC2'.and.closecfc2)THEN
+        MLED(M)='* flip layer                     '
       ELSE
         MLED(M)='* adjust layer to reach U-value  '
       ENDIF
@@ -5186,11 +5304,12 @@ C If possible to jump next.
       ILED=-4
 
 C Also compose a list of layers for additions/deletions.
+C<< ? what is this for? Necessary to repeat "low e" output? >>
       check_CFC2_or_MLC_2:
      &IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
 
-        MMLAY(1)=' Layer|CFCl|Thick| Description   '
-        MMLAY(2)='      |db  |(mm) | of CFC layer  '
+        MMLAY(1)=' Layer|CFC |Thick| Description   '
+        MMLAY(2)='      |db# |(mm) | of CFC layer  '
         DO 11, IL=1,LAYERS(IFOC)
         WRITE(MMLAY(IL+2),299)IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
      &         DTHK(IFOC,IL)*1000.0,PNAM(IL)(1:20)
@@ -5361,9 +5480,37 @@ C List the help.
       ELSEIF(ILED.EQ.NLED-4)THEN
 
         check_CFC2_or_MLC_4:
-     &  IF(mlctype(ifoc)(1:4).NE.'CFC2')THEN
+     &  IF(mlctype(ifoc)(1:4).EQ.'CFC2'.and.closecfc2)THEN
+          call edisp(iuout,' Select layer to flip.')
+          IX=1
+          CALL EPMENSV
+          CALL EPICKS(IX,imlay,' ',' Layer to flip: ',
+     &      38,LAYERS(IFOC)+2,MMLAY,'Layer to flip',IER,nbhelp)
+          CALL EPMENRC
 
-C Adjust layer.
+          if(IX.eq.1.and.imlay(1).gt.2)then
+            IWHICH=imlay(1)-2
+
+C           Code to (bookkeep for) "flip layer"
+C           It should not be necessary to duplicate IGDB entries and
+C           the original CFC db arrays (emissin, emissout) should
+C           not be altered!
+            call eclose(CFCemissout(ITMCFCDB(IFOC,IWHICH)),
+     &                 CFCemissin(ITMCFCDB(IFOC,IWHICH)),0.001,not_lowe)
+            if (not_lowe) then
+              ! do nothing! ((warn?))
+            else
+              if (CFC_layer_flipped(IFOC,IWHICH)) then
+C               "Backflip"
+                CFC_layer_flipped(IFOC,IWHICH)=.false.
+              else
+                CFC_layer_flipped(IFOC,IWHICH)=.true.
+              endif
+            endif
+          endif
+
+        ELSE  ! we have a non CFC2 mlc
+C Adjust layer for desired U-value.
           CALL EASKABCD('Adjust options: ',' ',
      &      'Alter (solid) thickness','Alter gap R',
      &      'Find alternative material','Continue',IW,nbhelp)
@@ -5610,7 +5757,7 @@ C Process the request.
 
       ELSEIF(ILED.EQ.NLED-5)THEN
 
-C +- Layer.
+C ! add or delete a Layer.
         CALL EASKABCD(' Layer options: ',' ',' Delete',
      &    ' Append @ inside face',' Insert','Continue',IW,nbhelp)
         IF(IW.EQ.1)THEN
@@ -5874,6 +6021,10 @@ C              write(6,*) 'iprmat',IPRMAT(IFOC,ILN),matarrayindex
      &        1.0,'W',300.0,'W',100.0,'layer thickness mm',
      &        IER,nbhelp)
             DTHK(IFOC,ILN)=VAL*0.001
+
+cx << check CFC min layer thickness here?>>
+
+
           ELSE
             CALL USRMSG(' ',' Exceeds layer limit!','W')
             ILED=-1
@@ -5977,7 +6128,18 @@ C for the current item.
 
       ELSEIF(ILED.EQ.2)THEN
 
-C Category ??
+C Category allow the user to select a different category.
+        CALL EPMENSV
+        INPIC=1
+        CALL EPICKS(INPIC,ICLSSEL,' ','Move to which class?',
+     &    32,matcats,mlccatmenu,'Construction class',
+     &    IER,nbhelp)
+        CALL EPMENRC
+        IC=ICLSSEL(1)
+        if(IC.ge.1)then
+          mlcincat(ifoc)=mlccatname(IC)
+          moddb = .true.
+        endif
 
       ELSEIF(ILED.EQ.3)THEN
 
@@ -6238,8 +6400,9 @@ C construction and reset showother.
             showother = .false.
           endif
         endif
-      ELSEIF(ILED.GT.8.AND.ILED.LE.NLED-3)THEN
+      ELSEIF(ILED.GT.8.AND.ILED.LE.NLED-6)THEN
 
+C Edit Layer ...
 C Ask if user wishes to browse through materials to find suitable
 C reference.
         dok=.true.
@@ -6392,7 +6555,7 @@ C Now update LAYDESC & PNAM.
      &           (DRAIR(IFOC,ILED-11,IY),IY=1,3)
             write(PNAM(ILED-11),'(A,3F5.2)')'gap ',
      &           (DRAIR(IFOC,ILED-11,IY),IY=1,3)
-	    
+    
           ELSEIF(matarrayindex.lt.0)THEN
 
 C This is a confused material (perhaps a duplicate). Assign zero
@@ -6438,6 +6601,19 @@ C Now update LAYDESC & PNAM.
         CALL EASKR(VAL,' ',' Layer thickness (mm): ',
      &    1.0,'W',300.0,'W',100.0,'layer thickness mm',IER,nbhelp)
         DTHK(IFOC,ILED-11)=VAL*0.001
+
+cx << insert CFC2 check for thermal cap. here?
+        if (mlctype(ifoc)(1:4).EQ.'CFC2') then
+C         Check rho cp s - value
+          cfclaythrm=cfcdbden(cfcarrayindex)
+     &                *cfcdbsht(cfcarrayindex)*VAL*0.001
+          if (cfclaythrm.lt.1200.0) then
+C           Issue warning!
+            CALL USRMSG('*** WARNING : Layer very thin!!',
+     &         'Numerical issues likely','W')
+          endif
+        endif
+
         moddb = .true.
         goto 2   ! re-establish the menu strings
       else

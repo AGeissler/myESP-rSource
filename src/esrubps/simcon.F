@@ -92,10 +92,11 @@ C Tolerance for iteration of hydrogen flow matrix
       INTEGER :: indcfg
 
 C Uncertainty.
-      COMMON/UA1/LUALF,LCNG(MNCNG),LLOC(MNIL)
       COMMON/UA5/IMET,ISIM,NRSIM
       INTEGER :: imet,isim,nrsim
-
+      
+      real SNA
+      COMMON/PREC1/SNA(MCOM,MS)
 
 c Mechanical ventilation system activator
       Integer iMech
@@ -107,11 +108,12 @@ C Simulator parameter.
       LOGICAL spfileok,perok,tstepok,saveok,autook,exitok,startupok
       logical PBYFIL,OK,dok
 
-      character LUALF*72,LCNG*15,LLOC*15,outs*124
+      character outs*124
       
       INTEGER :: i,ier,irep,isimn1,isimn2,istat,iualf,iunit
       INTEGER :: nstep
       REAL :: tstep
+      integer J
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -202,6 +204,7 @@ C Re-scan the model description files silently.
         
 C MZNUMA is effectively a simulation clock.
         CALL MZNUMA
+C        write (36,*) 'after mznuma sna= ',(SNA(1,J),J=1,7)
 
 C Close ascii plant-side boundary data file if last simulation 
 C otherwise rewind for use in next simulation.
@@ -353,6 +356,7 @@ C and information on the saved result set.
       COMMON/SOLOFF/ISOLAR
       COMMON/SKYFLG/ISKYFL
       COMMON/PMSLV/IPMSLV
+      COMMON/PREC1/SNA(MCOM,MS)
 
       COMMON/FFN/IFLWN,ICFFS(MPCON)
       COMMON/MFSINC/MFBSNC
@@ -389,6 +393,7 @@ C Tolerance for iteration of hydrogen flow matrix
       CHARACTER*29 ITEM(18)
       character outs*124
       integer NITMS,INO  ! max items and current menu item
+      integer J
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1875,6 +1880,7 @@ C prior to each simulation commencing.
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
+      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC7/ITCNST
 
       COMMON/C6/INDCFG
@@ -2234,7 +2240,9 @@ C Commence simulation.
 
 C If trace is active then write to the file the header 
 C information above to assist in identification.
-      IF(ITC.gt.0.and.ITU.ne.iuout)call mzinfo(ITU)
+      if(ITC.gt.0.and.ITU.ne.iuout)then
+        call mzinfo(ITU)
+      endif
     7 RETURN
       END
 
