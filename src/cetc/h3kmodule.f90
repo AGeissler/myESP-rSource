@@ -4219,7 +4219,8 @@ CONTAINS
       rvBldSPMatlPVPow%Description = 'Power produced by PV module'
       Call AddVariable(rvBldSPMatlPVPow)
 
-      rvBuiSpm%VariableName = 'bui/spm/*/*/*'
+!      rvBuiSpm%VariableName = 'bui/spm/*/*/*'
+      rvBuiSpm%VariableName = 'bui/spm/*'
       rvBuiSpm%MetaType = '*'
       rvBuiSpm%VariableType = '*'
       rvBuiSpm%Description = '*'
