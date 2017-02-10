@@ -4735,13 +4735,13 @@ C.......Pad zone index to 'XXX'
       endif ! use_zonenames
 
 C.....Switch for surface name output here
-cx      if (ReportBoolConfig ("use_surfacenames")) then
-cx        write (cSurf_Chars,'(A)')
-cx     &          sname(iZone,iSurface)(1:lnsname(icomp,isurf))
-cx      else
+      if (ReportBoolConfig ("use_surfacenames")) then
+        write (cSurf_Chars,'(A)')
+     &          sname(iZone,iSurf)(1:lnsname(iZone,iSurf))
+      else
 C.......Pad surface index to 'XXX'
-          write (cSurf_Chars,'(A,I3.3)') 'surface_',iSurf
-c      endif ! use_surfacenames
+        write (cSurf_Chars,'(A,I3.3)') 'surface_',iSurf
+      endif ! use_surfacenames
 
       if(inode.gt.9)then
          write(cNode_Chars,'(i2)')inode
