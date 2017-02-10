@@ -458,6 +458,7 @@ if [ "$platform" = "auto-detect" ]; then
       [ "$architecture" != "CYGWIN_NT-6.0" ] &&
       [ "$architecture" != "CYGWIN_NT-6.1" ] &&
       [ "$architecture" != "CYGWIN_NT-6.1-WOW64" ] &&
+      [ "$architecture" != "CYGWIN_NT-10.0" ] &&
       [ "$architecture" != "MINGW32_NT-5.1" ] &&
       [ "$architecture" != "MINGW32_NT-5.2" ] &&
       [ "$architecture" != "MINGW32_NT-6.1" ] &&
