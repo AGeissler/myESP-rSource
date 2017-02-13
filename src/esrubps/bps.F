@@ -1215,9 +1215,9 @@ C Delete any temporal scratch file if temporal data associated with
 C the model.
 
 C Debug write out unmet hours.
-        write(6,'(a)') 'Unmet hours for each zone at end of simulation.'
+cx        write(6,'(a)') 'Unmet hours for each zone at end of simulation.'
         do I=1,NCOMP
-          write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
+cx          write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
         enddo
         if(ITDFLG.ne.0)then
           CALL ERPFREE(IUTDF,ISTAT)

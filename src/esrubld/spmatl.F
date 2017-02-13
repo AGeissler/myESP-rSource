@@ -4743,18 +4743,21 @@ C.......Pad surface index to 'XXX'
         write (cSurf_Chars,'(A,I3.3)') 'surface_',iSurf
       endif ! use_surfacenames
 
-      if(inode.gt.9)then
-         write(cNode_Chars,'(i2)')inode
-      else
-         write(cNode_Chars,'(a,i1)') '0',inode
-      endif
+cx      if(inode.gt.9)then
+cx         write(cNode_Chars,'(i2)')inode
+cx      else
+cx         write(cNode_Chars,'(a,i1)') '0',inode
+cx      endif
+      write(cNode_Chars,'(i2.2)') inode
 
-      write(cZoneSurfNode,'(a)') cZone_Chars
+cx      write(cZoneSurfNode,'(a)') cZone_Chars
 
 cx << bug in the "detailed report" functions with more than one "*"???
 cx    ag@2016/07/10
-cx      write(cZoneSurfNode,'(a,a,a,a,a)') cZone_Chars,'/',
-cx     &                            cSurf_Chars,'/nd',cNode_Chars
+      write(cZoneSurfNode,'(a,a,a,a,a)') cZone_Chars,'/',
+     &                            cSurf_Chars,'/nd',cNode_Chars
+
+      write(*,*)cZoneSurfNode
 
       ndat=min0(8,ndatspm(ispmnod)) !- maximum of 8 entries possible
 
@@ -4763,18 +4766,17 @@ C Output available PCM layer data.
          Call AddToReport(rvBuiSpm%Identifier,
      &      dataspm(ispmnod,idat),
      &      spmlabel(ispmnod)(1:lnblnk(spmlabel(ispmnod))),
-     &      cZoneSurfNode(1:lnblnk(cZoneSurfNode)),
-C << the strings "strspm" have a leading '/' ...
-     &      strspm(ispmnod,idat)(2:lnblnk(strspm(ispmnod,idat))))
+     &      cZoneSurfNode(1:lnblnk(cZoneSurfNode)) // '/'
+     &      // strspm(ispmnod,idat)(2:lnblnk(strspm(ispmnod,idat))))
+C                                 << the strings "strspm" have a leading '/' ...
 
-         Call AddToReportDetails(rvBuiSpm%Identifier,
-     &      spmlabel(ispmnod)(1:lnblnk(spmlabel(ispmnod))),
-     &      cZoneSurfNode(1:lnblnk(cZoneSurfNode)),
-C << the strings "strspm" have a leading '/' ...
-     &      strspm(ispmnod,idat)(2:lnblnk(strspm(ispmnod,idat))),
-     &      'units',
-     &      unitspm(ispmnod,idat)(1:lnblnk(unitspm(ispmnod,idat))),
-     &      txtspm(ispmnod,idat)(1:lnblnk(txtspm(ispmnod,idat))))
+cx         Call AddToReportDetails(rvBuiSpm%Identifier,
+cx     &      spmlabel(ispmnod)(1:lnblnk(spmlabel(ispmnod))),
+cx     &      cZoneSurfNode(1:lnblnk(cZoneSurfNode)) // '/'
+cx     &      // strspm(ispmnod,idat)(2:lnblnk(strspm(ispmnod,idat))),
+cx     &      'units',
+cx     &      unitspm(ispmnod,idat)(1:lnblnk(unitspm(ispmnod,idat))),
+cx     &      txtspm(ispmnod,idat)(1:lnblnk(txtspm(ispmnod,idat))))
 
       enddo
 
