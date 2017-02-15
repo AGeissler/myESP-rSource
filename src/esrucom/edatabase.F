@@ -914,6 +914,18 @@ C materials db.
 C Increment thickness of MLC.
           THKMLC(mlcloop)=THKMLC(mlcloop)+DTHK(mlcloop,layloop)
 
+C Read logical value for "layer flipped?" if using v. 1.2 CFClayers.db
+C or higher (this is not entirely "clean", as actually the CFClayers.db
+C version has nothing to do with the mlc construction file version ...):
+c            if (closecfc2) then
+c              CALL EGETW(LOUTSTR,K,RSTR,'W','CFC layer flipped?',IER)
+c              if (RSTR(1:1).eq.'T') then
+c                CFC_layer_flipped(mlcloop,layloop)=.true.
+c              else
+c                CFC_layer_flipped(mlcloop,layloop)=.false.
+c              endif
+c            endif
+
 C Current MLDB also includes the name of the layer from the
 C CFClayers db.
 
@@ -2482,6 +2494,7 @@ C for the initial bit and add in documentation.
           lnda=lnblnk(LAYDESC(loop,loop2))
           write(outs,'(2A,i5,a,f10.4)') '*layer',' ',
      &      IPR(loop,loop2),' ',DTHK(loop,loop2)
+cx << insert code for CFC2 flipped layers write here??
           call SDELIM(outs,outsd,'C',IW)
           write(IFMUL,'(3a)') outsd(1:lnblnk(outsd)),tab,
      &      LAYDESC(loop,loop2)(1:lnda)
