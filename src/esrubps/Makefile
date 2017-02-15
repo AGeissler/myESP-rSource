@@ -16,6 +16,14 @@ PROG = bps$(EXE)
 DLL = bps".dll"
 default: $(PROG)
 
+architecture := $(shell uname -s)
+
+ifeq ($(architecture),Darwin)
+    SWTCH=
+else
+    SWTCH= -D
+endif
+
 .SUFFIXES: .o .F
 .F.o:
 	$(MFC) $(FFLAGS) -c -fcray-pointer $<
@@ -740,8 +748,8 @@ strip: $(PROG)
 	strip $(DLL)
 
 install: $(PROG)
-	install -D $(PROG) $(ESPBinDir)/$(PROG)
-	@if [ -f $(DLL) ]; then install -D $(DLL) $(ESPBinDir)/$(DLL); fi
+	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
+	@if [ -f $(DLL) ]; then install $(SWTCH) $(DLL) $(ESPBinDir)/$(DLL); fi
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(DLL) $(PROG).dll $(PREBPS_OBJECTS) $(PREBPSDLL_OBJECTS) $(MODULE_OBJECTS) $(BPS_OBJECTS) $(MODULES) \

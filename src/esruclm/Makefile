@@ -4,6 +4,14 @@ COMdir = $(SRCdir)/esrucom
 PROG = clm$(EXE)
 default: $(PROG)
 
+architecture := $(shell uname -s)
+
+ifeq ($(architecture),Darwin)
+    SWTCH=
+else
+    SWTCH= -D
+endif
+
 .SUFFIXES: .o .F
 .F.o:
 	$(MFC) $(FFLAGS) -c $<
@@ -46,7 +54,7 @@ strip: $(PROG)
 	strip $(PROG)
 
 install:
-	install -D $(PROG) $(ESPBinDir)/$(PROG)
+	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \

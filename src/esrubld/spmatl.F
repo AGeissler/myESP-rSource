@@ -4743,21 +4743,12 @@ C.......Pad surface index to 'XXX'
         write (cSurf_Chars,'(A,I3.3)') 'surface_',iSurf
       endif ! use_surfacenames
 
-cx      if(inode.gt.9)then
-cx         write(cNode_Chars,'(i2)')inode
-cx      else
-cx         write(cNode_Chars,'(a,i1)') '0',inode
-cx      endif
       write(cNode_Chars,'(i2.2)') inode
 
-cx      write(cZoneSurfNode,'(a)') cZone_Chars
-
-cx << bug in the "detailed report" functions with more than one "*"???
-cx    ag@2016/07/10
-      write(cZoneSurfNode,'(a,a,a,a,a)') cZone_Chars,'/',
-     &                            cSurf_Chars,'/nd',cNode_Chars
-
-      write(*,*)cZoneSurfNode
+      write(cZoneSurfNode,'(a,a,a,a,a)')
+     &    cZone_Chars(1:lnblnk(cZone_Chars)),'/',
+     &    cSurf_Chars(1:lnblnk(cSurf_Chars)),
+     &    '/nd',cNode_Chars(1:lnblnk(cNode_Chars))
 
       ndat=min0(8,ndatspm(ispmnod)) !- maximum of 8 entries possible
 
@@ -4768,15 +4759,19 @@ C Output available PCM layer data.
      &      spmlabel(ispmnod)(1:lnblnk(spmlabel(ispmnod))),
      &      cZoneSurfNode(1:lnblnk(cZoneSurfNode)) // '/'
      &      // strspm(ispmnod,idat)(2:lnblnk(strspm(ispmnod,idat))))
-C                                 << the strings "strspm" have a leading '/' ...
+C                                   ^ the strings "strspm" have a leading '/' ...
 
-cx         Call AddToReportDetails(rvBuiSpm%Identifier,
-cx     &      spmlabel(ispmnod)(1:lnblnk(spmlabel(ispmnod))),
-cx     &      cZoneSurfNode(1:lnblnk(cZoneSurfNode)) // '/'
-cx     &      // strspm(ispmnod,idat)(2:lnblnk(strspm(ispmnod,idat))),
-cx     &      'units',
-cx     &      unitspm(ispmnod,idat)(1:lnblnk(unitspm(ispmnod,idat))),
-cx     &      txtspm(ispmnod,idat)(1:lnblnk(txtspm(ispmnod,idat))))
+cx << bug in the "detailed report" functions with more than one "*"???
+cx    The "[]" information in out.dictionary is not written!
+cx    ag@2017/02/15
+
+         Call AddToReportDetails(rvBuiSpm%Identifier,
+     &      spmlabel(ispmnod)(1:lnblnk(spmlabel(ispmnod))),
+     &      cZoneSurfNode(1:lnblnk(cZoneSurfNode)) // '/'
+     &      // strspm(ispmnod,idat)(2:lnblnk(strspm(ispmnod,idat))),
+     &      'units',
+     &      unitspm(ispmnod,idat)(1:lnblnk(unitspm(ispmnod,idat))),
+     &      txtspm(ispmnod,idat)(1:lnblnk(txtspm(ispmnod,idat))))
 
       enddo
 

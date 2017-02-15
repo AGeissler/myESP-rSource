@@ -4,6 +4,14 @@ COMdir = $(SRCdir)/esrucom
 PROG = pdb$(EXE)
 default: $(PROG)
 
+architecture := $(shell uname -s)
+
+ifeq ($(architecture),Darwin)
+    SWTCH=
+else
+    SWTCH= -D
+endif
+
 .SUFFIXES: .o .F
 .F.o:
 	$(MFC) $(FFLAGS) -c $<
@@ -29,7 +37,7 @@ strip: $(PROG)
 	strip $(PROG)
 
 install: $(PROG)
-	install -D $(PROG) $(ESPBinDir)/$(PROG)
+	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \
