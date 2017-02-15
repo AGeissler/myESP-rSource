@@ -1,4 +1,9 @@
-prefix = /opt/esru
+architecture := $(shell uname -s)
+ifeq ($(architecture),Darwin)
+	SWTCH=
+else
+	SWTCH= -D
+endif
 SRCdir = `pwd`/..
 BLDdir = $(SRCdir)/esrubld
 CDBdir = $(SRCdir)/esrucdb
@@ -9,14 +14,6 @@ BLDdir = $(SRCdir)/esrubld
 CETCdir = $(SRCdir)/cetc
 PROG = b2e$(EXE)
 default: $(PROG)
-
-architecture := $(shell uname -s)
-
-ifeq ($(architecture),Darwin)
-    SWTCH=
-else
-    SWTCH= -D
-endif
 
 .SUFFIXES: .o .F
 .F.o:
@@ -116,10 +113,10 @@ tdfile.F:
 	rm -f tdfile.F
 	ln -s $(COMdir)/tdfile.F .
 
-strip: $(PROG)
+strip:
 	strip $(PROG)
 
-install: $(PROG)
+install:
 	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
 
 clean:

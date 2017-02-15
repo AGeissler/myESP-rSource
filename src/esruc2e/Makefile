@@ -1,15 +1,12 @@
-prefix = /opt/esru
+architecture := $(shell uname -s)
+ifeq ($(architecture),Darwin)
+	SWTCH=
+else
+	SWTCH= -D
+endif
 SRCdir= `pwd`/..
 PROG = c2e$(EXE)
 default: $(PROG)
-
-architecture := $(shell uname -s)
-
-ifeq ($(architecture),Darwin)
-    SWTCH=
-else
-    SWTCH= -D
-endif
 
 .SUFFIXES: .o .F
 .F.o:
@@ -20,10 +17,10 @@ OBJECTS = prcoef.o suple.o suprf.o supwi.o sup2.o wind.o
 $(PROG) : $(OBJECTS)
 	$(MFC) $(FFLAGS) -o $(PROG) $(OBJECTS)
 
-strip: $(PROG)
+strip:
 	strip $(PROG)
 
-install: $(PROG)
+install:
 	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
 
 clean:

@@ -1,4 +1,9 @@
-prefix = /opt/esru
+architecture := $(shell uname -s)
+ifeq ($(architecture),Darwin)
+	SWTCH=
+else
+	SWTCH= -D
+endif
 SRCdir = `pwd`/..
 COMdir = $(SRCdir)/esrucom
 PROG = clm$(EXE)
@@ -50,7 +55,7 @@ startup.F:
 	rm -f startup.F
 	ln -s $(COMdir)/startup.F .
 
-strip: $(PROG)
+strip:
 	strip $(PROG)
 
 install:

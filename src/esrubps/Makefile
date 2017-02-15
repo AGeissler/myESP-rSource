@@ -1,4 +1,9 @@
-prefix = /opt/esru
+architecture := $(shell uname -s)
+ifeq ($(architecture),Darwin)
+	SWTCH=
+else
+	SWTCH= -D
+endif
 SRCdir = `pwd`/..
 BLDdir = $(SRCdir)/esrubld
 COMdir = $(SRCdir)/esrucom
@@ -15,14 +20,6 @@ LIBdir = $(SRCdir)/lib
 PROG = bps$(EXE)
 DLL = bps".dll"
 default: $(PROG)
-
-architecture := $(shell uname -s)
-
-ifeq ($(architecture),Darwin)
-    SWTCH=
-else
-    SWTCH= -D
-endif
 
 .SUFFIXES: .o .F
 .F.o:
@@ -743,11 +740,11 @@ ESPrTrnsysData.F:
 	rm -f ESPrTrnsysData.F
 	ln -s $(COSIMdir)/ESPrTrnsysData.F .
 
-strip: $(PROG)
+strip:
 	strip $(PROG)
 	strip $(DLL)
 
-install: $(PROG)
+install:
 	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
 	@if [ -f $(DLL) ]; then install $(SWTCH) $(DLL) $(ESPBinDir)/$(DLL); fi
 

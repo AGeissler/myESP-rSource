@@ -1,4 +1,9 @@
-prefix = /opt/esru
+architecture := $(shell uname -s)
+ifeq ($(architecture),Darwin)
+	SWTCH=
+else
+	SWTCH= -D
+endif
 SRCdir = `pwd`/..
 COMdir = $(SRCdir)/esrucom
 MFSdir = $(SRCdir)/esrumfs
@@ -6,14 +11,6 @@ LIBdir = $(SRCdir)/lib
 CETCdir = $(SRCdir)/cetc
 PROG = enet$(EXE)
 default: $(PROG)
-
-architecture := $(shell uname -s)
-
-ifeq ($(architecture),Darwin)
-    SWTCH=
-else
-    SWTCH= -D
-endif
 
 .SUFFIXES: .o .F .c
 .F.o:
@@ -69,10 +66,10 @@ startup.F:
 	rm -f startup.F
 	ln -s $(COMdir)/startup.F .
 
-strip: $(PROG)
+strip:
 	strip $(PROG)
 
-install: $(PROG)
+install:
 	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
 
 clean:

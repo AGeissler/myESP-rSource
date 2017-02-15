@@ -1,4 +1,9 @@
-prefix = /opt/esru
+architecture := $(shell uname -s)
+ifeq ($(architecture),Darwin)
+	SWTCH=
+else
+	SWTCH= -D
+endif
 SRCdir = `pwd`/..
 BLDdir = $(SRCdir)/esrubld
 COMdir = $(SRCdir)/esrucom
@@ -12,14 +17,6 @@ CETCdir = $(SRCdir)/cetc
 INCLdir = $(SRCdir)/include
 PROG = prj$(EXE)
 default: $(PROG)
-
-architecture := $(shell uname -s)
-
-ifeq ($(architecture),Darwin)
-    SWTCH=
-else
-    SWTCH= -D
-endif
 
 .SUFFIXES: .o .F
 .F.o:
@@ -278,10 +275,10 @@ qrun.F:
 	rm -f qrun.F
 	ln -s $(COMdir)/qrun.F
 
-strip: $(PROG)
+strip:
 	strip $(PROG)
 
-install: $(PROG)
+install:
 	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
 
 clean:
