@@ -1,4 +1,9 @@
-prefix = /opt/esru
+architecture := $(shell uname -s)
+ifeq ($(architecture),Darwin)
+	SWTCH=
+else
+	SWTCH= -D
+endif
 SRCdir = `pwd`/..
 LIBdir = $(SRCdir)/lib
 COMdir = $(SRCdir)/esrucom
@@ -39,11 +44,11 @@ redir_console_output.o:
 	ln -s $(LIBdir)/redir_console_output.c 
 	$(MCC) $(LD_FLAGS) $(CFLAGS) $(GTKFLAGS) -c redir_console_output.c .
 
-strip: $(PROG)
+strip:
 	strip $(PROG)
 
-install: $(PROG)
-	install -D $(PROG) $(ESPBinDir)/$(PROG)
+install:
+	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(OBJECTS) \
