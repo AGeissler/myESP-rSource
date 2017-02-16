@@ -4952,7 +4952,7 @@ C Phase change material.
 
 C PCM layer pointers.
       if(icomp.ne.ispmloc(ispmnod,1))then
-         write(outs,*)'SPMAT53 fatal error: incorrect zone assignment!'
+         write(outs,*)'SPMAT57 fatal error: incorrect zone assignment!'
          call edisp(iuout,outs)
          stop
       endif
