@@ -760,24 +760,6 @@ c are non-vertical.
       TWEST=0.0
       TEAST=0.0
       TAVE=0.0
-
-C << probably a block of code needs to be inserted here that checks
-C    CFC constructions for retracted external blinds ... there does
-C    not seem to be any code in this routine that bears out the description
-C    claim that "opaque" constructions only are considered ... !!?? >>
-
-C    Set default layer index to 1 (external surface)
-!     L_idx=1
-
-C....If external shade is retracted in CFC, set TFC layer index to
-C    outermost glass layer
-!     do xx (loop through constructions and find CFC if any )
-!       if(i_shd(icomp,icfctp).eq.0)then
-!         L_idx=??
-!       else
-!       endif
-!   xx continue
-
       DO 30 K=1,NCOMP
       NSUR=NCONST(K)
         DO 40 L=1,NSUR
