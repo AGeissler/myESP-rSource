@@ -4598,20 +4598,18 @@ C range (k=1, case 3).
                storeThisTS=LatentHeat(1,TnS,TnS1)
                storedLH=storedLH-storeThisTS
                AppCon=(1.0E0-storedLH/Lges)*consol+
-     &                storedLH/Lges*conliq
+     &                                        storedLH/Lges*conliq
                AppSHC=shcliq+storeThisTS/(TnS-TnS1)  !- to be verified
                Debug=3
             elseif(TnS.gt.tmelt.and.TnS1.gt.tsoli)then
 
-C Rest of solid PCM is completely melted and also heated as
+C Remainder of solid PCM is completely melted and also heated as
 C liquid (case 4).
-cx << after timestep, appcon=conliq and appshc=shcliq, no? 17/2/22
                storeThisTS=LatentHeat(1,TnS,tsoli)
                storedLH=storedLH-storeThisTS
                if(storedLH.gt.Lges)storedLH=Lges
-               AppCon=(1.0E0-storedLH/Lges)*consol+
-     &                storedLH/Lges*conliq
-               AppSHC=shcliq+storeThisTS/(TnS-tsoli)  !- to be verified
+               AppCon=conliq
+               AppSHC=shcliq
 
 C Set new k.
                k=0
@@ -4619,7 +4617,7 @@ C Set new k.
             endif     !- temperature bracketing for k = 1
          else         !- k=0
 
-C PCM behaves according to sub-cooling properties.
+C PCM is/was liquid and thus behaves according to sub-cooling properties.
             if(TnS.gt.tsoli2)then
 
 C PCM is completely liquified and heated further (case 5).
@@ -4633,11 +4631,11 @@ C PCM is sub-cooled partial liquid and is completely
 C (re-)melted (case 6).
                storeThisTS=LatentHeat(0,TnS,tsoli2)
                storedLH=storedLH-storeThisTS
-          if(storedLH.gt.Lges)storedLH=Lges
-               AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
-               AppSHC=shcliq+storeThisTS/(TnS-tsoli2)   !- to be verified
+               if(storedLH.gt.Lges)storedLH=Lges
+               AppCon=conliq
+               AppSHC=shcliq
                Debug=6
-            elseif(TnS1.le.tsoli2)then
+            else ! if(TnS1.le.tsoli2)then
 
 C PCM is sub-cooled partial liquid and not completely
 C melted (k=0, case 7).
@@ -4647,7 +4645,8 @@ C melted (k=0, case 7).
                AppSHC=shcliq+storeThisTS/(TnS-TnS1)     !- to be verified
                Debug=7
             endif         !- temperature bracketing for k=0
-         endif
+         endif ! k = 0 for temperature rise
+
       elseif(TnS.gt.TnS1)then
 
 C PCM temperature decrease.
