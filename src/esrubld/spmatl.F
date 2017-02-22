@@ -4534,6 +4534,7 @@ C Local variables.
       real tmelt2       !- sub-cooling melting temperature (degC)
       real storeThisTS  !- latent heat stored in PCM (J/kg)
       real LatentHeat
+      logical bNoTempDiff
 
 C Set up sub-cooling temperatures.
       tsoli2=tsoli-sub
@@ -4570,7 +4571,15 @@ C *****************
 
 cx    use eclose logic here to "dampen" calcs? ... do what if TnS approx. equal TnS1?
 cx    storedLH += time step dependant?? 17/2/22
-      if(TnS.lt.TnS1)then
+      call eclose(TnS,TnS1,1.0E-04,bNoTempDiff)
+
+      if (bNoTempDiff) then
+         !- what happens here (TnS = TnS1)?
+         if(AppCon.le.0.0E+00) AppCon=consol
+         if(AppSHC.le.0.0E+00) AppSHC=shcsol
+cx         Debug=9
+
+      elseif(TnS.lt.TnS1)then
 
 C PCM temperature increase.
          if(k.eq.1)then
@@ -4718,12 +4727,7 @@ C Set new k.
                Debug=8
             endif      !- temperature bracketing for k=0
          endif
-      else
-         !- what happens here (TnS = TnS1)?
-         if(AppCon.le.0.0E+00) AppCon=consol
-         if(AppSHC.le.0.0E+00) AppSHC=shcsol
-         Debug=9
-      endif
+      endif ! heating / cooling check
 
       return
       end
