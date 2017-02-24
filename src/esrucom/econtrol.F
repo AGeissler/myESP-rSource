@@ -3926,7 +3926,7 @@ C For zone, plant, flow and global controls list out the verbose
 C decoding of the control law attributes.  Note that edisp248 is
 C able to work with strings longer than 248 characters.
           if(icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.icfoc.eq.3.or.
-     &    icfoc.eq.5)then
+     &      icfoc.eq.5.or.icfoc.eq.6)then
             call edisp248(itru,outs400,90)
           endif
         elseif(NITEMS.eq.0)then
