@@ -1755,6 +1755,7 @@ C that have been referenced and if very verbose (3) list all controls.
             call LSTCNTL(itu,0,0)
           endif
         endif
+
         if(NCL.gt.0)then
           call edisp(itu,' ')
           WRITE(outs,'(a,I2,a)')' Plant control includes ',
@@ -1767,6 +1768,7 @@ C that have been referenced and if very verbose (3) list all controls.
             enddo
           endif
         endif
+
         if(NCC.gt.0)then
           call edisp(itu,' ')
           WRITE(outs,'(a,I2,a)')' Flow control includes ',
@@ -1779,6 +1781,20 @@ C that have been referenced and if very verbose (3) list all controls.
  246        continue
           endif
         endif
+
+        if(nCFCctlloops.gt.0)then
+          call edisp(itu,' ')
+          WRITE(outs,'(a,I2,a)')' CFC control includes ',
+     &      nCFCctlloops,' functions.'
+          call edisp(itu,outs)
+          call edisp248(itu,CFCctldoc,80)
+          if(controlinfo.ge.2)then
+            do 247 ii=1,nCFCctlloops
+              call LSTCNTL(itu,6,ii)
+ 247        continue
+          endif
+        endif
+
         if(NGF.gt.0)then
           call edisp(itu,' ')
           WRITE(outs,'(a,I2,a)')' Global control includes ',
@@ -1881,9 +1897,7 @@ C Jump if no zones.
 
 C At this point CFC and CFC2 are not counted as transparent.
             if(SSMLCN(icc)(1:4).eq.'UNKN')attribok(IVALS(IZ))=.false.
-            if(SSOTF(icc)(1:4).NE.'OPAQ'.AND.
-     &         SSOTF(icc)(1:4).NE.'CFC '.AND.
-     &         SSOTF(icc)(1:4).NE.'CFC2')then
+            if(SSOTF(icc)(1:4).NE.'OPAQ') then
               TRN=TRN+SSNA(icc)
             else
               OPQ=OPQ+SSNA(icc)
