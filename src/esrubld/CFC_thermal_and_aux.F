@@ -2724,7 +2724,7 @@ C**************** CFC Convection/LW exchange*************************
           do 15 l=1,ne
 
             if((icfcltp(icomp,icfctp,l).lt.2.and.l.lt.ne).or.
-     &         (icfcltp(icomp,icfctp,l).eq.2.and.l.gt.1.and.
+     &         (icfcltp(icomp,icfctp,l).ge.2.and.l.gt.1.and.
      &          l.lt.ne))then
 
               write(98,9999)l,tfc(icomp,i,(l*2)-1),tfc(icomp,i,l*2),
@@ -2735,7 +2735,7 @@ C**************** CFC Convection/LW exchange*************************
      &          qcfc_cv(icomp,i,l*2,2),qcfc_cv(icomp,i,(l*2)+1,2)
 
       !outdoor blind
-            elseif(icfcltp(icomp,icfctp,l).eq.2.and.l.eq.1)then
+            elseif(icfcltp(icomp,icfctp,l).ge.2.and.l.eq.1)then
 
               write(98,9999)l,tfc(icomp,i,(l*2)-1),tfc(icomp,i,l*2),
      &          tfc(icomp,i,(l*2)+1),
@@ -3331,7 +3331,7 @@ C Calculates direct and diffuse components of solar radiation incident
 C on an external surface (including shading from obstructions).
 C
 C ********************************************************************
-      subroutine get_incident_solrad(icomp,isur,solrad_dir, solrad_diff)
+      subroutine get_incident_solrad(icomp,isur,solrad_dir,solrad_diff)
 #include "building.h"    
       
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
