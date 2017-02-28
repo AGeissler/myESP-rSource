@@ -1411,6 +1411,7 @@ C ileghope is -1 then return what was found as an index match not possible.
           do 43 imt=1,matdbitems
             if(testname(1:ltnam).eq.matname(imt)(1:ltnam))then
               if(matlegindex(imt).eq.ileghope)then
+cx                matarrayindex=ileghope  ! ?? (seems to work for CFC ...)
                 matarrayindex=imt
                 return
               else
@@ -1545,13 +1546,12 @@ C the cfcname matches.
           write(testname,'(a)') PNAM(1:ipos-1)
           ltnam=lnblnk(testname)
 C Find a matching cfcname, if the CFClayers db index associated with this item
-C matches ileghope then our search is complete.  If it does not match
-C ileghope then there could be duplicate names to check further. If
-C ileghope is -1 then return what was found as an index match not possible.
+C matches cfclikelyidx then our search is complete.  If it does not match
+C cfclikelyidx then there could be duplicate names to check further.
           do 43 imt=1,cfcdbitems
             if(testname(1:ltnam).eq.cfcname(imt)(1:ltnam))then
-              if(imt.eq.cfclikelyidx)then
-                cfcarrayindex=imt
+              if(cfcitmindex(imt).eq.cfclikelyidx)then
+                cfcarrayindex=cfclikelyidx
                 return
               else
                 continue   ! keep looking for a text and index match
@@ -1573,7 +1573,7 @@ C check first the lenght of strings, if the stringsa re not equal the
 C CFC layer is different
           if(lnblnk(cfcname(imt)).eq.lnam) then        
              if(PNAM(1:lnam).eq.cfcname(imt)(1:lnam))then
-               cfcarrayindex=imt
+               cfcarrayindex=cfcitmindex(imt)
                return
              endif
           endif
@@ -1582,7 +1582,7 @@ C CFC layer is different
 C If we got to this point also check for a matching cfcdoc string.
         do 45 imt=1,cfcdbitems
           if(PNAM(1:lnam).eq.cfcdoc(imt)(1:lnam))then
-            cfcarrayindex=imt
+            cfcarrayindex=cfcitmindex(imt)
             return
           endif
   45    continue
@@ -1591,7 +1591,7 @@ C If we got to this point also check for a matching cfcdoc string.
 C There might have been a ' : ' but a text mismatch for cfcname so check cfcdoc.
       do 46 imt=1,cfcdbitems
         if(PNAM(1:lnam).eq.cfcdoc(imt)(1:lnam))then
-          cfcarrayindex=imt
+          cfcarrayindex=cfcitmindex(imt)
           return
         endif
   46  continue
