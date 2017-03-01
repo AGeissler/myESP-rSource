@@ -3836,7 +3836,7 @@ C Pass time step ground reflectivity for XML output.
 
 C Pass snow depth to XML output.
       call AddToReport(
-     &      rvClimateSnownDepth%Identifier,
+     &      rvClimateSnowDepth%Identifier,
      &      SNDEP)
 
 C-----------------------------------------------------------------------

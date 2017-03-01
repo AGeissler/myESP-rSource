@@ -168,7 +168,7 @@ MODULE h3kmodule
          rvTFuelCst, rvTFuelCstElec, rvTFuelCstNatGas, rvTFuelCstOil, rvTFuelCstProp, rvTEnergyQty
 
    !Used by Solar.F
-   Type(ReportVariable) :: rvBuildingGroundReflectivity,rvClimateSnownDepth
+   Type(ReportVariable) :: rvBuildingGroundReflectivity,rvClimateSnowDepth
 
    !Used by complex_fenestration.F
    Type(ReportVariable) :: rvCFCazimuth,rvCFCelevation,rvSolarIncidentDirect,rvSolarIncidentDiff, &
@@ -1709,89 +1709,89 @@ CONTAINS
       Call AddVariable(rvTFuelCstPellets)
 
       !Used by Solar.F
-      rvBuildingGroundReflectivity%VariableName = 'Building/Ground_Reflectivity'
+      rvBuildingGroundReflectivity%VariableName = 'building/ground_reflectivity'
       rvBuildingGroundReflectivity%MetaType = 'units'
-      rvBuildingGroundReflectivity%VariableType = 'dimensionless'
+      rvBuildingGroundReflectivity%VariableType = '(-)'
       rvBuildingGroundReflectivity%Description = 'Reflectivity of the ground for solar radiation'
       Call AddVariable(rvBuildingGroundReflectivity)
 
-      rvClimateSnownDepth%VariableName = 'Climate/SnowDepth'
-      rvClimateSnownDepth%MetaType = 'units'
-      rvClimateSnownDepth%VariableType = 'cm'
-      rvClimateSnownDepth%Description = 'Depth of the snow on the ground'
-      Call AddVariable(rvClimateSnownDepth)
+      rvClimateSnowDepth%VariableName = 'climate/snow_depth'
+      rvClimateSnowDepth%MetaType = 'units'
+      rvClimateSnowDepth%VariableType = '(cm)'
+      rvClimateSnowDepth%Description = 'Depth of the snow on the ground'
+      Call AddVariable(rvClimateSnowDepth)
 
       rvSolarIncidentDirect%VariableName = 'building/*/*/SolIncDir'
       rvSolarIncidentDirect%MetaType = 'units'
-      rvSolarIncidentDirect%VariableType = 'W/m2'
+      rvSolarIncidentDirect%VariableType = '(W/m2)'
       rvSolarIncidentDirect%Description = 'Solar incident direct radiation '
       Call AddVariable(rvSolarIncidentDirect)
 
       rvSolarIncidentDiff%VariableName = 'building/*/*/SolIncDiff'
       rvSolarIncidentDiff%MetaType = 'units'
-      rvSolarIncidentDiff%VariableType = 'W/m2'
+      rvSolarIncidentDiff%VariableType = '(W/m2)'
       rvSolarIncidentDiff%Description = 'Solar incident diffuse radiation '
       Call AddVariable(rvSolarIncidentDiff)
 
 ! ExShad and ExShadF could be moved from solar.f to spmatl.f ...
       rvShadingFractionDirect%VariableName = 'building/*/*/ExShad'
       rvShadingFractionDirect%MetaType = 'units'
-      rvShadingFractionDirect%VariableType = '-'
+      rvShadingFractionDirect%VariableType = '(-)'
       rvShadingFractionDirect%Description = 'Direct shaded portion of surface expressed as factor '
       Call AddVariable(rvShadingFractionDirect)
 
       rvShadingFractionDiffuse%VariableName = 'building/*/*/ExShadF'
       rvShadingFractionDiffuse%MetaType = 'units'
-      rvShadingFractionDiffuse%VariableType = '-'
+      rvShadingFractionDiffuse%VariableType = '(-)'
       rvShadingFractionDiffuse%Description = 'Diffuse shaded portion of surface expressed as factor '
       Call AddVariable(rvShadingFractionDiffuse)
 
       rvSolarIncidentDirectShaded%VariableName = 'building/*/*/SolIncDirShad'
       rvSolarIncidentDirectShaded%MetaType = 'units'
-      rvSolarIncidentDirectShaded%VariableType = 'W/m2'
+      rvSolarIncidentDirectShaded%VariableType = '(W/m2)'
       rvSolarIncidentDirectShaded%Description = 'Solar incident direct radiation w/ shading '
       Call AddVariable(rvSolarIncidentDirectShaded)
 
       rvSolarIncidentDiffShaded%VariableName = 'building/*/*/SolIncDiffShad'
       rvSolarIncidentDiffShaded%MetaType = 'units'
-      rvSolarIncidentDiffShaded%VariableType = 'W/m2'
+      rvSolarIncidentDiffShaded%VariableType = '(W/m2)'
       rvSolarIncidentDiffShaded%Description = 'Solar incident diffuse radiation w/ shading '
       Call AddVariable(rvSolarIncidentDiffShaded)
 
       rvSolarShadeFrac%VariableName = 'building/*/*/SolShadFrac'
       rvSolarShadeFrac%MetaType = 'units'
-      rvSolarShadeFrac%VariableType = 'm2'
+      rvSolarShadeFrac%VariableType = '(m2)'
       rvSolarShadeFrac%Description = 'Fractional solar area = area*Inc_shaded/Inc_not-shaded '
       Call AddVariable(rvSolarShadeFrac)
 
       ! Used by complex fenestration (CFC)
       rvCFCazimuth%VariableName = 'CFC/*/*/azimuth'
       rvCFCazimuth%MetaType = 'units'
-      rvCFCazimuth%VariableType = 'degrees'
+      rvCFCazimuth%VariableType = '(deg)'
       rvCFCazimuth%Description = 'Solar wall azimuth'
       Call AddVariable(rvCFCazimuth)
 
       rvCFCelevation%VariableName = 'CFC/*/*/elevation'
       rvCFCelevation%MetaType = 'units'
-      rvCFCelevation%VariableType = 'degrees'
+      rvCFCelevation%VariableType = '(deg)'
       rvCFCelevation%Description = 'Solar elevation '
       Call AddVariable(rvCFCelevation)
 
       rvCFCtranDir%VariableName = 'CFC/*/*/CFCtranDir'
       rvCFCtranDir%MetaType = 'units'
-      rvCFCtranDir%VariableType = 'W/m2'
+      rvCFCtranDir%VariableType = '(W/m2)'
       rvCFCtranDir%Description = 'CFC direct transmitted '
       Call AddVariable(rvCFCtranDir)
 
       rvCFCtranDiff%VariableName = 'CFC/*/*/CFCtranDiff'
       rvCFCtranDiff%MetaType = 'units'
-      rvCFCtranDiff%VariableType = 'W/m2'
+      rvCFCtranDiff%VariableType = '(W/m2)'
       rvCFCtranDiff%Description = 'CFC diffuse transmitted '
       Call AddVariable(rvCFCtranDiff)
 
       rvCFCvertprofileangle%VariableName = 'CFC/*/*/CFCvertprofileangle'
       rvCFCvertprofileangle%MetaType = 'units'
-      rvCFCvertprofileangle%VariableType = 'deg'
+      rvCFCvertprofileangle%VariableType = '(deg)'
       rvCFCvertprofileangle%Description = 'CFC vertical profile angle '
       Call AddVariable(rvCFCvertprofileangle)
 
