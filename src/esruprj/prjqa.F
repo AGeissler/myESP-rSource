@@ -1131,6 +1131,7 @@ C Site information.
      &    ' in simulations is ',IYEAR,' and weekends occur on ', 
      &     wkd1(1:lnblnk(wkd1)),' and ',wkd2(1:lnblnk(wkd2)),'.'
         call edisp248(itu,outs248,80)
+        call edisp(itu,' ')
         if(siteexposureindex.eq.1)then
           WRITE(outs,'(a)')'site exposure is typical city centre'
         elseif(siteexposureindex.eq.2)then
@@ -1150,7 +1151,8 @@ C Site information.
   53      FORMAT('site exposure is sky=',F4.2,' ground=',F4.2,
      &      ' other buildings=',F4.2)
         endif
-cx << cater for groundreflmodel here?? (groundreflmodel.eq.1, 2 or 3)
+
+C Cater for groundreflmodel here (groundreflmodel.eq.1, 2 or 3)
         if (groundreflmodel.eq.1) then
           write(outs248,'(3a,f4.2,a)') 'The ',outs(1:lnblnk(outs)),
      &      ' and the ground reflectance is ',groundrefl,'.'
@@ -1159,16 +1161,48 @@ cx << cater for groundreflmodel here?? (groundreflmodel.eq.1, 2 or 3)
           write(outs248,'(3a)') 'The ',outs(1:lnblnk(outs)),
      &      '. The ground reflectance is defined with monthly values:'
           call edisp248(itu,outs248,80)
-cx         << write monthly values ...
+C         Write monthly values ...
+          itrunc=1
+          ipos=1
+          do while (itrunc.ne.0)
+            call arlist(ipos,12,groundreflmonth,12,'S',outs248,
+     &                                                  loutln,itrunc)
+            call edisp248(itu,outs248,100)
+            ipos=itrunc+1
+          end do
+
+          call edisp(itu,' ')
+          write(outs248,'(a)')
+     &      'Snow coverage is defined as days per month with snow:'
+C         Write monthly values ...
+          itrunc=1
+          ipos=1
+          do while (itrunc.ne.0)
+            call ailist(ipos,12,dayswithsnow,12,'S',outs248,
+     &                                                  loutln,itrunc)
+            call edisp248(itu,outs248,100)
+            ipos=itrunc+1
+          end do
 
         else ! groundreflmodel.eq.3
           write(outs248,'(3a)') 'The ',outs(1:lnblnk(outs)),
      &      '. The ground reflectance is defined with monthly values:'
           call edisp248(itu,outs248,80)
-cx         << write monthly values
-c          write(outs248,'(a)')
-c     &      'Snow coverage is defined via the data file '
-c          call edisp248(itu,outs248,80)
+C         Write monthly values
+          itrunc=1
+          ipos=1
+          do while (itrunc.ne.0)
+            call arlist(ipos,12,groundreflmonth,12,'S',outs248,
+     &                                                  loutln,itrunc)
+            call edisp248(itu,outs248,110)
+            ipos=itrunc+1
+          end do
+
+          call edisp(itu,' ')
+          write(outs248,'(3a)')
+     &      'Hourly snow coverage is defined via the data file ',
+     &           SNFNAM(1:lnblnk(SNFNAM)),'.'
+          call edisp248(itu,outs248,80)
 
         endif
         call edisp(itu,' ')
