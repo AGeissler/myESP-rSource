@@ -1150,9 +1150,27 @@ C Site information.
   53      FORMAT('site exposure is sky=',F4.2,' ground=',F4.2,
      &      ' other buildings=',F4.2)
         endif
-        write(outs248,'(3a,f4.2,a)') 'The ',outs(1:lnblnk(outs)),
-     &    ' and the ground reflectance is ',groundrefl,'.'
-        call edisp248(itu,outs248,80)
+cx << cater for groundreflmodel here?? (groundreflmodel.eq.1, 2 or 3)
+        if (groundreflmodel.eq.1) then
+          write(outs248,'(3a,f4.2,a)') 'The ',outs(1:lnblnk(outs)),
+     &      ' and the ground reflectance is ',groundrefl,'.'
+          call edisp248(itu,outs248,80)
+        elseif (groundreflmodel.eq.2) then
+          write(outs248,'(3a)') 'The ',outs(1:lnblnk(outs)),
+     &      '. The ground reflectance is defined with monthly values:'
+          call edisp248(itu,outs248,80)
+cx         << write monthly values ...
+
+        else ! groundreflmodel.eq.3
+          write(outs248,'(3a)') 'The ',outs(1:lnblnk(outs)),
+     &      '. The ground reflectance is defined with monthly values:'
+          call edisp248(itu,outs248,80)
+cx         << write monthly values
+c          write(outs248,'(a)')
+c     &      'Snow coverage is defined via the data file '
+c          call edisp248(itu,outs248,80)
+
+        endif
         call edisp(itu,' ')
 
 C Print address for building and client. If there is a UK NCM
