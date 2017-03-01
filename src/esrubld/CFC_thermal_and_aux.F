@@ -799,7 +799,6 @@ C Determine longwave exchange between each CFC layer and external
 C surroundings. The mean radiant temperature (teqv) consists
 C of buildings, sky and ground components. 
       IF(iDiaOut.eq.1)then
-C       External blind exists << ... other cases ?? What if retracted ?? >>
         do 180 j=1,nCFCPart,2
           qenv(j)=
      &    (epsf(j)*sigma*(tnd(j*2)**4)*FSfenv(icomp,isurf,j)-
@@ -1517,8 +1516,6 @@ C...............Double the external convective heat transfer coefficient (calcul
 C...............to account for front and back surface of the outdoor blind layer.
                 if(i_shd(icomp,icfctp).eq.0)then
                   ! if shade is retracted, decouple it from thermal zone
-                  ! ??? what value is used for hcof in other parts of the
-                  !     code when blind retracted ???
                   hcof(icomp,isur)=0.001
                 else  
                   hcof(icomp,isur)=2.*hcof(icomp,isur)
