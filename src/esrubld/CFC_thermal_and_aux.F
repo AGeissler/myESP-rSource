@@ -2911,6 +2911,9 @@ C Use geometry.h for zname
       common/trc/itrc
       integer itrc
 
+      common/dllerr/dllsubr,dllmesg
+      character dllsubr*12,dllmesg*124
+
       CHARACTER outs*124
       
 C Working variables to temporarily store slat angle for daytype and hour
@@ -3092,9 +3095,22 @@ C           Data in temporal database (on/off state and slat angle).
               ischedule_shdstateONorOFF = VAL(ISD)
               schedule_slat_angle       = VAL(ISD+3)
 
-            elseif
-C           Error ... !!
-
+            else
+C            Error ... !!
+             write(outs,'(a,a,i2,a,i2,a)')
+     &       'CFC_control: ICFCCTL does not point to a valid temporal ',
+     &       'item for zone',iact2,', CFC type',iact3,'.'
+             if(dll)then
+               dllsubr='CFC_control'
+               dllmesg=outs
+               ier=2
+               return
+             else
+               call edisp(iuout,outs)
+               call epwait
+               call epagend
+               STOP
+             endif
             endif
 
           endif ! check iact1
