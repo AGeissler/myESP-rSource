@@ -2908,13 +2908,17 @@ C Use geometry.h for zname
       integer IE
       real ATP,ATF,ARP,ARF
 
+      common/trc/itrc
+      integer itrc
+
       CHARACTER outs*124
       
 C Working variables to temporarily store slat angle for daytype and hour
 C      real vb_phiX
 C      dimension vb_phiX(mcom,mcfc,mdty,MT)
 C      real slat_angleX
- 
+
+      integer IER,ISD         ! used in context with tdf ...
       integer i,j,k           ! do loop indices
       integer ictlfun         ! control function index
       integer nctldaytypes    ! number of control day types
@@ -2943,6 +2947,8 @@ C      real slat_angleX
       character msgout*124
       character*12 cZone_Chars
       character*2  cCFC_Chars
+
+      DIMENSION VAL(MBITS+2)
 
 C Prior to initiating control logic, set the default slat angle and 
 C shading state for the next time step in all zones and all CFC types
@@ -3075,18 +3081,23 @@ C Schedule
             schedule_slat_angle = 
      &            CFCmiscdata(ictlfun,idaytype,iperiod,3)
 
-C Temporal data file (tdf)
           elseif(iact1.eq.9)then
+C Temporal data file (tdf)
 
-            if(ICFCCTL(icomp).ne.0)then
+            if(ICFCCTL(iact2).ne.0)then
 C           Data in temporal database (on/off state and slat angle).
+
+              CALL RCTDFB(itrc,btimef,VAL,ISD,iact2,IER)
+
+              ischedule_shdstateONorOFF = VAL(ISD)
+              schedule_slat_angle       = VAL(ISD+3)
 
             elseif
 C           Error ... !!
 
             endif
-          endif ! check iact1
 
+          endif ! check iact1
 
 C -------------------------------------------------------------------
 C Set shade ON/OFF state or slat angle based on sensor and control
@@ -3234,6 +3245,10 @@ C Perform actual control of shade ON/OFF and slat angle here
             endif
         
           ELSEIF(ictype.eq.7)then                   ! no sensor, schedule only
+            i_shd(iact2,iact3) = ischedule_shdstateONorOFF
+            vb_phiNew(iact2,iact3) = schedule_slat_angle
+
+          ELSEIF(ictype.eq.9)then                   ! no sensor, tdf
             i_shd(iact2,iact3) = ischedule_shdstateONorOFF
             vb_phiNew(iact2,iact3) = schedule_slat_angle
           ENDIF    
