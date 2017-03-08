@@ -2881,6 +2881,7 @@ C Use geometry.h for zname
 #include "geometry.h"
 #include "control.h"
 #include "CFC_common.h"
+#include "tdf2.h"
       COMMON/OUTIN/IUOUT,IUIN
       integer iuout,iuin
 
@@ -3049,7 +3050,8 @@ C -------------------------------------------------------------------
 C Determine actuator type and copy control data to working variables
 C -------------------------------------------------------------------
 
-  12      iact1 = iCFCactuator(ictlfun,1)    ! 0=shade ON/OFF, 1=slat angle, 2=both (for schedule
+  12      iact1 = iCFCactuator(ictlfun,1)    ! 0=shade ON/OFF, 1=slat angle, 2=both (for schedule)
+                                             ! 9=read from tdf
           iact2 = iCFCactuator(ictlfun,2)    ! zone index
           iact3 = iCFCactuator(ictlfun,3)    ! CFC type
 
@@ -3072,7 +3074,19 @@ C Schedule
      &      INT(CFCmiscdata(ictlfun,idaytype,iperiod,2))
             schedule_slat_angle = 
      &            CFCmiscdata(ictlfun,idaytype,iperiod,3)
-          endif
+
+C Temporal data file (tdf)
+          elseif(iact1.eq.9)then
+
+            if(ICFCCTL(icomp).ne.0)then
+C           Data in temporal database (on/off state and slat angle).
+
+            elseif
+C           Error ... !!
+
+            endif
+          endif ! check iact1
+
 
 C -------------------------------------------------------------------
 C Set shade ON/OFF state or slat angle based on sensor and control

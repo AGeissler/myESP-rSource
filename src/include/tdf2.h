@@ -32,7 +32,7 @@ C Maximum number of timesteps in an hour.
       PARAMETER (MHTS=60)
       
 C Array size for maximum items available of temporal definition
-      PARAMETER (MTI=27)
+      PARAMETER (MTI=28)
 
 C Related to TDF header.
       integer NWPR   ! Number of words per record in the TAB file.
