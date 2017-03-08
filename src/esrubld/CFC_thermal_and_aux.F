@@ -2881,6 +2881,7 @@ C Use geometry.h for zname
 #include "geometry.h"
 #include "control.h"
 #include "CFC_common.h"
+#include "net_flow.h" ! supplies MNOD
 #include "tdf2.h"
       COMMON/OUTIN/IUOUT,IUIN
       integer iuout,iuin
@@ -2914,6 +2915,8 @@ C Use geometry.h for zname
       common/dllerr/dllsubr,dllmesg
       character dllsubr*12,dllmesg*124
 
+      logical dll
+
       CHARACTER outs*124
       
 C Working variables to temporarily store slat angle for daytype and hour
@@ -2937,6 +2940,7 @@ C      real slat_angleX
       integer isen1, isen2, isen3   ! sensor details
       integer ictype                ! control type
       integer ischedule_shdstateONorOFF
+      real VAL
       real shdONsetpoint
       real shdOFFsetpoint
       real shdONslatPOSITION
@@ -2952,6 +2956,10 @@ C      real slat_angleX
       character*2  cCFC_Chars
 
       DIMENSION VAL(MBITS+2)
+
+C Check if running in dll mode.
+      call isadll(dll)
+
 
 C Prior to initiating control logic, set the default slat angle and 
 C shading state for the next time step in all zones and all CFC types

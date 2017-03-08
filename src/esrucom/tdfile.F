@@ -240,9 +240,8 @@ C Search instances in temporal file to find match(s).
                           IHTCLSETP(itd3)=itd4
                         ENDIF
                       ENDDO
-                    endif
 
-                    if(DBTASK(ITD1)(1:6).eq.'CFCCTL')then
+                    elseif(DBTASK(ITD1)(1:6).eq.'CFCCTL')then
 
 cx *****************
 cx << add CFC control to temporal data file feature ...
@@ -253,7 +252,7 @@ C Search instances in temporal file to find match(s).
                           ICFCCTL(itd3)=itd4
                         ENDIF
                       ENDDO
-
+                    endif
                   endif
   80            continue
               endif          
