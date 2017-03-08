@@ -107,6 +107,7 @@ C is the 6th item in the temporal file.
       integer IZIVENT   ! if non-zero ventilation & infiltration used
       integer IRAIRVL   ! if non-zero room air velocity (not yet used)
       integer ISETPTT   ! if non-zero single set point temperature used
+      integer ICFCCTL   ! if non-zero CFC on/off and/or slat angle used
       integer ICTLSTA   ! if non-zero control state (not yet used)
       integer ISKYLUX   ! if non-zero measured sky lux (not yet used)
       integer IDBTEXT   ! if non-zero ambient dry bulb (climate) used
@@ -140,4 +141,4 @@ C is the 6th item in the temporal file.
      &       ISKYTMP,IGLOVRT,ICASUAL3(MCOM),IACTIV(MCOM),
      &       IBIDIRS(MCOM,MS),IVERSOL(MCOM,MS),IHTCLSETP(MCOM),
      &       IDBTZNM(MCOM),ISURTMEAS(MCOM,MS),IMFNTDFP(MNOD),IMFNTDFF,
-     &       IPERVSEN,IStorageHeater(MCOM),IELECPWR(MCOM)
+     &       IPERVSEN,IStorageHeater(MCOM),IELECPWR(MCOM),ICFCCTL(MCOM)
