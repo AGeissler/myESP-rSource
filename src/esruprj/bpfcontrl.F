@@ -3037,7 +3037,7 @@ C Remember current control type
         
         IX=1
   64    CALL EPICKS(IX,IVALS,' ',' Controller type: (see help)',
-     &         40,7,SALT,'controller type',IER,nbhelp)
+     &         40,9,SALT,'controller type',IER,nbhelp)
         if(ix.eq.0.or.IVALS(1).eq.0)goto 64
         if(ix.ne.0)iCFCctltype(II,JJ,KK)=IVALS(1)
         ictyp=iCFCctltype(II,JJ,KK)

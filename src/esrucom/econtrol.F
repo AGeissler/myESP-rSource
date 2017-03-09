@@ -3791,7 +3791,9 @@ C Actuator is slat angle.
      &        '[deg] open slat angle ',cm(5)
           endif
           call SDELIM(lmsg,message,'S',IW)
+
         ELSEIF(iCFCctllaw(II,JJ,KK).EQ.2)then
+C Schedule
           SSTR='schedule        '
           msg1=' schedule:'
           cm(1)=CFCmiscdata(II,JJ,KK,1)
@@ -3801,6 +3803,19 @@ C Actuator is slat angle.
           write(lmsg,'(2a,i3,a,f9.1)') 
      &        msg1,' shade ON (1) or OFF (0) ',nint(cm(2)),
      &        '[deg] slat angle ',cm(3)
+          call SDELIM(lmsg,message,'S',IW)
+
+        ELSEIF(iCFCctllaw(II,JJ,KK).EQ.9)then
+C On/off state & slat angle from temporal data file.
+          SSTR='temporal data file   '
+          msg1=' temporal df:'
+          cm(1)=CFCmiscdata(II,JJ,KK,1)
+          cm(2)=CFCmiscdata(II,JJ,KK,2)
+          cm(3)=CFCmiscdata(II,JJ,KK,3)
+
+          write(lmsg,'(2a,i3,a,i3)')
+     &        msg1,' Shade ON/OFF (1/0) tdf item ',nint(cm(2)),
+     &        ' Slat angle tdf item ',nint(cm(3))
           call SDELIM(lmsg,message,'S',IW)
 
         ENDIF
