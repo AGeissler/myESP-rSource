@@ -3068,7 +3068,7 @@ C Determine actuator type and copy control data to working variables
 C -------------------------------------------------------------------
 
   12      iact1 = iCFCactuator(ictlfun,1)    ! 0=shade ON/OFF, 1=slat angle, 2=both (for schedule)
-                                             ! 9=read from tdf
+                                             ! 9=both (read from tdf)
           iact2 = iCFCactuator(ictlfun,2)    ! zone index
           iact3 = iCFCactuator(ictlfun,3)    ! CFC type
 
@@ -3097,12 +3097,9 @@ C Temporal data file (tdf)
 
             if(ICFCCTL(iact2).ne.0)then
 C           Data in temporal database (on/off state and slat angle).
-
               CALL RCTDFB(itrc,btimef,VAL,ISD,iact2,IER)
-
               ischedule_shdstateONorOFF = VAL(ISD)
               schedule_slat_angle       = VAL(ISD+3)
-
             else
 C            Error ... !!
              write(outs,'(a,a,i2,a,i2,a)')
