@@ -2868,7 +2868,7 @@ C ********************************************************************
 
       common/sctl/tcps,ictyp,iclaw,cm(misc)
 
-      DIMENSION SALT(7),PSALT (2), IVALS(7), IPVALS(1)
+      DIMENSION SALT(9), PSALT(9), IVALS(9), IPVALS(1)
       CHARACTER*82 VERT(20)
 
       CHARACTER outs*124,SSTR*96,TMP*96,SALT*40,KEY*1
@@ -3029,13 +3029,15 @@ C Remember current control type
         SALT(5)= 'senses wind speed actuates shade ON/OFF'
         SALT(6)= 'senses wind dir.  actuates shade ON/OFF'
         SALT(7)= 'no sensor (schedule only)              '
-        
+        SALT(8)= 'not defined                            '
+        SALT(9)= 'no sensor (temporal data file)         '
+
         call edisp(iuout,' Current controller type: ')
         call edisp(iuout,SALT(iCFCctltype(II,JJ,KK)))
         
         IX=1
   64    CALL EPICKS(IX,IVALS,' ',' Controller type: (see help)',
-     &         40,7,SALT,'controller type',IER,nbhelp)
+     &         40,9,SALT,'controller type',IER,nbhelp)
         if(ix.eq.0.or.IVALS(1).eq.0)goto 64
         if(ix.ne.0)iCFCctltype(II,JJ,KK)=IVALS(1)
         ictyp=iCFCctltype(II,JJ,KK)
@@ -3043,50 +3045,56 @@ C Remember current control type
         if(ictyp.ne.icurrentctltype)then
 C Provide some default values for control data based on the
 C control type.
-        if(ictyp.eq.1)then     ! senses temp., actuates shade ON/OFF
-          cm(1)=2.0
-          cm(2)=25.0       ! shade ON setpoint [C]
-          cm(3)=22.0       ! shade OFF setpoint [C]
-        elseif(ictyp.eq.2)then ! senses temp., actuates slat angle
-          cm(1)=4.0
-          cm(2)=25.0       ! slats closed setpoint [C]
-          cm(3)=22.0       ! slats open setpoint [C]
-          cm(4)=80.0       ! closed slat angle [deg]
-          cm(5)=0.0        ! open slat angle [deg]
-        elseif(ictyp.eq.3)then ! senses solar radiation, actuates shade ON/OFF
-          cm(1)=2.0
-          cm(2)=500.0      ! shade ON setpoint [W/m2]
-          cm(3)=400.0      ! shade OFF setpoint [W/m2]
-        elseif(ictyp.eq.4)then ! senses solar radiation, actuates slat angle
-          cm(1)=4.0
-          cm(2)=500.0      ! slats closed setpoint [W/m2]
-          cm(3)=400.0      ! slats open setpoint [W/m2]
-          cm(4)=80.0       ! closed slat angle [deg]
-          cm(5)=0.0        ! open slat angle [deg]        
-        elseif(ictyp.eq.5)then ! senses wind speed, actuates shade ON/OFF
-          cm(1)=2.0
-          cm(2)=10.0       ! shade ON setpoint [m/s]
-          cm(3)=8.0        ! shade OFF setpoint [m/s]       
-        elseif(ictyp.eq.6)then ! senses wind direction, actuates shade ON/OFF
-          cm(1)=2.0
-          cm(2)=180.0       ! wind direction band start point for shade OFF[deg]
-          cm(3)=270.0       ! wind direction band end point for shade OFF [deg]               
-        elseif(ictyp.eq.7)then ! no control, schedule only
-          cm(1)=2.0
-          cm(2)=1.0       ! 0 shade OFF, 1 shade ON
-          cm(3)=45.0      ! default slat angle for current period[deg]  
-        endif  
+          if(ictyp.eq.1)then     ! senses temp., actuates shade ON/OFF
+            cm(1)=2.0
+            cm(2)=25.0       ! shade ON setpoint [C]
+            cm(3)=22.0       ! shade OFF setpoint [C]
+          elseif(ictyp.eq.2)then ! senses temp., actuates slat angle
+            cm(1)=4.0
+            cm(2)=25.0       ! slats closed setpoint [C]
+            cm(3)=22.0       ! slats open setpoint [C]
+            cm(4)=80.0       ! closed slat angle [deg]
+            cm(5)=0.0        ! open slat angle [deg]
+          elseif(ictyp.eq.3)then ! senses solar radiation, actuates shade ON/OFF
+            cm(1)=2.0
+            cm(2)=500.0      ! shade ON setpoint [W/m2]
+            cm(3)=400.0      ! shade OFF setpoint [W/m2]
+          elseif(ictyp.eq.4)then ! senses solar radiation, actuates slat angle
+            cm(1)=4.0
+            cm(2)=500.0      ! slats closed setpoint [W/m2]
+            cm(3)=400.0      ! slats open setpoint [W/m2]
+            cm(4)=80.0       ! closed slat angle [deg]
+            cm(5)=0.0        ! open slat angle [deg]
+          elseif(ictyp.eq.5)then ! senses wind speed, actuates shade ON/OFF
+            cm(1)=2.0
+            cm(2)=10.0       ! shade ON setpoint [m/s]
+            cm(3)=8.0        ! shade OFF setpoint [m/s]
+          elseif(ictyp.eq.6)then ! senses wind direction, actuates shade ON/OFF
+            cm(1)=2.0
+            cm(2)=180.0       ! wind direction band start point for shade OFF[deg]
+            cm(3)=270.0       ! wind direction band end point for shade OFF [deg]
+          elseif(ictyp.eq.7)then ! no control, schedule only
+            cm(1)=2.0
+            cm(2)=1.0       ! 0 shade OFF, 1 shade ON
+            cm(3)=45.0      ! default slat angle for current period[deg]
+          elseif(ictyp.eq.9)then ! no control, temporal data file (tdf)
+            cm(1)=2.0
+            cm(2)=0.0       ! 0 shade OFF, 1 shade ON
+            cm(3)=0.0       ! default slat angle for current period[deg]
+          endif
         endif
           
 C Complex fenestration contol law.
         PSALT(1)= 'Basic control '
         PSALT(2)= 'Schedule      '
+        PSALT(3)= '* undefined  *'
+        PSALT(9)= 'Temporal df   '
         write(outs,'(a,a)')' Current control law: ',
      &                      PSALT(iCFCctllaw(II,JJ,KK))
         call edisp(iuout,outs)
         IX=1
   65    CALL EPICKS(IX,IPVALS,' ',' Complex fen. control law: ',
-     &         40,2,PSALT,'control law',IER,nbhelp)
+     &         40,9,PSALT,'control law',IER,nbhelp)
         if(ix.eq.0.or.IPVALS(1).eq.0)goto 65
         if(ix.ne.0)iclaw=IPVALS(1)
         iCFCctllaw(II,JJ,KK)=iclaw
@@ -3100,14 +3108,14 @@ C law can be jumped around.
         useold=.false.
         iclawt=-1
   77    if(useold)then
-          if(iclawt.ge.0.and.iclawt.le.2)then
+          if(iclawt.ge.0.and.iclawt.le.2.or.iclawt.eq.9)then
             iclaw=iclawt
             iCFCctllaw(II,JJ,KK)=iclaw
             useold=.false.
             goto 62
           endif
         endif
-        
+
         if(iclaw.ge.1)then
 
 C Remember the previous start (prevstart) and the total number of

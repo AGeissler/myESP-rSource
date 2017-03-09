@@ -130,6 +130,7 @@ C Search instances in temporal file to find match(s).
 C Associate with real & reactive power item with a zone.
                       if(DBTASK(ITD1)(1:7).eq.'ELECPWR')
      &                  IELECPWR(itd3)=itd4
+
                       if(DBTASK(ITD1)(1:6).eq.'ZIVENT')
      &                  IZIVENT(itd3)=itd4
                       if(DBTASK(ITD1)(1:6).eq.'RAIRVL')
@@ -237,6 +238,18 @@ C Search instances in temporal file to find match(s).
                         IF(TAG(itd4)(1:lnblnk(TAG(itd4))).EQ.
      &                    DBTAG(itd1)(1:lnblnk(DBTAG(itd1))))THEN
                           IHTCLSETP(itd3)=itd4
+                        ENDIF
+                      ENDDO
+
+                    elseif(DBTASK(ITD1)(1:6).eq.'CFCCTL')then
+
+cx *****************
+cx << add CFC control to temporal data file feature ...
+C Search instances in temporal file to find match(s).
+                      DO itd4=1,NDATA
+                        IF(TAG(itd4)(1:lnblnk(TAG(itd4))).EQ.
+     &                    DBTAG(itd1)(1:lnblnk(DBTAG(itd1))))THEN
+                          ICFCCTL(itd3)=itd4
                         ENDIF
                       ENDDO
                     endif

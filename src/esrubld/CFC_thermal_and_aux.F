@@ -2897,6 +2897,8 @@ C Use geometry.h for zname
 #include "geometry.h"
 #include "control.h"
 #include "CFC_common.h"
+#include "net_flow.h" ! supplies MNOD
+#include "tdf2.h"
       COMMON/OUTIN/IUOUT,IUIN
       integer iuout,iuin
 
@@ -2923,13 +2925,22 @@ C Use geometry.h for zname
       integer IE
       real ATP,ATF,ARP,ARF
 
+      common/trc/itrc
+      integer itrc
+
+      common/dllerr/dllsubr,dllmesg
+      character dllsubr*12,dllmesg*124
+
+      logical dll
+
       CHARACTER outs*124
       
 C Working variables to temporarily store slat angle for daytype and hour
 C      real vb_phiX
 C      dimension vb_phiX(mcom,mcfc,mdty,MT)
 C      real slat_angleX
- 
+
+      integer IER,ISD         ! used in context with tdf ...
       integer i,j,k           ! do loop indices
       integer ictlfun         ! control function index
       integer nctldaytypes    ! number of control day types
@@ -2945,6 +2956,7 @@ C      real slat_angleX
       integer isen1, isen2, isen3   ! sensor details
       integer ictype                ! control type
       integer ischedule_shdstateONorOFF
+      real VAL
       real shdONsetpoint
       real shdOFFsetpoint
       real shdONslatPOSITION
@@ -2958,6 +2970,12 @@ C      real slat_angleX
       character msgout*124
       character*12 cZone_Chars
       character*2  cCFC_Chars
+
+      DIMENSION VAL(MBITS+2)
+
+C Check if running in dll mode.
+      call isadll(dll)
+
 
 C Prior to initiating control logic, set the default slat angle and 
 C shading state for the next time step in all zones and all CFC types
@@ -3065,7 +3083,8 @@ C -------------------------------------------------------------------
 C Determine actuator type and copy control data to working variables
 C -------------------------------------------------------------------
 
-  12      iact1 = iCFCactuator(ictlfun,1)    ! 0=shade ON/OFF, 1=slat angle, 2=both (for schedule
+  12      iact1 = iCFCactuator(ictlfun,1)    ! 0=shade ON/OFF, 1=slat angle, 2=both (for schedule)
+                                             ! 9=both (read from tdf)
           iact2 = iCFCactuator(ictlfun,2)    ! zone index
           iact3 = iCFCactuator(ictlfun,3)    ! CFC type
 
@@ -3088,7 +3107,34 @@ C Schedule
      &      INT(CFCmiscdata(ictlfun,idaytype,iperiod,2))
             schedule_slat_angle = 
      &            CFCmiscdata(ictlfun,idaytype,iperiod,3)
-          endif
+
+          elseif(iact1.eq.9)then
+C Temporal data file (tdf)
+
+            if(ICFCCTL(iact2).ne.0)then
+C           Data in temporal database (on/off state and slat angle).
+              CALL RCTDFB(itrc,btimef,VAL,ISD,iact2,IER)
+              ischedule_shdstateONorOFF = VAL(ISD)
+              schedule_slat_angle       = VAL(ISD+3)
+            else
+C            Error ... !!
+             write(outs,'(a,a,i2,a,i2,a)')
+     &       'CFC_control: ICFCCTL does not point to a valid temporal ',
+     &       'item for zone',iact2,', CFC type',iact3,'.'
+             if(dll)then
+               dllsubr='CFC_control'
+               dllmesg=outs
+               ier=2
+               return
+             else
+               call edisp(iuout,outs)
+               call epwait
+               call epagend
+               STOP
+             endif
+            endif
+
+          endif ! check iact1
 
 C -------------------------------------------------------------------
 C Set shade ON/OFF state or slat angle based on sensor and control
@@ -3236,6 +3282,10 @@ C Perform actual control of shade ON/OFF and slat angle here
             endif
         
           ELSEIF(ictype.eq.7)then                   ! no sensor, schedule only
+            i_shd(iact2,iact3) = ischedule_shdstateONorOFF
+            vb_phiNew(iact2,iact3) = schedule_slat_angle
+
+          ELSEIF(ictype.eq.9)then                   ! no sensor, tdf
             i_shd(iact2,iact3) = ischedule_shdstateONorOFF
             vb_phiNew(iact2,iact3) = schedule_slat_angle
           ENDIF    
