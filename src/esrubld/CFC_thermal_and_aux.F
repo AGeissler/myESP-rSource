@@ -2940,18 +2940,18 @@ C      real vb_phiX
 C      dimension vb_phiX(mcom,mcfc,mdty,MT)
 C      real slat_angleX
 
-      integer IER,ISD         ! used in context with tdf ...
-      integer i,j,k           ! do loop indices
-      integer ictlfun         ! control function index
-      integer nctldaytypes    ! number of control day types
-      integer iday            ! current day
-      integer idaytype        ! day type
-      integer idayofweek      ! day of week (1 to 7)
-      integer nperiods        ! number of periods in control daytype
-      integer iperiod         ! control period
-      integer icomp           ! zone index
-      integer iZone           ! zone index for zone loops
-      integer icfctp          ! CFC type index
+      integer IER,ISD,itdi,IFOC     ! used in context with tdf ...
+      integer i,j,k                 ! do loop indices
+      integer ictlfun               ! control function index
+      integer nctldaytypes          ! number of control day types
+      integer iday                  ! current day
+      integer idaytype              ! day type
+      integer idayofweek            ! day of week (1 to 7)
+      integer nperiods              ! number of periods in control daytype
+      integer iperiod               ! control period
+      integer icomp                 ! zone index
+      integer iZone                 ! zone index for zone loops
+      integer icfctp                ! CFC type index
       integer iact1, iact2, iact3   ! actuator details
       integer isen1, isen2, isen3   ! sensor details
       integer ictype                ! control type
@@ -3111,16 +3111,25 @@ C Schedule
           elseif(iact1.eq.9)then
 C Temporal data file (tdf)
 
-            if(ICFCCTL(iact2).ne.0)then
+            if(ICFCCTL(ictlfun).ne.0) then
+              itdi=ICFCCTL(ictlfun)
+              IFOC=itdi
 C           Data in temporal database (on/off state and slat angle).
-              CALL RCTDFB(itrc,btimef,VAL,ISD,iact2,IER)
+              CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
               ischedule_shdstateONorOFF = VAL(ISD)
-              schedule_slat_angle       = VAL(ISD+3)
+              schedule_slat_angle       = VAL(ISD+1)
+
+C Debug.
+C           write(6,*)'tdf ctl data @',btimef,' is item',itdi,
+C     &       ' column ',isd,' value ',ischedule_shdstateONorOFF,
+C     &       ' column ',isd+1, value ',schedule_slat_angle,
+C     &       ' for ctl loop ',icf
+
             else
 C            Error ... !!
              write(outs,'(a,a,i2,a,i2,a)')
-     &       'CFC_control: ICFCCTL does not point to a valid temporal ',
-     &       'item for zone',iact2,', CFC type',iact3,'.'
+     &       'CFC_control: ICFCCTL does not point to a valid temporal',
+     &       ' item for zone ',iact2,', CFC type',iact3,'.'
              if(dll)then
                dllsubr='CFC_control'
                dllmesg=outs
