@@ -1117,6 +1117,7 @@ C temporal data to be associated with a model.
 #include "net_flow.h"
 #include "tdf2.h"
 #include "control.h"
+#include "CFC_common.h"
       
       integer lnblnk  ! function definition
 
@@ -1171,6 +1172,7 @@ C Set folder separator (fs) to \ or / as required.
       endif
 
 C Default name for temporal file. For all cases generate default name.
+cx << check if name already defined, here??
       if(netpth(1:2).eq.'  '.or.netpth(1:2).eq.'./')then
         WRITE(DLTDF,'(2a)')cfgroot(1:lnblnk(cfgroot)),'_temporal.tdfa'
       else
@@ -1643,6 +1645,7 @@ C Reset itemstd to the item to be edited.
           DBTASK(ITE)=TTYPE(it)
 
 C Depending on the type of the data, ask for associated zone.
+cx << wild mix of "it" and "ite", here???
           if(TTYPE(it)(1:6).eq.'CASUAL'.or.
      &       TTYPE(it)(1:7).eq.'ELECPWR')then
             IC=-1
@@ -2073,7 +2076,176 @@ C Ask which zone is linked to charging schedule
      &      'Related zone','-','Charging schedule for which zone?',ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 356
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
-            DBSN(ITE)='ALL' 
+            DBSN(ITE)='ALL'
+
+cx *************************************************************
+cx **** CFCCTL => Copy from SETPTT ...
+
+          elseif(TTYPE(it)(1:6).eq.'CFCCTL') then
+
+C If there is no control file warn the user to create one first.
+            if(nCFCctlloops.eq.0)then
+              call usrmsg(
+     &        'There are no CFC control loops defined. Please define ',
+     &        'before you create or use a link to temporal data.','W')
+              goto 42
+            endif
+
+C Present a summary of the steps needed to create a temporal-control link.
+cx << new entry for CFCCTL ??!!
+            helptopic='temporal_ctl_setpoints'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            CALL PHELPD('temporal-control popup',nbhelp,'-',0,0,IER)
+
+C Ask the user whether there has already been a control law defined
+C to use the setpoint. If so report on that control loop and offer
+C selected information to alter. Controls with a sensor
+C first item equal to -5 and a control with a type 9
+C control law in the first period.
+            write(outs,'(a,i2,a)')' There are currently ',nCFCctlloops,
+     &        ' CFC control loops.'
+            call edisp(iuout,outs)
+            call edisp(iuout,'  ')
+            found=.false.
+            call edisp(iuout,
+     &  'Controls might be suitable for use with temporal data.')
+            do 78 ijj=1,nCFCctlloops
+              if(iCFCsensor(ijj,1).eq.-5)then
+                found=.true.
+                call LSTCNTL(iuout,0,ijj)
+              endif
+  78        continue
+            if(found) then
+
+C There are possible control loops. If the user selects one of them
+C copy data into cm variables for later editing.
+              irtc=0
+              CALL EASKABC(' CFC Control linkage options:',' ',
+     &          'use existing control','create new control','continue',
+     &          IRTC,nbhelp)
+              if(irtc.eq.1)then
+                CALL EASKI(ispl,'Control loop to use tdf data?',
+     &            ' ',1,'F',nCFCctlloops,'F',ijj,
+     &            'cntrl loop for tdf data',IERI,nbhelp)
+                if(ieri.eq.-3) goto 42
+                iCFCsensor(ispl,1)=-5
+                iCFCsensor(ispl,2)=ICFCCTL(ispl) ! <= this should be the tdf entry number
+                iCFCsensor(ispl,3)=0
+                iCFCsensor(ispl,4)=0
+                cm(2)=bmiscd(ispl,1,1,2)
+                cm(3)=bmiscd(ispl,1,1,3)
+cx                cm(4)=bmiscd(ispl,1,1,4)
+cx                cm(5)=bmiscd(ispl,1,1,5)
+              elseif(itrc.eq.2) then
+C              ?? create new??
+
+              elseif(irtc.eq.3)then
+                goto 42
+              endif
+            else ! not found
+
+C No control loop has been defined to associate with this temporal
+C setpoint so create another one, fill in as much information as
+C possible and link back to the temporal item. Increment nCFCctlloops.
+              call edisp(iuout,'No applicable controls found.')
+              irtc=0
+              CALL EASKABC(' Control linkage options:',' ',
+     &          'n/a','create new control','cancel',IRTC,nbhelp)
+              if(irtc.eq.1.or.irtc.eq.3)then
+                goto 42
+              endif
+            endif
+
+C Add another CFC control loop
+            if(irtc.eq.2)then
+              nCFCctlloops=nCFCctlloops+1
+              ispl=nCFCctlloops
+              iCFCsensor(ispl,1)=-5
+              iCFCsensor(ispl,2)=it ! <= tdf entry number, no??!!
+              iCFCsensor(ispl,3)=0
+              iCFCsensor(ispl,4)=0
+              cm(2)=0.0
+              cm(3)=0.0
+            endif
+
+            if(ispl.le.9)then
+              write(DBZN(ITE),'(a5,i1)') 'loop_',ispl
+            else
+              write(DBZN(ITE),'(a5,i2)') 'loop_',ispl
+            endif
+
+C Confirm which zone and which CFC type to use with this control.
+C Then instanciate all of the usual values for CFC control-temporal links.
+            IC=-1
+            CALL EPMENSV
+ 256        call askzone(ic,izdef,'Related zone for CFC tdf data?',
+     &        'Related zone','-','CFC control requires a zone.',ier)
+            IF(IC.EQ.0.OR.IC.EQ.-1) GOTO 256
+
+C Ask for CFC type in selected zone.   
+  92        call askCFCtype(IC,ian3,IER)
+
+C Check that selected CFC type contains a shading layer.
+            shd_xst=.false.
+            do 1001 ilayer=1,ncfc_el(IC, ian3)
+              if(icfcltp(IC,ian3,ilayer).gt.iGlazing) shd_xst=.true.
+ 1001       continue
+            if(.not.shd_xst)then
+              SELECT=.false.
+              CALL USRMSG(' Shading layer not found, ',
+     &                         'please select another CFC type','W')
+              CALL EPMENRC
+              goto 92
+            endif
+            CALL EPMENRC
+
+            iCFCsensor(ispl,1)=-5
+            iCFCactuator(ispl,1)=IC    ! Zone picked
+            iCFCactuator(ispl,2)=ian3  ! CFC type in zone
+            iCFCactuator(ispl,3)=0
+
+            nCFCctldaytypes(ispl)=1
+            iCFCctldatevalid(ispl,1,1)=1;
+            iCFCctldatevalid(ispl,1,2)=365
+            nCFCdayctlperiods(ispl,1)=1
+            CFCctlperiodstart(ispl,1,1)=0.0
+            iCFCctltype(ispl,1,1)=9
+            iCFCclaw(ispl,1,1)=9
+            cm(1)=2.0
+            cm(2)=0.0 ! default value on/off (=off)
+            cm(3)=0.0 ! default slat angle (0 deg, aka horizontal)
+
+C Confirm default values.
+  54        WRITE(HOLD,'(2f6.0)') cm(2),cm(3) !,cm(4),cm(5)
+            CALL EASKS(HOLD,
+     &      ' Default ON/OFF state, default slat angle',
+     &      ': ',40,' 0.0 0.0 ',
+     &      ' track another data set',IER,nbhelp)
+            K=0
+            CALL EGETWR(HOLD,K,cm(2),0.,1.,'F','ON/OFF',IER)
+            CALL EGETWR(HOLD,K,cm(3),-90.,90.,'F','Slat angle',IER)
+
+            if(ier.ne.0) goto 54
+
+C Update the control period data.
+            bmiscd(ispl,1,1,1)=cm(1)
+            bmiscd(ispl,1,1,2)=cm(2)
+            bmiscd(ispl,1,1,3)=cm(3)
+
+C Update the control file.
+            ICTLF=IFIL+1
+            call usrmsg('Updating control file for CFC temporal link...',
+     &        ' ','-')
+            CALL CTLWRT(ICTLF,IER)
+            CALL EMKCFG('-',IER)
+            call usrmsg(
+     &        'Updating control file for CFC temporal link...done.',
+     &        ' ','-')
+            DBSN(ITE)='ALL'
+
+cx **** END CFCCTL
+cx ******************************************************************
+
           else
             DBZN(ITE)='ALL'
             DBSN(ITE)='ALL'            

@@ -20,7 +20,8 @@ C Boston, MA 02111-1307 USA.
 
 C econtrol.f includes the following subroutines:
 C  EZCTLR:  Reads the configuration control strategy file.
-C  EZCTLI:  Zeroes all control data in common BCTL, CCTL, and FCTL.
+C  EZCTLI:  Zeroes all control data in common BCTL, CCTL, FCTL, OCTL,
+C           GCTL and CFCCTL.
 C  EVCNTRL: Decodes & returns string describing control file sensors,
 C           actuators, control types.
 C  EVCNTRLAW: Decodes & returns string describing control file laws.
@@ -28,6 +29,7 @@ C  LSTCNTLD: List one day type of a building/plant/flow/global/optical/
 C           complex fenestration control.
 C  Ezctlc:  Checks all building control functions, plant loops, and
 C           mass flow control functions for validity.
+C  decodesensor: ...
 C  tscdta:  Sets TSC6 variables in the case of TSC6 called from a
 C           control function (as opposed to set from menu).
 C  FZDATA:  reads fuzzy logic data from configuration control file.
@@ -289,6 +291,8 @@ C                4: senses solar radiation, actuates slat angle
 C                5: senses wind speed, actuates shade ON/OFF
 C                6: senses wind directions, actuates shade ON/OFF
 C                7: no sensor, schedule only
+C                8: * undefined *
+C                9: no sensor, temporal data file ON/OFF & slat angle
 
 C ibclaw |- Defines the control law which relates the sensor to
 C ipclaw |  the actuator.  A number of control laws are active
@@ -296,6 +300,7 @@ C ifclaw |  and these are defined in routines BCTL, PCTL and FCTL.
 C ioclaw |
 C iCFCctllaw | - Complex fenestration control law: 1 - Basic control
 C                                                  2 - Schedule
+C                                                  ... and more ...
 
 C bmiscd |- Hold data required by the control laws. ?MISCD(?,?,?,1)
 C pmiscd |  defines the total number of such items to be read.
