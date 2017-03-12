@@ -1140,7 +1140,7 @@ C TDF related.
       CHARACTER PROMPT1*72, PROMPT2*72
 
       logical MODSIT,browse,OK,dok,unixok
-      logical FOUND,XST
+      logical FOUND,XST,shd_xst
 
       character outs*124,ltmp*72,hold*40
       character fs*1,msgl2*48
@@ -1148,7 +1148,7 @@ C TDF related.
       character DBTAG*12,DBTASK*12,DBZN*15,DBSN*15
       character OUTSTR*124,HDR*12
       character*34 ITEMS(7)
-      integer ier
+      integer ier,ian3,ilayer
       integer nitms,irt ! max items and current menu item
       DIMENSION INPK(MNOD)
 
@@ -2120,7 +2120,7 @@ C control law in the first period.
 C There are possible control loops. If the user selects one of them
 C copy data into cm variables for later editing.
               irtc=0
-              CALL EASKABC(' CFC Control linkage options:',' ',
+              CALL EASKABC(' CFC control linkage options:',' ',
      &          'use existing control','create new control','continue',
      &          IRTC,nbhelp)
               if(irtc.eq.1)then
@@ -2149,12 +2149,12 @@ C setpoint so create another one, fill in as much information as
 C possible and link back to the temporal item. Increment nCFCctlloops.
               call edisp(iuout,'No applicable controls found.')
               irtc=0
-              CALL EASKABC(' Control linkage options:',' ',
+              CALL EASKABC(' CFC control linkage options:',' ',
      &          'n/a','create new control','cancel',IRTC,nbhelp)
               if(irtc.eq.1.or.irtc.eq.3)then
                 goto 42
               endif
-            endif
+            endif ! check for existing ctl loop linked to tdf
 
 C Add another CFC control loop
             if(irtc.eq.2)then
@@ -2199,10 +2199,14 @@ C Check that selected CFC type contains a shading layer.
             endif
             CALL EPMENRC
 
+cx << this block of code seems slightly "random", here ...
+cx << move to "if irtc.eq.2", above?
             iCFCsensor(ispl,1)=-5
-            iCFCactuator(ispl,1)=IC    ! Zone picked
-            iCFCactuator(ispl,2)=ian3  ! CFC type in zone
-            iCFCactuator(ispl,3)=0
+            iCFCsensor(ispl,2)=it      ! tdf entry number ... (?)
+
+            iCFCactuator(ispl,1)=9
+            iCFCactuator(ispl,2)=IC    ! Zone picked
+            iCFCactuator(ispl,3)=ian3  ! CFC type in zone
 
             nCFCctldaytypes(ispl)=1
             iCFCctldatevalid(ispl,1,1)=1;
