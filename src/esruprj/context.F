@@ -2180,6 +2180,7 @@ C Then instanciate all of the usual values for CFC control-temporal links.
             CALL EPMENSV
  256        call askzone(ic,izdef,'Related zone for CFC tdf data?',
      &        'Related zone','-','CFC control requires a zone.',ier)
+            CALL EPMENRC ! ... seems to be good practice ... ??
             IF(IC.EQ.0.OR.IC.EQ.-1) GOTO 256
 
 C Ask for CFC type in selected zone.   
@@ -2191,7 +2192,7 @@ C Check that selected CFC type contains a shading layer.
               if(icfcltp(IC,ian3,ilayer).gt.iGlazing) shd_xst=.true.
  1001       continue
             if(.not.shd_xst)then
-              SELECT=.false.
+cx              SELECT=.false.
               CALL USRMSG(' Shading layer not found, ',
      &                         'please select another CFC type','W')
               CALL EPMENRC
@@ -2214,7 +2215,7 @@ cx << move to "if irtc.eq.2", above?
             nCFCdayctlperiods(ispl,1)=1
             CFCctlperiodstart(ispl,1,1)=0.0
             iCFCctltype(ispl,1,1)=9
-            iCFCclaw(ispl,1,1)=9
+cx            iCFCclaw(ispl,1,1)=9
             cm(1)=2.0
             cm(2)=0.0 ! default value on/off (=off)
             cm(3)=0.0 ! default slat angle (0 deg, aka horizontal)
@@ -2238,7 +2239,7 @@ C Update the control period data.
 
 C Update the control file.
             ICTLF=IFIL+1
-            call usrmsg('Updating control file for CFC temporal link...',
+          call usrmsg('Updating control file for CFC temporal link...',
      &        ' ','-')
             CALL CTLWRT(ICTLF,IER)
             CALL EMKCFG('-',IER)
