@@ -55,8 +55,8 @@ C Related to inport and export files.
 
 C Logical flags for file openings.
       COMMON/TDFOPEN/OPTDF
-      
-      LOGICAL      OPTDF,OK,dok
+
+      LOGICAL OPTDF,OK,dok
       logical FOUND,XST,unixok,silent
 
       DIMENSION ITEM(30),ikeybk(30),itemsel(MIT),itemval(MIT)
@@ -89,7 +89,7 @@ C For help messages
       integer nbhelp     ! number of help lines found
 
       helpinsub='tdfedit'  ! set for subroutine
-      
+
 C For debugging set itrc =2
       ITRC=1
 
