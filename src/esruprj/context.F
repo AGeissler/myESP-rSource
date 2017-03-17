@@ -1348,13 +1348,15 @@ C Begin with high level menu.
   27  continue
       if(IRT.eq.1)then
 
-C Create a new file (itdflg = 0) or view/edit entities (itdflg = 3) ...
+C Create a new file (itdflg = 0)
+cx ... or view/edit entities (itdflg = 3) ... this seems to create trouble!
 C If browsing do not bother to confim the file name.
         if(browse)then
           write(outs,'(2a)')' Temporal definitions ',LTDFA
           call edisp(iuout,outs)
         else
 
+cx << ask for file again only for itdflg == 0??!
 C If LTDFA is still UNKNOWN set to default name.
           if(LTDFA(1:4).eq.'UNKN') LTDFA=DLTDF
           ltmp=LTDFA
@@ -1397,7 +1399,7 @@ C << folder in most new models.
         endif
         LTDFA=ltmp
         MODSIT=.true.
-        CALL ERPFREE(IUTDF,ISTAT)
+        CALL ERPFREE(IUTDF,ISTAT) ! (undefined) file unit handle iutdf now free ...
         call FINDFIL(LTDFA,XST)
         if(.NOT.XST)then
           goto 42

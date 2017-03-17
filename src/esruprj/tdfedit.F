@@ -110,8 +110,9 @@ C ASCII file to import data from: IUIMP=unit, LIMP=file name.
 C Import file unknown (ITIMP=0), ASCII column listing (ITIMP=1).
       afil='  '
       OPTDF=.FALSE.
-      IUIMP=IFIL+5 
-      LIMP ='tdf.import' 
+      IUIMP=IFIL+5
+C     LTDFA is used if not empty
+      LIMP ='tdf.import'
       ITIMP=1
 
 C ASCII export file: IUEXP=unit, LEXP=file name.

@@ -1108,11 +1108,14 @@ C espriou.h provides current file.
       real toler  ! what is half of the timestep
 
 C If not already opened free unit and check if file exists.
+cx << in the case of adding existing tdf and then choosing browse/edit
+cx << file seems to be open and call to EFOPSEQ() below gives error 5004
       IER=0
       CALL ERPFREE(iafil,ISTAT)
       CALL EFOPSEQ(iafil,AFIL,1,IER)
       IF(ier.ne.0)THEN
-        write(msgl2,'(2a)') ' error opening ',AFIL(1:lnblnk(AFIL))
+        write(msgl2,'(2a)') 'TDFAIMPT: Error opening ',
+     &                                        AFIL(1:lnblnk(AFIL))
         CALL USRMSG(' ',msgl2,'W')
         IER=1
         RETURN
