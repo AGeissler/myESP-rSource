@@ -7,13 +7,13 @@ C  these variables to be sized to 32. The other variables have little
 C  impact of the size of dfs and bps.
 C
 C  Maximum number of cells in x direction (usual setting NTCELX=32)
-      INTEGER, PARAMETER :: NTCELX=32
+      INTEGER, PARAMETER :: NTCELX=64
 C  Maximum number of cells in y direction (usual setting NTCELY=32)
-      INTEGER, PARAMETER :: NTCELY=32
+      INTEGER, PARAMETER :: NTCELY=64
 C  Maximum number of cells in z direction (usual setting NTCELZ=32)
-      INTEGER, PARAMETER :: NTCELZ=32
+      INTEGER, PARAMETER :: NTCELZ=64
 C  Maximum number between ntcelx, ntcely and ntcelz (usual setting MCEL1D=32)
-      INTEGER, PARAMETER :: MCEL1D=32
+      INTEGER, PARAMETER :: MCEL1D=64
 C  Maximum number of new mfs connections created for CFD domain (usual setting MCFND=20)
       INTEGER, PARAMETER :: MCFND=20
 C  Maximum number of gridding regions per axis (usual setting MNREG=20)
