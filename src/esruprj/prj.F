@@ -1718,6 +1718,7 @@ C Display the simulation period.
         else
           write(ITEMS(10),'(a)')      '  plant results: N/A'
         endif
+cx ? spm has own results file?
         if(ispmxist.gt.0)then
           write(ITEMS(11),'(a)')      'k : '
         else
@@ -1743,7 +1744,15 @@ C Display the simulation period.
           write(ITEMS(14),'(2a)')  'n IPV report: ',sipvres(1:18)
         else
           write(ITEMS(14),'(2a)')  'n IPV report: ',sipvres(1:18)
-        endif    
+        endif
+cx Insert CFD results file here (w/o changing letter settings for
+cx available files)!
+c        if(lnblnk(LCFD(I)).gt.0)then
+c          write(ITEMS(15),'(2a)')     'q CFD results: ',
+c     &      LCFD(isset)(1:16)
+c        else
+c          write(ITEMS(15),'(a)')      '  CFD results : N/A'
+c        endif
         ITEMS(15)  ='o save or dereference parameters '
         ITEMS(16)  ='  ______________________________ '
         M=16

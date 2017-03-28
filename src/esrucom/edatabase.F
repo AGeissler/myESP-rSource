@@ -917,14 +917,14 @@ C Increment thickness of MLC.
 C Read logical value for "layer flipped?" if using v. 1.2 CFClayers.db
 C or higher (this is not entirely "clean", as actually the CFClayers.db
 C version has nothing to do with the mlc construction file version ...):
-c            if (closecfc2) then
-c              CALL EGETW(LOUTSTR,K,RSTR,'W','CFC layer flipped?',IER)
-c              if (RSTR(1:1).eq.'T') then
-c                CFC_layer_flipped(mlcloop,layloop)=.true.
-c              else
-c                CFC_layer_flipped(mlcloop,layloop)=.false.
-c              endif
-c            endif
+            if (closecfc2) then
+              CALL EGETW(LOUTSTR,K,RSTR,'W','CFC layer flipped?',IER)
+              if (RSTR(1:1).eq.'T') then
+                CFC_layer_flipped(mlcloop,layloop)=.true.
+              else
+                CFC_layer_flipped(mlcloop,layloop)=.false.
+              endif
+            endif
 
 C Current MLDB also includes the name of the layer from the
 C CFClayers db.
@@ -2384,7 +2384,7 @@ C Parameters
 
       DIMENSION PNAM(ME)
       CHARACTER NAM*72,PNAM*72
-      character lworking*144,fs*1,tab*1
+      character lworking*144,fs*1,tab*1,flipped*1
       character outs*148,outsd*148
       integer lndbp   ! for length of standard database path
       logical unixok  ! to check for database path file separators
@@ -2492,9 +2492,26 @@ C Loop through layers. Write to string and then do comma separation
 C for the initial bit and add in documentation.
         do loop2=1,LAYERS(loop)
           lnda=lnblnk(LAYDESC(loop,loop2))
-          write(outs,'(2A,i5,a,f10.4)') '*layer',' ',
-     &      IPR(loop,loop2),' ',DTHK(loop,loop2)
-cx << insert code for CFC2 flipped layers write here??
+          IF(mlctype(loop)(1:4).EQ.'CFC2') THEN
+C           Output of CFC2 type constructions depending on version
+            if (closecfc2) then
+              if (CFC_layer_flipped(loop,loop2)) then
+                flipped='T'
+              else
+                flipped='F'
+              endif
+              write(outs,'(2A,i5,a,f10.4,a,a)') '*layer',' ',
+     &          ITMCFCDB(loop,loop2),' ',DTHK(loop,loop2),' ',
+     &          flipped
+            else
+              write(outs,'(2A,i5,a,f10.4)') '*layer',' ',
+     &          ITMCFCDB(loop,loop2),' ',DTHK(loop,loop2)
+            endif
+          ELSE
+C           All other cases (... behaviour unchanged)
+            write(outs,'(2A,i5,a,f10.4)') '*layer',' ',
+     &        IPR(loop,loop2),' ',DTHK(loop,loop2)
+          ENDIF
           call SDELIM(outs,outsd,'C',IW)
           write(IFMUL,'(3a)') outsd(1:lnblnk(outsd)),tab,
      &      LAYDESC(loop,loop2)(1:lnda)
