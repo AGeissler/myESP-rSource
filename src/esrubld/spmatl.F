@@ -3930,6 +3930,9 @@ C                          k=0 sub-cooled PCM;
 C    PCMStore()          - calculate change in stored latent heat,
 C                          apparent conduction and apparent specific
 C                          heat capacity.
+C
+C 170331: Extension added to allow for arbitrary PCM curves. Use spline function
+C for these. Penalty in run-time.
 
       subroutine spmcmp56(icomp,ispmnod)
 #include "building.h"
@@ -3970,10 +3973,29 @@ C Phase change materials.
 
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
      &               a1,b1,c1,d1,e1,f1,a2,b2,c2,d2,e2,f2,LHSimple
-      real Lges    !- Total latent heat capacity of PCM (J/kg).
+      real Lges         !- Total latent heat capacity of PCM (J/kg).
       logical LHSimple  !- .true. is previous simple model, .false. is
                         !  extended model.
+
+C DSC data / spline function data
+      common/pcmspline/temp1d(mspmnod,MSPMSPLM),
+     &          heat1d(mspmnod,MSPMSPLM),
+     &          cool1d(mspmnod,MSPMSPLM),heat2d(mspmnod,MSPMSPLM),
+     &          cool2d(mspmnod,MSPMSPLM),nxy(mspmnod),
+     &          bUseSpline(mspmnod),fnamDSCdat(mspmnod)
+      real temp1d   ! DSC temperature data values, degC
+      real heat1d   ! DSC heating enthalpy values, J/(kg K)
+      real cool1d   ! DSC cooling enthalpy values, J/(kg K)
+      real heat2d   ! 2nd derivatives at spline x values
+      real cool2d
+      integer nxy             ! number of data sets
+      logical bUseSpline      ! .true. means DSC data file available, use
+                              ! cubic spline function for apparent specific
+                              ! heat function.
+      character fnamDSCdat*72 ! DSC data file name for current spm entry
+
 C Local variables.
+      real yp1,ypn            ! values for start and end points for spline
       real LayFrac(3)
       integer presk
       integer db(3)     !- Debug variable, stores 'case' of PCM heating/cooling.
@@ -4011,28 +4033,34 @@ C Specific heat capacity in solid and liquid phase (J/kg.K)
 C Total latent heat capacity of PCM (J/kg).
       Lges=spmdat(ispmnod,8)
 
-      if(spmdat(ispmnod,9).eq.0)then
+      if (spmdat(ispmnod,9).eq.0) then
          LHSimple=.true.
-      else
+      elseif (spmdat(ispmnod,9).eq.1) then
          LHSimple=.false.
+      else
+C       Use spline, read DSC data from file
+        LHSimple=.true.
+
       endif
 
-C Coefficients for non-subcooling (a1-f1) and sub-cooling (a2-f2) integral
-C of latent heat - lh(t1,t2)=exp(a)/b*(exp(b*T1)-exp(b*t2)) - and latent
-C heat function from c(T)=(a+cT+eT**2)/(1+bT+dT**2) extended to
-C (t**f)*c(t) (see thesis by Sabine Hoffmann).
-      a1=spmdat(ispmnod,10)
-      b1=spmdat(ispmnod,11)
-      c1=spmdat(ispmnod,12)
-      d1=spmdat(ispmnod,13)
-      e1=spmdat(ispmnod,14)
-      f1=spmdat(ispmnod,15)
-      a2=spmdat(ispmnod,16)
-      b2=spmdat(ispmnod,17)
-      c2=spmdat(ispmnod,18)
-      d2=spmdat(ispmnod,19)
-      e2=spmdat(ispmnod,20)
-      f2=spmdat(ispmnod,21)
+      if (.not.LHSimple) then
+C       Coefficients for non-subcooling (a1-f1) and sub-cooling (a2-f2)
+C       integral of latent heat - lh(t1,t2)=exp(a)/b*(exp(b*T1)-exp(b*t2))
+C        - and latent heat function from c(T)=(a+cT+eT**2)/(1+bT+dT**2)
+C       extended to (t**f)*c(t) (see thesis by Sabine Hoffmann).
+        a1=spmdat(ispmnod,10)
+        b1=spmdat(ispmnod,11)
+        c1=spmdat(ispmnod,12)
+        d1=spmdat(ispmnod,13)
+        e1=spmdat(ispmnod,14)
+        f1=spmdat(ispmnod,15)
+        a2=spmdat(ispmnod,16)
+        b2=spmdat(ispmnod,17)
+        c2=spmdat(ispmnod,18)
+        d2=spmdat(ispmnod,19)
+        e2=spmdat(ispmnod,20)
+        f2=spmdat(ispmnod,21)
+      endif
 
 C Initialisations.
       if(nsinc.le.1)then
@@ -4043,6 +4071,20 @@ C Initialisations.
             appconp(icomp,isurf,nloc)=consol
             appshcp(icomp,isurf,nloc)=shcsol
          enddo
+         if (bUseSpline(ispmnod)) then
+C          Read DSC file and set up cubic spline data
+           call ReadDSCDataFile(ispmnod)
+           yp1=9.E33
+           ypn=9.E33
+C          Heating curve
+           call spline(temp1d(ispmnod,:), heat1d(ispmnod,:),
+     &                 nxy(ispmnod), yp1, ypn, heat2d(ispmnod,:))
+
+C          Cooling curve
+           call spline(temp1d(ispmnod,:), cool1d(ispmnod,:),
+     &                 nxy(ispmnod), yp1, ypn, cool2d(ispmnod,:))
+
+         endif
       endif
 
 C Initialisations for xml output.
@@ -4075,7 +4117,7 @@ C specific heat from previous time step.
 C Calculated change in stored latent heat, apparent conduction and
 C apparent specific heat capacity based on present and future
 C temperatures and state, 'k', of PCM.
-         call PCMStore(tpcm,tfcm,presk,storedLH,appcon,appshc,
+         call PCMStore(ispmnod,tpcm,tfcm,presk,storedLH,appcon,appshc,
      &                                                     db(iphnl))
 
 C Parameters for xml output.
@@ -4369,6 +4411,7 @@ C the integral of the stored/released latent heat between start temperature,
 C T1, and end temperature, T2:
 C          k = normal (1) or sub-cooled (0) range;
 C          LHSimple = simple (.true.) or extended function (.false.).
+C          bUseSpline .true. => use spline function
 
 C The returned value is LH, the stored/released latent heat (J/kg);
 C thereby, an energy balance is formulated from the viewpoint of the
@@ -4380,11 +4423,13 @@ C The base equations are taken from the PhD thesis of Sabine Hoffmann,
 C University of Weimar, September 2006 ('Advanced' function extended
 C by factor T^f).
 
-      real function LatentHeat(k,T1,T2)
+      real function LatentHeat(isp,k,T1,T2)
       implicit none
 
+#include "building.h"
+
       real T1,T2
-      integer k
+      integer isp,k
 
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
@@ -4399,37 +4444,81 @@ C Phase change material parameters.
       real a2,b2,c2,d2,e2,f2  !  and subcooling (a2-f2) states
       logical LHSimple        !- .true. is simple model, .false. is extended model
 
+C DSC data / spline function data
+      common/pcmspline/temp1d(mspmnod,MSPMSPLM),
+     &          heat1d(mspmnod,MSPMSPLM),
+     &          cool1d(mspmnod,MSPMSPLM),heat2d(mspmnod,MSPMSPLM),
+     &          cool2d(mspmnod,MSPMSPLM),nxy(mspmnod),
+     &          bUseSpline(mspmnod),fnamDSCdat(mspmnod)
+      real temp1d   ! DSC temperature data values, degC
+      real heat1d   ! DSC heating enthalpy values, J/(kg K)
+      real cool1d   ! DSC cooling enthalpy values, J/(kg K)
+      real heat2d   ! 2nd derivatives at spline x values
+      real cool2d
+      integer nxy             ! number of data sets
+      logical bUseSpline      ! .true. means DSC data file available, use
+                              ! cubic spline function for apparent specific
+                              ! heat function.
+      character fnamDSCdat*72 ! DSC data file name for current spm entry
+
+
 C Local variables.
       real aa,bb,ff,LH_T1,LH_T2,v_func
 
 C Which function?
       if(k.eq.0)then
-         if(LHSimple)then  !- simple function
-            aa=a2
-            bb=b2
-         else              !- extended function
-            ff=f2          !- aa to ee are set in function v_func()
-         endif
-      else                 !- function defaults to 'normal' mode
-         if(LHSimple)then  !- simple function
-            aa=a1
-            bb=b1
-         else              !- extended function
-            ff=f1          !- aa to ee are set in function v_func()
-         endif
+        if (.not.bUseSpline(isp)) then
+           if(LHSimple)then  !- simple function
+              aa=a2
+              bb=b2
+           else              !- extended function
+              ff=f2          !- aa to ee are set in function v_func()
+           endif
+        endif
+      else                   !- function defaults to 'normal' mode
+        if (.not.bUseSpline(isp)) then
+           if(LHSimple)then  !- simple function
+              aa=a1
+              bb=b1
+           else              !- extended function
+              ff=f1          !- aa to ee are set in function v_func()
+           endif
+        endif
       endif
 
-      if(LHSimple)then     !- simple function
-         LatentHeat=exp(aa)/bb*(exp(bb*T1)-exp(bb*T2))
-      else
+      if (bUseSpline(isp)) then
+        if (k.eq.0) then
+C         Use splint to calculate cooling curve values at T1 and T2 ...
+          call splint(temp1d(isp,:), cool1d(isp,:), cool2d(isp,:),
+     &                 nxy(isp), T1, LH_T1)
+          call splint(temp1d(isp,:), cool1d(isp,:), cool2d(isp,:),
+     &                 nxy(isp), T2, LH_T2)
+          LatentHeat=LH_T1-LH_T2 ! ???
+
+        else ! "normal" (heating) curve
+
+C         Use splint to calculate cooling curve values at T1 and T2 ...
+          call splint(temp1d(isp,:), heat1d(isp,:), heat2d(isp,:),
+     &                 nxy(isp), T1, LH_T1)
+          call splint(temp1d(isp,:), heat1d(isp,:), heat2d(isp,:),
+     &                 nxy(isp), T2, LH_T2)
+          LatentHeat=LH_T1-LH_T2 ! ???
+
+        endif
+
+      else ! not spline
+        if(LHSimple)then     !- simple function
+          LatentHeat=exp(aa)/bb*(exp(bb*T1)-exp(bb*T2))
+        else
 
 C Calculate functions to build LatentHeat.
-         LH_T1=T1**ff*v_func(k,T1)-ff*T1**(ff-1)*v_func(k,T1)  ! integral approximation
-         LH_T2=T2**ff*v_func(k,T2)-ff*T2**(ff-1)*v_func(k,T2)
-         LatentHeat=(LH_T1-LH_T2)*1000.0   !- change upper and lower boundary
-                                           !  of array to comply with sign
-                                           !  definition for LatentHeat and
-                                           !  adapt unit from J/g to J/kg
+          LH_T1=T1**ff*v_func(k,T1)-ff*T1**(ff-1)*v_func(k,T1)  ! integral approximation
+          LH_T2=T2**ff*v_func(k,T2)-ff*T2**(ff-1)*v_func(k,T2)
+          LatentHeat=(LH_T1-LH_T2)*1000.0   !- change upper and lower boundary
+                                            !  of array to comply with sign
+                                            !  definition for LatentHeat and
+                                            !  adapt unit from J/g to J/kg
+        endif
       endif
 
 C More than |Lges| is not possible.
@@ -4500,13 +4589,13 @@ C This routine keeps track of the latent heat stored/released by a
 C PCM. The routine is called once each simulation time step and for
 C each PCM node.
 
-      subroutine pcmstore(TnS,TnS1,k,storedLH,AppCon,AppSHC,Debug)
+      subroutine PCMStore(isp,TnS,TnS1,k,storedLH,AppCon,AppSHC,Debug)
       implicit none
 
 C Parameters.
       real TnS
       real TnS1
-      integer k       !- sub-cooling switch, value of preceding time
+      integer isp,k   !- spm index, sub-cooling switch, value of preceding time
                       !  step passed (typically initialised to 1)
       real storedLH   !- stored latent heat, value of preceeding time
                       !  step passed (typically initialised to 0)
@@ -4583,7 +4672,7 @@ C PCM is solid (case 1), StoredLH = 0.
             elseif(TnS.le.tmelt.and.TnS1.gt.tmelt)then
 
 C PCM begins to melt (case 2).
-               storeThisTS=LatentHeat(1,tmelt,TnS1)
+               storeThisTS=LatentHeat(isp,1,tmelt,TnS1)
                storedLH=0.0E0-storeThisTS      !- storedLH must be >0
                AppCon=(1.0E0-storedLH/Lges)*consol+
      &                storedLH/Lges*conliq
@@ -4593,7 +4682,7 @@ C PCM begins to melt (case 2).
 
 C PCM is partially liquid, latent heat is stored in the normal
 C range (k=1, case 3).
-               storeThisTS=LatentHeat(1,TnS,TnS1)
+               storeThisTS=LatentHeat(isp,1,TnS,TnS1)
                storedLH=storedLH-storeThisTS
                AppCon=(1.0E0-storedLH/Lges)*consol+
      &                storedLH/Lges*conliq
@@ -4604,7 +4693,7 @@ C range (k=1, case 3).
 C Rest of solid PCM is completely melted and also heated as
 C liquid (case 4).
 cx << after timestep, appcon=conliq and appshc=shcliq, no? 17/2/22
-               storeThisTS=LatentHeat(1,TnS,tsoli)
+               storeThisTS=LatentHeat(isp,1,TnS,tsoli)
                storedLH=storedLH-storeThisTS
                if(storedLH.gt.Lges)storedLH=Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+
@@ -4629,7 +4718,7 @@ C PCM is completely liquified and heated further (case 5).
 
 C PCM is sub-cooled partial liquid and is completely
 C (re-)melted (case 6).
-               storeThisTS=LatentHeat(0,TnS,tsoli2)
+               storeThisTS=LatentHeat(isp,0,TnS,tsoli2)
                storedLH=storedLH-storeThisTS
           if(storedLH.gt.Lges)storedLH=Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
@@ -4639,7 +4728,7 @@ C (re-)melted (case 6).
 
 C PCM is sub-cooled partial liquid and not completely
 C melted (k=0, case 7).
-               storeThisTS=LatentHeat(0,TnS,TnS1)
+               storeThisTS=LatentHeat(isp,0,TnS,TnS1)
                storedLH=storedLH-storeThisTS
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=shcliq+storeThisTS/(TnS-TnS1)     !- to be verified
@@ -4668,7 +4757,7 @@ C PCM non-subcooled solidification is completed (case 2).
             elseif(TnS.le.tsoli.and.TnS1.ge.tmelt) then
 
 C PCM is partially liquid and is now cooled (non-subcooling, case 3).
-               storeThisTS=LatentHeat(1,TnS,TnS1)
+               storeThisTS=LatentHeat(isp,1,TnS,TnS1)
                storedLH=storedLH-storeThisTS
                if(storedLH.lt.0.0E+0)storedLH=0.0E+0   !- storedLH >= 0
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
@@ -4689,7 +4778,7 @@ C solidification temperature (case 5).
              elseif(TnS.gt.tsoli2.and.TnS1.lt.tsoli2)then
 
 C PCM begins to solidify in sub-cooled mode (k=0, case 6).
-               storeThisTS=LatentHeat(0,tsoli2,TnS1)
+               storeThisTS=LatentHeat(isp,0,tsoli2,TnS1)
                storedLH=Lges-storeThisTS
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=shcsol+storeThisTS/(tsoli2-TnS1)   !- to be verified
@@ -4698,7 +4787,7 @@ C PCM begins to solidify in sub-cooled mode (k=0, case 6).
 
 C PCM is subcooled partial liquid and not completely
 C solidified (k=0, case 7).
-               storeThisTS=LatentHeat(0,TnS,TnS1)
+               storeThisTS=LatentHeat(isp,0,TnS,TnS1)
                storedLH=storedLH-storeThisTS
                if(storedLH.lt.0.0E+0)storedLH=0.0E+0    !- storedLH >= 0
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
@@ -4707,7 +4796,7 @@ C solidified (k=0, case 7).
              elseif(TnS.gt.tmelt2.and.TnS1.le.tmelt2)then
 
 C PCM completely solidifies (k=0, case 8).
-               storeThisTS=LatentHeat(0,TnS,tmelt2)
+               storeThisTS=LatentHeat(isp,0,TnS,tmelt2)
                storedLH=0.0E0
                AppCon=consol
                AppSHC=shcsol+storeThisTS/(TnS-tmelt2)   !- to be verified
@@ -5290,3 +5379,301 @@ C Trace output.
 
   999 return
       end
+
+C ***********************************************************************
+C ******************************* ReadDSCDataFile ***********************
+C Created by: Achim Geissler
+C Initial Creation Date: March 31, 2017
+C Copyright FHNW
+C
+C This subroutine is based on cetc/FC_components.F::FC_eloads_convert. 
+C It reads the user-specified DSC data file, containing a header line and
+C three columns of data. N is the number of measurement data points,
+C DT the temperature interval of DSC measurement and MUNIT the mass
+C conversion factor so that enthalpy is in J/(kg K)
+C Format:
+C N, DT, MUNIT
+C T1, DHheat1, DHcool1
+C T2, DHheat2, DHcool2
+C ...
+C TN, DHheatN, DHcoolN
+C
+C Typically,
+C
+C This subroutine is executed once per simulation, prior to the time-step
+C calculations.
+C -----------------------------------------------------------------------
+      SUBROUTINE ReadDSCDataFile(ispmnod)
+      IMPLICIT NONE
+
+#include "building.h"
+
+      integer ispmnod
+
+C---------------------------------------------------------------------------------
+C ESP-r commons
+C---------------------------------------------------------------------------------
+      COMMON/FILEP/IFIL
+      INTEGER  IFIL
+
+      COMMON/OUTIN/IUOUT,IUIN
+      INTEGER  IUOUT,IUIN
+
+C----------------
+C SPM commons
+C----------------
+C DSC data / spline function data
+      common/pcmspline/temp1d(mspmnod,MSPMSPLM),
+     &          heat1d(mspmnod,MSPMSPLM),
+     &          cool1d(mspmnod,MSPMSPLM),heat2d(mspmnod,MSPMSPLM),
+     &          cool2d(mspmnod,MSPMSPLM),nxy(mspmnod),
+     &          bUseSpline(mspmnod),fnamDSCdat(mspmnod)
+      real temp1d   ! DSC temperature data values, degC
+      real heat1d   ! DSC heating enthalpy values, J/(kg K)
+      real cool1d   ! DSC cooling enthalpy values, J/(kg K)
+      real heat2d   ! 2nd derivatives at spline x values
+      real cool2d
+      integer nxy             ! number of data sets
+      logical bUseSpline      ! .true. means DSC data file available, use
+                              ! cubic spline function for apparent specific
+                              ! heat function.
+      character fnamDSCdat*72 ! DSC data file name for current spm entry
+
+C---------------------------------------------------------------------------------
+C Declare local variables.
+C---------------------------------------------------------------------------------
+      INTEGER ND,K,num_recs,num_col,num_incbin,inc,incbi,ire
+      integer iFIL_ascii  ! temporary local file number
+      
+      CHARACTER OUTSTR*124
+
+      LOGICAL fclerror
+
+      INTEGER ISTAT,IER,I
+      INTEGER irec, incbin
+
+      real dataDT          ! Temperature interval of DSC data points
+      real MUNIT           ! Mass unit conversion factor (1. or 1000.)
+
+      integer lnblnk  ! function definition
+
+C---------------------------------------------------------------------------------
+C Read the header information from the user-specified data file (.dsc)
+C and perform some checks to ensure that the correct number of data
+C are specified. Note that this does not check the validity of the data,
+C but rather ensures that the correct number of data items are specified.
+C The existence of the .dsc file was confirmed when the .cfg file was read.
+C ((then why check below??))
+C `fclerror' is a flag indicating whether there were errors reading the .fcl file.
+C---------------------------------------------------------------------------------
+C-----Notify user that data file is being processed (this can take some time).
+      call usrmsg(' Processing DSC input file...',
+     &            ' ','-')
+C-----Open the .dsc file.
+      fclerror = .false.
+      iFIL_ascii = IFIL+28  ! Should be a safe unit number to use.
+      CALL ERPFREE(iFIL_ascii,ISTAT)
+      CALL EFOPSEQ(iFIL_ascii,fnamDSCdat(ispmnod),1,IER)
+      IF(IER /= 0)THEN
+        WRITE(IUOUT,*) ' Error opening DSC type input file ',
+     &    fnamDSCdat(ispmnod),', spm node ',
+     &    ispmnod,'.'
+        fclerror = .true.
+      ENDIF
+
+C-----Read the number of data points and temperature interval of data.
+      CALL STRIPC(iFIL_ascii,OUTSTR,99,ND,1,' DSC input type',IER)
+      IF(IER /= 0)THEN
+        WRITE(IUOUT,*) ' Error reading DSC type input file ',
+     &    fnamDSCdat(ispmnod),', spm node ',
+     &    ispmnod,'.'
+        fclerror = .true.
+      ENDIF
+C     << check ND? >>
+      K=0
+      CALL EGETWI(OUTSTR,K,nxy(ispmnod),10,MSPMSPLM,'-',
+     &                               ' Number of DSC data points ',IER)
+      IF(IER /= 0)THEN
+        WRITE(IUOUT,*) ' Error reading number of DSC data points; ',
+     &    ' file ',fnamDSCdat(ispmnod),', spm node ',
+     &    ispmnod,'.'
+        fclerror = .true.
+      ENDIF
+      CALL EGETWR(OUTSTR,K,dataDT,0.,0.,'-',
+     &                 ' Temperature interval of DSC data points ',IER)
+      IF(IER /= 0)THEN
+        WRITE(IUOUT,*) ' Error reading temperature interval of DSC ',
+     &    'data points; file ',fnamDSCdat(ispmnod),', spm node ',
+     &    ispmnod,'.'
+        fclerror = .true.
+      ENDIF
+
+      IF (dataDT.le.0) THEN
+        WRITE(IUOUT,*) ' Temperature interval of DSC ',
+     &    'file ',fnamDSCdat(ispmnod),', spm node ',
+     &    ispmnod,' value bad ... setting to unity.'
+        dataDT=1.0
+      ENDIF
+
+      CALL EGETWR(OUTSTR,K,MUNIT,0.,0.,'-',
+     &                 ' Mass unit conversion of DSC data points ',IER)
+      IF(IER /= 0)THEN
+        WRITE(IUOUT,*) ' Error reading mass unit conversion of DSC ',
+     &    'data points; file ',fnamDSCdat(ispmnod),', spm node ',
+     &    ispmnod,'.'
+        fclerror = .true.
+      ENDIF
+
+
+C-----Error handling on reading of .fcl file.
+      IF(fclerror)THEN
+        STOP ' Error in DSC input file.'
+      ENDIF
+
+C---------------------------------------------------------------------------------
+C     Read the data triplet at each temperature increment. Normalize
+C     enthalpy values "heat" and "cool" to 1 K (i.e. divide by dataDT)
+C     and correct mass unit to kg (i.e. multiply by 1000 g/kg if data
+C     values in J/(g K)
+C---------------------------------------------------------------------------------
+
+      DO irec=1,nxy(ispmnod)
+C-------Read the data from the ASCII file.
+        CALL STRIPC(iFIL_ascii,OUTSTR,99,ND,1,'the raw data line',IER)
+        IF(IER /= 0)THEN
+          WRITE(IUOUT,'(4a,i3,a,i3,a)') ' Error reading DSC data from ',
+     &      'file ',fnamDSCdat(ispmnod)(1:lnblnk(fnamDSCdat(ispmnod))),
+     &      ', spm node ',ispmnod,', data line ',irec,'.'
+        ENDIF
+C       << check ND? >>
+        K=0
+        CALL EGETWR(OUTSTR,K,temp1d(ispmnod,irec),0.,0.,'-','t1d',IER)
+        CALL EGETWR(OUTSTR,K,heat1d(ispmnod,irec),0.,0.,'-','h1d',IER)
+        CALL EGETWR(OUTSTR,K,cool1d(ispmnod,irec),0.,0.,'-','c1d',IER)
+
+C       Normalize enthalpy values to J/(kg K)
+        heat1d(ispmnod,irec)=MUNIT*heat1d(ispmnod,irec)/dataDT
+        cool1d(ispmnod,irec)=MUNIT*cool1d(ispmnod,irec)/dataDT
+
+      END DO
+
+C Processing complete. Leave binary file open for use during time-step simulation.
+      call usrmsg(' Processing DSC input file... done.',
+     &            ' ','-')
+
+      RETURN
+      END
+
+C************************************************************************
+C     N U M E R I C A L    R E C I P E S
+C************************************************************************
+C
+C Routines spline() and splint() from Numerical Recipes.
+C
+      SUBROUTINE spline(x, y, n, yp1, ypn, y2)
+!     use nrtype
+!
+! Given arrays x(1:n) and y(1:n) containing a tabulated function, i.e.
+! y(i)=f(x(i)), with x(1)<x(2)<...<x(n), and given values yp1 and ypn for
+! the first derivative of the interpolating function at points 1 and n,
+! respectively, this routine returns an array y2(1:n) of length n which
+! contains the second derivatives of the interpolating function at the
+! tabulated points x(i).  If yp1 and/or ypn are equal to 1.e30 or larger,
+! the routine is signaled to set the corresponding boundary condition for
+! a natural spline with zero second derivative on that boundary.
+! Parameter: nmax is the largest anticipiated value of n
+! (adopted from Numerical Recipes in FORTRAN 77)
+!
+cx      INTEGER, PARAMETER :: DP=KIND(1.0D0)
+      INTEGER:: n
+      INTEGER, PARAMETER:: nmax=500
+      REAL:: yp1, ypn, x(n), y(n), y2(n)
+      INTEGER:: i, k
+      REAL:: p, qn, sig, un, u(nmax)
+
+      if (yp1.gt..99e30) then
+        y2(1)=0.
+        u(1)=0.
+      else
+        y2(1)=-0.5
+        u(1)=(3./(x(2)-x(1)))*((y(2)-y(1))/(x(2)-x(1))-yp1)
+      endif
+
+      do i=2, n-1
+        sig=(x(i)-x(i-1))/(x(i+1)-x(i-1))
+        p=sig*y2(i-1)+2.
+        y2(i)=(sig-1.)/p
+        u(i)=(6.*((y(i+1)-y(i))/(x(i+1)-x(i))-(y(i)-y(i-1))
+     &         /(x(i)-x(i-1)))/(x(i+1)-x(i-1))-sig*u(i-1))/p
+      enddo
+
+      if (ypn.gt..99e30) then
+        qn=0.
+        un=0.
+      else
+        qn=0.5
+        un=(3./(x(n)-x(n-1)))*(ypn-(y(n)-y(n-1))/(x(n)-x(n-1)))
+      endif
+
+      y2(n)=(un-qn*u(n-1))/(qn*y2(n-1)+1.)
+
+      do k=n-1, 1, -1
+        y2(k)=y2(k)*y2(k+1)+u(k)
+      enddo
+
+      return
+      END
+
+C========================================================================
+      SUBROUTINE splint(xa, ya, y2a, n, x, y)
+C     USE nrtype
+C
+C Given the arrays xa(1:n) and ya(1:n) of length n, which tabulate a
+C function (with the xa(i) in order), and given the array y2a(1:n), which
+C is the output from the subroutine spline, and given a value of x, this
+C routine returns a cubic spline interpolated value y.
+C (adopted from Numerical Recipes in FORTRAN 77)
+
+
+C------------------------------------------------------------------------
+C ESP-r commons
+C------------------------------------------------------------------------
+      COMMON/OUTIN/IUOUT,IUIN
+      INTEGER  IUOUT,IUIN
+
+cx      INTEGER, PARAMETER :: DP = KIND(1.0D0)
+      INTEGER:: n
+      REAL:: x, y, xa(n), y2a(n), ya(n)
+      INTEGER:: k, khi, klo
+      REAL:: a, b, h
+
+C     << improve performance by remembering last klo / khi??
+      klo=1
+      khi=n
+  1   if (khi-klo.gt.1) then
+        k=(khi+klo)/2
+        if (xa(k).gt.x) then
+           khi=k
+        else
+           klo=k
+        endif
+        goto 1
+      endif
+
+      h=xa(khi)-xa(klo)
+      if (h.eq.0.) then
+C       pause 'bad xa input in splint'
+          WRITE(IUOUT,'(2a)') ' Error in splint: ',
+     &      '"bad xa".'
+        return
+      endif
+
+      a=(xa(khi)-x)/h
+      b=(x-xa(klo))/h
+      y=a*ya(klo)+b*ya(khi)
+     &           +((a**3-a)*y2a(klo)+(b**3-b)*y2a(khi))*(h**2)/6.
+
+      return
+      END
+
+

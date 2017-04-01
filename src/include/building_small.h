@@ -65,6 +65,7 @@ C Special materials.
       PARAMETER (MSPMNOD=40)   !- Special materials.
       PARAMETER (MSPMDAT=21)   !- Defining data items.
       PARAMETER (MSPMRES=12)   !- Output data items
+      PARAMETER (MSPMSPLM=150) !- Spline data items
 
 C Casual gains.
       PARAMETER (MCT=7,MGTY=7) !- Casual gain types.

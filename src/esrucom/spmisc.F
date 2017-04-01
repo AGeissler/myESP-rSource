@@ -46,6 +46,23 @@ C Path to problem and command line file (if any).
       common/rpath/path
       common/filep/ifil
 
+C DSC data / spline function data
+      common/pcmspline/temp1d(mspmnod,MSPMSPLM),
+     &          heat1d(mspmnod,MSPMSPLM),
+     &          cool1d(mspmnod,MSPMSPLM),heat2d(mspmnod,MSPMSPLM),
+     &          cool2d(mspmnod,MSPMSPLM),nxy(mspmnod),
+     &          bUseSpline(mspmnod),fnamDSCdat(mspmnod)
+      real temp1d   ! DSC temperature data values, degC
+      real heat1d   ! DSC heating enthalpy values, J/(kg K)
+      real cool1d   ! DSC cooling enthalpy values, J/(kg K)
+      real heat2d   ! 2nd derivatives at spline x values
+      real cool2d
+      integer nxy             ! number of data sets
+      logical bUseSpline      ! .true. means DSC data file available, use
+                              ! cubic spline function for apparent specific
+                              ! heat function.
+      character fnamDSCdat*72 ! DSC data file name for current spm entry
+
       real hold_data(mspmdat)
 
       character outs*124,outstr*124,spmlabel*16
@@ -131,6 +148,7 @@ C Read the material miscellaneous data.
         call stripc(ispmfil,outstr,1,ND,0,
      &    'special materials file error..',IER)
         if(IER.ne.0) goto 999
+C Read the number of data items for this entry
         K=0
         call egetwi(outstr,K,nspmdat,1,mspmdat,'W','-',IER)
         nnodat(I)=nspmdat
@@ -145,6 +163,23 @@ C Recover misellaneous data:
             spmdat(I,J) = hold_data(j)
 
           enddo
+
+C Read optional DSC data file name for SPMCMP56 ...
+        if (ispmtyp(I,1).eq.56) then
+          if (nspmdat.eq.9) then
+            if (spmdat(I,9).gt.1) then
+C             We have SPMCMP56, only 9 data items and item 9 is not 0 or 1 ...
+C             should mean DSC data file available
+              call stripc(ispmfil,outstr,1,ND,0,' DSC file name',IER)
+              L=0
+              call EGETW(outstr,L,fnamDSCdat(I),'W',
+     &                                      ' get DSC file name',IER)
+              if (IER.eq.0) bUseSpline(I)=.true.
+C DEBUG
+              write(*,*)'** found DSC file ',fnamDSCdat(I)
+            endif
+          endif
+        endif
 
         if(IER.ne.0) goto 999
 
@@ -184,6 +219,23 @@ C defined.
 
 C Special materials file flag
       common/spmfxst/ispmxist,spflnam  
+
+C DSC data / spline function data
+      common/pcmspline/temp1d(mspmnod,MSPMSPLM),
+     &          heat1d(mspmnod,MSPMSPLM),
+     &          cool1d(mspmnod,MSPMSPLM),heat2d(mspmnod,MSPMSPLM),
+     &          cool2d(mspmnod,MSPMSPLM),nxy(mspmnod),
+     &          bUseSpline(mspmnod),fnamDSCdat(mspmnod)
+      real temp1d   ! DSC temperature data values, degC
+      real heat1d   ! DSC heating enthalpy values, J/(kg K)
+      real cool1d   ! DSC cooling enthalpy values, J/(kg K)
+      real heat2d   ! 2nd derivatives at spline x values
+      real cool2d
+      integer nxy             ! number of data sets
+      logical bUseSpline      ! .true. means DSC data file available, use
+                              ! cubic spline function for apparent specific
+                              ! heat function.
+      character fnamDSCdat*72 ! DSC data file name for current spm entry
 
       character outs*124,deflnam*72,spflnam*72,h*72
       character spmlabel*16,lfil*72
@@ -266,6 +318,17 @@ C << there is a pattern in edspmtl.F near line 530. >>
         if(nnodat(isp).le.nspmdatl)then
           write(ispmfil,'(6F10.4,F16.6,3F10.4)')(spmdat(isp,idat),
      &    idat=1,nnodat(isp))
+C         For ispmtype.eq.56, 9 data items only and 9th item .gt.1
+C         insert DSC data file option ...
+C         nnodat(isp) should be 9, so only this "if" should be reached
+          if (ispmtyp(isp,1).eq.56) then
+            if (nnodat(isp).eq.9) then
+              if (spmdat(isp,9).gt.1) then
+                write(ispmfil,'(2a)')' ',
+     &            fnamDSCdat(isp)(1:lnblnk(fnamDSCdat(isp)))
+              endif
+            endif
+          endif
         else
           write(ispmfil,'(6F10.4,F16.6,3F10.4)')(spmdat(isp,idat),
      &    idat=istrt,iend)
