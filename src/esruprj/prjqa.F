@@ -134,6 +134,23 @@ C ISPMXIST is the existance flag for special materials
 
       integer :: istoreIUOUT,ispm,iTMCidx
 
+C DSC data / spline function data
+      common/pcmspline/temp1d(mspmnod,MSPMSPLM),
+     &          heat1d(mspmnod,MSPMSPLM),
+     &          cool1d(mspmnod,MSPMSPLM),heat2d(mspmnod,MSPMSPLM),
+     &          cool2d(mspmnod,MSPMSPLM),nxy(mspmnod),
+     &          bUseSpline(mspmnod),fnamDSCdat(mspmnod)
+      real temp1d   ! DSC temperature data values, degC
+      real heat1d   ! DSC heating enthalpy values, J/(kg K)
+      real cool1d   ! DSC cooling enthalpy values, J/(kg K)
+      real heat2d   ! 2nd derivatives at spline x values
+      real cool2d
+      integer nxy             ! number of data sets
+      logical bUseSpline      ! .true. means DSC data file available, use
+                              ! cubic spline function for apparent specific
+                              ! heat function.
+      character fnamDSCdat*72 ! DSC data file name for current spm entry
+
 C Variables for weekdays, and weekends.
 C Assume: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7
       common/wkdtyp/idwe1,idwe2,wkd1,wkd2
@@ -279,7 +296,7 @@ C in the current model. A -1 means not applicable
       character louts*248,loutsd*248
       character lltmp*144,lguess*144,lldef*144  ! for working with EASKXORGTKF
       character lpath*72,fname*72 ! for use with fdroot
-      character llclmdb*144
+      character llclmdb*144,miscinf*72
       integer llt,lndbp,jj
 
       logical newgeo  ! to use for testing if new/old geometry file.
@@ -1726,8 +1743,8 @@ C Report detailed
             if (ispm.eq.1) then ! write header only once
               WRITE(OUTS,'(3A)')
      &        ' No. Label            Zone         Surface     ',
-     &        ' Construction Node',
-     &        ' Type  Num Data    '
+     &        ' Construction         Node ',
+     &        ' Type  Num Data   Misc.'
               CALL EDISP(itu,OUTS)
             endif
 
@@ -1736,14 +1753,20 @@ C    power for PV and total latent heat capacity for PCM ... >>
 
 C Obtain transparent surface index (>0) related to PV module location.
             iTMCidx=ITMCFL(ispmloc(ispm,1),ispmloc(ispm,2))
+            write(miscinf,'(a)')'n.a. '
 
-            WRITE(OUTS,1111)ispm,spmlabel(ispm),zname(ispmloc(ispm,1)),
+            WRITE(LOUTS,1111)ispm,spmlabel(ispm),zname(ispmloc(ispm,1)),
      &        sname(ispmloc(ispm,1),ispmloc(ispm,2)),
-     &        SSMLCN(izstocn(ivals(ispmloc(ispm,1)),ispmloc(ispm,2))),
+     &        SSMLCN(izstocn(ivals(ispmloc(ispm,1)),
+     &               ispmloc(ispm,2)))(1:20),
      &        ispmloc(ispm,3),
-     &        (merge('Trn','Opq',iTMCidx.gt.0)),nnodat(ispm)
- 1111       FORMAT(1X,I3,1X,A,1X,A,1X,A,1X,A,1X,I3,3X,A,3X,I3)
-            CALL EDISP(itu,OUTS)
+     &        (merge('Trn','Opq',iTMCidx.gt.0)),nnodat(ispm),
+     &        (merge(fnamDSCdat(ispm)(1:lnblnk(fnamDSCdat(ispm))),
+     &                    miscinf(1:lnblnk(miscinf)),bUseSpline(ispm)))
+ 1111       FORMAT(1X,I3,1X,A,1X,A,1X,A,1X,A,1X,I3,3X,A,3X,I3,8X,A,1X)
+
+cx            CALL EDISP(itu,LOUTS)
+            call edisp248(itu,LOUTS,120)
 
   33      continue ! loop through all spm entries
 
