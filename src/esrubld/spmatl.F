@@ -4074,8 +4074,8 @@ C Initialisations.
          if (bUseSpline(ispmnod)) then
 C          Read DSC file and set up cubic spline data
            call ReadDSCDataFile(ispmnod)
-           yp1=9.E33
-           ypn=9.E33
+           yp1=0.
+           ypn=0.
 C          Heating curve
            call spline(temp1d(ispmnod,:), heat1d(ispmnod,:),
      &                 nxy(ispmnod), yp1, ypn, heat2d(ispmnod,:))
@@ -4407,17 +4407,18 @@ C This function models PCM materials, which show significant sub-cooling
 C properties, i.e. materials that, once melted, must be sub-cooled by
 C a few degrees below the conversion temperature at which they are
 C completely liquified. The function is called by SPMCPM56 to calculate
-C the integral of the stored/released latent heat between start temperature,
-C T1, and end temperature, T2:
+C the integral of the stored/released latent heat between the present
+C temperature, T1, and the future temperature, T2:
 C          k = normal (1) or sub-cooled (0) range;
 C          LHSimple = simple (.true.) or extended function (.false.).
-C          bUseSpline .true. => use spline function
+C          bUseSpline .true. => use spline function for heating/cooling
+C                                  enthalpy curves
 
 C The returned value is LH, the stored/released latent heat (J/kg);
 C thereby, an energy balance is formulated from the viewpoint of the
 C surrounding zone:
-C            > 0 when T1 > T2, i.e. heat released;
-C            < 0 when T1 < T2, i.e. heat stored.
+C          LH > 0 when T1 > T2, i.e. heat released to zone;
+C          LH < 0 when T1 < T2, i.e. heat stored in PCM.
 
 C The base equations are taken from the PhD thesis of Sabine Hoffmann,
 C University of Weimar, September 2006 ('Advanced' function extended
@@ -4430,6 +4431,9 @@ C by factor T^f).
 
       real T1,T2
       integer isp,k
+
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
 
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
@@ -4488,21 +4492,20 @@ C Which function?
 
       if (bUseSpline(isp)) then
         if (k.eq.0) then
-C         Use splint to calculate cooling curve values at T1 and T2 ...
-          call splint(temp1d(isp,:), cool1d(isp,:), cool2d(isp,:),
-     &                 nxy(isp), T1, LH_T1)
-          call splint(temp1d(isp,:), cool1d(isp,:), cool2d(isp,:),
-     &                 nxy(isp), T2, LH_T2)
-          LatentHeat=LH_T1-LH_T2 ! ???
+C         Use s_trap() to calculate cooling curve integral between
+C         T1 and T2 ...
+          call s_trap(isp,k,T1,T2,LatentHeat)
+C DEBUG
+          write(88,*)'nsinc,k,T1,T2,LH_int: ',
+     &                           nsinc,k,T1,T2,LatentHeat
 
-        else ! "normal" (heating) curve
-
-C         Use splint to calculate cooling curve values at T1 and T2 ...
-          call splint(temp1d(isp,:), heat1d(isp,:), heat2d(isp,:),
-     &                 nxy(isp), T1, LH_T1)
-          call splint(temp1d(isp,:), heat1d(isp,:), heat2d(isp,:),
-     &                 nxy(isp), T2, LH_T2)
-          LatentHeat=LH_T1-LH_T2 ! ???
+        else ! k=1, "normal" (heating) curve
+C         Use s_trap() to calculate heating curve integral between
+C         T1 and T2 ...
+          call s_trap(isp,k,T1,T2,LatentHeat)
+C DEBUG
+          write(88,*)'nsinc,k,T1,T2,LH_int: ',
+     &                           nsinc,k,T1,T2,LatentHeat
 
         endif
 
@@ -4659,7 +4662,7 @@ cx    use eclose logic here to "dampen" calcs? ... do what if TnS approx. equal 
 cx    storedLH += time step dependant?? 17/2/22
       if(TnS.lt.TnS1)then
 
-C PCM temperature increase.
+C PCM temperature increase, i.e. latent heat stored.
          if(k.eq.1)then
 
 C PCM behaves according to non-subcooling properties.
@@ -4735,6 +4738,8 @@ C melted (k=0, case 7).
                Debug=7
             endif         !- temperature bracketing for k=0
          endif
+
+C ********* COOLING *********
       elseif(TnS.gt.TnS1)then
 
 C PCM temperature decrease.
@@ -5676,4 +5681,120 @@ C       pause 'bad xa input in splint'
       return
       END
 
+C======================================================================
+C Based on Numerical Recipes for Fortran 77.
+C
+C Returns as LH the integral of the PCM function from T1 to T2.
+C
+C The parameters EPS can be set to the desired fractional accuracy and
+C JMAX so that 2^(JMAX-1) is the maximum allowed number of steps.
+C
+C Integration is performed by the trapezoidal rule.
+C
+      SUBROUTINE s_trap(isp,k,T1,T2,LH)
+      implicit none
 
+#include "building.h"
+
+C Subroutine parameters
+      INTEGER isp,k
+      REAL T1,T2,LH
+
+C------------------------------------------------------------------------
+C ESP-r commons
+C------------------------------------------------------------------------
+      COMMON/OUTIN/IUOUT,IUIN
+      INTEGER  IUOUT,IUIN
+
+C DSC data / spline function data
+      common/pcmspline/temp1d(mspmnod,MSPMSPLM),
+     &          heat1d(mspmnod,MSPMSPLM),
+     &          cool1d(mspmnod,MSPMSPLM),heat2d(mspmnod,MSPMSPLM),
+     &          cool2d(mspmnod,MSPMSPLM),nxy(mspmnod),
+     &          bUseSpline(mspmnod),fnamDSCdat(mspmnod)
+      real temp1d   ! DSC temperature data values, degC
+      real heat1d   ! DSC heating enthalpy values, J/(kg K)
+      real cool1d   ! DSC cooling enthalpy values, J/(kg K)
+      real heat2d   ! 2nd derivatives at spline x values
+      real cool2d
+      integer nxy             ! number of data sets
+      logical bUseSpline      ! .true. means DSC data file available, use
+                              ! cubic spline function for apparent specific
+                              ! heat function.
+      character fnamDSCdat*72 ! DSC data file name for current spm entry
+
+C------------------------------------------------------------------------
+C Local variables
+C------------------------------------------------------------------------
+      INTEGER JMAX
+      REAL EPS
+
+      PARAMETER (EPS=1.e-3, JMAX=9) ! Default values are 1.e-6, 20
+C     USES trapzd
+      INTEGER n,j,it
+
+      REAL oldLH,del,sum,tnm,x
+      real func_T1,func_T2,func_x
+
+C------------------------------------------------------------------------
+
+      oldLH=-1.e30
+
+C If k=0, we are cooling, if k=1, we are heating.
+      if (k.eq.0) then
+        call splint(temp1d(isp,:), cool1d(isp,:), cool2d(isp,:),
+     &                 nxy(isp), T1, func_T1)
+        call splint(temp1d(isp,:), cool1d(isp,:), cool2d(isp,:),
+     &                 nxy(isp), T2, func_T2)
+      else ! heating
+        call splint(temp1d(isp,:), heat1d(isp,:), heat2d(isp,:),
+     &                 nxy(isp), T1, func_T1)
+        call splint(temp1d(isp,:), heat1d(isp,:), heat2d(isp,:),
+     &                 nxy(isp), T2, func_T2)
+      endif
+
+      do 20 n=1,JMAX
+
+C       Calculate n-th stage of refinement.
+        if (n.eq.1) then
+          LH=0.5*(T2-T1)*(func_T1+func_T2)
+        else
+          it=2**(n-2)
+          tnm=it
+          del=(T2-T1)/tnm
+          x=T1+0.5*del
+          sum=0.
+
+          do 30 j=1,it
+            if (k.eq.0) then ! cooling
+              call splint(temp1d(isp,:), cool1d(isp,:), cool2d(isp,:),
+     &                 nxy(isp), x, func_x)
+            else ! heating
+              call splint(temp1d(isp,:), heat1d(isp,:), heat2d(isp,:),
+     &                 nxy(isp), x, func_x)
+            endif
+
+            sum=sum+func_x
+            x=x+del
+ 30       continue
+
+          LH=0.5*(LH+(T2-T1)*sum/tnm)
+
+        endif
+
+C       Force minimum of four iterations ...
+        if (j.gt.5) then
+          if (abs(LH-oldLH).lt.EPS*abs(oldLH).or.
+     &          LH.eq.0..and.oldLH.eq.0.) return
+        endif
+
+        oldLH=LH
+
+20    continue
+
+C      pause 'too many steps in qtrap'
+      WRITE(IUOUT,'(a)') ' *** Too many steps in s_trap! '
+
+      return
+
+      END  

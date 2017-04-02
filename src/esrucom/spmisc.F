@@ -176,7 +176,7 @@ C             should mean DSC data file available
      &                                      ' get DSC file name',IER)
               if (IER.eq.0) bUseSpline(I)=.true.
 C DEBUG
-              write(*,*)'** found DSC file ',fnamDSCdat(I)
+c              write(*,*)'** found DSC file ',fnamDSCdat(I)
             endif
           endif
         endif
