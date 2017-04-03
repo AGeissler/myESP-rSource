@@ -4987,7 +4987,7 @@ C Note: size of MLED supports a dozen layers in a construction.
       CHARACTER NAM*72,KEY*1,GDESCR*36
       CHARACTER SOPT*12,LAYD*124
       character T12*12,T14*14,T32*32,tdoc*248
-      CHARACTER outs*124,MLED*42,MMLAY*38
+      CHARACTER outs*124,MLED*42,MMLAY*42
       character PNAM*72
       character ZN*12,SN*12
       integer NLED,ILED  ! max items and current menu item
@@ -5173,14 +5173,6 @@ C was confused then cfcarrayindex could be 0.
 
           if (closecfc2) then
 C           Check where "low e" is facing;
-C             - When "flip layer" is implemented, the CFC db array values should
-C               *not* be changed, as the CFC database entries should not be
-C               altered!
-C             - A common "CFC_Layer_flipped(MMLC,ME)" will be necessary, boolean,
-C               to track state. This common should only be used for changing
-C               output when writing the actual .cfc zone file ... ??!!
-C             - The value needs to be stored with the corresponding mlc in
-C               the mlc database ... ??!!
             call eclose(CFCemissout(ITMCFCDB(IFOC,IL)),
      &                   CFCemissin(ITMCFCDB(IFOC,IL)),0.001,not_lowe)
             if (not_lowe) then
@@ -5304,17 +5296,50 @@ C If possible to jump next.
       ILED=-4
 
 C Also compose a list of layers for additions/deletions.
-C<< ? what is this for? Necessary to repeat "low e" output? >>
       check_CFC2_or_MLC_2:
      &IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
+        if (closecfc2) then
+          MMLAY(1)=' Layer|CFC |Thick|low| Description   '
+          MMLAY(2)='      |db# |(mm) |e  | of CFC layer  '
+        else
+          MMLAY(1)=' Layer|CFC |Thick| Description   '
+          MMLAY(2)='      |db# |(mm) | of CFC layer  '
+        endif
 
-        MMLAY(1)=' Layer|CFC |Thick| Description   '
-        MMLAY(2)='      |db# |(mm) | of CFC layer  '
         DO 11, IL=1,LAYERS(IFOC)
-        WRITE(MMLAY(IL+2),299)IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
-     &         DTHK(IFOC,IL)*1000.0,PNAM(IL)(1:20)
- 299      FORMAT(I4,I5,F7.1,2X,A)
-  11    CONTINUE
+C         Repeat code from lines 5174 ff. for low-e checking ...
+          if (closecfc2) then
+C           Check where "low e" is facing;
+            call eclose(CFCemissout(ITMCFCDB(IFOC,IL)),
+     &                   CFCemissin(ITMCFCDB(IFOC,IL)),0.001,not_lowe)
+            if (not_lowe) then
+                lowe='  '
+            else
+              if (CFCemissout(ITMCFCDB(IFOC,IL)) .lt.
+     &                    CFCemissin(ITMCFCDB(IFOC,IL))) then
+                if (.not.CFC_layer_flipped(IFOC,IL)) then
+                  lowe=':|'
+                else
+                  lowe='|:'
+                endif
+              else
+                if (.not.CFC_layer_flipped(IFOC,IL)) then
+                  lowe='|:'
+                else
+                  lowe=':|'
+                endif
+              endif
+            endif
+            WRITE(MMLAY(IL+2),298)IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
+     &                      DTHK(IFOC,IL)*1000.0,lowe,PNAM(IL)(1:20)
+ 298        FORMAT(I4,I5,F7.1,A3,2X,A)
+          else
+            WRITE(MMLAY(IL+2),299)IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
+     &                            DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:20)
+ 299        FORMAT(I4,I5,F7.1,2X,A)
+          endif ! closecfc2?
+
+  11    CONTINUE ! loop through layers
 
       ELSE !check_CFC2_or_MLC_2
 

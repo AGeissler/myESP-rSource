@@ -4,7 +4,7 @@ architecture=`uname -s`      # computer type e.g. Linux Darwin SunOS
 
 debug=""
 CVER=""
-LOCATION=""
+LOCATION="-d /opt/esru"
 
 if [ "$architecture" == "Darwin" ]; then
 #   debug="--extra-debug";
@@ -15,5 +15,5 @@ if [ "$architecture" == "Darwin" ]; then
    LOCATION="-d /opt/esru"
 fi
 
-./Install $1 $LOCATION --xml --X11 --no_dbs --no_training $debug $CVER --silent
-#./Install $1 $LOCATION --xml --X11          --no_training $debug $CVER --silent
+#./Install $1 $LOCATION --xml --X11 --no_dbs --no_training $debug $CVER --silent
+./Install $1 $LOCATION --xml --X11          --no_training $debug $CVER --silent

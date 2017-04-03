@@ -1181,7 +1181,7 @@ cx << check if name already defined, here??
       endif
 
 C Temporal definitions. Initial scan of configuration file would
-C determine if the state of the file:
+C determine the state of the file:
       if(iabs(itdflg).eq.0)then
 C        call edisp(iuout,' ')
 C        call edisp(iuout,'No temporal data has been defined.')
@@ -1348,12 +1348,15 @@ C Begin with high level menu.
   27  continue
       if(IRT.eq.1)then
 
+C Create a new file (itdflg = 0)
+cx ... or view/edit entities (itdflg = 3) ... this seems to create trouble!
 C If browsing do not bother to confim the file name.
         if(browse)then
           write(outs,'(2a)')' Temporal definitions ',LTDFA
           call edisp(iuout,outs)
         else
 
+cx << ask for file again only for itdflg == 0??!
 C If LTDFA is still UNKNOWN set to default name.
           if(LTDFA(1:4).eq.'UNKN') LTDFA=DLTDF
           ltmp=LTDFA
@@ -1379,6 +1382,7 @@ C Go into the tdf editing menu.
         goto 42
       elseif(IRT.eq.2)then
 
+C Select (existing!) temporal file
 C User supplies name of file. Find out its contents (using similar code
 C to ersys) and jump back to the start of this subroutine.
 
@@ -1386,8 +1390,8 @@ C << later add add a file browse function it is probably in the nets
 C << folder in most new models.
         if(LTDFA(1:4).eq.'UNKN') LTDFA=DLTDF
         ltmp=LTDFA
-        CALL EASKS(ltmp,' ','Temporal definitions file?',
-     &    72,DLTDF,'temporal definitions file',IER,nbhelp)
+        CALL EASKS(ltmp,' ','Existing temporal definitions file?',
+     &    72,DLTDF,'existing temporal definitions file',IER,nbhelp)
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
           continue
         else
@@ -1395,7 +1399,7 @@ C << folder in most new models.
         endif
         LTDFA=ltmp
         MODSIT=.true.
-        CALL ERPFREE(IUTDF,ISTAT)
+        CALL ERPFREE(IUTDF,ISTAT) ! (undefined) file unit handle iutdf now free ...
         call FINDFIL(LTDFA,XST)
         if(.NOT.XST)then
           goto 42
@@ -1443,7 +1447,7 @@ C Scan the first record of this file.
             CALL ERPFREE(IUTDF,ISTAT)
             ITDFLG=0
           endif
-        else
+        else ! ier .ne. 0 from EFOPSEQ()
           CALL ERPFREE(IUTDF,ISTAT)
           NWPR=MTABC
           ITWPR=NWPR+1
