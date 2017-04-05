@@ -4498,16 +4498,16 @@ C         Use s_trap() to calculate cooling curve integral between
 C         T1 and T2 ...
           call s_trap(isp,k,T1,T2,LatentHeat)
 C DEBUG
-          write(88,*)'nsinc,k,T1,T2,LH_int: ',
-     &                           nsinc,k,T1,T2,LatentHeat
+cx          write(88,*)'nsinc,k,T1,T2,LH_int: ',
+cx     &                           nsinc,k,T1,T2,LatentHeat
 
         else ! k=1, "normal" (heating) curve
 C         Use s_trap() to calculate heating curve integral between
 C         T1 and T2 ...
           call s_trap(isp,k,T1,T2,LatentHeat)
 C DEBUG
-          write(88,*)'nsinc,k,T1,T2,LH_int: ',
-     &                           nsinc,k,T1,T2,LatentHeat
+cx          write(88,*)'nsinc,k,T1,T2,LH_int: ',
+cx     &                           nsinc,k,T1,T2,LatentHeat
 
         endif
 
@@ -4517,12 +4517,13 @@ C DEBUG
         else
 
 C Calculate functions to build LatentHeat.
-          LH_T1=T1**ff*v_func(k,T1)-ff*T1**(ff-1)*v_func(k,T1)  ! integral approximation
-          LH_T2=T2**ff*v_func(k,T2)-ff*T2**(ff-1)*v_func(k,T2)
-          LatentHeat=(LH_T1-LH_T2)*1000.0   !- change upper and lower boundary
+cx          LH_T1=T1**ff*v_func(k,T1)-ff*T1**(ff-1)*v_func(k,T1)  ! integral approximation
+cx          LH_T2=T2**ff*v_func(k,T2)-ff*T2**(ff-1)*v_func(k,T2)
+cx          LatentHeat=(LH_T1-LH_T2)*1000.0   !- change upper and lower boundary
                                             !  of array to comply with sign
                                             !  definition for LatentHeat and
                                             !  adapt unit from J/g to J/kg
+          call f56_trap(isp,k,T1,T2,LatentHeat)
         endif
       endif
 
@@ -4533,7 +4534,19 @@ C More than |Lges| is not possible.
       end
 
 C ***************** v_func *****************
-C Functions for extended latent heat integral.
+C Extended latent heat function
+C
+C        a + c T + e T^2
+C   LH = ------------------ T^f
+C        1 + b T + d T^2
+C
+C Function parameter definition is via fit from DCS data sets. For
+C "clearer" ((to be verified)) parameter definition, the DSC curve
+C is offset by 0.5 ( shcsol + shcliq). Thus, this must be added
+C to the function value again.
+C
+C   Return LH + 0.5 ( shcsol + shcliq ) T
+C
 
       real function v_func(k,T)
       implicit none
@@ -4555,7 +4568,7 @@ C Phase change material parameters.
       logical LHSimple        !- .true. is simple model, .false. is extended model
 
 C Local variables.
-      REAL aa,bb,cc,dd,ee,CC1,CC2,C3,C4,C5,C6,C7,C8,C9
+      REAL aa,bb,cc,dd,ee,ff,CC1,CC2 !,C3,C4,C5,C6,C7,C8,C9
 
 C Coefficients for extended function.
       if(k.eq.0)then    !- subcooling
@@ -4564,27 +4577,34 @@ C Coefficients for extended function.
          cc=c2
          dd=d2
          ee=e2
+         ff=f2
       else              !- non-subcooling
          aa=a1
          bb=b1
          cc=c1
          dd=d1
          ee=e1
+         ff=f1
       endif
 
 C Calculate coefficients.
-      CC1=2.0*aa*(dd**2.0)+(bb**2.0)*ee-bb*cc*dd-2.0*dd*ee
-      CC2=2.0*dd/SQRT((-(bb**2.0)+4.0*dd))
-      C3=bb/(sqrt(-bb**2.0+4.0*dd))
-      C4=(dd**2.0)*(sqrt(-bb**2.0+4.0*dd))
-      C5=(cc*dd-bb*ee)
-      C6=bb
-      C7=dd
-      C8=2.0*(dd**2.0)
-      C9=ee/dd
+cx      CC1=2.0*aa*(dd**2.0)+(bb**2.0)*ee-bb*cc*dd-2.0*dd*ee
+cx      CC2=2.0*dd/SQRT((-(bb**2.0)+4.0*dd))
+cx      C3=bb/(sqrt(-bb**2.0+4.0*dd))
+cx      C4=(dd**2.0)*(sqrt(-bb**2.0+4.0*dd))
+cx      C5=(cc*dd-bb*ee)
+cx      C6=bb
+cx      C7=dd
+cx      C8=2.0*(dd**2.0)
+cx      C9=ee/dd
 
-      v_func=((CC1*atan(CC2*T+C3))/C4)+
-     &                     (C5*log(1.0E0+C6*T+C7*T**2)/C8)+C9*T
+        CC1=aa+cc*T+ee*T**2
+        CC2=1+bb*T+dd*T**2
+
+cx      v_func=((CC1*atan(CC2*T+C3))/C4)+
+cx     &                     (C5*log(1.0E0+C6*T+C7*T**2)/C8)+C9*T
+
+        v_func=T**ff*CC1/CC2+0.5*(shcsol+shcliq)*T
 
       return
       end
@@ -5690,7 +5710,8 @@ C       pause 'bad xa input in splint'
 C======================================================================
 C Based on Numerical Recipes for Fortran 77.
 C
-C Returns as LH the integral of the PCM function from T1 to T2.
+C Returns as LH the integral of the spline of the PCM function
+C from T1 to T2.
 C
 C The parameters EPS can be set to the desired fractional accuracy and
 C JMAX so that 2^(JMAX-1) is the maximum allowed number of steps.
@@ -5800,6 +5821,94 @@ C       Force minimum of four iterations ...
 
 C      pause 'too many steps in qtrap'
       WRITE(IUOUT,'(a)') ' *** Too many steps in s_trap! '
+
+      return
+
+      END  
+
+
+C======================================================================
+C Based on Numerical Recipes for Fortran 77.
+C
+C Returns as LH the integral of the the PCM function
+C
+C
+C
+C from T1 to T2.
+C
+C The parameters EPS can be set to the desired fractional accuracy and
+C JMAX so that 2^(JMAX-1) is the maximum allowed number of steps.
+C
+C Integration is performed by the trapezoidal rule.
+C
+      SUBROUTINE f56_trap(isp,k,T1,T2,LH)
+      implicit none
+
+#include "building.h"
+
+C Subroutine parameters
+      INTEGER isp,k
+      REAL T1,T2,LH
+
+C------------------------------------------------------------------------
+C ESP-r commons
+C------------------------------------------------------------------------
+      COMMON/OUTIN/IUOUT,IUIN
+      INTEGER  IUOUT,IUIN
+
+C------------------------------------------------------------------------
+C Local variables
+C------------------------------------------------------------------------
+      INTEGER JMAX
+      REAL EPS
+
+      PARAMETER (EPS=1.e-4, JMAX=11) ! Default values are 1.e-6, 20
+
+      INTEGER n,j,it
+
+      REAL oldLH,del,sum,tnm,x
+
+      REAL v_func
+
+C------------------------------------------------------------------------
+
+      oldLH=-1.e30
+
+C If k=0, we are cooling, if k=1, we are heating.
+
+      do 20 n=1,JMAX
+
+C       Calculate n-th stage of refinement.
+        if (n.eq.1) then
+          LH=0.5*(T2-T1)*(v_func(k,T1)+v_func(k,T2))
+        else
+          it=2**(n-2)
+          tnm=it
+          del=(T2-T1)/tnm
+          x=T1+0.5*del
+          sum=0.
+
+          do 30 j=1,it
+            sum=sum+v_func(k,x)
+            x=x+del
+ 30       continue
+
+          LH=0.5*(LH+(T2-T1)*sum/tnm)
+
+        endif
+
+C       Force minimum of four iterations ...
+        if (j.gt.5) then
+          if (abs(LH-oldLH).lt.EPS*abs(oldLH).or.
+     &          LH.eq.0..and.oldLH.eq.0.) return
+        endif
+
+        oldLH=LH
+
+20    continue
+
+C      pause 'too many steps in qtrap'
+      WRITE(IUOUT,'(a)') ' *** Too many steps in f56_trap! '
 
       return
 
