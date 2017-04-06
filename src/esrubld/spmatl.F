@@ -91,6 +91,8 @@ C zone then call the relevant subroutine.
                   call spmcmp55(icomp,ispmnod)
                elseif(ispmtype.eq.56)then
                   call spmcmp56(icomp,ispmnod)
+               elseif(ispmtype.eq.57)then
+                  call spmcmp57(icomp,ispmnod)
                endif
             endif
          enddo
@@ -4473,6 +4475,10 @@ C DSC data / spline function data
 C Local variables.
       real aa,bb,ff,LH_T1,LH_T2,Tlow,Thigh,resultsign
 
+cx          integer jj
+cx          real LH_1,LH_0,T11,T22,vf1low,vf1high,vf0low,vf0high
+cx          real v_func
+
 C Which function?
       if(k.eq.0)then
         if (.not.bUseSpline(isp)) then
@@ -4524,6 +4530,33 @@ C         LatentHeat returned is > 0
           Tlow=min(T1,T2)
           Thigh=max(T1,T2)
           call f56_trap(isp,k,Tlow,Thigh,LatentHeat)
+
+C DEBUG
+cx          if (nsinc.eq.3) then
+cx            Tlow=14
+cx            Thigh=15
+cx            write(96,'(a,6E17.8)')'1: ',a1,b1,c1,d1,e1,f1
+cx            write(96,'(a,6E17.8)')'2: ',a2,b2,c2,d2,e2,f2
+cx            write(96,'(a)')'Tlow,Thigh,v_func(1,Tlow),v_func(1,Tlow),',
+cx     &           'v_func(0,Tlow),,v_func(0,Tlow),LH_1,LH_0'
+cx            do 10 jj=1,12
+cx              T11=Tlow+jj
+cx              T22=Thigh+jj
+cx              k=1
+cx              call  f56_trap(isp,k,T11,T22,LH_1)
+cx              vf1low=v_func(k,T11)
+cx              vf1high=v_func(k,T22)
+cx              k=0
+cx              call  f56_trap(isp,k,T11,T22,LH_0)
+cx              vf0low=v_func(k,T11)
+cx              vf0high=v_func(k,T22)
+cx              write(96,'(f5.2,a,f5.2,6(a,f9.4))')
+cx     &          T11,',',T22,',',
+cx     &          vf1low,',',vf1high,',',vf0low,',',vf0high,',',
+cx     &          LH_1,',',LH_0
+cx  10        continue
+cx          endif
+C *** END DEBUG
 
 C         LH > 0 when T1 > T2, i.e. heat released to zone;
 C         LH < 0 when T1 < T2, i.e. heat stored in PCM.
@@ -4866,11 +4899,11 @@ C Set new k.
       endif ! heating / cooling check
 
 C DEBUG
-      if (isp.eq.1) then
-      WRITE(98,'(a,i6,a,i2,a,i1,a,f8.4,a,f8.4,a,f10.4)')
-     & ' *** nsinc: ',nsinc,', storeThisTS(',isp,',',k,',',TnS,',',
-     &                                        TnS1,') = ',storeThisTS
-      endif
+cx      if (isp.eq.1) then
+cx      WRITE(98,'(a,i6,a,i2,a,i1,a,f8.4,a,f8.4,a,f10.4)')
+cx     & ' *** nsinc: ',nsinc,', storeThisTS(',isp,',',k,',',TnS,',',
+cx     &                                        TnS1,') = ',storeThisTS
+cx      endif
 
       return
       end
@@ -5914,6 +5947,7 @@ C------------------------------------------------------------------------
       INTEGER n,j,it
 
       REAL oldLH,del,sum,tnm,x
+      REAL shs,shl
 
       REAL v_func
 
@@ -5921,13 +5955,16 @@ C------------------------------------------------------------------------
 
       oldLH=-1.e30
 
+      shs=shcsol/1000.  ! here we are using J/g !!
+      shl=shcliq/1000.  !
+
       do 20 n=1,JMAX
 
 C       Calculate n-th stage of refinement.
         if (n.eq.1) then
 C         If k=0, we are cooling, if k=1, we are heating.
           LH=0.5*(T2-T1)*(v_func(k,T1)+v_func(k,T2))
-     &                                +0.5*(shcsol+shcliq)*(T2-T1)
+     &                                +0.5*(shs+shl)*(T2-T1)
         else
           it=2**(n-2)
           tnm=it
@@ -5941,7 +5978,7 @@ C           v_func() not defined for negative temperature!
             x=x+del
  30       continue
 
-          LH=0.5*( LH+(T2-T1)*sum/tnm + 0.5*(shcsol+shcliq)*(T2-T1) )
+          LH=0.5*( LH+(T2-T1)*sum/tnm + 0.5*(shs+shl)*(T2-T1) )
 
         endif
 
