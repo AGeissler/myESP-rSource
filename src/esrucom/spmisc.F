@@ -241,6 +241,8 @@ C DSC data / spline function data
       character spmlabel*16,lfil*72
       logical ok,dok
 
+      integer linecount
+
 C Set the number of special material data items per line
       nspmdatl=10
 
@@ -313,16 +315,18 @@ C << there is a pattern in edspmtl.F near line 530. >>
         endif
         istrt=1
         iend=nspmdatl
+        linecount=1
 
  7      continue
         if(nnodat(isp).le.nspmdatl)then
+C         Only one line of data neccessary
           write(ispmfil,'(6F10.4,F16.6,3F10.4)')(spmdat(isp,idat),
      &    idat=1,nnodat(isp))
-C         For ispmtype.eq.56, 9 data items only and 9th item .gt.1
-C         insert DSC data file option ...
-C         nnodat(isp) should be 9, so only this "if" should be reached
           if (ispmtyp(isp,1).eq.56) then
             if (nnodat(isp).eq.9) then
+C             For ispmtype.eq.56, 9 data items only and 9th item .gt.1
+C             insert DSC data file option ...
+C             nnodat(isp) should be 9, so only this "if" should be reached
               if (spmdat(isp,9).gt.1) then
                 write(ispmfil,'(2a)')' ',
      &            fnamDSCdat(isp)(1:lnblnk(fnamDSCdat(isp)))
@@ -330,17 +334,46 @@ C         nnodat(isp) should be 9, so only this "if" should be reached
             endif
           endif
         else
-          write(ispmfil,'(6F10.4,F16.6,3F10.4)')(spmdat(isp,idat),
-     &    idat=istrt,iend)
-          istrt=istrt+nspmdatl
-          iend=iend+nspmdatl
-          if(iend.gt.nnodat(isp))then
-            iend=nnodat(isp)
-            write(ispmfil,'(6F10.4,F16.6,3F10.4)')(spmdat(isp,idat),
-     &      idat=istrt,nnodat(isp))
+C         More than one line of data is written
+          if (ispmtyp(isp,1).eq.56) then
+C           Cater for more detailed output due to latent heat function
+C           very sensitive to parameter precision
+            if (linecount.eq.1) then
+C             1st line:
+              write(ispmfil,'(7F10.4,F16.6,F10.4,E17.8)')
+     &                           (spmdat(isp,idat),idat=istrt,iend)
+              istrt=istrt+nspmdatl
+              iend=iend+nspmdatl
+              linecount=linecount+1
+            else
+C             2nd line (type 56 has only three):
+              write(ispmfil,'(10E17.8)')(spmdat(isp,idat),
+     &                                              idat=istrt,iend)
+              istrt=istrt+nspmdatl
+              iend=iend+nspmdatl
+            endif
+
+            if(iend.gt.nnodat(isp))then
+C             Last data line
+              iend=nnodat(isp)
+              write(ispmfil,'(10E17.8)')(spmdat(isp,idat),
+     &                                      idat=istrt,nnodat(isp))
+            else
+              goto 7
+            endif
           else
-            goto 7
-          endif
+            write(ispmfil,'(6F10.4,F16.6,3F10.4)')(spmdat(isp,idat),
+     &      idat=istrt,iend)
+            istrt=istrt+nspmdatl
+            iend=iend+nspmdatl
+            if(iend.gt.nnodat(isp))then
+              iend=nnodat(isp)
+              write(ispmfil,'(6F10.4,F16.6,3F10.4)')(spmdat(isp,idat),
+     &        idat=istrt,nnodat(isp))
+            else
+              goto 7
+            endif
+          endif ! Type 56
         endif
  10   continue
 

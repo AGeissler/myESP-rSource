@@ -3079,7 +3079,7 @@ C of c(t) equation from tmelt to tsoli.
         shtliqc=val10
         shtliqd=val11
 
-	if(tfcm.gt.tpcm)then ! heating
+        if(tfcm.gt.tpcm)then ! heating
           shtliq=(0.5*shtliqa*(tsoli+tmelt)+shtliqb)*(tsoli-tmelt)
           if(tfcm.lt.tmelt)then
             appcon=consol
@@ -4278,17 +4278,18 @@ C Save future time row values as present values for next time step.
          appconp(icomp,isurf,nloc)=appcon
          appshcp(icomp,isurf,nloc)=appshc
          pk(icomp,isurf,nloc)=presk
-10    continue
+
+10    continue ! next layer node
 
 C Results output.
       ndatspm(ispmnod)=12
       if(nsinc.le.1)then
          strspm(ispmnod,1)='/AppCON'
-         unitspm(ispmnod,1)='(W/(m.degC))'
+         unitspm(ispmnod,1)='(W/(m.K))'
          txtspm(ispmnod,1)='Apparent conductivity of PCM layer'
 
          strspm(ispmnod,2)='/APPSHC'
-         unitspm(ispmnod,2)='(J/(kg.degC))'
+         unitspm(ispmnod,2)='(J/(kg.K))'
          txtspm(ispmnod,2)='Apparent spec. heat capacity of PCM layer'
 
          strspm(ispmnod,3)='/StoredLH'
@@ -4342,7 +4343,8 @@ C Results output.
       dataspm(ispmnod,3)=sumStoredLH
       dataspm(ispmnod,4)=sumStoredLH*thrmli(icomp,isurf,ielem,2)*
      &                                    thrmli(icomp,isurf,ielem,4)
-      dataspm(ispmnod,5)=pcmfac(icomp,isurf,inode)
+cx      dataspm(ispmnod,5)=pcmfac(icomp,isurf,inode)
+      dataspm(ispmnod,5)=sumStoredLH/Lges
       dataspm(ispmnod,6)=(tfcm-tpcm)
 
       dataspm(ispmnod,7)=pk(icomp,isurf,inode-1)
@@ -4469,7 +4471,7 @@ C DSC data / spline function data
 
 
 C Local variables.
-      real aa,bb,ff,LH_T1,LH_T2,v_func
+      real aa,bb,ff,LH_T1,LH_T2,Tlow,Thigh,resultsign
 
 C Which function?
       if(k.eq.0)then
@@ -4516,19 +4518,24 @@ cx     &                           nsinc,k,T1,T2,LatentHeat
           LatentHeat=exp(aa)/bb*(exp(bb*T1)-exp(bb*T2))
         else
 
-C Calculate functions to build LatentHeat.
-cx          LH_T1=T1**ff*v_func(k,T1)-ff*T1**(ff-1)*v_func(k,T1)  ! integral approximation
-cx          LH_T2=T2**ff*v_func(k,T2)-ff*T2**(ff-1)*v_func(k,T2)
-cx          LatentHeat=(LH_T1-LH_T2)*1000.0   !- change upper and lower boundary
-                                            !  of array to comply with sign
-                                            !  definition for LatentHeat and
-                                            !  adapt unit from J/g to J/kg
-          call f56_trap(isp,k,T1,T2,LatentHeat)
+C         Call integral function with T2 > T1, only,
+C         LatentHeat returned is > 0
+
+          Tlow=min(T1,T2)
+          Thigh=max(T1,T2)
+          call f56_trap(isp,k,Tlow,Thigh,LatentHeat)
+
+C         LH > 0 when T1 > T2, i.e. heat released to zone;
+C         LH < 0 when T1 < T2, i.e. heat stored in PCM.
+          if (T1.gt.T2) resultsign=1.0
+          if (T1.lt.T2) resultsign=-1.0
+
+          LatentHeat=resultsign*LatentHeat*1000. ! J/kg
         endif
       endif
 
 C More than |Lges| is not possible.
-      LatentHeat=sign(1.0,LatentHeat)*min(Lges,abs(LatentHeat))
+cx      LatentHeat=sign(1.0,LatentHeat)*min(Lges,abs(LatentHeat))
 
       return
       end
@@ -4537,22 +4544,24 @@ C ***************** v_func *****************
 C Extended latent heat function
 C
 C        a + c T + e T^2
-C   LH = ------------------ T^f
+C   LH = ------------------ T^f   [J/g]
 C        1 + b T + d T^2
 C
 C Function parameter definition is via fit from DCS data sets. For
 C "clearer" ((to be verified)) parameter definition, the DSC curve
-C is offset by 0.5 ( shcsol + shcliq). Thus, this must be added
-C to the function value again.
-C
-C   Return LH + 0.5 ( shcsol + shcliq ) T
-C
+C is offset by 0.5 ( shcsol + shcliq). C
 
       real function v_func(k,T)
       implicit none
 
       integer k
       real T
+
+      COMMON/OUTIN/IUOUT,IUIN
+      INTEGER  IUOUT,IUIN
+
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
 
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
@@ -4568,7 +4577,7 @@ C Phase change material parameters.
       logical LHSimple        !- .true. is simple model, .false. is extended model
 
 C Local variables.
-      REAL aa,bb,cc,dd,ee,ff,CC1,CC2 !,C3,C4,C5,C6,C7,C8,C9
+      REAL aa,bb,cc,dd,ee,ff,CC1,CC2
 
 C Coefficients for extended function.
       if(k.eq.0)then    !- subcooling
@@ -4587,24 +4596,16 @@ C Coefficients for extended function.
          ff=f1
       endif
 
-C Calculate coefficients.
-cx      CC1=2.0*aa*(dd**2.0)+(bb**2.0)*ee-bb*cc*dd-2.0*dd*ee
-cx      CC2=2.0*dd/SQRT((-(bb**2.0)+4.0*dd))
-cx      C3=bb/(sqrt(-bb**2.0+4.0*dd))
-cx      C4=(dd**2.0)*(sqrt(-bb**2.0+4.0*dd))
-cx      C5=(cc*dd-bb*ee)
-cx      C6=bb
-cx      C7=dd
-cx      C8=2.0*(dd**2.0)
-cx      C9=ee/dd
-
         CC1=aa+cc*T+ee*T**2
-        CC2=1+bb*T+dd*T**2
+        CC2=1.+bb*T+dd*T**2
 
-cx      v_func=((CC1*atan(CC2*T+C3))/C4)+
-cx     &                     (C5*log(1.0E0+C6*T+C7*T**2)/C8)+C9*T
+C << Check for valid temperature range (?)
 
-        v_func=T**ff*CC1/CC2+0.5*(shcsol+shcliq)*T
+        v_func=T**ff*CC1/CC2 ! J/g
+
+C DEBUG
+cx      WRITE(98,'(a,i7,a,i1,a,f8.4,a,f10.4)')
+cx     & ' *** nsinc: ',nsinc,', v_func(',k,',',T,') = ',v_func
 
       return
       end
@@ -4628,6 +4629,10 @@ C Parameters.
       real AppSHC     !- apparent specific heat capacity
       integer Debug   !- output of 'case' as defined below
 
+C ESP-r commons
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
      &                    a1,b1,c1,d1,e1,f1,a2,b2,c2,d2,e2,f2,LHSimple
@@ -4650,7 +4655,7 @@ C Local variables.
 
 C Set up sub-cooling temperatures.
       tsoli2=tsoli-sub
-      tmelt2=tmelt-sub
+      tmelt2=tmelt ! -sub << add 2nd "sub" parameter??
 
 C *****************
 C Calculate the heat stored according to the temperature change
@@ -4690,6 +4695,7 @@ cx    storedLH += time step dependant?? 17/2/22
          if(AppCon.le.0.0E+00) AppCon=consol
          if(AppSHC.le.0.0E+00) AppSHC=shcsol
 cx         Debug=9
+         storeThisTS=0.0
 
       elseif(TnS.lt.TnS1)then
 
@@ -4706,18 +4712,22 @@ C PCM is solid (case 1), StoredLH = 0.
             elseif(TnS.le.tmelt.and.TnS1.gt.tmelt)then
 
 C PCM begins to melt (case 2).
-               storeThisTS=LatentHeat(isp,1,tmelt,TnS1)
-               storedLH=0.0E0-storeThisTS      !- storedLH must be >0
+               storeThisTS=LatentHeat(isp,k,tmelt,TnS1)
+               storedLH=0.0E0-storeThisTS
+               if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
+               if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+
-     &                storedLH/Lges*conliq
-               AppSHC=shcsol+storeThisTS/(tmelt-TnS1)  !- to be verified
+     &                                       storedLH/Lges*conliq
+               AppSHC=shcsol+storeThisTS/(tmelt-TnS1) !- to be verified
                Debug=2
             elseif(TnS.gt.tmelt.and.TnS1.le.tsoli)then
 
 C PCM is partially liquid, latent heat is stored in the normal
 C range (k=1, case 3).
-               storeThisTS=LatentHeat(isp,1,TnS,TnS1)
+               storeThisTS=LatentHeat(isp,k,TnS,TnS1)
                storedLH=storedLH-storeThisTS
+               if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
+               if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+
      &                                        storedLH/Lges*conliq
                AppSHC=shcliq+storeThisTS/(TnS-TnS1)  !- to be verified
@@ -4727,9 +4737,10 @@ C range (k=1, case 3).
 C Remainder of solid PCM is completely melted and also heated as
 C liquid (case 4).
 cx << after timestep, appcon=conliq and appshc=shcliq, no? 17/2/22
-               storeThisTS=LatentHeat(isp,1,TnS,tsoli)
+               storeThisTS=LatentHeat(isp,k,TnS,tsoli)
                storedLH=storedLH-storeThisTS
-               if(storedLH.gt.Lges)storedLH=Lges
+               if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
+               if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=conliq
                AppSHC=shcliq
 
@@ -4751,18 +4762,21 @@ C PCM is completely liquified and heated further (case 5).
 
 C PCM is sub-cooled partial liquid and is completely
 C (re-)melted (case 6).
-               storeThisTS=LatentHeat(isp,0,TnS,tsoli2)
+               storeThisTS=LatentHeat(isp,k,TnS,tsoli2)
                storedLH=storedLH-storeThisTS
-               if(storedLH.gt.Lges)storedLH=Lges
+               if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
+               if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=conliq
-               AppSHC=shcliq
+               AppSHC=shcliq+storeThisTS/(tsoli2-TnS)
                Debug=6
             else ! if(TnS1.le.tsoli2)then
 
 C PCM is sub-cooled partial liquid and not completely
 C melted (k=0, case 7).
-               storeThisTS=LatentHeat(isp,0,TnS,TnS1)
+               storeThisTS=LatentHeat(isp,k,TnS,TnS1)
                storedLH=storedLH-storeThisTS
+               if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
+               if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=shcliq+storeThisTS/(TnS-TnS1)     !- to be verified
                Debug=7
@@ -4785,6 +4799,10 @@ C PCM is solid (case 1), StoredLH = 0.
             elseif(TnS.gt.tmelt.and.TnS1.le.tmelt)then
 
 C PCM non-subcooled solidification is completed (case 2).
+               storeThisTS=LatentHeat(isp,k,TnS,TnS1)
+               storedLH=storedLH-storeThisTS
+               if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
+               if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=SHCLIQ+storedLH/(TnS-tmelt)
                storedLH=0.0E0     !- now all PCM is solid
@@ -4792,9 +4810,10 @@ C PCM non-subcooled solidification is completed (case 2).
             elseif(TnS.le.tsoli.and.TnS1.ge.tmelt) then
 
 C PCM is partially liquid and is now cooled (non-subcooling, case 3).
-               storeThisTS=LatentHeat(isp,1,TnS,TnS1)
+               storeThisTS=LatentHeat(isp,k,TnS,TnS1)
                storedLH=storedLH-storeThisTS
-               if(storedLH.lt.0.0E+0)storedLH=0.0E+0   !- storedLH >= 0
+               if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
+               if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=shcliq+storeThisTS/(TnS-TnS1) ! to be verified
                Debug=3
@@ -4813,8 +4832,10 @@ C solidification temperature (case 5).
              elseif(TnS.gt.tsoli2.and.TnS1.lt.tsoli2)then
 
 C PCM begins to solidify in sub-cooled mode (k=0, case 6).
-               storeThisTS=LatentHeat(isp,0,tsoli2,TnS1)
+               storeThisTS=LatentHeat(isp,k,tsoli2,TnS1)
                storedLH=Lges-storeThisTS
+               if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
+               if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=shcsol+storeThisTS/(tsoli2-TnS1)   !- to be verified
                Debug=6
@@ -4822,16 +4843,17 @@ C PCM begins to solidify in sub-cooled mode (k=0, case 6).
 
 C PCM is subcooled partial liquid and not completely
 C solidified (k=0, case 7).
-               storeThisTS=LatentHeat(isp,0,TnS,TnS1)
+               storeThisTS=LatentHeat(isp,k,TnS,TnS1)
                storedLH=storedLH-storeThisTS
-               if(storedLH.lt.0.0E+0)storedLH=0.0E+0    !- storedLH >= 0
+               if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
+               if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=shcsol+storeThisTS/(TnS-TnS1)     !- to be verified
                Debug=7
              elseif(TnS.gt.tmelt2.and.TnS1.le.tmelt2)then
 
 C PCM completely solidifies (k=0, case 8).
-               storeThisTS=LatentHeat(isp,0,TnS,tmelt2)
+               storeThisTS=LatentHeat(isp,k,TnS,tmelt2)
                storedLH=0.0E0
                AppCon=consol
                AppSHC=shcsol+storeThisTS/(TnS-tmelt2)   !- to be verified
@@ -4842,6 +4864,13 @@ C Set new k.
             endif      !- temperature bracketing for k=0
          endif
       endif ! heating / cooling check
+
+C DEBUG
+      if (isp.eq.1) then
+      WRITE(98,'(a,i6,a,i2,a,i1,a,f8.4,a,f8.4,a,f10.4)')
+     & ' *** nsinc: ',nsinc,', storeThisTS(',isp,',',k,',',TnS,',',
+     &                                        TnS1,') = ',storeThisTS
+      endif
 
       return
       end
@@ -5836,6 +5865,11 @@ C
 C
 C from T1 to T2.
 C
+C The offset for function parameter estimation must be added
+C to the function value here again.
+C
+C   LH + 0.5 ( shcsol + shcliq ) T
+C
 C The parameters EPS can be set to the desired fractional accuracy and
 C JMAX so that 2^(JMAX-1) is the maximum allowed number of steps.
 C
@@ -5856,13 +5890,26 @@ C------------------------------------------------------------------------
       COMMON/OUTIN/IUOUT,IUIN
       INTEGER  IUOUT,IUIN
 
+C Phase change material parameters.
+      common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
+     &                    a1,b1,c1,d1,e1,f1,a2,b2,c2,d2,e2,f2,LHSimple
+      real tsoli              !- solidification temperature (degC)
+      real tmelt              !- melting temperature (degC)
+      real sub                !- sub-cooling temperature difference (degC)
+      real Lges               !- total latent heat capacity of PCM (J/kg)
+      real consol,conliq      !- conductivity of solid and liquid phase (W/m.K)
+      real shcsol,shcliq      !- specific heat of solid and liquid phase (J/kg.K)
+      real a1,b1,c1,d1,e1,f1  !- equation parameters for non-subcooling (a1-f1)
+      real a2,b2,c2,d2,e2,f2  !  and subcooling (a2-f2) states
+      logical LHSimple        !- .true. is simple model, .false. is extended model
+
 C------------------------------------------------------------------------
 C Local variables
 C------------------------------------------------------------------------
       INTEGER JMAX
       REAL EPS
 
-      PARAMETER (EPS=1.e-4, JMAX=11) ! Default values are 1.e-6, 20
+      PARAMETER (EPS=1.e-3, JMAX=20) ! Default values are 1.e-6, 20
 
       INTEGER n,j,it
 
@@ -5874,13 +5921,13 @@ C------------------------------------------------------------------------
 
       oldLH=-1.e30
 
-C If k=0, we are cooling, if k=1, we are heating.
-
       do 20 n=1,JMAX
 
 C       Calculate n-th stage of refinement.
         if (n.eq.1) then
+C         If k=0, we are cooling, if k=1, we are heating.
           LH=0.5*(T2-T1)*(v_func(k,T1)+v_func(k,T2))
+     &                                +0.5*(shcsol+shcliq)*(T2-T1)
         else
           it=2**(n-2)
           tnm=it
@@ -5889,11 +5936,12 @@ C       Calculate n-th stage of refinement.
           sum=0.
 
           do 30 j=1,it
-            sum=sum+v_func(k,x)
+C           v_func() not defined for negative temperature!
+            if(x.gt.0) sum=sum+v_func(k,x)
             x=x+del
  30       continue
 
-          LH=0.5*(LH+(T2-T1)*sum/tnm)
+          LH=0.5*( LH+(T2-T1)*sum/tnm + 0.5*(shcsol+shcliq)*(T2-T1) )
 
         endif
 
@@ -5908,7 +5956,8 @@ C       Force minimum of four iterations ...
 20    continue
 
 C      pause 'too many steps in qtrap'
-      WRITE(IUOUT,'(a)') ' *** Too many steps in f56_trap! '
+      WRITE(IUOUT,'(a,f10.4)') ' *** Too many steps in f56_trap! LH=',
+     &  LH
 
       return
 
