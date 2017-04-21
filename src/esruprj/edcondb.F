@@ -5193,13 +5193,19 @@ C           Check where "low e" is facing;
                 endif
               endif
             endif
-            WRITE(MLED(M),31)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
+            WRITE(MLED(M),32)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
      &                      DTHK(IFOC,IL)*1000.0, lowe, PNAM(IL)(1:19)
-  31        FORMAT(A1,I4,I5,F7.1,A3,2X,A)
-          else
-            WRITE(MLED(M),30)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
-     &                            DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
-  30        FORMAT(A1,I4,I5,F7.1,2X,A)
+  32        FORMAT(A1,I4,I5,F7.1,A3,2X,A)
+          else ! .not. cfc2 type
+C Trap -1 value.
+            if(cfcarrayindex.le.0)then
+              WRITE(MLED(M),31)KEY,IL,' unknown ',
+     &          DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
+  31          FORMAT(A1,I4,a,F7.1,2X,A)
+            else
+              WRITE(MLED(M),30)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
+     &          DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
+  30          FORMAT(A1,I4,I5,F7.1,2X,A)
           ENDIF
         ELSE ! we have a MLC
           matarrayindex=IPRMAT(IFOC,IL)   ! which legacy index
