@@ -5206,7 +5206,8 @@ C Trap -1 value.
               WRITE(MLED(M),30)KEY,IL,cfcitmindex(ITMCFCDB(IFOC,IL)),
      &          DTHK(IFOC,IL)*1000.0, PNAM(IL)(1:19)
   30          FORMAT(A1,I4,I5,F7.1,2X,A)
-          ENDIF
+            endif
+          ENDIF ! closecfc2?
         ELSE ! we have a MLC
           matarrayindex=IPRMAT(IFOC,IL)   ! which legacy index
  
