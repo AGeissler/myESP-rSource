@@ -109,16 +109,17 @@ C and is used for code related to UK NCM method
       real StoreCap,znElecCasGain
       integer kounter
 
-C Common for occupant/lighting/equipment sensible convective, sensible
+C Common for occupant/lighting/equipment/other sensible convective, sensible
 C radiant and latent W for future and present in each zone.
-C << adapt to include other casual gain >>
       real ctlperocupc,ctlperocupr,ctlperocupl ! occupant after control applied
       real ctlperlightc,ctlperlightr,ctlperlightl ! lighting after control applied
-      real ctlequipc,ctlequipr,ctlequipl ! equipment after control applied
+      real ctlperequipc,ctlperequipr,ctlperequipl ! equipment after control applied
+      real ctlperotherc,ctlperotherr,ctlperotherl ! other after control applied
       common/applyctl/ctlperocupc(MCOM,2),ctlperocupr(MCOM,2),
      &  ctlperocupl(MCOM,2),ctlperlightc(MCOM,2),ctlperlightr(MCOM,2),
-     &  ctlperlightl(MCOM,2),ctlequipc(MCOM,2),ctlequipr(MCOM,2),
-     &  ctlequipl(MCOM,2) 
+     &  ctlperlightl(MCOM,2),ctlperequipc(MCOM,2),ctlperequipr(MCOM,2),
+     &  ctlperequipl(MCOM,2),ctlperotherc(MCOM,2),ctlperotherr(MCOM,2),
+     &  ctlperotherl(MCOM,2) 
 
 C Common for HOT3000 electrical-network -> casual-gain coupling
 C Symopsys: E_to_G_coupling: boolian indicating coupling exists
@@ -188,7 +189,24 @@ C Variables used in trace.
 
 C Adaptive comfort commons
       COMMON/ADPCOM/PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR(MCOM)
+C<< For dynamic people.
 
+      COMMON/CASGNSO/META(MCOM,MDTY,MGTY,MGPER),
+     &         NBMEN(MCOM,MDTY,MGTY,MGPER),NBWOM(MCOM,MDTY,MGTY,MGPER),
+     &         NBCHI(MCOM,MDTY,MGTY,MGPER),CONCC(MCOM,MDTY,MGTY,MGPER),
+     &         RADCC(MCOM,MDTY,MGTY,MGPER),CLOTH(MCOM,MDTY,MGTY,MGPER)
+      COMMON/PVALA/TPA(MCOM),QPA(MCOM)
+      common/occload/sklat(MCOM),skcon(MCOM),skrad(MCOM),ttcr(MCOM),
+     &     ttsk(MCOM)
+      common/ocflux/COflux,H2Oexp,H2Oswt
+      REAL TPA, QPA,TAIR,TMRT
+      REAL SGAIN,LGAIN,TOP,TOCN,CLOTHO
+      REAL META,NBMEN,NBWOM,NBCHI
+      REAL METAo,CGSECo,CGSERo,CGLATo,CGSENC,CGSENR,CGLAT
+ 
+C<< CGSECo CGSERo and CGLATo are the total convective radiative and latent load from
+C<< Dynamic occupant.CGSENC,CGSENR,CGLAT previously defined in common/CASGNS/.
+C<< META and METAO metabolic rate of occupant in met and watts respectively.
 C.........START: USED FOR ACTIVITY TDF DATA.....................
 C Using the TOTOCCUP as a shortcut for the total occupant gains
 C that are taken from the activities temporal data
@@ -218,6 +236,7 @@ C It excludes start-up timesteps
       integer iOperTimestep,iMonthOperTimestep      
 
       REAL QCASLT  ! to hold the summation of pres + future latent
+      integer nbhelp
 
       DIMENSION QLATN(2),VAL(MBITS+2)
 
@@ -316,7 +335,9 @@ C Zero zone power loads and update present control fractions.
         CGCTL(ICOMP,1,ITY)=CGCTL(ICOMP,2,ITY)
         CGCTL(ICOMP,2,ITY)=1.0
   9   CONTINUE
-
+C<< update value for dynamic people
+      SGAIN=0
+      LGAIN=0
 C Update present values.
       QCASC(1)=QCCS(ICOMP)
       QCASR(1)=QCRS(ICOMP)
@@ -411,17 +432,20 @@ C Equipment is an arbitrary choice for this aggregate data.
         QCASC(2)=VAL(ISD)
         ctlperocupc(icomp,2)=0.0
         ctlperlightc(icomp,2)=0.0
-        ctlequipc(icomp,2)=VAL(ISD)
+        ctlperequipc(icomp,2)=VAL(ISD)
+        ctlperotherc(icomp,2)=0.0
 
         QCASR(2)=VAL(ISD+1)
         ctlperocupr(icomp,2)=0.0
         ctlperlightr(icomp,2)=0.0
-        ctlequipr(icomp,2)=VAL(ISD+1)
+        ctlperequipr(icomp,2)=VAL(ISD+1)
+        ctlperotherr(icomp,2)=0.0
 
         QLATN(2)=VAL(ISD+2)
         ctlperocupl(icomp,2)=0.0
         ctlperlightl(icomp,2)=0.0
-        ctlequipl(icomp,2)=VAL(ISD+2)
+        ctlperequipl(icomp,2)=VAL(ISD+2)
+        ctlperotherl(icomp,2)=0.0
         if(traceok)then
           write(outs,*)'casual gains from temporal db=',
      &          VAL(ISD),VAL(ISD+1),VAL(ISD+2)
@@ -438,17 +462,20 @@ C << any need for ICGUnit?  Probably always is W. >>
         QCASC(2)=VAL(ISD)+VAL(ISD+3)+VAL(ISD+6)
         ctlperocupc(icomp,2)=VAL(ISD)
         ctlperlightc(icomp,2)=VAL(ISD+3)
-        ctlequipc(icomp,2)=VAL(ISD+6)
+        ctlperequipc(icomp,2)=VAL(ISD+6)
+        ctlperotherc(icomp,2)=0.0
 
         QCASR(2)=VAL(ISD+1)+VAL(ISD+4)+VAL(ISD+7)
         ctlperocupr(icomp,2)=VAL(ISD+1)
         ctlperlightr(icomp,2)=VAL(ISD+4)
-        ctlequipr(icomp,2)=VAL(ISD+7)
+        ctlperequipr(icomp,2)=VAL(ISD+7)
+        ctlperotherr(icomp,2)=0.0
 
         QLATN(2)=VAL(ISD+2)+VAL(ISD+5)+VAL(ISD+8)
         ctlperocupl(icomp,2)=VAL(ISD+2)
         ctlperlightl(icomp,2)=VAL(ISD+5)
-        ctlequipl(icomp,2)=VAL(ISD+8)
+        ctlperequipl(icomp,2)=VAL(ISD+8)
+        ctlperotherl(icomp,2)=0.0
         if(traceok)then
           write(outs,*)'separate casual gains from temporal db=',
      &        VAL(ISD),VAL(ISD+1),VAL(ISD+2),VAL(ISD+3),VAL(ISD+4),
@@ -708,17 +735,19 @@ C       QTOTGAIN=QTOTOCCUP+QTOTEQUIP+QTOTLIGHT
 
 C Instantiate the future value of each casual gain so that
 C it can be used within MZLS3.
+C << ?? for 4th other slot >>
         ctlperocupc(icomp,2)=QOCCCASC
         ctlperlightc(icomp,2)=QLIGHTCASC
-        ctlequipc(icomp,2)=QEQUIPCASC
+        ctlperequipc(icomp,2)=QEQUIPCASC
+        ctlperotherc(icomp,2)=0.0
         ctlperocupr(icomp,2)=QOCCCASR
         ctlperlightr(icomp,2)=QLIGHTCASR
-        ctlequipr(icomp,2)=QEQUIPCASR
+        ctlperequipr(icomp,2)=QEQUIPCASR
+        ctlperotherr(icomp,2)=0.0
         ctlperocupl(icomp,2)=QOCCLATN
         ctlperlightl(icomp,2)=QLIGHTLATN
-        ctlequipl(icomp,2)=QEQUIPLATN
-
-C << place to adapt for other casual gain >>
+        ctlperequipl(icomp,2)=QEQUIPLATN
+        ctlperotherl(icomp,2)=0.0
 
 C Using LGHT_ncm_Energy(icomp) for the results of the UK's NCM method
 C This will be in Wh units. It will also need to be divided with NTSTEP
@@ -787,13 +816,14 @@ C ventilation values in the zone).
             write(outs,'(4a)') 'For ',zname(icomp),
      &        ' rescan operation file: ',LPROJ(icomp)(1:36)
             DOK=.false.
+            nbhelp=2
             CALL ASKOK(OUTS,'Confirm?',OK,DOK,nbhelp)
             if(ok)then
               iunit=ifil+1
               iitrc=1
               CALL EROPER(IITRC,ITU,IUNIT,icomp,IER)
               CALL MZCASG(icomp)
-              write(6,*) 'called eroper & mzcasg for ',icomp,btimef
+C              write(6,*) 'called eroper & mzcasg for ',icomp,btimef
             endif
           endif
         endif
@@ -935,6 +965,83 @@ C Calculate the current period id.
             endif
  30       continue
 
+C<< This if statement to calculate the sensible and latent load from occupant in case of dynamic people
+C<< METAo metabolic rate is converted to watt after multiplying: 1 Met = 58 W/m2 and the mean surface area 
+C<< of the human body is approximately 1.8 m2 
+           iGainSlot=iabs(ICGT(IDAY,IGN))
+           if(iGainSlot.gt.0)then
+             if(caskeytype(ICOMP,iGainSlot)(1:13).eq.
+     &          'dynamicpeople'.and. 
+     &            lodatr1(ICOMP,IGN).GT.0) then
+                INDX=ICOMP*(-1)   ! negate the zone index for use in mzmixt.
+                CALL MZMIXT(INDX,TMRT,TMIX)
+                TAIR=TPA(ICOMP)
+                TOP=0.5*TMRT+0.5*TAIR 
+                METAo=META(ICOMP,IDAY,IGN,IPER)*58*1.8
+                CONCCO=CONCC(ICOMP,IDAY,IGN,IPER)
+                RADCCO=RADCC(ICOMP,IDAY,IGN,IPER)
+                CLOTHO=CLOTH(ICOMP,IDAY,IGN,IPER)
+               if(lodatr1(ICOMP,IGN).eq.1)then
+
+C<< polynomial equation to calculate both sensible and latent heat load from occupant
+C<< where Top and METAo are the operative zone temperature and metabolic rate of occupant.
+C<< This model was correlated from some published experimental data Ref.
+C<< The relationship between the body’s heat production and all its other heat gains and losses is:
+C<< M=E±R±C±S 
+C<< M=metabolic rate
+C<< E=rate of heat loss by evaporation, respiration, and elimination
+C<< R=radiation rate
+C<< C=conduction and convection rate
+C<< S=body heat storage rate
+C<< if E should be alwase positive in this case the polynomial given by the Energy plus below is inefficient for example when temp goes below 14C at Met =100 watt (ASHREA)
+                 SGAIN=198.42617-3.80901*TOP-0.05419*TOP**2-0.42472*
+     &             METAo+0.00171*METAo**2+0.01287*TOP*METAo-
+     &             0.00004*TOP*METAo**2+0.00002*METAo*TOP**2-
+     &             0.00000038516*METAo**2*TOP**2    
+                 LGAIN=227.89011-14.95202*TOP+0.24884*TOP**2-
+     &             2.56734 *METAo+0.00715*METAo**2+
+     &             0.132*TOP*METAo-0.00017*TOP*METAo**2-
+     &             0.00107*METAo*TOP**2
+C<< CGSECo CGSERo and CGLATo are the total convective radiative and latent load from
+C<< occupant taking into consideration number of people age/gender 
+
+               elseif(lodatr1(ICOMP,IGN).eq.2)then
+C<< model below are the polynomial of Energy Plus function of Temperature and metabolic rate.>>
+                 SGAIN=6.461927+0.946892*METAo+0.0000255737*METAo**2+
+     &             7.139322*TOP-0.0627909*TOP*METAo+
+     &             0.0000589172*TOP*METAo**2-
+     &             0.19855*TOP**2+0.000940018*TOP**2*METAo-
+     &             0.00000149532*TOP**2*METAo**2
+                 LGAIN=METAo-SGAIN 
+               elseif(lodatr1(ICOMP,IGN).eq.3)then
+               TOCN=NBMEN(ICOMP,IDAY,IGN,IPER)+
+     &         NBWOM(ICOMP,IDAY,IGN,IPER)+NBCHI(ICOMP,IDAY,IGN,IPER)
+                if(TOCN.GT.0.1)then
+C<< Calling the dynamic model two node model subroutine from a separate file dynamicoccup.F
+                call DynamicOcc(ICOMP,METAo,CLOTHO)  
+                SGAIN=skcon(ICOMP)
+                LGAIN=sklat(ICOMP)
+                endif
+
+               endif
+                 CGSECo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
+     &              0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
+     &              0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
+     &              CONCCO
+                 CGSERo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
+     &              0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
+     &              0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*
+     &              RADCCO
+                 CGLATo=LGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
+     &              0.85*LGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
+     &              0.75*LGAIN*NBCHI(ICOMP,IDAY,IGN,IPER)
+
+                  CGSENC(ICOMP,IDAY,IGN,IPER)=CGSECo
+                  CGSENR(ICOMP,IDAY,IGN,IPER)=CGSERo
+                  CGLAT(ICOMP,IDAY,IGN,IPER)=CGLATo
+              endif
+           endif
+
 C Set future casual gain values if there is periods defined.
           if(IPER.gt.0)then
             if(shcon.lt.0.) then
@@ -961,11 +1068,11 @@ C so if SHOCC load, then cgctl equals shcon/CGCSENC ratio.
 
 C Debug...
             if(traceok)then
-C              write(itu,*) 'match ',DSTR,BTIMEF,IPER,IGN,IDAY,ICOMP
-C              write(itu,*) 'Time    Zone   Period   GainSen'
-C              write(itu,*) BTIMEF,ICOMP,IPER,CGSENC(ICOMP,IDAY,IGN,IPER)
-C              write(itu,*) QCASC,QCASR,QLATN,' ctl:',CGCTL(ICOMP,1,1),
-C     &          CGCTL(ICOMP,2,1),CGCTL(ICOMP,1,2),CGCTL(ICOMP,2,2)  
+              write(itu,*) 'match ',DSTR,BTIMEF,IPER,IGN,IDAY,ICOMP
+              write(itu,*) 'Time    Zone   Period   GainSen'
+              write(itu,*) BTIMEF,ICOMP,IPER,CGSENC(ICOMP,IDAY,IGN,IPER)
+              write(itu,*) QCASC,QCASR,QLATN,' ctl:',CGCTL(ICOMP,1,1),
+     &          CGCTL(ICOMP,2,1),CGCTL(ICOMP,1,2),CGCTL(ICOMP,2,2)  
             endif
 
 C Set future electrical loads.
@@ -1212,7 +1319,7 @@ C Display radiant contribution as Watts.
 C Output the electrical results for the zone
       if(ielf(icomp).gt.0) then
         call edisp(itu,' ')
-        write(outs,'(a,1x,i3,1x,i2)') ' Zone: ',icomp,ielf(icomp)
+        write(outs,'(a,1x,i3,1x,i3)') ' Zone: ',icomp,ielf(icomp)
         call edisp(itu,outs)
         write(outs,'(A,A)')' Electrical load summary for ',DSTR
         call edisp(itu,outs)
@@ -1928,7 +2035,7 @@ C Keep track of total windows in zone with nt. Exclude skylights.
               IF(close)THEN
                 IF((NVER(J).NE.4).and.(IDFST(ICOMP,N).ne.2))then
                   WRITE(ITU,843) zname(icomp),J
-  843             format('Zone ',A,'TMC surf ',I2,' not 4 vertices!')
+  843             format('Zone ',A,'TMC surf ',I3,' not 4 vertices!')
 
 C This would be a good place to calculate an alternative bounding box
 C for use in width/height calculations.
@@ -1959,7 +2066,7 @@ C and high WIDTH, HIGH:
                 ELSE
                   if(IDFST(ICOMP,N).ne.2)then
                     WRITE(ITU,842) zname(icomp),J
-  842             format('Zone ',A,'TMC',I2,' may not be rectangular!')
+  842             format('Zone ',A,'TMC',I3,' may not be rectangular!')
                   endif
                 ENDIF 
 
@@ -2084,7 +2191,7 @@ C glazing and get current visible transmission of glazing.
               ELSE
                 if(IDFST(ICOMP,N).ne.2)then
                   WRITE(ITU,844) zname(icomp),J
-  844         format('Zone ',A,'TMC',I2,'is not vertical-no dir illum!')
+  844         format('Zone ',A,'TMC',I3,'is not vertical-no dir illum!')
                 endif
                 suncon=0.
                 CALL DWINVT(ICOMP,J,V,RATIO)
@@ -2199,7 +2306,7 @@ C so the next timestep the user can edit the IES xforms file to match.
      &      'COUPLING ADJUSTMENT next timestep after:',btimef
           call edisp(iuout,outs)
           call edisp(6,outs)
-          WRITE(outs,'(a,i2,a,i1,a,F5.2)') 'In zone ',icomp,
+          WRITE(outs,'(a,i3,a,i1,a,F5.2)') 'In zone ',icomp,
      &      ' & light zone ',N,'edit xform for fixture faction to ',
      &      ZFRAC(N)
           call edisp(iuout,outs)

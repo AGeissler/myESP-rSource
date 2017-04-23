@@ -177,7 +177,9 @@ C a subroutine rather than as an application.
       use TCC, ONLY:COSIM
 #include "building.h"
 #include "model.h"
+#include "geometry.h"
 #include "plant.h"
+C UA1 from uncertainty.h
 #include "uncertainty.h"
 #include "net_flow.h"
 #include "MultiYear_simulations.h"
@@ -285,9 +287,6 @@ C Simulator parameters.
 C BEMS interaction time for results dump.
       COMMON/BEMSTIM/bemstime,ibems,bresfil
 
-C Uncertainty.
-      COMMON/UA1/LUALF,LCNG(MNCNG),LLOC(MNIL)
-
 C Illuminance database.
       common/ILDB/NDBENT,DBILLA(200,5),DBILLS(200,MLCOM,MDF)
 
@@ -310,7 +309,10 @@ C Name of current application
 C Flag for enabling h3k customizations 
 
       common/H3KCustom/bEnableH3kExtensions
-      logical bEnableH3kExtensions      
+      logical bEnableH3kExtensions 
+     
+      real UNMETHRS  ! for each zone counter for unmet hours.
+      COMMON/UNMET/UNMETHRS(MCOM)
       
       character cAppName*12
       integer iverb     ! verbosity passed on command line
@@ -323,7 +325,6 @@ C Flag for enabling h3k customizations
 C      logical gopher  ! not references
       logical concat
 
-      character LUALF*72,LCNG*15,LLOC*15
       character*29 item(15)
       character OUTS*124,spsname*8
       character LCMDFL*144,inf*144,sps*8,aut*12,fs*1,actf*72
@@ -416,6 +417,7 @@ C have not been read in.
       MSTRFILE='libmstr'
       do 5 I=1,MCOM
         Lflpar(I)='UNKNOWN'
+        UNMETHRS(I)=0  ! reset counter of unmet hours
  5    continue
 
 C CFD results output. `photon' indicates whether PHOTON phi files will
@@ -690,8 +692,8 @@ C All subsequent tstamp messages will be appended to root journal.
 
 C Scan the defaults file for default configuration.
 C Make temporary use of file unit IFIL+1.  Note: escdef must come
-C after scan of .esprc file.
- 902  call escdef(IFIL+1,IER)
+C after scan of .esprc file. Do it silently.
+ 902  call escdef(IFIL+1,'s',IER)
 
 C Take command line file name as initial configuration file.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
@@ -1211,6 +1213,12 @@ C Help via the askabout facility in esru_ask.F The zero requests display
 C Clean up and exit.
 C Delete any temporal scratch file if temporal data associated with
 C the model.
+
+C Debug write out unmet hours.
+        write(6,'(a)') 'Unmet hours for each zone at end of simulation.'
+        do I=1,NCOMP
+          write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
+        enddo
         if(ITDFLG.ne.0)then
           CALL ERPFREE(IUTDF,ISTAT)
           lnts=lnblnk(LTDF)
@@ -1375,6 +1383,14 @@ C Depending on computer type set integer size of passed parameters.
 
       SUBROUTINE EMKVIEW(IUO,CFGOK,IER)
       logical cfgok
+      ier=0
+      return
+      end
+      
+      SUBROUTINE EDMLDB2(chgdb,ACTION,isel,IER)
+      logical chgdb
+      character*1 ACTION
+      integer isel,ier
       ier=0
       return
       end

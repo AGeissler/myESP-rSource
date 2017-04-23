@@ -44,6 +44,7 @@ C output; IER=0 indicates no error.
 
 C geometry.h provides commons G0/G1/G2/G7/prec2/precz.
 #include "geometry.h"
+C UA1 in uncertainty.h
 #include "uncertainty.h"
 #include "net_flow.h"
 #include "control.h"
@@ -94,8 +95,6 @@ C Defaults.
       character DFCFD*72,DECMPDBFL*72,DICONDBFL*72
       COMMON/DEFLT3/DFCFD,DECMPDBFL,DICONDBFL
 
-C Uncertainty.
-      COMMON/UA1/LUALF,LCNG(MNCNG),LLOC(MNIL)
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
@@ -134,7 +133,6 @@ C Uncertainty.
       integer iappwpc ! application height as % of nominal size
 
       dimension ITEMS(30)
-      character LUALF*72,LCNG*15,LLOC*15
       character*72 LAPROB,DFILE,LPNF,tfile
       character longtfile*144,longtfiledos*144
       character ITEMS*34,ETEXT*82
@@ -1087,7 +1085,7 @@ C Call uncertainty definition controller.
      &    0,'-',0,'-',0,'password',IER,nbhelp)
         if (IPASS.eq.101) then
           call tstamp('>','PRJ: enter uncertainty control')
-          call UNCERTA(LUALF)
+          call UNCERTA()
         endif
       ELSEIF(INO.EQ.23)THEN
 
@@ -1682,8 +1680,10 @@ C Find the index of the MLC which matches each surface.
             DO 9994 I=1,NZSUR(icomp)
               icn1=izstocn(icomp,i)
               ssmlcindex(icn1)=0  ! assume no matching MLC          
+              lnssmlc=lnblnk(SSMLCN(icn1))
               do 5 ii=1,nmlc
-                if(SSMLCN(icn1)(1:12).eq.mlcname(ii)(1:12)) then
+                if(SSMLCN(icn1)(1:lnssmlc).eq.
+     &             mlcname(ii)(1:lnmlcname(ii))) then
                   ssmlcindex(icn1)=ii   ! remember MLC index     
                 endif
   5           continue
@@ -1883,7 +1883,9 @@ C file and then recover the zone commons.
               CALL ERCZONE(NCOMP)
             endif
           elseif(IOBS(ic).eq.2)then
-            continue   ! obstr within geometry file so copy not required.
+
+C Obstructions in geo file so just set OKOB to true.
+            OKOB=.true.
           endif
 
 C Zone rotations and transforms.
@@ -2767,7 +2769,10 @@ C database gets its name corrupted requiring a re-scan).
         call FINDFIL(lworking,XST)
         if(XST)then
           CALL ERMLDB(0,IUOUT,IER)
-        else
+          IF(IER.eq.4)THEN
+            CALL ERMLDB2(0,iuout,IER)
+          endif
+         else
 
 C Could not find Constructions db at this time, report to user.
           write(outs248,'(3a)') 'Constructions db ',
@@ -2941,12 +2946,15 @@ C << geometry files are used. This is not yet done.
 C Global tasks.
           helptopic='global_shading_tasks'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABCD(' ','Options for multiple zones:',
-     &      'recalculate shading','dereference shading files',
-     &      'add insolation','cancel',IW,nbhelp)
+          CALL EASKATOG('Options for multiple zones:',' ',
+     &      're-establish missing shading','recalculate shading',
+     &      'dereference shading files','add insolation','cancel',
+     &      ' ',' ',IW,nbhelp)
           if(IW.eq.1)then
-            call eddshd
+            call eddshd('asci')
           elseif(IW.eq.2)then
+            call eddshd('site')
+          elseif(IW.eq.3)then
             inpic=0
             call askmultizone(inpic,ivals,
      &        'Select zones do dereference insolation?',
@@ -2957,7 +2965,7 @@ C Global tasks.
                 ISI(ICOMP)=0
  153          continue
             endif
-          elseif(IW.eq.3)then
+          elseif(IW.eq.4)then
             inpic=0
             call askmultizone(inpic,ivals,
      &        'Select zones to add insolation?',
@@ -2992,8 +3000,8 @@ C << geometry file (if version 1.1).
  151          continue
             endif
             CALL EMKCFG('-',IER)
-            call eddshd
-          elseif(IW.eq.4)then
+            call eddshd('site')
+          elseif(IW.eq.5)then
             continue
           endif
           IC=-1
@@ -3072,6 +3080,9 @@ C Get logical name of terminal type, expand model name
 C to include the path and create a string to drive ish.
           call tstamp('>','PRJ: start shading')
           call comissionish(ic,'in ',ier)
+          if(ier.ne.0)then
+            call edisp(iuout,'Possible error in calculations.')
+          endif
         endif
 
 C Loop back and see if another zone is requested.
@@ -4096,8 +4107,10 @@ C Find the index of the MLC which matches each surface.
             icn1=izstocn(icomp,i)
             if(icn1.ge.1)then
               ssmlcindex(icn1)=0  ! assume no matching MLC          
+              lnssmlc=lnblnk(SSMLCN(icn1))
               do 5 ii=1,nmlc
-                if(SSMLCN(icn1)(1:12).eq.mlcname(ii)(1:12)) then
+                if(SSMLCN(icn1)(1:lnssmlc).eq.
+     &             mlcname(ii)(1:lnmlcname(ii)))then
                   ssmlcindex(icn1)=ii   ! remember MLC index     
                 endif
   5           continue
@@ -4262,6 +4275,10 @@ C << it would be clearer if all model I/O happened there >>
 #include "model.h"
       
       integer lnblnk  ! function definition
+      integer ier
+
+C Parameters.
+      character act*1  !  V (for Viewer) or R (for Radiance)
 
       common/OUTIN/IUOUT,IUIN
       common/FILEP/IFIL
@@ -4275,7 +4292,7 @@ C << it would be clearer if all model I/O happened there >>
       logical concat,OK,DOK,browse,XST,deref,unixok,modcfg
       character dradcf*72,OUTSTR*124,outs*124,outs248*248
       character dvfil*72,ltmp*72
-      character doit*248,tmode*8,act*1
+      character doit*248,tmode*8
       character fs*1,tfile*72
       character longtfile*144,longtfiledos*144,L144*144,lltmp*144
       character brw*8   ! to signal model is being browsed
@@ -4404,8 +4421,9 @@ C And update radpath. The L144 is for future use of EASKXORGTKF
             modcfg=.true.
           endif
 
-          if(lradcf(1:7).eq.'UNKNOWN')then
-            write(lradcf,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.rcf'
+          if(lradcf(1:7).eq.'UNKNOWN')then  ! setup in form of ../rad/xx
+            write(lradcf,'(6a)') '..',fs,'rad',fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.rcf'
 C            write(L144,'(8a)')path(1:lnblnk(path)),fs,'..',fs,'rad',
 C     &        fs,cfgroot(1:lnblnk(cfgroot)),'.rcf'
             modcfg=.true.
@@ -4625,6 +4643,21 @@ C Find out the version number so we know what to do with obstructions later.
             Z(I)=Z(I)+VALZ
    62     continue
           iZBFLG(IICOMP)=0
+  
+          if(nbvis(iicomp).gt.0)then
+
+C Visual object transforms.
+            do ij=1,nbvis(iicomp)
+              XOV(iicomp,ij)=XOV(iicomp,ij)+VALX
+              YOV(iicomp,ij)=YOV(iicomp,ij)+VALY
+              ZOV(iicomp,ij)=ZOV(iicomp,ij)+VALZ
+              do ibe=1,8
+                XVP(iicomp,ij,ibe)=XVP(iicomp,ij,ibe)+VALX
+                YVP(iicomp,ij,ibe)=YVP(iicomp,ij,ibe)+VALY
+                ZVP(iicomp,ij,ibe)=ZVP(iicomp,ij,ibe)+VALZ
+              enddo  ! of ibe
+            enddo    ! of ij
+          endif
 
 C Decide whether to upgrade the geometry file format.
           if(igupgrade.eq.2.and.(.NOT.newgeo))then
@@ -4722,6 +4755,7 @@ C apply the transform and write the file back out.
               endif
             endif
           endif
+
           write(outs,'(3a)') ' Transforming: ',zn(1:lnblnk(zn)),
      &      '...done'
           if(.NOT.silent)CALL USRMSG(' ',outs,'-')
@@ -4778,6 +4812,7 @@ C user can un-do this action.
       integer itrc,iuf,iicomp,ij,iz
       integer ibe   ! loop for faces of obstruction
       real A,pi,XR,YR,XXX,YYY,CA,SA
+      real angr   ! rotation angle
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -4804,6 +4839,30 @@ C Find out version number so we know if upgrade required.
           call georead(IUF,LTMP,IICOMP,1,iuout,IER)
           CALL ESCROT(VAL,x1,y1)
           iZBFLG(IICOMP)=0
+  
+          if(nbvis(iicomp).gt.0)then
+
+C Visual object rotation.
+            ANGR=VAL
+            PI = 4.0 * ATAN(1.0)
+            A=-ANGR*PI/180.
+            CA=COS(A)
+            SA=SIN(A)
+            do ij=1,nbvis(iicomp)
+              XXX=XOV(IICOMP,ij)-X1; YYY=YOV(IICOMP,ij)-Y1
+              XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+              XOV(IICOMP,ij)=XR+X1; YOV(IICOMP,ij)=YR+Y1
+              BANGOV(IICOMP,ij,1)=BANGOV(IICOMP,ij,1)+ANGR
+              do ibe=1,8
+                XXX=XVP(iicomp,ij,ibe)-X1
+                YYY=YVP(iicomp,ij,ibe)-Y1
+                XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+                XVP(iicomp,ij,ibe)=XR+X1
+                YVP(iicomp,ij,ibe)=YR+Y1
+              enddo  ! of ibe
+            enddo    ! of ij
+          endif
+
 
 C Remember user directive for future un-do.
           rotateit(iicomp,1)=0.0

@@ -458,11 +458,12 @@ if [ "$platform" = "auto-detect" ]; then
       [ "$architecture" != "CYGWIN_NT-6.0" ] &&
       [ "$architecture" != "CYGWIN_NT-6.1" ] &&
       [ "$architecture" != "CYGWIN_NT-6.1-WOW64" ] &&
+      [ "$architecture" != "CYGWIN_NT-10.0" ] &&
       [ "$architecture" != "MINGW32_NT-5.1" ] &&
-      [ "$architecture" != "MINGW32_NT-5.0" ] &&
       [ "$architecture" != "MINGW32_NT-5.2" ] &&
       [ "$architecture" != "MINGW32_NT-6.1" ] &&
       [ "$architecture" != "MINGW64_NT-6.1" ] &&
+      [ "$architecture" != "MINGW64_NT-10.0" ] &&
       [ "$architecture" != "MSYS_NT-6.1" ] &&
       [ "$architecture" != "Darwin" ] &&
       [ "$architecture" != "SunOS" ]; then
@@ -575,8 +576,8 @@ if [ "$platform" = "auto-detect" ]; then
    # Note: $architecture has been error-trapped above.
    case $architecture in
       Linux)                           platform="linux";;
-      CYGWIN_NT-5.2  | CYGWIN_NT-5.1  | CYGWIN_NT-5.0  | CYGWIN_NT-6.0 | CYGWIN_NT-6.1 | CYGWIN_NT-6.1-WOW64 ) platform="cygwin";;
-      MINGW64_NT-6.1 |MINGW32_NT-6.1 | MINGW32_NT-5.2 | MINGW32_NT-5.1 | MINGW32_NT-5.0 | MSYS_NT-6.1 ) platform="mingw";;
+      CYGWIN_NT-5.2  | CYGWIN_NT-5.1  | CYGWIN_NT-5.0  | CYGWIN_NT-6.0 | CYGWIN_NT-6.1 | CYGWIN_NT-6.1-WOW64 | CYGWIN_NT-10.0 ) platform="cygwin";;
+      MINGW64_NT-10.0 | MINGW64_NT-6.1 | MINGW32_NT-6.1 | MINGW32_NT-5.2 | MINGW32_NT-5.1 | MSYS_NT-6.1 ) platform="mingw";;
       Darwin)                          platform="mac";;
       SunOS)                           platform="sun";;
    esac
@@ -976,9 +977,14 @@ case $xLibs in
               x86_64)
                 case $platform in
                   mac) if [ -d /usr/X11R6/lib/X11 ] ; then
-                    X11_found="yes"
-                    XINSTALLDIR="/usr/X11R6"
-                  fi;;
+                         X11_found="yes"
+                         XINSTALLDIR="/usr/X11R6"
+                       else
+                         if [ -d /opt/X11/lib/X11 ] ; then
+                           X11_found="yes"
+                           XINSTALLDIR="/opt/X11"
+                         fi
+                    fi;;
                   *) if [ -d /usr/X11R6/lib64/X11 ] ; then
                        X11_found="yes"
                        XINSTALLDIR="/usr/X11R6"
@@ -1000,6 +1006,11 @@ case $xLibs in
                   XINSTALLDIR="/usr/lib/arm-linux-gnueabihf"
                 fi;;
               armv7l)
+                if [ -d /usr/lib/X11 ] ; then
+                  X11_found="yes"
+                  XINSTALLDIR="/usr/lib/X11"
+                fi;;
+              aarch64)
                 if [ -d /usr/lib/X11 ] ; then
                   X11_found="yes"
                   XINSTALLDIR="/usr/lib/X11"
@@ -1140,18 +1151,19 @@ case $platform in
           i386)    fDefType="-DSUN";;
         esac;;
    linux) case $machine in
-          i386)    fDefType="-DLIN -O1";;
-          i686)    fDefType="-DLIN -O1";;
-          x86_64)  fDefType="-DLIN -O1";;
-          armv6l)  fDefType="-DLIN -O1";;
-          armv7l)  fDefType="-DLIN -O1";;
+          i386)    fDefType="-DLIN";;
+          i686)    fDefType="-DLIN";;
+          x86_64)  fDefType="-DLIN";;
+          armv6l)  fDefType="-DLIN";;
+          armv7l)  fDefType="-DLIN";;
+          aarch64)  fDefType="-DLIN";;
         esac;;
-   cygwin)     fDefType="-DCYGW -O1";;
+   cygwin)     fDefType="-DCYGW";;
    mac) case $machine in
           i386)    fDefType="-DOSX -DOSI -DLIN -m32";;
-          x86_64)  fDefType="-DOSX -DLIN -O1 -m64";;
+          x86_64)  fDefType="-DOSX -DLIN -m64";;
         esac;;
-   mingw)      fDefType="-DMINGW -O1";;
+   mingw)      fDefType="-DMINGW";;
 esac
 
 # Append -DX11 flag as necessary
@@ -1254,6 +1266,7 @@ case $xLibs in
          i686) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR}/lib -lX11";;
          armv6l) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR} -lX11";;
          armv7l) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR} -lX11";;
+         aarch64) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR} -lX11";;
          x86_64) case $platform in
                  mac) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR}/lib -lX11";;
                  *) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR}/lib64 -lX11";;        
@@ -1330,6 +1343,7 @@ case $platform in
    *)  case $machine in
       armv6l) LD_FLAGS="-Wl,--reduce-memory-overheads";;
       armv7l) LD_FLAGS="-Wl,--reduce-memory-overheads";;
+      aarch64) LD_FLAGS="-Wl,--reduce-memory-overheads";;
       *)      LD_FLAGS="-Wl,--reduce-memory-overheads";;
       esac;;
 esac
@@ -1527,6 +1541,7 @@ DESTdir=`echo "$DESTdir" | sed "s/\/$//"`
 
 ESPdir=${DESTdir}/esp-r
 ESPbin=${DESTdir}/esp-r/bin
+ESPBinDir=${DESTdir}/esp-r/bin
 corrupted_tree="no"
 if [ "$create_espr_dir" = "no" ]; then
 
@@ -1633,7 +1648,7 @@ fi
 if [ "${make_msg_file}" = "" ]; then
   echo " "
   echo " Intended shell command:"
-  echo " make MCTYPE=${MCTYPE} MCC=${CC} MCPL=${CPL} MFC=${FC} DESTdir=${DESTdir} ESPdir=${ESPdir} WWLINK=${WWLINK} EXE="${EXE}" XINSTALLDIR=${XINSTALLDIR} CFLAGS=${CFLAGS} FFLAGS=${FFLAGS} LD_FLAGS=${LD_FLAGS} ULIBS=${ULIBS} xml_status=${xml_status} $targets"
+  echo " make MCTYPE=${MCTYPE} MCC=${CC} MCPL=${CPL} MFC=${FC} DESTdir=${DESTdir} ESPdir=${ESPdir} ESPBinDir=${ESPBinDir} WWLINK=${WWLINK} EXE="${EXE}" XINSTALLDIR=${XINSTALLDIR} CFLAGS=${CFLAGS} FFLAGS=${FFLAGS} LD_FLAGS=${LD_FLAGS} ULIBS=${ULIBS} xml_status=${xml_status} $targets"
   echo " "
   echo " where the $xlibs libraries are in ${XINSTALLDIR}"
 fi
@@ -2047,12 +2062,12 @@ if [ "${LinkDB}" = "yes" ]; then
   echo "*clm ${DBInstDir}/climate/clm67" >> ${ESPdir}/default
   echo "*prs ${DBInstDir}/databases/pressc.db1" >> ${ESPdir}/default
   echo "*prm ${DBInstDir}/databases/material.db4.a" >> ${ESPdir}/default
-  echo "*mlc ${DBInstDir}/databases/multicon.db4" >> ${ESPdir}/default
+  echo "*mlc ${DBInstDir}/databases/multicon.db5" >> ${ESPdir}/default
   echo "*opt ${DBInstDir}/databases/optics.db2" >> ${ESPdir}/default
   echo "*evn ${DBInstDir}/databases/profiles.db2.a" >> ${ESPdir}/default
   echo "*pdb ${DBInstDir}/databases/plantc.db1" >> ${ESPdir}/default
   echo "*ecdb ${DBInstDir}/databases/elcomp.db1" >> ${ESPdir}/default
-  echo "*mcdb ${DBInstDir}/databases/mscomp.db2" >> ${ESPdir}/default
+  echo "*mcdb ${DBInstDir}/databases/mscomp.db1" >> ${ESPdir}/default
   echo "*icdb ${DBInstDir}/databases/icons.db1" >> ${ESPdir}/default
   echo "*mldb ${DBInstDir}/databases/mould.db1" >> ${ESPdir}/default
   echo "*sbem ${DBInstDir}/databases/SBEM.db1" >> ${ESPdir}/default
@@ -2080,6 +2095,12 @@ case "${MCTYPE}" in
          echo "*image_display,XBMP,iexplore.exe" >> ${ESPdir}/esprc
          echo "*image_display,GIF,iexplore.exe" >> ${ESPdir}/esprc
          echo "*image_display,XWD,iexplore.exe" >> ${ESPdir}/esprc
+    ;;
+  osx) # Use preview as image viewer
+         echo "*image_display,TIF,open" >> ${ESPdir}/esprc
+         echo "*image_display,XBMP,open" >> ${ESPdir}/esprc
+         echo "*image_display,GIF,open" >> ${ESPdir}/esprc
+         echo "*image_display,XWD,open" >> ${ESPdir}/esprc
     ;;
   *)     # Use display as image editor (and what if it's not available?)
          echo "*image_display,TIF,display" >> ${ESPdir}/esprc
@@ -2159,17 +2180,12 @@ echo " Installing standard databases. This may take some time."
   rm -f ${DESTdir}/esp-r/climate/clm67
   rm -f ${DESTdir}/esp-r/databases/test.res
   echo " Done."
-  # Construction databases. Note constr_db1.materialdb and constr_db2.materialdb
-  # are subsets of constr_db3.materialdb. Perhaps they can be merged into a single file?
   echo -n "   - Copying materials databases..."
   echo -n "  (${DATdir} - ${DESTdir}/esp-r/databases/ ) "
   cp ${DATdir}/databases/ccht_constr.db1 ${DESTdir}/esp-r/databases/ccht_constr.db1
   cp ${DATdir}/databases/ccht-optics.db1 ${DESTdir}/esp-r/databases/ccht-optics.db1
   cp ${DATdir}/databases/ccht_na_constr.db1 ${DESTdir}/esp-r/databases/ccht_na_constr.db1
   cp ${DATdir}/databases/ccht_material.ascii ${DESTdir}/esp-r/databases/ccht_material.ascii
-  cp ${DATdir}/databases/constr_db1.materialdb ${DESTdir}/esp-r/databases/constr_db1.materialdb
-  cp ${DATdir}/databases/constr_db2.materialdb ${DESTdir}/esp-r/databases/constr_db2.materialdb
-  cp ${DATdir}/databases/constr_db3.materialdb ${DESTdir}/esp-r/databases/constr_db3.materialdb
   cp ${DATdir}/databases/cellular.materialdb ${DESTdir}/esp-r/databases/cellular.materialdb
   cp ${DATdir}/databases/north_american.materialdb.a ${DESTdir}/esp-r/databases/north_american.materialdb.a
   cp ${DATdir}/databases/north_american.materialdb.a ${DESTdir}/esp-r/databases/north_american.materialdb
@@ -2180,7 +2196,6 @@ echo " Installing standard databases. This may take some time."
 
   cp ${DATdir}/databases/SBEM.db1 ${DESTdir}/esp-r/databases/SBEM.db1
   cp ${DATdir}/databases/UK_notional.constrdb ${DESTdir}/esp-r/databases/UK_notional.constrdb
-  cp ${DATdir}/databases/profiles.db1.a ${DESTdir}/esp-r/databases/profiles.db1.a
   cp ${DATdir}/databases/profiles.db2.a ${DESTdir}/esp-r/databases/profiles.db2.a
   cp ${DATdir}/databases/icons.db1 ${DESTdir}/esp-r/databases/icons.db1
   cp ${DATdir}/databases/flow_icons.db6 ${DESTdir}/esp-r/databases/flow_icons.db6
@@ -2220,7 +2235,7 @@ echo " Installing standard databases. This may take some time."
 
    cd ${DATdir}/databases
    echo -n "   - Copying ASCII databases..."
-   cp components.db1 ccht_mlc.db multicon.db1 multicon.db2 multicon.db3 multicon.db4 north_american.constrdb optics.db1 optics.db2 optics.db3 ccht-optics.db1 mould.db1 pressc.db1 mscomp.db1 mscomp.db2 *.desc ${DESTdir}/esp-r/databases
+   cp components.db1 multicon.db3 multicon.db4 multicon.db5 north_american.constrdb optics.db2 optics.db3 ccht-optics.db1 mould.db1 pressc.db1 mscomp.db1 mscomp.db2 *.desc ${DESTdir}/esp-r/databases
    echo " Done."
 
 fi
@@ -2431,7 +2446,8 @@ echo -n " Installing executables... "
 if [ "$debugging" = "no" ]; then
   make ESPdir=${ESPdir} EXE=${EXE} COSIMDir=${COSIMdir} strip  >/dev/null 2>&1
 fi
-make ESPBinDir=${ESPbin} EXE=${EXE} COSIMDir=${COSIMdir} InstBins  >/dev/null 2>&1
+echo "Placing executables in ESPBinDir=${ESPBinDir}"
+make ESPBinDir=${ESPBinDir} EXE=${EXE} COSIMDir=${COSIMdir} InstBins   >/dev/null 2>&1
 if [ "$clean" = "yes" ]; then
   make EXE=${EXE} clean  >/dev/null 2>&1
 fi
