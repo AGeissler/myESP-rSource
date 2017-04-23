@@ -3113,7 +3113,7 @@ C law can be jumped around.
         useold=.false.
         iclawt=-1
   77    if(useold)then
-          if(iclawt.ge.0.and.iclawt.le.2.or.iclawt.eq.9)then
+          if((iclawt.ge.0.and.iclawt.le.2).or.iclawt.eq.9)then
             iclaw=iclawt
             iCFCctllaw(II,JJ,KK)=iclaw
             useold=.false.
