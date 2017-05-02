@@ -3981,6 +3981,20 @@ C                 Is the current connection involved?
                   endif
                 endif
 
+                if (ifan(ICC,1).eq.-4) then
+C                 Is the current component involved?
+                  if (ifan(ICC,2).eq.ITPCON(jj)) then
+
+                    call AddToReport(
+     &                rvMfnConnectCtlOnFrac%Identifier,
+     &                ctlpos(jj),
+     &                fluid(1:fluid_len),
+     &                Connect_Name(1:connect_len))
+
+                  endif
+                endif
+
+
   100         CONTINUE ! Control function loop
 
             ENDIF ! Check flow control active

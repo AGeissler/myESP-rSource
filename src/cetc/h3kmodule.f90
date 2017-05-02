@@ -1427,7 +1427,7 @@ CONTAINS
       rvMfnConnectCtlOnFrac%VariableName = 'mfn/*/*/onfrac'
       rvMfnConnectCtlOnFrac%MetaType = 'units'
       rvMfnConnectCtlOnFrac%VariableType = '(-)'
-      rvMfnConnectCtlOnFrac%Description = 'mfn connection control on fraction'
+      rvMfnConnectCtlOnFrac%Description = 'mfn connection control ON fraction'
       Call AddVariable(rvMfnConnectCtlOnFrac)
 
       !Used by SiteUtilities.F
