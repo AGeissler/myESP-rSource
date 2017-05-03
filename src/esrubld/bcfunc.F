@@ -6289,7 +6289,8 @@ C of the type of space conditioning system. This is done later on
       IHLZP=IHLZ(IiCOMP)  ! set up pointer
       NEAR=.TRUE.
       if(ihlzp.ne.0) CALL ECLOSE(CGEF(IHLZP),0.0,0.001,NEAR)
-      IF(NEAR)QCM=0.0
+cx << ?? this should somehow not be the default !!!
+cx      IF(NEAR)QCM=0.0
 
 C Read setpoints from tdf here (CSP and HSP)
 C "COLUMNSETP" is an integer specifying the column within the
