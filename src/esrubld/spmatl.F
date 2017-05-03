@@ -5993,8 +5993,11 @@ C       Force minimum of four iterations ...
 20    continue
 
 C      pause 'too many steps in qtrap'
-      WRITE(IUOUT,'(a,f10.4)') ' *** Too many steps in f56_trap! LH=',
-     &  LH
+      WRITE(IUOUT,'(a,f10.4,a)')
+     & ' *** Too many steps in f56_trap! LH=',LH,', setting LH=0.!'
+
+C     Set LH to zero
+      LH=0.
 
       return
 
