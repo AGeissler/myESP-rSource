@@ -231,11 +231,11 @@ C Path to model and command line file name.
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
 C Temporal definition commons.
-C For each timestep (assuming 10tsph frequency over a year) iknowrec
+C For each timestep (assuming 60tsph frequency over a year) iknowrec
 C will be zero if not yet set and a positive number representing the record
 C to read from the temporal file if already known.
       integer iknowrec,itdflastrec,itdfprevrec
-      common/tdfhash/iknowrec(87600,4),itdflastrec,itdfprevrec
+      common/tdfhash/iknowrec(525600,4),itdflastrec,itdfprevrec
 
       INTEGER :: ispmxist
 

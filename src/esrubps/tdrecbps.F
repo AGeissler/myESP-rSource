@@ -47,14 +47,14 @@ C day and VAL(2...) are timestep fields.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       common/tdfrem/ialrdy_warned
 
-C For each timestep (assuming 10 tsph frequency over a year) iknowrec
+C For each timestep (assuming 60 tsph frequency over a year) iknowrec
 C will be zero if not yet set and a positive number representing the record
 C to read if already known. 1st value is tdf record,
 C  2nd value is day for this timestep,
 C  3rd value is timestep in the day for this timestep,
 C  4th value is whether to interpolate for this timestepX.
       integer iknowrec,itdflastrec,itdfprevrec
-      common/tdfhash/iknowrec(87600,4),itdflastrec,itdfprevrec
+      common/tdfhash/iknowrec(525600,4),itdflastrec,itdfprevrec
 
       dimension VAL(MBITS+2)
       logical traceok,FOUND,closer
@@ -255,7 +255,7 @@ C  2nd value is day for this timestep,
 C  3rd value is timestep in the day for this timestep,
 C  4th value is whether to interpolate for this timestepX.
       integer iknowrec,itdflastrec,itdfprevrec
-      common/tdfhash/iknowrec(87600,4),itdflastrec,itdfprevrec
+      common/tdfhash/iknowrec(525600,4),itdflastrec,itdfprevrec
 
       dimension VAL(MTABC+2)
       logical traceok,FOUND,closer
@@ -338,7 +338,7 @@ C day)
         IF(IPRECD.NE.ITDEDOY)THEN
           IF(IPRECT.EQ.1)THEN
             IPRECD=IPRECD+1
-          ELSEIF(FPTLA.LE.(1./REAL(24*NTSPH)))THEN
+          ELSEIF(FPTLA.LE.(1./24.))THEN
             IPRECD=IPRECD+1
           ENDIF
         ENDIF
