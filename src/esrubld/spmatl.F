@@ -4560,12 +4560,19 @@ C *** END DEBUG
 
 C         LH > 0 when T1 > T2, i.e. heat released to zone;
 C         LH < 0 when T1 < T2, i.e. heat stored in PCM.
-          if (T1.gt.T2) resultsign=1.0
-          if (T1.lt.T2) resultsign=-1.0
+cx          if (T1.gt.T2) resultsign=1.0
+cx          if (T1.lt.T2) resultsign=-1.0
 
-          LatentHeat=resultsign*LatentHeat*1000. ! J/kg
+cx          LatentHeat=resultsign*LatentHeat*1000. ! J/kg
         endif
       endif
+
+C     LH > 0 when T1 > T2, i.e. heat released to zone;
+C     LH < 0 when T1 < T2, i.e. heat stored in PCM.
+      if (T1.gt.T2) resultsign=1.0
+      if (T1.lt.T2) resultsign=-1.0
+
+      LatentHeat=resultsign*ABS(LatentHeat)*1000. ! J/kg
 
 C More than |Lges| is not possible.
 cx      LatentHeat=sign(1.0,LatentHeat)*min(Lges,abs(LatentHeat))
@@ -5626,8 +5633,8 @@ C-----Error handling on reading of .fcl file.
 C---------------------------------------------------------------------------------
 C     Read the data triplet at each temperature increment. Normalize
 C     enthalpy values "heat" and "cool" to 1 K (i.e. divide by dataDT)
-C     and correct mass unit to kg (i.e. multiply by 1000 g/kg if data
-C     values in J/(g K)
+C     and if neccessary correct unit (e.g. multiply by 0.001 kg/g if
+C     data values in J/(kg K))
 C---------------------------------------------------------------------------------
 
       DO irec=1,nxy(ispmnod)
@@ -5644,7 +5651,7 @@ C       << check ND? >>
         CALL EGETWR(OUTSTR,K,heat1d(ispmnod,irec),0.,0.,'-','h1d',IER)
         CALL EGETWR(OUTSTR,K,cool1d(ispmnod,irec),0.,0.,'-','c1d',IER)
 
-C       Normalize enthalpy values to J/(kg K)
+C       Normalize enthalpy values to J/(g K)
         heat1d(ispmnod,irec)=MUNIT*heat1d(ispmnod,irec)/dataDT
         cool1d(ispmnod,irec)=MUNIT*cool1d(ispmnod,irec)/dataDT
 
@@ -5882,7 +5889,12 @@ C       Force minimum of four iterations ...
 20    continue
 
 C      pause 'too many steps in qtrap'
-      WRITE(IUOUT,'(a)') ' *** Too many steps in s_trap! '
+cx      WRITE(IUOUT,'(a)') ' *** Too many steps in s_trap! '
+      WRITE(IUOUT,'(a,f10.4,a)')
+     & ' *** Too many steps in s_trap! LH=',LH,', setting LH=0.!'
+
+C     Set LH to zero
+      LH=0.
 
       return
 
