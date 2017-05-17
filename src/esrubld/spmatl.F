@@ -4558,12 +4558,6 @@ cx  10        continue
 cx          endif
 C *** END DEBUG
 
-C         LH > 0 when T1 > T2, i.e. heat released to zone;
-C         LH < 0 when T1 < T2, i.e. heat stored in PCM.
-cx          if (T1.gt.T2) resultsign=1.0
-cx          if (T1.lt.T2) resultsign=-1.0
-
-cx          LatentHeat=resultsign*LatentHeat*1000. ! J/kg
         endif
       endif
 
@@ -4728,7 +4722,7 @@ C *****************
 
 cx    use eclose logic here to "dampen" calcs? ... do what if TnS approx. equal TnS1?
 cx    storedLH += time step dependant?? 17/2/22
-      call eclose(TnS,TnS1,1.0E-04,bNoTempDiff)
+      call eclose(TnS,TnS1,1.0E-03,bNoTempDiff)
 
       if (bNoTempDiff) then
          !- what happens here (TnS = TnS1)?
@@ -5889,7 +5883,6 @@ C       Force minimum of four iterations ...
 20    continue
 
 C      pause 'too many steps in qtrap'
-cx      WRITE(IUOUT,'(a)') ' *** Too many steps in s_trap! '
       WRITE(IUOUT,'(a,f10.4,a)')
      & ' *** Too many steps in s_trap! LH=',LH,', setting LH=0.!'
 
