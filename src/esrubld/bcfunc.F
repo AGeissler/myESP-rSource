@@ -1889,8 +1889,10 @@ C Keep track if trace is not active.
               continue
             else
               UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
-              write(6,'(a,f8.2,a,i3)')' heating capacity insufficient ',
-     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
+
+C Debug uncomment to see the evolution of unmet hours.
+C              write(6,'(a,f8.2,a,i3)')' heating capacity insufficient ',
+C     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
             endif
          elseif ( QFUT.le.QHM.and.TFUT.ge.HSP)then  ! if within capacity and setpoint
             continue
@@ -5962,8 +5964,10 @@ C cooling capacity for time step.
 C Using same % value, calculate delivered capacity to slave zone
       if (QM.GT.0.0) then
         Qslv=PBH*QHM
+        IPLT=1 ! heating
       elseif (QM.LT.0.0) then
         Qslv=PBC*QCM
+        IPLT=2 ! cooling
       endif
 
 C If close to zero then reset to zero.
@@ -5979,7 +5983,14 @@ C Check Qslv not greater than specified base capacities
         Qslv=QCM
       endif
   
-      QFUT=Qslv       
+      QFUT=Qslv
+
+C QMN and QMX are passed to the mixed radiant/convective actuator
+C subroutine. Setting them equal to QFUT forces the actuator to maintain
+C the total level of flux identified by the controller, which is
+C critical to maintain the master/slave relationship.
+      QMN=QFUT
+      QMX=QFUT       
    
 C Check for free cooling in master zone (are windows open?) 
       if ( bMasterFreeCoolFlag(imasctlindex) ) then  
@@ -6022,6 +6033,13 @@ C If zero capacity to zone, use TNP
       else
         TFUT=Tslv
       endif
+
+C TCONT is the temperature to aim for.
+      TCONT=TFUT      
+
+C Call mixed radiant/convective actuator.
+      IF(IBAN(ICF,1).EQ.-2)CALL MZRCPL(IICOMP,BB1,BB2,BB3,TCONT,0.05,
+     &IPLT,QMX,QMN,TFUT,QFUT)
 
 C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -6306,32 +6324,32 @@ C the initial time column.
       COLUMNSETP=nint(BMISCD(ICF,IDTYP,IPER,2))
 
 C Debug.
-C      write(6,*) 'temporal ht set point col ',COLUMNSETP,'icf',icf
+C      write(6,*) 'temporal ht set point col ',COLUMNSETP,'iicomp',iicomp
 C      write(6,*) 'IHTCLSETP array ',IHTCLSETP
-      if(IACTIV(ICF).ne.0)then
-        itdi=IACTIV(ICF)
-      elseif(IHTCLSETP(ICF).ne.0)then
+      if(IACTIV(IICOMP).ne.0)then
+        itdi=IACTIV(IICOMP)
+      elseif(IHTCLSETP(IICOMP).ne.0)then
 
 C For heating and cooling setpoints these will be linked to control loops
 C and the itdi index will be from the IHTCLSETP array.
-        itdi=IHTCLSETP(ICF) 
+        itdi=IHTCLSETP(IICOMP) 
       endif
 
 C There is only a requirement to scan this timestep once to get
 C both the heating and cooling setpoints.
       CALL RCTDFBALL(itrc,btimef,VAL,ISD,IER)
-      if(IACTIV(ICF).ne.0)then
+      if(IACTIV(IICOMP).ne.0)then
         HSP=VAL(COLUMNSETP-1)
-      elseif(IHTCLSETP(ICF).ne.0)then
+      elseif(IHTCLSETP(IICOMP).ne.0)then
         HSP=VAL(COLUMNSETP)
       endif
 
 C Now get the column for cooling.
       COLUMNSETP=nint(BMISCD(ICF,IDTYP,IPER,3))
-      if(IACTIV(ICF).ne.0)then
+      if(IACTIV(IICOMP).ne.0)then
         CSP=VAL(COLUMNSETP-1)
         cmsg=' via column'
-      elseif(IHTCLSETP(ICF).ne.0)then
+      elseif(IHTCLSETP(IICOMP).ne.0)then
         CSP=VAL(COLUMNSETP)
         cmsg=' via column'
       endif

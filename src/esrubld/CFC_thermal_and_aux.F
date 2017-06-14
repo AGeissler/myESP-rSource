@@ -122,8 +122,12 @@ C ******** Calculate effective longwave properties for each CFC layer
 C.........Only calculate at first time-step and when slat angle change occurs
 C.........(effective longwave radiative properties are a function of geometry only).
           diff = abs(vb_phiNew(icomp,icfctp) - vb_phiOld(icomp,icfctp))
-cx               ... slat angle change implies diff > 0.x, no??
-          IF((NSINC.eq.1).or.(diff.gt.0.1))then
+	  
+cx Slat angle change implies diff > 0.x, no?? Logic suggested by A. Geissler.
+cx Uncomment this line to implement this rather than legacy logic in line 130.
+cx          IF((NSINC.eq.1).or.(diff.gt.0.1))then
+C Legacy logic for slat angle change is used in the next line.
+          IF((NSINC.eq.1).or.(diff.lt.0.1))then
 
 cx << insert check for CFC thin layers here??
 cx    PROBLEM: availability of layer (and timestep length?) data ... ???
