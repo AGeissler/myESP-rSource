@@ -3518,10 +3518,10 @@ C First, initialise FMI commons to default values.
       CALL FMI_CLEARALL()
 C Try to read another line.
       CALL STRIPC(IUC,OUTSTR,0,ND,0,'FMI line',IIER)
-      if (IIER.eq.2) then
+      if (IIER.eq.0) then
 C Line does not exist, continue.
         IIER=0
-      elseif (IIER.eq.0) then
+      elseif (IIER.eq.2) then
 C Line is present, check to see if it is what we are expecting.
         K=0
         CALL EGETW(OUTSTR,K,WORD,'W','*FMI',IER)
