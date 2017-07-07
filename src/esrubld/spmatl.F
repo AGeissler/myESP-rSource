@@ -4134,7 +4134,8 @@ C of factf and pcmsht respectively.
          factp=pcmfac(icomp,isurf,nloc)
          pcmshtp=pcmshts(icomp,isurf,nloc)
          if(nsinc.eq.1)then
-            factp=0
+            factp=0.
+            pcmshtp=1.
          endif
 
 C Calculate new factf; this is used below to remove original values
