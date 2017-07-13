@@ -4590,7 +4590,7 @@ C Trace output
 
 C ******************** CMP39C ********************
 
-C CMP39C generates for plant component IPCOMP with plant db code 240 ie.
+C CMP39C generates for plant component IPCOMP with plant db code 390 ie.
 C 1 node (ISV=20) WCH pump with mass flow control
 C matrix equation coefficients COUT (in order: self-coupling, cross-
 C coupling, and present-time coefficients) for energy balance (ISTATS=1),
