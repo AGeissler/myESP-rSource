@@ -4699,7 +4699,7 @@ C In case of mfs E is based on flow rate, pressure *rise*, and efficiency
          PWRQ=PQ
 
 C Now Q is made up of all inefficiencies
-         Q=E
+         Q=(1.-BDATA(IPCOMP,3))*E
 
 C Establish heat capacity of component mass CM (J/K) and
 C fluid heat capacity rate(s) C (W/K), ie. SUM(mass flow * specific heat)
