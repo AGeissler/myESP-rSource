@@ -2506,12 +2506,13 @@ C then matrix equation cross-coupling coefficients,
          COUT(6)=ALPHA*C2
 
 C and then present-time coefficients (ie. right hand sides)
-         COUT(7)=((1.-ALPHA)*(PCRP(ICON1)+PUAP(INOD1)+H)-CM/TIMSEC)
+C    << bug fix by Graeme Flett, July 21st 2017 >>
+         COUT(7)=((1.-ALPHA)*(PCRP(ICON1)+UA+H)-CM/TIMSEC)
      &           *CSVP(INOD1,1)
      &           -(1.-ALPHA)*H*CSVP(INOD2,1)
      &           +(1.-ALPHA)*(-PCRP(ICON1))*PCTP(ICON1)
-     &           -(1.-ALPHA)*PUAP(INOD1)*PCNTMP(IPCOMP)
-     &           -ALPHA*UA*PCNTMF(IPCOMP)-(1.-ALPHA)*UA*PCNTMP(IPCOMP)
+     &           -(1.-ALPHA)*UA*PCNTMP(IPCOMP)
+     &           -ALPHA*UA*PCNTMF(IPCOMP)
 
          COUT(8)=((1.-ALPHA)*(PCRP(ICON2)+H)-CW/TIMSEC)*CSVP(INOD2,1)
      &           -(1.-ALPHA)*H*CSVP(INOD1,1)
