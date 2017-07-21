@@ -3217,6 +3217,8 @@ C                             OUTHI
 C IMODE = -1        SPTON  ----------
 C                   SPTOFF ----------
 C                             OUTLO
+C
+C Important Note: the constraint SPTON < SPTOFF must be satisfied!
 
 C Establish the sensed condition and the `actuated' component.
       CALL CLVAR(SVCTL,IPCMP,IPCVR)
