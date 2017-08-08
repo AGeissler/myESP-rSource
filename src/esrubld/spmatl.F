@@ -4827,13 +4827,13 @@ C PCM temperature decrease.
 C PCM behaves according to non-subcooling properties.
             if(TnS.le.tmelt)then
 
-C PCM is solid (case 1), StoredLH = 0.
+C PCM is solid (case -1), StoredLH = 0.
                AppCon=consol
                AppSHC=shcsol
-               Debug=1
+               Debug=-1
             elseif(TnS.gt.tmelt.and.TnS1.le.tmelt)then
 
-C PCM non-subcooled solidification is completed (case 2).
+C PCM non-subcooled solidification is completed (case -2).
                storeThisTS=LatentHeat(isp,k,TnS,TnS1)
                storedLH=storedLH-storeThisTS
                if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
@@ -4841,17 +4841,17 @@ C PCM non-subcooled solidification is completed (case 2).
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=SHCLIQ+storedLH/(TnS-tmelt)
                storedLH=0.0E0     !- now all PCM is solid
-               Debug=2
+               Debug=-2
             elseif(TnS.le.tsoli.and.TnS1.ge.tmelt) then
 
-C PCM is partially liquid and is now cooled (non-subcooling, case 3).
+C PCM is partially liquid and is now cooled (non-subcooling, case -3).
                storeThisTS=LatentHeat(isp,k,TnS,TnS1)
                storedLH=storedLH-storeThisTS
                if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
                if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=shcliq+storeThisTS/(TnS-TnS1) ! to be verified
-               Debug=3
+               Debug=-3
             endif     !- temperature bracketing for k=1
          else         !- k=0
 
@@ -4859,35 +4859,35 @@ C PCM behaves according to subcooling properties.
             if(TnS1.ge.tsoli2)then
 
 C PCM is completely melted and does not reach sub-cooled
-C solidification temperature (case 5).
+C solidification temperature (case -5).
                storedLH=Lges    !- crude
                AppCon=conliq
                AppSHC=shcliq
-               Debug=5
+               Debug=-5
              elseif(TnS.gt.tsoli2.and.TnS1.lt.tsoli2)then
 
-C PCM begins to solidify in sub-cooled mode (k=0, case 6).
+C PCM begins to solidify in sub-cooled mode (k=0, case -6).
                storeThisTS=LatentHeat(isp,k,tsoli2,TnS1)
                storedLH=Lges-storeThisTS
                if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
                if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=shcsol+storeThisTS/(tsoli2-TnS1)   !- to be verified
-               Debug=6
+               Debug=-6
             elseif(TnS.le.tsoli2.and.TnS1.gt.tmelt2)then
 
 C PCM is subcooled partial liquid and not completely
-C solidified (k=0, case 7).
+C solidified (k=0, case -7).
                storeThisTS=LatentHeat(isp,k,TnS,TnS1)
                storedLH=storedLH-storeThisTS
                if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
                if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=(1.0E0-storedLH/Lges)*consol+storedLH/Lges*conliq
                AppSHC=shcsol+storeThisTS/(TnS-TnS1)     !- to be verified
-               Debug=7
+               Debug=-7
              elseif(TnS.gt.tmelt2.and.TnS1.le.tmelt2)then
 
-C PCM completely solidifies (k=0, case 8).
+C PCM completely solidifies (k=0, case -8).
                storeThisTS=LatentHeat(isp,k,TnS,tmelt2)
                storedLH=0.0E0
                AppCon=consol
@@ -4895,7 +4895,7 @@ C PCM completely solidifies (k=0, case 8).
 
 C Set new k.
                k=1
-               Debug=8
+               Debug=-8
             endif      !- temperature bracketing for k=0
          endif
       endif ! heating / cooling check
