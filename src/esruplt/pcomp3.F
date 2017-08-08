@@ -36,8 +36,11 @@ c  cmp99c   3 node (isv=20) CHP engine component.
 c ******************** CMP30C ********************
 
       subroutine cmp30c(ipcomp,cout,istats)
+      use h3kmodule
 #include "plant.h"
 #include "building.h"
+
+      integer lnblnk  ! function definition
 
       common/outin/iuout,iuin
       common/tc/itc,icnt
@@ -61,6 +64,9 @@ c ******************** CMP30C ********************
      &             pcntmp(mpcom)
       common/pcond/convar(mpcon,mconvr),icontp(mpcon),
      &             icondx(mpcom,mnodec,mpconc)
+
+      common/pcnam/pcname(mpcom)       ! Plant component names
+      character*15 pcname
 
       parameter (small=1.0e-15)
       real      cout(mpcoe)
@@ -165,6 +171,13 @@ c Trace output
       end if
       if(itc.gt.0.and.nsinc.ge.itc.and.nsinc.le.itcf.and.
      &   ITRACE(37).ne.0) write(itu,*) ' Leaving subroutine CMP30C'
+
+C------------------------------------------------------
+C XML output
+C------------------------------------------------------
+       call AddToReport(rvPltQExtractedH%Identifier,
+     &         Q,
+     &         pcname(IPCOMP)(1:lnblnk(pcname(IPCOMP))))
 
 C Return to calling module
       return

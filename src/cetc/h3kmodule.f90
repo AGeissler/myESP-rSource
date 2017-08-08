@@ -204,6 +204,9 @@ MODULE h3kmodule
          rvPltReacPow,rvPltApparPow,rvPltDefrostStat,rvPltDHWDrawStoch, &
          rvPltDHWDrawStochTp
 
+   !Used by pcomp3.F
+   Type(ReportVariable) :: rvPltQExtractedH
+
    !Used by NCHE-steady_state.F
    Type(ReportVariable) :: rvPltHXchgEff,rvPltHXchgHTrans, &
          rvPltHXchgHFlowRate,rvPltHXchgCFlowRate,rvPltHXchgHTempIn, &
@@ -2075,6 +2078,12 @@ CONTAINS
       rvPltDHWDrawStochTp%Description = 'Draw for type'
       Call AddVariable(rvPltDHWDrawStochTp)
 
+      !Used by pcomp3.F
+      rvPltQExtractedH%VariableName = 'plant/*/misc_data/Q_extracted_heat'
+      rvPltQExtractedH%MetaType = 'units'
+      rvPltQExtractedH%VariableType = '(W)'
+      rvPltQExtractedH%Description = 'Heat extracted from water cooler'
+      Call AddVariable(rvPltQExtractedH)
 
       !Used by NCHE-steady_state.F
       rvPltHXchgEff%VariableName = 'plant/*/heat_exchanger/effectiveness'
