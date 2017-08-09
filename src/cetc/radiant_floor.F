@@ -677,6 +677,7 @@ C     Trace output
                WRITE(ITU,*) ' Matrix node(s) ',INOD1
                WRITE(ITU,*) ' Connection(s)  ',ICON1
                IF(ISTATS.EQ.1) THEN
+                  WRITE(ITU,*) ' NSINC  = ',NSINC,' (-)'
                   WRITE(ITU,*) ' CM     = ',CM,' (J/K)'
                   WRITE(ITU,*) ' C1     = ',C1,' (W/K)'
                   WRITE(ITU,*) ' TC     = ',TC(IPCOMP),' (s)'
