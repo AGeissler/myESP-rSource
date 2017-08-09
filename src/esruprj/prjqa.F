@@ -1753,7 +1753,12 @@ C    power for PV and total latent heat capacity for PCM ... >>
 
 C Obtain transparent surface index (>0) related to PV module location.
             iTMCidx=ITMCFL(ispmloc(ispm,1),ispmloc(ispm,2))
-            write(miscinf,'(a)')'n.a. '
+
+            if (bUseSpline(ispm)) then
+              write(miscinf,'(a)')fnamDSCdat(ispm)
+            else
+              write(miscinf,'(a)')'n.a. '
+            endif
 
             WRITE(LOUTS,1111)ispm,spmlabel(ispm),zname(ispmloc(ispm,1)),
      &        sname(ispmloc(ispm,1),ispmloc(ispm,2)),
@@ -1761,8 +1766,7 @@ C Obtain transparent surface index (>0) related to PV module location.
      &               ispmloc(ispm,2)))(1:20),
      &        ispmloc(ispm,3),
      &        (merge('Trn','Opq',iTMCidx.gt.0)),nnodat(ispm),
-     &        (merge(fnamDSCdat(ispm)(1:lnblnk(fnamDSCdat(ispm))),
-     &                    miscinf(1:lnblnk(miscinf)),bUseSpline(ispm)))
+     &        miscinf(1:lnblnk(miscinf))
  1111       FORMAT(1X,I3,1X,A,1X,A,1X,A,1X,A,1X,I3,3X,A,3X,I3,8X,A,1X)
 
 cx            CALL EDISP(itu,LOUTS)
