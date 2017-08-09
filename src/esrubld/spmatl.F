@@ -4152,7 +4152,7 @@ C Modify present and future value of 'c' and 'qc' coefficients (i.e.
 C coeficients of nodal energy balance equations.
          x1=1./pcmshtp
          if(nsinc.eq.1)then
-            x1=0
+            x1=0.
          endif
          x2=1./pcmsht
          if(iphnl.eq.1.and.ielem.eq.1)then              !- outermost node
@@ -4424,8 +4424,8 @@ C                                  enthalpy curves
 C The returned value is LH, the stored/released latent heat (J/kg);
 C thereby, an energy balance is formulated from the viewpoint of the
 C surrounding zone:
-C          LH > 0 when T1 > T2, i.e. heat released to zone;
-C          LH < 0 when T1 < T2, i.e. heat stored in PCM.
+C          LH > 0 when T1 > T2, i.e. heat released to zone, PCM cools in TS;
+C          LH < 0 when T1 < T2, i.e. heat stored in PCM, PCM heats up in TS.
 
 C The base equations are taken from the PhD thesis of Sabine Hoffmann,
 C University of Weimar, September 2006 ('Advanced' function extended
@@ -4729,15 +4729,16 @@ cx    storedLH += time step dependant?? 17/2/22
          !- what happens here (TnS = TnS1)?
          if(AppCon.le.0.0E+00) AppCon=consol
          if(AppSHC.le.0.0E+00) AppSHC=shcsol
-cx         Debug=9
+         Debug=0
          storeThisTS=0.0
 
+
+C ********* HEATING (PCM temperature increase) *********
       elseif(TnS.lt.TnS1)then
 
-C PCM temperature increase.
          if(k.eq.1)then
 
-C PCM behaves according to non-subcooling properties.
+C PCM is "solid", behaves according to non-subcooling properties.
             if(TnS1.le.tmelt)then
 
 C PCM is solid (case 1), StoredLH = 0.
@@ -4777,7 +4778,7 @@ cx << after timestep, appcon=conliq and appshc=shcliq, no? 17/2/22
                if(storedLH.lt.0.0E+0)storedLH=0.0E+0 !- storedLH >= 0
                if(storedLH.gt.Lges)storedLH=Lges     !- storedLH <= Lges
                AppCon=conliq
-               AppSHC=shcliq
+               AppSHC=shcliq+storeThisTS/(TnS-tsoli) !- to be verified
 
 C Set new k.
                k=0
