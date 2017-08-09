@@ -681,6 +681,8 @@ C     Trace output
                   WRITE(ITU,*) ' C1     = ',C1,' (W/K)'
                   WRITE(ITU,*) ' TC     = ',TC(IPCOMP),' (s)'
                   WRITE(ITU,*) ' ALPHA  = ',ALPHA,' (-)'
+                  WRITE(ITU,*) ' TFmean = ',TFmean,' (degC)'
+                  WRITE(ITU,*) ' Hfilm  = ',Hfilm,' (W/(m2 K))'
                   WRITE(ITU,*) ' UA     = ',UA,' (W/K)'
                   WRITE(ITU,*) ' PCNTMF = ',PCNTMF(IPCOMP),' (C)'
                END IF
@@ -695,7 +697,7 @@ C     Trace output
 
             IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &           ITRACE(37).NE.0) WRITE(ITU,*)
-     &           ' Leaving subroutine CMP95C'
+     &           ' Leaving subroutine RadFloor_CoeffGen()'
 
             RETURN
             END
