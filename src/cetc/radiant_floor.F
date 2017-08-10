@@ -454,13 +454,13 @@ C     calculate series coefficients: Aij abd Fij. See the above reports for more
      &              SIN(OmegY*DYq) / DEN
                Fcof(irf,I,J) = 0.
 
- 10         CONTINUE
+ 10      CONTINUE
 
-         ENDIF
+      ENDIF ! Initialization
 
 C----------------------------------------------------------------------
 C     Generate coefficients for energy balance equation
-         IF(ISTATS.EQ.1) THEN
+      IF(ISTATS.EQ.1) THEN
 
 C     Establish heat capacity of component mass CM (J/K) and
 C     fluid heat capacity rate(s) C (W/K), ie. SUM(mass flow * specific heat)
@@ -656,52 +656,52 @@ C     Store "environment" variables future values (not used here)
                PCRF(ICON1)=C1
 
 C     1st phase mass (ie. water) balance coefficients
-            ELSE IF(ISTATS.EQ.2) THEN
+      ELSE IF(ISTATS.EQ.2) THEN
                COUT(1)=1.
                COUT(2)=-PCONDR(ICON1)
                COUT(3)=0.
 
 C     2nd phase mass (ie. vapour) balance coefficients
-            ELSE IF(ISTATS.EQ.3) THEN
+      ELSE IF(ISTATS.EQ.3) THEN
                COUT(1)=1.
                COUT(2)=0.
                COUT(3)=0.
-            END IF
+      END IF ! check istats ...
 
 C     Trace output
-            IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &           ITRACE(37).NE.0) THEN
-               WRITE(ITU,*) ' Component      ',IPCOMP,':'
-               WRITE(ITU,*)
-     &              ' 1 node (ISV=20) Radiant Heating/Cooling System'
-               WRITE(ITU,*) ' Matrix node(s) ',INOD1
-               WRITE(ITU,*) ' Connection(s)  ',ICON1
-               IF(ISTATS.EQ.1) THEN
-                  WRITE(ITU,*) ' NSINC  = ',NSINC,' (-)'
-                  WRITE(ITU,*) ' CM     = ',CM,' (J/K)'
-                  WRITE(ITU,*) ' C1     = ',C1,' (W/K)'
-                  WRITE(ITU,*) ' TC     = ',TC(IPCOMP),' (s)'
-                  WRITE(ITU,*) ' ALPHA  = ',ALPHA,' (-)'
-                  WRITE(ITU,*) ' TFmean = ',TFmean,' (degC)'
-                  WRITE(ITU,*) ' Hfilm  = ',Hfilm,' (W/(m2 K))'
-                  WRITE(ITU,*) ' UA     = ',UA,' (W/K)'
-                  WRITE(ITU,*) ' PCNTMF = ',PCNTMF(IPCOMP),' (C)'
-               END IF
-               WRITE(ITU,*) ' Matrix coefficients for ISTATS = ',ISTATS
-               NITMS=3
-               WRITE(ITU,*) (COUT(I),I=1,NITMS)
-               IF(ITU.EQ.IUOUT) THEN
-                  IX1=(IPCOMP/4)*4
-                  IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
-               END IF
-            END IF
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &    ITRACE(37).NE.0) THEN
+        WRITE(ITU,*) ' ====           '
+        WRITE(ITU,*) ' Component      ',IPCOMP,':'
+        WRITE(ITU,*)
+     &       ' 1 node (ISV=20) Radiant Heating/Cooling System'
+        WRITE(ITU,*) ' Matrix node(s) ',INOD1
+        WRITE(ITU,*) ' Connection(s)  ',ICON1
+        IF(ISTATS.EQ.1) THEN
+           WRITE(ITU,*) ' NSINC  = ',NSINC,' (-)'
+           WRITE(ITU,*) ' Iter   = ',Iter,' of ',ITmax,' (-)'
+           WRITE(ITU,*) ' CM     = ',CM,' (J/K)'
+           WRITE(ITU,*) ' C1     = ',C1,' (W/K)'
+           WRITE(ITU,*) ' TC     = ',TC(IPCOMP),' (s)'
+           WRITE(ITU,*) ' ALPHA  = ',ALPHA,' (-)'
+           WRITE(ITU,*) ' Tin    = ',Tin,' (degC)'
+           WRITE(ITU,*) ' TFmean = ',TFmean,' (degC)'
+           WRITE(ITU,*) ' Hfilm  = ',Hfilm,' (W/(m2 K))'
+           WRITE(ITU,*) ' UA     = ',UA,' (W/K)'
+           WRITE(ITU,*) ' PCNTMF = ',PCNTMF(IPCOMP),' (C)'
+        END IF
+        WRITE(ITU,*) ' Matrix coefficients for ISTATS = ',ISTATS
+        NITMS=3
+        WRITE(ITU,*) (COUT(I),I=1,NITMS)
+        IF(ITU.EQ.IUOUT) THEN
+           IX1=(IPCOMP/4)*4
+           IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
+        ENDIF
+        WRITE(ITU,*) ' Leaving subroutine RadFloor_CoeffGen()'
+      ENDIF ! Trace output
 
-            IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &           ITRACE(37).NE.0) WRITE(ITU,*)
-     &           ' Leaving subroutine RadFloor_CoeffGen()'
-
-            RETURN
-            END
+      RETURN
+      END
 
 C     ************** RadFloor_store * ********************
 C     Author        : Dr. Abdelaziz (Aziz) Laouadi
