@@ -1145,6 +1145,7 @@ C IGET = 6  Resultant temperature.
 C IGET = 24, average MRT.
           MRTLIST=.false.
           IGETNO(NGET,1)=24
+          IGETNO(NGET,3)=0
           IGETNO(NGET,6)=1; IGETNO(NGET,7)=8
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' MRT'
@@ -1163,6 +1164,7 @@ C IGET = 24, average MRT.
 C IGET = 24, MRT at sensor.
           MRTLIST=.true.
           IGETNO(NGET,1)=24
+          IGETNO(NGET,3)=1
           IGETNO(NGET,6)=1; IGETNO(NGET,7)=8
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
           SUFFIX=' MRT'
@@ -3812,7 +3814,7 @@ C Copy new data into IGETNO array if a selection has been made.
                     ITLEN=lnblnk(CUBN(ISFSEL(IG)))
                     IZLEN=lnzname(IZ)
                     ISLEN=lnblnk(SUFFIX)
-                    if ((IZLEN+ISLEN).gt.16) IZLEN=16-ISLEN
+                    if ((IZLEN+ISLEN).gt.14) IZLEN=14-ISLEN
                     write (GLABEL(NGET),'(3a)')ZNAME(IZ)(1:IZLEN),
      &                        CUBN(ISFSEL(IG))(1:ITLEN),SUFFIX(1:ISLEN)
                     LNGLABEL(NGET)=lnblnk(GLABEL(NGET))
@@ -3911,12 +3913,12 @@ C specific information.
                     ITLEN=lnblnk(CUBN(ISFSEL(IG)))
                     IZLEN=lnzname(IZ)
                     ISLEN=lnblnk(SUFFIX)
-                    if ((IZLEN+ISLEN).gt.16) IZLEN=16-ISLEN
+                    if ((IZLEN+ISLEN).gt.14) IZLEN=14-ISLEN
                     write (GLABEL(NGET),'(3a)')ZNAME(IZ)(1:IZLEN),
-     &                        CUBN(ISFSEL(IG))(1:ITLEN),SUFFIX(1:ISLEN)
+     &                CUBN(ISFSEL(IG))(1:ITLEN),SUFFIX(1:ISLEN)
                     LNGLABEL(NGET)=lnblnk(GLABEL(NGET))
                     write (TABLABEL(NGET),'(3a)') ZNAME(IZ)(1:IZLEN),
-     &                        CUBN(ISFSEL(IG))(1:ITLEN),SUFFIX(1:ISLEN)
+     &                CUBN(ISFSEL(IG))(1:ITLEN),SUFFIX(1:ISLEN)
                     LNTABLABEL(NGET)=ITLEN+ISLEN
                   elseif (AGRLIST) then  ! aggregate does not need a zone name
                     ISLEN=lnblnk(SUFFIX)
@@ -3947,10 +3949,10 @@ C specific information.
                     ITLEN=lnblnk(CUBN(ISFSEL(IG)))
                     IZLEN=lnzname(IZ)
                     write (GLABEL(NGET),'(2a)')ZNAME(IZ)(1:IZLEN),
-     &                        CUBN(ISFSEL(IG))(1:ITLEN)
+     &                CUBN(ISFSEL(IG))(1:ITLEN)
                     LNGLABEL(NGET)=lnblnk(GLABEL(NGET))
                     write (TABLABEL(NGET),'(2a)') ZNAME(IZ)(1:IZLEN),
-     &                        CUBN(ISFSEL(IG))(1:ITLEN)
+     &                CUBN(ISFSEL(IG))(1:ITLEN)
                     LNTABLABEL(NGET)=ITLEN
 C                  elseif (AGRLIST) then  ! aggregate does not need a zone name
 C                    ISLEN=lnblnk(SUFFIX)
@@ -4995,7 +4997,7 @@ C          write(6,*) '41 ',IGETNO(KGET,2),GVAL(J2),PPD
 
 C IGETNO(KGET,1) = 52 Local PD: ceiling T, assume dT between air and surface.
         CALL SENMRT(IDAY,IGETNO(KGET,2),IGETNO(KGET,3),
-     &                                  IGETNO(KGET,5),IGETNO(KGET,4))
+     &    IGETNO(KGET,5),IGETNO(KGET,4))
         DO  1306 J2=ISTART,IEND
           if (GVAL(J2).lt.0.0) then
             iflag=5
@@ -5015,7 +5017,7 @@ C          write(6,*) '42 ',IGETNO(KGET,2),GVAL(J2),PD
 
 C IGETNO(KGET,1) = 53 Local PD: assymetric dTrad
         CALL SENMRT(IDAY,IGETNO(KGET,2),IGETNO(KGET,3),
-     &                                  IGETNO(KGET,5),IGETNO(KGET,4))
+     &    IGETNO(KGET,5),IGETNO(KGET,4))
         DO  1308 J2=ISTART,IEND
           if (GVAL(J2).lt.0.0) then
             iflag=6

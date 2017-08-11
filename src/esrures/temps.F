@@ -201,6 +201,10 @@ C IOPT - specific temperature differences.
 
 C Recover sensor vievfactors.
       IUF=IFIL+1
+      if(LVIEW(IZONE)(1:7).eq.'UNKNOWN')then
+        call edisp(iuout,'skipping SENMRT (no viewfactors)')
+        return
+      endif
       LMRT=LVIEW(IZONE)
       call ERMRT(0,IUOUT,IUF,LMRT,IZONE,IER)
 
