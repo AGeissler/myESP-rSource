@@ -545,8 +545,8 @@ C << place to add logic to also detect ixopen as in table.F:381 >>
               outs248='*time'
               outs800='*time'
             else
-              outs248='#Time'
-              outs800='#Time'
+              outs248='Time'
+              outs800='Time'
             endif
           elseif (IHFLAG.eq.1.and.ixopen.eq.0) then
             if (delim.eq.'X') then

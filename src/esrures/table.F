@@ -426,8 +426,8 @@ C   don't do this if printing to file.
                   outs248='*time'
                   outs800='*time'
                 else
-                  outs248='#Time'
-                  outs800='#Time'
+                  outs248='Time'
+                  outs800='Time'
                 endif
               elseif ((IHFLAG.eq.1.or.IHFLAG.eq.2).and.ixopen.eq.0)then
                 if (delim.eq.'X') then

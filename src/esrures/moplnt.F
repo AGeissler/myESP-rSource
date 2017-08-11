@@ -2157,7 +2157,7 @@ C write out labels for each column at the start.
           outs='  '
         endif
         if (IHFLAG.eq.1) then
-          outs='#Time'
+          outs='Time'
         else
           outs='Time '
         endif
