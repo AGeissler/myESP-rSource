@@ -2,6 +2,7 @@
 
 architecture=`uname -s`      # computer type e.g. Linux Darwin SunOS
 
+#debug="--extra_debug"
 debug=""
 CVER=""
 LOCATION="-d /opt/esru"
