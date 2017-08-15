@@ -291,7 +291,7 @@ C Dump PCNTMF array
         IF(ICONT.GT.0) THEN
           WRITE(ITU,*) ' Plant containment temperatures (PCNTMF)'
           DO 920 ICONT=1,NCONT
-            WRITE(ITU,*) ICONT,PCNTMF(ICONT)
+            WRITE(ITU,*) IPCC(ICONT),PCNTMF(IPCC(ICONT)) !GF Change
   920     CONTINUE
         ELSE
           WRITE(ITU,*) ' There are no plant containments'
