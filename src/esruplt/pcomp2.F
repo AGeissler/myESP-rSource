@@ -104,6 +104,9 @@ C
      &             ICONDX(MPCOM,MNODEC,MPCONC)
 
       common/pcnam/pcname(mpcom)       ! Plant component names
+
+      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom) !GF
+      REAL QDATA ! GF
       character*15 pcname
 
 
@@ -184,6 +187,14 @@ C Store "environment" variables future values
          PCTF(ICON1)=CONVAR(ICON1,1)
          PCRF(ICON1)=C1
          PCQF(INOD1)=Q
+
+C GF New Start
+C Establish "containment loss" data
+         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
+     &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
+	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+C GF New End
 
 C 1st phase mass (ie. water) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -2530,6 +2541,12 @@ C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(futureTemp-pcntmp(ipcomp))+
      &                (1.-alpha)*(presentTemp-pcntmp(ipcomp)))
 
+C GF New Start
+C Establish "containment loss" data
+	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+C GF New End
+
 C Establish additional output variables
          QCOIL=H*(CSVF(INOD2,1)-CSVF(INOD1,1))
          napdat(ipcomp)=1
@@ -4747,6 +4764,14 @@ C Save plant additional output data.
           napdat(ipcomp)=2
           pcaout(ipcomp,1)=pwrp(ipcomp)
           pcaout(ipcomp,2)=pwrq
+
+C GF New Start
+C Establish "containment loss" data
+         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
+     &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
+	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+C GF New End
 
 C 1st phase mass (ie. water) balance coefficients
 C Note that if fluid mass flow solver active, source of mass zeroised
