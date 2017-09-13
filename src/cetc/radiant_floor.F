@@ -287,12 +287,12 @@ C     variable assignments -----------------------------------------------
 C     Plant time step
       Dt    = TIMSEC
 C     Inlet fluid temperature
-cx      if (.not.bNoFlow) then
+      if (.not.bNoFlow) then
         Tin   = CONVAR(ICON1,1)
-cx      else
+      else
 cx        Tin   = PCAOUT(IPCOMP,4) ! TetaMp(irf) <= didn't work ?!
-cx        Tin   = TFC(Iz, Is, In)  ! ? slab temp @ injection node
-cx      endif
+        Tin   = TFC(Iz, Is, In)  ! ? slab temp @ injection node
+      endif
 C     Fluid flow rate per circuit
       FlowR = PCONDR(ICON1) * CONVAR(ICON1,2) / ADATA(IPCOMP,1)
 
