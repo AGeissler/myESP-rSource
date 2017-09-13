@@ -236,6 +236,9 @@ C Common used for saving  flux in coupled zones/surfaces
 C logical value to assess if the zone has a coupled zone
       logical bCoupled_Zone
 
+C logical value for flow > 0
+      logical bNoFlow
+
       character outs*124
 C----------------------------------------------------------------------
 C     Flag indicating if radiant floor is active, number of radiant floors, indirect index for radiant_floor component
@@ -265,11 +268,21 @@ C     Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       ICON1=ICONDX(IPCOMP,1,1)
       INOD1=NPCDAT(IPCOMP,9)
 
+C     Find the component radiant floor number of component
+      irf = IRadFloor(IPCOMP)
+
+C     Check for flow > 0
+      call eclose(CONVAR(ICON1,2),0.,1.0E-06,bNoFlow)
+
 C     variable assignments -----------------------------------------------
 C     Plant time step
       Dt    = TIMSEC
 C     Inlet fluid temperature
-      Tin   = CONVAR(ICON1,1)
+      if (.not.bNoFlow) then
+        Tin   = CONVAR(ICON1,1)
+      else
+        Tin   = PCAOUT(IPCOMP,4) ! TetaMp(irf) <= didn't work ?!
+      endif
 C     Fluid flow rate per circuit
       FlowR = PCONDR(ICON1) * CONVAR(ICON1,2) / ADATA(IPCOMP,1)
 
@@ -291,9 +304,6 @@ C     Conduction resistance of the pipe
       ResC  = LOG( ADATA(IPCOMP,3) / ADATA(IPCOMP,2) ) /
      &     ( 2. * PI * ADATA(IPCOMP,5) )
 
-C     Product of fluid flow rate and specific heat per circuit
-      FLWCp = FlowR * SHTFLD(3, Tin) + Small
-
 C     Fluid velocity
       Vel   = FlowR / ( RHOFLD(3, Tin) * AreaF )
 
@@ -308,6 +318,17 @@ C     Surface injection node No.
 
 C     Area of the radiant surface
       AreaR   = SNA(Iz, Is)
+
+C     Average circuit length
+      CirL  = AreaR/( ADATA(IPCOMP,1) * ADATA(IPCOMP,4) )
+
+C     Product of fluid flow rate and specific heat per circuit
+C     [W/K] from kg/s * J/(kg K)
+      FLWCp = FlowR * SHTFLD(3, Tin) + Small
+
+C     Available heat per K from pipe filled with fluid
+C     [W/K] from J/(m K) * m / s
+      noFLWCp = (RCPAf + RCPAp)*CirL/Dt
 
 C     1-D average temperature of the pipe outer surface
       Tpipe1D = TFC(Iz, Is, In)
@@ -385,9 +406,6 @@ C     Check if the specified injection node is valid -----------------
          STOP
       ENDIF
 
-C     Average circuit length
-      CirL  = AreaR/( ADATA(IPCOMP,1) * ADATA(IPCOMP,4) )
-
 C     Length of the calculation domain along the y-axis - perpendicular to the pipes
       YL = ADATA(IPCOMP,4) / 2.
 
@@ -401,10 +419,6 @@ C     Size (Dx, Dy, volume) of the heat generation control volume = pipe volume
       DXq   = 0.25 * SQRT(PI) * ADATA(IPCOMP,3)
       DYq   = DXq
       Volq  = 4. * DXq * DYq * CirL
-
-C
-C     find the component radiant floor number of component
-      irf = IRadFloor(IPCOMP)
 
 C--------------------------------------------------------------------------------------
 C     INITIALIZE VARIABLES BEFORE SIMULATION
@@ -510,18 +524,30 @@ C     Fluid average temperature over the circuit length
                TFmean = TetaMf(irf) + Tpipef(irf)
 
 C     Calculate film coefficient and convection resistance
+
                CALL CVCOEFF1(3,TFmean, Vel, ADATA(IPCOMP,2), Hfilm)
                ResI = 1./( PI * ADATA(IPCOMP,2) * Hfilm + Small)
 
-C     Overall conductance
+C              Overall conductance
                UP = 1./(ResC + ResI)
                UA = UP*CirL
 
-C     This is a temporary variable
+C              This is a temporary variable
                RCPAm = RCPAf + UP*ResC*RCPAp
 
-C     calculate the constant C (see the above reports)
-               C = UP/FLWCp
+C              Is mass flow gt. zero?
+cx             ((model seems to have problems with no (or tiny!) mass flow ...))
+               if (.not.bNoFlow) then
+
+C                Calculate the constant C (see the above reports)
+                 C = UP/FLWCp
+
+               else
+C                Different value for no-flow situation ag@170913
+C                Calculate the constant C (see the above reports)
+                 C = UP/noFLWCp
+
+               endif
 
 C     Product of circuit length and constant C
                CL = C * CirL
