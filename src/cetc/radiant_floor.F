@@ -258,6 +258,9 @@ C     Trace output
          RETURN
       ENDIF
 
+C     Set number of additional data items
+      NAPDAT(IPCOMP)=5
+
 C     Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       ICON1=ICONDX(IPCOMP,1,1)
       INOD1=NPCDAT(IPCOMP,9)

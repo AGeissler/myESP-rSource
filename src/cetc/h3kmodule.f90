@@ -137,7 +137,7 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvPlantCompNodeTemperature, rvPlantCompNodeFirstPhaseFlow, &
          rvPlantCompNodeSecondPhaseFlow,rvPlantCompNodeHydrogenFlow,rvPlantCompNodeConnectTemperature, &
          rvPlantCompNodeConnectWaterFlow,rvPlantCompNodeConnectHydrogenFlow, &
-         rvPlantCompNodeConnectMoistureFlow, rvPlantCompNodeConnectAirFlow
+         rvPlantCompNodeConnectMoistureFlow, rvPlantCompNodeConnectAirFlow, rvPlantCompAddData
    Type(ReportVariable) :: rvElecNetLoadsTotalLoad,rvElecNetLoadsHvacLoad, &
          rvElecNetLoadsOccupantLoad, rvElecNetGenTotalGeneration, &
          rvElecNetLoadsExternalLoad, rvElecNetGenOnsiteGeneration, &
@@ -1204,6 +1204,13 @@ CONTAINS
       rvBldSeason%Description = 'Current season in simulation (Quick-run mode)'
       Call AddVariable(rvBldSeason)
 
+
+! Additional data for plant components
+      rvPlantCompAddData%VariableName = 'plant/*/adat_*'
+      rvPlantCompAddData%MetaType = 'units'
+      rvPlantCompAddData%VariableType = '(var.)'
+      rvPlantCompAddData%Description = 'Plant component addtional data'
+      Call AddVariable(rvPlantCompAddData)
 
       rvPlantCompNodeTemperature%VariableName = 'plant/*/node_*/temperature'
       rvPlantCompNodeTemperature%MetaType = 'units'

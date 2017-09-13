@@ -2625,13 +2625,21 @@ C.....ESP-r commons
       integer icondx, icontp
       real convar
 
+C.....Additional component output
+      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),NAPDAT(MPCOM)
+      REAL QDATA,PCAOUT
+      INTEGER napdat
+
+
 C.....Local variables
-      integer ii,jj,kk          ! counters
+      integer ii,jj,kk,ll       ! counters
       integer iNode             ! pointer to current node
       character*128 char_temp   ! holding variable
       integer char_len          ! holding variable's lenght
+      character*2 Add_Dat_Num   ! additional data number char format
       character*2 Node_Num      ! node number char format
       character*3 Connect_Num   ! connection number char format
+      integer iAddDatNumLen     ! the length of the additional data number
       integer iNodeLength       ! the nodes's string length
       integer iNodeNumLen       ! the length of the Node_Num
       integer iConnNumLen       ! the length of the Connect_Num
@@ -2664,6 +2672,34 @@ C.....Named constants
 C.....Loop through all components in plant network
       do ii = 1, npcomp
 
+C.......Get the pcName(ii)'s length
+        iNodeLength = lnblnk(pcname(ii))
+
+C........Output of additional component data?
+cx ag@170913
+
+C........Loop through additional data (NAPDAT(icomp))
+         if (NAPDAT(ii).gt.0) then
+           do ll = 1, NAPDAT(ii)
+
+C............Build additional data name
+             if (ll<10) then  ! First nine additional data items.
+               iAddDatNumLen = 1
+cx               write(Node_Num, '(A,I1)') '0', ll
+               write(Add_Dat_Num, '(I1)') ll
+             else           ! The maximum number of additional items is 15 (plant.h, 170913)
+               iAddDatNumLen = 2
+               write(Add_Dat_Num, '(I2)') jj
+             endif
+
+             call AddToReport(
+     &          rvPlantCompAddData%Identifier,
+     &          PCAOUT(ii,ll),
+     &          pcname(ii)(1:iNodeLength),
+     &          Add_Dat_Num(1:iAddDatNumLen))
+
+           enddo  ! additional data
+         endif ! Additional data available
 
 C........Loop through nodes (NPCDAT(i,8)
          do jj = 1, NPCDAT(ii,8)
@@ -2707,9 +2743,6 @@ C...........istate = 0/1/9
                char_temp = 'unknown'
                char_len = 7
             endif
-
-C...........Get the pcName(ii)'s length
-            iNodeLength = lnblnk(pcname(ii))
 
 C...........Transport State variables
 
