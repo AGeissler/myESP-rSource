@@ -271,6 +271,15 @@ C     Initialize pointers to inter-connection(s) ICON, and node(s) INOD
 C     Find the component radiant floor number of component
       irf = IRadFloor(IPCOMP)
 
+C     Served zone No.
+      Iz = INT( ADATA(IPCOMP,7) )
+
+C     Zone surface No.
+      Is = INT( ADATA(IPCOMP,8) )
+
+C     Surface injection node No.
+      In = INT( ADATA(IPCOMP,9) )
+
 C     Check for flow > 0
       call eclose(CONVAR(ICON1,2),0.,1.0E-06,bNoFlow)
 
@@ -278,11 +287,12 @@ C     variable assignments -----------------------------------------------
 C     Plant time step
       Dt    = TIMSEC
 C     Inlet fluid temperature
-      if (.not.bNoFlow) then
+cx      if (.not.bNoFlow) then
         Tin   = CONVAR(ICON1,1)
-      else
-        Tin   = PCAOUT(IPCOMP,4) ! TetaMp(irf) <= didn't work ?!
-      endif
+cx      else
+cx        Tin   = PCAOUT(IPCOMP,4) ! TetaMp(irf) <= didn't work ?!
+cx        Tin   = TFC(Iz, Is, In)  ! ? slab temp @ injection node
+cx      endif
 C     Fluid flow rate per circuit
       FlowR = PCONDR(ICON1) * CONVAR(ICON1,2) / ADATA(IPCOMP,1)
 
@@ -306,15 +316,6 @@ C     Conduction resistance of the pipe
 
 C     Fluid velocity
       Vel   = FlowR / ( RHOFLD(3, Tin) * AreaF )
-
-C     Served zone No.
-      Iz = INT( ADATA(IPCOMP,7) )
-
-C     Zone surface No.
-      Is = INT( ADATA(IPCOMP,8) )
-
-C     Surface injection node No.
-      In = INT( ADATA(IPCOMP,9) )
 
 C     Area of the radiant surface
       AreaR   = SNA(Iz, Is)
@@ -521,6 +522,7 @@ C     Heat source rate at the present time
                TetaIN = Tin - Tpipef(irf)
 
 C     Fluid average temperature over the circuit length
+cx  .. this is definitely no mean temperature, but a sum ??!!
                TFmean = TetaMf(irf) + Tpipef(irf)
 
 C     Calculate film coefficient and convection resistance
