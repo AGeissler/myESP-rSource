@@ -2479,6 +2479,9 @@ C ************************************************
 C Heat exchanger common block variables 
       COMMON/HEXCH/HINP(MPCOM),HOUTP(MPCOM)
 
+      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom) !GF
+      REAL QDATA ! GF
+
       PARAMETER (SMALL=1.0E-15)
       REAL      COUT(MPCOE),K1,K2,HIN,HOUT,HINP,HOUTP
       logical closea
@@ -2797,6 +2800,17 @@ C Store "environment" varaibles future values
        PCRF(ICON2)=C2
        PCQF(INOD1)=Q1
        PCQF(INOD2)=Q2
+
+C AG New Start
+C Establish "containment loss" data
+         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
+     &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
+	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+
+C    For embedded HE
+	 call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
+C AG New End
 
 C 1st phase (i.e. water) mass balance coefficients
        ELSEIF(ISTATS.EQ.2) THEN
