@@ -351,7 +351,7 @@ C Trace output
 C Check user specified number of controlled variables
       NCITM=0
       IF(NCI(IPCOMP).NE.NCITM)
-     &   WRITE(ITU,*) ' CMP58S warning: user specified wrong number',
+     &   WRITE(ITU,*) ' CMP57S warning: user specified wrong number',
      &                ' of controlled variables'
 
 C Check component has 1st connection to "water"

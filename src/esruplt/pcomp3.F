@@ -2198,7 +2198,7 @@ C            2 Hot fluid temperature (C)
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP27C'
+     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP93C'
 
 C Initialise number of nodes for this component.
       inodes=npcdat(ipcomp,8)
@@ -2440,14 +2440,14 @@ C          5. Conduction coefft from shell fluid - casing (W/K)
 C          6. Conduction coefft from tube fluid - casing  (W/K)
 C          7. Number of tubes
 C          8. Internal tube radius (m)
-C               9. External tube radius (m)
-C              10. Length of segment (m)
-C              11. Spacing between tubes (m)
-C              12. Conductivity of tubing material (W/mK)
-C              13. Mass weighted average specific heat
-C       BDATA: none
-  
-C       CDATA: none
+C          9. External tube radius (m)
+C         10. Length of segment (m)
+C         11. Spacing between tubes (m)
+C         12. Conductivity of tubing material (W/mK)
+C         13. Mass weighted average specific heat
+C  BDATA: none
+C
+C  CDATA: none
 C ************************************************
 
       SUBROUTINE CMP94C(IPCOMP,COUT,ISTATS)
