@@ -282,7 +282,7 @@ C     Surface injection node No.
 
 C     Check for flow > 0
       call eclose(CONVAR(ICON1,2),0.,1.0E-06,bNoFlow)
-
+      bNoFlow=.false.
 C     variable assignments -----------------------------------------------
 C     Plant time step
       Dt    = TIMSEC
@@ -507,6 +507,9 @@ C     Set up implicit/Explicit weighting factor ALPHA (1 = fully implicit)
                CM=0.
                ALPHA=1.
             END IF
+cx Proposal GF for now:
+            ALPHA=1.
+
             ALPHAc = 1. - ALPHA
 
 C----------------------------------------------------------------------
