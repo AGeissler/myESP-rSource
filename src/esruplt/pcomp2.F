@@ -6921,7 +6921,7 @@ C           15 Controller power (W)
 C           16 Controller pf (-)
 C           17 Tout max (degC)
 C           18 Tin max (degC)
-C           19 Temp compensation on/off (-)
+C           19 Ambient temp compensation on/off (-)
 C           20 Nominal water return temperature (Deg C)
 C           21 Nominal water return deadband (Deg C)
 C           22 Ground source temperature for temp compensation start [Deg C]
