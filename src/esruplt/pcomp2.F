@@ -7205,13 +7205,13 @@ C Node 1 water
 C Node 2 water
         C2=PCONDR(ICON2)*CONVAR(ICON2,2)*SHTFLD(3,CONVAR(ICON2,1))
 
-C Establish heat loss modulus
+C Set heat loss to zero if no containment defined
         CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
         IF(CLOSE) UAMod=0.0
 
 C Calculate the electrical demand of the device assumung the controller is ON.
         CtlPower=CtlRating
-        TotRealPower=CompPower+CtlPower
+        TotRealPower=CompPower+CtlPower+PumpPower
 
 C Save the real power draw for use in an electrical power flow simulation. 
         PWRP(IPCOMP)=-ABS(TotRealPower)
@@ -7222,12 +7222,11 @@ C Save the real power draw for use in an electrical power flow simulation.
 c Calculate the compressor power draw.
         CompressPower=CompPower-(PumpPower+CtlPower)
         IF(CompressPower.LT.0.0)CompressPower=0.0
-C        TotRealPower=CompPower+PumpPower+CtlPower+FanPower
 
-        TotReacPower=(((CompressPower/CompressPf)**2)
-     &-(CompressPower**2))**0.5
-     &+(((PumpPower/PumpPf)**2)-(PumpPower**2))**0.5
-     &+(((CtlPower/CtlPf)**2)-(CtlPower**2))**0.5
+        TotReacPower=( ((CompressPower/CompressPf)**2)
+     &                                        -(CompressPower**2) )**0.5
+     &              +( ((PumpPower/PumpPf)**2)-(PumpPower**2) )**0.5
+     &              +( ((CtlPower/CtlPf)**2)  -(CtlPower**2) )**0.5
 
         TotApparentPower=((TotRealPower**2)+(TotReacPower*2))**0.5
 
