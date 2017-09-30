@@ -5700,7 +5700,7 @@ C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP45C'
 
-C **NB** Variable Assignment and initilalisation in CMP40S
+C **NB** Variable Assignment and initialisation in CMP45S
 
 C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       ICON1=ICONDX(IPCOMP,1,1)
@@ -6917,27 +6917,17 @@ C           11 Compressor pf (-)
 C           12 Pump rating (W)
 C           13 Pump pf (-)
 C           14 Flowrate at rated pump power (l/s)
-C           15 Fan power (W)
-C           16 Fan pf (-)
-C           17 Controller power (W)
-C           18 Controller pf (-)
-C           19 Tout max (degC)
-C           20 Tin max (degC)
-C           21 Defrost cycle trigger ambient temp (degC)
-C           22 Defrost cycle time calc (1-user def 2-f(RH))
-C           23 Defrost cycle  calc coefficient b1/fixed defrost cycle  time  (-)
-C           24 Defrost cycle  calc coefficient b2 (-)
-C           25 Defrost cycle  lockout time (mins)
-C           26 Min defrost time (mins)
-C           26 Max defrost time (mins)
-C           27 Temp compensation on/off (-)
-C           28 Nominal water return temperature (Deg C)
-C           29 Nominal water return deadband (Deg C)
-C           30 Ground source temperature for temp compensation start [Deg C]
-C           31 Ground source temperature for temp compensation end [Deg C]
-C           32 Temp compensation gradient [deg C return/deg C ground source] (degCr/degCa)
-
-
+C           15 Controller power (W)
+C           16 Controller pf (-)
+C           17 Tout max (degC)
+C           18 Tin max (degC)
+C           19 Temp compensation on/off (-)
+C           20 Nominal water return temperature (Deg C)
+C           21 Nominal water return deadband (Deg C)
+C           22 Ground source temperature for temp compensation start [Deg C]
+C           23 Ground source temperature for temp compensation end [Deg C]
+C           24 Temp compensation gradient [deg C return/deg C ground source] (degCr/degCa)
+C
 C     CDATA: 1 Call for heat [0 or 1] (-)
 
 C Node 1 represents the condenser heat exchanger and couples to the hydronic heating circuit.
@@ -6948,7 +6938,7 @@ C and will require modification if PID-type control is to be applied. The model 
 C water outlet temperature and ground source temperature compensation can be applied [linear model]
 
       SUBROUTINE CMP47C(IPCOMP,COUT,ISTATS)
-       use h3kmodule
+      use h3kmodule
       implicit none
 #include "plant.h"
 #include "building.h"
@@ -6988,18 +6978,16 @@ C water outlet temperature and ground source temperature compensation can be app
 
       COMMON/CLIMIP/QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
 
-      COMMON/ASHPvar1/CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
+      COMMON/GSHPvar1/CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
      &COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,
      &CompressPf,PumpRating,PumpPf,RatedFlow,
-     &FanRating,FanPf,CtlRating,CtlPf,ToutMax,TinMax,DefrostT,
-     &DefrostTime,Defrostb0,Defrostb1,DefrostLockout,DefrostMinTime,
-     &DefrostMaxTime,NomRetT,NomRetTDeadB,TempCompS,TempCompE,
-     &TempCompc0,DefrostDur,DefrostLockDur
+     &CtlRating,CtlPf,ToutMax,TinMax,
+     &NomRetT,NomRetTDeadB,TempCompS,TempCompE,TempCompc0
 
-      COMMON/ASHPvar2/COPModel,CompModel,DefrostCalc,AmbientTempComp,
-     &DeviceONOFFp,DeviceONOFF
+      COMMON/GSHPvar2/COPModel,CompModel,AmbientTempComp,
+     &                DeviceONOFFp,DeviceONOFF
 
-      COMMON/ASHPvar3/CallforHeat,InDeadB,DefrostLock,InDefrost
+      COMMON/GSHPvar3/CallforHeat,InDeadB
 
 C Electrical details for specified plant components
       common/pcelflg/ipcelf(mpcom)
@@ -7013,20 +7001,20 @@ C Electrical details for specified plant components
 
       INTEGER ipcelf,NPEL,IPFP,IPHP,IEMODEL
 
-      LOGICAL CallforHeat,InDeadB,DefrostLock,InDefrost
+      LOGICAL CallforHeat,InDeadB
 
-      INTEGER COPModel,CompModel,DefrostCalc,AmbientTempComp,
+      INTEGER COPModel,CompModel,AmbientTempComp,
      &DeviceONOFFp,DeviceONOFF
 
       REAL CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
      &COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,CompressPf,
-     &PumpRating,PumpPf,RatedFlow,FanRating,FanPf,CtlRating,CtlPf,
-     &ToutMax,TinMax,DefrostTime,DefrostT,Defrostb0,Defrostb1,
-     &DefrostLockout,DefrostMinTime,DefrostMaxTime,NomRetT,NomRetTDeadB,
-     &TempCompS,TempCompE,TempCompc0,DefrostDur,DefrostLockDur
+     &PumpRating,PumpPf,RatedFlow,CtlRating,CtlPf,
+     &ToutMax,TinMax,
+     &NomRetT,NomRetTDeadB,
+     &TempCompS,TempCompE,TempCompc0
 
-      REAL DefrostStat,CompPower,CompressPower,COP,CtlPower,DeviceFlow,
-     &FanPower,HeatOutput,PumpPower,ReturnSP,ReturnSPH,ReturnSPL,RHamb,
+      REAL CompPower,CompressPower,COP,CtlPower,DeviceFlow,
+     &HeatOutput,PumpPower,ReturnSP,ReturnSPH,ReturnSPL,RHamb,
      &TotApparentPower,TotReacPower,TotRealPower
 
       INTEGER lnblnk
@@ -7056,6 +7044,9 @@ C Electrical details for specified plant components
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP47C'
+
+C ************
+C Variable Assignment and initialisation in CMP47S (pcomps.F)
 
 C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       ICON1=ICONDX(IPCOMP,1,1)
@@ -7138,71 +7129,6 @@ C Evaluate the device status.
 C Establish the device COP
       IF(DeviceONOFF.GT.0)THEN
 
-C Determine the defrost status of the device (do only once per timestep so check
-C iteration number.
-        IF(DefrostCalc.GT.0)THEN
-
-          IF(.NOT.InDefrost)THEN
-C Update the defrost time.
-            IF(DefrostCalc.eq.1)THEN
-              DefrostTime=Defrostb0
-            ELSE
-              RHamb=HFP
-C Calculate defrost time to the nearest minute.
-              DefrostTime=float(nint(Defrostb0+Defrostb1*RHamb))
-            ENDIF
-
-C Impose limits on defrost time
-            IF(DefrostTime.GT.DefrostMaxTime)
-     &DefrostTime=DefrostMaxTime
-            IF(DefrostTime.LT.DefrostMinTime)
-     &DefrostTime=DefrostMinTime
-
-C Issue warning about timestep length if it is longer than the Defrost time.
-            IF(DefrostTime.LT.TIMSEC/60.)THEN
-              WRITE(OUTS,'(a,f7.4,a,f7.4,a)')
-     &'GSHP Warning: time step ',TIMSEC/60.,' > defrost cycle time',
-     &DefrostTime,' reduce the time step to avoid problems.'
-              CALL EDISP(IUOUT,OUTS)
-            ENDIF
-          ENDIF
-
-C Set defrost state.
-          IF(Tamb.LE.DefrostT)THEN
-            IF(.NOT.InDefrost)THEN
-              IF(.NOT.DefrostLock)THEN
-                InDefrost=.TRUE.
-                DefrostDur=0.0
-              ENDIF
-            ENDIF
-          ELSE
-            InDefrost=.FALSE.
-            DefrostLock=.FALSE.
-          ENDIF
-
-C Increment timers
-          IF(InDefrost.and.ITERNU.eq.1)
-     &DefrostDur=DefrostDur+0.5*timsec/60.
-
-          IF(DefrostLock.and.ITERNU.eq.1)
-     &DefrostLockDur=DefrostLockDur+0.5*timsec/60.
-
-C Update state for next ts
-          IF(DefrostDur.GT.DefrostTime)THEN
-            InDefrost=.false.
-            DefrostDur=0.0
-            DefrostLock=.true.
-            DefrostLockDur=0.0
-          ENDIF
-
-          IF(DefrostLockDur.GT.DefrostLockout)THEN
-            DefrostLock=.false.
-            DefrostLockDur=0.0
-          ENDIF
-
-        ENDIF !end of defrost code.
-C --------------------------
-
 C Calculate the TOTAL device power draw (W)
         IF(CompModel.eq.1)THEN
           CompPower=1000.*(Compa0) !fixed power consumption
@@ -7216,8 +7142,6 @@ C Calculate the TOTAL device power draw (W)
           CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
         ENDIF
         if(CompPower.LT.0.0)CompPower=0.0
-
-        FanPower=FanRating
 
 C Calculate the COP based on the user-specified method.
         IF(COPModel.EQ.1)THEN
@@ -7257,11 +7181,7 @@ C Device is 'off' set parameters accordingly (assume controller is still operati
 
         CompPower=0.
         HeatOutput=0.
-        FanPower=0.
         COP=0.
-        InDefrost=.false.
-        DefrostLock=.false.
-
 
       ENDIF
 
@@ -7304,7 +7224,7 @@ C Save the real power draw for use in an electrical power flow simulation.
         PWRQ=PQ
 
 c Calculate the compressor power draw.
-        CompressPower=CompPower-(PumpPower+FanPower+CtlPower)
+        CompressPower=CompPower-(PumpPower+CtlPower)
         IF(CompressPower.LT.0.0)CompressPower=0.0
 C        TotRealPower=CompPower+PumpPower+CtlPower+FanPower
 
@@ -7312,7 +7232,6 @@ C        TotRealPower=CompPower+PumpPower+CtlPower+FanPower
      &-(CompressPower**2))**0.5
      &+(((PumpPower/PumpPf)**2)-(PumpPower**2))**0.5
      &+(((CtlPower/CtlPf)**2)-(CtlPower**2))**0.5
-     &+(((FanPower/FanPf)**2)-(FanPower**2))**0.5
 
         TotApparentPower=((TotRealPower**2)+(TotReacPower*2))**0.5
 
@@ -7356,6 +7275,8 @@ C Establish the present and known coefficient i.e. RHS
      &          -(1.-ALPHA)*PCQP(INOD1)
      &          -(1.-ALPHA)*PUAP(INOD1)*PCNTMP(IPCOMP)
 
+C For node2, ground source
+cx   ... heat extracted from ground = HeatOutput - CompPower (?!)
 cx        COUT(8)=((1.-ALPHA)*(PCRP(ICON2)+H)-CW/TIMSEC)*CSVP(INOD2,1)
 cx     &           -(1.-ALPHA)*H*CSVP(INOD1,1)
 cx     &           -(1.-ALPHA)*PCRP(ICON2)*PCTP(ICON2)
@@ -7389,13 +7310,9 @@ C Addition output for results analysis.
          PCAOUT(IPCOMP,6)=TotRealPower
          PCAOUT(IPCOMP,7)=TotReacPower
          PCAOUT(IPCOMP,8)=TotApparentPower
-         if(Indefrost)then
-           PCAOUT(IPCOMP,9)=1.0
-         elseif(DefrostLock)then
-           PCAOUT(IPCOMP,9)=-1.0
-         else
-           PCAOUT(IPCOMP,9)=0.0
-         endif
+cx remove? was for defrost ...
+         PCAOUT(IPCOMP,9)=0.0
+
 C---------------------------------------------------------------------------------
 C Make select results available in XML and CVS output.
 C---------------------------------------------------------------------------------
@@ -7432,11 +7349,6 @@ C-------------------------------------------------------------------------------
 
        call AddToReport(rvPltApparPow%Identifier,
      &         TotApparentPower,
-     &         pcname(IPCOMP)(1:IPCOMP_LEN))
-
-       DefrostStat=PCAOUT(IPCOMP,9)
-       call AddToReport(rvPltDefrostStat%Identifier,
-     &         DefrostStat,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
 
@@ -7495,19 +7407,10 @@ C Trace.
             WRITE(ITU,*) ' AmbientTempComp = ',AmbientTempComp,' (C)'
             WRITE(ITU,*) ' TempCompS       = ',TempCompS,' (C)'
             WRITE(ITU,*) ' TempCompE       = ',TempCompE,' (C)'
-            WRITE(ITU,*) ' DefrostCalc     = ',DefrostCalc,' (-)'
-            WRITE(ITU,*) ' AmbientRH       = ',RHamb,' (%)'
-            WRITE(ITU,*) ' DefrostTime     = ',DefrostTime,' (mins)'
-            WRITE(ITU,*) ' DefrostDur      = ',DefrostDur,' (-)'
-            WRITE(ITU,*) ' InDefrost       = ',Indefrost,' (-)'
-            WRITE(ITU,*) ' DefrostLock     = ',DefrostLock,' (-)'
-            WRITE(ITU,*) ' DefrostLockout  = ',DefrostLockout,' (mins)'
-            WRITE(ITU,*) ' DefrostLockDur  = ',DefrostLockDur,' (mins)'
-            WRITE(ITU,*) ' HeatOutput   = ',HeatOutput,' (W)'
-            WRITE(ITU,*) ' CompPower    = ',CompPower,' (W)'
-            WRITE(ITU,*) ' FanPower     = ',FanPower,' (W)'
-            WRITE(ITU,*) ' PumpPower    = ',PumpPower,' (W)'
-            WRITE(ITU,*) ' CtlPower     = ',CtlPower,' (W)'
+            WRITE(ITU,*) ' HeatOutput      = ',HeatOutput,' (W)'
+            WRITE(ITU,*) ' CompPower       = ',CompPower,' (W)'
+            WRITE(ITU,*) ' PumpPower       = ',PumpPower,' (W)'
+            WRITE(ITU,*) ' CtlPower        = ',CtlPower,' (W)'
          END IF
          WRITE(ITU,*) ' Matrix coefficients for ISTATS = ',ISTATS
          NITMS=6
