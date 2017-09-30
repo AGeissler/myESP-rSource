@@ -652,7 +652,7 @@ C
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
          WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
-         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil &',
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil & ',
      &                ' water mass flow rate control'
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
@@ -991,7 +991,7 @@ C Establish static data derivable from the data read from database
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
          WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
-         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil &',
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil & ',
      &                ' water mass flow rate control'
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
@@ -1068,7 +1068,7 @@ C
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
          WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
-         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil &',
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil & ',
      &                ' water mass flow rate control'
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
@@ -2227,7 +2227,7 @@ C
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
          WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
-         WRITE(ITU,*) ' 1 node (ISV=20) Water cooler &',
+         WRITE(ITU,*) ' 1 node (ISV=20) Water cooler & ',
      &                ' flux control'
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
