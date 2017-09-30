@@ -7165,18 +7165,14 @@ C Set limits on calculated values of COP
         IF(COP.LT.0.0) COP=0.0
         IF(COP.GT.18.0) COP=18.0
 
-        IF(InDefrost)THEN
-          HeatOutput=0.0
-        ELSE
-          HeatOutput=COP*CompPower
-          IF(HeatOutput.LT.0) THEN
-            write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
+        HeatOutput=COP*CompPower
+        IF(HeatOutput.LT.0) THEN
+          write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
      &CompPower
-            STOP
-          ENDIF
+          STOP
         ENDIF
-      ELSE
 
+      ELSE
 C Device is 'off' set parameters accordingly (assume controller is still operating).
 
         CompPower=0.
