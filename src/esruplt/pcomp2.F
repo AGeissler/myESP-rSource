@@ -7030,8 +7030,8 @@ C Electrical details for specified plant components
       REAL TIMSEC,TC,RATIMP,CSVF,CSVP,PCTF,PCRF,PUAF,PCQF,PCNTMF,
      &PCTP,PCRP,PUAP,PCQP,PCNTMP,CONVAR,QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP
 
-      REAL VFP,DPP,DFP,HPP,HFP,Tamb,ReturnT,Td,Ta,TL,TH,ALPHA,CM,C1,
-     &TmpDev,CW,C2,futureTemp,presentTemp
+      REAL VFP,DPP,DFP,HPP,HFP,Tamb,ReturnT,Td,Ta,TL,TH,ALPHA,CM1,CM2,C1,
+     &TmpDev,C2,futureTemp,presentTemp
 
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
@@ -7054,12 +7054,22 @@ C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       INOD1=NPCDAT(IPCOMP,9)
       INOD2=NPCDAT(IPCOMP,9)+1
 
+C COP based on inlet temperatures so mark 1st and 2nd nodal temps
+C for iteration.
+      ICSV(INOD1,1)=1
+      CSVI(INOD1,1)=CSVF(INOD1,1)
+      ICSV(INOD2,1)=1
+      CSVI(INOD2,1)=CSVF(INOD2,1)
+
       UAMod=ADATA(ipcomp,3)
       call eclose(PCNTMF(IPCOMP),-99.00,0.001,closea)
       IF(closea) UAMod=0.
 
+C Generate coefficients for energy balance equation
+      IF(ISTATS.EQ.1) THEN
+
 C Get ground source temperature
-      Tamb=TFP
+        Tgrnd=convar(icon2,1)
 
 C Set initial operation mode based on CDATA.
       IF(CDATA(IPCOMP,1).GT.0.0) THEN
@@ -7074,7 +7084,6 @@ C Pump circulates while there is a call for heat.
         PumpPower=0.
       ENDIF
 
-
 C Calculate the return water temperature set point if temperature compensation is active.
       ReturnSP=NomRetT !default return temperature
       ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
@@ -7083,13 +7092,13 @@ C Calculate the return water temperature set point if temperature compensation i
 
       IF(AmbientTempComp.GT.0)THEN
 
-        IF(Tamb.GE.TempCompS.AND.Tamb.LT.TempCompE)THEN
-          ReturnSP=((Tamb-TempCompS)*TempCompc0)+NomRetT
+        IF(Tgrnd.GE.TempCompS.AND.Tgrnd.LT.TempCompE)THEN
+          ReturnSP=((Tgrnd-TempCompS)*TempCompc0)+NomRetT
           ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
           ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
 
-C Case where Tamb > Temp compensation saturation point
-        ELSEIF(Tamb.GE.TempCompE)THEN
+C Case where Tgrnd > Temp compensation saturation point
+        ELSEIF(Tgrnd.GE.TempCompE)THEN
           ReturnSP=((TempCompE-TempCompS)*TempCompc0)+NomRetT
           ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
           ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
@@ -7134,11 +7143,11 @@ C Calculate the TOTAL device power draw (W)
           CompPower=1000.*(Compa0) !fixed power consumption
         ELSEIF(CompModel.eq.2)THEN
           Td=ReturnT
-          Ta=Tamb
+          Ta=Tgrnd
           CompPower=1000.*(Compa0+(Compa1*Ta)+(Compa2*Td))
         ELSEIF(CompModel.eq.3)THEN
           Td=ReturnT
-          Ta=Tamb
+          Ta=Tgrnd
           CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
         ENDIF
         if(CompPower.LT.0.0)CompPower=0.0
@@ -7147,17 +7156,17 @@ C Calculate the COP based on the user-specified method.
         IF(COPModel.EQ.1)THEN
           COP=COPa0 !fixed COP
         ELSEIF(COPModel.EQ.2)THEN
-          TL=Tamb+273.15
+          TL=Tgrnd+273.15
           TH=ReturnT+273.15
           COP=CarEffMod*((1-(TL/TH))**(-1)) !modified carnot COP
         ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
-          TL=Tamb
+          TL=Tgrnd
           TH=ReturnT
           COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
         ELSEIF(COPModel.EQ.4)THEN
-          COP=COPa0+COPa1*Tamb+COPa2*Tamb**2.+COPa3*Tamb**3. !cubic polymonial COP based on ambient T
+          COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
         ELSE
-          WRITE(OUTS,'(a)')'Error in GSHP, COP model #'
+          WRITE(OUTS,'(a)')'Error in GSHP, COP model # '
           CALL EDISP(IUOUT,OUTS)
         ENDIF
 
@@ -7166,10 +7175,17 @@ C Set limits on calculated values of COP
         IF(COP.GT.18.0) COP=18.0
 
         HeatOutput=COP*CompPower
+        GroundHeatInput=-HeatOutput+CompPower
+
         IF(HeatOutput.LT.0) THEN
           write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
-     &CompPower
+     &                                                       CompPower
           STOP
+        IF(GroundHeatInput.GT.0) THEN
+          write(*,*) "Error: ground heat input > 0! ",GroundHeatInput,
+     &                                       HeatOutput, COP, CompPower
+          STOP
+
         ENDIF
 
       ELSE
@@ -7181,23 +7197,9 @@ C Device is 'off' set parameters accordingly (assume controller is still operati
 
       ENDIF
 
-C Generate coefficients for energy balance equation
-      IF(ISTATS.EQ.1) THEN
-
-C Heat flux based on temperatures so mark 1st and 2nd nodal temps
-C and flows for iteration. ((?? taken from WCH calorifier, type 31C))
-cx        ICSV(INOD1,1)=1
-cx        CSVI(INOD1,1)=CSVF(INOD1,1)
-cx        ICSV(INOD2,1)=1
-cx        CSVI(INOD2,1)=CSVF(INOD2,1)
-cx        ICSV(INOD1,2)=1
-cx        CSVI(INOD1,2)=CSVF(INOD1,2)
-cx        ICSV(INOD2,2)=1
-cx        CSVI(INOD2,2)=CSVF(INOD2,2)
-
-C Establish the nodal thermal capacities.
-        CM=CompMass*AveSpHt
-cx        CW=SHTFLD(3,CONVAR(ICON2,1))*WaterInHE
+C Establish the nodal thermal capacities (see CMP36C).
+        CM1=0.5*CompMass*AveSpHt
+        CM2=CM1
 
 C Node 1 water
         C1=DeviceFlow*SHTFLD(3,CONVAR(ICON1,1))
@@ -7250,31 +7252,28 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             ALPHA=1.
         END IF
 
+C==== see CMP36C() line 4135 ff. above ... ====
 C Establish matrix equation self- and cross-coupling coefficients.
-        COUT(1)=ALPHA*(-C1-UAMod)-CM/TIMSEC
-
-cx        COUT(2)=ALPHA*H
-cx        COUT(3)=ALPHA*H
-cx        COUT(4)=ALPHA*(-C2-H)-CW/TIMSEC
-
+        COUT(1)=ALPHA*(-C1)-CM1/TIMSEC
+        COUT(2)=ALPHA*(-C2-UAMod)-CM2/TIMSEC
 C Matrix cross coupling coefficients.
-        COUT(2)=ALPHA*C1
-cx        COUT(6)=ALPHA*C2
-
+        COUT(3)=ALPHA*C1
+        COUT(4)=ALPHA*C2
 C Establish the present and known coefficient i.e. RHS
-        COUT(3)=((1.-ALPHA)*(PCRP(ICON1)+PUAP(INOD1))-CM/TIMSEC)
+        COUT(5)=((1.-ALPHA)*(PCRP(ICON1))-CM1/TIMSEC)
      &          *CSVP(INOD1,1)
-     &          +(1.-ALPHA)*(-PCRP(ICON1))*PCTP(ICON1)
-     &          -ALPHA*UAMod*PCNTMF(IPCOMP)
+     &          -(1.-ALPHA)*PCRP(ICON1)*PCTP(ICON1)
      &          -ALPHA*HeatOutput
      &          -(1.-ALPHA)*PCQP(INOD1)
-     &          -(1.-ALPHA)*PUAP(INOD1)*PCNTMP(IPCOMP)
 
-C For node2, ground source
-cx   ... heat extracted from ground = HeatOutput - CompPower (?!)
-cx        COUT(8)=((1.-ALPHA)*(PCRP(ICON2)+H)-CW/TIMSEC)*CSVP(INOD2,1)
-cx     &           -(1.-ALPHA)*H*CSVP(INOD1,1)
-cx     &           -(1.-ALPHA)*PCRP(ICON2)*PCTP(ICON2)
+         COUT(6)=((1.-ALPHA)*(PCRP(ICON2)+UA)-CM1/TIMSEC)
+     &           *CSVP(INOD2,1)
+     &          -(1.-ALPHA)*PCRP(ICON2)*PCTP(ICON2)
+     &          -(1.-ALPHA)*UAMod*PCNTMP(IPCOMP)
+     &          -ALPHA*UAMod*PCNTMF(IPCOMP)
+     &          +ALPHA*GroundHeatInput
+     &          +(1.-ALPHA)*(PCQP(INOD2))
+C===================
 
 C Establish "containment loss" data
         presentTemp=0.5*(csvp(inod1,1)+csvp(inod2,1))
@@ -7292,8 +7291,7 @@ C Store "environment" variables future values
          PCRF(ICON1)=C1
          PCRF(ICON2)=C2
          PCQF(INOD1)=HeatOutput
-cx         PCQF(INOD2)=GroundHeatInput
-         PUAF(INOD1)=UAMod
+         PCQF(INOD2)=GroundHeatInput
 
 C Addition output for results analysis.
          NAPDAT(IPCOMP)=9
@@ -7305,8 +7303,7 @@ C Addition output for results analysis.
          PCAOUT(IPCOMP,6)=TotRealPower
          PCAOUT(IPCOMP,7)=TotReacPower
          PCAOUT(IPCOMP,8)=TotApparentPower
-cx remove? was for defrost ...
-         PCAOUT(IPCOMP,9)=0.0
+         PCAOUT(IPCOMP,9)=GroundHeatInput
 
 C---------------------------------------------------------------------------------
 C Make select results available in XML and CVS output.
@@ -7347,31 +7344,23 @@ C-------------------------------------------------------------------------------
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
 
-C 1st phase mass (ie. "water") balance coefficients
+C 1st phase mass (ie. "water") balance coefficients (see CMP36C())
       ELSE IF(ISTATS.EQ.2) THEN
          COUT(1)=1.
-         COUT(2)=0.
-         COUT(3)=0.
-         COUT(4)=1.
-         COUT(5)=-PCONDR(ICON1)
-         COUT(6)=-PCONDR(ICON2)
-         COUT(7)=0.
-         COUT(8)=0.
-
-         COUT(1)=1.
-         COUT(2)=0.
-         COUT(3)=DeviceFlow
-
-C 2nd phase mass (ie. "vapour") balance coefficients
-      ELSE IF(ISTATS.EQ.3) THEN
-         COUT(1)=1.
-         COUT(2)=0.
-         COUT(3)=0.
-         COUT(4)=1.
+         COUT(2)=1.
+         COUT(3)=-PCONDR(ICON1)
+         COUT(4)=-PCONDR(ICON2)
          COUT(5)=0.
          COUT(6)=0.
-         COUT(7)=0.
-         COUT(8)=0.
+
+C 2nd phase mass (ie. "vapour") balance coefficients (see CMP36C())
+      ELSE IF(ISTATS.EQ.3) THEN
+         COUT(1)=1.
+         COUT(2)=1.
+         COUT(3)=0.
+         COUT(4)=-PCONDR(ICON2)
+         COUT(5)=0.
+         COUT(6)=0.
       END IF
 
 
