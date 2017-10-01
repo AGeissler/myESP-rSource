@@ -6955,6 +6955,12 @@ C water outlet temperature and ground source temperature compensation can be app
 
       COMMON/PCEQU/IMPEXP,RATIMP
 
+C     Variables for iteration in plant loop (?)
+      COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
+     &             ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)
+      INTEGER MAXITP,ICSV,itrclp
+      REAL    PERREL,PERTMP,PERFLX,PERMFL,CSVI
+
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
 
       COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
@@ -7030,8 +7036,8 @@ C Electrical details for specified plant components
       REAL TIMSEC,TC,RATIMP,CSVF,CSVP,PCTF,PCRF,PUAF,PCQF,PCNTMF,
      &PCTP,PCRP,PUAP,PCQP,PCNTMP,CONVAR,QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP
 
-      REAL VFP,DPP,DFP,HPP,HFP,Tamb,ReturnT,Td,Ta,TL,TH,ALPHA,CM1,CM2,C1,
-     &TmpDev,C2,futureTemp,presentTemp
+      REAL VFP,DPP,DFP,HPP,HFP,Tgrnd,ReturnT,Td,Ta,TL,TH,ALPHA,CM1,CM2,
+     &      C1,TmpDev,C2,futureTemp,presentTemp,GroundHeatInput
 
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
@@ -7136,7 +7142,7 @@ C Evaluate the device status.
       ENDIF
 
 C Establish the device COP
-      IF(DeviceONOFF.GT.0)THEN
+      IF (DeviceONOFF.GT.0) THEN
 
 C Calculate the TOTAL device power draw (W)
         IF(CompModel.eq.1)THEN
@@ -7181,6 +7187,8 @@ C Set limits on calculated values of COP
           write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
      &                                                       CompPower
           STOP
+        ENDIF
+
         IF(GroundHeatInput.GT.0) THEN
           write(*,*) "Error: ground heat input > 0! ",GroundHeatInput,
      &                                       HeatOutput, COP, CompPower
@@ -7233,7 +7241,7 @@ c Calculate the compressor power draw.
         TotApparentPower=((TotRealPower**2)+(TotReacPower*2))**0.5
 
 C Calculate current component time-constant TC
-        TC(IPCOMP)=CM/AMAX1(SMALL,(C1+C2+UAMod))
+        TC(IPCOMP)=(CM1+CM2)/AMAX1(SMALL,(C1+C2+UAMod))
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
         IF(IMPEXP.EQ.1) THEN
@@ -7247,8 +7255,8 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
              ALPHA=RATIMP
           END IF
         ELSE IF(IMPEXP.EQ.4) THEN
-            CM=0.
-            CW=0.
+            CM1=0.
+            CM2=0.
             ALPHA=1.
         END IF
 
@@ -7266,7 +7274,7 @@ C Establish the present and known coefficient i.e. RHS
      &          -ALPHA*HeatOutput
      &          -(1.-ALPHA)*PCQP(INOD1)
 
-         COUT(6)=((1.-ALPHA)*(PCRP(ICON2)+UA)-CM1/TIMSEC)
+         COUT(6)=((1.-ALPHA)*(PCRP(ICON2)+UAMod)-CM2/TIMSEC)
      &           *CSVP(INOD2,1)
      &          -(1.-ALPHA)*PCRP(ICON2)*PCTP(ICON2)
      &          -(1.-ALPHA)*UAMod*PCNTMP(IPCOMP)
@@ -7297,7 +7305,7 @@ C Addition output for results analysis.
          NAPDAT(IPCOMP)=9
          PCAOUT(IPCOMP,1)=HeatOutput
          PCAOUT(IPCOMP,2)=COP
-         PCAOUT(IPCOMP,3)=Tamb
+         PCAOUT(IPCOMP,3)=Tgrnd
          PCAOUT(IPCOMP,4)=DeviceONOFF
          PCAOUT(IPCOMP,5)=ReturnSP
          PCAOUT(IPCOMP,6)=TotRealPower
@@ -7319,7 +7327,7 @@ C-------------------------------------------------------------------------------
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
         call AddToReport(rvPltTambient%Identifier,
-     &         Tamb,
+     &         Tgrnd,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
         tmpdev=float(DeviceONOFF)
@@ -7372,13 +7380,15 @@ C Trace.
          WRITE(ITU,*) ' Matrix node(s) ',INOD1,',',INOD2
          WRITE(ITU,*) ' Connection(s)  ',ICON1,',',ICON2
          IF(ISTATS.EQ.1) THEN
-            WRITE(ITU,*) ' CM      = ',CM,' (J/K)'
+            WRITE(ITU,*) ' CM1     = ',CM1,' (J/K)'
+            WRITE(ITU,*) ' CM2     = ',CM2,' (J/K)'
             WRITE(ITU,*) ' C1      = ',C1,' (W/Ks)'
+            WRITE(ITU,*) ' C2      = ',C2,' (W/Ks)'
             WRITE(ITU,*) ' Flow      = ',DeviceFlow,' (l/s)'
             WRITE(ITU,*) ' TC      = ',TC(IPCOMP),' (s)'
             WRITE(ITU,*) ' ALPHA   = ',ALPHA,' (-)'
             WRITE(ITU,*) ' UAMod   = ',UAMod,' (W/K)'
-            WRITE(ITU,*) ' Tamb    = ',Tamb,' (C)'
+            WRITE(ITU,*) ' Tground = ',Tgrnd,' (C)'
             WRITE(ITU,*) ' ReturnT = ',ReturnT,' (C)'
             WRITE(ITU,*) ' ReturnSP        = ',ReturnSP,' (C)'
             WRITE(ITU,*) ' ReturnSPH       = ',ReturnSPH,' (C)'
@@ -7392,6 +7402,7 @@ C Trace.
             WRITE(ITU,*) ' TempCompS       = ',TempCompS,' (C)'
             WRITE(ITU,*) ' TempCompE       = ',TempCompE,' (C)'
             WRITE(ITU,*) ' HeatOutput      = ',HeatOutput,' (W)'
+            WRITE(ITU,*) ' GroundHeatInput = ',GroundHeatInput,' (W)'
             WRITE(ITU,*) ' CompPower       = ',CompPower,' (W)'
             WRITE(ITU,*) ' PumpPower       = ',PumpPower,' (W)'
             WRITE(ITU,*) ' CtlPower        = ',CtlPower,' (W)'
