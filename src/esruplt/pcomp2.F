@@ -7036,8 +7036,8 @@ C Electrical details for specified plant components
       REAL TIMSEC,TC,RATIMP,CSVF,CSVP,PCTF,PCRF,PUAF,PCQF,PCNTMF,
      &PCTP,PCRP,PUAP,PCQP,PCNTMP,CONVAR,QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP
 
-      REAL VFP,DPP,DFP,HPP,HFP,Tgrnd,ReturnT,Td,Ta,TL,TH,ALPHA,CM1,CM2,
-     &      C1,TmpDev,C2,futureTemp,presentTemp,GroundHeatInput
+      REAL VFP,DPP,DFP,HPP,HFP,Tamb,ReturnT,Td,Ta,TL,TH,ALPHA,CM1,CM2,
+     &      C1,TmpDev,C2,futureTemp,presentTemp,Tgrnd,GroundHeatInput
 
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
@@ -7077,6 +7077,9 @@ C Generate coefficients for energy balance equation
 C Get ground source temperature
         Tgrnd=convar(icon2,1)
 
+C Read ambient temperature (for temperature compensation of WCH return temp)
+      Tamb=TFP
+
 C Set initial operation mode based on CDATA.
       IF(CDATA(IPCOMP,1).GT.0.0) THEN
         CallForHeat=.true.
@@ -7090,25 +7093,27 @@ C Pump circulates while there is a call for heat.
         PumpPower=0.
       ENDIF
 
-C Calculate the return water temperature set point if temperature compensation is active.
       ReturnSP=NomRetT !default return temperature
       ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
       ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
+
       IF(ReturnSP.GT.TinMax) ReturnSP=TinMax
 
       IF(AmbientTempComp.GT.0)THEN
+C Calculate the return water temperature set point if temperature compensation is active.
 
-        IF(Tgrnd.GE.TempCompS.AND.Tgrnd.LT.TempCompE)THEN
-          ReturnSP=((Tgrnd-TempCompS)*TempCompc0)+NomRetT
+        IF(Tamb.GE.TempCompS.AND.Tamb.LT.TempCompE)THEN
+          ReturnSP=((Tamb-TempCompS)*TempCompc0)+NomRetT
           ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
           ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
 
-C Case where Tgrnd > Temp compensation saturation point
-        ELSEIF(Tgrnd.GE.TempCompE)THEN
+C Case where Tamb > Temp compensation saturation point
+        ELSEIF(Tamb.GE.TempCompE)THEN
           ReturnSP=((TempCompE-TempCompS)*TempCompc0)+NomRetT
           ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
           ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
         ENDIF
+
         IF(ReturnSP.GT.TinMax)THEN
           ReturnSP=TinMax
           ReturnSPH=ReturnSP
