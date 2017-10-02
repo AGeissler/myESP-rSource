@@ -4143,7 +4143,7 @@ C Establish the present and known coefficient i.e. RHS
      &          *CSVP(INOD1,1)
      &          -(1.-ALPHA)*PCRP(ICON1)*PCTP(ICON1)
      &          +ALPHA*Q_water
-     &          +(1.-ALPHA)*PCQP(INOD1)
+     &          +(1.-ALPHA)*PCQP(INOD1) !      bug? CM2 would be more consistent ...
          COUT(6)=((1.-ALPHA)*(PCRP(ICON2)+UA)-CM1/TIMSEC)
      &           *CSVP(INOD2,1)
      &          -(1.-ALPHA)*PCRP(ICON2)*PCTP(ICON2)
@@ -7071,12 +7071,6 @@ C for iteration.
       call eclose(PCNTMF(IPCOMP),-99.00,0.001,closea)
       IF(closea) UAMod=0.
 
-C Generate coefficients for energy balance equation
-      IF(ISTATS.EQ.1) THEN
-
-C Get ground source temperature
-        Tgrnd=convar(icon2,1)
-
 C Read ambient temperature (for temperature compensation of WCH return temp)
       Tamb=TFP
 
@@ -7120,6 +7114,12 @@ C Case where Tamb > Temp compensation saturation point
         ENDIF
       ENDIF
 
+C Generate coefficients for energy balance equation
+      IF(ISTATS.EQ.1) THEN
+
+C Get ground source temperature
+        Tgrnd=convar(icon2,1)
+
 C Determine whether machine should be on or off based on return water temperature.
       ReturnT=CONVAR(ICON1,1)
       DeviceONOFFp=DeviceONOFF
@@ -7144,9 +7144,8 @@ C Evaluate the device status.
         ENDIF
       ELSE
         DeviceONOFF=0
-      ENDIF
+      ENDIF ! call for heat
 
-C Establish the device COP
       IF (DeviceONOFF.GT.0) THEN
 
 C Calculate the TOTAL device power draw (W)
@@ -7246,7 +7245,11 @@ c Calculate the compressor power draw.
         TotApparentPower=((TotRealPower**2)+(TotReacPower*2))**0.5
 
 C Calculate current component time-constant TC
-        TC(IPCOMP)=(CM1+CM2)/AMAX1(SMALL,(C1+C2+UAMod))
+        TC(IPCOMP)=AMAX1(
+     &              CM1/AMAX1(SMALL,(C1+UAMod)),
+     &              CM2/AMAX1(SMALL,(C2+UAMod)))
+
+
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
         IF(IMPEXP.EQ.1) THEN
@@ -7361,7 +7364,7 @@ C 1st phase mass (ie. "water") balance coefficients (see CMP36C())
       ELSE IF(ISTATS.EQ.2) THEN
          COUT(1)=1.
          COUT(2)=1.
-         COUT(3)=-PCONDR(ICON1)
+         COUT(3)=DeviceFlow ! -PCONDR(ICON1)
          COUT(4)=-PCONDR(ICON2)
          COUT(5)=0.
          COUT(6)=0.
