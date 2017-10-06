@@ -7075,7 +7075,8 @@ C Read ambient temperature (for temperature compensation of WCH return temp)
       Tamb=TFP
 
 C Set initial operation mode based on CDATA.
-      IF(CDATA(IPCOMP,1).GT.0.0) THEN
+      call eclose(CDATA(IPCOMP,1),0.0,0.001,closea)
+      IF(.not.closea) THEN
         CallForHeat=.true.
 
 C Pump circulates while there is a call for heat.
@@ -7083,8 +7084,8 @@ C Pump circulates while there is a call for heat.
         DeviceFlow=RatedFlow
       ELSE
         CallforHeat=.false.
-        DeviceFlow=0.
         PumpPower=0.
+        DeviceFlow=0.0001 ! e.g. pipes seem to have problems with zero flow
       ENDIF
 
       ReturnSP=NomRetT !default return temperature
