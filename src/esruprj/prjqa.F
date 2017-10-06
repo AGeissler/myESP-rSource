@@ -600,7 +600,7 @@ C << need to sort out changing to main project folder >>
      &    'The folder browsing tool has not be defined. See your',
      &    'administrator about updating the esprc definition.','W')
         else
-          write(doit,'(2a)') foldexe(1:lnblnk(foldexe)),' &'
+          write(doit,'(2a)') foldexe(1:lnblnk(foldexe)),' & '
           call usrmsg('Beginning folder view via',doit,'-')
           tmode='graph'
           call runit(doit,tmode)
@@ -709,7 +709,7 @@ C and change any / to \.
               tmode='text'
             endif
             write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &        longtfile(1:lnblnk(longtfile)),' &'
+     &        longtfile(1:lnblnk(longtfile)),' & '
             call usrmsg('Begining edit via',doit,'-')
             call runit(doit,tmode)
           endif
@@ -723,7 +723,7 @@ C Execute graphing tool.
      &    'administrator about updating the esprc definition.','W')
         else
           call tstamp('>','PRJ: start graphing tool')
-          write(doit,'(2a)')grfexe(1:lnblnk(grfexe)),' &'
+          write(doit,'(2a)')grfexe(1:lnblnk(grfexe)),' & '
           call usrmsg('Beginning graphing tool via',doit,'-')
           call runit(doit,'graph')
         endif
@@ -736,7 +736,7 @@ C Execute figure tool.
      &    'administrator about updating the esprc definition.','W')
         else
           call tstamp('>','PRJ: start xfig')
-          write(doit,'(2a)')figexe(1:lnblnk(figexe)),' &'
+          write(doit,'(2a)')figexe(1:lnblnk(figexe)),' & '
           call usrmsg('Beginning figure tool via',doit,'-')
           call runit(doit,'graph')
         endif
@@ -749,7 +749,7 @@ C Execute image viewer (get tool via prior scan of default file).
      &    'administrator about updating the esprc definition.','W')
         else
           call tstamp('>','PRJ: start xv')
-          write(doit,'(2a)')fmtexe(1)(1:lnblnk(fmtexe(1))),' &'
+          write(doit,'(2a)')fmtexe(1)(1:lnblnk(fmtexe(1))),' & '
           call usrmsg('Beginning image tool via',doit,'-')
           call runit(doit,'graph')
         endif
@@ -1116,7 +1116,7 @@ C then check for spaces in name and change / to \.
         tmode='graph'
         if(teditor(1:2).eq.'vi')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' &'
+     &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
 
       else
