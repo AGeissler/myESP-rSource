@@ -48,7 +48,8 @@ C  CMP42C   2 node (ISV=20) WCH modulating boiler
 C  CMP44C   2 node (ISV=20) WCH exponent model radiator
 C  CMP45C   1 node (ISV=20) Air source heat pump connection to WCH
 C  CMP46C   2 node (ISV=20) WCH advanced modulating boiler model
-C  CMP47C   2 node (ISV=20) Ground source heat pump (EXPERIMENTAL)
+C  CMP47C   1 node (ISV=20) Ground source heat pump (EXPERIMENTAL)
+C  CMP48C   2 node (ISV=20) Ground source heat pump (EXPERIMENTAL)
 C  CMP50C   1 node (ISV=29) WCH thermostatic radiator valve
 C  CMP51C   1 node (ISV=29)     mechanical room thermostat
 C  CMP52C   1 node (ISV=29) WCH thermostatic radiator valve (sensor only)
@@ -2269,7 +2270,7 @@ c     cdata: mass flow fraction entering damper.
 
 c Trace output
       if(itc.gt.0.and.nsinc.ge.itc.and.nsinc.le.itcf.and.
-     &   ITRACE(37).ne.0) write(itu,*) ' Entering subroutine CMP07C'
+     &   ITRACE(37).ne.0) write(itu,*) ' Entering subroutine CMP29C'
 
 c Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       icon1=icondx(ipcomp,1,1)
@@ -6894,6 +6895,582 @@ C Calculate gross efficiency
 
 C ******************** CMP47C ********************
 C CMP47C generates for plant component IPCOMP with plant db code 470 ie.
+C 1 node (ISV=20) WCH ground-source heat pump feeding a hydronic heating system.
+C Ground source temperature is taken from climate file data for desired depth.
+C Therefore, no ground temperature "degradation" considered (see CMP48C)!
+C the matrix equation coefficients COUT (in order: self-coupling, cross-
+C coupling, and present-time coefficients) for energy balance (ISTATS=1),
+C 1st phase mass balance (ISTATS=2), or 2nd phase mass (ISTATS=3)
+
+C     ADATA: 1 Mass of component (solids+liquid) (kg)
+C            2 Mass weighted average specific heat node (J/kgK)
+C            3 UA modulus for component (W/K)
+
+C     BDATA: 1 COP model [1 - fixed COP 2 - modified Carnot efficiency; 3- f(dT) 4 - polynomial]
+C            2 Model coef a0
+C            3 Model coef a1
+C            4 Model coef a2
+C            5 Model coef a3
+C            6 Device power draw (kW) model [1 - fixed 2- polynomial 3-exponential b0*e^(b1)]
+C            7 Model coef b0
+C            8 Model coef b1
+C            9 Model coef b2
+C           10 Model coef b3
+C           11 Compressor pf (-)
+C           12 Pump rating (W)
+C           13 Pump pf (-)
+C           14 Flowrate at rated pump power (l/s)
+C           15 Controller power (W)
+C           16 Controller pf (-)
+C           17 Tout max (degC)
+C           18 Tin max (degC)
+C           19 Ambient temp compensation on/off (-)
+C           20 Nominal water return temperature (Deg C)
+C           21 Nominal water return deadband (Deg C)
+C           22 Ground source temperature for temp compensation start [Deg C]
+C           23 Ground source temperature for temp compensation end [Deg C]
+C           24 Temp compensation gradient [deg C return/deg C ground source] (degCr/degCa)
+C           25 Heat pump lock out time (min)
+C           26 Ground source depth below grade (m)
+C
+C     CDATA: 1 Call for heat [0 or 1] (-)
+
+C Node 1 represents the condenser heat exchanger and couples to the hydronic heating circuit.
+C The device has an internal pump and so an explicit pump model is not needed in system
+C models containing this component. This particular device model is suitable for ON/OFF type control
+C and will require modification if PID-type control is to be applied. The model internally controls the
+C water outlet temperature and ambient temperature compensation can be applied [linear model]
+
+      SUBROUTINE CMP47C(IPCOMP,COUT,ISTATS)
+      use h3kmodule
+      implicit none
+#include "plant.h"
+#include "building.h"
+#include "site.h"
+
+      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/TC/ITC,ICNT
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+
+      COMMON/ITERINDEX/ITERNU !plant iteration number
+
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/Pctime/TIMSEC
+      COMMON/PCTC/TC(MPCOM)
+
+      COMMON/PCEQU/IMPEXP,RATIMP
+
+C     Variables for iteration in plant loop (?)
+      COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
+     &             ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)
+      INTEGER MAXITP,ICSV,itrclp
+      REAL    PERREL,PERTMP,PERFLX,PERMFL,CSVI
+
+      COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
+
+      COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
+     &           IPC2(MPCON),IPN2(MPCON),PCONDR(MPCON),PCONSD(MPCON,2)
+      INTEGER NPCON,IPC1,IPN1,IPCT,IPC2,IPN2
+      REAL PCONDR,PCONSD
+
+      COMMON/C12PS/NPCDAT(MPCOM,9),IPOFS1(MCOEFG),IPOFS2(MCOEFG,MPVAR)
+      COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
+      REAL ADATA,BDATA
+
+      COMMON/PCVAL/CSVF(MPNODE,MPVAR),CSVP(MPNODE,MPVAR)
+      COMMON/PCVAR/PCTF(MPCON),PCRF(MPCON),PUAF(MPNODE),PCQF(MPNODE),
+     &             PCNTMF(MPCOM),
+     &             PCTP(MPCON),PCRP(MPCON),PUAP(MPNODE),PCQP(MPNODE),
+     &             PCNTMP(MPCOM)
+      COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
+     &             ICONDX(MPCOM,MNODEC,MPCONC)
+      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
+      common/pcnam/pcname(mpcom)
+
+      COMMON/CLIMIP/QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
+
+      COMMON/GSHPvar1/CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
+     &COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,
+     &CompressPf,PumpRating,PumpPf,RatedFlow,
+     &CtlRating,CtlPf,ToutMax,TinMax,
+     &NomRetT,NomRetTDeadB,TempCompS,TempCompE,TempCompc0
+
+      COMMON/GSHPvar2/COPModel,CompModel,AmbientTempComp,
+     &                DeviceONOFFp,DeviceONOFF
+
+      COMMON/GSHPvar3/CallforHeat,InDeadB
+
+      COMMON/GSHPvar4/INSO,ITSBO,bSwitched
+      INTEGER INSO,ITSBO
+      LOGICAL bSwitched
+
+C Electrical details for specified plant components
+      common/pcelflg/ipcelf(mpcom)
+      common/elpcp/NPEL,PFP(mpcom),IPFP(mpcom),PWRP(mpcom),
+     &BVOLTP(mpcom),IPHP(mpcom)
+
+      REAL SMALL
+      PARAMETER (SMALL=1.0E-20)
+
+      REAL PFP,PWRP,BVOLTP,PWRQ,PA,PQ
+
+      INTEGER ipcelf,NPEL,IPFP,IPHP,IEMODEL
+
+      LOGICAL CallforHeat,InDeadB
+
+      INTEGER COPModel,CompModel,AmbientTempComp,
+     &DeviceONOFFp,DeviceONOFF
+
+      REAL CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,
+     &COPa2,COPa3,Compa0,Compa1,Compa2,Compa3,CompressPf,
+     &PumpRating,PumpPf,RatedFlow,CtlRating,CtlPf,
+     &ToutMax,TinMax,
+     &NomRetT,NomRetTDeadB,
+     &TempCompS,TempCompE,TempCompc0
+
+      REAL CompPower,CompressPower,COP,CtlPower,DeviceFlow,
+     &HeatOutput,PumpPower,ReturnSP,ReturnSPH,ReturnSPL,RHamb,
+     &TotApparentPower,TotReacPower,TotRealPower
+
+      INTEGER lnblnk
+      REAL SHTFLD
+
+      INTEGER IUOUT,IUIN,ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,
+     &IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,IMPEXP
+
+      INTEGER NPCDAT,IPOFS1,IPOFS2,ICON1,INOD1,napdat,
+     &IPCOMP,ISTATS,I,ICONDX,ICONTP,IX1,NCI,NITMS,NPCOMP,
+     &INOD2,ICON2
+
+      REAL TIMSEC,TC,RATIMP,CSVF,CSVP,PCTF,PCRF,PUAF,PCQF,PCNTMF,
+     &PCTP,PCRP,PUAP,PCQP,PCNTMP,CONVAR,QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP
+
+      REAL VFP,DPP,DFP,HPP,HFP,Tamb,ReturnT,Td,Ta,TL,TH,ALPHA,CM,
+     &      C1,TmpDev,futureTemp,presentTemp,Tgrnd,GroundHeatInput
+
+      REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
+
+      REAL TG1,TG2,ZD,BLKOUT
+      INTEGER IM,ID,curDoM,curMonth,NTSBO,NDMonth
+
+      DIMENSION NDMonth(12)
+      DATA NDMonth/31,28,31,30,31,30,31,31,30,31,30,31/
+
+      LOGICAL CLOSE,CLOSEA
+
+      CHARACTER OUTS*248,PCNAME*15
+
+      INTEGER IPCOMP_LEN !lenght of ipcomp
+
+C Trace output
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP47C'
+
+C ************
+C Variable Assignment and initialisation in CMP47S (pcomps.F)
+
+C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
+      ICON1=ICONDX(IPCOMP,1,1)
+      INOD1=NPCDAT(IPCOMP,9)
+
+C COP based on inlet temperatures so mark 1st nodal temp
+C for iteration.
+      ICSV(INOD1,1)=1
+      CSVI(INOD1,1)=CSVF(INOD1,1)
+
+      UAMod=ADATA(ipcomp,3)
+      call eclose(PCNTMF(IPCOMP),-99.00,0.001,closea)
+      IF(closea) UAMod=0.
+
+C Read ambient temperature (for temperature compensation of WCH return temp)
+      Tamb=TFP
+
+C Set initial operation mode based on CDATA.
+      call eclose(CDATA(IPCOMP,1),0.0,0.001,closea)
+      IF(.not.closea) THEN
+        CallForHeat=.true.
+
+C Pump circulates while there is a call for heat.
+        PumpPower=PumpRating
+        DeviceFlow=RatedFlow
+      ELSE
+        CallforHeat=.false.
+        PumpPower=0.
+        DeviceFlow=0.0001 ! e.g. pipes seem to have problems with zero flow
+      ENDIF
+
+      ReturnSP=NomRetT !default return temperature
+      ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
+      ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
+
+      IF(ReturnSP.GT.TinMax) ReturnSP=TinMax
+
+      IF(AmbientTempComp.GT.0)THEN
+C Calculate the return water temperature set point if temperature compensation is active.
+
+        IF(Tamb.GE.TempCompS.AND.Tamb.LT.TempCompE)THEN
+          ReturnSP=((Tamb-TempCompS)*TempCompc0)+NomRetT
+          ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
+          ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
+
+C Case where Tamb > Temp compensation saturation point
+        ELSEIF(Tamb.GE.TempCompE)THEN
+          ReturnSP=((TempCompE-TempCompS)*TempCompc0)+NomRetT
+          ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
+          ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
+        ENDIF
+
+        IF(ReturnSP.GT.TinMax)THEN
+          ReturnSP=TinMax
+          ReturnSPH=ReturnSP
+        ENDIF
+      ENDIF
+
+C Generate coefficients for energy balance equation
+      IF (ISTATS.EQ.1) THEN
+
+C Get ground source temperature in desired depth ZD ... future??
+        ZD=BDATA(IPCOMP,26)
+cx        CALL GTCALC(ZD,'-',IER)
+
+C Calculate the current ground temperatures by interpolating the monthly ground
+C temperatures. ((code from CMP79C(), lines 8976 ff.))
+        CALL EDAYR(IDYP,ID,IM)
+        curMonth=IM
+        curDoM=ID
+
+C Get current month temperature
+cx ... For now: profile 37 from berlin, at 2 m depth,
+cx ... stored in grdtmp(12,mgrdp) via site.h
+        TG1=grdtmp(curMonth,37)
+        IF(curMonth.EQ.12)THEN
+
+C Get next month's temperature (assume loop round to January).
+           TG2=grdtmp(1,37)
+        ELSE
+
+C Get next month's temperature
+           TG2=grdtmp(curMonth+1,37)
+        ENDIF
+
+C Get today's ground temp.
+        Tgrnd=((float(curDoM)/float(NDMonth(curMonth)))*(TG2-TG1))+TG1
+
+C Determine whether machine should be on or off based on return
+C water temperature.
+        ReturnT=CONVAR(ICON1,1)
+
+C Check if device switched off last TS
+        IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
+          bSwitched=.true.
+        ENDIF
+
+        DeviceONOFFp=DeviceONOFF
+
+        IF(CallforHeat)THEN
+
+C Check to see if the device is in the dead band.
+          IF(ReturnT.GE.ReturnSPL.AND.ReturnT.LE.ReturnSPH)THEN
+            InDeadB=.true.
+          ELSE
+            InDeadB=.false.
+          ENDIF
+
+C Evaluate the device status.
+          IF(ReturnT.GT.ReturnSPH)THEN
+            DeviceONOFF=0
+          ELSEIF(ReturnT.LT.ReturnSPL)THEN
+            DeviceONOFF=1
+          ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
+            DeviceONOFF=1
+          ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
+            DeviceONOFF=0
+          ENDIF
+        ELSE
+          DeviceONOFF=0
+        ENDIF ! call for heat
+
+C Finally, check if device is in lockout time, i.e. last "off" was
+C less than lockouttime ago ... ((code from CMP42C(), line 5102 ff.))
+C Lock out time (in seconds), Heat pump should not be turned on/off
+C with high frequency. When HP is turned off, wait this amount of time
+C before turning on again.
+C INSO = HP on/off (1/0) flag for lockout
+C ITSBO = present no. of timesteps HP is off due to lockout
+C NTSBO = total no. of timesteps HP is off due to lockout
+        BLKOUT=BDATA(IPCOMP,25)*60.
+        NTSBO=NINT(BLKOUT/TIMSEC)
+
+        IF (bSwitched) THEN
+          INSO=1
+          ITSBO=0
+          bSwitched=.false. ! only set once after signal
+        ENDIF
+
+        IF (INSO.EQ.1) THEN
+          ITSBO=ITSBO+1
+          IF (ITSBO.GE.NTSBO) INSO=0
+          DeviceONOFF=0
+        ENDIF
+C == end lockout
+
+        IF (DeviceONOFF.GT.0) THEN
+
+C Calculate the TOTAL device power draw (W)
+          IF(CompModel.eq.1)THEN
+            CompPower=1000.*(Compa0) !fixed power consumption
+          ELSEIF(CompModel.eq.2)THEN
+            Td=ReturnT
+            Ta=Tgrnd
+            CompPower=1000.*(Compa0+(Compa1*Ta)+(Compa2*Td))
+          ELSEIF(CompModel.eq.3)THEN
+            Td=ReturnT
+            Ta=Tgrnd
+            CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
+          ENDIF
+          if(CompPower.LT.0.0)CompPower=0.0
+
+C Calculate the COP based on the user-specified method.
+          IF(COPModel.EQ.1)THEN
+            COP=COPa0 !fixed COP
+          ELSEIF(COPModel.EQ.2)THEN
+            TL=Tgrnd+273.15
+            TH=ReturnT+273.15
+            COP=CarEffMod*((1-(TL/TH))**(-1)) !modified carnot COP
+          ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Tgrnd
+            TL=Tgrnd
+            TH=ReturnT
+            COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
+          ELSEIF(COPModel.EQ.4)THEN
+            COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ground T
+          ELSE
+            WRITE(OUTS,'(a)')'Error in 1-node GSHP, COP model # '
+            CALL EDISP(IUOUT,OUTS)
+          ENDIF
+
+C Set limits on calculated values of COP
+          IF(COP.LT.0.0) COP=0.0
+          IF(COP.GT.18.0) COP=18.0
+
+          HeatOutput=COP*CompPower
+          GroundHeatInput=-HeatOutput+CompPower
+
+          IF(HeatOutput.LT.0) THEN
+            write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
+     &                                                       CompPower
+            STOP
+          ENDIF
+
+          IF(GroundHeatInput.GT.0) THEN
+            write(*,*) "Error: ground heat input > 0! ",GroundHeatInput,
+     &                                       HeatOutput, COP, CompPower
+            STOP
+          ENDIF
+
+        ELSE
+C Device is 'off' set parameters accordingly (assume controller is still operating).
+
+          CompPower=0.
+          HeatOutput=0.
+          GroundHeatInput=0.
+          PumpPower=0.
+          COP=0.
+        ENDIF
+
+C Establish the nodal thermal capacities (see CMP36C).
+        CM=CompMass*AveSpHt
+
+C Node 1 water
+        C1=DeviceFlow*SHTFLD(3,CONVAR(ICON1,1))
+
+C Set heat loss to zero if no containment defined
+        CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
+        IF(CLOSE) UAMod=0.0
+
+C Calculate the electrical demand of the device assumung the controller is ON.
+        CtlPower=CtlRating
+        TotRealPower=CompPower+CtlPower+PumpPower
+
+C Save the real power draw for use in an electrical power flow simulation. 
+        PWRP(IPCOMP)=-ABS(TotRealPower)
+        IEMODEL=1
+        CALL EMACH(IPCOMP,IEMODEL,PWRP(IPCOMP),PQ,PA)
+        PWRQ=PQ
+
+c Calculate the compressor power draw.
+        CompressPower=CompPower-(PumpPower+CtlPower)
+        IF(CompressPower.LT.0.0)CompressPower=0.0
+
+        TotReacPower=( ((CompressPower/CompressPf)**2)
+     &                                        -(CompressPower**2) )**0.5
+     &              +( ((PumpPower/PumpPf)**2)-(PumpPower**2) )**0.5
+     &              +( ((CtlPower/CtlPf)**2)  -(CtlPower**2) )**0.5
+
+        TotApparentPower=((TotRealPower**2)+(TotReacPower*2))**0.5
+
+C Calculate current component time-constant TC
+        TC(IPCOMP)=CM/AMAX1(SMALL,(C1+UAMod))
+
+C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
+        IF(IMPEXP.EQ.1) THEN
+           ALPHA=1.
+        ELSE IF(IMPEXP.EQ.2) THEN
+           ALPHA=RATIMP
+        ELSE IF(IMPEXP.EQ.3) THEN
+          IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
+             ALPHA=1.
+          ELSE
+             ALPHA=RATIMP
+          END IF
+        ELSE IF(IMPEXP.EQ.4) THEN
+            CM=0.
+            ALPHA=1.
+        END IF
+
+C Establish matrix equation self- and cross-coupling coefficients.
+        COUT(1)=ALPHA*(-C1-UAMod)-CM/TIMSEC
+C Matrix cross coupling coefficients.
+        COUT(2)=ALPHA*C1
+C Establish the present and known coefficient i.e. RHS
+        COUT(3)=((1.-ALPHA)*(PCRP(ICON1)+PUAP(INOD1))-CM/TIMSEC)
+     &          *CSVP(INOD1,1)
+     &          +(1.-ALPHA)*(-PCRP(ICON1))*PCTP(ICON1)
+     &          -ALPHA*UAMod*PCNTMF(IPCOMP)
+     &          -ALPHA*HeatOutput
+     &          -(1.-ALPHA)*PCQP(INOD1)
+     &          -(1.-ALPHA)*PUAP(INOD1)*PCNTMP(IPCOMP)
+
+C Establish "containment loss" data
+        presentTemp=csvp(inod1,1)
+        futureTemp =csvf(inod1,1)
+        QDATA(IPCOMP)=UAMod*(alpha*(futureTemp-pcntmp(ipcomp))+
+     &                (1.-alpha)*(presentTemp-pcntmp(ipcomp)))
+
+	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+
+
+C Store "environment" variables future values
+         PCTF(ICON1)=CONVAR(ICON1,1)
+         PCRF(ICON1)=C1
+         PCQF(INOD1)=HeatOutput
+
+C Addition output for results analysis.
+         NAPDAT(IPCOMP)=9
+         PCAOUT(IPCOMP,1)=HeatOutput
+         PCAOUT(IPCOMP,2)=COP
+         PCAOUT(IPCOMP,3)=Tgrnd
+         PCAOUT(IPCOMP,4)=DeviceONOFF
+         PCAOUT(IPCOMP,5)=ReturnSP
+         PCAOUT(IPCOMP,6)=TotRealPower
+         PCAOUT(IPCOMP,7)=TotReacPower
+         PCAOUT(IPCOMP,8)=TotApparentPower
+         PCAOUT(IPCOMP,9)=GroundHeatInput
+
+C---------------------------------------------------------------------------------
+C Make select results available in XML and CVS output.
+C---------------------------------------------------------------------------------
+        IPCOMP_LEN = lnblnk(pcname(IPCOMP))
+
+        call AddToReport(rvPltHOut%Identifier,
+     &         HeatOutput,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
+        call AddToReport(rvPltCOP%Identifier,
+     &         COP,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
+        call AddToReport(rvPltTambient%Identifier,
+     &         Tgrnd,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
+        tmpdev=float(DeviceONOFF)
+        call AddToReport(rvPltDeviceONOFF%Identifier,
+     &         tmpdev,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
+        call AddToReport(rvPltReturnTSP%Identifier,
+     &         ReturnSP,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
+       call AddToReport(rvPltRealPow%Identifier,
+     &         TotRealPower,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
+        call AddToReport(rvPltReacPow%Identifier,
+     &         TotReacPower,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
+       call AddToReport(rvPltApparPow%Identifier,
+     &         TotApparentPower,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
+
+C 1st phase mass (ie. "water") balance coefficients
+      ELSE IF(ISTATS.EQ.2) THEN
+         COUT(1)=1.
+         COUT(2)=0.
+         COUT(3)=DeviceFlow
+
+C 2nd phase mass (ie. "vapour") balance coefficients
+      ELSE IF(ISTATS.EQ.3) THEN
+         COUT(1)=1.
+         COUT(2)=0.
+         COUT(3)=0.
+      END IF
+
+C Trace.
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(37).NE.0) THEN
+         WRITE(ITU,*) ' Component      ',IPCOMP,':'
+         WRITE(ITU,*) ' 1 node (ISV=20) Ground Source Heat Pump'
+         WRITE(ITU,*) ' Matrix node(s) ',INOD1
+         WRITE(ITU,*) ' Connection(s)  ',ICON1
+         IF(ISTATS.EQ.1) THEN
+            WRITE(ITU,*) ' CM      = ',CM,' (J/K)'
+            WRITE(ITU,*) ' C1      = ',C1,' (W/Ks)'
+            WRITE(ITU,*) ' Flow      = ',DeviceFlow,' (l/s)'
+            WRITE(ITU,*) ' TC      = ',TC(IPCOMP),' (s)'
+            WRITE(ITU,*) ' ALPHA   = ',ALPHA,' (-)'
+            WRITE(ITU,*) ' UAMod   = ',UAMod,' (W/K)'
+            WRITE(ITU,*) ' Tground = ',Tgrnd,' (C)'
+            WRITE(ITU,*) ' tBlkout = ',BLKOUT,' (s)'
+            WRITE(ITU,*) ' ReturnT = ',ReturnT,' (C)'
+            WRITE(ITU,*) ' ReturnSP        = ',ReturnSP,' (C)'
+            WRITE(ITU,*) ' ReturnSPH       = ',ReturnSPH,' (C)'
+            WRITE(ITU,*) ' ReturnSPL       = ',ReturnSPL,' (C)'
+            WRITE(ITU,*) ' InDeadB         = ',InDeadB,' (-)'
+            WRITE(ITU,*) ' CallforHeat     = ',CallforHeat,' (-)'
+            WRITE(ITU,*) ' DeviceONOFF     = ',DeviceONOFF,' (-)'
+            WRITE(ITU,*) ' DeviceONOFFp    = ',DeviceONOFFp,' (-)'
+            WRITE(ITU,*) ' COP             = ',COP,' (-)'
+            WRITE(ITU,*) ' AmbientTempComp = ',AmbientTempComp,' (C)'
+            WRITE(ITU,*) ' TempCompS       = ',TempCompS,' (C)'
+            WRITE(ITU,*) ' TempCompE       = ',TempCompE,' (C)'
+            WRITE(ITU,*) ' HeatOutput      = ',HeatOutput,' (W)'
+            WRITE(ITU,*) ' GroundHeatInput = ',GroundHeatInput,' (W)'
+            WRITE(ITU,*) ' CompPower       = ',CompPower,' (W)'
+            WRITE(ITU,*) ' PumpPower       = ',PumpPower,' (W)'
+            WRITE(ITU,*) ' CtlPower        = ',CtlPower,' (W)'
+         END IF
+         WRITE(ITU,*) ' Matrix coefficients for ISTATS = ',ISTATS
+         NITMS=6
+         WRITE(ITU,*) (COUT(I),I=1,NITMS)
+         IF(ITU.EQ.IUOUT) THEN
+            IX1=(IPCOMP/4)*4
+            IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
+         END IF
+      END IF
+
+      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Leaving subroutine CMP47C'
+
+      RETURN
+      END
+
+
+C ******************** CMP48C ********************
+C CMP48C generates for plant component IPCOMP with plant db code 470 ie.
 C 2 node (ISV=20) WCH ground-source heat pump feeding a hydronic heating system.
 C the matrix equation coefficients COUT (in order: self-coupling, cross-
 C coupling, and present-time coefficients) for energy balance (ISTATS=1),
@@ -6937,7 +7514,7 @@ C models containing this component. This particular device model is suitable for
 C and will require modification if PID-type control is to be applied. The model internally controls the
 C water outlet temperature and ground source temperature compensation can be applied [linear model]
 
-      SUBROUTINE CMP47C(IPCOMP,COUT,ISTATS)
+      SUBROUTINE CMP48C(IPCOMP,COUT,ISTATS)
       use h3kmodule
       implicit none
 #include "plant.h"
@@ -7049,7 +7626,7 @@ C Electrical details for specified plant components
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP47C'
+     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP48C'
 
 C ************
 C Variable Assignment and initialisation in CMP47S (pcomps.F)
@@ -7177,7 +7754,7 @@ C Calculate the COP based on the user-specified method.
         ELSEIF(COPModel.EQ.4)THEN
           COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
         ELSE
-          WRITE(OUTS,'(a)')'Error in GSHP, COP model # '
+          WRITE(OUTS,'(a)')'Error in 2node-GSHP, COP model # '
           CALL EDISP(IUOUT,OUTS)
         ENDIF
 
@@ -7426,7 +8003,7 @@ C Trace.
       END IF
 
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Leaving subroutine CMP47C'
+     &   ITRACE(37).NE.0) WRITE(ITU,*) ' Leaving subroutine CMP48C'
 
       RETURN
       END

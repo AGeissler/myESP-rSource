@@ -240,6 +240,8 @@ C Component by component, call routine to deal with relevant type
          CALL CMP46S(IPCOMP)
       ELSE IF(ITYPE.EQ.47) THEN
          CALL CMP47S(IPCOMP)
+      ELSE IF(ITYPE.EQ.48) THEN ! use parameter set file for CMP47 for now ...
+         CALL CMP47S(IPCOMP)
       ELSE IF(ITYPE.EQ.50) THEN
          CALL CMP50S(IPCOMP)
       ELSE IF(ITYPE.EQ.51) THEN
