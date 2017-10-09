@@ -4126,7 +4126,7 @@ C Pump pf (-)
 C Flowrate at rated pump power (l/s)
       RatedFlow=BDATA(IPCOMP,14)
       IF(RatedFlow.LT.SMALL)THEN
-        WRITE(OUTS,'(a)')'Error in 2n-GSHP: rated flow is close to zero!'
+      WRITE(OUTS,'(a)')'Error in 2n-GSHP: rated flow is close to zero!'
         CALL EDISP(IUOUT,OUTS)
         STOP
       ENDIF
