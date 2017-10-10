@@ -7131,8 +7131,8 @@ C Generate coefficients for energy balance equation
       IF (ISTATS.EQ.1) THEN
 
         if ((BDATA(IPCOMP,26).eq.1).or.(BDATA(IPCOMP,26).eq.2)) then
-C       Standard ground temperature profile from grdtmp(12,mgrdp), see site.h.
-C       or user defined ground temperature profile from ugrdtp(12,mgrdp)
+C       Standard ground temperature profile from grdtmp(12,mgrdp), see esru_blk.F,
+C       or user defined ground temperature profile from ugrdtp(12,mgrdp).
 
           if (BDATA(IPCOMP,26).eq.2) then
             if (NGRDP.le.0) then
@@ -7140,13 +7140,13 @@ C       or user defined ground temperature profile from ugrdtp(12,mgrdp)
      &               " ground temperature profile! "
               STOP
             elseif (BDATA(IPCOMP,27).gt.NGRDP) then
-              write(*,*) "Error GSHP: Ground temperature profile not",
-     &               " available! "
+              write(*,*) "Error GSHP: Ground temperature profile #",
+     &               BDATA(IPCOMP,27)," not available! "
               STOP
             endif
           endif
-C         Calculate the current ground temperatures by interpolating the monthly ground
-C         temperatures. ((code from CMP79C(), lines 8976 ff.))
+C         Calculate the current ground temperature by interpolating the
+C         monthly ground temperatures. ((code from CMP79C(), lines 8976 ff.))
           ZD=BDATA(IPCOMP,27)
 
 C         Get current month temperature
@@ -7185,7 +7185,6 @@ cx        Tgrnd=??
           write(*,*) "Error GSHP: Option 3 for ground temperature",
      &               " not available to date! "
           STOP
-
         endif
 
 C Determine whether machine should be on or off based on return
