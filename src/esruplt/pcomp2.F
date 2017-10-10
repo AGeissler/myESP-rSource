@@ -7305,6 +7305,7 @@ C Device is 'off' set parameters accordingly (assume controller is still operati
           HeatOutput=0.
           GroundHeatInput=0.
           PumpPower=0.
+          DeviceFlow=0.0001 ! e.g. pipes seem to have problems with zero flow
           COP=0.
         ENDIF
 
@@ -7532,9 +7533,13 @@ C           18 Tin max (degC)
 C           19 Ambient temp compensation on/off (-)
 C           20 Nominal water return temperature (Deg C)
 C           21 Nominal water return deadband (Deg C)
-C           22 Ground source temperature for temp compensation start [Deg C]
-C           23 Ground source temperature for temp compensation end [Deg C]
-C           24 Temp compensation gradient [deg C return/deg C ground source] (degCr/degCa)
+C           22 Ambient temperature for temp compensation start [Deg C]
+C           23 Ambient temperature for temp compensation end [Deg C]
+C           24 Temp compensation gradient [deg C return/deg C ambient] (degCr/degCa)
+C           25 Heat pump lock out time (min)
+C           26 BrinePump rating (W)
+C           27 BrinePump pf (-)
+C           28 BrineFlowrate at rated brine pump power (l/s)
 C
 C     CDATA: 1 Call for heat [0 or 1] (-)
 
@@ -7603,6 +7608,10 @@ C     Variables for iteration in plant loop (?)
 
       COMMON/GSHPvar3/CallforHeat,InDeadB
 
+      COMMON/GSHPvar4/INSO,ITSBO,bSwitched
+      INTEGER INSO,ITSBO
+      LOGICAL bSwitched
+
 C Electrical details for specified plant components
       common/pcelflg/ipcelf(mpcom)
       common/elpcp/NPEL,PFP(mpcom),IPFP(mpcom),PWRP(mpcom),
@@ -7649,6 +7658,10 @@ C Electrical details for specified plant components
 
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
+      REAL BLKOUT,BrinePumpRating,BrineRatedFlow,BrinePumpPower,
+     &      BrinePumpPf,BrineFlow
+      INTEGER NTSBO
+
       LOGICAL CLOSE,CLOSEA
 
       CHARACTER OUTS*248,PCNAME*15
@@ -7675,6 +7688,10 @@ C for iteration.
       ICSV(INOD2,1)=1
       CSVI(INOD2,1)=CSVF(INOD2,1)
 
+      BrinePumpRating=BDATA(IPCOMP,26)
+      BrinePumpPf=BDATA(IPCOMP,27)
+      BrineRatedFlow=BDATA(IPCOMP,28)
+
       UAMod=ADATA(ipcomp,3)
       call eclose(PCNTMF(IPCOMP),-99.00,0.001,closea)
       IF(closea) UAMod=0.
@@ -7690,10 +7707,14 @@ C Set initial operation mode based on CDATA.
 C Pump circulates while there is a call for heat.
         PumpPower=PumpRating
         DeviceFlow=RatedFlow
+        BrinePumpPower=BrinePumpRating
+        BrineFlow=BrineRatedFlow
       ELSE
         CallforHeat=.false.
         PumpPower=0.
         DeviceFlow=0.0001 ! e.g. pipes seem to have problems with zero flow
+        BrinePumpPower=0.
+        BrineFlow=0.0001
       ENDIF
 
       ReturnSP=NomRetT !default return temperature
@@ -7730,9 +7751,9 @@ C Get ground source temperature
         Tgrnd=convar(icon2,1)
 
 C Determine whether machine should be on or off based on return water temperature.
-      ReturnT=CONVAR(ICON1,1)
-      DeviceONOFFp=DeviceONOFF
-      IF(CallforHeat)THEN
+        ReturnT=CONVAR(ICON1,1)
+        DeviceONOFFp=DeviceONOFF
+        IF(CallforHeat)THEN
 
 C Check to see if the device is in the dead band.
         IF(ReturnT.GE.ReturnSPL.AND.ReturnT.LE.ReturnSPH)THEN
@@ -7743,80 +7764,108 @@ C Check to see if the device is in the dead band.
 
 C Evaluate the device status.
         IF(ReturnT.GT.ReturnSPH)THEN
+            DeviceONOFF=0
+          ELSEIF(ReturnT.LT.ReturnSPL)THEN
+            DeviceONOFF=1
+          ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
+            DeviceONOFF=1
+          ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
+            DeviceONOFF=0
+          ENDIF
+        ELSE
           DeviceONOFF=0
-        ELSEIF(ReturnT.LT.ReturnSPL)THEN
-          DeviceONOFF=1
-        ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
-          DeviceONOFF=1
-        ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
+        ENDIF ! call for heat
+
+C Finally, check if device is in lockout time, i.e. last "off" was
+C less than lockouttime ago ... ((code from CMP42C(), line 5102 ff.))
+C Lock out time (in seconds), Heat pump should not be turned on/off
+C with high frequency. When HP is turned off, wait this amount of time
+C before turning on again.
+C INSO = HP on/off (1/0) flag for lockout
+C ITSBO = present no. of timesteps HP is off due to lockout
+C NTSBO = total no. of timesteps HP is off due to lockout
+        BLKOUT=BDATA(IPCOMP,25)*60.
+        NTSBO=NINT(BLKOUT/TIMSEC)
+
+        IF (bSwitched) THEN
+          INSO=1
+          ITSBO=0
+          bSwitched=.false. ! only set once after signal
+        ENDIF
+
+        IF (INSO.EQ.1) THEN
+          ITSBO=ITSBO+1
+          IF (ITSBO.GE.NTSBO) INSO=0
           DeviceONOFF=0
         ENDIF
-      ELSE
-        DeviceONOFF=0
-      ENDIF ! call for heat
+C == end lockout
 
-      IF (DeviceONOFF.GT.0) THEN
+        IF (DeviceONOFF.GT.0) THEN
 
 C Calculate the TOTAL device power draw (W)
-        IF(CompModel.eq.1)THEN
-          CompPower=1000.*(Compa0) !fixed power consumption
-        ELSEIF(CompModel.eq.2)THEN
-          Td=ReturnT
-          Ta=Tgrnd
-          CompPower=1000.*(Compa0+(Compa1*Ta)+(Compa2*Td))
-        ELSEIF(CompModel.eq.3)THEN
-          Td=ReturnT
-          Ta=Tgrnd
-          CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
-        ENDIF
-        if(CompPower.LT.0.0)CompPower=0.0
+          IF(CompModel.eq.1)THEN
+            CompPower=1000.*(Compa0) !fixed power consumption
+          ELSEIF(CompModel.eq.2)THEN
+            Td=ReturnT
+            Ta=Tgrnd
+            CompPower=1000.*(Compa0+(Compa1*Ta)+(Compa2*Td))
+          ELSEIF(CompModel.eq.3)THEN
+            Td=ReturnT
+            Ta=Tgrnd
+            CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
+          ENDIF
+          if(CompPower.LT.0.0)CompPower=0.0
 
 C Calculate the COP based on the user-specified method.
-        IF(COPModel.EQ.1)THEN
-          COP=COPa0 !fixed COP
-        ELSEIF(COPModel.EQ.2)THEN
-          TL=Tgrnd+273.15
-          TH=ReturnT+273.15
-          COP=CarEffMod*((1-(TL/TH))**(-1)) !modified carnot COP
-        ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
-          TL=Tgrnd
-          TH=ReturnT
-          COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
-        ELSEIF(COPModel.EQ.4)THEN
-          COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
-        ELSE
-          WRITE(OUTS,'(a)')'Error in 2node-GSHP, COP model # '
-          CALL EDISP(IUOUT,OUTS)
-        ENDIF
+          IF(COPModel.EQ.1)THEN
+            COP=COPa0 !fixed COP
+          ELSEIF(COPModel.EQ.2)THEN
+            TL=Tgrnd+273.15
+            TH=ReturnT+273.15
+            COP=CarEffMod*((1-(TL/TH))**(-1)) !modified carnot COP
+          ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
+            TL=Tgrnd
+            TH=ReturnT
+            COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
+          ELSEIF(COPModel.EQ.4)THEN
+            COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
+          ELSE
+            WRITE(OUTS,'(a)')'Error in 2node-GSHP, COP model # '
+            CALL EDISP(IUOUT,OUTS)
+          ENDIF
 
 C Set limits on calculated values of COP
-        IF(COP.LT.0.0) COP=0.0
-        IF(COP.GT.18.0) COP=18.0
+          IF(COP.LT.0.0) COP=0.0
+          IF(COP.GT.18.0) COP=18.0
 
-        HeatOutput=COP*CompPower
-        GroundHeatInput=-HeatOutput+CompPower
+          HeatOutput=COP*CompPower
+          GroundHeatInput=-HeatOutput+CompPower
 
-        IF(HeatOutput.LT.0) THEN
-          write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
+          IF(HeatOutput.LT.0) THEN
+            write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
      &                                                       CompPower
-          STOP
-        ENDIF
+            STOP
+          ENDIF
 
-        IF(GroundHeatInput.GT.0) THEN
-          write(*,*) "Error: ground heat input > 0! ",GroundHeatInput,
+          IF(GroundHeatInput.GT.0) THEN
+            write(*,*) "Error: ground heat input > 0! ",GroundHeatInput,
      &                                       HeatOutput, COP, CompPower
-          STOP
+            STOP
+          ENDIF
 
-        ENDIF
-
-      ELSE
+        ELSE
 C Device is 'off' set parameters accordingly (assume controller is still operating).
 
-        CompPower=0.
-        HeatOutput=0.
-        COP=0.
+          CompPower=0.
+          HeatOutput=0.
+          GroundHeatInput=0.
+          PumpPower=0.
+          BrinePumpPower=0.
+          DeviceFlow=0.0001 ! e.g. pipes seem to have problems with zero flow
+          BrineFlow=0.0001
+          COP=0.
 
-      ENDIF
+        ENDIF
 
 C Establish the nodal thermal capacities (see CMP36C).
         CM1=0.5*CompMass*AveSpHt
@@ -7834,7 +7883,7 @@ C Set heat loss to zero if no containment defined
 
 C Calculate the electrical demand of the device assumung the controller is ON.
         CtlPower=CtlRating
-        TotRealPower=CompPower+CtlPower+PumpPower
+        TotRealPower=CompPower+CtlPower+PumpPower+BrinePumpPower
 
 C Save the real power draw for use in an electrical power flow simulation. 
         PWRP(IPCOMP)=-ABS(TotRealPower)
@@ -7843,13 +7892,15 @@ C Save the real power draw for use in an electrical power flow simulation.
         PWRQ=PQ
 
 c Calculate the compressor power draw.
-        CompressPower=CompPower-(PumpPower+CtlPower)
+        CompressPower=CompPower-(PumpPower+CtlPower+BrinePumpPower)
         IF(CompressPower.LT.0.0)CompressPower=0.0
 
         TotReacPower=( ((CompressPower/CompressPf)**2)
      &                                        -(CompressPower**2) )**0.5
      &              +( ((PumpPower/PumpPf)**2)-(PumpPower**2) )**0.5
      &              +( ((CtlPower/CtlPf)**2)  -(CtlPower**2) )**0.5
+     &              +( ((BrinePumpPower/BrinePumpPf)**2)
+     &                                       -(BrinePumpPower**2) )**0.5
 
         TotApparentPower=((TotRealPower**2)+(TotReacPower*2))**0.5
 
