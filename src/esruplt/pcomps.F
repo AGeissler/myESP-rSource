@@ -3836,7 +3836,7 @@ C
 C To be edited to include increased data entry nos. 
 
 C Establish static data derivable from the data read from database
-      DO 10 IDAT=4,29
+      DO 10 IDAT=4,30
 10      BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
 
 C Initialise parameters      

@@ -6931,7 +6931,8 @@ C           22 Ground source temperature for temp compensation start [Deg C]
 C           23 Ground source temperature for temp compensation end [Deg C]
 C           24 Temp compensation gradient [deg C return/deg C ground source] (degCr/degCa)
 C           25 Heat pump lock out time (min)
-C           26 Ground source depth below grade (m)
+C           26 Ground source model [1 - standard profile 2 - user profile 3 - f(depth)]
+C           27 Model coef g0 [1 & 2 - profile number 3 - depth in m]
 C
 C     CDATA: 1 Call for heat [0 or 1] (-)
 
@@ -7129,32 +7130,63 @@ C Case where Tamb > Temp compensation saturation point
 C Generate coefficients for energy balance equation
       IF (ISTATS.EQ.1) THEN
 
-C Get ground source temperature in desired depth ZD ... future??
-        ZD=BDATA(IPCOMP,26)
+        if ((BDATA(IPCOMP,26).eq.1).or.(BDATA(IPCOMP,26).eq.2)) then
+C       Standard ground temperature profile from grdtmp(12,mgrdp), see site.h.
+C       or user defined ground temperature profile from ugrdtp(12,mgrdp)
+
+          if (BDATA(IPCOMP,26).eq.2) then
+            if (NGRDP.le.0) then
+              write(*,*) "Error GSHP: Option 2 requires user defined",
+     &               " ground temperature profile! "
+              STOP
+            elseif (BDATA(IPCOMP,27).gt.NGRDP) then
+              write(*,*) "Error GSHP: Ground temperature profile not",
+     &               " available! "
+              STOP
+            endif
+          endif
+C         Calculate the current ground temperatures by interpolating the monthly ground
+C         temperatures. ((code from CMP79C(), lines 8976 ff.))
+          ZD=BDATA(IPCOMP,27)
+
+C         Get current month temperature
+          CALL EDAYR(IDYP,ID,IM)
+          curMonth=IM
+          curDoM=ID
+
+          if (BDATA(IPCOMP,26).eq.1) then
+            TG1=grdtmp(curMonth,ZD)
+          else
+            TG1=ugrdtp(curMonth,ZD)
+          endif
+
+          IF(curMonth.EQ.12)THEN
+C           Get next month's temperature (assume loop round to January).
+            curMonth=1
+          ELSE
+C           Get next month's temperature
+            curMonth=curMonth+1
+          ENDIF
+
+          if (BDATA(IPCOMP,26).eq.1) then
+            TG2=grdtmp(curMonth,ZD)
+          else
+            TG2=ugrdtp(curMonth,ZD)
+          endif
+
+C         Calculate today's ground temperature by linear interpolation
+          Tgrnd=((float(curDoM)/float(NDMonth(curMonth)))*(TG2-TG1))+TG1
+
+        elseif (BDATA(IPCOMP,26).eq.3) then
+C       Get calculate ground source temperature in desired depth ZD
+          ZD=BDATA(IPCOMP,27)
 cx        CALL GTCALC(ZD,'-',IER)
+cx        Tgrnd=??
+          write(*,*) "Error GSHP: Option 3 for ground temperature",
+     &               " not available to date! "
+          STOP
 
-C Calculate the current ground temperatures by interpolating the monthly ground
-C temperatures. ((code from CMP79C(), lines 8976 ff.))
-        CALL EDAYR(IDYP,ID,IM)
-        curMonth=IM
-        curDoM=ID
-
-C Get current month temperature
-cx ... For now: profile 37 from berlin, at 2 m depth,
-cx ... stored in grdtmp(12,mgrdp) via site.h
-        TG1=grdtmp(curMonth,37)
-        IF(curMonth.EQ.12)THEN
-
-C Get next month's temperature (assume loop round to January).
-           TG2=grdtmp(1,37)
-        ELSE
-
-C Get next month's temperature
-           TG2=grdtmp(curMonth+1,37)
-        ENDIF
-
-C Get today's ground temp.
-        Tgrnd=((float(curDoM)/float(NDMonth(curMonth)))*(TG2-TG1))+TG1
+        endif
 
 C Determine whether machine should be on or off based on return
 C water temperature.
