@@ -4198,23 +4198,24 @@ C Check user specified number of controlled variables
      &   WRITE(ITU,*) ' CMP48S warning: user specified wrong number',
      &                ' of controlled variables'
 
-C Check for two connections to water.
+C Check component has 2 connections only, one per node,
+C both to water
       ConError=.false.
       NCONS=2
-      IPCONC=1
-      DO WHILE(IPCONC.LE.MPCONC.AND..NOT.ConError)
-        IPCON=ICONDX(IPCOMP,1,IPCONC)
-        IF(IPCONC.LE.NCONS) THEN
-          IF(IPCON.EQ.0) THEN
+      NCONPN=1
+      DO 10 IPCONC=1,MPCONC
+        IPCON1=ICONDX(IPCOMP,1,IPCONC)
+        IPCON2=ICONDX(IPCOMP,2,IPCONC)
+        IF(IPCONC.LE.NCONPN) THEN
+          IF(IPCON1.EQ.0.OR.IPCON2.EQ.0) THEN
             ConError=.true.
-          ELSE IF(ICONTP(IPCON).NE.20) THEN
+          ELSE IF(ICONTP(IPCON1).NE.20.OR.ICONTP(IPCON2).NE.20) THEN
             ConError=.true.
           END IF
-        ELSE IF(IPCON.NE.0) THEN
+        ELSE IF(IPCON1.NE.0.OR.IPCON2.NE.0) THEN
           ConError=.true.
         END IF
-        IPCONC=IPCONC+1
-      ENDDO
+   10 CONTINUE
 
 C Error handling
       IF(ConError)THEN

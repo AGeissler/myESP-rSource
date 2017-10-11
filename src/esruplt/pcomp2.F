@@ -8024,7 +8024,7 @@ C 1st phase mass (ie. "water") balance coefficients (see CMP36C())
          COUT(1)=1.
          COUT(2)=1.
          COUT(3)=DeviceFlow ! -PCONDR(ICON1)
-         COUT(4)=-PCONDR(ICON2)
+         COUT(4)=BrineFlow  ! -PCONDR(ICON2)
          COUT(5)=0.
          COUT(6)=0.
 
@@ -8033,11 +8033,10 @@ C 2nd phase mass (ie. "vapour") balance coefficients (see CMP36C())
          COUT(1)=1.
          COUT(2)=1.
          COUT(3)=0.
-         COUT(4)=-PCONDR(ICON2)
+         COUT(4)=0. !-PCONDR(ICON2)
          COUT(5)=0.
          COUT(6)=0.
       END IF
-
 
 C Trace.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
