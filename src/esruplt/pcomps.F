@@ -4182,7 +4182,7 @@ C Trace output
          WRITE(ITU,*) ' 2 node (ISV=20) ground source heat pump '
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
-         NITMS=24
+         NITMS=28
          WRITE(ITU,*) ' BDATA ',(BDATA(IPCOMP,J),J=1,NITMS)
          NITMS=1
          WRITE(ITU,*) ' CDATA ',(CDATA(IPCOMP,J),J=1,NITMS)
@@ -4198,7 +4198,7 @@ C Check user specified number of controlled variables
      &   WRITE(ITU,*) ' CMP48S warning: user specified wrong number',
      &                ' of controlled variables'
 
-C Check for a single connection to water.
+C Check for two connections to water.
       ConError=.false.
       NCONS=2
       IPCONC=1
@@ -4220,7 +4220,7 @@ C Error handling
       IF(ConError)THEN
         WRITE(IUOUT,*) 'CMP48S: connection error for component ',IPCOMP
         WRITE(IUOUT,*) '        should be ',NCONS,' water connection(s)'
-        STOP 'CMP47S: unresolvable error'
+        STOP 'CMP48S: unresolvable error'
       ENDIF
 C
       END
