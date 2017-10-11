@@ -7381,23 +7381,22 @@ C Establish "containment loss" data
 	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
 	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
-
 C Store "environment" variables future values
-         PCTF(ICON1)=CONVAR(ICON1,1)
-         PCRF(ICON1)=C1
-         PCQF(INOD1)=HeatOutput
+        PCTF(ICON1)=CONVAR(ICON1,1)
+        PCRF(ICON1)=C1
+        PCQF(INOD1)=HeatOutput
 
 C Addition output for results analysis.
-         NAPDAT(IPCOMP)=9
-         PCAOUT(IPCOMP,1)=HeatOutput
-         PCAOUT(IPCOMP,2)=COP
-         PCAOUT(IPCOMP,3)=Tgrnd
-         PCAOUT(IPCOMP,4)=DeviceONOFF
-         PCAOUT(IPCOMP,5)=ReturnSP
-         PCAOUT(IPCOMP,6)=TotRealPower
-         PCAOUT(IPCOMP,7)=TotReacPower
-         PCAOUT(IPCOMP,8)=TotApparentPower
-         PCAOUT(IPCOMP,9)=GroundHeatInput
+        NAPDAT(IPCOMP)=9
+        PCAOUT(IPCOMP,1)=HeatOutput
+        PCAOUT(IPCOMP,2)=COP
+        PCAOUT(IPCOMP,3)=Tgrnd
+        PCAOUT(IPCOMP,4)=DeviceONOFF
+        PCAOUT(IPCOMP,5)=ReturnSP
+        PCAOUT(IPCOMP,6)=TotRealPower
+        PCAOUT(IPCOMP,7)=TotReacPower
+        PCAOUT(IPCOMP,8)=TotApparentPower
+        PCAOUT(IPCOMP,9)=GroundHeatInput
 
 C---------------------------------------------------------------------------------
 C Make select results available in XML and CVS output.
@@ -7425,7 +7424,7 @@ C-------------------------------------------------------------------------------
      &         ReturnSP,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
-       call AddToReport(rvPltRealPow%Identifier,
+        call AddToReport(rvPltRealPow%Identifier,
      &         TotRealPower,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
@@ -7433,7 +7432,7 @@ C-------------------------------------------------------------------------------
      &         TotReacPower,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
-       call AddToReport(rvPltApparPow%Identifier,
+        call AddToReport(rvPltApparPow%Identifier,
      &         TotApparentPower,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
@@ -7502,7 +7501,7 @@ C Trace.
 
 
 C ******************** CMP48C ********************
-C CMP48C generates for plant component IPCOMP with plant db code 470 ie.
+C CMP48C generates for plant component IPCOMP with plant db code 480 ie.
 C 2 node (ISV=20) WCH ground-source heat pump feeding a hydronic heating system.
 C the matrix equation coefficients COUT (in order: self-coupling, cross-
 C coupling, and present-time coefficients) for energy balance (ISTATS=1),
