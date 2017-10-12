@@ -7687,6 +7687,7 @@ C for iteration.
       ICSV(INOD2,1)=1
       CSVI(INOD2,1)=CSVF(INOD2,1)
 
+C Initialize variables that are not (yet?) covered in CMP48S()
       BrinePumpRating=BDATA(IPCOMP,26)
       BrinePumpPf=BDATA(IPCOMP,27)
       BrineRatedFlow=BDATA(IPCOMP,28)
@@ -7874,7 +7875,8 @@ C Node 1 water
         C1=DeviceFlow*SHTFLD(3,CONVAR(ICON1,1))
 
 C Node 2 water
-        C2=PCONDR(ICON2)*CONVAR(ICON2,2)*SHTFLD(3,CONVAR(ICON2,1))
+cx        C2=PCONDR(ICON2)*CONVAR(ICON2,2)*SHTFLD(3,CONVAR(ICON2,1))
+        C2=BrineFlow*SHTFLD(3,CONVAR(ICON2,1))
 
 C Set heat loss to zero if no containment defined
         CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
@@ -7907,8 +7909,6 @@ C Calculate current component time-constant TC
         TC(IPCOMP)=AMAX1(
      &              CM1/AMAX1(SMALL,(C1+UAMod)),
      &              CM2/AMAX1(SMALL,(C2+UAMod)))
-
-
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
         IF(IMPEXP.EQ.1) THEN
@@ -7946,8 +7946,8 @@ C Establish the present and known coefficient i.e. RHS
      &          -(1.-ALPHA)*PCRP(ICON2)*PCTP(ICON2)
      &          -(1.-ALPHA)*UAMod*PCNTMP(IPCOMP)
      &          -ALPHA*UAMod*PCNTMF(IPCOMP)
-     &          +ALPHA*GroundHeatInput
-     &          +(1.-ALPHA)*(PCQP(INOD2))
+     &          -ALPHA*GroundHeatInput
+     &          -(1.-ALPHA)*(PCQP(INOD2))
 C===================
 
 C Establish "containment loss" data
@@ -7961,24 +7961,24 @@ C Establish "containment loss" data
 
 
 C Store "environment" variables future values
-         PCTF(ICON1)=CONVAR(ICON1,1)
-         PCTF(ICON2)=CONVAR(ICON2,1)
-         PCRF(ICON1)=C1
-         PCRF(ICON2)=C2
-         PCQF(INOD1)=HeatOutput
-         PCQF(INOD2)=GroundHeatInput
+        PCTF(ICON1)=CONVAR(ICON1,1)
+        PCTF(ICON2)=CONVAR(ICON2,1)
+        PCRF(ICON1)=C1
+        PCRF(ICON2)=C2
+        PCQF(INOD1)=HeatOutput
+        PCQF(INOD2)=GroundHeatInput
 
 C Addition output for results analysis.
-         NAPDAT(IPCOMP)=9
-         PCAOUT(IPCOMP,1)=HeatOutput
-         PCAOUT(IPCOMP,2)=COP
-         PCAOUT(IPCOMP,3)=Tgrnd
-         PCAOUT(IPCOMP,4)=DeviceONOFF
-         PCAOUT(IPCOMP,5)=ReturnSP
-         PCAOUT(IPCOMP,6)=TotRealPower
-         PCAOUT(IPCOMP,7)=TotReacPower
-         PCAOUT(IPCOMP,8)=TotApparentPower
-         PCAOUT(IPCOMP,9)=GroundHeatInput
+        NAPDAT(IPCOMP)=9
+        PCAOUT(IPCOMP,1)=HeatOutput
+        PCAOUT(IPCOMP,2)=COP
+        PCAOUT(IPCOMP,3)=Tgrnd
+        PCAOUT(IPCOMP,4)=DeviceONOFF
+        PCAOUT(IPCOMP,5)=ReturnSP
+        PCAOUT(IPCOMP,6)=TotRealPower
+        PCAOUT(IPCOMP,7)=TotReacPower
+        PCAOUT(IPCOMP,8)=TotApparentPower
+        PCAOUT(IPCOMP,9)=GroundHeatInput
 
 C---------------------------------------------------------------------------------
 C Make select results available in XML and CVS output.
@@ -8006,7 +8006,7 @@ C-------------------------------------------------------------------------------
      &         ReturnSP,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
-       call AddToReport(rvPltRealPow%Identifier,
+        call AddToReport(rvPltRealPow%Identifier,
      &         TotRealPower,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
@@ -8014,7 +8014,7 @@ C-------------------------------------------------------------------------------
      &         TotReacPower,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
-       call AddToReport(rvPltApparPow%Identifier,
+        call AddToReport(rvPltApparPow%Identifier,
      &         TotApparentPower,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
