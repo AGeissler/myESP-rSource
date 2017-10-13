@@ -202,7 +202,7 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvPltQAddedH,rvPltWCHPumpEInput,rvPltHOut,rvPltCOP, &
          rvPltTambient,rvPltDeviceONOFF,rvPltReturnTSP,rvPltRealPow, &
          rvPltReacPow,rvPltApparPow,rvPltDefrostStat,rvPltDHWDrawStoch, &
-         rvPltDHWDrawStochTp
+         rvPltDHWDrawStochTp,rvPltAmbientHeat,rvPltCallForHeat
 
    !Used by pcomp3.F
    Type(ReportVariable) :: rvPltQExtractedH
@@ -2022,49 +2022,61 @@ CONTAINS
       rvPltHOut%VariableName = 'plant/*/misc_data/Heat_Out'
       rvPltHOut%MetaType = 'units'
       rvPltHOut%VariableType = '(W)'
-      rvPltHOut%Description = 'ASHP: Heat Output'
+      rvPltHOut%Description = 'xSHP: Heat Output'
       Call AddVariable(rvPltHOut)
 
       rvPltCOP%VariableName = 'plant/*/misc_data/COP'
       rvPltCOP%MetaType = 'units'
       rvPltCOP%VariableType = '(-)'
-      rvPltCOP%Description = 'ASHP: COP'
+      rvPltCOP%Description = 'xSHP: COP'
       Call AddVariable(rvPltCOP)
 
       rvPltTambient%VariableName = 'plant/*/misc_data/Tambient'
       rvPltTambient%MetaType = 'units'
       rvPltTambient%VariableType = '(degC)'
-      rvPltTambient%Description = 'ASHP: Ambient Temp'
+      rvPltTambient%Description = 'xSHP: Ambient Temp (air or ground)'
       Call AddVariable(rvPltTambient)
 
       rvPltDeviceONOFF%VariableName = 'plant/*/misc_data/DeviceONOFF'
       rvPltDeviceONOFF%MetaType = 'units'
       rvPltDeviceONOFF%VariableType = '(-)'
-      rvPltDeviceONOFF%Description = 'ASHP: ON-OFF status'
+      rvPltDeviceONOFF%Description = 'xSHP: ON-OFF status'
       Call AddVariable(rvPltDeviceONOFF)
+
+      rvPltCallForHeat%VariableName = 'plant/*/misc_data/CallForHeat'
+      rvPltCallForHeat%MetaType = 'units'
+      rvPltCallForHeat%VariableType = '(-)'
+      rvPltCallForHeat%Description = 'xSHP: CallForHeat status'
+      Call AddVariable(rvPltCallForHeat)
+
+      rvPltAmbientHeat%VariableName = 'plant/*/misc_data/AmbientHeatIn'
+      rvPltAmbientHeat%MetaType = 'units'
+      rvPltAmbientHeat%VariableType = '(W)'
+      rvPltAmbientHeat%Description = 'xSHP: ambient heat input (air or ground).'
+      Call AddVariable(rvPltAmbientHeat)
 
       rvPltReturnTSP%VariableName = 'plant/*/misc_data/Return T SP'
       rvPltReturnTSP%MetaType = 'units'
       rvPltReturnTSP%VariableType = '(degC)'
-      rvPltReturnTSP%Description = 'ASHP: Return Temp Set Pt.'
+      rvPltReturnTSP%Description = 'xSHP: Return Temp Set Pt.'
       Call AddVariable(rvPltReturnTSP)
 
       rvPltRealPow%VariableName = 'plant/*/misc_data/Real Power'
       rvPltRealPow%MetaType = 'units'
       rvPltRealPow%VariableType = '(W)'
-      rvPltRealPow%Description = 'ASHP: Real Power Demand'
+      rvPltRealPow%Description = 'xSHP: Real Power Demand'
       Call AddVariable(rvPltRealPow)
 
       rvPltReacPow%VariableName = 'plant/*/misc_data/Reac. Power'
       rvPltReacPow%MetaType = 'units'
       rvPltReacPow%VariableType = '(VAr)'
-      rvPltReacPow%Description = 'ASHP: Reactive Power Demand'
+      rvPltReacPow%Description = 'xSHP: Reactive Power Demand'
       Call AddVariable(rvPltReacPow)
 
       rvPltApparPow%VariableName = 'plant/*/misc_data/Appar. Power'
       rvPltApparPow%MetaType = 'units'
       rvPltApparPow%VariableType = '(VA)'
-      rvPltApparPow%Description = 'ASHP: Apparent Power Demand'
+      rvPltApparPow%Description = 'xSHP: Apparent Power Demand'
       Call AddVariable(rvPltApparPow)
 
       rvPltDefrostStat%VariableName = 'plant/*/misc_data/desfrost_status'

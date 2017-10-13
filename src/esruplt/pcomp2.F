@@ -6026,6 +6026,10 @@ C-------------------------------------------------------------------------------
      &         ReturnSP,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
+        call AddToReport(rvPltAmbientHeat%Identifier,
+     &         -HeatOutput+CompPower*CompressPf,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
        call AddToReport(rvPltRealPow%Identifier,
      &         TotRealPower,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
@@ -7052,7 +7056,7 @@ C Electrical details for specified plant components
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
       REAL TG1,TG2,ZD,BLKOUT
-      INTEGER IM,ID,curDoM,curMonth,NTSBO,NDMonth
+      INTEGER IM,ID,curDoM,curMonth,NTSBO,NDMonth,ICallForHeat
 
       DIMENSION NDMonth(12)
       DATA NDMonth/31,28,31,30,31,30,31,31,30,31,30,31/
@@ -7403,6 +7407,16 @@ C Make select results available in XML and CVS output.
 C---------------------------------------------------------------------------------
         IPCOMP_LEN = lnblnk(pcname(IPCOMP))
 
+         if(CallforHeat)then
+           ICallForHeat=1.0
+         else
+           ICallForHeat=0.0
+         endif
+
+        call AddToReport(rvPltCallForHeat%Identifier,
+     &         float(ICallForHeat),
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
         call AddToReport(rvPltHOut%Identifier,
      &         HeatOutput,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
@@ -7422,6 +7436,10 @@ C-------------------------------------------------------------------------------
 
         call AddToReport(rvPltReturnTSP%Identifier,
      &         ReturnSP,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
+        call AddToReport(rvPltAmbientHeat%Identifier,
+     &         GroundHeatInput,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
         call AddToReport(rvPltRealPow%Identifier,
@@ -7659,7 +7677,7 @@ C Electrical details for specified plant components
 
       REAL BLKOUT,BrinePumpRating,BrineRatedFlow,BrinePumpPower,
      &      BrinePumpPf,BrineFlow
-      INTEGER NTSBO
+      INTEGER NTSBO,ICallForHeat
 
       LOGICAL CLOSE,CLOSEA
 
@@ -7985,6 +8003,16 @@ C Make select results available in XML and CVS output.
 C---------------------------------------------------------------------------------
         IPCOMP_LEN = lnblnk(pcname(IPCOMP))
 
+         if(CallforHeat)then
+           ICallForHeat=1.0
+         else
+           ICallForHeat=0.0
+         endif
+
+        call AddToReport(rvPltCallForHeat%Identifier,
+     &         float(ICallForHeat),
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
         call AddToReport(rvPltHOut%Identifier,
      &         HeatOutput,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
@@ -8004,6 +8032,10 @@ C-------------------------------------------------------------------------------
 
         call AddToReport(rvPltReturnTSP%Identifier,
      &         ReturnSP,
+     &         pcname(IPCOMP)(1:IPCOMP_LEN))
+
+        call AddToReport(rvPltAmbientHeat%Identifier,
+     &         GroundHeatInput,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
         call AddToReport(rvPltRealPow%Identifier,
