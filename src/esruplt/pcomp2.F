@@ -7288,7 +7288,7 @@ C Set limits on calculated values of COP
           IF(COP.GT.18.0) COP=18.0
 
           HeatOutput=COP*CompPower
-          GroundHeatInput=-HeatOutput+CompPower
+          GroundHeatInput=-HeatOutput+CompPower*CompressPf
 
           IF(HeatOutput.LT.0) THEN
             write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
@@ -7857,7 +7857,7 @@ C Set limits on calculated values of COP
           IF(COP.GT.18.0) COP=18.0
 
           HeatOutput=COP*CompPower
-          GroundHeatInput=-HeatOutput+CompPower
+          GroundHeatInput=-HeatOutput+CompPower*CompressPf
 
           IF(HeatOutput.LT.0) THEN
             write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
