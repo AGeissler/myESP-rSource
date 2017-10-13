@@ -8051,16 +8051,21 @@ C-------------------------------------------------------------------------------
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
 
-C 1st phase mass (ie. "water") balance coefficients (see CMP36C())
+C COUT(3/4) should be -1 (or PCONDR(ICONx) which is the same thing in this case) to
+C give you the mass balance Flow*C(1)+Flow_In*C(3)=0 with Flow=Flow_In.
+
+C If you want a fixed flow you could set C(1/2)=1, C(3/4)=0, C(5)=DeviceFlow, C(6)=BrineFlow.
+
+C 1st phase mass (ie. "water") balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
          COUT(1)=1.
          COUT(2)=1.
-         COUT(3)=DeviceFlow ! -PCONDR(ICON1)
-         COUT(4)=BrineFlow  ! -PCONDR(ICON2)
-         COUT(5)=0.
-         COUT(6)=0.
+         COUT(3)=0.
+         COUT(4)=0.
+         COUT(5)=DeviceFlow
+         COUT(6)=BrineFlow
 
-C 2nd phase mass (ie. "vapour") balance coefficients (see CMP36C())
+C 2nd phase mass (ie. "vapour") balance coefficients
       ELSE IF(ISTATS.EQ.3) THEN
          COUT(1)=1.
          COUT(2)=1.
