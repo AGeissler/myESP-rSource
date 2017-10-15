@@ -6937,8 +6937,11 @@ C           24 Temp compensation gradient [deg C return/deg C ground source] (de
 C           25 Heat pump lock out time (min)
 C           26 Ground source model [1 - standard profile 2 - user profile 3 - f(depth)]
 C           27 Model coef g0 [1 & 2 - profile number 3 - depth in m]
+C           28 Nominal water return temperature for DHW
+C           29 Tout max DHW (degC)
+C           30 Tin max DHW (degC)
 C
-C     CDATA: 1 Call for heat [0 or 1] (-)
+C     CDATA: 1 Call for heat [0 off - 1 space heat 2 - dhw] (-)
 
 C Node 1 represents the condenser heat exchanger and couples to the hydronic heating circuit.
 C The device has an internal pump and so an explicit pump model is not needed in system
@@ -7055,13 +7058,13 @@ C Electrical details for specified plant components
 
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
-      REAL TG1,TG2,ZD,BLKOUT
+      REAL TG1,TG2,ZD,BLKOUT,LimFac
       INTEGER IM,ID,curDoM,curMonth,NTSBO,NDMonth,ICallForHeat
 
       DIMENSION NDMonth(12)
       DATA NDMonth/31,28,31,30,31,30,31,31,30,31,30,31/
 
-      LOGICAL CLOSE,CLOSEA
+      LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd
 
       CHARACTER OUTS*248,PCNAME*15
 
@@ -7090,9 +7093,12 @@ C for iteration.
 C Read ambient temperature (for temperature compensation of WCH return temp)
       Tamb=TFP
 
-C Set initial operation mode based on CDATA.
-      call eclose(CDATA(IPCOMP,1),0.0,0.001,closea)
-      IF(.not.closea) THEN
+C Set initial operation mode based on CDATAs 1 & 2.
+      call eclose(CDATA(IPCOMP,1),1.0,0.001,bSHrqd)
+      call eclose(CDATA(IPCOMP,1),2.0,0.001,bDHWrqd)
+
+      if ((bSHrqd.or.bDHWrqd)) then
+C       Either space heat or dhw needs heat
         CallForHeat=.true.
 
 C Pump circulates while there is a call for heat.
@@ -7104,32 +7110,46 @@ C Pump circulates while there is a call for heat.
         DeviceFlow=0.0001 ! e.g. pipes seem to have problems with zero flow
       ENDIF
 
-      ReturnSP=NomRetT !default return temperature
-      ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
-      ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
+C Set return setpoints based on which function requires heat
+      if (bDHWrqd) then
+        ToutMax=BDATA(IPCOMP,29)
+        ReturnSP=BDATA(IPCOMP,28) !default return temperature DHW mode
+        ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
+        ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
 
-      IF(ReturnSP.GT.TinMax) ReturnSP=TinMax
+        IF(ReturnSP.GT.BDATA(IPCOMP,30)) ReturnSP=BDATA(IPCOMP,30)
 
-      IF(AmbientTempComp.GT.0)THEN
+C       Ambient temperature compensation not used for DHW mode!
+
+      else ! "default"
+        ToutMax=BDATA(IPCOMP,17)
+        ReturnSP=NomRetT   !default return temperature SH mode
+        ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
+        ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
+
+        IF(ReturnSP.GT.TinMax) ReturnSP=TinMax
+
+        IF(AmbientTempComp.GT.0)THEN
 C Calculate the return water temperature set point if temperature compensation is active.
 
-        IF(Tamb.GE.TempCompS.AND.Tamb.LT.TempCompE)THEN
-          ReturnSP=((Tamb-TempCompS)*TempCompc0)+NomRetT
-          ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
-          ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
+          IF(Tamb.GE.TempCompS.AND.Tamb.LT.TempCompE)THEN
+            ReturnSP=((Tamb-TempCompS)*TempCompc0)+NomRetT
+            ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
+            ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
 
 C Case where Tamb > Temp compensation saturation point
-        ELSEIF(Tamb.GE.TempCompE)THEN
-          ReturnSP=((TempCompE-TempCompS)*TempCompc0)+NomRetT
-          ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
-          ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
-        ENDIF
+          ELSEIF(Tamb.GE.TempCompE)THEN
+            ReturnSP=((TempCompE-TempCompS)*TempCompc0)+NomRetT
+            ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
+            ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
+          ENDIF
 
-        IF(ReturnSP.GT.TinMax)THEN
-          ReturnSP=TinMax
-          ReturnSPH=ReturnSP
+          IF(ReturnSP.GT.TinMax)THEN
+            ReturnSP=TinMax
+            ReturnSPH=ReturnSP
+          ENDIF
         ENDIF
-      ENDIF
+      endif ! space heat rq'd
 
 C Generate coefficients for energy balance equation
       IF (ISTATS.EQ.1) THEN
@@ -7287,6 +7307,15 @@ C Set limits on calculated values of COP
           IF(COP.LT.0.0) COP=0.0
           IF(COP.GT.18.0) COP=18.0
 
+cx "after line 7840 ... " ((2node- GSHP, which file version??))
+C Limit output temperature to Toutmax ((suggestion by Graeme))
+          IF (CSVF(INOD1,1).GE.ToutMax) then
+            LimFac=((ToutMax-CONVAR(ICON1,1))
+     &          / (CSVF(INOD1,1)-CONVAR(ICON1,1)))
+            CompPower = LimFac*CompPower
+cx            HeatInput = LimFac*HeatInput
+          END IF
+C===
           HeatOutput=COP*CompPower
           GroundHeatInput=-HeatOutput+CompPower*CompressPf
 
@@ -7676,7 +7705,7 @@ C Electrical details for specified plant components
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
       REAL BLKOUT,BrinePumpRating,BrineRatedFlow,BrinePumpPower,
-     &      BrinePumpPf,BrineFlow
+     &      BrinePumpPf,BrineFlow,LimFac
       INTEGER NTSBO,ICallForHeat
 
       LOGICAL CLOSE,CLOSEA
@@ -7856,6 +7885,15 @@ C Set limits on calculated values of COP
           IF(COP.LT.0.0) COP=0.0
           IF(COP.GT.18.0) COP=18.0
 
+cx "after line 7840 ... " ((which file version??))
+C Limit output temperature to Toutmax ((suggestion by Graeme))
+          IF(CSVF(INOD1,1).GE.Toutmax)then
+            LimFac=((Toutmax-CONVAR(ICON1,1))
+     &          /(CSVF(INOD1,1)-CONVAR(ICON1,1)))
+            CompPower = LimFac*CompPower
+cx            HeatInput = LimFac*HeatInput
+          END IF
+C===
           HeatOutput=COP*CompPower
           GroundHeatInput=-HeatOutput+CompPower*CompressPf
 
