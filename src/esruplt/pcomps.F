@@ -4079,7 +4079,7 @@ C
 C To be edited to include increased data entry nos. 
 
 C Establish static data derivable from the data read from database
-      DO 10 IDAT=4,31
+      DO 10 IDAT=4,34
 10      BDATA(IPCOMP,IDAT-3)=ADATA(IPCOMP,IDAT)
 
 C Initialise parameters      
@@ -4180,7 +4180,7 @@ C Nominal water return temperature (Deg C)
 C Nominal water return deadband (Deg C)
       NomRetTDeadB=BDATA(IPCOMP,21)
       IF((NomRetT+0.5*(NomRetTDeadB)).GE.TinMax)THEN
-        WRITE(OUTS,'(a)')'Error in 2n-GSHP Tnom + TdeadB < Tin max'
+        WRITE(OUTS,'(a)')'Error in 2n-GSHP Tnom + TdeadB >= Tin max'
         call EDISP(IUOUT,OUTS)
         STOP
       ENDIF
@@ -4194,13 +4194,31 @@ C Ambient temperature for temp compensation end [Deg C]
 C Temp compensation gradient (-)
       TempCompc0=BDATA(IPCOMP,24)
 
+C Nominal water return temperature DHW (Deg C)
+cx      NomRetT=BDATA(IPCOMP,20)
+cx      IF(NomRetT.GE.TinMax)THEN
+      IF(BDATA(IPCOMP,29).GE.BDATA(IPCOMP,31))THEN
+        WRITE(OUTS,'(a)')'Error in 2n-GSHP Tnom DHW => Tin max DHW'
+        call EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
+C Nominal water return deadband DHW (Deg C)
+cx      IF((NomRetT+0.5*(NomRetTDeadB)).GE.TinMax)THEN
+      IF((BDATA(IPCOMP,29)+0.5*(NomRetTDeadB)).GE.BDATA(IPCOMP,31))THEN
+        WRITE(OUTS,'(a)')
+     &     'Error in 2n-GSHP Tnom DHW+TdeadB >= Tin max DHW'
+        call EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
+
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
          WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
          WRITE(ITU,*) ' 2 node (ISV=20) ground source heat pump '
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
-         NITMS=28
+         NITMS=31
          WRITE(ITU,*) ' BDATA ',(BDATA(IPCOMP,J),J=1,NITMS)
          NITMS=1
          WRITE(ITU,*) ' CDATA ',(CDATA(IPCOMP,J),J=1,NITMS)
@@ -4238,7 +4256,8 @@ C both to water
 C Error handling
       IF(ConError)THEN
         WRITE(IUOUT,*) 'CMP48S: connection error for component ',IPCOMP
-        WRITE(IUOUT,*) '        should be ',NCONS,' water connection(s)'
+        WRITE(IUOUT,*) '        should be ',NCONS,
+     &                                     ' water connection(s)'
         STOP 'CMP48S: unresolvable error'
       ENDIF
 C
