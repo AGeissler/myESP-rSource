@@ -54,6 +54,7 @@ C  CMP50C   1 node (ISV=29) WCH thermostatic radiator valve
 C  CMP51C   1 node (ISV=29)     mechanical room thermostat
 C  CMP52C   1 node (ISV=29) WCH thermostatic radiator valve (sensor only)
 C  CMP73C   3 node (ISV=20) WCH 3-port valve
+C  CMP74C   1 node (ISV=20) WCH automatic flow control valve (EXPERIMENTAL)
 C  CMP79C   1 node (ISV=20) WCH stochastic hot water draw
 C  CMP90C   2 node (ISV>19)     air & water temperature source
 C  CMP91C   2 node (ISV>19)     imaginary building-like plant load
@@ -8943,6 +8944,172 @@ C Trace output
 
       RETURN
       END
+
+C ******************** CMP74C ********************
+C 'cmp29c' generates for plant component IPCOMP with plant db code 290 ie.
+C 1 node (ISV=20) WCH  valve.
+C matrix equation coefficients COUT (in order: self-coupling, cross-
+C coupling, and present-time coefficients) for energy balance (ISTATS=1),
+C 1st phase mass balance (ISTATS=2)
+C     adata: 1 Component total mass (kg)
+C            2 Mass weighted average specific heat (J/kgK)
+C            3 UA modulus (W/K)
+C            4 Setpoint (l/s)
+C     bdata: none
+C     cdata: none
+
+      subroutine cmp74c(ipcomp,cout,istats)
+#include "plant.h"
+#include "building.h"
+
+      common/outin/iuout,iuin
+      common/tc/itc,icnt
+      common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/pctime/timsec
+      common/pctc/tc(mpcom)
+
+      common/pcequ/impexp,ratimp
+
+      common/c9/npcomp,nci(mpcom),cdata(mpcom,mmiscd)
+      common/c10/npcon,ipc1(mpcon),ipn1(mpcon),ipct(mpcon),
+     &           ipc2(mpcon),ipn2(mpcon),pcondr(mpcon),pconsd(mpcon,2)
+      common/c12ps/npcdat(mpcom,9),ipofs1(mcoefg),ipofs2(mcoefg,mpvar)
+      common/pdbdt/adata(mpcom,madata),bdata(mpcom,mbdata)
+      common/pcval/csvf(mpnode,mpvar),csvp(mpnode,mpvar)
+      common/pcvar/pctf(mpcon),pcrf(mpcon),puaf(mpnode),pcqf(mpnode),
+     &             pcntmf(mpcom),
+     &             pctp(mpcon),pcrp(mpcon),puap(mpnode),pcqp(mpnode),
+     &             pcntmp(mpcom)
+      common/pcond/convar(mpcon,mconvr),icontp(mpcon),
+     &             icondx(mpcom,mnodec,mpconc)
+      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
+      REAL QDATA,PCAOUT
+      INTEGER napdat
+
+      parameter (small=1.0e-15)
+      real      cout(mpcoe),Setpoint
+      logical closea
+
+C Trace output
+      if(itc.gt.0.and.nsinc.ge.itc.and.nsinc.le.itcf.and.
+     &   ITRACE(37).ne.0) write(itu,*) ' Entering subroutine CMP74C'
+
+C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
+      icon1=icondx(ipcomp,1,1)
+      inod1=npcdat(ipcomp,9)
+
+C Calculate mass flow correction.
+      Setpoint=adata(ipcomp,4)
+
+      call eclose(convar(icon1,2),0.00,0.001,closea)
+      if (closea) then
+        fm = 1.0 ! mass flow at connection is (close to) zero, leave alone
+      else
+        if (convar(icon1,2).le.Setpoint) then
+          fm = 1.0 ! mass flow is below setpoint, simply pass through
+        else
+          fm = Setpoint/convar(icond1,2) ! correct mass flow to setpoint
+          if(fm.lt.1E-04) fm=1E-04
+        endif
+      endif
+
+C Generate coefficients for energy balance equation
+      if(istats.eq.1) then
+
+C First initialize UA modulus (for calculation of containment heat loss)
+         ua=adata(ipcomp,3)
+         call eclose(PCNTMF(IPCOMP),-99.00,0.001,closea)
+         IF(closea) UA=0.
+
+C Establish heat capacity of component mass CM (J/K) and
+C fluid heat capacity rate(s) C (W/K), ie. SUM(mass flow * specific heat)
+cx ... use fm here? Not done in CMP29C() !!
+         cm=adata(ipcomp,1)*adata(ipcomp,2)
+         c1=pcondr(icon1)*convar(icon1,2)*shtfld(1,convar(icon1,1))
+
+C Calculate current component time-constant TC
+         tc(ipcomp)=cm/amax1(small,(c1+ua))
+
+C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
+         if(impexp.eq.1) then
+            alpha=1.
+         else if(impexp.eq.2) then
+            alpha=ratimp
+         else if(impexp.eq.3) then
+            if(timsec.gt.0.63*tc(ipcomp)) then
+               alpha=1.
+            else
+               alpha=ratimp
+            end if
+         else if(impexp.eq.4) then
+            cm=0.
+            alpha=1.
+         end if
+
+C Establish matrix equation self- and cross-coupling coefficients
+         cout(1)=alpha*(-c1-ua)-cm/timsec
+         cout(2)=alpha*c1
+
+C and then present-time coefficient (ie. right hand side)
+         cout(3)=((1.-alpha)*(pcrp(icon1)+puap(inod1))
+     &              -cm/timsec)*csvp(inod1,1)
+     &             +(1.-alpha)*(-pcrp(icon1))*pctp(icon1)
+     &             -alpha*ua*pcntmf(ipcomp)
+     &             -(1.-alpha)*puap(inod1)*pcntmp(ipcomp)
+
+C Store "environment" variables future values
+         puaf(inod1)=ua
+         pctf(icon1)=convar(icon1,1)
+         pcrf(icon1)=c1
+
+C 1st phase mass (ie. water) balance coefficients
+      else if(istats.eq.2) then
+         cout(1)=1.
+         cout(2)=-pcondr(icon1)*fm
+         cout(3)=0.
+
+C 2nd phase mass (ie. none) balance coefficients
+      else if(istats.eq.3) then
+         cout(1)=1.
+         cout(2)=0
+         cout(3)=0.
+      end if
+
+C Save additional output.
+      napdat(ipcomp)=1
+      pcaout(ipcomp,1)=fm
+
+C Trace output
+      if(itc.gt.0.and.nsinc.ge.itc.and.nsinc.le.itcf.and.
+     &   itrace(37).ne.0) then
+         write(itu,*) ' Component      ',ipcomp,':'
+         write(itu,*) ' 1 node (ISV=20) WCH automatic valve'
+         write(itu,*) ' Matrix node(s) ',inod1
+         write(itu,*) ' Connection(s)  ',icon1
+         if(istats.eq.1) then
+            write(itu,*) ' CM     = ',cm,' (J/K)'
+            write(itu,*) ' C1     = ',c1,' (W/K)'
+            write(itu,*) ' TC     = ',TC(IPCOMP),' (s)'
+            write(itu,*) ' ALPHA  = ',alpha,' (-)'
+            write(itu,*) ' UA     = ',ua,' (W/K)'
+            write(itu,*) ' PCNTMF = ',pcntmf(ipcomp),' (C)'
+            write(itu,*) ' CDATA  = ',cdata(ipcomp,1)
+         end if
+         write(itu,*) ' Matrix coefficients for ISTATS = ',istats
+         nitms=3
+         write(itu,*) (cout(i),i=1,nitms)
+         if(itu.eq.iuout) then
+            ix1=(ipcomp/4)*4
+            if(ix1.eq.ipcomp.or.ipcomp.eq.npcomp) call epagew
+         end if
+      end if
+
+      if(itc.gt.0.and.nsinc.ge.itc.and.nsinc.le.itcf.and.
+     &   ITRACE(37).ne.0) write(itu,*) ' Leaving subroutine CMP74C'
+
+      return
+      end
 
 C --------------------------------- CMP79C -----------------------------------
 C CMP79C (DHWdraw) calculates an instantaneous hot water draw based on a

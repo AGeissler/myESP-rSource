@@ -1401,6 +1401,9 @@ C 1 node (ISV=20) waterstorage tank layer.
 C 1 node (ISV=20) 3-port valve.
          ELSE IF(ITYPE.EQ.73) THEN
             CALL CMP73C(IPCOMP,OUT,ISTATS)
+C 1 node (ISV=20) WCH automatic flow control valve.
+         ELSE IF(ITYPE.EQ.74) THEN
+            CALL CMP74C(IPCOMP,OUT,ISTATS)
 C 1 node (ISV=20) Stochastic DHW Draw.
          ELSE IF(ITYPE.EQ.79) THEN
             CALL CMP79C(IPCOMP,OUT,ISTATS)
