@@ -8946,8 +8946,8 @@ C Trace output
       END
 
 C ******************** CMP74C ********************
-C 'cmp29c' generates for plant component IPCOMP with plant db code 290 ie.
-C 1 node (ISV=20) WCH  valve.
+C CMP74C generates for plant component IPCOMP with plant db code 740 ie.
+C 1 node (ISV=20) WCH automatic flow control valve.
 C matrix equation coefficients COUT (in order: self-coupling, cross-
 C coupling, and present-time coefficients) for energy balance (ISTATS=1),
 C 1st phase mass balance (ISTATS=2)
@@ -8958,7 +8958,7 @@ C            4 Setpoint (l/s)
 C     bdata: none
 C     cdata: none
 
-      subroutine cmp74c(ipcomp,cout,istats)
+      subroutine CMP74C(ipcomp,cout,istats)
 #include "plant.h"
 #include "building.h"
 
@@ -9009,7 +9009,7 @@ C Calculate mass flow correction.
         if (convar(icon1,2).le.Setpoint) then
           fm = 1.0 ! mass flow is below setpoint, simply pass through
         else
-          fm = Setpoint/convar(icond1,2) ! correct mass flow to setpoint
+          fm = Setpoint/convar(icon1,2) ! correct mass flow to setpoint
           if(fm.lt.1E-04) fm=1E-04
         endif
       endif
