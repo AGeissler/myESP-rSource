@@ -7059,8 +7059,8 @@ C Electrical details for specified plant components
 
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
-      REAL TG1,TG2,ZD,BLKOUT,LimFac
-      INTEGER IM,ID,curDoM,curMonth,NTSBO,NDMonth,ICallForHeat
+      REAL TG1,TG2,GRNDSourceDepth,BLKOUT,LimFac
+      INTEGER IM,ID,curDoM,curMonth,NTSBO,NDMonth
 
       DIMENSION NDMonth(12)
       DATA NDMonth/31,28,31,30,31,30,31,31,30,31,30,31/
@@ -7094,7 +7094,7 @@ C for iteration.
 C Read ambient temperature (for temperature compensation of WCH return temp)
       Tamb=TFP
 
-C Set initial operation mode based on CDATAs 1 & 2.
+C Set initial operation mode based on CDATA.
       call eclose(CDATA(IPCOMP,1),1.0,0.001,bSHrqd)
       call eclose(CDATA(IPCOMP,1),2.0,0.001,bDHWrqd)
 
@@ -7172,7 +7172,7 @@ C       or user defined ground temperature profile from ugrdtp(12,mgrdp).
           endif
 C         Calculate the current ground temperature by interpolating the
 C         monthly ground temperatures. ((code from CMP79C(), lines 8976 ff.))
-          ZD=BDATA(IPCOMP,27)
+          GRNDSourceDepth=BDATA(IPCOMP,27)
 
 C         Get current month temperature
           CALL EDAYR(IDYP,ID,IM)
@@ -7180,9 +7180,9 @@ C         Get current month temperature
           curDoM=ID
 
           if (BDATA(IPCOMP,26).eq.1) then
-            TG1=grdtmp(curMonth,ZD)
+            TG1=grdtmp(curMonth,GRNDSourceDepth)
           else
-            TG1=ugrdtp(curMonth,ZD)
+            TG1=ugrdtp(curMonth,GRNDSourceDepth)
           endif
 
           IF(curMonth.EQ.12)THEN
@@ -7194,18 +7194,18 @@ C           Get next month's temperature
           ENDIF
 
           if (BDATA(IPCOMP,26).eq.1) then
-            TG2=grdtmp(curMonth,ZD)
+            TG2=grdtmp(curMonth,GRNDSourceDepth)
           else
-            TG2=ugrdtp(curMonth,ZD)
+            TG2=ugrdtp(curMonth,GRNDSourceDepth)
           endif
 
 C         Calculate today's ground temperature by linear interpolation
           Tgrnd=((float(curDoM)/float(NDMonth(curMonth)))*(TG2-TG1))+TG1
 
         elseif (BDATA(IPCOMP,26).eq.3) then
-C       Get calculate ground source temperature in desired depth ZD
-          ZD=BDATA(IPCOMP,27)
-cx        CALL GTCALC(ZD,'-',IER)
+C       Get calculate ground source temperature in desired depth GRNDSourceDepth
+          GRNDSourceDepth=BDATA(IPCOMP,27)
+cx        CALL GTCALC(GRNDSourceDepth,'-',IER)
 cx        Tgrnd=??
           write(*,*) "Error GSHP: Option 3 for ground temperature",
      &               " not available to date! "
@@ -7437,14 +7437,8 @@ C Make select results available in XML and CVS output.
 C---------------------------------------------------------------------------------
         IPCOMP_LEN = lnblnk(pcname(IPCOMP))
 
-         if(CallforHeat)then
-           ICallForHeat=1.0
-         else
-           ICallForHeat=0.0
-         endif
-
         call AddToReport(rvPltCallForHeat%Identifier,
-     &         float(ICallForHeat),
+     &         CDATA(IPCOMP,1),
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
         call AddToReport(rvPltHOut%Identifier,
@@ -7710,7 +7704,7 @@ C Electrical details for specified plant components
 
       REAL BLKOUT,BrinePumpRating,BrineRatedFlow,BrinePumpPower,
      &      BrinePumpPf,BrineFlow,LimFac
-      INTEGER NTSBO,ICallForHeat
+      INTEGER NTSBO
 
       LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd
 
@@ -7751,8 +7745,11 @@ C Read ambient temperature (for temperature compensation of WCH return temp)
       Tamb=TFP
 
 C Set initial operation mode based on CDATA.
-      call eclose(CDATA(IPCOMP,1),0.0,0.001,closea)
-      IF(.not.closea) THEN
+      call eclose(CDATA(IPCOMP,1),1.0,0.001,bSHrqd)
+      call eclose(CDATA(IPCOMP,1),2.0,0.001,bDHWrqd)
+
+      if ((bSHrqd.or.bDHWrqd)) then
+C       Either space heat or dhw needs heat
         CallForHeat=.true.
 
 C Pump circulates while there is a call for heat.
@@ -8057,14 +8054,8 @@ C Make select results available in XML and CVS output.
 C---------------------------------------------------------------------------------
         IPCOMP_LEN = lnblnk(pcname(IPCOMP))
 
-         if(CallforHeat)then
-           ICallForHeat=1.0
-         else
-           ICallForHeat=0.0
-         endif
-
         call AddToReport(rvPltCallForHeat%Identifier,
-     &         float(ICallForHeat),
+     &         CDATA(IPCOMP,1),
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
         call AddToReport(rvPltHOut%Identifier,
