@@ -1222,7 +1222,7 @@ C and present a different interface depending on file type.
 
 C Begin with high level menu.
     3 IER=0
-      IRT=-1
+      IRT=-2
 
       if(itdflg.eq.0)then
         if(browse)then
