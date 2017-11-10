@@ -7814,7 +7814,14 @@ C Get ground source temperature
 
 C Determine whether machine should be on or off based on return water temperature.
         ReturnT=CONVAR(ICON1,1)
+
+C Check if device switched off last TS
+        IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
+          bSwitched=.true.
+        ENDIF
+
         DeviceONOFFp=DeviceONOFF
+
         IF(CallforHeat)THEN
 
 C Check to see if the device is in the dead band.
