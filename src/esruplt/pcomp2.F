@@ -5918,9 +5918,9 @@ C Establish the nodal thermal capacities.
 C node 1 water
         C1=DeviceFlow*SHTFLD(3,CONVAR(ICON1,1))
 
-C Establish heat loss modulus
-        CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
-        IF(CLOSE) UAMod=0.0
+C Establish heat loss modulus ((see line 5711 ... !!))
+cx        CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
+cx        IF(CLOSE) UAMod=0.0
 
 C Calculate the electrical demand of the device assumung the controller is ON.
         CtlPower=CtlRating
@@ -7107,8 +7107,10 @@ C Pump circulates while there is a call for heat.
         DeviceFlow=RatedFlow
       ELSE
         CallforHeat=.false.
+C       Only turn pump off when no call for heat!
+C       Careful: DeviceFlow is used in ISTAT.eq.2 !
         PumpPower=0.
-        DeviceFlow=0.0001 ! e.g. pipes seem to have problems with zero flow
+        DeviceFlow=0.0001
       ENDIF
 
 C Set return setpoints based on which function requires heat
@@ -7314,32 +7316,32 @@ C Limit output temperature to Toutmax ((suggestion by Graeme))
             LimFac=((ToutMax-CONVAR(ICON1,1))
      &          / (CSVF(INOD1,1)-CONVAR(ICON1,1)))
             CompPower = LimFac*CompPower
-cx            HeatInput = LimFac*HeatInput
           END IF
 C===
           HeatOutput=COP*CompPower
           GroundHeatInput=-HeatOutput+CompPower*CompressPf
 
           IF(HeatOutput.LT.0) THEN
-            write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
-     &                                                       CompPower
+            write(*,*) "Error: heat output < 0! ",
+     &                   HeatOutput, COP, CompPower
             STOP
           ENDIF
 
           IF(GroundHeatInput.GT.0) THEN
-            write(*,*) "Error: ground heat input > 0! ",GroundHeatInput,
-     &                                       HeatOutput, COP, CompPower
+            write(*,*) "Error: ground heat input > 0! ",
+     &                   GroundHeatInput, HeatOutput, COP, CompPower
             STOP
           ENDIF
 
         ELSE
-C Device is 'off' set parameters accordingly (assume controller is still operating).
+C       Device is 'off' (DeviceONOFF.eq.0), set parameters accordingly
+C       (assume controller is still operating).
 
           CompPower=0.
           HeatOutput=0.
           GroundHeatInput=0.
           PumpPower=0.
-          DeviceFlow=0.0001 ! e.g. pipes seem to have problems with zero flow
+          DeviceFlow=0.0001
           COP=0.
         ENDIF
 
@@ -7350,8 +7352,8 @@ C Node 1 water
         C1=DeviceFlow*SHTFLD(3,CONVAR(ICON1,1))
 
 C Set heat loss to zero if no containment defined
-        CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
-        IF(CLOSE) UAMod=0.0
+cx        CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
+cx        IF(CLOSE) UAMod=0.0
 
 C Calculate the electrical demand of the device assumung the controller is ON.
         CtlPower=CtlRating
@@ -7883,6 +7885,7 @@ C Calculate the TOTAL device power draw (W)
             Ta=Tgrnd
             CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
           ENDIF
+
           if(CompPower.LT.0.0)CompPower=0.0
 
 C Calculate the COP based on the user-specified method.
