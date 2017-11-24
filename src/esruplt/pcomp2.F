@@ -7009,8 +7009,8 @@ C     Variables for iteration in plant loop (?)
 
       COMMON/GSHPvar3/CallforHeat,InDeadB
 
-      COMMON/GSHPvar4/INSO,ITSBO,bSwitched
-      INTEGER INSO,ITSBO
+      COMMON/GSHPvar4/INSO,ITSBO,bSwitched,NTSBO
+      INTEGER INSO,ITSBO,NTSBO
       LOGICAL bSwitched
 
 C Electrical details for specified plant components
@@ -7059,17 +7059,18 @@ C Electrical details for specified plant components
 
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
-      REAL TG1,TG2,GRNDSourceDepth,BLKOUT,LimFac
-      INTEGER IM,ID,curDoM,curMonth,NTSBO,NDMonth
+      REAL TG1,TG2,GRNDSourceDepth,LimFac
+      INTEGER IM,ID,curDoM,curMonth,NDMonth
 
       DIMENSION NDMonth(12)
       DATA NDMonth/31,28,31,30,31,30,31,31,30,31,30,31/
 
-      LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd
+      LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd,
+     &                     bGrndSrc1,bGrndSrc2,bGrndSrc3
 
       CHARACTER OUTS*248,PCNAME*15
 
-      INTEGER IPCOMP_LEN !lenght of ipcomp
+      INTEGER IPCOMP_LEN !lenght of ipcomp name
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -7084,8 +7085,8 @@ C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
 
 C COP based on inlet temperatures so mark 1st nodal temp
 C for iteration.
-      ICSV(INOD1,1)=1
-      CSVI(INOD1,1)=CSVF(INOD1,1)
+cx      ICSV(INOD1,1)=1
+cx      CSVI(INOD1,1)=CSVF(INOD1,1)
 
       UAMod=ADATA(ipcomp,3)
       call eclose(PCNTMF(IPCOMP),-99.00,0.001,closea)
@@ -7107,10 +7108,10 @@ C Pump circulates while there is a call for heat.
         DeviceFlow=RatedFlow
       ELSE
         CallforHeat=.false.
-C       Only turn pump off when no call for heat!
+C       Only turn circulation pump off when no call for heat!
 C       Careful: DeviceFlow is used in ISTAT.eq.2 !
         PumpPower=0.
-        DeviceFlow=0.0001
+        DeviceFlow=0.0
       ENDIF
 
 C Set return setpoints based on which function requires heat
@@ -7154,14 +7155,18 @@ C Case where Tamb > Temp compensation saturation point
         ENDIF
       endif ! space heat rq'd
 
-C Generate coefficients for energy balance equation
-      IF (ISTATS.EQ.1) THEN
+cx istats.eq.1 was here in my code approach ...
 
-        if ((BDATA(IPCOMP,26).eq.1).or.(BDATA(IPCOMP,26).eq.2)) then
+C       Set ground source temperature based on BDATA.
+        call eclose(BDATA(IPCOMP,26),1.0,0.001,bGrndSrc1)
+        call eclose(BDATA(IPCOMP,26),2.0,0.001,bGrndSrc2)
+        call eclose(BDATA(IPCOMP,26),3.0,0.001,bGrndSrc3)
+
+        if (bGrndSrc1 .or. bGrndSrc2) then
 C       Standard ground temperature profile from grdtmp(12,mgrdp), see esru_blk.F,
 C       or user defined ground temperature profile from ugrdtp(12,mgrdp).
 
-          if (BDATA(IPCOMP,26).eq.2) then
+          if (bGrndSrc2) then
             if (NGRDP.le.0) then
               write(*,*) "Error GSHP: Option 2 requires user defined",
      &               " ground temperature profile! "
@@ -7181,10 +7186,10 @@ C         Get current month temperature
           curMonth=IM
           curDoM=ID
 
-          if (BDATA(IPCOMP,26).eq.1) then
-            TG1=grdtmp(curMonth,GRNDSourceDepth)
+          if (bGrndSrc1) then
+            TG1=grdtmp(curMonth,int(GRNDSourceDepth))
           else
-            TG1=ugrdtp(curMonth,GRNDSourceDepth)
+            TG1=ugrdtp(curMonth,int(GRNDSourceDepth))
           endif
 
           IF(curMonth.EQ.12)THEN
@@ -7195,22 +7200,30 @@ C           Get next month's temperature
             curMonth=curMonth+1
           ENDIF
 
-          if (BDATA(IPCOMP,26).eq.1) then
-            TG2=grdtmp(curMonth,GRNDSourceDepth)
+          if (bGrndSrc1) then
+            TG2=grdtmp(curMonth,int(GRNDSourceDepth))
           else
-            TG2=ugrdtp(curMonth,GRNDSourceDepth)
+            TG2=ugrdtp(curMonth,int(GRNDSourceDepth))
           endif
 
 C         Calculate today's ground temperature by linear interpolation
-          Tgrnd=((float(curDoM)/float(NDMonth(curMonth)))*(TG2-TG1))+TG1
+          Tgrnd=((float(curDoM)/float(NDMonth(curMonth)))
+     &                                              *(TG2-TG1))+TG1
 
-        elseif (BDATA(IPCOMP,26).eq.3) then
-C       Get calculate ground source temperature in desired depth GRNDSourceDepth
+cx          write(*,*)"Tgrnd=",Tgrnd,",  Tamb=",Tamb
+
+        elseif (bGrndSrc3) then
+C       Calculate ground source temperature in desired depth GRNDSourceDepth
           GRNDSourceDepth=BDATA(IPCOMP,27)
 cx        CALL GTCALC(GRNDSourceDepth,'-',IER)
 cx        Tgrnd=??
           write(*,*) "Error GSHP: Option 3 for ground temperature",
      &               " not available to date! "
+          STOP
+        else
+C       Ground source temperature option invalid
+          write(*,*) "Error GSHP: Option for ground temperature",
+     &               " invalid! "
           STOP
         endif
 
@@ -7256,8 +7269,6 @@ C before turning on again.
 C INSO = HP on/off (1/0) flag for lockout
 C ITSBO = present no. of timesteps HP is off due to lockout
 C NTSBO = total no. of timesteps HP is off due to lockout
-        BLKOUT=BDATA(IPCOMP,25)*60.
-        NTSBO=NINT(BLKOUT/TIMSEC)
 
         IF (bSwitched) THEN
           INSO=1
@@ -7313,9 +7324,9 @@ C Set limits on calculated values of COP
 cx "after line 7840 ... " ((2node- GSHP, which file version??))
 C Limit output temperature to Toutmax ((suggestion by Graeme))
           IF (CSVF(INOD1,1).GE.ToutMax) then
-            LimFac=((ToutMax-CONVAR(ICON1,1))
-     &          / (CSVF(INOD1,1)-CONVAR(ICON1,1)))
-            CompPower = LimFac*CompPower
+cx            LimFac=((ToutMax-CONVAR(ICON1,1))
+cx     &          / (CSVF(INOD1,1)-CONVAR(ICON1,1)))
+cx            CompPower = LimFac*CompPower
           END IF
 C===
           HeatOutput=COP*CompPower
@@ -7334,16 +7345,18 @@ C===
           ENDIF
 
         ELSE
-C       Device is 'off' (DeviceONOFF.eq.0), set parameters accordingly
-C       (assume controller is still operating).
+C       Device is 'off' (DeviceONOFF.eq.0), i.e. the heat pump is off,
+C       however the circulation pump remains on. Set parameters
+C       accordingly (assume controller is still operating).
 
           CompPower=0.
           HeatOutput=0.
           GroundHeatInput=0.
-          PumpPower=0.
-          DeviceFlow=0.0001
           COP=0.
         ENDIF
+
+C Generate coefficients for energy balance equation
+      IF (ISTATS.EQ.1) THEN
 
 C Establish the nodal thermal capacities (see CMP36C).
         CM=CompMass*AveSpHt
@@ -7509,7 +7522,7 @@ C Trace.
             WRITE(ITU,*) ' ALPHA   = ',ALPHA,' (-)'
             WRITE(ITU,*) ' UAMod   = ',UAMod,' (W/K)'
             WRITE(ITU,*) ' Tground = ',Tgrnd,' (C)'
-            WRITE(ITU,*) ' tBlkout = ',BLKOUT,' (s)'
+            WRITE(ITU,*) ' tBlkout = ',BDATA(IPCOMP,26),' (min)'
             WRITE(ITU,*) ' ReturnT = ',ReturnT,' (C)'
             WRITE(ITU,*) ' ReturnSP        = ',ReturnSP,' (C)'
             WRITE(ITU,*) ' ReturnSPH       = ',ReturnSPH,' (C)'
@@ -7729,10 +7742,10 @@ C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
 
 C COP based on inlet temperatures so mark 1st and 2nd nodal temps
 C for iteration.
-      ICSV(INOD1,1)=1
-      CSVI(INOD1,1)=CSVF(INOD1,1)
-      ICSV(INOD2,1)=1
-      CSVI(INOD2,1)=CSVF(INOD2,1)
+cx      ICSV(INOD1,1)=1
+cx      CSVI(INOD1,1)=CSVF(INOD1,1)
+cx      ICSV(INOD2,1)=1
+cx      CSVI(INOD2,1)=CSVF(INOD2,1)
 
 C Initialize variables that are not (yet?) covered in CMP48S()
       BrinePumpRating=BDATA(IPCOMP,26)
@@ -7762,9 +7775,9 @@ C Pump circulates while there is a call for heat.
       ELSE
         CallforHeat=.false.
         PumpPower=0.
-        DeviceFlow=0.0001 ! e.g. pipes seem to have problems with zero flow
+        DeviceFlow=0.0
         BrinePumpPower=0.
-        BrineFlow=0.0001
+        BrineFlow=0.0
       ENDIF
 
 C Set return setpoints based on which function requires heat
@@ -7808,8 +7821,7 @@ C Case where Tamb > Temp compensation saturation point
         ENDIF
       endif ! space heat rq'd
 
-C Generate coefficients for energy balance equation
-      IF(ISTATS.EQ.1) THEN
+cx ISTAT.eq.1 was here, previously (171124)
 
 C Get ground source temperature
         Tgrnd=convar(icon2,1)
@@ -7912,9 +7924,9 @@ C Set limits on calculated values of COP
 
 C Limit output temperature to Toutmax ((suggestion by Graeme))
           IF(CSVF(INOD1,1).GE.Toutmax)then
-            LimFac=((Toutmax-CONVAR(ICON1,1))
-     &          /(CSVF(INOD1,1)-CONVAR(ICON1,1)))
-            CompPower = LimFac*CompPower
+cx            LimFac=((Toutmax-CONVAR(ICON1,1))
+cx     &          /(CSVF(INOD1,1)-CONVAR(ICON1,1)))
+cx            CompPower = LimFac*CompPower
           END IF
 C===
           HeatOutput=COP*CompPower
@@ -7933,18 +7945,21 @@ C===
           ENDIF
 
         ELSE
-C Device is 'off' set parameters accordingly (assume controller is still operating).
+C Device is 'off', i.e. heat pump is off, circulation pump is still on
+C but brine pump is off.
+C Set parameters accordingly (assume controller is still operating).
 
           CompPower=0.
           HeatOutput=0.
           GroundHeatInput=0.
-          PumpPower=0.
           BrinePumpPower=0.
-          DeviceFlow=0.0001 ! e.g. pipes seem to have problems with zero flow
-          BrineFlow=0.0001
+          BrineFlow=0.0
           COP=0.
 
         ENDIF
+
+C Generate coefficients for energy balance equation
+      IF(ISTATS.EQ.1) THEN
 
 C Establish the nodal thermal capacities (see CMP36C).
         CM1=0.5*CompMass*AveSpHt

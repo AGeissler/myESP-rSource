@@ -3797,6 +3797,8 @@ C
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
+      COMMON/Pctime/TIMSEC
+
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
       COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
@@ -3813,7 +3815,11 @@ C
 
       COMMON/GSHPvar3/CallforHeat,InDeadB
 
-      REAL SMALL 
+      COMMON/GSHPvar4/INSO,ITSBO,bSwitched,NTSBO
+      INTEGER INSO,ITSBO,NTSBO
+      LOGICAL bSwitched
+
+      REAL SMALL
       PARAMETER (SMALL=1.0E-20)
 
       INTEGER COPModel,CompModel,AmbientTempComp,
@@ -3830,7 +3836,7 @@ C
       INTEGER IUOUT,IUIN,ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,NPCOMP,NCI,
      &ICONTP,ICONDX,J,NCITM,NCONS,IPCONC,IPCOMP,IPCON,IX1,NITMS
       
-      REAL CDATA,ADATA,BDATA,CONVAR
+      REAL CDATA,ADATA,BDATA,CONVAR,BLKOUT,TIMSEC
 
       INTEGER IDAT
 
@@ -3958,10 +3964,15 @@ C Nominal water return temperature DHW (Deg C)
 cx      NomRetT=BDATA(IPCOMP,20)
 cx      IF(NomRetT.GE.TinMax)THEN
       IF(BDATA(IPCOMP,28).GE.BDATA(IPCOMP,30))THEN
-        WRITE(OUTS,'(a)')'Error in GSHP Tnom DHW => Tin max DHW'
+        WRITE(OUTS,'(a)')'Error in GSHP Tnom DHW >= Tin max DHW'
         call EDISP(IUOUT,OUTS)
         STOP
       ENDIF
+
+C NTSBO = total no. of timesteps HP is off due to lockout
+      BLKOUT=BDATA(IPCOMP,25)*60.
+      NTSBO=NINT(BLKOUT/TIMSEC)
+      bSwitched=.false.
 
 C Nominal water return deadband DHW (Deg C)
 cx      IF((NomRetT+0.5*(NomRetTDeadB)).GE.TinMax)THEN
@@ -3973,18 +3984,18 @@ cx      IF((NomRetT+0.5*(NomRetTDeadB)).GE.TinMax)THEN
 
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
-         WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
-         WRITE(ITU,*) ' 1 node (ISV=20) ground source heat pump '
-         NITMS=3
-         WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
-         NITMS=30
-         WRITE(ITU,*) ' BDATA ',(BDATA(IPCOMP,J),J=1,NITMS)
-         NITMS=2
-         WRITE(ITU,*) ' CDATA ',(CDATA(IPCOMP,J),J=1,NITMS)
-         IF(ITU.EQ.IUOUT) THEN
-            IX1=(IPCOMP/5)*5
-            IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
-         ENDIF
+        WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
+        WRITE(ITU,*) ' 1 node (ISV=20) ground source heat pump '
+        NITMS=3
+        WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
+        NITMS=30
+        WRITE(ITU,*) ' BDATA ',(BDATA(IPCOMP,J),J=1,NITMS)
+        NITMS=2
+        WRITE(ITU,*) ' CDATA ',(CDATA(IPCOMP,J),J=1,NITMS)
+        IF(ITU.EQ.IUOUT) THEN
+           IX1=(IPCOMP/5)*5
+           IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
+        ENDIF
       ENDIF
 C
 C Check user specified number of controlled variables
