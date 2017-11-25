@@ -388,7 +388,7 @@ fi
 # check that xml support is available
 if [ "$xml_support" = "yes" ] || [ "$xml_support" = "prompt" ]; then
    # check for libxml2 headers on system
-   if [ ! -d /usr/include/libxml2 ] && [ ! -d /usr/local/include/libxml2 ]; then
+   if [ ! -d /usr/include/libxml2 ] && [ ! -d /usr/local/include/libxml2 ] && [ ! -d /opt/local/include/libxml2 ]; then
       # Libraries not found. Disable XML support
       xml_support="no"
       xml_libs_found="no"
@@ -396,14 +396,14 @@ if [ "$xml_support" = "yes" ] || [ "$xml_support" = "prompt" ]; then
       if [ "$mode" = "silent" ]; then
          echo " "
          echo " Warning: Library libxml2 could not be found"
-         echo " in /usr/include or /usr/local/include "
+         echo " in /usr/include, /usr/local/include or /opt/local/include "
          echo " "
          echo " XML support disabled."
       fi
    else
     # Add XML include files to include paths
     xml_libs_found="yes"
-    LIBXML2_INCLUDE="-I/usr/include -I/usr/include/libxml2 -I/usr/local/include/libxml2 -I/usr/include/libxslt -I/local/include/libxslt"
+    LIBXML2_INCLUDE="-I/usr/include -I/usr/include/libxml2 -I/usr/local/include/libxml2 -I/opt/local/include/libxml2 -I/usr/include/libxslt -I/local/include/libxslt -I/opt/local/include/libxslt"
     echo " "
     echo " XML output support enabled."
     # xml support may optionally include support for xslt & exslt. Check
