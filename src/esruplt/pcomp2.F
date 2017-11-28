@@ -7155,7 +7155,8 @@ C Case where Tamb > Temp compensation saturation point
         ENDIF
       endif ! space heat rq'd
 
-cx istats.eq.1 was here in my code approach ...
+C Generate coefficients for energy balance equation
+      IF (ISTATS.EQ.1) THEN
 
 C       Set ground source temperature based on BDATA.
         call eclose(BDATA(IPCOMP,26),1.0,0.001,bGrndSrc1)
@@ -7356,7 +7357,7 @@ C       accordingly (assume controller is still operating).
         ENDIF
 
 C Generate coefficients for energy balance equation
-      IF (ISTATS.EQ.1) THEN
+cx      IF (ISTATS.EQ.1) THEN
 
 C Establish the nodal thermal capacities (see CMP36C).
         CM=CompMass*AveSpHt
