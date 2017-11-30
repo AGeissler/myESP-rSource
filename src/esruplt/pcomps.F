@@ -3797,8 +3797,6 @@ C
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/Pctime/TIMSEC
-
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
       COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
@@ -3815,9 +3813,10 @@ C
 
       COMMON/GSHPvar3/CallforHeat,InDeadB
 
-      COMMON/GSHPvar4/INSO,ITSBO,bSwitched,NTSBO
+      COMMON/GSHPvar4/INSO,ITSBO,bSwitched,BLKOUT,NTSBO,bBLKOUT
       INTEGER INSO,ITSBO,NTSBO
-      LOGICAL bSwitched
+      REAL BLKOUT
+      LOGICAL bSwitched,bBLKOUT
 
       REAL SMALL
       PARAMETER (SMALL=1.0E-20)
@@ -3836,7 +3835,7 @@ C
       INTEGER IUOUT,IUIN,ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,NPCOMP,NCI,
      &ICONTP,ICONDX,J,NCITM,NCONS,IPCONC,IPCOMP,IPCON,IX1,NITMS
       
-      REAL CDATA,ADATA,BDATA,CONVAR,BLKOUT,TIMSEC
+      REAL CDATA,ADATA,BDATA,CONVAR
 
       INTEGER IDAT
 
@@ -3969,9 +3968,15 @@ cx      IF(NomRetT.GE.TinMax)THEN
         STOP
       ENDIF
 
-C NTSBO = total no. of timesteps HP is off due to lockout
+C Is a lock out time defined?
       BLKOUT=BDATA(IPCOMP,25)*60.
-      NTSBO=NINT(BLKOUT/TIMSEC)
+
+      if (BLKOUT.gt.0.) then
+        bBLKOUT=.true.
+      else
+        bBLKOUT=.false.
+      endif
+
       bSwitched=.false.
 
 C Nominal water return deadband DHW (Deg C)
@@ -4066,7 +4071,12 @@ C
 
       COMMON/GSHPvar3/CallforHeat,InDeadB
 
-      REAL SMALL 
+      COMMON/GSHPvar4/INSO,ITSBO,bSwitched,BLKOUT,NTSBO,bBLKOUT
+      INTEGER INSO,ITSBO,NTSBO
+      REAL BLKOUT
+      LOGICAL bSwitched,bBLKOUT
+
+      REAL SMALL
       PARAMETER (SMALL=1.0E-20)
 
       INTEGER COPModel,CompModel,AmbientTempComp,
@@ -4207,6 +4217,17 @@ C Ambient temperature for temp compensation end [Deg C]
 
 C Temp compensation gradient (-)
       TempCompc0=BDATA(IPCOMP,24)
+
+C Is a lock out time defined?
+      BLKOUT=BDATA(IPCOMP,25)*60.
+
+      if (BLKOUT.gt.0.) then
+        bBLKOUT=.true.
+      else
+        bBLKOUT=.false.
+      endif
+
+      bSwitched=.false.
 
 C Nominal water return temperature DHW (Deg C)
 cx      NomRetT=BDATA(IPCOMP,20)

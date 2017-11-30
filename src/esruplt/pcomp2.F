@@ -7009,9 +7009,10 @@ C     Variables for iteration in plant loop (?)
 
       COMMON/GSHPvar3/CallforHeat,InDeadB
 
-      COMMON/GSHPvar4/INSO,ITSBO,bSwitched,NTSBO
+      COMMON/GSHPvar4/INSO,ITSBO,bSwitched,BLKOUT,NTSBO,bBLKOUT
       INTEGER INSO,ITSBO,NTSBO
-      LOGICAL bSwitched
+      REAL BLKOUT
+      LOGICAL bSwitched,bBLKOUT
 
 C Electrical details for specified plant components
       common/pcelflg/ipcelf(mpcom)
@@ -7077,7 +7078,12 @@ C Trace output
      &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP47C'
 
 C ************
-C Variable Assignment and initialisation in CMP47S (pcomps.F)
+C Variable Assignment and initialisation mainly in CMP47S (pcomps.F)
+
+      if (NSINC.eq.1) then
+C NTSBO = total no. of timesteps HP is off due to lockout
+        NTSBO=NINT(BLKOUT/TIMSEC)
+      endif
 
 C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       ICON1=ICONDX(IPCOMP,1,1)
@@ -7272,14 +7278,18 @@ C ITSBO = present no. of timesteps HP is off due to lockout
 C NTSBO = total no. of timesteps HP is off due to lockout
 
         IF (bSwitched) THEN
-          INSO=1
-          ITSBO=0
-          bSwitched=.false. ! only set once after signal
+          if (bBLKOUT) then
+            INSO=1
+            ITSBO=0
+            bSwitched=.false. ! only set once after signal
+          endif
         ENDIF
 
         IF (INSO.EQ.1) THEN
           ITSBO=ITSBO+1
           IF (ITSBO.GE.NTSBO) INSO=0
+        write(*,*)"NSINC=",NSINC,"; ITS=",ITS,"; NTSBO=",NTSBO,
+     &            "; ITSBO=",ITSBO,"; INSO=",INSO
           DeviceONOFF=0
         ENDIF
 C == end lockout
@@ -7668,9 +7678,10 @@ C     Variables for iteration in plant loop (?)
 
       COMMON/GSHPvar3/CallforHeat,InDeadB
 
-      COMMON/GSHPvar4/INSO,ITSBO,bSwitched
-      INTEGER INSO,ITSBO
-      LOGICAL bSwitched
+      COMMON/GSHPvar4/INSO,ITSBO,bSwitched,BLKOUT,NTSBO,bBLKOUT
+      INTEGER INSO,ITSBO,NTSBO
+      REAL BLKOUT
+      LOGICAL bSwitched,bBLKOUT
 
 C Electrical details for specified plant components
       common/pcelflg/ipcelf(mpcom)
@@ -7718,9 +7729,8 @@ C Electrical details for specified plant components
 
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
-      REAL BLKOUT,BrinePumpRating,BrineRatedFlow,BrinePumpPower,
+      REAL BrinePumpRating,BrineRatedFlow,BrinePumpPower,
      &      BrinePumpPf,BrineFlow,LimFac
-      INTEGER NTSBO
 
       LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd
 
@@ -7733,7 +7743,12 @@ C Trace output
      &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP48C'
 
 C ************
-C Variable Assignment and initialisation in CMP47S (pcomps.F)
+C Variable Assignment and initialisation mainly in CMP48S (pcomps.F)
+
+      if (NSINC.eq.1) then
+C NTSBO = total no. of timesteps HP is off due to lockout
+        NTSBO=NINT(BLKOUT/TIMSEC)
+      endif
 
 C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       ICON1=ICONDX(IPCOMP,1,1)
@@ -7868,13 +7883,13 @@ C before turning on again.
 C INSO = HP on/off (1/0) flag for lockout
 C ITSBO = present no. of timesteps HP is off due to lockout
 C NTSBO = total no. of timesteps HP is off due to lockout
-        BLKOUT=BDATA(IPCOMP,25)*60.
-        NTSBO=NINT(BLKOUT/TIMSEC)
 
         IF (bSwitched) THEN
-          INSO=1
-          ITSBO=0
-          bSwitched=.false. ! only set once after signal
+          if (bBLKOUT) then
+            INSO=1
+            ITSBO=0
+            bSwitched=.false. ! only set once after signal
+          endif
         ENDIF
 
         IF (INSO.EQ.1) THEN
