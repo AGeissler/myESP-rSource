@@ -1300,7 +1300,7 @@ C   All connections: create one surface (no shift).
           endif
 
 C Find the matching mlc index and set the material name.
-
+C Radiance does not yet know what to do with CFC and CFC2.
 C << use call to matchmlcdesc >>
           ICF=-1
           ifict=0

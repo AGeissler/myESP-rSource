@@ -1818,10 +1818,6 @@ C Pre calculated data (filtered).
       common/MMAFDAT/IFILT,RDFMAX(MCOM,3,MZRL),RDFMIN(MCOM,3,MZRL),
      &    RDFAVE(MCOM,3,MZRL),RDTFMAX(MCOM,3,MZRL),RDTFMIN(MCOM,3,MZRL)
 
-C Signal that pre-scan has been used.
-      logical didprescan
-      common/MMAPRE/didprescan
-
       dimension DATA(3,MZRL),XD(MZRL)
       character outs*124
 
