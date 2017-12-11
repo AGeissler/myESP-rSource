@@ -9,14 +9,6 @@ COMdir = $(SRCdir)/esrucom
 PROG = clm$(EXE)
 default: $(PROG)
 
-architecture := $(shell uname -s)
-
-ifeq ($(architecture),Darwin)
-    SWTCH=
-else
-    SWTCH= -D
-endif
-
 .SUFFIXES: .o .F
 .F.o:
 	$(MFC) $(FFLAGS) -c $<
