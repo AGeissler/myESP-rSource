@@ -752,6 +752,9 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             ALPHA=1.
          END IF
 
+         call eclose(C1,0.00,0.0001,closec)
+         if(closec)ALPHA=1.
+
 C Establish matrix equation self- and cross-coupling coefficients
          COUT(1)=ALPHA*(-C1-UA)-CM/TIMSEC
          COUT(2)=ALPHA*C1
@@ -767,6 +770,10 @@ C Store "environment" variables future values
          PUAF(INOD1)=UA
          PCTF(ICON1)=CONVAR(ICON1,1)
          PCRF(ICON1)=C1
+
+C Addition output for results analysis.
+         NAPDAT(IPCOMP)=1
+         PCAOUT(IPCOMP,1)=ALPHA
 
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
@@ -860,6 +867,10 @@ C     CDATA: none
       COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
      &             ICONDX(MPCOM,MNODEC,MPCONC)
 
+      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
+      REAL QDATA,PCAOUT
+      INTEGER napdat
+
       PARAMETER (SMALL=1.0E-15)
       REAL      COUT(MPCOE)
       logical closea
@@ -906,6 +917,9 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
           ALPHA=1.
         END IF
 
+        call eclose(C1,0.00,0.0001,closea)
+        if(closea)ALPHA=1.
+
 C Establish matrix equation self- and cross-coupling coefficients
         COUT(1)=ALPHA*(-C1-C2-UA)-CM/TIMSEC
         COUT(2)=ALPHA*C1
@@ -924,6 +938,19 @@ C Store "environment" variables future values
         PCTF(ICON2)=CONVAR(ICON2,1)
         PCRF(ICON1)=C1
         PCRF(ICON2)=C2
+
+C Addition output for results analysis.
+        NAPDAT(IPCOMP)=1
+        PCAOUT(IPCOMP,1)=ALPHA
+
+C Establish "containment loss" data
+        QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
+     &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
+	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+
+C       For embedded two leg junction:
+	    call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
 
 C 1st phase mass (ie. water) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -5890,7 +5917,7 @@ C Set limits on calculated values of COP
         ELSE
           HeatOutput=COP*CompPower
           IF(HeatOutput.LT.0) THEN
-            write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
+            write(*,*) "Error-5920: heat output < 0! ",HeatOutput, COP,
      &CompPower
             STOP
           ENDIF
@@ -7288,8 +7315,8 @@ C NTSBO = total no. of timesteps HP is off due to lockout
         IF (INSO.EQ.1) THEN
           ITSBO=ITSBO+1
           IF (ITSBO.GE.NTSBO) INSO=0
-        write(*,*)"NSINC=",NSINC,"; ITS=",ITS,"; NTSBO=",NTSBO,
-     &            "; ITSBO=",ITSBO,"; INSO=",INSO
+cx        write(*,*)"NSINC=",NSINC,"; ITS=",ITS,"; NTSBO=",NTSBO,
+cx     &            "; ITSBO=",ITSBO,"; INSO=",INSO
           DeviceONOFF=0
         ENDIF
 C == end lockout
@@ -7344,13 +7371,13 @@ C===
           GroundHeatInput=-HeatOutput+CompPower*CompressPf
 
           IF(HeatOutput.LT.0) THEN
-            write(*,*) "Error: heat output < 0! ",
+            write(*,*) "Error-7374: heat output < 0! ",
      &                   HeatOutput, COP, CompPower
             STOP
           ENDIF
 
           IF(GroundHeatInput.GT.0) THEN
-            write(*,*) "Error: ground heat input > 0! ",
+            write(*,*) "Error-7380: ground heat input > 0! ",
      &                   GroundHeatInput, HeatOutput, COP, CompPower
             STOP
           ENDIF
@@ -7949,14 +7976,14 @@ C===
           GroundHeatInput=-HeatOutput+CompPower*CompressPf
 
           IF(HeatOutput.LT.0) THEN
-            write(*,*) "Error: heat output < 0! ",HeatOutput, COP,
+            write(*,*) "Error-7979: heat output < 0! ",HeatOutput, COP,
      &                                                       CompPower
             STOP
           ENDIF
 
           IF(GroundHeatInput.GT.0) THEN
-            write(*,*) "Error: ground heat input > 0! ",GroundHeatInput,
-     &                                       HeatOutput, COP, CompPower
+            write(*,*) "Error-7985: ground heat input > 0! ",
+     &                     GroundHeatInput,HeatOutput, COP, CompPower
             STOP
           ENDIF
 
@@ -8862,6 +8889,9 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             ALPHA=1.
          END IF
 
+        call eclose(C1,0.00,0.0001,closea)
+        if(closea)alpha=1.
+
 C Establish matrix equation self-and cross-coupling coefficients
 C matrix order as follows
 C   A  B  C | X     RHS
@@ -8911,6 +8941,12 @@ C Store "environment" variables future values.
          PUAF(INOD2)=UA/2.
          PUAF(INOD3)=UA/2.
          
+C Establish "containment loss" data
+        QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
+     &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
+	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+
 C 1st phase mass (ie. dry air) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
          COUT(1)=1.
@@ -9079,21 +9115,30 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             alpha=1.
          end if
 
+        call eclose(C1,0.00,0.0001,closea)
+        if(closea)alpha=1.
+
 C Establish matrix equation self- and cross-coupling coefficients
-         cout(1)=alpha*(-c1-ua)-cm/timsec
-         cout(2)=alpha*c1
+        cout(1)=alpha*(-c1-ua)-cm/timsec
+        cout(2)=alpha*c1
 
 C and then present-time coefficient (ie. right hand side)
-         cout(3)=((1.-alpha)*(pcrp(icon1)+puap(inod1))
+        cout(3)=((1.-alpha)*(pcrp(icon1)+puap(inod1))
      &              -cm/timsec)*csvp(inod1,1)
      &             +(1.-alpha)*(-pcrp(icon1))*pctp(icon1)
      &             -alpha*ua*pcntmf(ipcomp)
      &             -(1.-alpha)*puap(inod1)*pcntmp(ipcomp)
 
 C Store "environment" variables future values
-         puaf(inod1)=ua
-         pctf(icon1)=convar(icon1,1)
-         pcrf(icon1)=c1
+        puaf(inod1)=ua
+        pctf(icon1)=convar(icon1,1)
+        pcrf(icon1)=c1
+
+C Establish "containment loss" data
+        QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
+     &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
+	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C 1st phase mass (ie. water) balance coefficients
       else if(istats.eq.2) then
