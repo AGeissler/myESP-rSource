@@ -8889,8 +8889,8 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             ALPHA=1.
          END IF
 
-        call eclose(C1,0.00,0.0001,closea)
-        if(closea)alpha=1.
+cx        call eclose(C1,0.00,0.0001,closea)
+cx        if(closea)alpha=1.
 
 C Establish matrix equation self-and cross-coupling coefficients
 C matrix order as follows
