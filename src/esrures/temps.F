@@ -179,7 +179,13 @@ C Sum product of opaque surface temperatures and areas.
 C ******************** SENMRT ********************
 C SENMRT computes the resultant temperature from opaque
 C surface, window temperature information.
-C IOPT - specific temperature differences.
+C IOPT - specific temperature differences:
+C        1: -Y (back)   - +Y (front)
+C        2: +X (right)  - -X (left)
+C        3: +Y (front)  - -Y (back)
+C        4: -X (left)   - +X (right)
+C        5: +Z (top)    - -Z (bottom)
+C        6: -Z (bottom) - +Z (top)
 
       SUBROUTINE SENMRT(IDAY,IZONE,ISENS,ISET,IOPT)
 #include "building.h"

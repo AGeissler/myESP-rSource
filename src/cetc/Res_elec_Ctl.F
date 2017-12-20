@@ -308,9 +308,9 @@ C Common for grid rate and grid refund data management
       integer   iFIL_GridRefund     !
 
 C RES (elec) node information
-      common/reselec_enode/IENOD_ACbus
+      common/reselec_enode/IENOD_ACbus,IENOD_DCbus
 
-      integer IENOD_ACbus
+      integer IENOD_ACbus,IENOD_DCbus
 
 C Power-only component information for RES (elec) control
       common/reselec_powoc/IPWC_PVPCU,IPWC_gridconn,IPWC_ACDC,
@@ -649,9 +649,9 @@ C Check if plant domain controls have been adjusted. As battery can
 C cover full load and plant loads (e.g. heat pump) tend to be dominating
 C loads, this seems a plausible precaution
       call eclose ( fBatDemandP_old,
-     &                batDemandP,
-     &                2.0,                            ! 2W tolerance
-     &                bBat_same_signal )
+     &              batDemandP(IPWC_battery),
+     &              2.0,                            ! 2W tolerance
+     &              bBat_same_signal )
 
       if ( bBat_same_signal ) then
 C       Plt controls have not changed, and additional interdomain iteration is unnecessary
@@ -789,6 +789,7 @@ C-------------------------------------------------------------------------------
 
       real      SOC_MAX               !- maximum state of charge of battery
       real      SOC_MIN               !- minimum state of charge of battery
+      real      cycles_used_Li        !- local variable for cycles_used_Lion()
 
       real      cycles_used           !- cycles LiIon battery has already used, for reading from
                                       !- file, used only with legacy ageing model
@@ -1523,7 +1524,7 @@ C-------------------------------------------------------------------------------
                                       ! interrupted
           BDF_lds_per_rec_bin(iBDF) = BDF_lds_per_rec_annual
         CASE(BDF_lds_daily)
-          CALL FPRAND(iFIL_BDF,ISTAT,BDF_lds_per_rec_daily,3,
+          CALL FPRAND(iFIL_BDF(iBDF),ISTAT,BDF_lds_per_rec_daily,3,
      &                'FCloads.tmp')
           BDF_lds_per_rec_bin(iBDF) = BDF_lds_per_rec_daily
         CASE DEFAULT  
