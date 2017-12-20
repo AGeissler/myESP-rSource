@@ -157,7 +157,7 @@ C      threshold value ?? >>
         elseif (RES_elec_ctl_mode .eq. 3) then
           call thermal_follow      ! call up thermal following control
         else                       
-          ! <<shouldn't be possible, i.e. should be cought during read of input file >>
+          ! <<shouldn't be possible, i.e. should be caught during read of input file >>
 C         Give warning and exit this subroutine
           write(outstr,'(2A)') 'Renewable energy system (elec)',
      &       ' undefined control mode was entered -- no control!'
@@ -789,8 +789,6 @@ C-------------------------------------------------------------------------------
 
       real      SOC_MAX               !- maximum state of charge of battery
       real      SOC_MIN               !- minimum state of charge of battery
-      real      cycles_used_Li        !- local variable for cycles_used_Lion()
-
       real      cycles_used           !- cycles LiIon battery has already used, for reading from
                                       !- file, used only with legacy ageing model
 
@@ -1079,14 +1077,14 @@ C     mainly for 2nd life usage ...
 C     Set cycles used only if legacy ageing model is active
       call eclose(POWCDAT(IPWC_battery,82),0,0.01,bLegacyModel)
       if (bLegacyModel) then
-        cycles_used_Lion = cycles_used
+        cycles_used_Lion(IPWC_battery) = cycles_used
       else
         ! do nothing, here
       endif
     ! Check if cycles used equal zero and set abuseFlag accordingly
     ! (avoid resetting of cycles_used_Lion in InitSimulation()
     ! of CETC_BATTERY.F (line 595 ff.))
-      call eclose(cycles_used_Lion,0,0.1,bBatteryNew)
+      call eclose(cycles_used_Lion(IPWC_battery),0,0.1,bBatteryNew)
       if (bBatteryNew) then
         abuseFlag=0
       else
