@@ -4519,8 +4519,8 @@ C Find its category and increment its counter/
      &           mlccatname(loop)(1:lnmlccatname(loop)))then
                 mlccatitems(loop)=mlccatitems(loop)+1
                 IC=loop  ! reset the focus category to one we have copied
-                write(6,*) 'Another item for ',mlccatname(loop),' ',
-     &            mlccatitems(loop),' focus now ',IC
+cx                write(6,*) 'Another item for ',mlccatname(loop),' ',
+cx     &            mlccatitems(loop),' focus now ',IC
               endif
             enddo
 
@@ -4570,8 +4570,8 @@ C Find its category and increment its counter/
               if(mlcincat(NMLC)(1:lncatn).eq.
      &           mlccatname(loop)(1:lnmlccatname(loop)))then
                 mlccatitems(loop)=mlccatitems(loop)+1
-                write(6,*) 'Another item for ',mlccatname(loop),' ',
-     &            loop,mlccatitems(loop)
+cx                write(6,*) 'Another item for ',mlccatname(loop),' ',
+cx     &            loop,mlccatitems(loop)
               endif
             enddo
 
