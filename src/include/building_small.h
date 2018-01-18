@@ -21,7 +21,7 @@ C Type declarations.
       integer MNRS,MNFA,MROW,MCOL,MLAY,MLEV,MGRID,MMTR,MBND,MSNOD
       integer MMAT,MIPVM,MIPVA,MSPS,MDTY,MGTY,MGPER
       integer MCNDV,MCNDC,MPICK,MVAR,MIMG
-      integer MCFC,MSPMRES
+      integer MCFC,MSPMRES,MSPMSPLM
 
 C Geometry.
       PARAMETER (MCOM=32)      !- Zones.
