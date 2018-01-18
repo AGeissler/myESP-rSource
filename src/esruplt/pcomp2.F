@@ -7023,6 +7023,11 @@ C     Variables for iteration in plant loop (?)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
       common/pcnam/pcname(mpcom)
 
+C Description for additional output? ((see esrures/moplnt, line 1183))
+cx      common/adopdesc/adopdsc(mpcom,MPCRES)
+cx      CHARACTER adopdsc*30,
+
+
       COMMON/CLIMIP/QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
 
       COMMON/GSHPvar1/CompMass,AveSpHt,UAMod,CarEffMod,COPa0,COPa1,

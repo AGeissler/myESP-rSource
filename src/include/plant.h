@@ -24,7 +24,8 @@ C Maximum number of plant network matrix coefficients (<= MPCOM * MPCOE)
 C Maximum number of data per component inter-connection (held by CONVAR)
       PARAMETER (MCONVR=4)
 C Maximum number plant component additional output variables
-      PARAMETER (MPCRES=15)
+C See plantdb.h, here MXAOUT is defined, probably should have same value?!
+      PARAMETER (MPCRES=20)
 C Maximum number of plant component CDATA
       PARAMETER (MMISCD=5)
 C Maximum number of nodes per plant component (=ESPpdb:MAXNOD)

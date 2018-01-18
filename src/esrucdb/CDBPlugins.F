@@ -127,7 +127,7 @@ C             new non-zero elements.
 
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
 
-      common/adopdesc/adopdsc(mpcom,15)
+      common/adopdesc/adopdsc(mpcom,MPCRES)
 
       common /datdsc/ mscdsc(madata), cvrdsc(mconvr)
 
