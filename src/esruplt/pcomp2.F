@@ -107,11 +107,11 @@ C
      &             ICONDX(MPCOM,MNODEC,MPCONC)
 
       common/pcnam/pcname(mpcom)       ! Plant component names
-
-      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom) !GF
-      REAL QDATA ! GF
       character*15 pcname
 
+      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom) !GF
+      REAL QDATA,PCAOUT ! GF
+      integer napdat
 
       PARAMETER (SMALL=1.0E-15)
       REAL      COUT(MPCOE)
@@ -771,10 +771,6 @@ C Store "environment" variables future values
          PCTF(ICON1)=CONVAR(ICON1,1)
          PCRF(ICON1)=C1
 
-C Addition output for results analysis.
-         NAPDAT(IPCOMP)=1
-         PCAOUT(IPCOMP,1)=ALPHA
-
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
@@ -938,10 +934,6 @@ C Store "environment" variables future values
         PCTF(ICON2)=CONVAR(ICON2,1)
         PCRF(ICON1)=C1
         PCRF(ICON2)=C2
-
-C Addition output for results analysis.
-        NAPDAT(IPCOMP)=1
-        PCAOUT(IPCOMP,1)=ALPHA
 
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+

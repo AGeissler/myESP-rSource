@@ -3985,7 +3985,6 @@ C Copy new data into IGETNO array if a selection has been made.
                     ITLEN=lnblnk(CUBN(ISFSEL(IG)))
                     IZLEN=lnzname(IZ)
                     ISLEN=lnblnk(SUFFIX)
-cx                    if ((IZLEN+ISLEN).gt.14) IZLEN=14-ISLEN
                     if ((IZLEN+ISLEN+ITLEN).gt.20) IZLEN=16-ISLEN-ITLEN
                     write (GLABEL(NGET),'(3a)')ZNAME(IZ)(1:IZLEN),
      &                        CUBN(ISFSEL(IG))(1:ITLEN),SUFFIX(1:ISLEN)
@@ -4085,7 +4084,6 @@ C                elseif (.not.(MRTLIST.and.IGETNO(NGET,1).eq.23)) then
                     call ZSID(IZ,ISFSEL(IG),ZSDES,ZSDESC,ZSDESS)
                     ITLEN=lnblnk(CUBN(ISFSEL(IG)))
                     ISLEN=lnblnk(SUFFIX)
-cx                    if ((IZLEN+ISLEN).gt.14) IZLEN=14-ISLEN
                     IZLEN=lnzname(IZ)
                     if ((IZLEN+ISLEN+ITLEN).gt.20) IZLEN=20-ISLEN-ITLEN
                     write (GLABEL(NGET),'(3a)')ZNAME(IZ)(1:IZLEN),

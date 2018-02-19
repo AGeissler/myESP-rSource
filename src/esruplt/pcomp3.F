@@ -2480,7 +2480,8 @@ C Heat exchanger common block variables
       COMMON/HEXCH/HINP(MPCOM),HOUTP(MPCOM)
 
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom) !GF
-      REAL QDATA ! GF
+      REAL QDATA,PCAOUT !GF
+      INTEGER napdat !GF
 
       PARAMETER (SMALL=1.0E-15)
       REAL      COUT(MPCOE),K1,K2,HIN,HOUT,HINP,HOUTP

@@ -2675,7 +2675,7 @@ C.....Loop through all components in plant network
 C.......Get the pcName(ii)'s length
         iNodeLength = lnblnk(pcname(ii))
 
-C........Output of additional component data?
+C........Output of additional component data
 cx ag@170913
 
 C........Loop through additional data (NAPDAT(icomp))
@@ -2689,7 +2689,7 @@ cx               write(Node_Num, '(A,I1)') '0', ll
                write(Add_Dat_Num, '(I1)') ll
              else           ! The maximum number of additional items is 15 (plant.h, 170913)
                iAddDatNumLen = 2
-               write(Add_Dat_Num, '(I2)') jj
+               write(Add_Dat_Num, '(I2)') ll
              endif
 
              call AddToReport(
