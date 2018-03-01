@@ -2621,8 +2621,14 @@ C Actuator.
           ELSEIF(iCFCactuator(II,1).EQ.2)THEN
             WRITE(SSTR,'(5a)')'Shade ON/OFF and slat angle(schedule)',
      &       sn(1:lnblnk(sn)),' in ',zn(1:lnblnk(zn)),'.'     
+          ELSEIF(iCFCactuator(II,1).EQ.3)THEN
+            WRITE(SSTR,'(5a)')'Shade ON/OFF and three slat angles ',
+     &       sn(1:lnblnk(sn)),' in ',zn(1:lnblnk(zn)),'.'     
+          ELSEIF(iCFCactuator(II,1).EQ.4)THEN
+            WRITE(SSTR,'(5a)')'Cutoff shade control ',
+     &       sn(1:lnblnk(sn)),' in ',zn(1:lnblnk(zn)),'.'     
           ELSEIF(iCFCactuator(II,1).EQ.9)THEN
-            WRITE(SSTR,'(5a)')'Shade ON/OFF and slat angle via tdf  ',
+            WRITE(SSTR,'(5a)')'Shade ON/OFF and slat angle via tdf ',
      &       sn(1:lnblnk(sn)),' in ',zn(1:lnblnk(zn)),'.'     
           ENDIF
         ENDIF
@@ -3786,6 +3792,7 @@ C Ideal complex fenestration control law.
           cm(3)=CFCmiscdata(II,JJ,KK,3)
           cm(4)=CFCmiscdata(II,JJ,KK,4)
           cm(5)=CFCmiscdata(II,JJ,KK,5)
+cx          cm(6)=CFCmiscdata(II,JJ,KK,6)
 
           if(nint(cm(1)).eq.2)then
 
@@ -3793,6 +3800,7 @@ C Actuator is shading ON/OFF state.
             write(lmsg,'(2a,f9.1,a,f9.1,a,f9.1,a,f9.1)') 
      &        msg1,' [C] shade ON (close) setpoint ',cm(2),
      &        '[C] shade OFF (open) setpoint ',cm(3)
+
           elseif(nint(cm(1)).eq.4)then
 
 C Actuator is slat angle.

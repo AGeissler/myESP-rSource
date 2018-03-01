@@ -2524,12 +2524,14 @@ C ********************************************************************
       real fInc_angle
 
       common/CFCsolarS/RadIncDirS(mcom,ms),RadIncDifS(mcom,ms),
+     &      RadIncDifSky(mcom,ms),RadIncDifGrd(mcom,ms),
      &      transBB_S(mcom,ms),transD_S(mcom,ms),refl_S(mcom,ms),
      &      issur_self_shd(mcom,ms),proang_s(mcom,mcfc,ms),
      &      qtmca_ext(mcom,ms,mn),omega_v_s(mcom,mcfc,ms),
      &      omega_h_s(mcom,mcfc,ms)
-      real RadIncDirS,RadIncDifS,transBB_S,transD_S,refl_S
-      real proang_s,qtmca_ext,omega_v,omega_h,omega_v_s,omega_h_s
+      real RadIncDirS,RadIncDifS,RadIncDifSky,RadIncDifGrd
+      real transBB_S,transD_S,refl_S
+      real proang_s,qtmca_ext,omega_v_s,omega_h_s
       integer issur_self_shd
 
       integer i,j,k,l,nn,nc,ne,icfctp,icomp
@@ -2965,13 +2967,18 @@ C      real slat_angleX
       real shdONsetpoint
       real shdOFFsetpoint
       real shdONslatPOSITION
+      real shdINTslatPOSITION
       real shdOFFslatPOSITION
-      real schedule_slat_angle
+      real schedule_slat_angle,cutoff
       real temp                     ! temperature [C] control parameter - can be dbt, dbt/mrt, sol-air
       real solrad                   ! solar radiation [W/m2] control parameter - can be diff hor, dir norm, total incident on surface
       real tmrt                     ! mrt temperature [C]
       real solrad_dir               ! incident direct solar radiation [W/m2] - returned by sub. get_incident_solrad
       real solrad_diff              ! incident diffuse solar radiation [W/m2] - returned by sub. get_incident_solrad
+      real ang                      ! incident angle of radiation on surface
+      real psazi,pselv              ! solar azimuth and elevation angles relativ to surface
+      real PI,R
+
       character msgout*124
       character*12 cZone_Chars
       character*2  cCFC_Chars
@@ -2981,6 +2988,8 @@ C      real slat_angleX
 C Check if running in dll mode.
       call isadll(dll)
 
+      PI = 4.0 * ATAN(1.0)
+      R=PI/180.
 
 C Prior to initiating control logic, set the default slat angle and 
 C shading state for the next time step in all zones and all CFC types
@@ -3089,6 +3098,7 @@ C Determine actuator type and copy control data to working variables
 C -------------------------------------------------------------------
 
   12      iact1 = iCFCactuator(ictlfun,1)    ! 0=shade ON/OFF, 1=slat angle, 2=both (for schedule)
+                                             ! 3=ON/OFF & three positions, 4=cut-off, 
                                              ! 9=both (read from tdf)
           iact2 = iCFCactuator(ictlfun,2)    ! zone index
           iact3 = iCFCactuator(ictlfun,3)    ! CFC type
@@ -3112,6 +3122,22 @@ C Schedule
      &      INT(CFCmiscdata(ictlfun,idaytype,iperiod,2))
             schedule_slat_angle = 
      &            CFCmiscdata(ictlfun,idaytype,iperiod,3)
+C Actuator controls shade ON/OFF and
+C slat angle of slat-type shade layer between 3 choices
+          elseif(iact1.eq.3)then
+            shdONsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,2)
+            shdOFFsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,3)
+            shdONslatPOSITION =
+     &                       CFCmiscdata(ictlfun,idaytype,iperiod,4)
+            shdINTslatPOSITION =
+     &                       CFCmiscdata(ictlfun,idaytype,iperiod,5)
+            shdOFFslatPOSITION =
+     &                       CFCmiscdata(ictlfun,idaytype,iperiod,6)
+
+          elseif (iact1.eq.4) then
+C           Set points with which "blind down" or not is decided
+            shdONsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,2)
+            shdOFFsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,3)
 
           elseif(iact1.eq.9)then
 C Temporal data file (tdf)
@@ -3216,8 +3242,39 @@ C Determine appropriate solar radiation parameter to use.
 C Check that ext. rad sensor is on external surface.
               if(IE(isen2,isen3).eq.0)then
                 call get_incident_solrad(isen2,isen3,
-     &            solrad_dir,solrad_diff)
+     &                                   solrad_dir,solrad_diff,
+     &                                   ang,psazi,pselv)
                 solrad = solrad_dir + solrad_diff   ! total radiation incident on surface
+
+C=============== CUT OFF =====================================
+                if (iact1.eq.4) then
+C                 Calculate cut-off angle
+C                 Blind assembly tilt angle PELV(icomp,isurf) is defined as
+C                   0∞   for vertical surfaces
+C                  90∞   for horizontal surfaces facing upward ('ceiling') and
+C                 -90∞   for horizontal surfaces facing downward ('floor')
+C                 determin if horizontal or vertical and calc cut-off angle
+                  if (vb_VorH(iact2,iact3)(1:4).eq.'HORZ') then
+                    cutoff=
+     &                 asin( vb_s(iact2,iact3)/vb_w(iact2,iact3)
+     &                       *cos(pselv*R) )/R - pselv
+C                                                pselv = salt - pelv!
+C                   Allow control to horizontal, not negativ (??)
+C                   blind restrictions should be part of the blind description in .cfc IMO !!
+                    if (cutoff.lt.0.0) cutoff=0.0
+C                   check if this facade actually gets direct radiation. If not,
+C                   set blind to a "daylight friendly" angle ... (? 11.07.2011)
+                    if (solrad_dir.le.0.0) cutoff=20.0
+                  else ! vertical venetian type blind
+C *** this needs checking (neg inc angles!) ****
+                    cutoff=     
+     &                 asin( vb_s(iact2,iact3)/vb_w(iact2,iact3)
+     &                       *cos(psazi*R) )/R - psazi
+C                                                psazi = sazi - pazi!
+                  endif
+                endif ! iact1 .eq. 4, aka. "cut-off angle"
+C=============== END CUT OFF ==================================
+
               else
                 write(msgout,'(A,i3)')
      &            'In CFC control function: ', ictlfun
@@ -3226,9 +3283,8 @@ C Check that ext. rad sensor is on external surface.
      &          ,'W')
 C-----------Kill simulation     
                 stop    
-              endif
-          
-            endif
+              endif ! IE .eq. 0
+            endif ! isen1 .eq. -3 ...
 
 C Perform actual control of shade ON/OFF and slat angle here
             if(solrad.gt.shdONsetpoint)then
@@ -3238,14 +3294,46 @@ C Perform actual control of shade ON/OFF and slat angle here
               elseif(iact1.eq.1)then
                 vb_phiNew(iact2,iact3) = shdONslatPOSITION    ! set new slag angle
                 i_shd(iact2,iact3)     = 1                    ! shade state ON
+C             ON/OFF & three angles
+              elseif(iact1.eq.3)then
+                vb_phiNew(iact2,iact3) = shdONslatPOSITION    ! set new slag angle
+                i_shd(iact2,iact3)     = 3                    ! shade state ON, "closed"
+C             Cut-off angle control
+              elseif(iact1.eq.4)then
+                vb_phiNew(iact2,iact3) = cutoff
+                i_shd(iact2,iact3)     = 1                    ! shade state ON (careful: not Radiance-coupling-friendly!!)
               endif
             elseif(solrad.lt.shdOFFsetpoint)then
               if(iact1.eq.0)then
                 vb_phiNew(iact2,iact3) = vb_phi(iact2,iact3)  ! default slat angle
                 i_shd(iact2,iact3)     = 0                    ! shade state OFF
               elseif(iact1.eq.1)then
-                vb_phiNew(iact2,iact3) = shdOFFslatPOSITION   ! set new slag angle
+                vb_phiNew(iact2,iact3) = shdOFFslatPOSITION   ! set new slat angle
                 i_shd(iact2,iact3)     = 1                    ! shade state ON     
+C             ON/OFF & three angles
+              elseif(iact1.eq.3)then
+                vb_phiNew(iact2,iact3) = vb_phi(iact2,iact3)  ! default slat angle
+                i_shd(iact2,iact3)     = 0                    ! shade state OFF
+C             Cut-off angle control
+              elseif(iact1.eq.4)then
+                vb_phiNew(iact2,iact3) = vb_phi(iact2,iact3)  ! default slat angle
+                i_shd(iact2,iact3)     = 0                    ! shade state OFF
+              endif
+            else ! solrad is in interval between off and on set points
+C             ON/OFF & three angles
+              if (iact1.eq.3) then
+                if (solrad.lt.(shdOFFsetpoint+
+     &                        (shdONsetpoint-shdOFFsetpoint)*0.5))then
+                  vb_phiNew(iact2,iact3) = shdOFFslatPOSITION ! set new slat angle
+                  i_shd(iact2,iact3)     = 1                  ! shade state ON, "open" (typ. horiz.)
+                else
+                  vb_phiNew(iact2,iact3) = shdINTslatPOSITION ! set new slat angle
+                  i_shd(iact2,iact3)     = 2                  ! shade state ON, intermediate angle
+                endif
+C             Cut-off angle control
+              elseif(iact1.eq.4)then
+                vb_phiNew(iact2,iact3) = cutoff
+                i_shd(iact2,iact3)     = 1                    ! shade state ON (careful: not Radiance-coupling-friendly!!)
               endif
             endif
 
@@ -3312,13 +3400,16 @@ C     -90 (deg.) < vb_phiNew < 90 (deg.)
           if(vb_phiNew(icomp,icfctp).lt.-89.9.or.vb_phiNew(icomp,icfctp)
      &      .gt.89.9)then
 C Send warning error message and overwrite angle to 89.9 deg.
-            write(outs,'(a,a,i2,a,i3,a)')
-     &        'WARNING: Calculated slat angle for CFC',
-     &        ' type ',icfctp, 'in zone ',icomp, ' is out of range.'
+            write(outs,'(a,f4.1,a,i2,a,i2,a)')
+     &       'WARNING: Calculated slat angle ',vb_phiNew(icomp,icfctp),
+     &       ' deg. for CFC type ',icfctp,
+     &       ' in zone ',icomp,' is out of range.'
             CALL EDISP(IUOUT,outs)
-            write(outs,'(a)')'        Setting slat angle to 89.9 deg. '
+C           set to max. abs value with correct sign ...
+            vb_phiNew(icomp,icfctp)=sign(89.9,vb_phiNew(icomp,icfctp))
+            write(outs,'(a,f4.1,a)')'    Reset slat angle to ',
+     &      vb_phiNew(icomp,icfctp),' deg.'
             CALL EDISP(IUOUT,outs)
-            vb_phiNew(icomp,icfctp)=89.9
           end if
       
   10    continue  
@@ -3392,9 +3483,15 @@ C Calculates direct and diffuse components of solar radiation incident
 C on an external surface (including shading from obstructions).
 C
 C ********************************************************************
-      subroutine get_incident_solrad(icomp,isur,solrad_dir,solrad_diff)
-#include "building.h"    
-      
+      subroutine get_incident_solrad(icomp,isur,solrad_dir, 
+     &                                          solrad_diff, 
+     &                                inc_ang,psazi2,pselv2)
+      IMPLICIT NONE
+#include "building.h"
+#include "CFC_common.h"
+
+      integer icomp,isur
+
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       real SAZI, SALT
       integer ISUNUP
@@ -3407,12 +3504,21 @@ C ********************************************************************
      & pinsst(mcom,mgt,mt,misur)
       integer ISHD, IGCS, IGCI, insst
       real PO,POF,pinsst
-      
+
+      common/CFCsolarS/RadIncDirS(mcom,ms),RadIncDifS(mcom,ms),
+     &      RadIncDifSky(mcom,ms),RadIncDifGrd(mcom,ms),
+     &      transBB_S(mcom,ms),transD_S(mcom,ms),refl_S(mcom,ms),
+     &      issur_self_shd(mcom,ms),proang_s(mcom,mcfc,ms),
+     &      qtmca_ext(mcom,ms,mn),omega_v_s(mcom,mcfc,ms),
+     &      omega_h_s(mcom,mcfc,ms)
+      real RadIncDirS,RadIncDifS,RadIncDifSky,RadIncDifGrd
+      real transBB_S,transD_S,refl_S
+      real proang_s,qtmca_ext,omega_v_s,omega_h_s
+      integer issur_self_shd
+
       real QD, QF       ! future row solar intensity values
       real CAI          ! cosine of angle of incidence
       real ANGI         ! angle of incidence
-      real PSAZI2       ! solar minus surface normal azimuths
-      real PSELV2       ! solar minus surface normal elevations
       real SRADDO       ! direct solar radiation incident on isur (not corrected for shading)
       real SRADF        ! diffuse solar radiation incident on isur (not corrected for shading)
       real skydif       ! sky diffuse component (currently not used here)
@@ -3422,6 +3528,9 @@ C ********************************************************************
       
       real solrad_dir   ! RETURN: direct solar radiation incident on isur and corrected for shading
       real solrad_diff  ! RETURN: diffuse solar radiation incident on isur and corrected for shading
+      real inc_ang      ! RETURN: angle of incidence on surface
+      real PSAZI2       ! RETURN: solar minus surface normal azimuths
+      real PSELV2       ! RETURN: solar minus surface normal elevations
 
       character outs*124
             
@@ -3455,6 +3564,7 @@ C -------------------------------------------------------------------
       if (ISUNUP.EQ.0) then
         solrad_dir = 0.0
         solrad_diff = 0.0
+        inc_ang=90.0
         goto 1000
       endif
 
@@ -3519,6 +3629,12 @@ C Calculate RETURN values.
 C -------------------------------------------------------------------
       solrad_dir = SRADDO*(1.-POO)
       solrad_diff = SRADF*(1.-POFF)
+      inc_ang=ANGI
+
+      RadIncDirS(icomp,isur)=solrad_dir
+      RadIncDifS(icomp,isur)=solrad_diff
+      RadIncDifSky(icomp,isur)=SKYDIF*(1.-POFF)
+      RadIncDifGrd(icomp,isur)=GRDDIF*(1.-POFF)
 
  1000 return
 

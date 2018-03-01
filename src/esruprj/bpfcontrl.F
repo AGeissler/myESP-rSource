@@ -3030,6 +3030,7 @@ C Remember current control type
         SALT(6)= 'senses wind dir.  actuates shade ON/OFF'
         SALT(7)= 'no sensor (schedule only)              '
         SALT(8)= '* not defined *                        '
+cx        SALT(8)= 'senses sol-rad    act. ON/OFF & angle  '
         SALT(9)= 'no sensor (temporal data file)         '
 
         call edisp(iuout,' Current controller type: ')
@@ -3088,7 +3089,7 @@ C Complex fenestration contol law.
         PSALT(1)= 'Basic control      '
         PSALT(2)= 'Schedule           '
         PSALT(3)= '* undefined  *     '
-        PSALT(4)= '* undefined  *     '
+        PSALT(4)= 'Cutoff control     '
         PSALT(5)= '* undefined  *     '
         PSALT(6)= '* undefined  *     '
         PSALT(7)= '* undefined  *     '
@@ -3113,7 +3114,8 @@ C law can be jumped around.
         useold=.false.
         iclawt=-1
   77    if(useold)then
-          if((iclawt.ge.0.and.iclawt.le.2).or.iclawt.eq.9)then
+          if((iclawt.ge.0.and.iclawt.le.2).or.iclawt.eq.4
+     &                                    .or.iclawt.eq.9) then
             iclaw=iclawt
             iCFCctllaw(II,JJ,KK)=iclaw
             useold=.false.
@@ -6161,6 +6163,8 @@ C Complex Fenestration
 C       ian1 = actuator type (0 - shade ON/OFF,
 C                             1 - slat angle,
 C                             2 - schedule,
+C                             3 - three angle choice,
+C                             4 - cut off
 C                             9 - tdf)
 C       ian2 = zone index
 C       ian3 = CFC type index for selected zone
@@ -6198,6 +6202,8 @@ C Check that slat-type shade exists for selected CFC type.
 C       ian1 = actuator type (0 - shade ON/OFF,
 C                             1 - slat angle,
 C                             2 - schedule,
+C                             3 - three angle choice,
+C                             4 - cut off
 C                             9 - tdf)
 C       ian2 = zone index
 C       ian3 = CFC type index for selected zone
@@ -8007,7 +8013,8 @@ C individual items to be edited (in one big block).
           nctlhelp=nbhelp
           
 C Create prompts, min/max values for complex fen. data based on control type
-        
+cx ag@mar18 ... how to add additional CFC control options ??
+
          if(ictyp.eq.1)then     ! senses temp., actuates shade ON/OFF
           nmenulines=3
           prompt1(1)=' '
@@ -8234,6 +8241,7 @@ C -------------------------------------------------------------------
                 elseif(ictype.eq.4)then    ! senses solar radiation, actuates slat angle
                   if((isen1.eq.-3.and.(isen2.eq.4.or.isen2.eq.5))
      &                            .or.isen1.eq.-4)then               
+cx                    if((iact1.eq.1 .or.iact1.eq. 3) .and.ilaw.eq.1)then
                     if(iact1.eq.1.and.ilaw.eq.1)then
                       checkOK=.true.
                     else
