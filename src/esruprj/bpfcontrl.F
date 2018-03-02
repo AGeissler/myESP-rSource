@@ -5845,8 +5845,8 @@ C Build up text strings for the menu.
         WRITE(VERT(1),'(a)')'a shading layer ON/OFF                 '
         WRITE(VERT(2),'(a)')'b slat angle of Venetian blind         '
         WRITE(VERT(3),'(a)')'c shade ON/OFF (& slat angle) schedule '
-        WRITE(VERT(4),'(a)')'d * undefined *                        '
-        WRITE(VERT(5),'(a)')'e * undefined *                        '
+        WRITE(VERT(4),'(a)')'d shade ON/OFF & three slat angles     '
+        WRITE(VERT(5),'(a)')'e shade ON/OFF & slat angle cut off    '
         WRITE(VERT(6),'(a)')'f * undefined *                        '
         WRITE(VERT(7),'(a)')'g * undefined *                        '
         WRITE(VERT(8),'(a)')'h * undefined *                        '
@@ -6205,7 +6205,8 @@ C Check that slat-type shade exists for selected CFC type.
         endif
         CALL EPMENRC
 
-      elseif((ivert.eq.3.or.ivert.eq.9).and.(icfoc.eq.6))then
+      elseif((ivert.eq.3.or.ivert.eq.4.or.ivert.eq.5.or.ivert.eq.9)
+     &                                           .and.(icfoc.eq.6))then
 
 C       ian1 = actuator type (0 - shade ON/OFF,
 C                             1 - slat angle,
@@ -6219,6 +6220,10 @@ C       ian3 = CFC type index for selected zone
 C Actuates slat angle of a slat-type shade
         if (ivert.eq.3) then
           ian1=2
+        elseif (ivert.eq.4) then
+          ian1=3
+        elseif (ivert.eq.5) then
+          ian1=4
         else
           ian1=9
         endif

@@ -3233,7 +3233,7 @@ C Perform actual control of shade ON/OFF and slat angle here.
               endif
             endif
         
-          ELSEIF(ictype.eq.3.or.ictype.eq.4)then    ! senses solar radiation
+          ELSEIF(ictype.eq.3.or.ictype.eq.4.or.ictype.eq.8) then ! senses solar radiation
 
 C Determine appropriate solar radiation parameter to use.
             if(isen1.eq.-3.and.isen2.eq.4)then      ! senses diff. horizontal solar radiation
@@ -3297,10 +3297,19 @@ C Perform actual control of shade ON/OFF and slat angle here
               elseif(iact1.eq.1)then
                 vb_phiNew(iact2,iact3) = shdONslatPOSITION    ! set new slag angle
                 i_shd(iact2,iact3)     = 1                    ! shade state ON
-C             ON/OFF & three angles
+C             ON/OFF & three angles;
+C             shdON is smallest of three values available!
               elseif(iact1.eq.3)then
-                vb_phiNew(iact2,iact3) = shdONslatPOSITION    ! set new slag angle
-                i_shd(iact2,iact3)     = 3                    ! shade state ON, "closed"
+                if (solrad.gt.shdCLSsetpoint)then
+                  vb_phiNew(iact2,iact3) = shdONslatPOSITION  ! set new slat angle
+                  i_shd(iact2,iact3)     = 3                  ! shade state ON, "closed"
+                elseif(solrad.gt.shdMIDsetpoint)then
+                  vb_phiNew(iact2,iact3) = shdINTslatPOSITION ! set new slat angle
+                  i_shd(iact2,iact3)     = 2                  ! shade state ON, intermediate angle
+                else ! solrad between ON and MID
+                  vb_phiNew(iact2,iact3) = shdOFFslatPOSITION ! set new slat angle
+                  i_shd(iact2,iact3)     = 1                  ! shade state ON, "open" 
+                endif
 C             Cut-off angle control
               elseif(iact1.eq.4)then
                 vb_phiNew(iact2,iact3) = cutoff
@@ -3321,22 +3330,6 @@ C             Cut-off angle control
               elseif(iact1.eq.4)then
                 vb_phiNew(iact2,iact3) = vb_phi(iact2,iact3)  ! default slat angle
                 i_shd(iact2,iact3)     = 0                    ! shade state OFF
-              endif
-            else ! solrad is in interval between off and on set points
-C             ON/OFF & three angles
-              if (iact1.eq.3) then
-                if (solrad.lt.(shdOFFsetpoint+
-     &                        (shdONsetpoint-shdOFFsetpoint)*0.5))then
-                  vb_phiNew(iact2,iact3) = shdOFFslatPOSITION ! set new slat angle
-                  i_shd(iact2,iact3)     = 1                  ! shade state ON, "open" (typ. horiz.)
-                else
-                  vb_phiNew(iact2,iact3) = shdINTslatPOSITION ! set new slat angle
-                  i_shd(iact2,iact3)     = 2                  ! shade state ON, intermediate angle
-                endif
-C             Cut-off angle control
-              elseif(iact1.eq.4)then
-                vb_phiNew(iact2,iact3) = cutoff
-                i_shd(iact2,iact3)     = 1                    ! shade state ON (careful: not Radiance-coupling-friendly!!)
               endif
             endif
 

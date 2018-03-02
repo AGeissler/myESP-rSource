@@ -2692,7 +2692,7 @@ C      COMMON/OUTIN/IUOUT,IUIN
 
 C sub-strings for describing multi-sensor flow controls.
       character msg1*24,msg2*24,msg3*24,msg4*24,msg*72,lmsg*248
-      character message*248
+      character message*248,vlmsg*372
       logical oka,okb
       integer I2,I7,I8,I9  ! for plant control decoding
 
@@ -3817,14 +3817,15 @@ C Actuator is slat angle.
           elseif(nint(cm(1)).eq.7)then
 
 C Actuator is on/off and three slat angles.
-            write(lmsg,'(2a,f9.1,6(a,f9.1))')
-     &        msg1,' [W/m2] shade OFF (open) setpoint ',cm(2),
-     &        '[W/m2] shade ON (angle 1) setpoint ',cm(3),
-     &        '[W/m2] shade MID (angle 2) setpoint ',cm(4),
-     &        '[W/m2] shade CLSD (angle 3) setpoint ',cm(5),
-     &        '[deg] open slat angle ',cm(6),
-     &        '[deg] intermed. slat angle ',cm(7),
-     &        '[deg] closed slat angle ',cm(8)
+            write(lmsg,'(2a,f9.1,a,f9.1,a,f9.1,a,f9.1,
+     &                                   a,f9.1,a,f9.1,a,f9.1)')
+     &        msg1,' [W/m2] shade OFF (up) setp. ',cm(2),
+     &        '[W/m2] shade ON setp. ',cm(3),
+     &        '[W/m2] shade MID setp. ',cm(4),
+     &        '[W/m2] shade CLSD setp. ',cm(5),
+     &        '[deg] ON slat angle ',cm(6),
+     &        '[deg] MID slat angle ',cm(7),
+     &        '[deg] CLSD slat angle ',cm(8)
           endif
           call SDELIM(lmsg,message,'S',IW)
 
