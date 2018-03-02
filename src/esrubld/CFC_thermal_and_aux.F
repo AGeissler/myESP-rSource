@@ -2964,7 +2964,7 @@ C      real slat_angleX
       integer ictype                ! control type
       integer ischedule_shdstateONorOFF
       real VAL
-      real shdONsetpoint
+      real shdONsetpoint,shdMIDsetpoint,shdCLSsetpoint
       real shdOFFsetpoint
       real shdONslatPOSITION
       real shdINTslatPOSITION
@@ -3098,7 +3098,7 @@ C Determine actuator type and copy control data to working variables
 C -------------------------------------------------------------------
 
   12      iact1 = iCFCactuator(ictlfun,1)    ! 0=shade ON/OFF, 1=slat angle, 2=both (for schedule)
-                                             ! 3=ON/OFF & three positions, 4=cut-off, 
+                                             ! 3=ON/OFF & three positions, 4=ON/OFF & cut-off,
                                              ! 9=both (read from tdf)
           iact2 = iCFCactuator(ictlfun,2)    ! zone index
           iact3 = iCFCactuator(ictlfun,3)    ! CFC type
@@ -3123,19 +3123,22 @@ C Schedule
             schedule_slat_angle = 
      &            CFCmiscdata(ictlfun,idaytype,iperiod,3)
 C Actuator controls shade ON/OFF and
-C slat angle of slat-type shade layer between 3 choices
+C slat angle of slat-type shade layer between 3 choices.
           elseif(iact1.eq.3)then
-            shdONsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,2)
-            shdOFFsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,3)
-            shdONslatPOSITION =
-     &                       CFCmiscdata(ictlfun,idaytype,iperiod,4)
-            shdINTslatPOSITION =
-     &                       CFCmiscdata(ictlfun,idaytype,iperiod,5)
+            shdOFFsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,2)
+            shdONsetpoint =  CFCmiscdata(ictlfun,idaytype,iperiod,3)
+            shdMIDsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,4)
+            shdCLSsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,5)
             shdOFFslatPOSITION =
      &                       CFCmiscdata(ictlfun,idaytype,iperiod,6)
+            shdINTslatPOSITION =
+     &                       CFCmiscdata(ictlfun,idaytype,iperiod,7)
+            shdONslatPOSITION =
+     &                       CFCmiscdata(ictlfun,idaytype,iperiod,8)
 
+C Actuator controls shade ON/OFF according to setpoints and
+C slat angle for "cut off" setting.
           elseif (iact1.eq.4) then
-C           Set points with which "blind down" or not is decided
             shdONsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,2)
             shdOFFsetpoint = CFCmiscdata(ictlfun,idaytype,iperiod,3)
 
