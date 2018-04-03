@@ -4192,7 +4192,7 @@ C Original averaged capacity before adjustment.
             capouter=thrmli(icomp,isurf,iouter,2)*
      &                               thrmli(icomp,isurf,iouter,3)*
      &                               (thrmli(icomp,isurf,iouter,4)/2.)
-            capinner=thrmli(icomp,isurf,ielem-1,2)*
+            capinner=thrmli(icomp,isurf,iinner,2)*
      &                               thrmli(icomp,isurf,iinner,3)*
      &                               (thrmli(icomp,isurf,iinner,4)/2.)
 
@@ -4222,7 +4222,7 @@ C Cater for an adjacent air gap.
 
 C Average capacity utilising new PCM apparent specific heat.
             capouter=thrmli(icomp,isurf,iouter,2)*
-     &                               appshc*
+     &                               appshc*  ! appsht in t53, but should be correct, here!
      &                               (thrmli(icomp,isurf,iouter,4)/2.)
             capinner=thrmli(icomp,isurf,iinner,2)*
      &                               thrmli(icomp,isurf,iinner,3)*
@@ -4236,7 +4236,7 @@ C Average capacity utilising new PCM apparent specific heat.
 
 C capPCM value at previous time step.
             capouter=thrmli(icomp,isurf,iouter,2)*
-     &                               pcmshtp*shcsol*
+     &                               pcmshtp*shcsol*  !!? shtsol in t53
      &                               (thrmli(icomp,isurf,iouter,4)/2.)
             capinner=thrmli(icomp,isurf,iinner,2)*
      &                               thrmli(icomp,isurf,iinner,3)*
