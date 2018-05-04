@@ -8246,6 +8246,7 @@ C -------------------------------------------------------------------
                   if((isen1.eq.-3.and.(isen2.eq.4.or.isen2.eq.5))
      &                            .or.isen1.eq.-4)then               
                     if((iact1.eq.0.and.ilaw.eq.1).or.
+     &                  (iact1.eq.3.and.ilaw.eq.1).or.
      &                  (iact1.eq.4.and.ilaw.eq.1)) then
                       checkOK=.true.
                     else
