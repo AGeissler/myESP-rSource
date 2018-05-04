@@ -8136,6 +8136,40 @@ cx ag@mar18 ... how to add additional CFC control options ??
           prompt2(3)=''
           ndec(3)=1; vmin(3)=-89.9; vmax(3)=89.9; vdef(3)=45.0
 
+         elseif(ictyp.eq.8)then ! senses solar radiation, actuates ON/OFF and 3 slat angles
+          nmenulines=8
+          prompt1(1)=' '
+          prompt2(1)=' '
+          ndec(1)=-1; vmin(1)=0.0; vmax(1)=0.0; vdef(1)=0.0
+          menu(2)='Shade OFF (open) setpoint (W/m2)'
+          prompt1(2)='Solar radiation (W/m2) below which'
+          prompt2(2)='shade is retracted. '
+          ndec(2)=1; vmin(2)=0.0; vmax(2)=1200.0; vdef(2)=100.0
+          menu(3)='Shade ON (close) setpoint (W/m2)'
+          prompt1(3)='Solar radiation (W/m2) above which shade is'
+          prompt2(3)='deployed at initial slat angle value.'
+          ndec(3)=1; vmin(3)=0.0; vmax(3)=1200.0; vdef(3)=150.0
+          menu(4)='Shade ON (close) setpoint (W/m2)'
+          prompt1(4)='Solar radiation (W/m2) above which slat'
+          prompt2(4)='angle changes to intermediate value.'
+          ndec(4)=1; vmin(4)=0.0; vmax(4)=1200.0; vdef(4)=250.0
+          menu(5)='Shade ON (close) setpoint (W/m2)'
+          prompt1(5)='Solar radiation (W/m2) above which slat'
+          prompt2(5)='angle changes to closed value.'
+          ndec(5)=1; vmin(5)=0.0; vmax(5)=1200.0; vdef(5)=400.0
+          menu(6)='Slat angle (initial) (deg)'
+          prompt1(6)='Slat angle (deg) for shade ON '
+          prompt2(6)='and low radiation. '
+          ndec(6)=1; vmin(6)=-89.9; vmax(6)=89.9; vdef(6)=0.0
+          menu(7)='Slat angle (intermediate) (deg)'
+          prompt1(7)='Slat angle (deg) for shade ON '
+          prompt2(7)='and medium radiation.'
+          ndec(7)=1; vmin(7)=-89.9; vmax(7)=89.9; vdef(7)=45.0
+          menu(8)='Slat angle (closed) (deg)'
+          prompt1(8)='Slat angle (deg) for shade ON '
+          prompt2(8)='and high radiation.'
+          ndec(8)=1; vmin(8)=-89.9; vmax(8)=89.9; vdef(8)=70.0
+
          elseif(ictyp.eq.9)then ! no control, temporal data file
           nmenulines=3
           prompt1(1)=' '
@@ -8258,7 +8292,8 @@ C -------------------------------------------------------------------
                 elseif(ictype.eq.4)then    ! senses solar radiation, actuates slat angle
                   if((isen1.eq.-3.and.(isen2.eq.4.or.isen2.eq.5))
      &                            .or.isen1.eq.-4)then               
-                    if(iact1.eq.1.and.ilaw.eq.1)then
+                    if((iact1.eq.1.and.ilaw.eq.1).or.
+     &                 (iact1.eq.4.and.ilaw.eq.1)) then
                       checkOK=.true.
                     else
                       checkOK=.false.
