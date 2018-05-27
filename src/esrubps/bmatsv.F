@@ -1559,6 +1559,8 @@ C transport miscellaneous simulation data to reporting object
                  if (IAIRN .ne. 0) THEn
                     call H3K_transport_mfn_data()
                  endif
+C << insert (conditional) call to explicit CFC h3k output function here ? >>
+
               endif
 C If TSC type 2 is active then find sum of averages for zone air
 C temperature and zone air energy injection.
