@@ -2977,6 +2977,7 @@ C      real slat_angleX
       real solrad_diff              ! incident diffuse solar radiation [W/m2] - returned by sub. get_incident_solrad
       real ang                      ! incident angle of radiation on surface
       real psazi,pselv              ! solar azimuth and elevation angles relativ to surface
+      real solar_elev               ! profile angle solar elevation
       real PI,R
 
       character msgout*124
@@ -3258,9 +3259,11 @@ C                  90∞   for horizontal surfaces facing upward ('ceiling') and
 C                 -90∞   for horizontal surfaces facing downward ('floor')
 C                 determin if horizontal or vertical and calc cut-off angle
                   if (vb_VorH(iact2,iact3)(1:4).eq.'HORZ') then
+                    call profile_angle(isen2,isen3,iact3,solar_elev)
                     cutoff=
      &                 asin( vb_s(iact2,iact3)/vb_w(iact2,iact3)
-     &                       *cos(pselv*R) )/R - pselv
+     &                       *cos(pselv*R) )/R - solar_elev
+cx     &                       *cos(pselv*R) )/R - pselv
 C                                                pselv = salt - pelv!
 C                   Allow control to horizontal, not negativ (??)
 C                   blind restrictions should be part of the blind description in .cfc IMO !!
