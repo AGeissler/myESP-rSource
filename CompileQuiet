@@ -12,10 +12,10 @@ if [ "$architecture" == "Darwin" ]; then
    echo " "
    echo " OS X system, changing install location to /opt/esru"
    # Compilers
-   CVER="--compiler_version -mp-4.9"
+   CVER="--compiler_version -mp-5"
    LOCATION="-d /opt/esru"
 fi
 
 ./Install $1 $LOCATION --xml          --X11 --no_dbs --no_training $debug $CVER --silent
 #./Install $1 $LOCATION --xml --SQLite --X11 --no_dbs --no_training $debug $CVER --silent
-#./Install $1 $LOCATION --xml           --X11          --no_training $debug $CVER --silent
+#./Install $1 $LOCATION --xml           --X11          --no_training $debug $CVER --silent --force
