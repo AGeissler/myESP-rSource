@@ -3262,7 +3262,7 @@ C                 determin if horizontal or vertical and calc cut-off angle
                     call profile_angle(isen2,isen3,iact3,solar_elev)
                     cutoff=
      &                 asin( vb_s(iact2,iact3)/vb_w(iact2,iact3)
-     &                       *cos(pselv*R) )/R - solar_elev
+     &                       *cos(solar_elev*R) )/R - solar_elev
 cx     &                       *cos(pselv*R) )/R - pselv
 C                                                pselv = salt - pelv!
 C                   Allow control to horizontal, not negativ (??)
