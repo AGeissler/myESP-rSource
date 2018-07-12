@@ -17,16 +17,6 @@ VALdir="${MODdir}/validation"	# Source validation models.
 SRCdir="${HOMEdir}/src"         # Source code directory.
 COSIMdir=" "		        # Harmonizer installation directory.
 
-echo " "
-echo " ESP-r installation script."
-echo " "
-echo " This script creates the ESP-r system based on the source"
-echo " files found in directory ${HOMEdir}"
-echo " and installs the result in directory ${DESTdir}."
-echo " "
-echo " If you are new to this procedure, you are advised to consult"
-echo " file ${SRCdir}/Readme before proceeding." 
-
 # Compilation settings.
 mode="interactive"         # Provide feedback during installation. 
 xml_support="no"           # Support for XML output.
@@ -147,6 +137,16 @@ if [ $# -ne 0 ]; then
       fi
    done
 fi
+
+echo " "
+echo " ESP-r installation script."
+echo " "
+echo " This script creates the ESP-r system based on the source"
+echo " files found in directory ${HOMEdir}"
+echo " and installs the result in directory ${DESTdir}."
+echo " "
+echo " If you are new to this procedure, you are advised to consult"
+echo " file ${SRCdir}/Readme before proceeding."
 
 # If Targets is empty, build all programs.
 if [ "${targets}" = " " ]; then
@@ -2086,7 +2086,7 @@ elif [ ${MCTYPE} = mingw ]; then
 fi
 
 # Temporary.
-ln -sf ${ESPDIR}/bin/mrt ${ESPdir}/bin/vwf
+ln -sf ${ESPdir}/bin/mrt ${ESPdir}/bin/vwf
 
 echo " "
 echo " Installation complete."
