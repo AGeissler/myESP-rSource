@@ -32,7 +32,7 @@ C Geometry.
       PARAMETER (MV=120)       !- Vertices/surface.
       PARAMETER (MST=MS)       !- Used with view factors.
       PARAMETER (MSM=MS+6)     !- Used with view factors.
-      PARAMETER (MBL=15)       !- Base surfaces/zone.
+      PARAMETER (MBL=20)       !- Base surfaces/zone.
 
 C Ground topology.
       PARAMETER (MGRT=400)     !- Surfaces.

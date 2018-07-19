@@ -3821,14 +3821,14 @@ C      CHARACTER LAPROB*72
       COMMON/mfctl/ctlpos(MCNN)
       REAL ctlpos
 
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
+C      COMMON/MFLOW1/NNOD,NCMP,NCNN
 C Network size
-      integer     NNOD  !  - number of nodes (building zones and/or plant components)
-      Integer     NCMP  ! - number of fluid flow components (flow restrictions)
-      integer     NCNN  ! - number of interconnections (branches)
+C      integer     NNOD  !  - number of nodes (building zones and/or plant components)
+C      Integer     NCMP  ! - number of fluid flow components (flow restrictions)
+C      integer     NCNN  ! - number of interconnections (branches)
 C
-      COMMON/MFLOW2/NDNAM(0:MNOD)
-      character*12  NDNAM  ! - identifier/name
+C      COMMON/MFLOW2/NDNAM(0:MNOD)
+C      character*12  NDNAM  ! - identifier/name
 C
 C (in net_flow_data.h)     COMMON/MFLOW3/NDFLD(MNOD),NDTYP(MNOD),HNOD(MNOD,3),
 C     & SUPNOD(MNOD,MNDS)
