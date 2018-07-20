@@ -17,16 +17,6 @@ VALdir="${MODdir}/validation"	# Source validation models.
 SRCdir="${HOMEdir}/src"         # Source code directory.
 COSIMdir=" "		        # Harmonizer installation directory.
 
-echo " "
-echo " ESP-r installation script."
-echo " "
-echo " This script creates the ESP-r system based on the source"
-echo " files found in directory ${HOMEdir}"
-echo " and installs the result in directory ${DESTdir}."
-echo " "
-echo " If you are new to this procedure, you are advised to consult"
-echo " file ${SRCdir}/Readme before proceeding." 
-
 # Compilation settings.
 mode="interactive"         # Provide feedback during installation. 
 xml_support="no"           # Support for XML output.
@@ -53,7 +43,7 @@ extendedDebug="no"         # Extended debugging.
 use_intel="no"             # Use Intel compilers.
 skip_ish_calcs="no"        # Binary shading file creation.
 reuse_ish_calcs="yes"      # Map ascii shading files to binary.
-clean="yes"                # Clean object files after compilation.
+clean="no"                # Clean object files after compilation.
 unversioned="no"           # Check for versioning info.
 
 # ESP-r executables (bld & plt not included by default because their
@@ -148,6 +138,16 @@ if [ $# -ne 0 ]; then
       fi
    done
 fi
+
+echo " "
+echo " ESP-r installation script."
+echo " "
+echo " This script creates the ESP-r system based on the source"
+echo " files found in directory ${HOMEdir}"
+echo " and installs the result in directory ${DESTdir}."
+echo " "
+echo " If you are new to this procedure, you are advised to consult"
+echo " file ${SRCdir}/Readme before proceeding."
 
 # If Targets is empty, build all programs.
 if [ "${targets}" = " " ]; then
