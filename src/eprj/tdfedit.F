@@ -459,9 +459,7 @@ C Free the scratch file. If the file name ends with temporalscratch remove it.
         lnts=lnblnk(LTDF)
         if(LTDF(lnts-15:lnts).eq.'.temporalscratch')then
           call usrmsg('Deleting scratch file...',LTDF,'P')
-          call EFOPRAN(iutdf,LTDF,ITWPR,1,IER)
-
-C << for some reason efdelet does not actually remove the file?? >>
+          call EFOPRAN(iutdf,LTDF,1,1,IER)
           if(ier.eq.0)then
             CALL EFDELET(iutdf,ISTAT)
             call usrmsg('Deleting scratch file...done.',LTDF,'P')

@@ -150,7 +150,7 @@ strip:
 	strip $(PROG)
 
 install:
-	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG2)
+	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \

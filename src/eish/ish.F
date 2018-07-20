@@ -357,7 +357,6 @@ C Open the text display box equal to limtty if mmod = 8.
      &    iigl,iigr,iigt,iigb,iigw,iigwh)
         igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
         igw=int(iigw); igwh=int(iigwh)
-C        write(6,*) 'igw igwh igl igb',igw,igwh,igl,igb
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1)then
           call opencpw
@@ -555,7 +554,7 @@ C to also fill data structures for obstructions.
             mode='ALL '
             call ersys_mmode(lcfgf,ifcfg,iairp,mode,0,ier,silent)
             if(ier.eq.3)then
-              call usrmsg('Model is to complex - exiting ish',' ','W')
+              call usrmsg('Model is too complex - exiting ish',' ','W')
               call epagend
               stop
             endif

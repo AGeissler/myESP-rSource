@@ -168,8 +168,8 @@ C Commons from mocfd.F (RDCFDAT)
       character LCFDV*72
       character t24*24
 
-      character cVnum*16      ! returned from ESPrVersionNum
-      character pagestitle*42 ! for banner title via epages call
+      character cVnum*32      ! returned from ESPrVersionNum
+      character pagestitle*62 ! for banner title via epages call
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT
       LOGICAL IZEROT,IZanKE,IMITZ
@@ -324,7 +324,7 @@ C Default lisolv.
 C Determine terminal type and set write unit to stderr for rule scripts.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=550
+        iappw=600
         iappx=90
         iappy=50
       else

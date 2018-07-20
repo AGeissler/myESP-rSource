@@ -447,7 +447,7 @@ C and change any / to \.
 
           write(doit,'(7a)') 'espvwf -mode ',tmode,
      &       ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
-     &       ' -zone ',ZN(1:lnblnk(ZN)),' & '
+     &       ' -zone ',ZN(1:lnblnk(ZN)),' &'
           call usrmsg(doit,'starting vwf analysis.','-')
           call runit(doit,tmode)
         endif
@@ -494,6 +494,7 @@ C If output to file alter the edisp unit number.
         call edisp(itru,' ')
       endif
 
+      ok=.false.
       if (IMRT.ne.0) then
 C Put sensor MRT in GVAL.
         ISET=ISIM

@@ -73,30 +73,10 @@ C Make a menu of available generic items.
       INO=IVALSS(1)
       IFG=IVALSS(1)
 C Debug.
-      write(6,*) 'picked ',ifg,ino
+C      write(6,*) 'picked ',ifg,ino
 
       RETURN
       
-C      INO=-2
-C   14 nitms=m+2
-C      CALL EMENU('Available temporal types',ISGGT,nitms,INO)
-C      IF(INO.EQ.M+2)THEN
-C        IFG=0     ! signal nothing selected
-C        RETURN
-C      ELSEIF(INO.EQ.M+1)THEN
-
-C Help text...
-C      ELSEIF(INO.GE.2.AND.INO.LE.M+1)THEN
-C        IFG=IVAL(INO)   ! decode menu position back to item
-
-C Debug.
-C        write(6,*) 'picked ',ifg,ino
-
-C        RETURN
-C      ELSE
-C        INO=-1
-C        GOTO 14
-C      ENDIF
 
       END
 

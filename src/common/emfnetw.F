@@ -1504,13 +1504,7 @@ C Markdown flag.
       logical written
 
       CALL EDISP(itru,' ')
-      if(markdown)then
-        CALL EDISP(itru,'## Flow network description  ')
-        CALL EDISP(itru,'The model includes a mass flow network. ')
-        CALL EDISP2tr(itru,'The details are shown below.  ')
-      else
-        CALL EDISP(itru,' Flow network description. ')
-      endif
+      CALL EDISP(itru,' Flow network description. ')
       CALL EDISP(itru,' ')
 
 C Number of nodes, components and interconnections.
@@ -1520,64 +1514,49 @@ C Number of nodes, components and interconnections.
       CALL EDISP(itru,outs)
 
 C Node data.
-      IF(NNOD.gt.0) then
-        if(markdown)then
-          call edisp(itru,' ')
-          call edisp(itru,': Network summary')
-          call edisp(itru,' ')
-          WRITE(outs,'(2A)')
-     &'   # Node        Fluid   Node Type            X       Y       ',
-     &'Z       Temperature Data_1  Data_2'
-          CALL EDISP(itru,outs)
-          WRITE(outs,'(2A)')
-     &' --- ----------- -----  -------------------   ------  ------  ',
-     &'------  ----------- ------  ------ ---- -------'
-          CALL EDISP(itru,outs)
-        else
-          WRITE(outs,'(A,A)')'   # Node       Fluid   Node Type      ',
-     &'        X Y Z Position      Temperature    Data_1        Data_2'
-          CALL EDISP(itru,outs)
-        endif
+      IF(NNOD.EQ.0) GOTO 999
+      WRITE(outs,'(A,A)')'   # Node      Fluid   Node Type',
+     &  '           Height Temperature    Data_1       Data_2'
+      CALL EDISP(itru,outs)
 
-        DO 30 INOD=1,NNOD
-          if(NDFLD(INOD).eq.1)then
-            fldtyp='air   '
-          elseif(NDFLD(INOD).eq.2)then
-            fldtyp='water '
-          endif
-          if(NDTYP(INOD).eq.0)then
-            nodtyp='internal & unknown  '
-            dat1='(-) '
-            dat2='vol '
-          elseif(NDTYP(INOD).eq.1)then
-            nodtyp='internal & known    '
-            dat1='(Pa)'
-            dat2='vol '
-          elseif(NDTYP(INOD).eq.2)then
-            nodtyp='boundary & known    '
-            dat1='(Pa)'
-            dat2='(-) '
-          elseif(NDTYP(INOD).eq.3)then
-            nodtyp='boundary & wind ind '
-            dat1='coef'
-            dat2='azim'
-          endif
-          IF(ITND(INOD).EQ.0) THEN
-            WRITE(outs,1030)
+      DO 30 INOD=1,NNOD
+        if(NDFLD(INOD).eq.1)then
+          fldtyp='air   '
+        elseif(NDFLD(INOD).eq.2)then
+          fldtyp='water '
+        endif
+        if(NDTYP(INOD).eq.0)then
+          nodtyp='internal & unknown  '
+          dat1='(-) '
+          dat2='vol '
+        elseif(NDTYP(INOD).eq.1)then
+          nodtyp='internal & known    '
+          dat1='(Pa)'
+          dat2='vol '
+        elseif(NDTYP(INOD).eq.2)then
+          nodtyp='boundary & known    '
+          dat1='(Pa)'
+          dat2='(-) '
+        elseif(NDTYP(INOD).eq.3)then
+          nodtyp='boundary & wind ind '
+          dat1='coef'
+          dat2='azim'
+        endif
+        IF(ITND(INOD).EQ.0) THEN
+          WRITE(outs,1030)
      &      INOD,NDNAM(INOD),fldtyp,nodtyp,HNOD(INOD,1),HNOD(INOD,2),
      &      HNOD(INOD,3),TNOD(INOD),dat1,SUPNOD(INOD,1),dat2,
      &      SUPNOD(INOD,2)
-          ELSE
-            WRITE(outs,10301)
+        ELSE
+          WRITE(outs,10301)
      &      INOD,NDNAM(INOD),fldtyp,nodtyp,HNOD(INOD,1),HNOD(INOD,2),
      &      HNOD(INOD,3),NDNAM(ITND(INOD)),dat1,SUPNOD(INOD,1),dat2,
      &      SUPNOD(INOD,2)
-          END IF
-          call edisp(itru,outs)
-   30   CONTINUE
- 1030   FORMAT(I4,1X,A,1x,2a,3F8.4,1X,G12.5,1X,a,F9.3,2X,a,F8.3)
-10301   FORMAT(I4,1X,A,1x,2a,3F8.4,1X,A12,1X,a,F9.3,2X,a,F8.3)
-      ENDIF
+        END IF
+        call edisp(itru,outs)
+   30 CONTINUE
+ 1030 FORMAT(I4,1X,A,1x,2a,3F8.4,1X,G12.5,1X,a,F9.3,2X,a,F8.3)
+10301 FORMAT(I4,1X,A,1x,2a,3F8.4,1X,A12,1X,a,F9.3,2X,a,F8.3)
 
 C Component data.
       IF(NCMP.gt.0)then
@@ -1601,22 +1580,14 @@ C Component data.
             WRITE(outs,'(1x,a,i5,i3,i3,1x,a)')CMNAM(ICMP),
      &        ITPCMP(ICMP),ISDCMP(ICMP),ISDCNN(ICMP),LTPCMP(ICMP)
           endif
-          if(markdown)then
-            CALL EDISP2tr(ITRU,OUTS)
-          else
-            CALL EDISP(ITRU,OUTS)
-          endif
+          CALL EDISP(itru,outs)
           if(IAIRN.eq.3)then
             lnczn=lnblnk(CMPASSOC(ICMP,1))
             lncsn=lnblnk(CMPASSOC(ICMP,2))
             write(outs,'(4a)') ' Associated with ',
      &        CMPASSOC(ICMP,1)(1:lnczn),':',
      &        CMPASSOC(ICMP,2)(1:lncsn)
-            if(markdown)then
-              CALL EDISP2tr(ITRU,OUTS)
-            else
-              CALL EDISP(ITRU,OUTS)
-            endif
+            CALL EDISP(ITRU,OUTS)
           endif
 
 C Provide a heading string for each different component type.
@@ -1672,15 +1643,13 @@ C Provide a heading string for each different component type.
             written=.true.
           ELSE IF(ITPCMP(ICMP).EQ. 40) THEN
             WRITE(outs,'(a,F4.1,a,F7.3,a,F6.3)')' Fluid ',
-     &      SUPCMP(ICMP,1),
-     &      ' opening area (m^2)',SUPCMP(ICMP,2),
+     &      SUPCMP(ICMP,1),' opening area (m^2)',SUPCMP(ICMP,2),
      &      ' discharge factor (-)',SUPCMP(ICMP,3)
             CALL EDISP(itru,outs)
             written=.true.
           ELSE IF(ITPCMP(ICMP).EQ. 50) THEN
             WRITE(outs,'(a,F4.1,a,F7.3,a,F7.3)')' Fluid ',
-     &      SUPCMP(ICMP,1),
-     &      ' path length(m)',SUPCMP(ICMP,2),
+     &      SUPCMP(ICMP,1),' path length(m)',SUPCMP(ICMP,2),
      &      ' opening radius(m)',SUPCMP(ICMP,3)
             CALL EDISP(itru,outs)
             written=.true.
@@ -1691,14 +1660,12 @@ C Provide a heading string for each different component type.
             written=.true.
           ELSE IF(ITPCMP(ICMP).EQ.120) THEN
             WRITE(outs,'(a,F4.1,a,F8.4,a,F7.3)')' Fluid ',
-     &      SUPCMP(ICMP,1),
-     &      ' crack width(m)',SUPCMP(ICMP,2),' crack length(m)',
-     &      SUPCMP(ICMP,3)
+     &      SUPCMP(ICMP,1),' crack width(m)',SUPCMP(ICMP,2),
+     &      ' crack length(m)',SUPCMP(ICMP,3)
             CALL EDISP(itru,outs)
             written=.true.
           ELSE IF(ITPCMP(ICMP).EQ.130) THEN
-            WRITE(outs,'(a,F4.1,a,F6.3,a,F6.3,a,F6.3,a,F5.3)')
-     &      ' Fluid ',
+            WRITE(outs,'(a,F4.1,a,F6.3,a,F6.3,a,F6.3,a,F5.3)')' Fluid ',
      &      SUPCMP(ICMP,1),' width ',SUPCMP(ICMP,2),' height',
      &      SUPCMP(ICMP,3),' ref ht ',SUPCMP(ICMP,4),
      &      ' discharge factor ',SUPCMP(ICMP,5)
@@ -1768,13 +1735,13 @@ C If not already written out.
           if(.NOT.written)then
             if(ISDCMP(ICMP).LE.9)then
               WRITE(outs,'(F5.1,8F9.3)')
-     &          (SUPCMP(ICMP,I), I=1,ISDCMP(ICMP))
+     &          (SUPCMP(ICMP,I),I=1,ISDCMP(ICMP))
               CALL EDISP(itru,outs)
             elseif(ISDCMP(ICMP).GT.9)then
-              WRITE(outs,'(F5.1,8F8.2)')(SUPCMP(ICMP,I), I=1,9)
+              WRITE(outs,'(F5.1,8F8.2)')(SUPCMP(ICMP,I),I=1,9)
               CALL EDISP(itru,outs)
               WRITE(outs,'(5x,9F8.2)')
-     &          (SUPCMP(ICMP,I), I=10,ISDCMP(ICMP))
+     &          (SUPCMP(ICMP,I),I=10,ISDCMP(ICMP))
               CALL EDISP(itru,outs)
             endif
           endif
@@ -1784,24 +1751,11 @@ C If not already written out.
 C Connections data
       IF(NCNN.gt.0) then
         CALL EDISP(itru,' ')
-        if(markdown)then
-          call edisp(itru,' ')
-          call edisp(itru,': Connection summary')
-          call edisp(itru,' ')
-          WRITE(outs,'(2A)')
-     &    '   # +Node         dHght   -Node         dHght   ',
-     &    'Component       Z @+    Z @-'
-          CALL EDISP(itru,outs)
-          WRITE(outs,'(2A)')
-     &    ' --- ------------ -------  -----------  -------  ',
-     &    '------------   ------  ------'
-          CALL EDISP(itru,outs)
-        else
-          WRITE(outs,'(2a)') 
+        WRITE(outs,'(2a)') 
      &    '    # +Node         dHght   -Node         dHght',
      &    '   Component       Z @+    Z @-'
-          CALL EDISP(itru,outs)
-        endif
+        CALL EDISP(itru,outs)
+
         DO 70 ICNN=1,NCNN
           zplus=HNOD(NODPS(ICNN),3)+HGTPS(ICNN)
           zminus=HNOD(NODNE(ICNN),3)+HGTNE(ICNN)
@@ -1818,34 +1772,25 @@ C<< Plant and air flow node mapping to be added
         IHEAD2=0
         DO 234 IC=1,NCOMP
           IF(IHEAD1.NE.1)THEN
-            if(markdown)then
-              call edisp(itru,' ')
-              CALL EDISP2tr(ITRU,'thermal zone -> air flow node  ')
-            else
-              CALL EDISP(ITRU,'thermal zone to air flow node mapping:')
-              CALL EDISP(ITRU,'thermal zone -> air flow node')
-            endif
+            CALL EDISP(ITRU,'thermal zone to air flow node mapping:')
+            CALL EDISP(ITRU,'thermal zone -> air flow node')
             IHEAD1=1
           ENDIF
           IF(ICAAS(IC).NE.0)THEN
             WRITE(OUTS,'(3A)')ZNAME(IC),' -> ',NDNAM(ICAAS(IC))
-            if(markdown)then
-              CALL EDISP2tr(ITRU,OUTS)
-            else
-              CALL EDISP(ITRU,OUTS)
-            endif
+            CALL EDISP(ITRU,OUTS)
           ELSE
-            WRITE(OUTS,'(3A)')ZNAME(IC),' -> ',
-     &        'node not defined'
-            if(markdown)then
-              CALL EDISP2tr(ITRU,OUTS)
-            else
-              CALL EDISP(ITRU,OUTS)
-            endif
+            WRITE(OUTS,'(3A)')ZNAME(IC),' -> ','node not defined'
+            CALL EDISP(ITRU,OUTS)
           ENDIF
  234    CONTINUE
       endif
-      RETURN
+ 100  RETURN
+
+C Error trap
+  999 CALL USRMSG(' ',' MFLIST: no more information available!','W')
+      GOTO 100
+
       END
 
 C***** Error checking.
@@ -2306,8 +2251,10 @@ C 1070 FORMAT(1X,A12,F7.3,3X,A12,F7.3,3X,A12,3X,A12,1X,A12)
           ln_pos=lnblnk(NDNAM(NODPS(ICNN)))
           ln_neg=lnblnk(NDNAM(NODNE(ICNN)))
           ln_cmp=lnblnk(CMNAM(ITPCON(ICNN)))
-          write(6,*) 'connection additional ',icnn,itpcon(icnn),
-     &      ISDCNN(ITPCON(ICNN))
+
+C Debug.
+C          write(6,*) 'connection additional ',icnn,itpcon(icnn),
+C     &      ISDCNN(ITPCON(ICNN))
           if(ISDCNN(ITPCON(ICNN)).eq.0)then
             write(outs,'(4a,F7.3,3a,F7.3,2a)') '*cnn',tab,
      &        NDNAM(NODPS(ICNN))(1:ln_pos),tab,HGTPS(ICNN),tab,

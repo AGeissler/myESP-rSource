@@ -248,11 +248,11 @@ C Path to model and command line file name.
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
 C Temporal definition commons.
-C For each timestep (assuming 60tsph frequency over a year) iknowrec
+C For each timestep (assuming 10tsph frequency over a year) iknowrec
 C will be zero if not yet set and a positive number representing the record
 C to read from the temporal file if already known.
       integer iknowrec,itdflastrec,itdfprevrec
-      common/tdfhash/iknowrec(525600,4),itdflastrec,itdfprevrec
+      common/tdfhash/iknowrec(87600,4),itdflastrec,itdfprevrec
 
       INTEGER :: ispmxist
 
@@ -306,10 +306,6 @@ C Mechanical Ventilation systems.
 
 C For reading in of bi-directional data.
       COMMON/BIDIRFL/bidirfile,bidirname(MSTMC)
-
-C Toggle for extreme silent running (endless) mode.
-      logical endless,issilient
-      common/endlessmode/endless,issilient
 
       CHARACTER*72 LGrdSt
 
@@ -434,17 +430,9 @@ C Find the path and local file name.
 C Use supplementary temporary unit number for IAPROB
         IAPROB=IFIL+22
         MODE='ALL '
-        if(endless.or.issilient)then
-          continue
-        else
-          call usrmsg('Scanning the model description...',' ','-')
-        endif
+        call usrmsg('Scanning the model description...',' ','-')
         CALL ERSYS_mmode(LCFGF,ifcfg,IAPROB,MODE,ITRC,IER,autook)
-        if(endless.or.issilient)then
-          continue
-        else
-          call usrmsg('Scanning the model description...done ',' ','-')
-        endif
+        call usrmsg('Scanning the model description...done ',' ','-')
 
 C Building and plant description now complete.
 C Unless error occured, initiate computation/setting-up of:
@@ -599,11 +587,7 @@ C Report specified start-up period.
       write(outs,'(a,I3,a)')
      &     'A systems and building simulation start-up period of ',
      &     ITCNST,' days has been specified.'
-      if(endless.or.issilient)then
-        continue
-      else
-        call edisp(iuout,outs)
-      endif
+      call edisp(iuout,outs)
 
       IF(GRND3D)THEN
 
@@ -920,12 +904,8 @@ C Take into account weather file location.
             READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)CLMLOC
             WRITE(OUTSTR,1000)CLMLOC,ICYEAR
  1000       FORMAT(' Climate data: ',A30,': ',I5)
-            if(endless.or.issilient)then
-              continue
-            else
-              CALL EDISP(IUOUT,' ')
-              CALL EDISP(IUOUT,OUTSTR)
-            endif
+            CALL EDISP(IUOUT,' ')
+            CALL EDISP(IUOUT,OUTSTR)
             IRTYPE=0
             IF(ICDNGH.EQ.123)IRTYPE=1
    
@@ -1137,26 +1117,6 @@ C Simulator parameters.
       LOGICAL     spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
      &  startupok
 
-C Toggle for extreme silent running (endless) mode.
-      logical endless,issilient
-      common/endlessmode/endless,issilient
-
-C Uncertainties
-      character USETNAME*96   ! the synopsis for each MC-run
-      character uheader*1000  ! header including name of each uncertainty changed
-      character urunvals*1000 ! attribute changed-to value of each uncertainty
-                              ! change for the run.
-      COMMON/USETN/USETNAME(MNRS),uheader,urunvals
-
-C Logical flag for uncertainty header has been printed.
-      logical uncertheadprinted
-      common/uncerthead/uncertheadprinted
-      logical headerdone
-      logical itemunique  ! should we include in fort.37
-      integer itemsinheader,nbpastitems,nbdatahits
-      character pastphrase*42
-      common/uhead/headerdone,itemunique(20),pastphrase(20),
-     &  itemsinheader,nbpastitems,nbdatahits
 
       CHARACTER*72 LMOIST,LMSTR
       character outs*124,CXSTR*78,spflnam*72
@@ -1177,28 +1137,15 @@ C Zone-by-zone. Use IUNIT for geometry file.
 
 C Clear igarray() for inbuilt ground temps and iguarray()
 C for user defined ground temps. 
-      igttype=0
-      do 9 ij=1,mgrdp
-        igarray(ij)=0
-        if(ij.le.12) iguarray(ij)=0
-  9   continue
-      if(endless.or.issilient)then
-        continue
-      else
-        call usrmsg(' Checking zone descriptions... ',' ','-')
-      endif
+       igttype=0
+       do 9 ij=1,mgrdp
+         igarray(ij)=0
+         if(ij.le.12) iguarray(ij)=0
+  9    continue
+      call usrmsg(' Checking zone descriptions... ',' ','-')
       ILTHPS=.FALSE.
       BLDG3D=.FALSE.
       MSTROK=.FALSE.
-
-C If there are uncertainties then clear the fort.36 and fort.37 header.
-C      if (ISIM.gt.1.and.IMET.gt.0) then
-C        uheader='  '
-C        urunvals='  '
-C        headerdone=.false.; itemsinheader=0
-C        uncertheadprinted=.false.
-C      endif
-
       DO 10 I=1,NCOMP
         IZ=I
         MNDZ(IZ)=0
@@ -1278,13 +1225,7 @@ C Open any timestep based utility files.
         endif
         IF(ZONE3D(IZ))BLDG3D=.TRUE.
 
-C Now alter properties for uncertainty analysis.
-
-C << If the first zone clear the header and data reporting buffers.
-C << idea set headerdone to false and clear the header buffer
-C << strings somewhere above
-C << If the last zone write completed header and data reports to fort.37.
- 
+C Now alter properties for uncertainty analysis. 
         if (ISIM.gt.1) then
           if (IMET.eq.1) then
             call DSA(IZ)
@@ -1343,22 +1284,14 @@ C Assign two nodes per layer.
         CALL MZCOE1(IZ)
         IF(ICGC(IZ).EQ.1)CALL DAYFAC(IZ)
    10 CONTINUE
-      if(endless.or.issilient)then
-        continue
-      else
-        call usrmsg(' Checking zone descriptions...done ',' ','-')
-      endif
+      call usrmsg(' Checking zone descriptions...done ',' ','-')
       if (IREP.eq.1) return
 
 C Check connections between type 3 surfaces to ensure
 C no mismatch.
       IW=IWARN
       IWARN=0
-      if(endless.or.issilient)then
-        continue
-      else
-        call usrmsg(' Checking model topology...',' ','-')
-      endif
+      call usrmsg(' Checking model topology...',' ','-')
       call ckcurmatch(prob,iprob)
       if(prob.and.iprob.gt.1)then
         outs='More than one complaint about model contiguity'
@@ -1581,11 +1514,7 @@ C matched does not).
         endif
    20 continue
       IWARN=IWARN+IW
-      if(endless.or.issilient)then
-        continue
-      else
-        call usrmsg(' Checking model topology...done',' ','-')
-      endif
+      call usrmsg(' Checking model topology...done',' ','-')
 
 C Find out which was most often used in terms of ground temperatures.
       igmax=0
@@ -1817,7 +1746,7 @@ C the actions of the controller.
      &        '.rec'
             IACC(ICFD) = IFIL + 29 + (ICFD-1)*100
 C Debug
-c            write(6,*) 'MZUTIL (ICFD,lfil,IACC)',ICFD,lfil,iacc(ICFD)
+C            write(6,*) 'MZUTIL (ICFD,lfil,IACC)',ICFD,lfil,iacc(ICFD)
             call efopseq(IACC(ICFD),lfil,4,ier)
             if(ier.ne.0)then
               write(outs,'(a,i2,a)') 
@@ -1875,7 +1804,6 @@ C *Save option - 1,2,3,4
 C *Results - building results file
 C *Flow_results - air flow results file
 C *Plant_results - plant results file
-C *CFD results file
 
 C Climate and control are as specified in the configuration file.
 

@@ -204,10 +204,10 @@ C Get bounds for image.
 C Determine scaling ratios for the drawing and axis.
 C Determine the 2D coords of the site extremes.
           CALL SITE2D(SXMX,SXMN,SYMX,SYMN,ier)
-          write(6,*) SXMX,SXMN,SYMX,SYMN
+C          write(6,*) SXMX,SXMN,SYMX,SYMN
           CALL axiscale(igwid,igheight,SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,
      &      Xadd,Yadd)
-          write(6,*) SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,Xadd,Yadd
+C          write(6,*) SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,Xadd,Yadd
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
 
 C Read 3D flow network, report contents and draw the network.
@@ -898,10 +898,6 @@ C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
       common/getmenu/menutype,igetind(65),igetflux(65)
 
-C Markdown flag.
-      logical markdown
-      common/markdownflag/markdown
-
       logical libheading ! have we printed report heading (library name etc).
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
@@ -986,69 +982,19 @@ C Set header text and write it out if this has not yet been done.
       CALL HDSTEP(SDESCR)
       call edisp(itru,' ')
       lsn1=MIN0(lnblnk(RFILE),42)
-      if((.NOT.libheading).and.(.NOT.headingcontext))then
-        libheading=.true.; headingcontext=.true.
-        if(NSIM.gt.1)then
-          if(markdown)then
-            write(outs,'(2a)') '# Performance Report for ',
-     &        RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
-            call edisp(itru,outs)
-	    
-            write(outs,'(3A,I4)')'### Library ',RFILE(1:lsn1),
-     &        ' Set:',ISIM
-            call edisp(itru,outs)
-          else
-            WRITE(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
-            call edisp(itru,outs)
-          endif
-        else
-          if(markdown)then
-            write(outs,'(2a)') '# Performance Report for ',
-     &        RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
-            call edisp(itru,outs)
-            write(outs,'(2A)')'### Library ',RFILE(1:lsn1)
-            call edisp(itru,outs)
-          else
-            WRITE(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
-            call edisp(itru,outs)
-          endif
-        endif
-        if(markdown)then
-          write(outs,'(4A)')'### ',PDESCR(1:lnblnk(PDESCR)),' ',
-     &      SDESCR(11:lnblnk(SDESCR))
-        else
-          write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &      SDESCR(11:lnblnk(SDESCR))
-        endif
-        call edisp(itru,outs)
-        call edisp(itru,' ')
+      if(NSIM.gt.1)then
+        WRITE(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
+     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+      else
+        WRITE(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
+     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       endif
 
 C Echo header with units.
-      if(IR.eq.1)then
-        if(markdown)then
-          call edisp(itru,
-     &    '## Monthly selection of gains & losses')
-          call edisp(itru,
-     &    ': Monthly selection of gains & losses (to nearest 100Wh).')
-        else
-          call edisp(itru,
-     &    ' Monthly selection of gains & losses (to nearest 100Wh).')
-        endif
-      endif
-      if(IR.eq.2)then
-        if(markdown)then
-          call edisp(itru,
-     &    '## Monthly selection of gains & losses')
-          call edisp(itru,
-     &    ': Monthly selection of gains & losses (to nearest kWh).')
-        else
-          call edisp(itru,
-     &    ' Monthly selection of gains & losses (to nearest kWh).')
-        endif
-      endif
+      if(IR.eq.1)call edisp(itru,
+     &' Monthly selection of gains & losses (to nearest 100Wh).')
+      if(IR.eq.2)call edisp(itru,
+     &' Monthly selection of gains & losses (to nearest kWh).')
       call edisp(itru,' ')
 
 C If current version display monthly summary.
@@ -1056,93 +1002,47 @@ C If current version display monthly summary.
 
 C Monthly statistics of energy gains and losses.
         if(dmdsok)then
-          if(markdown)then
-            write(outsl,'(3a)')
-     &'----------  -----  ---------- ---------- ---------- ',
-     &'---------- -------- -------- --------  --------  -------- ',
-     &'-------- -------  -------  ------- --------'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &' Zone       Month  Convection Convection Convection ',
-     &'Convection Occupant Lights   Small     Other     Infil-   ',
-     &'Venti-   Heating  Cooling  Solar   Solar  '
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &'                   transp     transp     opaque     ',
-     &'opaque                       power               tration  ',
-     &'lation                     absorbd entering '
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &'                   facing     facing     facing     ',
-     &'facing                                                    ',
-     &'                           zone    zone     '
-            call edisp(itru,outsl)
-          else
-            write(outsl,'(3a)')
-     &     ' Zone      Period| Surface convection at face of |  Casual',
-     &     ' Gains (Radiant+Conv)  |Air movement   | Environmental ',
-     &     '|Solar radiation |dispersed'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &     '           in    |   transparent |    opaque     |Occu-  |',
-     &     'Lights |Small  |Other  |Infil- |Venti- |   controls    ',
-     &     '|absorbd|entering| demands'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &     '           month |outside|other  |outside|other  |pant   |',
-     &     '       |Power  |       |tration|lation |Heating|Cooling',
-     &     '|within |the     |for model'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &     '                 |facing |facing |facing |facing |       |',
-     &     '       |       |       |       |       |       |       ',
-     &     '|zone   |zone    |'
-            call edisp(itru,outsl)
-          endif
+          write(outsl,'(3a)')
+     &    ' Zone      Period| Surface convection at face of |  Casual',
+     &    ' Gains (Radiant+Conv)  |Air movement   | Environmental ',
+     &    '|Solar radiation |dispersed'
+          call edisp(itru,outsl)
+          write(outsl,'(3a)')
+     &    '           in    |   transparent |    opaque     |Occu-  |',
+     &    'Lights |Small  |Other  |Infil- |Venti- |   controls    ',
+     &    '|absorbd|entering| demands'
+          call edisp(itru,outsl)
+          write(outsl,'(3a)')
+     &    '           month |outside|other  |outside|other  |pant   |',
+     &    '       |Power  |       |tration|lation |Heating|Cooling',
+     &    '|within |the     |for model'
+          call edisp(itru,outsl)
+          write(outsl,'(3a)')
+     &    '                 |facing |facing |facing |facing |       |',
+     &    '       |       |       |       |       |       |       ',
+     &    '|zone   |zone    |'
+          call edisp(itru,outsl)
         else
-          if(markdown)then
-            write(outsl,'(3a)')
-     &'----------  -----  ---------- ---------- ---------- ',
-     &'---------- -------- -------- --------  --------  -------- ',
-     &'-------- -------  -------  ------- --------'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &' Zone       Month  Convection Convection Convection ',
-     &'Convection Occupant Lights   Small     Other     Infil-   ',
-     &'Venti-   Heating  Cooling  Solar   Solar  '
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &'                   transp     transp     opaque     ',
-     &'opaque                       power               tration  ',
-     &'lation                     absorbd entering '
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
-     &'                   facing     facing     facing     ',
-     &'facing                                                    ',
-     &'                           zone    zone     '
-            call edisp(itru,outsl)
-          else
-            write(outsl,'(3a)')
+          write(outsl,'(3a)')
      &    ' Zone      Period| Surface convection at face of | Casual',
      &    ' Gains (Radiant+Conv)   |Air movement   | Environmental ',
      &    '|Solar radiation |'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
+          call edisp(itru,outsl)
+          write(outsl,'(3a)')
      &    '           in    |   transparent |    opaque     |Occu-  ',
      &    '|Lights |Small  |Other  |Infil- |Venti- |   controls    ',
      &    '|absorbd|entering|'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
+          call edisp(itru,outsl)
+          write(outsl,'(3a)')
      &    '           month |outside|other  |outside|other  |pant   ',
      &    '|       |Power  |       |tration|lation |Heating|Cooling',
      &    '|within |the     |'
-            call edisp(itru,outsl)
-            write(outsl,'(3a)')
+          call edisp(itru,outsl)
+          write(outsl,'(3a)')
      &    '                 |facing |facing |facing |facing |       ',
      &    '|       |       |       |       |       |       |       ',
      &    '|zone   |zone    |'
-            call edisp(itru,outsl)
-          endif
+          call edisp(itru,outsl)
         endif
       endif
 
@@ -1156,7 +1056,7 @@ C fraction of model base area for the zone.
         zonem2frac(izn)=ZBASEA(izn)/overallm2
       ENDDO
       write(outs,*) 'The model overall base area is ',overallm2,'m2.'
-      if(.NOT.markdown) call edisp(itru,outs)
+      call edisp(itru,outs)
 
 C Loop for 13 topics and then each month.
       DO 620 IJK=1,15
@@ -1350,44 +1250,22 @@ C Dump this month's statistics.
           endif
           IF(IMNTH.EQ.IOM1)THEN
             if(IR.eq.1)then
-              if(markdown)then
-                write(outsl,'(1X,a,1x,a,2x,8(F10.1),7(F9.1))') 
-     &            zname(IZN)(1:12),NMTHNM(IMNTH),
-     &            (VAL(IJ),IJ=1,8),(VAL(IJ),IJ=9,looplimit)
-              else
-                WRITE(outsl,701)zname(IZN)(1:12),NMTHNM(IMNTH),
-     &            (VAL(IJ),IJ=1,looplimit)
-  701           FORMAT(1X,A12,1X,A3,1X,15F8.1)
-              endif
-            elseif(IR.eq.2)then
-              if(markdown)then
-                write(outsl,'(1X,a,1x,a,2x,8(F10.0),7(F9.0))') 
-     &            zname(IZN)(1:12),NMTHNM(IMNTH),
-     &            (VAL(IJ),IJ=1,8),(VAL(IJ),IJ=9,looplimit)
-              else
-                WRITE(outsl,703)zname(IZN)(1:12),NMTHNM(IMNTH),
+              WRITE(outsl,701)zname(IZN)(1:12),NMTHNM(IMNTH),
      &                      (VAL(IJ),IJ=1,looplimit)
-  703           FORMAT(1X,A12,1X,A3,1X,15F8.0)
-              endif
+  701         FORMAT(1X,A12,1X,A3,1X,15F8.1)
+            elseif(IR.eq.2)then
+              WRITE(outsl,703)zname(IZN)(1:12),NMTHNM(IMNTH),
+     &                      (VAL(IJ),IJ=1,looplimit)
+  703         FORMAT(1X,A12,1X,A3,1X,15F8.0)
             endif
             call eddisp(itru,outsl)
           ELSE
             if(IR.eq.1)then
-              if(markdown)then
-                WRITE(outsl,'(14x,A,2x,8(F10.1),7(F9.1))')NMTHNM(IMNTH),
-     &            (VAL(IJ),IJ=1,8),(VAL(IJ),IJ=9,looplimit)
-              else
-                WRITE(outsl,702)NMTHNM(IMNTH),(VAL(IJ),IJ=1,looplimit)
-  702           FORMAT(14x,A3,1X,15F8.1)
-              endif
+              WRITE(outsl,702)NMTHNM(IMNTH),(VAL(IJ),IJ=1,looplimit)
+  702         FORMAT(14x,A3,1X,15F8.1)
             elseif(IR.eq.2)then
-              if(markdown)then
-                WRITE(outsl,'(14x,A,2x,8(F10.0),7(F9.0))')NMTHNM(IMNTH),
-     &            (VAL(IJ),IJ=1,8),(VAL(IJ),IJ=9,looplimit)
-              else
-                WRITE(outsl,704)NMTHNM(IMNTH),(VAL(IJ),IJ=1,looplimit)
-  704           FORMAT(14x,A3,1X,15F8.0)
-              endif
+              WRITE(outsl,704)NMTHNM(IMNTH),(VAL(IJ),IJ=1,looplimit)
+  704         FORMAT(14x,A3,1X,15F8.0)
             endif
             call eddisp(itru,outsl)
           ENDIF
@@ -1409,30 +1287,16 @@ C Dump 'all-zone' statistics if more than one zone.
       DO 680 IMNTH=IOM1,IOM2
         if (NZ.GT.1) then
           IF(IMNTH.EQ.IOM1)THEN
-            if(markdown)then
-              write(outsl,'(2a,2x,8(F10.0),7(F9.0))')' All zones    ',
-     &          NMTHNM(IMNTH),(TVAL(IJK,IMNTH),IJK=1,8),
-     &          (TVAL(IJK,IMNTH),IJK=9,looplimit)
-              call eddisp(itru,outsl)
-            else
-              write(outsl,705)NMTHNM(IMNTH),
-     &          (TVAL(IJK,IMNTH),IJK=1,looplimit)
-  705         format(' All zones    ',A3,1X,15(F8.0))
-              call edisp(itru,' ')
-              call eddisp(itru,outsl)
-            endif
+            write(outsl,705)NMTHNM(IMNTH),
+     &        (TVAL(IJK,IMNTH),IJK=1,looplimit)
+  705       format(' All zones    ',A3,1X,15(F8.0))
+            call edisp(itru,' ')
+            call eddisp(itru,outsl)
           ELSE
-            if(markdown)then
-              write(outsl,'(2a,2x,8(F10.0),7(F9.0))')'              ',
-     &          NMTHNM(IMNTH),(TVAL(IJK,IMNTH),IJK=1,8),
-     &          (TVAL(IJK,IMNTH),IJK=9,looplimit)
-              call eddisp(itru,outsl)
-            else
-              write(outsl,706)NMTHNM(IMNTH),
-     &          (TVAL(IJK,IMNTH),IJK=1,looplimit)
-  706         format(14X,A3,1X,15(F8.0))
-              call eddisp(itru,outsl)
-            endif
+            write(outsl,706)NMTHNM(IMNTH),
+     &        (TVAL(IJK,IMNTH),IJK=1,looplimit)
+  706       format(14X,A3,1X,15(F8.0))
+            call eddisp(itru,outsl)
           ENDIF
         endif
         biggest=0.0
@@ -1453,39 +1317,17 @@ C otherwise write with 8 or 9 digits.
       endif
       if (IOM2.GT.IOM1) then
         if(biggest.gt.999999.0)then
-          if(markdown)then
-            write(outsl,'(A,2x,8(F12.0),7(F10.0))') ' Annual   ',
-     &        (VAL(IJK),IJK=1,8),(VAL(IJK),IJK=9,looplimit)
-          else
-            write(outsl,'(A,15(F10.0))') ' Annual   ',
-     &        (VAL(IJK),IJK=1,looplimit)
-          endif
+          write(outsl,'(A,15(F10.0))') ' Annual   ',
+     &      (VAL(IJK),IJK=1,looplimit)
         elseif(biggest.gt.99999.0.and.biggest.lt.999999.0)then
-          if(markdown)then
-            write(outsl,'(A,2x,8(F11.0),7(F9.0))')' Annual      ',
-     &        (VAL(IJK),IJK=1,8),(VAL(IJK),IJK=9,looplimit)
-          else
-            write(outsl,'(A,15(F9.0))')' Annual      ',
-     &        (VAL(IJK),IJK=1,looplimit)
-          endif
+          write(outsl,'(A,15(F9.0))')' Annual      ',
+     &      (VAL(IJK),IJK=1,looplimit)
         else
-          if(markdown)then
-            write(outsl,'(A,2x,8(F10.0),7(F9.0))')' Annual          ',
-     &        (VAL(IJK),IJK=1,8),(VAL(IJK),IJK=9,looplimit)
-          else
-            write(outsl,'(A,15(F8.0))')' Annual           ',
-     &        (VAL(IJK),IJK=1,looplimit)
-          endif
+          write(outsl,'(A,15(F8.0))')' Annual           ',
+     &      (VAL(IJK),IJK=1,looplimit)
         endif
-        if(.NOT.markdown) call edisp(itru,' ')
+        call edisp(itru,' ')
         call eddisp(itru,outsl)
-      endif
-      if(markdown)then
-            write(outsl,'(3a)')
-     &'----------  -----  ---------- ---------- ---------- ',
-     &'---------- -------- -------- --------  --------  -------- ',
-     &'-------- -------  -------  ------- --------'
-        call edisp(itru,outsl)
       endif
       call edisp(itru,' ')
       if(ixopen.eq.1)then

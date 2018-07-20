@@ -21,7 +21,7 @@ C PASSED VARIABLES
 C LOCAL VARIABLES
 C declare variables describing version and build information
       character cType*16             ! Flag indicating if version/build
-                                     !  info should be dumped
+                                     !  info should be dumped.
       logical bBuild_Info            ! Flag indicating if build info should 
                                      !   be dumped. 
 C      character cURL*256             ! Repository URL commented out in build_info.h
@@ -30,7 +30,6 @@ C      character cURL*256             ! Repository URL commented out in build_in
       integer iLen   ! for actual string lengths
       
       logical bH3KExtentionsActive  ! Function returning status of h3k extentions. 
-      
       
 C Arrays mapping binary names to longer descriptions
       
@@ -150,86 +149,53 @@ C If cType is silent return at this point.
 C Copyright information:
       call edisp(iuout," ")      
       call edisp(iuout,      
-     &  "Copyright resides with the member organisations of the ESP-r")
-      call edisp(iuout,"development consortium as listed at:")
-      call edisp(iuout,
-     &  "http://www.esru.strath.ac.uk/Programs/ESP-r_central.htm.")      
-      call edisp(iuout,"and https://github.com/ESP-rCommunity.")      
+     &  "Copyright resides with the members of the ESP-r consortium")
+      call edisp(iuout,"as listed at www.esru.strath.ac.uk/.")      
 
-C Check if source was versioned (that is, was svn available, and 
-C is it a working copy)
+C Check if source was versioned and if it is a working copy.
       if ( .not. bVersioned ) then     
-C.......Write out non-versioned disclaimer.        
-        
         call edisp(iuout," ")
-
         call edisp(iuout,
-     &  "This copy of ESP-r is not under versioning control. Using")
-        
-        call edisp(iuout,
-     &  "un-versioned copies of ESP-r may prevent you from")
-        
-        call edisp(iuout,
-     &  "reconstituting models and reproducing simulation results in")
-        
-        call edisp(iuout,
-     &  "the future. Development using unversioned copies of ESP-r")
-        
-        call edisp(iuout,
-     &  "is also prone to error, and strongly discouraged.")
-        
-        call edisp(iuout," ")
-        
+     &  "This copy of ESP-r is not under versioning control.")
         call edisp(iuout,
      &  "You can obtain a versioned copy of ESP-r here:")
-        
         call edisp(iuout," ")
-        
         write (cTemp_a,'(A)') 
-     &  "   http://www.esru.strath.ac.uk/Programs/ESP-r_central.htm"
+     &  "   http://www.esru.strath.ac.uk/"
         call edisp(iuout,cTemp_a)
-              
       endif 
-      
+
+C Source code version: ' - Source: BRANCH @ rXYZ (modified state)'.
       if ( bBuild_Info .or. .not. bRelease ) then 
-C. .....Information about build:
-        call edisp(iuout," ")
-                 
+        call edisp(iuout," ")       
         call edisp(iuout,"Build information:")
-        
-C.........Source code version:
-C............' - Source:    BRANCH @ rXYZ (modified state)'
-          
         if ( bVersioned ) then 
-            
-          write (cTemp_a,'(5A)') 
-     &      "  SVN source -       ",
-     &      cBranch(1:lnblnk(cBranch)), 
-     &      "@r",
-     &      cRevision(1:lnblnk(cRevision))
-  
-          if ( bModified ) then
-            write (cTemp_a,'(2A)') cTemp_a(1:lnblnk(cTemp_a)),
-     &        " (locally modified)"
-          else 
-            write (cTemp_a,'(2A)') cTemp_a(1:lnblnk(cTemp_a)),
-     &        " (unmodified)"
-          endif
-        
-        else
-           write (cTemp_a,'(A)') 
-     &       "  SVN source -       UNKNOWN"
+C          write (cTemp_a,'(5A)') 
+C     &      "  SVN source -       ",
+C     &      cBranch(1:lnblnk(cBranch)), 
+C     &      "@r",
+C     &      cRevision(1:lnblnk(cRevision))
+C          if ( bModified ) then
+C            write (cTemp_a,'(2A)') cTemp_a(1:lnblnk(cTemp_a)),
+C     &        " (locally modified)"
+C          else 
+C            write (cTemp_a,'(2A)') cTemp_a(1:lnblnk(cTemp_a)),
+C     &        " (unmodified)"
+C          endif
+C        else
+C           write (cTemp_a,'(A)') 
+C     &       "  SVN source -       UNKNOWN"
         endif 
-        call edisp(iuout,cTemp_a)      
-          
-C.........Build Platform (e.g.: i686:LINUX:2.6.9-gentoo-r1)
+C        call edisp(iuout,cTemp_a)      
+
+C Build platform (e.g.i686:LINUX:2.6.9-gentoo-r1).
         write (cTemp_a,'(6A)')   "  Platform -         ",
      &         cArchitecture(1:lnblnk(cArchitecture)),":",
      &         cOperSystem(1:lnblnk(cOperSystem)),":",
      &         cOSversion(1:lnblnk(cOSversion))
         call edisp(iuout,cTemp_a)      
          
-C.........Compiliers ( eg: gcc/g++/g77)
+C Compilers used (e.g. gcc/g++/g77).
         write (cTemp_a,'(6A)')   "  Compilers -        ",
      &         cCC(1:lnblnk(cCC)),"/",
      &         cCPL(1:lnblnk(cCPL)),"/",
@@ -237,31 +203,25 @@ C.........Compiliers ( eg: gcc/g++/g77)
         call edisp(iuout,cTemp_a)
 
         call getXlibs(cXlibs)    ! find out the graphic library used
-        
+
+C Graphics library used.
         write (cTemp_a,'(2A)')   "  Graphics library - ",
      &         cXLibs(1:3)
         call edisp(iuout,cTemp_a)
 
-        if ( rep_xmlstatus() ) then  ! find whether XML is supported
-
+C XML supported?
+        if ( rep_xmlstatus() ) then  
           write (cXML_support, '(A)') "Supported"
-
         else
-
           write (cXML_support, '(A)') "Unsupported"
-
         endif 
-        
         write (cTemp_a,'(2A)')   "  XML output -       ",
      &         cXML_support(1:lnblnk(cXML_support))
         call edisp(iuout,cTemp_a)
-          
         if ( bH3KExtentionsActive() ) then  ! find whether H3k extentions are active
-
           write (cTemp_a,'(2A)')   "  H3K extensions -  ",
      &         "Active"
           call edisp(iuout,cTemp_a)
-
         endif 
             
       endif

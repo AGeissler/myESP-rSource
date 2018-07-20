@@ -76,10 +76,6 @@ C IEEE callback (Solaris)
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
       common/OUTIN/IUOUT,IUIN
-
-C Markdown flag.
-      logical markdown
-      common/markdownflag/markdown
       integer ifs,itfs,imfs
       common/GFONT/IFS,ITFS,IMFS
       common/FILEP/IFIL
@@ -295,7 +291,6 @@ C config file, zone focus and actions arguments).
       scftims(1)=0.0; scftimf(1)=23.9
       NSIGFIG=3
       childterminal=MODL  ! remember so that child processes can run the same
-      markdown=.false.    ! reporting in plain text rather than markdown
 
 C Initial assumptions about common data files (prior to configuration file scan
 C that the default common data files will be defined explicitly).
@@ -806,9 +801,6 @@ C Perform either the transform or rotation or generate QA report.
             elseif(inact(1:6).eq.'rotate')then
               call globalrotate(d1,d2,d3,inpic,ivals,silent,itru,ier)
             elseif(inact(1:2).eq.'QA')then
-
-C Assume markdown is false (for now).
-              markdown=.false.
               call prjqa(inpic,ivals,silent,ier)
             elseif(inact(1:15).eq.'update_zone_con')then
               QUIET=.TRUE.
@@ -1136,7 +1128,7 @@ C      write(6,*) ' model management browse status ',browse
         ITEMS(14)=  '                              '
       endif
       ITEMS(15)   = ' .... Import & export ........'
-      ITEMS(16)   = 'n use CAD tool or parse gbxml file'
+      ITEMS(16)   = 'n import CAD file                 '
       if(CFGOK)then
         ITEMS(17) = 'o export current model            '
         ITEMS(18) = 'p archive current model           '

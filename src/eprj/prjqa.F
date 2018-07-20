@@ -308,8 +308,8 @@ C in the current model. A -1 means not applicable
       character lltmp*144,lguess*144,lldef*144  ! for working with EASKXORGTKF
       character lpath*72,fname*72 ! for use with fdroot
       character llclmdb*144,miscinf*72
-      integer llt,lndbp,jj,lnsn
       character boundmsg*72
+      integer llt,lndbp,jj,lnsn
 
       logical newgeo  ! to use for testing if new/old geometry file.
       logical nameok  ! to use for testing if duplicate names in zone
@@ -1323,9 +1323,11 @@ C Check if any of the address fields are known.
           else
             write(outs,'(2a)')'Project name: ',pjname(1:lnblnk(pjname))
             call edisp(itu,outs)
-            if(baddress(1:15).eq.'not yet defined'.and.
-     &         bcity(1:15).eq.'not yet defined'.and.
-     &         buildingPC(1:15).eq.'not yet defined')then
+
+C Check if any of the address fields are known.
+            if(certifname(1:15).eq.'not yet defined'.and.
+     &         certTel(1:15).eq.'not yet defined'.and.
+     &         certaddress(1:15).eq.'not yet defined')then
               continue  ! nothing to write
             else
               write(outs,'(2a)')'Building address: ',baddress
@@ -1805,8 +1807,7 @@ C If temporal data associated with the model report it.
         endif
       endif
 
-C Databases associated with the model. First print the file names
-C what ever the value of databaseinfo.
+C Databases associated with the model. First print the file names.
       if(databaseinfo.ge.0)then
         call edisp(itu,' ')
         if(markdown)then

@@ -33,6 +33,11 @@ C MODE = `R` to read an existing file and MODE = `N` to read a new or unknown
 C file. MODE = `S` to read silently. INUNIT is the file unit to use
 C when reading the file. If IER returned as 1 then probably a legacy
 C flow network file, if IER returned as 2 then a 3D flow network file.
+
+C << Consider a version which relies on esymbols for the icons and
+C << thus does not need any arcs and few, if any lines. Should we
+C << have a way to signal which symbol to use?
+
       SUBROUTINE NETREAD(INUNIT,MODE,IER)
 
 #include "building.h"
@@ -507,6 +512,7 @@ C << consider depreciating the min and max >>
 
 C Get the icon position. This could be used for the node or component
 C position in the 3D flow file.
+
         CALL EGETWR(OUTSTR,K,VAL,-10.0,999.,'W','gnf IcX cent',IER)
         XYZICON(I,1)=VAL
         CALL EGETWR(OUTSTR,K,VAL,-10.0,999.,'W','gnf IcY cent',IER)

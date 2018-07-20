@@ -31,10 +31,9 @@ echo " file ${SRCdir}/Readme before proceeding."
 mode="interactive"         # Provide feedback during installation. 
 xml_support="no"           # Support for XML output.
 SQLite_support="no"        # Support for SQLite output.
-FMI_support="prompt"       # Support for FMI connectivity.
+FMI_support="no"           # Support for FMI connectivity.
 debugging="no"             # Support for debugging symbols.
 EXE=""                     # Executable file extension.
-debian_copy="yes"           # no=standard make install yes=make bincopy
 opt="-O1"                  # optimization to be applied
 FFLAGS="-I../include "     # Fortran compiler flags.
 CFLAGS="-I../include "     # C compiler flags.
@@ -54,12 +53,12 @@ extendedDebug="no"         # Extended debugging.
 use_intel="no"             # Use Intel compilers.
 skip_ish_calcs="no"        # Binary shading file creation.
 reuse_ish_calcs="yes"      # Map ascii shading files to binary.
-clean="no"                 # Clean object files after compilation.
+clean="yes"                # Clean object files after compilation.
 unversioned="no"           # Check for versioning info.
 
 # ESP-r executables (bld & plt not included by default because their
 # functionality is automatically encapsulated in bps).
-programs="aco b2e bps dfs dfv cdb c2e clm e2r ecnv eco enet grd ish mfs mld mrt pdb prj res stats vew"
+programs="aco b2e bps dfs dfv cdb c2e clm e2r ecnv eco enet grd ish mfs mld mrt pdb prj res vew"
 programs=" ${programs} "   # Leading/ trailing space added for regexp matching.
 targets=" "		   # Will be overwitten later.
 
@@ -89,10 +88,9 @@ if [ $# -ne 0 ]; then
         case "$i" in
         -h | --help)    help=1;                    shift;;
         --debug)        debugging=yes; clean=no;   shift;;
-        -d) shift;      DESTdir=$1; ESPdir=$DESTdir;
-                        input="yes";               shift;;
+        -d) shift;      DESTdir=$1; input="yes";
+                        ESPdir=$DESTdir;           shift;;
         --force)        preserve_espr_dir="no";    shift;;
-        --debian)       debian_copy="yes";         shift;;
         --no_training | --no-training)
                         install_training="no";     shift;;
         --no_dbs | --no-dbs)
@@ -111,10 +109,6 @@ if [ $# -ne 0 ]; then
                         input="yes";
                         enable_cosim="yes";        shift;;
         --gcc4)         gnu_version="gcc4";        shift;;
-        --opt0)         opt="-O0";        shift;;
-        --opt1)         opt="-O1";        shift;;
-        --opt2)         opt="-O2";        shift;;
-        --opt3)         opt="-O3";        shift;;
         --intel)        use_intel="yes";           shift;;
         --X11)          xLibs="X11";               shift;;
         --GTK)          xLibs="GTK";               shift;;
@@ -230,12 +224,8 @@ if [ $help -eq 1 ]; then
   echo "           Use the gcc4 compilers (gcc, g++ and gFortran)."
   echo "           (the default)."
   echo " "
-  echo "    --opt0: no compiler optimization"
-  echo "    --opt1: -O1 compiler optimization ~x1.5 speed"
-  echo "    --opt2: -O2 compiler optimization ~x1.7 speed"
-  echo "    --opt3: -O3 compiler optimization ~x1.8 speed"
-  echo " "
-  echo "    -h, --help:  Display this help message."
+  echo "    -h, --help"
+  echo "           Display this help message."
   echo " "
   echo "    --intel"
   echo "           Use the Intel compiler suite (icc,ifort,icpc)."
@@ -748,76 +738,6 @@ esac
 
 # Debugging symbols required?
 if [ "$mode" = "interactive" ]; then
-
-  # Which modes are actually available, given our platform/compiler
-  # combination?
-  small_prompt="1"
-  medium_prompt="2"
-  large_prompt="3"
-  default="$medium_prompt"
-
-  A=none;
-  while [ "$A" != "$small_prompt" ] &&
-        [ "$A" != "$medium_prompt" ] &&
-        [ "$A" != "$large_prompt" ]
-  do
-     if [ "$A" != "none" ]; then
-        echo ""
-        echo " Please choose level of model complexity to support:"
-        echo ""
-     fi
-     echo " Model complexity: [$default] "
-     if [ "$small_prompt" != "-" ]; then
-        echo "  (1) limited model complexity (e.g. Raspberry Pi)";
-     fi
-     if [ "$medium_prompt" != "-" ]; then
-        echo "  (2) medium model complexity (e.g. older computers)";
-     fi
-     if [ "$noX_prompt" != "-" ]; then
-        echo "  (3) complex models supported (e.g. newer computers)";
-     fi
-     read A
-     if [ "$A" = "-" ]; then
-        A=none;
-     fi
-     if [ "$A" = "" ]; then
-        A="$default"
-     fi
-  done
-  case "$A" in
-     "$small_prompt") 
-       cp ${SRCdir}/include/building_small.h ${SRCdir}/include/building.h
-       cp ${SRCdir}/include/cfd_small.h ${SRCdir}/include/cfd.h
-       cp ${SRCdir}/include/control_small.h ${SRCdir}/include/control.h
-       cp ${SRCdir}/include/net_flow_small.h ${SRCdir}/include/net_flow.h
-       cp ${SRCdir}/include/tdf2_small.h ${SRCdir}/include/tdf2.h
-       ;;
-     "$medium_prompt") 
-       cp ${SRCdir}/include/building_medium.h ${SRCdir}/include/building.h
-       cp ${SRCdir}/include/cfd_medium.h ${SRCdir}/include/cfd.h
-       cp ${SRCdir}/include/control_medium.h ${SRCdir}/include/control.h
-       cp ${SRCdir}/include/net_flow_medium.h ${SRCdir}/include/net_flow.h
-       cp ${SRCdir}/include/tdf2_medium.h ${SRCdir}/include/tdf2.h
-       ;;
-     "$large_prompt") 
-       cp ${SRCdir}/include/building_large.h ${SRCdir}/include/building.h
-       cp ${SRCdir}/include/cfd_large.h ${SRCdir}/include/cfd.h
-       cp ${SRCdir}/include/control_large.h ${SRCdir}/include/control.h
-       cp ${SRCdir}/include/net_flow_large.h ${SRCdir}/include/net_flow.h
-       cp ${SRCdir}/include/tdf2_large.h ${SRCdir}/include/tdf2.h
-       ;;
-  esac
-  complexity="$A"
-else
-  cp ${SRCdir}/include/building_large.h ${SRCdir}/include/building.h
-  cp ${SRCdir}/include/cfd_large.h ${SRCdir}/include/cfd.h
-  cp ${SRCdir}/include/control_large.h ${SRCdir}/include/control.h
-  cp ${SRCdir}/include/net_flow_large.h ${SRCdir}/include/net_flow.h
-  cp ${SRCdir}/include/tdf2_large.h ${SRCdir}/include/tdf2.h
-fi
-
-# Debugging symbols required?
-if [ "$mode" = "interactive" ]; then
   B="none"
   while [ "$B" != "y" ] && [ "$B" != "n" ] && [ "$B" != "Y" ] && [ "$B" != "N" ]
   do
@@ -1038,7 +958,7 @@ case $xLibs in
            echo " "
            echo " Error: the X11 libraries were found at $XINSTALLDIR but"
            echo " the corresponding header files (e.g. X.h) could not be"
-           echo " located at $XINSTALLDIR/include/X11. Please check to if"
+           echo " located at $XINSTALLDIR/include/X11. Please check if"
            echo " the X11 development package is installed (usually called"
            echo " xfree86-devel, xorg-X11-devel or libX11-devel.)"
            exit
@@ -1106,38 +1026,17 @@ esac
 
 # Append -DX11 flag as necessary
 if [ "$xLibs" = "X11" ]; then
-  fDefType="$fDefType -DX11"
+  fDefType="$fDefType -DX11 -O1"
 fi
 if [ "$xLibs" = "GTK" ]; then
-  fDefType="$fDefType -DGTK"
-fi
-# Append optimization flag as necessary
-if [ "$opt" = "-O0" ]; then
-  fDefType="$fDefType -O0"
-fi
-if [ "$opt" = "-O1" ]; then
-  fDefType="$fDefType -O1"
-fi
-if [ "$opt" = "-O2" ]; then
-  fDefType="$fDefType -O2"
-fi
-if [ "$opt" = "-O3" ]; then
-  fDefType="$fDefType -O3"
+  fDefType="$fDefType -DGTK -O1"
 fi
 
 # Assign Fortran compilation flags.
 case $compiler in
    # Note '-C' flag causes grief on older sun F90 compilers.
    sunF90) FFLAGS="$LOCAL_INCLUDES $fDefType -DF90 $debug_flag $ExtendedDebugFlags -C " ;;
-   GNU)    FFLAGS="$LOCAL_INCLUDES $fDefType $debug_flag $ExtendedDebugFlags -fno-automatic";
-# mcmodel=medium (needed for larger data structures) is only available on 64-bit machines.
-           if [ "$machine" = "x86_64" ]; then
-             if [ "$complexity" = "$medium_prompt" ]; then 
-               FFLAGS="$FFLAGS -mcmodel=medium"
-             elif [ "$complexity" = "$large_prompt" ]; then 
-               FFLAGS="$FFLAGS -mcmodel=medium"
-             fi
-           fi
+   GNU)    FFLAGS="$LOCAL_INCLUDES $fDefType $debug_flag $ExtendedDebugFlags -fno-automatic ";
            case $gnu_version in
              gcc4) FFLAGS="$FFLAGS -DGCC4"            ;;
            esac ;;
@@ -1451,7 +1350,6 @@ if [ "$create_espr_dir" = "no" ]; then
 
      # ESP-r directory tree does not exist, or has been corrupted.
      corrupted_tree="yes"
-
      if [ "$create_espr_dir" = "no" ]; then
       echo " "
       echo " The ESP-r installation directory tree does not exist at"
@@ -1500,7 +1398,7 @@ if [ "$corrupted_tree" = "yes" ] || [ "$create_espr_dir" = "yes" ]; then
       exit
     fi
   fi
-#  rm -rf $ESPdir/*
+  rm -rf $ESPdir/*
   mkdir $ESPdir
   mkdir $ESPdir/bin
   mkdir $ESPdir/climate
@@ -1576,7 +1474,7 @@ host=`uname -n`
 # Copy version information to Version text file.
 release=`cat ${HOMEdir}/Version | grep "ESP-r Release " | sed "s/ESP-r Release //g"`
 echo " "
-echo " Installing targets for ESP-r version ${release}"
+echo " Installing components of ESP-r version ${release}"
 echo " to ${DESTdir} from source in ${SRCdir}."
 if [ "${VersioningScheme}" == "svn" ]; then 
     versioned_repository="yes"
@@ -1694,7 +1592,7 @@ do
    target=`echo $targets_shift | sed 's/ .*$//g'`
    # Remove executable name from targets_shift.
    targets_shift=`echo $targets_shift | sed 's/^[^ ]* //g'`
-   echo -n "    - building ${target} ..."
+   echo -n "    - installing ${target} ..."
    # Empty 'make_msg_file' if defined.
   if [ "$make_msg_file" != "" ]; then
     echo "Compilation of $target on `date`"> $make_msg_file
@@ -1933,7 +1831,7 @@ if [ "$install_dbs" = "yes" ]; then
   cp ccht_na_constr.db1 ${DESTdir}/databases
   cp ccht_material.ascii ${DESTdir}/databases
   cp cellular.materialdb ${DESTdir}/databases
-  cp north_american.materialdb.a ${DESTdir}
+  cp north_american.materialdb.a ${DESTdir}/databases
   cp north_american.constrdb ${DESTdir}/databases
   cp material.db3.a ${DESTdir}/databases
   cp material.db4.a ${DESTdir}/databases
@@ -2108,11 +2006,12 @@ zzz
   echo " done."
   cd ${SRCdir}
   echo -n "    - installing manual files ..."
-  rm -rf ${ESPdir}/manual/*
-  cp -r ${DOCdir}/manual/* ${ESPdir}/manual
+  rm -rf ${ESPdir}/manual
+  cp -r ${DOCdir}/manual ${ESPdir}
   echo " done."
   echo -n "    - installing common scripts ..."
-  rm -rf ${ESPdir}/scripts/*
+  rm -rf ${ESPdir}/scripts
+  mkdir ${ESPdir}/scripts
   cp ${SCRIPTdir}/link_to_bash ${ESPdir}/scripts/
   cp ${SCRIPTdir}/link_to ${ESPdir}/scripts/
   cp ${SCRIPTdir}/Linux_model_2dos ${ESPdir}/scripts/
@@ -2131,17 +2030,11 @@ fi
 
 # Executables.
 echo -n "    - installing executables in ${ESPBinDir} ..." 
-rm -rf ${ESPdir}/bin/*
 cd ${SRCdir}
 if [ "$debugging" = "no" ]; then
   make ESPdir=${ESPdir} EXE=${EXE} COSIMDir=${COSIMdir} strip  >/dev/null 2>&1
 fi
-echo "Placing executables in ESPBinDir=${ESPBinDir}"
-if [ "$debian_copy" = "no" ]; then
-  make ESPBinDir=${ESPBinDir} EXE=${EXE} COSIMDir=${COSIMdir} InstBins ${targets}  >/dev/null 2>&1
-elif [ "$debian_copy" = "yes" ]; then
-  make ESPBinDir=${ESPBinDir} EXE=${EXE} COSIMDir=${COSIMdir} bincopy
-fi
+make ESPBinDir=${ESPBinDir} EXE=${EXE} COSIMDir=${COSIMdir} InstBins ${targets}  >/dev/null 2>&1
 if [ "$clean" = "yes" ]; then
   make EXE=${EXE} clean  >/dev/null 2>&1
 fi
@@ -2192,6 +2085,9 @@ elif [ ${MCTYPE} = mingw ]; then
   echo "@rem batch file to start project manager - associate with cfg files" > ${ESPdir}/bin/esp-r.cmd
   echo "start prj -file %1" >> ${ESPdir}/bin/esp-r.cmd
 fi
+
+# Temporary.
+ln -sf ${ESPdir}/bin/mrt ${ESPdir}/bin/vwf
 
 echo " "
 echo " Installation complete."

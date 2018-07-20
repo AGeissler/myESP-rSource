@@ -155,8 +155,8 @@ C Write one construction file name per record.
 C Record width is not sensitive to the number of surfaces in the model
 C extra records are used.
 
-C << give a minimum width of 36 the logic below could be revised to
-C << use multiples of 36 rather than 20.
+C Give a minimum width of 36 (could be revised to
+C use multiples of 36 rather than 20).
       XW=FLOAT(NCON)/20.
       N=INT(XW)+1
       DO 100 I = 1,N

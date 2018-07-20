@@ -1712,7 +1712,7 @@ C If next line is *MRT_SENSOR
 
 
 C lstsur is the number of surfaces in the zone NZS.
-C Seems that the 6 surfaces of MRT sensors are considered as
+C The 6 surfaces of MRT sensors are considered as
 C NZS+1 - NZS+6, like this:
 C 1: -Y (back)
 C 2: +X (right)

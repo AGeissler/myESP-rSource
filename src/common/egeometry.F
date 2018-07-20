@@ -155,6 +155,7 @@ C Error subroutine and error details for dll mode.
       integer iflag ! for read errors
       integer iCountWords ! to test legacy items on surface line
 
+      
 C Variables used in parsing of space-separated geo files      
       character*248 cLnWords(124)! Array containing contents of a line
       integer iEGetArrW          ! Returns space-separated contents of 
@@ -4239,10 +4240,6 @@ C If context is .true. then give verbose description of the boundary.
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-C Markdown flag.
-      logical markdown
-      common/markdownflag/markdown
-
       logical context
       logical newgeo  ! to use for testing if new/old geometry file.
 
@@ -4258,81 +4255,51 @@ C Check version number of file.
 C Surface summary: print header, followed by surface information.
       lzn=lnzname(ICOMP)
       call edisp(ITRU,' ')
-      if(markdown)then
-        write(outstr,'(3a,i2,a)')': A summary of the surfaces in ',
-     &    zname(ICOMP)(1:lzn),'(',icomp,')'
-      else
-        write(outstr,'(3a,i2,a)')' A summary of the surfaces in ',
-     &    zname(ICOMP)(1:lzn),'(',icomp,') follows:'
-      endif
+      write(outstr,'(3a,i2,a)')' A summary of the surfaces in ',
+     &  zname(ICOMP)(1:lzn),'(',icomp,') follows:'
       call edisp(ITRU,outstr)
       call edisp(ITRU,' ')
 
 C Write header based on current version number.
       if(newgeo)then
-        if(markdown)then
-          write(outstr2,'(3a)')
-     &    'ID   Area (m^2^)  Azimuth   Elevation  Name          ',
-     &    'Optics        Location  Use primary  Use detail  ',
-     &    'Construction name    Environment other side'   
-          call edisp(ITRU,OUTSTR2)
-          write(outstr2,'(3a)')
-     &    '---  -----------  --------  ---------  ------------  ',
-     &    '------------  --------  -----------  ----------  ',
-     &    '-------------------  ----------------------'    
-          call edisp(ITRU,OUTSTR2)
-        else
-          write(outstr,'(2a)')
-     &   ' Sur| Area  |Azim|Elev| surface    |    geometry            ',
-     &   '      | construction    |environment'
-          call edisp(ITRU,OUTSTR)
-          write(outstr,'(2a)')
-     &   '    | m^2   |deg |deg | name       |optical|locat| use      ',
-     &   '      | name            |other side '
-          call edisp(ITRU,OUTSTR)
-        endif
+        write(outstr,'(2a)')
+     &  ' Sur| Area  |Azim|Elev| surface    |    geometry            ',
+     &  '      | construction |environment'
+        call edisp(ITRU,OUTSTR)
+        write(outstr,'(2a)')
+     &  '    | m^2   |deg |deg | name       |optical|locat| use      ',
+     &  '      | name         |other side '
+        call edisp(ITRU,OUTSTR)
       else
         write(outstr,'(2a)')
      &  ' Sur| Area  |Azim|Elev| surface    | geometry |',
-     &  ' construction    |environment'
+     &  ' construction |environment'
         call edisp(ITRU,OUTSTR)
         write(outstr,'(2a)')
      &  '    | m^2   |deg |deg | name       |type |loca|',
-     &  ' name            |other side '
+     &  ' name         |other side '
         call edisp(ITRU,OUTSTR)
       endif
       if(.NOT.context)then
         DO 893 I=1,NZSUR(icomp)
           ic=izstocn(icomp,i)
+
           call SIGFIG(SSNA(ic),NSIGFIG,RNO,SIGSTR,LSTR)
           lnsmlcn=lnblnk(SSMLCN(ic))
           if(lnsmlcn.lt.15) lnsmlcn=15  ! at least 15 char for MLC
           if(newgeo)then
-            if(markdown)then
- 895      FORMAT(I3,2X,A,F10.0,F11.0,6X,A,2X,A,5X,A,8X,A,4X,A,3X,A,2X,A)
-              if(lnsmlcn.lt.19) lnsmlcn=19  ! at least 19 char for MLC
-              if(lnsmlcn.gt.19) lnsmlcn=19  ! no more than 19 char for MLC
-              WRITE(OUTSTR2,895)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &         SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
-     &         SSUSE(ic,1)(1:8),SSUSE(ic,2)(1:8),SSMLCN(ic)(1:lnsmlcn),
-     &         SSOTHER(ic,1)(1:15)
-              call edisp(ITRU,OUTSTR2)
-            else
- 8951     FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A,2X,A)
-              if(lnsmlcn.gt.18) lnsmlcn=18  ! no more than 18 char for MLC
-              WRITE(OUTSTR,8951)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &         SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
-     &         SSUSE(ic,1)(1:8),SSUSE(ic,2)(1:8),SSMLCN(ic)(1:lnsmlcn),
-     &         SSOTHER(ic,1)(1:15)
-              call edisp(ITRU,OUTSTR)
-            endif
+ 895        FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A,2X,A)
+            WRITE(OUTSTR,895)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
+     &        SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
+     &        SSUSE(ic,1)(1:8),SSUSE(ic,2)(1:8),SSMLCN(ic)(1:lnsmlcn),
+     &        SSOTHER(ic,1)(1:15)
           else
  894        FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,2X,A)
             WRITE(OUTSTR,894)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
      &        SSNAME(ic),SSOTF(ic)(1:6),SSVFC(ic),SSMLCN(ic)(1:lnsmlcn),
      &        SSOTHER(ic,1)(1:13)
-            call edisp(ITRU,OUTSTR)
           endif
+          call edisp(ITRU,OUTSTR)
  893    CONTINUE
       else
         DO 793 I=1,NZSUR(icomp)
@@ -4342,31 +4309,19 @@ C Write header based on current version number.
           call OTHERINFO(icomp,i,OTHSTR)
           call SIGFIG(SSNA(ic),NSIGFIG,RNO,SIGSTR,LSTR)
           if(newgeo)then
-            if(markdown)then
-              if(lnsmlcn.lt.19) lnsmlcn=19  ! at least 19 char for MLC
-              if(lnsmlcn.gt.19) lnsmlcn=19  ! no more than 19 char for MLC
-              WRITE(OUTSTR2,7951)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &         SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
-     &         SSUSE(ic,1)(1:9),SSUSE(ic,2)(1:9),SSMLCN(ic)(1:lnsmlcn),
-     &         SSOTHER(ic,1)(1:15)
-              call edisp(ITRU,OUTSTR2)
-            else
-              if(lnsmlcn.gt.18) lnsmlcn=18  ! no more than 18 char for MLC
-              WRITE(OUTSTR,795)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &         SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
-     &         SSUSE(ic,1)(1:8),SSUSE(ic,2)(1:8),SSMLCN(ic)(1:lnsmlcn),
-     &         OTHSTR(1:lnblnk(OTHSTR))
-              call edisp(ITRU,OUTSTR)
-            endif
- 7951     FORMAT(I3,2X,A,F10.0,F10.0,7X,A,2X,A,6X,A,6X,A,4X,A,3X,A,2X,A)
+            WRITE(OUTSTR,795)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
+     &      SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
+     &      SSUSE(ic,1)(1:8),SSUSE(ic,2)(1:8),SSMLCN(ic)(1:lnsmlcn),
+     &      OTHSTR
  795      FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A)
           else
+            if(lnsmlcn.gt.18) lnsmlcn=18  ! no more than 18 char for MLC
             WRITE(OUTSTR,794)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &       SSNAME(ic),SSOTF(ic)(1:6),SSVFC(ic),SSMLCN(ic)(1:lnsmlcn),
-     &       OTHSTR
+     &      SSNAME(ic),SSOTF(ic)(1:6),SSVFC(ic),SSMLCN(ic)(1:lnsmlcn),
+     &      OTHSTR
  794        FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A)
-            call edisp(ITRU,OUTSTR)
           endif
+          call edisp(ITRU,OUTSTR)
  793    CONTINUE
       endif
       call edisp(ITRU,' ')
@@ -4477,10 +4432,6 @@ C require a recent scan of zone geometry.
 #include "building.h"
 #include "geometry.h"
 
-C Markdown flag.
-      logical markdown
-      common/markdownflag/markdown
-
       common/SFIG/NSIGFIG
       character outstr*124,t10*10,t10a*10,T12*12,T12A*12
 
@@ -4489,73 +4440,32 @@ C Markdown flag.
 C Convert nzsur,nztv,zvol etc into strings with no leading spaces.
       CALL INTSTR(NZSUR(icomp),t10,lna,IER)
       CALL INTSTR(NZTV(icomp),t10a,lnaa,IER)
-      if(markdown)then
-        WRITE(outstr,'(3a,i2,5a)')'Zone ',
+      WRITE(outstr,'(3a,i2,5a)')' Zone ',
      &   zname(ICOMP)(1:lnzname(ICOMP)),
      &   ' (',ICOMP,') is composed of ',t10(1:lna),' surfaces and ',
      &   t10a(1:lnaa),' vertices.'
-C        call edisp2tr(itu,outstr)
-        call edisp(itu,outstr)
-      else
-        WRITE(outstr,'(3a,i2,5a)')' Zone ',
-     &   zname(ICOMP)(1:lnzname(ICOMP)),
-     &   ' (',ICOMP,') is composed of ',t10(1:lna),' surfaces and ',
-     &   t10a(1:lnaa),' vertices.'
-        call edisp(itu,outstr)
-      endif
+      call edisp(itu,outstr)
       
 C Report data to required number of significant figures.
       call SIGFIG(VOL(icomp),NSIGFIG,RNO,T12,LSTR)
-      if(markdown)then
-        WRITE(outstr,'(3a)')'It encloses a volume of ',T12(1:LSTR),
-     &   ' m^3^ of space, with a total surface '
-C        call edisp2tr(itu,outstr)
-        call edisp(itu,outstr)
-      else
-        WRITE(outstr,'(3a)')' It encloses a volume of ',T12(1:LSTR),
+      WRITE(outstr,'(3a)')' It encloses a volume of ',T12(1:LSTR),
      &   'm^3 of space, with a total surface'
-        call edisp(itu,outstr)
-      endif
+      call edisp(itu,outstr)
       call SIGFIG(zonetotsurfacearea(icomp),NSIGFIG,RNO,T12,LSTR)
       call SIGFIG(ZBASEA(ICOMP),NSIGFIG,RNO,T12A,LSTRA)
       if(IUZBASEA(icomp).eq.0)then
-        if(markdown)then
-          write(outstr,'(5a)') 'area of ',T12(1:LSTR),
-     &     ' m^2^ & approx floor area of ',T12A(1:LSTRA),' m^2^.  '
-        else
-          write(outstr,'(5a)') ' area of ',T12(1:LSTR),
+        write(outstr,'(5a)') ' area of ',T12(1:LSTR),
      &     'm^2 & approx floor area of ',T12A(1:LSTRA),'m^2'
-        endif
       elseif(IUZBASEA(icomp).eq.1)then
-        if(markdown)then
-          write(outstr,'(5a)') ' area of ',T12(1:LSTR),
-     &     ' m^2^ & user edited floor area of ',T12A(1:LSTRA),' m^2^.  '
-        else
-          write(outstr,'(5a)') ' area of ',T12(1:LSTR),
+        write(outstr,'(5a)') ' area of ',T12(1:LSTR),
      &     'm^2 & user edited floor area of ',T12A(1:LSTRA),'m^2'
-        endif
       elseif(IUZBASEA(icomp).eq.2)then
-        if(markdown)then
-          write(outstr,'(5a)') ' area of ',T12(1:LSTR),
-     &     ' m^2^ & user list floor area of ',T12A(1:LSTRA),' m^2^.  '
-        else
-          write(outstr,'(5a)') ' area of ',T12(1:LSTR),
+        write(outstr,'(5a)') ' area of ',T12(1:LSTR),
      &     'm^2 & user list floor area of ',T12A(1:LSTRA),'m^2'
-        endif
       endif
-      if(markdown)then
-C        call edisp2tr(itu,outstr)
-        call edisp(itu,outstr)
-      else
-        call edisp(itu,outstr)
-      endif
-      if(markdown)then
-        WRITE(outstr,'(2A)') zdesc(ICOMP)(1:lnzdesc(ICOMP)),'. '
-        call edisp2tr(itu,outstr)
-      else
-        WRITE(outstr,'(1x,A)') zdesc(ICOMP)(1:lnzdesc(ICOMP))
-        call edisp(itu,outstr)
-      endif
+      call edisp(itu,outstr)
+      WRITE(outstr,'(1x,A)') zdesc(ICOMP)(1:lnzdesc(ICOMP))
+      call edisp(itu,outstr)
       return
       end
 
@@ -6473,10 +6383,6 @@ C << update documentation as well as reporting based on files >>
       common/ishdirec/iaplic(MCOM,2),nsurfcalc(MCOM),lstsfcalc(MCOM,MS),
      &     nsurfinso(MCOM),isurfinso(MCOM,MS)
 
-C Markdown flag.
-      logical markdown
-      common/markdownflag/markdown
-
       CHARACTER OUTSTR*124
       character sdescr*80
 
@@ -6484,13 +6390,8 @@ C Print out information about the default insolation planes if
 C the user has not requested a shading analysis.
       call edisp(ITRU,' ')
       if(ISI(ICOMP).eq.1)then
-        if(markdown)then
-          call edispxtr(ITRU,
-     &'An hourly solar radiation distribution is used for this zone.  ')
-        else
-          call edisp(ITRU,
+        call edisp(ITRU,
      &' An hourly solar radiation distribution is used for this zone.')
-        endif
       else
         IF(NDP(ICOMP).EQ.1)THEN
           ICM=IZSTOCN(ICOMP,IDPN(ICOMP,1))
@@ -6505,17 +6406,10 @@ C the user has not requested a shading analysis.
      &    ' (if shading not calculated).'
           call edisp(ITRU,OUTSTR)
         ELSEIF(NDP(ICOMP).EQ.3)THEN
-          if(markdown)then
-            write(outstr,'(2a)') 
-     &      'All surfaces will receive diffuse insolation (if shading',
-     &      ' not calculated).'
-            call edisp2tr(ITRU,OUTSTR)
-          else
-            write(outstr,'(2a)') 
-     &      ' All surfaces will receive diffuse insolation (if shading',
-     &      ' not calculated).'
-            call edisp(ITRU,OUTSTR)
-          endif
+          write(outstr,'(2a)') 
+     &    ' All surfaces will receive diffuse insolation (if shading',
+     &    ' not calculated).'
+          call edisp(ITRU,OUTSTR)
         ENDIF
       endif
 
@@ -6528,28 +6422,15 @@ C geometry file will not have this information.
           call edisp(ITRU,
      &      ' Surfaces (user list) for shading analysis: ')
         else
-          if(markdown)then
-            call edispxtr(ITRU,
-     &      'Surfaces (all applicable) for shading analysis  ')
-          else
-            call edisp(ITRU,
+          call edisp(ITRU,
      &      ' Surfaces (all applicable) for shading analysis: ')
-          endif
         endif
-        if(markdown)then
-          call edisp2tr(ITRU,sdescr)
-        else
-          call edisp(ITRU,sdescr)
-        endif
+        call edisp(ITRU,sdescr)
       else
         if(ISI(ICOMP).eq.1)then
           continue   ! obviously requested
         else
-          if(markdown)then
-            call edispxtr(ITRU,'No shading analysis requested.  ')
-          else
-            call edisp(ITRU,' No shading analysis requested.')
-          endif
+          call edisp(ITRU,' No shading analysis requested.')
         endif
       endif
 
@@ -6559,26 +6440,14 @@ C geometry file will not have this information.
         if(iaplic(icomp,2).eq.0)then
           call edisp(ITRU,' Insolation sources (user list): ')
         else
-          if(markdown)then
-            call edispxtr(ITRU,'Insolation sources (all applicable) ')
-          else
-            call edisp(ITRU,' Insolation sources (all applicable):')
-          endif
+          call edisp(ITRU,' Insolation sources (all applicable):')
         endif
-        if(markdown)then
-          call edisp2tr(ITRU,sdescr)
-        else
-          call edisp(ITRU,sdescr)
-        endif
+        call edisp(ITRU,sdescr)
       else
         if(ISI(ICOMP).eq.1)then
           continue    ! obviously requested
         else
-          if(markdown)then
-            call edispxtr(ITRU,'No insolation analysis requested.  ')
-          else   
-            call edisp(ITRU,' No insolation analysis requested.')
-          endif
+          call edisp(ITRU,' No insolation analysis requested.')
         endif
       endif
 
@@ -6649,6 +6518,7 @@ C Surfaces with associated vertices.
           call edisp248(ITRU,LOUTSTR,100)
         endif 
  9990   FORMAT(A,I5,1x,124(',',I3))
+
  9991 CONTINUE
       RETURN
       END

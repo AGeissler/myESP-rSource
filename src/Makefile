@@ -3,7 +3,7 @@
 SRCdir=`pwd`
 
 PROGRAMS = aco bps c2e cdb clm dfs dfv e2r ecnv eco enet grd harmonizer ish mfs \
-	   mld mrt pdb prj res vew stats
+	   mld mrt pdb prj res vew
 
 allX11: libX11 $(PROGRAMS)
 allGTK: libGTK $(PROGRAMS)
@@ -193,13 +193,6 @@ vew:
 	else \
 	  cd $(SRCdir)/evew; $(MAKE); \
 	fi
-stats: 
-	if [ "$(doInstall)" = "yes" ]; then \
-	  cd $(SRCdir)/estats; $(MAKE) ESPBinDir=${ESPBinDir} EXE=${EXE} install; \
-	else \
-	  cd $(SRCdir)/estats; $(MAKE); \
-	fi
-
 clean:
 	cd $(SRCdir)/lib;     $(MAKE) clean
 	cd $(SRCdir)/eaco; $(MAKE) clean
@@ -223,7 +216,6 @@ clean:
 	cd $(SRCdir)/eprj; $(MAKE) clean
 	cd $(SRCdir)/eres; $(MAKE) clean
 	cd $(SRCdir)/evew; $(MAKE) clean
-	cd $(SRCdir)/estats; $(MAKE) clean
 	cd $(SRCdir)/harmonizer; $(MAKE) clean
 	@if [ -f $(SRCdir)/include/espinstalldir.h ]; then rm $(SRCdir)/include/espinstalldir.h; fi
 	@if [ -f $(SRCdir)/include/build_info.h    ]; then rm $(SRCdir)/include/build_info.h;    fi	
@@ -251,28 +243,3 @@ strip:
 	cd $(SRCdir)/eprj; $(MAKE) strip
 	cd $(SRCdir)/eres; $(MAKE) strip
 	cd $(SRCdir)/evew; $(MAKE) strip
-	cd $(SRCdir)/estats; $(MAKE) strip
-
-bincopy:
-	cp eaco/aco $(ESPBinDir)/aco
-	cp eb2e/b2e $(ESPBinDir)/b2e
-	cp ebps/bps $(ESPBinDir)/bps
-	cp edfs/dfs $(ESPBinDir)/dfs
-	cp edfv/dfv $(ESPBinDir)/dfv
-	cp ec2e/c2e $(ESPBinDir)/c2e
-	cp ecdb/cdb $(ESPBinDir)/cdb
-	cp eclm/clm $(ESPBinDir)/clm
-	cp ee2r/e2r $(ESPBinDir)/e2r
-	cp cnv/ecnv $(ESPBinDir)/ecnv
-	cp eeco/eco $(ESPBinDir)/eco
-	cp egrd/grd $(ESPBinDir)/grd
-	cp eish/ish $(ESPBinDir)/ish
-	cp emfs/mfs $(ESPBinDir)/mfs
-	cp emld/mld $(ESPBinDir)/mld
-	cp emrt/mrt $(ESPBinDir)/espvwf
-	cp net/enet $(ESPBinDir)/enet
-	cp epdb/pdb $(ESPBinDir)/pdb
-	cp eprj/prj $(ESPBinDir)/prj
-	cp eres/res $(ESPBinDir)/res
-	cp evew/viewer $(ESPBinDir)/viewer
-	cp estats/stats $(ESPBinDir)/stats

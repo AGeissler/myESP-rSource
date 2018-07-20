@@ -2719,7 +2719,8 @@ C      COMMON/CPPA/ENV(5),PARA(MNCNN,13),CPARA(MICN,4,13),
 C     &  SUB_MATRIX_A(MICN,MNCNN,MNCNN),SUB_MATRIX_B(MICN,MNCNN),
 C     &  MATRIX_A(MNCNN,MNCNN),MATRIX_B(MNCNN),ICOUNTER,IDONE
 
-      CHARACTER LABL*12,LBLINT*4
+      CHARACTER LABL*12
+C      CHARACTER LBLINT*4
 
 C      CHARACTER CPP*30,ICPP*30
 C      REAL ENV,PARA,CPARA,SUB_MATRIX_A,SUB_MATRIX_B
@@ -2735,19 +2736,19 @@ C      REAL MATRIX_A,MATRIX_B
       real OFFLA  ! offset below icon for label in m.
 
 #ifdef OSI
-      integer iupdown,isym    ! passed to etplot
-      integer iix1,iiy1,iix2,iiy2  ! passed to edline
+C      integer iupdown,isym    ! passed to etplot
+C      integer iix1,iiy1,iix2,iiy2  ! passed to edline
       integer iixlc,isize
       integer iix,iiy,iixl,iiyl,iixr,iiyu
       integer iicol
-      integer iiw4
+C      integer iiw4
 #else
-      integer*8 iupdown,isym    ! passed to etplot
-      integer*8 iix1,iiy1,iix2,iiy2 ! passed to edline
+C      integer*8 iupdown,isym    ! passed to etplot
+C      integer*8 iix1,iiy1,iix2,iiy2 ! passed to edline
       integer*8 iixlc,isize
       integer*8 iix,iiy,iixl,iiyl,iixr,iiyu
       integer*8 iicol
-      integer*8 iiw4
+C      integer*8 iiw4
 #endif
 
 C If flow network (INWKTYP = 2) and the component is internal unknown
@@ -2839,13 +2840,13 @@ C Check the component is on the graphics screen
         return
       endif
       
-C Set the icon color.
-      iicol=IVEICN(ICN,I,3)
-      if(IVEICN(ICN,I,4).eq.0)then
+C Set the icon color based on iveicn array.
+      iicol=IVEICN(ICN,1,3)
+      if(IVEICN(ICN,1,4).eq.0)then
         call winscl('i',iicol)
-      elseif(IVEICN(ICN,I,4).eq.1)then
+      elseif(IVEICN(ICN,1,4).eq.1)then
         call winscl('g',iicol)
-      elseif(IVEICN(ICN,I,4).eq.2)then
+      elseif(IVEICN(ICN,1,4).eq.2)then
         call winscl('z',iicol)
       endif
       if(INWKTYP.eq.2.and.CLOSECT.and.CLOSEFT)then
@@ -3101,6 +3102,7 @@ C     &  MATRIX_A(MNCNN,MNCNN),MATRIX_B(MNCNN),ICOUNTER,IDONE
 C      CHARACTER CPP*30,ICPP*30
 C      REAL ENV,PARA,CPARA,SUB_MATRIX_A,SUB_MATRIX_B
 C      REAL MATRIX_A,MATRIX_B
+      real OFFLA  ! offset below icon for label in m.
 
       LOGICAL INBOUND,CLOSE
 #ifdef OSI
@@ -3122,6 +3124,7 @@ C      REAL MATRIX_A,MATRIX_B
       X=XYZICON(ICN,1); Y=XYZICON(ICN,2)
 
       INBOUND=.TRUE.
+      OFFLA=0.4
 
 C Get view limits and check if the component should be plotted in this view. 
       IF(IVIEW.EQ.1)THEN

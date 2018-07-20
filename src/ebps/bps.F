@@ -1286,7 +1286,7 @@ cx     &      'Unmet hours for each zone at end of simulation.'
           if(LTDF(lnts-15:lnts).eq.'.temporalscratch')then
             call usrmsg('Deleting scratch file...',LTDF,'P')
             ier=0
-            call EFOPRAN(iutdf,LTDF,ITWPR,1,IER)
+            call EFOPRAN(iutdf,LTDF,1,1,IER)
             CALL EFDELET(iutdf,ISTAT)
             call usrmsg('Deleting scratch file...done.',LTDF,'P')
           endif

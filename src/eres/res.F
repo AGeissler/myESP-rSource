@@ -757,7 +757,7 @@ C the model.
           lnts=lnblnk(LTDF)
           if(LTDF(lnts-15:lnts).eq.'.temporalscratch')then
             call usrmsg('Deleting scratch file...',LTDF,'P')
-            call EFOPRAN(iutdf,LTDF,ITWPR,1,IER)
+            call EFOPRAN(iutdf,LTDF,1,1,IER)
             CALL EFDELET(iutdf,ISTAT)
             call usrmsg('Deleting scratch file...done.',LTDF,'P')
           endif
@@ -765,7 +765,7 @@ C the model.
 
         call tstamp('>','Finish results analysis')
         CALL EPAGEND
-        STOP
+        goto 999        
       ELSE
         goto 4
       ENDIF
@@ -778,7 +778,7 @@ C Output menu error signal and allow re-selection from menu.
  901  call edisp(iuout,'Error opening journal file, continuing.')
       goto 902
 
-      END
+ 999  END PROGRAM
 
 
 C ********** imgdisp

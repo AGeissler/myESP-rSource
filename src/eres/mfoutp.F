@@ -673,8 +673,8 @@ C write out labels for each column.
               outs248='*time'
               outs800='*time'
             else
-              outs248='Time'
-              outs800='Time'
+              outs248='#Time'
+              outs800='#Time'
             endif
           elseif (IHFLAG.eq.1.and.ixopen.eq.0) then
             if (delim.eq.'X') then
@@ -904,14 +904,15 @@ C If writing to screen, use 248 char buffer.
                 endif
               elseif (MENUTYPE.eq.15) then
 
-C Generate a label for time.
+C Generate a label for time in the 3D flow graph.
+                CALL STDATE(IYEAR,IDAY,DESCR,DESCR1)
                 if (IHFLAG.eq.0) then 
                   call STIMENA(JJ,LTIME)
-                  write (msg,'(2a)') 'Time: ',LTIME
+                  write (msg,'(3a)') DESCR1,' time: ',LTIME
                 else
                   call DATIME(JJ,ATIME)
                   RDOTY=FLOAT(IDAY)+(ATIME/24.)
-                  write (msg,'(a,f10.4)') 'Time: ',RDOTY
+                  write (msg,'(2a,f10.4)') DESCR1,' time: ',RDOTY
                 endif
                 iside=3; isize=1; ifont=1
                 call viewtext(msg,iside,isize,ifont)

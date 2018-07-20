@@ -157,10 +157,10 @@ C Get bounds for image.
 C Determine scaling ratios for the drawing and axis.
 C Determine the 2D coords of the site extremes.
           CALL SITE2D(SXMX,SXMN,SYMX,SYMN,ier)
-          write(6,*) SXMX,SXMN,SYMX,SYMN
+C          write(6,*) SXMX,SXMN,SYMX,SYMN
           CALL axiscale(igwid,igheight,SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,
      &      Xadd,Yadd)
-          write(6,*) SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,Xadd,Yadd
+C          write(6,*) SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,Xadd,Yadd
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
 
 C Read 3D flow network, report contents and draw the network.
