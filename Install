@@ -34,7 +34,7 @@ SQLite_support="no"        # Support for SQLite output.
 FMI_support="prompt"       # Support for FMI connectivity.
 debugging="no"             # Support for debugging symbols.
 EXE=""                     # Executable file extension.
-debian_copy="no"           # no=standard make install yes=make bincopy
+debian_copy="yes"           # no=standard make install yes=make bincopy
 opt="-O1"                  # optimization to be applied
 FFLAGS="-I../include "     # Fortran compiler flags.
 CFLAGS="-I../include "     # C compiler flags.
@@ -54,7 +54,7 @@ extendedDebug="no"         # Extended debugging.
 use_intel="no"             # Use Intel compilers.
 skip_ish_calcs="no"        # Binary shading file creation.
 reuse_ish_calcs="yes"      # Map ascii shading files to binary.
-clean="yes"                # Clean object files after compilation.
+clean="no"                 # Clean object files after compilation.
 unversioned="no"           # Check for versioning info.
 
 # ESP-r executables (bld & plt not included by default because their
