@@ -48,6 +48,7 @@ C << of reporing if from command line.
 C geometry.h provides commons G0/G2/G7/prec2/precz/c20.
 #include "geometry.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
 #include "control.h"
 #include "tdf2.h"
 #include "esprdbfile.h"
@@ -117,7 +118,6 @@ C LPNF (72 char) plant network file name.
       common/cctlnm/ctldoc,lctlf
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
-      COMMON/MFLOW2/NDNAM(0:MNOD)
 
 C ISPMXIST is the existance flag for special materials
       common/spmfxst/ispmxist,spflnam
@@ -199,6 +199,13 @@ C Thermal bridges.
       INTEGER iExtLgRadFlag
       REAL eGrdTp
 
+C For reporting day types.
+      common/calena/calename,calentag(MDTY),calendayname(MDTY)
+      character calename*32,calentag*12,calendayname*32
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      integer nbdaytype,nbcaldays,icalender
+      integer idty  ! foer loop
+
 C bridgelen was calculated in subroutine suredgeadj
       real bridgelen ! Length of potential thermal bridges in each zone.
       common/gbridge/bridgelen(MCOM,10)
@@ -224,10 +231,10 @@ C Remember if each zone is fully attributed.
       character ZN*12,SN*12
       character aok*17,CTLDOC*248,LCTLF*72
       character xfile*144,tg*1,delim*1,head*21
-      character outs*124,outs248*248
+      character outs*124,outs248*496,outs2*148
       character dstmp*24,mlc_name*32
       CHARACTER LAPROB*72,LPNF*72
-      CHARACTER NDNAM*12,TOPTIC*12,msg*28,doit*248
+      CHARACTER TOPTIC*12,msg*28,doit*248
       character t16a*16,t16b*16,t16c*16,t16d*16
       character DBTAG*12,DBTASK*12,DBZN*15,DBSN*15
       character figlbl*20,figexe*48
@@ -276,11 +283,12 @@ C in the current model. A -1 means not applicable
       real foundRextra  ! extra CIBSE resistance for foundation
 
       character*10 wkd1, wkd2
-      character louts*248,loutsd*248
+      character louts*496,loutsd*496,louts600*600
       character lltmp*144,lguess*144,lldef*144  ! for working with EASKXORGTKF
       character lpath*72,fname*72 ! for use with fdroot
       character llclmdb*144
-      integer llt,lndbp,jj
+      character boundmsg*72
+      integer llt,lndbp,jj,lnsn
 
       logical newgeo  ! to use for testing if new/old geometry file.
       logical nameok  ! to use for testing if duplicate names in zone
@@ -292,7 +300,7 @@ C in the current model. A -1 means not applicable
       integer iitrc   ! for passing verbosity
       integer imlc    ! loop for MLC reporting
       logical odd     ! for display of vertex info
-      integer lnsmlcn,lnl ! char lengths
+      integer lnsmlcn,lnl,lnlist ! char lengths
       
       INTEGER :: i,icc,icoth,ie,ieripv,irec,iprb,inv
       INTEGER :: ins4,ino,imerr,ilcot,ijk,ij,ii,igrdp
@@ -324,14 +332,14 @@ C Check if Unix-based or DOS based.
       newgeo=.false.     ! assume older format geometry.
       havebrdge=.false.  ! assume no thermal bridges
       IUF=IFIL+2
-      siteinfo=2
+      siteinfo=1      ! constrained site information
       databaseinfo=2  ! assume verbose mode for database reporting
-      contextinfo=2
+      contextinfo=1   ! constrained context information
       ICTLF=IUF
       CALL ERPFREE(ICTLF,ISTAT)
       call FINDFIL(LCTLF,XST)
       if(XST)then
-        controlinfo=2  ! if control used set to verbose
+        controlinfo=1  ! if control used set to terse
       else
         controlinfo=-1
       endif
@@ -1165,8 +1173,8 @@ C         Write monthly values ...
           itrunc=1
           ipos=1
           do while (itrunc.ne.0)
-            call arlist(ipos,12,groundreflmonth,12,'S',outs248,
-     &                                                  loutln,itrunc)
+            call arlist2(ipos,12,groundreflmonth,12,'S',outs248,
+     &        loutln,itrunc)
             call edisp248(itu,outs248,100)
             ipos=itrunc+1
           end do
@@ -1179,7 +1187,7 @@ C         Write monthly values ...
           ipos=1
           do while (itrunc.ne.0)
             call ailist(ipos,12,dayswithsnow,12,'S',outs248,
-     &                                                  loutln,itrunc)
+     &        loutln,itrunc)
             call edisp248(itu,outs248,100)
             ipos=itrunc+1
           end do
@@ -1192,8 +1200,8 @@ C         Write monthly values
           itrunc=1
           ipos=1
           do while (itrunc.ne.0)
-            call arlist(ipos,12,groundreflmonth,12,'S',outs248,
-     &                                                  loutln,itrunc)
+            call arlist2(ipos,12,groundreflmonth,12,'S',outs248,
+     &        loutln,itrunc)
             call edisp248(itu,outs248,110)
             ipos=itrunc+1
           end do
@@ -1250,33 +1258,41 @@ C Re-read sbem db and then the descriptive file.
           else
             write(outs,'(2a)')'Project name: ',pjname(1:lnblnk(pjname))
             call edisp(itu,outs)
-            write(outs,'(2a)')'Building address: ',baddress
-            call edisp(itu,outs)
-            write(outs,'(2a)')'Building city: ',bcity(1:lnblnk(bcity)) 
-            call edisp(itu,outs)
-            write(outs,'(2a)')'Building Postcode: ',buildingPC  
-            call edisp(itu,outs)    
-            write(outs,'(2a)')'Building owner name: ',ownername
-            call edisp(itu,outs)   
-            write(outs,'(2a)')'Building owner telephone: ',ownertel
-            call edisp(itu,outs)   
-            write(outs,'(2a)')'Building owner address: ',owneraddr 
-            call edisp(itu,outs) 
-            write(outs,'(2a)')'Building owner city: ',ownercity 
-            call edisp(itu,outs) 
-            write(outs,'(2a)')'Building owner Postcode: ',ownerPC
-            call edisp(itu,outs)     
-            call edisp(itu,' ')
-            write(outs,'(2a)')'Simulationist name: ',certifname 
-            call edisp(itu,outs)     
-            write(outs,'(2a)')'Simulationist telephone: ',certTel 
-            call edisp(itu,outs)     
-            write(outs,'(2a)')'Simulationist address: ',certaddress   
-            call edisp(itu,outs)   
-            write(outs,'(2a)')'Simulationist city: ',certcity  
-            call edisp(itu,outs)    
-            write(outs,'(2a)')'Simulationist postcode: ',certPC  
-            call edisp(itu,outs)
+
+C Check if any of the address fields are known.
+            if(certifname(1:15).eq.'not yet defined'.and.
+     &         certTel(1:15).eq.'not yet defined'.and.
+     &         certaddress(1:15).eq.'not yet defined')then
+              continue  ! nothing to write
+            else
+              write(outs,'(2a)')'Building address: ',baddress
+              call edisp(itu,outs)
+              write(outs,'(2a)')'Building city: ',bcity(1:lnblnk(bcity)) 
+              call edisp(itu,outs)
+              write(outs,'(2a)')'Building Postcode: ',buildingPC  
+              call edisp(itu,outs)    
+              write(outs,'(2a)')'Building owner name: ',ownername
+              call edisp(itu,outs)   
+              write(outs,'(2a)')'Building owner telephone: ',ownertel
+              call edisp(itu,outs)   
+              write(outs,'(2a)')'Building owner address: ',owneraddr 
+              call edisp(itu,outs) 
+              write(outs,'(2a)')'Building owner city: ',ownercity 
+              call edisp(itu,outs) 
+              write(outs,'(2a)')'Building owner Postcode: ',ownerPC
+              call edisp(itu,outs)     
+              call edisp(itu,' ')
+              write(outs,'(2a)')'Simulationist name: ',certifname 
+              call edisp(itu,outs)     
+              write(outs,'(2a)')'Simulationist telephone: ',certTel 
+              call edisp(itu,outs)     
+              write(outs,'(2a)')'Simulationist address: ',certaddress   
+              call edisp(itu,outs)   
+              write(outs,'(2a)')'Simulationist city: ',certcity  
+              call edisp(itu,outs)    
+              write(outs,'(2a)')'Simulationist postcode: ',certPC  
+              call edisp(itu,outs)
+            endif
           endif          
         endif
 
@@ -1451,7 +1467,7 @@ C If there is an AIM-2 descritption scan the file and then report.
       endif
 
 C Check if IPV file and dispersed demands files are known.
-      if(contextinfo.gt.0)then
+      if(contextinfo.gt.1)then
         if(lnblnk(bdmds).eq.0)then
           continue
         elseif(bdmds(1:7).eq.'UNKNOWN')then
@@ -1591,7 +1607,7 @@ C If temporal data associated with the model report it.
       endif
 
 C Databases associated with the model. First print the file names.
-      if(databaseinfo.gt.0)then
+      if(databaseinfo.ge.0)then
         call edisp(itu,' ')
         call edisp(itu,'Databases associated with the model: ')
         if(ipathapres.eq.0.or.ipathapres.eq.1)then
@@ -1698,9 +1714,9 @@ C       Initialize special material common data
         call SPMINIT
 C       Write out some info on special materials
         call edisp(itu,
-     &        '  Details of special materials in the model:')
+     &     '  Details of special materials in the model:')
         call edisp(itu,
-     &        '  Type  | Number of entries ')
+     &     '  Type  | Number of entries ')
 
         countspmtyp=1
         numoftyp(countspmtyp)=0
@@ -2339,7 +2355,7 @@ C into outs248 for each non-zero bridges.
         endif
 
 C Check if the edges are proprly bounded. Uses G1 common.
-        call ckvert(0,IVALS(IZ),bound,iub,inv,ier)
+        call ckvert(0,IVALS(IZ),bound,iub,inv,'-',ier)
         if(.NOT.bound)then
           iprb=MAX0(iub,inv)
           WRITE(outs,'(A,i3,a)')  ' There are ',iub,
@@ -2509,24 +2525,58 @@ C Check for mismatch in surface attributes and boundary conditions.
         bndrysxc=.true.
         DO 1243 IS=1,NZSUR(IVALS(IZ))
           icc=IZSTOCN(IVALS(IZ),is)
-          if(ICT(icc).eq.0.and.SSOTHER(icc,1)(1:5).ne.'EXTER')
-     &       bndrysxc=.false.
-          if(ICT(icc).eq.1.and.SSOTHER(icc,1)(1:5).ne.'SIMIL')
-     &       bndrysxc=.false.
-          if(ICT(icc).eq.2.and.SSOTHER(icc,1)(1:5).ne.'CONST')
-     &       bndrysxc=.false.
-          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'CONST')
-     &       bndrysxc=.false.
-          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'SIMIL')
-     &       bndrysxc=.false.
-          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'EXTER')
-     &       bndrysxc=.false.
-          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'GROUN')
-     &       bndrysxc=.false.
-          if(ICT(icc).eq.4.and.SSOTHER(icc,1)(1:5).ne.'GROUN')
-     &       bndrysxc=.false.
-          if(ICT(icc).eq.5.and.SSOTHER(icc,1)(1:5).ne.'ADIAB')
-     &       bndrysxc=.false.
+          write(SN,'(a12)')SSNAME(icc)
+          lnsn=lnblnk(SN)
+          if(ICT(icc).eq.0.and.SSOTHER(icc,1)(1:5).ne.'EXTER')then
+            bndrysxc=.false.
+            write(boundmsg,'(2a)') 'Expecting EXTER for ',SN(1:lnsn)
+            call edisp(itu,boundmsg)
+          endif
+          if(ICT(icc).eq.1.and.SSOTHER(icc,1)(1:5).ne.'SIMIL')then
+            bndrysxc=.false.
+            write(boundmsg,'(2a)') 'Expecting SIMILAR for ',SN(1:lnsn)
+            call edisp(itu,boundmsg)
+          endif
+          if(ICT(icc).eq.2.and.SSOTHER(icc,1)(1:5).ne.'CONST')then
+            bndrysxc=.false.
+            write(boundmsg,'(2a)') 'Expecting CONST for ',SN(1:lnsn)
+            call edisp(itu,boundmsg)
+          endif
+          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'CONST')then
+            bndrysxc=.false.
+            write(boundmsg,'(2a)') 'Expecting OTHER for ',SN(1:lnsn)
+            call edisp(itu,boundmsg)
+          endif
+          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'SIMIL')then
+            bndrysxc=.false.
+            write(boundmsg,'(3a)') 'Expecting OTHER for ',SN(1:lnsn),
+     &        ' got SIMIL.'
+            call edisp(itu,boundmsg)
+          endif
+          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'EXTER')then
+            bndrysxc=.false.
+            write(boundmsg,'(3a)') 'Expecting OTHER for ',SN(1:lnsn),
+     &        ' got EXTER.'
+            call edisp(itu,boundmsg)
+          endif
+          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'GROUN')then
+            bndrysxc=.false.
+            write(boundmsg,'(3a)') 'Expecting OTHER for ',SN(1:lnsn),
+     &        ' got GROUND.'
+            call edisp(itu,boundmsg)
+          endif
+          if(ICT(icc).eq.4.and.SSOTHER(icc,1)(1:5).ne.'GROUN')then
+            bndrysxc=.false.
+            write(boundmsg,'(3a)') 'Expecting GROUND for ',SN(1:lnsn),
+     &        ' got something else.'
+            call edisp(itu,boundmsg)
+          endif
+          if(ICT(icc).eq.5.and.SSOTHER(icc,1)(1:5).ne.'ADIAB')then
+            bndrysxc=.false.
+            write(boundmsg,'(3a)') 'Expecting ADIAB for ',SN(1:lnsn),
+     &        ' got something else.'
+            call edisp(itu,boundmsg)
+          endif
 
 C While looping check that constructions of partitions are matching.
           if(ICT(icc).eq.3)then

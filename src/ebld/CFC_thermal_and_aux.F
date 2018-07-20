@@ -122,7 +122,7 @@ C ******** Calculate effective longwave properties for each CFC layer
 C.........Only calculate at first time-step and when slat angle change occurs
 C.........(effective longwave radiative properties are a function of geometry only).
           diff = abs(vb_phiNew(icomp,icfctp) - vb_phiOld(icomp,icfctp))
-	  
+  
 cx Slat angle change implies diff > 0.x, no?? Logic suggested by A. Geissler.
 cx Uncomment this line to implement this rather than legacy logic in line 130.
 cx          IF((NSINC.eq.1).or.(diff.gt.0.1))then
@@ -2901,7 +2901,8 @@ C Use geometry.h for zname
 #include "geometry.h"
 #include "control.h"
 #include "CFC_common.h"
-#include "net_flow.h" ! supplies MNOD
+C net_flow supplies MNOD
+#include "net_flow.h"
 #include "tdf2.h"
       COMMON/OUTIN/IUOUT,IUIN
       integer iuout,iuin

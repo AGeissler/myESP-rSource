@@ -39,6 +39,7 @@ C time-dependent variables to be plotted for one or more zones.
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
@@ -121,7 +122,11 @@ C For help messages
       NITMS=42
 
 C Menu display.
-   51 INO=-2
+   51 if(MMOD.eq.8)then
+        INO=-1
+      else
+        INO=-2
+      endif
 
 C In case the user has resized the display redraw
 C the image before presenting the command menu.
@@ -971,7 +976,7 @@ C to graphical result display.
       CHARACTER ETEXT*82
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       CHARACTER PDESCR*60,SDESCR*44,VITEM*24,HITEM*24
-      CHARACTER outsd*80,outsd1*81
+      CHARACTER outsd*96,outsd1*124
       integer lsn1
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.

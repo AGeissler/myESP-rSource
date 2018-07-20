@@ -3,7 +3,7 @@ C This file contains the following routines:
 C This code is still under testing and develping 
 C DynamicOcc: return the latent and sensible load from one typical occupant
 C Indentation and tabs corrected 18 July 2016.
-	
+
 C************Dynamic occupant subroutine**********************************
       Subroutine DynamicOcc(ICOMP,METAo,CLOTHO)
 #include "building.h"
@@ -15,7 +15,7 @@ C************Dynamic occupant subroutine**********************************
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
 
       common/FVALG/GFA(MCOM)
-      common/FVALA/TFA(MCOM)
+      common/FVALA/TFA(MCOM),QFA(MCOM)
       common/OCCCFD/TaCFD(MCOM),TTRACK(MCOM)
       common/occload/sklat(MCOM),skcon(MCOM),skrad(MCOM),ttcr(MCOM),
      &     ttsk(MCOM)

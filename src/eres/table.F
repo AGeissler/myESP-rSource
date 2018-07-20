@@ -29,23 +29,31 @@ C ******************** MOTABL ********************
 C MOTABL produces tabular output for a 24 hour period.
       SUBROUTINE MOTABL
 #include "building.h"
+#include "model.h"
+C #include "geometry.h"
+#include "prj3dv.h"
 #include "net_flow.h"
 C #include "esprdbfile.h"
 C esprdbfile.h supplies the following:
 C default file names for databases
-C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
-C      COMMON/FILEP/IFIL
-C      COMMON/OUTPCH/ICOUT
+      COMMON/FILEP/IFIL
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 C      COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
-C      COMMON/ZONPIK/NZ,NZNO(MCOM)
+      integer menuchw,igl,igr,igt,igb,igw,igwh
+      COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
+      integer ncomp,ncon
+      common/C1/NCOMP,NCON
+      common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
 
 C ihflag = 0 write 13h30, ihflag = 1 write 0.5625, = 2 write yyyy-mm-dd 13:30:00
 C idhflg = 0 no day demarcations, idhflg = 1 write demarcation
 C          between tabular reporting days.
-C ilflag = 0 tabular labels on multi-lines, ilflag = 1 on one line.
+C ilflag = 0 tabular labels on multi-lines, ilflag = 1 on one line
+C          ilflag = 2 do not include # header lines in file.
       COMMON/GRTOOL/IHFLAG,IDHFLG,ILFLAG
       common/exporttg/xfile,tg,delim
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
@@ -62,7 +70,17 @@ C      COMMON/MFLCTL/IRY,IRM,IRD,IRH,FLWTIM,IHOUR,IYD,IFYD,ILYD,IPROG
       character xfile*144,tg*1,delim*1
 C      character spflnam*72
       integer IWM  ! for radio button
+      character outs*124,LAPROB*72
       integer NITMS,INO ! max items and current menu item
+#ifdef OSI
+      integer igwid,igheight  ! for use with axiscale
+      integer iigl,iigr,iigt,iigb,iigw,iigwh
+      integer iiw1,iiw2,iiw3,iiw4,iimenu
+#else
+      integer*8 igwid,igheight  ! for use with axiscale
+      integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
+      integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+#endif
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -101,6 +119,8 @@ C Default value for GRTOOL file = 0 (off), day hash marks off.
         ITEM(12)='& labels >> multiline  '
       elseif(ILFLAG.eq.1)then
         ITEM(12)='& labels >> on one line'
+      elseif(ILFLAG.eq.2)then
+        ITEM(12)='& labels >> one ln no #'
       endif
       if(delim.eq.'-')then
         ITEM(13)='^ delim >> normal      '
@@ -143,7 +163,64 @@ C Special material output. << use alternative data recovery >>.
 
       elseif(INO.EQ.7)then
 
-C Network flow tabular output.
+C Network flow tabular output. If iairn=3 we can display the
+C flow network in 3D at this point.
+        if(iairn.eq.3)then
+
+C Initialise coordinates for eye point, view point and angle of view.
+          EYEM(1)=-100.; EYEM(2)=-100.; EYEM(3)=100.
+          VIEWM(1)=10.; VIEWM(2)=10.; VIEWM(3)=10.
+          ANG=40.
+
+C General image option flags.
+          ITDSP=0; ITBND=1; ITEPT=0
+          ITZNM=0; ITSNM=1; ITVNO=1
+          ITORG=0; ITSNR=1; ITOBS=0
+          ITGRD=0; GRDIS=0.0
+          ITPPSW=0
+
+C Clear current viewing box and re-establish image bounds.
+          CALL startbuffer
+
+C Setup and pass in parameters to win3d.
+          iiw1=4; iiw2=4; iiw3=3; iiw4=3; iimenu=menuchw
+          iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+          CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
+     &      iigl,iigr,iigt,iigb,iigw,iigwh)
+          igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
+          igw=int(iigw); igwh=int(iigwh)
+          igwid=igw; igheight=igwh
+
+C Get bounds for image.
+          nzg=NCOMP
+          do 29 iz=1,nzg
+            nznog(iz)=iz
+  29      continue
+          call bndobj(0,IER)
+
+          HANG=ANG/2.0; HITH=1.0; YON=1300.0
+          CALL LENS(IER)
+
+C Determine scaling ratios for the drawing and axis.
+C Determine the 2D coords of the site extremes.
+          CALL SITE2D(SXMX,SXMN,SYMX,SYMN,ier)
+C          write(6,*) SXMX,SXMN,SYMX,SYMN
+          CALL axiscale(igwid,igheight,SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,
+     &      Xadd,Yadd)
+C          write(6,*) SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,Xadd,Yadd
+          call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
+
+C Read 3D flow network, report contents and draw the network.
+          IUM=IFIL+6
+          CALL ERPFREE(IUM,ISTAT)
+          CALL MFCDAT
+          CALL EMF3DREAD(IUM,'S',IER)
+          call edisp(iuout,' ')
+          CALL MFLIST(iuout)
+          call MFWFDRAW('r')  ! Draw flow network.
+          CALL ERPFREE(IUM,ISTAT)
+          call pauses(2)
+        endif
         MENUTYPE=4
         call MFOUTP('-')
       elseif(INO.EQ.10.AND.ISAVE.GE.1)then
@@ -171,13 +248,17 @@ C Toggle time format and day separators.
 
 C Toggle tabular listing label format.
         ILFLAG=ILFLAG+1
-        if(ILFLAG.GT.1)ILFLAG=0
+        if(ILFLAG.GT.2)ILFLAG=0
         if(ILFLAG.eq.0)then
           call edisp(iuout,' ')
           call edisp(iuout,'column labels on multi-lines ')
         elseif(ILFLAG.eq.1)then
           call edisp(iuout,' ')
           call edisp(iuout,'column labels on one line (spreadsheets)')
+        elseif(ILFLAG.eq.2)then
+          call edisp(iuout,' ')
+          call edisp(iuout,
+     &      'column labels on one line & no # header lines in files')
         endif
       elseif(INO.EQ.13.AND.ISAVE.GE.1)then
 
@@ -298,6 +379,7 @@ C Call the menu of choices (this also sets some default options).
         if (MENUTYPE.eq.-1) return
       endif
       IINLVDT=0
+      INOCFD=0
 
 C Call GOGET for each output day to get required data.
 C GOGET recovers the data in VAL2 (and averages output if required.)
@@ -327,20 +409,35 @@ C Write general header information (skip if IPV mode).
         CALL HDDATE(PDESCR)
         CALL HDSTEP(SDESCR)
         
-C If julian or 13:30:00 requested or writing to file start lines with a '#'.
+C If julian or 13:30:00 requested or writing to file start lines with 
+C a '#'. If user has set ILFLAG=2 then do not write # header lines.
         if (IHFLAG.eq.1.or.IHFLAG.eq.2.or.ixopen.eq.1) then
-          call edisp(itru,'# Timestep performance metrics.')
+          if(ILFLAG.le.1)then
+            call edisp(itru,'# Timestep performance metrics.')
+          endif
           lsn1=MIN0(lnblnk(RFILE),42)
           if(NSIM.gt.1)then
-            write(outs248,'(3A,I4,2A)')'# Lib: ',RFILE(1:lsn1),' Set:',
-     &      ISIM,': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            if(ILFLAG.le.1)then
+              write(outs248,'(3A,I4,2A)')'# Lib: ',RFILE(1:lsn1),
+     &        ' Set:',ISIM,': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            else
+              write(outs248,'(3A,I4,2A)')' Lib: ',RFILE(1:lsn1),
+     &        ' Set:',ISIM,': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            endif
           else
-            write(outs248,'(4A)')'# Lib: ',RFILE(1:lsn1),
+            if(ILFLAG.le.1)then
+              write(outs248,'(4A)')'# Lib: ',RFILE(1:lsn1),
      &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            else
+              write(outs248,'(4A)')' Lib: ',RFILE(1:lsn1),
+     &        ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+            endif
           endif
           if(ixopen.eq.1)then
             lnb=lnblnk(outs248)   ! write directly to file
-            write(itru,'(A)',iostat=ios,err=1)outs248(1:lnb)
+            if(ILFLAG.le.1)then
+              write(itru,'(A)',iostat=ios,err=1)outs248(1:lnb)
+            endif
           else
             lnb=MIN0(lnblnk(outs248),124)
             if(lnb.lt.124)then
@@ -351,7 +448,9 @@ C If julian or 13:30:00 requested or writing to file start lines with a '#'.
           endif
           WRITE(outs,'(4A)')'# ',PDESCR(1:lnblnk(PDESCR)),' ',
      &      SDESCR(11:lnblnk(SDESCR))
-          call edisp(itru,outs)
+          if(ILFLAG.le.1)then
+            call edisp(itru,outs)
+          endif
         else
 
 C Writing to the screen. It would be great to figure out how wide
@@ -390,11 +489,11 @@ C Write day of results and column headings information (skip if IPV mode).
         if(act(1:1).ne.'m')then
           if (IDHFLG.eq.1.and.ixopen.eq.1) then
             outs='# '
-            call edisp(itru,outs)
+            if(ILFLAG.le.1) call edisp(itru,outs)
             write(outs,'(3A)')'# ',DESCR1,' timestep misc. listing'
-            call edisp(itru,outs)
+            if(ILFLAG.le.1) call edisp(itru,outs)
             outs='# '
-            call edisp(itru,outs)
+            if(ILFLAG.le.1) call edisp(itru,outs)
           elseif (IDHFLG.eq.0.and.ixopen.eq.1) then
             continue
           elseif (IDHFLG.eq.0.and.ixopen.eq.0) then
@@ -410,7 +509,7 @@ C Write day of results and column headings information (skip if IPV mode).
           endif
           
 C If printing to screen then split column headings over four rows 
-C   don't do this if printing to file.
+C don't do this if printing to file.
           irows=4
           if (ixopen.eq.1) irows=1
           is=1
@@ -426,8 +525,15 @@ C   don't do this if printing to file.
                   outs248='*time'
                   outs800='*time'
                 else
-                  outs248='#Time'
-                  outs800='#Time'
+                  if(ILFLAG.le.1)then
+                    outs248='#Time'
+                    outs800='#Time'
+                  else
+                    outs248='Time'
+                    outs800='Time'
+                    K=5   ! initial value for 248 buffer
+                    K4=5  ! initial value for 800 buffer
+                  endif
                 endif
               elseif ((IHFLAG.eq.1.or.IHFLAG.eq.2).and.ixopen.eq.0)then
                 if (delim.eq.'X') then
@@ -649,12 +755,17 @@ C Assume fully occupied.
               ioc=1
               if(iocupf.eq.1) call getocup(IZONE,IDAY,J,ioc,ier)
               if(ioc.ne.0) then
-                write (outs248(K:KE),'(f11.2)') VAL2(IG,J)
-              elseif (IGETNO(IG,1).ge.50.AND.IGETNO(IG,1).le.59) then
-                if (VAL2(IG,J).gt.100.0) then
-                  write (outs248(K:KE),'(a)') '  invl dT  '
-                  IINLVDT=1
-                else
+                if (IGETNO(IG,1).ge.50.AND.IGETNO(IG,1).le.59) then
+                  if (VAL2(IG,J).gt.101.5) then                    
+                    write (outs248(K:KE),'(a)') '  no CFD   '
+                    INOCFD=1
+                  elseif (VAL2(IG,J).gt.100.0) then
+                    write (outs248(K:KE),'(a)') '  invl ipt '
+                    IINLVDT=1
+                  else
+                    write (outs248(K:KE),'(f11.2)') VAL2(IG,J)
+                  endif
+                else                  
                   write (outs248(K:KE),'(f11.2)') VAL2(IG,J)
                 endif
               else
@@ -678,11 +789,16 @@ C Assume fully occupied.
                 ioc=1
                 if(iocupf.eq.1) call getocup(IZONE,IDAY,J,ioc,ier)
                 if(ioc.ne.0) then
-                  write (outs800(K:KE),'(f11.2)') VAL2(IG,J)
-                elseif (IGETNO(IG,1).ge.50.AND.IGETNO(IG,1).le.59) then
-                  if (VAL2(IG,J).gt.100.0) then
-                    write (outs800(K:KE),'(a)') '  invl dT  '
-                    IINLVDT=1
+                  if (IGETNO(IG,1).ge.50.AND.IGETNO(IG,1).le.59) then
+                    if (VAL2(IG,J).gt.101.5) then                    
+                      write (outs800(K:KE),'(a)') '  no CFD   '
+                      INOCFD=1
+                    elseif (VAL2(IG,J).gt.100.0) then
+                      write (outs800(K:KE),'(a)') '  invl ipt '
+                      IINLVDT=1
+                    else
+                      write (outs800(K:KE),'(f11.2)') VAL2(IG,J)
+                    endif
                   else
                     write (outs800(K:KE),'(f11.2)') VAL2(IG,J)
                   endif
@@ -730,9 +846,15 @@ C Writing to screen so use shorter file buffer.
 
 C Explain inlv dT comment.
       if (IINLVDT.eq.1) then
-        call edisp(itru,'invl dT: the supplied temperature difference')
-        call edisp(itru,' to the comfort algorithm was outside the ')
-        call edisp(itru,' valid range, thus no data could be returned.')
+        call edisp(itru,'invl ipt: the supplied input to the comfort')
+        call edisp(itru,' algorithm was outside the valid range, thus')
+        call edisp(itru,' no data could be returned.')
+      endif
+
+C Explain no CFD comment.
+      if (INOCFD.eq.1) then
+        call edisp(itru,'no CFD: CFD results were not found for this')
+        call edisp(itru,' time step, thus no data could be returned.')
       endif
 
 C End tag for tagged data
@@ -776,6 +898,10 @@ C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
       common/getmenu/menutype,igetind(65),igetflux(65)
 
+      logical libheading ! have we printed report heading (library name etc).
+      logical headingcontext ! has set or period changed so heading needs reprint
+      common/libhead/libheading,headingcontext
+
       COMMON/GET2/XDUM(MTS),XDUM1(MTS),GVAL(MTS)
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
@@ -785,7 +911,7 @@ C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/C1/NCOMP,NCON
 
       CHARACTER PDESCR*60,SDESCR*44,CSTR*25,NMTHNM(12)*3
-      character outs*124,prompt*124,outsl*144
+      character outs*124,prompt*124,outsl*174
       CHARACTER RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
 
@@ -851,7 +977,7 @@ C Call the menu of choices (this also sets some default options).
 C Recover 100Wh vs kWh from IGETNO().
       IR=IGETNO(1,4)
 
-C Set header text.
+C Set header text and write it out if this has not yet been done.
       CALL HDDATE(PDESCR)
       CALL HDSTEP(SDESCR)
       call edisp(itru,' ')
@@ -863,11 +989,6 @@ C Set header text.
         WRITE(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
      &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       endif
-      call edisp(itru,outs)
-      WRITE(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &   SDESCR(11:lnblnk(SDESCR))
-      call edisp(itru,outs)
-      call edisp(itru,' ')
 
 C Echo header with units.
       if(IR.eq.1)call edisp(itru,

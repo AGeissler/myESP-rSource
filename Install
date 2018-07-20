@@ -17,6 +17,16 @@ VALdir="${MODdir}/validation"	# Source validation models.
 SRCdir="${HOMEdir}/src"         # Source code directory.
 COSIMdir=" "		        # Harmonizer installation directory.
 
+echo " "
+echo " ESP-r installation script."
+echo " "
+echo " This script creates the ESP-r system based on the source"
+echo " files found in directory ${HOMEdir}"
+echo " and installs the result in directory ${DESTdir}."
+echo " "
+echo " If you are new to this procedure, you are advised to consult"
+echo " file ${SRCdir}/Readme before proceeding." 
+
 # Compilation settings.
 mode="interactive"         # Provide feedback during installation. 
 xml_support="no"           # Support for XML output.
@@ -24,6 +34,7 @@ SQLite_support="no"        # Support for SQLite output.
 FMI_support="no"           # Support for FMI connectivity.
 debugging="no"             # Support for debugging symbols.
 EXE=""                     # Executable file extension.
+opt="-O1"                  # optimization to be applied
 FFLAGS="-I../include "     # Fortran compiler flags.
 CFLAGS="-I../include "     # C compiler flags.
 LD_FLAGS=" "               # Link-loader flags.
@@ -47,7 +58,7 @@ unversioned="no"           # Check for versioning info.
 
 # ESP-r executables (bld & plt not included by default because their
 # functionality is automatically encapsulated in bps).
-programs="aco b2e bps dfs cdb c2e clm e2r ecnv eco enet grd ish mfs mld mrt pdb prj res vew"
+programs="aco b2e bps dfs dfv cdb c2e clm e2r ecnv eco enet grd ish mfs mld mrt pdb prj res vew"
 programs=" ${programs} "   # Leading/ trailing space added for regexp matching.
 targets=" "		   # Will be overwitten later.
 
@@ -137,16 +148,6 @@ if [ $# -ne 0 ]; then
       fi
    done
 fi
-
-echo " "
-echo " ESP-r installation script."
-echo " "
-echo " This script creates the ESP-r system based on the source"
-echo " files found in directory ${HOMEdir}"
-echo " and installs the result in directory ${DESTdir}."
-echo " "
-echo " If you are new to this procedure, you are advised to consult"
-echo " file ${SRCdir}/Readme before proceeding."
 
 # If Targets is empty, build all programs.
 if [ "${targets}" = " " ]; then
@@ -1025,10 +1026,10 @@ esac
 
 # Append -DX11 flag as necessary
 if [ "$xLibs" = "X11" ]; then
-  fDefType="$fDefType -DX11"
+  fDefType="$fDefType -DX11 -O1"
 fi
 if [ "$xLibs" = "GTK" ]; then
-  fDefType="$fDefType -DGTK"
+  fDefType="$fDefType -DGTK -O1"
 fi
 
 # Assign Fortran compilation flags.
@@ -1473,7 +1474,7 @@ host=`uname -n`
 # Copy version information to Version text file.
 release=`cat ${HOMEdir}/Version | grep "ESP-r Release " | sed "s/ESP-r Release //g"`
 echo " "
-echo " Installing targets for ESP-r version ${release}"
+echo " Installing components of ESP-r version ${release}"
 echo " to ${DESTdir} from source in ${SRCdir}."
 if [ "${VersioningScheme}" == "svn" ]; then 
     versioned_repository="yes"

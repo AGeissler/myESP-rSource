@@ -87,9 +87,9 @@ C Name of current application
 
       dimension ITEM(22)
       character CLMLOC*30
-      character ITEM*26,LASCI*72,outs*124,outs248*248
+      character ITEM*26,LASCI*96,outs*124,outs248*248
       character PERST1*14,PERST2*40,PERST3*40,LCMDFL*144
-      character inf*144,ascif*72,pascif*72,llasci*144
+      character inf*144,ascif*96,pascif*96,llasci*144
       character pact*16,aut*12,paction*16
       character path*72,xfile*144,tg*1,delim*1
       character tab*1,fs*1,OUTSTR*124
@@ -293,6 +293,10 @@ C Setup and pass in parameters to win3d.
         nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
         call startbuffer()
+      ELSE
+        
+C Set reasonable defaults for text mode.
+        igw=349; igwh=265; igl=77; igb=325
       ENDIF
 
       blank='  '
@@ -355,9 +359,9 @@ C Take command line file name to LCMDF and use as initial weather file.
       endif
 
 C Take command line action parameter:
-C If paction = 'asci2bin' then fill binary file `inf` with data 
+C If paction = 'asci2bin' or 'ascii2bin' then fill binary file `inf` with data 
 C from `ascif` and exit.
-C If paction is `bin2asci` file ascii file `ascif` with data from
+C If paction is `bin2asci` or `bin2ascii`file ascii file `ascif` with data from
 C the binary file `inf` and exit.
 C If paction = `epw2bin` take user to point of interaction for dealing
 C with this conversion.
@@ -367,7 +371,8 @@ C with this conversion.
         if(itrc.gt.1)call edisp(iuout,outs)
         write(outs,'(a,a)')'clm: the input action is: ',paction
         call tstamp('>',outs)
-        if(paction(1:8).eq.'asci2bin')then
+        if(paction(1:8).eq.'asci2bin'.or.
+     &     paction(1:9).eq.'ascii2bin')then
           silent=.true.
           pascif=ascif
 
@@ -389,7 +394,8 @@ C          write(6,*)outs248(1:lnblnk(outs248))
 
           CALL EPAGEND
           STOP
-        elseif(paction(1:8).eq.'bin2asci')then
+        elseif(paction(1:8).eq.'bin2asci'.or.
+     &         paction(1:9).eq.'bin2ascii')then
           silent=.true.
           pascif=ascif
 
@@ -761,8 +767,8 @@ C name with the full path.
         endif
         IF(LLASCI(1:2).EQ.'  '.or.LLASCI(1:4).eq.'UNKN')GOTO 290
 
-C Cast back to 72 char name.
-        llt=MIN0(lnblnk(llasci),72)
+C Cast back to 96 char name.
+        llt=MIN0(lnblnk(llasci),96)
         write(LASCI,'(a)') LLASCI(1:llt)
  
 C Confirm the period to transfer.
@@ -833,8 +839,8 @@ C If user canceled loop show menu again.
 
           IF(LLASCI(1:2).EQ.'  '.or.LLASCI(1:4).eq.'UNKN')GOTO 291
 
-C Cast back to 72 char name and do the conversion.
-          llt=MIN0(lnblnk(llasci),72)
+C Cast back to 96 char name and do the conversion.
+          llt=MIN0(lnblnk(llasci),96)
           write(LASCI,'(a)') LLASCI(1:llt)
           CALL EPWTOBCLM(LASCI,IUNIT,IER)
         elseif(IICT.eq.2)then
@@ -890,8 +896,8 @@ C If user canceled loop show menu again.
 
           IF(LLASCI(1:2).EQ.'  '.or.LLASCI(1:4).eq.'UNKN')GOTO 292
 
-C Cast back to 72 char name and do the conversion.
-          llt=MIN0(lnblnk(llasci),72)
+C Cast back to 96 char name and do the conversion.
+          llt=MIN0(lnblnk(llasci),96)
           write(LASCI,'(a)') LLASCI(1:llt)
 
           dok=.true.
@@ -969,8 +975,8 @@ C If user canceled loop show menu again.
 
           IF(LLASCI(1:2).EQ.'  '.or.LLASCI(1:4).eq.'UNKN')GOTO 293
 
-C Cast back to 72 char name and do the conversion.
-          llt=MIN0(lnblnk(llasci),72)
+C Cast back to 96 char name and do the conversion.
+          llt=MIN0(lnblnk(llasci),96)
           write(LASCI,'(a)') LLASCI(1:llt)
 
 C Ask if older or newer file format.
@@ -1038,8 +1044,8 @@ C If user canceled loop show menu again.
 
           IF(LLASCI(1:2).EQ.'  '.or.LLASCI(1:4).eq.'UNKN')GOTO 294
 
-C Cast back to 72 char name and do the conversion.
-          llt=MIN0(lnblnk(llasci),72)
+C Cast back to 96 char name and do the conversion.
+          llt=MIN0(lnblnk(llasci),96)
           write(LASCI,'(a)') LLASCI(1:llt)
 
           WRITE(outs248,'(2A)')'Writing data to ',LCLIM(1:lnblnk(LCLIM))

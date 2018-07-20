@@ -160,10 +160,10 @@ C Name of current application.
       character descrh*5,descrd*5,inf*144,lcmdfl*144
       character path*72,outstr*124
       character inz*16,inzone*16,zn*12,pact*16,paction*16
-      character ascif*72,pascif*72
+      character ascif*96,pascif*96
       character journcmd*20,jfile*72,uname*24,fs*1,cjfile*72
       character xfile*144,tg*1,delim*1,mode*4
-      character exportfile*72 ! for ascii shading file
+      character exportfile*96 ! for ascii shading file
 
       character cVnum*32      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
@@ -375,6 +375,10 @@ C Open the text display box equal to limtty if mmod = 8.
         nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
         call startbuffer()
+      else
+
+C Set reasonable defaults for text mode.
+        igw=503; igwh=256; igl=29; igb=277
       endif
       if(mmod.ne.-6)icout=iuout
 
@@ -388,8 +392,9 @@ C and pause so user can view results. If paction = 'update_silent' then
 C do standard annual calculation and exit when completed. 
 C If paction= useupdate_silent then import existing ascii file if
 C available otherwise do standard annual calculation. If paction
-C is 'asci2bin' then create an empty binary and then import ascii
-C data and then exit. If paction is 'bin2asci' then scan the binary
+C is 'asci2bin' or 'ascii2bin' then create an empty binary and then
+C import ascii data and then exit.
+C If paction is 'bin2asci' 'bin2ascii'then scan the binary
 C and then call the ascii export facility and exit.
       if(pact(1:1).ne.' ')then
          paction=pact
@@ -403,7 +408,8 @@ C and then call the ascii export facility and exit.
            silent=.true.
          elseif(paction(1:16).eq.'useupdate_silent')then
            silent=.true.
-         elseif(paction(1:8).eq.'asci2bin')then
+         elseif(paction(1:8).eq.'asci2bin'.or.
+     &          paction(1:9).eq.'ascii2bin')then
            write(ascif,'(a)') pascif(1:lnblnk(pascif))
             if(ascif(1:4).eq.'UNKN')then
               call edisp(iuout,'ish: the action file is unknown!')
@@ -412,7 +418,8 @@ C and then call the ascii export facility and exit.
               stop
             endif
             silent=.true.
-         elseif(paction(1:8).eq.'bin2asci')then
+         elseif(paction(1:8).eq.'bin2asci'.or.
+     &          paction(1:9).eq.'bin2ascii')then
            write(ascif,'(a)') pascif(1:lnblnk(pascif))
             if(ascif(1:4).eq.'UNKN')then
               call edisp(iuout,'ish: the action file is unknown!')
@@ -546,6 +553,11 @@ C to also fill data structures for obstructions.
             iuout=6     ! reset in case corrupted
             mode='ALL '
             call ersys_mmode(lcfgf,ifcfg,iairp,mode,0,ier,silent)
+            if(ier.eq.3)then
+              call usrmsg('Model is too complex - exiting ish',' ','W')
+              call epagend
+              stop
+            endif
 
 C Open core of databases if not already done so.
             if(MLDBOK.and.MATDBOK.and.OPTKOK)then
@@ -985,6 +997,11 @@ C GTK version will be returning the name with the full path.
             call tstamp('>',lcfgf)
             mode='ALL '
             call ersys_mmode(lcfgf,ifcfg,iairp,mode,0,ier,silent)
+            if(ier.eq.3)then
+              call usrmsg('Model is to complex - exiting ish',' ','W')
+              call epagend
+              stop
+            endif
             if(MLDBOK.and.MATDBOK.and.OPTKOK)then
               continue
             else
@@ -1443,7 +1460,7 @@ C Export or import ASCII (silent).
            lnshd=lnblnk(lshad(icomp))
            if(iw.eq.1)then
              write(exportfile,'(2a)') lshad(icomp)(1:lnshd),'a'
-             call easks(exportfile,' ','Export file name?',72,
+             call easks(exportfile,' ','Export file name?',96,
      &         'siexp.txt','shdins export',ier,nbhelp)
              write(outs,'(2a)') ' Creating ASCII file ',
      &         exportfile(1:lnblnk(exportfile))
@@ -1452,7 +1469,7 @@ C Export or import ASCII (silent).
              call pauses(1)
            elseif(iw.eq.2)then
              write(exportfile,'(2a)') lshad(icomp)(1:lnshd),'a'
-             call easks(exportfile,' ','Import file name?',72,
+             call easks(exportfile,' ','Import file name?',96,
      &         'siexp.txt','shdins import',ier,nbhelp)
              write(outs,'(3a)') ' Reading ASCII file ',
      &         exportfile(1:lnblnk(exportfile)),'...'
@@ -1656,7 +1673,7 @@ C  ifstat = 8  new file filled via import of ascii file
       integer iobstrtrace  ! set to non-zero if already written
       common/obstrc/iobstrtrace(mcom,mb)
 
-      character exportfile*72,paction*16,outs*124
+      character exportfile*96,paction*16,outs*124
 
       logical silent,xst
 
@@ -2047,3 +2064,4 @@ C In support of floating point exceptions.
       end
 #endif
 #endif
+

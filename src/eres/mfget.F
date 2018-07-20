@@ -68,7 +68,7 @@ C MOFLOWSU clears commons/ sets default values.
       COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
      &                 LNGLMFLABEL(MFRS)
 
-      COMMON/GRAF1/YMAX(5),YMIN(5),YAXSET(5),ADDLIN,horaxisdiv
+      COMMON/GRAF1/YMAX(6),YMIN(6),YAXSET(6),ADDLIN,horaxisdiv
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
 
 
@@ -76,7 +76,7 @@ C MOFLOWSU clears commons/ sets default values.
 
 C Reset axis max and min values to 1.0 and 0.0 resp.
 C YAXSET: Axis max min set =1 automatically scalled, 2= user set.
-      do 8 I=1,5
+      do 8 I=1,6
         YMAX(I)=1.0
         YMIN(I)=0.0
         YAXSET(I)=0
@@ -113,25 +113,21 @@ C ************************ MFMENU ************************
 C MFMENU The choices are put into the array IMFGETNO in the
 C columns listed above.
 
-      SUBROUTINE MFMENU
+      SUBROUTINE MFMENU(idone)
 #include "building.h"
 #include "geometry.h"
 #include "schedule.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
       
       integer lnblnk  ! function definition
 
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
 
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
-      COMMON/MFLOW2/NDNAM(0:MNOD)
-      COMMON/MFLOW9/ITPCMP(MCMP),ISDCMP(MCMP),ISDCNN(MCMP),
-     &              SUPCMP(MCMP,MCMS)
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
 
       common/recov01/pifltog,lpifl
@@ -156,7 +152,7 @@ C iocpzone is the zone to get occupancy pattern from for use by
 C air flow reporting.
       common/mfocup/iocpzone
 
-      COMMON/GRAF1/YMAX(5),YMIN(5),YAXSET(5),ADDLIN,horaxisdiv
+      COMMON/GRAF1/YMAX(6),YMIN(6),YAXSET(6),ADDLIN,horaxisdiv
 
       COMMON/GRTOOL/IHFLAG,IDHFLG,ILFLAG
       common/exporttg/xfile,tg,delim
@@ -164,13 +160,15 @@ C air flow reporting.
 
       common/recver/izver,ipver,iever
       common/timfltr/iwkdst,iwkdfn,isatst,isatfn,isunst,isunfn
+      integer net3ddelay  ! delay between timesteps in 3D network
+      common/delay3d/net3ddelay
 
       DIMENSION IVALS(MCOM),zn(MCOM)
       CHARACTER ITEM(35)*23, MTITLE*22, values*20
       character xfile*144,tg*1,delim*1
       character SUFFIX*6
-      CHARACTER outs*124,pifltog*4,lpifl*72,hold*24
-      CHARACTER NDNAM*12,PROMPT1*72,PROMPT2*72,CONTMNAM*12
+      CHARACTER outs*124,pifltog*4,lpifl*96,hold*24
+      CHARACTER PROMPT1*72,PROMPT2*72,CONTMNAM*12
       character graftitle*64,grlbl*24,t64*64,t24*24
       character ll1*12,ll2*12,ll3*12
       character zn*12
@@ -204,12 +202,13 @@ C  NLIST - node list
 C  CNLST - connection node list to restrict choice (e.g. all flows through node x)
 C  CRLST - reference node list for connection information (e.g. volume for ac/h)
 C  CTLST - contaminant list
+      net3ddelay=2  ! assume 1 sec delay
+      IDH=1   ! assume no horizontal separator
  1    CLIST=.FALSE.
       NLIST=.FALSE.
       CNLST=.FALSE.
       CRLST=.FALSE.
       CTLST=.FALSE.
-      IDH=1   ! assume no horizontal separator
 
 C MNGET is the maximum number of metrics allowed to be chosen from the menu.
       if (MENUTYPE.eq.1) then
@@ -235,6 +234,9 @@ C MNGET is the maximum number of metrics allowed to be chosen from the menu.
       elseif (MENUTYPE.eq.8) then
         MTITLE='Hrs below query point'
         MNGET=1
+      elseif (MENUTYPE.eq.15) then
+        MTITLE='3D plot'
+        MNGET=MFRS-1
       else
         MNGET=1
         MTITLE='  '
@@ -259,22 +261,46 @@ C Setup menu items.
        ITEM(3)='4 output >> hours over'
       elseif(MENUTYPE.eq.8)then
        ITEM(3)='4 output >> hrs below '
+      elseif(MENUTYPE.eq.15)then
+       ITEM(3)='4 output >> 3D flow   '
       endif
       ITEM(4) ='  ------------------  '
-      ITEM(5) ='a  ambient temperature'
-      ITEM(6) ='b  wind speed         '
-      ITEM(7) ='c  wind direction     '
-      ITEM(8) ='d  ambient RH         '
-      ITEM(9) ='e  press @ node       '
-      ITEM(10)='f  press diff @ conn  '
-      ITEM(11)='g  stack pres @ conn  '
-      ITEM(12)='h  node temperature   '
+
+C Some topics do not make sense drawn on 3D network.
+      if(MENUTYPE.eq.15)then
+        ITEM(5) ='   ambient temperature'
+        ITEM(6) ='   wind speed         '
+        ITEM(7) ='   wind direction     '
+        ITEM(8) ='   ambient RH         '
+        ITEM(9) ='   press @ node       '
+        ITEM(10)='f  press diff @ conn  '
+        ITEM(11)='g  stack pres @ conn  '
+        ITEM(12)='   node temperature   '
+      else
+        ITEM(5) ='a  ambient temperature'
+        ITEM(6) ='b  wind speed         '
+        ITEM(7) ='c  wind direction     '
+        ITEM(8) ='d  ambient RH         '
+        ITEM(9) ='e  press @ node       '
+        ITEM(10)='f  press diff @ conn  '
+        ITEM(11)='g  stack pres @ conn  '
+        ITEM(12)='h  node temperature   '
+      endif
       ITEM(13)='i  mass flow rate     '
       ITEM(14)='j  volume flow rate   '
-      ITEM(15)='k  air changes        '
+      if(MENUTYPE.eq.15)then
+        ITEM(15)='   air changes        '
+      else
+        ITEM(15)='k  air changes        '
+      endif
       ITEM(16)='l  velocity @ conn    '
-      ITEM(17)='m  contaminant @ node '
-      ITEM(18)='n  watts assoc w/ flow'
+      if(MENUTYPE.eq.15)then
+        ITEM(17)='   contaminant @ node '
+        ITEM(18)='   watts assoc w/ flow'
+      else
+        ITEM(17)='m  contaminant @ node '
+        ITEM(18)='n  watts assoc w/ flow'
+      endif
       ITEM(19)='  ------------------  '
       if(NMFGET.eq.0)then
         ITEM(20)='                      '
@@ -321,39 +347,59 @@ C If plot show add profile, otherwise toggle delimiter state.
         ITEM(25)='+ add another profile'
       else
         if(delim.eq.'-')then
-          ITEM(25)='^ delim >> normal '
+          ITEM(25)='^ delim >> normal  '
         elseif(delim.eq.'T')then
-          ITEM(25)='^ delim >> TAB    '
+          ITEM(25)='^ delim >> TAB     '
         elseif(delim.eq.'C')then
-          ITEM(25)='^ delim >> comma  '
+          ITEM(25)='^ delim >> comma   '
         elseif(delim.eq.'S')then
-          ITEM(25)='^ delim >> space  '
+          ITEM(25)='^ delim >> space   '
         elseif(delim.eq.'X')then
-          ITEM(25)='^ delim >> tagged      '
+          ITEM(25)='^ delim >> tagged  '
         endif
       endif
       if(MENUTYPE.eq.3) then
 
 C If plot give graph command and labels command, otherwise list command.
-        ITEM(26)='@ labels        '
-        ITEM(27)='! draw graph    '
+        ITEM(26)  ='@ labels           '
+        ITEM(27)  ='! draw graph       '
         nl=2
       elseif(MENUTYPE.eq.4)then
         if(ILFLAG.eq.0)then
-          ITEM(26)='@ labels>>short'
+          ITEM(26)='@ labels>>short    '
         elseif(ILFLAG.eq.1)then
-          ITEM(26)='@ labels>>long '
+          ITEM(26)='@ labels>>long     '
+        elseif(ILFLAG.eq.2)then
+          ITEM(26)='@ labels>>long no #'
         endif
-        ITEM(27)='! list data    '
+        ITEM(27)  ='! list data        '
+        nl=2
+      elseif(MENUTYPE.eq.15) then
+
+C If plot give graph command and labels command, otherwise list command.
+        if(net3ddelay.eq.1)then
+          ITEM(26)='@ delay >> 2 sec   '
+        elseif(net3ddelay.eq.2)then
+          ITEM(26)='@ delay >> 1 sec   '
+        elseif(net3ddelay.eq.3)then
+          ITEM(26)='@ delay >> 0.5 sec '
+        elseif(net3ddelay.eq.4)then
+          ITEM(26)='@ delay >> 0.25 sec'
+        endif
+        ITEM(27)  ='! draw 3D graph    '
         nl=2
       else
         nl=0
       endif
-      ITEM(26+nl)='? help           '
-      ITEM(27+nl)='- exit           '
+      ITEM(26+nl) ='? help             '
+      ITEM(27+nl) ='- exit             '
 
       NITMS=27+nl
-      INO=-2
+      if(MMOD.eq.8)then
+        INO=-1
+      else
+        INO=-2
+      endif
 
 C Instanciate help strings for this menu.
       helptopic='res_mass_flow_menu'
@@ -415,15 +461,15 @@ C Wind speed: IMFGET = 10
         IMFGETNO(NMFGET,2)=10
         IMFGETNO(NMFGET,5)=-203
         IMFGETNO(NMFGET,6)=6
-        IMFGETNO(NMFGET,7)=4
+        IMFGETNO(NMFGET,7)=6
         IMFGETNO(NMFGET,8)=0
         GMFLABEL(NMFGET)='Wind speed'; LNGMFLABEL(NMFGET)=10
         GLMFLABEL(NMFGET)='Wind speed'; LNGLMFLABEL(NMFGET)=10
         if(IROC.eq.0)then
-          SMFLABEL(NMFGET)='Wind speed (m/sec)'
+          SMFLABEL(NMFGET)='Wind speed (m/s)'
           LNSMFLABEL(NMFGET)=18
         elseif(IROC.eq.1)then
-          SMFLABEL(NMFGET)='Wind speed change (m/sec/hr)'
+          SMFLABEL(NMFGET)='Wind speed change (m/s/hr)'
           LNSMFLABEL(NMFGET)=28
         endif
 
@@ -669,7 +715,7 @@ C Velocity: IMFGET = 6.
         IMFGETNO(NMFGET,1)=6
         IMFGETNO(NMFGET,5)=1
         IMFGETNO(NMFGET,6)=6
-        IMFGETNO(NMFGET,7)=4
+        IMFGETNO(NMFGET,7)=6
         IMFGETNO(NMFGET,8)=0
         SUFFIX=' m/s'
         if(IROC.eq.0)then
@@ -775,6 +821,8 @@ C        endif
 C Clear all selections (time series plot).
         if(MENUTYPE.eq.3) then
           call MOFLOWSU
+        elseif(MENUTYPE.eq.15) then
+          call MOFLOWSU
         else
 
 C Occupancy filter (all types bar time series plot).
@@ -878,24 +926,27 @@ C the occupany pattern from.
 C Set axis limits for the current plot.
           helptopic='res_flow_axis_range'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          do 555 Iaxis=1,5
+          do 555 Iaxis=1,6
             if (YAXSET(Iaxis).gt.0) then
  501          write (values,'(8(f9.2,1x))') YMIN(Iaxis),YMAX(Iaxis)
               if (Iaxis.eq.1) then
                 call EASKS(values,'  ','Min &max for temperature axis?',
      &            20,' -10 30 ','temp axis',IER,nbhelp)
               elseif (Iaxis.eq.2) then
-                call EASKS(values,'  ','Min & max for loads axis?',
-     &            20,' -100 100 ','temp axis',IER,nbhelp)
+                call EASKS(values,'  ','Min & max for pressure axis?',
+     &            20,' -100 100 ','pres axis',IER,nbhelp)
               elseif (Iaxis.eq.3) then
-                call EASKS(values,'  ','Min & max for intensity axis?',
-     &            20,' 0 1000 ','temp axis',IER,nbhelp)
+                call EASKS(values,'  ','Min & max for flow rate axis?',
+     &            20,' 0 1000 ','flow axis',IER,nbhelp)
               elseif (Iaxis.eq.4) then
                 call EASKS(values,'  ','Min & max for misc axis?',
-     &            20,' 0 100 ','temp axis',IER,nbhelp)
+     &            20,' 0 100 ','misc axis',IER,nbhelp)
               elseif (Iaxis.eq.5) then
                 call EASKS(values,'  ','Min&max for concntration axis?',
      &            20,' 0 0.25 ','conc axis',IER,nbhelp)
+              elseif (Iaxis.eq.6) then
+                call EASKS(values,'  ','Min & max for velocity axis?',
+     &            20,' 0 0.5 ','vel axis',IER,nbhelp)
               endif
               K=0
               CALL EGETWR(values,K,YN,0.,0.,'-','Y min',IER)
@@ -1057,15 +1108,27 @@ C Find out point where text should be drawn.
 
 C Toggle tabular listing label format.
           ILFLAG=ILFLAG+1
-          if(ILFLAG.GT.1)ILFLAG=0
+          if(ILFLAG.GT.2)ILFLAG=0
           if(ILFLAG.eq.0)then
             call edisp(iuout,' ')
             call edisp(iuout,'column labels on multi-lines ')
           elseif(ILFLAG.eq.1)then
             call edisp(iuout,' ')
             call edisp(iuout,'one line column labels (spreadsheets)')
+          elseif(ILFLAG.eq.2)then
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'column labels on one line & no # header lines in files')
           endif
           goto 1   ! jump back to the menu
+        elseif(MENUTYPE.eq.15) then
+
+C Set delay timer between timesteps.
+          IWS=2
+          CALL EASKABCD('Plotting speed:',' ',
+     &      'slower (2s/step)','normal (1s/step)',
+     &      'fast (500ms/step)','250ms/step',IWS,nbhelp)
+           net3ddelay=IWS
         else
           call edisp(iuout,'selected item 26?? ')
         endif
@@ -1103,7 +1166,7 @@ C At this point we just fall past the end of the INO equals statements.
         goto 1
       elseif(INO.EQ.NITMS)then
         call usrmsg('  ','  ','-')
-        MENUTYPE=-1
+        idone=1
         return
       else
 
@@ -1984,18 +2047,13 @@ C to arrays IMFGETNO and MFRECVR.
 
       SUBROUTINE GOMFGET(IDAY,IHR,ITS)
 #include "net_flow.h"
+#include "net_flow_data.h"
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
-      COMMON/MFLOW3/NDFLD(MNOD),NDTYP(MNOD),HNOD(MNOD),SUPNOD(MNOD,MNDS)
-      COMMON/MFLOW9/ITPCMP(MCMP),ISDCMP(MCMP),ISDCNN(MCMP),
-     &              SUPCMP(MCMP,MCMS)
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
@@ -2289,10 +2347,8 @@ C MASS2VOL: Converts mass flow rate to volume flow rate (kg/s) -> (m^3/s)
 
       SUBROUTINE MASS2VOL(ICON,VFLOW1,VFLOW2)
 #include "net_flow.h"
+#include "net_flow_data.h"
 
-      COMMON/MFLOW3/NDFLD(MNOD),NDTYP(MNOD),HNOD(MNOD),SUPNOD(MNOD,MNDS)
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
 
       COMMON/MFREC/FRDAT(MCNN+2+MCONTM,NMRL)
@@ -2329,11 +2385,8 @@ C IUNIT: 1=kg/s; 2=m^3/s; 3=ac/h
 
       SUBROUTINE MFSUMCON(IG,IUNIT,FLIN,FLOUT)
 #include "net_flow.h"
+#include "net_flow_data.h"
 
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
-      COMMON/MFLOW3/NDFLD(MNOD),NDTYP(MNOD),HNOD(MNOD),SUPNOD(MNOD,MNDS)
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
 
       COMMON/MFREC/FRDAT(MCNN+2+MCONTM,NMRL)
@@ -2641,6 +2694,7 @@ C EDMFGOGET allows removal of output requests for flow networks.
 #include "building.h"
 #include "net_flow.h"
 
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
@@ -2688,7 +2742,11 @@ C IVERT is the menu position, MVERT the current number of menu lines.
 
 C Initial menu entry setup.
       IER=0
-      IVERT=-3
+      if(MMOD.eq.8)then
+        IVERT=-1
+      else
+        IVERT=-2
+      endif
 
 C Loop through the items until the page to be displayed. M is the
 C current menu line index. Build up text strings for the menu.

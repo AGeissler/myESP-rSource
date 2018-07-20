@@ -277,7 +277,7 @@ C it into words.
 
 C Ancient operation files assumed 3 day types. Reset ip3ver if there
 C are more than 3 day types.
-        if(nbdaytype.gt.3.and.ip3ver(icomp).lt.2) ip3ver(icomp)=2
+        if(nbdaytype.gt.3.and.ip3ver(icomp).lt.2) ip3ver(icomp)=21
         CALL STRIPC(IUO,OUTSTR,0,ND,1,'header',IER)
         IF(IER.NE.0) goto 1002
         K=0
@@ -1746,7 +1746,7 @@ C Write either the combined or scheduled air description.
 C Write air flow control data to the file.
 C If ipv3ver is 0, 1 or 2 write ventilation control data as if
 C there was only one day type and one period during the day.
-      if(ip3ver(icomp).le.21)then
+      if(ip3ver(icomp).lt.21)then
         WRITE(IUO,'(3A)',IOSTAT=IOS,ERR=1)
      &    '# control(',ctlstr(icomp,1),'), low mid & high setpoints '
         WRITE(IUO,'(I4,3F10.3)',IOSTAT=IOS,ERR=1)ITCTL(ICOMP),
@@ -1767,12 +1767,7 @@ C there was only one day type and one period during the day.
      &      IVH(ICOMP),TAH(ICOMP)
         ENDIF
 
-      elseif(ip3ver(icomp).gt.21)then
-
-C Write the scheduled air documentation.
-        WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) '*ventilation_descr'
-        WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &    ventdesc(ICOMP)(1:lnblnk(ventdesc(ICOMP)))
+      elseif(ip3ver(icomp).ge.21)then
 
 C Write the infiltration and ventilation control data.
 C << calendar day types to be done >>
@@ -3197,7 +3192,7 @@ C power.
  400      CONTINUE
 
 C Write zone operations file.
-          ip3ver(icomp)=2
+          ip3ver(icomp)=21
           CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
         ENDIF
  100  CONTINUE

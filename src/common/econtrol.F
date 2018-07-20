@@ -322,6 +322,7 @@ C          flow control function.
 #include "building.h"
 #include "geometry.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
 #include "control.h"
 #include "espriou.h"
 C espriou.h provides currentfile.
@@ -340,10 +341,6 @@ C espriou.h provides currentfile.
       COMMON/PBYDAT/PBYFIL,NSCVP,IPS
       common/bfngr/cfgsd(MCF,6),ibsnv(mcf,3),bfngn
       common/pcfngr/clfgsd(MCF,6),pcfngn,IDAYPD
-      COMMON/MFLOW9/ITPCMP(MCMP),ISDCMP(MCMP),ISDCNN(MCMP),
-     &              SUPCMP(MCMP,MCMS)
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
       common/senact/realsn(MNONID,3,7),realac(MNONID,5,7),svctlp,
      &       deltap,ctldrp
 
@@ -2278,6 +2275,7 @@ C control file sensors, actuator, control types, control laws.
 #include "geometry.h"
 #include "plant.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
 #include "control.h"
 #include "esprdbfile.h"
 #include "material.h"
@@ -2288,14 +2286,10 @@ C      COMMON/OUTIN/IUOUT,IUIN
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       common/pcnam/pcname(mpcom)
-      COMMON/MFLOW2/NDNAM(0:MNOD)
-      COMMON/MFLOW8/CMNAM(MCMP),LTPCMP(MCMP)
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
 
       CHARACTER SSTR*96,SSTRB*48
       CHARACTER WHICH*1,ZN*12
-      CHARACTER LTPCMP*60,CMNAM*12,NDNAM*12,pcname*15,SN*12
+      CHARACTER pcname*15,SN*12
       character disp_constr*32
 
       dimension icsn(5)   ! for passing sensor location to decodesensor
@@ -2663,6 +2657,7 @@ C an esp-r control file control laws for zone/plant/flow/electrical.
       SUBROUTINE EVCNTRLAW(icfoc,II,JJ,KK,SSTR,message)
 #include "building.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
 #include "control.h"
 #include "esprdbfile.h"
 #include "material.h"
@@ -2670,17 +2665,16 @@ C an esp-r control file control laws for zone/plant/flow/electrical.
       integer lnblnk  ! function definition
 
 C      COMMON/OUTIN/IUOUT,IUIN
-      COMMON/MFLOW2/NDNAM(0:MNOD)
 
       CHARACTER SSTR*96,SSTRB*48,SSTR1*96,SSTRB1*48
-      CHARACTER NDNAM*12
 
       dimension cm(misc)  ! for passing miscel control data
       real cm
       dimension icsn(5)   ! for passing sensor location to
       integer icsn
       integer isub1,isub2,isub3 ! for thermophysical substitution
-      character sub1*12,sub2*12,sub3*12 
+      character sub1*12,sub2*12,sub3*12
+      logical zeroht,zerocl 
 
 C sub-strings for describing multi-sensor flow controls.
       character msg1*24,msg2*24,msg3*24,msg4*24,msg*72,lmsg*248
@@ -2688,11 +2682,8 @@ C sub-strings for describing multi-sensor flow controls.
       logical oka,okb
       integer I2,I7,I8,I9  ! for plant control decoding
 
-      SSTR=' '
-      SSTR1=' '
-      SSTRB=' '
-      SSTRB1=' '
-      message=' '
+      SSTR=' '; SSTR1=' '; SSTRB=' '; SSTRB1=' '; message=' '
+      zeroht=.false.; zerocl=.false. ! assume non-zero minimum heat cool cap
 
       if(icfoc.eq.0)then
 
@@ -3986,22 +3977,20 @@ C << adapt report for case of thermophysical property substitution >>
 #include "geometry.h"
 #include "plant.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
       
       integer lnblnk  ! function definition
 
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       common/pcnam/pcname(mpcom)
-      COMMON/MFLOW2/NDNAM(0:MNOD)
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
 
       integer icfoc
       dimension icsn(5)
       character sstr*96,sstrb*48
       CHARACTER ZN*12,NNAM*14,DESC*20
-      CHARACTER NDNAM*12,pcname*15,contmnam*12
+      CHARACTER pcname*15,contmnam*12
       CHARACTER sn*12
 
       sstr=' '
@@ -4460,6 +4449,7 @@ C control loops for legality.
 #include "geometry.h"
 #include "plant.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
 #include "control.h"
 #include "blc25_open_windows.h"
 
@@ -4472,7 +4462,6 @@ C control loops for legality.
       common/c12ps/npcdat(mpcom,9),ipofs1(mcoefg),ipofs2(mcoefg,mpvar)
       common/prec9/nconst(mcom),nelts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp)
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
 
       character outstr*124
       

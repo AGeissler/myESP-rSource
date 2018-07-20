@@ -42,7 +42,8 @@ C on internal and external surfaces.
 
       SUBROUTINE MZSOLR(ICOMP)
 
-#include "building.h"
+      include "building.h"
+      include "geometry.h"
 
       COMMON/OUTIN/IUOUT,IUIN
 
@@ -114,8 +115,10 @@ C any flux  absorptions within the contiguous TMC.
         ITMC2=ITMCFL(ICPLE,ISCPLE)
         IF(ITMC1.NE.0)THEN
           IF(ITMC2.EQ.0)THEN
-            write(outs,1)ICPLE,ISCPLE
-    1       format(' Zone',I3,' surface',I3,' should be a TMC')
+            write(outs,'(a,i3,a,i4,5a)')' Zone',ICPLE,' surface',
+     &        ISCPLE,'(',zname(ICPLE),':',
+     &        sname(ICPLE,ISCPLE)(1:lnsname(ICPLE,ISCPLE)),
+     &        ') should be a TMC'
             call edisp(iuout,outs)
             call edisp(iuout,
      &         ' but is not! The simulation will be stopped.')
@@ -455,7 +458,7 @@ C values, skip if iterating (and past first iteration).
       q2cfc(2)=0.0
       q2wall(2)=0.0
       q2rem(2)=0.0
-      NC=NCONST(ICOMP)
+      NC=NCONST(ICOMP)  ! number of surfaces in zone
       DO 10 I=1,NC
 
 C Internal opaque surface absorption
@@ -696,8 +699,8 @@ C Window blind/shutter in place on this TMC. Test if it is active.
 C NP is no. of control periods for this TMC type.
             NP=NBCTMC(ICOMP,ITMC)
             DO 5 K=1,NP
-              IT1=IBCST(ICOMP,K,ITMC)
-              IT2=IBCFT(ICOMP,K,ITMC)
+              IT1=IBCST(ICOMP,K,ITMC)  ! period start
+              IT2=IBCFT(ICOMP,K,ITMC)  ! period end
               IF(IHRF.GT.IT1.AND.IHRF.LE.IT2) THEN
                 IF(BACTPT(ICOMP,K,ITMC).LT.-98.0) THEN
 
@@ -950,9 +953,10 @@ C so call bcl99 to update thermophysical props of controlled windows.
         if(ITMC.GT.0)then
 
 C Debug.
-C        write(6,'(a,7i4)') 'Blind state: ',ICOMP,I,IBOFOT(ICOMP,I),
-C     &    NBPONT(ICOMP,I),ITMC,ITPREP(ICOMP,ITMC),
-C     &    IBCMT(ICOMP,ITMC)
+C        write(6,'(a,7i4)') 
+C     &    'Blind state: icomp i ibofot nbpont itmc itprep ibcmt',
+C     &    ICOMP,I,IBOFOT(ICOMP,I),NBPONT(ICOMP,I),ITMC,
+C     &    ITPREP(ICOMP,ITMC),IBCMT(ICOMP,ITMC)
 
           if(ITPREP(ICOMP,ITMC).gt.0)then
             if(IBCMT(ICOMP,ITMC).EQ.1) then
@@ -2289,7 +2293,7 @@ C Compute area/absorptivity ratio.
         write(outs,'(A,I3,A,I4,A,I3)')' Zone', ICOMP,' Day',IDYF,
      &                                '  Hour (future)',IHRF
         call edisp(iuout,outs)
-        write(outs,'(A,F5.2,A)')' WARNING! - Remaining diffuse (',
+        write(outs,'(A,F6.1,A)')' WARNING! - Remaining diffuse (',
      &                RDIFR,' W/m^2) distributed on area/abs. basis'
         call edisp(iuout,outs)
       ENDIF
@@ -3479,6 +3483,9 @@ C Shading file record width found in mzshin.
      & POF(MCOM,MS,MT),IGCI(MCOM,MS),insst(mcom,mgt,mt,misur),
      & pinsst(mcom,mgt,mt,misur)
 
+      common/rpath/path
+      CHARACTER*72 path,lpath
+
       CHARACTER*72 LS
       DIMENSION ISS(12),ISADD(12)
       character outs*124
@@ -3509,9 +3516,14 @@ c turn.
         IF(ISI(I).EQ.0)goto 9
 
 c Assign shading file for zone 'I'.
+C For some reason path here needs to be ./ otherwise it is unable to
+C find the file when called from outside the cfg directory.
         LS=LSHAD(I)
         ier=0
+        lpath=path
+        path='./'
         call EFOPRAN(IUNIT,LS,maxrec(i),1,IER)
+        path=lpath
         IF(ier.ne.0)goto 1000
         IREC=1
         READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1001)(ISS(J),J=1,12),
@@ -4601,8 +4613,8 @@ C This is done by setting the flag IBCMDT=1 or 0
         if(ITMC.gt.0)then
           IBCMT(ICOMP,ITMC)=ISON
 C Debug.
-C          write(6,*) 'OCL01 icomp,i,itmc,ison,IDTYPO,IPERO'
-C          write(6,*) icomp,i,itmc,ison,IDTYPO,IPERO
+C          write(6,'(a,6i4)') 'OCL01 icomp,i,itmc,ison,IDTYPO,IPERO',
+C     &      icomp,i,itmc,ison,IDTYPO,IPERO
         endif
  1    continue
     

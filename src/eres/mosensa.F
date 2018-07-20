@@ -44,6 +44,7 @@ C can proceed.
 #include "building.h"
 #include "geometry.h"
 
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/DEFLT/IDEFLT
 
@@ -85,7 +86,12 @@ C Setup for menu.
       ITEM(10)='- Exit                   '
 
  2    NITMS=10
-      INO=-2
+      if(MMOD.eq.8)then
+        INO=-1
+      else
+        INO=-2
+      endif
+C      INO=-2
 
 C Instanciate help strings for this menu.
       helptopic='res_param_uncertainty'

@@ -2,7 +2,7 @@
 # (see README file before installing).
 SRCdir=`pwd`
 
-PROGRAMS = aco bps c2e cdb clm dfs e2r ecnv eco enet grd harmonizer ish mfs \
+PROGRAMS = aco bps c2e cdb clm dfs dfv e2r ecnv eco enet grd harmonizer ish mfs \
 	   mld mrt pdb prj res vew
 
 allX11: libX11 $(PROGRAMS)
@@ -78,6 +78,12 @@ dfs:
 	  cd $(SRCdir)/edfs; $(MAKE) ESPBinDir=${ESPBinDir} EXE=${EXE} install; \
 	else \
 	  cd $(SRCdir)/edfs; $(MAKE); \
+	fi
+dfv: 
+	if [ "$(doInstall)" = "yes" ]; then \
+	  cd $(SRCdir)/edfv; $(MAKE) ESPBinDir=${ESPBinDir} EXE=${EXE} install; \
+	else \
+	  cd $(SRCdir)/edfv; $(MAKE); \
 	fi
 c2e: 
 	if [ "$(doInstall)" = "yes" ]; then \
@@ -193,6 +199,7 @@ clean:
 	cd $(SRCdir)/eb2e; $(MAKE) clean
 	cd $(SRCdir)/ebps; $(MAKE) clean
 	cd $(SRCdir)/edfs; $(MAKE) clean
+	cd $(SRCdir)/edfv; $(MAKE) clean
 	cd $(SRCdir)/ec2e; $(MAKE) clean
 	cd $(SRCdir)/ecdb; $(MAKE) clean
 	cd $(SRCdir)/eclm; $(MAKE) clean
@@ -218,6 +225,7 @@ strip:
 	cd $(SRCdir)/eb2e; $(MAKE) strip
 	cd $(SRCdir)/ebps; $(MAKE) strip
 	cd $(SRCdir)/edfs; $(MAKE) strip
+	cd $(SRCdir)/edfv; $(MAKE) strip
 	cd $(SRCdir)/ec2e; $(MAKE) strip
 	cd $(SRCdir)/ecdb; $(MAKE) strip
 	cd $(SRCdir)/eclm; $(MAKE) strip

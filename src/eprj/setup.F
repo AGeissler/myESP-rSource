@@ -160,6 +160,8 @@ C Set eye point at standard place and viewed point at cog.
           initvt=0
           MODSIT=.true.
         elseif(IW.EQ.2)then
+
+C Set initial view to match current viewing positions.
           EYEMI(1)=EYEM(1); EYEMI(2)=EYEM(2); EYEMI(3)=EYEM(3)
           VIEWMI(1)=VIEWM(1); VIEWMI(2)=VIEWM(2)
           VIEWMI(3)=VIEWM(3)
@@ -167,6 +169,8 @@ C Set eye point at standard place and viewed point at cog.
           initvt=1
           MODSIT=.true.
         elseif(IW.EQ.3)then
+        
+C Edit initial view (and set initvt = 1).
  143      WRITE(HOLD32,'(1x,3f8.2)')EYEM(1),EYEM(2),EYEM(3)
           CALL EASKS(HOLD32,' Eye point  X  Y  Z (in metres): ',
      &     '  ',32,' -100.0 -100.0 100.0 ','eye point coord',IER,nbhelp)

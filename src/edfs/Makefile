@@ -9,7 +9,6 @@ BLDdir = $(SRCdir)/ebld
 COMdir = $(SRCdir)/common
 PRJdir = $(SRCdir)/eprj
 CETCdir = $(SRCdir)/cetc
-BLDdir = $(SRCdir)/ebld
 PROG = dfs$(EXE)
 default: $(PROG)
 

@@ -821,6 +821,8 @@ C  deduced by examining files created by the `bitmap' program.
       character HCTAB(84)*6, HTAB(84)*1,t1*1,t5*5,BITITL*5
 
       dimension LETTER(11,15)
+      common/rpath/path
+      character*72 path,lpath
 
       data HCTAB/'FFFFFF','000000','777777','0000FF','000DFF',
      &           '0019FF','0026FF','0033FF','0040FF','004CFF',
@@ -847,7 +849,6 @@ C  deduced by examining files created by the `bitmap' program.
      &          'q','r','s','t','u','v','w','x','y','z','{','|','}','~'/
       quote=char(34)
       comma=char(44)
-
 
 C Add a scale to the rhs of the image.
 C Draw grey box (-992.0=grey) around interpolated colour bar.
@@ -978,7 +979,10 @@ C Write text (-995.0=black).
 
 C Open file.
       IUNIT=IFIL+1
+      lpath=path
+      path='./'
       call EFOPSEQ(IUNIT,LBIT,4,IER)
+      path=lpath
 
 C Write the first two lines of the bitmap file.  These contain the width
 C and height of the bitmap image, measured in pixels.

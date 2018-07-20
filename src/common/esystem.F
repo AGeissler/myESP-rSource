@@ -34,6 +34,7 @@ C            the path is local or absolute or standard database folder.
 C ******************** ERSYS_mmode
 C ERSYS_mmode is a legacy interface to ERSYS_mmode, below. It allows
 C existing code to call ERSYS_mmode in its traditional verbose mode.
+C IER=3 signals model is overly complex for current executables.
 
       SUBROUTINE ERSYS(FILE,IUC,IUF,MODE,ITRC,IER)
       IMPLICIT NONE
@@ -136,6 +137,10 @@ C           component. NB fluid flow network and plant energy
 C           network need not be matched.
 
 C BDMDS,dbdsdesc - name file project demands file and related description.
+C IER=3 signals model is overly complex for current executables.
+
+C << add logic to gracefully react to a zone which is more
+C << complex that ESP-r can deal with.
 
       SUBROUTINE ERSYS_mmode(FILE,IUC,IUF,MODE,ITRC,IER,bSilent)
 
@@ -171,6 +176,7 @@ C LPREDEF (for predefined objects)
 C default file names for databases
 
       include "net_flow.h"
+      include "net_flow_data.h"
       include "tdf2.h"
       include "cfd.h"
 C UA1 from uncertainty.h
@@ -203,6 +209,7 @@ C Parameters
       character MODE*4   ! if ALL then causes additional data structure to be read
       integer ITRC       ! level of reporting during the file scan
       integer IER        ! return zero if ok, 2 if cfg file could not be opened
+                         ! 3 if excess model complexity
       logical bSilent    ! Flag indicating verbosity.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -257,9 +264,6 @@ C IZSTOCN - for each zone:surface a pointer to connection index.
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: IAIRN,ICAAS
 
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
-      INTEGER :: NNOD,NCMP,NCNN
-      COMMON/MFLOW2/NDNAM(0:MNOD)
       COMMON/NWKSTR/NWKNAM,NWKDSC,NWKTYPSTR(MNWKTYP)
       CHARACTER NWKNAM*72,NWKDSC*72,NWKTYPSTR*12
 
@@ -315,22 +319,30 @@ C Special materials file.
 
 C Non-linear thermophysical properties.
       COMMON/VTHP18/LNLTHP
+      CHARACTER LNLTHP*72
       COMMON/VTHP31/INTHPS,INTHPZ(MCOM)
+      LOGICAL INTHPS,INTHPZ
 
 C 1D node distribution.
       COMMON/GR1D05/LGRD1D
+      CHARACTER LGRD1D*72
       COMMON/GR1D06/IGR1D
+      LOGICAL IGR1D
 
 C 3D ground.
       COMMON/GRND100/GRND3D
+      LOGICAL GRND3D
       COMMON/GRND108/LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
+      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
 
 C 3D zones.
       common/GR3D100/BLDG3D,ZONE3D(MCOM)
+      LOGICAL BLDG3D,ZONE3D
       common/GR3D108/L3DCVS(MCOM),L3DCNC(MCOM),L3DNDC(MCOM),L3DTAQ(MCOM)
 
 C Moisture.
       common/MOIST01/MSTROK,MSTRZN(MCOM)
+      LOGICAL MSTROK,MSTRZN
       common/MOIST02/LMOIST(MCOM)
 
 C Structured mesh.
@@ -398,8 +410,20 @@ C Simulation parameter presets.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
-     &  smstres(MSPS),selres(MSPS),sipvres
-      character :: selres*72,spfdescr*30
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
+      character :: spfdescr*30
+
+C Extended simulation parameters for each set.
+      common/spfldats/isstupex(MSPS),isbnstepex(MSPS),ispnstepex(MSPS),
+     &  issaveex(MSPS),isavghex(MSPS),iscfdactivate(MSPS),
+     &  isicfdys(MSPS),isicfdyf(MSPS),
+     &  scftims(MSPS),scftimf(MSPS)
+      INTEGER :: isstupex,isbnstepex,ispnstepex,issaveex,isavghex
+      INTEGER :: iscfdactivate      ! zero ignore domains
+      INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
+      REAL :: scftims,scftimf       ! CFD simulation start & finish time
 
 C BASESIMP.
       common/bsmtdef/iBSIMP(MCOM),LBSIMP(MCOM)
@@ -534,15 +558,15 @@ C  zSWA - shortwave absorption (W).
       common/excludediff/iexcludediff_flag
 
 C Simulation parameters
-      COMMON/SPFL/spfileok,perok,tstepok,saveok,autook,exitok,startupok
-      LOGICAL spfileok,perok,tstepok,saveok,autook,exitok,startupok
+      COMMON/SPFL/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
+     &  startupok
+      LOGICAL spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
+     &  startupok
 
-      LOGICAL BLDG3D,ZONE3D,MSTROK,MSTRZN,dll,browse,context
-      LOGICAL INTHPS,INTHPZ,IGR1D,GRND3D
+      LOGICAL dll,browse,context
       LOGICAL XST,OK,DOK,IGDCVS,IGDCNC,IGDNDC,IGDTAQ,cnnok
       LOGICAL OK3DCVS,OK3DCNC,OK3DNDC,OK3DTAQ
       logical foundmould,foundsbem
-      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDNDD,LGDTAQ,LGRD1D,LNLTHP
       CHARACTER loutstr*248,OUTSTR*124,OUTS*124,text*124,t117*117,h*72
       CHARACTER LCFD*72
       CHARACTER*72 LAPROB,LPNF
@@ -556,8 +580,6 @@ C Simulation parameters
       character GTGEOM*72
       CHARACTER ectime*24,wkd1*10,wkd2*10,naco*40,type*4
       character*10 wkday(7)
-      CHARACTER NDNAM*12
-      character sblres*72,sflres*72,splres*72,smstres*72,sipvres*72
       character hvacfile*72,LBSIMP*72,LFClds*72
       character gshpfile*72
       character gcepfile*72
@@ -1167,9 +1189,9 @@ C set the LPREDEF common block string via call to findwhichdbpath.
         call findwhichdbpath('pre',lworking,ier)
 
 C Debug.
-        write(6,*) lworking
-        write(6,*) lpredef
-        write(6,*) ' ersys ipathpredef is ',ipathpredef
+C        write(6,*) lworking
+C        write(6,*) lpredef
+C        write(6,*) ' ersys ipathpredef is ',ipathpredef
 
       elseif(WORD(1:10).eq.'*stdpredef')then
         ipathpredef=2  ! standard folder for predefined objects database
@@ -1249,7 +1271,7 @@ c bSHOCCed true and then check and see if the file exists.
       elseif(WORD(1:5).eq.'*hvac')then
 
 C hvac file, test and see if it exists.
-        CALL EGETRM(LOUTSTR,K,hvacfile,'W','config control',IER)
+        CALL EGETRM(LOUTSTR,K,hvacfile,'W','config hvac',IER)
         XST=.FALSE.
         call FINDFIL(hvacfile,XST)
         if(XST)then
@@ -2194,21 +2216,44 @@ C If 6 items on line also read whether to save only 1stph.
         endif
         bMY_sim_sps = .false. 
         do 333 iss=1,nsset
+
+C The following code ensures thea the sXXres varaibles are initialzied
+C to empty strings even if they are not defind in the input file.
+          write(sblres(iss), '(A)')  '  '
+          write(sflres(iss), '(A)')  '  '
+          write(smstres(iss), '(A)') '  '
+          write(splres(iss), '(A)')  '  '
+          write(selres(iss), '(A)')  '  '
+          write(scfdres(iss), '(A)')  '  '
           
-          CALL STRIPC(IUC,OUTSTR,0,ND,1,'sim set',IER)
+C Count number of items to see if legacy set or extended set.
+          CALL STRIPC(IUC,OUTSTR,99,ND,1,'sim set',IER)
 
           if (OUTSTR(1:14) .eq. '*start_my_sets' ) then
             bMY_sim_sps = .true.
-            CALL STRIPC(IUC,OUTSTR,0,ND,1,'sim set',IER)
+            CALL STRIPC(IUC,OUTSTR,99,ND,1,'sim set',IER)
           elseif ( OUTSTR(1:12) .eq. '*end_my_sets') then
             bMY_sim_sps = .false.
-            CALL STRIPC(IUC,OUTSTR,0,ND,1,'sim set',IER)
+            CALL STRIPC(IUC,OUTSTR,99,ND,1,'sim set',IER)
           endif
           
 C Set flag indicating if set describes a multi-year period
           bMY_period_support (iss) = bMY_sim_sps
-          
+C          write(6,*) 'sps number items ',ND
           K=0
+          if(ND.le.6)then
+
+C No extended sps data found so set to global values.
+            isstupex(iss)=isstup; isbnstepex(iss)=isbnstep
+            ispnstepex(iss)=ispnstep
+            issaveex(iss)=issave; isavghex(iss)=isavgh
+          else
+            CALL EGETWI(OUTSTR,K,isstupex(iss),1,300,'W','startup',IER)
+            CALL EGETWI(OUTSTR,K,isbnstepex(iss),1,60,'W','bld ts',IER)
+            CALL EGETWI(OUTSTR,K,ispnstepex(iss),1,100,'W','pl ts',IER)
+            CALL EGETWI(OUTSTR,K,issaveex(iss),0,5,'W','save lv',IER)
+            CALL EGETWI(OUTSTR,K,isavghex(iss),0,1,'W','save hr',IER)
+          endif
           CALL EGETWI(OUTSTR,K,isstday(iss),1,31,'W','start day',IER)
           CALL EGETWI(OUTSTR,K,isstmon(iss),1,12,'W','start month',IER)
           if ( bMY_sim_sps )
@@ -2224,10 +2269,13 @@ C Set flag indicating if set describes a multi-year period
 C Opportunity for improvenemt: Should error trap duplicate
 C (ie ambigious) set names
           CALL EGETRM(OUTSTR,K,spfdescr(iss),'W','set name',IER)
-
+          iscfdactivate(iss)=-1
  334      CALL STRIPC(IUC,OUTSTR,0,ND,1,'res names',IER)
           K=0
           CALL EGETW(OUTSTR,K,WORD,'W','res tags',IFLAG)
+
+C Might have a simulation preset without CFD information, so initialise
+C iscfdactivate to -1. This can then be used as a test for such cases.
           if(WORD(1:5).eq.'*sblr')then
             CALL EGETRM(OUTSTR,K,sblres(iss),'W','zone res',IER)
           elseif(WORD(1:5).eq.'*sflr')then
@@ -2238,6 +2286,21 @@ C (ie ambigious) set names
             CALL EGETRM(OUTSTR,K,smstres(iss),'W','moist res',IER)
           elseif(WORD(1:5).eq.'*selr')then
             CALL EGETRM(OUTSTR,K,selres(iss),'W','elect res',IER)
+          elseif(WORD(1:6).eq.'*scfdr')then
+
+C Read cfd assessment attributes and then the file name.
+C isicfdys(iss),isicfdyf(iss),scftims(iss),scftimf(iss)
+            CALL EGETWI(OUTSTR,K,iscfdactivate(iss),0,1,'W',
+     &        'activate',IER)
+            CALL EGETWI(OUTSTR,K,isicfdys(iss),1,365,'W',
+     &        'cfd start',IER)
+            CALL EGETWI(OUTSTR,K,isicfdyf(iss),1,365,'W',
+     &        'cfd finish',IER)
+            CALL EGETWR(OUTSTR,K,scftims(iss),1.0,25.0,'W',
+     &        'cfd start time',IER)
+            CALL EGETWR(OUTSTR,K,scftimf(iss),1.0,25.0,'W',
+     &        'cfd finish time',IER)
+            CALL EGETRM(OUTSTR,K,scfdres(iss),'W','cfd res',IER)
           elseif(WORD(1:5).eq.'*spvr')then
             continue
           elseif(WORD(1:8).eq.'*end_set')then
@@ -2486,9 +2549,7 @@ C Store profile in array.
           DO 27 jMon=1,12
             eGrdTp(jMon)=getVal(jMon)
   27      CONTINUE
-   
- 
-  
+
         elseif(WORD(1:4).eq.'*cvs')then
 
 C 3D ground control volumes file.
@@ -2578,6 +2639,17 @@ C Number of building zones.
       IF(IER.NE.0)goto 1
       K=0
       CALL EGETWI(OUTSTR,K,NCOMP,0,MCOM,'W','zones',IER)
+
+C If greater complexity than executables can deal with
+C set ier=3 and generate a message.
+      if(ncomp.gt.MCOM)then
+        write(outs,'(a,i3,a,i3,a)') 'Model complexity ',ncomp,
+     &    ' zones is GREATER THAN ',MCOM,'!'
+        call edisp(iuout,outs)
+        call edisp(iuout,'Either re-compile or simplify model.')
+        IER=3
+        RETURN
+      endif
       IF(IER.NE.0) GOTO 1
 
 C Reporting.
@@ -2624,7 +2696,7 @@ C toggles to set water filled zones.
             CALL EGETW(OUTSTR,K,WORD2,'W','air or water',IFLAG)
             if(WORD2(1:5).eq.'water'.or.WORD2(1:5).eq.'Water')then
 C Debug.
-              write(6,*) 'zone ',NCCODE(ICOMP),' is water filled.'
+C              write(6,*) 'zone ',NCCODE(ICOMP),' is water filled.'
               znotair(icomp)=.TRUE.
               zfldK=0.6; zfldD=998.2; zfldC=4190.0; zfldA=0.0
               zSWAp(icomp)=0.0; zSWAf(icomp)=0.0
@@ -3235,7 +3307,7 @@ C Check if there is an fluid (1=text, 2=grphic) air flow network available: 0 = 
       CALL STRIPC(IUC,OUTSTR,0,ND,1,'flow network index',IER)
       IF(IER.NE.0)goto 1
  343  K=0
-      CALL EGETWI(OUTSTR,K,IAIRN,0,2,'F','IAIRN',IER)
+      CALL EGETWI(OUTSTR,K,IAIRN,0,3,'F','IAIRN',IER)
       IF(IER.NE.0) GOTO 1
 
 C If there is an fluid (=air) flow network available then:
@@ -3278,7 +3350,9 @@ C Fill valid component type arrays
         CALL MFCDAT
 
 C Read the file header and check for first-line tag. If 4 items
-C then an older file so rewind the file and then call emfread.
+C then an legacy file so rewind the file and then call emfread. If
+C OUTSTR is *Graphical_network call netread and if OUTSTR is
+C *Flow_network call EMF3DREAD.
         CALL STRIPC(IUF,OUTSTR,99,ND,0,'1st line of file',IER)
         if(IER.NE.0)then
           outs='Problem scanning flow network file...aborting cfg scan'
@@ -3292,13 +3366,7 @@ C then an older file so rewind the file and then call emfread.
             goto 6
           endif
         endif
-        IF(ND.GE.4)THEN
-          REWIND(IUF,ERR=999)
-          CALL EMFREAD(IUF,IER)
-          CALL ERPFREE(IUF,ISTAT)
-          IAIRN = 1
-        elseif((ND.eq.1.or.ND.eq.2).and.
-     &          OUTSTR(1:18).EQ.'*Graphical_network')then
+        if(OUTSTR(1:18).EQ.'*Graphical_network')then
 
 C Found a graphic network file, scan it (silently) and then convert it
 C into network flow common blocks.
@@ -3306,6 +3374,20 @@ C into network flow common blocks.
           CALL ERPFREE(IUF,ISTAT)
           call NETREAD(IUF,'S',IER)
           CALL NETTOFLW(ier)
+        elseif(OUTSTR(1:13).EQ.'*Flow_network')then
+
+C Found 3D flow network file.
+          IAIRN = 3
+          CALL ERPFREE(IUF,ISTAT)
+          CALL MFCDAT
+          CALL EMF3DREAD(IUF,'S',IER)
+        else
+
+C Found legacy text mass flow file.
+          REWIND(IUF,ERR=999)
+          CALL EMFREAD(IUF,IER)
+          CALL ERPFREE(IUF,ISTAT)
+          IAIRN = 1
         endif
         if(IER.NE.0)then
           outs='Problem scanning flow network file...aborting cfg scan'

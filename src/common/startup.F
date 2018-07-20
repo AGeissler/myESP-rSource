@@ -92,7 +92,7 @@ C Declare  calling parameter types
       real, intent(out)     ::  data1,data2,data3
       character(144), intent(out)  :: inf, inf2
       character(16), intent(out)   :: zone,act
-      character(72), intent(out)   :: actf,ascif
+      character(96), intent(out)   :: actf,ascif
       character(12), intent(out)   :: aut,aim
       character(4), intent(out)    :: browse
       character(30), intent(out)    :: sps
@@ -293,8 +293,10 @@ C (disabled by default!)
               else 
                 call getarg(i,act)
               end if
-C If act is asci2bin or bin2asci read ascii file name
-              if(act(1:8).eq.'asci2bin'.or.act(1:8).eq.'bin2asci')then
+C If act is asci2bin ascii2bin or bin2asci bin2ascii read
+C ascii file name.
+              if(act(1:8).eq.'asci2bin'.or.act(1:9).eq.'ascii2bin'.or.
+     &           act(1:8).eq.'bin2asci'.or.act(1:9).eq.'bin2ascii')then
               i=i+1
               if (UsePassedCommandLine) then 
                 call EGETW(PassedCommandLine,pos,actf,'-',
@@ -357,7 +359,8 @@ C If act is asci2bin or bin2asci read ascii file name
                 call getarg(i,act)
               end if
 C If act is asci2bin or bin2asci read ascii file name
-              if(act(1:8).eq.'asci2bin'.or.act(1:8).eq.'bin2asci')then
+              if(act(1:8).eq.'asci2bin'.or.act(1:9).eq.'ascii2bin'.or.
+     &           act(1:8).eq.'bin2asci'.or.act(1:9).eq.'bin2ascii')then
                 i=i+1
                 if (UsePassedCommandLine) then 
                   call EGETW(PassedCommandLine,pos,ascif,'-',
@@ -680,15 +683,15 @@ C Declare  calling parameter types
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone,act
-      character(72) :: actf,ascif
+      character(96) :: actf,ascif
       character(12) :: aut,aim
       character(4) :: browse
       character(30) :: sps
 
       module = CONST_PARPSF
       call GetCommandLineArguments(module,termtype,iappw,iappx,
-     &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &    iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
+     &    iverb,sps,data1,data2,data3)
       
       end subroutine parpsf
 
@@ -707,29 +710,29 @@ C Declare  calling parameter types
       integer :: module, iverb
       real ::  data1,data2,data3
       character(16) :: zone,act
-      character(72) :: actf,ascif
+      character(96) :: actf,ascif
       character(12) :: aut,aim
       character(4) :: browse
       character(30) :: sps
 
       module = CONST_PARPSFF
       call GetCommandLineArguments(module,termtype,iappw,iappx,
-     &             iappy,infa,infb,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &   iappy,infa,infb,zone,act,actf,aut,ascif,aim,browse,
+     &   iverb,sps,data1,data2,data3)
       
       end subroutine parpsff
 
 
-C***********************************************************************************************************************
+C*********************************************************************************
 C parres allows terminal, size, results file, action and silent arguments
 C  to be passed to res from the invocation line.  
-C***********************************************************************************************************************
+C*********************************************************************************
       subroutine parres(termtype,iappw,iappx,iappy,inf,act,aut,actf)
       IMPLICIT NONE
 C Declare  calling parameter types
       integer, intent(inout)  ::  termtype,iappw,iappx,iappy
       character(144), intent(inout)  :: inf
-      character(72), intent(inout) :: actf
+      character(96), intent(inout) :: actf
       character(12), intent(inout) :: aut
       character(16), intent(inout) :: act
 
@@ -738,15 +741,15 @@ C Local variables for GetCommandLineArguments.
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone
-      character(72) :: ascif
+      character(96) :: ascif
       character(12) :: aim
       character(4) :: browse
       character(30) :: sps
 
       module = CONST_PARRES
       call GetCommandLineArguments(module,termtype,iappw,iappx,
-     &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &   iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
+     &   iverb,sps,data1,data2,data3)
       end subroutine parres
 
 
@@ -762,22 +765,22 @@ C Declare  calling parameter types
       character(144), intent(inout)  :: inf
       character(16), intent(inout) :: act
       character(12), intent(inout) :: aut
-      character(72), intent(inout) :: ascif
+      character(96), intent(inout) :: ascif
 
 C Local variables for GetCommandLineArguments.
       integer :: module, iverb
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone
-      character(72) :: actf
+      character(96) :: actf
       character(12) :: aim
       character(4) :: browse
       character(30) :: sps
 
       module = CONST_PARCLM
       call GetCommandLineArguments(module,termtype,iappw,iappx,
-     &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &    iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
+     &    iverb,sps,data1,data2,data3)
       
       end subroutine parclm
 
@@ -795,13 +798,13 @@ C Declare  calling parameter types
       integer, intent(inout)  ::  termtype,iappw,iappx,iappy
       character(144), intent(inout)  :: inf
       character(16), intent(inout) :: act, zone
-      character(72), intent(inout) :: ascif
+      character(96), intent(inout) :: ascif
 
 C Local variables for GetCommandLineArguments.
       integer :: module, iverb
       real ::  data1,data2,data3
       character(144) :: inf2
-      character(72) :: actf
+      character(96) :: actf
       character(12) :: aim, aut
       character(4) :: browse
       character(30) :: sps
@@ -832,7 +835,7 @@ C Declare  calling parameter types
 C Local variables for GetCommandLineArguments.
       integer :: module
       character(144) :: inf2
-      character(72) :: actf,ascif
+      character(96) :: actf,ascif
       character(12) :: aim, aut
       character(4) :: browse
       character(30) :: sps
@@ -861,7 +864,7 @@ C Local variables for GetCommandLineArguments.
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: act
-      character(72) :: actf,ascif
+      character(96) :: actf,ascif
       character(12) :: aut,aim
       character(4) :: browse
       character(30) :: sps
@@ -890,15 +893,15 @@ C Local variables for GetCommandLineArguments.
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone,act
-      character(72) :: actf,ascif
+      character(96) :: actf,ascif
       character(12) :: aut,aim
       character(4) :: browse
       character(30) :: sps
 
       module = CONST_PARTF
       call GetCommandLineArguments(module,termtype,iappw,iappx,
-     &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &   iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
+     &   iverb,sps,data1,data2,data3)
       end subroutine partf
 
 
@@ -907,7 +910,7 @@ C ********* partfa (equivalent to partf with an action parameter)
 C partfa allows terminal, file and action arguments
 C  to be passed to the program from the invocation line.  
 C  Logic allows for the -file token to be optional.
-C***********************************************************************************************************************
+C***********************************************************************************
       subroutine partfa(termtype,inf,act)
       
       IMPLICIT NONE
@@ -921,23 +924,23 @@ C Local variables for GetCommandLineArguments.
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone
-      character(72) :: actf,ascif
+      character(96) :: actf,ascif
       character(12) :: aut,aim
       character(4) :: browse
       character(30) :: sps
 
       module = CONST_PARTFA
       call GetCommandLineArguments(module,termtype,iappw,iappx,
-     &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &   iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
+     &   iverb,sps,data1,data2,data3)
       end subroutine partfa
 
 
-C***********************************************************************************************************************
+C*************************************************************************************
 C ********* parse2r 
 C parse2r allows terminal, size, config file, scene purpose and actions arguments
 C  to be passed to e2r from the invocation line.  
-C***********************************************************************************************************************
+C*************************************************************************************
       subroutine parse2r(termtype,iappw,iappx,iappy,inf,zone,aim,act,
      &  actf,browse)
       
@@ -947,29 +950,29 @@ C Declare  calling parameter types
       character(144), intent(inout)  :: inf
       character(16), intent(inout) :: zone,act
       character(12), intent(inout) :: aim
-      character(72), intent(inout) :: actf
+      character(96), intent(inout) :: actf
       character(4), intent(inout) :: browse
 
 C Local variables for GetCommandLineArguments.
       integer :: module, iverb
       real ::  data1,data2,data3
       character(144) :: inf2
-      character(72) :: ascif
+      character(96) :: ascif
       character(12) :: aut
       character(30) :: sps
 
       module = CONST_PARSE2R
       call GetCommandLineArguments(module,termtype,iappw,iappx,
-     &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &  iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
+     &  iverb,sps,data1,data2,data3)
       end subroutine parse2r
 
 
-C***********************************************************************************************************************
+C*************************************************************************************
 C ********* parsim
 C parsim: allows terminal, size, config file, simulation parameter file arguments
 C  to be passed to the program from the invocation line.  
-C***********************************************************************************************************************
+C*************************************************************************************
 
       subroutine parsim(iverb,termtype,iappw,iappx,iappy,inf,browse,
      &  sps,aut,actf)
@@ -977,7 +980,7 @@ C*******************************************************************************
 C Declare  calling parameter types
       integer, intent(inout)  ::  iverb, termtype,iappw,iappx,iappy
       character(144), intent(inout)  :: inf
-      character(72), intent(inout) :: actf
+      character(96), intent(inout) :: actf
       character(12), intent(inout) :: aut
       character(4), intent(inout) :: browse
       character(30), intent(inout) :: sps
@@ -987,22 +990,22 @@ C Local variables for GetCommandLineArguments.
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone,act
-      character(72) :: ascif
+      character(96) :: ascif
       character(12) :: aim
 
       module = CONST_PARSIM
       call GetCommandLineArguments(module,termtype,iappw,iappx,
-     &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &   iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
+     &   iverb,sps,data1,data2,data3)
       
       end subroutine parsim
 
 
-C***********************************************************************************************************************
+C*************************************************************************************
 C ********* parsfact
 C parsfact allows terminal, size, file and actions arguments
 C  to be passed to the program from the invocation line.  
-C***********************************************************************************************************************
+C*************************************************************************************
 
       subroutine parsfact(termtype,iappw,iappx,iappy,inf,act,actf)
       
@@ -1011,26 +1014,26 @@ C Declare  calling parameter types
       integer, intent(inout)  ::  termtype,iappw,iappx,iappy
       character(144), intent(inout)  :: inf
       character(16), intent(inout) :: act
-      character(72), intent(inout) :: actf
+      character(96), intent(inout) :: actf
 
 C Local variables for GetCommandLineArguments.
       integer :: module, iverb
       real ::  data1,data2,data3
       character(144) :: inf2
       character(16) :: zone
-      character(72) :: ascif
+      character(96) :: ascif
       character(12) :: aut,aim
       character(4) :: browse
       character(30) :: sps
 
       module = CONST_PARSFACT
       call GetCommandLineArguments(module,termtype,iappw,iappx,
-     &             iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
-     &             iverb,sps,data1,data2,data3)
+     &   iappy,inf,inf2,zone,act,actf,aut,ascif,aim,browse,
+     &   iverb,sps,data1,data2,data3)
       end subroutine parsfact
 
 
-C***********************************************************************************************************************
+C*******************************************************************************************
 
       END MODULE START_UP
 C***********************************************************************************************************************
@@ -1266,7 +1269,7 @@ C Where validation tests are kept.
       character*(*) LFDEF
       CHARACTER OUTSTR*124,WORD*20
       character outs*124,outs248*248
-      character fmttag*4,fmtexe*20,cadlbl*20,cadexe*20,cadfmt*4
+      character fmttag*4,fmtexe*20,cadlbl*20,cadexe*20,cadfmt*5
       character replbl*20,repexe*20
       character gprlbl*20,gprcmd*48
       character gxwdlbl*20,gxwdcmd*60
@@ -1933,14 +1936,15 @@ C parpsfh: Help message for several of the command line parsers.
         call edisp(iuout,'  Use: [-mode {text|graphic}]')
         call edisp(iuout,'       [-file <climate db>]')
         call edisp(iuout,'   [-act <action> <how> <file>]')
-        call edisp(iuout,'  (where action {asci2bin|bin2asci|epw2bin})')
-        call edisp(iuout,'  (where how {interactive|silent} defines ')
-        call edisp(iuout,'   whether the user interacts')
-        call edisp(iuout,'  (where file is asci input or output file)')
+        call edisp(iuout,'   where: ')
+        call edisp(iuout,'    <action> {ascii2bin|bin2ascii|epw2bin})')
+        call edisp(iuout,'    <how> {interactive|silent} level of')
+        call edisp(iuout,'      user interaction')
+        call edisp(iuout,'    <file> the ascii file to read/create.')
         call edisp(iuout,' ')
         call edisp(iuout,'Example converting binary file to asci: ')
         call edisp(iuout,
-     &    ' clm -file current.clm -act bin2asci silent current.asci')
+     &    ' clm -file current.clm -act bin2asci silent new.asci')
         call edisp(iuout,' ')
         call edisp(iuout,'Example converting asci file to binary: ')
         call edisp(iuout,

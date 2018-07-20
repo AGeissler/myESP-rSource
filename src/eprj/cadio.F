@@ -562,18 +562,28 @@ C If user request jump back and re-display the menu.
         endif
 
 C Gather information about IDF file version.
-        ever=3.0
-        evert=ever
-        CALL EASKR(evert,'EnergyPlus IDF file version?',
-     &    '(3.0 4.0 5.0 6.0 7.2)',
-     &    3.0,'F',7.3,'F',6.0,'file version',IERI,nbhelp)
-        if(ieri.eq.-3)then
+        ever=7.2
+        CALL EASKATOG('EnergyPlus IDF file version','(see help):',
+     &    '4.0','5.0','6.0','7.2','8.0','8.5','cancel',IW,nbhelp)
+        if(IW.eq.1)then
+          ever=4.0
+        elseif(IW.eq.2)then
+          ever=5.0
+        elseif(IW.eq.3)then
+          ever=6.0
+        elseif(IW.eq.4)then
+          ever=7.2
+        elseif(IW.eq.5)then
+          ever=8.0
+        elseif(IW.eq.6)then
+          ever=8.5
+        endif
+        if(IW.eq.7)then
           continue
         else
           call edisp(iuout,' Performing model conversion.')
           itrcc=2
           ioout=2
-          ever=evert
           open(ioout,file=lltmp,status='UNKNOWN',err=901)
           call e2eplus(itrcc,ioout,ever,ier)
           close(ioout)
@@ -784,13 +794,24 @@ C Indicator of possible focus zone.
 C External cad package.
       common/cad3rd/cadlbl,cadexe,cadfmt
 
-      LOGICAL     OK,DOK,concat,browse,confirm,ckpath,unixok
+C The model root and mpath passed to silentmodel call.
+      character metaroot*32,metampath*72
+      common/cadmeta/metaroot,metampath
+
+      LOGICAL OK,DOK,concat,browse,confirm,ckpath,unixok
       logical itisanexemplar  ! passed to newprb to ensure correct browse mode.
 
       character LFIL*72,LCMDFL*144
       character outs*124,OUTSTR*124,doit*248
-      character cadlbl*20,cadexe*20,cadfmt*4
+      character cadlbl*20,cadexe*20,cadfmt*5
       character longtfile*144,longtfiledos*144
+      character placemodelin*96
+      character exemplar*144 ! full path to new cfg file
+      character fs*1
+      character thecfgis*72 ! cfg file only
+      character cfgpath*144  ! full path to cfg folder for refocus
+      character theprimedirective*8
+      logical XST
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -799,9 +820,14 @@ C For help messages
 
       helpinsub='cadin'  ! set for subroutine
 
-C Set file unit and check if running Unix-like OS.
-      ifun=ifil+1
+C Check if running Unix-like OS.
+      placemodelin='  '
       call isunix(unixok)
+      if(unixok)then
+        fs = char(47)
+      else
+        fs = char(92)
+      endif
 
 C CAD definition and importing.
       helptopic='cad_import_choices'
@@ -811,17 +837,83 @@ C Tell the user to create a model configuration file.
       CALL PHELPD('CAD warning',nbhelp,'-',0,0,IER)
 
 C Ask user which format of CAD file will be scanned in.
-      CALL EASKABC('Specify which CAD format to work with',
-     &  'Options:','DXF (version 12-14)','other CAD format',
-     &  'cancel',IRT,nbhelp)
+      CALL EASKATOG(' ','Options:',
+     &  'parse DXF (version 12-14)','parse gbXML','invoke CAD tool',
+     &  'parse ESP-r META','cancel',' ',' ',IRT,nbhelp)
       if(irt.eq.1)then
         cadfmt='DXF '
       elseif(irt.eq.2)then
-        call usrmsg(
-     &    'Alternative CAD input format is work in progress.',
-     &    '  ','-')
-        return
+        cadfmt='gbXML'
       elseif(irt.eq.3)then
+        call edisp(iuout,outs)
+        write(outs,'(3a)') ' Proceed with ',
+     &    cadlbl(1:lnblnk(cadlbl)),' ?'
+        dok=.true.
+        CALL ASKOK(outs,'(if the tool is available)',OK,dok,nbhelp)
+        IF(OK)then
+          call runit(cadexe,'graph')
+        endif
+        return
+      elseif(irt.eq.4)then
+
+C Attempt to scan ESP-r META file.
+        LFIL='  '
+  29    CALL EASKS(LFIL,'ESP-r META file to import ?',
+     &    ' ',72,' ','META file',IER,nbhelp)
+
+C Read the first couple of lines of the import file to see if it
+C is a DXF file.
+        if(LFIL(1:2).ne.'  '.and.LFIL(1:4).ne.'UNKN')then
+          INQUIRE (FILE=LFIL,EXIST=XST)
+          if(.NOT.XST)then
+            write(outs,'(a,a)')'Could not find: ',LFIL(1:lnblnk(LFIL))
+            dok=.false.
+            call askok(outs,'Try again?',OK,dok,nbhelp)
+            if(OK)then
+              goto 29
+            else
+              return
+            endif
+          endif
+          call clrprb  ! clear the model common blocks prior to scan
+          write(longtfile,'(a)') LFIL(1:lnblnk(LFIL))
+          IUNIT=IFIL+1
+          modeltitle='UNKNOWN'
+
+C If iverb passed as non-zero then change directive.
+          call silentread(iunit,longtfile,'-',theprimedirective,ier)
+          call edisp(iuout,theprimedirective)
+          call edisp(iuout,modeltitle)
+          call edisp248(iuout,modeldocblock,80)
+
+C Figure out where the new model cfg is going to be placed.
+C          call usrdir(pwdinitial)
+          write(6,*) 'the pwd command is ',
+     &      pwdinitial(1:lnblnk(pwdinitial))
+          thecfgis='  '
+          write(thecfgis,'(2a)') metaroot(1:lnblnk(metaroot)),'.cfg'
+          cfgpath='  '
+          write(cfgpath,'(5a)') pwdinitial(1:lnblnk(pwdinitial)),fs,
+     &      metampath(1:lnblnk(metampath)),fs,'cfg'
+          call edisp(iuout,'  ')
+          call edisp(iuout,'The model cfg folder is:')
+          call edisp(iuout,cfgpath)
+          call edisp(iuout,'The cfg file is is:')
+          call edisp(iuout,thecfgis)
+          call edisp(iuout,'It is now OK to [YES RESTART].')
+
+C Suggest to user to refocus prj within the model cfg folder at
+C this specific cfg file.
+          call refocus(cfgpath,thecfgis,iret)
+          if(iret.eq.0)then
+            continue
+          elseif(iret.eq.-2)then
+            call edisp(iuout,
+     &      'Features using Radiance calls may not work as expected.')
+          endif
+          return
+        endif
+      elseif(irt.eq.5)then
         return
       endif
 
@@ -829,7 +921,7 @@ C If there is a currently loaded model then convert it.
       if(NCOMP.gt.0.and.cadfmt(1:3).eq.'DXF')then
         call tstamp('>','PRJ: start CAD')
         doit = ' '
-        CALL EASKS(LFIL,' Put current model into DXF file named: ',
+        CALL EASKS(LFIL,'Putting current model into DXF file named:',
      &    ' ',72,' ','dxf export file',IER,nbhelp)
         call edisp(iuout,' Performing model conversion.')
         if(unixok)then
@@ -852,32 +944,29 @@ C and change any / to \.
      &      longtfile(1:lnblnk(longtfile)),
      &      ' -of dxf -out ',LFIL(1:lnblnk(LFIL))
         endif
-      endif
 
-      if(NCOMP.gt.0)then
+C Invoke export of current ESP-r model to DXF.
         call runit(doit,'-')
         write(outs,'(3a)')' The file ',LFIL(1:lnblnk(LFIL)),
      &    ' has been created.'
         call edisp(iuout,outs)
-      endif
-
-      write(outs,'(3a)') ' Proceed with ',
-     &  cadlbl(1:lnblnk(cadlbl)),' ?'
-      dok=.true.
-      CALL ASKOK(outs,'(no will just generate the file)',
-     &  OK,dok,nbhelp)
-      IF(OK)then
-        if(cadfmt(1:3).eq.'ZIP')then
-          continue
-        elseif(cadfmt(1:3).eq.'DXF')then
+        write(outs,'(3a)') ' Proceed with ',
+     &    cadlbl(1:lnblnk(cadlbl)),' ?'
+        dok=.true.
+        CALL ASKOK(outs,'(if the tool is available)',OK,dok,nbhelp)
+        IF(OK)then
           call runit(cadexe,'graph')
         endif
       endif
 
  28   dok=.true.
-      CALL ASKOK(' ','Import the CAD transfer file?',OK,dok,nbhelp)
+      if(cadfmt(1:3).eq.'DXF')then
+        CALL ASKOK(' ','Import the DXF file?',OK,dok,nbhelp)
+      elseif(cadfmt(1:5).eq.'gbXML')then
+        OK=.true.
+      endif
       IF(OK)then
-        CALL EASKS(LFIL,' File to import ? ',
+        CALL EASKS(LFIL,'File to import ?',
      &    ' ',72,' ','cad import file',IER,nbhelp)
 
 C Read the first couple of lines of the import file to see if it
@@ -943,6 +1032,7 @@ C ********* rexmpl
 C rexmpl: scan the exemplars file, parse information and offer the user
 C selection of or information about exemplars. 
 C useraction is returned - 'browse' or 'ownit' or 'continue'
+C Currently supports up to 30 items in a category.
       subroutine rexmpl(itrc,iexfil,exemplar,useraction,ier)
 #include "building.h"
 #include "model.h"
@@ -979,16 +1069,21 @@ C      common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
       integer noimg  ! number of images
       integer iton   ! zero if images not yet shown, one if yes
       common/imagfi/noimg,iton
-
-      dimension name(30),mitem(30),label(30),inl2in(30),group(15)
+      integer IVALS
+      dimension IVALS(30)
+      character name*70,subitem*70,label*42
+      dimension name(30),label(30),inl2in(30),subitem(30)
+      character group*42
+      dimension group(15)
+      character gitem*44,gh*72,cfgitem*144,itemlog*144
       dimension gitem(18),gh(13),cfgitem(30),inl2ngr(30),itemlog(30)
-      character name*70,label*42,mitem*72,gitem*44,OUTSTR*124,WORD*20
-      character group*42,tgroup*42,key*1,look*70,tlook*70
+      character OUTSTR*124,WORD*20
+      character tgroup*42,key*1,look*70,tlook*70
       character outs*124,rootp*84,separ*42
       character doit*248
-      character gh*72,cfgitem*144,exdescr*81,doc*72,head*42
+      character exdescr*81,doc*72,head*42
       character cfg*144,cfg_path*84,cfg_root*72,doc_file*96
-      character itemlog*144,ilog*144
+      character ilog*144
       character tmode*12
 
 C Strings for dos version of rootp and upath and a double quote.
@@ -998,7 +1093,7 @@ C Strings for dos version of rootp and upath and a double quote.
       character thecfgis*72,cfgcfg*42 ! cfg file only & cfg/cfg_file
       character cfgpath*144  ! full path to cfg folder for refocus
       logical XST,unixok
-      integer NCOG,ICOG,NCO,ICO,icod ! max items and current menu item
+      integer NCOG,ICOG,ICO ! max items and current menu item
       integer loop  ! for looping
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
 
@@ -1042,7 +1137,9 @@ C the user decides to cancel the selection.
 
 C Clear some of the local strings.
       do 38 loop=1,30
+        IVALS(loop)=0
         name(loop)='  '
+        subitem(loop)='  '
         label(loop)='  '
         cfgitem(loop)='  '
         itemlog(loop)='  '
@@ -1062,16 +1159,11 @@ C Read the header and see if '*EXEMPLARS'
 C In the first pass make up the display, beginning with
 C an organizational header and the `names' of each exemplar.
 C Clear group related help and length of menu.
-      do 2 i=1,13
+      do i=1,13
         gh(i)=' '
-  2   continue
-      exemplar='UNKNOWN'
-      ilog='  '
-      ngr=0
-      ing=0
-      inl=0
-      igrsel=0
-      icod=0
+      enddo
+      exemplar='UNKNOWN'; nghelp=0
+      ilog='  '; ngr=0; ing=0; inl=0; igrsel=0
       cfgcfg='  '; thecfgis='  '; cfgpath='  '
 
  12   CALL STRIPC(iexfil,OUTSTR,0,ND,0,'group id',IER)
@@ -1080,9 +1172,7 @@ C Clear group related help and length of menu.
       CALL EGETW(outstr,K,WORD,'W','group id',IER)
       if(WORD(1:6).eq.'*group')then
         if(ngr.lt.15)then
-          ngr=ngr+1
-          inl=inl+1
-          ing=ing+1
+          ngr=ngr+1; inl=inl+1; ing=ing+1
           CALL EMKEY(ing,KEY,IER)
           call egetrm(outstr,K,group(ngr),'W','group id',IER)
           write(gitem(inl),'(a1,1x,a42)') key, group(ngr)(1:42)
@@ -1117,9 +1207,7 @@ C Help text for this menu.
       call gethelptext(helpinsub,helptopic,nbhelp)
 
       if(MMOD.EQ.8)then
-        impx=0
-        impy=0
-        iwe=iw
+        impx=0; impy=0; iwe=iw
         CALL VWMENU('Exemplar Categories',gitem,NCOG,
      &    impx,impy,iwe,irpx,irpy,ICOG)
       else
@@ -1165,9 +1253,7 @@ C Re-open the exemplar file.
 
 C We have a match with the selected group so now fill the menu
 C strings so they can be presented to the user.
-            nghelp=0
-            in=0
-            inl=0
+            nghelp=0; in=0; inl=0
  16         CALL STRIPC(iexfil,OUTSTR,0,ND,0,'group',IER)
             if(ier.ne.0)goto 90
             K=0
@@ -1181,12 +1267,15 @@ C If we have reached the next group then we have scanned far enough.
               call egetrm(outstr,K,gh(nghelp),'W','help',IER)
               goto 16
             elseif(WORD(1:5).eq.'*name')then
-              in=in+1
-              inl=inl+1
+
+C Grab the name and assign a key to each item in the category.
+C if there are more than 26 items then present as a multi-page
+C selection list.
+              in=in+1; inl=inl+1
               call egetrm(outstr,K,name(in),'W','name',IER)
               write(label(inl),'(a)')'-'
               CALL EMKEY(in,KEY,IER)
-              write(mitem(inl),'(a1,1x,a)') KEY,name(in)
+              write(subitem(inl),'(a)') name(in)
               inl2in(inl)=in
               goto 16
             elseif(WORD(1:4).eq.'*cfg')then
@@ -1200,7 +1289,6 @@ C In case there is a log file mentioned.
             elseif(WORD(1:6).eq.'*label')then
               inl=inl+1
               call egetrm(outstr,K,label(inl),'W','label',IER)
-              write(mitem(inl),'(2x,a)') label(inl)
               inl2in(inl)=0
               goto 16
             else
@@ -1219,103 +1307,86 @@ C In case there is a log file mentioned.
  902  CALL ERPFREE(iexfil,ISTAT)
       goto 142
 
-C Present the list of this category of exemplars.
-  42  ICO= -2
-      mitem(in+1)=  '  _______________________________'
-      mitem(in+2)=  '* view exemplar documentation    '
-      mitem(in+3)=  '? help                           '
-      mitem(in+4)=  '- exit this menu                 '
-      NCO=in+4
-      if(MMOD.EQ.8)then
-        head = group(igrsel)(1:lnblnk(group(igrsel)))
-      else
-        write(head,'(a)') group(igrsel)(1:12)
+C Present the list of this category of exemplars. If there
+C are more than a-z to choose from use alternative.
+  42  continue
+      if(in.eq.0)then
+        CALL ERPFREE(iexfil,ISTAT)
+        goto 41
       endif
-      IWE=0
-      do 143 ij=1,NCO
-        if(lnblnk(mitem(ij)).gt.IWE)IWE=lnblnk(mitem(ij))
- 143  continue
 
 C Help text for this menu. Append the help text read from the
 C exemplars file to the existing help text found in the esruprj.help
 C file for this topic.
+      iwsub=0
+      do ij=1,in
+        if(lnblnk(subitem(ij)).gt.iwsub)iwsub=lnblnk(subitem(ij))
+      enddo
       helptopic='exemplar_set_browse'
       call gethelptext(helpinsub,helptopic,nbhelp)
       if(nghelp.gt.0)then
-        do 33 ih=1,nbhelp
+        do ih=1,nghelp
           lex=MIN0(lnblnk(gh(ih)),72)
           write(h(nbhelp+ih),'(a)')gh(ih)(1:lex)
- 33     continue
+        enddo
       endif
-
-C Make up a menu as wide as required if in graphic mode.
-      if(MMOD.EQ.8)then
-        impx=0
-        impy=0
-        CALL VWMENU(head,mitem,NCO,impx,impy,IWE,irpx,irpy,ICO)
-      else
-        CALL EMENU(head,mitem,NCO,ICO)
-      endif
-
-C Process the user selection.
-      IF(ICO.EQ.NCO)THEN
+      head = group(igrsel)(1:lnblnk(group(igrsel)))
+      IX=1
+      CALL EPICKS(IX,IVALS,' ','category items',
+     &  iwsub,in,subitem,head,IER,nbhelp+nghelp)
+      IF(IX.EQ.0)then
 
 C Exit from detail level back to group level.
         CALL ERPFREE(iexfil,ISTAT)
         goto 41
+      endif
+      ICO=IVALS(1)
+      if(ICO.eq.0)then
 
-      ELSEIF(ICO.EQ.(NCO-1))THEN
-
-C Display the basic help plus help from exemplars file.
-        CALL PHELPD('exemplar menu',nbhelp+nghelp,'-',0,0,IER)
-
-      ELSEIF(ICO.EQ.(NCO-2))THEN
-
-C User picked the documentation item in the menu. Present the list
-C again so the user can select which model they want to find more
-C about.
-        call edisp(iuout,'  ')
-        call edisp(iuout,
-     &    'Select which exemplar you want to know more about.')
-        icod=0
-        if(MMOD.EQ.8)then
-          impx=0
-          impy=0
-          CALL VWMENU('Select exemplar...',mitem,NCO,impx,impy,IWE,
-     &      irpx,irpy,icod)
-        else
-          CALL EMENU('Select exemplar...',mitem,NCO,icod)
-        endif
-        if(ICOD.GE.1.AND.ICOD.LT.(NCO-3))then
+C Exit from detail level back to group level.
+        CALL ERPFREE(iexfil,ISTAT)
+        goto 41
+      endif
+      if(inl2in(ICO).eq.0)goto 42
+      look=name(inl2in(ICO))
+C      write(6,*) 'focus on ',ico,' ',look
 
 C Open the related configuration file (if it exists), find its log file.
+      CALL ERPFREE(iexfil+1,ISTAT)
+      cfg=cfgitem(inl2in(ICO))
+      INQUIRE (FILE=cfg,EXIST=XST)
+      if(XST)then
+        call fdroot(cfg,cfg_path,cfg_root)
+        call FPOPEN(iexfil+1,ISTAT,1,0,cfg)
+  242   CALL STRIPC(iexfil+1,OUTSTR,0,ND,0,'cfg scan',IER)
+        if(ier.ne.0)goto 902
+        if(OUTSTR(1:10).eq.'* PROJ LOG')then
+          CALL STRIPC(iexfil+1,OUTSTR,0,ND,1,'log file',IER)
+          doc=OUTSTR(1:LNBLNK(OUTSTR))
+          write(doc_file,'(a,a)')cfg_path(1:lnblnk(cfg_path)),
+     &      doc(1:lnblnk(doc))
           CALL ERPFREE(iexfil+1,ISTAT)
-          cfg=cfgitem(ICOD)
-          INQUIRE (FILE=cfg,EXIST=XST)
-          if(XST)then
-            call fdroot(cfg,cfg_path,cfg_root)
-            call FPOPEN(iexfil+1,ISTAT,1,0,cfg)
-  242       CALL STRIPC(iexfil+1,OUTSTR,0,ND,0,'cfg scan',IER)
-            if(ier.ne.0)goto 902
-            if(OUTSTR(1:10).eq.'* PROJ LOG')then
-              CALL STRIPC(iexfil+1,OUTSTR,0,ND,1,'log file',IER)
-              doc=OUTSTR(1:LNBLNK(OUTSTR))
-              write(doc_file,'(a,a)')cfg_path(1:lnblnk(cfg_path)),
-     &          doc(1:lnblnk(doc))
-              CALL ERPFREE(iexfil+1,ISTAT)
-              call tstamp('>','PRJ: list exemplar documentation')
-              call edisp(iuout,'  ')
-              CALL LISTAS(iexfil+1,doc_file,IER)
-            else
-              goto 242
-            endif
-          else
-             call usrmsg('This exemplar is currently off-line.',
-     &            'See your ESP-r administrator for access.','W')
-          endif
+          call tstamp('>','PRJ: list exemplar documentation')
+          call edisp(iuout,'  ')
+          CALL LISTAS(iexfil+1,doc_file,IER)
+        else
+          goto 242  ! read another line
         endif
 
-      ELSEIF(ICO.GE.1.AND.ICO.LT.(NCO-3))THEN
+C Attempt to access the exempler.
+        continue
+
+      else
+         call usrmsg('This exemplar is currently off-line.',
+     &     'See your ESP-r administrator for access.','W')
+         exemplar='UNKNOWN'
+         CALL ERPFREE(iexfil+1,ISTAT)
+         rewind(iexfil,ERR=92)
+         goto 41
+      endif
+      
+C Process the user selection.
+      IF(ICO.GE.1.AND.ICO.LE.(IN))THEN
 
 C User selected an exemplar, attempt to access it.
         if(inl2in(ICO).eq.0)goto 42
@@ -1330,8 +1401,7 @@ C User selected an exemplar, attempt to access it.
   3     CALL STRIPC(iexfil,OUTSTR,0,ND,0,'item lines',IER)
         if(ier.ne.0)goto 92
 
-        exemplar=' '
-        rootp=' '
+        exemplar=' '; rootp=' '
         K=0
         CALL EGETW(outstr,K,WORD,'W','*name tag',IER)
         if(WORD(1:5).eq.'*name')then
@@ -1353,9 +1423,10 @@ C User selected an exemplar, attempt to access it.
                 call edisp(iuout,exemplar)
               endif
 
-C If running on a Windows machine get the last token within the string exemplar,
-C which is the name of the configuration file. Work backwards from the end
-C of the string till a file separator of either DOS or Unix type is reached.
+C If running on a Windows machine get the last token within the
+C string exemplar, which is the name of the configuration file.
+C Work backwards from the end of the string till a file separator
+C of either DOS or Unix type is reached.
               call isunix(unixok)
               if(.NOT.unixok)then
                 thecfgis=' '
@@ -1424,8 +1495,8 @@ C If a log file mentioned in exemplars file show it.
                 CALL LISTAS(iexfil+1,ilog,IER)
               endif
 
-C Reached the end of the item, check if it is to be chosen and
-C if there are zones existing, remove them from memory.
+C Reached the end of the item, check if it is to be chosen.
+C If there are zones existing, remove them from memory.
               CALL EASKAB(exdescr,'Actions:',
      &          'proceed','cancel',IW,nbhelp)
               if(IW.eq.1)then
@@ -1599,7 +1670,7 @@ C If Unix-like then append tail of exemplar string (cfgcfg) to the users selecte
 C path to get the new exemplar name.
                     write(exemplar,'(2a)') lltmp(1:lnblnk(lltmp)),
      &                cfgcfg(1:lnblnk(cfgcfg))
-                    write(6,*) exemplar
+C                    write(6,*) exemplar
                   else
 
 C If Windows based then append cfg & cfg file string to the path to make
@@ -1621,82 +1692,16 @@ C up the exemplar name (this assumes a standard layout of model).
                   useraction='ownit   '
                 endif
 
-C Test if we can start a new prj within the model cfg folder.
-                if(unixok)then
-                  h(1)='To provide full functionality prj should'
-                  h(2)='restart in the copied model cfg folder. When'
-                  h(3)='prj has restarted this instance of prj will'
-                  h(4)='quit after a few seconds.'
-                  CALL EASKABC(
-     &            'To provide full functionality prj needs to restart',
-     &            'focused on the model cfg folder','yes restart',
-     &            'continue','abort prj',IRT,4)
-                  if(irt.eq.1)then
-                    call pausems(1000)
-                    call usrmsg('Invoking new prj focused on the model',
-     &              ' and this instance will close.','P')
-                    write(doit,'(5a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
-     &              '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' &'
-                    call edisp248(iuout,doit,100)
-                    call runit(doit,'-')
-                    call pausems(1000)
-
-C Clear allocatable arrays
-                    CALL DeallocateAllArrays
-                    CALL EPAGEND
-                    STOP
-                  elseif(irt.eq.2)then
-                    continue
-                  elseif(irt.eq.3)then
-                    CALL DeallocateAllArrays
-                    CALL EPAGEND
-                    STOP
-                  endif
-                else
-
-C For Non-unix place a & between the commands and also set the
-C text string tmode='bg' to partially mimic background mode.
-                  call edisp(iuout,'proposed command:')
-                  write(doit,'(4a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
-     &            ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
-                  call edisp248(iuout,doit,100)
-                  call edisp(iuout,'  ')
-                  call pausems(1000)
-                  h(1)='To provide full functionality prj should'
-                  h(2)='restart in the copied model cfg folder. When'
-                  h(3)='prj has restarted this instance of prj will'
-                  h(4)='persist until you close the DOS cmd window.'
-                  CALL EASKABC(
-     &            'To provide full functionality prj needs to restart',
-     &            'focused on the model cfg folder','yes restart',
-     &            'continue','abort prj',IRT,4)
-                  if(irt.eq.1)then
-
-C Separate two dos cmds with & but do not include & at end to force background
-C mode via runit parameter. The initial prj tends not to close unless the
-C DOS cmd window is Xed.
-                    doit='  '
-                    write(doit,'(4a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
-     &              ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
-                    call edisp248(iuout,doit,100)
-                    call pausems(1000)
-C << see if we can implement a bg for tmode in esru_lib.F
-                    tmode='bg'
-                    call runit(doit,tmode)
-                    call pausems(1000)
-
-C Clear allocatable arrays
-                    CALL DeallocateAllArrays
-                    CALL EPAGEND
-                    STOP
-                  elseif(irt.eq.2)then
-                    continue
-                  elseif(irt.eq.3)then
-                    CALL DeallocateAllArrays
-                    CALL EPAGEND
-                    STOP
-                  endif
+C Suggest to user to refocus prj within the model cfg folder at
+C this specific cfg file.
+                call refocus(cfgpath,thecfgis,iret)
+                if(iret.eq.0)then
+                  continue
+                elseif(iret.eq.-2)then
+                  call edisp(iuout,
+     &       'Features using Radiance calls may not work as expected.')
                 endif
+
               elseif(IW.eq.2)then
 
 C User asked to cancel current selection, rewind the file and jump back to
@@ -1851,9 +1856,13 @@ C ICLIM,LCLIM (for climate file)
       common/user/browse
       common/IPVF/lipvdatf
       COMMON/GR1D05/LGRD1D
+      CHARACTER LGRD1D*72
       COMMON/GR1D06/IGR1D
+      LOGICAL IGR1D
       COMMON/GRND100/GRND3D
+      LOGICAL GRND3D
       COMMON/GRND108/LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
+      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDNDD,LGDTAQ
       COMMON/GRSD100/IndxSt
       INTEGER :: IndxSt
       COMMON/GRSD101/LGrdSt
@@ -1861,7 +1870,9 @@ C ICLIM,LCLIM (for climate file)
       LOGICAL :: BLDG3D,ZONE3D
       common/GR3D108/L3DCVS(MCOM),L3DCNC(MCOM),L3DNDC(MCOM),L3DTAQ(MCOM)
       COMMON/VTHP18/LNLTHP
+      CHARACTER LNLTHP*72
       COMMON/VTHP31/INTHPS,INTHPZ(MCOM)
+      LOGICAL INTHPS,INTHPZ
       common/MOIST01/MSTROK,MSTRZN(MCOM)
       LOGICAL :: MSTROK,MSTRZN
       common/MOIST02/LMOIST(MCOM)
@@ -1890,7 +1901,6 @@ C The string buffer doit and option used for tar command.
       character path*72
       character curdir*84
       character LAPROB*72
-      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDNDD,LGDTAQ,LGRD1D,LNLTHP
       character tp*42,tr*32
       character ctldoc*248,LCTLF*72,LGrdSt*72
       character GTGEOM*72,lipvdatf*72
@@ -1904,7 +1914,6 @@ C The string buffer doit and option used for tar command.
       character outs*124
 
       logical browse,XST,unixok
-      LOGICAL INTHPS,INTHPZ,IGR1D,GRND3D
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
 C Patdot is true if path is ./, patcfg is true if path is cfg,
@@ -2467,7 +2476,7 @@ C The following write statements do not detect the file location
  920  continue
 
 C Flow network.
-      if(IAIRN.EQ.1)then
+      if(IAIRN.GE.1)then
         write(LF,'(a)') LAPROB
         lc=lnblnk(netpth)
         if(netpth(1:lc).eq.LF(1:lc))then
@@ -2639,7 +2648,7 @@ C If act is g then use GEN bodies.
           ENDDO
 
           DO J=1,NSUR
-            WRITE(ioout,'(2X,I3,1X,24I3)')NVER(J),(JVN(J,K),K=1,NVER(J))
+            WRITE(ioout,'(I5,124I4)')NVER(J),(JVN(J,K),K=1,NVER(J))
             ndum(J)=0
           ENDDO
 

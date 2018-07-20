@@ -96,7 +96,10 @@ C Simulation period and save option.
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
 C Simulator parameters and performance information requested data.
-      COMMON/SPFL/spfileok,perok,tstepok,saveok,autook,exitok,startupok
+      COMMON/SPFL/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
+     &  startupok
+      LOGICAL     spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
+     &  startupok
       common/SPFLN/spsname
       common/ract/paction
       common/recov01/pifltog,lpifl
@@ -130,9 +133,14 @@ C Significant figure reporting limit (NSIGFIG).
       COMMON/pres/iunitp  ! file unit for plant
 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      LOGICAL     CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       
 C Name of current application
       common/APPNAME/cAppName
+
+      logical libheading ! have we printed report heading (library name etc).
+      logical headingcontext ! has set or period changed so heading needs reprint
+      common/libhead/libheading,headingcontext
 
 C IEEE callback (Solaris)
 #ifdef SUN
@@ -154,20 +162,18 @@ C IEEE callback (Solaris)
       
       character cAppName*12      
       
-      LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
-
-      LOGICAL     spfileok,perok,tstepok,saveok,autook,exitok,startupok
       logical     unixok,there
 
       CHARACTER ITEM(19)*23
-      CHARACTER*72 actf,Lflpar
+      CHARACTER*96 actf
+      CHARACTER*72 Lflpar
       character inf*144,LCMDFL*144,outs248*248,xfile*144
       character outs*124,MODE*4,tg*1,delim*1
       character*72 LFCFG
       character path*72,spsname*30,paction*16
       character fs*1,act*16,aut*12
       character journcmd*20,jfile*72,uname*24,cjfile*72,OUTSTR*124
-      character bact*4,pifltog*4,lpifl*72
+      character bact*4,pifltog*4,lpifl*96
       character graftitle*64,grlbl*24
       character firstbit*72,secondbit*72
       character longtmp*144
@@ -209,6 +215,7 @@ C     NSIGFIG=3
       iunitp=IFIL+10
       matver=0.0   ! initial assumption of binary materials database
       ireportunit=0 ! assume normal units for tabular listings
+      libheading=.false.; headingcontext=.false. ! no heading yet printed
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -385,10 +392,18 @@ C Setup and pass in parameters to win3d.
 c Debug
 C        write(6,*) 'colurs ',nifgrey,ncset,ngset,nzonec
         call startbuffer()
+      ELSE
+        
+C Set reasonable defaults for text mode.
+        igw=418; igwh=268; igl=107; igb=341
       ENDIF
       ITRC=1
       IF(MMOD.NE.-6)ICOUT=IUOUT
-      CALL ESPrVersion("summary",cAppName,IUOUT)
+      if(aut(1:6).eq.'silent')then
+        CALL ESPrVersion("silent",cAppName,IUOUT)
+      else
+        CALL ESPrVersion("summary",cAppName,IUOUT)
+      endif
 
 C Find the users home folder then get users custom settings.
 C Make temporary use of file unit ixunit.
@@ -613,7 +628,7 @@ C Setup for menu text.
       ITEM(9)   ='e Plant results       '
       ITEM(10)  ='f Indoor env. quality '
       ITEM(11)  ='g Electrical results  '
-      ITEM(12)  ='h CFD                 '
+      ITEM(12)  ='h CFD visualisation   '
       ITEM(13)  ='i Sensitivity         '
       ITEM(14)  ='j IPV                 '
       ITEM(15)  ='  ------------------- '
@@ -704,7 +719,7 @@ C an image focus of FRES then show them now.
         call tstamp('>','RES: exit electrical reporting')
       ELSEIF(INO.EQ.12)THEN
         call tstamp('>','RES: enter CFD reporting')
-        call MOCFD
+        call MOCFD('M')
         call tstamp('>','RES: exit CFD reporting')
       ELSEIF(INO.EQ.13)THEN
         call tstamp('>','RES: enter sensitivity reporting')
@@ -742,7 +757,7 @@ C the model.
           lnts=lnblnk(LTDF)
           if(LTDF(lnts-15:lnts).eq.'.temporalscratch')then
             call usrmsg('Deleting scratch file...',LTDF,'P')
-            call EFOPRAN(iutdf,LTDF,ITWPR,1,IER)
+            call EFOPRAN(iutdf,LTDF,1,1,IER)
             CALL EFDELET(iutdf,ISTAT)
             call usrmsg('Deleting scratch file...done.',LTDF,'P')
           endif
@@ -750,7 +765,7 @@ C the model.
 
         call tstamp('>','Finish results analysis')
         CALL EPAGEND
-        STOP
+        goto 999        
       ELSE
         goto 4
       ENDIF
@@ -763,7 +778,7 @@ C Output menu error signal and allow re-selection from menu.
  901  call edisp(iuout,'Error opening journal file, continuing.')
       goto 902
 
-      END
+ 999  END PROGRAM
 
 
 C ********** imgdisp

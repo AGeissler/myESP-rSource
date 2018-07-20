@@ -42,10 +42,12 @@ C output, IER=0 OK.
 
 C geometry.h provides commons G0/G2/c20/precz.
 #include "geometry.h"
+#include "esprdbfile.h"
 #include "epara.h"
 #include "sbem.h"
 #include "CFC_common.h"
 #include "prj3dv.h"
+#include "material.h"
 
       integer lnblnk  ! function definition
 
@@ -157,6 +159,21 @@ C Read in the related geometry file into common.
         CALL USRMSG(' ',' Problem detected in geometry... ','W')
         RETURN
       ENDIF
+
+C Refresh the index of the MLC which matches each surface.
+      do I=1,NZSUR(icomp)
+        icn1=izstocn(icomp,i)
+        if(icn1.ge.1)then
+          ssmlcindex(icn1)=0  ! assume no matching MLC          
+          lnssmlc=lnblnk(SSMLCN(icn1))
+          do ii=1,nmlc
+            if(SSMLCN(icn1)(1:lnssmlc).eq.
+     &         mlcname(ii)(1:lnmlcname(ii)))then
+              ssmlcindex(icn1)=ii   ! remember MLC index     
+            endif
+          enddo
+        endif
+      enddo
 
 C Scan through the geometry file and if more than 3 construction
 C attributes have not been set then advise the user to use the
@@ -1275,12 +1292,14 @@ C equivalent MLC in the array. If name is UNKN then ask user to select.
 C << The logic for dealing with TRAN/OPAQ needs to be updated! >>
         NAIRG(IS)=0
         IF(SSMLCN(ioc)(1:4).EQ.'UNKN')THEN
-  245     WRITE(outs,'(3A)')' Composition of ',SSNAME(ioc),
-     &                         ' is unknown.'
+  245     WRITE(outs,'(3A)')' Composition of ',
+     &      SSNAME(ioc)(1:lnblnk(SSNAME(ioc))),
+     &      ' is unknown. Please select one...'
+          call edisp(iuout,outs)
           if(mlcver.eq.0)then
             CALL EPKMLC(ISEL,outs,'Please select one...',IER)
           else
-            call edisp(iuout,'Please select one...')
+            call edisp(iuout,outs)
             CALL EDMLDB2(modmlc,'-',ISEL,IER)
           endif
           IF(ISEL.GT.0)THEN
@@ -1460,7 +1479,7 @@ C Parameter
       logical XST
 
       dimension ival(MS)
-      CHARACTER TOPTIC*12,louts*248
+      CHARACTER TOPTIC*12,louts*248,lkouts*1000
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1500,7 +1519,7 @@ C Write out the transparent construction file data.
   30  FORMAT('# transparent properties of ',a,' defined in ',a)
 
 C Build one or two packed strings and write out. Should be good
-C for up to NZSUR() of ~62.
+C for up to NZSUR() of ~120.
       WRITE(IFU,'(I4,A)',IOSTAT=ISTAT,ERR=98)NZSUR(icomp),
      &  '   # surfaces'
       do 32 ij=1,MS
@@ -1510,8 +1529,8 @@ C for up to NZSUR() of ~62.
       itrunc=1
       ipos=1
       do while (itrunc.ne.0)
-        call ailist(ipos,nzsur(icomp),ival,MS,'C',louts,loutlen,itrunc)
-        write(ifu,'(a)',IOSTAT=ios,ERR=98) louts(1:loutlen)
+        call ailist(ipos,nzsur(icomp),ival,MS,'C',lkouts,loutlen,itrunc)
+        write(ifu,'(a)',IOSTAT=ios,ERR=98) lkouts(1:loutlen)
         ipos=itrunc+1
       end do
 

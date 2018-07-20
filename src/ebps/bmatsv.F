@@ -124,7 +124,13 @@ C Air flow network
 
 C CFD
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
-      COMMON/CFSEUP/CFTIMS,CFTIMF,ICFDYS,ICFDYF,ICFAUX(MCOM)
+      real CFTIMS,CFTIMF    ! start and finish times for CFD assessment
+      integer ICFDYS,ICFDYF ! julian day-of-year at start and end of CFD
+      integer ICFAUX  ! helps to keep track of IFCFD()
+      integer ICFVIEW ! toggle for preview via dfv during assessment
+      integer ICFVIEWMINT,ICFVIEWMAXT  ! range of temperatures for dfv
+      COMMON/CFSEUP/CFTIMS,CFTIMF,ICFDYS,ICFDYF,ICFAUX(MCOM),ICFVIEW,
+     &  ICFVIEWMINT,ICFVIEWMAXT
       COMMON/calcdCFD/mICORcfd(MCOM),mHCcfd(MCOM)
 
 C Simulation start day required by cmp70c.
@@ -134,6 +140,7 @@ C Common for 3D building model.
       COMMON/GR1D04/GAM,RGAM
 
       COMMON/GR3D100/BLDG3D,ZONE3D(MCOM)
+      LOGICAL BLDG3D,ZONE3D
       COMMON/GR3D108/L3DCVS(MCOM),L3DCNC(MCOM),L3DNDC(MCOM),L3DTAQ(MCOM)
       COMMON/GR3D109/L3DNDD(MCOM),L3DTLW(MCOM),L3DLWV(MCOM)
       COMMON/GR3D110/ICVS,ICNC,INDC,INDD,ITAQ,ITLW,ILWV,ITF3
@@ -142,8 +149,10 @@ C Common for 3D building model.
       COMMON/GR3D150/INDX3,DTIME
 
       COMMON/GRND100/GRND3D
+      LOGICAL GRND3D
       COMMON/GRND101/NNODTG,ITCNSTG,TEMP3G(MCOM),AREAGD(MCOM)
       COMMON/GRND108/LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
+      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
       COMMON/GRND110/GRNDSP
 
       COMMON/GRSD100/IndxSt
@@ -151,6 +160,7 @@ C Common for 3D building model.
       COMMON/GRSD122/InSvST,ISTemp
 
       COMMON/MOIST01/MSTROK,MSTRZN(MCOM)
+      LOGICAL MSTROK,MSTRZN
       COMMON/MOIST12/GAMm,RGAMm
       COMMON/MOIST13/RLXln,RRLXln,RLXlnF,RRLXlnF,RLXlnT,RRLXlnT
       COMMON/MOIST14/DTfalse,TRMfls,TRMflsp1
@@ -197,14 +207,14 @@ C CFD coupling toggles
 
 C Common for results file names (ag@20131221)
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
-     &  smstres(MSPS),selres(MSPS),sipvres
-      character sblres*72,sflres*72,splres*72
-      character smstres*72,selres*72,sipvres*72
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
 
 C Additional commons for SHOCC.
 
 C ZBASEA    - area of base (m^2)
-C IBASES    - surfaces (up to 12) associated with base area. If all 0 then
+C IBASES    - surfaces (up to MBL) associated with base area. If all 0 then
 C             base area has been supplied by the user.
 C Common block G5 documented in geometry.h
       COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
@@ -227,14 +237,13 @@ C SHOCCshzFile - path to SHOCC .shz file for each SHOCC'd zone
       character outs*124
       character*72 LCFD
       CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ,L3DNDD,L3DTLW,L3DLWV
-      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDNDD,LGDTAQ
 
       CHARACTER*72 hvacfile
 
       dimension VAL(MBITS+2)
-      logical itpmod,WDARDO,MSTROK,MSTRZN
+      logical itpmod,WDARDO
       logical rewnd,irew,tsclaw,pasone
-      LOGICAL BLDG3D,ZONE3D,GRND3D,GRNDSP
+      LOGICAL GRNDSP
       logical global,glbrwd,close
       logical CFDOK
       logical context
@@ -910,7 +919,7 @@ C through Sunday 7.
 C Establish climatic data for present day and first
 C hour of future day: future day first.
 
-C The climate database contains records int he following
+C The climate database contains records in the following
 C order. Note: the database stores all records in
 C integer format.
 C col 1: Diffuse solar on the horizontal (W/m**2)
@@ -998,8 +1007,8 @@ C Future day
         irec=idyf
 
 C Get values for first hour of the future day.
-       read(iClim,rec=irec,iostat=istat,err=1000)
-     &   idiff,itmpf,idnrf,ivelf,idirf,ihumf
+        read(iClim,rec=irec,iostat=istat,err=1000)
+     &    idiff,itmpf,idnrf,ivelf,idirf,ihumf
 
 C Check for uncertainty associated with climate data.
         UAFLG=0.
@@ -1028,12 +1037,17 @@ C Set present and future hours.
           ihrf=j+1
           if(ihrf.eq.25)ihrf=1
 
-C Check for uncertainty associated with control data.
+C Check for uncertainty associated with control data. The
+C UACTL array will be zero during the base case run but will
+C be populated in subsequent runs.
           UAFLG=0.
           do 67 IUA=1,7
             UAFLG=UAFLG+UACTL(IUA,1)
  67       continue
-          if (UAFLG.gt.0.01) call UAT01a(idyp,ihrp)
+          if (UAFLG.gt.0.01)then
+	    write(6,*)'bmatsv calling uat01a for',idyp,ihrp
+            call UAT01a(idyp,ihrp)
+          endif
 
 C Increment number of TSC operations counter if present hour
 C is greater than finish hour for present TSC operation.
@@ -1236,89 +1250,114 @@ C Set `itsmus' if output is required at this time-row.
             call eclose(rem,0.00,0.0001,close)
             if (close.and.itrflg.eq.0) itsmus=1
 
-            outs='not yet'
-            DO 15 ICP=1,NCOMP
-              IF(ICFAUX(ICP).NE.0)THEN
+C <FMI>
+            if (is_FMU) then
+              if (.not.bInStartup()) then
+                call FMI_SIMSTEP(IER)
+              else
+                call FMI_CLEARCTL()
+              endif
+            endif
+C </FMI>
+
+C Skip CFD if it has been disabled.
+            if (CFDOK) then
+
+              outs='not yet'
+              DO 15 ICP=1,NCOMP
+                IF(ICFAUX(ICP).NE.0)THEN
 C Check CFD coupling toggles to see if ACC has been turned off
 C or if 2-way CFD-BLD conflation has been activated.
 C (CFD-MFS conflation is checked in CFMNGE)
-                if(ACCON.eq.0)then
+                  if(ACCON.eq.0)then
 C ACC has been turned off, set conflation type to 1.
-                  if(abs(ICFAUX(ICP)).gt.1)
-     &                                  ICFAUX(ICP)=sign(1,ICFAUX(ICP))
-                endif
-                if(CFD2BLD.eq.2)then
+                    if(abs(ICFAUX(ICP)).gt.1)
+     &                ICFAUX(ICP)=sign(1,ICFAUX(ICP))
+                  endif
+                  if(CFD2BLD.eq.2)then
 C 2-way CFD-BLD conflation has been activated, set conflation type to 5.
-                  if(abs(ICFAUX(ICP)).eq.4)
-     &                                  ICFAUX(ICP)=sign(5,ICFAUX(ICP))
-                endif
+                    if(abs(ICFAUX(ICP)).eq.4)
+     &                ICFAUX(ICP)=sign(5,ICFAUX(ICP))
+                  endif
 
 C Activate CFD model during an intended period.
 C Do this by resetting IFCFD variable this is then checked below.
-                if(icfaux(icp).gt.0) then
-                  if(idyp.lt.isds) then
-                    IFCFD(ICP)=ICFAUX(ICP)
-                  else
-                    IFCFD(ICP)=0
+                  if(icfaux(icp).gt.0) then
+                    if(idyp.lt.isds) then
+                      IFCFD(ICP)=ICFAUX(ICP)
+                    else
+                      IFCFD(ICP)=0
+                    endif
                   endif
-                endif
 
 C 1st clause: Present day is within defined range.
-                IF((IDYP.GE.ICFDYS.AND.IDYP.LE.ICFDYF).or.
+                  IF((IDYP.GE.ICFDYS.AND.IDYP.LE.ICFDYF).or.
 
-C 2nd clause: Future time is the first time step of CFD start day, but
-C             present time is still the previous day.
-C             May need results for this time step.
+C OR 2nd clause: Future time is the first time step of CFD start day,
+C                AND present time is still the previous day.
+C                May need results for this time step.
      &    (IDYP.eq.(ICFDYS-1).and.CFTIMS.eq.1.0.and.btimef.eq.1.0))THEN
 
-                  IF(btimef.GE.CFTIMS.and.abs(IFCFD(ICP)).eq.0)THEN
-C Ensure IFCFD is negative, necessary for SURFCONF.
-                    IFCFD(ICP)=-abs(ICFAUX(ICP))
-                  ELSEIF(btimef.GT.CFTIMF.and.IDYP.eq.ICFDYF)THEN
-                    IFCFD(ICP)=0
-                    ICFAUX(ICP)=0
-                    if(outs.eq.'not yet')then
-                      write(outs,'(2a)')'CFD has now run for the ',
-     &                                               'selected period.'
-                      call edisp(itu,outs)
-                      write(outs,'(2a)')'Disabling CFD for the ',
-     &                                   'remainder of the simulation.'
-                      call edisp(itu,outs)
+                    if (btimef.le.1.0) then
+                      rtmp=btimef+24.
+                    else
+                      rtmp=btimef
                     endif
-                  ENDIF
-                ENDIF
 
-              ENDIF
+                    IF(rtmp.GE.CFTIMS.and.abs(IFCFD(ICP)).eq.0)
+
+C Ensure IFCFD is negative, means SURFCONF will write out results.
+     &                IFCFD(ICP)=-abs(ICFAUX(ICP))
+
+                    IF(IDYP.eq.ICFDYF.and.rtmp.GT.CFTIMF)THEN
+
+C CFD has finished.
+                      IFCFD(ICP)=0
+                      ICFAUX(ICP)=0
+                      if(outs.eq.'not yet')then
+                        write(outs,'(2a)')'CFD has now run for the ',
+     &                    'selected period.'
+                        call edisp(itu,outs)
+                        write(outs,'(2a)')'Disabling CFD for the ',
+     &                    'remainder of the simulation.'
+                        call edisp(itu,outs)
+                      endif
+                    ENDIF
+                  ENDIF
+
+                ENDIF
 C Set flag indicating that surface-convection correlation indices have
 C not yet been calculated.
-              mICORcfd(ICP) = 0
+                mICORcfd(ICP) = 0
 
 C Set flag indicating HCs have not been calculated by CFD for the 
 C current zone for the current time step: this will be reset if CFD is 
 C invoked.
-              mHCcfd(ICP) = 0
+                mHCcfd(ICP) = 0
 
 C Debug
-C             write(6,*) 'MZNUMA (ICP,IFCFD(ICP))',ICP,IFCFD(ICP)
+C               write(6,*) 'MZNUMA (ICP,IFCFD(ICP))',ICP,IFCFD(ICP)
 
 C Invoke CFD if there is `surface conflation' between the thermal domain
 C and CFD. 
-              IF( ABS(IFCFD(ICP)).eq.1 .or. 
-     &           (ABS(IFCFD(ICP)).eq.4 .or. 
-     &            ABS(IFCFD(ICP)).eq.5) )THEN
-                CALL SURFCONF(ICP)
-              ELSEIF(IFCFD(ICP).ne.0)then
-                write(outs,'(a,i2)')'Unrecognized conflation mode: ',
-     &                                                  ABS(IFCFD(ICP))
-                call edisp(itu,outs)
-                write(outs,'(a,I3,a)')'CFD for building zone ',ICP,
-     &                                                     ' disabled.'
-                call edisp(itu,outs)
-                IFCFD(ICP)=0
-                ICFAUX(ICP)=0
-                outs='not yet'
-              ENDIF
-  15        CONTINUE
+                IF( ABS(IFCFD(ICP)).eq.1 .or. 
+     &             (ABS(IFCFD(ICP)).eq.4 .or. 
+     &              ABS(IFCFD(ICP)).eq.5) )THEN
+                  CALL SURFCONF(ICP)
+                ELSEIF(IFCFD(ICP).ne.0)then
+                  write(outs,'(a,i2)')'Unrecognized conflation mode: ',
+     &              ABS(IFCFD(ICP))
+                  call edisp(itu,outs)
+                  write(outs,'(a,I3,a)')'CFD for building zone ',ICP,
+     &              ' disabled.'
+                  call edisp(itu,outs)
+                  IFCFD(ICP)=0
+                  ICFAUX(ICP)=0
+                  outs='not yet'
+                ENDIF
+  15          CONTINUE
+
+            endif
 
 C And compute all inside and 'outside' convection coefficients.
             call mzconv
@@ -1330,16 +1369,6 @@ C reflectivity; simple model; or advanced model)
 C Execute complex fenestration control to determine state of shading
 C layers for the current time step.
             call CFC_control()
-
-C <FMI>
-            if (is_FMU) then
-              if (.not.bInStartup()) then
-                call FMI_SIMSTEP(IER)
-              else
-                call FMI_CLEARCTL()
-              endif
-            endif
-C </FMI>
 
 C Consider each zone in turn.
             do 40 l=1,ncomp

@@ -59,6 +59,7 @@ C IPV description.
 
 C Simulation parameter sets.
 C      common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+C      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
 
 C ITM is main IPV menu.
 C ITMGET is menu for selecting metric types.
@@ -1361,6 +1362,17 @@ C seasons.h provides typper and typsea
 
 C Simulation parameter sets.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+
+C Extended simulation parameters for each set.
+      common/spfldats/isstupex(MSPS),isbnstepex(MSPS),ispnstepex(MSPS),
+     &  issaveex(MSPS),isavghex(MSPS),iscfdactivate(MSPS),
+     &  isicfdys(MSPS),isicfdyf(MSPS),
+     &  scftims(MSPS),scftimf(MSPS)
+      INTEGER :: isstupex,isbnstepex,ispnstepex,issaveex,isavghex
+      INTEGER :: iscfdactivate      ! zero ignore domains
+      INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
+      REAL :: scftims,scftimf       ! CFD simulation start & finish time
 
       character act*6,cr*32
 
@@ -1676,21 +1688,36 @@ C << add logic to allow for two extreme seasons
 C IPV description via ipvdata.h.
       common/IPVF/lipvdatf
       COMMON/MOIST01/MSTROK,MSTRZN(MCOM)
+      LOGICAL MSTROK,MSTRZN
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
 
 C Simulation parameter sets.
+      common/ACTDOM/CFDOK
+      logical CFDOK
       common/spfldes/spfdescr(MSPS)
       common/spflper/isstday(MSPS),isstmon(MSPS),isfnday(MSPS),
      &               isfnmon(MSPS)
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
-     &  smstres(MSPS),selres(MSPS),sipvres
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
+
+C Extended simulation parameters for each set.
+      common/spfldats/isstupex(MSPS),isbnstepex(MSPS),ispnstepex(MSPS),
+     &  issaveex(MSPS),isavghex(MSPS),iscfdactivate(MSPS),
+     &  isicfdys(MSPS),isicfdyf(MSPS),
+     &  scftims(MSPS),scftimf(MSPS)
+      INTEGER :: isstupex,isbnstepex,ispnstepex,issaveex,isavghex
+      INTEGER :: iscfdactivate      ! zero ignore domains
+      INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
+      REAL :: scftims,scftimf       ! CFD simulation start & finish time
 
       character act*6,lipvdatf*72,cr*32,tag*3
-      character sblres*72,sflres*72,splres*72,smstres*72,sipvres*72
-      character selres*72,spfdescr*30
+      character spfdescr*30
       CHARACTER LAPROB*72
-      logical MSTROK,MSTRZN
 
       if(nipvassmt.eq.1.or.nipvassmt.eq.3.or.nipvassmt.eq.5)then
         continue
@@ -1707,10 +1734,17 @@ C of the common variables.
         call edisp(iuout,'Scanning for startup days')
         call scntcnst(TDM,istd,TCM,ISTC)
         if(isstup.eq.0)isstup=ITCNST
-        isbnstep=1
-        ispnstep=10
-        issave=4
-        isavgh=0
+        if(isstupex(1).eq.0)isstupex(1)=ITCNST
+        isbnstep=4;ispnstep=10
+        issave=4; isavgh=0
+        isbnstepex(1)=4; isbnstepex(2)=4;isbnstepex(3)=4
+        isbnstepex(4)=4; isbnstepex(5)=4
+        ispnstepex(1)=10; ispnstepex(2)=10; ispnstepex(3)=10
+        ispnstepex(4)=10; ispnstepex(5)=10
+        issaveex(1)=4; issaveex(2)=4; issaveex(3)=4
+        issaveex(4)=4; issaveex(5)=4
+        isavghex(1)=0; isavghex(2)=0; isavghex(3)=0
+        isavghex(4)=0; isavghex(5)=0
       endif
 
       cr=cfgroot
@@ -1720,6 +1754,14 @@ C of the common variables.
         do 442 ijk=1,nipvassmt
           call EDAYR(ipvastjd(ijk),isstday(ijk),isstmon(ijk))
           call EDAYR(ipvafnjd(ijk),isfnday(ijk),isfnmon(ijk))
+          isstupex(ijk)=ITCNST
+          isbnstepex(ijk)=isbnstep
+          ispnstepex(ijk)=ispnstep
+          issaveex(ijk)=issave
+          isavghex(ijk)=0
+          iscfdactivate(ijk)=0 
+          isicfdys(ijk)=ipvastjd(ijk); isicfdyf(ijk)=ipvafnjd(ijk)
+          scftims(ijk)=1.0; scftimf(ijk)=23.0
   442   continue
       endif
 
@@ -1751,6 +1793,9 @@ C of the common variables.
         if(ientxist.gt.0)then
           WRITE(selres(1),'(4A)')cr(1:lr),'_',tag,'.elr'
         endif
+        if(CFDOK)then
+          WRITE(scfdres(1),'(4A)')cr(1:lr),'_',tag,'.dfr'
+        endif
       elseif(nipvassmt.eq.3)then
         spfdescr(1)='win'
         spfdescr(2)='trn'
@@ -1779,6 +1824,11 @@ C of the common variables.
           WRITE(selres(1),'(2A)')cr(1:lr),'_win.elr'
           WRITE(selres(2),'(2A)')cr(1:lr),'_trn.elr'
           WRITE(selres(3),'(2A)')cr(1:lr),'_sum.elr'
+        endif
+        if(CFDOK)then
+          WRITE(scfdres(1),'(2A)')cr(1:lr),'_win.dfr'
+          WRITE(scfdres(2),'(2A)')cr(1:lr),'_trn.dfr'
+          WRITE(scfdres(3),'(2A)')cr(1:lr),'_sum.dfr'
         endif
       elseif(nipvassmt.eq.5)then
         spfdescr(1)='win1'
@@ -1820,6 +1870,13 @@ C of the common variables.
           WRITE(selres(3),'(2A)')cr(1:lr),'_sum.elr'
           WRITE(selres(4),'(2A)')cr(1:lr),'_aut.elr'
           WRITE(selres(5),'(2A)')cr(1:lr),'_win2.elr'
+        endif
+        if(CFDOK)then
+          WRITE(scfdres(1),'(2A)')cr(1:lr),'_win1.dfr'
+          WRITE(scfdres(2),'(2A)')cr(1:lr),'_trn.dfr'
+          WRITE(scfdres(3),'(2A)')cr(1:lr),'_sum.dfr'
+          WRITE(scfdres(4),'(2A)')cr(1:lr),'_aut.dfr'
+          WRITE(scfdres(5),'(2A)')cr(1:lr),'_win2.dfr'
         endif
       endif
       if(lnblnk(lipvdatf).eq.0)then

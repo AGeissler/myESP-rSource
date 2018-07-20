@@ -4787,6 +4787,7 @@ C     ST???  = FUTURE/PRESENT/START TRIAL START TIMES,
       COMMON/BTIME/BTIMEP,BTIMEF
 
       LOGICAL tsclaw,rewnd,pasone,close
+      real ocdt
       
       CHARACTER OUTS*124
 

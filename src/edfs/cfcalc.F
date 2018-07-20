@@ -55,8 +55,8 @@ C CFCALC - CFD solution manager.
       common/EQTION/CALLU(MNZ),CALLV(MNZ),CALLW(MNZ),CALLT(MNZ),
      &             CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
      &             ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
-      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),NCTM,
-     &      JHUMINDX,URFC(MCTM)
+      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
+     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
       COMMON/PRSREF/IPRESF(MNZ),JPRESF(MNZ),KPRESF(MNZ)
       COMMON/UVEL/RESORU,NSWPU,URFU,FSDTU,DXEPU(ntcelx),
      1            DXPWU(ntcelx),SEWU(ntcelx)
@@ -185,7 +185,7 @@ C If buoyancy is active, use alternate relaxation factors.
         URFVIS=URFCVS(ICFD)
       endif
       URFDEN=URFCD(ICFD)
-      DO 123 ICTM=1,NCTM
+      DO 123 ICTM=1,NCTM(ICFD)
         URFC(ICTM)=URFCC(ICFD,ICTM)
   123 CONTINUE
 
@@ -211,7 +211,7 @@ C Indicate which equations are active.
       INCALU=CALLU(ICFD); INCALV=CALLV(ICFD)
       INCALW=CALLW(ICFD); INCALT=CALLT(ICFD)
       INCALK=KEMDL(ICFD); INCALD=KEMDL(ICFD)
-      DO 121 ICTM=1,NCTM
+      DO 121 ICTM=1,NCTM(ICFD)
         INCALPOL(ICTM)=CALPOL(ICTM,ICFD)
  121  CONTINUE
 
@@ -412,7 +412,7 @@ C Check for blockages.  If found then set velocities to zero.
       IF(INCALK) CALL CALCTE
       IF(INCALD) CALL CALCED
       IF(INCALT) CALL CALCT
-      DO 122 ICTM=1,NCTM
+      DO 122 ICTM=1,NCTM(ICFD)
         IF(INCALPOL(ICTM))CALL CALCCONC(ICTM)
  122  CONTINUE
       CALL PROPS(2)
@@ -759,7 +759,7 @@ C INIT - Initialize simulation variables.
 #include "cfd.h"
 
       COMMON/INITIA/UINIT(MNZ),VINIT(MNZ),WINIT(MNZ),PINIT(MNZ),
-     &              TINIT(MNZ),TEINIT(MNZ),EDINIT(MNZ)
+     &              TINIT(MNZ),TEINIT(MNZ),EDINIT(MNZ),POLINIT(MNZ,MCTM)
 
       COMMON/VARp/Up(ntcelx,ntcely,ntcelz),Vp(ntcelx,ntcely,ntcelz),
      1            Wp(ntcelx,ntcely,ntcelz),TEp(ntcelx,ntcely,ntcelz),
@@ -777,8 +777,8 @@ C INIT - Initialize simulation variables.
       COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
      1             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
       COMMON/LOCAGE/AGEf(ntcelx,ntcely,ntcelz)
-      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),NCTM,
-     &      JHUMINDX,URFC(MCTM)
+      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
+     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
       COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
      1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
       COMMON/ICFNOD/ICFD,ICP    
@@ -790,12 +790,12 @@ C Initialize variables.
       DO 200 I=1,NI
         DO 2001 J=1,NJ
           DO 2002 K=1,NK
-            Up(I,J,K)=0.0
-            Uf(I,J,K)=0.0
-            Vp(I,J,K)=0.0
-            Vf(I,J,K)=0.0
-            Wp(I,J,K)=0.0
-            Wf(I,J,K)=0.0
+            Up(I,J,K)=UINIT(ICFD)
+            Uf(I,J,K)=UINIT(ICFD)
+            Vp(I,J,K)=VINIT(ICFD)
+            Vf(I,J,K)=VINIT(ICFD)
+            Wp(I,J,K)=WINIT(ICFD)
+            Wf(I,J,K)=WINIT(ICFD)
             DENp(I,J,K)=AIRDEN(TINIT(ICFD))
             DENf(I,J,K)=AIRDEN(TINIT(ICFD))
 C            P(I,J,K)=GRAV*DENf(I,J,K)*(ZP(KPREF)-ZP(K))
@@ -803,9 +803,9 @@ C            P(I,J,K)=GRAV*DENf(I,J,K)*(ZP(KPREF)-ZP(K))
             PP(I,J,K)=0.0
             Tp(I,J,K)=TINIT(ICFD)
             Tf(I,J,K)=TINIT(ICFD)
-            DO 2010 ICTM=1,NCTM
-              POLCONCp(ICTM,I,J,K)=0.0
-              POLCONCf(ICTM,I,J,K)=0.0
+            DO 2010 ICTM=1,NCTM(ICFD)
+              POLCONCp(ICTM,I,J,K)=POLINIT(ICFD,ICTM)
+              POLCONCf(ICTM,I,J,K)=POLINIT(ICFD,ICTM)
  2010       CONTINUE
             AGEf(I,J,K)=0.0 
             TEp(I,J,K)=TEINIT(ICFD)
@@ -825,11 +825,12 @@ C The following equation is taken from Recknagel 97/98, p. 113
 C Use thermodynamic relations to convert partial pressure to [kg/kg]        
 C Uncomment the following line to initialise moisture as contaminant
 C number 2
-C            JHUMINDX=2
-            IF(JHUMINDX.NE.0)THEN
-              POLCONCf(JHUMINDX,I,J,K)=0.5*PSAT*18.02/
+C            JHUMINDX(ICFD)=2
+            IF(JHUMINDX(ICFD).NE.0)THEN
+              POLCONCf(JHUMINDX(ICFD),I,J,K)=0.5*PSAT*18.02/
      &                                 (0.5*PSAT*18.02+100000.0*28.96)
-              POLCONCp(JHUMINDX,I,J,K)=POLCONCf(JHUMINDX,I,J,K)
+              POLCONCp(JHUMINDX(ICFD),I,J,K)=
+     &          POLCONCf(JHUMINDX(ICFD),I,J,K)
             ENDIF
  2002     CONTINUE
  2001   CONTINUE
@@ -868,7 +869,7 @@ C            and sets it uniform to the whole CFD domain
 #include "cfd.h"
 
       COMMON/INITIA/UINIT(MNZ),VINIT(MNZ),WINIT(MNZ),PINIT(MNZ),
-     &              TINIT(MNZ),TEINIT(MNZ),EDINIT(MNZ)
+     &              TINIT(MNZ),TEINIT(MNZ),EDINIT(MNZ),POLINIT(MNZ,MCTM)
 
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
      &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
@@ -943,8 +944,8 @@ C ICALL stops the initisation of blockage data until after the first iteration.
       common/INCALC/INCALU,INCALV,INCALW,INCALK,INCALD,INCALT,
      1              IZEROT,IZanKE,IMITZ
       COMMON/INCALP/INCALPOL(MCTM)
-      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),NCTM,
-     &      JHUMINDX,URFC(MCTM)
+      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
+     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
       COMMON/ZTURB/rMOOT(MNZ),nZtoKE(MNZ)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
@@ -1014,7 +1015,7 @@ C density from concentration than from the temperature
 
 C Reserved space for cases when pollutant / contaminant presence affects
 C density (See next set of comments if pollutant is CO2 or moisture)
-      DO 123 ICTM=1,NCTM
+      DO 123 ICTM=1,NCTM(ICFD)
         IF(INCALPOL(ICTM))THEN
         ENDIF
  123  CONTINUE
@@ -2323,6 +2324,9 @@ C Common blocks for blockages and small supply openings.
       LOGICAL OK,LINVOL,BLOCKS
 
       RESORM=0.0
+      X1=0.0
+      X2=0.0
+      X3=0.0
       DO 100 I=2,NIM1
         DO 1001 J=2,NJM1
           DO 1002 K=2,NKM1
@@ -2656,7 +2660,7 @@ C
       COMMON/NORM/RENORMU,RENORMV,RENORMW,RENORMT,RENORMK,RENORME 
       common/SOLVER/ILISOL
       COMMON/INITIA/UINIT(MNZ),VINIT(MNZ),WINIT(MNZ),PINIT(MNZ),
-     &              TINIT(MNZ),TEINIT(MNZ),EDINIT(MNZ)
+     &              TINIT(MNZ),TEINIT(MNZ),EDINIT(MNZ),POLINIT(MNZ,MCTM)
 
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
@@ -3546,10 +3550,15 @@ C South wall.
  120      CONTINUE
 
 C North wall.
+C Previously, there was a bug in this section caused by
+C iterating K from JSBi to KSBf instead of KSBi to KSBf.
+C This had the effect that all solid boundary cells on the 
+C north face had a momentum in the V direction equal to the
+C starting V momentum specfied in the domain file.
         ELSEIF(location.EQ.4)THEN
           J=JSBi(L,ICFD)
           DO 160 I=ISBi(L,ICFD),ISBf(L,ICFD)
-            DO 1601 K=JSBi(L,ICFD),KSBf(L,ICFD)
+            DO 1601 K=KSBi(L,ICFD),KSBf(L,ICFD)
               Vf(I,J+1,K)=0.0
  1601       CONTINUE
  160      CONTINUE
@@ -3718,6 +3727,7 @@ C INOUT - Set up all inlet and outlet conditions.
       COMMON/BUOYAN/BUOYA,BOUSSA,TBAR(MNZ)
 
       LOGICAL BUOYA,BOUSSA
+      real diff
 
       XMONIN=0.0
       FLWIN=0.0
@@ -3886,6 +3896,7 @@ C Opening in high.
 C Calculate mass flow entering domain.
         IF(FIXM(L,ICFD).GT.0.)FLWIN=FLWIN+FIXM(L,ICFD)
         IF(FIXM(L,ICFD).GT.0.)XMONIN=XMONIN+FIXM(L,ICFD)*ABS(UIN)
+
 C Examine next opening.
  100  CONTINUE
 

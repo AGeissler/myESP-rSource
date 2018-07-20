@@ -235,29 +235,43 @@ C Record lengths for zone (nzrl), plant (nprl), electrical(nerl) results librari
       common/recver/izver,ipver,iever
       common/hcthry/ihct,icorexhct
       COMMON/DNORGH/IRTYPE
-      COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
+      COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES,CFRESF
+      character RFILE*72,PFILE*72,MSTRFILE*72,LAFRES*72,
+     &  CFRESF*72
       common/rdcgen/irdact
       common/rdcmfs/irdcm,sFLWTIM,sDRYB,sWDIR,sWSPD,sITER,sIOK,
      &              sTNOD(MNOD)
 
       COMMON/VTHP18/LNLTHP
+      CHARACTER LNLTHP*72
       COMMON/VTHP31/INTHPS,INTHPZ(MCOM)
+      LOGICAL INTHPS,INTHPZ
       COMMON/GR1D05/LGRD1D
+      CHARACTER LGRD1D*72
       COMMON/GR1D06/IGR1D
+      LOGICAL IGR1D
       COMMON/GR3D100/BLDG3D,ZONE3D(MCOM)
+      LOGICAL BLDG3D,ZONE3D
       COMMON/GR3D109/L3DNDD(MCOM),L3DTLW(MCOM),L3DLWV(MCOM)
+      CHARACTER*72 L3DNDD,L3DTLW,L3DLWV
       COMMON/GR3D110/ICVS,ICNC,INDC,INDD,ITAQ,ITLW,ILWV,ITF3
       COMMON/GRND100/GRND3D
+      LOGICAL GRND3D
       COMMON/GRND108/LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
+      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
       COMMON/MOIST01/MSTROK,MSTRZN(MCOM)
+      LOGICAL MSTROK,MSTRZN
       COMMON/MOIST09/IMSTR
       COMMON/GRSD100/IndxSt
       COMMON/GRSD122/InSvST,ISTemp
 
 C Path to model and command line file (if any).
       common/rpath/path
+      character path*72
       common/rcmd/LCMDFL
+      character LCMDFL*144
       common/user/browse
+      logical browse
 
 C CFD output channels.
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
@@ -267,6 +281,7 @@ C CFD results library.
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
 C CFD visualisation.
       common/flvpar/Lflpar(MCOM)
+      CHARACTER*72 Lflpar
       COMMON/ACT/ACTCNN(MCNN)
 C CFD small openings.
       common/SSOinit/areaSSO
@@ -281,8 +296,12 @@ C Project journal on/off, unit number, cmd, file name.
       COMMON/CHANNL/NOCHAN
 
 C Simulator parameters.
-      COMMON/SPFL/spfileok,perok,tstepok,saveok,autook,exitok,startupok
+      COMMON/SPFL/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
+     &  startupok
+      LOGICAL spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
+     &  startupok
       common/SPFLN/spsname
+      character spsname*30
 
 C BEMS interaction time for results dump.
       COMMON/BEMSTIM/bemstime,ibems,bresfil
@@ -291,10 +310,12 @@ C Illuminance database.
       common/ILDB/NDBENT,DBILLA(200,5),DBILLS(200,MLCOM,MDF)
 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
 C Active domain common (expand to other domains?).
       common/ACTDOM/CFDOK
-
+      LOGICAL CFDOK
+      
 C Significant figure reporting limit (NSIGFIG).
       common/SFIG/NSIGFIG
 
@@ -305,6 +326,7 @@ C      integer iTimeoutFlag
 
 C Name of current application
       common/APPNAME/cAppName
+      character cAppName*12
 
 C Flag for enabling h3k customizations 
 
@@ -314,27 +336,20 @@ C Flag for enabling h3k customizations
       real UNMETHRS  ! for each zone counter for unmet hours.
       COMMON/UNMET/UNMETHRS(MCOM)
       
-      character cAppName*12
       integer iverb     ! verbosity passed on command line
 
-      LOGICAL OK,dok,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,OK3D,CFCDBOK
-      LOGICAL IGR1D,BLDG3D,ZONE3D,GRND3D,INPOK,XST,CFDOK,browse
-      LOGICAL INTHPS,INTHPZ,MSTROK,MSTRZN
-      LOGICAL spfileok,perok,tstepok,saveok,autook,exitok,startupok
+      LOGICAL OK,dok,OK3D
+      LOGICAL INPOK,XST
       logical unixok,there,photon,flwvis,dll,ACTCNN,areaSSO
 C      logical gopher  ! not references
       logical concat
 
       character*29 item(15)
-      character OUTS*124,spsname*30
-      character LCMDFL*144,inf*144,sps*30,aut*12,fs*1,actf*72
+      character OUTS*124
+      character inf*144,sps*30,aut*12,fs*1,actf*96
       character llclmdb*144
       character browsing*4
-      CHARACTER*72 L3DNDD,L3DTLW,L3DLWV,LNLTHP,LGRD1D
-      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD,Lflpar
-      character path*72,bresfil*72
-      character RFILE*72,PFILE*72,MSTRFILE*72
-      character LAFRES*72
+      character bresfil*72
       character journcmd*20,jfile*72,uname*24,cjfile*72,OUTSTR*124
       character dllsubr*12,dllmesg*124
       character t16*16,outs248*248
@@ -370,12 +385,12 @@ C Active domain.  Assume not active, check if running in dll mode
 C and clear dll subroutine name and error details.
       CFDOK=.false.
 
-
 C Co-simulation between ESP-r and TRNSYS is possible.  By default assume
 C there is no co-simulation.  This flag will be set to true if a TRNSYS
 C coupling component is detected by the plant domain.
       COSIM = .false.
-      
+
+      IGR1D = .false. ! assume no adaptive 1D gridding
 
 C Prior to commencing simulation, delete "console_out.txt", if found.
       INQUIRE (FILE="console_out.txt",EXIST=XST)
@@ -414,6 +429,7 @@ C have not been read in.
       RFILE='libb'
       PFILE='libp'
       LAFRES='libf'
+      CFRESF='libc'
       MSTRFILE='libmstr'
       do 5 I=1,MCOM
         Lflpar(I)='UNKNOWN'
@@ -431,7 +447,7 @@ C      gopher = .false.
 
 C CFD results library: IRECPC=current record; ICFDSV=results version
       IRECPC=0
-      ICFDSV=2
+      ICFDSV=3
 
 C Flag indicating that CFD `small opening' areas have not yet been calculated.
       areaSSO = .FALSE.
@@ -445,9 +461,7 @@ C Illuminance values held in database.
       NDBENT=0
 
 C Font sizes for graphic environment.
-      IFS=1
-      ITFS=1
-      IMFS=1
+      IFS=1; ITFS=1; IMFS=1
 
 C Some initial values, which may be changed later:
       call ezero
@@ -592,9 +606,7 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       IF(MMOD.EQ.8)THEN
 
 C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=0
-        IFS=0
-        ITFS=0
+        IMFS=0; IFS=0; ITFS=0
         call userfonts(IFS,ITFS,IMFS)
       ELSE
         LIMTTY=20
@@ -647,6 +659,10 @@ C Setup and pass in parameters to win3d.
         nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
         call startbuffer()
+      ELSE
+
+C Set reasonable defaults for text mode.
+        igw=330; igwh=195; igl=107; igb=263
       ENDIF
       CALL EDISP(IUOUT,' ')
 
@@ -779,6 +795,8 @@ C              write(*,*)'Silent-running mode.'
             spsname='  '
           endif
           call tstamp('>','SIM: enter input checks')
+
+C Note: call to MZINPT corrupts IGR1D on some compilers.
           CALL MZINPT(IREP,ier)
 
 C If running dll note the failure mode.
@@ -1225,7 +1243,7 @@ C Debug write out unmet hours.
           if(LTDF(lnts-15:lnts).eq.'.temporalscratch')then
             call usrmsg('Deleting scratch file...',LTDF,'P')
             ier=0
-            call EFOPRAN(iutdf,LTDF,ITWPR,1,IER)
+            call EFOPRAN(iutdf,LTDF,1,1,IER)
             CALL EFDELET(iutdf,ISTAT)
             call usrmsg('Deleting scratch file...done.',LTDF,'P')
           endif
@@ -1410,7 +1428,7 @@ C  Set parameters for esp-r engine as if running
 C  in silent mode and text mode
 C      subroutine SetDllParms(termtype,iappw,iappx,iappy,inf,sps,aut,
 C     & actf)
-C      character inf*72,sps*30,aut*12,fs*1,actf*72
+C      character inf*144,sps*30,aut*12,fs*1,actf*96
 C      integer termtype,iappw,iappx,iappy
 
 C Place holder (actual code omitted from this version of bps).

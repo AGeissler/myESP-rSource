@@ -107,8 +107,7 @@ C Setup and pass in parameters to win3d.
      &  iigl,iigr,iigt,iigb,iigw,iigwh)
       igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
       igw=int(iigw); igwh=int(iigwh)
-      igwid=igw
-      igheight=igwh
+      igwid=igw; igheight=igwh
 
 C Determine scaling ratios for the drawing and axis.  If static
 C assume 1000 -1000 etc, if optimum then use SXMX,SYMX + 10% etc.
@@ -151,9 +150,7 @@ C If site grid or ground is asked for draw now.
 
 C Remind user of which project.
       WRITE(etext,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
-      iside=1
-      isize=1
-      ifont=1
+      iside=1; isize=1; ifont=1
       call viewtext(etext,iside,isize,ifont)
 
 C Beginning of loop to read in several ESP compatible geometry files.
@@ -243,9 +240,7 @@ C If there are no surfaces yet defined then draw the vertices with
 C label and loop back to the next body.
       IF(NSUR.EQ.0.AND.NTV.GT.1)THEN
         DO 202 IV=1,NTV
-          COG1(1)=X(IV)
-          COG1(2)=Y(IV)
-          COG1(3)=Z(IV)
+          COG1(1)=X(IV); COG1(2)=Y(IV); COG1(3)=Z(IV)
           CALL VECTRN(COG1,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iix,iiy)
@@ -270,9 +265,7 @@ C each surface and its vertex list and see how many hits.
 C If less than 2 hits draw the vertex as an open circle, if no hits
 C draw it as a solid circle.
           IF(IHIT.LT.2)THEN
-            COG1(1)=X(IZV)
-            COG1(2)=Y(IZV)
-            COG1(3)=Z(IZV)
+            COG1(1)=X(IZV); COG1(2)=Y(IZV); COG1(3)=Z(IZV)
             CALL VECTRN(COG1,TEMAT,COG2,IER)
             CALL VECTRN(COG2,ETSMAT,COG3,IER)
             call u2pixel(COG3(1),COG3(2),iix,iiy)
@@ -332,10 +325,14 @@ C IAPNT = Pointer to first vertex of polygon
         NAP = NVER(I)
         DO 1100 J = 1,NVER(I)
           K = JVN(I,J)
-          AX(J) = X(K)
-          AY(J) = Y(K)
-          AZ(J) = Z(K)
-          IANXT(J) = J + 1
+          if(K.gt.0)then
+            AX(J) = X(K)
+            AY(J) = Y(K)
+            AZ(J) = Z(K)
+            IANXT(J) = J + 1
+          else
+            AX(J) = 0.0; AY(J) = 0.0; AZ(J) = 0.0 ! if JVN malformed
+          endif
  1100   CONTINUE
 
         IANXT(NVER(I)) = IAPNT
@@ -440,6 +437,10 @@ C it can be seen. Then move cursor to vertex and remember position.
 
  351      CONTINUE
           iedge=iedge+1
+
+C Ensure edge is less than MV.
+          if(iedge.gt.MV) goto 300
+
           CALL  ORTTRN(BX(IP1),BY(IP1),BZ(IP1),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
           if(IPEN.eq.1)then
@@ -577,11 +578,9 @@ C to normal size.
 C If surface normals to be displayed draw an arrow and
 C offset the surface name depending on orientation.
               if(itsnr.eq.0)then
-                CG(1)=SSURCOG(icc,1)
-                CG(2)=SSURCOG(icc,2)
+                CG(1)=SSURCOG(icc,1); CG(2)=SSURCOG(icc,2)
                 CG(3)=SSURCOG(icc,3)
-                VN(1)=SSURVN(icc,1)
-                VN(2)=SSURVN(icc,2)
+                VN(1)=SSURVN(icc,1); VN(2)=SSURVN(icc,2)
                 VN(3)=SSURVN(icc,3)
                 CALL VECTRN(VN,TEMAT,COG2,IER)
                 CALL VECTRN(COG2,ETSMAT,COG3,IER)
@@ -596,8 +595,7 @@ C offset the surface name depending on orientation.
                 CALL wstxpt(iixc,iiyc,stemp)
                 IF(IFS.GT.0)CALL winfnt(IFS)
               else
-                CG(1)=SSURCOG(icc,1)
-                CG(2)=SSURCOG(icc,2)
+                CG(1)=SSURCOG(icc,1); CG(2)=SSURCOG(icc,2)
                 CG(3)=SSURCOG(icc,3)
                 CALL VECTRN(CG,TEMAT,COG2,IER)
                 CALL VECTRN(COG2,ETSMAT,COG3,IER)
@@ -605,11 +603,9 @@ C offset the surface name depending on orientation.
                 IF(SSVFC(icc).EQ.'VERT')THEN
 
 C Draw arrow and horizontal line.
-                  iid1=iixc+3
-                  iid2=iiyc-3
+                  iid1=iixc+3; iid2=iiyc-3
                   call eswline(iixc,iiyc,iid1,iid2)
-                  iid1=iixc+3
-                  iid2=iiyc+3
+                  iid1=iixc+3; iid2=iiyc+3
                   call eswline(iixc,iiyc,iid1,iid2)
                   iid1=iixc+7
                   call eswline(iixc,iiyc,iid1,iiyc)
@@ -617,40 +613,29 @@ C Draw arrow and horizontal line.
                 ELSEIF(SSVFC(icc).EQ.'CEIL')THEN
 
 C Draw arrow to surface then up and horizontal to the text.
-                  iid1=iixc+3
-                  iid2=iiyc-3
+                  iid1=iixc+3; iid2=iiyc-3
                   call eswline(iixc,iiyc,iid1,iid2)
-                  iid1=iixc-3
-                  iid2=iiyc-3
+                  iid1=iixc-3; iid2=iiyc-3
                   call eswline(iixc,iiyc,iid1,iid2)
                   iid1=iiyc-5
                   call eswline(iixc,iiyc,iixc,iid1)
-                  iid1=iiyc-5
-                  iid2=iixc+7
-                  iid3=iiyc-5
+                  iid1=iiyc-5; iid2=iixc+7; iid3=iiyc-5
                   call eswline(iixc,iid1,iid2,iid3)
-                  iiyc=iiyc-5
-                  iixc=iixc+7
+                  iiyc=iiyc-5; iixc=iixc+7
                 ELSEIF(SSVFC(icc).EQ.'FLOR')THEN
 
 C Draw arrow to surface then down and horizontal to the text.
-                  iid1=iixc+3
-                  iid2=iiyc+3
+                  iid1=iixc+3; iid2=iiyc+3
                   call eswline(iixc,iiyc,iid1,iid2)
-                  iid1=iixc-3
-                  iid2=iiyc+3
+                  iid1=iixc-3; iid2=iiyc+3
                   call eswline(iixc,iiyc,iid1,iid2)
                   iid1=iiyc+5
                   call eswline(iixc,iiyc,iixc,iid1)
-                  iid1=iiyc+5
-                  iid2=iixc+7
-                  iid3=iiyc+5
+                  iid1=iiyc+5; iid2=iixc+7; iid3=iiyc+5
                   call eswline(iixc,iid1,iid2,iid3)
-                  iiyc=iiyc+5
-                  iixc=iixc+7
+                  iiyc=iiyc+5; iixc=iixc+7
                 ENDIF
-C Make some concession to the size of the font.
-                iid4=iiyc+(3*(NAMEFT+1))
+                iid4=iiyc+3
                 CALL wstxpt(iixc,iid4,stemp)
                 IF(IFS.GT.0)CALL winfnt(IFS)
               endif

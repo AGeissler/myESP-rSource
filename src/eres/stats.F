@@ -65,6 +65,10 @@ C results. Available at present:
       COMMON/ZONPIK/NZ,NZNO(MCOM)
       common/zcondhr/izctime(MCON)
 
+      logical libheading ! have we printed report heading (library name etc).
+      logical headingcontext ! has set or period changed so heading needs reprint
+      common/libhead/libheading,headingcontext
+
 C SNAPSH is a logical flag to request variation in header.
       COMMON/SNAP/SNAPSH
       logical SNAPSH,close
@@ -158,19 +162,23 @@ C Instanciate help strings for the menu.
 
 C Summary statistics.
         CALL MOSMSD('-',VMX,VMN,VAVE,VTOT,DIVMX,DIVMN,DISTMX,DISTMN)
+
       elseif(INO.EQ.6) then
 
 C Frequency histogram tableau.
         ivvv=0
         CALL MODGRF('t',ivvv)
+
       elseif(INO.EQ.8) then
 
 C Hours above given value.
         CALL MOSQHR('-',1,0.0)
+
       elseif(INO.EQ.9) then
 
 C Hours below given value.
         CALL MOSQHR('-',-1,0.0)
+
       elseif(INO.EQ.10)then
 
 C Comparison to CEN statistics (if implemented)
@@ -192,11 +200,16 @@ C data for all the zones chosen.
           LNSLABEL(I)=28
  11     continue
         CALL MOSMSDCEN('s')
+
       elseif(INO.EQ.11)then
+
         call MOEDMDS('-',the,tzhtime,tce,tzctime,tlhe,tzlhtime,
      &    tlce,tzlctime)
+
       elseif(INO.EQ.12)then
+
         call CASDIST('-')
+
       elseif(INO.EQ.13)then
 
 C Setup for zone balance. Confirm if snapshot or integrated report.
@@ -205,21 +218,14 @@ C If output to file alter the edisp unit number.
      &    'snapshot','integrated over time','cancel',isnapsh,nbhelp)
         if(isnapsh.eq.1)then
           SNAPSH=.TRUE.
-          IMO=IOM1
-          IDO=IOD1
+          IMO=IOM1; IDO=IOD1
+          TIME=IOH1
           CALL ASKRTIM(IFDAY,IMO,IDO,IDAY,TIME,IT,IER)
-          JIOD1=IOD1
-          JIOM1=IOM1
-          JIOH1=IOH1
-          JIOD2=IOD2
-          JIOM2=IOM2
-          JIOH2=IOH2
-          JIODS=IODS
-          JIODF=IODF
-          IODS=IDAY
-          IODF=IDAY
-          IOH1=IT
-          IOH2=IT
+          JIOD1=IOD1; JIOM1=IOM1; JIOH1=IOH1
+          JIOD2=IOD2; JIOM2=IOM2; JIOH2=IOH2
+          JIODS=IODS; JIODF=IODF
+          IODS=IDAY; IODF=IDAY
+          IOH1=IT; IOH2=IT
         elseif(isnapsh.eq.2)then
           SNAPSH=.FALSE.
         elseif(isnapsh.eq.3)then
@@ -266,17 +272,20 @@ C Call the menu of choices (this also sets some default options).
         CALL HDDATE(PDESCR)
         CALL HDSTEP(SDESCR)
         lsn1=MIN0(lnblnk(RFILE),42)
-        if(NSIM.gt.1)then
-        write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
-        else
-          write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        if((.NOT.libheading).and.(.NOT.headingcontext))then
+          libheading=.true.; headingcontext=.true.
+          if(NSIM.gt.1)then
+          write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
+     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          else
+            write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
+     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          endif
+          call edisp(itru,outs)
+          write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
+     &     SDESCR(11:lnblnk(SDESCR))
+          call edisp(itru,outs)
         endif
-        call edisp(itru,outs)
-        write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &   SDESCR(11:lnblnk(SDESCR))
-        call edisp(itru,outs)
 
 C For each selected zone generate energy balance report.
         DO 65 JZ=1,NZ
@@ -299,20 +308,16 @@ C For each selected zone generate energy balance report.
      &        ' ','P')
           call usrmsg(' ',' ','-')
           SNAPSH=.FALSE.
-          IOD1=JIOD1
-          IOM1=JIOM1
-          IOH1=JIOH1
-          IOD2=JIOD2
-          IOM2=JIOM2
-          IOH2=JIOH2
-          IODS=JIODS
-          IODF=JIODF
+          IOD1=JIOD1; IOM1=JIOM1; IOH1=JIOH1
+          IOD2=JIOD2; IOM2=JIOM2; IOH2=JIOH2
+          IODS=JIODS; IODF=JIODF
         endif
         if(ixopen.eq.1)then
           call usrmsg(prompt,'Scanning for range of values...done.','-')
         else
           call usrmsg('  ','  ','-')
         endif
+
       elseif(INO.EQ.14)then
 
 C Surface energy balance. Confirm if snapshot or integrated report.
@@ -330,19 +335,13 @@ C If output to file alter the edisp unit number.
           SNAPSH=.TRUE.
           IMO=IOM1
           IDO=IOD1
+          TIME=IOH1
           CALL ASKRTIM(IFDAY,IMO,IDO,IDAY,TIME,IT,IER)
-          JIOD1=IOD1
-          JIOM1=IOM1
-          JIOH1=IOH1
-          JIOD2=IOD2
-          JIOM2=IOM2
-          JIOH2=IOH2
-          JIODS=IODS
-          JIODF=IODF
-          IODS=IDAY
-          IODF=IDAY
-          IOH1=IT
-          IOH2=IT
+          JIOD1=IOD1; JIOM1=IOM1; JIOH1=IOH1
+          JIOD2=IOD2; JIOM2=IOM2; JIOH2=IOH2
+          JIODS=IODS; JIODF=IODF
+          IODS=IDAY; IODF=IDAY
+          IOH1=IT; IOH2=IT
         elseif(isnapsh.eq.2)then
           SNAPSH=.FALSE.
         elseif(isnapsh.eq.3)then
@@ -380,21 +379,25 @@ C Call the menu of choices (this also sets some default options).
           call usrmsg(prompt,'  ','-')
         endif
 
+C If the heading has not already been written do so.
         ISET=ISIM
         CALL HDDATE(PDESCR)
         CALL HDSTEP(SDESCR)
         lsn1=MIN0(lnblnk(RFILE),42)
-        if(NSIM.gt.1)then
-        write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
-        else
-          write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        if((.NOT.libheading).and.(.NOT.headingcontext))then
+          libheading=.true.; headingcontext=.true.
+          if(NSIM.gt.1)then
+          write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
+     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          else
+            write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
+     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          endif
+          call edisp(itru,outs)
+          write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
+     &     SDESCR(11:lnblnk(SDESCR))
+          call edisp(itru,outs)
         endif
-        call edisp(itru,outs)
-        write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &   SDESCR(11:lnblnk(SDESCR))
-        call edisp(itru,outs)
 
 C For each selected zone and surface generate energy balance report.
         DO 165 KGET=1,NGET
@@ -407,20 +410,16 @@ C For each selected zone and surface generate energy balance report.
      &        ' ','P')
           call usrmsg(' ',' ','-')
           SNAPSH=.FALSE.
-          IOD1=JIOD1
-          IOM1=JIOM1
-          IOH1=JIOH1
-          IOD2=JIOD2
-          IOM2=JIOM2
-          IOH2=JIOH2
-          IODS=JIODS
-          IODF=JIODF
+          IOD1=JIOD1; IOM1=JIOM1; IOH1=JIOH1
+          IOD2=JIOD2; IOM2=JIOM2; IOH2=JIOH2
+          IODS=JIODS; IODF=JIODF
         endif
         if(ixopen.eq.1)then
           call usrmsg(prompt,'Scanning for range of values...done.','-')
         else
           call usrmsg('  ','  ','-')
         endif
+
       elseif(INO.EQ.15)then
 
 C Surface condensation. Setup GOGET variables and advise user while
@@ -451,17 +450,20 @@ C scanning data. Call MOSURC for each selected zone in turn.
         CALL HDDATE(PDESCR)
         CALL HDSTEP(SDESCR)
         lsn1=MIN0(lnblnk(RFILE),42)
-        if(NSIM.gt.1)then
-        write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
-        else
-          write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        if((.NOT.libheading).and.(.NOT.headingcontext))then
+          libheading=.true.; headingcontext=.true.
+          if(NSIM.gt.1)then
+          write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
+     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          else
+            write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
+     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+          endif
+          call edisp(itru,outs)
+          write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
+     &     SDESCR(11:lnblnk(SDESCR))
+          call edisp(itru,outs)
         endif
-        call edisp(itru,outs)
-        write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
-     &   SDESCR(11:lnblnk(SDESCR))
-        call edisp(itru,outs)
 
 C For each selected zone and surface condensation report.
         write(outs,'(2a)')
@@ -480,6 +482,7 @@ C For each selected zone and surface condensation report.
         else
           call usrmsg('  ','  ','-')
         endif
+
       elseif(INO.EQ.16)then
 
 C Interstitial condensation.
@@ -491,10 +494,12 @@ C Interstitial condensation.
      &                ' intersitital condensation checks.','W')
           goto 1
         endif
+
       elseif(INO.EQ.18)then
 
 C Monthly zone gains and losses report.
         CALL MGLTBL
+
       elseif(INO.EQ.19)then
 
 C Monthly db temperature and resultant temperature stats.
@@ -535,9 +540,7 @@ C Get zone resultant temp into XDUM1.
               call eclose(ATI(8),0.0,0.001,close)
               IF(close)goto 828
               IF(GVAL(KT).LE.ATI(1))GOTO 821
-              ATI(1)=GVAL(KT)
-              ATI(2)=JD
-              ATI(3)=KT
+              ATI(1)=GVAL(KT); ATI(2)=JD; ATI(3)=KT
               goto 822
   821         IF(GVAL(KT).GE.ATI(4))GOTO 822
               ATI(4)=GVAL(KT)
@@ -614,9 +617,7 @@ C Dump this month's statistics.
   840       CONTINUE
             goto 849
   841       IF(ATI(1).LE.TATI(1))goto 842
-            TATI(1)=ATI(1)
-            TATI(2)=ATI(2)
-            TATI(3)=ATI(3)
+            TATI(1)=ATI(1); TATI(2)=ATI(2); TATI(3)=ATI(3)
             goto 843
   842       IF(ATI(4).GE.TATI(4))goto 843
             TATI(4)=ATI(4)
@@ -680,11 +681,10 @@ C Toggle delimeter.
         elseif(iwm.eq.5)then
           delim = 'X'
         endif
+
       elseif(INO.EQ.(NITMS-1)) then
 
-C Display help messages.
-
-C Menu help text.
+C Display help messages. Menu help text.
         helptopic='res_help_choices'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ihd=1
@@ -762,6 +762,10 @@ C act='p' iget parameters already set.
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
 
+      logical libheading ! have we printed report heading (library name etc).
+      logical headingcontext ! has set or period changed so heading needs reprint
+      common/libhead/libheading,headingcontext
+
       character SLABEL*32,GLABEL*20,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
@@ -776,6 +780,7 @@ C act='p' iget parameters already set.
 
       integer ireportunit ! zero is default one is W two is kW three Joules
       common/repunit/ireportunit
+      integer nbdecimal  ! number of decimal places by topic
 
       dimension YMAX(MZS), YMIN(MZS), YTOTSD(MZS)
       dimension YAVE(MZS), YSTD(MZS), NY(MZS), YTOT(MZS)
@@ -803,6 +808,7 @@ C Set all returned data to zero.
  42   continue
       VMX=0.0; VMN=0.0; VAVE=0.0; VTOT=0.0
       DIVMX=0.0; DIVMN=0.0; DISTMX=0.0; DISTMN=0.0
+      nbdecimal=3  ! default assumption
 
 C Call the menu of choices (this also sets some default options).
 C The logical variable totals controls the displaying of cumulative 
@@ -1278,6 +1284,10 @@ C Get common precz from geometry.h
 
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
 
+      logical libheading ! have we printed report heading (library name etc).
+      logical headingcontext ! has set or period changed so heading needs reprint
+      common/libhead/libheading,headingcontext
+
       dimension YMAX(MZS), YMIN(MZS), YTOT(MZS), YTOTSD(MZS)
       dimension YAVE(MZS), NY(MZS)
       dimension CENMAX(9), CENMIN(9), CENAVE(9)
@@ -1413,7 +1423,11 @@ C Now display the calculated data.
       else
         write (outs,'(1X,3A)') SDESCR,' Lib:',RFILE(1:lsn1)
       endif
-      call edisp(itru,outs)
+
+C If heading has not yet been written do so now.
+      if((.NOT.libheading).and.(.NOT.headingcontext))then
+        call edisp(itru,outs)
+      endif
       write (outs,'(a)') SLABEL(NGET)
       call edisp(itru,outs)
       call edisp(itru,'  ')
@@ -1464,6 +1478,10 @@ C act='p' iget parameters already set.
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
 
+      logical libheading ! have we printed report heading (library name etc).
+      logical headingcontext ! has set or period changed so heading needs reprint
+      common/libhead/libheading,headingcontext
+
       character SLABEL*32,GLABEL*20,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
@@ -1490,6 +1508,7 @@ C act='p' iget parameters already set.
       integer isAct(MZS),isOcc(MZS),isActPrev(MZS),isOccPrev(MZS)
       real TActive(MZS),TOccup(MZS),TPerStart(MZS),TPerFinish(MZS)
       real TOccStart(MZS),TOccFinish(MZS),TSTIME,TActiveTot,TOccupTot
+      integer nbdecimal  ! number of decimal places by topic
       
 
       real toAdd
@@ -1552,6 +1571,7 @@ C starting Y are zone based.
  5    continue
       XMAX=-1.E+10; XMIN=1.E+10
       XTOT=0.0; NX=0
+      nbdecimal=3  ! default assumption
       
       call usrmsg(prompt,'Scanning for range of values...','-')
 
@@ -2021,7 +2041,11 @@ C Also called by recovert if act = 'p' << needs checking >>
 
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
 
-      character prompt*124,outs*124,prompte*124
+      logical libheading ! have we printed report heading (library name etc).
+      logical headingcontext ! has set or period changed so heading needs reprint
+      common/libhead/libheading,headingcontext
+
+      character prompt*124,outs*148,prompte*124
       CHARACTER RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       CHARACTER PDESCR*60,SDESCR*44,act*1
@@ -2124,10 +2148,12 @@ C Find the number of hours represented by an output timestep.
 
 C For each requested zone and for every computational time-step, get
 C results for complete day.
+      ZBA=0.0  ! reset aggregate base area for 'all' summary.
       DO 65 J=1,NZ
         IZ=NZNO(J)
         ZHE=0.0; ZCE=0.0; ZLHE=0.0; ZLCE=0.0
         zhtime=0.0; zctime=0.0; zlhtime=0.0; zlctime=0.0
+        ZBA=ZBA+ZBASEA(IZ)  ! increment total base area
         DO 55 I=IODS,IODF
           ID=I
           NEL=0
@@ -2182,12 +2208,12 @@ C Calcalate the sums and statistics to display during relevant period.
       if(act(1:1).ne.'i') then
         if(THE.gt.99999.0.or.TCE.lt.-99999.0)then
           write(outs,'(a,2(f11.1,f9.1,f8.0),2(f11.1,f8.0))') 
-     &    '   All        ',THE,THE/ZBASEA(IZ),tzhtime,TCE,
-     &    TCE/ZBASEA(IZ),tzctime,TLHE,tzlhtime,TLCE,tzlctime
+     &    '   All        ',THE,THE/ZBA,tzhtime,TCE,
+     &    TCE/ZBA,tzctime,TLHE,tzlhtime,TLCE,tzlctime
         else
           write(outs,'(a,2(f11.1,f9.1,f8.0),2(f11.1,f8.1))')
      &    '   All         ',THE,THE/ZBASEA(IZ),tzhtime,TCE,
-     &    TCE/ZBASEA(IZ),tzctime,TLHE,tzlhtime,TLCE,tzlctime
+     &    TCE/ZBA,tzctime,TLHE,tzlhtime,TLCE,tzlctime
         endif
         call edisp(itru,' ')
         call eddisp(itru,outs)
@@ -2293,6 +2319,10 @@ C << file does not need to be scanned to get the surface emissivity.
       COMMON/SIMPKA/NSIM
       COMMON/ZONPIK/NZ,NZNO(MCOM)
 
+      logical libheading ! have we printed report heading (library name etc).
+      logical headingcontext ! has set or period changed so heading needs reprint
+      common/libhead/libheading,headingcontext
+
       CHARACTER PDESCR*60,SDESCR*44,CSTR*25
       CHARACTER*18 LABELS(13)
       CHARACTER*5 LABSurf(2)
@@ -2342,17 +2372,20 @@ C Energy requirements.
       CALL HDDATE(PDESCR)
       CALL HDSTEP(SDESCR)
       lsn1=MIN0(lnblnk(RFILE),42)
-      if(NSIM.gt.1)then
-        write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
-      else
-        write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
-     &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
-      endif
-      call edisp(itru,outs)
-      write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
+      if((.NOT.libheading).and.(.NOT.headingcontext))then
+        libheading=.true.; headingcontext=.true.
+        if(NSIM.gt.1)then
+          write(outs,'(3A,I4,2A)')'Lib: ',RFILE(1:lsn1),' Set:',ISIM,
+     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        else
+          write(outs,'(4A)')'Lib: ',RFILE(1:lsn1),
+     &      ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
+        endif
+        call edisp(itru,outs)
+        write(outs,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
      &   SDESCR(11:lnblnk(SDESCR))
-      call edisp(itru,outs)
+        call edisp(itru,outs)
+      endif
 
 C Initialiase variables for totals over all selected zones.
       TPTTOTCG=0.0; TPCV=0.0; TPTTR=0.0; TPTOTE=0.0

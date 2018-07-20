@@ -89,7 +89,7 @@ C Name of current application
       character cAppName*12      
 
       CHARACTER outs*124,ITEM*30
-      CHARACTER inf*144,actf*72
+      CHARACTER inf*144,actf*96
       character LCMDFL*144,L144*144
       character tfile*96
       character path*72
@@ -353,6 +353,10 @@ C Setup and pass in parameters to win3d.
         mdispl=0; nifgrey=0; ncset=0; ngset=0; nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
         call startbuffer()
+      ELSE
+        
+C Set reasonable defaults for text mode.
+        igw=538; igwh=335; igl=29; igb=369
       ENDIF
 
 C Echo version number.
@@ -1194,6 +1198,9 @@ C Path to model.
       integer*8 numberofzones
 #endif
 
+      COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
+      INTEGER :: IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
+
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
       if(unixok)then
@@ -1294,6 +1301,8 @@ C << variant for non-unix >>
      &     runpath(1:lnrp)
         call edisp(iuout,outs)
       endif
+
+      iryear=IYEAR
 
       return
       end
@@ -1502,3 +1511,4 @@ C Dummy routine (needed for call back from c).
       integer icomp,ier
       return
       end
+

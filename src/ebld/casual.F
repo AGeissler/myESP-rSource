@@ -1073,8 +1073,8 @@ C </FMI>
               QLATN(2)=QLATN(2)+CGLAT(ICOMP,IDAY,IGN,IPER)*
      &                 CGCTL(ICOMP,2,IGN)
               if(IGN.gt.1)then 
-	        znElecCasGain(ICOMP)=QCASC(2)+QCASR(2)
-	      endif
+                znElecCasGain(ICOMP)=QCASC(2)+QCASR(2)
+              endif
             else
 
 C Instead of using fracf, add-on shcon,shrad,shlat for SHOCC.
@@ -2005,9 +2005,11 @@ C is non-zero.
           write(outs,911)I,ICOMP,IBOFOT(ICOMP,I)
  911      format('the TMC surface ',I3,' on zone',I3,' has IBOFOT=',I1)  
           call edisp(itu,outs)
-          write(outs,'(A,I3,A,F5.2,A)')'The VT of surface',I,' is ',
-     &      V,'**'
-          call edisp(itu,outs)
+
+C Note: VT is not defined in this subroutine.
+C          write(outs,'(A,I3,A,F5.2,A)')'The VT of surface',I,' is ',
+C     &      V,'**'
+C          call edisp(itu,outs)
         ENDIF 
  52   CONTINUE  
 
@@ -2026,9 +2028,10 @@ C Description for irradiation/illumination data:
       write(outs,99974)SAZI,SALT
 99974 format('    : solar azi deg(',F6.1,') solar alt deg(',F6.1,')')
       call edisp(itu,outs)
-      write(outs,99975)RATIO,nelem
-99975 format('    : TMC blind/shuter(',F4.2,') Sun patch no.(',I3,')')
-      call edisp(itu,outs)
+C Note: ratio & nelem are not defined in this subroutine.
+C      write(outs,99975)RATIO,nelem
+C99975 format('    : TMC blind/shuter(',F4.2,') Sun patch no.(',I3,')')
+C      call edisp(itu,outs)
 
   999 return
       end
@@ -2097,7 +2100,6 @@ C Illuminance database.
       DIMENSION Aa(MLCOM,MDF),Ab(MLCOM,MDF),Ac(MLCOM,MDF),Ya(MLCOM,MDF)
       DIMENSION zelum(MLCOM)
       DIMENSION XPL(MV),YPL(MV),ZPL(MV)
-
       CHARACTER*25 CSTR
       character outs*124,doit*124,outstr*124
       character*72 LTMPFL,LTMPFLA,OUTCMD
@@ -2105,9 +2107,13 @@ C Illuminance database.
 
       logical close,closea,closeb,closec,closed,closee,closef,closeg
       logical closeh,closei,instart,neglum,XST,bInStartup,nog
+      REAL PI,TODEG,RAD
 
       iunit=ifil+1
       e2redit='NONE'
+      PI = 4.0 * ATAN(1.0)
+      TODEG=180/PI
+      RAD=PI/180.0
 
 C If esp pre-processor or user defined df then read in geometry data.
       nog=.false.
@@ -2938,11 +2944,11 @@ C and uses ICALENDER if required. If matching gain(s) set ACTIVE=1.0.
       ENDIF
       IGC=NCGTC(IZONE,IDTY)
       IF(NCAS(IDTY).GE.1)THEN
-     	DO 30 ICNN=1,NCAS(IDTY)
-     	  IF(ICGT(IDTY,ICNN).EQ.IGC)THEN
-     	    IF(IH.GT.ICGS(IDTY,ICNN).AND.IH.LE.ICGF(IDTY,ICNN))ACTIVE=1.
-     	  ENDIF
-   30	CONTINUE
+        DO 30 ICNN=1,NCAS(IDTY)
+          IF(ICGT(IDTY,ICNN).EQ.IGC)THEN
+            IF(IH.GT.ICGS(IDTY,ICNN).AND.IH.LE.ICGF(IDTY,ICNN))ACTIVE=1.
+          ENDIF
+   30   CONTINUE
       ENDIF
       RETURN
       END

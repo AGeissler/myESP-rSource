@@ -37,12 +37,9 @@ C AFLOWM   = Airmass flow matrix with reaction rate coefficients ((K))
 
 #include "building.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
 
       COMMON/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
-      COMMON/MFLOW3/NDFLD(MNOD),NDTYP(MNOD),HNOD(MNOD),SUPNOD(MNOD,MNDS)
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
@@ -56,6 +53,8 @@ C AFLOWM   = Airmass flow matrix with reaction rate coefficients ((K))
       COMMON/CONTM4/GERATAM(MPRODI),RECCOAM(MPRODI)
       COMMON/CONTM6/CNCNI(MCONTM,MNOD)
       COMMON/CONTM7/PRECON(MPRODI)
+      COMMON/ACT/ACTCNN(MCNN)
+      logical ACTCNN
 
       CHARACTER CNTMFIL*72
       CHARACTER CONTMNAM*12,CNTMDESC*124
@@ -124,7 +123,11 @@ C PRECON,
               ICNN=1
               DO WHILE(ICNN.LE.NCNN.AND.NOTFOUND)
                 IF(NODPS(ICNN).EQ.INOD.OR.NODNE(ICNN).EQ.INOD) THEN
-                  NOTFOUND=.FALSE.
+                  if (ACTCNN(ICNN)) then
+                    NOTFOUND=.FALSE.
+                  else
+                    ICNN=ICNN+1
+                  endif                    
                 ELSE
                   ICNN=ICNN+1
                 ENDIF
@@ -283,9 +286,12 @@ C concentrations (if any) back to zero
       IF(XXX(IROW).LT.0.0) XXX(IROW)=0.0
       DO 7903 IROWNO=1,NPRODI
         IF(PRECON(IROWNO)) THEN
+          if (XXX(IROW).ne.XXX(IROW)) then
+            i=1
+          endif
           CNCAJAM(IROWNO)=XXX(IROW)
           IROW=IROW+1
-        ENDIF  
+        ENDIF
  7903 CONTINUE
 
 C Write contaminant concentrations to array dimensioned by node and
@@ -302,8 +308,8 @@ C to CCONC(NNOD,NCONTM)
       SUBROUTINE PRERES
 
 #include "net_flow.h"
+#include "net_flow_data.h"
 
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM2/CNCAJAM(MPRODI),ZMCPAM(MPRODI)
       COMMON/CONTM8/CCONC(MNOD,MCONTM)
@@ -395,6 +401,7 @@ C RCMGL  = Rate of contaminant mass gained/lost from each source/sink
 
       SUBROUTINE CTSASM
 #include "net_flow.h"
+#include "net_flow_data.h"
 #include "building.h"
 #include "FMI.h"
 
@@ -411,9 +418,7 @@ C Calendar commons
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
 C Mass flow and Contaminant commons
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
-      COMMON/MFLOW4/ITND(MNOD),TNOD(MNOD)
 
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM2/CNCAJAM(MPRODI),ZMCPAM(MPRODI)

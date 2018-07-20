@@ -972,6 +972,7 @@ C     CDATA: 1 Volume flow rate (m^3/s)
 #include "plant.h"
 #include "building.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
 #include "OffsiteUtilitiesPublic.h"
 
       COMMON/OUTIN/IUOUT,IUIN
@@ -999,8 +1000,6 @@ C     CDATA: 1 Volume flow rate (m^3/s)
      &             ICONDX(MPCOM,MNODEC,MPCONC)
 
       COMMON/FFN/IFLWN,ICFFS(MPCON)
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
 
@@ -4607,6 +4606,7 @@ C     CDATA: 1 Mass flow rate (kg/s)
 #include "plant.h"
 #include "building.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/TC/ITC,ICNT
@@ -4633,8 +4633,6 @@ C     CDATA: 1 Mass flow rate (kg/s)
      &             ICONDX(MPCOM,MNODEC,MPCONC)
 
       COMMON/FFN/IFLWN,ICFFS(MPCON)
-      COMMON/MFLW10/NODPS(MCNN),HGTPS(MCNN),NODNE(MCNN),HGTNE(MCNN),
-     &              ITPCON(MCNN),NDSCNN(MCNN,MCNS)
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
 
@@ -4887,7 +4885,7 @@ C            2 Inter-node fluid heat capacity rate (W/K)
       INTEGER NAPDAT
 
 C Does not match size of LOCAL1 in CMP46C!
-      COMMON/LOCAL1/ISET,PHIMAX
+      COMMON/LOCAL1/ISET(MCF),PHIMAX
       INTEGER ISET
       REAL PHIMAX
       COMMON/LOKOUT/INSO,ITSBO
@@ -4933,12 +4931,12 @@ C Scale down parameters if dump load is to be supplied.
 C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       IF(ISTATS.EQ.1) THEN
       TF=BDATA(IPCOMP,10)
-      IF(ISET.EQ.0)THEN
+      IF(ISET(IPCOMP).EQ.0)THEN
         GFR=1.0
         EFF_ON=1.
         PHIMAX=FLGFR*BDATA(IPCOMP,3)*EFF_ON
         GMAX=FLGFR*BDATA(IPCOMP,3)
-        ISET=1
+        ISET(IPCOMP)=1
         RUBTL=BDATA(IPCOMP,10)
       ENDIF
 
@@ -6219,7 +6217,7 @@ C NTSBO       = total no. of timesteps boiler is to be off due to lockout
       REAL QDATA,PCAOUT
       INTEGER NAPDAT
 
-      COMMON/LOCAL1/ISET,PHIMAX
+      COMMON/LOCAL1/ISET(MCF),PHIMAX
       INTEGER ISET
       REAL PHIMAX
 

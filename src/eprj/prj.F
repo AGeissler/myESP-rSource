@@ -83,6 +83,7 @@ C IEEE callback (Solaris)
       integer iappw,iappx,iappy
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
       
       integer ncomp,ncon
       common/C1/NCOMP,NCON
@@ -106,6 +107,17 @@ C is a logical flag, .true. restricts update/save options.
       common/rcmd/LCMDFL
 
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+
+C Extended simulation parameters for each set.
+      common/spfldats/isstupex(MSPS),isbnstepex(MSPS),ispnstepex(MSPS),
+     &  issaveex(MSPS),isavghex(MSPS),iscfdactivate(MSPS),
+     &  isicfdys(MSPS),isicfdyf(MSPS),
+     &  scftims(MSPS),scftimf(MSPS)
+      INTEGER :: isstupex,isbnstepex,ispnstepex,issaveex,isavghex
+      INTEGER :: iscfdactivate      ! zero ignore domains
+      INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
+      REAL :: scftims,scftimf       ! CFD simulation start & finish time
 
 C Indicator of possible focus zone.
       common/rzone/inzone
@@ -184,7 +196,7 @@ C      character outs248*248
 C Passed parameters for pregist.
       character root*32,mpath*72
 
-C Returned parameters from silentread.
+C Returned parameters from silentread or silentxmlread.
       character theprimedirective*8
       integer iappwpc ! application height as % of nominal size
       integer itrc    ! feedback level during scans
@@ -200,7 +212,10 @@ C Returned parameters from silentread.
       character pagestitle*62 ! for banner title via epages call
       character subpath*84
       character sfile*144
-    
+      character odir*84
+      character cfgpath*144  ! full path to cfg folder for refocus
+      character thecfgis*72 ! cfg file only
+          
 C Passed parameters to cfgtogg
 #ifdef OSI
       integer icfg_type  ! model cfg type
@@ -267,11 +282,13 @@ C config file, zone focus and actions arguments).
       IFTIME=0
       nsset=0
       isset=0
-      isstup=0
-      isbnstep=1
-      ispnstep=2
-      issave=2
-      isavgh=0
+      isstup=0; isstupex(1)=0
+      isbnstep=4; isbnstepex(1)=4
+      ispnstep=2; ispnstepex(1)=2
+      issave=2; issaveex(1)=2
+      isavgh=0; isavghex(1)=0
+      iscfdactivate(1)=0; isicfdys(1)=0; isicfdyf(1)=0
+      scftims(1)=0.0; scftimf(1)=23.9
       NSIGFIG=3
       childterminal=MODL  ! remember so that child processes can run the same
 
@@ -479,6 +496,10 @@ C Setup and pass in parameters to win3d.
         nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
         call startbuffer()
+      ELSE
+        
+C Set reasonable defaults for text mode.
+        igw=548; igwh=336; igl=41; igb=357
       ENDIF
 
 C Generate the version report.
@@ -486,7 +507,6 @@ C Generate the version report.
 
 C Remember where prj was started (pwdinitial). If we are starting
 C within a model pwdinitial will end in cfg or cfg/ or cfg\
-
       pwdinitial='  '  ! clear common
       pwdtocfg='  '    ! and from pwd into cfg folder
       call usrdir(pwdinitial)
@@ -651,7 +671,7 @@ C is a known command that can be acted on.
       XST=.false.
       if(inact(1:10).eq.'silentread')then
 
-C Check to see if the -file parameter is a high level silent input file
+C Check to see if the -file parameter is an ESP-r META file
 C and if so do what it says.
         if(LCMDFL(1:2).ne.'  '.and.LCMDFL(1:4).ne.'UNKN')then
           INQUIRE (FILE=LCMDFL,EXIST=XST)
@@ -659,6 +679,8 @@ C and if so do what it says.
             call clrprb  ! clear the model common blocks prior to scan
             write(longtfile,'(a)') LCMDFL(1:lnblnk(LCMDFL))
             IUNIT=IFIL+1
+
+C If iverb passed as non-zero then change directive.
             call silentread(iunit,longtfile,'-',theprimedirective,ier)
             call edisp(iuout,theprimedirective)
             call edisp(iuout,modeltitle)
@@ -686,8 +708,16 @@ C and if so do what it says.
             call clrprb  ! clear the model common blocks prior to scan
             write(longtfile,'(a)') LCMDFL(1:lnblnk(LCMDFL))
             IUNIT=IFIL+1
-            call silentxmlread(iunit,longtfile,'-',theprimedirective,
-     &        ier)
+            write(mpath,'(a)')'/tmp/test'  ! fix for testing
+
+C If iverb passed as non-zero then change directive.
+            if(iverb.eq.0)then
+              call silentxmlread(iunit,longtfile,'- ',mpath,ier)
+            elseif(iverb.eq.1)then
+              call silentxmlread(iunit,longtfile,'v ',mpath,ier)
+            elseif(iverb.eq.2)then
+              call silentxmlread(iunit,longtfile,'vv',mpath,ier)
+            endif
             call edisp(iuout,theprimedirective)
             call edisp(iuout,modeltitle)
             call edisp248(iuout,modeldocblock,80)
@@ -837,7 +867,7 @@ C          call edisp(iuout,'* Loading supplied model description.')
 C Nothing on the command line and if we are in a cfg folder then
 C use the file browsing to see if there are any cfg files.
         if(pwdinitial(lnpwdi-2:lnpwdi).eq.'cfg')then
-          write(6,*) 'looking for cfg files...'
+          call edisp(iuout,'looking for cfg files...')
           write(subpath,'(a)') pwdinitial(1:lnpwdi)
 
           call discovercfg(subpath,sfile,ier)
@@ -850,33 +880,79 @@ C of the string sfile.
 C Debug.
 C            write(6,*) 'sfile is ',sfile(1:lnblnk(sfile))
 C            write(6,*) 'path is ',path(1:lnblnk(path))
+C            write(6,*) 'pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
 C            write(6,*) 'lcfgf is ',LCFGF(1:lnblnk(LCFGF))
-
-            CALL ERPFREE(IFCFG,ISTAT)
-            call FINDFIL(LCFGF,XST)
-            if(XST)then
-              write(LCMDFL,'(a)') sfile(1:lnblnk(sfile)) ! as if included in cmd line
-              CALL ERPFREE(IFCFG,ISTAT)
-
-C Call newprb without the need to confirm model but to check its path.
-C Assume that the file passed is not an exemplar.
-              itisanexemplar=.false.
-              confirm=.false.
-              ckpath=.true.
-              call NEWPRB(ITRC,confirm,ckpath,itisanexemplar,IER)
-              if(ier.eq.-3)then
-                ier=0
-                goto 3  ! cancel detected, redisplay menu
+    
+            lcfgr=lnblnk(LCFGF)
+            lcfgl=lcfgr-3
+            if(lcfgr.gt.4)then
+              if(LCFGF(lcfgl:lcfgr).eq.'.cfg')then
+                if(lcfgl-1.le.32)then
+                  write(cfgroot,'(a)') LCFGF(1:lcfgl-1)
+                else
+                  write(cfgroot,'(a)') LCFGF(1:32)
+                endif
+                write(thecfgis,'(a,a)')LCFGF(1:lcfgr)
+              else
+                if(lcfgr.le.32)then
+                  write(cfgroot,'(a)') LCFGF(1:lcfgr)
+                else
+                  write(cfgroot,'(a)') LCFGF(1:32)
+                endif
+                write(LCFGF,'(a,a)')LCFGF(1:lcfgr),'.cfg'
+                write(thecfgis,'(a,a)')LCFGF(1:lcfgr),'.cfg'
               endif
-              call tstamp('>','PRJ: loading supplied model')
-              call tstamp('>',LCFGF)
+            else
+              if(lcfgr.le.32)then
+                write(cfgroot,'(a)') LCFGF(1:lcfgr)
+              else
+                write(cfgroot,'(a)') LCFGF(1:32)
+              endif
+              write(LCFGF,'(a,a)')LCFGF(1:lcfgr),'.cfg'
+              write(thecfgis,'(a,a)')LCFGF(1:lcfgr),'.cfg'
+            endif
+            odir=' '
+            call usrdir(odir)
+            lnod=lnblnk(odir)
+            lncr=lnblnk(cfgroot)
+            if(lnod+lncr+6.lt.72)then
+              call edisp(iuout,'  ')
+              if(pwdtocfg(1:1).eq.'!')then
+
+C Prj started within a model cfg folder. Set cfgpath accordingly.
+                lnpth=lnblnk(path)
+                write(cfgpath,'(a)') path(1:lnpth-1)  ! omit trailing /
+              else
+                write(path,'(6a)')odir(1:lnod),fs,cfgroot(1:lncr),
+     &            fs,'cfg',fs
+                write(cfgpath,'(5a)')odir(1:lnod),fs,cfgroot(1:lncr),
+     &            fs,'cfg'
+              endif
+              call edisp(iuout,
+     &          'New model configuration file is in folder:')
+              call edisp(iuout,path)
+            else
+              write(outs,'(6a)')odir(1:lnod),fs,cfgroot(1:lncr),
+     &          fs,'cfg',fs
+              call usrmsg(
+     &    'The derived path (below) is > 72 char give shorter root',
+     &          outs,'W')
+            endif
+
+C Refocus prj on the model cfg folder and re-load the model cfg file
+C as is done in cadio.F
+            call pausems(1000)
+
+C Use call to refocus to start a new prj within the model cfg folder.
+            call refocus(cfgpath,thecfgis,iret)
+            if(iret.eq.0)then
+              continue
+            elseif(iret.eq.-2)then
+              call edisp(iuout,
+     &        'Features using Radiance calls may not work as expected.')
             endif
           endif
-
-C   16     continue  ! write errors 
-C   17     continue
         endif
-
       endif
 
 C Provide site information, update wireframe control with
@@ -1603,11 +1679,17 @@ C to include the path and create a string to drive the modules.
       common/childt/childterminal
       COMMON/PREC7/ITCNST
       COMMON/C6/INDCFG
+      integer ncomp,ncon
+      common/C1/NCOMP,NCON
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
       COMMON/MOIST01/MSTROK,MSTRZN(MCOM)
+      LOGICAL MSTROK,MSTRZN
       common/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
       common/IPVF/lipvdatf
+      common/ACTDOM/CFDOK
+      logical CFDOK
 
 C Typical seasons and default simulation periods. Isset is the
 C current seasons set, nsset number of similar parameter sets,
@@ -1619,18 +1701,33 @@ C ispnstep (plant timesteps/hr), issave (results save level).
       common/spflper/isstday(MSPS),isstmon(MSPS),isfnday(MSPS),
      &               isfnmon(MSPS)
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
-     &  smstres(MSPS),selres(MSPS),sipvres
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
+
+C Extended simulation parameters for each set.
+      common/spfldats/isstupex(MSPS),isbnstepex(MSPS),ispnstepex(MSPS),
+     &  issaveex(MSPS),isavghex(MSPS),iscfdactivate(MSPS),
+     &  isicfdys(MSPS),isicfdyf(MSPS),
+     &  scftims(MSPS),scftimf(MSPS)
+      INTEGER :: isstupex,isbnstepex,ispnstepex,issaveex,isavghex
+      INTEGER :: iscfdactivate      ! zero ignore domains
+      INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
+      REAL :: scftims,scftimf       ! CFD simulation start & finish time
+      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
+      CHARACTER*72 LCFD
+      integer IFCFD      
       integer noimg  ! number of images
       integer iton   ! zero if images not yet shown, one if yes
       common/imagfi/noimg,iton
       common/user/browse
 
-      dimension ITEMS(25)
+      dimension ITEMS(26)
 
       character doit*248,tmode*8,ITEMS*42,key*1
-      character sblres*72,sflres*72,splres*72,smstres*72,sipvres*72
-      character selres*72,spflnam*72,longtfile*144,longtfiledos*144
+      character spflnam*72,longtfile*144,longtfiledos*144
       CHARACTER*72 LAPROB,lipvdatf
       character cr*32,spfdescr*30,ipvaction*3
 
@@ -1641,7 +1738,7 @@ C dd is character array for selecting simulation parameter sets.
       character brw*11,outs*124
       character descra*7,descrb*7,descrst*10,descrfn*10
 
-      logical DOK,OK,MSTROK,MSTRZN,XST,modparms
+      logical DOK,OK,XST,modparms
       logical browse,concat,hri,defok,unixok,LIBXST
       logical mlcok,bndryok,bndrysxc,confok,geofok,oprfok,prob
       logical tmcok,shdok
@@ -1692,6 +1789,11 @@ C constructions are known.
       endif
 
       if(noimg.gt.0)call imgdisp(1,'FPER',ier)
+
+C Loop through zones to see if there is a cfd domain description.
+      do loop=1,NCOMP
+        IF(ABS(IFCFD(loop)).GT.0) CFDOK=.true.
+      enddo
       
     3 INO=-4
       if(nsset.eq.0)then
@@ -1701,27 +1803,29 @@ C constructions are known.
       else
         write(ITEMS(1),'(a,i2,a,i2,a)')'a simulation presets (',isset,
      &    ' of',nsset,')'
-        write(ITEMS(2),'(a,a)')       'b set name: ',spfdescr(isset)
+        write(ITEMS(2),'(a,a)')      'b set name: ',spfdescr(isset)
      &                                   (1:lnblnk(spfdescr(isset)))
-        write(ITEMS(3),'(a,i4)')      'c start-up days:',isstup
-        if(isbnstep.le.1)then
-          write(ITEMS(4),'(a,i2)')    'd zone timestep/h:',isbnstep
+        write(ITEMS(3),'(a,i4)')     'c start-up days:',isstupex(isset)
+        if(isbnstepex(isset).le.1)then
+          write(ITEMS(4),'(a,i2)')   'd zone timestep/h:',
+     &      isbnstepex(isset)
         else
-          if(isavgh.eq.0)then
-            write(ITEMS(4),'(a,i2,a)')'d zone timestep/h:',isbnstep,
-     &        ' each ts saved'
+          if(isavghex(isset).eq.0)then
+           write(ITEMS(4),'(a,i2,a)')'d zone timestep/h:',
+     &       isbnstepex(isset),' each ts saved'
           else
-            write(ITEMS(4),'(a,i2,a)')'d zone timestep/h:',isbnstep,
-     &        ' saved 1 ts/hr'
+           write(ITEMS(4),'(a,i2,a)')'d zone timestep/h:',
+     &       isbnstepex(isset),' saved 1 ts/hr'
           endif
         endif
         if(INDCFG.eq.2.or.INDCFG.eq.3)then
-          write(ITEMS(5),'(a,i2)')    'e plant timestep/(bldg ts):',
-     &      ispnstep
+          write(ITEMS(5),'(a,i2)')   'e plant timestep/(bldg ts):',
+     &      ispnstepex(isset)
         else
-          write(ITEMS(5),'(a)')       'e plant timestep/(bldg ts): N/A'
+          write(ITEMS(5),'(a)')      'e plant timestep/(bldg ts): N/A'
         endif
-        write(ITEMS(6),'(a,i2)')      'f result save level:',issave
+        write(ITEMS(6),'(a,i2)')     'f result save level:',
+     &    issaveex(isset)
 
 C Display the simulation period.
         CALL EDAY(isstday(isset),isstmon(isset),ijdstart)
@@ -1731,19 +1835,19 @@ C Display the simulation period.
         write(ITEMS(7),'(4a)')        'g from: ',descrst,' - ',descrfn
         if(INDCFG.ne.2)then
           write(ITEMS(8),'(2a)')      'h zone results: ',
-     &      sblres(isset)(1:16)
+     &      sblres(isset)(1:24)
         else
           write(ITEMS(8),'(a)')       '  zone results: N/A'
         endif
         if(IAIRN.ge.1)then
           write(ITEMS(9),'(2a)')      'i flow results: ',
-     &      sflres(isset)(1:16)
+     &      sflres(isset)(1:24)
         else
           write(ITEMS(9),'(a)')       '  flow results: N/A'
         endif
         if(INDCFG.eq.2.or.INDCFG.eq.3)then
           write(ITEMS(10),'(2a)')     'j plant results: ',
-     &      splres(isset)(1:15)
+     &      splres(isset)(1:23)
         else
           write(ITEMS(10),'(a)')      '  plant results: N/A'
         endif
@@ -1754,33 +1858,39 @@ C Display the simulation period.
         endif
         if(MSTROK)then
           write(ITEMS(12),'(2a)')     'l moist. results: ',
-     &      smstres(isset)(1:15)
+     &      smstres(isset)(1:22)
         else
           write(ITEMS(12),'(a)')      '  moisture results: N/A'
         endif
         if(ientxist.gt.0)then
           write(ITEMS(13),'(2a)')     'm elect. results: ',
-     &      selres(isset)(1:15)
+     &      selres(isset)(1:22)
         else
           write(ITEMS(13),'(a)')      '  electrical results: N/A'
         endif
-        if(lnblnk(lipvdatf).eq.0)then
-          write(ITEMS(14),'(a)')      '  IPV report   : N/A'
-        elseif(lipvdatf(1:7).eq.'UNKNOWN')then
-          write(ITEMS(14),'(a)')      '  IPV report   : N/A'
-        elseif(lipvdatf(1:8).eq.'internal')then
-          write(ITEMS(14),'(2a)')  'n IPV report: ',sipvres(1:18)
+        if(CFDOK)then  ! Also keep track of CFD results.
+          write(ITEMS(14),'(2a)')     'n CFD results: ',
+     &      scfdres(isset)(1:24)
         else
-          write(ITEMS(14),'(2a)')  'n IPV report: ',sipvres(1:18)
+          write(ITEMS(14),'(a)')      '  CFD results: N/A'
+        endif
+        if(lnblnk(lipvdatf).eq.0)then
+          write(ITEMS(15),'(a)')      '  IPV report   : N/A'
+        elseif(lipvdatf(1:7).eq.'UNKNOWN')then
+          write(ITEMS(15),'(a)')      '  IPV report   : N/A'
+        elseif(lipvdatf(1:8).eq.'internal')then
+          write(ITEMS(15),'(2a)')  'o IPV report: ',sipvres(1:24)
+        else
+          write(ITEMS(15),'(2a)')  'o IPV report: ',sipvres(1:24)
         endif    
-        ITEMS(15)  ='o save or dereference parameters '
-        ITEMS(16)  ='  ______________________________ '
-        M=16
+        ITEMS(16)  ='p save or dereference parameters '
+        ITEMS(17)  ='  ______________________________ '
+        M=17
       endif
       if(INDCFG.eq.2)then
-        ITEMS(M+1) ='p plant only simulation          '
+        ITEMS(M+1) ='q plant only simulation          '
       else
-        ITEMS(M+1) ='p integrated simulation          '
+        ITEMS(M+1) ='q integrated simulation          '
       endif
       ITEMS(M+2)   ='r fluid flow only                '
       ITEMS(M+3)   ='s visual impact                  '
@@ -2164,13 +2274,25 @@ C There may be ipv data held in the configuration file.
 C Setup one parameter set or several sets to match IPV description.
         if(ID.eq.1.or.ID.eq.3)then
           if(INDCFG.eq.2)then
-            nsset=1; isset=1; isstup=0
-            isbnstep=1; ispnstep=10; issave=4; isavgh=0
+            nsset=1; isset=1; isstup=0; isstupex(1)=0
+            isbnstep=4; isbnstepex(1)=4
+            ispnstep=10; ispnstepex(1)=10
+            issave=4; issaveex(1)=4
+            isavgh=0; isavghex(1)=0
+            iscfdactivate(1)=0; isicfdys(1)=0; isicfdyf(1)=0
+            scftims(1)=0.0; scftimf(1)=23.9
           else
             call scntcnst(TDM,istd,TCM,ISTC)
             nsset=1; isset=1
-            if(isstup.eq.0)isstup=ITCNST
-            isbnstep=1; ispnstep=10; issave=4; isavgh=0
+            if(isstup.eq.0)then
+              isstup=ITCNST; isstupex(1)=ITCNST
+            endif
+            isbnstep=4; isbnstepex(1)=4
+            ispnstep=10; ispnstepex(1)=10
+            issave=4; issaveex(1)=4
+            isavgh=0; isavghex(1)=0
+            iscfdactivate(1)=0; isicfdys(1)=0; isicfdyf(1)=0
+            scftims(1)=0.0; scftimf(1)=23.9
           endif
           if(ID.eq.1)then
             de='default'
@@ -2182,6 +2304,14 @@ C Setup one parameter set or several sets to match IPV description.
             spfdescr(4)='-'; spfdescr(5)='-'
             isstday(isset)=9; isstmon(isset)=1
             isfnday(isset)=15; isfnmon(isset)=1
+            iscfdactivate(isset)=0; 
+            isicfdys(isset)=9; isicfdyf(isset)=15
+            scftims(isset)=0.0; scftimf(isset)=23.9
+
+C Initially use global values.
+            isstupex(isset)=isstup; isbnstepex(isset)=isbnstep
+            ispnstepex(isset)=ispnstep
+            issaveex(isset)=issave; isavghex(isset)=isavgh
             cr=cfgroot
             lr=lnblnk(cfgroot)
             if(INDCFG.ne.2)then
@@ -2192,18 +2322,24 @@ C Setup one parameter set or several sets to match IPV description.
             if(IAIRN.ge.1)then
               WRITE(sflres(isset),'(A,A4)') cr(1:lr),'.mfr'
             else
-             sflres(isset)=' '
+              sflres(isset)=' '
             endif
             if(INDCFG.eq.2.or.INDCFG.eq.3)then
               WRITE(splres(isset),'(A,A4)') cr(1:lr),'.plr'
             else
-             splres(isset)=' '
+              splres(isset)=' '
             endif
             if(MSTROK)then
               WRITE(smstres(isset),'(A,A4)') cr(1:lr),'.msr'
             else
-             smstres(isset)=' '
+              smstres(isset)=' '
             endif
+            if(CFDOK)then
+              WRITE(scfdres(isset),'(A,A4)') cr(1:lr),'.dfr'
+            else
+              scfdres(isset)=' '
+            endif
+
             if(lnblnk(lipvdatf).eq.0)then
               sipvres=' '
             elseif(lipvdatf(1:7).eq.'UNKNOWN')then
@@ -2220,7 +2356,7 @@ C Set parameter sets for current number of IPV assessments.
           endif
           modparms=.true.
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.1)then
+      elseif(MITEM.eq.26.and.INO.EQ.1)then
 
 C Help text for this menu and all of the dialogs.
         helptopic='prj_sim_set_menu'
@@ -2233,9 +2369,9 @@ C Select an existing set, create a new one or cancel.
           CALL EDAY(isfnday(ii),isfnmon(ii),ijdfinish)
           call stdate(iyear,ijdfinish,descrb,descrfn)
           CALL EMKEY(ii,KEY,IER)
-          write(dd(ii),'(7a)') key,' ',spfdescr(ii)
+          write(dd(ii),'(8a,i2)') key,' ',spfdescr(ii)
      &      (1:lnblnk(spfdescr(ii))),' ',descrst,'-',
-     &      descrfn
+     &      descrfn,' ',isbnstepex(ii)
  60     continue
         if (nsset.lt.MSPS) then
           dd(nsset+1)='+ make a new set'
@@ -2251,7 +2387,7 @@ C Select an existing set, create a new one or cancel.
  61       continue
         endif
 
-        CALL EMENU('Parameter sets',dd,ic,IRT)
+        CALL EMENU('Parameter sets periods TSPH',dd,ic,IRT)
         if(IRT.ge.ic) then
           INO=-4
           GOTO 3
@@ -2262,16 +2398,26 @@ C Select an existing set, create a new one or cancel.
           goto 170
         elseif(IRT.eq.ic-2.and.nsset.lt.MSPS)then
 
-C It is possible to add another set so ask user and set file names.
+C If it is possible to add another set so ask user & set file names.
           de='win'
-          CALL EASKS(de,' ','Name for set?',30,'win','set name',
-     &      IER,nbhelp)
+          CALL EASKS(de,' ','Name for simulation parameter set?',
+     &      30,'win','set name',IER,nbhelp)
           nsset=nsset+1
           isset=nsset
           write(spfdescr(isset),'(a30)')de(1:30)
+
+C Use global values that the user can update later.
+          isstupex(isset)=isstup
+          isbnstepex(isset)=isbnstep
+          ispnstepex(isset)=ispnstep
+          issaveex(isset)=issave
+          isavghex(isset)=isavgh
           lde=lnblnk(spfdescr(isset))
           isstday(isset)=9; isstmon(isset)=1
           isfnday(isset)=15; isfnmon(isset)=1
+          iscfdactivate(isset)=0; 
+          isicfdys(isset)=9; isicfdyf(isset)=15
+          scftims(isset)=0.0; scftimf(isset)=23.9
           if(INDCFG.ne.2)then
             WRITE(sblres(isset),'(3a)')cr(1:lr),de(1:lde),'.res'
           else
@@ -2280,18 +2426,24 @@ C It is possible to add another set so ask user and set file names.
           if(IAIRN.ge.1)then
             WRITE(sflres(isset),'(3a)')cr(1:lr),de(1:lde),'.mfr'
           else
-           sflres(isset)=' '
+            sflres(isset)=' '
           endif
           if(INDCFG.eq.2.or.INDCFG.eq.3)then
             WRITE(splres(isset),'(3a)')cr(1:lr),de(1:lde),'.plr'
           else
-           splres(isset)=' '
+            splres(isset)=' '
           endif
           if(MSTROK)then
             WRITE(smstres(isset),'(3a)')cr(1:lr),de(1:lde),'.msr'
           else
-           smstres(isset)=' '
+            smstres(isset)=' '
           endif
+          if(CFDOK)then
+            WRITE(scfdres(isset),'(3a)')cr(1:lr),de(1:lde),'.dfr'
+          else
+            scfdres(isset)=' '
+          endif
+
           modparms=.true.
           goto 170
         elseif(IRT.eq.ic-2.and.nsset.ge.MSPS)then
@@ -2302,7 +2454,7 @@ C It is possible to add another set so ask user and set file names.
           isset=IRT  ! choose an existing set
         endif
         call scntcnst(TDM,istd,TCM,ISTC)
-      elseif(MITEM.eq.25.and.INO.EQ.2)then
+      elseif(MITEM.eq.26.and.INO.EQ.2)then
 
 C If there is an IPV descripton and this set is one,
 C do not allow this set name to be changed.
@@ -2319,23 +2471,23 @@ C << IPV can co-exist with lots of parameter sets.
           write(spfdescr(isset),'(a30)')de(1:30)
           modparms=.true.
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.3)then
+      elseif(MITEM.eq.26.and.INO.EQ.3)then
         if(INDCFG.eq.2)then
           call edisp(iuout,'* Start-up days not applicable to plant.')
         else
           call scntcnst(TDM,istd,TCM,ISTC)
-          isstupt=isstup
+          isstupt=isstupex(isset)
           CALL EASKI(isstupt,' ',
      &       'Pre-simulation start-up period (days)?',
      &       0,'F',100,'W',ITCNST,'presimulation days',IERI,nbhelp)
           if(ieri.eq.-3)then
             continue
           else
-            isstup=isstupt
+            isstupex(isset)=isstupt
             modparms=.true.
           endif 
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.4)then
+      elseif(MITEM.eq.26.and.INO.EQ.4)then
 
 C The simulation timestep. Edit local variable and if not canceling
 C instantiate it and also ask about results integration if more than
@@ -2345,73 +2497,73 @@ C one timestep in the hour.
      &     'file with ',ntsph,' per hour frequency. Use this value.'
           call edisp(iuout,outs)
         endif
-        isbnstept=isbnstep
+        isbnstept=isbnstepex(isset)
         CALL EASKI(isbnstept,' ','Zone-side time steps per hour?',
      &       1,'F',60,'W',2,'zone steps per hour',IERI,nbhelp)
         if(ieri.eq.-3)then
           continue
         else
-          isbnstep=isbnstept
-          if(isbnstep.gt.1)then
+          isbnstepex(isset)=isbnstept
+          if(isbnstepex(isset).gt.1)then
             if(itdflg.ne.0)then
 
 C There is temporal data so must save at each timestep.
 C              write(6,*) 'temporal data found so save each timestep'
 
-              isavgh=0
+              isavghex(isset)=0
             else
               defok=.false.
               hri=.false.
               call askok(' Hourly results integration:',' ',hri,
      &          defok,nbhelp)
               if(hri)then
-                isavgh=1
+                isavghex(isset)=1
               else
-                isavgh=0
+                isavghex(isset)=0
               endif
             endif
           else
-            isavgh=0
+            isavghex(isset)=0
           endif
           modparms=.true.
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.5)then
+      elseif(MITEM.eq.26.and.INO.EQ.5)then
         if(INDCFG.eq.2.or.INDCFG.eq.3)then
-          ispnstept=ispnstep
+          ispnstept=ispnstepex(isset)
           CALL EASKI(ispnstept,' ',
      &      'Plant-side time steps per zone step?',
      &      1,'F',100,'W',10,'plt steps per hour',IERI,nbhelp)
           if(ieri.eq.-3)then
             continue
           else
-            ispnstep=ispnstept
+            ispnstepex(isset)=ispnstept
             modparms=.true.
           endif
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.6)then
-        issavet=issave
+      elseif(MITEM.eq.26.and.INO.EQ.6)then
+        issavet=issaveex(isset)
         CALL EASKI(issavet,' ','Results save level (0-4 & 6)?',
      &      0,'F',6,'F',6,'save level',IERI,nbhelp)
         if(ieri.eq.-3)then
           continue
         else
-          issave=issavet
+          issaveex(isset)=issavet
           modparms=.true.
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.7)then 
+      elseif(MITEM.eq.26.and.INO.EQ.7)then 
         CALL EDAY(isstday(isset),isstmon(isset),ISDS)
         CALL EDAY(isfnday(isset),isfnmon(isset),ISDF)
         call EASKPER('Assessment period:',ISDS,ISDF,IFDAY,IER)
         call EDAYR(ISDS,isstday(isset),isstmon(isset))
         call EDAYR(ISDF,isfnday(isset),isfnmon(isset))
         modparms=.true.
-      elseif(MITEM.eq.25.and.INO.EQ.8)then
+      elseif(MITEM.eq.26.and.INO.EQ.8)then
         t72=sblres(isset)
         CALL EASKS(t72,' ','Building results library?',72,
      &    'zones.res','bld library',IER,nbhelp)
         sblres(isset)=t72
         modparms=.true.
-      elseif(MITEM.eq.25.and.INO.EQ.9)then
+      elseif(MITEM.eq.26.and.INO.EQ.9)then
         if(IAIRN.ge.1)then
           t72=sflres(isset)
           CALL EASKS(t72,' ','Network flow results library?',72,
@@ -2419,7 +2571,7 @@ C              write(6,*) 'temporal data found so save each timestep'
           sflres(isset)=t72
           modparms=.true.
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.10)then
+      elseif(MITEM.eq.26.and.INO.EQ.10)then
         if(INDCFG.eq.2.or.INDCFG.eq.3)then
           t72=splres(isset)
           CALL EASKS(t72,' ','Plant results library?',72,
@@ -2427,11 +2579,11 @@ C              write(6,*) 'temporal data found so save each timestep'
           splres(isset)=t72
           modparms=.true.
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.11)then
+      elseif(MITEM.eq.26.and.INO.EQ.11)then
         if(ispmxist.gt.0)then
           continue
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.12)then
+      elseif(MITEM.eq.26.and.INO.EQ.12)then
         if(MSTROK)then
           t72=smstres(isset)
           CALL EASKS(t72,' ','Moisture results library?',72,
@@ -2439,7 +2591,7 @@ C              write(6,*) 'temporal data found so save each timestep'
           smstres(isset)=t72
           modparms=.true.
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.13)then
+      elseif(MITEM.eq.26.and.INO.EQ.13)then
         if(ientxist.gt.0)then
           t72=selres(isset)
           CALL EASKS(t72,' ','Electrical results library?',72,
@@ -2447,7 +2599,51 @@ C              write(6,*) 'temporal data found so save each timestep'
           selres(isset)=t72
           modparms=.true.
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.14)then
+      elseif(MITEM.eq.26.and.INO.EQ.14)then
+        if(CFDOK)then
+          if(scfdres(isset)(1:2).eq.'  ')then
+            cr=cfgroot
+            lr=lnblnk(cfgroot)
+            WRITE(scfdres(isset),'(A,A4)') cr(1:lr),'.dfr'
+          endif
+          t72=scfdres(isset)
+          CALL EASKS(t72,' ','CFD results library?',72,
+     &    'cfd.res','CFD results library',IER,nbhelp)
+          scfdres(isset)=t72
+          modparms=.true.
+
+C Ask further attributes of CFD assessments.
+          DOK=.false.
+          CALL ASKOK('  ','Include domains in assessment?',
+     &      OK,DOK,nbhelp)
+          if(ok)then
+            iscfdactivate(isset)=1
+          else
+            iscfdactivate(isset)=0
+          endif
+          CALL EDAY(isstday(isset),isstmon(isset),icsday)
+          CALL EDAY(isfnday(isset),isfnmon(isset),icfday)
+          call EASKPER('CFD Assessment period:',icsday,icfday,
+     &      IFDAY,IER)
+          isicfdys(isset)=icsday
+          isicfdyf(isset)=icfday
+          modparms=.true.
+
+ 50       scftims(isset)=1.0
+          scftimf(isset)=24.99
+          write(outs,'(a)')'For the first day CFD is active specify'
+          CALL EASKR(scftims(isset),outs,'starting time ',
+     &      1.0,'F',24.99,'F',1.0,'Decimal fraction',IER,nbhelp)
+          write(outs,'(a)')'For the last day CFD is active specify'
+          CALL EASKR(scftimf(isset),outs,'finishing time ',
+     &      1.0,'F',24.99,'F',24.99,'Decimal fraction',IER,nbhelp)
+          if (scftimf(isset).lt.scftims(isset)) then
+            call edisp(iuout,' Start/Finish hours out of order.')
+            goto 50
+          endif
+          modparms=.true.
+        endif
+      elseif(MITEM.eq.26.and.INO.EQ.15)then
         if(lnblnk(lipvdatf).eq.0)then
         elseif(lipvdatf(1:7).eq.'UNKNOWN')then
         else
@@ -2459,7 +2655,7 @@ C              write(6,*) 'temporal data found so save each timestep'
           sipvres=t72
           modparms=.true.
         endif
-      elseif(MITEM.eq.25.and.INO.EQ.15)then
+      elseif(MITEM.eq.26.and.INO.EQ.16)then
         CALL EASKABC(' ','Options:',
      &    'save current sets','clear sets','cancel',IDO,nbhelp)
         if(IDO.eq.3)then
@@ -2523,13 +2719,25 @@ C defaults 1=autoexec mode), istcnst (startup days), isbnstep (building
 C timesteps/hr), ispnstep (plant timesteps/hr), issave (results save
 C level), isavgh = 0 save every timestep = 1 save hourly zone data.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
-     &  smstres(MSPS),selres(MSPS),sipvres
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
       common/user/browse
 
+C Extended simulation parameters for each set.
+      common/spfldats/isstupex(MSPS),isbnstepex(MSPS),ispnstepex(MSPS),
+     &  issaveex(MSPS),isavghex(MSPS),iscfdactivate(MSPS),
+     &  isicfdys(MSPS),isicfdyf(MSPS),
+     &  scftims(MSPS),scftimf(MSPS)
+      INTEGER :: isstupex,isbnstepex,ispnstepex,issaveex,isavghex
+      INTEGER :: iscfdactivate      ! zero ignore domains
+      INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
+      REAL :: scftims,scftimf       ! CFD simulation start & finish time
+
       character doit*248,tmode*8,tfile*72
-      character sblres*72,sflres*72,splres*72,smstres*72,sipvres*72
-      character selres*72,longtfile*144,longtfiledos*144
+      character longtfile*144,longtfiledos*144
       CHARACTER lipvdatf*72
       character aut*12
 
@@ -3291,6 +3499,7 @@ C to include the path and create a string to drive the modules.
       COMMON/C24/IZSTOCN(MCOM,MS)
 
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
 
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
@@ -4227,7 +4436,7 @@ C Set up menu for different variants
       ITEMS2(10)= 'h view factors and radiant sensors'
       ITEMS2(11)= 'i - future option -'
       ITEMS2(12)= 'j zone constructions'
-      ITEMS2(13)= 'k zone materials properties'
+      ITEMS2(13)= 'k materials or MLC properties'
       ITEMS2(14)= 'l computational fluid dynamics'
       ITEMS2(15)= 'm convection regimes'
       ITEMS2(16)= 'n active materials/advanced optics'
@@ -4477,12 +4686,14 @@ C << message to user that such a file does not exist
 #include "esprdbfile.h"
 #include "ipvdata.h"
 #include "cfd.h"
+#include "espriou.h"
       
       integer lnblnk  ! function definition
 
 C Path to model and command line file (if any). 
       common/OUTIN/IUOUT,IUIN
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -4493,10 +4704,13 @@ C Path to model and command line file (if any).
       common/childt/childterminal
 
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
-     &  smstres(MSPS),selres(MSPS),sipvres
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
 
       common/cctlnm/ctldoc,lctlf
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
 
 C To signal to MFWRIT that globals are available from graphic network.
 C Currently set true if graphic network file, false otherwise.
@@ -4514,8 +4728,9 @@ C Currently set true if graphic network file, false otherwise.
 C ivalsv keeps track of new viewfactor files which need analysys
 C ivalsg keeps track of whether a geometry file has alread been copied.
       dimension ivalsv(MCOM),ivalsg(MCOM)
+      integer nbitem,items
+      dimension items(MCOM)
 
-      character*72 sblres,sflres,splres,smstres,sipvres,selres
       character CNTMFIL*72
       CHARACTER*72 LIPVDATF,NNAME,H,msg1,MSG2,LCFD
       character ctldoc*248,lctlf*72
@@ -4524,21 +4739,12 @@ C ivalsg keeps track of whether a geometry file has alread been copied.
       CHARACTER APE*6,EXT*4,OUTS*124,doit*248,tmode*8
       CHARACTER SALT*31,CNTMDESC*124
       character ipvaction*3  ! to signal external ipv file
-      character lworking*144,fs*1
       integer irootlen,iapelin  ! string buffer lengths
-      LOGICAL XST,OK,DOK,modsit,moddb,QUIET,docnn,silent,donegeo
+      LOGICAL XST,OK,DOK,modsit,moddb,docnn,silent
       logical unixok
       logical newgeo  ! to use for testing if new/old geometry file.
       logical updatetitle ! if true the edit IPV titles.
       integer IW  ! for radio button
-
-C Set folder separator (fs) to \ or / as required.
-      call isunix(unixok)
-      if(unixok)then
-        fs = char(47)
-      else
-        fs = char(92)
-      endif
 
       M=ILM
       call isunix(unixok)
@@ -4551,7 +4757,7 @@ C Change name of configuration file.
       IF(LRCR.eq.0)THEN
         EXT='.cfg'
         CALL FNCNGR(LCFGF,APE,EXT,NNAME)
-        LCFGF=NNAME
+        write(LCFGF,'(a)') NNAME(1:lnblnk(NNAME))
       ENDIF
 
       IF(M.EQ.1)THEN
@@ -4579,7 +4785,7 @@ C geometry and attribution
             call eclose(gversion(icomp),1.1,0.01,newgeo)
             call georead(IUF,LGEOM(ICOMP),ICOMP,1,iuout,IER)
             CALL FNCNGR(LGEOM(ICOMP),APE,EXT,NNAME)
-            LGEOM(ICOMP)=NNAME
+            write(LGEOM(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
             if(igupgrade.eq.2.and.(.NOT.newgeo))then
               gversion(icomp) =1.1
               newgeo = .true.
@@ -4614,7 +4820,7 @@ C << ascii version of the shading file and copy that as well.
               endif
 C              CALL USRMSG('Copying shading file via:',doit,'-')
               CALL RUNIT(doit,'-')
-              LSHAD(ICOMP)=NNAME
+              write(LSHAD(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
             endif
 
 C If there is an existing viewfactor file copy it to new name
@@ -4633,7 +4839,7 @@ C so that subsequent changes are applied to the new file.
               endif
 C              CALL USRMSG('Copying view factor file via:',doit,'-')
               CALL RUNIT(doit,'-')
-              LVIEW(ICOMP)=NNAME
+              write(LVIEW(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
 
 C ? after copy it is probably not necessary to re-run the viewfactor analysis.
 C              ivalsv(ic)=ivals(IC)
@@ -4655,7 +4861,7 @@ C so that subsequent changes are applied to the new file.
               endif
 C              CALL USRMSG('Copying hc regime file via:',doit,'-')
               CALL RUNIT(doit,'-')
-              LHCCO(ICOMP)=NNAME
+              write(LHCCO(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
             endif
 
 C If there is a casual gain control file copy the exiting file
@@ -4675,7 +4881,7 @@ C so that subsequent changes are applied to the new file.
 C              CALL USRMSG('Copying casual gain ctl file via:',
 C     &                    doit,'-')
               CALL RUNIT(doit,'-')
-              LCGCIN(ICOMP)=NNAME
+              write(LCGCIN(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
             endif
 
 C If there is an obstruction file copy the exiting file
@@ -4694,7 +4900,7 @@ C so that subsequent changes are applied to the new file.
               endif
 C              CALL USRMSG('Copying obstruction file via:',doit,'-')
               CALL RUNIT(doit,'-')
-              ZOBS(ICOMP)=NNAME
+              write(ZOBS(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
             elseif(IOBS(icomp).eq.2)then
               continue
             endif
@@ -4765,6 +4971,7 @@ C Selection strings for site exposure.
         MODSIT=.true.
         msg1='updating model for site exposure changes...'
         docnn=.true.
+
       ELSEIF(M.EQ.4)THEN
 
 C Shading and insolation choices. First find out if any of the
@@ -4830,7 +5037,7 @@ C << need to deal with file separator more generically >>
                 endif
                 EXT='.shd'
                 CALL FNCNGR(LSHAD(ICOMP),APE,EXT,NNAME)
-                LSHAD(ICOMP)=NNAME
+                write(LSHAD(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
 
 C Create a small place-holder file that subsequent calculation
 C procedure can overwrite. Mark for performing shading calculatons.
@@ -4874,7 +5081,7 @@ C Older format geometry file so use separate zone obstructions file.
                   endif
                   EXT='.obs'
                   CALL FNCNGR(ZOBS(ICOMP),APE,EXT,NNAME)
-                  ZOBS(ICOMP)=NNAME
+                  write(ZOBS(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
                   silent=.true.
                   CALL ECROBS(ITRC,ITRU,IUF,ICOMP,silent,IER)
                   IF(IOBS(ICOMP).eq.0)then
@@ -4995,7 +5202,7 @@ C << if newer format geometry then alternative logic needed >>
                   EXT='.obs'
                   CALL EGOMST(IUF,icomp,ZOBS(ICOMP),0,ITRC,ITRU,IER)
                   CALL FNCNGR(ZOBS(ICOMP),APE,EXT,NNAME)
-                  ZOBS(ICOMP)=NNAME
+                  write(ZOBS(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
                   CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
                 elseif(IOBS(ICOMP).eq.2)then
                   continue
@@ -5018,7 +5225,7 @@ C << logic that does not bother with obs file copying.
                   endif
                   EXT='.obs'
                   CALL FNCNGR(ZOBS(ICOMP),APE,EXT,NNAME)
-                  ZOBS(ICOMP)=NNAME
+                  write(ZOBS(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
                   silent=.true.
                   CALL ECROBS(ITRC,ITRU,IUF,ICOMP,silent,IER)
                 endif
@@ -5036,7 +5243,7 @@ C fileis so create a base name for shading file and then tweak the name via fncn
                 endif
                 EXT='.shd'
                 CALL FNCNGR(LSHAD(ICOMP),APE,EXT,NNAME)
-                LSHAD(ICOMP)=NNAME
+                write(LSHAD(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
 
 C Create a small place-holder file that subsequent calculation
 C procedure can overwrite. Mark to update shading files.
@@ -5059,6 +5266,7 @@ C << version of the zone shading file and copy it to the new name.
             msg1='shading changes not selected'
           endif
         endif
+
       ELSEIF(M.EQ.5)THEN
 
 C View factors and radiant sensors
@@ -5087,7 +5295,7 @@ C before calling mrt.
                 EXT='.vwf'
                 CALL ERMRT(ITRC,ITRU,IUF,LVIEW(ICOMP),ICOMP,IER)
                 CALL FNCNGR(LVIEW(ICOMP),APE,EXT,NNAME)
-                LVIEW(ICOMP)=NNAME
+                write(LVIEW(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
                 CALL EMKMRT(LVIEW(ICOMP),LGEOM(ICOMP),
      &            NZSUR(ICOMP),IUF,ICOMP,'v',IER)
               elseif(IVF(icomp).eq.0)then
@@ -5101,7 +5309,7 @@ C before calling mrt.
                 endif
                 EXT='.vwf'
                 CALL FNCNGR(LVIEW(ICOMP),APE,EXT,NNAME)
-                LVIEW(ICOMP)=NNAME
+                write(LVIEW(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
 
 C In both cases create an initial viewfactor file. If ray tracing
 C required, save the list of zones to be done after the
@@ -5123,6 +5331,7 @@ C configuration file has been updated.
             docnn=.true.
           endif
         endif
+
       ELSEIF(M.EQ.6)THEN
 
 C Climate, latitiude and longitude. First check if the model
@@ -5162,7 +5371,7 @@ C If there is an IPV file also update it.
             endif
 C          CALL USRMSG('Copying IPV file via:',doit,'-')
             CALL RUNIT(doit,'-')
-            LIPVDATF=NNAME
+            write(LIPVDATF,'(a)') NNAME(1:lnblnk(NNAME))
             updatetitle=.true.
           else
             updatetitle=.false.   ! nothing to do
@@ -5187,6 +5396,7 @@ C Update the titles.
         endif
         docnn=.true.
         msg1='updating model for climate changes...'
+
       ELSEIF(M.EQ.7)THEN
 
 C Pressure distribution
@@ -5227,161 +5437,22 @@ C Slot for future option.
 
 C Variant zone constructions (this includes geometry, construction
 C and tmc file variants for each zone selected.
-        inpic=0
-        call askmultizone(inpic,ivals,
+        nbitem=0
+        call askmultizone(nbitem,items,
      &    ' Select zones for construction variant?',
      &    'Zone construction variant','c',ier)
-        if(inpic.gt.0)then
-          DO 147 IC=1,inpic
-            IUNIT=12
-            QUIET=.FALSE.
-            ICOMP=ivals(IC)
-            IF(ICOMP.EQ.0)GOTO 147
-            call FINDFIL(LTHRM(ICOMP),XST)
-            IF(.NOT.XST)THEN
-              CALL EDISP(IUOUT,
-     &          '* Construction file does not exist...skipping.')
-              goto 147
-            ENDIF
+        if(nbitem.gt.0)then
 
-C Check if geometry file has already been updated.
-            donegeo=.false.
-            DO 149 icg=1,inpic
-              if(icomp.eq.ivalsg(icg))donegeo=.true.
- 149        continue
-            if(.NOT.donegeo)then
-              EXT='.geo'
-              call eclose(gversion(icomp),1.1,0.01,newgeo)
-              call georead(IUNIT,LGEOM(ICOMP),ICOMP,IR,ITRU,IER)
-              CALL FNCNGR(LGEOM(ICOMP),APE,EXT,NNAME)
-              LGEOM(ICOMP)=NNAME
-              if(igupgrade.eq.2.and.(.NOT.newgeo))then
-                gversion(icomp) =1.1
-                newgeo = .true.
-              endif
-              if(newgeo)then
-                call geowrite(IUNIT,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
-              else
-                call emkgeo(IUNIT,LGEOM(ICOMP),ICOMP,3,IER)
-              endif
-              WRITE(MSG1,'(2A)')
-     &        '* New geometry file written out for zone ',ZNAME(ICOMP)
-              CALL EDISP(IUOUT,MSG1)
-            endif
-            ITRU=6
-            CALL ECONST(LTHRM(ICOMP),IUNIT,ICOMP,ITRC,ITRU,IER)
-            EXT='.con'
-            CALL FNCNGR(LTHRM(ICOMP),APE,EXT,NNAME)
-            LTHRM(ICOMP)=NNAME
-            CALL EMKCON(LTHRM(ICOMP),IUNIT,ICOMP,QUIET,IER)
-            WRITE(MSG1,'(2A)')
-     &              '* New constructions file written out for zone ',
-     &              ZNAME(ICOMP)
-            CALL EDISP(IUOUT,MSG1)
-            call FINDFIL(LTWIN(ICOMP),XST)
-            IF(.NOT.XST)GOTO 147
-            IFU=13
-            CALL ERTWIN(ITRC,ITRU,IFU,LTWIN(ICOMP),ICOMP,IER)
-            EXT='.tmc'
-            CALL FNCNGR(LTWIN(ICOMP),APE,EXT,NNAME)
-            LTWIN(ICOMP)=NNAME
-            CALL MKTWIN(IFU,ICOMP,QUIET,IER)
-            WRITE(MSG1,'(2A)')
-     &      'New  transparent constructions file written out for zone '
-     &      ,ZNAME(ICOMP)
-            CALL EDISP(IUOUT,MSG1)
- 147      CONTINUE
-          docnn=.true.
-          msg1='updating model for construction changes...'       
-          call edisp(iuout,
-     &      '* Subsequent changes will be written to the new files.')
+C Call VER_GEO_CON_TMC passing nbitem, items and APE
+C Also ivalsg array of possibly already done zone geometry files.
+          call VER_GEO_CON_TMC(nbitem,items,ivalsg,APE,docnn)
         endif
+
       ELSEIF(M.EQ.10)THEN
 
-C Construction data file variant. Depending on location expand path to file.
+C Construction and materials databases file variant.
+        call VER_MLC_MAT(APE)
 
-C << probably should only allow a variant if a local database >>
-        if(ipathmul.eq.0.or.ipathmul.eq.1)then
-          lworking=LFMUL
-        elseif(ipathmul.eq.2)then
-          lndbp=lnblnk(standarddbpath)
-          write(lworking,'(3a)') standarddbpath(1:lndbp),fs,
-     &      LFMUL(1:lnblnk(LFMUL))
-        endif
-        LFMULEN=LNBLNK(lworking)
-        IF(LFMUL(LFMULEN:LFMULEN).EQ.'1')THEN
-          EXT='.db1'
-        ELSEIF(LFMUL(LFMULEN:LFMULEN).EQ.'2')THEN
-          EXT='.db2'
-        ELSEIF(LFMUL(LFMULEN:LFMULEN).EQ.'3')THEN
-          EXT='.db3'
-        ELSEIF(LFMUL(LFMULEN:LFMULEN).EQ.'a')THEN
-          EXT='.asc'
-        else
-          EXT='.dbs'
-        endif
-
-C Find last token in lworking and return in msg2.
-        call isunix(unixok)
-        call fdroot(lworking,msg1,MSG2)
-        WRITE(NNAME,'(2a)')DBSPTH(1:LNBLNK(DBSPTH)),MSG2
-        CALL FNCNGR(NNAME,APE,EXT,NNAME)
-        if(unixok)then
-          WRITE(DOIT,'(4A)')'cp ',lworking(1:LNBLNK(lworking)),' ',
-     &       NNAME(1:LNBLNK(NNAME))
-        else
-          WRITE(DOIT,'(4A)')'copy /y ',lworking(1:LNBLNK(lworking)),' ',
-     &       NNAME(1:LNBLNK(NNAME))
-        endif
-        write(LFMUL,'(a)') NNAME(1:lnblnk(NNAME))  ! truncation risk
-        CALL EDISP(IUOUT,' ')
-        CALL EDISP(IUOUT,'Copying database via ...')
-        CALL EDISP(IUOUT,DOIT)
-        CALL RUNIT(DOIT,'-')
-        call edisp(iuout,' Updating model for construction changes...')
-        CALL EDISP(IUOUT,' ')
-
-C Also make automatically materials database variant
-C << probably should only allow a variant if a local database >>
-        if(ipathmat.eq.0.or.ipathmat.eq.1)then
-          lworking=LFMAT
-        elseif(ipathmat.eq.2)then
-          lndbp=lnblnk(standarddbpath)
-          write(lworking,'(3a)') standarddbpath(1:lndbp),fs,
-     &      LFMAT(1:lnblnk(LFMAT))
-        endif
-        LFMATEN=LNBLNK(lworking)
-        IF(LFMAT(LFMATEN:LFMATEN).EQ.'1')THEN
-          EXT='.db1'
-        ELSEIF(LFMAT(LFMATEN:LFMATEN).EQ.'2')THEN
-          EXT='.db2'
-        ELSEIF(LFMAT(LFMATEN:LFMATEN).EQ.'3')THEN
-          EXT='.db3'
-        ELSEIF(LFMAT(LFMATEN:LFMATEN).EQ.'a')THEN
-          EXT='.asc'
-        else
-          EXT='.dbs'
-        endif
-
-C Find last token in lworking and return in msg2.
-        call isunix(unixok)
-        call fdroot(lworking,msg1,MSG2)
-        WRITE(NNAME,'(2a)')DBSPTH(1:LNBLNK(DBSPTH)),MSG2
-        CALL FNCNGR(NNAME,APE,EXT,NNAME)  ! ?? why call this
-        if(unixok)then
-          WRITE(DOIT,'(4A)')'cp ',LFMAT(1:LNBLNK(LFMAT)),' ',
-     &       NNAME(1:LNBLNK(NNAME))
-        else
-          WRITE(DOIT,'(4A)')'copy /y ',LFMAT(1:LNBLNK(LFMAT)),' ',
-     &       NNAME(1:LNBLNK(NNAME))
-        endif
-        write(LFMAT,'(a)') NNAME(1:lnblnk(NNAME))
-        CALL EDISP(IUOUT,' ')
-        CALL EDISP(IUOUT,'Copying database via ...')
-        CALL EDISP(IUOUT,DOIT)
-        CALL RUNIT(DOIT,'-')
-        call edisp(iuout,' Updating model for constructions changes...')
-        CALL EDISP(IUOUT,' ')
       ELSEIF(M.EQ.11)THEN
 
 C CFD domain
@@ -5402,7 +5473,7 @@ C CFD domain
             ITU=6
             CALL DFDREAD(ICOMP,itrc,itu,IER)
             CALL FNCNGR(LCFD(ICOMP),APE,EXT,NNAME)
-            LCFD(ICOMP)=NNAME
+            write(LCFD(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
             IUF=12
             CALL DFDSV(IUF,ICOMP,IER)
  178      CONTINUE
@@ -5437,7 +5508,7 @@ C zones (which already have htc files).
             IUF=12
             CALL ehtcff(LHCCO(ICOMP),IUF,ITRU,IER)
             CALL FNCNGR(LHCCO(ICOMP),APE,EXT,NNAME)
-            LHCCO(ICOMP)=NNAME
+            write(LHCCO(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
             CALL EMKHTC(LHCCO(ICOMP),ICOMP,IUF,ITRU,IER)
  188      CONTINUE
           msg1='updating model for convective regime changes...'
@@ -5484,7 +5555,7 @@ C variant integrated performance view
             endif
 C          CALL USRMSG('Copying file via:',doit,'-')
             CALL RUNIT(doit,'-')
-            LIPVDATF=NNAME
+            write(LIPVDATF,'(a)') NNAME(1:lnblnk(NNAME))
             updatetitle=.true.
           else
             updatetitle=.false.   ! nothing to do
@@ -5513,7 +5584,7 @@ C Update the titles.
      &        '* IPV file does not exist, creating one!')        
             WRITE(LIPVDATF,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.ipv'
             CALL FNCNGR(LIPVDATF,APE,EXT,NNAME)
-            LIPVDATF=NNAME
+            write(LIPVDATF,'(a)') NNAME(1:lnblnk(NNAME))
           endif
           CALL IPVDAT('I')
           CALL EASKS(ipvtitl,' Enter project title for this variant?',
@@ -5538,8 +5609,9 @@ C Older format writing to separate IPV file (depreciate).
         
       ELSEIF(M.EQ.18)THEN
          
-C variant fluid flow network
-        IF(IAIRN.EQ.1)THEN
+C Variant fluid flow network. Use OS to copy the file. Update
+C LAPROB name and then read the file.
+        IF(IAIRN.GE.1)THEN
           EXT='.afn'
           CALL FNCNGR(LAPROB,APE,EXT,NNAME)
           call isunix(unixok)
@@ -5554,7 +5626,7 @@ C into commons and then written out again
             write(doit,'(4A)')'copy /y ',LAPROB(1:lnblnk(LAPROB)),
      &        ' ',NNAME
           endif
-          LAPROB=NNAME
+          write(LAPROB,'(a)') NNAME(1:lnblnk(NNAME))
           call terminalmode(childterminal,tmode)
 C          CALL USRMSG('Copying flow network via:',doit,'-')
           call runit(doit,tmode)
@@ -5563,20 +5635,41 @@ C          CALL USRMSG('Copying flow network via:',doit,'-')
 C Read the file header and check for first-line tag. If 4 items
 C then an older file so rewind the file and call emfread.
           CALL STRIPC(IUM,OUTSTR,99,ND,0,'1st line of file',IER)
-          IF(ND.GE.4)THEN
-            REWIND(IUM,ERR=999)
-            CALL EMFREAD(IUM,IIER)
-            haveglobal=.FALSE.  ! a text-based flow network file
-          elseif((ND.eq.1.or.ND.eq.2).and.
-     &          OUTSTR(1:18).EQ.'*Graphical_network')then
+          if(ier.eq.0)then
+            write(currentfile,'(a)') LAPROB(1:lnblnk(LAPROB))
+            if(OUTSTR(1:18).EQ.'*Graphical_network')then
 
-C Found a graphic network file, advise user and exit.
-            call usrmsg(
-     &      'This file is a graphic network file rather than a',
-     &      'flow network file!','W') 
-            haveglobal=.TRUE.  ! a graphic network file
+C Found a graphic network file, scan it (silently) and then convert it
+C into network flow common blocks.
+              IAIRN = 2
+              CALL ERPFREE(IUM,ISTAT)
+              call NETREAD(IUM,'S',IER)
+              CALL NETTOFLW(ier)
+              call usrmsg(
+     &        'This file is a graphic network file rather than a',
+     &        'flow network file!','W') 
+              haveglobal=.TRUE.  ! a graphic network file
+              CALL MFWRIT(IUM)
+            elseif(OUTSTR(1:13).EQ.'*Flow_network')then
+
+C Found 3D flow network file.
+              IAIRN = 3
+              CALL ERPFREE(IUM,ISTAT)
+              CALL MFCDAT
+              CALL EMF3DREAD(IUM,'S',IER)
+              CALL ERPFREE(IUM,ISTAT)
+              CALL EFOPSEQ(IUM,LAPROB,4,IER)
+              call MF3DWRIT(IUM)
+            else
+
+C Found legacy text mass flow file.
+              REWIND(IUM,ERR=999)
+              CALL EMFREAD(IUM,IER)
+              CALL ERPFREE(IUM,ISTAT)
+              IAIRN = 1
+              CALL MFWRIT(IUM)
+            endif
           endif
-          CALL MFWRIT(IUM)
         ENDIF
         msg1='updating model for air flow network changes...'
         docnn=.true.
@@ -5605,7 +5698,7 @@ C << written out as fort.83 in ../cfg and not as ../nets/.ctm
           call edisp(iuout,outs)
         endif
         CALL FNCNGR(CNTMFIL,APE,EXT,NNAME)
-        CNTMFIL=NNAME
+        write(CNTMFIL,'(a)') NNAME(1:lnblnk(NNAME))
         IUNIT=72
         CALL CTWRIT(iunit)
         msg1='updating model for contaminants network changes...'
@@ -5614,39 +5707,18 @@ C << written out as fort.83 in ../cfg and not as ../nets/.ctm
       ELSEIF(M.EQ.22)THEN
 
 C Versioning of zone operations. First ask which zones that
-C will have different zone operations. Loop through each of
-C these, read the current operations file, derive a new file
-C name from fncngr call and then call prjfmk with the index
-C of the zone (to write out the common block data to the
-C alternative file name.
-        inpic=0
-        call askmultizone(inpic,ivals,
-     &    ' Select zones for schedules variant?',
-     &    'Zone schedules variant','o',ier)
-        if(inpic.gt.0)then
-          EXT='.opr'
-          IUO=12
-          DO 148 IC=1,inpic
-            ICOMP=ivals(IC)
-            IF(ICOMP.EQ.0)GOTO 148
-            call FINDFIL(LPROJ(ICOMP),XST)
-            IF(.NOT.XST)THEN
-              CALL EDISP(IUOUT,'* Operations file does not exist!')
-              RETURN
-            ENDIF
-            CALL EROPER(ITRC,ITRU,IUO,ICOMP,IER)
-            CALL FNCNGR(LPROJ(ICOMP),APE,EXT,NNAME)
-            LPROJ(ICOMP)=NNAME
-            CALL PRJFMK(ITRC,ITRU,IUO,ICOMP,IER,ICOMP)
-            WRITE(MSG1,'(2A)')'* New operations file written out for ',
-     &      ZNAME(ICOMP)
-            CALL EDISP(IUOUT,MSG1)
- 148      CONTINUE
-          msg1='updating model for zone operation changes...'
-          docnn=.true.
-          call edisp(iuout,
-     &      '* Subsequent changes will be applied to the new files.')
+C will have different zone operations. Use VER_OPR to
+C loop through each of these, read the current operations file,
+C derive a new file name from fncngr call and then call prjfmk 
+C to write out the common block data to the alternative file name.
+        nbitem=0
+        call askmultizone(nbitem,items,
+     &    'Select zones for schedules variant?',
+     &    'Zone construction variant','c',ier)
+        if(nbitem.gt.0)then
+          call VER_OPR(nbitem,items,APE,docnn)
         endif
+
       ELSEIF(M.EQ.23)THEN
 
 C A version with different control file. If there is a current
@@ -5661,7 +5733,7 @@ C common block data.
           RETURN
         ENDIF
         CALL FNCNGR(LCTLF,APE,EXT,NNAME)
-        LCTLF=NNAME
+        write(LCTLF,'(a)') NNAME(1:lnblnk(NNAME))
         CALL CTLWRT(IUNIT,IER)
         msg1='Updating model for zone controls changes...'
         docnn=.true.
@@ -5705,27 +5777,30 @@ C not any zones were selected.
 
 C Write out configuration file
 C But first change names of results libraries zones, flow, plant,
-C moisture, electrical and IPV
+C moisture, electrical cfd and IPV
         DO 123 ISPS=1,NSSET
           EXT='.res'
           CALL FNCNGR(SBLRES(ISPS),APE,EXT,NNAME)
-          if(NNAME(1:4).ne.'not_')SBLRES(ISPS)=NNAME
+          write(SBLRES(ISPS),'(a)') NNAME(1:lnblnk(NNAME))
           EXT='.mfr'
           CALL FNCNGR(SFLRES(ISPS),APE,EXT,NNAME)
-          if(NNAME(1:4).ne.'not_')SFLRES(ISPS)=NNAME
+          write(SFLRES(ISPS),'(a)') NNAME(1:lnblnk(NNAME))
           EXT='.plr'
           CALL FNCNGR(SPLRES(ISPS),APE,EXT,NNAME)
-          if(NNAME(1:4).ne.'not_')SPLRES(ISPS)=NNAME
+          write(SPLRES(ISPS),'(a)') NNAME(1:lnblnk(NNAME))
           EXT='.msr'
           CALL FNCNGR(SMSTRES(ISPS),APE,EXT,NNAME)
-          if(NNAME(1:4).ne.'not_')SMSTRES(ISPS)=NNAME
+          write(SMSTRES(ISPS),'(a)') NNAME(1:lnblnk(NNAME))
           EXT='.res'
           CALL FNCNGR(SELRES(ISPS),APE,EXT,NNAME)
-          if(NNAME(1:4).ne.'not_')SELRES(ISPS)=NNAME
+          write(SELRES(ISPS),'(a)') NNAME(1:lnblnk(NNAME))
+          EXT='.dfr'
+          CALL FNCNGR(SCFDRES(ISPS),APE,EXT,NNAME)
+          write(SCFDRES(ISPS),'(a)') NNAME(1:lnblnk(NNAME))
  123    CONTINUE
         EXT='.rep'
         CALL FNCNGR(SIPVRES,APE,EXT,NNAME)
-        SIPVRES=NNAME
+        write(SIPVRES,'(a)') NNAME(1:lnblnk(NNAME))
         LRCR=2
 
 C Check length of cfgroot string. Figure out how to include the
@@ -5742,7 +5817,7 @@ C If a variant connections file also required set this up.
         if(docnn)then
           EXT='.cnn'
           CALL FNCNGR(LCNN,APE,EXT,NNAME)
-          LCNN=NNAME
+          write(LCNN,'(a)') NNAME(1:lnblnk(NNAME))
         endif
         call usrmsg(msg1,' ','-')
         CALL EMKCFG('-',IER)
@@ -5778,8 +5853,8 @@ C FNCNGR changes the name of file ORIGNAM by appending APP
 C before an extension EXT, returning NEWNAM as the new file name
       SUBROUTINE FNCNGR(ORIGNAM,APP,EXT,NEWNAM)
 
-      CHARACTER*(*) ORIGNAM,NEWNAM
-      CHARACTER APP*6,EXT*4,LEXT*6
+      CHARACTER*(*) ORIGNAM,NEWNAM,EXT
+      CHARACTER APP*6,LEXT*6
 
       LCFIL=LNBLNK(ORIGNAM)
       LA=LNBLNK(APP)
@@ -5788,6 +5863,27 @@ C before an extension EXT, returning NEWNAM as the new file name
         IF(ORIGNAM(LCFIL-3:LCFIL).EQ.EXT(1:4))THEN
           IF(LCFIL.GT.(72-3))LCFIL=69
           WRITE(NEWNAM,'(3A)')ORIGNAM(1:LCFIL-4),APP(1:la),EXT(1:lx)
+        ELSEIF(ORIGNAM(LCFIL-4:LCFIL).EQ.EXT(1:5))THEN
+          IF(LCFIL.GT.(72-4))LCFIL=68
+          WRITE(NEWNAM,'(3A)')ORIGNAM(1:LCFIL-5),APP(1:la),EXT(1:lx)
+        ELSEIF(ORIGNAM(LCFIL-5:LCFIL).EQ.EXT(1:6))THEN
+          IF(LCFIL.GT.(72-5))LCFIL=67
+          WRITE(NEWNAM,'(3A)')ORIGNAM(1:LCFIL-6),APP(1:la),EXT(1:lx)
+        ELSEIF(ORIGNAM(LCFIL-6:LCFIL).EQ.EXT(1:7))THEN
+          IF(LCFIL.GT.(72-6))LCFIL=66
+          WRITE(NEWNAM,'(3A)')ORIGNAM(1:LCFIL-7),APP(1:la),EXT(1:lx)
+        ELSEIF(ORIGNAM(LCFIL-7:LCFIL).EQ.EXT(1:8))THEN
+          IF(LCFIL.GT.(72-7))LCFIL=65
+          WRITE(NEWNAM,'(3A)')ORIGNAM(1:LCFIL-8),APP(1:la),EXT(1:lx)
+        ELSEIF(ORIGNAM(LCFIL-8:LCFIL).EQ.EXT(1:9))THEN
+          IF(LCFIL.GT.(72-8))LCFIL=64
+          WRITE(NEWNAM,'(3A)')ORIGNAM(1:LCFIL-9),APP(1:la),EXT(1:lx)
+        ELSEIF(ORIGNAM(LCFIL-9:LCFIL).EQ.EXT(1:10))THEN
+          IF(LCFIL.GT.(72-9))LCFIL=63
+          WRITE(NEWNAM,'(3A)')ORIGNAM(1:LCFIL-10),APP(1:la),EXT(1:lx)
+        ELSEIF(ORIGNAM(LCFIL-10:LCFIL).EQ.EXT(1:11))THEN
+          IF(LCFIL.GT.(72-10))LCFIL=62
+          WRITE(NEWNAM,'(3A)')ORIGNAM(1:LCFIL-11),APP(1:la),EXT(1:lx)
         ELSE
 
 C For ascii files with extension .asc write name assuming a full
@@ -5812,6 +5908,279 @@ C ".db3.a"
 
       RETURN
       END
+
+C ********************* VER_MLC_MAT 
+C VER_MLC_MAT supports the creation of model variants MLC and
+C materials databases. Passed APE (4-6 char variant string).
+C It copies model files and gives them new names.   
+      SUBROUTINE VER_MLC_MAT(APE)
+#include "building.h"
+#include "model.h"
+#include "esprdbfile.h"
+      integer lnblnk  ! function definition
+
+      common/OUTIN/IUOUT,IUIN
+      character lworking*144,fs*1,EXT*11,APE*6,doit*248
+      character NNAME*144
+      character*72 msg1,MSG2
+      logical unixok
+      integer lndbp,ist,istm,LFMULEN,LFMATEN
+
+C Set folder separator (fs) to \ or / as required.
+      call isunix(unixok)
+      if(unixok)then
+        fs = char(47)
+      else
+        fs = char(92)
+      endif
+
+C Construction data file variant. Depending on location expand path to file.
+      if(ipathmul.eq.0.or.ipathmul.eq.1)then
+        lworking=LFMUL
+      elseif(ipathmul.eq.2)then
+        lndbp=lnblnk(standarddbpath)
+        write(lworking,'(3a)') standarddbpath(1:lndbp),fs,
+     &    LFMUL(1:lnblnk(LFMUL))
+      endif
+
+C See if the MLC database follows a known naming pattern.
+      LFMULEN=LNBLNK(lworking)
+      istm=LFMULEN-7
+      IF(lworking(LFMULEN:LFMULEN).EQ.'1')THEN
+        EXT='.db1'
+      ELSEIF(lworking(LFMULEN:LFMULEN).EQ.'2')THEN
+        EXT='.db2'
+      ELSEIF(lworking(LFMULEN:LFMULEN).EQ.'3')THEN
+        EXT='.db3'
+      ELSEIF(lworking(LFMULEN:LFMULEN).EQ.'4')THEN
+        EXT='.db4'
+      ELSEIF(lworking(LFMULEN:LFMULEN).EQ.'5')THEN
+        EXT='.db5'
+      ELSEIF(lworking(LFMULEN:LFMULEN).EQ.'a')THEN
+        EXT='.asc'
+      ELSEIF(lworking(istm:LFMULEN).EQ.'constrdb')THEN
+        EXT='.constrdb'
+      else
+        EXT='.dbs'
+      endif
+
+C Find last token in lworking and return in msg2.
+      call isunix(unixok)
+      call fdroot(lworking,msg1,MSG2)
+      WRITE(NNAME,'(3a)')DBSPTH(1:LNBLNK(DBSPTH)),fs,MSG2
+      CALL FNCNGR(NNAME,APE,EXT,NNAME)
+      if(unixok)then
+        WRITE(DOIT,'(4A)')'cp ',lworking(1:LNBLNK(lworking)),' ',
+     &     NNAME(1:LNBLNK(NNAME))
+      else
+        WRITE(DOIT,'(4A)')'copy /y ',lworking(1:LNBLNK(lworking)),' ',
+     &     NNAME(1:LNBLNK(NNAME))
+      endif
+      write(LFMUL,'(a)') NNAME(1:lnblnk(NNAME))  ! truncation risk
+      CALL EDISP(IUOUT,' ')
+      CALL EDISP(IUOUT,'Copying database via ...')
+      CALL EDISP(IUOUT,DOIT)
+      CALL RUNIT(DOIT,'-')
+      call edisp(iuout,' Updating model for construction changes...')
+
+C Also make automatically materials database variant
+      if(ipathmat.eq.0.or.ipathmat.eq.1)then
+        lworking=LFMAT
+      elseif(ipathmat.eq.2)then
+        lndbp=lnblnk(standarddbpath)
+        write(lworking,'(3a)') standarddbpath(1:lndbp),fs,
+     &    LFMAT(1:lnblnk(LFMAT))
+      endif
+
+C See if the material database follows a known naming pattern.
+      LFMATEN=LNBLNK(lworking)
+      ist=LFMATEN-2
+      istm=LFMATEN-9
+      IF(lworking(ist:LFMATEN).EQ.'1.a')THEN
+        EXT='.db1.a'
+      ELSEIF(lworking(ist:LFMATEN).EQ.'2.a')THEN
+        EXT='.db2.a'
+      ELSEIF(lworking(ist:LFMATEN).EQ.'3.a')THEN
+        EXT='.db3.a'
+      ELSEIF(lworking(ist:LFMATEN).EQ.'4.a')THEN
+        EXT='.db4.a'
+      ELSEIF(lworking(istm:LFMATEN).EQ.'materialdb')THEN
+        EXT='.materialdb'
+      ELSEIF(lworking(LFMATEN:LFMATEN).EQ.'a')THEN
+        EXT='.asc'
+      else
+        EXT='.dbs'
+      endif
+
+C Find last token in lworking and return in msg2.
+      call isunix(unixok)
+      call fdroot(lworking,msg1,MSG2)
+      WRITE(NNAME,'(3a)')DBSPTH(1:LNBLNK(DBSPTH)),fs,MSG2
+      CALL FNCNGR(NNAME,APE,EXT,NNAME)  ! ?? why call this
+      if(unixok)then
+        WRITE(DOIT,'(4A)')'cp ',lworking(1:LNBLNK(lworking)),' ',
+     &    NNAME(1:LNBLNK(NNAME))
+      else
+        WRITE(DOIT,'(4A)')'copy /y ',lworking(1:LNBLNK(lworking)),' ',
+     &    NNAME(1:LNBLNK(NNAME))
+      endif
+      write(LFMAT,'(a)') NNAME(1:lnblnk(NNAME))
+      CALL EDISP(IUOUT,' ')
+      CALL EDISP(IUOUT,'Copying database via ...')
+      CALL EDISP(IUOUT,DOIT)
+      CALL RUNIT(DOIT,'-')
+      call edisp(iuout,' Updating model for constructions changes...')
+      return
+      end
+
+C ********************* VER_GEO_CON_TMC 
+C VER_GEO_CON_TMC supports the creation of model variants zone
+C files (geo con tmc). Passed number of zones and list of zones
+C to copy, array of zone geometry file that might have previously
+C been sorted and APE (4-6 char variant string).
+C It copies model files and gives them new names.   
+      SUBROUTINE VER_GEO_CON_TMC(nbitem,items,ivalsg,APE,docnn)
+#include "building.h"
+#include "model.h"
+#include "geometry.h"
+      integer lnblnk  ! function definition
+      integer nbitem,items
+      dimension items(MCOM)
+      dimension ivalsg(MCOM)
+      character APE*6
+      logical docnn
+
+      common/OUTIN/IUOUT,IUIN
+      character EXT*11
+      character NNAME*144
+      character*72 msg1
+      logical unixok,xst,newgeo,QUIET,donegeo
+      integer iunit,icomp,ic,itrc,itru
+
+C Set folder separator (fs) to \ or / as required.
+      itru=iuout
+      ITRC=0
+      call isunix(unixok)
+      if(nbitem.le.0)then
+        return
+      endif
+      DO 147 IC=1,nbitem
+        IUNIT=12
+        QUIET=.FALSE.
+        ICOMP=items(IC)
+        IF(ICOMP.EQ.0)GOTO 147
+        call FINDFIL(LTHRM(ICOMP),XST)
+        IF(.NOT.XST)THEN
+          CALL EDISP(IUOUT,
+     &      '* Construction file does not exist...skipping.')
+          goto 147
+        ENDIF
+
+
+C Check if geometry file has already been updated.
+        donegeo=.false.
+        DO 149 icg=1,nbitem
+          if(icomp.eq.ivalsg(icg))donegeo=.true.
+ 149    continue
+        if(.NOT.donegeo)then
+          EXT='.geo'
+          call eclose(gversion(icomp),1.1,0.01,newgeo)
+          call georead(IUNIT,LGEOM(ICOMP),ICOMP,IR,ITRU,IER)
+          CALL FNCNGR(LGEOM(ICOMP),APE,EXT,NNAME)
+          write(LGEOM(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
+          if(igupgrade.eq.2.and.(.NOT.newgeo))then
+            gversion(icomp) =1.1
+            newgeo = .true.
+          endif
+          if(newgeo)then
+            call geowrite(IUNIT,LGEOM(ICOMP),ICOMP,ITRU,3,IER)
+          else
+            call emkgeo(IUNIT,LGEOM(ICOMP),ICOMP,3,IER)
+          endif
+          WRITE(MSG1,'(2A)')
+     &      '* New geometry file written out for zone ',ZNAME(ICOMP)
+          CALL EDISP(IUOUT,MSG1)
+        endif
+        CALL ECONST(LTHRM(ICOMP),IUNIT,ICOMP,ITRC,ITRU,IER)
+        EXT='.con'
+        CALL FNCNGR(LTHRM(ICOMP),APE,EXT,NNAME)
+        write(LTHRM(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
+        CALL EMKCON(LTHRM(ICOMP),IUNIT,ICOMP,QUIET,IER)
+        WRITE(MSG1,'(2A)')
+     &    '* New constructions file written out for zone ',
+     &    ZNAME(ICOMP)
+        CALL EDISP(IUOUT,MSG1)
+        call FINDFIL(LTWIN(ICOMP),XST)
+        IF(.NOT.XST)GOTO 147
+        IFU=13
+        CALL ERTWIN(ITRC,ITRU,IFU,LTWIN(ICOMP),ICOMP,IER)
+        EXT='.tmc'
+        CALL FNCNGR(LTWIN(ICOMP),APE,EXT,NNAME)
+        write(LTWIN(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
+        CALL MKTWIN(IFU,ICOMP,QUIET,IER)
+        WRITE(MSG1,'(2A)')
+     &    'New  transparent constructions file written out for zone '
+     &    ,ZNAME(ICOMP)
+        CALL EDISP(IUOUT,MSG1)
+ 147  CONTINUE
+      docnn=.true.
+      call edisp(iuout,
+     &  '* Subsequent changes will be written to the new files.')
+
+      return
+      end
+
+C ********************* VER_OPR 
+C VER_OPR supports the creation of model variants zone operation
+C file. Passed number of zones and list of zones
+C to copy and APE (4-6 char variant string).
+C It copies model files and gives them new names.   
+      SUBROUTINE VER_OPR(nbitem,items,APE,docnn)
+#include "building.h"
+#include "model.h"
+#include "geometry.h"
+      integer lnblnk  ! function definition
+      integer nbitem,items
+      dimension items(MCOM)
+      character APE*6
+
+      common/OUTIN/IUOUT,IUIN
+      character EXT*11
+      character NNAME*144
+      character*72 msg1
+      logical unixok,xst,docnn
+      integer iuo,icomp,ic,itrc,itru
+
+C Set folder separator (fs) to \ or / as required.
+      itru=iuout
+      ITRC=0
+      call isunix(unixok)
+      if(nbitem.le.0)then
+        return
+      endif
+      EXT='.opr'
+      IUO=12
+      DO 148 IC=1,nbitem
+        ICOMP=items(IC)
+        IF(ICOMP.EQ.0)GOTO 148
+        call FINDFIL(LPROJ(ICOMP),XST)
+        IF(.NOT.XST)THEN
+          CALL EDISP(IUOUT,'* Operations file does not exist!')
+          RETURN
+        ENDIF
+        CALL EROPER(ITRC,ITRU,IUO,ICOMP,IER)
+        CALL FNCNGR(LPROJ(ICOMP),APE,EXT,NNAME)
+        write(LPROJ(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
+        CALL PRJFMK(ITRC,ITRU,IUO,ICOMP,IER,ICOMP)
+        WRITE(MSG1,'(2A)')'* New operations file written out for ',
+     &    ZNAME(ICOMP)
+        CALL EDISP(IUOUT,MSG1)
+ 148  CONTINUE
+      docnn=.true.
+      call edisp(iuout,
+     &  '* Subsequent changes will be applied to the new files.')
+      return
+      end
 
 C In support of floating point exceptions.
 #ifdef SUN

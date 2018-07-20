@@ -77,6 +77,7 @@ C Calendar commons.
 
 C Simulation parameter sets.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
 
 C Passed in parameters.
       character action*8,root*32,mpath*72,menu*72
@@ -120,6 +121,8 @@ C Debug
 
       call edisp(iuout,'  ')
       if(action(1:3).eq.'new')then
+        call edisp(iuout,'You will be asked a [YES RESTART] question.')
+        call edisp(iuout,'Click on the [CONTINUE] button instead!')
         write(menu,'(a)') modeltitle(1:lnblnk(modeltitle))
         call pregist('sn',root,mpath,menu,ier)
       elseif(action(1:6).eq.'within')then
@@ -464,6 +467,7 @@ C hasname (string array) the surface name for each surface (so fillsur does not 
       logical closev       !  mass is close to vertical
       LOGICAL QUIET
       logical anunknownmlc ! if true then there was an unknown MLC
+      integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
 
 C Strings for surface attributes to pass to insrec.
       character rsname*12,rsotf*32,rsmlcn*32,rsuse1*12,rsuse2*12
@@ -620,9 +624,9 @@ C Remember first zone point as rotation point.
         rotateit(ICOMP,2)=X(1)
         rotateit(ICOMP,3)=Y(1)
         DO 10 I=1,NZSUR(ICOMP)
-          NVER(I)=isznbedges(ICOMP,I)
+          NVER(I)=isznver(ICOMP,I)
           DO 12 KV=1,NVER(I)
-            JVN(I,KV)=iszlist(ICOMP,I,KV)
+            JVN(I,KV)=iszjvn(ICOMP,I,KV)
    12     CONTINUE
    10   CONTINUE
         IUZBASEA(icomp)=0
@@ -820,193 +824,8 @@ C Use the 's' parameter to emkcfg to avoid asking for cnn file name.
       call zgupdate(0,ICOMP,ier)
       CALL EMKCFG('s',IER)
 
-C Next, if there are doors make standard calls to insert them into
-C the parent surface. To avoid clashes with any subsequent windows
-C place the door offset to the right (get bounding box via a call
-C to SURLEHI with some space between it and the right edge of the
-C parent surface.  Later add logic to better place the door..
-      if(znbdoor(icomp).gt.0)then
-        do 78 ids=1,NZSUR(ICOMP)
-          if(zhasdoor(icomp,ids).gt.0.0)then
-            call georead(IFIL+2,LGEOM(ICOMP),ICOMP,1,iuout,IER)
-            newsurf=nsur+1
-            isurf=ids
-            CALL SURLEHI(isurf,XYMAX,ZMAX)  ! get width of parent
-            XOCB=XYMAX-(zhasdoor(icomp,ids)+0.3)
-            ZOC=0.0
-            XW=zhasdoor(icomp,ids)
-            if(ZMAX.gt.2.3)then
-              ZH=2.1
-            else
-              ZH=ZMAX-0.3
-            endif
-            act='sd'
-            write(rsname,'(a)') sname(icomp,newsurf)
-            write(rsmlcn,'(a)') hasconstr(newsurf)
-
-C Loop thru all of the constructions to find the matching construction
-C and then see if it is opaque or transparent and copy out the relevant
-C section of the construction attributes.
-            imatch=0
-            do 56 ii=1,nmlc
-              lnssmlc=lnblnk(rsmlcn)
-              if(rsmlcn(1:lnssmlc).eq.
-     &           mlcname(ii)(1:lnmlcname(ii)))then
-                imatch=ii
-              endif
- 56         continue
-            if(imatch.eq.0) then
-              rsotf='UNKNOWN'
-              anunknownmlc=.true.   ! mark that one MLC is unknown
-            else
-              if(mlctype(imatch)(1:4).EQ.'OPAQ')then
-                rsotf='OPAQUE'
-              else
-                write(rsotf,'(A)') mlcoptical(imatch)(1:12)
-                willneedtmc=.true.
-              endif
-            endif
-            rsuse1='DOOR'
-            rsuse2='CLOSED'
-            write(rsparent,'(a)') sname(icomp,isurf)
-            call INSREC(0,iuout,ICOMP,isurf,act,XOCB,ZOCB,XW,ZH,
-     &        rsname,rsotf,rsmlcn,rsuse1,rsuse2,rsparent,IER)
-
-C Connection information needs to be updated.
-            ibcs=IZSTOCN(icomp,newsurf)
-            ICT(ibcs)=zboundarytype(icomp,newsurf,1)  ! use boundarytype
-            IC2(ibcs)=zboundarytype(icomp,newsurf,2)
-            IE2(ibcs)=zboundarytype(icomp,newsurf,3)
-
-C If there was a matching MLC set ssmlcindex.
-            if(imatch.ne.0)then
-              ssmlcindex(ibcs)=imatch  ! remember MLC index     
-            endif
-
-C Use zboundarytype to instanciate sother & ssother << to be done >>
-            IF(zboundarytype(icomp,newsurf,1).EQ.0)THEN
-              SOTHER(newsurf,1)='EXTERIOR'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.1)THEN
-              SOTHER(newsurf,1)='SIMILAR'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.2)THEN
-              SOTHER(newsurf,1)='CONSTANT'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.3)THEN
-              SOTHER(newsurf,1)='ANOTHER'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.4)THEN
-              SOTHER(newsurf,1)='GROUND'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.5)THEN
-              SOTHER(newsurf,1)='ADIABATIC'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.6)THEN
-              SOTHER(newsurf,1)='BASESIMP'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.7)THEN
-              SOTHER(newsurf,1)='IDENT_CEN'
-            ELSE
-
-C Reset to represent UNKNOWN
-              SOTHER(newsurf,1)='UNKNOWN'
-            ENDIF
-            write(SOTHER(newsurf,2),'(i2.2)')
-     &        zboundarytype(icomp,newsurf,2)
-            write(SOTHER(newsurf,3),'(i3.3)')
-     &        zboundarytype(icomp,newsurf,3)
-            SSOTHER(ibcs,1)=SOTHER(newsurf,1)
-            SSOTHER(ibcs,2)=SOTHER(newsurf,2)
-            SSOTHER(ibcs,3)=SOTHER(newsurf,3)
-
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
-          endif
-  78    continue
-      endif
-
-C Next, if there are windows make standard calls to insert them into
-C the parent surface as a percentage of area.
-      if(znbglz(icomp).gt.0)then
-        do 77 ids=1,NZSUR(ICOMP)
-          if(zhasglaze(icomp,ids).gt.0.0)then
-            call georead(IFIL+2,LGEOM(ICOMP),ICOMP,1,iuout,IER)
-            newsurf=nsur+1
-            isurf=ids
-            act='sp'
-            XOCB=zhasglaze(icomp,ids)
-            ZOC=0.0
-            XW=0.0
-            ZH=0.0
-            write(rsname,'(a)') sname(icomp,newsurf)
-            write(rsmlcn,'(a)') hasconstr(newsurf)
-
-C Loop thru all of the constructions to find the matching construction
-C and then see if it is opaque or transparent and copy out the relevant
-C section of the construction attributes.
-            imatch=0
-            lnssmlc=lnblnk(rsmlcn)
-            do 55 ii=1,nmlc
-              if(rsmlcn(1:lnssmlc).eq.
-     &           mlcname(ii)(1:lnmlcname(ii)))then
-                imatch=ii
-              endif
- 55         continue
-            if(imatch.eq.0) then
-              rsotf='UNKNOWN'
-              anunknownmlc=.true.   ! mark that one MLC is unknown
-            else
-              if(mlctype(imatch)(1:4).EQ.'OPAQ')then
-                rsotf='OPAQUE'
-              else
-                write(rsotf,'(A)') mlcoptical(imatch)(1:12)
-                willneedtmc=.true.
-              endif
-            endif
-            rsuse1='C-WINDOW'
-            rsuse2='CLOSED'
-            write(rsparent,'(a)') sname(icomp,isurf)
-            call INSREC(0,iuout,ICOMP,isurf,act,XOCB,ZOCB,XW,ZH,
-     &        rsname,rsotf,rsmlcn,rsuse1,rsuse2,rsparent,IER)
-
-C Connection information needs to be updated.
-            ibcs=IZSTOCN(icomp,newsurf)
-            ICT(ibcs)=zboundarytype(icomp,newsurf,1)  ! use boundarytype
-            IC2(ibcs)=zboundarytype(icomp,newsurf,2)
-            IE2(ibcs)=zboundarytype(icomp,newsurf,3)
-
-C If there was a matching MLC set ssmlcindex.
-            if(imatch.ne.0)then
-              ssmlcindex(ibcs)=imatch   ! remember MLC index     
-            endif
-
-C Use zboundarytype to instanciate sother & ssother << to be done >>
-            IF(zboundarytype(icomp,newsurf,1).EQ.0)THEN
-              SOTHER(newsurf,1)='EXTERIOR'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.1)THEN
-              SOTHER(newsurf,1)='SIMILAR'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.2)THEN
-              SOTHER(newsurf,1)='CONSTANT'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.3)THEN
-              SOTHER(newsurf,1)='ANOTHER'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.4)THEN
-              SOTHER(newsurf,1)='GROUND'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.5)THEN
-              SOTHER(newsurf,1)='ADIABATIC'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.6)THEN
-              SOTHER(newsurf,1)='BASESIMP'
-            ELSEIF(zboundarytype(icomp,newsurf,1).EQ.7)THEN
-              SOTHER(newsurf,1)='IDENT_CEN'
-            ELSE
-
-C Reset to represent UNKNOWN
-              SOTHER(newsurf,1)='UNKNOWN'
-            ENDIF
-            write(SOTHER(newsurf,2),'(i2.2)')
-     &        zboundarytype(icomp,newsurf,2)
-            write(SOTHER(newsurf,3),'(i2.2)')
-     &        zboundarytype(icomp,newsurf,3)
-            SSOTHER(ibcs,1)=SOTHER(newsurf,1)
-            SSOTHER(ibcs,2)=SOTHER(newsurf,2)
-            SSOTHER(ibcs,3)=SOTHER(newsurf,3)
-
-            call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
-          endif
-  77    continue
-      endif
+C Depreciated znbdoor and zhasdoor.
+C Depreciated zhasglaze and znbglz.
 
 C Next, if there are mass pairs to add make standard calls to insert them.
       if(znbmass(icomp).gt.0)then
@@ -1116,7 +935,7 @@ C Fill common blocks for new zone based on information in the
 C pattern file.
 
 C Set to current zone operation file format.
-        ip3ver(icomp)=2
+        ip3ver(icomp)=21
         afact = use(2)
         iflow='ach-ach '
         vflow='ach-ach '
@@ -1209,6 +1028,7 @@ C Obstruction blocks via geometry.h.
 
 C Simulation parameter sets.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
 
 C IPV description via ipvdata.h.
       common/cctlnm/ctldoc,lctlf
@@ -1221,6 +1041,10 @@ C XMLMETRICS are the metrics that could be included in the input.xml
 C in case the flag: <dump_all_data> is false
       common/XMLDATA/XMLMETRICS(200),inumXMLmetrics
       character XMLMETRICS*248
+
+C The model root and mpath passed to silentmodel call.
+      character metaroot*32,metampath*72
+      common/cadmeta/metaroot,metampath
 
 C iaplic(1) toggle for shading; iaplic(2) toggle for insolation.
 C   toggle for assessment where:
@@ -1235,6 +1059,7 @@ C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
 
       integer inumXMLmetrics !counts for the number of xml metrics defined
 
+C << update outstr etc to deal with complex surface edge jvn lists >>
       CHARACTER OUTSTR*248,WORD*32,outs*124,outs2*124
       character dstmp*24
       character word248*248
@@ -1340,15 +1165,14 @@ C For each of the possible ESP-r zones, clear values.
           zorigin(iz,1) = 0.0; zorigin(iz,2) = 0.0
           zorigin(iz,3) = 0.0
           zsize(iz,1) = 0.0; zsize(iz,2) = 0.0; zsize(iz,3) = 0.0
-          znbglz(iz) = 0; znbdoor(iz) = 0; znbmass(iz) = 0
+          znbmass(iz) = 0
           do 39 isu=1,MS
             zboundarytype(iz,isu,1)=0; zboundarytype(iz,isu,2)=0
             zboundarytype(iz,isu,3)=0
             sname(iz,isu)=' '
-            zhasglaze(iz,isu)=0.0; zhasdoor(iz,isu)=0.0
-            isznbedges(iz,isu)=0
+            isznver(iz,isu)=0
             do 54 ivu=1,MV
-              iszlist(iz,isu,ivu)=0
+              iszjvn(iz,isu,ivu)=0
   54        continue
   39      continue
           do 59 imu=1,4
@@ -1471,6 +1295,7 @@ C *action,new,boxer,single,/tmp/boxer
         silentreturndirec=actions
         if(actions(1:3).eq.'new'.or.actions(1:6).eq.'within')then
           CALL EGETW(OUTSTR,K,root,'W','root name',IER)
+          CALL EGETW(OUTSTR,K,WORD,'W','distributed',IER)
           CALL EGETRM(OUTSTR,K,mpath,'W','model folder',IER)
 
 C Debug.
@@ -1794,17 +1619,8 @@ C Feedback. simact is passed to silentmodel.
         endif
         goto 43
       elseif(WORD(1:5).eq.'*door')then
-        CALL EGETWI(OUTSTR,K,nbd,0,MS,'W','no of doors',IER)
 
-C Scan for pairs of parent surface index and the door width.
-        znbdoor(nsz)=nbd
-        if(znbdoor(nsz).gt.0)then
-          do 47 igl=1,znbdoor(nsz)
-            CALL EGETWI(OUTSTR,K,iparen,1,MS,'W','parent surf',IER)
-            CALL EGETWR(OUTSTR,K,val,0.,0.,'-','width',IER)
-            zhasdoor(nsz,iparen)=val
-  47      continue
-        endif
+C znbdoor & zhasdoor are depreciated. Just jump to 43.
         goto 43
       elseif(WORD(1:9).eq.'*end_zone')then
         goto 43
@@ -1813,18 +1629,8 @@ C Scan for pairs of parent surface index and the door width.
 C Jump to process the collected data.
         goto 1000
       elseif(WORD(1:6).eq.'*glaze')then
-        CALL EGETWI(OUTSTR,K,nbg,0,MS,'W','no of glzaings',IER)
 
-C Scan for pairs of parent surface index and the percentage of the parent
-C surface area to have as glazing.
-        znbglz(nsz)=nbg
-        if(znbglz(nsz).gt.0)then
-          do 144 igl=1,znbglz(nsz)
-            CALL EGETWI(OUTSTR,K,iparen,1,MS,'W','parent surf',IER)
-            CALL EGETWR(OUTSTR,K,val,0.,0.,'-','percent',IER)
-            zhasglaze(nsz,iparen)=val
- 144      continue
-        endif
+C Depreciated. Continue to 43.
         goto 43
       elseif(WORD(1:19).eq.'*ground_refl_annual')then
         CALL EGETWR(OUTSTR,K,groundrefl,0.,1.,'W',
@@ -1864,7 +1670,7 @@ C that was just scanned. The *list line holds the number of
 C edges and then the index of each coordinate (as in the normal
 C geometry file).
         CALL EGETWI(OUTSTR,K,ival1,3,MV,'W','nb of edges',IER)
-        isznbedges(nsz,NS)=ival1
+        isznver(nsz,NS)=ival1
 
 C Now proceed to read vertices on one or more lines.
         DO 12 KV=1,ival1
@@ -1875,7 +1681,7 @@ C Now proceed to read vertices on one or more lines.
             K=0
             CALL EGETWI(OUTSTR,K,ival2,0,MTV,'F','vertex',IERV)
           ENDIF
-          iszlist(nsz,NS,KV)=ival2
+          iszjvn(nsz,NS,KV)=ival2
    12   CONTINUE
         goto 43
       elseif(WORD(1:5).eq.'*mass')then
@@ -2411,6 +2217,8 @@ C *end mark was found.
 
 C Create new model. Note the onfiguration file will be in the
 C folder /tmp/box/cfg if mpath is /tmp/box.
+      write(metaroot,'(a)') root(1:lnblnk(root))
+      write(metampath,'(a)') mpath(1:lnblnk(mpath))
       call silentmodel(actions,root,mpath,weather,simact,ier)
 
 C Add in site information if tokens were included.
@@ -2584,6 +2392,7 @@ C common zndata (VCOORD,NZNVER,NZJVN) via geometry.h
 
 C Simulation parameter sets.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
+      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
 
 C IPV description via ipvdata.h.
 
@@ -2611,7 +2420,7 @@ C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
 
       integer inumXMLmetrics !counts for the number of xml metrics defined
 
-      CHARACTER outs*124,outsd*124
+      CHARACTER outs*124,outsd*124,louts*496,loutsd*496
       character dstmp*24
 
       character act*1      ! action requested.
@@ -3161,15 +2970,16 @@ C << on a separate line with a tag.
             write(ifilg,'(2a)',IOSTAT=IOS,ERR=13)
      &        outsd(1:lnblnk(outsd)),'  # surface attributes '
 
-            write(outs,'(a,25I4)',IOSTAT=ios,ERR=13) '*list ',
+            write(louts,'(a,124I4)',IOSTAT=ios,ERR=13) '*list ',
      &        NZNVER(icc),(NZJVN(icc,J),J=1,NZNVER(icc))
-            call SDELIM(outs,outsd,'C',IW)
+            call SDELIM(louts,loutsd,'C',IW)
             write(ifilg,'(2a,i2)',IOSTAT=IOS,ERR=13)
-     &        outsd(1:lnblnk(outsd)),'  # ',isu
+     &        loutsd(1:lnblnk(outsd)),'  # ',isu
  144      continue
 
 C Shading calculation directives in the form of:
 C *shad_calc,all_applic,20 # list of surfs
+C << may need to adapt 82i4 format statement? >>
           if(nsurfcalc(nsz).eq.0)then
             write(ifilg,'(a)',IOSTAT=IOS,ERR=13) '# shading directives'
             write(ifilg,'(a)',IOSTAT=ios,ERR=13)
@@ -3180,19 +2990,20 @@ C *shad_calc,all_applic,20 # list of surfs
               write(ifilg,'(a,i3,a)',IOSTAT=ios,ERR=13)
      &        '*shad_calc,all_applicable ',nsurfcalc(nsz),
      &        ' # list of surfs'
-              write(ifilg,'(42i3)',IOSTAT=ios,ERR=14)
+              write(ifilg,'(82i4)',IOSTAT=ios,ERR=14)
      &        (lstsfcalc(nsz,J),J=1,nsurfcalc(nsz))
             elseif(iaplic(nsz,1).eq.0)then
-              write(ifilg,'(a,i3,a)',IOSTAT=ios,ERR=13)
+              write(ifilg,'(a,i4,a)',IOSTAT=ios,ERR=13)
      &        '*shad_calc,list',nsurfcalc(nsz),
      &        ' # list of surfs'
-              write(ifilg,'(42i3)',IOSTAT=ios,ERR=14)
+              write(ifilg,'(82i4)',IOSTAT=ios,ERR=14)
      &        (lstsfcalc(nsz,J),J=1,nsurfcalc(nsz))
             endif
           endif
 
 C Insolation calculation directives.
 C *insol_calc,all_applic,2 # insolation sources
+C << may need to adapt 82i4 format statement >>
           write(ifilg,'(a)',IOSTAT=IOS,ERR=13)
      &      '# insolation directives'
           if(nsurfinso(nsz).eq.0)then
@@ -3203,13 +3014,13 @@ C *insol_calc,all_applic,2 # insolation sources
               write(ifilg,'(a,i3,a)',IOSTAT=ios,ERR=13)
      &        '*insol_calc,all_applicable ',nsurfinso(nsz),
      &        ' # insolation sources'
-              write(ifilg,'(42i3)',IOSTAT=ios,ERR=14)
+              write(ifilg,'(82i4)',IOSTAT=ios,ERR=14)
      &        (isurfinso(nsz,J),J=1,nsurfinso(nsz))
             elseif(iaplic(nsz,2).eq.0)then
-              write(ifilg,'(a,i3,a)',IOSTAT=ios,ERR=13)
+              write(ifilg,'(a,i4,a)',IOSTAT=ios,ERR=13)
      &        '*insol_calc,list',nsurfinso(nsz),
      &        ' # insolation sources'
-              write(ifilg,'(42i3)',IOSTAT=ios,ERR=14)
+              write(ifilg,'(82i4)',IOSTAT=ios,ERR=14)
      &        (isurfinso(nsz,J),J=1,nsurfinso(nsz))
             endif
           endif

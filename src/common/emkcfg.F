@@ -37,6 +37,7 @@ C common blocks into the file and unit specified in COMMON/C21.
 #include "site.h"
 #include "geometry.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
 #include "tdf2.h"
 C UA1 in uncertainty.h
 #include "uncertainty.h"
@@ -114,19 +115,24 @@ C Special materials file flag
 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
-      COMMON/MFLOW2/NDNAM(0:MNOD)
 
 C Non-linear thermophysical properties.
       COMMON/VTHP18/LNLTHP
+      CHARACTER LNLTHP*72
       COMMON/VTHP31/INTHPS,INTHPZ(MCOM)
+      LOGICAL INTHPS,INTHPZ
 
 C 1D node distribution.
       COMMON/GR1D05/LGRD1D
+      CHARACTER LGRD1D*72
       COMMON/GR1D06/IGR1D
+      LOGICAL IGR1D
 
 C 3D ground.
       COMMON/GRND100/GRND3D
+      LOGICAL GRND3D
       COMMON/GRND108/LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
+      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
 
 C Ground topology.
       COMMON/GTFIL/GTGEOM
@@ -137,10 +143,12 @@ C CFD
 
 C 3D zones.
       common/GR3D100/BLDG3D,ZONE3D(MCOM)
+      LOGICAL BLDG3D,ZONE3D
       common/GR3D108/L3DCVS(MCOM),L3DCNC(MCOM),L3DNDC(MCOM),L3DTAQ(MCOM)
 
 C Moisture.
       common/MOIST01/MSTROK,MSTRZN(MCOM)
+      LOGICAL MSTROK,MSTRZN
       common/MOIST02/LMOIST(MCOM)
 
 C Structured mesh.
@@ -192,6 +200,8 @@ C Numbers associated with one climatelist item.
       INTEGER :: nbclmlhelp
 
 C Anchor data in model.h.
+      common/ACTDOM/CFDOK
+      logical CFDOK
 
 C Simulation parameter presets.
       common/spfldes/spfdescr(MSPS)
@@ -201,7 +211,19 @@ C Simulation parameter presets.
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
       INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh      
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
-     &  smstres(MSPS),selres(MSPS),sipvres
+     &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
+      character sblres*72,sflres*72,splres*72,smstres*72,
+     &  selres*72,scfdres*72,sipvres*72
+
+C Extended simulation parameters for each set.
+      common/spfldats/isstupex(MSPS),isbnstepex(MSPS),ispnstepex(MSPS),
+     &  issaveex(MSPS),isavghex(MSPS),iscfdactivate(MSPS),
+     &  isicfdys(MSPS),isicfdyf(MSPS),
+     &  scftims(MSPS),scftimf(MSPS)
+      INTEGER :: isstupex,isbnstepex,ispnstepex,issaveex,isavghex
+      INTEGER :: iscfdactivate      ! zero ignore domains
+      INTEGER :: isicfdys,isicfdyf  ! CFD simulation start & finish days
+      REAL :: scftims,scftimf       ! CFD simulation start & finish time
 
 C BASESIMP.
       common/bsmtdef/iBSIMP(MCOM),LBSIMP(MCOM)
@@ -301,7 +323,6 @@ C Zone fluid.
       CHARACTER LAPROB*72
       CHARACTER CXSTR*78
       CHARACTER LPNF*72
-      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDNDD,LGDTAQ,LGRD1D,LNLTHP
       CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ,LMOIST,LGrdSt
       CHARACTER ctldoc*248,LCTLF*72,H*72
       CHARACTER spflnam*72
@@ -310,8 +331,7 @@ C Zone fluid.
       character*10 wkd1, wkd2
       character lipvdatf*72
       CHARACTER outs*124
-      character sblres*72,sflres*72,splres*72,smstres*72,sipvres*72
-      character selres*72,spfdescr*30,ltmp*72,louts*144
+      character spfdescr*30,ltmp*72,louts*144
       character bidirfile*72,bidirname*12
       character calename*32,calentag*12,calendayname*32,loutc*96
       character LWndSupp*72
@@ -320,7 +340,6 @@ C Zone fluid.
       character descrst1*10,descrfn1*10        ! for 2nd season dates
       
 C An array of mass flow nodes for writing.
-      CHARACTER NDNAM*12
       character namen*12
       dimension namen(mcom)
 
@@ -331,8 +350,6 @@ C An array of mass flow nodes for writing.
       dimension iav(99)
 
       logical dogrnd
-      LOGICAL INTHPS,INTHPZ,IGR1D,GRND3D
-      LOGICAL BLDG3D,ZONE3D,MSTROK,MSTRZN
       character dstmp*24
       character ALOC*12
 
@@ -1216,15 +1233,20 @@ C Flag indicating start of multi-year climate record.
             bMY_set_open = .true.
           endif 
 
+C Write extended simulation parameter sets.
           if ( bMY_period_support(iss) ) then
-            WRITE(IFCFG,'(2I3,1I5,2I3,1I5,2x,2A)',IOSTAT=IOS,ERR=2)
-     &        isstday(iss),isstmon(iss),iMY_period_start_years(iss),
-     &        isfnday(iss),isfnmon(iss),iMY_period_end_years(iss),
+            WRITE(IFCFG,'(5I4,2I3,I5,2I3,I5,2x,2A)',IOSTAT=IOS,ERR=2)
+     &        isstupex(iss),isbnstepex(iss),ispnstepex(iss),
+     &        issaveex(iss),isavghex(iss),isstday(iss),isstmon(iss),
+     &        iMY_period_start_years(iss),isfnday(iss),isfnmon(iss),
+     &        iMY_period_end_years(iss),
      &        spfdescr(iss)(1:lnblnk(spfdescr(iss))),' # period & name'
           else
-            WRITE(IFCFG,'(4I4,2x,2A)',IOSTAT=IOS,ERR=2)isstday(iss),
-     &        isstmon(iss),isfnday(iss),isfnmon(iss),spfdescr(iss)
-     &        (1:lnblnk(spfdescr(iss))),' # period & name'
+            WRITE(IFCFG,'(9I4,2x,2A)',IOSTAT=IOS,ERR=2)
+     &        isstupex(iss),isbnstepex(iss),ispnstepex(iss),
+     &        issaveex(iss),isavghex(iss),isstday(iss),isstmon(iss),
+     &        isfnday(iss),isfnmon(iss),
+     &        spfdescr(iss)(1:lnblnk(spfdescr(iss))),' # period & name'
           endif 
           if(INDCFG.ne.2)WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*sblr ',
      &      sblres(iss)(1:lnblnk(sblres(iss)))
@@ -1239,6 +1261,13 @@ C Flag indicating start of multi-year climate record.
           if(ientxist.gt.0)WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)
      &      '*selr ',selres(iss)(1:lnblnk(selres(iss)))
 
+C Write the CFD attributes followed by results file name.
+          if(CFDOK)then
+            WRITE(IFCFG,'(A,3I4,2F7.3,2A)',IOSTAT=IOS,ERR=2)
+     &       '*scfdr ',iscfdactivate(iss),isicfdys(iss),isicfdyf(iss),
+     &       scftims(iss),scftimf(iss),' ',
+     &       scfdres(iss)(1:lnblnk(scfdres(iss)))
+          endif
           WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2)'*end_set'
 
 C Flag for end of multi-simuation sets.

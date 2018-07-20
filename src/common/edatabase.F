@@ -1629,7 +1629,7 @@ C based on contents of material.h. Should work for mlcver 0 and 1.
       integer lnlist
 
       DIMENSION PNAM(ME)
-      CHARACTER OUTSTR*148,PNAM*124
+      CHARACTER OUTSTR*148,PNAM*124,outstr2*224
       CHARACTER SOPT*12,GDESCR*36
       integer lnmlcn,lnmlco,lnother
       CHARACTER layertp*9
@@ -1896,7 +1896,7 @@ C Reporting.
 C Compact report has more room for material description.
           WRITE(OUTSTR,29)IL,DTHK(IFOC,IL)*1000.0,
      &      PNAM(IL)(1:lnblnk(PNAM(IL)))
-  29      FORMAT(I5,F8.1,1X,a)
+  29      FORMAT(I5,F10.1,5X,a)
           CALL EDISP(ITRU,OUTSTR)
         ENDIF
 

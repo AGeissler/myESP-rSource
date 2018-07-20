@@ -42,7 +42,13 @@ that you own.
 ESP-r has been successfully installed on Linux, Cygwin, MSYS2
 and MAC OS X systems using different compiler and graphics
 library combinations. The native (and preferred) environment
-is Linux.
+is Linux. Taking the example of a Ubuntu 18.04 LTS computer
+the following packages will be required for the 'tool-chain'
+and application dependencies needed to build and run ESP-r.
+
+sudo apt-get install build-essential gcc g++ gfortran gdb libtool
+sudo apt-get install libx11-dev imagemagick xfonts-100dpi
+sudo apt-get install nedit nano xfig transfig xterm csh
 
 5. OPTIONAL FEATURES
 

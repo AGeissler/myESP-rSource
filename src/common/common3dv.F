@@ -53,6 +53,8 @@ C Passed parameters.
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
+      common/initv/initvt,EYEMI(3),VIEWMI(3),ANGI
+      INTEGER :: initvt
 
       character ETEXT*82
 #ifdef OSI
@@ -85,10 +87,15 @@ C If only drawing a ground topology set updwire manually.
         call updwire(numberofzones)  ! pass local integer
       endif
 
-C Also tell wireframe control about the current views. 
-C << need to test about whether cast is needed >>
+C Also tell wireframe control about the current views. If the
+C user has previously set initvt to 1 by editing the viewing
+C parameters then use EYEMI & VIEWMI rather than EYEM VIEWM.
       EVX=EYEM(1); EVY=EYEM(2); EVZ=EYEM(3)
-      VX=VIEWM(1); VY=VIEWM(2); VZ=VIEWM(3)
+      if(initvt.eq.0)then
+        VX=VIEWM(1); VY=VIEWM(2); VZ=VIEWM(3)
+      else
+        VX=VIEWMI(1); VY=VIEWMI(2); VZ=VIEWMI(3)
+      endif
       EAN=ANG; GDIS=GRDIS
       JITZNM=ITZNM; JITSNM=ITSNM; JITVNO=ITVNO
       JITOBS=ITOBS; JITVIS=ITVIS; JITVOBJ=ITVOBJ
@@ -111,6 +118,7 @@ C Tell woreframe how many zones to include in the image.
       endif
 
 C If altered then do a bound check on the current zone and update display.
+C If static views ITBND=0 then do not update VIEWM when calling BNDOBJ.
       IF(MODIFYVIEW)THEN
         if(izgfoc.NE.0)CALL ESCZONE(izgfoc)
         IF(MODBND)CALL BNDOBJ(0,IER)
@@ -1440,7 +1448,7 @@ C to normal size.
               write(stemp,'(A)')GSNAME(igs)
               iixc=iixc/NBP
               iiyc=iiyc/NBP
-              iid2=iiyc+(3*(NAMEFT+1))
+              iid2=iiyc+3
               CALL wstxpt(iixc,iid2,stemp)
               IF(IFS.GT.0)CALL winfnt(IFS)
             endif
@@ -1707,7 +1715,7 @@ C Write to output file.
             WRITE(IUO,'(3F8.3)')X(J),Y(J),Z(J)
    40     CONTINUE
           DO 50 J=1,NSUR
-            WRITE(IUO,'(2X,I3,1X,21I3)')NVER(J),(JVNZ(J,K),K=1,NVER(J))
+            WRITE(IUO,'(I5,1X,99I4)')NVER(J),(JVNZ(J,K),K=1,NVER(J))
    50     CONTINUE
         ENDIF
 
@@ -1754,7 +1762,7 @@ C Write obstructions to output file.
               WRITE(IUO,'(3F8.3)')XB(J),YB(J),ZB(J)
   240       CONTINUE
             DO 250 J=1,6
-              WRITE(IUO,'(a,21I3)') '  4 ',(JVNB(J,K),K=1,4)
+              WRITE(IUO,'(a,99I4)') '  4 ',(JVNB(J,K),K=1,4)
   250       CONTINUE
   301     CONTINUE
         ENDIF
@@ -1809,6 +1817,8 @@ C Free the viewer file.
 C ******* wiresymbol ******
 C Wiresymbol is passed a 3D coordinate and draws a symbol at that
 C location in a wireframe view with choice of colour.
+C Notice passing of isymbol=32 or 33 and instead
+C use symbol 8 with size 0 or 2.
       subroutine wiresymbol(xcord,ycord,zcord,icolour,isymbol)
 #include "building.h"
 #include "geometry.h"
@@ -1819,7 +1829,7 @@ C Parameters
       integer icolour ! colour index in the winscl zone scale
       integer isymbol ! symbol index to pass to esymbol
                       ! 8 is 2x3 block 32 is 2x2 block
-
+                      ! 33 is 4x4 block
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
       real COG1,COG2,COG3
@@ -1846,7 +1856,13 @@ C Parameters
       call u2pixel(COG3(1),COG3(2),iix,iiy)  ! convert to screen coords
       iicol=icolour                    ! set user color
       if(greyok)call winscl('z',iicol)
-      call esymbol(iix,iiy,isymbol,1)  ! draw the symbol
+      if(isymbol.eq.32)then
+        call esymbol(iix,iiy,8,0)  ! draw 2x2 dot
+      elseif(isymbol.eq.33)then
+        call esymbol(iix,iiy,8,2)  ! draw 4x4 dot
+      else
+        call esymbol(iix,iiy,isymbol,1)  ! draw the symbol
+      endif
       iicol=0                          ! return to black
       if(greyok)call winscl('-',iicol)
       call forceflush()                ! ensure it is drawn

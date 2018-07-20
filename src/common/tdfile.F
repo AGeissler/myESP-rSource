@@ -63,6 +63,7 @@ C which create the scratch or ascii version.
 #include "model.h"
 #include "geometry.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
 #include "tdf2.h"
 C Related to TDF ITEMS file.
 #include "control.h"      
@@ -80,10 +81,6 @@ C Need to loop for number of surfaces for bidirectional and vertical solar radia
 
       COMMON/TDFOPEN/OPTDF
       LOGICAL OPTDF,XST
-
-      COMMON/MFLOW1/NNOD,NCMP,NCNN
-      COMMON/MFLOW2/NDNAM(0:MNOD)
-      character*12 ndnam
 
       CHARACTER tfile*72,LTMPFL*72
       character FOCUS*8,msgl2*48,fs*1,act*1,outs*124
@@ -141,8 +138,14 @@ C Associate with real & reactive power item with a zone.
      &                  IACTIV(itd3)=itd4
                       if(DBTASK(ITD1)(1:8).eq.'HTCLSETP')
      &                  IHTCLSETP(itd3)=itd4
-                      if(DBTASK(ITD1)(1:6).eq.'DBTZNM')
-     &                  IDBTZNM(itd3)=itd4   ! measured zn dbT
+                      if(DBTASK(ITD1)(1:8).eq.'DBTZNOBS')
+     &                  IDBTZNOBS(itd3)=itd4   ! observed zn dbT
+                      if(DBTASK(ITD1)(1:7).eq.'ZNRHOBS')
+     &                  IZNRHOBS(itd3)=itd4   ! observed zn RH
+                      if(DBTASK(ITD1)(1:7).eq.'ZNHTOBS')
+     &                  IZNHTOBS(itd3)=itd4   ! observed zn heating
+                      if(DBTASK(ITD1)(1:7).eq.'ZNCLOBS')
+     &                  IZNCLOBS(itd3)=itd4   ! observed zn cooling
 
 C Bidirectional data are assigned per surface.
                       if(DBTASK(ITD1)(1:8).eq.'BIDIRSET')then
@@ -164,13 +167,13 @@ C Vertical solar radiation data (used in solar.F) are assigned per surface.
  975                    continue
                       endif
 
-C Measured surface temperature data to display in res are assigned
+C Observed surface temperature data to display in res are assigned
 C per surface.
-                      if(DBTASK(ITD1)(1:5).eq.'SURTM')then
+                      if(DBTASK(ITD1)(1:7).eq.'SURTOBS')then
                         DO 976 IS=1,NZSUR(itd3)
                           if(DBSN(itd1)(1:12).eq.
      &                       sname(itd3,IS)(1:12))then
-                            ISURTMEAS(itd3,IS)=itd4
+                            ISURTOBS(itd3,IS)=itd4
                           endif
  976                    continue
                       endif
@@ -1105,7 +1108,9 @@ C espriou.h provides current file.
       CHARACTER*72 AFIL,tdaide
       CHARACTER act*1
       CHARACTER outs*144
-      character outstr*248,LOUTSTR*1000,WORD*20,TMP*4,tail*8,msgl2*86
+      character outstr*248,LOUTSTR*1000,LOUTSTR25*2500
+      character WORD*20,TMP*4,tail*8,msgl2*86
+      character errmsg*42
       integer ier
       real toler  ! what is half of the timestep
 
@@ -1207,11 +1212,17 @@ C item to 0.
       CALL EGETW(OUTSTR,K,WORD,'W','header tags',IFLAG)
       if(WORD(1:7).eq.'*tdaid1')then
         CALL EGETRM(OUTSTR,K,tdaide(1),'W','tdaide',IER)
-        IF(IER.NE.0)goto 1
+        IF(IER.NE.0)then
+          errmsg='reading token after tdaid1'
+          goto 1
+        endif
         goto 34
       elseif(WORD(1:7).eq.'*tdaid2')then
         CALL EGETRM(OUTSTR,K,tdaide(2),'W','tdaide',IER)
-        IF(IER.NE.0)goto 1
+        IF(IER.NE.0)then
+          errmsg='reading token after tdaid2'
+          goto 1
+        endif
         goto 34
       elseif(WORD(1:6).eq.'*items')then
         i=i+1
@@ -1220,23 +1231,38 @@ C item to 0.
         CALL EGETW(OUTSTR,K,WORD,'W','item tags',IFLAG)
         if(WORD(1:4).eq.'*tag')then
           CALL EGETRM(OUTSTR,K,TAG(I),'W','*tag',IER)
-          IF(IER.NE.0)goto 1
+          IF(IER.NE.0)then
+            errmsg='reading token after *tag'
+            goto 1
+          endif
           goto 44
         elseif(WORD(1:5).eq.'*type')then
           CALL EGETRM(OUTSTR,K,TTYPE(I),'W','*type',IER)
-          IF(IER.NE.0)goto 1
+          IF(IER.NE.0)then
+            errmsg='reading token after *type'
+            goto 1
+          endif
           goto 44
         elseif(WORD(1:5).eq.'*form')then
           CALL EGETWR(OUTSTR,K,xdum,0.0,0.0,'-','*form',IER)
-          IF(IER.NE.0)goto 1
+          IF(IER.NE.0)then
+            errmsg='reading token after *form'
+            goto 1
+          endif
           goto 44
         elseif(WORD(1:5).eq.'*menu')then
           CALL EGETRM(OUTSTR,K,TMENU(I),'W','*menu',IER)
-          IF(IER.NE.0)goto 1
+          IF(IER.NE.0)then
+            errmsg='reading token after *menu'
+            goto 1
+          endif
           goto 44
         elseif(WORD(1:5).eq.'*aide')then
           CALL EGETRM(OUTSTR,K,TAIDE(I),'W','*aide',IER)
-          IF(IER.NE.0)goto 1
+          IF(IER.NE.0)then
+            errmsg='reading token after *aide'
+            goto 1
+          endif
           goto 44
         elseif(WORD(1:6).eq.'*other')then
           CALL EGETWI(OUTSTR,K,NTSTAT(I),0,0,'-','NTSTAT',IER)
@@ -1346,13 +1372,16 @@ C Note tabular data might be up to 1k characters wide on
 C each line and might extend to additional lines.
         DO 46 IP=1,NDBSTP
           CALL CLRTAB
-          CALL STRIPC1K(iafil,loutstr,0,ND,1,'tabular data',IER)
+C          CALL STRIPC1K(iafil,loutstr,0,ND,1,'tabular data',IER)
+          CALL STRIPC2500(iafil,loutstr25,0,ND,1,'tabular data',IER)
           K=0
-          CALL EGETWR(LOUTSTR,K,TIMEJD,0.,0.,'-','TIMEJD',IER)
+          CALL EGETWR(LOUTSTR25,K,TIMEJD,0.,0.,'-','TIMEJD',IER)
 
 C For nuwpr items read as many lines as required.
           IRVA=nuwpr
-          call EGETAGWRA(loutstr,K,iafil,IRVA,TABU,0.00,1.00,'-',
+C          call EGETAGWRA(loutstr,K,iafil,IRVA,TABU,0.00,1.00,'-',
+C     &        'raw tabular data',IER)
+          call EGETAGWRA1K(loutstr25,K,iafil,IRVA,TABU,0.00,1.00,'-',
      &        'raw tabular data',IER)
           if(itrc.gt.1)then
             write(outs,*) 'at time ',TIMEJD,'tabu is ',TABU
@@ -1424,7 +1453,7 @@ c records within the ASCII version.
 C Delete the existing file (this requires opening it and then
 C calling efdelet. Then open new scratch file with the minimal
 C width.
-        WRITE(OUTS,'(A,A)')' Deleting existing ',LTDF(1:lnblnk(LTDF))       
+        WRITE(OUTS,'(2A)')' Deleting existing ',LTDF(1:lnblnk(LTDF))       
         CALL EDISP(IUOUT,OUTS)
         ier=0
         call EFOPRAN(iutdf,LTDF,ITWPR,1,IER)
@@ -1462,14 +1491,17 @@ C     &  ' ndata',ndata
 C Update the scratch file. If ndata has been lost, reset from nitdf.
       if(ndata.eq.0) ndata=nitdf
       IRVA=NDATA
-      CALL EGETWIA(iafil,IHREC,IRVA,0,0,'-','pointers',IER)
+C      CALL EGETWIA(iafil,IHREC,IRVA,0,0,'-','pointers',IER)
+      CALL EGETWIA1K(iafil,IHREC,IRVA,0,0,'-','pointers',IER)
       call usrmsg(' ','Updating the scratch file...','-')
       CALL EWTDF(IER)
       call usrmsg(' ','Updating the scratch file...done.','-')
       goto 34
 
 C Export file write errors.
- 1    CALL LUSRMSG('Error in importing data',OUTSTR,'W')
+ 1    call edisp(iuout,errmsg)
+      call edisp(iuout,outstr)
+      CALL LUSRMSG('Error in importing data',OUTSTR,'W')
       IER=1
       goto 99
  103  CALL LUSRMSG('Error in writing importing data',OUTSTR,'W')
@@ -1617,7 +1649,8 @@ C to alter the number of columns check the value of iadcols.
       COMMON/OUTIN/IUOUT,IUIN
       common/TDFADDC/iadcols,deftabu(9)
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
-      CHARACTER delim*1,msgl2*48,louts*1000,outs*124
+C      CHARACTER delim*1,msgl2*48,louts*1000,outs*124
+      CHARACTER delim*1,msgl2*48,louts*2500,outs*124
 
 C If nuwpr is zero then we have a problem.
       if(nuwpr+iadcols.eq.0)then

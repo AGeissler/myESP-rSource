@@ -42,6 +42,7 @@ C of inter-fabric temperature and condensation conditions.
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/OUTIN/IUOUT,IUIN
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/exporttg/xfile,tg,delim
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
       CHARACTER*23 ITEM(10)
@@ -77,7 +78,11 @@ C Instanciate help for this menu.
       call gethelptext(helpinsub,helptopic,nbhelp)
 
       NITMS=10
-      INO=-2
+      if(MMOD.eq.8)then
+        INO=-1
+      else
+        INO=-2
+      endif
     4 CALL EMENU('Fabric',ITEM,NITMS,INO)
 
       IF(INO.EQ.1)then
@@ -102,7 +107,7 @@ C plotted over the whole period or one timestep at a time.
           helptopic='condensation_animation'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKABC('When plotting temperatures:',' ',
-     &      'show all timesteps at once','animate data display',
+     &      'show cumulative section','animate data display',
      &      'continue',IW,nbhelp)
           if(IW.eq.1)act='-'
           if(IW.eq.2)act='a'
@@ -110,9 +115,9 @@ C plotted over the whole period or one timestep at a time.
 
 C Ask about speed
           IWS=2
-          CALL EASKABC('Plotting speed:',' ',
+          CALL EASKABCD('Plotting speed:',' ',
      &      'slower (200ms/step)','normal (100ms/step)',
-     &      'fast (50ms/step',IWS,nbhelp)
+     &      'fast (50ms/step)','25ms/step',IWS,nbhelp)
 
 C Get element thicknesses for this construction.
           CALL MOTHKE(ICOMP,ISUR)
@@ -514,6 +519,7 @@ C Convert to node-related vapour resistance.
 C Ask for time.
       IDO=IOD1
       IMO=IOM1
+      TIME=FLOAT(IOH1)
    41 call askrtim(IFDAY,IMO,IDO,IJDAY,TIME,IT,IER)
       IDAYO=IJDAY
       TIMO=TIME

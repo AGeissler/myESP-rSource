@@ -1,7 +1,7 @@
 C ******* ESPrVersion
-C Output ESP-r versioning information.
+C Spit out ESP-r versioning information.
 C
-C  Argument cVerbosity allows some control on the amount of detail 
+C  Arguement cVerbosity allows some control on the amount of detail 
 C  provided: 
 C    - 'summary' attempts to print release information, 
 C    - 'details' prints versioning/build information.
@@ -44,34 +44,33 @@ C Arrays mapping binary names to longer descriptions
       integer iBinIndex, iCurIndex
       character*3 cXLibs
 
-      data cBinNames / 'aco', 'b2e', 'bps', 'dbm', 'dfs', 'c2e', 'cfg',
-     &                 'clm', 'e2r', 'ecnv', 'eco', 'grd', 'ish', 'mfs',
-     &                 'mld', 'mrt', 'net', 'pdb', 'prj', 'res', 'tdf', 
+      data cBinNames / 'aco', 'b2e', 'bps', 'dbm', 'dfs', 'dfv', 'c2e', 
+     &                 'cdb', 'clm', 'e2r', 'ecnv', 'eco', 'grd', 'ish',
+     &                 'mfs', 'mld', 'mrt', 'net', 'pdb', 'prj', 'res', 
      &                 'vew' /
       
       
-      data cBinDesc / 'Acoustics analysis',
+      data cBinDesc / 'Acoustics Analysis Module',
      &                'BEMS link',
-     &                'Integrated simulator',
-     &                'Database manager',
-     &                'Flow simulator',
+     &                'Integrated Building Performance Simulator',
+     &                'Database Manager',
+     &                'Domain Flow Solver',
+     &                'Domain Flow Viewer',
+     &                ' ','Components DB Manager',
+     &                'Climate Analysist Tool',
+     &                'Radiance link',
+     &                'Data Conversion Utility',
      &                ' ',
-     &                'Topology checker',
-     &                'Climate analysis',
-     &                'Radiance linker',
-     &                'Data converter',
-     &                ' ',
-     &                'Construction gridding',
-     &                'Shading analysis',
-     &                'Mass flow simulator',
-     &                'Mould analysis',
-     &                'Mean radiant temperature analysis',
-     &                'Network definition',
-     &                'Plant database manager',
-     &                'Project manager',
-     &                'Results analysis',
-     &                ' ',
-     &                'Wireline viewer' /
+     &                'Construction Gridding Tool',
+     &                'Shading Analysis Tool',
+     &                'Mass Flow Solver',
+     &                'Mould analysis tool',
+     &                'Mean Radiant Temperature Module',
+     &                'Network tool',
+     &                'Plant Database Tool',
+     &                'Project Manager',
+     &                'Results Analysis Tool',
+     &                'Hidden Line Viewer' /
      
       save cBinNames, cBinDesc
       
@@ -90,11 +89,13 @@ C length.
       iLen = lnblnk ( cPassedType )
       write (cType, '(A)') cPassedType( 1:MIN(iLen,16) )
 
-C Deterimine if summary or details requireed.
+C Deterimine of summary or details 
       if ( cType(1:7) == "details" ) then
         bBuild_Info = .true.
       elseif ( cType(1:7) == "summary" ) then
         bBuild_Info = .false. 
+      elseif ( cType(1:6) == "silent" ) then
+        continue
       else
 C cType is set programmically,
 C and needs only rudementry error trapping.
@@ -107,35 +108,44 @@ C Determine index of current application in cBinNames/cBinDesc arrays
         iLen = lnblnk ( cBinNames(iCurIndex) )
         if ( cAppName(1:lnblnk(cAppName)) .eq. 
      &       cBinNames(iCurIndex)(1:iLen)) then 
+          
           iBinIndex = iCurIndex
+          
         endif 
       enddo
 
-C Write out header in format 'ESP-r <description> (<tool name>)'), 
-C e.g. 'ESP-r Integrated simulator (bps)'.
-        
-C ESP-r banner. 
+     
+C Write out header ('ESP-r XYZ tool (xyx)'). 
+C  e.g.: 'ESP-r integrated builing performance simulator (bps)'
+      
+      
+C.....ESP-r banner 
       if ( bRelease ) then 
-        ! Release version.       
+C.......Release version        
         write(cTemp_a,'(5A)') "ESP-r ", 
      &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex))), 
      &       " Release ", 
      &       cRelease_Num(1:lnblnk(cRelease_Num)),
      &       "."
-        call edisp(iuout," ")
         call edisp(iuout,cTemp_a)      
+      
       else 
+        
         write(cTemp_a,'(2A)') "ESP-r ", 
      &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex)))
-        call edisp(iuout," ")
         call edisp(iuout,cTemp_a)      
-        write(cTemp_a,'(6A)') "Development copy of ", 
+        
+        write(cTemp_a,'(6A)') "This is a development copy of ", 
      &       cAppName(1:lnblnk(cAppName)),
-     &       " based on ESP-r release ",
+     &       ", based on ESP-r release ",
      &       cRelease_Num(1:lnblnk(cRelease_Num)),"."
         call edisp(iuout,cTemp_a)    
+        
       endif 
       
+C If cType is silent return at this point.
+      if ( cType(1:6) == "silent" ) return
+
 C Copyright information:
       call edisp(iuout," ")      
       call edisp(iuout,      
@@ -146,16 +156,7 @@ C Check if source was versioned and if it is a working copy.
       if ( .not. bVersioned ) then     
         call edisp(iuout," ")
         call edisp(iuout,
-     &  "This copy of ESP-r is not under versioning control. Using")
-        call edisp(iuout,
-     &  "un-versioned copies of ESP-r may prevent you from")
-        call edisp(iuout,
-     &  "reconstituting models and reproducing simulation results in")
-        call edisp(iuout,
-     &  "the future. Development using unversioned copies of ESP-r")
-        call edisp(iuout,
-     &  "is also prone to error, and strongly discouraged.")
-        call edisp(iuout," ")
+     &  "This copy of ESP-r is not under versioning control.")
         call edisp(iuout,
      &  "You can obtain a versioned copy of ESP-r here:")
         call edisp(iuout," ")
