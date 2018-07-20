@@ -368,13 +368,15 @@ C network flow nodes.
     1 if(IFLWN.EQ.0) GOTO 2
 
       do IPCON=1,NPCON
-        if(ICFFS(IPCON).LT.0.OR.ICFFS(IPCON).GT.NCNN) then
-           write(outs,'(A,I3,A,I3)') ' Plant network connection ',
+        if(ICFFS(IPCON).lt.99) then
+          if(ICFFS(IPCON).LT.0.OR.ICFFS(IPCON).GT.NCNN) then
+             write(outs,'(A,I3,A,I3)') ' Plant network connection ',
      &          IPCON,' references an invalid mass flow connection',
      &          ICFFS(IPCON)
-           call edisp(iuout,outs)
-           goto 99
-        end if
+             call edisp(iuout,outs)
+             goto 99
+          end if
+        endif
       end do
 
 C Set time and weather variables.
