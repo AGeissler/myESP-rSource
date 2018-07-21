@@ -1441,28 +1441,30 @@ cx          NRGRDT = 4
           ZDA = (/ 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0,
      &             5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0 /)
           NRGRDT = 20
+
+          WRITE(outs,'(A)')'Calculated ground temperature at depth '
+          call edispxtr(itu,outs)
+
           do 19 II=1,NRGRDT
-          ZD=ZDA(II)
-          CALL GTCALC(ZD,'-',IER)
-          itrunc=1
-          ipos=1
-          do while (itrunc.ne.0)
-            call arlist(ipos,12,eGrdTp,12,'S',outs2,loutln,itrunc)
-            if(markdown)then
-            WRITE(outs,'(A,f4.1,A)')'Calculated ground temp at ',
-     &        ZDA(II),' m depth  '
-              call edispxtr(itu,outs)
+            ZD=ZDA(II)
+            CALL GTCALC(ZD,'-',IER)
+            itrunc=1
+            ipos=1
+            do while (itrunc.ne.0)
+              call arlist(ipos,12,eGrdTp,12,'S',outs2,loutln,itrunc)
+              if(markdown)then
+                WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',outs2
+                call edispxtr(itu,outs248)
 cx     &          'Calculated ground temp at 0.5m depth  ')
-              call edisp2tr(itu,outs2)
-            else
-            WRITE(outs,'(A,f4.1,A)')'Calculated ground temp at ',
-     &        ZDA(II),' m depth'
-              call edispxtr(itu,outs)
-cx              call edisp(itu,'Calculated ground temp at 0.5m depth')
-              call edisp(itu,outs2)
-            endif   
-            ipos=itrunc+1
-          end do
+cx                call edisp2tr(itu,outs2)
+              else
+                WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',outs2
+                call edispxtr(itu,outs248)
+cx                call edisp(itu,'Calculated ground temp at 0.5m depth')
+cx                call edisp(itu,outs2)
+              endif
+              ipos=itrunc+1
+            end do
   19      continue
 
 cx          ZD=1.0
