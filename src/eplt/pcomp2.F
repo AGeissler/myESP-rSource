@@ -1210,7 +1210,7 @@ C 1st phase mass (ie. water) balance coefficients
 C Note that if fluid mass flow solver active, source of mass zeroised
       ELSE IF(ISTATS.EQ.2) THEN
         COUT(1)=1.
-        IF(IFLWN.EQ.0) THEN
+        IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) THEN
           COUT(2)=0.
           COUT(3)=CDATA(IPCOMP,1)*GLY_WATER_DEN*
      &            (1.-GLYCOL_MASS_FRACTION/100.)
@@ -1222,7 +1222,7 @@ C Note that if fluid mass flow solver active, source of mass zeroised
 C 2nd phase mass (ie. "vapour") balance coefficients
       ELSE IF(ISTATS.EQ.3) THEN
         COUT(1)=1.
-        IF(IFLWN.EQ.0) THEN
+        IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) THEN
           COUT(2)=0.
           COUT(3)=CDATA(IPCOMP,1)*GLY_WATER_DEN*
      &    GLYCOL_MASS_FRACTION/100.
@@ -4802,7 +4802,7 @@ C 1st phase mass (ie. water) balance coefficients
 C Note that if fluid mass flow solver active, source of mass zeroised
       ELSE IF(ISTATS.EQ.2) THEN
          COUT(1)=1.
-         IF(IFLWN.EQ.0) THEN
+         IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) THEN
             COUT(2)=0.
             COUT(3)=CDATA(IPCOMP,1)
          ELSE

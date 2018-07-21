@@ -860,7 +860,7 @@ C 1st phase mass (ie. dry air) balance coefficients
 C Note that if fluid mass flow solver active, source of mass zeroised
       ELSE IF(ISTATS.EQ.2) THEN
          COUT(1)=1.
-         IF(IFLWN.EQ.0) THEN
+         IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) THEN
             COUT(2)=0.
             COUT(3)=CDATA(IPCOMP,1)*RHOFLD(1,CSVF(INOD1,1))
          ELSE
@@ -3670,7 +3670,7 @@ C 1st phase mass (ie. dry air) balance coefficients
 C Note that if fluid mass flow solver active, source of mass zeroised
       ELSE IF(ISTATS.EQ.2) THEN
          COUT(1)=1.
-         IF(IFLWN.EQ.0) THEN
+         IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) THEN
             COUT(2)=0.
             COUT(3)=CDATA(IPCOMP,1)
          ELSE

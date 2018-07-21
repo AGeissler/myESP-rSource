@@ -516,7 +516,7 @@ C connection in case of ISTATS=2 (1st phase mass) and mfs not active
             IPOFS2(NXT,1)=-KNH
             IPOFS2(NXT,3)=-KNH
             IPOFS2(NXT,4)=-KNH
-            IF(IFLWN.EQ.0) THEN
+            IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) THEN
                IP2=IPC2(IPCON)
                ICOL=NPCDAT(IP2,9)+IPN2(IPCON)-1
                IPOFS2(NXT,2)=ICOL
