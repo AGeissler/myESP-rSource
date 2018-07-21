@@ -243,3 +243,26 @@ strip:
 	cd $(SRCdir)/eprj; $(MAKE) strip
 	cd $(SRCdir)/eres; $(MAKE) strip
 	cd $(SRCdir)/evew; $(MAKE) strip
+
+bincopy:
+	cp eaco/aco $(ESPBinDir)/aco
+	cp eb2e/b2e $(ESPBinDir)/b2e
+	cp ebps/bps $(ESPBinDir)/bps
+	cp edfs/dfs $(ESPBinDir)/dfs
+	cp edfv/dfv $(ESPBinDir)/dfv
+	cp ec2e/c2e $(ESPBinDir)/c2e
+	cp ecdb/cdb $(ESPBinDir)/cdb
+	cp eclm/clm $(ESPBinDir)/clm
+	cp ee2r/e2r $(ESPBinDir)/e2r
+	cp cnv/ecnv $(ESPBinDir)/ecnv
+	cp eeco/eco $(ESPBinDir)/eco
+	cp egrd/grd $(ESPBinDir)/grd
+	cp eish/ish $(ESPBinDir)/ish
+	cp emfs/mfs $(ESPBinDir)/mfs
+	cp emld/mld $(ESPBinDir)/mld
+	cp emrt/mrt $(ESPBinDir)/espvwf
+	cp net/enet $(ESPBinDir)/enet
+	cp epdb/pdb $(ESPBinDir)/pdb
+	cp eprj/prj $(ESPBinDir)/prj
+	cp eres/res $(ESPBinDir)/res
+	cp evew/viewer $(ESPBinDir)/viewer
