@@ -406,12 +406,14 @@ C Set temperatures for nodes corresponding to a plant component (noting
 C that network nodes are matched to plant network connections).
       IF(IFLWN.NE.0) THEN
         DO 20 IPCON=1,NPCON
-          ICNN=ICFFS(IPCON)
-          IF((FLW1(ICNN)+FLW2(ICNN)).GE.0.0) THEN
-            TNOD(NODPS(ICNN))=CONVAR(IPCON,1)
-          ELSE
-            TNOD(NODNE(ICNN))=CONVAR(IPCON,1)
-          END IF
+          if(ICFFS(IPCON).lt.99) then
+            ICNN=ICFFS(IPCON)
+            IF((FLW1(ICNN)+FLW2(ICNN)).GE.0.0) THEN
+              TNOD(NODPS(ICNN))=CONVAR(IPCON,1)
+            ELSE
+              TNOD(NODNE(ICNN))=CONVAR(IPCON,1)
+            END IF
+          endif
    20   CONTINUE
       END IF
 
