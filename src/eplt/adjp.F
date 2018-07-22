@@ -118,7 +118,7 @@ C Note that at start of simulation csvf(in1,3) is zero so
 C use csvf(in2,3) as a first estimate.
         IF(IPCT(IPCON).EQ.1) THEN
           CONVAR(IPCON,1)=CSVF(IN1,1)
-          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) then
+          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.-1) then
             CONVAR(IPCON,2)=CSVF(IN2,2)
           endif
           call eclose(CSVF(IN1,2),0.00,0.0001,close)
@@ -141,7 +141,7 @@ C Hydrogen flow
 C Type 2 connection: to known fluid temperature and humidity ratio
         ELSE IF(IPCT(IPCON).EQ.2) THEN
           CONVAR(IPCON,1)=PCONSD(IPCON,1)
-          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) then
+          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.-1) then
             CONVAR(IPCON,2)=CSVF(IN2,2)
           endif
           CONVAR(IPCON,3)=CONVAR(IPCON,2)*PCONSD(IPCON,2)
@@ -150,7 +150,7 @@ C Type 2 connection: to known fluid temperature and humidity ratio
 C Type 3 connection: to another component node
         ELSE IF(IPCT(IPCON).EQ.3) THEN
           CONVAR(IPCON,1)=CSVF(IN2,1)
-          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) then
+          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.-1) then
             CONVAR(IPCON,2)=CSVF(IN2,2)
           endif
           CONVAR(IPCON,3)=CSVF(IN2,3)
@@ -166,7 +166,7 @@ C Type 4 connection: to building zone air (or ambient air when zone=0)
             CONVAR(IPCON,1)=TFA(IZ)
             CONVAR(IPCON,3)=GFA(IZ)
           END IF
-          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) then
+          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.-1) then
             CONVAR(IPCON,2)=CSVF(IN2,2)
           endif
           CONVAR(IPCON,3)=CONVAR(IPCON,2)*CONVAR(IPCON,3)

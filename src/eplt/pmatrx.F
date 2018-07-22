@@ -500,9 +500,13 @@ C In case of connection type 3, IPOFS2 holds the column index
 C If mfs active, negate ipofs2 so that coefficient
 C will be moved to the matrix right-hand-side by MZPMSU.
             if(iflwn.ne.0) then
-               INN=NPCDAT(IP1,9)+IPN1(IPCON)-1
-               knh=KNHIT(INN)+1
-               ipofs2(nxt,2)=-knh
+              INN=NPCDAT(IP1,9)+IPN1(IPCON)-1
+              knh=KNHIT(INN)+1
+cx              if(ICFFS(IPCON).ne.-1) then
+                ipofs2(nxt,2)=-knh
+cx              else !! type 3, mfs active, but current connection not mapped ...
+                ! ... do nothing? ((same result as described below ...))
+cx              endif
             endif
 
 C For "boundary connection" types 1,2 and 4 IPOFS2 is negated so that
@@ -516,7 +520,7 @@ C connection in case of ISTATS=2 (1st phase mass) and mfs not active
             IPOFS2(NXT,1)=-KNH
             IPOFS2(NXT,3)=-KNH
             IPOFS2(NXT,4)=-KNH
-            IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.99) THEN
+            IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.-1) THEN
                IP2=IPC2(IPCON)
                ICOL=NPCDAT(IP2,9)+IPN2(IPCON)-1
                IPOFS2(NXT,2)=ICOL
@@ -585,7 +589,7 @@ C New connector types go here!
 C In case fluid flow network solver active, check
 C connection mapping regarding type of fluid (ie. water to water etc).
 C IMFCTP is fluid through corresponding mfs connection (1=air, 2=water)
-         IF(IFLWN.EQ.1) THEN
+         IF(IFLWN.EQ.1.and.ICFFS(IPCON).ne.-1) THEN
             IMFCTP=int(SUPCMP(ITPCON(ICFFS(IPCON)),1))
             IF((IMFCTP.EQ.1.AND.
      &          ICONTP(IPCON).NE.11.AND.ICONTP(IPCON).NE.21).OR.
@@ -692,7 +696,7 @@ C for new non-zero coefficients.
       ntcoe=nmax
 
 C Note that PCONDR is set to 1 in case fluid mass flow solver active
-      IF(NPCON.GT.0.AND.IFLWN.EQ.0) THEN
+      IF(NPCON.GT.0.AND.(IFLWN.EQ.0.or.ICFFS(IPCON).eq.-1)) THEN
          DO 92 IPCON=1,NPCON
          IF(IPCT(IPCON).NE.3) GOTO 92
          K=NPCDAT(IPC2(IPCON),9)+IPN2(IPCON)-1

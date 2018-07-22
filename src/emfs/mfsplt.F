@@ -62,9 +62,9 @@ C For each plant component inter-connection, over-write
 C the 1st phase mass flow rate data in CONVAR and adjust
 C 2nd phase mass flow rate to keep humidity ratio as before.
       DO 10 IPCON=1,NPCON
-C     Check if inter-connection active (value below 99) and only consider these
-C     connections (limits number of mfn connections to 98).
-      if (ICFFS(IPCON).lt.99) then
+C     Check if inter-connection active (value .ne. -1) and only consider these
+C     connections.
+      if (ICFFS(IPCON).ne.-1) then
         IF(abs(CONVAR(IPCON,2)).lt.0.0000001) THEN
            HRATIO=0.
         ELSE
