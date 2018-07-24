@@ -2282,8 +2282,7 @@ C into Dynamic Whole-Building Simulation', MASc Thesis, University
 C of Waterloo.
 C
 C ********************************************************************
-      subroutine profile_angle(icomp,isurf,icfctp,
-     &      omega_v,omega_h)
+      subroutine profile_angle(icomp,isurf,icfctp,omega_v,omega_h)
       USE h3kmodule
       IMPLICIT NONE
 
@@ -2299,7 +2298,7 @@ C geometry.h for zname.
       real pazi,pelv
 
       integer icomp,isurf,icfctp
-      real pi,r, omega_v, omega_h
+      real pi,r,omega_v,omega_h
 
 C.....DECLARATIONS for H3Kreporting object
       CHARACTER*12   cZone_Chars, cSurf_Chars
@@ -2978,7 +2977,7 @@ C      real slat_angleX
       real ang                      ! incident angle of radiation on surface
       real psazi,pselv              ! solar azimuth and elevation angles relativ to surface
       real solar_elev               ! profile angle solar elevation
-      real PI,R
+      real PI,R,omega_h
 
       character msgout*124
       character*12 cZone_Chars
@@ -3259,7 +3258,8 @@ C                  90∞   for horizontal surfaces facing upward ('ceiling') and
 C                 -90∞   for horizontal surfaces facing downward ('floor')
 C                 determin if horizontal or vertical and calc cut-off angle
                   if (vb_VorH(iact2,iact3)(1:4).eq.'HORZ') then
-                    call profile_angle(isen2,isen3,iact3,solar_elev)
+                    call profile_angle(isen2,isen3,iact3,
+     &                                             solar_elev,omega_h)
                     cutoff=
      &                 asin( vb_s(iact2,iact3)/vb_w(iact2,iact3)
      &                       *cos(solar_elev*R) )/R - solar_elev
