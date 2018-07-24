@@ -111,7 +111,7 @@ C Open special materials file on temporary file channel.
 C Read data from opened special materials file to the common blocks.
 C Get the number of entries in the file. 
       call stripc(ispmfil,outstr,1,ND,0,
-     &  'special materials file error..',IER)
+     &  'special materials file error-1..',IER)
       if(IER.ne.0) goto 999
       k=0
       call egetwi(outstr,K,nspmnod,1,mspmnod,'W',
@@ -123,13 +123,13 @@ C For each entry read the associated special materials data.
 
 C Firstly the special material label (first 16 characters).
         call stripc(ispmfil,outstr,1,ND,0,
-     &    'special materials file error..',IER)
+     &    'special materials file error-2..',IER)
         if(IER.ne.0) goto 999
         spmlabel(I)=outstr(1:16)
 
 C Next read the material info.
         call stripc(ispmfil,outstr,5,ND,0,
-     &    'special materials file error..',IER)
+     &    'special materials file error-3..',IER)
         if(IER.ne.0) goto 999
         k=0
         call egetwi(outstr,K,ivar1,1,mcom,'W','-',IER)
@@ -146,7 +146,7 @@ C Next read the material info.
 
 C Read the material miscellaneous data.
         call stripc(ispmfil,outstr,1,ND,0,
-     &    'special materials file error..',IER)
+     &    'special materials file error-4..',IER)
         if(IER.ne.0) goto 999
 C Read the number of data items for this entry
         K=0
