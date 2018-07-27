@@ -346,6 +346,7 @@ C.....Local variables
       real trsum
       REAL Q_zone,Q_heat,Q_cool ! Total heat injection / extraction
       REAL Qm2_zone,Qm2_heat,Qm2_cool ! Total heat injection / extraction per m2 of floor area
+      REAL negiZone,TMRT,TMIX,SUM,AREA,J,TO   ! negative zone number, mean radiant and operative temperatures
       INTEGER i_ZnCtl           ! Zone control flag
 
 
@@ -1497,6 +1498,34 @@ C.....AIR POINT TEMPERATURE
       call AddToReport (
      &         rvAirPointTemperature%Identifier,
      &         TFA(iZone),
+     &         cZone_Chars)
+
+C.....Mean Radiant & Operative TEMPERATURES
+C     See ebld/bcfunc.F line 334 ff. for calculation loop logic.
+C
+C Opaque internal surfaces.
+      SUM=0.
+      AREA=0.
+      DO 20 J=1,nzsur(iZone)
+        TO=TFS(iZone,J)
+        SUM=SUM+TO*SNA(iZone,J)
+        AREA=AREA+SNA(iZone,J)
+   20 CONTINUE
+
+C Compute weighted temperature.
+      TMRT=TFA(iZone)
+      IF(AREA.GT.0.) TMRT=SUM/AREA
+
+      call AddToReport (
+     &         rvMeanRadiantTemperature%Identifier,
+     &         TMRT,
+cx     &         10.,
+     &         cZone_Chars)
+
+      call AddToReport (
+     &         rvOperativeTemperature%Identifier,
+     &         0.5*TMRT+0.5*TFA(iZone),
+cx     &         11.,
      &         cZone_Chars)
 
 C.....Zone internal gains

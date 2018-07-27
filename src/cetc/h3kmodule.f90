@@ -88,7 +88,8 @@ MODULE h3kmodule
    !Used by h3k_report_data.F
    Type(ReportVariable) :: rvHeatFluxRadiationShortwave, rvHeatFluxRadiationShortwaveUnitArea, &
          rvHeatFluxAboveGradeNet, rvHeatFluxSpecifiedBCsNet, rvHeatFluxBelowGradeNet, &
-         rvHeatFluxCENPartitionNet, rvAirPointTemperature, rvAirPointRadiantGains, rvAirPointConvectiveGains, &
+         rvHeatFluxCENPartitionNet, rvAirPointTemperature, rvMeanRadiantTemperature, rvOperativeTemperature, &
+         rvAirPointRadiantGains, rvAirPointConvectiveGains, &
          rvAirPointLatentGains, rvWindowsPosition, rvAirFlowModel, &
          rvAirPointRelativeHumidity, rvAirPointVapourPressure, rvSuppliedEnergyNet, rvSuppliedEnergyHeating, &
          rvSuppliedEnergyCooling, rvSuppliedEnergyNetPerm2, rvSuppliedEnergyHeatingPerm2, &
@@ -450,6 +451,18 @@ CONTAINS
       rvAirPointTemperature%VariableType = '(oC)'
       rvAirPointTemperature%Description = 'Zone air-point temperature'
       Call AddVariable(rvAirPointTemperature)
+
+      rvMeanRadiantTemperature%VariableName = 'building/*/air_point/mean_rad_temp'
+      rvMeanRadiantTemperature%MetaType = 'units'
+      rvMeanRadiantTemperature%VariableType = '(oC)'
+      rvMeanRadiantTemperature%Description = 'Zone mean radiant temperature'
+      Call AddVariable(rvMeanRadiantTemperature)
+
+      rvOperativeTemperature%VariableName = 'building/*/air_point/operative_temp'
+      rvOperativeTemperature%MetaType = 'units'
+      rvOperativeTemperature%VariableType = '(oC)'
+      rvOperativeTemperature%Description = 'Zone operative temperature'
+      Call AddVariable(rvOperativeTemperature)
 
       rvAirPointRadiantGains%VariableName = 'building/*/air_point/radiant_gains'
       rvAirPointRadiantGains%MetaType = 'units'
