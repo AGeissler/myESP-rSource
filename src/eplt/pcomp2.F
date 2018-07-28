@@ -1202,9 +1202,15 @@ C Store "environment" variables future values
          PCQF(INOD1)=Q
 
 C Save plant additional output data.
-          napdat(ipcomp)=2
-          pcaout(ipcomp,1)=pwrp(ipcomp)
-          pcaout(ipcomp,2)=pwrq
+         napdat(ipcomp)=2
+         pcaout(ipcomp,1)=pwrp(ipcomp)
+         pcaout(ipcomp,2)=pwrq
+
+C Establish "containment loss" data
+         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
+     &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
+         call store_plt_gain (IPCOMP,0.5*QDATA(IPCOMP),iConvective)
+         call store_plt_gain (IPCOMP,0.5*QDATA(IPCOMP),iRadiant)
 
 C 1st phase mass (ie. water) balance coefficients
 C Note that if fluid mass flow solver active, source of mass zeroised
@@ -4786,16 +4792,16 @@ C Store "environment" variables future values
          PCQF(INOD1)=Q
 
 C Save plant additional output data.
-          napdat(ipcomp)=2
-          pcaout(ipcomp,1)=pwrp(ipcomp)
-          pcaout(ipcomp,2)=pwrq
+         napdat(ipcomp)=2
+         pcaout(ipcomp,1)=pwrp(ipcomp)
+         pcaout(ipcomp,2)=pwrq
 
 C GF New Start
 C Establish "containment loss" data
          QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+         call store_plt_gain (IPCOMP,0.5*QDATA(IPCOMP),iConvective)
+         call store_plt_gain (IPCOMP,0.5*QDATA(IPCOMP),iRadiant)
 C GF New End
 
 C 1st phase mass (ie. water) balance coefficients
