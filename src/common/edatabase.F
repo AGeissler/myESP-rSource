@@ -2283,8 +2283,6 @@ C Present list based on the name and type of the MLC.
       endif
       END
 
-C << TO DO CREATE version of EPKMLC which goes through categories >>
-
 
 C *************** EMKAMLD 
 C EMKAMLD: Creates a legacy ascii constructions database based on the

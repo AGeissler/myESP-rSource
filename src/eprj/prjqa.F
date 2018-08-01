@@ -310,6 +310,7 @@ C in the current model. A -1 means not applicable
       character lpath*72,fname*72 ! for use with fdroot
       character llclmdb*144,miscinf*72
       character boundmsg*72
+      character outscal*248  ! for calendar day types report
       integer llt,lndbp,jj,lnsn
       integer NRGRDT  ! actual number of ground temps calculated
 
@@ -1325,11 +1326,9 @@ C Check if any of the address fields are known.
           else
             write(outs,'(2a)')'Project name: ',pjname(1:lnblnk(pjname))
             call edisp(itu,outs)
-
-C Check if any of the address fields are known.
-            if(certifname(1:15).eq.'not yet defined'.and.
-     &         certTel(1:15).eq.'not yet defined'.and.
-     &         certaddress(1:15).eq.'not yet defined')then
+            if(baddress(1:15).eq.'not yet defined'.and.
+     &         bcity(1:15).eq.'not yet defined'.and.
+     &         buildingPC(1:15).eq.'not yet defined')then
               continue  ! nothing to write
             else
               write(outs,'(2a)')'Building address: ',baddress
@@ -1824,7 +1823,8 @@ C If temporal data associated with the model report it.
         endif
       endif
 
-C Databases associated with the model. First print the file names.
+C Databases associated with the model. First print the file names
+C what ever the value of databaseinfo.
       if(databaseinfo.ge.0)then
         call edisp(itu,' ')
         if(markdown)then
@@ -2152,15 +2152,15 @@ C List the day types (these can be used by all of the controls which
 C are not bounded by period of validity.
           call edisp(itu,' ')
           if(markdown)then
-            write(outs,'(a,20a)') 
+            write(outscal,'(a,20a)') 
      &        'The following day types are defined ',
      &         (CALENTAG(idty),idty=1,NBDAYTYPE)
-            call edisp2tr(itu,outs)
+            call edisp2tr(itu,outscal)
           else
-            write(outs,'(a,20a)') 
+            write(outscal,'(a,20a)') 
      &        'The following day types are defined: ',
      &         (CALENTAG(idty),idty=1,NBDAYTYPE)
-            call edisp(itu,outs)
+            call edisp248(itu,outscal,100)
           endif
 
           if(controlinfo.eq.2)then

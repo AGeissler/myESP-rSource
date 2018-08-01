@@ -62,9 +62,7 @@ C For each plant component inter-connection, over-write
 C the 1st phase mass flow rate data in CONVAR and adjust
 C 2nd phase mass flow rate to keep humidity ratio as before.
       DO 10 IPCON=1,NPCON
-C     Check if inter-connection active (value .ne. -1) and only consider these
-C     connections.
-      if (ICFFS(IPCON).ne.-1) then
+      IF(ICFFS(IPCON).ne.0) then
         IF(abs(CONVAR(IPCON,2)).lt.0.0000001) THEN
            HRATIO=0.
         ELSE
@@ -76,14 +74,14 @@ C     connections.
 C Now check direction of flow reverse flow reported to trace.
         IF(CONVAR(IPCON,2).LT.0.) THEN
           IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &       ITRACE(40).NE.0)THEN
+     &      ITRACE(40).NE.0)THEN
              CALL DAYCLK(IDYP,PTIMEF,ITU)
              WRITE(ITU,*) ' MFLW2P: reverse mass flow connection ',IPCON
              WRITE(ITU,*) '         1st phase mass flow reset to zero'
           ENDIF
           CONVAR(IPCON,2)=0.
         END IF
-      endif
+      END If
 
 C Next connection.
    10 CONTINUE

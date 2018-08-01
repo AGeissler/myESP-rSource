@@ -2846,7 +2846,7 @@ C Newer control files have an extra item related to humidity control.
      &              a,f7.2,a,f5.1,a,f5.1,a,f6.2,a,f6.2,a)') 
      &              msg1(1:lnblnk(msg1)),' heat cap',cm(2),
      &              'W cool cap',cm(4),
-     &              'W. Heat sp',cm(6),
+     &              'W heat sp',cm(6),
      &              'C cool sp',cm(7),
      &              'C & moist inj RH ctl hi sp',
      &              cm(8),'(%) low sp',cm(9),
@@ -2872,7 +2872,7 @@ C Newer control files have an extra item related to humidity control.
      &              a,f7.2,a,f5.1,a,f5.1,a)') 
      &              msg1(1:lnblnk(msg1)),' Heating cap ',cm(2),
      &              'W cooling cap ',cm(4),
-     &              'W. Heating sp ',cm(6),
+     &              'W heating sp ',cm(6),
      &              'C cooling sp ',cm(7),
      &              'C and T based RH ctl upper sp ',
      &              cm(8),'(%) lower sp ',cm(9),'(%).'
@@ -2883,7 +2883,7 @@ C Newer control files have an extra item related to humidity control.
      &              'W min heating cap ',cm(3),
      &              'W max cooling cap ',cm(4),
      &              'W min heaing cap ',cm(5),
-     &              'W. Heating sp ',cm(6),
+     &              'W heating sp ',cm(6),
      &              'C cooling sp ',cm(7),
      &              'C and T based RH ctl upper sp ',
      &              cm(8),'(%) lower sp ',cm(9),'(%).'
@@ -2896,7 +2896,7 @@ C Newer control files have an extra item related to humidity control.
      &              '(2a,f9.1,a,f9.1,a,f7.2,a,f7.2,a)') 
      &              msg1(1:lnblnk(msg1)),' Heating capacity ',cm(2),
      &              'W cooling capacity ',cm(4),
-     &              'W. Heating setpoint ',cm(6),'C cooling setpoint ',
+     &              'W heating setpoint ',cm(6),'C cooling setpoint ',
      &              cm(7),'C. with incomplete RH control.'
                 else
                   write(lmsg,
@@ -2905,7 +2905,7 @@ C Newer control files have an extra item related to humidity control.
      &              'W min heating capacity ',cm(3),
      &              'W max cooling capacity ',cm(4),
      &              'W min cooling capacity ',cm(5),
-     &              'W. Heating setpoint ',cm(6),'C cooling setpoint ',
+     &              'W heating setpoint ',cm(6),'C cooling setpoint ',
      &              cm(7),'C. with incomplete RH control.'
                 endif
               endif

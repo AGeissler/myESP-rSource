@@ -118,9 +118,9 @@ C Note that at start of simulation csvf(in1,3) is zero so
 C use csvf(in2,3) as a first estimate.
         IF(IPCT(IPCON).EQ.1) THEN
           CONVAR(IPCON,1)=CSVF(IN1,1)
-          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.-1) then
+          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.0) then
             CONVAR(IPCON,2)=CSVF(IN2,2)
-          endif
+          END IF
           call eclose(CSVF(IN1,2),0.00,0.0001,close)
           call eclose(CSVF(IN1,3),0.00,0.0001,closea)
           IF(.NOT.close) THEN
@@ -141,18 +141,18 @@ C Hydrogen flow
 C Type 2 connection: to known fluid temperature and humidity ratio
         ELSE IF(IPCT(IPCON).EQ.2) THEN
           CONVAR(IPCON,1)=PCONSD(IPCON,1)
-          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.-1) then
+          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.0) then
             CONVAR(IPCON,2)=CSVF(IN2,2)
-          endif
+          END IF
           CONVAR(IPCON,3)=CONVAR(IPCON,2)*PCONSD(IPCON,2)
           CONVAR(IPCON,4) = 0.  ! Hydrogen flow 
 
 C Type 3 connection: to another component node
         ELSE IF(IPCT(IPCON).EQ.3) THEN
           CONVAR(IPCON,1)=CSVF(IN2,1)
-          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.-1) then
+          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.0) then
             CONVAR(IPCON,2)=CSVF(IN2,2)
-          endif
+          END IF
           CONVAR(IPCON,3)=CSVF(IN2,3)
           CONVAR(IPCON,4) = CSVF(IN2,4)  ! Hydrogen flow 
 
@@ -166,9 +166,9 @@ C Type 4 connection: to building zone air (or ambient air when zone=0)
             CONVAR(IPCON,1)=TFA(IZ)
             CONVAR(IPCON,3)=GFA(IZ)
           END IF
-          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.-1) then
+          IF(IFLWN.EQ.0.or.ICFFS(IPCON).eq.0) then
             CONVAR(IPCON,2)=CSVF(IN2,2)
-          endif
+          END IF
           CONVAR(IPCON,3)=CONVAR(IPCON,2)*CONVAR(IPCON,3)
           CONVAR(IPCON,4)=0.  ! Hydrogen flow
 
@@ -299,7 +299,7 @@ C Dump PCNTMF array
         IF(ICONT.GT.0) THEN
           WRITE(ITU,*) ' Plant containment temperatures (PCNTMF)'
           DO 920 ICONT=1,NCONT
-            WRITE(ITU,*) IPCC(ICONT),PCNTMF(IPCC(ICONT)) !GF Change
+            WRITE(ITU,*) ICONT,PCNTMF(ICONT)
   920     CONTINUE
         ELSE
           WRITE(ITU,*) ' There are no plant containments'
