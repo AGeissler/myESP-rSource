@@ -845,6 +845,18 @@ C-----------------------------------------------------------------------
      &       cZone_Chars,
      &       cSurf_Chars)
 
+         call AddToReport(
+     &       rvHeatFluxRadiationShortwaveIn%identifier,
+     &       qswrdi(iZone,iSurface,2),
+     &       cZone_Chars,
+     &       cSurf_Chars)
+
+        call AddToReport(
+     &       rvHeatFluxRadiationShortwaveInUnitArea%identifier,
+     &       qswrdi(iZone,iSurface,2)/sna(iZone,iSurface),
+     &       cZone_Chars,
+     &       cSurf_Chars)
+
 
 C-----------------------------------------------------------------------
 C       Estimate heat loss from surface by performing energy

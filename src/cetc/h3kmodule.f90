@@ -87,6 +87,7 @@ MODULE h3kmodule
 
    !Used by h3k_report_data.F
    Type(ReportVariable) :: rvHeatFluxRadiationShortwave, rvHeatFluxRadiationShortwaveUnitArea, &
+         rvHeatFluxRadiationShortwaveIn, rvHeatFluxRadiationShortwaveInUnitArea, &
          rvHeatFluxAboveGradeNet, rvHeatFluxSpecifiedBCsNet, rvHeatFluxBelowGradeNet, &
          rvHeatFluxCENPartitionNet, rvAirPointTemperature, rvMeanRadiantTemperature, rvOperativeTemperature, &
          rvAirPointRadiantGains, rvAirPointConvectiveGains, &
@@ -413,14 +414,26 @@ CONTAINS
       rvHeatFluxRadiationShortwave%VariableName = 'building/*/*/heat_flux/radiation/shortwave'
       rvHeatFluxRadiationShortwave%MetaType = 'units'
       rvHeatFluxRadiationShortwave%VariableType = '(W)'
-      rvHeatFluxRadiationShortwave%Description = 'Short-wave solar radiation'
+      rvHeatFluxRadiationShortwave%Description = 'Short-wave solar radiation, external face'
       Call AddVariable(rvHeatFluxRadiationShortwave)
 
       rvHeatFluxRadiationShortwaveUnitArea%VariableName = 'building/*/*/heat_flux/radiation/shortwave/unit_area'
       rvHeatFluxRadiationShortwaveUnitArea%MetaType = 'units'
       rvHeatFluxRadiationShortwaveUnitArea%VariableType = '(W/m2)'
-      rvHeatFluxRadiationShortwaveUnitArea%Description = 'Short-wave solar radiation per unit area'
+      rvHeatFluxRadiationShortwaveUnitArea%Description = 'Short-wave solar radiation per unit area, external face'
       Call AddVariable(rvHeatFluxRadiationShortwaveUnitArea)
+
+      rvHeatFluxRadiationShortwaveIn%VariableName = 'building/*/*/heat_flux/radiation/shortwavein'
+      rvHeatFluxRadiationShortwaveIn%MetaType = 'units'
+      rvHeatFluxRadiationShortwaveIn%VariableType = '(W)'
+      rvHeatFluxRadiationShortwaveIn%Description = 'Short-wave solar radiation, internal face'
+      Call AddVariable(rvHeatFluxRadiationShortwaveIn)
+
+      rvHeatFluxRadiationShortwaveInUnitArea%VariableName = 'building/*/*/heat_flux/radiation/shortwavein/unit_area'
+      rvHeatFluxRadiationShortwaveInUnitArea%MetaType = 'units'
+      rvHeatFluxRadiationShortwaveInUnitArea%VariableType = '(W/m2)'
+      rvHeatFluxRadiationShortwaveInUnitArea%Description = 'Short-wave solar radiation per unit area, external face'
+      Call AddVariable(rvHeatFluxRadiationShortwaveInUnitArea)
 
       rvHeatFluxAboveGradeNet%VariableName = 'building/*/*/heat_flux/above_grade/net'
       rvHeatFluxAboveGradeNet%MetaType = 'units'
