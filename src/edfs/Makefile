@@ -95,14 +95,12 @@ h3kmodule.f90:
 
 strip:
 	strip $(PROG)
-	strip $(PROGV)
 
 install:
 	install $(SWTCH) $(PROG) $(ESPBinDir)/$(PROG)
-	install $(SWTCH) $(PROGV) $(ESPBinDir)/$(PROGV)
 
 clean:
-	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(DFV_OBJECTS) $(MODULES) $(DFV_MODULES) \
+	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \
 	aim2_module.F arrow.F ascii_mat.F c2fdum.F \
 	cfdrw.F cfgrid.F common3dv.F dossupport.F e3dviews.F edatabase.F egeometry.F \
 	eroper.F esru_misc.F filelist.F psychro.F read3dv.F sort.F startup.F \
