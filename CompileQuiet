@@ -5,18 +5,17 @@ architecture=`uname -s`      # computer type e.g. Linux Darwin SunOS
 #debug="--extra_debug"
 debug=""
 CVER=""
-LOCATION="-d /opt/esru/esp-r"
+LOCATION="-d /opt/esp-r"
 
 if [ "$architecture" == "Darwin" ]; then
 #   debug="--extra-debug";
    echo " "
-   echo " OS X system, changing install location to /opt/esru"
+   echo " OS X system, install location /opt/esp-r"
    # Compilers
    CVER="--compiler_version -mp-5"
-#   LOCATION="-d /opt/esru"
 fi
 
-#./Install $1 $LOCATION --xml --X11 --no_dbs --no_training $debug $CVER --silent
+./Install $1 $LOCATION --xml          --X11 --no_dbs --no_training $debug $CVER --silent
 #./Install $1 $LOCATION --xml --SQLite --X11 --no_dbs --no_training $debug $CVER --silent
 #./Install $1 $LOCATION --xml          --X11          --no_training $debug $CVER --silent --force
-./Install $1 $LOCATION --xml          --X11          --no_training $debug $CVER --silent
+#./Install $1 $LOCATION --xml          --X11          --no_training $debug $CVER --silent
