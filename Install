@@ -2055,9 +2055,7 @@ cd ${SRCdir}
 if [ "$debugging" = "no" ]; then
   make ESPdir=${ESPdir} EXE=${EXE} COSIMDir=${COSIMdir} strip  >/dev/null 2>&1
 fi
-#make ESPBinDir=${ESPBinDir} EXE=${EXE} COSIMDir=${COSIMdir} InstBins ${targets}  >/dev/null 2>&1
-make ESPBinDir=${ESPBinDir} EXE=${EXE} COSIMDir=${COSIMdir} bincopy
-
+make ESPBinDir=${ESPBinDir} EXE=${EXE} COSIMDir=${COSIMdir} InstBins ${targets}  >/dev/null 2>&1
 if [ "$clean" = "yes" ]; then
   make EXE=${EXE} clean  >/dev/null 2>&1
 fi
@@ -2110,7 +2108,7 @@ elif [ ${MCTYPE} = mingw ]; then
 fi
 
 # Temporary.
-ln -sf ${ESPdir}/bin/espvwf ${ESPdir}/bin/vwf
+ln -sf ${ESPdir}/bin/mrt ${ESPdir}/bin/vwf
 
 echo " "
 echo " Installation complete."
