@@ -207,13 +207,21 @@ C Determine specific heat and latent heat values
 
         Hfg=CNDWAT(Ta1)
 
-C Establish outstanding arguements used in primitive part subroutines
+C Establish outstanding arguments used in primitive part subroutines
 
         RMa=Va*RHOFLD(1,Ta1)
         RMw=3.14159*(Di**2)/4.*RL*RHOFLD(3,Twm)
         Ua=Rma0/(Ax*RHOFLD(1,Ta1))
         Uw=Rmw0/(RHOFLD(3,Twm)*3.14159*(Di**2)/4.)
-        hi=1400.*(1.+0.015*Twm)*(Uw**0.8)/Di**0.2
+
+        call eclose(Uw,0.0,0.00001,closea)
+        if(.not.closea) then
+          hi=1400.*(1.+0.015*Twm)*(Uw**0.8)/Di**0.2
+        else
+          hi=0.598/(0.5*(Di-SQRT(Di**2/2.)))
+        endif
+
+C External surface with fins ... <<use more elaborate calculation, here?>>
         ho=38.*Ua
 
 C Modify ho for wetted surface
@@ -231,7 +239,6 @@ C Modify heat transfer coefficients by adding tube thermal resistances
         Csw=hi*Ai
         Cas=ho*Ao
         Cav=-Hfg*(Rmv0-Rmv1)
-        Cd=PCDATF(IPCOMP,13)
         Ga0=Rmv0/AMAX1(Rma0,small)
         Cpam1=Ca1/AMAX1(Rma1,small)
 
@@ -304,7 +311,7 @@ C Determine maximum moisture holding capacity (kg) of tube exterior surface
 C with an assumed condensate film thickness (0.05 mm)
         film = 0.00005
         Cdmax=1000.*film*Ao
-        IF(Cd.GT.Cdmax) Cd=Cdmax
+        IF(CdP.GT.Cdmax) CdP=Cdmax
 
       END IF
 
