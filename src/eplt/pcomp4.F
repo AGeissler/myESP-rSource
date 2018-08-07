@@ -96,6 +96,13 @@ C     CDATA: none
       COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
       COMMON/PP0C/A(MPP,MPPC),B(MPP,MPPC),Alpha
 
+C.....Additional component data output
+      COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),NAPDAT(MPCOM)
+      REAL QDATA,PCAOUT
+      INTEGER napdat
+
+      logical closea
+
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(37).NE.0) WRITE(ITU,*) ' Entering subroutine CMP53C'
@@ -359,6 +366,11 @@ C Store component variables future values
         PCDATF(IPCOMP,10)=Cas
         PCDATF(IPCOMP,11)=Csw
         PCDATF(IPCOMP,12)=Cav
+
+C Store "additional output data"
+        NAPDAT(IPCOMP)=2
+        PCAOUT(IPCOMP,1)=ho
+        PCAOUT(IPCOMP,2)=hi
 
       ELSEIF(ISTATS.EQ.3) THEN
 C store future value of condensate mass on tube
