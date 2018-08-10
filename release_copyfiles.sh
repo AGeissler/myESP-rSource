@@ -4,6 +4,8 @@
 # release archive to the existing (current) source tree and deletes files
 # found in the current release but missing in new release.
 #
+# Basic string manipulation from https://spin.atomicobject.com/2014/02/16/bash-string-maniuplation/
+#
 # 0. Step : Prepare the environment
 IFS=$'\n'
 
