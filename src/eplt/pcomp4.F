@@ -101,7 +101,7 @@ C.....Additional component data output
       REAL QDATA,PCAOUT
       INTEGER napdat
 
-      logical closea
+      logical closehx
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -221,11 +221,16 @@ C Establish outstanding arguments used in primitive part subroutines
         Ua=Rma0/(Ax*RHOFLD(1,Ta1))
         Uw=Rmw0/(RHOFLD(3,Twm)*3.14159*(Di**2)/4.)
 
-        call eclose(Uw,0.0,0.00001,closea)
-        if(.not.closea) then
+        call eclose(Uw,0.00,0.001,closehx)
+        if (.not.closehx) then ! Convection (flowing) case
           hi=1400.*(1.+0.015*Twm)*(Uw**0.8)/Di**0.2
-        else
-          hi=0.598/(0.5*(Di-SQRT(Di**2/2.)))
+C       Modify heat transfer coefficient by adding tube thermal resistance
+          hi=1./(1./hi+RTs/2.)
+          Csw=hi*Ai
+        else ! Conduction (no-flow) case
+          Csw=(2.*3.14159*0.598*RL)/(1./(sqrt(0.5)))
+C       Modify hA(Csw) by adding tube thermal resistance
+          Csw=1./((1./Csw)+(RTs/(2.*Ai)))
         endif
 
 C External surface with fins ... <<use more elaborate calculation, here?>>
@@ -234,16 +239,14 @@ C External surface with fins ... <<use more elaborate calculation, here?>>
 C Modify ho for wetted surface
         IF (CdP.GT.0.) ho=ho*0.626*(Ua**0.101)
 
-C Modify heat transfer coefficients by adding tube thermal resistances
+C Modify external heat transfer coefficient by adding tube thermal resistance
         ho=1./(1./ho+RTs/2.)
-        hi=1./(1./hi+RTs/2.)
 
         Ca0=Rma0*Cpa0+Rmv0*Cpv0
         Ca1=Rma1*Cpa1+Rmv1*Cpv1
         Cw0=Rmw0*Cpw0
         Cwm=Rmwm*Cpwm
         Cw2=Rmw2*Cpw2
-        Csw=hi*Ai
         Cas=ho*Ao
         Cav=-Hfg*(Rmv0-Rmv1)
         Ga0=Rmv0/AMAX1(Rma0,small)
