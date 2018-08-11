@@ -11,15 +11,16 @@ IFS=$'\n'
 
 # 1. Step : Set up some variables
 TEST=false
-prefix="/Users/achim.geissler/Downloads"
-release="ESP-r_Vxx.y.z_Src"
+#prefix="/Users/achim.geissler/Downloads"
+prefix="/Users/achim/Downloads"
+release="ESP-r_V13.2.4_Src"
 
 # 2. Step : create file listings for the subdirectories src, models,
 #           data and doc:
 #diff -rq src ${prefix}/${release}/src > diff_src.txt
-#diff -rq models ${prefix}/${release}/models > diff_models.txt
-#diff -rq data ${prefix}/${release}/data > diff_data.txt
-#diff -rq doc ${prefix}/${release}/doc > diff_doc.txt
+diff -rq models ${prefix}/${release}/models > diff_models.txt
+diff -rq data ${prefix}/${release}/data > diff_data.txt
+diff -rq doc ${prefix}/${release}/doc > diff_doc.txt
 #
 #    The diffs are issued in the git repository directory "myESP-rSource"
 #    (where this script should actually reside).
@@ -36,7 +37,7 @@ release="ESP-r_Vxx.y.z_Src"
 #     Get current line
 
 #filelist="diff_src.txt diff_models.txt diff_data.txt diff_doc.txt"
-filelist=(diff_data.txt diff_doc.txt)
+filelist=(diff_models.txt diff_data.txt diff_doc.txt)
 
 for file in "${filelist[@]}"
 do
@@ -72,7 +73,9 @@ do
          if [ "$TEST" = "true" ]; then
            echo "rm ${pth2}/${fn}"
          else
-           rm ${pth2}/${fn}
+           if [ ${fn} != ".git" ]; then
+             rm -R ${pth2}/${fn}
+           fi
          fi
        fi
 

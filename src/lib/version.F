@@ -135,9 +135,9 @@ C.......Release version
      &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex)))
         call edisp(iuout,cTemp_a)      
         
-        write(cTemp_a,'(6A)') "This is a development copy of ", 
+        write(cTemp_a,'(6A)') "This application ", 
      &       cAppName(1:lnblnk(cAppName)),
-     &       ", based on ESP-r release ",
+     &       ", is part of ESP-r ",
      &       cRelease_Num(1:lnblnk(cRelease_Num)),"."
         call edisp(iuout,cTemp_a)    
         
@@ -145,12 +145,6 @@ C.......Release version
       
 C If cType is silent return at this point.
       if ( cType(1:6) == "silent" ) return
-
-C Copyright information:
-      call edisp(iuout," ")      
-      call edisp(iuout,      
-     &  "Copyright resides with the members of the ESP-r consortium")
-      call edisp(iuout,"as listed at www.esru.strath.ac.uk/.")      
 
 C Check if source was versioned and if it is a working copy.
       if ( .not. bVersioned ) then     
@@ -163,10 +157,19 @@ C Check if source was versioned and if it is a working copy.
         write (cTemp_a,'(A)') 
      &  "   http://www.esru.strath.ac.uk/"
         call edisp(iuout,cTemp_a)
-      endif 
+      endif
+
+C If summary return.
+      if ( cType(1:7) == "summary" ) return
+
+C Copyright information:
+      call edisp(iuout," ")      
+      call edisp(iuout,      
+     &  "Copyright resides with the members of the ESP-r consortium")
+      call edisp(iuout,"as listed at www.esru.strath.ac.uk/.")      
 
 C Source code version: ' - Source: BRANCH @ rXYZ (modified state)'.
-      if ( bBuild_Info .or. .not. bRelease ) then 
+      if ( bBuild_Info ) then 
         call edisp(iuout," ")       
         call edisp(iuout,"Build information:")
         if ( bVersioned ) then 
@@ -236,7 +239,7 @@ C Return out ESP-r versioning information.
       implicit none
       
 C PASSED VARIABLES 
-      character cVnum*32             ! Phrase with release number
+      character cVnum*36             ! holds release number
 
 C LOCAL VARIABLES
 C declare variables describing version and build information

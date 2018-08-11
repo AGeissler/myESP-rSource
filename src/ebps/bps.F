@@ -361,7 +361,7 @@ C      logical gopher  ! not references
       character journcmd*20,jfile*72,uname*24,cjfile*72,OUTSTR*124
       character dllsubr*12,dllmesg*124
       character t16*16,outs248*248
-      character cVnum*32      ! returned from ESPrVersionNum
+      character cVnum*36      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
 
 C Flags for multi-year simulation menus
@@ -1277,7 +1277,7 @@ C Debug write out unmet hours.
 cx          write(6,'(a)')
 cx     &      'Unmet hours for each zone at end of simulation.'
           do I=1,NCOMP
-            write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
+cx            write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
           enddo
         endif
         if(ITDFLG.ne.0)then

@@ -3029,7 +3029,6 @@ C Remember current control type
         SALT(5)= 'senses wind speed actuates shade ON/OFF'
         SALT(6)= 'senses wind dir.  actuates shade ON/OFF'
         SALT(7)= 'no sensor (schedule only)              '
-cx        SALT(8)= '* not defined *                        '
         SALT(8)= 'senses sol-rad    act. ON/OFF& 3 angles'
         SALT(9)= 'no sensor (temporal data file)         '
 
@@ -8018,9 +8017,7 @@ C individual items to be edited (in one big block).
           call gethelptext(helpinsub,helptopic,nbhelp)
           nctlhelp=nbhelp
           
-C Create prompts, min/max values for complex fen. data based on control type
-cx ag@mar18 ... how to add additional CFC control options ??
-
+C Create prompts, min/max values for complex fen. data based on control type.
          if(ictyp.eq.1)then     ! senses temp., actuates shade ON/OFF
           nmenulines=3
           prompt1(1)=' '
@@ -8401,4 +8398,4 @@ C ----------------Construct user message
       
       return
       end
-      
+
