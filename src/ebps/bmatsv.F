@@ -1574,6 +1574,9 @@ C transport miscellaneous simulation data to reporting object
                  if (IAIRN .ne. 0) THEn
                     call H3K_transport_mfn_data()
                  endif
+                 if ( MSTROK ) then
+                    call H3K_transport_mould_data(icomp)
+                 endif
 C << insert (conditional) call to explicit CFC h3k output function here ? >>
 
               endif
