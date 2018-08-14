@@ -2698,7 +2698,7 @@ C toggles to set water filled zones.
 C Debug.
 C              write(6,*) 'zone ',NCCODE(ICOMP),' is water filled.'
               znotair(icomp)=.TRUE.
-              zfldK=0.6; zfldD=998.2; zfldC=4190.0; zfldA=0.0
+cx              zfldK=0.6; zfldD=998.2; zfldC=4190.0; zfldA=0.0
               zSWAp(icomp)=0.0; zSWAf(icomp)=0.0
             else
               znotair(icomp)=.FALSE.  ! usual assumption of air filled
