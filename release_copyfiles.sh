@@ -13,12 +13,13 @@ IFS=$'\n'
 TEST=false
 #prefix="/Users/achim.geissler/Downloads"
 prefix="/Users/achim/Downloads"
-release="ESP-r_V13.2.4_Src"
+release="ESP-r_V13.2.5_Src"
 
 # 2. Step : create file listings for the subdirectories src, models,
 #           data and doc:
-#diff -rq src ${prefix}/${release}/src > diff_src.txt
+diff -rq src ${prefix}/${release}/src > diff_src.txt
 diff -rq models ${prefix}/${release}/models > diff_models.txt
+diff -rq modish ${prefix}/${release}/modish > diff_modish.txt
 diff -rq data ${prefix}/${release}/data > diff_data.txt
 diff -rq doc ${prefix}/${release}/doc > diff_doc.txt
 #
@@ -36,8 +37,8 @@ diff -rq doc ${prefix}/${release}/doc > diff_doc.txt
 #
 #     Get current line
 
-#filelist="diff_src.txt diff_models.txt diff_data.txt diff_doc.txt"
-filelist=(diff_models.txt diff_data.txt diff_doc.txt)
+filelist=(diff_src.txt diff_models.txt diff_modish.txt diff_data.txt diff_doc.txt)
+#filelist=(diff_models.txt)
 
 for file in "${filelist[@]}"
 do
@@ -55,7 +56,7 @@ do
        fn="${fn#"${fn%%[![:space:]]*}"}"
 
        pth=${s1%:*}
-       pth2=${pth#"${prefix}/${release}"*}
+       pth2=${pth#"${prefix}/${release}/"*}
 
        len_pth=${#pth}
        len_pth2=${#pth2}
@@ -65,15 +66,15 @@ do
 
 #        copy <prefix>/<release>/part[1]/part[2] to part[1]/part[2]
          if [ "$TEST" = "true" ]; then
-           echo "cp ${pth}/${fn} ${pth2}/${fn}"
+           echo "cp -R ${pth}/${fn} ${pth2}/${fn}"
          else
-           cp ${pth}/${fn} ${pth2}/${fn}
+           cp -R ${pth}/${fn} ${pth2}/${fn}
          fi
        else
-         if [ "$TEST" = "true" ]; then
-           echo "rm ${pth2}/${fn}"
-         else
-           if [ ${fn} != ".git" ]; then
+         if [ ${fn} != ".git" ]; then
+           if [ "$TEST" = "true" ]; then
+             echo "rm -R ${pth2}/${fn}"
+           else
              rm -R ${pth2}/${fn}
            fi
          fi
@@ -91,9 +92,9 @@ do
 
 #      copy part[2] to part[1]
        if [ "$TEST" = "true" ]; then
-         echo "cp ${from} ${to}"
+         echo "cp -R ${from} ${to}"
        else
-         cp ${from} ${to}
+         cp -R ${from} ${to}
        fi
      fi
 #
