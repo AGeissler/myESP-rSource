@@ -2549,7 +2549,6 @@ C then matrix equation cross-coupling coefficients,
          COUT(6)=ALPHA*C2
 
 C and then present-time coefficients (ie. right hand sides)
-C    << bug fix by Graeme Flett, July 21st 2017 >>
          COUT(7)=((1.-ALPHA)*(PCRP(ICON1)+UA+H)-CM/TIMSEC)
      &           *CSVP(INOD1,1)
      &           -(1.-ALPHA)*H*CSVP(INOD2,1)

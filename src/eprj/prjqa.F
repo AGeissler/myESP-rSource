@@ -2088,7 +2088,6 @@ C Obtain transparent surface index (>0) related to PV module location.
      &        miscinf(1:lnblnk(miscinf))
  1111       FORMAT(1X,I3,1X,A,1X,A,1X,A,1X,A,1X,I3,3X,A,3X,I3,8X,A,1X)
 
-cx            CALL EDISP(itu,LOUTS)
             call edisp248(itu,LOUTS,120)
 
   33      continue ! loop through all spm entries

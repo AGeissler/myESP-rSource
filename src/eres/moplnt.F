@@ -604,8 +604,6 @@ C Additional output.
         IPGETNO(NPGET,8)=5
         SUFFIX=' other'
         if(nsnd.le.9)then
-cx          write(GPLABEL(NPGET),'(2a,i1,a)') PREFIX(1:lname),' n',
-cx     &      nsnd,SUFFIX
           write(GPLABEL(NPGET),'(2a)') PREFIX(1:lname),
      &      adopdsc(indx,nsnd)(1:20)
         else
@@ -1310,7 +1308,7 @@ C ************************ fnddat *************************
 C Given the day, hour and current step, fnddat reads
 C the component 'ipc' results data from plant library
 C file.
-C State space variables data and additional output
+C State space variables data and additional output.
 C data are stored in CSV?M and APCOUT arrays respectively.
       subroutine fnddat(ii,ipc,ier)
 #include "plant.h"
@@ -2161,7 +2159,8 @@ C write out labels for each column at the start.
           outs='  '
         endif
         if (IHFLAG.eq.1) then
-          outs='Time'
+          outs='#Time'
+C          outs='Time'
         else
           outs='Time '
         endif

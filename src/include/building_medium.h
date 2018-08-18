@@ -32,7 +32,7 @@ C Geometry.
       PARAMETER (MV=96)        !- Vertices/surface.
       PARAMETER (MST=MS)       !- Used with view factors.
       PARAMETER (MSM=MS+6)     !- Used with view factors.
-      PARAMETER (MBL=15)       !- Base surfaces/zone.
+      PARAMETER (MBL=20)       !- Base surfaces/zone.
 
 C Ground topology.
       PARAMETER (MGRT=400)     !- Surfaces.
@@ -65,7 +65,7 @@ C Variable thermo-physical properties.
       PARAMETER (MDATA=12)     !- Defining data items.
 
 C Special materials.
-      PARAMETER (MSPMNOD=200)   !- Special materials.
+      PARAMETER (MSPMNOD=600)   !- Special materials.
       PARAMETER (MSPMDAT=21)   !- Defining data items.
       PARAMETER (MSPMRES=12)   !- Output data items
       PARAMETER (MSPMSPLM=150) !- Spline data items

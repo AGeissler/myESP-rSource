@@ -4664,7 +4664,7 @@ C Parameters.
       real AppSHC     !- apparent specific heat capacity
       integer Debug   !- output of 'case' as defined below
 
-C ESP-r commons
+C Time common.
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
       integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
 

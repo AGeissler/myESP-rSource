@@ -1584,10 +1584,10 @@ C************** Calculation
          E0Avg   = OCV_Lion(IPWC,DODAvg,batTempInit)
          RintAvg = RInt_Lion(IPWC,DODAvg,batMode,batCur)
 
-cx      write(*,*)'***maxPB, batCur=',batCur,
-cx     &  '; DODAvg=',DODAvg,
-cx     &  '; E0Avg=',E0Avg,
-cx     &  '; RintAvg=',RintAvg
+Cx      write(*,*)'***maxPB, batCur=',batCur,
+Cx     &  '; DODAvg=',DODAvg,
+Cx     &  '; E0Avg=',E0Avg,
+Cx     &  '; RintAvg=',RintAvg
 
       ENDIF
 
@@ -2801,7 +2801,6 @@ C           batCurrent = (batCurrent+lastGoodCur)/2.0
 
 C         ELSE
 
-
             ! This current does not exceed limits
 
             ! Reset the good current to the actual current
@@ -3186,9 +3185,6 @@ C    average ion concentrations
       con_V5_avg = (con_V5_in + con_V5_out)/2.0
       con_H_avg = (con_H_in + con_H_out)/2.0
 
-
-
-
 C    Use the Nernst equation to calculate the open circuit voltage
 C    n =1 for VRB
       RT_over_nF = gas_constant * (electrolyteTemp + 273.15)
@@ -3474,7 +3470,6 @@ C     The temperature is not tracked in the current stage, so it is set as the i
       batDODFin = FinalDOD_VRB(IPWC,DODIni,1,dtTStep,batCur)
 
       END
-
 
 C**************************************************************************
 C 45 DoCharge_VRB
@@ -3875,8 +3870,6 @@ C corresponding rates discussed in Neil Saldanha's thesis
       i_8 = POWCDAT(IPWC,44)
       alpha_8 = POWCDAT(IPWC,45)
 
-
-
 C************** Calculations
 
 C     Linear interpolate to find temp factor based on present battery temperature
@@ -3956,7 +3949,7 @@ C *********************************************************************
 C Common holding NSINC (no of building time step increments) for debugging only
        COMMON/SIMTIM/NSINC
        INTEGER NSINC           !-number of building-side time increments
-
+                               !-since start of simulation
 
 C PARAMETERS FROM SIGNATURE
       REAL batDODVar, batTempVar
@@ -4574,12 +4567,12 @@ c *********************************************************************
 #include "building.h"
 #include "plant.h"
 #include "power.h"
-cx ... activate BATTERY.h again? Would very much shorten the signature ...
+Cx ... activate BATTERY.h again? Would very much shorten the signature ...
 CC #include "BATTERY.h"
 
       COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout            !- write unit number
-      INTEGER iuin             !- read unit number
+      INTEGER iuout          !- write unit number
+      INTEGER iuin           !- read unit number
 
 C ESP-r COMMONs
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
