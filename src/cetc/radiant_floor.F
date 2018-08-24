@@ -398,10 +398,11 @@ C     specific heat of slab system
 
 C     Check if the specified injection node is valid -----------------
       IF(In .LT. 1 .OR. In .GT. Ncentr+1) THEN
-         WRITE(outs,*)'Radiant floor fatal error: injection node ',In,
-     &' not in range 1 to',Ncentr+1
+         WRITE(outs,'(A,I3,A,I3)')
+     &         'Radiant floor fatal error: injection node ',
+     &                       In,' not in range 1 to',(Ncentr+1)
          call edisp(iuout,outs)
-         WRITE(*,outs)
+         WRITE(*,*)outs
          WRITE(*,*)'Source error: radiant floor.  Simulation halted'
          call pauses(2)   ! pause for 2 seconds then abort program.
          STOP
@@ -421,7 +422,7 @@ C     Size (Dx, Dy, volume) of the heat generation control volume = pipe volume
       DYq   = DXq
       Volq  = 4. * DXq * DYq * CirL
 
-C--------------------------------------------------------------------------------------
+C---------------------------------------------------------------------
 C     INITIALIZE VARIABLES BEFORE SIMULATION
 C     initialize only before energy solution     
 
