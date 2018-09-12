@@ -3549,7 +3549,7 @@ C number based on logical (AND, OR) relationships of other control loops
 
 C Set MMLCL = Maximum number of loops to be sensed 
       INTEGER MMLCL
-      PARAMETER(MMLCL=4)
+      PARAMETER(MMLCL=20)
 
       COMMON/OUTIN/IUOUT,IUIN
       INTEGER IUOUT,IUIN

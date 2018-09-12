@@ -3995,16 +3995,16 @@ C Trace output
         WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
         NITMS=30
         WRITE(ITU,*) ' BDATA ',(BDATA(IPCOMP,J),J=1,NITMS)
-        NITMS=2
+        NITMS=3
         WRITE(ITU,*) ' CDATA ',(CDATA(IPCOMP,J),J=1,NITMS)
         IF(ITU.EQ.IUOUT) THEN
            IX1=(IPCOMP/5)*5
            IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
         ENDIF
       ENDIF
-C
+
 C Check user specified number of controlled variables
-      NCITM=1
+      NCITM=3
       IF(NCI(IPCOMP).NE.NCITM)
      &   WRITE(ITU,*) ' CMP47S warning: user specified wrong number',
      &                ' of controlled variables'
@@ -4255,16 +4255,16 @@ C Trace output
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
          NITMS=31
          WRITE(ITU,*) ' BDATA ',(BDATA(IPCOMP,J),J=1,NITMS)
-         NITMS=1
+         NITMS=3
          WRITE(ITU,*) ' CDATA ',(CDATA(IPCOMP,J),J=1,NITMS)
          IF(ITU.EQ.IUOUT) THEN
             IX1=(IPCOMP/5)*5
             IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
          ENDIF
       ENDIF
-C
+
 C Check user specified number of controlled variables
-      NCITM=1
+      NCITM=3
       IF(NCI(IPCOMP).NE.NCITM)
      &   WRITE(ITU,*) ' CMP48S warning: user specified wrong number',
      &                ' of controlled variables'

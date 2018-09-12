@@ -6964,7 +6964,9 @@ C           28 Nominal water return temperature for DHW
 C           29 Tout max DHW (degC)
 C           30 Tin max DHW (degC)
 C
-C     CDATA: 1 Call for heat [0 off - 1 space heat 2 - dhw] (-)
+C     CDATA: 1 ON/OFF signal for space heat (-)
+C            2 ON/OFF signal for DHW (-)
+C            3 Preference signal 0 space heat, 1 DHW
 
 C Node 1 represents the condenser heat exchanger and couples to the hydronic heating circuit.
 C The device has an internal pump and so an explicit pump model is not needed in system
@@ -7093,7 +7095,7 @@ C Electrical details for specified plant components
       DIMENSION NDMonth(12)
       DATA NDMonth/31,28,31,30,31,30,31,31,30,31,30,31/
 
-      LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd,
+      LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd,bSHpref,
      &                     bGrndSrc1,bGrndSrc2,bGrndSrc3
 
       CHARACTER OUTS*248,PCNAME*15
@@ -7130,7 +7132,21 @@ C Read ambient temperature (for temperature compensation of WCH return temp)
 
 C Set initial operation mode based on CDATA.
       call eclose(CDATA(IPCOMP,1),1.0,0.001,bSHrqd)
-      call eclose(CDATA(IPCOMP,1),2.0,0.001,bDHWrqd)
+      call eclose(CDATA(IPCOMP,2),1.0,0.001,bDHWrqd)
+      call eclose(CDATA(IPCOMP,3),0.0,0.001,bSHpref)
+
+C Check which mode is actually to be used for the case when both demands
+C are set to .true.
+      if ((bSHrqd.and.bDHWrqd)) then
+C       Both are .true.
+        if (bSHpref) then
+C         Re-set DHW to false, as SH is preferred !
+          bDHWrqd=.false.
+        else
+C         Re-set SH to false, as DHW is preferred !
+          bSHrqd=.false.
+        endif
+      endif
 
       if ((bSHrqd.or.bDHWrqd)) then
 C       Either space heat or dhw needs heat
@@ -7638,7 +7654,9 @@ C           29 Nominal water return temperature for DHW
 C           30 Tout max DHW (degC)
 C           31 Tin max DHW (degC)
 C
-C     CDATA: 1 Call for heat [0 off - 1 space heat 2 - dhw] (-)
+C     CDATA: 1 ON/OFF signal for space heat (-)
+C            2 ON/OFF signal for DHW (-)
+C            3 Preference signal 0 space heat, 1 DHW
 
 C Node 1 represents the condenser heat exchanger and couples to the hydronic heating circuit.
 C Node 2 represents the evaporator heat exchanger and couples to a (ground) heat source.
@@ -7759,7 +7777,7 @@ C Electrical details for specified plant components
       REAL BrinePumpRating,BrineRatedFlow,BrinePumpPower,
      &      BrinePumpPf,BrineFlow,LimFac
 
-      LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd
+      LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd,bSHpref
 
       CHARACTER OUTS*248,PCNAME*15
 
@@ -7804,7 +7822,21 @@ C Read ambient temperature (for temperature compensation of WCH return temp)
 
 C Set initial operation mode based on CDATA.
       call eclose(CDATA(IPCOMP,1),1.0,0.001,bSHrqd)
-      call eclose(CDATA(IPCOMP,1),2.0,0.001,bDHWrqd)
+      call eclose(CDATA(IPCOMP,2),1.0,0.001,bDHWrqd)
+      call eclose(CDATA(IPCOMP,3),0.0,0.001,bSHpref)
+
+C Check which mode is actually to be used for the case when both demands
+C are set to .true.
+      if ((bSHrqd.and.bDHWrqd)) then
+C       Both are .true.
+        if (bSHpref) then
+C         Re-set DHW to false, as SH is preferred !
+          bDHWrqd=.false.
+        else
+C         Re-set SH to false, as DHW is preferred !
+          bSHrqd=.false.
+        endif
+      endif
 
       if ((bSHrqd.or.bDHWrqd)) then
 C       Either space heat or dhw needs heat
