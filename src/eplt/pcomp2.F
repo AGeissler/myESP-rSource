@@ -9150,6 +9150,9 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
         call eclose(C1,0.00,0.0001,closea)
         if(closea)alpha=1.
 
+cx      experimental ...
+        alpha=1.
+
 C Establish matrix equation self- and cross-coupling coefficients
         cout(1)=alpha*(-c1-ua)-cm/timsec
         cout(2)=alpha*c1
