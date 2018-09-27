@@ -405,7 +405,6 @@ C Set air temperature to be used in calculations
       ELSE
         TAI=TFUT
       ENDIF
-C      TAI=TFUT
 
       NC=NCONST(ICMP)
       TMRT=TAI
@@ -996,7 +995,6 @@ C  assuming present time-row surface temperatures.
     7 CALL MZMIXT(IICOMP,TMRT,TMIX)
       ITYPE=IBCLAW(ICF,IDTYP,IPER)
       if(itype.eq.31)goto 6  ! jump back for trace
-C      GOTO(8,9,11,12),ITYPE
       if(ITYPE.eq.1)then
             GOTO 8
         elseif (ITYPE.eq.2) then
@@ -1347,9 +1345,6 @@ C Total heating/cooling
       B2=BB2
       B3=BB3
       GOTO 18
-
-C If temperature is in dead-zone goto 81
-C      IF(TMIX.LE.TU.AND.TMIX.GE.TL)GOTO 81
 
    99 write(outs,98)ITYPE
    98 format(' BCL00: building control law',I3,' does not yet')
@@ -4990,7 +4985,6 @@ C     ST???  = FUTURE/PRESENT/START TRIAL START TIMES,
       COMMON/BTIME/BTIMEP,BTIMEF
 
       LOGICAL tsclaw,rewnd,pasone,close
-      real ocdt
       
       CHARACTER OUTS*124
 

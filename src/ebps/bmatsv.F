@@ -129,8 +129,9 @@ C CFD
       integer ICFAUX  ! helps to keep track of IFCFD()
       integer ICFVIEW ! toggle for preview via dfv during assessment
       integer ICFVIEWMINT,ICFVIEWMAXT  ! range of temperatures for dfv
+      logical DFVinvoked
       COMMON/CFSEUP/CFTIMS,CFTIMF,ICFDYS,ICFDYF,ICFAUX(MCOM),ICFVIEW,
-     &  ICFVIEWMINT,ICFVIEWMAXT
+     &  ICFVIEWMINT,ICFVIEWMAXT,DFVinvoked
       COMMON/calcdCFD/mICORcfd(MCOM),mHCcfd(MCOM)
 
 C Simulation start day required by cmp70c.
@@ -1383,7 +1384,7 @@ C and CFD.
             endif
 
 C And compute all inside and 'outside' convection coefficients.
-            call mzconv
+            call MZCONV
 
 C Update ground reflectivity depending on the model used (constant
 C reflectivity; simple model; or advanced model)

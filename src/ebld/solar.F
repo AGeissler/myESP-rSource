@@ -705,10 +705,6 @@ C NP is no. of control periods for this TMC type.
               IT1=IBCST(ICOMP,K,ITMC)  ! period start
               IT2=IBCFT(ICOMP,K,ITMC)  ! period end
               IF(IHRF.GT.IT1.AND.IHRF.LE.IT2) THEN
-
-C << If uncertain about activation point find the value
-C << for this set. Logic needs to be worked out.
-
                 IF(BACTPT(ICOMP,K,ITMC).LT.-98.0) THEN
 
 C No activation level.
@@ -924,10 +920,6 @@ C POO/POO2 contains shading factor on corresponding opaque surface.
                     IBOFOT(ICOMP,I)=1
                     NBPONT(ICOMP,I)=K
                   ENDIF
-C Debug.
-C                  write(6,'(a,3i4,f5.2,i3,a,f6.1)') 'blind control ',
-C     &              icomp,i,IBOFOT(ICOMP,I),
-C     &              ECRAT(ICOMP,I),NBPONT(ICOMP,I),' rad',RAD
                 ENDIF
 
 C <FMI>
@@ -1124,15 +1116,12 @@ C Not external construction.
           EXDIF(I)=SRADF(I)*(1.-EXSHADF(I))
           EXRAD(I)=EXDIR(I)+EXDIF(I)
 C This code ensures that EXDIR and EXDIF are zero if EXRAD is zero.
-cx <<  ... basically, the opaq surface absorbs before this check ...
-cx     does that make sense?? >>
           call eclose(EXRAD(I), 0.0,0.001,bCloseToZero)
           if ( bCloseToZero ) then
              EXDIR(I) = 0.
              EXDIF(I) = 0.
           endif
         ENDIF
-
    6  CONTINUE
 
 C ----------------CALCULATE QTMCA FOR TMC

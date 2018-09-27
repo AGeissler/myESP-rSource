@@ -85,8 +85,6 @@ C Reset error and initialise returned VAL.
 
 C Workout if building side timestep is equal to tdf timestep or not
 C need to do once per simulaton. Skip if any of the UK NCM models
-
-C << if we have multiple timesteps for different assessments how to work this? >>
       IF(INOTI.LT.1.OR.INOTI.GT.4)THEN
 C        IF(ISBNSTEP.GT.NTSPH.AND.ialrdy_warned.NE.1)THEN
         IF(ntstep.GT.NTSPH.AND.ialrdy_warned.NE.1)THEN
