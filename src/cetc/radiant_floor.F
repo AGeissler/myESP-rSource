@@ -208,14 +208,12 @@ C     surface and nodal temperatures of zones
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
       COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
 
-C     Generic nodal flux common - allows a flux to be added or subtracted from a node.
+C     Generic nodal flux common - allows a flux to be added or subtracted
+C     from a node.
       COMMON/GENFLUX/GENFLXF(MCOM,MS,MN),GENFLXP(MCOM,MS,MN)
 
 
-
-C     Parameters and common variables related to this component ----------------------
-C     The common block should also be included in the MZNASS subroutine
-C     (found in ESRUPLT/PMATRX.F)to store present time values of some variables
+C     Parameters and common variables related to this component ----------------
 
       PARAMETER (Nmax = 20, ITmax = 100, PI=3.1415926535, PI2=0.5*PI)
       PARAMETER (Relax = 1.0, Tol = 1.E-6, TolF = 1.E-3, Small = 1.E-15)
@@ -241,7 +239,8 @@ C logical value for flow > 0
 
       character outs*124
 C----------------------------------------------------------------------
-C     Flag indicating if radiant floor is active, number of radiant floors, indirect index for radiant_floor component
+C     Flag indicating if radiant floor is active, number of radiant floors,
+C     indirect index for radiant_floor component
       COMMON/RadFloor/RadFloor_active, NRadFloor, IRadFloor,
      &                InitRadFloor
 

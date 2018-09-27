@@ -2938,6 +2938,13 @@ C Addition output for results analysis.
          PCAOUT(IPCOMP,1)=HFLX
          PCAOUT(IPCOMP,2)=NTU
          PCAOUT(IPCOMP,3)=EFF
+
+C Establish "containment loss" data
+        QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
+     &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
+	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+
 C 1st phase mass (ie. "water") balance coefficients
 
       ELSE IF(ISTATS.EQ.2) THEN
