@@ -1291,9 +1291,6 @@ C to 1000 to see if there are zones to process.
 
 C An action line is like this:
 C *action,new,boxer,single,/tmp/boxer
-
-C << both root and mpath need to be used later for refocus >>
-
         CALL EGETW(OUTSTR,K,actions,'W','action string',IER)
         silentreturndirec=actions
         if(actions(1:3).eq.'new'.or.actions(1:6).eq.'within')then
@@ -2016,9 +2013,6 @@ C Scan for prior X and Y coordinates rotated around if there are 3 items on the 
       elseif(WORD(1:15).eq.'*sim_parameters')then
 
 C Get the assessment independant simulation parameters.
-
-C << logic for extended *sps needed >>
-
         CALL EGETWI(OUTSTR,K,simstartup,0,300,'W','startup',IER)
         isstup=simstartup
         CALL EGETWI(OUTSTR,K,simzonetimestep,1,60,'W','zone_ts',IER)
@@ -2594,9 +2588,6 @@ C Snow depth file (if ground reflectivity model 3)
       endif
 
 C Simulation parameter sets.
-
-C << Logic for extended *sps needed >>
-
       if(nsset.gt.0)then
         havesimparameters=.true.
         simstartup=isstup

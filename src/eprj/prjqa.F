@@ -1689,8 +1689,6 @@ C if verbose print periods, seasons and ratios as well.
             endif
           else
             ipvaction='ipv'
-
-C << update for markdown >>
             call ripvdat(IFCFG,lipvdatf,ipvaction,ieripv)  ! this returns a value for ieripv
             call edisp(itu,' ')
           endif

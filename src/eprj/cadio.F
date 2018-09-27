@@ -436,7 +436,7 @@ C If user canceled the wireframe export loop back.
           endif
           call usrmsg('sending wireframe... ',' ','-')
           MODIFYVIEW=.TRUE.
-          CALL ADJVIEW(IER)
+          CALL redraw(IER)
           call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
      &                 iicfgz,iicfgn,iicfgc,iicfgdfn)
           call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
@@ -658,7 +658,6 @@ C        call usrmsg('Starting VRML conversion via',doit,'-')
       ELSEIF(INO1.EQ.8)THEN
 
 C Export to ESP-r meta file.
-C << could this be placed in ecnv? >>
         if(pwdtocfg(1:1).eq.'!')then
           write(L144,'(4a)')path(1:lnblnk(path)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.mesp'
@@ -1572,9 +1571,9 @@ C word in the path to the exemplar root folder.
                   lcfgr=lnblnk(cfg_root)
 
 C Debug the model source.
-                  write(outs,'(a,2i4,2a)') 'cfg_root = ',lex,lcfgr,
-     &              '  ',cfg_root(1:lcfgr)
-                  call edisp(iuout,outs)
+C                  write(outs,'(a,2i4,2a)') 'cfg_root = ',lex,lcfgr,
+C     &              '  ',cfg_root(1:lcfgr)
+C                  call edisp(iuout,outs)
 
 C Loop along the exemplar string to locate the position of the root
 C folder in the path of the exemplar.
@@ -1637,9 +1636,9 @@ C this into the suggested path.
                     lnblankrp=iprevblnk(rootp,lnrp)
 
 C Debug the model source.
-                    write(outs,'(a,2i3,2a)') 'rootp = ',lnrp,lnblankrp,
-     &                ' ',rootp(1:lnrp)
-                    call edisp(iuout,outs)
+C                    write(outs,'(a,2i3,2a)') 'rootp = ',lnrp,lnblankrp,
+C     &                ' ',rootp(1:lnrp)
+C                    call edisp(iuout,outs)
 
                     call backslashit(rootp,rootpdos)
                     if(itrc.gt.0)then

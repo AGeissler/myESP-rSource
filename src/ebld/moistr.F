@@ -1668,7 +1668,6 @@ C *********************************************************************
           Tdb=TCsrf(I)
           Ps=Psat01(Tdb)
           RHsrf(I)=Pn(I,NM)/Ps*100.0
-
    10   CONTINUE
 
 C Note: adjust format if MS>48.

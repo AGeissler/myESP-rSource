@@ -141,7 +141,6 @@ C SAINTRA calculates summary statistics within result sets.
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
-      COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
       COMMON/SETPIK/NS,NSNO(MNRS),ISETON(MNRS),IMET,IFAFLG(MNRS,MNFA)
       COMMON/SETNAM/RSNAME(MNRS)
@@ -156,22 +155,12 @@ C SAINTRA calculates summary statistics within result sets.
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
 
-C ilflag = 0 tabular labels on multi-lines, ilflag = 1 on one line
-C          ilflag = 2 do not include # header lines in file.
-      COMMON/GRTOOL/IHFLAG,IDHFLG,ILFLAG
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
-      common/exporttg/xfile,tg,delim
-      character xfile*144,tg*1,delim*1
 
       dimension YMAX(MZS), YMIN(MZS), YTOT(MZS), YTOTSD(MZS)
       dimension YAVE(MZS), YSTD(MZS), NY(MZS)
-      character outs*124,louts*248,loutsd*248
-      character louts1k*1000,louts1kd*1000,louts2k*2000,louts2kd*2000
-      character RSNAME*40
-      character HEAD1*2000,HEAD2*1000
-      character dg*1,dq*1
-      character LTIME*5,LJTIME*8
-      integer ln19,ln18,ln16  ! to manage single line "d header.
+      character outs*124,RSNAME*40
+      character HEAD1*108, HEAD2*108
 
       logical display, TOTALS
 
@@ -191,8 +180,7 @@ C data for all the zones chosen.
       call GOMSETUP
       call GOMENU
       if (MENUTYPE.eq.-1) return
-      dq = char(34)
-      
+
 C Set output unit number (assume default initially).
       ITRU=ICOUT
       if (IXOPEN.eq.1) ITRU=IXUNIT
@@ -230,23 +218,31 @@ C GOGET recovers the data in VAL2 (and averages output if required.)
 C Variables begining X are for all sets selected whereas variables 
 C starting Y are set based.
       do 5 I=1,MZS
-        YMAX(I)=-1.E+10; YMIN(I)=1.E+10; YTOT(I)=0.0; YTOTSD(I)=0.0
-        YAVE(I)=0.0; YSTD(I)=0.0; NY(I)=0
+        YMAX(I)=-1.E+10
+        YMIN(I)=1.E+10
+        YTOT(I)=0.0
+        YTOTSD(I)=0.0
+        YAVE(I)=0.0
+        YSTD(I)=0.0
+        NY(I)=0
  5    continue
-      XMAX=-1.E+10; XMIN=1.E+10; XTOT=0.0; XTOTSD=0.0
-      XAVE=0.0; XSTD=0.0; NX=0
+      XMAX=-1.E+10
+      XMIN=1.E+10
+      XTOT=0.0
+      XTOTSD=0.0
+      XAVE=0.0
+      XSTD=0.0
+      NX=0
       call usrmsg('Scanning data for range of values...',' ','-')
 
-C Write header information (if ILFLAG is 0 or 1).
-      if(ILFLAG.le.1)then
-        call edisp(itru,'  ')
-        write (outs,'(a)') SLABEL(1)(1:LNSLABEL(1))
-        call edisp(itru,outs)
-        write (outs,'(a,a)') 'For zone: ',zname(IGETNO(1,2))
-        call edisp(itru,outs)
-        call edisp(itru,'  ')
-      endif
-      
+C Write header information.
+      call edisp(itru,'  ')
+      write (outs,'(a)') SLABEL(1)(1:LNSLABEL(1))
+      call edisp(itru,outs)
+      write (outs,'(a,a)') 'For zone: ',zname(IGETNO(1,2))
+      call edisp(itru,outs)
+      call edisp(itru,'  ')
+
 C TSTART and TFINISH - start and finish times in hours from 0000 on the 
 C first day of output.
       TSTART=FLOAT(IOH1)
@@ -297,393 +293,37 @@ C Assume fully occupied.
  421      CONTINUE
  400    CONTINUE
 
-C If format is tabular listing then dump out a days data.
+C If format is tabular listing then dump out a days data
         if (IFMT.eq.2) then
-          if (NGET.ge.100) then
-            NC=99
+          if (NGET.gt.12) then
+            NC=12
           else
             NC=NGET
           endif
           call usrmsg('Scanning data for range of values..done.',
      &      ' ','-')
-
-C If printing to screen then split column headings over two rows 
-C don't do this if printing to file.
-          irows=2
-          if (ixopen.eq.1) irows=1
-          is=1
-          K=6   ! initial value for 248 buffer
-          K4=6  ! initial value for 800 buffer
-          if ((IHFLAG.eq.1.or.IHFLAG.eq.2).and.ixopen.eq.1) then
-            if (delim.eq.'X') then
-              louts  ='*time '
-              louts1k='*time '
-              louts2k='*time '
-              K=7; K4=7   ! initial value for buffers
-            else
-              if(ILFLAG.le.1)then
-                louts  ='#Time '
-                louts1k='#Time '
-                louts2k='#Time '
-                K=7; K4=7   ! initial value for buffers
-              else
-C                louts  ='Time '
-C                louts1k='Time '
-C                louts2k='Time '
-                louts  ='Time, '  ! for sensitivity reporting a , after Time
-                louts1k='Time, '
-                louts2k='Time, '
-                K=6; K4=6   ! case of ILFLAG=2
-              endif
-            endif
-          elseif ((IHFLAG.eq.1.or.IHFLAG.eq.2).and.ixopen.eq.0)then
-            if (delim.eq.'X') then
-              louts  ='*time '
-              louts1k='*time '
-              louts2k='*time '
-              K=7; K4=7   ! initial value for buffers
-            else
-              louts  ='Time '
-              louts1k='Time '
-              louts2k='Time '
-              K=6; K4=6   ! initial value for buffers
-            endif
-          else
-            louts  ='Time '
-            louts1k='Time '
-            louts2k='Time '
-            K=6; K4=6   ! initial value for buffers
-          endif
-
-C Logic for single or multiple header lines. For single
-C header line write 16 char column title in double quotes
-C and make them comma separated.
-C Example: "Base case       ",
-C the 16 char of string + 2 " plus the , is 19
-          HEAD1='  '; HEAD2='  '
-          ln19=19; ln18=18; ln16=16  ! for full 16 char
-          if(irows.eq.1)then
-            do IH=1,NC
-              lnrs=lnblnk(RSNAME(IGETNO(IH,5)))
-
-C Test of limiting set name to first 26 char if <50 sets or
-C 17 characters if there are between 50 and 80 columns.
-C If >80 truncate at 12 characters.
-              if(NC.lt.50)then
-                if(lnrs.gt.26) lnrs=26
-              elseif(NC.ge.50.and.NC.lt.80)then
-                if(lnrs.gt.17) lnrs=17
-              elseif(NC.ge.80)then
-                if(lnrs.gt.12) lnrs=12
-              endif
-              ln19=lnrs+3; ln18=lnrs+2; ln16=lnrs  ! for current
-              IADS=((IH-1)*ln19)+1
-              IADF=IADS+ln18
-              write (HEAD1(IADS:IADF),'(4a)')
-     &          dq,RSNAME(IGETNO(IH,5))(1:ln16),dq,','
-              lnhead=lnblnk(HEAD1)
-C              write(6,'(5i5,2a)') ih,iads,iadf,ke4,lnhead,' ',
-C     &          HEAD1(1:lnhead)
-            enddo  ! of IH
-            KE=K+IADF; KE4=K4+IADF
-            if(KE.le.248)then
-              write (louts(K:KE),'(a)') HEAD1(1:lnhead)
-            endif
-
-C In case the header gets very long write to both 1K and 2K buffers
-C            write(6,*) 'k4 ke4 lnhead ',k4,ke4,lnhead
-            if(KE4.lt.1000)then
-              if(lnhead.lt.1000)then
-                write (louts1k(K4:KE4),'(a)') HEAD1(1:lnhead)
-              endif
-              write (louts2k(K4:lnhead+K4),'(a)') HEAD1(1:lnhead)
-            else
-              write (louts2k(K4:lnhead+K4),'(a)') HEAD1(1:lnhead)
-            endif
-
-C Print titles on first day and only on subsequent ones if day
-C demarcations are omitted.
-C Debug.
-C            write(6,*) louts(1:lnblnk(louts))
-C            write(6,*) ' '
-C            write(6,*) louts1k(1:lnblnk(louts1k))
-C            write(6,*) ' '
-C            write(6,*) louts2k(1:lnblnk(louts2k))
-C            write(6,*) ' '
-
-            if (IDAY.eq.IODS)then
-              if(ixopen.eq.1)then
-
-C If lnb2 > lnb then write out louts2k. Do not write trailing ,
-                lnb=lnblnk(louts1k)   ! write directly to file
-                lnb2=lnblnk(louts2k)   ! write directly to file
-                if(lnb2.gt.lnb)then
-                  write(itru,'(A)',iostat=ios,err=1)louts2k(1:lnb2-1)
-                else
-                  write(itru,'(A)',iostat=ios,err=1)louts1k(1:lnb-1)
-                endif
-              else
-                if(NC.le.12)then
-                  call edisp(itru,louts)
-                elseif(NC.gt.12.and.NC.le.26)then
-                  call edisp248(itru,louts,120)
-                elseif(NC.gt.26.and.NC.le.100)then
-                  call edisp248(itru,louts1k,140)
-                endif
-              endif
-            else
-              if (IDHFLG.eq.1.and.ixopen.eq.1)then
-
-C If lnb2 > lnb then write out louts2k.
-                lnb=lnblnk(louts1k)   ! write directly to file
-                lnb2=lnblnk(louts2k)   ! write directly to file
-                if(lnb2.gt.lnb)then
-                  write(itru,'(A)',iostat=ios,err=1)louts2k(1:lnb2)
-                else
-                  write(itru,'(A)',iostat=ios,err=1)louts1k(1:lnb)
-                endif
-              elseif (IDHFLG.eq.1.and.ixopen.eq.0)then
-                if(NC.le.12)then
-                  call edisp(itru,louts)
-                elseif(NC.gt.12.and.NC.le.26)then
-                  call edisp248(itru,louts,120)
-                elseif(NC.gt.26.and.NC.le.100)then
-                  call edisp248(itru,louts1k,140)
-                endif
-              endif
-            endif
-          else
-
-C Show two heading lines with items separated with |
-            do IH=1,NC
-              IADS=((IH-1)*9)+1
-              IADF=IADS+9
-              write (HEAD1(IADS:IADF),'(2a)')
-     &          RSNAME(IGETNO(IH,5))(1:8),'|'
-              lnhead=lnblnk(HEAD1)
-              write (HEAD2(IADS:IADF),'(2a)')
-     &          RSNAME(IGETNO(IH,5))(9:16),'|'
-              lnhead2=lnblnk(HEAD2)
-            enddo  ! of IH
-            KE=K+IADF; KE4=K4+IADF
-            if(KE.le.248)then
-              write (louts(K:KE),'(a)') HEAD1(1:lnhead)
-            endif
-            if(KE4.lt.1000)then
-              if(lnhead.lt.1000)then
-                write (louts1k(K4:KE4),'(a)') HEAD1(1:lnhead)
-              endif
-              write (louts2k(K4:KE4),'(a)') HEAD1(1:lnhead)
-            else
-              write (louts2k(K4:KE4),'(a)') HEAD1(1:lnhead)
-            endif
-            if (IDAY.eq.IODS)then
-              if(ixopen.eq.1)then
-                lnb=lnblnk(louts1k)   ! write directly to file
-                lnb2=lnblnk(louts2k)   ! write directly to file
-                if(lnb2.gt.lnb)then
-                  write(itru,'(A)',iostat=ios,err=1)louts2k(1:lnb2)
-                else
-                  write(itru,'(A)',iostat=ios,err=1)louts1k(1:lnb)
-                endif
-              else
-                if(NC.le.12)then
-                  call edisp(itru,louts)
-                elseif(NC.gt.12.and.NC.le.26)then
-                  call edisp248(itru,louts,120)
-                elseif(NC.gt.26.and.NC.le.100)then
-                  call edisp248(itru,louts1k,140)
-                endif
-              endif
-            else
-              if (IDHFLG.eq.1.and.ixopen.eq.1)then
-                lnb=lnblnk(louts1k)   ! write directly to file
-                lnb2=lnblnk(louts2k)   ! write directly to file
-                if(lnb2.gt.lnb)then
-                  write(itru,'(A)',iostat=ios,err=1)louts2k(1:lnb2)
-                else
-                  write(itru,'(A)',iostat=ios,err=1)louts1k(1:lnb)
-                endif
-              elseif (IDHFLG.eq.1.and.ixopen.eq.0)then
-                if(NC.le.12)then
-                  call edisp(itru,louts)
-                elseif(NC.gt.12.and.NC.le.26)then
-                  call edisp248(itru,louts,120)
-                elseif(NC.gt.26.and.NC.le.100)then
-                  call edisp248(itru,louts1k,140)
-                endif
-              endif
-            endif
-C            write(6,*) louts(1:lnblnk(louts))
-C            write(6,*) ' '
-C            write(6,*) louts1k(1:lnblnk(louts1k))
-C            write(6,*) ' '
-C            write(6,*) louts2k(1:lnblnk(louts2k))
-C            write(6,*) ' '
-
-C Clear the 2nd heading line start.
-            louts  ='     '
-            louts1k='     '
-            louts2k='     '
-
-            if(KE.le.248)then
-              write (louts(K4:KE4),'(a)') HEAD2(1:lnhead2)
-            endif
-            if(KE4.lt.1000)then
-              write (louts1k(K4:KE4),'(a)') HEAD2(1:lnhead2)
-              write (louts2k(K4:KE4),'(a)') HEAD2(1:lnhead2)
-            else
-              write (louts2k(K4:KE4),'(a)') HEAD2(1:lnhead2)
-            endif
-            if (IDAY.eq.IODS)then
-              if(ixopen.eq.1)then
-                lnb=lnblnk(louts1k)   ! write directly to file
-                lnb2=lnblnk(louts2k)   ! write directly to file
-                if(lnb2.gt.lnb)then
-                  write(itru,'(A)',iostat=ios,err=1)louts2k(1:lnb2)
-                else
-                  write(itru,'(A)',iostat=ios,err=1)louts1k(1:lnb)
-                endif
-              else
-                if(NC.le.12)then
-                  call edisp(itru,louts)
-                elseif(NC.gt.12.and.NC.le.26)then
-                  call edisp248(itru,louts,120)
-                elseif(NC.gt.26.and.NC.le.100)then
-                  call edisp248(itru,louts1k,140)
-                endif
-              endif
-            else
-              if (IDHFLG.eq.1.and.ixopen.eq.1)then
-                lnb=lnblnk(louts1k)   ! write directly to file
-                lnb2=lnblnk(louts2k)   ! write directly to file
-                if(lnb2.gt.lnb)then
-                  write(itru,'(A)',iostat=ios,err=1)louts2k(1:lnb2)
-                else
-                  write(itru,'(A)',iostat=ios,err=1)louts1k(1:lnb)
-                endif
-              elseif (IDHFLG.eq.1.and.ixopen.eq.0)then
-                if(NC.le.12)then
-                  call edisp(itru,louts)
-                elseif(NC.gt.12.and.NC.le.26)then
-                  call edisp248(itru,louts,120)
-                elseif(NC.gt.26.and.NC.le.100)then
-                  call edisp248(itru,louts1k,140)
-                endif
-              endif
-            endif
-          endif
-  
-
-C For each timestep make up the string to show and/or export.
+          HEAD1='  '
+          HEAD2='  '
+          do 525 IH=1,NC
+            IADS=((IH-1)*9)+1
+            IADF=IADS+9
+            write (HEAD1(IADS:IADF),'(a,1x)')RSNAME(IGETNO(IH,5))(1:8)
+            write (HEAD2(IADS:IADF),'(a,1x)')RSNAME(IGETNO(IH,5))(9:16)
+ 525      continue
+          write (outs,'(a,a)') 'Time  ',HEAD1
+          call edisp(itru,outs)
+          write (outs,'(6x,a)') HEAD2
+          call edisp(itru,outs)
           do 521 J = 1,NDTS,NOUT
             IHRD=(IDAY-IODS)*24
             call DATIME(J,ATIME)
             TIME=float(IHRD)+ATIME
-
-C Display data. Create both data strings for this timestep and
-C include users time preferences.
-            louts='   '
-            louts1k='   '
-            louts2k='   '
-            if (IHFLAG.eq.0) then 
-              call STIME(J,LTIME)
-              write (louts,'(a)') LTIME
-              write (louts1k,'(a)') LTIME
-              write (louts2k,'(a)') LTIME
-              K=6
-            elseif (IHFLAG.eq.1) then
-              RDOTY=REAL(IDAY)+(ATIME/24.)
-              write (louts,'(f11.6)') RDOTY
-              write (louts1k,'(f11.6)') RDOTY
-              write (louts2k,'(f11.6)') RDOTY
-              K=11
-            elseif (IHFLAG.eq.2) then
-
-C Write in format that spreadsheets understand as time.
-              call edayr(IDAY,ID,IM)
-              call SJTIME(J,LJTIME)
-              write (louts,'(i4,a,i2.2,a,i2.2,2a)') 
-     &          IYEAR,'-',IM,'-',ID,' ',LJTIME
-              write (louts1k,'(i4,a,i2.2,a,i2.2,2a)') 
-     &          IYEAR,'-',IM,'-',ID,' ',LJTIME
-              write (louts2k,'(i4,a,i2.2,a,i2.2,2a)') 
-     &          IYEAR,'-',IM,'-',ID,' ',LJTIME
-              K=20
-            endif
-
-C For each column append the values (as is done in table.F).
-
-C First write data to the 248 char string buffer.
-            klast=k
-            do 410 IG=1,NC
-              KE=K+9
-              if(KE.le.248)then
-                write (louts(K:KE),'(f9.4)') VAL2(IG,J)
-                K=K+9
-              endif
- 410        continue
-
-C If writing to file then write data to the 1k or 2k char string buffer.
-            if(ixopen.eq.1)then
-              k=klast   ! re-establish k position value
-              do 411 IG=1,NC
-                KE=K+9
-                if(KE.le.1000)then
-                  write (louts1k(K:KE),'(f9.4)') VAL2(IG,J)
-                  write (louts2k(K:KE),'(f9.4)') VAL2(IG,J)
-                  K=K+9
-                else
-                  write (louts2k(K:KE),'(f9.4)') VAL2(IG,J)
-                endif
- 411          continue
-            endif
-
-            if(ixopen.eq.1)then
-              lnb=lnblnk(louts1k)   ! write directly to file
-              lnb2=lnblnk(louts2k)   ! write directly to file
-
-              if(delim.eq.'-')then
-                if(lnb2.gt.lnb)then
-                  write(itru,'(A)',iostat=ios,err=1)louts2k(1:lnb2)
-                else
-                  write(itru,'(A)',iostat=ios,err=1)louts1k(1:lnb)
-                endif
-              else
-
-C If delimiter set to alternative then process text before writing.
-C If using X delimeter (tagged data) then set the delimeter to a comma.
-C If IHFLAG is 2 then the initial 19 or 21 characters will be a time
-C stamp that needs the 10th character to be a literal space.
-                dg=delim
-                if (delim.eq.'X') dg='C'
-                call SDELIM(louts1k,louts1kd,dg,IW)
-                call SDELIM(louts2k,louts2kd,dg,IW)
-                if(IHFLAG.eq.2) then
-                  write(louts1kd(10:10),'(1a)') ' '
-                  write(louts2kd(10:10),'(1a)') ' '
-                endif
-                lnb=lnblnk(louts1kd)   ! write directly to file
-                lnb2=lnblnk(louts2kd)   ! write directly to file
-                if(lnb2.gt.lnb)then
-                  write(itru,'(A)',iostat=ios,err=1)louts2kd(1:lnb2)
-                else
-                  write(itru,'(A)',iostat=ios,err=1) louts1kd(1:lnb)
-                endif
-              endif
-            else
-
-C Writing to screen so use shorter file buffer.
-              lnb=MIN0(lnblnk(louts),124)
-              if(lnb.lt.124)then
-                call eddisp(itru,louts)
-              else
-                call eddisp248(itru,louts,124)
-              endif
-            endif
- 521      continue  ! of the timestep in the day
-        endif       ! of the IFMT tabular
- 10   continue      ! of the iday loop
+            write (outs,'(f6.2,12(1x,f8.4))') TIME,(VAL2(II,J),II=1,NC)
+            call edisp(itru,outs)
+ 521      continue
+          call edisp(itru,'  ')
+        endif
+ 10   continue
 
 C Only proceed if IFMT=1
       if (IFMT.ne.1) goto 1
@@ -808,8 +448,6 @@ C SAINTER calculates summary statistics within result sets.
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
-      character graftitle*64,grlbl*24
-      common/grextras/graftitle,grlbl(10),ngrlbl,lblpx(10),lblpy(10)
 
       character SLABEL*32,GLABEL*20,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
@@ -952,8 +590,8 @@ C Copy current sub-set of sets into IGETNO array.
           IGETNO(NGET,5)=NSNO(ISET)
         endif
  20   continue
-C      write(6,'(a,a)') SLABEL(1)(1:LNSLABEL(1)),' is focus'
-C      write(6,'(a,a)') GLABEL(1)(1:LNGLABEL(1)),' is focus'
+      write(6,'(a,a)') SLABEL(1)(1:LNSLABEL(1)),' is focus'
+      write(6,'(a,a)') GLABEL(1)(1:LNGLABEL(1)),' is focus'
 
 C NDTS - the number of timesteps in a day.
       NDTS=24*NTS
@@ -1249,14 +887,10 @@ C Calculate overall standard deviation and display depending on IFMT.
      &                    SDTOT/real(NSDTOT)
         call edisp(ITRU,outs)
       elseif (IFMT.eq.3.and.(.not.graphit)) then
-        write (graftitle,'(3a)') SLABEL(1)(1:lnblnk(SLABEL(1))),
-     &    ' in: ',zname(IGETNO(1,2)) 
-        ngrlbl=0
         call MOGHED
         YMAX(1)=VMAX
         YMIN(1)=VMIN
-        YAXSET(1)=1  ! use left axis
-        YAXSET(2)=0; YAXSET(3)=0; YAXSET(4)=0  ! off other axis
+        YAXSET(1)=1  ! lets try left axis
         DHR=FLOAT(((IODF-1)*24+IOH2)-((IODS-1)*24+IOH1))
         TMIN=FLOAT(IOH1)-1.0/FLOAT(NTS)
         TMAX=FLOAT(IOH1)+DHR+1.0/FLOAT(NTS)
@@ -1694,7 +1328,6 @@ C WHSET displays currently chosen sets and lets user toggle selections.
 #include "epara.h"
 
       COMMON/OUTIN/IUOUT,IUIN
-      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/SIMPKA/NSIM
 
@@ -1732,11 +1365,7 @@ C IVERT is the menu position, MVERT the current number of menu lines.
 C Initial menu entry setup.
    92 IER=0
       M=0
-      if(MMOD.eq.8)then
-        IVERT=-1
-      else
-        IVERT=-2
-      endif
+      IVERT=-3
 
 C Loop through the items until the page to be displayed. M is the 
 C current menu line index. Build up text strings for the menu. 

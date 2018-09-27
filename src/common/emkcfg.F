@@ -1218,9 +1218,6 @@ C Simulation parameter presets.
           WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2)
      &'# sim setup: no. sets startup zone_ts plant_ts save_lv @ 1 ts/hr'
         endif
-
-C << Logic needed to figure out legacy or extended *sps >>
-
         WRITE(IFCFG,'(A,6i4)',IOSTAT=IOS,ERR=2) '*sps ',nsset,isstup,
      &    isbnstep,ispnstep,issave,isavgh
 

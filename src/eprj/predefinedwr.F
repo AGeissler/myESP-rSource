@@ -29,7 +29,6 @@ C ******************************** CHOOSEPREDEF
 C choosepredef - selects a predefined object and returns its name
 C and bounding box. It calls predefscan to recover information to 
 C present in menus.
-C << multi-zone ?? >>
       subroutine choosepredef(objectname,objmenu,objbb,ier)
 #include "building.h"
 #include "esprdbfile.h"

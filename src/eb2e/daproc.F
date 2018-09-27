@@ -576,9 +576,6 @@ C Write out the header data
         WRITE(IBUNIT,'(A)')'*task,update'
 
 C Write out the integer value of the timestep.
-
-C << logic needed in the case of extended *sps >>
-
         ISTPH=NINT(3600./SIMTSTP) 
         IF(ISTPH.EQ.0) ISTPH=1
         WRITE(IBUNIT,'(A,I5)')'*stepperhour,',ISTPH

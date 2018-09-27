@@ -64,9 +64,6 @@ C Tollerance for surface matching.
       character ureturn*8  ! info back from silentread
       integer NITMS,INO1 ! max items and current menu item
       integer iradcores
-C      character dq*1,simicol*1
-C      character PHRASE*42,JTAG*42,buffer*96,MSG*42,act*1
-C      character CH*1,FIRST*32,SECOND*24
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -81,9 +78,6 @@ C Set initial states to false and clear text buffers.
       longtfile=' '
       doit=' '
       hold32=' '
-C      dq = char(34)  ! double quote
-C      simicol = char(58)   ! :
-C      PHRASE='  '; JTAG='  '; buffer='  '
 
 C Check if Unix-based or DOS based.
       call isunix(unixok)
@@ -139,7 +133,7 @@ C Display of time of day.
       elseif(igupgrade.eq.1)then
         ITEMS1(11)='l upgrade files >> save current format        '
       endif
-      ITEMS1(12)  ='* test button (draw flow network)             '
+      ITEMS1(12)  ='* test button                                 '
       ITEMS1(13)  ='r cores available to Radiance                 '
       ITEMS1(14)  ='s surface match tollerance                    '
       ITEMS1(15)  ='? help                                        '
@@ -413,58 +407,6 @@ C Toggle file format upgrade opinion.
         
       ELSEIF(INO1.EQ.12)THEN
 
-C Scan model for surface USE attributes in order to build up
-C a list of likely mass flow components.
-        CALL EASKABC('test options',' :','scan surfaces',
-     &    'draw the network','scan 3D afn',IUW,nbhelp)
-        if(iuw.eq.1)then
-          call scan_flow_use()
-        elseif(iuw.eq.2)then
-          call MFWFDRAW('r')  ! Test drawing flow network.
-        else
-
-C Temporarily use same file unit as profiles db.
-          IPRODB=IFIL+6
-          if(IPRODB.eq.IFIL+6)then
-            IUM=IPRODB
-          else
-            IUM=IFIL+6
-          endif
-          CALL ERPFREE(IUM,ISTAT)
-          CALL MFCDAT
-          CALL EMF3DREAD(IUM,'R',IER)
-
-C List what we have thus far.
-          CALL MFLIST(iuout)
-          call MFWFDRAW('r')  ! Test drawing flow network.
-        endif
-
-C Test for scanning json file. Assgin a text buffer.
-C        buffer=  "calibration": "cellular",
-C        write(buffer,'(10a)') '   ',dq,'calibration',dq,simicol,'  ',
-C     &    dq,'cellular',dq,','
-C        write(6,*) buffer(1:lnblnk(buffer))
-C        k=0; act='-'; MSG='json string string'
-C        call EGETJSNTAGPHR(buffer,K,JTAG,PHRASE,ACT,MSG,ier)
-C        write(6,*) 'jtag is ',jtag(1:lnblnk(jtag))
-C        write(6,*) 'phrase is ',phrase(1:lnblnk(phrase))
-
-C Test split of phrase.
-C        write(buffer,'(a)') 'spandrel_ins_thick.all_insul_fram'
-C        CH='.'; FIRST='  '; SECOND='  '
-C        call splitstratchar(buffer,CH,FIRST,SECOND,ier)
-C        write(6,*) 'first is ',first(1:lnblnk(first))
-C        write(6,*) 'second is ',second(1:lnblnk(second))
-
-C        buffer=  "ESTIMATE": 0.0345,
-C        write(buffer,'(7a)') '   ',dq,'ESTIMATE',dq,simicol,
-C     &    '  0.0345',','
-C        write(6,*) buffer(1:lnblnk(buffer))
-C        k=0; act='-'; MSG='json string real'
-C        call EGETJSNTAGR(buffer,K,JTAG,rv,0.01,1.0,ACT,MSG,ier)
-C        write(6,*) 'jtag is ',jtag(1:lnblnk(jtag))
-C        write(6,*) 'rv is ',rv
-
 C Test button for ESP-r meta file read testing.
 
 C Add a choice point here - one to carry on with the current model,
@@ -551,6 +493,3 @@ C User asked for help.
       goto 33
      
       END
-
-
-

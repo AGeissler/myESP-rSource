@@ -2457,11 +2457,6 @@ C Compute sum of absolute mass sources.
 C Modify problem.
       CALL MODPP1
 
-c      write(6,*)'SU(2,6,8),SP(2,6,8)',SU(2,6,8),SP(2,6,8)
-c      write(6,*)'SU(12,6,11),SP(12,6,11)',SU(12,6,11),SP(12,6,11)
-c      write(6,*)'AW(2,6,8)',AW(2,6,8)
-c      write(6,*)'AH(12,6,11)',AH(12,6,11)
-
 C Remaining coefficients and residual source calculation.
       DO 300 I=2,NIM1
         DO 3001 J=2,NJM1

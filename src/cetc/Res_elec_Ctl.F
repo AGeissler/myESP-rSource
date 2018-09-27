@@ -658,7 +658,7 @@ C       Plt controls have not changed, and additional interdomain iteration is u
         bRESElec_ctl_unconverged = .false.
       else
 C       Plt controls have changed, and additional iteration is required.
-cx        bRESElec_ctl_unconverged = .true.
+Cx        bRESElec_ctl_unconverged = .true.
         bRESElec_ctl_unconverged = .false.
       endif
 

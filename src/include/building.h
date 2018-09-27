@@ -122,8 +122,8 @@ C      PARAMETER (MNRS=2**MNFA)  !- Result sets (set to 100 for sensitivity anal
       PARAMETER (MIPVM=12)      !- IPV metrics.
       PARAMETER (MZS=120)       !- Number of items to report in res (biggest of MCOM or MS).
       PARAMETER (MZRL=MS+12)    !- Fields in a zone results library record. It should
-                                !  be largest of (36 for file names or MCON for zones
-                                !  or MS + 12 or MGP * 5). See reslib.F for logic.
+                                !  be largest of (40 for file names or MCON+12 for zones
+                                !  or MS+12 or MGP * 5). See reslib.F for logic.
 C Mathematical model.
       PARAMETER (MEQ=MS+1)      !- Equations.
       PARAMETER (MTR=MS+4)      !- Equation terms.

@@ -1364,6 +1364,7 @@ C ************* rascicfc
 C rascicfc: Fills common cfcdatarray and cfcnamearray from
 C current ASCII CFC layers database LASCI opened on unit IFA. 
       subroutine rascicfc(IFA,LASCI,IER)
+      use CFC_Module
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
@@ -1400,6 +1401,32 @@ C Name of current application - only invoke editing if prj.
       logical dupfound,concat,unixok,ok,dok
       integer iCFCtype, ival
 
+C Determine number of classes and items in the database
+      CALL EFOPSEQ(IFA,LASCI,1,IER)
+      IF(IER.NE.0)RETURN
+      write(currentfile,'(a)') LASCI(1:lnblnk(LASCI))
+       MGIT_CFC = 0   ! reset the total number of items.
+      MGCL_CFC = 0 ! reset the total number of classes.
+      DO
+        CALL LSTRIPC(IFA,LOUTSTR,0,ND,1,'header lines',IER)
+        IF(IER.NE.0)RETURN
+        K=0
+        CALL EGETW(LOUTSTR,K,WORD,'-','*date',IER)
+        if(WORD(1:6).eq.'*Class'.or.WORD(1:6).eq.'*class')then
+            MGCL_CFC = MGCL_CFC + 1
+        elseif(WORD(1:5).eq.'*Item'.or.WORD(1:5).eq.'*item')then
+            MGIT_CFC = MGIT_CFC + 1
+        elseif(WORD(1:4).eq.'*End'.or.WORD(1:4).eq.'*end')then
+            EXIT
+        elseif(IER == 2) then
+            EXIT
+        endif
+      ENDDO
+      CALL ERPFREE(IFA,ISTAT)
+C Initialize CFC database arrays
+      if (allocated(cfccatitems) .eqv. .true.) CALL CFC_DB_DEALLO ! Deallocate if allocated
+      CALL CFC_DB_INITIALIZE
+
 C Open the ASCII file for reading.
       dupfound = .false.  ! assume no duplicate names
       CALL EFOPSEQ(IFA,LASCI,1,IER)
@@ -1412,15 +1439,7 @@ C Proceed with header.
       K=0
       CALL EGETW(OUTSTR,K,WORD,'-','*CFClayers',IER)
       if(WORD(1:10).eq.'*CFClayers'.or.WORD(1:10).eq.'*cfclayers')then
-
-C Clear the CFC layers common blocks.
         cfcdbitems = 0   ! reset the total number of items.
-        do ij=1,MGCL_CFC
-          cfccatname(ij)=' '
-          cfccatdoc(ij)=' '
-          cfccatitems(ij)=0
-        end do
-
         cfcver = 1.1   ! set initial version of database.
         CALL EGETWR(OUTSTR,K,VAL(1),1.0,1.3,'-','db cfc version',IER)
         if(VAL(1).gt.1.0) cfcver = VAL(1)
@@ -1566,7 +1585,6 @@ C             Old data base ...
             CALL EGETWR(LOUTSTR,K,VAL(6),0.,0.,'-',
      &                    'sol refl in',IER)
             CALL EGETWR(LOUTSTR,K,VAL(7),0.,0.,'-','slat tran',IER)
-c << insert vis data here?
             CALL EGETWR(LOUTSTR,K,VAL(8),0.,0.,'-','emiss out',IER)
             CALL EGETWR(LOUTSTR,K,VAL(9),0.,0.,'-','emiss in',IER)
             CALL EGETWR(LOUTSTR,K,VAL(10),0.,0.,'-','lw tran',IER)
@@ -1581,9 +1599,6 @@ c << insert vis data here?
             CALL EGETWR(LOUTSTR,K,VAL(15),0.,0.,'-',
      &                    'slat wr ratio',IER)
             CALL EGETWR(LOUTSTR,K,VAL(16),0.,0.,'-','slat thk',IER)
-
-c    ... or here ??
-
             CFCsolreflout(cfcdbitems) = VAL(5)
             CFCsolreflin(cfcdbitems) = VAL(6)
             ! For venetian blinds set vis = sol for slat reflection
@@ -1617,7 +1632,6 @@ cx ... read such that old and new data lines work ??
      &                    'sol tran tot out',IER)
             CALL EGETWR(LOUTSTR,K,VAL(9),0.,0.,'-',
      &                    'sol tran tot in',IER)
-c << vis data here?
             CALL EGETWR(LOUTSTR,K,VAL(10),0.,0.,'-',
      &                    'pleat width',IER)
             CALL EGETWR(LOUTSTR,K,VAL(11),0.,0.,'-',
@@ -1795,6 +1809,7 @@ C mkascicfc: creates ascii CFC layers file (version 1.1) based on
 C current information in common cfcdatarray, cfcnamearray.
 C ASCII file LASCI opened on unit IFA. 
       subroutine mkascicfc(IFA,LASCI,IER)
+      use CFC_Module
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"

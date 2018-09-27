@@ -2446,7 +2446,7 @@ C If NHELP=-1 there is no default option.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
       CHARACTER*(*) MSG1,MSG2
-      CHARACTER ANS*2,MSG3*124,outs*124,outs2*124
+      CHARACTER ANS*2,MSG3*124,outs*124
       logical ok,dok,DEFLT
       integer IWI  ! for radio button
 
@@ -2812,6 +2812,11 @@ C menuchw is the initial request for menu width (in characters)
       common/gfont/ifs,itfs,imfs
       CHARACTER*(*) TITLE
       CHARACTER HEAD*255
+#ifdef OSI
+      integer iimenu,ilf,igfw,igfh,ild,igdw,igdh
+#else
+      integer*8 iimenu,ilf,igfw,igfh,ild,igdw,igdh
+#endif
 
       CHARACTER*5 MM
       integer ifont   ! to pass to winfnt
@@ -2853,8 +2858,9 @@ C Open the dialogue box and begin message then open the
 C feedback box with call to feedbox, passing it the initial
 C menu character width mechchw. Note, nothing uses igfw or
 C igfh. Then call opengdisp.
-        call feedbox(menuchw,2,igfw,igfh)
-        call opengdisp(menuchw,limtty,2,igdw,igdh)
+        iimenu=menuchw; ilf=2; ild=LIMTTY
+        call feedbox(iimenu,ilf,igfw,igfh)
+        call opengdisp(iimenu,ild,ilf,igdw,igdh)
         CALL msgbox(' ',' ')
         RETURN
       ELSE
@@ -4233,7 +4239,7 @@ C ITPPSW current view - perspective/plan/south/west
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,CFCDBOK
-      LOGICAL OPTKOK,CLOSE,OK,dok,found,concat,redraw
+      LOGICAL OPTKOK,CLOSE,OK,dok,found,concat,do_redraw
       DIMENSION ITEMS(23),IVALS(MCOM),FALT(9),IVAL(9)
       CHARACTER ITEMS*32,H*72,LFIL*72,outs*124
       DIMENSION STMP(MS)
@@ -4259,7 +4265,7 @@ C If not in graphic mode return.
       if(MMOD.lt.8)return
 
 C Initial menu entry setup with one line header, 3 control lines.
-      redraw=.false.
+      do_redraw=.false.
       ITPPSW=0
 
 C Menu loop.
@@ -4316,10 +4322,6 @@ C Hilight surface based on OPQ/TRAN or construction.
         ITEMS(7) ='f highlight >> partial attribute'
       ENDIF
 
-C << ?? what about a focus on surface option ?? >>
-C << if static bounds then we probably want to not
-C << recalculate the viewed point from the COG of
-C << the model
       IF(ITBND.EQ.0)THEN
         ITEMS(8) ='g view bounds >> static         '
       ELSEIF(ITBND.EQ.1)THEN
@@ -4386,17 +4388,17 @@ C If image info altered (view point) then update display.
       IF(MODIFYVIEW)THEN
         if(ITPPSW.eq.0)then
           CALL INLNST(1)
-          CALL ADJVIEW(IER)
+          CALL redraw(IER)
           IF(ier.NE.0)RETURN
           MODLEN=.FALSE.
           MODBND=.FALSE.
           MODIFYVIEW=.FALSE.
         elseif(ITPPSW.eq.1)then
-          if(redraw)call PLELEV('P')
+          if(do_redraw)call PLELEV('P')
         elseif(ITPPSW.eq.2)then
-          if(redraw)call PLELEV('S')
+          if(do_redraw)call PLELEV('S')
         elseif(ITPPSW.eq.3)then
-          if(redraw)call PLELEV('E')
+          if(do_redraw)call PLELEV('E')
         endif
       ENDIF
 
@@ -4550,23 +4552,6 @@ C Select one of the current zones and then a surface.
         if(ier.ne.0)goto 42
         MODLEN=.TRUE.
         MODIFYVIEW=.TRUE.
-
-C << offer option of focus on a specific surface COG >>
-C << what about a common which holds the current focus surface ?? >>
-
-C        H(1)='The view point is a point within the site coordinate'
-C        H(2)='system. The default is the centre of gravity of the'
-C        H(3)='model.'
-C  42    WRITE(HOLD,'(1x,3f7.1)')VIEWM(1),VIEWM(2),VIEWM(3)
-C        CALL EASKS(HOLD,' ','View point X Y Z?',
-C     &           24,' 2. 2. 1. ','viewpoint coord',IER,3)
-C        K=0
-C        CALL EGETWR(HOLD,K,VIEWM(1),-999.,999.,'W','X cord',IER)
-C        CALL EGETWR(HOLD,K,VIEWM(2),-999.,999.,'W','Y cord',IER)
-C        CALL EGETWR(HOLD,K,VIEWM(3),0.,999.,'W','view Z cord',IER)
-C        if(ier.ne.0)goto 42
-C        MODLEN=.TRUE.
-C        MODIFYVIEW=.TRUE.
       ELSEIF(IVERT.EQ.3)THEN
         H(1)='The angle of view is between 1 and 89 degrees.'
         CALL EASKR(ANG,' ','Angle of view?',
@@ -4581,7 +4566,7 @@ C        MODIFYVIEW=.TRUE.
         CALL EASKABCD(' ','View options:','perspective',
      &    'plan','south elevation','west elevation',IW,2)
         if(IW-1.ne.ITPPSW)then
-          redraw =.true.
+          do_redraw =.true.
           MODIFYVIEW=.TRUE.
         endif
         ITPPSW=IW-1
@@ -4736,7 +4721,7 @@ C Refresh the image.
         do 444,ix=1,ncomp
           iZBFLG(ix)=0
   444   continue
-        CALL ADJVIEW(IER)
+        CALL redraw(IER)
         IF(ier.NE.0)RETURN
         MODLEN=.FALSE.
         MODBND=.FALSE.

@@ -1488,7 +1488,6 @@ C If flow is 1D or 2D make coefficients in other directions zero.
 
 C Openings.
       DO 371 L=1,NOPEN(ICFD)
-c        IF(IWOPEN(L,ICFD).EQ.0)THEN
         IF(IWOPEN(L,ICFD).EQ.0.OR.(IWOPEN(L,ICFD).GE.1.AND.
      &     IWOPEN(L,ICFD).LE.6.AND.IMFACT.EQ.1))THEN
 

@@ -24,7 +24,6 @@ C   SDDEF002 - Composite constructions
 C   SDDEF003 - Weather
 C   SDDEF004 - Operations
 C   SDDEF005 - Convection coefficients
-C   SDDEF006 - Optical controls
 C   SDDEF101 - Zone geometry
 C   SDDEF1001 - Zone controls
 C   SDDBOUND - ask for numerical data with range checking.
@@ -83,7 +82,7 @@ C This returns the number of unique materials and array of
 C materials array indices.
       call UPELM(NPRIM,IELM,IER)
       write(6,*) 'nprim ',nprim
-C      write(6,*) 'ielm ',ielm
+      write(6,*) 'ielm ',ielm
 
 C Now find the names of the materials.
       DO 20 II=1,NPRIM
@@ -214,7 +213,6 @@ C Recover the material property and hence uncertainty.
      &        LELM(IVALE(I))(1:16)
             call st2name(t24,LCNG(ICDEF))
           else
-C Return iallow 1=% 2=absolute 3=explicit
             IDMAT(ICDEF,3)=IALLOW
             DATU(ICDEF,1)=XLOW
             if (IALLOW.eq.3) then
@@ -241,7 +239,6 @@ C Common blocks UA3 within uncertainty.h
       COMMON/OUTIN/IUOUT,IUIN
 
       COMMON/UA31/MATNAM(MNCNG,2)
-      COMMON/UA32/IMISCD(MNCNG,2)
 
       real DFLTRANGE     ! topic & attribute increments
       integer IDFLTR     ! 1=% 2=abs
@@ -338,26 +335,19 @@ C If no type has been selected then return to main SA menu.
 
 C Everything is OK re selection therefore add type selection to common.
         IDMAT(ICDEF,1)=IPRMAT(ISEL,IVALE(1))
-
-C Remember which layer in the MLC ->IMISCD(?,1)
-        IMISCD(ICDEF,1)=IVALE(1)
-        write(6,*) ' icdef idmat imiscd',ICDEF,IDMAT(ICDEF,1),
-     &    IVALE(1),IMISCD(ICDEF,1)
-
+          
       else
         call edisp(iuout,'Not enabled yet.')
         IER=101
         return
       endif
 
-      IALLOW=3     ! ask % abs or explicit
+      IALLOW=3
       XMPERC=10.0  ! default %
       XMABS=10.0
       XLOW=0.0
       XHIGH=100.0
       call SDDBOUND(IALLOW,XMPERC,XMABS,XLOW,XHIGH,IER)
-
-C Return iallow 1=% 2=absolute 3=explicit
       IDMAT(ICDEF,3)=IALLOW
       DATU(ICDEF,1)=XLOW
       if (IALLOW.eq.3) then
@@ -419,14 +409,12 @@ C Now determine the climatic parameter which is uncertain.
       endif
       IDMAT(ICDEF,1)=IVALP(1)
 
-      IALLOW=2     ! ask % or asb
+      IALLOW=2
       XMPERC=10.0  ! default %
       XMABS=10.0
       XLOW=0.0
       XHIGH=100.0
       call SDDBOUND(IALLOW,XMPERC,XMABS,XLOW,XHIGH,IER)
-
-C Return iallow 1=% 2=absolute 3=explicit
       IDMAT(ICDEF,3)=IALLOW
       DATU(ICDEF,1)=XLOW
       if (IALLOW.eq.3) then
@@ -492,14 +480,12 @@ C Operations file data.
         IDMAT(ICDEF,2)=IRT
       endif
 
-      IALLOW=3     ! ask % or abs or explicit
+      IALLOW=3
       XMPERC=10.0  ! default %
       XMABS=10.0
       XLOW=0.0
       XHIGH=100.0
       call SDDBOUND(IALLOW,XMPERC,XMABS,XLOW,XHIGH,IER)
-
-C Return iallow 1=% 2=absolute 3=explicit
       IDMAT(ICDEF,3)=IALLOW
       DATU(ICDEF,1)=XLOW
       if (IALLOW.eq.3) then
@@ -527,7 +513,7 @@ C Check for htc file - can use scaling on calculated coefficievts that way.
 
       call edisp(iuout,' Convection coefficient selection. ')
       call EASKAB('Only Halcrow time invarient enabled ! ','  ',
-     &            'Continue and define distribution','Cancel',IRT,0)
+     &                'Continue and define distribution','Cancel',IRT,0)
       if (IRT.eq.2) then
         IER=101
         return
@@ -549,54 +535,6 @@ C        DATU(ICDEF,2)=XHIGH
 C      else
 C        DATU(ICDEF,2)=0.
 C      endif
-      return
-      end
-
-C ****************** SDDEF006 ******************
-C SDDEF006 - Blind control distribution definition.
-C The distribution is only the setpoint (BACTPT) defined
-C in the zone tmc file. The location definition includes 
-C zone & TMC type & TMC period
-      subroutine SDDEF006(ICDEF,IER)
-#include "building.h"
-C Common blocks UA3 within uncertainty.h
-#include "uncertainty.h"
-
-      COMMON/OUTIN/IUOUT,IUIN
-      integer ICDEF  ! current index
-      
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='SDDEF006'  ! set for subroutine
-      helptopic='uncert_blind'
-      call gethelptext(helpinsub,helptopic,nbhelp)
-      
-      IER=0
-
-      IDMAT(ICDEF,1)=1  ! signals blind setpoint is uncertain
-      IDMAT(ICDEF,2)=1
-
-C Check for htc file - can use scaling on calculated coefficievts that way.
-
-      call edisp(iuout,' Blind setpoint uncertainty enabled.')
-      IALLOW=2     ! ask % or asb
-      XMPERC=10.0  ! default %
-      XMABS=1.0    ! depends on what is in TMC file
-      XLOW=0.0
-      XHIGH=100.0
-      call SDDBOUND(IALLOW,XMPERC,XMABS,XLOW,XHIGH,IER)
-
-C Return iallow 1=% 2=absolute 3=explicit
-      IDMAT(ICDEF,3)=IALLOW
-      DATU(ICDEF,1)=XLOW
-      if (IALLOW.eq.3) then
-        DATU(ICDEF,2)=XHIGH
-      else
-        DATU(ICDEF,2)=0.
-      endif
       return
       end
 
@@ -660,7 +598,7 @@ C For help messages
         endif
       endif
 
-      IALLOW=2     ! ask % or asb
+      IALLOW=2
       XMPERC=10.0  ! default %
       XMABS=1.0    ! ? 1m^3
       if (IRT.eq.1) then
@@ -673,8 +611,6 @@ C For help messages
       XLOW=0.0
       XHIGH=100.0
       call SDDBOUND(IALLOW,XMPERC,XMABS,XLOW,XHIGH,IER)
-
-C Return iallow 1=% 2=absolute 3=explicit
       IDMAT(ICDEF,3)=IALLOW
       DATU(ICDEF,1)=XLOW
       if (IALLOW.eq.3) then
@@ -750,14 +686,12 @@ C        4=max cooling, 5=min cooling, 6=heating SP, 7=cooling SP.
      &  'Cooling SP',IRT,nbhelp)
       IMISCD(ICDEF,2)=IRT
 
-      IALLOW=2     ! ask % or asb
+      IALLOW=2
       XMPERC=10.0  ! default %
       XMABS=10.0
       XLOW=0.0
       XHIGH=100.0
       call SDDBOUND(IALLOW,XMPERC,XMABS,XLOW,XHIGH,IER)
-
-C Return iallow 1=% 2=absolute 3=explicit
       IDMAT(ICDEF,3)=IALLOW
       DATU(ICDEF,1)=XLOW
       if (IALLOW.eq.3) then

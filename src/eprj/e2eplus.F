@@ -1850,22 +1850,22 @@ C Debug.
 
 C Info about children of this surface.
 C Debug.
-          write(6,'(3a,i2,a,i3,a,i2,a,i3)')  ' for surface named ',
-     &      SSNAME(icc),' nb children ',nbchild(icc),
-     &      ' cnn is ',ichild(icc,1),' nb gc ',nbgchild(icc),
-     &      ' cnn is ',igchild(icc,1)
+C          write(6,'(3a,i2,a,i3,a,i2,a,i3)')  ' for surface named ',
+C     &      SSNAME(icc),' nb children ',nbchild(icc),
+C     &      ' cnn is ',ichild(icc,1),' nb gc ',nbgchild(icc),
+C     &      ' cnn is ',igchild(icc,1)
           if(ichild(icc,1).gt.0) then
-            write(6,*) ' child named ',SSNAME(ichild(icc,1))
+C            write(6,*) ' child named ',SSNAME(ichild(icc,1))
           else
             usethisone(icc)=.true.  ! no children so use
           endif
 
 C Debug.
-          write(6,*) ' edge dup ',nbedgdup(icc)
-          write(6,*) ' edge share ',nbedgshr(icc)
-          write(6,'(a,10i4)') 'p share ',iedgshr(icc,1),iedgshr(icc,2),
-     &    iedgshr(icc,3),iedgshr(icc,4),iedgshr(icc,5),iedgshr(icc,6),
-     &    iedgshr(icc,7),iedgshr(icc,8),iedgshr(icc,9),iedgshr(icc,10)
+C          write(6,*) ' edge dup ',nbedgdup(icc)
+C          write(6,*) ' edge share ',nbedgshr(icc)
+C          write(6,'(a,10i4)') 'p share ',iedgshr(icc,1),iedgshr(icc,2),
+C     &    iedgshr(icc,3),iedgshr(icc,4),iedgshr(icc,5),iedgshr(icc,6),
+C     &    iedgshr(icc,7),iedgshr(icc,8),iedgshr(icc,9),iedgshr(icc,10)
 
   64    continue
 

@@ -2056,7 +2056,6 @@ C************** Calculation
          FinalDOD = DODIni + batCur*dtTStep/BatteryCap(IPWC,batTempInit)
       ENDIF
 
-
       END
 
 C****************************************************************************
@@ -3154,7 +3153,6 @@ C     inlet ion concentrations
 C     electron flow rate
       electronFlowRate = current/Faraday_constant
 
-
       tempVariable = nSerie * electronFlowRate / electrolyteFlowRate
 
 C     outlet ion concentrations
@@ -3569,7 +3567,6 @@ C     The temperature is not tracked in the current stage, so it is set as the i
 
       END
 
-
 C**************************************************************************
 C 50 FinalDOD_Lion
 C**************************************************************************
@@ -3639,8 +3636,8 @@ C *********************************************************************
 #include "BATTERY.h"
 
       COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout            !- write unit number
-      INTEGER iuin             !- read unit number
+      INTEGER iuout          !- write unit number
+      INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batCur
@@ -3698,8 +3695,8 @@ C     Make sure no negative value is returned
      &                 ', IPWC=',IPWC
         BatteryCap_Lion = 0.01
       ENDIF
-      END
 
+      END
 
 C**************************************************************************
 C 52 temp_factor_lion
@@ -3727,8 +3724,8 @@ C *********************************************************************
 #include "power.h"
 
       COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout            !- write unit number
-      INTEGER iuin             !- read unit number
+      INTEGER iuout          !- write unit number
+      INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTempVar
@@ -3835,8 +3832,8 @@ C *********************************************************************
 #include "power.h"
 
       COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout            !- write unit number
-      INTEGER iuin             !- read unit number
+      INTEGER iuout          !- write unit number
+      INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batCur
@@ -3943,8 +3940,8 @@ C *********************************************************************
 #include "power.h"
 
       COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout            !- write unit number
-      INTEGER iuin             !- read unit number
+      INTEGER iuout          !- write unit number
+      INTEGER iuin           !- read unit number
 
 C Common holding NSINC (no of building time step increments) for debugging only
        COMMON/SIMTIM/NSINC
@@ -4018,8 +4015,8 @@ C     charge cycle, because then the voltage is expected to surpass the batMaxVo
      &                 'min in function OCV_Lion', (NSINC)
         OCV_Lion = batMinVolt - deltaVforT
       ENDIF
-      END
 
+      END
 
 C**************************************************************************
 C 55 RInt_Lion
@@ -4050,8 +4047,8 @@ C *********************************************************************
 #include "power.h"
 
       COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout            !- write unit number
-      INTEGER iuin             !- read unit number
+      INTEGER iuout          !- write unit number
+      INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batDODVar, batCur
@@ -4159,8 +4156,8 @@ c *********************************************************************
 #include "power.h"
 
       COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout            !- write unit number
-      INTEGER iuin             !- read unit number
+      INTEGER iuout          !- write unit number
+      INTEGER iuin           !- read unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTempVar
@@ -4239,7 +4236,6 @@ C     Linear interpolate to find voltage offset factor based on present battery 
       ENDIF
 
       END
-
 
 C**************************************************************************
 C SOH_Lion

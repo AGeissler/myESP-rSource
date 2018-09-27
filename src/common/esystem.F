@@ -2698,7 +2698,7 @@ C toggles to set water filled zones.
 C Debug.
 C              write(6,*) 'zone ',NCCODE(ICOMP),' is water filled.'
               znotair(icomp)=.TRUE.
-cx              zfldK=0.6; zfldD=998.2; zfldC=4190.0; zfldA=0.0
+              zfldK=0.6; zfldD=998.2; zfldC=4190.0; zfldA=0.0
               zSWAp(icomp)=0.0; zSWAf(icomp)=0.0
             else
               znotair(icomp)=.FALSE.  ! usual assumption of air filled
@@ -2918,11 +2918,7 @@ C Warn user about old utility file.
       endif
 
 C Geometry file, get or derive the zone name via reading the file.
-C Make temporary use of file unit IUF.
-
-C << if ICOMP > MCOM then georead should return ier=3
-C << if number of surfaces > MS georead should return ier=4
- 
+C Make temporary use of file unit IUF. 
  142  do 22 ICOMP=1,NCOMP
         zname(ICOMP)='UNKNOWN'
         call FINDFIL(LGEOM(ICOMP),XST)

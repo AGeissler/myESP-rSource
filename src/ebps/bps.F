@@ -340,10 +340,6 @@ C Toggle for extreme silent running (endless) mode.
       logical endless,issilient
       common/endlessmode/endless,issilient
 
-C Logical flag for uncertainty header has been printed.
-      logical uncertheadprinted
-      common/uncerthead/uncertheadprinted
-      
       integer iverb     ! verbosity passed on command line
 
       LOGICAL OK,dok,OK3D
@@ -361,8 +357,8 @@ C      logical gopher  ! not references
       character journcmd*20,jfile*72,uname*24,cjfile*72,OUTSTR*124
       character dllsubr*12,dllmesg*124
       character t16*16,outs248*248
-      character cVnum*36      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character cVnum*38      ! returned from ESPrVersionNum
+      character pagestitle*68 ! for banner title via epages call
 
 C Flags for multi-year simulation menus
       logical bOptOut, bDone, bMY_clm_err, bExists, bCreate
@@ -575,7 +571,6 @@ C Use process ID as seed for random number generator (for use in
 C uncertainty analysis routines)
       call esppid(ipid)
       x=RSTART(ipid)
-      uncertheadprinted=.false.
 
 C If your compiler does not support floating-point arithmetic
 C according to ANSI/IEEE Std 754-1985 comment out the following code.
@@ -659,7 +654,6 @@ C Setup and pass in parameters to win3d.
      &      iigl,iigr,iigt,iigb,iigw,iigwh)
           igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
           igw=int(iigw); igwh=int(iigwh)
-C          write(6,*) 'igw igwh igl igb',igw,igwh,igl,igb
           call opencpw
           call opensetup
           iicapture=1
@@ -1274,10 +1268,10 @@ C Debug write out unmet hours.
         if(endless.or.issilient)then
           continue
         else
-cx          write(6,'(a)')
-cx     &      'Unmet hours for each zone at end of simulation.'
+          write(6,'(a)') 
+     &      'Unmet hours for each zone at end of simulation.'
           do I=1,NCOMP
-cx            write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
+            write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
           enddo
         endif
         if(ITDFLG.ne.0)then
@@ -1370,11 +1364,16 @@ C calls in esru_lib.F
       return
       end
 
-      subroutine chgazi(icazi)
+      subroutine redraw(IER)
+      ier=0
       return
       end
 
-      subroutine chgelev(icelev)
+      subroutine chgazi(icazi,ifrlk)
+      return
+      end
+
+      subroutine chgelev(icelev,ifrlk)
       return
       end
 

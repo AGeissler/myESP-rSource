@@ -171,16 +171,12 @@ c
       If ( iMech .eq. 1 ) Call MECH_VENT_INIT ( )
 c ---
 
-C Are uncertainties defined? If senrns returns with ier=2
-C then user has selected just to run the base case.
+C Are uncertainties defined?
       if (LUALF(1:7).ne.'UNKNOWN') then
         IUALF=IFIL+1
         call readual(IUALF)
         call SENRNS(IER)
         if (IER.eq.1) return
-        if (IER.eq.2)then
-          continue  ! run only the base case
-        endif
       endif
       
 
