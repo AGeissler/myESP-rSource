@@ -234,13 +234,9 @@ C Common used for saving  flux in coupled zones/surfaces
 C logical value to assess if the zone has a coupled zone
       logical bCoupled_Zone
 
-C logical value for flow > 0
-      logical bNoFlow
-
       character outs*124
 C----------------------------------------------------------------------
-C     Flag indicating if radiant floor is active, number of radiant floors,
-C     indirect index for radiant_floor component
+C     Flag indicating if radiant floor is active, number of radiant floors, indirect index for radiant_floor component
       COMMON/RadFloor/RadFloor_active, NRadFloor, IRadFloor,
      &                InitRadFloor
 
@@ -260,38 +256,15 @@ C     Trace output
          RETURN
       ENDIF
 
-C     Set number of additional data items
-      NAPDAT(IPCOMP)=5
-
 C     Initialize pointers to inter-connection(s) ICON, and node(s) INOD
       ICON1=ICONDX(IPCOMP,1,1)
       INOD1=NPCDAT(IPCOMP,9)
 
-C     Find the component radiant floor number of component
-      irf = IRadFloor(IPCOMP)
-
-C     Served zone No.
-      Iz = INT( ADATA(IPCOMP,7) )
-
-C     Zone surface No.
-      Is = INT( ADATA(IPCOMP,8) )
-
-C     Surface injection node No.
-      In = INT( ADATA(IPCOMP,9) )
-
-C     Check for flow > 0
-      call eclose(CONVAR(ICON1,2),0.,1.0E-06,bNoFlow)
-      bNoFlow=.false.
 C     variable assignments -----------------------------------------------
 C     Plant time step
       Dt    = TIMSEC
 C     Inlet fluid temperature
-      if (.not.bNoFlow) then
-        Tin   = CONVAR(ICON1,1)
-      else
-cx        Tin   = PCAOUT(IPCOMP,4) ! TetaMp(irf) <= didn't work ?!
-        Tin   = TFC(Iz, Is, In)  ! ? slab temp @ injection node
-      endif
+      Tin   = CONVAR(ICON1,1)
 C     Fluid flow rate per circuit
       FlowR = PCONDR(ICON1) * CONVAR(ICON1,2) / ADATA(IPCOMP,1)
 
@@ -313,22 +286,23 @@ C     Conduction resistance of the pipe
       ResC  = LOG( ADATA(IPCOMP,3) / ADATA(IPCOMP,2) ) /
      &     ( 2. * PI * ADATA(IPCOMP,5) )
 
+C     Product of fluid flow rate and specific heat per circuit
+      FLWCp = FlowR * SHTFLD(3, Tin) + Small
+
 C     Fluid velocity
       Vel   = FlowR / ( RHOFLD(3, Tin) * AreaF )
 
+C     Served zone No.
+      Iz = INT( ADATA(IPCOMP,7) )
+
+C     Zone surface No.
+      Is = INT( ADATA(IPCOMP,8) )
+
+C     Surface injection node No.
+      In = INT( ADATA(IPCOMP,9) )
+
 C     Area of the radiant surface
       AreaR   = SNA(Iz, Is)
-
-C     Average circuit length
-      CirL  = AreaR/( ADATA(IPCOMP,1) * ADATA(IPCOMP,4) )
-
-C     Product of fluid flow rate and specific heat per circuit
-C     [W/K] from kg/s * J/(kg K)
-      FLWCp = FlowR * SHTFLD(3, Tin) + Small
-
-C     Available heat per K from pipe filled with fluid
-C     [W/K] from J/(m K) * m / s
-      noFLWCp = (RCPAf + RCPAp)*CirL/Dt
 
 C     1-D average temperature of the pipe outer surface
       Tpipe1D = TFC(Iz, Is, In)
@@ -402,11 +376,14 @@ C     Check if the specified injection node is valid -----------------
      &         'Zone ',Iz,', Surface ',Is,' injection node ',
      &                       In,' not in range 1 to',(Ncentr+1)
          call edisp(iuout,outs)
-         WRITE(*,*)outs
+         WRITE(*,outs)
          WRITE(*,*)'Source error: radiant floor.  Simulation halted'
          call pauses(2)   ! pause for 2 seconds then abort program.
          STOP
       ENDIF
+
+C     Average circuit length
+      CirL  = AreaR/( ADATA(IPCOMP,1) * ADATA(IPCOMP,4) )
 
 C     Length of the calculation domain along the y-axis - perpendicular to the pipes
       YL = ADATA(IPCOMP,4) / 2.
@@ -422,7 +399,11 @@ C     Size (Dx, Dy, volume) of the heat generation control volume = pipe volume
       DYq   = DXq
       Volq  = 4. * DXq * DYq * CirL
 
-C---------------------------------------------------------------------
+C
+C     find the component radiant floor number of component
+      irf = IRadFloor(IPCOMP)
+
+C--------------------------------------------------------------------------------------
 C     INITIALIZE VARIABLES BEFORE SIMULATION
 C     initialize only before energy solution     
 
@@ -473,13 +454,13 @@ C     calculate series coefficients: Aij abd Fij. See the above reports for more
      &              SIN(OmegY*DYq) / DEN
                Fcof(irf,I,J) = 0.
 
- 10      CONTINUE
+ 10         CONTINUE
 
-      ENDIF ! Initialization
+         ENDIF
 
 C----------------------------------------------------------------------
 C     Generate coefficients for energy balance equation
-      IF(ISTATS.EQ.1) THEN
+         IF(ISTATS.EQ.1) THEN
 
 C     Establish heat capacity of component mass CM (J/K) and
 C     fluid heat capacity rate(s) C (W/K), ie. SUM(mass flow * specific heat)
@@ -526,34 +507,21 @@ C     Heat source rate at the present time
                TetaIN = Tin - Tpipef(irf)
 
 C     Fluid average temperature over the circuit length
-cx  .. this is definitely no mean temperature, but a sum ??!!
                TFmean = TetaMf(irf) + Tpipef(irf)
 
 C     Calculate film coefficient and convection resistance
-
                CALL CVCOEFF1(3,TFmean, Vel, ADATA(IPCOMP,2), Hfilm)
                ResI = 1./( PI * ADATA(IPCOMP,2) * Hfilm + Small)
 
-C              Overall conductance
+C     Overall conductance
                UP = 1./(ResC + ResI)
                UA = UP*CirL
 
-C              This is a temporary variable
+C     This is a temporary variable
                RCPAm = RCPAf + UP*ResC*RCPAp
 
-C              Is mass flow gt. zero?
-cx             ((model seems to have problems with no (or tiny!) mass flow ...))
-               if (.not.bNoFlow) then
-
-C                Calculate the constant C (see the above reports)
-                 C = UP/FLWCp
-
-               else
-C                Different value for no-flow situation ag@170913
-C                Calculate the constant C (see the above reports)
-                 C = UP/noFLWCp
-
-               endif
+C     calculate the constant C (see the above reports)
+               C = UP/FLWCp
 
 C     Product of circuit length and constant C
                CL = C * CirL
@@ -691,52 +659,49 @@ C     Store "environment" variables future values (not used here)
                PCRF(ICON1)=C1
 
 C     1st phase mass (ie. water) balance coefficients
-      ELSE IF(ISTATS.EQ.2) THEN
+            ELSE IF(ISTATS.EQ.2) THEN
                COUT(1)=1.
                COUT(2)=-PCONDR(ICON1)
                COUT(3)=0.
 
 C     2nd phase mass (ie. vapour) balance coefficients
-      ELSE IF(ISTATS.EQ.3) THEN
+            ELSE IF(ISTATS.EQ.3) THEN
                COUT(1)=1.
                COUT(2)=0.
                COUT(3)=0.
-      END IF ! check istats ...
+            END IF
 
 C     Trace output
-      IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
-     &    ITRACE(37).NE.0) THEN
-        WRITE(ITU,*) ' ====           '
-        WRITE(ITU,*) ' Component      ',IPCOMP,':'
-        WRITE(ITU,*)
-     &       ' 1 node (ISV=20) Radiant Heating/Cooling System'
-        WRITE(ITU,*) ' Matrix node(s) ',INOD1
-        WRITE(ITU,*) ' Connection(s)  ',ICON1
-        IF(ISTATS.EQ.1) THEN
-           WRITE(ITU,*) ' NSINC  = ',NSINC,' (-)'
-           WRITE(ITU,*) ' Iter   = ',Iter,' of ',ITmax,' (-)'
-           WRITE(ITU,*) ' CM     = ',CM,' (J/K)'
-           WRITE(ITU,*) ' C1     = ',C1,' (W/K)'
-           WRITE(ITU,*) ' TC     = ',TC(IPCOMP),' (s)'
-           WRITE(ITU,*) ' ALPHA  = ',ALPHA,' (-)'
-           WRITE(ITU,*) ' Tin    = ',Tin,' (degC)'
-           WRITE(ITU,*) ' TFmean = ',TFmean,' (degC)'
-           WRITE(ITU,*) ' Hfilm  = ',Hfilm,' (W/(m2 K))'
-           WRITE(ITU,*) ' UA     = ',UA,' (W/K)'
-           WRITE(ITU,*) ' PCNTMF = ',PCNTMF(IPCOMP),' (C)'
-        END IF
-        WRITE(ITU,*) ' Matrix coefficients for ISTATS = ',ISTATS
-        NITMS=3
-        WRITE(ITU,*) (COUT(I),I=1,NITMS)
-        IF(ITU.EQ.IUOUT) THEN
-           IX1=(IPCOMP/4)*4
-           IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
-        ENDIF
-        WRITE(ITU,*) ' Leaving subroutine RadFloor_CoeffGen()'
-      ENDIF ! Trace output
+            IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &           ITRACE(37).NE.0) THEN
+               WRITE(ITU,*) ' Component      ',IPCOMP,':'
+               WRITE(ITU,*)
+     &              ' 1 node (ISV=20) Radiant Heating/Cooling System'
+               WRITE(ITU,*) ' Matrix node(s) ',INOD1
+               WRITE(ITU,*) ' Connection(s)  ',ICON1
+               IF(ISTATS.EQ.1) THEN
+                  WRITE(ITU,*) ' CM     = ',CM,' (J/K)'
+                  WRITE(ITU,*) ' C1     = ',C1,' (W/K)'
+                  WRITE(ITU,*) ' TC     = ',TC(IPCOMP),' (s)'
+                  WRITE(ITU,*) ' ALPHA  = ',ALPHA,' (-)'
+                  WRITE(ITU,*) ' UA     = ',UA,' (W/K)'
+                  WRITE(ITU,*) ' PCNTMF = ',PCNTMF(IPCOMP),' (C)'
+               END IF
+               WRITE(ITU,*) ' Matrix coefficients for ISTATS = ',ISTATS
+               NITMS=3
+               WRITE(ITU,*) (COUT(I),I=1,NITMS)
+               IF(ITU.EQ.IUOUT) THEN
+                  IX1=(IPCOMP/4)*4
+                  IF(IX1.EQ.IPCOMP.OR.IPCOMP.EQ.NPCOMP) call epagew
+               END IF
+            END IF
 
-      RETURN
-      END
+            IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
+     &           ITRACE(37).NE.0) WRITE(ITU,*)
+     &           ' Leaving subroutine CMP95C'
+
+            RETURN
+            END
 
 C     ************** RadFloor_store * ********************
 C     Author        : Dr. Abdelaziz (Aziz) Laouadi
