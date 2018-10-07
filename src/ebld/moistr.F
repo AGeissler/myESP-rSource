@@ -830,6 +830,7 @@ C       External construction surface
         ALPHA=HCOF(ICOMP,I)
         TCf=ATF(ICOMP,I) ! future adjacent temperature
         if(Psat01(TCf).ne.0.0)then
+cx        << see ebld/adjb.F, line 360 (approx.) ...
           RH=APf(ICOMP,I)/Psat01(TCf)
         else
           write(outs,*)
