@@ -354,7 +354,10 @@ C Connection with the 3D ground model.
                 ATF(ICOMP,I)=TEMP3G(ICOMP)
               ENDIF
               ARF(ICOMP,I)=0.0
-              APf(ICOMP,I)=0.6*Psat01(TF)
+cx << ground vapour pressure at 60 % of saturation pressure of external
+cx    air temperature, i.e. constant relativ humidity of 60 % ??
+cx              APf(ICOMP,I)=0.6*Psat01(TF)
+              APf(ICOMP,I)=0.6*Psat01(ATF(ICOMP,I))
 
 C Connection 5: Adiabatic case (adjacent zone air temperature set to
 C external surface temperature). Note that this is an exact treatment.
