@@ -299,11 +299,6 @@ C.....Named constants for timerows
       logical OK,DOK
       logical bInStartup  ! logical function returning true if in startup period
 
-C <SPR>
-      common/occup/isocc(MCOM)
-      logical isocc
-C </SPR>
-
 C Trace output ?
       traceok = .true.
       IF(ITC.LE.0.OR.NSINC.LT.ITC)traceok = .false.
@@ -483,17 +478,6 @@ C << any need for ICGUnit?  Probably always is W. >>
         ctlperlightl(icomp,2)=VAL(ISD+5)
         ctlperequipl(icomp,2)=VAL(ISD+8)
         ctlperotherl(icomp,2)=0.0
-
-C <SPR>
-C Set occupancy flag.
-        isocc(ICOMP)=.false.
-        if ((ctlperocupc(icomp,2)+
-     &       ctlperocupr(icomp,2)+
-     &       ctlperocupl(icomp,2)).gt.0.) then
-          isocc(ICOMP)=.true.
-        endif
-C </SPR>
-
         if(traceok)then
           write(outs,*)'separate casual gains from temporal db=',
      &        VAL(ISD),VAL(ISD+1),VAL(ISD+2),VAL(ISD+3),VAL(ISD+4),
@@ -1081,19 +1065,6 @@ C by value from FMU.
 c              write(287,*)'CGCTL(ICOMP,2,IGN),ICOMP,IGN',
 c     &          CGCTL(ICOMP,2,IGN),ICOMP,IGN
 C </FMI>
-
-C <SPR>
-C Set occupancy flag.
-              if (IGN.eq.1) then
-                isocc(ICOMP)=.false.
-                if ((CGSENC(ICOMP,IDAY,IGN,IPER)+
-     &               CGSENR(ICOMP,IDAY,IGN,IPER)+
-     &               CGLAT(ICOMP,IDAY,IGN,IPER))*
-     &              CGCTL(ICOMP,2,IGN).gt.0.) then
-                  isocc(ICOMP)=.true.
-                endif
-              endif
-C </SPR>
 
               QCASC(2)=QCASC(2)+CGSENC(ICOMP,IDAY,IGN,IPER)*
      &                 CGCTL(ICOMP,2,IGN)

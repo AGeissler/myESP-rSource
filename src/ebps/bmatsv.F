@@ -312,10 +312,6 @@ C Path to model
       common/rpath/path
       character path*72
 
-C <SPR>
-      integer spr_problem
-C </SPR>
-      
 C SUN F90 has spotty support for cpu_time intrinsic
 #ifdef F90
 #else
@@ -451,16 +447,6 @@ C Ensure all control commons are initialised to "off".
         call FMI_CLEARCTL()
       endif
 C </FMI>
-
-C <SPR>
-C Initialise sprites.
-      CALL SPRINIT
-C </SPR>
-
-C <GRM>
-C Initialise gremlins.
-      CALL GRMINIT
-C </GRM>
 
 C Initialize HVAC variables
       call ZERO_HVAC_VAR
@@ -1187,11 +1173,6 @@ C Set the future time-row hour value.
             if(nsinc.eq.1)btimep=1.0
             btimef=float(ihrp)+float(its)/float(ntstep)
 
-C <GRM>
-C Check on gremlins.
-            if (.not.bInStartup()) CALL GRMCTL(ier)
-C </GRM>
-
 C New day events in SHOCC occur when btimef first exceeds 24.0 ...
             if(btimef.gt.24.0)then
               if(ishday.eq.0)then
@@ -1896,11 +1877,6 @@ C << NOTE: dummy call REP_UPDATE only has 3 parameters >>
      &                              iQuick_run)
 !            call REP_UPDATE(nsinc,btimep,myday, iStartupFlag) ! <- store logged data
 
-C <SPR>
-C Query sprites.
-            if (.not.bInStartup()) CALL SPRCTL(spr_problem,ier)
-C </SPR>
-
    30     continue
 
 C debug (begin)
@@ -2015,11 +1991,6 @@ C GSHP system is defined.
        endif
 
        endif seasonal_run_test
-
-C <SPR>
-C If there is a problem, stop the simulation here.
-        if (spr_problem.eq.1) call SPRSTOP(iday)
-C </SPR>
 
 C Day loop now complete.
    10 continue
