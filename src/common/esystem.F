@@ -2593,6 +2593,37 @@ C Reporting.
               CALL EDISP(iuout,OUTS)
             ENDIF
   28      CONTINUE
+
+C Ground monthly humidity profiles. 2nd item is the number of profiles.
+        elseif(WORD(1:4).eq.'*mgh')then
+          CALL EGETWI(OUTSTR,K,NGRDPH,1,MGRDP,'F','grn prfls',IER)
+          IF(NGRDPH.eq.0) goto 344
+          IF(NGRDPH.ne.NGRDP)then
+            WRITE(OUTS,'(A,I2,A)')
+     &       'FATAL: Number of ground temperature profiles ',NGRDP,
+     &       ' is not equal '
+            CALL EDISP(iuout,OUTS)
+            WRITE(OUTS,'(A,I2,A)')
+     &       'to the number of ground humidity profiles ',NGRDPH,
+     &       '! Programm stopped.'
+            CALL EDISP(iuout,OUTS)
+            STOP
+          ENDIF
+          DO 36 IGRDP=1,NGRDPH
+            CALL EGETWRA(IUC,GVA,12,-9.,99.,'W','Gr hum',IER)
+            DO 37 J=1,12
+              UGRDHUM(J,IGRDP)=GVA(J)
+   37       CONTINUE
+
+C Reporting.
+            IF(ITRC.GE.1.AND.ITRC.LT.4)THEN
+              CALL EDISP(iuout,' ')
+              CALL EDISP(iuout,' Ground humidity profile Jan-Dec:')
+              WRITE(OUTS,'(12F6.1)')(UGRDHUM(J,IGRDP),J=1,12)
+              CALL EDISP(iuout,OUTS)
+            ENDIF
+  36      CONTINUE
+
           goto 344
         elseif(WORD(1:4).eq.'*end')then
 
@@ -3846,7 +3877,7 @@ C Trap out of range IC1 and IE1 variables.
       ELSEIF(ictype.EQ.2)THEN
         WRITE(CXSTR,8983)ICON,SST1(1:lsn1),ZST1(1:lzn1),
      &                   IC2(ICON),IE2(ICON)
- 8983   FORMAT(I4,1X,a,' in ',a,' >|< Constant @',I3,' dC &',
+ 8983   FORMAT(I4,1X,a,' in ',a,' >|< Constant @',I3,' dC & ',
      &    I4,' W rad')
       ELSEIF(ictype.EQ.3)THEN
         ICM=IZSTOCN(IC2(ICON),IE2(ICON))

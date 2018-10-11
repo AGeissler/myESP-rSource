@@ -1384,6 +1384,7 @@ C 3D ground files.
           WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*gtp  ',
      &      GTGEOM(1:lnblnk(GTGEOM))
         endif
+
         if(ngrdp.gt.0)then
           WRITE(IFCFG,'(A,i3)',IOSTAT=IOS,ERR=2)'*mgp  ',NGRDP
           DO 932 I=1,NGRDP
@@ -1391,6 +1392,14 @@ C 3D ground files.
   933       FORMAT(12F6.2)
   932     CONTINUE
         endif
+        if(ngrdph.gt.0)then
+          WRITE(IFCFG,'(A,i3)',IOSTAT=IOS,ERR=2)'*mgh  ',NGRDPH
+          DO 942 I=1,NGRDPH
+            WRITE(IFCFG,943,IOSTAT=IOS,ERR=2)(UGRDHUM(J,I),J=1,12)
+  943       FORMAT(12F6.0)
+  942     CONTINUE
+        endif
+
         WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '*end'
       endif
 

@@ -37,10 +37,14 @@ C Site viewfactors from building surfaces to the site.
       real buildingview ! viewfactor to buildings (0.0 - 1.0)
       COMMON/C5R/skyview,groundview,buildingview
 
-C Monthly profiles of temperatures defined by the user and standard profiles.
+C Monthly profiles of temperatures and humidities defined by the user
+C and standard profiles.
       real UGRDTP    ! user defined monthly temperature profile
       integer NGRDP  ! numer of user defined monthly profiles
-      COMMON/C14/UGRDTP(12,MGRDP),NGRDP
+      real UGRDHUM   ! user defined monthly humidity profile
+      integer NGRDPH ! numer of user defined monthly humidity profiles
+
+      COMMON/C14/UGRDTP(12,MGRDP),NGRDP,UGRDHUM(12,MGRDP),NGRDPH
 
       real grdtmp ! standard (compiled in) monthly temperature profiles
                   ! as defined in esru_blk.F

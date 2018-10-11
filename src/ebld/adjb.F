@@ -354,11 +354,15 @@ C Connection with the 3D ground model.
                 ATF(ICOMP,I)=TEMP3G(ICOMP)
               ENDIF
               ARF(ICOMP,I)=0.0
+
+              IF(NGRDPH.gt.0) THEN
+                APf(ICOMP,I)=UGRDHUM(IMNTH,IE2(J))
+              ELSE
 cx << ground vapour pressure at 60 % of saturation pressure of external
 cx    air temperature, i.e. constant relativ humidity of 60 % ??
 cx              APf(ICOMP,I)=0.6*Psat01(TF)
-              APf(ICOMP,I)=0.6*Psat01(ATF(ICOMP,I))
-
+                APf(ICOMP,I)=0.8*Psat01(ATF(ICOMP,I))
+              ENDIF
 C Connection 5: Adiabatic case (adjacent zone air temperature set to
 C external surface temperature). Note that this is an exact treatment.
 C The following parameters assume a corresponding action in MZSETU.

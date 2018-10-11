@@ -1466,54 +1466,6 @@ cx                call edisp(itu,outs2)
             end do
   19      continue
 
-cx          ZD=1.0
-cx          CALL GTCALC(ZD,'-',IER)
-cx          itrunc=1
-cx          ipos=1
-cx          do while (itrunc.ne.0)
-cx            call arlist(ipos,12,eGrdTp,12,'S',outs2,loutln,itrunc)
-cx            if(markdown)then
-cx              call edispxtr(itu,
-cx     &          'Calculated ground temp at 1.0m depth  ')
-cx              call edisp2tr(itu,outs2)
-cx            else
-cx              call edisp(itu,'Calculated ground temp at 1.0m depth')
-cx              call edisp(itu,outs2)
-cx            endif
-cx            ipos=itrunc+1
-cx          end do
-cx          ZD=2.0
-cx          CALL GTCALC(ZD,'-',IER)
-cx          itrunc=1
-cx          ipos=1
-cx          do while (itrunc.ne.0)
-cx            call arlist(ipos,12,eGrdTp,12,'S',outs2,loutln,itrunc)
-cx            if(markdown)then
-cx              call edispxtr(itu,
-cx     &          'Calculated ground temp at 2.0m depth  ')
-cx              call edisp2tr(itu,outs2)
-cx            else
-cx              call edisp(itu,'Calculated ground temp at 2.0m depth')
-cx              call edisp(itu,outs2)
-cx            endif
-cx            ipos=itrunc+1
-cx          end do
-cx          ZD=4.0
-cx          CALL GTCALC(ZD,'-',IER)
-cx          itrunc=1
-cx          ipos=1
-cx          do while (itrunc.ne.0)
-cx            call arlist(ipos,12,eGrdTp,12,'S',outs2,loutln,itrunc)
-cx            if(markdown)then
-cx              call edispxtr(itu,
-cx     &          'Calculated ground temp at 4.0m depth  ')
-cx              call edisp2tr(itu,outs2)
-cx            else
-cx              call edisp(itu,'Calculated ground temp at 4.0m depth')
-cx              call edisp(itu,outs2)
-cx            endif
-cx            ipos=itrunc+1
-cx          end do
           call edisp(itu,' ')
         endif
 
@@ -1540,14 +1492,22 @@ C << to be done >>
 C Jump back point if err=1000 called when reading climate.
  1001 if(siteinfo.eq.2)then
         if(NGRDP.gt.0)then
-          do 22 igrdp=1,NGRDP    
-            if(markdown)then
-              call edispxtr(itu,'Ground temperatures Jan-Dec  ')
+          if(markdown)then
+            call edispxtr(itu,'Ground temperatures Jan-Dec  ')
+          else
+            if (NGRDPH.gt.0) then
+              call edisp(itu,'Ground temperatures/humidities Jan-Dec:')
             else
               call edisp(itu,'Ground temperatures Jan-Dec:')
             endif
+          endif
+          do 22 igrdp=1,NGRDP
             WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
             call edisp(itu,outs)
+            if (NGRDPH.gt.0) then
+              WRITE(OUTS,'(12F6.1)')(UGRDHUM(J,IGRDP),J=1,12)
+              call edisp(itu,outs)
+            endif
  22       continue
           call edisp(itu,' ')
         endif
