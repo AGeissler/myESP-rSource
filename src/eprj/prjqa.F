@@ -1502,10 +1502,10 @@ C Jump back point if err=1000 called when reading climate.
             endif
           endif
           do 22 igrdp=1,NGRDP
-            WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
+            WRITE(OUTS,'(12F7.1)')(UGRDTP(J,IGRDP),J=1,12)
             call edisp(itu,outs)
             if (NGRDPH.gt.0) then
-              WRITE(OUTS,'(12F6.1)')(UGRDHUM(J,IGRDP),J=1,12)
+              WRITE(OUTS,'(12F7.1)')(UGRDHUM(J,IGRDP),J=1,12)
               call edisp(itu,outs)
             endif
  22       continue
