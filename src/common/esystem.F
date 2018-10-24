@@ -2610,7 +2610,7 @@ C Ground monthly humidity profiles. 2nd item is the number of profiles.
             STOP
           ENDIF
           DO 36 IGRDP=1,NGRDPH
-            CALL EGETWRA(IUC,GVA,12,-9.,99.,'W','Gr hum',IER)
+            CALL EGETWRA(IUC,GVA,12,-9.,3000.,'W','Gr hum',IER)
             DO 37 J=1,12
               UGRDHUM(J,IGRDP)=GVA(J)
    37       CONTINUE
