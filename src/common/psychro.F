@@ -244,6 +244,9 @@ C ******************** SATVP
 C SATVP: Evaluates saturated vapour pressure (mbar).
       FUNCTION SATVP(TD)
       DOUBLE PRECISION T
+
+      IF (TD.LT.-100) TD=-100.
+
       T=TD+273.16
 
 C Check for above ice/water.

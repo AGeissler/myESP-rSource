@@ -362,11 +362,11 @@ C *********************************************************************
       DCP=2430.0
       EVAP01=EVAPr-DCP*TC
       IF(EVAP01.LT.0.0)then
-        write(outs,'(a,F12.6,a)') 
-     &   'EVAP01: negative latent heat of evapouration',
-     &    EVAP01,' resetting to 1.0E-10'
+        write(outs,'(a,E12.6,a,F12.6,a)')
+     &   'EVAP01: negative latent heat of evaporation ',
+     &    EVAP01,' at temp=',TC,' C, resetting to 100 C value'
         call edisp(iuout,outs)
-        EVAP01=1.0E-10
+        EVAP01=EVAPr-DCP*100.
       endif
       RETURN
       END
@@ -544,6 +544,7 @@ C temperature ( C ) (Marieke 1994, IEA 1991, vol 1, page 4.8)
 C *********************************************************************
       FUNCTION Psat01(TC)
       COMMON/OUTIN/IUOUT,IUIN
+      character outs*124
       SMALL=1.0E-15
 
       IF(TC.GT.-30.0.AND.TC.LT.0.0)THEN
@@ -560,7 +561,11 @@ C *********************************************************************
         Psat01=100.0*SATVP(TC)
       ENDIF
       IF(Psat01.LT.SMALL)then
-        call edisp(iuout,'Psat01: small saturation vapour pressure.')
+        write(outs,'(a,F12.6,a)')
+     &   'Psat01: small saturation vapour pressure at temp=',
+     &   TC,' C, forcing STOP!'
+        call edisp(iuout,outs)
+cx        call edisp(iuout,'Psat01: small saturation vapour pressure.')
         call epwait
         call epagend
         STOP
