@@ -1849,7 +1849,7 @@ c For each control function.
       DO 710 I=1,nCFCctlloops
         II=I
         ICF=II
-
+        write(*,*)'nCFCctlloops=',nCFCctlloops
 C Read header : * CONTROL FUNCTION.
         CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'* CONTROL ',IER)
         IF(IER.NE.0)GOTO 99
@@ -1932,45 +1932,42 @@ C Reporting: Get a string describing the actuator based on common block.
         ENDIF
 
 C Day types.
-        CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'day types',IER)
+        CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'day types',IER)
         KG=0
         CALL EGETWI(OUTSTR,KG,nCFCctldaytypes(II),0,MCDT,'F',
-     &              'number of control day type(s)',IER)
+     &              'number of CFC control day type(s)',IER)
         IF(IER.NE.0)GOTO 99
 
 C Reporting:
+        ITRCold=ITRC
+        ITRC=2
         IF(ITRC.GE.1)THEN
-          IF(nCFCctldaytypes(II).EQ.0)THEN
-            CALL EDISP(ITRU,
-     &      ' The function day types are Weekdays, Saturdays & Sundays')
-          ELSE
-            WRITE(OUTSTR,778)nCFCctldaytypes(II)
- 778        FORMAT(' There have been ',I2,' day type(s) defined.')
-            CALL EDISP(ITRU,OUTSTR)
-          ENDIF
+          CALL EDISP(ITRU,' For CFC control')
+          CALL EDISP(ITRU,' the following day types have been defined')
+          write(outstr,'(20a)') (CALENTAG(idty),idty=1,NBDAYTYPE)
         ENDIF
+        ITRC=ITRCold
 
-        nn=nCFCctldaytypes(ii)
-        if(nn.eq.0)nn=3
+        nn=nCFCctldaytypes(ii)  ! a zero says use all day types
+        if(nn.eq.0)nn=NBDAYTYPE
         do 720 j=1,nn
           jj=j
-          CALL STRIPC(IUNIT,OUTSTR,2,ND,1,'validity',IER)
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'validity',IER)
           IF(IER.NE.0)GOTO 99
           KG=0
           CALL EGETWI(OUTSTR,KG,iCFCctldatevalid(II,JJ,1),1,365,'F',
      &              'control activation start day number',IER)
           CALL EGETWI(OUTSTR,KG,iCFCctldatevalid(II,JJ,2),1,365,'F',
      &              'control activation end day number',IER)
-          IF(iCFCctldatevalid(II,JJ,2).LT.
-     &     iCFCctldatevalid(II,JJ,1))THEN
+          IF(iCFCctldatevalid(II,JJ,2).LT.iCFCctldatevalid(II,JJ,1))THEN
             CALL USRMSG(' ',' Start & End dates reversed.','W')
             GOTO 2000
           ENDIF
 
-          CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'periods',IER)
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'periods',IER)
           KG=0
           CALL EGETWI(OUTSTR,KG,nCFCdayctlperiods(II,JJ),1,MCDP,'F',
-     &              'control periods during day',IER)
+     &              'CFC control periods during day',IER)
           IF(IER.NE.0)GOTO 99
 
           LL=nCFCdayctlperiods(II,JJ)

@@ -2926,6 +2926,9 @@ C net_flow supplies MNOD
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
       
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
+
       COMMON/ADJC/IE(MCOM,MS),ATP(MCOM,MS),ATF(MCOM,MS),
      &            ARP(MCOM,MS),ARF(MCOM,MS)
       integer IE
@@ -2947,6 +2950,7 @@ C      dimension vb_phiX(mcom,mcfc,mdty,MT)
 C      real slat_angleX
 
       integer IER,ISD,itdi,IFOC     ! used in context with tdf ...
+      integer IDF,IDS               ! used in context with daytypes
       integer i,j,k                 ! do loop indices
       integer ictlfun               ! control function index
       integer nctldaytypes          ! number of control day types
@@ -2962,7 +2966,7 @@ C      real slat_angleX
       integer isen1, isen2, isen3   ! sensor details
       integer ictype                ! control type
       integer ischedule_shdstateONorOFF
-      real VAL
+      real VAL,TPF,TPS
       real shdONsetpoint,shdMIDsetpoint,shdCLSsetpoint
       real shdOFFsetpoint
       real shdONslatPOSITION
@@ -3039,57 +3043,49 @@ C to the sensor location of the associated control function.
 C Loop through each complex fenestration control function.
 
       IF (nCFCctlloops.gt.0)THEN
-        do 10 i = 1, nCFCctlloops
-          ictlfun = i
-          nctldaytypes = nCFCctldaytypes(i)
-          
-C Determine if period validy dates of daytypes in current 
-C control loop are valid for current calendar day.
-          
-          ! for weekday, saturday and sunday daytypes
-          IF(nctldaytypes.eq.0)THEN
-            if(idayofweek.eq.6)then
-              idaytype = 2
-            elseif(idayofweek.eq.7)then
-              idaytype = 3
-            else
-              idaytype = 1
-            endif
-            if(iday.le.iCFCctldatevalid(i,idaytype,2).and.iday
-     &      .ge.iCFCctldatevalid(i,idaytype,1))goto 11                    
-          ELSE
-            ! Loop through each daytype until a valid daytype is found
-            do 20 j = 1, nctldaytypes
-              idaytype = j
-              if(iday.le.iCFCctldatevalid(i,j,2).and.iday
-     &               .ge.iCFCctldatevalid(i,j,1))goto 11
-  20        continue
-          ENDIF
+        do 10 ictlfun = 1, nCFCctlloops
+          nctldaytypes = nCFCctldaytypes(ictlfun)
 
-C If we are here then no control for control loop i. Skip to end of loop and 
-C continue with next control period.  
-          goto 10
-      
-C Commence control solution.    
-  11      if(btimef.gt.24.)btimef = btimef - 24.  
+C If NDAYT=0 set data to all calendar day types.
+          NIN=0
+          IF(nctldaytypes.EQ.0)THEN
+            nctldaytypes=NBDAYTYPE
+            NIN=-1*NBDAYTYPE
+          ENDIF
+          DO 15 idaytype=1,nctldaytypes
+            IDS=iCFCctldatevalid(ictlfun,idaytype,1)
+            IDF=iCFCctldatevalid(ictlfun,idaytype,2)
+            IF(iday.GE.IDS.AND.iday.LE.IDF) GOTO 20
+   15     CONTINUE
+          WRITE(outs,*) ' CFCCNTR: CFC control ',ictlfun
+          call edisp(iuout,outs)
+          WRITE(outs,*) '      no valid day type for year-day ',iday
+          call edisp(iuout,outs)
+          call edisp(iuout,
+     &         ' CFCCNTR: cannot locate appropriate day type')
+          call epwait
+          CALL EPAGEND
+          STOP
+
+C Check number of periods in each day and the start and finish times
+   20     if(nin.le.-1.or.nctldaytypes.lt.1)idaytype=icalender(iday)
           nperiods = nCFCdayctlperiods(ictlfun,idaytype)
-      
-          do 40 k = 1, nperiods
-            iperiod = k
-            if(k.eq.nperiods)then
-              if(btimef.gt.
-     &          CFCctlperiodstart(ictlfun,idaytype,nperiods))
-     &          goto 12
-            else
-              if(btimef.le.
-     &           CFCctlperiodstart(ictlfun,idaytype,k+1))goto 12
-            endif   
-  40      continue    
- 
-C If we are here then no control for control function i. Skip to end of loop
-C and continue with next control period.   
-          goto 10
- 
+          IF(nperiods.EQ.0) STOP ' CFCCNTR: no day-periods defined'
+          DO 22 iperiod=1,nperiods
+            TPS=CFCctlperiodstart(ictlfun,idaytype,iperiod)
+            IF(iperiod.LT.nperiods) THEN
+              TPF=CFCctlperiodstart(ictlfun,idaytype,iperiod+1)
+            ELSE
+             TPF=24.
+            END IF
+            IF(btimef.GT.TPS.AND.btimef.LE.TPF) GOTO 12
+   22     CONTINUE
+          call edisp(iuout,
+     &         ' CFCCNTR: cannot locate appropriate day-period')
+          call epwait
+          CALL EPAGEND
+          STOP
+
 C Now we have found a valid daytype and period. Apply appropriate control law. 
 C <<Currently only basic control is avaialble so no need to call separate routine>>
 
