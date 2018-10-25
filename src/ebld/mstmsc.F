@@ -709,16 +709,19 @@ C Pt   total pressure  ( Pa )
 C **********************************************************************
       FUNCTION X01(Pv,Pt)
       COMMON/OUTIN/IUOUT,IUIN
+      SMALL=1.0E-12
 
       Ra=287.06
       Rv=461.5
       Pa=Pt-Pv
       X01=Pv*Ra/(Pa*Rv)
       IF(X01.LT.0.0)then
-        call edisp(iuout,'X01: negative vapour ratio.')
-        call epwait
-        call epagend
-        STOP
+        call edisp(iuout,
+     &      'X01: negative vapour ratio. Setting to small value')
+cx        call epwait
+cx        call epagend
+cx        STOP
+        X01=SMALL
       endif
       RETURN
       END
@@ -756,16 +759,19 @@ C **********************************************************************
       FUNCTION X03(TC,RH,Pt)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
+      SMALL=1.0E-12
 
       IF(RH.GT.RHmax)RH=RHmax
       RH100=RH*100.0
       PATMOS=Pt/100.0
       X03=HUMRT1(TC,RH100,PATMOS,0)
       IF(X03.LT.0.0)then
-        call edisp(iuout,'X03: negative vapour ratio.')
-        call epwait
-        call epagend
-        STOP
+        call edisp(iuout,
+     &      'X03: negative vapour ratio. Setting to small value')
+cx        call epwait
+cx        call epagend
+cx        STOP
+        X03=SMALL
       endif
       RETURN
       END
