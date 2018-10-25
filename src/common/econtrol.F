@@ -514,7 +514,7 @@ C Read header : * CONTROL FUNCTION.
         IF(IER.NE.0)GOTO 99
         HDG=OUTSTR(1:5)
         IF(HDG.NE.'* CON'.AND.HDG.NE.'* Con'.AND.HDG.NE.'* con')THEN
-          CALL USRMSG(' ',' * CONTROL string not found ','W')
+          CALL USRMSG(' ',' * CONTROL string (bui) not found ','W')
           GOTO 1111
         ENDIF
 
@@ -775,7 +775,7 @@ C Read header : * control loops.
         IF(IER.NE.0)GOTO 99
         HDG=OUTSTR(1:5)
         IF(HDG.NE.'* CON'.AND.HDG.NE.'* Con'.AND.HDG.NE.'* con')THEN
-          CALL USRMSG(' ',' * CONTROL string not found ','W')
+          CALL USRMSG(' ',' * CONTROL string (plt) not found ','W')
           GOTO 1111
         ENDIF
 
@@ -1328,7 +1328,7 @@ C Read header : * control loops.
         IF(IER.NE.0)GOTO 99
         HDG=OUTSTR(1:5)
         IF(HDG.NE.'* CON'.AND.HDG.NE.'* Con'.AND.HDG.NE.'* con')THEN
-          CALL USRMSG(' ',' * CONTROL string not found ','W')
+          CALL USRMSG(' ',' * CONTROL string (eln) not found ','W')
           GOTO 1111
         ENDIF
 
@@ -1833,7 +1833,7 @@ C Reporting:
       IF(ITRC.GE.1)THEN
         CALL EDISP(ITRU,' ')
         WRITE(OUTSTR,2501)nCFCctlloops
-2501    FORMAT(' Within the current model',I3,' control loops',
+2501    FORMAT(' Within the current model',I3,' CFC control loops',
      &         ' have been specified. ')
         CALL EDISP(ITRU,OUTSTR)
         CALL EDISP(ITRU,' The overall project control is ')
@@ -1849,13 +1849,12 @@ c For each control function.
       DO 710 I=1,nCFCctlloops
         II=I
         ICF=II
-        write(*,*)'nCFCctlloops=',nCFCctlloops
 C Read header : * CONTROL FUNCTION.
         CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'* CONTROL ',IER)
         IF(IER.NE.0)GOTO 99
         HDG=OUTSTR(1:5)
         IF(HDG.NE.'* CON'.AND.HDG.NE.'* Con'.AND.HDG.NE.'* con')THEN
-          CALL USRMSG(' ',' * CONTROL string not found ','W')
+          CALL USRMSG(' ',' * CONTROL string (CFC) not found ','W')
           GOTO 1111
         ENDIF
 
@@ -1932,27 +1931,24 @@ C Reporting: Get a string describing the actuator based on common block.
         ENDIF
 
 C Day types.
-        CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'day types',IER)
+        CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'day types',IER)
         KG=0
         CALL EGETWI(OUTSTR,KG,nCFCctldaytypes(II),0,MCDT,'F',
      &              'number of CFC control day type(s)',IER)
         IF(IER.NE.0)GOTO 99
 
 C Reporting:
-        ITRCold=ITRC
-        ITRC=2
         IF(ITRC.GE.1)THEN
           CALL EDISP(ITRU,' For CFC control')
           CALL EDISP(ITRU,' the following day types have been defined')
           write(outstr,'(20a)') (CALENTAG(idty),idty=1,NBDAYTYPE)
         ENDIF
-        ITRC=ITRCold
 
         nn=nCFCctldaytypes(ii)  ! a zero says use all day types
         if(nn.eq.0)nn=NBDAYTYPE
         do 720 j=1,nn
           jj=j
-          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'validity',IER)
+          CALL STRIPC(IUNIT,OUTSTR,2,ND,1,'validity',IER)
           IF(IER.NE.0)GOTO 99
           KG=0
           CALL EGETWI(OUTSTR,KG,iCFCctldatevalid(II,JJ,1),1,365,'F',
@@ -1964,7 +1960,7 @@ C Reporting:
             GOTO 2000
           ENDIF
 
-          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'periods',IER)
+          CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'periods',IER)
           KG=0
           CALL EGETWI(OUTSTR,KG,nCFCdayctlperiods(II,JJ),1,MCDP,'F',
      &              'CFC control periods during day',IER)
@@ -1996,7 +1992,7 @@ C Reporting:
               GOTO 2000
             ENDIF
 
-            CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'data next',IER)
+            CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'misc data',IER)
             IF(IER.NE.0)GOTO 99
             KG=0
             CALL EGETWR(OUTSTR,KG,CFCmiscdata(II,JJ,KK,1),0.,

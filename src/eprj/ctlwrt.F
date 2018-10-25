@@ -559,8 +559,9 @@ C Complex fenestration control information.
      &     (iCFCctldatevalid(II,JJ,K),K=1,2),outs(1:lnblnk(outs))
           IF(DAYTYPE(1:1).NE.' '.OR.DAYTYPE(1:12).NE.'all daytypes')
      &    DAYTYPE=CALENTAG(J)
-          WRITE(IUNIT,'(I6,2A)',IOSTAT=ios,ERR=1)nCFCdayctlperiods(II,JJ),
-     &      '  # No. of periods in day: ',DAYTYPE
+          WRITE(IUNIT,'(I6,2A)',IOSTAT=ios,ERR=1)
+     &      nCFCdayctlperiods(II,JJ),'  # No. of periods in day: ',
+     &      DAYTYPE
           LL=nCFCdayctlperiods(II,JJ)
 
           DO 309 K=1,LL

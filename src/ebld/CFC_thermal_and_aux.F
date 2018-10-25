@@ -3047,10 +3047,8 @@ C Loop through each complex fenestration control function.
           nctldaytypes = nCFCctldaytypes(ictlfun)
 
 C If NDAYT=0 set data to all calendar day types.
-          NIN=0
           IF(nctldaytypes.EQ.0)THEN
             nctldaytypes=NBDAYTYPE
-            NIN=-1*NBDAYTYPE
           ENDIF
           DO 15 idaytype=1,nctldaytypes
             IDS=iCFCctldatevalid(ictlfun,idaytype,1)
