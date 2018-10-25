@@ -383,7 +383,7 @@ MODULE h3kmodule
       rvpltCosimAirPointCasualGains
 
    !Used by complex_fenestration.F
-   Type(ReportVariable) :: rvCFCShadeCtl, rvCFCSlatAngle
+   Type(ReportVariable) :: rvCFCShadeCtl, rvCFCSlatAngle, rvCFCActOnSetp
    
 CONTAINS
    ! ********************************************************************
@@ -4458,7 +4458,13 @@ CONTAINS
       rvCFCSlatAngle%VariableType = 'degrees'
       rvCFCSlatAngle%Description = 'angle of cfc controlled shade'
       Call AddVariable(rvCFCSlatAngle)
-      
+
+      rvCFCActOnSetp%VariableName = 'building/*/cfc_*/cfc_act_on_sp'
+      rvCFCActOnSetp%MetaType = 'units'
+      rvCFCActOnSetp%VariableType = ''
+      rvCFCActOnSetp%Description = 'actuator on setpoint'
+      Call AddVariable(rvCFCActOnSetp)
+
       End Subroutine UpdateH3kReport
 
 

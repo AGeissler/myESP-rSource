@@ -3458,6 +3458,12 @@ C...........Pad zone index to 'XX'
      &             cZone_Chars,
      &             cCFC_Chars )
 
+            call AddToReport (                      ! Report actuator on setpoint.
+     &             rvCFCActOnSetp%Identifier,
+     &             shdONsetpoint,
+     &             cZone_Chars,
+     &             cCFC_Chars )
+
   44      CONTINUE
         END IF
   43  CONTINUE
