@@ -3047,8 +3047,10 @@ C Loop through each complex fenestration control function.
           nctldaytypes = nCFCctldaytypes(ictlfun)
 
 C If NDAYT=0 set data to all calendar day types.
+          NIN=0
           IF(nctldaytypes.EQ.0)THEN
             nctldaytypes=NBDAYTYPE
+            NIN=-1*NBDAYTYPE
           ENDIF
           DO 15 idaytype=1,nctldaytypes
             IDS=iCFCctldatevalid(ictlfun,idaytype,1)
@@ -3066,7 +3068,7 @@ C If NDAYT=0 set data to all calendar day types.
           STOP
 
 C Check number of periods in each day and the start and finish times
-   20     if(nin.le.-1.or.nctldaytypes.lt.1)idaytype=icalender(iday)
+   20     if(NIN.le.-1.or.nctldaytypes.lt.1)idaytype=icalender(iday)
           nperiods = nCFCdayctlperiods(ictlfun,idaytype)
           IF(nperiods.EQ.0) STOP ' CFCCNTR: no day-periods defined'
           DO 22 iperiod=1,nperiods
