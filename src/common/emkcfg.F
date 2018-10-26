@@ -89,6 +89,7 @@ C ICLIM,LCLIM (for climate file)
 C Plant network.
       COMMON/C23/IFPNF,LPNF
       INTEGER :: ifpnf
+      COMMON/C23a/BPF
 
 C Configuration control.
       common/cctlnm/ctldoc,lctlf
@@ -323,6 +324,7 @@ C Zone fluid.
       CHARACTER LAPROB*72
       CHARACTER CXSTR*78
       CHARACTER LPNF*72
+      CHARACTER*72 BPF
       CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ,LMOIST,LGrdSt
       CHARACTER ctldoc*248,LCTLF*72,H*72
       CHARACTER spflnam*72
@@ -1579,6 +1581,10 @@ C Plant network information - plant file and model name (if plant only).
         WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2) '* Plant'
         WRITE(IFCFG,'(2a)',IOSTAT=IOS,ERR=2)LPNF(1:lnblnk(LPNF)),
      &    '  # plant network description'
+        if(BPF(1:3).EQ.'../')then
+          WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2) '* Boundary'
+          WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2)BPF
+        endif
         if(INDCFG.EQ.2)then
           WRITE(IFCFG,'(a)',IOSTAT=IOS,ERR=2) 
      &      modeltitle(1:lnblnk(modeltitle))

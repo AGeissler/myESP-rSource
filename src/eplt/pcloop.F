@@ -828,11 +828,7 @@ C Trace output.
          WRITE(ITU,*) ' ENTERING SUBROUTINE PCBDAT'
       ENDIF
 
-      if(INDCFG.eq.2)then
-         iunit=ifil+5
-      else
-         iunit=ifil+9
-      endif
+      iunit=ifil+9
 
       if(nsincp.eq.1.and.ips.eq.1)then
         CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'bound file skip',IER)

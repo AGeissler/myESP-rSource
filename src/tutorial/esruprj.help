@@ -1569,7 +1569,7 @@ C          CALL EASKI(I3,' ','Which bidirectional set to use (1-40)?',
 
 '  on set point (units depends on control type)'
 '  off setpoint (units depends on control type)'
-'  The values must satisfy the constraint SPTON < SPTOFF'
+'  (the values must satisfy the constraint SPTON < SPTOFF)'
 '  output at hi, output at lo'
 '  '
 '  sensor lag (in plant-timesteps)'

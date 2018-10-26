@@ -113,6 +113,15 @@ C      simple_solar_coll_static 1 node (ISV=20) simple solar collector
 C      NCHE_static_template 2 node (ISV=20) natural convection heat exchanger (NCHE)
 C      stratified_tank_1HX_static 2 node (ISV=20) stratified tank with one immersed coil
 C      stratified_tank_2HX_static 3 node (ISV=20) stratified tank with two immersed coil
+C
+C      cmp134s 1 node (ISV=20) Heating or Cooling Load
+C      cmp135s 3 node (ISV=20) Shell Boiler / Water Heater
+C      cmp136s 4 node (ISV=20) Buried DH Water Pipe w/ adjacent pipe
+C      cmp137s 1 node (ISV=20) Massless Converging Junction
+C      cmp138s 3 node (ISV=20) Water 3-port diverter with flow balancing
+C      cmp139s 3 node (ISV=20) Flow Branch Water Diverter Junction - Relative Flow 
+C      cmp140s 3 node (ISV=20) Water 3-port Diverter Valve - Relative Flow
+C      cmp141s 2 node (ISV=20) Massless Diverter Valve
 
 C ******************** MZSDAT ********************
 
@@ -402,6 +411,29 @@ C Air-based receiving coupling component (HCC-R) for co-simulation with TRNSYS.
       ELSE IF (ITYPE .EQ. 133) THEN
          CALL TCC_static(IPCOMP, ACC_R, ACC, .false.)
          ACC_R = ACC_R+1
+
+      ELSE IF(ITYPE.EQ.134) THEN
+         CALL CMP134S(IPCOMP)
+      ELSE IF(ITYPE.EQ.135) THEN
+         CALL CMP135S(IPCOMP)
+      ELSE IF(ITYPE.EQ.136) THEN
+         CALL CMP136S(IPCOMP)
+      ELSE IF(ITYPE.EQ.137) THEN
+         CALL CMP137S(IPCOMP)
+      ELSE IF(ITYPE.EQ.138) THEN
+         CALL CMP138S(IPCOMP)
+      ELSE IF(ITYPE.EQ.139) THEN
+         CALL CMP139S(IPCOMP)
+      ELSE IF(ITYPE.EQ.140) THEN
+         CALL CMP140S(IPCOMP)
+      ELSE IF(ITYPE.EQ.141) THEN
+         CALL CMP141S(IPCOMP)
+C 2-node stratified storage tank model
+      ELSE IF(ITYPE.EQ.142) THEN
+         CALL stratified_tank_byp_static(IPCOMP)
+      ELSE IF(ITYPE.EQ.143) THEN
+         CALL CMP143S(IPCOMP)
+
       ELSE
         WRITE(IUOUT,*) ' No static template for component ',IPCOMP,ITYPE
         STOP ' MZSDAT: unresolvable error on component type'
@@ -662,7 +694,7 @@ C
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
          WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
-         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil & ',
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil and',
      &                ' water mass flow rate control'
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
@@ -1001,7 +1033,7 @@ C Establish static data derivable from the data read from database
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
          WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
-         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil & ',
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil and',
      &                ' water mass flow rate control'
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
@@ -1078,7 +1110,7 @@ C
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
          WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
-         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil & ',
+         WRITE(ITU,*) ' 1 node (ISV=21) AC  cooling coil and',
      &                ' water mass flow rate control'
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
@@ -2237,7 +2269,7 @@ C
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
          WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
-         WRITE(ITU,*) ' 1 node (ISV=20) Water cooler & ',
+         WRITE(ITU,*) ' 1 node (ISV=20) Water cooler and',
      &                ' flux control'
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
@@ -3629,7 +3661,7 @@ C Temp compensation gradient (-)
 C Trace output
       IF(ITC.GT.0.AND.ITRACE(35).NE.0) THEN
          WRITE(ITU,*) ' Component ',IPCOMP,' pre-simulation data for a:'
-         WRITE(ITU,*) ' 1 node (ISV=20) WCH air-source heat pump '
+         WRITE(ITU,*) ' 1 node (ISV=20) WCH heat rejection device'
          NITMS=3
          WRITE(ITU,*) ' ADATA ',(ADATA(IPCOMP,J),J=1,NITMS)
          NITMS=33
@@ -4872,7 +4904,6 @@ C Error handling
 C
       END
 
-
 C ******************** CMP74S ********************
 C
 C CMP74S establishes for plant component with plant db code 740 i.e
@@ -4919,16 +4950,12 @@ C Check component has 1 connections to water
          GOTO 990
       END IF
    10 CONTINUE
-C
-C
       RETURN
-C
 C Error handling
   990 WRITE(IUOUT,*) ' CMP74S: connection error for component ',IPCOMP
       WRITE(IUOUT,*) '         should be 1 connection(s)'
       WRITE(IUOUT,*) '         to water.'
       STOP ' CMP74S: unresolvable error'
-C
       END
 
 C ******************** CMP79S ********************

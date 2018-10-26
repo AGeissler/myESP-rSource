@@ -78,12 +78,12 @@ install:
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \
-	*.o arrow.F ascii_mat.F azalt.F dossupport.F edatabase.F emfnetw.F \
-	filelist.F nwkrewr.F mfcdat.F mfrlst.F sort.F startup.F CFC_Module.f90
+	*.o arrow.F ascii_mat.F azalt.F dossupport.F edatabase.F emfnetw.F filelist.F \
+	nwkrewr.F mfcdat.F mfrlst.F sort.F startup.F CFC_Module.f90 cfc_module.mod
 
 distclean: clean
 
 uninstall:
 	-rm -f $(ESPBinDir)/$(PROG)
-	
+	LD_FLAGS
 .PHONY: clean install default strip uninstall distclean

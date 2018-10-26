@@ -412,9 +412,7 @@ C rows respectively.
       logical znotair
 
 C.....DECLARATIONS for H3Kreporting object
-      real SolIncAreaFrac
-      CHARACTER*12 cZone_Chars   ! zname(MCOM)
-      Character*12 cSurf_Chars   ! sname(MCOM,MS)
+      CHARACTER*12   cZone_Chars, cSurf_Chars
 
       ZAREA=zonetotsurfacearea(ICOMP)
 
@@ -993,26 +991,43 @@ C     &            IGLZ(IWC)
  66   continue
       if (ICALL.gt.0) call BCL99(ICALL)
 
-C Loop through all zone surfaces and write h3k output of solar
-C incidence on surface with and without taking shading into account
-      DO 16 I=1,NC
-        IF(IE(ICOMP,I).NE.0) THEN
-C         Not external construction, do nothing
+C ---------------CALCULATE QSOLE FOR OPAQUE SURFACES
+C                -----------------------------------
+C QSOLE: external surface solar radiation absorbed by opaque surfaces.
+      DO 6 I=1,NC
+        IF(ITMCFL(ICOMP,I).GE.1) THEN
 
+C TMC.
+          QSOLE(I,2)=0.
+        ELSEIF(IE(ICOMP,I).NE.0) THEN
+
+C Not external construction.
+          QSOLE(I,2)=0.
         ELSE
-
+          IF(ISHD(ICOMP).EQ.0.OR.ISHD(ICOMP).EQ.2)THEN
+            QSOLE(I,2)=(SRADDO(I)+SRADF(I))*AE(ICOMP,I)
+          ELSE
+            QSOLE(I,2)=SRADDO(I)*AE(ICOMP,I)*(1.-PO(ICOMP,I,IHRF))+
+     &      SRADF(I)*AE(ICOMP,I)*(1.-POF(ICOMP,I,IHRF))
+          ENDIF
           EXSHAD(I)=PO(ICOMP,I,IHRF)
           EXSHADF(I)=POF(ICOMP,I,IHRF)
           EXDIR(I)=SRADDO(I)*(1.-EXSHAD(I))
           EXDIF(I)=SRADF(I)*(1.-EXSHADF(I))
           EXRAD(I)=EXDIR(I)+EXDIF(I)
-
+C This code ensures that EXDIR and EXDIF are zero if EXRAD is zero.
           call eclose(EXRAD(I), 0.0,0.001,bCloseToZero)
           if ( bCloseToZero ) then
-            EXDIR(I) = 0.
-            EXDIF(I) = 0.
+             EXDIR(I) = 0.
+             EXDIF(I) = 0.
           endif
+        ENDIF
 
+cx ag@20181019 insert h3k output here
+        if (IE(ICOMP,I).NE.0) then
+C         Not an external construction, no output, here.
+
+        else
 C.........Switch for zone name output here
           if (ReportBoolConfig("use_zonenames")) then
             write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
@@ -1088,40 +1103,7 @@ C...........Pad surface index to 'XX'
      &        cSurf_Chars)
 
         endif ! external?
- 16   CONTINUE ! loop through all surfaces in current zone for radinc
-               ! h3k output
 
-C ---------------CALCULATE QSOLE FOR OPAQUE SURFACES
-C                -----------------------------------
-C QSOLE: external surface solar radiation absorbed by opaque surfaces.
-      DO 6 I=1,NC
-        IF(ITMCFL(ICOMP,I).GE.1) THEN
-
-C TMC.
-          QSOLE(I,2)=0.
-        ELSEIF(IE(ICOMP,I).NE.0) THEN
-
-C Not external construction.
-          QSOLE(I,2)=0.
-        ELSE
-          IF(ISHD(ICOMP).EQ.0.OR.ISHD(ICOMP).EQ.2)THEN
-            QSOLE(I,2)=(SRADDO(I)+SRADF(I))*AE(ICOMP,I)
-          ELSE
-            QSOLE(I,2)=SRADDO(I)*AE(ICOMP,I)*(1.-PO(ICOMP,I,IHRF))+
-     &      SRADF(I)*AE(ICOMP,I)*(1.-POF(ICOMP,I,IHRF))
-          ENDIF
-          EXSHAD(I)=PO(ICOMP,I,IHRF)
-          EXSHADF(I)=POF(ICOMP,I,IHRF)
-          EXDIR(I)=SRADDO(I)*(1.-EXSHAD(I))
-          EXDIF(I)=SRADF(I)*(1.-EXSHADF(I))
-          EXRAD(I)=EXDIR(I)+EXDIF(I)
-C This code ensures that EXDIR and EXDIF are zero if EXRAD is zero.
-          call eclose(EXRAD(I), 0.0,0.001,bCloseToZero)
-          if ( bCloseToZero ) then
-             EXDIR(I) = 0.
-             EXDIF(I) = 0.
-          endif
-        ENDIF
    6  CONTINUE
 
 C ----------------CALCULATE QTMCA FOR TMC
@@ -1773,6 +1755,10 @@ c              else
 c                write (cZone_Chars,'(A,I1)') 'zone_0',icomp
 c              endif
 c            endif ! use_zonenames
+
+C << the following would ideally require that surface name lengths
+C    are stored in a common like zone name lengths ... filled in
+C    georead() (egeometry.F line 1750 ff.)/ egomin() (egeometry.F line 594)? >>
 
 C...........Switch for surface name output here
 c            if (ReportBoolConfig ("use_surfacenames")) then
