@@ -1188,9 +1188,10 @@ C NB NCOE: total number of component equation coefficients
 C    NXTC: PC index for component IPCOMP
 C    NXTZ: ZMAT index for component IPCOMP
 
-      DO 19 IPCOMP1=1,NPCOMP
+cx      DO 19 IPCOMP1=1,NPCOMP
+      DO 19 IPCOMP=1,NPCOMP
 C
-      IPCOMP=RFCSEQ(IPCOMP1)
+cx      IPCOMP=RFCSEQ(IPCOMP1)
 
       NCOE=NPCDAT(IPCOMP,6)+NPCDAT(IPCOMP,7)
       NXTC=NPCDAT(IPCOMP,5)

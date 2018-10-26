@@ -92,51 +92,49 @@ C Determine year day number of present day
 
 C Process each plant control loop to test if it is active
       DO 100 ICL=1,NCL
-      ICFP=ICL
+        ICFP=ICL
 
 C Set up day type and period pointers
-      NDAYT=NPCDT(ICL)
+        NDAYT=NPCDT(ICL)
 
 C If NDAYT=0 set data to weekday, saturday and sunday format
-      IF(NDAYT.EQ.0) THEN
-         IDTYPP=1
-         IDW=IDWP
-         IF(IHRP.EQ.24) IDW=IDWF
-         IF(IDW.EQ.idwe1) IDTYPP=2
-         IF(IDW.EQ.idwe2) IDTYPP=3
-      ELSE
-         DO 10 IDTYPP=1,NDAYT
-         IDS=IPCDV(ICL,IDTYPP,1)
-         IDF=IPCDV(ICL,IDTYPP,2)
-         IF(IDAY.GE.IDS.AND.IDAY.LE.IDF) GOTO 20
-   10    CONTINUE
-         WRITE(outs,'(a,I3)') ' CONTRL: plant control loop ',ICL
-         call edisp(iuout,outs)
-         WRITE(outs,'(9x,a,I4)') 'no valid day type for year-day ',IDAY
-         call edisp(iuout,outs)
-         call edisp(iuout,' CONTRL: cannot locate appropriate day type')
-         call epwait
-         call epagend
-         STOP
-      END IF
-
-C Check number of periods in each day and the start and finish times
-   20 NDAYP=NPCDP(ICFP,IDTYPP)
-      IF(NDAYP.EQ.0)then
-        call edisp(iuout,' CONTRL: no day-periods defined')
+        NIN=0
+        IF(NDAYT.EQ.0) THEN
+          NDAYT=NBDAYTYPE
+          NIN=-1*NBDAYTYPE
+        ENDIF
+        DO 10 IDTYPP=1,NDAYT
+          IDS=IPCDV(ICL,IDTYPP,1)
+          IDF=IPCDV(ICL,IDTYPP,2)
+          IF(IDAY.GE.IDS.AND.IDAY.LE.IDF) GOTO 20
+   10   CONTINUE
+        WRITE(outs,'(a,I3)') ' PLTCTRL: plant control loop ',ICL
+        call edisp(iuout,outs)
+        WRITE(outs,'(9x,a,I4)') 'no valid day type for year-day ',IDAY
+        call edisp(iuout,outs)
+        call edisp(iuout,' PLTCTRL: cannot locate appropriate day type')
         call epwait
         call epagend
         STOP
-      endif
+
+C Check number of periods in each day and the start and finish times
+   20   if(nin.le.-1.or.ndayt.lt.1)idtypp=icalender(iday)
+        NDAYP=NFCDP(ICFP,IDTYPP)
+        IF(NDAYP.EQ.0)then
+          call edisp(iuout,' PLTCTRL: no day-periods defined')
+          call epwait
+          call epagend
+          STOP
+        endif
       DO 22 IDAYP=1,NDAYP
-      IPERP=IDAYP
-      IDAYPD=IDAYP
-      TPS=TPCPS(ICFP,IDTYPP,IDAYP)
-      IF(IDAYP.LT.NDAYP) THEN
-         TPF=TPCPS(ICFP,IDTYPP,IDAYP+1)
-      ELSE
-         TPF=24.
-      END IF
+        IPERP=IDAYP
+        IDAYPD=IDAYP
+        TPS=TPCPS(ICFP,IDTYPP,IDAYP)
+        IF(IDAYP.LT.NDAYP) THEN
+          TPF=TPCPS(ICFP,IDTYPP,IDAYP+1)
+        ELSE
+          TPF=24.
+        END IF
 
 C If just starting control loop then initialise 
 C integral and derivative action variables to zero.
