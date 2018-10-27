@@ -68,6 +68,9 @@ C
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
       common/pcfngr/clfgsd(MCF,6),pcfngn,IDAYPD
 
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
+
 C Variables for weekdays, and weekends.
 C Assume: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7
       common/wkdtyp/idwe1,idwe2,wkd1,wkd2
@@ -95,7 +98,7 @@ C Process each plant control loop to test if it is active
         ICFP=ICL
 
 C Set up day type and period pointers
-        NDAYT=NPCDT(ICL)
+        NDAYT=NPCDT(ICFP)
 
 C If NDAYT=0 set data to weekday, saturday and sunday format
         NIN=0
@@ -104,11 +107,11 @@ C If NDAYT=0 set data to weekday, saturday and sunday format
           NIN=-1*NBDAYTYPE
         ENDIF
         DO 10 IDTYPP=1,NDAYT
-          IDS=IPCDV(ICL,IDTYPP,1)
-          IDF=IPCDV(ICL,IDTYPP,2)
+          IDS=IPCDV(ICFP,IDTYPP,1)
+          IDF=IPCDV(ICFP,IDTYPP,2)
           IF(IDAY.GE.IDS.AND.IDAY.LE.IDF) GOTO 20
    10   CONTINUE
-        WRITE(outs,'(a,I3)') ' PLTCTRL: plant control loop ',ICL
+        WRITE(outs,'(a,I3)') ' PLTCTRL: plant control loop ',ICFP
         call edisp(iuout,outs)
         WRITE(outs,'(9x,a,I4)') 'no valid day type for year-day ',IDAY
         call edisp(iuout,outs)
@@ -119,8 +122,11 @@ C If NDAYT=0 set data to weekday, saturday and sunday format
 
 C Check number of periods in each day and the start and finish times
    20   if(nin.le.-1.or.ndayt.lt.1)idtypp=icalender(iday)
-        NDAYP=NFCDP(ICFP,IDTYPP)
+        NDAYP=NPCDP(ICFP,IDTYPP)
         IF(NDAYP.EQ.0)then
+          WRITE(outs,'(a,I3,a,I3)')
+     &     ' PLTCTRL: plant control loop ',ICFP,', day type ',IDTYPP
+          call edisp(iuout,outs)
           call edisp(iuout,' PLTCTRL: no day-periods defined')
           call epwait
           call epagend
