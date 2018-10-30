@@ -2905,6 +2905,9 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             ALPHA=1.
         END IF
 
+cx      ... for now ... (movable, 30.10.2018)
+        ALPHA=1.
+
 C Establish matrix equation self- and cross-coupling coefficients.
         COUT(1)=ALPHA*(-C1-UA/2.)-CW1/TIMSEC
         COUT(2)=ALPHA*(-C2-UA/2.)-CW2/TIMSEC
