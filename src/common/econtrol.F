@@ -2538,6 +2538,8 @@ C Flow control type.
         IF(IFCTYP(II,JJ,KK).eq.27)SSTR='delt prs > flow   '
         IF(IFCTYP(II,JJ,KK).eq.28)SSTR='abs delt P > flow '
         IF(IFCTYP(II,JJ,KK).eq.29)SSTR='abs flow > flow   '
+        IF(IFCTYP(II,JJ,KK).eq.30)SSTR='delt pD > flow    '
+        IF(IFCTYP(II,JJ,KK).eq.31)SSTR='delt RH > flow    '
         IF(IFCTYP(II,JJ,KK).eq.41)SSTR='contam conc > flow'
         IF(IFSN(II,1).EQ.-3)SSTR='outside ambient > flow  '
       ELSEIF(WHICH.EQ.'L'.OR.WHICH.EQ.'l')THEN
