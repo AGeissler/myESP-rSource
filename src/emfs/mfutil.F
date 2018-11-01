@@ -657,3 +657,41 @@ C coupled nodes.
 
       RETURN
       END
+
+C *********************************************************************
+C    ***  copy from ebld/mstmsc.F, lines 541 ff. 
+C *********************************************************************
+C Psat01 calculates the saturation vapour pressure (Pa) as a function of
+C temperature ( C ) (Marieke 1994, IEA 1991, vol 1, page 4.8)
+C *********************************************************************
+      FUNCTION Psat01(TC)
+      COMMON/OUTIN/IUOUT,IUIN
+      character outs*124
+      SMALL=1.0E-15
+
+      IF(TC.GT.-30.0.AND.TC.LT.0.0)THEN
+        A = 82.9E-3
+        B = 288.1E-6
+        C = 4.403E-6
+        Psat01=611.0*EXP(A*TC-B*TC*TC+C*TC**3)
+      ELSEIF(TC.GT.-0.1.AND.TC.LT.40.0)THEN
+        A = 72.5E-3
+        B = 288.1E-6
+        C = 0.79E-6
+        Psat01=611.0*EXP(A*TC-B*TC*TC+C*TC**3)
+      ELSE
+        Psat01=100.0*SATVP(TC)
+      ENDIF
+      IF(Psat01.LT.SMALL)then
+        write(outs,'(a,F12.6,a)')
+     &   'Psat01: small saturation vapour pressure at temp=',
+     &   TC,' C, forcing STOP!'
+        call edisp(iuout,outs)
+cx        call edisp(iuout,'Psat01: small saturation vapour pressure.')
+        call epwait
+        call epagend
+        STOP
+      endif
+      RETURN
+      END
+
