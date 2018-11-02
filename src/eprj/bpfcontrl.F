@@ -5577,7 +5577,10 @@ C Note: isense will eventually be passed to IFCTYP(II,1,1)=isense
      &     'e absolute delta T between nodes','f pressure at node',
      &     'g delta P between nodes',
      &     'h abs delta P between nodes',
-     &     'i contaminant concentration at node',' ',' ',' ',
+     &     'i contaminant concentration at node',
+     &     'j delta pvap btw. zone and ambient',
+     &     'k delta RH btw. zone and ambient',
+     &     'l RH in zone',' ',' ',
      &     ino,idno,nbhelp)
           if(ino.eq.0)then
             call usrmsg('You did not select a valid control law.',
@@ -5615,6 +5618,18 @@ C Depening on the users selection set isense and nsup.
             isn3=icpk(1)
             isn4=2
             isense=41
+          endif
+          if(ino.eq.10)then
+            isense=30
+            nsup=2
+          endif
+          if(ino.eq.11)then
+            isense=31
+            nsup=2
+          endif
+          if(ino.eq.12)then
+            isense=17
+cx            nsup=2
           endif
         elseif(IW.eq.2)then
           isn1= -4

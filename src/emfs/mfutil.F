@@ -664,7 +664,7 @@ C *********************************************************************
 C Psat01 calculates the saturation vapour pressure (Pa) as a function of
 C temperature ( C ) (Marieke 1994, IEA 1991, vol 1, page 4.8)
 C *********************************************************************
-      FUNCTION Psat01(TC)
+      FUNCTION Psat01m(TC)
       COMMON/OUTIN/IUOUT,IUIN
       character outs*124
       SMALL=1.0E-15

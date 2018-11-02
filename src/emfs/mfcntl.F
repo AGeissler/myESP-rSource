@@ -283,7 +283,7 @@ C Controller type 9: senses some additional plant output
 
 C Controller type 11 senses relative humidity (%).
         ELSE IF(ICLCTP.EQ.11) THEN
-          PATMOS=1013.25
+cx          PATMOS=1013.25
           SVCTL=PCRH2(CSVF(IN,1),CSVF(IN,3)/CSVF(IN,2),PATMOS)
         ELSE
           call edisp(iuout,
@@ -337,6 +337,11 @@ C Controller type 5 senses mass flow at a connection.
           elseif(ICLCTP.EQ.5)then
             SVCTL=sngl(flw1(ifs2)+flw2(ifs2))
 
+C Controller type 17 senses relative humidity of zone node.
+C ((possibly only usable when moisture modelling is active ...))
+          elseif(ICLCTP.EQ.17)then
+            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS))
+
 C Controller type 24 senses temperature difference between nodes.
           elseif(ICLCTP.EQ.24)then
             SVCTL=TNOD(ifs2)-TNOD(ifs3)
@@ -364,16 +369,14 @@ C Controller type 29 senses ABS mass flow at a connection.
 C Controller type 30 senses vapour pressure difference between zone
 C and ambient nodes. ISF1=-4, IFAN(ICFP,1)=-3
 C ((possibly only usable when moisture modelling is active ...))
-C HFLF ... relative humidity climate, future ts (?)
           elseif(ICLCTP.EQ.30)then
-            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)/
-     &                                    100.*Psat01(TFA(IFS2))
-     &                                    -HFLF/100.*Psat01(TFLWF))
+            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)/100.
+     &                                      *Psat01m(TFA(IFS2))
+     &                                    -HFLF/100.*Psat01m(TFLWF))
 
 C Controller type 31 senses difference between zone and ambient nodes
 C relative humidity (in %). ISF1=-4, IFAN(ICFP,1)=-3
 C ((possibly only usable when moisture modelling is active ...))
-C HFLF ... relative humidity climate, future ts (?)
           elseif(ICLCTP.EQ.31)then
             SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)-HFLF)
 
