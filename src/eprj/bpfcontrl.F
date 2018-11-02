@@ -5580,7 +5580,7 @@ C Note: isense will eventually be passed to IFCTYP(II,1,1)=isense
      &     'i contaminant concentration at node',
      &     'j delta pvap btw. zone and ambient',
      &     'k delta RH btw. zone and ambient',
-     &     'l RH in zone',' ',' ',
+     &     'l RH in zone',
      &     ino,idno,nbhelp)
           if(ino.eq.0)then
             call usrmsg('You did not select a valid control law.',
