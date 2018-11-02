@@ -7101,7 +7101,7 @@ C Electrical details for specified plant components
 
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
-      REAL TG1,TG2,GRNDSourceDepth,LimFac
+      REAL TG1,TG2,GRNDSourceDepth,LimFac,CfH_out
       INTEGER IM,ID,curDoM,curMonth,NDMonth
 
       DIMENSION NDMonth(12)
@@ -7518,8 +7518,16 @@ C Make select results available in XML and CVS output.
 C---------------------------------------------------------------------------------
         IPCOMP_LEN = lnblnk(pcname(IPCOMP))
 
+        if (bSHrqd) then
+          CfH_out = 1.
+        elseif (bDHWrqd) then
+          CfH_out = 2.
+        else
+          CfH_out = 0.
+        endif
+
         call AddToReport(rvPltCallForHeat%Identifier,
-     &         CDATA(IPCOMP,1),
+     &         CfH_out,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
         call AddToReport(rvPltHOut%Identifier,
@@ -7787,7 +7795,7 @@ C Electrical details for specified plant components
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
       REAL BrinePumpRating,BrineRatedFlow,BrinePumpPower,
-     &      BrinePumpPf,BrineFlow,LimFac
+     &      BrinePumpPf,BrineFlow,LimFac,CfH_out
 
       LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd,bSHpref
 
@@ -8166,8 +8174,16 @@ C Make select results available in XML and CVS output.
 C---------------------------------------------------------------------------------
         IPCOMP_LEN = lnblnk(pcname(IPCOMP))
 
+        if (bSHrqd) then
+          CfH_out = 1.
+        elseif (bDHWrqd) then
+          CfH_out = 2.
+        else
+          CfH_out = 0.
+        endif
+
         call AddToReport(rvPltCallForHeat%Identifier,
-     &         CDATA(IPCOMP,1),
+     &         CfH_out,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
         call AddToReport(rvPltHOut%Identifier,
