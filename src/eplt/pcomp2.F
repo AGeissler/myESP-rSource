@@ -7506,7 +7506,15 @@ C Addition output for results analysis.
         PCAOUT(IPCOMP,1)=HeatOutput
         PCAOUT(IPCOMP,2)=COP
         PCAOUT(IPCOMP,3)=Tgrnd
-        PCAOUT(IPCOMP,4)=DeviceONOFF
+        if (DeviceONOFF.eq.1) then
+          if (bDHWrqd) then
+           PCAOUT(IPCOMP,4)=2.
+          else
+           PCAOUT(IPCOMP,4)=1.
+          endif
+        else
+          PCAOUT(IPCOMP,4)=0.
+        endif
         PCAOUT(IPCOMP,5)=ReturnSP
         PCAOUT(IPCOMP,6)=TotRealPower
         PCAOUT(IPCOMP,7)=TotReacPower
@@ -8162,7 +8170,15 @@ C Addition output for results analysis.
         PCAOUT(IPCOMP,1)=HeatOutput
         PCAOUT(IPCOMP,2)=COP
         PCAOUT(IPCOMP,3)=Tgrnd
-        PCAOUT(IPCOMP,4)=DeviceONOFF
+        if (DeviceONOFF.eq.1) then
+          if (bDHWrqd) then
+           PCAOUT(IPCOMP,4)=2.
+          else
+           PCAOUT(IPCOMP,4)=1.
+          endif
+        else
+          PCAOUT(IPCOMP,4)=0.
+        endif
         PCAOUT(IPCOMP,5)=ReturnSP
         PCAOUT(IPCOMP,6)=TotRealPower
         PCAOUT(IPCOMP,7)=TotReacPower
