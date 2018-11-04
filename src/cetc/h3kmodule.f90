@@ -2111,16 +2111,16 @@ CONTAINS
       rvPltDefrostStat%Description = 'ASHP: Defrost Status 0-off, 1-on, -1-lockout'
       Call AddVariable(rvPltDefrostStat)
 
-      rvPltDHWDrawStoch%VariableName = 'plant/*/misc_data/DHW_draw_stoch'
+      rvPltDHWDrawStoch%VariableName = 'plant/*/DHW_draw_stoch'
       rvPltDHWDrawStoch%MetaType = 'units'
       rvPltDHWDrawStoch%VariableType = '(kg/s)'
       rvPltDHWDrawStoch%Description = 'Hot water draw rate'
       Call AddVariable(rvPltDHWDrawStoch)
 
-      rvPltDHWDrawStochTp%VariableName = 'plant/*/misc_data/DHW_draw_stock/type_*'
+      rvPltDHWDrawStochTp%VariableName = 'plant/*/DHW_draw_stoch_type_*'
       rvPltDHWDrawStochTp%MetaType = 'units'
       rvPltDHWDrawStochTp%VariableType = '(kg/s)'
-      rvPltDHWDrawStochTp%Description = 'Draw for type'
+      rvPltDHWDrawStochTp%Description = 'Draw rate for type'
       Call AddVariable(rvPltDHWDrawStochTp)
 
       !Used by pcomp3.F

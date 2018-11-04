@@ -9466,11 +9466,10 @@ C Commons for DWHStochastic calculation.
 
       REAL COUT(MPCOE)
       character outs*124
-      Integer iNameLength              ! temporary variable length
+      Integer iNameLength,iAddDatNumLen ! temporary variable length
 
       character*15 pcname
-      character*6 char_tmp            ! used for reporting
-
+      character*2 char_tmp              ! used for reporting
 
       logical DHWsubmin,DHWCalc,Weekend,indraw,DisPos
 
@@ -9772,7 +9771,7 @@ C Store individual type flows as addtitional output.
         NAPDAT(IPCOMP)=6
         DO 109 iDHWType=1,NDrawType
           PCAOUT(IPCOMP,iDHWType)=
-     &DHWDrawTypeTotV(iDHWType)*(DenS/1000.)
+     &                DHWDrawTypeTotV(iDHWType)*(DenS/1000.)
   109   CONTINUE
 
 C------------------------------------------------------
@@ -9787,13 +9786,19 @@ C.....Format string as: 'plant/NAME/misc_data/DHW_draw_stoch'
      &         pcname(IPCOMP)(1:iNameLength))
 
         DO 111 iDHWType=1,NDrawType
-            write(char_tmp,'(I2)')iDHWType
+             if (iDHWType<10) then  ! First nine draw types.
+               iAddDatNumLen = 1
+               write(char_tmp,'(I1)')iDHWType
+             else           ! The max. num. of types is currently only 6
+               iAddDatNumLen = 2
+               write(char_tmp,'(I2)')iDHWType
+             endif
 
 C.....Format string as: 'plant/NAME/misc_data/DHW_draw_stoch/type_#'
             Call AddToReport(rvPltDHWDrawStochTp%Identifier,
      &               DHWDrawTypeTotV(iDHWType)*(DenS/1000.),
      &               pcname(IPCOMP)(1:iNameLength),
-     &               char_tmp(1:lnblnk(char_tmP)))
+     &               char_tmp(1:iAddDatNumLen))
   111   Continue
 
 c      write(87,*)'DHW: mass flow rate '
