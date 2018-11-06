@@ -204,7 +204,8 @@ C Match mass flow controller type.
         endif
       else
         if((ICLCTP.NE.1.AND.ICLCTP.NE.3.AND.ICLCTP.NE.5.AND.ICLCTP.NE.7
-     &           .AND.ICLCTP.NE.9.AND.ICLCTP.NE.11.AND.ICLCTP.NE.41)
+     &           .AND.ICLCTP.NE.9.AND.ICLCTP.NE.11.AND.ICLCTP.NE.17
+     &           .AND.ICLCTP.NE.41)
      &           .AND.(ICLCTP.LT.24.OR.ICLCTP.GT.34))then
           WRITE(outs,*) ' CFFVAR: mass flow control function ',ICFP
           call edisp(iuout,outs)
