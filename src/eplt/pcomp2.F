@@ -7375,7 +7375,7 @@ C Calculate the COP based on the user-specified method.
             COP=CarEffMod*((1-(TL/TH))**(-1)) !modified carnot COP
           ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Tgrnd
             TL=Tgrnd
-            TH=min(ReturnT,ToutMax)
+            TH=ReturnT
             COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ground T
@@ -7386,7 +7386,13 @@ C Calculate the COP based on the user-specified method.
 
 C Set limits on calculated values of COP
           IF(COP.LT.0.0) COP=0.0
-          IF(COP.GT.18.0) COP=18.0
+          if (bSHrqd) then
+C           This probably should either not be necessary or a input variable!
+            IF(COP.GT.9.0) COP=9.0
+          elseif (bDHWrqd) then
+C           This probably should either not be necessary or a input variable!
+            IF(COP.GT.3.5) COP=3.5
+          endif
 
 cx "after line 7840 ... " ((2node- GSHP, which file version??))
 C Limit output temperature to Toutmax ((suggestion by Graeme))
@@ -8014,7 +8020,7 @@ C Calculate the COP based on the user-specified method.
             COP=CarEffMod*((1-(TL/TH))**(-1)) !modified carnot COP
           ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
             TL=Tgrnd
-            TH=min(ReturnT,ToutMax)
+            TH=ReturnT
             COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
@@ -8025,7 +8031,13 @@ C Calculate the COP based on the user-specified method.
 
 C Set limits on calculated values of COP
           IF(COP.LT.0.0) COP=0.0
-          IF(COP.GT.18.0) COP=18.0
+          if (bSHrqd) then
+C           This probably should either not be necessary or a input variable!
+            IF(COP.GT.9.0) COP=9.0
+          elseif (bDHWrqd) then
+C           This probably should either not be necessary or a input variable!
+            IF(COP.GT.3.5) COP=3.5
+          endif
 
 C Limit output temperature to Toutmax ((suggestion by Graeme))
           IF(CSVF(INOD1,1).GE.Toutmax)then
