@@ -7361,7 +7361,8 @@ C Calculate the TOTAL device power draw (W)
           ELSEIF(CompModel.eq.3)THEN
             Td=ReturnT
             Ta=Tgrnd
-            CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
+            CompPower=1000.*(Compa0*EXP(Compa1*(Td-Ta))
+     &                   +Compa2*(ToutMax-(BDATA(IPCOMP,17))))!adapted exponential power consumption.
           ENDIF
           if(CompPower.LT.0.0)CompPower=0.0
 
@@ -7375,7 +7376,8 @@ C Calculate the COP based on the user-specified method.
           ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Tgrnd
             TL=Tgrnd
             TH=ReturnT
-            COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
+            COP=(COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.))
+     &                   *(BDATA(IPCOMP,17)/ToutMax)**1.414
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ground T
           ELSE
@@ -7998,7 +8000,8 @@ C Calculate the TOTAL device power draw (W)
           ELSEIF(CompModel.eq.3)THEN
             Td=ReturnT
             Ta=Tgrnd
-            CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
+            CompPower=1000.*(Compa0*EXP(Compa1*(Td-Ta))
+     &                   +Compa2*(ToutMax-(BDATA(IPCOMP,17))))!adapted exponential power consumption.
           ENDIF
 
           if(CompPower.LT.0.0)CompPower=0.0
@@ -8010,10 +8013,11 @@ C Calculate the COP based on the user-specified method.
             TL=Tgrnd+273.15
             TH=ReturnT+273.15
             COP=CarEffMod*((1-(TL/TH))**(-1)) !modified carnot COP
-          ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
+          ELSEIF(COPModel.EQ.3)THEN !adapted quadratic based on Td-Ta
             TL=Tgrnd
             TH=ReturnT
-            COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
+            COP=(COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.))
+     &                   *(BDATA(IPCOMP,17)/ToutMax)**1.414
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
           ELSE
