@@ -673,18 +673,18 @@ C *********************************************************************
         A = 82.9E-3
         B = 288.1E-6
         C = 4.403E-6
-        Psat01=611.0*EXP(A*TC-B*TC*TC+C*TC**3)
+        Psat01m=611.0*EXP(A*TC-B*TC*TC+C*TC**3)
       ELSEIF(TC.GT.-0.1.AND.TC.LT.40.0)THEN
         A = 72.5E-3
         B = 288.1E-6
         C = 0.79E-6
-        Psat01=611.0*EXP(A*TC-B*TC*TC+C*TC**3)
+        Psat01m=611.0*EXP(A*TC-B*TC*TC+C*TC**3)
       ELSE
-        Psat01=100.0*SATVP(TC)
+        Psat01m=100.0*SATVP(TC)
       ENDIF
-      IF(Psat01.LT.SMALL)then
+      IF(Psat01m.LT.SMALL)then
         write(outs,'(a,F12.6,a)')
-     &   'Psat01: small saturation vapour pressure at temp=',
+     &   'Psat01m: small saturation vapour pressure at temp=',
      &   TC,' C, forcing STOP!'
         call edisp(iuout,outs)
 cx        call edisp(iuout,'Psat01: small saturation vapour pressure.')
@@ -694,4 +694,3 @@ cx        call edisp(iuout,'Psat01: small saturation vapour pressure.')
       endif
       RETURN
       END
-
