@@ -7768,6 +7768,9 @@ C Electrical details for specified plant components
       common/elpcp/NPEL,PFP(mpcom),IPFP(mpcom),PWRP(mpcom),
      &BVOLTP(mpcom),IPHP(mpcom)
 
+      common/forlock/NSINC_last
+      integer NSINC_last
+
       REAL SMALL
       PARAMETER (SMALL=1.0E-20)
 
@@ -7977,9 +7980,14 @@ C before turning on again.
 C INSO = HP on/off (1/0) flag for lockout
 C ITSBO = present no. of timesteps HP is off due to lockout
 C NTSBO = total no. of timesteps HP is off due to lockout
+CC You will need to use the ITERNU variable, which is already identfied in your code preamble but not used,
+CC to set a rule that either the lockout loop is called only once per timestep at ITERNU=1 or subtracts one
+CC from the counter if ITERNU is greater than 1 before running the lockout code again. The second option will
+CC be safer if the condition that determines the lockout condition can change during the iteration process.
 
         IF (bSwitched) THEN
           if (bBLKOUT) then
+            NSINC_last=NSINC
             INSO=1
             ITSBO=0
             bSwitched=.false. ! only set once after signal
@@ -7988,7 +7996,13 @@ C NTSBO = total no. of timesteps HP is off due to lockout
 
         IF (INSO.EQ.1) THEN
           IF (ITSBO.GT.NTSBO) INSO=0
-          ITSBO=ITSBO+1
+          if (NSINC_last.lt.NSINC) then
+            ITSBO=ITSBO+1
+            NSINC_last=NSINC
+          endif
+          write(*,*)"NSINC=",NSINC,"; ITS=",ITS,"; NSINC_last=",
+     &     NSINC_last,"; NTSBO=",NTSBO,"; ITSBO=",ITSBO,"; INSO=",INSO,
+     &     "; ITERNU=",ITERNU
           DeviceONOFF=0
         ENDIF
 C == end lockout
