@@ -7003,6 +7003,10 @@ C water outlet temperature and ambient temperature compensation can be applied [
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
+      common/pstctr/nsincp,nsncpr
+      integer nsincp          ! number of plant side time increments
+      integer nsncpr          ! number of ??
+
       COMMON/PCEQU/IMPEXP,RATIMP
 
 C     Variables for iteration in plant loop (?)
@@ -7059,6 +7063,9 @@ C Electrical details for specified plant components
       common/pcelflg/ipcelf(mpcom)
       common/elpcp/NPEL,PFP(mpcom),IPFP(mpcom),PWRP(mpcom),
      &BVOLTP(mpcom),IPHP(mpcom)
+
+      common/forlock/NSINCP_lock
+      integer NSINCP_lock
 
       REAL SMALL
       PARAMETER (SMALL=1.0E-20)
@@ -7334,6 +7341,7 @@ C NTSBO = total no. of timesteps HP is off due to lockout
 
         IF (bSwitched) THEN
           if (bBLKOUT) then
+            NSINCP_lock=NSINCP
             INSO=1
             ITSBO=0
             bSwitched=.false. ! only set once after signal
@@ -7342,9 +7350,10 @@ C NTSBO = total no. of timesteps HP is off due to lockout
 
         IF (INSO.EQ.1) THEN
           IF (ITSBO.GT.NTSBO) INSO=0
-          ITSBO=ITSBO+1
-cx        write(*,*)"NSINC=",NSINC,"; ITS=",ITS,"; NTSBO=",NTSBO,
-cx     &            "; ITSBO=",ITSBO,"; INSO=",INSO
+          if (NSINCP_lock.lt.NSINCP) then
+            ITSBO=ITSBO+1
+            NSINCP_lock=NSINCP
+          endif
           DeviceONOFF=0
         ENDIF
 C == end lockout
@@ -7716,6 +7725,10 @@ C water outlet temperature and ground source temperature compensation can be app
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
+      common/pstctr/nsincp,nsncpr
+      integer nsincp          ! number of plant side time increments
+      integer nsncpr          ! number of ??
+
       COMMON/PCEQU/IMPEXP,RATIMP
 
 C     Variables for iteration in plant loop (?)
@@ -7768,8 +7781,8 @@ C Electrical details for specified plant components
       common/elpcp/NPEL,PFP(mpcom),IPFP(mpcom),PWRP(mpcom),
      &BVOLTP(mpcom),IPHP(mpcom)
 
-      common/forlock/NSINC_last
-      integer NSINC_last
+      common/forlock/NSINCP_lock
+      integer NSINCP_lock
 
       REAL SMALL
       PARAMETER (SMALL=1.0E-20)
@@ -7977,17 +7990,14 @@ C less than lockouttime ago ... ((code from CMP42C(), line 5102 ff.))
 C Lock out time (in seconds), Heat pump should not be turned on/off
 C with high frequency. When HP is turned off, wait this amount of time
 C before turning on again.
-C INSO = HP on/off (1/0) flag for lockout
-C ITSBO = present no. of timesteps HP is off due to lockout
-C NTSBO = total no. of timesteps HP is off due to lockout
-CC You will need to use the ITERNU variable, which is already identfied in your code preamble but not used,
-CC to set a rule that either the lockout loop is called only once per timestep at ITERNU=1 or subtracts one
-CC from the counter if ITERNU is greater than 1 before running the lockout code again. The second option will
-CC be safer if the condition that determines the lockout condition can change during the iteration process.
+C NSINCP = plant time step increment counter
+C INSO   = HP on/off (1/0) flag for lockout
+C ITSBO  = present no. of timesteps HP is off due to lockout
+C NTSBO  = total no. of timesteps HP is off due to lockout
 
         IF (bSwitched) THEN
           if (bBLKOUT) then
-            NSINC_last=NSINC
+            NSINCP_lock=NSINCP
             INSO=1
             ITSBO=0
             bSwitched=.false. ! only set once after signal
@@ -7996,13 +8006,10 @@ CC be safer if the condition that determines the lockout condition can change du
 
         IF (INSO.EQ.1) THEN
           IF (ITSBO.GT.NTSBO) INSO=0
-          if (NSINC_last.lt.NSINC) then
+          if (NSINCP_lock.lt.NSINCP) then
             ITSBO=ITSBO+1
-            NSINC_last=NSINC
+            NSINCP_lock=NSINCP
           endif
-          write(*,*)"NSINC=",NSINC,"; ITS=",ITS,"; NSINC_last=",
-     &     NSINC_last,"; NTSBO=",NTSBO,"; ITSBO=",ITSBO,"; INSO=",INSO,
-     &     "; ITERNU=",ITERNU
           DeviceONOFF=0
         ENDIF
 C == end lockout
