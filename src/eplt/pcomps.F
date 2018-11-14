@@ -4252,7 +4252,7 @@ C Temp compensation gradient (-)
       TempCompc0=BDATA(IPCOMP,24)
 
 C Is a lock out time defined?
-      BLKOUT=BDATA(IPCOMP,28)*60.
+      BLKOUT=BDATA(IPCOMP,25)*60.
 
       if (BLKOUT.gt.0.) then
         bBLKOUT=.true.
