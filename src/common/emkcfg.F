@@ -303,7 +303,11 @@ C Calendar commons.
 C iSlr_half_hr_flg value = 0 :hour-centered; =1 : half-hour centered.
       common/CWEC_SOL/iSlr_half_hr_flg
       integer iSlr_half_hr_flg     
-
+      
+      common/EVCOOL/iflgevapC(mcom) !only modifies wet bulb temp (more precisely: the indoor air humidity ratio)
+      integer iflgevapC             ! when equals 1, it makes the indoor wet bulb temp = outdoor wet bulb temperature
+      integer ii
+      
 C When iexcludediff_flag is 1, diffuse shading is excluded. 
 C If 0 then the calculation includes diffuse shading.      
       integer iexcludediff_flag
@@ -784,6 +788,14 @@ C Solar radiation (half hour data) flag.
         WRITE(IFCFG,'(A,i2,A)',IOSTAT=IOS,ERR=2) '*slr_half_hr  ',
      &    iSlr_half_hr_flg,'  # solar timing half-hour centred'
       endif
+
+C Twb_out=Twb_in flag for direct evaporative cooling.
+      do 888 ii = 1,ncomp      
+        if(iflgevapC(ii).eq.1)then
+          WRITE(IFCFG,'(A,i2,i3,A)',IOSTAT=IOS,ERR=2) '*Twb_evCool  ',
+     &      iflgevapC(ii),ii,'  # Twb Out = Twb in'
+        endif
+ 888  continue
 
 C Diffuse shading flag.
       if(iexcludediff_flag.eq.1)then
@@ -1386,7 +1398,6 @@ C 3D ground files.
           WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*gtp  ',
      &      GTGEOM(1:lnblnk(GTGEOM))
         endif
-
         if(ngrdp.gt.0)then
           WRITE(IFCFG,'(A,i3)',IOSTAT=IOS,ERR=2)'*mgp  ',NGRDP
           DO 932 I=1,NGRDP

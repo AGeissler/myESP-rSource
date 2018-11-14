@@ -85,8 +85,8 @@ C block in this source file has been renamed pcresres to avoid
 C this clash.
       COMMON/MSYSPICK/NPGET,IPGETNO(MSYSRS,8)
       common/pcnam/pcname(mpcom)
-      common/adopdesc/adopdsc(mpcom,MPCRES)
-      common/pcresres/ napout(mpcom),apcout(MPCRES)
+      common/adopdesc/adopdsc(mpcom,15)
+      common/pcresres/ napout(mpcom),apcout(20)
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
       common/ntype/isv(mpcom,mnodec)
@@ -722,7 +722,7 @@ C the best-guess of file names (but with full path).
       COMMON/ABSRESLIB/RFILEABS,PFILEABS,MSTRFILEABS,LAFRESABS
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
-      common/pcresres/ napout(mpcom),apcout(MPCRES)
+      common/pcresres/ napout(mpcom),apcout(20)
       COMMON/LIBOK/IBLIB,IFLIB,ICLIB,IELIB,IPLIB
       common/rpath/path
       
@@ -1171,7 +1171,7 @@ C naout (number of additional output data) is returned.
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
       common/ntype/isv(mpcom,mnodec)
-      common/adopdesc/adopdsc(mpcom,MPCRES)
+      common/adopdesc/adopdsc(mpcom,15)
       COMMON/C9plus/UCdbNam(MPCOM),CdbCat(MPCOM),CDBDesc(MPCOM)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
 
@@ -1308,7 +1308,7 @@ C data are stored in CSV?M and APCOUT arrays respectively.
       COMMON/LIBRCP/IRCPLP,nblock
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
-      common/pcresres/ napout(mpcom),apcout(MPCRES)
+      common/pcresres/ napout(mpcom),apcout(20)
       logical unixok
 
 C Find data location in result file.
@@ -1470,7 +1470,7 @@ C Simulator parameters.
       common/ntype/isv(mpcom,mnodec)
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
-      common/pcresres/ napout(mpcom),apcout(MPCRES)
+      common/pcresres/ napout(mpcom),apcout(20)
 
 C Flags identifying if results libries are available. =0 no lib, =1 lib exists.
       COMMON/LIBOK/IBLIB,IFLIB,ICLIB,IELIB,IPLIB

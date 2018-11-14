@@ -532,6 +532,12 @@ C iSlr_half_hr_flg value = 0 :hour-centered; =1 : half-hour centered.
       common/CWEC_SOL/iSlr_half_hr_flg
       integer iSlr_half_hr_flg,idty
 
+C The flag iflgevapC(mcom) can be set in the .cfg file or within bps in the 
+C 'simulation toggles' menu.
+      common/EVCOOL/iflgevapC(mcom) !only modifies wet bulb temp (more precisely: the indoor air humidity ratio)
+      integer iflgevapC             ! when equals 1, it makes the indoor wet bulb temp = outdoor wet bulb temperature        
+      integer iZntempFlg,itempFlg
+      
 C Radiance processor cores.
       integer radcores
       common/radcor/radcores
@@ -687,6 +693,12 @@ C Initialize simulation toggle flags
 C Set flag indicating that solar radiation data is hour-centered (default)
 C Variable will be reset if 'slr_half_hr' included in .cfg
       iSlr_half_hr_flg = 0
+
+C Set flag for indoor wet bulb temperature to default (no evaporative cooling)
+C Variable will be reset if 'iflgevapC(icomp)' included in .cfg
+      do 88 icomp = 1,ncomp
+        iflgevapC(icomp) = 0
+ 88   continue
 
 C Initialize flag for quick run simulation (default is 'no')    
       iQuick_run = 0 
@@ -1522,7 +1534,16 @@ C then get the name of the file and test for its existence.
 C Solar radiation (half hour data) flag.
         call egetwi(loutstr,k,iSlr_half_hr_flg,0,1,'W',
      &    'solar half-hour flag',IER)
+     
+      elseif(WORD(1:11).eq.'*Twb_evCool')then
 
+C Get flag integer (should be 1) and then the zone number
+        call egetwi(loutstr,k,itempFlg,0,1,'W',
+     &    'Twet bulb flag',IER)
+        call egetwi(loutstr,k,iZntempFlg,0,999,'W',
+     &    'zone numb flag',IER)
+        iflgevapC(iZntempFlg)= itempFlg
+     
       elseif(WORD(1:18).eq.'*exclude_diff_shad')then
 
 C Solar radiation (half hour data) flag.
@@ -2730,7 +2751,6 @@ C toggles to set water filled zones.
 C Debug.
 C              write(6,*) 'zone ',NCCODE(ICOMP),' is water filled.'
               znotair(icomp)=.TRUE.
-cx              zfldK=0.6; zfldD=998.2; zfldC=4190.0; zfldA=0.0
               zSWAp(icomp)=0.0; zSWAf(icomp)=0.0
             else
               znotair(icomp)=.FALSE.  ! usual assumption of air filled
@@ -3605,7 +3625,7 @@ C Identify plant file; skip if this is '* Plant' record.
           endif
         endif
         LPNF=OUTSTR(1:72)
-	IF(LPNF(1:7).EQ.'*end') THEN ! GF New Start
+	IF(LPNF(1:7).EQ.'*end') THEN
           goto 1001
 	ENDIF ! GF New End
         IF(LPNF(1:7).EQ.'* Plant'.OR.LPNF(1:7).EQ.'* PLANT') THEN
@@ -3650,7 +3670,6 @@ C Read temporal file name
               endif
             endif
           ENDIF
-        write(6,*) BPF,modeltitle
         ENDIF
 
         IFPNF=IFIL+1

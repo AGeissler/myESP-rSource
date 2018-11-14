@@ -100,7 +100,9 @@ C Process each plant control loop to test if it is active
 C Set up day type and period pointers
         NDAYT=NPCDT(ICFP)
 
-C If NDAYT=0 set data to weekday, saturday and sunday format
+C If NDAYT=0 (i.e. use default weekday/Sat/Sun format or user-defined
+C calendar from main configuration file) set NDAYT to NBDAYTYPE and 
+C confirm valid period is consistent with IDAY (legacy) 
         NIN=0
         IF(NDAYT.EQ.0) THEN
           NDAYT=NBDAYTYPE

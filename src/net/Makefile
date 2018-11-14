@@ -85,5 +85,5 @@ distclean: clean
 
 uninstall:
 	-rm -f $(ESPBinDir)/$(PROG)
-	LD_FLAGS
+	
 .PHONY: clean install default strip uninstall distclean

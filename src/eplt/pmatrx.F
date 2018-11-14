@@ -706,6 +706,11 @@ C Note that PCONDR is set to 1 in case fluid mass flow solver active
            IPCMP=IDENC(IPNOD)
            ICNOD=IDENN(IPNOD)
            IF(NDCON(IPCMP,ICNOD).EQ.0) GOTO 94
+
+C Suppress exit connection warning for components with inlet connection
+C with node number greater than 1 but less than the total node number.
+           IF(NDCON(IPCMP,ICNOD).EQ.1.AND.ICNOD.GT.1.AND
+     &       .ICNOD.LT.NPCDAT(IPCMP,8)) GOTO 94 
            IF(ZDR(IPNOD).LT.0.OR.ZDR(IPNOD).GT.1.) THEN
              write(outs,904) ipcmp,icnod
              call edisp(iuout,outs)
@@ -1188,10 +1193,9 @@ C NB NCOE: total number of component equation coefficients
 C    NXTC: PC index for component IPCOMP
 C    NXTZ: ZMAT index for component IPCOMP
 
-cx      DO 19 IPCOMP1=1,NPCOMP
-      DO 19 IPCOMP=1,NPCOMP
+      DO 19 IPCOMP1=1,NPCOMP
 C
-cx      IPCOMP=RFCSEQ(IPCOMP1)
+      IPCOMP=RFCSEQ(IPCOMP1)
 
       NCOE=NPCDAT(IPCOMP,6)+NPCDAT(IPCOMP,7)
       NXTC=NPCDAT(IPCOMP,5)
