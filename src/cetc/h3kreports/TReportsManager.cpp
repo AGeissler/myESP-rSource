@@ -1713,7 +1713,9 @@ void TReportsManager::GenerateOutput(){
 
    // Remove old .csv file if bUseResFilenameRoot is true
    if (bUseResFilenameRoot) {
-     remove(sCSVFileName.c_str());
+     if(!bSaveToDisk) {
+       remove(sCSVFileName.c_str());
+     }
    }
 
    //Loop through all collection variables
@@ -1848,6 +1850,7 @@ void TReportsManager::GenerateStepOutput(unsigned long lStepCount){
    stSortedMapKeyRef sortedMapKeylist[m_ReportDataList.size()];
    DBManager *objDBManager;
    int i;
+   static int iFileCount=0;
 
    //Finalize (fill with zeros) the active step vectors up to the step count
    i = 0;
@@ -1878,9 +1881,15 @@ void TReportsManager::GenerateStepOutput(unsigned long lStepCount){
 
 
    //Output the steps
+   // *** ! do we need file name numbering or similar to avoid clobbering
+   //       prior output?! (ag@22Nov2018)
    if(bOutStepCSV)
    {
+      iFileCount += 1;
       if (bUseResFilenameRoot) {
+// ?????
+          TReportsManager::Instance()->setCSVFileName(sCSVFileName.c_str() + "");
+
           OutputCSVData(sCSVFileName.c_str(),sortedMapKeylist);
       } else {
           OutputCSVData("out.csv",sortedMapKeylist);
