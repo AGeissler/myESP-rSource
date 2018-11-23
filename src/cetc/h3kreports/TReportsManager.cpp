@@ -1875,7 +1875,7 @@ void TReportsManager::GenerateStepOutput(unsigned long lStepCount){
 
    //Use quick sort to sort the constructed structure of <char*, mapkey*>
    //** Retrieve maps for output with the sort will slow down the simulation **
-   //          ** Guess slow down is 5% longers sim time. **
+   //          ** Guess slow down is 5 % longer sim time. **
    if(bSortOutput)
       qsort(sortedMapKeylist,i, sizeof(struct stSortedMapKeyRef), cmp_by_string);
 
@@ -1888,7 +1888,7 @@ void TReportsManager::GenerateStepOutput(unsigned long lStepCount){
       iFileCount += 1;
       if (bUseResFilenameRoot) {
 // ?????
-          TReportsManager::Instance()->setCSVFileName(sCSVFileName.c_str() + "");
+//          TReportsManager::Instance()->setCSVFileName(sCSVFileName.c_str() + "");
 
           OutputCSVData(sCSVFileName.c_str(),sortedMapKeylist);
       } else {
@@ -2732,7 +2732,7 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
 
 
    //open the file, append mode
-   ofstream outfile(sFileName,ios::app);
+   ofstream outfile(sFileName,std::ios::app);
    outfile.setf(ios::showpoint);
    outfile.precision(8);
 
@@ -2755,10 +2755,10 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
          if(itDataMap->second.IsOutStep())
          {
             //Store the #of steps stored (since they are all the same size it doesn't
-            //mather if the counter is overwritten by a different variable
+            //matter if the counter is overwritten by a different variable
             iSteps = itDataMap->second.GetStepCount();
 
-            //Store the current position in the csv
+            //Increment/Store the current position (column) in the csv
             iPos++;
 
             //** note: may perform better if the MetaValue was part of the m_ReportDataList **
@@ -2796,7 +2796,7 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
                   InjectVariableToCSV(sFileName,sTemp.c_str(),iPos);
                   //InjectValueToCSV(sFileName,1,4,itDataMap->second.sVarName);
 
-                  outfile.open(sFileName,ios::app);
+                  outfile.open(sFileName,std::ios::app);
                   outfile.setf(ios::showpoint);
                   outfile.precision(8);
                }
@@ -2873,7 +2873,7 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
 ** Method:   InjectVariableToCSV()
 ** Scope:    private
 ** Purpose:  Used only when save_to_disk is true, this method will insert
-**           and initialize a variable that would have came into existance
+**           and initialize a variable that came into existance
 **           after the first write occured.
 ** Params:   sFileName - the file to create - will append to the file
 **           sVarName - the formated name to insert
