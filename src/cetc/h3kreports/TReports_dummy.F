@@ -3,7 +3,7 @@
 !       Created by Alex Ferguson
 !       Created on March 19, 2004
 !
-!       This file contains stubs required compile ESP-r without
+!       This file contains stubs required to compile ESP-r without
 !       support for XML output.
 !
 ! Logical function indicating that H3KREPORTS is not available
@@ -79,6 +79,10 @@
       Subroutine GenerateOutput()
       End Subroutine
 
+      Subroutine SetReportFilename(cName)
+      character(len=*), intent(in) :: cName
+      End Subroutine
+
       Subroutine SetReportParameter(cName,cValue)
       character(len=*), intent(in) :: cName, cValue
       End Subroutine
@@ -129,6 +133,11 @@
       end subroutine
 !.....
       subroutine generate_output()
+      return
+      end
+!.....
+      subroutine set_report_filename(cValue)
+      character(len=*), intent(in)::cValue
       return
       end
 !.....

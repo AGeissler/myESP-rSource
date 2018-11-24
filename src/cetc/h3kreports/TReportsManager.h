@@ -175,6 +175,9 @@ class TReportsManager
       //Public method, trigger to generate all the reports
       void GenerateOutput();
 
+      //Public method to set report filename
+      void SetReportFilename(const std::string& param);
+
       //Public method to set report parameters
       void SetReportParameter(const std::string& param, const std::string& value);
 

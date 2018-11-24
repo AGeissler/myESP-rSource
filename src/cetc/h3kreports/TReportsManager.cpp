@@ -49,7 +49,7 @@
 **        ***************************************************
 **
 ** Class information
-** H3Kmodule.f90: module if fortran that constains all the definitions
+** H3Kmodule.f90: module in fortran that constains all the definitions
 **    of all the possible report variables.  It also serves as a wrapper
 **    between the h3kreports cpp and fortran code.
 ** TReportsManager.cpp: main driver for the H3K reports.  Used as
@@ -58,12 +58,12 @@
 ** TXMLAdapter.cpp: used by the TReportsManager to retrieve / populate
 **    the configuration information from the input.xml and to generate
 **    the out.xml file.
-** TWildCards.cpp: used by the TReportsManager to perform wilcard
+** TWildCards.cpp: used by the TReportsManager to perform wildcard
 **    matching operations, a feature available when requesting specific
 **    report variables in the input.xml file.
 ** TReportData.cpp: used by the TReportsManager to store all the data
 **    for one variable.  The TReportsManager will maintain a map of
-**    these class instance. (one for each different variable).
+**    these class instances (one for each different variable).
 ** TBinnedData.cpp: used by the TReportData to store and calculate
 **    one bin data.  The TReportData will store a vector of these bins.
 **    one for each month + one for the annual data bin.
@@ -877,28 +877,45 @@ extern "C"
    /* ********************************************************************
    ** Method:   generate_output()
    ** Purpose:  Called by the fortran code to start the report generation
-   **           and sets the csv file name.
    ** Scope:    Public
    ** Params:   sRootName = root name of simulation results file
    **           iNameLength = length of root name
    ** Returns:  N/A
    ** Author:   Claude Lamarche
-   ** Modified: Achim Geissler
-   ** Mod Date: 2013-12-21
+   ** Mod Date: 2012-02-03
    ** ***************************************************************** */
    void generate_output__( char *sRootName, int iNameLength )
    {
-        std::string sFileName;
-        std::string sRoot = std::string(sRootName, iNameLength);
-        sFileName = sRoot + ".csv";
-        TReportsManager::Instance()->setCSVFileName(sFileName);
-
         TReportsManager::Instance()->GenerateOutput();
    }
    //dummy call to the generate_output__
    void generate_output_( char *sRootName, int iNameLength )
    {
         generate_output__(sRootName, iNameLength);
+   }
+
+   /* ********************************************************************
+   ** Method:   set_report_filename()
+   ** Purpose:  Called by the fortran code to set the report csv file name.
+   ** Scope:    Public
+   ** Params:   sRootName = root name of simulation results file
+   **           iNameLength = length of root name
+   ** Returns:  N/A
+   ** Author:   Achim Geissler
+   ** Mod Date: 2018-11-24
+   ** ***************************************************************** */
+   void set_report_filename__( char *sRootName, int iNameLength )
+   {
+        std::string sFileName;
+        std::string sRoot = std::string(sRootName, iNameLength);
+        sFileName = sRoot + ".csv";
+
+        TReportsManager::Instance()->setCSVFileName(sFileName);
+   }
+   //dummy call to set_report_filename__
+   void set_report_filename_( char *sRootName, int iNameLength )
+   {
+        set_report_filename__(sRootName, iNameLength);
    }
 
 
@@ -1135,7 +1152,9 @@ void TReportsManager::AddToTimeStepList(bool bStartup, int iStep, int iDay, int 
       if(bReportStartup)
          iModulus = m_lCurrentStep % m_lSaveToDisk;
       else
-         iModulus = m_lActiveSteps % m_lSaveToDisk;
+        if (m_lActiveSteps > 0)
+          iModulus = m_lActiveSteps % m_lSaveToDisk;
+        else iModulus = 1;
 
       //if it's time to call the save to disk routine
       if(iModulus == 0 && iStep > m_lSaveToDisk)
@@ -1850,7 +1869,6 @@ void TReportsManager::GenerateStepOutput(unsigned long lStepCount){
    stSortedMapKeyRef sortedMapKeylist[m_ReportDataList.size()];
    DBManager *objDBManager;
    int i;
-   static int iFileCount=0;
 
    //Finalize (fill with zeros) the active step vectors up to the step count
    i = 0;
@@ -1881,15 +1899,9 @@ void TReportsManager::GenerateStepOutput(unsigned long lStepCount){
 
 
    //Output the steps
-   // *** ! do we need file name numbering or similar to avoid clobbering
-   //       prior output?! (ag@22Nov2018)
    if(bOutStepCSV)
    {
-      iFileCount += 1;
       if (bUseResFilenameRoot) {
-// ?????
-          TReportsManager::Instance()->setCSVFileName(sCSVFileName.c_str() + "");
-
           OutputCSVData(sCSVFileName.c_str(),sortedMapKeylist);
       } else {
           OutputCSVData("out.csv",sortedMapKeylist);
@@ -2755,7 +2767,7 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
          if(itDataMap->second.IsOutStep())
          {
             //Store the #of steps stored (since they are all the same size it doesn't
-            //mather if the counter is overwritten by a different variable
+            //matter if the counter is overwritten by a different variable
             iSteps = itDataMap->second.GetStepCount();
 
             //Store the current position in the csv
@@ -2791,7 +2803,6 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
                if(!itDataMap->second.m_bStepOutput)
                {
                   outfile.close();
-
                   //new variable brought came alive, must add new column to CSV
                   InjectVariableToCSV(sFileName,sTemp.c_str(),iPos);
                   //InjectValueToCSV(sFileName,1,4,itDataMap->second.sVarName);
@@ -2822,7 +2833,6 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
 
       if(!isInit)
          outfile << '\n';
-
 
       //output step data
       for(i=0;i<iSteps;i++)
@@ -2873,7 +2883,7 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
 ** Method:   InjectVariableToCSV()
 ** Scope:    private
 ** Purpose:  Used only when save_to_disk is true, this method will insert
-**           and initialize a variable that would have came into existance
+**           and initialize a variable that came into existance
 **           after the first write occured.
 ** Params:   sFileName - the file to create - will append to the file
 **           sVarName - the formated name to insert
@@ -3041,6 +3051,17 @@ void TReportsManager::EnableReports( bool& ReportsStatus ){
    return;
 }
 
+/**
+ * SetReportFilename: ... basically a dummy function.
+ *
+ *
+ */
+void TReportsManager::SetReportFilename(const std::string& sRootName)
+{
+
+//  cout << "TReportsManager::SetReportFilename: " << sRootName << '\n';
+  return;
+}
 
 
 /**

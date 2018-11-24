@@ -20,7 +20,8 @@ MODULE h3kmodule
    !Public subroutines and functions
    public :: ReportNextTimeStep, ReportNewSeason, SetReportParameter, &
              isH3KEnabled, UpdateH3kSimInfo, UpdateH3kReport, &
-             GenerateOutput, UpdateConfigFile, SetReportConfig, &
+             GenerateOutput, SetReportFilename, UpdateConfigFile, &
+             SetReportConfig, &
              GetReportConfig, ReportToggleConfig, GetReportList, &
              isReportingInstalled, SetReportEnable, IsH3kVarEnabled, &
              SetAdditionalValues
@@ -4789,6 +4790,23 @@ CONTAINS
       call rep_cleanup_files()
    End Subroutine
 
+   ! ********************************************************************
+   ! Subroutine: SetReportFilename
+   ! Purpose:  Wrapper to the C++ call set_report_filename( )
+   !           This method sets the h3k output file name (.csv).
+   ! Params:   cName = output file name for .csv
+   ! Returns:  N/A
+   ! Author:   Achim Geissler
+   ! Mod Date: 2018-11-24
+   ! ********************************************************************
+   Subroutine SetReportFilename( cName )
+      character(len=*), intent(in) :: cName
+
+      if (isH3KEnabled()) then
+         !Call c++
+         call set_report_filename( cName )
+      endif
+   End Subroutine
 
    ! ********************************************************************
    ! Subroutine: SetReportParameter

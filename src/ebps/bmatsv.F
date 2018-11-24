@@ -352,6 +352,16 @@ C Initialise the h3k report variables
          Call UpdateH3kReport
 C*h3koutput* Initialize fortran data variables
          Call H3KSTORE_ZERO_DATA
+C.....-> set h3k output file name
+        call GETTOKENS(sblres(1),IW,LocalWords)
+        iRootLen=lnblnk(LocalWords(IW))
+
+C     -4 implies a 3-letter ending and the "."; a more general solution
+C     would be preferable
+        iRootLen=iRootLen-4
+
+        write(cOutputRoot,'(A)')LocalWords(IW)(1:iRootLen)
+        CALL SetReportFilename(cOutputRoot(1:iRootLen))
       ENDIF
 
 C Open file to store hvac simulation results. This is only a temporary
@@ -2064,14 +2074,6 @@ C
 C Set the .csv output root file name to the root file name of the 
 C building results library file.
       if ( isH3Kenabled() ) then
-        call GETTOKENS(sblres(1),IW,LocalWords)
-        iRootLen=lnblnk(LocalWords(IW))
-
-C     -4 implies a 3-letter ending and the "."; a more general solution
-C     would be preferable
-        iRootLen=iRootLen-4
-
-        write(cOutputRoot,'(A)')LocalWords(IW)(1:iRootLen)
 
         CALL GenerateOutput(cOutputRoot(1:iRootLen))
 cx      CALL GenerateOutput
