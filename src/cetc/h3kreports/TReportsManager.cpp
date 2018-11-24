@@ -1893,7 +1893,7 @@ void TReportsManager::GenerateStepOutput(unsigned long lStepCount){
 
    //Use quick sort to sort the constructed structure of <char*, mapkey*>
    //** Retrieve maps for output with the sort will slow down the simulation **
-   //          ** Guess slow down is 5% longers sim time. **
+   //          ** Guess slow down is 5 % longer sim time. **
    if(bSortOutput)
       qsort(sortedMapKeylist,i, sizeof(struct stSortedMapKeyRef), cmp_by_string);
 
@@ -2770,7 +2770,7 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
             //matter if the counter is overwritten by a different variable
             iSteps = itDataMap->second.GetStepCount();
 
-            //Store the current position in the csv
+            //Increment/Store the current position (column) in the csv
             iPos++;
 
             //** note: may perform better if the MetaValue was part of the m_ReportDataList **
