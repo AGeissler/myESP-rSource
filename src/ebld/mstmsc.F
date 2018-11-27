@@ -345,7 +345,7 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C EVAP01 determines the latent heat of evapouration (transformation) as 
+C EVAP01 determines the latent heat of evaporation (transformation) as
 C a function of temperature (Marieke 1994).
 C EVAP01   latent heat of evapouration  (J/kgv)
 C EVAPr    reference heat of condensation at T=0 C  (J/kgv)
@@ -359,14 +359,16 @@ C *********************************************************************
       character outs*124
 
       EVAPr=2.5008E6
+      EVAPmin=2.0E6
       DCP=2430.0
       EVAP01=EVAPr-DCP*TC
-      IF(EVAP01.LT.0.0)then
-        write(outs,'(a,E12.6,a,F12.6,a)')
-     &   'EVAP01: negative latent heat of evaporation ',
-     &    EVAP01,' at temp=',TC,' C, resetting to 100 C value'
+      IF(EVAP01.LT.EVAPmin)then
+        write(outs,'(a,E12.6,a,F12.6,a,F12.6,a)')
+     &   'EVAP01: unrealistically small latent heat of evaporation ',
+     &    EVAP01,' at temp=',TC,' C, resetting to ',
+     &    0.001*EVAPmin,' kJ/kg.'
         call edisp(iuout,outs)
-        EVAP01=EVAPr-DCP*100.
+        EVAP01=EVAPmin
       endif
       RETURN
       END
@@ -815,38 +817,59 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C Hv01 Calculates enthalpy of vapour (J/kg).
-C fundamental data for B.S. engineers, Section 8, Eqns 7-20.
+C Hv01 Calculates enthalpy of dry vapour at saturation pressure of
+C temperature TC.Based on fit of data to h'' values taken from
+C Bosnjakovic / Knoche, 8th Ed. 1998.
+cx fundamental data for B.S. engineers, Section 8, Eqns 7-20.
+C
+C Input        TC in degC
+C Return value h' in J/kg.
 C *********************************************************************
       FUNCTION Hv01(TC)
 
-      ISW=INT((TC+20.0)/10.0)
-      IF(ISW.LE.1)THEN
-        HvkJ=2500.822+1.8375*TC
-      elseif(ISW.EQ.2)THEN
-        HvkJ=2500.92+1.84*TC
-      elseif(ISW.EQ.3)THEN
-        HvkJ=2519.32+1.83*(TC-10.0)
-      elseif(ISW.EQ.4)THEN
-        HvkJ=2537.62+1.82*(TC-20.0)
-      elseif(ISW.EQ.5)THEN
-        HvkJ=2555.82+1.8*(TC-30.0)
-      elseif(ISW.EQ.6)THEN
-        HvkJ=2573.82+1.77*(TC-40.0)
-      elseif(ISW.GE.7)THEN
-        HvkJ=2591.52+1.76*(TC-50.0)
-      ENDIF
+      if (TC.lt.0) TC=0.
+      if (TC.gt.300) TC=300.
+
+cx      ISW=INT((TC+20.0)/10.0)
+cx      IF(ISW.LE.1)THEN
+cx        HvkJ=2500.822+1.8375*TC
+cx      elseif(ISW.EQ.2)THEN
+cx        HvkJ=2500.92+1.84*TC
+cx      elseif(ISW.EQ.3)THEN
+cx        HvkJ=2519.32+1.83*(TC-10.0)
+cx      elseif(ISW.EQ.4)THEN
+cx        HvkJ=2537.62+1.82*(TC-20.0)
+cx      elseif(ISW.EQ.5)THEN
+cx        HvkJ=2555.82+1.8*(TC-30.0)
+cx      elseif(ISW.EQ.6)THEN
+cx        HvkJ=2573.82+1.77*(TC-40.0)
+cx      elseif(ISW.GE.7)THEN
+cx        HvkJ=2591.52+1.76*(TC-50.0)
+cx      ENDIF
+
+      HvkJ=3135.3+1.7107*TC+0.001931*TC**2-1.6294e-5*TC**3
       Hv01=HvkJ*1000.0
+
       RETURN
       END
 
 C *********************************************************************
-C Hl01 Calculates enthalpy of water (J/kg).
+C Hl01 Calculates enthalpy of water at saturation vapour pressure
+C of temperature TC. Based on fit of data to h' values taken from
+C Bosnjakovic / Knoche, 8th Ed. 1998.
+C
+C Input        TC in degC
+C Return value h' in J/kg.
 C *********************************************************************
       FUNCTION Hl01(TC)
 
-      Hfg=EVAP01(TC)
-      Hg=Hv01(TC)
-      Hl01=Hg-Hfg
+cx      Hfg=EVAP01(TC)
+cx      Hg=Hv01(TC)
+cx      Hl01=Hg-Hfg
+      if (TC.lt.0) TC=0.
+      if (TC.gt.300) TC=300.
+
+      Hl01=1000.*(632.52+4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
+
       RETURN
       END

@@ -170,17 +170,17 @@ C *********************************************************************
 
       DTfalse=3600.0
 
-      GAMm=0.5
+      GAMm=1.0     !was 0.5, 1.0 set to fully implicit
       RLXln=0.4    !0.1  RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
       RLXlnF=0.2   !0.01 RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
       RLXlnT=0.4   !0.1  RLX T_new + (1-RLX) T_old
 
-      MITRM=500
+      MITRM=300
 
       RITRMP=0.075 ! (Pf-Pn) FACTOR < RITRMP ? => O.K. (both for zone air and layers!)
       RITRMF=0.001 ! (Ff-Fn) FACTOR < RITRMF ? => O.K. (both for zone air and layers!)
 
-      RHmax=0.99
+      RHmax=0.999
       PATMpa=101325.0
       RETURN
       END
