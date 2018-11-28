@@ -221,6 +221,8 @@ C *********************************************************************
         IF(XIair01.LE.0.0) then
           XIair01=XIair02(Pvp,TCp,Pt)
           iSource=3
+cx        ELSEIF(XIair01.GT.??) then
+C  ??? catch too high values, also??
         ENDIF
       ENDIF
       IF(XIair01.LT.DBLE(SMALL))then
@@ -246,13 +248,14 @@ C *********************************************************************
       COMMON/MOIST17/RHmax
       SMALL=1.0E-15
 
-      Ra=287.06
-      Rv=461.5
-      RATIO=Ra/Rv
+cx      Ra=287.06
+cx      Rv=461.5
+cx      RATIO=Ra/Rv
+      RATIO=0.6220152
       Ps=Psat01(TC)
       RH=Pv/Ps
       IF(RH.GT.RHmax)RH=RHmax
-      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-]? Should be kg/m3 !!?
+      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-]? Should be kg/m3 or kg/kg !!?
       IF(XIair02.LT.DBLE(SMALL))then
         call edisp(iuout,'XIair02: very small moisture capacity.')
         call epwait
@@ -761,7 +764,7 @@ C **********************************************************************
       FUNCTION X03(TC,RH,Pt)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
-      SMALL=1.0E-12
+      SMALL=1.0E-6
 
       IF(RH.GT.RHmax)RH=RHmax
       RH100=RH*100.0
@@ -769,7 +772,7 @@ C **********************************************************************
       X03=HUMRT1(TC,RH100,PATMOS,0)
       IF(X03.LT.0.0)then
         call edisp(iuout,
-     &      'X03: negative vapour ratio. Setting to small value')
+     &      'X03: negative vapour ratio. Setting to 1.0 mg/kg')
 cx        call epwait
 cx        call epagend
 cx        STOP
