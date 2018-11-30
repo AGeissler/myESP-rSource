@@ -170,7 +170,7 @@ C *********************************************************************
 
       DTfalse=3600.0
 
-      GAMm=1.0     !was 0.5, 1.0 set to fully implicit ("Kellerklima" gives shorter simulations!)
+      GAMm=0.8     !was 0.5, 1.0 set to fully implicit ("Kellerklima" gives shorter simulations!)
       RLXln=0.4    !0.1  RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
       RLXlnF=0.2   !0.01 RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
       RLXlnT=0.4   !0.1  RLX T_new + (1-RLX) T_old

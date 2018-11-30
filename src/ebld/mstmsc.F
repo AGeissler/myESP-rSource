@@ -191,7 +191,7 @@ C *********************************************************************
 C *********************************************************************
 C XIair01 determines the value for moisture capacity ( slope for sorption
 C isotherm) for air node by numerical differentiation.
-C XIair01  moisture capacity (kg/kg)
+C XIair01  moisture capacity (kg/[-]) (Dx/DRH)
 C Pvp      present time vapour pressure ( Pa )
 C Pvf      future time vapour pressure ( Pa )
 C TCp      present time temperature ( C )
@@ -202,6 +202,7 @@ C *********************************************************************
       COMMON/MOIST17/RHmax
       character outs*124
       SMALL=1.0E-15
+      LARGE=5.0E+02 ! what would a realistic value be, here?
 
       Psp=Psat01(TCp)
       Psf=Psat01(TCf)
@@ -221,7 +222,7 @@ C *********************************************************************
         IF(XIair01.LE.0.0) then
           XIair01=XIair02(Pvp,TCp,Pt)
           iSource=3
-cx        ELSEIF(XIair01.GT.??) then
+cx        ELSEIF(XIair01.GT.DBLE(LARGE)) then
 C  ??? catch too high values, also??
         ENDIF
       ENDIF
@@ -233,6 +234,16 @@ C  ??? catch too high values, also??
      &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,' resetting'
         call edisp(iuout,outs)
         XIair01=1.0E-10
+      endif
+      IF(XIair01.GT.DBLE(LARGE))then
+        write(outs,'(A,A)')'XIair01: huge moist. cap for case of:',
+     &   ' Pvp Pvf TCp TCf  RHfp Xp Xf  Pabs iS'
+        call edisp(iuout,outs)
+        write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,I2,F8.3,A)')
+     &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,XIair01,
+     &    ' resetting'
+        call edisp(iuout,outs)
+cx        XIair01=5.0E+02
       endif
       RETURN
       END
@@ -255,7 +266,7 @@ cx      RATIO=Ra/Rv
       Ps=Psat01(TC)
       RH=Pv/Ps
       IF(RH.GT.RHmax)RH=RHmax
-      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-]? Should be kg/m3 or kg/kg !!?
+      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [kg/[-]]
       IF(XIair02.LT.DBLE(SMALL))then
         call edisp(iuout,'XIair02: very small moisture capacity.')
         call epwait
