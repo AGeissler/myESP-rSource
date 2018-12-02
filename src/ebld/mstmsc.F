@@ -202,7 +202,7 @@ C *********************************************************************
       COMMON/MOIST17/RHmax
       character outs*124
       SMALL=1.0E-15
-      LARGE=5.0E+02 ! what would a realistic value be, here?
+      LARGE=1.0E+02 ! what would a realistic value be, here?
 
       Psp=Psat01(TCp)
       Psf=Psat01(TCf)
