@@ -219,31 +219,33 @@ C *********************************************************************
         Xf=X03(TCf,RHf,Pt) ! kg_vap / kg_dry-air
         XIair01=(Xf-Xp)/RHfp
         iSource=2
-        IF(XIair01.LE.0.0) then
+        IF(XIair01.LT.DBLE(SMALL)) then
           XIair01=XIair02(Pvp,TCp,Pt)
           iSource=3
-cx        ELSEIF(XIair01.GT.DBLE(LARGE)) then
-C  ??? catch too high values, also??
+        ELSEIF(XIair01.GT.DBLE(LARGE)) then
+          XIair01=XIair02(Pvp,TCp,Pt)
+          iSource=4
         ENDIF
       ENDIF
       IF(XIair01.LT.DBLE(SMALL))then
         write(outs,'(A,A)')'XIair01: small moist. cap for case of:',
      &   ' Pvp Pvf TCp TCf  RHfp Xp Xf  Pabs iS'
         call edisp(iuout,outs)
-        write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,I2,A)')
-     &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,' resetting'
+        write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,I2,1X,E14.7,A)')
+     &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,XIair01,
+     &    ' resetting'
         call edisp(iuout,outs)
         XIair01=1.0E-10
       endif
       IF(XIair01.GT.DBLE(LARGE))then
-        write(outs,'(A,A)')'XIair01: huge moist. cap for case of:',
+        write(outs,'(A,A)')'XIair01: large moist. cap for case of:',
      &   ' Pvp Pvf TCp TCf  RHfp Xp Xf  Pabs iS'
         call edisp(iuout,outs)
-        write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,I2,F8.3,A)')
+        write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,1X,I2,1X,E14.7,A)')
      &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,XIair01,
      &    ' resetting'
         call edisp(iuout,outs)
-cx        XIair01=5.0E+02
+        XIair01=LARGE
       endif
       RETURN
       END
@@ -424,7 +426,7 @@ C       Otto model
         else
           write(outs,'(a,4F12.6,a)')
      &     'DELT01: small my for: VPRMa VPRMb VPRMc RH',
-     &      VPRMa,VPRMb,VPRMc,RH,' resetting to .1'
+     &      VPRMa,VPRMb,VPRMc,RH,' resetting to 1.883e-9'
           call edisp(iuout,outs)
           DELT01=1.883e-9
         endif
@@ -432,7 +434,7 @@ C       Otto model
       IF(DELT01.LT.SMALL)then
         write(outs,'(a,4F12.6,a)') 
      &   'DELT01: small vapour perm for: VPRMa VPRMb VPRMc RH',
-     &    VPRMa,VPRMb,VPRMc,RH,' resetting to 1.0E-13'
+     &    VPRMa,VPRMb,VPRMc,RH,' resetting to 1.0E-15'
         call edisp(iuout,outs)
         DELT01=1.0E-15
       endif
@@ -562,6 +564,8 @@ C *********************************************************************
       COMMON/OUTIN/IUOUT,IUIN
       character outs*124
       SMALL=1.0E-15
+
+cx      if (TC.gt.300) TC=300.
 
       IF(TC.GT.-30.0.AND.TC.LT.0.0)THEN
         A = 82.9E-3
@@ -725,7 +729,7 @@ C Pt   total pressure  ( Pa )
 C **********************************************************************
       FUNCTION X01(Pv,Pt)
       COMMON/OUTIN/IUOUT,IUIN
-      SMALL=1.0E-12
+      SMALL=1.0E-6
 
       Ra=287.06
       Rv=461.5
