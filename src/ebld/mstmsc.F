@@ -92,10 +92,9 @@ C *********************************************************************
       FUNCTION U02(iMM,RH,Uh,CFF,EXPT,DNSTY)
       COMMON/MOIST17/RHmax
 
-Cx DNSTY is not set!! (Joe, 5.12.2018)
-      if ((DNSTY.le.0.).or.(DNSTY.gt.3000.))then
-        DNSTY=1500.
-        call edisp(iuout,'U02: (703) density is set to 1500 kg/m3.')
+      if ((DNSTY.eq.0.))then
+C       We have an air layer, set average value ...
+        DNSTY=1.18
       endif
 
       IF(RH.GT.RHmax)RH=RHmax
@@ -842,7 +841,7 @@ C *********************************************************************
 
 C *********************************************************************
 C Hv01 Calculates enthalpy of dry vapour at saturation pressure of
-C temperature TC.Based on fit of data to h'' values taken from
+C temperature TC. Based on fit of data to h'' values taken from
 C Bosnjakovic / Knoche, 8th Ed. 1998.
 cx fundamental data for B.S. engineers, Section 8, Eqns 7-20.
 C
@@ -851,8 +850,8 @@ C Return value h' in J/kg.
 C *********************************************************************
       FUNCTION Hv01(TC)
 
-      if (TC.lt.0) TC=0.
-      if (TC.gt.300) TC=300.
+      if (TC.lt.0.) TC=0.
+      if (TC.gt.300.) TC=300.
 
 cx      ISW=INT((TC+20.0)/10.0)
 cx      IF(ISW.LE.1)THEN
@@ -890,8 +889,8 @@ C *********************************************************************
 cx      Hfg=EVAP01(TC)
 cx      Hg=Hv01(TC)
 cx      Hl01=Hg-Hfg
-      if (TC.lt.0) TC=0.
-      if (TC.gt.300) TC=300.
+      if (TC.lt.0.) TC=0.
+      if (TC.gt.300.) TC=300.
 
       Hl01=1000.*(632.52+4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
 
