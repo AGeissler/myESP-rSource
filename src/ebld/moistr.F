@@ -640,6 +640,7 @@ C For construction moisture nodes.
         DO 30 IL=1,NE
           NM=MNDL(ICOMP,I,IL)
         DO 30 IM=1,NM
+          ITM=ITM+1
           DELTp(I,ITM)=DELTs(ICOMP,I,ITM)
           DTPp(I,ITM)=DTPs(ICOMP,I,ITM)
    30   CONTINUE
@@ -1337,6 +1338,7 @@ c        Pnew=(SUM-Fn(I,IM))/DOMAIN
           Pn(I,IM)=RH*Ps
         ENDIF
         Fnew=SNGL(SUM)-Pn(I,IM)*DOMAIN
+cx compiler complaines about this line: (Joe, 5.12.2018)
         Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
         IF(Fn(I,IM).LT.0.0)Fn(I,IM)=0.0
 cx        ENDIF

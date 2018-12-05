@@ -92,6 +92,12 @@ C *********************************************************************
       FUNCTION U02(iMM,RH,Uh,CFF,EXPT,DNSTY)
       COMMON/MOIST17/RHmax
 
+Cx DNSTY is not set!! (Joe, 5.12.2018)
+      if ((DNSTY.le.0.).or.(DNSTY.gt.3000.))then
+        DNSTY=1500.
+        call edisp(iuout,'U02: (703) density is set to 1500 kg/m3.')
+      endif
+
       IF(RH.GT.RHmax)RH=RHmax
       U02=U01(iMM,RH,Uh,CFF,EXPT)/DNSTY
       IF(U02.LT.0.0)STOP 'Error (704): negative moisture content.'
