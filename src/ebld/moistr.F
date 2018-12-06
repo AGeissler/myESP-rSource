@@ -636,13 +636,13 @@ C Set the present time convective mass transfer coefficients.
 C For construction moisture nodes.
       DO 20 I=1,NC
         NE=NELTS(ICOMP,I)
-cx        ITM=0
+        ITM=0
         DO 30 IL=1,NE
           NM=MNDL(ICOMP,I,IL)
         DO 30 IM=1,NM
-cx          ITM=ITM+1
-          DELTp(I,IM)=DELTs(ICOMP,I,IM)
-          DTPp(I,IM)=DTPs(ICOMP,I,IM)
+          ITM=ITM+1
+          DELTp(I,ITM)=DELTs(ICOMP,I,ITM)
+          DTPp(I,ITM)=DTPs(ICOMP,I,ITM)
    30   CONTINUE
    20 CONTINUE
       RETURN
