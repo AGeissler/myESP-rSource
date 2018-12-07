@@ -116,10 +116,11 @@ C Convergence achieved.
           IF(ITRM.EQ.1)THEN
             CALL EDAYR(IDYP,IDAYN,IMTHN)
             WRITE(MSG,'(1X,A)')
-     &      'MZMSTR: moisture convergence after 1 iteration'
+     &      'MZMSTR: moisture convergence after'
             CALL EDISP(IUOUT,MSG)
             WRITE(MSG,'(9X,A,I3,A,3I3)')
-     &      'in zone',ICOMP,' at Day, Month, Hour: ',IDAYN,IMTHN,IHRF
+     &      '1 iteration in zone',ICOMP,
+     &      ' at Day, Month, Hour: ',IDAYN,IMTHN,IHRF
             CALL EDISP(IUOUT,MSG)
           ENDIF
           RETURN
@@ -151,10 +152,11 @@ C Solve the energy matrix.
       CALL WRITRH(ICOMP)
       CALL EDAYR(IDYP,IDAYN,IMTHN)
       WRITE(MSG,'(1X,A)')
-     &     'MZMSTR: moisture convergence failed'
+     &     'MZMSTR: moisture '
       CALL EDISP(IUOUT,MSG)
       WRITE(MSG,'(9X,A,I3,A,3I3)')
-     &      'in zone',ICOMP,' at Day, Month, Hour: ',IDAYN,IMTHN,IHRF
+     &      'convergence failed in zone',ICOMP,
+     &      ' at Day, Month, Hour: ',IDAYN,IMTHN,IHRF
       CALL EDISP(IUOUT,MSG)
       RETURN
       END
@@ -175,12 +177,12 @@ C *********************************************************************
 
       DTfalse=3600.0
 
-      GAMm=0.5
+      GAMm=0.8
       RLXln=0.4    !0.1  RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
       RLXlnF=0.2   !0.01 RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
       RLXlnT=0.4   !0.1  RLX T_new + (1-RLX) T_old
 
-      MITRM=500
+      MITRM=300
 
       RITRMP=0.075 ! (Pf-Pn) FACTOR < RITRMP ? => O.K. (both for zone air and layers!)
       RITRMF=0.001 ! (Ff-Fn) FACTOR < RITRMF ? => O.K. (both for zone air and layers!)

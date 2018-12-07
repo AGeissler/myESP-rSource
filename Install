@@ -1141,7 +1141,7 @@ case $xLibs in
          armv7l) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR} -lX11";;
          aarch64) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR} -lX11";;
          x86_64) case $platform in
-                 mac) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR}/lib -lX11";;
+                 mac) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR}/lib -lX11 -lXft";;
                  *) ULIBS="$ULIBS -lxesru -L${XINSTALLDIR}/lib64 -lX11";;        
                  esac;;
        esac;;
