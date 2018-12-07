@@ -584,14 +584,14 @@ C ilabs is string arry for layer insert/delet selection.
       integer iigr,iigr2,iigt4,iix1,iiy1,iix2,iiy2,iix3,iiy3
       integer iix4,iiy4,iix5,iiy5,iid1,iid2,iid3,iid4,iix,iiy
       integer iigl,iigt,iigb,iigw,iigwh
-      integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer iiw1,iiw2,iiw3,iiw4,iimenu,iicol
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iigr,iigr2,iigt4,iix1,iiy1,iix2,iiy2,iix3,iiy3
       integer*8 iix4,iiy4,iix5,iiy5,iid1,iid2,iid3,iid4,iix,iiy
       integer*8 iigl,iigt,iigb,iigw,iigwh
-      integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 iiw1,iiw2,iiw3,iiw4,iimenu,iicol
 #endif
 
 C For help messages
@@ -701,15 +701,15 @@ C Draw visible as a circle.
         iid1=igr+10; iid2=igt;
         CALL ecirc(iid1,iid2,3,1)
         write(temp,'(A)')' Visible trn'
-        iid1=igr+25; iid2=igt;
-        CALL wstxpt(iid1,iid2,temp)
+        iid1=igr+25; iid2=igt; iicol=0
+        call textatxy(iid1,iid2,temp,'-',iicol)
 
 C Draw direct transmission.
         iid1=igr; iid2=igt+15; iid3=igr+20; iid4=igt+15;
         call edwline(iid1,iid2,iid3,iid4)
         write(temp,'(A)')' Direct trn'
         iid1=igr+25; iid2=igt+15;
-        CALL wstxpt(iid1,iid2,temp)
+        call textatxy(iid1,iid2,temp,'-',iicol)
         call u2pixel(0.0,DGED(1),iix1,iiy1)
         call u2pixel(40.0,DGED(2),iix2,iiy2)
         call u2pixel(55.0,DGED(3),iix3,iiy3)
@@ -725,7 +725,7 @@ C Draw reflection.
         call eswline(iid1,iid2,iid3,iid4)
         write(temp,'(A)')' Reflection'
         iid1=igr+25; iid2=igt+30;
-        CALL wstxpt(iid1,iid2,temp)
+        call textatxy(iid1,iid2,temp,'-',iicol)
         call u2pixel(0.0,sr(1),iix1,iiy1)
         call u2pixel(40.0,sr(2),iix2,iiy2)
         call u2pixel(55.0,sr(3),iix3,iiy3)
@@ -743,7 +743,7 @@ C Draw absorption for each layer.
         call edline(iigr,iigt4,iigr2,iigt4,3)
         write(temp,'(A)')' Absorb'
         iid1=igr+25; iid2=igt+45;
-        CALL wstxpt(iid1,iid2,temp)
+        call textatxy(iid1,iid2,temp,'-',iicol)
         DO 46 IL=1,NTLED
           call u2pixel(0.0,ABED(IL,1),iix1,iiy1)
           call u2pixel(40.0,ABED(IL,2),iix2,iiy2)

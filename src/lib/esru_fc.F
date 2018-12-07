@@ -75,6 +75,10 @@ C ************
       return
       end
 
+      subroutine defaultfonts(ifsd,itfsd,imfsd)
+      return
+      end
+
       subroutine winenqcl(act,n,nxcolid)
       character act*1
       return
@@ -134,11 +138,20 @@ C      end
       return
       end
 
-      subroutine textatxy(ix,iy,buff,ixcolid)
+      subroutine textatxy(ix,iy,buff,act,ixcolid)
       character*(*) buff
+      character act*1
       write(6,*) buff
       return
       end
+
+      subroutine textsizeatxy(ix,iy,buff,isize,act,ixcolid)
+      character*(*) buff
+      character act*1
+      write(6,*) buff
+      return
+      end
+
 
       subroutine winfnt(n)
       return
@@ -500,6 +513,13 @@ C      end
       return
       end
 
+      subroutine extentsvwmenu(name,iw,ipixwthma,ipixwthll,
+     &  ivfw,ivfwsp,ivfwul)
+      character*(*) name
+      integer iw,ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
+      return
+      end
+
 C      subroutine aux_menu
 C      return
 C      end
@@ -630,8 +650,14 @@ C      end
       return
       end
 
-      subroutine findviewtext(icx,line,isize,ix,iy)
-      integer icx,line,isize,ix,iy
+      subroutine findviewtext(icx,line,isize,iix,iiy)
+#ifdef OSI
+      integer icx,line,isize
+      integer iix,iiy
+#else
+      integer*8 ics,line,isize
+      integer*8 iix,iiy
+#endif
       return
       end
 

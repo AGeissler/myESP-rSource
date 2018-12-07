@@ -133,6 +133,7 @@ C NZJVN : topology of vertices associated with each connection (via geometry.h).
 
       CHARACTER temp*16,DESCRC*25,stemp*13,temp20*21
       CHARACTER MLCN*32,t13*13
+      integer izsize,issize
 
 C Local variables to pass to edline and axiscale.
 #ifdef OSI
@@ -160,7 +161,7 @@ C If libraries and monitor support greyscale remember this.
 
 C Save the current font and switch to a smaller font for displaying
 C surface names etc. Iixc,iiyc keep track of surface/pixel COG.
-      NAMEFT=IFS-1
+      issize=4; izsize=5  ! for surfaces and zone name
 
 C The right offset for the graphic box is the character width of the
 C menu. Also allow 2 text lines at the bottom for future dialogue.
@@ -249,15 +250,15 @@ C Note: temp character t13 is 1 char wider than zname().
 
 C Note call to textpixwidth corrupts t13 so need to
 C re-create t13 after textpixwidth call.
-        t13=' '
+        t13=' '; iicol=0
         write(t13,'(A)')zname(nznog(IZ))(1:lnzname(nznog(IZ)))
-        IF(IFS.GT.0)CALL winfnt(NAMEFT+1)
+        CALL winfnt(izsize)
         call textpixwidth(t13,ipixw)
         write(t13,'(A)')zname(nznog(IZ))(1:lnzname(nznog(IZ)))
         iixc = iix - (ipixw/2)
-        CALL wstxpt(iixc,iiy,t13)
-        IF(IFS.GT.0)CALL winfnt(IFS)
+        call textatxy(iixc,iiy,t13,'-',iicol)
         call forceflush()
+        CALL winfnt(IMFS)
       ENDIF
       IF(ier.NE.0)RETURN
 
@@ -308,18 +309,18 @@ C draw it as a solid circle.
 
 C If less than 2 hits then draw a legend for the meaning
 C of the vertex symbols.
-            IF(IFS.GT.0)CALL winfnt(1)
+            CALL winfnt(issize)
             iid1=igl+20; iid2=igb+25;
             CALL ecirc(iid1,iid2,3,1)
             write(temp,'(A)')'Unlinked vertex'
             iid1=igl+30; iid2=igb+30;
-            CALL wstxpt(iid1,iid2,temp)
+            call textatxy(iid1,iid2,temp,'-',iicol)
             iid1=igl+140; iid2=igb+25;
             CALL ecirc(iid1,iid2,3,0)
             write(temp20,'(A)')'Single-linked vertex'
             iid1=igl+150; iid2=igb+30;
-            CALL wstxpt(iid1,iid2,temp20)
-            IF(IFS.GT.0)CALL winfnt(IFS)
+            call textatxy(iid1,iid2,temp20,'-',iicol)
+            CALL winfnt(IMFS)
           ENDIF
   204   CONTINUE
         call forceflush()
@@ -593,11 +594,10 @@ C Patch for cfg is to only label highlighted surfaces.
                 CALL VECTRN(VN,TEMAT,COG2,IER)
                 CALL VECTRN(COG2,ETSMAT,COG3,IER)
                 call u2pixel(COG3(1),COG3(2),iixc,iiyc)
-                IF(IFS.GT.0)CALL winfnt(NAMEFT)
                 write(stemp,'(A)')SSNAME(IC)
                 call arrow(CG,VN,0.3,0.1,ipoints,'a',2)
 
-                IF(IFS.GT.0)CALL winfnt(IFS)
+                CALL winfnt(issize)
 
 C Offset the surface name depending on orientation.
                 IF(SSVFC(icc).EQ.'VERT')THEN
@@ -611,8 +611,9 @@ C Offset the surface name depending on orientation.
                 ENDIF
 
 C Make some concession to the size of the font.
-                CALL wstxpt(iixc,iiyc,stemp)
-                IF(IFS.GT.0)CALL winfnt(IFS)
+                iicol=0
+                call textatxy(iixc,iiyc,stemp,'-',iicol)
+                CALL winfnt(IMFS)
               endif
             endif
           ENDIF

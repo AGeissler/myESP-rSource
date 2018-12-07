@@ -705,6 +705,9 @@ C Passed parameters.
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
 
@@ -714,17 +717,35 @@ C Local arrays.
       DIMENSION  AX(MV),AY(MV),AZ(MV),IANXT(MV)
       DIMENSION  BX(MV),BY(MV),BZ(MV),IBNXT(MV)
       DIMENSION  SBBOX(3,2),COG1(3),COG2(3),COG3(3)
+      logical greyok
 
       CHARACTER btemp*12
       logical newgeo  ! to use for testing if new/old geometry file.
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast
+      integer iicol,ibsize         ! passed to textsizeatxy
 #else
       integer*8 iix,iiy,iixlast,iiylast
+      integer*8 iicol,ibsize       ! passed to textsizeatxy
 #endif     
 
 C If not in graphic mode return.
       if(MMOD.lt.8)return
+
+C If libraries and monitor support greyscale remember this.
+      greyok=.false.
+      if(nifgrey.gt.4)then
+        iicol=nifgrey-3
+        greyok=.true.
+      endif
+
+C Set font for displaying block names.
+C      write(6,'(a,3i2)') 'DRAWOBS IFS,ITFS,IMFS',IFS,ITFS,IMFS
+      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
+      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
+      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
+      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
+C      write(6,'(a,i2)') 'DRAWOBS ibsize ',ibsize
 
 C If newer geometry file it may include obstructions. If the value
 C of iobs for this zone is 2 then obstructions were included.
@@ -771,7 +792,9 @@ C Transform the location into eyepoint and then screen coords.
           call u2pixel(COG3(1),COG3(2),iix,iiy)
           btemp='        '
           write(btemp,'(a)') BLOCKNAME(IFOC,IB)
-          CALL wstxpt(iix,iiy,btemp)
+          call textsizeatxy(iix,iiy,btemp,ibsize,'-',iicol)
+          iicol=0
+          call winscl('-',iicol)
         ENDIF
 
 C If editing an obstruction, highlight it.
@@ -895,9 +918,11 @@ C Passed parameters.
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
-      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
 C Local arrays.
       real AX,AY,AZ,BX,BY,BZ,SBBOX,COG1,COG2,COG3
@@ -913,13 +938,28 @@ C Local arrays.
       logical greyok
 
 #ifdef OSI
-      integer iix,iiy,iixlast,iiylast,iicol
+      integer iix,iiy,iixlast,iiylast,iicol,ibsize 
 #else
-      integer*8 iix,iiy,iixlast,iiylast,iicol
+      integer*8 iix,iiy,iixlast,iiylast,iicol,ibsize 
 #endif     
 
 C If not in graphic mode return.
       if(MMOD.lt.8)return
+
+C If libraries and monitor support greyscale then reset forground
+C to 50% grey when drawing visual entities.
+      greyok=.false.
+      if(nifgrey.gt.4)then
+        iicol=nifgrey-3
+        call winscl('i',iicol)
+        greyok=.true.
+      endif
+
+C Set font for displaying block names.
+      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
+      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
+      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
+      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
 
 C      write(6,*) 'drawvis ',ifoc,nbvis(ifoc),itvis,NBVOBJ(ifoc),itvobj
 
@@ -980,15 +1020,6 @@ C been set.
           call CNVVISP(ifoc,IB) ! convert visp type.
         endif
 
-C If libraries and monitor support greyscale then reset forground
-C to 50% grey when drawing visual entities.
-        greyok=.false.
-        if(nifgrey.gt.4)then
-          iicol=nifgrey-3
-          call winscl('i',iicol)
-          greyok=.true.
-        endif
-
 C If visual names are to be displayed place near first vertex.
 C Transform the location into eyepoint and then screen coords.
         IF(ITSNM.EQ.0)THEN
@@ -1000,7 +1031,7 @@ C Transform the location into eyepoint and then screen coords.
           call u2pixel(COG3(1),COG3(2),iix,iiy)
           btemp='        '
           write(btemp,'(a)') VISNAME(IFOC,IB)
-          CALL wstxpt(iix,iiy,btemp)
+          call textsizeatxy(iix,iiy,btemp,ibsize,'-',iicol)
         ENDIF
 
 C If editing an visual entity, highlight it. ITVIS would have been
@@ -1127,6 +1158,10 @@ C Passed parameter.
       integer ier
       
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
 
 C Local arrays.
@@ -1135,16 +1170,34 @@ C Local arrays.
       DIMENSION  AX(MV),AY(MV),AZ(MV),IANXT(MV)
       DIMENSION  BX(MV),BY(MV),BZ(MV),IBNXT(MV)
       DIMENSION  SBBOX(3,2),COG1(3),COG2(3),COG3(3)
+      logical greyok
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast,iid2
+      integer iicol,ibsize         ! passed to textsizeatxy
 #else
       integer*8 iix,iiy,iixlast,iiylast,iid2
+      integer*8 iicol,ibsize       ! passed to textsizeatxy
 #endif     
 
       CHARACTER temp*7
 
 C If not in graphic mode return.
       if(MMOD.lt.8)return
+
+C If libraries and monitor support greyscale remember this.
+      greyok=.false.
+      if(nifgrey.gt.4)then
+        iicol=nifgrey-3
+        greyok=.true.
+      endif
+
+C Set font for displaying block names.
+      write(6,'(a,3i2)') 'DRWSEN IFS,ITFS,IMFS',IFS,ITFS,IMFS
+      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
+      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
+      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
+      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
+      write(6,'(a,i2)') 'DRWSEN ibsize ',ibsize
 
       if(NCUB(iz).eq.0)return
       DO 301 IB=1,NCUB(iz)
@@ -1161,7 +1214,9 @@ C Transform the location into eyepoint and then screen coords.
         call u2pixel(COG3(1),COG3(2),iix,iiy)
         write(temp,'(A)')CUBN(IB)
         iid2=iiy+8
-        CALL wstxpt(iix,iid2,temp)
+        call textsizeatxy(iix,iiy,temp,ibsize,'-',iicol)
+        iicol=0
+        call winscl('-',iicol)
 
 C Continue on with surfaces in the sensor.
 C Copy polygon for sensor surface I into structure AX AY AZ
@@ -1257,6 +1312,10 @@ C Passed parameter.
       integer ier
       
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
 
 C Local arrays.
@@ -1265,16 +1324,34 @@ C Local arrays.
       DIMENSION  AX(MV),AY(MV),AZ(MV),IANXT(MV)
       DIMENSION  BX(MV),BY(MV),BZ(MV),IBNXT(MV)
       DIMENSION  SBBOX(3,2),COG1(3),COG2(3),COG3(3)
+      logical greyok
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast,iid2
+      integer iicol,ibsize         ! passed to textsizeatxy
 #else
       integer*8 iix,iiy,iixlast,iiylast,iid2
+      integer*8 iicol,ibsize       ! passed to textsizeatxy
 #endif     
 
       CHARACTER temp*13
 
 C If not in graphic mode return.
       if(MMOD.lt.8)return
+
+C If libraries and monitor support greyscale remember this.
+      greyok=.false.
+      if(nifgrey.gt.4)then
+        iicol=nifgrey-3
+        greyok=.true.
+      endif
+
+C Set font for displaying bb names.
+C      write(6,'(a,3i2)') 'DRWBB IFS,ITFS,IMFS',IFS,ITFS,IMFS
+      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
+      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
+      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
+      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
+C      write(6,'(a,i2)') 'DRWBB ibsize ',ibsize
 
 C Place sensor names near first vertex.
 C Transform the location into eyepoint and then screen coords.
@@ -1286,7 +1363,9 @@ C Transform the location into eyepoint and then screen coords.
       call u2pixel(COG3(1),COG3(2),iix,iiy)
       write(temp,'(A)')bbname
       iid2=iiy+8
-      CALL wstxpt(iix,iid2,temp)
+      call textsizeatxy(iix,iiy,temp,ibsize,'-',iicol)
+      iicol=0
+      call winscl('-',iicol)
 
 C Continue on with surfaces in the sensor.
 C Copy polygon for sensor surface I into structure AX AY AZ
@@ -1384,8 +1463,8 @@ C Passed parameter.
 C Local arrays.
       real AX,AY,AZ,BX,BY,BZ,SBBOX,COG1,COG2,COG3
       integer IANXT,IBNXT
-      DIMENSION  AX(5),AY(5),AZ(5),IANXT(5)
-      DIMENSION  BX(5),BY(5),BZ(5),IBNXT(5)
+      DIMENSION  AX(MV),AY(MV),AZ(MV),IANXT(MV)
+      DIMENSION  BX(MV),BY(MV),BZ(MV),IBNXT(MV)
       DIMENSION  SBBOX(3,2),COG1(3),COG2(3),COG3(3)
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast,iid2
@@ -1475,15 +1554,15 @@ C Local arrays.
 
 C Local variables to pass to edline.
 #ifdef OSI
-      integer iix,iiy,iixlast,iiylast,iixc,iiyc,iid2
+      integer iix,iiy,iixlast,iiylast,iixc,iiyc,iid2,iicol
 #else
-      integer*8 iix,iiy,iixlast,iiylast,iixc,iiyc,iid2
+      integer*8 iix,iiy,iixlast,iiylast,iixc,iiyc,iid2,iicol
 #endif     
 
 C Save the current font and switch to a smaller font for displaying
 C surface names etc. Ixc,iyc keep track of surface/pixel COG.
       if(MMOD.lt.8)return
-      NAMEFT=IFS-1
+      issize=4  ! for surfaces
       LD=3
       if(ngtv.eq.0)return
       IF(ITVNO.EQ.0)then
@@ -1583,13 +1662,14 @@ C the next smaller font for the surface name and then restore font
 C to normal size.
           IF(ITSNM.EQ.0)THEN
             IF(iixc.GT.0.AND.iiyc.GT.0.AND.(NAP.EQ.NBP))THEN
-              IF(IFS.GT.0)CALL winfnt(NAMEFT)
+              CALL winfnt(issize)
               write(stemp,'(A)')GSNAME(igs)
               iixc=iixc/NBP
               iiyc=iiyc/NBP
               iid2=iiyc+3
-              CALL wstxpt(iixc,iid2,stemp)
-              IF(IFS.GT.0)CALL winfnt(IFS)
+              iicol=0
+              call textatxy(iixc,iid2,stemp,'-',iicol)
+              CALL winfnt(IMFS)
             endif
           endif
   302   CONTINUE
@@ -1804,7 +1884,7 @@ C has been read in, otherwise ask for zones one by one.
 C Pass ICOMP in as a positive so that 'ALL' is included in list.
           ICOMP=1
           CALL EASKGEOF('Pick zones to include in view',CFGOK,ICOMP,
-     &      '-',IER)
+     &      '-',34,IER)
           IVALS(IZZ)=ICOMP
    79   CONTINUE
       ENDIF

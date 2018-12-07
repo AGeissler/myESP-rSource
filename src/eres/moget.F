@@ -521,9 +521,9 @@ C Note: 60 is the maximum number of items associated with an anchor point.
 
       logical SLIST,NLIST,MRTLIST,AGRLIST,OKL,dok,ok
 #ifdef OSI
-      integer iid1,iid2,iik,iixx,iiyy
+      integer iid1,iid2,iik,iixx,iiyy,iicol,ibsize
 #else
-      integer*8 iid1,iid2,iik,iixx,iiyy
+      integer*8 iid1,iid2,iik,iixx,iiyy,iicol,ibsize
 #endif
 
       logical dmdsok,xst,is_open
@@ -960,14 +960,14 @@ C IGET = 2 outside temperature.
           IGETNO(NGET,8)=1;    IGETNO(NGET,9)=14
           GLABEL(NGET)='Ambient db Tmp'; LNGLABEL(NGET)=14
           if(IROC.eq.0)then
-            SLABEL(NGET)='Ambient db temperature (degC)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Ambient db temperature (C)'
+            LNSLABEL(NGET)=26
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Ambient db temp change (degC/hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Ambient db temp change (C/hr)'
+            LNSLABEL(NGET)=29
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Ambient db temp hours (degC.hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Ambient db temp hours (C.hr)'
+            LNSLABEL(NGET)=28
           endif
           write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
           LNTABLABEL(NGET)=LNSLABEL(NGET)
@@ -1109,7 +1109,8 @@ C Temperatures sub-menu.
         ITEMT(13)='Operative T (at sensor)    '
         IX=1
         CALL EPICKS(IX,IVALS,'Select a temperature metric.',
-     &    ' Temperature metrics:',27,13,ITEMT,'temp metrics',IER,nbhelp)
+     &    ' Temperature metrics:',27,13,ITEMT,'Temperature metrics',
+     &    IER,nbhelp)
 
         if(IX.eq.0)goto 1
         inoc=IVALS(1)
@@ -1122,14 +1123,14 @@ C Temperatures sub-menu.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' db T'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Zone db temperature (degC)'
-            LNSLABEL(NGET)=26
+            SLABEL(NGET)='Zone db temperature (C)'
+            LNSLABEL(NGET)=23
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Zone db temp change (degC/hr)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Zone db temp change (C/hr)'
+            LNSLABEL(NGET)=26
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Zone db temp hours (degC.hr)'
-            LNSLABEL(NGET)=28
+            SLABEL(NGET)='Zone db temp hours (C.hr)'
+            LNSLABEL(NGET)=25
           endif
         elseif(inoc.eq.2)then
           IGETNO(NGET,1)=29
@@ -1137,33 +1138,33 @@ C Temperatures sub-menu.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' Del dbT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Delta db temperature (degC)'
-            LNSLABEL(NGET)=27
+            SLABEL(NGET)='Delta db temperature (C)'
+            LNSLABEL(NGET)=24
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Delta db temp change (degC/hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Delta db temp change (C/hr)'
+            LNSLABEL(NGET)=27
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Delta db temp hours (degC.hr)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Delta db temp hours (C.hr)'
+            LNSLABEL(NGET)=26
           endif
         elseif(inoc.eq.3)then
 
 C IGET = 41 db T - another zone db T. Ask for other zone.
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           IGETNO(NGET,3)=IZONE
           IGETNO(NGET,1)=41
           IGETNO(NGET,6)=1; IGETNO(NGET,7)=6
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' Del znT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Delta zn T - other zn T (degC)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Delta zn T - other zn T (C)'
+            LNSLABEL(NGET)=27
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Chg D znT - other znT (degC/hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Chg D znT - other znT (C/hr)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='D znT - other znT hrs(degC.hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='D znT - other znT hrs(C.hr)'
+            LNSLABEL(NGET)=27
           endif
         elseif(inoc.eq.4)then
 
@@ -1173,14 +1174,14 @@ C IGET = 3 Control point temperature.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' Cpt T'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Control pt temperature (degC)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Control pt temperature (C)'
+            LNSLABEL(NGET)=26
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Control pt temp change (degC/hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Control pt temp change (C/hr)'
+            LNSLABEL(NGET)=29
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Control pt temp hours (degC.hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Control pt temp hours (C.hr)'
+            LNSLABEL(NGET)=28
           endif
         elseif(inoc.eq.5)then
 
@@ -1190,14 +1191,14 @@ C IGET = 6  Resultant temperature.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' Res T'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Resultant temperature (degC)'
-            LNSLABEL(NGET)=28
+            SLABEL(NGET)='Resultant temperature (C)'
+            LNSLABEL(NGET)=25
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Resultant temp change (degC/hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Resultant temp change (C/hr)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Resultant temp hours (degC.hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Resultant temp hours (C.hr)'
+            LNSLABEL(NGET)=27
           endif
         elseif(inoc.eq.6)then
 
@@ -1208,14 +1209,14 @@ C IGET = 24, average MRT.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' MRT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Mean Radiant Temperature (degC)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Mean Radiant Temperature (C)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Mean radiant Tmp change(degC/hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Mean radiant Tmp change(C/hr)'
+            LNSLABEL(NGET)=29
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Mean radiant Tmp hours(degC.hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Mean radiant Tmp hours(C.hr)'
+            LNSLABEL(NGET)=28
           endif
         elseif(inoc.eq.7)then
 
@@ -1226,14 +1227,14 @@ C IGET = 24, MRT at sensor.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
           SUFFIX=' MRT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Mean Radiant Temperature (degC)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Mean Radiant Temperature (C)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Mean radiant Tmp change(degC/hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Mean radiant Tmp change(C/hr)'
+            LNSLABEL(NGET)=29
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Mean radiant Tmp hours (degC.hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Mean radiant Tmp hours (C.hr)'
+            LNSLABEL(NGET)=29
           endif
         elseif(inoc.eq.8)then
 
@@ -1243,14 +1244,14 @@ C IGET = 14  Zone dew point.
           IGETNO(NGET,8)=1;    IGETNO(NGET,9)=12
           SUFFIX=' dew ptT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Zone dew point (degC)'
-            LNSLABEL(NGET)=21
+            SLABEL(NGET)='Zone dew point (C)'
+            LNSLABEL(NGET)=18
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Zone dew point change (degC/hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Zone dew point change (C/hr)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Zone dew point hours (degC.hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Zone dew point hours (C.hr)'
+            LNSLABEL(NGET)=27
           endif
         elseif(inoc.eq.9)then
           slist=.true.
@@ -1259,14 +1260,14 @@ C IGET = 14  Zone dew point.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
           SUFFIX=' InSurT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Surface temp inside (degC)'
-            LNSLABEL(NGET)=26
+            SLABEL(NGET)='Surface temp inside (C)'
+            LNSLABEL(NGET)=23
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Surface temp inside (degC/hr)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Surface temp inside (C/hr)'
+            LNSLABEL(NGET)=26
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Surf temp inside hours (degC.hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Surf temp inside hours (C.hr)'
+            LNSLABEL(NGET)=29
           endif
         elseif(inoc.eq.10)then
           slist=.true.
@@ -1275,14 +1276,14 @@ C IGET = 14  Zone dew point.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
           SUFFIX='Dsur-dpT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Delta surf T - zone dp T (degC)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Delta surf T - zone dp T (C)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Delta surf - zn dp T (degC/hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Delta surf - zn dp T (C/hr)'
+            LNSLABEL(NGET)=27
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Delta surfT - zn dpT hr(degC.hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Delta surfT - zn dpT hr(C.hr)'
+            LNSLABEL(NGET)=29
           endif
         elseif(inoc.eq.11)then
           IF(ISAVE.lt.3)then
@@ -1295,14 +1296,14 @@ C IGET = 14  Zone dew point.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
           SUFFIX=' ExSurT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Surface temp outside (degC)'
-            LNSLABEL(NGET)=27
+            SLABEL(NGET)='Surface temp outside (C)'
+            LNSLABEL(NGET)=24
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Surface temp outside (degC/hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Surface temp outside (C/hr)'
+            LNSLABEL(NGET)=27
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Surface out temp hrs (degC.hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Surface out temp hrs (C.hr)'
+            LNSLABEL(NGET)=27
           endif
         elseif(inoc.eq.12)then
           if(ISAVE.ne.3)then
@@ -1316,14 +1317,14 @@ C IGET = 14  Zone dew point.
             IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
             SUFFIX=' NodeT'
             if(IROC.eq.0)then
-              SLABEL(NGET)='Surface node temp (degC)'
-              LNSLABEL(NGET)=24
+              SLABEL(NGET)='Surface node temp (C)'
+              LNSLABEL(NGET)=21
             elseif(IROC.eq.1)then
-              SLABEL(NGET)='Surface node temp (degC/hr)'
-              LNSLABEL(NGET)=27
+              SLABEL(NGET)='Surface node temp (C/hr)'
+              LNSLABEL(NGET)=24
             elseif(IROC.eq.-1)then
-              SLABEL(NGET)='Surf node temp hours (degC.hr)'
-              LNSLABEL(NGET)=30
+              SLABEL(NGET)='Surf node temp hours (C.hr)'
+              LNSLABEL(NGET)=27
             endif
           endif
         elseif(inoc.eq.13)then
@@ -1335,14 +1336,14 @@ C IGET = 59, operative temperature
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
           SUFFIX=' OpT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Operative Temperature (degC)'
-            LNSLABEL(NGET)=28
+            SLABEL(NGET)='Operative Temperature (C)'
+            LNSLABEL(NGET)=25
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Operative Tmp change(degC/hr)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Operative Tmp change(C/hr)'
+            LNSLABEL(NGET)=26
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Operative Tmp hours (degC.hr)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Operative Tmp hours (C.hr)'
+            LNSLABEL(NGET)=26
           endif
         endif
 
@@ -3351,7 +3352,7 @@ C Give the users clues about which zones have observed data.
      &    'zone cool','  ','  ',IR,nbhelp)
         NGET=NGET+1
         if(ir.eq.1)then
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           IGETNO(NGET,1)=80
           IGETNO(NGET,2)=IZONE
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
@@ -3359,17 +3360,17 @@ C Give the users clues about which zones have observed data.
           SUFFIX=' db T'
           GLABEL(NGET)='Observed db Tmp'; LNGLABEL(NGET)=15
           if(IROC.eq.0)then
-            SLABEL(NGET)='Observed zone db T (degC)'
-            LNSLABEL(NGET)=25
+            SLABEL(NGET)='Observed zone db T (C)'
+            LNSLABEL(NGET)=22
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Obs zone db T change (degC/hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Obs zone db T change (C/hr)'
+            LNSLABEL(NGET)=27
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Obs zone db T hours (degC.hr)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Obs zone db T hours (C.hr)'
+            LNSLABEL(NGET)=26
           endif
         elseif(ir.eq.2)then
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           call ASKSUR(IZONE,ISFN)
           IGETNO(NGET,1)=81
           IGETNO(NGET,2)=IZONE
@@ -3379,17 +3380,17 @@ C Give the users clues about which zones have observed data.
           SUFFIX=' surf T'
           GLABEL(NGET)='Observed surf T'; LNGLABEL(NGET)=15
           if(IROC.eq.0)then
-            SLABEL(NGET)='Observed surf T (degC)'
-            LNSLABEL(NGET)=22
+            SLABEL(NGET)='Observed surf T (C)'
+            LNSLABEL(NGET)=19
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Obs surf T change (degC/hr)'
-            LNSLABEL(NGET)=27
+            SLABEL(NGET)='Obs surf T change (C/hr)'
+            LNSLABEL(NGET)=24
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Obs surf T hours (degC.hr)'
-            LNSLABEL(NGET)=26
+            SLABEL(NGET)='Obs surf T hours (C.hr)'
+            LNSLABEL(NGET)=23
           endif
         elseif(ir.eq.3)then
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           IGETNO(NGET,1)=82   ! hopefully a UNIQUE indicator 
           IGETNO(NGET,2)=IZONE
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
@@ -3407,7 +3408,7 @@ C Give the users clues about which zones have observed data.
             LNSLABEL(NGET)=30
           endif
         elseif(ir.eq.4)then
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           IGETNO(NGET,1)=83   ! hopefully a UNIQUE indicator 
           IGETNO(NGET,2)=IZONE
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
@@ -3425,7 +3426,7 @@ C Give the users clues about which zones have observed data.
             LNSLABEL(NGET)=26
           endif
         elseif(ir.eq.5)then
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           IGETNO(NGET,1)=84   ! hopefully a UNIQUE indicator 
           IGETNO(NGET,2)=IZONE
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
@@ -3840,7 +3841,8 @@ C Find out point where text should be drawn.
         lblpy(igrl)=int(iiyy)
         iid1=int(iixx); iid2=int(iiyy);
         t24=grlbl(igrl)
-        call wstxpt(iid1,iid2,t24)
+        iicol=0; ibsize=0
+        call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
         dok=.false.
         CALL ASKOK('Include another user supplied label?',' ',OKL,dok,
      &    nbhelp)
@@ -3946,7 +3948,7 @@ C If IGET=25 and not outside then need to exclude some selections.
 
 C Need to ask for specific surface and node.
           NSEL=NSEL+1
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           call ASKSUR(IZONE,ISFN)
           call ASKICN(IZONE,ISFN,INODE)
           IZNSEL(NSEL)=IZONE

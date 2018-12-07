@@ -992,7 +992,7 @@ C          write(6,*) 'origin track click',iik,iixo,iiyo
           call esymbol(iid1,iid2,24,1)
           write(temp6,'(A)')'Origin'
           iix=iixo+5; iiy=iiyo-5;
-          CALL wstxpt(iix,iiy,temp6)
+          call textatxy(iix,iiy,temp6,'z',iicol)
           call winscl('-',iicol)
           write(outs,'(a,2i6)')' origin X Y pixels =',iixo,iiyo
           call edisp(iuout,outs)
@@ -1028,7 +1028,7 @@ C North.
           call edwline(iid1,iid2,iid3,iid4)
           write(temp6,'(A)')'North'
           iid1=ixtn2+5; iid2=iytn2-5;
-          CALL wstxpt(iid1,iid2,temp6)
+          call textatxy(iid1,iid2,temp6,'z',iicol)
           call winscl('-',iicol)
           call usrmsg(' ',' ','-')
           xbmnorth=.true.
@@ -1586,7 +1586,8 @@ C to green draw the symbol and index of vertex and do Z editing if requested.
           if(INVERT.gt.9.and.INVERT.le.99)write(temp3,'(i2)') INVERT
           if(INVERT.gt.99)write(temp3,'(i3)') INVERT
           if(inpmode.eq.1.or.inpmode.eq.2)then
-            call textatxy(ipxx(INVERT)+4,ipyy(INVERT)-1,temp3,'z',3)
+            iid1=ipxx(INVERT)+4; iid2=ipyy(INVERT)-1; iid3=3
+            call textatxy(iid1,iid2,temp3,'z',iid3)
             iicol=0
             call winscl('-',iicol)
             X(INVERT)=px(INVERT); Y(INVERT)=py(INVERT)
@@ -1616,7 +1617,8 @@ C to green draw the symbol and index of vertex and do Z editing if requested.
             endif
             call edisp(iuout,outs)
           elseif(inpmode.eq.4)then
-            call textatxy(ipxx(INVERT)+4,ipzz(INVERT)-1,temp3,'z',3)
+            iid1=ipxx(INVERT)+4; iid2=ipzz(INVERT)-1; iid3=3
+            call textatxy(iid1,iid2,temp3,'z',iid3)
             iicol=0
             call winscl('-',iicol)
             X(INVERT)=px(INVERT); Z(INVERT)=pz(INVERT)
@@ -1633,7 +1635,8 @@ C to green draw the symbol and index of vertex and do Z editing if requested.
             endif
             call edisp(iuout,outs)
           elseif(inpmode.eq.5)then
-            call textatxy(ipyy(INVERT)+4,ipzz(INVERT)-1,temp3,'z',3)
+            iid1=ipyy(INVERT)+4; iid2=ipzz(INVERT)-1; iid3=3
+            call textatxy(iid1,iid2,temp3,'z',iid3)
             iicol=0
             call winscl('-',iicol)
             Y(INVERT)=py(INVERT); Z(INVERT)=pz(INVERT)
@@ -1652,7 +1655,8 @@ C to green draw the symbol and index of vertex and do Z editing if requested.
           elseif(inpmode.eq.6)then
 
 C Add to ground topology and confirm Z.
-            call textatxy(ipxx(INVERT)+4,ipyy(INVERT)-1,temp3,'z',3)
+            iid1=ipxx(INVERT)+4; iid2=ipyy(INVERT)-1; iid3=3
+            call textatxy(iid1,iid2,temp3,'z',iid3)
             iicol=0
             call winscl('-',iicol)
             XGT(INVERT)=px(INVERT); YGT(INVERT)=py(INVERT)
@@ -2232,8 +2236,10 @@ C Draw it and index.
      &            write(temp3,'(a,i1)') 'd',nbofdoorpts
                 if(nbofdoorpts.gt.9.and.nbofdoorpts.le.99)
      &            write(temp3,'(a,i2)') 'd',nbofdoorpts
-                call textatxy(ipxdoor(nbofdoorpts)+4,
-     &            ipydoor(nbofdoorpts)-1,temp3,'z',3)
+
+                iid1=ipxdoor(nbofdoorpts)+4; iid2=ipydoor(nbofdoorpts)-1
+                iid3=3
+                call textatxy(iid1,iid2,temp3,'z',iid3)
                 if(odd)then
                   write(outs,'(a,i3,a,f8.3,a,f8.3)') 'L Door ',
      &              nbofdoorpts,' @ X',
@@ -2309,8 +2315,10 @@ C Draw it and index.
      &            write(temp3,'(a,i1)') 'w',nbofwindowpts
                 if(nbofwindowpts.gt.9.and.nbofwindowpts.le.99)
      &            write(temp3,'(a,i2)') 'w',nbofwindowpts
-                call textatxy(ipxwin(nbofwindowpts)+4,
-     &            ipywin(nbofwindowpts)-1,temp3,'z',3)
+                iid1=ipxwin(nbofwindowpts)+4
+                iid2=ipywin(nbofwindowpts)-1
+                iid3=3
+                call textatxy(iid1,iid2,temp3,'z',iid3)
                 write(outs,'(a,i3,a,f8.3,a,f8.3)') 'Window ',
      &            nbofwindowpts,' @ X',
      &            pxwin(nbofwindowpts),' Y',pywin(nbofwindowpts)
@@ -2366,7 +2374,9 @@ C Corner added draw it and index and a line from the previous to current.
           if(NW.gt.0.and.NW.le.9)write(temp3,'(i1)') NW
           if(NW.gt.9.and.NW.le.99)write(temp3,'(i2)') NW
           if(NW.gt.99)write(temp3,'(i3)') NW
-          call textatxy(ipxbase(NW)+4,ipybase(NW)-1,temp3,'z',3)
+          iid1=ipxbase(NW)+4; iid2=ipybase(NW)-1
+          iid3=3
+          call textatxy(iid1,iid2,temp3,'z',iid3)
           if(NW.gt.1)then
             iicol=3
             call winscl('z',iicol)
@@ -3027,14 +3037,15 @@ C Pixel (upper left and lower right corners) of where the bitmap is draw.
       real other   ! the other grid distance defined by user
       real xp,yp   ! current position in X and Y
       real xpl,ypl ! most recent metre interval.
+      integer izsize,issize
 
 C Local variables to pass to edline.
 #ifdef OSI
       integer iix,iiy,iily,iilx,iiuy,iirx
-      integer iicol
+      integer iicol,iid1,iid2,iid3
 #else
       integer*8 iix,iiy,iily,iilx,iiuy,iirx
-      integer*8 iicol
+      integer*8 iicol,iid1,iid2,iid3
 #endif       
 
 C      write(6,*) 'dogrid called ',iwmg,factor,ixo,iyo,ixbul,iybul,
@@ -3051,7 +3062,7 @@ C to 36% grey when drawing dots.
           call winscl('i',iicol)
           greyok=.true.
         endif
-        IF(IFS.GT.0)CALL winfnt(0)
+        CALL winfnt(issize)  ! small proportional
         do 342 i=int(viewlim(1)),int(viewlim(2))
           ily=iyblr
           iuy=iybul
@@ -3089,13 +3100,16 @@ C put label at 1m invervals and draw solid grey line.
 C Draw the dotted line, first take calculated pixels and
 C cast to local variable to pass to edline.
               iix=ix; iily=ily; iiuy=iuy
+              iid3=nifgrey-4
               call edline(iix,iily,iix,iiuy,2)
               if(i.gt.-10.and.i.lt.99)then
                 write(temp6,'(i2)') i
-                call textatxy(ix-8,iyblr+15,temp6,'i',nifgrey-4)
+                iid1=ix-8; iid2=iyblr+15
+                call textatxy(iid1,iid2,temp6,'i',iid3)
               else
                 write(temp6,'(i3)') i
-                call textatxy(ix-12,iyblr+15,temp6,'i',nifgrey-4)
+                iid1=ix-12; iid2=iyblr+15
+                call textatxy(iid1,iid2,temp6,'i',iid3)
               endif
               if(ix.gt.ixaxr)ixaxr=ix
             elseif(iwmg.eq.2)then
@@ -3107,13 +3121,16 @@ C Do every 2m.
                   call winscl('i',iicol)
                 endif
                 iix=ix; iily=ily; iiuy=iuy
+                iid3=nifgrey-4
                 call edline(iix,iily,iix,iiuy,2)
                 if(i.gt.-10.and.i.lt.99)then
                   write(temp6,'(i2)') i
-                  call textatxy(ix-8,iyblr+15,temp6,'i',nifgrey-4)
+                  iid1=ix-8; iid2=iyblr+15
+                  call textatxy(iid1,iid2,temp6,'i',iid3)
                 else
                   write(temp6,'(i3)') i
-                  call textatxy(ix-12,iyblr+15,temp6,'i',nifgrey-4)
+                  iid1=ix-12; iid2=iyblr+15
+                  call textatxy(iid1,iid2,temp6,'i',iid3)
                 endif
                 if(ix.gt.ixaxr)ixaxr=ix
               endif
@@ -3130,10 +3147,12 @@ C Check if we are at a metre mark and if so write label.
                 call edline(iix,iily,iix,iiuy,3)
                 if(i.gt.-10.and.i.lt.99)then
                   write(temp6,'(i2)') i
-                  call textatxy(ix-8,iyblr+15,temp6,'i',nifgrey-4)
+                  iid1=ix-8; iid2=iyblr+15
+                  call textatxy(iid1,iid2,temp6,'i',iicol)
                 else
                   write(temp6,'(i3)') i
-                  call textatxy(ix-12,iyblr+15,temp6,'i',nifgrey-4)
+                  iid1=ix-12; iid2=iyblr+15
+                  call textatxy(iid1,iid2,temp6,'i',iicol)
                 endif
               endif
   444         xp=xp+other
@@ -3227,7 +3246,8 @@ C          write(6,'(a,f8.4,3i6)') 'y grid info',yp,ilx,irx,iy
               iilx=ilx; iiy=iy; iirx=irx
               call edline(iilx,iiy,iirx,iiy,2)
               write(temp6,'(i3)') i
-              call textatxy(irx+3,iy-1,temp6,'i',nifgrey-4)
+              iid1=irx+3; iid2=iy-1
+              call textatxy(iid1,iid2,temp6,'i',iicol)
             elseif(iwmg.eq.2)then
 
 C Do every other metre.
@@ -3243,7 +3263,8 @@ C              write(6,*) 'i mod ',i,mod(i,2)
                 iilx=ilx; iiy=iy; iirx=irx
                 call edline(iilx,iiy,iirx,iiy,2)
                 write(temp6,'(i3)') i
-                call textatxy(irx+3,iy-1,temp6,'i',nifgrey-4)
+                iid1=irx+3; iid2=iy-1
+                call textatxy(iid1,iid2,temp6,'i',iicol)
               endif
             elseif(iwmg.eq.7)then
               call eclose(yp,ypl,0.001,closelabel)
@@ -3255,7 +3276,8 @@ C              write(6,*) 'i mod ',i,mod(i,2)
                 iilx=ilx; iiy=iy; iirx=irx
                 call edline(iilx,iiy,iirx,iiy,3)
                 write(temp6,'(i3)') i
-                call textatxy(irx+3,iy-1,temp6,'i',nifgrey-4)
+                iid1=irx+3; iid2=iy-1
+                call textatxy(iid1,iid2,temp6,'i',iicol)
               endif
   445         yp=yp+other
               iy=iyo-int(yp*factor)
@@ -3336,7 +3358,7 @@ C Logic for 0.1m.
           endif
   343   continue
       endif
-      IF(IFS.GT.0)CALL winfnt(IFS)
+      CALL winfnt(IFS) ! reset font
       iicol=0
       call winscl('-',iicol)
       return
@@ -3579,7 +3601,7 @@ C If north known and within the displayed area then draw it.
             call edwline(iixtn1,iiytn1,iixtn2,iiytn2)
             write(temp6,'(A)')'North'
             iid1=ixtn2+5; iid2=iytn2-5;
-            CALL wstxpt(iid1,iid2,temp6)
+            call textatxy(iid1,iid2,temp6,'z',iicol)
             call winscl('-',iicol)
           endif
         endif
@@ -3595,7 +3617,7 @@ C If origin known and within the displayed area then draw it.
           call esymbol(iid1,iid2,24,1)
           write(temp6,'(A)')'Origin'
           iid1=ixo+5; iid2=iyo-5;
-          CALL wstxpt(iid1,iid2,temp6)
+          call textatxy(iid1,iid2,temp6,'z',iicol)
           call winscl('-',iicol)
         endif
       endif
@@ -3633,7 +3655,8 @@ C in a floor plan extrusion.
               if(j.gt.0.and.j.le.9)write(temp3,'(i1)') j
               if(j.gt.9.and.j.le.99)write(temp3,'(i2)') j
               if(j.gt.99)write(temp3,'(i3)') j
-              call textatxy(ipxx(j)+4,ipyy(j)-1,temp3,'z',3)
+              iid1=ipxx(j)+4; iid2=ipyy(j)-1; iid3=3
+              call textatxy(iid1,iid2,temp3,'z',iid3)
               iicol=0
               call winscl('-',iicol)
             endif
@@ -3647,7 +3670,8 @@ C in a floor plan extrusion.
               if(j.gt.0.and.j.le.9)write(temp3,'(i1)') j
               if(j.gt.9.and.j.le.99)write(temp3,'(i2)') j
               if(j.gt.99)write(temp3,'(i3)') j
-              call textatxy(ipxx(j)+4,ipzz(j)-1,temp3,'z',3)
+              iid1=ipxx(j)+4; iid2=ipzz(j)-1; iid3=3
+              call textatxy(iid1,iid2,temp3,'z',iid3)
               iicol=0
               call winscl('-',iicol)
             endif
@@ -3661,7 +3685,8 @@ C in a floor plan extrusion.
               if(j.gt.0.and.j.le.9)write(temp3,'(i1)') j
               if(j.gt.9.and.j.le.99)write(temp3,'(i2)') j
               if(j.gt.99)write(temp3,'(i3)') j
-              call textatxy(ipyy(j)+4,ipzz(j)-1,temp3,'z',3)
+              iid1=ipyy(j)+4; iid2=ipzz(j)-1; iid3=3
+              call textatxy(iid1,iid2,temp3,'z',iid3)
               iicol=0
               call winscl('-',iicol)
             endif
@@ -3683,7 +3708,8 @@ C or the line of the wall.
             if(j.gt.0.and.j.le.9)write(temp3,'(i1)') j
             if(j.gt.9.and.j.le.99)write(temp3,'(i2)') j
             if(j.gt.99)write(temp3,'(i3)') j
-            call textatxy(ipxwhis(j)+4,ipywhis(j)-1,temp3,'z',2)
+            iid1=ipxwhis(j)+4; iid2=ipywhis(j)-1; iid3=2
+            call textatxy(iid1,iid2,temp3,'z',iid3)
             if(j.gt.1)then
               iicol=2
               call winscl('z',iicol)
@@ -3723,7 +3749,8 @@ C     &  nbofdoorpts,nbofwindowpts,nboffurnpts
             if(j.gt.0.and.j.le.9)write(temp3,'(i1)') j
             if(j.gt.9.and.j.le.99)write(temp3,'(i2)') j
             if(j.gt.99)write(temp3,'(i3)') j
-            call textatxy(ipxbase(j)+4,ipybase(j)-1,temp3,'z',3)
+            iid1=ipxbase(j)+4; iid2=ipybase(j)-1; iid3=3
+            call textatxy(iid1,iid2,temp3,'z',iid3)
             if(j.gt.1)then
               iicol=3
               call winscl('z',iicol)
@@ -3763,7 +3790,8 @@ C If there are door jambs draw them.
               call esymbol(iid1,iid2,24,1)
               if(j.gt.0.and.j.le.9)write(temp3,'(a,i1)') 'd',j
               if(j.gt.9.and.j.le.99)write(temp3,'(i2)') 'd',j
-              call textatxy(ipxdoor(j)+4,ipydoor(j)-1,temp3,'z',4)
+              iid1=ipxdoor(j)+4; iid2=ipydoor(j)-1; iid3=4
+              call textatxy(iid1,iid2,temp3,'z',iid3)
               iicol=0
               call winscl('-',iicol)
             endif
@@ -3781,7 +3809,8 @@ C If there are window jambs draw them.
               call esymbol(iid1,iid2,24,1)
               if(j.gt.0.and.j.le.9)write(temp3,'(a,i1)') 'w',j
               if(j.gt.9.and.j.le.99)write(temp3,'(a,i2)') 'w',j
-              call textatxy(ipxwin(j)+4,ipywin(j)-1,temp3,'z',5)
+              iid1=ipxwin(j)+4; iid2=ipywin(j)-1; iid3=5
+              call textatxy(iid1,iid2,temp3,'z',iid3)
               iicol=0
               call winscl('-',iicol)
             endif
@@ -3799,7 +3828,8 @@ C If furniture origins.
               call esymbol(iid1,iid2,24,1)
               if(j.gt.0.and.j.le.9)write(temp3,'(a,i1)') 'f',j
               if(j.gt.9.and.j.le.99)write(temp3,'(a,i2)') 'f',j
-              call textatxy(ifurx(j)+4,ifury(j)-1,temp3,'z',6)
+              iid1=ifurx(j)+4; iid2=ifury(j)-1; iid3=6
+              call textatxy(iid1,iid2,temp3,'z',iid3)
               iicol=0
               call winscl('-',iicol)
             endif
@@ -4552,7 +4582,8 @@ C Remember the block origin.
       call esymbol(iid1,iid2,24,1)
       write(temp6,'(A)')'Org'
       iid1=ixx1+5; iid2=iyy1-5;
-      CALL wstxpt(iid1,iid2,temp6)
+      call textatxy(iid1,iid2,temp6,'z',iicol)
+C      CALL wstxpt(iid1,iid2,temp6)
 
 C Remember the point at the end of the front edge.
       INVERT=INVERT+1
@@ -4928,7 +4959,8 @@ C Remember the furniture origin so it can be drawn on refreshes.
       call esymbol(iid1,iid2,24,1)
       write(temp6,'(A)')'FOrg'
       iid1=ixx1+5; iid2=iyy1-5;
-      CALL wstxpt(iid1,iid2,temp6)
+      call textatxy(iid1,iid2,temp6,'z',iicol)
+C      CALL wstxpt(iid1,iid2,temp6)
 
       if(nboffurnpts+1.gt.40)then
         call usrmsg('At limit of funiture origins.',

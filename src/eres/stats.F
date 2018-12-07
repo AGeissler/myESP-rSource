@@ -41,6 +41,8 @@ C results. Available at present:
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/OUTPCH/ICOUT
       COMMON/DEFLT/IDEFLT
 
@@ -174,7 +176,7 @@ C Summary statistics.
 
       elseif(INO.EQ.6) then
 
-C Frequency histogram tableau.
+C Frequency histogram table.
         ivvv=0
         CALL MODGRF('t',ivvv)
 
@@ -205,8 +207,8 @@ C data for all the zones chosen.
           IGETNO(I,3)=0
           IGETNO(I,4)=0
           IGETNO(I,5)=ISIM
-          SLABEL(I)='Resultant temperature (degC)'
-          LNSLABEL(I)=28
+          SLABEL(I)='Resultant temperature (C)'
+          LNSLABEL(I)=25
  11     continue
         CALL MOSMSDCEN('s')
 
@@ -496,7 +498,7 @@ C For each selected zone and surface condensation report.
 
 C Interstitial condensation.
         if(ISAVE.eq.3)then
-          CALL ASKZON(ICOMP)
+          CALL ASKZON(ICOMP,23)
           CALL FINDCND(ICOMP)
         else
           call usrmsg(' The simulation save option does not allow',
@@ -775,6 +777,8 @@ C act='p' iget parameters already set.
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
@@ -996,9 +1000,21 @@ C Set IPV data and return.
 C -- Now display the recovered data. --
 C At each step here need to check if default space delimiter has been 
 C changed.
+
       CALL HDDATE(PDESCR)
       CALL HDSTEP(SDESCR)
       lsn1=MIN0(lnblnk(RFILE),42)
+
+C Switch to fixed font for text feedback (applicable for graphic mode).
+      lastmenufont=IMFS
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
+      if(ITFS.eq.4) ITFS=0
+      if(ITFS.eq.5) ITFS=1
+      if(ITFS.eq.6) ITFS=2
+      if(ITFS.eq.7) ITFS=3
+      call userfonts(IFS,ITFS,IMFS)
+      call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       
 C Write tag line if tagged output requested otherwise write a line
 C separator between reports.
@@ -1599,6 +1615,12 @@ C Display 'all zones' text.
 C        call eddisp(itru,outs)
       endif
 
+C Reset text feedback font.
+      IMFS=lastmenufont
+      ITFS=lasttextfont    ! reset to proportional font in text feedback
+      IFS=lastbuttonfont
+      call userfonts(IFS,ITFS,IMFS)
+
 C End tag for tagged data
       if (delim.eq.'X') then
         write(outs,'(a)')'*end_stats'
@@ -1834,6 +1856,8 @@ C act='p' iget parameters already set.
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
@@ -1916,7 +1940,9 @@ C Call the menu of choices (this also sets some default options).
         else
           itru = icout
         endif
-        if (MENUTYPE.eq.-1) return
+        if (MENUTYPE.eq.-1)then
+          return
+        endif
       endif
 
 C Ask for set point value.
@@ -1944,6 +1970,17 @@ C starting Y are zone based.
       nbdecimal=3  ! default assumption
       
       call usrmsg(prompt,'Scanning for range of values...','-')
+
+C Switch to fixed font for text feedback.
+      lastmenufont=IMFS
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
+      if(ITFS.eq.4) ITFS=0
+      if(ITFS.eq.5) ITFS=1
+      if(ITFS.eq.6) ITFS=2
+      if(ITFS.eq.7) ITFS=3
+      call userfonts(IFS,ITFS,IMFS)
+
 
 C TSTART and TFINISH - start and finish times in hours from 0000 on the 
 C first day of output.
@@ -2534,6 +2571,12 @@ C metrics. If there is filtering, take total period as the time occupied.
         endif
       endif
 
+C Switch the text display back to proportional font.
+      IMFS=lastmenufont
+      ITFS=lasttextfont    ! reset to proportional font in text feedback
+      IFS=lastbuttonfont
+      call userfonts(IFS,ITFS,IMFS)
+
 C Allow other/ re- display?
       if(act(1:1).eq.'p')then
         return
@@ -2560,6 +2603,8 @@ C Also called by recovert if act = 'p' << needs checking >>
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
@@ -2650,6 +2695,16 @@ C Call the menu of choices (this also sets some default options).
         endif
       endif
       write(prompte,'(2a)') prompt(1:lnblnk(prompt)),'done.'
+
+C Switch to fixed font for text feedback.
+      lastmenufont=IMFS
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
+      if(ITFS.eq.4) ITFS=0
+      if(ITFS.eq.5) ITFS=1
+      if(ITFS.eq.6) ITFS=2
+      if(ITFS.eq.7) ITFS=3
+      call userfonts(IFS,ITFS,IMFS)
 
 C Energy requirements.
       ISET=ISIM
@@ -2900,6 +2955,11 @@ C Clear the day array.
       call usrmsg(prompte,'  ','P')
       if(MMOD.eq.8)call usrmsg('  ','  ','-')
 
+      IMFS=lastmenufont
+      ITFS=lasttextfont    ! reset to proportional font in text feedback
+      IFS=lastbuttonfont
+      call userfonts(IFS,ITFS,IMFS)
+
       return
       end
 
@@ -2923,6 +2983,8 @@ C << file does not need to be scanned to get the surface emissivity.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTPCH/ICOUT
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/FILEP/IFIL
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
@@ -2992,6 +3054,16 @@ C Call the menu of choices (this also sets some default options).
         if (MENUTYPE.eq.-1) return
       endif
 
+C Switch to fixed font for text feedback.
+      lastmenufont=IMFS
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
+      if(ITFS.eq.4) ITFS=0
+      if(ITFS.eq.5) ITFS=1
+      if(ITFS.eq.6) ITFS=2
+      if(ITFS.eq.7) ITFS=3
+      call userfonts(IFS,ITFS,IMFS)
+ 
 C Energy requirements.
       call usrmsg(prompt,'Scanning for range of values...','-')
       ISET=ISIM
@@ -3335,6 +3407,11 @@ C Print the data and labels for uncontrolled casual gains.
       call edisp(itru,
      &' (@opq & @trn = associated with opaque or transparent surfaces)')
       call usrmsg(prompt,'Scanning for range of values...done.','P')
+
+      IMFS=lastmenufont
+      ITFS=lasttextfont    ! reset to proportional font in text feedback
+      IFS=lastbuttonfont
+      call userfonts(IFS,ITFS,IMFS)
 
       RETURN
       END

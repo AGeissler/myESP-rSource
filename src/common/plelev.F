@@ -60,11 +60,13 @@ C geometry.h provides commons G0/G1/G2/precz/GS5/GS6.
       integer iupdown,isym,iix,iiy,iid1,iid2    ! passed to etplot
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer iicol
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iupdown,isym,iix,iiy,iid1,iid2    ! passed to etplot
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 iicol
 #endif
 
       IER=0
@@ -165,15 +167,16 @@ C Check for a zone obstructions file.
           isym=0
           call etplot(ZCOG(newfoc,2),ZCOG(newfoc,3),iupdown,isym)
         endif
+        iicol=0
         IF(lnzname(newfoc).GT.1)THEN
           write(tz,'(A)')zname(newfoc)
           call winfnt(ITFS)
           iid1=iix+2; iid2=iiy-2;
-          call wstxpt(iid1,iid2,tz)
+          call textatxy(iid1,iid2,tz,'-',iicol)
         ELSE
           call winfnt(ITFS)
           iid1=iix+2; iid2=iiy-2;
-          call wstxpt(iid1,iid2,'Target')
+          call textatxy(iid1,iid2,'Target','-',iicol)
         endif
 
         DO 400 I=1,NSUR
@@ -235,8 +238,8 @@ C common block via CNVBLK.
           if(direc.eq.'E')call u2pixel(YB(J),ZB(J),iix,iiy)
           WRITE(blabel,423)IB
   423     FORMAT('B',I2)
-          iid1=iix+4; iid2=iiy-4;
-          call wstxpt(iid1,iid2,blabel)
+          iid1=iix+4; iid2=iiy-4; iicol=0
+          call textatxy(iid1,iid2,blabel,'-',iicol)
   420   CONTINUE
   54  continue
       call forceflush()
@@ -274,8 +277,8 @@ C Print labels and return to default font.
      &    modeltitle(1:lnblnk(modeltitle))
       endif
       iiy= igt-10
-      iix = igl
-      call wstxpt(iix,iiy,sstr)
+      iix = igl; iicol=0
+      call textatxy(iix,iiy,sstr,'-',iicol)
       call forceflush()
 
 C If izgfoc is not zero and nzg is one and there is an obstructions

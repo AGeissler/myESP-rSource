@@ -68,6 +68,8 @@ C Passed parameters
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
       common/SFIG/NSIGFIG
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -114,7 +116,7 @@ C Hc coefficients
 
       DIMENSION IVALS(MS),ITEMS(31),ITEMSS(MS),IVALSS(MS),jvn1(MV)
       DIMENSION SALT(10),trnalt(21),IVLST(MTV)
-      CHARACTER HEAD*32,SALT*33,hold*36
+      CHARACTER HEAD*32,SALT*32,hold*36
       CHARACTER DESCRC*25
       CHARACTER D14*14,T14*14,D12*12,T12*12,LTMP*72,GFILE*72
       CHARACTER ITEMS*33,ITEMSS*32,trnalt*33,outs*124
@@ -524,6 +526,15 @@ C Read current zone back in and then update the configuration file.
  40     continue
       endif
 
+C Returning to this menu re-establish proportional font.
+      if(IMFS.ge.0.and.IMFS.le.3)then
+        if(IMFS.eq.0) IMFS=4
+        if(IMFS.eq.1) IMFS=5
+        if(IMFS.eq.2) IMFS=6
+        if(IMFS.eq.3) IMFS=7
+        call userfonts(IFS,ITFS,IMFS)
+      endif
+
       WRITE(ITEMS(1),'(A,A12)')  'a name: ',zname(ICOMP)
       WRITE(ITEMS(2),'(A,A24)')  'b desc: ',zdesc(ICOMP)(1:24)
       ITEMC=2
@@ -687,9 +698,6 @@ C the flow network.
             endif
             CALL EFOPSEQ(IUM,LAPROB,3,IER)
             if(IER.eq.0)then
-
-C << Need a way to update graphic network flow file to reflect
-C << changes in zone volume.
               if(IAIRN.eq.1)then
                 haveglobal=.FALSE.
               elseif(IAIRN.eq.2.or.IAIRN.eq.3)then
@@ -885,8 +893,6 @@ C any flow network node associated with this zone.
               endif
               CALL EFOPSEQ(IUM,LAPROB,3,IER)
               if(IER.eq.0)then
-
-C << Need a way to update graphic network flow file to reflect changes in zone volume.
                 if(IAIRN.eq.1)then
                   haveglobal=.FALSE.
                 elseif(IAIRN.eq.2.or.IAIRN.eq.3)then
@@ -1428,6 +1434,15 @@ C editing facility.
         endif
         call tstamp('>','PRJ: enter zone obstructions')
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+
+C Re-establish proportional font in case it was reset elsewhere.
+        if(IMFS.ge.0.and.IMFS.le.3)then
+          if(IMFS.eq.0) IMFS=4
+          if(IMFS.eq.1) IMFS=5
+          if(IMFS.eq.2) IMFS=6
+          if(IMFS.eq.3) IMFS=7
+          call userfonts(IFS,ITFS,IMFS)
+        endif
         if(iglib.eq.2)then
           call easkab(' ','Shading obstruction definition via:',
      &      'dimensional input','bitmap',IW,nbhelp)
@@ -1763,7 +1778,7 @@ C present the user with list of vertices to select from in the
 C other zone.
             CALL EASKGEOF(
      &        'Select other zone for location to transform to:',
-     &        CFGOK,IZ,'-',IER)
+     &        CFGOK,IZ,'-',34,IER)
             if(iz.eq.icomp)goto 3
             if(iz.eq.0) goto 3
             call edisp(iuout,
@@ -2389,6 +2404,16 @@ C Fill with high hc for inside face.
 
 C Surface summary: print header, followed by surface information.
 C And also report other zone summary fields as in the QA report.
+C Switch to fixed width font for the report.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(ITFS.eq.4) ITFS=0
+        if(ITFS.eq.5) ITFS=1
+        if(ITFS.eq.6) ITFS=2
+        if(ITFS.eq.7) ITFS=3
+        call userfonts(IFS,ITFS,IMFS)
+
         helptopic='geometry_main_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
         exposed = 0.0; vexposed = 0.0
@@ -2656,6 +2681,12 @@ C Check if user wishes to see construction details as well.
             endif
           endif
         endif
+        call pauses(1)
+        IMFS=lastmenufont    ! reset to proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+        call usrmsg(' ',' ','-') ! clear dialog box
 
       ELSEIF(INO.EQ.ITEMC+20)THEN
 
@@ -3346,6 +3377,8 @@ C Pased parameters
       integer ier     ! for error state
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
 
@@ -3356,8 +3389,6 @@ C Pased parameters
       COMMON/C24/IZSTOCN(MCOM,MS)
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
-      integer ifs,itfs,imfs
-      COMMON/GFONT/IFS,ITFS,IMFS
 
       common/user/browse
       COMMON/GR3D07/Y0S(MS),Y0SS(MSSZ),Y0SE(MSEZ)
@@ -3409,6 +3440,7 @@ C Strings for surface attributes to pass to insrec.
       logical closeenough,closecog1m
       integer lnsa,lnsb    ! lengths for surface names
       integer ii,iloop         ! for loop
+      integer izsize,issize
       character message*48,t248*496,stemp*13
 
 C For help messages
@@ -3420,9 +3452,9 @@ C For help messages
       real vdist         ! distance between cog of two surfaces
 
 #ifdef OSI
-      integer iix,iiy,iicol,iixc,iiyc,iid1,iid2,iid3,iid4
+      integer iix,iiy,iicol,iixc,iiyc,iid1,iid2,iid3,iid4,ibsize
 #else
-      integer*8 iix,iiy,iicol,iixc,iiyc,iid1,iid2,iid3,iid4
+      integer*8 iix,iiy,iicol,iixc,iiyc,iid1,iid2,iid3,iid4,ibsize
 #endif
 
       helpinsub='EDSURA'  ! set for subroutine
@@ -3430,7 +3462,7 @@ C For help messages
       if(nifgrey.gt.4)then
         greyok=.true.
       endif
-      NAMEFT=IFS-1
+      issize=4; izsize=5  ! for surfaces and zone name
 
 C Display a selection of surfaces available in the zone. If surface
 C faces another zone, get the other surface connection index.
@@ -3690,7 +3722,7 @@ C If in graphic mode draw the points on top of standard drawing.
           endif
         enddo  ! of while loop
 
-C Highlight the arrow of the focus surface.
+C Highlight the arrow of the focus surface. Set size of text.
         write(stemp,'(A)')SNAME(ICOMP,IS)
         if(itsnr.eq.0)then
           CG(1)=SSURCOG(ic,1); CG(2)=SSURCOG(ic,2)
@@ -3700,7 +3732,7 @@ C Highlight the arrow of the focus surface.
           CALL VECTRN(VN,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iixc,iiyc)
-          IF(IFS.GT.0)CALL winfnt(NAMEFT)
+          CALL winfnt(issize)
           iicol=0
           if(greyok)call winscl('z',iicol)
           call arrow(CG,VN,0.3,0.1,ipoints,'a',2)
@@ -3715,17 +3747,18 @@ C Offset the surface name depending on orientation.
           ELSE
             iixc=iixc+5
           ENDIF
-          CALL wstxpt(iixc,iiyc,stemp)
-          IF(IFS.GT.0)CALL winfnt(IFS)
+          call textatxy(iixc,iiyc,stemp,'-',iicol)
           iicol=0
           if(greyok)call winscl('-',iicol)
           call forceflush()
+          CALL winfnt(IMFS)  ! set back to menu font
         else
           CG(1)=SSURCOG(ic,1); CG(2)=SSURCOG(ic,2)
           CG(3)=SSURCOG(ic,3)
           CALL VECTRN(CG,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iixc,iiyc)
+          CALL winfnt(issize)
           iicol=0
           if(greyok)call winscl('z',iicol)
           IF(SSVFC(ic).EQ.'VERT')THEN
@@ -3764,12 +3797,12 @@ C Draw arrow to surface then down and horizontal to the text.
             iiyc=iiyc+5; iixc=iixc+7
           ENDIF
           iid4=iiyc+3
-          CALL wstxpt(iixc,iid4,stemp)
-          IF(IFS.GT.0)CALL winfnt(IFS)
+          call textatxy(iixc,iid4,stemp,'z',iicol)
           iicol=0
           if(greyok)call winscl('-',iicol)
           call draw_surf_flow_symbol(ic,'v')
           call forceflush()
+          CALL winfnt(IMFS)
         endif
       endif
 
@@ -4372,7 +4405,7 @@ C User did not select surface so continue without changing.
 
 C Ask for specific zone to find a matching partition in.
           CALL EASKGEOF('If other zone known select it, else exit.',
-     &      CFGOK,IZ,'-',IER)
+     &      CFGOK,IZ,'-',34,IER)
           if(IZ.GT.0)then
 
 C General image option flags.
@@ -6107,6 +6140,8 @@ C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       LOGICAL MODGEO,ok,dok,match,matchver
 
 C Tollerance for surface matching.
@@ -7626,9 +7661,9 @@ C Strings for surface attributes to pass to insrec.
       integer icount,iecount,ibaseedge,ibasecount ! for looping
       
 #ifdef OSI
-      integer iix,iiy,iicol,iixc,iiyc,iid1,iid2,iid3,iid4
+      integer iix,iiy,iicol,iixc,iiyc,iid1,iid2,iid3,iid4,ibsize
 #else
-      integer*8 iix,iiy,iicol,iixc,iiyc,iid1,iid2,iid3,iid4
+      integer*8 iix,iiy,iicol,iixc,iiyc,iid1,iid2,iid3,iid4,ibsize
 #endif
 
 C For help messages
@@ -7643,7 +7678,22 @@ C Check if we have colour.
       if(nifgrey.gt.4)then
         greyok=.true.
       endif
-      NAMEFT=IFS-1
+      issize=4; izsize=5  ! for surfaces and zone name
+
+C Switch to fixed width font for menu. Base size on current
+C IMFS or ITFS sizes and remember so can restore.
+      lastmenufont=IMFS
+      if(IMFS.eq.4) IMFS=0
+      if(IMFS.eq.5) IMFS=1
+      if(IMFS.eq.6) IMFS=2
+      if(IMFS.eq.7) IMFS=3
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
+      if(ITFS.eq.4) ITFS=0
+      if(ITFS.eq.5) ITFS=1
+      if(ITFS.eq.6) ITFS=2
+      if(ITFS.eq.7) ITFS=3
+      call userfonts(IFS,ITFS,IMFS)
 
 C Initialise zone surface-vertex list menu size variables based on
 C window size. IVERT is the menu position, MVERT the current
@@ -7743,6 +7793,10 @@ C Within the header so skip request.
         IVERT=-1
         goto 3
       ELSEIF(IVERT.EQ.MVERT)THEN
+        IMFS=lastmenufont    ! reset to proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
@@ -8706,7 +8760,7 @@ C Highlight the arrow of the focus surface.
             CALL VECTRN(VN,TEMAT,COG2,IER)
             CALL VECTRN(COG2,ETSMAT,COG3,IER)
             call u2pixel(COG3(1),COG3(2),iixc,iiyc)
-            IF(IFS.GT.0)CALL winfnt(NAMEFT)
+            CALL winfnt(issize)
             iicol=0
             if(greyok)call winscl('z',iicol)
             call arrow(CG,VN,0.3,0.1,ipoints,'a',2)
@@ -8722,17 +8776,18 @@ C Offset the surface name depending on orientation.
               iixc=iixc+5
             ENDIF
 
-            CALL wstxpt(iixc,iiyc,stemp)
-            IF(IFS.GT.0)CALL winfnt(IFS)
+            call textatxy(iixc,iiyc,stemp,'z',iicol)
             iicol=0
             if(greyok)call winscl('-',iicol)
             call forceflush()
+            CALL winfnt(IMFS)
           else
             CG(1)=SSURCOG(ic,1); CG(2)=SSURCOG(ic,2)
             CG(3)=SSURCOG(ic,3)
             CALL VECTRN(CG,TEMAT,COG2,IER)
             CALL VECTRN(COG2,ETSMAT,COG3,IER)
             call u2pixel(COG3(1),COG3(2),iixc,iiyc)
+            CALL winfnt(issize)
             iicol=0
             if(greyok)call winscl('z',iicol)
             IF(SSVFC(ic).EQ.'VERT')THEN
@@ -8772,11 +8827,11 @@ C Draw arrow to surface then down and horizontal to the text.
             ENDIF
 
             iid4=iiyc+3
-            CALL wstxpt(iixc,iid4,stemp)
-            IF(IFS.GT.0)CALL winfnt(IFS)
+            call textatxy(iixc,iid4,stemp,'z',iicol)
             iicol=0
             if(greyok)call winscl('-',iicol)
             call forceflush()
+            CALL winfnt(IMFS)
           endif
         endif
 
@@ -8910,6 +8965,8 @@ C Parameters passed.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       DIMENSION  item(36)
       real COG1,COG2,COG3  ! position to check against
@@ -8932,6 +8989,16 @@ C Also clear tagged items list (IVLST).
       if(nifgrey.gt.4)then
         greyok=.true.
       endif
+
+C Switch to fixed width font for menu. Base size on current
+C IMFS or ITFS sizes and remember so can restore.
+      lastmenufont=IMFS
+      if(IMFS.eq.4) IMFS=0
+      if(IMFS.eq.5) IMFS=1
+      if(IMFS.eq.6) IMFS=2
+      if(IMFS.eq.7) IMFS=3
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
       IER=0
       MHEAD=1
       MCTL=4
@@ -8999,6 +9066,10 @@ C Within the header so skip request.
       ELSEIF(IVERT.EQ.MVERT)THEN
 
 C Return with updated IVLST().
+        IMFS=lastmenufont    ! reset to proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 

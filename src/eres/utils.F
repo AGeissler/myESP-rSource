@@ -23,6 +23,7 @@ C SUM1V:  Generic sums and gains/losses for timestep arrays (AIN(MTS)).
 C CMXMN:  Returns maximum and minimum and their timesteps from AIN(MTS).
 C SUMSTA: Generic sums and gains/losses for timestep array D based
 C         on status of timestep array STAT.
+C SUMUSR: Maps between user data and returns a REGS array.
 C CHKTIME returns the first and last report iterations for a given day.
 C INTRPL: Linear interpolation to return a point T3,V3 on line T1,V1 & T2,V2.
 C HALFST: Finds halfstep intervals for interpolation of timestep data,
@@ -33,7 +34,12 @@ C HDSTEP: Creates a descriptive string for timestep information.
 C STIME:  Takes an integer timestep and returns a string DESCR '12h28'
 C SJTIME:  Takes an integer timestep and returns a string DESCR '12:28:30'
 C DATIME: Takes an integer timestep and returns a decimal hour of day e.g. 9.75
-C DASYSTIME takes an integer plant timestep and returns a decimal hour of day.
+C STIMENA: takes an integer timestep and returns string the form '12h28'.
+C SJTIMENA: takes an integer timestep and returns string in the form '12:28:30'
+C DATIMENA: takes an integer timestep and returns a decimal hour of day.
+C DASYSTIME: takes an integer plant timestep and returns a decimal hour of day.
+C ZNLIST: takes current selected zones and builds a descriptive for headers. 
+C COLZNLIST takes current selected zones and draws text in colour.
 C XTVAL1: Copies timestep array ARRAY(MTS) into Common VAL1(IPICK,MTS).
 C XTVAL2: Copies timestep array ARRAY(MTS) into Common VAL2(IPICK,MTS).
 C XTVAL3: Copies timestep array ARRAY(MTS) into Common VAL3(IPICK,MTS).
@@ -47,7 +53,10 @@ C PIKMRTS: Pick one or many MRT sensors from zone/ sensor list.
 C ASKICN: Standard call to enquire which node in a surface.
 C ASKRTIM: Enquire month and day and time for snapshot analysis.
 C VALIAV: Standard call to compute averages in VAL1().
+C ASKPER: Provides interface to specification of a period of days. 
 C CTLEXP: Control feedback to export file or text feedback area.
+C axisnorm: supports frequency binning tasks.
+
 
 C ******************** SUM1V 
 C SUM1V is a generic routine to take an array AIN(MTS) and returns
@@ -726,12 +735,13 @@ C zone names on one or two lines, otherwise use numbers.
       character word*24
       logical unixok
 
-      integer NZL
+      integer NZL,ipixright,ipixright2nd  ! pixel width of name & position at right
+      integer length,isecond,i,lna
       
 #ifdef OSI
-      integer iix,iiy,iicol,iiline,iicx,iisize
+      integer iix,iiy,iicol,iiline,iicx,ipixw,iisize,ibsize
 #else
-      integer*8 iix,iiy,iicol,iiline,iicx,iisize
+      integer*8 iix,iiy,iicol,iiline,iicx,ipixw,iisize,ibsize
 #endif
 
 C Figure out how much text there is to write out. isecond is the last
@@ -747,13 +757,15 @@ C zone index that fit within 72 characters.
       if(length.lt.106)then
 
 C Full name of zone can be written. Find position of "Zones"
-C Set ix to last character position before looping through zones.
-        word='Zones:'
-        iiline=line; iicx=2; iisize=isize
+C Set icx to last character position before looping through zones.
+        word='Zones: '
+        iiline=line; iicx=1; iisize=isize
         call findviewtext(iicx,iiline,iisize,iix,iiy)
-        iicol=0
-        call winscl('-',iicol)
-        call wstxpt(iix,iiy,word)
+        iicol=0; ibsize=0
+        call textsizeatxy(iix,iiy,word,ibsize,'-',iicol)
+        call forceflush()
+        call textpixwidth(word,ipixw)  ! get its width
+        ipixright=iix+ipixw+3   ! pixel where next word should start
         icx=9
         do 43 i=1,NZ
 
@@ -761,9 +773,13 @@ C Find x and y pixels for the current line and character postion.
 C Then get index of colour for this zone, then plot text in that colour.
           iiline=line; iicx=icx; iisize=isize
           call findviewtext(iicx,iiline,iisize,iix,iiy)
+          if(iix.lt.ipixright) iix=ipixright
           lna=lnzname(NZNO(i))
           write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
-          call textatxy(iix,iiy,word,'z',NZNO(i))
+          call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+          call forceflush()
+          call textpixwidth(word,ipixw)  ! get its width
+          ipixright=iix+ipixw+3   ! pixel where next word should start
           icx=icx+lna+1
   43    continue
         iicol=0
@@ -774,12 +790,15 @@ C Then get index of colour for this zone, then plot text in that colour.
 
 C Try writing full name of zone on two lines. Find position of "Zones"
 C Set ix to last character position before looping through zones.
-        word='Zones:'
-        iiline=line; iicx=2; iisize=isize
+        word='Zones: '
+        iiline=line; iicx=1; iisize=isize
         call findviewtext(iicx,iiline,iisize,iix,iiy)
-        iicol=0
-        call winscl('-',iicol)
-        call wstxpt(iix,iiy,word)
+        if(iix.lt.ipixright) iix=ipixright
+        ipixright2nd=ipixright  ! for use in 2nd line
+        iicol=0; ibsize=0
+        call textsizeatxy(iix,iiy,word,ibsize,'-',iicol)
+        call textpixwidth(word,ipixw)  ! get its width
+        ipixright=iix+ipixw+3   ! pixel where next word should start
         icx=9
         iloop=MIN0(isecond,NZ)
         do 143 i=1,iloop
@@ -788,9 +807,12 @@ C Find x and y pixels for the current line and character postion.
 C Then get index of colour for this zone, then plot text in that colour.
           iiline=line; iicx=icx; iisize=isize
           call findviewtext(iicx,iiline,iisize,iix,iiy)
+          if(iix.lt.ipixright) iix=ipixright
           lna=lnzname(NZNO(i))
           write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
-          call textatxy(iix,iiy,word,'z',NZNO(i))
+          call textpixwidth(word,ipixw)  ! get its width
+          ipixright=iix+ipixw+3   ! pixel where next word should start
+          call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
           icx=icx+lna+1
  143    continue
         call forceflush()
@@ -798,16 +820,19 @@ C Then get index of colour for this zone, then plot text in that colour.
 C If there is a second line that can be created do it.
         inextloop=isecond+1
         if(inextloop.le.NZ)then
-          icx=9
+          icx=9; ipixright=ipixright2nd
           do 144 i=inextloop,NZ
 
 C Find x and y pixels for the current line and character postion.
 C Then get index of colour for this zone, then plot text in that colour.
             iiline=line+1; iicx=icx; iisize=isize
             call findviewtext(iicx,iiline,iisize,iix,iiy)
+            if(iix.lt.ipixright) iix=ipixright
             lna=lnzname(NZNO(i))
             write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
-            call textatxy(iix,iiy,word,'z',NZNO(i))
+            call textpixwidth(word,ipixw)  ! get its width
+            ipixright=iix+ipixw+3   ! pixel where next word should start
+            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
             icx=icx+lna+1
  144      continue
         endif
@@ -820,19 +845,24 @@ C Then get index of colour for this zone, then plot text in that colour.
 C There are more than 200 characters so write numbers instead.
 C Normal size res graphics window can hold ~30 on each line.
         if(NZ.ge.1.and.NZ.LE.30)THEN
-          word='Zones:'
-          iiline=line; iicx=2; iisize=isize
+          word='Zones: '
+          iiline=line; iicx=1; iisize=isize
           call findviewtext(iicx,iiline,iisize,iix,iiy)
-          iicol=0
-          call winscl('-',iicol)
-          call wstxpt(iix,iiy,word)
+          call textpixwidth(word,ipixw)  ! get its width
+          ipixright=iix+ipixw+3   ! pixel where next word should start
+          ipixright2nd=ipixright  ! for use in 2nd line
+          iicol=0; ibsize=0
+          call textsizeatxy(iix,iiy,word,ibsize,'-',iicol)
           icx=9
           do i=1,NZ
             iiline=line; iicx=icx; iisize=isize
             call findviewtext(iicx,iiline,iisize,iix,iiy)
+            if(iix.lt.ipixright) iix=ipixright
             lna=3   ! lna=2
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
-            call textatxy(iix,iiy,word,'z',NZNO(i))
+            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+            call textpixwidth(word,ipixw)  ! get its width
+            ipixright=iix+ipixw+3   ! pixel where next word should start
             icx=icx+lna+1
           enddo
           iicol=0
@@ -842,19 +872,24 @@ C Normal size res graphics window can hold ~30 on each line.
         ELSEIF(NZ.GT.30)THEN
 
 C Write out digits on two lines.
-          word='Zones:'
-          iiline=line; iicx=2; iisize=isize
+          word='Zones: '
+          iiline=line; iicx=1; iisize=isize
           call findviewtext(iicx,iiline,iisize,iix,iiy)
-          iicol=0
-          call winscl('-',iicol)
-          call wstxpt(iix,iiy,word)
+          call textpixwidth(word,ipixw)  ! get its width
+          ipixright=iix+ipixw+3   ! pixel where next word should start
+          ipixright2nd=ipixright  ! for use in 2nd line
+          iicol=0; ibsize=0
+          call textsizeatxy(iix,iiy,word,ibsize,'-',iicol)
           icx=9
           do i=1,30
             iiline=line; iicx=icx; iisize=isize
             call findviewtext(iicx,iiline,iisize,iix,iiy)
+            if(iix.lt.ipixright) iix=ipixright
             lna=3  ! lna=2
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
-            call textatxy(iix,iiy,word,'z',NZNO(i))
+            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+            call textpixwidth(word,ipixw)  ! get its width
+            ipixright=iix+ipixw+3   ! pixel where next word should start
             icx=icx+lna+1
           enddo
           iicol=0
@@ -869,7 +904,9 @@ C Write out digits on two lines.
             call findviewtext(iicx,iiline,iisize,iix,iiy)
             lna=3  ! lna=2
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
-            call textatxy(iix,iiy,word,'z',NZNO(i))
+            call textpixwidth(word,ipixw)  ! get its width
+            ipixright=iix+ipixw+3   ! pixel where next word should start
+            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
             icx=icx+lna+1
           enddo
           iicol=0
@@ -1014,10 +1051,16 @@ C Check range.
 
 C ******************** ASKZON ********************
 C ASKZON: call to enquire which zone the user is interested in.
+C IMW is used in ASKZONE (esru_misc.F) for adapting to the
+C calling facilities menu layout.
 
-      SUBROUTINE ASKZON(IZONE)
+      SUBROUTINE ASKZON(IZONE,IMW)
 #include "building.h"
 #include "geometry.h"
+
+C Parameters.
+      integer izone          ! which zone was selected
+      integer IMW            ! menu width
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/ZONPIK/NZ,NZNO(MCOM)
@@ -1025,8 +1068,9 @@ C ASKZON: call to enquire which zone the user is interested in.
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
 
-      DIMENSION IVALS(MCOM),zn(MCON)
-      character zn*12
+      DIMENSION IVALS(MCOM)
+      DIMENSION zn(MCON)
+      character*(IMW) zn
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1044,17 +1088,17 @@ C If only one zone in problem then supply it.
 C Otherwise copy common zname to local string array zn (epicks works better
 C with local string). 
         do 42 i=1,NCOMP
-          zn(i)=zname(i)
+          write(zn(i),'(a)') zname(i)(1:lnblnk(zname(i)))
   42    continue
       endif
 
     7 helptopic='res_zone_pick_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
       INPIC=1
-      CALL EPICKS(INPIC,IVALS,' ',' Which zone : ',
-     &  12,NCOMP,zn,' zone list',IER,nbhelp)
+      CALL EPICKS(INPIC,IVALS,' ',' Which zone:',
+     &  IMW,NCOMP,zn,' zone list',IER,nbhelp)
       if(INPIC.eq.0)then
-        call edisp(iuout,' You must choose one of the zones! ')
+        call edisp(iuout,'You must choose one of the zones!')
         goto 7
       endif
       IZONE=IVALS(1)

@@ -576,10 +576,10 @@ C#include "building.h"
       logical colok
 #ifdef OSI
       integer iupdown,isym,iid1,iid2,ixs,iys,iix,iiy    ! passed to etplot
-      integer iicol
+      integer iicol,ibsize
 #else
       integer*8 iupdown,isym,iid1,iid2,ixs,iys,iix,iiy    ! passed to etplot
-      integer*8 iicol
+      integer*8 iicol,ibsize
 #endif
 
       colok=.false.
@@ -594,8 +594,7 @@ C#include "building.h"
         if(y.lt.ymin)y=ymin
         call usrmsg('Y-value reset within bounds!',' ','-')
       ELSE
-        iupdown=0
-        isym=0
+        iupdown=0; isym=0; ibsize=0
         CALL ETPLOT(X,Y,iupdown,isym)
         IF(ICPLOT.EQ.1) THEN
           IF(IPCOMP.GT.100) THEN
@@ -605,14 +604,14 @@ C#include "building.h"
               icm=IPCOMP-100
               if(ICM.gt.nzonec) ICM=(IPCOMP-100)-nzonec
               iicol=ICM
-              call winscl('z',iicol)
+C              call winscl('z',iicol)
             endif
             iid1=ixs+4; iid2=iys-4;
-            call wstxpt(iid1,iid2,puts)
-            if(colok)then
-              iicol=0
-              call winscl('-',iicol)
-            endif
+            call textsizeatxy(iid1,iid2,puts,ibsize,'z',iicol)
+C            if(colok)then
+C              iicol=0
+C              call winscl('-',iicol)
+C            endif
             call forceflush()
           ELSEIF(IPCOMP.GT.0.AND.IPCOMP.LE.100) THEN 
 
@@ -624,27 +623,27 @@ C Keep track of components plotted
               icm=IPCOMP
               if(ICM.gt.nzonec) ICM=IPCOMP-nzonec
               iicol=ICM
-              call winscl('z',iicol)
+C              call winscl('z',iicol)
             endif
             iid1=ixs+4; iid2=iys-4;
-            call wstxpt(iid1,iid2,puts)
-            if(colok)then
-              iicol=0
-              call winscl('-',iicol)
-            endif
+            call textsizeatxy(iid1,iid2,puts,ibsize,'z',iicol)
+C            if(colok)then
+C              iicol=0
+C              call winscl('-',iicol)
+C            endif
             call forceflush()
           ELSEIF(IPCOMP.EQ.0) THEN
             WRITE(PUTS,'(a)') 'Ext db'
             call u2pixel(x,y,ixs,iys)
             icm=0
-            iid1=ixs+4; iid2=iys-4;
-            call wstxpt(iid1,iid2,puts)
+            iid1=ixs+4; iid2=iys-4; iicol=0
+            call textsizeatxy(iid1,iid2,puts,ibsize,'-',iicol)
           ELSEIF(IPCOMP.LT.0) THEN
             WRITE(PUTS,'(a,i3)') 'Zone',-IPCOMP
             call u2pixel(x,y,ixs,iys)
             icm=0
-            iid1=ixs+4; iid2=iys-4; 
-            call wstxpt(iid1,iid2,puts)
+            iid1=ixs+4; iid2=iys-4; iicol=0
+            call textsizeatxy(iid1,iid2,puts,ibsize,'-',iicol)
           ENDIF
         ENDIF 
         call u2pixel(x,y,iix,iiy)

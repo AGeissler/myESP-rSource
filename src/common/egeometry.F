@@ -6696,7 +6696,8 @@ C If reached this point then STRING was not recognisable as a
 C zone name.  See if UNKNOWN, if so present a list of zones.
       if(STRING(1:7).eq.'UNKNOWN')then
         IC=-1
- 254    CALL EASKGEOF('Select a zone from the list.',CFGOK,IC,'-',IER)
+ 254    CALL EASKGEOF('Select a zone from the list.',CFGOK,IC,'-',
+     &    34,IER)
         IF(IC.EQ.0.OR.IC.EQ.-1)then
           call usrmsg('Please select a zone... ',' ','W')
           goto 254
@@ -6710,7 +6711,7 @@ C See if the string is actually a number.
         read(STRING,*,ERR=20)indext
         if(indext.eq.0)then
           IC=-1
- 255      CALL EASKGEOF('Select a zone from list.',CFGOK,IC,'-',IER)
+ 255      CALL EASKGEOF('Select a zone from list.',CFGOK,IC,'-',34,IER)
           IF(IC.EQ.0.OR.IC.EQ.-1)then
             call usrmsg('Please select a zone... ',' ','W')
             goto 255

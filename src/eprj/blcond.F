@@ -62,11 +62,11 @@ C For help messages
       helpinsub='LKMENU'  ! set for subroutine
 
   10  INO=-3
-      ITEM(1)='a constant                  '
-      ITEM(2)='b function of temperature   '
-      ITEM(3)='c function of moisture      '
-      ITEM(4)='d function of temp. & moist.'
-      ITEM(5)='  ___________________________'
+      ITEM(1)='a constant                   '
+      ITEM(2)='b function of temperature    '
+      ITEM(3)='c function of moisture       '
+      ITEM(4)='d function of temp. & moist. '
+      ITEM(5)='  _________________________  '
       ITEM(6)='<  reset to constant         '
       ITEM(7)='!  list layer dependencies   '
       ITEM(8)='?  help                      '

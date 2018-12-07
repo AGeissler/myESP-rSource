@@ -283,14 +283,14 @@ C Image option flags.
 C Initialise terminal and flags.
       mmod=modl
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-         iappw=550
+         iappw=580
          iappx=75
          iappy=170
       else
          if(iappx.le.0)iappx=75
          if(iappy.le.0)iappy=170
          if(iappw.le.200)then
-            iappwi=int(550*iappw*0.01)
+            iappwi=int(580*iappw*0.01)
             iappw=iappwi
          elseif(iappw.gt.200)then
             continue
@@ -313,10 +313,14 @@ C monitor size.
       endif
       if(mmod.EQ.8)then
 
-C Set initial font sizes (imfs is for graphs, ifs for dialog & text
-C feedback).
-         imfs=1; ifs=1; itfs=1
-         call userfonts(ifs,itfs,imfs)
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=4
+        ITFS=1
+        call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       else
          limtty=16
          limit =16
@@ -327,8 +331,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'ESP-r Shading & Insolation ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       call epages(mmod,iuin,iuout,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to limtty if mmod = 8.
       if(mmod.eq.8)then
@@ -1006,7 +1011,7 @@ C Read geometry file for either calculation purpose.
             goto 201
          endif
          ic=-1
-         call easkgeof('Zone to assess:',cfgok,ic,'-',ier)
+         call easkgeof('Zone to assess:',cfgok,ic,'-',28,ier)
          if(ic.eq.0.or.ic.eq.-1)goto 201
          ier=0
          icomp=ic
@@ -1192,6 +1197,17 @@ C in the zone transitional shading file or from common blocks).
             call edisp(iuout,'Select a zone first!')
             goto 201
          else
+
+C Switch to fixed font for text feedback.
+            lastmenufont=IMFS
+            lastbuttonfont=IFS
+            lasttextfont=ITFS
+            if(ITFS.eq.4) ITFS=0
+            if(ITFS.eq.5) ITFS=1
+            if(ITFS.eq.6) ITFS=2
+            if(ITFS.eq.7) ITFS=3
+            call userfonts(IFS,ITFS,IMFS)
+
             helptopic='synopsis_period_options'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call tstamp('>','Ish: shading synopsis')
@@ -1254,6 +1270,11 @@ C Shading synopsis is based on common block information.
                  endif
               endif
             endif
+           IMFS=lastmenufont
+           ITFS=lasttextfont    ! reset to proportional font in text feedback
+           IFS=lastbuttonfont
+           call userfonts(IFS,ITFS,IMFS)
+           call usrmsg(' ',' ','-')  ! refresh dialog 
          endif
 
 C Plot surface shading patterns using information in zone transitional
@@ -1379,6 +1400,17 @@ C held in the zone shading & insolation db.)
             call edisp(iuout,'Select a zone first!')
             goto 201
          else
+
+C Switch to fixed font for text feedback.
+            lastmenufont=IMFS
+            lastbuttonfont=IFS
+            lasttextfont=ITFS
+            if(ITFS.eq.4) ITFS=0
+            if(ITFS.eq.5) ITFS=1
+            if(ITFS.eq.6) ITFS=2
+            if(ITFS.eq.7) ITFS=3
+            call userfonts(IFS,ITFS,IMFS)
+
             call tstamp('>','Ish: list insolation synopsis')
             if(mons.gt.12) mons=1  ! if mons was clobbered reset
             mon=mons
@@ -1416,6 +1448,11 @@ C as well as surfaces.
                  endif
                endif
             endif
+           IMFS=lastmenufont
+           ITFS=lasttextfont    ! reset to proportional font in text feedback
+           IFS=lastbuttonfont
+           call userfonts(IFS,ITFS,IMFS)
+           call usrmsg(' ',' ','-')  ! refresh dialog 
          endif
 
 C Edit/import (interactive) /export (interactive) /list.

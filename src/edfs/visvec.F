@@ -218,7 +218,7 @@ C Draw scale line. e.g. |--------| = 0.1m/s
       write (scale,'(a,f5.3,a,F5.1,a,F5.1)') 
      &  '= ',sll,'m/s T',tempmin,'-T',tempmax
       iid1=iright+5; iid2=igt-5;
-      call wstxpt(iid1,iid2,scale)
+      call textatxy(iid1,iid2,scale,'-',iicol)
 
 C Draw 10 steps along colour range.
       iid2=igt-10           ! mid of |----|

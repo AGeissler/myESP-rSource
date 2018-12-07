@@ -36,11 +36,7 @@ C  EASKS2CMD Ask user for a string with prompt, 2 alts, error messages & help.
 C  EPICKS:  Allows several selections to be made from an array of strings.
 C  MENUATOL Single item menu pick with items passed via parameters.
 C  ASKOK:   Generic yes/no/default facility returning OK as a logical parameter.
-C  EASKAB:  Generic A/B choice facility returning 1 or 2 according to which
-C           of the choices has been chosen.
-C  EASKABC: Generic A/B/C choice facility returning 1, 2 or 3 according
-C           to which of the choices has been chosen.
-C EASKABCD: Generic A/B/C/D choice facility returning 1-4 according
+C  EASKATOG: Generic A/B/C... choice facility returning 1-7 according
 C           to which of the choices has been chosen.
 
 C  EMPAGE:  Low level screen control for paging based on terminal model.
@@ -95,6 +91,8 @@ C     &             1,'F',MCOM,'W',1,'zone number',IER,2)
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,ERMSG
       CHARACTER MINACT*1,MAXACT*1,A*1,WORD*10,STR1*10,STR2*10
@@ -128,6 +126,14 @@ C Begin with prompts.
       IF(MMOD.EQ.8)THEN
 
 C If in graphic mode use graphic faciltiies to edit the number.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.4) IFS=0
+        if(IFS.eq.5) IFS=1
+        if(IFS.eq.6) IFS=2
+        if(IFS.eq.7) IFS=3
+        call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
         iwidth=10
@@ -151,6 +157,10 @@ C A 'D' or 'd' detected, set to default value.
           call edisp(iuout,DSTR)
           IVAL=IDEFLT
 C          call usrmsg('  ','  ','-')
+          IMFS=lastmenufont    ! reset font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         elseif(idef.eq.2)then
 
@@ -158,6 +168,10 @@ C Cancel button was pressed, reset ival as ivalold and mark as cancel.
           IVAL=ivalold
 C          call usrmsg('User requested a cancel for dialog',PROMP1,'-')
           ier=-3
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         ENDIF
         IF(WORD.EQ.' ')THEN
@@ -167,6 +181,10 @@ C wishes to use prior/existing integer value.
           CALL INTSTR(IVAL,STR2,IW2,IER)
           WRITE(OUTSTR,55,iostat=ios,err=1)STR2(1:IW2)
           CALL USRMSG(' ',OUTSTR,'-')
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         ENDIF
       ELSE
@@ -318,6 +336,8 @@ C    ...
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,ERMSG
       CHARACTER MINACT*1,MAXACT*1,A*1,WORD*16,STR1*16,STR2*16
@@ -363,7 +383,16 @@ C Generate help and default strings.
 C Begin with prompts.
       IF(MMOD.EQ.8)THEN
 
-C If in graphic mode use graphic faciltiies to edit the number.
+C If in graphic mode use graphic faciltiies to edit the number
+C and switch to fixed width font for editing.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.4) IFS=0
+        if(IFS.eq.5) IFS=1
+        if(IFS.eq.6) IFS=2
+        if(IFS.eq.7) IFS=3
+        call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
         iwidth=16
@@ -385,6 +414,10 @@ C A 'D' or 'd' detected, set to default value.
           call edisp(iuout,DSTR)
           RVAL=DEFLT
 C          call usrmsg('  ','  ','-')
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         ENDIF
         IF(WORD.EQ.' ')THEN
@@ -394,6 +427,10 @@ C wishes to use prior/existing real value.
           CALL REL16STR(RVAL,STR2,IW2,IER)
           WRITE(OUTSTR,55,iostat=ios,err=1)STR2(1:IW2)
           CALL USRMSG(' ',OUTSTR,'-')
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         ENDIF
       ELSE
@@ -544,6 +581,8 @@ C by the user.
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,ERMSG
       CHARACTER MINACT*1,MAXACT*1,A*1,WORD*16,STR1*10,STR2*10
@@ -575,8 +614,16 @@ C Generate help and default strings.
 
 C Begin with prompts.
 C If in terminal type 8 (dialogue box) use ww facilities to get the
-C string to convert.
+C string to convert and switch to fixed width font for editing.
       IF(MMOD.EQ.8)THEN
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.4) IFS=0
+        if(IFS.eq.5) IFS=1
+        if(IFS.eq.6) IFS=2
+        if(IFS.eq.7) IFS=3
+        call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
         iwidth=16
@@ -596,6 +643,10 @@ C A 'D' or 'd' detected, set to default value.
           call edisp(iuout,DSTR)
           call edisp(iuout,' ')
           RVAL=DEFLT
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         ENDIF
         IF(WORD.EQ.' ')THEN
@@ -605,6 +656,10 @@ C wishes to use prior/existing real value.
           CALL EXPSTR(RVAL,STR2,IW2,IER)
           WRITE(OUTSTR,55,iostat=ios,err=1)STR2(1:IW2)
           CALL USRMSG(' ',OUTSTR,'-')
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         ENDIF
       ELSE
@@ -740,6 +795,8 @@ C << to the GTK version. It should be extended to support browsing etc.
       SUBROUTINE EASKF(FILEN,PROMP1,PROMP2,ISTRW,DSTR,ERMSG,IER,NHELP)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/OUTIN/IUOUT,IUIN
 
       dimension dh(60)
@@ -770,6 +827,14 @@ C the text window.
 C Note that the string read in is limited to ISTRW characters wide.
 C If in terminal type 8 use dialogue box.
       IF(MMOD.EQ.8)THEN
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.4) IFS=0
+        if(IFS.eq.5) IFS=1
+        if(IFS.eq.6) IFS=2
+        if(IFS.eq.7) IFS=3
+        call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
         CALL openaskbox(PROMP1,PROMP2,ISTRW)
@@ -796,6 +861,10 @@ C leading blanks from string returned.
           IF(OK)THEN
             FILEN=DSTR(1:LN)
             call usrmsg('  ','  ','-')
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             RETURN
           ELSE
             GOTO 20
@@ -812,6 +881,10 @@ C wishes to use prior/existing string.
             else
               write(FILEN,'(a)',iostat=ios,err=3) LASTS(1:144)
             endif
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             RETURN
           ELSE
             CALL USRMSG(' The current file name is blank!',
@@ -952,6 +1025,8 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       SUBROUTINE EASKS(STRVAL,PROMP1,PROMP2,ISTRW,DSTR,ERMSG,IER,NHELP)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/OUTIN/IUOUT,IUIN
 
       dimension dh(60)
@@ -971,10 +1046,18 @@ C Generate custom help text.
       call helpwithblank(ermsg,nhelp,newnbhelp,ier)
 
 C At this point get user input via dialogue box or Fortran read in
-C the text window.
-C Note that the string read in is limited to ISTRW characters wide.
-C If in terminal type 8 use dialogue box.
+C the text window. Note that the string read in is limited to
+C ISTRW characters wide. If in terminal type 8 use dialogue box
+C and switch to fixed width font to support editing.
       IF(MMOD.EQ.8)THEN
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.4) IFS=0
+        if(IFS.eq.5) IFS=1
+        if(IFS.eq.6) IFS=2
+        if(IFS.eq.7) IFS=3
+        call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
         CALL openaskbox(PROMP1,PROMP2,ISTRW)
@@ -1002,6 +1085,10 @@ C passed into the subroutine will fit within a 92 character WORD buffer.
           IF(OK)THEN
             STRVAL=DSTR(1:LN)
             call usrmsg('  ','  ','-')
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             RETURN
           ELSE
             GOTO 20
@@ -1015,6 +1102,10 @@ C wishes to use prior/existing string.
             WRITE(IUOUT,55,iostat=ios,err=1)LASTS(1:last)
             STRVAL=LASTS(1:last)
             call usrmsg('  ','  ','-')
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             RETURN
           ELSE
             CALL USRMSG(' The current string is blank!',
@@ -1026,6 +1117,10 @@ C wishes to use prior/existing string.
 C Must have input a character string.
         STRVAL=WORD(1:ISTRW)
         call usrmsg('  ','  ','-')
+        IMFS=lastmenufont    ! reset to proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSE
 
@@ -1423,6 +1518,8 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
 
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,CMD,ERMSG,STRVAL,DSTR
@@ -1443,6 +1540,14 @@ C the text window.
 C Note that the string read in is limited to ISTRW characters wide.
 C If in terminal type 8 use dialogue box.
       IF(MMOD.EQ.8)THEN
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.4) IFS=0
+        if(IFS.eq.5) IFS=1
+        if(IFS.eq.6) IFS=2
+        if(IFS.eq.7) IFS=3
+        call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
         CALL openaskaltbox(PROMP1,PROMP2,CMD,ISTRW)
@@ -1464,6 +1569,10 @@ C leading blanks from string returned.
           CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
           IF(OK)THEN
             STRVAL=DSTR(1:LN)
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             RETURN
           ELSE
             GOTO 20
@@ -1478,6 +1587,10 @@ C wishes to use prior/existing string.
               WRITE(IUOUT,55)LASTS(1:last)
               STRVAL=LASTS(1:last)
               CMDACT=.TRUE.
+              IMFS=lastmenufont    ! reset to proportional font
+              ITFS=lasttextfont
+              IFS=lastbuttonfont
+              call userfonts(IFS,ITFS,IMFS)
               RETURN
             ENDIF
           ENDIF
@@ -1485,6 +1598,10 @@ C wishes to use prior/existing string.
 C Must have input a character string.
           STRVAL=WORD(1:ISTRW)
           CMDACT=.TRUE.
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         endif
         IF(WORD.EQ.' ')THEN
@@ -1495,6 +1612,10 @@ C wishes to use prior/existing string.
             WRITE(IUOUT,55)LASTS(1:last)
             STRVAL=LASTS(1:last)
             CMDACT=.FALSE.
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             RETURN
           ELSE
             CALL USRMSG('The current string is blank!',
@@ -1506,6 +1627,10 @@ C wishes to use prior/existing string.
 C Must have input a character string.
         STRVAL=WORD(1:ISTRW)
         CMDACT=.FALSE.
+        IMFS=lastmenufont    ! reset to proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSE
 
@@ -1605,6 +1730,8 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
 
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,CNCL,ERMSG,STRVAL,DSTR
@@ -1626,6 +1753,14 @@ C the text window.
 C Note that the string read in is limited to ISTRW characters wide.
 C If in terminal type 8 use dialogue box.
       IF(MMOD.EQ.8)THEN
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.4) IFS=0
+        if(IFS.eq.5) IFS=1
+        if(IFS.eq.6) IFS=2
+        if(IFS.eq.7) IFS=3
+        call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
         CALL openaskcnclbox(PROMP1,PROMP2,CNCL,ISTRW)
@@ -1647,6 +1782,10 @@ C leading blanks from string returned.
           CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
           IF(OK)THEN
             STRVAL=DSTR(1:LN)
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             RETURN
           ELSE
             GOTO 20
@@ -1657,6 +1796,10 @@ C leading blanks from string returned.
           call edisp248(iuout,outstr248,90)
           write(STRVAL,'(a)') LASTS(1:last)
           CNCLACT=.TRUE.
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         endif
         IF(WORD.EQ.' ')THEN
@@ -1667,6 +1810,10 @@ C wishes to use prior/existing string.
             WRITE(IUOUT,55)LASTS(1:last)
             STRVAL=LASTS(1:last)
             CNCLACT=.FALSE.
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             RETURN
           ELSE
             CALL USRMSG(' The current string is blank!',
@@ -1678,6 +1825,10 @@ C wishes to use prior/existing string.
 C Must have input a character string.
         STRVAL=WORD(1:ISTRW)
         CNCLACT=.FALSE.
+        IMFS=lastmenufont    ! reset to proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSE
 
@@ -1776,6 +1927,8 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
 
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,CMD,CMD2,ERMSG,STRVAL,DSTR
@@ -1796,6 +1949,14 @@ C the text window.
 C Note that the string read in is limited to ISTRW characters wide.
 C If in terminal type 8 use dialogue box.
       IF(MMOD.EQ.8)THEN
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.4) IFS=0
+        if(IFS.eq.5) IFS=1
+        if(IFS.eq.6) IFS=2
+        if(IFS.eq.7) IFS=3
+        call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
         CALL openask2altbox(PROMP1,PROMP2,CMD,CMD2,ISTRW)
@@ -1820,6 +1981,10 @@ C leading blanks from string returned.
           CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
           IF(OK)THEN
             STRVAL=DSTR(1:LN)
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             RETURN
           ELSE
             GOTO 20
@@ -1834,6 +1999,10 @@ C wishes to use prior/existing string.
               WRITE(IUOUT,55)LASTS(1:last)
               STRVAL=LASTS(1:last)
               ICACT=1
+              IMFS=lastmenufont    ! reset to proportional font
+              ITFS=lasttextfont
+              IFS=lastbuttonfont
+              call userfonts(IFS,ITFS,IMFS)
               RETURN
             ENDIF
           ENDIF
@@ -1841,6 +2010,10 @@ C wishes to use prior/existing string.
 C Must have input a character string.
           STRVAL=WORD(1:ISTRW)
           ICACT=1
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         endif
         IF(idef.EQ.3)THEN
@@ -1852,6 +2025,10 @@ C wishes to use prior/existing string.
               WRITE(IUOUT,55)LASTS(1:last)
               STRVAL=LASTS(1:last)
               ICACT=2
+              IMFS=lastmenufont    ! reset to proportional font
+              ITFS=lasttextfont
+              IFS=lastbuttonfont
+              call userfonts(IFS,ITFS,IMFS)
               RETURN
             ENDIF
           ENDIF
@@ -1859,6 +2036,10 @@ C wishes to use prior/existing string.
 C Must have input a character string.
           STRVAL=WORD(1:ISTRW)
           ICACT=2
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         endif
         IF(WORD.EQ.' ')THEN
@@ -1869,6 +2050,10 @@ C wishes to use prior/existing string.
             WRITE(IUOUT,55)LASTS(1:last)
             STRVAL=LASTS(1:last)
             ICACT=0
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             RETURN
           ELSE
             CALL USRMSG(' The current string is blank!',
@@ -1880,6 +2065,10 @@ C wishes to use prior/existing string.
 C Must have input a character string.
         STRVAL=WORD(1:ISTRW)
         ICACT=0
+        IMFS=lastmenufont    ! reset to proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSE
 
@@ -2451,10 +2640,13 @@ C If NHELP=-1 there is no default option.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       CHARACTER*(*) MSG1,MSG2
       CHARACTER ANS*2,MSG3*124,outs*124
       logical ok,dok,DEFLT
       integer IWI  ! for radio button
+      integer lastfont,iuse
 
 C Check if a default defined and use local var for NHELP.
       DEFLT=.true.
@@ -2501,6 +2693,13 @@ C Querry yes or no.
         ENDIF
       ELSEIF(MMOD.EQ.8)THEN
 
+C Save off current menu font and if mono-space set to proportional.
+        lastfont=IFS
+        if(IFS.ge.0.and.IFS.le.3)then
+          IUSE=IFS+4
+          call userfonts(IUSE,ITFS,IMFS)
+        endif
+
 C Querry yes or no or default.
         IWI=1
         if (DEFLT) then
@@ -2527,7 +2726,10 @@ C Querry yes or no or default.
           endif
         ENDIF
         call usrmsg('  ','  ','-')
+        IFS=lastfont    ! re-establish font
+        call userfonts(IFS,ITFS,IMFS)
       ENDIF
+     
       RETURN
 
    1  if(IOS.eq.2)then
@@ -2549,7 +2751,7 @@ C looping, creating infinite output. Stop the program.
       END  ! of ASKOK
 
 C ******************** EASKATOG
-C EASKABCD Generic choice of 3 - 7 items returning 1 to 7 according to
+C EASKATOG Generic choice of 3 - 7 items returning 1 to 7 according to
 C which of the choices has been chosen.
 C MSG1 and MSG2 are prompts (upto 124 char) to be printed.
 C AOPT, BOPT & COPT, DOPT, EOPT, FOPT, GOPT are the text strings describing
@@ -2570,7 +2772,10 @@ C Parameters passed.
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       CHARACTER ANS*2,MSG3*248
+      integer lastfont,iuse
 
 C See how many items there are to present.
       nopt=7
@@ -2655,6 +2860,13 @@ C of help supplied and then provide the prompt again.
         ENDIF
       ELSEIF(MMOD.EQ.8)THEN
 
+C Save off current menu font and if mono-space set to proportional.
+        lastfont=IFS
+        if(IFS.ge.0.and.IFS.le.3)then
+          IUSE=IFS+4
+          call userfonts(IUSE,ITFS,IMFS)
+        endif
+
 C Querry which one.
    19   CALL abcdefbox(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT,IW)
         IF(IW.EQ.8)THEN
@@ -2666,6 +2878,9 @@ C of help supplied and then provide the prompt again.
           GOTO 19
         ENDIF
         IWHICH=IW
+     
+        IFS=lastfont    ! re-establish font
+        call userfonts(IFS,ITFS,IMFS)
       ENDIF
       RETURN
 
@@ -2812,11 +3027,15 @@ C iappwi is the requested pixel width, iapphi is the requested pixel height
 C iappx & iappy are the upper-left position on the monitor <not yet implemented >
 C menuchw is the initial request for menu width (in characters)
       SUBROUTINE EPAGES(MODEL,IIN,IOUT,iappwi,iapphi,iappx,iappy,
-     &  menuchw,TITLE)
+     &  menuchw,TITLE,lntitle)
+
+C Parameters
+      integer lntitle
+      character (len=lntitle) :: TITLE
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       common/gfont/ifs,itfs,imfs
-      CHARACTER*(*) TITLE
       CHARACTER HEAD*255
 #ifdef OSI
       integer iimenu,ilf,igfw,igfh,ild,igdw,igdh
@@ -2847,7 +3066,7 @@ c If MMOD set to valid index, assume it, dont ask.
         RETURN
       ELSEIF(MM(1:5).eq.'8    '.OR.MODEL.EQ.8)THEN
         MMOD = 8
-        write (HEAD,'(a)') TITLE
+        write (HEAD,'(a)') TITLE(1:lnblnk(TITLE))
 
 C Pass application size via sizehwxy.
         if(iappwi.ge.100)then
@@ -2855,8 +3074,18 @@ C Pass application size via sizehwxy.
           iwidth=iappwi
           call sizehwxy(ihight,iwidth,iappx,iappy)
         endif
+
+C Setup the X11 structures.
         immod=8
         call jwinint(immod,HEAD)
+
+C Setup the ranges of zone/grey & interface colors here rather
+C than within the main fortran code.
+C        call setzscale()
+C        call setgscale()
+C        call setcscale()
+
+C Set an initial font.
         ifont=1
         call winfnt(ifont)
 
@@ -3056,9 +3285,11 @@ C the C function evwmenu.  Do reverse cast after return from evwmenu.
 #ifdef OSI
       integer iw,irpxe,irpye,inoe,ipflg,iuresp  ! for use with evwmenu
       integer impx,impy
+C     integer ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
 #else
       integer*8 iw,irpxe,irpye,inoe,ipflg,iuresp  ! for use with evwmenu
       integer*8 impx,impy
+C     integer*8 ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
 #endif
 
 C Append a null terminator to the title string if possible.
@@ -3069,6 +3300,14 @@ C Append a null terminator to the title string if possible.
       inoe=ino   ! assign to local passed parameters
       irpxe=irpx
       irpye=irpy
+
+C Optional to check extents of the menu about to be drawn and recover
+C information about the font widths which will be used.  Of interest
+C if the _ character of the font is particularly wide.
+C      call extentsvwmenu(name,iw,ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul)
+C      write(6,'(a,6i5)') name,iw,ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
+      
+C Call to display.
       call evwmenu (name,impx,impy,iw,irpxe,irpye,inoe,ipflg,iuresp)
 #ifdef OSI
       ino=inoe  !  cast back from returned parameter
@@ -3107,9 +3346,11 @@ C the C function evwmenu.  Do reverse cast after return from evwmenu.
 #ifdef OSI
       integer impxe,impye,iwe,irpxe,irpye,inoe,ipflg,iuresp  ! for use with evwmenu
       integer impx,impy,iw
+C     integer iwipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
 #else
       integer*8 impxe,impye,iwe,irpxe,irpye,inoe,ipflg,iuresp  ! for use with evwmenu
       integer*8 impx,impy,iw
+C     integer*8 ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
 #endif
       iwe=iw    ! assign to local passed parameter
       write(itypes,9)
@@ -3120,6 +3361,15 @@ C the C function evwmenu.  Do reverse cast after return from evwmenu.
       impye=impy   
       irpxe=irpx
       irpye=irpy
+
+C Optional to check extents of the menu about to be drawn and recover
+C information about the font widths which will be used.  Of interest
+C if the _ character of the font is particularly wide.
+C      call extentsvwmenu(name,iwe,ipixwthma,ipixwthll,
+C     &  ivfw,ivfwsp,ivfwul)
+C      write(6,*) name,iwe,ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
+
+C Call to display.
       call evwmenu (name,impxe,impye,iwe,irpxe,irpye,inoe,ipflg,iuresp)
 #ifdef OSI
       ino=inoe  !  cast back from returned parameter
@@ -3133,6 +3383,86 @@ C the C function evwmenu.  Do reverse cast after return from evwmenu.
 
 C Debug
 C      write(6,*) 'VWMENU (fortran) ',iw,irpx,irpy,ino,ipflg,iuresp
+      return
+      end ! of VWMENU
+
+C++++++++++ ULMENU +++++++++++++++++++++++++++++++++++++++++++++
+C ULMENU: Returns an underline string for use in menus based on
+C the current font (proportional or mono-spaced.
+      SUBROUTINE ULMENU(name,items,nitms,ulstring)
+      integer MMOD,LIMIT,LIMTTY
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer menuchw,igl,igr,igt,igb,igw,igwh
+      COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      character*(*) name, items(*)
+      character*(*) ulstring
+      character itypes*40
+      integer ipix,numul,loop,lnul
+
+C To conform to Fortran -> C passing conventions on 32bit and 64bit
+C computers cast the parameters passed into ewmenu to local variables
+C of either integer or integer*8 to match the long int variables in
+C the C function evwmenu.  Do reverse cast after return from evwmenu.
+#ifdef OSI
+      integer iw,irpxe,irpye,inoe,ipflg,iuresp  ! for use with evwmenu
+      integer impx,impy,ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
+#else
+      integer*8 iw,irpxe,irpye,inoe,ipflg,iuresp  ! for use with evwmenu
+      integer*8 impx,impy,ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
+#endif
+
+C Deal with pure-text case. Assume two blanks and one blank at far right.
+      if(MMOD.ne.8)then
+        numul=(menuchw-3)
+        numulcount=numul
+        lnul=LEN(ulstring)
+        do loop=1,lnul  ! loop through characters
+          if(loop.eq.1.or.loop.eq.2)then
+            write(ulstring(loop:loop),'(a)') ' '  ! 2 leading blanks
+          else
+            if(numulcount.ge.1)then
+              write(ulstring(loop:loop),'(a)') '_'  ! an underline
+              numulcount=numulcount-1
+            else
+              write(ulstring(loop:loop),'(a)') ' '  ! 2 leading blanks
+            endif
+          endif
+        enddo
+        write(6,*) ulstring
+        return
+      endif
+
+C Append a null terminator to the title string if possible.
+      iw=LEN(items(1))
+      write(itypes,9)
+   9  format(40('-'))
+      call updmenu(items,itypes,nitms,iw)
+
+C Check extents.
+      call extentsvwmenu(name,iw,ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul)
+      write(6,*) name,iw,ipixwthma,ipixwthll,ivfw,ivfwsp,ivfwul
+
+C Instanciate string with two initial spaces and enough _ to stick within
+C the ipixwthll length.
+      ipix=int(ivfwsp)*3  ! width of 3 spaces
+      numul=(ipixwthll-ipix)/int(ivfwul)
+      numulcount=numul
+      lnul=LEN(ulstring)
+      write(6,*) ipix,numul
+      do loop=1,lnul  ! loop through characters
+        if(loop.eq.1.or.loop.eq.2)then
+          write(ulstring(loop:loop),'(a)') ' '  ! 2 leading blanks
+        else
+          if(numulcount.ge.1)then
+            write(ulstring(loop:loop),'(a)') '_'  ! an underline
+            numulcount=numulcount-1
+          else
+            write(ulstring(loop:loop),'(a)') ' '  ! 2 leading blanks
+          endif
+        endif
+      enddo
+      write(6,*) ulstring
+
       return
       end
 
@@ -3180,6 +3510,8 @@ C graphic window. The user must have previously called open_msg_box(2).
 
       SUBROUTINE USRMSG(MSG1,MSG2,LEVEL)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       common/OUTIN/IUOUT,IUIN
       CHARACTER*(*) MSG1,MSG2
       CHARACTER outs*124,LEVEL*1,blnk*2,blnk2*2,cont*8
@@ -3231,6 +3563,17 @@ C Single line prompt.
         endif
         RETURN
       ELSEIF(MMOD.EQ.8)THEN
+
+C If fixed width font switch to proportional.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.0) IFS=4
+        if(IFS.eq.1) IFS=5
+        if(IFS.eq.2) IFS=6
+        if(IFS.eq.3) IFS=7
+        call userfonts(IFS,ITFS,IMFS)
+
         IF(LEVEL.EQ.'-'.OR.LEVEL.EQ.'?')THEN
           CALL msgbox(MSG1,MSG2)
         ELSEIF(LEVEL.EQ.'W'.OR.LEVEL.EQ.'w')THEN
@@ -3255,6 +3598,10 @@ C Place in text window since about to exit from program.
           call pauses(2)
           STOP
         endif
+        IMFS=lastmenufont    ! reset font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ENDIF
 
@@ -3281,6 +3628,8 @@ C graphic window. The user must have previously called open_msg_box(2).
 
       SUBROUTINE LUSRMSG(MSG1,MSG2,LEVEL)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       common/OUTIN/IUOUT,IUIN
       CHARACTER*(*) MSG1,MSG2
       CHARACTER outs*124,LEVEL*1,blnk*2,blnk2*2,cont*8
@@ -3356,6 +3705,17 @@ C Single line prompt.
         endif
         RETURN
       ELSEIF(MMOD.EQ.8)THEN
+
+C If fixed width font switch to proportional.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.0) IFS=4
+        if(IFS.eq.1) IFS=5
+        if(IFS.eq.2) IFS=6
+        if(IFS.eq.3) IFS=7
+        call userfonts(IFS,ITFS,IMFS)
+
         IF(LEVEL.EQ.'-'.OR.LEVEL.EQ.'?')THEN
           CALL msgbox(MSG1,MSG2)
         ELSEIF(LEVEL.EQ.'W'.OR.LEVEL.EQ.'w')THEN
@@ -3380,6 +3740,10 @@ C Place in text window since about to exit from program.
           call pauses(2)
           STOP
         endif
+        IMFS=lastmenufont    ! reset font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ENDIF
 
@@ -4225,6 +4589,8 @@ C then it represents the zone which is currently being edited.
       common/appw/iappw,iappx,iappy
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      integer ifs,itfs,imfs
+      common/GFONT/IFS,ITFS,IMFS
 
 C The RAY2 common block variables from prj3dv.h are:
 C ITDSP toggle: all surf+obs+vis = 0, all surf = 1, ext = 2,
@@ -4255,6 +4621,7 @@ C ITPPSW current view - perspective/plan/south/west
       character doit*248,tmode*8,longtfile*144, hold*24,act*1
       CHARACTER head*19,msg*96,defcog*24,msg2*32
       logical modmlc  ! for selecting MLC
+      integer lastifs,lastitfs,lastimfs
 
       integer IW  ! for radio buttons
       integer MVERT,IVERT  ! max items and current menu item
@@ -4273,6 +4640,15 @@ C If not in graphic mode return.
 C Initial menu entry setup with one line header, 3 control lines.
       do_redraw=.false.
       ITPPSW=0
+
+C Set image control menu font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use smallest proportional for menus
+C and dialog. Because it impacts interpretation of the width of the graphic feedback area
+C comment out this block of code as well as the restoring code near line 4775.
+C      lastimfs=IMFS; IMFS=4
+C      lastifs=IFS; IFS=4
+C      lastitfs=ITFS; ITFS=4
+C      call userfonts(IFS,ITFS,IMFS)
 
 C Menu loop.
    92 IER=0
@@ -4450,6 +4826,12 @@ C width of the control menu.
         endif
       endif
       IF(IVERT.EQ.MVERT)THEN
+C Uncomment if we wanted the viewing popup to a small font and needed
+C to restore standard sizes on exit.
+C        IMFS=lastimfs  ! restore values from entry point
+C        IFS=lastifs
+C        ITFS=lastitfs
+C        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSEIF(IVERT.EQ.1)THEN
         H(1)='The eye point is within the site coordinate system.'

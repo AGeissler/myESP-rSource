@@ -79,14 +79,14 @@ C The period details
       integer igwid,igheight  ! for use with axiscale
       integer ipos,isize      ! for use with etlabel
       integer iupdown,isym    ! passed to etplot
-      integer iid1,iid2
+      integer iid1,iid2,iicol,ibsize
       integer iigl,iigr,iigt,iigb,iigw,iigwh
 #else
       integer*8 igx             ! see above array
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 ipos,isize      ! for use with etlabel
       integer*8 iupdown,isym    ! passed to etplot
-      integer*8 iid1,iid2
+      integer*8 iid1,iid2,iicol,ibsize
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
 #endif
 
@@ -382,7 +382,8 @@ C draw vertical axis.
               CALL VRTAXISDD(GMIN,GMAX,IGX(I),iigb,iigt,YADD(I),
      &          YSC(I),0,ddy1,ny,ILR(I),'  ')
               iid1=IGX(I); iid2=igt-5;
-              CALL WSTXPT(iid1,iid2,NETXLAB(I))
+              iicol=0; ibsize=0
+              call textsizeatxy(iid1,iid2,NETXLAB(I),ibsize,'-',iicol)
             ENDIF           
           ENDIF
 

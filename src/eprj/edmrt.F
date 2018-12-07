@@ -49,6 +49,8 @@ C will have been defined prior to calling edmrt.
       common/appw/iappw,iappx,iappy
       integer iappw,iappx,iappy
       integer iappwpc ! application %
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
 
       DIMENSION VERT(35)
       DIMENSION SNA(MS),PAZI(MS),PELV(MS)
@@ -218,10 +220,10 @@ C and change any / to \.
 
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,4a)') 'mrt -mode ',tmode,
@@ -489,7 +491,15 @@ C List help text for the  menu.
         CALL PHELPD('mrt sensor',nbhelp,'-',0,0,IER)
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
 
-C List viewfactor contents.
+C List viewfactor contents. Switch to fixed font for text feedback.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(ITFS.eq.4) ITFS=0
+        if(ITFS.eq.5) ITFS=1
+        if(ITFS.eq.6) ITFS=2
+        if(ITFS.eq.7) ITFS=3
+        call userfonts(IFS,ITFS,IMFS)
         call edisp(itru,' ')
         WRITE(outs,'(A,I3)')' Number of surfaces = ',NZS
         call edisp(itru,outs)
@@ -504,6 +514,12 @@ C List viewfactor contents.
             call edisp(itru,outs)
   850     CONTINUE
   860   CONTINUE
+        IMFS=lastmenufont
+        ITFS=lasttextfont    ! reset to proportional font in text feedback
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+        call usrmsg(' ',' ','-')  ! refresh dialog 
+
       ELSEIF(IVERT.EQ.(MVERT-3))THEN
 
 C Save viewfactor & sensor file...
@@ -644,10 +660,10 @@ C and change any / to \.
 
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,5a)') 'mrt -mode ',tmode,

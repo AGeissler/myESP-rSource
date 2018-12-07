@@ -1099,9 +1099,9 @@ C      COMMON/OUTIN/IUOUT,IUIN
       character OUTSTR*124,tfile*72
 
 #ifdef OSI
-      integer iix,iiy,iid1,iid2
+      integer iix,iiy,iid1,iid2,iicol
 #else
-      integer*8 iix,iiy,iid1,iid2
+      integer*8 iix,iiy,iid1,iid2,iicol
 #endif
       
 C If not in graphical mode return.
@@ -1195,8 +1195,8 @@ C Loop through grid points.
             WRITE(VT,'(f6.0)') DFVALS(I)
           ENDIF
         endif
-        iid1=iix+1; iid2=iiy-1;
-        CALL wstxpt(iid1,iid2,VT)
+        iid1=iix+1; iid2=iiy-1; iicol=0
+        call textatxy(iid1,iid2,VT,'-',iicol)
  10   continue
 
 C Reset display options.

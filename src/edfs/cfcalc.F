@@ -492,7 +492,7 @@ C For graphics mode re-display target is 0.75 seconds.
               NPLT=100  ! Maximum NPLT
             else
 C Output ~ every 0.75 seconds, constrained to increments of 10 iterations (rounded up).
-              NPLT=0.75/sec_tkn
+              NPLT=int(0.75/sec_tkn)
               sec_tkn=real(NPLT)/10.  ! sec_tkn no longer needed, use as temporary variable.
               NPLT=(int(sec_tkn)+1)*10
             endif
@@ -501,7 +501,7 @@ C Output ~ every 0.75 seconds, constrained to increments of 10 iterations (round
               NPLT=100  ! Maximum NPLT of 100.
             else
 C Output ~ every 9 seconds, constrained to increments of 10 iterations (rounded up).
-              NPLT=9.0/sec_tkn
+              NPLT=int(9.0/sec_tkn)
               sec_tkn=real(NPLT)/10.  ! sec_tkn no longer needed, use as temporary variable.
               NPLT=(int(sec_tkn)+1)*10
             endif
@@ -527,8 +527,8 @@ C In graphics mode => plot data.
             NCRV=1
             CRES(1)=RESORM
             CMON(1)=P(IMON,JMON,KMON)
-            LRES(1)='Mass'
-            LMON(1)='Pressure'
+            LRES(1)='Mass        '
+            LMON(1)='Pressure    '
 
 C Check which momentum equations are solved.
             if (INCALU) then

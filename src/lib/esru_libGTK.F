@@ -36,9 +36,7 @@ C  EASKS2CMD Ask user for a string with prompt, 2 alts, error messages & help.
 C  EPICKS:  Allows several selections to be made from an array of strings.
 C  MENUATOL Single item menu pick with items passed via parameters.
 C  ASKOK:   Generic yes/no/default facility returning OK as a logical parameter.
-C  EASKAB:  Generic A/B choice facility returning 1 or 2 according to which
-C           of the choices has been chosen.
-C  EASKABC: Generic A/B/C choice facility returning 1, 2 or 3 according
+C  EASKATOG: Generic A/B/C... choice facility returning 1-7 according
 C           to which of the choices has been chosen.
 
 C  EMPAGE:  Low level screen control for paging based on terminal model.
@@ -2852,11 +2850,14 @@ C If NHELP=-1 there is no default option.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       CHARACTER*(*) MSG1,MSG2
       CHARACTER ANS*2,MSG3*124,opta*14,optb*14,optc*14
       character optd*2,opte*2,optf*2,optg*2,outs*124
       character prompt*144
       logical ok,dok,DEFLT
+      integer lastmenufont,iuse
 
 C Check if a default defined (via overload of nhelp). Later can
 C make use of newnbhelp.
@@ -2904,6 +2905,14 @@ C Querry yes or no.
           GOTO 21
         ENDIF
       ELSEIF(MMOD.EQ.8)THEN
+
+
+C Save off current menu font and if mono-space set to proportional.
+        lastmenufont=IMFS
+        if(IMFS.ge.0.and.IMFS.le.3)then
+          IUSE=IMFS+4
+          call userfonts(IFS,ITFS,IUSE)
+        endif
 
 C Querry yes or no or default. Concat MSG1 & MSG2 together for prompt.
   19    continue
@@ -2964,6 +2973,8 @@ C of help supplied and then provide the prompt again.
           CALL PHELPD('this multi-choice',newnbhelp,'-',0,0,IER)
           GOTO 19
         ENDIF
+        IMFS=lastmenufont    ! re-establish font
+        call userfonts(IFS,ITFS,IMFS)
       ENDIF
       RETURN
 
@@ -3006,8 +3017,11 @@ C Parameters passed.
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       CHARACTER ANS*2,MSG3*124
       character prompt*144
+      integer lastmenufont,iuse
 
 C See how many items there are to present.
       nopt=7
@@ -3089,6 +3103,13 @@ C of help supplied and then provide the prompt again.
         ENDIF
       ELSEIF(MMOD.EQ.8)THEN
 
+C Save off current menu font and if mono-space set to proportional.
+        lastfont=IFS
+        if(IFS.ge.0.and.IFS.le.3)then
+          IUSE=IFS+4
+          call userfonts(IFS,ITFS,IUSE)
+        endif
+
 C Querry which one.
   19    LN1=max(1,lnblnk(MSG1))
         LN2=max(1,lnblnk(MSG2))
@@ -3120,6 +3141,9 @@ C of help supplied and then provide the prompt again.
           GOTO 19
         ENDIF
         IWHICH=IW
+     
+        IFS=lastfont    ! re-establish font
+        call userfonts(IFS,ITFS,IMFS)
       ENDIF
       RETURN
 
@@ -3147,10 +3171,13 @@ C and the messages will appear in a pop-up dialogue box.
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       CHARACTER*(*) MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,GOPT
       CHARACTER*(*) HOPT,IOPT,JOPT,KOPT,LOPT
       CHARACTER ANS*2,MSG3*124
       character prompt*144
+      integer lastfont,iuse
 
 C See how many items there are to present.
       nopt=12
@@ -3273,6 +3300,13 @@ C of help supplied and then provide the prompt again.
         ENDIF
       ELSEIF(MMOD.EQ.8)THEN
 
+C Save off current menu font and if mono-space set to proportional.
+        lastfont=IFS
+        if(IFS.ge.0.and.IFS.le.3)then
+          IUSE=IFS+4
+          call userfonts(IUSE,ITFS,IMFS)
+        endif
+
 C Querry which one.
   19    LN1=max(1,lnblnk(MSG1))
         LN2=max(1,lnblnk(MSG2))
@@ -3301,6 +3335,9 @@ C of help supplied and then provide the prompt again.
           GOTO 19
         ENDIF
         IWHICH=IW
+     
+        IFS=lastfont    ! re-establish font
+        call userfonts(IFS,ITFS,IMFS)
       ENDIF
       RETURN
 
@@ -3448,7 +3485,11 @@ C iappwi is the requested pixel width, iapphi is the requested pixel height
 C iappx & iappy are the upper-left position on the monitor <not yet implemented >
 C menuchw is the initial request for menu width (in characters)
       SUBROUTINE EPAGES(MODEL,IIN,IOUT,iappwi,iapphi,iappx,iappy,
-     &  menuchw,TITLE)
+     &  menuchw,TITLE,lntitle)
+
+C Parameters.
+      integer lntitle
+      character (len=lntitle) :: TITLE
 
 C limtty is the initial request for text feedback height (in lines)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -3772,6 +3813,8 @@ C graphic window. The user must have previously called open_msg_box(2).
 
       SUBROUTINE USRMSG(MSG1,MSG2,LEVEL)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       common/OUTIN/IUOUT,IUIN
       CHARACTER*(*) MSG1,MSG2
       CHARACTER outs*124,LEVEL*1,blnk*2,blnk2*2,cont*8
@@ -3824,6 +3867,16 @@ C Single line prompt.
         endif
         RETURN
       ELSEIF(MMOD.EQ.8)THEN
+
+C If fixed width font switch to proportional.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.0) IFS=4
+        if(IFS.eq.1) IFS=5
+        if(IFS.eq.2) IFS=6
+        if(IFS.eq.3) IFS=7
+        call userfonts(IFS,ITFS,IMFS)
         IF(LEVEL.EQ.'-'.OR.LEVEL.EQ.'?')THEN
           CALL msgbox(MSG1,MSG2)
         ELSEIF(LEVEL.EQ.'W'.OR.LEVEL.EQ.'w')THEN
@@ -3864,6 +3917,10 @@ C << Place to try pop-up version of msgbox. >>
           call pauses(2)
           STOP
         endif
+        IMFS=lastmenufont    ! reset font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ENDIF
 
@@ -3890,6 +3947,8 @@ C graphic window. The user must have previously called open_msg_box(2).
 
       SUBROUTINE LUSRMSG(MSG1,MSG2,LEVEL)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       common/OUTIN/IUOUT,IUIN
       CHARACTER*(*) MSG1,MSG2
       CHARACTER outs*124,LEVEL*1,blnk*2,blnk2*2,cont*8
@@ -3966,6 +4025,16 @@ C Single line prompt.
         endif
         RETURN
       ELSEIF(MMOD.EQ.8)THEN
+
+C If fixed width font switch to proportional.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(IFS.eq.0) IFS=4
+        if(IFS.eq.1) IFS=5
+        if(IFS.eq.2) IFS=6
+        if(IFS.eq.3) IFS=7
+        call userfonts(IFS,ITFS,IMFS)
         IF(LEVEL.EQ.'-'.OR.LEVEL.EQ.'?')THEN
           CALL msgbox(MSG1,MSG2)
         ELSEIF(LEVEL.EQ.'W'.OR.LEVEL.EQ.'w')THEN
@@ -4004,6 +4073,10 @@ C Place in text window since about to exit from program.
           call pauses(2)
           STOP
         endif
+        IMFS=lastmenufont    ! reset font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ENDIF
 

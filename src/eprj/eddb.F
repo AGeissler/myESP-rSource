@@ -2408,10 +2408,10 @@ C Get logical name of child process terminal type and create a string to drive p
         call tstamp('>','PRJ: start pdb')
         doit = ' '
         call terminalmode(childterminal,tmode)
-        if(iappw.eq.630)then
+        if(iappw.eq.690)then
           iappwpc=100
         else
-          iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+          iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
         endif
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,3a)') 'pdb -mode ',tmode,
@@ -2664,7 +2664,8 @@ C Ask to see details or write details.
               CALL ERPFREE(IUNIT,ISTAT)
               CALL OBJQA(iunit,lltmp,'EX',IER) 
               CALL ERPFREE(IUNIT,ISTAT)
-
+              call edisp(iuout,
+     &          'Object written to ../dbs/exported_object.txt')
             endif
           endif
         endif
@@ -4430,10 +4431,10 @@ C << update to deal with dos paths >>
         elseif(ipathclim.eq.2)then
           longtfile=llclmdb
         endif
-        if(iappw.eq.630)then
+        if(iappw.eq.690)then
           iappwpc=100
         else
-          iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+          iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
         endif
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,2a)') 'clm -mode ',tmode,
@@ -5037,10 +5038,10 @@ C Debug.
         elseif(ipathclim.eq.2)then
           longtfile=llclmdb
         endif
-        if(iappw.eq.630)then
+        if(iappw.eq.690)then
           iappwpc=100
         else
-          iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+          iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
         endif
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,2a)') 'clm -mode ',tmode,
@@ -5639,10 +5640,10 @@ C reflect it is local.
 C Start the mould utility.
         doit = ' '
         call terminalmode(childterminal,tmode)
-        if(iappw.eq.630)then
+        if(iappw.eq.690)then
           iappwpc=100
         else
-          iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+          iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
         endif
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,3a)') 'mld -mode ',tmode,

@@ -1141,14 +1141,17 @@ C Draw the frame (context of the surface plot).
 C Set rotations to zero.
       CALL COEF3D(0.0,0.0,COEFF)
       IALT=0
-      CALL PLOT3E(110,ARRAY,ARRAY(6),zdat,1.0,1.0,0.0,
-     1     IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
-     2          -1,0,5,COEFF,MASK,VERTEX,XLT,YLT,IALT,XLAST,YLAST)
 
-C Should work with ydat, but doesn`t
-C      CALL PLOT3E(110,ARRAY,ydat,zdat,1.0,1.0,0.0,
+C The next block of code is compiler sensitive. For gcc versions
+C after ~7 use the 2nd block of code.
+C      CALL PLOT3E(110,ARRAY,ARRAY(6),zdat,1.0,1.0,0.0,
 C     1     IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
 C     2          -1,0,5,COEFF,MASK,VERTEX,XLT,YLT,IALT,XLAST,YLAST)
+
+C Should work with ydat, but doesn`t
+      CALL PLOT3E(110,ARRAY,ydat,zdat,1.0,1.0,0.0,
+     1     IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
+     2          -1,0,5,COEFF,MASK,VERTEX,XLT,YLT,IALT,XLAST,YLAST)
 
       DO 5 K=1,15,2
         VERTEX(K)=(VERTEX(K)-XMIN)*SCALE
@@ -1266,7 +1269,9 @@ C <0 SET
       END
 
 C ******************** PLOT3E ********************
-
+C This subroutine is compiler sensitive. Code assumes that subroutines
+C calling PLOT3E might not pass the full arrays XDATA YDATA ZDATA. Newer
+C compilers are more strict.
       SUBROUTINE  PLOT3E(IVXYZ,XDATA,YDATA,ZDATA,XSCALE,YSCALE,ZSCALE,
      1              IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
      2              NLINE,IFIRST,NPNTS,COEFF,MASK,VERTEX,

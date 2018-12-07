@@ -1440,7 +1440,7 @@ C          write(6,*) IRLEN,ICFDSV,(IEQSV(J),J=1,5+MCTM)
       ELSE
         call usrmsg(' Could not find: ',LTMP,'W')
         path=lpath
-        goto 11
+        goto 924
       ENDIF
       path=lpath
 
@@ -1593,9 +1593,9 @@ C   IMFLIST(LISTID,3) = Z cell
       character zn*12
       integer IZNSEL(MCON),ISFSEL(MCON)
 #ifdef OSI
-      integer iid1,iid2,iixx,iiyy,iik
+      integer iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #else
-      integer*8 iid1,iid2,iixx,iiyy,iik
+      integer*8 iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #endif
 
 C For help messages
@@ -1816,11 +1816,11 @@ C each have a different line colour.
         GLMFLABEL(NMFGET)='Ambient dry bulb Temp'
         LNGLMFLABEL(NMFGET)=21
         if(IROC.eq.0)then
-          SMFLABEL(NMFGET)='Ambient db temperature (degC)'
-          LNSMFLABEL(NMFGET)=29
+          SMFLABEL(NMFGET)='Ambient db temperature (C)'
+          LNSMFLABEL(NMFGET)=26
         elseif(IROC.eq.1)then
-          SMFLABEL(NMFGET)='Ambient db temp change (degC/hr)'
-          LNSMFLABEL(NMFGET)=32
+          SMFLABEL(NMFGET)='Ambient db temp change (C/hr)'
+          LNSMFLABEL(NMFGET)=29
         endif
 
 C If timestep listing go back to see if any other data should be included.
@@ -2023,13 +2023,13 @@ C Temperature: IMFGET = 19
         IMFGETNO(NMFGET,6)=1
         IMFGETNO(NMFGET,7)=1
         IMFGETNO(NMFGET,8)=0
-        SUFFIX=' temp degC'
+        SUFFIX=' temp C'
         if(IROC.eq.0)then
-          SMFLABEL(NMFGET)='Temperature (degC)'
-          LNSMFLABEL(NMFGET)=14
+          SMFLABEL(NMFGET)='Temperature (C)'
+          LNSMFLABEL(NMFGET)=11
         elseif(IROC.eq.1)then
-          SMFLABEL(NMFGET)='Temperature change (degC/hr)'
-          LNSMFLABEL(NMFGET)=28
+          SMFLABEL(NMFGET)='Temperature change (C/hr)'
+          LNSMFLABEL(NMFGET)=25
         endif
         SELCEL=.true.
 
@@ -2383,7 +2383,8 @@ C Find out point where text should be drawn.
           lblpy(igrl)=int(iiyy)
           iid1=int(iixx); iid2=int(iiyy);
           t24=grlbl(igrl)
-          call wstxpt(iid1,iid2,t24)
+          iicol=0; ibsize=0
+          call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
           dok=.true.
           CALL ASKOK('Include another user supplied label?',' ',
      &      OKL,dok,nbhelp)
@@ -2868,7 +2869,7 @@ C Ambient RH.
 
       RETURN
 
- 1000 call edisp(iuout,' GOCFDGET: Cannot read CFD results libary.')
+ 1000 call edisp(iuout,'CFD read data fault. Cannot read file.')
       call erpfree(iunit,istat)
       return
 

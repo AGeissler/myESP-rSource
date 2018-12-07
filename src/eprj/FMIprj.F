@@ -798,7 +798,7 @@ C previous menu.
             pagstr(1)=IST
             pagstr(2)=IPM
             get_pagstr=.true.
-            CALL EASKGEOF('Pick a zone.',CFGOK,itmp,'-',IER)
+            CALL EASKGEOF('Pick a zone.',CFGOK,itmp,'-',34,IER)
             FMUIZON(IFMU,IINP)=itmp
           elseif (itmp.eq.3) then
             goto 5
@@ -1236,7 +1236,7 @@ C previous menu.
             pagstr(1)=IST
             pagstr(2)=IPM
             get_pagstr=.true.
-            CALL EASKGEOF('Pick a zone.',CFGOK,itmp,'-',IER)
+            CALL EASKGEOF('Pick a zone.',CFGOK,itmp,'-',34,IER)
             FMUOZON(IFMU,IOUT)=itmp
             if (saved) saved=.false.
           elseif (itmp.eq.3) then

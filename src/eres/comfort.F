@@ -312,8 +312,8 @@ C Alter redirect.
         call ctlexp(xfile,ixopen,ixunit,ixpunit,'T','Comfort',IER)
       elseif(ino.eq.1)then
 
-C Change zone.
-        call askzon(IZONE)
+C Change zone, set to 25 characters wide.
+        call askzon(IZONE,25)
       elseif(ino.eq.2)then
 
 C Find the day to analyse.

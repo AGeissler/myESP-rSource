@@ -2010,7 +2010,8 @@ C For the case of a zone load present a list of zones
           IZ=-1
           WRITE(OUTS,'(A)') 
      &      'In which zone is the load located?. '
- 10       CALL ASKZONE(IZ,0,OUTS,'Select zone','-','load locate',IER)
+ 10       CALL ASKZONE(IZ,0,OUTS,'Select zone','-','load locate',
+     &      32,IER)
           IF(IZ.EQ.0) RETURN
 
 C Read in the selected zone's operations data ...

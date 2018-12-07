@@ -857,7 +857,7 @@ c This common block is used to define the sky temperature calculation method
                                    ! 5 = Swinbank (clear - uses wet bulb T);       
                                                                                                                                                     
       CHARACTER*72 LAPROB,vsnam,lfil
-      CHARACTER*40 ITEMG(34)
+      CHARACTER*40 ITEMG(35)
       character SALT*51,spflnam*72,outs*124
       character HCALT*42
 

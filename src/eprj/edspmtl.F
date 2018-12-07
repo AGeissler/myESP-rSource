@@ -623,7 +623,7 @@ c      ISO=ispmloc(IVAL,2)
      &  'Select zone to in which locate the special component. '
       ENDIF
       IZ=0
-      CALL ASKZONE(IZ,0,OUTS,'Select zone','-','spm locate',IER)
+      CALL ASKZONE(IZ,0,OUTS,'Select zone','-','spm locate',32,IER)
       call usrmsg(' ',' ','-')
       if(IZ.eq.0) return
       call georead(IFIL+1,LGEOM(IZ),IZ,1,iuout,IER)
@@ -815,7 +815,7 @@ C For ducted wind turbine - select the position of the DWT outlet
       if(ispmtyp(ispmn,1).eq.3)then
         WRITE(OUTS,'(A)') 
      &  'Select zone to in which locate the DWT outlet. '
-        CALL ASKZONE(IZ,0,OUTS,'Select zone','-','spm locate',IER)
+        CALL ASKZONE(IZ,0,OUTS,'Select zone','-','spm locate',32,IER)
         call usrmsg(' ',' ','-')
         if(IZ.eq.0) return
         call georead(IFIL+1,LGEOM(IZ),IZ,1,iuout,IER)

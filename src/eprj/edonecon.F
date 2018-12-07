@@ -212,7 +212,7 @@ C Editing of items.
 C Find out which other zone to connect to. Save the current state of the
 C menu so that can return to where we were. Also connected surface.
         CALL EPMENSV
-        CALL EASKGEOF('Select zone on other side:',CFGOK,IZ,'-',IER)
+        CALL EASKGEOF('Select zone on other side:',CFGOK,IZ,'-',34,IER)
         CALL EPMENRC
 
 C Reset all surface lines to std width except for current

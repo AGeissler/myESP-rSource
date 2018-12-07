@@ -394,10 +394,10 @@ C Set browsing to no.
             longtfile=' '
             longtfile=longtfiledos
           endif
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(a,3i4,4a)') 'e2r -s ',
@@ -2586,11 +2586,8 @@ C Depending on current folder invoke tar with list of file names and
 C create a tar file which includes root name of the project and the
 C current pid number (to prevent overwriting).
 C Use ifdef compiler variable passed into Make to identify which
-C tar option to use. Most typical is -T but Sun uses -I.
+C tar option to use. Most typical is -T.
       option=' -T '
-#ifdef SUN
-      option=' -I '
-#endif
 
 C Unix/Linux/Cygwin versions of tar.
       call esppid(ipid)

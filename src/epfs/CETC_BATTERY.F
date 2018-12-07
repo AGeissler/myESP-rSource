@@ -3944,9 +3944,17 @@ C *********************************************************************
       INTEGER iuin           !- read unit number
 
 C Common holding NSINC (no of building time step increments) for debugging only
-       COMMON/SIMTIM/NSINC
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       INTEGER IHRP            !-hour of present time-step
+       INTEGER IHRF            !-hour of future time-step
+       INTEGER IDYP            !-year day number of present day
+       INTEGER IDYF            !-year day number of future day
+       INTEGER IDWP            !-day of the week of present day
+       INTEGER IDWF            !-day of the week of future day
        INTEGER NSINC           !-number of building-side time increments
                                !-since start of simulation
+       INTEGER ITS             !-current building time-step within
+                               !-current hour
 
 C PARAMETERS FROM SIGNATURE
       REAL batDODVar, batTempVar

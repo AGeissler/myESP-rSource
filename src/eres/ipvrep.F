@@ -1011,11 +1011,11 @@ C Metrics - first produce frequency bin for each metric.
           endif
           if(imetget(ig).eq.1)then
             write(outs,'(5a)') '*title',tab,'Dry bulb temperature',tab,
-     &        'degC'
+     &        'C'
             call edisp(itru,outs)
           elseif(imetget(ig).eq.6)then
             write(outs,'(5a)') '*title',tab,'Resultant temperature',
-     &        tab,'degC'
+     &        tab,'C'
             call edisp(itru,outs)
           elseif(imetget(ig).eq.11)then
             write(outs,'(5a)') '*title',tab,'Infiltration load',tab,'W'
@@ -1066,7 +1066,7 @@ C Set up selections.
                 IGETNO(I,6)=1
                 IGETNO(I,7)=6
                 IGETNO(I,8)=1
-                SLABEL(I)='Dry bulb temperature,degC'; LNSLABEL(I)=25
+                SLABEL(I)='Dry bulb temperature,C'; LNSLABEL(I)=22
               elseif(imetget(ig).eq.6)then
                 IGETNO(I,1)=6
                 IGETNO(I,2)=izmg(ig,I)
@@ -1076,7 +1076,7 @@ C Set up selections.
                 IGETNO(I,6)=1
                 IGETNO(I,7)=5
                 IGETNO(I,8)=1
-                SLABEL(I)='Resultant temperature,degC'; LNSLABEL(I)=26
+                SLABEL(I)='Resultant temperature,C'; LNSLABEL(I)=23
               elseif(imetget(ig).eq.11)then
                 IGETNO(I,1)=11
                 IGETNO(I,2)=izmg(ig,I)
@@ -1707,8 +1707,8 @@ C Set hour format flag to julian decimal for following reports.
                   IGETNO(I,6)=1
                   IGETNO(I,7)=6
                   IGETNO(I,8)=1
-                  SLABEL(I)='Dry bulb temperature,degC'
-                  LNSLABEL(I)=25
+                  SLABEL(I)='Dry bulb temperature,C'
+                  LNSLABEL(I)=22
                   TABLABEL(I)='Dry bulb temperature'; LNTABLABEL(I)=20
                 elseif(imetget(ig).eq.6)then
                   SUFFIX=' Res T'
@@ -1720,8 +1720,8 @@ C Set hour format flag to julian decimal for following reports.
                   IGETNO(I,6)=1
                   IGETNO(I,7)=5
                   IGETNO(I,8)=1
-                  SLABEL(I)='Resultant temperature,degC'
-                  LNSLABEL(I)=26
+                  SLABEL(I)='Resultant temperature,C'
+                  LNSLABEL(I)=23
                   TABLABEL(I)='Resultant temperature'; LNTABLABEL(I)=21
                 elseif(imetget(ig).eq.11)then
                   SUFFIX=' Inf'
@@ -2506,7 +2506,7 @@ C IGET = 76 IPV overall thermal comfort distribution
      &   'thermal_comfort',tab,'aggregate'
       call edisp(itru,outs)
       write(outs,'(5a)') '*title',tab,'Resultant Temperature',tab,
-     &   'degC'
+     &   'C'
       call edisp(itru,outs)
       write(outs,'(6a,i1,6a)') '*format',tab,'frequency',tab,'9',tab,
      &  nipvassmt+1,tab,'16.0',tab,'2.0',tab,'30.0'

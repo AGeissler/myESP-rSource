@@ -901,7 +901,7 @@ C Display  a list of the available zones ....
           WRITE(OUTS,'(A)') 
      &'Select zone from which the component RECEIVES flow. '
           IZ=NINT(pconsd(ipcon,1))
-          CALL ASKZONE(IZ,0,OUTS,'Select zone','-','plnt conn',IER)
+          CALL ASKZONE(IZ,0,OUTS,'Select zone','-','plnt conn',34,IER)
           call usrmsg(' ',' ','-')
           supdt1=IZ
 
@@ -1077,14 +1077,14 @@ C Fill array with existing containment types.
       cnttyp(5)='Temporal data file (future)          '
       cnttyp(6)='Ground temperature                   '
 
-      if(emod.eq.'E') then
+ 9    if(emod.eq.'E') then
 	ipcomp=icont
       else
 
 C Let user select a component.
       	call usrmsg(
      &'Which component does this containment apply to?',' ','-')
- 9    	head=' Select component:'
+      	head=' Select component:'
       	CALL ASKPCMP(head,'-',IPCOMP,IER)
       	call usrmsg(' ',' ','-')
       endif
@@ -1102,8 +1102,13 @@ C containment specified.
               if (ipcc(ichk).eq.ipcct) then
                 call edisp(iuout,' ')
                 call edisp(iuout,
-     &'A containment has already been defined')
+     &          'A containment has already been defined')
                 call edisp(iuout,'for this component !')
+      	        call usrmsg(
+     &'Which component does this containment apply to?',' ','-')
+      	        head=' Select component:'
+      	        CALL ASKPCMP(head,'-',IPCOMP,IER)
+      	        call usrmsg(' ',' ','-')
                 goto 9
               endif
             endif
@@ -1168,7 +1173,7 @@ C and construction node cntdt3 counted from outside.
          elseif(indctt.eq.3) then
            WRITE(OUTS,'(A)')'Select a zone for the containment:'
            IZ=0
-           CALL ASKZONE(IZ,0,OUTS,'Select zone','-','plnt conn',IER)
+           CALL ASKZONE(IZ,0,OUTS,'Select zone','-','plnt conn',34,IER)
            if(IZ.eq.0) RETURN
            cntdt1=float(IZ)
            h(1)='You have several options you can select from:'
@@ -1550,7 +1555,7 @@ C Temporary arrays to hold 'grouped components.
       character*70 wchdesc(maxpc),ahudesc(maxpc),ppdesc(maxpc),
      &othdesc(maxpc),tmpdesc(maxpc),hndesc(maxpc)
       character*80 pcdesc
-      dimension ival(mpcom),item(7),iloc(3)
+      dimension ival(mpcom),item(8),iloc(3)
       dimension ndbahu(maxpc),ndbwch(maxpc),ndbpp(maxpc),ndboth(maxpc)
       dimension ndbhn(maxpc)
       CHARACTER H*72, item*28, head*28
@@ -2583,7 +2588,7 @@ C Link which zone to the plant?
         ELSE
           IZ=1
         ENDIF
-        CALL ASKZONE(IZ,0,OUTS,'Select zone','-','plnt conn',IER)
+        CALL ASKZONE(IZ,0,OUTS,'Select zone','-','plnt conn',34,IER)
         CALL USRMSG(' ',' ','-')
 
 C Loop through the existing control loops and ensure that this zone

@@ -41,7 +41,7 @@ typedef struct _box{
 #define IPON   1
 #define IPOFF  2
 #define NFONTS 6
-#define MENU_LIST_LEN 40
+#define MENU_LIST_LEN 42
 #define PROFMA_LEN    40
 #define STARTX       100
 #define STARTY       100
@@ -88,8 +88,10 @@ void	ecirarc_(float* x,float* y,float* ths,float* thf,float* r,
 	long int* num,float* di);
 void	evwmenu_(char* titleptr,long int* impx,long int* impy,long int* iwth,long int* irpx,
 	long int* irpy,long int* ino,long int* ipflg,long int* uresp,int len_title);
+void	extentsvwmenu_(char* titleptr,long int* iwth,long int* ipixwthma,
+	long int* ipixwthll,long int* ino,long int* ipflg,long int* uresp,int len_title);
 void	eewmenu_(char* titleptr,long int* impx,long int* impy,long int* iwth,long int* irpx,
-	long int* irpy,long int* ino,long int* ipflg,long int* uresp,int len_title);
+	long int* irpy,long int* ivfw,long int* ivfwsp,long int* ivfwul,int len_title);
 /* int	aux_menu(XEvent event); */
 void	refreshenv_();
 void	opencfg_(long int* cfg_type,long int* icfgz,long int* icfgn,long int* icfgc,

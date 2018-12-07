@@ -88,6 +88,7 @@ C Currently only one node plotted.
       integer iiw1,iiw2,iiw3,iiw4,iimenu
       integer iix1,iiy1,iix,ijx,iiy,iiylast
       integer ilf,igfw,igfh,ild,igdw,igdh
+      integer iicol
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iside,isize,ifont     ! passed to viewtext
@@ -95,6 +96,7 @@ C Currently only one node plotted.
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
       integer*8 iix1,iiy1,iix,ijx,iiy,iiylast
       integer*8 ilf,igfw,igfh,ild,igdw,igdh
+      integer*8 iicol
 #endif
 
 C For help messages
@@ -402,11 +404,14 @@ C Assign flows; leaving flow is plotted +ve.
 
 C Draw a pairs of labels and line types at top of the graph.
       WRITE(temp,'(4A)')'Node ',NDNAM(NDONUM),' leaving',nterm
-      CALL wstxpt(igl+60,igt-20,temp)
+      iid1=igl+60; iid2=igt-20; iicol=0
+      call textatxy(iid1,iid2,temp,'-',iicol)
+
       iix=igl+20; iiy=igt-25; iix1=igl+50; iiy1=igt-25
       call eswline(iix,iiy,iix1,iiy1)
       WRITE(temp,'(4A)')'Node ',NDNAM(NDONUM),' entering',nterm
-      CALL wstxpt(igl+60,igt-40,temp)
+      iid1=igl+60; iid2=igt-40; iicol=0
+      call textatxy(iid1,iid2,temp,'-',iicol)
       iix=igl+20; iiy=igt-45; iix1=igl+50; iiy1=igt-45
       call edwline(iix,iiy,iix1,iiy1)
 

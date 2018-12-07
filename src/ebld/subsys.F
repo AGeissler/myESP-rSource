@@ -665,8 +665,9 @@ C set it here.
       ENDIF
 
       IF(TSKY.LT.200.0.OR.TSKY.GT.325.0)then
-       write(outs,'(a,F7.1,a)')'MZELWE: a dubious sky temperature(',
-     &   TSKY,' (degK)) has been calculated.'
+       write(outs,'(a,F7.1,a)')
+     &   'MZELWE: a dubious sky temperature (',
+     &   TSKY,'K has been calculated.'
         call edisp(iuout,outs)
         call edisp(iuout,
      & ' The computed flux is ok unless another warning is given.')
@@ -842,8 +843,9 @@ c the most appropriate surface is found.
 C  Compute present time step future time row values.
       TGRD=GTF(1)+ZEROK
       IF(TGRD.LT.200.0.OR.TGRD.GT.350.0)then
-       write(outs,'(a,F8.2,a)')'MZELWE: a dubious ground temperature(',
-     &   TGRD,' ) has been calculated.'
+       write(outs,'(a,F8.2,a)')
+     &   'MZELWE: a dubious ground temperature (',
+     &   TGRD,') has been calculated.'
         call edisp(iuout,outs)
         call edisp(iuout,
      & ' The computed flux is ok unless another warning is given.')

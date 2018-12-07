@@ -4454,7 +4454,7 @@ C         CALL EASKR(cm(ndx+6),' ',' Aux sensor "fraction ON"? ',
         call EASKATOG('Which type of boundary?','  ',
         call EPICKS(INDEL,IDEL,' ',' ',12,INVOL,NAMES,
 *subroutine GENCFDBC
-*item GENCFDBC cfdbc_infer_delete_existing
+*item GENCFDBC cfdbc_infer_delete_exist
 'There are existing boundary condition definitions. New boundary'
 'conditions inferred from geometry might conflict with exisiting'
 'definitions, so it is recommended to delete existing ones before'

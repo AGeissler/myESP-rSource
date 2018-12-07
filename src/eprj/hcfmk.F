@@ -1881,7 +1881,7 @@ C Choose where is the air comming into the channel.
           hcphrase(3) = 'from outdoor'
         ELSE
           CALL ASKZONE(IAORZ,0,' Air enters channel from which zone?',
-     &      'Air origin zone','-','A zone must be selected',ier)
+     &      'Air origin zone','-','A zone must be selected',32,ier)
         ENDIF
         IF (IAORZ.EQ.ICOMP) THEN
           CALL USRMSG('This selection is typical of CLOSED channels',

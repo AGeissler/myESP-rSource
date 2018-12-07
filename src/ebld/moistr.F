@@ -108,14 +108,18 @@ C Check for convergence in fluid values.
 
 C Set the future pressures equal to the new pressures.
         CALL SETFEN(ICOMP)
+
         IF(CONVP.AND.CONVF)THEN
+
+C Convergence achieved.
           CALL WRITRH(ICOMP)
           IF(ITRM.EQ.1)THEN
-            WRITE(MSG,'(1X,A,I3)')
-     &     'Warning: moisture modelling convergence for zone:',ICOMP
+            CALL EDAYR(IDYP,IDAYN,IMTHN)
+            WRITE(MSG,'(1X,A)')
+     &      'MZMSTR: moisture convergence after 1 iteration'
             CALL EDISP(IUOUT,MSG)
-            WRITE(MSG,'(10X,A,I8)')
-     &     'occured after ONE iteration, at simulation increment:',NSINC
+            WRITE(MSG,'(9X,A,I3,A,3I3)')
+     &      'in zone',ICOMP,' at Day, Month, Hour: ',IDAYN,IMTHN,IHRF
             CALL EDISP(IUOUT,MSG)
           ENDIF
           RETURN
@@ -141,15 +145,16 @@ C Set up the energy matrix coefficients.
 C Solve the energy matrix.
           CALL MTXCTL(ICOMP)
           CALL MZMTMF2(ICOMP)
-        ENDIF
-        
+        ENDIF   
+
    10 CONTINUE
       CALL WRITRH(ICOMP)
-      WRITE(MSG,'(1X,A,I3)')
-     &     'Warning: moisture modelling convergence for zone:',ICOMP
+      CALL EDAYR(IDYP,IDAYN,IMTHN)
+      WRITE(MSG,'(1X,A)')
+     &     'MZMSTR: moisture convergence failed'
       CALL EDISP(IUOUT,MSG)
-      WRITE(MSG,'(10X,A,I8)')
-     &     'did NOT occur, at simulation increment:',NSINC
+      WRITE(MSG,'(9X,A,I3,A,3I3)')
+     &      'in zone',ICOMP,' at Day, Month, Hour: ',IDAYN,IMTHN,IHRF
       CALL EDISP(IUOUT,MSG)
       RETURN
       END
@@ -170,17 +175,17 @@ C *********************************************************************
 
       DTfalse=3600.0
 
-      GAMm=0.8     !was 0.5, 1.0 set to fully implicit ("Kellerklima" gives shorter simulations!)
+      GAMm=0.5
       RLXln=0.4    !0.1  RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
       RLXlnF=0.2   !0.01 RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
       RLXlnT=0.4   !0.1  RLX T_new + (1-RLX) T_old
 
-      MITRM=300
+      MITRM=500
 
       RITRMP=0.075 ! (Pf-Pn) FACTOR < RITRMP ? => O.K. (both for zone air and layers!)
       RITRMF=0.001 ! (Ff-Fn) FACTOR < RITRMF ? => O.K. (both for zone air and layers!)
 
-      RHmax=0.999
+      RHmax=0.99
       PATMpa=101325.0
       RETURN
       END
@@ -1338,7 +1343,6 @@ c        Pnew=(SUM-Fn(I,IM))/DOMAIN
           Pn(I,IM)=RH*Ps
         ENDIF
         Fnew=SNGL(SUM)-Pn(I,IM)*DOMAIN
-cx compiler complaines about this line: (Joe, 5.12.2018)
         Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
         IF(Fn(I,IM).LT.0.0)Fn(I,IM)=0.0
 cx        ENDIF
@@ -1353,7 +1357,7 @@ C Air node.
       IF(ABS(DOMAIN).LT.1.0e-28)THEN
         WRITE(MSG,'(A)')'ERROR: very small air node domain'
         CALL EDISP(IUOUT,MSG)
-        WRITE(MSG,'(2(A,I5))')'       for zone',ICOMP,'time step',NSINC
+        WRITE(MSG,'(7x,2(A,I5))')'for zone',ICOMP,'at time step',NSINC
         CALL EDISP(IUOUT,MSG)
         WRITE(MSG,'(A,G14.4)')' DOMAIN: ',DOMAIN
         CALL EDISP(IUOUT,MSG)
@@ -1396,7 +1400,7 @@ C *********************************************************************
       COMMON/MOIST54/Pfair(MCOM),Ffair(MCOM),Sfair(MCOM)
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
-
+ 
       LOGICAL CONVP
 
       RESXP=0.

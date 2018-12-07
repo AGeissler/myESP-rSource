@@ -364,9 +364,13 @@ C General image option flags.
       ITORG=0; ITSNR=1; ITOBS=0; ITGRD=0
       GRDIS=0.0
       ITPPSW=0
-      IFS=1
-      ITFS=1
-      IMFS=1
+
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+      IMFS=5
+      IFS=4
+      ITFS=4
 
 C Assume that the system configuration, multi-layered db, material db
 C and control files have not been read in and that any files saved will
@@ -421,12 +425,15 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IFS is for buttons & graphs, ITFS dialog & 
-C text feedback and IMFS for menus).
-        IMFS=1
-        IFS=1
-        ITFS=1
+
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=4
+        ITFS=4
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -436,8 +443,9 @@ C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
       write(pagestitle,'(2a)') 'ESP-r Project Manager ',cVnum
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to LIMTTY if MMOD = 8.  Model
 C not yet know so pass 0 to the wireframe control routine (updwire).
@@ -1946,10 +1954,10 @@ C command line.
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.  Reconstitute the % of 
 C application vertical size.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
 C          write(6,*) 'iappw,iappwpc',iappw,iappwpc
 
@@ -1966,7 +1974,7 @@ C          write(6,*) 'iappw,iappwpc',iappw,iappwpc
           endif
 
 C Debug.
-          call usrmsg('Begining simulation via',doit,'-')
+C         call usrmsg('Beginning simulation via',doit,'-')
           call runit(doit,tmode)
           return
         else
@@ -2012,10 +2020,10 @@ C If browsing pass this information to bps.
 
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,4a)') 'bps -mode ',tmode,
@@ -2028,7 +2036,7 @@ C an offset from prj start position.
           endif
 
 C Debug.
-          call usrmsg('Begining simulation via',doit,'-')
+C         call usrmsg('Beginning simulation via',doit,'-')
           call runit(doit,tmode)
           return
         endif
@@ -2046,10 +2054,10 @@ C Execute mfs.
 
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,a)') 'mfs -mode ',tmode,
@@ -2073,10 +2081,10 @@ C Execute dfs.
 
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,a)') 'dfs -mode ',tmode,
@@ -2117,10 +2125,10 @@ C and change any / to \.
           longtfile=' '
           longtfile=longtfiledos
         endif
-        if(iappw.eq.630)then
+        if(iappw.eq.690)then
           iappwpc=100
         else
-          iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+          iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
         endif
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,4a)') 'e2r -mode ',tmode,
@@ -2132,7 +2140,7 @@ C and change any / to \.
         endif
 
 C Debug.
-        call usrmsg('Beginning visual assessment via',doit,'-')
+C       call usrmsg('Beginning visual assessment via',doit,'-')
         call runit(doit,tmode)
 
       elseif(INO.EQ.MITEM-5)then
@@ -2862,10 +2870,10 @@ C << IPV will still run as required.
               
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,5a)') 'bps -mode ',tmode,
@@ -2876,6 +2884,8 @@ C an offset from prj start position.
      &        ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
      &        brw,assmttag(ij),aut
           endif
+
+C Debug.
 C          call usrmsg('Beginning assessment via',doit,'-')
           if(isauto.eq.2)then
             call runit(doit,'-')
@@ -2963,10 +2973,10 @@ C              write(6,*) 'reset tfile to ',tfile
 
             endif
 
-            if(iappw.eq.630)then
+            if(iappw.eq.690)then
               iappwpc=100
             else
-              iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+              iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
             endif
             if(iappwpc.gt.0.and.iappwpc.le.200)then
               write(doit,'(3a,3i4,4a)') 'res -mode ',tmode,
@@ -2976,6 +2986,8 @@ C              write(6,*) 'reset tfile to ',tfile
               write(doit,'(6a)') 'res -mode ',tmode,
      &           ' -file ',tfile(1:lnblnk(tfile)),runtag(ij),aut
             endif
+
+C Debug.
 C            call usrmsg('Beginning performance recovery via',doit,'-')
             if(isauto.eq.2)then
               call runit(doit,'-')
@@ -3008,10 +3020,10 @@ C Debug.
 C            write(6,*) 'itr3 reset tfile to ',tfile
 
           endif
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,4a)') 'res -mode ',tmode,
@@ -3021,6 +3033,8 @@ C            write(6,*) 'itr3 reset tfile to ',tfile
             write(doit,'(6a)') 'res -mode ',tmode,' -file ',
      &        tfile(1:lnblnk(tfile)),' -act ipv_annual ',aut
           endif
+
+C Debug.
 C          call usrmsg('Beginning performance recovery via',doit,'-')
           if(isauto.eq.2)then
             call runit(doit,'-')

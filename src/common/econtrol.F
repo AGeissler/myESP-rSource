@@ -3711,7 +3711,7 @@ C Append the sensor msg to the end of lmsg and increment lx position.
 
 C Tell the user about the multi sensor data.
           call SDELIM(lmsg,message,'S',IW)
-          call edisp248(6,message,80)
+C          call edisp248(6,message,100)
 
 C Nicol Occupant resopnse model for control
         elseif(IFCLAW(II,JJ,KK).EQ.4)then

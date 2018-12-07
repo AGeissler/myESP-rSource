@@ -333,7 +333,7 @@ C Initial assumption is no SHOCC files.
       LCNN='UNKNOWN'
       CTLDOC='no overall project control notes (yet)'
       GTGEOM='UNKNOWN'
-      GTNAME='flat_boring'
+      GTNAME='flat'
       lipvdatf='UNKNOWN'
       bdmds='UNKNOWN'
       dmdsdesc='no dispersed demands notes (yet)'
@@ -3070,22 +3070,30 @@ C If MOD = m or M then allowing a new zone to be created or one
 C to be deleted (passed back as a negative zone number).
 C If MOD = t or T then the focus is thermophysical.
 C It is assumed that the user will make one selection only.
-      SUBROUTINE EASKGEOF(PROMPT,CFGOK,IZONE,MOD,IER)
+      SUBROUTINE EASKGEOF(PROMPT,CFGOK,IZONE,MOD,IMW,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "epara.h"
+
+C Parameters.
+      character*(*) PROMPT   ! text for menu heading
+      logical CFGOK          ! did the model load cleanly
+      integer izone          ! which zone was selected
+      character MOD*1        ! m M or t T
+      integer IMW            ! menu width
+      integer IER            ! zero is no problem
 
       common/pophelp/h(60)
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       common/user/browse
-      LOGICAL CFGOK,SELECT,delzone,browse,cpyzone,XST
+      LOGICAL SELECT,delzone,browse,cpyzone,XST
 
       DIMENSION VERT(35)
-      character*(*) PROMPT
-      CHARACTER VERT*27,KEY*1,DFILE*72,MOD*1,H*72
+      character*(IMW) VERT
+      CHARACTER KEY*1,DFILE*72,H*72
       CHARACTER*72 LFILG
       integer MVERT,IVERT  ! max items and current menu item
 
@@ -3179,7 +3187,7 @@ C Number of actual items displayed.
 
 C If a long list include page facility text and info on portion seen.
       IF(IPFLG.EQ.0)THEN
-        VERT(M+1)=  '  ______________________'
+        VERT(M+1)=  '  ____________________  '
       ELSE
         WRITE(VERT(M+1),15)IPM,MPM
    15   FORMAT ('0 page: ',I1,' -- of:',I1)
@@ -3362,12 +3370,22 @@ C MOD display modifier - `c` note constructions defined, `o` note
 C operations defined, `s` note shading defined, `z` note zone attrib
 C complete, `v` note view factors, `g` casual gain ctl, `d` domain flow,
 C `h` heat transfer (comvective) methods, `-` zone names only.
-      SUBROUTINE ASKZONE(IZONE,IDZONE,prompt,title,mod,errmsg,IER)
+      SUBROUTINE ASKZONE(IZONE,IDZONE,prompt,title,mod,errmsg,IMW,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "schedule.h"
 #include "epara.h"
+
+C Parameters.
+      integer izone          ! which zone was selected
+      integer idzone         ! default suggestion
+      character*(*) PROMPT   ! text for dialog
+      character*(*) TITLE    ! text for menu heading
+      character MOD*1        ! m M or t T
+      character*(*) ERRMSG   ! text for error
+      integer IMW            ! menu width
+      integer IER            ! zero is no problem
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN
@@ -3378,11 +3396,11 @@ C `h` heat transfer (comvective) methods, `-` zone names only.
       common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
 
       LOGICAL SELECT,XST
-      CHARACTER*(*) prompt,title,errmsg
 
       DIMENSION VERT(35)
-      CHARACTER VERT*28,KEY*1
-      character h*72,mod*1,outs*124
+      character*(IMW) VERT
+      CHARACTER KEY*1
+      character h*72,outs*124
       CHARACTER*72 LCFD,shdafile
       integer MVERT,IVERT  ! max items and current menu item
 
@@ -3551,7 +3569,7 @@ C Number of actual items displayed.
 
 C If a long list include page facility text and info on portion seen.
       IF(IPFLG.EQ.0)THEN
-        VERT(M+1)=  '  ______________________'
+        VERT(M+1)=  '  ____________________  '
       ELSE
         WRITE(VERT(M+1),15)IPM,MPM
    15   FORMAT ('0 page part: ',I1,' -- of:',I1)
@@ -3844,7 +3862,7 @@ C Number of actual items displayed.
 
 C If a long list include page facility text and info on portion seen.
       IF(IPFLG.EQ.0)THEN
-        VERT(M+1)=  '  ______________________'
+        VERT(M+1)=  '  ____________________  '
       ELSE
         WRITE(VERT(M+1),15)IPM,MPM
    15   FORMAT ('0 page part: ',I1,' -- of:',I1)
@@ -3986,6 +4004,9 @@ C show attributes in list.
       COMMON/C1/NCOMP,NCON
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+
       DIMENSION VERT(35),VERTS(35)
 
       CHARACTER*(*) PROMPT1,PROMPT2
@@ -4048,10 +4069,12 @@ C current menu line index. Build up text strings for the menu.
             endif
           endif
    
-C << consider writing out different info depending on what SSOTHER is >>
+C Display surface name plus some context information.
           if(icc.gt.0)then
             lnn=lnblnk(SSNAME(icc))
+            if(lnn.lt.8) lnn=8
             lnsmlcn=lnblnk(SSMLCN(icc))
+            if(lnsmlcn.lt.10) lnsmlcn=10
             lnoth=lnblnk(SSOTHER(icc,1))
             if((lnn+lnsmlcn+lnoth).lt.36)then
               WRITE(VERTS(M),13)KEY,SSNAME(icc)(1:lnn),
@@ -4060,7 +4083,7 @@ C << consider writing out different info depending on what SSOTHER is >>
               WRITE(VERTS(M),13)KEY,SSNAME(icc)(1:lnn),
      &          SSMLCN(icc)(1:15),SSOTHER(icc,1)(1:lnoth)
             endif
-   13       FORMAT(A,2X,A,2X,A,2X,A)
+   13       FORMAT(A,1X,A,2X,A,2X,A)
           else
             WRITE(VERTS(M),'(2a)')KEY,' unresolved surface...'
           endif
@@ -4072,7 +4095,7 @@ C Number of actual items displayed.
 
 C If a long list include page facility text.
       IF(IPFLG.EQ.0)THEN
-        VERT(M+1) ='  ________________  '
+        VERT(M+1) ='  _________________  '
         VERTS(M+1)='  _________________________  '
       ELSE
         WRITE(VERT(M+1),16)IPM,MPM
@@ -4127,8 +4150,8 @@ C BASESIMP editing facility (once).
         if(usesbasesimp)then
           CALL BASESIMP_INPUTS(IZONE,IER)
         endif
-
         RETURN  ! return to the parent call
+
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
         CALL PHELPD('zone geom file section',2,'-',0,0,IER)
       ELSEIF(IVERT.EQ.(MVERT-2))THEN

@@ -652,17 +652,30 @@ C and the vertex number.
       SUBROUTINE VERTLBL(iix,iiy,IP,ier)
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       CHARACTER VTEXT*4,VT*4
+      integer lastbuttonfont
+      logical colok
 #ifdef OSI
       integer iix,iiy,iix1,iiy1
+      integer iicol,isize
 #else
       integer*8 iix,iiy,iix1,iiy1
+      integer*8 iicol,isize
 #endif
 
       IER=0
 
+C Check if can draw in colour and if so set black.
+      colok=.false.
+      if(nzonec.ge.6)colok=.true.
+      isize=0
+      if(colok)then
+        iicol=0
+        call winscl('-',iicol)
+      endif
+
 C If vertices are to be labeled do it in the smallest font.
-      IF(IFS.GT.0)CALL winfnt(0)
       IF(IP.LE.9)THEN
         WRITE(VT,'(a,i1)')'v',IP
       ELSEIF(IP.GT.9.and.IP.le.99)THEN
@@ -672,9 +685,12 @@ C If vertices are to be labeled do it in the smallest font.
       ENDIF
       VTEXT=VT
       iix1=iix+1; iiy1=iiy-1;
-      CALL wstxpt(iix1,iiy1,VTEXT)
-      IF(IFS.GT.0)CALL winfnt(IFS)
+      lastbuttonfont=IFS
+      call textsizeatxy(iix1,iiy1,VTEXT,isize,'-',iicol)
+      IF(IFS.ne.lastbuttonfont)CALL winfnt(lastbuttonfont)
       call forceflush()
+      iicol=0
+      call winscl('-',iicol)
 
       RETURN
       END
@@ -686,17 +702,30 @@ C and the vertex number.
       SUBROUTINE VERTLBLRED(iix,iiy,IP,ier)
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       CHARACTER VTEXT*4,VT*4
+      integer lastbuttonfont
+      logical colok
 #ifdef OSI
-      integer iix,iiy,iix1,iiy1,iicol
+      integer iix,iiy,iix1,iiy1
+      integer iicol,isize
 #else
-      integer*8 iix,iiy,iix1,iiy1,iicol
+      integer*8 iix,iiy,iix1,iiy1
+      integer*8 iicol,isize
 #endif
 
       IER=0
 
+C Check if can draw in colour and if so set to red.
+      colok=.false.
+      if(nzonec.ge.6)colok=.true.
+      isize=0
+      if(colok)then
+        iicol=0
+        call winscl('z',iicol)
+      endif
+
 C If vertices are to be labeled do it in the smallest font.
-      IF(IFS.GT.0)CALL winfnt(0)
       IF(IP.LE.9)THEN
         WRITE(VT,'(a,i1)')'v',IP
       ELSEIF(IP.GT.9.and.IP.le.99)THEN
@@ -706,10 +735,9 @@ C If vertices are to be labeled do it in the smallest font.
       ENDIF
       VTEXT=VT
       iix1=iix+1; iiy1=iiy-1;
-      iicol=0
-      call winscl('z',iicol)
-      CALL wstxpt(iix1,iiy1,VTEXT)
-      IF(IFS.GT.0)CALL winfnt(IFS)
+      lastbuttonfont=IFS
+      call textsizeatxy(iix1,iiy1,VTEXT,isize,'z',iicol)
+      IF(IFS.ne.lastbuttonfont)CALL winfnt(lastbuttonfont)
       call forceflush()
       iicol=0
       call winscl('-',iicol)

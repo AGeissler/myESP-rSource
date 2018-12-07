@@ -188,7 +188,7 @@ C Show the constructions menu.
           icc=izstocn(iz,is)
           NE=NELTS(IZ,IS)
           WRITE(TXT,'(10(2X,I2))')(MNDL(IZ,IS,IL),IL=1,NE)
-          WRITE(MSG1,'(A30,A28,A12))')" Enter the number of moisture ",
+          WRITE(MSG1,'(3A)')" Enter the number of moisture ",
      &    "nodes/layer in the surface: ",SSNAME(icc)
           CALL EASKS(TXT,MSG1,' ',72,' ',' data ',IER,nbhelp)
           NCFF = iCountWords(TXT)
@@ -389,7 +389,7 @@ C Show the layers menu.
 C Enter moisture permeability.
         WRITE(TXT,901)IPERM(IZ,IS,IL),(PERM(IZ,IS,IL,IT),IT=1,3)
  901    FORMAT(1X,I2,6(1X,F8.4))
-        WRITE(MSG1,'(A))')
+        WRITE(MSG1,'(A)')
      &  " Enter the moisture permeability data for the selected layer"
         CALL EASKS(TXT,MSG1,' ',72,' ',' data ',IER,nbhelp)
         NCFF = iCountWords(TXT)
@@ -407,7 +407,7 @@ C Enter moisture permeability.
 
 C Enter moisture capacity.
         WRITE(TXT,901)ISORP(IZ,IS,IL),(SORP(IZ,IS,IL,IT),IT=1,3)
-        WRITE(MSG1,'(A))')
+        WRITE(MSG1,'(A)')
      &  " Enter the moisture capacity data for the selected layer"
         CALL EASKS(TXT,MSG1,' ',72,' ',' data ',IER,nbhelp)
         NCFF = iCountWords(TXT)
@@ -425,7 +425,7 @@ C Enter moisture capacity.
 
 C Enter thermal vapour diffusion.
         WRITE(TXT,'(1X,I2,6(1X,F8.4))')ITVAPD(IZ,IS,IL),TVAPD(IZ,IS,IL)
-        WRITE(MSG1,'(A))')
+        WRITE(MSG1,'(A)')
      &  " Enter the moisture capacity data for the selected layer"
         CALL EASKS(TXT,MSG1,' ',72,' ',' data ',IER,nbhelp)
         NCFF = iCountWords(TXT)

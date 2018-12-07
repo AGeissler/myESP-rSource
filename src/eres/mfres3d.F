@@ -174,9 +174,9 @@ C type='bw' boundary wind, 'bk' boundary known
       DIMENSION  COG1(3),COG2(3),COG3(3)
       character t13*13
 #ifdef OSI
-      integer iix,iiy,iid4,iicol
+      integer iix,iiy,iid4,iicol,ibsize
 #else
-      integer*8 iix,iiy,iid4,iicol
+      integer*8 iix,iiy,iid4,iicol,ibsize
 #endif
 
       if(MMOD.lt.8) return  ! in text mode do not draw
@@ -208,23 +208,24 @@ C Draw circles depending on type. (powderblue is 27) (navy blue is 34)
 C Write name for other than 'iu'.
       if(type.eq.'iu')then
         write(t13,'(A)')name(1:lnblnk(name))
-        IF(IFS.GT.0)CALL winfnt(0)
+C        IF(IFS.GT.0)CALL winfnt(0)
         iid4 = iix +8  ! offset to right of circle
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
-        call winscl('z',iicol)
-        CALL wstxpt(iid4,iiy+8,t13)
-        IF(IFS.GT.0)CALL winfnt(IFS)
+        ibsize=0
+        call textsizeatxy(iid4,iiy+8,t13,ibsize,'z',iicol)
+C        IF(IFS.GT.0)CALL winfnt(IFS)
         call forceflush()
       else
         write(t13,'(A)')name(1:lnblnk(name))
-        IF(IFS.GT.0)CALL winfnt(0)
+C        IF(IFS.GT.0)CALL winfnt(0)
         iid4 = iix +8  ! offset to right of circle
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
-        call winscl('z',iicol)
-        CALL wstxpt(iid4,iiy+5,t13)
-        IF(IFS.GT.0)CALL winfnt(IFS)
+        ibsize=0
+C        call winscl('z',iicol)
+        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
+C        IF(IFS.GT.0)CALL winfnt(IFS)
         call forceflush()
       endif
       iicol=0
@@ -282,55 +283,41 @@ C Draw symbol depending on type.
 
 C Write name to the right of the symbol.
       t13=' '
+      ibsize=0
       if(type.eq.'bx')then
         write(t13,'(A)')name(1:lnblnk(name))
-        IF(IFS.GT.0)CALL winfnt(0)
         iid4 = iix +8
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
-        call winscl('z',iicol)
-        CALL wstxpt(iid4,iiy+5,t13)
-        IF(IFS.GT.0)CALL winfnt(IFS)
+        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       elseif(type.eq.'cr')then
         write(t13,'(A)')name(1:lnblnk(name))
-        IF(IFS.GT.0)CALL winfnt(0)
         iid4 = iix +10
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
-        call winscl('z',iicol)
-        CALL wstxpt(iid4,iiy+5,t13)
-        IF(IFS.GT.0)CALL winfnt(IFS)
+        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       elseif(type.eq.'cd')then
         write(t13,'(A)')name(1:lnblnk(name))
-        IF(IFS.GT.0)CALL winfnt(0)
         iid4 = iix +10
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
-        call winscl('z',iicol)
-        CALL wstxpt(iid4,iiy+5,t13)
-        IF(IFS.GT.0)CALL winfnt(IFS)
+        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       elseif(type.eq.'or')then
         write(t13,'(A)')name(1:lnblnk(name))
-        IF(IFS.GT.0)CALL winfnt(0)
         iid4 = iix +8
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
-        call winscl('z',iicol)
-        CALL wstxpt(iid4,iiy+5,t13)
-        IF(IFS.GT.0)CALL winfnt(IFS)
+        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       elseif(type.eq.'bi')then
         write(t13,'(A)')name(1:lnblnk(name))
-        IF(IFS.GT.0)CALL winfnt(0)
         iid4 = iix +8
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
-        call winscl('z',iicol)
-        CALL wstxpt(iid4,iiy+5,t13)
-        IF(IFS.GT.0)CALL winfnt(IFS)
+        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       endif
       iicol=0
@@ -561,9 +548,9 @@ C      character outs*124
       character t13*13
       DIMENSION COG1(3),COG2(3),COG3(3)
 #ifdef OSI
-      integer iix1,iiy1,iix2,iiy2,iicol,iid4
+      integer iix1,iiy1,iix2,iiy2,iicol,iid4,ibsize,ipixw
 #else
-      integer*8 iix1,iiy1,iix2,iiy2,iicol,iid4
+      integer*8 iix1,iiy1,iix2,iiy2,iicol,iid4,ibsize,ipixw
 #endif
 
       if(MMOD.lt.8) return  ! in text mode do not draw
@@ -622,12 +609,10 @@ C Draw the value word at half-way point.
       call u2pixel(COG3(1),COG3(2),iix1,iiy1)
       write(t13,'(A)')word(1:lnblnk(word))
       call textpixwidth(t13,ipixw)
-      IF(IFS.GT.0)CALL winfnt(0)
       iid4 = iix1-(ipixw/2)
       iicol=0   ! red
-      call winscl('z',iicol)
-      CALL wstxpt(iid4,iiy1-5,t13)
-      IF(IFS.GT.0)CALL winfnt(IFS)
+      ibsize=0
+      call textsizeatxy(iid4,iiy1-5,t13,ibsize,'z',iicol)
       call forceflush()
 
       return

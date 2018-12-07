@@ -1013,10 +1013,10 @@ C Set folder separator (fs) to \ or / as required.
 
 C If original application was started with -s X figure out what this was.
       call terminalmode(childterminal,tmode)
-      if(iappw.eq.630)then
+      if(iappw.eq.690)then
         iappwpc=100
       else
-        iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+        iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
       endif
 
 C Test if we can start a new prj within the model cfg folder.
@@ -1506,7 +1506,7 @@ C << interface for dbspath here >>
 
 C Zone file composition.
         IC=-1
- 254    CALL EASKGEOF('Select a zone to focus on:',CFGOK,IC,'-',IER)
+ 254    CALL EASKGEOF('Select a zone to focus on:',CFGOK,IC,'-',34,IER)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 42
         CALL EDBUILD(IC,IER)
 

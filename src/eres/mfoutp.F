@@ -148,13 +148,13 @@ C Simulator parameters.
 #ifdef OSI
       integer igx,iigx  ! see array above
       integer iupdown,isym    ! passed to etplot
-      integer iid1,iid2,iicol
+      integer iid1,iid2,iicol,ibsize
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iside,isize,ifont     ! passed to viewtext
 #else
       integer*8 igx,iigx  ! see array above
       integer*8 iupdown,isym    ! passed to etplot
-      integer*8 iid1,iid2,iicol
+      integer*8 iid1,iid2,iicol,ibsize
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
@@ -1303,11 +1303,12 @@ C Finally label lines, matching zone line colour if used.
               if(ICM.gt.nzonec) ICM=IMFGETNO(I,2)-nzonec
               if(ICM.gt.nzonec) ICM=IMFGETNO(I,2)-nzonec
               iicol=ICM
-              call winscl('z',iicol)
+C              call winscl('z',iicol)
             endif
           endif
           call u2pixel(TIMEold(I),Yold(I),iid1,iid2)
-          call wstxpt(iid1,iid2,t20)
+          ibsize=0
+          call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
@@ -1320,7 +1321,8 @@ C If there are optional user defined labels draw them.
           do 201 ijj=1,ngrlbl
             t24=grlbl(ijj)
             iid1=lblpx(ijj); iid2=lblpy(ijj);
-            call wstxpt(iid1,iid2,t24)
+            iicol=0; ibsize=0
+            call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
  201      continue
         endif
 

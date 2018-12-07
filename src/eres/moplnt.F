@@ -1299,7 +1299,7 @@ C ************************ fnddat *************************
 C Given the day, hour and current step, fnddat reads
 C the component 'ipc' results data from plant library
 C file.
-C State space variables data and additional outout
+C State space variables data and additional output.
 C data are stored in CSV?M and APCOUT arrays respectively.
       subroutine fnddat(ii,ipc,ier)
 #include "plant.h"

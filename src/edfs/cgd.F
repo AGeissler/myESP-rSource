@@ -679,38 +679,38 @@ C Transform end point to screen coords.
             call u2pixel(X1,Y1,iix,iiy)
 
             if(J.eq.2.and.I.eq.2)then  ! label the lower left corner
-              btemp='   '
+              btemp='   '; iicol=0
               write(btemp,'(a,i2.2)') 'i',i-1
-              CALL wstxpt(iixxhs,iixyhs+10,btemp)
+              call textatxy(iixxhs,iixyhs+10,btemp,'-',iicol)
               btemp='   '
               write(btemp,'(a,i2.2)') 'j',j-1
-              CALL wstxpt(iixhs-20,iiyhs+10,btemp)
+              call textatxy(iixhs-20,iiyhs+10,btemp,'-',iicol)
             elseif(I.eq.2.and.J.lt.NJ)then
 
 C If more than 20 cells only do every other one.
-              btemp='   '  ! along lower Y
+              btemp='   '; iicol=0  ! along lower Y
               write(btemp,'(a,i2.2)') 'j',j-1
               if(NJ.le.20)then
-                CALL wstxpt(iixhs-20,iiyhs+10,btemp)
+                call textatxy(iixhs-20,iiyhs+10,btemp,'-',iicol)
               else
                 im=MOD(j,2)
                 if(im.eq.1)then
                   continue
                 else
-                  CALL wstxpt(iixhs-20,iiyhs+10,btemp)
+                  call textatxy(iixhs-20,iiyhs+10,btemp,'-',iicol)
                 endif
               endif
             elseif(J.eq.2.and.I.lt.NI)then
-              btemp='   '
+              btemp='   '; iicol=0
               write(btemp,'(a,i2.2)') 'i',i-1
               if(NI.le.20)then
-                CALL wstxpt(iixxhs,iixyhs+10,btemp)
+                call textatxy(iixxhs,iixyhs+10,btemp,'-',iicol)
               else
                 im=MOD(i,2)
                 if(im.eq.1)then
                   continue
                 else
-                  CALL wstxpt(iixxhs,iixyhs+10,btemp)
+                  call textatxy(iixxhs,iixyhs+10,btemp,'-',iicol)
                 endif
               endif
             endif
@@ -760,31 +760,31 @@ C Get half way point for west face cells.
             call u2pixel(X1,Y1,iixhs,iiyhs)
 
             if(J.eq.NJ.and.K.lt.NK)then
-              btemp='   '  ! along the left vertical
+              btemp='   '; iicol=0  ! along the left vertical
               write(btemp,'(a,i2.2)') 'k',k-1
               if(NK.le.20)then
-                CALL wstxpt(iixs-20,iiys-5,btemp)
+                call textatxy(iixs-20,iiys-5,btemp,'-',iicol)
               else
                 im=MOD(k,2)
                 if(im.eq.1)then
                   continue
                 else
-                  CALL wstxpt(iixs-20,iiys-5,btemp)
+                  call textatxy(iixs-20,iiys-5,btemp,'-',iicol)
                 endif
               endif
             endif
             if(ig.eq.3)then
               if(K.eq.2.and.J.lt.NJ)then
-                btemp='   '  ! along the left lower Y
+                btemp='   '; iicol=0  ! along the left lower Y
                 write(btemp,'(a,i2.2)') 'j',j-1
                 if(NJ.le.20)then
-                  CALL wstxpt(iixhs-20,iiyhs+10,btemp)
+                  call textatxy(iixhs-20,iiyhs+10,btemp,'-',iicol)
                 else
                   im=MOD(j,2)
                   if(im.eq.1)then
                     continue
                   else
-                    CALL wstxpt(iixhs-20,iiyhs+10,btemp)
+                    call textatxy(iixhs-20,iiyhs+10,btemp,'-',iicol)
                   endif
                 endif
               endif
@@ -840,16 +840,16 @@ C Get half way point for south face cells.
 
             if(ig.eq.2)then
               if(k.eq.2.and.I.lt.NI)then
-                btemp='   '   ! labels along lower X axis
+                btemp='   '; iicol=0   ! labels along lower X axis
                 write(btemp,'(a,i2.2)') 'i',i-1
                 if(NI.le.20)then
-                  CALL wstxpt(iixxhs,iixyhs+10,btemp)
+                call textatxy(iixxhs,iixyhs+10,btemp,'-',iicol)
                 else
                   im=MOD(i,2)
                   if(im.eq.1)then
                     continue
                   else
-                    CALL wstxpt(iixxhs,iixyhs+10,btemp)
+                    call textatxy(iixxhs,iixyhs+10,btemp,'-',iicol)
                   endif
                 endif
               endif
@@ -863,16 +863,16 @@ C Transform end point to screen coords.
 
             if(ig.eq.2)then
               if(I.eq.2.and.K.lt.NK)then
-                btemp='   '   ! labels along left vertical
+                btemp='   '; iicol=0   ! labels along left vertical
                 write(btemp,'(a,i2.2)') 'k',k-1
                 if(NK.le.20)then
-                  CALL wstxpt(iix-20,iiy-5,btemp)
+                  call textatxy(iix-20,iiy-5,btemp,'-',iicol)
                 else
                   im=MOD(j,2)
                   if(im.eq.1)then
                     continue
                   else
-                    CALL wstxpt(iix-20,iiy-5,btemp)
+                    call textatxy(iix-20,iiy-5,btemp,'-',iicol)
                   endif
                 endif
               endif
@@ -1037,9 +1037,9 @@ C #include "geometry.h"
 
       character LLOCAT*4,outs*124,temp*12
 #ifdef OSI
-      integer iixs,iiys,iix,iiy
+      integer iixs,iiys,iix,iiy,iicol
 #else
-      integer*8 iixs,iiys,iix,iiy
+      integer*8 iixs,iiys,iix,iiy,iicol
 #endif
       real XPP,YPP,ZPP  ! points taking into account zone minimum
       real XX,YY,ZZ
@@ -1140,7 +1140,8 @@ C Label in center of boundary.
      &                     (1:LNBLNK(VOLNAME(IVOLNSB(Isbn,ICFD),ICFD)))
 
 c          write (temp,'(a,i2)') 'SB',Isbn
-          CALL wstxpt(iix,iiy,temp)
+          iicol=0
+          call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
 
         elseif (ILOCAT.eq.3.or.ILOCAT.eq.4) then
@@ -1219,10 +1220,11 @@ C Label in center of boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-c          write (temp,'(a,i2)') 'SB',Isbn
+C          write (temp,'(a,i2)') 'SB',Isbn
           write (temp,'(a)')VOLNAME(IVOLNSB(Isbn,ICFD),ICFD)
      &                     (1:LNBLNK(VOLNAME(IVOLNSB(Isbn,ICFD),ICFD)))
-          CALL wstxpt(iix,iiy,temp)
+          iicol=0
+          call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
         elseif (ILOCAT.eq.5.or.ILOCAT.eq.6) then
           if (ILOCAT.eq.6) then
@@ -1303,7 +1305,8 @@ C Label in center of boundary.
           write (temp,'(a)')VOLNAME(IVOLNSB(Isbn,ICFD),ICFD)
      &                     (1:LNBLNK(VOLNAME(IVOLNSB(Isbn,ICFD),ICFD)))
 c          write (temp,'(a,i2)') 'SB',Isbn
-          CALL wstxpt(iix,iiy,temp)
+          iicol=0
+          call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
         endif
  70   continue
@@ -1345,9 +1348,9 @@ C VAO3D - draws the air openings - highlighting the chosen one.
       character LLOCAT*4,outs*124,temp*12
       character VOLNAME*12, VCsurf*12
 #ifdef OSI
-      integer iixs,iiys,iix,iiy
+      integer iixs,iiys,iix,iiy,iicol
 #else
-      integer*8 iixs,iiys,iix,iiy
+      integer*8 iixs,iiys,iix,iiy,iicol
 #endif
 
 C Check in graphics mode.
@@ -1442,7 +1445,8 @@ C Label in center of boundary.
           call u2pixel(X1,Y1,iix,iiy)
           write (temp,'(a)')VOLNAME(IVOLN(Iaop,ICFD),ICFD)
      &                       (1:LNBLNK(VOLNAME(IVOLN(Iaop,ICFD),ICFD)))
-          CALL wstxpt(iix,iiy,temp)
+          iicol=0
+          call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
 
         elseif (ILOCAT.eq.3.or.ILOCAT.eq.4) then
@@ -1524,7 +1528,8 @@ C Label in center of boundary.
           call u2pixel(X1,Y1,iix,iiy)
           write (temp,'(a)')VOLNAME(IVOLN(Iaop,ICFD),ICFD)
      &                       (1:LNBLNK(VOLNAME(IVOLN(Iaop,ICFD),ICFD)))
-          CALL wstxpt(iix,iiy,temp)
+          iicol=0
+          call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
         elseif (ILOCAT.eq.5.or.ILOCAT.eq.6) then
           if (ILOCAT.eq.6) then
@@ -1605,7 +1610,8 @@ C Label in center of boundary.
           call u2pixel(X1,Y1,iix,iiy)
           write (temp,'(a)')VOLNAME(IVOLN(Iaop,ICFD),ICFD)
      &                       (1:LNBLNK(VOLNAME(IVOLN(Iaop,ICFD),ICFD)))
-          CALL wstxpt(iix,iiy,temp)
+          iicol=0
+          call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
         endif
  70   continue
@@ -1647,9 +1653,9 @@ C integer INSSO() point to the volume which defines the small supply shape
 
 C Arrays iixv iiyv iizz are the 8 coords of a box in the usual order.
 #ifdef OSI
-      integer iixs,iiys,iix,iiy,iixv(8),iiyv(8)
+      integer iicol,iixs,iiys,iix,iiy,iixv(8),iiyv(8)
 #else
-      integer*8 iixs,iiys,iix,iiy,iixv(8),iiyv(8)
+      integer*8 iicol,iixs,iiys,iix,iiy,iixv(8),iiyv(8)
 #endif
       real XPP,YPP,ZPP  ! points taking into account zone minimum
       real XX,YY,ZZ
@@ -1743,7 +1749,8 @@ C Label in center of blockage.
         CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
         call u2pixel(X1,Y1,iix,iiy)
         write (temp,'(a,i2.2)') 'Bl',IBLK
-        CALL wstxpt(iix,iiy,temp)
+        iicol=0
+        call textatxy(iix,iiy,temp,'-',iicol)
         call forceflush()
 
 C Draw around blockage in single or double lines is the usual order.

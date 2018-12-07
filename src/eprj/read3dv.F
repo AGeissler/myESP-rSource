@@ -65,18 +65,19 @@ C Passed parameter.
       CHARACTER ETEXT*82
       CHARACTER temp*16,DESCRC*25,stemp*13,OUTSTR*124,temp20*21
       CHARACTER MLCN*32,t13*13
+      integer izsize,issize
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iside,isize,ifont     ! passed to viewtext
       integer iix,iiy,iixlast,iiylast,iixc,iiyc,iid1,iid2,iid3,iid4
-      integer iicol
+      integer iicol           ! passed to textsizeatxy
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iix,iiy,iixlast,iiylast,iixc,iiyc,iid1,iid2,iid3,iid4
-      integer*8 iicol
+      integer*8 iicol           ! passed to textsizeatxy
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
@@ -90,8 +91,12 @@ C If libraries and monitor support greyscale remember this.
         greyok=.true.
       endif
 
-C Set font for displaying surface names etc.
+C Set font for displaying zone & surface names etc.
+C      write(6,'(a,3i2)') 'DRAWESP IFS,ITFS,IMFS',IFS,ITFS,IMFS
       NAMEFT=IFS
+      issize=4; izsize=5  ! for surfaces and zone name
+C Debug.
+C      write(6,'(a,2i2)') 'DRAWESP issize izsize',issize,izsize
 
 C The right offset for the graphic box is the character width of the
 C menu. Also allow 2 text lines at the bottom for future dialogue.
@@ -225,11 +230,12 @@ C re-create t13 after textpixwidth call.
         t13=' '
         write(t13,'(A)')zname(nznog(IZ))(1:lnzname(nznog(IZ)))
         call textpixwidth(t13,ipixw)
-        IF(IFS.GT.0)CALL winfnt(NAMEFT+1)
         write(t13,'(A)')zname(nznog(IZ))(1:lnzname(nznog(IZ)))
         iid4 = iix - (ipixw/2)
-        CALL wstxpt(iid4,iiy,t13)
-        IF(IFS.GT.0)CALL winfnt(IFS)
+        CALL winfnt(izsize)
+        iicol=0
+        call textatxy(iid4,iiy,t13,'-',iicol)
+        CALL winfnt(IMFS)
       ENDIF
 
 C << how to treat errors? >>
@@ -278,18 +284,19 @@ C draw it as a solid circle.
 
 C If less than 2 hits then draw a legend for the meaning
 C of the vertex symbols.
-            IF(IFS.GT.0)CALL winfnt(1)
+            CALL winfnt(issize)
             iid1=igl+20; iid2=igb+25;
             CALL ecirc(iid1,iid2,3,1)
             write(temp,'(A)')'Unlinked vertex'
             iid1=igl+30; iid2=igb+30;
-            CALL wstxpt(iid1,iid2,temp)
+            iicol=0
+            call textatxy(iid1,iid2,temp,'-',iicol)
             iid1=igl+140; iid2=igb+25;
             CALL ecirc(iid1,iid2,3,0)
             write(temp20,'(A)')'Single-linked vertex'
             iid1=igl+150; iid2=igb+30;
-            CALL wstxpt(iid1,iid2,temp20)
-            IF(IFS.GT.0)CALL winfnt(IFS)
+            call textatxy(iid1,iid2,temp20,'-',iicol)
+            CALL winfnt(IMFS)
           ENDIF
   204   CONTINUE
         call forceflush()
@@ -572,7 +579,7 @@ C to normal size.
         IF(ITSNM.EQ.0)THEN
           IF(NAP.EQ.NBP)THEN
             if(icc.ne.0)then
-             IF(IFS.GT.0)CALL winfnt(NAMEFT)
+              CALL winfnt(issize)
               write(stemp,'(A)')SSNAME(IC)
 
 C If surface normals to be displayed draw an arrow and
@@ -592,8 +599,9 @@ C offset the surface name depending on orientation.
                 ELSE
                   iixc=iixc+5
                 ENDIF
-                CALL wstxpt(iixc,iiyc,stemp)
-                IF(IFS.GT.0)CALL winfnt(IFS)
+                iicol=0
+                call textatxy(iixc,iiyc,stemp,'-',iicol)
+                CALL winfnt(IMFS)
               else
                 CG(1)=SSURCOG(icc,1); CG(2)=SSURCOG(icc,2)
                 CG(3)=SSURCOG(icc,3)
@@ -636,8 +644,9 @@ C Draw arrow to surface then down and horizontal to the text.
                   iiyc=iiyc+5; iixc=iixc+7
                 ENDIF
                 iid4=iiyc+3
-                CALL wstxpt(iixc,iid4,stemp)
-                IF(IFS.GT.0)CALL winfnt(IFS)
+                iicol=0
+                call textatxy(iixc,iid4,stemp,'-',iicol)
+                CALL winfnt(IMFS)
               endif
             endif
           ENDIF

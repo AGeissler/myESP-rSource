@@ -408,7 +408,8 @@ C Use COG of the mass surface in order to draw its name.
           call u2pixel(COG3(1),COG3(2),iix,iiy)
           temp='        '
           write(temp,'(a)') msurname(loop)
-          CALL wstxpt(iix,iiy,temp)
+          iicol=0
+          call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
  1000   continue  ! of loop nbmass
 
@@ -498,7 +499,8 @@ C Use COG of the bounding surface in order to draw its name.
           call u2pixel(COG3(1),COG3(2),iix,iiy)
           temp='        '
           write(temp,'(a)') bsurname(loop)
-          CALL wstxpt(iix,iiy,temp)
+          iicol=0
+          call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
  1001   continue  ! of loop nbmass
 
@@ -526,7 +528,8 @@ C Place its name near first vertex.
           call u2pixel(COG3(1),COG3(2),iix,iiy)
           write(temp,'(A)')objvisname(IB)
           iid2=iiy+8
-          CALL wstxpt(iix,iid2,temp)
+          iicol=0
+          call textatxy(iix,iid2,temp,'-',iicol)
           do J = 1,MV
             IANXT(J) = 0; IBNXT(J) = 0
           enddo
@@ -625,7 +628,8 @@ C Place its name near first vertex.
           call u2pixel(COG3(1),COG3(2),iix,iiy)
           write(temp,'(A)')objblockname(IB)
           iid2=iiy+8
-          CALL wstxpt(iix,iid2,temp)
+          iicol=0
+          call textatxy(iix,iid2,temp,'-',iicol)
 
 C Follow the usual pattern.
           do J = 1,MV

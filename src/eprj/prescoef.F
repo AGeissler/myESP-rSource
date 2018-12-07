@@ -570,7 +570,7 @@ C Add/generate coordinates.
         IF(IACC.EQ.1) THEN
 
 C Manual input of cordinates. 
-          CALL EASKGEOF('Select a zone for coords:',CFGOK,IC,'-',IER)
+          CALL EASKGEOF('Select a zone for coords:',CFGOK,IC,'-',34,IER)
           IUF=IFIL+1
           call georead(IUF,LGEOM(IC),IC,1,iuout,IER)
           nzg=1

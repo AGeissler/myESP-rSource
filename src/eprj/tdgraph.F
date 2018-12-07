@@ -121,9 +121,9 @@ C If plotting colours for different lines set this.
         IF(M.EQ.1)THEN
           iid1=50; iid2=igt-15;
           if(use14)then
-            CALL wstxpt(iid1,iid2,temp2)
+            call textatxy(iid1,iid2,temp2,'-',iicol)
           else
-            CALL wstxpt(iid1,iid2,temp3)
+            call textatxy(iid1,iid2,temp3,'-',iicol)
           endif
           iid1=20; iid2=igt-20;
           call eline (iid1,iid2, LNMVAB)
@@ -135,9 +135,9 @@ C If plotting colours for different lines set this.
         ELSEIF(M.EQ.2)THEN
           iid1=50; iid2=igt-35;
           if(use14)then
-            CALL wstxpt(iid1,iid2,temp2)
+            call textatxy(iid1,iid2,temp2,'-',iicol)
           else
-            CALL wstxpt(iid1,iid2,temp3)
+            call textatxy(iid1,iid2,temp3,'-',iicol)
           endif
           iid1=20; iid2=igt-40;
           call eline (iid1,iid2, LNMVAB)
@@ -149,9 +149,9 @@ C If plotting colours for different lines set this.
         ELSEIF(M.EQ.3)THEN
           iid1=170; iid2=igt-15;
           if(use14)then
-            CALL wstxpt(iid1,iid2,temp2)
+            call textatxy(iid1,iid2,temp2,'-',iicol)
           else
-            CALL wstxpt(iid1,iid2,temp3)
+            call textatxy(iid1,iid2,temp3,'-',iicol)
           endif
           iid1=140; iid2=igt-20;
           call eline (iid1,iid2, LNMVAB)
@@ -163,9 +163,9 @@ C If plotting colours for different lines set this.
         ELSEIF(M.EQ.4)THEN
           iid1=170; iid2=igt-35;
           if(use14)then
-            CALL wstxpt(iid1,iid2,temp2)
+            call textatxy(iid1,iid2,temp2,'-',iicol)
           else
-            CALL wstxpt(iid1,iid2,temp3)
+            call textatxy(iid1,iid2,temp3,'-',iicol)
           endif
           iid1=140; iid2=igt-40;
           call eline (iid1,iid2, LNMVAB)
@@ -177,9 +177,9 @@ C If plotting colours for different lines set this.
         ELSEIF(M.EQ.5)THEN
           iid1=290; iid2=igt-15;
           if(use14)then
-            CALL wstxpt(iid1,iid2,temp2)
+            call textatxy(iid1,iid2,temp2,'-',iicol)
           else
-            CALL wstxpt(iid1,iid2,temp3)
+            call textatxy(iid1,iid2,temp3,'-',iicol)
           endif
           iid1=260; iid2=igt-20;
           call eline (iid1,iid2, LNMVAB)
@@ -191,9 +191,9 @@ C If plotting colours for different lines set this.
         ELSEIF(M.EQ.6)THEN
           iid1=290; iid2=igt-35;
           if(use14)then
-            CALL wstxpt(iid1,iid2,temp2)
+            call textatxy(iid1,iid2,temp2,'-',iicol)
           else
-            CALL wstxpt(iid1,iid2,temp3)
+            call textatxy(iid1,iid2,temp3,'-',iicol)
           endif
           iid1=260; iid2=igt-40;
           call eline (iid1,iid2, LNMVAB)
@@ -205,9 +205,9 @@ C If plotting colours for different lines set this.
         ELSEIF(M.EQ.7)THEN
           iid1=410; iid2=igt-15;
           if(use14)then
-            CALL wstxpt(iid1,iid2,temp2)
+            call textatxy(iid1,iid2,temp2,'-',iicol)
           else
-            CALL wstxpt(iid1,iid2,temp3)
+            call textatxy(iid1,iid2,temp3,'-',iicol)
           endif
           iid1=380; iid2=igt-20;
           call eline (iid1,iid2, LNMVAB)
@@ -219,9 +219,9 @@ C If plotting colours for different lines set this.
         ELSEIF(M.EQ.8)THEN
           iid1=410; iid2=igt-35;
           if(use14)then
-            CALL wstxpt(iid1,iid2,temp2)
+            call textatxy(iid1,iid2,temp2,'-',iicol)
           else
-            CALL wstxpt(iid1,iid2,temp3)
+            call textatxy(iid1,iid2,temp3,'-',iicol)
           endif
           iid1=380; iid2=igt-40;
           call eline (iid1,iid2, LNMVAB)
@@ -233,9 +233,9 @@ C If plotting colours for different lines set this.
         ELSEIF(M.EQ.9)THEN
           iid1=530; iid2=igt-15;
           if(use14)then
-            CALL wstxpt(iid1,iid2,temp2)
+            call textatxy(iid1,iid2,temp2,'-',iicol)
           else
-            CALL wstxpt(iid1,iid2,temp3)
+            call textatxy(iid1,iid2,temp3,'-',iicol)
           endif
           iid1=500; iid2=igt-20;
           call eline (iid1,iid2, LNMVAB)

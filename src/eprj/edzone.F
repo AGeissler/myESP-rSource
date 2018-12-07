@@ -2083,10 +2083,10 @@ C and change any / to \.
       endif
 
 C Get application % nopminal size.
-      if(iappw.eq.630)then
+      if(iappw.eq.690)then
         iappwpc=100
       else
-        iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+        iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
       endif
 
       if(act(1:3).eq.'sr ')then

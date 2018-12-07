@@ -420,9 +420,13 @@ C ITM is main item editing menu.
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer iicapture   ! to pass to updcapt
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 iicapture   ! to pass to updcapt
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
 C For help messages
@@ -441,7 +445,8 @@ C Check if Unix-based or DOS based.
       altered = .false.
 
 C Graphic analysis. Enlarge graphics area slightly and reset graphic
-C display period to the whole year.
+C display period to the whole year. Also if possible drop one size
+C of font for the menu.
       if(MMOD.EQ.8)then
         ID1=1; IM1=1
         ID2=31; IM2=12
@@ -449,6 +454,11 @@ C display period to the whole year.
         CALL EDAY(ID2,IM2,IIDF)
         IDS=IIDS
         IDF=IIDF
+        lastmenu=IMFS
+        if(IMFS.gt.4)then
+          IMFS=IMFS-1
+          call userfonts(IFS,ITFS,IMFS)
+        endif
 
 C Altering the menu width sometimes causes re-draw issues so
 C comment this out and let the menu cover over part of the graph
@@ -580,17 +590,28 @@ C Context help
 
 C Reset the graphic context prior to leaving. Currently commented out
 C (to match the initial menuchw comment out above).
-C        if(MMOD.EQ.8)then
-C          if(iappw.gt.0.and.iappw.lt.100)then
-C            menuchw = MAX0(int(28*iappw*0.01),12)
-C            LIMTTY= MAX0(int(6*iappw*0.01),4)
-C            LIMIT = MAX0(int(6*iappw*0.01),4)
-C          else
-C            menuchw = 28
-C            LIMTTY=6
-C            LIMIT =6
-C          endif
-C        endif
+        if(MMOD.EQ.8)then
+          IMFS=lastmenu
+          call userfonts(IFS,ITFS,IMFS)
+          menuchw = 28
+          LIMTTY=6
+          LIMIT =6
+
+C Setup and pass in parameters to win3d.
+          iiw1=10; iiw2=22; iiw3=7; iiw4=3; iimenu=menuchw
+          iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
+          ilf=2; ild=LIMTTY
+          call winclr
+          CALL feedbox(iimenu,ilf,igfw,igfh)
+          CALL opengdisp(iimenu,ild,ilf,igdw,igdh)
+          CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
+     &      iigl,iigr,iigt,iigb,iigw,iigwh)
+          igl=int(iigl);igr=int(iigr);igt=int(iigt);igb=int(iigb)
+          igw=int(iigw);igwh=int(iigwh)
+          call opencpw
+          call opensetup
+          call usrmsg(' ',' ','-')  ! To refresh bottom dialog
+        endif
         return
       elseif(INO.eq.1)then
 

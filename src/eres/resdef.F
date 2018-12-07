@@ -795,6 +795,8 @@ C NZNO - zone number of each.
       COMMON/C1/NCOMP,NCON
 
       DIMENSION IVALS(MCOM)
+      DIMENSION zn(MCON)
+      character*(20) zn  ! local string array of typical menu width
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -803,15 +805,20 @@ C For help messages
 
       helpinsub='MOZDFN'  ! set for subroutine
 
-C If default setup then link in all zones in the model.
+C If default setup then link in all zones in the model. Setup local
+C array zn for use in the selection list.
       IF(IDEFLT.EQ.1)then
         NZ=NCOMP
-        DO 50 I=1,NZ
+        DO I=1,NZ
           NZNO(I)=I
-   50   CONTINUE
+        ENDDO
         call edisp(iuout,' ')
         call edisp(iuout,' All zones considered for output.')
         RETURN
+      else
+        DO I=1,NCOMP
+          write(zn(i),'(a)') zname(i)(1:lnblnk(zname(i)))
+        ENDDO
       endif
 
 C If only one zone then set NZNO and NZ accordingly.
@@ -832,8 +839,12 @@ C Otherwise select the zones from a list of zone names.
       else
         INPIC=NCOMP
       endif
-      CALL EPICKS(INPIC,IVALS,' ',' Which zones to include: ',
-     &  12,NCOMP,zname,' zone list',IER,nbhelp)
+
+C Show list of zones (make list the same width as other res
+C menus. Internally EPICKS adds 4 to the width passed. So
+C for typical 23 character menu lets use 20.
+      CALL EPICKS(INPIC,IVALS,' ','Which zones to include:',
+     &  20,NCOMP,zn,' zone list',IER,nbhelp)
       NZ=INPIC
       DO 40 I=1,INPIC
         NZNO(I)=IVALS(I)

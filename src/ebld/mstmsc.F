@@ -27,8 +27,8 @@ C R            universal gas constant  8314.4  (J/mole K)
 C MOLH2O       molecular mass of water 18.016  (kg/kmole)
 C ScPrn1       (Sc/Pr)^(n-1)
 C ALPHA        convective heat transfer coefficient (W/m2 K)
-C TC           ambient temperature    ( C )
-C TK           ambient temperature    ( K )
+C TC           ambient temperature    (C)
+C TK           ambient temperature    (K)
 C CP           air specific heat capacity  (J/kg K)
 C RhoA         air density (kg/m^3)
 C *********************************************************************
@@ -59,7 +59,7 @@ C relative humidity and sorption isotherms provided by (Marieke 1994,
 C Hansen 1986 Technical reprort 162/86 Technical University of Denmark).
 C U01   moisture content (kg/m3)
 C RH    relative humidity
-C Uh    max hygroscopic moisture content (kg/m3) ((?? unit??))
+C Uh    max hygroscopic moisture content (kg/m3) (unit?)
 C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
 C
@@ -104,13 +104,13 @@ C       We have an air layer, set average value ...
       END
 
 C *********************************************************************
-C XI01 determines the value for moisture capacity ( slope for sorption
+C XI01 determines the value for moisture capacity (slope for sorption
 C isotherm) using curve fitting techniques for sorption isotherms 
 C provided by (Marieke 1994, Hansen 1986 Technical reprort 162/86
 C Technical University of Denmark).
 C XI01  moisture capacity (kg/m3)
 C RH    relative humidity (-)
-C Uh    max hygroscopic moisture content (kg/m3) ((unit?? ))
+C Uh    max hygroscopic moisture content (kg/m3) (unit?)
 C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
 C
@@ -224,56 +224,41 @@ C *********************************************************************
         Xf=X03(TCf,RHf,Pt) ! kg_vap / kg_dry-air
         XIair01=(Xf-Xp)/RHfp
         iSource=2
-        IF(XIair01.LT.DBLE(SMALL)) then
+        IF(XIair01.LE.0.0) then
           XIair01=XIair02(Pvp,TCp,Pt)
           iSource=3
-        ELSEIF(XIair01.GT.DBLE(LARGE)) then
-          XIair01=XIair02(Pvp,TCp,Pt)
-          iSource=4
         ENDIF
       ENDIF
       IF(XIair01.LT.DBLE(SMALL))then
         write(outs,'(A,A)')'XIair01: small moist. cap for case of:',
      &   ' Pvp Pvf TCp TCf  RHfp Xp Xf  Pabs iS'
         call edisp(iuout,outs)
-        write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,I2,1X,E14.7,A)')
-     &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,XIair01,
-     &    ' resetting'
+        write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,I2,A)')
+     &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,' resetting'
         call edisp(iuout,outs)
         XIair01=1.0E-10
-      endif
-      IF(XIair01.GT.DBLE(LARGE))then
-        write(outs,'(A,A)')'XIair01: large moist. cap for case of:',
-     &   ' Pvp Pvf TCp TCf  RHfp Xp Xf  Pabs iS'
-        call edisp(iuout,outs)
-        write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,1X,I2,1X,E14.7,A)')
-     &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,XIair01,
-     &    ' resetting'
-        call edisp(iuout,outs)
-        XIair01=LARGE
       endif
       RETURN
       END
 
 C *********************************************************************
-C XIair02 determines the value for moisture capacity ( slope for sorption
+C XIair02 determines the value for moisture capacity (slope for sorption
 C isotherm) for air node by differentiating the moisture content formulae
 C with respect to relative humidity at fixed temperature and total 
-C pressure. (No reference.)
+C pressure.
 C *********************************************************************
       FUNCTION XIair02(Pv,TC,Pt)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
       SMALL=1.0E-15
 
-cx      Ra=287.06
-cx      Rv=461.5
-cx      RATIO=Ra/Rv
-      RATIO=0.6220152
+      Ra=287.06
+      Rv=461.5
+      RATIO=Ra/Rv
       Ps=Psat01(TC)
       RH=Pv/Ps
       IF(RH.GT.RHmax)RH=RHmax
-      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [kg/[-]]
+      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-]? Should be kg/m3 !!?
       IF(XIair02.LT.DBLE(SMALL))then
         call edisp(iuout,'XIair02: very small moisture capacity.')
         call epwait
@@ -366,30 +351,28 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C EVAP01 determines the latent heat of evaporation (transformation) as
+C EVAP01 determines the latent heat of evapouration (transformation) as 
 C a function of temperature (Marieke 1994).
-C EVAP01   latent heat of evapouration  (J/kgv)
-C EVAPr    reference heat of condensation at T=0 C  (J/kgv)
-C CPlqd    specific heat capacity for liquid water  (J/kgv K)
-C CPvap    specific heat capacity for vapour water  (J/kgv K)
+C EVAP01   latent heat of evapouration (J/kgv)
+C EVAPr    reference heat of condensation at T=0 C (J/kgv)
+C CPlqd    specific heat capacity for liquid water (J/kgv K)
+C CPvap    specific heat capacity for vapour water (J/kgv K)
 C DCP=CPlqd-CPvap
-C TC       temperature in ( C )
+C TC       temperature (C)
 C *********************************************************************
       FUNCTION EVAP01(TC)
       COMMON/OUTIN/IUOUT,IUIN
       character outs*124
 
       EVAPr=2.5008E6
-      EVAPmin=2.0E6
       DCP=2430.0
       EVAP01=EVAPr-DCP*TC
-      IF(EVAP01.LT.EVAPmin)then
-        write(outs,'(a,E12.6,a,F12.6,a,F12.6,a)')
-     &   'EVAP01: unrealistically small latent heat of evaporation ',
-     &    EVAP01,' at temp=',TC,' C, resetting to ',
-     &    0.001*EVAPmin,' kJ/kg.'
+      IF(EVAP01.LT.0.0)then
+        write(outs,'(a,F12.6,a)') 
+     &   'EVAP01: negative latent heat of evapouration',
+     &    EVAP01,' resetting to 1.0E-10'
         call edisp(iuout,outs)
-        EVAP01=EVAPmin
+        EVAP01=1.0E-10
       endif
       RETURN
       END
@@ -474,7 +457,7 @@ C *********************************************************************
 
 C *********************************************************************
 C CPair01 calculates the specific heat capacity of dry air (J/kg K)
-C as a function of temperature ( C ) (Marieke 1994, Ham 1984)
+C as a function of temperature (C) (Marieke 1994, Ham 1984)
 C *********************************************************************
       FUNCTION CPair01(TC)
       COMMON/OUTIN/IUOUT,IUIN
@@ -491,7 +474,7 @@ C *********************************************************************
 
 C *********************************************************************
 C CPvpr01 calculates the specific heat capacity of water vapour (J/kg K)
-C as a function of temperature ( C ) (Marieke 1994, Ham 1984)
+C as a function of temperature (C) (Marieke 1994, Ham 1984)
 C *********************************************************************
       FUNCTION CPvpr01(TC)
       COMMON/OUTIN/IUOUT,IUIN
@@ -508,7 +491,7 @@ C *********************************************************************
 
 C *********************************************************************
 C CPmst01 calculates the specific heat capacity of moist air (J/kg K)
-C as a function of temperature ( C ) and moisture content (kg/kg dry air)
+C as a function of temperature (C) and moisture content (kg/kg dry air)
 C (Marieke 1994, Ham 1984).
 C *********************************************************************
       FUNCTION CPmst01(TC,X)
@@ -528,7 +511,7 @@ C *********************************************************************
 C RHOdry01 calculates the density of dry air (kg/m^3) at known temperature
 C and pressure using the ideal gas law
 C Ra    gas constant for dry air (J/kgK)
-C TC    temperature ( C)
+C TC    temperature (C)
 C Pdry  pressure (Pa)
 C *********************************************************************
       FUNCTION RHOdry01(TC)
@@ -563,14 +546,11 @@ C *********************************************************************
       END
 C *********************************************************************
 C Psat01 calculates the saturation vapour pressure (Pa) as a function of
-C temperature ( C ) (Marieke 1994, IEA 1991, vol 1, page 4.8)
+C temperature (C) (Marieke 1994, IEA 1991, vol 1, page 4.8)
 C *********************************************************************
       FUNCTION Psat01(TC)
       COMMON/OUTIN/IUOUT,IUIN
-      character outs*124
       SMALL=1.0E-15
-
-cx      if (TC.gt.300) TC=300.
 
       IF(TC.GT.-30.0.AND.TC.LT.0.0)THEN
         A = 82.9E-3
@@ -586,11 +566,7 @@ cx      if (TC.gt.300) TC=300.
         Psat01=100.0*SATVP(TC)
       ENDIF
       IF(Psat01.LT.SMALL)then
-        write(outs,'(a,F12.6,a)')
-     &   'Psat01: small saturation vapour pressure at temp=',
-     &   TC,' C, forcing STOP!'
-        call edisp(iuout,outs)
-cx        call edisp(iuout,'Psat01: small saturation vapour pressure.')
+        call edisp(iuout,'Psat01: small saturation vapour pressure.')
         call epwait
         call epagend
         STOP
@@ -599,8 +575,8 @@ cx        call edisp(iuout,'Psat01: small saturation vapour pressure.')
       END
 
 C *********************************************************************
-C Pvpr01 calculates the vapour pressure ( Pa ) knowing the total pressure
-C ( Pa ) and vapour ratio (kg/kg) (Marieke 1994).
+C Pvpr01 calculates the vapour pressure (Pa) knowing the total pressure
+C (Pa) and vapour ratio (kg/kg) (Marieke 1994).
 C *********************************************************************
       FUNCTION Pvpr01(X,Pt)
       COMMON/OUTIN/IUOUT,IUIN
@@ -618,8 +594,8 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C Pvpr02 calculates the vapour pressure ( Pa ) knowing the temperature
-C ( C ) and relative humidity (-) (Marieke 1994).
+C Pvpr02 calculates the vapour pressure (Pa) knowing the temperature
+C (C) and relative humidity (-) (Marieke 1994).
 C *********************************************************************
       FUNCTION Pvpr02(TC,RH)
       COMMON/OUTIN/IUOUT,IUIN
@@ -638,7 +614,7 @@ C *********************************************************************
 
 C *********************************************************************
 C RHOmst01 calculates the density of moist air (kg/m^3) knowing the
-C temperature ( C ), vapour pressure ( Pa ) and total pressure ( Pa )
+C temperature (C), vapour pressure (Pa) and total pressure ( Pa )
 C (Marieke 1994)
 C Ra   gas constant for dry air     (J/kgK)
 C Rv   gas constant for water vapour (J/kgK)
@@ -662,7 +638,7 @@ C *********************************************************************
 
 C *********************************************************************
 C RHOmst02 calculates the density of moist air (kg/m^3) knowing the
-C temperature ( C ), vapour pressure ( Pa ) and total pressure ( Pa )
+C temperature (C), vapour pressure (Pa) and total pressure (Pa)
 C (Marieke 1994)
 C *********************************************************************
       FUNCTION RHOmst02(TC,X,Pt)
@@ -682,7 +658,7 @@ C *********************************************************************
 
 C *********************************************************************
 C RHOmst03 calculates the density of moist air (kg/m^3) knowing the
-C temperature ( C )and relative humidity (-) (Marieke 1994)
+C temperature (C)and relative humidity (-) (Marieke 1994)
 C *********************************************************************
       FUNCTION RHOmst03(TC,RH,Pt)
       COMMON/MOIST17/RHmax
@@ -702,8 +678,8 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C Pt01 calculates the total pressure ( Pa ) knowing the altitude H (m)
-C and temperature T ( C ) (Marieke 1994, Ham 1984)
+C Pt01 calculates the total pressure (Pa) knowing the altitude H (m)
+C and temperature T ( C) (Marieke 1994, Ham 1984)
 C G     acceleration due to gravity = 9.81 (m/s^2)
 C Pstnd standard total (atmospheric) pressure altitude (Pa)
 C Rav   gas constant for moist air (average) (J/kgK)
@@ -734,19 +710,16 @@ C Pt   total pressure  ( Pa )
 C **********************************************************************
       FUNCTION X01(Pv,Pt)
       COMMON/OUTIN/IUOUT,IUIN
-      SMALL=1.0E-6
 
       Ra=287.06
       Rv=461.5
       Pa=Pt-Pv
       X01=Pv*Ra/(Pa*Rv)
       IF(X01.LT.0.0)then
-        call edisp(iuout,
-     &      'X01: negative vapour ratio. Setting to small value')
-cx        call epwait
-cx        call epagend
-cx        STOP
-        X01=SMALL
+        call edisp(iuout,'X01: negative vapour ratio.')
+        call epwait
+        call epagend
+        STOP
       endif
       RETURN
       END
@@ -784,19 +757,16 @@ C **********************************************************************
       FUNCTION X03(TC,RH,Pt)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
-      SMALL=1.0E-6
 
       IF(RH.GT.RHmax)RH=RHmax
       RH100=RH*100.0
       PATMOS=Pt/100.0
       X03=HUMRT1(TC,RH100,PATMOS,0)
       IF(X03.LT.0.0)then
-        call edisp(iuout,
-     &      'X03: negative vapour ratio. Setting to 1.0 mg/kg')
-cx        call epwait
-cx        call epagend
-cx        STOP
-        X03=SMALL
+        call edisp(iuout,'X03: negative vapour ratio.')
+        call epwait
+        call epagend
+        STOP
       endif
       RETURN
       END
@@ -840,59 +810,38 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C Hv01 Calculates enthalpy of dry vapour at saturation pressure of
-C temperature TC. Based on fit of data to h'' values taken from
-C Bosnjakovic / Knoche, 8th Ed. 1998.
-cx fundamental data for B.S. engineers, Section 8, Eqns 7-20.
-C
-C Input        TC in degC
-C Return value h' in J/kg.
+C Hv01 Calculates enthalpy of vapour (J/kg).
+C fundamental data for B.S. engineers, Section 8, Eqns 7-20.
 C *********************************************************************
       FUNCTION Hv01(TC)
 
-      if (TC.lt.0.) TC=0.
-      if (TC.gt.300.) TC=300.
-
-cx      ISW=INT((TC+20.0)/10.0)
-cx      IF(ISW.LE.1)THEN
-cx        HvkJ=2500.822+1.8375*TC
-cx      elseif(ISW.EQ.2)THEN
-cx        HvkJ=2500.92+1.84*TC
-cx      elseif(ISW.EQ.3)THEN
-cx        HvkJ=2519.32+1.83*(TC-10.0)
-cx      elseif(ISW.EQ.4)THEN
-cx        HvkJ=2537.62+1.82*(TC-20.0)
-cx      elseif(ISW.EQ.5)THEN
-cx        HvkJ=2555.82+1.8*(TC-30.0)
-cx      elseif(ISW.EQ.6)THEN
-cx        HvkJ=2573.82+1.77*(TC-40.0)
-cx      elseif(ISW.GE.7)THEN
-cx        HvkJ=2591.52+1.76*(TC-50.0)
-cx      ENDIF
-
-      HvkJ=3135.3+1.7107*TC+0.001931*TC**2-1.6294e-5*TC**3
+      ISW=INT((TC+20.0)/10.0)
+      IF(ISW.LE.1)THEN
+        HvkJ=2500.822+1.8375*TC
+      elseif(ISW.EQ.2)THEN
+        HvkJ=2500.92+1.84*TC
+      elseif(ISW.EQ.3)THEN
+        HvkJ=2519.32+1.83*(TC-10.0)
+      elseif(ISW.EQ.4)THEN
+        HvkJ=2537.62+1.82*(TC-20.0)
+      elseif(ISW.EQ.5)THEN
+        HvkJ=2555.82+1.8*(TC-30.0)
+      elseif(ISW.EQ.6)THEN
+        HvkJ=2573.82+1.77*(TC-40.0)
+      elseif(ISW.GE.7)THEN
+        HvkJ=2591.52+1.76*(TC-50.0)
+      ENDIF
       Hv01=HvkJ*1000.0
-
       RETURN
       END
 
 C *********************************************************************
-C Hl01 Calculates enthalpy of water at saturation vapour pressure
-C of temperature TC. Based on fit of data to h' values taken from
-C Bosnjakovic / Knoche, 8th Ed. 1998.
-C
-C Input        TC in degC
-C Return value h' in J/kg.
+C Hl01 Calculates enthalpy of water (J/kg).
 C *********************************************************************
       FUNCTION Hl01(TC)
 
-cx      Hfg=EVAP01(TC)
-cx      Hg=Hv01(TC)
-cx      Hl01=Hg-Hfg
-      if (TC.lt.0.) TC=0.
-      if (TC.gt.300.) TC=300.
-
-      Hl01=1000.*(632.52+4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
-
+      Hfg=EVAP01(TC)
+      Hg=Hv01(TC)
+      Hl01=Hg-Hfg
       RETURN
       END

@@ -48,11 +48,6 @@ static unsigned long fg, bg, bd, bw;
 char *getenv ();
 
 #define DEBUG 0               /* <<recompile this to 0 for silent>> */
-/* examples of varible width fonts */
-/* #define FONT1 "-*-lucida-medium-r-*-*-10-*-*-*-*-*-*-*" */
-/* #define FONT2 "-*-lucida-medium-r-*-*-12-*-*-*-*-*-*-*" */
-/* #define FONT1 "-*-helvetica-medium-r-*-*-10-*-*-*-*-*-*-*" */
-/* #define FONT2 "-*-helvetica-medium-r-*-*-12-*-*-*-*-*-*-*" */
 
 static long int current_font;		/* standard font */
 static long int disp_fnt;     /*   font for text display box */
@@ -274,6 +269,34 @@ int		len_title;
 {
 /* Local variables   */
   return; 
+}
+
+/* *************** Extents of ESRU pop-up menu box. *************** */
+/*
+ This function takes current menu text and returns the width of the
+ active menu area and the pixel width of the longest line of text.
+*/
+
+void extentsvwmenu_(titleptr,	/* title for menu                   */
+  iwth,			/* menu character width to print    */
+  ipixwthma,ipixwthll,  /* pixel with allocated for menu area and longest line  */
+  ivfw,ivfwsp,ivfwul,   /* avg character widths */
+  len_title		/* length of title (from f77 compiler) */
+  )
+char	*titleptr;
+long int   *iwth,*ipixwthma,*ipixwthll;
+long int   *ivfw,*ivfwsp,*ivfwul; /* avarage font widths */
+int        len_title;
+{
+/* Local variables   */
+  long int saved_font, use_font, changed_font, label_font;
+  int   mib_width,i,iy,lt1,iw;
+  int   lt,ltsp,ltul;  /* lengths of test strings */
+  int   vfw,vfwsp,vfwul; /* avarage font widths */
+  int fonth,imw,foundul;
+  int pixwthll,pixwthbl,pixwthul;
+  
+  return;
 }
 
 /* ****************** auxulliary menu   

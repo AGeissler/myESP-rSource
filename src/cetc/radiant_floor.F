@@ -208,12 +208,14 @@ C     surface and nodal temperatures of zones
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
       COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
 
-C     Generic nodal flux common - allows a flux to be added or subtracted
-C     from a node.
+C     Generic nodal flux common - allows a flux to be added or subtracted from a node.
       COMMON/GENFLUX/GENFLXF(MCOM,MS,MN),GENFLXP(MCOM,MS,MN)
 
 
-C     Parameters and common variables related to this component ----------------
+
+C     Parameters and common variables related to this component ----------------------
+C     The common block should also be included in the MZNASS subroutine
+C     (found in ESRUPLT/PMATRX.F)to store present time values of some variables
 
       PARAMETER (Nmax = 20, ITmax = 100, PI=3.1415926535, PI2=0.5*PI)
       PARAMETER (Relax = 1.0, Tol = 1.E-6, TolF = 1.E-3, Small = 1.E-15)

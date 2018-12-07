@@ -98,7 +98,7 @@ C Display the variation in the temperature profile through
 C any construction over any defined period of time.
 C Request zone and surface for output and check if graph should be
 C plotted over the whole period or one timestep at a time.
-          CALL ASKZON(ICOMP)
+          CALL ASKZON(ICOMP,23)
           CALL ASKSUR(ICOMP,ISUR)
           if(icomp.eq.0.or.isur.eq.0)then
             call usrmsg('nothing selected...',' ','W')
@@ -135,7 +135,7 @@ C Draw profiles.
         endif
       elseif(INO.EQ.6)then
         if(ISAVE.eq.3)then
-          CALL ASKZON(ICOMP)
+          CALL ASKZON(ICOMP,23)
           CALL MOINTC(ICOMP)
         else
           goto 5
@@ -804,11 +804,11 @@ C IPRZ is materials array index for each layer.
 #ifdef OSI
       integer ipos,isize      ! for use with etlabel
       integer iupdown,isym    ! passed to etplot
-      integer iid1,iid2
+      integer iid1,iid2,iicol,ibsize
 #else
       integer*8 ipos,isize      ! for use with etlabel
       integer*8 iupdown,isym    ! passed to etplot
-      integer*8 iid1,iid2
+      integer*8 iid1,iid2,iicol,ibsize
 #endif
 
 C Determine the 'other' zone and connection information.
@@ -818,9 +818,10 @@ C Determine the 'other' zone and connection information.
 
 C Draw construction section.
       iid1=igl; iid2=igt-10;
-      call wstxpt(iid1,iid2,TCSTR)
+      iicol=0; ibsize=0
+      call textsizeatxy(iid1,iid2,TCSTR,ibsize,'-',iicol)
       iid1=igr; iid2=igt-10;
-      call wstxpt(iid1,iid2,ZN)
+      call textsizeatxy(iid1,iid2,ZN,ibsize,'-',iicol)
       igr=13
       XX=0.
       YD=PMAX-PMIN

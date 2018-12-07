@@ -59,7 +59,7 @@ C Parameters
       character clmlhelp*72
 
       dimension name(124), mitem(35)
-      character name*32,mitem*33,OUTSTR*124,WORD*20
+      character name*32,mitem*34,OUTSTR*124,WORD*20
       character group*32,key*1,look*32,tlook*32
       character llclmdb*144,h*72
       integer NCO,ICO ! max items and current menu item
@@ -146,7 +146,7 @@ C current menu line index. Build up text strings for the menu.
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
           M=M+1
           CALL EMKEY(L,KEY,IER)
-          WRITE(mitem(M),'(a1,1x,a30)')KEY,name(L)(1:30)
+          WRITE(mitem(M),'(a1,1x,a28)')KEY,name(L)(1:28)
         ENDIF
    10 CONTINUE
 
@@ -155,13 +155,13 @@ C Number of actual items displayed.
 
 C If a long list include page facility text.      
       IF(IPFLG.EQ.0)THEN  
-        mitem(M+1)='  ______________________________ '
+        mitem(M+1)='  __________________________  '
       ELSE
         WRITE(mitem(M+1),15)IPM,MPM 
    15   FORMAT   ('0 page: ',I2,' of ',I2,' ------')
       ENDIF
       write(mitem(1),'(2x,a30)') group(1:30)
-      mitem(2)   =  '  __________________________  '
+      mitem(2)  =  '  __________________________  '
       mitem(M+2)=  '< user defined weather db     '
       mitem(M+3)=  '* new weather db (all zeros)  '
       mitem(M+4)=  '? help                        '

@@ -1,5 +1,5 @@
 /* Globally defined items for esp-r GTK interface */
-#define MENU_LIST_LEN 40
+#define MENU_LIST_LEN 42
 
 /* Sections of standard window */
 GtkWidget *window;
@@ -45,6 +45,9 @@ extern long int mdepth;   /* to pass to fortran: sceen depth */
 extern long int disp_fnt; /* font for text display box */
 extern long int butn_fnt; /* button font size */
 extern long int menu_fnt; /* preferred command menu font */
+extern long int d_disp_fnt; /* default font for text display box */
+extern long int d_butn_fnt; /* default button font size */
+extern long int d_menu_fnt; /* default command menu font */
 
 extern char *bgstr,  *whitestr, *blackstr; /* init default colors */
 extern GdkColor fg, bg, bd, bw, white, black, infofg, infobg; /* essential colors */
@@ -140,6 +143,7 @@ void  capexgf_(char* cmd,int len_cmd);
 void  capextf_(char* cmd,int len_cmd);
 void  capexall_(char* cmd,int len_cmd);
 void  userfonts_(long int* ifs,long int* itfs,long int* imfs);
+void  defaultfonts_(long int* ifsd,long int* itfsd,long int* imfsd);
 int ixavail();
 
 /* Shared functions in esp_draw.c */

@@ -264,11 +264,11 @@ C File units.
       ICFLIB=IFIL+2
       ICFMON=IFIL+3
       matver=0.0   ! initial assumption of binary materials database
+      ifs=1; itfs=1; imfs=1
 
 C Temporary cfd file unit.
       ICFTMP=IFIL+4
 
-      IFS=1; ITFS=1; IMFS=1
       path='./'
 
 C inf is the zone DFD file the cfd3dasci takes the form of -actf ascii_dfs_results_file.
@@ -336,7 +336,7 @@ C Determine terminal type and set write unit to stderr for rule scripts.
         if(iappx.le.0)iappx=90
         if(iappy.le.0)iappy=50
         if(iappw.le.200)then
-          iappwi=int(500*iappw*0.01)
+          iappwi=int(600*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue
@@ -358,9 +358,14 @@ C Set to ~square display.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=1; IFS=1; ITFS=1
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=5
+        ITFS=4
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=12
         LIMIT =12
@@ -370,9 +375,9 @@ C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
       write(pagestitle,'(2a)') 'ESP-r CFD Viewer ',
      &  cVnum(1:lnblnk(cVnum))
-
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to LIMTTY if MMOD = 8.
       IF(MMOD.EQ.8)THEN
@@ -994,7 +999,7 @@ C Dummy subroutines needed by common3dv.F
       return
       end
 
-      SUBROUTINE EASKGEOF(PROMPT,CFGOK,IZONE,MOD,IER)
+      SUBROUTINE EASKGEOF(PROMPT,CFGOK,IZONE,MOD,IMW,IER)
       character*(*) PROMPT
       character MOD*1
       LOGICAL CFGOK
@@ -1512,5 +1517,42 @@ C        write(6,*) 'temp ',temp,icolindex
       return
       end
 
+C Subroutine dummy in case of GTK.
+
+C      subroutine chgeye(EVX,EVY,EVZ,VX,VY,VZ,EAN,JITZNM,JITSNM,JITVNO,
+C     &   JITOBS,JITSNR,JITGRD,JITORG,DIS,JITBND,JITDSP,JITHLS,JITHLZ,
+C     &   JITPPSW)
+
+C Passed paramters.
+C      real EVX,EVY,EVZ,VX,VY,VZ,EAN,DIS
+
+C Depending on computer type set integer size of passed parameters.
+C#ifdef OSI
+C      integer JITZNM,JITSNM,JITVNO,JITOBS,JITVIS,JITVOBJ,JITSNR,JITGRD
+C      integer JITORG,JITBND,JITDSP,JITHLS,JITHLZ,JITPPSW
+C#else
+C      integer*8 JITZNM,JITSNM,JITVNO,JITOBS,JITVIS,JITVOBJ,JITSNR
+C      integer*8 JITGRD,JITORG,JITBND,JITDSP,JITHLS,JITHLZ,JITPPSW
+C#endif     
+C      return
+C      end
+
+C      subroutine chgzonpik(jizgfoc,jnzg)
+C#ifdef OSI
+C      integer jizgfoc,jnzg  ! for use with viewtext
+C#else
+C      integer*8 jizgfoc,jnzg  ! for use with viewtext
+C#endif
+C      return
+C      end
+
+C      subroutine chgzonpikarray(jnznog,jnznogv)
+C#ifdef OSI
+C      integer jnznog,jnznogv
+C#else
+C      integer*8 jnznog,jnznogv
+C#endif
+C      return
+C      end
 
 

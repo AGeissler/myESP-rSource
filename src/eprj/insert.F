@@ -577,7 +577,7 @@ C Find out which other zone to copy from. Save the current state of the
 C menu so that can return to where we were. Also connected surface.
  99       CALL EPMENSV
           CALL EASKGEOF('Select source zone to copy from:',
-     &      CFGOK,IZC,'-',IER)
+     &      CFGOK,IZC,'-',34,IER)
 
 C Debug.
 C          write(6,*) 'copy from zone ',izc

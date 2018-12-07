@@ -238,11 +238,14 @@ C Set initial menu width and text feedback number of lines.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=1
-        IFS=1
-        ITFS=1
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=5
+        ITFS=5
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -252,9 +255,9 @@ C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
       write(pagestitle,'(2a)') 'ESP-r Weather Analysis ',
      &  cVnum(1:lnblnk(cVnum))
-
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
       IF(MMOD.EQ.-6)then
         ICOUT=0
@@ -578,11 +581,24 @@ C Period definition.
       ELSEIF(INO.EQ.4)THEN
 
 C Synoptic analysis.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(ITFS.eq.4) ITFS=0
+        if(ITFS.eq.5) ITFS=1
+        if(ITFS.eq.6) ITFS=2
+        if(ITFS.eq.7) ITFS=3
+        call userfonts(IFS,ITFS,IMFS)
         IF(INIT.EQ.0)CALL selper(IER)
         INIT=1
         call tstamp('>','CLM: enter synoptic analysis')
         CALL CLMSYN
         call tstamp('>','CLM: exit synoptic analysis')
+        IMFS=lastmenufont
+        ITFS=lasttextfont    ! reset to proportional font in text feedback
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+        call usrmsg(' ',' ','-')  ! refresh dialog 
       ELSEIF(INO.EQ.5)THEN
 
 C Graphic analysis. Enlarge graphics area if small.
@@ -669,12 +685,25 @@ C Setup and pass in parameters to win3d.
         endif
       ELSEIF(INO.EQ.7)THEN
 
-C Tabular analysis.
+C Tabular analysis. Switch to monospace small font in text feedback.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(ITFS.eq.4) ITFS=0
+        if(ITFS.eq.5) ITFS=1
+        if(ITFS.eq.6) ITFS=2
+        if(ITFS.eq.7) ITFS=3
+        call userfonts(IFS,ITFS,IMFS)
         IF(INIT.EQ.0)CALL selper(ier)
         INIT=1
         call tstamp('>','CLM: enter tabular analysis')
         CALL CLMTOT
         call tstamp('>','CLM: exit tabular analysis')
+        IMFS=lastmenufont
+        ITFS=lasttextfont    ! reset to proportional font in text feedback
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+        call usrmsg(' ',' ','-')  ! refresh dialog 
       ELSEIF(INO.EQ.9)THEN
 
 C Change radiation type.

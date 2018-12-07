@@ -44,6 +44,8 @@ C default file names for databases
 C      COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       integer ncomp,ncon
       common/C1/NCOMP,NCON
@@ -316,6 +318,8 @@ C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
 
       character SLABEL*32,GLABEL*20,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
@@ -403,6 +407,17 @@ C Write tag line if tagged output requested.
           call eddisp(itru,outs)
  15     continue
       endif
+
+C Switch to fixed font for text feedback.
+      lastmenufont=IMFS
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
+      if(ITFS.eq.4) ITFS=0
+      if(ITFS.eq.5) ITFS=1
+      if(ITFS.eq.6) ITFS=2
+      if(ITFS.eq.7) ITFS=3
+      call userfonts(IFS,ITFS,IMFS)
+      call winfnt(itfs)
       
 C Write general header information (skip if IPV mode).
       if(act(1:1).ne.'m')then
@@ -554,7 +569,7 @@ C Define units. Note: climate data will base its units on
 C the IGETNO(IL,8) value along with all other items. Take
 C into account the value of ireportunit.
               if (IGETNO(IL,8).eq.1) then
-                unit='(degC)'
+                unit='(C)'
               elseif (IGETNO(IL,8).eq.2) then
                 if(IGETNO(IL,1).eq.8.or.IGETNO(IL,1).eq.9.or.
      &             IGETNO(IL,1).eq.10.or.IGETNO(IL,1).eq.30.or.
@@ -843,6 +858,13 @@ C Writing to screen so use shorter file buffer.
 
  421    CONTINUE
  10   continue
+ 
+      IMFS=lastmenufont
+      ITFS=lasttextfont    ! reset to proportional font in text feedback
+      IFS=lastbuttonfont
+      call userfonts(IFS,ITFS,IMFS)
+      call winfnt(imfs)  ! back to menu font     
+      call usrmsg(' ',' ','-')  ! refresh dialog 
 
 C Explain inlv dT comment.
       if (IINLVDT.eq.1) then
