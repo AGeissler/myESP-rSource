@@ -62,6 +62,7 @@ C *********************************************************************
       COMMON/VTHP31/INTHPS,INTHPZ(MCOM)
       LOGICAL INTHPS,INTHPZ
       COMMON/MOIST11/MITRM,RITRMP,RITRMF
+      COMMON/MOIST99/ICNVITRM(MCOM)
 
       LOGICAL CONVP,CONVF
       LOGICAL ILTHPS,ILTHPZ
@@ -123,6 +124,9 @@ C Convergence achieved.
      &      ' at Day, Month, Hour: ',IDAYN,IMTHN,IHRF
             CALL EDISP(IUOUT,MSG)
           ENDIF
+
+          ICNVITRM(ICOMP)=ITRM
+
           RETURN
 
 C Re-establish and solve the energy matrix.
@@ -158,6 +162,7 @@ C Solve the energy matrix.
      &      'convergence failed in zone',ICOMP,
      &      ' at Day, Month, Hour: ',IDAYN,IMTHN,IHRF
       CALL EDISP(IUOUT,MSG)
+      ICNVITRM(ICOMP)=ITRM
       RETURN
       END
 
@@ -177,12 +182,12 @@ C *********************************************************************
 
       DTfalse=3600.0
 
-      GAMm=0.8
-      RLXln=0.4    !0.1  RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
-      RLXlnF=0.2   !0.01 RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
-      RLXlnT=0.4   !0.1  RLX T_new + (1-RLX) T_old
+      GAMm=0.5
+      RLXln=0.5    !0.1  RLX p_new + (1-RLX) p_old ; FACTOR=1/RLX
+      RLXlnF=0.3   !0.01 RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
+      RLXlnT=0.5   !0.1  RLX T_new + (1-RLX) T_old
 
-      MITRM=300
+      MITRM=250
 
       RITRMP=0.075 ! (Pf-Pn) FACTOR < RITRMP ? => O.K. (both for zone air and layers!)
       RITRMF=0.001 ! (Ff-Fn) FACTOR < RITRMF ? => O.K. (both for zone air and layers!)
@@ -372,7 +377,11 @@ C Trap for division by zero.
             ELSE
               T2P=TPC(ICOMP,I,INH2)
             ENDIF
-            RATIO=XINTP/DELXh
+            if(DELXh.gt.0.0)then
+              RATIO=XINTP/DELXh
+            else
+              RATIO=0.5
+            endif
             TMPp(I,INMT)=RATIO*(T2P-T1P)+T1P
             TMNp(ICOMP,I,INMT)=TMPp(I,INMT) ! save with zone info
             XSUMM=XSUMM+DELXm
@@ -538,6 +547,8 @@ C **********************************************************************
       COMMON/MOIST13/RLXln,RRLXln,RLXlnF,RRLXlnF,RLXlnT,RRLXlnT
       COMMON/MOIST23/TMPp(MS,MNM),TMPf(MS,MNM)
 
+      real DELXh,DELXm
+
       NC=NCONST(ICOMP)
       DO 10 I=1,NC
         NE=NELTS(ICOMP,I)
@@ -554,11 +565,11 @@ C For lumped constructions.
           XSUMM=0.
           DO 30 IL=1,NE
             THICK=THRMLI(ICOMP,I,IL,4)
-            DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
+            DELXm=THICK/real(MNDL(ICOMP,I,IL))
           DO 30 INM=1,MNDL(ICOMP,I,IL)
             INMT=INMT+1
             INH1=INT(XSUMM/DELXh)
-            XINTP=XSUMM-DELXh*INH1
+            XINTP=XSUMM-DELXh*real(INH1)
             INH1=INH1+1
             T1F=TFC(ICOMP,I,INH1)
             INH2=INH1+1
@@ -579,14 +590,14 @@ C For lumped constructions.
             TMPnew=TFC(ICOMP,I,IRN)
             TMPf(I,INMT)=RLXlnT*TMPnew+RRLXlnT*TMPf(I,INMT)
             THICK=THRMLI(ICOMP,I,IL,4)
-            DELXh=THICK/FLOAT(NNDL(ICOMP,I,IL))
-            DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
+            DELXh=THICK/real(NNDL(ICOMP,I,IL))
+            DELXm=THICK/real(MNDL(ICOMP,I,IL))
             XSUMM=0.
             DO 50 INM=2,MNDL(ICOMP,I,IL)
               INMT=INMT+1
               XSUMM=XSUMM+DELXm
               INTRVL=INT(XSUMM/DELXh)
-              XINTP=XSUMM-DELXh*INTRVL
+              XINTP=XSUMM-DELXh*real(INTRVL)
               INH1=IRN+INTRVL
               T1F=TFC(ICOMP,I,INH1)
               INH2=INH1+1
@@ -862,7 +873,7 @@ C For construction moisture nodes.
           NM=MNDL(ICOMP,I,IL)
           THCK=THRMLI(ICOMP,I,IL,4)
           if(NM.gt.0)then
-            DELXm=THCK/NM
+            DELXm=THCK/real(NM)
           else
             DELXm=THCK/1.0
           endif
@@ -958,7 +969,7 @@ C Estimate the future time moisture storage capacity term.
             Uh=SORP(ICOMP,I,IL,1)
             CFF=SORP(ICOMP,I,IL,2)
             EXPT=SORP(ICOMP,I,IL,3)
-            RXI=SNGL(XI03(iMM,RH1p,RH1,Uh,CFF,EXPT)) ! kg/m3 in current moisture node
+            RXI=real(XI03(iMM,RH1p,RH1,Uh,CFF,EXPT)) ! kg/m3 in current moisture node
             IF(IM.EQ.1)THEN ! outermost moisture node of material layer IL
               DELX2=DELXm/2.0 ! m (thickness of moisture node "layer")
               RXI2=RXI
@@ -1059,7 +1070,7 @@ C Consider each multilayered construction within current zone.
         IM=1
         IM2=IM+1
         if(MNDL(ICOMP,I,IL).ne.0)then
-          DELXm=THRMLI(ICOMP,I,IL,4)/FLOAT(MNDL(ICOMP,I,IL))
+          DELXm=THRMLI(ICOMP,I,IL,4)/real(MNDL(ICOMP,I,IL))
         else
           DELXm=THRMLI(ICOMP,I,IL,4)/1.0
         endif
@@ -1209,9 +1220,10 @@ C Continue with other (homogeneous) nodes in the layer.
           W(I,IM,4)=-GAMm*DTIME
           W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &    CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Pp(ICOMP,I,IM2)+Fp(ICOMP,I,IM)+
-     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
-     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
-     &    TRMfls*SLFf*Pn(I,IM)
+     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-
+     &     TMPf(I,IM))+
+     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-
+     &    TMPf(I,IM))+TRMfls*SLFf*Pn(I,IM)
   110   CONTINUE
 
 C Internal surface node
@@ -1237,8 +1249,8 @@ C Internal surface node
         W(I,IM,4)=-GAMm*DTIME
         W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &  CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Ppair(ICOMP)+Fp(ICOMP,I,IM)+
-     &  DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
-     &  TRMfls*SLFf*Pn(I,IM)
+     &  DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-
+     &  TMPf(I,IM))+TRMfls*SLFf*Pn(I,IM)
 
 C Convective term for the air node equation.
         E(1,I)=-CRSf2
@@ -1269,7 +1281,8 @@ C INA:air furture self coupling, IQA:plant term, IPA:present term
 C Link the building lumped moisture flow network.
 C Modify the boundary vector to count for;
       TERMcpl=(RGAMm*(VPINF*GEXTP+VPCPL+VPMCH+VPLTN-Upair*VPLST)+
-     &        GAMm*(VFINF*GEXTF+VFCPL+VFMCH+VFLTN-Ufair*VFLST))*DTIME
+     &        GAMm*(VFINF*GEXTF+VFCPL+VFMCH+VFLTN-Ufair*VFLST))*
+     &        DTIME
       E(1,IPA)=E(1,IPA)+TERMcpl
       RETURN
       END
@@ -1337,14 +1350,14 @@ C Construction moisture nodes.
         Fn(I,IM)=0.0
 c        Pnew=(SUM-Fn(I,IM))/DOMAIN
         Pnew=SUM/DOMAIN
-        Pn(I,IM)=RLXln*SNGL(Pnew)+RRLXln*Pnsave
+        Pn(I,IM)=RLXln*real(Pnew)+RRLXln*Pnsave
         IF(Pn(I,IM).LT.0.1)Pn(I,IM)=0.1
         RH=Pn(I,IM)/Ps
         IF(RH.GT.RHmax)THEN
           RH=RHmax
           Pn(I,IM)=RH*Ps
         ENDIF
-        Fnew=SNGL(SUM)-Pn(I,IM)*DOMAIN
+        Fnew=real(SUM)-Pn(I,IM)*DOMAIN
         Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
         IF(Fn(I,IM).LT.0.0)Fn(I,IM)=0.0
 cx        ENDIF
@@ -1373,14 +1386,14 @@ C Air node.
       Fnair=0.0
 c      Pnew=(SUM-Fnair)/DOMAIN
       Pnew=SUM/DOMAIN
-      Pnair=RLXln*SNGL(Pnew)+RRLXln*Pnsave
+      Pnair=RLXln*real(Pnew)+RRLXln*Pnsave
       IF(Pnair.LT.0.1)Pnair=0.1
       RH=Pnair/Ps
       IF(RH.GT.RHmax)THEN
         RH=RHmax
         Pnair=RH*Ps
       ENDIF
-      Fnew=SNGL(SUM)-Pnair*DOMAIN
+      Fnew=real(SUM)-Pnair*DOMAIN
       Fnair=RLXlnF*Fnew+RRLXlnF*Fnsave
       IF(Fnair.LT.0.0)Fnair=0.0
 cx      ENDIF
@@ -1734,6 +1747,9 @@ C.....Surface area data
       COMMON/MOIST52/Pf(MCOM,MS,MNM),Ff(MCOM,MS,MNM),Sf(MCOM)
       real Pf,Ff,Sf
 
+      COMMON/MOIST99/ICNVITRM(MCOM)
+      integer ICNVITRM
+
 C.....Subroutine signature
       integer ICOMP
 
@@ -1761,6 +1777,11 @@ C.......Pad zone index to 'XX'
            write (cZone_Chars,'(A,I1)') 'zone_0',ICOMP
         endif
       endif ! use_zonenames
+
+      Call AddToReport(
+     &        rvMstItCnt%Identifier,
+     &        real(ICNVITRM(ICOMP)),
+     &        cZone_Chars)
 
         NC=NCONST(ICOMP)
         DO 10 iSurf=1,NC

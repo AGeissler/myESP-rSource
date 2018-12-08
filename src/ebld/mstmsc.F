@@ -77,7 +77,8 @@ C *********************************************************************
       IF(RH.GT.RHmax)RH=RHmax
       if (iMM.eq.1) then
 C       Legacy model
-        U01=Uh*(1.0-ALOG(RH)/CFF)**(-1.0/EXPT)
+cx        U01=Uh*(1.0-ALOG(RH)/CFF)**(-1.0/EXPT)
+        U01=Uh*(1.0-LOG(RH)/CFF)**(-1.0/EXPT) ! "ALOG" archaic ...??
       elseif (iMM.eq.2) then
 C       Otto model
         U01=1000.*(exp(Uh*RH+CFF*RH**2+EXPT*RH**3)-1.)
@@ -97,7 +98,7 @@ C       We have an air layer, set average value ...
         DNSTY=1.18
       endif
 
-      IF(RH.GT.RHmax)RH=RHmax
+cx      IF(RH.GT.RHmax)RH=RHmax  !! covered in U01()!
       U02=U01(iMM,RH,Uh,CFF,EXPT)/DNSTY
       IF(U02.LT.0.0)STOP 'Error (704): negative moisture content.'
       RETURN
@@ -128,7 +129,10 @@ C *********************************************************************
       IF(RH.GT.RHmax)RH=RHmax
       if (iMM.eq.1) then
 C       Legacy model
-        XI01=Uh/(EXPT*CFF*RH)*(1.0-ALOG(RH)/CFF)**(-(EXPT+1.0)/EXPT)
+cx        XI01=DBLE(Uh/(EXPT*CFF*RH)
+cx     &       *(1.0-ALOG(RH)/CFF)**(-(EXPT+1.0)/EXPT)) !! ALOG archaic?!
+        XI01=DBLE(Uh/(EXPT*CFF*RH)
+     &       *(1.0-LOG(RH)/CFF)**(-(EXPT+1.0)/EXPT))
       elseif (iMM.eq.2) then
 C       Otto model
         XI01=1000.*exp(Uh*RH+CFF*RH**2+EXPT*RH**3)
@@ -154,7 +158,13 @@ C *********************************************************************
       SMALL=1.0E-15
 
       IF(RH.GT.RHmax)RH=RHmax
-      XI02=XI01(iMM,RH,Uh,CFF,EXPT)/DNSTY
+
+      if ((DNSTY.lt.0.01))then
+C       We have an air layer, set average value ...
+        DNSTY=1.18
+      endif
+
+      XI02=XI01(iMM,RH,Uh,CFF,EXPT)/DBLE(DNSTY)
       IF(XI02.LT.DBLE(SMALL))then
         call edisp(iuout,'XI02: (706) very small moisture capacity.')
         call epwait
@@ -181,7 +191,7 @@ C *********************************************************************
       ELSE
         Up=U01(iMM,RHp,Uh,CFF,EXPT)
         Uf=U01(iMM,RHf,Uh,CFF,EXPT)
-        XI03=(Uf-Up)/RHfp
+        XI03=DBLE((Uf-Up)/RHfp)
         IF(XI03.LE.0.0)XI03=XI01(iMM,RHp,Uh,CFF,EXPT)
       ENDIF
       IF(XI03.LT.DBLE(SMALL))then
@@ -211,10 +221,25 @@ C *********************************************************************
 
       Psp=Psat01(TCp)
       Psf=Psat01(TCf)
-      RHp=Pvp/Psp
+
+      if(Psp.gt.0.) then
+        RHp=Pvp/Psp
+      else
+        write(outs,*)'XIair01: Psat01(TCp) returning zero for ',
+     &    TCp
+        call edisp(iuout,outs)
+      endif
       IF(RHp.GT.RHmax)RHp=RHmax
-      RHf=Pvf/Psf
+
+      if(Psf.gt.0.) then
+        RHf=Pvf/Psf
+      else
+        write(outs,*)'XIair01: Psat01(TCf) returning zero for ',
+     &    TCf
+        call edisp(iuout,outs)
+      endif
       IF(RHf.GT.RHmax)RHf=RHmax
+
       RHfp=RHf-RHp
       IF(ABS(RHfp).LT.1.0e-6)THEN
         XIair01=XIair02(Pvp,TCp,Pt)
@@ -250,13 +275,22 @@ C *********************************************************************
       FUNCTION XIair02(Pv,TC,Pt)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
+      character outs*124
       SMALL=1.0E-15
 
       Ra=287.06
       Rv=461.5
       RATIO=Ra/Rv
       Ps=Psat01(TC)
-      RH=Pv/Ps
+
+      if(Ps.gt.0.) then
+        RH=Pv/Ps
+      else
+        write(outs,*)'XIair02: Psat01(TC) returning zero for ',
+     &    TC
+        call edisp(iuout,outs)
+      endif
+
       IF(RH.GT.RHmax)RH=RHmax
       XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-]? Should be kg/m3 !!?
       IF(XIair02.LT.DBLE(SMALL))then

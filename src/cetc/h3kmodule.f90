@@ -198,7 +198,7 @@ MODULE h3kmodule
 
    !Used by moistr.F
    Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode,rvBldMstStoreCap,rvBldMstStorage, &
-        rvBldMstStorageMass,rvBldMstTNode
+        rvBldMstStorageMass,rvBldMstTNode,rvMstItCnt
 
    !Used by pcomp2.F
    !Claude - potential error found rvPltDefrostStat
@@ -1997,6 +1997,12 @@ CONTAINS
       Call AddVariable(rvPltSDHWsumAvailSolEn)
 
       !Used by moistr.F
+      rvMstItCnt%VariableName = 'building/*/mst_iterations'
+      rvMstItCnt%MetaType = 'units'
+      rvMstItCnt%VariableType = '(-)'
+      rvMstItCnt%Description = 'Iterations needed in moisture model for time step'
+      Call AddVariable(rvMstItCnt)
+
       rvBldMstVapPressNode%VariableName = 'building/*/*/*/mn_vappress'
       rvBldMstVapPressNode%MetaType = 'units'
       rvBldMstVapPressNode%VariableType = '(Pa)'
