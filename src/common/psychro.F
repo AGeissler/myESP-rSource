@@ -250,6 +250,7 @@ C SATVP: Evaluates saturated vapour pressure (mbar).
       DOUBLE PRECISION T
 
       IF (TD.LT.-100) TD=-100.
+      IF (TD.GT.373.95) TD=373.5
 
       T=DBLE(TD+273.16)
 
@@ -257,7 +258,8 @@ C Check for above ice/water.
       IF(TD.GE.0.0)goto 1
 
 C Ice.
-      SATVP=real(10**(dble(10.5380997)-(dble(2663.91)/(T- dble(0.01)))))
+      SATVP=real(10**(dble(10.5380997)-
+     &               (dble(2663.91)/(T-dble(0.01)))))
       RETURN
 
 C Water.

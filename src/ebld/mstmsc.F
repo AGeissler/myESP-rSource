@@ -73,6 +73,7 @@ C   EXPT -> a3
 C *********************************************************************
       FUNCTION U01(iMM,RH,Uh,CFF,EXPT)
       COMMON/MOIST17/RHmax
+      SMALL=1.0E-15
 
       IF(RH.GT.RHmax)RH=RHmax
       if (iMM.eq.1) then
@@ -84,7 +85,7 @@ C       Otto model
         U01=1000.*(exp(Uh*RH+CFF*RH**2+EXPT*RH**3)-1.)
       endif
 cx      IF(U01.LT.0.0)STOP 'Error (703): negative moisture content.'
-      IF (U01.LT.0.0) U01=0.00001
+      IF (U01.LT.SMALL) U01=SMALL
       RETURN
       END
 C *********************************************************************

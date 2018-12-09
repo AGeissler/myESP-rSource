@@ -223,15 +223,17 @@ C *********************************************************************
       character outs*124
       integer iMM
 
+      TINYNUM=1.0e-28
+
       TC=15.0
       RH=0.5
       Pinit=Pvpr02(TC,RH)
       Ppair(ICOMP)=Pinit
-      Fpair(ICOMP)=0.0
-      Spair(ICOMP)=0.0
+      Fpair(ICOMP)=TINYNUM
+      Spair(ICOMP)=TINYNUM
       Pfair(ICOMP)=Pinit
-      Ffair(ICOMP)=0.0
-      Sfair(ICOMP)=0.0
+      Ffair(ICOMP)=TINYNUM
+      Sfair(ICOMP)=TINYNUM
       Xair=X03(TC,RH,PATMpa)
       Usair(ICOMP)=Xair
       CPsair(ICOMP)=CPmst01(TC,Xair)
@@ -239,7 +241,7 @@ C *********************************************************************
       hc=10.0
       CP=CPsair(ICOMP)
       BETA=BETA01(hc,CP,TC)
-      Sf(ICOMP)=0.0
+      Sf(ICOMP)=TINYNUM
       DO 10 I=1,NCONST(ICOMP)
         APp(ICOMP,I)=Ppair(ICOMP)
         APf(ICOMP,I)=Pfair(ICOMP)
@@ -253,15 +255,15 @@ C *********************************************************************
           IF(IM.LT.NMP1)THEN
             ITM1=ITM1+1
             Pp(ICOMP,I,ITM1)=Pinit
-            Fp(ICOMP,I,ITM1)=0.0
+            Fp(ICOMP,I,ITM1)=TINYNUM
             Pf(ICOMP,I,ITM1)=Pinit
-            Ff(ICOMP,I,ITM1)=0.0
+            Ff(ICOMP,I,ITM1)=TINYNUM
             UM0=PERM(ICOMP,I,IL,1)
             UM100=PERM(ICOMP,I,IL,2)
             B=PERM(ICOMP,I,IL,3)
             iMM=iMoistModel(ICOMP)
             DX=DELT01(iMM,RH,UM0,UM100,B)
-C If small value then report which part of model was the problem.
+C If small value then report which part of the model was the problem.
             if(DX.lt.0.99E-15)then
               write(outs,'(a,3i3)') 
      &          'INITMZ: DELT01 small at zone surf layer: ',icomp,i,IL
@@ -271,13 +273,16 @@ C If small value then report which part of model was the problem.
               DELTs(ICOMP,I,ITM1)=DX
             endif
             DTPs(ICOMP,I,ITM1)=TVAPD(ICOMP,I,IL)
+            if (DTPs(ICOMP,I,ITM1).lt.TINYNUM) then
+              DTPs(ICOMP,I,ITM1)=TINYNUM
+            endif
           ENDIF
    20   CONTINUE
         ITM1=ITM1+1
         Pp(ICOMP,I,ITM1)=Pinit
-        Fp(ICOMP,I,ITM1)=0.0
+        Fp(ICOMP,I,ITM1)=TINYNUM
         Pf(ICOMP,I,ITM1)=Pinit
-        Ff(ICOMP,I,ITM1)=0.0
+        Ff(ICOMP,I,ITM1)=TINYNUM
    10 CONTINUE
       RETURN
       END
@@ -351,7 +356,7 @@ C For lumped constructions.
 C Trap divition by zero (1.0 is a guessed alternative).
             THICK=THRMLI(ICOMP,I,IL,4)
             if(MNDL(ICOMP,I,IL).ne.0)then
-              DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
+              DELXm=THICK/real(MNDL(ICOMP,I,IL))
             else
               write(outs,*) 'MNDL out of range @',ICOMP,I,IL
               call edisp(iuout,outs)
@@ -397,19 +402,19 @@ C Trap for division by zero.
 
 C Trap zero division.
             if(NNT.gt.0)then
-              DELXh=THICK/FLOAT(NNT)
+              DELXh=THICK/real(NNT)
             else
               write(outs,*) 'NNT out of range @',ICOMP,I,IL
               call edisp(iuout,outs)
-              DELXh=THICK/FLOAT(1)
+              DELXh=THICK/real(1)
             endif
             NMT=MNDL(ICOMP,I,IL)
             if(NMT.gt.0)then
-              DELXm=THICK/FLOAT(NMT)
+              DELXm=THICK/real(NMT)
             else
               write(outs,*) 'NMT out of range @',ICOMP,I,IL
               call edisp(iuout,outs)
-              DELXm=THICK/FLOAT(1)
+              DELXm=THICK/real(1)
             endif
             XSUMM=0.
             DO 50 INM=2,MNDL(ICOMP,I,IL)
@@ -478,7 +483,7 @@ C For lumped constructions.
           XSUMM=0.
           DO 30 IL=1,NE
             THICK=THRMLI(ICOMP,I,IL,4)
-            DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
+            DELXm=THICK/real(MNDL(ICOMP,I,IL))
           DO 30 INM=1,MNDL(ICOMP,I,IL)
             INMT=INMT+1
             INH1=INT(XSUMM/DELXh)
@@ -501,8 +506,8 @@ C For lumped constructions.
             INMT=INMT+1
             TMPf(I,INMT)=TFC(ICOMP,I,IRN)
             THICK=THRMLI(ICOMP,I,IL,4)
-            DELXh=THICK/FLOAT(NNDL(ICOMP,I,IL))
-            DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
+            DELXh=THICK/real(NNDL(ICOMP,I,IL))
+            DELXm=THICK/real(MNDL(ICOMP,I,IL))
             XSUMM=0.
             DO 50 INM=2,MNDL(ICOMP,I,IL)
               INMT=INMT+1
@@ -1165,8 +1170,8 @@ C Continue with other layers in the construction.
 
 C IL: current layer, IP: previous layer.
           IP=IL-1
-          DELXl=THRMLI(ICOMP,I,IL,4)/FLOAT(MNDL(ICOMP,I,IL))
-          DELXp=THRMLI(ICOMP,I,IP,4)/FLOAT(MNDL(ICOMP,I,IP))
+          DELXl=THRMLI(ICOMP,I,IL,4)/real(MNDL(ICOMP,I,IL))
+          DELXp=THRMLI(ICOMP,I,IP,4)/real(MNDL(ICOMP,I,IP))
           TERMP=Asrf*DTIME/DELXp
           CRSp1=RGAMm*TERMP*DELTp(I,IM1)
           CRSf1= GAMm*TERMP*DELTf(I,IM1)
@@ -1309,7 +1314,9 @@ C *********************************************************************
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       CHARACTER*72 MSG
 
-      DOUBLE PRECISION SUM,Pnew
+      DOUBLE PRECISION TheSum,Pnew
+
+      TINYNUM=1.0e-28
 
       NC=NCONST(ICOMP)
       INA=NC+1
@@ -1337,7 +1344,7 @@ C Construction moisture nodes.
         TC=TMPf(I,IM)
         Ps=Psat01(TC)
         DOMAIN=W(I,IM,2)
-        IF(ABS(DOMAIN).LT.1.0e-28)THEN
+        IF(ABS(DOMAIN).LT.TINYNUM)THEN
           WRITE(MSG,'(A,3I4)')'ERROR: very small domain for',ICOMP,I,IM
           CALL EDISP(IUOUT,MSG)
           WRITE(MSG,'(A,I5)')'at time step',NSINC
@@ -1346,10 +1353,11 @@ C Construction moisture nodes.
           CALL EDISP(IUOUT,MSG)
           stop
         ENDIF
-        SUM=W(I,IM,5)-W(I,IM,1)*Pn1-W(I,IM,3)*Pn2-W(I,IM,4)*Sn
-        Fn(I,IM)=0.0
-c        Pnew=(SUM-Fn(I,IM))/DOMAIN
-        Pnew=SUM/DOMAIN
+        TheSum=DBLE(W(I,IM,5)-W(I,IM,1)*Pn1)-
+     &           DBLE(W(I,IM,3)*Pn2-W(I,IM,4)*Sn)
+cx        Fn(I,IM)=0.0
+cx        Pnew=(SUM-Fn(I,IM))/DOMAIN
+        Pnew=TheSum/DBLE(DOMAIN)
         Pn(I,IM)=RLXln*real(Pnew)+RRLXln*Pnsave
         IF(Pn(I,IM).LT.0.1)Pn(I,IM)=0.1
         RH=Pn(I,IM)/Ps
@@ -1357,9 +1365,9 @@ c        Pnew=(SUM-Fn(I,IM))/DOMAIN
           RH=RHmax
           Pn(I,IM)=RH*Ps
         ENDIF
-        Fnew=real(SUM)-Pn(I,IM)*DOMAIN
-        Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
-        IF(Fn(I,IM).LT.0.0)Fn(I,IM)=0.0
+cx        Fnew=real(SUM)-Pn(I,IM)*DOMAIN
+        Fn(I,IM)=RLXlnF*(real(TheSum)-Pn(I,IM)*DOMAIN)+RRLXlnF*Fnsave
+        IF(Fn(I,IM).LT.TINYNUM)Fn(I,IM)=TINYNUM
 cx        ENDIF
    20 CONTINUE
 
@@ -1378,14 +1386,14 @@ C Air node.
         CALL EDISP(IUOUT,MSG)
         stop
       ENDIF
-      SUM=E(1,IPA)-E(1,IQA)*Snair
+      TheSum=DBLE(E(1,IPA)-E(1,IQA)*Snair)
       DO 10 I=1,NC
         IMsurf=MNDC(ICOMP,I)
-        SUM=SUM-E(1,I)*Pn(I,IMsurf)
+        TheSum=TheSum-DBLE(E(1,I)*Pn(I,IMsurf))
   10  CONTINUE
-      Fnair=0.0
-c      Pnew=(SUM-Fnair)/DOMAIN
-      Pnew=SUM/DOMAIN
+cx      Fnair=0.0
+cx      Pnew=(SUM-Fnair)/DOMAIN
+      Pnew=TheSum/DBLE(DOMAIN)
       Pnair=RLXln*real(Pnew)+RRLXln*Pnsave
       IF(Pnair.LT.0.1)Pnair=0.1
       RH=Pnair/Ps
@@ -1393,9 +1401,9 @@ c      Pnew=(SUM-Fnair)/DOMAIN
         RH=RHmax
         Pnair=RH*Ps
       ENDIF
-      Fnew=real(SUM)-Pnair*DOMAIN
+      Fnew=real(TheSum)-Pnair*DOMAIN
       Fnair=RLXlnF*Fnew+RRLXlnF*Fnsave
-      IF(Fnair.LT.0.0)Fnair=0.0
+      IF(Fnair.LT.TINYNUM)Fnair=TINYNUM
 cx      ENDIF
       RETURN
       END
@@ -1596,7 +1604,7 @@ C If this construction is lumped.
               RETURN
             ENDIF
           DO 20 IL=1,NELTS(ICOMP,I)
-            SUM=FLOAT(MNDL(ICOMP,I,IL)/NNDL(ICOMP,I,IL))+1.0
+            SUM=real(MNDL(ICOMP,I,IL)/NNDL(ICOMP,I,IL))+1.0
             RMNDR=AMOD(SUM,2.0)
             IF(RMNDR.GT.1.0E-4)THEN
               WRITE(MSG,'(1a,3(i3,a))')
