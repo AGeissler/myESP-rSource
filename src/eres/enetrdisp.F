@@ -79,14 +79,14 @@ C The period details
       integer igwid,igheight  ! for use with axiscale
       integer ipos,isize      ! for use with etlabel
       integer iupdown,isym    ! passed to etplot
-      integer iid1,iid2
+      integer iid1,iid2,iicol,ibsize
       integer iigl,iigr,iigt,iigb,iigw,iigwh
 #else
       integer*8 igx             ! see above array
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 ipos,isize      ! for use with etlabel
       integer*8 iupdown,isym    ! passed to etplot
-      integer*8 iid1,iid2
+      integer*8 iid1,iid2,iicol,ibsize
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
 #endif
 
@@ -382,7 +382,8 @@ C draw vertical axis.
               CALL VRTAXISDD(GMIN,GMAX,IGX(I),iigb,iigt,YADD(I),
      &          YSC(I),0,ddy1,ny,ILR(I),'  ')
               iid1=IGX(I); iid2=igt-5;
-              CALL WSTXPT(iid1,iid2,NETXLAB(I))
+              iicol=0; ibsize=0
+              call textsizeatxy(iid1,iid2,NETXLAB(I),ibsize,'-',iicol)
             ENDIF           
           ENDIF
 
@@ -892,10 +893,12 @@ C Array of recovered data
       integer iside,isize,ifont     ! passed to viewtext
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
 C Generate a descriptive string for the time period to be displayed
@@ -905,15 +908,16 @@ C pixel references for calls to VIEWTEXT.
       CALL HDSTEP(SDESCR)
 
       IF(MMOD.EQ.8)THEN
-        iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-        if(iglib.eq.1)then
-          call feedbox(menuchw,2,igfw,igfh)
-          call opengdisp(menuchw,LIMTTY,2,igdw,igdh)
-        endif
 
 C Setup and pass in parameters to win3d.
         iiw1=9; iiw2=30; iiw3=5; iiw4=3; iimenu=menuchw
         iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+        ilf=2; ild=LIMTTY
+        iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+        if(iglib.eq.1)then
+          call feedbox(iimenu,ilf,igfw,igfh)
+          call opengdisp(iimenu,ild,ilf,igdw,igdh)
+        endif
         CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &    iigl,iigr,iigt,iigb,iigw,iigwh)
         igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)

@@ -42,7 +42,7 @@ typedef struct _box{
 #define	NFONTS 		6
 #define	HELP_LIST_LEN	60
 #define	EDISP_LIST_LEN	500
-#define	MENU_LIST_LEN	40
+#define	MENU_LIST_LEN	42
 #define PROFMA_LEN	40
 #define STARTX		100
 #define STARTY		100
@@ -89,6 +89,7 @@ void	clrgscale_();
 void	setzscale_();
 void	foundcolour_(long int* md,long int* nic,long int* ncs,long int* ngs,long int* nzc);
 void	userfonts_(long int* ifs,long int* itfs,long int* imfs);
+void	defaultfonts_(long int* ifsd,long int* itfsd,long int* imfsd);
 void	winfin_();
 void	winclr_();
 void	windcl_(int* n, int* ir, int* ig, int* ib);
@@ -113,6 +114,7 @@ void	curmodule_(char* fcmodule,int len_fcmodule);
 void	wstxpt_(long int* x,long int* y,char* buff,int len);
 /* void	textatxy_(long int* x,long int* y,char* buff,long int* xcolid,int len); */
 void	textatxy_(long int* x,long int* y,char* buff,char* act,long int* n,int len);
+void	textsizeatxy_(long int* x,long int* y,char* buff,long int* size,char* act,long int* n,int len);
 void	textpixwidth_(char* buff,long int* pixelwidth,int len);
 void	winfnt_(long int* n);
 void	charsusingfnt_(long int* n, long int* cw, long int* nlines);
@@ -209,6 +211,8 @@ void	horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int 
 void	updmenu_(char* items,char* itypes,long int* nitmsptr,long int* iw,int len_items);
 void	evwmenu_(char* titleptr,long int* impx,long int* impy,long int* iwth,long int* irpx,
 	long int* irpy,long int* ino,long int* ipflg,long int* uresp,int len_title);
+void	extentsvwmenu_(char* titleptr,long int* iwth,long int* ipixwthma,
+	long int* ipixwthll,long int* ino,long int* ipflg,long int* uresp,int len_title);
 void	eewmenu_(char* titleptr,long int* impx,long int* impy,long int* iwth,long int* irpx,
 	long int* irpy,long int* ino,long int* ipflg,long int* uresp,int len_title);
 /* int	aux_menu(XEvent event); */

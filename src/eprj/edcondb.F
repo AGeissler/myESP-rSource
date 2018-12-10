@@ -50,13 +50,15 @@ C Parameters
 
       common/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/exporttg/xfile,tg,delim
       COMMON/exporttgi/ixopen,ixloc,ixunit
       LOGICAL OK,DOK,MODDB
 
 C CLSDES (30 char) is an array for menu items listing each class.
 C CLSSEL (36 char) is an array for menu items for the selected class.
-      character CLSSEL*36,CLSDES*32
+      character CLSSEL*36,CLSDES*34
       DIMENSION CLSDES(36),CLSSEL(30),ICLSSEL(30)
       character PDBM*86     ! array to hold summary of each material
       DIMENSION PDBM(37)    ! within the category
@@ -106,6 +108,17 @@ C Assume no changes to db amd user has not entered password.
       iwhich=1   ! initial material selections
       iwhich2=1
 
+C Switch to fixed width font for the main ELISTMAT menu.
+C lastmenufont & lastbuttonfont & lasttextfont for use when returning
+C lastfixedmenufont etc. for use when jumping back to label 4.
+      lastmenufont=IMFS
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
+      if(IMFS.eq.4) lastfixedmenufont=0
+      if(IMFS.eq.5) lastfixedmenufont=1
+      if(IMFS.eq.6) lastfixedmenufont=2
+      if(IMFS.eq.7) lastfixedmenufont=3
+
 C Check that the material db is not empty.
     4 IER=0
       call eclose(matver,1.1,0.001,closemat1)
@@ -129,15 +142,17 @@ C Initialise material category menu size variables based on window size.
 C Gather the names of the various classes and present this list.
   40  ICO=-3
       ILEN=matcats
-      CLSDES(1)=  '  Description         No. Items'
+      CLSDES(1)=  '  Description (Items)      '
       M=MHEAD
       DO 44 L=1,ILEN
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
           write(CLSSEL(L),'(A)') matcatname(L)(1:32)
           M=M+1
           CALL EMKEY(L,KEY,IER)
-          WRITE(CLSDES(M),'(A1,1X,A,1X,I2)')KEY,matcatname(L)(1:26),
-     &      matcatitems(L)
+          lncatn=lnblnk(matcatname(L))
+          if(lncatn.gt.25) lncatn=25
+          WRITE(CLSDES(M),'(A1,1X,2A,I2,A)')KEY,
+     &      matcatname(L)(1:lncatn),'  (',matcatitems(L),')'
         ENDIF
    44 CONTINUE
 
@@ -180,7 +195,13 @@ C at the end.
           dok=.true.
           CALL ASKOK('Changes have been made in this file. ',
      &      'Save the materials changes?',OK,dok,nbhelp)
-          IF(.NOT.OK) return
+          if(.NOT.OK)then
+            IMFS=lastmenufont    ! reset to original proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
+            return
+          endif
           chgdb=.true.   ! pass back signal to update
           CALL ERPFREE(IFMUL,ISTAT)  ! in case other unit is still open
           CALL ERPFREE(IAF,ISTAT)    ! in case unit is still open
@@ -224,6 +245,10 @@ C material database.
           endif
           MODDB=.FALSE.
         ENDIF
+        IMFS=lastmenufont    ! reset to original proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSEIF(ICO.EQ.(NCO-1))THEN
         helptopic='cat_list_materials'
@@ -431,8 +456,20 @@ C menu layout. Ensure that each logical exit point restores initial menu.
         IPACT=CREATE
         CALL EKPAGE(IPACT)
 
-C Generate menu strings for materials in the class.
-    3   PDBM(1)= ' Units: Conductivity W/(m deg.C), Density kg/m**3'
+C Generate menu strings for materials in the class. If possible switch
+C to a smaller fixed width font because this is a wide menu. Remember
+C the fonts.
+    3   continue
+        if(IMFS.eq.4) IMFS=0
+        if(IMFS.eq.5) IMFS=0
+        if(IMFS.eq.6) IMFS=1
+        if(IMFS.eq.7) IMFS=2
+        call userfonts(IFS,ITFS,IMFS)
+        lastfixedmenufont=IMFS
+        lastfixedbuttonfont=IFS
+        lastfixedtextfont=ITFS
+        call userfonts(IFS,ITFS,IMFS)
+        PDBM(1)= ' Units: Conductivity W/(m deg.C), Density kg/m**3'
         PDBM(2)= ' Specific Heat J/(kg deg.C) Vapour (MNs g^-1m^-1)'
         PDBM(3)=
      &' |Conduc-|Den- |Specif|IR  |Solar|Diffu|Description of material'
@@ -541,6 +578,10 @@ C at the end.
      &        'Save the materials changes?',OK,dok,nbhelp)
             if(.NOT.OK)then
               CALL EPMENRC   ! recover initial menu state
+              IMFS=lastmenufont    ! reset to original proportional font
+              ITFS=lasttextfont
+              IFS=lastbuttonfont
+              call userfonts(IFS,ITFS,IMFS)
               GOTO 4         ! jump back to rebuild initial menu
             endif
             chgdb=.true.   ! pass back signal to update
@@ -587,6 +628,10 @@ C material database.
             MODDB=.FALSE.
           ENDIF
           CALL EPMENRC   ! recover initial menu state
+          IMFS=lastmenufont    ! reset to original proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           GOTO 4         ! go back and rebuild initial menu
         ELSEIF(INO.EQ.1.AND.INO.LE.4)THEN
           GOTO 3         ! not a useful selection redo inner menu
@@ -1007,9 +1052,25 @@ C          write(6,*) 'selected menu ',ino,'got array',ifoc
           if(ACTION.eq.'M')then
 
 C Browse/Edit the details of this item. Mark as unmodified first
-C and then resetn MODDB and chgdb if mod is true.
+C and then resetn MODDB and chgdb if mod is true. Before going into
+C this subroutine save the current fonts and set to proportional
+C font used when we first entered ELISTMAT for use in edonemat.
+C Re-establish secondary menu fonts when returning from edonemat. 
             mod=.false.
+            lastmenufontmat=IMFS    ! save the secondary menu font
+            lastbuttonfontmat=IFS
+            lasttextfontmat=ITFS
+            IMFS=lastmenufont       ! reset to original proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
+            
             call edonemat(ifoc,mod,ier)
+
+            IMFS=lastmenufontmat    ! reset to secondary menu
+            ITFS=lasttextfontmat
+            IFS=lastbuttonfontmat
+            call userfonts(IFS,ITFS,IMFS)
             if(mod)then 
               MODDB=.TRUE.
               chgdb=.true.
@@ -1040,6 +1101,10 @@ C and then resetn MODDB and chgdb if mod is true.
             CALL ASKOK(outs,'Use it:',OK,dok,1)
             if(OK)then
               imatarrayindex=IFOC ! set to selected array index
+              IMFS=lastmenufont    ! reset to proportional font
+              ITFS=lasttextfont
+              IFS=lastbuttonfont
+              call userfonts(IFS,ITFS,IMFS)
               return              ! task complete return to calling subroutine
             endif
           endif
@@ -1051,7 +1116,7 @@ C and then resetn MODDB and chgdb if mod is true.
       call usrmsg(' ',' ','-')
       goto 40   ! regenerate the category list and display
 
-      END
+      END ! of ELISTMAT
 
 
 
@@ -1060,6 +1125,7 @@ C ELISTCFC: Controls display and editing of CFC layer commons.
 C If ACTION = 'M' then include editing if ACTION = '-' only
 C allow choice.
       SUBROUTINE ELISTCFC(iwhich,chgdb,ACTION,icfcarrayindex,IER)
+      use CFC_Module
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
@@ -1143,7 +1209,7 @@ C select one and then edit/list details.  Setup for multi-page menu.
 C Setup for menu.
 C Gather the names of the various classes and present this list.
       ICO=-1
-      CLSDES(1)=  '  Description         No. Items'
+      CLSDES(1)=  '  Description         (Items)'
       M=1
       DO 44 I=1,ILEN
         IF(I.GE.IST.AND.(I.LE.(IST+MIFULL)))THEN
@@ -1152,8 +1218,8 @@ C Gather the names of the various classes and present this list.
             M=M+1
             svcfccat(M)=I
             CALL EMKEY(M-1,KEY,IER)
-            WRITE(CLSDES(M),'(A1,1X,A,1X,I3)')KEY,
-     &      cfccatname(I)(1:26),cfccatitems(I)
+            WRITE(CLSDES(M),'(A1,1X,A,A,I3,A)')KEY,
+     &      cfccatname(I)(1:26),' (',cfccatitems(I),')'
           ENDIF
         ENDIF
    44 CONTINUE
@@ -2202,6 +2268,7 @@ C ************* EDONECFC
 C EDONECFC: Edits a CFC layer in the common block at array index index.
 C mod is returned as true if data has changed.
       SUBROUTINE EDONECFC(index,mod,IER)
+      use CFC_Module
 #include "building.h"
 #include "esprdbfile.h"
 #include "material.h"
@@ -2918,6 +2985,7 @@ C opaque or transparent and if the latter include the optical property
 C id string.
 
       SUBROUTINE EDMLDB(ITRC,chgdb,IER,ISEL)
+      use CFC_Module, Only: ITMCFCDB
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
@@ -3701,6 +3769,7 @@ C EDMLDB2: Controls display and editing of MLC (v2) commons.
 C If ACTION = 'M' then include editing if ACTION = '-' only
 C allow choice.
       SUBROUTINE EDMLDB2(chgdb,ACTION,isel,IER)
+      use CFC_Module, Only: ITMCFCDB
 #include "epara.h"
 #include "building.h"
 #include "model.h"
@@ -3716,8 +3785,12 @@ C Parameters
       integer isel ! is the returned index in mlcdatarray
       integer ier     ! IER 0 OK IER 1 or 2 problem
 
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+
       common/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       integer ncomp,ncon
       common/C1/NCOMP,NCON
       integer IZSTOCN
@@ -3764,7 +3837,13 @@ C If this parameter is changed also change it in subroutine EDMLDB
       integer listc    ! for looping through classes
       integer NCO,ICO,NITMS,INO,IW  ! max items and current menu item
       integer mclist  ! counter for materials found to be in this category
+      integer listwidth,itemwid  ! keep track of width of longest line in menu.
 
+#ifdef OSI
+      integer impx,impy,iwe
+#else
+      integer*8 impx,impy,iwe
+#endif
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -3789,6 +3868,21 @@ C Assume no changes to db amd user has not entered password.
       iwhich=1   ! initial construction selections
       iwhich2=1
       INO=0
+      listwidth=0; itemwid=0
+
+C Switch to fixed width font for the main EDMLDB2 menu.
+C lastmenufont & lastbuttonfont & lasttextfont for use when returning
+C lastfixedmenufont etc. for use when jumping back to label ??.
+      lastmenufont=IMFS
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
+      if(IMFS.eq.4) lastfixedmenufont=0
+      if(IMFS.eq.5) lastfixedmenufont=1
+      if(IMFS.eq.6) lastfixedmenufont=2
+      if(IMFS.eq.7) lastfixedmenufont=3
+C      call userfonts(IFS,ITFS,IMFS)
+      lastfixedbuttonfont=IFS
+      lastfixedtextfont=ITFS
 
 C Check that the constructions db is not empty.
     4 IER=0
@@ -3809,15 +3903,17 @@ C Initialise material category menu size variables based on window size.
 C Gather the names of the various classes and present this list.
   40  ICO=-3
       ILEN=mlccats
-      CLSDES(1)=  '  Description               No. Items'
+      CLSDES(1)=  '  Description  (Items)            '
       M=MHEAD
       DO 44 L=1,ILEN
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
           write(CLSSEL(L),'(A)') mlccatmenu(L)(1:32)
           M=M+1
           CALL EMKEY(L,KEY,IER)
-          WRITE(CLSDES(M),'(A1,1X,A,1X,I2)')KEY,mlccatmenu(L)(1:32),
-     &      mlccatitems(L)
+          lncatn=lnblnk(mlccatmenu(L))
+          if(lncatn.gt.30) lncatn=30
+          WRITE(CLSDES(M),'(A1,1X,2A,I2,a)')KEY,
+     &      mlccatmenu(L)(1:lncatn),'  (',mlccatitems(L),')'
         ENDIF
    44 CONTINUE
 
@@ -3884,6 +3980,10 @@ C            write(6,*) 'working constructions ',lworking
 
           MODDB=.FALSE.
         ENDIF
+        IMFS=lastmenufont    ! reset to original proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSEIF(ICO.EQ.(NCO-1))THEN
         helptopic='cat_list_constructions'
@@ -3897,7 +3997,13 @@ C List one or more classifications.
         CALL EPICKS(INPIC,ICLSSEL,' ',' Which classes to list:',
      &    36,mlccats,CLSSEL,'Construction classes',IER,nbhelp)
         CALL EPMENRC
-        IF(INPIC.EQ.0)GOTO 40
+        IF(INPIC.EQ.0)then
+          IMFS=lastmenufont  ! re-established menu fonts
+          IFS=lastbuttonfont
+          ITFS=lasttextfont
+          call userfonts(IFS,ITFS,IMFS)
+          GOTO 40
+        endif
         CALL EASKABC(' Reporting to:',' ',
      &    'text feedback','summary file','cancel',irpt,nbhelp)
         if(irpt.eq.1)then
@@ -3910,9 +4016,17 @@ C List one or more classifications.
 C If user canceled the listing the reset unit to iuout and loop back.
           if(ier.eq.-3)then
             itu = iuout
+            IMFS=lastmenufont  ! re-established fixed menu fonts
+            IFS=lastbuttonfont
+            ITFS=lasttextfont
+            call userfonts(IFS,ITFS,IMFS)
             goto 40
           endif
         elseif(irpt.eq.3)then
+          IMFS=lastmenufont  ! re-established fixed menu fonts
+          IFS=lastbuttonfont
+          ITFS=lasttextfont
+          call userfonts(IFS,ITFS,IMFS)
           goto 40
         endif
         if(ipathmul.eq.0.or.ipathmul.eq.1)then
@@ -3973,7 +4087,13 @@ C or add another category to the database << add not yet tested >>
      &        36,matcats,CLSSEL,'Construction class to manage',
      &        IER,nbhelp)
             CALL EPMENRC
-            IF(INPIC.EQ.0)GOTO 40
+            if(INPIC.EQ.0)then
+              IMFS=lastmenufont  ! re-established menu fonts
+              IFS=lastbuttonfont
+              ITFS=lasttextfont
+              call userfonts(IFS,ITFS,IMFS)
+              GOTO 40
+            endif
             IC=ICLSSEL(1)
           endif
           if(irpt.eq.1)then
@@ -4049,13 +4169,25 @@ C Make up LAYDESC as combination of matnam and matdoc.
               mlcdbitems=mlcdbitems+1    ! increment nb of db items
               MODDB=.TRUE.
             endif
+            IMFS=lastmenufont  ! re-established menu fonts
+            IFS=lastbuttonfont
+            ITFS=lasttextfont
+            call userfonts(IFS,ITFS,IMFS)
             goto 40  ! to refresh the menu
           endif
         elseif(ACTION.eq.'-')then
           isel=0   ! this should signal UNKNOWN
           chgdb=.false.
+          IMFS=lastmenufont    ! reset to original proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           return
         endif
+        IMFS=lastmenufont  ! re-established fixed menu fonts
+        IFS=lastbuttonfont
+        ITFS=lasttextfont
+        call userfonts(IFS,ITFS,IMFS)
         goto 40
 
       ELSEIF(ICO.eq.(NCO-4))THEN
@@ -4065,6 +4197,10 @@ C If there are enough items allow paging control via EKPAGE.
           IPACT=EDIT
           CALL EKPAGE(IPACT)
         ENDIF
+        IMFS=lastmenufont  ! re-established fixed menu fonts
+        IFS=lastbuttonfont
+        ITFS=lasttextfont
+        call userfonts(IFS,ITFS,IMFS)
         GOTO 40    ! user paged so refresh
 
       ELSEIF(ICO.GT.MHEAD.AND.ICO.LT.(NCO-4))THEN
@@ -4075,6 +4211,10 @@ C Edit categpru identified by KEYIND.
         CALL KEYIND(NCO,ICO,IC,IO)
         IF(mlccatitems(IC).EQ.0)THEN
          CALL USRMSG(' No items in this classification.',' ','W')
+         IMFS=lastmenufont  ! re-established menu fonts
+         IFS=lastbuttonfont
+         ITFS=lasttextfont
+         call userfonts(IFS,ITFS,IMFS)
          GOTO 40
         ENDIF
 
@@ -4094,16 +4234,28 @@ C See how wide if no truncation.
 
 C Save the state of the initial menu prior to setting up the secondary
 C menu layout. Ensure that each logical exit point restores initial menu.
+C Switch back to proportional font but switch to fixed font on text feedback.
         CALL EPMENSV
+        IMFS=lastmenufont      ! reset to original proportional font
+        ITFS=lastfixedtextfont ! text feedback as at entry point
+        if(ITFS.eq.4) ITFS=0   ! set text feedback to fixed
+        if(ITFS.eq.5) ITFS=1
+        if(ITFS.eq.6) ITFS=2
+        if(ITFS.eq.7) ITFS=3
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+C        write(6,'(a,3i2)') 'EDMLDB2 4242 IFS,ITFS,IMFS',IFS,ITFS,IMFS
         MHEAD=1  ! reset for inner menu head
         MCTL=7   ! reset for inner menu control entries
         ILEN=mlccatitems(IC) ! reset for materials in this catetory 
         IPACT=CREATE
         CALL EKPAGE(IPACT)
 
-C Generate menu strings for constructions in the class.
+C Generate menu strings for constructions in the class. Could check string widths!
     3   write(MLCITM(1),'(2a)') ' Constructions in category ',
      &    mlccatname(IC)(1:lnmlccatname(IC))
+        itemwid=lnblnk(MLCITM(1))
+        if(itemwid.gt.listwidth) listwidth=itemwid
         M=MHEAD
         ILEN=mlccatitems(IC) ! reset if constructions in this catetory changed
         mclist=0  ! counter for materials found to be in this category
@@ -4133,12 +4285,16 @@ C case a new construction or a copy re-check iwid.
                 lso=lnblnk(mlcoptical(loop))
                 WRITE(MLCITM(M),'(a,1x,5a)')KEY,mlcname(loop)(1:lsn),
      &            '  ',mlcoptical(loop)(1:lso),' ',mlcmenu(loop)(1:lsm)          
+                itemwid=lnblnk(MLCITM(M))
+                if(itemwid.gt.listwidth) listwidth=itemwid
               else
                 lsn=MIN0(lnmlcname(loop),23)
                 lsm=MIN0(lnmlcmenu(loop),23)
                 lso=MIN0(lnblnk(mlcoptical(loop)),14)
                 WRITE(MLCITM(M),'(a,1x,5a)')KEY,mlcname(loop)(1:lsn),
      &            '  ',mlcoptical(loop)(1:14),' ',mlcmenu(loop)(1:lsm)
+                itemwid=lnblnk(MLCITM(M))
+                if(itemwid.gt.listwidth) listwidth=itemwid
               endif         
             endif
           endif
@@ -4182,9 +4338,15 @@ C Help text for this menu.
         write(heading,'(3a,i2,a,i2,a)') 'Constructions in ',
      &    mlccatname(IC)(1:lnmlccatname(IC)),' (',IC,') with ',
      &    mlccatitems(IC),' entries.'
- 
-        CALL EMENU(heading,MLCITM,NITMS,INO)
 
+C Constrain the width of the menu if possible.
+        if(MMOD.EQ.8)then
+          impx=0; impy=0; iwe=listwidth+2
+          CALL VWMENU(heading,MLCITM,NITMS,
+     &    impx,impy,iwe,irpx,irpy,INO)
+        else
+          CALL EMENU(heading,MLCITM,NITMS,INO)
+        endif
         IF(INO.EQ.NITMS.OR.INO.EQ.0)THEN
           IF(MODDB.and.ACTION.eq.'M')THEN
 
@@ -4195,6 +4357,10 @@ C and write a new file based on current common blocks.
      &        'Save the constructions changes?',OK,dok,nbhelp)
             if(.NOT.OK)then
               CALL EPMENRC   ! recover initial menu state
+              IMFS=lastmenufont  ! re-established fixed menu fonts
+              IFS=lastbuttonfont
+              ITFS=lasttextfont
+              call userfonts(IFS,ITFS,IMFS)
               GOTO 4         ! jump back to rebuild initial menu
             endif
             chgdb=.true.   ! pass back signal to update
@@ -4220,8 +4386,16 @@ C prepended.
             MODDB=.FALSE.
           ENDIF
           CALL EPMENRC   ! recover initial menu state
+          IMFS=lastmenufont  ! re-established menu fonts
+          IFS=lastbuttonfont
+          ITFS=lasttextfont
+          call userfonts(IFS,ITFS,IMFS)
           GOTO 4         ! go back and rebuild initial menu
         ELSEIF(INO.EQ.1.AND.INO.LE.4)THEN
+          IMFS=lastmenufont  ! re-established menu fonts
+          IFS=lastbuttonfont
+          ITFS=lasttextfont
+          call userfonts(IFS,ITFS,IMFS)
           GOTO 4         ! not a useful selection redo inner menu
         ELSEIF(INO.EQ.NITMS-1)THEN
           helptopic='constr_db_overview'
@@ -4237,6 +4411,9 @@ C a new file via XXXX.
             CALL ASKOK('No changes in the constructions file. ',
      &        'Do you want to update it anyway:',OK,dok,nbhelp)
             if(.NOT.OK)then
+              IMFS=lastmenufont      ! reset to original proportional font
+              IFS=lastbuttonfont
+              call userfonts(IFS,ITFS,IMFS)
               goto 3  ! jump back to inner menu without doing anything
             endif
           endif
@@ -4327,6 +4504,9 @@ C Add a construction. Update this to account for OPAQ/TRAN/CFC.
               CALL USRMSG('Adding not allowed as the new item',
      &        'would exceed database space! Skipping request...','W')
               INO=-4
+              IMFS=lastmenufont      ! reset to original proportional font
+              IFS=lastbuttonfont
+              call userfonts(IFS,ITFS,IMFS)
               GOTO 3
             endif
             moddb = .true.
@@ -4395,6 +4575,9 @@ C Bring up editing menu for new item. Ignore jump requests.
      &        'Sorry, no jump after new construction.')
 
 C In this case the category stays the same so just jump back.
+            IMFS=lastmenufont      ! reset to original proportional font
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             goto 3
           elseif(IW.EQ.2)then
 
@@ -4482,6 +4665,9 @@ C Find the index of the MLC which matches each surface.
                 enddo   ! of I
               enddo     ! of icomp
             endif
+            IMFS=lastmenufont      ! reset to original proportional font
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             goto 3
 
           ELSEIF(IW.EQ.3)THEN
@@ -4491,6 +4677,9 @@ C Copy an existing construction to a new one at end of list.
               CALL USRMSG('Copy not allowed as the new item',
      &        'would exceed database space! Skipping request...','W')
               INO=-4
+              IMFS=lastmenufont      ! reset to original proportional font
+              IFS=lastbuttonfont
+              call userfonts(IFS,ITFS,IMFS)
               GOTO 3
             endif
             CALL EPMENSV
@@ -4590,6 +4779,9 @@ C Bring up editing menu for new item.
             CALL EKPAGE(IPACT)
             if(jump.ne.0) call edisp(iuout,
      &        'Sorry, no jump after copy construction.')
+            IMFS=lastmenufont      ! reset to original proportional font
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             goto 3
 
           ELSEIF(IW.EQ.4)THEN
@@ -4600,6 +4792,9 @@ C there is room in the database copy data to a new item.
               CALL USRMSG('Copy & invert not allowed as the new item',
      &          'would exceed database space! Skipping request...','W')
               INO=-4
+              IMFS=lastmenufont      ! reset to original proportional font
+              IFS=lastbuttonfont
+              call userfonts(IFS,ITFS,IMFS)
               GOTO 3
             endif
             CALL EPMENSV
@@ -4612,7 +4807,12 @@ C there is room in the database copy data to a new item.
      &          '(via this global list)',ierr)
             endif
             CALL EPMENRC
-            if(iwhich.eq.0) goto 3
+            if(iwhich.eq.0)then
+              IMFS=lastmenufont      ! reset to original proportional font
+              IFS=lastbuttonfont
+              call userfonts(IFS,ITFS,IMFS)
+              goto 3
+            endif
             moddb = .true.
             chgdb=.true.
             NMLC=NMLC+1
@@ -4744,6 +4944,9 @@ C Bring up detailed editing menu.
             CALL EKPAGE(IPACT)
             if(jump.ne.0) call edisp(iuout,
      &        'Sorry, no jump after copy invert construction.')
+            IMFS=lastmenufont      ! reset to original proportional font
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
             goto 3
           ENDIF
 
@@ -4754,6 +4957,9 @@ C If there are enough items allow paging control via EKPAGE.
             IPACT=EDIT
             CALL EKPAGE(IPACT)
           ENDIF
+          IMFS=lastmenufont      ! reset to original proportional font
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           GOTO 3    ! user paged so refresh inner menu
   
         ELSEIF(INO.EQ.NITMS-5)THEN
@@ -4908,11 +5114,22 @@ C               ifoc=ifoc+1
             return    ! task complete return to calling subroutine
           endif
         ENDIF
+        IMFS=lastmenufont      ! reset to original proportional font
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         GOTO 3  ! regenerate and display inner menu
       else
+        IMFS=lastmenufont  ! re-established menu fonts
+        IFS=lastbuttonfont
+        ITFS=lasttextfont
+        call userfonts(IFS,ITFS,IMFS)
         goto 40 ! regenerate the category list and display
       endif
       call usrmsg(' ',' ','-')
+      IMFS=lastmenufont  ! re-established menu fonts
+      IFS=lastbuttonfont
+      ITFS=lasttextfont
+      call userfonts(IFS,ITFS,IMFS)
       goto 40   ! regenerate the category list and display
 
       END
@@ -4938,6 +5155,7 @@ C
 C Add note about CFC modifications...
 
       SUBROUTINE EDWALL(ITRC,IFOC,moddb,jump,IER)
+      use CFC_Module
 #include "building.h"
 #include "model.h"
 

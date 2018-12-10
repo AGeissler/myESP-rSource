@@ -56,18 +56,21 @@ C geometry.h provides commons G0/G2/precz/GS5/GS6.
 
       CHARACTER sstr*90,blabel*4,direc*1
       character tz*13
+      integer izsize,issize
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iupdown,isym    ! passed to etplot
       integer iid1,iid2,iix,iiy
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer iicol
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iupdown,isym    ! passed to etplot
       integer*8 iid1,iid2,iix,iiy
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 iicol
 #endif
 
 C The right offset for the graphic box is the character width
@@ -82,6 +85,7 @@ C Define a viewing box, draw its border after clearing it and
 C return the offsets which define it. Recalculate igw and igwh
 C on fortran to address fault in 64 bit win3d code.
       call startbuffer()
+      issize=4; izsize=5  ! for surfaces and zone name
       if(menuchw.ne.0)then
 
 C Setup and pass in parameters to win3d.
@@ -210,15 +214,18 @@ C vertex and give the zone name.
           isym=0
           call etplot(ZCOG(newfoc,2),ZCOG(newfoc,3),iupdown,isym)
         endif
+        iicol=0
         IF(lnzname(newfoc).GT.1)THEN
           write(tz,'(A)')zname(newfoc)
-          call winfnt(ITFS)
+          call winfnt(izsize)
           iid1=iix+2; iid2=iiy-2;
-          call wstxpt(iid1,iid2,tz)
+          call textatxy(iid1,iid2,tz,'-',iicol)
+          call winfnt(IFS)
         ELSE
-          call winfnt(ITFS)
+          call winfnt(izsize)
           iid1=iix+2; iid2=iiy-2;
-          call wstxpt(iid1,iid2,'Target')
+          call textatxy(iid1,iid2,'Target','-',iicol)
+          call winfnt(IFS)
         endif
         call forceflush()
 
@@ -350,7 +357,8 @@ C common block via CNVBLK.
           WRITE(blabel,423)IB
   423     FORMAT('B',I2)
           iid1=iix+4; iid2=iiy-4;
-          call wstxpt(iid1,iid2,blabel)
+C          call wstxpt(iid1,iid2,blabel)
+          call textatxy(iid1,iid2,blabel,'-',iicol)
           call forceflush()
   420   CONTINUE
   54  continue
@@ -377,7 +385,7 @@ C If there is a ground, ITDSP is flagged and plan view draw it.
       endif
 
 C Print labels and return to default font.
-      call winfnt(IFS)
+      call winfnt(izsize)
       if(direc.eq.'P')then
         WRITE(sstr,'(a,a)')'Site Plan of: ',
      &    modeltitle(1:lnblnk(modeltitle))
@@ -390,7 +398,8 @@ C Print labels and return to default font.
       endif
       iiy= igt-10
       iix = igl
-      call wstxpt(iix,iiy,sstr)
+      call textatxy(iix,iiy,sstr,'-',iicol)
+      call winfnt(IMFS)
       call forceflush()
 
       RETURN

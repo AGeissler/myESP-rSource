@@ -45,10 +45,12 @@ C of lines to include in the text portion of the display.
       integer iside,isize,ifont     ! passed to viewtext
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
 C If in type 8 terminal make the text display area larger before
@@ -60,24 +62,26 @@ C displaying the following data ( but only clear it if LINES != LIMTTY)
         if(iglib.eq.1)then
           call userfonts(IFS,ITFS,IMFS)
           if(iappw.gt.0.and.iappw.lt.100)then
-            menuchw = MAX0(int(27*iappw*0.01),20)
+            menuchw = MAX0(int(28*iappw*0.01),20)
             LIMTTY=LINES
           else
-            menuchw = 27
+            menuchw = 28
             LIMTTY=LINES
           endif
-          call winclr
-          CALL feedbox(menuchw,2,igfw,igfh)
-          CALL opengdisp(menuchw,LIMTTY,2,igdw,igdh)
-
 
 C Setup and pass in parameters to win3d.
+          ilf=2; ild=LIMTTY
           iiw1=10; iiw2=22; iiw3=6; iiw4=3; iimenu=menuchw
           iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+          call winclr
+          CALL feedbox(iimenu,ilf,igfw,igfh)
+          CALL opengdisp(iimenu,ild,ilf,igdw,igdh)
           CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &      iigl,iigr,iigt,iigb,iigw,iigwh)
           igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
           igw=int(iigw); igwh=int(iigwh)
+          call opencpw
+          call opensetup
         elseif(iglib.eq.2)then
           continue
         endif
@@ -188,10 +192,12 @@ C Display heading for weather graph.
       integer iside,isize,ifont     ! passed to viewtext
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
       minu = CHAR(39)
@@ -208,86 +214,111 @@ C Display heading for weather graph.
             LIMTTY=8
             LIMIT =8
           endif
+          iimenu=menuchw; ilf=2; ild=LIMTTY
           call winclr
-          CALL feedbox(menuchw,2,igfw,igfh)
-          CALL opengdisp(menuchw,LIMTTY,2,igdw,igdh)
+          CALL feedbox(iimenu,ilf,igfw,igfh)
+          CALL opengdisp(iimenu,ild,ilf,igdw,igdh)
 
 C The calling code will know how many axis are required.
           if(onright.eq.3)then
             if(onleft.eq.2)then
 
 C Setup and pass in parameters to win3d.
-              iiw1=10; iiw2=20; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=10; iiw2=20; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt; iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.1)then
-              iiw1=6; iiw2=20; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=6; iiw2=20; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt; iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.0)then
-              iiw1=3; iiw2=20; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=3; iiw2=20; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt; iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             endif
             igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
             igw=int(iigw); igwh=int(iigwh)
           elseif(onright.eq.2)then
             if(onleft.eq.2)then
-              iiw1=10; iiw2=16; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=10; iiw2=16; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.1)then
-              iiw1=6; iiw2=16; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=6; iiw2=16; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.0)then
-              iiw1=3; iiw2=16; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=3; iiw2=16; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             endif
             igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
             igw=int(iigw); igwh=int(iigwh)
           elseif(onright.eq.1)then
             if(onleft.eq.2)then
-              iiw1=10; iiw2=12; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=10; iiw2=12; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt; iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.1)then
-              iiw1=6; iiw2=16; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=6; iiw2=16; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.0)then
-              iiw1=3; iiw2=16; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=3; iiw2=16; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             endif
             igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
             igw=int(iigw); igwh=int(iigwh)
           elseif(onright.eq.0)then
             if(onleft.eq.2)then
-              iiw1=10; iiw2=6; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=10; iiw2=6; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt; iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.1)then
-              iiw1=6; iiw2=6; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=6; iiw2=6; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt; iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.0)then
-              iiw1=3; iiw2=6; iiw3=6; iiw4=3; iimenu=menuchw
+              iiw1=3; iiw2=6; iiw3=6; iiw4=3
               iigl=igl; iigr=igr; iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             endif
             igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
             igw=int(iigw); igwh=int(iigwh)

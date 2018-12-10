@@ -300,13 +300,13 @@ C act='p' iget parameters already set.
       integer igx,iigx  ! see array above
       integer igwid,igheight  ! for use with axiscale
       integer iupdown,isym,iid1,iid2   ! passed to etplot
-      integer iicol
+      integer iicol,ibsize
       integer iigl,iigr,iigt,iigb,iigw,iigwh
 #else
       integer*8 igx,iigx  ! see array above
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iupdown,isym,iid1,iid2   ! passed to etplot
-      integer*8 iicol
+      integer*8 iicol,ibsize
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
 #endif
 
@@ -512,7 +512,7 @@ C      write(6,*) ' fonts ifs itfs  & imfs & iglib ',IFS,ITFS,IMFS,iglib
 C      write(6,*) ' onright ',oneonright,twoonrighta,twoonrightb
 
       if(IROC.eq.0)then
-        ALABEL(1)='Temp: DegC'
+        ALABEL(1)='Temp: C'
 
 C Could be kW for next units depends on scaling.
         ALABEL(2)='Load W'
@@ -522,7 +522,7 @@ C Could be kW for next units depends on scaling.
       elseif(IROC.eq.1)then
 
 C IROC, if rate of change of variable alter the axis label.
-        ALABEL(1)='T DegC/hr'
+        ALABEL(1)='Temp C/hr'
         ALABEL(2)='Load W/hr'
         if (kwatts) ALABEL(2)='Load kW/hr'
         ALABEL(3)='Int W/m^2/hr'
@@ -579,7 +579,7 @@ C Round YMIN to a sensible value.
 C Set-up frequency of labels (DT), number of decimal places (NDEC) and 
 C draw vertical axis.
           if(colok)then
-            iicol=0
+            iicol=0; ibsize=0
             call winscl('-',iicol)  ! ensure axis drawn in black
           endif
           call dintervalf(TSTART-1.0,TFINSH,DT,NDEC,1)
@@ -597,7 +597,7 @@ C draw vertical axis.
             call vrtaxisdd(YMIN(I),YMAX(I),iigx,iigb,iigt,Yadd(I),
      &        YSC(I),0,ddy1,ny,ilr(I),'  ')
             iid1=igx(I); iid2=igt-5;
-            call wstxpt(iid1,iid2,ALABEL(I))
+            call textsizeatxy(iid1,iid2,ALABEL(I),ibsize,'-',iicol)
           endif
         endif
  100  continue
@@ -768,10 +768,6 @@ C Reset add profile.
  10   continue
 
 C Finally label lines, matching zone line colour if used.
-C If IMFS is > zero then use IMFS-1 for line label.
-      if(IMFS.gt.0.and.IMFS.lt.4)then
-        call winfnt(imfs-1)
-      endif
       do 200 I=1,NGET
         Iax=IGETNO(I,8)
         call linescale(iigl,Xadd,TSC,iigb,Yadd(Iax),YSC(Iax))
@@ -783,23 +779,23 @@ C If IMFS is > zero then use IMFS-1 for line label.
           endif
         endif
         call u2pixel(TIMEold(I),Yold(I),iid1,iid2)
-        call wstxpt(iid1,iid2,t20)
+        ibsize=0
+        call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
         if(colok)then
           iicol=0
           call winscl('-',iicol)
         endif
         call forceflush()
  200  continue
-      if(IMFS.gt.0.and.IMFS.lt.4)then
-        call winfnt(imfs)
-      endif
+      call usrmsg(' ',' ','-')  ! refresh dialog 
 
 C If there are optional user defined labels draw them.
       if(ngrlbl.gt.0)then
         do 201 ijj=1,ngrlbl
           t24=grlbl(ijj)
           iid1=lblpx(ijj); iid2=lblpy(ijj);
-          call wstxpt(iid1,iid2,t24)
+          iicol=0; ibsize=0
+          call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
  201    continue
       endif
       goto 1
@@ -847,10 +843,12 @@ C To extend logic to maximize plotting area.
       integer iside,isize,ifont     ! passed to viewtext
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
 C If GTK library then there are additional options << work in progress >>.
@@ -867,9 +865,10 @@ C pixel references for calls to viewtext.
       IF(MMOD.EQ.8)THEN
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1)then
+          iimenu=menuchw; ilf=2; ild=LIMTTY
           call startbuffer
-          call feedbox(menuchw,2,igfw,igfh)
-          call opengdisp(menuchw,LIMTTY,2,igdw,igdh)
+          call feedbox(iimenu,ilf,igfw,igfh)
+          call opengdisp(iimenu,ild,ilf,igdw,igdh)
         endif
 
 C Logic to alter the '30' for two different cases:
@@ -911,8 +910,8 @@ C using similar logic tree to mowlin.
 C Debug.
 C        write(6,*) ' nb of right axis is currently ',onright,onleft
 
-C Set standard fornt width so that space around graph is correct.
-        call winfnt(imfs)
+C Set button font width so that space around graph is correct.
+        call winfnt(ifs)
         if(onright.eq.0)then
           if(onleft.eq.0)then
 
@@ -960,6 +959,7 @@ C Cast values back depending on machine type.
         igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
         igw=int(iigw); igwh=int(iigwh)
         call startbuffer
+        call winfnt(imfs)  ! back to menu font?
       ENDIF
 
       lsn1=MIN0(lnblnk(RFILE),42)
@@ -970,9 +970,7 @@ C Cast values back depending on machine type.
         WRITE(ETEXT,'(4A)')'Lib: ',RFILE(1:lsn1),
      &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       endif
-      iside=1
-      isize=0
-      ifont=1
+      iside=1; isize=0; ifont=1
       call viewtext(etext,iside,isize,ifont)
 
       WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
@@ -1013,15 +1011,11 @@ C Remember if a 4th line of text is being drawn.
       if(graftitle(1:2).ne.'  ')then
         t64=graftitle
         if(iancline.gt.0)then
-          iside=5
-          isize=1
-          ifont=2
+          iside=5; isize=1; ifont=2
           call viewtext(t64,iside,isize,ifont)
         endif
         if(iancline.eq.0)then
-          iside=4
-          isize=1
-          ifont=2
+          iside=4; isize=1; ifont=2
           call viewtext(t64,iside,isize,ifont)
         endif
       endif

@@ -635,8 +635,8 @@ C Add new image definition.
 
 C Display grid, to aid user in picking a plane.
           call INIT_CFDTRANS(IER)
-          call VGRID3D('zn ','xyz',ICP)
-
+          call VGRID3D(ICP,1)
+  
           IF(IWM.EQ.1)THEN
 
 C View from south.
@@ -923,7 +923,7 @@ C View direction and layer.
 
 C Display grid, to aid user in picking a plane.
           call INIT_CFDTRANS(IER)
-          call VGRID3D('zn ','xyz',ICP)
+          call VGRID3D(ICP,1)
 
           IF(IWM.EQ.1)THEN
 
@@ -1593,9 +1593,9 @@ C   IMFLIST(LISTID,3) = Z cell
       character zn*12
       integer IZNSEL(MCON),ISFSEL(MCON)
 #ifdef OSI
-      integer iid1,iid2,iixx,iiyy,iik
+      integer iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #else
-      integer*8 iid1,iid2,iixx,iiyy,iik
+      integer*8 iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #endif
 
 C For help messages
@@ -1816,11 +1816,11 @@ C each have a different line colour.
         GLMFLABEL(NMFGET)='Ambient dry bulb Temp'
         LNGLMFLABEL(NMFGET)=21
         if(IROC.eq.0)then
-          SMFLABEL(NMFGET)='Ambient db temperature (degC)'
-          LNSMFLABEL(NMFGET)=29
+          SMFLABEL(NMFGET)='Ambient db temperature (C)'
+          LNSMFLABEL(NMFGET)=26
         elseif(IROC.eq.1)then
-          SMFLABEL(NMFGET)='Ambient db temp change (degC/hr)'
-          LNSMFLABEL(NMFGET)=32
+          SMFLABEL(NMFGET)='Ambient db temp change (C/hr)'
+          LNSMFLABEL(NMFGET)=29
         endif
 
 C If timestep listing go back to see if any other data should be included.
@@ -2023,13 +2023,13 @@ C Temperature: IMFGET = 19
         IMFGETNO(NMFGET,6)=1
         IMFGETNO(NMFGET,7)=1
         IMFGETNO(NMFGET,8)=0
-        SUFFIX=' temp degC'
+        SUFFIX=' temp C'
         if(IROC.eq.0)then
-          SMFLABEL(NMFGET)='Temperature (degC)'
-          LNSMFLABEL(NMFGET)=14
+          SMFLABEL(NMFGET)='Temperature (C)'
+          LNSMFLABEL(NMFGET)=11
         elseif(IROC.eq.1)then
-          SMFLABEL(NMFGET)='Temperature change (degC/hr)'
-          LNSMFLABEL(NMFGET)=28
+          SMFLABEL(NMFGET)='Temperature change (C/hr)'
+          LNSMFLABEL(NMFGET)=25
         endif
         SELCEL=.true.
 
@@ -2139,7 +2139,7 @@ C Clear all selections (time series plot).
           call MOFLOWSU
         else
 
-C Occupancy filter (all types bar time series plot).
+C Occupancy filter (all types except time series plot).
 C Occupancy filter for flow results requires the user to specify>>
 C a thermal zone.
           if(iocupf.eq.0)then
@@ -2383,7 +2383,8 @@ C Find out point where text should be drawn.
           lblpy(igrl)=int(iiyy)
           iid1=int(iixx); iid2=int(iiyy);
           t24=grlbl(igrl)
-          call wstxpt(iid1,iid2,t24)
+          iicol=0; ibsize=0
+          call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
           dok=.true.
           CALL ASKOK('Include another user supplied label?',' ',
      &      OKL,dok,nbhelp)
@@ -2474,7 +2475,7 @@ C pick one manually.
 C If in graphic mode, display grid to aid user in picking a cell.
           if (MMOD.eq.8) then
             call INIT_CFDTRANS(IER)
-            call VGRID3D('zn ','xyz',ICP)
+            call VGRID3D(ICP,1)
           endif
 
           ilayer=IMFLIST(NMFLST,1)
@@ -2545,11 +2546,14 @@ C Find CFD grid cell closest to room COG.
           endif
           CALL INIT_CFDTRANS(IER)
           if (IER.eq.0) then
+
 C Find CFD plane closest to selected Z height.
             CALL GRIDGEO
             CALL CFDTRANS(2,ZCOG(ICP,1),ZCOG(ICP,2),ZCOG(ICP,3),
      &        XC,YC,ZC,IER)
             CALL FDCFDPT(XC,YC,ZC,ilayer,jlayer,klayer,IER)
+
+C Decrement ?layers, because FDCFDPT includes wall grid points.
             ilayer=ilayer-1
             jlayer=jlayer-1
             klayer=klayer-1
@@ -2568,11 +2572,10 @@ C the cell they want.
         if (MMOD.eq.8) then
 
 C If MRT sensor or COG, refresh display to avoid showing previous cell
-C highlights. Also decrement ?layer, because outputs from FDCFDPT do
-C consider additional 
+C highlights.
           if (iopt.eq.2.or.iopt.eq.3) then
             call INIT_CFDTRANS(IER)
-            call VGRID3D('zn ','xyz',ICP)
+            call VGRID3D(ICP,1)
           endif
 
           call V1CEL3D(ilayer,jlayer,klayer)

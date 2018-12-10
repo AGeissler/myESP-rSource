@@ -607,7 +607,7 @@ C a 3D file which they can return to an add more position info.
 
             if(MMOD.eq.8)then
 C Draw the wireframe.
-              MODBND=.TRUE.; MODLEN=.TRUE.
+              MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
               ITSNM=1
               ITVNO=1
               nzg=NCOMP
@@ -617,7 +617,7 @@ C Draw the wireframe.
                 ENDDO
                 CALL INLNST(1)
                 izgfoc=0
-                CALL ADJVIEW(IER)
+                CALL redraw(IER)
               endif
             endif
 
@@ -664,7 +664,7 @@ C request position via ...
             if(MMOD.eq.8)then
 
 C Draw the wireframe and then overlay the flow network.
-              MODBND=.TRUE.; MODLEN=.TRUE.
+              MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
               ITSNM=1
               ITVNO=1
               nzg=NCOMP
@@ -674,7 +674,7 @@ C Draw the wireframe and then overlay the flow network.
                 ENDDO
                 CALL INLNST(1)
                 izgfoc=0
-                CALL ADJVIEW(IER)
+                CALL redraw(IER)
               endif
               call MFWFDRAW('r')  ! Draw flow network.
             endif
@@ -716,7 +716,7 @@ C Ask if changes need to be saved
      &    OK,dok,nbhelp)
         IF(OK)THEN
           ltmp=LAPROB
-   81     CALL EASKS(ltmp,' Fluid flow network file ? ',
+   81     CALL EASKS(ltmp,'Fluid flow network file?',
      &      ' ',72,' ','mass flow file',IER,nbhelp)
           if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
             LAPROB=LTMP
@@ -737,7 +737,7 @@ C Ask if changes need to be saved
           endif
           CALL ERPFREE(IUM,ISTAT)
           OUTS=' '
-          WRITE(OUTS,'(A,A)')'Saved fluid flow network: ',
+          WRITE(OUTS,'(2A)')'Saved fluid flow network: ',
      &      LAPROB(1:LNBLNK(LAPROB))
           CALL EDISP(IUOUT,OUTS)
           CALL EDISP(IUOUT,' ')
@@ -919,7 +919,7 @@ C Get associated zone volume and height if type 0 or 1.
           IF(OK)THEN
 
 C Redraw the bluiding in the graphic screen.
-            MODBND=.TRUE.; MODLEN=.TRUE.
+            MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
             ITDSP=1; ITBND=1; ITEPT=0; ITZNM=0
             ITSNM=1; ITVNO=1; ITORG=0; ITSNR=1
             ITGRD=1; GRDIS=0.0; ITPPSW=0
@@ -932,7 +932,7 @@ C Redraw the bluiding in the graphic screen.
 C (Re)Set all surfaces to standard line width.
               CALL INLNST(1)
               izgfoc=0
-              CALL ADJVIEW(IER)
+              CALL redraw(IER)
             endif
 
             write(outs,'(a,a)')'Which zone is associated with ',
@@ -940,7 +940,8 @@ C (Re)Set all surfaces to standard line width.
             IC=-1; IZ=-1
             WRITE(OUTS,'(A)') 
      &        'Select zone to associated with this node. '
-            CALL ASKZONE(IC,0,OUTS,'Select zone:','-','mfn locate',IER)
+            CALL ASKZONE(IC,0,OUTS,'Select zone:','-','mfn locate',
+     &        32,IER)
             call usrmsg(' ',' ','-')
             if(IC.EQ.0.OR.IC.EQ.-1)then
               ZVOL=SUPNOD(IFNOD,2)
@@ -1031,8 +1032,7 @@ C Allow the user to determine the surface associated with this node.
           CALL PHELPD('wind-pressure surface',nbhelp,'-',0,0,IER)
 
 C Redraw the building in the graphic screen.
-          MODBND=.TRUE.
-          MODLEN=.TRUE.
+          MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
           ITDSP=1; ITBND=1; ITEPT=0; ITZNM=0
           ITSNM=1; ITVNO=1; ITORG=0; ITSNR=1
           ITGRD=1; GRDIS=0.0; ITPPSW=0
@@ -1045,11 +1045,12 @@ C Redraw the building in the graphic screen.
 C (Re)Set all surfaces to standard line width.
             CALL INLNST(1)
             izgfoc=0
-            CALL ADJVIEW(IER)
+            CALL redraw(IER)
           endif
           WRITE(OUTS,'(A)') 
      &'Select the zone containing the surface. '
-          CALL ASKZONE(IZ,0,OUTS,'Select zone','-','wpn locate',IER)
+          CALL ASKZONE(IZ,0,OUTS,'Select zone','-','wpn locate',
+     &      32,IER)
           IF(IZ.NE.0)then
             VALHX=ZCOG(IZ,1); VALHY=ZCOG(IZ,2)
             VALHZ=ZCOG(IZ,3)
@@ -1064,7 +1065,7 @@ C General image option flags.
           CALL INLNST(1)
           ITZNM=0; ITSNM=0; ITORG=1; ITSNR=1; ITGRD=1; ITVNO=1
           nzg=1; nznog(1)=IZ; izgfoc=IZ
-          CALL ADJVIEW(IER)
+          CALL redraw(IER)
 
           ISO=1
           WRITE(OUTS,'(A)')
@@ -1401,31 +1402,31 @@ C For help messages
 C Highlight the component being edited.
             call startbuffer
             call MFWFDRAW('g')  ! draw all in grey first
-            call pausems(100)
+            call pausems(50)
             VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
             VALHZ=HCMP(ICMP,1,3)
             name=CMNAM(ICMP)
             if(ITPCMP(ICMP).eq.120)then
               call symbol_flow_cmp(name,'cr','r',valhx,valhy,valhz) ! highlight 
-              call pausems(100)
+              call pausems(50)
             elseif(ITPCMP(ICMP).gt.0.and.ITPCMP(ICMP).le.35)then
               call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
-              call pausems(100)
+              call pausems(50)
             elseif(ITPCMP(ICMP).eq.40.or.ITPCMP(ICMP).eq.110)then
               call symbol_flow_cmp(name,'or','r',valhx,valhy,valhz) ! highlight 
-              call pausems(100)
+              call pausems(50)
             elseif(ITPCMP(ICMP).eq.50.or.ITPCMP(ICMP).eq.210)then
               call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
-              call pausems(100)
+              call pausems(50)
             elseif(ITPCMP(ICMP).eq.130)then
               call symbol_flow_cmp(name,'bi','r',valhx,valhy,valhz) ! highlight 
-              call pausems(100)
+              call pausems(50)
             elseif(ITPCMP(ICMP).ge.220.or.ITPCMP(ICMP).le.250)then
               call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
-              call pausems(100)
+              call pausems(50)
             elseif(ITPCMP(ICMP).ge.310)then
               call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
-              call pausems(100)
+              call pausems(50)
             endif
           endif
         ENDIF
@@ -1772,9 +1773,13 @@ C If 3D then ask / confirm component.
             CALL EPMENSV
             call ASKRCMP(outs(1:lnblnk(outs)),'-',ICMP,IER)
             CALL EPMENRC
-            WRITE(OUTS,'(3A,f7.3)')
-     &      '  Linking component: (now ',CMNAM(icmp),
-     &      ') @ ',HCMP(icmp,1,3)
+            if(ICMP.ne.0)then
+              WRITE(OUTS,'(3A,f7.3)')
+     &        '  Linking component: (now ',CMNAM(icmp),
+     &        ') @ ',HCMP(icmp,1,3)
+            else
+              WRITE(OUTS,'(A)') 'No component selected!'
+            endif
             call edisp(iuout,outs)
           ELSE
             WRITE(OUTS,'(A)')
@@ -1783,9 +1788,13 @@ C If 3D then ask / confirm component.
             CALL EPMENSV
             call ASKRCMP(outs(1:lnblnk(outs)),'-',ICMP,IER)
             CALL EPMENRC
-            WRITE(OUTS,'(3A,f7.3)')
-     &      '  Linking component: (now ',CMNAM(icmp),
-     &      ') @ ',HCMP(icmp,1,3)
+            if(ICMP.ne.0)then
+              WRITE(OUTS,'(3A,f7.3)')
+     &        '  Linking component: (now ',CMNAM(icmp),
+     &        ') @ ',HCMP(icmp,1,3)
+            else
+              WRITE(OUTS,'(A)') 'No component selected!'
+            endif
             call edisp(iuout,outs)
           ENDIF
         else
@@ -2042,7 +2051,7 @@ C Allow the user to select the roof of the building
       CALL PHELPD('wind model',nbhelp,'-',0,0,IER)
       IZ=0
       CALL ASKZONE(IZ,0,'Select the zone containing the roof.',
-     &  'Select zone','-','wpn locate',IER)
+     &  'Select zone','-','wpn locate',32,IER)
       ISZONE=IZ
       IF(IZ.NE.0) VALHZ=ZCOG(IZ,3)
       call usrmsg(' ',' ','-')
@@ -2063,7 +2072,7 @@ C << might want to save current values for later recovery >>
       nzg=1
       nznog(1)=ISZONE
       izgfoc=ISZONE
-      CALL ADJVIEW(IER)
+      CALL redraw(IER)
       MODIFYVIEW=.TRUE.
       MODBND=.TRUE.
 
@@ -2313,7 +2322,7 @@ C and temperature, setting the node name to the zone name.
             write(name,'(a)') NDNAM(NNOD)
             call symbol_flow_nd(name,'iu','r',
      &        ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3))
-            call pausems(100)
+            call pausems(50)
           ENDIF
   10    CONTINUE
 
@@ -2366,7 +2375,7 @@ C Redraw the affected zones in the graphic screen.
               nzg=2
               nznog(1)=IC1(ICN)
               nznog(2)=IC2(ICN)
-              CALL ADJVIEW(IER)
+              CALL redraw(IER)
 
 C (Re)Set all surfaces to standard line width.
               CALL INLNST(1)
@@ -2440,7 +2449,7 @@ C Place components along the south facade.
         SUPNOD(NNOD,1)=29.0; SUPNOD(NNOD,2)=180.0
         write(name,'(a)') NDNAM(NNOD)
         call symbol_flow_nd(name,'bw','r',xc,yc,zc)
-        call pausems(100)
+        call pausems(50)
         NNOD=NNOD+1
         write(NDNAM(NNOD),'(a)') 'inf_sink'
         NDTYP(NNOD)=3; NDFLD(NNOD)=1
@@ -2450,7 +2459,7 @@ C Place components along the south facade.
         SUPNOD(NNOD,1)=29.0; SUPNOD(NNOD,2)=180.0
         write(name,'(a)') NDNAM(NNOD)
         call symbol_flow_nd(name,'bw','r',xc,yc,zc)
-        call pausems(100)
+        call pausems(50)
 
 C A node-for-current-zone index that takes into account inf_source & inf_sink
         nodeforcurrent=2
@@ -2509,7 +2518,7 @@ C and temperature, setting the node name to the zone name.
             write(name,'(a)') NDNAM(NNOD)
             call symbol_flow_nd(name,'iu','r',
      &        ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3))
-            call pausems(100)
+            call pausems(50)
           ENDIF
   37    CONTINUE
    
@@ -2526,7 +2535,7 @@ C zero flow), remember index via noinfforcurrent.
         xc=1.0; yc=-1.0; zc=1.0
         HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
         call symbol_flow_cmp(name,'bx','r',xc,yc,zc)
-        call pausems(100)
+        call pausems(50)
         noinfforcurrent=NCMP
 
 C A nothing happening ventilation fixd volume component. (with
@@ -2542,7 +2551,7 @@ C zero flow), remember index via noventforcurrent.
         xc=2.0; yc=-1.0; zc=1.0
         HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
         call symbol_flow_cmp(name,'bx','r',xc,yc,zc)
-        call pausems(100)
+        call pausems(50)
         noventforcurrent=NCMP
 
 C A nothing happening crack 5mm x 1m (so zones with no infiltration
@@ -2560,7 +2569,7 @@ C or ventilation are not perfectly closed), remember index via crackforcurrent.
         xc=3.0; yc=-1.0; zc=1.0
         HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
         call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
-        call pausems(100)
+        call pausems(50)
         crackforcurrent=NCMP
 
 C A small exfiltration grill (orifice) 0.2m^2, remember index via gr02forcurrent
@@ -2577,7 +2586,7 @@ C A small exfiltration grill (orifice) 0.2m^2, remember index via gr02forcurrent
         xc=4.0; yc=-1.0; zc=1.0
         HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
         call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-        call pausems(100)
+        call pausems(50)
         gr02forcurrent=NCMP
 
 C An exfiltration grill 0.4m^2, remember index via gr04forcurrent
@@ -2594,7 +2603,7 @@ C An exfiltration grill 0.4m^2, remember index via gr04forcurrent
         xc=5.0; yc=-1.0; zc=1.0
         HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
         call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-        call pausems(100)
+        call pausems(50)
         gr04forcurrent=NCMP
 
 C An exfiltration grill 0.6m^2, remember index via gr06forcurrent
@@ -2611,7 +2620,7 @@ C An exfiltration grill 0.6m^2, remember index via gr06forcurrent
         xc=6.0; yc=-1.0; zc=1.0
         HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
         call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-        call pausems(100)
+        call pausems(50)
         gr06forcurrent=NCMP
 
 C Loop through each of the selected zones, scan operations file
@@ -2733,7 +2742,7 @@ C If infiltraiton is non-zero and unique make a new component
                     HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc
                     HCMP(NCMP,1,3)=zc
                     call symbol_flow_cmp(name,'bx','r',xc,yc,zc)
-                    call pausems(100)
+                    call pausems(50)
 
 C Remember link between current iz and infiltration component.
 C Given a zone index (ix) it will return the component number
@@ -2779,7 +2788,7 @@ C and connection for infiltration and exfiltration.
                   HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc
                   HCMP(NCMP,1,3)=zc
                   call symbol_flow_cmp(name,'bx','r',xc,yc,zc)
-                  call pausems(100)
+                  call pausems(50)
                   icompforinf(iz)=NCMP
                   NCNN=NCNN+1
                   NODPS(NCNN)=1
@@ -2863,7 +2872,7 @@ C Make a new ventilation component.
                     HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc
                     HCMP(NCMP,1,3)=zc
                     call symbol_flow_cmp(name,'bx','r',xc,yc,zc)
-                    call pausems(100)
+                    call pausems(50)
 
 C Remember link between current iz and ventilation component.
 C Given a zone index (ix) it will return the component number
@@ -2912,7 +2921,7 @@ C and connection for ventilation.
                   HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc
                   HCMP(NCMP,1,3)=zc
                   call symbol_flow_cmp(name,'bx','r',xc,yc,zc)
-                  call pausems(100)
+                  call pausems(50)
                   icompforvent(iz)=NCMP
                   NCNN=NCNN+1
                   if(isrczforvent(iz).eq.0)then

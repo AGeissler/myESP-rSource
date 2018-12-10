@@ -1656,6 +1656,19 @@ C Shift zone base surfaces and base areas.
         IBASES(IX,4)=IBASES(IX+1,4)
         IBASES(IX,5)=IBASES(IX+1,5)
         IBASES(IX,6)=IBASES(IX+1,6)
+        IBASES(IX,7)=IBASES(IX+1,7)
+        IBASES(IX,8)=IBASES(IX+1,8)
+        IBASES(IX,9)=IBASES(IX+1,9)
+        IBASES(IX,10)=IBASES(IX+1,10)
+        IBASES(IX,11)=IBASES(IX+1,11)
+        IBASES(IX,12)=IBASES(IX+1,12)
+        IBASES(IX,13)=IBASES(IX+1,13)
+        IBASES(IX,14)=IBASES(IX+1,14)
+        IBASES(IX,15)=IBASES(IX+1,15)
+        IBASES(IX,16)=IBASES(IX+1,16)
+        IBASES(IX,17)=IBASES(IX+1,17)
+        IBASES(IX,18)=IBASES(IX+1,18)
+        IBASES(IX,19)=IBASES(IX+1,19)
 
 C Shift zone default solar distributions and volumes.
         NDP(IX)=NDP(IX+1)
@@ -2070,10 +2083,10 @@ C and change any / to \.
       endif
 
 C Get application % nopminal size.
-      if(iappw.eq.630)then
+      if(iappw.eq.690)then
         iappwpc=100
       else
-        iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+        iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
       endif
 
       if(act(1:3).eq.'sr ')then

@@ -31,7 +31,7 @@ C  GETCN:   Returns mass flow connection index matching two node
 C           names and associated component.
 C  GETCMP:  Returns mass flow component index matching name ,
 C  MFWRIT:  Fluid flow model file: dump common data to file.
-C  MFWRIT:  3D Fluid flow model file: dump common block data to file.
+C  MF3DWRIT:  3D Fluid flow model file: dump common block data to file.
 
 C ************************* EMFREAD 
 C EMFREAD reads a mass flow network description file.
@@ -335,6 +335,7 @@ C have been obtained.
    25 CONTINUE
 
 C Check component data, beginning with possible duplication. 
+      IF(NCMP.EQ.0) GOTO 37  ! if none skip checks
       ICMP=0
    30 ICMP=ICMP+1
       I=0
@@ -355,7 +356,9 @@ C Check if this is a valid component type.
       GOTO 999
 
 C Check component level number of data items.
-   34 call mfcmpsupcheck(ICMP,IER)
+   34 continue
+      IF(NCMP.EQ.0) GOTO 37  ! if none skip checks
+      call mfcmpsupcheck(ICMP,IER)
 
       IF(ICMP.LT.NCMP) GOTO 30
 
@@ -937,6 +940,7 @@ C Check component level number of data items.
 
 C Check connections data (perform same checks as editing code)
 C Start by checking if current connection has valid nodes numbers.
+      if(NCNN.eq.0) goto 43 ! skip check if no connections
       ICNN=0
    51 ICNN=ICNN+1
       IF(NODPS(ICNN).EQ.NODNE(ICNN))then
@@ -1602,7 +1606,7 @@ C Component data.
      &        ITPCMP(ICMP),ISDCMP(ICMP),ISDCNN(ICMP),LTPCMP(ICMP)
           endif
           if(markdown)then
-            CALL EDISP2tr(ITRU,OUTS)
+            CALL EDISP(ITRU,OUTS)
           else
             CALL EDISP(ITRU,OUTS)
           endif
@@ -1613,7 +1617,7 @@ C Component data.
      &        CMPASSOC(ICMP,1)(1:lnczn),':',
      &        CMPASSOC(ICMP,2)(1:lncsn)
             if(markdown)then
-              CALL EDISP2tr(ITRU,OUTS)
+              CALL EDISP(ITRU,OUTS)
             else
               CALL EDISP(ITRU,OUTS)
             endif
@@ -2033,6 +2037,8 @@ C      IF(NCMP.EQ.0) GOTO 999
 C Connections data
 C << check if NDNAM(NDSCNN(ICNN,1)) and NDNAM(NDSCNN(ICNN,2))
 C << are used. Probably does not have to be written.
+C According to EMFREAD: 
+C << ? NDSCNN has been depreciated in favour of nfsup() & iasocc(). >>
       WRITE(IFPRB,1060,ERR=999)
  1060 FORMAT(' +Node         dHght   -Node         dHght',
      &'   via Component')
@@ -2041,8 +2047,9 @@ C Implied do loop in the write statement for connections.
       WRITE(IFPRB,1070,IOSTAT=IOS,ERR=999)
      &     (NDNAM(NODPS(ICNN)),HGTPS(ICNN),
      &      NDNAM(NODNE(ICNN)),HGTNE(ICNN),
-     &       CMNAM(ITPCON(ICNN)),
-     &      NDNAM(NDSCNN(ICNN,1)),NDNAM(NDSCNN(ICNN,2)),
+     &      CMNAM(ITPCON(ICNN)),
+     &      NDNAM(NDSCNN(ICNN,1))(1:lnblnk(NDNAM(NDSCNN(ICNN,1)))),
+     &      NDNAM(NDSCNN(ICNN,2))(1:lnblnk(NDNAM(NDSCNN(ICNN,2)))),
      &      ICNN=1,NCNN)
  1070 FORMAT(1X,A12,F7.3,3X,A12,F7.3,3X,A12,3X,A12,1X,A12)
 

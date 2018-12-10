@@ -75,13 +75,13 @@ C Local variables to pass to edline and axiscale.
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iix,iiy,iixlast,iiylast,iixc,iiyc,iid1,iid2,iid3,iid4
-      integer iicol
+      integer iicol,ipixw
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iix,iiy,iixlast,iiylast,iixc,iiyc,iid1,iid2,iid3,iid4
-      integer*8 iicol
+      integer*8 iicol,ipixw
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
@@ -95,9 +95,9 @@ C If libraries and monitor support greyscale remember this.
         greyok=.true.
       endif
 
-C Save the current font and switch to a smaller font for displaying
-C surface names etc. Iixc,iiyc keep track of surface/pixel COG.
-      NAMEFT=IFS-1
+C Switch to a smaller font for displaying surface names etc.
+C Iixc,iiyc keep track of surface/pixel COG.
+      issize=4; izsize=5  ! for surfaces and zone name
 
 C The right offset for the graphic box is the character width of the
 C menu. Also allow 2 text lines at the bottom for future dialogue.
@@ -189,12 +189,13 @@ C Note call to textpixwidth corrupts t13 so need to
 C re-create t13 after textpixwidth call.
         t13=' '
         write(t13,'(A)')zname(nznog(IZ))(1:lnzname(nznog(IZ)))
-        IF(IFS.GT.0)CALL winfnt(NAMEFT+1)
+        CALL winfnt(izsize)
         call textpixwidth(t13,ipixw)
         iixc = iix - (ipixw/2)
         write(t13,'(A)')zname(nznog(IZ))(1:lnzname(nznog(IZ)))
-        CALL wstxpt(iixc,iiy,t13)
-        IF(IFS.GT.0)CALL winfnt(IFS)
+        iicol=0
+        call textatxy(iixc,iiy,t13,'-',iicol)
+        CALL winfnt(IFS)
         call forceflush()
       ENDIF
       IF(ier.NE.0)RETURN
@@ -245,19 +246,20 @@ C draw it as a solid circle.
             CALL VERTLBL(iix,iiy,IZV,ier)
 
 C If less than 2 hits then draw a legend for the meaning
-C of the vertex symbols.
-            IF(IFS.GT.0)CALL winfnt(1)
+C of the vertex symbols in small proportional font.
+            CALL winfnt(issize)
             iid1=igl+20; iid2=igb+25;
             CALL ecirc(iid1,iid2,3,1)
             write(temp,'(A)')'Unlinked vertex'
             iid1=igl+30; iid2=igb+30;
-            CALL wstxpt(iid1,iid2,temp)
+            iicol=0
+            call textatxy(iid1,iid2,temp,'-',iicol)
             iid1=igl+140; iid2=igb+25;
             CALL ecirc(iid1,iid2,3,0)
             write(temp20,'(A)')'Single-linked vertex'
-            iid1=igl+150; iid2=igb+30;
-            CALL wstxpt(iid1,iid2,temp20)
-            IF(IFS.GT.0)CALL winfnt(IFS)
+            iid1=igl+150; iid2=igb+30
+            call textatxy(iid1,iid2,temp20,'-',iicol)
+            CALL winfnt(IFS)
           ENDIF
   204   CONTINUE
         call forceflush()
@@ -529,7 +531,7 @@ C offset the surface name depending on orientation.
                 CALL VECTRN(VN,TEMAT,COG2,IER)
                 CALL VECTRN(COG2,ETSMAT,COG3,IER)
                 call u2pixel(COG3(1),COG3(2),iixc,iiyc)
-                IF(IFS.GT.0)CALL winfnt(NAMEFT)
+                CALL winfnt(issize)
                 write(stemp,'(A)')SSNAME(IC)
                 call arrow(CG,VN,0.3,0.1,ipoints,'a',2)
 
@@ -545,8 +547,9 @@ C Offset the surface name depending on orientation.
                 ENDIF
 
 C Make some concession to the size of the font.
-                CALL wstxpt(iixc,iiyc,stemp)
-                IF(IFS.GT.0)CALL winfnt(IFS)
+                iicol=0
+                call textatxy(iixc,iiyc,stemp,'-',iicol)
+                CALL winfnt(IFS)
               else
                 CG(1)=SSURCOG(icc,1)
                 CG(2)=SSURCOG(icc,2)
@@ -590,8 +593,10 @@ C Draw arrow to surface then down and horizontal to the text.
                   iiyc=iiyc+5; iixc=iixc+7
                 ENDIF
                 iid4=iiyc+3
-                CALL wstxpt(iixc,iid4,stemp)
-                IF(IFS.GT.0)CALL winfnt(IFS)
+                iicol=0
+                CALL winfnt(issize)
+                call textatxy(iixc,iid4,stemp,'-',iicol)
+                CALL winfnt(IFS)
               endif
             endif
           ENDIF

@@ -1,11 +1,12 @@
 /* Miscel non-graphic functions taken from esru_x.c
    
-   winfnt(n)   changes the font (4 different sizes 0,1,2,3)
+   winfnt(n)   changes the font (4 different sizes fixed and proportional 0,1,2,3,4,5,6,7)
    Timer(msec) pause_for_milliseconds
    pausems_() pause_for_milliseconds
    pauses_() pause_for_seconds
    curmodule_() pass in info on the current application from fortran
    userfonts() set fonts for common display tasks
+   defaultfonts() set fonts for common display tasks
 */
    
 #include <stdio.h>
@@ -60,93 +61,59 @@ void winfnt_(font_index)
 
    ifont_index = (gint) *font_index;
 
-/* Originally there were three options for fonts and disp_fnt was either 0, 1, or 2.
- * With the addition of Serif Largest, Courier Small, Courier Medium, Courier Large and Courier Largest,
- * the font_index also has the values 3, 4, 5, 6, 7 
- * << NOTE: the fortran side does not know about these new values >>
+/* Follow similar patter to X11 implementataion - 0/1/2/3 fixed width and 4/5/6/7 proportional.
  */
 
-
   if (ifont_index == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
-     f_height = font_calculations_array[courier_small].f_height;
-     f_width  = font_calculations_array[courier_small].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 8");
-     f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
-     f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif 
-   //fprintf(stderr,"graphic_reset at serif medium 8 change font height and width is %d %d %d\n", f_height, f_width, ifont_index);	//debug
+   pfd = pango_font_description_from_string("Monospace,Medium 8");
+   f_height = font_calculations_array[courier_small].f_height;
+   f_width  = font_calculations_array[courier_small].f_width;
+//   fprintf(stderr,"graphic_reset at Mono medium 8 change font height and width is %d %d %d\n", f_height, f_width, ifont_index);	//debug
     
   } else if (ifont_index == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
-     f_height = font_calculations_array[serif_medium].f_height;
-     f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-   //fprintf(stderr,"graphic_reset at serif medium 10 change font height and width is %d %d %d\n", f_height, f_width,ifont_index );	//debug
+   pfd = pango_font_description_from_string("Monospace,Medium 9");
+   f_height = font_calculations_array[courier_medium].f_height;
+   f_width  = font_calculations_array[courier_medium].f_width;
+//   fprintf(stderr,"graphic_reset at Mono medium 9 change font height and width is %d %d %d\n", f_height, f_width,ifont_index );	//debug
       
    } else if (ifont_index == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
-     f_height = font_calculations_array[serif_large].f_height;
-     f_width  = font_calculations_array[serif_large].f_width;
-#endif
-   // fprintf(stderr,"graphic_reset at serif medium 12 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	
+   pfd = pango_font_description_from_string("Monospace,Medium 10");
+   f_height = font_calculations_array[courier_large].f_height;
+   f_width  = font_calculations_array[courier_large].f_width;
+//   fprintf(stderr,"graphic_reset at Mono medium 10 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	
 
    } else if (ifont_index == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
-     f_height = font_calculations_array[serif_largest].f_height;
-     f_width  = font_calculations_array[serif_largest].f_width;
-#endif 
-   //fprintf(stderr,"graphic_reset at serif medium 14 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	
+   pfd = pango_font_description_from_string("Monospace,Medium 11");
+   f_height = font_calculations_array[courier_largest].f_height;
+   f_width  = font_calculations_array[courier_largest].f_width;
+//   fprintf(stderr,"graphic_reset at Mono medium 11 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	
    }
    
    else if (ifont_index == 4) {
-   pfd = pango_font_description_from_string("Courier,Medium 8");
-   f_height = font_calculations_array[courier_small].f_height;
-   f_width  = font_calculations_array[courier_small].f_width;
- 
-   //fprintf(stderr,"graphic_reset at courier medium 8 change font height and width is %d %d %d \n ", f_height, f_width, ifont_index);	//debug	 
+   pfd = pango_font_description_from_string("Serif,Medium 8");
+   f_height = font_calculations_array[serif_small].f_height;
+   f_width  = font_calculations_array[serif_small].f_width;
+   //fprintf(stderr,"graphic_reset at serif medium 8 change font height and width is %d %d %d \n ", f_height, f_width, ifont_index);	//debug	 
       
    } 
    else if (ifont_index == 5  ) {
-   pfd = pango_font_description_from_string("Courier,Medium 10");
-   f_height = font_calculations_array[courier_medium].f_height;
-   f_width  = font_calculations_array[courier_medium].f_width;
- 
-   // fprintf(stderr,"graphic_reset at courier medium 10 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	 
+   pfd = pango_font_description_from_string("Serif,Medium 9");
+   f_height = font_calculations_array[serif_medium].f_height;
+   f_width  = font_calculations_array[serif_medium].f_width;
+   // fprintf(stderr,"graphic_reset at serif medium 9 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	 
    }
    else if (ifont_index == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-   f_height = font_calculations_array[courier_large].f_height;
-   f_width  = font_calculations_array[courier_large].f_width;
- 
-     //fprintf(stderr,"graphic_reset at courier medium 12 change font height and width is %d %d %d\n", f_height, f_width, ifont_index);	//debug	  
+   pfd = pango_font_description_from_string("Serif,Medium 10");
+   f_height = font_calculations_array[serif_large].f_height;
+   f_width  = font_calculations_array[serif_large].f_width;
+     //fprintf(stderr,"graphic_reset at serif medium 10 change font height and width is %d %d %d\n", f_height, f_width, ifont_index);	//debug	  
    }
    else if (ifont_index == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-   f_height = font_calculations_array[courier_largest].f_height;
-   f_width  = font_calculations_array[courier_largest].f_width;
- 
-   //fprintf(stderr,"graphic_reset at courier medium 14 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	 
+   pfd = pango_font_description_from_string("Serif,Medium 11");
+   f_height = font_calculations_array[serif_largest].f_height;
+   f_width  = font_calculations_array[serif_largest].f_width;
+   //fprintf(stderr,"graphic_reset at serif medium 11 change font height and width is %d %d %d \n", f_height, f_width, ifont_index);	//debug	 
    }
-   
-   
    
    /* fprintf(stderr,"graphic_reset font height and width is %d %d %d \n", f_height, f_width, ifont_index); debug */	 
  
@@ -283,6 +250,19 @@ long int *ifs,*itfs,*imfs;
  disp_fnt = (int) *itfs;	/* dialogue and text feedback  */
  menu_fnt = (int) *imfs;	/* prefered menu font */
 /* debug   fprintf(stderr,"setting font size to %d %d %d\n",butn_fnt,disp_fnt,menu_fnt); */
+ return;
+}
+
+/* *************** set default fonts for current application ******** */
+/* Pass default font preferences from fortran. ifs for buttons and graphs,
+ * itfs for text feedback and dialog, imfs for command menus
+ */
+void defaultfonts_(ifsd,itfsd,imfsd)
+long int *ifsd,*itfsd,*imfsd;
+{
+ d_butn_fnt = (int) *ifsd;	/* remember the button and graph text font size */
+ d_disp_fnt = (int) *itfsd;	/* dialogue and text feedback  */
+ d_menu_fnt = (int) *imfsd;	/* prefered menu font */
  return;
 }
 

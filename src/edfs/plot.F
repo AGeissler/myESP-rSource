@@ -161,8 +161,10 @@ C Calculate plotting box locations.
         CALL axiscale(ipltwd,igheight,plxmin,plxmax,Ymin,Ymax,
      &                xsc,ysc,sca,xadd,yadd)
 
-C Scale and draw residuals plot.
+C Scale and draw residuals plot. No need for decimal places
+C on the horizontal plot.
         call dintervalf(plxmin,plxmax,DY,NDEC,0)
+        NDEC=0
         CALL horaxisdd(plxmin,plxmax,iigl,iigr,iigb,xadd,XSC,0,
      &    DY,NDEC,'Number of Iterations')
         CALL linescale(iigl,xadd,xsc,iigb,yadd,ysc)
@@ -176,6 +178,7 @@ C Scale and draw residuals plot.
 
 C Scale and draw monitoring plot.
         call dintervalf(plxmin,plxmax,DY,NDEC,0)
+        NDEC=0
         CALL horaxisdd(plxmin,plxmax,iglmon,iigr,iigb,xadd,XSC,0,
      &    DY,NDEC,' ')
         CALL linescale(iglmon,xadd,xsc,iigb,yadd,ysc)
@@ -191,7 +194,7 @@ C Scale and draw monitoring plot.
 
 C Print title. IPS is used to keep track of number of title lines.
       IPS=1
-      write(title,'(12x,a,36x,a)') 'RESIDUALS','MONITORING VALUES'
+      write(title,'(12x,a,38x,a)') 'RESIDUALS','MONITORING VALUES'
       iside=IPS
       isize=1
       ifont=0

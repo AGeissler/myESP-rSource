@@ -201,14 +201,6 @@ C and dllmesg tells the details of the error.
       character*72 cBpsVersion, cPrjPath, cPrjName, cCfgPath,
      &           cCfgFile, cLogFile
 
-C IEEE callback (Solaris)
-#ifdef SUN
-#ifdef F90
-      external SIGFPE_bps
-      integer SIGFPE_bps
-#endif
-#endif
-
       common/outin/iuout,iuin
       common/shout/icout
       common/filep/ifil
@@ -357,8 +349,8 @@ C      logical gopher  ! not references
       character journcmd*20,jfile*72,uname*24,cjfile*72,OUTSTR*124
       character dllsubr*12,dllmesg*124
       character t16*16,outs248*248
-      character cVnum*36      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character cVnum*38      ! returned from ESPrVersionNum
+      character pagestitle*68 ! for banner title via epages call
 
 C Flags for multi-year simulation menus
       logical bOptOut, bDone, bMY_clm_err, bExists, bCreate
@@ -575,30 +567,17 @@ C uncertainty analysis routines)
 C If your compiler does not support floating-point arithmetic
 C according to ANSI/IEEE Std 754-1985 comment out the following code.
 
-C Initialize mode, status, and signal handling for IEEE arithmetic.
-C See also: f77_ieee_environment(3F) f77_floatingpoint(3F)
-C           Note that in case of Sun FORTRAN, IEEEE exceptions arise
-C           only if: Sun-3 f77 with -f68881 or -ffpa option
-C                or: Sun-4 f77.
-#ifdef SUN
-#ifdef F90
-      ieeer=ieee_handler('set','common',SIGFPE_ABORT)
-      ieeer=ieee_handler('set','common',SIGFPE_bps)
-      if(ieeer.ne.0) write(iuout,*) ' IEEE_handler not set !'
-#endif
-#endif
-
 C Initialise output device: -10 forces user selection.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=560
+        iappw=590
         iappx=75
         iappy=170
       else
         if(iappx.le.0)iappx=75
         if(iappy.le.0)iappy=170
         if(iappw.le.200)then
-          iappwi=int(560*iappw*0.01)
+          iappwi=int(590*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue
@@ -620,9 +599,14 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=0; IFS=0; ITFS=0
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=4
+        IFS=4
+        ITFS=4
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=20
         LIMIT =20
@@ -633,8 +617,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'ESP-r Integrated Simulator ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
       IF(MMOD.EQ.-6)then
         ICOUT=0
@@ -648,7 +633,7 @@ C Open the text display box equal to LIMTTY if MMOD = 8.
         if(iglib.eq.1)then
 
 C Setup and pass in parameters to win3d.
-          iiw1=15; iiw2=15; iiw3=5; iiw4=3; iimenu=menuchw
+          iiw1=15; iiw2=15; iiw3=6; iiw4=3; iimenu=menuchw
           iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
           CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &      iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -771,6 +756,7 @@ C Unit for materials db in case control -99 is invoked.
 
 C Unit for CFClayers db in case control -99 is invoked.
       icfcdb=ifil+6
+      write(LCFCDB,'(a)') DCFCDB(1:lnblnk(DCFCDB))
 
 C Initialise results averaging flag: 0 means
 C results will be averaged.
@@ -921,38 +907,38 @@ C Initialize the structured gridding variables.
       ENDIF
 
 C Set up initial menu.
-   20 ITEM(1)   ='a Input model description    '
-      ITEM(2)   ='b Assign climate file        '
-      ITEM(3)   ='  _________________________  '
-      ITEM(4)   ='c Initiate simulation        '
-      ITEM(5)   ='  _________________________  '
-      ITEM(6)   ='t Invoke trace facilities    '
+   20 ITEM(1)    ='a Input model description    '
+      ITEM(2)    ='b Assign climate file        '
+      ITEM(3)    ='  _________________________  '
+      ITEM(4)    ='c Initiate simulation        '
+      ITEM(5)    ='  _________________________  '
+      ITEM(6)    ='t Invoke trace facilities    '
       if ( bMY_sim_enabled ) then
-         ITEM(7)   ='y Multi-year sim >> ON    '
+         ITEM(7) ='y Multi-year sim >> ON       '
       else
-         ITEM(7)   ='y Multi-year sim >> OFF   '
+         ITEM(7) ='y Multi-year sim >> OFF      '
       endif
       IF(IWMOFF.EQ.1)THEN
-        ITEM(8) ='w Warnings >> OFF            '
+        ITEM(8)  ='w Warnings >> OFF            '
       ELSEIF(IWMOFF.EQ.0)THEN
-        ITEM(8) ='w Warnings >> ON             '
+        ITEM(8)  ='w Warnings >> ON             '
       ENDIF
       IF(ITRC.EQ.0)THEN
-        ITEM(9) ='r Reporting >> silent        '
+        ITEM(9)  ='r Reporting >> silent        '
       ELSEIF(ITRC.EQ.1)THEN
-        ITEM(9) ='r Reporting >> summary       '
+        ITEM(9)  ='r Reporting >> summary       '
       ELSEIF(ITRC.EQ.2)THEN
-        ITEM(9) ='r Reporting >> detailed      '
+        ITEM(9)  ='r Reporting >> detailed      '
       ENDIF
-      ITEM(10)   ='  _________________________  '
+      ITEM(10)   ='  _______________________    '
       if ( isReportingInstalled() ) then
-         ITEM(11)  ='s Configure H3K Reports      '
+         ITEM(11)='s Configure H3K Reports      '
       else
-         ITEM(11)  ='s H3K Reports unavailable    '
+         ITEM(11)='s H3K Reports unavailable    '
       endif
-      ITEM(12)  ='  _________________________  '
-      ITEM(13)  ='? Help                       '
-      ITEM(14)  ='- Quit                       '
+      ITEM(12)   ='  _________________________  '
+      ITEM(13)   ='? Help                       '
+      ITEM(14)   ='- Quit                       '
       nitms=14
 
 C And menu is to be displayed.
@@ -1364,11 +1350,16 @@ C calls in esru_lib.F
       return
       end
 
-      subroutine chgazi(icazi)
+      subroutine redraw(IER)
+      ier=0
       return
       end
 
-      subroutine chgelev(icelev)
+      subroutine chgazi(icazi,ifrlk)
+      return
+      end
+
+      subroutine chgelev(icelev,ifrlk)
       return
       end
 
@@ -1471,21 +1462,4 @@ C      integer termtype,iappw,iappx,iappy
 C Place holder (actual code omitted from this version of bps).
 C      return
 C      end
-
-C In support of floating point exceptions.
-#ifdef SUN
-#ifdef F90
-      integer function SIGFPE_bps(sig,code,context)
-      integer sig,code,context(5)
-      character label*16
-      if(loc(code).eq.208) label = 'invalid'
-      if(loc(code).eq.200) label = 'division by zero'
-      if(loc(code).eq.212) label = 'overflow'
-      if(loc(code).eq.204) label = 'underflow'
-      if(loc(code).eq.196) label = 'inexact'
-      write(6,*) 'Exception code ',loc(code),label,'at ',context(4)
-      SIGFPE_bps = loc(code)
-      end
-#endif
-#endif
 

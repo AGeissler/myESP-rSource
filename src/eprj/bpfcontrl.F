@@ -53,6 +53,13 @@ C                             data for validity.
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+
+C Usual proportional fonts used for non-control facilities.
+      integer istdifs,istditfs,istdimfs
+      common/gfontstd/istdifs,istditfs,istdimfs
+      
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
       integer ncomp,ncon
@@ -91,6 +98,9 @@ C For help messages
       integer nbhelp     ! number of help lines found
 
       helpinsub='CONTRL'  ! set for subroutine
+
+C Record the standard fonts set when prj started.
+      istdifs=ifs; istditfs=itfs; istdimfs=imfs
       
 C Zeroize all control data.
       CALL EZCTLI
@@ -191,6 +201,11 @@ C blank, call ezctli to clear commons and save the configuration file.
         else
           call usrmsg('Cannot save control data while in browse',
      &                'mode, you must first `own` the model.','W')
+          if(IMFS.eq.4) IMFS=0
+          if(IMFS.eq.5) IMFS=1
+          if(IMFS.eq.6) IMFS=2
+          if(IMFS.eq.7) IMFS=3
+          call userfonts(IFS,ITFS,IMFS)
           goto 92
         endif
         return
@@ -244,6 +259,17 @@ C Set defaults and ask user which control to focus on first.
         LINKED=.FALSE.
         call ADDCNTL(icfoc,'A')
       endif
+
+C Switch to fixed width menu font. If possible switch
+C to a smaller fixed width font because this is a wide menu.
+      lastmenufont=IMFS
+      if(IMFS.eq.4) IMFS=0
+      if(IMFS.eq.5) IMFS=1
+      if(IMFS.eq.6) IMFS=2
+      if(IMFS.eq.7) IMFS=3
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
+      call userfonts(IFS,ITFS,IMFS)
 
 C Setup for multi-page menu.
   54  MHEAD=8
@@ -565,7 +591,14 @@ C Edit project level description.
         CALL EASKS248(t248,' ','Control system description?',
      &    72,'Base case control','overall control desc',IER,nbhelp)
         if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')ctldoc=t248
-        IF(ctldoc(1:5).EQ.'NONE ')GOTO 92
+        if(ctldoc(1:5).EQ.'NONE ')then
+          if(IMFS.eq.4) IMFS=0
+          if(IMFS.eq.5) IMFS=1
+          if(IMFS.eq.6) IMFS=2
+          if(IMFS.eq.7) IMFS=3
+          call userfonts(IFS,ITFS,IMFS)
+          GOTO 92
+        endif
       ELSEIF(IVERT.EQ.3)THEN
 
 C Edit building/plant/flow/global/complex fen. control description.
@@ -618,6 +651,11 @@ c from the configuration file.
 c Match single zone with single control function.
           ICASCF(1)=1
           LINKED=.TRUE.
+          if(IMFS.eq.4) IMFS=0
+          if(IMFS.eq.5) IMFS=1
+          if(IMFS.eq.6) IMFS=2
+          if(IMFS.eq.7) IMFS=3
+          call userfonts(IFS,ITFS,IMFS)
           GOTO 92
 
 c Relate control function to associated zone.
@@ -627,7 +665,14 @@ c Remember zero implies no control.
             CALL EASKI(ICA,'Associated control function',
      &               'for zone 1?',0,'F',MCOM,'F',0,
      &               'associated control',IERI,nbhelp)
-            if(ieri.eq.-3) goto 92
+            if(ieri.eq.-3)then
+              if(IMFS.eq.4) IMFS=0
+              if(IMFS.eq.5) IMFS=1
+              if(IMFS.eq.6) IMFS=2
+              if(IMFS.eq.7) IMFS=3
+              call userfonts(IFS,ITFS,IMFS)
+              goto 92
+            endif
             ICASCF(1)=ica
           else
             do 311 IJ=1,NZ
@@ -676,6 +721,11 @@ C Local variable ireturn is non-zero to signal user wants to exit.
             IF(OK)then
               IRETURN=1
             else
+              if(IMFS.eq.4) IMFS=0
+              if(IMFS.eq.5) IMFS=1
+              if(IMFS.eq.6) IMFS=2
+              if(IMFS.eq.7) IMFS=3
+              call userfonts(IFS,ITFS,IMFS)
               goto 92
             endif
           else
@@ -688,6 +738,11 @@ C Local variable ireturn is non-zero to signal user wants to exit.
           call check_CFC_control_validity(CFCcontrolOK)
           if(.not.CFCcontrolOK)then
             IVERT=-1
+            if(IMFS.eq.4) IMFS=0
+            if(IMFS.eq.5) IMFS=1
+            if(IMFS.eq.6) IMFS=2
+            if(IMFS.eq.7) IMFS=3
+            call userfonts(IFS,ITFS,IMFS)
             goto 92
           endif
         endif
@@ -705,7 +760,13 @@ C            call edisp(IUOUT,'Saving system configuration file.')
             CALL EMKCFG('-',IER)
           ENDIF
         endif
-        IF(IRETURN.EQ.1)RETURN
+        if(IRETURN.EQ.1)then
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
+          RETURN
+        endif
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
 C Explanation
@@ -728,6 +789,11 @@ C          call edisp(IUOUT,'Saving system configuration file.')
         else
           call usrmsg('Cannot save control data while in browse',
      &                'mode. You must first `own` the model.','W')
+          if(IMFS.eq.4) IMFS=0
+          if(IMFS.eq.5) IMFS=1
+          if(IMFS.eq.6) IMFS=2
+          if(IMFS.eq.7) IMFS=3
+          call userfonts(IFS,ITFS,IMFS)
           goto 92
         endif
       ELSEIF(IVERT.EQ.(MVERT-3))THEN
@@ -830,6 +896,11 @@ C Warn user to update any connections to plant loops.
         elseif(IW.eq.3)then
           call ADDCNTL(icfoc,'C')
         elseif(IW.eq.4)then
+          if(IMFS.eq.4) IMFS=0
+          if(IMFS.eq.5) IMFS=1
+          if(IMFS.eq.6) IMFS=2
+          if(IMFS.eq.7) IMFS=3
+          call userfonts(IFS,ITFS,IMFS)
           goto 92
         endif
         call edisp(iuout,
@@ -919,7 +990,11 @@ C the list. If we pick one of the subsequent days then
 C just jump into the period data (to save a step).
 
 C If we are following the calendar day types then ignore the period
-C of validity in the selections.
+C of validity in the selections. Use proportional font for this
+C selection.
+        imfstorestore=IMFS
+        IMFS=istdimfs      ! reset to original proportional font
+        call userfonts(IFS,ITFS,IMFS)
         if(idi.eq.1)then
           IF(NN.EQ.0.OR.NN.EQ.1)THEN
             call MENUATOL(outs,'Editing Options',
@@ -936,7 +1011,14 @@ C of validity in the selections.
         else
           ISW=4  ! jump directly to the period data
         endif
+        IMFS=imfstorestore
+        call userfonts(IFS,ITFS,IMFS)
         if(ISW.eq.0)then
+          if(IMFS.eq.4) IMFS=0
+          if(IMFS.eq.5) IMFS=1
+          if(IMFS.eq.6) IMFS=2
+          if(IMFS.eq.7) IMFS=3
+          call userfonts(IFS,ITFS,IMFS)
           goto 92
         elseif(ISW.eq.1)then
 
@@ -1213,20 +1295,40 @@ C current day type data..
           if(idi.eq.1)then
             goto 64   ! jump back to sensor/actuator/period choice
           else
+            if(IMFS.eq.4) IMFS=0
+            if(IMFS.eq.5) IMFS=1
+            if(IMFS.eq.6) IMFS=2
+            if(IMFS.eq.7) IMFS=3
+            call userfonts(IFS,ITFS,IMFS)
             goto 92   ! jump to main menu
           endif
         elseif(ISW.eq.0)then
+          if(IMFS.eq.4) IMFS=0
+          if(IMFS.eq.5) IMFS=1
+          if(IMFS.eq.6) IMFS=2
+          if(IMFS.eq.7) IMFS=3
+          call userfonts(IFS,ITFS,IMFS)
           GOTO 92
         endif
       ELSE
         IVERT=-1
+        if(IMFS.eq.4) IMFS=0
+        if(IMFS.eq.5) IMFS=1
+        if(IMFS.eq.6) IMFS=2
+        if(IMFS.eq.7) IMFS=3
+        call userfonts(IFS,ITFS,IMFS)
         GOTO 92
       ENDIF
       IVERT=-4
       call usrmsg(' ',' ','-')
+      if(IMFS.eq.4) IMFS=0
+      if(IMFS.eq.5) IMFS=1
+      if(IMFS.eq.6) IMFS=2
+      if(IMFS.eq.7) IMFS=3
+      call userfonts(IFS,ITFS,IMFS)
       GOTO 92
 
-      END
+      END ! of CONTRL
 
 C ***** totctlper
 C Finds the current number of periods in all control loops
@@ -1315,7 +1417,14 @@ C Edit building control function II.
 #include "plant.h"
 #include "control.h"
       COMMON/OUTIN/IUOUT,IUIN
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       common/sctl/tcps,ictyp,iclaw,cm(misc)
+
+C Usual proportional fonts used for non-control facilities.
+      integer istdifs,istditfs,istdimfs
+      common/gfontstd/istdifs,istditfs,istdimfs
       
 C Plant common required for building/plant flux linkage      
       common/pcdat/nnodes(mpcom),isv(mpcom,mnodec), 
@@ -1359,6 +1468,17 @@ C Building control day types.
         write(daytype,'(a,i3,a,i3,a)')'(valid from day ',ibcdv(ii,jj,1),
      &   ' to ',ibcdv(ii,jj,2),')'
       ENDIF
+
+C Switch to slightly smaller fixed width font for menu. Base size on
+C current IMFS or ITFS sizes and remember so can restore.
+      lastmenufont=istdimfs
+      if(IMFS.eq.4) IMFS=0
+      if(IMFS.eq.5) IMFS=1
+      if(IMFS.eq.6) IMFS=2
+      if(IMFS.eq.7) IMFS=3
+      lastbuttonfont=istdifs
+      lasttextfont=istditfs
+      call userfonts(IFS,ITFS,IMFS)
 
 C Initial menu entry setup.
    92 IER=0
@@ -1414,6 +1534,10 @@ C Help text for this menu.
 C Now display the menu.
       CALL EMENU('Control periods',VERT,MVERT,IVERT)
       if(IVERT.EQ.mvert)then
+        IMFS=lastmenufont    ! reset to std proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         return
       elseif(IVERT.EQ.mvert-1)then
 
@@ -1512,8 +1636,10 @@ C starting up the menu based control period definition.
           else
             prevstart=0.0
           endif
+
           call editctlperiod(' Zone control period data',
      &      icfoc,II,JJ,KK,nper,loopdaytype,prevstart,'-',ier)
+
           if(ier.gt.1)then
             useold=.true.
             iclawt=ier
@@ -1532,7 +1658,7 @@ C starting up the menu based control period definition.
         SALT(7)= 'Multi-stage control with hysteresis    '
         SALT(8)= 'Variable supply temp. with constraints '
         SALT(9)= 'Heat pipe                              '
-        SALT(10)='Separate flux ON & OFF set points      '
+        SALT(10)='Two position controller for heat/cool  '
         SALT(11)='Match sensed & recorded values (ideal) '
         SALT(12)='Match sensed & recorded values (on/off)'
         SALT(13)='Time-proportioning (on/off)            '
@@ -1557,7 +1683,7 @@ C starting up the menu based control period definition.
         helptopic='sys_bctl_types'
         call gethelptext(helpinsub,helptopic,nbhelp)
   63    CALL EPICKS(IX,IVALS,' ','Control law:',
-     &    40,24,SALT,'control law (indented=old or obscure)',
+     &    39,24,SALT,'control law (indented=old or obscure)',
      &    IER,nbhelp)
         if(ix.eq.0.or.IVALS(1).eq.0)goto 63
         iclaw=IVALS(1)
@@ -1767,7 +1893,7 @@ C Heat pipe.
      &      IER,nbhelp)
         elseif(IBCLAW(II,JJ,KK).eq.10)then
 
-C Control with separate on/off setpoints for heating and cooling.
+C Control with two position controller setpoints for heating and cooling.
           nper=NBCDP(II,JJ)
           loopdaytype=nbcdt(II)
           if(KK.GT.1)then
@@ -5033,6 +5159,12 @@ C flow connections.It is assumed that the user will make one selection only.
 #include "epara.h"
 #include "control.h"
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+
+C Usual proportional fonts set when prj started.
+      integer istdifs,istditfs,istdimfs
+      common/gfontstd/istdifs,istditfs,istdimfs
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -5044,7 +5176,7 @@ C flow connections.It is assumed that the user will make one selection only.
       CHARACTER*(*) prompt,title,errmsg
 
       DIMENSION SALT(3),IVALS(3),VERT(35),ICPK(MCONTM)
-      CHARACTER VERT*40,KEY*1,prompt2*36
+      CHARACTER VERT*39,KEY*1,prompt2*36
       character outs*124,SALT*40
       integer isn1T,isn2T,isn3T,isn4T,ilayt   ! temporary values for editing.
       integer MVERT,IVERT ! max items and current menu item
@@ -5055,6 +5187,11 @@ C For help messages
       integer nbhelp     ! number of help lines found
 
       helpinsub='senloc'  ! set for subroutine
+
+C Save current fonts and switch to the standard prj fonts.
+      irecimfs=IMFS; irecitfs=ITFS; irecifs=IFS
+      IMFS=istdimfs; IFS=istdifs; ITFS=istditfs
+      call userfonts(IFS,ITFS,IMFS)
 
 C Initialise zone menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -5102,7 +5239,7 @@ C help text blocks for the current control domain.
         WRITE(VERT(11),'(a)')'j references temporal file item       '
         WRITE(VERT(12),'(a)')'k uses value from function generator  '
         WRITE(VERT(13),'(a)')'l changes thermophysical properties   '
-        WRITE(VERT(14),'(a)') '  ------------------------------------'
+        WRITE(VERT(14),'(a)')'  ------------------------------------'
       elseif(icfoc.eq.1)then
         helptopic='senslocation_plant'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -5199,6 +5336,8 @@ C If no selection has been made before exit then display error message.
           IVERT=-2
           goto 92
         endif
+        IMFS=irecimfs; ITFS=irecitfs; IFS=irecifs  ! reset to calling routine fonts
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
@@ -5224,7 +5363,7 @@ C Ask for the specific zone.
         idef=0
         call askzone(isn1,idef,
      &   'Specific zone associated with this sensor','Select zone','-',
-     &    'Specific zone',ier)
+     &    'Specific zone',34,ier)
         CALL EPMENRC
         SELECT=.TRUE.
         if(icfoc.ne.5)then
@@ -5275,10 +5414,7 @@ C items, but return isense as the control law.
       elseif(ivert.eq.1.and.(icfoc.eq.0.or.icfoc.eq.5))then
 
 C Senses current zone db temp if ideal.
-        isn1=0
-        isn2=0
-        isn3=0
-        nsup=0
+        isn1=0; isn2=0; isn3=0; nsup=0
       elseif(ivert.eq.1.and.(icfoc.eq.1.or.icfoc.eq.2))then
 
 C Senses output (plant control) or temperature (flow control) of a plant component.
@@ -5344,17 +5480,11 @@ C If the user has not canceled instanciate from temporary values.
      &        .or.(ivert.eq.1.and.icfoc.eq.6))then
 
 C Sensed condition does not matter.
-        isn1=0
-        isn2=0
-        isn3=0
-        nsup=0
+        isn1=0; isn2=0; isn3=0; nsup=0
       elseif(ivert.eq.1.and.(icfoc.eq.4))then
 
 C Power control sensor not yet implemented, return zeros.
-        isn1=0
-        isn2=0
-        isn3=0
-        nsup=0
+        isn1=0; isn2=0; isn3=0; nsup=0
       elseif(ivert.eq.2.and.
      &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.icfoc.eq.6))then
 
@@ -5364,7 +5494,7 @@ C Senses mix of zone db temp and MRT.
         idef=0
         isn2T=isn2
         call askzone(isn2T,idef,'Zone for sensor','Select zone','-',
-     &    'MRT sensor',ier)
+     &    'MRT sensor',34,ier)
         CALL EPMENRC
         isn3T=isn3
         CALL EASKI(isn3T,' ',' Convective weighting factor (%) ?',
@@ -5376,36 +5506,24 @@ C items, but return isense as the control law.
         if(icfoc.eq.2)isense=1
 
 C If the user has not canceled instanciate from temporary values.
-        nsup=0
-        isn1=isn1T
-        isn2=isn2T
-        isn3=isn3T
+        nsup=0; isn1=isn1T; isn2=isn2T; isn3=isn3T
       elseif(ivert.eq.4.and.
      &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2
      &       .or.icfoc.eq.6))then
 
 C Senses outside db.
-        nsup=0
-        isn1=-3
-        isn2=0
-        isn3=0
+        nsup=0; isn1=-3; isn2=0; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.3.and.icfoc.eq.5)then
 
 C Senses outside db.
-        nsup=0
-        isn1=-3
-        isn2=0
-        isn3=0
+        nsup=0; isn1=-3; isn2=0; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.5.and.
      &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.6))then
 
 C Senses sol-air temperature.
-        nsup=0
-        isn1=-3
-        isn2=1
-        isn3=0
+        nsup=0; isn1=-3; isn2=1; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.4.and.icfoc.eq.5)then
 
@@ -5415,7 +5533,7 @@ C Ask for the specific zone.
         idef=0
         call askzone(isn1,idef,
      &   'Specific zone associated with this sensor','Select zone','-',
-     &    'Specific zone',ier)
+     &    'Specific zone',34,ier)
         CALL EPMENRC
         SELECT=.TRUE.
         CALL EPMENSV
@@ -5435,7 +5553,7 @@ C Ask for the specific zone.
         idef=0
         call askzone(isn2,idef,
      &    'Specific zone associated with this sensor','Select zone','-',
-     &    'Specific zone',ier)
+     &    'Specific zone',34,ier)
         CALL EPMENRC
         SELECT=.TRUE.
         CALL EPMENSV
@@ -5474,7 +5592,7 @@ C Ask for the specific zone.
             idef=0
             call askzone(isn2,idef,
      &    'Specific zone associated with this sensor','Select zone','-',
-     &    'Specific zone',ier)
+     &    'Specific zone',34,ier)
             CALL EPMENRC
             SELECT=.TRUE.
             CALL EPMENSV
@@ -5484,57 +5602,40 @@ C Ask for the specific zone.
           endif
         end do
 
-        isn2=0
-        isn3=0
-        isn4=0
+        isn2=0; isn3=0; isn4=0
       elseif(ivert.eq.6.and.
      &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2
      &       .or.icfoc.eq.6))then
 
 C Senses wind speed.
-        nsup=0
-        isn1=-3
-        isn2=2
-        isn3=0
+        nsup=0; isn1=-3; isn2=2; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.7.and.
      &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2
      &       .or.icfoc.eq.6))then
 
 C Senses wind direction.
-        nsup=0
-        isn1=-3
-        isn2=3
-        isn3=0
+        nsup=0; isn1=-3; isn2=3; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.8.and.
      &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2
      &       .or.icfoc.eq.6))then
 
 C Senses diffuse horizontal solar radiation.
-        nsup=0
-        isn1=-3
-        isn2=4
-        isn3=0
+        nsup=0; isn1=-3; isn2=4; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.9.and.
      &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2.or.
      &       icfoc.eq.6))then
 
 C Senses direct normal solar radiation.
-        nsup=0
-        isn1=-3
-        isn2=5
-        isn3=0
+        nsup=0; isn1=-3; isn2=5; isn3=0
         if(icfoc.eq.2)isense=0
       elseif(ivert.eq.10.and.
      &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2))then
 
 C Senses external relative humidity.
-        nsup=0
-        isn1=-3
-        isn2=6
-        isn3=0
+        nsup=0; isn1=-3; isn2=6; isn3=0
         if(icfoc.eq.2)isense=0
       elseif((ivert.eq.11.and.(icfoc.eq.0.or.icfoc.eq.1)).or.
      &         (ivert.eq.12.and.icfoc.eq.6))then
@@ -5666,9 +5767,7 @@ C Changes thermophysical properties.
      &    ' (integer) below which substitution occurs ? ',
      &    0,'-',0,'-',0,'lower air',IERI,nbhelp)
         if(ieri.eq.-3) goto 3
-        isn1=isn1T
-        isn2=isn2T
-        isn3=isn3T
+        isn1=isn1T; isn2=isn2T; isn3=isn3T
       else
 
 C Not one of the legal menu choices.
@@ -5720,6 +5819,12 @@ C flow connections.It is assumed that the user will make one selection only.
 #include "material.h"
 #include "CFC_common.h"
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+
+C Usual proportional fonts used for non-control facilities.
+      integer istdifs,istditfs,istdimfs
+      common/gfontstd/istdifs,istditfs,istdimfs
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -5744,6 +5849,11 @@ C For help messages
       integer nbhelp     ! number of help lines found
 
       helpinsub='actloc'  ! set for subroutine
+
+C Save current fonts and switch to the standard prj fonts.
+      irecimfs=IMFS; irecitfs=ITFS; irecifs=IFS
+      IMFS=istdimfs; IFS=istdifs; ITFS=istditfs
+      call userfonts(IFS,ITFS,IMFS)
       
 C Initialise zone menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -5790,6 +5900,8 @@ C Offer the user option to cancel.
         ian1=ian1T
         ian2=ian2T
         ian3=ian3T
+        IMFS=irecimfs; ITFS=irecitfs; IFS=irecifs  ! reset to calling routine fonts
+        call userfonts(IFS,ITFS,IMFS)
         return
       endif
 
@@ -5880,6 +5992,8 @@ C If no selection has been made before exit then display error message.
           IVERT=-2
           goto 92
         endif
+        IMFS=irecimfs; ITFS=irecitfs; IFS=irecifs  ! reset to calling routine fonts
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
@@ -5903,8 +6017,7 @@ C Decode from the potentially long list to the zone number via KEYIND.
         CALL EASKABC('Specific location: ',' ','zone air point',
      &    'surface','continue',IW,nbhelp)
         if(IW.eq.1)then
-          ian2=0
-          ian3=0
+          ian2=0; ian3=0
         elseif(IW.eq.2)then
           CALL EPMENSV
           call EASKSUR(ian1,ian2,'-','Available surfaces.',' ',IER)
@@ -5937,9 +6050,7 @@ C Work with local variables and only instanciate if ier is zero.
       elseif(ivert.eq.1.and.(icfoc.eq.0))then 
 
 C Actuates current zone air point (fall though to exit).
-        ian1=0
-        ian2=0
-        ian3=0
+        ian1=0; ian2=0; ian3=0
       elseif(ivert.eq.1.and.(icfoc.eq.1))then
 
 C Within a plant component (offer the user a cancel option)
@@ -5960,9 +6071,7 @@ C otherwise fall through to exit.
         endif
  
         if(ieri.eq.-3) goto 3
-        ian1=ian1T
-        ian2=ian2T
-        ian3=ian3T
+        ian1=ian1T; ian2=ian2T; ian3=ian3T
       elseif(ivert.eq.1.and.(icfoc.eq.2))then
 
 C At a flow connection.
@@ -5974,8 +6083,7 @@ C At a flow connection.
      &    ' - ',NDNAM(NODNE(IC)),' via ',CMNAM(ITPCON(IC))
         call edisp(iuout,outs)
         if(IC.gt.0)then
-          ian2=IC
-          ian3=0
+          ian2=IC; ian3=0
         endif
 
 C If sensor is a -4 and connection type ask for specific
@@ -6003,15 +6111,11 @@ C << pev was ifan(ii,3) which was probably a typo >>
       elseif(ivert.eq.1.and.icfoc.eq.3)then
 
 C Sensed condition does not matter.
-        ian1=0
-        ian2=0
-        ian3=0
+        ian1=0; ian2=0; ian3=0
       elseif(ivert.eq.1.and.(icfoc.eq.4))then
 
 C Power control sensor not yet implemented, return zeros.
-        ian1=0
-        ian2=0
-        ian3=0
+        ian1=0; ian2=0; ian3=0
       elseif(ivert.eq.1.and.(icfoc.eq.5))then
 
 C Optics
@@ -6034,13 +6138,9 @@ C and the third can be 0
         endif
         CALL EPMENRC
         if(iwhich.ne.0)then
-          ian1=-5
-          ian2=iwhich
-          ian3=0
+          ian1=-5; ian2=iwhich; ian3=0
         else
-          ian1=0
-          ian2=0
-          ian3=0
+          ian1=0; ian2=0; ian3=0
         endif
       elseif(ivert.eq.1.and.(icfoc.eq.6))then
 C Complex Fenestration      
@@ -6056,7 +6156,7 @@ C Ask for the specific zone.
         idef=0
         call askzone(ian2,idef,
      &   'Specific zone associated with this sensor','Select zone','-',
-     &    'Specific zone',ier)
+     &    'Specific zone',34,ier)
 
 C Ask for CFC type in selected zone.   
         call askCFCtype(ian2,ian3,IER)
@@ -6083,7 +6183,7 @@ C Actuates radiant convective mix.
         idef=0
         ian2T=ian2
         call askzone(ian2T,idef,'Zone for actuation','Select zone','-',
-     &    'mixed injection',ier)
+     &    'mixed injection',34,ier)
         CALL EPMENRC
         ian3T=ian3
         CALL EASKI(ian3T,' ',' Convective weighting factor (%) ?',
@@ -6177,7 +6277,7 @@ C Ask for the specific zone.
         idef=0
         call askzone(ian2,idef,
      &   'Specific zone associated with this sensor','Select zone','-',
-     &    'Specific zone',ier)
+     &    'Specific zone',34,ier)
 
 C Ask for CFC type in selected zone.   
         call askCFCtype(ian2,ian3,IER)
@@ -6225,7 +6325,7 @@ C Ask for the specific zone.
         idef=0
         call askzone(ian2,idef,
      &   'Specific zone associated with this sensor','Select zone','-',
-     &    'Specific zone',ier)
+     &    'Specific zone',34,ier)
 
 C Ask for CFC type in selected zone.   
         call askCFCtype(ian2,ian3,IER)
@@ -6253,6 +6353,8 @@ C Not one of the legal menu choices.
       endif
 
 C If fell though to this point exit the subroutine.
+      IMFS=irecimfs; ITFS=irecitfs; IFS=irecifs  ! reset to calling routine fonts
+      call userfonts(IFS,ITFS,IMFS)
       return
       END
 
@@ -6308,6 +6410,13 @@ C    deal with the dialogs using standard sequential method.
 #include "control.h"
 #include "epara.h"
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+
+C Usual proportional fonts set when prj started.
+      integer istdifs,istditfs,istdimfs
+      common/gfontstd/istdifs,istditfs,istdimfs
+
       common/sctl/tcps,ictyp,iclaw,cm(misc)
 
 C Calendar data.
@@ -6381,6 +6490,11 @@ C Copy cm data to cmlocal.
 
 C List current control data for this loop (unless changes are pending).
       if(.NOT.modval) call LSTCNTLD(iuout,icfoc,icloop,iday)
+
+C Save current fonts and switch to the standard prj fonts.
+      irecimfs=IMFS; irecitfs=ITFS; irecifs=IFS
+      IMFS=istdimfs; IFS=istdifs; ITFS=istditfs
+      call userfonts(IFS,ITFS,IMFS)
 
 C Define the static portions of the menu.
    91 MHEAD=6
@@ -6490,11 +6604,10 @@ C Within the header so skip request.
             call edisp(iuout,
      &        'Data accepted (but not yet saved to file)!')
             modval=.false.
-
-C << consider this as a place to also update the control file >>
-
           endif
         endif
+        IMFS=irecimfs; ITFS=irecitfs; IFS=irecifs  ! reset to calling routine fonts
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
@@ -6560,7 +6673,7 @@ C control law to trap changes.
           SALT(7)= 'Multi-stage control with hysteresis    '
           SALT(8)= 'CAV variable supply T with constraints '
           SALT(9)= ' Heat pipe from `outside` to inside    '
-          SALT(10)='Separate flux ON & OFF set points      '
+          SALT(10)='Two position controller for heat/cool  '
           SALT(11)=' Match sensed/recorded value (ideal)   '
           SALT(12)=' Match sensed/recorded value (on/off)  '
           SALT(13)='Time-proportioning separate (on/off)   '
@@ -7550,7 +7663,7 @@ C Variable supply temperature with limit constraints.
           continue
         elseif(iclaw.eq.10)then
           
-C Control with separate on/off setpoints for heating and cooling.
+C Two position control with separate setpoints for heating and cooling.
           helptopic='sys_bctl_10'
           call gethelptext(helpinsub,helptopic,nbhelp)
           nctlhelp=nbhelp

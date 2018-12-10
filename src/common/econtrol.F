@@ -1951,7 +1951,7 @@ C Reporting:
         ENDIF
 
         nn=nCFCctldaytypes(ii)
-        if(nn.eq.0)nn=3
+        if(nn.eq.0)nn=nbdaytype
         do 720 j=1,nn
           jj=j
           CALL STRIPC(IUNIT,OUTSTR,2,ND,1,'validity',IER)
@@ -3715,7 +3715,7 @@ C Append the sensor msg to the end of lmsg and increment lx position.
 
 C Tell the user about the multi sensor data.
           call SDELIM(lmsg,message,'S',IW)
-          call edisp248(6,message,80)
+C          call edisp248(6,message,100)
 
 C Nicol Occupant resopnse model for control
         elseif(IFCLAW(II,JJ,KK).EQ.4)then

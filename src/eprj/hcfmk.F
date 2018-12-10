@@ -268,7 +268,7 @@ C names, turn off grid and origin.
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL ADJVIEW(IER)
+      CALL redraw(IER)
       call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
      &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
       if(MMOD.EQ.8)call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
@@ -318,7 +318,7 @@ C Redraw wireframe on each return.
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL ADJVIEW(IER)
+      CALL redraw(IER)
 
 C Help text for this menu.
       helptopic='zone_htc_menu'
@@ -1881,7 +1881,7 @@ C Choose where is the air comming into the channel.
           hcphrase(3) = 'from outdoor'
         ELSE
           CALL ASKZONE(IAORZ,0,' Air enters channel from which zone?',
-     &      'Air origin zone','-','A zone must be selected',ier)
+     &      'Air origin zone','-','A zone must be selected',32,ier)
         ENDIF
         IF (IAORZ.EQ.ICOMP) THEN
           CALL USRMSG('This selection is typical of CLOSED channels',

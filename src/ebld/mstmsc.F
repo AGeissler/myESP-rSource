@@ -27,8 +27,8 @@ C R            universal gas constant  8314.4  (J/mole K)
 C MOLH2O       molecular mass of water 18.016  (kg/kmole)
 C ScPrn1       (Sc/Pr)^(n-1)
 C ALPHA        convective heat transfer coefficient (W/m2 K)
-C TC           ambient temperature    ( C )
-C TK           ambient temperature    ( K )
+C TC           ambient temperature    (C)
+C TK           ambient temperature    (K)
 C CP           air specific heat capacity  (J/kg K)
 C RhoA         air density (kg/m^3)
 C *********************************************************************
@@ -59,7 +59,7 @@ C relative humidity and sorption isotherms provided by (Marieke 1994,
 C Hansen 1986 Technical reprort 162/86 Technical University of Denmark).
 C U01   moisture content (kg/m3)
 C RH    relative humidity
-C Uh    max hygroscopic moisture content (kg/m3) ((?? unit??))
+C Uh    max hygroscopic moisture content (kg/m3) (unit?)
 C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
 C
@@ -99,13 +99,13 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C XI01 determines the value for moisture capacity ( slope for sorption
+C XI01 determines the value for moisture capacity (slope for sorption
 C isotherm) using curve fitting techniques for sorption isotherms 
 C provided by (Marieke 1994, Hansen 1986 Technical reprort 162/86
 C Technical University of Denmark).
 C XI01  moisture capacity (kg/m3)
 C RH    relative humidity (-)
-C Uh    max hygroscopic moisture content (kg/m3) ((unit?? ))
+C Uh    max hygroscopic moisture content (kg/m3) (unit?)
 C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
 C
@@ -189,13 +189,13 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C XIair01 determines the value for moisture capacity ( slope for sorption
+C XIair01 determines the value for moisture capacity (slope for sorption
 C isotherm) for air node by numerical differentiation.
 C XIair01  moisture capacity (kg/kg)
-C Pvp      present time vapour pressure ( Pa )
-C Pvf      future time vapour pressure ( Pa )
-C TCp      present time temperature ( C )
-C TCf      future time temperature ( C )
+C Pvp      present time vapour pressure (Pa)
+C Pvf      future time vapour pressure (Pa)
+C TCp      present time temperature (C)
+C TCf      future time temperature (C)
 C *********************************************************************
       FUNCTION XIair01(Pvp,Pvf,TCp,TCf,Pt)
       COMMON/OUTIN/IUOUT,IUIN
@@ -236,10 +236,10 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C XIair02 determines the value for moisture capacity ( slope for sorption
+C XIair02 determines the value for moisture capacity (slope for sorption
 C isotherm) for air node by differentiating the moisture content formulae
 C with respect to relative humidity at fixed temperature and total 
-C pressure. (No reference.)
+C pressure.
 C *********************************************************************
       FUNCTION XIair02(Pv,TC,Pt)
       COMMON/OUTIN/IUOUT,IUIN
@@ -347,12 +347,12 @@ C *********************************************************************
 C *********************************************************************
 C EVAP01 determines the latent heat of evapouration (transformation) as 
 C a function of temperature (Marieke 1994).
-C EVAP01   latent heat of evapouration  (J/kgv)
-C EVAPr    reference heat of condensation at T=0 C  (J/kgv)
-C CPlqd    specific heat capacity for liquid water  (J/kgv K)
-C CPvap    specific heat capacity for vapour water  (J/kgv K)
+C EVAP01   latent heat of evapouration (J/kgv)
+C EVAPr    reference heat of condensation at T=0 C (J/kgv)
+C CPlqd    specific heat capacity for liquid water (J/kgv K)
+C CPvap    specific heat capacity for vapour water (J/kgv K)
 C DCP=CPlqd-CPvap
-C TC       temperature in ( C )
+C TC       temperature (C)
 C *********************************************************************
       FUNCTION EVAP01(TC)
       COMMON/OUTIN/IUOUT,IUIN
@@ -451,7 +451,7 @@ C *********************************************************************
 
 C *********************************************************************
 C CPair01 calculates the specific heat capacity of dry air (J/kg K)
-C as a function of temperature ( C ) (Marieke 1994, Ham 1984)
+C as a function of temperature (C) (Marieke 1994, Ham 1984)
 C *********************************************************************
       FUNCTION CPair01(TC)
       COMMON/OUTIN/IUOUT,IUIN
@@ -468,7 +468,7 @@ C *********************************************************************
 
 C *********************************************************************
 C CPvpr01 calculates the specific heat capacity of water vapour (J/kg K)
-C as a function of temperature ( C ) (Marieke 1994, Ham 1984)
+C as a function of temperature (C) (Marieke 1994, Ham 1984)
 C *********************************************************************
       FUNCTION CPvpr01(TC)
       COMMON/OUTIN/IUOUT,IUIN
@@ -485,7 +485,7 @@ C *********************************************************************
 
 C *********************************************************************
 C CPmst01 calculates the specific heat capacity of moist air (J/kg K)
-C as a function of temperature ( C ) and moisture content (kg/kg dry air)
+C as a function of temperature (C) and moisture content (kg/kg dry air)
 C (Marieke 1994, Ham 1984).
 C *********************************************************************
       FUNCTION CPmst01(TC,X)
@@ -505,7 +505,7 @@ C *********************************************************************
 C RHOdry01 calculates the density of dry air (kg/m^3) at known temperature
 C and pressure using the ideal gas law
 C Ra    gas constant for dry air (J/kgK)
-C TC    temperature ( C)
+C TC    temperature (C)
 C Pdry  pressure (Pa)
 C *********************************************************************
       FUNCTION RHOdry01(TC)
@@ -540,7 +540,7 @@ C *********************************************************************
       END
 C *********************************************************************
 C Psat01 calculates the saturation vapour pressure (Pa) as a function of
-C temperature ( C ) (Marieke 1994, IEA 1991, vol 1, page 4.8)
+C temperature (C) (Marieke 1994, IEA 1991, vol 1, page 4.8)
 C *********************************************************************
       FUNCTION Psat01(TC)
       COMMON/OUTIN/IUOUT,IUIN
@@ -569,8 +569,8 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C Pvpr01 calculates the vapour pressure ( Pa ) knowing the total pressure
-C ( Pa ) and vapour ratio (kg/kg) (Marieke 1994).
+C Pvpr01 calculates the vapour pressure (Pa) knowing the total pressure
+C (Pa) and vapour ratio (kg/kg) (Marieke 1994).
 C *********************************************************************
       FUNCTION Pvpr01(X,Pt)
       COMMON/OUTIN/IUOUT,IUIN
@@ -588,8 +588,8 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C Pvpr02 calculates the vapour pressure ( Pa ) knowing the temperature
-C ( C ) and relative humidity (-) (Marieke 1994).
+C Pvpr02 calculates the vapour pressure (Pa) knowing the temperature
+C (C) and relative humidity (-) (Marieke 1994).
 C *********************************************************************
       FUNCTION Pvpr02(TC,RH)
       COMMON/OUTIN/IUOUT,IUIN
@@ -608,7 +608,7 @@ C *********************************************************************
 
 C *********************************************************************
 C RHOmst01 calculates the density of moist air (kg/m^3) knowing the
-C temperature ( C ), vapour pressure ( Pa ) and total pressure ( Pa )
+C temperature (C), vapour pressure (Pa) and total pressure ( Pa )
 C (Marieke 1994)
 C Ra   gas constant for dry air     (J/kgK)
 C Rv   gas constant for water vapour (J/kgK)
@@ -632,7 +632,7 @@ C *********************************************************************
 
 C *********************************************************************
 C RHOmst02 calculates the density of moist air (kg/m^3) knowing the
-C temperature ( C ), vapour pressure ( Pa ) and total pressure ( Pa )
+C temperature (C), vapour pressure (Pa) and total pressure (Pa)
 C (Marieke 1994)
 C *********************************************************************
       FUNCTION RHOmst02(TC,X,Pt)
@@ -652,7 +652,7 @@ C *********************************************************************
 
 C *********************************************************************
 C RHOmst03 calculates the density of moist air (kg/m^3) knowing the
-C temperature ( C )and relative humidity (-) (Marieke 1994)
+C temperature (C)and relative humidity (-) (Marieke 1994)
 C *********************************************************************
       FUNCTION RHOmst03(TC,RH,Pt)
       COMMON/MOIST17/RHmax
@@ -672,8 +672,8 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C Pt01 calculates the total pressure ( Pa ) knowing the altitude H (m)
-C and temperature T ( C ) (Marieke 1994, Ham 1984)
+C Pt01 calculates the total pressure (Pa) knowing the altitude H (m)
+C and temperature T ( C) (Marieke 1994, Ham 1984)
 C G     acceleration due to gravity = 9.81 (m/s^2)
 C Pstnd standard total (atmospheric) pressure altitude (Pa)
 C Rav   gas constant for moist air (average) (J/kgK)

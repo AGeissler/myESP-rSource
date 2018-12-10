@@ -226,12 +226,12 @@ C IROC, if rate of change of variable alter the axis label.
 
 C Standard building labels.
         if (IROC.eq.0) then
-          ALABEL(1)='Temp: DegC'
+          ALABEL(1)='Temp: C'
           ALABEL(2)='Load: W'
           ALABEL(3)='Int: W/m^2'
           ALABEL(4)='Misc.'
         elseif (IROC.eq.1) then
-          ALABEL(1)='T: DegC/hr'
+          ALABEL(1)='T: C/hr'
           ALABEL(2)='Load: W/hr'
           ALABEL(3)='Int:W/m^2/hr'
           ALABEL(4)='Misc./hr'
@@ -240,14 +240,14 @@ C Standard building labels.
 
 C Mass flow labels.
         if (IROC.eq.0) then
-          ALABEL(1)='Temp: DegC'
+          ALABEL(1)='Temp: C'
           ALABEL(2)='Pres: Pa'
           ALABEL(3)='Flow rate'
           ALABEL(4)='Misc.'
           ALABEL(5)='Conc: g/kg'
           ALABEL(6)='Vel: m/s'
         elseif (IROC.eq.1) then
-          ALABEL(1)='T: DegC/hr'
+          ALABEL(1)='T: C/hr'
           ALABEL(2)='P: Pa/hr'
           ALABEL(3)='Flw rate/hr'
           ALABEL(4)='Misc./hr'
@@ -255,7 +255,7 @@ C Mass flow labels.
           ALABEL(6)='V: m/s/hr'
         endif
       elseif (IGRTP.eq.3) then
-        ALABEL(1)='Temp: DegC'
+        ALABEL(1)='Temp: C'
         ALABEL(2)='kg/s'
         ALABEL(3)='%'
         ALABEL(4)='KJ/Kg'
@@ -359,11 +359,11 @@ C AXISDRW - draw and label axes.
 #ifdef OSI
       integer igx  ! see common graf2
       integer igwid,igheight,iid1,iid2  ! for use with axiscale
-      integer iigl,iigr,iigt,iigb,iigw,iigwh
+      integer iigl,iigr,iigt,iigb,iigw,iigwh,iicol,ibsize
 #else
       integer*8 igx  ! see common graf2
       integer*8 igwid,igheight,iid1,iid2  ! for use with axiscale
-      integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
+      integer*8 iigl,iigr,iigt,iigb,iigw,iigwh,iicol,ibsize
 #endif
 
 C Cast values for horaxis.
@@ -430,7 +430,8 @@ C draw vertical axis.
             call vrtaxisdd(YMIN(I),YMAX(I),igx(I),iigb,iigt,Yadd(I),
      &        YSC(I),0,ddy1,ny,ilr(I),'  ')
             iid1=igx(I); iid2=igt-5;
-            call wstxpt(iid1,iid2,ALABEL(I))
+            iicol=0; ibsize=0
+            call textsizeatxy(iid1,iid2,ALABEL(I),ibsize,'-',iicol)
           endif
         endif
  10   continue

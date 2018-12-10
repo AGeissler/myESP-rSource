@@ -85,9 +85,10 @@ C Name of current application
       
       character cAppName*12
 
+      character ITEM*26
       dimension ITEM(22)
       character CLMLOC*30
-      character ITEM*26,LASCI*96,outs*124,outs248*248
+      character LASCI*96,outs*124,outs248*248
       character PERST1*14,PERST2*40,PERST3*40,LCMDFL*144
       character inf*144,ascif*96,pascif*96,llasci*144
       character pact*16,aut*12,paction*16
@@ -96,7 +97,7 @@ C Name of current application
       character journcmd*20,jfile*72,uname*24,cjfile*72
       character blank*2   ! string for edisp of blank line
 
-      character cVnum*36      ! returned from ESPrVersionNum
+      character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
 
       LOGICAL OK,DOK,unixok,there,silent
@@ -109,10 +110,12 @@ C Name of current application
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
       integer iicapture   ! to pass to updcapt
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
       integer*8 iicapture   ! to pass to updcapt
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
 C For help messages
@@ -205,14 +208,14 @@ c Initialise output device, assume minimal trace, set reduced
 C size of window display.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=570
+        iappw=600
         iappx=80
         iappy=80
       else
         if(iappx.le.0)iappx=80
         if(iappy.le.0)iappy=80
         if(iappw.le.200)then
-          iappwi=int(570*iappw*0.01)
+          iappwi=int(600*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue
@@ -225,21 +228,24 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
 
 C Set initial menu width and text feedback number of lines.
       if(iappw.gt.0.and.iappw.lt.100)then
-        menuchw = MAX0(int(29*iappw*0.01),18)
+        menuchw = MAX0(int(28*iappw*0.01),18)
         LIMTTY= MAX0(int(8*iappw*0.01),4)
         LIMIT = MAX0(int(8*iappw*0.01),4)
       else
-        menuchw = 29
+        menuchw = 28
         LIMTTY=8
         LIMIT =8
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=1
-        IFS=1
-        ITFS=1
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=5
+        ITFS=5
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -249,9 +255,9 @@ C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
       write(pagestitle,'(2a)') 'ESP-r Weather Analysis ',
      &  cVnum(1:lnblnk(cVnum))
-
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
       IF(MMOD.EQ.-6)then
         ICOUT=0
@@ -575,11 +581,24 @@ C Period definition.
       ELSEIF(INO.EQ.4)THEN
 
 C Synoptic analysis.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(ITFS.eq.4) ITFS=0
+        if(ITFS.eq.5) ITFS=1
+        if(ITFS.eq.6) ITFS=2
+        if(ITFS.eq.7) ITFS=3
+        call userfonts(IFS,ITFS,IMFS)
         IF(INIT.EQ.0)CALL selper(IER)
         INIT=1
         call tstamp('>','CLM: enter synoptic analysis')
         CALL CLMSYN
         call tstamp('>','CLM: exit synoptic analysis')
+        IMFS=lastmenufont
+        ITFS=lasttextfont    ! reset to proportional font in text feedback
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+        call usrmsg(' ',' ','-')  ! refresh dialog 
       ELSEIF(INO.EQ.5)THEN
 
 C Graphic analysis. Enlarge graphics area if small.
@@ -590,25 +609,28 @@ C Graphic analysis. Enlarge graphics area if small.
             iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
             if(iglib.eq.1)then
               if(iappw.gt.0.and.iappw.lt.100)then
-                menuchw = MAX0(int(29*iappw*0.01),10)
+                menuchw = MAX0(int(28*iappw*0.01),10)
                 LIMTTY= MAX0(int(6*iappw*0.01),4)
                 LIMIT = MAX0(int(6*iappw*0.01),4)
               else
-                menuchw = 29
+                menuchw = 28
                 LIMTTY=6
                 LIMIT =6
               endif
-              call winclr
-              CALL feedbox(menuchw,2,igfw,igfh)
-              CALL opengdisp(menuchw,LIMTTY,2,igdw,igdh)
 
 C Setup and pass in parameters to win3d.
               iiw1=10; iiw2=22; iiw3=7; iiw4=3; iimenu=menuchw
               iigl=igl; iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
+              ilf=2; ild=LIMTTY
+              call winclr
+              CALL feedbox(iimenu,ilf,igfw,igfh)
+              CALL opengdisp(iimenu,ild,ilf,igdw,igdh)
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
               igl=int(iigl); igr=int(iigr);igt=int(iigt);igb=int(iigb)
               igw=int(iigw); igwh=int(iigwh)
+              call opencpw
+              call opensetup
             elseif(iglib.eq.2)then
               continue
             endif
@@ -629,25 +651,28 @@ C Psychrometric analysis. Enlarge graphics area if small.
             iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
             if(iglib.eq.1)then
               if(iappw.gt.0.and.iappw.lt.100)then
-                menuchw = MAX0(int(29*iappw*0.01),10)
+                menuchw = MAX0(int(28*iappw*0.01),10)
                 LIMTTY= MAX0(int(6*iappw*0.01),4)
                 LIMIT = MAX0(int(6*iappw*0.01),4)
               else
-                menuchw = 29
+                menuchw = 28
                 LIMTTY=6
                 LIMIT =6
               endif
-              call winclr
-              CALL feedbox(menuchw,2,igfw,igfh)
-              CALL opengdisp(menuchw,LIMTTY,2,igdw,igdh)
 
 C Setup and pass in parameters to win3d.
               iiw1=10; iiw2=22; iiw3=7; iiw4=3; iimenu=menuchw
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
+              ilf=2; ild=LIMTTY
+              call winclr
+              CALL feedbox(iimenu,ilf,igfw,igfh)
+              CALL opengdisp(iimenu,ild,ilf,igdw,igdh)
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
               igl=int(iigl);igr=int(iigr);igt=int(iigt);igb=int(iigb)
               igw=int(iigw);igwh=int(iigwh)
+              call opencpw
+              call opensetup
             elseif(iglib.eq.2)then
               continue
             endif
@@ -660,12 +685,25 @@ C Setup and pass in parameters to win3d.
         endif
       ELSEIF(INO.EQ.7)THEN
 
-C Tabular analysis.
+C Tabular analysis. Switch to monospace small font in text feedback.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(ITFS.eq.4) ITFS=0
+        if(ITFS.eq.5) ITFS=1
+        if(ITFS.eq.6) ITFS=2
+        if(ITFS.eq.7) ITFS=3
+        call userfonts(IFS,ITFS,IMFS)
         IF(INIT.EQ.0)CALL selper(ier)
         INIT=1
         call tstamp('>','CLM: enter tabular analysis')
         CALL CLMTOT
         call tstamp('>','CLM: exit tabular analysis')
+        IMFS=lastmenufont
+        ITFS=lasttextfont    ! reset to proportional font in text feedback
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+        call usrmsg(' ',' ','-')  ! refresh dialog 
       ELSEIF(INO.EQ.9)THEN
 
 C Change radiation type.
@@ -1158,9 +1196,11 @@ C hour in any specified day.
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
 C For help messages
@@ -1185,17 +1225,20 @@ C displaying the following data.
             LIMTTY=30
             LIMIT =30
           endif
-          call winclr
-          CALL feedbox(menuchw,2,igfw,igfh)
-          CALL opengdisp(menuchw,LIMTTY,2,igdw,igdh)
 
 C Setup and pass in parameters to win3d.
           iiw1=10; iiw2=22; iiw3=5; iiw4=3; iimenu=menuchw
           iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+          ilf=2; ild=LIMTTY
+          call winclr
+          CALL feedbox(iimenu,ilf,igfw,igfh)
+          CALL opengdisp(iimenu,ild,ilf,igdw,igdh)
           CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &      iigl,iigr,iigt,iigb,iigw,iigwh)
           igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
           igw=int(iigw); igwh=int(iigwh)
+          call opencpw
+          call opensetup
        elseif(iglib.eq.2)then
           continue
         endif
@@ -1475,11 +1518,16 @@ C calls in esru_lib.F
       return
       end
 
-      subroutine chgazi(icazi)
+      subroutine redraw(ier)
+      ier=0
       return
       end
 
-      subroutine chgelev(icelev)
+      subroutine chgazi(icazi,ifrlk)
+      return
+      end
+
+      subroutine chgelev(icelev,ifrlk)
       return
       end
 

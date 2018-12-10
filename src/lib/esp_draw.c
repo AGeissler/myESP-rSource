@@ -4,6 +4,7 @@
    Functions:
      wstxpt_() write a string beginning at pixel x and y.
      textatxy_() write a string at pixel x y in colour xcolid.
+     textsizeatxy_() write a string at pixel x y with size & in colour xcolid.
      textpixwidth_() find width of string (buff) in current font.
      viewtext_() display text in graphics box
      findviewtext_() find position of display text in graphics box
@@ -71,62 +72,38 @@ int  len;        /* len is length passed from fortran */
 
 /* create font description to use for resetting the graphic font.
  * Use pango_font_get_metrics to get font width and height. */
- if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
-     f_height = font_calculations_array[courier_small].f_height;
-     f_width  = font_calculations_array[courier_small].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 8");
-     f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
-     f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
+ if (butn_fnt == 4 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 8");
+   f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
+   f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
 /*     g_print("viewtext graphic font medium 8\n");  debug */
- } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
-     f_height = font_calculations_array[serif_medium].f_height;
-     f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-/*     g_print("viewtext graphic font medium 10\n");  debug */
- } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
-     f_height = font_calculations_array[serif_large].f_height;
-     f_width  = font_calculations_array[serif_large].f_width;
-#endif
-/*    g_print("viewtext graphic font medium 12\n");  debug */
- } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
-     f_height = font_calculations_array[serif_largest].f_height;
-     f_width  = font_calculations_array[serif_largest].f_width;
-#endif
-/*   g_print("wstxpt graphic font serif medium 14\n");  debug */
- } else if (butn_fnt == 4 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 8");
-/*   g_print("wstxpt graphic font courier medium 8\n");  debug */
  } else if (butn_fnt == 5 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 10");
-/*   g_print("wstxpt graphic font courier medium 10\n");  debug */
+   pfd = pango_font_description_from_string("Serif,Medium 9");
+   f_height = font_calculations_array[serif_medium].f_height;
+   f_width  = font_calculations_array[serif_medium].f_width;
+/*     g_print("viewtext graphic font medium 9\n");  debug */
  } else if (butn_fnt == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-/*   g_print("wstxpt graphic font courier medium 12\n");  debug */
+   pfd = pango_font_description_from_string("Serif,Medium 10");
+   f_height = font_calculations_array[serif_large].f_height;
+   f_width  = font_calculations_array[serif_large].f_width;
+/*    g_print("viewtext graphic font medium 10\n");  debug */
  } else if (butn_fnt == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-/*   g_print("wstxpt graphic font courier medium 14\n");  debug */
+   pfd = pango_font_description_from_string("Serif,Medium 11");
+   f_height = font_calculations_array[serif_largest].f_height;
+   f_width  = font_calculations_array[serif_largest].f_width;
+#/*   g_print("wstxpt graphic font serif medium 11\n");  debug */
+ } else if (butn_fnt == 0 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 8");
+/*   g_print("wstxpt graphic font Mono medium 8\n");  debug */
+ } else if (butn_fnt == 1 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 9");
+/*   g_print("wstxpt graphic font Mono medium 9\n");  debug */
+ } else if (butn_fnt == 2 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 10");
+/*   g_print("wstxpt graphic font Mono medium 10\n");  debug */
+ } else if (butn_fnt == 3 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 11");
+/*   g_print("wstxpt graphic font Mono medium 11\n");  debug */
 }
 
  context = gtk_widget_get_pango_context (graphic);
@@ -159,7 +136,6 @@ int  len;        /* len is length passed from fortran */
 }
 
 /* ********* textatxy_() write a string at pixel x y in colour act & n. ******* */
-/* NOTE: different parameter list from X version */
 void textatxy_(x,y,buff,act,n,len)
 long int *x, *y;       /* x y is the position of the string */
 char *buff;
@@ -179,73 +155,170 @@ int  len;        /* len is length passed from fortran */
  ic = (int) *n;
 
 /* create font description to use for resetting the graphic font.
- * Use pango_font_get_metrics to get font width and height. and
- * for now make Sun F90 compiles with Courier only */
+ * Use pango_font_get_metrics to get font width and height.*/
+ if (butn_fnt == 4 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 8");
+   f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
+   f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
+/*     g_print("viewtext graphic font medium 8\n");  debug */
+ } else if (butn_fnt == 5 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 9");
+   f_height = font_calculations_array[serif_medium].f_height;
+   f_width  = font_calculations_array[serif_medium].f_width;
+/*     g_print("viewtext graphic font medium 9\n");  debug */
+ } else if (butn_fnt == 6 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 10");
+   f_height = font_calculations_array[serif_large].f_height;
+   f_width  = font_calculations_array[serif_large].f_width;
+/*    g_print("viewtext graphic font medium 10\n");  debug */
+ } else if (butn_fnt == 7 ) {
+   pfd = pango_font_description_from_string("Serif,Medium 11");
+   f_height = font_calculations_array[serif_largest].f_height;
+   f_width  = font_calculations_array[serif_largest].f_width;
+
+ } else if (butn_fnt == 0 ) {
+  pfd = pango_font_description_from_string("Monospace,Medium 8");
+   f_height = font_calculations_array[courier_small].f_height;
+   f_width  = font_calculations_array[courier_small].f_width;
+/*   g_print("wstxpt graphic font Mono medium 8\n");  debug */
+ } else if (butn_fnt == 1 ) {
+  pfd = pango_font_description_from_string("Monospace,Medium 9");
+  f_height = font_calculations_array[courier_medium].f_height;
+  f_width  = font_calculations_array[courier_medium].f_width;
+/*   g_print("wstxpt graphic font Mono medium 9\n");  debug */
+ } else if (butn_fnt == 2 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 10");
+   f_height = font_calculations_array[courier_large].f_height;
+   f_width  = font_calculations_array[courier_large].f_width;
+/*   g_print("wstxpt graphic font Mono medium 10\n");  debug */
+ } else if (butn_fnt == 3 ) {
+   pfd = pango_font_description_from_string("Monospace,Medium 11");
+   f_height = font_calculations_array[courier_largest].f_height;
+   f_width  = font_calculations_array[courier_largest].f_width;
+/*   g_print("wstxpt graphic font Mono medium 11\n");  debug */
+ }
+
+ gtk_widget_modify_font(graphic, pfd);	/* << ?? >> */
+ context = gtk_widget_get_pango_context (graphic);
+
+ pango_font_description_free(pfd);
+
+ layout = pango_layout_new (context);	/* clear and set layout */
+ buffer[0] = '\0';
+ g_snprintf (buffer, sizeof (buffer), "%s", buff); /* copy buff into buffer */
+ pango_layout_set_text (layout, buffer, len);	/* add len chars of text */
+
+/* sets the current forground colour n depending on which active colour set being
+   used use the same logic as in winscl_(act,n) */
+  if(*act == 'g') {
+     if (ic >= 0 && ic <= (int) ngscale ) {
+       gdk_gc_set_foreground(gc,&gscale[ic]);
+     } else {
+       gdk_gc_set_foreground(gc,&black);
+     }
+  } else if(*act == 'z') {
+     if (ic >= 0 && ic <= (int) izc ) {
+       gdk_gc_set_foreground(gc,&zscale[ic]);
+     } else {
+       gdk_gc_set_foreground(gc,&black);
+     }
+  } else if(*act == 'c') {
+     if (ic >= 0 && ic <= (int) ncscale ) {
+       gdk_gc_set_foreground(gc,&cscale[ic]);
+     } else {
+       gdk_gc_set_foreground(gc,&black);
+     }
+  } else if(*act == 'i') {
+     if (ic >= 0 && ic <= (int) ngr ) {	/* including black and white */
+       if (ic == 0) gdk_gc_set_foreground(gc,&gmenuhl);
+       if (ic == 1) gdk_gc_set_foreground(gc,&gmodbg);
+       if (ic == 2) gdk_gc_set_foreground(gc,&gpopfr);
+       if (ic == 3) gdk_gc_set_foreground(gc,&gfeedfr);
+       if (ic == 4) gdk_gc_set_foreground(gc,&ginvert);
+       if (ic == 5) gdk_gc_set_foreground(gc,&grey50);
+       if (ic == 6) gdk_gc_set_foreground(gc,&grey43);
+       if (ic == 7) gdk_gc_set_foreground(gc,&black);
+       if (ic == 8) gdk_gc_set_foreground(gc,&white);
+     } else {
+       gdk_gc_set_foreground(gc,&black);
+     }
+  } else if(*act == '-') {
+     gdk_gc_set_foreground(gc,&black);
+     gdk_gc_set_background(gc,&white);
+  }
+
+ gdk_draw_layout (gr_image, gc,ix,iy,layout);	/* draw it on the pixmap */
+ g_object_unref (layout);	/* clear the layout */
+ gdk_gc_set_foreground(gc,&black);
+
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*textatxy\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
+/* ********* textsizeatxy_() write a string of size at pixel x y in colour act & n. ******* */
+void textsizeatxy_(x,y,buff,size,act,n,len)
+long int *x, *y;       /* x y is the position of the string */
+char *buff;
+long int *size;    /* font size indicator (see below) */
+char *act;  /* single character passed for colour set */
+long int *n;       /* colour index within the set */
+int  len;        /* len is length passed from fortran */
+{
+ long int fsize;
+ PangoFontDescription *pfd;	/* to hold test font */
+ PangoContext *context;	/* for use in finding font properties */
+ PangoLayout *layout;	/* pango layout for the text in the buffer */
+ gint ix = (gint) *x;
+ gint iy = (gint) *y;
+ int ilen;
+ int ic;
+ char buffer[248];
+
+ ic = (int) *n;
+ fsize = *size;
+
+/* create font description to use for resetting the graphic font.
+ * Use pango_font_get_metrics to get font width and height. */
  if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-#else
+ } else if (butn_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
+     f_height = font_calculations_array[courier_medium].f_height;
+     f_width  = font_calculations_array[courier_medium].f_width;
+ } else if (butn_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+     f_height = font_calculations_array[courier_large].f_height;
+     f_width  = font_calculations_array[courier_large].f_width;
+ } else if (butn_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+     f_height = font_calculations_array[courier_largest].f_height;
+     f_width  = font_calculations_array[courier_largest].f_width;
+ } else if (butn_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
      f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
      f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
-/*     g_print("viewtext graphic font medium 8\n");  debug */
- } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
+ } else if (butn_fnt == 5 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 9");
      f_height = font_calculations_array[serif_medium].f_height;
      f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-/*     g_print("viewtext graphic font medium 10\n");  debug */
- } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
+ } else if (butn_fnt == 6 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 10");
      f_height = font_calculations_array[serif_large].f_height;
      f_width  = font_calculations_array[serif_large].f_width;
-#endif
-/*    g_print("viewtext graphic font medium 12\n");  debug */
- } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
+ } else if (butn_fnt == 7 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 11");
      f_height = font_calculations_array[serif_largest].f_height;
      f_width  = font_calculations_array[serif_largest].f_width;
-#endif
-
- } else if (butn_fnt == 4 ) {
-  pfd = pango_font_description_from_string("Courier,Medium 8");
-   f_height = font_calculations_array[courier_small].f_height;
-   f_width  = font_calculations_array[courier_small].f_width;
-/*   g_print("wstxpt graphic font courier medium 8\n");  debug */
- } else if (butn_fnt == 5 ) {
-  pfd = pango_font_description_from_string("Courier,Medium 10");
-  f_height = font_calculations_array[courier_medium].f_height;
-  f_width  = font_calculations_array[courier_medium].f_width;
-/*   g_print("wstxpt graphic font courier medium 10\n");  debug */
- } else if (butn_fnt == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-   f_height = font_calculations_array[courier_large].f_height;
-   f_width  = font_calculations_array[courier_large].f_width;
-/*   g_print("wstxpt graphic font courier medium 12\n");  debug */
- } else if (butn_fnt == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-   f_height = font_calculations_array[courier_largest].f_height;
-   f_width  = font_calculations_array[courier_largest].f_width;
-/*   g_print("wstxpt graphic font courier medium 14\n");  debug */
  }
+
 
  gtk_widget_modify_font(graphic, pfd);	/* << ?? >> */
  context = gtk_widget_get_pango_context (graphic);
@@ -335,69 +408,44 @@ int  len;        /* len is length passed from fortran */
 /* create font description to use for resetting the graphic font.
  * Use pango_font_get_metrics to get font width and height. */
  if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-#else
+/*     g_print("viewtext graphic font medium 8\n");  debug */
+ } else if (butn_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
+     f_height = font_calculations_array[courier_medium].f_height;
+     f_width  = font_calculations_array[courier_medium].f_width;
+/*     g_print("viewtext graphic font medium 9\n");  debug */
+ } else if (butn_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+     f_height = font_calculations_array[courier_large].f_height;
+     f_width  = font_calculations_array[courier_large].f_width;
+/*    g_print("viewtext graphic font medium 10\n");  debug */
+ } else if (butn_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+     f_height = font_calculations_array[courier_largest].f_height;
+     f_width  = font_calculations_array[courier_largest].f_width;
+ } else if (butn_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
      f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
      f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
-/*     g_print("viewtext graphic font medium 8\n");  debug */
- } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
+/*    g_print("wstxpt graphic font medium 8\n");  debug */
+ } else if (butn_fnt == 5 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 9");
      f_height = font_calculations_array[serif_medium].f_height;
      f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-/*     g_print("viewtext graphic font medium 10\n");  debug */
- } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
+/*    g_print("wstxpt graphic font medium 9\n");  debug */
+ } else if (butn_fnt == 6 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 10");
      f_height = font_calculations_array[serif_large].f_height;
      f_width  = font_calculations_array[serif_large].f_width;
-#endif
-/*    g_print("viewtext graphic font medium 12\n");  debug */
- } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
+/*    g_print("wstxpt graphic font medium 10\n");  debug */
+ } else if (butn_fnt == 7 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 11");
      f_height = font_calculations_array[serif_largest].f_height;
      f_width  = font_calculations_array[serif_largest].f_width;
-#endif
-/*    g_print("wstxpt graphic font serif medium 14\n");  debug */
- } else if (butn_fnt == 4 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 8");
-   f_height = font_calculations_array[courier_small].f_height;
-   f_width  = font_calculations_array[courier_small].f_width;
-/*   g_print("wstxpt graphic font Courier medium 8\n");  debug */
- } else if (butn_fnt == 5 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 10");
-   f_height = font_calculations_array[courier_medium].f_height;
-   f_width  = font_calculations_array[courier_medium].f_width;
-/*  g_print("wstxpt graphic font Courier medium 10\n");  debug */
- } else if (butn_fnt == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-   f_height = font_calculations_array[courier_large].f_height;
-   f_width  = font_calculations_array[courier_large].f_width;
-/*  g_print("wstxpt graphic font Courier medium 12\n");  debug */
- } else if (butn_fnt == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-   f_height = font_calculations_array[courier_largest].f_height;
-   f_width  = font_calculations_array[courier_largest].f_width;
-/*  g_print("wstxpt graphic font Courier medium 14\n");  debug */
+/*    g_print("wstxpt graphic font medium 11\n");  debug */
  }
  gtk_widget_modify_font(graphic, pfd);  /* << ?? >> */
  context = gtk_widget_get_pango_context (graphic);
@@ -452,73 +500,46 @@ void viewtext_(msg,linep,side,size,len)
   }
 
 /* create font description to use for resetting the graphic font.
- * Use pango_font_get_metrics to get font width and height. To test
- * on Solaris stick with the Courier fonts */
+ * Use pango_font_get_metrics to get font width and height.  */
   if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-#else
+/*     g_print("viewtext graphic font medium 8\n");  debug */
+  } else if (butn_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
+     f_height = font_calculations_array[courier_medium].f_height;
+     f_width  = font_calculations_array[courier_medium].f_width;
+/*     g_print("viewtext graphic font medium 9\n");  debug */
+  } else if (butn_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+     f_height = font_calculations_array[courier_large].f_height;
+     f_width  = font_calculations_array[courier_large].f_width;
+/*    g_print("viewtext graphic font medium 10\n");  debug */
+  } else if (butn_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+     f_height = font_calculations_array[courier_largest].f_height;
+     f_width  = font_calculations_array[courier_largest].f_width;
+  } else if (butn_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
      f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
      f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
-/*     g_print("viewtext graphic font medium 8\n");  debug */
-  } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
+/*    g_print("wstxpt graphic font medium 8\n");  debug */
+  } else if (butn_fnt == 5 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 9");
      f_height = font_calculations_array[serif_medium].f_height;
      f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-/*     g_print("viewtext graphic font medium 10\n");  debug */
-  } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
+/*    g_print("wstxpt graphic font medium 9\n");  debug */
+  } else if (butn_fnt == 6 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 10");
      f_height = font_calculations_array[serif_large].f_height;
      f_width  = font_calculations_array[serif_large].f_width;
-#endif
-/*    g_print("viewtext graphic font medium 12\n");  debug */
-  } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
+/*    g_print("wstxpt graphic font medium 10\n");  debug */
+  } else if (butn_fnt == 7 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 11");
      f_height = font_calculations_array[serif_largest].f_height;
      f_width  = font_calculations_array[serif_largest].f_width;
-#endif
-
-/*     g_print("viewtext graphic font medium 14\n");  debug */
-  } else if (butn_fnt == 4 ) {
-    pfd = pango_font_description_from_string("Courier,Medium 8");
-    f_height = font_calculations_array[courier_small].f_height;
-    f_width  = font_calculations_array[courier_small].f_width;
-/*    g_print("viewtext graphic font medium 8\n");  debug */
-  } else if (butn_fnt == 5 ) {
-    pfd = pango_font_description_from_string("Courier,Medium 10");
-    f_height = font_calculations_array[courier_medium].f_height;
-    f_width  = font_calculations_array[courier_medium].f_width;
-/*    g_print("viewtext graphic font medium 10\n");  debug */
-  } else if (butn_fnt == 6 ) {
-    pfd = pango_font_description_from_string("Courier,Medium 12");
-    f_height = font_calculations_array[courier_large].f_height;
-    f_width  = font_calculations_array[courier_large].f_width;
-/*     g_print("viewtext graphic font medium 12\n");  debug */
-  } else if (butn_fnt == 7 ) {
-    pfd = pango_font_description_from_string("Courier,Medium 14");
-    f_height = font_calculations_array[courier_largest].f_height;
-    f_width  = font_calculations_array[courier_largest].f_width;
-/*    g_print("viewtext graphic font medium 14\n");  debug */
+/*    g_print("wstxpt graphic font medium 11\n");  debug */
   }
   gtk_widget_modify_font(graphic, pfd);  /* << ?? >> */
   context = gtk_widget_get_pango_context (graphic);
@@ -575,68 +596,44 @@ void findviewtext_(charposp,linep,size,irx,iry)
 /* create font description to use for resetting the graphic font.
  * Use pango_font_get_metrics to get font width and height. */
  if (butn_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-#else
+/*     g_print("viewtext graphic font medium 8\n");  debug */
+ } else if (butn_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
+     f_height = font_calculations_array[courier_medium].f_height;
+     f_width  = font_calculations_array[courier_medium].f_width;
+/*     g_print("viewtext graphic font medium 9\n");  debug */
+ } else if (butn_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+     f_height = font_calculations_array[courier_large].f_height;
+     f_width  = font_calculations_array[courier_large].f_width;
+/*    g_print("viewtext graphic font medium 10\n");  debug */
+ } else if (butn_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+     f_height = font_calculations_array[courier_largest].f_height;
+     f_width  = font_calculations_array[courier_largest].f_width;
+ } else if (butn_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
      f_height = font_calculations_array[serif_small].f_height;   // pre-calculated value of f_height is read from the array
      f_width  = font_calculations_array[serif_small].f_width;    // pre-calculated value of f_width  is read from the array
-#endif
-/*     g_print("viewtext graphic font medium 8\n");  debug */
- } else if (butn_fnt == 1 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-     f_height = font_calculations_array[courier_medium].f_height;
-     f_width  = font_calculations_array[courier_medium].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
-     f_height = font_calculations_array[serif_medium].f_height;
-     f_width  = font_calculations_array[serif_medium].f_width;
-#endif
-/*     g_print("viewtext graphic font medium 10\n");  debug */
- } else if (butn_fnt == 2 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-     f_height = font_calculations_array[courier_large].f_height;
-     f_width  = font_calculations_array[courier_large].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
-     f_height = font_calculations_array[serif_large].f_height;
-     f_width  = font_calculations_array[serif_large].f_width;
-#endif
-/*    g_print("viewtext graphic font medium 12\n");  debug */
- } else if (butn_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-     f_height = font_calculations_array[courier_largest].f_height;
-     f_width  = font_calculations_array[courier_largest].f_width;
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
-     f_height = font_calculations_array[serif_largest].f_height;
-     f_width  = font_calculations_array[serif_largest].f_width;
-#endif
- } else if (butn_fnt == 4 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 8");
-   f_height = font_calculations_array[courier_small].f_height;
-   f_width  = font_calculations_array[courier_small].f_width;
 /*    g_print("wstxpt graphic font medium 8\n");  debug */
  } else if (butn_fnt == 5 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 10");
-   f_height = font_calculations_array[courier_medium].f_height;
-   f_width  = font_calculations_array[courier_medium].f_width;
-/*    g_print("wstxpt graphic font medium 10\n");  debug */
+     pfd = pango_font_description_from_string("Serif,Medium 9");
+     f_height = font_calculations_array[serif_medium].f_height;
+     f_width  = font_calculations_array[serif_medium].f_width;
+/*    g_print("wstxpt graphic font medium 9\n");  debug */
  } else if (butn_fnt == 6 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 12");
-   f_height = font_calculations_array[courier_large].f_height;
-   f_width  = font_calculations_array[courier_large].f_width;
-/*    g_print("wstxpt graphic font medium 12\n");  debug */
+     pfd = pango_font_description_from_string("Serif,Medium 10");
+     f_height = font_calculations_array[serif_large].f_height;
+     f_width  = font_calculations_array[serif_large].f_width;
+/*    g_print("wstxpt graphic font medium 10\n");  debug */
  } else if (butn_fnt == 7 ) {
-   pfd = pango_font_description_from_string("Courier,Medium 14");
-   f_height = font_calculations_array[courier_largest].f_height;
-   f_width  = font_calculations_array[courier_largest].f_width;
-/*    g_print("wstxpt graphic font medium 14\n");  debug */
+     pfd = pango_font_description_from_string("Serif,Medium 11");
+     f_height = font_calculations_array[serif_largest].f_height;
+     f_width  = font_calculations_array[serif_largest].f_width;
+/*    g_print("wstxpt graphic font medium 11\n");  debug */
 }
   gtk_widget_modify_font(graphic, pfd);  /* << ?? >> */
   context = gtk_widget_get_pango_context (graphic);
@@ -2822,46 +2819,46 @@ void popupimage_(char *prom,char *docu,char *act,char *file,int lenprom,int lend
    gtk_container_add (GTK_CONTAINER (GTK_DIALOG(askbox)->vbox),entry);
 
 /* now set the font size to be used for the image documentation. */
-   if (disp_fnt == 0 ) {
+   if (disp_fnt == 4 ) {
      pfd = pango_font_description_from_string("Serif,Medium 8");
      f_height = font_calculations_array[serif_small].f_height;
      f_width  = font_calculations_array[serif_small].f_width;
 /*    g_print("configure font medium 8\n"); debug */
-   } else if (disp_fnt == 1 ) {
-     pfd = pango_font_description_from_string("Serif,Medium 10");
+   } else if (disp_fnt == 5 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 9");
      f_height = font_calculations_array[serif_medium].f_height;
      f_width  = font_calculations_array[serif_medium].f_width;
-/*    g_print("configure font medium 10\n"); debug */
-   } else if (disp_fnt == 2 ) {
-     pfd = pango_font_description_from_string("Serif,Medium 12");
+/*    g_print("configure font medium 9\n"); debug */
+   } else if (disp_fnt == 6 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 10");
      f_height = font_calculations_array[serif_large].f_height;
      f_width  = font_calculations_array[serif_large].f_width;
-/*    g_print("configure font medium 12\n"); debug */
-   } else if (disp_fnt == 3 ) {
-     pfd = pango_font_description_from_string("Serif,Medium 14");
+/*    g_print("configure font medium 10\n"); debug */
+   } else if (disp_fnt == 7 ) {
+     pfd = pango_font_description_from_string("Serif,Medium 11");
      f_height = font_calculations_array[serif_largest].f_height;
      f_width  = font_calculations_array[serif_largest].f_width;
-/*    g_print("configure font medium 14\n"); debug */
-   } else if (disp_fnt == 4 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 8");
+/*    g_print("configure font medium 11\n"); debug */
+   } else if (disp_fnt == 0 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
      f_height = font_calculations_array[courier_small].f_height;
      f_width  = font_calculations_array[courier_small].f_width;
-/*    g_print("configure courier medium 8\n"); debug */
-   } else if (disp_fnt == 5 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 10");
+/*    g_print("configure Mono medium 8\n"); debug */
+   } else if (disp_fnt == 1 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
      f_height = font_calculations_array[courier_medium].f_height;
      f_width  = font_calculations_array[courier_medium].f_width;
-/*    g_proint("configure courier medium 10\n");  debug */
-   } else if (disp_fnt == 6 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 12");
+/*    g_proint("configure Mono medium 9\n");  debug */
+   } else if (disp_fnt == 2 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
      f_height = font_calculations_array[courier_large].f_height;
      f_width  = font_calculations_array[courier_large].f_width;
-/*    g_print("configure courier medium 12\n");  debug */
-   } else if (disp_fnt == 7 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 14");
+/*    g_print("configure Mono medium 10\n");  debug */
+   } else if (disp_fnt == 3 ) {
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
      f_height = font_calculations_array[courier_largest].f_height;
      f_width  = font_calculations_array[courier_largest].f_width;
-/*    g_print("configure courier medium 14\n");  debug */
+/*    g_print("configure Mono medium 11\n");  debug */
    }
    gtk_widget_modify_font(entry, pfd);
    pango_font_description_free(pfd);

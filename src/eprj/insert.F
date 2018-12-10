@@ -343,6 +343,15 @@ C they are included in ibases list. If so decrement ibases value.
           if(is.eq.ibases(icomp,8)) ibases(icomp,8)=ibases(icomp,8)-1
           if(is.eq.ibases(icomp,9)) ibases(icomp,9)=ibases(icomp,9)-1
           if(is.eq.ibases(icomp,10))ibases(icomp,10)=ibases(icomp,10)-1
+          if(is.eq.ibases(icomp,11))ibases(icomp,11)=ibases(icomp,11)-1
+          if(is.eq.ibases(icomp,12))ibases(icomp,12)=ibases(icomp,12)-1
+          if(is.eq.ibases(icomp,13))ibases(icomp,13)=ibases(icomp,13)-1
+          if(is.eq.ibases(icomp,14))ibases(icomp,14)=ibases(icomp,14)-1
+          if(is.eq.ibases(icomp,15))ibases(icomp,15)=ibases(icomp,15)-1
+          if(is.eq.ibases(icomp,16))ibases(icomp,16)=ibases(icomp,16)-1
+          if(is.eq.ibases(icomp,17))ibases(icomp,17)=ibases(icomp,17)-1
+          if(is.eq.ibases(icomp,18))ibases(icomp,18)=ibases(icomp,18)-1
+          if(is.eq.ibases(icomp,19))ibases(icomp,19)=ibases(icomp,19)-1
   68    continue
 
 C Loop through each of the surfaces greater than IWHICH and copy their
@@ -568,7 +577,7 @@ C Find out which other zone to copy from. Save the current state of the
 C menu so that can return to where we were. Also connected surface.
  99       CALL EPMENSV
           CALL EASKGEOF('Select source zone to copy from:',
-     &      CFGOK,IZC,'-',IER)
+     &      CFGOK,IZC,'-',34,IER)
 
 C Debug.
 C          write(6,*) 'copy from zone ',izc
@@ -602,7 +611,7 @@ C Reset all surface lines in donor zone.
           nzg=1
           nznog(1)=IZC   ! alter focus to the other zone
           izgfoc=ICOMP
-          CALL ADJVIEW(IER)
+          CALL redraw(IER)
           MODIFYVIEW=.TRUE.
           MODBND=.TRUE.
         endif
@@ -1409,7 +1418,7 @@ C Confirm opening.
           nzg=1
           nznog(1)=ICOMP
           izgfoc=ICOMP
-          CALL ADJVIEW(IER)
+          CALL redraw(IER)
           ier=-1
           return
         elseif(INVT.eq.3)then
@@ -1822,7 +1831,7 @@ C Check to see if new vertex is beyond current bounds of zone.
       endif
 
 C If we modified the geometry then write it out because subsequent
-C calls to ADJVIEW will rescan this geometry file and undo the
+C calls to redraw will rescan this geometry file and undo the
 C changes.
       if(changedgeo)then
         call eclose(gversion(icomp),1.1,0.01,newgeo)
@@ -2353,7 +2362,7 @@ C surface being edited to a thick line if currently in graphics mode.
           nzg=1
           nznog(1)=ICOMP
           izgfoc=ICOMP
-          CALL ADJVIEW(IER)
+          CALL redraw(IER)
         endif
         goto 72
       endif
@@ -2423,7 +2432,7 @@ C edited to a thick line if currently in graphics mode.
         nzg=1
         nznog(1)=ICOMP
         izgfoc=ICOMP
-        CALL ADJVIEW(IER)
+        CALL redraw(IER)
       endif
 
 C Report parent surface length and height (bounding box).

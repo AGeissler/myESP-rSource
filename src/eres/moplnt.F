@@ -85,8 +85,8 @@ C block in this source file has been renamed pcresres to avoid
 C this clash.
       COMMON/MSYSPICK/NPGET,IPGETNO(MSYSRS,8)
       common/pcnam/pcname(mpcom)
-      common/adopdesc/adopdsc(mpcom,MPCRES)
-      common/pcresres/ napout(mpcom),apcout(MPCRES)
+      common/adopdesc/adopdsc(mpcom,15)
+      common/pcresres/ napout(mpcom),apcout(20)
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
       common/ntype/isv(mpcom,mnodec)
@@ -355,20 +355,11 @@ C (i.e. moist air)
   30      continue
         endif
 
-C Consider only the components which support the selected variable 
-C (i.e. dry air, moist air and water)
         if(ino.eq.8.or.ino.eq.12) then
-          k=0
           do 40 i=1,npcomp
-            do 35 j=1, nnode(i)
-              if(isv(i,j).eq.0.or.isv(i,j).eq.10.or.
-     &           isv(i,j).eq.20.or.isv(i,j).eq.1.or.
-     &           isv(i,j).eq.11.or.isv(i,j).eq.21) then
-                k=k+1
-                pcnam1(k)=pcname(i)
-                ipcndx(k)=i
-              endif
-  35        continue
+            pcnam1(i)=pcname(i)
+            ipcndx(i)=i
+            k=i
   40      continue
         endif
 
@@ -604,8 +595,8 @@ C Additional output.
         IPGETNO(NPGET,8)=5
         SUFFIX=' other'
         if(nsnd.le.9)then
-          write(GPLABEL(NPGET),'(2a)') PREFIX(1:lname),
-     &      adopdsc(indx,nsnd)(1:20)
+          write(GPLABEL(NPGET),'(2a,i1,a)') PREFIX(1:lname),' n',
+     &      nsnd,SUFFIX
         else
           write(GPLABEL(NPGET),'(2a,i2,a)') PREFIX(1:lname),'n',
      &      nsnd,SUFFIX
@@ -731,7 +722,7 @@ C the best-guess of file names (but with full path).
       COMMON/ABSRESLIB/RFILEABS,PFILEABS,MSTRFILEABS,LAFRESABS
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
-      common/pcresres/ napout(mpcom),apcout(MPCRES)
+      common/pcresres/ napout(mpcom),apcout(20)
       COMMON/LIBOK/IBLIB,IFLIB,ICLIB,IELIB,IPLIB
       common/rpath/path
       
@@ -1180,7 +1171,7 @@ C naout (number of additional output data) is returned.
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
       common/ntype/isv(mpcom,mnodec)
-      common/adopdesc/adopdsc(mpcom,MPCRES)
+      common/adopdesc/adopdsc(mpcom,15)
       COMMON/C9plus/UCdbNam(MPCOM),CdbCat(MPCOM),CDBDesc(MPCOM)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
 
@@ -1317,7 +1308,7 @@ C data are stored in CSV?M and APCOUT arrays respectively.
       COMMON/LIBRCP/IRCPLP,nblock
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
-      common/pcresres/ napout(mpcom),apcout(MPCRES)
+      common/pcresres/ napout(mpcom),apcout(20)
       logical unixok
 
 C Find data location in result file.
@@ -1479,7 +1470,7 @@ C Simulator parameters.
       common/ntype/isv(mpcom,mnodec)
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
-      common/pcresres/ napout(mpcom),apcout(MPCRES)
+      common/pcresres/ napout(mpcom),apcout(20)
 
 C Flags identifying if results libries are available. =0 no lib, =1 lib exists.
       COMMON/LIBOK/IBLIB,IFLIB,ICLIB,IELIB,IPLIB
@@ -2160,7 +2151,6 @@ C write out labels for each column at the start.
         endif
         if (IHFLAG.eq.1) then
           outs='#Time'
-C          outs='Time'
         else
           outs='Time '
         endif

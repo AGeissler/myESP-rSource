@@ -68,7 +68,7 @@ C Name of current application
       character path*72
       character species*64, grow*1, head*29,fs*1
 
-      character cVnum*36      ! returned from ESPrVersionNum
+      character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
 
       logical unixok
@@ -116,14 +116,14 @@ C Determine terminal type and set write unit to stderr for rule scripts.
       MODL=8
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=520
+        iappw=540
         iappx=100
         iappy=150
       else
         if(iappx.le.0)iappx=100
         if(iappy.le.0)iappy=150
         if(iappw.le.200)then
-          iappwi=int(520*iappw*0.01)
+          iappwi=int(540*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue
@@ -145,11 +145,14 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=1
-        IFS=1
-        ITFS=1
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=4
+        ITFS=4
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -160,8 +163,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'ESP-r Mould Analysis ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to LIMTTY if MMOD = 8.
       IF(MMOD.EQ.8)THEN
@@ -279,11 +283,16 @@ C calls in esru_lib.F
       return
       end
 
-      subroutine chgazi(icazi)
+      subroutine redraw(IER)
+      ier=0
       return
       end
 
-      subroutine chgelev(icelev)
+      subroutine chgazi(icazi,ifrlk)
+      return
+      end
+
+      subroutine chgelev(icelev,ifrlk)
       return
       end
 

@@ -93,14 +93,6 @@ C geometry.h provides commons G0/G2/c20/precz.
 #include "espriou.h"
 C espriou.h provides currentfile, defdbfl exemfl.
 #include "prj3dv.h"
-
-C IEEE callback (Solaris)
-#ifdef SUN
-#ifdef F90
-      external SIGFPE_bps      
-      integer SIGFPE_bps      
-#endif
-#endif
       
       integer lnblnk  ! function definition
 
@@ -145,6 +137,9 @@ C Project journal on/off, unit number, cmd, file name.
 C Defaults.
       character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
       common/deflt2/dfcfg,dfctl,defrlb,dafres,daprob,dpnf
+
+C 3D visualisation mode.
+      COMMON/MODVIS/IVISMOD
       
 C Significant figure reporting limit.
       common/sfig/nsigfig
@@ -165,8 +160,8 @@ C Name of current application.
       character xfile*144,tg*1,delim*1,mode*4
       character exportfile*96 ! for ascii shading file
 
-      character cVnum*36      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character cVnum*38      ! returned from ESPrVersionNum
+      character pagestitle*68 ! for banner title via epages call
 
       logical silent,unixok,there,context,existing
       logical xst,freshshading
@@ -235,6 +230,7 @@ C ifcfg  - system configuration file
       IOPTDB=IFIL+7   ! set unit numbers for optical db.
       iuj=ifil+10
       icfcdb=ifil+11  ! set unit number for CFClayers db
+      write(LCFCDB,'(a)') DCFCDB(1:lnblnk(DCFCDB))
       cfgok=.false.
       lname='SHDTRN'
       zn='UNKNOWN'
@@ -274,6 +270,7 @@ C Initial coordinates for eye point, viewing point and angle of view.
       viewm(2)=10.
       viewm(3)=10.
       ang=40.
+      IVISMOD=1
 
 C Image option flags.
       itdsp=0; itbnd=1; itept=0
@@ -283,33 +280,17 @@ C Image option flags.
       itppsw=0
       ifs=1; itfs=1; imfs=1
 
-C If your compiler does not support floating-point arithmetic
-C according to ANSI/IEEE Std 754-1985 comment out the following code.
-
-C Initialize mode, status, and signal handling for IEEE arithmetic.
-C See also: f77_ieee_environment(3F) f77_floatingpoint(3F)
-C           Note that in case of Sun FORTRAN, IEEEE exceptions arise
-C           only if: Sun-3 f77 with -f68881 or -ffpa option
-C                or: Sun-4 f77.
-#ifdef SUN
-#ifdef F90
-      ieeer=ieee_handler('set','common',SIGFPE_ABORT)
-      ieeer=ieee_handler('set','common',SIGFPE_bps)
-      if(ieeer.ne.0) write(iuout,*) ' IEEE_handler not set !'
-#endif
-#endif
-
 C Initialise terminal and flags.
       mmod=modl
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-         iappw=550
+         iappw=580
          iappx=75
          iappy=170
       else
          if(iappx.le.0)iappx=75
          if(iappy.le.0)iappy=170
          if(iappw.le.200)then
-            iappwi=int(550*iappw*0.01)
+            iappwi=int(580*iappw*0.01)
             iappw=iappwi
          elseif(iappw.gt.200)then
             continue
@@ -332,10 +313,14 @@ C monitor size.
       endif
       if(mmod.EQ.8)then
 
-C Set initial font sizes (imfs is for graphs, ifs for dialog & text
-C feedback).
-         imfs=1; ifs=1; itfs=1
-         call userfonts(ifs,itfs,imfs)
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=4
+        ITFS=1
+        call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       else
          limtty=16
          limit =16
@@ -346,8 +331,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'ESP-r Shading & Insolation ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       call epages(mmod,iuin,iuout,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to limtty if mmod = 8.
       if(mmod.eq.8)then
@@ -1025,7 +1011,7 @@ C Read geometry file for either calculation purpose.
             goto 201
          endif
          ic=-1
-         call easkgeof('Zone to assess:',cfgok,ic,'-',ier)
+         call easkgeof('Zone to assess:',cfgok,ic,'-',28,ier)
          if(ic.eq.0.or.ic.eq.-1)goto 201
          ier=0
          icomp=ic
@@ -1097,7 +1083,7 @@ C the day and time, compute the positon and update the view.
                nzg=1
                nznog(1)=icomp
                izgfoc=icomp
-               call adjview(ier)
+               call redraw(ier)
 
 C Generate a heading for the view.
                call edtime(stime,descrh,descrd,timer)
@@ -1211,6 +1197,17 @@ C in the zone transitional shading file or from common blocks).
             call edisp(iuout,'Select a zone first!')
             goto 201
          else
+
+C Switch to fixed font for text feedback.
+            lastmenufont=IMFS
+            lastbuttonfont=IFS
+            lasttextfont=ITFS
+            if(ITFS.eq.4) ITFS=0
+            if(ITFS.eq.5) ITFS=1
+            if(ITFS.eq.6) ITFS=2
+            if(ITFS.eq.7) ITFS=3
+            call userfonts(IFS,ITFS,IMFS)
+
             helptopic='synopsis_period_options'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call tstamp('>','Ish: shading synopsis')
@@ -1273,6 +1270,11 @@ C Shading synopsis is based on common block information.
                  endif
               endif
             endif
+           IMFS=lastmenufont
+           ITFS=lasttextfont    ! reset to proportional font in text feedback
+           IFS=lastbuttonfont
+           call userfonts(IFS,ITFS,IMFS)
+           call usrmsg(' ',' ','-')  ! refresh dialog 
          endif
 
 C Plot surface shading patterns using information in zone transitional
@@ -1398,6 +1400,17 @@ C held in the zone shading & insolation db.)
             call edisp(iuout,'Select a zone first!')
             goto 201
          else
+
+C Switch to fixed font for text feedback.
+            lastmenufont=IMFS
+            lastbuttonfont=IFS
+            lasttextfont=ITFS
+            if(ITFS.eq.4) ITFS=0
+            if(ITFS.eq.5) ITFS=1
+            if(ITFS.eq.6) ITFS=2
+            if(ITFS.eq.7) ITFS=3
+            call userfonts(IFS,ITFS,IMFS)
+
             call tstamp('>','Ish: list insolation synopsis')
             if(mons.gt.12) mons=1  ! if mons was clobbered reset
             mon=mons
@@ -1435,6 +1448,11 @@ C as well as surfaces.
                  endif
                endif
             endif
+           IMFS=lastmenufont
+           ITFS=lasttextfont    ! reset to proportional font in text feedback
+           IFS=lastbuttonfont
+           call userfonts(IFS,ITFS,IMFS)
+           call usrmsg(' ',' ','-')  ! refresh dialog 
          endif
 
 C Edit/import (interactive) /export (interactive) /list.
@@ -1797,7 +1815,7 @@ C Determine it's bounds for future comparison. Force it to be drawn.
          nzg=1
          nznog(1)=icomp
          izgfoc=icomp
-         call adjview(ier)
+         call redraw(ier)
       endif
       return
       end
@@ -2048,20 +2066,12 @@ C Dummy routines.
       return
       end
 
-C In support of floating point exceptions.
-#ifdef SUN
-#ifdef F90
-      integer function SIGFPE_bps(sig,code,context)
-      integer sig,code,context(5)
-      character label*16
-      if(loc(code).eq.208) label = 'invalid'
-      if(loc(code).eq.200) label = 'division by zero'
-      if(loc(code).eq.212) label = 'overflow'
-      if(loc(code).eq.204) label = 'underflow'
-      if(loc(code).eq.196) label = 'inexact'
-      write(6,*) 'Exception code ',loc(code),label,'at ',context(4)
-      SIGFPE_bps = loc(code)
+      SUBROUTINE CFDVIEW(IER)
+      IER=0
+      return
       end
-#endif
-#endif
+      
+      SUBROUTINE GRAAPH(IDRW1,IDRW2)
+      return
+      end
 

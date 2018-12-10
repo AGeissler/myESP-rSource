@@ -127,6 +127,9 @@ C ECO specific commons
 
       COMMON/EIAhigh/NbComp,NbMat,IMatID(MMLC,ME),ImatDbID(0:MMAT-1),
      &               LCIATag
+
+C 3D visualisation mode.
+      COMMON/MODVIS/IVISMOD
       
 C Significant figure reporting limit (NSIGFIG).
       common/SFIG/NSIGFIG
@@ -166,7 +169,7 @@ C      CHARACTER tab*1
       CHARACTER*12 CompoNam,LayerNam,MatNameco
       CHARACTER*72 MatDesc,MatCat,LayerDes
 
-      character cVnum*36      ! returned from ESPrVersionNum
+      character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
@@ -220,6 +223,11 @@ C Temporary IFIL+1.
       IFMUL=IFIL+14
       IOPTDB=IFIL+15
       IBCF=IFIL+22
+
+C CFClayers on channel IFIL+12.
+      icfcdb = ifil + 12
+      write(LCFCDB,'(a)') DCFCDB(1:lnblnk(DCFCDB))
+
 
 C ECO initialiastion
       BCFNAME = 'UNKNOWN'
@@ -282,6 +290,7 @@ C Initialise coordinates for eye point, view point and angle of view.
       VIEWM(2)=10.
       VIEWM(3)=10.
       ANG=40.
+      IVISMOD=1
 
 C General image option flags.
       ITDSP=0
@@ -296,8 +305,6 @@ C General image option flags.
       ITGRD=0
       GRDIS=0.0
       ITPPSW=0
-      IFS=1
-      ITFS=1
 
 C ier is standard error check variable. 0=OK
       ier=0
@@ -334,11 +341,14 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=1
-        IFS=1
-        ITFS=1
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=5
+        ITFS=4
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -349,8 +359,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'ESP-r Ecobalance ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to LIMTTY if MMOD = 8.  Problem
 C not yet know so pass 0 to the wireframe control routine (updwire).
@@ -445,7 +456,7 @@ C (Re)Set all surfaces to std line width.
             VIEWM(3)=VIEWMI(3)
             ANG=ANGI
           endif
-          CALL ADJVIEW(IER)
+          CALL redraw(IER)
 
 C Open core of databases.
           call module_opendb(ier)
@@ -1056,6 +1067,15 @@ C Dummy subroutine needed to compile (called from library code).
 
       SUBROUTINE BASESIMP_INPUTS(ICOMP,IER)
       integer icomp,ier
+      return
+      end
+
+      SUBROUTINE CFDVIEW(IER)
+      IER=0
+      return
+      end
+      
+      SUBROUTINE GRAAPH(IDRW1,IDRW2)
       return
       end
 

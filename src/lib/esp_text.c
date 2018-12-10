@@ -162,45 +162,29 @@ void egphelpscroll_ (long int *IBX,long int *IBY,long int *IPFLG,long int *more,
 
 /* react to different disp_fnt in order to set the size of the popup box */
    if (disp_fnt == 0 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 8");
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 8");
-#endif
-/* debug     fprintf(stderr,"popup font medium 8\n"); */
+     pfd = pango_font_description_from_string("Monospace,Medium 8");
+/* debug     fprintf(stderr,"popup font Mono medium 8\n"); */
    } else if (disp_fnt == 1 ) {	
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 10");
-#endif
-/* debug     fprintf(stderr,"popup font medium 10\n"); */
+     pfd = pango_font_description_from_string("Monospace,Medium 9");
+/* debug     fprintf(stderr,"popup font Mono medium 9\n"); */
    } else if (disp_fnt == 2 ) {	
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 12");
-#endif
-/* debug     fprintf(stderr,"popup font medium 12\n"); */
+     pfd = pango_font_description_from_string("Monospace,Medium 10");
+/* debug     fprintf(stderr,"popup font Mono medium 10\n"); */
    } else if (disp_fnt == 3 ) {
-#ifdef SUN
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-#else
-     pfd = pango_font_description_from_string("Serif,Medium 14");
-#endif
-/* debug     fprintf(stderr,"configure font medium 14\n"); */
+     pfd = pango_font_description_from_string("Monospace,Medium 11");
+/* debug     fprintf(stderr,"configure Mono font medium 11\n"); */
    } else if (disp_fnt == 4 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 8");
-/* debug     fprintf(stderr,"configure courier medium 8\n"); */
+     pfd = pango_font_description_from_string("Serif,Medium 8");
+/* debug     fprintf(stderr,"configure serif medium 8\n"); */
    } else if (disp_fnt == 5 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 10");
-/* debug     fprintf(stderr,"configure courier medium 10\n"); */
+     pfd = pango_font_description_from_string("Serif,Medium 9");
+/* debug     fprintf(stderr,"configure serif medium 9\n"); */
    } else if (disp_fnt == 6 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 12");
-/* debug     fprintf(stderr,"configure courier medium 12\n"); */
+     pfd = pango_font_description_from_string("Serif,Medium 10");
+/* debug     fprintf(stderr,"configure seerif medium 10\n"); */
    } else if (disp_fnt == 7 ) {
-     pfd = pango_font_description_from_string("Courier,Medium 14");
-/* debug     fprintf(stderr,"configure courier medium 14\n"); */
+     pfd = pango_font_description_from_string("Serif,Medium 11");
+/* debug     fprintf(stderr,"configure serif medium 11\n"); */
    }
    gtk_widget_modify_font(h_dialog, pfd);
    context = gtk_widget_get_pango_context (h_dialog);

@@ -32,14 +32,6 @@ C geometry.h provides commons G0/G1/G2/c20/precz.
 #include "material.h"
 #include "espriou.h"
 #include "prj3dv.h"
-
-C IEEE callback (Solaris)
-#ifdef SUN
-#ifdef F90
-      external SIGFPE_bps      
-      integer SIGFPE_bps      
-#endif
-#endif
       
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -90,6 +82,9 @@ C Project journal on/off, unit number, cmd, file name.
 C Defaults.
       character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
       COMMON/DEFLT2/DFCFG,DFCTL,DEFRLB,DAFRES,DAPROB,DPNF
+
+C 3D visualisation mode.
+      COMMON/MODVIS/IVISMOD
       
 C Significant figure reporting limit (NSIGFIG).
       common/SFIG/NSIGFIG
@@ -117,7 +112,7 @@ C Name of current application
       character journcmd*20,jfile*72,uname*24
       character inz*16,inzone*16,fs*1,cjfile*72
 
-      character cVnum*36      ! returned from ESPrVersionNum
+      character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
       character ppath*72,filen*72
 
@@ -195,10 +190,10 @@ C Initialize global common data.
       matver=0.0   ! initial assumption of binary materials database
 
 C Assume configuration file is from IFIL+5, any leakage description
-C is fom IFIL+6, updated geometry on
-C IFILE+2 and ASCII viewing and geometry file reading on IFILE+1. 
+C is fom IFIL+6, updated polygons on IFILE+7 and
+C ASCII viewing and geometry file reading on IFILE+1. 
       IUF = IFIL+1
-      IFPOL = IFIL+2
+      IFPOL = IFIL+7
       IFCFG=IFIL+5
       IAIRP = IFIL+6
       iuj=IFIL+10
@@ -229,6 +224,7 @@ C Initial coords for eyepoint, viewing point, angle of view.
       VIEWM(2)=10.
       VIEWM(3)=10.
       ANG=40.
+      IVISMOD=1
 
 C General image option flags.
       ITDSP=1
@@ -243,33 +239,17 @@ C General image option flags.
       GRDIS=0.0
       ITPPSW=0
 
-C If your compiler does not support floating-point arithmetic
-C according to ANSI/IEEE Std 754-1985 comment out the following code.
-
-C Initialize mode, status, and signal handling for IEEE arithmetic.
-C See also: f77_ieee_environment(3F) f77_floatingpoint(3F)
-C           Note that in case of Sun FORTRAN, IEEEE exceptions arise
-C           only if: Sun-3 f77 with -f68881 or -ffpa option
-C                or: Sun-4 f77.
-#ifdef SUN
-#ifdef F90
-      ieeer=ieee_handler('set','common',SIGFPE_ABORT)
-      ieeer=ieee_handler('set','common',SIGFPE_bps)
-      if(ieeer.ne.0) write(iuout,*) ' IEEE_handler not set !'
-#endif
-#endif
-
 c Initialise output device, assume minimal trace.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=530
+        iappw=580
         iappx=75
         iappy=130
       else
         if(iappx.le.0)iappx=75
         if(iappy.le.0)iappy=130
         if(iappw.le.200)then
-          iappwi=int(530*iappw*0.01)
+          iappwi=int(580*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue
@@ -291,11 +271,14 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=1
-        IFS=1
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=4
         ITFS=1
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -306,8 +289,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'ESP-r View Factors ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to LIMTTY if MMOD = 8.
 C If starting as a reduced percentage of default then widen the
@@ -468,7 +452,10 @@ C          write(6,*) 'fi ',filen(1:lnblnk(filen))
           call edisp(iuout,' Scanning the model description')
           MODE='ALL '
           CALL ERSYS(LCFGF,IFCFG,IAIRP,MODE,0,IER)
-          if(IER.eq.0)then
+
+C If there were minor issues with cfg file the following temporarly
+C files will not be setup. Ignore non-zero return from ersys.
+C          if(IER.eq.0)then
 
 C Where is zones folder in relation to where vwf was started?
             if(pwdtocfg(1:1).eq.'!')then
@@ -490,52 +477,46 @@ C              write(6,*) 'lnrp ',lnrp,pwdtocfg
 C Open scratch file now that path is known. Extend the name of the
 C vwf file. If this file exists then remove it before opening a
 C new scratch file.
-            if(browse)then
-              call usrmsg('You do not own the current model and so are',
-     &                    'not allowed to calculate viewfactors.','W')
-              goto 10
+            if(unixok)then
+              fs = char(47)
+              write(LTMPFL,'(3a)') runpath(1:lnrp),
+     &          cfgroot(1:lnblnk(cfgroot)),'.mrt'
+              INQUIRE (FILE=LTMPFL(1:lnblnk(LTMPFL)),EXIST=XST)
+              if(XST)then
+                call edisp(iuout,'Removing existing scratch file. ')
+                call FPRAND(IFPOL,ISTAT,80,1,LTMPFL)
+                call EFDELET(IFPOL,ISTAT)
+              endif
+              call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
+              if(ISTAT.lt.0)then
+                call edisp(iuout,' Error opening mrt.trace file;')
+                CALL EPAGEND
+                STOP
+              endif
+              call edisp(iuout,'Opening scratch file...')
+              call edisp(iuout,LTMPFL)
             else
-              if(unixok)then
-                fs = char(47)
-                write(LTMPFL,'(3a)') runpath(1:lnrp),
-     &            cfgroot(1:lnblnk(cfgroot)),'.mrt'
-                INQUIRE (FILE=LTMPFL(1:lnblnk(LTMPFL)),EXIST=XST)
-                if(XST)then
-                  call edisp(iuout,'Removing existing scratch file. ')
-                  call FPRAND(IFPOL,ISTAT,80,1,LTMPFL)
-                  call EFDELET(IFPOL,ISTAT)
-                endif
-                call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
-                if(ISTAT.lt.0)then
-                  call edisp(iuout,' Error opening mrt.trace file;')
-                  CALL EPAGEND
-                  STOP
-                endif
-                call edisp(iuout,'Opening scratch file...')
-                call edisp(iuout,LTMPFL)
-              else
-                fs = char(92)
+              fs = char(92)
 C                write(LTMPFL,'(4a)') path(1:lnblnk(path)),fs,
 C     &            cfgroot(1:lnblnk(cfgroot)),'.mrt'
-                write(LTMPFL,'(4a)') runpath(1:lnrp),fs,
-     &            cfgroot(1:lnblnk(cfgroot)),'.mrt'
-                INQUIRE (FILE=LTMPFL(1:lnblnk(LTMPFL)),EXIST=XST)
-                if(XST)then
-                  call edisp(iuout,'Removing existing scratch file. ')
-                  call FPRAND(IFPOL,ISTAT,80,1,LTMPFL)
-                  call EFDELET(IFPOL,ISTAT)
-                endif
-                call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
-                if(ISTAT.lt.0)then
-                  call edisp(iuout,' Error opening mrt.trace file;')
-                  CALL EPAGEND
-                  STOP
-                endif
-                call edisp(iuout,'Opened scratch file...')
-                call edisp(iuout,LTMPFL)
+              write(LTMPFL,'(4a)') runpath(1:lnrp),fs,
+     &          cfgroot(1:lnblnk(cfgroot)),'.mrt'
+              INQUIRE (FILE=LTMPFL(1:lnblnk(LTMPFL)),EXIST=XST)
+              if(XST)then
+                call edisp(iuout,'Removing existing scratch file. ')
+                call FPRAND(IFPOL,ISTAT,80,1,LTMPFL)
+                call EFDELET(IFPOL,ISTAT)
               endif
+              call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
+              if(ISTAT.lt.0)then
+                call edisp(iuout,' Error opening mrt.trace file;')
+                CALL EPAGEND
+                STOP
+              endif
+              call edisp(iuout,'Opened scratch file...')
+              call edisp(iuout,LTMPFL)
             endif
-          endif
+C          endif
 
 C If inzone = All display an image of the model. If inzone is either
 C a string which matches a zone name or is an index then focus on
@@ -702,7 +683,7 @@ C Read geometry file for either calculation purpose
           GOTO 10
         endif
         IC=-1
-        CALL EASKGEOF('Select a zone to assess:',CFGOK,IC,'-',IER)
+        CALL EASKGEOF('Select a zone to assess:',CFGOK,IC,'-',32,IER)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 10
         IER=0
         write(outs,'(a,a)')'VWF: shift zone focus to: ',zname(IC)
@@ -935,7 +916,7 @@ C Determine geometry bounds and force it to be drawn.
       MODIFYVIEW=.TRUE.
       MODLEN=.TRUE.
       izgfoc=ICOMP
-      CALL ADJVIEW(IER)
+      CALL redraw(IER)
       if(ncub(ICOMP).gt.0)then
         CALL ESCZONE(ICOMP)
         CALL DRWSEN(ICOMP,ier)
@@ -1437,23 +1418,14 @@ C ***** Dummy display of images.
       return
       end
 
-
-C In support of floating point exceptions.
-#ifdef SUN
-#ifdef F90
-      integer function SIGFPE_bps(sig,code,context)
-      integer sig,code,context(5)
-      character label*16
-      if(loc(code).eq.208) label = 'invalid'
-      if(loc(code).eq.200) label = 'division by zero'
-      if(loc(code).eq.212) label = 'overflow'
-      if(loc(code).eq.204) label = 'underflow'
-      if(loc(code).eq.196) label = 'inexact'
-      write(6,*) 'Exception code ',loc(code),label,'at ',context(4)
-      SIGFPE_bps = loc(code)
+      SUBROUTINE CFDVIEW(IER)
+      IER=0
+      return
       end
-#endif
-#endif
+      
+      SUBROUTINE GRAAPH(IDRW1,IDRW2)
+      return
+      end
 
 C Local copyt of EPKVERT (from edgeo.F)
 C ************* EPKVERT 

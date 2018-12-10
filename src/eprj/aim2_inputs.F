@@ -1294,7 +1294,7 @@ C present a list of zones.
           Zone = AIM2_ref_zone
           CALL ASKZONE(Zone,Zone,
      &      'Select the zone to use as the reference zone',
-     &      'Reference Zone','-','Please select a zone',IER)
+     &      'Reference Zone','-','Please select a zone',34,IER)
 C Check for errors
           IF (IER.EQ.0) THEN
             AIM2_ref_zone = Zone

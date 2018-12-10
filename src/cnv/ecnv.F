@@ -1407,12 +1407,17 @@ C calls in esru_lib.F
       ier=0
       return
       end
-
-      subroutine chgazi(icazi)
+      
+      subroutine redraw(ier)
+      ier=0
       return
       end
 
-      subroutine chgelev(icelev)
+      subroutine chgazi(icazi,ifrlk)
+      return
+      end
+
+      subroutine chgelev(icelev,ifrlk)
       return
       end
 
@@ -5498,10 +5503,10 @@ C  x  x  x  x  x  x  x     x  x  x  x  x  x  x
       DIMENSION m1slots(42,2),m2slots(42,2)
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
-      integer iicol
+      integer iix,iiy,iicol
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
-      integer*8 iicol
+      integer*8 iix,iiy,iicol
 #endif
 
 C Text for each slot.
@@ -5801,11 +5806,11 @@ C Plot out the first 7 days.
               idcol=m1slots(j,2)
               iicol=0
               if(idcol.eq.0)call winscl('-',iicol)
-              call findviewtext(icx,line,isize,ix,iy)
+              call findviewtext(icx,line,isize,iix,iiy)
               if(idcol.eq.0)then
-                call textatxy(ix,iy,word3,'-',idcol)
+                call textatxy(iix,iiy,word3,'-',idcol)
               else
-                call textatxy(ix,iy,word3,'z',idcol)
+                call textatxy(iix,iiy,word3,'z',idcol)
               endif
               icx=icx+3
   147       continue
@@ -5817,11 +5822,11 @@ C Shift over another character and print out the 2nd months line.
               idcol=m2slots(j,2)
               iicol=0
               if(idcol.eq.0)call winscl('-',iicol)
-              call findviewtext(icx,line,isize,ix,iy)
+              call findviewtext(icx,line,isize,iix,iiy)
               if(idcol.eq.0)then
-                call textatxy(ix,iy,word3,'-',idcol)
+                call textatxy(iix,iiy,word3,'-',idcol)
               else
-                call textatxy(ix,iy,word3,'z',idcol)
+                call textatxy(iix,iiy,word3,'z',idcol)
               endif
               icx=icx+3
   148       continue
@@ -5843,11 +5848,11 @@ C Also include list of day types.
           idcol=icd
           iicol=0
           if(idcol.eq.0)call winscl('-',iicol)
-          call findviewtext(3,line,isize,ix,iy)
+          call findviewtext(3,line,isize,iix,iiy)
           if(idcol.eq.0)then
-            call textatxy(ix,iy,etext,'-',idcol)
+            call textatxy(iix,iiy,etext,'-',idcol)
           else
-            call textatxy(ix,iy,etext,'z',idcol)
+            call textatxy(iix,iiy,etext,'z',idcol)
           endif
  151    continue
         iicol=0

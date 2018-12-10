@@ -155,7 +155,6 @@ C Error subroutine and error details for dll mode.
       integer iflag ! for read errors
       integer iCountWords ! to test legacy items on surface line
 
-      
 C Variables used in parsing of space-separated geo files      
       character*248 cLnWords(124)! Array containing contents of a line
       integer iEGetArrW          ! Returns space-separated contents of 
@@ -1431,7 +1430,7 @@ C    Thie first array index for a frame associated with a door or window:
 C    `FRAME` marks a frame associated with an inside door or glazing,
 C    'F-FRAME' marks a frame within the facade which might need to be
 C       of a paricular area or construction for code compliance.
-C    The 2nd array index for frames is CLOSED CRACK OPEN
+C    The 2nd array index for frames is CLOSED CRACK VENT
 
 C    The first array index for a glazing:
 C    'C-WINDOW' is a code complient window (e.g.construction or size)
@@ -1451,7 +1450,7 @@ C    that a wall which is not vertical may be converted to a roof
 C    construction type.
 
 C    Surfaces which `are-not-there` e.g. fictitious are marked 'FICT'
-C    and the 2nd array index can be: CLOSED CRACK OPEN BIDIREC
+C    and the 2nd array index can be: CLOSED CRACK OPEN BIDIR
 
 C    Surfaces which represent internal or ground-contact floors are
 C    marked with 'FLOOR' and the 2nd index is 'EXTGRND' or '- ' to
@@ -1466,6 +1465,16 @@ C    and the 2nd array index is un-used.
 
 C    Interior surfaces can be marked as 'STRUC' for structural elements
 C    such as beams and columns and the 2nd array index is un-used.
+
+C    IT equipment such as TVs, computers and monitors can be marked as
+C    'ITEQUIP'. The 2nd array index is un-used.
+
+C    Interior plants can be marked as 'PLANTS'. The 2nd array index is
+C    un-used.
+
+C    Light fittings can be marked as 'FIXTURE'. The 2nd array index can
+C    be 'IES', which directs radiance to use a specific set of IES data
+C    specified in an *ies entry in the model configuration file.
 
 C    otherwise  -,-  is the initial state for newly created surfaces
 C    and surfaces which the user has not yet expressed an opinion. This
@@ -2096,7 +2105,7 @@ C Assume partition so setup sother arrays with this in mind.
 C The list-based definition of base surfaces. 
 C A typical entry would look like:
 C *base_list,1,6,13.50 0
-C were the 1st item is the number of associated surfaces, then the
+C where the 1st item is the number of associated surfaces, then the
 C list of surfaces followed by the base area followed by user flag.
           CALL EGETWI(lkout,K,IB0,0,MBL,'-','zn base list',IER)
           izbaselist(icomp)=IB0
@@ -2109,20 +2118,12 @@ C There are items in the list so scan the surface indices.
      &          'zn base surface list item',IER)
               IBASES(ICOMP,inthelist)=IB1
   63        continue
-          else
-
-C No items in the list so user must have edited the base area.
-            iuzbasea(icomp)=1
           endif
           CALL EGETWR(lkout,K,VAL,0.,99999.,'W','zn base area',IER)
           ZBASEA(ICOMP)=VAL
           CALL EGETWI(lkout,K,IUB,0,2,'-',
      &      'zn base area user flag',IER)
-          if(iub.eq.0)then
-            iuzbasea(icomp)=0
-          elseif(iub.eq.2)then
-            iuzbasea(icomp)=2
-          endif
+          iuzbasea(icomp)=iub
           goto 62
 
         elseif(WORD(1:10).eq.'*shad_calc')then
@@ -4349,7 +4350,7 @@ C Write header based on current version number.
               WRITE(OUTSTR2,7951)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
      &         SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
      &         SSUSE(ic,1)(1:9),SSUSE(ic,2)(1:9),SSMLCN(ic)(1:lnsmlcn),
-     &         SSOTHER(ic,1)(1:15)
+     &         OTHSTR(4:lnblnk(OTHSTR))  ! skip the ||< characters
               call edisp(ITRU,OUTSTR2)
             else
               if(lnsmlcn.gt.18) lnsmlcn=18  ! no more than 18 char for MLC
@@ -6695,7 +6696,8 @@ C If reached this point then STRING was not recognisable as a
 C zone name.  See if UNKNOWN, if so present a list of zones.
       if(STRING(1:7).eq.'UNKNOWN')then
         IC=-1
- 254    CALL EASKGEOF('Select a zone from the list.',CFGOK,IC,'-',IER)
+ 254    CALL EASKGEOF('Select a zone from the list.',CFGOK,IC,'-',
+     &    34,IER)
         IF(IC.EQ.0.OR.IC.EQ.-1)then
           call usrmsg('Please select a zone... ',' ','W')
           goto 254
@@ -6709,7 +6711,7 @@ C See if the string is actually a number.
         read(STRING,*,ERR=20)indext
         if(indext.eq.0)then
           IC=-1
- 255      CALL EASKGEOF('Select a zone from list.',CFGOK,IC,'-',IER)
+ 255      CALL EASKGEOF('Select a zone from list.',CFGOK,IC,'-',34,IER)
           IF(IC.EQ.0.OR.IC.EQ.-1)then
             call usrmsg('Please select a zone... ',' ','W')
             goto 255

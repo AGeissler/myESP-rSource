@@ -14,9 +14,14 @@ intialisation and graphics, using ww. The routines are :-
 	windcl(n,ir,ig,ib)
 			:- define the colour 'n' in RGB using ir,ig,ib
 	winscl(n)	:- set current colour to n
+        winenqcl(act,n,xcolid) :- enquire about forground colour
+        userfonts(ifs,itfs,imfs) :- set fonts
+        defaultfonts(ifsd,itfsd,imfsd):- set application default fonts
 	feedbox		:- setup feedback display box
-	winfnt(n)	:- changes the font (4 different sizes 0,1,2,3)
+	winfnt(n)	:- changes the font (various sizes 0...7)
 	wstxpt(x,y,buff,len):-outputs a string beginning at pixel x and y.
+	textatxy(x,y,buff,act,n,len):-outputs a coloured string beginning at pixel x&y.
+	textsizeatxy(x,y,buff,size,act,n,len):-outputs a sized coloured string beginning at pixel x&y.
 	win3d(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gh)
                         :- opens a viewing box taking into account menu
                            width and dialogue box.
@@ -83,6 +88,33 @@ intialisation and graphics, using ww. The routines are :-
                         :-  test for mouse click in other portions of the screen.
 	refreshenv_()
                         :-  pass back window information to fortran common.
+
+  Examples of Xft fonts that can be used:
+  strncpy(font_0,"Ubuntu Mono-8:medium",20);
+  strncpy(font_1,"Ubuntu Mono-9:medium",20);
+  strncpy(font_2,"Ubuntu Mono-10:medium",21);
+  strncpy(font_3,"Ubuntu Mono-11:medium",21);
+  strncpy(font_4,"Ubuntu-8:medium",15);
+  strncpy(font_5,"Ubuntu-9:medium",15);
+  strncpy(font_6,"Ubuntu-10:medium",16);
+  strncpy(font_7,"Ubuntu-11:medium",16);
+  strncpy(font_0,"Liberation Mono-8:medium",24);
+  strncpy(font_1,"Liberation Mono-9:medium",24);
+  strncpy(font_2,"Liberation Mono-10:medium",25);
+  strncpy(font_3,"Liberation Mono-11:medium",25);
+  strncpy(font_4,"Liberation Sans-8:style=Regular",31);
+  strncpy(font_5,"Liberation Sans-9:style=Regular",31);
+  strncpy(font_6,"Liberation Sans-10:style=Regular",32);
+  strncpy(font_7,"Liberation Sans-11:style=Regular",32);
+  strncpy(font_0,"DejaVu Sans Mono-8:medium",25);
+  strncpy(font_1,"DejaVu Sans Mono-9:medium",25);
+  strncpy(font_2,"DejaVu Sans Mono-10:medium",26);
+  strncpy(font_3,"DejaVu Sans Mono-11:medium",26);
+  strncpy(font_4,"DejaVu Sans-8:style=Book",24);
+  strncpy(font_5,"DejaVu Sans-9:style=Book",24);
+  strncpy(font_6,"DejaVu Sans-10:style=Book",25);
+  strncpy(font_7,"DejaVu Sans-11:style=Book",25);
+  
 */
 #include <stdio.h>
 #include <math.h>
@@ -96,6 +128,7 @@ intialisation and graphics, using ww. The routines are :-
 #include <sys/time.h>
 #include <X11/X.h>
 #include <X11/Xlib.h>
+#include <X11/Xft/Xft.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
@@ -215,6 +248,7 @@ extern chgelev_();    /* in esrucom/common3dv.F */
 extern chgeye_();     /* in esrucom/common3dv.F */
 extern chgsun_();     /* in esrucom/common3dv.F */
 extern chgzonpik_();  /* in esrucom/common3dv.F */
+extern redraw_();    /* in esrucom/common3dv.F */
 extern chgzonpikarray_();
 extern proftxdump_();
 extern nwkslctc_();
@@ -229,16 +263,24 @@ extern aux_menu();
 
 /* global data types */
 Display  *theDisp;
+Colormap theCmap;
+Visual *theVisual;
 Window  win;
 GC  theGC;
 XGCValues  gcv;
-XFontStruct  *fst,*fst_0,*fst_1,*fst_2,*fst_3,*fst_4,*fst_5;
+XRenderColor render_color;
+XftColor xft_zscale[100]; /* to match the array zscale */
+XftColor xft_gscale[85];  /* to match the array gscale */
+XftColor xft_cscale[50];  /* to match the array cscale */
+XftColor xft_gmenuhl,xft_gmodbg,xft_gpopfr,xft_gfeedfr,xft_ginvert,xft_grey50,xft_grey43;
+XftColor xft_bg,xft_white,xft_black;
+XftFont  *fst,*fst_0,*fst_1,*fst_2,*fst_3,*fst_4,*fst_5,*fst_6,*fst_7;
+XftDraw *ftdraw;
+XftColor xft_color;
 XSizeHints  xsh;
 XSetWindowAttributes xswa;
 XWindowAttributes xwa;
 Window rootW, parent_win;
-Visual *theVisual;
-Colormap theCmap; /* same as xv browCmap */
 static Cursor arrow_cursor, cross_cursor, zoom_cursor, wait_cursor, inviso;
 
 int cur_cursor = -1;
@@ -260,17 +302,16 @@ static unsigned long cscale[49], zscale[100], gscale[85];
 char *getenv ();
 
 #define DEBUG 0               /* <<recompile this to 0 for silent>> */
-/* examples of varible width fonts */
-/* #define FONT1 "-*-lucida-medium-r-*-*-10-*-*-*-*-*-*-*" */
-/* #define FONT2 "-*-lucida-medium-r-*-*-12-*-*-*-*-*-*-*" */
-/* #define FONT1 "-*-helvetica-medium-r-*-*-10-*-*-*-*-*-*-*" */
-/* #define FONT2 "-*-helvetica-medium-r-*-*-12-*-*-*-*-*-*-*" */
 
-static long int current_font;		/* standard font */
-static long int disp_fnt;     /*   font for text display box */
-static long int butn_fnt = 1; /*   button font size     */
-static long int menu_fnt = 1;  /*  preferred command menu font */
-static long int small_fnt = 0; /*  smallest button or box font size.    */
+static long int current_font;   /* standard font */
+static long int disp_fnt;       /* font for text display box */
+static long int box_fnt = 4;    /* font for embedded boxes     */
+static long int butn_fnt = 4;   /* button font size     */
+static long int menu_fnt = 5;   /* preferred command menu font */
+static long int small_fnt = 0;  /* smallest button or box font size.    */
+extern long int d_disp_fnt = 1; /* default font for text display box */
+extern long int d_butn_fnt = 4; /* default button font size */
+extern long int d_menu_fnt = 5; /* default command menu font */
 static int START_HEIGHT = 530;  /* nominal pixel height of window */
 static int START_WIDTH = 695;   /* nominal pixel width of window */
 static int START_ULX = STARTX;  /* nominal upper left pixel position of window */
@@ -368,20 +409,15 @@ static int ter = -1;            /* terminal type passed on initial call (set ini
                             system execution calls.  */
 static int child_ter = -1;      /* child process terminal type  */
 
-static char *envmenu[] = {
-                    "menu     : tiny       ",
-                    "         : small      ",
-                    "         : medium     ",
-                    "         : large      ",
-                    "feedback : tiny       ",
-                    "         : small      ",
-                    "         : medium     ",
-                    "         : large      ",
-                    "dialog   : tiny       ",
-                    "         : small      ",
-                    "         : medium     ",
-                    "         : large      ",
-                    "dismiss               ", 0 };
+static char *fontmenu[] = {
+                    "menu       : smaller    ",
+                    "               : larger ",
+                    "text feedback: smaller  ",
+                    "               : larger ",
+                    "dialogs   : smaller     ",
+                    "              : larger  ",
+                    "reset to defaults       ",
+                    "dismiss                 ", 0 };
 
 /* general menu to appear in network graphics mode second mouse button */
 static char *netgm2menucd[] = { "functions: zoom IN  ",
@@ -424,7 +460,7 @@ extern int  wwc_macro;   /* assume this set in esru_util.c */
 extern FILE *wwc;
 
 char *t0;
-static char font_0[60], font_1[60], font_2[60], font_3[60], font_4[60], font_5[60];
+static char font_0[80],font_1[80],font_2[80],font_3[80],font_4[80],font_5[80],font_6[80],font_7[80];
 
 /* info about root Xwindow */
 static int xrt_width, xrt_height;  /* same as xsh.width and xsh.height */
@@ -466,6 +502,31 @@ static long int ngscale = 0; /* number of assigned colours in grey scale */
 static long int ngr = 0; /* number of assigned interface colours */
 static long int izc = 0; /* number of assigned zone colours */
 
+
+/* ************** Confirm string length *************** */
+/*
+ Find the actual string length via start at the "defined" end
+ and work backwards to find the last non-blank character position.
+*/
+int clnblnk(msg)
+  char    *msg;  /* character string */
+{
+  int lm, sl, n, found;       /* local string lengths found by test  */
+  sl = (int) strlen(msg);
+  n = sl;
+  found = 0;
+  while(n > 0 && found==0 ) {
+    n--;
+    if ( msg[n] != ' ') found = 1;
+  }
+  if (found==1) {
+    lm = n+1;
+  } else if (found==0 && n == 0) {
+    lm = 1;
+  }
+  return lm;
+
+} /* clnblnk */
 
 
 /* *************** Initialise display size and position. *************** */
@@ -515,11 +576,37 @@ char *msg;                /* window heading      */
   mono = 0;
   curstype = XC_top_left_arrow;
 
+  theDisp = XOpenDisplay (0);
 /* Open the display using the $DISPLAY env variable */
-if((theDisp = XOpenDisplay(NULL))==NULL) {
-  fprintf(stderr,"Can not open %s\n",XDisplayName(NULL));
-  exit(1);
-}
+//if((theDisp = XOpenDisplay(NULL))==NULL) {
+//  fprintf(stderr,"Can not open %s\n",XDisplayName(NULL));
+//  exit(1);
+//}
+
+/* get structure of the current visual */
+theScreen = DefaultScreen(theDisp);
+
+// stuff like theVisual, defaultVis, dispDEEP might need to happen
+// after call to XCreateSimpleWindow
+theVisual = XDefaultVisual(theDisp, theScreen);
+defaultVis = (XVisualIDFromVisual(theVisual) ==
+       XVisualIDFromVisual(DefaultVisual(theDisp,DefaultScreen(theDisp))));
+// fprintf(stderr,"defaultVis is %d \n",defaultVis);
+
+dispDEEP  = DisplayPlanes(theDisp,theScreen);
+// fprintf(stderr,"dispDEEP is %d \n",dispDEEP);
+mdepth = (long int) dispDEEP;
+
+theCmap   = DefaultColormap(theDisp, theScreen);
+rootW     = RootWindow(theDisp,theScreen);
+
+/* colours for Xft rendering */
+render_color.red = 0; render_color.green =0; render_color.blue = 0; render_color.alpha = 0xffff;;
+
+XftColorAllocValue (theDisp,
+                    DefaultVisual(theDisp, theScreen),
+                    DefaultColormap(theDisp, theScreen),
+                    &render_color,&xft_color);
 
 /* Load initial fonts, if environment variable not set then
  * default to standard fonts.
@@ -527,69 +614,97 @@ if((theDisp = XOpenDisplay(NULL))==NULL) {
 t0=(char *) getenv("EFONT_0");
 /* fprintf(stderr,"t0 is %s \n",t0); */
 if ((t0 == NULL) || (t0  == "") || (strncmp(t0,"    ",4) == 0)) {
-  strncpy(font_0,"6x12",4);
+  strncpy(font_0,"Ubuntu Mono,Monospace-8:medium",30);
 } else {
   strcpy(font_0,getenv("EFONT_0"));
 }
-if((fst_0 = XLoadQueryFont(theDisp,font_0)) == NULL) {
+if((fst_0 =  XftFontOpenName(theDisp,0,font_0)) == NULL) {
   fprintf(stderr,"display %s doesn't know font %s\n",DisplayString(theDisp),font_0);
   exit(1);
 }
 if (((t0=(char *) getenv("EFONT_1"))== NULL) || ((t0=(char *) getenv("EFONT_1"))== "")) {
-  strncpy(font_1,"6x13",4);
+  strncpy(font_1,"Ubuntu Mono,Monospace-9:medium",30);
 } else {
   strcpy(font_1,getenv("EFONT_1"));
 }
-if((fst_1 = XLoadQueryFont(theDisp,font_1)) == NULL) {
+if((fst_1 = XftFontOpenName(theDisp,0,font_1)) == NULL) {
   fprintf(stderr,"display %s doesn't know font %s\n",DisplayString(theDisp),font_1);
   exit(1);
 }
 if (((t0=(char *) getenv("EFONT_2"))== NULL) || ((t0=(char *) getenv("EFONT_2"))== "")) {
-  strncpy(font_2,"8x13",4);
+  strncpy(font_2,"Ubuntu Mono,Monospace-10:medium",31);
 } else {
   strcpy(font_2,getenv("EFONT_2"));
 }
-if((fst_2 = XLoadQueryFont(theDisp,font_2)) == NULL) {
+if((fst_2 = XftFontOpenName(theDisp,0,font_2)) == NULL) {
   fprintf(stderr,"display %s doesn't know font %s\n",DisplayString(theDisp),font_2);
   exit(1);
 }
 if (((t0=(char *) getenv("EFONT_3"))== NULL) || ((t0=(char *) getenv("EFONT_3"))== "")) {
-  strncpy(font_3,"9x15",4);
+  strncpy(font_3,"Ubuntu Mono,Monospace-11:medium",31);
 } else {
   strcpy(font_3,getenv("EFONT_3"));
 }
-if((fst_3 = XLoadQueryFont(theDisp,font_3)) == NULL) {
+if((fst_3 = XftFontOpenName(theDisp,0,font_3)) == NULL) {
   fprintf(stderr,"display %s doesn't know font %s\n",DisplayString(theDisp),font_3);
   exit(1);
 }
-/* a few variable width fonts, if fail drop back to fixed width */
-strncpy(font_4,  "-*-helvetica-medium-r-*-*-10-*-*-*-*-*-*-*",42);
-if((fst_4 = XLoadQueryFont(theDisp,font_4)) == NULL) {
+
+if (((t0=(char *) getenv("EFONT_4"))== NULL) || ((t0=(char *) getenv("EFONT_4"))== "")) {
+  strncpy(font_4, "Ubuntu,Liberation Sans-8:medium",31);
+} else {
+  strcpy(font_4,getenv("EFONT_4"));
+}
+if((fst_4 = XftFontOpenName(theDisp,0,font_4)) == NULL) {
   fprintf(stderr,"display %s doesn't know font %s ...\n",DisplayString(theDisp),font_4);
-  strncpy(font_4,"6x12                                      ",42);
-  if((fst_4 = XLoadQueryFont(theDisp,font_4)) == NULL) {
+  strncpy(font_4,"DejaVu Sans-8:style=Book",24);
+  if((fst_4 =  XftFontOpenName(theDisp,0,font_4)) == NULL) {
     fprintf(stderr,"2nd choice font %s has not been found so quitting.\n",font_4);
     exit(1);
   }
 }
-strncpy(font_5,  "-*-helvetica-medium-r-*-*-12-*-*-*-*-*-*-*",42);
-if((fst_5 = XLoadQueryFont(theDisp,font_5)) == NULL) {
+if (((t0=(char *) getenv("EFONT_5"))== NULL) || ((t0=(char *) getenv("EFONT_5"))== "")) {
+  strncpy(font_5,  "Ubuntu,Liberation Sans-9:medium",31);
+} else {
+  strcpy(font_5,getenv("EFONT_5"));
+}
+if((fst_5 = XftFontOpenName(theDisp,0,font_5)) == NULL) {
   fprintf(stderr,"display %s doesn't know font %s ...\n",DisplayString(theDisp),font_5);
-  strncpy(font_5,"6x13                                      ",42);
-  if((fst_5 = XLoadQueryFont(theDisp,font_5)) == NULL) {
+  strncpy(font_5,"DejaVu Sans-9:style=Book",24);
+  if((fst_5 = XftFontOpenName(theDisp,0,font_5)) == NULL) {
     fprintf(stderr,"2nd choice font %s has not been found so quitting.\n",font_5);
     exit(1);
   }
 }
-/*  fprintf(stderr,"startup: the fonts are %s %s %s %s %s %s\n",font_0,font_1,font_2,font_3,font_4,font_5); */
+if (((t0=(char *) getenv("EFONT_6"))== NULL) || ((t0=(char *) getenv("EFONT_6"))== "")) {
+  strncpy(font_6,  "Ubuntu,Liberation Sans-10:medium",32);
+} else {
+  strcpy(font_6,getenv("EFONT_6"));
+}
+if((fst_6 = XftFontOpenName(theDisp,0,font_6)) == NULL) {
+  fprintf(stderr,"display %s doesn't know font %s ...\n",DisplayString(theDisp),font_6);
+  strncpy(font_6,"DejaVu Sans-10:style=Book",25);
+  if((fst_6 = XftFontOpenName(theDisp,0,font_6)) == NULL) {
+    fprintf(stderr,"2nd choice font %s has not been found so quitting.\n",font_6);
+    exit(1);
+  }
+}
+if (((t0=(char *) getenv("EFONT_7"))== NULL) || ((t0=(char *) getenv("EFONT_7"))== "")) {
+  strncpy(font_7,  "Ubuntu,Liberation Sans-11:medium",32);
+} else {
+  strcpy(font_7,getenv("EFONT_"));
+}
+if((fst_7 = XftFontOpenName(theDisp,0,font_7)) == NULL) {
+  fprintf(stderr,"display %s doesn't know font %s ...\n",DisplayString(theDisp),font_7);
+  strncpy(font_7,"DejaVu Sans-11:style=Book",25);
+  if((fst_7 = XftFontOpenName(theDisp,0,font_7)) == NULL) {
+    fprintf(stderr,"2nd choice font %s has not been found so quitting.\n",font_7);
+    exit(1);
+  }
+}
+fprintf(stderr,"startup: fonts are %s %s %s %s %s %s %s %s\n",font_0,font_1,font_2,font_3,font_4,font_5,font_6,font_7);
 
-/* get structure of the current visual */
-theScreen = DefaultScreen(theDisp);
-theVisual = XDefaultVisual(theDisp, theScreen);
-theCmap   = DefaultColormap(theDisp, theScreen);
-rootW     = RootWindow(theDisp,theScreen);
-dispDEEP  = DisplayPlanes(theDisp,theScreen);
-mdepth = (long int) dispDEEP;
+ftdraw = XftDrawCreate(theDisp,win,theVisual,theCmap);  /* for Xft fonts */
 
 /* set colours for the border, background and forground */
 bd = WhitePixel(theDisp,theScreen);
@@ -626,13 +741,6 @@ if (best == -1) {   /* look for a DirectColor, pref 24-bit */
 
 if (vinfo) XFree((char *) vinfo);
 
-/* make linear colormap for DirectColor visual */
-/* if (theVisual->class == DirectColor) makeDirectCmap(); */
-
-defaultVis = (XVisualIDFromVisual(theVisual) ==
-       XVisualIDFromVisual(DefaultVisual(theDisp,DefaultScreen(theDisp))));
-/* fprintf(stderr,"defaultVis is %d \n",defaultVis); */
-
 /* create cursors as in xv */
   arrow_cursor = XCreateFontCursor(theDisp,(u_int) curstype);
   cross_cursor = XCreateFontCursor(theDisp,XC_crosshair);
@@ -654,33 +762,46 @@ defaultVis = (XVisualIDFromVisual(theVisual) ==
   /* set up white,black colors */
   if (defaultVis) {
     white = WhitePixel(theDisp,theScreen);
+    render_color.red = 65535; render_color.green =65535; render_color.blue = 65535; render_color.alpha = 0xffff;
+    XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_white);
     black = BlackPixel(theDisp,theScreen);
+    render_color.red = 0; render_color.green =0; render_color.blue = 0; render_color.alpha = 0xffff;
+    XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_black);
   }
-  else {
+  else {  /* also ensure there is an equivalent XftColor */
     ecdef.flags = DoRed | DoGreen | DoBlue;
     ecdef.red = ecdef.green = ecdef.blue = 0xffff;
-    if (XAllocColor(theDisp, theCmap, &ecdef)) white = ecdef.pixel;
-    else white = 0xffffffff;    /* probably evil... */
-
+    if (XAllocColor(theDisp, theCmap, &ecdef)) {
+      white = ecdef.pixel;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_white);
+    } else {
+      white = 0xffffffff;    /* probably evil... */
+    }
     ecdef.red = ecdef.green = ecdef.blue = 0x0000;
-    if (XAllocColor(theDisp, theCmap, &ecdef)) black = ecdef.pixel;
-    else black = 0x00000000;    /* probably evil... */
+    if (XAllocColor(theDisp, theCmap, &ecdef)) {
+      black = ecdef.pixel;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_black);
+    } else {
+      black = 0x00000000;    /* probably evil... */
+    }
   }
 
-/*  if (whitestr && XParseColor(theDisp, theCmap, whitestr, &ecdef) &&
-      XAllocColor(theDisp, theCmap, &ecdef)) { white = ecdef.pixel; }
-  if (blackstr && XParseColor(theDisp, theCmap, blackstr, &ecdef) &&
-      XAllocColor(theDisp, theCmap, &ecdef)) { black = ecdef.pixel; }
-*/
   /* set up fg,bg colors */
   fg = black;   bg = white;
-  if (bgstr && XParseColor(theDisp, theCmap, bgstr, &ecdef) &&
-      XAllocColor(theDisp, theCmap, &ecdef)) bg = ecdef.pixel;
+  if (bgstr && XParseColor(theDisp, theCmap, bgstr, &ecdef) && XAllocColor(theDisp, theCmap, &ecdef)) {
+      bg = ecdef.pixel;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_bg);
+  }
 
 /* set interface grey colours using *gintstr[] (rgg.txt names = reflectance) */
   if (dispDEEP > 1) {   /* only if a reasonable display */
     if (XParseColor(theDisp,theCmap,gintstr[0],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
       gmenuhl = ecdef.pixel; ngr=ngr+1;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_gmenuhl);
     } else {
       fprintf(stderr,"Problem colour %s\n",gintstr[0]);
       if (XParseColor(theDisp,theCmap,gintstr[6],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
@@ -688,6 +809,8 @@ defaultVis = (XVisualIDFromVisual(theVisual) ==
     }
     if (XParseColor(theDisp,theCmap,gintstr[1],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
       gmodbg = ecdef.pixel; ngr=ngr+1;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_gmodbg);
     } else {
       fprintf(stderr,"Problem colour %s\n",gintstr[1]);
       if (XParseColor(theDisp,theCmap,gintstr[7],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
@@ -695,6 +818,8 @@ defaultVis = (XVisualIDFromVisual(theVisual) ==
     }
     if (XParseColor(theDisp,theCmap,gintstr[2],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
       gpopfr = ecdef.pixel; ngr=ngr+1;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_gpopfr);
     } else {
       fprintf(stderr,"Problem colour %s\n",gintstr[2]);
       if (XParseColor(theDisp,theCmap,gintstr[8],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
@@ -702,6 +827,8 @@ defaultVis = (XVisualIDFromVisual(theVisual) ==
     }
     if (XParseColor(theDisp,theCmap,gintstr[3],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
       gfeedfr = ecdef.pixel; ngr=ngr+1;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_gfeedfr);
     } else {
       fprintf(stderr,"Problem colour %s\n",gintstr[3]);
       if (XParseColor(theDisp,theCmap,gintstr[9],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
@@ -709,6 +836,8 @@ defaultVis = (XVisualIDFromVisual(theVisual) ==
     }
     if (XParseColor(theDisp,theCmap,gintstr[4],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
       ginvert = ecdef.pixel; ngr=ngr+1;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_ginvert);
     } else {
       fprintf(stderr,"Problem colour %s\n",gintstr[4]);
       if (XParseColor(theDisp,theCmap,gintstr[10],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
@@ -716,6 +845,8 @@ defaultVis = (XVisualIDFromVisual(theVisual) ==
     }
     if (XParseColor(theDisp,theCmap,gintstr[5],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
       grey50 = ecdef.pixel; ngr=ngr+1;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_grey50);
     } else {
       fprintf(stderr,"Problem colour %s\n",gintstr[5]);
       if (XParseColor(theDisp,theCmap,gintstr[11],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
@@ -723,6 +854,8 @@ defaultVis = (XVisualIDFromVisual(theVisual) ==
     }
     if (XParseColor(theDisp,theCmap,gintstr[12],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
       grey43 = ecdef.pixel; ngr=ngr+1;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_grey43);
     } else {
       fprintf(stderr,"Problem colour %s\n",gintstr[12]);
       if (XParseColor(theDisp,theCmap,gintstr[11],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
@@ -771,10 +904,9 @@ xsh.y = START_ULY;
   XChangeWindowAttributes(theDisp,win, (CWColormap | CWBitGravity), &xswa);
 
 /* create the GC */
-  gcv.font = fst_1->fid;
   gcv.foreground = fg;
   gcv.background = gmodbg;
-  theGC = XCreateGC(theDisp,win, (GCFont | GCForeground | GCBackground), &gcv);
+  theGC = XCreateGC(theDisp,win, (GCForeground | GCBackground), &gcv);
 
 /* event types */
   XSelectInput(theDisp,win, ExposureMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask | PointerMotionMask | StructureNotifyMask | VisibilityChangeMask);
@@ -834,8 +966,9 @@ void setcscale_() {
 /* assign colour scale to cscale (hex) array. */
   for (ic=0; ic<49; ic++) {
     if (XParseColor(theDisp,theCmap,cscalestr[ic],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
-        cscale[ic] = ecdef.pixel;
-        ncscale=ncscale+1;
+        cscale[ic] = ecdef.pixel; ncscale=ncscale+1;
+        render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+        XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_cscale[ic]);
     } else {
 /*     fprintf(stderr,"Unable to create colour %s\n",cscalestr[ic]); */
      cscale[ic] = 0;
@@ -852,8 +985,9 @@ void setcscale_() {
     for (ic=0; ic<24; ic++) {
       ih = ih + 2;
       if (XParseColor(theDisp,theCmap,cscalestr[ih],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
-         cscale[ic] = ecdef.pixel;
-         ncscale=ncscale+1;
+         cscale[ic] = ecdef.pixel; ncscale=ncscale+1;
+         render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+         XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_cscale[ic]);
       } else {
 /* debug fprintf(stderr,"Unable to create colour %s\n",cscalestr[ic]);  */
          cscale[ic] = 0;
@@ -881,6 +1015,8 @@ void setgscale_() {
   for (ic=0; ic<84; ic++) {
     if (XParseColor(theDisp,theCmap,gscalestr[ic],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
         gscale[ic] = ecdef.pixel;
+        render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+        XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_gscale[ic]);
         ngscale=ngscale+1;
     } else {
 /* debug fprintf(stderr,"Unable to create colour %s\n",gscalestr[ic]); */
@@ -900,6 +1036,8 @@ void setgscale_() {
       ih = ih + 2;
       if (XParseColor(theDisp,theCmap,gscalestr[ih],&ecdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
          gscale[ic] = ecdef.pixel;
+         render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+         XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_gscale[ic]);
          ngscale=ngscale+1;
       } else {
 /* debug fprintf(stderr,"Unable to create colour %s\n",gscalestr[ic]); */
@@ -926,9 +1064,14 @@ void setzscale_() {
   XColor ecdef, sdef;
 /* assign colours (zscale names) for zone graphing. */
   for (ic=0; ic<99; ic++) {
+    XParseColor(theDisp,theCmap,zscalestr[ic],&ecdef);
+//    fprintf(stderr,"zscale XParseColor %d %d %d %d\n",ic,ecdef.red,ecdef.green,ecdef.blue);
     if (XLookupColor(theDisp,theCmap,zscalestr[ic],&ecdef,&sdef) && XAllocColor(theDisp,theCmap,&ecdef)) {
       zscale[ic] = ecdef.pixel;
+      render_color.red = ecdef.red; render_color.green =ecdef.green; render_color.blue = ecdef.blue; render_color.alpha = 0xffff;
+      XftColorAllocValue (theDisp,theVisual,theCmap,&render_color,&xft_zscale[ic]);
       izc = izc + 1;
+//      fprintf(stderr,"zscale %d %d %d %d\n",ic,ecdef.red,ecdef.green,ecdef.blue);
     } else {
       fprintf(stderr,"Unable to create colour %s\n",zscalestr[ic]);
       if ( ngscale >= ic && gscale[ic] >= 1 ) {
@@ -939,6 +1082,7 @@ void setzscale_() {
       izc = izc + 1;
     }
   }
+  // debug fprintf(stderr,"z colours %ld\n",izc);
   return;
 }
 
@@ -1071,6 +1215,19 @@ long int *ifs,*itfs,*imfs;
  return;
 }
 
+/* *************** set default fonts for current application ******** */
+/* Pass default font preferences from fortran. ifs for buttons and graphs,
+ * itfs for text feedback and dialog, imfs for command menus
+ */
+void defaultfonts_(ifsd,itfsd,imfsd)
+long int *ifsd,*itfsd,*imfsd;
+{
+ d_butn_fnt = (int) *ifsd;	/* remember the button and graph text font size */
+ d_disp_fnt = (int) *itfsd;	/* dialogue and text feedback  */
+ d_menu_fnt = (int) *imfsd;	/* prefered menu font */
+ return;
+}
+
 
 /* *************** Release display. *************** */
 void winfin_()
@@ -1167,7 +1324,7 @@ int len;
 /* Fill bitmap exbit from data file, make pixmap for under area and to hold transformed exbit data (logobit) */
 /* Use XCopyPlane to transform exbit to logobit (seems to be required) */
  result = XReadBitmapFile(theDisp,(Pixmap)win,name2,&iwidth,&iheight,&exbit,&x_hot,&y_hot);
- // fprintf(stderr,"result of XReadBitmapFile %d %d %d %ld %ld %d\n",result,iwidth,iheight,iupx,iupy,persist);
+// fprintf(stderr,"result of XReadBitmapFile %d %d %d %ld %ld %d\n",result,iwidth,iheight,iupx,iupy,persist);
  if (result == BitmapFileInvalid) fprintf(stderr,"bitmap file %s invalid\n",name2);
  else if (result == BitmapOpenFailed) fprintf(stderr,"bitmap file %s cannot be opened\n",name2);
  else if (result == BitmapNoMemory) fprintf(stderr,"not enough bitmap memory\n");
@@ -1396,11 +1553,16 @@ char *buff;
 long int *x, *y;       /* x y is the position of the string */
 int  len;        /* len is length passed from fortran */
 {
+ XftDraw *draw;
  int ix = *x;
  int iy = *y;
  int ilen;
  f_to_c_l(buff,&len,&ilen);
- XDrawString(theDisp,win,theGC,ix,iy,buff,ilen);  /* print text */
+
+// Define local drawable for Xft font.
+ draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+ XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
+ XftDrawDestroy(draw);
 
 /* If echo send parameters to wwc file */
  if ( wwc_ok == 1) {
@@ -1412,14 +1574,15 @@ int  len;        /* len is length passed from fortran */
 }
 
 /* ********* textatxy_() write a string at pixel x y in colour act & n. ******* */
-/* NOTE: different parameter list from X version */
 void textatxy_(x,y,buff,act,n,len)
-long int *x, *y;       /* x y is the position of the string */
+long int *x, *y;  /* x y is the position of the string */
 char *buff;
-char *act;  /* single character passed for colour set */
-long int *n;       /* colour index within the set */
-int  len;        /* len is length passed from fortran */
+char *act;        /* single character passed for colour set */
+long int *n;      /* colour index within the set */
+int  len;         /* len is length passed from fortran */
 {
+ XftDraw *draw;
+ XftColor xft_current;
  unsigned long colid;	/* local X color id */
  long int xcolid;
  int ix = *x;
@@ -1427,47 +1590,127 @@ int  len;        /* len is length passed from fortran */
  int ilen;
  int ic;
  ic = *n;
+
+ f_to_c_l(buff,&len,&ilen);
+ draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
 /* sets the current forground colour n depending on which active colour set being used */
  if(*act == 'g') {
     if (ic >= 0 && ic <= ngscale ) {
-      xcolid = (long int)gscale[ic];
+      XftDrawString8(draw, &xft_gscale[ic],fst,ix,iy,(XftChar8 *) buff,ilen);
     } else {
-      xcolid = (long int)fg;
+      XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
     }
  } else if(*act == 'z') {
     if (ic >= 0 && ic <= izc ) {
-      xcolid = (long int)zscale[ic];
+      XftDrawString8(draw, &xft_zscale[ic],fst,ix,iy,(XftChar8 *) buff,ilen);
     } else {
-      xcolid = (long int)fg;
+      XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
     }
  } else if(*act == 'c') {
     if (ic >= 0 && ic <= ncscale ) {
-      xcolid = (long int)cscale[ic];
+      XftDrawString8(draw, &xft_cscale[ic],fst,ix,iy,(XftChar8 *) buff,ilen);
     } else {
-      xcolid = (long int)fg;
+      XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
     }
  } else if(*act == 'i') {
     if (ic >= 0 && ic <= ngr ) {	/* including black and white */
-      if (ic == 0) xcolid = (long int)gmenuhl;
-      if (ic == 1) xcolid = (long int)gmodbg;
-      if (ic == 2) xcolid = (long int)gpopfr;
-      if (ic == 3) xcolid = (long int)gfeedfr;
-      if (ic == 4) xcolid = (long int)ginvert;
-      if (ic == 5) xcolid = (long int)grey50;
-      if (ic == 6) xcolid = (long int)black;
-      if (ic == 7) xcolid = (long int)white;
+      if (ic == 0) XftDrawString8(draw, &xft_gmenuhl,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 1) XftDrawString8(draw, &xft_gmodbg,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 2) XftDrawString8(draw, &xft_gpopfr,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 3) XftDrawString8(draw, &xft_gfeedfr,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 4) XftDrawString8(draw, &xft_ginvert,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 5) XftDrawString8(draw, &xft_grey50,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 6) XftDrawString8(draw, &xft_black,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 7) XftDrawString8(draw, &xft_white,fst,ix,iy,(XftChar8 *) buff,ilen);
     } else {
-      xcolid = (long int)fg;
+      XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
     }
  } else if(*act == '-') {
-    xcolid = (long int)fg;
+    XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
  }
- colid = (unsigned long) xcolid;
+ XftDrawDestroy(draw);
+ XSetForeground(theDisp,theGC,fg);
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*wstxpt\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
+/* ********* textsizeatxy_() write a string at pixel x y in size colour act & n. ******* */
+/* NOTE: different parameter list from X version */
+void textsizeatxy_(x,y,buff,size,act,n,len)
+long int *x, *y; /* x y is the position of the string */
+char *buff;
+long int *size;  /* font size indicator (see below) */
+char *act;       /* single character passed for colour set */
+long int *n;     /* colour index within the set */
+int  len;        /* len is length passed from fortran */
+{
+ XftDraw *draw;
+ long int fsize;
+ long int saved_font;
+ long int the_font;
+ unsigned long colid;	/* local X color id */
+ long int xcolid;
+ int ix = *x;
+ int iy = *y;
+ int ilen;
+ int ic;
+ ic = *n;
+ fsize = *size;
+ if(fsize == 0) the_font=4;
+ if(fsize == 1) the_font=4;
+ if(fsize == 2) the_font=5;
+ if(fsize == 3) the_font=6;
+ saved_font = current_font;	/* save current font  */
+ winfnt_(&the_font);	        /* set to size        */
 
  f_to_c_l(buff,&len,&ilen);
- XSetForeground(theDisp,theGC,colid);
- XDrawString(theDisp,win,theGC,ix,iy,buff,ilen);  /* print text */
+ draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
+/* sets the current forground colour n depending on which active colour set being used */
+ if(*act == 'g') {
+    if (ic >= 0 && ic <= ngscale ) {
+      XftDrawString8(draw, &xft_gscale[ic],fst,ix,iy,(XftChar8 *) buff,ilen);
+    } else {
+      XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
+    }
+ } else if(*act == 'z') {
+    if (ic >= 0 && ic <= izc ) {
+      XftDrawString8(draw, &xft_zscale[ic],fst,ix,iy,(XftChar8 *) buff,ilen);
+    } else {
+      XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
+    }
+ } else if(*act == 'c') {
+    if (ic >= 0 && ic <= ncscale ) {
+      XftDrawString8(draw, &xft_cscale[ic],fst,ix,iy,(XftChar8 *) buff,ilen);
+    } else {
+      XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
+    }
+ } else if(*act == 'i') {
+    if (ic >= 0 && ic <= ngr ) {	/* including black and white */
+      if (ic == 0) XftDrawString8(draw, &xft_gmenuhl,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 1) XftDrawString8(draw, &xft_gmodbg,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 2) XftDrawString8(draw, &xft_gpopfr,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 3) XftDrawString8(draw, &xft_gfeedfr,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 4) XftDrawString8(draw, &xft_ginvert,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 5) XftDrawString8(draw, &xft_grey50,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 6) XftDrawString8(draw, &xft_black,fst,ix,iy,(XftChar8 *) buff,ilen);
+      if (ic == 7) XftDrawString8(draw, &xft_white,fst,ix,iy,(XftChar8 *) buff,ilen);
+    } else {
+      XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
+    }
+ } else if(*act == '-') {
+    XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
+  }
+ XftDrawDestroy(draw);
  XSetForeground(theDisp,theGC,fg);
+ winfnt_(&saved_font);                     /* restore font */
 
 /* If echo send parameters to wwc file */
  if ( wwc_ok == 1) {
@@ -1486,28 +1729,32 @@ int  len;        /* len is length passed from fortran */
 {
  int ilen;
  int vfw;
+ XGlyphInfo info;
 
 /* find number of characters in buff, load metrics for current font and
    the find the pixel width. */
  f_to_c_l(buff,&len,&ilen);
- vfw = XTextWidth(fst,buff,ilen);
+ XftTextExtents8(theDisp,fst,buff,ilen,&info);
+ vfw = info.xOff;
  if (vfw > 1 ) *pixelwidth = (long int) vfw;
-/* debug fprintf(stderr,"phrase %s is %d pixels wide\n",buff,vfw); */
+ // debug fprintf(stderr,"phrase %s is %d pixels wide\n",buff,vfw);
 
  return;
 }
 
 /* ************ Select a font **************** */
-/* select one of the 6 fonts by its index, load it and update the graphic context.
+/* select one of the 8 fonts by its index, load it and update the graphic context.
  * for some reason font_0 has been cleared after initial jwinint call and so
  * it is refreshed. */
 void winfnt_(n)
  long int *n;
 {
  long int font_index;
+ XGlyphInfo info;
 
- char *test = "_A_V_";
+ char *test = "_AiV_";  /* test string to get aggregate width for fix or proportionate fonts */
  int vfw,lt;
+ int f_baseline;
 
  font_index = *n;  /* cast to local variable */
  if(font_index>=10) font_index=1;  /* in case of 64 bit huge number */
@@ -1515,41 +1762,35 @@ void winfnt_(n)
   if( font_index == 0 ) {
     t0=(char *) getenv("EFONT_0");
     if ((t0 == NULL) || (t0  == "") || (strncmp(t0,"    ",4) == 0)) {
-      strncpy(font_0,"6x12",4); font_0[4]='\0';
+      strncpy(font_0,"Ubuntu Mono,Monospace-8:medium",30); font_0[30]='\0';
     } else {
       strcpy(font_0,getenv("EFONT_0"));
     }
-/*    fst = XLoadQueryFont(theDisp,font_0); */
     fst = fst_0;
   } else if( font_index == 1 ) {
-/*    fst = XLoadQueryFont(theDisp,font_1); */
     fst = fst_1;
   } else if( font_index == 2 ) {
-/*    fst = XLoadQueryFont(theDisp,font_2); */
     fst = fst_2;
   } else if( font_index == 3 ) {
-/*    fst = XLoadQueryFont(theDisp,font_3); */
     fst = fst_3;
   } else if( font_index == 4 ) {
-/*    fst = XLoadQueryFont(theDisp,font_4); */
     fst = fst_4;
   } else if( font_index == 5 ) {
-/*    fst = XLoadQueryFont(theDisp,font_5); */
     fst = fst_5;
+  } else if( font_index == 6 ) {
+    fst = fst_6;
+  } else if( font_index == 7 ) {
+    fst = fst_7;
   }
-  f_height = fst->max_bounds.ascent + fst->max_bounds.descent;
-  f_width = fst->max_bounds.width;
-  f_baseline = fst->max_bounds.descent;
-  f_lbearing = fst->max_bounds.lbearing;
-  gcv.font = fst->fid;
-  theGC = XCreateGC(theDisp,win, (GCFont | GCForeground | GCBackground), &gcv);
+  f_height = fst->ascent + fst->descent;
+  f_baseline = fst->descent;
   current_font = font_index;
-/* vfw and fst->max_bounds.width are the same for fixed width font, for proportional the vfw is less */
-  lt = strlen(test);
-  vfw = (XTextWidth(fst,test,lt)/lt);
-  if (vfw < f_width && vfw > 1 ) f_width = vfw;
-/* debug  fprintf(stderr,"current font info: fh %d fw %d fb %d fl %d vfw %d fwidth %d \n",
-    f_height,fst->max_bounds.width,f_baseline,f_lbearing,vfw,f_width);  */
+/* vfw is calculated as the average width within the test string. */
+  lt=clnblnk(test);
+  XftTextExtents8(theDisp,fst,test,lt,&info);
+  vfw = (info.xOff/lt);
+  if ( vfw > 1 ) f_width = vfw;
+//  fprintf(stderr,"current font info: fh %d fb %d vfw %d fwidth %d \n",f_height,f_baseline,vfw,f_width);
 
 /* If echo send parameters to wwc file */
   if ( wwc_ok == 1) {
@@ -1565,15 +1806,17 @@ void winfnt_(n)
 void charsusingfnt_(n,cw,nlines)
  long int *n,*cw,*nlines;
 {
-XFontStruct  *tfst;
- char *test = "_A_V_";
+/* XFontStruct  *tfst; */
+ XftFont  *tfst;
+ XGlyphInfo info;
+ char *test = "_AiV_";
  int vfw,lt;
  int tf_height; /* tf_height is local font height in pixels */
  int tf_width;  /* tf_height is local font height in pixels */
   if( *n == 0 ) {
     t0=(char *) getenv("EFONT_0");
     if ((t0 == NULL) || (t0  == "") || (strncmp(t0,"    ",4) == 0)) {
-      strncpy(font_0,"6x12",4);  font_0[4]='\0';
+      strncpy(font_0,"Ubuntu Mono,Monospace-8:medium",30);  font_0[30]='\0';
     } else {
       strcpy(font_0,getenv("EFONT_0"));
     }
@@ -1588,17 +1831,21 @@ XFontStruct  *tfst;
     tfst = fst_4;
   } else if( *n == 5 ) {
     tfst = fst_5;
+  } else if( *n == 6 ) {
+    tfst = fst_6;
+  } else if( *n == 7 ) {
+    tfst = fst_7;
   }
-  tf_height = tfst->max_bounds.ascent + tfst->max_bounds.descent;
-  tf_width = tfst->max_bounds.width;
-/* vfw and tfst->max_bounds.width are the same for fixed width font, for proportional the vfw is less */
+  tf_height = tfst->ascent + tfst->descent;
+/* vfw is calculated as the average width within the test string. */
   lt = strlen(test);
-  vfw = (XTextWidth(tfst,test,lt)/lt);
-  if (vfw < f_width && vfw > 1 ) tf_width = vfw;
+  XftTextExtents8(theDisp,tfst,test,lt,&info);
+  vfw = (info.xOff/lt);
+  if ( vfw > 1 ) tf_width = vfw;
   *nlines = (int) ((disp.b_bottom - disp.b_top) / (tf_height+1));
   *cw = ((disp.b_right - disp.b_left) / tf_width)-2;
-  fprintf(stderr,"current font info: fh %d fw %d vfw %d nlines %ld characters %ld \n",
-    tf_height,tf_width,vfw,*nlines,*cw);
+//  fprintf(stderr,"current font info: fh %d fw %d vfw %d nlines %ld characters %ld \n",
+//    tf_height,tf_width,vfw,*nlines,*cw);
 
   return;
 }
@@ -1617,7 +1864,7 @@ void xbox(b,fgc,bgc,flags) box b; unsigned long fgc; unsigned long bgc; int flag
   if(WIDTH(b)<=0 || HEIGHT(b)<=0 ||
 	   ((wid<=2 || hight<=2) && (flags&~(BMCLEAR|BMNOT))==0))
 		return;	/* dont draw edges either! */
-/* debug fprintf(stderr,"xbox fgc bgc is %d %d\n",fgc,bgc); */
+//  fprintf(stderr,"xbox fgc bgc is %ld %ld\n",fgc,bgc);
   if(flags&(BMCLEARALL|BMNOTALL)){
 /* clear area, invert colours, fill, reset colours, draw outline */
     XClearArea(theDisp,win,b.b_left,b.b_top,(unsigned int)wid,(unsigned int)hight,exp);
@@ -1673,7 +1920,7 @@ void feedbox_(menu_char,d_lines,gw,gh)
   menu_offset = *menu_char;    /* remember feedbox right character offset  */
   fbb_b_lines = *d_lines;     /* remember feedbox bottom character margine */
   fbb.b_top   = 2;
-  winfnt_(&small_fnt); /* small font (used for continue text).  */
+  winfnt_(&butn_fnt); /* small font (used for continue text).  */
   label_ht = f_height+4;
   label_wid = f_width;
   winfnt_(&menu_fnt);  /* menu font to get right side of box.  */
@@ -1803,7 +2050,7 @@ void win3d_(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gwht)
  slightly above it. Remember that the text display font may be smaller
  than the standard font.
 */
- winfnt_(&small_fnt);  /* button font (used for label text).  */
+ winfnt_(&butn_fnt);  /* button font (used for label text).  */
  label_ht = f_height+6;
  winfnt_(&menu_fnt);  /* menu font to get right side of box.  */
  mf_width = f_width;
@@ -1859,16 +2106,19 @@ void win3dclr_()
  Given a string 'msg' and the 'line' where the string should be written
  and whether it should be left (side = 0), centered (side = 1), or
  right justified (side = 2) as well as the font size (0=small, 1 2 =medium,
- 3=large).
+ 3=large and using a proportional font).
 */
 void viewtext_(msg,linep,side,size,len)
-  char  *msg;                    /* character string  */
+  char  *msg;              /* character string  */
   int len;                 /* length from f77   */
   long int *linep, *side, *size;     /* position indicators */
 {
+  XftDraw *draw;
   int ix,iy,mid,t_len,fitpix;
   long int fsize;
+  long int the_font;
   long int saved_font;
+  XGlyphInfo info;
   box backing;	/* area under text to clear */
 
   f_to_c_l(msg,&len,&t_len); if ( t_len < len ) msg[t_len] = '\0';
@@ -1880,9 +2130,13 @@ void viewtext_(msg,linep,side,size,len)
   }
 
   fsize = *size;
+  if(fsize == 0) the_font=4;
+  if(fsize == 1) the_font=4;
+  if(fsize == 2) the_font=5;
+  if(fsize == 3) the_font=6;
   mid = dbx1.b_left + ((dbx1.b_right - dbx1.b_left)/2);
   saved_font = current_font;	/* save current font  */
-  winfnt_(&fsize);	/* set to size        */
+  winfnt_(&the_font);	        /* set to size        */
 
   iy = dbx1.b_top + 3 + (f_height * *linep);
   if (*side == 0) {
@@ -1894,11 +2148,14 @@ void viewtext_(msg,linep,side,size,len)
   } else {
       ix = dbx1.b_left + 7;
   }
-  fitpix = XTextWidth(fst, msg, t_len);
+  XftTextExtents8(theDisp,fst,msg,t_len,&info);
+  fitpix = info.width;
   backing.b_bottom= iy; backing.b_top = backing.b_bottom - f_height;
   backing.b_left =ix; backing.b_right = backing.b_left + fitpix;
   xbox(backing,fg,white,BMCLEAR);            /* clear area under text */
-  XDrawString(theDisp,win,theGC,ix,iy,msg,t_len);  /* print text */
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+  XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) msg,t_len);
+  XftDrawDestroy(draw);
   winfnt_(&saved_font);                     /* restore font */
   return;
 } /* viewtext  */
@@ -1906,7 +2163,7 @@ void viewtext_(msg,linep,side,size,len)
 /* **************  Find position of display text in viewing box *************** */
 /*
  Given a character position 'charpos' and the 'line' where the string should be written
- and return the pixel position that XDrawString should use.
+ and return the pixel position that Xft should use.
 */
 void findviewtext_(charposp,linep,size,irx,iry)
   long int *charposp, *linep, *size, *irx, *iry;     /* position indicators */
@@ -1914,12 +2171,17 @@ void findviewtext_(charposp,linep,size,irx,iry)
   int mid;
   long int fsize, charpos;
   long int saved_font;
+  long int the_font;
 
   fsize = *size;
+  if(fsize == 0) the_font=4;
+  if(fsize == 1) the_font=4;
+  if(fsize == 2) the_font=5;
+  if(fsize == 3) the_font=6;
   charpos = *charposp;
   mid = dbx1.b_left + ((dbx1.b_right - dbx1.b_left)/2);
   saved_font = current_font;	/* save current font  */
-  winfnt_(&fsize);	/* set to size        */
+  winfnt_(&the_font);	        /* set to size        */
 
   *iry = dbx1.b_top + 3 + (f_height * *linep);	/* y pixel at base of font */
   *irx = dbx1.b_left + 7 + (f_width * charpos);	/* x pixel at left of font (always have 7 pixels) */
@@ -1942,10 +2204,12 @@ void etlabel_(msg,x,y,ipos,size,len)
                     */
   float *x,*y;      /* position in user units */
 {
+  XftDraw *draw;
   float x1,y1;
   int ix,iy,mid,rig,p2,p0,t_len;
   long int fsize;
   long int saved_font,lix,liy;
+  long int the_font;
 
   f_to_c_l(msg,&len,&t_len); if ( t_len < len ) msg[t_len] = '\0';
 
@@ -1955,9 +2219,14 @@ void etlabel_(msg,x,y,ipos,size,len)
     fprintf(wwc,"%s\n",msg);
   }
 
-  x1 = *x; y1 = *y; fsize = *size;
+  x1 = *x; y1 = *y; 
+  fsize = *size;
+  if(fsize == 0) the_font=4;
+  if(fsize == 1) the_font=4;
+  if(fsize == 2) the_font=5;
+  if(fsize == 3) the_font=6;
   saved_font = current_font;	/* save current font  */
-  winfnt_(&fsize);	/* set to size        */
+  winfnt_(&the_font);	/* set to size        */
 
   u2pixel_(&x1,&y1,&lix,&liy);  /* return pixel location of reference.   */
   ix = lix; iy = liy;           /* convert back to short int */
@@ -1967,17 +2236,21 @@ void etlabel_(msg,x,y,ipos,size,len)
   p2  = iy + f_height;                /* ref @ upper char */
   p0  = iy + (f_height / 2);          /* ref @ centred char */
 
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
   if (*ipos == 0) {
-    XDrawString(theDisp,win,theGC,mid,p0,msg,t_len);
+      XftDrawString8(draw, &xft_color,fst,mid,p0,(XftChar8 *) msg,t_len);
   } else if (*ipos == 1) {
-    XDrawString(theDisp,win,theGC,rig,p0,msg,t_len);
+      XftDrawString8(draw, &xft_color,fst,rig,p0,(XftChar8 *) msg,t_len);
   } else if (*ipos == 2) {
-    XDrawString(theDisp,win,theGC,mid,p2,msg,t_len);
+      XftDrawString8(draw, &xft_color,fst,mid,p2,(XftChar8 *) msg,t_len);
   } else if (*ipos == 3) {
-    XDrawString(theDisp,win,theGC,ix,p0,msg,t_len);
+      XftDrawString8(draw, &xft_color,fst,ix,p0,(XftChar8 *) msg,t_len);
   } else if (*ipos == 4) {
-    XDrawString(theDisp,win,theGC,mid,iy,msg,t_len);
+      XftDrawString8(draw, &xft_color,fst,mid,iy,(XftChar8 *) msg,t_len);
   }
+  XftDrawDestroy(draw);
   winfnt_(&saved_font); /* restore font */
   return;
 } /* etlabel */
@@ -2324,6 +2597,7 @@ void qbox_(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
  *        *b_bottom, *b_left are pixel at lower left of box (supplied)
  *        act is the action `-` nothing, `!` blink it. */
 
+  XftDraw *draw;
   int lm1;		/* local string lengths */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
@@ -2337,20 +2611,24 @@ void qbox_(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
   querb.b_bottom = bottom -2;
   querb.b_left = left;
   querb.b_right = querb.b_left + (asklen * f_width);
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
   if(act == '-') {
     xbox(querb,fg,white,BMCLEAR |BMEDGES);   /* draw querry box with edges  */
-    XDrawString(theDisp,win,theGC,querb.b_left+4,querb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,querb.b_left+4,querb.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if(act == '!') {
     xbox(querb,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XDrawString(theDisp,win,theGC,querb.b_left+4,querb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,querb.b_left+4,querb.b_bottom-3,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     Timer(200);
     xbox(querb,fg,white, BMCLEAR | BMEDGES);             /* clear box */
-    XDrawString(theDisp,win,theGC,querb.b_left+4,querb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,querb.b_left+4,querb.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
   return;
 } /* qbox_ */
@@ -2366,6 +2644,7 @@ void dbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
  *        *b_bottom, *b_left are pixel at lower left of box (supplied)
  *        act is the action `-` nothing, `!` blink it. */
 
+  XftDraw *draw;
   int lm1;		/* local string lengths found by test  */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
@@ -2379,20 +2658,24 @@ void dbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
   defb.b_bottom = bottom -2;
   defb.b_left = left;
   defb.b_right = defb.b_left + (asklen * f_width);
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
   if(act == '-') {
     xbox(defb,fg,white,BMCLEAR |BMEDGES);   /* draw querry box with edges  */
-    XDrawString(theDisp,win,theGC,defb.b_left+4,defb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,defb.b_left+4,defb.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if (act == '!') {
     xbox(defb,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);       /* invert box */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XDrawString(theDisp,win,theGC,defb.b_left+4,defb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,defb.b_left+4,defb.b_bottom-3,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     Timer(200);
     xbox(defb,fg,white, BMCLEAR | BMEDGES);              /* clear box */
-    XDrawString(theDisp,win,theGC,defb.b_left+4,defb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,defb.b_left+4,defb.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
   return;
 } /* dbox */
@@ -2408,6 +2691,7 @@ void okbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
  *        *b_bottom, *b_left are pixel at lower left of box (supplied)
  *        act is the action `-` nothing, `!` blink it. */
 
+   XftDraw *draw;
   int lm1;		/* local string lengths  */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
@@ -2421,20 +2705,24 @@ void okbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
   okb.b_bottom = bottom -2;
   okb.b_left = left;
   okb.b_right = okb.b_left + (asklen * f_width);
+
+// Define local drawable for Xft font.
+   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
   if(act == '-') {
     xbox(okb,fg,white,BMCLEAR |BMEDGES);   /* draw querry box with edges  */
-    XDrawString(theDisp,win,theGC,okb.b_left+4,okb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,okb.b_left+4,okb.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if (act == '!') {
     xbox(okb,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);        /* invert box */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XDrawString(theDisp,win,theGC,okb.b_left+4,okb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,okb.b_left+4,okb.b_bottom-3,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     Timer(200);
     xbox(okb,fg,white, BMCLEAR | BMEDGES);               /* clear box */
-    XDrawString(theDisp,win,theGC,okb.b_left+4,okb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,okb.b_left+4,okb.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
   return;
 } /* okbox */
@@ -2461,6 +2749,7 @@ int *ino;
   XEvent event;
   XWindowAttributes wa;
   Pixmap under;		        /* to save image under help box  */
+  XftDraw *draw;
   int   iwth,ilen,num,l;	/* menu character width to print and length of list    */
   long int saved_font, use_font, changed_font;
   int   mob_height, mob_width,mib_height,mib_width,xb,yb,x,y,i,iy,lt1,lineheight;
@@ -2471,6 +2760,7 @@ int *ino;
   Bool exp = 1;
   int	no_valid_event,config_altered;
   unsigned int start_height,start_width;
+  int popup_font = 5;  /* one up from smallest proportional font */
 
   ilen = 0; iwth = 0;
   for(num=0;listptr[num]!=NULLPTR(char);num++){
@@ -2492,16 +2782,10 @@ int *ino;
   lt1 = (int) strlen(titleptr);  /* width of title */
   changed_font = 0;
   saved_font = use_font = current_font; /* save existing font  */
+  if ( use_font != popup_font ) { winfnt_(&popup_font); use_font = popup_font; changed_font = 1; }
 
 /*  Check if the text will fit within window, if not down-size until it does.*/
   menu_height = (ilen+1)*(f_height+2);
-  while (xrt_height < menu_height) {     /* cant fit so change font */
-    if (use_font == 0) break;
-    use_font-- ;
-    winfnt_(&use_font);
-    menu_height = (ilen+1)*(f_height+2);
-    changed_font = 1;
-  }
 
   /* having established a font, figure out heights and widths of outer and inner box */
   mib_height = (ilen+1)*(f_height+2);   /* inner pixel height */
@@ -2532,12 +2816,15 @@ int *ino;
   xbox(gmenubx,fg,bg,BMEDGES);
   xbox(menubx,fg,white,BMCLEAR|BMEDGES);	/* draw menu display box  */
 
-  XDrawString(theDisp,win,theGC,menubx.b_left+10,menubx.b_top-5,titleptr,lt1);  /* title */
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
+  XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,menubx.b_top-5,(XftChar8 *) titleptr,lt1);
 
 /* display lines of text.  */
   for ( i = 0; i < ilen; i++ ) {
     iy = menubx.b_top + ((i + 1) * (f_height+2)) + 5;
-    XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,listptr[i],iwth-1);  /* print text */
+    XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) listptr[i],iwth-1);
   }
   XFlush(theDisp); /* force drawing of menu text */
   no_valid_event = TRUE;
@@ -2553,12 +2840,12 @@ int *ino;
           xbox(gmenubx,fg,gpopfr,BMCLEAR |BMEDGES);	/* draw boarder box with edges  */
           xbox(gmenubx,fg,bg,BMEDGES);
           xbox(menubx,fg,white,BMCLEAR|BMEDGES);	/* draw menu display box  */
-          XDrawString(theDisp,win,theGC,menubx.b_left+10,menubx.b_top-5,titleptr,lt1);  /* title */
+          XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,menubx.b_top-5,(XftChar8 *) titleptr,lt1);
 
 /* re-display lines of text.  */
           for ( i = 0; i < ilen; i++ ) {
             iy = menubx.b_top + ((i + 1) * (f_height+2)) + 5;
-            XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,listptr[i],iwth-1);  /* print text */
+            XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) listptr[i],iwth-1);
           }
           XFlush(theDisp);
         }
@@ -2575,12 +2862,12 @@ int *ino;
           xbox(gmenubx,fg,gpopfr,BMCLEAR |BMEDGES);	/* draw boarder box with edges  */
           xbox(gmenubx,fg,bg,BMEDGES);
           xbox(menubx,fg,white,BMCLEAR|BMEDGES);	/* draw menu display box  */
-          XDrawString(theDisp,win,theGC,menubx.b_left+10,menubx.b_top-5,titleptr,lt1);  /* title */
+          XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,menubx.b_top-5,(XftChar8 *) titleptr,lt1);
 
 /* re-display lines of text.  */
           for ( i = 0; i < ilen; i++ ) {
             iy = menubx.b_top + ((i + 1) * (f_height+2)) + 5;
-            XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,listptr[i],iwth-1);  /* print text */
+            XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) listptr[i],iwth-1);
           }
           XFlush(theDisp);
         }
@@ -2598,7 +2885,7 @@ int *ino;
 /* debug   fprintf(stderr,"item %s %d %d %d %d\n",listptr[i],i,iy,hl_box.b_bottom,hl_box.b_top);  */
            xbox(hl_box,fg,ginvert, BMCLEAR | BMNOT );        /* grey item */
            XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-           XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,listptr[i],iwth-1);  /* print text */
+           XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) listptr[i],iwth-1);
            XFlush(theDisp);
            XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
            Timer(300);
@@ -2622,8 +2909,9 @@ int *ino;
       XNextEvent (theDisp,&event);	/* flush events */
     }
   }
-  if (changed_font == 1) winfnt_(&saved_font);  /* Restore font.  */
+  if (changed_font == 1) winfnt_(&saved_font);  /* Restore original font.  */
   XFlush(theDisp); /* added to force draw */
+  XftDrawDestroy(draw);
   if(config_altered == 1) refreshenv_();
   return;
 }
@@ -2642,11 +2930,11 @@ void doitbox(box dobox,char* msg,int msglen,int asklen,long int* sav_font,long i
  *         *sav_font, *use_font font in current use, font to use within box,
  *         *b_bottom, *b_left pixel at lower left of box (supplied),
  *         act action to take (- is draw, ! is hilight and do  */
-
+  XftDraw *draw;
   int lm1;	/* local string lengths  */
   int bottom, left;	/* pixel at lower left of box (supplied) */
   long int s_font, u_font;	/* font in current use, font to use within box,  */
-  long int  last,new; 	/* fonts for updating */
+  long int  last,new,lastm,lastb; 	/* fonts for updating */
   long int avail_wire;	/* current value of wire_avail to pass to fortran. */
   long int avail_cpw;	/* current value of copyright to pass to fortran. */
   long int iupx,iupy;	/* position of capture popup */
@@ -2657,7 +2945,7 @@ void doitbox(box dobox,char* msg,int msglen,int asklen,long int* sav_font,long i
   lm1=msglen;
   if (s_font != u_font) winfnt_(&u_font);
 
-  dobox.b_bottom = bottom - 2;  dobox.b_top = bottom - (f_height + 4);
+  dobox.b_bottom = bottom - 2;  dobox.b_top = bottom - (f_height + 3);
   dobox.b_left = left;  dobox.b_right = dobox.b_left + (asklen * f_width);
   if (strncmp(topic, "wire", 4) == 0) { /* assign box definition to relevant structure */
     wire = dobox;
@@ -2674,13 +2962,17 @@ void doitbox(box dobox,char* msg,int msglen,int asklen,long int* sav_font,long i
   } else if (strncmp(topic, "copyright", 9) == 0) {
     cpw = dobox;
   }
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
   if(act == '-') {
     xbox(dobox,fg,white,BMCLEAR |BMEDGES);   /* draw box with edges & text */
-    XDrawString(theDisp,win,theGC,dobox.b_left+4,dobox.b_bottom-2,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,dobox.b_left+4,dobox.b_bottom-2,(XftChar8 *) msg,lm1);
   } else if (act == '!') {
     xbox(dobox,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);        /* invert */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XDrawString(theDisp,win,theGC,dobox.b_left+4,dobox.b_bottom-2,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,dobox.b_left+4,dobox.b_bottom-2,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     if (s_font != u_font) winfnt_(&s_font);  /* restore std font during action */
@@ -2703,71 +2995,68 @@ void doitbox(box dobox,char* msg,int msglen,int asklen,long int* sav_font,long i
         proftxdump_();	/* use subroutine in esru_cut_lib.f to process text buffer. */
     } else if (strncmp(topic, "setup", 5) == 0) {
        choice = -1;
-       iupx = disp.b_left + (disp.b_right - disp.b_left)/2; iupy = dbx1.b_bottom -25;
-       epopup_("window options",envmenu,&iupx,&iupy,&choice);
+       iupx = disp.b_left + (disp.b_right - disp.b_left)/2;
+       iupy = dbx1.b_bottom -25; 
+       if (iupy < 200) iupy=200;  /* keep it disapearing off the top */
+       epopup_("font options",fontmenu,&iupx,&iupy,&choice);
 
        last=disp_fnt;
+       lastm=menu_fnt;
+       lastb=butn_fnt;
+
        switch(choice){
-         case 0:
-           new = 0;
+         case 0:  /* also this impacts menuchw */
+           if(menu_fnt >0 && menu_fnt <= 3) new = menu_fnt-1;
+           if(menu_fnt >4 && menu_fnt <= 7) new = menu_fnt-1;
            if(menu_fnt != new) { menu_fnt = new; refreshenv_(); }
            break;
-         case 1:
-           new = 1;
+         case 1:  /* also this impacts menuchw */
+           if(menu_fnt >=0 && menu_fnt < 3) new = menu_fnt+1;
+           if(menu_fnt >3 && menu_fnt < 7) new = menu_fnt+1;
            if(menu_fnt != new) { menu_fnt = new; refreshenv_(); }
            break;
          case 2:
-           new = 2;
-           if(menu_fnt != new) { menu_fnt = new; refreshenv_(); }
+           if(disp_fnt >0 && disp_fnt <= 3) new = disp_fnt-1;
+           if(disp_fnt >4 && disp_fnt <= 7) new = disp_fnt-1;
+           if (new != disp_fnt) { disp_fnt = new; winfnt_(&disp_fnt); }
+           disp_lines = (int) ((disp.b_bottom - disp.b_top) / (f_height+1));
+           refreshenv_();
            break;
          case 3:
-           new = 3;
-           if(menu_fnt != new) { menu_fnt = new; refreshenv_(); }
+           if(disp_fnt >=0 && disp_fnt < 3) new = disp_fnt+1;
+           if(disp_fnt >3 && disp_fnt < 7) new = disp_fnt+1;
+           if (new != disp_fnt) { disp_fnt = new; winfnt_(&disp_fnt); }
+           disp_lines = (int) ((disp.b_bottom - disp.b_top) / (f_height+1));
+           refreshenv_();
            break;
          case 4:
-           new = 0;
-           if (new != disp_fnt) { disp_fnt = new; winfnt_(&disp_fnt); }
-           disp_lines = (int) ((disp.b_bottom - disp.b_top) / (f_height+1));
-           refreshenv_();
+           if(butn_fnt >0 && butn_fnt <= 3) new = butn_fnt-1;
+           if(butn_fnt >4 && butn_fnt <= 7) new = butn_fnt-1;
+           if(butn_fnt != new) { butn_fnt = new; refreshenv_(); }
            break;
          case 5:
-           new = 1;
-           if (new != disp_fnt) { disp_fnt = new; winfnt_(&disp_fnt); }
-           disp_lines = (int) ((disp.b_bottom - disp.b_top) / (f_height+1));
-           refreshenv_();
+           if(butn_fnt >=0 && butn_fnt < 3) new = butn_fnt+1;
+           if(butn_fnt >3 && butn_fnt < 7) new = butn_fnt+1;
+           if(butn_fnt != new) { butn_fnt = new; refreshenv_(); }
            break;
-         case 6:
-           new = 2;
+         case 6:  /* re-establish the default fonts for the application */
+           if(menu_fnt >0 && menu_fnt <= 3) new = d_menu_fnt;
+           if(menu_fnt >4 && menu_fnt <= 7) new = d_menu_fnt;
+           if(menu_fnt != new) menu_fnt = new;
+           if(disp_fnt >=0 && disp_fnt < 3) new = d_disp_fnt;
+           if(disp_fnt >3 && disp_fnt < 7) new = d_disp_fnt;
            if (new != disp_fnt) { disp_fnt = new; winfnt_(&disp_fnt); }
            disp_lines = (int) ((disp.b_bottom - disp.b_top) / (f_height+1));
+           if(butn_fnt >=0 && butn_fnt < 3) new = d_butn_fnt;
+           if(butn_fnt >3 && butn_fnt < 7) new = d_butn_fnt;
+           if(butn_fnt != new) butn_fnt = new;
            refreshenv_();
            break;
          case 7:
-           new = 3;
-           if (new != disp_fnt) { disp_fnt = new; winfnt_(&disp_fnt); }
-           disp_lines = (int) ((disp.b_bottom - disp.b_top) / (f_height+1));
-           refreshenv_();
-           break;
-         case 8:
-           new = 0;
-           if(butn_fnt != new) { butn_fnt = new; refreshenv_(); }
-           break;
-         case 9:
-           new = 1;
-           if(butn_fnt != new) { butn_fnt = new; refreshenv_(); }
-           break;
-         case 10:
-           new = 2;
-           if(butn_fnt != new) { butn_fnt = new; refreshenv_(); }
-           break;
-         case 11:
-           new = 3;
-           if(butn_fnt != new) { butn_fnt = new; refreshenv_(); }
-           break;
-         case 12:
            break;
          default: break;
        }
+
     } else if (strncmp(topic, "copyright", 9) == 0) {
       avail_cpw = cpw_avail;
       cpwpk_(&avail_cpw);
@@ -2777,9 +3066,10 @@ void doitbox(box dobox,char* msg,int msglen,int asklen,long int* sav_font,long i
 
     if (s_font != u_font) winfnt_(&u_font);
     xbox(dobox,fg,white, BMCLEAR | BMEDGES);               /* clear box */
-    XDrawString(theDisp,win,theGC,dobox.b_left+4,dobox.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,dobox.b_left+4,dobox.b_bottom-3,(XftChar8 *) msg,lm1);
   }
-  XFlush(theDisp);  /* added to force draw */
+  XFlush(theDisp);
+  XftDrawDestroy(draw);
   if (s_font != u_font) winfnt_(&s_font);  /* restore std font then return */
   return;
 } /* doitbox */
@@ -2801,7 +3091,7 @@ void dosymbox(box dobox,int asklen,long int* sav_font,long int* use_font,int* b_
   int bottom, left;	/* pixel at lower left of box (supplied) */
 /*   long int iupx,iupy;	position of << future >> popup */
   long int  s_font, u_font;	/* font in current use, font to use within box */
-  long int elevchange,azichange;	/* current value to pass to fortran. */
+  long int elevchange,azichange,ifrlk;	/* current value to pass to fortran. */
   long int axt,ayt; /* centre for azim +- symbols  */
   long int sym,sz;      /* symbol and symbol size      */
 
@@ -2822,7 +3112,7 @@ void dosymbox(box dobox,int asklen,long int* sav_font,long int* use_font,int* b_
   }
   if(act == '-') {
     xbox(dobox,fg,white,BMCLEAR |BMEDGES);   /* draw box with edges & text */
-    axt = dobox.b_left+7;         /* points for symbol */
+    axt = dobox.b_left+5;         /* points for symbol */
     ayt = dobox.b_bottom - (f_height/2);
     if (strncmp(topic, "aziplus", 7) == 0) {
       sym=30; sz=0; esymbol_(&axt,&ayt,&sym,&sz);          /* + arrow  */
@@ -2842,24 +3132,28 @@ void dosymbox(box dobox,int asklen,long int* sav_font,long int* use_font,int* b_
     if (strncmp(topic, "aziplus", 7) == 0) {
       Timer(200);
       azichange = -10;	/* visual anitclockwise */
-      chgazi_(&azichange);  /* Deal with user selection of azimuth increment  */
+      ifrlk=0;
+      chgazi_(&azichange,&ifrlk);  /* Deal with user selection of azimuth increment  */
     } else if (strncmp(topic, "aziminus", 8) == 0) {
       Timer(200);
       azichange = 10;	/* visual clockwise */
-      chgazi_(&azichange);  /* Deal with user selection of azimuth decrement  */
+      ifrlk=0;
+      chgazi_(&azichange,&ifrlk);  /* Deal with user selection of azimuth decrement  */
     } else if (strncmp(topic, "elevplus", 8) == 0) {
       Timer(200);
       elevchange = 5;
-      chgelev_(&elevchange);	/* call fortran with elevation increment */
+      ifrlk=0;
+      chgelev_(&elevchange,&ifrlk);	/* call fortran with elevation increment */
     } else if (strncmp(topic, "elevminus", 9) == 0) {
       Timer(200);
       elevchange = -5;
-      chgelev_(&elevchange);	/* call fortran with elevation decrement */
+      ifrlk=0;
+      chgelev_(&elevchange,&ifrlk);	/* call fortran with elevation decrement */
     }
 
     if (s_font != u_font) winfnt_(&u_font);
     xbox(dobox,fg,white, BMCLEAR | BMEDGES);               /* clear box */
-    axt = dobox.b_left+7;         /* points for symbol */
+    axt = dobox.b_left+5;         /* points for symbol */
     ayt = dobox.b_bottom - (f_height/2);
     if (strncmp(topic, "aziplus", 7) == 0) {
       sym=30; sz=0; esymbol_(&axt,&ayt,&sym,&sz);          /* + arrow  */
@@ -2887,6 +3181,7 @@ void altbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
  *         *b_bottom, *b_left pixel at lower left of box (supplied),
  *         act action to take (- is draw, ! is hilight and do  */
 
+   XftDraw *draw;
   int lm1;		/* local string lengths found by test  */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
@@ -2900,20 +3195,24 @@ void altbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
   altb.b_bottom = bottom -2;
   altb.b_left = left;
   altb.b_right = altb.b_left + (asklen * f_width);
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
   if(act == '-') {
     xbox(altb,fg,white,BMCLEAR |BMEDGES);   /* draw commands box with edges  */
-    XDrawString(theDisp,win,theGC,altb.b_left+4,altb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altb.b_left+4,altb.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if (act == '!') {
     xbox(altb,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);        /* invert box */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XDrawString(theDisp,win,theGC,altb.b_left+4,altb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altb.b_left+4,altb.b_bottom-3,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     Timer(200);
     xbox(altb,fg,white, BMCLEAR | BMEDGES);               /* clear box */
-    XDrawString(theDisp,win,theGC,altb.b_left+4,altb.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altb.b_left+4,altb.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
   return;
 } /* altbox */
@@ -2929,6 +3228,7 @@ void alt2box(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act)
  *         *b_bottom, *b_left pixel at lower left of box (supplied),
  *         act action to take (- is draw, ! is hilight and do  */
 
+  XftDraw *draw;
   int lm1;		/* local string lengths found by test  */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
@@ -2942,20 +3242,24 @@ void alt2box(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act)
   altc.b_bottom = bottom -2;
   altc.b_left = left;
   altc.b_right = altc.b_left + (asklen * f_width);
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
   if(act == '-') {
     xbox(altc,fg,white,BMCLEAR |BMEDGES);   /* draw commands box with edges  */
-    XDrawString(theDisp,win,theGC,altc.b_left+4,altc.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altc.b_left+4,altc.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if (act == '!') {
     xbox(altc,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);        /* invert box */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XDrawString(theDisp,win,theGC,altc.b_left+4,altc.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altc.b_left+4,altc.b_bottom-3,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     Timer(200);
     xbox(altc,fg,white, BMCLEAR | BMEDGES);               /* clear box */
-    XDrawString(theDisp,win,theGC,altc.b_left+4,altc.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altc.b_left+4,altc.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
   return;
 } /* alt2box */
@@ -2975,6 +3279,7 @@ void abcdboxs(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act
  *         *b_bottom, *b_left pixel at lower left of box (supplied),
  *         act action to take (- is draw, ! is hilight and do  */
 
+  XftDraw *draw;
   int lm1;		/* local string lengths  */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
@@ -2984,57 +3289,61 @@ void abcdboxs(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
 
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
   if( act == 'a') {
     a.b_top = bottom - (f_height + 6);
     a.b_bottom = bottom -2;
     a.b_left = left;
-    a.b_right = a.b_left + (asklen * f_width);
+    a.b_right = a.b_left + (asklen * f_width)+3;
     xbox(a,fg,white,BMCLEAR |BMEDGES);   /* draw a box with edges  */
-    XDrawString(theDisp,win,theGC,a.b_left+4,a.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,a.b_left+4,a.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'b') {
     b.b_top = bottom - (f_height + 6);
     b.b_bottom = bottom -2;
     b.b_left = left;
-    b.b_right = b.b_left + (asklen * f_width);
+    b.b_right = b.b_left + (asklen * f_width)+3;
     xbox(b,fg,white,BMCLEAR |BMEDGES);   /* draw b box with edges  */
-    XDrawString(theDisp,win,theGC,b.b_left+4,b.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,b.b_left+4,b.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'c') {
     c.b_top = bottom - (f_height + 6);
     c.b_bottom = bottom -2;
     c.b_left = left;
-    c.b_right = c.b_left + (asklen * f_width);
+    c.b_right = c.b_left + (asklen * f_width)+3;
     xbox(c,fg,white,BMCLEAR |BMEDGES);   /* draw c box with edges  */
-    XDrawString(theDisp,win,theGC,c.b_left+4,c.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,c.b_left+4,c.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'd') {
     d.b_top = bottom - (f_height + 6);
     d.b_bottom = bottom -2;
     d.b_left = left;
-    d.b_right = d.b_left + (asklen * f_width);
+    d.b_right = d.b_left + (asklen * f_width)+3;
     xbox(d,fg,white,BMCLEAR |BMEDGES);   /* draw d box with edges  */
-    XDrawString(theDisp,win,theGC,d.b_left+4,d.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,d.b_left+4,d.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'e') {
     e.b_top = bottom - (f_height + 6);
     e.b_bottom = bottom -2;
     e.b_left = left;
-    e.b_right = e.b_left + (asklen * f_width);
+    e.b_right = e.b_left + (asklen * f_width)+3;
     xbox(e,fg,white,BMCLEAR |BMEDGES);   /* draw e box with edges  */
-    XDrawString(theDisp,win,theGC,e.b_left+4,e.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,e.b_left+4,e.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'f') {
     f.b_top = bottom - (f_height + 6);
     f.b_bottom = bottom -2;
     f.b_left = left;
-    f.b_right = f.b_left + (asklen * f_width);
+    f.b_right = f.b_left + (asklen * f_width)+3;
     xbox(f,fg,white,BMCLEAR |BMEDGES);   /* draw f box with edges  */
-    XDrawString(theDisp,win,theGC,f.b_left+4,f.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,f.b_left+4,f.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'g') {
     g.b_top = bottom - (f_height + 6);
     g.b_bottom = bottom -2;
     g.b_left = left;
-    g.b_right = g.b_left + (asklen * f_width);
+    g.b_right = g.b_left + (asklen * f_width)+3;
     xbox(g,fg,white,BMCLEAR |BMEDGES);   /* draw g box with edges  */
-    XDrawString(theDisp,win,theGC,g.b_left+4,g.b_bottom-3,msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,g.b_left+4,g.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
   return;
 } /* abcdboxs */
@@ -3053,10 +3362,14 @@ void openaskbox_(msg1,msg2,asklen,len1,len2)
   int  len1,len2; /* lengths as supplied by fortran */
   long int  *asklen;     /* character width of the input box */
 {
-  int lprompt,tprompt;   /* cursor position, prompt left side */
+  XftDraw *draw;
+  XGlyphInfo info;
+  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
   int lm1, lm2;          /* local string lengths found by test  */
   int okbox_left, qbox_left, dbox_left;	/* positions of small boxes */
   long int saved_font;
+  int vfw;
+
   ask_len = *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
@@ -3068,6 +3381,9 @@ void openaskbox_(msg1,msg2,asklen,len1,len2)
 
   askbx.b_top = msgbx.b_bottom - (f_height + 6);
   askbx.b_bottom = msgbx.b_bottom -2;
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
 /* ok box is 3rd box over and 7 char total to the right */
   okbox_left = msgbx.b_right - ((3 * 5) + (f_width * 7));
@@ -3086,9 +3402,19 @@ void openaskbox_(msg1,msg2,asklen,len1,len2)
 /* determine left edge of prompt text */
   lprompt = askbx.b_left;
   tprompt = msgbx.b_right - ((lm1+2) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = msgbx.b_right - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   tprompt = askbx.b_left - ((lm2+2) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = askbx.b_left - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
   asklprompt = lprompt;
 
@@ -3099,13 +3425,14 @@ void openaskbox_(msg1,msg2,asklen,len1,len2)
   msgbx.b_right = xrt_width - 2;
 
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom - (f_height+8),msg1,lm1);
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom - 3,msg2,lm2);
+    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
   qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
   dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
   okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
   xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
   XFlush(theDisp);
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
   return;
 } /* openaskbox */
@@ -3125,10 +3452,14 @@ void openaskaltbox_(msg1,msg2,alt,asklen,len1,len2,len3)
   int  len1,len2,len3; /* lengths as supplied by fortran */
   long int  *asklen;     /* character width of the input box */
 {
-  int lprompt,tprompt;   /* cursor position, prompt left side */
+  XftDraw *draw;
+  XGlyphInfo info;
+  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
   int lm1, lm2, lm3;          /* local string lengths found by test  */
   int altbox_left, okbox_left, qbox_left, dbox_left;	/* positions of small boxes */
   long int saved_font;
+  int vfw;
+
   ask_len = *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
@@ -3141,6 +3472,9 @@ void openaskaltbox_(msg1,msg2,alt,asklen,len1,len2,len3)
 
   askbx.b_top = msgbx.b_bottom - (f_height + 6);
   askbx.b_bottom = msgbx.b_bottom -2;
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
 /* alt box is between ok and askbx  */
   altbox_left = msgbx.b_right - ((4 * 5) + (f_width * (8 + lm3)));
@@ -3161,9 +3495,19 @@ void openaskaltbox_(msg1,msg2,alt,asklen,len1,len2,len3)
 /* determine left edge of prompt text */
   lprompt = askbx.b_left;
   tprompt = msgbx.b_right - ((lm1+2) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = msgbx.b_right - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   tprompt = askbx.b_left - ((lm2+2) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = askbx.b_left - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
   asklprompt = lprompt;   /* remember the position */
 
@@ -3174,8 +3518,8 @@ void openaskaltbox_(msg1,msg2,alt,asklen,len1,len2,len3)
   msgbx.b_right = xrt_width - 2;
 
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom - (f_height+8),msg1,lm1);
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom - 3,msg2,lm2);
+    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
 
   altbox(alt,lm3,lm3+1,&msgbx.b_bottom,&altbox_left,'-');
   qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
@@ -3183,6 +3527,8 @@ void openaskaltbox_(msg1,msg2,alt,asklen,len1,len2,len3)
   okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
   xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
   if (saved_font != butn_fnt) winfnt_(&saved_font);
+  XFlush(theDisp);
+  XftDrawDestroy(draw);
   return;
 } /* openaskaltbox */
 
@@ -3201,10 +3547,14 @@ void openaskcnclbox_(msg1,msg2,cncl,asklen,len1,len2,len3)
   int  len1,len2,len3; /* lengths as supplied by fortran */
   long int  *asklen;     /* character width of the input box */
 {
-  int lprompt,tprompt;   /* cursor position, prompt left side */
+  XftDraw *draw;
+  XGlyphInfo info;
+  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
   int lm1, lm2, lm3;          /* local string lengths found by test  */
   int cnclbox_left, okbox_left, qbox_left, dbox_left;	/* positions of small boxes */
   long int saved_font;
+  int vfw;
+
   ask_len = *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
@@ -3217,6 +3567,9 @@ void openaskcnclbox_(msg1,msg2,cncl,asklen,len1,len2,len3)
 
   askbx.b_top = msgbx.b_bottom - (f_height + 6);
   askbx.b_bottom = msgbx.b_bottom -2;
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
 /* ok box is 4th box over and 8+lm3 char total to the right */
   okbox_left = msgbx.b_right - ((4 * 5) + (f_width * (8 + lm3)));
@@ -3237,9 +3590,19 @@ void openaskcnclbox_(msg1,msg2,cncl,asklen,len1,len2,len3)
 /* determine left edge of prompt text */
   lprompt = askbx.b_left;
   tprompt = msgbx.b_right - ((lm1+2) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = msgbx.b_right - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   tprompt = askbx.b_left - ((lm2+2) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = askbx.b_left - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
   asklprompt = lprompt;   /* remember the position */
 
@@ -3250,8 +3613,8 @@ void openaskcnclbox_(msg1,msg2,cncl,asklen,len1,len2,len3)
   msgbx.b_right = xrt_width - 2;
 
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom - (f_height+8),msg1,lm1);
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom - 3,msg2,lm2);
+    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
 
   altbox(cncl,lm3,lm3+1,&msgbx.b_bottom,&cnclbox_left,'-');
   qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
@@ -3259,6 +3622,8 @@ void openaskcnclbox_(msg1,msg2,cncl,asklen,len1,len2,len3)
   okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
   xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
   if (saved_font != butn_fnt) winfnt_(&saved_font);
+  XFlush(theDisp);
+  XftDrawDestroy(draw);
   return;
 } /* openaskcnclbox */
 
@@ -3277,10 +3642,14 @@ void openask2altbox_(msg1,msg2,alt,alt2,asklen,len1,len2,len3,len4)
   int  len1,len2,len3,len4; /* lengths as supplied by fortran */
   long int  *asklen;     /* character width of the input box */
 {
-  int lprompt,tprompt;   /* cursor position, prompt left side */
+  XftDraw *draw;
+  XGlyphInfo info;
+  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
   int lm1, lm2, lm3, lm4;          /* local string lengths found by test  */
   int altbox_left, alt2box_left, okbox_left, qbox_left, dbox_left;	/* positions of small boxes */
   long int saved_font;
+  int vfw;
+
   ask_len = *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
@@ -3294,6 +3663,9 @@ void openask2altbox_(msg1,msg2,alt,alt2,asklen,len1,len2,len3,len4)
 
   askbx.b_top = msgbx.b_bottom - (f_height + 6);
   askbx.b_bottom = msgbx.b_bottom -2;
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
 /* alt box is between 2nd alt and askbx  */
   altbox_left = msgbx.b_right - ((5 * 5) + (f_width * (9 + lm3 +lm4)));
@@ -3316,9 +3688,19 @@ void openask2altbox_(msg1,msg2,alt,alt2,asklen,len1,len2,len3,len4)
 /* determine left edge of prompt text */
   lprompt = askbx.b_left;
   tprompt = msgbx.b_right - ((lm1+2) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = msgbx.b_right - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   tprompt = askbx.b_left - ((lm2+2) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = askbx.b_left - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
   asklprompt = lprompt;   /* remember the position */
 
@@ -3329,8 +3711,8 @@ void openask2altbox_(msg1,msg2,alt,alt2,asklen,len1,len2,len3,len4)
   msgbx.b_right = xrt_width - 2;
 
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom - (f_height+8),msg1,lm1);
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom - 3,msg2,lm2);
+    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
 
   altbox(alt,lm3,lm3+1,&msgbx.b_bottom,&altbox_left,'-');
   alt2box(alt2,lm4,lm4+1,&msgbx.b_bottom,&alt2box_left,'-');
@@ -3339,6 +3721,8 @@ void openask2altbox_(msg1,msg2,alt,alt2,asklen,len1,len2,len3,len4)
   okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
   xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
   if (saved_font != butn_fnt) winfnt_(&saved_font);
+  XFlush(theDisp);
+  XftDrawDestroy(draw);
   return;
 } /* openask2altbox */
 
@@ -3349,10 +3733,15 @@ void update_edit_str(ebox,edstr,xbar,lstrlen)
   box ebox;            /* box to update string within */
   int *xbar,*lstrlen;   /*  | position and character width */
 {
+  XftDraw *draw;
   int len = *lstrlen;
   int x1 = *xbar;
   xbox(ebox,fg,white,BMCLEAR |BMEDGES);   /* clear and re-draw ebox box and text */
-  XDrawString(theDisp,win,theGC,ebox.b_left+f_width,ebox.b_bottom-3,edstr,len);
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+  XftDrawString8(draw, &xft_color,fst,ebox.b_left+f_width,ebox.b_bottom-3,(XftChar8 *) edstr,len);
+  XftDrawDestroy(draw);
   XDrawLine(theDisp,win,theGC,x1-2,ebox.b_top+1,x1+2,ebox.b_top+1); /* mark with top & bottom T bars */
   XDrawLine(theDisp,win,theGC,x1-2,ebox.b_top+2,x1+2,ebox.b_top+2);
   XDrawLine(theDisp,win,theGC,x1,ebox.b_top+1,x1,ebox.b_top+4);
@@ -3502,6 +3891,8 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
   XEvent event;
   XWindowAttributes wa;
   Pixmap under;		        /* to save image under help box  */
+  XftDraw *draw;
+  XGlyphInfo info;
   long int saved_font, use_font, changed_font;
   int   h_height, h_width, xb,yb,x,y,i,iy,pflg,showmoreflg;
   int   u_height, u_width;      /* size of the under pixmap */
@@ -3517,6 +3908,8 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
   static char buf[80];
   static int blen = 0;
   unsigned int start_height,start_width;
+  int vfw;
+  int help_font = 5;  /* one up from smallest proportional font */
 
   ilen = help_lines;
   if(ilen == 0)return;	/* don't bother if no help */
@@ -3527,10 +3920,27 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
 
   xb = *impx;  yb = *impy; pflg = *ipflg; showmoreflg = *ishowmoreflg;
   changed_font = 0;
-  saved_font = use_font = current_font; /* save existing font  */
+
+/* Help messages can always be in proportional font. Save existing and reset if necessary */
+  saved_font = use_font = current_font;
+  if ( use_font != help_font ) { winfnt_(&help_font); use_font = help_font; changed_font = 1; }
+  
   if(ilen <= 20) h_height = (ilen*(f_height+1))+20;  /* include a bit of extra space  */
   if(ilen > 20)  h_height = (20*(f_height+1))+20;  /* include a bit of extra space  */
-  h_width = (help_width*f_width)+20;	  /* box slightly wider than longest line */
+  h_width = (help_width*f_width)+25;	  /* box slightly wider than longest line */
+
+/* Use XftTextExtents8 to loop through the help strings and
+   detemine the maximum pixel width needed.
+ */
+  vfw=0;
+  for ( i = 0; i < ilen; i++ ) {
+     if ( (int) strlen(help_list[i]) > 0 ) {
+       XftTextExtents8(theDisp,fst,help_list[i],help_width,&info);
+       if( info.xOff > vfw ) vfw= info.xOff;
+     }
+  }
+  // fprintf(stderr,"help is h_width %d or vfw %d pixels wide\n",h_width,vfw);
+  if ( vfw+10 > h_width ) h_width=vfw+10;
 /*
  If a specific box starting point has been passed then try to honor
  this otherwise place it slightly above the dialogue box.
@@ -3539,24 +3949,13 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
     xb= msgbx.b_left+70;  yb = msgbx.b_top-60;
   }
 
-/*  Check if the text will fit within window, if not down-size until it does.*/
-  while ((xrt_width - 50) < h_width) {
-    if (use_font == 0) break;
-    use_font-- ;
-    winfnt_(&use_font);
-    h_width = (help_width*f_width)+20;
-    if(ilen <= 20) h_height = (ilen*(f_height+1))+20;  /* include a bit of extra space  */
-    if(ilen > 20)  h_height = (20*(f_height+1))+20;  /* include a bit of extra space  */
-    changed_font = 1;
-  }
-
 /* Create the help box but keep it from going above the display. */
   if (yb - h_height < 50) {
     helpbx.b_top   = yb - h_height + 50;  helpbx.b_bottom= yb + 50;
   } else {
     helpbx.b_top   = yb - h_height;  helpbx.b_bottom= yb;
   }
-  if (use_font != small_fnt) winfnt_(&small_fnt);
+  if (use_font != butn_fnt) winfnt_(&butn_fnt);
   helpbx.b_left  = xb;  helpbx.b_right = xb + h_width;
   ghelpbx.b_top   = helpbx.b_top - 5;	/* border with space for buttons */
   ghelpbx.b_bottom= helpbx.b_bottom + f_height +8;
@@ -3566,8 +3965,8 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
   under = XCreatePixmap(theDisp,win,(unsigned int) u_width,(unsigned int) u_height,dispDEEP);
   box_to_pix(win,ghelpbx,under,u_width,u_height);   /* save rect under ghelpbx to under */
 
-  dismissbx.b_left = ghelpbx.b_left + 10;
-  dismissbx.b_right = dismissbx.b_left + (8 * f_width);
+  dismissbx.b_left = ghelpbx.b_left + 8;
+  dismissbx.b_right = dismissbx.b_left + (9 * f_width);
   dismissbx.b_bottom= helpbx.b_bottom + f_height + 5;
   dismissbx.b_top = helpbx.b_bottom + 3;
   if( pflg == 1) {
@@ -3593,11 +3992,15 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
   xbox(helpbx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
 
   xbox(dismissbx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
-  if (use_font != small_fnt) winfnt_(&small_fnt);
-  XDrawString(theDisp,win,theGC,dismissbx.b_left+4,dismissbx.b_bottom-2,"dismiss",7);  /* print text */
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
+  if (use_font != butn_fnt) winfnt_(&butn_fnt);
+    XftDrawString8(draw, &xft_color,fst,dismissbx.b_left+4,dismissbx.b_bottom-2,(XftChar8 *) "dismiss",7);
   if( showmoreflg == 1) {
     xbox(showmorebx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
-    XDrawString(theDisp,win,theGC,showmorebx.b_left+4,showmorebx.b_bottom-2,"more",4);  /* print text */
+    XftDrawString8(draw, &xft_color,fst,showmorebx.b_left+4,showmorebx.b_bottom-2,(XftChar8 *) "more",4);
   }
   winfnt_(&use_font);
 
@@ -3613,18 +4016,18 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
     for ( i = 0; i < ilen; i++ ) {
       iy = helpbx.b_top + ((i + 1) * (f_height+1)) + 10;
       if ( (int) strlen(help_list[i]) == 0 ) {
-        XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,"  ",2);  /* print text */
+          XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) "  ",2);
       } else if ( (int) strlen(help_list[i]) > 0 ){
-        XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,help_list[i],help_width);  /* print text */
+          XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) help_list[i],help_width);
       }
     }
   } else {
     for ( i = 0; i < 20; i++ ) {
       iy = helpbx.b_top + ((i + 1) * (f_height+1)) + 10;
       if ( (int) strlen(help_list[i]) == 0 ) {
-        XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,"  ",2);  /* print text */
+          XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) "  ",2);
       } else if ( (int) strlen(help_list[i]) > 0 ){
-        XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,help_list[i],help_width);  /* print text */
+        XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) help_list[i],help_width);
       }
     }
     if( pflg == 1) {
@@ -3644,29 +4047,29 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
           xbox(ghelpbx,fg,bg,BMEDGES);
           xbox(helpbx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
           xbox(dismissbx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
-          if (use_font != small_fnt) winfnt_(&small_fnt);
-          XDrawString(theDisp,win,theGC,dismissbx.b_left+4,dismissbx.b_bottom-2,"dismiss",7);  /* print text */
+          if (use_font != butn_fnt) winfnt_(&butn_fnt);
+          XftDrawString8(draw, &xft_color,fst,dismissbx.b_left+4,dismissbx.b_bottom-2,(XftChar8 *) "dismiss",7);
           if( showmoreflg == 1) {
             xbox(showmorebx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
-            XDrawString(theDisp,win,theGC,showmorebx.b_left+4,showmorebx.b_bottom-2,"more",4);  /* print text */
+            XftDrawString8(draw, &xft_color,fst,showmorebx.b_left+4,showmorebx.b_bottom-2,(XftChar8 *) "more",4);
           }
           winfnt_(&use_font);
           if(ilen <= 20) {
             for ( i = 0; i < ilen; i++ ) {
               iy = helpbx.b_top + ((i + 1) * (f_height+1)) + 10;
               if ( (int) strlen(help_list[i]) == 0 ) {
-                XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,"  ",2);  /* print text */
-              } else if ( (int) strlen(help_list[i]) > 0 ){
-                XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,help_list[i],help_width);  /* print text */
+                  XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) "  ",2);
+             } else if ( (int) strlen(help_list[i]) > 0 ){
+                XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) help_list[i],help_width);
               }
             }
           } else {
             for ( i = 0; i < 20; i++ ) {
               iy = helpbx.b_top + ((i + 1) * (f_height+1)) + 10;
               if ( (int) strlen(help_list[i]) == 0 ) {
-                XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,"  ",2);  /* print text */
+                  XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) "  ",2);
               } else if ( (int) strlen(help_list[i]) > 0 ){
-                XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,help_list[i],help_width);  /* print text */
+                XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) help_list[i],help_width);
               }
             }
             if( pflg == 1) {
@@ -3690,29 +4093,29 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
           xbox(ghelpbx,fg,bg,BMEDGES);
           xbox(helpbx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
           xbox(dismissbx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
-          if (use_font != small_fnt) winfnt_(&small_fnt);
-          XDrawString(theDisp,win,theGC,dismissbx.b_left+4,dismissbx.b_bottom-2,"dismiss",7);  /* print text */
+          if (use_font != butn_fnt) winfnt_(&butn_fnt);
+          XftDrawString8(draw, &xft_color,fst,dismissbx.b_left+4,dismissbx.b_bottom-2,(XftChar8 *) "dismiss",7);
           if( showmoreflg == 1) {
             xbox(showmorebx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
-            XDrawString(theDisp,win,theGC,showmorebx.b_left+4,showmorebx.b_bottom-2,"show more",9);  /* print text */
+            XftDrawString8(draw, &xft_color,fst,showmorebx.b_left+4,showmorebx.b_bottom-2,(XftChar8 *) "show more",9); 
           }
           winfnt_(&use_font);
           if(ilen <= 20) {
             for ( i = 0; i < ilen; i++ ) {
               iy = helpbx.b_top + ((i + 1) * (f_height+1)) + 10;
               if ( (int) strlen(help_list[i]) == 0 ) {
-                XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,"  ",2);  /* print text */
+                XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) "  ",2);
               } else if ( (int) strlen(help_list[i]) > 0 ){
-                XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,help_list[i],help_width);  /* print text */
+                XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) help_list[i],help_width);
               }
             }
           } else {
             for ( i = 0; i < 20; i++ ) {
               iy = helpbx.b_top + ((i + 1) * (f_height+1)) + 10;
               if ( (int) strlen(help_list[i]) == 0 ) {
-                XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,"  ",2);  /* print text */
+                XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) "  ",2);
               } else if ( (int) strlen(help_list[i]) > 0 ){
-                XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,help_list[i],help_width);  /* print text */
+                XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) help_list[i],help_width);
               }
             }
             if( pflg == 1) {
@@ -3743,9 +4146,9 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
                m = m + 1;
                iy = helpbx.b_top + (m * (f_height+1)) + 10;
                if ( (int) strlen(help_list[i]) == 0 ) {
-                 XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,"  ",2);  /* print text */
+                 XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) "  ",2);
                } else if ( (int) strlen(help_list[i]) > 0 ){
-                 XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,help_list[i],help_width);  /* print text */
+                 XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) help_list[i],help_width);
                }
              }
            }
@@ -3771,9 +4174,9 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
                m = m + 1;
                iy = helpbx.b_top + (m * (f_height+1)) + 10;
                if ( (int) strlen(help_list[i]) == 0 ) {
-                 XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,"  ",2);  /* print text */
+                 XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) "  ",2);
                } else if ( (int) strlen(help_list[i]) > 0 ){
-                 XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,help_list[i],help_width);  /* print text */
+                 XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) help_list[i],help_width);
                }
              }
            }
@@ -3814,9 +4217,9 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
                 m = m + 1;
                 iy = helpbx.b_top + (m * (f_height+1)) + 10;
                 if ( (int) strlen(help_list[i]) == 0 ) {
-                  XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,"  ",2);  /* print text */
+                  XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) "  ",2);
                 } else if ( (int) strlen(help_list[i]) > 0 ){
-                  XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,help_list[i],help_width);  /* print text */
+                  XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) help_list[i],help_width);
                 }
               }
             }
@@ -3840,9 +4243,9 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
                 m = m + 1;
                 iy = helpbx.b_top + (m * (f_height+1)) + 10;
                 if ( (int) strlen(help_list[i]) == 0 ) {
-                  XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,"  ",2);  /* print text */
+                  XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) "  ",2);
                 } else if ( (int) strlen(help_list[i]) > 0 ){
-                  XDrawString(theDisp,win,theGC,helpbx.b_left+10,iy,help_list[i],help_width);  /* print text */
+                  XftDrawString8(draw, &xft_color,fst,helpbx.b_left+10,iy,(XftChar8 *) help_list[i],help_width);
                 }
               }
             }
@@ -3858,12 +4261,13 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
   XClearArea(theDisp,win,ghelpbx.b_left,ghelpbx.b_top,(unsigned int) u_width,(unsigned int) u_height,exp);
   if(config_altered == 0)pix_to_box(under,u_width,u_height,ghelpbx,win);
   XFreePixmap(theDisp, under);
+  XftDrawDestroy(draw);
   if(XPending(theDisp) > 0) {
     while ( XPending(theDisp) > 0) {
       XNextEvent (theDisp,&event);	/* flush events */
     }
   }
-  if (changed_font == 1) winfnt_(&saved_font);  /* Restore font.  */
+  if (changed_font == 1) winfnt_(&saved_font);  /* Restore original font.  */
   XFlush(theDisp); /* added to force draw */
   if(config_altered == 1) refreshenv_();
 }
@@ -3880,6 +4284,8 @@ void askdialog_(sstr,id,iq,f_len)
 {
   XEvent event;
   XWindowAttributes wa;
+  XGlyphInfo info;
+  XftDraw *draw;
   static char sbuf[144];
   int b_width;   /* b_width  pixels w/in box */
   int fitchars,offsc,x1,x2,fitpix;  /* chars able to fit within box, chars between left of string & cursor */
@@ -3891,8 +4297,9 @@ void askdialog_(sstr,id,iq,f_len)
   long int saved_font;
   int initial_f_height;  /* font height used for the small boxes */
   unsigned int start_height,start_width;
-  int lprompt,tprompt;   /* cursor position, prompt left side */
+  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
   int iaux;         /* unused return from aux_menu      */
+  int vfw;
 
 /* remember position and size of the whole module (so as to detect changes) */
   XGetWindowAttributes(theDisp,win,&wa);
@@ -3906,6 +4313,9 @@ void askdialog_(sstr,id,iq,f_len)
   dbox_left = msgbx.b_right - ((1 * 5) + (f_width * 2));
   initial_f_height = f_height;  /* remember in case of a resize */
 
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
 /*
  Find actual string length and truncate when printing to fit within box.
 */
@@ -3916,9 +4326,10 @@ void askdialog_(sstr,id,iq,f_len)
 
   b_width = WIDTH(askbx);
   fitchars = ((b_width - f_width) / f_width);
-  fitpix = XTextWidth(fst, sbuf, len);
+  XftTextExtents8(theDisp,fst,sbuf,len,&info);
+  fitpix = info.width;
   if ((len+2) > fitchars ) { lstrlen = fitchars; } else { lstrlen = len; }
-  XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+  XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
   XFlush(theDisp);
   XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,cross_cursor);
 
@@ -3941,13 +4352,13 @@ void askdialog_(sstr,id,iq,f_len)
         if(event.xvisibility.state == 0 ) {
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (initial_f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
         }
         break;
@@ -3977,21 +4388,31 @@ void askdialog_(sstr,id,iq,f_len)
           /* Determine new left edge of prompt text. */
           lprompt = askbx.b_left;
           tprompt = msgbx.b_right - ((asklm1+2) * f_width);
+          vfw=0;
+          XftTextExtents8(theDisp,fst,askmsg1,asklm1,&info);
+          if( info.xOff > vfw ) vfw= info.xOff+5;
+          tpromptgl = msgbx.b_right - vfw;
           if (tprompt < lprompt) lprompt = tprompt;
+          if (tpromptgl < lprompt) lprompt = tpromptgl;
           tprompt = askbx.b_left - ((asklm2+2) * f_width);
+          vfw=0;
+          XftTextExtents8(theDisp,fst,askmsg2,asklm2,&info);
+          if( info.xOff > vfw ) vfw= info.xOff+5;
+          tpromptgl = askbx.b_left - vfw;
           if (tprompt < lprompt) lprompt = tprompt;
+          if (tpromptgl < lprompt) lprompt = tpromptgl;
           if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
           asklprompt = lprompt;   /* remember the position */
 
           /* Redraw the prompt strings and then the boxes. One
              remaining glitch - the font seems to be smaller? */
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (initial_f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
         }
         break;
@@ -4037,13 +4458,13 @@ void askdialog_(sstr,id,iq,f_len)
           /* redraw the dialog */ 
 /* debug  fprintf(stderr,"Inside askdialog display x %d y %d\n",x,y);  */
           if (saved_font != current_font) winfnt_(&saved_font);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
           no_valid_event = TRUE;
           break;
@@ -4062,6 +4483,7 @@ void askdialog_(sstr,id,iq,f_len)
   }
   strncpy(sstr,sbuf,(unsigned int)f_len);
   XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,arrow_cursor);
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
   return;
 } /* askdialog */
@@ -4078,6 +4500,8 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
 {
   XEvent event;
   XWindowAttributes wa;
+  XGlyphInfo info;
+  XftDraw *draw;
   static char sbuf[144];
   int b_width;   /* b_width  pixels w/in box */
   int fitchars,offsc,x1,fitpix;  /* chars able to fit within box, chars between left of string & cursor */
@@ -4089,7 +4513,8 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
   int okbox_left, qbox_left, dbox_left, altbox_left;	/* positions of small boxes */
   int initial_f_height;  /* font height used for the small boxes */
   unsigned int start_height,start_width;
-  int lprompt,tprompt;   /* cursor position, prompt left side */
+  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
+  int vfw;
 
 /* remember position and size of the whole module (so as to detect changes) */
   XGetWindowAttributes(theDisp,win,&wa);
@@ -4104,6 +4529,9 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
 /* defaults box is 1 box over and 2 char total to the right */
   dbox_left = msgbx.b_right - ((1 * 5) + (f_width * 2));
   initial_f_height = f_height;  /* remember in case of a resize */
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 /*
  Find actual string length and truncate when printing to fit within box.
 */
@@ -4115,10 +4543,11 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
 
   b_width = WIDTH(askbx);
   fitchars = ((b_width - f_width) / f_width);
-  fitpix = XTextWidth(fst, sbuf, len);
+  XftTextExtents8(theDisp,fst,sbuf,len,&info);
+  fitpix = info.width;
 /* debug  fprintf(stderr,"textfollow: sbuf is %s %d %d %d %d\n",sbuf,f_len,len,fitchars,fitpix); */
   if ((len+2) > fitchars ) { lstrlen = fitchars; } else { lstrlen = len; }
-  XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+  XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
   XFlush(theDisp);
   XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,cross_cursor);
 
@@ -4141,14 +4570,14 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
         if(event.xvisibility.state == 0 ) {
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (initial_f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           altbox(alt,asklm3,asklm3+1,&msgbx.b_bottom,&altbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
         }
         break;
@@ -4179,22 +4608,32 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
           /* Determine new left edge of prompt text. */
           lprompt = askbx.b_left;
           tprompt = msgbx.b_right - ((asklm1+2) * f_width);
+          vfw=0;
+          XftTextExtents8(theDisp,fst,askmsg1,asklm1,&info);
+          if( info.xOff > vfw ) vfw= info.xOff+5;
+          tpromptgl = msgbx.b_right - vfw;
           if (tprompt < lprompt) lprompt = tprompt;
+          if (tpromptgl < lprompt) lprompt = tpromptgl;
           tprompt = askbx.b_left - ((asklm2+2) * f_width);
+          vfw=0;
+          XftTextExtents8(theDisp,fst,askmsg2,asklm2,&info);
+          if( info.xOff > vfw ) vfw= info.xOff+5;
+          tpromptgl = askbx.b_left - vfw;
           if (tprompt < lprompt) lprompt = tprompt;
+          if (tpromptgl < lprompt) lprompt = tpromptgl;
           if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
           asklprompt = lprompt;   /* remember the position */
 
           /* Redraw the prompt strings and then the boxes. */
           if (saved_font != current_font) winfnt_(&saved_font);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (initial_f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           altbox(alt,asklm3,asklm3+1,&msgbx.b_bottom,&altbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
         }
         break;
@@ -4239,14 +4678,14 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
 /* debug  fprintf(stderr,"Inside askdialog display x %d y %d\n",x,y);  */
           if (saved_font != current_font) winfnt_(&saved_font);
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           altbox(alt,asklm3,asklm3+1,&msgbx.b_bottom,&altbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
           no_valid_event = TRUE;
           break;
@@ -4266,6 +4705,7 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
 
   strncpy(sstr,sbuf,(unsigned int)f_len);
   XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,arrow_cursor);
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
 } /* askaltdialog */
 
@@ -4282,6 +4722,8 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
 {
   XEvent event;
   XWindowAttributes wa;
+  XGlyphInfo info;
+  XftDraw *draw;
   static char sbuf[144];
   int b_width;   /* b_width  pixels w/in box */
   int fitchars,offsc,x1,fitpix;  /* chars able to fit within box, chars between left of string & cursor */
@@ -4293,7 +4735,8 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
   int okbox_left, qbox_left, dbox_left, cnclbox_left;	/* positions of small boxes */
   int initial_f_height;  /* font height used for the small boxes */
   unsigned int start_height,start_width;
-  int lprompt,tprompt;   /* cursor position, prompt left side */
+  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
+  int vfw;
 
 /* remember position and size of the whole module (so as to detect changes) */
   XGetWindowAttributes(theDisp,win,&wa);
@@ -4308,6 +4751,9 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
 /* cncl box is on far right  */
   cnclbox_left = msgbx.b_right - ((1 * 5) + (f_width * (1 + asklm3)));
   initial_f_height = f_height;  /* remember in case of a resize */
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 /*
  Find actual string length and truncate when printing to fit within box.
 */
@@ -4319,10 +4765,11 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
 
   b_width = WIDTH(askbx);
   fitchars = ((b_width - f_width) / f_width);
-  fitpix = XTextWidth(fst, sbuf, len);
+  XftTextExtents8(theDisp,fst,sbuf,len,&info);
+  fitpix = info.width;
 /* debug  fprintf(stderr,"textfollow: sbuf is %s %d %d %d %d\n",sbuf,f_len,len,fitchars,fitpix); */
   if ((len+2) > fitchars ) { lstrlen = fitchars; } else { lstrlen = len; }
-  XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+  XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
   XFlush(theDisp);
   XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,cross_cursor);
 
@@ -4345,14 +4792,14 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
         if(event.xvisibility.state == 0 ) {
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (initial_f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           altbox(cncl,asklm3,asklm3+1,&msgbx.b_bottom,&cnclbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
         }
         break;
@@ -4385,22 +4832,32 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
           /* Determine new left edge of prompt text. */
           lprompt = askbx.b_left;
           tprompt = msgbx.b_right - ((asklm1+2) * f_width);
+          vfw=0;
+          XftTextExtents8(theDisp,fst,askmsg1,asklm1,&info);
+          if( info.xOff > vfw ) vfw= info.xOff+5;
+          tpromptgl = msgbx.b_right - vfw;
           if (tprompt < lprompt) lprompt = tprompt;
+          if (tpromptgl < lprompt) lprompt = tpromptgl;
           tprompt = askbx.b_left - ((asklm2+2) * f_width);
+          vfw=0;
+          XftTextExtents8(theDisp,fst,askmsg2,asklm2,&info);
+          if( info.xOff > vfw ) vfw= info.xOff+5;
+          tpromptgl = askbx.b_left - vfw;
           if (tprompt < lprompt) lprompt = tprompt;
+          if (tpromptgl < lprompt) lprompt = tpromptgl;
           if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
           asklprompt = lprompt;   /* remember the position */
 
           /* Redraw the prompt strings and then the boxes. */
           if (saved_font != current_font) winfnt_(&saved_font);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (initial_f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);  /* print text */
           altbox(cncl,asklm3,asklm3+1,&msgbx.b_bottom,&cnclbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
         }
         break;
@@ -4445,14 +4902,14 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
 /* debug  fprintf(stderr,"Inside askdialog display x %d y %d\n",x,y);  */
           if (saved_font != current_font) winfnt_(&saved_font);
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           altbox(cncl,asklm3,asklm3+1,&msgbx.b_bottom,&cnclbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
           no_valid_event = TRUE;
           break;
@@ -4472,6 +4929,7 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
 
   strncpy(sstr,sbuf,(unsigned int)f_len);
   XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,arrow_cursor);
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
 } /* askcncldialog */
 
@@ -4487,6 +4945,8 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
 {
   XEvent event;
   XWindowAttributes wa;
+  XGlyphInfo info;
+  XftDraw *draw;
   static char sbuf[144];
   int b_width;   /* b_width  pixels w/in box */
   int fitchars,offsc,x1,fitpix;  /* chars able to fit within box, chars between left of string & cursor */
@@ -4512,6 +4972,9 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
   qbox_left = msgbx.b_right - ((2 * 5) + (f_width * 4));
 /* defaults box is 1 box over and 2 char total to the right */
   dbox_left = msgbx.b_right - ((1 * 5) + (f_width * 2));
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 /*
  Find actual string length and truncate when printing to fit within box.
 */
@@ -4524,10 +4987,11 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
 
   b_width = WIDTH(askbx);
   fitchars = ((b_width - f_width) / f_width);
-  fitpix = XTextWidth(fst, sbuf, len);
+  XftTextExtents8(theDisp,fst,sbuf,len,&info);
+  fitpix = info.width;
 /* debug  fprintf(stderr,"textfollow: sbuf is %s %d %d %d %d\n",sbuf,f_len,len,fitchars,fitpix); */
   if ((len+2) > fitchars ) { lstrlen = fitchars; } else { lstrlen = len; }
-  XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+  XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
   XFlush(theDisp);
   XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,cross_cursor);
 
@@ -4552,13 +5016,13 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
           altbox(alt,asklm3,asklm3+1,&msgbx.b_bottom,&altbox_left,'-');
           alt2box(alt2,asklm4,asklm4+1,&msgbx.b_bottom,&alt2box_left,'-');
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
         }
         break;
@@ -4578,7 +5042,7 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
         }
         break;
@@ -4630,13 +5094,13 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
           altbox(alt,asklm3,asklm3+1,&msgbx.b_bottom,&altbox_left,'-');
           alt2box(alt2,asklm4,asklm4+1,&msgbx.b_bottom,&alt2box_left,'-');
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - (f_height+8),askmsg1,asklm1);
-          XDrawString(theDisp,win,theGC,asklprompt,msgbx.b_bottom - 3,askmsg2,asklm2);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
           okbox("ok",2,3,&msgbx.b_bottom,&okbox_left,'-');
           xbox(askbx,fg,white,BMCLEAR |BMEDGES);   /* draw input box with edges  */
-          XDrawString(theDisp,win,theGC,askbx.b_left+f_width,askbx.b_bottom-3,sbuf,lstrlen);
+          XftDrawString8(draw, &xft_color,fst,askbx.b_left+f_width,askbx.b_bottom-3,(XftChar8 *) sbuf,lstrlen);
           XFlush(theDisp);
           no_valid_event = TRUE;
           break;
@@ -4657,6 +5121,7 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
 
   strncpy(sstr,sbuf,(unsigned int)f_len);
   XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,arrow_cursor);
+  XftDrawDestroy(draw);
   if (saved_font != butn_fnt) winfnt_(&saved_font);
 } /* ask2altdialog */
 
@@ -4669,6 +5134,7 @@ void msgbox_(msg1,msg2,len1,len2)
   char      *msg1,*msg2;
   int  len1,len2;      /* lengths as supplied by fortran      */
 {
+  XftDraw *draw;
   int lm1, lm2;     /* local string lengths found by test  */
   long int saved_font;
 
@@ -4683,15 +5149,21 @@ void msgbox_(msg1,msg2,len1,len2)
 
 /* Set number of dialogue line =2 to signal that the dialogue box exists */
   dialogue_lines = 2;
-  msgbx.b_top = xrt_height - ((f_height+4) * 2) - 3; msgbx.b_bottom= xrt_height - 3;
+  msgbx.b_top = xrt_height - ((f_height+4) * 2) - 3;
+  msgbx.b_bottom= xrt_height - 3;
   msgbx.b_left  = 2;
 /*  msgbx.b_right = xrt_width - (f_width * 11); */
   msgbx.b_right = xrt_width - 2;
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-  XDrawString(theDisp,win,theGC,msgbx.b_left+2+f_lbearing,msgbx.b_bottom-(f_height+8),msg1,lm1);
-  XDrawString(theDisp,win,theGC,msgbx.b_left+2+f_lbearing,msgbx.b_bottom-3,msg2,lm2);
+  XftDrawString8(draw, &xft_color,fst,msgbx.b_left+2,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+  XftDrawString8(draw, &xft_color,fst,msgbx.b_left+2,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
   XFlush(theDisp);  /* added to force draw */
   if (saved_font != butn_fnt) winfnt_(&saved_font);
+  XftDrawDestroy(draw);
   return;
 } /* msgbox */
 
@@ -4709,13 +5181,16 @@ void continuebox_(msg1,msg2,opta,len1,len2,len3)
 {
   XEvent event;
   XWindowAttributes wa;
+  XftDraw *draw;
+  XGlyphInfo info;
   int	no_valid_event = TRUE;
   int abox_left, msg_bb ;	/* positions of small boxes */
-  int x1,y1,lprompt,tprompt;         /* cursor position, prompt left side   */
+  int x1,y1,lprompt,tprompt,tpromptgl;         /* cursor position, prompt left side   */
   int lm1,lm2,lm3;         /* local string lengths found by test      */
   long int saved_font;
   unsigned int start_height,start_width;
   int iaux;         /* unused return from aux_menu      */
+  int vfw;
 
 /* remember position and size of the whole module (so as to detect changes) */
   XGetWindowAttributes(theDisp,win,&wa);
@@ -4733,14 +5208,27 @@ void continuebox_(msg1,msg2,opta,len1,len2,len3)
 /* determine left edge of prompt text */
   lprompt = abox_left;
   tprompt = msgbx.b_right - ((lm1+2) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = msgbx.b_right - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   tprompt = abox_left - ((lm2+2) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = abox_left - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+2;
 
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-(f_height+8),msg1,lm1);
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-3,msg2,lm2);
+  XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+  XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
   XFlush(theDisp);
   msg_bb = msgbx.b_bottom;
   abcdboxs(opta,lm3,lm3+1,&msg_bb,&abox_left,'a');       /* yes box with edges  */
@@ -4757,8 +5245,8 @@ void continuebox_(msg1,msg2,opta,len1,len2,len3)
         if(event.xvisibility.state == 0 ) {
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-(f_height+8),msg1,lm1);
-          XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-3,msg2,lm2);
+          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
           XFlush(theDisp);
           msg_bb = msgbx.b_bottom;
           abcdboxs(opta,lm3,lm3+1,&msg_bb,&abox_left,'a');       /* yes box with edges  */
@@ -4773,8 +5261,8 @@ void continuebox_(msg1,msg2,opta,len1,len2,len3)
 /* debug  fprintf(stderr,"continue box detected configure event\n"); */
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-(f_height+8),msg1,lm1);
-          XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-3,msg2,lm2);
+          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
           XFlush(theDisp);
           msg_bb = msgbx.b_bottom;
           abcdboxs(opta,lm3,lm3+1,&msg_bb,&abox_left,'a');       /* yes box with edges  */
@@ -4787,7 +5275,7 @@ void continuebox_(msg1,msg2,opta,len1,len2,len3)
           xbox(a,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XDrawString(theDisp,win,theGC,a.b_left+4,a.b_bottom-3,opta,lm3);
+          XftDrawString8(draw, &xft_color,fst,a.b_left+4,a.b_bottom-3,(XftChar8 *) opta,lm3);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           break;
         } else {
@@ -4795,8 +5283,8 @@ void continuebox_(msg1,msg2,opta,len1,len2,len3)
           if ( iaux == 2 ) {	/* if resize then redraw the dialog */
 /* debug  fprintf(stderr,"Inside continuebox display\n");  */
             xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-            XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-(f_height+8),msg1,lm1);
-            XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-3,msg2,lm2);
+            XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+            XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
             XFlush(theDisp);
             msg_bb = msgbx.b_bottom;
             abcdboxs(opta,lm3,lm3+1,&msg_bb,&abox_left,'a');       /* yes box with edges  */
@@ -4822,6 +5310,7 @@ void continuebox_(msg1,msg2,opta,len1,len2,len3)
   Timer(100);
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);  /* clear dialogue box  */
   if (saved_font != butn_fnt) winfnt_(&saved_font);
+  XftDrawDestroy(draw);
   return;
 } /* continuebox */
 
@@ -4842,10 +5331,12 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
   XEvent event;
   XWindowAttributes wa;
   KeySym     ks;
+  XftDraw *draw;
+  XGlyphInfo info;
   static char buf[80],*bp;
   char k_char,keypressed;
   int	no_valid_event = TRUE;
-  int x1,y1,lprompt,tprompt;	/* cursor position, prompt left side   */
+  int x1,y1,lprompt,tprompt,tpromptgl;	/* cursor position, prompt left side and with glyph info  */
   int qbox_left,abox_left,bbox_left,cbox_left,dbox_left,ebox_left,fbox_left,gbox_left;	/* positions of small boxes */
   int lm1,lm2,lm3,lm4,lm5,lm6,lm7,lm8,lm9,msg_bb;	/* local string lengths found by test      */
   int nopts;	/* number of options (based on if option text blank) */
@@ -4853,10 +5344,14 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
   static int blen = 0;
   unsigned int start_height,start_width;
   int iaux;         /* unused return from aux_menu      */
+  int vfw;
 
-/* Find ends of strings passed and terminate. */
+/* Text within choice boxes use the butn_fnt so calling code should ensure that
+   this has been reset appropriately before calling. */
    saved_font = current_font;
    if (saved_font != butn_fnt) winfnt_(&butn_fnt);
+
+/* Find ends of strings passed and terminate. */
    nopts = 0;
    f_to_c_l(msg1,&len1,&lm1);
    f_to_c_l(msg2,&len2,&lm2);
@@ -4874,63 +5369,76 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
   start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width;
 
 /* query box is right box and 2 char total to the right */
-  qbox_left = msgbx.b_right - ((1 * 5) + (f_width * 2));
+  qbox_left = msgbx.b_right - ((f_width * 2)+3 );
 /* a, b, c, d, e, f and g boxs ... */
   if (nopts == 2) {
-    bbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm4+3)));
-    abox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm4+1+lm3+3)));
+    bbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm4+2)+3 ));
+    abox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm4+2+lm3+2)+3 ));
   } else if (nopts == 3) {
-    cbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm5+3)));
-    bbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm5+1+lm4+3)));
-    abox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm5+1+lm4+1+lm3+3)));
+    cbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm5+2)+3 ));
+    bbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm5+2+lm4+2)+3 ));
+    abox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm5+2+lm4+2+lm3+2)+3 ));
   } else if (nopts == 4) {
-    dbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm6+3)));
-    cbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm6+1+lm5+3)));
-    bbox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm6+1+lm5+1+lm4+3)));
-    abox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm6+1+lm5+1+lm4+1+lm3+3)));
+    dbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm6+2)+3 ));
+    cbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm6+2+lm5+2)+3 ));
+    bbox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm6+2+lm5+2+lm4+2)+3 ));
+    abox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm6+2+lm5+2+lm4+2+lm3+2)+3 ));
   } else if (nopts == 5) {
-    ebox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm7+3)));
-    dbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm7+1+lm6+3)));
-    cbox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm7+1+lm6+1+lm5+3)));
-    bbox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm7+1+lm6+1+lm5+1+lm4+3)));
-    abox_left = msgbx.b_right - ((6 * 5) + (f_width * (lm7+1+lm6+1+lm5+1+lm4+1+lm3+3)));
+    ebox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm7+2)+3 ));
+    dbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm7+2+lm6+2)+3));
+    cbox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm7+2+lm6+2+lm5+2)+3));
+    bbox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm7+2+lm6+2+lm5+2+lm4+2)+3));
+    abox_left = msgbx.b_right - ((6 * 5) + (f_width * (lm7+2+lm6+2+lm5+2+lm4+2+lm3+2)+3));
   } else if (nopts == 6) {
-    fbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm8+3)));
-    ebox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm8+1+lm7+3)));
-    dbox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm8+1+lm7+1+lm6+3)));
-    cbox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm8+1+lm7+1+lm6+1+lm5+3)));
-    bbox_left = msgbx.b_right - ((6 * 5) + (f_width * (lm8+1+lm7+1+lm6+1+lm5+1+lm4+3)));
-    abox_left = msgbx.b_right - ((7 * 5) + (f_width * (lm8+1+lm7+1+lm6+1+lm5+1+lm4+1+lm3+3)));
+    fbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm8+2)+3));
+    ebox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm8+2+lm7+2)+3));
+    dbox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm8+2+lm7+2+lm6+2)+3));
+    cbox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm8+2+lm7+2+lm6+2+lm5+2)+3));
+    bbox_left = msgbx.b_right - ((6 * 5) + (f_width * (lm8+2+lm7+2+lm6+2+lm5+2+lm4+2)+3));
+    abox_left = msgbx.b_right - ((7 * 5) + (f_width * (lm8+2+lm7+2+lm6+2+lm5+2+lm4+2+lm3+2)+3));
   } else if (nopts == 7) {
-    gbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm9+3)));
-    fbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm9+1+lm8+3)));
-    ebox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm9+1+lm8+1+lm7+3)));
-    dbox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm9+1+lm8+1+lm7+1+lm6+3)));
-    cbox_left = msgbx.b_right - ((6 * 5) + (f_width * (lm9+1+lm8+1+lm7+1+lm6+1+lm5+3)));
-    bbox_left = msgbx.b_right - ((7 * 5) + (f_width * (lm9+1+lm8+1+lm7+1+lm6+1+lm5+1+lm4+3)));
-    abox_left = msgbx.b_right - ((8 * 5) + (f_width * (lm9+1+lm8+1+lm7+1+lm6+1+lm5+1+lm4+1+lm3+3)));
+    gbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm9+2)+3));
+    fbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm9+2+lm8+2)+3));
+    ebox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm9+2+lm8+2+lm7+2)+3));
+    dbox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm9+2+lm8+2+lm7+2+lm6+2)+3));
+    cbox_left = msgbx.b_right - ((6 * 5) + (f_width * (lm9+2+lm8+2+lm7+2+lm6+2+lm5+2)+3));
+    bbox_left = msgbx.b_right - ((7 * 5) + (f_width * (lm9+2+lm8+2+lm7+2+lm6+2+lm5+2+lm4+2)+2));
+    abox_left = msgbx.b_right - ((8 * 5) + (f_width * (lm9+2+lm8+2+lm7+2+lm6+2+lm5+2+lm4+2+lm3+2)+3));
   }
 
-/* determine left edge of prompt text */
+/* determine left edge of prompt text also check via XftTextExtents8 */
   lprompt = abox_left;
-  tprompt = msgbx.b_right - ((lm1+2) * f_width);
+  tprompt = msgbx.b_right - ((lm1+3) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = msgbx.b_right - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
-  tprompt = abox_left - ((lm2+2) * f_width);
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
+  tprompt = abox_left - ((lm2+3) * f_width);
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+  if( info.xOff > vfw ) vfw= info.xOff+5;
+  tpromptgl = abox_left - vfw;
   if (tprompt < lprompt) lprompt = tprompt;
+  if (tpromptgl < lprompt) lprompt = tpromptgl;
   if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+2;
 
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-(f_height+8),msg1,lm1);
-  XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-3,msg2,lm2);
+  XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+  XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
   XFlush(theDisp);
   msg_bb = msgbx.b_bottom;
-  abcdboxs(opta,lm3,lm3+1,&msg_bb,&abox_left,'a');       /* a box with edges  */
-  abcdboxs(optb,lm4,lm4+1,&msg_bb,&bbox_left,'b');       /* b box with edges  */
-  if(nopts >= 3) abcdboxs(optc,lm5,lm5+1,&msg_bb,&cbox_left,'c');       /* c box with edges  */
-  if(nopts >= 4) abcdboxs(optd,lm6,lm6+1,&msg_bb,&dbox_left,'d');       /* d box with edges  */
-  if(nopts >= 5) abcdboxs(opte,lm7,lm7+1,&msg_bb,&ebox_left,'e');       /* e box with edges  */
-  if(nopts >= 6) abcdboxs(optf,lm8,lm8+1,&msg_bb,&fbox_left,'f');       /* f box with edges  */
-  if(nopts >= 7) abcdboxs(optg,lm9,lm9+1,&msg_bb,&gbox_left,'g');       /* g box with edges  */
+  abcdboxs(opta,lm3,lm3+2,&msg_bb,&abox_left,'a');       /* a box with edges  */
+  abcdboxs(optb,lm4,lm4+2,&msg_bb,&bbox_left,'b');       /* b box with edges  */
+  if(nopts >= 3) abcdboxs(optc,lm5,lm5+2,&msg_bb,&cbox_left,'c');       /* c box with edges  */
+  if(nopts >= 4) abcdboxs(optd,lm6,lm6+2,&msg_bb,&dbox_left,'d');       /* d box with edges  */
+  if(nopts >= 5) abcdboxs(opte,lm7,lm7+2,&msg_bb,&ebox_left,'e');       /* e box with edges  */
+  if(nopts >= 6) abcdboxs(optf,lm8,lm8+2,&msg_bb,&fbox_left,'f');       /* f box with edges  */
+  if(nopts >= 7) abcdboxs(optg,lm9,lm9+2,&msg_bb,&gbox_left,'g');       /* g box with edges  */
   qbox_("?",1,2,&msg_bb,&qbox_left,'-');	/* draw querry box with edges  */
   *ok = 0;                     /* assume no answer         */
 /*
@@ -4946,17 +5454,17 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
         if(event.xvisibility.state == 0 ) {
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-(f_height+8),msg1,lm1);
-          XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-3,msg2,lm2);
+          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
           XFlush(theDisp);
           msg_bb = msgbx.b_bottom;
-          abcdboxs(opta,lm3,lm3+1,&msg_bb,&abox_left,'a');       /* a box with edges  */
-          abcdboxs(optb,lm4,lm4+1,&msg_bb,&bbox_left,'b');       /* b box with edges  */
-          if(nopts >= 3) abcdboxs(optc,lm5,lm5+1,&msg_bb,&cbox_left,'c');       /* c box with edges  */
-          if(nopts >= 4) abcdboxs(optd,lm6,lm6+1,&msg_bb,&dbox_left,'d');       /* d box with edges  */
-          if(nopts >= 5) abcdboxs(opte,lm7,lm7+1,&msg_bb,&ebox_left,'e');       /* e box with edges  */
-          if(nopts >= 6) abcdboxs(optf,lm8,lm8+1,&msg_bb,&fbox_left,'f');       /* f box with edges  */
-          if(nopts >= 7) abcdboxs(optg,lm9,lm9+1,&msg_bb,&gbox_left,'g');       /* g box with edges  */
+          abcdboxs(opta,lm3,lm3+2,&msg_bb,&abox_left,'a');       /* a box with edges  */
+          abcdboxs(optb,lm4,lm4+2,&msg_bb,&bbox_left,'b');       /* b box with edges  */
+          if(nopts >= 3) abcdboxs(optc,lm5,lm5+2,&msg_bb,&cbox_left,'c');       /* c box with edges  */
+          if(nopts >= 4) abcdboxs(optd,lm6,lm6+2,&msg_bb,&dbox_left,'d');       /* d box with edges  */
+          if(nopts >= 5) abcdboxs(opte,lm7,lm7+2,&msg_bb,&ebox_left,'e');       /* e box with edges  */
+          if(nopts >= 6) abcdboxs(optf,lm8,lm8+2,&msg_bb,&fbox_left,'f');       /* f box with edges  */
+          if(nopts >= 7) abcdboxs(optg,lm9,lm9+2,&msg_bb,&gbox_left,'g');       /* g box with edges  */
           qbox_("?",1,2,&msg_bb,&qbox_left,'-');	/* draw querry box with edges  */
           *ok = 0;                     /* assume no answer         */
         }
@@ -4970,17 +5478,17 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
 /* debug  fprintf(stderr,"abcdefbox detected configure event\n"); */
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-(f_height+8),msg1,lm1);
-          XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-3,msg2,lm2);
+          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
           XFlush(theDisp);
           msg_bb = msgbx.b_bottom;
-          abcdboxs(opta,lm3,lm3+1,&msg_bb,&abox_left,'a');       /* a box with edges  */
-          abcdboxs(optb,lm4,lm4+1,&msg_bb,&bbox_left,'b');       /* b box with edges  */
-          if(nopts >= 3) abcdboxs(optc,lm5,lm5+1,&msg_bb,&cbox_left,'c');       /* c box with edges  */
-          if(nopts >= 4) abcdboxs(optd,lm6,lm6+1,&msg_bb,&dbox_left,'d');       /* d box with edges  */
-          if(nopts >= 5) abcdboxs(opte,lm7,lm7+1,&msg_bb,&ebox_left,'e');       /* e box with edges  */
-          if(nopts >= 6) abcdboxs(optf,lm8,lm8+1,&msg_bb,&fbox_left,'f');       /* f box with edges  */
-          if(nopts >= 7) abcdboxs(optg,lm9,lm9+1,&msg_bb,&gbox_left,'g');       /* g box with edges  */
+          abcdboxs(opta,lm3,lm3+2,&msg_bb,&abox_left,'a');       /* a box with edges  */
+          abcdboxs(optb,lm4,lm4+2,&msg_bb,&bbox_left,'b');       /* b box with edges  */
+          if(nopts >= 3) abcdboxs(optc,lm5,lm5+2,&msg_bb,&cbox_left,'c');       /* c box with edges  */
+          if(nopts >= 4) abcdboxs(optd,lm6,lm6+2,&msg_bb,&dbox_left,'d');       /* d box with edges  */
+          if(nopts >= 5) abcdboxs(opte,lm7,lm7+2,&msg_bb,&ebox_left,'e');       /* e box with edges  */
+          if(nopts >= 6) abcdboxs(optf,lm8,lm8+2,&msg_bb,&fbox_left,'f');       /* f box with edges  */
+          if(nopts >= 7) abcdboxs(optg,lm9,lm9+2,&msg_bb,&gbox_left,'g');       /* g box with edges  */
           qbox_("?",1,2,&msg_bb,&qbox_left,'-');	/* draw querry box with edges  */
           *ok = 0;                     /* assume no answer         */
         }
@@ -4992,7 +5500,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(a,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XDrawString(theDisp,win,theGC,a.b_left+4,a.b_bottom-3,opta,lm3);
+          XftDrawString8(draw, &xft_color,fst,a.b_left+4,a.b_bottom-3,(XftChar8 *) opta,lm3);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 1;
    	  break;
@@ -5001,7 +5509,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(b,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XDrawString(theDisp,win,theGC,b.b_left+4,b.b_bottom-3,optb,lm4);
+          XftDrawString8(draw, &xft_color,fst,b.b_left+4,b.b_bottom-3,(XftChar8 *) optb,lm4);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 2;
           break;
@@ -5010,7 +5518,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(c,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XDrawString(theDisp,win,theGC,c.b_left+4,c.b_bottom-3,optc,lm5);
+          XftDrawString8(draw, &xft_color,fst,c.b_left+4,c.b_bottom-3,(XftChar8 *) optc,lm5);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 3;
           break;
@@ -5019,7 +5527,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(d,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XDrawString(theDisp,win,theGC,d.b_left+4,d.b_bottom-3,optd,lm6);
+          XftDrawString8(draw, &xft_color,fst,d.b_left+4,d.b_bottom-3,(XftChar8 *) optd,lm6);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 4;
           break;
@@ -5028,7 +5536,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(e,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XDrawString(theDisp,win,theGC,e.b_left+4,e.b_bottom-3,opte,lm7);
+          XftDrawString8(draw, &xft_color,fst,e.b_left+4,e.b_bottom-3,(XftChar8 *) opte,lm7);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 5;
           break;
@@ -5037,7 +5545,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(f,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XDrawString(theDisp,win,theGC,f.b_left+4,f.b_bottom-3,optf,lm8);
+          XftDrawString8(draw, &xft_color,fst,f.b_left+4,f.b_bottom-3,(XftChar8 *) optf,lm8);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 6;
           break;
@@ -5046,7 +5554,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(g,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XDrawString(theDisp,win,theGC,g.b_left+4,g.b_bottom-3,optg,lm9);
+          XftDrawString8(draw, &xft_color,fst,g.b_left+4,g.b_bottom-3,(XftChar8 *) optg,lm9);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 7;
           break;
@@ -5060,17 +5568,17 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           iaux = aux_menu((XEvent *) &event);	/* check and see if text scrolled etc. */
           if ( iaux == 2 ) {	/* if resize then redraw the dialog */
             xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-            XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-(f_height+8),msg1,lm1);
-            XDrawString(theDisp,win,theGC,lprompt,msgbx.b_bottom-3,msg2,lm2);
+            XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+            XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
             XFlush(theDisp);
             msg_bb = msgbx.b_bottom;
-            abcdboxs(opta,lm3,lm3+1,&msg_bb,&abox_left,'a');       /* a box with edges  */
-            abcdboxs(optb,lm4,lm4+1,&msg_bb,&bbox_left,'b');       /* b box with edges  */
-            if(nopts >= 3) abcdboxs(optc,lm5,lm5+1,&msg_bb,&cbox_left,'c');       /* c box with edges  */
-            if(nopts >= 4) abcdboxs(optd,lm6,lm6+1,&msg_bb,&dbox_left,'d');       /* d box with edges  */
-            if(nopts >= 5) abcdboxs(opte,lm7,lm7+1,&msg_bb,&ebox_left,'e');       /* e box with edges  */
-            if(nopts >= 6) abcdboxs(optf,lm8,lm8+1,&msg_bb,&fbox_left,'f');       /* f box with edges  */
-            if(nopts >= 7) abcdboxs(optg,lm9,lm9+1,&msg_bb,&gbox_left,'g');       /* g box with edges  */
+            abcdboxs(opta,lm3,lm3+2,&msg_bb,&abox_left,'a');       /* a box with edges  */
+            abcdboxs(optb,lm4,lm4+2,&msg_bb,&bbox_left,'b');       /* b box with edges  */
+            if(nopts >= 3) abcdboxs(optc,lm5,lm5+2,&msg_bb,&cbox_left,'c');       /* c box with edges  */
+            if(nopts >= 4) abcdboxs(optd,lm6,lm6+2,&msg_bb,&dbox_left,'d');       /* d box with edges  */
+            if(nopts >= 5) abcdboxs(opte,lm7,lm7+2,&msg_bb,&ebox_left,'e');       /* e box with edges  */
+            if(nopts >= 6) abcdboxs(optf,lm8,lm8+2,&msg_bb,&fbox_left,'f');       /* f box with edges  */
+            if(nopts >= 7) abcdboxs(optg,lm9,lm9+2,&msg_bb,&gbox_left,'g');       /* g box with edges  */
             qbox_("?",1,2,&msg_bb,&qbox_left,'-');	/* draw querry box with edges  */
             *ok = 0;                     /* assume no answer         */
           }
@@ -5112,6 +5620,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
     xbox(msgbx,fg,white,BMCLEAR |BMEDGES);                    /* clear dialogue box  */
   }
   if (saved_font != butn_fnt) winfnt_(&saved_font);
+  XftDrawDestroy(draw);
   return;
 } /* abcdefbox */
 
@@ -5177,7 +5686,7 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
   saved_font = current_font;
   winfnt_(&menu_fnt);  /* menu font to get right side of box.  */
   mf_width = f_width;
-  winfnt_(&small_fnt);
+  winfnt_(&butn_fnt);
   label_ht = f_height+4;
   label_wid = f_width;
   winfnt_(&butn_fnt);  /* button font (used for dialogue text).  */
@@ -5188,16 +5697,16 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
   disp.b_right = xrt_width - (mf_width * (*menu_char)) - 16;
 
 /* sort out boxs along the horizontal line between graphics and text feedback boxes */
-  winfnt_(&small_fnt);
+  winfnt_(&butn_fnt);
   wire_left = disp.b_right - (f_width * 26);
-  capture_left = disp.b_right - (f_width * 8);
-  captext_left = disp.b_right - (f_width * 8);
+  capture_left = disp.b_right - (f_width * 9);  /* bit more space */
+  captext_left = disp.b_right - (f_width * 9);  /* bit more space */
   elevplus_left = disp.b_right - (f_width * 30);
   elevminus_left = disp.b_right - (f_width * 33);
-  elev_left = disp.b_right - (f_width * 44);
-  aziplus_left = disp.b_right - (f_width * 48);
-  aziminus_left = disp.b_right - (f_width * 51);
-  azi_left = disp.b_right - (f_width * 60);
+  elev_left = disp.b_right - (f_width * 45);
+  aziplus_left = disp.b_right - (f_width * 49);
+  aziminus_left = disp.b_right - (f_width * 52);
+  azi_left = disp.b_right - ((f_width * 62)+4);
   udh = f_height + 2;
 
   winfnt_(&disp_fnt);	/* Reload the text display font. */
@@ -5213,7 +5722,7 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
      disp.b_top  = disp.b_bottom -((f_height+1) * lines) - 10;
  }
 
- winfnt_(&small_fnt);
+ winfnt_(&butn_fnt);
 
 /* draw scroll bar box */
   drscrollbar();
@@ -5221,7 +5730,7 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
 /* create the updown box */
  updown_text.b_bottom = disp.b_top -2;
  updown_text.b_top = updown_text.b_bottom - udh;
- updown_text.b_left =  disp.b_right - (f_width * 67);
+ updown_text.b_left =  disp.b_right - (f_width * 70);
  updown_text.b_right = updown_text.b_left + 30;
  xt = updown_text.b_left+10;         /* points for arrows */
  xb = updown_text.b_left+20;        /* points for arrows */
@@ -5236,36 +5745,36 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
 /* include image control button just in from right edge */
  if(wire_avail >= 1) {
    bottom = disp.b_top; left = wire_left;
-   doitbox(wire,"image control",13,14,&saved_font,&small_fnt,&bottom,&left,"wire",'-');
+   doitbox(wire,"image control",13,15,&saved_font,&box_fnt,&bottom,&left,"wire",'-');
  }
 
 /* include capture button to left of image control button */
  if(capture_avail >= 1) {
    bottom = disp.b_top; left = capture_left;
-   doitbox(capture,"capture",7,8,&saved_font,&small_fnt,&bottom,&left,"capture",'-');
+   doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"capture",'-');
    bottom = fbb.b_bottom; left = captext_left;
-   doitbox(capture,"capture",7,8,&saved_font,&small_fnt,&bottom,&left,"captext",'-');
+   doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"captext",'-');
  }
 
 /* include azimuth button */
  if(azi_avail >= 1) {
    bottom = disp.b_top; left = aziplus_left;
-   dosymbox(aziplus,2,&saved_font,&small_fnt,&bottom,&left,"aziplus",'-');
+   dosymbox(aziplus,2,&saved_font,&box_fnt,&bottom,&left,"aziplus",'-');
 
    bottom = disp.b_top; left = aziminus_left;
-   dosymbox(aziminus,2,&saved_font,&small_fnt,&bottom,&left,"aziminus",'-');
+   dosymbox(aziminus,2,&saved_font,&box_fnt,&bottom,&left,"aziminus",'-');
 
    bottom = disp.b_top; left = azi_left;
-   doitbox(azi,"azimuth",7,8,&saved_font,&small_fnt,&bottom,&left,"azi",'-');
+   doitbox(azi,"azimuth",7,9,&saved_font,&box_fnt,&bottom,&left,"azi",'-');
 
    bottom = disp.b_top; left = elevplus_left;
-   dosymbox(elevplus,2,&saved_font,&small_fnt,&bottom,&left,"elevplus",'-');
+   dosymbox(elevplus,2,&saved_font,&box_fnt,&bottom,&left,"elevplus",'-');
 
    bottom = disp.b_top; left = elevminus_left;
-   dosymbox(elevminus,2,&saved_font,&small_fnt,&bottom,&left,"elevminus",'-');
+   dosymbox(elevminus,2,&saved_font,&box_fnt,&bottom,&left,"elevminus",'-');
 
    bottom = disp.b_top; left = elev_left;
-   doitbox(elev,"elevation",9,10,&saved_font,&small_fnt,&bottom,&left,"elev",'-');
+   doitbox(elev,"elevation",9,11,&saved_font,&box_fnt,&bottom,&left,"elev",'-');
  }
 
   xbox(disp,fg,white,BMCLEAR |BMEDGES);      /* draw outer box with edges  */
@@ -5287,6 +5796,7 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
 */
 void disptext()
 {
+  XftDraw *draw;
   int iy,lm1,i,len;
   long int saved_font;
   int j,jstart; 	/* variables for text feedback redisplay */
@@ -5306,6 +5816,10 @@ void disptext()
   j = 0;
   jstart = scroll_index - tfb_line;
   if (jstart < 1) jstart = 1;
+
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
   xbox(disp,fg,white,BMCLEAR);		/* Clear area under text. */
   for ( i = jstart; i < (scroll_index +1); i++ ) {
     strcpy(msg2,edisp_list[i]);	/* copy to local */
@@ -5314,7 +5828,7 @@ void disptext()
       lm1 = (((disp.b_right - 15) - disp.b_left) / f_width)-1;
     }
     iy = disp.b_top + 1 + ((f_height+1) * (j + 1));
-    XDrawString(theDisp,win,theGC,disp.b_left+5,iy,msg2,lm1);
+    XftDrawString8(draw, &xft_color,fst,disp.b_left+5,iy,(XftChar8 *) msg2,lm1);
     j = j + 1;
   }
 
@@ -5322,6 +5836,7 @@ void disptext()
 
   if (disp_fnt != saved_font) winfnt_(&saved_font);  /* Restore font.  */
   XFlush(theDisp); /* added to force draw */
+  XftDrawDestroy(draw);
   return;
 } /* disptext */
 
@@ -6519,6 +7034,7 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
  Local variables: WticL is the maximum character width of a tic label,
  ix & iy are the pixel coords, vertadj is half of the text height.
 */
+ XftDraw *draw;
  int s_0,s_1, s_2, s_3, s_4, s_5;
  int ofl,ofb,oft,sid;
  char sstr[10], buf[2];
@@ -6555,6 +7071,9 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
 
 /* Find the length of the axis label passed */
  if( (int) strlen(sstr) > label_width) label_width = (int) strlen(sstr);
+
+// Define local drawable for Xft font.
+ draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
 /* Draw a scale vertical axis. */
  s_0 = ix1 = ofl;
@@ -6607,15 +7126,15 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
     iy1 = iy; ix1 = s_4;	/* remember position */
 
     s_3 = iy + vertadj;            /* font centered vertically     */
-    if (sid == 0) {              /* position label left or right */
+    if (sid == 0) {                /* position label left or right */
       s_5 = ofl - (((label_width+1) * f_width));
     } else {
-      s_5 = ofl + f_width +2;
+      s_5 = ofl + f_width +4;      /* leave a bit of space between number and tic */
     }
 
     if (s_3 < (last_label_pixel - (f_height + vertadj))) {
       n = (int) strlen(sstr);
-      XDrawString(theDisp,win,theGC,s_5,s_3,sstr,n);
+      XftDrawString8(draw, &xft_color,fst,s_5,s_3,(XftChar8 *) sstr,n);
       last_label_pixel = s_3;
       XDrawLine(theDisp,win,theGC,ix1,iy1,s_2,iy);	/* extra tic length at label */
     }
@@ -6633,34 +7152,35 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
  character in the string and placing in a buffer for printing.
  If label on right ensure a bit of space between characters and
  the right edge of box to allow for image capture. If on right
- offset by 3 characters.
+ offset by 4 characters.
 */
   if (sid == 0) {
       ix = dbx1.b_left + (2 *f_width);
   } else {
-      ix = dbx1.b_right - (3 * f_width);
+      ix = dbx1.b_right - (4 * f_width);
   }
   mid = oft + ((ofb - oft)/2);
   iy = mid - (vertadj * ilen);
   if ((ofb - oft) > (f_height * ilen)){
     for (l = 0; l < ilen; ++l) {
       buf[0] = msg[l]; buf[1] = '\0';
-      XDrawString(theDisp,win,theGC,ix,iy,buf,1);
+      XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buf,1);
       iy = iy + f_height;
     }
   }
   if (saved_font != butn_fnt) winfnt_(&saved_font);
+  XftDrawDestroy(draw);
   return;
 } /* vrtaxsdd_ */
 
 
 /* ************** HORAXSdd *********************** */
 /*
- Construct and draw a horizontal axis via WW where: XMN,XMX are the data
+ Construct and draw a horizontal axis where: XMN,XMX are the data
  minimum & maximum values, offL & offB are the pixel coords of the
  left start of the axis.  SCA is the scaling factor and Xadd is a data
  offset to adjust plotting for various data ranges. mode defines how
- left starting point is adjusted. ddx is data interval, nx number
+ left starting point is adjusted. ddx is data interval, nnx number
  of decimal places to use.
 */
 
@@ -6676,6 +7196,7 @@ void horaxisdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
  WticC is the pixel shift (horizontal) to centre the tic label, ix & iy
  are the pixel coords.
 */
+ XftDraw *draw;
  int s_1, s_2, s_3, s_4, s_5;
  int ofl,ofb,ofr;
  char sstr[10];
@@ -6707,6 +7228,9 @@ void horaxisdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
  xticv = *xmx;
  labelstr(&nx, &xticv, &wticc, sstr);
  if( (int) strlen(sstr) > label_width) label_width = (int) strlen(sstr);
+
+// Define local drawable for Xft font.
+ draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
 /* Draw a vertical axis. */
  ix = ix1 = ofl;
@@ -6754,7 +7278,7 @@ void horaxisdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
    s_3 = iy +f_height + 5; /* bottom of font  */
    n = (int) strlen(sstr);
    if (s_5 >= (last_label_right_pixel + f_width)) {
-     XDrawString(theDisp,win,theGC,s_2,s_3,sstr,n);
+     XftDrawString8(draw, &xft_color,fst,s_2,s_3,(XftChar8 *) sstr,n);
      last_label_right_pixel = s_5 + (label_width * f_width);
      XDrawLine(theDisp,win,theGC,ix,iy,ix,s_4+2);  /* extra tic length at label */
    }
@@ -6771,9 +7295,11 @@ void horaxisdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
  mid = ofl + ((ofr - ofl)/2);
  ix = mid - (f_width * ilen /2);
  if (ix > 5){
-   XDrawString(theDisp,win,theGC,ix,iy,msg2,ilen);
+   XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) msg2,ilen);
  }
  if (saved_font != butn_fnt) winfnt_(&saved_font);
+ XFlush(theDisp);
+ XftDrawDestroy(draw);
  return;
 } /* horaxisdd_ */
 
@@ -6809,6 +7335,7 @@ void horaxishdwdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,
  WticC is the pixel shift (horizontal) to centre the tic label, ix & iy
  are the pixel coords.
 */
+ XftDraw *draw;
  int s_1, s_2, s_3, s_4, s_5;
  int ofl,ofb,ofr;
  char sstr[10];
@@ -6862,6 +7389,9 @@ void horaxishdwdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,
  }
  labelstr(&nx, &xticv, &wticc, sstr);
  if( (int) strlen(sstr) > label_width) label_width = (int) strlen(sstr);
+
+// Define local drawable for Xft font.
+ draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
 /* Draw a vertical axis. */
  ix = ix1 = ofl;
@@ -6920,7 +7450,7 @@ void horaxishdwdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,
    s_3 = iy +f_height + 5; /* bottom of font  */
    n = (int) strlen(sstr);
    if (s_5 >= (last_label_right_pixel + f_width)) {
-     XDrawString(theDisp,win,theGC,s_2,s_3,sstr,n);
+     XftDrawString8(draw, &xft_color,fst,s_2,s_3,(XftChar8 *) sstr,n);
      last_label_right_pixel = s_5 + (label_width * f_width);
      XDrawLine(theDisp,win,theGC,ix,iy,ix,s_4+2);  /* extra tic length at label */
    }
@@ -6937,9 +7467,11 @@ void horaxishdwdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,
  mid = ofl + ((ofr - ofl)/2);
  ix = mid - (f_width * ilen /2);
  if (ix > 5){
-   XDrawString(theDisp,win,theGC,ix,iy,msg2,ilen);
+   XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) msg2,ilen);
  }
  if (saved_font != butn_fnt) winfnt_(&saved_font);
+ XFlush(theDisp);
+ XftDrawDestroy(draw);
  return;
 } /* horaxishdwdd_ */
 
@@ -6985,18 +7517,21 @@ void updmenu_(items,itypes,nitmsptr,iw,len_items)
 void movemse()
 /* local variables */
 {
+  XftDraw *draw;
   long int saved_font;
   int bh;
 
   saved_font = current_font;
-  if (saved_font != small_fnt) winfnt_(&small_fnt);
+  if (saved_font != butn_fnt) winfnt_(&butn_fnt);
   bh = f_height+2;	/* box height is font height +2 */
   mouse.b_top = dbx1.b_bottom - bh - bh;    /* double height box here */
   mouse.b_bottom = dbx1.b_bottom - 2;
   mouse.b_left = mouse.b_right - (f_width * 8) +4;
   xbox(mouse,fg,white, BMCLEAR | BMEDGES);
   mouse_avail = 1;             /* tell the world that mouse help is available */
-  XDrawString(theDisp,win,theGC,mouse.b_left+2,mouse.b_bottom-2," mouse ",7);
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+  XftDrawString8(draw, &xft_color,fst,mouse.b_left+2,mouse.b_bottom-2," mouse ",7);
+  XftDrawDestroy(draw);
 
 /* Draw boxes representing buttons */
   mouse1.b_top = mouse.b_top + 1;
@@ -7014,7 +7549,7 @@ void movemse()
   mouse3.b_right = mouse.b_right - 2;
   mouse3.b_left = mouse3.b_right - bh;
   xbox(mouse3,fg,white, BMCLEAR | BMEDGES);
-  if (saved_font != small_fnt) winfnt_(&saved_font);  /* restore std font */
+  if (saved_font != butn_fnt) winfnt_(&saved_font);  /* restore std font */
 
   return;
 } /* movemse */
@@ -7059,10 +7594,12 @@ int		len_title;
   XWindowAttributes wa;
   Pixmap under;		        /* to save image under help box  */
   KeySym     ks;
+  XftDraw *draw;
   static char buf[80];
   static int blen = 0;
   char	keypressed,menuentry;
   long int saved_font, use_font, changed_font, label_font;
+  int bottom,left;   /* ll of capture box */
   int   mob_height, mob_width,mib_height,mib_width,xb,yb,x,y,i,iy,pflg,lt1,iw,index,lineheight;
   int   u_height, u_width;      /* size of the under pixmap */
   int   menu_height;   /* pixel height for text of menu */
@@ -7072,6 +7609,13 @@ int		len_title;
   int	no_valid_event,config_altered,iaux,butid;
   int   oldi,notted;    /* remember last motion hilight and if an item yet hilighted */
   unsigned int start_height,start_width;
+
+  elevplus_left = disp.b_right - (f_width * 30);
+  elevminus_left = disp.b_right - (f_width * 33);
+  elev_left = disp.b_right - (f_width * 45);
+  aziplus_left = disp.b_right - (f_width * 49);
+  aziminus_left = disp.b_right - (f_width * 52);
+  azi_left = disp.b_right - ((f_width * 62)+4);
 
   if(m_lines == 0)return;	/* don't bother if no menu */
   iw = (int) *iwth;  /* character width to display */
@@ -7091,10 +7635,13 @@ int		len_title;
 /* Begin by changing to the current menu font. */
   if(saved_font != menu_fnt) { winfnt_(&menu_fnt); use_font = menu_fnt; }
 
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
 /*  Check if the text will fit within window, if not down-size until it does. */
   menu_height = (m_lines+1)*(f_height+2);
   while (xrt_height < menu_height) {
-    if (use_font == 0) break;
+    if (use_font == 0  || use_font == 4 ) break;
     use_font-- ;
     winfnt_(&use_font);
     menu_height = (m_lines+1)*(f_height+2);
@@ -7141,12 +7688,12 @@ int		len_title;
   xbox(gmenubx,fg,bg,BMEDGES);
   xbox(menubx,fg,white,BMCLEAR|BMEDGES);	/* draw menu display box  */
 
-  XDrawString(theDisp,win,theGC,menubx.b_left+10,menubx.b_top-5,titleptr,lt1);  /* title */
+  XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,menubx.b_top-5,(XftChar8 *) titleptr,lt1);
 
 /* display lines of text.  */
   for ( i = 0; i < m_lines; i++ ) {
     iy = menubx.b_top + ((i + 1) * (f_height+2)) + 5;
-    XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,m_list[i],iw);  /* print text */
+    XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) m_list[i],iw);
   }
   XFlush(theDisp); /* force drawing of menu text */
 
@@ -7199,7 +7746,7 @@ int		len_title;
 /* debug     fprintf(stderr,"m_list %s %d %d %d %d\n",m_list[i],i,iy,hl_box.b_bottom,hl_box.b_top); */
              xbox(hl_box,fg,ginvert, BMCLEAR | BMNOT );        /* grey item */
              XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-             XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,m_list[i],iw);  /* print text */
+             XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) m_list[i],iw);
              XFlush(theDisp);
              XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
              Timer(300);
@@ -7233,7 +7780,7 @@ int		len_title;
                 hl_box.b_bottom = iy + 3;
                 hl_box.b_top = hl_box.b_bottom - (f_height+4);
                 xbox(hl_box,fg,white, BMCLEAR | BMNOT);
-                XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,m_list[oldi],iw);  /* print text */
+                XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) m_list[oldi],iw);
                 XNextEvent (theDisp,&event);	/* flush  */
               }
               iy = menubx.b_top + ((i + 1) * (f_height+2)) + 5;  /* hilight the current item */
@@ -7241,7 +7788,7 @@ int		len_title;
               hl_box.b_top = hl_box.b_bottom - (f_height+4);
 /* debug      fprintf(stderr,"m_list %s %d %d %d %d\n",m_list[i],i,iy,hl_box.b_bottom,hl_box.b_top);  */
               xbox(hl_box,fg,gmenuhl, BMCLEAR | BMNOT);
-              XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,m_list[i],iw);  /* print text */
+              XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) m_list[i],iw);
               XNextEvent (theDisp,&event);	/* flush  */
               oldi = i;   /* remember item hilighted and that one is hilighted*/
               notted = TRUE;
@@ -7252,7 +7799,7 @@ int		len_title;
           hl_box.b_bottom = iy + 3;
           hl_box.b_top = hl_box.b_bottom - (f_height+4);
           xbox(hl_box,fg,white, BMCLEAR | BMNOT);
-          XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,m_list[oldi],iw);  /* print text */
+          XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) m_list[oldi],iw);
           XNextEvent (theDisp,&event);	/* flush  */
           oldi = OFFEND;
           notted = FALSE;
@@ -7298,7 +7845,7 @@ int		len_title;
 /* debug        fprintf(stderr,"m_list %s %d %d\n",m_list[index],index,iy); */
                 xbox(hl_box,fg,ginvert, BMCLEAR | BMNOT );        /* invert box */
                 XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-                XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,m_list[index],iw);  /* print text */
+                XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) m_list[index],iw);
                 XFlush(theDisp);
                 XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
                 Timer(300);
@@ -7309,7 +7856,29 @@ int		len_title;
    	    break;
           }
         } else {
-/* debug  fprintf(stderr,"track_edit_str nothing in buf \n"); */
+          if (azi_avail >=1) {
+            if (ks==XK_Left || ks==XK_KP_Left) { /* left arrow pressed */
+              no_valid_event = FALSE;
+              saved_font = current_font; bottom = disp.b_top; left = aziminus_left;
+              dosymbox(aziminus,2,&saved_font,&box_fnt,&bottom,&left,"aziminus",'!');
+            break;
+            } else if (ks==XK_Right || ks==XK_KP_Right) { /* right arrow pressed */
+              no_valid_event = FALSE;
+              saved_font = current_font; bottom = disp.b_top; left = aziplus_left;
+              dosymbox(aziplus,2,&saved_font,&box_fnt,&bottom,&left,"aziplus",'!');
+            break;
+            } else if (ks==XK_Up || ks==XK_KP_Up) { /* up arrow pressed */
+              no_valid_event = FALSE;
+              saved_font = current_font; bottom = disp.b_top; left = elevplus_left;
+              dosymbox(elevplus,2,&saved_font,&box_fnt,&bottom,&left,"elevplus",'!');
+            break;
+            } else if (ks==XK_Down || ks==XK_KP_Down) { /* down arrow pressed */
+              no_valid_event = FALSE;
+              saved_font = current_font; bottom = disp.b_top; left = elevminus_left;
+              dosymbox(elevminus,2,&saved_font,&box_fnt,&bottom,&left,"elevminus",'!');
+            break;
+            }
+          }
         }
         break;
     }
@@ -7318,6 +7887,7 @@ int		len_title;
   XClearArea(theDisp,win,gmenubx.b_left,gmenubx.b_top,(unsigned int) u_width,(unsigned int) u_height,exp);
   if(config_altered == 0)pix_to_box(under,u_width,u_height,gmenubx,win);
   XFreePixmap(theDisp, under);
+  XftDrawDestroy(draw);
   if(XPending(theDisp) > 0) {
 /* debug  fprintf(stderr,"evwmenu: events remaining %d\n",XPending(theDisp)); */
     while ( XPending(theDisp) > 0) {
@@ -7330,11 +7900,98 @@ int		len_title;
   return;
 }
 
+/* *************** Extents of ESRU pop-up menu box. *************** */
+/*
+ This function takes current menu text and returns the width of the
+ active menu area and the pixel width of the longest line of text.
+*/
+
+void extentsvwmenu_(titleptr,	/* title for menu                   */
+  iwth,			/* menu character width to print    */
+  ipixwthma,ipixwthll,  /* pixel with allocated for menu area and longest line  */
+  ivfw,ivfwsp,ivfwul,   /* avg character widths */
+  len_title		/* length of title (from f77 compiler) */
+  )
+char	*titleptr;
+long int   *iwth,*ipixwthma,*ipixwthll;
+long int   *ivfw,*ivfwsp,*ivfwul; /* avarage font widths */
+int        len_title;
+{
+/* Local variables   */
+  char *test = "_A_V_";
+  char *testsp = "     ";
+  char *testul = "_____";
+  KeySym     ks;
+  XGlyphInfo info;
+  long int saved_font, use_font, changed_font, label_font;
+  int   mib_width,i,iy,lt1,iw;
+  int   lt,ltsp,ltul;  /* lengths of test strings */
+  int   vfw,vfwsp,vfwul; /* avarage font widths */
+  int fonth,imw,foundul;
+  int pixwthll,pixwthbl,pixwthul;
+  
+  if(m_lines == 0)return;	/* don't bother if no menu */
+  iw = (int) *iwth;  /* character width to display */
+  pixwthll=0,pixwthbl=0,pixwthul=0;     /* initially zero */ 
+  changed_font = 0; label_font = 0;
+  saved_font = use_font = current_font; /* save existing font  */
+
+/* Begin by changing to the current menu font. */
+  if(saved_font != menu_fnt) { winfnt_(&menu_fnt); use_font = menu_fnt; }
+
+  mib_width = (iw*f_width+2);	/* inner pixel width */
+
+// Get width of the title
+  lt1=clnblnk(titleptr);
+  XftTextExtents8(theDisp,fst,titleptr,lt1,&info);
+  fonth = fst->ascent + fst->descent;
+// debug fprintf(stderr,"fst XftTextExtents8 %ld %d %d %d %d avgfw %d\n",strlen(titleptr),lt1,fonth,info.width,info.xOff,info.xOff/lt1);
+//  fprintf(stderr,"of %s\n",titleptr);
+
+/* for each of the menu items... Find a way to exlude lines with lots of _ */
+  for ( i = 0; i < m_lines; i++ ) {
+    foundul=0;
+    if (strstr(m_list[i],"______")) foundul = 1;
+    if (foundul==1){
+    } else {
+      imw=clnblnk(m_list[i]);
+      XftTextExtents8(theDisp,fst, m_list[i],imw,&info);
+      fonth = fst->ascent + fst->descent;
+//      fprintf(stderr,"menu XftTextExtents8 %d %d %d %d %d %d %d %d avgfw %d\n",iw,imw,fonth,info.width,info.height,info.x,info.y,info.xOff,info.xOff/imw);
+//      fprintf(stderr,"of %s\n",m_list[i]);
+      if(info.xOff > pixwthll) pixwthll = info.xOff;
+    }
+  }
+//  fprintf(stderr,"pixels for widest line %d\n",pixwthll);
+//  fprintf(stderr,"menu pixels allocated %d\n",mib_width);
+
+/* Get average width of test strings. */
+  lt=clnblnk(test);
+  XftTextExtents8(theDisp,fst,test,lt,&info);
+  vfw = (info.xOff/lt);
+  ltsp=clnblnk(testsp);
+  XftTextExtents8(theDisp,fst,testsp,ltsp,&info);
+  vfwsp = (info.xOff/ltsp);
+  ltul=clnblnk(testul);
+  XftTextExtents8(theDisp,fst,testul,ltul,&info);
+  vfwul = (info.xOff/ltul);
+  fprintf(stderr,"average font width %d spaces %d _ %d\n",vfw,vfwsp,vfwul);
+
+  if (changed_font == 1) winfnt_(&saved_font);  /* Restore font.  */
+  *ipixwthma=(long int)mib_width;  /* allocated width */
+  *ipixwthll=(long int)pixwthll;   /* pixels for longest line */
+  *ivfw=(long int)vfw;             /* average test characters pixel width */
+  *ivfwsp=(long int)vfwsp;         /* average for spaces pixel width */
+  *ivfwul=(long int)vfwul;         /* average for _ pixel width */
+  return;
+}
+
 /* ****************** auxulliary menu
   Used to test for mouse click in other portions of the screen.
 */
 int aux_menu(event)  XEvent *event; {
 
+  XftDraw *draw;
   int x,y,k,x_old,y_old,win_x,win_y,idiff,butid;     /* current cursor postion and pressed button id */
   int vert,no_valid_event;
   long int saved_font;
@@ -7368,19 +8025,25 @@ int aux_menu(event)  XEvent *event; {
   long int active=0;
   float dx=0.0;
   float dy=0.0;
+  long int idx=0;
+  long int idy=0;
+  long int ifrlk=0;
 
 /* update left position of boxes along horizontal bar */
    saved_font = menu_fnt;
-   if (saved_font != small_fnt) winfnt_(&small_fnt);
+   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
    wire_left = disp.b_right - (f_width * 26);
-   capture_left = disp.b_right - (f_width * 8);
+   capture_left = disp.b_right - (f_width * 9);
    elevplus_left = disp.b_right - (f_width * 30);
    elevminus_left = disp.b_right - (f_width * 33);
-   elev_left = disp.b_right - (f_width * 44);
-   aziplus_left = disp.b_right - (f_width * 48);
-   aziminus_left = disp.b_right - (f_width * 51);
-   azi_left = disp.b_right - (f_width * 60);
-   if (saved_font != small_fnt) winfnt_(&saved_font);  /* restore std font */
+   elev_left = disp.b_right - (f_width * 45);
+   aziplus_left = disp.b_right - (f_width * 49);
+   aziminus_left = disp.b_right - (f_width * 52);
+   azi_left = disp.b_right - ((f_width * 62)+4);
+   if (saved_font != butn_fnt) winfnt_(&saved_font);  /* restore std font */
+
+// Define local drawable for Xft font.
+   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
 /* debug  fprintf(stderr,"aux_menu event type %d\n",event->type);  */
   switch (event->type) {
@@ -7796,54 +8459,50 @@ point*/
 
 /* selected wire frame control */
         saved_font = menu_fnt; bottom = disp.b_top; left = wire_left;
-        doitbox(wire,"image control",13,14,&saved_font,&small_fnt,&bottom,&left,"wire",'!');
+        doitbox(wire,"image control",13,15,&saved_font,&box_fnt,&bottom,&left,"wire",'!');
       } else if(capture_avail >= 1 && xboxinside(capture,x,y)) {
 
 /* capture image button */
         saved_font = current_font; bottom = disp.b_top; left = capture_left;
-        doitbox(capture,"capture",7,8,&saved_font,&small_fnt,&bottom,&left,"capture",'!');
+        doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"capture",'!');
         but_rlse = 1;
       } else if(capture_avail >= 1 && xboxinside(captext,x,y)) {
 
 /* capture text button */
         saved_font = current_font;
         bottom = fbb.b_bottom; left = captext_left;
-        doitbox(capture,"capture",7,8,&saved_font,&small_fnt,&bottom,&left,"captext",'!');
+        doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"captext",'!');
         but_rlse = 1;
       } else if (azi_avail >=1 && xboxinside(aziplus,x,y)) {
 
 /* selected azimuth +  control */
         saved_font = current_font; bottom = disp.b_top; left = aziplus_left;
-        dosymbox(aziplus,2,&saved_font,&small_fnt,&bottom,&left,"aziplus",'!');
-        refreshenv_();  // to esure that current domains are re-drawn
+        dosymbox(aziplus,2,&saved_font,&box_fnt,&bottom,&left,"aziplus",'!');
       } else if (azi_avail >=1 && xboxinside(aziminus,x,y)) {
 
 /* selected azimuth -  control */
         saved_font = current_font; bottom = disp.b_top; left = aziminus_left;
-        dosymbox(aziminus,2,&saved_font,&small_fnt,&bottom,&left,"aziminus",'!');
-        refreshenv_();  // to esure that current domains are re-drawn
+        dosymbox(aziminus,2,&saved_font,&box_fnt,&bottom,&left,"aziminus",'!');
       } else if (azi_avail >=1 && xboxinside(elevplus,x,y)) {
 
 /* selected elev +  control */
         saved_font = current_font; bottom = disp.b_top; left = elevplus_left;
-        dosymbox(elevplus,2,&saved_font,&small_fnt,&bottom,&left,"elevplus",'!');
-        refreshenv_();  // to esure that current domains are re-drawn
+        dosymbox(elevplus,2,&saved_font,&box_fnt,&bottom,&left,"elevplus",'!');
       } else if (azi_avail >=1 && xboxinside(elevminus,x,y)) {
 
 /* selected elev -  control */
         saved_font = current_font; bottom = disp.b_top; left = elevminus_left;
-        dosymbox(elevminus,2,&saved_font,&small_fnt,&bottom,&left,"elevminus",'!');
-        refreshenv_();  // to esure that current domains are re-drawn
+        dosymbox(elevminus,2,&saved_font,&box_fnt,&bottom,&left,"elevminus",'!');
       } else if (setup_avail == 1 && xboxinside(setup,x,y)) {
 
-/* selected setup display */
+/* selected fonts display */
         saved_font = current_font; bottom = b_setup; left = l_setup;
-        doitbox(setup,"fonts    ",9,10,&saved_font,&butn_fnt,&bottom,&left,"setup",'!');
+        doitbox(setup,"fonts  ",7,9,&saved_font,&box_fnt,&bottom,&left,"setup",'!');
       } else if (cpw_avail >=1 && xboxinside(cpw,x,y)) {
 
-/* selected copyright */
+/* selected license */
         saved_font = current_font; bottom = b_cpw; left = l_cpw;
-        doitbox(cpw,"copyright",9,10,&saved_font,&butn_fnt,&bottom,&left,"copyright",'!');
+        doitbox(cpw,"license",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'!');
       } else if (cfg_boxs == 0 && xboxinside(cfgz,x,y)) {
 
 /* Check buttons inside graphics feedback.  If in button then do required
@@ -7852,11 +8511,11 @@ point*/
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgz,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XDrawString(theDisp,win,theGC,cfgz.b_left+4,cfgz.b_bottom-2,"registration ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"registration ",13);
         avail_cfg = 'r';
         cfgpk_(&avail_cfg,len_avail);	/* pass back registration to fortran  */
         xbox(cfgz,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XDrawString(theDisp,win,theGC,cfgz.b_left+4,cfgz.b_bottom-2,"registration ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"registration ",13);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
       } else if (cfg_boxs >= 1 && xboxinside(cfgz,x,y)) {
 
@@ -7864,11 +8523,11 @@ point*/
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgz,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XDrawString(theDisp,win,theGC,cfgz.b_left+4,cfgz.b_bottom-2,"zones        ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"zones        ",13);
         avail_cfg = 'z';
         cfgpk_(&avail_cfg,len_avail);	/* pass back zones to fortran */
         xbox(cfgz,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XDrawString(theDisp,win,theGC,cfgz.b_left+4,cfgz.b_bottom-2,"zones        ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"zones        ",13);
         if (iiocfgz >= 1) {	/* zones images */
           eyex = cfgz.b_right - 14;
           eyey = cfgz.b_bottom - (f_height/2);
@@ -7881,14 +8540,14 @@ point*/
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgn,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XDrawString(theDisp,win,theGC,cfgn.b_left+4,cfgn.b_bottom-2,"networks     ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgn.b_left+4,cfgn.b_bottom-2,"networks     ",13);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
         avail_cfg = 'n';
         cfgpk_(&avail_cfg,len_avail);	/* pass back plant to fortran */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgn,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XDrawString(theDisp,win,theGC,cfgn.b_left+4,cfgn.b_bottom-2,"networks     ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgn.b_left+4,cfgn.b_bottom-2,"networks     ",13);
         if (iiocfgn >= 1) {	/* network images */
           eyex = cfgn.b_right - 14;
           eyey = cfgn.b_bottom - (f_height/2);
@@ -7901,14 +8560,14 @@ point*/
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgc,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XDrawString(theDisp,win,theGC,cfgc.b_left+4,cfgc.b_bottom-2,"controls     ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgc.b_left+4,cfgc.b_bottom-2,"controls     ",13);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
         avail_cfg = 'c';
         cfgpk_(&avail_cfg,len_avail);	/* pass back plant to fortran */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgc,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XDrawString(theDisp,win,theGC,cfgc.b_left+4,cfgc.b_bottom-2,"controls     ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgc.b_left+4,cfgc.b_bottom-2,"controls     ",13);
         if (iiocfgc >= 1) {	/* network images */
           eyex = cfgc.b_right - 14;
           eyey = cfgc.b_bottom - (f_height/2);
@@ -7921,14 +8580,14 @@ point*/
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgdfn,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XDrawString(theDisp,win,theGC,cfgdfn.b_left+4,cfgdfn.b_bottom-2,"domain flow  ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+4,cfgdfn.b_bottom-2,"domain flow  ",13);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
         avail_cfg = 'd';
         cfgpk_(&avail_cfg,len_avail);	/* pass back cfd to fortran */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgdfn,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XDrawString(theDisp,win,theGC,cfgdfn.b_left+4,cfgdfn.b_bottom-2,"domain flow  ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+4,cfgdfn.b_bottom-2,"domain flow  ",13);
         if (iiocfgdfn >= 1) {	/* network images */
           eyex = cfgdfn.b_right - 14;
           eyey = cfgdfn.b_bottom - (f_height/2);
@@ -7939,7 +8598,7 @@ point*/
 
 /* if in mouse box - help on mouse button clicks */
         saved_font = current_font;
-        if (saved_font != small_fnt) winfnt_(&small_fnt);
+        if (saved_font != butn_fnt) winfnt_(&butn_fnt);
         bh = f_height+2;	/* box height is font height +2 */
         msehbx.b_bottom = mouse.b_top - 4;
         msehbx.b_top = msehbx.b_bottom - bh;
@@ -7948,15 +8607,15 @@ point*/
         xbox(msehbx,fg,white, BMCLEAR);
         if (butid == 1) {
           xbox(mouse1,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-          XDrawString(theDisp,win,theGC,msehbx.b_left+4,msehbx.b_bottom-2,mseb1h,strlen(mseb1h));
+          XftDrawString8(draw, &xft_color,fst,msehbx.b_left+4,msehbx.b_bottom-2,(XftChar8 *) mseb1h,strlen(mseb1h));
         } else if (butid == 2) {
           xbox(mouse2,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
           bh = f_width*(10-strlen(mseb2h))/2;
-          XDrawString(theDisp,win,theGC,msehbx.b_left+4+bh,msehbx.b_bottom-2,mseb2h,strlen(mseb2h));
+          XftDrawString8(draw, &xft_color,fst,msehbx.b_left+4+bh,msehbx.b_bottom-2,(XftChar8 *) mseb2h,strlen(mseb2h));
         } else if (butid == 3) {
           xbox(mouse3,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
           bh = f_width*strlen(mseb3h);
-          XDrawString(theDisp,win,theGC,msehbx.b_right-2-bh,msehbx.b_bottom-2,mseb3h,strlen(mseb3h));
+          XftDrawString8(draw, &xft_color,fst,msehbx.b_right-2-bh,msehbx.b_bottom-2,(XftChar8 *) mseb3h,strlen(mseb3h));
         }
         no_valid_event = TRUE;
         while (no_valid_event) {
@@ -7973,11 +8632,46 @@ point*/
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
       } else if (xboxinside(viewbx,x,y)){
 
-/* inside graphics display - note this and return */
+/* inside graphics display */
+/* if view controls are present, enable freelook until mouse is released */
+        if (azi_avail >=1) {
+          x_old=x;
+          y_old=y;
+          no_valid_event = TRUE;
+          while ( no_valid_event) {
+            XNextEvent(theDisp,event);
+            switch (event->type) {
+              case MotionNotify: /* while mouse is moving track position  */
+                x = event->xmotion.x; y = event->xmotion.y;
+                idx=x-x_old; idy=y-y_old;
+                ifrlk=1;
+                if (abs(idx)>10) {
+                  chgazi_(&idx,&ifrlk);
+                  x_old=x;
+                }
+                if (abs(idy)>10) {
+                  chgelev_(&idy,&ifrlk);
+                  y_old=y;
+                }
+                break;
+              case ButtonRelease:   /* button released so jump out of loop  */
+                idx=0;
+                ifrlk=0;
+                chgazi_(&idx,&ifrlk);
+                no_valid_event = FALSE;
+                break;
+              default:
+                no_valid_event = TRUE;
+                break;
+            }
+          }
+        }
         but_rlse=5;
       }
+    XftDrawDestroy(draw);
     return (but_rlse);
   }
+  XftDrawDestroy(draw);
   return (but_rlse);
 } /* aux_menu */
 
@@ -8052,22 +8746,22 @@ void refreshenv_()
    return;
 } /* refreshenv */
 
-/* ******  Place copyright button on screen ********** */
+/* ******  Place license button on screen ********** */
 /* Place towards the right side of window and just above the base. */
 void opencpw_()
 {
  long int saved_font;
  int bottom, left;	/* pixel at lower left of box */
  int label_ht;		/* for height of the dialog box */
- saved_font = current_font;
- if (saved_font != small_fnt) winfnt_(&small_fnt);
- label_ht = f_height+4;
+ int cpwfont;           /* smallest proportional font */
+ saved_font = current_font; cpwfont=4;
  if (saved_font != butn_fnt) winfnt_(&butn_fnt);
- cpw_avail = 1;             /* tell the world that copyright is available */
+ label_ht = f_height+4;
+ cpw_avail = 1;             /* tell the world that license is available */
  if (dialogue_lines != 0) { b_cpw = msgbx.b_top -6; } else { b_cpw = xrt_height -16; }
- l_cpw= xrt_width - ((f_width * 10) + 3);
+ l_cpw= xrt_width - ((f_width * 9) + 3);
  bottom = b_cpw; left = l_cpw;
- doitbox(cpw,"copyright",9,10,&saved_font,&butn_fnt,&bottom,&left,"copyright",'-');
+ doitbox(cpw,"license",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'-');
  return;
 } /* opencpw */
 
@@ -8077,6 +8771,7 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
   long int *icfgz,*icfgn,*icfgc,*icfgdfn;     /* toggles for zones/networks/control/domain boxes */
   long int *iicfgz,*iicfgn,*iicfgc,*iicfgdfn;	/* indicators for associated images */
 {
+ XftDraw *draw;
  long int eyex,eyey,sym,sz;  /* centre for image symbols and symbol index and size */
  long int saved_font;
  int bh,hdl;
@@ -8095,6 +8790,9 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
  if (saved_font != disp_fnt) winfnt_(&disp_fnt);
  cfg_boxs = *cfg_type;	/* tell the world that config boxes are available */
 
+// Define local drawable for Xft font.
+ draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
 /*
  boxs are buttons, set them to unused area until required.
 */
@@ -8105,18 +8803,18 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
 
   bh = f_height+2;	/* box height is font height +2 */
   hdl = viewbx.b_right - (f_width * 19);
-  XDrawString(theDisp,win,theGC,hdl,viewbx.b_top+bh-1,"Active definitions",18);
+  XftDrawString8(draw, &xft_color,fst,hdl,viewbx.b_top+bh-1,"Active definitions",18);
   if (cfg_boxs == 0){	/* registration level  */
     cfgz.b_top = viewbx.b_top + bh;    cfgz.b_bottom = cfgz.b_top + bh;
     cfgz.b_right = viewbx.b_right - 2; cfgz.b_left = cfgz.b_right - (f_width * 14);
     xbox(cfgz,fg,white, BMCLEAR | BMEDGES);
-    XDrawString(theDisp,win,theGC,cfgz.b_left+4,cfgz.b_bottom-2,"registration",12);
+    XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"registration",12);
   } else {
     if (oocfgz == 1) {	/* zones */
       cfgz.b_top = viewbx.b_top + bh +2;    cfgz.b_bottom = cfgz.b_top + bh;
       cfgz.b_right = viewbx.b_right - 2; cfgz.b_left = cfgz.b_right - (f_width * 13);
       xbox(cfgz,fg,white, BMCLEAR | BMEDGES);
-      XDrawString(theDisp,win,theGC,cfgz.b_left+4,cfgz.b_bottom-2,"zones      ",11);
+      XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"zones      ",11);
       if (iiocfgz >= 1) {	/* zones images */
         eyex = cfgz.b_right - 14;
         eyey = cfgz.b_bottom - (f_height/2);
@@ -8127,7 +8825,7 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
       cfgn.b_top   = viewbx.b_top +bh +bh +6;   cfgn.b_bottom = cfgn.b_top + bh;
       cfgn.b_right = viewbx.b_right - 2; cfgn.b_left = cfgn.b_right - (f_width * 13);
       xbox(cfgn,fg,white, BMCLEAR | BMEDGES);
-      XDrawString(theDisp,win,theGC,cfgn.b_left+4,cfgn.b_bottom-2,"networks   ",11);
+      XftDrawString8(draw, &xft_color,fst,cfgn.b_left+4,cfgn.b_bottom-2,"networks   ",11);
       if (iiocfgn >= 1) {	/* network images */
         eyex = cfgn.b_right - 14;
         eyey = cfgn.b_bottom - (f_height/2);
@@ -8138,7 +8836,7 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
       cfgc.b_top   = viewbx.b_top + (3 * bh) +10;   cfgc.b_bottom = cfgc.b_top + bh;
       cfgc.b_right = viewbx.b_right - 2; cfgc.b_left = cfgc.b_right - (f_width * 13);
       xbox(cfgc,fg,white, BMCLEAR | BMEDGES);   /* draw the controls box */
-      XDrawString(theDisp,win,theGC,cfgc.b_left+4,cfgc.b_bottom-2,"controls   ",11);
+      XftDrawString8(draw, &xft_color,fst,cfgc.b_left+4,cfgc.b_bottom-2,"controls   ",11);
       if (iiocfgc >= 1) {	/* network images */
         eyex = cfgc.b_right - 14;
         eyey = cfgc.b_bottom - (f_height/2);
@@ -8149,7 +8847,7 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
       cfgdfn.b_top   = viewbx.b_top + (4 * bh) +14;   cfgdfn.b_bottom = cfgdfn.b_top + bh;
       cfgdfn.b_right = viewbx.b_right - 2; cfgdfn.b_left = cfgdfn.b_right - (f_width * 13);
       xbox(cfgdfn,fg,white, BMCLEAR | BMEDGES);
-      XDrawString(theDisp,win,theGC,cfgdfn.b_left+4,cfgdfn.b_bottom-2,"domain flow",11);
+      XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+4,cfgdfn.b_bottom-2,"domain flow",11);
       if (iiocfgdfn >= 1) {	/* network images */
         eyex = cfgdfn.b_right - 14;
         eyey = cfgdfn.b_bottom - (f_height/2);
@@ -8159,6 +8857,7 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
   }
 
   if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
+  XftDrawDestroy(draw);
   return;
 } /* opencfg */
 
@@ -8172,11 +8871,11 @@ void opensetup_()
  saved_font = current_font;
  if (saved_font != butn_fnt) winfnt_(&butn_fnt);
  setup_avail = 1;             /* tell the world that setup is available */
- l_setup = xrt_width - ((f_width * 10) + 3);
+ l_setup = xrt_width - ((f_width * 9) + 3);
  if (dialogue_lines != 0) { b_setup = msgbx.b_top -24; } else { b_setup = xrt_height -34; }
 
  bottom = b_setup; left = l_setup;
- doitbox(setup,"fonts    ",9,10,&saved_font,&butn_fnt,&bottom,&left,"setup",'-');
+ doitbox(setup,"fonts  ",7,9,&saved_font,&box_fnt,&bottom,&left,"setup",'-');
  return;
 } /* opensetup */
 
@@ -8192,7 +8891,7 @@ void updwire_(avail)
   if(wire_avail == 0 && *avail >= 0) {	/* probably first time in */
     saved_font = current_font;
     bottom = disp.b_top; left = wire_left;
-    doitbox(wire,"image control",13,14,&saved_font,&small_fnt,&bottom,&left,"wire",'-');
+    doitbox(wire,"image control",13,15,&saved_font,&box_fnt,&bottom,&left,"wire",'-');
     wire_avail = *avail;         /* tell the world it is available */
   } else {
     wire_avail = *avail;         /* tell the world it is available */
@@ -8211,9 +8910,9 @@ void updcapt_(avail)
   if(capture_avail == 0 && *avail >= 0) {	/* probably first time in */
     saved_font = current_font;
     bottom = disp.b_top; left = capture_left;
-    doitbox(capture,"capture",7,8,&saved_font,&small_fnt,&bottom,&left,"capture",'-');
+    doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"capture",'-');
     bottom = fbb.b_bottom; left = captext_left;
-    doitbox(capture,"capture",7,8,&saved_font,&small_fnt,&bottom,&left,"captext",'-');
+    doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"captext",'-');
     capture_avail = *avail;         /* tell the world it is available */
   } else {
     capture_avail = *avail;         /* tell the world it is available */
@@ -8230,37 +8929,37 @@ void updazi_(avail)
 
   if(azi_avail == 0 && *avail >= 0) {	/* probably first time in */
     saved_font = current_font;
-    if (saved_font != small_fnt) winfnt_(&small_fnt);
+    if (saved_font != butn_fnt) winfnt_(&butn_fnt);
     wire_left = disp.b_right - (f_width * 26);
-    capture_left = disp.b_right - (f_width * 8);
-    captext_left = disp.b_right - (f_width * 8);
+    capture_left = disp.b_right - (f_width * 9);
+    captext_left = disp.b_right - (f_width * 9);
     elevplus_left = disp.b_right - (f_width * 30);
     elevminus_left = disp.b_right - (f_width * 33);
-    elev_left = disp.b_right - (f_width * 44);
-    aziplus_left = disp.b_right - (f_width * 48);
-    aziminus_left = disp.b_right - (f_width * 51);
-    azi_left = disp.b_right - (f_width * 60);
-    if (saved_font != small_fnt) winfnt_(&saved_font);  /* restore std font */
+    elev_left = disp.b_right - (f_width * 45);
+    aziplus_left = disp.b_right - (f_width * 49);
+    aziminus_left = disp.b_right - (f_width * 52);
+    azi_left = disp.b_right - ((f_width * 62)+4);
+    if (saved_font != butn_fnt) winfnt_(&saved_font);  /* restore std font */
 
     bottom = disp.b_top; left = aziplus_left;
-    dosymbox(aziplus,2,&saved_font,&small_fnt,&bottom,&left,"aziplus",'-');
+    dosymbox(aziplus,2,&saved_font,&box_fnt,&bottom,&left,"aziplus",'-');
 
     bottom = disp.b_top; left = aziminus_left;
-    dosymbox(aziminus,2,&saved_font,&small_fnt,&bottom,&left,"aziminus",'-');
+    dosymbox(aziminus,2,&saved_font,&box_fnt,&bottom,&left,"aziminus",'-');
 
     bottom = disp.b_top; left = azi_left;
-    doitbox(azi,"azimuth",7,8,&saved_font,&small_fnt,&bottom,&left,"azi",'-');
+    doitbox(azi,"azimuth",7,9,&saved_font,&box_fnt,&bottom,&left,"azi",'-');
 
     bottom = disp.b_top; left = elevplus_left;
-    dosymbox(elevplus,2,&saved_font,&small_fnt,&bottom,&left,"elevplus",'-');
+    dosymbox(elevplus,2,&saved_font,&box_fnt,&bottom,&left,"elevplus",'-');
 
     bottom = disp.b_top; left = elevminus_left;
-    dosymbox(elevminus,2,&saved_font,&small_fnt,&bottom,&left,"elevminus",'-');
+    dosymbox(elevminus,2,&saved_font,&box_fnt,&bottom,&left,"elevminus",'-');
 
     bottom = disp.b_top; left = elev_left;
-    doitbox(elev,"elevation",9,10,&saved_font,&small_fnt,&bottom,&left,"elev",'-');
+    doitbox(elev,"elevation",9,11,&saved_font,&box_fnt,&bottom,&left,"elev",'-');
 
-    if (saved_font != small_fnt) winfnt_(&saved_font);  /* restore std font */
+    if (saved_font != butn_fnt) winfnt_(&saved_font);  /* restore std font */
     azi_avail = *avail;         /* tell the world it is available */
   } else {
     azi_avail = *avail;         /* tell the world it is available */
@@ -8310,6 +9009,7 @@ void openmouse_(mseb1,mseb2,mseb3,len1,len2,len3)
   int   len1,len2,len3;
 /* local variables */
 {
+  XftDraw *draw;
   long int saved_font;
   int bh;
   int l_m1,l_m2,l_m3;
@@ -8322,8 +9022,11 @@ void openmouse_(mseb1,mseb2,mseb3,len1,len2,len3)
   f_to_c_l(mseb3,&len3,&l_m3); strncpy(mseb3h,mseb3,(unsigned int)l_m3);	/* copy to static array */
   mseb3h[l_m3] = '\0';
 
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
   saved_font = current_font;
-  if (saved_font != small_fnt) winfnt_(&small_fnt);
+  if (saved_font != butn_fnt) winfnt_(&butn_fnt);
   mouse_avail = 1;             /* tell the world that mouse help is available */
   bh = f_height+2;	/* box height is font height +2 */
   mouse.b_top = dbx1.b_bottom - bh - bh;    /* double height box here */
@@ -8331,7 +9034,7 @@ void openmouse_(mseb1,mseb2,mseb3,len1,len2,len3)
   mouse.b_right = dbx1.b_right - 4;
   mouse.b_left = dbx1.b_right - (f_width * 8);
   xbox(mouse,fg,white, BMCLEAR | BMEDGES);
-  XDrawString(theDisp,win,theGC,mouse.b_left+2,mouse.b_bottom-2," mouse ",7);
+  XftDrawString8(draw, &xft_color,fst,mouse.b_left+2,mouse.b_bottom-2," mouse ",7);
 
 /* Draw boxes representing buttons */
   mouse1.b_top = mouse.b_top + 1;
@@ -8349,7 +9052,8 @@ void openmouse_(mseb1,mseb2,mseb3,len1,len2,len3)
   mouse3.b_right = mouse.b_right - 2;
   mouse3.b_left = mouse3.b_right - bh;
   xbox(mouse3,fg,white, BMCLEAR | BMEDGES);
-  if (saved_font != small_fnt) winfnt_(&saved_font);  /* restore std font */
+  if (saved_font != butn_fnt) winfnt_(&saved_font);  /* restore std font */
+  XftDrawDestroy(draw);
 
   return;
 } /* openmouse */
@@ -8446,6 +9150,7 @@ int lensstr,lentitle,lenlist;	/* fortrant passed lengths */
   XEvent event;
   KeySym     ks;
   Pixmap under;		        /* to save image under proforma  */
+  XftDraw *draw;
   int  u_height, u_width;      /* size of the under pixmap */
   int  num,ipos;	/* length of lists    */
   int  eoffset;	/* pixel offset to edited text */
@@ -8563,13 +9268,16 @@ int iwth = *impcwth;	/* character width of proforma */
     tk_box[i].b_right = menubx.b_left + 15;
   }
 
+// Define local drawable for Xft font.
+  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
+
 /* display outer and inner boxes and controls */
   xbox(gmenubx,fg,gpopfr,BMCLEAR |BMEDGES);	/* draw border box with edges  */
   xbox(gmenubx,fg,bg,BMEDGES);
   xbox(menubx,fg,white,BMCLEAR|BMEDGES);	/* draw inner box  */
   okbox("ok",2,3,&gmenubx.b_bottom,&okbox_left,'-');	/* draw ok box  */
   qbox_("?",1,2,&gmenubx.b_bottom,&qbox_left,'-');	/* draw ? box  */
-  XDrawString(theDisp,win,theGC,gmenubx.b_left+10,gmenubx.b_bottom-5,loctitle,lt1);  /* title */
+  XftDrawString8(draw, &xft_color,fst,gmenubx.b_left+10,gmenubx.b_bottom-5,(XftChar8 *) loctitle,lt1);
 
 /* build up display, note which are editable items.  */
   w_edit = -1;
@@ -8583,28 +9291,27 @@ int iwth = *impcwth;	/* character width of proforma */
       } else if ( listact[i] == 0 ) {
         xbox(tk_box[i],fg,white,BMCLEAR|BMEDGES);	/* draw open tick box  */
       }
-      XDrawString(theDisp,win,theGC,menubx.b_left+20,iy,display_list[i],cwidth[i]);
+      XftDrawString8(draw, &xft_color,fst,menubx.b_left+20,iy,(XftChar8 *) display_list[i],cwidth[i]);
     } else if( loclisttypes[i] == 'e' ) {  /* print editing label and editing text */
       w_edit = w_edit +1;
       list2edit[i] = w_edit;
-      XDrawString(theDisp,win,theGC,menubx.b_left+5,iy,display_list[i],cwidth[i]);
+      XftDrawString8(draw, &xft_color,fst,menubx.b_left+5,iy,(XftChar8 *) display_list[i],cwidth[i]);
       eoffset = (cwidth[i] * f_width) + 5;
       edit_box[w_edit].b_bottom = iy+2; edit_box[w_edit].b_top = iy -edhight;
       edit_box[w_edit].b_left = menubx.b_left+eoffset;
       edit_box[w_edit].b_right = edit_box[w_edit].b_left + ( (int)swidth[w_edit] * f_width) +5;
       xbox(edit_box[w_edit],fg,white,BMCLEAR|BMEDGES);	/* draw edit box  */
-      XDrawString(theDisp,win,theGC,edit_box[w_edit].b_left+5,edit_box[w_edit].b_bottom-3,
-        edit_list[w_edit],lt2[w_edit]);
+      XftDrawString8(draw, &xft_color,fst,edit_box[w_edit].b_left+5,edit_box[w_edit].b_bottom-3,(XftChar8 *) edit_list[w_edit],lt2[w_edit]);
     } else if( loclisttypes[i] == '-' ) {
       XSetForeground(theDisp,theGC, ginvert);
       drawvwl(menubx.b_left + 15,iy-5,menubx.b_right - 15,iy-5,2);
       XSetForeground(theDisp,theGC, fg);
     } else if( listtypes[i] == 'l' ) {
-      XDrawString(theDisp,win,theGC,menubx.b_left+15,iy,display_list[i],cwidth[i]);  /* print label */
+      XftDrawString8(draw, &xft_color,fst,menubx.b_left+15,iy,(XftChar8 *) display_list[i],cwidth[i]);
     } else if( listtypes[i] == 'c' ) {
-      XDrawString(theDisp,win,theGC,menubx.b_left+5,iy,display_list[i],cwidth[i]);  /* print callback */
+      XftDrawString8(draw, &xft_color,fst,menubx.b_left+5,iy,(XftChar8 *) display_list[i],cwidth[i]);
     } else {
-      XDrawString(theDisp,win,theGC,menubx.b_left+5,iy,display_list[i],cwidth[i]);  /* print text */
+      XftDrawString8(draw, &xft_color,fst,menubx.b_left+5,iy,(XftChar8 *) display_list[i],cwidth[i]);
     }
   }
   XFlush(theDisp); /* force drawing of text */
@@ -8626,7 +9333,7 @@ int iwth = *impcwth;	/* character width of proforma */
           xbox(menubx,fg,white,BMCLEAR|BMEDGES);	/* draw inner box  */
           okbox("ok",2,3,&gmenubx.b_bottom,&okbox_left,'-');
           qbox_("?",1,2,&gmenubx.b_bottom,&qbox_left,'-');
-          XDrawString(theDisp,win,theGC,gmenubx.b_left+10,gmenubx.b_bottom-5,loctitle,lt1);  /* title */
+          XftDrawString8(draw, &xft_color,fst,gmenubx.b_left+10,gmenubx.b_bottom-5,(XftChar8 *) loctitle,lt1);
 
 /* rebuild display.  */
           for ( i = 0; i < ilen; i++ ) {
@@ -8639,27 +9346,26 @@ int iwth = *impcwth;	/* character width of proforma */
               } else if ( listact[i] == 0 ) {
                 xbox(tk_box[i],fg,white,BMCLEAR|BMEDGES);	/* draw open tick box  */
               }
-              XDrawString(theDisp,win,theGC,menubx.b_left+20,iy,display_list[i],cwidth[i]);
+              XftDrawString8(draw, &xft_color,fst,menubx.b_left+20,iy,(XftChar8 *) display_list[i],cwidth[i]);
             } else if( loclisttypes[i] == 'e' ) {	/* print editing label and editing text */
               w_edit = list2edit[i];
-              XDrawString(theDisp,win,theGC,menubx.b_left+5,iy,display_list[i],cwidth[i]);
+              XftDrawString8(draw, &xft_color,fst,menubx.b_left+5,iy,(XftChar8 *) display_list[i],cwidth[i]);
               eoffset = (cwidth[i] * f_width) + 5;
               edit_box[w_edit].b_bottom = iy+2; edit_box[w_edit].b_top = iy -edhight;
               edit_box[w_edit].b_left = menubx.b_left+eoffset;
               edit_box[w_edit].b_right = edit_box[w_edit].b_left + ((int)swidth[w_edit] * f_width) +5;
               xbox(edit_box[w_edit],fg,white,BMCLEAR|BMEDGES);	/* draw edit box  */
-              XDrawString(theDisp,win,theGC,edit_box[w_edit].b_left+5,edit_box[w_edit].b_bottom-3,
-                edit_list[w_edit],lt2[w_edit]);
+              XftDrawString8(draw, &xft_color,fst,edit_box[w_edit].b_left+5,edit_box[w_edit].b_bottom-3,(XftChar8 *) edit_list[w_edit],lt2[w_edit]);
             } else if( loclisttypes[i] == '-' ) {
               XSetForeground(theDisp,theGC, ginvert);
               drawvwl(menubx.b_left + 15,iy-5,menubx.b_right - 15,iy-5,2);
               XSetForeground(theDisp,theGC, fg);
             } else if( listtypes[i] == 'l' ) {
-              XDrawString(theDisp,win,theGC,menubx.b_left+15,iy,display_list[i],cwidth[i]);  /* print label */
+              XftDrawString8(draw, &xft_color,fst,menubx.b_left+15,iy,(XftChar8 *) display_list[i],cwidth[i]);
             } else if( listtypes[i] == 'c' ) {
-              XDrawString(theDisp,win,theGC,menubx.b_left+5,iy,display_list[i],cwidth[i]);  /* print callback */
+              XftDrawString8(draw, &xft_color,fst,menubx.b_left+5,iy,(XftChar8 *) display_list[i],cwidth[i]);
             } else {
-              XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,display_list[i],cwidth[i]);  /* print text */
+              XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) display_list[i],cwidth[i]);
             }
           }
           XFlush(theDisp);
@@ -8673,7 +9379,7 @@ int iwth = *impcwth;	/* character width of proforma */
         xbox(menubx,fg,white,BMCLEAR|BMEDGES);	/* draw inner box  */
         okbox("ok",2,3,&gmenubx.b_bottom,&okbox_left,'-');
         qbox_("?",1,2,&gmenubx.b_bottom,&qbox_left,'-');
-        XDrawString(theDisp,win,theGC,gmenubx.b_left+10,gmenubx.b_bottom-5,loctitle,lt1);  /* title */
+        XftDrawString8(draw, &xft_color,fst,gmenubx.b_left+10,gmenubx.b_bottom-5,(XftChar8 *) loctitle,lt1);
 
 /* rebuild display. */
         for ( i = 0; i < ilen; i++ ) {
@@ -8686,27 +9392,26 @@ int iwth = *impcwth;	/* character width of proforma */
             } else if ( listact[i] == 0 ) {
               xbox(tk_box[i],fg,white,BMCLEAR|BMEDGES);	/* draw open tick box  */
             }
-            XDrawString(theDisp,win,theGC,menubx.b_left+20,iy,display_list[i],cwidth[i]);
+            XftDrawString8(draw, &xft_color,fst,menubx.b_left+20,iy,(XftChar8 *) display_list[i],cwidth[i]);
           } else if( loclisttypes[i] == 'e' ) {	/* print editing label and edit text */
             w_edit = list2edit[i];
-            XDrawString(theDisp,win,theGC,menubx.b_left+5,iy,display_list[i],cwidth[i]);
+            XftDrawString8(draw, &xft_color,fst,menubx.b_left+5,iy,(XftChar8 *) display_list[i],cwidth[i]);
             eoffset = (cwidth[i] * f_width) + 5;
             edit_box[w_edit].b_bottom = iy+2; edit_box[w_edit].b_top = iy -edhight;
             edit_box[w_edit].b_left = menubx.b_left+eoffset;
             edit_box[w_edit].b_right = edit_box[w_edit].b_left + ((int)swidth[w_edit] * f_width) +5;
             xbox(edit_box[w_edit],fg,white,BMCLEAR|BMEDGES);	/* draw edit box  */
-            XDrawString(theDisp,win,theGC,edit_box[w_edit].b_left+5,edit_box[w_edit].b_bottom-3,
-              edit_list[w_edit],lt2[w_edit]);
+            XftDrawString8(draw, &xft_color,fst,edit_box[w_edit].b_left+5,edit_box[w_edit].b_bottom-3,(XftChar8 *) edit_list[w_edit],lt2[w_edit]);
           } else if( loclisttypes[i] == '-' ) {
             XSetForeground(theDisp,theGC, ginvert);
             drawvwl(menubx.b_left + 15,iy-5,menubx.b_right - 15,iy-5,2);
              XSetForeground(theDisp,theGC, fg);
           } else if( listtypes[i] == 'l' ) {
-            XDrawString(theDisp,win,theGC,menubx.b_left+15,iy,display_list[i],cwidth[i]);  /* print label */
+            XftDrawString8(draw, &xft_color,fst,menubx.b_left+15,iy,(XftChar8 *) display_list[i],cwidth[i]);
           } else if( listtypes[i] == 'c' ) {
-            XDrawString(theDisp,win,theGC,menubx.b_left+5,iy,display_list[i],cwidth[i]);  /* print callback */
+            XftDrawString8(draw, &xft_color,fst,menubx.b_left+5,iy,(XftChar8 *) display_list[i],cwidth[i]);
           } else {
-            XDrawString(theDisp,win,theGC,menubx.b_left+10,iy,display_list[i],cwidth[i]);  /* print text */
+            XftDrawString8(draw, &xft_color,fst,menubx.b_left+10,iy,(XftChar8 *) display_list[i],cwidth[i]);
           }
         }
         XFlush(theDisp);
@@ -8808,8 +9513,7 @@ int iwth = *impcwth;	/* character width of proforma */
           if(blen > 0) {
             if (buf[0] == '\r' || buf[0] == '\n' ) {	/* if return redraw box & text to remove bar */
               xbox(edit_box[c_edit],fg,white,BMCLEAR|BMEDGES);	/* draw edit box  */
-              XDrawString(theDisp,win,theGC,edit_box[c_edit].b_left+5,edit_box[c_edit].b_bottom-3,
-                edit_list[c_edit],lt2[c_edit]);
+              XftDrawString8(draw, &xft_color,fst,edit_box[c_edit].b_left+5,edit_box[c_edit].b_bottom-3,(XftChar8 *) edit_list[c_edit],lt2[c_edit]);
               initial_button_in = FALSE;
             } else if (buf[0] == '\177' || buf[0] == '\010') {  /*  buf[0] is DEL or BS  */
               if((x1-f_width) > edit_box[c_edit].b_left) {
@@ -8872,6 +9576,7 @@ int iwth = *impcwth;	/* character width of proforma */
   XClearArea(theDisp,win,gmenubx.b_left,gmenubx.b_top,(unsigned int) u_width,(unsigned int) u_height,exp);
   pix_to_box(under,u_width,u_height,gmenubx,win);
   XFreePixmap(theDisp, under);
+  XftDrawDestroy(draw);
   if(XPending(theDisp) > 0) {
     while ( XPending(theDisp) > 0) {
       XNextEvent (theDisp,&event);	/* flush events */

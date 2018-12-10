@@ -142,14 +142,6 @@ C Name of current application
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
 
-C IEEE callback (Solaris)
-#ifdef SUN
-#ifdef F90
-      external SIGFPE_bps      
-      integer SIGFPE_bps      
-#endif
-#endif
-
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
@@ -178,7 +170,7 @@ C IEEE callback (Solaris)
       character firstbit*72,secondbit*72
       character longtmp*144
 
-      character cVnum*36      ! returned from ESPrVersionNum
+      character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
@@ -283,33 +275,17 @@ C Needed for CFD 3-D views.
       VIEWM(3)=10.
       ANG=40.
 
-C If your compiler does not support floating-point arithmetic
-C according to ANSI/IEEE Std 754-1985 comment out the following code.
-
-C Initialize mode, status, and signal handling for IEEE arithmetic.
-C See also: f77_ieee_environment(3F) f77_floatingpoint(3F)
-C           Note that in case of Sun FORTRAN, IEEEE exceptions arise
-C           only if: Sun-3 f77 with -f68881 or -ffpa option
-C                or: Sun-4 f77.
-#ifdef SUN
-#ifdef F90
-      ieeer=ieee_handler('set','common',SIGFPE_ABORT)
-      ieeer=ieee_handler('set','common',SIGFPE_bps)
-      if(ieeer.ne.0) write(iuout,*) ' IEEE_handler not set !'
-#endif
-#endif
-
 C Initialise output device.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=600
+        iappw=620
         iappx=60
         iappy=70
       else
         if(iappx.le.0)iappx=60
         if(iappy.le.0)iappy=70
         if(iappw.le.200)then
-          iappwi=int(600*iappw*0.01)
+          iappwi=int(620*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue
@@ -331,11 +307,14 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=1
-        IFS=1
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=4
         ITFS=1
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -346,8 +325,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'ESP-r Results Analysis ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
       IF(MMOD.EQ.-6)then
         ICOUT=0
@@ -492,6 +472,7 @@ C Assume multilayer input from IFIL+9.
 
 C Assume CFClayers input from IFIL+10.
       icfcdb=ifil+10 
+      write(LCFCDB,'(a)') DCFCDB(1:lnblnk(DCFCDB))
 
 C Initialise results library.
       CALL MORFIL(iftype)
@@ -987,11 +968,16 @@ C Dummy routines from common3dv.F
       return
       end
 
-      subroutine chgazi(icazi)
+      subroutine redraw(IER)
+      ier=0
       return
       end
 
-      subroutine chgelev(icelev)
+      subroutine chgazi(icazi,ifrlk)
+      return
+      end
+
+      subroutine chgelev(icelev,ifrlk)
       return
       end
 
@@ -1063,21 +1049,7 @@ C Depending on computer type set integer size of passed parameters.
       return
       end
 
-
-C In support of floating point exceptions. Comment out for NON SOLAIRS.
-#ifdef SUN
-#ifdef F90
-      integer function SIGFPE_bps(sig,code,context)
-      integer sig,code,context(5)
-      character label*16
-      if(loc(code).eq.208) label = 'invalid'
-      if(loc(code).eq.200) label = 'division by zero'
-      if(loc(code).eq.212) label = 'overflow'
-      if(loc(code).eq.204) label = 'underflow'
-      if(loc(code).eq.196) label = 'inexact'
-      write(6,*) 'Exception code ',loc(code),label,'at ',context(4)
-      SIGFPE_bps = loc(code)
+      subroutine NEW2OLD()
+      return
       end
-#endif
-#endif
 

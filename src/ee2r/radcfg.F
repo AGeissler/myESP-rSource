@@ -929,7 +929,7 @@ C Ask for zone (if not defined), surface and working plane height.
       MODLEN=.TRUE.
       MODBND=.TRUE.
       ITSNM=0
-      CALL ADJVIEW(IER)
+      CALL redraw(IER)
 
 C Ask for surface and highlight.
       call EASKSUR(ifocz,IS,'-',
@@ -940,7 +940,7 @@ C Ask for surface and highlight.
       LINSTY(IC)=2
       MODIFYVIEW=.TRUE.
       ITVNO=0
-      CALL ADJVIEW(IER)
+      CALL redraw(IER)
       CALL INLNST(1)
 
 C Setup help for the next few dialogs.
@@ -1046,7 +1046,7 @@ C Display grid on the zone... (if in graphic mode)
         ITZNM=1
         ITSNM=1
         ITVNO=1
-        CALL ADJVIEW(IER)
+        CALL redraw(IER)
         CALL DFGRIDLBL('g')
       endif
 
@@ -1099,9 +1099,9 @@ C      COMMON/OUTIN/IUOUT,IUIN
       character OUTSTR*124,tfile*72
 
 #ifdef OSI
-      integer iix,iiy,iid1,iid2
+      integer iix,iiy,iid1,iid2,iicol
 #else
-      integer*8 iix,iiy,iid1,iid2
+      integer*8 iix,iiy,iid1,iid2,iicol
 #endif
       
 C If not in graphical mode return.
@@ -1163,7 +1163,7 @@ C If vertices are to be labeled do it in the smallest font.
       ITZNM=1
       ITSNM=1
       ITVNO=1
-      CALL ADJVIEW(IER)
+      CALL redraw(IER)
 
 C Loop through grid points.
       do 10 I=1,NDFP
@@ -1195,8 +1195,8 @@ C Loop through grid points.
             WRITE(VT,'(f6.0)') DFVALS(I)
           ENDIF
         endif
-        iid1=iix+1; iid2=iiy-1;
-        CALL wstxpt(iid1,iid2,VT)
+        iid1=iix+1; iid2=iiy-1; iicol=0
+        call textatxy(iid1,iid2,VT,'-',iicol)
  10   continue
 
 C Reset display options.

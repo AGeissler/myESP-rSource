@@ -108,14 +108,18 @@ C Check for convergence in fluid values.
 
 C Set the future pressures equal to the new pressures.
         CALL SETFEN(ICOMP)
+
         IF(CONVP.AND.CONVF)THEN
+
+C Convergence achieved.
           CALL WRITRH(ICOMP)
           IF(ITRM.EQ.1)THEN
-            WRITE(MSG,'(1X,A,I3)')
-     &     'Warning: moisture modelling convergence for zone:',ICOMP
+            CALL EDAYR(IDYP,IDAYN,IMTHN)
+            WRITE(MSG,'(1X,A)')
+     &      'MZMSTR: moisture convergence after 1 iteration'
             CALL EDISP(IUOUT,MSG)
-            WRITE(MSG,'(10X,A,I8)')
-     &     'occured after ONE iteration, at simulation increment:',NSINC
+            WRITE(MSG,'(9X,A,I3,A,3I3)')
+     &      'in zone',ICOMP,' at Day, Month, Hour: ',IDAYN,IMTHN,IHRF
             CALL EDISP(IUOUT,MSG)
           ENDIF
           RETURN
@@ -141,15 +145,16 @@ C Set up the energy matrix coefficients.
 C Solve the energy matrix.
           CALL MTXCTL(ICOMP)
           CALL MZMTMF2(ICOMP)
-        ENDIF
-        
+        ENDIF   
+
    10 CONTINUE
       CALL WRITRH(ICOMP)
-      WRITE(MSG,'(1X,A,I3)')
-     &     'Warning: moisture modelling convergence for zone:',ICOMP
+      CALL EDAYR(IDYP,IDAYN,IMTHN)
+      WRITE(MSG,'(1X,A)')
+     &     'MZMSTR: moisture convergence failed'
       CALL EDISP(IUOUT,MSG)
-      WRITE(MSG,'(10X,A,I8)')
-     &     'did NOT occur, at simulation increment:',NSINC
+      WRITE(MSG,'(9X,A,I3,A,3I3)')
+     &      'in zone',ICOMP,' at Day, Month, Hour: ',IDAYN,IMTHN,IHRF
       CALL EDISP(IUOUT,MSG)
       RETURN
       END
@@ -640,6 +645,7 @@ C For construction moisture nodes.
         DO 30 IL=1,NE
           NM=MNDL(ICOMP,I,IL)
         DO 30 IM=1,NM
+          ITM=ITM+1
           DELTp(I,ITM)=DELTs(ICOMP,I,ITM)
           DTPp(I,ITM)=DTPs(ICOMP,I,ITM)
    30   CONTINUE
@@ -1350,7 +1356,7 @@ C Air node.
       IF(ABS(DOMAIN).LT.1.0e-28)THEN
         WRITE(MSG,'(A)')'ERROR: very small air node domain'
         CALL EDISP(IUOUT,MSG)
-        WRITE(MSG,'(2(A,I5))')'       for zone',ICOMP,'time step',NSINC
+        WRITE(MSG,'(7x,2(A,I5))')'for zone',ICOMP,'at time step',NSINC
         CALL EDISP(IUOUT,MSG)
         WRITE(MSG,'(A,G14.4)')' DOMAIN: ',DOMAIN
         CALL EDISP(IUOUT,MSG)
@@ -1393,7 +1399,7 @@ C *********************************************************************
       COMMON/MOIST54/Pfair(MCOM),Ffair(MCOM),Sfair(MCOM)
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
-
+ 
       LOGICAL CONVP
 
       RESXP=0.

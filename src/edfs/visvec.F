@@ -218,7 +218,7 @@ C Draw scale line. e.g. |--------| = 0.1m/s
       write (scale,'(a,f5.3,a,F5.1,a,F5.1)') 
      &  '= ',sll,'m/s T',tempmin,'-T',tempmax
       iid1=iright+5; iid2=igt-5;
-      call wstxpt(iid1,iid2,scale)
+      call textatxy(iid1,iid2,scale,'-',iicol)
 
 C Draw 10 steps along colour range.
       iid2=igt-10           ! mid of |----|
@@ -318,8 +318,7 @@ C      write(6,*) 'within MAKS3D SCmin,SCmax',SCmin,SCmax
       colmult=(real(ncset)/trange)
 
 C Need to reset scale factors - do this by redrawing the domain.
-      iz=0
-      call VGRID3D('---','xyz',iz)
+      call VGRID3D(0,1)
 C Loop through all vectors.
       do 10 I=2,NIM1
         do 101 J=2,NJM1

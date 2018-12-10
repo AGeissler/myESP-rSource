@@ -40,6 +40,7 @@ C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer onleft  ! number of left axis
       integer onright ! number of right axis
       integer NITMS,INO  ! max items and current menu item
+      integer labelfont
 
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
@@ -60,6 +61,7 @@ C For help messages
 
       onleft = 0      ! initial assumption of no axis
       onright = 0
+      labelfont=4  ! small proportional font
 
       ITEM(1) =  'a set period            '
       ITEM(2) =  '  _____________________ '
@@ -167,7 +169,8 @@ C Debug.
 C          write(6,*) ' a number of right axis is ',onright
 
 C Take into account which axis needs to be drawn as in esrures/tgraph.F.
-          if(IFS.ne.IMFS)call winfnt(IMFS)
+          lastbuttonfont=IFS
+          call winfnt(labelfont)
           if(onright.eq.3)then
             if(onleft.eq.2)then
 
@@ -176,16 +179,22 @@ C Setup and pass in parameters to win3d.
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.1)then
               iiw1=6; iiw2=20; iiw3=6; iiw4=3; iimenu=menuchw
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.0)then
               iiw1=3; iiw2=20; iiw3=6; iiw4=3; iimenu=menuchw
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             endif
             igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
             igw=int(iigw); igwh=int(iigwh)
@@ -195,16 +204,22 @@ C Setup and pass in parameters to win3d.
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.1)then
               iiw1=6; iiw2=16; iiw3=6; iiw4=3; iimenu=menuchw
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.0)then
               iiw1=3; iiw2=16; iiw3=6; iiw4=3; iimenu=menuchw
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             endif
             igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
             igw=int(iigw); igwh=int(iigwh)
@@ -214,16 +229,22 @@ C Setup and pass in parameters to win3d.
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.1)then
               iiw1=6; iiw2=12; iiw3=6; iiw4=3; iimenu=menuchw
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.0)then
               iiw1=3; iiw2=12; iiw3=6; iiw4=3; iimenu=menuchw
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             endif
             igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
             igw=int(iigw); igwh=int(iigwh)
@@ -233,26 +254,40 @@ C Setup and pass in parameters to win3d.
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.1)then
               iiw1=6; iiw2=6; iiw3=6; iiw4=3; iimenu=menuchw
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             elseif(onleft.eq.0)then
               iiw1=3; iiw2=6; iiw3=6; iiw4=3; iimenu=menuchw
               iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
+              call opencpw
+              call opensetup
             endif
             igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
             igw=int(iigw); igwh=int(iigwh)
           endif
-          if(IFS.ne.IMFS)call winfnt(IFS)
+          call winfnt(lastbuttonfont)
           call startbuffer()
 
 C Debug.
-C          write(6,*)'clmgrf igl igr igt igb igw igwh',igl,igr,igt,
-C     &      igb,igw,igwh
+C          write(6,'(a,6i5)')'clmgrf igl igr igt igb igw igwh',
+C     &      igl,igr,igt,igb,igw,igwh
+          DO I=1,6
+            igwid=igw
+            igheight=igwh
+            call axiscale(igwid,igheight,TMIN,TMAX,YMIN(I),YMAX(I),
+     &        XSC,bysc,sca,Xadd,addY)
+            YSC(I)=bysc
+            Yadd(I)=addY
+          ENDDO
 
           mxmn=.TRUE.
           CALL CLMDRW(IPICK,mxmn,onleft,onright,'-')
@@ -301,14 +336,14 @@ C Second set of axis.
         CALL EGETWR(HOLD,K,YMAX(6),0.,0.,'-','rh mx',IER)
         CALL EGETWR(HOLD,K,YMIN(6),0.,0.,'-','rh mn',IER)
         if(ier.ne.0)goto 43
-        DO 70 I=1,6
+        DO I=1,6
           igwid=igw
           igheight=igwh
           call axiscale(igwid,igheight,TMIN,TMAX,YMIN(I),YMAX(I),
      &      XSC,bysc,sca,Xadd,addY)
           YSC(I)=bysc
           Yadd(I)=addY
-  70    CONTINUE
+        ENDDO
         mxmn=.FALSE.
         CALL CLMDRW(IPICK,mxmn,onleft,onright,'-')
         goto 6
@@ -356,16 +391,22 @@ C Take into account which axis needed to be drawn as in esrures/tgraph.F
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           elseif(onleft.eq.1)then
             iiw1=6; iiw2=20; iiw3=6; iiw4=3; iimenu=menuchw
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           elseif(onleft.eq.0)then
             iiw1=3; iiw2=20; iiw3=6; iiw4=3; iimenu=menuchw
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           endif
           igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
           igw=int(iigw); igwh=int(iigwh)
@@ -375,16 +416,22 @@ C Take into account which axis needed to be drawn as in esrures/tgraph.F
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           elseif(onleft.eq.1)then
             iiw1=6; iiw2=16; iiw3=6; iiw4=3; iimenu=menuchw
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           elseif(onleft.eq.0)then
             iiw1=3; iiw2=16; iiw3=6; iiw4=3; iimenu=menuchw
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           endif
           igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
           igw=int(iigw); igwh=int(iigwh)
@@ -394,16 +441,22 @@ C Take into account which axis needed to be drawn as in esrures/tgraph.F
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           elseif(onleft.eq.1)then
             iiw1=6; iiw2=12; iiw3=6; iiw4=3; iimenu=menuchw
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           elseif(onleft.eq.0)then
             iiw1=3; iiw2=12; iiw3=6; iiw4=3; iimenu=menuchw
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           endif
           igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
           igw=int(iigw); igwh=int(iigwh)
@@ -413,16 +466,22 @@ C Take into account which axis needed to be drawn as in esrures/tgraph.F
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           elseif(onleft.eq.1)then
             iiw1=6; iiw2=6; iiw3=6; iiw4=3; iimenu=menuchw
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           elseif(onleft.eq.0)then
             iiw1=3; iiw2=6; iiw3=6; iiw4=3; iimenu=menuchw
             iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            call opencpw
+            call opensetup
           endif
           igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
           igw=int(iigw); igwh=int(iigwh)
@@ -431,7 +490,18 @@ C Take into account which axis needed to be drawn as in esrures/tgraph.F
         call startbuffer()
 
 C Debug.
-C        write(6,*)'igl igr igt igb igw igwh ',igl,igr,igt,igb,igw,igwh
+C        write(6,'(a,6i5)')'igl igr igt igb igw igwh ',
+C     &    igl,igr,igt,igb,igw,igwh
+
+C Update the scale to reflect changes in window size etc.
+        DO I=1,6
+          igwid=igw
+          igheight=igwh
+          call axiscale(igwid,igheight,TMIN,TMAX,YMIN(I),YMAX(I),
+     &      XSC,bysc,sca,Xadd,addY)
+          YSC(I)=bysc
+          Yadd(I)=addY
+        ENDDO
 
         mxmn=.FALSE.
         CALL CLMDRW(IPICK,mxmn,onleft,onright,'-')
@@ -619,7 +689,7 @@ C the top of the graph.
             call u2pixel(TIME,0.0,iix,iiy)
             if(ID.eq.is1wins+2)then
               iiz=igt-10
-              call wstxpt(iix,iiz,'Winter')
+              call textatxy(iix,iiz,'Winter','z',iicol)
             endif
             iiz=igt-5
             call esymbol(iix,iiz,8,1)
@@ -637,7 +707,7 @@ C the top of the graph.
             call u2pixel(TIME,0.0,iix,iiy)
             if(ID.eq.is1sprs+2)then
               iiz=igt-10
-              call wstxpt(iix,iiz,'Spring')
+              call textatxy(iix,iiz,'Spring','z',iicol)
             endif
             iiz=igt-5
             call esymbol(iix,iiz,3,0)
@@ -655,7 +725,7 @@ C the top of the graph.
             call u2pixel(TIME,0.0,iix,iiy)
             if(ID.eq.is1sums+2)then
               iiz=igt-10
-              call wstxpt(iix,iiz,'Summer')
+              call textatxy(iix,iiz,'Summer','z',iicol)
             endif
             iiz=igt-5
 C            call esymbol(iix,iiz,32,0)
@@ -674,7 +744,7 @@ C            call esymbol(iix,iiz,32,0)
             call u2pixel(TIME,0.0,iix,iiy)
             if(ID.eq.is2sprs+2)then
               iiz=igt-10
-              call wstxpt(iix,iiz,'Autumn')
+              call textatxy(iix,iiz,'Autumn','z',iicol)
             endif
             iiz=igt-5
             call esymbol(iix,iiz,3,0)
@@ -692,7 +762,7 @@ C            call esymbol(iix,iiz,32,0)
             call u2pixel(TIME,0.0,iix,iiy)
             if(ID.eq.is2wins+2)then
               iiz=igt-10
-              call wstxpt(iix,iiz,'Winter')
+              call textatxy(iix,iiz,'Winter','z',iicol)
             endif
             iiz=igt-5
             call esymbol(iix,iiz,17,0)
@@ -945,17 +1015,18 @@ C acthor (1 char) '-' standard, 'd' day, 'w' week.
       integer onright ! number of right axis
       logical colok
       character acthor*1
+      integer labelfont
 
 C Local variables to pass to edline and axiscale.
 #ifdef OSI
       integer iigr35,iigr50,iigr85,iigr100,iigr135,iigt40
-      integer iicol
+      integer iicol,isize
       integer iiw1,iiw2,iiw3,iiw4
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iix,iiy,iiz
 #else
       integer*8 iigr35,iigr50,iigr85,iigr100,iigr135,iigt40
-      integer*8 iicol
+      integer*8 iicol,isize
       integer*8 iiw1,iiw2,iiw3,iiw4
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iix,iiy,iiz
@@ -964,6 +1035,8 @@ C Local variables to pass to edline and axiscale.
 C Check if can draw in colour.
       colok=.false.
       if(nzonec.ge.6)colok=.true.
+      labelfont=4  ! small proportional font
+      isize=0
 
 C Cast values for horaxis.
       iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
@@ -972,7 +1045,8 @@ C DRAW TIME AXIS
 C Pick up the data increment for the horizontal axis.
 
 C Debug.
-C      write(6,*)'dcaxes igl igr igt igb igw igwh onleft onright ',
+C      write(6,'(a,8i5,2a)')
+C     &  'dcaxes igl igr igt igb igw igwh onleft onright ',
 C     &  igl,igr,igt,igb,igw,igwh,onleft,onright,' ',acthor
 
       call dintervalf(TMIN,TMAX,DT,NDEC,1)
@@ -1015,24 +1089,24 @@ C are two axis on the left put the label at the top. Otherwise put
 C Label at the side vertically. Use pixel position 50 if there are
 C two axis on left, otherwise use igl.
           if(onleft.eq.2)then
-            iiw1=50
+            iiw1=55
             call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
             call vrtaxisdd(YMIN(I),YMAX(I),iiw1,iigb,iigt,Yadd(I),
      &        YSC(I),1,DY,NDEC,0,':')
-            if(IFS.ne.IMFS)call winfnt(IFS)
             if(colok)then
               iicol=I-1 
               call winscl('z',iicol) ! symbol using line colour
             endif
             iix=25; iiz=igt-22
-            call wstxpt(iix,iiz,'Temp')
+            lastbuttonfont=IFS
+            call textsizeatxy(iix,iiz,'Temp',isize,'z',iicol)
             iix=25; iiz=igt-10
-            call wstxpt(iix,iiz,'deg.C')
+            call textsizeatxy(iix,iiz,'deg.C',isize,'z',iicol)
             iiw1=25; iiw2=igt-40; iiw3=60; iiw4=igt-40
             call eswline(iiw1,iiw2,iiw3,iiw4)
             iix=46; iiz=igt-40
             call esymbol(iix,iiz,8,1)
-            if(IFS.ne.IMFS)call winfnt(IMFS)
+            call winfnt(lastbuttonfont)
             if(colok)then
               iicol=0
               call winscl('-',iicol)
@@ -1042,18 +1116,18 @@ C two axis on left, otherwise use igl.
             call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
             call vrtaxisdd(YMIN(I),YMAX(I),iigl,iigb,iigt,Yadd(I),
      &        YSC(I),1,DY,NDEC,0,'Temp degC')
-            if(IFS.ne.IMFS)call winfnt(IFS)
             if(colok)then
               iicol=I-1 
               call winscl('z',iicol) ! symbol using line colour
             endif
             iix=25; iiz=igt-22
-            call wstxpt(iix,iiz,'Temp')
+            lastbuttonfont=IFS
+            call textsizeatxy(iix,iiz,'Temp',isize,'z',iicol)
             iiw1=25; iiw2=igt-40; iiw3=60; iiw4=igt-40
             call eswline(iiw1,iiw2,iiw3,iiw4)
             iix=46; iiz=igt-40
             call esymbol(iix,iiz,8,1)
-            if(IFS.ne.IMFS)call winfnt(IMFS)
+            call winfnt(lastbuttonfont)
             if(colok)then
               iicol=0
               call winscl('-',iicol)
@@ -1066,20 +1140,20 @@ C Solar radiation axis, include dashed line and symbol.
           call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
           call vrtaxisdd(YMIN(I),YMAX(I),iigr,iigb,iigt,Yadd(I),
      &      YSC(I),1,DY,NDEC,1,':')
-          if(IFS.ne.IMFS)call winfnt(IFS)
           if(colok)then
             iicol=I-1 
             call winscl('z',iicol) ! symbol using line colour
           endif
           iix=igr; iiz=igt-22
-          call wstxpt(iix,iiz,'S.Rad')
+          lastbuttonfont=IFS
+          call textsizeatxy(iix,iiz,'S.Rad',isize,'z',iicol)
           iix=igr; iiz=igt-10
-          call wstxpt(iix,iiz,'W/m^2')
+          call textsizeatxy(iix,iiz,'W/m^2',isize,'z',iicol)
           iigr=igr; iiw1=igt-40; iis2=igr+35; iiw3=igt-40;iiw4=5
           call edash(iigr,iiw1,iis2,iiw3,iiw4)
           iix=igr+22; iiz=igt-40
           call esymbol(iix,iiz,9,0)
-          if(IFS.ne.IMFS)call winfnt(IMFS)
+          call winfnt(lastbuttonfont)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
@@ -1093,20 +1167,20 @@ C left put label at top, otherwise put along the left.
             call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
             call vrtaxisdd(YMIN(I),YMAX(I),iigl,iigb,iigt,Yadd(I),
      &        YSC(I),1,DY,NDEC,0,':')
-            if(IFS.ne.IMFS)call winfnt(IFS)
             if(colok)then
               iicol=I-1 
               call winscl('z',iicol) ! symbol using line colour
             endif
             iix=igl; iiz=igt-22
-            call wstxpt(iix,iiz,'Wnd sp')
+            lastbuttonfont=IFS
+            call textsizeatxy(iix,iiz,'Wnd sp',isize,'z',iicol)
             iix=igl; iiz=igt-10
-            call wstxpt(iix,iiz,'m/s')
+            call textsizeatxy(iix,iiz,'m/s',isize,'z',iicol)
             iiw1=igl; iiw2=igt-40; iiw3=igl+35; iiw4=igt-40
             call echain(iiw1,iiw2,iiw3,iiw4,5)
             iix=igl+22; iiz=igt-40
             call esymbol(iix,iiz,0,0)
-            if(IFS.ne.IMFS)call winfnt(IMFS)
+            call winfnt(lastbuttonfont)
             if(colok)then
               iicol=0
               call winscl('-',iicol)
@@ -1116,18 +1190,18 @@ C left put label at top, otherwise put along the left.
             call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
             call vrtaxisdd(YMIN(I),YMAX(I),iigl,iigb,iigt,Yadd(I),
      &        YSC(I),1,DY,NDEC,0,'Wind speed m/s')
-            if(IFS.ne.IMFS)call winfnt(IFS)
             if(colok)then
               iicol=I-1 
               call winscl('z',iicol) ! symbol using line colour
             endif
             iix=igl; iiz=igt-22
-            call wstxpt(iix,iiz,'Wnd sp')
+            lastbuttonfont=IFS
+            call textsizeatxy(iix,iiz,'Wnd sp',isize,'z',iicol)
             iiw1=igl; iiw2=igt-40; iiw3=igl+35; iiw4=igt-40
             call echain(iiw1,iiw2,iiw3,iiw4,5)
             iix=igl+22; iiz=igt-40
             call esymbol(iix,iiz,0,0)
-            if(IFS.ne.IMFS)call winfnt(IMFS)
+            call winfnt(lastbuttonfont)
             if(colok)then
               iicol=0
               call winscl('-',iicol)
@@ -1141,20 +1215,20 @@ C Wind direction axis, include chained line and symbol.
             call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
             call vrtaxisdd(YMIN(I),YMAX(I),iigr,iigb,iigt,Yadd(I),
      &        YSC(I),1,DY,NDEC,1,':')
-            if(IFS.ne.IMFS)call winfnt(IFS)
             if(colok)then
               iicol=I-1 
               call winscl('z',iicol) ! symbol using line colour
             endif
             iix=igl; iiz=igt-22
-            call wstxpt(iix,iiz,'W dir')
+            lastbuttonfont=IFS
+            call textsizeatxy(iix,iiz,'W dir',isize,'z',iicol)
             iix=igl; iiz=igt-10
-            call wstxpt(iix,iiz,'deg ')
+            call textsizeatxy(iix,iiz,'deg ',isize,'z',iicol)
             iiw1=igr; iiw2=igt-40; iiw3=igr+35; iiw4=igt-40
             call echain(iiw1,iiw2,iiw3,iiw4,5)
             iix=igr+22; iiz=igt-40
             call esymbol(iix,iiz,1,0)
-            if(IFS.ne.IMFS)call winfnt(IMFS)
+            call winfnt(lastbuttonfont)
             if(colok)then
               iicol=0
               call winscl('-',iicol)
@@ -1167,20 +1241,20 @@ C If the other is RH then use igr for this one.
               call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
               call vrtaxisdd(YMIN(I),YMAX(I),iigr,iigb,iigt,Yadd(I),
      &          YSC(I),1,DY,NDEC,1,':')
-              if(IFS.ne.IMFS)call winfnt(IFS)
               if(colok)then
                 iicol=I-1 
                 call winscl('z',iicol) ! symbol using line colour
               endif
               iix=igr; iiz=igt-22
-              call wstxpt(iix,iiz,'W dir')
+              lastbuttonfont=IFS
+              call textsizeatxy(iix,iiz,'W dir',isize,'z',iicol)
               iix=igr; iiz=igt-10
-              call wstxpt(iix,iiz,'deg ')
+              call textsizeatxy(iix,iiz,'deg ',isize,'z',iicol)
               iiw1=igr; iiw2=igt-40; iiw3=igr+35; iiw4=igt-40
               call echain(iiw1,iiw2,iiw3,iiw4,5)
               iix=igr+22; iiz=igt-40
               call esymbol(iix,iiz,1,0)
-              if(IFS.ne.IMFS)call winfnt(IMFS)
+              call winfnt(lastbuttonfont)
               if(colok)then
                 iicol=0
                 call winscl('-',iicol)
@@ -1189,24 +1263,24 @@ C If the other is RH then use igr for this one.
             elseif(ipick(1).eq.1.or.ipick(3).eq.1)then
 
 C If the other is solar then use igr_50 for this one.
-              iiw1=iigr+50
+              iiw1=iigr+55
               call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
               call vrtaxisdd(YMIN(I),YMAX(I),iiw1,iigb,iigt,Yadd(I),
      &          YSC(I),1,DY,NDEC,1,':')
-              if(IFS.ne.IMFS)call winfnt(IFS)
               if(colok)then
                 iicol=I-1 
                 call winscl('z',iicol) ! symbol using line colour
               endif
-              iix=igr+50; iiz=igt-22
-              call wstxpt(iix,iiz,'W dir')
-              iix=igr+50; iiz=igt-10
-              call wstxpt(iix,iiz,'deg ')
-              iiw1=igr+50; iiw2=igt-40; iiw3=igr+85; iiw4=igt-40
+              iix=igr+55; iiz=igt-22
+              lastbuttonfont=IFS
+              call textsizeatxy(iix,iiz,'W dir',isize,'z',iicol)
+              iix=igr+55; iiz=igt-10
+              call textsizeatxy(iix,iiz,'deg ',isize,'z',iicol)
+              iiw1=igr+55; iiw2=igt-40; iiw3=igr+85; iiw4=igt-40
               call echain(iiw1,iiw2,iiw3,iiw4,5)
               iix=igr+72; iiz=igt-40
               call esymbol(iix,iiz,1,0)
-              if(IFS.ne.IMFS)call winfnt(IMFS)
+              call winfnt(lastbuttonfont)
               if(colok)then
                 iicol=0
                 call winscl('-',iicol)
@@ -1214,24 +1288,24 @@ C If the other is solar then use igr_50 for this one.
               call forceflush()
             endif
           elseif(onright.eq.3)then
-            iiw1=iigr+50
+            iiw1=iigr+55
             call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
             call vrtaxisdd(YMIN(I),YMAX(I),iiw1,iigb,iigt,Yadd(I),
      &        YSC(I),1,DY,NDEC,1,':')
-            if(IFS.ne.IMFS)call winfnt(IFS)
             if(colok)then
               iicol=I-1
               call winscl('z',iicol) ! symbol using line colour
             endif
-            iix=igr+50; iiz=igt-22
-            call wstxpt(iix,iiz,'W dir')
-            iix=igr+50; iiz=igt-10
-            call wstxpt(iix,iiz,'deg ')
-            iiw1=igr+50; iiw2=igt-40; iiw3=igr+85; iiw4=igt-40
+            iix=igr+55; iiz=igt-22
+            lastbuttonfont=IFS
+            call textsizeatxy(iix,iiz,'W dir',isize,'z',iicol)
+            iix=igr+55; iiz=igt-10
+            call textsizeatxy(iix,iiz,'deg ',isize,'z',iicol)
+            iiw1=igr+55; iiw2=igt-40; iiw3=igr+85; iiw4=igt-40
             call echain(iiw1,iiw2,iiw3,iiw4,5)
             iix=igr+72; iiz=igt-40
             call esymbol(iix,iiz,1,0)
-            if(IFS.ne.IMFS)call winfnt(IMFS)
+            call winfnt(lastbuttonfont)
             if(colok)then
               iicol=0
               call winscl('-',iicol)
@@ -1248,18 +1322,18 @@ C use igr. If there are two axis then set right-most position.
             call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
             call vrtaxisdd(YMIN(I),YMAX(I),iiw1,iigb,iigt,Yadd(I),
      &        YSC(I),1,DY,NDEC,1,':')
-            if(IFS.ne.IMFS)call winfnt(IFS)
             if(colok)then
               iicol=I-1 
               call winscl('z',iicol) ! symbol using line colour
             endif
             iix=igr+100; iiz=igt-22
-            call wstxpt(iix,iiz,'RH %')
+            lastbuttonfont=IFS
+            call textsizeatxy(iix,iiz,'RH %',isize,'z',iicol)
             iigr100=igr+100; iigr135=igr+135; iigt40=igt-40
             call edline(iigr100,iigt40,iigr135,iigt40,5)
             iix=igr+120; iiz=igt-40
             call esymbol(iix,iiz,12,0)
-            if(IFS.ne.IMFS)call winfnt(IMFS)
+            call winfnt(lastbuttonfont)
             if(colok)then
               iicol=0
               call winscl('-',iicol)
@@ -1268,22 +1342,22 @@ C use igr. If there are two axis then set right-most position.
           elseif(onright.eq.2)then
 
 C If solar or wind direction is the other then use the +50 slot.
-            iiw1=iigr+50
+            iiw1=iigr+55
             call dintervalf(YMIN(I),YMAX(I),DY,NDEC,1)
             call vrtaxisdd(YMIN(I),YMAX(I),iiw1,iigb,iigt,Yadd(I),
      &        YSC(I),1,DY,NDEC,1,':')
-            if(IFS.ne.IMFS)call winfnt(IFS)
             if(colok)then
               iicol=I-1 
               call winscl('z',iicol) ! symbol using line colour
             endif
-            iix=igr+50; iiz=igt-22
-            call wstxpt(iix,iiz,'RH %')
-            iigr50=igr+50; iigr85=igr+85; iigt40=igt-40
+            iix=igr+55; iiz=igt-22
+            lastbuttonfont=IFS
+            call textsizeatxy(iix,iiz,'RH %',isize,'z',iicol)
+            iigr50=igr+55; iigr85=igr+85; iigt40=igt-40
             call edline(iigr50,iigt40,iigr85,iigt40,5)
             iix=igr+70; iiz=igt-40
             call esymbol(iix,iiz,12,0)
-            if(IFS.ne.IMFS)call winfnt(IMFS)
+            call winfnt(lastbuttonfont)
             if(colok)then
               iicol=0
               call winscl('-',iicol)
@@ -1298,12 +1372,13 @@ C If solar or wind direction is the other then use the +50 slot.
               call winscl('z',iicol) ! symbol using line colour
             endif
             iix=igr; iiz=igt-22
-            call wstxpt(iix,iiz,'RH ')
+            lastbuttonfont=IFS
+            call textsizeatxy(iix,iiz,'RH ',isize,'z',iicol)
             iigr=igr; iigt40=igt-40; iigr35=igr+35
             call edline(iigr,iigt40,iigr35,iigt40,5)
             iix=igr+20; iiz=igt-40
             call esymbol(iix,iiz,12,0)
-            if(IFS.ne.IMFS)call winfnt(IMFS)
+            call winfnt(lastbuttonfont)
             if(colok)then
               iicol=0
               call winscl('-',iicol)
@@ -1312,6 +1387,7 @@ C If solar or wind direction is the other then use the +50 slot.
           endif
         endif
   50  CONTINUE
+      call usrmsg(' ',' ','-') ! force redraw of the dialog box
       RETURN
       END
 

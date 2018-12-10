@@ -50,6 +50,8 @@ C espriou.h provides currentfile.
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -297,7 +299,7 @@ C (Re)Set all surfaces to standard line width.
         izgfoc=0
         if(MMOD.eq.8)then
           CALL INLNST(1)
-          CALL ADJVIEW(IER)
+          CALL redraw(IER)
         endif
       endif
 
@@ -467,6 +469,18 @@ C IVERT is the menu position, MVERT the current number of menu lines.
         IPACT=CREATE
         CALL EKPAGE(IPACT)
 
+C Switch menu to fixed width font.
+C Switch to fixed width font for menu. Base size on current
+C IMFS or ITFS sizes and remember so can restore.
+        lastmenufont=IMFS
+        if(IMFS.eq.4) IMFS=0
+        if(IMFS.eq.5) IMFS=1
+        if(IMFS.eq.6) IMFS=2
+        if(IMFS.eq.7) IMFS=3
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        call userfonts(IFS,ITFS,IMFS)
+
 C Initial menu entry setup.
    92   IER=0
         IVERT=-3
@@ -513,7 +527,10 @@ C Within the header so skip request.
           IVERT=-1
           goto 33
         ELSEIF(IVERT.EQ.MVERT)THEN
-
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           goto 3  ! go to main menu
 
         ELSEIF(IVERT.EQ.(MVERT-1))THEN
@@ -2199,7 +2216,7 @@ C Force redraw of zones, highlighting anchor list.
           kk=lstanchr(ifoc,jj)
           if(kk.ne.0)LINSTY(kk)=2
   45    continue
-        CALL ADJVIEW(IER)
+        CALL redraw(IER)
       endif
 
 C Initial menu entry setup.
@@ -2410,7 +2427,7 @@ C Force redraw of zones, highlighting anchor list.
             kk=lstanchr(ifoc,jj)
             if(kk.ne.0)LINSTY(kk)=2
  145      continue
-          CALL ADJVIEW(IER)
+          CALL redraw(IER)
         endif
         dok=.false.
         call askok('Edit anchor name or type?',' ',ok,dok,nbhelp)

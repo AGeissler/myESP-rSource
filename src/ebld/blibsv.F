@@ -1260,9 +1260,9 @@ C ipass ensures that this is done only once.
         if(issny.eq.1) then
           call zngrph(1,isdf,0,1)
         else
-          call zngrph(iday+1,isdf,0,1)
+          call zngrph(iday,isdf,0,1)
         endif
-        call usrmsg(' ',' Monitoring now in progress...','-')
+C         call usrmsg(' ',' Monitoring now in progress...','-')
         ipass=1
         ibplot=1
       endif

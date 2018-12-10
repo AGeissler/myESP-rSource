@@ -29,7 +29,7 @@ C Name of current application
       character outs*124,inf*144,path*72,LCMDFL*144,fs*1
       character outs248*248
 
-      character cVnum*36      ! returned from ESPrVersionNum
+      character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
 
 #ifdef OSI
@@ -87,14 +87,14 @@ C the opeing interface. Default size is iappwi & iapphi.
 C If iappw <200 then take this as a percentage size.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=560
+        iappw=580
         iappx=60
         iappy=170
       else
         if(iappx.le.0)iappx=60
         if(iappy.le.0)iappy=170
         if(iappw.le.200)then
-          iappwi=int(560*iappw*0.01)
+          iappwi=int(580*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue
@@ -116,11 +116,14 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=0
-        IFS=0
-        ITFS=0
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=5
+        ITFS=4
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -131,8 +134,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'ESP-r Viewing Facility ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to LIMTTY if MMOD = 8.
       IF(MMOD.EQ.8)THEN
@@ -191,7 +195,7 @@ C init =0 INITIALISE INPUT, 1 ADD MORE DATA.
       end
 
 
-      subroutine chgazi(icazi)
+      subroutine chgazi(icazi,ifrlk)
 #include "viewer.h"
       COMMON/OUTIN/IUOUT,IUIN
       PI = 4.0 * ATAN(1.0)
@@ -217,7 +221,7 @@ C init =0 INITIALISE INPUT, 1 ADD MORE DATA.
       return
       end
 
-      subroutine chgelev(icelev)
+      subroutine chgelev(icelev,ifrlk)
 #include "viewer.h"
       COMMON/OUTIN/IUOUT,IUIN
       PI = 4.0 * ATAN(1.0)
@@ -345,6 +349,11 @@ C ***** dummy routine for c code active descriptions buttons.
 C Dummy routines from common3dv.F
       SUBROUTINE ADJVIEW(IER)
       integer ier
+      ier=0
+      return
+      end
+
+      subroutine redraw(IER)
       ier=0
       return
       end

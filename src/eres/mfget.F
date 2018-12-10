@@ -183,9 +183,9 @@ C air flow reporting.
 
       logical CLIST,NLIST,CNLST,CRLST,OKL,dok,CTLST
 #ifdef OSI
-      integer iid1,iid2,iixx,iiyy,iik
+      integer iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #else
-      integer*8 iid1,iid2,iixx,iiyy,iik
+      integer*8 iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #endif
 
 C For help messages
@@ -440,11 +440,11 @@ C each have a different line colour.
         GLMFLABEL(NMFGET)='Ambient dry bulb Temp'
         LNGLMFLABEL(NMFGET)=21
         if(IROC.eq.0)then
-          SMFLABEL(NMFGET)='Ambient db temperature (degC)'
-          LNSMFLABEL(NMFGET)=29
+          SMFLABEL(NMFGET)='Ambient db temperature (C)'
+          LNSMFLABEL(NMFGET)=26
         elseif(IROC.eq.1)then
-          SMFLABEL(NMFGET)='Ambient db temp change (degC/hr)'
-          LNSMFLABEL(NMFGET)=32
+          SMFLABEL(NMFGET)='Ambient db temp change (C/hr)'
+          LNSMFLABEL(NMFGET)=29
         endif
 
 C If timestep listing go back to see if any other data should be included.
@@ -609,11 +609,11 @@ C Temperature at node: IMFGET = 2
         IMFGETNO(NMFGET,8)=0
         SUFFIX=' db T'
         if(IROC.eq.0)then
-          SMFLABEL(NMFGET)='Node temperature (degC)'
-          LNSMFLABEL(NMFGET)=23
+          SMFLABEL(NMFGET)='Node temperature (C)'
+          LNSMFLABEL(NMFGET)=20
         elseif(IROC.eq.1)then
-          SMFLABEL(NMFGET)='Node temp change (degC/hr)'
-          LNSMFLABEL(NMFGET)=26
+          SMFLABEL(NMFGET)='Node temp change (C/hr)'
+          LNSMFLABEL(NMFGET)=23
         endif
         NLIST=.true.
       elseif(INO.EQ.13)then
@@ -1098,7 +1098,8 @@ C Find out point where text should be drawn.
           lblpy(igrl)=int(iiyy)
           iid1=int(iixx); iid2=int(iiyy);
           t24=grlbl(igrl)
-          call wstxpt(iid1,iid2,t24)
+          iicol=0; ibsize=0
+          call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
           dok=.true.
           CALL ASKOK('Include another user supplied label?',' ',
      &      OKL,dok,nbhelp)

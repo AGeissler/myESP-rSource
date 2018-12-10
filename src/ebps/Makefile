@@ -34,7 +34,7 @@ default: $(PROG)
 %.o : %.c
 	$(MCC) $(CFLAGS) -c $<
 
-MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o aim2_timestep.o TCC.o
+MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o aim2_timestep.o TCC.o CFC_Module.o
 
 BPS_OBJECTS = bps.o adaptconf1.o adaptconf2.o adjb.o adjp.o ascii_mat.o \
 	  bcfunc.o bctlf.o blibsv.o bmatsu.o bmatsv.o basesimp.o basesimp_inputs.o bscoeff.o bscoeff_extended.o \
@@ -49,7 +49,7 @@ BPS_OBJECTS = bps.o adaptconf1.o adaptconf2.o adjb.o adjp.o ascii_mat.o \
 	  input.o item.o lisolv.o locmage.o matsv.o mfbndr.o mfcdat.o mfcntl.o \
 	  mfmach.o mfmode.o mfsbld.o mfsbps.o mfsplt.o mfutil.o mitzero.o \
 	  moistr.o monitor.o montrb.o mstmsc.o mzmrx5.o mzout6.o mzoutp.o nwkrewr.o \
-	  pcloop.o pcomp1.o pcomp2.o pcomp3.o pcomp4.o pcomps.o pcomps1.o \
+	  pcloop.o pcomp1.o pcomp2.o pcomp3.o pcomp4.o pcompDH.o pcomps.o pcomps1.o \
 	  plibsv.o plot.o pltcfg.o pmatrx.o pplib.o ppsub.o precal.o psychro.o \
 	  reslib.o rnor.o rwipv.o rwroam.o rwsbem.o senrwl.o sensit.o sentim.o simcon.o solar.o sort.o \
 	  spmatl.o spmisc.o stofunc.o subsys.o tdfile.o tdrecbps.o trstyp.o \
@@ -68,12 +68,12 @@ BPS_OBJECTS = bps.o adaptconf1.o adaptconf2.o adjb.o adjp.o ascii_mat.o \
 	  plt_zone_gain_coupling.o cetc_cogen.o BC_data.o plt_bc_components.o Hydrogen_appliances.o \
 	  Annex42_fuel_cell.o shocc_dummy.o ADS_storage_tanks.o ADS_storage_unit.o ADS_controller.o \
 	  solar_collectors.o ground_temp_mains.o Lookup_data.o readTrnsys.o trnsys_wrapper.o trnsys_lib.o \
-	  tank_intank_hx.o mains_temp_draw_profiles.o stratified_tank.o SiteUtilities.o RE-H2-ctl.o \
+	  tank_intank_hx.o mains_temp_draw_profiles.o stratified_tank.o stratified_tank_byp.o SiteUtilities.o RE-H2-ctl.o \
 	  ncm_overheating.o CFC_opt_props.o CFC_thermal_and_aux.o editCFC.o NCHE.o stratified_tank_1HX.o stratified_tank_2HX.o \
 	  AirFlowModelRoutines.o Res_elec_Ctl.o harmonizer_timing.o qrun.o azalt.o
 
 MODULES = aim2.mod aim2_calcdata.mod aim2_h2k_dummy.mod aim2_inputdata.mod aim2_timestep.mod start_up.mod parse_command_line.mod \
-          h3kmodule.f90
+          h3kmodule.f90 CFC_Module.mod
 PREBPS_OBJECTS = ESPrTrnsysData.o harmonizer_dummy.o
 
 $(PROG): $(MODULE_OBJECTS) $(BPS_OBJECTS)
@@ -82,7 +82,7 @@ PREBPSDLL_OBJECTS = ESPrTrnsysData.o harmonizer.o
 
 MODULES = aim2.mod aim2_calcdata.mod aim2_h2k_dummy.mod aim2_inputdata.mod aim2_timestep.mod \
 	parse_command_line.mod start_up.mod win32interface.mod dll_functions.mod tcc.mod cosimdatatypes.mod \
-	h3kmodule.mod
+	h3kmodule.mod CFC_Module.mod
 
 ifeq ($(FMIarg),enableFMI)
 	FMI_OBJECTS = FMIsim.o FMIcom.o FMIc.o
@@ -172,6 +172,9 @@ cfcalc.F:
 cfconv.F:
 	rm -f cfconv.F
 	ln -s $(DFSdir)/cfconv.F .
+CFC_Module.f90:
+	rm -f CFC_Module.f90
+	ln -s $(BLDdir)/CFC_Module.f90 .
 cfdat.F:
 	rm -f cfdat.F
 	ln -s $(DFSdir)/cfdat.F .
@@ -394,6 +397,9 @@ pcomp3.F:
 pcomp4.F:
 	rm -f pcomp4.F
 	ln -s $(PLTdir)/pcomp4.F .
+pcompDH.F:
+	rm -f pcompDH.F
+	ln -s $(PLTdir)/pcompDH.F .
 pcomps1.F:
 	rm -f pcomps1.F
 	ln -s $(PLTdir)/pcomps1.F .
@@ -715,6 +721,9 @@ mains_temp_draw_profiles.F:
 stratified_tank.F:
 	rm -f stratified_tank.F
 	ln -s $(PLTdir)/stratified_tank.F .
+stratified_tank_byp.F:
+	rm -f stratified_tank_byp.F
+	ln -s $(PLTdir)/stratified_tank_byp.F .
 CFC_opt_props.F:
 	rm -f CFC_opt_props.F
 	ln -s $(BLDdir)/CFC_opt_props.F .
@@ -795,7 +804,7 @@ clean:
 	mfcdat.F mfcntl.F mfmach.F mfmode.F mfsbld.F mfsbps.F mfsplt.F \
 	mfutil.F mitzero.F moistr.F monitor.F montrb.F mstmsc.F MultiYear_climate.F mzmrx5.F \
 	mzout6.F mzoutp.F ncm_overheating.F nwkrewr.F pcloop.F pcomp1.F pcomp2.F pcomp3.F \
-	pcomp4.F pcomps1.F pcomps.F plibsv.F plot.F pltcfg.F plt_bc_components.F \
+	pcomp4.F pcomps1.F pcomps.F pcompDH.F plibsv.F plot.F pltcfg.F plt_bc_components.F \
 	plt_zone_gain_coupling.F pmatrx.F pplib.F ppsub.F precal.F \
 	psychro.F rnor.F rwipv.F rwroam.F rwsbem.F shocc_dummy.c senrwl.F sensit.F sentim.F solar.F sort.F \
 	Annex42_fuel_cell.F spmatl.F stofunc.F \
@@ -809,10 +818,10 @@ clean:
 	h3k_report_data.F radiant_floor.F DHW_module.F h3k_plant_postprocess.F RE-H2-ctl.F \
 	ADS_storage_tanks.F ADS_storage_unit.F ADS_controller.F solar_collectors.F \
 	ground_temp_mains.F readTrnsys.F trnsys_wrapper.F trnsys_lib.F \
-	tank_intank_hx.F mains_temp_draw_profiles.F stratified_tank.F \
+	tank_intank_hx.F mains_temp_draw_profiles.F stratified_tank.F stratified_tank_byp.F \
 	FMIsim.F FMIc.c FMIsim_dummy.F FMIcom.F \
 	CFC_opt_props.F CFC_thermal_and_aux.F editCFC.F NCHE.F stratified_tank_1HX.F stratified_tank_2HX.F \
-	AirFlowModelRoutines.F Res_elec_Ctl.F h3kmodule.f90 qrun.F azalt.F
+	AirFlowModelRoutines.F Res_elec_Ctl.F h3kmodule.f90 qrun.F azalt.F CFC_Module.f90 cfc_module.mod
 
 distclean: clean
 

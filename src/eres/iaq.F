@@ -98,7 +98,7 @@ C Instanciate the help strings for this menu.
         CALL MOZDFN
       elseif(INO.EQ.5.AND.ISAVE.GT.1)then
         IF(NCOMP.GT.1)then
-          call askzon(IZONE)
+          call askzon(IZONE,23)
         else
           IZONE=NCOMP
         endif

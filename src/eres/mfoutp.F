@@ -148,13 +148,13 @@ C Simulator parameters.
 #ifdef OSI
       integer igx,iigx  ! see array above
       integer iupdown,isym    ! passed to etplot
-      integer iid1,iid2,iicol
+      integer iid1,iid2,iicol,ibsize
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iside,isize,ifont     ! passed to viewtext
 #else
       integer*8 igx,iigx  ! see array above
       integer*8 iupdown,isym    ! passed to etplot
-      integer*8 iid1,iid2,iicol
+      integer*8 iid1,iid2,iicol,ibsize
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
@@ -283,7 +283,7 @@ C If output to file alter the edisp unit number.
         if(MMOD.eq.8)then
           if(iairn.eq.3)then
             call startbuffer
-            call MFWFDRAW('r')  ! Draw £D flow network.
+            call MFWFDRAW('r')  ! Draw 3D flow network.
           endif
         endif
       endif
@@ -1303,11 +1303,12 @@ C Finally label lines, matching zone line colour if used.
               if(ICM.gt.nzonec) ICM=IMFGETNO(I,2)-nzonec
               if(ICM.gt.nzonec) ICM=IMFGETNO(I,2)-nzonec
               iicol=ICM
-              call winscl('z',iicol)
+C              call winscl('z',iicol)
             endif
           endif
           call u2pixel(TIMEold(I),Yold(I),iid1,iid2)
-          call wstxpt(iid1,iid2,t20)
+          ibsize=0
+          call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
@@ -1320,7 +1321,8 @@ C If there are optional user defined labels draw them.
           do 201 ijj=1,ngrlbl
             t24=grlbl(ijj)
             iid1=lblpx(ijj); iid2=lblpy(ijj);
-            call wstxpt(iid1,iid2,t24)
+            iicol=0; ibsize=0
+            call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
  201      continue
         endif
 
@@ -1627,10 +1629,12 @@ C to graphical result display of network flows.
       integer iside,isize,ifont     ! passed to viewtext
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
 C Generate a descriptive string for the time period to be displayed
@@ -1640,15 +1644,16 @@ C pixel references for calls to viewtext.
       CALL HDSTEP(SDESCR)
 
       IF(MMOD.EQ.8)THEN
-        iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-        if(iglib.eq.1)then
-          call feedbox(menuchw,2,igfw,igfh)
-          call opengdisp(menuchw,LIMTTY,2,igdw,igdh)
-        endif
 
 C Setup and pass in parameters to win3d.
         iiw1=9; iiw2=30; iiw3=4; iiw4=3; iimenu=menuchw
         iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+        ilf=2; ild=LIMTTY
+        iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+        if(iglib.eq.1)then
+          call feedbox(iimenu,ilf,igfw,igfh)
+          call opengdisp(iimenu,ild,ilf,igdw,igdh)
+        endif
         CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &    iigl,iigr,iigt,iigb,iigw,iigwh)
         igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)

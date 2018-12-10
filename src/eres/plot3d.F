@@ -673,11 +673,13 @@ C support ~330 days in the graph.
       integer iside,isize,ifont,iposi     ! passed to viewtext
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iside,isize,ifont,iposi     ! passed to viewtext
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
       DATA LNAME/'MASK.DAT'/
@@ -690,17 +692,18 @@ C pixel references for calls to viewtext.
       ier=0
 
       IF(MMOD.EQ.8)THEN
-        iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-        if(iglib.eq.1)then
-          call winclr
-          call feedbox(menuchw,2,igfw,igfh)
-          call opengdisp(menuchw,LIMTTY,2,igdw,igdh)
-        endif
 
 C Setup and pass in parameters to win3d.
 C        iiw1=9; iiw2=16; iiw3=7; iiw4=2; iimenu=menuchw
         iiw1=7; iiw2=16; iiw3=7; iiw4=2; iimenu=menuchw
         iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+        iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+        if(iglib.eq.1)then
+          ilf=2; ild=LIMTTY
+          call winclr
+          call feedbox(iimenu,ilf,igfw,igfh)
+          call opengdisp(iimenu,ild,ilf,igdw,igdh)
+        endif
         CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &    iigl,iigr,iigt,iigb,iigw,iigwh)
         igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
@@ -1138,14 +1141,17 @@ C Draw the frame (context of the surface plot).
 C Set rotations to zero.
       CALL COEF3D(0.0,0.0,COEFF)
       IALT=0
-      CALL PLOT3E(110,ARRAY,ARRAY(6),zdat,1.0,1.0,0.0,
-     1     IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
-     2          -1,0,5,COEFF,MASK,VERTEX,XLT,YLT,IALT,XLAST,YLAST)
 
-C Should work with ydat, but doesn`t
-C      CALL PLOT3E(110,ARRAY,ydat,zdat,1.0,1.0,0.0,
+C The next block of code is compiler sensitive. For gcc versions
+C after ~7 use the 2nd block of code.
+C      CALL PLOT3E(110,ARRAY,ARRAY(6),zdat,1.0,1.0,0.0,
 C     1     IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
 C     2          -1,0,5,COEFF,MASK,VERTEX,XLT,YLT,IALT,XLAST,YLAST)
+
+C Should work with ydat, but doesn`t
+      CALL PLOT3E(110,ARRAY,ydat,zdat,1.0,1.0,0.0,
+     1     IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
+     2          -1,0,5,COEFF,MASK,VERTEX,XLT,YLT,IALT,XLAST,YLAST)
 
       DO 5 K=1,15,2
         VERTEX(K)=(VERTEX(K)-XMIN)*SCALE
@@ -1263,7 +1269,9 @@ C <0 SET
       END
 
 C ******************** PLOT3E ********************
-
+C This subroutine is compiler sensitive. Code assumes that subroutines
+C calling PLOT3E might not pass the full arrays XDATA YDATA ZDATA. Newer
+C compilers are more strict.
       SUBROUTINE  PLOT3E(IVXYZ,XDATA,YDATA,ZDATA,XSCALE,YSCALE,ZSCALE,
      1              IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
      2              NLINE,IFIRST,NPNTS,COEFF,MASK,VERTEX,

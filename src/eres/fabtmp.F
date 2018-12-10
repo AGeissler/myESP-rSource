@@ -552,11 +552,11 @@ C IPRZ is materials array index for each layer.
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
       integer iupdown,isym,iid1,iid2    ! passed to etplot
-      integer iicol
+      integer iicol,ibsize
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iupdown,isym,iid1,iid2    ! passed to etplot
-      integer*8 iicol
+      integer*8 iicol,ibsize
 #endif
 
 C Re-establish available colours.
@@ -577,9 +577,10 @@ C Get and display results.
 
 C Draw construction section.
       iid1=igl; iid2=igt-10;
-      call wstxpt(iid1,iid2,TCSTR)
+      iicol=0; ibsize=0
+      call textsizeatxy(iid1,iid2,TCSTR,ibsize,'-',iicol)
       iid1=igr; iid2=igt-10;
-      call wstxpt(iid1,iid2,ZN)
+      call textsizeatxy(iid1,iid2,ZN,ibsize,'-',iicol)
       igr=13
       XX=0.
       YD=TMAX-TMIN
@@ -685,9 +686,10 @@ C If possible reset the foreground colour to white and redraw the line.
 
 C Re-Draw construction section.
             iid1=igl; iid2=igt-10;
-            call wstxpt(iid1,iid2,TCSTR)
+            iicol=0; ibsize=0
+            call textsizeatxy(iid1,iid2,TCSTR,ibsize,'-',iicol)
             iid1=igr; iid2=igt-10;
-            call wstxpt(iid1,iid2,ZN)
+            call textsizeatxy(iid1,iid2,ZN,ibsize,'-',iicol)
             igr=13
             XX=0.
             YD=TMAX-TMIN

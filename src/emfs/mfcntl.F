@@ -188,7 +188,7 @@ C Match mass flow controller type.
         if(ICLCTP.gt.0.and.ICLCTP.le.7)then
           WRITE(outs,*) ' CFFVAR: mass flow control function ',ICFP
           call edisp(iuout,outs)
-          WRITE(outs,*) 
+          WRITE(outs,'(a,i4,a,i4,a,i2)') 
      &      ' CFFVAR: invalid mass flow sensed external condition ',
      &      ICLCTP,' day type ',IDTYPP,' period ',IPERP
           call edisp(iuout,outs)
@@ -496,9 +496,14 @@ C Establish sensed variable magnitude and actuated node location.
 
 C <FMI>
 C If window control is active, set control position to fraction from
-C FMU.
-      if (FMUDOCTL(ifsn(icfp,1),3)) then
-        CTLPOS(ifan(icfp,2))=FMUCTL(ifsn(icfp,1),3)
+C FMU assuming that the flow control sensor is a zone rather than a
+C flow node.
+      if (is_FMU) then
+        if(ifsn(icfp,1).gt.0)then
+          if (FMUDOCTL(ifsn(icfp,1),3)) then
+            CTLPOS(ifan(icfp,2))=FMUCTL(ifsn(icfp,1),3)
+          endif
+        endif
       endif
 C </FMI>
 

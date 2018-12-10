@@ -174,13 +174,13 @@ C Begin with high level menu.
       ITEMS(19)=                'p integrated performance view    '
       ITEMS(20)=                '  ___________________________    '
       ITEMS(21)=                'q pressure coefficients calc.    '
-      ITEMS(22)=                'r use observed/temporal data    '
+      ITEMS(22)=                'r use observed/temporal data     '
       ITEMS(23)=                '  ___________________________    '
       WRITE(ITEMS(24),'(a,i3)') 's define images: ',noimg
       ITEMS(25)=                't UK NCM specifications          '
-c      ITEMS(26)=                'u transient orientation          '
+c      ITEMS(26)=                'u transient orientation         '
       ITEMS(26)=                '          '
-      ITEMS(27)=                ' _____________________________ '
+      ITEMS(27)=                ' _____________________________   '
       ITEMS(28)=                '? help                           '
       ITEMS(29)=                '- exit this menu                 '
       nitms=29
@@ -1669,11 +1669,12 @@ cx << wild mix of "it" and "ite", here???
  250        izdef=0
             if(TTYPE(it)(1:6).eq.'CASUAL')then
               call askzone(ic,izdef,'Related zone for casual gains?',
-     &        'Related zone','-','Casual gains requires a zone.',ier)
+     &          'Related zone','-','Casual gains requires a zone.',
+     &          34,ier)
             elseif(TTYPE(it)(1:7).eq.'ELECPWR')then
               call askzone(ic,izdef,
      &        'Related zone for electrical power?','Related zone',
-     &        '-','Electrical real & reactive requires a zone.',ier)
+     &        '-','Electrical real & reactive requires a zone.',34,ier)
             endif
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 250
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
@@ -1686,7 +1687,7 @@ C << need to support the no ventilation case? >>
             IC=-1
  251        izdef=0
             call askzone(ic,izdef,' Related zone for ventilation?',
-     &        'Related zone','-','Ventilation requires a zone.',ier)
+     &        'Related zone','-','Ventilation requires a zone.',34,ier)
             IF(IC.EQ.-1)GOTO 251
             if(ic.eq.0)then
               write(DBZN(ITE),'(a)') 'none        '
@@ -1701,7 +1702,7 @@ C << the velocity should be associated with an outside surface?
             IC=-1
  252        izdef=0
             call askzone(ic,izdef,' Related zone for air velocity?',
-     &        'Related zone','-','Air velocity requires a zone.',ier)
+     &        'Related zone','-','Air velocity requires a zone.',34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 252
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
             DBSN(ITE)='ALL'
@@ -1712,7 +1713,7 @@ C << between 0.0 and 1.0 giving ON fraction.
             IC=-1
  254        izdef=0
             call askzone(ic,izdef,' Related zone for control state?',
-     &        'Related zone','-','Set point requires a zone.',ier)
+     &        'Related zone','-','Set point requires a zone.',34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 254
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
             DBSN(ITE)='ALL'
@@ -1724,7 +1725,7 @@ C Depending on the type of the data, ask for associated zone.
  1252       izdef=0
             call askzone(ic,izdef,' Related zone for activity db?',
      &      'Related zone','-','Activity db can be assigned to a zone.',
-     &       ier)
+     &      34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 1252
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
 
@@ -1948,7 +1949,7 @@ C all of the usual values for control-temporal links. Note that
 C even though cm(8) - cm(13) does not seem to be used set them.
             IC=-1
  255        call askzone(ic,izdef,'Related zone for temporal setpoint?',
-     &        'Related zone','-','Set point requires a zone.',ier)
+     &        'Related zone','-','Set point requires a zone.',34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 255
             ibsn(ispl,1)=IC
             iban(ispl,1)=IC; iban(ispl,2)=0; iban(ispl,3)=0
@@ -2010,7 +2011,8 @@ C Depending on the type of data, ask for associated surface.
  352        izdef=0
             call askzone(ic,izdef,
      &        ' Related zone for bidirectional data set?',
-     &        'Related zone','-','Optical sets require a zone.',ier)
+     &        'Related zone','-','Optical sets require a zone.',
+     &        34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 352
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
             call easksur(IC,ISUR,'-',
@@ -2024,7 +2026,7 @@ C Depending on the type of data, ask for associated zone & surface.
  353        izdef=0
             call askzone(ic,izdef,
      &        'Related zone where vertical solar data apply?',
-     &        'Related zone','-','zone to assign solar data.',ier)
+     &        'Related zone','-','zone to assign solar data.',34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 353
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
             call easksur(IC,ISUR,'-',
@@ -2039,7 +2041,8 @@ C will not use these values only for reporting in res.
  354        izdef=0
             call askzone(ic,izdef,
      &        'Zone for observed db T to display in res?',
-     &        'Related zone','-','Observed db T for which zone?',ier)
+     &        'Related zone','-','Observed db T for which zone?',
+     &        34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 354
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
             DBSN(ITE)='ALL' 
@@ -2051,7 +2054,7 @@ C will not use these values only for reporting in res.
  359        izdef=0
             call askzone(ic,izdef,
      &        'Zone for observed zone RH to display in res?',
-     &        'Related zone','-','Observed RH for which zone?',ier)
+     &        'Related zone','-','Observed RH for which zone?',34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 359
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
             DBSN(ITE)='ALL' 
@@ -2063,7 +2066,8 @@ C will not use these values only for reporting in res.
  357        izdef=0
             call askzone(ic,izdef,
      &        'Zone for observed zone heating to display in res?',
-     &        'Related zone','-','Observed heating for which zone?',ier)
+     &        'Related zone','-','Observed heating for which zone?',
+     &        34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 357
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
             DBSN(ITE)='ALL' 
@@ -2075,7 +2079,8 @@ C will not use these values only for reporting in res.
  358        izdef=0
             call askzone(ic,izdef,
      &        'Zone for observed zone cooling to display in res?',
-     &        'Related zone','-','Observed cooling for which zone?',ier)
+     &        'Related zone','-','Observed cooling for which zone?',
+     &        34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 358
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
             DBSN(ITE)='ALL' 
@@ -2089,7 +2094,7 @@ C only for reporting in res.
             call askzone(ic,izdef,
      &        'Zone for measured surf T to display in res?',
      &        'Related zone','-',
-     &        'Measured surface T within which zone?',ier)
+     &        'Measured surface T within which zone?',34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 355
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
             call easksur(IC,ISUR,'-',
@@ -2125,8 +2130,9 @@ C Ask which zone is linked to charging schedule
             IC=-1
  356        izdef=0
             call askzone(ic,izdef,
-     &      ' Related zone for grid charging schedule?',
-     &      'Related zone','-','Charging schedule for which zone?',ier)
+     &        ' Related zone for grid charging schedule?',
+     &        'Related zone','-','Charging schedule for which zone?',
+     &        34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 356
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
             DBSN(ITE)='ALL'
@@ -2232,7 +2238,7 @@ C Then instanciate all of the usual values for CFC control-temporal links.
             IC=-1
             CALL EPMENSV
  256        call askzone(ic,izdef,'Related zone for CFC tdf data?',
-     &        'Related zone','-','CFC control requires a zone.',ier)
+     &        'Related zone','-','CFC control requires a zone.',34,ier)
             CALL EPMENRC ! ... seems to be good practice ... ??
             IF(IC.EQ.0.OR.IC.EQ.-1) GOTO 256
 
@@ -3530,10 +3536,10 @@ C  x  x  x  x  x  x  x     x  x  x  x  x  x  x
       DIMENSION m1slots(42,2),m2slots(42,2)
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
-      integer iicol
+      integer iix,iiy,iicol,idcol
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
-      integer*8 iicol
+      integer*8 iix,iiy,iicol,idcol
 #endif
 
 C Text for each slot.
@@ -3833,11 +3839,12 @@ C Plot out the first 7 days.
               idcol=m1slots(j,2)
               iicol=0
               if(idcol.eq.0)call winscl('-',iicol)
-              call findviewtext(icx,line,isize,ix,iy)
+              call findviewtext(icx,line,isize,iix,iiy)
+C              iix=ix; iiy=iy
               if(idcol.eq.0)then
-                call textatxy(ix,iy,word3,'-',idcol)
+                call textatxy(iix,iiy,word3,'-',idcol)
               else
-                call textatxy(ix,iy,word3,'z',idcol)
+                call textatxy(iix,iiy,word3,'z',idcol)
               endif
               icx=icx+3
   147       continue
@@ -3849,11 +3856,12 @@ C Shift over another character and print out the 2nd months line.
               idcol=m2slots(j,2)
               iicol=0
               if(idcol.eq.0)call winscl('-',iicol)
-              call findviewtext(icx,line,isize,ix,iy)
+              call findviewtext(icx,line,isize,iix,iiy)
+C              iix=ix; iiy=iy
               if(idcol.eq.0)then
-                call textatxy(ix,iy,word3,'-',idcol)
+                call textatxy(iix,iiy,word3,'-',idcol)
               else
-                call textatxy(ix,iy,word3,'z',idcol)
+                call textatxy(iix,iiy,word3,'z',idcol)
               endif
               icx=icx+3
   148       continue
@@ -3875,11 +3883,12 @@ C Also include list of day types.
           idcol=icd
           iicol=0
           if(idcol.eq.0)call winscl('-',iicol)
-          call findviewtext(3,line,isize,ix,iy)
+          call findviewtext(3,line,isize,iix,iiy)
+C          iix=ix; iiy=iy
           if(idcol.eq.0)then
-            call textatxy(ix,iy,etext,'-',idcol)
+            call textatxy(iix,iiy,etext,'-',idcol)
           else
-            call textatxy(ix,iy,etext,'z',idcol)
+            call textatxy(iix,iiy,etext,'z',idcol)
           endif
  151    continue
         iicol=0

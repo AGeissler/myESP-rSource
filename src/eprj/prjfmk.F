@@ -524,7 +524,7 @@ C flows are to preserve ach or volume of flow.
             call askzone(isource,izdef,
      &        'Air flow pattern taken from which zone?',
      &        'Source Zone','-','Air flow import requires a zone.',
-     &        ier)
+     &        33,ier)
             if (IER.ne.0.or.isource.eq.ICOMP) then
               write (OUTS,'(3a)')  'the current (',
      &          zname(ICOMP)(1:lnzname(ICOMP)),').'
@@ -649,7 +649,7 @@ C Ask which zone, then confirm whether absolute W values are to be scaled.
             izdef=0
             call askzone(isource,izdef,'Casual gains from which zone?',
      &        'Source Zone','-','Casual gain import requires a zone.',
-     &        ier)
+     &        33,ier)
             if (IER.ne.0.or.isource.eq.ICOMP) then
               write (OUTS,'(3a)')  'the current (',
      &          zname(ICOMP)(1:lnzname(ICOMP)),').'
@@ -1076,7 +1076,7 @@ c the lower range.
         IV=IVL(ICOMP)
         call askzone(iv,IVL(icomp),'Ventilation from which zone?',
      &    'Source Zone','-','Ventilation definition requires a zone.',
-     &    ier)
+     &    33,ier)
         IVL(ICOMP)=IV
         VAL=ACVL(ICOMP)
         ratio = VOL(ICOMP)/VOL(IV)
@@ -1114,7 +1114,7 @@ C Define air flow when the sensed variable is above the middle range.
         IV=IVU(ICOMP)
         call askzone(iv,IVU(icomp),'Ventilation from which zone?',
      &    'Source Zone','-','Ventilation definition requires a zone.',
-     &    ier)
+     &    33,ier)
         IVU(ICOMP)=IV
         VAL=ACVU(ICOMP)
         ratio = VOL(ICOMP)/VOL(IV)
@@ -1151,7 +1151,7 @@ C Define air flow when the sensed variable is above the high range.
         IV=IVH(ICOMP)
         call askzone(iv,IVH(icomp),'Ventilation from which zone?',
      &    'Source Zone','-','Ventilation definition requires a zone.',
-     &    ier)
+     &    33,ier)
         IVH(ICOMP)=IV
         VAL=ACVH(ICOMP)
         ratio = VOL(ICOMP)/VOL(IV)
@@ -1385,7 +1385,7 @@ C flows are to preserve ac/h or volume of flow.
             call askzone(isource,izdef,
      &        'Air flow pattern from which zone?',
      &        'Source Zone','-','Ventilation import requires a zone.',
-     &        ier)
+     &        33,ier)
             if (IER.ne.0.or.isource.eq.ICOMP) then
               write (OUTS,'(3a)')  'the current zone (',
      &          zname(ICOMP)(1:lnzname(ICOMP)),').'
@@ -1759,7 +1759,7 @@ C flows are to preserve ac/h or volume of flow.
             call askzone(isource,izdef,
      &        'Air flow pattern from which zone?',
      &        'Source Zone','-','Ventilation import requires a zone.',
-     &        ier)
+     &        33,ier)
             if (IER.ne.0.or.isource.eq.ICOMP) then
               write (OUTS,'(3a)')  'the current zone (',
      &          zname(ICOMP)(1:lnzname(ICOMP)),').'
@@ -2060,7 +2060,7 @@ C Present zone list.
  38         IV=IPTX
             call askzone(IV,IPTX,'Ventilation from which zone?',
      &     'Source Zone','-','Ventilation definition requires a zone.',
-     &       ier)
+     &      33,ier)
             if (IER.ne.0.or.IV.eq.ICOMP) then
               write (OUTS,'(3a)')  'the current zone (',
      &          zname(ICOMP)(1:lnzname(ICOMP)),').'
@@ -2875,14 +2875,14 @@ C  ICOMP zone number
       integer iupdown,isym    ! passed to etplot
       integer iid1,iid2,iglsat,iglsun
       integer iigl,iigr,iigt,iigb,iigw,iigwh
-      integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer iiw1,iiw2,iiw3,iiw4,iimenu,iicol
 #else
       integer*8 ipltwd,igheight  ! for use with axiscale
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iupdown,isym    ! passed to etplot
       integer*8 iid1,iid2,iglsat,iglsun
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
-      integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 iiw1,iiw2,iiw3,iiw4,iimenu,iicol
 #endif
 
       IDTY=IDTYP
@@ -2904,7 +2904,7 @@ C Clear and setup plot area.
       CALL startbuffer()
 
 C Setup and pass in parameters to win3d.
-      iiw1=10; iiw2=10; iiw3=8; iiw4=3; iimenu=menuchw
+      iiw1=13; iiw2=13; iiw3=8; iiw4=3; iimenu=menuchw
       iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
       CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &  iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -3076,14 +3076,12 @@ C third day type requested
 
 C Title and labels.
       write (outs,'(2a)') 'Scheduled air flows for ',ZNAME(ICOMP)
-      iside=1
-      isize=1
-      ifont=1
+      iside=1; isize=1; ifont=1; iicol=0
       call viewtext(outs,iside,isize,ifont)
       iid1=igl+20; iid2=igt-65;
-      call wstxpt(iid1,iid2,'Infiltration')
+      call textatxy(iid1,iid2,'Infiltration','-',iicol)
       iid1=igr-100; iid2=igt-65;
-      call wstxpt(iid1,iid2,'Ventilation')
+      call textatxy(iid1,iid2,'Ventilation','-',iicol)
       iid1=igl+100; iid2=igt-69;
       call pixel2u(iid1,iid2,gx,gy)
       iupdown=0
@@ -3104,11 +3102,11 @@ C Title and labels.
 
       ioff=(int(ipltwd)/3)
       iid1=igl+ioff; iid2=igt-10;
-      call wstxpt(iid1,iid2,CALENTAG(IDAY))
+      call textatxy(iid1,iid2,CALENTAG(IDAY),'-',iicol)
       iid1=iglsat+ioff; iid2=igt-10;
-      call wstxpt(iid1,iid2,CALENTAG(JDAY))
+      call textatxy(iid1,iid2,CALENTAG(JDAY),'-',iicol)
       iid1=iglsun+ioff; iid2=igt-10;
-      call wstxpt(iid1,iid2,CALENTAG(KDAY))
+      call textatxy(iid1,iid2,CALENTAG(KDAY),'-',iicol)
       call forceflush()
 
       return
@@ -3134,6 +3132,8 @@ C ITRC is the trace level, IER=0 is OK.
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       CHARACTER CALENAME*32,CALENTAG*12,CALENDAYNAME*32
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
       common/user/browse
 
 C Electrical data flag and elctrical data.
@@ -3218,8 +3218,21 @@ C Initial menu entry setup.
       IER=0
       IVERT=-3
 
-C Plot casual gains.
-      if (MMOD.eq.8) call PLTCASGN(ICOMP,idtyp)
+C Plot casual gains and set to fixed width menu font.
+      if (MMOD.eq.8)then
+        write(6,'(a,3i2)') 'EDCAS IFS,ITFS,IMFS',IFS,ITFS,IMFS
+        lastmenufont=IMFS
+        if(IMFS.eq.4) IMFS=0
+        if(IMFS.eq.5) IMFS=1
+        if(IMFS.eq.6) IMFS=2
+        if(IMFS.eq.7) IMFS=3
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        call userfonts(IFS,ITFS,IMFS)
+        write(6,'(a,3i2)') 'EDCAS IFS,ITFS,IMFS',IFS,ITFS,IMFS
+      
+        call PLTCASGN(ICOMP,idtyp)
+      endif
 
 C Set up top of menu.
  44   VERT(1) = '1 import from profiles database '
@@ -3395,6 +3408,11 @@ C Increment the daytype focus.
         if(idtyp.gt.NBDAYTYPE) idtyp = 1
         goto 5
       ELSEIF(IVERT.EQ.MVERT)THEN
+        IMFS=lastmenufont    ! reset to proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+        write(6,'(a,3i2)') 'EDCas IFS,ITFS,IMFS',IFS,ITFS,IMFS
         return
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
         CALL PHELPD('gains menu',18,'-',0,0,IER)
@@ -3635,7 +3653,7 @@ C confirm whether absolute W values are to be scaled.
             izdef=0
             call askzone(isource,izdef,'Casual gains from which zone?',
      &        'Source Zone','-','Casual import requires a zone.',
-     &      ier)
+     &        36,ier)
             if (IER.ne.0.or.isource.eq.ICOMP) then
               write (OUTS,'(3a)')  'the current zone (',
      &          zname(ICOMP)(1:lnzname(ICOMP)),').'
@@ -5286,7 +5304,7 @@ C Clear and setup plot area.
 
 C Setup and pass in parameters to win3d. Offset 11 char on left,
 C 13 char on right, 9 lines on top and 3 below the graphs.
-      iiw1=11; iiw2=13; iiw3=9; iiw4=3; iimenu=menuchw
+      iiw1=13; iiw2=13; iiw3=9; iiw4=3; iimenu=menuchw
       iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
       CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &  iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -5652,14 +5670,12 @@ C Plot curves.
 
 C Title and labels.
       write (outs,'(2a)') 'Casual gains for ',ZNAME(ICOMP)
-      iside=1
-      isize=1
-      ifont=1
+      iside=1; isize=1; ifont=1; iicol=0
       call viewtext(outs,iside,isize,ifont) ! 65 becomes 78 69 becomes 82
       iid1=igl+20; iid2=iigt-78;
-      call wstxpt(iid1,iid2,' Total sensible')
+      call textatxy(iid1,iid2,' Total sensible','-',iicol)
       iid1=igr-100; iid2=iigt-78;
-      call wstxpt(iid1,iid2,'Total latent')
+      call textatxy(iid1,iid2,'Total latent','-',iicol)
       iid1=igl+120; iid2=iigt-82;
       call pixel2u(iid1,iid2,gx,gy)
       iupdown=0
@@ -5689,10 +5705,11 @@ C For each of the currently used slots draw legend.
           write(outs,'(2a)') lodlabel(ICOMP,I)(1:lnlb),' sensible'
           IY=igt-(12*I)-18
           iid1=igl+20; iid2=IY;
-          call wstxpt(iid1,iid2,outs)
+          iicol=0
+          call textatxy(iid1,iid2,outs,'-',iicol)
           write(outs,'(2a)') lodlabel(ICOMP,I)(1:lnlb),' latent'
           iid1=igr-100; iid2=IY;
-          call wstxpt(iid1,iid2,outs)
+          call textatxy(iid1,iid2,outs,'-',iicol)
           if (COLOK)then
             iicol=i
             call winscl('z',iicol)
@@ -5723,11 +5740,11 @@ C For each of the currently used slots draw legend.
 
       ioff=(int(ipltwd)/3)
       iid1=igl+ioff; iid2=iigt-10;
-      call wstxpt(iid1,iid2,CALENTAG(IDAY))
+      call textatxy(iid1,iid2,CALENTAG(IDAY),'-',iicol)
       iid1=iglsat+ioff; iid2=iigt-10;
-      call wstxpt(iid1,iid2,CALENTAG(JDAY))
+      call textatxy(iid1,iid2,CALENTAG(JDAY),'-',iicol)
       iid1=iglsun+ioff; iid2=iigt-10;
-      call wstxpt(iid1,iid2,CALENTAG(KDAY))
+      call textatxy(iid1,iid2,CALENTAG(KDAY),'-',iicol)
       call forceflush()
 
       return
@@ -5996,10 +6013,10 @@ C Explific type to go with this casual gain.
         caskeytype(icomp,islot)='dynamicpeople'
         rf=0.6; cf=0.4  ! CIBSE Guide A 6.3
         xiatr1=iatr1
-        CALL EASKI(xiatr1,' ', 
-     &    'Number of model (1. Cibze  2. E+   3. 2nodes)?'
-     &     ,0,'W',100,'W',1,'number of equation'
-     &    ,IERI,nbhelp)
+        CALL EASKI(xiatr1, 
+     &    'Number of model (1. CIBSE  2. E+   3. 2nodes', 
+     &    '4. detailed 25 body part)?',0,'W',100,'W',1,
+     &    'number of equation',IERI,nbhelp)
           iatr1=xiatr1
         CALL EASKABCD('For metabolic dynamicpeople gains the units',
      &    'Confirm: ','not applicable','not applicable',

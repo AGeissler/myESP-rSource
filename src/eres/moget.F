@@ -127,11 +127,12 @@ C IGET = 24 Mean radiant temperature
 C IGET = 25 Surface flux (various IGET,4) where 1=conduction (inside),
 C   2=convec (inside), 3=LW radiation (inside), 4=SW rad absorb inside,
 C   5=radiant casual occup, 6=radiant casual light
-C   7=radiant casual equip, 8=contrld casual gains, 9=heat storage (inside)
-C   10=plant inj/extr (ins), 11=conduction (other fc), 12=convec (other),
-C   13=long wave > buildings
-C   14=long wave > sky, 15=long wave > ground, 16= SW radiation (othr),
-C   17=heat storage (othr)
+C   7=radiant casual equip, 8=radiant casual other
+C   9=contrld casual gains, 10=heat storage (inside)
+C   12=plant inj/extr (ins), 12=conduction (other fc), 13=convec (other),
+C   14=long wave > buildings
+C   15=long wave > sky, 16=long wave > ground, 17= SW radiation (other),
+C   18=SW incident radiation (other), 19=heat storage (other)
 C IGET = 26 External lux level
 
 C IGET = 27 Real electrical power consumption
@@ -166,7 +167,9 @@ C IGET = 50 Local PPD - delta T head/ foot
 C IGET = 51 Local PPD - floor T
 C IGET = 52 Local PPD - floor/ ceiling radiant T asymmetry
 C IGET = 53 Local PPD - wall/ wall radiant T asymmetry
-C Assume other local comfort gets will occupy slots up to and including 59.
+C Assume other local comfort gets will occupy slots up to and including 58.
+
+C IGET = 59 Operative temperature
 
 C IGET = 60 Energy demands
 C IGET = 61 Zone energy balances (Integr: (IGET,4)=1; Snapshot: (IGET,4)=2)
@@ -445,6 +448,7 @@ C above.
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
+      COMMON/C1/NCOMP,NCON
 
 C IGETFLG - flags for menu set up:
 C IOCUPF current state of occupancy filter (0=none; 1=filtering on).
@@ -473,6 +477,9 @@ C          ilflag = 2 do not include # header lines in file.
       integer ireportunit ! zero is default one is W two is kW three Joules
       common/repunit/ireportunit
 
+      COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
+      CHARACTER LCFD*72
+
 C Pre calculated data (filtered).
       common/MMAFDAT/IFILT,RDFMAX(MCOM,3,MZRL),RDFMIN(MCOM,3,MZRL),
      &    RDFAVE(MCOM,3,MZRL),RDTFMAX(MCOM,3,MZRL),RDTFMIN(MCOM,3,MZRL)
@@ -486,6 +493,7 @@ C MRT Sensors via geometry.h.
       CHARACTER ITEM(36)*24, MTITLE*22, values*20
       CHARACTER ITEMS(19)*23
       CHARACTER ITEMC(29)*24
+      CHARACTER ITEMT(13)*27
       character xfile*144,tg*1,delim*1
       character SUFFIX*8
       character ll1*12,ll2*12,ll3*12
@@ -513,14 +521,16 @@ C Note: 60 is the maximum number of items associated with an anchor point.
 
       logical SLIST,NLIST,MRTLIST,AGRLIST,OKL,dok,ok
 #ifdef OSI
-      integer iid1,iid2,iik,iixx,iiyy
+      integer iid1,iid2,iik,iixx,iiyy,iicol,ibsize
 #else
-      integer*8 iid1,iid2,iik,iixx,iiyy
+      integer*8 iid1,iid2,iik,iixx,iiyy,iicol,ibsize
 #endif
 
       logical dmdsok,xst,is_open
 
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
+
+      integer IZNOCFD(MCOM),NZNOCFD
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -928,12 +938,12 @@ C From the allclm type check the 1st static item value.
           call MENUATOL('Select a climate metric',' Climate choices:',
      &      'a Ambient temperature','b Solar Dir N','c Solar diffuse',
      &      'd Wind speed','e Wind direction','f Ambient RH',
-     &      'g Sky illumunance',' ',' ',' ',' ',' ',inoc,idnoc,nbhelp)
+     &      'g Sky illuminance',' ',' ',' ',' ',' ',inoc,idnoc,nbhelp)
         else
           call MENUATOL('Select a climate metric',' Climate choices:',
      &      'a Ambient temperature','b Solar GlobH','c Solar diffuse',
      &      'd Wind speed','e Wind direction','f Ambient RH',
-     &      'g Sky illumunance',' ',' ',' ',' ',' ',inoc,idnoc,nbhelp)
+     &      'g Sky illuminance',' ',' ',' ',' ',' ',inoc,idnoc,nbhelp)
         endif
         call usrmsg('  ','  ','-')
         if(inoc.eq.0)goto 1
@@ -950,14 +960,14 @@ C IGET = 2 outside temperature.
           IGETNO(NGET,8)=1;    IGETNO(NGET,9)=14
           GLABEL(NGET)='Ambient db Tmp'; LNGLABEL(NGET)=14
           if(IROC.eq.0)then
-            SLABEL(NGET)='Ambient db temperature (degC)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Ambient db temperature (C)'
+            LNSLABEL(NGET)=26
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Ambient db temp change (degC/hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Ambient db temp change (C/hr)'
+            LNSLABEL(NGET)=29
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Ambient db temp hours (degC.hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Ambient db temp hours (C.hr)'
+            LNSLABEL(NGET)=28
           endif
           write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
           LNTABLABEL(NGET)=LNSLABEL(NGET)
@@ -1084,14 +1094,26 @@ C Temperatures sub-menu.
         idnoc=0
         helptopic='res_temperature_metrics'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call MENUATOL('Select a temperature metric.',
-     &    ' Temperature choices:','a Zone db T',
-     &    'b Zone db T - ambient db T','c Zone db T - other zone db T',
-     &    'd Zone control point T','e Zone Resultant T',
-     &    'f Mean Radiant T (area wtd)','g Mean Radiant T (at sensor)',
-     &    'h Dew point T ','i Surf inside face T',
-     &    'j Surf T - dewpoint T','k Surf outside face T',
-     &    'l Surf node T',inoc,idnoc,nbhelp)
+        ITEMT(1) ='Zone db T                  '
+        ITEMT(2) ='Zone db T - ambient db T   '
+        ITEMT(3) ='Zone db T - other zone db T'
+        ITEMT(4) ='Zone control point T       '
+        ITEMT(5) ='Zone Resultant T           '
+        ITEMT(6) ='Mean Radiant T (area wtd)  '
+        ITEMT(7) ='Mean Radiant T (at sensor) '
+        ITEMT(8) ='Dew point T                '
+        ITEMT(9) ='Surf inside face T         '
+        ITEMT(10)='Surf T - dewpoint T        '
+        ITEMT(11)='Surf outside face T        '
+        ITEMT(12)='Surf node T                '
+        ITEMT(13)='Operative T (at sensor)    '
+        IX=1
+        CALL EPICKS(IX,IVALS,'Select a temperature metric.',
+     &    ' Temperature metrics:',27,13,ITEMT,'Temperature metrics',
+     &    IER,nbhelp)
+
+        if(IX.eq.0)goto 1
+        inoc=IVALS(1)
         if(inoc.eq.0)goto 1
         call usrmsg('  ','  ','-')
         NGET=NGET+1
@@ -1101,14 +1123,14 @@ C Temperatures sub-menu.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' db T'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Zone db temperature (degC)'
-            LNSLABEL(NGET)=26
+            SLABEL(NGET)='Zone db temperature (C)'
+            LNSLABEL(NGET)=23
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Zone db temp change (degC/hr)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Zone db temp change (C/hr)'
+            LNSLABEL(NGET)=26
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Zone db temp hours (degC.hr)'
-            LNSLABEL(NGET)=28
+            SLABEL(NGET)='Zone db temp hours (C.hr)'
+            LNSLABEL(NGET)=25
           endif
         elseif(inoc.eq.2)then
           IGETNO(NGET,1)=29
@@ -1116,33 +1138,33 @@ C Temperatures sub-menu.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' Del dbT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Delta db temperature (degC)'
-            LNSLABEL(NGET)=27
+            SLABEL(NGET)='Delta db temperature (C)'
+            LNSLABEL(NGET)=24
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Delta db temp change (degC/hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Delta db temp change (C/hr)'
+            LNSLABEL(NGET)=27
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Delta db temp hours (degC.hr)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Delta db temp hours (C.hr)'
+            LNSLABEL(NGET)=26
           endif
         elseif(inoc.eq.3)then
 
 C IGET = 41 db T - another zone db T. Ask for other zone.
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           IGETNO(NGET,3)=IZONE
           IGETNO(NGET,1)=41
           IGETNO(NGET,6)=1; IGETNO(NGET,7)=6
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' Del znT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Delta zn T - other zn T (degC)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Delta zn T - other zn T (C)'
+            LNSLABEL(NGET)=27
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Chg D znT - other znT (degC/hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Chg D znT - other znT (C/hr)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='D znT - other znT hrs(degC.hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='D znT - other znT hrs(C.hr)'
+            LNSLABEL(NGET)=27
           endif
         elseif(inoc.eq.4)then
 
@@ -1152,14 +1174,14 @@ C IGET = 3 Control point temperature.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' Cpt T'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Control pt temperature (degC)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Control pt temperature (C)'
+            LNSLABEL(NGET)=26
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Control pt temp change (degC/hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Control pt temp change (C/hr)'
+            LNSLABEL(NGET)=29
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Control pt temp hours (degC.hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Control pt temp hours (C.hr)'
+            LNSLABEL(NGET)=28
           endif
         elseif(inoc.eq.5)then
 
@@ -1169,14 +1191,14 @@ C IGET = 6  Resultant temperature.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' Res T'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Resultant temperature (degC)'
-            LNSLABEL(NGET)=28
+            SLABEL(NGET)='Resultant temperature (C)'
+            LNSLABEL(NGET)=25
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Resultant temp change (degC/hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Resultant temp change (C/hr)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Resultant temp hours (degC.hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Resultant temp hours (C.hr)'
+            LNSLABEL(NGET)=27
           endif
         elseif(inoc.eq.6)then
 
@@ -1187,14 +1209,14 @@ C IGET = 24, average MRT.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' MRT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Mean Radiant Temperature (degC)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Mean Radiant Temperature (C)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Mean radiant Tmp change(degC/hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Mean radiant Tmp change(C/hr)'
+            LNSLABEL(NGET)=29
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Mean radiant Tmp hours(degC.hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Mean radiant Tmp hours(C.hr)'
+            LNSLABEL(NGET)=28
           endif
         elseif(inoc.eq.7)then
 
@@ -1205,14 +1227,14 @@ C IGET = 24, MRT at sensor.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
           SUFFIX=' MRT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Mean Radiant Temperature (degC)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Mean Radiant Temperature (C)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Mean radiant Tmp change(degC/hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Mean radiant Tmp change(C/hr)'
+            LNSLABEL(NGET)=29
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Mean radiant Tmp hours (degC.hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Mean radiant Tmp hours (C.hr)'
+            LNSLABEL(NGET)=29
           endif
         elseif(inoc.eq.8)then
 
@@ -1222,14 +1244,14 @@ C IGET = 14  Zone dew point.
           IGETNO(NGET,8)=1;    IGETNO(NGET,9)=12
           SUFFIX=' dew ptT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Zone dew point (degC)'
-            LNSLABEL(NGET)=21
+            SLABEL(NGET)='Zone dew point (C)'
+            LNSLABEL(NGET)=18
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Zone dew point change (degC/hr)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Zone dew point change (C/hr)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Zone dew point hours (degC.hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Zone dew point hours (C.hr)'
+            LNSLABEL(NGET)=27
           endif
         elseif(inoc.eq.9)then
           slist=.true.
@@ -1238,14 +1260,14 @@ C IGET = 14  Zone dew point.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
           SUFFIX=' InSurT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Surface temp inside (degC)'
-            LNSLABEL(NGET)=26
+            SLABEL(NGET)='Surface temp inside (C)'
+            LNSLABEL(NGET)=23
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Surface temp inside (degC/hr)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Surface temp inside (C/hr)'
+            LNSLABEL(NGET)=26
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Surf temp inside hours (degC.hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Surf temp inside hours (C.hr)'
+            LNSLABEL(NGET)=29
           endif
         elseif(inoc.eq.10)then
           slist=.true.
@@ -1254,14 +1276,14 @@ C IGET = 14  Zone dew point.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
           SUFFIX='Dsur-dpT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Delta surf T - zone dp T (degC)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Delta surf T - zone dp T (C)'
+            LNSLABEL(NGET)=28
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Delta surf - zn dp T (degC/hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Delta surf - zn dp T (C/hr)'
+            LNSLABEL(NGET)=27
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Delta surfT - zn dpT hr(degC.hr)'
-            LNSLABEL(NGET)=32
+            SLABEL(NGET)='Delta surfT - zn dpT hr(C.hr)'
+            LNSLABEL(NGET)=29
           endif
         elseif(inoc.eq.11)then
           IF(ISAVE.lt.3)then
@@ -1274,14 +1296,14 @@ C IGET = 14  Zone dew point.
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
           SUFFIX=' ExSurT'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Surface temp outside (degC)'
-            LNSLABEL(NGET)=27
+            SLABEL(NGET)='Surface temp outside (C)'
+            LNSLABEL(NGET)=24
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Surface temp outside (degC/hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Surface temp outside (C/hr)'
+            LNSLABEL(NGET)=27
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Surface out temp hrs (degC.hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Surface out temp hrs (C.hr)'
+            LNSLABEL(NGET)=27
           endif
         elseif(inoc.eq.12)then
           if(ISAVE.ne.3)then
@@ -1295,15 +1317,33 @@ C IGET = 14  Zone dew point.
             IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
             SUFFIX=' NodeT'
             if(IROC.eq.0)then
-              SLABEL(NGET)='Surface node temp (degC)'
-              LNSLABEL(NGET)=24
+              SLABEL(NGET)='Surface node temp (C)'
+              LNSLABEL(NGET)=21
             elseif(IROC.eq.1)then
-              SLABEL(NGET)='Surface node temp (degC/hr)'
-              LNSLABEL(NGET)=27
+              SLABEL(NGET)='Surface node temp (C/hr)'
+              LNSLABEL(NGET)=24
             elseif(IROC.eq.-1)then
-              SLABEL(NGET)='Surf node temp hours (degC.hr)'
-              LNSLABEL(NGET)=30
+              SLABEL(NGET)='Surf node temp hours (C.hr)'
+              LNSLABEL(NGET)=27
             endif
+          endif
+        elseif(inoc.eq.13)then
+
+C IGET = 59, operative temperature
+          MRTLIST=.true.
+          IGETNO(NGET,1)=59
+          IGETNO(NGET,6)=1; IGETNO(NGET,7)=8
+          IGETNO(NGET,8)=1; IGETNO(NGET,9)=20
+          SUFFIX=' OpT'
+          if(IROC.eq.0)then
+            SLABEL(NGET)='Operative Temperature (C)'
+            LNSLABEL(NGET)=25
+          elseif(IROC.eq.1)then
+            SLABEL(NGET)='Operative Tmp change(C/hr)'
+            LNSLABEL(NGET)=26
+          elseif(IROC.eq.-1)then
+            SLABEL(NGET)='Operative Tmp hours (C.hr)'
+            LNSLABEL(NGET)=26
           endif
         endif
 
@@ -1640,8 +1680,8 @@ C IGET = 15  Casual gains by type.
           IGETNO(NGET,7)=16
           SUFFIX=' CtlCasG'
           if(IROC.eq.0)then
-            SLABEL(NGET)='Total controled casual gain (W)'
-            LNSLABEL(NGET)=31
+            SLABEL(NGET)='Total controlled casual gain (W)'
+            LNSLABEL(NGET)=32
           elseif(IROC.eq.1)then
             SLABEL(NGET)='Total ctld casual gain (W/hr)'
             LNSLABEL(NGET)=29
@@ -1675,11 +1715,11 @@ C IGET = 43 Zone balance opaque partitions conv.
             SLABEL(NGET)='Opaque partitions conv (W)'
             LNSLABEL(NGET)=26
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Opaque partitionns conv (W/hr)'
-            LNSLABEL(NGET)=30
-          elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Opaque partitionns conv (Whr)'
+            SLABEL(NGET)='Opaque partitions conv (W/hr)'
             LNSLABEL(NGET)=29
+          elseif(IROC.eq.-1)then
+            SLABEL(NGET)='Opaque partitions conv (Whr)'
+            LNSLABEL(NGET)=28
           endif
         elseif(inoc.eq.10)then
 
@@ -1768,7 +1808,7 @@ C Set up surface flux selection items.
      &    23,19,ITEMS,'surface fluxes',IER,nbhelp)
         if(IVALS(1).eq.0)goto 1
         dok=.false.
-        call askok('Report per square meter of surface',' ',OK,dok,
+        call askok('Report per square metre of surface',' ',OK,dok,
      &    nbhelp)
         ism=0
         if(ok)ism=1
@@ -2592,7 +2632,7 @@ C IGET = 15  Casual gains.
           ITEMC(9)='lighting (conv+rad) '
           ITEMC(10)='lighting convective '
           ITEMC(11)='lighting radiant '
-          ITEMC(12)='lighitng latent '
+          ITEMC(12)='lighting latent '
           ITEMC(13)='equipment (conv+rad) '
           ITEMC(14)='equipment convective '
           ITEMC(15)='equipment radiant '
@@ -2926,8 +2966,8 @@ C IGET = 15  Casual gains.
             IGETNO(NGET,6)=-3; IGETNO(NGET,7)=16
             SUFFIX=' CtlCasG'
             if(IROC.eq.0)then
-              SLABEL(NGET)='Total controled casual gain (W)'
-              LNSLABEL(NGET)=31
+              SLABEL(NGET)='Total controlled casual gain (W)'
+              LNSLABEL(NGET)=32
             elseif(IROC.eq.1)then
               SLABEL(NGET)='Total ctld casual gain (W/hr)'
               LNSLABEL(NGET)=29
@@ -3127,8 +3167,8 @@ C Aggregate lighting (r+c) for all currently selected zones.
             IGETNO(NGET,6)=-3; IGETNO(NGET,7)=16
             SUFFIX=' CtlCasG'
             if(IROC.eq.0)then
-              SLABEL(NGET)='Total controled casual gain (W)'
-              LNSLABEL(NGET)=31
+              SLABEL(NGET)='Total controlled casual gain (W)'
+              LNSLABEL(NGET)=32
             elseif(IROC.eq.1)then
               SLABEL(NGET)='Total ctld casual gain (W/hr)'
               LNSLABEL(NGET)=29
@@ -3209,7 +3249,7 @@ C and node logic below.
             SLABEL(NGET)='Reactive power consmp chg (W/hr)'
             LNSLABEL(NGET)=32
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Reactive power consmption (Whr)'
+            SLABEL(NGET)='Reactive power consumption (Whr)'
             LNSLABEL(NGET)=31
           endif
         endif
@@ -3312,7 +3352,7 @@ C Give the users clues about which zones have observed data.
      &    'zone cool','  ','  ',IR,nbhelp)
         NGET=NGET+1
         if(ir.eq.1)then
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           IGETNO(NGET,1)=80
           IGETNO(NGET,2)=IZONE
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
@@ -3320,17 +3360,17 @@ C Give the users clues about which zones have observed data.
           SUFFIX=' db T'
           GLABEL(NGET)='Observed db Tmp'; LNGLABEL(NGET)=15
           if(IROC.eq.0)then
-            SLABEL(NGET)='Observed zone db T (degC)'
-            LNSLABEL(NGET)=25
+            SLABEL(NGET)='Observed zone db T (C)'
+            LNSLABEL(NGET)=22
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Obs zone db T change (degC/hr)'
-            LNSLABEL(NGET)=30
+            SLABEL(NGET)='Obs zone db T change (C/hr)'
+            LNSLABEL(NGET)=27
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Obs zone db T hours (degC.hr)'
-            LNSLABEL(NGET)=29
+            SLABEL(NGET)='Obs zone db T hours (C.hr)'
+            LNSLABEL(NGET)=26
           endif
         elseif(ir.eq.2)then
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           call ASKSUR(IZONE,ISFN)
           IGETNO(NGET,1)=81
           IGETNO(NGET,2)=IZONE
@@ -3340,17 +3380,17 @@ C Give the users clues about which zones have observed data.
           SUFFIX=' surf T'
           GLABEL(NGET)='Observed surf T'; LNGLABEL(NGET)=15
           if(IROC.eq.0)then
-            SLABEL(NGET)='Observed surf T (degC)'
-            LNSLABEL(NGET)=22
+            SLABEL(NGET)='Observed surf T (C)'
+            LNSLABEL(NGET)=19
           elseif(IROC.eq.1)then
-            SLABEL(NGET)='Obs surf T change (degC/hr)'
-            LNSLABEL(NGET)=27
+            SLABEL(NGET)='Obs surf T change (C/hr)'
+            LNSLABEL(NGET)=24
           elseif(IROC.eq.-1)then
-            SLABEL(NGET)='Obs surf T hours (degC.hr)'
-            LNSLABEL(NGET)=26
+            SLABEL(NGET)='Obs surf T hours (C.hr)'
+            LNSLABEL(NGET)=23
           endif
         elseif(ir.eq.3)then
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           IGETNO(NGET,1)=82   ! hopefully a UNIQUE indicator 
           IGETNO(NGET,2)=IZONE
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
@@ -3368,7 +3408,7 @@ C Give the users clues about which zones have observed data.
             LNSLABEL(NGET)=30
           endif
         elseif(ir.eq.4)then
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           IGETNO(NGET,1)=83   ! hopefully a UNIQUE indicator 
           IGETNO(NGET,2)=IZONE
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
@@ -3386,7 +3426,7 @@ C Give the users clues about which zones have observed data.
             LNSLABEL(NGET)=26
           endif
         elseif(ir.eq.5)then
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           IGETNO(NGET,1)=84   ! hopefully a UNIQUE indicator 
           IGETNO(NGET,2)=IZONE
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
@@ -3641,7 +3681,7 @@ C Toggle delimeter.
           helptopic='tabular_delimiter_choice'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IWM=1
-          CALL EASKATOG('Delimeter to use between columns of data:',' ',
+          CALL EASKATOG('Delimiter to use between columns of data:',' ',
      &      'normal spaces','single space','tab','comma','tagged',
      &      'continue',' ',IWM,nbhelp)
           if(iwm.eq.1)then
@@ -3801,7 +3841,8 @@ C Find out point where text should be drawn.
         lblpy(igrl)=int(iiyy)
         iid1=int(iixx); iid2=int(iiyy);
         t24=grlbl(igrl)
-        call wstxpt(iid1,iid2,t24)
+        iicol=0; ibsize=0
+        call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
         dok=.false.
         CALL ASKOK('Include another user supplied label?',' ',OKL,dok,
      &    nbhelp)
@@ -3907,7 +3948,7 @@ C If IGET=25 and not outside then need to exclude some selections.
 
 C Need to ask for specific surface and node.
           NSEL=NSEL+1
-          call ASKZON(IZONE)
+          call ASKZON(IZONE,24)
           call ASKSUR(IZONE,ISFN)
           call ASKICN(IZONE,ISFN,INODE)
           IZNSEL(NSEL)=IZONE
@@ -3933,6 +3974,42 @@ C Copy current zone selection.
               IZNSEL(NSEL)=NZNO(I)
             end do
             MRTLIST=.false.
+          endif
+
+C For operative temperature, if zones do not have CFD domains, ask user
+C to confirm.
+          if (IGETNO(NGET,1).eq.59 .and. IER.eq.0) then
+            NZNOCFD=0
+            do I=1,NZ
+              if (IFCFD(NZNO(I)).eq.0) then
+                NZNOCFD=NZNOCFD+1
+                IZNOCFD(NZNOCFD)=NZNO(I)
+              endif
+            enddo
+            if (NZNOCFD.gt.0) then
+              if (NZNOCFD.eq.1)then
+                write(outs,'(a,i2.2)')
+     &            ' CFD domains not detected in zone ',IZNOCFD(1)              
+              elseif (NZNOCFD.eq.NCOMP) then
+                write(outs,'(a)')
+     &            ' CFD domains not detected in any zones'
+              else
+                write(outs,'(a,i2.2)')
+     &            ' CFD domains not detected in zones ',IZNOCFD(1)
+                do I=2,NZNOCFD
+                  write(outs,'(2a,i2.2)')outs(1:lnblnk(outs)),', ',
+     &              IZNOCFD(I)
+                enddo
+              endif
+              CALL EDISP(IUOUT,outs)
+              dok=.false.
+              ok=dok
+              helptopic='res_opT_noCFD'
+              call gethelptext(helpinsub,helptopic,nbhelp)
+              CALL ASKOK('Local values of air parameters not available.'
+     &          ,'Continue anyway? (see help)',ok,dok,nbhelp)
+              if (.not.ok) IER=1
+            endif
           endif
 
         elseif (AGRLIST) then
@@ -4361,7 +4438,7 @@ C      character outs*124
       integer iset    ! IGETNO(*,5)
       logical dmdsok,xst,ok
 
-C Check existance of demands file (it will have been scanned elsewhere).
+C Check existence of demands file (it will have been scanned elsewhere).
       call FINDFIL(bdmds,XST)
       if(XST)then
         dmdsok=.true.
@@ -4514,7 +4591,7 @@ C IGETNO(KGET,1) = 13 Zone RH (%)
       elseif(IGETNO(KGET,1).eq.14)then
 
 C IGETNO(KGET,1) = 14 Zone dew point.
-C Get zone air temperatureand RH, use xdum and xdum1 for processing.
+C Get zone air temperature and RH, use xdum and xdum1 for processing.
         CALL GZDP(IDAY,IGETNO(KGET,2),IGETNO(KGET,5))
         CALL XTVAL1(GVAL,ISTART,IEND,KGET)
 
@@ -4523,7 +4600,7 @@ C Get zone air temperatureand RH, use xdum and xdum1 for processing.
 C IGETNO(KGET,1) = 15 Casual gains. Total, convective, radiant or by type.
 C IGETNO(KGET,3) 1=all c+r, 2=all conv, 3=all rad, 4=ocup, 5=light, 6=sm pwr, 
 C 7=other, 8=ctld
-C (also check if aggregate occupant, lighting or small power or lighitng+small
+C (also check if aggregate occupant, lighting or small power or lighting+small
 C power requested.
         iicrcg=IGETNO(KGET,3)
         if(izver.ge.4)then
@@ -4552,7 +4629,7 @@ C If izver >= 4 the read the data directly for individual items.
               elseif(IICRCG.eq.7)then
                 GC(J2)=perotherc+perotherr ! Total other gain (W)
               elseif(IICRCG.eq.8)then
-                if(theonectld.eq.0)then ! Total controled casual gain (W)
+                if(theonectld.eq.0)then ! Total controlled casual gain (W)
                   GC(J2)=0.0
                 elseif(theonectld.eq.1)then
                   GC(J2)=perocupc+perocupr
@@ -4794,7 +4871,7 @@ C << Work towards not reading zone files >>
 
         CALL ECONST(LTHRM(IZ),IUNIT,IZ,0,IUOUT,IER)
 
-C Set default surface absorbtivity.
+C Set default surface absorptivity.
         absorb=1.0
         absorb=ABSE(IS)
 
@@ -4869,21 +4946,21 @@ C no radiant plant component.
               GVAL(JTS)=qlwrdi/SAREA
             elseif(IPK.eq.4)then
               GVAL(JTS)=qswrdi/SAREA
-            elseif(IPK.eq.9)then
+            elseif(IPK.eq.10)then
               GVAL(JTS)=qstori/SAREA
-            elseif(IPK.eq.11)then
-              GVAL(JTS)=qconde/SAREA
             elseif(IPK.eq.12)then
-              GVAL(JTS)=qconve/SAREA
+              GVAL(JTS)=qconde/SAREA
             elseif(IPK.eq.13)then
-              GVAL(JTS)=qlwrbd/SAREA
+              GVAL(JTS)=qconve/SAREA
             elseif(IPK.eq.14)then
-              GVAL(JTS)=qlwrsk/SAREA
+              GVAL(JTS)=qlwrbd/SAREA
             elseif(IPK.eq.15)then
-              GVAL(JTS)=qlwrde/SAREA
+              GVAL(JTS)=qlwrsk/SAREA
             elseif(IPK.eq.16)then
-              GVAL(JTS)=qswrde/SAREA
+              GVAL(JTS)=qlwrde/SAREA
             elseif(IPK.eq.17)then
+              GVAL(JTS)=qswrde/SAREA
+            elseif(IPK.eq.18)then
 
 C Determine if the surface is transparent or opaque.
               if(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
@@ -4894,7 +4971,7 @@ C Determine if the surface is transparent or opaque.
      & ' Surface solar abs is only available for opaque surfaces.')
                 GVAL(JTS)=0.0
               endif
-            elseif(IPK.eq.18)then
+            elseif(IPK.eq.19)then
               GVAL(JTS)=qstore/SAREA
             else
             endif
@@ -5243,8 +5320,12 @@ C IGETNO(KGET,1) = 54 Local PD: draught
           if (iflag.eq.-2) PD=102.
           GC(J2)=PD
  1309   CONTINUE
-        CALL XTVAL1(GC,ISTART,IEND,KGET)
-        
+        CALL XTVAL1(GC,ISTART,IEND,KGET)        
+      elseif(IGETNO(KGET,1).eq.59)then
+
+C IGETNO(KGET,1) = 59 Operative temperature
+        CALL SENOPT(IDAY,IGETNO(KGET,2),IGETNO(KGET,3),IGETNO(KGET,5))
+        CALL XTVAL1(GVAL,ISTART,IEND,KGET)
       elseif(IGETNO(KGET,1).eq.80)then
 
 C IGETNO(KGET,1) = 80 Zone observed db temperature

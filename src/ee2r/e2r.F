@@ -79,6 +79,9 @@ C Project journal on/off, unit number, cmd, file name.
 C Significant figure reporting limit (NSIGFIG).
       common/SFIG/NSIGFIG
 
+C 3D visualisation mode.
+      COMMON/MODVIS/IVISMOD
+
 C Radiance processor cores.
       integer radcores
       common/radcor/radcores
@@ -100,7 +103,7 @@ C Name of current application
       character brw*4   ! to signal whether browsing model
       character smode*1 ! simscene mode 'i' interactive '-' silent
 
-      character cVnum*36      ! returned from ESPrVersionNum
+      character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
 
       DIMENSION ITEM(24)
@@ -171,6 +174,10 @@ C Temporary ascii files ITA1 = IFIL+6, ITA2 = IFIL+7, ITA3 = IFIL+10.
       ITA2 = IFIL+7
       IFCFG=IFIL+8
       ITA3 = IFIL+10
+
+C CFClayers on channel IFIL+12.
+      icfcdb = ifil + 12
+      write(LCFCDB,'(a)') DCFCDB(1:lnblnk(DCFCDB))
 
 C << consider a verbosity parameter >>
       call parse2r(MODL,iappw,iappx,iappy,inf,zone,aim,cmdact,actf,brw)
@@ -273,6 +280,7 @@ C Initial coords for eyepoint, viewing point, angle of view.
       EYEM(1)=-100.0; EYEM(2)=-100.0; EYEM(3)=100.0
       VIEWM(1)=10.0; VIEWM(2)=10.0; VIEWM(3)=10.0
       ANG=40.0
+      IVISMOD=1
 
 C General image option flags.
       ITDSP=0; ITBND=1; ITEPT=0
@@ -312,11 +320,14 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=1
-        IFS=1
-        ITFS=1
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=4
+        ITFS=4
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -327,8 +338,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'Radiance desktop ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to LIMTTY if MMOD = 8.
       IF(MMOD.EQ.8)THEN
@@ -672,7 +684,7 @@ C redraw the model image.
 C (Re)Set all surfaces to std line width.
         CALL INLNST(1)
         izgfoc=0
-        CALL ADJVIEW(IER)
+        CALL redraw(IER)
 
 C At this point we know the new model bounds. Reset the ground disk
 C diameter and centre.
@@ -1258,7 +1270,7 @@ C (Re)Set all surfaces to std line width.
           VIEWM(1)=VIEWMI(1); VIEWM(2)=VIEWMI(2); VIEWM(3)=VIEWMI(3)
           ANG=ANGI
         endif
-        CALL ADJVIEW(IER)
+        CALL redraw(IER)
 
 C At this point we know the model bounds. Set the ground disk
 C diameter and centre.
@@ -1512,3 +1524,11 @@ C Dummy routine (needed for call back from c).
       return
       end
 
+      SUBROUTINE CFDVIEW(IER)
+      IER=0
+      return
+      end
+      
+      SUBROUTINE GRAAPH(IDRW1,IDRW2)
+      return
+      end

@@ -371,7 +371,7 @@ C redraw the model image.
 C (Re)Set all surfaces to standard line width.
             CALL INLNST(1)
             izgfoc=0
-            CALL ADJVIEW(IER)
+            CALL redraw(IER)
           endif
 
 C Re-draw the configuration buttons.
@@ -740,7 +740,7 @@ C Use AIM2 interface and jump back.
 C Operation file creation and editing. Set IVER to zero to signal
 C that prjfmk is not being called from the versioning facility.
           IC=-1
- 250      CALL EASKGEOF('Select a zone:',CFGOK,IC,'-',IER)
+ 250      CALL EASKGEOF('Select a zone:',CFGOK,IC,'-',34,IER)
           IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
           call tstamp('>','PRJ: enter zone operations')
           iver=0
@@ -1414,10 +1414,10 @@ C and or forward slashes.
 
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-        if(iappw.eq.630)then
+        if(iappw.eq.690)then
           iappwpc=100
         else
-          iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+          iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
         endif
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           if(havefile)then
@@ -1556,6 +1556,9 @@ C Commons related to tmc files (to support copy function).
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
       COMMON/ICFNOD/ICFD,ICP
       INTEGER NCFDND,ICFDND,NCONF,ICFD,ICP
+
+C 3D visualisation mode.
+      COMMON/MODVIS/IVISMOD
 
 C Zone casual gain control data.
       character cgcdesc*64
@@ -1705,7 +1708,7 @@ C redraw the model image.
 C (Re)Set all surfaces to standard line width.
           CALL INLNST(1)
           izgfoc=0
-          CALL ADJVIEW(IER)
+          CALL redraw(IER)
         endif
         if(MMOD.eq.8)then
           call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
@@ -1919,7 +1922,8 @@ C go directly to adding one.
   248   if(NCOMP.eq.0)then
           IC=1
         else
-          CALL EASKGEOF('Select a zone to focus on:',CFGOK,IC,'M',IER)
+          CALL EASKGEOF('Select a zone to focus on:',CFGOK,IC,'M',
+     &      34,IER)
         endif
         IF(IC.EQ.0.OR.IC.EQ.-1)THEN
 
@@ -3039,7 +3043,7 @@ C Could not find Constructions db at this time, report to user.
         endif
 
         IC=-1
- 249    CALL EASKGEOF('Select a zone to focus on:',CFGOK,IC,'t',IER)
+ 249    CALL EASKGEOF('Select a zone to focus on:',CFGOK,IC,'t',34,IER)
         IF(IC.EQ.0.OR.IC.EQ.-1)THEN
           GOTO 3
         ELSEIF(IC.EQ.-2)THEN
@@ -3077,7 +3081,7 @@ C Operation file creation and editing.
  250    IC=-1
         izdef=0
         call askzone(ic,izdef,' ','Zone Operations Selection',
-     &            'o','Zone index for operations.',ier)
+     &    'o','Zone index for operations.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)then
           MODIFYVIEW=.TRUE.
           GOTO 3
@@ -3192,7 +3196,7 @@ C Shading/ insolation analysis.
  253    IC=-1
         izdef=0
         call askzone(ic,izdef,' ','Zone Shading Selection',
-     &         's','Zone index for shading.',ier)
+     &         's','Zone index for shading.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         if(IC.eq.99)then
 
@@ -3361,7 +3365,7 @@ C If browsing, do not save files but allow ish to be started.
  260    IC=-1
         izdef=0
         call askzone(ic,izdef,' ','Zone Convection Selection',
-     &           'h','Zone index for hc.',ier)
+     &           'h','Zone index for hc.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         IUO=IFIL+1
         call tstamp('>','PRJ: enter hc file')
@@ -3387,7 +3391,7 @@ C the file.
  251    IC=-1
         izdef=0
         call askzone(ic,izdef,' ','Zone View Factors Selection',
-     &         'v','Zone index for viewfact.',ier)
+     &         'v','Zone index for viewfact.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         if(IC.eq.99)then
 
@@ -3466,7 +3470,7 @@ C Casual gain control.
  252    IC=-1
         izdef=0
         call askzone(ic,izdef,' ','Zone CG Ctl Selection',
-     &        'g','Zone index for cgc.',ier)
+     &        'g','Zone index for cgc.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         IUF=IFIL+1
         if(ICGC(IC).eq.1)then
@@ -3540,12 +3544,13 @@ C CFD.
         IC=-1
         izdef=0
         call askzone(ic,izdef,' ','Zone CFD Selection',
-     &         'd','Zone index for cfd.',ier)
+     &         'd','Zone index for cfd.',34,ier)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         call georead(IFIL+1,LGEOM(IC),IC,1,iuout,IER)
 
         IUF=IFIL+1
         call cfdcomp(ic,iuf,ier)
+        IVISMOD=1
         MODIFYVIEW=.TRUE.
 
 C If browsing do not offer inclusion option.
@@ -3576,7 +3581,7 @@ C If browsing do not offer inclusion option.
 C Adaptive gridding module.
         IC=-1
         CALL EASKGEOF('Select zone for adaptive gridding:',CFGOK,IC,
-     &    '-',IER)
+     &    '-',34,IER)
         IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
         write(ZN,'(A)') zname(IC)
         helptopic='zone_adaptive_grid_opt'
@@ -3722,10 +3727,10 @@ C Confirm file names.
           call terminalmode(childterminal,tmode)
           CALL ADDPATH(LCFGF,longtfile,CONCAT)
           call tstamp('>','PRJ: edit adaptive gridding')
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,5a)') 'grd -mode ',tmode,
@@ -4799,10 +4804,10 @@ C Get logical name of child process terminal type and create a
 C string to drive VIEWER.
           doit = ' '
           call terminalmode(childterminal,tmode)
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,3a)') 'viewer -mode ',tmode,
@@ -4903,10 +4908,10 @@ C to include the path and create a string to drive e2r.
 
 C If prj initial size is a % of default, pass this on to child with
 C an offset from prj start position.
-        if(iappw.eq.630)then
+        if(iappw.eq.690)then
           iappwpc=100
         else
-          iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+          iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
         endif
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,4a)') 'e2r -mode ',tmode,

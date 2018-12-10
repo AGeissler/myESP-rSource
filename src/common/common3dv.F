@@ -33,6 +33,7 @@ C  EGRNDR:  Draws ground topology.
 C  DSGRID:  Draws a dotted site grid with current scaling factors.
 C  EMKVIEW: Constructs a 'viewer' format file.
 C  wiresymbol: draws a user defined symbol in wireframe
+C  REDRAW : Entry point for redrawing model display.
 
 C ************* ADJVIEW 
 C ADJVIEW takes the current status of view and boundary mods
@@ -40,7 +41,7 @@ C and adjusts the viewing transforms & object boundaries if
 C necessary before displaying the zone.
 C IER=0 OK, IER=1 problem. If izgfoc is not 0
 C then it represents the zone which is currently being edited.
-      SUBROUTINE ADJVIEW(IER)
+      SUBROUTINE adjview(IER)
 #include "building.h"
 #include "model.h"
 #include "prj3dv.h"
@@ -62,14 +63,26 @@ C Passed parameters.
       integer numberofzones
       integer JITZNM,JITSNM,JITVNO,JITOBS,JITVIS,JITVOBJ,JITSNR,JITGRD
       integer JITORG,JITBND,JITDSP,JITHLS,JITHLZ,JITPPSW
-      integer jizgfoc,jnzg,jnznog,jnznogv
+      integer jizgfoc,jnzg,jnznog,jnznogv      
+      integer icfg_type  ! model cfg type
+      integer icfgz      ! if non-zero then there are zones
+      integer icfgn      ! if non-zero then there are networks
+      integer icfgc      ! if non-zero then cfg file known
+      integer icfgdfn    ! if non-zero then cdf domain exists
+      integer iicfgz     ! there are zone related images
+      integer iicfgn     ! there are network related images
+      integer iicfgc     ! there are control related images
+      integer iicfgdfn   ! there are cfd related images
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 numberofzones
       integer*8 JITZNM,JITSNM,JITVNO,JITOBS,JITVIS,JITVOBJ,JITSNR
       integer*8 JITGRD,JITORG,JITBND,JITDSP,JITHLS,JITHLZ,JITPPSW
       integer*8 jizgfoc,jnzg,jnznog,jnznogv
+      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
+      integer*8 iicfgn,iicfgc,iicfgdfn
 #endif
+
       real EVX,EVY,EVZ,VX,VY,VZ,EAN,GDIS
 
       SMALL=0.01
@@ -107,7 +120,7 @@ C parameters then use EYEMI & VIEWMI rather than EYEM VIEWM.
      &  JITOBS,JITVIS,JITVOBJ,JITSNR,JITGRD,JITORG,GDIS,JITBND,
      &  JITDSP,JITHLS,JITHLZ,JITPPSW)
 
-C Tell woreframe how many zones to include in the image.
+C Tell wireframe how many zones to include in the image.
       jizgfoc=izgfoc; jnzg=nzg
       call pushgzonpik(jizgfoc,jnzg)
       if(nzg.gt.0)then
@@ -139,15 +152,21 @@ C If viewpoint or bounds different then initialise viewing paramters.
           CALL LENS(IER)
         ENDIF
 
+C Draw the selected bodies.
+        CALL DRAWESP(IER)
+
+C Show domain buttons.
+        call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
+     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+        call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
+     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+
 C Remind user of which model even when looking at one zone.
-        WRITE(ETEXT,'(2A)')'Project: ',modeltitle(1:lnblnk(modeltitle))
+        WRITE(ETEXT,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
         iside=1
         isize=1
         ifont=1
         call viewtext(etext,iside,isize,ifont)
-
-C Draw the selected bodies.
-        CALL DRAWESP(IER)
 
 C Recover information begin edited and reset modifyview flag.
         if(izgfoc.NE.0)CALL ERCZONE(izgfoc)
@@ -162,7 +181,7 @@ C Recover information begin edited and reset modifyview flag.
 C ********* chgazi
 C CHGAZI is called from C code in esp-r.c or esru_x.c with an increment or 
 C decrement to the viewing azimuth (icazi). If not needed then provide a dummy. 
-      subroutine chgazi(icazi)
+      subroutine chgazi(icazi,ifrlk)
 #include "building.h"
 #include "prj3dv.h"
 
@@ -171,7 +190,7 @@ C Passed paremter.
       
       PI = 4.0 * ATAN(1.0)
       tdis= crow(eyem,viewm)
-      call ln2az(VIEWM(1),VIEWM(2),VIEWM(3),eyem(1),eyem(2),eyem(3),
+      call LN2AZ(VIEWM(1),VIEWM(2),VIEWM(3),eyem(1),eyem(2),eyem(3),
      &  az,el)
       aznew=az + float(icazi)
 
@@ -192,7 +211,27 @@ C Passed paremter.
       EYEM(3)=Z+VIEWM(3)
       MODIFYVIEW=.TRUE.
       MODLEN=.TRUE.
-      CALL ADJVIEW(IER)
+
+C If we are in a freelook, turn off grid, site origin and names.
+      if (ifrlk.eq.1) then
+        ITZNMP=ITZNM
+        ITZNM=1
+        ITSNMP=ITSNM
+        ITSNM=1
+        ITORGP=ITORG
+        ITORG=1
+        ITGRDP=ITGRD
+        ITGRD=1
+      endif
+
+      call redraw(IER)
+
+      if (ifrlk.eq.1) then
+        ITZNM=ITZNMP
+        ITSNM=ITSNMP
+        ITORG=ITORGP
+        ITGRD=ITGRDP
+      endif
 
       return
       end
@@ -200,7 +239,7 @@ C Passed paremter.
 C ********* chgelev
 C CHGELEV is called from C code in esp-r.c or esru_x.c with an increment or 
 C decrement to the viewing elevation (icelev). If not needed then provide a dummy. 
-      subroutine chgelev(icelev)
+      subroutine chgelev(icelev,ifrlk)
 #include "building.h"
 #include "prj3dv.h"
 
@@ -230,7 +269,27 @@ C Passed paramter.
       EYEM(3)=Z+VIEWM(3)
       MODIFYVIEW=.TRUE.
       MODLEN=.TRUE.
-      CALL ADJVIEW(IER)
+
+C If we are in a freelook, turn off grid, site origin and names.
+      if (ifrlk.eq.1) then
+        ITZNMP=ITZNM
+        ITZNM=1
+        ITSNMP=ITSNM
+        ITSNM=1
+        ITORGP=ITORG
+        ITORG=1
+        ITGRDP=ITGRD
+        ITGRD=1
+      endif
+
+      call redraw(IER)
+
+      if (ifrlk.eq.1) then
+        ITZNM=ITZNMP
+        ITSNM=ITSNMP
+        ITORG=ITORGP
+        ITGRD=ITGRDP
+      endif
 
       return
       end
@@ -315,7 +374,7 @@ C          ITHLZ=ISEL
 C          MODIFYVIEW=.TRUE.
         endif
         CALL INLNST(1)
-        CALL ADJVIEW(IER)
+        call redraw(IER)
         MODLEN=.FALSE.
         MODBND=.FALSE.
         MODIFYVIEW=.FALSE.
@@ -395,7 +454,7 @@ C Ask for initial date and time and present view.
           ITSNM=1
           MODIFYVIEW=.TRUE.
           MODLEN=.TRUE.
-          CALL ADJVIEW(IER)
+          call redraw(IER)
 
 C Generate a heading for the view.
           CALL EDTIME(STIME,DESCRH,DESCRD,TIMER)
@@ -444,7 +503,7 @@ C User asked for next hour, increment and display unless below horizon.
           ITSNM=1
           MODIFYVIEW=.TRUE.
           MODLEN=.TRUE.
-          CALL ADJVIEW(IER)
+          call redraw(IER)
 
 C Generate a heading for the view.
           CALL EDTIME(STIME,DESCRH,DESCRD,TIMER)
@@ -481,7 +540,7 @@ C User asked for animation.
           ITSNM=1
           MODIFYVIEW=.TRUE.
           MODLEN=.TRUE.
-          CALL ADJVIEW(IER)
+          call redraw(IER)
 
 C Generate a heading for the view.
           CALL EDTIME(STIME,DESCRH,DESCRD,TIMER)
@@ -646,6 +705,9 @@ C Passed parameters.
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
 
@@ -655,17 +717,35 @@ C Local arrays.
       DIMENSION  AX(MV),AY(MV),AZ(MV),IANXT(MV)
       DIMENSION  BX(MV),BY(MV),BZ(MV),IBNXT(MV)
       DIMENSION  SBBOX(3,2),COG1(3),COG2(3),COG3(3)
+      logical greyok
 
       CHARACTER btemp*12
       logical newgeo  ! to use for testing if new/old geometry file.
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast
+      integer iicol,ibsize         ! passed to textsizeatxy
 #else
       integer*8 iix,iiy,iixlast,iiylast
+      integer*8 iicol,ibsize       ! passed to textsizeatxy
 #endif     
 
 C If not in graphic mode return.
       if(MMOD.lt.8)return
+
+C If libraries and monitor support greyscale remember this.
+      greyok=.false.
+      if(nifgrey.gt.4)then
+        iicol=nifgrey-3
+        greyok=.true.
+      endif
+
+C Set font for displaying block names.
+C      write(6,'(a,3i2)') 'DRAWOBS IFS,ITFS,IMFS',IFS,ITFS,IMFS
+      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
+      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
+      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
+      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
+C      write(6,'(a,i2)') 'DRAWOBS ibsize ',ibsize
 
 C If newer geometry file it may include obstructions. If the value
 C of iobs for this zone is 2 then obstructions were included.
@@ -712,7 +792,9 @@ C Transform the location into eyepoint and then screen coords.
           call u2pixel(COG3(1),COG3(2),iix,iiy)
           btemp='        '
           write(btemp,'(a)') BLOCKNAME(IFOC,IB)
-          CALL wstxpt(iix,iiy,btemp)
+          call textsizeatxy(iix,iiy,btemp,ibsize,'-',iicol)
+          iicol=0
+          call winscl('-',iicol)
         ENDIF
 
 C If editing an obstruction, highlight it.
@@ -836,9 +918,11 @@ C Passed parameters.
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
-      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
 C Local arrays.
       real AX,AY,AZ,BX,BY,BZ,SBBOX,COG1,COG2,COG3
@@ -854,13 +938,28 @@ C Local arrays.
       logical greyok
 
 #ifdef OSI
-      integer iix,iiy,iixlast,iiylast,iicol
+      integer iix,iiy,iixlast,iiylast,iicol,ibsize 
 #else
-      integer*8 iix,iiy,iixlast,iiylast,iicol
+      integer*8 iix,iiy,iixlast,iiylast,iicol,ibsize 
 #endif     
 
 C If not in graphic mode return.
       if(MMOD.lt.8)return
+
+C If libraries and monitor support greyscale then reset forground
+C to 50% grey when drawing visual entities.
+      greyok=.false.
+      if(nifgrey.gt.4)then
+        iicol=nifgrey-3
+        call winscl('i',iicol)
+        greyok=.true.
+      endif
+
+C Set font for displaying block names.
+      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
+      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
+      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
+      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
 
 C      write(6,*) 'drawvis ',ifoc,nbvis(ifoc),itvis,NBVOBJ(ifoc),itvobj
 
@@ -921,15 +1020,6 @@ C been set.
           call CNVVISP(ifoc,IB) ! convert visp type.
         endif
 
-C If libraries and monitor support greyscale then reset forground
-C to 50% grey when drawing visual entities.
-        greyok=.false.
-        if(nifgrey.gt.4)then
-          iicol=nifgrey-3
-          call winscl('i',iicol)
-          greyok=.true.
-        endif
-
 C If visual names are to be displayed place near first vertex.
 C Transform the location into eyepoint and then screen coords.
         IF(ITSNM.EQ.0)THEN
@@ -941,7 +1031,7 @@ C Transform the location into eyepoint and then screen coords.
           call u2pixel(COG3(1),COG3(2),iix,iiy)
           btemp='        '
           write(btemp,'(a)') VISNAME(IFOC,IB)
-          CALL wstxpt(iix,iiy,btemp)
+          call textsizeatxy(iix,iiy,btemp,ibsize,'-',iicol)
         ENDIF
 
 C If editing an visual entity, highlight it. ITVIS would have been
@@ -1068,6 +1158,10 @@ C Passed parameter.
       integer ier
       
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
 
 C Local arrays.
@@ -1076,16 +1170,34 @@ C Local arrays.
       DIMENSION  AX(MV),AY(MV),AZ(MV),IANXT(MV)
       DIMENSION  BX(MV),BY(MV),BZ(MV),IBNXT(MV)
       DIMENSION  SBBOX(3,2),COG1(3),COG2(3),COG3(3)
+      logical greyok
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast,iid2
+      integer iicol,ibsize         ! passed to textsizeatxy
 #else
       integer*8 iix,iiy,iixlast,iiylast,iid2
+      integer*8 iicol,ibsize       ! passed to textsizeatxy
 #endif     
 
       CHARACTER temp*7
 
 C If not in graphic mode return.
       if(MMOD.lt.8)return
+
+C If libraries and monitor support greyscale remember this.
+      greyok=.false.
+      if(nifgrey.gt.4)then
+        iicol=nifgrey-3
+        greyok=.true.
+      endif
+
+C Set font for displaying block names.
+      write(6,'(a,3i2)') 'DRWSEN IFS,ITFS,IMFS',IFS,ITFS,IMFS
+      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
+      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
+      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
+      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
+      write(6,'(a,i2)') 'DRWSEN ibsize ',ibsize
 
       if(NCUB(iz).eq.0)return
       DO 301 IB=1,NCUB(iz)
@@ -1102,7 +1214,9 @@ C Transform the location into eyepoint and then screen coords.
         call u2pixel(COG3(1),COG3(2),iix,iiy)
         write(temp,'(A)')CUBN(IB)
         iid2=iiy+8
-        CALL wstxpt(iix,iid2,temp)
+        call textsizeatxy(iix,iiy,temp,ibsize,'-',iicol)
+        iicol=0
+        call winscl('-',iicol)
 
 C Continue on with surfaces in the sensor.
 C Copy polygon for sensor surface I into structure AX AY AZ
@@ -1198,6 +1312,10 @@ C Passed parameter.
       integer ier
       
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
 
 C Local arrays.
@@ -1206,16 +1324,34 @@ C Local arrays.
       DIMENSION  AX(MV),AY(MV),AZ(MV),IANXT(MV)
       DIMENSION  BX(MV),BY(MV),BZ(MV),IBNXT(MV)
       DIMENSION  SBBOX(3,2),COG1(3),COG2(3),COG3(3)
+      logical greyok
 #ifdef OSI
       integer iix,iiy,iixlast,iiylast,iid2
+      integer iicol,ibsize         ! passed to textsizeatxy
 #else
       integer*8 iix,iiy,iixlast,iiylast,iid2
+      integer*8 iicol,ibsize       ! passed to textsizeatxy
 #endif     
 
       CHARACTER temp*13
 
 C If not in graphic mode return.
       if(MMOD.lt.8)return
+
+C If libraries and monitor support greyscale remember this.
+      greyok=.false.
+      if(nifgrey.gt.4)then
+        iicol=nifgrey-3
+        greyok=.true.
+      endif
+
+C Set font for displaying bb names.
+C      write(6,'(a,3i2)') 'DRWBB IFS,ITFS,IMFS',IFS,ITFS,IMFS
+      if(IFS.eq.0.or.IFS.eq.4)ibsize=0
+      if(IFS.eq.1.or.IFS.eq.5)ibsize=1
+      if(IFS.eq.2.or.IFS.eq.6)ibsize=2
+      if(IFS.eq.3.or.IFS.eq.7)ibsize=2
+C      write(6,'(a,i2)') 'DRWBB ibsize ',ibsize
 
 C Place sensor names near first vertex.
 C Transform the location into eyepoint and then screen coords.
@@ -1227,7 +1363,9 @@ C Transform the location into eyepoint and then screen coords.
       call u2pixel(COG3(1),COG3(2),iix,iiy)
       write(temp,'(A)')bbname
       iid2=iiy+8
-      CALL wstxpt(iix,iid2,temp)
+      call textsizeatxy(iix,iiy,temp,ibsize,'-',iicol)
+      iicol=0
+      call winscl('-',iicol)
 
 C Continue on with surfaces in the sensor.
 C Copy polygon for sensor surface I into structure AX AY AZ
@@ -1307,6 +1445,86 @@ C Complete the polygon.
       RETURN
       END
 
+C **************** withinview
+C withinview checks if a dummy surface at xyz is within viewing cone.
+C Derived from  DRWSEN.
+C IER is returned as non-zero if there is a problem.
+      SUBROUTINE withinview(tx,ty,tz,cansee,ier)
+#include "building.h"
+#include "prj3dv.h"
+
+C Passed parameter.
+      real tx,ty,tz
+      logical cansee
+      integer ier
+      
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+
+C Local arrays.
+      real AX,AY,AZ,BX,BY,BZ,SBBOX,COG1,COG2,COG3
+      integer IANXT,IBNXT
+      DIMENSION  AX(MV),AY(MV),AZ(MV),IANXT(MV)
+      DIMENSION  BX(MV),BY(MV),BZ(MV),IBNXT(MV)
+      DIMENSION  SBBOX(3,2),COG1(3),COG2(3),COG3(3)
+#ifdef OSI
+      integer iix,iiy,iixlast,iiylast,iid2
+#else
+      integer*8 iix,iiy,iixlast,iiylast,iid2
+#endif     
+
+C If not in graphic mode return.
+      if(MMOD.lt.8)return
+      cansee=.false.  ! assume we cannot see.
+
+C Transform the location into eyepoint and then screen coords.
+      tx2=tx+0.3; tx3=tx-0.3
+      ty2=ty; ty3=ty
+      tz2=tz+0.3; tz3=tz+0.3
+      COG1(1)=tx
+      COG1(2)=ty
+      COG1(3)=tz
+      CALL VECTRN(COG1,TEMAT,COG2,IER)
+      CALL VECTRN(COG2,ETSMAT,COG3,IER)
+      call u2pixel(COG3(1),COG3(2),iix,iiy)
+
+C Continue with small triangle offset from tx ty tz.
+C Copy polygon for sensor surface I into structure AX AY AZ
+C where IANXT = Index of 'next' point. Clear IANXT & IBNXT arrays.
+      do 1101 J = 1,3
+        IANXT(J) = 0
+        IBNXT(J) = 0
+ 1101 continue
+
+C There are 3 initial vertices in polygon.
+      NAP=3
+      AX(1) = tx; AY(1) = ty; AZ(1) = tz
+      AX(2) = tx2; AY(1) = ty2; AZ(1) = tz2
+      AX(3) = tx3; AY(1) = ty3; AZ(1) = tz3
+      IANXT(1) = 2; IANXT(2) = 3;IANXT(3) = 1
+
+C Transform polygon to EYE co-ordinates.
+      CALL MATPOLS(NAP,AX,AY,AZ,IANXT,TEMAT,SBBOX,
+     &             NBP,BX,BY,BZ,IBNXT,IERR)
+
+C Generate clipping flags and clip geometry in eye coords.
+C If ISTAT =  0 : totally inside frustrum
+C If ISTAT =  1 : totally outside frustrum
+C If ISTAT = -1 : straddles frustrum
+      call CLIPSUR(NBP,BX,BY,BZ,ISTAT)
+      IF (ISTAT .EQ. 1) THEN
+        cansee=.false.
+      ELSEIF (ISTAT .EQ. -1) THEN
+        cansee=.true.
+      ELSEIF (ISTAT .EQ. 0) THEN
+        cansee=.true.
+      ENDIF
+      ier=IERR
+
+C      write(6,'(a,3f7.2,L,4i5)') 'withinview ',tx,ty,tz,cansee,
+C     &  ISTAT,iix,iiy,ierr
+      RETURN
+      END  ! of withinview
+
 C ****** Routine to draw ground topology.
 C EGRNDR  Draws ground topology held in GT5 and grndpl commons.
 C IER is returned as non-zero if there has been a problem.
@@ -1336,15 +1554,15 @@ C Local arrays.
 
 C Local variables to pass to edline.
 #ifdef OSI
-      integer iix,iiy,iixlast,iiylast,iixc,iiyc,iid2
+      integer iix,iiy,iixlast,iiylast,iixc,iiyc,iid2,iicol
 #else
-      integer*8 iix,iiy,iixlast,iiylast,iixc,iiyc,iid2
+      integer*8 iix,iiy,iixlast,iiylast,iixc,iiyc,iid2,iicol
 #endif     
 
 C Save the current font and switch to a smaller font for displaying
 C surface names etc. Ixc,iyc keep track of surface/pixel COG.
       if(MMOD.lt.8)return
-      NAMEFT=IFS-1
+      issize=4  ! for surfaces
       LD=3
       if(ngtv.eq.0)return
       IF(ITVNO.EQ.0)then
@@ -1444,13 +1662,14 @@ C the next smaller font for the surface name and then restore font
 C to normal size.
           IF(ITSNM.EQ.0)THEN
             IF(iixc.GT.0.AND.iiyc.GT.0.AND.(NAP.EQ.NBP))THEN
-              IF(IFS.GT.0)CALL winfnt(NAMEFT)
+              CALL winfnt(issize)
               write(stemp,'(A)')GSNAME(igs)
               iixc=iixc/NBP
               iiyc=iiyc/NBP
               iid2=iiyc+3
-              CALL wstxpt(iixc,iid2,stemp)
-              IF(IFS.GT.0)CALL winfnt(IFS)
+              iicol=0
+              call textatxy(iixc,iid2,stemp,'-',iicol)
+              CALL winfnt(IMFS)
             endif
           endif
   302   CONTINUE
@@ -1665,7 +1884,7 @@ C has been read in, otherwise ask for zones one by one.
 C Pass ICOMP in as a positive so that 'ALL' is included in list.
           ICOMP=1
           CALL EASKGEOF('Pick zones to include in view',CFGOK,ICOMP,
-     &      '-',IER)
+     &      '-',34,IER)
           IVALS(IZZ)=ICOMP
    79   CONTINUE
       ENDIF
@@ -1869,4 +2088,35 @@ C Parameters
       return
       end
 
+C ************* REDRAW
+C REDRAW refreshes the 3D model display. Any view mode that takes notice
+C of the change azimuth and elevation buttons should be implemented
+C here.
+C IVISMOD is the visualisation mode:
+C -1 = blank
+C 1 = building geometry (standard)
+C 2 = CFD domain
+C 3 = 3-D gridding (grd module)
 
+      subroutine redraw(IER)
+
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      COMMON/MODVIS/IVISMOD
+
+C Check we're in graphic mode, just in case.
+      if (MMOD.ne.8) goto 999
+
+      if (IVISMOD.eq.-1) then
+        call startbuffer()
+      elseif (IVISMOD.eq.1) then
+        CALL adjview(IER)
+      elseif (IVISMOD.eq.2) then
+        CALL CFDVIEW(IER)
+      elseif (IVISMOD.eq.3) then
+        i1=-1
+        i2=-1
+        CALL GRAAPH(i1,i2)
+      endif
+
+ 999  return
+      end

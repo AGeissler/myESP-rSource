@@ -63,14 +63,6 @@ C espriou.h provides currentfile, defdbfl exemfl.
       
       integer lnblnk  ! function definition
 
-C IEEE callback (Solaris)
-#ifdef SUN
-#ifdef F90
-      external SIGFPE_bps      
-      integer SIGFPE_bps      
-#endif
-#endif
-
       common/initv/initvt,EYEMI(3),VIEWMI(3),ANGI
       common/SPAD/MMOD,LIMIT,LIMTTY
       integer childterminal  ! picks up mmod from starting of prj
@@ -155,6 +147,9 @@ C IDST tool commands
       COMMON/BIDIRFL/bidirfile,bidirname(MSTMC)
       COMMON/Vld20/Vldtng
 
+C 3D visualisation mode.
+      COMMON/MODVIS/IVISMOD
+
 C Name of current application
       common/APPNAME/cAppName
       character cAppName*12
@@ -212,8 +207,8 @@ C Returned parameters from silentread or silentxmlread.
       logical silent  ! for dependency checking on transform or rotate
       logical QUIET   ! to force silent rebuild of zone constructions
 
-      character cVnum*36      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character cVnum*38      ! returned from ESPrVersionNum
+      character pagestitle*68 ! for banner title via epages call
       character subpath*84
       character sfile*144
       character odir*84
@@ -359,30 +354,23 @@ C Clear number of images and allow image browsing.
       nidst= 0
 
 C Initialise coordinates for eye point, view point and angle of view.
-      EYEM(1)=-100.
-      EYEM(2)=-100.
-      EYEM(3)=100.
-      VIEWM(1)=10.
-      VIEWM(2)=10.
-      VIEWM(3)=10.
+      EYEM(1)=-100.0; EYEM(2)=-100.0; EYEM(3)=100.0
+      VIEWM(1)=10.0; VIEWM(2)=10.0; VIEWM(3)=10.0
       ANG=40.
+      IVISMOD=1
 
 C General image option flags.
-      ITDSP=0
-      ITBND=1
-      ITEPT=0
-      ITZNM=0
-      ITSNM=1
-      ITVNO=1
-      ITORG=0
-      ITSNR=1
-      ITOBS=0
-      ITGRD=0
+      ITDSP=0; ITBND=1; ITEPT=0; ITZNM=0; ITSNM=1; ITVNO=1
+      ITORG=0; ITSNR=1; ITOBS=0; ITGRD=0
       GRDIS=0.0
       ITPPSW=0
-      IFS=1
-      ITFS=1
-      IMFS=1
+
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+      IMFS=5
+      IFS=4
+      ITFS=4
 
 C Assume that the system configuration, multi-layered db, material db
 C and control files have not been read in and that any files saved will
@@ -397,31 +385,15 @@ C be atrributed.
       changedit=.false.
       MODSIT=.false.  ! assume model context has not changed.
 
-C If your compiler does not support floating-point arithmetic
-C according to ANSI/IEEE Std 754-1985 comment out the following code.
-
-C Initialize mode, status, and signal handling for IEEE arithmetic.
-C See also: f77_ieee_environment(3F) f77_floatingpoint(3F)
-C           Note that in case of Sun FORTRAN, IEEEE exceptions arise
-C           only if: Sun-3 f77 with -f68881 or -ffpa option
-C                or: Sun-4 f77.
-#ifdef SUN
-#ifdef F90
-      ieeer=ieee_handler('set','common',SIGFPE_ABORT)
-      ieeer=ieee_handler('set','common',SIGFPE_bps)
-      if(ieeer.ne.0) write(iuout,*) ' IEEE_handler not set !'
-#endif
-#endif
-
 C Initialise output device, assume minimal trace and a standard
-C display.  If passed zero size and offsets use default (630 pixels
+C display.  If passed zero size and offsets use default (670 pixels
 C high). If size is <200 then assume it is intended as a % of the
 C nominal size and take % of default, otherwise use passed width.
 C If left & top offsets are 0 then use defaults. If > 200 then it
 C is treated as a specific pixel height.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=630  ! default hight
+        iappw=690  ! default height
         iappx=40
         iappy=40
         iappwpc=100   ! remember %
@@ -430,10 +402,10 @@ C is treated as a specific pixel height.
         if(iappy.lt.0)iappy=40
         if(iappw.le.200)then
           iappwpc=iappw    ! remember %
-          iappwi=int(630*iappw*0.01)
+          iappwi=int(690*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
-          iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+          iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           continue
         endif
       endif
@@ -453,12 +425,15 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IFS is for buttons & graphs, ITFS dialog & 
-C text feedback and IMFS for menus).
-        IMFS=1
-        IFS=1
-        ITFS=1
+
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=4
+        ITFS=4
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -468,8 +443,9 @@ C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
       write(pagestitle,'(2a)') 'ESP-r Project Manager ',cVnum
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to LIMTTY if MMOD = 8.  Model
 C not yet know so pass 0 to the wireframe control routine (updwire).
@@ -967,20 +943,6 @@ C Provide site information, update wireframe control with
 C current number of zones if a model has been loaded.
       if(LCMDFL(1:2).ne.'  '.and.LCMDFL(1:4).ne.'UNKN')then
         if(ier.eq.0)then
-          if(MMOD.EQ.8)then
-            numberofzones=ncomp
-            call updwire(numberofzones)  ! pass local integer
-            call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-            call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-            WRITE(etext,'(2A)')'Model: ',
-     &        modeltitle(1:lnblnk(modeltitle))
-            iside=1
-            isize=1
-            ifont=1
-            call viewtext(etext,iside,isize,ifont)
-          endif
           CFGOK=.TRUE.
 
 C Uncomment next line to echo site info when model is scanned.
@@ -1062,32 +1024,7 @@ C has been specified update view info to this.
                 ANG=ANGI
               endif
 
-C Pass information to C library code if running in graphic mode.
-              CALL ADJVIEW(IER)
-              if(MMOD.EQ.8)then
-                call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-                call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-                WRITE(etext,'(2A)')'Model: ',
-     &            modeltitle(1:lnblnk(modeltitle))
-                iside=1
-                isize=1
-                ifont=1
-                call viewtext(etext,iside,isize,ifont)
-              endif
-            endif
-            if(MMOD.EQ.8)then
-              call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-              call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-              WRITE(etext,'(2A)')'Model: ',
-     &          modeltitle(1:lnblnk(modeltitle))
-              iside=1
-              isize=1
-              ifont=1
-              call viewtext(etext,iside,isize,ifont)
+              call redraw(IER)
             endif
           else
             itru=iuout
@@ -1194,7 +1131,7 @@ C to draw the model.
 C (Re)Set all surfaces to standard line width.
             CALL INLNST(1)
             izgfoc=0
-            CALL ADJVIEW(IER)
+            CALL redraw(IER)
           endif
 
 C Re-draw the configuration buttons.
@@ -2017,10 +1954,10 @@ C command line.
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.  Reconstitute the % of 
 C application vertical size.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
 C          write(6,*) 'iappw,iappwpc',iappw,iappwpc
 
@@ -2037,7 +1974,7 @@ C          write(6,*) 'iappw,iappwpc',iappw,iappwpc
           endif
 
 C Debug.
-          call usrmsg('Begining simulation via',doit,'-')
+C         call usrmsg('Beginning simulation via',doit,'-')
           call runit(doit,tmode)
           return
         else
@@ -2083,10 +2020,10 @@ C If browsing pass this information to bps.
 
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,4a)') 'bps -mode ',tmode,
@@ -2099,7 +2036,7 @@ C an offset from prj start position.
           endif
 
 C Debug.
-          call usrmsg('Begining simulation via',doit,'-')
+C         call usrmsg('Beginning simulation via',doit,'-')
           call runit(doit,tmode)
           return
         endif
@@ -2117,10 +2054,10 @@ C Execute mfs.
 
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,a)') 'mfs -mode ',tmode,
@@ -2144,10 +2081,10 @@ C Execute dfs.
 
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,a)') 'dfs -mode ',tmode,
@@ -2188,10 +2125,10 @@ C and change any / to \.
           longtfile=' '
           longtfile=longtfiledos
         endif
-        if(iappw.eq.630)then
+        if(iappw.eq.690)then
           iappwpc=100
         else
-          iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+          iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
         endif
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,4a)') 'e2r -mode ',tmode,
@@ -2203,7 +2140,7 @@ C and change any / to \.
         endif
 
 C Debug.
-        call usrmsg('Beginning visual assessment via',doit,'-')
+C       call usrmsg('Beginning visual assessment via',doit,'-')
         call runit(doit,tmode)
 
       elseif(INO.EQ.MITEM-5)then
@@ -2933,10 +2870,10 @@ C << IPV will still run as required.
               
 C If prj initial size is a % of default pass this on to child with
 C an offset from prj start position.
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,5a)') 'bps -mode ',tmode,
@@ -2947,6 +2884,8 @@ C an offset from prj start position.
      &        ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
      &        brw,assmttag(ij),aut
           endif
+
+C Debug.
 C          call usrmsg('Beginning assessment via',doit,'-')
           if(isauto.eq.2)then
             call runit(doit,'-')
@@ -3034,10 +2973,10 @@ C              write(6,*) 'reset tfile to ',tfile
 
             endif
 
-            if(iappw.eq.630)then
+            if(iappw.eq.690)then
               iappwpc=100
             else
-              iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+              iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
             endif
             if(iappwpc.gt.0.and.iappwpc.le.200)then
               write(doit,'(3a,3i4,4a)') 'res -mode ',tmode,
@@ -3047,6 +2986,8 @@ C              write(6,*) 'reset tfile to ',tfile
               write(doit,'(6a)') 'res -mode ',tmode,
      &           ' -file ',tfile(1:lnblnk(tfile)),runtag(ij),aut
             endif
+
+C Debug.
 C            call usrmsg('Beginning performance recovery via',doit,'-')
             if(isauto.eq.2)then
               call runit(doit,'-')
@@ -3079,10 +3020,10 @@ C Debug.
 C            write(6,*) 'itr3 reset tfile to ',tfile
 
           endif
-          if(iappw.eq.630)then
+          if(iappw.eq.690)then
             iappwpc=100
           else
-            iappwpc=nint(100.0*(real(iappw)/630.0))  ! reconstitute %
+            iappwpc=nint(100.0*(real(iappw)/690.0))  ! reconstitute %
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,4a)') 'res -mode ',tmode,
@@ -3092,6 +3033,8 @@ C            write(6,*) 'itr3 reset tfile to ',tfile
             write(doit,'(6a)') 'res -mode ',tmode,' -file ',
      &        tfile(1:lnblnk(tfile)),' -act ipv_annual ',aut
           endif
+
+C Debug.
 C          call usrmsg('Beginning performance recovery via',doit,'-')
           if(isauto.eq.2)then
             call runit(doit,'-')
@@ -6192,19 +6135,7 @@ C Set folder separator (fs) to \ or / as required.
       return
       end
 
-C In support of floating point exceptions.
-#ifdef SUN
-#ifdef F90
-      integer function SIGFPE_bps(sig,code,context)
-      integer sig,code,context(5)
-      character label*16
-      if(loc(code).eq.208) label = 'invalid'
-      if(loc(code).eq.200) label = 'division by zero'
-      if(loc(code).eq.212) label = 'overflow'
-      if(loc(code).eq.204) label = 'underflow'
-      if(loc(code).eq.196) label = 'inexact'
-      write(6,*) 'Exception code ',loc(code),label,'at ',context(4)
-      SIGFPE_bps = loc(code)
+C Dummy subroutine.
+      SUBROUTINE GRAAPH(IDRW1,IDRW2)
+      return
       end
-#endif
-#endif

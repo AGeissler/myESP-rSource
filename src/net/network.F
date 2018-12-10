@@ -333,13 +333,11 @@ C text feedback and IMFS for menus). If GTK set IFS = 4 to get small
 C courier font.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         IMFS=0
-        if(iglib.eq.1)then
-          IFS=1
-        elseif(iglib.eq.2)then
-          IFS=4
-        endif
-        ITFS=1
+        IMFS=5
+        IFS=4
+        ITFS=4
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -350,8 +348,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'ESP-r Network Tool ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Set additional output units to stdout. Then redirect warning
 C messages to stderr in case of rule script program control.
@@ -4927,22 +4926,22 @@ C      write(6,*) 'catie_r ',vmin,vmax,val,vald
       END
 
 C Dummy subroutines needed by libNonGTK:
-C  ADJVIEW: Adjusts the viewing transforms & boundaries if necessary.
-      SUBROUTINE ADJVIEW(IER)
+C  REDRAW: Draws the 3D model view.
+      SUBROUTINE redraw(IER)
       integer ier
       return
       end
 
 C CHGAZI called from C code in esp-r.c or esru_x.c with an increment or 
 C decrement to the viewing azimuth (icazi). This is a dummy. 
-      subroutine chgazi(icazi)
+      subroutine chgazi(icazi,ifrlk)
       integer icazi
       return
       end
 
 C CHGELEV is called from C code in esp-r.c or esru_x.c with an increment or 
 C decrement to the viewing elevation (icelev). This is a dummy. 
-      subroutine chgelev(icelev)
+      subroutine chgelev(icelev,ifrlk)
       integer icelev
       return
       end

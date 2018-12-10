@@ -54,6 +54,8 @@ C geometry.h provides commons G0/G2/c20/precz.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
 
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -217,7 +219,7 @@ C On entry display the current zone. Reset all surface lines to std.
         nzg=1
         nznog(1)=ICOMP
         izgfoc=ICOMP
-        CALL ADJVIEW(IER)
+        CALL redraw(IER)
       endif
 
 C Read construction file into common.
@@ -450,6 +452,7 @@ C current menu line index. Build up text strings for the menu.
           lnsmlcn=lnblnk(SSMLCN(icn1))
           if(lnsmlcn.gt.16) lnsmlcn=16
           lnsn=lnblnk(SSNAME(icn1))
+          if(lnsn.lt.10) lnsn=10
           lnop=lnblnk(OPTIC)
           WRITE(VERT(M),14)KEY,SSNAME(icn1)(1:lnsn),
      &      SSOTF(icn1)(1:4),
@@ -481,7 +484,7 @@ C has resized the display, redraw.
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
-      CALL ADJVIEW(IER)
+      CALL redraw(IER)
       call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
      &             iicfgz,iicfgn,iicfgc,iicfgdfn)
       if(MMOD.EQ.8)then
@@ -562,7 +565,22 @@ C TMC details, check that something transparent first.
 
 C Browse.
         call tstamp('>','PRJ: list zone constructions')
+
+C Switch to fixed font for text feedback.
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(ITFS.eq.4) ITFS=0
+        if(ITFS.eq.5) ITFS=1
+        if(ITFS.eq.6) ITFS=2
+        if(ITFS.eq.7) ITFS=3
+        call userfonts(IFS,ITFS,IMFS)
         CALL CONINF(ICOMP,0,ITRU)
+        IMFS=lastmenufont
+        ITFS=lasttextfont    ! reset to proportional font in text feedback
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+        call usrmsg(' ',' ','-')  ! refresh dialog 
       ELSEIF(IVERT.EQ.(MVERT-6))THEN
 
 C If there are enough items allow paging control via EKPAGE.
@@ -735,6 +753,8 @@ C Edit zone surface construction attributes in common block G6 and
 C allow this to be saved. ITRU unit number for user output, IER=0 OK,
 C IER=1 problem. Make use of construction information in common MLC.
       SUBROUTINE EDSCON(ITRU,ICOMP,ISUR,MODGEO,MODCON,IER)
+      use CFC_Module, Only: cfcver, ITMCFCDB, cfcitmindex, cfcdbcon,
+     & cfcdbden, cfcdbsht, CFCshdtp
 #include "building.h"
 #include "geometry.h"
 #include "esprdbfile.h"
@@ -754,6 +774,8 @@ C Parameters
       integer ier    ! zero is ok, one materials not available
 
       COMMON/OUTIN/IUOUT,IUIN
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
 
 C Optical and geometric properties.
       integer IZSTOCN
@@ -814,6 +836,20 @@ C with ier=1.
         ier=1
         return
       endif
+
+C Switch to fixed width font for both the menu and text feedback.
+      lastmenufont=IMFS
+      if(IMFS.eq.4) IMFS=0
+      if(IMFS.eq.5) IMFS=1
+      if(IMFS.eq.6) IMFS=2
+      if(IMFS.eq.7) IMFS=3
+      lastbuttonfont=IFS
+      lasttextfont=ITFS
+      if(ITFS.eq.4) ITFS=0
+      if(ITFS.eq.5) ITFS=1
+      if(ITFS.eq.6) ITFS=2
+      if(ITFS.eq.7) ITFS=3
+      call userfonts(IFS,ITFS,IMFS)
 
 C Setup text for menu.
    12 INODA=-3
@@ -934,6 +970,10 @@ C Help text for this menu.
 C Menu control.
       CALL EMENU('Surface construction attributes',ISD,ISDN,INODA)
       IF(INODA.EQ.ISDN)THEN
+        IMFS=lastmenufont    ! reset to proportional font
+        ITFS=lasttextfont
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
         RETURN
       ELSEIF(INODA.EQ.0)THEN
 
@@ -1002,6 +1042,10 @@ C the OPAQUE/TRANSPARENT flag as well.
         endif
         IF(IER.EQ.1)THEN
           CALL USRMSG(' ',' A problem was encountered..','W')
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
           RETURN
         ENDIF
         IF(IC.GT.0)THEN
@@ -1104,7 +1148,13 @@ C Update array NAIRG.
 
           ENDIF check_CFC2_or_MLC_2
 
-          IF(IER.EQ.1)RETURN
+          IF(IER.EQ.1)then
+            IMFS=lastmenufont    ! reset to proportional font
+            ITFS=lasttextfont
+            IFS=lastbuttonfont
+            call userfonts(IFS,ITFS,IMFS)
+            RETURN
+          ENDIF
 
           CON(ISUR,IL)=DBCON
           DEN(ISUR,IL)=DBDEN
@@ -1188,6 +1238,8 @@ C zone geometry file (surface attributes) and attempts to construct a
 C zone construction file with minimum intervention by the user.
 
       SUBROUTINE EDZCON(ICOMP,MODGEO,MODCON,IER)
+      use CFC_Module, Only: ITMCFCDB, cfcver, cfcdbcon, cfcdbden,
+     & cfcdbsht, CFCshdtp
 #include "building.h"
 #include "geometry.h"
 #include "esprdbfile.h"

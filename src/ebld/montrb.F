@@ -204,14 +204,16 @@ C since not all compilers use the same default.
       integer igwid,igheight  ! for use with axiscale
       integer iside,isize,ifont     ! passed to viewtext
       integer iix,iiy,iix2,iix5,iix35,iiy2  ! passed to edline
-      integer iicol
+      integer iicol,iid1,iid2
       integer iigl,iigr,iigt,iigb,iigw,iigwh
+      integer iixp1,iixp2,iiyp1,iiyp2
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iix,iiy,iix2,iix5,iix35,iiy2  ! passed to edline
-      integer*8 iicol
+      integer*8 iicol,iid1,iid2
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
+      integer*8 iixp1,iixp2,iiyp1,iiyp2
 #endif
 
 C Test save option selected.
@@ -247,9 +249,7 @@ C to ensure last 24 hours is plotted.
 
 c Display header information.
       write(etext,'(2A)')'Project: ',modeltitle(1:lnblnk(modeltitle))
-      iside=1
-      isize=1
-      ifont=1
+      iside=1; isize=1; ifont=1
       call viewtext(etext,iside,isize,ifont)
 
 C Generate view period string.
@@ -259,9 +259,7 @@ C Generate view period string.
       CALL STDATE(IYEAR,IODF,DE,DE1)
       write(etext,'(7a,i4)') 'Period',tab,DS1,' to ',DE1,' Year',tab,
      &  IYEAR
-      iside=2
-      isize=1
-      ifont=1
+      iside=2; isize=1; ifont=1
       call viewtext(etext,iside,isize,ifont)
 
 C If Plant flux then divide by 1000.0
@@ -293,12 +291,17 @@ c Draw a scale vertical axis.
       call dintervalf(yminb(1),ymaxb(1),DY,NDEC,1)
       call vrtaxisdd(yminb(1),ymaxb(1),iigl,iigb,iigt,yadd,ysc,1,
      &  DY,NDEC,0,':')
+      iicol=0
       if(mbstv.eq.1.or.mbstv.eq.3) then
-         call wstxpt(igl-5,igt-17,'Temp')
-         call wstxpt(igl-5,igt-5,'deg.C')
+         iid1=igl-5; iid2=igt-17
+         call textatxy(iid1,iid2,'Temp','-',iicol)
+         iid1=igl-5; iid2=igt-5
+         call textatxy(iid1,iid2,'(C)','-',iicol)
       elseif(mbstv.eq.2) then
-         call wstxpt(igl-5,igt-17,'Plant')
-         call wstxpt(igl-5,igt-5,'  KW')
+         iid1=igl-5; iid2=igt-17
+         call textatxy(iid1,iid2,'Plant','-',iicol)
+         iid1=igl-5; iid2=igt-5
+         call textatxy(iid1,iid2,'(KW)','-',iicol)
          yminb(1)=yminb(1)*1000.
          ymaxb(1)=ymaxb(1)*1000.
       endif
@@ -307,8 +310,10 @@ c Draw a scale vertical axis.
          call dintervalf(yminb(2),ymaxb(2),DY,NDEC,1)
          call vrtaxisdd(yminb(2),ymaxb(2),
      &     iigr,iigb,iigt,yadd1,ysc1,1,DY,NDEC,1,':')
-         call wstxpt(igr,igt-17,'Plant')
-         call wstxpt(igr,igt-5,'  KW')
+         iid1=igr; iid2=igt-17
+         call textatxy(iid1,iid2,'Plant','-',iicol)
+         iid1=igr; iid2=igt-5
+         call textatxy(iid1,iid2,'(KW)','-',iicol)
          yminb(2)=yminb(2)*1000.
          ymaxb(2)=ymaxb(2)*1000.
        endif
@@ -345,13 +350,12 @@ C with no symbols.
             if(icount.eq.0) then
                ncoord2(1,1,1)=igl+int((0+xadd)*xsc)
                ncoord2(1,1,2)=igb-int((dbval+yadd)*ysc)
-               iy= igt+iyofst
-               ix= 25
+               iiy= igt+iyofst
+               iix= 25
                clabel(1:3)='EXT'
-               call wstxpt(ix,iy,clabel)
-               iiy=iy
-               iix5=ix+5
-               iix35=ix+35
+               call textatxy(iix,iiy,clabel,'-',iicol)
+               iix5=iix+5
+               iix35=iix+35
                call edline(iix5,iiy,iix35,iiy,1)
 
 C Otherwise plot external temperature.
@@ -359,8 +363,9 @@ C Otherwise plot external temperature.
                ti=float(icount)/float(instep)
                ncoord2(1,2,1)=igl+int((ti+xadd)*xsc)
                ncoord2(1,2,2)=igb-int((dbval+yadd)*ysc)
-               call eswline(ncoord2(1,1,1),ncoord2(1,1,2),
-     &           ncoord2(1,2,1),ncoord2(1,2,2))
+               iixp1=ncoord2(1,1,1); iiyp1=ncoord2(1,1,2);
+               iixp2=ncoord2(1,2,1); iiyp2=ncoord2(1,2,2);
+               call eswline(iixp1,iiyp1,iixp2,iiyp2)
                call forceflush
                ncoord2(1,1,1)=ncoord2(1,2,1)
                ncoord2(1,1,2)=ncoord2(1,2,2)
@@ -399,7 +404,6 @@ c each curve as 'Z??' where 'Z' stands for zone.
                  endif
                endif
                clabel='                    '
-C               write(clabel,'(a1,i3,a1)')'Z',mzone(i),nterm
                ln=lnzname(mzone(i))
                write(clabel,'(2a)') zname(mzone(i))(1:ln),nterm
                ncoord(i,1,1)=igl+int((0+xadd)*xsc)
@@ -407,21 +411,25 @@ C               write(clabel,'(a1,i3,a1)')'Z',mzone(i),nterm
                if(mbstv.eq.3) then
                   ncoord1(i,1,1)=igl+int((0+xadd)*xsc)
                   ncoord1(i,1,2)=igb-int((value1+yadd1)*ysc1)
-                  iy= igt+iyofst+(i*18)
-                  ix= igr+25
-                  call wstxpt(ix,iy,clabel)
-                  iiy2=iy+2
-                  iix5=ix+5
-                  iix35=ix+35
+                  iiy= igt+iyofst+(i*18)
+                  iix= igr+25
+                  call textatxy(iix,iiy,clabel,'z',iicol)
+                  iiy2=iiy+2
+                  iix5=iix+5
+                  iix35=iix+35
                   call edline(iix5,iiy2,iix35,iiy2,2)
                   isr=i+mnzn
-                  call esymbol(ix+20,iy+2,isr,0)
+                  iixp1=iix+20; iiyp1=iiy+2;
+                  call esymbol(iixp1,iiyp1,isr,0)
                endif
-               iy= igt+iyofst+(i*18)
-               ix= 25
-               call wstxpt(ix,iy,clabel)
-               call eswline(ix+5,iy+2,ix+35,iy+2)
-               call esymbol(ix+20,iy+2,i,0)
+               iiy= igt+iyofst+(i*18)
+               iix= 25
+               call textatxy(iix,iiy,clabel,'z',iicol)
+               iixp1=iix+5; iiyp1=iiy+2;
+               iixp2=iix+35; iiyp2=iiy+2;
+               call eswline(iixp1,iiyp1,iixp2,iiyp2)
+               iixp1=iix+20; iiyp1=iiy+2;
+               call esymbol(iixp1,iiyp1,i,0)
                if(colok)then
                  iicol=0
                  call winscl('-',iicol)
@@ -439,10 +447,13 @@ c else start plotting.
                ti=float(icount)/float(instep)
                ncoord(i,2,1)=igl+int((ti+xadd)*xsc)
                ncoord(i,2,2)=igb-int((value+yadd)*ysc)
-               call eline (ncoord(i,1,1),ncoord(i,1,2), lnmvab)
-               call eline (ncoord(i,2,1),ncoord(i,2,2), lndrab)
-               if(j.eq.instep) call esymbol(ncoord(i,2,1),
-     &                   ncoord(i,2,2),i,0)
+               iix=ncoord(i,1,1)
+               iiy=ncoord(i,1,2)
+               iix2=ncoord(i,2,1)
+               iiy2=ncoord(i,2,2)
+               call eline (iix,iiy, lnmvab)
+               call eline (iix2,iiy2, lndrab)
+               if(j.eq.instep) call esymbol(iix2,iiy2,i,0)
                ncoord(i,1,1)=ncoord(i,2,1)
                ncoord(i,1,2)=ncoord(i,2,2)
                if(mbstv.eq.3) then
@@ -454,8 +465,7 @@ c else start plotting.
                   iiy2=ncoord1(i,2,2)
                   call edline (iix,iiy,iix2,iiy2,2)
                   isr=i+mnzn
-                  if(j.eq.instep) call esymbol(ncoord1(i,2,1),
-     &                   ncoord1(i,2,2),isr,0)
+                  if(j.eq.instep) call esymbol(iix2,iiy2,isr,0)
                   ncoord1(i,1,1)=ncoord1(i,2,1)
                   ncoord1(i,1,2)=ncoord1(i,2,2)
                endif

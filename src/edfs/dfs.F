@@ -106,7 +106,11 @@ C For number of openings NOPEN
      &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
 
 C Saved state of the visualisation
-      COMMON/CFDVIS/ISHSB,ISHAO,IFACES,ISHBLK
+      COMMON/MODVIS/IVISMOD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,
+     &              INITD
+      logical HAS_GEOM
+      character INITD*6
 
       CHARACTER*24 ITEM(11)
       CHARACTER inf*144,LCFD*72,DFCFD*72,Lflpar*72
@@ -117,7 +121,7 @@ C Saved state of the visualisation
       CHARACTER*72 LVEC,LBIT,t72,vecfil
       character*72 DECMPDBFL,DICONDBFL
 
-      character cVnum*36      ! returned from ESPrVersionNum
+      character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT
@@ -248,13 +252,14 @@ C Initialise coordinates for eye point, view point and angle of view.
       EYEM(1)=-100.; EYEM(2)=-100.; EYEM(3)=100.
       VIEWM(1)=10.; VIEWM(2)=10.; VIEWM(3)=10.
       ANG=40.
+      IVISMOD=2
 
 C General image option flags.
       ITDSP=0; ITBND=1; ITEPT=0
       ITZNM=0; ITSNM=1; ITVNO=1
       ITORG=0; ITSNR=1; ITOBS=0
       ITGRD=0; GRDIS=0.0
-      ITPPSW=0; IFS=1; ITFS=1
+      ITPPSW=0;
 
 C Initial choice for ascii export file.
       photon=.FALSE.
@@ -268,14 +273,14 @@ C Default lisolv.
 C Determine terminal type and set write unit to stderr for rule scripts.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=550
+        iappw=590
         iappx=90
         iappy=50
       else
         if(iappx.le.0)iappx=90
         if(iappy.le.0)iappy=50
         if(iappw.le.200)then
-          iappwi=int(550*iappw*0.01)
+          iappwi=int(590*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue
@@ -297,9 +302,14 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for graphs, IFS is for dialog & text feedback).
-        IMFS=1; IFS=1; ITFS=1
+C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
+C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
+C and dialog.
+        IMFS=5
+        IFS=5
+        ITFS=4
         call userfonts(IFS,ITFS,IMFS)
+        call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
         LIMTTY=16
         LIMIT =16
@@ -310,8 +320,9 @@ C Find the current ESP-r version number and add it to application title.
       write(pagestitle,'(2a)') 'ESP-r CFD Simulator ',
      &  cVnum(1:lnblnk(cVnum))
 
+      lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
-     &  pagestitle)
+     &  pagestitle,lntitle)
 
 C Open the text display box equal to LIMTTY if MMOD = 8.
       IF(MMOD.EQ.8)THEN
@@ -408,21 +419,13 @@ C Only one zone possible so set IZ to 1.
       ENDIF
       IF((XST).AND.IER.EQ.0)THEN
         INPOK=.TRUE.
-
-C plot grid.
-        CALL INICNT
-        CALL GRID(ier)
-        call VGRID3D('---','xyz',iz)
-        call VSB3D(0)
-        call VAO3D(0)
-        call VSBL3D(0)
       ELSE
         INPOK=.FALSE.
       ENDIF
 
 C Initialise gridding parameters
-      CALL INICNT
-      CALL GRID(ier)
+      HAS_GEOM=.FALSE.
+      ISHSB=-1; ISHAO=-1; IFACES=1; ISHBLK=-1; ISHGEO=0
 
 C Let the user pick a menu item.
    10 INO=-4
@@ -443,35 +446,8 @@ C Use askabout to instanciate the initial help messages (2nd parameter is one).
       call askabout('dfs ',1)
 
 C Plot grid
-      IF(MMOD.EQ.8)THEN
-        if(abs(IFACES).eq.1)then
-          call VGRID3D('---','xyz',iz)
-        elseif(abs(IFACES).eq.2)then
-          call VGRID3D('---','xzg',iz)
-        elseif(abs(IFACES).eq.3)then
-          call VGRID3D('---','yzg',iz)
-        elseif(abs(IFACES).eq.4)then
-          call VGRID3D('---','xyg',iz)
-        endif
-        if (ISHSB.eq.1) then
-          call VSB3D(0)
-        endif
-        if (ISHAO.eq.1) then
-          do 765 iaop=1,NOPEN(IZ)
-            call VAO3D(iaop)
-  765     continue
-c Comment the above 3 lines and un-comment the line below
-c to remove bold lines around openings
-c        call VAO3D(0))        
-        endif
-        CALL VSBL3D(0)
-      
-        WRITE(etext,'(2A)')'Model: ',
-     &    TITLE(IZ)(1:lnblnk(TITLE(IZ)))
-        iside=1
-        isize=1
-        ifont=1
-        call viewtext(etext,iside,isize,ifont)
+      IF(MMOD.EQ.8.and.INPOK)THEN
+        call redraw(ier)
       ENDIF
 
       CALL EMENU(' dfs',ITEM,NITMS,INO)
@@ -878,21 +854,6 @@ C Only one zone possible so set IZ to 1.
         ENDIF
         IF(IER.EQ.0)THEN
           INPOK=.TRUE.
-
-C plot grid.
-c          CALL INICNT
-c          CALL GRID(ier)
-c          call VGRID3D('---','xyz',iz)
-c          call VSB3D(0)
-c          call VAO3D(0)
-c          IF(MMOD.EQ.8)THEN
-c          WRITE(etext,'(2A)')'Model: ',
-c     &        TITLE(IZ)(1:lnblnk(TITLE(IZ)))
-c            iside=1
-c            isize=1
-c            ifont=1
-c            call viewtext(etext,iside,isize,ifont)
-c          ENDIF
         ELSE
           INPOK=.FALSE.
         ENDIF
@@ -960,6 +921,10 @@ C Dummy subroutine needed to compile (called from library code).
       character*1 ACTION
       integer isel,ier
       ier=0
+      return
+      end
+      
+      SUBROUTINE GRAAPH(IDRW1,IDRW2)
       return
       end
 
