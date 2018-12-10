@@ -12,7 +12,7 @@ if [ "$architecture" == "Darwin" ]; then
    echo " "
    echo " OS X system, install location /opt/esp-r"
    # Compilers
-   CVER="--compiler_version -mp-5"
+   CVER="--compiler_version -mp-7"
 fi
 
 ./Install $1 $LOCATION --xml           --X11 --no_dbs --no_training $debug $CVER --silent --quick_rebuild
