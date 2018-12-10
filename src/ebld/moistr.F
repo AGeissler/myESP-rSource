@@ -487,7 +487,7 @@ C For lumped constructions.
           DO 30 INM=1,MNDL(ICOMP,I,IL)
             INMT=INMT+1
             INH1=INT(XSUMM/DELXh)
-            XINTP=XSUMM-DELXh*INH1
+            XINTP=XSUMM-DELXh*real(INH1)
             INH1=INH1+1
             T1F=TFC(ICOMP,I,INH1)
             INH2=INH1+1
@@ -513,7 +513,7 @@ C For lumped constructions.
               INMT=INMT+1
               XSUMM=XSUMM+DELXm
               INTRVL=INT(XSUMM/DELXh)
-              XINTP=XSUMM-DELXh*INTRVL
+              XINTP=XSUMM-DELXh*real(INTRVL)
               INH1=IRN+INTRVL
               T1F=TFC(ICOMP,I,INH1)
               INH2=INH1+1
