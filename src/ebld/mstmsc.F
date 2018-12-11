@@ -876,7 +876,10 @@ cx      elseif(ISW.GE.7)THEN
 cx        HvkJ=2591.52+1.76*(TC-50.0)
 cx      ENDIF
 
-      HvkJ=3135.3+1.7107*TC+0.001931*TC**2-1.6294e-5*TC**3
+cx      HvkJ=3135.3+1.7107*TC+0.001931*TC**2-1.6294e-5*TC**3
+C Arbitrary adaptation (this gives results very similar to the ESP-r
+C legacy code.
+      HvkJ=3135.3-632.52+1.7107*TC+0.001931*TC**2-1.6294e-5*TC**3
       Hv01=HvkJ*1000.0
 
       RETURN
@@ -887,13 +890,17 @@ C Hl01 Calculates enthalpy of water (J/kg).
 C *********************************************************************
       FUNCTION Hl01(TC)
 
-cx      Hfg=EVAP01(TC)
-cx      Hg=Hv01(TC)
-cx      Hl01=Hg-Hfg
       if (TC.lt.0.) TC=0.
       if (TC.gt.300.) TC=300.
 
-      Hl01=1000.*(632.52+4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
+cx      Hfg=EVAP01(TC)
+cx      Hg=Hv01(TC)
+cx      Hl01=Hg-Hfg
+
+cx      Hl01=1000.*(632.52+4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
+C Arbitrary adaptation (this gives results very similar to the ESP-r
+C legacy code.
+      Hl01=1000.*(4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
 
       RETURN
       END
