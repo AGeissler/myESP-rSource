@@ -703,12 +703,12 @@ C Connection with the inner node.
         P2f=Pf(ICOMP,I,IM2)
         T2p=TMPp(I,IM2)
         T2f=TMPf(I,IM2)
-        TERM=Asrf*DTIME/DELXm
-        CRSp2=RGAMm*TERM*DELTp(I,IM)
+        TERM=Asrf*DTIME/DELXm ! m2*s/m = [m s]
+        CRSp2=RGAMm*TERM*DELTp(I,IM) ! m*s*s = [m s^2]
         CRSf2= GAMm*TERM*DELTf(I,IM)
 cx        DTPp2=RGAMm*TERM*DTPp(I,IM)
 cx        DTPf2= GAMm*TERM*DTPf(I,IM)
-        FLW1=CRSp1*(P1p-PIp)+CRSf1*(P1f-PIf)
+        FLW1=CRSp1*(P1p-PIp)+CRSf1*(P1f-PIf) ! m s^2 Pa = [kg]
         FLW2=CRSp2*(P2p-PIp)+CRSf2*(P2f-PIf) !+
 cx     &       DTPp2*(T2p-TIp)+DTPf2*(T2f-TIf)
         Ud(I,IM)=FLW1+FLW2-(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))

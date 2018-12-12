@@ -1158,7 +1158,7 @@ C Continue with other nodes (homogeneous) in the first layer.
           TC=TMPf(I,IM)
           Psf=Psat01(TC)
           if(Psp.ne.0.0)then
-            SLFp=RXIVpf(I,IM)/Psp
+            SLFp=RXIVpf(I,IM)/Psp ! m2 m kg/(m3 Pa) = [m s^2]
           else
             write(outs,*) ' Psat01(TC) returns zero ',TC
             call edisp(iuout,outs)
@@ -1173,11 +1173,11 @@ cx          DTPp1=RGAMm*DTPp(I,IM1)*TERM
 cx          DTPf1= GAMm*DTPf(I,IM1)*TERM
 cx          DTPp2=RGAMm*DTPp(I,IM)*TERM
 cx          DTPf2= GAMm*DTPf(I,IM)*TERM
-          W(I,IM,1)=-CRSf1
-          W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
-          W(I,IM,3)=-CRSf2
-          W(I,IM,4)=-GAMm*DTIME
-          W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
+          W(I,IM,1)=-CRSf1 ! [m s^2]
+          W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2 ! [m s^2]
+          W(I,IM,3)=-CRSf2 ! [m s^2]
+          W(I,IM,4)=-GAMm*DTIME ! [s]
+          W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+ ! [kg]
      &    CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Pp(ICOMP,I,IM2)+Fp(ICOMP,I,IM)+
 cx     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
 cx     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
@@ -1367,7 +1367,7 @@ C Construction moisture nodes.
         ENDIF
         TC=TMPf(I,IM)
         Ps=Psat01(TC)
-        DOMAIN=W(I,IM,2)
+        DOMAIN=W(I,IM,2) ! [m s^2]
         IF(ABS(DOMAIN).LT.TINYNUM)THEN
           WRITE(MSG,'(A,3I4)')'ERROR: very small domain for',ICOMP,I,IM
           CALL EDISP(IUOUT,MSG)
@@ -1378,10 +1378,10 @@ C Construction moisture nodes.
           stop
         ENDIF
         TheSum=DBLE(W(I,IM,5)-W(I,IM,1)*Pn1)-
-     &           DBLE(W(I,IM,3)*Pn2-W(I,IM,4)*Sn)
+     &           DBLE(W(I,IM,3)*Pn2-W(I,IM,4)*Sn) ! [kg] ; Sn : [kg/s]
 cx        Fn(I,IM)=0.0
-cx        Pnew=(SUM-Fn(I,IM))/DOMAIN
-        Pnew=TheSum/DBLE(DOMAIN)
+cx        Pnew=(TheSum-DBLE(Fn(I,IM)))/DBLE(DOMAIN)
+        Pnew=TheSum/DBLE(DOMAIN) ! [Pa]
         Pn(I,IM)=RLXln*real(Pnew)+RRLXln*Pnsave
         IF(Pn(I,IM).LT.0.1)Pn(I,IM)=0.1
         RH=Pn(I,IM)/Ps
@@ -1389,8 +1389,8 @@ cx        Pnew=(SUM-Fn(I,IM))/DOMAIN
           RH=RHmax
           Pn(I,IM)=RH*Ps
         ENDIF
-cx        Fnew=real(SUM)-Pn(I,IM)*DOMAIN
-        Fn(I,IM)=RLXlnF*(real(TheSum)-Pn(I,IM)*DOMAIN)+RRLXlnF*Fnsave
+        Fnew=real(TheSum)-Pn(I,IM)*DOMAIN
+        Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
         IF(Fn(I,IM).LT.TINYNUM)Fn(I,IM)=TINYNUM
 cx        ENDIF
    20 CONTINUE
@@ -1416,7 +1416,7 @@ C Air node.
         TheSum=TheSum-DBLE(E(1,I)*Pn(I,IMsurf))
   10  CONTINUE
 cx      Fnair=0.0
-cx      Pnew=(SUM-Fnair)/DOMAIN
+cx      Pnew=(TheSum-DBLE(Fnair))/DBLE(DOMAIN)
       Pnew=TheSum/DBLE(DOMAIN)
       Pnair=RLXln*real(Pnew)+RRLXln*Pnsave
       IF(Pnair.LT.0.1)Pnair=0.1
