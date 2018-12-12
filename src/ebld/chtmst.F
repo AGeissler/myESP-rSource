@@ -172,8 +172,10 @@ C *********************************************************************
       COMMON/MOIST68/Ud(MS,MNM),Udair
       COMMON/MOIST70/ACAP
 
-C First, calculate the moisture content variation (considering the 
-C effect of relatation factors).
+      TINYNUM=1.0e-32
+
+C First, calculate the moisture content variation (considering the
+C effect of relaxation factors).
       CALL DELUAF(ICOMP)
       NC=NCONST(ICOMP)
       N1=NC+1
@@ -213,7 +215,12 @@ C Connection with outside.
         CRSf1=BETAof(ICOMP,I)
 
 C Calculate the vapour flow in (kgv/m2 s).
-        FLWp1=CRSp1*(PJp-PIp)
+C       Very small pressure difference can be a problem(?)
+        if (ABS(PJp-PIp).gt.TINYNUM)then
+          FLWp1=CRSp1*(PJp-PIp)
+        else
+          FLWp1=SIGN(CRSp1*TINYNUM,(PJp-PIp))
+        endif
         IF(FLWp1.GT.0.0)THEN
 
 C Calculate heat flux in (W/m2).
@@ -221,7 +228,12 @@ C Calculate heat flux in (W/m2).
         ELSE
           FLXp1=RGAM*FLWp1*Hv01(TIp)
         ENDIF
-        FLWf1=CRSf1*(PJf-PIf)
+C       Very small pressure difference can be a problem(?)
+        if (ABS(PJf-PIf).gt.TINYNUM)then
+          FLWf1=CRSf1*(PJf-PIf)
+        else
+          FLWf1=SIGN(CRSf1*TINYNUM,(PJf-PIf))
+        endif
         IF(FLWf1.GT.0.0)THEN
           FLXf1=GAM*FLWf1*Hv01(TJf)
         ELSE
@@ -236,7 +248,16 @@ C Change in stored energy due to change in stored moisture mass (W/m2).
         DO 20 IM=IMS,IME
           TCf=TMPf(I,IM)
           HTJv=Hv01(TCf)*Ud(I,IM)
-          HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+          if (TCf.gt.80.)THEN
+            write(*,*)'H1: ',I,IM,TCf,HTJv,Ud(I,IM)
+          endif
+C         Very small difference in stored moisture mass can be a problem(?)
+          if (ABS((Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))).gt.TINYNUM)then
+            HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+          else
+            HTJl=SIGN(Hl01(TCf)*TINYNUM,
+     &                (Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM)))
+          endif
           HT=HT+(HTJv+HTJl)/(DTIME*Asrf)
    20   CONTINUE
 
@@ -265,7 +286,16 @@ C Change in stored energy due to change in stored moisture mass (W/m2).
           DO 40 IM=IMS,IME
             TCf=TMPf(I,IM)
             HTJv=Hv01(TCf)*Ud(I,IM)
-            HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+            if (TCf.gt.80.)THEN
+              write(*,*)'H2: ',I,IM,TCf,HTJv,Ud(I,IM)
+            endif
+C           Very small difference in stored moisture mass can be a problem(?)
+            if (ABS((Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))).gt.TINYNUM)then
+              HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+            else
+              HTJl=SIGN(Hl01(TCf)*TINYNUM,
+     &                  (Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM)))
+            endif
             HT=HT+(HTJv+HTJl)/(DTIME*Asrf)
    40     CONTINUE
 
@@ -306,8 +336,17 @@ C Change in stored energy due to change in stored moisture mass (W/m2).
           DO 60 IM=IMS,IME
             TCf=TMPf(I,IM)
             HTJv=Hv01(TCf)*Ud(I,IM)
-            HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+C           Very small difference in stored moisture mass can be a problem(?)
+            if (ABS((Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))).gt.TINYNUM)then
+              HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+            else
+              HTJl=SIGN(Hl01(TCf)*TINYNUM,
+     &                  (Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM)))
+            endif
             HT=HT+(HTJv+HTJl)/(DTIME*Asrf)
+            if (TCf.gt.80.)THEN
+              write(*,*)'H3: ',I,IM,TCf,HTJv,HTJl,HT,Ud(I,IM)
+            endif
    60     CONTINUE
 
 C Modify the present term for the current heat node.
@@ -337,7 +376,16 @@ C Change in stored energy due to change in stored moisture mass (W/m2).
            DO 80 IM=IMS,IME
              TCf=TMPf(I,IM)
              HTJv=Hv01(TCf)*Ud(I,IM)
-             HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+             if (TCf.gt.80.)THEN
+               write(*,*)'H4: ',I,IM,TCf,HTJv,Ud(I,IM)
+             endif
+C            Very small difference in stored moisture mass can be a problem(?)
+             if (ABS((Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))).gt.TINYNUM)then
+               HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+             else
+               HTJl=SIGN(Hl01(TCf)*TINYNUM,
+     &                   (Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM)))
+             endif
              HT=HT+(HTJv+HTJl)/(DTIME*Asrf)
    80      CONTINUE
 
@@ -371,13 +419,23 @@ C Connection with the air node.
         PJf=Pfair(ICOMP)
         CRSp2=BETAip(ICOMP,I)
         CRSf2=BETAif(ICOMP,I)
-        FLWp2=CRSp2*(PJp-PIp)
+C       Very small pressure difference can be a problem(?)
+        if (ABS(PJp-PIp).gt.TINYNUM)then
+          FLWp2=CRSp2*(PJp-PIp)
+        else
+          FLWp2=SIGN(CRSp2*TINYNUM,(PJp-PIp))
+        endif
         IF(FLWp2.GT.0.0)THEN
           FLXp2=RGAM*FLWp2*Hv01(TJp)
         ELSE
           FLXp2=RGAM*FLWp2*Hv01(TIp)
         ENDIF
-        FLWf2=CRSf2*(PJf-PIf)
+C       Very small pressure difference can be a problem(?)
+        if (ABS(PJf-PIf).gt.TINYNUM)then
+          FLWf2=CRSf2*(PJf-PIf)
+        else
+          FLWf2=SIGN(CRSf2*TINYNUM,(PJf-PIf))
+        endif
         IF(FLWf2.GT.0.0)THEN
           FLXf2=GAM*FLWf2*Hv01(TJf)
         ELSE
@@ -389,7 +447,16 @@ C Change in stored energy due to change in stored moisture mass (W/m2).
         DO 90 IM=IMS,IME
           TCf=TMPf(I,IM)
           HTJv=Hv01(TCf)*Ud(I,IM)
-          HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+          if (TCf.gt.80.)THEN
+            write(*,*)'H5: ',I,IM,TCf,HTJv,Ud(I,IM)
+          endif
+C         Very small difference in stored moisture mass can be a problem(?)
+          if (ABS((Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))).gt.TINYNUM)then
+            HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+          else
+            HTJl=SIGN(Hl01(TCf)*TINYNUM,
+     &                (Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM)))
+          endif
           HT=HT+(HTJv+HTJl)/(DTIME*Asrf)
    90   CONTINUE
 
@@ -408,7 +475,12 @@ C Phase change in (Watts).
 C Xair in (kgv/Kgair), and Uair in (Kgv)
       TCf=TFA(ICOMP)
       HTJv=Hv01(TCf)*Udair
-      HTJl=Hl01(TCf)*(Ffair(ICOMP)-Fpair(ICOMP))
+C     Very small difference in stored moisture mass can be a problem(?)
+      if (ABS((Ffair(ICOMP)-Fpair(ICOMP))).gt.TINYNUM)then
+        HTJl=Hl01(TCf)*(Ffair(ICOMP)-Fpair(ICOMP))
+      else
+        HTJl=SIGN(Hl01(TCf)*TINYNUM,(Ffair(ICOMP)-Fpair(ICOMP)))
+      endif
       HT=(HTJv+HTJl)/DTIME
       E(N1,N3)=E(N1,N3)+(SUM-HT)*ACAP
       RETURN
@@ -424,6 +496,8 @@ C ********************************************************************
       COMMON/MOIST28/DTPp(MS,MNM),DTPf(MS,MNM)
       COMMON/MOIST51/Pp(MCOM,MS,MNM),Fp(MCOM,MS,MNM),Sp(MCOM)
       COMMON/MOIST52/Pf(MCOM,MS,MNM),Ff(MCOM,MS,MNM),Sf(MCOM)
+
+      TINYNUM=1.0e-32
 
       II=IME
       IJ=IME+1
@@ -441,7 +515,12 @@ C ********************************************************************
       DTPf2=DTPf(I,II)/DXl
 
 C Calculate the vapour flow in (kgv/m2 s).
-      FLWp2=CRSp2*(PJp-PIp)+DTPp2*(TJp-TIp)
+C     Very small pressure difference can be a problem(?)
+      if (ABS(PJp-PIp).gt.TINYNUM)then
+        FLWp2=CRSp2*(PJp-PIp)+DTPp2*(TJp-TIp)
+      else
+        FLWp2=SIGN(CRSp2*TINYNUM,(PJp-PIp))
+      endif
       IF(FLWp2.GT.0.0)THEN
 
 C Calculate heat flux in (W/m2).
@@ -449,7 +528,12 @@ C Calculate heat flux in (W/m2).
       ELSE
         FLXp2=RGAM*FLWp2*Hv01(TIp)
       ENDIF
-      FLWf2=CRSf2*(PJf-PIf)+DTPf2*(TJf-TIf)
+C     Very small pressure difference can be a problem(?)
+      if (ABS(PJf-PIf).gt.TINYNUM)then
+        FLWf2=CRSf2*(PJf-PIf)+DTPf2*(TJf-TIf)
+      else
+        FLWf2=SIGN(CRSf2*TINYNUM,(PJf-PIf))
+      endif
       IF(FLWf2.GT.0.0)THEN
         FLXf2=GAM*FLWf2*Hv01(TJf)
       ELSE
@@ -498,6 +582,7 @@ C The last moisture node in the current layer.
 
 C CPv in (J/kg K).
         CPv=CPvpr01(TC)
+C           SHTH2O returnes constant value (no temp.-dependance)!
         CPl=SHTH2O(TC)*1000.0
         Psp=Psat01(TC)
         RHp=Pp(ICOMP,I,IM)/Psp
@@ -563,7 +648,7 @@ C If iterating then use present values on subsequent calls.
       END
 
 C *********************************************************************
-C MZMSTU sets up the zone moisture transfer matrix. This is done with
+C DELUAF sets up the zone moisture transfer matrix. This is done with
 C counting for the possible different temperature node distribution.
 C Implicitness degrees between 0 and 1 inclusive are allowed.
 C *********************************************************************
@@ -621,12 +706,16 @@ C Connection with the inner node.
         TERM=Asrf*DTIME/DELXm
         CRSp2=RGAMm*TERM*DELTp(I,IM)
         CRSf2= GAMm*TERM*DELTf(I,IM)
-        DTPp2=RGAMm*TERM*DTPp(I,IM)
-        DTPf2= GAMm*TERM*DTPf(I,IM)
+cx        DTPp2=RGAMm*TERM*DTPp(I,IM)
+cx        DTPf2= GAMm*TERM*DTPf(I,IM)
         FLW1=CRSp1*(P1p-PIp)+CRSf1*(P1f-PIf)
-        FLW2=CRSp2*(P2p-PIp)+CRSf2*(P2f-PIf)+
-     &       DTPp2*(T2p-TIp)+DTPf2*(T2f-TIf)
+        FLW2=CRSp2*(P2p-PIp)+CRSf2*(P2f-PIf) !+
+cx     &       DTPp2*(T2p-TIp)+DTPf2*(T2f-TIf)
         Ud(I,IM)=FLW1+FLW2-(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+        if (ABS(Ud(I,IM)).gt.0.8) then
+          write(*,*)'mb0: ',I,IM,IM2,MNDL(ICOMP,I,IL),
+     &               CRSp2,(P2p-PIp),(P2f-PIf),FLW1,FLW2,Ud(I,IM)
+        endif
 
 C Continue with other nodes (homogeneous) in the first layer.
         DO 100 ID=1,MNDL(ICOMP,I,IL)-1
@@ -648,11 +737,15 @@ C Connection with the inner node.
           TERM=Asrf*DTIME/DELXm
           CRSp2=RGAMm*TERM*DELTp(I,IM)
           CRSf2= GAMm*TERM*DELTf(I,IM)
-          DTPp2=RGAMm*TERM*DTPp(I,IM)
-          DTPf2= GAMm*TERM*DTPf(I,IM)
-          FLW2=CRSp2*(P2p-PIp)+CRSf2*(P2f-PIf)+
-     &         DTPp2*(T2p-TIp)+DTPf2*(T2f-TIf)
+cx          DTPp2=RGAMm*TERM*DTPp(I,IM)
+cx          DTPf2= GAMm*TERM*DTPf(I,IM)
+          FLW2=CRSp2*(P2p-PIp)+CRSf2*(P2f-PIf) !+
+cx     &         DTPp2*(T2p-TIp)+DTPf2*(T2f-TIf)
           Ud(I,IM)=FLW1+FLW2-(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+        if (ABS(Ud(I,IM)).gt.0.8) then
+          write(*,*)'mb1: ',I,IM,IM2,MNDL(ICOMP,I,IL),
+     &               CRSp2,(P2p-PIp),(P2f-PIf),FLW1,FLW2,Ud(I,IM)
+        endif
   100   CONTINUE
 
 C Continue with other layers in the construction.
@@ -676,11 +769,15 @@ C Connection with the inner node.
           TERM=Asrf*DTIME/DELXm
           CRSp2=RGAMm*TERM*DELTp(I,IM)
           CRSf2= GAMm*TERM*DELTf(I,IM)
-          DTPp2=RGAMm*TERM*DTPp(I,IM)
-          DTPf2= GAMm*TERM*DTPf(I,IM)
-          FLW2=CRSp2*(P2p-PIp)+CRSf2*(P2f-PIf)+
-     &         DTPp2*(T2p-TIp)+DTPf2*(T2f-TIf)
+cx          DTPp2=RGAMm*TERM*DTPp(I,IM)
+cx          DTPf2= GAMm*TERM*DTPf(I,IM)
+          FLW2=CRSp2*(P2p-PIp)+CRSf2*(P2f-PIf) !+
+cx     &         DTPp2*(T2p-TIp)+DTPf2*(T2f-TIf)
           Ud(I,IM)=FLW1+FLW2-(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+        if (ABS(Ud(I,IM)).gt.0.8) then
+          write(*,*)'mb2: ',I,IM,IM2,MNDL(ICOMP,I,IL),
+     &               CRSp2,(P2p-PIp),(P2f-PIf),FLW1,FLW2,Ud(I,IM)
+        endif
 
 C Continue with other (homogeneous) nodes in the layer.
         DO 110 ID=1,MNDL(ICOMP,I,IL)-1
@@ -702,11 +799,15 @@ C Connection with the inner node.
           TERM=Asrf*DTIME/DELXm
           CRSp2=RGAMm*TERM*DELTp(I,IM)
           CRSf2= GAMm*TERM*DELTf(I,IM)
-          DTPp2=RGAMm*TERM*DTPp(I,IM)
-          DTPf2= GAMm*TERM*DTPf(I,IM)
-          FLW2=CRSp2*(P2p-PIp)+CRSf2*(P2f-PIf)+
-     &         DTPp2*(T2p-TIp)+DTPf2*(T2f-TIf)
+cx          DTPp2=RGAMm*TERM*DTPp(I,IM)
+cx          DTPf2= GAMm*TERM*DTPf(I,IM)
+          FLW2=CRSp2*(P2p-PIp)+CRSf2*(P2f-PIf) !+
+cx     &         DTPp2*(T2p-TIp)+DTPf2*(T2f-TIf)
           Ud(I,IM)=FLW1+FLW2-(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+        if (ABS(Ud(I,IM)).gt.0.8) then
+          write(*,*)'mb3: ',I,IM,IM2,MNDL(ICOMP,I,IL),
+     &               CRSp2,(P2p-PIp),(P2f-PIf),FLW1,FLW2,Ud(I,IM)
+        endif
   110   CONTINUE
 
 C Internal surface node

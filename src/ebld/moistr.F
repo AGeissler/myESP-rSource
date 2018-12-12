@@ -487,7 +487,7 @@ C For lumped constructions.
           DO 30 INM=1,MNDL(ICOMP,I,IL)
             INMT=INMT+1
             INH1=INT(XSUMM/DELXh)
-            XINTP=XSUMM-DELXh*INH1
+            XINTP=XSUMM-DELXh*real(INH1)
             INH1=INH1+1
             T1F=TFC(ICOMP,I,INH1)
             INH2=INH1+1
@@ -513,7 +513,7 @@ C For lumped constructions.
               INMT=INMT+1
               XSUMM=XSUMM+DELXm
               INTRVL=INT(XSUMM/DELXh)
-              XINTP=XSUMM-DELXh*INTRVL
+              XINTP=XSUMM-DELXh*real(INTRVL)
               INH1=IRN+INTRVL
               T1F=TFC(ICOMP,I,INH1)
               INH2=INH1+1
@@ -524,12 +524,18 @@ C For lumped constructions.
               ENDIF
               RATIO=XINTP/DELXh
               TMPf(I,INMT)=RATIO*(T2F-T1F)+T1F
+       if ((T1F.gt.80.).or.(T2F.gt.80.))THEN
+         write(*,*)'T1: ',I,INH2,INMT,T1F,T2F,TMPf(I,INMT)
+       endif
    50       CONTINUE
             IRN=IRN+NNDL(ICOMP,I,IL)
    40     CONTINUE
         ENDIF
         INMT=INMT+1
         TMPf(I,INMT)=TFS(ICOMP,I)
+       if (TMPf(I,INMT).gt.80.)THEN
+         write(*,*)'**T1a: ',I,INMT,TMPf(I,INMT)
+       endif
    10 CONTINUE
       RETURN
       END
@@ -593,7 +599,13 @@ C For lumped constructions.
           DO 40 IL=1,NE
             INMT=INMT+1
             TMPnew=TFC(ICOMP,I,IRN)
+            TMPold=TMPf(I,INMT)
             TMPf(I,INMT)=RLXlnT*TMPnew+RRLXlnT*TMPf(I,INMT)
+       if (TMPnew.gt.80.)THEN
+         write(*,'(a,10I4)')'T2a: ',I,IRN,IL,INM,INMT,INH1,INH2,NHT,
+     &                              NNDL(ICOMP,I,IL),MNDL(ICOMP,I,IL)
+         write(*,*)'       ',TMPold,TMPnew,TMPf(I,INMT)
+       endif
             THICK=THRMLI(ICOMP,I,IL,4)
             DELXh=THICK/real(NNDL(ICOMP,I,IL))
             DELXm=THICK/real(MNDL(ICOMP,I,IL))
@@ -613,7 +625,14 @@ C For lumped constructions.
               ENDIF
               RATIO=XINTP/DELXh
               TMPnew=RATIO*(T2F-T1F)+T1F
+              TMPold=TMPf(I,INMT)
               TMPf(I,INMT)=RLXlnT*TMPnew+RRLXlnT*TMPf(I,INMT)
+       if ((T1F.gt.80.).or.(T2F.gt.80.))THEN
+         write(*,'(a,10I4)')'T2b: ',I,IRN,IL,INM,INMT,INH1,INH2,NHT,
+     &                              NNDL(ICOMP,I,IL),MNDL(ICOMP,I,IL)
+         write(*,*)'       ',T1F,T2F,RATIO,
+     &                     TMPold,TMPnew,TMPf(I,INMT)
+       endif
    50       CONTINUE
             IRN=IRN+NNDL(ICOMP,I,IL)
    40     CONTINUE
@@ -621,6 +640,9 @@ C For lumped constructions.
         INMT=INMT+1
         TMPnew=TFS(ICOMP,I)
         TMPf(I,INMT)=RLXlnT*TMPnew+RRLXlnT*TMPf(I,INMT)
+       if (TMPnew.gt.80.)THEN
+         write(*,*)'**T2c: ',I,INMT,TMPnew,TMPf(I,INMT)
+       endif
    10 CONTINUE
       RETURN
       END
@@ -1110,15 +1132,15 @@ C Estimate the present and future saturated water vapour pressure.
           write(outs,*) 'Psat01(TC) is zero ',TC
           call edisp(iuout,outs)
         endif
-        DTPp2=RGAMm*DTPp(I,IM)*TERM
-        DTPf2= GAMm*DTPf(I,IM)*TERM
+cx        DTPp2=RGAMm*DTPp(I,IM)*TERM
+cx        DTPf2= GAMm*DTPf(I,IM)*TERM
         W(I,IM,1)=0.0
         W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
         W(I,IM,3)=-CRSf2
         W(I,IM,4)=-GAMm*DTIME
         W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &  CRSp1*PP1+CRSp2*Pp(ICOMP,I,IM2)+CRSf1*PP2+Fp(ICOMP,I,IM)+
-     &  DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
+cx     &  DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
      &  TRMfls*SLFf*Pn(I,IM)
 
 C Continue with other nodes (homogeneous) in the first layer.
@@ -1147,18 +1169,18 @@ C Continue with other nodes (homogeneous) in the first layer.
             write(outs,*) ' Psat01(TC) returns zero ',TC
             call edisp(iuout,outs)
           endif
-          DTPp1=RGAMm*DTPp(I,IM1)*TERM
-          DTPf1= GAMm*DTPf(I,IM1)*TERM
-          DTPp2=RGAMm*DTPp(I,IM)*TERM
-          DTPf2= GAMm*DTPf(I,IM)*TERM
+cx          DTPp1=RGAMm*DTPp(I,IM1)*TERM
+cx          DTPf1= GAMm*DTPf(I,IM1)*TERM
+cx          DTPp2=RGAMm*DTPp(I,IM)*TERM
+cx          DTPf2= GAMm*DTPf(I,IM)*TERM
           W(I,IM,1)=-CRSf1
           W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
           W(I,IM,3)=-CRSf2
           W(I,IM,4)=-GAMm*DTIME
           W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &    CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Pp(ICOMP,I,IM2)+Fp(ICOMP,I,IM)+
-     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
-     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
+cx     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
+cx     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
      &    TRMfls*SLFf*Pn(I,IM)
   100   CONTINUE
 
@@ -1184,18 +1206,18 @@ C IL: current layer, IP: previous layer.
           Psf=Psat01(TC)
           SLFp=RXIVpf(I,IM)/Psp
           SLFf=RXIVpf(I,IM)/Psf
-          DTPp1=RGAMm*DTPp(I,IM1)*TERMP
-          DTPf1= GAMm*DTPf(I,IM1)*TERMP
-          DTPp2=RGAMm*DTPp(I,IM)*TERML
-          DTPf2= GAMm*DTPf(I,IM)*TERML
+cx          DTPp1=RGAMm*DTPp(I,IM1)*TERMP
+cx          DTPf1= GAMm*DTPf(I,IM1)*TERMP
+cx          DTPp2=RGAMm*DTPp(I,IM)*TERML
+cx          DTPf2= GAMm*DTPf(I,IM)*TERML
           W(I,IM,1)=-CRSf1
           W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
           W(I,IM,3)=-CRSf2
           W(I,IM,4)=-GAMm*DTIME
           W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &    CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Pp(ICOMP,I,IM2)+Fp(ICOMP,I,IM)+
-     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
-     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
+cx     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
+cx     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
      &    TRMfls*SLFf*Pn(I,IM)
 
 C Continue with other (homogeneous) nodes in the layer.
@@ -1215,20 +1237,21 @@ C Continue with other (homogeneous) nodes in the layer.
           Psf=Psat01(TC)
           SLFp=RXIVpf(I,IM)/Psp
           SLFf=RXIVpf(I,IM)/Psf
-          DTPp1=RGAMm*DTPp(I,IM1)*TERM
-          DTPf1= GAMm*DTPf(I,IM1)*TERM
-          DTPp2=RGAMm*DTPp(I,IM)*TERM
-          DTPf2= GAMm*DTPf(I,IM)*TERM
+cx          DTPp1=RGAMm*DTPp(I,IM1)*TERM
+cx          DTPf1= GAMm*DTPf(I,IM1)*TERM
+cx          DTPp2=RGAMm*DTPp(I,IM)*TERM
+cx          DTPf2= GAMm*DTPf(I,IM)*TERM
           W(I,IM,1)=-CRSf1
           W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
           W(I,IM,3)=-CRSf2
           W(I,IM,4)=-GAMm*DTIME
           W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &    CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Pp(ICOMP,I,IM2)+Fp(ICOMP,I,IM)+
-     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-
-     &     TMPf(I,IM))+
-     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-
-     &    TMPf(I,IM))+TRMfls*SLFf*Pn(I,IM)
+cx     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-
+cx     &     TMPf(I,IM))+
+cx     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-
+cx     &    TMPf(I,IM))+
+     &    TRMfls*SLFf*Pn(I,IM)
   110   CONTINUE
 
 C Internal surface node
@@ -1246,16 +1269,17 @@ C Internal surface node
         Psf=Psat01(TC)
         SLFp=RXIVpf(I,IM)/Psp
         SLFf=RXIVpf(I,IM)/Psf
-        DTPp1=RGAMm*DTPp(I,IM1)*TERM
-        DTPf1= GAMm*DTPf(I,IM1)*TERM
+cx        DTPp1=RGAMm*DTPp(I,IM1)*TERM
+cx        DTPf1= GAMm*DTPf(I,IM1)*TERM
         W(I,IM,1)=-CRSf1
         W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
         W(I,IM,3)=-CRSf2
         W(I,IM,4)=-GAMm*DTIME
         W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &  CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Ppair(ICOMP)+Fp(ICOMP,I,IM)+
-     &  DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-
-     &  TMPf(I,IM))+TRMfls*SLFf*Pn(I,IM)
+cx     &  DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-
+cx     &  TMPf(I,IM))+
+     &  TRMfls*SLFf*Pn(I,IM)
 
 C Convective term for the air node equation.
         E(1,I)=-CRSf2
@@ -1281,7 +1305,7 @@ C INA:air furture self coupling, IQA:plant term, IPA:present term
       E(1,INA)=TRMflsp1*SLFf+SUMA1
       E(1,IQA)=-GAMm*DTIME
       E(1,IPA)=(SLFp+SUMA2)*Ppair(ICOMP)+SUMA3+Fpair(ICOMP)+
-     &TRMfls*SLFf*Pnair
+     &           TRMfls*SLFf*Pnair
 
 C Link the building lumped moisture flow network.
 C Modify the boundary vector to count for;

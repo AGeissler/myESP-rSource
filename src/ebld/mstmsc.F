@@ -205,9 +205,9 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C XIair01 determines the value for moisture capacity ( slope for sorption
+C XIair01 determines the value for moisture capacity (slope for sorption
 C isotherm) for air node by numerical differentiation.
-C XIair01  moisture capacity (kg/[-]) (Dx/DRH)
+C XIair01  moisture capacity (kg/m3) (Dx/DRH)
 C Pvp      present time vapour pressure ( Pa )
 C Pvf      future time vapour pressure ( Pa )
 C TCp      present time temperature ( C )
@@ -246,9 +246,9 @@ C *********************************************************************
         XIair01=XIair02(Pvp,TCp,Pt)
         iSource=1
       ELSE
-        Xp=X03(TCp,RHp,Pt) ! kg_vap / kg_dry-air
-        Xf=X03(TCf,RHf,Pt) ! kg_vap / kg_dry-air
-        XIair01=(Xf-Xp)/RHfp
+        Xp=X03(TCp,RHp,Pt)    ! kg_vap / kg_dry-air
+        Xf=X03(TCf,RHf,Pt)    ! kg_vap / kg_dry-air
+        XIair01=(Xf-Xp)/RHfp  ! kg_vap / kg_dry-air / [-]
         iSource=2
         IF(XIair01.LE.0.0) then
           XIair01=XIair02(Pvp,TCp,Pt)
@@ -262,7 +262,7 @@ C *********************************************************************
         write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,I2,A)')
      &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,' resetting'
         call edisp(iuout,outs)
-        XIair01=1.0E-10
+        XIair01=1.0E-15
       endif
       RETURN
       END
@@ -284,7 +284,7 @@ C *********************************************************************
       RATIO=Ra/Rv
       Ps=Psat01(TC)
 
-      if(Ps.gt.0.) then
+      if(Ps.gt.SMALL) then
         RH=Pv/Ps
       else
         write(outs,*)'XIair02: Psat01(TC) returning zero for ',
@@ -293,7 +293,7 @@ C *********************************************************************
       endif
 
       IF(RH.GT.RHmax)RH=RHmax
-      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-]? Should be kg/m3 !!?
+      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-], Actually kg/kg
       IF(XIair02.LT.DBLE(SMALL))then
         call edisp(iuout,'XIair02: very small moisture capacity.')
         call epwait
@@ -876,7 +876,10 @@ cx      elseif(ISW.GE.7)THEN
 cx        HvkJ=2591.52+1.76*(TC-50.0)
 cx      ENDIF
 
-      HvkJ=3135.3+1.7107*TC+0.001931*TC**2-1.6294e-5*TC**3
+cx      HvkJ=3135.3+1.7107*TC+0.001931*TC**2-1.6294e-5*TC**3
+C Arbitrary adaptation (this gives results very similar to the ESP-r
+C legacy code.
+      HvkJ=3135.3-632.52+1.7107*TC+0.001931*TC**2-1.6294e-5*TC**3
       Hv01=HvkJ*1000.0
 
       RETURN
@@ -887,13 +890,17 @@ C Hl01 Calculates enthalpy of water (J/kg).
 C *********************************************************************
       FUNCTION Hl01(TC)
 
-cx      Hfg=EVAP01(TC)
-cx      Hg=Hv01(TC)
-cx      Hl01=Hg-Hfg
       if (TC.lt.0.) TC=0.
       if (TC.gt.300.) TC=300.
 
-      Hl01=1000.*(632.52+4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
+cx      Hfg=EVAP01(TC)
+cx      Hg=Hv01(TC)
+cx      Hl01=Hg-Hfg
+
+cx      Hl01=1000.*(632.52+4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
+C Arbitrary adaptation (this gives results very similar to the ESP-r
+C legacy code.
+      Hl01=1000.*(4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
 
       RETURN
       END
