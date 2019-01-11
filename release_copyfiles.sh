@@ -15,13 +15,14 @@ prefix="/Users/achim.geissler/Downloads"
 #prefix="/Users/achim/Downloads"
 release="ESP-r_V13.2.9_Src"
 
-# 2. Step : create file listings for the subdirectories src, models,
-#           data and doc:
+# 2. Step : create file listings for the source root directory and
+#           subdirectories src, models, modish, data and doc:
 diff -rq src ${prefix}/${release}/src > diff_src.txt
 diff -rq models ${prefix}/${release}/models > diff_models.txt
 diff -rq modish ${prefix}/${release}/modish > diff_modish.txt
 diff -rq data ${prefix}/${release}/data > diff_data.txt
 diff -rq doc ${prefix}/${release}/doc > diff_doc.txt
+diff -rq ./ ${prefix}/${release}/. > diff_root.txt
 #
 #    The diffs are issued in the git repository directory "myESP-rSource"
 #    (where this script should actually reside).
@@ -35,9 +36,8 @@ diff -rq doc ${prefix}/${release}/doc > diff_doc.txt
 #    Where <curpath> = <folder>[/<folder>[/...]]
 #          <newpath> = <prefix>/<release>/<curpath>
 #
-#     Get current line
 
-filelist=(diff_src.txt diff_models.txt diff_modish.txt diff_data.txt diff_doc.txt)
+filelist=(diff_src.txt diff_models.txt diff_modish.txt diff_data.txt diff_doc.txt diff_root.txt)
 #filelist=(diff_models.txt)
 
 for file in "${filelist[@]}"
