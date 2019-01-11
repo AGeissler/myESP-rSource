@@ -187,7 +187,7 @@ C *********************************************************************
       RLXlnF=0.2   !0.01 RLX F_new + (1-RLX) F_old ; FACTOR=1/RLX
       RLXlnT=0.4   !0.1  RLX T_new + (1-RLX) T_old
 
-      MITRM=250
+      MITRM=500
 
       RITRMP=0.075 ! (Pf-Pn) FACTOR < RITRMP ? => O.K. (both for zone air and layers!)
       RITRMF=0.001 ! (Ff-Fn) FACTOR < RITRMF ? => O.K. (both for zone air and layers!)
@@ -223,17 +223,15 @@ C *********************************************************************
       character outs*124
       integer iMM
 
-      TINYNUM=1.0e-28
-
       TC=15.0
       RH=0.5
       Pinit=Pvpr02(TC,RH)
       Ppair(ICOMP)=Pinit
-      Fpair(ICOMP)=TINYNUM
-      Spair(ICOMP)=TINYNUM
+      Fpair(ICOMP)=0.0
+      Spair(ICOMP)=0.0
       Pfair(ICOMP)=Pinit
-      Ffair(ICOMP)=TINYNUM
-      Sfair(ICOMP)=TINYNUM
+      Ffair(ICOMP)=0.0
+      Sfair(ICOMP)=0.0
       Xair=X03(TC,RH,PATMpa)
       Usair(ICOMP)=Xair
       CPsair(ICOMP)=CPmst01(TC,Xair)
@@ -241,7 +239,7 @@ C *********************************************************************
       hc=10.0
       CP=CPsair(ICOMP)
       BETA=BETA01(hc,CP,TC)
-      Sf(ICOMP)=TINYNUM
+      Sf(ICOMP)=0.0
       DO 10 I=1,NCONST(ICOMP)
         APp(ICOMP,I)=Ppair(ICOMP)
         APf(ICOMP,I)=Pfair(ICOMP)
@@ -255,15 +253,15 @@ C *********************************************************************
           IF(IM.LT.NMP1)THEN
             ITM1=ITM1+1
             Pp(ICOMP,I,ITM1)=Pinit
-            Fp(ICOMP,I,ITM1)=TINYNUM
+            Fp(ICOMP,I,ITM1)=0.0
             Pf(ICOMP,I,ITM1)=Pinit
-            Ff(ICOMP,I,ITM1)=TINYNUM
+            Ff(ICOMP,I,ITM1)=0.0
             UM0=PERM(ICOMP,I,IL,1)
             UM100=PERM(ICOMP,I,IL,2)
             B=PERM(ICOMP,I,IL,3)
             iMM=iMoistModel(ICOMP)
             DX=DELT01(iMM,RH,UM0,UM100,B)
-C If small value then report which part of the model was the problem.
+C If small value then report which part of model was the problem.
             if(DX.lt.0.99E-15)then
               write(outs,'(a,3i3)') 
      &          'INITMZ: DELT01 small at zone surf layer: ',icomp,i,IL
@@ -273,16 +271,13 @@ C If small value then report which part of the model was the problem.
               DELTs(ICOMP,I,ITM1)=DX
             endif
             DTPs(ICOMP,I,ITM1)=TVAPD(ICOMP,I,IL)
-            if (DTPs(ICOMP,I,ITM1).lt.TINYNUM) then
-              DTPs(ICOMP,I,ITM1)=TINYNUM
-            endif
           ENDIF
    20   CONTINUE
         ITM1=ITM1+1
         Pp(ICOMP,I,ITM1)=Pinit
-        Fp(ICOMP,I,ITM1)=TINYNUM
+        Fp(ICOMP,I,ITM1)=0.0
         Pf(ICOMP,I,ITM1)=Pinit
-        Ff(ICOMP,I,ITM1)=TINYNUM
+        Ff(ICOMP,I,ITM1)=0.0
    10 CONTINUE
       RETURN
       END
@@ -356,7 +351,7 @@ C For lumped constructions.
 C Trap divition by zero (1.0 is a guessed alternative).
             THICK=THRMLI(ICOMP,I,IL,4)
             if(MNDL(ICOMP,I,IL).ne.0)then
-              DELXm=THICK/real(MNDL(ICOMP,I,IL))
+              DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
             else
               write(outs,*) 'MNDL out of range @',ICOMP,I,IL
               call edisp(iuout,outs)
@@ -382,11 +377,7 @@ C Trap for division by zero.
             ELSE
               T2P=TPC(ICOMP,I,INH2)
             ENDIF
-            if(DELXh.gt.0.0)then
-              RATIO=XINTP/DELXh
-            else
-              RATIO=0.5
-            endif
+            RATIO=XINTP/DELXh
             TMPp(I,INMT)=RATIO*(T2P-T1P)+T1P
             TMNp(ICOMP,I,INMT)=TMPp(I,INMT) ! save with zone info
             XSUMM=XSUMM+DELXm
@@ -402,19 +393,19 @@ C Trap for division by zero.
 
 C Trap zero division.
             if(NNT.gt.0)then
-              DELXh=THICK/real(NNT)
+              DELXh=THICK/FLOAT(NNT)
             else
               write(outs,*) 'NNT out of range @',ICOMP,I,IL
               call edisp(iuout,outs)
-              DELXh=THICK/real(1)
+              DELXh=THICK/FLOAT(1)
             endif
             NMT=MNDL(ICOMP,I,IL)
             if(NMT.gt.0)then
-              DELXm=THICK/real(NMT)
+              DELXm=THICK/FLOAT(NMT)
             else
               write(outs,*) 'NMT out of range @',ICOMP,I,IL
               call edisp(iuout,outs)
-              DELXm=THICK/real(1)
+              DELXm=THICK/FLOAT(1)
             endif
             XSUMM=0.
             DO 50 INM=2,MNDL(ICOMP,I,IL)
@@ -483,11 +474,11 @@ C For lumped constructions.
           XSUMM=0.
           DO 30 IL=1,NE
             THICK=THRMLI(ICOMP,I,IL,4)
-            DELXm=THICK/real(MNDL(ICOMP,I,IL))
+            DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
           DO 30 INM=1,MNDL(ICOMP,I,IL)
             INMT=INMT+1
             INH1=INT(XSUMM/DELXh)
-            XINTP=XSUMM-DELXh*real(INH1)
+            XINTP=XSUMM-DELXh*INH1
             INH1=INH1+1
             T1F=TFC(ICOMP,I,INH1)
             INH2=INH1+1
@@ -506,14 +497,14 @@ C For lumped constructions.
             INMT=INMT+1
             TMPf(I,INMT)=TFC(ICOMP,I,IRN)
             THICK=THRMLI(ICOMP,I,IL,4)
-            DELXh=THICK/real(NNDL(ICOMP,I,IL))
-            DELXm=THICK/real(MNDL(ICOMP,I,IL))
+            DELXh=THICK/FLOAT(NNDL(ICOMP,I,IL))
+            DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
             XSUMM=0.
             DO 50 INM=2,MNDL(ICOMP,I,IL)
               INMT=INMT+1
               XSUMM=XSUMM+DELXm
               INTRVL=INT(XSUMM/DELXh)
-              XINTP=XSUMM-DELXh*real(INTRVL)
+              XINTP=XSUMM-DELXh*INTRVL
               INH1=IRN+INTRVL
               T1F=TFC(ICOMP,I,INH1)
               INH2=INH1+1
@@ -524,18 +515,12 @@ C For lumped constructions.
               ENDIF
               RATIO=XINTP/DELXh
               TMPf(I,INMT)=RATIO*(T2F-T1F)+T1F
-       if ((T1F.gt.80.).or.(T2F.gt.80.))THEN
-         write(*,*)'T1: ',I,INH2,INMT,T1F,T2F,TMPf(I,INMT)
-       endif
    50       CONTINUE
             IRN=IRN+NNDL(ICOMP,I,IL)
    40     CONTINUE
         ENDIF
         INMT=INMT+1
         TMPf(I,INMT)=TFS(ICOMP,I)
-       if (TMPf(I,INMT).gt.80.)THEN
-         write(*,*)'**T1a: ',I,INMT,TMPf(I,INMT)
-       endif
    10 CONTINUE
       RETURN
       END
@@ -558,8 +543,6 @@ C **********************************************************************
       COMMON/MOIST13/RLXln,RRLXln,RLXlnF,RRLXlnF,RLXlnT,RRLXlnT
       COMMON/MOIST23/TMPp(MS,MNM),TMPf(MS,MNM)
 
-      real DELXh,DELXm
-
       NC=NCONST(ICOMP)
       DO 10 I=1,NC
         NE=NELTS(ICOMP,I)
@@ -576,11 +559,11 @@ C For lumped constructions.
           XSUMM=0.
           DO 30 IL=1,NE
             THICK=THRMLI(ICOMP,I,IL,4)
-            DELXm=THICK/real(MNDL(ICOMP,I,IL))
+            DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
           DO 30 INM=1,MNDL(ICOMP,I,IL)
             INMT=INMT+1
             INH1=INT(XSUMM/DELXh)
-            XINTP=XSUMM-DELXh*real(INH1)
+            XINTP=XSUMM-DELXh*INH1
             INH1=INH1+1
             T1F=TFC(ICOMP,I,INH1)
             INH2=INH1+1
@@ -599,22 +582,16 @@ C For lumped constructions.
           DO 40 IL=1,NE
             INMT=INMT+1
             TMPnew=TFC(ICOMP,I,IRN)
-            TMPold=TMPf(I,INMT)
             TMPf(I,INMT)=RLXlnT*TMPnew+RRLXlnT*TMPf(I,INMT)
-       if (TMPnew.gt.80.)THEN
-         write(*,'(a,10I4)')'T2a: ',I,IRN,IL,INM,INMT,INH1,INH2,NHT,
-     &                              NNDL(ICOMP,I,IL),MNDL(ICOMP,I,IL)
-         write(*,*)'       ',TMPold,TMPnew,TMPf(I,INMT)
-       endif
             THICK=THRMLI(ICOMP,I,IL,4)
-            DELXh=THICK/real(NNDL(ICOMP,I,IL))
-            DELXm=THICK/real(MNDL(ICOMP,I,IL))
+            DELXh=THICK/FLOAT(NNDL(ICOMP,I,IL))
+            DELXm=THICK/FLOAT(MNDL(ICOMP,I,IL))
             XSUMM=0.
             DO 50 INM=2,MNDL(ICOMP,I,IL)
               INMT=INMT+1
               XSUMM=XSUMM+DELXm
               INTRVL=INT(XSUMM/DELXh)
-              XINTP=XSUMM-DELXh*real(INTRVL)
+              XINTP=XSUMM-DELXh*INTRVL
               INH1=IRN+INTRVL
               T1F=TFC(ICOMP,I,INH1)
               INH2=INH1+1
@@ -625,14 +602,7 @@ C For lumped constructions.
               ENDIF
               RATIO=XINTP/DELXh
               TMPnew=RATIO*(T2F-T1F)+T1F
-              TMPold=TMPf(I,INMT)
               TMPf(I,INMT)=RLXlnT*TMPnew+RRLXlnT*TMPf(I,INMT)
-       if ((T1F.gt.80.).or.(T2F.gt.80.))THEN
-         write(*,'(a,10I4)')'T2b: ',I,IRN,IL,INM,INMT,INH1,INH2,NHT,
-     &                              NNDL(ICOMP,I,IL),MNDL(ICOMP,I,IL)
-         write(*,*)'       ',T1F,T2F,RATIO,
-     &                     TMPold,TMPnew,TMPf(I,INMT)
-       endif
    50       CONTINUE
             IRN=IRN+NNDL(ICOMP,I,IL)
    40     CONTINUE
@@ -640,9 +610,6 @@ C For lumped constructions.
         INMT=INMT+1
         TMPnew=TFS(ICOMP,I)
         TMPf(I,INMT)=RLXlnT*TMPnew+RRLXlnT*TMPf(I,INMT)
-       if (TMPnew.gt.80.)THEN
-         write(*,*)'**T2c: ',I,INMT,TMPnew,TMPf(I,INMT)
-       endif
    10 CONTINUE
       RETURN
       END
@@ -900,7 +867,7 @@ C For construction moisture nodes.
           NM=MNDL(ICOMP,I,IL)
           THCK=THRMLI(ICOMP,I,IL,4)
           if(NM.gt.0)then
-            DELXm=THCK/real(NM)
+            DELXm=THCK/NM
           else
             DELXm=THCK/1.0
           endif
@@ -996,7 +963,7 @@ C Estimate the future time moisture storage capacity term.
             Uh=SORP(ICOMP,I,IL,1)
             CFF=SORP(ICOMP,I,IL,2)
             EXPT=SORP(ICOMP,I,IL,3)
-            RXI=real(XI03(iMM,RH1p,RH1,Uh,CFF,EXPT)) ! kg/m3 in current moisture node
+            RXI=SNGL(XI03(iMM,RH1p,RH1,Uh,CFF,EXPT)) ! kg/m3 in current moisture node
             IF(IM.EQ.1)THEN ! outermost moisture node of material layer IL
               DELX2=DELXm/2.0 ! m (thickness of moisture node "layer")
               RXI2=RXI
@@ -1097,7 +1064,7 @@ C Consider each multilayered construction within current zone.
         IM=1
         IM2=IM+1
         if(MNDL(ICOMP,I,IL).ne.0)then
-          DELXm=THRMLI(ICOMP,I,IL,4)/real(MNDL(ICOMP,I,IL))
+          DELXm=THRMLI(ICOMP,I,IL,4)/FLOAT(MNDL(ICOMP,I,IL))
         else
           DELXm=THRMLI(ICOMP,I,IL,4)/1.0
         endif
@@ -1132,15 +1099,15 @@ C Estimate the present and future saturated water vapour pressure.
           write(outs,*) 'Psat01(TC) is zero ',TC
           call edisp(iuout,outs)
         endif
-cx        DTPp2=RGAMm*DTPp(I,IM)*TERM
-cx        DTPf2= GAMm*DTPf(I,IM)*TERM
+        DTPp2=RGAMm*DTPp(I,IM)*TERM
+        DTPf2= GAMm*DTPf(I,IM)*TERM
         W(I,IM,1)=0.0
         W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
         W(I,IM,3)=-CRSf2
         W(I,IM,4)=-GAMm*DTIME
         W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &  CRSp1*PP1+CRSp2*Pp(ICOMP,I,IM2)+CRSf1*PP2+Fp(ICOMP,I,IM)+
-cx     &  DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
+     &  DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
      &  TRMfls*SLFf*Pn(I,IM)
 
 C Continue with other nodes (homogeneous) in the first layer.
@@ -1158,7 +1125,7 @@ C Continue with other nodes (homogeneous) in the first layer.
           TC=TMPf(I,IM)
           Psf=Psat01(TC)
           if(Psp.ne.0.0)then
-            SLFp=RXIVpf(I,IM)/Psp ! m2 m kg/(m3 Pa) = [m s^2]
+            SLFp=RXIVpf(I,IM)/Psp
           else
             write(outs,*) ' Psat01(TC) returns zero ',TC
             call edisp(iuout,outs)
@@ -1169,18 +1136,18 @@ C Continue with other nodes (homogeneous) in the first layer.
             write(outs,*) ' Psat01(TC) returns zero ',TC
             call edisp(iuout,outs)
           endif
-cx          DTPp1=RGAMm*DTPp(I,IM1)*TERM
-cx          DTPf1= GAMm*DTPf(I,IM1)*TERM
-cx          DTPp2=RGAMm*DTPp(I,IM)*TERM
-cx          DTPf2= GAMm*DTPf(I,IM)*TERM
-          W(I,IM,1)=-CRSf1 ! [m s^2]
-          W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2 ! [m s^2]
-          W(I,IM,3)=-CRSf2 ! [m s^2]
-          W(I,IM,4)=-GAMm*DTIME ! [s]
-          W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+ ! [kg]
+          DTPp1=RGAMm*DTPp(I,IM1)*TERM
+          DTPf1= GAMm*DTPf(I,IM1)*TERM
+          DTPp2=RGAMm*DTPp(I,IM)*TERM
+          DTPf2= GAMm*DTPf(I,IM)*TERM
+          W(I,IM,1)=-CRSf1
+          W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
+          W(I,IM,3)=-CRSf2
+          W(I,IM,4)=-GAMm*DTIME
+          W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &    CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Pp(ICOMP,I,IM2)+Fp(ICOMP,I,IM)+
-cx     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
-cx     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
+     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
+     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
      &    TRMfls*SLFf*Pn(I,IM)
   100   CONTINUE
 
@@ -1192,8 +1159,8 @@ C Continue with other layers in the construction.
 
 C IL: current layer, IP: previous layer.
           IP=IL-1
-          DELXl=THRMLI(ICOMP,I,IL,4)/real(MNDL(ICOMP,I,IL))
-          DELXp=THRMLI(ICOMP,I,IP,4)/real(MNDL(ICOMP,I,IP))
+          DELXl=THRMLI(ICOMP,I,IL,4)/FLOAT(MNDL(ICOMP,I,IL))
+          DELXp=THRMLI(ICOMP,I,IP,4)/FLOAT(MNDL(ICOMP,I,IP))
           TERMP=Asrf*DTIME/DELXp
           CRSp1=RGAMm*TERMP*DELTp(I,IM1)
           CRSf1= GAMm*TERMP*DELTf(I,IM1)
@@ -1206,18 +1173,18 @@ C IL: current layer, IP: previous layer.
           Psf=Psat01(TC)
           SLFp=RXIVpf(I,IM)/Psp
           SLFf=RXIVpf(I,IM)/Psf
-cx          DTPp1=RGAMm*DTPp(I,IM1)*TERMP
-cx          DTPf1= GAMm*DTPf(I,IM1)*TERMP
-cx          DTPp2=RGAMm*DTPp(I,IM)*TERML
-cx          DTPf2= GAMm*DTPf(I,IM)*TERML
+          DTPp1=RGAMm*DTPp(I,IM1)*TERMP
+          DTPf1= GAMm*DTPf(I,IM1)*TERMP
+          DTPp2=RGAMm*DTPp(I,IM)*TERML
+          DTPf2= GAMm*DTPf(I,IM)*TERML
           W(I,IM,1)=-CRSf1
           W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
           W(I,IM,3)=-CRSf2
           W(I,IM,4)=-GAMm*DTIME
           W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &    CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Pp(ICOMP,I,IM2)+Fp(ICOMP,I,IM)+
-cx     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
-cx     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
+     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
+     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
      &    TRMfls*SLFf*Pn(I,IM)
 
 C Continue with other (homogeneous) nodes in the layer.
@@ -1237,20 +1204,18 @@ C Continue with other (homogeneous) nodes in the layer.
           Psf=Psat01(TC)
           SLFp=RXIVpf(I,IM)/Psp
           SLFf=RXIVpf(I,IM)/Psf
-cx          DTPp1=RGAMm*DTPp(I,IM1)*TERM
-cx          DTPf1= GAMm*DTPf(I,IM1)*TERM
-cx          DTPp2=RGAMm*DTPp(I,IM)*TERM
-cx          DTPf2= GAMm*DTPf(I,IM)*TERM
+          DTPp1=RGAMm*DTPp(I,IM1)*TERM
+          DTPf1= GAMm*DTPf(I,IM1)*TERM
+          DTPp2=RGAMm*DTPp(I,IM)*TERM
+          DTPf2= GAMm*DTPf(I,IM)*TERM
           W(I,IM,1)=-CRSf1
           W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
           W(I,IM,3)=-CRSf2
           W(I,IM,4)=-GAMm*DTIME
           W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &    CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Pp(ICOMP,I,IM2)+Fp(ICOMP,I,IM)+
-cx     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-
-cx     &     TMPf(I,IM))+
-cx     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-
-cx     &    TMPf(I,IM))+
+     &    DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
+     &    DTPp2*(TMPp(I,IM2)-TMPp(I,IM))+DTPf2*(TMPf(I,IM2)-TMPf(I,IM))+
      &    TRMfls*SLFf*Pn(I,IM)
   110   CONTINUE
 
@@ -1269,16 +1234,15 @@ C Internal surface node
         Psf=Psat01(TC)
         SLFp=RXIVpf(I,IM)/Psp
         SLFf=RXIVpf(I,IM)/Psf
-cx        DTPp1=RGAMm*DTPp(I,IM1)*TERM
-cx        DTPf1= GAMm*DTPf(I,IM1)*TERM
+        DTPp1=RGAMm*DTPp(I,IM1)*TERM
+        DTPf1= GAMm*DTPf(I,IM1)*TERM
         W(I,IM,1)=-CRSf1
         W(I,IM,2)=TRMflsp1*SLFf+CRSf1+CRSf2
         W(I,IM,3)=-CRSf2
         W(I,IM,4)=-GAMm*DTIME
         W(I,IM,5)=(SLFp-CRSp1-CRSp2)*Pp(ICOMP,I,IM)+
      &  CRSp1*Pp(ICOMP,I,IM1)+CRSp2*Ppair(ICOMP)+Fp(ICOMP,I,IM)+
-cx     &  DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-
-cx     &  TMPf(I,IM))+
+     &  DTPp1*(TMPp(I,IM1)-TMPp(I,IM))+DTPf1*(TMPf(I,IM1)-TMPf(I,IM))+
      &  TRMfls*SLFf*Pn(I,IM)
 
 C Convective term for the air node equation.
@@ -1305,13 +1269,12 @@ C INA:air furture self coupling, IQA:plant term, IPA:present term
       E(1,INA)=TRMflsp1*SLFf+SUMA1
       E(1,IQA)=-GAMm*DTIME
       E(1,IPA)=(SLFp+SUMA2)*Ppair(ICOMP)+SUMA3+Fpair(ICOMP)+
-     &           TRMfls*SLFf*Pnair
+     &TRMfls*SLFf*Pnair
 
 C Link the building lumped moisture flow network.
 C Modify the boundary vector to count for;
       TERMcpl=(RGAMm*(VPINF*GEXTP+VPCPL+VPMCH+VPLTN-Upair*VPLST)+
-     &        GAMm*(VFINF*GEXTF+VFCPL+VFMCH+VFLTN-Ufair*VFLST))*
-     &        DTIME
+     &        GAMm*(VFINF*GEXTF+VFCPL+VFMCH+VFLTN-Ufair*VFLST))*DTIME
       E(1,IPA)=E(1,IPA)+TERMcpl
       RETURN
       END
@@ -1338,9 +1301,7 @@ C *********************************************************************
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       CHARACTER*72 MSG
 
-      DOUBLE PRECISION TheSum,Pnew
-
-      TINYNUM=1.0e-28
+      DOUBLE PRECISION SUM,Pnew
 
       NC=NCONST(ICOMP)
       INA=NC+1
@@ -1367,8 +1328,8 @@ C Construction moisture nodes.
         ENDIF
         TC=TMPf(I,IM)
         Ps=Psat01(TC)
-        DOMAIN=W(I,IM,2) ! [m s^2]
-        IF(ABS(DOMAIN).LT.TINYNUM)THEN
+        DOMAIN=W(I,IM,2)
+        IF(ABS(DOMAIN).LT.1.0e-28)THEN
           WRITE(MSG,'(A,3I4)')'ERROR: very small domain for',ICOMP,I,IM
           CALL EDISP(IUOUT,MSG)
           WRITE(MSG,'(A,I5)')'at time step',NSINC
@@ -1377,21 +1338,20 @@ C Construction moisture nodes.
           CALL EDISP(IUOUT,MSG)
           stop
         ENDIF
-        TheSum=DBLE(W(I,IM,5)-W(I,IM,1)*Pn1)-
-     &           DBLE(W(I,IM,3)*Pn2-W(I,IM,4)*Sn) ! [kg] ; Sn : [kg/s]
-cx        Fn(I,IM)=0.0
-cx        Pnew=(TheSum-DBLE(Fn(I,IM)))/DBLE(DOMAIN)
-        Pnew=TheSum/DBLE(DOMAIN) ! [Pa]
-        Pn(I,IM)=RLXln*real(Pnew)+RRLXln*Pnsave
+        SUM=W(I,IM,5)-W(I,IM,1)*Pn1-W(I,IM,3)*Pn2-W(I,IM,4)*Sn
+        Fn(I,IM)=0.0
+c        Pnew=(SUM-Fn(I,IM))/DOMAIN
+        Pnew=SUM/DOMAIN
+        Pn(I,IM)=RLXln*SNGL(Pnew)+RRLXln*Pnsave
         IF(Pn(I,IM).LT.0.1)Pn(I,IM)=0.1
         RH=Pn(I,IM)/Ps
         IF(RH.GT.RHmax)THEN
           RH=RHmax
           Pn(I,IM)=RH*Ps
         ENDIF
-        Fnew=real(TheSum)-Pn(I,IM)*DOMAIN
+        Fnew=SNGL(SUM)-Pn(I,IM)*DOMAIN
         Fn(I,IM)=RLXlnF*Fnew+RRLXlnF*Fnsave
-        IF(Fn(I,IM).LT.TINYNUM)Fn(I,IM)=TINYNUM
+        IF(Fn(I,IM).LT.0.0)Fn(I,IM)=0.0
 cx        ENDIF
    20 CONTINUE
 
@@ -1410,24 +1370,24 @@ C Air node.
         CALL EDISP(IUOUT,MSG)
         stop
       ENDIF
-      TheSum=DBLE(E(1,IPA)-E(1,IQA)*Snair)
+      SUM=E(1,IPA)-E(1,IQA)*Snair
       DO 10 I=1,NC
         IMsurf=MNDC(ICOMP,I)
-        TheSum=TheSum-DBLE(E(1,I)*Pn(I,IMsurf))
+        SUM=SUM-E(1,I)*Pn(I,IMsurf)
   10  CONTINUE
-cx      Fnair=0.0
-cx      Pnew=(TheSum-DBLE(Fnair))/DBLE(DOMAIN)
-      Pnew=TheSum/DBLE(DOMAIN)
-      Pnair=RLXln*real(Pnew)+RRLXln*Pnsave
+      Fnair=0.0
+c      Pnew=(SUM-Fnair)/DOMAIN
+      Pnew=SUM/DOMAIN
+      Pnair=RLXln*SNGL(Pnew)+RRLXln*Pnsave
       IF(Pnair.LT.0.1)Pnair=0.1
       RH=Pnair/Ps
       IF(RH.GT.RHmax)THEN
         RH=RHmax
         Pnair=RH*Ps
       ENDIF
-      Fnew=real(TheSum)-Pnair*DOMAIN
+      Fnew=SNGL(SUM)-Pnair*DOMAIN
       Fnair=RLXlnF*Fnew+RRLXlnF*Fnsave
-      IF(Fnair.LT.TINYNUM)Fnair=TINYNUM
+      IF(Fnair.LT.0.0)Fnair=0.0
 cx      ENDIF
       RETURN
       END
@@ -1628,7 +1588,7 @@ C If this construction is lumped.
               RETURN
             ENDIF
           DO 20 IL=1,NELTS(ICOMP,I)
-            SUM=real(MNDL(ICOMP,I,IL)/NNDL(ICOMP,I,IL))+1.0
+            SUM=FLOAT(MNDL(ICOMP,I,IL)/NNDL(ICOMP,I,IL))+1.0
             RMNDR=AMOD(SUM,2.0)
             IF(RMNDR.GT.1.0E-4)THEN
               WRITE(MSG,'(1a,3(i3,a))')

@@ -73,19 +73,17 @@ C   EXPT -> a3
 C *********************************************************************
       FUNCTION U01(iMM,RH,Uh,CFF,EXPT)
       COMMON/MOIST17/RHmax
-      SMALL=1.0E-15
 
       IF(RH.GT.RHmax)RH=RHmax
       if (iMM.eq.1) then
 C       Legacy model
-cx        U01=Uh*(1.0-ALOG(RH)/CFF)**(-1.0/EXPT)
-        U01=Uh*(1.0-LOG(RH)/CFF)**(-1.0/EXPT) ! "ALOG" archaic ...??
+        U01=Uh*(1.0-ALOG(RH)/CFF)**(-1.0/EXPT)
       elseif (iMM.eq.2) then
 C       Otto model
         U01=1000.*(exp(Uh*RH+CFF*RH**2+EXPT*RH**3)-1.)
       endif
 cx      IF(U01.LT.0.0)STOP 'Error (703): negative moisture content.'
-      IF (U01.LT.SMALL) U01=SMALL
+      IF (U01.LT.0.0) U01=0.00001
       RETURN
       END
 C *********************************************************************
@@ -130,10 +128,7 @@ C *********************************************************************
       IF(RH.GT.RHmax)RH=RHmax
       if (iMM.eq.1) then
 C       Legacy model
-cx        XI01=DBLE(Uh/(EXPT*CFF*RH)
-cx     &       *(1.0-ALOG(RH)/CFF)**(-(EXPT+1.0)/EXPT)) !! ALOG archaic?!
-        XI01=DBLE(Uh/(EXPT*CFF*RH)
-     &       *(1.0-LOG(RH)/CFF)**(-(EXPT+1.0)/EXPT))
+        XI01=Uh/(EXPT*CFF*RH)*(1.0-ALOG(RH)/CFF)**(-(EXPT+1.0)/EXPT)
       elseif (iMM.eq.2) then
 C       Otto model
         XI01=1000.*exp(Uh*RH+CFF*RH**2+EXPT*RH**3)
@@ -192,7 +187,7 @@ C *********************************************************************
       ELSE
         Up=U01(iMM,RHp,Uh,CFF,EXPT)
         Uf=U01(iMM,RHf,Uh,CFF,EXPT)
-        XI03=DBLE((Uf-Up)/RHfp)
+        XI03=(Uf-Up)/RHfp
         IF(XI03.LE.0.0)XI03=XI01(iMM,RHp,Uh,CFF,EXPT)
       ENDIF
       IF(XI03.LT.DBLE(SMALL))then
@@ -207,48 +202,32 @@ C *********************************************************************
 C *********************************************************************
 C XIair01 determines the value for moisture capacity (slope for sorption
 C isotherm) for air node by numerical differentiation.
-C XIair01  moisture capacity (kg/m3) (Dx/DRH)
-C Pvp      present time vapour pressure ( Pa )
-C Pvf      future time vapour pressure ( Pa )
-C TCp      present time temperature ( C )
-C TCf      future time temperature ( C )
+C XIair01  moisture capacity (kg/kg)
+C Pvp      present time vapour pressure (Pa)
+C Pvf      future time vapour pressure (Pa)
+C TCp      present time temperature (C)
+C TCf      future time temperature (C)
 C *********************************************************************
       FUNCTION XIair01(Pvp,Pvf,TCp,TCf,Pt)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
       character outs*124
       SMALL=1.0E-15
-      LARGE=1.0E+02 ! what would a realistic value be, here?
 
       Psp=Psat01(TCp)
       Psf=Psat01(TCf)
-
-      if(Psp.gt.0.) then
-        RHp=Pvp/Psp
-      else
-        write(outs,*)'XIair01: Psat01(TCp) returning zero for ',
-     &    TCp
-        call edisp(iuout,outs)
-      endif
+      RHp=Pvp/Psp
       IF(RHp.GT.RHmax)RHp=RHmax
-
-      if(Psf.gt.0.) then
-        RHf=Pvf/Psf
-      else
-        write(outs,*)'XIair01: Psat01(TCf) returning zero for ',
-     &    TCf
-        call edisp(iuout,outs)
-      endif
+      RHf=Pvf/Psf
       IF(RHf.GT.RHmax)RHf=RHmax
-
       RHfp=RHf-RHp
       IF(ABS(RHfp).LT.1.0e-6)THEN
         XIair01=XIair02(Pvp,TCp,Pt)
         iSource=1
       ELSE
-        Xp=X03(TCp,RHp,Pt)    ! kg_vap / kg_dry-air
-        Xf=X03(TCf,RHf,Pt)    ! kg_vap / kg_dry-air
-        XIair01=(Xf-Xp)/RHfp  ! kg_vap / kg_dry-air / [-]
+        Xp=X03(TCp,RHp,Pt) ! kg_vap / kg_dry-air
+        Xf=X03(TCf,RHf,Pt) ! kg_vap / kg_dry-air
+        XIair01=(Xf-Xp)/RHfp
         iSource=2
         IF(XIair01.LE.0.0) then
           XIair01=XIair02(Pvp,TCp,Pt)
@@ -262,7 +241,7 @@ C *********************************************************************
         write(outs,'(4(F8.3,1X),3(F8.5,1X),I6,I2,A)')
      &    Pvp,Pvf,TCp,TCf,RHfp,Xp,Xf,int(Pt),iSource,' resetting'
         call edisp(iuout,outs)
-        XIair01=1.0E-15
+        XIair01=1.0E-10
       endif
       RETURN
       END
@@ -276,24 +255,15 @@ C *********************************************************************
       FUNCTION XIair02(Pv,TC,Pt)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
-      character outs*124
       SMALL=1.0E-15
 
       Ra=287.06
       Rv=461.5
       RATIO=Ra/Rv
       Ps=Psat01(TC)
-
-      if(Ps.gt.SMALL) then
-        RH=Pv/Ps
-      else
-        write(outs,*)'XIair02: Psat01(TC) returning zero for ',
-     &    TC
-        call edisp(iuout,outs)
-      endif
-
+      RH=Pv/Ps
       IF(RH.GT.RHmax)RH=RHmax
-      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-], Actually kg/kg
+      XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-]? Should be kg/m3 !!?
       IF(XIair02.LT.DBLE(SMALL))then
         call edisp(iuout,'XIair02: very small moisture capacity.')
         call epwait
@@ -745,19 +715,16 @@ C Pt   total pressure  ( Pa )
 C **********************************************************************
       FUNCTION X01(Pv,Pt)
       COMMON/OUTIN/IUOUT,IUIN
-      SMALL=1.0E-6
 
       Ra=287.06
       Rv=461.5
       Pa=Pt-Pv
       X01=Pv*Ra/(Pa*Rv)
       IF(X01.LT.0.0)then
-        call edisp(iuout,
-     &      'X01: negative vapour ratio. Setting to small value')
-cx        call epwait
-cx        call epagend
-cx        STOP
-        X01=SMALL
+        call edisp(iuout,'X01: negative vapour ratio.')
+        call epwait
+        call epagend
+        STOP
       endif
       RETURN
       END
@@ -795,19 +762,16 @@ C **********************************************************************
       FUNCTION X03(TC,RH,Pt)
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MOIST17/RHmax
-      SMALL=1.0E-6
 
       IF(RH.GT.RHmax)RH=RHmax
       RH100=RH*100.0
       PATMOS=Pt/100.0
       X03=HUMRT1(TC,RH100,PATMOS,0)
       IF(X03.LT.0.0)then
-        call edisp(iuout,
-     &      'X03: negative vapour ratio. Setting to 1.0 mg/kg')
-cx        call epwait
-cx        call epagend
-cx        STOP
-        X03=SMALL
+        call edisp(iuout,'X03: negative vapour ratio.')
+        call epwait
+        call epagend
+        STOP
       endif
       RETURN
       END
@@ -856,32 +820,23 @@ C fundamental data for B.S. engineers, Section 8, Eqns 7-20.
 C *********************************************************************
       FUNCTION Hv01(TC)
 
-      if (TC.lt.0.) TC=0.
-      if (TC.gt.300.) TC=300.
-
-cx      ISW=INT((TC+20.0)/10.0)
-cx      IF(ISW.LE.1)THEN
-cx        HvkJ=2500.822+1.8375*TC
-cx      elseif(ISW.EQ.2)THEN
-cx        HvkJ=2500.92+1.84*TC
-cx      elseif(ISW.EQ.3)THEN
-cx        HvkJ=2519.32+1.83*(TC-10.0)
-cx      elseif(ISW.EQ.4)THEN
-cx        HvkJ=2537.62+1.82*(TC-20.0)
-cx      elseif(ISW.EQ.5)THEN
-cx        HvkJ=2555.82+1.8*(TC-30.0)
-cx      elseif(ISW.EQ.6)THEN
-cx        HvkJ=2573.82+1.77*(TC-40.0)
-cx      elseif(ISW.GE.7)THEN
-cx        HvkJ=2591.52+1.76*(TC-50.0)
-cx      ENDIF
-
-cx      HvkJ=3135.3+1.7107*TC+0.001931*TC**2-1.6294e-5*TC**3
-C Arbitrary adaptation (this gives results very similar to the ESP-r
-C legacy code.
-      HvkJ=3135.3-632.52+1.7107*TC+0.001931*TC**2-1.6294e-5*TC**3
+      ISW=INT((TC+20.0)/10.0)
+      IF(ISW.LE.1)THEN
+        HvkJ=2500.822+1.8375*TC
+      elseif(ISW.EQ.2)THEN
+        HvkJ=2500.92+1.84*TC
+      elseif(ISW.EQ.3)THEN
+        HvkJ=2519.32+1.83*(TC-10.0)
+      elseif(ISW.EQ.4)THEN
+        HvkJ=2537.62+1.82*(TC-20.0)
+      elseif(ISW.EQ.5)THEN
+        HvkJ=2555.82+1.8*(TC-30.0)
+      elseif(ISW.EQ.6)THEN
+        HvkJ=2573.82+1.77*(TC-40.0)
+      elseif(ISW.GE.7)THEN
+        HvkJ=2591.52+1.76*(TC-50.0)
+      ENDIF
       Hv01=HvkJ*1000.0
-
       RETURN
       END
 
@@ -890,17 +845,8 @@ C Hl01 Calculates enthalpy of water (J/kg).
 C *********************************************************************
       FUNCTION Hl01(TC)
 
-      if (TC.lt.0.) TC=0.
-      if (TC.gt.300.) TC=300.
-
-cx      Hfg=EVAP01(TC)
-cx      Hg=Hv01(TC)
-cx      Hl01=Hg-Hfg
-
-cx      Hl01=1000.*(632.52+4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
-C Arbitrary adaptation (this gives results very similar to the ESP-r
-C legacy code.
-      Hl01=1000.*(4.253*TC-0.0012461*TC**2+6.7254e-6*TC**3)
-
+      Hfg=EVAP01(TC)
+      Hg=Hv01(TC)
+      Hl01=Hg-Hfg
       RETURN
       END
