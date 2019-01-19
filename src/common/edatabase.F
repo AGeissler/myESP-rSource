@@ -2224,7 +2224,8 @@ C IER=0 OK, IER=1 problem.
 
       DIMENSION IVAL(MMLC+1),COMPS(MMLC+1)
       CHARACTER*(*) PROMPT1,PROMPT2
-      CHARACTER H*72,COMPS*33
+      CHARACTER H*72,COMPS*38
+C mlcname*32 + 1 + mlctype*4 = 37 minimum ... give COMPS one buffer char
 
       integer lnmlcn
 
