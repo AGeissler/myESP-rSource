@@ -565,7 +565,7 @@ C Not in graphics mode => list data.
         endif
       else
         if (NITER.eq.1.and.IBLACT.eq.0) then
-          CALL EDISP(IUOUT,'Monitoring will start shortly...')
+          CALL EDISP(IUOUT,'Monitoring will commence shortly ...')
           IF(MMOD.eq.8)THEN
             CALL EDISP(IUOUT,
      &             '`<` on plot represents convergence criterion.')

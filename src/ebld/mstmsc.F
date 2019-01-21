@@ -20,7 +20,7 @@ C Boston, MA 02111-1307 USA.
 
 C *********************************************************************
 C BETA01 derives the mass transfer coefficient from heat transfer
-C coefficient using Lewis relation (Marieke 1994, Webb 1991 ASHREA
+C coefficient using Lewis relation (Marieke 1994, Webb 1991 ASHRAE
 C transactions, V97, pp.11411-7).
 C BETA01       convective mass transfer coefficient (s/m)
 C R            universal gas constant  8314.4  (J/mole K)
@@ -56,7 +56,7 @@ C *********************************************************************
 C *********************************************************************
 C U01 determines the value for moisture content as a function of
 C relative humidity and sorption isotherms provided by (Marieke 1994,
-C Hansen 1986 Technical report 162/86 Technical University of Denmark).
+C Hansen 1986 Technical reprort 162/86 Technical University of Denmark).
 C U01   moisture content (kg/m3)
 C RH    relative humidity
 C Uh    max hygroscopic moisture content (kg/m3) (unit?)
@@ -385,7 +385,7 @@ C *********************************************************************
 C *********************************************************************
 C DELT01 determines the vapour permeability of the material as 
 C a function of (RH). (Catalogue of Material properties-upgraded version)
-C DELT01  water vapour permeability (s) (derived from mg/(m h Pa))
+C DELT01  water vapour permeability (s)
 C VPRMa   vapour permeability factor a
 C VPRMb   vapour permeability factor b
 C VPRMc   vapour permeability factor c

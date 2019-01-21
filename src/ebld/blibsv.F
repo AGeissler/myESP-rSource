@@ -20,21 +20,22 @@ C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 
-C      MZLS1
-C      MZLS2
-C      MZLS3
-C      MZLS4
-C      MZLS5
-C      SURBAL
+C      MZLS1  - saves details relating to the problem description.
+C      MZLS2  - saves the simulation directive information.
+C      MZLS3  - saves time step results as a function of the defined save level.
+C      MZLS4  - saves the start address of the next result-set.
+C      MZLS5  - sets the value of present time row state variables to the
+C               newly determined future time row values prior to time step
+C               advancement.
+C      SURBAL - calculates surface energy balances as required by some save levels.
 
-c ******************** MZLS1 ********************
-
-c MZLS1 SAVES THE CONTENTS OF THE SYSTEM
-c CONFIGURATION FILE AND THE NAMES OF THE
-c PROJECT, GEOMETRY, SHADING AND THERMAL PROPERTY
-c FILES RELATING TO EACH ZONE.
-c SELECTED MISCELLANEOUS DATA SUCH AS SURFACE AREAS ETC.
-c AND THE CURRENTLY ASSIGNED CLIMATE FILE NAME ARE ALSO SAVED.
+C ******************** MZLS1 ********************
+C SAVES THE CONTENTS OF THE SYSTEM
+C CONFIGURATION FILE AND THE NAMES OF THE
+C PROJECT, GEOMETRY, SHADING AND THERMAL PROPERTY
+C FILES RELATING TO EACH ZONE.
+C SELECTED MISCELLANEOUS DATA SUCH AS SURFACE AREAS ETC.
+C AND THE CURRENTLY ASSIGNED CLIMATE FILE NAME ARE ALSO SAVED.
 
       SUBROUTINE  MZLS1
 #include "building.h"
@@ -49,7 +50,7 @@ c AND THE CURRENTLY ASSIGNED CLIMATE FILE NAME ARE ALSO SAVED.
       COMMON/C1/NCOMP,NCON
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       COMMON/HCFIX2/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
+     &       HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
       COMMON/LIBREC/IRECPL
       COMMON/PREC1/SNA(MCOM,MS)
 
@@ -63,12 +64,12 @@ c AND THE CURRENTLY ASSIGNED CLIMATE FILE NAME ARE ALSO SAVED.
 
       CHARACTER ZNPAD*15
 C      character doit*248
-      character llclmdb*144  ! for expanded climate file name
+      character llclmdb*144  ! Weather file name.
       CHARACTER*6 NAME
       character outs*124,longtfile*144
       character fs*1
       logical concat,unixok
-      integer lndbp  ! length of weather folder path
+      integer lndbp          ! Length of weather folder path.
       
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -78,7 +79,6 @@ C Set folder separator (fs) to \ or / as required.
         fs = char(92)
       endif
 
-C << following block of code is for testing >>
 C Create tables for SQL database.
 C      QT=CHAR(39)
 C      do 10 I=1,NCOMP
@@ -91,7 +91,6 @@ C        write(6,*) doit
 C        call runit(doit,'-')
 C 10   continue
 
-C Clear dummy zones variable (in place of old NDOORS array).
       IUNIT = IFIL + 2
       IREC = MNRS+2
 
@@ -102,8 +101,8 @@ C Clear dummy zones variable (in place of old NDOORS array).
       WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)modeltitle
       IREC = IREC + 1
 
-C Record width is slightly sensitive to the number of zones in the model
-C an extra record is used.
+C Record width is sensitive to the number of zones in the model,
+C therefore an extra record is reserved.
       NCP=NCOMP
       IF(NCOMP.GT.20)NCP=20
       WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)(NCCODE(I),I=1,NCP)
@@ -112,9 +111,6 @@ C an extra record is used.
       WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)(NCCODE(I),
      &I=21,NCOMP)
 
-C Note: LCLIM is 144 char so this assume a minimal record width.
-C To make it easier for res, expand to full path if using a standard
-C folder.
       IREC = IREC + 1
     4 continue
       if(ipathclim.eq.0.or.ipathclim.eq.1)then
@@ -372,12 +368,11 @@ C << could be used for something else.
       RETURN
       END
 
-c ******************** MZLS2 ********************
-
-c MZLS2 writes the simulation control information to the
-c solutions library.   This information is stored in a
-c header block associated with the current simulation
-c save set.
+C ******************** MZLS2 ********************
+C Writes the simulation control information to the
+C solutions library.   This information is stored in a
+C header block associated with the current simulation
+C save set.
 
       SUBROUTINE MZLS2
 #include "building.h"
@@ -638,13 +633,13 @@ C      WRITE(6,*) 'at end of mzls2 ',NSIM,IREC,NST,IRECPL,RSNAME
 
       END
 
-c ******************** MZLS3
-c MZLS3 is called NCOMP times per time-step and
+C ******************** MZLS3 ********************
+C Is called NCOMP times per time-step and
 C prior to computation beginning for the next zone)
-c to transfer the mean results of the current zone
-c computation to the results library. The transferred data
-c is dependent on the save option chosen from the simulation
-c menu.
+C to transfer the mean results of the current zone
+C computation to the results library. The transferred data
+C is dependent on the save option chosen from the simulation
+C menu.
 
 C ITSMUS relates to the time-step control facility. It
 C is 1 when time-row corresponds to user specified
@@ -692,7 +687,7 @@ C      common/recver/izver,ipver,iever
       COMMON/COE34/QCASRT(MCOM),QCASCT
       COMMON/COE39/CVIP,CVVP,CVIF,CVVF,QVNP,XX3,CVVPM,CVVFM
 
-C Commons for summary of solar (for results library)
+C Solar calculation results (for results library transfer).
       common/solsum/q1adjz(2),q1outs(2),q2adjz(2),q2lost(2),q2tmc(2),
      &  q2wall(2),q2rem(2),q2cfc(2)
 
@@ -724,7 +719,7 @@ C Commons for summary of solar (for results library)
       COMMON/ADJC/IE(MCOM,MS),ATP(MCOM,MS),ATF(MCOM,MS),ARP(MCOM,MS),
      &ARF(MCOM,MS)
 
-C Commons in support of surface energy balance trace.
+C Data to support surface energy balance trace.
       COMMON/VTHP14/THRMLI(MCOM,MS,ME,7)
       COMMON/COE31/HRP(MS,MS),ZHRP(MS),HRF(MS,MS),ZHRF(MS)
       common/concoe/hcip(mcom,ms),hcif(mcom,ms),hcop(mcom,ms),
@@ -789,12 +784,11 @@ C for each casual gain type after controls have been applied.
      &            sctlperequipl(MCOM),sctlperothc(MCOM),
      &            sctlperothr(MCOM),sctlperothl(MCOM)
 
-C Variables for weekdays, and weekends.
-C Assume: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7
+C Variables for weekdays, and weekends (Monday=1 through Sunday=7).
       common/wkdtyp/idwe1,idwe2,wkd1,wkd2
       character*10 wkd1, wkd2
 
-C Thermal bridge common block is described in esruprj/edgeo.F
+C Thermal bridge data is described in eprj/edgeo.F
       integer nbrdg, ibrdg
       real psi,lngth,losspercent,totheatloss,thbrpercent
       common/THRBRDG/nbrdg(MCOM),psi(MCOM,16),lngth(MCOM,16),
@@ -802,9 +796,8 @@ C Thermal bridge common block is described in esruprj/edgeo.F
      &               thbrpercent,uavtotal(MCOM)
       real uavtotal   
 
-C This declaration is required to support the bugfix noted below
-      logical bInStartup        ! <- function for determining if simulation
-                                !    is in startup
+C Function to determine if simulation is in start-up period.
+      logical bInStartup
 
 C Common for occupant/lighting/equipment sensible convective, sensible
 C radiant and latent W for future and present in each zone.
@@ -854,11 +847,9 @@ C Compute mean zone air temperature across time-step.
 C Call routine MZVAPC to establish the vapour content. 
       CALL MZVAPC(ICOMP,ZRH,CNDS)
 
-C If the bems flag is active then write out the current zone temperature to the bems
-C output file (fort.60). Currently only write out the data for optimum start
-C stop. This will later be replaced by a dedicated call to res. 
+C If the BEMS flag is active, save the current zone temperature to the BEMS
+C output file (fort.59). Currently only writes out data for optimum start/stop.
       if(ibems.gt.0) then
-C        WRITE(*,'(A,I3)') 'Dumpimg BEMS data ..... Zone ',ICOMP
         WRITE(59,*) '#Zone  Day  Time   Temperature Plant'
         CALL ECLOSE(BTIMEF,1.000,0.001,CLOSE)
         IF(CLOSE)THEN
@@ -882,7 +873,7 @@ C first averaged saved value will be half).
 C Derive the separate sensible convective and radiante and latent
 C for each type of casual gain in preparation for writing this
 C out to the results file. First figure out whether this is a
-C weekday saturday or sunday.
+C weekday Saturday or Sunday.
       if (IHRF.eq.1) then 
         icurrentday=IDWF
       else
@@ -902,8 +893,8 @@ C weekday saturday or sunday.
 C If non-traditional calendar day types are defined choose from ICALENDAR 
 C day types when setting iweekdayweekend.
 
-C << is this why between midnight and 1h00 the older day is
-C << still used??
+C << Is this why between midnight and 1h00 the older day is
+C << still used?
 
       IF(NBDAYTYPE.gt.3)THEN !
         IDAY=IDYP
@@ -974,6 +965,7 @@ C Calculate the current period id for occupants.
           perocupc=CGSENC(icomp,iweekdayweekend,1,iperocup)
           perocupr=CGSENR(icomp,iweekdayweekend,1,iperocup)
           perocupl=CGLAT(icomp,iweekdayweekend,1,iperocup)
+
 C <FMI>
 C          ctlperocupc(icomp,2)=perocupc
 C          ctlperocupr(icomp,2)=perocupr
@@ -1009,6 +1001,7 @@ C for after the FRAC has been applied.
           perlightc=CGSENC(icomp,iweekdayweekend,2,iperlight)
           perlightr=CGSENR(icomp,iweekdayweekend,2,iperlight)
           perlightl=CGLAT(icomp,iweekdayweekend,2,iperlight)
+
 C <FMI>
 C Always multiply by control value (CGCTL) as this may be set by an FMU 
 C or casual gain control, and is set to a default of 1. (in MZCASG) even
@@ -1045,6 +1038,7 @@ C to the lighting code block above.
           perequipc=CGSENC(icomp,iweekdayweekend,3,iperequip)
           perequipr=CGSENR(icomp,iweekdayweekend,3,iperequip)
           perequipl=CGLAT(icomp,iweekdayweekend,3,iperequip)
+
 C <FMI>
 C Always multiply by control value (CGCTL) as this may be set by an FMU 
 C or casual gain control, and is set to a default of 1. (in MZCASG) even
@@ -1059,6 +1053,7 @@ C            ctlperequipr(icomp,2)=perequipr
 C            ctlperequipl(icomp,2)=perequipl
 C          endif
 C </FMI>
+
         else
           perequipc=0.0
           perequipr=0.0
@@ -1081,6 +1076,7 @@ C to the equipment code block above.
           perotherc=CGSENC(icomp,iweekdayweekend,4,iperother)
           perotherr=CGSENR(icomp,iweekdayweekend,4,iperother)
           perotherl=CGLAT(icomp,iweekdayweekend,4,iperother)
+
 C <FMI> following lines commented </FMI>
 c          if(ICGCTL(ICOMP).eq.4)then
             ctlperotherc(icomp,2)=perotherc*CGCTL(ICOMP,2,4)
@@ -1100,11 +1096,11 @@ c          endif
           ctlperotherl(icomp,2)=perotherl
         endif
 
-C << place to add in logic for a fifth casual gain slot >>
+C << Location to add a fifth casual gain type. >>
 
       endif
 
-C If it is the first timestep of the simulation the present value
+C If it is the first time step of the simulation, the present value
 C will be unknown so follow the pattern established in casual.F
       if(NSINC.eq.1)then
         ctlperocupc(icomp,1)=ctlperocupc(icomp,2)
@@ -1126,7 +1122,7 @@ C Calculate surface balance data for use later (need to do this now so
 C that present value will be set for first saved record).
       call SURBAL(ICOMP)
 
-C ESRU definition of startup/simulation/post-simulation period.
+C Definition of startup/simulation/post-simulation period.
 C 
 C 1. Simulation will begin on the first hour (01:00h)
 C    of the first day of the start-up period.
@@ -1137,7 +1133,7 @@ C    (23:59h) on the last day of the simulation period
 C 4. The simulation will continue for an additional hour, 
 C    but no results will be written out. 
 C
-C However ESRU's implementation (below) is buggy. Usually, the 
+C However the implementation (below) is buggy. Usually, the 
 C results output starts at midnight of the first day of the 
 C simulation period (00:00h) and ends just before midnight (23:59h) 
 C on the last day of the simulation period. Yet, if the simulation 
@@ -1745,8 +1741,6 @@ C is written as well.
      &      avgctlperotherl,theonectld
           IREC=IREC+1
 
-
-C << the following code is for testing >>
 C SQL results write.
 C          QT=CHAR(39)
 C          call DATETIME(IAVE,DT)
@@ -1776,13 +1770,9 @@ C     & '|mysql -u manager -pmanager -h130.159.102.16 merit'
 C          write(6,*) doit
 C          call runit(doit,'-')
 
-C If the bems flag is active then write out the current zone temperature to the bems
-C output file (fort.60). Currently only write out the data for optimum start
-C stop. This will later be replaced by a dedicated call to res. 
+C If the BEMS flag is active then write out the current zone temperature to the BEMS
+C output file (fort.60). Currently only writes out data for optimum start/stop. 
           if(ibems.gt.0) then
-
-C Debug.
-C            WRITE(*,'(A,I3)') 'Dumpimg BEMS data ..... Zone ',ICOMP
             WRITE(60,*) '#Zone  Day  Time   Temperature '
     
             CALL ECLOSE(BTIMEF,1.000,0.001,CLOSE)
@@ -1933,7 +1923,7 @@ C Reset the saved values after having written the data.
         endif
 
 C If higher save level than 2 then calculate additional information.
-C ISAVE=3 - intra-surface temperatures.
+C ISAVE=3 - save also the intra-construction temperatures.
         if (ISAVE.eq.3) then
           DO 30 I=1,NSUR
             NN=NNDC(ICOMP,I)-1
@@ -1962,7 +1952,7 @@ C ISAVE=3 - intra-surface temperatures.
             endif
    30     CONTINUE
 
-C ISAVE=4 - surface fluxes.
+C ISAVE=4 - save also the surface fluxes.
         elseif (ISAVE.eq.4) then
           IZFLG=0
           DO 300 ISF=1,NSUR
@@ -2005,9 +1995,7 @@ C Outside surface node temperature and average surface energy transfers.
 C Write out all of the information for ISAVE=4 including explicit
 C radiant casual gains for occupants, lights, small power and other
 C so no calculations are needed to reconstitute the radiant casual 
-C gains.
-C << Note: in some cases it should be possible to write info for two
-C << surfaces into one record. 
+C gains. 
             if(irdact.eq.0) then
               WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)TMC(1),
      &          avqswrdi,avqlwrdi,avqconvi,avqcondi,avqstori,
@@ -2062,7 +2050,7 @@ C Trace output.
             IF(ITRACE(31).NE.1.OR.NSINC.GT.ITCF.OR.
      &                         IZNTRC(ICOMP).NE.1)goto 700
 
-C Should surface ISF be traced?
+C Determine if surface should be included in the trace output.
             ipro=0
             if(nsurf.gt.0)then
               do 701 j=1,nsurf
@@ -2071,7 +2059,7 @@ C Should surface ISF be traced?
   701         continue
             endif
 
-C Only print the following zone data once.
+C Print the following zone data only once.
             IF(IZFLG.EQ.0)THEN
               write(outs,'(A,I4,A,A)')' Subroutine MZLS3 Trace output',
      &          ICNT,' Zone ',zname(ICOMP)
@@ -2085,14 +2073,14 @@ C Only print the following zone data once.
      &                     F7.1,' QPC=',F7.1,' QFC=',F7.1,' QM=',F7.1)
               call edisp(itu,outs)
 
-C Need to account for the storage of the air mass itself.
+C Need to account for the storage of the air mass.
               qair=real(ntstep)*0.33*VOL(ICOMP)*(TPA(ICOMP)-TFA(ICOMP))
 
 C Get sum at the air node. d1 to d6 are the present and future
-C portions of each of the saved variables. qma from QM calc above.
+C portions of each of the saved variables. qma from QM calculation above.
 C              tot=QV1+QV2+QW1+QW2+QSA+QCASC+outopq+opqin+
 C     &                                           outtrn+trnin+qma+qair
-C QW1 and QW2 and QSA are used for solar trace only.
+C QW1 and QW2 and QSA are used for solar trace output only.
               tot=QV1+QV2+QCASC+outopq+opqin+outtrn+trnin+qma+qair
               d1=CVIP*(TP-TPA(ICOMP))
               d2=CVIF*(TF-TFA(ICOMP))
@@ -2342,7 +2330,7 @@ C Compute error term.
             ENDIF
   700     continue
 
-C The arrays ctlperocupc(?,2) etc. had not been cleared because they
+C The arrays ctlperocupc(?,2) etc. have not been cleared because they
 C were used in the trace facility.  To match the other variable types
 C the future values are reset to zero at this point.
           ctlperocupc(icomp,2)=0.0
@@ -2357,8 +2345,6 @@ C the future values are reset to zero at this point.
           ctlperotherc(icomp,2)=0.0
           ctlperotherr(icomp,2)=0.0
           ctlperotherl(icomp,2)=0.0
-
-C << place to adapt for other casual gain >>
 
   300     CONTINUE
         endif
@@ -2384,17 +2370,16 @@ C Remember current record number.
       IRECPL=IREC
       return
 
-C Write error.
+C Results library write error.
  1000 write(outs,'(A,I5,A)')' MZLS3: error at record',IREC,'.'
       call edisp(iuout,outs)
       return
 
       END
 
-c ******************** MZLS4 ********************
-
-c MZLS4 saves the start address of the next result-set
-c in the appropriate record (2-31) in the building results library.
+C ******************** MZLS4 ********************
+C Saves the start address of the next result-set in the
+C appropriate record (2-31) in the building results library.
 
       SUBROUTINE MZLS4
 #include "building.h"
@@ -2428,7 +2413,10 @@ c Save start address of next result-set.
       goto 3
       END
 
-c ******************** MZLS5 ********************
+C ******************** MZLS5 ********************
+C Set value of present time row state variables to the newly 
+C determined future time row values prior to time step advancement.
+
       SUBROUTINE MZLS5(ICOMP)
 #include "building.h"
 
@@ -2458,20 +2446,19 @@ C and plant injection values equal to the future values.
       DO 10 I=1,NSUR
         TPS(ICOMP,I)=TFS(ICOMP,I)
 
-C Set the present CFD surface convection heat fluxes
-C to their present values.
+C CFD surface convection heat flux.
         QCFDP(ICOMP,I)=QCFDF(ICOMP,I)
 
         NN=NNDC(ICOMP,I)-1
       DO 10 J=1,NN
         TPC(ICOMP,I,J)=TFC(ICOMP,I,J)
-        GENFLXP(ICOMP,I,J) = GENFLXF(ICOMP,I,J)
+        GENFLXP(ICOMP,I,J)=GENFLXF(ICOMP,I,J)
    10 CONTINUE
       RETURN
       END
 
 C ******************** SURBAL ********************
-C SURBAL calculates surface energy balances for future time row.
+C Calculates surface energy balances for future time row.
 C Present time row data is copied from future before new calculation, 
 C so that variable thermophysical properties are accounted for (e.g. 
 C in blind shutter control, or bcl99).  If variable thermophysical 
@@ -2521,7 +2508,7 @@ C#include "cfd.h"
 
       COMMON/COE32J/QTMCA(MS,MN,2)
 
-C Commons in support of surface energy balance trace feature.
+C Data in support of surface energy balance trace.
       COMMON/COE33S/QELWPB(MS),QELWFB(MS),QELWPK(MS),QELWFK(MS),
      &QELWPG(MS),QELWFG(MS)
       COMMON/COE31/HRP(MS,MS),ZHRP(MS),HRF(MS,MS),ZHRF(MS)
@@ -2553,10 +2540,10 @@ C Surface data.
 C Calculate surface balance data to pass to results library.
 C Copy future to present and then calculate new future value.
 
-C --------- INSIDE FACE -----------
+C Inside surface.
         DELXI=THRMLI(ICOMP,ISFN,lel,4)/FLOAT(NNDL(ICOMP,ISFN,lel))
         
-C -- Conduction.
+C Conduction.
         if(IVTHPZ(icomp))then
           qcondi(ICOMP,ISFN,1)=THCONp(ISFN,nnx)*sna(icomp,ISFN)*
      &        (tpc(icomp,ISFN,nnx)-tps(icomp,ISFN))/DELXI
@@ -2568,17 +2555,17 @@ C -- Conduction.
      &                       (tfc(ICOMP,ISFN,NNX)-tfs(ICOMP,ISFN))/DELXI
         endif
 
-C -- Convection.
+C Convection.
         qconvi(ICOMP,ISFN,1)=qconvi(ICOMP,ISFN,2)
 
-C Calculate QCFD? for use by CFD conflation type 2.
+C Calculate QCFD? for use in CFD conflation type 2.
         QCFDP(ICOMP,ISFN)=QCFDF(ICOMP,ISFN)
         QCFDF(ICOMP,ISFN)=hcif(ICOMP,ISFN)*(tfa(ICOMP)-tfs(ICOMP,ISFN))
         qconvi(ICOMP,ISFN,2)=QCFDF(ICOMP,ISFN)*sna(ICOMP,ISFN)
 
-C Calculate Inside Face Convection for CFCs
-C ONLY IF INDOOR BLIND IS PRESENT - OTHERWISE 
-C STANDARD ESP-R CALCULATION APPLIES
+C Calculate inside surface convection for CFCs but
+C only if indoor blind is present - otherwise the 
+C the standard ESP-r algorithm is used.
         icfcType = icfcfl(icomp,isfn) !CFC type
         IF(icfcType.ge.1)then !surface is CFC
 
@@ -2597,7 +2584,7 @@ C STANDARD ESP-R CALCULATION APPLIES
 
         ENDIF
 
-C -- Longwave radiation.
+C Longwave radiation.
         qlwrdi(ICOMP,ISFN,1)=qlwrdi(ICOMP,ISFN,2)
         qlwrdi(ICOMP,ISFN,2)=0.
         do 702 J=1,NSUR
@@ -2608,9 +2595,9 @@ C -- Longwave radiation.
   702   continue
         qlwrdi(ICOMP,ISFN,2)=qlwrdi(ICOMP,ISFN,2)*sna(ICOMP,ISFN)
 
-C Calculate Inside Longwave Radiation for CFCs
-C ONLY IF INDOOR BLIND IS PRESENT - OTHERWISE 
-C STANDARD ESP-R CALCULATION APPLIES
+C Calculate inside surface longwave radiation for CFCs but
+C only if indoor blind is present - otherwise the 
+C the standard ESP-r algorithm is used.
         icfcType = icfcfl(icomp,isfn) !CFC type
         IF(icfcType.ge.1)then !surface is CFC
 
@@ -2627,16 +2614,13 @@ C STANDARD ESP-R CALCULATION APPLIES
 
         ENDIF
 
-C -- Radiant casual gains are area AND emissivity weighted.
-C << does this need to be adapted for other gain? >>
-C << qcri is slightly different than what is written for radiant totals
-C << so a bit more work is needed.
+C Radiant casual gains are area and emissivity weighted.
         zoar = zonetotsurfacearea(ICOMP) ! assign local value
         qcri(ICOMP,ISFN,1)=qcri(ICOMP,ISFN,2)
         qcri(ICOMP,ISFN,2)=QCASRT(ICOMP)*0.5*zoar*sna(ICOMP,ISFN)*
      &                                      ei(ICOMP,ISFN)/emarea(ICOMP)
 
-C -- Plant radiant energy.
+C Plant-related radiant flux.
         qpltri(ICOMP,ISFN,1)=qpltri(ICOMP,ISFN,2)
         IC=ICASCF(ICOMP)
         IF(IC.NE.0)THEN
@@ -2653,7 +2637,7 @@ C -- Plant radiant energy.
           qpltri(ICOMP,ISFN,2)=0.0
         ENDIF
 
-C -- Shortwave. Test if TMC (include solar abs).
+C Shortwave. Test if TMC (include solar absorptivity).
         qswrdi(ICOMP,ISFN,1)=qswrdi(ICOMP,ISFN,2)
         IF(ITMCFL(icomp,ISFN).EQ.0.AND.icfcfl(icomp,ISFN).EQ.0)THEN
           qswrdi(ICOMP,ISFN,2)=qsoli(ISFN,2)*sna(ICOMP,ISFN)
@@ -2662,18 +2646,18 @@ C -- Shortwave. Test if TMC (include solar abs).
           qswrdi(ICOMP,ISFN,2)=QTMCA(ISFN,NN,2)*sna(ICOMP,ISFN)
         ENDIF
 
-C -- Energy stored.
+C Energy stored.
         qstori(ICOMP,ISFN,1)=qstori(ICOMP,ISFN,2)
         qstori(ICOMP,ISFN,2)=THRMLI(ICOMP,ISFN,lel,2)*
      &                       THRMLI(ICOMP,ISFN,lel,3)*sna(ICOMP,ISFN)*
      &                     (DELXI/2.)*tfs(ICOMP,ISFN)*real(ntstep)/3600.
         
-C --------- OTHER FACE -----------
-C Calculate only if facing exterior type boundary condition.
+C --------- Other surface -----------
+C Calculate only if facing exterior boundary condition.
         IF(IE(icomp,ISFN).EQ.0)THEN ! check that it is facing exterior (note that facing attic does not count)
           DELXE=THRMLI(ICOMP,ISFN,1,4)/FLOAT(NNDL(ICOMP,ISFN,1))  ! exterior surface layer thickness / exterior layer nodes (typically 2)
           
-C -- Conduction.
+C Conduction.
           if(IVTHPZ(icomp))then ! ? is this to set the variable on the first hour?
         ! present timestep
             qconde(ICOMP,ISFN,1)=THCONp(ISFN,1)*sna(ICOMP,ISFN)*
@@ -2690,7 +2674,7 @@ C -- Conduction.
      &                       (tfc(ICOMP,ISFN,2)-tfc(ICOMP,ISFN,1))/DELXE
           endif
 
-C -- Convection.
+C Convection.
           qconve(ICOMP,ISFN,1)=qconve(ICOMP,ISFN,2)
           qconve(ICOMP,ISFN,2)=hcof(ICOMP,ISFN)*sna(ICOMP,ISFN)*
      &                                            (tf-tfc(ICOMP,ISFN,1))
@@ -2712,7 +2696,7 @@ C STANDARD ESP-R CALCULATION APPLIES
             endif
           ENDIF
 
-C -- Longwave radiation (ground, buildings, sky).
+C Longwave radiation (ground, buildings, sky).
           qlwrde(ICOMP,ISFN,1)=qlwrde(ICOMP,ISFN,2)
           qlwrde(ICOMP,ISFN,2)=QELWFG(ISFN)*sna(ICOMP,ISFN)
           qlwrbd(ICOMP,ISFN,1)=qlwrbd(ICOMP,ISFN,2)
@@ -2740,7 +2724,7 @@ C STANDARD ESP-R CALCULATION APPLIES
           endif
         ENDIF
 
-C -- Shortwave radiation. Test if TMC.
+C Shortwave radiation. Test if TMC.
           qswrde(ICOMP,ISFN,1)=qswrde(ICOMP,ISFN,2)
           if (ITMCFL(icomp,ISFN).EQ.0.AND.icfcfl(icomp,ISFN).EQ.0)then
             qswrde(ICOMP,ISFN,2)=qsole(ISFN,2)*sna(ICOMP,ISFN)
@@ -2748,7 +2732,7 @@ C -- Shortwave radiation. Test if TMC.
             qswrde(ICOMP,ISFN,2)=QTMCA(ISFN,1,2)*sna(ICOMP,ISFN)
           endif
 
-C -- Energy stored.
+C Energy stored.
           qstore(ICOMP,ISFN,1)=qstore(ICOMP,ISFN,2)
           ! qstore = density * spec heat * A * thickness / 2 * temp of node * num of time steps per hr / 3600 s/h
           qstore(ICOMP,ISFN,2)=THRMLI(ICOMP,ISFN,1,2)*

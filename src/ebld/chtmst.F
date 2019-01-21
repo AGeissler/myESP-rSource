@@ -148,7 +148,7 @@ C *********************************************************************
 
       COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
-     &NPGAP(MCOM,MS,MGP)
+     &             NPGAP(MCOM,MS,MGP)
       COMMON/PVALA/TPA(MCOM),QPA(MCOM)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/CONEQN/W(MS,MNM,5)
@@ -172,8 +172,8 @@ C *********************************************************************
       COMMON/MOIST68/Ud(MS,MNM),Udair
       COMMON/MOIST70/ACAP
 
-C First, calculate the moisture content variation (considering the 
-C effect of relatation factors).
+C Calculate the moisture content variation (considering the 
+C effect of relaxation factors).
       CALL DELUAF(ICOMP)
       NC=NCONST(ICOMP)
       N1=NC+1
@@ -182,46 +182,46 @@ C effect of relatation factors).
       DO 10 I=1,NC
         Asrf=SNA(ICOMP,I)
 
-C First node in the construction.
+C First (outside) node in the construction.
         IN=1
 
-C First layer in the construction.
+C First (outermost) layer in the construction.
         IL=1
 
-C First homogeneous control volume.
+C First construction element.
         IHCV=1
-        NH=NNDL(ICOMP,I,IL)
-        NM=MNDL(ICOMP,I,IL)
+        NH=NNDL(ICOMP,I,IL)   ! Number of heat nodes.
+        NM=MNDL(ICOMP,I,IL)   ! Number of moisture nodes.
         DXHl=THRMLI(ICOMP,I,IL,4)/FLOAT(NH)
         DXMl=THRMLI(ICOMP,I,IL,4)/FLOAT(NM)
 
-C The first and last moisture nodes in the current heat control volume.
+C Determine the first and last moisture nodes in the current
+C heat control volume.
         CALL MSRTND(ICOMP,I,IL,IN,IMS,IME)
 
-C Convection.
-C Connection with outside.
-        II=IMS
-        TIp=TMPp(I,II)
-        TIf=TMPf(I,II)
-        PIp=Pp(ICOMP,I,II)
-        PIf=Pf(ICOMP,I,II)
-        TJp=ATP(ICOMP,I)
-        TJf=ATF(ICOMP,I)
-        PJp=APp(ICOMP,I)
-        PJf=APf(ICOMP,I)
-        CRSp1=BETAop(ICOMP,I)
-        CRSf1=BETAof(ICOMP,I)
+C Convection: connection with 'outside'.
+        II=IMS                 ! first node
+        TIp=TMPp(I,II)         ! temperature at present time
+        TIf=TMPf(I,II)         ! temperature at future time
+        PIp=Pp(ICOMP,I,II)     ! pressure at pressent time
+        PIf=Pf(ICOMP,I,II)     ! pressure at future time 
+        TJp=ATP(ICOMP,I)       ! 'outside' temperature at present time
+        TJf=ATF(ICOMP,I)       ! 'outside' temperature at future time
+        PJp=APp(ICOMP,I)       ! 'outside' pressure at present time
+        PJf=APf(ICOMP,I)       ! 'outside' pressure at future time
+        CRSp1=BETAop(ICOMP,I)  ! convective mass transfer coefficient at present time (s/m)
+        CRSf1=BETAof(ICOMP,I)  ! convective mass transfer coefficient at future time
 
-C Calculate the vapour flow in (kgv/m2 s).
-        FLWp1=CRSp1*(PJp-PIp)
+C Calculate the vapour flow (kg/m^2.s).
+        FLWp1=CRSp1*(PJp-PIp)        ! flow from 'outside' to node at present time
+
+C Calculate heat flux (W/m^2).
         IF(FLWp1.GT.0.0)THEN
-
-C Calculate heat flux in (W/m2).
-          FLXp1=RGAM*FLWp1*Hv01(TJp)
+          FLXp1=RGAM*FLWp1*Hv01(TJp) ! heat gain - Hv01 returns the vapour enthalpy (J/kg)
         ELSE
-          FLXp1=RGAM*FLWp1*Hv01(TIp)
+          FLXp1=RGAM*FLWp1*Hv01(TIp) ! heat loss
         ENDIF
-        FLWf1=CRSf1*(PJf-PIf)
+        FLWf1=CRSf1*(PJf-PIf)        ! future time
         IF(FLWf1.GT.0.0)THEN
           FLXf1=GAM*FLWf1*Hv01(TJf)
         ELSE
@@ -231,12 +231,12 @@ C Calculate heat flux in (W/m2).
 C Connection with the inner node.
         CALL HTFLX2(ICOMP,I,IME,DXMl,FLXp2,FLXf2)
 
-C Change in stored energy due to change in stored moisture mass (W/m2).
+C Change in stored energy due to change in stored moisture mass (W/m^2).
         HT=0.0
         DO 20 IM=IMS,IME
           TCf=TMPf(I,IM)
-          HTJv=Hv01(TCf)*Ud(I,IM)
-          HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM))
+          HTJv=Hv01(TCf)*Ud(I,IM)                        ! Ud is vapour content (kg)
+          HTJl=Hl01(TCf)*(Ff(ICOMP,I,IM)-Fp(ICOMP,I,IM)) ! F? is water content (kg)
           HT=HT+(HTJv+HTJl)/(DTIME*Asrf)
    20   CONTINUE
 
@@ -258,7 +258,6 @@ C Connection with the outer node.
 C Connection with the inner node.
           CALL MSRTND(ICOMP,I,IL,IN,IMS,IME)
           CALL HTFLX2(ICOMP,I,IME,DXMl,FLXp2,FLXf2)
-
 
 C Change in stored energy due to change in stored moisture mass (W/m2).
           HT=0.0
@@ -301,7 +300,7 @@ C Connection with the inner node.
           CALL MSRTND(ICOMP,I,IL,IN,IMS2,IME)
           CALL HTFLX2(ICOMP,I,IME,DXMl,FLXp2,FLXf2)
 
-C Change in stored energy due to change in stored moisture mass (W/m2).
+C Change in stored energy due to change in stored moisture mass (W/m^2).
           HT=0.0
           DO 60 IM=IMS,IME
             TCf=TMPf(I,IM)
@@ -317,9 +316,9 @@ C Modify the present term for the current heat node.
           CAP2=(DXHl/2.)*THDNSp(I,IHCV2)*THCAPp(I,IHCV2)+CAPUv+CAPMl
           CAP=CAP1+CAP2
           CMMN=DTIME/CAP
-cx          W(I,IN,5)=W(I,IN,5)+(FLXp1+FLXf1+FLXp2+FLXf2-HT)*CMMN
+          W(I,IN,5)=W(I,IN,5)+(FLXp1+FLXf1+FLXp2+FLXf2-HT)*CMMN
 
-C Continue with other nodes (homogeneous) in the layer.
+C Continue with other nodes in the layer.
           DO 70 ID=1,NH-1
            IN=IN+1
            IHCV=IHCV+1
@@ -332,7 +331,7 @@ C Connection with the inner node.
            CALL MSRTND(ICOMP,I,IL,IN,IMS,IME)
            CALL HTFLX2(ICOMP,I,IME,DXMl,FLXp2,FLXf2)
 
-C Change in stored energy due to change in stored moisture mass (W/m2).
+C Change in stored energy due to change in stored moisture mass (W/m^2).
            HT=0.0
            DO 80 IM=IMS,IME
              TCf=TMPf(I,IM)
@@ -384,7 +383,7 @@ C Connection with the air node.
           FLXf2=GAM*FLWf2*Hv01(TIf)
         ENDIF
 
-C Change in stored energy due to change in stored moisture mass (W/m2).
+C Change in stored energy due to change in stored moisture mass (W/m^2).
         HT=0.0
         DO 90 IM=IMS,IME
           TCf=TMPf(I,IM)
@@ -397,20 +396,21 @@ C Modify the present term for the current heat node.
         CALL MSTCAP(ICOMP,I,IL,IN,CAPUv,CAPMl)
         CAP=(DXHl/2.0)*THDNSp(I,IHCV)*THCAPp(I,IHCV)+CAPUv+CAPMl
         CMMN=DTIME/CAP
-cx        E(I,N3)=E(I,N3)+(FLXp1+FLXf1+FLXp2+FLXf2-HT)*CMMN
+        E(I,N3)=E(I,N3)+(FLXp1+FLXf1+FLXp2+FLXf2-HT)*CMMN
 
-C Save the flux for air node in (Watts).
+C Save the flux for air node (W).
         SUM=SUM-(FLXp2+FLXf2)*Asrf
    10 CONTINUE
 
 C Air node.
-C Phase change in (Watts).
-C Xair in (kgv/Kgair), and Uair in (Kgv)
+C Phase change (W).
+C Xair (kgv/Kgair), and Uair (Kgv)
       TCf=TFA(ICOMP)
       HTJv=Hv01(TCf)*Udair
       HTJl=Hl01(TCf)*(Ffair(ICOMP)-Fpair(ICOMP))
       HT=(HTJv+HTJl)/DTIME
-cx      E(N1,N3)=E(N1,N3)+(SUM-HT)*ACAP
+      E(N1,N3)=E(N1,N3)+(SUM-HT)*ACAP
+
       RETURN
       END
 
@@ -440,11 +440,11 @@ C ********************************************************************
       DTPp2=DTPp(I,II)/DXl
       DTPf2=DTPf(I,II)/DXl
 
-C Calculate the vapour flow in (kgv/m2 s).
+C Calculate the vapour flow (kgv/m2 s).
       FLWp2=CRSp2*(PJp-PIp)+DTPp2*(TJp-TIp)
       IF(FLWp2.GT.0.0)THEN
 
-C Calculate heat flux in (W/m2).
+C Calculate heat flux in (W/m^2).
         FLXp2=RGAM*FLWp2*Hv01(TJp)
       ELSE
         FLXp2=RGAM*FLWp2*Hv01(TIp)
@@ -496,16 +496,16 @@ C The last moisture node in the current layer.
         ENDIF
         TC=TMPp(I,IM)
 
-C CPv in (J/kg K).
+C CPv (J/kg K).
         CPv=CPvpr01(TC)
         CPl=SHTH2O(TC)*1000.0
         Psp=Psat01(TC)
         RHp=Pp(ICOMP,I,IM)/Psp
 
-C U in (kg/m3).
+C U (kg/m^3).
         U=U01(iMoistModel(ICOMP),RHp,Uh,CFF,EXPT)
 
-C CAPUv in (J/m2 K).
+C CAPUv (J/m^2 K).
         CAPUv=CAPUv+DX*CPv*U
         CAPMl=CAPMl+CPl*Fp(ICOMP,I,IM)/Asrf
    20 CONTINUE
@@ -530,7 +530,7 @@ C **********************************************************************
       COMMON/MOIST83/TNair,QNair
       common/ts4/itsitr(msch),itrpas
 
-C Now, for the next time-step, set the present temperature
+C For the next time-step, set the present temperature
 C and plant injection values equal to the future values.
 C If iterating then use present values on subsequent calls.
       if (ITRPAS.eq.0) then
@@ -563,8 +563,8 @@ C If iterating then use present values on subsequent calls.
       END
 
 C *********************************************************************
-C DELUAF sets up the zone moisture transfer matrix. This is done with
-C counting for the possible different temperature node distribution.
+C DELUAF sets up the zone moisture transfer matrix. This is done while
+C accounting for the possible different temperature node distribution.
 C Implicitness degrees between 0 and 1 inclusive are allowed.
 C *********************************************************************
       SUBROUTINE DELUAF(ICOMP)
@@ -591,7 +591,7 @@ C *********************************************************************
       COMMON/MOIST54/Pfair(MCOM),Ffair(MCOM),Sfair(MCOM)
       COMMON/MOIST68/Ud(MS,MNM),Udair
 
-C Consider each multilayered construction within current  zone.
+C Consider each multi-layered construction within current zone.
       SUM=0.0
       NC=NCONST(ICOMP)
       DO 10 I=1,NC

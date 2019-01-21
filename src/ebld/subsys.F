@@ -659,18 +659,18 @@ C set it here.
         CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
         TSKY=VAL(ISD)+273.15   ! convert from C to K
         write(outs,'(a,F7.1,a,F7.1,a)')'MZELWE: measured sky temp (',
-     &   TSKY,' (degK) ',TSKY-ZEROK ,'(C) as been imposed.'
+     &   TSKY,'K has been imposed.'
         call edisp(iuout,outs)
         TTMPRL=TSKY   ! remember for trace report
       ENDIF
 
       IF(TSKY.LT.200.0.OR.TSKY.GT.325.0)then
-       write(outs,'(a,F7.1,a)')
-     &   'MZELWE: a dubious sky temperature (',
-     &   TSKY,'K has been calculated.'
+        write(outs,'(a,F7.1,a)')
+     &   'MZELWE: a dubious sky temperature of',TSKY,
+     &   'K has been calculated.'
         call edisp(iuout,outs)
         call edisp(iuout,
-     & ' The computed flux is ok unless another warning is given.')
+     &   'The computed flux is OK unless another warning is given.')
       endif
       CONTINUE
 
@@ -843,12 +843,12 @@ c the most appropriate surface is found.
 C  Compute present time step future time row values.
       TGRD=GTF(1)+ZEROK
       IF(TGRD.LT.200.0.OR.TGRD.GT.350.0)then
-       write(outs,'(a,F8.2,a)')
-     &   'MZELWE: a dubious ground temperature (',
-     &   TGRD,') has been calculated.'
+        write(outs,'(a,F8.2,a)')
+     &   'MZELWE: a dubious ground temperature of',TGRD,
+     &   'C has been calculated.'
         call edisp(iuout,outs)
         call edisp(iuout,
-     & ' The computed flux is ok unless another warning is given.')
+     &   'The computed flux is ok unless another warning is given.')
       endif
       CONTINUE
 

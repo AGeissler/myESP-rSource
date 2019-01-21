@@ -47,7 +47,6 @@ C HTRANF calculate the heat of transformation for a complete moisture
 C        control volume.
 C LYRPRP gets the thermophysical properties for a layer.
 C WRITRH writes the relative humidity results.
-
 C *********************************************************************
 
 C *********************************************************************
@@ -80,7 +79,7 @@ C Set the present value for moisture parameters equal to the saved values.
       CALL MZMCFP(ICOMP)
 
 C Set the parameters for linking the moisture simulation with other 
-C modules in ESP_r (mfs, plt, ...etc).
+C modules in ESP-r (mfs, plt, ...etc).
       CALL MSLINK(ICOMP)
 
 C Set the new variables values equal to the current future values.
@@ -98,7 +97,7 @@ C Estimate the new values for moisture parameters.
 C Set up the moisture and fluid matrix.
         CALL MZMSTU(ICOMP)
 
-C Solve the moisture and fluid matrix iteratively.
+C Solve the moisture and fluid balance matrix equation iteratively.
         CALL MZMITR(ICOMP)
 
 C Check for convergence in pressure values.
@@ -261,10 +260,12 @@ C *********************************************************************
             B=PERM(ICOMP,I,IL,3)
             iMM=iMoistModel(ICOMP)
             DX=DELT01(iMM,RH,UM0,UM100,B)
-C If small value then report which part of model was the problem.
+
+C If small value report problem.
             if(DX.lt.0.99E-15)then
               write(outs,'(a,3i3)') 
-     &          'INITMZ: DELT01 small at zone surf layer: ',icomp,i,IL
+     &         'INITMZ: small vapour perm. at zone/surf/layer: ',
+     &         icomp,i,IL
               call edisp(iuout,outs)
               DELTs(ICOMP,I,ITM1)=DX
             else
@@ -327,8 +328,7 @@ C **********************************************************************
       COMMON/GR1D03/BCNV,ILUMP(MCOM,MS)
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)
       COMMON/MOIST23/TMPp(MS,MNM),TMPf(MS,MNM)
-      COMMON/MOIST50/TMNp(MCOM,MS,MNM) ! ag@20160504
-      real TMNp
+      COMMON/MOIST50/TMNp(MCOM,MS,MNM)
 
       character outs*124
 
@@ -690,7 +690,7 @@ C Update the values for moisture new future parameters.
 
 C *********************************************************************
 C MSLINK Set the parameters for linking the moisture simulation with  
-C other modules in ESP_r (mfs, plt, ...etc).
+C other modules in ESP-r (mfs, plt, ...etc).
 C *********************************************************************
       SUBROUTINE MSLINK(ICOMP)
 #include "building.h"
@@ -708,9 +708,9 @@ C *********************************************************************
 
 
 C Link the building lumped moisture flow network.
-C Modify the boundary vector to count for;
+C Modify the boundary vector to account for:
 C VPINF*GEXTP infiltration
-C VPCPL       Zone coupling
+C VPCPL       zone coupling
 C VPMCH       mechanical system gain
 C VPLTN       latent gains
 C VPLST       lost moisture from the zone
@@ -839,11 +839,10 @@ C       Internal construction surface, TCfair is future zone air temp.
         ALPHA=HCIF(ICOMP,I)
         BETAif(ICOMP,I)=BETA01(ALPHA,CPfair,TCfair)
 
-C       External construction surface
+C       External construction surface.
         ALPHA=HCOF(ICOMP,I)
         TCf=ATF(ICOMP,I) ! future adjacent temperature
         if(Psat01(TCf).ne.0.0)then
-cx        << see ebld/adjb.F, line 360 (approx.) ...
           RH=APf(ICOMP,I)/Psat01(TCf)
         else
           write(outs,*)
@@ -936,7 +935,7 @@ C Check for small return values and identify source.
                 endif
               endif
 
-C Step-wise profile for water vapor permeability (DELX's cancled out).
+C Step-wise profile for water vapour permeability (DELX's cancel out).
               if((DELTf1+DELTf2).ne.0.0)then
                 DELTf(I,ITM1)=2.*DELTf1*DELTf2/(DELTf1+DELTf2)
               else
@@ -945,7 +944,7 @@ C Step-wise profile for water vapor permeability (DELX's cancled out).
               endif
               DELTs(ICOMP,I,ITM1)=DELTf(I,ITM1)
 
-C Estimate the future time thermal vapor diffusion coefficient.
+C Estimate the future time thermal vapour diffusion coefficient.
               DTPf(I,ITM1)=TVAPD(ICOMP,I,IL)
               DTPs(ICOMP,I,ITM1)=DTPf(I,ITM1)
             ELSE
@@ -1013,9 +1012,9 @@ C *********************************************************************
       END
 
 C *********************************************************************
-C MZMSTU sets up the zone moisture transfer matrix. This is done with
-C counting for the possible different temperature node distribution.
-C Implicitness degrees between 0 and 1 inclusive are allowed.
+C MZMSTU sets up the zone moisture transfer matrix including effect of
+C node temperatured distribution. Implicitness degrees between 0 and 1
+C inclusive are allowed.
 C *********************************************************************
       SUBROUTINE MZMSTU(ICOMP)
 #include "building.h"
@@ -1407,11 +1406,20 @@ C *********************************************************************
       COMMON/MOIST54/Pfair(MCOM),Ffair(MCOM),Sfair(MCOM)
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
+      COMMON/OUTIN/IUOUT,IUIN
+      character outs*124
  
       LOGICAL CONVP
 
       RESXP=0.
       IF(RLXln.LT.1.0)THEN
+        
+      if(RLXln.lt.0.99E-10)then
+        write(outs,'(a,i3)') 
+     &  'MZMCHP: RLXln too small in zone',icomp
+        call edisp(iuout,outs)
+      endif
+
         FACTOR=1.0/RLXln
       ELSE
         FACTOR=1.0
@@ -1452,11 +1460,18 @@ C *********************************************************************
       COMMON/MOIST54/Pfair(MCOM),Ffair(MCOM),Sfair(MCOM)
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
-
+      COMMON/OUTIN/IUOUT,IUIN
+      character outs*124
+ 
       LOGICAL CONVF
 
       RESXF=0.
       IF(RLXlnF.LT.1.0)THEN
+        if(RLXlnF.lt.0.99E-10)then
+          write(outs,'(a,3i3)') 
+     &    'MZMCHF: RLXlnF too small in zone',icomp
+          call edisp(iuout,outs)
+        endif
         FACTOR=1.0/RLXlnF
       ELSE
         FACTOR=1.0
@@ -1593,7 +1608,7 @@ C If this construction is lumped.
             IF(RMNDR.GT.1.0E-4)THEN
               WRITE(MSG,'(1a,3(i3,a))')
      &          'heat node numbers at layer (',ICOMP,',',I,',',IL,').'
-              CALL USRMSG('un-acceptable ratio of moisture to',MSG,'W')
+              CALL USRMSG('unacceptable ratio of moisture to',MSG,'W')
               IER=1
               RETURN
             ENDIF

@@ -998,9 +998,12 @@ C Make up strings for the current set of toggles.
       elseif(iExt_longwave_flg.eq.5)then
         ITEMG(31)=   'x Ext. longwave rad >>  Swinbank-bldng'
       endif
-      if (iflgevapC(icomp).eq. 0 ) then
+
+C Bug: ICOMP not defined; set to 1 as temporary measure.
+      ICOMP=1
+      if (iflgevapC(ICOMP).eq. 0 ) then
         ITEMG(32)=  'y Outdoor TWB = Indoor TWB: Disabled '
-      elseif (iflgevapC(icomp).eq. 1 ) then
+      elseif (iflgevapC(ICOMP).eq. 1 ) then
         ITEMG(32)=  'y Outdoor TWB = Indoor TWB: Enabled'
       endif      
       ITEMG(33)=    '  ________________________________      '      

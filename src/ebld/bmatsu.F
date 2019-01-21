@@ -20,83 +20,81 @@ C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 
-C MZCOE1
-C MZCOE2
-C MZCOE3
-C MZSETU
-C LUMPED creates the coefficients for lumped constructions.
+C MZCOE1 -  establishes the time independent portion of the
+C           energy balance equation coefficients (assuming a
+C           1 hour simulation time step). 
+C MZCOE2 -  modifies the coefficients if the defined simulation
+C           time-step is less than 1 hour.
+C MZCOE3 -  initiates the computation of nodal heat injections
+C           corresponding to longwave radiation exchange, solar
+C           irradiance casual gains and infiltration/ventilation.
+C MZSETUZ - completes the setting-up of the time-dependent
+C           coefficients.
+C LUMPED  - creates the equation coefficients for the lumped
+C           parameter construction case.
 
-c ******************** MZCOE1 ********************
+C ******************** MZCOE1 ********************
 
-c MZCOE1 sets up those coefficients (or partial coefficients)
-c of the implicit difference equations which are constant with
-c time - since they are computed from factors which are
-c independent of time - and need therefore only be computed
-c once for any given design hypothesis.
+C Sets up those coefficients (or partial coefficients) of
+C the finite difference equations, which are time independent
+C because they depend on static problem parameters.
 
-c Common block variables are:
+C Principal variables are:
 
-c C     - Contains the positive coefficients (wholly or
-c         partially established) of the temperature terms
-c         relating to nodes in thermal contact with the
-c         intra-construction node in question.   All other
-c         coefficients are derivable from these.
-c
-c QC    - Contains the positive coefficients of the nodal
-c         heat generation terms.
+C C  - Contains the positive coefficients (wholly or
+C      partially established) of the temperature terms
+C      relating to nodes in thermal contact with the
+C      intra-construction node in question.   All other
+C      coefficients are derivable from these.
+C
+C QC - Contains the positive coefficients of the nodal
+C      heat generation terms.
 
-c In general terms any node within a multilayered construction
-c is constrained to conform to the following form:
+C In general terms the equation for construction, surface and air
+C nodes conforms to the following form:
 
-c A*TF1 + B*TF + C*TF2 + D*QF = E*TP1 + F*TP + G*TP2 + H*QP
+C A*TF1 + B*TF + C*TF2 + D*QF = E*TP1 + F*TP + G*TP2 + H*QP
 
-c where:
+C where:
+C    A=-C(MCOM,MS,MN,1)
+C    B=(2+C(MCOM,MS,MN,1)+C(MCOM,MS,MN,2))
+C    C=-C(MCOM,MS,MN,2)
+C    D=-QC(MCOM,MS,MN)
+C    E=C(MCOM,MS,MN,1)
+C    F=(2-C(MCOM,MS,MN,1)-C(MCOM,MS,MN,2))
+C    G=C(MCOM,MS,MN,2)
+C    H=QC(MCOM,MS,MN)
 
-c      A=-C(MCOM,MS,MN,1)
-c      B=(2+C(MCOM,MS,MN,1)+C(MCOM,MS,MN,2))
-c      C=-C(MCOM,MS,MN,2)
-c      D=-QC(MCOM,MS,MN)
-c      E=C(MCOM,MS,MN,1)
-c      F=(2-C(MCOM,MS,MN,1)-C(MCOM,MS,MN,2))
-c      G=C(MCOM,MS,MN,2)
-c      H=QC(MCOM,MS,MN)
+C    TF1 is the future time temperature at the 'outer' node in
+C    thermal contact with the node in question.
 
-c      TF1 is the future temperature at 'outer' node in thermal
-c      contact with node in question.
+C    TF is the future time temperature at node in question.
 
-c      TF is the future temperature at node in question.
+C    TF2 is the future time temperature at the 'inner' node in
+C    thermal contact with the node in question.
 
-c      TF2 is the future temperature at 'inner' node in thermal
-c      contact with node in question.
+C    QF is the future time heat injection at the node in question.
 
-c      QF is the future heat injection at node in question.
+C    TP1, TP, TP2 & QP are the equivalent temperatures and heat
+C    injection at the present time.
 
-c      and TP1, TP, TP2 & QP are the present temperatures
-c      and heat generation at the above nodes.
+C For nodes situated at surface layers (receiving radiant
+C energy injections and convective exchanges), zone air points
+C (receiving convective energy exchanges), and construction nodes
+C subject to variable thermophysical properties, the final
+C coefficient values are established in MZSETU.
 
-c For nodes situated at surface layers (receiving radiant
-c energy injections and convective exchanges) and zone air points
-c (receiving convective energy exchanges) the coefficients
-c of the governing simulation equation are established within
-c each simulation time-step as detailed in the following
-c reference:
-
-c Clarke, J A (2001) Energy Simulation in Building Design
-c (2nd Edn), Buterworth Heinemann, Oxford, ISBN 0 7506 5082 6
-
-c The multilayered construction transient conduction model
-c employs a 3 node per homogeneous element scheme.   This
-c means that any multilayered construction is represented
-c by (2*E + 1) nodes - including surface layer nodes -
-c where E is the number of homogeneous elements in the
-c multilayered construction.
+C The construction transient conduction model employs a default
+C 3 node per homogeneous element scheme (user redefinable). This
+C means that any multi-layered construction is represented by
+C (2*N+1) nodes, including surface layer nodes, where N is the
+C number of homogeneous elements in the construction.
 
       SUBROUTINE MZCOE1(ICOMP)
 #include "building.h"
 #include "CFC_common.h"
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC13/C(MCOM,MS,MN,2),QC(MCOM,MS,MN)
@@ -104,290 +102,272 @@ c multilayered construction.
       COMMON/VTHP14/THRMLI(MCOM,MS,ME,7)
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
       COMMON/GR1D03/BCNV,ILUMP(MCOM,MS)
-
       COMMON/COEFMOD/MODP
 
       REAL MODP
-
       DOUBLE PRECISION DELXL,DELXP,CAP
-
       character outs*124 
 
       DT=3600.
 
-C Consider each multilayered construction within current
-C zone.
+C Consider each multi-layered construction within current zone.
       DO 10 I=1,NCONST(ICOMP)
 
 C For lumped constructions.
-         IF(ILUMP(ICOMP,I).GE.1)THEN
-           CALL LUMPED(ICOMP,I)
-           GOTO 10
-         ENDIF
+        IF(ILUMP(ICOMP,I).GE.1)THEN
+          CALL LUMPED(ICOMP,I)
+          GOTO 10
+        ENDIF
 
-C For discretized constructions.
-         NGP=NGAPS(ICOMP,I)
-         M=1
-         IL=1 
+C For discretised constructions.
+        NGP=NGAPS(ICOMP,I)
+        M=1
+        IL=1 
 
-C Set the air gap flage to off.
-         IFLG=0
+C Set the air gap flag to OFF.
+        IFLG=0
 
-C CFC flag
-         icfctp=icfcfl(icomp,i)
+C Complex Fenestration Control (CFC) flag
+        icfctp=icfcfl(icomp,i)
 
-c 'Outside' convection coefficient is omitted since its value
-c is time-dependent.
-         IN=1 
-         DELXL=THRMLI(ICOMP,I,IL,4)/real(NNDL(ICOMP,I,IL))
-         CAP=THRMLI(ICOMP,I,IL,2)*THRMLI(ICOMP,I,IL,3)
-         C(ICOMP,I,IN,1)=real(DT/((DELXL/2.0)*CAP))
-         C(ICOMP,I,IN,2)=real(2.0*THRMLI(ICOMP,I,IL,1)*DT/
-     &                       ((DELXL*DELXL)*CAP))
-         QC(ICOMP,I,IN)=real(DT/((DELXL/2.0)*CAP))
+C 'Outside' convection coefficient is omitted since its value
+C is time-dependent.
+        IN=1 
+        DELXL=THRMLI(ICOMP,I,IL,4)/real(NNDL(ICOMP,I,IL))
+        CAP=THRMLI(ICOMP,I,IL,2)*THRMLI(ICOMP,I,IL,3)
+        C(ICOMP,I,IN,1)=real(DT/((DELXL/2.0)*CAP))
+        C(ICOMP,I,IN,2)=real(2.0*THRMLI(ICOMP,I,IL,1)*DT/
+     &                      ((DELXL*DELXL)*CAP))
+        QC(ICOMP,I,IN)=real(DT/((DELXL/2.0)*CAP))
 
-C Continue with other nodes (homogeneous) in the first layer.
-         DO 20 ID=1,NNDL(ICOMP,I,IL)-1
-            IN=IN+1
-            C(ICOMP,I,IN,1)=real(THRMLI(ICOMP,I,IL,1)*DT/
-     &                          ((DELXL*DELXL)*CAP))
-            C(ICOMP,I,IN,2)=C(ICOMP,I,IN,1)
-            QC(ICOMP,I,IN)=real(DT/(DELXL*CAP))
-   20    CONTINUE
+C Continue with other homogeneous nodes in the first (outermost)
+C layer.
+        DO 20 ID=1,NNDL(ICOMP,I,IL)-1
+          IN=IN+1
+          C(ICOMP,I,IN,1)=real(THRMLI(ICOMP,I,IL,1)*DT/
+     &                        ((DELXL*DELXL)*CAP))
+          C(ICOMP,I,IN,2)=C(ICOMP,I,IN,1)
+          QC(ICOMP,I,IN)=real(DT/(DELXL*CAP))
+   20   CONTINUE
 
 C Continue with other layers in the construction.
-         DO 30 IL=2,NELTS(ICOMP,I)
+        DO 30 IL=2,NELTS(ICOMP,I)
+          IP=IL-1
+          FNNDL=real(NNDL(ICOMP,I,IL))      ! IP is previous layer.
+          FNNDP=real(NNDL(ICOMP,I,IP))      ! IL is current layer.
+          DELXL=THRMLI(ICOMP,I,IL,4)/FNNDL
+          DELXP=THRMLI(ICOMP,I,IP,4)/FNNDP
 
-C IL: current layer, IP: previous layer.
-            IP=IL-1
+C Set RGAPS=1 for CFC types since the coefficients are modified
+C by time dependent gas resistances subroutine CFC_time_dependent_Rgap
+C throughout a simulation.
+          if(icfctp.gt.0)then
+            do 500 igap=1,NGP
+              RGAPS(icomp,i,igap)=1.0
+  500       continue
+          endif
+
+C Is current layer an air gap?
+          IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.IL)THEN
+
+C Was the previous layer a solid?
+            IF(IFLG.EQ.0)THEN
+              IN=IN+1
+              CAP=THRMLI(ICOMP,I,IP,2)*THRMLI(ICOMP,I,IP,3)*
+     &            (DELXP/2.)+1.3*1005.5*(DELXL/2.0)
+              C(ICOMP,I,IN,1)=real(THRMLI(ICOMP,I,IP,1)*DT/
+     &            (DELXP*CAP))
+              C(ICOMP,I,IN,2)=real(DT/((RGAPS(ICOMP,I,M)/FNNDL)*CAP))
+              QC(ICOMP,I,IN)=real(DT/CAP)
+
+C Was the previous layer an air gap?
+            ELSE
+              IN=IN+1
+              CAP=1.3*1005.5*(DELXL+DELXP)/2.0
+              C(ICOMP,I,IN,1)=real(DT/((RGAPS(ICOMP,I,M-1)/FNNDP)*CAP))
+              C(ICOMP,I,IN,2)=real(DT/((RGAPS(ICOMP,I,M)/FNNDL)*CAP))
+              QC(ICOMP,I,IN)=real(DT/CAP)
+            ENDIF
+            IFLG=1
+
+C Continue with other homogeneous nodes in the layer.
+            DO 40 ID=1,NNDL(ICOMP,I,IL)-1
+              IN=IN+1
+              C(ICOMP,I,IN,1)=real(DT/((RGAPS(ICOMP,I,M)/FNNDL)*
+     &                            1.3*1005.5*DELXL))
+              C(ICOMP,I,IN,2)=C(ICOMP,I,IN,1)
+              QC(ICOMP,I,IN)=real(DT/(1.3*1005.5*DELXL))
+   40       CONTINUE
+            M=M+1
+
+C Current layer is solid.
+          ELSE
             FNNDL=real(NNDL(ICOMP,I,IL))
             FNNDP=real(NNDL(ICOMP,I,IP))
             DELXL=THRMLI(ICOMP,I,IL,4)/FNNDL
             DELXP=THRMLI(ICOMP,I,IP,4)/FNNDP
 
-C Set RGAPS=1 for CFC types.Gap resistances for CFCs are
-C time dependent. Time indpendent coefficients are modified
-C with time dependent gas resistances at each time-step
-C in subroutine CFC_time_dependent_Rgap during simulation.
-          if(icfctp.gt.0)then
-             do 500 igap=1,NGP
-                  RGAPS(icomp,i,igap)=1.
-  500        continue
-          endif
+C Was the previous layer solid?
+            IF(IFLG.EQ.0)THEN
+              IN=IN+1
+              CAP=THRMLI(ICOMP,I,IP,2)*THRMLI(ICOMP,I,IP,3)*
+     &            (DELXP/2.)+THRMLI(ICOMP,I,IL,2)*
+     &            THRMLI(ICOMP,I,IL,3)*(DELXL/2.0)
+              C(ICOMP,I,IN,1)=real(THRMLI(ICOMP,I,IP,1)*DT/
+     &                            (DELXP*CAP))
+              C(ICOMP,I,IN,2)=real(THRMLI(ICOMP,I,IL,1)*DT/
+     &                            (DELXL*CAP))
+              QC(ICOMP,I,IN)=real(DT/CAP)
 
-C The current layer is an air gap.
-            IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.IL)THEN
-
-C If the previous layer was a solid.
-              IF(IFLG.EQ.0)THEN
-                IN=IN+1
-                CAP=THRMLI(ICOMP,I,IP,2)*THRMLI(ICOMP,I,IP,3)*
-     &              (DELXP/2.)+1.3*1005.5*(DELXL/2.0)
-                C(ICOMP,I,IN,1)=real(THRMLI(ICOMP,I,IP,1)*DT/
-     &              (DELXP*CAP))
-                C(ICOMP,I,IN,2)=real(DT/((RGAPS(ICOMP,I,M)/FNNDL)*CAP))
-                QC(ICOMP,I,IN)=real(DT/CAP)
-
-C If the previous layer was an air gap
-              ELSE
-                IN=IN+1
-                CAP=1.3*1005.5*(DELXL+DELXP)/2.0
-                C(ICOMP,I,IN,1)=real(DT/
-     &           ((RGAPS(ICOMP,I,M-1)/FNNDP)*CAP))
-                C(ICOMP,I,IN,2)=real(DT/((RGAPS(ICOMP,I,M)/FNNDL)*CAP))
-                QC(ICOMP,I,IN)=real(DT/CAP)
-              ENDIF
-              IFLG=1
-
-C Continue with other nodes (homogeneous) in the layer.
-              DO 40 ID=1,NNDL(ICOMP,I,IL)-1
-                 IN=IN+1
-                 C(ICOMP,I,IN,1)=real(DT/((RGAPS(ICOMP,I,M)/FNNDL)*
-     &                           1.3*1005.5*DELXL))
-                 C(ICOMP,I,IN,2)=C(ICOMP,I,IN,1)
-                 QC(ICOMP,I,IN)=real(DT/(1.3*1005.5*DELXL))
-   40         CONTINUE
-              M=M+1
-
-C The current layer is solid.
+C Was previous layer an air gap?
             ELSE
-              FNNDL=real(NNDL(ICOMP,I,IL))
-              FNNDP=real(NNDL(ICOMP,I,IP))
-              DELXL=THRMLI(ICOMP,I,IL,4)/FNNDL
-              DELXP=THRMLI(ICOMP,I,IP,4)/FNNDP
-
-C If the previous layer was solid.
-              IF(IFLG.EQ.0)THEN
-                IN=IN+1
-                CAP=THRMLI(ICOMP,I,IP,2)*THRMLI(ICOMP,I,IP,3)*
-     &              (DELXP/2.)+THRMLI(ICOMP,I,IL,2)*
-     &              THRMLI(ICOMP,I,IL,3)*(DELXL/2.0)
-                C(ICOMP,I,IN,1)=real(THRMLI(ICOMP,I,IP,1)*DT/
-     &           (DELXP*CAP))
-                C(ICOMP,I,IN,2)=real(THRMLI(ICOMP,I,IL,1)*DT/
-     &           (DELXL*CAP))
-                QC(ICOMP,I,IN)=real(DT/CAP)
-
-C If the previous layer was an air gap
-              ELSE
-                IN=IN+1
-                CAP=1.3*1005.5*(DELXP/2.)+THRMLI(ICOMP,I,IL,2)*
-     &              THRMLI(ICOMP,I,IL,3)*(DELXL/2.0)
-                C(ICOMP,I,IN,1)=real(DT/
-     &           ((RGAPS(ICOMP,I,M-1)/FNNDP)*CAP))
-                C(ICOMP,I,IN,2)=real(THRMLI(ICOMP,I,IL,1)*DT/
-     &           (DELXL*CAP))
-                QC(ICOMP,I,IN)=real(DT/CAP)
-              ENDIF
-              IFLG=0
-
-C Continue with other nodes (homogeneous) in the layer.
-              DO 50 ID=1,NNDL(ICOMP,I,IL)-1
-                 IN=IN+1
-                 CAP=THRMLI(ICOMP,I,IL,2)*THRMLI(ICOMP,I,IL,3)
-                 C(ICOMP,I,IN,1)=real(THRMLI(ICOMP,I,IL,1)*DT/
-     &                           ((DELXL*DELXL)*CAP))
-                 C(ICOMP,I,IN,2)=C(ICOMP,I,IN,1)
-                 QC(ICOMP,I,IN)=real(DT/(DELXL*CAP))
-   50         CONTINUE
+              IN=IN+1
+              CAP=1.3*1005.5*(DELXP/2.)+THRMLI(ICOMP,I,IL,2)*
+     &            THRMLI(ICOMP,I,IL,3)*(DELXL/2.0)
+              C(ICOMP,I,IN,1)=real(DT/((RGAPS(ICOMP,I,M-1)/FNNDP)*CAP))
+              C(ICOMP,I,IN,2)=real(THRMLI(ICOMP,I,IL,1)*DT/(DELXL*CAP))
+              QC(ICOMP,I,IN)=real(DT/CAP)
             ENDIF
+            IFLG=0
 
-   30    CONTINUE
+C Continue with other homogeneous nodes in the layer.
+            DO 50 ID=1,NNDL(ICOMP,I,IL)-1
+              IN=IN+1
+              CAP=THRMLI(ICOMP,I,IL,2)*THRMLI(ICOMP,I,IL,3)
+              C(ICOMP,I,IN,1)=real(THRMLI(ICOMP,I,IL,1)*DT/
+     &                           ((DELXL*DELXL)*CAP))
+              C(ICOMP,I,IN,2)=C(ICOMP,I,IN,1)
+              QC(ICOMP,I,IN)=real(DT/(DELXL*CAP))
+   50       CONTINUE
+          ENDIF
+
+   30   CONTINUE
 
 C Internal surface node
-         IN=IN+1
-         IL=NELTS(ICOMP,I)
-         DELXL=THRMLI(ICOMP,I,IL,4)/real(NNDL(ICOMP,I,IL))
-         CAP=THRMLI(ICOMP,I,IL,2)*THRMLI(ICOMP,I,IL,3)
-         C(ICOMP,I,IN,1)=real(2.0*THRMLI(ICOMP,I,IL,1)*DT/
-     &    ((DELXL*DELXL)*CAP))
-         C(ICOMP,I,IN,2)=real(DT/((DELXL/2.0)*CAP))
-         QC(ICOMP,I,IN)=real(DT/((DELXL/2.0)*CAP))
+        IN=IN+1
+        IL=NELTS(ICOMP,I)
+        DELXL=THRMLI(ICOMP,I,IL,4)/real(NNDL(ICOMP,I,IL))
+        CAP=THRMLI(ICOMP,I,IL,2)*THRMLI(ICOMP,I,IL,3)
+        C(ICOMP,I,IN,1)=real(2.0*THRMLI(ICOMP,I,IL,1)*DT/
+     &                      ((DELXL*DELXL)*CAP))
+        C(ICOMP,I,IN,2)=real(DT/((DELXL/2.0)*CAP))
+        QC(ICOMP,I,IN)=real(DT/((DELXL/2.0)*CAP))
 
    10 CONTINUE
 
-C Initialise coefficient modifier for use in MZCOE2
+C Initialise coefficient modifier for use in MZCOE2.
       MODP=1.0
 
-c Trace output ?
-      IF(ITRACE(15).EQ.1.AND.IZNTRC(ICOMP).EQ.1)goto  5555
-      GOTO 9999
- 5555 CONTINUE
+C Trace output?
+      IF(ITRACE(15).EQ.1.AND.IZNTRC(ICOMP).EQ.1)goto 9999
+      GOTO 9998
+ 9999 CONTINUE
       write(outs,'(A,I4,A,I4)')
      & ' Subroutine MZCOE1     Trace output',ICNT,'    Zone',ICOMP
       call edisp(itu,outs)
       call edisp(itu,' ')
       ICNT=ICNT+1
 
-c For each multilayered construction in turn output the
-c number of nodes and the coefficient values for each.
+C For each multi-layered construction output the number of nodes
+C and coefficient values.
       call edisp(itu,
      &  ' Constr. No.of       C(1)          C(2)           QC')
       call edisp(itu,'         Nodes')
       call edisp(itu,' ')
-      DO 9993 I=1,NCONST(ICOMP)
+      DO 9997 I=1,NCONST(ICOMP)
         NN=NNDC(ICOMP,I)
         write(outs,'(I6,I7,3F14.3)')I,NN,C(ICOMP,I,1,1),
-     &    C(ICOMP,I,1,2),QC(ICOMP,I,1)
+     &                              C(ICOMP,I,1,2),QC(ICOMP,I,1)
         call edisp(itu,outs)
-        do 99922 j=2,NN
-          write(outs,99921)C(ICOMP,I,J,1),C(ICOMP,I,J,2),QC(ICOMP,I,J)
-99921     format(13X,3F14.3)
+        do 9996 j=2,NN
+          write(outs,'(13X,3F14.3)')C(ICOMP,I,J,1),C(ICOMP,I,J,2),
+     &                              QC(ICOMP,I,J)
           call edisp(itu,outs)
-99922   CONTINUE
- 9993 CONTINUE
- 9999 RETURN
+ 9996   CONTINUE
+ 9997 CONTINUE
+ 9998 RETURN
       END
 
-c ******************** MZCOE2 ********************
+C ******************** MZCOE2 ********************
 
-c MZCOE2 modifies the coefficients computed by MZCOE1
-c if the imposed computational time-step is less than one
-c hour.
+C Modifies the coefficients computed by MZCOE1 if the computational
+C time-step is less than 1 hour.
 
       SUBROUTINE MZCOE2(TSTEP)
 #include "building.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-
-      integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
-     &NPGAP(MCOM,MS,MGP)
+     &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC13/C(MCOM,MS,MN,2),QC(MCOM,MS,MN)
-
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
-
       COMMON/COEFMOD/MODP
 
       REAL MODP
-
       character outs*124
 
-C Modify C and QC coefficients using TSTEP. Division by MODP to prevent cumulative 
-C modifications and ensure that the coefficient multiplier is consistent
-C with the timestep.
+C Modify C and QC coefficients using TSTEP. Division by MODP prevents
+C cumulative modification and ensures that the coefficient multiplier
+C is consistent with the timestep.
       DO 10 I=1,NCOMP
-      NC=NCONST(I)
-      DO 20 J=1,NC
-      NN=NNDC(I,J)
-      DO 30 K=1,NN
-      C(I,J,K,1)=TSTEP*C(I,J,K,1)/MODP
-      C(I,J,K,2)=TSTEP*C(I,J,K,2)/MODP
-      QC(I,J,K)=TSTEP*QC(I,J,K)/MODP
-   30 CONTINUE
-   20 CONTINUE
+        NC=NCONST(I)
+        DO 20 J=1,NC
+          NN=NNDC(I,J)
+          DO 30 K=1,NN
+            C(I,J,K,1)=TSTEP*C(I,J,K,1)/MODP
+            C(I,J,K,2)=TSTEP*C(I,J,K,2)/MODP
+            QC(I,J,K)=TSTEP*QC(I,J,K)/MODP
+   30     CONTINUE
+   20   CONTINUE
    10 CONTINUE
 
-C Store value of modification
+C Store value of modifier.
       MODP=TSTEP
 
-C Trace output ?
+C Trace output?
       IF(ITC.EQ.0)goto 9999
-      IF(ITRACE(15).EQ.0)GOTO 9999
-      write(outs,'(A,I4)')' Subroutine MZCOE2     Trace output',ICNT
-      call edisp(itu,outs)
-      write(outs,'(23X,A)')'All zones'
-      call edisp(itu,outs)
-
-C For each multilayered construction in turn output the
-C number of nodes and the coefficient values of each.
-      DO 9994 I=1,NCOMP
-      IF(IZNTRC(I).NE.1)GOTO 9994
-      write(outs,'(A,I3)')' Zone',I
-      call edisp(itu,' ')
-      call edisp(itu,outs)
-      call edisp(itu,'(when computational time-step < one hour)')
-      call edisp(itu,' Constr. No.of C(1)          C(2)           QC')
-      call edisp(itu,'         Nodes')
-      call edisp(itu,' ')
-      NC=NCONST(I)
-      DO 9991 J=1,NC
-        NN=NNDC(I,J)
-        write(outs,9990)J,NN,C(I,J,1,1),C(I,J,1,2),QC(I,J,1)
- 9990   format(I6,I7,3F14.3)
-        call edisp(itu,outs)
-        do 99901 k=2,NN
-          write(outs,'(13X,3F14.3)')C(I,J,K,1),C(I,J,K,2),QC(I,J,K)
+        IF(ITRACE(15).EQ.0)GOTO 9999
+          write(outs,'(A,I4)')' Subroutine MZCOE2     Trace output',ICNT
           call edisp(itu,outs)
-99901   CONTINUE
- 9991 CONTINUE
- 9994 CONTINUE
+          write(outs,'(23X,A)')'All zones'
+          call edisp(itu,outs)
+
+C For each multi-layered construction output the number of nodes and
+C the coefficient values.
+          DO 9998 I=1,NCOMP
+            IF(IZNTRC(I).NE.1)GOTO 9998
+              write(outs,'(A,I3)')' Zone',I
+              call edisp(itu,' ')
+              call edisp(itu,outs)
+              call edisp(itu,
+     &               '(when computational time-step < one hour)')
+              call edisp(itu,
+     &               ' Constr. No.of C(1)          C(2)           QC')
+              call edisp(itu,'         Nodes')
+              call edisp(itu,' ')
+              NC=NCONST(I)
+                DO 9997 J=1,NC
+                  NN=NNDC(I,J)
+                  write(outs,'(I6,I7,3F14.3)')J,NN,
+     &                                 C(I,J,1,1),C(I,J,1,2),QC(I,J,1)
+                  call edisp(itu,outs)
+                    do 9996 k=2,NN
+                      write(outs,'(13X,3F14.3)')C(I,J,K,1),C(I,J,K,2),
+     &                                          QC(I,J,K)
+                      call edisp(itu,outs)
+ 9996               CONTINUE
+ 9997           CONTINUE
+ 9998     CONTINUE
  9999 RETURN
       END
 
 C ******************** MZCOE3 ********************
 
-C MZCOE3 initiates the computation of the internal grey
-C body configuration factors, solar gains impinging on
-C internal and external surfaces, the external longwave
-C radiation exchanges, internal casual gains, window conduction,
-C door conduction and ventilation exchanges.
-
-C Difference equation coefficient set-up is then completed
-C by MZSETU.
+C Initiates the computation of nodal heat injections
+C corresponding to longwave radiation exchange, solar
+C irradiance casual gains and infiltration/ventilation.
 
       SUBROUTINE MZCOE3(ICOMP)
 #include "building.h"
@@ -419,12 +399,10 @@ C pertain to the CFC surface to zero.
       RETURN
       END
 
-c ******************** MZSETU ********************
+C ******************** MZSETU ********************
 
-c MZSETU completes the setting-up of the time-dependent
-c coefficients of the difference equations commenced in
-c MZCOE1.   The complete equation-set can then be
-c solved simultaneously at the current simulation time-step.
+C Completes the setting-up of the time-dependent
+C coefficients.
 
       SUBROUTINE MZSETU(ICOMP)
 #include "building.h"
@@ -879,7 +857,7 @@ C Set-up present coefficient .
      &  + fPltHeatLoss_F +fAdjPltHeatLoss_F
      &  + qcfc_lw(icomp,i,in,2)+qcfc_cv(icomp,i,in,2))
 
-C if cfd model is considered do not take into account convection terms
+C If cfd model is active, do not take into account convection terms
 C and add CFD present values.
       IF((IFCFD(ICOMP).EQ.2.AND.NSINC.GT.1).OR.
      &    (IFCFD(ICOMP).EQ.-2.AND.IDYP.GE.ISDS))
@@ -899,7 +877,7 @@ C and add CFD present values.
      &                     + qcfc_cv(icomp,i,in,2))
 C Trace...
       if(atrace)then
-        write(outs,*)'Resulting E(I,N3) I N3  coef: ',E(I,N3),I,N3
+        write(outs,*)'Resulting E(I,N3) I N3  coefs: ',E(I,N3),I,N3
         call edisp(itu,outs)
       endif
 
@@ -1019,7 +997,7 @@ C               and 'OUTSIDE' temperature at the future time-row.
         ACAPS=ACAP
       ENDIF
 
-C Trace output ?
+C Trace output?
       IF(atrace)then
         write(outs,*)' Air capacity coefficient = ',ACAP
         call edisp(itu,outs)
@@ -1061,9 +1039,11 @@ C << MS sensitive >>
       RETURN
       END
 
-C ****************************  LUMPED  *******************************
-C LUMPED creates the coefficients for lumped constructions.
-C *********************************************************************
+C ******************** LUMPED ********************
+
+C Creates the equation coefficients for the lumped parameter
+C construction case.
+
       SUBROUTINE LUMPED(ICOMP,I)
 #include "building.h"
 
@@ -1078,9 +1058,9 @@ C *********************************************************************
       NGP=NGAPS(ICOMP,I)
       THKC=0.
 
-C Calculate the total thickness for this construction.
+C Calculate the total thickness of construction.
       DO 10 J=1,NELTS(ICOMP,I)
-         THKC=THKC+THRMLI(ICOMP,I,J,4)
+        THKC=THKC+THRMLI(ICOMP,I,J,4)
    10 CONTINUE
 
 C Define the three control volumes.
@@ -1098,106 +1078,106 @@ C Initialise the capacity of the first control volume.
 
 C Calculate the capacity of the three control volumes.
       DO 20 J=1,NELTS(ICOMP,I)
-         THKD=THRMLI(ICOMP,I,J,4)
-         THK=THK+THKD
-   30    IF(ABS(THK-THKX(L)).LT.0.000001)THEN
-            IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
-               CAP(L)=CAP(L)+1.3*1005.5*THKD
-               M=M+1
-            ELSE
-               CAP(L)=CAP(L)+THRMLI(ICOMP,I,J,2)*
-     &                THRMLI(ICOMP,I,J,3)*THKD
-            ENDIF
-            L=L+1
-            CAP(L)=0.
-            THK=0.
-         ELSEIF(THK.LT.THKX(L))THEN
-            IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
-               CAP(L)=CAP(L)+1.3*1005.5*THKD
-               M=M+1
-            ELSE
-               CAP(L)=CAP(L)+THRMLI(ICOMP,I,J,2)*
-     &                THRMLI(ICOMP,I,J,3)*THKD
-            ENDIF
-         ELSE
-            THKR=THKD-(THK-THKX(L))
-            IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
-               CAP(L)=CAP(L)+1.3*1005.5*THKR
-            ELSE
-               CAP(L)=CAP(L)+THRMLI(ICOMP,I,J,2)*
-     &                THRMLI(ICOMP,I,J,3)*THKR
-            ENDIF
-            THK=THK-THKX(L)
-            THKD=THK
-            L=L+1
-            CAP(L)=0.
-            IF(THK.GT.0.00001)GOTO 30
-         ENDIF
+        THKD=THRMLI(ICOMP,I,J,4)
+        THK=THK+THKD
+   30   IF(ABS(THK-THKX(L)).LT.0.000001)THEN
+          IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
+            CAP(L)=CAP(L)+1.3*1005.5*THKD
+            M=M+1
+          ELSE
+            CAP(L)=CAP(L)+THRMLI(ICOMP,I,J,2)*
+     &             THRMLI(ICOMP,I,J,3)*THKD
+          ENDIF
+          L=L+1
+          CAP(L)=0.
+          THK=0.
+        ELSEIF(THK.LT.THKX(L))THEN
+          IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
+            CAP(L)=CAP(L)+1.3*1005.5*THKD
+            M=M+1
+          ELSE
+            CAP(L)=CAP(L)+THRMLI(ICOMP,I,J,2)*
+     &             THRMLI(ICOMP,I,J,3)*THKD
+          ENDIF
+        ELSE
+          THKR=THKD-(THK-THKX(L))
+          IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
+            CAP(L)=CAP(L)+1.3*1005.5*THKR
+          ELSE
+            CAP(L)=CAP(L)+THRMLI(ICOMP,I,J,2)*
+     &             THRMLI(ICOMP,I,J,3)*THKR
+          ENDIF
+          THK=THK-THKX(L)
+          THKD=THK
+          L=L+1
+          CAP(L)=0.
+          IF(THK.GT.0.00001)GOTO 30
+        ENDIF
    20 CONTINUE
       DO 40 IC=1,3
-         CAP(IC)=CAP(IC)/THKX(IC)
+        CAP(IC)=CAP(IC)/THKX(IC)
    40 CONTINUE
 
-C Define the distance between each two successive nodes.
+C Define the distance between two successive nodes.
       THKX(1)=THKC/2.
       THKX(2)=THKC-THKX(1)
       THK=0.
       M=1
       L=1
 
-C Initialise the resistivity between the external and the middle nodes.
+C Initialise the resistivity between the external and middle nodes.
       R(L)=0.
 
-C calculate the thermal resistivity between each two successive nodes.
+C Calculate the thermal resistivity between two successive nodes.
       DO 50 J=1,NELTS(ICOMP,I)
-         THKD=THRMLI(ICOMP,I,J,4)
-         THK=THK+THKD
-   60    IF(ABS(THK-THKX(L)).LT.0.000001)THEN
-            IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
-               R(L)=R(L)+RGAPS(ICOMP,I,M)*THKD/THRMLI(ICOMP,I,J,4)
-               M=M+1
-            ELSE
-               R(L)=R(L)+THKD/THRMLI(ICOMP,I,J,1)
-            ENDIF
-            L=L+1   
-            R(L)=0.
-            THK=0.
-         ELSEIF(THK.LT.THKX(L))THEN
-            IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
-               R(L)=R(L)+RGAPS(ICOMP,I,M)*THKD/THRMLI(ICOMP,I,J,4)
-               M=M+1
-            ELSE
-               R(L)=R(L)+THKD/THRMLI(ICOMP,I,J,1)
-            ENDIF
-         ELSE
-            THKR=THKD-(THK-THKX(L))
-            IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
-               R(L)=R(L)+RGAPS(ICOMP,I,M)*THKR/THRMLI(ICOMP,I,J,4)
-            ELSE
-               R(L)=R(L)+THKR/THRMLI(ICOMP,I,J,1)
-            ENDIF
-            THK=THK-THKX(L)
-            THKD=THK
-            L=L+1  
-            R(L)=0.
-            IF(THK.GT.0.00001)GOTO 60
-         ENDIF
+        THKD=THRMLI(ICOMP,I,J,4)
+        THK=THK+THKD
+   60   IF(ABS(THK-THKX(L)).LT.0.000001)THEN
+          IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
+            R(L)=R(L)+RGAPS(ICOMP,I,M)*THKD/THRMLI(ICOMP,I,J,4)
+            M=M+1
+          ELSE
+            R(L)=R(L)+THKD/THRMLI(ICOMP,I,J,1)
+          ENDIF
+          L=L+1   
+          R(L)=0.
+          THK=0.
+        ELSEIF(THK.LT.THKX(L))THEN
+          IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
+            R(L)=R(L)+RGAPS(ICOMP,I,M)*THKD/THRMLI(ICOMP,I,J,4)
+            M=M+1
+          ELSE
+            R(L)=R(L)+THKD/THRMLI(ICOMP,I,J,1)
+          ENDIF
+        ELSE
+          THKR=THKD-(THK-THKX(L))
+          IF(M.LE.NGP.AND.NPGAP(ICOMP,I,M).EQ.J)THEN
+            R(L)=R(L)+RGAPS(ICOMP,I,M)*THKR/THRMLI(ICOMP,I,J,4)
+          ELSE
+            R(L)=R(L)+THKR/THRMLI(ICOMP,I,J,1)
+          ENDIF
+          THK=THK-THKX(L)
+          THKD=THK
+          L=L+1  
+          R(L)=0.
+          IF(THK.GT.0.00001)GOTO 60
+        ENDIF
    50 CONTINUE
 
-C Calculate the nodal coefficients for the three nodes representing the 
+C Calculate the coefficients for the 3 nodes representing the 
 C lumped construction.
       DT=3600.
       IN=1
-         C(ICOMP,I,IN,1)=DT/((THKC/4.)*CAP(1))
-         C(ICOMP,I,IN,2)=DT/(R(1)*(THKC/4.)*CAP(1))
-         QC(ICOMP,I,IN)=DT/((THKC/4.)*CAP(1))
+      C(ICOMP,I,IN,1)=DT/((THKC/4.)*CAP(1))
+      C(ICOMP,I,IN,2)=DT/(R(1)*(THKC/4.)*CAP(1))
+      QC(ICOMP,I,IN)=DT/((THKC/4.)*CAP(1))
       IN=2
-         C(ICOMP,I,IN,1)=DT/(R(1)*(THKC/2.)*CAP(2))
-         C(ICOMP,I,IN,2)=DT/(R(2)*(THKC/2.)*CAP(2))
-         QC(ICOMP,I,IN)=DT/((THKC/2.)*CAP(2))
+      C(ICOMP,I,IN,1)=DT/(R(1)*(THKC/2.)*CAP(2))
+      C(ICOMP,I,IN,2)=DT/(R(2)*(THKC/2.)*CAP(2))
+      QC(ICOMP,I,IN)=DT/((THKC/2.)*CAP(2))
       IN=3
-         C(ICOMP,I,IN,1)=DT/(R(2)*(THKC/4.)*CAP(3))
-         C(ICOMP,I,IN,2)=DT/((THKC/4.)*CAP(3))
-         QC(ICOMP,I,IN)=DT/((THKC/4.)*CAP(3))
+      C(ICOMP,I,IN,1)=DT/(R(2)*(THKC/4.)*CAP(3))
+      C(ICOMP,I,IN,2)=DT/((THKC/4.)*CAP(3))
+      QC(ICOMP,I,IN)=DT/((THKC/4.)*CAP(3))
       RETURN
       END

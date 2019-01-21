@@ -1873,9 +1873,9 @@ C Find the median coordinates for line 0,I
           ZAREA=ZAREA+EZ*AREA1
         ENDIF
    10 CONTINUE
-      AREC=SUM
-      XCNT=XAREA/AREC
-      ZCNT=ZAREA/AREC
+      XCNT=XAREA/SUM
+      ZCNT=ZAREA/SUM
+      AREC=ABS(SUM)
       RETURN
       END
 

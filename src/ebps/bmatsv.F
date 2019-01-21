@@ -728,7 +728,7 @@ C Building side time step.
 C If monitoring is on then while in start-up period, display message.
       if((montrb.eq.1.or.monitr.eq.1).and.itcnst.gt.0)
      & call usrmsg(' ',
-     &     ' Monitoring will commence shortly, please wait...','-')
+     &     ' Monitoring will commence shortly ...','-')
 
 C Remember the 'start value' of the unix system clock.
       call getsecs(istime)
@@ -859,7 +859,7 @@ C debug (end)
 
 
 C For multi-year simulaitons, determine the current
-C and future time row years, and the incidies of these
+C and future time row years, and the indices of these
 C years with respect to the multi-year climate databases
         MY_sim_initialize: if ( bMY_sim_enabled ) then
 C Years
@@ -867,12 +867,12 @@ C Years
           iMY_future_year = iMY_Start_year + int(float(i)/365.0)
 
 C Assign global year (iYear), present year (iYear_p) & future year
-C (iYear_f)
+C (iYear_f).
           iYear   = iMY_current_year
           iYear_p = iMY_current_year
           iYear_f = iMY_future_year
 
-C Year indicies
+C Year indices.
           iMY_current_yr_index = iMY_start_yr_index
      &                + ( iMY_current_year - iMY_Start_year )
           iMY_future_yr_index = iMY_start_yr_index
@@ -1139,7 +1139,7 @@ C value for this hour.
           endif
 
 C Process building zones first; if no building, n=1.
-C Is building computational time-step less than one hour ?
+C Is building computational time-step less than one hour?
           n=ntstep
           do 30 kk=1,n
             k=kk
@@ -1165,7 +1165,7 @@ c Global control: initialise commons, save/retrieve data.
               call RTRVPV
             endif
 
-C For type 6 time-step controller, retrieve and save data,
+C For type 6 time-step controller, retrieve and save data.
             if(itsct.eq.6.and.itsok.eq.1)then
               if(i.ge.itssch(ntsctr,4).and.i.le.itssch(ntsctr,5))then
                 call tscon6(i,j,ntsctr,irew)
@@ -1193,7 +1193,7 @@ C New day events in SHOCC occur when btimef first exceeds 24.0 ...
 
             if(btimef.gt.24.0)btimef=btimef-24.
 
-C H3Kreports: send simulation time to reporting object
+C H3Kreports: send simulation time to reporting object.
             if ( isH3KEnabled() ) Then
               call H3K_Report_time(
      &          btimep, btimef, ihrp, ihrf, idyp, idyf, its, ntstep,
@@ -1350,7 +1350,7 @@ C current zone for the current time step: this will be reset if CFD is
 C invoked.
                 mHCcfd(ICP) = 0
 
-C Debug
+C Debug.
 C               write(6,*) 'MZNUMA (ICP,IFCFD(ICP))',ICP,IFCFD(ICP)
 
 C Invoke CFD if there is `surface conflation' between the thermal domain
@@ -1424,7 +1424,7 @@ C be rotated (about the site origin) and then recompose the matrix.
                 call eclose(OBROT,zrotp(icomp),0.0001,close)
                 IF(.NOT.close)THEN
 
-C Debug...
+C Debug.
 C                 if(itrc.gt.1)then
                     write(outs,'(A,F6.2)')'proceeding with rotation..',
      &                OBROT
@@ -1460,7 +1460,7 @@ C as is the case with tdf (above)
                 S_TIME=REAL(IDYP)+HOUR/24.0        ! Calculate simulation time
                 DO 130 IPDR=1,NPDR
 
-C Calculate roaming day of year
+C Calculate roaming day of year.
                   IRoamD=LDYS(IPDR)
                   IRoamM=LMTS(IPDR)
                   CALL EDAY(IRoamD,IRoamM,IYDNRoam)
@@ -1560,7 +1560,7 @@ C Find number of data blocks per hour to be saved.
                 call mzls3(icomp,iday,itsmus,ndbph)
               ENDIF
 
-C transport miscellaneous simulation data to reporting object
+C Transport miscellaneous simulation data to reporting object.
               if ( isH3KEnabled() ) then
                  call H3K_transport_build_data(icomp)
                  if (IAIRN .ne. 0) THEn
@@ -1974,10 +1974,10 @@ C report was issued more than 5 seconds ago.
 
 C Unix variant.
           write(outs,'(I4,A,A)') iperc,
-     &      ' %   complete; expected finish time : ',
+     &      '% complete; expected finish time: ',
      &      ectime(ietim)
 C NT variant.
-C         write(outs,'(I4,A)') iperc,' %   complete; '
+C         write(outs,'(I4,A)') iperc,'% complete; '
           if(endless.or.issilient)then
             continue
           else

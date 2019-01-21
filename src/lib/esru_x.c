@@ -702,7 +702,7 @@ if((fst_7 = XftFontOpenName(theDisp,0,font_7)) == NULL) {
     exit(1);
   }
 }
-fprintf(stderr,"startup: fonts are %s %s %s %s %s %s %s %s\n",font_0,font_1,font_2,font_3,font_4,font_5,font_6,font_7);
+/* fprintf(stderr,"startup: fonts are %s %s %s %s %s %s %s %s\n",font_0,font_1,font_2,font_3,font_4,font_5,font_6,font_7); */
 
 ftdraw = XftDrawCreate(theDisp,win,theVisual,theCmap);  /* for Xft fonts */
 
