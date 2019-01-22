@@ -316,7 +316,7 @@ C Modify the present term for the current heat node.
           CAP2=(DXHl/2.)*THDNSp(I,IHCV2)*THCAPp(I,IHCV2)+CAPUv+CAPMl
           CAP=CAP1+CAP2
           CMMN=DTIME/CAP
-          W(I,IN,5)=W(I,IN,5)+(FLXp1+FLXf1+FLXp2+FLXf2-HT)*CMMN
+cx          W(I,IN,5)=W(I,IN,5)+(FLXp1+FLXf1+FLXp2+FLXf2-HT)*CMMN
 
 C Continue with other nodes in the layer.
           DO 70 ID=1,NH-1
@@ -396,7 +396,7 @@ C Modify the present term for the current heat node.
         CALL MSTCAP(ICOMP,I,IL,IN,CAPUv,CAPMl)
         CAP=(DXHl/2.0)*THDNSp(I,IHCV)*THCAPp(I,IHCV)+CAPUv+CAPMl
         CMMN=DTIME/CAP
-        E(I,N3)=E(I,N3)+(FLXp1+FLXf1+FLXp2+FLXf2-HT)*CMMN
+cx        E(I,N3)=E(I,N3)+(FLXp1+FLXf1+FLXp2+FLXf2-HT)*CMMN
 
 C Save the flux for air node (W).
         SUM=SUM-(FLXp2+FLXf2)*Asrf
@@ -409,7 +409,7 @@ C Xair (kgv/Kgair), and Uair (Kgv)
       HTJv=Hv01(TCf)*Udair
       HTJl=Hl01(TCf)*(Ffair(ICOMP)-Fpair(ICOMP))
       HT=(HTJv+HTJl)/DTIME
-      E(N1,N3)=E(N1,N3)+(SUM-HT)*ACAP
+cx      E(N1,N3)=E(N1,N3)+(SUM-HT)*ACAP
 
       RETURN
       END
