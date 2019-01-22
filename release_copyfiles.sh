@@ -10,19 +10,19 @@
 IFS=$'\n'
 
 # 1. Step : Set up some variables
-TEST=false
-prefix="/Users/achim.geissler/Downloads"
-#prefix="/Users/achim/Downloads"
-release="ESP-r_V13.2.9_Src"
+TEST=true
+#prefix="/Users/achim.geissler/Downloads"
+prefix="/Users/achim/Downloads"
+release="ESP-r_V13.2.10_Src"
 
 # 2. Step : create file listings for the source root directory and
 #           subdirectories src, models, modish, data and doc:
+diff -q --exclude=CompileQuiet --exclude=diff_root.txt ./ ${prefix}/${release}/. > diff_root.txt
 diff -rq src ${prefix}/${release}/src > diff_src.txt
 diff -rq models ${prefix}/${release}/models > diff_models.txt
 diff -rq modish ${prefix}/${release}/modish > diff_modish.txt
 diff -rq data ${prefix}/${release}/data > diff_data.txt
 diff -rq doc ${prefix}/${release}/doc > diff_doc.txt
-diff -rq ./ ${prefix}/${release}/. > diff_root.txt
 #
 #    The diffs are issued in the git repository directory "myESP-rSource"
 #    (where this script should actually reside).
@@ -71,7 +71,11 @@ do
            cp -R ${pth}/${fn} ${pth2}/${fn}
          fi
        else
-         if [ ${fn} != ".git" ]; then
+#         if [ ${fn} != ".git" ]; then
+         if [ ${fn} != ".git" ] && [ ${fn} != ".gitignore" ] \
+                                && [ ${fn} != ".gitmodules" ] \
+                                && [ ${fn} != ".project" ] \
+                                && [ ${fn} != "release_copyfiles.sh" ]; then
            if [ "$TEST" = "true" ]; then
              echo "rm -R ${pth2}/${fn}"
            else
