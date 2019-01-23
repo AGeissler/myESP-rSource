@@ -10,9 +10,9 @@
 IFS=$'\n'
 
 # 1. Step : Set up some variables
-TEST=true
-#prefix="/Users/achim.geissler/Downloads"
-prefix="/Users/achim/Downloads"
+TEST=false
+prefix="/Users/achim.geissler/Downloads"
+#prefix="/Users/achim/Downloads"
 release="ESP-r_V13.2.10_Src"
 
 # 2. Step : create file listings for the source root directory and

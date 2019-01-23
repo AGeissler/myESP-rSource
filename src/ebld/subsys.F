@@ -518,7 +518,7 @@ C Consider nodes 2-6.
 
       CALL EDAYR(IDYP,ID,IM)
 
-C If the first timestep of the simulation initialise
+C If the first timestep of the simulation, initialise
 C all of the nodes to the ground temperature, otherwise
 C only reset the lowest node.
       if(nsinc.gt.1)then
@@ -559,8 +559,7 @@ C Evaluate the quantity of cloud cover.
     6 CLOUD1=CLOUDC
    12 CONTINUE
 
-C Atmospheric pressure (fixed, but should depend on
-C site elevation).
+C Atmospheric pressure (fixed, but should depend on site elevation).
       PATM=965.0
 
 C Compute the dew point temperature TDP.
@@ -576,10 +575,10 @@ C For zero RF set dew point temperature to 293.
          TDP=293.0
       ENDIF
 
-C Here provide the different sky temperature options
+C Here provide the different sky temperature options.
       IF(iExt_longwave_flg.EQ.0)THEN
 
-C Use default Martin & Berdahl calculation
+C Use default Martin & Berdahl calculation.
 C Clear sky condition:
         PI = 4.0 * ATAN(1.0)
         TIM=2.0*PI*real(IHRF)/24.0
@@ -598,7 +597,6 @@ C Assume the atmosphere is a black body emitter:
         TSKYBM=TSKY
       ELSEIF(iExt_longwave_flg.EQ.1)THEN
 
-C Use Clarke's calculation
 C Clear sky temperature as in bld #5.4 (after Swinbank).
         TCSKY=0.05532*((TWBF+ZEROK)**1.5)
 
@@ -610,7 +608,7 @@ C Cloudy sky temperature as JC Book.
          TSKY=TSKYJC   
       ELSEIF(iExt_longwave_flg.EQ.2)THEN
 
-C Use Cole's calculation
+C Use Cole's calculation.
         EAIR=0.527+0.161*(EXP(8.45*(1.0-(273.0/(TWBF+ZEROK)))))
         ECLOUD=0.16*EAIR+0.84
 
@@ -627,7 +625,7 @@ C Sky temperature after Cole.
         TSKY=TSKYNEU
       ELSEIF(iExt_longwave_flg.EQ.3)THEN
 
-C Use Czeplak & Kasten calculation
+C Use Czeplak & Kasten calculation.
         ECZ=(9.365E-06)*(TF+ZEROK)**2
         RWOLKE=(ECZ+(1.0-ECZ)*(0.9-0.065*CBH))*SBC*((TF+ZEROK)**4)
         RKLAR=(1.174*SBC*ECZ*(TF+ZEROK)**4)-33.0
@@ -637,21 +635,21 @@ C Use Czeplak & Kasten calculation
         TSKY=TSKYCZ
       ELSEIF(iExt_longwave_flg.EQ.4)THEN
 
-C Use Swinbank (clear - uses dry bulb T) calculation
+C Use Swinbank (clear - uses dry bulb T) calculation.
 C Swinbank model with ambient air temperature.
         TSKYSW=0.05532*((TF+ZEROK)**1.5)       
         TSW=TSKYSW-ZEROK
         TSKY=TSKYSW
       ELSEIF(iExt_longwave_flg.EQ.5)THEN
 
-C Use Swinbank (clear - uses wet bulb T) calculation
+C Use Swinbank (clear - uses wet bulb T) calculation.
 C Clear sky temperature as in bld #5.4 (after Swinbank).
         TCSKY=0.05532*((TWBF+ZEROK)**1.5)        
         TCS=TCSKY-ZEROK
         TSKY=TCSKY
       ENDIF
 
-C If sky temperature is to be read from a temporal file then
+C If sky temperature is to be read from a temporal file then 
 C set it here.
       IF(ISKYTMP.gt.0)THEN
         itdi=ISKYTMP
@@ -688,12 +686,6 @@ C buildings.
 C Longwave loss from ground: GRLW is the longwave reflectance.
       GRLW=0.05
       QGLF=(1.0-GRLW)*SBC*((TSKY**4)-((GTF(1)+ZEROK)**4))
-
-C For NT: required because QT is being corrupted!!!!
-C Re-initialise QT.
-C      QT=QFF+QDF*ESIND(SALT)
-C      IF(IRTYPE.EQ.1)QT=QDF
-C End For NT
 
 C Ground solar gain. 
       QGGF=0.0
@@ -865,21 +857,8 @@ C longwave flux exchange.
         IF(EE(ICOMP,I).LT.1.0E-5)goto 49
 
 C Surrounding buildings component.
-C      QELWFB(I)=A1(ICOMP,I)*SBC*(TBLD(I)**4-(TFC(ICOMP,I,1)
-C     &+ZEROK)**4)/(2/EE(ICOMP,I)-1.0)
-
-C (Paul Strachan) Temporary: remove next 9 lines and
-C re-enable previous 2.
-
-C Surrounding buildings component.
-        IF(EE(ICOMP,I).LE.1.0)THEN
-          QELWFB(I)=A1(ICOMP,I)*SBC*(TBLD(I)**4-(TFC(ICOMP,I,1)+
-     &              ZEROK)**4)/(2.0/EE(ICOMP,I)-1.0)
-        ELSE
-C Modify equation if emissivity is artificially high (>1).
-          QELWFB(I)=A1(ICOMP,I)*SBC*(TBLD(I)**4-(TFC(ICOMP,I,1)+
-     &              ZEROK)**4)*EE(ICOMP,I)
-        ENDIF
+        QELWFB(I)=A1(ICOMP,I)*SBC*(TBLD(I)**4-(TFC(ICOMP,I,1)+
+     &      ZEROK)**4)/(2.0/EE(ICOMP,I)-1.0)
 
 C Sky component.
         QELWFK(I)=B1(ICOMP,I)*SBC*EE(ICOMP,I)*(TSKY**4-
@@ -902,10 +881,6 @@ C   q12 = ------------- (T1**4 - T2**4)
 C          1    1
 C          -- + -- - 1
 C          e1   e2
-
-C For NT: required because GRLW is being corrupted!!!!
-C        GRLW=0.05
-C End For NT
 
         call eclose(RNEIG,180.0,1.0,closer)
         IF(C1(ICOMP,I).GT.0.95.AND.closer)THEN
@@ -930,7 +905,7 @@ C     - used in CFC longwave exchange for outdoor blinds
         TEQV(I)=(A1(ICOMP,I)*(TBLD(I)**4)+B1(ICOMP,I)*(TSKY**4)+
      &          C1(ICOMP,I)*(TGRD**4))**0.25
 
-C Estimate contribution to external longwave flux (for CFC output)
+C Estimate contribution to external longwave flux (for CFC output).
         Bld_fraction(icomp,i)=(A1(ICOMP,I)*(TBLD(I)**4))/(TEQV(I)**4)
         Sky_fraction(icomp,i)=(B1(ICOMP,I)*(TSKY**4))/(TEQV(I)**4)
         Grd_fraction(icomp,i)=(C1(ICOMP,I)*(TGRD**4))/(TEQV(I)**4)
@@ -941,13 +916,9 @@ C Estimate contribution to external longwave flux (for CFC output)
         HROF(I)=QELWF(I)/DT
 
 C High longwave flux ****** WARNING MESSAGE ******
-C      IF(ABS(QELWF(I)).GT.400.0)THEN
-
-C (Paul Strachan) Temporary: remove next 2 lines and
-C restore last one.
-
-C Don't use correlation if artificial emissivity used (>1)
-        IF(ABS(QELWF(I)).GT.495.0.AND.EE(ICOMP,I).LE.1.)THEN
+C Limit of 800W/m2 arbitrary but unlikely to be exceeded even for high 
+C surface temperatures up to ~70degC.
+        IF(ABS(QELWF(I)).GT.800.0)THEN
           call zsid(icomp,I,ZSDES,ZSDESC,ZSDESS)
           write(outs,'(A,F12.1,A,A,A,F8.1,A,I6)')
      &    ' MZELWE: a longwave flux of',QELWF(I),
@@ -960,9 +931,8 @@ C Don't use correlation if artificial emissivity used (>1)
      &    QELWFG(I),' (T=',TGRD,')'
           call edisp(iuout,outs)
 
-!         CORRELATION?
-          QELWF(I)=(3.0+1.7*VF)*(TF-TFC(ICOMP,I,1))
-
+C Correlation based on CIBSE Guide A: hr = 4 . SBC . Ts^3
+          QELWF(I)=4.0*SBC*(TFC(ICOMP,I,1)+ZEROK)**3*(TF-TFC(ICOMP,I,1))
           write(outs,'(A,F9.1,A)')
      &    '  A correlation long wave flux value of',QELWF(I),
      &    ' W/m^2 will be used instead.'

@@ -1893,7 +1893,7 @@ void TReportsManager::GenerateStepOutput(unsigned long lStepCount){
 
    //Use quick sort to sort the constructed structure of <char*, mapkey*>
    //** Retrieve maps for output with the sort will slow down the simulation **
-   //          ** Guess slow down is 5 % longer sim time. **
+   //          ** Guess slow down is 5% longer simulation time. **
    if(bSortOutput)
       qsort(sortedMapKeylist,i, sizeof(struct stSortedMapKeyRef), cmp_by_string);
 
@@ -2766,11 +2766,11 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
       {
          if(itDataMap->second.IsOutStep())
          {
-            //Store the #of steps stored (since they are all the same size it doesn't
-            //matter if the counter is overwritten by a different variable
+            //Store the number of steps stored (since they are all the same size it 
+            //does not matter if the counter is overwritten by a different variable)
             iSteps = itDataMap->second.GetStepCount();
 
-            //Increment/Store the current position (column) in the csv
+            //Increment/store the current position (column) in the csv
             iPos++;
 
             //** note: may perform better if the MetaValue was part of the m_ReportDataList **
@@ -2883,7 +2883,7 @@ void TReportsManager::OutputCSVData(const char *sFileName, stSortedMapKeyRef sor
 ** Method:   InjectVariableToCSV()
 ** Scope:    private
 ** Purpose:  Used only when save_to_disk is true, this method will insert
-**           and initialize a variable that came into existance
+**           and initialise a variable that came into existance
 **           after the first write occured.
 ** Params:   sFileName - the file to create - will append to the file
 **           sVarName - the formated name to insert
