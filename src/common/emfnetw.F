@@ -735,11 +735,11 @@ C Read the next line with position info.
         CALL STRIPC(IFPRB,OUTSTR,99,ND,0,'node position',IER)
         IF(IER.NE.0) CONT=.FALSE. 
         K=0
-        CALL EGETWR(OUTSTR,K,VAL,-9.0,999.,'W','Node X',IER)
+        CALL EGETWR(OUTSTR,K,VAL,-19.0,999.,'W','Node X',IER)
         HNOD(NNOD,1)=VAL
-        CALL EGETWR(OUTSTR,K,VAL,-9.0,999.,'W','Node Y',IER)
+        CALL EGETWR(OUTSTR,K,VAL,-19.0,999.,'W','Node Y',IER)
         HNOD(NNOD,2)=VAL
-        CALL EGETWR(OUTSTR,K,VAL,-9.0,999.,'W','Node Z',IER)
+        CALL EGETWR(OUTSTR,K,VAL,-19.0,999.,'W','Node Z',IER)
         HNOD(NNOD,3)=VAL
         CALL EGETW(OUTSTR,K,WORD,'W','node temp/ref zone',IER)
         NDID(NNOD)=WORD(1:12)
@@ -780,18 +780,18 @@ C also read an end point.
         K=0
         CALL EGETWI(OUTSTR,K,IV,0,0,'-','comp way points',IER)
         NWPCMP(NCMP)=IV
-        CALL EGETWR(OUTSTR,K,VAL,-9.0,999.,'W','CMP X',IER)
+        CALL EGETWR(OUTSTR,K,VAL,-19.0,999.,'W','CMP X',IER)
         HCMP(NCMP,1,1)=VAL
-        CALL EGETWR(OUTSTR,K,VAL,-9.0,999.,'W','CMP Y',IER)
+        CALL EGETWR(OUTSTR,K,VAL,-19.0,999.,'W','CMP Y',IER)
         HCMP(NCMP,1,2)=VAL
-        CALL EGETWR(OUTSTR,K,VAL,-9.0,999.,'W','CMP Z',IER)
+        CALL EGETWR(OUTSTR,K,VAL,-19.0,999.,'W','CMP Z',IER)
         HCMP(NCMP,1,3)=VAL
         if(NWPCMP(NCMP).eq.1)then
-          CALL EGETWR(OUTSTR,K,VAL,-9.0,999.,'W','CMP eX',IER)
+          CALL EGETWR(OUTSTR,K,VAL,-19.0,999.,'W','CMP eX',IER)
           HCMP(NCMP,2,1)=VAL
-          CALL EGETWR(OUTSTR,K,VAL,-9.0,999.,'W','CMP eY',IER)
+          CALL EGETWR(OUTSTR,K,VAL,-19.0,999.,'W','CMP eY',IER)
           HCMP(NCMP,2,2)=VAL
-          CALL EGETWR(OUTSTR,K,VAL,-9.0,999.,'W','CMP eZ',IER)
+          CALL EGETWR(OUTSTR,K,VAL,-19.0,999.,'W','CMP eZ',IER)
           HCMP(NCMP,2,3)=VAL
         endif
  
