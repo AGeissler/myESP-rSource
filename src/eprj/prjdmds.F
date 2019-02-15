@@ -94,6 +94,7 @@ C Flags noting whether casual gain periods are currently sorted.
       character calename*32,calentag*12,calendayname*32
       LOGICAL OK,DOK,XST,MODOPR,browse
       integer NITEMS,INO ! max items and current menu item
+      integer ISTRW
 
 C GFILE is the default file name for project gains file.
       if(ctlpth(1:2).eq.'  '.or.ctlpth(1:2).eq.'./')then
@@ -371,8 +372,9 @@ C Edit loads description.
         H(1)='Dispersed demands schedules have notes' 
         H(2)='(<248 char) which will be included in reports.'
         tcname=dmdsdesc
+        ISTRW=72
         CALL EASKS248(tcname,' Dispersed demands notes: ',' ',
-     &    72,'base_case','dispersed demands notes',IER,2)
+     &    ISTRW,'base_case','dispersed demands notes',IER,2)
         if(tcname(1:2).ne.'  ')dmdsdesc=tcname
         MODOPR=.true.
       ELSEIF(INO.EQ.2)THEN

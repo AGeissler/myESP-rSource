@@ -877,6 +877,7 @@ C Parameters
       character LTMP124*124    ! local string buffer
       integer iglib      ! for detecting GTK or X11
       INTEGER llt,lfn    ! length of the local string buffer
+      integer ISTRW
 
 C Depending on whether it is X11 or GTK or text setup dialogs. The
 C X11 and text will work with 96 or 124 char string.
@@ -911,21 +912,27 @@ C If in text or GTK mode echo FILEN.
 C Adjust dialog depending on initial length of file name. If shorter
 C than 32 char the use shortest width.
         if(llt.lt.42)then
-          CALL EASKF(LTMP72,PROMP1,PROMP2,72,DFILE,ERMSG,IER,NHELP)
+          ISTRW=72
+          CALL EASKF(LTMP72,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
           write(llitem,'(a)') LTMP72(1:lnblnk(LTMP72))
         elseif(llt.lt.96)then
-          CALL EASKF(LTMP96,PROMP1,PROMP2,96,DFILE,ERMSG,IER,NHELP)
+          ISTRW=96
+          CALL EASKF(LTMP96,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
           write(llitem,'(a)') LTMP96(1:lnblnk(LTMP96))
         elseif(llt.ge.96.and.llt.lt.124)then
-          CALL EASKF(LTMP124,PROMP1,PROMP2,124,DFILE,ERMSG,IER,NHELP)
+          ISTRW=124
+          CALL EASKF(LTMP124,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
           write(llitem,'(a)') LTMP124(1:lnblnk(LTMP124))
         elseif(llt.ge.124.and.llt.le.144)then
-          CALL EASKF(llitem,PROMP1,PROMP2,144,DFILE,ERMSG,IER,NHELP)
+          ISTRW=144
+          CALL EASKF(llitem,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
         endif
       elseif(iglib.eq.2)then
-        CALL EASKF(llitem,PROMP1,PROMP2,144,DFILE,ERMSG,IER,NHELP)
+        ISTRW=144
+        CALL EASKF(llitem,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
       else
-        CALL EASKF(LTMP96,PROMP1,PROMP2,96,DFILE,ERMSG,IER,NHELP)
+        ISTRW=96
+        CALL EASKF(LTMP96,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
         write(llitem,'(a)') LTMP96(1:lnblnk(LTMP96))
       endif
 
@@ -2555,7 +2562,7 @@ C ESIND: Returns SIN of angle where angle is given in degrees.
 
 C ******************** ECOSD
       FUNCTION ECOSD (DEG)
-C ECOSD: Returns COS of angel where angle is given in degrees.
+C ECOSD: Returns COS of angle where angle is given in degrees.
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
       ECOSD = COS (RAD*DEG)
@@ -2564,7 +2571,7 @@ C ECOSD: Returns COS of angel where angle is given in degrees.
 
 C ******************** ETAND
       FUNCTION ETAND (DEG)
-C ETAND: Returns TAN of angel where angle is given in degrees.
+C ETAND: Returns TAN of angle where angle is given in degrees.
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
       ETAND = TAN (RAD*DEG)

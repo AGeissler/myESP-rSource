@@ -187,6 +187,7 @@ C UA1 from uncertainty.h
 #include "esprdbfile.h"
 #include "material.h"
 #include "espriou.h"
+#include "climate.h"
 
       integer lnblnk  ! function definition
 
@@ -360,6 +361,7 @@ C Flags for multi-year simulation menus
       integer ier
       integer NITMS,INO  ! max items and current menu item
       integer ACCON,CFD2BLD,CFD2MFS
+      integer ISTRW
 
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -1033,22 +1035,19 @@ C Take into account weather file location.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(llclmdb,'Weather file:',
-     &        ' ',96,DCLIM,'weather file name',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(llclmdb,'Weather file:',
-     &        ' ',124,DCLIM,'weather file name',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(llclmdb,'Weather file:',
-     &        ' ',144,DCLIM,'weather file name',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(llclmdb,'Weather file:',
-     &      ' ',144,DCLIM,'weather file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(llclmdb,'Weather file:',
-     &      ' ',96,DCLIM,'weather file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(llclmdb,'Weather file:',
+     &    ' ',ISTRW,DCLIM,'weather file name',IER,nbhelp)
         IF(llclmdb(1:2).EQ.'  ')GOTO 291
         IER=0
 
@@ -1058,7 +1057,7 @@ C Cast expanded weather file name back to LCLIM.
         call tstamp('>','SIM: change climate')
         call tstamp('>',LCLIM)
         ier=0
-        call EFOPRAN(ICLIM,llclmdb,144,0,IER)
+        call EFOPRAN(ICLIM,llclmdb,MCM*24,0,IER)
         IF(ier.eq.0)THEN
           IREC=366
           READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)ICYEAR,ICDNGH

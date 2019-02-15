@@ -1192,12 +1192,12 @@ C If libraries and monitor support greyscale remember this.
       endif
 
 C Set font for displaying block names.
-      write(6,'(a,3i2)') 'DRWSEN IFS,ITFS,IMFS',IFS,ITFS,IMFS
+C      write(6,'(a,3i2)') 'DRWSEN IFS,ITFS,IMFS',IFS,ITFS,IMFS
       if(IFS.eq.0.or.IFS.eq.4)ibsize=0
       if(IFS.eq.1.or.IFS.eq.5)ibsize=1
       if(IFS.eq.2.or.IFS.eq.6)ibsize=2
       if(IFS.eq.3.or.IFS.eq.7)ibsize=2
-      write(6,'(a,i2)') 'DRWSEN ibsize ',ibsize
+C      write(6,'(a,i2)') 'DRWSEN ibsize ',ibsize
 
       if(NCUB(iz).eq.0)return
       DO 301 IB=1,NCUB(iz)

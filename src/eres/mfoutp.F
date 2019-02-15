@@ -143,6 +143,7 @@ C Simulator parameters.
       integer POS,NEG,CMPIS
       real xc,yc,zc
       character word*12   ! for 3D value plotting.
+      integer ISTRW
 
       logical colok,ok,dok,CFDOK
 #ifdef OSI
@@ -212,22 +213,19 @@ C name with the full path.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(lltmpc,'Flow Library name? ',' ',96,DAFRES,
-     &        'flow library file',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(lltmpc,'Flow Library name? ',' ',124,DAFRES,
-     &        'flow library file',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(lltmpc,'Flow Library name? ',' ',144,DAFRES,
-     &        'flow library file',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(lltmpc,'Flow Library name? ',' ',144,DAFRES,
-     &      'flow library file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(lltmpc,'Flow Library name? ',' ',96,DAFRES,
-     &      'flow library file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(lltmpc,'Flow Library name? ',' ',ISTRW,DAFRES,
+     &    'flow library file',IER,nbhelp)
 
 C If user cancel.
         if(ier.eq.-3)then

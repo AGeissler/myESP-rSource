@@ -316,6 +316,7 @@ C Definitions of most variables is given in ctread.F
 
       integer NTSTEPCT   ! for local editing.
       integer NITEMS,NITEML,INO,INNO,ISO ! max items and current menu item
+      integer ISTRW
 
 C set contaminant file
       IUNIT=IFIL+72
@@ -377,8 +378,10 @@ C (differienciate between unix and non-unix machine types).
           ENDIF
         ENDIF
       ENDIF
+      ISTRW=72
  2001 CALL EASKSCMD(CTMF,' contaminant model file ?',
-     &  ' ','dereference',clkok,72,' ','contaminant model file',IER,7)
+     &  ' ','dereference',clkok,ISTRW,' ','contaminant model file',
+     &  IER,7)
       call usrmsg(' ',' ','- ')
 
 C If user wishes to deselect the current file name to

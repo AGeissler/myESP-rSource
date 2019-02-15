@@ -14,8 +14,8 @@ C vertices in an object.
       PARAMETER (MOMS=12)       !- Mass surfaces/obj (6 pairs).
       PARAMETER (MOBS=36)       !- Boundary surfaces/obj.
       PARAMETER (MOTV=96)       !- Vertices/obj. -> 96
-      PARAMETER (MOMB=32)       !- Simple visual shapes
-      PARAMETER (MOMVB=14)      !- Compound visual shapes
+      PARAMETER (MOMB=32)       !- Simple visual shapes or obstructions.
+      PARAMETER (MOMVB=14)      !- Compound visual shapes.
 
 C Commons for simple visual objects within a predefined object:
       character objname*12,objdesc*32  ! name and menu string

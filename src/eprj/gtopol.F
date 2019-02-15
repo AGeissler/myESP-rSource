@@ -1999,6 +1999,7 @@ C Method checks for minimally linked vertices.
       CHARACTER ACTION*1,HOLD*72,outs*124,SN*6,SN2*6
       character holds*36,SNAME1*6,SNAMED*6,SMLCN1*32
       integer IRT  ! for radio button
+      integer ISTRW
 #ifdef OSI
       integer iix,iiy,iixx,iiyy,ixd,iyd,iik
 #else
@@ -2307,8 +2308,9 @@ C the individual vertex numbers from the list.
           CALL EASKS(HOLD,' ','Vertex list?',
      &      72,' ','associated vertices',IER,nbhelp)
         else
+          ISTRW=72
           CALL EASKSCMD(HOLD,' ','Vertex list?','via mouse',
-     &      clkok,72,' 1 2 3','assoc vert+mouse',IER,nbhelp)
+     &      clkok,ISTRW,' 1 2 3','assoc vert+mouse',IER,nbhelp)
           if(clkok)then
             ijvn=0
             call edisp(iuout,

@@ -32,6 +32,9 @@
 extern FILE *wwc;
 extern gint f_height;
 extern gint f_width;
+extern long int d_disp_fnt = 1; /* default font for text display box */
+extern long int d_butn_fnt = 4; /* default button font size */
+extern long int d_menu_fnt = 5; /* default command menu font */
 
 /* flag for network graphics routines*/
 static int network_gpc;

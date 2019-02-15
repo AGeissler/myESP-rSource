@@ -60,6 +60,7 @@ C geometry.h provides commons G0/G2/precz.
       character OUTSTR*124,outs*124
       logical OK,dok,modcfg,XST,clkok,browse
       integer NITEMS,INO ! max items and current menu item
+      integer ISTRW
 
 C Short and long descriptions of correlations.
       character hcshtdescr*32  ! short description
@@ -105,7 +106,7 @@ C proceed to menu. If file does not exist return.
         if(browse)then
           call FINDFIL(LHCCO(ICOMP),XST)
           IF(XST)THEN
-            call ehtcff(LHCCO(ICOMP),IUF,ITRU,IER)
+            call ehtcff(LHCCO(ICOMP),IUF,IER)
             if(ier.eq.0)then
               goto 43
             else
@@ -128,8 +129,9 @@ C offer option to dereference. If ok check its format.
         helptopic='zone_htc_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
         clkok=.false.
+        ISTRW=72
   245   CALL EASKSCMD(LTMP,'Zone conv regime file ?',
-     &    ' ','dereference',clkok,72,HFILE,'conv regime file',
+     &    ' ','dereference',clkok,ISTRW,HFILE,'conv regime file',
      7    IER,nbhelp)
         if(clkok)then
           call edisp(iuout,'Removing reference to conv regime file.')
@@ -192,7 +194,7 @@ C data.
           CALL ERPFREE(IUF,ISTAT)
 
 C Convection file is in current format so read contents.
-          call ehtcff(LHCCO(ICOMP),IUF,ITRU,IER)
+          call ehtcff(LHCCO(ICOMP),IUF,IER)
           if(ier.eq.-301)then
             dok=.true.
             helptopic='zone_htc_agree_save'
@@ -226,8 +228,9 @@ C and jump back if hc facility entered in error.
         helptopic='zone_htc_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
         clkok=.false.
+        ISTRW=72
   246   CALL EASKSCMD(LTMP,'Zone conv regime file ?',
-     &    ' ','dereference',clkok,72,HFILE,'conv regime file',IER,7)
+     &    ' ','dereference',clkok,ISTRW,HFILE,'conv regime file',IER,7)
         if(clkok)then
           call edisp(iuout,'Canceling conv regime for this zone.')
           LHCCO(ICOMP)='UNKNOWN'
@@ -243,7 +246,7 @@ C and jump back if hc facility entered in error.
             call FINDFIL(LHCCO(ICOMP),XST)
             IF(XST)THEN
               call edisp(iuout,'Reading existing hc regime file...')
-              call ehtcff(LHCCO(ICOMP),IUF,ITRU,IER)
+              call ehtcff(LHCCO(ICOMP),IUF,IER)
             endif
             modcfg=.true.
           else
@@ -2704,9 +2707,9 @@ C CEN 13791 mode sets values for specific locations.
       END
 
 C ******************** EHTCFF ********************
-C EHTCFF reads the convection-calculation control file (usually named *.htc).
+C EHTCFF reads the convection calculation control file (usually named *.htc).
 
-      SUBROUTINE EHTCFF(FILE,IUF,ITRU,IER)
+      SUBROUTINE EHTCFF(FILE,IUF,IER)
 #include "building.h"
 #include "espriou.h"
 C espriou.h provides currentfile.
@@ -2759,7 +2762,6 @@ C Not a recognised file << what error code to return? >>
             goto 390
           endif
         endif
-        call edisp(ITRU,' Opened existing hc control file.')
 
 C Number of control time intervals.
         CALL STRIPC(IUF,OUTSTR,1,num1,1,'htc periods',IER)

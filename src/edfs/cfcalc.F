@@ -878,7 +878,7 @@ C            and sets it uniform to the whole CFD domain
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/ICFNOD/ICFD,ICP
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 
@@ -3498,7 +3498,7 @@ C INDBND - Initialize some boundary conditions.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
      &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),
@@ -3699,7 +3699,7 @@ C INOUT - Set up all inlet and outlet conditions.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/ICFNOD/ICFD,ICP
 
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
@@ -3988,7 +3988,7 @@ C fixed in a cell.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/COEF/AP(ntcelx,ntcely,ntcelz),AE(ntcelx,ntcely,ntcelz),
      1            AW(ntcelx,ntcely,ntcelz),AN(ntcelx,ntcely,ntcelz),
      2            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),

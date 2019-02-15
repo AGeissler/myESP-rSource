@@ -81,7 +81,7 @@ C Commons for trace.
 C MITMFS is the max number of times cfd will be invoked using mfs 
 C determined boundary conditions at one time step to attain mutual
 C cfd-mfs convergence.
-      PARAMETER(MITMFS=20)
+      PARAMETER(MITMFS=10)
 
       ICFD=IND
       ICP=ICOMP
@@ -347,6 +347,7 @@ C SURFCONF - Calls CFMNGE each time step there is surface conflation.
       SUBROUTINE SURFCONF(ICOMP)
 #include "cfd.h"
 #include "building.h"
+#include "schedule.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -396,6 +397,7 @@ C To support writing ASCII file.
       LOGICAL areaSSO
       CHARACTER*72 outs
       character ICFDSTR*10,ICPSTR*10
+      character louts*1000,loutsd*1000 
 
 C This subroutine initiates a CFD analysis if (for the given time-step) there
 C is surface conflation between the thermal and CFD domains.
@@ -476,7 +478,7 @@ C decide what to do with the coefficients).
       
 C Save solution information (IFCFD wil be negative if past start-up period).
 C Calculate current simulation timestep. - possibly use to synchornise results.
-        write(6,*) 'about to call cfdlib with ifcfd is',IFCFD(ICP)
+c        write(6,*) 'about to call cfdlib with ifcfd is',IFCFD(ICP)
         if(IFCFD(ICP).lt.0)then
           call cfdlib
 
@@ -515,10 +517,16 @@ C dfv that displays a 3D rendering of the current solution.
                 write(38,'(a,120f9.5)') 'Wf:',(Wf(I,J,K),I=2,NI)
               endif
               if (IEQSV(4).eq.1) then
-                write(38,'(a,120f7.2)') 'Tf:',(Tf(I,J,K),I=2,NI)
+C                write(38,'(a,120f7.2)') 'Tf:',(Tf(I,J,K),I=2,NI)
+                write(louts,'(120f7.2)') (Tf(I,J,K),I=2,NI)
+                call SDELIM(louts,loutsd,'C',IW)
+                write(38,'(2a)') 'Tf: ',loutsd(1:lnblnk(loutsd))
               endif
-              if (IEQSV(5).eq.1) then
-                write(38,'(a,120f7.2)') 'AGEf:',(AGEf(I,J,K),I=2,NI)
+              if (IEQSV(5).eq.1) then  ! to allow occassional 1K seconds.
+C                write(38,'(a,120f8.1)') 'AGEf: ',(AGEf(I,J,K),I=2,NI)
+                write(louts,'(120f8.1)') (AGEf(I,J,K),I=2,NI)
+                call SDELIM(louts,loutsd,'C',IW)
+                write(38,'(2a)') 'AGEf: ',loutsd(1:lnblnk(loutsd))
               endif
               DO ICTM=1,NCTM(ICFD)
                 if (IEQSV(5+ICTM).eq.1) then

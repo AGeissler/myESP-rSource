@@ -48,6 +48,7 @@ C  INSINFO: English description of default insolation options.
 C  VERINFO: Prints vertex/surface list summaries.
 C  SURLIST: takes an list of surfaces (lstsf) returns descriptive
 C           string (sdescr) to be used in headers.
+C  MKVOBJILIST: Populates common VOBJILIST.
 
  
 C ******************** EGOMIN 
@@ -2501,7 +2502,10 @@ C If nmrtsen > 0 and ncub = 0 then reset ncub.
         elseif(WORD(1:13).eq.'*visual_start')then
 
 C Read another line to get the visual entities. There are slightly different
-C formats depending on whether the key is '*vis', '*vis3', 'visp'.
+C formats depending on whether the tag is:
+C *vis  - block perpendicular to the floor
+C *vis3 - block with arbitrary orientation
+C *visp - general 6 sided polygon
    73     CALL STRIPC1K(IUNIT,lkout,99,ND,0,'*vis tags',IER)
           k=0
           CALL EGETP(lkout,K,phrase,'W','visual tag',IER)
@@ -6895,4 +6899,36 @@ C Only give feedback if non-DOS.
       endif
       ierr=1
       return
+      END
+
+C *********** MKVOBJILIST
+C This subroutine populates common VOBJILIST (in geometry.h) for zone
+C iz. This is a list of indices of associated visual entities for
+C each visual object.
+
+C TODO: replace all uses of VOBJLIST with VOBJILIST.
+
+      SUBROUTINE MKVOBJILIST(iz)
+
+#include "building.h"
+#include "geometry.h"
+
+      character t12*12
+
+      if (NBVOBJ(iz).le.0) goto 999
+      if (NBVIS(iz).le.0) goto 999
+      do ivo=1,NBVOBJ(iz)
+        if (NBVOBJLIST(iz,ivo).le.0) CYCLE
+        do ivoe=1,NBVOBJLIST(iz,ivo)
+          t12=VOBJLIST(iz,ivo,ivoe)
+          do ive=1,NBVIS(iz)
+            if (VISNAME(iz,ive).eq.t12) then
+              VOBJILIST(iz,ivo,ivoe)=ive
+              EXIT
+            endif
+          enddo
+        enddo
+      enddo
+
+  999 RETURN
       END

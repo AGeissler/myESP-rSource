@@ -141,6 +141,7 @@ C Name of current application
       logical libheading ! have we printed report heading (library name etc).
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
+      integer ISTRW
 
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -490,18 +491,15 @@ C Read the plant configuration file.
 
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
-            CALL EASKF(longtmp,' ',
-     &        ' Corresponding system configuration file name ?',
-     &        96,' ','configuration file',IER,nbhelp)
+            ISTRW=96
           elseif(iglib.eq.2)then
-            CALL EASKF(longtmp,' ',
-     &        ' Corresponding system configuration file name ?',
-     &        144,' ','configuration file',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(longtmp,' ',
-     &        ' Corresponding system configuration file name ?',
-     &        96,' ','configuration file',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(longtmp,' ',
+     &      'Corresponding system configuration file name?',
+     &      ISTRW,' ','configuration file',IER,nbhelp)
           if(ier.eq.-3) goto 902  ! cancel detected pass back -3 in ier.
 
           call fdroot(longtmp,path,LCFGF)

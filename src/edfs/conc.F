@@ -539,7 +539,7 @@ C always of the zero-gradient type.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
      &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),

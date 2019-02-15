@@ -534,7 +534,7 @@ C Find CFD point closest to MRT sensor.
             DY=(DXC(IMRT)/2.)*SA+(DYC(IMRT)/2.)*CA
             CALL CFDTRANS(2,XOC(IMRT)+DX,YOC(IMRT)+DY,
      &                      ZOC(IMRT)+DZC(IMRT)/2,XC,YC,ZC,IER)
-            CALL FDCFDPT(XC,YC,ZC,IIX,IIY,IIZ,IER)
+            CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
             if (IER.ne.0) then
               call edisp(iuout,' Problem finding CFD point')
             else
@@ -1067,7 +1067,7 @@ C the top face of the MRT sensor.
 
       CALL GRIDGEO
       CALL CFDTRANS(2,HI(1),HI(2),HI(3),XC,YC,ZC,IER)
-      CALL FDCFDPT(XC,YC,ZC,IHI(1),IHI(2),IHI(3),IER)
+      CALL FDCFDPT(1,XC,YC,ZC,IHI(1),IHI(2),IHI(3),IER)
 
       if (IER.ne.0) then
         write(outs,'(a)')
@@ -1233,88 +1233,6 @@ c          write(6,*)'izend(ICFD)',izend(ICFD)
       return
       end
 
-C ****** FDCFDPT
-C FDCFDPT finds the CFD grid point that most closely matches coordinates
-C Xin, Yin, Zin. It returns the indices of this grid point in IU, IV and
-C IW.
-      SUBROUTINE FDCFDPT(Xin,Yin,Zin,IU,IV,IW,IER)
-
-#include "building.h"
-#include "cfd.h"      
-
-      COMMON/OUTIN/IUOUT,IUIN
-      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
-      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
-     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
-     2            DZHP(ntcelz),DZPL(ntcelz),
-     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
-     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
-
-      REAL Xin,Yin,Zin,prev
-      INTEGER IU,IV,IW
-
-      IU=0;IV=0;IW=0
-
-      prev=-999.
-      do I=1,NI
-        if (XP(I).ge.Xin) then
-          if (abs(XP(I)-Xin).lt.abs(prev-Xin)) then
-            IU=I
-          else
-            IU=I-1
-          endif
-          exit
-        endif
-        prev=XP(I)
-      enddo
-
-      if (IU.eq.0) then
-        CALL EDISP(IUOUT,' FDCFDPT: Cannot find X grid point')
-        IER=1
-        return
-      endif
-
-      prev=-999.
-      do J=1,NJ
-        if (YP(J).ge.Yin) then
-          if (abs(YP(J)-Yin).lt.abs(prev-Yin)) then
-            IV=J
-          else
-            IV=J-1
-          endif
-          exit
-        endif
-        prev=YP(J)
-      enddo
-
-      if (IV.eq.0) then
-        CALL EDISP(IUOUT,' FDCFDPT: Cannot find Y grid point')
-        IER=1
-        return
-      endif
-
-      prev=-999.
-      do K=1,NK
-        if (ZP(K).ge.Zin) then
-          if (abs(ZP(K)-Zin).lt.abs(prev-Zin)) then
-            IW=K
-          else
-            IW=K-1
-          endif
-          exit
-        endif
-        prev=ZP(K)
-      enddo
-
-      if (IW.eq.0) then
-        CALL EDISP(IUOUT,' FDCFDPT: Cannot find Z grid point')
-        IER=1
-        return
-      endif
-
-      return
-      end
-
 C ****** VERTdT
 C VERTdT finds the vertical air temperature difference between the top
 C and bottom of an MRT sensor. To do this it needs CFD results in the
@@ -1366,10 +1284,10 @@ C Get coordinates in the center of top and bottom faces of MRT sensor.
 
       CALL GRIDGEO
       CALL CFDTRANS(2,HI(1),HI(2),HI(3),XC,YC,ZC,IER)
-      CALL FDCFDPT(XC,YC,ZC,IHI(1),IHI(2),IHI(3),IER)
+      CALL FDCFDPT(1,XC,YC,ZC,IHI(1),IHI(2),IHI(3),IER)
 
       CALL CFDTRANS(2,LO(1),LO(2),LO(3),XC,YC,ZC,IER)
-      CALL FDCFDPT(XC,YC,ZC,ILO(1),ILO(2),ILO(3),IER)
+      CALL FDCFDPT(1,XC,YC,ZC,ILO(1),ILO(2),ILO(3),IER)
 
       if (IER.ne.0) then
         write(outs,'(a)')

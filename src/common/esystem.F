@@ -902,7 +902,7 @@ C embedded in the configuration file.
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:8).eq.'*radcore')then
-          CALL EGETWI(OUTSTR,K,radcores,1,4,'F','radiance cores',IER)
+          CALL EGETWI(OUTSTR,K,radcores,1,4,'W','radiance cores',IER)
           IF(IER.NE.0)goto 1
           goto 34
         elseif(WORD(1:4).eq.'*ies')then
@@ -2310,19 +2310,33 @@ C iscfdactivate to -1. This can then be used as a test for such cases.
             CALL EGETRM(OUTSTR,K,selres(iss),'W','elect res',IER)
           elseif(WORD(1:6).eq.'*scfdr')then
 
-C Read cfd assessment attributes and then the file name.
-C isicfdys(iss),isicfdyf(iss),scftims(iss),scftimf(iss)
-            CALL EGETWI(OUTSTR,K,iscfdactivate(iss),0,1,'W',
+C Read cfd assessment attributes and then the cfd results file name.
+C isicfdys(iss),isicfdyf(iss),scftims(iss),scftimf(iss). If 
+C iscfdactivate(iss) is -1 then ignore CFD domain and do not
+C check for valid calendar periods or bother to scan file name.
+            CALL EGETWI(OUTSTR,K,iscfdactivate(iss),-1,1,'W',
      &        'activate',IER)
-            CALL EGETWI(OUTSTR,K,isicfdys(iss),1,365,'W',
+            if(iscfdactivate(iss).eq.-1)then
+              CALL EGETWI(OUTSTR,K,isicfdys(iss),1,365,'-',
      &        'cfd start',IER)
-            CALL EGETWI(OUTSTR,K,isicfdyf(iss),1,365,'W',
+              CALL EGETWI(OUTSTR,K,isicfdyf(iss),1,365,'-',
      &        'cfd finish',IER)
-            CALL EGETWR(OUTSTR,K,scftims(iss),1.0,25.0,'W',
+              CALL EGETWR(OUTSTR,K,scftims(iss),1.0,25.0,'-',
      &        'cfd start time',IER)
-            CALL EGETWR(OUTSTR,K,scftimf(iss),1.0,25.0,'W',
+              CALL EGETWR(OUTSTR,K,scftimf(iss),1.0,25.0,'-',
      &        'cfd finish time',IER)
-            CALL EGETRM(OUTSTR,K,scfdres(iss),'W','cfd res',IER)
+              scfdres(iss)='UNKNOWN'
+            else
+              CALL EGETWI(OUTSTR,K,isicfdys(iss),1,365,'W',
+     &        'cfd start',IER)
+              CALL EGETWI(OUTSTR,K,isicfdyf(iss),1,365,'W',
+     &        'cfd finish',IER)
+              CALL EGETWR(OUTSTR,K,scftims(iss),1.0,25.0,'W',
+     &        'cfd start time',IER)
+              CALL EGETWR(OUTSTR,K,scftimf(iss),1.0,25.0,'W',
+     &        'cfd finish time',IER)
+              CALL EGETRM(OUTSTR,K,scfdres(iss),'W','cfd res',IER)
+            endif
           elseif(WORD(1:5).eq.'*spvr')then
             continue
           elseif(WORD(1:8).eq.'*end_set')then

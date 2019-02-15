@@ -182,12 +182,12 @@ C since not all compilers use the same default.
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iside,isize,ifont     ! passed to viewtext
-      integer iicol
+      integer iicol,iix,iiy,iix1,iiy1
       integer iigl,iigr,iigt,iigb,iigw,iigwh
 #else
       integer*8 igwid,igheight  ! for use with axiscale
       integer*8 iside,isize,ifont     ! passed to etplot
-      integer*8 iicol
+      integer*8 iicol,iix,iiy,iix1,iiy1
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
 #endif
 
@@ -309,13 +309,13 @@ c and 'N' stands for node in this component.
  2010     format('C',i2,',n',i2,a1)
           ncoord(i,1,1)=igl+int((0+xadd)*xsc)
           ncoord(i,1,2)=igb-int((value+yadd)*ysc)
-          iy= ncoord(i,1,2)
-          ix= ncoord(i,1,1)+3
+          iiy= ncoord(i,1,2)
+          iix= ncoord(i,1,1)+3
           if(colok)then
             iicol=i
             call winscl('z',iicol)
           endif
-          call wstxpt(ix,iy,clabel)
+          call textatxy(iix,iiy,clabel,'z',iicol)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
@@ -330,8 +330,12 @@ c else start plotting.
           ti=float(icount)/float(instpp)
           ncoord(i,2,1)=igl+int((ti+xadd)*xsc)
           ncoord(i,2,2)=igb-int((value+yadd)*ysc)
-          call eline (ncoord(i,1,1),ncoord(i,1,2), lnmvab)
-          call eline (ncoord(i,2,1),ncoord(i,2,2), lndrab)
+          iix1=ncoord(i,1,1); iiy1=ncoord(i,1,2)
+          call eline (iix1,iiy1, lnmvab)
+C          call eline (ncoord(i,1,1),ncoord(i,1,2), lnmvab)
+          iix1=ncoord(i,2,1); iiy1=ncoord(i,2,2)
+          call eline (iix1,iiy1, lndrab)
+C          call eline (ncoord(i,2,1),ncoord(i,2,2), lndrab)
           ncoord(i,1,1)=ncoord(i,2,1)
           ncoord(i,1,2)=ncoord(i,2,2)
           if(colok)then

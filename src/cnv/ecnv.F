@@ -3688,6 +3688,7 @@ C Passed in parameters.
       character tcname*248   ! for editing image notes
       character WORDS(12)*32,testw*32
       character MODE*4
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -3738,8 +3739,9 @@ C Debug.
         helptopic='cfg_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
         LCFTMP='  '
+        ISTRW=32
         CALL EASKSCMD(LCFTMP,' ','Model root name?',
-     &    'cancel',clkok,32,'new_model','model root name',IER,nbhelp)
+     &    'cancel',clkok,ISTRW,'new_model','model root name',IER,nbhelp)
         call usrmsg(' ',' ','-')
         if(clkok) return         ! User selected cancel.
 

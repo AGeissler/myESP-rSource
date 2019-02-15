@@ -61,6 +61,7 @@ C Electrical network results library details.
      &EFILEABS*144
       LOGICAL OK,dok,XST
       integer NITMS,INO ! max items and current menu item
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -84,7 +85,8 @@ C << to be done >>
       IF(LLEN.LT.72)LLEN=72
       helptopic='res_electrical_res_lib'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKF(ltmp,'Electrical library name ? ',' ',LLEN,DFILE,
+      ISTRW=LLEN
+      CALL EASKF(ltmp,'Electrical library name ? ',' ',ISTRW,DFILE,
      &        'electrical library file',IER,nbhelp)
       ELRFLNAM=LTMP(1:LNBLNK(LTMP))
       CALL USRMSG(' ',' ','-')

@@ -99,6 +99,7 @@ C Explicit use of pophelp required because of dynamic generation.
       CHARACTER LOUTSTR*1000
       integer IPDL,INODA,nitms,INO  ! max items and current menu item
       integer iclkok,lntdfdes
+      integer ISTRW
 
 #ifdef OSI
       integer impx,impy,imw  ! for use with vwmenu
@@ -638,8 +639,10 @@ C Use explicit help from the temporal data.
           endif
           edited = .true.
         else
+          ISTRW=72
           CALL EASKSCMD(LINE,GDHDRT(3)(1:68),' ',
-     &      '*edit:alts',clkok,72,' 0 0 0','tabu:alts edit',IER,NHELP)
+     &      '*edit:alts',clkok,ISTRW,' 0 0 0','tabu:alts edit',
+     &      IER,NHELP)
           if(clkok)then
 
 C A text field so display all of the generic alternatives for selection.

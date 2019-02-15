@@ -64,6 +64,7 @@ C will have been defined prior to calling edmrt.
       integer icni,icnj  ! connection numbers for pair of surfaces.
       integer MVERT,IVERT ! max items and current menu item
       logical newgeo
+      integer ISTRW
 
 C Passed parameters for cfgtogg
 #ifdef OSI
@@ -258,8 +259,9 @@ C and no MRT sensors.
       if(IVF(ICOMP).eq.1)then
         LTMP=LVIEW(ICOMP)
         clkok=.false.
+        ISTRW=72
    46   CALL EASKSCMD(LTMP,'Zone viewfactor file? ',' ',
-     &    'dereference',clkok,72,VFILE,'viewfactor file',IER,nbhelp)
+     &    'dereference',clkok,ISTRW,VFILE,'viewfactor file',IER,nbhelp)
         if(clkok)then
           LVIEW(ICOMP)='UNKNOWN'
           IVF(ICOMP)=0
@@ -326,8 +328,9 @@ C No mrt file referenced so offer default name as well as an option
 C to back out of the facility.
         LTMP=VFILE
         clkok=.false.
+        ISTRW=72
    47   CALL EASKSCMD(LTMP,'Zone viewfactor file? ',' ',
-     &    'dereference',clkok,72,VFILE,'viewfactor file',IER,nbhelp)
+     &    'dereference',clkok,ISTRW,VFILE,'viewfactor file',IER,nbhelp)
         if(clkok)then
           return
         else

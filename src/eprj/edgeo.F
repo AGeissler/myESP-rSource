@@ -2279,7 +2279,7 @@ C out the file.
             IF(IHC(ICOMP).EQ.1)THEN
               call FINDFIL(LHCCO(ICOMP),XST)
               IF(XST)THEN
-                call ehtcff(LHCCO(ICOMP),IFIL+2,ITRU,IER)
+                call ehtcff(LHCCO(ICOMP),IFIL+2,IER)
                 if(ier.eq.0)then
 
 C Fill with default for inside face.
@@ -2328,7 +2328,7 @@ C out the file.
             IF(IHC(ICOMP).EQ.1)THEN
               call FINDFIL(LHCCO(ICOMP),XST)
               IF(XST)THEN
-                call ehtcff(LHCCO(ICOMP),IFIL+2,ITRU,IER)
+                call ehtcff(LHCCO(ICOMP),IFIL+2,IER)
                 if(ier.eq.0)then
 
 C Fill with high hc for inside face.
@@ -4789,7 +4789,7 @@ C If horizontal relax the azimuth test.
 
             if(closeenough)then
               lnsa=lnblnk(ssname(ij))
-              write(outs,'(4a,i4,a,f6.2,a,f6.2,a,f6.2,a,f4.2,a)')
+              write(outs,'(4a,i4,a,f7.3,a,f6.2,a,f6.2,a,f4.2,a)')
      &          ssname(ij)(1:lnsa),' in ',
      &          zname(ic1(ij))(1:lnzname(ic1(ij))),
      &          ' conn index ',ij,
@@ -7213,7 +7213,7 @@ C Alter vertex list by deleting/ copy / replicate / editing.
         if(IRT.eq.1.or.IRT.eq.3.or.IRT.eq.4.or.IRT.eq.7)then
 
 C Ask if fine tolerance to be used.
-          write(outs,'(a,f6.3,a)') 
+          write(outs,'(a,f7.4,a)') 
      &      'Current tolerance for vertex matching is:',CACC,'m.'
           CALL EASKABC(outs,'options:','accept tolerance',
      &      'use fine tolerances','cancel',INVT,nbhelp)
@@ -7659,6 +7659,7 @@ C Strings for surface attributes to pass to insrec.
       integer mnulen,iwhich2   ! multi column lines
       logical greyok,odd,nozeros   ! for display of vertex info
       integer icount,iecount,ibaseedge,ibasecount ! for looping
+      integer istrw
       
 #ifdef OSI
       integer iix,iiy,iicol,iixc,iiyc,iid1,iid2,iid3,iid4,ibsize
@@ -7810,7 +7811,7 @@ C Check vertex topology.
         call tstamp('>','PRJ: check zone vertex topology')
 
 C Echo the current tolerances and ask if small features.
-        write(outs,'(2a,f6.3,a)') 'If import has small features...',
+        write(outs,'(2a,f7.4,a)') 'If import has small features...',
      &    ' Current tolerance for vertex matching is:',CACC,'m.'
         CALL EASKABC(outs,'options:','accept tolerance',
      &    'use fine tolerances','cancel',INVT,nbhelp)
@@ -8244,7 +8245,7 @@ C << ?? make use of rsname etc in interactive use?? >>
         elseif(IRT.eq.5)then
 
 C Echo the current tolerances and ask if small features.
-          write(outs,'(2a,f6.3,a)') 'If import has small features...',
+          write(outs,'(2a,f7.4,a)') 'If import has small features...',
      &      ' Current tolerance for vertex matching is:',CACC,'m.'
           CALL EASKABC(outs,'options:','accept tolerance',
      &      'use fine tolerances','cancel',INVT,nbhelp)
@@ -8887,8 +8888,9 @@ C should be kept up to date with MV changes. t248 is actually 496 char
         WRITE(t248,'(124I4)')(JVN(IFOC,j),J=1,nv)
         write(message,'(2a)') 'Vertices associated with ',
      &    SNAME(ICOMP,IFOC)
+        istrw=72
         CALL EASKS496(t248,message,
-     &    ' ',72,' 1  2  3  4  ','associated vertices',IIER,nbhelp)
+     &    ' ',istrw,' 1  2  3  4  ','associated vertices',IIER,nbhelp)
         NV = iCountWords(t248)
         K=0
         DO 94 J=1,NV

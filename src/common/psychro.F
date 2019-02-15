@@ -300,7 +300,7 @@ C First guess is adiabatic saturation temperature.
       IF(GS1.LE.GS.AND.TINC.LT.0.0)TINC=-0.5*TINC
       T1=T1+TINC
       GDIFF=GS1-GS
-      IF(ABS(GDIFF).LT.0.000005)goto 1
+      IF(ABS(GDIFF).LT.0.00001)goto 1
       IF(ABS(TINC).GT.0.005)goto 10
       TINC=0.25
       goto 10

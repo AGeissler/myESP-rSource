@@ -158,6 +158,8 @@ C Record ACC actions (end).
         elseif(ITCtype(L,ICFD).eq.14)then
           SSB(L,ICFD)=0.5*(TFS(ICP,IS)+TPS(ICP,IS))
           SSBHC(L,ICFD)=HCIF(ICP,IS)
+        elseif(ITCtype(L,ICFD).eq.0)then
+          call edisp(iuout,' Error: zero BC type')
         else
           call edisp(iuout,' Error: invalid BC type')
         endif

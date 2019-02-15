@@ -157,6 +157,7 @@ C ******* Default views formation.
       character trvewsh*10,mrvewsh*30
       integer NITEMS,INO  ! max items and current menu item
       integer iglib
+      integer ISTRW
 
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
@@ -266,15 +267,14 @@ C name with the full path.
         L144='../rad/'
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(L144,' rvu view file?',' ',96,dtmp96,
-     &      'view file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(L144,' rvu view file?',' ',144,dtmp96,
-     &      'view file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(L144,' rvu view file?',' ',96,dtmp96,
-     &      'view file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(L144,' rvu view file?',' ',ISTRW,dtmp96,
+     &    'view file name',IER,nbhelp)
 
         IF(L144(1:2).EQ.'  '.or.L144(1:4).eq.'UNKN')GOTO 142
         call st2file(L144,lltmp)

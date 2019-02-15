@@ -52,7 +52,7 @@
 '    or sum of direct+diffuse KJ/m2 integer. For the latter'
 '    two choices you are also asked for the actual longitude'
 '    and the longitude difference and to select a method to'
-'    use.'
+'    use to estimate the diffuse fraction.'
 '  wind speed - m/s real m/s int tenths m/s int or'
 '    knots real or integer
 '  wind direction - degrees from north real or integer'

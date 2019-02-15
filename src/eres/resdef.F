@@ -73,6 +73,7 @@ C Simulator parameters.
       character EFILEABS*144
       character path*72,lcmdfl*144,ltmpc*144,lpath*72
       logical XST
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -108,22 +109,19 @@ C name with the full path.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(ltmpc,' Library name ? ',' ',96,DEFRLB,
-     &        'library file',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(ltmpc,' Library name ? ',' ',124,DEFRLB,
-     &        'library file',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(ltmpc,' Library name ? ',' ',144,DEFRLB,
-     &        'library file',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(ltmpc,' Library name ? ',' ',144,DEFRLB,
-     &      'library file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(ltmpc,' Library name ? ',' ',96,DEFRLB,
-     &      'library file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(ltmpc,'Library name?',' ',ISTRW,DEFRLB,
+     &    'library file',IER,nbhelp)
 
 C If user cancel set iftype to -2 and return (assume calling code
 C will act on this.
@@ -787,6 +785,7 @@ C NZNO - zone number of each.
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/DEFLT/IDEFLT
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/SETPIK/NS,NSNO(MNRS),ISETON(MNRS),IMET,IFAFLG(MNRS,MNFA)
       COMMON/ZONPIK/NZ,NZNO(MCOM)
@@ -822,10 +821,14 @@ C array zn for use in the selection list.
       endif
 
 C If only one zone then set NZNO and NZ accordingly.
-      IF(NCOMP.EQ.1)then
-        NZNO(1)=1
-        NZ=1
-        RETURN
+C Disable this behaviour in script mode to maintain consistency for
+C automation.
+      IF(MMOD.ne.-6)THEN
+        IF(NCOMP.EQ.1)then
+          NZNO(1)=1
+          NZ=1
+          RETURN
+        endif
       endif
 
 C Otherwise select the zones from a list of zone names.
@@ -941,6 +944,7 @@ C longtmp is the model configuration file with full path.
       CHARACTER NAME*6,longtmp*144
       character outs*124,znpad*15,path*72,MODE*4
       character louts*248
+      integer ISTRW
       
       logical XST,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical dmdsok  ! for dispersed demands
@@ -1246,18 +1250,15 @@ C If using X11 assume that the full path is less than 96 chars
 C but if using GTK then we need the full length to avoid truncation.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(longtmp,' ',
-     &      ' Corresponding system configuration file name ? ',
-     &      96,' ','configuration file',IER,nbhep)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(longtmp,' ',
-     &      ' Corresponding system configuration file name ? ',
-     &      144,' ','configuration file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(longtmp,' ',
-     &      ' Corresponding system configuration file name ? ',
-     &      96,' ','configuration file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(longtmp,' ',
+     &    'Corresponding system configuration file name?',
+     &    ISTRW,' ','configuration file',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if (longtmp.eq.' ') goto 45
@@ -1338,15 +1339,14 @@ C If using X11 assume that the full path is less than 96 chars
 C but if using GTK then we need the full length to avoid truncation.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(longtmp,' Model configuration file ?',' ',96,
-     &      DFCFG,'config file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(longtmp,' Model configuration file ?',' ',144,
-     &      DFCFG,'config file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(longtmp,' Model configuration file ?',' ',96,
-     &      DFCFG,'config file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(longtmp,'Model configuration file?',' ',ISTRW,
+     &    DFCFG,'config file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if (longtmp(1:2).ne.'  ') GOTO 289
@@ -1380,15 +1380,14 @@ C If using X11 assume that the full path is less than 96 chars
 C but if using GTK then we need the full length to avoid truncation.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(longtmp,' ',' Climate file name ? ',
-     &      96,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(longtmp,' ',' Climate file name ? ',
-     &      144,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(longtmp,' ',' Climate file name ? ',
-     &      96,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(longtmp,' ','Climate file name?',
+     &    ISTRW,DCLIM,'climate file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if(longtmp(1:2).ne.'  '.and.longtmp(1:4).ne.'UNKN')then

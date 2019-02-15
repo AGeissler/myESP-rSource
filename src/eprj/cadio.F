@@ -1481,7 +1481,7 @@ C User selected an exemplar, attempt to access it.
               call egetrm(outstr,K,exemplar,'W','name',IER)
               if(iglib.eq.2.or.iglib.eq.3)then
                 call edisp(iuout,'  ')
-                call edisp(iuout,'Examplar model is:')  ! echo if gtk
+                call edisp(iuout,'Exemplar model is:')  ! echo if gtk
                 call edisp(iuout,exemplar)
               endif
 

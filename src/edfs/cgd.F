@@ -1340,7 +1340,7 @@ C VAO3D - draws the air openings - highlighting the chosen one.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
@@ -1361,7 +1361,7 @@ C Check in graphics mode.
 C Draw round solid boundaries and last character of label.
       do 70 Iaop=1,NOPEN(ICFD)
 c        write (outs,'(i10)') IWOPEN(Iaop,ICFD)
-        write (outs,'(i10)') IVOLF(IVOLN(Iaop,ICFD),ICFD)
+        write (outs,'(i10)') IVOLF(IVOLNOP(Iaop,ICFD),ICFD)
         write (LLOCAT,'(a)') outs(lnblnk(outs):lnblnk(outs))
         K=0
         call EGETWI(LLOCAT,K,ILOCAT,1,6,'F',
@@ -1443,8 +1443,8 @@ C Label in center of boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          write (temp,'(a)')VOLNAME(IVOLN(Iaop,ICFD),ICFD)
-     &                       (1:LNBLNK(VOLNAME(IVOLN(Iaop,ICFD),ICFD)))
+          write (temp,'(a)')VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)
+     &      (1:LNBLNK(VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)))
           iicol=0
           call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
@@ -1526,8 +1526,8 @@ C Label in center of boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          write (temp,'(a)')VOLNAME(IVOLN(Iaop,ICFD),ICFD)
-     &                       (1:LNBLNK(VOLNAME(IVOLN(Iaop,ICFD),ICFD)))
+          write (temp,'(a)')VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)
+     &      (1:LNBLNK(VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)))
           iicol=0
           call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
@@ -1608,8 +1608,8 @@ C Label in center of boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          write (temp,'(a)')VOLNAME(IVOLN(Iaop,ICFD),ICFD)
-     &                       (1:LNBLNK(VOLNAME(IVOLN(Iaop,ICFD),ICFD)))
+          write (temp,'(a)')VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)
+     &      (1:LNBLNK(VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)))
           iicol=0
           call textatxy(iix,iiy,temp,'-',iicol)
           call forceflush()
@@ -2317,6 +2317,12 @@ C for CFD visualisation.
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
 
+C Turn off building grid and origin, but preserve global settings.
+      ITORGP=ITORG
+      ITORG=1
+      ITGRDP=ITGRD
+      ITGRD=1
+
 C Check initialisation.
 C INITD is a 6 character integer string composed of ICFD and ICP, each
 C spanning 3 characters and padded with 0s.
@@ -2398,6 +2404,10 @@ C Draw title.
       MODIFYVIEW=.FALSE.
       MODLEN=.FALSE.
       MODBND=.FALSE.
+
+C Restore global settings.
+      ITORG=ITORGP
+      ITGRD=ITGRDP
 
  999  return
       end

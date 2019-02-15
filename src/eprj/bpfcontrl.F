@@ -91,6 +91,7 @@ C ipeerptbk is pointer from position in display to day type.
       integer IW   ! for radio button
       integer MVERT,IVERT ! max items and current menu item
       logical CFCfilexists,CFCcontrolOK
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -588,8 +589,9 @@ C Toggle focus
 
 C Edit project level description.
         t248=ctldoc
+        ISTRW=72
         CALL EASKS248(t248,' ','Control system description?',
-     &    72,'Base case control','overall control desc',IER,nbhelp)
+     &    ISTRW,'Base case control','overall control desc',IER,nbhelp)
         if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')ctldoc=t248
         if(ctldoc(1:5).EQ.'NONE ')then
           if(IMFS.eq.4) IMFS=0
@@ -604,39 +606,46 @@ C Edit project level description.
 C Edit building/plant/flow/global/complex fen. control description.
         if(icfoc.eq.0)then
           t248=znctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ','Zone control description?',
-     &      72,'Zone control','building control descr.',IER,nbhelp)
+     &      ISTRW,'Zone control','building control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')znctldoc=t248
         elseif(icfoc.eq.1)then
           t248=plctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ','Plant control description?',
-     &      72,'Plant control','plant control descr.',IER,nbhelp)
+     &      ISTRW,'Plant control','plant control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')plctldoc=t248
         elseif(icfoc.eq.2)then
           t248=flctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ','Flow control description?',
-     &      72,'Flow control','flow control descr.',IER,nbhelp)
+     &      ISTRW,'Flow control','flow control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')flctldoc=t248
         elseif(icfoc.eq.3)then
           t248=glctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ','Global control description?',
-     &      72,'Global control','global control descr.',IER,nbhelp)
+     &      ISTRW,'Global control','global control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')glctldoc=t248
         elseif(icfoc.eq.4)then
           t248=elctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ','Electrical control description?',
-     &      72,'Electrical control','electrical control descr.',
+     &      ISTRW,'Electrical control','electrical control descr.',
      &      IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')elctldoc=t248
         elseif(icfoc.eq.5)then
           t248=opticdoc
+          ISTRW=72
           CALL EASKS248(t248,' ',' Optical control description?',
-     &      72,'Optical control','optic control descr.',IER,nbhelp)
+     &      ISTRW,'Optical control','optic control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')opticdoc=t248
         elseif(icfoc.eq.6)then
           t248=CFCctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ',' Complex fen. control description?',
-     &      72,'Complex fen. control',
+     &      ISTRW,'Complex fen. control',
      &      'complex fen. control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')CFCctldoc=t248
         endif

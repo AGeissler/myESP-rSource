@@ -105,6 +105,7 @@ C Name of current application
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ic,iwm  ! for radio buttons
       integer NITEM,INO  ! max items and current menu item
+      integer ISTRW
 
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -787,22 +788,19 @@ C name with the full path.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &        ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &        ' ',124,DCLIM,'weather file name',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &        ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &      ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &      ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
+     &    ' ',ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
         IF(LLASCI(1:2).EQ.'  '.or.LLASCI(1:4).eq.'UNKN')GOTO 290
 
 C Cast back to 96 char name.
@@ -855,22 +853,19 @@ C name with the full path.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(LLASCI,'EPW file:',
-     &          ' ',96,DCLIM,'EPW file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(LLASCI,'EPW file:',
-     &          ' ',124,DCLIM,'EPW file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(LLASCI,'EPW file:',
-     &          ' ',144,DCLIM,'EPW file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(LLASCI,'EPW file:',
-     &        ' ',144,DCLIM,'EPW file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(LLASCI,'EPW file:',
-     &        ' ',96,DCLIM,'EPW file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(LLASCI,'EPW file:',
+     &      ' ',ISTRW,DCLIM,'EPW file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3
@@ -912,22 +907,19 @@ C name with the full path.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(LLASCI,'Weather ASCII file:',
-     &          ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(LLASCI,'Weather ASCII file:',
-     &          ' ',124,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(LLASCI,'Weather ASCII file:',
-     &          ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(LLASCI,'Weather ASCII file:',
-     &        ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(LLASCI,'Weather ASCII file:',
-     &        ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(LLASCI,'Weather ASCII file:',
+     &      ' ',ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3
@@ -991,22 +983,19 @@ C name with the full path.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(LLASCI,'Korean XXXH.dat file:',
-     &          ' ',96,DCLIM,'Korean weather file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(LLASCI,' Korean XXXH.dat file:',
-     &          ' ',124,DCLIM,'Korean weather file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(LLASCI,' Korean XXXH.dat file:',
-     &          ' ',144,DCLIM,'Korean weather file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(LLASCI,' Korean XXXH.dat file:',
-     &        ' ',144,DCLIM,'Korean weather file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(LLASCI,' Korean XXXH.dat file:',
-     &        ' ',96,DCLIM,'Korean weather file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(LLASCI,' Korean XXXH.dat file:',
+     &      ' ',ISTRW,DCLIM,'Korean weather file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3
@@ -1060,22 +1049,19 @@ C name with the full path.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(LLASCI,'Column ASCII file:',
-     &          ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(LLASCI,'Column ASCII file:',
-     &          ' ',124,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(LLASCI,'Column ASCII file:',
-     &          ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(LLASCI,'Weather ASCII file:',
-     &        ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(LLASCI,'Weather ASCII file:',
-     &        ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(LLASCI,'Weather ASCII file:',
+     &      ' ',ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3

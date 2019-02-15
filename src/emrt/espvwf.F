@@ -117,6 +117,7 @@ C Name of current application
       character ppath*72,filen*72
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
+      integer ISTRW
 #ifdef OSI
       integer numberofzones ! to pass to updwire rather than ncomp
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -575,22 +576,19 @@ C name with the full path.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(L144,' Model configuration file?',' ',96,DFCFG,
-     &        'config file name',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(L144,' Model configuration file?',' ',124,DFCFG,
-     &        'config file name',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(L144,' Model configuration file?',' ',144,DFCFG,
-     &        'config file name',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(L144,' Model configuration file?',' ',144,DFCFG,
-     &      'config file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(L144,' Model configuration file?',' ',96,DFCFG,
-     &      'config file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(L144,'Model configuration file?',' ',ISTRW,DFCFG,
+     &    'config file name',IER,nbhelp)
 
         IF(L144(1:2).EQ.'  '.or.L144(1:4).eq.'UNKN')GOTO 289
         call st2file(L144,LCMDFL)

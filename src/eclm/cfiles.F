@@ -1458,6 +1458,7 @@ C or passed into clm module).
       character LCMDFL*144,clmdb*144,L144*144,lltmp*144
       character fs*1
       character actreturn*1  ! users preference
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1524,15 +1525,14 @@ C name with the full path.
  291        continue
             iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
             if(iglib.eq.1.or.iglib.eq.3)then
-              CALL EASKF(LCMDFL,'New weather file (esp-r binary):',
-     &         ' ',96,DCLIM,'new weather file',IER,nbhelp)
+              ISTRW=96
             elseif(iglib.eq.2)then
-              CALL EASKF(LCMDFL,'New weather file (esp-r binary):',
-     &         ' ',144,DCLIM,'new weather file',IER,nbhelp)
+              ISTRW=144
             else
-              CALL EASKF(LCMDFL,'New weather file (esp-r binary):',
-     &         ' ',96,DCLIM,'new weather file',IER,nbhelp)
+              ISTRW=96
             endif
+            CALL EASKF(LCMDFL,'New weather file (esp-r binary):',
+     &        ' ',ISTRW,DCLIM,'new weather file',IER,nbhelp)
 
             IF(LCMDFL.EQ.' ')GOTO 291
             IER=0
@@ -1555,15 +1555,14 @@ C name with the full path.
  289      continue
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
-            CALL EASKF(LCMDFL,'Weather file (esp-r binary format):',
-     &        ' ',96,DCLIM,'weather file',IER,nbhelp)
+            ISTRW=96
           elseif(iglib.eq.2)then
-            CALL EASKF(LCMDFL,'Weather file (esp-r binary format):',
-     &        ' ',144,DCLIM,'weather file',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(LCMDFL,'Weather file (esp-r binary format):',
-     &        ' ',96,DCLIM,'weather file',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(LCMDFL,'Weather file (esp-r binary format):',
+     &      ' ',ISTRW,DCLIM,'weather file',IER,nbhelp)
           IF(LCMDFL.EQ.' ')GOTO 289
           IER=0
           rescan=.true.
@@ -1583,22 +1582,19 @@ C name with the full path.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(L144,'Weather file (esp-r binary format):',
-     &          ' ',96,DCLIM,'weather file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(L144,'Weather file (esp-r binary format):',
-     &          ' ',124,DCLIM,'weather file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(L144,'Weather file (esp-r binary format):',
-     &          ' ',144,DCLIM,'weather file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(L144,'Weather file (esp-r binary format):',
-     &        ' ',144,DCLIM,'weather file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(L144,'Weather file (esp-r binary format):',
-     &        ' ',96,DCLIM,'weather file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(L144,'Weather file (esp-r binary format):',
+     &      ' ',ISTRW,DCLIM,'weather file name',IER,nbhelp)
           IF(L144(1:2).EQ.'  '.or.L144(1:4).eq.'UNKN')GOTO 290
           call st2file(L144,LCMDFL)
           IER=0

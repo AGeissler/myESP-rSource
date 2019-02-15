@@ -2224,7 +2224,7 @@ C      (used in the case of curvilinear Z)
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
      &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),
@@ -2376,7 +2376,7 @@ C Air flow openings.
         elseif (IVTYPE(IKV,ICFD).eq.10) then
 C        ltmp='Pressure'
           IOP=IOP+1
-          IVOLN(IOP,ICFD)=IKV
+          IVOLNOP(IOP,ICFD)=IKV
           IWOPEN(IOP,ICFD)=0
           IOPENi(IOP,ICFD)=IVCELLS(IKV,ICFD,1)
           IOPENf(IOP,ICFD)=IVCELLS(IKV,ICFD,2)
@@ -2390,7 +2390,7 @@ C        ltmp='Pressure'
         elseif (IVTYPE(IKV,ICFD).eq.11) then
 C        ltmp='Velocity'
           IOP=IOP+1
-          IVOLN(IOP,ICFD)=IKV
+          IVOLNOP(IOP,ICFD)=IKV
           IWOPEN(IOP,ICFD)=IVOLF(IKV,ICFD)
           IOPENi(IOP,ICFD)=IVCELLS(IKV,ICFD,1)
           IOPENf(IOP,ICFD)=IVCELLS(IKV,ICFD,2)
@@ -2404,7 +2404,7 @@ C        ltmp='Velocity'
         elseif (IVTYPE(IKV,ICFD).eq.12) then
 C        ltmp='Zero gradient'
           IOP=IOP+1
-          IVOLN(IOP,ICFD)=IKV
+          IVOLNOP(IOP,ICFD)=IKV
           IWOPEN(IOP,ICFD)=-IVOLF(IKV,ICFD)
           IOPENi(IOP,ICFD)=IVCELLS(IKV,ICFD,1)
           IOPENf(IOP,ICFD)=IVCELLS(IKV,ICFD,2)
@@ -2416,7 +2416,7 @@ C        ltmp='Zero gradient'
         elseif (IVTYPE(IKV,ICFD).eq.13) then
 C        ltmp='Mass flow'
           IOP=IOP+1
-          IVOLN(IOP,ICFD)=IKV
+          IVOLNOP(IOP,ICFD)=IKV
           IWOPEN(IOP,ICFD)=99
           IOPENi(IOP,ICFD)=IVCELLS(IKV,ICFD,1)
           IOPENf(IOP,ICFD)=IVCELLS(IKV,ICFD,2)
@@ -2947,7 +2947,7 @@ C Passed parameter.
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
       common/grdmax/NTCX,NTCY,NTCZ
 
-      character VOLNAME*12, VCsurf*12,OUTSTR*72,FACE*7,STARST*72
+      character VOLNAME*12, VCsurf*12,OUTSTR*96,FACE*7,STARST*72
       INTEGER IXZST(NTCELX,NTCELZ),IXYHH(NTCELX,NTCELY)
       INTEGER IYZET(NTCELY,NTCELZ),IXZNT(NTCELX,NTCELZ)
       INTEGER IXYLL(NTCELX,NTCELY),IYZWT(NTCELY,NTCELZ)
@@ -3114,18 +3114,16 @@ C North and South facing boundary conditions
       DO 311 IX=1,NTCX
         DO 312 IZ=1,NTCZ
           IF(IXZST(IX,IZ).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # x=',IX,
-     &      ' and cell # z=',IZ,' are not defined as boundary '
-            STARST='conditions facing South or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # x=',IX,
+     &      ' and cell # z=',IZ,' are not defined as boundary ',
+     &      'conditions facing South or defined more than once '
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
           IF(IXZNT(IX,IZ).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # x=',IX,
-     &      ' and cell # z=',IZ,' are not defined as boundary'
-            STARST='conditions facing North or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # x=',IX,
+     &      ' and cell # z=',IZ,' are not defined as boundary ',
+     &      'conditions facing North or defined more than once.'
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
  312    CONTINUE
  311  CONTINUE
@@ -3134,18 +3132,16 @@ C East and West facing boundary conditions
       DO 411 IY=1,NTCY
         DO 412 IZ=1,NTCZ
           IF(IYZWT(IY,IZ).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # y=',IY,
-     &      ' and cell # z=',IZ,' are not defined as boundary'
-            STARST='conditions facing West or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # y=',IY,
+     &      ' and cell # z=',IZ,' are not defined as boundary ',
+     &      'conditions facing West or defined more than once.'
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
           IF(IYZET(IY,IZ).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # y=',IY,
-     &      ' and cell # z=',IZ,' are not defined as boundary'
-            STARST='conditions facing East or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # y=',IY,
+     &      ' and cell # z=',IZ,' are not defined as boundary ',
+     &      'conditions facing East or defined more than once'
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
  412    CONTINUE
  411  CONTINUE
@@ -3154,18 +3150,16 @@ C High and Low facing boundary conditions
       DO 511 IX=1,NTCX
         DO 512 IY=1,NTCY
           IF(IXYLL(IX,IY).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # x=',IX,
-     &      ' and cell # y=',IY,' are not defined as boundary'
-            STARST='conditions facing Low or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # x=',IX,
+     &      ' and cell # y=',IY,' are not defined as boundary ',
+     &      'conditions facing Low or defined more than once.'
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
           IF(IXYHH(IX,IY).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # x=',IX,
-     &      ' and cell # y=',IY,' are not defined as boundary'
-            STARST='conditions facing High or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # x=',IX,
+     &      ' and cell # y=',IY,' are not defined as boundary ',
+     &      'conditions facing High or defined more than once.'
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
  512    CONTINUE
  511  CONTINUE

@@ -1996,6 +1996,7 @@ C edit.
       character act*1,cstr*248
       dimension rper(30),rperf(30)
       real incr
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2031,8 +2032,9 @@ C Make up an editing string for the start of each period.
    60 CONTINUE
       helptopic='period_start_hour'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      ISTRW=72
       CALL EASKS248(CSTR,' Start time of each period',
-     &  ' ',72,' 0.0  4.0  6.0  8.0 ','time starts',IER,nbhelp)
+     &  ' ',ISTRW,' 0.0  4.0  6.0  8.0 ','time starts',IER,nbhelp)
 
 C Extract the start timings and then sort out the finishes.
       K=0

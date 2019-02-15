@@ -83,7 +83,7 @@ C CLSSEL (36 char) is an array for menu items for the selected class.
       integer listc    ! for looping through classes
       integer NCO,ICO,NITMS,INO,IW  ! max items and current menu item
       integer mclist  ! counter for materials found to be in this category
-
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -360,8 +360,9 @@ C Edit classification name.
 
 C Edit classification documentation.
           t248=matcatdoc(IC)(1:lnblnk(matcatdoc(IC)))
+          ISTRW=72
           CALL EASKS248(t248,'Category notes:',' ',
-     &      72,'this category...','category notes',IER,nbhelp)
+     &      ISTRW,'this category...','category notes',IER,nbhelp)
           if(t248(1:2).ne.'  ')then
             write(matcatdoc(IC),'(a)') t248(1:lnblnk(t248))
             chgdb=.true.
@@ -379,8 +380,9 @@ C Add a classification.
             write(t248,'(a,i2,3a)')
      &        'Category (',matcats,') named ',t32(1:lnblnk(t32)),
      &        ' was inserted manually. No other documentation (yet).'
+            ISTRW=72
             CALL EASKS248(t248,'Category notes:',' ',
-     &        72,'this category...','category notes',IER,nbhelp)
+     &        ISTRW,'this category...','category notes',IER,nbhelp)
             write(matcatdoc(matcats),'(a)') t248(1:lnblnk(t248))
         
             ILNE=matdbitems+1
@@ -1543,8 +1545,9 @@ C Edit classification name.
 
 C Also edit classification documentation.
           t248=cfccatdoc(IC)(1:lnblnk(cfccatdoc(IC)))
+          ISTRW=72
           CALL EASKS248(t248,'Category notes:',' ',
-     &      72,'this category...','category notes',IER,nbhelp)
+     &      ISTRW,'this category...','category notes',IER,nbhelp)
           if(t248(1:2).ne.'  ')then
             write(cfccatdoc(IC),'(a)') t248(1:lnblnk(t248))
             chgdb=.true.
@@ -1939,6 +1942,8 @@ C Passed parameters.
 
 C Local variables for gas materials.
       integer jsur   ! for radio button
+      integer ISTRW
+
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2075,8 +2080,9 @@ C updating the common blocks.
           modify=.true.
         endif
       ELSEIF(IW.EQ.2)THEN
+        ISTRW=72
         CALL EASKS248(tdoc,'Documentation for material','confirm:',
-     &    72,' ','material documentation',IER,nbhelp)
+     &    ISTRW,' ','material documentation',IER,nbhelp)
         if(tdoc(1:2).ne.'  ')then
           modify=.true.
         endif
@@ -2324,6 +2330,7 @@ C.....CFC shade or fill gas layer attributes
 
 C Local variables for gas materials.
       integer jsur   ! for radio button
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2613,8 +2620,9 @@ C updating the common blocks.
           modify=.true.
         endif
       ELSEIF(IW.EQ.2)THEN
+        ISTRW=72
         CALL EASKS248(tdoc,'Documentation for CFC layer','confirm:',
-     &    72,' ','CFC layer documentation',IER,nbhelp)
+     &    ISTRW,' ','CFC layer documentation',IER,nbhelp)
         if(tdoc(1:2).ne.'  ')then
           modify=.true.
         endif
@@ -3838,6 +3846,7 @@ C If this parameter is changed also change it in subroutine EDMLDB
       integer NCO,ICO,NITMS,INO,IW  ! max items and current menu item
       integer mclist  ! counter for materials found to be in this category
       integer listwidth,itemwid  ! keep track of width of longest line in menu.
+      integer ISTRW
 
 #ifdef OSI
       integer impx,impy,iwe
@@ -4110,8 +4119,9 @@ C Edit classification menu.
 
 C Edit classification documentation.
             t248=mlccatdoc(IC)(1:lnblnk(mlccatdoc(IC)))
+            ISTRW=72
             CALL EASKS248(t248,'Category notes:',' ',
-     &      72,'this category...','category notes',IER,nbhelp)
+     &      ISTRW,'this category...','category notes',IER,nbhelp)
             if(t248(1:2).ne.'  ')then
               write(mlccatdoc(IC),'(a)') t248(1:lnblnk(t248))
               chgdb=.true.
@@ -4134,8 +4144,9 @@ C Add a classification.
               write(t248,'(a,i2,3a)')
      &          'Category (',mlccats,') named ',t32(1:lnblnk(t32)),
      &          ' was inserted manually. No other documentation (yet).'
+              ISTRW=72
               CALL EASKS248(t248,'Category notes:',' ',
-     &          72,'this category...','category notes',IER,nbhelp)
+     &          ISTRW,'this category...','category notes',IER,nbhelp)
               write(mlccatdoc(mlccats),'(a)') t248(1:lnblnk(t248))
         
               ILNE=mlcdbitems+1  ! new material for this classification
@@ -4874,8 +4885,9 @@ C Update linked MLC including the name of the original MLC.
               write(mlcmenu(NMLC),'(a)') T32(1:lnblnk(T32))
               lnmlcmenu(NMLC)=lnblnk(mlcmenu(NMLC))  ! remember length
               write(tdoc,'(a)') mlcdoc(NMLC)(1:lnblnk(mlcdoc(NMLC)))
+              ISTRW=72
               CALL EASKS248(tdoc,'Documentation for MLC','confirm:',
-     &          72,' ','MLC documentation',IER,nbhelp)
+     &          ISTRW,' ','MLC documentation',IER,nbhelp)
               write(mlcdoc(NMLC),'(a)') tdoc(1:lnblnk(tdoc))
      
 C Update linked MLC including the name of the original MLC.
@@ -5220,6 +5232,7 @@ C Note: size of MLED supports a dozen layers in a construction.
       real startm, finishm, currentm
       real currentu, deltau, curdeltau ! values for adjust
       real valx, valy, valz  ! for reading range and desired U value
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -6404,8 +6417,9 @@ C Menue entry for this construction.
 
 C MLC Documentation.
         write(tdoc,'(a)') mlcdoc(ifoc)(1:lnblnk(mlcdoc(ifoc)))
+        ISTRW=72
         CALL EASKS248(tdoc,'Documentation for MLC','confirm:',
-     &    72,' ','MLC documentation',IER,nbhelp)
+     &    ISTRW,' ','MLC documentation',IER,nbhelp)
         if(tdoc(1:2).ne.'  ')then
           write(mlcdoc(ifoc),'(a)') tdoc(1:lnblnk(tdoc))
           moddb = .true.

@@ -100,6 +100,12 @@ C     &             1,'F',MCOM,'W',1,'zone number',IER,2)
       LOGICAL OK,DOK
       integer ivalold
 
+#ifdef OSI
+      integer idef,iquery,iiwidth
+#else
+      integer*8 idef,iquery,iiwidth
+#endif
+
       IER=0
 
 C If IVAL is outwith range for failure then set to default.
@@ -136,11 +142,11 @@ C If in graphic mode use graphic faciltiies to edit the number.
         call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
-        iwidth=10
+        iiwidth=10
 
 C Include a cancel option.
         cancel='cancel'
-        CALL openaskcnclbox(PROMP1,PROMP2,cancel,iwidth)
+        CALL openaskcnclbox(PROMP1,PROMP2,cancel,iiwidth)
         WORD=' '
         CALL PHELPW(newnbhelp,IHW,IER)
         call dupphelp(dh)
@@ -801,8 +807,15 @@ C << to the GTK version. It should be extended to support browsing etc.
 
       dimension dh(60)
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,FILEN,DSTR
-      CHARACTER WORD144*144,A*1,LASTS*144,OUTSTR*124,dh*72,outs*124
+      CHARACTER WORD144*144,A*1,LASTS*144,OUTSTR*124,dh*72,outs*124,
+     &          cncl*6
       LOGICAL OK,DOK
+
+#ifdef OSI
+      integer IISTRW,idef,iquery
+#else
+      integer*8 IISTRW,idef,iquery
+#endif
 
    20 IER=0
 
@@ -837,13 +850,15 @@ C If in terminal type 8 use dialogue box.
         call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
-        CALL openaskbox(PROMP1,PROMP2,ISTRW)
+        cncl='cancel'
+        iistrw=int(istrw)
+        CALL openaskcnclbox(PROMP1,PROMP2,cncl,IISTRW)
         WORD144=' '
         CALL PHELPW(newnbhelp,IHW,IER)
         call dupphelp(dh)
         call updhelp(dh,newnbhelp,IHW)
         lmmod=mmod
-        CALL askdialog(FILEN,idef,iquery)
+        CALL askcncldialog(FILEN,cncl,idef,iquery)
 
 C PATCH to restore mmod (occassioanlly gets corrupted in linux)
         if(lmmod.ne.mmod)mmod=lmmod
@@ -869,6 +884,14 @@ C leading blanks from string returned.
           ELSE
             GOTO 20
           ENDIF
+        ELSEIF(idef.EQ.2)THEN
+          IER=-3
+          call usrmsg(' ',' ','-')
+          IMFS=lastmenufont    ! reset to proportional font
+          ITFS=lasttextfont
+          IFS=lastbuttonfont
+          call userfonts(IFS,ITFS,IMFS)
+          RETURN
         ENDIF
         IF(WORD144.EQ.' ')THEN
 
@@ -1233,6 +1256,7 @@ C DSTR is a string to use as a default.
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,STRVAL,DSTR
       character t72*72,t72a*72,t72b*72,t72c*72
       LOGICAL next
+      integer ISTRW
 
 C Find breakpoints near 72 144 216 and 248 characters.
 C If STRVAL null make into a blank string.
@@ -1344,6 +1368,7 @@ C DSTR is a string to use as a default.
       character t72*72,t72a*72,t72b*72,t72c*72,t72d*72
       character t72e*72,t72f*72,t72g*72
       LOGICAL next
+      integer ISTRW
 
 C Find breakpoints near 72 144 216 248  characters.
 C If STRVAL null make into a blank string.
@@ -1525,6 +1550,7 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       CHARACTER*(*) PROMP1,PROMP2,CMD,ERMSG,STRVAL,DSTR
       CHARACTER WORD*96,A*1,LASTS*96,OUTSTR*124,dh*72
       LOGICAL OK,CMDACT,DOK
+      integer ISTRW
 
    20 IER=0
       CMDACT=.FALSE.
@@ -1739,6 +1765,12 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       character outstr248*248
       LOGICAL OK,CNCLACT,DOK
 
+#ifdef OSI
+      integer IISTRW,idef,iquery
+#else
+      integer*8 IISTRW,idef,iquery
+#endif
+
    20 IER=0
       CNCLACT=.FALSE.
       WORD=' '
@@ -1763,7 +1795,8 @@ C If in terminal type 8 use dialogue box.
         call userfonts(IFS,ITFS,IMFS)
         idef=0
         iquery=0
-        CALL openaskcnclbox(PROMP1,PROMP2,CNCL,ISTRW)
+        iistrw=int(istrw)
+        CALL openaskcnclbox(PROMP1,PROMP2,CNCL,IISTRW)
         WORD=' '
         CALL PHELPW(newnbhelp,IHW,IER)
         call dupphelp(dh)
@@ -1934,6 +1967,12 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       CHARACTER*(*) PROMP1,PROMP2,CMD,CMD2,ERMSG,STRVAL,DSTR
       CHARACTER WORD*96,A*1,LASTS*96,OUTSTR*124,dh*72
       LOGICAL OK,DOK
+      integer ISTRW
+#ifdef OSI
+      integer iistrw,idef,iquery
+#else
+      integer*8 iistrw,idef,iquery
+#endif
 
    20 IER=0
       ICACT=0

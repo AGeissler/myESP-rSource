@@ -144,8 +144,10 @@ C Calculating the future skin and core temp
       t_scounter=t_scounter+0.1
       Go to 10
       endif
-      print*, COflux,' ',H2Oexp,' ',H2Oswt,' ',META,' ',
-     &       Tsk(2),' ',Tcr(2),' ',Tamb
+
+C Debug.
+C      print*, COflux,' ',H2Oexp,' ',H2Oswt,' ',META,' ',
+C     &       Tsk(2),' ',Tcr(2),' ',Tamb
       write(33,3330) Tsk(2),Tcr(2)
 
  3330     format(F9.3,F9.3)

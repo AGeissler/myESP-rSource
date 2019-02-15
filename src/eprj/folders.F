@@ -119,6 +119,7 @@ C Calendar.
       character tcname*248   ! for editing image notes
       character WORDS(12)*32,testw*32,folderreadme*96
       character MODE*4
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -170,8 +171,9 @@ C        write(6,*)  ' pregist ',mpath
         helptopic='cfg_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
         LCFTMP='  '
+        ISTRW=32
         CALL EASKSCMD(LCFTMP,' ','Model root name?',
-     &    'cancel',clkok,32,'new_model','model root name',IER,nbhelp)
+     &    'cancel',clkok,ISTRW,'new_model','model root name',IER,nbhelp)
         call usrmsg(' ',' ','-')
         if(clkok) return         ! User selected cancel.
 
@@ -872,8 +874,9 @@ C Provide a listing of the current contents of the ../images folder.
 C Edit image description if newer configuration file.
           if(icfgv.gt.3)then
             tcname=imgdoc(noimg)
+            ISTRW=72
             CALL EASKS248(tcname,' ','Image notes:',
-     &        72,'associated image','image notes',IER,nbhelp)
+     &        ISTRW,'associated image','image notes',IER,nbhelp)
             if(tcname(1:2).ne.'  ')imgdoc(noimg)=tcname
           endif
         endif
@@ -1071,6 +1074,9 @@ C text string tmode='bg' to partially mimic background mode.
      &    ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
         call edisp248(iuout,doit,100)
         call edisp(iuout,'  ')
+        call edisp(iuout,'If restart does not cleanly open the model')
+        call edisp(iuout,'type the command into a DOS cmd terminal or')
+        call edisp(iuout,'click on the model cfg file in that folder.')
         call pausems(1000)
         h(1)='To provide full functionality prj should'
         h(2)='restart in the copied model cfg folder. When'
@@ -1090,7 +1096,7 @@ C DOS cmd window is Xed.
 C Invoke prj in same mode and size and initial start.
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(5a,3i4,2a)')  'cd ',
-     &        cfgpath(1:lnblnk(cfgpath)),'& prj -mode ',tmode,
+     &        cfgpath(1:lnblnk(cfgpath)),' & prj -mode ',tmode,
      &        ' -s ',iappwpc,iappx+10,iappy+10,' -file ',
      &        thecfgis(1:lnblnk(thecfgis))
           else
@@ -1100,7 +1106,7 @@ C Invoke prj in same mode and size and initial start.
 C          write(doit,'(4a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
 C     &      ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
           call edisp248(iuout,doit,100)
-          call pausems(1000)
+          call pausems(2000)
 C << see if we can implement a bg for tmode in esru_lib.F
           tmode='bg'
           call runit(doit,tmode)

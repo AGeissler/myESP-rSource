@@ -84,6 +84,7 @@ C Variables for handling climate file.
       integer llt,lndbp
       logical unixok
       character fs*1
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -410,7 +411,8 @@ C model confituration file.
       elseif(INO.EQ.3)then
         call edisp(iuout,'Current synopsis...')
         t248=ipvsynop
-        CALL EASKS248(t248,'Synopsis',' ',72,
+        ISTRW=72
+        CALL EASKS248(t248,'Synopsis',' ',ISTRW,
      &    'No sysnopsis provided for this model.','synopsis',
      &    IER,nbhelp)
         if(t248(1:2).ne.'  ')ipvsynop=t248

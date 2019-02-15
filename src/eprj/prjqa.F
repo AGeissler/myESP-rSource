@@ -3066,7 +3066,7 @@ C then rescan that zone file with verbose setting.
             elseif(zoneextrainfo.eq.2)then
               call FINDFIL(LHCCO(ivz),XST)
               IF(XST)THEN
-                call ehtcff(LHCCO(ivz),IUF,itu,IER)
+                call ehtcff(LHCCO(ivz),IUF,IER)
                 call listhtc(itu,ivz,IER)
               endif
             endif

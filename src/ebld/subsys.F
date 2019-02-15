@@ -256,6 +256,7 @@ C  difference between the external ambient and surface temperatures.
 #include "CFC_common.h"
 #include "net_flow.h"
 #include "tdf2.h"
+#include "climate.h"
 
       integer lnblnk  ! function definition
 
@@ -562,6 +563,29 @@ C Evaluate the quantity of cloud cover.
 C Atmospheric pressure (fixed, but should depend on site elevation).
       PATM=965.0
 
+C Check if measured cloud cover and atmospheric pressure data is available in climate database.
+      IF(CMXST(8))THEN
+        IF(IHRF.gt.1)THEN
+          CCTOTAL=REAL(CMIVAL(8,IHRF))/10. !total cloud cover fraction
+        ELSE
+          CCTOTAL=REAL(CMIVAL(8,25))/10.  !first hour of next day
+        ENDIF
+      ENDIF
+      IF(CMXST(9))THEN
+        IF(IHRF.gt.1)THEN
+          CCOPAQUE=REAL(CMIVAL(9,IHRF))/10. !opaque cloud cover fraction
+        ELSE
+          CCOPAQUE=REAL(CMIVAL(9,25))/10.  !first hour of next day
+        ENDIF
+      ENDIF   
+      IF(CMXST(10))THEN
+        IF(IHRF.gt.1)THEN
+          PATM=REAL(CMIVAL(10,IHRF))/100.  !convert from Pa to mbar
+        ELSE
+          PATM=REAL(CMIVAL(10,25))/100.  !first hour of next day
+        ENDIF
+      ENDIF
+      
 C Compute the dew point temperature TDP.
       PSAT=6.1078*EXP(17.08085*TF/(234.175+TF))
       IF(ABS(PSAT).LT.1.0E-6)PSAT=1.0E-6
@@ -592,7 +616,19 @@ C Cloudy condition: assume cloud base is at 3km.
 C Radiation from the atmosphere:
         RSKY=SBC*(E0+(1.0-E0)*CLOUDC*GAMMA)*(TF+ZEROK)**4
 
-C Assume the atmosphere is a black body emitter:
+C If opaque and total cloud data is available from climate file, recalculate using
+C Martin-Berdahl (1984).
+        IF(CMXST(8).AND.CMXST(9))THEN  !total and opaque cloud cover data available
+          COPAQUE=CCOPAQUE*exp(-2.0/8.2)   !assume opaque cloud base is 2000m
+          CTHIN=(CCTOTAL-CCOPAQUE)*0.4*exp(-8.0/8.2) !assume thin cloud base is 8000m
+          RSKY=SBC*(E0+(1.0-E0)*(COPAQUE+CTHIN))*(TF+ZEROK)**4
+        ELSEIF(.NOT.CMXST(8).AND.CMXST(9))THEN  !only opaque cloud cover data available
+          COPAQUE=CCOPAQUE*exp(-3.0/8.2)   !assume cloud base is 3000m
+          CTHIN=0.0
+          RSKY=SBC*(E0+(1.0-E0)*(COPAQUE+CTHIN))*(TF+ZEROK)**4
+        ENDIF 
+
+C Assume the atmosphere is a black body emitter.
         TSKY=(RSKY/SBC)**0.25
         TSKYBM=TSKY
       ELSEIF(iExt_longwave_flg.EQ.1)THEN

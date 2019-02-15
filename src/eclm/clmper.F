@@ -416,6 +416,7 @@ C ITM is main item editing menu.
       integer onleft  ! number of left axis
       integer onright ! number of right axis
       integer nitms,INO  ! max items and current menu item
+      integer ISTRW
 
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -653,22 +654,19 @@ C        write(6,*) llasci
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(LLASCI,'Weather file installed location:',
-     &        ' ',96,DCLIM,'weather file location',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(LLASCI,'Weather file installed location:',
-     &        ' ',124,DCLIM,'weather file location',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(LLASCI,'Weather file installed location:',
-     &        ' ',144,DCLIM,'weather file location',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(LLASCI,'Weather file installed location:',
-     &      ' ',144,DCLIM,'weather file location',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(LLASCI,'Weather file installed location:',
-     &      ' ',96,DCLIM,'weather file location',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(LLASCI,'Weather file installed location:',
+     &    ' ',ISTRW,DCLIM,'weather file location',IER,nbhelp)
         IF(LLASCI(1:2).EQ.'  '.or.LLASCI(1:4).eq.'UNKN')GOTO 290
 
 C Cast back to 72 char name.
@@ -1321,22 +1319,19 @@ C call mkitemclimatelist and then close file.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(llitem,' Climatelist entry text block?',
-     &        ' ',96,DFILE,'climatelist entry file',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(llitem,' Climatelist entry text block?',
-     &        ' ',124,DFILE,'climatelist entry file',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(llitem,' Climatelist entry text block?',
-     &        ' ',144,DFILE,'climatelist entry file',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(llitem,' Climatelist entry text block?',
-     &      ' ',144,DFILE,'climatelist entry file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(llitem,' Climatelist entry text block?',
-     &      ' ',96,DFILE,'climatelist entry file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(llitem,' Climatelist entry text block?',
+     &    ' ',ISTRW,DFILE,'climatelist entry file',IER,nbhelp)
         iuf=ifil+1
         CALL EFOPSEQ(iuf,llitem,4,IER)
         call mkitemclimatelist(iuf,ier)

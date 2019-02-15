@@ -756,7 +756,7 @@ C Find CFD point closest to MRT sensor.
             DY=(DXC(IMRT)/2.)*SA+(DYC(IMRT)/2.)*CA
             CALL CFDTRANS(2,XOC(IMRT)+DX,YOC(IMRT)+DY,
      &                      ZOC(IMRT)+DZC(IMRT)/2,XC,YC,ZC,IER)
-            CALL FDCFDPT(XC,YC,ZC,IIX,IIY,IIZ,IER)
+            CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
             if (IER.ne.0) then
               call edisp(iuout,' Problem finding CFD point')
             endif
@@ -831,7 +831,7 @@ C Find CFD plane closest to selected Z height.
             CALL GRIDGEO
             CALL CFDTRANS(2,ZCOG(ICOMP,1),ZCOG(ICOMP,2),ZCOG(ICOMP,3),
      &        XC,YC,ZC,IER)
-            CALL FDCFDPT(XC,YC,ZC,IIX,IIY,IIZ,IER)
+            CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
             if (IER.ne.0) then
               call edisp(iuout,' Problem finding CFD point')
               goto 3
@@ -1340,6 +1340,7 @@ C           a file.
       integer igraphiclib  ! external definition
       character outs*124,ACT*1
       logical is_open,XST
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1382,22 +1383,19 @@ C name with the full path.
    11 iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
       if(iglib.eq.1.or.iglib.eq.3)then
         if(llt.lt.96)then
-          CALL EASKF(ltmpc,'CFD library name?',' ',96,LTMP,
-     &    'CFDresfl name',IER,nbhelp)
+          ISTRW=96
         elseif(llt.ge.96.and.llt.lt.124)then
-          CALL EASKF(ltmpc,'CFD library name?',' ',124,LTMP,
-     &    'CFDresfl name',IER,nbhelp)
+          ISTRW=124
         elseif(llt.ge.124.and.llt.le.144)then
-          CALL EASKF(ltmpc,'CFD library name?',' ',144,LTMP,
-     &    'CFDresfl name',IER,nbhelp)
+          ISTRW=144
         endif
       elseif(iglib.eq.2)then
-        CALL EASKF(ltmpc,'CFD library name?',' ',144,LTMP,
-     &  'CFDresfl name',IER,nbhelp)
+        ISTRW=144
       else
-        CALL EASKF(ltmpc,'CFD library name?',' ',96,LTMP,
-     &  'CFDresfl name',IER,nbhelp)
+        ISTRW=96
       endif
+      CALL EASKF(ltmpc,'CFD library name?',' ',ISTRW,LTMP,
+     &  'CFDresfl name',IER,nbhelp)
       if(ier.eq.-3) goto 925  ! cancel detected, no CFD.
 
       if(ltmpc(1:2).ne.'  '.and.ltmpc(1:4).ne.'UNKN')then
@@ -1440,7 +1438,7 @@ C          write(6,*) IRLEN,ICFDSV,(IEQSV(J),J=1,5+MCTM)
       ELSE
         call usrmsg(' Could not find: ',LTMP,'W')
         path=lpath
-        goto 924
+        goto 11
       ENDIF
       path=lpath
 
@@ -2517,7 +2515,7 @@ C Find CFD grid cell closest to an MRT sensor.
             DY=(DXC(IMRT)/2.)*SA+(DYC(IMRT)/2.)*CA
             CALL CFDTRANS(2,XOC(IMRT)+DX,YOC(IMRT)+DY,
      &                      ZOC(IMRT)+DZC(IMRT)/2,XC,YC,ZC,IER)
-            CALL FDCFDPT(XC,YC,ZC,ilayer,jlayer,klayer,IER)
+            CALL FDCFDPT(1,XC,YC,ZC,ilayer,jlayer,klayer,IER)
             ilayer=ilayer-1
             jlayer=jlayer-1
             klayer=klayer-1
@@ -2551,7 +2549,7 @@ C Find CFD plane closest to selected Z height.
             CALL GRIDGEO
             CALL CFDTRANS(2,ZCOG(ICP,1),ZCOG(ICP,2),ZCOG(ICP,3),
      &        XC,YC,ZC,IER)
-            CALL FDCFDPT(XC,YC,ZC,ilayer,jlayer,klayer,IER)
+            CALL FDCFDPT(1,XC,YC,ZC,ilayer,jlayer,klayer,IER)
 
 C Decrement ?layers, because FDCFDPT includes wall grid points.
             ilayer=ilayer-1
@@ -2869,7 +2867,7 @@ C Ambient RH.
 
       RETURN
 
- 1000 call edisp(iuout,'CFD read data fault. Cannot read file.')
+ 1000 call edisp(iuout,' GOCFDGET: Cannot read CFD results libary.')
       call erpfree(iunit,istat)
       return
 

@@ -85,8 +85,8 @@ C block in this source file has been renamed pcresres to avoid
 C this clash.
       COMMON/MSYSPICK/NPGET,IPGETNO(MSYSRS,8)
       common/pcnam/pcname(mpcom)
-      common/adopdesc/adopdsc(mpcom,15)
-      common/pcresres/ napout(mpcom),apcout(20)
+      common/adopdesc/adopdsc(mpcom,MPCRES)
+      common/pcresres/ napout(mpcom),apcout(MPCRES)
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
       common/ntype/isv(mpcom,mnodec)
@@ -722,7 +722,7 @@ C the best-guess of file names (but with full path).
       COMMON/ABSRESLIB/RFILEABS,PFILEABS,MSTRFILEABS,LAFRESABS
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
-      common/pcresres/ napout(mpcom),apcout(20)
+      common/pcresres/ napout(mpcom),apcout(MPCRES)
       COMMON/LIBOK/IBLIB,IFLIB,ICLIB,IELIB,IPLIB
       common/rpath/path
       
@@ -745,6 +745,7 @@ C Defaults.
       logical XST,ok,dok
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       integer nsim  ! number of simulations
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -777,22 +778,19 @@ C name with the full path.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(ltmp,'Plant library name ? ',' ',96,DFILE,
-     &        'plant library file',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(ltmp,'Plant library name ? ',' ',124,DFILE,
-     &        'plant library file',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(ltmp,'Plant library name ? ',' ',144,DFILE,
-     &        'plant library file',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(ltmp,'Plant library name ? ',' ',144,DFILE,
-     &      'plant library file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(ltmp,'Plant library name ? ',' ',96,DFILE,
-     &      'plant library file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(ltmp,'Plant library name? ',' ',ISTRW,DFILE,
+     &    'plant library file',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if(LTMP(1:2).eq.'  '.or.LTMP(1:4).eq.'UNKN')goto 6
@@ -934,15 +932,14 @@ C If using X11 assume that the full path is less than 96 chars
 C but if using GTK then we need the full length to avoid truncation.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
-            CALL EASKF(longtmp,'Model configuration file ?',' ',96,
-     &        DFCFG,'config file name',IER,nbhelp)
+            ISTRW=96
           elseif(iglib.eq.2)then
-            CALL EASKF(longtmp,'Model configuration file ?',' ',144,
-     &        DFCFG,'config file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(longtmp,'Model configuration file ?',' ',96,
-     &        DFCFG,'config file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(longtmp,'Model configuration file?',' ',ISTRW,
+     &      DFCFG,'config file name',IER,nbhelp)
           if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
           if (longtmp(1:2).ne.'  ') GOTO 289
@@ -1023,15 +1020,14 @@ C If using X11 assume that the full path is less than 96 chars
 C but if using GTK then we need the full length to avoid truncation.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(ltmp,' ',' Climate file name ? ',
-     &      96,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(ltmp,' ',' Climate file name ? ',
-     &      144,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(ltmp,' ',' Climate file name ? ',
-     &      96,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(ltmp,' ','Climate file name? ',
+     &    ISTRW,DCLIM,'climate file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
@@ -1171,7 +1167,7 @@ C naout (number of additional output data) is returned.
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
       common/ntype/isv(mpcom,mnodec)
-      common/adopdesc/adopdsc(mpcom,15)
+      common/adopdesc/adopdsc(mpcom,MPCRES)
       COMMON/C9plus/UCdbNam(MPCOM),CdbCat(MPCOM),CDBDesc(MPCOM)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
 
@@ -1308,7 +1304,7 @@ C data are stored in CSV?M and APCOUT arrays respectively.
       COMMON/LIBRCP/IRCPLP,nblock
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
-      common/pcresres/ napout(mpcom),apcout(20)
+      common/pcresres/ napout(mpcom),apcout(MPCRES)
       logical unixok
 
 C Find data location in result file.
@@ -1470,7 +1466,7 @@ C Simulator parameters.
       common/ntype/isv(mpcom,mnodec)
       common/pcdat/ CSV1M(mnodec),CSV2M(mnodec),CSV3M(mnodec),
      &              NNODE(mpcom),nrecpc(mpcom)
-      common/pcresres/ napout(mpcom),apcout(20)
+      common/pcresres/ napout(mpcom),apcout(MPCRES)
 
 C Flags identifying if results libries are available. =0 no lib, =1 lib exists.
       COMMON/LIBOK/IBLIB,IFLIB,ICLIB,IELIB,IPLIB
@@ -1494,16 +1490,18 @@ C Flags identifying if results libries are available. =0 no lib, =1 lib exists.
       integer IGX  ! see common graf2
       integer iside,isize,ifont     ! passed to viewtext
       integer iupdown,isym,iid1,iid2    ! passed to etplot
-      integer iicol
+      integer iicol,ibsize
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 IGX  ! see common graf2
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iupdown,isym,iid1,iid2    ! passed to etplot
-      integer*8 iicol
+      integer*8 iicol,ibsize
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
       logical colok,ok,dok,unixok
@@ -2085,15 +2083,16 @@ C Empty bins of hits.
 
 C Write graph head and set up axis positions and draw.
         IF(MMOD.EQ.8)THEN
-          iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-          if(iglib.eq.1)then
-            call feedbox(menuchw,2,igfw,igfh)
-            call opengdisp(menuchw,LIMTTY,2,igdw,igdh)
-          endif
 
 C Setup and pass in parameters to win3d.
           iiw1=9; iiw2=30; iiw3=4; iiw4=3; iimenu=menuchw
           iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+          ilf=2; ild=LIMTTY
+          iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+          if(iglib.eq.1)then
+            call feedbox(iimenu,ilf,igfw,igfh)
+            call opengdisp(iimenu,ild,ilf,igdw,igdh)
+          endif
           CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &      iigl,iigr,iigt,iigb,iigw,iigwh)
           igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
@@ -2751,15 +2750,16 @@ C indicate that several flow items (e.g. nodes) are included.
 
 C Write graph head and set up axis positions and draw.
             IF(MMOD.EQ.8)THEN
-              iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-              if(iglib.eq.1)then
-                call feedbox(menuchw,2,igfw,igfh)
-                call opengdisp(menuchw,LIMTTY,2,igdw,igdh)
-              endif
 
 C Setup and pass in parameters to win3d.
               iiw1=9; iiw2=30; iiw3=4; iiw4=3; iimenu=menuchw
               iigl=igl; iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
+              iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+              if(iglib.eq.1)then
+                ilf=2; ild=LIMTTY
+                call feedbox(iimenu,ilf,igfw,igfh)
+                call opengdisp(iimenu,ild,ilf,igdw,igdh)
+              endif
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
               igl=int(iigl); igr=int(iigr);igt=int(iigt);igb=int(iigb)
@@ -2838,6 +2838,7 @@ C histogram metric is selected it will be the first one.
       elseif (MENUTYPE.eq.3) then
 
 C Finally label lines, matching zone line colour if used.
+        ibsize=0
         do 202 I=1,NPGET
           Iax=IPGETNO(I,8)
           call linescale(iigl,Xadd,TSC,iigb,Yadd(Iax),YSC(Iax))
@@ -2848,11 +2849,10 @@ C Finally label lines, matching zone line colour if used.
               if(ICM.gt.nzonec) ICM=IPGETNO(I,2)-nzonec
               if(ICM.gt.nzonec) ICM=IPGETNO(I,2)-nzonec
               iicol=ICM
-              call winscl('z',iicol)
             endif
           endif
           call u2pixel(TIMEold(I),Yold(I),iid1,iid2)
-          call wstxpt(iid1,iid2,t20)
+          call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
@@ -2862,10 +2862,11 @@ C Finally label lines, matching zone line colour if used.
 
 C If there are optional user defined labels draw them.
         if(ngrlbl.gt.0)then
+          ibsize=0; iicol=0
           do 201 ijj=1,ngrlbl
             t24=grlbl(ijj)
             iid1=lblpx(ijj); iid2=lblpy(ijj);
-            call wstxpt(iid1,iid2,t24)
+            call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
  201      continue
         endif
       elseif (MENUTYPE.eq.5) then

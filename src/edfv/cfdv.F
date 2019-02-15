@@ -106,7 +106,7 @@ C For number of openings NOPEN
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
 
 C Saved state of the visualisation
       COMMON/MODVIS/IVISMOD
@@ -186,6 +186,7 @@ C Commons from mocfd.F (RDCFDAT)
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer NITMS  ! max items and current menu item
       integer ISHSB,ISHAO,IFACES
+      integer ISTRW
 
 C length of performance file plus last digits now previous and next.
       integer lncfd3d,cfd3dnow,cfd3dprev,cfd3dnext
@@ -637,8 +638,9 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             IER=0; XST=NXST
             goto 77  ! redraw it
           elseif(iw.eq.3)then
+            ISTRW=72
             CALL EASKF(cfd3dasci,'Domain performance name?','  ',
-     &        72,'cfd3dasci','Domain performance file',IER,nbhelp)
+     &        ISTRW,'cfd3dasci','Domain performance file',IER,nbhelp)
             XST=.FALSE.
             INQUIRE (FILE=cfd3dasci,EXIST=XST)
             IER=0
@@ -652,8 +654,9 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             IER=0; XST=NXST
             goto 77  ! redraw it
           else
+            ISTRW=72
             CALL EASKF(cfd3dasci,'Domain performance name?','  ',
-     &        72,'cfd3dasci','Domain performance file',IER,nbhelp)
+     &        ISTRW,'cfd3dasci','Domain performance file',IER,nbhelp)
             XST=.FALSE.
             INQUIRE (FILE=cfd3dasci,EXIST=XST)
             IER=0
@@ -667,8 +670,9 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             IER=0; XST=PXST
             goto 77  ! redraw it
           else
+            ISTRW=72
             CALL EASKF(cfd3dasci,'Domain performance name?','  ',
-     &        72,'cfd3dasci','Domain performance file',IER,nbhelp)
+     &        ISTRW,'cfd3dasci','Domain performance file',IER,nbhelp)
             XST=.FALSE.
             INQUIRE (FILE=cfd3dasci,EXIST=XST)
             IER=0

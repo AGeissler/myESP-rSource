@@ -911,6 +911,7 @@ C and control of project images.
       character sfile*72,snpfile*72
       character tcname*248   ! for editing image notes
       integer nimgitms,INOI  ! max items and current menu item
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1031,8 +1032,9 @@ C Try to use information gathered from file scan.
 C Edit image documentation if version supports it.
               if(icfgv.gt.3)then
                 tcname=imgdoc(noimg)
+                ISTRW=72
                 CALL EASKS248(tcname,' ','Image notes:',
-     &            72,'associated image','image notes',IER,nbhelp)
+     &            ISTRW,'associated image','image notes',IER,nbhelp)
                 if(tcname(1:2).ne.'  ')imgdoc(noimg)=tcname
               endif
               modsit=.true.
@@ -1059,8 +1061,9 @@ C Edit image documentation if version supports it.
 C Edit image description if version supports it.
               if(icfgv.gt.3)then
                 tcname=imgdoc(noimg)
+                ISTRW=72
                 CALL EASKS248(tcname,' ','Image notes:',
-     &            72,'associated image','image notes',IER,nbhelp)
+     &            ISTRW,'associated image','image notes',IER,nbhelp)
                 if(tcname(1:2).ne.'  ')imgdoc(noimg)=tcname
               endif
               modsit=.true.
@@ -1103,8 +1106,9 @@ C what they selected first.
 C Edit current image description if version allows.
           if(icfgv.gt.3)then
             tcname=imgdoc(inoi-2)
+            ISTRW=72
             CALL EASKS248(tcname,' ','Image notes:',
-     &        72,'associated image','image notes',IER,nbhelp)
+     &        ISTRW,'associated image','image notes',IER,nbhelp)
             if(tcname(1:2).ne.'  ')imgdoc(inoi-2)=tcname
           endif
           MODSIT=.true.

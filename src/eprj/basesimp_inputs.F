@@ -88,6 +88,7 @@ C      CHARACTER :: delimiter
      &             bsOVER,bsRSI,bsSOIL, bsWTD
       REAL bsVrsnNmbr
       REAL bsTGavg,bsTGamp,bsTGps
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -434,7 +435,8 @@ C Checks whether or not default.bsm file exists,rewrites or creates it.
           bsmFile=snpfile
         END IF
 
-        CALL EASKF(bsmFile,'Confirm filename:',' ',72,bsmFile,
+        ISTRW=72
+        CALL EASKF(bsmFile,'Confirm filename:',' ',ISTRW,bsmFile,
      &    'Invalid filename',IER,nbhelp)
 
         CALL EFOPSEQ(iuo,bsmFile,4,IER)

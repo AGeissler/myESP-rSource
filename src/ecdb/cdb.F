@@ -125,6 +125,7 @@ C Name of current application
       character path*72,fs*1,scanning*8
 
       integer iglib, cdbunit,id   ! if 1 then X11, if 2 then GTK, if 3 then text only.
+      integer ISTRW
 
 C Initialise output device, assume minimal trace, and a smallish
 C display.  If passed zero size and offsets use default, if size
@@ -260,22 +261,19 @@ C name with the full path.
       iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
       if(iglib.eq.1.or.iglib.eq.3)then
         if(llt.lt.96)then
-          CALL EASKF(L144,'Open this database? ',' ',
-     &      96,DICONDBFL,' Database name ',IER,7)
+          ISTRW=96
         elseif(llt.ge.96.and.llt.lt.124)then
-          CALL EASKF(L144,'Open this database? ',' ',
-     &      124,DICONDBFL,' Database name ',IER,7)
+          ISTRW=124
         elseif(llt.ge.124.and.llt.le.144)then
-          CALL EASKF(L144,'Open this database? ',' ',
-     &      144,DICONDBFL,' Database name ',IER,7)
+          ISTRW=144
         endif
       elseif(iglib.eq.2)then
-        CALL EASKF(L144,'Open this database? ',' ',
-     &    144,DICONDBFL,' Database name ',IER,7)
+        ISTRW=144
       else
-        CALL EASKF(L144,'Open this database? ',' ',
-     &    96,DICONDBFL,' Database name ',IER,7)
+        ISTRW=96
       endif
+      CALL EASKF(L144,'Open this database? ',' ',
+     &  ISTRW,DICONDBFL,' Database name ',IER,7)
 
       if(L144(1:2).ne.'  ')THEN
         LCMDFL=L144

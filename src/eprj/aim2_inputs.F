@@ -1478,6 +1478,7 @@ C Declare local variables
       CHARACTER :: fs
 C Function definition
       INTEGER :: lnblnk
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1530,8 +1531,9 @@ C If LAIM2 isn't set get the default
 C Get the filename
       helptopic='AIM_file_name'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      ISTRW=72
       CALL EASKF(LAIM2,' What is the AIM2 file name?',' ',
-     &      72,TempString,'AIM2 filename',IER,nbhelp)
+     &      ISTRW,TempString,'AIM2 filename',IER,nbhelp)
 C Check for error
       IF (IER.NE.0) THEN
         CALL USRMSG('Problem with filename',' ','W')

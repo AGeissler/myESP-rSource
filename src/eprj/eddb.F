@@ -1983,6 +1983,7 @@ C Local strings for user selections dependent on graphic library.
       logical unixok  ! to check for path file separators
       integer iglib  ! for detecting GTK or X11
       logical allowbrowse ! to be done
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2240,15 +2241,14 @@ C Confirm suggested name and then write out asci file.
         endif
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(LLASCI,'Export ASCII components file','Confirm:',
-     &      96,DFILE,'asci plant comp file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(LLASCI,'Export ASCII components file','Confirm:',
-     &      144,DFILE,'asci plant comp file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(LLASCI,'Export ASCII components file','Confirm:',
-     &      96,DFILE,'asci plant comp file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(LLASCI,'Export ASCII components file','Confirm:',
+     &    ISTRW,DFILE,'asci plant comp file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
 C Convert both current binary and asci file names into full paths prior
@@ -2293,29 +2293,27 @@ C Confirm suggested name and then write out binary file.
         endif
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(LLASCI,'ASCII (source) file','Confirm:',
-     &      96,DFILE,'asci plant comp file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(LLASCI,'ASCII (source) file','Confirm:',
-     &      144,DFILE,'asci plant comp file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(LLASCI,'ASCII (source) file','Confirm:',
-     &      96,DFILE,'asci plant comp file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(LLASCI,'ASCII (source) file','Confirm:',
+     &    ISTRW,DFILE,'asci plant comp file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         longtmp=LPCDB
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(longtmp,'New plant templates file','Confirm:',
-     &      96,DPCDB,'plant file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(longtmp,'New plant templates file','Confirm:',
-     &      144,DPCDB,'plant file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(longtmp,'New plant templates file','Confirm:',
-     &      96,DPCDB,'plant file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(longtmp,'New plant templates file','Confirm:',
+     &    ISTRW,DPCDB,'plant file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
 C Convert both binary and asci file names into full paths prior
@@ -4313,6 +4311,7 @@ C Calendar.
       integer IDOL,IDAYNUM,IMTHNUM,IDWKNUM,IDTYY  ! for correcting calendar
       logical closelat,closelong,clkok,usercreatednew
       integer iappwpc ! application %
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -4726,15 +4725,14 @@ C Confirm suggested name and then write out asci file. In GTK the full
 C path is returned.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(LLASCI,'Export ASCII weather file','Confirm:',
-     &      96,DFILE,'climate file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(LLASCI,'Export ASCII weather file','Confirm:',
-     &      144,DFILE,'climate file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(LLASCI,'Export ASCII weather file','Confirm:',
-     &      96,DFILE,'climate file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(LLASCI,'Export ASCII weather file','Confirm:',
+     &    ISTRW,DFILE,'climate file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
 C Convert both binary and asci file names into full paths prior
@@ -4770,29 +4768,27 @@ C Confirm suggested name and then write out binary file.
         endif
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(LLASCI,'ASCII (source) weather file','Confirm:',
-     &      96,DFILE,'climate file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(LLASCI,'ASCII (source) weather file','Confirm:',
-     &      144,DFILE,'climate file name',IER,nbhelp)
+          ISTRW=124
         else
-          CALL EASKF(LLASCI,'ASCII (source) weather file','Confirm:',
-     &      96,DFILE,'climate file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(LLASCI,'ASCII (source) weather file','Confirm:',
+     &    ISTR,DFILE,'climate file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         longtmp=LCLIM
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(longtmp,'New weather file','Confirm:',
-     &      96,DCLIM,'new weather file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(longtmp,'New weather file','Confirm:',
-     &      144,DCLIM,'new weather file name',IER,nbhelp)
+          ISTRW=124
         else
-          CALL EASKF(longtmp,'New weather file','Confirm:',
-     &      96,DCLIM,'new weather file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(longtmp,'New weather file','Confirm:',
+     &    ISTRW,DCLIM,'new weather file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
 C Convert both binary and asci file names into full paths prior
@@ -4835,29 +4831,27 @@ C Confirm suggested name and then write out binary file.
         endif
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(LLASCI,'EPW (source) file','Confirm:',
-     &      96,DFILE,'climate file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(LLASCI,'EPW (source) file','Confirm:',
-     &      144,DFILE,'climate file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(LLASCI,'EPW (source) file','Confirm:',
-     &      96,DFILE,'climate file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(LLASCI,'EPW (source) file','Confirm:',
+     &    ISTRW,DFILE,'climate file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         longtmp=LCLIM
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(longtmp,'New weather file','Confirm:',
-     &      96,DCLIM,'new weather file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(longtmp,'New weather file','Confirm:',
-     &      144,DCLIM,'new weather file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(longtmp,'New weather file','Confirm:',
-     &      96,DCLIM,'new weather file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(longtmp,'New weather file','Confirm:',
+     &    ISTRW,DCLIM,'new weather file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
 C Convert both binary and asci file names into full paths prior

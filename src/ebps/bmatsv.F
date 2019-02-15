@@ -57,6 +57,7 @@ C HOT3000: Fuel cell.
 #include "h3k_report_data.h"
 #include "hvac_parameters.h"
 #include "FMI.h"
+#include "climate.h"
 
       integer lnblnk  ! function definition
 
@@ -789,16 +790,17 @@ C multi-year simulations, the climate files will be opened inside
 C the simulation loop
       if ( .not. bMY_sim_enabled ) then
 
-C Take into account weather file location.
-        lndbp=lnblnk(standardclmpath)
-        if(ipathclim.eq.0.or.ipathclim.eq.1)then
-          call addpath(lclim,llclmdb,concat)
-        elseif(ipathclim.eq.2)then
-          write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &      LCLIM(1:lnblnk(LCLIM))
-        endif
+C C Take into account weather file location.
+C         lndbp=lnblnk(standardclmpath)
+C         if(ipathclim.eq.0.or.ipathclim.eq.1)then
+C           call addpath(lclim,llclmdb,concat)
+C         elseif(ipathclim.eq.2)then
+C           write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
+C      &      LCLIM(1:lnblnk(LCLIM))
+C         endif
 
-        call EFOPRAN(ICLIM,llclmdb,144,0,IClmErr)
+C         call EFOPRAN(ICLIM,llclmdb,MCM*24,0,IClmErr)
+        CALL CLMOPB(0,IClmErr)
 
       endif
 
@@ -858,7 +860,7 @@ C debug (end)
         endif quick_run_init
 
 
-C For multi-year simulaitons, determine the current
+C For multi-year simulations, determine the current
 C and future time row years, and the indices of these
 C years with respect to the multi-year climate databases
         MY_sim_initialize: if ( bMY_sim_enabled ) then
@@ -957,8 +959,10 @@ C Close old file, if necessary.
 
 C Open new file.
             ier=0
-            call EfOpRan(iClim,cMY_clm_file_names(iMY_current_yr_index),
-     &                144,0,IER)
+C             call EfOpRan(iClim,cMY_clm_file_names(iMY_current_yr_index),
+C      &                MCM*24,0,IER)
+            LCLIM=cMY_clm_file_names(iMY_current_yr_index)
+            CALL CLMOPB(1,IER)
 
 C set flag
             bMY_clm_file_open ( iMY_current_yr_index ) = .true.
@@ -982,20 +986,23 @@ C Initialize ground temperature profile parameters
         endif
 
 C Present day.
-        irec=idyp
-        read(iClim,rec=irec,iostat=istat,err=1000)
-     &    (idif(j),itmp(j),idnr(j),ivel(j),idir(j),ihum(j),j=1,24)
+c        irec=idyp
+c        read(iClim,rec=irec,iostat=istat,err=1000)
+c     &    (idif(j),itmp(j),idnr(j),ivel(j),idir(j),ihum(j),j=1,24)
+        CALL CLMRDBD(idyp,idyf,IER)
+        CALL CLMDN2O
 
 C If humidity is greater than 100 this may cause problems at simulation
 C time and cause simulation to stop without warning
-        do 211 j=1,24
-          if(ihum(j).gt.100.)then
-            write(outs,'(A)')'Relative humidity in climate file > 100'
-            call edisp(itu,outs)
-            write(outs,'(A)')'This may cause simulation to fail'
-            call edisp(itu,outs)
-          endif
- 211    continue
+C << This is now checked when reading the values. >>
+C         do 211 j=1,24
+C           if(ihum(j).gt.100.)then
+C             write(outs,'(A)')'Relative humidity in climate file > 100'
+C             call edisp(itu,outs)
+C             write(outs,'(A)')'This may cause simulation to fail'
+C             call edisp(itu,outs)
+C           endif
+C  211    continue
 
 C Note: future year may correspond to another climate file
 C If this is a multi-year simulation, we may need to  open the
@@ -1012,18 +1019,25 @@ C Close old file, if necessary.
 C Open new file.
            ier=0
            call EfOpRan(iClim,cMY_clm_file_names(iMY_future_yr_index),
-     &                144,0,IER)
+     &                MCM*24,0,IER)
 
 C Set flag
             bMY_clm_file_open ( iMY_future_yr_index ) = .true.
           endif
         endif
-C Future day
-        irec=idyf
+C Future day.
+C         irec=idyf
 
 C Get values for first hour of the future day.
-        read(iClim,rec=irec,iostat=istat,err=1000)
-     &    idiff,itmpf,idnrf,ivelf,idirf,ihumf
+C         read(iClim,rec=irec,iostat=istat,err=1000)
+C      &    idiff,itmpf,idnrf,ivelf,idirf,ihumf
+
+C Debug.
+c        write(6,*)'climate data'
+c        do j=1,24
+c          write(6,*)idif(j),itmp(j),idnr(j),ivel(j),idir(j),ihum(j)
+c        enddo
+c        write(6,*)idiff,itmpf,idnrf,ivelf,idirf,ihumf
 
 C Check for uncertainty associated with climate data.
         UAFLG=0.

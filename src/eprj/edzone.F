@@ -2291,11 +2291,12 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
       if(vdis.ne.0.0)then
 
 C The original C code returned the square of distance
-C so unpack via sqrt call.
+C so unpack via sqrt call.  The 0.00001 below should protect
+C from stressing SQRT in cases of actual distances of a few mm.
         d2l=(vdis1-(vdis+vdis1-vdis2)*
      &      (vdis+vdis1-vdis2)/vdis/4.0)
-        if(abs(d2l).lt.0.0003)then
-          offset=d2l   ! if really small d2l
+        if(abs(d2l).lt.0.00001)then
+          offset=d2l   ! if small d2l 
         else
           offset=SQRT(d2l)
         endif

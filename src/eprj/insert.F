@@ -112,6 +112,7 @@ C      character guesstype*24  ! for context of surface addition
       integer IRT  ! for radio button
       integer icmpall  ! to signal request to compare all names
       integer ltrace   ! local trace
+      integer ISTRW
 
 C Trackview should require iixx,iiyy.
 #ifdef OSI
@@ -873,7 +874,7 @@ C if <10mm, otherwise link the new surface to an existing vetex.
               if(closey)then
 
 C Feedback to the user about using existing vertex.
-                write(outs,'(a,i3,a,3f8.3,a,f6.3,a,i3,a,3f8.3)')
+                write(outs,'(a,i3,a,3f8.3,a,f7.4,a,i3,a,3f8.3)')
      &            'New vertex ',ix,' @',X1(ix),Y1(ix),Z1(ix),
      &            ' is close (',dist,') to existing vertex',iix,' @',
      &            X(ixx),Y(ixx),Z(ixx)
@@ -1105,8 +1106,9 @@ C present editing of vertices with the option for mouse.
               hold64='                                                '
               write(t248,'(3a)') hold64,hold64,hold64
               write(message,'(a)')'Vertices associated with new surface'
-              CALL EASKS248(t248,message,
-     &         ' ',72,' 1  2  3  4  ','associated vertices',IER,nbhelp)
+              ISTRW=72
+              CALL EASKS248(t248,message,' ',
+     &          ISTRW,' 1  2  3  4  ','associated vertices',IER,nbhelp)
               NV = iCountWords(t248)
               K=0
               DO 943 J=1,NV
@@ -1173,8 +1175,9 @@ C updated reflect this in the write(t248 statement).
               write(t248,'(3a)') hold64,hold64,hold64
               WRITE(t248,'(124I4)')(JJVN(J),J=1,ijvn)
               write(message,'(a)')'Vertices associated with new surface'
-              CALL EASKS248(t248,message,
-     &        ' ',72,' 1  2  3  4  ','associated vertices',IER,nbhelp)
+              ISTRW=72
+              CALL EASKS248(t248,message,' ',I
+     &          ISTRW,' 1  2  3  4  ','associated vertices',IER,nbhelp)
               NV = iCountWords(t248)
               K=0
               DO 945 J=1,NV
@@ -1190,8 +1193,9 @@ C string. Fill the string first with spaces and a single character (GTK
 C does not seem to like to start with a fully blank string).
             t248='  1                                               '
             write(message,'(a)') 'Vertices associated with new surface'
-            CALL EASKS248(t248,message,
-     &        ' ',72,' 1  2  3  4  ','associated vertices',IER,nbhelp)
+            ISTRW=72
+            CALL EASKS248(t248,message,' ',
+     &        ISTRW,' 1  2  3  4  ','associated vertices',IER,nbhelp)
             NV = iCountWords(t248)
             K=0
             DO 944 J=1,NV

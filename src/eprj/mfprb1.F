@@ -95,6 +95,7 @@ C      COMMON/MFLITR/MAXITF,FERREL,FERMFL,PMAX,STEFFR,MFTRAC,ITER,IOK
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       integer NITMS1,INO ! max items and current menu item
       logical xzero,yzero  ! is X & Y at origin
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -148,8 +149,9 @@ C unix and non-unix machine types).
       LTMP=LAPROB
       helptopic='flow_network_file_name'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKSCMD(LTMP,'Flow network file ?',
-     &  ' ','dereference',clkok,72,' ','flow network file',IER,nbhelp)
+      ISTRW=72
+      CALL EASKSCMD(LTMP,'Flow network file ?',' ',
+     &  'dereference',clkok,ISTRW,' ','flow network file',IER,nbhelp)
       call usrmsg(' ',' ','- ')
 
 C If user wishes to deselect the current file name to

@@ -65,6 +65,7 @@ C << use parameters when available >>
       logical unixok
       DIMENSION IVALS(MS),ITEMSS(MS)
       CHARACTER ITEMSS*32
+      integer ISTRW
      
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -95,12 +96,13 @@ C Take into account path to the db.
       endif
 
       iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+      ISTRW=96
       if(iglib.eq.1.or.iglib.eq.3)then
         CALL EASKF(predef,'Predefined objects file ?',
-     &    ' ',96,'predefined.db1','predefined file',IER,nbhelp)
+     &    ' ',ISTRW,'predefined.db1','predefined file',IER,nbhelp)
       else
         CALL EASKF(predef,'Predefined objects file ?',
-     &    ' ',96,'predefined.db1','predefined file',IER,nbhelp)
+     &    ' ',ISTRW,'predefined.db1','predefined file',IER,nbhelp)
       endif
 
 C Scan predefined database returning list of categories & items

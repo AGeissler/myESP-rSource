@@ -1424,7 +1424,7 @@ C MS senstive, change is MS>99.
           call edisp(itru,outs)
           write(outs,'(4X,22I5)')(I,I=67,88)
           call edisp(itru,outs)
-          write(outs,'(4X,22I5)')(I,I=69,NZS)
+          write(outs,'(4X,22I5)')(I,I=89,NZS)
           call edisp(itru,outs)
         elseif(NZS.ge.111.and.NZS.le.132)then
           write(outs,'(4X,22I5)')(I,I=1,22)

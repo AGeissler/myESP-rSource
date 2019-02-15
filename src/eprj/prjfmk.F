@@ -92,6 +92,7 @@ C updated when the user exits).
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer NIGU,IGU,NITEMS,INO ! max items and current menu item
       integer islot, iatr1   ! used when defining from scratch
+      integer ISTRW
       
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -164,8 +165,9 @@ C Operations file not known, allow user to give name or browse.
       
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.2)then
+          ISTRW=72
           CALL EASKSCMD(LTMP,' ','Zone operations file options:',
-     &      'browse',clkok,72,GFILE,'operations file',ISER,nbhelp)
+     &      'browse',clkok,ISTRW,GFILE,'operations file',ISER,nbhelp)
           if(clkok)iclkok=1   ! notice browse button
           if(iser.eq.-3)iclkok=2  ! notice cancel button
         else
@@ -180,8 +182,9 @@ C Operations file not known, allow user to give name or browse.
         call gethelptext(helpinsub,helptopic,nbhelp)
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.2)then
+          ISTRW=72
           CALL EASKSCMD(LTMP,'Zone operation file name','Confirm:',
-     &      'browse another',clkok,72,GFILE,'operations file',ISER,
+     &      'browse another',clkok,ISTRW,GFILE,'operations file',ISER,
      &       nbhelp)
           if(clkok)iclkok=1   ! notice browse button
           if(iser.eq.-3)iclkok=2  ! notice cancel button
@@ -815,14 +818,16 @@ C So save the changes to the file and then exit.
 
 C Edit combined operation description or scheduled air description.
           tcname=oprdesc(icomp)
+          ISTRW=72
           CALL EASKS248(tcname,' ','Zone operation notes:',
-     &          72,'base_case','operation notes',IER,nbhelp)
+     &          ISTRW,'base_case','operation notes',IER,nbhelp)
           if(tcname(1:2).ne.'  ')oprdesc(icomp)=tcname
           MODOPR=.true.
         else
           tcname=ventdesc(icomp)
+          ISTRW=72
           CALL EASKS248(tcname,' ','Zone scheduled air notes:',
-     &          72,'base_case','operation notes',IER,nbhelp)
+     &          ISTRW,'base_case','operation notes',IER,nbhelp)
           if(tcname(1:2).ne.'  ')ventdesc(icomp)=tcname
           MODOPR=.true.
         endif
@@ -832,8 +837,9 @@ C Edit combined operation description or scheduled air description.
 C Edit the casual documentation
         if(ip3ver(icomp).ge.21)then
           tcname=oprdesc(icomp)
+          ISTRW=72
           CALL EASKS248(tcname,' ','Zone casual gains notes:',
-     &          72,'base_case','operation notes',IER,nbhelp)
+     &          ISTRW,'base_case','operation notes',IER,nbhelp)
           if(tcname(1:2).ne.'  ')oprdesc(icomp)=tcname
           MODOPR=.true.
         endif
@@ -4788,6 +4794,7 @@ C Scratch version of P3N
       LOGICAL XST,unixok,dok,ok
       character actflatfile*1
       integer idty
+      integer ISTRW
       
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -5044,8 +5051,9 @@ C << separate documentation string for air flows and casual gains.
         endif
 
         if(act(1:1).eq.'-')then
+          ISTRW=72
           CALL EASKS248(oprdescc,'Operations notes (please edit):',
-     &      ' ',72,'base_case','operation notes',IER,nbhelp)
+     &      ' ',ISTRW,'base_case','operation notes',IER,nbhelp)
           if(oprdescc(1:2).ne.'  ')oprdesc(idest)=oprdescc
         endif
 

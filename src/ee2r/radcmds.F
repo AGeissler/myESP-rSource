@@ -1596,6 +1596,7 @@ C Debug/trace.
         write(icout,*) doit(1:lnblnk(doit))
       endif
       call runit(doit,'-')
+      call tstamp('m','findglare run.')
       
 C Now display glare sources on image.
       write(doit,'(7a)') 'cd ',runpath(1:lnrp),
@@ -1604,6 +1605,7 @@ C Now display glare sources on image.
       call usrmsg(
      &  'The glare sources are shown via circles & intensity values.',
      &  'Click when done. More glare info via view visu results','W')
+      call tstamp('m','xglaresrc run.')
 
       return
       end

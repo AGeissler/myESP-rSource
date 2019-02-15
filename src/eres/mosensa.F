@@ -590,8 +590,8 @@ C Copy current sub-set of sets into IGETNO array.
           IGETNO(NGET,5)=NSNO(ISET)
         endif
  20   continue
-      write(6,'(a,a)') SLABEL(1)(1:LNSLABEL(1)),' is focus'
-      write(6,'(a,a)') GLABEL(1)(1:LNGLABEL(1)),' is focus'
+C      write(6,'(a,a)') SLABEL(1)(1:LNSLABEL(1)),' is focus'
+C      write(6,'(a,a)') GLABEL(1)(1:LNGLABEL(1)),' is focus'
 
 C NDTS - the number of timesteps in a day.
       NDTS=24*NTS

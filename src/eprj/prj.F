@@ -2701,6 +2701,7 @@ C Extended simulation parameters for each set.
       integer IWM   ! for radio button
       integer lmsg  ! for length of message.
       integer iappwpc ! application %
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -3071,22 +3072,19 @@ C Toggle delimeter.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(basefile,'IPV base case report file ?',
-     &        ' ',96,'xxx.rep','IPV base report',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(basefile,'IPV base case report file ?',
-     &        ' ',124,'xxx.rep','IPV base report',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(basefile,'IPV base case report file ?',
-     &        ' ',144,'xxx.rep','IPV base report',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(basefile,'IPV base case report file ?',
-     &      ' ',144,'xxx.rep','IPV base report',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(basefile,'IPV base case report file ?',
-     &      ' ',96,'xxx.rep','IPV base report',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(basefile,'IPV base case report file ?',
+     &    ' ',ISTRW,'xxx.rep','IPV base report',IER,nbhelp)
 
 C At user's request re-display the menu.
         if(ier.eq.-3)then
@@ -3113,22 +3111,19 @@ C Ask the name of the design variant file.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(variantfile,'IPV variant report file ?',
-     &        ' ',96,'xxx.rep','IPV variant report',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(variantfile,'IPV variant report file ?',
-     &        ' ',124,'xxx.rep','IPV variant report',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(variantfile,'IPV variant report file ?',
-     &        ' ',144,'xxx.rep','IPV variant report',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(variantfile,'IPV variant report file ?',
-     &      ' ',144,'xxx.rep','IPV variant report',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(variantfile,'IPV variant report file ?',
-     &      ' ',96,'xxx.rep','IPV variant report',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(variantfile,'IPV variant report file ?',
+     &    ' ',ISTRW,'xxx.rep','IPV variant report',IER,nbhelp)
 
 C At user's request re-display the menu.
         if(ier.eq.-3)then
@@ -4321,6 +4316,7 @@ C << the latest version prior to running this facility.
       CHARACTER NBSTR*6,OUTS*124
       LOGICAL BROWSE,clkok
       integer MITEMS2,KNO ! max items and current menu item
+      integer ISTRW
 
       IF(BROWSE)THEN
         CALL EDISP(IUOUT,
@@ -4357,9 +4353,10 @@ C Help message for version manager menu
 
 C Ask for changes to be made
       APP='_xyz  '
+      ISTRW=6
       CALL EASKSCMD(APP,' ',
      &  'Specify up to 6 characters to append to project name?',
-     &  'cancel',clkok,6,'_xyz','root name modifier',IER,25)
+     &  'cancel',clkok,ISTRW,'_xyz','root name modifier',IER,25)
       call usrmsg(' ',' ','-')
       if(clkok) return         ! User selected cancel.
 
@@ -4698,6 +4695,7 @@ C ivalsg keeps track of whether a geometry file has alread been copied.
       logical newgeo  ! to use for testing if new/old geometry file.
       logical updatetitle ! if true the edit IPV titles.
       integer IW  ! for radio button
+      integer ISTRW
 
       M=ILM
       call isunix(unixok)
@@ -5343,7 +5341,8 @@ C Update the titles.
      &    ' ',40,'project','description modifier',IER,0)
           CALL EASKS(ipvvers,'Enter project version for this variant?',
      &    ' ',40,'project','description modifier',IER,0)
-          CALL EASKS248(ipvsynop,'Synopsis',' ',72,
+          ISTRW=72
+          CALL EASKS248(ipvsynop,'Synopsis',' ',ISTRW,
      &    'Enter Project sysnopsis for this variant','synopsis',IER,5)
           CALL IPVDAT('-')
         endif
@@ -5459,7 +5458,7 @@ C zones (which already have htc files).
             ICOMP=ivals(IC)
             ITRU=6
             IUF=12
-            CALL ehtcff(LHCCO(ICOMP),IUF,ITRU,IER)
+            CALL ehtcff(LHCCO(ICOMP),IUF,IER)
             CALL FNCNGR(LHCCO(ICOMP),APE,EXT,NNAME)
             write(LHCCO(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
             CALL EMKHTC(LHCCO(ICOMP),ICOMP,IUF,ITRU,IER)
@@ -5527,7 +5526,8 @@ C Update the titles.
      &     ' ',40,'project','description modifier',IER,0)
           CALL EASKS(ipvvers,' Enter project version for this variant?'
      &     ,' ',40,'project','description modifier',IER,0)
-          CALL EASKS248(ipvsynop,'Synopsis',' ',72,
+          ISTRW=72
+          CALL EASKS248(ipvsynop,'Synopsis',' ',ISTRW,
      &    'Enter Project sysnopsis for this variant','synopsis',IER,5)
           CALL IPVDAT('-')
           docnn=.true.
@@ -5544,7 +5544,8 @@ C Update the titles.
      &     ' ',40,'project','description modifier',IER,0)
           CALL EASKS(ipvvers,' Enter project version for this variant?'
      &     ,' ',40,'project','description modifier',IER,0)
-          CALL EASKS248(ipvsynop,'Synopsis',' ',72,
+          ISTRW=72
+          CALL EASKS248(ipvsynop,'Synopsis',' ',ISTRW,
      &    'Enter Project sysnopsis for this variant','synopsis',IER,5)
           CALL IPVDAT('-') 
           docnn=.true.

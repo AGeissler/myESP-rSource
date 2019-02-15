@@ -227,20 +227,23 @@ C LNVISNAME,LNVISMAT - length of strings.
       integer LNVISNAME,LNVISMAT
       common/GSVLN/LNVISNAME(MCOM,MB),LNVISMAT(MCOM,MB)
 
-C Group visual items to create a visual objects (up to 20) from
-C up to 14 visual primitives.
+C Group visual items to create a visual objects (up to MVOBJ) from
+C up to MVOBJE visual primitives.
 C VOBJNAME (12 char) name of visual object
 C VOBJDESC (32 char) description of visual object
-C VOBJLIST (12 char) associated (up to 14) visual blocks
+C VOBJLIST (12 char) associated (up to MVOBJE) visual blocks
+C VOBJILIST (integer) indices of associated visual blocks
 C LNVOBJNAME,LNVOBJDESC,LNVOBJLIST - length of strings.
 C NBVOBJ - number of visual objects in each zone
 C NBVOJBLIST - number of primitives in ojbect
       character VOBJNAME*12,VOBJDESC*32,VOBJLIST*12
-      common/GSVOBJN/VOBJNAME(MCOM,50),VOBJDESC(MCOM,50),
-     &  VOBJLIST(MCOM,50,14)
-      integer NBVOBJ,LNVOBJNAME,LNVOBJDESC,LNVOBJLIST,NBVOBJLIST
-      common/GSVOBJI/NBVOBJ(MCOM),LNVOBJNAME(MCOM,50),
-     &  LNVOBJDESC(MCOM,50),LNVOBJLIST(MCOM,50,14),NBVOBJLIST(MCOM,50)
+      common/GSVOBJN/VOBJNAME(MCOM,MVOBJ),VOBJDESC(MCOM,MVOBJ),
+     &  VOBJLIST(MCOM,MVOBJ,MVOBJE)
+      integer NBVOBJ,LNVOBJNAME,LNVOBJDESC,LNVOBJLIST,NBVOBJLIST,
+     &        VOBJILIST
+      common/GSVOBJI/NBVOBJ(MCOM),LNVOBJNAME(MCOM,MVOBJ),
+     &  LNVOBJDESC(MCOM,MVOBJ),LNVOBJLIST(MCOM,MVOBJ,MVOBJE),
+     &  NBVOBJLIST(MCOM,MVOBJ),VOBJILIST(MCOM,MVOBJ,MVOBJE)
 
 C MRT sensors for the model.
       integer ncub  ! for each zone number of mrt sensors

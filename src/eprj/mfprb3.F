@@ -1660,8 +1660,6 @@ C at lowest horizontal edge.  Ok.
             write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
      &        ' door undercut 5mm x ',XYMAX,'m @XYZ',xc,yc,zc
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF120I
@@ -1691,7 +1689,6 @@ C Define boundary point ~1m from facade.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary undercut azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -1715,7 +1712,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
 
 C Draw from boundary to component and then from component to the
@@ -1743,7 +1739,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -1765,8 +1760,6 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
      &        ' ',name,' door open width ',XYMAX,' height',ZMAX,
      &        ' area',SSNA(loop),'m2 COG @XYZ',xc,yc,zc
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF110I
@@ -1804,7 +1797,6 @@ C Define boundary point 1m from facade.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary opening azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -1829,7 +1821,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined orifice
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
 
 C Draw from boundary to component and then from component to the
@@ -1857,7 +1848,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -1886,8 +1876,6 @@ C edge.
      &        ' height',ZMAX,' coef 0.5 base @XYZ',xc,yc,zc,
      &        ' delta base to zone COG',VAL3
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF040I 
@@ -1922,7 +1910,6 @@ C Report on Delta Height between surface COG and zone COG.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary bidir azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -1946,7 +1933,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined orifice
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -1971,7 +1957,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -2002,8 +1987,6 @@ C length = 0.5* frame inside perimeter, on centre line. OK
      &        ' frame crack width 1mm len',perim*0.5,' COG @XYZ',
      &        xc,yc,zc
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF120I
@@ -2031,7 +2014,6 @@ C Report on Delta Height with associated surf COG.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary crack azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -2055,7 +2037,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -2080,7 +2061,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -2103,8 +2083,6 @@ C height = 10mm, at highest horizontal edge. OK
      &      ' frame trickle vent width ',XYMAX*0.2,' height 10mm @XYZ',
      &        xc,yc,zc
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF110I
@@ -2131,7 +2109,6 @@ C Report on Delta Height with associated surf upper.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -2155,7 +2132,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -2180,7 +2156,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -2210,8 +2185,6 @@ C length = 0.5* frame inside perimeter, on centre line.
      &        ' grill crack width 1mm length',perim*0.5,' COG @XYZ',
      &        xc,yc,zc
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF120I
@@ -2239,7 +2212,6 @@ C Report on Delta Height with associated surf COG.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary crack azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -2264,7 +2236,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -2289,7 +2260,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -2317,7 +2287,6 @@ C     SUPCMP(ICMP,2) - volume flow rate m^3/s
               write(outs,'(4a,3f7.3)') zsn(1:lnzsn),' ',name,
      &        ' grill mechanical extract COG @XYZ',xc,yc,zc
               useit=.true.
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NCMP=NCMP+1 ! use logic in MF030I
               CMNAM(NCMP)=name
@@ -2411,7 +2380,6 @@ C Based on ach against the volume of a particular node.
      &          ' grill inlet volume flow',SUPCMP(NCMP,2),
      &          ' COG @XYZ',xc,yc,zc
               useit=.true.
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call symbol_flow_cmp(name,'bx','r',xc,yc,zc)
               call pausems(30)
@@ -2434,8 +2402,6 @@ C     SUPCMP(ICMP,6) - sum of local dynamic loss factors (-)
      &          ' grill inlet hydr diam',
      &          4.0*SSNA(loop)/perim,' COG @XYZ',xc,yc,zc
               useit=.true.
-              write(6,*) CXSTR(1:lnblnk(CXSTR))
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,CXSTR)
               call edisp(iuout,outs)
               NCMP=NCMP+1 ! use logic in MF110I
@@ -2467,7 +2433,6 @@ C Report on Delta Height with associated surf COG.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary inlet azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -2492,7 +2457,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -2518,7 +2482,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -2541,8 +2504,6 @@ C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
      &        ' grill extract hydr diam',
      &        4.0*SSNA(loop)/perim,' COG @XYZ',xc,yc,zc
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF110I
@@ -2650,7 +2611,6 @@ C Report on Delta Height with associated surf COG.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary extract azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -2674,7 +2634,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -2700,7 +2659,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -2723,8 +2681,6 @@ C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I
      &        ' grill orifice area',SSNA(loop),' COG @XYZ',
      &        xc,yc,zc
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF040I 
@@ -2761,7 +2717,6 @@ C Report on Delta Height with associated surf COG.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary opening azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -2785,7 +2740,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -2810,7 +2764,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -2840,8 +2793,6 @@ C length = window width, at surface COG.
             write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
      &        ' window crack width 1mm length',XYMAX,' @XYZ',xc,yc,zc
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF120I
@@ -2869,7 +2820,6 @@ C Report on Delta Height with associated surf lower.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary crack azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -2893,7 +2843,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -2918,7 +2867,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -2956,8 +2904,6 @@ C height = 0.25* window height, at lowest horizontal edge. OK.
               VAL=XYMAX*(ZMAX*0.25)
             endif
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF040I 
@@ -2995,7 +2941,6 @@ C Report on Delta Height with associated surf COG.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary opening azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -3019,7 +2964,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -3044,7 +2988,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -3072,8 +3015,6 @@ C height = 0.125* window height, at lowest horizontal edge
      &        ' width ',XYMAX,' height',ZMAX*0.125,
      &        ' area',(XYMAX*(ZMAX*0.125)),'m2 lower @XYZ',xc,yc,zc
             VAL=XYMAX*(ZMAX*0.125)
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF040I 
@@ -3112,7 +3053,6 @@ C If at boundary setup the lower boundary node.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary sash azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -3136,7 +3076,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined lower orifice
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -3161,7 +3100,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -3201,8 +3139,6 @@ C Now create the upper orifice.
      &        'discharge coef in comp',IER,nbhelp)
             SUPCMP(NCMP,3)=VAL2
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NWPCMP(NCMP)=0  ! start and end the same
@@ -3225,7 +3161,6 @@ C Now the boundary at the upper orifice.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary sash azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -3249,7 +3184,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined lower orifice
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -3274,7 +3208,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -3303,8 +3236,6 @@ C Draw on the centre line. The VAL4 is Surf COG to Zone COG.
      &        ' coef 0.6 @XYZ',xc,yc,zc,
      &        ' delta base to zone COG',VAL3
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF040I 
@@ -3339,7 +3270,6 @@ C Report on Delta Height with associated surf lower.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary opening azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -3363,7 +3293,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined orifice
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -3388,7 +3317,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -3414,8 +3342,6 @@ C length = window width, at lowest horizontal edge.
             write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
      &        ' fict crack width ',XYMAX,' height 1mm @XYZ',xc,yc,zc
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF120I
@@ -3443,7 +3369,6 @@ C Report on Delta Height with associated surf lower.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary fict azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -3467,7 +3392,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -3492,7 +3416,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -3530,8 +3453,6 @@ C height = 0.25* window height, at lowest horizontal edge
               VAL=XYMAX*(ZMAX*0.25)
             endif
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF040I 
@@ -3568,7 +3489,6 @@ C Report on Delta Height with associated surf COG.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary opening azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -3592,7 +3512,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,zc)
               call draw_flow_link(xc,yc,zc,
@@ -3617,7 +3536,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -3647,8 +3565,6 @@ C edge.
             VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
             VAL4=SSURCOG(loop,3)-ZCOG(IZ,3)        ! surf COG to zone COG
             useit=.true.
-            write(6,*) CXSTR(1:lnblnk(CXSTR))
-            write(6,*) outs(1:lnblnk(outs))
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
             NCMP=NCMP+1 ! use logic in MF040I 
@@ -3683,7 +3599,6 @@ C Report on Delta Height with associated surf COG.
               write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' Wind boundary fict azim',sspazi(loop),
      &        ' @XYZ',xw,yw,zw
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
               HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
@@ -3707,7 +3622,6 @@ C Reality checks here...
               ITPCON(NCNN)=CMPIS ! use the just-defined orifice
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-              write(6,*) outs(1:lnblnk(outs))
               call edisp(iuout,outs)
               call draw_flow_link(xw,yw,zw,xc,yc,VAL3)
               call draw_flow_link(xc,yc,zc,
@@ -3732,7 +3646,6 @@ C Reality checks here...
                 ITPCON(NCNN)=CMPIS ! use the just-defined crack
                 write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &            NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
-                write(6,*) outs(1:lnblnk(outs))
                 call edisp(iuout,outs)
                 call draw_flow_link(ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3),
      &            HCMP(NCMP,1,1),HCMP(NCMP,1,2),HCMP(NCMP,1,3))
@@ -3750,7 +3663,6 @@ C Reality checks here...
           Write(outs,'(a,2i3.3,a,f7.3,a,f7.3,a)') 'Z Surface width ',
      &      iz,IS,' =',XYMAX,'m, surface height=',ZMAX,
      &      'm (bounding box).'
-          write(6,*) outs(1:lnblnk(outs))
           call edisp(iuout,outs)
         endif
       enddo

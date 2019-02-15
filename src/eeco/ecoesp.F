@@ -58,6 +58,7 @@ C Parameters
       CHARACTER KEY*1,PDBM*64,outs*124
       CHARACTER xfile*144,tg*1,delim*1,t32*32,t248*248
       integer NCO,NITMS,ICO,INO,IW ! max items and current menu item
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -349,8 +350,9 @@ C Edit classification name.
 
 C Also edit classification documentation.
           t248=matdoc(IC)(1:lnblnk(matdoc(IC)))
+          ISTRW=72
           CALL EASKS248(t248,'Category notes:',' ',
-     &      72,'this category...','category notes',IER,nbhelp)
+     &      ISTRW,'this category...','category notes',IER,nbhelp)
           if(t248(1:2).ne.'  ')then
             write(matdoc(IC),'(a)') t248(1:lnblnk(t248))
             chgdb=.true.

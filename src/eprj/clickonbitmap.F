@@ -4583,7 +4583,6 @@ C Remember the block origin.
       write(temp6,'(A)')'Org'
       iid1=ixx1+5; iid2=iyy1-5;
       call textatxy(iid1,iid2,temp6,'z',iicol)
-C      CALL wstxpt(iid1,iid2,temp6)
 
 C Remember the point at the end of the front edge.
       INVERT=INVERT+1
@@ -4960,7 +4959,6 @@ C Remember the furniture origin so it can be drawn on refreshes.
       write(temp6,'(A)')'FOrg'
       iid1=ixx1+5; iid2=iyy1-5;
       call textatxy(iid1,iid2,temp6,'z',iicol)
-C      CALL wstxpt(iid1,iid2,temp6)
 
       if(nboffurnpts+1.gt.40)then
         call usrmsg('At limit of funiture origins.',

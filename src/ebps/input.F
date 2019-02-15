@@ -193,6 +193,8 @@ C default file names for databases
 #include "dhw_common.h"
 #include "MultiYear_simulations.h"
 #include "UserSimulationToggles.h"
+#include "climate.h"
+
       INTEGER, PARAMETER :: MSTMC=20
       
       integer lnblnk  ! function definition
@@ -360,6 +362,7 @@ C Status of multi-year climate database
       INTEGER :: i,iaprob,iglib,irec,istat,itru,iua,llt,nclass
       integer :: loop
       real :: rtmp
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -404,22 +407,19 @@ C name with the full path.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(L144,' Model configuration file?',' ',96,DFCFG,
-     &        'config file name',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(L144,' Model configuration file?',' ',124,DFCFG,
-     &        'config file name',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(L144,' Model configuration file?',' ',144,DFCFG,
-     &        'config file name',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(L144,' Model configuration file?',' ',144,DFCFG,
-     &      'config file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(L144,' Model configuration file?',' ',96,DFCFG,
-     &      'config file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(L144,'Model configuration file?',' ',ISTRW,DFCFG,
+     &    'config file name',IER,nbhelp)
 
         if(L144(1:2).ne.'  '.and.L144(1:4).ne.'UNKN')then
           write(LCMDFL,'(a)') L144(1:lnblnk(L144))
@@ -905,32 +905,35 @@ C Note: the climate file uses a different error flag than
 C the global model definition, as it can be specified separately.
 
 C Take into account weather file location.
-         lndbp=lnblnk(standardclmpath)
-         if(ipathclim.eq.0.or.ipathclim.eq.1)then
-           call addpath(lclim,llclmdb,concat)
-         elseif(ipathclim.eq.2)then
-           write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &       LCLIM(1:lnblnk(LCLIM))
-         endif
+C          lndbp=lnblnk(standardclmpath)
+C          if(ipathclim.eq.0.or.ipathclim.eq.1)then
+C            call addpath(lclim,llclmdb,concat)
+C          elseif(ipathclim.eq.2)then
+C            write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
+C      &       LCLIM(1:lnblnk(LCLIM))
+C          endif
 
-         write(currentfile,'(a)') llclmdb(1:lnblnk(llclmdb))
-         IClmErr=0   ! clear error state before call
-         call EFOPRAN(ICLIM,llclmdb,144,0,IClmErr)
+C          write(currentfile,'(a)') llclmdb(1:lnblnk(llclmdb))
+C          IClmErr=0   ! clear error state before call
+C          call EFOPRAN(ICLIM,llclmdb,MCM*24,0,IClmErr)
+         CALL CLMOPB(0,IClmErr)
          IF(iClmErr.eq.0)THEN
-            IREC=366
-            READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)ICYEAR,ICDNGH
-            IREC=367
-            READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)CLMLOC
-            WRITE(OUTSTR,1000)CLMLOC,ICYEAR
- 1000       FORMAT(' Climate data: ',A30,': ',I5)
-            if(endless.or.issilient)then
-              continue
-            else
-              CALL EDISP(IUOUT,' ')
-              CALL EDISP(IUOUT,OUTSTR)
-            endif
-            IRTYPE=0
-            IF(ICDNGH.EQ.123)IRTYPE=1
+            CALL CLMRDBMD(IClmErr)
+            CALL CLMMDN2O
+C             IREC=366
+C             READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)ICYEAR,ICDNGH
+C             IREC=367
+C             READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)CLMLOC
+C             WRITE(OUTSTR,1000)CLMLOC,ICYEAR
+C  1000       FORMAT(' Climate data: ',A30,': ',I5)
+C             if(endless.or.issilient)then
+C               continue
+C             else
+C               CALL EDISP(IUOUT,' ')
+C               CALL EDISP(IUOUT,OUTSTR)
+C             endif
+C             IRTYPE=0
+C             IF(ICDNGH.EQ.123)IRTYPE=1
    
 C If older configuration, confirm the year.
             if(icfgv.lt.3)then

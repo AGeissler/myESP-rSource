@@ -103,7 +103,7 @@ C For number of openings NOPEN
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
 
 C Saved state of the visualisation
       COMMON/MODVIS/IVISMOD
@@ -135,6 +135,7 @@ C Saved state of the visualisation
       integer NITMS,INO,INOt,INO1,INO2  ! max items and current menu item
       integer itplots
       integer ISHSB,ISHAO,IFACES
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -457,8 +458,9 @@ C change configuration file name
 C << Note: array index 1 is hard coded below! >>
         helptopic='dfs_config_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
+        ISTRW=72
   289   CALL EASKF(LCFD(1),'Domain flow definition file name?','  ',
-     &    72,DFCFD,'Domain flow definition file',IER,nbhelp)
+     &    ISTRW,DFCFD,'Domain flow definition file',IER,nbhelp)
         call usrmsg('File selected is',LCFD(1),'-')
         IF(LCFD(1).EQ.'  ')GOTO 289
         CALL ERPFREE(IFL,ISTAT)

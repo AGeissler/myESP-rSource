@@ -53,6 +53,7 @@ C << outs probably needs to be longer if xfile is longer >>
       character longtfile*144,longtfiledos*144
       logical concat,remote,unixok
       integer lenxfile
+      integer ISTRW
 
 C Initial name for export parameter file is xfile+par.
       lenxfile=lnblnk(xfile)
@@ -133,22 +134,19 @@ C and change any / to \.
         llt=lnblnk(xfile)
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(xfile,' Export file name? ',
-     &        ' ',96,'export.txt','export file name',IER,2)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(xfile,' Export file name? ',
-     &        ' ',124,'export.txt','export file name',IER,2)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(xfile,' Export file name? ',
-     &        ' ',144,'export.txt','export file name',IER,2)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(xfile,' Export file name? ',
-     &      ' ',144,'export.txt','export file name',IER,2)
+          ISTRW=144
         else
-          CALL EASKF(xfile,' Export file name? ',
-     &      ' ',96,'export.txt','binary events db',IER,2)
+          ISTRW=96
         endif
+        CALL EASKF(xfile,' Export file name? ',
+     &    ' ',ISTRW,'export.txt','binary events db',IER,2)
 
 C If user request cancel then return after resetting ixopen to zero.
         if(ier.eq.-3)then
@@ -248,6 +246,7 @@ C ixunit is the file unit number for the export file.
       character longtfile*144,longtfiledos*144
       logical concat,remote,unixok
       integer lenxfile
+      integer ISTRW
 
 C Initial name for export parameter file is ixfile+par.
       lenxfile=lnblnk(xfile)
@@ -311,22 +310,19 @@ C Each call is a toggle.
         llt=lnblnk(xfile)
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(xfile,' Export file name? ',
-     &        ' ',96,'export.txt','export file name',IER,2)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(xfile,' Export file name? ',
-     &        ' ',124,'export.txt','export file name',IER,2)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(xfile,' Export file name? ',
-     &        ' ',144,'export.txt','export file name',IER,2)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(xfile,' Export file name? ',
-     &      ' ',144,'export.txt','export file name',IER,2)
+          ISTRW=144
         else
-          CALL EASKF(xfile,' Export file name? ',
-     &      ' ',96,'export.txt','binary events db',IER,2)
+          ISTRW=96
         endif
+        CALL EASKF(xfile,' Export file name? ',
+     &    ' ',ISTRW,'export.txt','binary events db',IER,2)
 
 C If user requested a cancel then return after resetting ixopen.
         if(ier.eq.-3)then
