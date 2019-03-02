@@ -1879,6 +1879,7 @@ $CLM -mode text -file $1 -act asci2bin silent $2  >/dev/null 2>/dev/null
   cp icons.db1 ${DESTdir}/databases
   cp components.db1 ${DESTdir}/databases
   cp ${SRCdir}/bitmaps/*.xbm ${DESTdir}/lib
+  cp multi_seg_occup_DB.txt ${DESTdir}/databases
   echo " done."
 fi
 
@@ -1958,9 +1959,9 @@ plncount=`find ./training ./validation -name "*.pln" -print | wc -l`
 
 for file in "${plnnames[@]}"; do
   plnnum=$((${plnnum} + 1))
-  printf "       -> ${plnnum}/${plncount} (${file})"
+  # printf "       -> ${plnnum}/${plncount} (${file})"
   sed -e 's|/usr/esru|'"${DESTdir}"'|' ${file} > ${ESPdir}/${file:2}
-  printf "\n"
+  # printf "\n"
 done
 
 # Create a sample result set.

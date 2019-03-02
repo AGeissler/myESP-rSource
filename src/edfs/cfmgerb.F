@@ -391,6 +391,29 @@ C To support writing ASCII file.
      2            DZHP(ntcelz),DZPL(ntcelz),
      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
+      REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
+     &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
+     &     Tsko_av1,Tco_av1,Tsk_av1
+      COMMON/ocflux1/headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
+     &        rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
+     &        Tsko_av1, Tco_av1, Tsk_av1
+      REAL tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,tavlegr1
+      REAL hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,HMETA2
+      integer cfdcheck, msegflag
+      COMMON/segtemp1/tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,
+     &       tavlegr1,hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,
+     &       cfdcheck,msegflag,HMETA2
+      REAL headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
+     &     rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
+     &     Tsko_av2,Tco_av2,Tsk_av2
+      COMMON/ocflux2/headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
+     &        rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
+     &        Tsko_av2, Tco_av2, Tsk_av2
+      REAL tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,tavlegr2
+      COMMON/segtemp2/tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,
+     &       tavlegr
+      REAL ic(31,4),inc(31,4)
+      Integer inn,i
       CHARACTER LCFD*72
       character cfd3dascii*72
       character doit*248
@@ -536,6 +559,31 @@ C                write(38,'(a,120f8.1)') 'AGEf: ',(AGEf(I,J,K),I=2,NI)
               ENDDO      
  101        continue
  10       continue
+! write the body and skin temperature for current time step and surrounding temperature
+          if (cfdcheck.GT.1.and.HMETA2.LT.1) then
+C Debug file. Comment out next 29 lines when proven.
+          open(unit=92,file="initial_condition1.txt",status="old")
+          do i=1,25
+             read (92,*) (ic(i,j),j=1,4)
+             write(38,'( 6f9.5)') (ic(i,j),j=1,4)
+          end do
+          CLOSE ( UNIT=92 )
+           write(38,*) tavhead1,tavtrunk1,tavarml1,tavarmr1,
+     &       tavlegl1,tavlegr1,Qoccsens1,Qocclat1,
+     &       Tsko_av1, Tco_av1, Tsk_av1
+!          elseif (cfdcheck.GT.1.and.HMETA2.GT.1) then
+!          open(unit=94,file="initial_condition2.txt",status="old")
+!          do i=1,25
+!             read (94,*) (ic(i,j),j=1,4)
+!             write(38,'( 6f9.5)') (ic(i,j),j=1,4)
+!          end do
+!          CLOSE ( UNIT=94 )
+
+!           write(38,*) tavhead2,tavtrunk2,tavarml2,tavarmr2, 
+!     &       tavlegl2,tavlegr2,Qoccsens2,Qocclat2,
+!     &       Tsko_av2, Tco_av2, Tsk_av2
+           endif
+
           write(38,'(a)') 'end_cfd3dascii'
           CLOSE ( UNIT=38 )
 

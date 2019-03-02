@@ -64,10 +64,11 @@ C Supports position - needs testing.
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER prompt*48,hold*32,outs*124,name*12
+      CHARACTER prompt*48,hold*32,outs*124,name*12,MSG*18
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -86,6 +87,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_010'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -95,8 +97,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
+          else
+            call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight
+          endif
           call pausems(100)
         endif
       endif
@@ -107,7 +117,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -216,6 +228,10 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
           call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
           call pausems(100)
@@ -300,10 +316,11 @@ C
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER prompt*48,hold*48,outs*124,name*12
+      CHARACTER prompt*48,hold*48,outs*124,name*12,MSG*18
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -322,6 +339,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_012'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -331,8 +349,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
+          else
+            call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight crack 
+          endif
           call pausems(100)
         endif
       endif
@@ -343,7 +369,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -431,10 +459,11 @@ C Supports position - needs testing.
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER prompt*48,hold*32,outs*124,name*12
+      CHARACTER prompt*48,hold*32,outs*124,name*12,MSG*18
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -453,6 +482,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_015'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -462,8 +492,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
+          else
+            call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight
+          endif
           call pausems(100)
         endif
       endif
@@ -474,7 +512,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -554,10 +594,11 @@ C Supports position - needs testing.
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER prompt*48,hold*32,outs*124,name*12
+      CHARACTER prompt*48,hold*32,outs*124,name*12,MSG*18
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -576,6 +617,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_017'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -585,8 +627,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
+          else
+            call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight
+          endif
           call pausems(100)
         endif
       endif
@@ -597,7 +647,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -678,10 +730,11 @@ C quadratic law volume flow resistance component (dP = a.m/ro+b.(m/ro)^2)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER prompt*48,hold*32,outs*124,name*12
+      CHARACTER prompt*48,hold*32,outs*124,name*12,MSG*18
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -700,6 +753,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_020'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -709,8 +763,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
+          else
+            call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight
+          endif
           call pausems(100)
         endif
       endif
@@ -721,7 +783,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -801,10 +865,11 @@ C quadratic law mass flow resistance component (dP = a.m + b.m^2)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER prompt*48,hold*32,outs*124,name*12
+      CHARACTER prompt*48,hold*32,outs*124,name*12,MSG*18
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -823,6 +888,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_025'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -832,8 +898,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
+          else
+            call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight 
+          endif
           call pausems(100)
         endif
       endif
@@ -844,7 +918,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -924,11 +1000,12 @@ C constant volume flow rate component (m = rho . a)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER H*72,prompt*72,hold*32,outs*124,name*12
+      CHARACTER H*72,prompt*72,hold*32,outs*124,name*12,MSG*18
       logical ok,dok
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -947,6 +1024,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_030'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -956,8 +1034,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
+          else
+            call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight crack 
+          endif
           call pausems(100)
         endif
       endif
@@ -968,17 +1054,25 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
       endif
 
-C Offer shortcut definition.
-      write(prompt,'(3a)') 'Derive flow through ',CMNAM(ICMP),
-     &  ' (m^3/s) via:'
-      CALL EASKABCD(prompt,' ','direct edit','l/s/person',
-     &  'm^3/hr','ach (use volume of node)',IW,nbhelp)
+C Offer shortcut definition but echo the current flow rate.
+      write(prompt,'(3a,F9.6,a)') 'Flow via ',CMNAM(ICMP),
+     &  ' (m^3/s) is ',SUPCMP(ICMP,2),'. Derive via:'
+      call edisp(iuout,prompt)
+C      write(prompt,'(3a)') 'Derive flow through ',CMNAM(ICMP),
+C     &  ' (m^3/s) via:'
+C      CALL EASKABCD(prompt,' ','direct edit','l/s/person',
+C     &  'm^3/hr','ach (use volume of node)',IW,nbhelp)
+      CALL EASKATOG(prompt,' ','direct edit','l/s/person',
+     &  'm^3/hr','ach (use volume of node)','accept current',
+     &  ' ',' ',IW,nbhelp)
       if(iw.eq.1)then
 
 C Flow m^3/s (zero flow allowed).
@@ -1048,6 +1142,8 @@ C Based on ach against the volume of a particular node.
         call askok(prompt,'Is this ok?',OK,dok,nbhelp)
         if (.NOT.OK) goto 42
         SUPCMP(ICMP,2)=VAL
+      elseif(iw.eq.5)then
+        continue
       endif
 
 C Position in space if IAIRN=3.
@@ -1112,10 +1208,11 @@ C constant mass flow rate component (m = a)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER prompt*48,outs*124,name*12
+      CHARACTER prompt*48,outs*124,name*12,MSG*18
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1134,6 +1231,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_035'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -1143,8 +1241,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
+          else
+            call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight crack 
+          endif
           call pausems(100)
         endif
       endif
@@ -1155,7 +1261,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -1231,10 +1339,11 @@ C common orifice flow component (m = rho Cd A (2/rho dP)**.5)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER hold*32,prompt*48,outs*124,name*12
+      CHARACTER hold*32,prompt*48,outs*124,name*12,MSG*18
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1253,6 +1362,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_040'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -1262,8 +1372,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'or','r',valhx,valhy,valhz) ! highlight orifice 
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'or','r',valhx,valhy,valhz) ! highlight orifice 
+          else
+            call symbol_flow_cmp(name,'or','b',valhx,valhy,valhz) ! highlight orifice 
+          endif
           call pausems(100)
         endif
       endif
@@ -1274,7 +1392,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -1354,10 +1474,11 @@ C Supports positioin - needs testing.
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER hold*32,prompt*48,outs*124,name*12
+      CHARACTER hold*32,prompt*48,outs*124,name*12,MSG*18
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1376,6 +1497,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_050'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -1385,8 +1507,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight  
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
+          else
+            call symbol_flow_cmp(name,'cd','b',valhx,valhy,valhz) ! highlight 
+          endif 
           call pausems(100)
         endif
       endif
@@ -1397,7 +1527,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -1480,6 +1612,7 @@ C Support position.
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1498,6 +1631,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_110'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -1507,8 +1641,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'or','r',valhx,valhy,valhz) ! highlight 
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'or','r',valhx,valhy,valhz) ! highlight 
+          else
+            call symbol_flow_cmp(name,'or','b',valhx,valhy,valhz) ! highlight 
+          endif
           call pausems(100)
         endif
       endif
@@ -1616,6 +1758,10 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
           call symbol_flow_cmp(name,'cr','r',valhx,valhy,valhz) ! highlight crack 
           call pausems(100)
@@ -1745,6 +1891,10 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
           call symbol_flow_cmp(name,'bi','r',valhx,valhy,valhz) ! highlight 
           call pausems(100)
@@ -1842,11 +1992,12 @@ C Supports position - needs testing.
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER hold*48,prompt*48,outs*124,name*12
+      CHARACTER hold*48,prompt*48,outs*124,name*12,MSG*18
       logical close
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1866,6 +2017,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_210'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C If in graphic mode and IAIRN=3 then highlight the component.
       if(IAIRN.eq.3)then
@@ -1875,8 +2027,16 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
-          call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
+          if(.NOT.iswater)then
+            call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
+          else
+            call symbol_flow_cmp(name,'cd','b',valhx,valhy,valhz) ! highlight 
+          endif
           call pausems(100)
         endif
       endif
@@ -1887,7 +2047,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -2053,6 +2215,10 @@ C If in graphic mode and IAIRN=3 then highlight the component.
           call pausems(100)
           VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
           VALHZ=HCMP(ICMP,1,3)
+          write(outs,'(5a,3F8.3)') 'Currently associated with ',
+     &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
+     &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
+          call edisp(iuout,outs)
           name=CMNAM(ICMP)
           call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
           call pausems(100)
@@ -2154,6 +2320,7 @@ C     SUPCMP(ICMP,13) - Ccp coefficient a5 (-)
 
       CHARACTER outs*124
       logical OK,dok,close
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2167,6 +2334,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_220'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
       dok=.true.
       CALL ASKOK(outs,'Synopsis of this component type?',OK,dok,nbhelp)
 
@@ -2490,9 +2658,10 @@ C more than degree of curve (maxp>=ideg)
       parameter (maxp=20)
       parameter (ideg=4)
 
-      character outs*124,hold*48,prompt*48
+      character outs*124,hold*48,prompt*48,MSG*18
       logical OK,dok,closea,closeb,closec,SINGUL
       doubleprecision xval(maxp),yval(maxp),RIHAS(IDEG)
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2511,6 +2680,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_310'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C Input fluid type.
       if(imix.eq.1)then
@@ -2518,7 +2688,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -2648,7 +2820,8 @@ C general flow corrector (ie. valve or damper)
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MFLOWIT/fndegc,imix 
-      CHARACTER prompt*48,outs*124
+      CHARACTER prompt*48,outs*124,MSG*18
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2667,6 +2840,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_410'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C Input fluid type.
       if(imix.eq.1)then
@@ -2674,7 +2848,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -2740,7 +2916,8 @@ C See synopsis for SUPCMP data.
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MFLOWIT/fndegc,imix 
-      CHARACTER hold*48,prompt*48,outs*124
+      CHARACTER hold*48,prompt*48,outs*124,MSG*18
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2759,6 +2936,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_420'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C Input fluid type.
       if(imix.eq.1)then
@@ -2766,7 +2944,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -2809,7 +2989,8 @@ C fixed flow rates controller. See synopsis for SUPCMP data.
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MFLOWIT/fndegc,imix 
-      CHARACTER hold*32,prompt*48,outs*124
+      CHARACTER hold*32,prompt*48,outs*124,MSG*18
+      logical iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2828,6 +3009,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_460'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C Input fluid type.
       if(imix.eq.1)then
@@ -2835,7 +3017,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)
@@ -2863,7 +3047,8 @@ C fixed flow rates controller. See synopsis for SUPCMP data.
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/MFLOWIT/fndegc,imix 
-      CHARACTER prompt*48,outs*124
+      CHARACTER prompt*48,outs*124,MSG*18
+      logical iswater
       PARAMETER (MCCN=3)
 
 C For help messages
@@ -2883,6 +3068,7 @@ C Synopsis of flow component.
       call edisp(iuout,outs)
       helptopic='flow_cmp_500'
       call gethelptext(helpinsub,helptopic,nbhelp)
+      call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
 C Input fluid type.
       if(imix.eq.1)then
@@ -2890,7 +3076,9 @@ C Input fluid type.
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
       else
-        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),':'
+        if(iswater) write(MSG,'(a)') '(currently water):'
+        if(.NOT.iswater) write(MSG,'(a)') '(currently air):'
+        write(prompt,'(3a)') 'Fluid through ',CMNAM(ICMP),MSG
         CALL EASKAB(prompt,'(help for synopsis)','air','water',
      &    IW,nbhelp)
         SUPCMP(ICMP,1)=REAL(IW)

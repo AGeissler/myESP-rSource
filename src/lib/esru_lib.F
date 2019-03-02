@@ -7803,6 +7803,101 @@ C An even older method of asking OS to do some work.
 C        call cissue(cmd,ifail)
         return
       endif
+      end  ! of runit
+
+
+C ************* runitv
+C runitv: Execute a command string, in text (runs in a new xterm) or graphics
+C mode with a status indicator which is returned to the calling code.
+C  Assumes that command string terminates in a '&' if the
+C user wishes to run in background mode. For minGW xterm is not used.
+C As runit is sometimes called with verbose command strings ensure
+C the local buffer (tmp & ltmp) can handle 1K characters.
+C WARNING - possible OS dependency:
+C runit invokes the command. system() is a C function which
+C works well on MSYS and Linux while execute_command_line is
+C a gfortran facility which works on MSYS2. If runit is not 
+C working then try switching bweteen these options.
+      subroutine runitv(cmd,tg,i)
+      common/OUTIN/IUOUT,IUIN
+      character*(*) cmd,tg
+      integer i
+      character tmp*1200,ltmp*1200,tmode*8,message*248
+      character dq*1
+      integer system
+      logical unixok
+
+      dq = char(34)  ! double quote
+
+C Find if Unix or NT.
+      call isunix(unixok)
+      if(unixok)then
+        LN=max(1,lnblnk(tg))
+        LN=min0(LN,4)
+        write (tmode,'(a)') tg(1:LN)
+        if(tmode(1:4).eq.'text')then
+          LN=max(1,lnblnk(cmd))
+          write(tmp,'(a,a)') 'xterm -e ',cmd(1:LN)
+C          i = system(tmp)
+         call execute_command_line (tmp, exitstat=i)
+        else
+C          i = system(cmd)
+          call execute_command_line (cmd, exitstat=i)
+        endif
+        if(i.gt.0.and.i.le.126)then
+C          call edisp(iuout,'task terminated with an error condition')
+          LN=max(1,lnblnk(cmd))
+          write(tmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
+C          call edisp248(iuout,tmp,100)
+        elseif(i.eq.127)then
+          call edisp(iuout,'task requested was unknown.')
+          LN=max(1,lnblnk(cmd))
+          write(tmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
+          call edisp248(iuout,tmp,100)
+        endif
+        return
+      else
+
+C Non-linux only uses tg if passed as 'bg'. It then
+C attempts to mimic starting a background task.
+        write (tmode,'(a)') tg(1:lnblnk(tg))
+        LN=lnblnk(cmd)
+        if (cmd(LN:LN).eq."&") then
+          write (tmp,'(4a)') dq,'start ',cmd(1:LN-1),dq
+C          write (cmd,'(a)') tmp(1:lnblnk(tmp))
+          call edisp248(iuout,tmp,90)
+        else
+          if(tmode.eq.'bg')then  ! background
+            write (tmp,'(7a)') dq,'start /B ',dq,dq,' ',
+     &        cmd(1:LN),dq
+C            write (cmd,'(a)') tmp(1:lnblnk(tmp))
+          else
+            write (tmp,'(3a)') dq,cmd(1:LN),dq
+C            write (cmd,'(a)') tmp(1:lnblnk(tmp))
+          endif
+          call edisp248(iuout,tmp,90)
+          call edisp(iuout,' ')
+          call forceflush()
+        endif
+
+C        i = system(cmd)
+        call execute_command_line (tmp, exitstat=i)
+        if(i.gt.0.and.i.le.126)then
+          call edisp(iuout,'task terminated with an error condition')
+          LN=lnblnk(cmd)
+          write(ltmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
+          call edisp248(iuout,ltmp,90)
+        elseif(i.eq.127)then
+          call edisp(iuout,'task requested was unknown.')
+          LN=lnblnk(cmd)
+          write(ltmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
+          call edisp248(iuout,ltmp,90)
+        endif
+
+C An even older method of asking OS to do some work.
+C        call cissue(cmd,ifail)
+        return
+      endif
       end
 
 C ***************** iEGetArrW

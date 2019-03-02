@@ -196,8 +196,8 @@ C GF New Start
 C Establish "containment loss" data
          QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+         call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+         call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 C GF New End
 
 C 1st phase mass (ie. water) balance coefficients
@@ -776,11 +776,11 @@ C Store "environment" variables future values
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
-C       For embedded pipes:
-	    call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
+C For embedded pipes:
+        call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
 
 C 1st phase mass (ie. water) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -940,11 +940,11 @@ C Store "environment" variables future values
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
-C       For embedded two leg junction:
-	    call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
+C For embedded two leg junction:
+        call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
 
 C 1st phase mass (ie. water) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -2576,8 +2576,8 @@ C Establish "containment loss" data
 
 C GF New Start
 C Establish "containment loss" data
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 C GF New End
 
 C Establish additional output variables
@@ -2945,8 +2945,8 @@ C Addition output for results analysis.
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C 1st phase mass (ie. "water") balance coefficients
 
@@ -7509,8 +7509,8 @@ C Establish "containment loss" data
         QDATA(IPCOMP)=UAMod*(alpha*(futureTemp-pcntmp(ipcomp))+
      &                (1.-alpha)*(presentTemp-pcntmp(ipcomp)))
 
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C Store "environment" variables future values
         PCTF(ICON1)=CONVAR(ICON1,1)
@@ -8188,8 +8188,8 @@ C Establish "containment loss" data
         QDATA(IPCOMP)=UAMod*(alpha*(futureTemp-pcntmp(ipcomp))+
      &                (1.-alpha)*(presentTemp-pcntmp(ipcomp)))
 
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 
 C Store "environment" variables future values
@@ -9055,8 +9055,8 @@ C Store "environment" variables future values.
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C 1st phase mass (ie. dry air) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -9329,8 +9329,8 @@ C Store "environment" variables future values.
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C 1st phase mass (ie. dry air) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN

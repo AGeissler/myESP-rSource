@@ -110,8 +110,8 @@ C Defaults.
       COMMON/NWKVEW/SCALF,VIEWCEN(3),VIEWLIM(6),IVIEW
       REAL :: SCALF,VIEWCEN,VIEWLIM
       INTEGER :: IVIEW
-      COMMON/NWKSTR/NWKNAM,NWKDSC,NWKTYPSTR(MNWKTYP)
-      CHARACTER NWKNAM*72,NWKDSC*72,NWKTYPSTR*12
+      COMMON/NWKSTR/LEGNWKNAM,NWKNAM,NWKDSC,NWKTYPSTR(MNWKTYP)
+      CHARACTER LEGNWKNAM*72,NWKNAM*72,NWKDSC*72,NWKTYPSTR*12
       COMMON/ICONDBNAM/ICONDBFL
       character ICONDBFL*72
       COMMON/NWKTYP/INWKTYP,vergnf
@@ -129,7 +129,7 @@ C TDF related.
       INTEGER :: NCONTM,NOCNTM
       logical DOK,OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical browse
-      logical xst,clkok,havefile,unixok
+      logical xst,xstl,clkok,havefile,unixok
       LOGICAL concat,remote
       integer iglib   ! to test for X11 interface
       integer iappwpc ! application height as % of nominal size
@@ -151,9 +151,11 @@ C TDF related.
       logical silent        ! if true do not interact with user
       integer ier           ! non-zero if a problem
       integer loop
+      character hold32*32
+      logical found_pandoc ! to test application existance
 
       INTEGER :: itrc,itru,i,ic,icc,istat
-      INTEGER :: iacc,icfoc,iclkok,idindcfg
+      INTEGER :: iacc,icfoc,iclkok,idindcfg,lnnwknam
       INTEGER :: iier,im,ino,ios,ipedit,ipass,is
       INTEGER :: isindcfg,iuf,ium,iuo,iv,iver,iw,iz
       INTEGER :: iser,lenlfil,ln,ltrf,nets,nitems
@@ -663,6 +665,7 @@ C If an error has been encountered then reset the configuration type.
       ELSEIF(INO.EQ.8)THEN
 
 C Air flow definition: this can be held in text or graphics format.
+        XSTL=.false.
         helptopic='submenu_flow_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IAIRN.eq.0)then
@@ -694,6 +697,8 @@ C Air flow definition: this can be held in text or graphics format.
      &      'flow network (defined)','new flow network',
      &      'cancel',' ',' ',IW,nbhelp)
         elseif(IAIRN.eq.3)then
+
+C Check if a legacy file also exists and if so offer it as an option.
           XST=.false.
           call FINDFIL(LAPROB,XST)
           if(XST) then
@@ -701,10 +706,26 @@ C Air flow definition: this can be held in text or graphics format.
             call edisp(iuout,'The current flow network is:')
             call edisp(iuout,LAPROB)
           endif
-          call EASKATOG('Define air flow via:',' ',
-     &      'empirical air infiltration model','via schedule',
-     &      'flow network (3D defined)','new flow network',
-     &      'cancel',' ',' ',IW,nbhelp)
+          lnnwknam=lnblnk(LAPROB)
+          write(LEGNWKNAM,'(2a)') LAPROB(1:lnnwknam-6),'.afn'
+          XSTL=.false.
+          call FINDFIL(LEGNWKNAM,XSTL)
+          if(XSTL) then
+            call edisp(iuout,' ')
+            call edisp(iuout,'Also a legacy flow network is:')
+            call edisp(iuout,LEGNWKNAM)
+          endif
+          if(.NOT.XSTL)then
+            call EASKATOG('Define air flow via:',' ',
+     &        'empirical air infiltration model','via schedule',
+     &        'flow network (3D defined)','new flow network',
+     &        'cancel',' ',' ',IW,nbhelp)
+          else
+            call EASKATOG('Define air flow via:',' ',
+     &        'empirical air infiltration model','via schedule',
+     &        'flow network (3D defined)','flow network (legacy)',
+     &        'new flow network','cancel',' ',IW,nbhelp)
+          endif
         endif
 
 C Use AIM2 interface to define air flow.     
@@ -817,22 +838,49 @@ C to create the initial network based on these attributes.
               call edisp(iuout,
      &          'These can be used to help building your network.')
               iacc=3
-              CALL EASKABCD('Descriptive method to employ:',' ',
-     &          'menus & lists','graphic tool',
-     &          'build network from scan surface USE attributes',
-     &          'continue',iacc,nbhelp)
+              if(.NOT.XSTL)then
+                CALL EASKABCD('Descriptive method to employ:',' ',
+     &            'menus & lists','graphic tool',
+     &            'build network from scan surface USE attributes',
+     &            'continue',iacc,nbhelp)
+               else
+                CALL EASKATOG('Descriptive method to employ:',' ',
+     &            'legacy menus & lists','3D menus & lists',
+     &            'graphic tool',
+     &            'build network from scan surface USE attributes',
+     &            'continue',' ',' ',iacc,nbhelp)
+               endif
             else
-              CALL EASKABC('Descriptive method to employ:',' ',
+              if(.NOT.XSTL)then
+                CALL EASKABC('Descriptive method to employ:',' ',
      &          'menus & lists','graphic tool','continue',iacc,nbhelp)
+              else
+                CALL EASKABCD('Descriptive method to employ:',' ',
+     &            'legacy menus & lists','3D menus & lists',
+     &            'graphic tool','continue',iacc,nbhelp)
+              endif
             endif
             if(iacc.eq.1)then
-              IAIRN=3   ! new networks include position.
-              LAPROB='UNKN'
-              call MFPROB(IER)
-              goto 3
+              if(.NOT.XSTL)then
+                IAIRN=3   ! new networks include position  ??
+                LAPROB='UNKN'
+                call MFPROB(IER)
+              else
+                IAIRN=1   ! user working with legacy formats
+                LAPROB='UNKN'
+                call MFPROB(IER)
+              endif
+              goto 3   ! jump back
             elseif(iacc.eq.2)then
-              IAIRN=2
-              LAPROB='UNKN'
+              if(.NOT.XSTL)then
+                IAIRN=2
+                LAPROB='UNKN'
+              else
+                IAIRN=3   ! new networks include position  ??
+                LAPROB='UNKN'
+                call MFPROB(IER)
+                goto 3   ! jump back
+              endif
               continue
             else
               if(haveflowattributes.gt.2)then
@@ -859,12 +907,111 @@ C to create the initial network based on these attributes.
           elseif(IAIRN.eq.2)then
             continue
           endif
-        elseif(IW.eq.4)then airflowtype
+        elseif(IW.eq.4.and.XSTL)then
+
+C There was a legacy file and the user wants to work with it.
+           IAIRN=1   ! user working with legacy formats
+           LAPROB=LEGNWKNAM
+           call MFPROB(IER)
+           goto 3   ! jump back
+
+        elseif((IW.eq.4.and.(.NOT.XSTL)).or.
+     &         (IW.EQ.5.and.XSTL))then airflowtype
 
 C User asked for a new flow network, confirm their approach.
+C Look and see if any surfaces have USE attributes. If so
+C ask user if they want to scan otherwise ask user text or graphic.
+          haveflowattributes=0
+          do loop=1,NCON
+            iz=IC1(loop); is=IE1(loop)  ! get current zone & surface.
+            if(SSUSE(loop,1)(1:1).eq.'-'.or.
+     &         SSUSE(loop,1)(1:5).eq.'FLOOR'.or.
+     &         SSUSE(loop,1)(1:5).eq.'FURNI'.or.
+     &         SSUSE(loop,1)(1:7).eq.'ITEQUIP'.or.
+     &         SSUSE(loop,1)(1:5).eq.'PARTN'.or.
+     &         SSUSE(loop,1)(1:4).eq.'ROOF'.or.
+     &         SSUSE(loop,1)(1:5).eq.'STRUC'.or.
+     &         SSUSE(loop,1)(1:7).eq.'FIXTURE'.or.
+     &         SSUSE(loop,1)(1:6).eq.'PLANTS')then
+              CYCLE
+            endif
+            if(SSUSE(loop,1)(1:4).eq.'DOOR'.or.
+     &         SSUSE(loop,1)(1:6).eq.'P-DOOR'.or.
+     &         SSUSE(loop,1)(1:6).eq.'H-DOOR'.or.
+     &         SSUSE(loop,1)(1:6).eq.'H-DOOR')then
+              if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
+                continue   ! no flow
+              elseif(SSUSE(loop,2)(1:8).eq.'UNDERCUT')then
+                haveflowattributes=haveflowattributes+1
+              elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+                haveflowattributes=haveflowattributes+1
+              elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+                haveflowattributes=haveflowattributes+1
+              endif
+            elseif(SSUSE(loop,1)(1:5).eq.'FRAME'.or.
+     &             SSUSE(loop,1)(1:7).eq.'F-FRAME')then
+              if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
+                continue   ! no flow
+              elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+                haveflowattributes=haveflowattributes+1
+              elseif(SSUSE(loop,2)(1:4).eq.'VENT')then
+                haveflowattributes=haveflowattributes+1
+              endif
+            elseif(SSUSE(loop,1)(1:5).eq.'GRILL')then
+              if(SSUSE(loop,2).eq.'CLOSED')then
+                continue   ! no flow
+              elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+                haveflowattributes=haveflowattributes+1
+              elseif(SSUSE(loop,2)(1:5).eq.'INLET')then
+                haveflowattributes=haveflowattributes+1
+              elseif(SSUSE(loop,2)(1:7).eq.'EXTRACT')then
+                haveflowattributes=haveflowattributes+1
+              elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+                haveflowattributes=haveflowattributes+1
+              endif
+            elseif(SSUSE(loop,1)(1:6).eq.'WINDOW'.or.
+     &             SSUSE(loop,1)(1:8).eq.'D-WINDOW'.or.
+     &             SSUSE(loop,1)(1:8).eq.'S-WINDOW'.or.
+     &             SSUSE(loop,1)(1:8).eq.'C-WINDOW')then
+              if(SSUSE(loop,2).eq.'CLOSED')then
+                continue   ! no flow
+              elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+                haveflowattributes=haveflowattributes+1 
+              elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+                haveflowattributes=haveflowattributes+1 
+              elseif(SSUSE(loop,2)(1:4).eq.'SASH')then
+                haveflowattributes=haveflowattributes+2 
+              elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+                haveflowattributes=haveflowattributes+1 
+              endif
+            elseif(SSUSE(loop,1)(1:4).eq.'FICT')then
+              if(SSUSE(loop,2).eq.'CLOSED')then
+                continue   ! no flow
+              elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+                haveflowattributes=haveflowattributes+1 
+              elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+                haveflowattributes=haveflowattributes+1 
+              elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+                haveflowattributes=haveflowattributes+1 
+              endif
+            endif
+          enddo
           iacc=2
-          CALL EASKABC('Descriptive method to employ:',' ',
-     &      'menus & lists','graphics tool','continue',iacc,nbhelp)
+          if(haveflowattributes.gt.2)then
+            call edisp(iuout,
+     &        'There are surfaces with mass flow USE attributes.')
+            call edisp(iuout,
+     &        'These can be used to help building your network.')
+            iacc=3
+            CALL EASKABCD('Descriptive method to employ:',' ',
+     &        'menus & lists','graphic tool',
+     &        'build network from scan surface USE attributes',
+     &        'continue',iacc,nbhelp)
+          else
+            CALL EASKABC('Descriptive method to employ:',' ',
+     &        'menus & lists','graphic tool','continue',iacc,nbhelp)
+            if(iacc.eq.3) goto 3  ! jump back
+          endif
           if(iacc.eq.1)then
 
 C There might already be an existing LAPROB, the new name must
@@ -903,7 +1050,19 @@ C not clash with it so make a *g.afn variant.
               endif
             endif
           else
-            goto 3
+            call scan_flow_use()
+            IAIRN=3
+            write(outs,'(2a)') '!!In next dialog use:',
+     &        NWKNAM(1:lnblnk(NWKNAM))
+            call edisp(iuout,outs)
+            write(LAPROB,'(a)') NWKNAM(1:lnblnk(NWKNAM))  ! update LAPROB
+            call edisp(iuout,
+     &        'Updating configuration flow links...')
+            CALL EMKCFG('-',IER)
+            call edisp(iuout,
+     &        'Updating configuration flow links...done.')
+            call MFPROB(IER)  ! and now browse/edit the network
+            goto 3   ! jump back
           endif
         ELSEIF(IW.EQ.5)THEN airflowtype
           GOTO 3
@@ -1409,7 +1568,22 @@ C that all zones in the model are to be included.
   29    continue
 
 C Ask about Markdown or plain text. Other subroutines will check
-C the common block value of markdown.
+C the common block value of markdown. Also see if [pandoc] has
+C been installed on this computer.
+        call isunix(unixok)
+
+C Check if xfig exists
+        if(unixok)then
+          found_pandoc=.false.; hold32='pandoc'
+          call isinstalled(hold32,found_pandoc)
+          if(.NOT.found_pandoc)then
+            call usrmsg('You have not yet installed pandoc so markdown',
+     &        'files cannot be converted to html docx etc.','W')
+          endif
+        else
+          found_pandoc=.false.  ! not in Windows
+        endif
+
         DOK=.false.
         helptopic='use_markdown'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -1423,7 +1597,15 @@ C the common block value of markdown.
         call prjqa(inpic,ivals,silent,ier)
 
 C If markdown true reset after report generated.
-        if(markdown) markdown=.false.
+        if(markdown)then
+          markdown=.false.
+          if(found_pandoc)then
+            call edisp(iuout,
+     &        'You can convert the markdown file you generated via:')
+            call edisp(iuout,'pandoc -s -o file.html file.md')
+            call edisp(iuout,'or pandoc -s -o file.docx file.md')
+          endif
+        endif
 
       ELSEIF(INO.EQ.26)THEN
 
@@ -1547,7 +1729,7 @@ C Flag noting whether casual gain periods are currently sorted.
       logical sorted,problem
       logical newgeo  ! Used to test for new/old geometry file format.
       
-      character ITEMS*32
+      character ITEMS*34
       integer ivals
       dimension ITEMS(25),IVALS(MCOM)
       dimension jict(MS),jic2(MS),jie2(MS),jmlcindex(MS)
@@ -1723,7 +1905,7 @@ C Ask for transform distance and affected zones and then apply.
             clkok=.false.
             ISTRW=32
             CALL EASKSCMD(HOLD,'X, Y and Z transform (m)?',' ',
-     &        'cancel',clkok,32,' 0.0 0.0 0.0 ','transforms XYZ',
+     &        'cancel',clkok,ISTRW,' 0.0 0.0 0.0 ','transforms XYZ',
      &        IER,nbhelp)
             if(clkok) goto 3
           endif
@@ -4648,6 +4830,8 @@ C Parameters.
       character path*72
       common/rpath/path
       logical concat,OK,DOK,browse,XST,deref,unixok,modcfg
+      logical found_ximage ! to test application existance
+      character hold32*32
       character dradcf*72,OUTSTR*124,outs*124,outs248*248
       character dvfil*72,ltmp*72
       character doit*248,tmode*8
@@ -4759,6 +4943,20 @@ C string to drive VIEWER.
         return
 
       elseif(act.eq.'R')then
+
+C Check if Radiance has been installed. If not do not start e2r.
+        if(unixok)then
+          found_ximage=.false.; hold32='ximage'
+          call isinstalled(hold32,found_ximage)
+          if(.NOT.found_ximage)then
+            call usrmsg(
+     &      'You have not yet installed Radiance so the ESP-r module',
+     &      'e2r will fail to produce correct Radiance files!','W')
+            return
+          endif
+        else
+          found_ximage=.false.  ! not in Windows
+        endif
 
 C Assume model is multi-folder with a rad folder.
 C Set rcf name if unknown and set default name. If path for radiance

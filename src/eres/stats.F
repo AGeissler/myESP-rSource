@@ -48,7 +48,7 @@ C results. Available at present:
 
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -797,7 +797,7 @@ C Markdown flag.
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -1376,23 +1376,23 @@ C Build up string for displaying.
               if (IROC.eq.-1) then
                 if(nbdecimal.eq.1)then
                   write(outs,'(a,f10.1,3a,f10.1,3a,f10.1,a,f10.2,
-     &            a,f10.3)') GLABEL(I)(1:20),YMAX(I),
+     &            a,f10.3)') GLABEL(I)(1:24),YMAX(I),
      &            '  ',XT,' ',YMIN(I),'  ',NT,' ',YAVE(I),' ',YSTD(I),
      &            ' ',YTOT(I)
                 else
                   write(outs,'(a,f10.3,3a,f10.3,3a,f10.3,a,f10.3,
-     &            a,f10.3)') GLABEL(I)(1:20),YMAX(I),
+     &            a,f10.3)') GLABEL(I)(1:24),YMAX(I),
      &            '  ',XT,' ',YMIN(I),'  ',NT,' ',YAVE(I),' ',YSTD(I),
      &            ' ',YTOT(I)
                 endif
               else
                 if(nbdecimal.eq.1)then
                   write (outs,'(a,f10.1,3a,f10.1,3a,f10.2,a,f10.3)') 
-     &            GLABEL(I)(1:20),YMAX(I),
+     &            GLABEL(I)(1:24),YMAX(I),
      &            '  ',XT,' ',YMIN(I),'  ',NT,' ',YAVE(I),' ',YSTD(I)
                 else
                   write (outs,'(a,f10.3,3a,f10.3,3a,f10.3,a,f10.3)') 
-     &            GLABEL(I)(1:20),YMAX(I),
+     &            GLABEL(I)(1:24),YMAX(I),
      &            '  ',XT,' ',YMIN(I),'  ',NT,' ',YAVE(I),' ',YSTD(I)
                 endif
               endif
@@ -1400,23 +1400,23 @@ C Build up string for displaying.
               if (IROC.eq.-1) then
                 if(nbdecimal.eq.1)then
                   write(outs,'(a,f9.1,3a,f9.1,3a,f9.1,a,f9.2,
-     &            a,f10.3)') GLABEL(I)(1:20),YMAX(I),
+     &            a,f10.3)') GLABEL(I)(1:24),YMAX(I),
      &            '  ',XT,' ',YMIN(I),'  ',NT,' ',YAVE(I),' ',YSTD(I),
      &            ' ',YTOT(I)
                 else
                   write(outs,'(a,f9.3,3a,f9.3,3a,f9.3,a,f9.3,
-     &            a,f10.3)') GLABEL(I)(1:20),YMAX(I),
+     &            a,f10.3)') GLABEL(I)(1:24),YMAX(I),
      &            '  ',XT,' ',YMIN(I),'  ',NT,' ',YAVE(I),' ',YSTD(I),
      &            ' ',YTOT(I)
                 endif
               else
                 if(nbdecimal.eq.1)then
                   write (outs,'(a,f9.1,3a,f9.1,3a,f9.2,a,f9.3)') 
-     &            GLABEL(I)(1:20),YMAX(I),
+     &            GLABEL(I)(1:24),YMAX(I),
      &            '  ',XT,' ',YMIN(I),'  ',NT,' ',YAVE(I),' ',YSTD(I)
                 else
                   write (outs,'(a,f9.3,3a,f9.3,3a,f9.3,a,f9.3)') 
-     &            GLABEL(I)(1:20),YMAX(I),
+     &            GLABEL(I)(1:24),YMAX(I),
      &            '  ',XT,' ',YMIN(I),'  ',NT,' ',YAVE(I),' ',YSTD(I)
                 endif
               endif
@@ -1664,7 +1664,7 @@ C Get common precz from geometry.h
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -1876,7 +1876,7 @@ C Markdown flag.
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -2449,14 +2449,14 @@ C filtering, take total period as the time occupied.
             if(IGETNO(NGET,9).ge.15)then
               if(markdown)then
                 if(nbdecimal.eq.1)then
-                  write (outs,1205) GLABEL(I)(1:20),YMAX(I),XT,YMIN(I),
+                  write (outs,1205) GLABEL(I)(1:24),YMAX(I),XT,YMIN(I),
      &              NT,YAVE(I),AYAB,AYBE,APYAB
                 else
-                  write (outs,1105) GLABEL(I)(1:20),YMAX(I),XT,YMIN(I),
+                  write (outs,1105) GLABEL(I)(1:24),YMAX(I),XT,YMIN(I),
      &              NT,YAVE(I),AYAB,AYBE,APYAB
                 endif
               else
-                write (outs,1102) GLABEL(I)(1:20),YMAX(I),XT,YMIN(I),NT,
+                write (outs,1102) GLABEL(I)(1:24),YMAX(I),XT,YMIN(I),NT,
      &            YAVE(I),AYAB,AYBE,APYAB
               endif
             elseif(IGETNO(NGET,9).le.12)then
@@ -2612,7 +2612,7 @@ C Also called by recovert if act = 'p' << needs checking >>
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -2992,7 +2992,7 @@ C << file does not need to be scanned to get the surface emissivity.
       common/getmenu/menutype,igetind(65),igetflux(65)
       common/recver/izver,ipver,iever
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)

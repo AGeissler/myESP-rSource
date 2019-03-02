@@ -176,7 +176,7 @@ C Tollerance for surface matching.
 C      character outs248*248
       character path*72,exemplar*144
       character LAPROB*72
-      character ITEMS(27)*34
+      character ITEMS(28)*34
       character ltcmdfl*144
       character ctldoc*248,lctlf*72,ETEXT*82
       character journcmd*20,jfile*72,tfile*72,cjfile*72
@@ -1075,39 +1075,40 @@ C      write(6,*) ' model management browse status ',browse
         ITEMS(14)=  '                              '
       endif
       ITEMS(15)   = ' .... Import & export ........'
-      ITEMS(16)   = 'n use CAD tool or parse gbxml file'
+      ITEMS(16)   = 'n invoke 3rd party CAD tool    '
+      ITEMS(17)   = 'o parse gbxml file             '
       if(CFGOK)then
-        ITEMS(17) = 'o export current model            '
-        ITEMS(18) = 'p archive current model           '
+        ITEMS(18) = 'p export current model            '
+        ITEMS(19) = 'q archive current model           '
       else
-        ITEMS(17) = '  export                          '
-        ITEMS(18) = '  archive                         '
+        ITEMS(18) = '  export                          '
+        ITEMS(19) = '  archive                         '
       endif
-      ITEMS(19)   = ' .... Model location ........'
+      ITEMS(20)   = ' .... Model location ........'
       if(CFGOK)then
-        ITEMS(20) = 't folders & files         '
+        ITEMS(21) = 't folders & files         '
       else
-        ITEMS(20) = '  folders & files         '
+        ITEMS(21) = '  folders & files         '
       endif
-      ITEMS(21)  =  ' .... Miscellaneous ........'
+      ITEMS(22)  =  ' .... Miscellaneous ........'
       if(CFGOK)then
-        ITEMS(22) = 'r save model                      '
-        ITEMS(23) = 's save model as                   '
+        ITEMS(23) = 'r save model                      '
+        ITEMS(24) = 's save model as                   '
       else
-        ITEMS(22) = '  save model                      '
-        ITEMS(23) = '  save model as                   '
+        ITEMS(23) = '  save model                      '
+        ITEMS(24) = '  save model as                   '
       endif
       IF(ITRC.EQ.0)THEN
-        ITEMS(24) = 'v feedback >> silent              '
+        ITEMS(25) = 'v feedback >> silent              '
       ELSEIF(ITRC.EQ.1)THEN
-        ITEMS(24) = 'v feedback >> summary             '
+        ITEMS(25) = 'v feedback >> summary             '
       ELSEIF(ITRC.EQ.2)THEN
-        ITEMS(24) = 'v feedback >> detailed            '
+        ITEMS(25) = 'v feedback >> detailed            '
       ENDIF
-      ITEMS(25) =   '* preferences                     '
-      ITEMS(26) =   '? help                            '
-      ITEMS(27) =   '- exit Project Manager            '
-      MITEM=27
+      ITEMS(26) =   '* preferences                     '
+      ITEMS(27) =   '? help                            '
+      ITEMS(28) =   '- exit Project Manager            '
+      MITEM=28
 
 C If user has defined model and perhaps resized the display then
 C redraw the model image. If in registration mode do not attempt
@@ -1471,9 +1472,13 @@ C Browse the current model.
         endif
       ELSEIF(INO.EQ.16)THEN
 
+C Invoke 3rd party tools.
+        call gtoolin(itrc,ier)
+      ELSEIF(INO.EQ.17)THEN
+
 C Import from 3rd party tools.
         call cadin(itrc,ier)
-      ELSEIF(INO.EQ.17)THEN
+      ELSEIF(INO.EQ.18)THEN
 
 C Export, if something other than registration or plant only.
         if(INDCFG.NE.0.and.INDCFG.NE.2)then
@@ -1482,25 +1487,25 @@ C Export, if something other than registration or plant only.
         else
           CALL USRMSG(' ','Insufficient data to export!','W')
         endif
-      ELSEIF(INO.EQ.18)THEN
+      ELSEIF(INO.EQ.19)THEN
 
 C Archive the model (make a tar file containing all the files referenced
 C in the cfg file).
         call archiveit(ier)
-      ELSEIF(INO.EQ.20)THEN
+      ELSEIF(INO.EQ.21)THEN
 
 C Project folders and files.
         call pfolders(iier)
-      ELSEIF(INO.EQ.22.or.INO.EQ.23)THEN
+      ELSEIF(INO.EQ.23.or.INO.EQ.24)THEN
 
-C Save model (22 without asking for file name & 23 asking for file name).
+C Save model (23 without asking for file name & 24 asking for file name).
         if(browse)then
           call usrmsg('Cannot update the model while in browse',
      &                'mode: you must `own` the model!','W')
           goto 3
         endif
 
-        if(INO.EQ.23)then
+        if(INO.EQ.24)then
 
 C Ask for file name.
           helptopic='updated_cfg_file_name'
@@ -4116,6 +4121,8 @@ C  limgfil (72 char) name of the image file << ?? longer string >>
       character topic*248,head*136,act*1,h*72
       integer iglib  ! if one then X11 if 2 then GTK if 3 text only.
       integer idl  ! length of image documentation
+      character hold32*32
+      logical found_image ! to test application existance
 
       logical concat,show,unixok
 
@@ -4183,16 +4190,33 @@ C an double quoting is useful. If GTK then internal function used.
      &    'administrator to update the .esprc file definition.','W')
               else
 
+C Check if the image tool is available.
+                if(unixok)then
+                 found_image=.false. 
+                 write(hold32,'(a)')
+     &             fmtexe(imgv)(1:lnblnk(fmtexe(imgv)))
+                 call isinstalled(hold32,found_image)
+                 if(.NOT.found_image)then
+                   call usrmsg(
+     &             'You have not yet installed an image viewer so',
+     &             'files cannot be viewed!','W')
+                 endif
+                else
+                  found_image=.false.  ! not in Windows
+                endif
+
 C If recent version then display image documentation as well.
                 if(icfgv.gt.3)then
                   call edisp(iuout,'  ')
                   call edisp248(iuout,imgdoc(imgv),100)
                 endif
-                write(dolist,'(a,2x,a,a)')
+                if(found_image)then
+                  write(dolist,'(a,2x,a,a)')
      &            fmtexe(imgv)(1:lnblnk(fmtexe(imgv))),
      &            ilist(1:lnblnk(ilist)),' &'
-                call runit(dolist,'graph')
-                iton=1
+                  call runit(dolist,'graph')
+                  iton=1
+                endif
               endif
             endif
  498      continue

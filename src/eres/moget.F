@@ -205,7 +205,7 @@ C Set default values for IGETNO array and associated plotting/ labeling arrays.
 
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -262,7 +262,7 @@ C EDGOGET allows removal of output requests.
 
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -461,7 +461,7 @@ C ialstused is the anchor point used for selection (0 if unused)
 C Optional title for graph and up to 10 other labels and their positions.
       common/grextras/graftitle,grlbl(10),ngrlbl,lblpx(10),lblpy(10)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -958,7 +958,7 @@ C IGET = 2 outside temperature.
           IGETNO(NGET,1)=2
           IGETNO(NGET,6)=-302; IGETNO(NGET,7)=4
           IGETNO(NGET,8)=1;    IGETNO(NGET,9)=14
-          GLABEL(NGET)='Ambient db Tmp'; LNGLABEL(NGET)=14
+          GLABEL(NGET)='Ambient db (C)'; LNGLABEL(NGET)=14
           if(IROC.eq.0)then
             SLABEL(NGET)='Ambient db temperature (C)'
             LNSLABEL(NGET)=26
@@ -978,7 +978,7 @@ C IGET = 19 Direct solar. Set text based on current value of irtype.
           IGETNO(NGET,6)=-104; IGETNO(NGET,7)=9
           IGETNO(NGET,8)=3;    IGETNO(NGET,9)=14
           if(irtype.eq.0)then
-            GLABEL(NGET)='Direct nor solar'; LNGLABEL(NGET)=16
+            GLABEL(NGET)='Direct normal solar'; LNGLABEL(NGET)=19
             if(IROC.eq.0)then
               SLABEL(NGET)='DN solar intensity (W/m^2)'
               LNSLABEL(NGET)=26
@@ -990,7 +990,7 @@ C IGET = 19 Direct solar. Set text based on current value of irtype.
               LNSLABEL(NGET)=25
             endif
           else
-            GLABEL(NGET)='Glo horiz solar'; LNGLABEL(NGET)=15
+            GLABEL(NGET)='Global horiz solar'; LNGLABEL(NGET)=18
             if(IROC.eq.0)then
               SLABEL(NGET)='Glo hor solar intensity (W/m^2)'
               LNSLABEL(NGET)=31
@@ -1042,7 +1042,7 @@ C IGET = 19 Direct solar. Set text based on current value of irtype.
           IGETNO(NGET,1)=34
           IGETNO(NGET,6)=-203; IGETNO(NGET,7)=4
           IGETNO(NGET,8)=4;    IGETNO(NGET,9)=14
-          GLABEL(NGET)='Wind direc'; LNGLABEL(NGET)=10
+          GLABEL(NGET)='Wind direction'; LNGLABEL(NGET)=14
           if(IROC.eq.0)then
             SLABEL(NGET)='Wind direction (deg)'
             LNSLABEL(NGET)=20
@@ -1073,7 +1073,7 @@ C IGET = 19 Direct solar. Set text based on current value of irtype.
           IGETNO(NGET,1)=26
           IGETNO(NGET,6)=-202; IGETNO(NGET,7)=8
           IGETNO(NGET,8)=4;    IGETNO(NGET,9)=10
-          GLABEL(NGET)='Sky illum'; LNGLABEL(NGET)=9
+          GLABEL(NGET)='Sky illuminance'; LNGLABEL(NGET)=15
           if(IROC.eq.0)then
             SLABEL(NGET)='Sky illuminance (lux)'; LNSLABEL(NGET)=21
           elseif(IROC.eq.1)then
@@ -3358,7 +3358,7 @@ C Give the users clues about which zones have observed data.
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' db T'
-          GLABEL(NGET)='Observed db Tmp'; LNGLABEL(NGET)=15
+          GLABEL(NGET)='Observed db (C)'; LNGLABEL(NGET)=15
           if(IROC.eq.0)then
             SLABEL(NGET)='Observed zone db T (C)'
             LNSLABEL(NGET)=22
@@ -3378,7 +3378,7 @@ C Give the users clues about which zones have observed data.
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' surf T'
-          GLABEL(NGET)='Observed surf T'; LNGLABEL(NGET)=15
+          GLABEL(NGET)='Observed surf (C)'; LNGLABEL(NGET)=17
           if(IROC.eq.0)then
             SLABEL(NGET)='Observed surf T (C)'
             LNSLABEL(NGET)=19
@@ -3414,7 +3414,7 @@ C Give the users clues about which zones have observed data.
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' W'
-          GLABEL(NGET)='Observed heat'; LNGLABEL(NGET)=13
+          GLABEL(NGET)='Observed heating'; LNGLABEL(NGET)=16
           if(IROC.eq.0)then
             SLABEL(NGET)='Observed zone heat (W)'
             LNSLABEL(NGET)=22
@@ -3432,7 +3432,7 @@ C Give the users clues about which zones have observed data.
           IGETNO(NGET,6)=-3; IGETNO(NGET,7)=6
           IGETNO(NGET,8)=1; IGETNO(NGET,9)=12
           SUFFIX=' W'
-          GLABEL(NGET)='Observed cool'; LNGLABEL(NGET)=13
+          GLABEL(NGET)='Observed cooling'; LNGLABEL(NGET)=16
           if(IROC.eq.0)then
             SLABEL(NGET)='Observed zone cool (W)'
             LNSLABEL(NGET)=22
@@ -4055,11 +4055,11 @@ C Copy new data into IGETNO array if a selection has been made.
                   if (SLIST) then
                     call ZSID(IZ,ISFSEL(IG),ZSDES,ZSDESC,ZSDESS)
                     ITLEN=lnblnk(ZSDES)
-                    IZLEN=lnblnk(ZSDESS)
+                    IZLEN=lnblnk(ZSDESC)
                     ISLEN=lnblnk(SUFFIX)
-                    if ((IZLEN+ISLEN).gt.20) IZLEN=20-ISLEN
+                    if ((IZLEN+ISLEN).gt.24) IZLEN=24-ISLEN
                     write (GLABEL(NGET),'(a,a)')
-     &                ZSDESS(1:IZLEN),SUFFIX(1:ISLEN)
+     &                ZSDESC(1:IZLEN),SUFFIX(1:ISLEN)
                     LNGLABEL(NGET)=IZLEN+ISLEN
                     write (TABLABEL(NGET),'(a,a)')
      &                ZSDES(1:ITLEN),SUFFIX(1:ISLEN)
@@ -4069,7 +4069,7 @@ C Copy new data into IGETNO array if a selection has been made.
                     ITLEN=lnblnk(CUBN(ISFSEL(IG)))
                     IZLEN=lnzname(IZ)
                     ISLEN=lnblnk(SUFFIX)
-                    if ((IZLEN+ISLEN+ITLEN).gt.20) IZLEN=16-ISLEN-ITLEN
+                    if ((IZLEN+ISLEN+ITLEN).gt.24) IZLEN=20-ISLEN-ITLEN
                     write (GLABEL(NGET),'(3a)')ZNAME(IZ)(1:IZLEN),
      &                        CUBN(ISFSEL(IG))(1:ITLEN),SUFFIX(1:ISLEN)
                     LNGLABEL(NGET)=lnblnk(GLABEL(NGET))
@@ -4085,7 +4085,7 @@ C Copy new data into IGETNO array if a selection has been made.
                   else
                     ISLEN=lnblnk(SUFFIX)
                     write(GLABEL(NGET),'(2a)')ZNAME(IZ)(1:lnzname(IZ)),
-     &                SUFFIX
+     &                SUFFIX(1:ISLEN)
                     LNGLABEL(NGET)=lnblnk(GLABEL(NGET))
                     write(TABLABEL(NGET),'(2a)')
      &                ZNAME(IZ)(1:lnzname(IZ)),SUFFIX(1:ISLEN)
@@ -4112,7 +4112,7 @@ C Copy new data into IGETNO array if a selection has been made.
                     LNTABLABEL(NGET)=ITLEN
                   elseif (AGRLIST) then  ! aggregate does not need a zone name
                     ISLEN=lnblnk(SUFFIX)
-                    write(GLABEL(NGET),'(2a)') 'All',SUFFIX
+                    write(GLABEL(NGET),'(2a)') 'All',SUFFIX(1:ISLEN)
                     LNGLABEL(NGET)=lnblnk(GLABEL(NGET))
                     write(TABLABEL(NGET),'(2a)') 'All ',SUFFIX(1:ISLEN)
                     LNTABLABEL(NGET)=lnblnk(TABLABEL(NGET))
@@ -4154,11 +4154,11 @@ C specific information.
                   if (SLIST) then
                     call ZSID(IZ,ISFSEL(IG),ZSDES,ZSDESC,ZSDESS)
                     ITLEN=lnblnk(ZSDES)
-                    IZLEN=lnblnk(ZSDESS)
+                    IZLEN=lnblnk(ZSDESC)
                     ISLEN=lnblnk(SUFFIX)
-                    if ((IZLEN+ISLEN).gt.20) IZLEN=20-ISLEN
+                    if ((IZLEN+ISLEN).gt.24) IZLEN=24-ISLEN
                     write (GLABEL(NGET),'(a,a)')
-     &                ZSDESS(1:IZLEN),SUFFIX(1:ISLEN)
+     &                ZSDESC(1:IZLEN),SUFFIX(1:ISLEN)
                     LNGLABEL(NGET)=IZLEN+ISLEN
                     write (TABLABEL(NGET),'(a,a)')
      &                ZSDES(1:ITLEN),SUFFIX(1:ISLEN)
@@ -4168,7 +4168,7 @@ C specific information.
                     ITLEN=lnblnk(CUBN(ISFSEL(IG)))
                     ISLEN=lnblnk(SUFFIX)
                     IZLEN=lnzname(IZ)
-                    if ((IZLEN+ISLEN+ITLEN).gt.20) IZLEN=20-ISLEN-ITLEN
+                    if ((IZLEN+ISLEN+ITLEN).gt.24) IZLEN=24-ISLEN-ITLEN
                     write (GLABEL(NGET),'(3a)')ZNAME(IZ)(1:IZLEN),
      &                CUBN(ISFSEL(IG))(1:ITLEN),SUFFIX(1:ISLEN)
                     LNGLABEL(NGET)=lnblnk(GLABEL(NGET))
@@ -4177,7 +4177,7 @@ C specific information.
                     LNTABLABEL(NGET)=ITLEN+ISLEN
                   elseif (AGRLIST) then  ! aggregate does not need a zone name
                     ISLEN=lnblnk(SUFFIX)
-                    write(GLABEL(NGET),'(2a)') 'All',SUFFIX
+                    write(GLABEL(NGET),'(2a)') 'All',SUFFIX(1:ISLEN)
                     LNGLABEL(NGET)=lnblnk(GLABEL(NGET))
                     write(TABLABEL(NGET),'(2a)') 'All ',SUFFIX(1:ISLEN)
                     LNTABLABEL(NGET)=lnblnk(TABLABEL(NGET))
@@ -4211,7 +4211,7 @@ C specific information.
                     LNTABLABEL(NGET)=ITLEN
 C                  elseif (AGRLIST) then  ! aggregate does not need a zone name
 C                    ISLEN=lnblnk(SUFFIX)
-C                    write(GLABEL(NGET),'(2a)') 'All',SUFFIX
+C                    write(GLABEL(NGET),'(2a)') 'All',SUFFIX(1:ISLEN)
 C                    LNGLABEL(NGET)=lnblnk(GLABEL(NGET))
 C                    write(TABLABEL(NGET),'(2a)') 'All ',SUFFIX(1:ISLEN)
 C                    LNTABLABEL(NGET)=lnblnk(TABLABEL(NGET))

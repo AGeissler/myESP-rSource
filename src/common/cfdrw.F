@@ -2124,7 +2124,7 @@ C          endif
 C Read iteration control data.
       CALL STRIPC(IFL,OUTSTR,0,ND,1,'iteration control',IER)
       K=0
-      CALL EGETWI(OUTSTR,K,IVAL,10,8000,'W','max iter',IER)
+      CALL EGETWI(OUTSTR,K,IVAL,10,15000,'W','max iter',IER)
       MAXITR(ICFD)=IVAL
       CALL EGETWR(OUTSTR,K,VAL,0.,0.,'-','conv crit',IER)
       SRMAX(ICFD)=VAL

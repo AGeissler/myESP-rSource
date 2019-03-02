@@ -62,7 +62,7 @@ C MOFLOWSU clears commons/ sets default values.
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
 
-      character SMFLABEL*32,GMFLABEL*20,GLMFLABEL*32
+      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
       COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
       integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
       COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
@@ -134,7 +134,7 @@ C columns listed above.
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
       COMMON/MFPK2/NMFLST,IMFLIST(MFCNLST,MFCNEL+1)
-      character SMFLABEL*32,GMFLABEL*20,GLMFLABEL*32
+      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
       COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
       integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
       COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
@@ -436,9 +436,9 @@ C each have a different line colour.
         IMFGETNO(NMFGET,6)=1
         IMFGETNO(NMFGET,7)=1
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Ambient db Tmp'; LNGMFLABEL(NMFGET)=14
-        GLMFLABEL(NMFGET)='Ambient dry bulb Temp'
-        LNGLMFLABEL(NMFGET)=21
+        GMFLABEL(NMFGET)='Ambient db (C)'; LNGMFLABEL(NMFGET)=14
+        GLMFLABEL(NMFGET)='Ambient dry bulb (C)'
+        LNGLMFLABEL(NMFGET)=20
         if(IROC.eq.0)then
           SMFLABEL(NMFGET)='Ambient db temperature (C)'
           LNSMFLABEL(NMFGET)=26
@@ -489,7 +489,7 @@ C Wind direction: IMFGET = 11
         IMFGETNO(NMFGET,6)=4
         IMFGETNO(NMFGET,7)=4
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Wind dir'; LNGMFLABEL(NMFGET)=8
+        GMFLABEL(NMFGET)='Wind direction'; LNGMFLABEL(NMFGET)=14
         GLMFLABEL(NMFGET)='Wind direction'; LNGLMFLABEL(NMFGET)=14
         if(IROC.eq.0)then
           SMFLABEL(NMFGET)='Wind direction (deg)'
@@ -1269,11 +1269,11 @@ C appropriate labels.
                     IMFGETNO(NMFGET,8)=IMFGETNO(NMFGET-1,8)
                   ENDIF
 
-C GMFLABEL is 20 char so truncate the text.
-                  lcname=MIN0(LNNAMEC,7)
+C GMFLABEL is 24 char so truncate the text.
+                  lcname=MIN0(LNNAMEC,8)
                   WRITE(GMFLABEL(NMFGET),'(4a)')
      &              CONTMNAM(ICtmPK(J))(1:lcname),'@',
-     &              NDNAM(INPK(I))(1:8),SUFFIX(1:4)
+     &              NDNAM(INPK(I))(1:10),SUFFIX(1:4)
                   LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   WRITE(GLMFLABEL(NMFGET),'(4a)')
      &              CONTMNAM(ICtmPK(J))(1:LNNAMEC),' at ',
@@ -1305,11 +1305,11 @@ C GMFLABEL is 20 char so truncate the text.
                   IMFGETNO(NMFGET,7)=IMFGETNO(NMFGET-1,7)
                   IMFGETNO(NMFGET,8)=IMFGETNO(NMFGET-1,8)
 
-C GMFLABEL is 20 char so truncate the text.
-                  lcname=MIN0(LNNAMEC,7)
+C GMFLABEL is 24 char so truncate the text.
+                  lcname=MIN0(LNNAMEC,8)
                   WRITE(GMFLABEL(NMFGET),'(4a)')
      &              CONTMNAM(ICtmPK(J))(1:lcname),'@',
-     &              NDNAM(INPK(I))(1:8),SUFFIX(1:4)
+     &              NDNAM(INPK(I))(1:10),SUFFIX(1:4)
                   LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   WRITE(GLMFLABEL(NMFGET),'(4a)')
      &              CONTMNAM(ICtmPK(J))(1:LNNAMEC),' at ',
@@ -1496,18 +1496,40 @@ C Tell user about the area of the component related to each connection.
                   llns=lnblnk(NDNAM(NODPS(ICPK(I))))
                   llne=lnblnk(NDNAM(NODNE(ICPK(I))))
                   if(lnblnk(SUFFIX).le.4)then
-                    write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:7),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:7),SUFFIX(1:lsf)
+                    if(llne.lt.9)then
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:9),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                    else
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:9),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
+                    endif
+                    if((llns+llne+lsf+2).le.24)then
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                    endif
                     LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                     write(GLMFLABEL(NMFGET),'(4a)')
      &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
      &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                     LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
                   else
-                    write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:6),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:6),SUFFIX(1:lsf)
+                    if(llne.lt.8)then
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:8),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                    else
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:8),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
+                    endif
+                    if((llns+llne+lsf+2).le.24)then
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                    endif
                     LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                     write(GLMFLABEL(NMFGET),'(4a)')
      &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
@@ -1550,34 +1572,78 @@ C otherwise add the extra entry.
                       llns=lnblnk(NDNAM(NODPS(ICPK(I))))
                       llne=lnblnk(NDNAM(NODNE(ICPK(I))))
                       if(lnblnk(SUFFIX).le.4)then
-                        write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:7),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:7),SUFFIX(1:lsf)
+                        if(llne.lt.9)then
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:9),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        else
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:9),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
+                        endif
+                        if((llns+llne+lsf+2).le.24)then
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        endif
                         LNGMFLABEL(NMFGET-1)=lnblnk(GMFLABEL(NMFGET-1))
                         write(GLMFLABEL(NMFGET-1),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                       LNGLMFLABEL(NMFGET-1)=lnblnk(GLMFLABEL(NMFGET-1))
-                        write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:7),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:7),SUFFIX(1:lsf)
+                        if(llne.lt.9)then
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:9),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        else
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:9),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
+                        endif
+                        if((llns+llne+lsf+2).le.24)then
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        endif
                         LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                         write(GLMFLABEL(NMFGET),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                         LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
                       else
-                        write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:6),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:6),SUFFIX(1:lsf)
+                        if(llne.lt.8)then
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:8),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        else
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:8),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
+                        endif
+                        if((llns+llne+lsf+2).le.24)then
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        endif
                         LNGMFLABEL(NMFGET-1)=lnblnk(GMFLABEL(NMFGET-1))
                         write(GLMFLABEL(NMFGET-1),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                       LNGLMFLABEL(NMFGET-1)=lnblnk(GLMFLABEL(NMFGET-1))
-                        write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:6),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:6),SUFFIX(1:lsf)
+                        if(llne.lt.8)then
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:8),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        else
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:8),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
+                        endif
+                        if((llns+llne+lsf+2).le.24)then
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        endif
                         LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                         write(GLMFLABEL(NMFGET),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
@@ -1642,18 +1708,40 @@ C In the case of flow velocity check for appropriate component and report area.
                   llns=lnblnk(NDNAM(NODPS(ICPK(I))))
                   llne=lnblnk(NDNAM(NODNE(ICPK(I))))
                   if(lnblnk(SUFFIX).le.4)then
-                    write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:7),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:7),SUFFIX(1:lsf)
+                    if(llne.lt.9)then
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:9),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                    else
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:9),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
+                    endif
+                    if((llns+llne+lsf+2).le.24)then
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                    endif
                     LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                     write(GLMFLABEL(NMFGET),'(4a)')
      &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
      &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                     LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
                   else
-                    write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:6),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:6),SUFFIX(1:lsf)
+                    if(llne.lt.8)then
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:8),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                    else
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:8),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
+                    endif
+                    if((llns+llne+lsf+2).le.24)then
+                      write(GMFLABEL(NMFGET),'(4a)')
+     &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
+     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                    endif
                     LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                     write(GLMFLABEL(NMFGET),'(4a)')
      &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
@@ -1700,34 +1788,78 @@ C for the start and end nodes.
                       llns=lnblnk(NDNAM(NODPS(ICPK(I))))
                       llne=lnblnk(NDNAM(NODNE(ICPK(I))))
                       if(lnblnk(SUFFIX).le.4)then
-                        write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:7),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:7),SUFFIX(1:lsf)
+                        if(llne.lt.9)then
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:9),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        else
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:9),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
+                        endif
+                        if((llns+llne+lsf+2).le.24)then
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        endif
                         LNGMFLABEL(NMFGET-1)=lnblnk(GMFLABEL(NMFGET-1))
                         write(GLMFLABEL(NMFGET-1),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                       LNGLMFLABEL(NMFGET-1)=lnblnk(GLMFLABEL(NMFGET-1))
-                        write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:7),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:7),SUFFIX(1:lsf)
+                        if(llne.lt.9)then
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:9),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        else
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:9),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
+                        endif
+                        if((llns+llne+lsf+2).le.24)then
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        endif
                         LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                         write(GLMFLABEL(NMFGET),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                         LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
                       else
-                        write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:6),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:6),SUFFIX(1:lsf)
+                        if(llne.lt.8)then
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:8),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        else
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:8),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
+                        endif
+                        if((llns+llne+lsf+2).le.24)then
+                          write(GMFLABEL(NMFGET-1),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        endif
                         LNGMFLABEL(NMFGET-1)=lnblnk(GMFLABEL(NMFGET-1))
                         write(GLMFLABEL(NMFGET-1),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                       LNGLMFLABEL(NMFGET-1)=lnblnk(GLMFLABEL(NMFGET-1))
-                        write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:6),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:6),SUFFIX(1:lsf)
+                        if(llne.lt.8)then
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:8),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        else
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:8),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
+                        endif
+                        if((llns+llne+lsf+2).le.24)then
+                          write(GMFLABEL(NMFGET),'(4a)')
+     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
+     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
+                        endif
                         LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                         write(GLMFLABEL(NMFGET),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
@@ -2701,9 +2833,9 @@ C EDMFGOGET allows removal of output requests for flow networks.
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
 
 C smflabel char*32 is the topic of a flow item
-C gmflabel char*20 is short label for graphs/tables for flow item
+C gmflabel char*24 is short label for graphs/tables for flow item
 C glmflabel char*32 is longer label for flow item
-      character SMFLABEL*32,GMFLABEL*20,GLMFLABEL*32
+      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
       COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
       integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
       COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),

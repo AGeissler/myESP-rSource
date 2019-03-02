@@ -57,6 +57,7 @@ C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
+      INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
 
 C Passed parameters
       integer itrc   ! reporting level
@@ -97,6 +98,13 @@ C To signal to MFWRIT that globals are available from graphic network.
 C Currently set true if graphic network file, false otherwise.
       logical haveglobal
       COMMON/MFLOW11/haveglobal
+
+C Documentation shared with graphic flow network.
+      COMMON/NWKSTR/LEGNWKNAM,NWKNAM,NWKDSC,NWKTYPSTR(MNWKTYP)
+      CHARACTER LEGNWKNAM*72,NWKNAM*72,NWKDSC*72,NWKTYPSTR*12
+      COMMON/NWKTYP/INWKTYP,vergnf
+      INTEGER inwktyp
+      REAL vergnf   ! 1.0 is 3D variant of ASCII network
 
 C Water filled zones.
       COMMON/zfluid/znotair(mcom),zfldK,zfldD,zfldC,zfldA,
@@ -706,7 +714,18 @@ C the flow network.
               if(IAIRN.eq.1)then
                 CALL MFWRIT(IUM)
               elseif(IAIRN.eq.3)then
+
+C Update both the 3D attribute and legacy versions of flow network.
                 CALL MF3DWRIT(IUM)
+                WRITE(NWKNAM,'(A)')LAPROB(1:lnblnk(LAPROB))
+                lnnwknam=lnblnk(NWKNAM)
+                write(LEGNWKNAM,'(2a)') NWKNAM(1:lnnwknam-6),'.afn'
+                CALL ERPFREE(IUM,ISTAT)
+                CALL EFOPSEQ(IUM,LEGNWKNAM,4,IER)
+                IAIRN=1  ! set so legacy format is written
+                CALL MFWRIT(IUM)
+                CALL ERPFREE(IUM,ISTAT)
+                IAIRN=3  ! reset to 3D attributes format
               endif
               CALL ERPFREE(IUM,ISTAT)
             endif
@@ -902,6 +921,15 @@ C any flow network node associated with this zone.
                   CALL MFWRIT(IUM)
                 elseif(IAIRN.eq.3)then
                   CALL MF3DWRIT(IUM)
+                  WRITE(NWKNAM,'(A)')LAPROB(1:lnblnk(LAPROB))
+                  lnnwknam=lnblnk(NWKNAM)
+                  write(LEGNWKNAM,'(2a)') NWKNAM(1:lnnwknam-6),'.afn'
+                  CALL ERPFREE(IUM,ISTAT)
+                  CALL EFOPSEQ(IUM,LEGNWKNAM,4,IER)
+                  IAIRN=1  ! set so legacy format is written
+                  CALL MFWRIT(IUM)
+                  CALL ERPFREE(IUM,ISTAT)
+                  IAIRN=3  ! reset to 3D attributes format
                 endif
                 CALL ERPFREE(IUM,ISTAT)
               endif
@@ -2767,6 +2795,15 @@ C << graphic network flow file to reflect changes in zone volume.
                 CALL MFWRIT(IUM)
               elseif(IAIRN.eq.3)then
                 CALL MF3DWRIT(IUM)
+                WRITE(NWKNAM,'(A)')LAPROB(1:lnblnk(LAPROB))
+                lnnwknam=lnblnk(NWKNAM)
+                write(LEGNWKNAM,'(2a)') NWKNAM(1:lnnwknam-6),'.afn'
+                CALL ERPFREE(IUM,ISTAT)
+                CALL EFOPSEQ(IUM,LEGNWKNAM,4,IER)
+                IAIRN=1  ! set so legacy format is written
+                CALL MFWRIT(IUM)
+                CALL ERPFREE(IUM,ISTAT)
+                IAIRN=3  ! reset to 3D attributes format
               endif
               CALL ERPFREE(IUM,ISTAT)
             endif
@@ -2819,6 +2856,15 @@ C the flow network.
                 CALL MFWRIT(IUM)
               elseif(IAIRN.eq.3)then
                 CALL MF3DWRIT(IUM)
+                WRITE(NWKNAM,'(A)')LAPROB(1:lnblnk(LAPROB))
+                lnnwknam=lnblnk(NWKNAM)
+                write(LEGNWKNAM,'(2a)') NWKNAM(1:lnnwknam-6),'.afn'
+                CALL ERPFREE(IUM,ISTAT)
+                CALL EFOPSEQ(IUM,LEGNWKNAM,4,IER)
+                IAIRN=1  ! set so legacy format is written
+                CALL MFWRIT(IUM)
+                CALL ERPFREE(IUM,ISTAT)
+                IAIRN=3  ! reset to 3D attributes format
               endif
               CALL ERPFREE(IUM,ISTAT)
             endif

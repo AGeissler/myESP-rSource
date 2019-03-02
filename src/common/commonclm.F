@@ -1085,7 +1085,7 @@ C   4 - if exists ask user before overwriting otherwise create.
 
       COMMON/OUTIN/IUOUT,IUIN
       
-      logical fok,unixok
+      logical fok,unixok,concat
       character fs*1,llclmdb*144,outs*124
       integer itmp
       real rtmp,rtmp2

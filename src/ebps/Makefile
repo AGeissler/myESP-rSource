@@ -41,8 +41,8 @@ BPS_OBJECTS = bps.o adaptconf1.o adaptconf2.o adjb.o adjp.o ascii_mat.o \
 	  bndarybl.o bndaryl.o bndaryt.o bsim2cfd.o btherm.o c2fdum.o casual.o cfcalc.o \
 	  CDBPlugins.o CDBCommon.o \
 	  cfconv.o cfdat.o cfdrw.o cfgrid.o cfmgerb.o cfutil.o chkconvg.o chtmst.o \
-	  climi.o cntmnt.o commonclm.o conc.o convect1.o convect2.o ctread.o dayfac.o drylink.o dossupport.o dynamicoccup.o ecasctl.o \
-	  econstr.o econtrol.o edatabase.o egeometry.o egrid.o emfnetw.o emoist.o \
+	  climi.o cntmnt.o commonclm.o conc.o convect1.o convect2.o ctread.o dayfac.o drylink.o dossupport.o \
+	  dynamicoccup.o ecasctl.o econstr.o econtrol.o edatabase.o egeometry.o egrid.o emfnetw.o emoist.o \
 	  enetbound.o enetmath.o enetmisc.o enetpost.o enetrewr.o enetsetu.o \
 	  enetsolv.o eroper.o esgrid.o esru_misc.o esystem.o EV_model.o filelist.o g3dfac.o \
 	  g3dfnc.o g3dmtx.o gcfunc.o gsdmtx.o inital.o initalc.o initalp.o \
@@ -51,8 +51,8 @@ BPS_OBJECTS = bps.o adaptconf1.o adaptconf2.o adjb.o adjp.o ascii_mat.o \
 	  moistr.o monitor.o montrb.o mstmsc.o mzmrx5.o mzout6.o mzoutp.o nwkrewr.o \
 	  pcloop.o pcomp1.o pcomp2.o pcomp3.o pcomp4.o pcompDH.o pcomps.o pcomps1.o \
 	  plibsv.o plot.o pltcfg.o pmatrx.o pplib.o ppsub.o precal.o psychro.o \
-	  reslib.o rnor.o rwipv.o rwroam.o rwsbem.o senrwl.o sensit.o sentim.o simcon.o solar.o sort.o \
-	  spmatl.o spmisc.o stofunc.o subsys.o tdfile.o tdrecbps.o trstyp.o \
+	  reslib.o rnor.o rwipv.o rwroam.o rwsbem.o segmentedocc.o segoccfunc.o senrwl.o sensit.o sentim.o \
+	   simcon.o solar.o sort.o spmatl.o spmisc.o stofunc.o subsys.o tdfile.o tdrecbps.o trstyp.o \
 	  tscon.o utilf.o MechVentIN.o CentralVentSys.o \
 	  hvacinput.o hvacsim.o furnace.o init_hvac_var.o fan.o ashp.o \
 	  ashp_cooling.o baseboard.o hvac_output.o h3koutput.o h3kstore.o \
@@ -454,6 +454,12 @@ sensit.F:
 sentim.F:
 	rm -f sentim.F
 	ln -s $(BLDdir)/sentim.F .
+segmentedocc.f90:
+	rm -f segmentedocc.f90
+	ln -s $(BLDdir)/segmentedocc.f90 .
+segoccfunc.f90:
+	rm -f segoccfunc.f90
+	ln -s $(BLDdir)/segoccfunc.f90 .
 solar.F:
 	rm -f solar.F
 	ln -s $(BLDdir)/solar.F .
@@ -806,8 +812,8 @@ clean:
 	mzout6.F mzoutp.F ncm_overheating.F nwkrewr.F pcloop.F pcomp1.F pcomp2.F pcomp3.F \
 	pcomp4.F pcomps1.F pcomps.F pcompDH.F plibsv.F plot.F pltcfg.F plt_bc_components.F \
 	plt_zone_gain_coupling.F pmatrx.F pplib.F ppsub.F precal.F \
-	psychro.F rnor.F rwipv.F rwroam.F rwsbem.F shocc_dummy.c senrwl.F sensit.F sentim.F solar.F sort.F \
-	Annex42_fuel_cell.F spmatl.F stofunc.F \
+	psychro.F rnor.F rwipv.F rwroam.F rwsbem.F shocc_dummy.c senrwl.F sensit.F sentim.F segmentedocc.f90 \
+	segoccfunc.F solar.F sort.F Annex42_fuel_cell.F spmatl.F stofunc.F \
 	spmisc.F startup.F Annex42_combustion_CHP.F subsys.F tdfile.F trstyp.F tscon.F \
 	TWildCards.cpp utilf.F Vnt_data.mod wind_turbine_profile_model.F \
 	init_hvac_var.F \

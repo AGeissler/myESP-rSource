@@ -99,7 +99,7 @@ C Occupancy filter info.
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
 
-      character SMFLABEL*32,GMFLABEL*20,GLMFLABEL*32
+      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
       COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
       integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
       COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
@@ -121,7 +121,7 @@ C Simulator parameters.
       character TLABEL*60,trange*20,tranged*20,t28*28,dg*1
       character outs*124,outs248*248
       character outs800*800,outs800d*800  ! really long string buffers
-      character ALABEL(6)*12,t20*20,act*1
+      character ALABEL(6)*12,t20*24,act*1
       CHARACTER PDESCR*60,SDESCR*44,DESCR*7,DESCR1*10
       character lltmpc*144
       CHARACTER DESCRH*5,DESCRD*5,NT*14,XT*14
@@ -1644,7 +1644,7 @@ C pixel references for calls to viewtext.
       IF(MMOD.EQ.8)THEN
 
 C Setup and pass in parameters to win3d.
-        iiw1=9; iiw2=30; iiw3=4; iiw4=3; iimenu=menuchw
+        iiw1=9; iiw2=32; iiw3=4; iiw4=3; iimenu=menuchw
         iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
         ilf=2; ild=LIMTTY
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.

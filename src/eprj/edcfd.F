@@ -2520,23 +2520,6 @@ C IER=2: cells already contain a blockage or source (silent)
         VOLVel(n,ICFD)=dat3
       elseif (itype.eq.20) then
 
-C Check if cells are empty.
-        xit=.false.
-        do i=ist,ifn
-          do j=jst,jfn
-            do k=kst,kfn
-              if (IVblkd(i,j,k).gt.0) xit=.true.
-              if (xit) EXIT
-            enddo
-            if (xit) EXIT
-          enddo
-          if (xit) EXIT
-        enddo
-        if (xit) then
-          IER=2
-          goto 999
-        endif
-
         NVOL(ICFD)=NVOL(ICFD)+1
         n=NVOL(ICFD)
         IVTYPE(n,ICFD)=itype
@@ -2549,33 +2532,7 @@ C Check if cells are empty.
         VOLHeat(n,ICFD)=dat1
         VOLHum(n,ICFD)=dat2
         VOLCO2(n,ICFD)=dat3
-
-C Set flag that cells are not empty.
-        do i=i1,i2
-          do j=j1,j2
-            do k=k1,k2
-              IVblkd(i,j,k)=2
-            enddo
-          enddo
-        enddo
       elseif (itype.eq.30) then
-
-C Check if cells are empty.
-        xit=.false.
-        do i=i1,i2
-          do j=j1,j2
-            do k=k1,k2
-              if (IVblkd(i,j,k).gt.0) xit=.true.
-              if (xit) EXIT
-            enddo
-            if (xit) EXIT
-          enddo
-          if (xit) EXIT
-        enddo
-        if (xit) then
-          IER=2
-          goto 999
-        endif
 
         NVOL(ICFD)=NVOL(ICFD)+1
         n=NVOL(ICFD)

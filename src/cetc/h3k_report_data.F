@@ -564,6 +564,7 @@ C----------------------------------------------------------------------
                                    ! moisture content and atm. pressure.
       real Psat01                  ! Saturation vapour pressure (Pa)
 
+      integer JL   ! local loop variable
 
 C----------------------------------------------------------------------
 C.....Set Performance indicators on first pass.  This is used to jump
@@ -1518,10 +1519,10 @@ C
 C Opaque internal surfaces.
       SUM=0.
       AREA=0.
-      DO 20 J=1,nzsur(iZone)
-        TO=TFS(iZone,J)
-        SUM=SUM+TO*SNA(iZone,J)
-        AREA=AREA+SNA(iZone,J)
+      DO 20 JL=1,nzsur(iZone)
+        TO=TFS(iZone,JL)
+        SUM=SUM+TO*SNA(iZone,JL)
+        AREA=AREA+SNA(iZone,JL)
    20 CONTINUE
 
 C Compute weighted temperature.

@@ -266,7 +266,7 @@ C act='p' iget parameters already set.
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -285,7 +285,7 @@ C act='p' iget parameters already set.
       dimension Yold(MZS), TIMEold(MZS)
       dimension YSC(5), Yadd(5), igx(5), ilr(5)
       character prompt*124
-      character ALABEL(6)*12,t20*20,act*1
+      character ALABEL(6)*12,t20*24,act*1
       character graftitle*64,grlbl*24,t24*24
 
       integer YAXSET,ADDLIN,horaxisdiv
@@ -447,13 +447,11 @@ C  igx(4) is the `Miscel vertical axis if placed in the centre.
 C  igx(5) does not have a label and is not part of the do 100 loop.
 C Set local values of vertical axis offset (in pixels) from right
 C end of horiz (in pixels) axis.
-C Note: in the GTK version the values probably should be adjusted to fit the
-C current label font.
-      oneonright=110   ! was 110
-      twoonrighta=115   ! was 85
+      oneonright=115   ! was 110
+      twoonrighta=115   ! was 85 & 110
       twoonrightb=175  ! was 135
-      threerighta=110   ! was 80
-      threerightb=170  ! was 135
+      threerighta=115   ! was 80 & 110
+      threerightb=175  ! was 135
 
 C moghed uses similar YAXSET logic to know how many right axis to draw.
       call MOGHED
@@ -916,39 +914,39 @@ C Set button font width so that space around graph is correct.
           if(onleft.eq.0)then
 
 C Setup and pass in parameters to win3d.
-            iiw1=3; iiw2=16; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=16; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=9; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           endif
         elseif(onright.eq.1)then
           if(onleft.eq.0)then
-            iiw1=3; iiw2=28; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=28; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=9; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           endif
         elseif(onright.eq.2)then
 
-C Set the right termination of the horizontal axis to 37 char in so that
+C Set the right termination of the horizontal axis to 43 char in so that
 C there is room for two axis on the right.
           if(onleft.eq.0)then
-            iiw1=3; iiw2=37; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=37; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=9; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)

@@ -331,8 +331,8 @@ C---- Initialize pointers to inter-connection(s) ICON, and node(s) INOD.
       INOD1=NPCDAT(IPCOMP,9)
       INOD2=NPCDAT(IPCOMP,9)+1
 
-      F1=CSVF(NPCDAT(ADATA(IPCOMP,14),9),2) ! Bottom flow reference node
-      F2=CSVF(NPCDAT(ADATA(IPCOMP,15),9),2) ! Top flow reference node
+      F1=CSVF(NPCDAT(int(ADATA(IPCOMP,14)),9),2) ! Bottom flow reference node
+      F2=CSVF(NPCDAT(int(ADATA(IPCOMP,15)),9),2) ! Top flow reference node
 
 C=======================================================================
 C     Generate coefficients for energy balance equation

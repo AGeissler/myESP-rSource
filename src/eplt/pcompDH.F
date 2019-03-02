@@ -598,7 +598,7 @@ C Identify component node location in overall solution matrix
       INOD3=NPCDAT(IPCOMP,9)+2
       INOD4=NPCDAT(IPCOMP,9)+3
       ADJP=int(ADATA(IPCOMP,14)) ! Adjacent Pipe Comp ID
-      INOD5=NPCDAT(ADJP,9) ! Outside node of adjacent pipe
+      INOD5=NPCDAT(int(ADJP),9) ! Outside node of adjacent pipe
 
 C Set the node connectivity values
       Conn(1)=2.

@@ -65,8 +65,8 @@ C Currently set .FALSE.
       COMMON/MFLOW11/haveglobal
 
 C Shared commons with graphic network
-      COMMON/NWKSTR/NWKNAM,NWKDSC,NWKTYPSTR(MNWKTYP)
-      CHARACTER NWKNAM*72,NWKDSC*72,NWKTYPSTR*12
+      COMMON/NWKSTR/LEGNWKNAM,NWKNAM,NWKDSC,NWKTYPSTR(MNWKTYP)
+      CHARACTER LEGNWKNAM*72,NWKNAM*72,NWKDSC*72,NWKTYPSTR*12
  
 C Simulation preferences as per simcon.F in esrubps, some of which filled via
 C in the menu below.
@@ -131,18 +131,48 @@ C unix and non-unix machine types).
  179  if(LAPROB(1:2).eq.'  '.or.LAPROB(1:4).eq.'UNKN')then
         if(unixok)then
           if(netpth(1:2).eq.'  '.or.netpth(1:2).eq.'./')then
-            WRITE(LAPROB,'(A,A4)')cfgroot(1:lnblnk(cfgroot)),'.afn'
+            if(iairn.eq.1)then
+              WRITE(LAPROB,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.afn'
+            elseif(iairn.eq.3)then
+              WRITE(LAPROB,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+              WRITE(NWKNAM,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+              WRITE(LEGNWKNAM,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.afn'
+            endif
           else
-            WRITE(LAPROB,'(4a)') netpth(1:lnblnk(netpth)),fs,
-     &      cfgroot(1:lnblnk(cfgroot)),'.afn'
+            if(iairn.eq.1)then
+              WRITE(LAPROB,'(4a)') netpth(1:lnblnk(netpth)),fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.afn'
+            elseif(iairn.eq.3)then
+              WRITE(LAPROB,'(4a)') netpth(1:lnblnk(netpth)),fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+              WRITE(NWKNAM,'(4a)') netpth(1:lnblnk(netpth)),fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+              WRITE(LEGNWKNAM,'(4a)') netpth(1:lnblnk(netpth)),fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.afn'
+            endif
           endif
         else
           if(netpth(1:2).eq.'  '.or.(ichar(netpth(1:1)).eq.46.and.
      &       ichar(netpth(2:2)).eq.92))then
-            WRITE(LAPROB,'(A,A4)')cfgroot(1:lnblnk(cfgroot)),'.afn'
+            if(iairn.eq.1)then
+              WRITE(LAPROB,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.afn'
+            elseif(iairn.eq.3)then
+              WRITE(LAPROB,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+              WRITE(NWKNAM,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+              WRITE(LEGNWKNAM,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.afn'
+            endif
           else
-            WRITE(LAPROB,'(4a)') netpth(1:lnblnk(netpth)),fs,
-     &      cfgroot(1:lnblnk(cfgroot)),'.afn'
+            if(iairn.eq.1)then
+              WRITE(LAPROB,'(4a)') netpth(1:lnblnk(netpth)),fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.afn'
+            elseif(iairn.eq.3)then
+              WRITE(LAPROB,'(4a)') netpth(1:lnblnk(netpth)),fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+              WRITE(NWKNAM,'(4a)') netpth(1:lnblnk(netpth)),fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+              WRITE(LEGNWKNAM,'(4a)') netpth(1:lnblnk(netpth)),fs,
+     &        cfgroot(1:lnblnk(cfgroot)),'.afn'
+            endif
           endif
         endif
       endif
@@ -298,7 +328,7 @@ C to no flow network.
             HCMP(i,2,1)=0.0; HCMP(i,2,2)=0.0; HCMP(i,2,3)=0.0;
           enddo
           WRED=1.0; fndegc=20.0
-          IAIRN = 3
+          IAIRN = 3  ! initial file includes 3D attributes.
 
 C Set up a the flow network. 
 C Input node data, components data, linkage data, local wind speed 
@@ -538,14 +568,20 @@ C Link nodes and zones.
       ELSEIF(INO.EQ.22)THEN
 
 C Transfer data to network flow file and return to main menu.
-C Free the file after writing it.
+C Free the file after writing it.  If the current file has 3D
+C attributes also setup name for the legacy file variant.
         helptopic='flow_network_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ltmp=LAPROB
    83   CALL EASKS(ltmp,'Fluid flow network file ? ',
      &    ' ',72,' ','mass flow file',IER,nbhelp)
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
-          LAPROB=LTMP
+          LAPROB=LTMP  ! save name for model cfg file
+          if(IAIRN.eq.3)then
+            WRITE(NWKNAM,'(A)')LTMP(1:lnblnk(LTMP))
+            lnnwknam=lnblnk(NWKNAM)
+            write(LEGNWKNAM,'(2a)') NWKNAM(1:lnnwknam-6),'.afn'
+          endif
         else
           goto 83
         endif
@@ -572,17 +608,23 @@ C a 3D file which they can return to an add more position info.
             if(unixok)then
               if(netpth(1:2).eq.'  '.or.netpth(1:2).eq.'./')then
                 WRITE(NWKNAM,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+                WRITE(LEGNWKNAM,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.afn'
               else
                 WRITE(NWKNAM,'(4a)') netpth(1:lnblnk(netpth)),fs,
      &          cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+                WRITE(LEGNWKNAM,'(4a)') netpth(1:lnblnk(netpth)),fs,
+     &          cfgroot(1:lnblnk(cfgroot)),'.afn'
               endif
             else
               if(netpth(1:2).eq.'  '.or.(ichar(netpth(1:1)).eq.46.and.
      &           ichar(netpth(2:2)).eq.92))then
                 WRITE(NWKNAM,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+                WRITE(LEGNWKNAM,'(2A)')cfgroot(1:lnblnk(cfgroot)),'.afn'
               else
                 WRITE(NWKNAM,'(4a)') netpth(1:lnblnk(netpth)),fs,
      &          cfgroot(1:lnblnk(cfgroot)),'.3dafn'
+                WRITE(LEGNWKNAM,'(4a)') netpth(1:lnblnk(netpth)),fs,
+     &          cfgroot(1:lnblnk(cfgroot)),'.afn'
               endif
             endif
    79       LTMP=NWKNAM
@@ -694,13 +736,47 @@ C Update cfg file.
             CALL EMKCFG('-',IER)
             call edisp(iuout,
      &        'Updating configuration flow links...done.')
+
+C Also write the legacy file format.
+            lnnwknam=lnblnk(NWKNAM)
+            if(lnnwknam.eq.0)then
+              write(NWKNAM,'(a)') LAPROB(1:lnblnk(LAPROB))  ! re-establish
+              lnnwknam=lnblnk(NWKNAM)
+            endif
+            write(LEGNWKNAM,'(2a)') NWKNAM(1:lnnwknam-6),'.afn'
+            call edisp(iuout,'Also saving a legacy network file:')
+            call edisp(iuout,LEGNWKNAM)
+            CALL ERPFREE(IUM,ISTAT)
+            CALL EFOPSEQ(IUM,LEGNWKNAM,4,IER)
+            IAIRN=1  ! set so legacy format is written
+            CALL MFWRIT(IUM)
+            CALL ERPFREE(IUM,ISTAT)
+            IAIRN=3  ! reset to 3D attributes format
           endif
         elseif(IAIRN.eq.3)then
+
+C Write the flow with 3D positions.
           CALL MF3DWRIT(IUM)
+
+C Also write the legacy file format. >>
+          lnnwknam=lnblnk(NWKNAM)
+          if(lnnwknam.eq.0)then
+            write(NWKNAM,'(a)') LAPROB(1:lnblnk(LAPROB))  ! re-establish
+            lnnwknam=lnblnk(NWKNAM)
+          endif
+          write(LEGNWKNAM,'(2a)') NWKNAM(1:lnnwknam-6),'.afn'
+          call edisp(iuout,'Also saving a legacy network file:')
+          call edisp(iuout,LEGNWKNAM)
+          CALL ERPFREE(IUM,ISTAT)
+          CALL EFOPSEQ(IUM,LEGNWKNAM,4,IER)
+          IAIRN=1  ! set so legacy format is written
+          CALL MFWRIT(IUM)
+          CALL ERPFREE(IUM,ISTAT)
+          IAIRN=3  ! reset to 3D attributes format
         endif
         CALL ERPFREE(IUM,ISTAT)
         OUTS=' '
-        WRITE(OUTS,'(A,A)')'Saved fluid flow network: ',
+        WRITE(OUTS,'(2A)')'Saved fluid flow network: ',
      &    LAPROB(1:LNBLNK(LAPROB))
         CALL EDISP(IUOUT,OUTS)
         CALL EDISP(IUOUT,' ')
@@ -729,13 +805,29 @@ C Ask if changes need to be saved
           IF(IER.NE.0)goto 81
           if(IAIRN.eq.1)then
             haveglobal=.FALSE.
+            write(LEGNWKNAM,'(a)') LTMP
           elseif(IAIRN.eq.2.or.IAIRN.eq.3)then
             haveglobal=.TRUE.
+            write(NWKNAM,'(a)') LTMP
           endif
           if(IAIRN.eq.1)then
             CALL MFWRIT(IUM)
           elseif(IAIRN.eq.3)then
             CALL MF3DWRIT(IUM)
+            lnnwknam=lnblnk(NWKNAM)
+            if(lnnwknam.eq.0)then
+              write(NWKNAM,'(a)') LAPROB(1:lnblnk(LAPROB))  ! re-establish
+              lnnwknam=lnblnk(NWKNAM)
+            endif
+            write(LEGNWKNAM,'(2a)') NWKNAM(1:lnnwknam-6),'.afn'
+            call edisp(iuout,'Also updating legacy network file:')
+            call edisp(iuout,LEGNWKNAM)
+            CALL ERPFREE(IUM,ISTAT)
+            CALL EFOPSEQ(IUM,LEGNWKNAM,4,IER)
+            IAIRN=1  ! set so legacy format is written
+            CALL MFWRIT(IUM)
+            CALL ERPFREE(IUM,ISTAT)
+            IAIRN=3  ! reset to 3D attributes format
           endif
           CALL ERPFREE(IUM,ISTAT)
           OUTS=' '
@@ -820,6 +912,7 @@ C LAPRES,IAPRES (for window pressure databases)
       CHARACTER NODID*12,T12*12
       CHARACTER LAPROB*72,t72*72,t144*144
       CHARACTER PCITM(35)*42,KEY*1,MOD*1,HOLD*36
+      CHARACTER MSG*48
       LOGICAL OK,dok
       integer IVV  ! for radio button
       integer NITMS,IVERT ! max items and current menu item
@@ -916,8 +1009,9 @@ C Get associated zone volume and height if type 0 or 1.
           dok=.true.
           helptopic='node_type_summary'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK('Is this flow node associated with a zone?',
-     &      '(see help)',OK,dok,nbhelp)
+          write(MSG,'(3a)') 'Is ',NDNAM(IFNOD),
+     &      ' associated with a zone?'
+          CALL ASKOK(MSG,'(see help)',OK,dok,nbhelp)
           IF(OK)THEN
 
 C Redraw the bluiding in the graphic screen.
@@ -1382,7 +1476,7 @@ C       'C' - Copy
       dimension clist(MCMV),IVALC(MCMV)
       CHARACTER outs*124,clist*68,prompt*32,T12*12
       CHARACTER CMPID*12,MOD*1,name*12
-      LOGICAL OK,dok
+      LOGICAL OK,dok,iswater
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1408,17 +1502,30 @@ C Highlight the component being edited.
             VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
             VALHZ=HCMP(ICMP,1,3)
             name=CMNAM(ICMP)
+            call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
             if(ITPCMP(ICMP).eq.120)then
-              call symbol_flow_cmp(name,'cr','r',valhx,valhy,valhz) ! highlight 
+              call symbol_flow_cmp(name,'cr','r',valhx,valhy,valhz) ! highlight
               call pausems(50)
             elseif(ITPCMP(ICMP).gt.0.and.ITPCMP(ICMP).le.35)then
-              call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
+              else
+                call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight 
+              endif
               call pausems(50)
             elseif(ITPCMP(ICMP).eq.40.or.ITPCMP(ICMP).eq.110)then
-              call symbol_flow_cmp(name,'or','r',valhx,valhy,valhz) ! highlight 
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'or','r',valhx,valhy,valhz) ! highlight 
+              else
+                call symbol_flow_cmp(name,'or','b',valhx,valhy,valhz) ! highlight 
+              endif
               call pausems(50)
             elseif(ITPCMP(ICMP).eq.50.or.ITPCMP(ICMP).eq.210)then
-              call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
+              else
+                call symbol_flow_cmp(name,'cd','b',valhx,valhy,valhz) ! highlight 
+              endif
               call pausems(50)
             elseif(ITPCMP(ICMP).eq.130)then
               call symbol_flow_cmp(name,'bi','r',valhx,valhy,valhz) ! highlight 
@@ -1427,7 +1534,11 @@ C Highlight the component being edited.
               call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
               call pausems(50)
             elseif(ITPCMP(ICMP).ge.310)then
-              call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
+              else
+                call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight 
+              endif
               call pausems(50)
             endif
           endif
@@ -1468,6 +1579,9 @@ C Make up a list of component types.
         IF(MOD.EQ.'E')THEN
           write(prompt,'(a,i4)') 'Current component type is: ',
      &      ITPCMP(IFCMP)
+          dok=.true.
+          CALL ASKOK(prompt,'Accept this?',OK,dok,nbhelp)
+          if(OK)goto 42
         ELSE
           write(prompt,'(a)') 'Current component type is: NONE'
         ENDIF
@@ -1483,7 +1597,7 @@ C Make up a list of component types.
         endif
 
 C Then call appropriate supplementary data input subroutine.
-        WRITE(outs,'(1X,A60)') LTPCMP(IFCMP)
+ 42     WRITE(outs,'(1X,A60)') LTPCMP(IFCMP)
         call edisp(iuout,outs)
 
 C To supporting 3D overlay increment NCMP.
@@ -1677,7 +1791,26 @@ C Allow start & end nodes to be edited, checked for uniqueness,
 C matching fluid types and return data. 
   19    IF(MOD.EQ.'E')THEN
           WRITE(OUTS,'(A,A12,A)')
-     &'  First (+ve) node: (currently ',NDNAM(NODPS(IFCN)),')'
+     &    'First (+ve) node: (currently ',NDNAM(NODPS(IFCN)),')'
+          call edisp(iuout,outs)
+          WRITE(OUTS,'(A,A12,A)')
+     &    'Second (-ve) node: (currently ',NDNAM(NODNE(IFCN)),')'
+          call edisp(iuout,outs)
+          WRITE(OUTS,'(3A,f7.3)')
+     &    '  Linking component: (currently ',CMNAM(ITPCON(IFCN)),
+     &    ') @ ',HCMP(ITPCON(IFCN),1,3)
+          call edisp(iuout,outs)
+          call askok('Accept currently associated nodes?',
+     &      ':',OK,dok,nbhelp)
+          IF(OK)then
+            INODPS=NODPS(IFCN)
+            INODNE=NODNE(IFCN)
+            goto 80  ! jump to specify the linking component
+          endif
+
+C Generate prompt for positive node.
+          WRITE(OUTS,'(A,A12,A)')
+     &    '  First (+ve) node: (currently ',NDNAM(NODPS(IFCN)),')'
         ELSE
           WRITE(OUTS,'(A)')
      &'  First (+ve) node: (currently NONE)'
@@ -2199,11 +2332,22 @@ C << should mode Z be visible when user first enters flow facility? >>
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
 C Documentation shared with graphic flow network.
-      COMMON/NWKSTR/NWKNAM,NWKDSC,NWKTYPSTR(MNWKTYP)
-      CHARACTER NWKNAM*72,NWKDSC*72,NWKTYPSTR*12
+      COMMON/NWKSTR/LEGNWKNAM,NWKNAM,NWKDSC,NWKTYPSTR(MNWKTYP)
+      CHARACTER LEGNWKNAM*72,NWKNAM*72,NWKDSC*72,NWKTYPSTR*12
       COMMON/NWKTYP/INWKTYP,vergnf
       INTEGER inwktyp
       REAL vergnf   ! 1.0 is 3D variant of ASCII network
+
+C Zone fluid.
+C  zfldK - conductivity;
+C  zfldD - density;
+C  zfldC - specific heat capacity;
+C  zflsA - total shortwave absorptivity;
+C  zSWA - shortwave absorption (W).
+      COMMON/zfluid/znotair(mcom),zfldK,zfldD,zfldC,zfldA,
+     &              zSWAp(mcom),zSWAf(mcom)
+      real zfldK,zfldD,zfldC,zfldA,zSWAp,zSWAf
+      LOGICAL znotair
 
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
@@ -2232,6 +2376,7 @@ C associated with the largest ventilation rate.
       character outs*124,MODE*1,name*12,fs*1
       character LAPROB*72
       logical unixok
+      logical iswater
 
 C Variables to keep track of the component index of the standard
 C components needed for a network equivalent of zone operations.
@@ -2311,6 +2456,13 @@ C and temperature, setting the node name to the zone name.
             HNOD(NNOD,1)=ZCOG(IZ,1); HNOD(NNOD,2)=ZCOG(IZ,2)
             HNOD(NNOD,3)=ZCOG(IZ,3)
             SUPNOD(NNOD,2)=VOL(IZ); SUPNOD(NNOD,1)=0.0
+            if(znotair(iz))then
+              SUPNOD(NNOD,1)=2  ! mark flow node as water
+              NDFLD(NNOD)=2
+            else
+              SUPNOD(NNOD,1)=1  ! mark flow node as air
+              NDFLD(NNOD)=1
+            endif
             TNOD(NNOD)=20.0
             NDNAM(NNOD)=ZNAME(IZ)
             NODASSOC(NNOD,1)=ZNAME(IZ); NODASSOC(NNOD,2)='-'
@@ -2322,8 +2474,14 @@ C and temperature, setting the node name to the zone name.
      &        SUPNOD(NNOD,2)
             CALL edisp(iuout,OUTS)
             write(name,'(a)') NDNAM(NNOD)
-            call symbol_flow_nd(name,'iu','r',
-     &        ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3))
+            call ECLOSE(SUPNOD(NNOD,1),2.0,0.0001,iswater)
+            if(.NOT.iswater)then
+              call symbol_flow_nd(name,'iu','r',
+     &          ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3))
+            else
+              call symbol_flow_nd(name,'iu','b',
+     &          ZCOG(IZ,1),ZCOG(IZ,2),ZCOG(IZ,3))
+            endif
             call pausems(50)
           ENDIF
   10    CONTINUE
@@ -3005,7 +3163,7 @@ C There is no operations file so write crack connections only.
 C List what we have thus far.
         CALL MFLIST(iuout)
 
-C Write alternative version of flow network here.
+C Write 3D attributes version of flow network here.
         CALL EFOPSEQ(IUM,NWKNAM,4,IER)
         call MF3DWRIT(IUM)
 
@@ -3016,6 +3174,22 @@ C Save it as 3D flow file.
         CALL EMKCFG('-',IER)
         call edisp(iuout,
      &    'Updating configuration flow links...done.')
+
+C Also update the legacy file.
+        lnnwknam=lnblnk(NWKNAM)
+        if(lnnwknam.eq.0)then
+          write(NWKNAM,'(a)') LAPROB(1:lnblnk(LAPROB))  ! re-establish
+          lnnwknam=lnblnk(NWKNAM)
+        endif
+        write(LEGNWKNAM,'(2a)') NWKNAM(1:lnnwknam-6),'.afn'
+        call edisp(iuout,'Also saving a legacy network file:')
+        call edisp(iuout,LEGNWKNAM)
+        CALL ERPFREE(IUM,ISTAT)
+        CALL EFOPSEQ(IUM,LEGNWKNAM,4,IER)
+        IAIRN=1  ! set so legacy format is written
+        CALL MFWRIT(IUM)
+        CALL ERPFREE(IUM,ISTAT)
+        IAIRN=3  ! reset to 3D attributes format
       ENDIF
 
 C Scan for boundary node connectivity.

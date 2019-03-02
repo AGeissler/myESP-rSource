@@ -46,7 +46,7 @@ C READPIF - read performance information file and gather data.
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -71,7 +71,7 @@ C       by calling eddisp (as opposed to edisp).
 
       character xfile*144,tg*1,delim*1,outs*124
       character outfile*72
-      character TSLABEL*32,TLLABEL*64,TGLABEL*20
+      character TSLABEL*32,TLLABEL*64,TGLABEL*24
       character pifltog*4,lpifl*96,OUTSTR*124,lname*24,ldisc*64,key*8
 
       logical recal,newzn
@@ -510,7 +510,7 @@ C current menu (moget) selections.
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)

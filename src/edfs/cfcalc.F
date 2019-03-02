@@ -467,8 +467,8 @@ C Find the maximum source of residual.
 C Write/ plot residuals and monitoring values.
 C First check if output for this iteration.
 
-C << If in text or script mode report less frequently,
-C << especially if the domain is large.
+C If in text or script mode report less frequently,
+C especially if the domain is large.
       if (mod(NITER,NPLT).eq.0.or.NITER.le.1) then
 
 C Check time taken to run since last check.
@@ -476,40 +476,43 @@ c        write(6,*)'checking time'
         if(NITER.eq.1)then
           call cpu_time(sec_now)
           NITER_pre=1
-c          write(6,*)'NITER=1, sec_now=',sec_now
+C          write(6,*)'NITER=1, sec_now=',sec_now
         else
-c          write(6,*)'NITER=',NITER
+C          write(6,*)'NITER=',NITER,NITER_pre
           sec_pre=sec_now
           call cpu_time(sec_now)
           sec_tkn=(sec_now-sec_pre)/real((NITER-NITER_pre))
-c          write(6,*)'sec_pre=',sec_pre,'sec_now=',sec_now,
-c     &                                        'sec_tkn=',sec_tkn
+C          write(6,*)'sec_pre=',sec_pre,'sec_now=',sec_now,
+C     &                                        'sec_tkn=',sec_tkn
           NITER_pre=NITER
 
-C For graphics mode re-display target is 0.75 seconds.
+C For graphics mode re-display target is 2 seconds.
           IF(MMOD.eq.8)THEN
-            if ((sec_tkn*50.).lt.0.75) then
+            NPLT=50  ! Initial assumption
+            if ((sec_tkn*50.).lt.2.0) then
               NPLT=100  ! Maximum NPLT
             else
-C Output ~ every 0.75 seconds, constrained to increments of 10 iterations (rounded up).
-              NPLT=int(0.75/sec_tkn)
-              sec_tkn=real(NPLT)/10.  ! sec_tkn no longer needed, use as temporary variable.
-              NPLT=(int(sec_tkn)+1)*10
+C Output ~ every 2 seconds, constrained to increments of 25 iterations (rounded up).
+              NPLT=int(2.0/sec_tkn)
+              sec_tkn=real(NPLT)/25.  ! sec_tkn no longer needed, use as temporary variable.
+              NPLT=(int(sec_tkn)+1)*25
             endif
           ELSE  ! we have text mode
-            if ((sec_tkn*50.).lt.5.0) then
-              NPLT=100  ! Maximum NPLT of 100.
+            if ((sec_tkn*50.).lt.10.0) then
+              NPLT=200  ! Maximum NPLT of 200.
             else
-C Output ~ every 9 seconds, constrained to increments of 10 iterations (rounded up).
-              NPLT=int(9.0/sec_tkn)
-              sec_tkn=real(NPLT)/10.  ! sec_tkn no longer needed, use as temporary variable.
-              NPLT=(int(sec_tkn)+1)*10
+C Output ~ every 15 seconds, constrained to increments of 25 iterations (rounded up).
+              NPLT=int(15.0/sec_tkn)
+              sec_tkn=real(NPLT)/25.  ! sec_tkn no longer needed, use as temporary variable.
+              NPLT=(int(sec_tkn)+1)*25
             endif
           ENDIF
         endif
-C If in graphical mode, maximum NPLT of 40
-        if ((MMOD.eq.8).and.(NPLT.gt.40)) then
-          NPLT=40
+C        write(6,*)'NPLOT is now=',NPLT
+
+C If in graphical mode, maximum NPLT of 50
+        if ((MMOD.eq.8).and.(NPLT.gt.50)) then
+          NPLT=50
         endif
 
 C Write residuals and monitoring values in a ASCII format file.

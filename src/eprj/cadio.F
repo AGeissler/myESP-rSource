@@ -64,7 +64,9 @@ C exportcad: controls model export facilities.
       character longtfile*144,longtfiledos*144,L144*144,lltmp*144
       character brw*8   ! to signal model is being browsed
       character fs*1
+      character hold32*32
       logical oke,modcfg
+      logical found_xfig, found_ximage ! to test application existance
       integer NITMS,INO1 ! max items and current menu item
       integer lnradcf,lnltmp  ! lengths of file names
 
@@ -113,18 +115,34 @@ C Set folder separator (fs) to \ or / as required.
       ioout=2  ! set initial value
       lfil='  '
 
+C Check if xfig exists
+      if(unixok)then
+        found_xfig=.false.; hold32='xfig'
+        call isinstalled(hold32,found_xfig)
+        if(.NOT.found_xfig)then
+          call usrmsg('You have not yet installed xfig so vector',
+     &                'plots cannot be viewed!','W')
+        endif
+      else
+        found_xfig=.false.  ! not in Windows
+      endif
+
    33 INO1=-4
-      ITEMS1(1) ='a to VIEWER (Abacus)       '
-      ITEMS1(2) ='b to DXF (V12-V14)         '
-      ITEMS1(3) ='c to RADIANCE              '
-      ITEMS1(4) ='d to xfig (vector ploting) '
-      ITEMS1(5) ='e to MicroGDS (THINGS file)'
-      ITEMS1(6) ='f to EnergyPlus            '
-      ITEMS1(7) ='g to VRML #2.0             '
-      ITEMS1(8) ='h to ESP-r meta file       '
-      ITEMS1(9) ='i to VEF file              '
-      ITEMS1(10)='? help                     '
-      ITEMS1(11)='- exit this menu           '
+      ITEMS1(1)  ='a to VIEWER                '
+      ITEMS1(2)  ='b to DXF (V12-V14)         '
+      ITEMS1(3)  ='c to RADIANCE              '
+      if(found_xfig)then
+        ITEMS1(4)='d to xfig (vector ploting) '
+      else
+        ITEMS1(4)='d to xfig (not installed)  '
+      endif
+      ITEMS1(5)  ='e to MicroGDS (THINGS file)'
+      ITEMS1(6)  ='f to EnergyPlus            '
+      ITEMS1(7)  ='g to VRML #2.0             '
+      ITEMS1(8)  ='h to ESP-r meta file       '
+      ITEMS1(9)  ='i to VEF file              '
+      ITEMS1(10) ='? help                     '
+      ITEMS1(11) ='- exit this menu           '
 
 C Help text for this menu.
       helptopic='cad_export_choices'
@@ -302,6 +320,20 @@ C and change any / to \.
         goto 33
 
       ELSEIF(INO1.EQ.3)THEN
+
+C Check if Radiance has been installed. If not do not start e2r.
+        if(unixok)then
+          found_ximage=.false.; hold32='ximage'
+          call isinstalled(hold32,found_ximage)
+          if(.NOT.found_ximage)then
+            call usrmsg(
+     &      'You have not yet installed Radiance so the ESP-r module',
+     &      'e2r will fail to produce correct Radiance files!','W')
+            goto 33
+          endif
+        else
+          found_ximage=.false.  ! not in Windows
+        endif
 
 C Check if model path for radiance has been set, otherwise create a
 C ../rad folder. If there is no Radiance Scene file name make it based
@@ -812,6 +844,8 @@ C The model root and mpath passed to silentmodel call.
       character cfgpath*144  ! full path to cfg folder for refocus
       character theprimedirective*8
       logical XST
+      character hold32*32,msg*72,msg2*30
+      logical found_cad ! to test application existance
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -837,21 +871,60 @@ C Tell the user to create a model configuration file.
       CALL PHELPD('CAD warning',nbhelp,'-',0,0,IER)
 
 C Ask user which format of CAD file will be scanned in.
+      write(msg2,'(2a)') 'invoke ',cadexe(1:lnblnk(cadexe))
       CALL EASKATOG(' ','Options:',
-     &  'parse DXF (version 12-14)','parse gbXML','invoke CAD tool',
+     &  'parse DXF (version 12-14)','parse gbXML',msg2,
      &  'parse ESP-r META','cancel',' ',' ',IRT,nbhelp)
       if(irt.eq.1)then
         cadfmt='DXF '
       elseif(irt.eq.2)then
         cadfmt='gbXML'
       elseif(irt.eq.3)then
-        call edisp(iuout,outs)
+
+C Check if CAD tool has been installed. If not do not start.
+        if(unixok)then
+          found_cad=.false. 
+          write(hold32,'(a)') cadexe(1:lnblnk(cadexe))
+          call isinstalled(hold32,found_cad)
+          if(.NOT.found_cad)then
+            write(msg,'(3a)') 'The CAD tool ',
+     &        cadexe(1:lnblnk(cadexe)),' is not installed. Exiting.'
+            call usrmsg(msg,'Exiting.','W')
+            return
+          endif
+        else
+          found_cad=.false.  ! not in Windows
+        endif
+
+C Create one or more dummy zones for gtool to work with.
+        call edisp(iuout,'CAD tool requires dummy zones to exist')
+        call edisp(iuout,'prior to starting. Specify how many to')
+        call edisp(iuout,'create. Note: zone names must follow the')
+        call edisp(iuout,'same root names as the ESP-r model.')
+        call create_dummy_zones()
         write(outs,'(3a)') ' Proceed with ',
-     &    cadlbl(1:lnblnk(cadlbl)),' ?'
+     &    cadexe(1:lnblnk(cadexe)),'?'
+
+        call usrmsg(
+     &    'ONCE CAD tool starts the Project Manager will EXIT!',
+     &    'Please restart Project Manager when you finish CAD tool.',
+     &    'W')
         dok=.true.
-        CALL ASKOK(outs,'(if the tool is available)',OK,dok,nbhelp)
+        CALL ASKOK(outs,
+     &    '(make note of where files are placed)',OK,dok,nbhelp)
         IF(OK)then
-          call runit(cadexe,'graph')
+          call pausems(1000)
+          write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' &'
+          call runit(doit,'-')
+          call pausems(1000)
+          call usrmsg(
+     &    'Shutting down the Project Manager!','...','-')
+          call pausems(1000)
+
+C Clear allocatable arrays
+          CALL DeallocateAllArrays
+          CALL EPAGEND
+          STOP
         endif
         return
       elseif(irt.eq.4)then
@@ -1089,6 +1162,104 @@ C Use call to refocus to start a new prj within the model cfg folder.
       endif
       return
       end
+
+
+C ******** gtoolin
+C gtoolin sets up files and invokes the CAD tool gtool.
+      subroutine gtoolin(itrc,ier)
+#include "building.h"
+#include "model.h"
+      
+      integer lnblnk  ! function definition
+
+      COMMON/OUTIN/IUOUT,IUIN
+      INTEGER :: iuout,iuin
+
+C External cad package.
+      common/cad3rd/cadlbl,cadexe,cadfmt
+
+      LOGICAL OK,DOK,unixok
+
+      character outs*124,OUTSTR*124,doit*248
+      character cadlbl*20,cadexe*20,cadfmt*5
+      character hold32*32,msg*72,msg2*30
+      logical found_cad ! to test application existance
+
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found
+
+      helpinsub='cadin'  ! set for subroutine
+
+C Check if running Unix-like OS.
+      call isunix(unixok)
+
+C CAD definition and importing.
+      helptopic='cad_import_choices'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
+C Tell the user to create a model configuration file.
+      CALL PHELPD('CAD warning',nbhelp,'-',0,0,IER)
+
+C Ask user which format of CAD file will be scanned in.
+      write(msg2,'(2a)') 'invoke ',cadexe(1:lnblnk(cadexe))
+      CALL ASKOK(msg2,'(please follow vendors instructions)',
+     &  OK,dok,nbhelp)
+      if(OK)then
+
+C Check if CAD tool has been installed. If not do not start.
+        if(unixok)then
+          found_cad=.false. 
+          write(hold32,'(a)') cadexe(1:lnblnk(cadexe))
+          call isinstalled(hold32,found_cad)
+          if(.NOT.found_cad)then
+            write(msg,'(3a)') 'The CAD tool ',
+     &        cadexe(1:lnblnk(cadexe)),' is not installed. Exiting.'
+            call usrmsg(msg,'Exiting.','W')
+            return
+          endif
+        else
+          found_cad=.false.  ! not in Windows
+        endif
+
+C Create one or more dummy zones for gtool to work with.
+        call edisp(iuout,'CAD tool requires dummy zones to exist')
+        call edisp(iuout,'prior to starting. Specify how many to')
+        call edisp(iuout,'create. Note: zone names must follow the')
+        call edisp(iuout,'same root names as the ESP-r model.')
+        call create_dummy_zones()
+        write(outs,'(3a)') ' Proceed with ',
+     &    cadexe(1:lnblnk(cadexe)),'?'
+
+        call usrmsg(
+     &    'ONCE CAD tool starts the Project Manager will EXIT!',
+     &    'Please restart Project Manager when you finish CAD tool.',
+     &    'W')
+        dok=.true.
+        CALL ASKOK(outs,
+     &    '(make note of where files are placed)',OK,dok,nbhelp)
+        IF(OK)then
+          call pausems(1000)
+          write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' &'
+          call runit(doit,'-')
+          call pausems(1000)
+          call usrmsg(
+     &    'Shutting down the Project Manager!','...','-')
+          call pausems(1000)
+
+C Clear allocatable arrays
+          CALL DeallocateAllArrays
+          CALL EPAGEND
+          STOP
+        endif
+        return
+      else
+        return
+      endif
+
+      end  ! of gtoolin
+
 
 C ********* rexmpl
 C rexmpl: scan the exemplars file, parse information and offer the user
@@ -2794,4 +2965,163 @@ C << there are 8 vertices and 6 surfaces
 
       return
       END
+
+C ************ create_dummy_zones
+      subroutine create_dummy_zones()
+#include "building.h"
+#include "model.h"
+
+C geometry.h provides commons G0 and G2.
+#include "geometry.h"
+#include "prj3dv.h"
+      
+      integer lnblnk  ! function definition
+
+      common/OUTIN/IUOUT,IUIN
+      common/FILEP/IFIL
+
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
+
+      logical unixok
+      character fs*1
+      character ZN*12,DFILE*72,CFILE*72,OFILE*72
+
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found
+
+      helpinsub='SETUP'  ! set for subroutine
+
+C Check if Unix-based or DOS based.
+      call isunix(unixok)
+      if(unixok)then
+        fs = char(47)
+      else
+        fs = char(92)
+      endif
+
+C Ask how many dummy zones to create.
+      itocreate=3
+      CALL EASKI(itocreate,' ',
+     &  'Number of zones to create in CAD tool?',
+     &  1,'F',10,'W',4,'nb to create',IERI,nbhelp)
+      if(NCOMP.eq.0)then
+        loopstart=1; loopend=itocreate
+      else
+        loopstart=NCOMP+1; loopend=NCOMP+itocreate+1
+      endif
+
+C All dummy zones are 1m cubes.
+      XO1=0.0; YO1=0.0; ZO1=0.0
+      DX1=1.0; DY1=1.0; DZ1=1.0
+      ANGR=0.
+      ANGE=0.
+
+      do icomp=loopstart,loopend
+
+C Set default name of the zone and zone geometry file.
+        write(ZN,'(2a,i2.2)') cfgroot(1:lnblnk(cfgroot)),'_',icomp
+        call st2name(ZN,zname(ICOMP))
+        lnzname(icomp)=lnblnk(zname(ICOMP))  ! update this string length.
+
+C << Unix vs NT needs to be updated >>
+        if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
+          WRITE(DFILE,'(2a)') zname(ICOMP)(1:lnzname(ICOMP)),'.geo'
+          WRITE(CFILE,'(2a)') zname(ICOMP)(1:lnzname(ICOMP)),'.con'
+          WRITE(OFILE,'(2a)') zname(ICOMP)(1:lnzname(ICOMP)),'.opr'
+        else
+          WRITE(DFILE,'(4a)') zonepth(1:lnblnk(zonepth)),fs,
+     &     zname(ICOMP)(1:lnzname(ICOMP)),'.geo'
+          WRITE(CFILE,'(4a)') zonepth(1:lnblnk(zonepth)),fs,
+     &     zname(ICOMP)(1:lnzname(ICOMP)),'.con'
+          WRITE(OFILE,'(4a)') zonepth(1:lnblnk(zonepth)),fs,
+     &     zname(ICOMP)(1:lnzname(ICOMP)),'.opr'
+        endif
+        LGEOM(ICOMP)=DFILE
+        LTHRM(ICOMP)=CFILE
+        LPROJ(ICOMP)=OFILE
+
+        XO1=XO1+1.0  ! shift each dummy zone by 1m in X.
+          
+C Convert box into a gen description using two rotation angles.
+C Pass in critical dimensions and expect the data back via common G1.
+        CALL ERECC3A(XO1,YO1,ZO1,DX1,DY1,DZ1,ANGR,ANGE,0.0)
+        NSUR=6
+        IUZBASEA(icomp)=0
+        IBASES(ICOMP,1)=6
+        MODBND=.TRUE.; MODIFYVIEW=.TRUE.; MODLEN=.TRUE.
+        iZBFLG(ICOMP)=0
+
+C Use subroutine filsur to instanciate G5 common block.
+        CALL FILSUR(ICOMP,0)
+
+C Update the connection list and hash.
+        ICCC=NCON
+        DO ICC=1,NSUR
+          ICCC=ICCC+1
+          IC1(ICCC)=ICOMP; IE1(ICCC)=ICC; ICT(ICCC)=-1   ! mark as unknown at this time.
+          IC2(ICCC)=0; IE2(ICCC)=0
+          SSNAME(iccc)=SNAME(icomp,icc)
+          SSOTF(iccc)=SOTF(icc)
+          SSMLCN(iccc)=SMLCN(icc)
+          SSVFC(iccc)=SVFC(icc)
+          SSOTHER(iccc,1)=SOTHER(icc,1)
+          SSOTHER(iccc,2)=SOTHER(icc,2)
+          SSOTHER(iccc,3)=SOTHER(icc,3)
+          SSUSE(iccc,1)=SUSE(icc,1); SSUSE(iccc,2)=SUSE(icc,2)
+          SSPARENT(iccc)=SPARENT(icc)
+          IZSTOCN(icomp,icc)=iccc
+        ENDDO
+        NCON=ICCC
+
+        write(zdesc(ICOMP),'(2a)') zname(ICOMP)(1:lnzname(ICOMP)),
+     &    ' describes a '
+        lnzdesc(ICOMP)=lnblnk(zdesc(ICOMP))  ! update the length of this string.
+        CTYPE(icomp)='GEN '
+        NDP(ICOMP)=3
+        IDPN(ICOMP,1)=0; IDPN(ICOMP,2)=0; IDPN(ICOMP,3)=0
+        NZSUR(ICOMP)=NSUR  ! update nzsur() it is needed by zgupdate.
+        NZTV(ICOMP)=NTV
+
+C Update the G7 common blocks and then assign ZBASEA.
+        call zgupdate(1,ICOMP,ier)
+
+        ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
+        ZBASEA(icomp)= SSNA(ibcs)
+
+C Update the global coordinates for this zones surfaces so that
+C the subsequent wireframe image can be drawn and the bounds of
+C the zone can be calculated. Also instanciate nznver and nzjvn
+C for the new zone (as is done in subroutine zdata).
+        DO 40 J=1,NZTV(ICOMP)
+          VCOORD(ICOMP,J,1)=X(J)
+          VCOORD(ICOMP,J,2)=Y(J)
+          VCOORD(ICOMP,J,3)=Z(J)
+   40   CONTINUE
+        DO 50 J=1,nzsur(ICOMP)
+          icc=IZSTOCN(icomp,j)
+          if(icc.ne.0)then
+            NZNVER(icc)=NVER(J)
+            N = NVER(J)
+            DO 60 K=1,N
+              NZJVN(icc,K)=JVN(J,K)
+   60       CONTINUE
+          endif
+   50   continue
+
+C Save this to file before passing into the geometry editing facility.
+        gversion(icomp) =1.1
+        call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+        NCOMP=NCOMP+1
+        NCCODE(ICOMP)=NCOMP                                                                                                                
+        CALL EMKCFG('-',IER)                                                       
+      enddo
+
+      return
+      end  ! of create_dummy_zones
 

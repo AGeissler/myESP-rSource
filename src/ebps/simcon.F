@@ -998,14 +998,7 @@ C Make up strings for the current set of toggles.
       elseif(iExt_longwave_flg.eq.5)then
         ITEMG(31)=   'x Ext. longwave rad >>  Swinbank-bldng'
       endif
-
-C Bug: ICOMP not defined; set to 1 as temporary measure.
-      ICOMP=1
-      if (iflgevapC(ICOMP).eq. 0 ) then
-        ITEMG(32)=  'y Outdoor TWB = Indoor TWB: Disabled '
-      elseif (iflgevapC(ICOMP).eq. 1 ) then
-        ITEMG(32)=  'y Outdoor TWB = Indoor TWB: Enabled'
-      endif      
+      ITEMG(32)=    'y Indoor TWB = Outdoor TWB '    
       ITEMG(33)=    '  ________________________________      '      
       ITEMG(34)=    '? help                                  '
       ITEMG(35)=    '- exit to simul menu                    '
@@ -1316,7 +1309,7 @@ C Select air (default) or non air filled zones.
         call gethelptext(helpinsub,helptopic,nbhelp)
         INPIC=NCOMP
         CALL EPICKS(INPIC,IVAL,' ',
-     &    ' ZSelect zones that are not air filled:',
+     &    ' Select zones that are not air filled:',
      &    12,NCOMP,zname,' zone list',IER,nbhelp)
         if(inpic.eq.0)goto 92
         call tstamp('>','SIM: edit non air filled zones')
@@ -1410,19 +1403,12 @@ C Make indoor wet bulb temperature = outdoor wet bulb (for direct evaporative co
      &    ' Select evaporative cooling zones:',
      &    12,NCOMP,zname,' zone list',IER,nbhelp)
         if(inpic.eq.0)goto 92
-        call tstamp('>','SIM: edit flag for TWBout=TWBin')
+        call tstamp('>','SIM: edit flag for TWBin=TWBout')
         do 88 ixx=1,inpic
           if(ival(ixx).ne.0)then
             iflgevapC(IVAL(ixx))=1 
           endif
  88    continue
-
-
-        call easki(iflgevapC(icomp),
-     &    ' Default 0. Setting flag to 1 makes indoor wet bulb equal ',
-     &    ' equal to the outdoor for direct evaporative cooling models',
-     &    0,'F',1,'F',0,'Twet bulb options',IER,nbhelp)  
-
 
       elseif(INO.eq.(NITMS-1))then
 
@@ -1864,8 +1850,9 @@ C CFD commons.
       integer ICFAUX  ! helps to keep track of IFCFD()
       integer ICFVIEW ! toggle for preview via dfv during assessment
       integer ICFVIEWMINT,ICFVIEWMAXT  ! range of temperatures for dfv
+      logical DFVinvoked
       COMMON/CFSEUP/CFTIMS,CFTIMF,ICFDYS,ICFDYF,ICFAUX(MCOM),ICFVIEW,
-     &  ICFVIEWMINT,ICFVIEWMAXT
+     &  ICFVIEWMINT,ICFVIEWMAXT,DFVinvoked
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
 
 C cfdperok - has period been defined by preset.

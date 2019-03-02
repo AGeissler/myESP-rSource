@@ -4321,9 +4321,10 @@ C ESP-r COMMONs
       integer nsincp,nsncpr
 
 C Basic RES (elec) controller inputs
-      common/reselec/RES_elec_ctl_mode, RES_elec_ctl_scenario
+      common/reselec/RES_elec_ctl_mode, RES_elec_ctl_scenario,NumBat
       integer RES_elec_ctl_mode     ! control mode 1, 2 or 3 << Note: currently only 2 is coded >>
       integer RES_elec_ctl_scenario ! control scenario active
+      integer NumBat                !- Number of batteries in system
 
 C PARAMETERS FROM SIGNATURE
 

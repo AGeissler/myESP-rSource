@@ -1,4 +1,11 @@
-# Modish, version 0.91.
+#!/usr/bin/perl
+# Modish, version 0.103
+# Author: Gian Luca Brunetti, Politecnico di Milano - gianluca.brunetti@polimi.it.
+# The subroutine createconstrdbfile has been modified by ESRU, University of Strathclyde, Glasgow (2018) to adapt it to the new ESP-r construction database format.
+# All rights reserved, 2015-18.
+# This is free software.  You can redistribute it and/or modify it under the terms of the
+# GNU General Public License, version 3, as published by the Free Software Foundation.
+
 use v5.14;
 use Math::Trig;
 use List::Util qw[ min max reduce shuffle any];
@@ -11,18 +18,17 @@ $Data::Dumper::Terse  = 1;
 $Data::Dumper::Purity  = 1;
 use Vector::Object3D::Polygon;
 use Math::Polygon::Tree;
-#use Parallel::ForkManager;
 use Storable qw(lock_store lock_nstore lock_retrieve);
 use feature 'say';
 no strict;
 no warnings;
 
 # Modish is a program for modifying the shading factors in the ISH (shading and insolation) files of the ESP-r building performance simulation suite in order to make it take into account the solar reflections from obstructions.
-# More precisely, modish brings into account the reflective effect of solar obstructions on solar gains in the ESP-r building models on the basis of irradiance ratios. Those ratios are obtained combining the direct radiation on a surface, calculated by the means of ESP-r and by the means of a raytracer (Radiance), and the total radiation on the same surface calculated by the means of the raytracer. Using proportions, the values of the total radiation to be input to ESP-r, and from it, the modifications to the shading coefficients needed to obtain that, are calculated.
+# The program, more precisely,  brings into account the reflective effect of solar obstructions on solar gains in the ESP-r building models on the basis of irradiance ratios. Those ratios are obtained combining the direct radiation on a surface, calculated by the means of ESP-r and by the means of a raytracer (Radiance), and the total radiation on the same surface calculated by the means of the raytracer. Using proportions, the values of the total radiation to be input to ESP-r, and from it, the modifications to the shading coefficients needed to obtain that, are calculated.
 #
 # How the program works
 # The effect of solar reflections is taken into account at each hour on the basis of the ratios between the irradiances measured at the models' surfaces in two transitiona, fictious model derived from the primary model.
-# The irradiances are calculated by the means of Radiance and can be derived from two alternative sets of models (the choice between them has to be done in the configuration file "modish_defaults.pl"):
+# The irradiances are calculated by the means of Radiance and can be derived from the following two alternative sets of models (the choice between them has to be done in the configuration file "modish_defaults.pl"):
 #
 # 1)
 # a) a model in which all the surfaces are reflective, excepted the obstructions, which are black;
@@ -34,7 +40,7 @@ no warnings;
 #
 # The value given by 1 minus the irradiance ratios gives the diffuse shading factors that are put in the ISH file of the ESP-r model in place of the original values.
 #
-# The original ISH's ".shda" files are not substituted. Two new files are added in the "zone" folder of the ESP-r model: the ".mod.shda" file is usable by ESP-r. It features the newly calculated shading factors; the ".report.shda" file lists the original shading factors and, at the bottom, the irradiance ratios from which the new shading factors in the ".mod.shda" file have been derived. Note that when the radiation on a surface is increased, instead of decreased, as an effect of reflections on obstructions, the shading factor will be negative.
+# The original ISH's ".shda" files are not substituted. Two new files are added in the "zone" folder of the ESP-r model: the ".mod.shda" file is usable by ESP-r. It features the newly calculated shading factors; the ".report.shda" file lists the original shading factors and, at the bottom, the irradiance ratios from which the new shading factors in the ".mod.shda" file have been derived. Note that when the radiation on a surface is increased, instead of decreased, as an effect of reflections on obstructions, the shading factor are negative.
 #
 # To launch Modish the following command has to be issued:
 #
@@ -43,8 +49,6 @@ no warnings;
 # For example:
 #
 # perl ././Modish.pm /home/x/model/cfg/model.cfg 1 7 9 (which means: calculate for zone 1, surfaces 7 and 9.)
-#
-# The path of the ESP-r model configuration path has to be specified in full, like in the example above.
 #
 # In calculating the irradiance ratios, the program defaults to the following settings: diffuse reflections: 1 ; direct reflections: 7; surface grid: 2 x 2; direction vectors for each surface: 1 ; distance from the surface for calculating the irradiances: 0.01 (metres); ratio of the of the original shading factor to the "new" shading factor under which the new shading factor is used to substitute the original one in the ".shda" file. If this value is 0, it is inactive, there is no threshold.
 # These defaults are a compromise between quality and speed. They can be overridden by preparing a "modish_defaults.pl" file and placing it in the same directory from which modish is called. In that directory,
@@ -57,7 +61,32 @@ no warnings;
 # The value "$dirvectorsnum" controls the numbers of direction vectors that are used for computing the irradiances at each point of each grid over the surfaces. The values that currently can be chosen are 1, 5 and 17. When the points are more than 1, they are evenly distributed on a hemisphere following a precalculated geodetic pattern.
 # Modish works with no limitation of number of surfaces, it can be used with complex geometries and takes into account parent and child surfaces.
 #
-# For the program to work correctly, the materials, construction and optics databases must be local to the ESP-r model.
+# For the program to work correctly, the materials, construction and optics databases
+# must be local to the ESP-r model.
+# Note that in the present version of the program, the materials used for obstructions should be not shared
+# by objects which are not reflective obstructions. If it is, that material should be duplicated with a different name in the ESP-r material database and be given a different name, so that one variant of the material can be assigned to the obstructions, and another to the zones surfaces.
+#
+# The value @calcprocedures in a configuration file controls the algorithmic variant that is used in the calculations.
+# If @calcprocedure is set to "diluted", the algorithmic strategy 1 listed above will be used.
+# @calcprocedures = ( "diluted" );
+# Otherwise, the algorithmic strategy 2 will be used.
+# Most of the times, the two algorithmic variant should not produce significant differences
+# in the results. For cases which are out-of-the-ordinary in size, the variant 1
+# will produce the most correct results.
+#
+# In a configuration file, values of specular ratio and rougnness can be specified
+# ovverriding the values specified in the Radiance material database.
+# To obtain that, values of the kind "construction:specularratio:roughnessvalue"
+# should be specified in the configuration file, with, for example:
+# < @specularratios = ( "polishedmetal:0.03:0.05" );
+# like shown in the example configuration case listed at the bottom of this writing.
+# This will enable the program to take into account the specular reflective components.
+#
+# Another manner for specifying a complete (ideal) specular reflection for a material
+# in a configuration file, of the kind that can be obtained by settings
+# @specularratios = ( "constructiontype:1:0" );
+# is that of giving to the material the "mirror" property, in the following manner:
+# @specularratios = ( "constructiontype:mirror" );
 #
 # Considerations on the efficiency of the program.
 # The speed of the program largely depends on the number of times that the Radiance raytracer is called, which in turn depends on the resolution of the grid on the external surface which is being considered.
@@ -68,14 +97,118 @@ no warnings;
 #
 # Modish should work with Linux and the Mac.
 #
-# Author: Gian Luca Brunetti, Politecnico di Milano - gianluca.brunetti@polimi.it.
-# All rights reserved, 2015-17.
-# This is free software.  You can redistribute it and/or modify it under the terms of the
-# GNU General Public License, version 3, as published by the Free Software Foundation.
+
+######### EXAMPLE OF CONFIGURATION FILE TO BE NAMED "modish_defaults.pl", ###################
+######### TO BE PLACED IN THE DIRECTORY FROM WHICH MODISH IS CALLED, ########################
+######### TOGETHER WITH "fix.pl" AND "perlfix.pl". ##########################################
+######### THE FIRST "#" DIGIT OF EACH LINE MUST BE UNCHECKED FOR IT TO WORK. ################
+
+### Configuration file for modish, version 0.103.
+
+#@defaults = ( [  2, 2 ], 1, 1, 1, 0.01, 0.99 );
+
+### The line above means: ( [ resolution_x, resolution_y ], $dirvectorsnum, $bounceambnum, $bouncemaxnum, $distgrid, $threshold )
+### resolution_x, resolution_y are the gridding values
+
+### The value "$dirvectorsnum" controls the numbers of direction vectors that are used for
+### computing the irradiances at each point of each grid over the surfaces. The values that currently
+### can be chosen are 1, 5 and 9. When the points are more than 1, they are evenly distributed
+### on a hemisphere following a geodetic pattern.
+
+### $bounceambnum are the number of the bounces of the diffuse light which are taken into account.
+
+### $bouncemaxnum are the number of the bounces of direct light which are taken into account.
+
+### $distgrid is the distance of the grid in meters outside the surfaces which are taken into account.
+
+### $threshold is the threshold under which the changes of shading value are not taken into account.
+### A value of "1" means that if the new shading value is increased instead of decreased in place of the old one,
+### the change is not executed.
+
+#$computype = "linear";
+### OPTIONS: "linear" and "root" (i.e. square root). The relation according to which the shading ratios are calculated.
+
+#@calcprocedures = ( "diluted" );
+###@calcprocedures = ( ); # OTHER POSSIBILITY
+###@calcprocedures = ( "diluted", "light/infrared-ratio:aluminium:1.2" ); # ADDITIONAL SETTING
+### "diluted" means that the two models from which the shading ratios are derived
+### are going to be the following: 1) a model in which all the surfaces are reflective,
+### excepted the obstructions, which are black;
+### 2) a model in which everything is reflective.
+### if @calcprocedures is instead left unspecified, without "diluted", the two models
+### from which the shading ratios are derived are going to be the following:
+### 1) a model in which everything is black, and
+### 2) a model in which all the surfaces are black, excepted the obstructions,
+### which are reflective.
+### Note that the materials used in the obstructions should be not shared
+### by objects which are not obstructions.
+### Giving to the materials used in the reflective obstructions their own class
+### in the materials database can be of help for organizing things with that criterion.
+### By specifying in @calcprocedure items of the kind "light/infrared-ratio:materialname:ratio"
+### (for example: "light/infrared-ratio:gypsum:1.2" ) it is possible to model
+### obstruction material which are selective in reflection - i.e. having different
+### reflectivities in the range of light and solar infrared.
+
+#@specularratios = (  );
+###@specularratios = ( "reflector:0.03:0.05" ); # FOR SPECIFYING A SPECULAR REFLECTIVITY
+### Here values of the kind "construction:specularratio:roughnessvalue"
+### should be specified. For example, "reflector:0.03:0.05".
+### The textual element ("reflector") is the name
+### of a construction. The first number is the specular ratio
+### for that construction. The second number is the roughness value.
+### Specifying those values here makes possible
+### to override the values specified in a Radiance database.
+### (for example, the "0"s that may be in the database
+### by defaul as regards specular ratios and the roughness values).
+
+#%skycondition = ( 1=> "clear", 2=> "clear", 3=> "clear", 4=> "clear", 5=> "clear", 6=> "clear", 7=> "clear", 8=> "clear", 9=> "clear", 10=> "clear", 11=> "clear", 12=> "clear" );
+### PREVAILING CONDITION OF THE SKY FOR EACH MONTH, EXPRESSED WITH ITS NUMBER.
+### THE OPTIONS ARE: "clear", "cloudy" and "overcast".
+### IF NO VALUE IS SPECIFIED, THE DEFAULT IS "clear".
 
 
-my $max_processes = $main::max_processes;
-if ( not ( defined( $max_processes ) ) ) { $max_processes = 1; }
+######### END OF EXAMPLE CONFIGURATION LINES ###############################################
+
+
+######## BEGINNING OF THE CONTENT OF THE FILE "perlfix.pl", ################################
+######### TO BE PLACED IN THE DIRECTORY FROM WHICH MODISH IS CALLED ########################
+
+##!/usr/bin/perl
+#
+#if ( -e "./fixl.pl" )
+#{
+#
+#	open ( FIXL, "./fixl.pl" ) or die( $! );
+#	my @files = <FIXL>;
+#	close FIXL;
+#	$" = " ";
+#	print "FILES: @files\n";
+#	my $to = $files[0];
+#	chomp( $to );
+#	print "TO: $to\n";
+#
+#	my $from = $files[1];
+#	chomp( $from );
+#	print "FROM: $from\n";
+#
+#	`cp -f $from $to`;
+###	print "WHAT I AM DOING IS: cp -f $from $to \n";
+#}
+
+######## END OF THE CONTENT OF THE FILE "perlfix.pl" #######################################
+
+
+######## BEGINNING OF THE CONTENT OF THE FILE "fix.sh" #####################################
+######### TO BE PLACED IN THE DIRECTORY FROM WHICH MODISH IS CALLED ########################
+
+#perl ./perlfix.pl
+
+######## END OF THE CONTENT OF THE FILE "fix.sh" ###########################################
+
+
+############################################################################################
+######### BEGINNING OF MODISH ##############################################################
+
 
 if ( ( "$^O" eq "MSWin32" ) or ( "$^O" eq "MSWin64" ) )
 {
@@ -114,13 +247,11 @@ sub getconffilenames
   close CONFFILE;
   my ($constrdbfile, $matdbfile);
   my @zonedata;
-  my $semaphore;
+  my $semaphore = "no";
   my $countline = 0;
-  my $countzone = 0;
   foreach my $line (@lines)
   {
     my ($geofile, $constrfile, $shdfile, $zonenum_cfg );
-    $readline = s/^\s+//;
     my @row = split(/\s+|,/, $line);
     if ($row[0] eq "*mlc")
     {
@@ -134,41 +265,44 @@ sub getconffilenames
       $matdbfile =~ s/\.\.//;
       $matdbfile = $path . $matdbfile;
     }
-    elsif ($row[0] eq "*zon")
+
+    if ($row[0] eq "*zon")
     {
       $countzone++;
       my $zonenum = $row[1];
       if ( $zonenum eq $askedzonenum )
       {
         $semaphore = "yes";
-        push ( @{$zonedata[$countzone -1]}, $zonenum );
-      }
-      else
-      {
-        $semaphore = "no";
+        push ( @zonedata, $zonenum );
       }
     }
 
-    if ( ($row[0] eq "*geo") and ( $semaphore eq "yes" ) )
+    if ( $semaphore eq "yes" )
     {
-      $geofile = $row[1];
-      $geofile =~ s/\.\.//;
-      $geofile = $path . $geofile;
-      push ( @{$zonedata[ $countzone -1 ]}, $geofile );
-    }
-    elsif ( ($row[0] eq "*con") and ( $semaphore eq "yes" ) )
-    {
-      $constrfile = $row[1];
-      $constrfile =~ s/\.\.//;
-      $constrfile = $path . $constrfile;
-      push ( @{$zonedata[ $countzone - 1 ]}, $constrfile );
-    }
-    elsif ( ( $row[0] eq "*isi") and ( $semaphore eq "yes" ) )
-    {
-      $shdfile = $row[1];
-      $shdfile =~ s/\.\.//;
-      $shdfile = $path . $shdfile;
-      push ( @{$zonedata[ $countzone - 1 ]}, $shdfile );
+      if ($row[0] eq "*geo")
+      {
+        $geofile = $row[1];
+        $geofile =~ s/\.\.//;
+        $geofile = $path . $geofile;
+        push ( @zonedata, $geofile );
+      }
+
+      if ($row[0] eq "*con")
+      {
+        $constrfile = $row[1];
+        $constrfile =~ s/\.\.//;
+        $constrfile = $path . $constrfile;
+        push ( @zonedata, $constrfile );
+      }
+
+      if ( $row[0] eq "*isi")
+      {
+        $shdfile = $row[1];
+        $shdfile =~ s/\.\.//;
+        $shdfile = $path . $shdfile;
+        push ( @zonedata, $shdfile );
+        $semaphore = "no";
+      }
     }
   }
   return ( $constrdbfile, $matdbfile, \@zonedata, \@lines );
@@ -185,16 +319,18 @@ sub createfictitiousfiles
   $conffile_f1 =~ s/\.cfg/\_f1\.cfg/;
   my $conffile_f2 = $conffile;
   $conffile_f2 =~ s/\.cfg/\_f2\.cfg/;
-  my $conffile_f3 = $conffile;
-  $conffile_f3 =~ s/\.cfg/\_f3\.cfg/;
+
+  print REPORT "cp -R -f $conffile $conffile_f1\n";
+  print REPORT "cp -R -f $conffile $conffile_f2\n";
   `cp -R -f $conffile $conffile_f1\n`;
   `cp -R -f $conffile $conffile_f2\n`;
-  `cp -R -f $conffile $conffile_f3\n`;
 
-  my ($constrdbfile, $matdbfile, $zonedataref, $conflinesref) = getconffilenames($conffile, $path, $zonenum);
+  my ($constrdbfile, $matdbfile, $zonedataref, $conflinesref) = getconffilenames( $conffile, $path, $zonenum );
   my @zonedata = @$zonedataref;
+  my $geofile = $zonedata[1];
+
   my @conflines = @$conflinesref;
-  my (@originals, @fictitia1, @fictitia2, @fictitia3 );
+  my (@originals, @fictitia1, @fictitia2 );
 
   push ( @originals, $constrdbfile);
 
@@ -202,7 +338,6 @@ sub createfictitiousfiles
   $constrdbfile_f = $constrdbfile . "_f" ;
   push ( @fictitia1, $constrdbfile_f);
   push ( @fictitia2, $constrdbfile_f);
-  push ( @fictitia3, $constrdbfile_f);
 
   push ( @originals, $matdbfile);
 
@@ -214,59 +349,48 @@ sub createfictitiousfiles
   $matdbfile_f2 = $matdbfile . "_f2";
   push ( @fictitia2, $matdbfile_f2 );
 
-  push ( @fictitia3, $matdbfile_f1 );
+
+  my ( @tempbox_original, @tempbox_fictitia1, @tempbox_fictitia2 );
+  my $geofile = $zonedata[1];
+  push ( @tempbox_originals, $geofile );
+
+  my $geofile_f = $geofile;
+  $geofile_f =~ s/\.geo/_f\.geo/;
+
+  push ( @tempbox_fictitia1, $geofile_f);
+  push ( @tempbox_fictitia2, $geofile_f);
+
+  my $constrfile = $zonedata[2];
+  push ( @tempbox_originals, $constrfile);
+
+  my $constrfile_f1 = $constrfile;
+  $constrfile_f1 =~ s/\.con/_f1\.con/;
+  push ( @tempbox_fictitia1, $constrfile_f1);
+
+  my $constrfile_f2 = $constrfile;
+  $constrfile_f2 =~ s/\.con/_f2\.con/;
+  push ( @tempbox_fictitia2, $constrfile_f2);
 
 
-  foreach my $datum (@zonedata)
-  {
-    my ( @tempbox_original, @tempbox_fictitia1, @tempbox_fictitia2, @tempbox_fictitia3 );
-    my @array = @$datum;
-    my $geofile = $array[1];
-    push ( @tempbox_originals, $geofile );
+  print REPORT "cp -R -f $constrfile $constrfile_f1\n";
+  print REPORT "cp -R -f $constrfile $constrfile_f2\n";
+  `cp -R -f $constrfile $constrfile_f1\n`; $flagconstr = "y";
+  `cp -R -f $constrfile $constrfile_f2\n`; $flagconstr = "y";
 
-    my $geofile_f = $geofile;
-    $geofile_f =~ s/\.geo/_f\.geo/;
+  my $shdfile = $zonedata[3];
+  push ( @tempbox_originals, $shdfile);
+  push ( @tempbox_fictitia1, $shdfile);
+  push ( @tempbox_fictitia2, $shdfile);
 
-    my $geofile_f3 = $geofile;
-    $geofile_f3 =~ s/\.geo/_f3\.geo/;
+  my $zonenum_cfg = $zonedata[0];
+  push ( @tempbox_originals, $zonenum_cfg);
+  push ( @tempbox_fictitia1, $zonenum_cfg);
+  push ( @tempbox_fictitia2, $zonenum_cfg);
 
-    push ( @tempbox_fictitia1, $geofile_f);
-    push ( @tempbox_fictitia2, $geofile_f);
-    push ( @tempbox_fictitia3, $geofile_f3);
+  push ( @originals, [ @tempbox_originals ] );
+  push ( @fictitia1, [ @tempbox_fictitia1 ] );
+  push ( @fictitia2, [ @tempbox_fictitia2 ] );
 
-    my $constrfile = $array[2];
-    push ( @tempbox_originals, $constrfile);
-
-    my $constrfile_f1 = $constrfile;
-    $constrfile_f1 =~ s/\.con/_f1\.con/;
-    push ( @tempbox_fictitia1, $constrfile_f1);
-
-    my $constrfile_f2 = $constrfile;
-    $constrfile_f2 =~ s/\.con/_f2\.con/;
-    push ( @tempbox_fictitia2, $constrfile_f2);
-
-    push ( @tempbox_fictitia3, $constrfile_f1);
-
-    `cp -R -f $constrfile $constrfile_f1\n`; $flagconstr = "y";
-    `cp -R -f $constrfile $constrfile_f2\n`; $flagconstr = "y";
-
-    my $shdfile = $array[3];
-    push ( @tempbox_originals, $shdfile);
-    push ( @tempbox_fictitia1, $shdfile);
-    push ( @tempbox_fictitia2, $shdfile);
-    push ( @tempbox_fictitia3, $shdfile);
-
-    my $zonenum_cfg = $array[0];
-    push ( @tempbox_originals, $zonenum_cfg);
-    push ( @tempbox_fictitia1, $zonenum_cfg);
-    push ( @tempbox_fictitia2, $zonenum_cfg);
-    push ( @tempbox_fictitia3, $zonenum_cfg);
-
-    push ( @originals, [ @tempbox_originals ] );
-    push ( @fictitia1, [ @tempbox_fictitia1 ] );
-    push ( @fictitia2, [ @tempbox_fictitia2 ] );
-    push ( @fictitia3, [ @tempbox_fictitia3 ] );
-  }
 
   my ( @correctlines, $addline );
   open ( CONFFILE_F1, ">$conffile_f1");
@@ -377,43 +501,11 @@ sub createfictitiousfiles
   my @conflines3 = <CONFFILE_F1>;
   close CONFFILE_F1;
 
-  open ( CONFFILE_F3, ">$conffile_f3");
-  my $count = 0;
-  foreach my $line (@conflines3)
-  {
-    my $redflag;
-    if ( $$conflines3[ $count + 1] =~ /^# block entities:/ )
-    {
-      $redflag = "yes";
-    }
-    if ( @correctlines )
-    {
-      $addline = /^(.)$correctlines[ $count ]/;
-      if ( $addline )
-      {
-        $line = $addline . $line;
-      }
-    }
-    unless ( $redflag eq "yes" )
-    {
-      unless ( $line =~ /^\*shad_calc,/ )
-      {
-        print CONFFILE_F3 $line;
-      }
-      else
-      {
-        print CONFFILE_F3 "*shad_calc,none  # no temporal shading requested\n";
-      }
-    }
-    $count++;
-  }
-  close CONFFILE_F3;
-
   #setroot( $conffile_f1, $path, $debug );
   #setroot( $conffile_f2, $path, $debug );
 
-  return ($conffile, $conffile_f1, $conffile_f2, $conffile_f3, $constrdbfile, $constrdbfile_f,
-  $matdbfile, $matdbfile_f1, $matdbfile_f2, $flagconstrdb, $flagmatdb, $flaggeo, $flagconstr, [ @originals ], [ @fictitia1], [ @fictitia2 ] , [ @fictitia3 ] );
+  return ($conffile, $conffile_f1, $conffile_f2, $constrdbfile, $constrdbfile_f,
+  $matdbfile, $matdbfile_f1, $matdbfile_f2, $flagconstrdb, $flagmatdb, $flaggeo, $flagconstr, [ @originals ], [ @fictitia1], [ @fictitia2 ] );
 }
 
 sub definepath
@@ -430,12 +522,14 @@ sub readgeofile
   my $geofile = $_[0];
   my @transpsurfs = @{$_[1]};
   my $zonenum = $_[2];
+  my $constrdbfile_f = $_[3];
   open ( GEOFILE, "$geofile") or die;
   my @lines = <GEOFILE>;
   close GEOFILE;
   my ( @geofilestruct, @transpelts, @obs );
   my %datalist;
   my $countsurf = 0;
+
   foreach my $surfnum ( @transpsurfs )
   {
     foreach my $line (@lines)
@@ -497,6 +591,7 @@ sub readgeofile
         my $obsnum = $elts[13];
         push (@obs, [ $obsname, $obsconstr, $obsnum ] );
       }
+
       if ( $countsurf == 0 )
       {
         push ( @geofilestruct, [ @elts ] );
@@ -515,14 +610,14 @@ sub readgeofile
     }
     if ( ( $semaphore == 1) and ( $_->[0] eq "*obs" ) )
     {
-      push ( @obsconstr,$obsmaterial = $_->[9] );
+      push ( @obsconstr, $obsmaterial  );
     }
     $obsinfo{ $obsnumber } = $obsnumber;
     $obsinfo{ $obsmaterial } = $obsmaterial;
   }
   my @obsconstrset = uniq( @obsconstr );
 
-  return ( \@transpelts, \@geofilestruct, \%surfslist, \@obs, \@obsconstrset, \%datalist );
+  return ( \@transpelts, \@geofilestruct, \%surfslist, \@obs, \@obsconstrset, \%datalist, \@obsmaterials );
 }
 
 sub readverts
@@ -1179,7 +1274,7 @@ YYY
 
   if ( $countrad == 0 )
   {
-    adjust_radmatfile( $exportconstrref, $exportreflref, $conffile, $path, \@specularratios );
+    adjust_radmatfile( $exportconstrref, $exportreflref, $conffile, $path, \@specularratios, \%obslayers, \@selectives );
   }
 }
 
@@ -1346,12 +1441,24 @@ sub pursue
   my $bouncemaxnum = $d{bouncemaxnum};
   my ( $fict1ref, $fict2ref, $fict3ref ) = @{ $d{radfilesrefs} };
   my @surfsnums = @{ $d{transpsurfs} };
+  my @selectives = @{ $d{selectives} };
 
   my ( $conffile_f1, $radoctfile_f1, $rcffile_f1 ) = @$fict1ref;
   my ( $conffile_f2, $radoctfile_f2, $rcffile_f2 ) = @$fict2ref;
+  my ( $conffile_f3, $radoctfile_f3, $rcffile_f3 ) = @$fict3ref;
   my @conffiles = ( $conffile_f1, $conffile_f2, $conffile_f3 );
-  my @radoctfiles = ( $radoctfile_f1, $radoctfile_f2  );
-  my @rcffiles = ( $rcffile_f1, $rcffile_f2 );
+  my ( @radoctfiles, @rcffiles );
+
+  if ( scalar( @selectives ) == 0 )
+  {
+    @radoctfiles = ( $radoctfile_f1, $radoctfile_f2  );
+    @rcffiles = ( $rcffile_f1, $rcffile_f2 );
+  }
+  elsif ( scalar( @selectives ) > 0 )
+  {
+    @radoctfiles = ( $radoctfile_f1, $radoctfile_f2, $radoctfile_f3  );
+    @rcffiles = ( $rcffile_f1, $rcffile_f2, $rcffile_f3 );
+  }
 
   my $resolnumber = ( $resolutions[0] * $resolutions[1] );
 
@@ -1364,12 +1471,13 @@ sub pursue
   my ( $totaldirect, $totalrad, $directratio, $diffuseratio );
 
   my $countfirst = 0;
-  my $countrad = 0;
+  my $countrad = 0; #say REPORT "RADOCTIFILES! " . dump( @radoctfiles );
   foreach my $radoctfile ( @radoctfiles )
   {
-    opendir( DIR, "$path/rad/" );
-    my @names = grep( /\.rcf/ , readdir(DIR) );
-    closedir( DIR );
+    say REPORT "RADOCTFILE: $radoctfile";
+    #opendir( DIR, "$path/rad/" );
+    #my @names = grep( /\.rcf/ , readdir(DIR) );
+    #closedir( DIR );
 
     my $conffile = $conffiles[$countrad];
 
@@ -1377,9 +1485,11 @@ sub pursue
 
     my $conffile_a = $conffile;
     $conffile_a =~ s/\.cfg$/_a\.cfg/ ;
+    #say "\$conffile: $conffile";  say "\$fileroot: $fileroot";  say "\$rcffile: $rcffile";  say "\$radoctfile: $radoctfile";  say "\$riffile: $riffile";  say "\$radmatfile: $radmatfile";  say "\$radmatcopy: $radmatcopy";  say "\$diffskyfile: $diffskyfile";
 
-    `cp -f $conffile $conffile_a`;
     print REPORT "cp -f $conffile $conffile_a\n";
+    `cp -f $conffile $conffile_a`;
+
 
     my ( $fileroot_a, $rcffile_a, $radoctfile_a, $riffile_a, $skyfile_a, $radmatfile_a, $radmatcopy_a, $diffskyfile_a ) = tellradnames( $conffile_a, $path, $radpath );
 
@@ -1418,11 +1528,12 @@ sub pursue
               setroot( $conffile, $path, $debug);
               setrad( $conffile, $radoctfile, $rcffile, $path, $radpath, $monthnum, $day, $hour, $countfirst, $exportconstrref, $exportreflref, \%skycondition, $countrad, \@specularratios, \@calcprocedures, $debug );
 
-              if ( $countrad == 1)
+              if ( $countrad >= 1)
               {
-                adjust_radmatfile( $exportconstrref, $exportreflref, $conffile, $path, \@specularratios );
-                `cp -f $radmatfile $radmatcopy`;
+                adjust_radmatfile( $exportconstrref, $exportreflref, $conffile, $path, \@specularratios, \%obslayers, \@selectives );
                 say REPORT "cp -f $radmatfile $radmatcopy";
+                `cp -f $radmatfile $radmatcopy`;
+
 
                 open ( FIXLIST, ">$path/rad/fixl.pl" ) or die( $! );
                 print FIXLIST "$radmatfile\n";
@@ -1432,51 +1543,7 @@ sub pursue
               $setoldfiles = "off";
             }
 
-            #my $d = File::Modified->new(files=>[$radmatfile] );  #STARTDAEMON
-            #while ( $go == 1 )
-            #{
-            #my ( @changes ) = $d->changed;
-            #if ( @changes )
-            #{
-            #    `cp -f $radmatcopy $radmatfile`;
-            #      say REPORT "cp -f $radmatcopy $radmatfile";
-            #    $d->update();
-            #  }
-            #  sleep 0.05 ;
-            #}
-
-            #if ( $countrad == 1)
-            #{
-            # # my $go = 1;
-            #  my $monitor = File::Monitor::Lite->new( in => "$path/rad/", name => "$radmatfile" );
-            #  while ( $monitor->check() and sleep 0.01 )
-            #  {
-            #    if ( $monitor->modified )
-            #    {
-            #       `cp -f $radmatcopy $radmatfile`;
-            #         say REPORT "cp -f $radmatcopy $radmatfile";
-            #    }
-            #  }
-            #}
-
-
-            #if ( $countrad == 1)
-            #{
-            #  `perl ./hack.pl "$path" "$radmatfile" "$radmatcopy" &`;
-
-            #}
-
-            ###setrad( $conffile, $radoctfile, $rcffile, $path, $radpath, $monthnum, $day, $hour, $countfirst, $exportconstrref, $exportreflref, \%skycondition, $countrad, \@specularratios, \@calcprocedures, $debug );
-
-            #if ( $countrad == 1)
-            #{
-            #  $go = 2; #CLOSEDAEMON
-            #}
-
-            #$countfirst++;
-
             setrad( $conffile, $radoctfile, $rcffile, $path, $radpath, $monthnum, $day, $hour, $countfirst, $exportconstrref, $exportreflref, \%skycondition, $countrad, \@specularratios, \@calcprocedures, $debug );
-
 
             my $countpoint = 0;
 
@@ -1496,10 +1563,11 @@ sub pursue
               {
                 my ( $valstring, $valstring1, $valstring2, $irr, $irr1, $irr2 );
 
-                if ( ( $countrad == 0 ) or ( $countrad == 1 ) )
+                if ( ( $countrad == 0 ) or ( $countrad >= 1 ) )
                 {
-                  $valstring = `cd $raddir \n echo $xcoord $ycoord $zcoord $dirvectorx $dirvectory $dirvectorz | rtrace  -I -ab $bounceambnum -lr $bouncemaxnum -h $radoctfile`;   say REPORT "TO SHELL: cd $raddir \n echo $xcoord $ycoord $zcoord $dirvectorx $dirvectory $dirvectorz | rtrace  -I -ab $bounceambnum -lr $bouncemaxnum -h $radoctfile";
-		  my ( $x, $y, $z ) = ( $valstring =~ m/(.+)\t(.+)\t(.+)\t/ );
+                  $valstring = `cd $raddir \n echo $xcoord $ycoord $zcoord $dirvectorx $dirvectory $dirvectorz | rtrace  -I -ab $bounceambnum -lr $bouncemaxnum -h $radoctfile`;
+
+		              my ( $x, $y, $z ) = ( $valstring =~ m/(.+)\t(.+)\t(.+)\t/ );
                   $irr = ( 179 * ( ( .265 * $x ) + ( .670 * $y ) + ( .065 * $z ) ) );
                 }
                 push ( @{ $surftests{$radoctfile}{$monthnum}{$surfnum}{$hour} }, $irr );
@@ -1528,13 +1596,15 @@ sub pursue
               {
                 my ( $valstring, $valstring1, $valstring2, $irr, $irr1, $irr2 );
 
-                if ( ( $countrad == 0 ) or ( $countrad == 1 ) )
+                if ( ( $countrad == 0 ) or ( $countrad >= 1 ) )
                 {
-                  $valstring = `cd $raddir \n echo $xcoord $ycoord $zcoord $dirvectorx $dirvectory $dirvectorz | rtrace  -I -ab 0 -av 0 0 0 -lr $bouncemaxnum -h $radoctfile`;   say REPORT "TO SHELL: cd $raddir \n echo $xcoord $ycoord $zcoord $dirvectorx $dirvectory $dirvectorz | rtrace  -I -ab $bounceambnum -lr $bouncemaxnum -h $radoctfile";
+                  $valstring = `cd $raddir \n echo $xcoord $ycoord $zcoord $dirvectorx $dirvectory $dirvectorz | rtrace  -I -ab 0 -av 0 0 0 -lr $bouncemaxnum -h $radoctfile`;   say REPORT "5TO SHELL: cd $raddir \n echo $xcoord $ycoord $zcoord $dirvectorx $dirvectory $dirvectorz | rtrace  -I -ab $bounceambnum -lr $bouncemaxnum -h $radoctfile";
+
                   my ( $x, $y, $z ) = ( $valstring =~ m/(.+)\t(.+)\t(.+)\t/ );
                   $irr = ( 179 * ( ( .265 * $x ) + ( .670 * $y ) + ( .065 * $z ) ) );
                 }
                 push ( @{ $surftestsdir{$radoctfile}{$monthnum}{$surfnum}{$hour} }, $irr );
+
                 $countdirvec++;
               }
               $countpoint++;
@@ -1543,9 +1613,6 @@ sub pursue
             #$pm->wait_all_children;
 
             #say "Obtained direct @{ $surftestsdir{$radoctfile}{$monthnum}{$surfnum}{$hour} }";
-
-
-
 
             my ( $meanvaluesurf, $meanvaluesurf_diff, $meanvaluesurf_dir );
 
@@ -1563,11 +1630,11 @@ sub pursue
 
             if ( $meanvaluesurf_diff and $surfnum and $hour )
             {
-              $irrs{ $zonenum }{ $countrad +1 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr } = $meanvaluesurf_diff;
+              $irrs{ $zonenum }{ $countrad + 1 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr } = $meanvaluesurf_diff;
             }
             if ( $meanvaluesurf_dir and $surfnum and $hour )
             {
-              $irrs{ $zonenum }{ $countrad +1 }{ $monthnum }{ $surfnum }{ $hour }{ meandirirr } = $meanvaluesurf_dir;
+              $irrs{ $zonenum }{ $countrad + 1 }{ $monthnum }{ $surfnum }{ $hour }{ meandirirr } = $meanvaluesurf_dir;
             }
           }
           $counthour++;
@@ -1953,10 +2020,12 @@ sub createconstrdbfile
 
 sub compareirrs
 { # THIS COMPARES THE IRRADIANCES TO OBTAIN THE IRRADIANCE RATIOS.
-  my ( $zonefilelistsref, $irrsref, $computype, $calcprocedures_ref ) = @_;
+  my ( $zonefilelistsref, $irrsref, $computype, $calcprocedures_ref, $selectives_ref ) = @_;
   my %zonefilelists = %$zonefilelistsref;
   my %irrs = %$irrsref;
   my @calcprocedures = @$calcprocedures_ref;
+  my @selectives = @{ $selectives_ref };
+
   my %irrvars;
   foreach my $zonenum ( sort {$a <=> $b} ( keys %irrs ) )
   {
@@ -1967,80 +2036,73 @@ sub compareirrs
       {
         foreach my $hour ( sort {$a <=> $b} ( keys %{ $irrs{ $zonenum }{ 1 }{ $monthnum }{ $surfnum } } ) )
         {
-          if ( not ( "unified" ~~ @calcprocedures ) )
+
+          my $surfirr = $irrs{ $zonenum }{ 1 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr };
+          my $whitesurfirr;
+
+          if ( scalar( @selectives == 0 ) )
           {
-            my $surfirr = $irrs{ $zonenum }{ 1 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr };
-            my $whitesurfirr = $irrs{ $zonenum }{ 2 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr };
-            #my $surfirr_amb = $irrs{ $zonenum }{ 3 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr };
-            my $irrratio;
-
-            if ( $computype eq "linear" )
-            {
-              if ( $surfirr == 0 ) { $surfirr = 0.0001 }
-              if ( $whitesurfirr == 0 ) { $whitesurfirr = 0.0001 }
-              $irrratio = ( $whitesurfirr / $surfirr );
-            }
-
-            if ( $computype eq "root" )
-            {
-              if ( $surfirr == 0 ) { $surfirr = 0.0001 }
-              if ( $whitesurfirr == 0 ) { $whitesurfirr = 0.0001 }
-              $irrratio = sqrt( $whitesurfirr / $surfirr );
-            }
-
-            $irrvars{ $zonenum }{ $monthnum }{ $surfnum }{ $hour }{ irrvar } = $irrratio;
-
-
-            my $dirsurfirr = $irrs{ $zonenum }{ 1 }{ $monthnum }{ $surfnum }{ $hour }{ meandirirr };
-            my $dirwhitesurfirr = $irrs{ $zonenum }{ 2 }{ $monthnum }{ $surfnum }{ $hour }{ meandirirr };
-            #my $surfirr_amb = $irrs{ $zonenum }{ 3 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr };
-            my $dirirrratio;
-
-            if ( $computype eq "linear" )
-            {
-              if ( $dirsurfirr == 0 ) { $dirsurfirr = 0.0001 }
-              if ( $dirwhitesurfirr == 0 ) { $dirwhitesurfirr = 0.0001 }
-              $dirirrratio = ( $dirwhitesurfirr / $dirsurfirr );
-            }
-
-            if ( $computype eq "root" )
-            {
-              if ( $dirsurfirr == 0 ) { $dirsurfirr = 0.0001 }
-              if ( $dirwhitesurfirr == 0 ) { $dirwhitesurfirr = 0.0001 }
-              $dirirrratio = sqrt( $dirwhitesurfirr / $dirsurfirr ) ;
-            }
-
-            $irrvars{ $zonenum }{ $monthnum }{ $surfnum }{ $hour }{ dirirrvar } = $dirirrratio;
+            $whitesurfirr = $irrs{ $zonenum }{ 2 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr };
           }
-          else
+          elsif ( scalar( @selectives > 0 ) )
           {
-            my $diffsurfirr = $irrs{ $zonenum }{ 1 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr };
-            my $diffwhitesurfirr = $irrs{ $zonenum }{ 2 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr };
+            $whitesurfirr = ( ( $irrs{ $zonenum }{ 2 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr }
+              + $irrs{ $zonenum }{ 3 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr } ) / 2 );
+          }
 
-            my $dirsurfirr = $irrs{ $zonenum }{ 1 }{ $monthnum }{ $surfnum }{ $hour }{ meandirirr };
-            my $dirwhitesurfirr = $irrs{ $zonenum }{ 2 }{ $monthnum }{ $surfnum }{ $hour }{ meandirirr };
+          #my $surfirr_amb = $irrs{ $zonenum }{ 3 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr };
+          my $irrratio;
 
-            my $surfirr = ( $diffsurfirr + $dirsurfirr );
-            my $whitesurfirr = ( $diffwhitesurfirr + $dirwhitesurfirr );
-
-            my ( $irrratio, $diffirrratio, $dirirrratio );
-
+          if ( $computype eq "linear" )
+          {
             if ( $surfirr == 0 ) { $surfirr = 0.0001 }
             if ( $whitesurfirr == 0 ) { $whitesurfirr = 0.0001 }
             $irrratio = ( $whitesurfirr / $surfirr );
-
-            if ( $dirwhitesurfirr == 0 ) { $dirwhitesurfirr = 0.0001 }
-            if ( $diffwhitesurfirr == 0 ) { $diffwhitesurfirr = 0.0001 }
-            my $ratioproportion = ( $diffwhitesurfirr / $dirwhitesurfirr );
-            $diffirrratio = ( $irrratio * $ratioproportion );
-            $dirirrratio = ( $irrratio - $diffirrratio );
-
-            $irrvars{ $zonenum }{ $monthnum }{ $surfnum }{ $hour }{ irrvar } = $diffirrratio;
-            $irrvars{ $zonenum }{ $monthnum }{ $surfnum }{ $hour }{ dirirrvar } = $dirirrratio;
           }
+
+          if ( $computype eq "root" )
+          {
+            if ( $surfirr == 0 ) { $surfirr = 0.0001 }
+            if ( $whitesurfirr == 0 ) { $whitesurfirr = 0.0001 }
+            $irrratio = sqrt( $whitesurfirr / $surfirr );
+          }
+
+          $irrvars{ $zonenum }{ $monthnum }{ $surfnum }{ $hour }{ irrvar } = $irrratio;
+
+
+          my $dirsurfirr = $irrs{ $zonenum }{ 1 }{ $monthnum }{ $surfnum }{ $hour }{ meandirirr };
+
+          my $dirwhitesurfirr;
+          if ( scalar( @selectives == 0 ) )
+          {
+            $dirwhitesurfirr = $irrs{ $zonenum }{ 2 }{ $monthnum }{ $surfnum }{ $hour }{ meandirirr };
+          }
+          elsif ( scalar( @selectives > 0 ) )
+          {
+            $dirwhitesurfirr = ( ( $irrs{ $zonenum }{ 2 }{ $monthnum }{ $surfnum }{ $hour }{ meandirirr }
+              + $irrs{ $zonenum }{ 3 }{ $monthnum }{ $surfnum }{ $hour }{ meandirirr } ) / 2 );
+          }
+
+          #my $surfirr_amb = $irrs{ $zonenum }{ 3 }{ $monthnum }{ $surfnum }{ $hour }{ meanirr };
+          my $dirirrratio;
+
+          if ( $computype eq "linear" )
+          {
+            if ( $dirsurfirr == 0 ) { $dirsurfirr = 0.0001 }
+            if ( $dirwhitesurfirr == 0 ) { $dirwhitesurfirr = 0.0001 }
+            $dirirrratio = ( $dirwhitesurfirr / $dirsurfirr );
+          }
+
+          if ( $computype eq "root" )
+          {
+            if ( $dirsurfirr == 0 ) { $dirsurfirr = 0.0001 }
+            if ( $dirwhitesurfirr == 0 ) { $dirwhitesurfirr = 0.0001 }
+            $dirirrratio = sqrt( $dirwhitesurfirr / $dirsurfirr ) ;
+          }
+          $irrvars{ $zonenum }{ $monthnum }{ $surfnum }{ $hour }{ dirirrvar } = $dirirrratio;
+
           $countsurf++;
         }
-
         $counthour++;
       }
       $countmonth++;
@@ -2345,42 +2407,73 @@ sub createfictgeofile
 sub creatematdbfiles
 { # THIS MANAGES THE CREATION OF THE TWO FICTITIOUS MATERIALS DATABASES:
   # ONE FOR THE THE "UNREFLECTIVE" MODEL AND THE OTHER FOR THE "REFLECTIVE" ONE.
-  my ( $materialsref, $newmaterialsref, $matnumsref,
-  $newmatnumsref, $matdbfile, $matdbfile_f1, $matdbfile_f2, $calcprocedures_ref ) = @_;
+  my ( $matdbfile,  $matdbfile_f1, $matdbfile_f2, $calcprocedures_ref, $constrdbfile_f, $obsdata_ref ) = @_;
 
-  my @materials = @$materialsref; #NO MORE USED IN THIS PROCEDURE
-  my @newmaterials = @$newmaterialsref; #NO MORE USED IN THIS PROCEDURE
-  my $newmattotnum = scalar( @newmaterials ); #NO MORE USED IN THIS PROCEDURE
-  my %matnums = %$matnumsref; #NO MORE USED IN THIS PROCEDURE
-  my %newmatnums = %$newmatnumsref; #NO MORE USED IN THIS PROCEDURE
   my @calcprocedures = @{ $calcprocedures_ref };
+  my @obsdata = @{ $obsdata_ref }; #say "OBSDATA: " .dump( @obsdata );
 
+  my ( @box );
+  my ( %exportrefl, %obslayers );
 
-  my ( @box, @matnames );
-  my %exportrefl;
-  foreach $el ( @calcprocedures )
+  open ( MATDBFILE, "$matdbfile" ) or die;
+  my @matlines = <MATDBFILE>;
+  close MATDBFILE;
+
+  open( CONSTRDBFILE_F, "$constrdbfile_f" ) or die;
+  my @constrlines = <CONSTRDBFILE_F>;
+  close CONSTRDBFILE_F;
+
+  my @obs = uniq( map{ $_->[1] } @obsdata );
+
+  my $count = 0;
+  foreach my $ob ( @obs )
   {
-    if ( $el =~ /^(matname:)/ )
+    my $semaphore = "off";
+    foreach my $constrline ( @constrlines )
     {
-      $el =~ s/^$1// ;
-      push( @matnames, $el );
+      my @row = split( ",", $constrline );
+      if ( $row[0] eq "*item" )
+      {
+        if ( $row[1] eq $ob )
+        {
+          $semaphore = "on";
+        }
+      }
+      if ( $row[0] eq "*end_item" )
+      {
+        $semaphore = "off";
+        $count++;
+      }
+      if ( $semaphore eq "on" )
+      {
+        if ( $row[0] eq "*layer" )
+        {
+          my @els = split( "\s+|,|:", $row[3] );
+          $els[0] =~ s/(\s+)// ;
+          push( @{ $obslayers{$ob} }, $els[0] );
+        }
+      }
     }
   }
 
-  open ( MATDBFILE, "$matdbfile" ) or die;
-  my @lines = <MATDBFILE>;
-  close MATDBFILE;
+  my @obsmats;
+  foreach my $obkey ( keys %obslayers )
+  {
+    my @ob = @{ $obslayers{$obkey} };
+    push( @obsmats, $ob[0], $ob[-1] );
+  }
+  @obsmats = uniq( @obsmats );
 
   my ( @bag, @row, @firstloop, @secondloop );
-  my $class;
   my $semaphore = "off";
-  foreach my $line ( @lines )
+  foreach my $matline ( @matlines )
   {
-    chomp $line;
-    if ( $line =~ /^\*item/ )
+    chomp $matline;
+    $matline =~ s/\s+// ;
+    my @row = split( ",", $matline );
+    if ( $row[0] eq "*item" )
     {
-      @row = split( ",", $line );
-      if ( $row[1] ~~ @matnames )
+      if ( $row[1] ~~ @obsmats )
       {
         $semaphore = "on";
       }
@@ -2390,16 +2483,16 @@ sub creatematdbfiles
       }
     }
 
-    my @e = split( ",", $line );
+    my @e = split( ",", $matline );
     if ( ( $e[0] =~ /^\d/ ) and ( $e[-1] =~ /\D$/ ) )
     {
       if ( $semaphore eq "off" )
       {
         if ( not( "diluted" ~~ @calcprocedures ) )
         {
-          my $lin = "$e[0],$e[1],$e[2],$e[3],$e[4],0.990,0.990,$e[7],$e[8],$e[9]";
+          my $lin = "$e[0],$e[1],$e[2],$e[3],$e[4],0.999,0.999,$e[7],$e[8],$e[9]";
           push( @firstloop, $lin );
-          my $linn = "$e[0],$e[1],$e[2],$e[3],$e[4],0.990,0.990,$e[7],$e[8],$e[9]";
+          my $linn = "$e[0],$e[1],$e[2],$e[3],$e[4],0.999,0.999,$e[7],$e[8],$e[9]";
           push( @secondloop, $linn );
         }
         elsif ( "diluted" ~~ @calcprocedures )
@@ -2413,17 +2506,17 @@ sub creatematdbfiles
       elsif ( $semaphore eq "on" )
       {
         $exportrefl{ $row[1] }{ absout } =  $e[5];
-        $exportrefl{ $row[1] }{ absin } = $e[6];  );
+        $exportrefl{ $row[1] }{ absin } = $e[6];
         if ( not( "diluted" ~~ @calcprocedures ) )
         {
-          my $lin = "$e[0],$e[1],$e[2],$e[3],$e[4],0.990,0.990,$e[7],$e[8],$e[9]";
+          my $lin = "$e[0],$e[1],$e[2],$e[3],$e[4],0.999,0.999,$e[7],$e[8],$e[9]";
           push( @firstloop, $lin );
           my $linn = "$e[0],$e[1],$e[2],$e[3],$e[4],$e[5],$e[6],$e[7],$e[8],$e[9]";
           push( @secondloop, $linn );
         }
         elsif ( "diluted" ~~ @calcprocedures )
         {
-          my $lin = "$e[0],$e[1],$e[2],$e[3],$e[4],0.990,0.990,$e[7],$e[8],$e[9]";
+          my $lin = "$e[0],$e[1],$e[2],$e[3],$e[4],0.999,0.999,$e[7],$e[8],$e[9]";
           push( @firstloop, $lin );
           my $linn = "$e[0],$e[1],$e[2],$e[3],$e[4],$e[5],$e[6],$e[7],$e[8],$e[9]";
           push( @secondloop, $linn );
@@ -2432,45 +2525,56 @@ sub creatematdbfiles
     }
     else
     {
-      push( @firstloop, $line );
-      push( @secondloop, $line );
+      push( @firstloop, $matline );
+      push( @secondloop, $matline );
     }
   }
 
-
-  open( my $MATDBFILE_F1, ">>$matdbfile_f1" ) or die;
+  open( my $MATDBFILE_F1, ">$matdbfile_f1" ) or die;
   foreach my $line ( @firstloop )
   {
     say $MATDBFILE_F1 $line ;
   }
   close $MATDBFILE_F1;
 
-  open( my $MATDBFILE_F2, ">>$matdbfile_f2" ) or die;
+  open( my $MATDBFILE_F2, ">$matdbfile_f2" ) or die;
   foreach my $line ( @secondloop )
   {
     say $MATDBFILE_F2 $line ;
   }
   close $MATDBFILE_F2;
-  return ( \%exportrefl );
+
+  return ( \%exportrefl, \%obslayers );
 }
 
 
 sub adjust_radmatfile
 { # THIS CHECKS IF THE RADIANCE MATERIALS FILE HAS BEEN PROPERLY MODIFIED. IF NOT, THIS DOES THE MODIFICATION. THIS IS USED WHEN THE SPECULAR FRACTIONS AND ROUGHNESSES IN THE MATERIALS DATABASE ARE ALL SET TO 0.
-  my ( $exportconstrref, $exportreflref, $conffile, $path, $specularratios_ref ) = @_;
+  my ( $exportconstrref, $exportreflref, $conffile, $path, $specularratios_ref, $obslayers_ref, $selectives_ref ) = @_;
   my %exportconstr = %$exportconstrref;
   my %exportrefl = %$exportreflref;
   my $radmat_f2 = $conffile;
+
   my @specularratios = @$specularratios_ref;
+  my %obslayers = %{ $obslayers_ref };
+  my @selectives = @{ $selectives_ref };
 
   my %hs;
   foreach $el ( @specularratios )
   {
     my @row = split( ":", $el );
     {
-      $row[0] = "_" . $row[0] ;
-      $hs{$row[0]}{spec} = $row[1];
-      $hs{$row[0]}{roughn} = $row[2];
+      if ( scalar( @row ) == 3 )
+      {
+        $row[0] = "_" . $row[0] ;
+        $hs{$row[0]}{spec} = $row[1];
+        $hs{$row[0]}{roughn} = $row[2];
+      }
+      elsif ( scalar( @row ) == 2 )
+      {
+        $row[0] = "_" . $row[0] ;
+        $hs{$row[0]}{mirror} = "mirror";
+      }
     }
   }
 
@@ -2488,7 +2592,7 @@ sub adjust_radmatfile
   my @constrs = keys %exportconstr;
   foreach ( @lines )
   {
-    my ( $spec, $roughn );
+    my ( $spec, $roughn, $mirror );
     my $lin = $lines[ $count + 4 ];
     my @arr = split( /\s+/, $lin );
     if ( ( $_ =~ /^#/ ) and ( $_ =~ /ternal MLC Colours.../ ) )
@@ -2501,7 +2605,22 @@ sub adjust_radmatfile
         {
           $spec = $hs{$const}{spec};
           $roughn = $hs{$const}{roughn};
-          $lines[ $count + 4 ] = "5  $arr[1] $arr[2] $arr[3] $spec $roughn \n";
+          $mirror = $hs{$const}{mirror};
+
+          if ( $mirror eq "mirror" )
+          {
+            $lines[ $count + 1 ] =~ s/plastic/mirror/ ;
+          }
+
+          unless ( $mirror eq "mirror" )
+          {
+            $lines[ $count + 4 ] = "5  $arr[1] $arr[2] $arr[3] $spec $roughn \n";
+          }
+          else
+          {
+            $lines[ $count + 4 ] = "3  $arr[1] $arr[2] $arr[3] \n";
+          }
+
           last;
         }
       }
@@ -2510,6 +2629,47 @@ sub adjust_radmatfile
     $count++;
   }
   close RADMAT_F2;
+
+  if ( scalar( @selectives ) > 0 )
+  {
+    my $radmat_f3 = $conffile;
+    $radmat_f3 =~ s/$path\/cfg\///;
+    $radmat_f3 =~ s/.cfg//;
+    $radmat_f3 = $radmat_f3 . "_Extern.mat";
+    $radmat_f3 = "$path/rad/$radmat_f3";
+    my $radmattemp3 = $radmat_f3 . ".temp";
+    `mv -f $radmat_f3 $radmattemp3`;
+    open( RADMATTEMP3, "$radmattemp3" ) or die;
+    my @lines = <RADMATTEMP3>;
+    close RADMATTEMP3;
+    open( RADMAT_F3, ">$radmat_f3" ) or die;
+    my $count = 0;
+    my @constrs = keys %exportconstr;
+    foreach ( @lines )
+    {
+      my ( $spec, $roughn );
+      my $lin = $lines[ $count + 4 ];
+      my @arr = split( /\s+/, $lin );
+      if ( ( $_ =~ /^#/ ) and ( $_ =~ /ternal MLC Colours.../ ) )
+      {
+        my $description = $lines[ $count + 1 ] ;
+
+        foreach my $const ( keys %hs )
+        {
+          if ( $description =~ /$const/ )
+          {
+            $spec = $hs{$const}{spec};
+            $roughn = $hs{$const}{roughn};
+            $lines[ $count + 4 ] = "5  $arr[1] $arr[2] $arr[3] $spec $roughn \n";
+            last;
+          }
+        }
+      }
+      print RADMAT_F3 $lines[ $count ];
+      $count++;
+    }
+    close RADMAT_F3;
+  }
 }
 
 
@@ -2653,9 +2813,128 @@ sub prunepoints
 }
 
 
+sub solveselective
+{
+  my ( $matdbfile_f2, $selectives_ref, $conffile, $conffile_f2, $path ) = @_;
+  my @selectives = @{ $selectives_ref };
+
+  my $matdbfile_f3 = $matdbfile_f2;
+  $matdbfile_f3 =~ s/_f2/_f3/ ;
+  my $matdbfile_f4 = $matdbfile_f2;
+  $matdbfile_f4 =~ s/_f2/_f4/ ;
+
+  my $shortmatdbfile_f2 = $matdbfile_f2;
+  my $shortmatdbfile_f3 = $matdbfile_f3;
+  my $shortmatdbfile_f4 = $matdbfile_f4;
+  $shortmatdbfile_f2 =~ s/$path\/dbs\/// ;
+  $shortmatdbfile_f3 =~ s/$path\/dbs\/// ;
+  $shortmatdbfile_f4 =~ s/$path\/dbs\/// ;
+
+  open( my $MATDBFILE_F2, "$matdbfile_f2" ) or die;
+  my @matlines = <$MATDBFILE_F2>;
+  close $MATDBFILES_F2;
+
+  my @mats = map{ $_->[0] } @selectives;
+
+  my ( @row, @thirdloop, @fourthloop );
+  my $semaphore = "off";
+  foreach my $matline ( @matlines )
+  {
+    chomp $matline;
+    $matline =~ s/\s+// ;
+    my @e = split( ",", $matline );
+    if ( $e[0] eq "*item" )
+    {
+      if ( $e[1] ~~ @mats )
+      {
+        $semaphore = "on";
+      }
+      else
+      {
+        $semaphore = "off";
+      }
+    }
+
+    if ( ( $e[0] =~ /^\d/ ) and ( $e[-1] =~ /\D$/ ) )
+    {
+      if ( $semaphore eq "on" )
+      {
+        my $ratio = $selective->[1];
+        my $changeratio3 = ( 1 - ( ( $ratio - 1 ) / 2 ) );
+        my $changeratio4 = ( 1 + ( ( $ratio - 1 ) / 2 ) );
+        my $e5_3 = $e[5] * $changeratio3;
+        my $e5_4 = $e[5] * $changeratio4;
+        my $e6_3 = $e[6]  * $changeratio3;
+        my $e6_4 = $e[6] * $changeratio4;
+
+        my $lin = "$e[0],$e[1],$e[2],$e[3],$e[4],$e5_3,$e6_3,$e[7],$e[8],$e[9]";
+        push( @thirdloop, $lin );
+        my $linn = "$e[0],$e[1],$e[2],$e[3],$e[4],$e5_4,$e6_4,$e[7],$e[8],$e[9]";
+        push( @fourthloop, $linn );
+      }
+      elsif ( $semaphore eq "off" )
+      {
+        push( @thirdloop, $matline );
+        push( @fourthloop, $matline );
+      }
+    }
+    else
+    {
+      push( @thirdloop, $matline );
+      push( @fourthloop, $matline );
+    }
+
+    open( my $MATDBFILE_F3, ">$matdbfile_f3" ) or die;
+    foreach my $line ( @thirdloop )
+    {
+      say $MATDBFILE_F3 $line ;
+    }
+    close $MATDBFILE_F3;
+
+    open( my $MATDBFILE_F4, ">$matdbfile_f4" ) or die;
+    foreach my $line ( @fourthloop )
+    {
+      say $MATDBFILE_F4 $line ;
+    }
+    close $MATDBFILE_F4;
+  }
+
+  my $conffile_f3 = $conffile;
+  $conffile_f3 =~ s/\.cfg/\_f3\.cfg/;
+  print REPORT "cp -R -f $conffile_f2 $conffile_f3\n";
+  `cp -R -f $conffile_f2 $conffile_f3\n`;
+
+  open( my $CONFFILE_F2, "$conffile_f2" ) or die;
+  my @lines2 =<$CONFFILE_F2>;
+  close $CONFFILE_F2;
+
+  open( my $CONFFILE_F2, ">$conffile_f2" ) or die;
+  foreach my $line2 ( @lines2 )
+  {
+    $line2 =~ s/$shortmatdbfile_f2/$shortmatdbfile_f3/ ;
+    print $CONFFILE_F2 $line2;
+  }
+  close $CONFFILE_F2;
+
+  open( my $CONFFILE_F3, "$conffile_f3" ) or die;
+  my @lines3 =<$CONFFILE_F3>;
+  close $CONFFILE_F3;
+
+  open( my $CONFFILE_F3, ">$conffile_f3" ) or die;
+  foreach my $line3 ( @lines3 )
+  {
+    $line3 =~ s/$shortmatdbfile_f2/$shortmatdbfile_f4/ ;
+    print $CONFFILE_F3 $line3;
+  }
+  close $CONFFILE_F3;
+
+  return( $conffile_f3 );
+}
+
+
 sub modish
 { # MAIN PROGRAM
-  my @things = @_; say "THINGS: @things";
+  my @things = @_;
   my $modishdefpath;
 
   my $launchfile = shift( @things );
@@ -2701,8 +2980,6 @@ sub modish
   my $path = definepath( $launchfile );
 
   my $radpath = $path . "/rad";
-
-  say REPORT
 
 
   ##################################################
@@ -2787,9 +3064,9 @@ sub modish
     `touch $path/rad/out.txt`;
   }
 
-  my ( $conffile, $conffile_f1, $conffile_f2, $conffile_f3, $constrdbfile, $constrdbfile_f,
+  my ( $conffile, $conffile_f1, $conffile_f2, $constrdbfile, $constrdbfile_f,
   $matdbfile, $matdbfile_f1, $matdbfile_f2, $flagconstrdb, $flagmatdb, $flaggeo, $flagconstr, $originalsref,
-  $fictitia1ref, $fictitia2ref, $fictitia3ref ) = createfictitiousfiles( $launchfile, $path, $zonenum );
+  $fictitia1ref, $fictitia2ref ) = createfictitiousfiles( $launchfile, $path, $zonenum );
 
   my @basevectors = getbasevectors( $dirvectorsnum );
 
@@ -2806,10 +3083,8 @@ sub modish
   shift(@zonefictitia1); shift(@zonefictitia1);
   my @zonefictitia2 = @fictitia2; # "REFLECTIVE" MODEL
   shift(@zonefictitia2); shift(@zonefictitia2);
-  my @zonefictitia3 = @fictitia3;
-  shift(@zonefictitia3); shift(@zonefictitia3);
 
-  my ( %zonefilelists, %fict1filelists, %fict2filelists, %fict3filelists );
+  my ( %zonefilelists, %fict1filelists, %fict2filelists );
   my @daylighthoursarr;
   my %daylighthours;
   my ( $exportreflref__, $exportconstrref__ );
@@ -2865,7 +3140,6 @@ sub modish
     my @zonefiles = @$elt;
     my @fict1files = @{ $zonefictitia1[ $countzone - 1 ] };
     my @fict2files = @{ $zonefictitia2[ $countzone - 1 ] };
-    my @fict3files = @{ $zonefictitia3[ $countzone - 1 ] };
     my $geofile = $zonefiles[0];
     my $constrfile = $zonefiles[1];
     my $shdfile = $zonefiles[2];
@@ -2878,7 +3152,7 @@ sub modish
     $zonefilelists{ $zonenum }{ constrfile_f } = $constrfile_f;
     $zonefilelists{ $zonenum }{ shdfile } = $shdfile;
 
-    my ( $transpeltsref, $geofilestructref, $surfslistref, $obsref, $obsconstrsetref, $datalistref ) = readgeofile( $geofile, \@transpsurfs, $zonenum );
+    my ( $transpeltsref, $geofilestructref, $surfslistref, $obsref, $obsconstrsetref, $datalistref, $obsmaterialsref ) = readgeofile( $geofile, \@transpsurfs, $zonenum );
 
     my @transpelts = @$transpeltsref;
     my @geodata = @$geofilestructref;
@@ -2886,6 +3160,7 @@ sub modish
     my @obsdata = @$obsref;
     my @obsconstrset = @$obsconstrsetref;
     my %datalist = %$datalistref;
+    my @obsmaterials = @{ $obsmaterialsref };
 
     createfictgeofile( $geofile, \@obsconstrset, $geofile_f );
 
@@ -2895,10 +3170,29 @@ sub modish
     my ( $materialsref, $newmaterialsref, $matnumsref, $newmatnumsref, $exportconstrref ) =
     createconstrdbfile( $constrdbfile, $constrdbfile_f, \@obsconstrset );
 
-    my $exportreflref;
+    my ( $exportreflref, $obslayers_ref, $selectives_ref ) = creatematdbfiles( $matdbfile,
+      $matdbfile_f1, $matdbfile_f2, \@calcprocedures, $constrdbfile_f, \@obsdata );
+    my %obslayers = %{ $obslayers_ref };
 
-    $exportreflref = creatematdbfiles( $materialsref, $newmaterialsref, $matnumsref, $newmatnumsref,
-      $matdbfile, $matdbfile_f1, $matdbfile_f2, \@calcprocedures );
+
+    my @selectives;
+    foreach my $item ( @calcprocedures )
+    {
+      my @els = split( ":", $item );
+      if ( $els[0] eq "light/infrared-ratio" )
+      {
+        my $mat = $els[1];
+        my $ratio = $els[2];
+        push( @selectives, [ $mat, $ratio ] );
+      }
+    }
+    @selectives = uniq( @selectives );
+
+    my $conffile_f3;
+    if ( scalar( @selectives ) > 0 )
+    {
+      $conffile_f3 = solveselective( $matdbfile_f2, \@selectives, $conffile, $conffile_f2, $path );
+    }
 
     my ( $surfnumsref, $surfnamesref ) = tellsurfnames( \@transpsurfs, \@geodata );
     my @surfnums = @$surfnumsref;
@@ -2928,11 +3222,20 @@ sub modish
     $countzone++;
 
     my @radfilesrefs = tellradfilenames( $path, $conffile_f1, $conffile_f2, $conffile_f3 );
-    my ( $hashirrsref, $irrvarsref );
 
-    $hashirrsref = pursue( { zonenum => $zonenum, geofile => $geofile, constrfile => $constrfile, shdfile => $shdfile, gridpoints => \@gridpoints, shdsurfdata => \@shdsurfdata, daylighthoursarr => \@daylighthoursarr, daylighthours=> \%daylighthours, shdfilearray => \@shdfilearray, exportconstrref => $exportconstrref, exportreflref => $exportreflref, conffile => $conffile,  path => $path, radpath => $radpath, basevectors => \@basevectors, resolutions => \@resolutions, dirvectorsnum => $dirvectorsnum, calcprocedures => \@calcprocedures, specularratios => \@specularratios, bounceambnum => $bounceambnum, bouncemaxnum => $bouncemaxnum, radfilesrefs => \@radfilesrefs, conffile_f1 => $conffile_f1, conffile_f2 => $conffile_f2, conffile_f3 => $conffile_f3, transpsurfs=> \@transpsurfs } );
+    my $hashirrsref = pursue( { zonenum => $zonenum, geofile => $geofile, constrfile => $constrfile,
+      shdfile => $shdfile, gridpoints => \@gridpoints, shdsurfdata => \@shdsurfdata,
+      daylighthoursarr => \@daylighthoursarr, daylighthours=> \%daylighthours,
+      shdfilearray => \@shdfilearray, exportconstrref => $exportconstrref,
+      exportreflref => $exportreflref, conffile => $conffile,  path => $path,
+      radpath => $radpath, basevectors => \@basevectors, resolutions => \@resolutions,
+      dirvectorsnum => $dirvectorsnum, calcprocedures => \@calcprocedures,
+      specularratios => \@specularratios, bounceambnum => $bounceambnum,
+      bouncemaxnum => $bouncemaxnum, radfilesrefs => \@radfilesrefs,
+      conffile_f1 => $conffile_f1, conffile_f2 => $conffile_f2, conffile_f3 => $conffile_f3,
+      transpsurfs=> \@transpsurfs, selectives => \@selectives } );
 
-    $irrvarsref = compareirrs( \%zonefilelists, $hashirrsref, $computype, \@calcprocedures );
+    my $irrvarsref = compareirrs( \%zonefilelists, $hashirrsref, $computype, \@calcprocedures, \@selectives );
 
     foreach my $elm ( @transpsurfs )
     {
@@ -2979,6 +3282,7 @@ sub modish
 
   my $shdafilereport = $shdafile;
   $shdafilereport =~ s/.shda/.report.shda/;
+  print REPORT "cp -R -f $shdafile $shdafilereport";
   `cp -R -f $shdafile $shdafilereport`;
   open ( SHDAREPORT, ">>$shdafilereport" ) or die;
   print SHDAREPORT "# FOLLOWING, THE VERIFIED VARIATIONS (AS RATIOS) OF IRRADIANCES DUE TO REFLECTIONS BY OBSTRUCTIONS.\n";

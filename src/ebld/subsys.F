@@ -2194,6 +2194,7 @@ c in common/hvac_timestep_parameters is included via hvac_parameters.h.
       character outs*124
       real ADDMOIST
       real EVC_ADDMOIST
+      real xx ! dummy return value for HUMR, HUMRAT & TWB function calls.
 
 C Moisture modelling is invoked for the current zone.
       IF(MSTROK.AND.MSTRZN(ICOMP))THEN
@@ -2402,9 +2403,9 @@ C constant wet bulb in a similar way as for the direct evaporative cooling in En
       if(iflgevapC(icomp).EQ.1) THEN
       
 C Bring and print TWB from outdoors   
-        call HUMR(TF,HF,PATMOS) !first get outdoor humidity ratio
-        call TWB(TF,GlobalHumRatio,PATMOS,IOPT) !then calculate outdoor wet bulb temperature
-        call HUMRAT(TFA(ICOMP),GlobalOutsTWB,PATMOS,IOPT)
+        xx=HUMR(TF,HF,PATMOS) !first get outdoor humidity ratio
+        xx=TWB(TF,GlobalHumRatio,PATMOS,IOPT) !then calculate outdoor wet bulb temperature
+        xx=HUMRAT(TFA(ICOMP),GlobalOutsTWB,PATMOS,IOPT)
          
 C Assuming indoor moisture content is less than the outdoor
         if(GFA(ICOMP).lt.GlobalOtherHR)then 

@@ -158,7 +158,7 @@ C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 
       COMMON/UA5/IMET,ISIM,NRSIM
-      COMMON/UATD/UACLIM(6,4),UACTL(7,5),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
       COMMON/UATD2/UAMISCTD(3)
       character message*96,phrase*12
 
@@ -270,7 +270,7 @@ C Common blocks UA3 UA4 within uncertainty.h
       COMMON/FILEP/IFIL
 
       COMMON/UA5/IMET,ISIM,NRSIM
-      COMMON/UATD/UACLIM(6,4),UACTL(7,5),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
       COMMON/UATD2/UAMISCTD(3)
 
       character USETNAME*96   ! the synopsis for each MC-run
@@ -433,7 +433,7 @@ C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 
       COMMON/UA5/IMET,ISIM,NRSIM
-      COMMON/UATD/UACLIM(6,4),UACTL(7,5),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
       COMMON/UAFCT/IADIR(MNFA),NFA
       character message*96,phrase*12
 
