@@ -1026,26 +1026,29 @@ CC Dynamic clothing prediction based on t out at six am and Tmix
              TOCN=NBMEN(ICOMP,IDAY,IGN,IPER)+
      &          NBWOM(ICOMP,IDAY,IGN,IPER)+NBCHI(ICOMP,IDAY,IGN,IPER)
 C Debug.
+C             write(6,*) 'in mzcasi ',icomp,iday,ign,igainslot,
+C     &         caskeytype(ICOMP,iGainSlot)
 
-             write(6,*) 'in mzcasi ',icomp,iday,ign,igainslot,
-     &         caskeytype(ICOMP,iGainSlot)
              if(caskeytype(ICOMP,iGainSlot)(1:13).eq.
      &          'dynamicpeople'.and. 
      &            lodatr1(ICOMP,IGN).GT.0.or.TOCN.GT.0.1) then
 
                if(lodatr1(ICOMP,IGN).eq.1)then
 
-C<< polynomial equation to calculate both sensible and latent heat load from occupant
-C<< where Top and METAo are the operative zone temperature and metabolic rate of occupant.
-C<< This model was correlated from some published experimental data Ref.
-C<< The relationship between the body’s heat production and all its other heat gains and losses is:
+C<< polynomial equation to calculate both sensible and latent heat load
+C<< from occupant where Top and METAo are the operative zone temperature
+C<< and metabolic rate of occupant. This model was correlated from some
+C<< published experimental data Ref.The relationship between the body’s
+C<< heat production and all its other heat gains and losses is:
 C<< M=E±R±C±S 
 C<< M=metabolic rate
 C<< E=rate of heat loss by evaporation, respiration, and elimination
 C<< R=radiation rate
 C<< C=conduction and convection rate
 C<< S=body heat storage rate
-C<< if E should be alwase positive in this case the polynomial given by the Energy plus below is inefficient for example when temp goes below 14C at Met =100 watt (ASHREA)
+C<< if E should be always positive in this case the polynomial given by
+C<< EnergyPlus below is inefficient for example when temp goes
+C<< below 14C at Met =100 watt (ASHRAE)
                  SGAIN=198.42617-3.80901*TOP-0.05419*TOP**2-0.42472*
      &             METAo+0.00171*METAo**2+0.01287*TOP*METAo-
      &             0.00004*TOP*METAo**2+0.00002*METAo*TOP**2-
@@ -1054,8 +1057,6 @@ C<< if E should be alwase positive in this case the polynomial given by the Ener
      &             2.56734 *METAo+0.00715*METAo**2+
      &             0.132*TOP*METAo-0.00017*TOP*METAo**2-
      &             0.00107*METAo*TOP**2
-C<< CGSECo CGSERo and CGLATo are the total convective radiative and latent load from
-C<< occupant taking into consideration number of people age/gender 
 
                elseif(lodatr1(ICOMP,IGN).eq.2)then
 C<< model below are the polynomial of Energy Plus function of Temperature and metabolic rate.>>
@@ -1107,6 +1108,9 @@ C<< Calling the dynamic model multi-node multi-segmented physiological model.
                 endif
 
                endif
+C<< CGSECo CGSERo and CGLATo are the total convective radiative and
+C<< latent load from occupant taking into consideration number of
+C<< people age/gender
                  CGSECo=(SGAIN*NBMEN(ICOMP,IDAY,IGN,IPER)+
      &              0.85*SGAIN*NBWOM(ICOMP,IDAY,IGN,IPER)+
      &              0.75*SGAIN*NBCHI(ICOMP,IDAY,IGN,IPER))*

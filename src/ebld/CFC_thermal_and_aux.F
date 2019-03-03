@@ -1431,6 +1431,9 @@ c      real TFS,QFS
       COMMON/PREC1I/APRAT(MCOM,MS),HEIGHT(MCOM,MS)
       real aprat,height
 
+      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
+      real PAZI,PELV
+
       integer nc,nn,ne,i,j,icomp,isur,icfctp,inode,nnod,itypenext
       integer itype,layertype,nd_blnd,nd_cav,nd_glass, IER
       real Tglass,Text,fnnod,Tavg
@@ -1593,8 +1596,9 @@ C.................If shade is retracted determine gap thickness between glass la
                     TB=tfc(icomp,isur,(i+3)*2+1)
                     L=THRMLI(icomp,isur,i+1,4)+THRMLI(icomp,isur,i+3,4)
                   endif
-                
-                  CALL ConvVertCav(L,TA,TB,rmlr_mass(icomp,icfctp,i+1),
+
+                  CALL ConvVertCav(PELV(icomp,isur),L,TA,TB,
+     &            rmlr_mass(icomp,icfctp,i+1),
      &            cond_A(icomp,icfctp,i+1),cond_B(icomp,icfctp,i+1),
      &            visc_A(icomp,icfctp,i+1),visc_B(icomp,icfctp,i+1),
      &            spht_A(icomp,icfctp,i+1),spht_B(icomp,icfctp,i+1),hc)
@@ -1613,7 +1617,8 @@ C.................air gap on the other side of the (retracted) shade.
                   L=lthk
                   !hc=0.
 
-                  CALL ConvVertCav(L,TA,TB,rmlr_mass(icomp,icfctp,i+1),
+                  CALL ConvVertCav(PELV(icomp,isur),L,TA,TB,
+     &            rmlr_mass(icomp,icfctp,i+1),
      &            cond_A(icomp,icfctp,i+1),cond_B(icomp,icfctp,i+1),
      &            visc_A(icomp,icfctp,i+1),visc_B(icomp,icfctp,i+1),
      &            spht_A(icomp,icfctp,i+1),spht_B(icomp,icfctp,i+1),hc)
@@ -1645,7 +1650,8 @@ C.................air gap on the other side of the (retracted) shade.
                   endif
 
                   !hc=0.
-                  CALL ConvVertCav(L,TA,TB,rmlr_mass(icomp,icfctp,i+1),
+                  CALL ConvVertCav(PELV(icomp,isur),L,TA,TB,
+     &            rmlr_mass(icomp,icfctp,i+1),
      &            cond_A(icomp,icfctp,i+1),cond_B(icomp,icfctp,i+1),
      &            visc_A(icomp,icfctp,i+1),visc_B(icomp,icfctp,i+1),
      &            spht_A(icomp,icfctp,i+1),spht_B(icomp,icfctp,i+1),hc)
@@ -1862,27 +1868,39 @@ C Save future terms.
 C ********************************************************************
 C                        --ConvVertCav--
 C
-C Calculates convection coefficient between two vertical surfaces in 
-C an enclosed cavity based on cavity thickness (L), bounding surface
-C temperatures(TA, TB) and fill gas properties (mlr_mass,condA,condB,
-C viscA,viscB,spchtA,spchtB). Returns (hc).
+C Calculates convection coefficient between two surfaces at tilt
+C angle (ang) in an enclosed cavity based on cavity thickness (L),
+C bounding surface temperatures(TA, TB) and fill gas properties
+C (mlr_mass,condA,condB, viscA,viscB,spchtA,spchtB). Returns
+C convection coefficient (hc) in W/(m2 K).
 C
-C Reference:
+C References:
 C Shewen, E., Hollands, K.G.T., Raithby, G.D. (1996) 'Heat Transfer
 C by Natural Convection Across a Vertical Cavity of Large Aspect
 C Ratio', Journal of Heat Transfer, Vol. 118, pp.993-995.
 C
+C EN 673:1996
+C
+C ISO 15099:2003
+C
 C ********************************************************************
-      subroutine ConvVertCav(L,TA,TB,mlr_mass,condA,condB,
-     &                          viscA,viscB,spchtA,spchtB,hc)
+      subroutine ConvVertCav(ang,L,TA,TB,mlr_mass,condA,condB,
+     &                             viscA,viscB,spchtA,spchtB,hc)
+cx      subroutine ConvVertCav(L,TA,TB,mlr_mass,condA,condB,
+cx     &                          viscA,viscB,spchtA,spchtB,hc)
       IMPLICIT NONE
+#include "building.h"
+#include "CFC_common.h"
+C provides i_hcond
 C gas molar mass, A and B gas property coefficients
       real mlr_mass,condA,condB,viscA,viscB,spchtA,spchtB
 
-      real L,TA,TB,hc
+      real ang,L,TA,TB,hc
       real g,R,P,Tm,ro,cp,k,mu,dT,Ra,Nu
+      real A,n,PI,rad
+      real gam,Nu1,Nu2,GG,Agv,XX,YY,Nu_v,Nu_60
       real small
-      logical close_dT, close_L
+      logical close_dT, close_L, close_Ra, close_ang
 
 C Small real number to check for values close to 0.
       small = 1.0e-6
@@ -1895,23 +1913,17 @@ C This is a crude idealized treatment.
       endif
 
       g=9.806402                       !gravity [m/s2]
+cx << use climate pressure if available ... ?! >>
       P=101325.                        !abs pressure [Pa]
       R=8.314472                       !universal gas constant [J/mol.K]
+      PI = 4.0 * ATAN(1.0)
+      rad=PI/180.                      ! conversion grad -> rad
 
 C Convert temperature to Kelvin
       TA=TA+273.15
       TB=TB+273.15
 
       if(TA.gt.0.0.and.TB.gt.0.0)then
-        Tm=0.5*(TA+TB)                   !mean temp
-
-C Calculate gas properties based on linear Temperature fit
-        k=condA+condB*Tm                 !conductivity [W/m.K]
-        mu=viscA+viscB*Tm                !viscosity[N.sec/m^2]
-        cp=spchtA+spchtB*Tm              !specific heat [J/kg.K]
-
-        ro=(P*mlr_mass)/(R*Tm*1000.)     !density [kg/m^3]
-
         dT=ABS(TA-TB)                    !temp. diff.
 
 C Check if dT = 0 or L = 0, which will cause divide by zero exceptions.
@@ -1925,19 +1937,151 @@ C.........Set convection coefficient to a small number
 
         else
 
+          Tm=0.5*(TA+TB)                   !mean temp
+
+C Calculate gas properties based on linear Temperature fit
+          k=condA+condB*Tm                 !conductivity [W/m.K]
+          mu=viscA+viscB*Tm                !viscosity[N.sec/m^2]
+          cp=spchtA+spchtB*Tm              !specific heat [J/kg.K]
+
+          ro=(P*mlr_mass)/(R*Tm*1000.)     !density [kg/m^3]
+
 C.........Calculate Rayleigh number
           Ra = ro*ro*cp*dT*L*L*L*g/(mu*k*Tm)
 
+          call eclose(Ra,0.00,0.01,close_Ra)
+          if (close_Ra) Ra=1.0
+
+          if (i_hconv.eq.0) then
 C.........Calculate Nusselt number (Shewen, Hollands and Raithby 1996)
-          Nu = SQRT(1.+((0.0665*Ra**(0.33333))/
+            Nu = SQRT(1.+((0.0665*Ra**(0.33333))/
      &           (1.+(9000./Ra)**1.4))**(2))
 
-C.........Calculate convective heat transfer coefficient.
+          elseif (i_hconv.eq.1) then
+
+C.........Calculate Nusselt number acc. to EN 673:1996 ***
+C           Calculate coefficients A and n (EN 673, tilted glass) from tilt angle ang
+C           A=0.036 ! (0deg, vert) 0.10 (45deg) 0.16 (90deg, horiz)
+            A=0.036667+0.0013778*ang !  R= 0.99983
+C           n=0.38  ! (0deg, vert) 0.31 (45deg) 0.28 (90deg, horiz)
+            n=0.38-0.002*ang+(9.8765E-6)*ang**2. ! R=1
+
+C           Angle dependant Nusselt number (EN 673 eqn 6)
+C           Nu = A*Ra**(n)
+            Nu=1.0
+            if (Ra.gt.0.) Nu=A*exp(n*log(Ra)) ! x**y
+C
+C           'ang' is PELV(icomp,isurf) and defined as
+C           0∞   for vertical surfaces
+C          90∞   for horizontal surfaces facing upward ('ceiling') and
+C         -90∞   for horizontal surfaces facing downward ('floor')
+
+            if ((ang.lt.0.).and.(ang.gt.-45.)) then
+C             use vertical value for now
+              Nu=0.036*exp(0.38*log(Ra))
+C           if heat flux downwards, set Nu=0.1 (very small convective coefficent)
+            elseif (ang.le.-45.) then
+              Nu=0.1
+            endif
+C           Now Nu is set according to EN 673:1996
+
+          else ! i_hconv.eq.2
+
+C...........Calculate Nusselt number acc. to ISO 15099:2003 ***
+C           Section 5.3.3
+C           gam =   0deg ... horizontal glazing, heat flow upwards
+C           gam =  90deg ... vertical glazing, heat flow horizontal
+C           gam = 180deg ... horizontal glazing, heat flow downwards
+C
+C           It is assumed that TA is "outside" and TB is "inside".
+C           Base eqns assume that TA < TB, i.e. heat flow from inside
+C           to outside. If TA > TB, the complement of the tilt angle
+C           is to be used, i.e. 180deg - gam instead of gam. and
+C           calculations done with 180deg - gam!
+C
+            if (TA .le. TB) then
+              gam = 90. - ang
+            else ! TA > TB, use complement angles
+              gam = 90. + ang ! 180 - (90. - ang)
+            endif
+
+C           Vertical value (eqn. 49) is necessary for more than one
+C           angle, always calculate:
+            Agv=22. ! Ag,v = H / dg,v ??? height ??? where from ???
+C           Use max vertice z - min vertice z per surface?
+
+            if (Ra .gt. 50000.) then
+              Nu1=0.673838*exp(0.333333*log(Ra))
+            elseif ((Ra.le. 50000.) .and. (Ra .gt. 10000.)) then
+              Nu1=0.028154*exp(0.4134*log(Ra))
+            else ! Ra < 10000.
+              Nu1=1.+1.7596678E-10*exp(2.2984755*log(Ra))
+            endif
+            Nu2=0.242*exp(0.272*log(Ra/Agv))
+            Nu_v=max(Nu1,Nu2)! Nusselt for vertical cavity
+
+C           Value for 60deg is also used for more than one angle,
+C           also always calculate:
+            if (Ra .gt. 500) then
+              XX = log(Ra/3160.)
+              XX = log(1.+ exp(20.6*XX))
+              GG = 0.5/exp(0.1*XX)
+
+              XX = exp(0.314*log(Ra))/(1.+GG)
+              XX = exp(7.*log(0.0936*XX))
+              Nu1= exp((1./7.)*log(1.+XX))
+            else
+              Nu1=0.25
+            endif
+
+            Nu2 = (0.104+0.175/Agv)*exp(0.283*log(Ra))
+            Nu_60=max(Nu1,Nu2) ! Nusselt for 60 deg tilt
+
+c           Check if vertical
+            call eclose(ang,0.00,0.01,close_ang)
+
+            if ((0. .le.gam) .and. (gam.lt. 60.)) then
+              XX = (1.-1708./(Ra*cos(gam*rad)))
+              XX = (XX + abs(XX))/2.
+              YY = (exp(0.333333*log(Ra*cos(gam*rad)/5830.))-1.)
+              YY = (YY + abs(YY))/2.
+              Nu = 1.+1.44*XX*
+     &             (1.-(1708.*exp(1.6*log(sin(1.8*gam*rad))))/
+     &                                       (Ra*cos(gam*rad)))+YY
+
+            elseif (gam .eq. 60.) then
+              Nu = Nu_60
+
+            elseif ((60. .lt.gam) .and. (gam.lt. 90.)) then
+C           linear interpolation between Nu_60 and Nu_v
+              Nu = gam*(Nu_v-Nu_60)/30.+Nu_60-2.*(Nu_v-Nu_60)
+
+            elseif (close_ang) then ! vertical
+              Nu = Nu_v
+
+            else ! between 90 and 180 deg
+              Nu=1.+(Nu_v-1.)*sin(gam*rad)
+
+            endif
+C         Now Nu is set according to ISO 15099:2003
+
+          endif ! which model?
+
+C Nusselt number Nu is now set, so, finally
+C calculate convective heat transfer coefficient.
           hc = Nu*k/L     !(W/m^2.K)
 
-        end if
+        endif ! .not. close_dT or close_L
 
-      end if
+      else
+C     Temperatures not valid ...
+
+
+      endif ! TA and TB gt. 0.
+
+C Debug:
+C      write(*,*)'A=',A,'; n=',n,'; Ra=',
+C        Ra,'; Nu=',Nu,'; hc=',hc
 
  1000 return
       end
@@ -2298,7 +2442,7 @@ C geometry.h for zname.
       real pazi,pelv
 
       integer icomp,isurf,icfctp
-      real pi,r,omega_v,omega_h
+      real pi,r,omega_v,omega_h,pang_ih,pang_vh
 
 C.....DECLARATIONS for H3Kreporting object
       CHARACTER*12   cZone_Chars, cSurf_Chars
@@ -2308,9 +2452,36 @@ C.....DECLARATIONS for H3Kreporting object
 
 C.....Vertical profile angle
       omega_v = ATAN(TAN(SALT*r)/COS(SAZI*r-PAZI(icomp,isurf)*r))/r
+
+C     Correct for blind assembly tilt angle PELV if not vertical
+C     (A. Geissler, 2011)
+C     In ESP-r, PELV is defined as:
+C         0∞   for vertical surfaces (accept +- 5∞ as vertical, here)
+C        90∞   for horizontal surfaces facing upward ('ceiling') and
+C       -90∞   for horizontal surfaces facing downward ('floor')
+      if (abs(PELV(icomp,isurf)).gt.5.) then
+C       In ref. C. Chantrasrisalai, PhD Thesis 2007, Oklahoma State
+C       University, page 61 eqn. 4-1b the blind assembly tilt
+C       angle (Sig) is defined as
+C           0∞   for blind assembly facing upward,
+C          90∞   for blind assembly vertical and
+C         180∞   for blind assembly facing the ground.
+C       Eqn. 4-1b for the ESP-r angle reference system becomes
+        omega_v=omega_v - PELV(icomp,isurf)
+      endif
+
 C.....Horizontal profile angle
       omega_h = SAZI-PAZI(ICOMP,ISURF)
-      
+
+C     Correct for blind assembly tilt angle PELV if not vertical
+C     (A. Geissler, 2011)
+      if (abs(PELV(icomp,isurf)).gt.5.) then
+        pang_vh=ATAN(TAN(SALT*r)/COS(SAZI*r-PAZI(icomp,isurf)*r))/r
+        pang_ih=pang_vh-PELV(icomp,isurf)
+C       Eqn. 4-1d:
+        omega_h=atan(cos(pang_vh)*tan(omega_h)/cos(pang_ih))
+      endif
+
 C.....Switch for zone name output here
       if (ReportBoolConfig("use_zonenames")) then
         write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
