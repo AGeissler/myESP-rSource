@@ -1892,6 +1892,10 @@ C XML output.
      &         fQPnl,
      &         cName(ispmnod)(1:iNameLen(ispmnod)))
 
+       Call AddToReport(rvBldSPMatlEff%Identifier,
+     &         dataspm(ispmnod,2),
+     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+
        Call AddToReport(rvBldSPMatlIncAngl%Identifier,
      &         fIncidence_angle,
      &         cName(ispmnod)(1:iNameLen(ispmnod)))

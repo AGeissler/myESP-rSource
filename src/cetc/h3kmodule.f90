@@ -365,7 +365,7 @@ MODULE h3kmodule
    !Used by spmatl.F
    Type(ReportVariable) :: rvBldSPMatlEffIrr,rvBldSPMatlIncAngl,rvBldSPMatlTrnsAngl, &
          rvBldSPMatlTrns0,rvBldSPMatlTrns60,rvBldSPMatlTtlIncAr,rvBldSPMatlTtlIncTtl, &
-         rvBldSPMatlDrtIncAr,rvBldSPMatlDffIncAr,rvBldSPMatlPVPow,rvBuiSpm
+         rvBldSPMatlDrtIncAr,rvBldSPMatlDffIncAr,rvBldSPMatlPVPow,rvBuiSpm,rvBldSPMatlEff
 
    !Used by BC_data.F
    Type(ReportVariable) :: rvBndCndStpInt,rvBndCndLnInt
@@ -4225,6 +4225,12 @@ CONTAINS
       rvBldSPMatlEffIrr%VariableType = 'W/m^2'
       rvBldSPMatlEffIrr%Description = 'Effective irradiance of PV module (/m^2)'
       Call AddVariable(rvBldSPMatlEffIrr)
+
+      rvBldSPMatlEff%VariableName = 'building/spmatl/*/misc_data/efficiency'
+      rvBldSPMatlEff%MetaType = 'units'
+      rvBldSPMatlEff%VariableType = '%'
+      rvBldSPMatlEff%Description = 'Efficiency of PV module'
+      Call AddVariable(rvBldSPMatlEff)
 
       rvBldSPMatlIncAngl%VariableName = 'building/spmatl/*/misc_data/incidence_angle'
       rvBldSPMatlIncAngl%MetaType = 'units'
