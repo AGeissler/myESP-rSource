@@ -1565,8 +1565,26 @@ C calculate correction factor for transmission of cover glass
       if (nnodat(ispmnod).eq.21) then
         do j=1,5
           fAdsRef(j)=spmdat(ispmnod,j+16)
-          fTransCorr(j)=
-     &       tmca(ispmloc(ispmnod,1),iTMC_index,iPV_layer,j)/fAdsRef(j)
+          if(tmca(ispmloc(ispmnod,1),iTMC_index,iPV_layer,j).gt.0.)then
+            if (fAdsRef(j).gt.0.) then
+              fTransCorr(j)=
+     &           tmca(ispmloc(ispmnod,1),iTMC_index,iPV_layer,j)/
+     &                                                     fAdsRef(j)
+            else
+              fTransCorr(j)=1.0
+              call edisp(iuout,' ')
+              write(outs,'(a,i1,a)')
+     &           'SMCMP5 error: fTransCorr(',j,') not gt. 0.0!'
+              call edisp(iuout,outs)
+            endif ! fAdsRef gt. 0?
+          else
+            fTransCorr(j)=1.0
+            call edisp(iuout,' ')
+            write(outs,'(a,i2,a,i2,a,i2,a,i2,a)')
+     &         'SMCMP5: tmca(',ispmloc(ispmnod,1),',',iTMC_index,
+     &         ',',iPV_layer,',',j,') not gt. 0.0!'
+            call edisp(iuout,outs)
+          endif ! tmca gt. 0?
         enddo
       else
         do j=1,5
