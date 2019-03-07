@@ -1702,7 +1702,7 @@ C External shading case.
             fQPnl=exdif(ispmloc(ispmnod,2))*fTrans_60/
      &              fTrans_0
          endif
-       else
+       else ! iPwrShd (iShad = 3)
 
 C No external shading case.
          fQPnl=(exdir(ispmloc(ispmnod,2))*fTrans_IncAng+
@@ -1834,8 +1834,8 @@ C Results output.
        ndatspm(ispmnod)=2
        dataspm(ispmnod,1)=fPVPower
        strspm(ispmnod,1)='Power (W)'
-       if(fQPnl.ne.0.)then
-          dataspm(ispmnod,2)=((fPVPower/fSurfArea)/fQPnl)*100.
+       if(fQInc.ne.0.)then
+          dataspm(ispmnod,2)=((fPVPower/fSurfArea)/fQInc)*100.
        else
           dataspm(ispmnod,2) = 0.
        endif
