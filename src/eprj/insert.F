@@ -938,7 +938,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
                     write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3,2a)')
      &               'New vertex ',iwhich3,' @',
      &                X(NTV),Y(NTV),Z(NTV),' is close (',offset,
-     &                ') to edge ',IWHICH1,' &',IWHICH2,' of surface ',
+     &                ') to edge ',IWHICH1,' & ',IWHICH2,' of surface ',
      &                SNAME(ICOMP,ivj)
                     call edisp(iuout,outs)
 
@@ -1176,7 +1176,7 @@ C updated reflect this in the write(t248 statement).
               WRITE(t248,'(124I4)')(JJVN(J),J=1,ijvn)
               write(message,'(a)')'Vertices associated with new surface'
               ISTRW=72
-              CALL EASKS248(t248,message,' ',I
+              CALL EASKS248(t248,message,' ',
      &          ISTRW,' 1  2  3  4  ','associated vertices',IER,nbhelp)
               NV = iCountWords(t248)
               K=0
