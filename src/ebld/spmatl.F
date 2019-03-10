@@ -1475,10 +1475,12 @@ C Reference insolation and temperature.
       fQref=spmdat(ispmnod,5)
       fTref=spmdat(ispmnod,6)
 
-C Empirical coefficient used in calculation of short circuit current.
+C Empirical temperature coefficient used in calculation of short circuit
+C current. Calculations assume value gt. 0.
       fAlpha=spmdat(ispmnod,7)
 
-C Empirical coefficients used in calculation of open circuit voltage.
+C Empirical temperature coefficients used in calculation of open circuit
+C voltage. Calculations assume values lt. 0
       fGamma=spmdat(ispmnod,8)
       fBeta=spmdat(ispmnod,9)
 
@@ -1509,13 +1511,13 @@ C prevailing nodal temperature.
      &                                      ispmloc(ispmnod,3))+273.0
 
 C Angle of incidence.
-       fIncidence_angle=fInc_angle(ispmloc(ispmnod,2))
+      fIncidence_angle=fInc_angle(ispmloc(ispmnod,2))
 
 C Reset variable used for interpolation.
-       bAngIncidence_found=.false.
+      bAngIncidence_found=.false.
 
 C Obtain transparent surface index related to PV module location.
-       iTMC_index=ITMCFL(ispmloc(ISPMNOD,1),ispmloc(ISPMNOD,2))
+      iTMC_index=ITMCFL(ispmloc(ISPMNOD,1),ispmloc(ISPMNOD,2))
 
 C Check that surface associated with the PV module is transparent;
 C if not, issue an error message.
@@ -1593,9 +1595,9 @@ C calculate correction factor for transmission of cover glass
       endif
 
 C Initialize array.
-       do j=1,5
-          fTrans_Ads(j)=0.
-       enddo
+      do j=1,5
+         fTrans_Ads(j)=0.
+      enddo
 
 C Determine transmission-absorptance factors of the PV module
 C surface at 5 incidence angles.
@@ -1605,124 +1607,106 @@ C TMCA    - absorptances for each glazing layer at 5 representative
 C           incidence angles each (standard values)
 C TMCT    - direct solar transmittance at 5 representative
 C           incidence angles for TMC system (standard values).
-       do j=1,5
-C         econstr.F, line 920 ff.
-          fTrans_Ads(j)=tmct(ispmloc(ispmnod,1),iTMC_index,j)
-          do i=1,iNum_layers
-             fTrans_Ads(j)=fTrans_Ads(j)+
-     &                       tmca(ispmloc(ispmnod,1),iTMC_index,i,j)
-          enddo
-       enddo
+      do j=1,5
+C       econstr.F, line 920 ff.
+        fTrans_Ads(j)=tmct(ispmloc(ispmnod,1),iTMC_index,j)
+        do i=1,iNum_layers
+           fTrans_Ads(j)=fTrans_Ads(j)+
+     &                     tmca(ispmloc(ispmnod,1),iTMC_index,i,j)
+        enddo
+      enddo
 
 C Get transmission-absorptance of PV module surface at 0 degrees,
 C at 60 degres and at angle of incidence.
-       fTrans_0=fTrans_Ads(1)*fTransCorr(1)
+      fTrans_0=fTrans_Ads(1)*fTransCorr(1)
 
 C Linearly interpolate to find absorptance at 60 degrees.
-cx       fTrans_60=fTrans_Ads(3)+
-       fTrans_60=fTrans_Ads(3)*fTransCorr(3)+
+      fTrans_60=fTrans_Ads(3)*fTransCorr(3)+
      &             (60.0-55.0)*
-cx     &             (fTrans_Ads(4)-fTrans_Ads(3))/
      &             (fTrans_Ads(4)*fTransCorr(4)
      &                   -fTrans_Ads(3)*fTransCorr(3))/
      &             (70.0-55.0)
 
 C Linearly interpolate to find transmittance at angle of incidence.
-        if(fIncidence_angle.ge.0.0.and.
-     &           fIncidence_angle.lt.40.0)then
-           bAngIncidence_found=.true.
-           X1=0.0
-           X2=40.0
-cx           Y1=fTrans_Ads(1)
-cx           Y2=fTrans_Ads(2)
-           Y1=fTrans_Ads(1)*fTransCorr(1)
-           Y2=fTrans_Ads(2)*fTransCorr(2)
-        elseif(fIncidence_angle.ge.40.0.and.
-     &           fIncidence_angle.lt.55.0)then
-           bAngIncidence_found=.true.
-           X1=40.0
-           X2=55.0
-cx           Y1=fTrans_Ads(2)
-cx           Y2=fTrans_Ads(3)
-           Y1=fTrans_Ads(2)*fTransCorr(2)
-           Y2=fTrans_Ads(3)*fTransCorr(3)
-        elseif(fIncidence_angle.ge.55.0.and.
-     &           fIncidence_angle.lt.70.0)then
-           bAngIncidence_found=.true.
-           X1=55.0
-           X2=70.0
-cx           Y1=fTrans_Ads(3)
-cx           Y2=fTrans_Ads(4)
-           Y1=fTrans_Ads(3)*fTransCorr(3)
-           Y2=fTrans_Ads(4)*fTransCorr(4)
-        elseif(fIncidence_angle.ge.70.0.and.
-     &           fIncidence_angle.lt.80.0)then
-           bAngIncidence_found=.true.
-           X1=70.0
-           X2=80.0
-cx           Y1=fTrans_Ads(4)
-cx           Y2=fTrans_Ads(5)
-           Y1=fTrans_Ads(4)*fTransCorr(4)
-           Y2=fTrans_Ads(5)*fTransCorr(5)
-        endif
+      if(fIncidence_angle.ge.0.0.and.
+     &         fIncidence_angle.lt.40.0)then
+         bAngIncidence_found=.true.
+         X1=0.0
+         X2=40.0
+         Y1=fTrans_Ads(1)*fTransCorr(1)
+         Y2=fTrans_Ads(2)*fTransCorr(2)
+      elseif(fIncidence_angle.ge.40.0.and.
+     &         fIncidence_angle.lt.55.0)then
+         bAngIncidence_found=.true.
+         X1=40.0
+         X2=55.0
+         Y1=fTrans_Ads(2)*fTransCorr(2)
+         Y2=fTrans_Ads(3)*fTransCorr(3)
+      elseif(fIncidence_angle.ge.55.0.and.
+     &         fIncidence_angle.lt.70.0)then
+         bAngIncidence_found=.true.
+         X1=55.0
+         X2=70.0
+         Y1=fTrans_Ads(3)*fTransCorr(3)
+         Y2=fTrans_Ads(4)*fTransCorr(4)
+      elseif(fIncidence_angle.ge.70.0.and.
+     &         fIncidence_angle.lt.80.0)then
+         bAngIncidence_found=.true.
+         X1=70.0
+         X2=80.0
+         Y1=fTrans_Ads(4)*fTransCorr(4)
+         Y2=fTrans_Ads(5)*fTransCorr(5)
+      endif
 
-        if(bAngIncidence_found)then
-           fTrans_IncAng=Y1+(fIncidence_angle-X1)*(Y2-Y1)/(X2-X1)
-        else
+      if(bAngIncidence_found)then
+         fTrans_IncAng=Y1+(fIncidence_angle-X1)*(Y2-Y1)/(X2-X1)
+      else
 
 C Assume equal to incidence angle at 80degC.
-cx           fTrans_IncAng=fTrans_Ads(5)
-           fTrans_IncAng=fTrans_Ads(5)*fTransCorr(5)
-        endif
+         fTrans_IncAng=fTrans_Ads(5)*fTransCorr(5)
+      endif
 
 C Obtain module irradiance without taking into account reflectance
 C of front cover. This variable is used for reporting and debugging
-C purposes only.
-       fQInc=exrad(ispmloc(ispmnod,2))
-
-C Obtain effective irradiance reaching module (unlike the spmcmp1
-C model, this variable takes into account the reflectance of the
-C module's front cover).
-cx       fQPnl=(exdir(ispmloc(ispmnod,2))*fTrans_IncAng+
-cx     &           exdif(ispmloc(ispmnod,2))*fTrans_60)/
-cx     &           fTrans_0
+C purpses only.
+      fQInc=exrad(ispmloc(ispmnod,2))
 
 C Impose specified shading treatment.
-       if(exshad(ispmloc(ispmnod,2)).gt.1E-6)then
+      if(exshad(ispmloc(ispmnod,2)).gt.1E-6)then
 
 C Factor fTrans_IncAng/fTrans_0 below corrects irradiance for reflectance.
 C External shading case.
-         if(iShad.eq.iIgnore.or.iShad.eq.iProportion)then
-            fQPnl=(exdir(ispmloc(ispmnod,2))*fTrans_IncAng+
-     &               exdif(ispmloc(ispmnod,2))*fTrans_60)/
-     &               fTrans_0
-         elseif(iShad.eq.iTotalPLoss)then
-            fQPnl=0.0
-         else
-            fQPnl=exdif(ispmloc(ispmnod,2))*fTrans_60/
-     &              fTrans_0
-         endif
-       else ! iPwrShd (iShad = 3)
-
-C No external shading case.
-         fQPnl=(exdir(ispmloc(ispmnod,2))*fTrans_IncAng+
+        if(iShad.eq.iIgnore.or.iShad.eq.iProportion)then
+           fQPnl=(exdir(ispmloc(ispmnod,2))*fTrans_IncAng+
      &              exdif(ispmloc(ispmnod,2))*fTrans_60)/
      &              fTrans_0
-       endif
+        elseif(iShad.eq.iTotalPLoss)then
+           fQPnl=0.0
+        else ! iPwrShd (iShad = 3)
+           fQPnl=exdif(ispmloc(ispmnod,2))*fTrans_60/
+     &             fTrans_0
+        endif
+      else
+
+C No external shading present.
+        fQPnl=(exdir(ispmloc(ispmnod,2))*fTrans_IncAng+
+     &              exdif(ispmloc(ispmnod,2))*fTrans_60)/
+     &              fTrans_0
+      endif
 
 C Calculate cell short circuit current.
-       fIsc=fIscRef/iNPBrch*(fQPnl/fQref)*(1.+fAlpha*(fTPnl-fTref))
+      fIsc=fIscRef/iNPBrch*(fQPnl/fQref)*(1.-fAlpha*(fTPnl-fTref))
 
 C Calculate cell open circuit voltage.
-       call eclose(fQPnl,0.0,0.001,close)
-       if(.not.close)then
-          fVoc=fVocRef/iScell*(1.-fGamma*(fTPnl-fTref))*
-     &           MAX(0.,(1.+fBeta*log(fQPnl/fQref)))
-       else
-          fVoc=0.
-       endif
+      call eclose(fQPnl,0.0,0.001,close)
+      if(.not.close)then
+         fVoc=fVocRef/iScell*(1.+fGamma*(fTPnl-fTref))*
+     &          MAX(0.,(1.+fBeta*log(fQPnl/fQref)))
+      else
+         fVoc=0.
+      endif
 
-       if(iLodT.eq.iMaxPPTrack)then
+      if(iLodT.eq.iMaxPPTrack)then
 
 C Assuming that the maximum power point of the module is tracked by
 C a converter, calculate the maximum output voltage. Note that
@@ -1730,7 +1714,7 @@ C the Watsun-PV model assumes that the maximum power point voltage
 C has the same dependancy on cell temperature and incident irradiance
 C as the open circuit voltage.
           fVmp=fVmpRef/float(iScell)*		!- cell value
-     &            (1.-fGamma*(fTPnl-fTref))*
+     &            (1.+fGamma*(fTPnl-fTref))*
      &            max(0.,(1.+fBeta*log((fQPnl+fSmall)/fQref)))
 
 C Calculate the maximum module power.
@@ -1741,7 +1725,7 @@ C Calculate the maximum module power.
 C Calculate the module voltage.
           fPVVoltage=fVmp*iSCell
 
-       elseif(iLodT.eq.iFixedVolt)then
+      elseif(iLodT.eq.iFixedVolt)then
 
 C Panel output with a fixed voltage type load, e.g. a battery.
 
@@ -1753,11 +1737,11 @@ C model assumes that the maximum power point current has the same
 C dependancy on cell temperature and incident irradiance as the
 C short circuit current.
           fImp=fImpRef/iNPBrch*(fQPnl/fQref)*		!- cell value
-     &              (1.+fAlpha*(fTPnl-fTref))
+     &              (1.-fAlpha*(fTPnl-fTref))
 
 C Calculate voltage at maximum power point.
           fVmp=fVmpRef/iScell*				!- cell value
-     &              (1.-fGamma*(fTPnl-fTref))*
+     &              (1.+fGamma*(fTPnl-fTref))*
      &              max(0.,(1.+fBeta*log(fQPnl/fQref)))
 
 C Calculate the internal series resistance.
@@ -1827,52 +1811,52 @@ C PV module voltage.
 C Power output.
           fPVPower=fPVVoltage*fPVCurrent*iNPnnls*
      &               (1.-fMiscLossFactor)
-       endif
+      endif
 
 C Results output.
-       fSurfArea=sna(ispmloc(ispmnod,1),ispmloc(ispmnod,2))
-       ndatspm(ispmnod)=2
-       dataspm(ispmnod,1)=fPVPower
-       strspm(ispmnod,1)='Power (W)'
-       if(fQInc.ne.0.)then
-          dataspm(ispmnod,2)=((fPVPower/fSurfArea)/fQInc)*100.
-       else
-          dataspm(ispmnod,2) = 0.
-       endif
-       strspm(ispmnod,2)='Efficiency (%)'
+      fSurfArea=sna(ispmloc(ispmnod,1),ispmloc(ispmnod,2))
+      ndatspm(ispmnod)=2
+      dataspm(ispmnod,1)=fPVPower
+      strspm(ispmnod,1)='Power (W)'
+      if(fQInc.ne.0.)then
+         dataspm(ispmnod,2)=((fPVPower/fSurfArea)/fQInc)*100.
+      else
+         dataspm(ispmnod,2) = 0.
+      endif
+      strspm(ispmnod,2)='Efficiency (%)'
 
 C As a temporary measure, use zone-related variables, zspmf1 and zspmf2,
 C for results library storage. Output is limited to one special material
 C per zone.
-       zspmf1(ispmloc(ispmnod,1))=dataspm(ispmnod,1)
-       zspmf2(ispmloc(ispmnod,1))=dataspm(ispmnod,2)
+      zspmf1(ispmloc(ispmnod,1))=dataspm(ispmnod,1)
+      zspmf2(ispmloc(ispmnod,1))=dataspm(ispmnod,2)
 
 C Save panel power output (for load flow simulation) and the current
 C panel voltage. (This could later be changed to a power converter
 C component that can vary the values of P and Q as generated by the
 C panel.)
-       pspm(ispmnod)=fPVPower
-       vspm(ispmnod)=cmplx(fPVVoltage,0.0)
-       qspm(ispmnod)=0.0
+      pspm(ispmnod)=fPVPower
+      vspm(ispmnod)=cmplx(fPVVoltage,0.0)
+      qspm(ispmnod)=0.0
 
 C Convert the panel power output from W to W/m^2.
-       fPVPwrPerArea = fPVPower/fSurfArea
+      fPVPwrPerArea = fPVPower/fSurfArea
 
 C Save original nodal absorptions for trace output.
-       qsole1=qsole(ispmloc(ispmnod,2),2)
-       qtmca1=qtmca(ispmloc(ispmnod,2),ispmloc(ispmnod,3),2)
+      qsole1=qsole(ispmloc(ispmnod,2),2)
+      qtmca1=qtmca(ispmloc(ispmnod,2),ispmloc(ispmnod,3),2)
 
 C Alter the nodal absorption according to whether the node is
 C opaque (1) or transparent (0).
-       if(ispmtyp(ispmnod,2).gt.0)then
-         if(ie(ispmloc(ispmnod,1),ispmloc(ispmnod,2)).eq.0)then
-           qsole(ispmloc(ispmnod,2),2)=qsole(ispmloc(ispmnod,2),2)
-     &                                 -fPVPwrPerArea
-         else
-           qsoli(ispmloc(ispmnod,2),2)=qsoli(ispmloc(ispmnod,2),2)
-     &                                 -fPVPwrPerArea
-         endif
-       else
+      if(ispmtyp(ispmnod,2).gt.0)then
+        if(ie(ispmloc(ispmnod,1),ispmloc(ispmnod,2)).eq.0)then
+          qsole(ispmloc(ispmnod,2),2)=qsole(ispmloc(ispmnod,2),2)
+     &                                -fPVPwrPerArea
+        else
+          qsoli(ispmloc(ispmnod,2),2)=qsoli(ispmloc(ispmnod,2),2)
+     &                                -fPVPwrPerArea
+        endif
+      else
 
 C For a transparent layer, modify absorption of the middle node
 C and the two boundary nodes.
@@ -1885,52 +1869,52 @@ C and the two boundary nodes.
         qtmca(ispmloc(ispmnod,2),ispmloc(ispmnod,3)-1,2)=
      &          qtmca(ispmloc(ispmnod,2),ispmloc(ispmnod,3)-1,2)-
      &          (fPVPwrPerArea/4.)
-       endif
+      endif
 
 C XML output.
-       Call AddToReport(rvBldSPMatlEffIrr%Identifier,
-     &         fQPnl,
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlEffIrr%Identifier,
+     &        fQPnl,
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
-       Call AddToReport(rvBldSPMatlEff%Identifier,
-     &         dataspm(ispmnod,2),
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlEff%Identifier,
+     &        dataspm(ispmnod,2),
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
-       Call AddToReport(rvBldSPMatlIncAngl%Identifier,
-     &         fIncidence_angle,
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlIncAngl%Identifier,
+     &        fIncidence_angle,
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
-       Call AddToReport(rvBldSPMatlTrnsAngl%Identifier,
-     &         fTrans_IncAng,
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlTrnsAngl%Identifier,
+     &        fTrans_IncAng,
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
-       Call AddToReport(rvBldSPMatlTrns0%Identifier,
-     &         fTrans_0,
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlTrns0%Identifier,
+     &        fTrans_0,
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
-       Call AddToReport(rvBldSPMatlTrns60%Identifier,
-     &         fTrans_60,
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlTrns60%Identifier,
+     &        fTrans_60,
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
-       Call AddToReport(rvBldSPMatlTtlIncAr%Identifier,
-     &         fQInc,
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlTtlIncAr%Identifier,
+     &        fQInc,
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
-       Call AddToReport(rvBldSPMatlTtlIncTtl%Identifier,
-     &         fQInc * fSurfArea,
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlTtlIncTtl%Identifier,
+     &        fQInc * fSurfArea,
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
-       Call AddToReport(rvBldSPMatlDrtIncAr%Identifier,
-     &         exdir(ispmloc(ispmnod,2)),
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlDrtIncAr%Identifier,
+     &        exdir(ispmloc(ispmnod,2)),
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
-       Call AddToReport(rvBldSPMatlDffIncAr%Identifier,
-     &         exdif(ispmloc(ispmnod,2)),
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlDffIncAr%Identifier,
+     &        exdif(ispmloc(ispmnod,2)),
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
-       Call AddToReport(rvBldSPMatlPVPow%Identifier,
-     &         fPVPower,
-     &         cName(ispmnod)(1:iNameLen(ispmnod)))
+      Call AddToReport(rvBldSPMatlPVPow%Identifier,
+     &        fPVPower,
+     &        cName(ispmnod)(1:iNameLen(ispmnod)))
 
 C Trace output.
       if(itc.le.0.or.nsinc.lt.itc.or.ispmxist.eq.0)goto 999
