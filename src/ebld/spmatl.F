@@ -1477,12 +1477,12 @@ C Reference insolation and temperature.
 
 C Empirical temperature coefficient used in calculation of short circuit
 C current. Calculations assume value gt. 0.
-      fAlpha=spmdat(ispmnod,7)
+      fAlpha=ABS(spmdat(ispmnod,7))
 
 C Empirical temperature coefficients used in calculation of open circuit
 C voltage. Calculations assume values lt. 0
-      fGamma=spmdat(ispmnod,8)
-      fBeta=spmdat(ispmnod,9)
+      fGamma=-1.*ABS(spmdat(ispmnod,8))
+      fBeta=-1.*ABS(spmdat(ispmnod,9))
 
 C Number of series connected cells (NOT modules).
       iSCell=spmdat(ispmnod,10)
