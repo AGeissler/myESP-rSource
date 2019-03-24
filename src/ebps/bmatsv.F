@@ -1605,8 +1605,10 @@ C For 3D zone model, close the associated files.
                 CALL ERPFREE(ILWV,ISTAT)
               ENDIF
 
-C CFC output
+C CFC extensive reporting output (for debugging)
 c              call CFCoutput(icomp)
+C CFC designated h3k output function (U-value ...)
+              call CFCoutputH3K(icomp)
 
    40       continue
 

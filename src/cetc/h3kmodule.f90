@@ -177,7 +177,8 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvCFCazimuth,rvCFCelevation,rvSolarIncidentDirect,rvSolarIncidentDiff, &
          rvShadingFractionDirect,rvShadingFractionDiffuse, &
          rvCFCtranDir,rvCFCtranDiff,rvCFCvertprofileangle,rvSolarIncidentDirectShaded, &
-         rvSolarIncidentDiffShaded,rvSolarShadeFrac
+         rvSolarIncidentDiffShaded,rvSolarShadeFrac,rvCFCUvalueISO,rvCFCUvalueActual, &
+         rvCFCShadeCtl, rvCFCSlatAngle, rvCFCActOnSetp, rvCFCRgap
 
    !Used by water_tanks.F
    Type(ReportVariable) :: rvPltSDHWSumDHWTankFuel,rvPltSDHWSumDHWTankElec,rvPltWaterTemp, &
@@ -383,9 +384,6 @@ MODULE h3kmodule
       rvpltACCMoistFlowToEspr, rvpltCosimAirPointTemperatures, rvpltCosimAirPointHumidities, &
       rvpltCosimAirPointCasualGains
 
-   !Used by complex_fenestration.F
-   Type(ReportVariable) :: rvCFCShadeCtl, rvCFCSlatAngle, rvCFCActOnSetp
-   
 CONTAINS
    ! ********************************************************************
    ! Subroutine: UpdateH3kReport
@@ -1831,6 +1829,42 @@ CONTAINS
       rvCFCvertprofileangle%VariableType = '(deg)'
       rvCFCvertprofileangle%Description = 'CFC vertical profile angle '
       Call AddVariable(rvCFCvertprofileangle)
+
+      rvCFCShadeCtl%VariableName = 'building/*/cfc_*/cfc_shade_ctl'
+      rvCFCShadeCtl%MetaType = 'units'
+      rvCFCShadeCtl%VariableType = ''
+      rvCFCShadeCtl%Description = 'state of shade control'
+      Call AddVariable(rvCFCShadeCtl)
+
+      rvCFCSlatAngle%VariableName = 'building/*/cfc_*/cfc_shade_angle'
+      rvCFCSlatAngle%MetaType = 'units'
+      rvCFCSlatAngle%VariableType = 'degrees'
+      rvCFCSlatAngle%Description = 'angle of cfc controlled shade'
+      Call AddVariable(rvCFCSlatAngle)
+
+      rvCFCActOnSetp%VariableName = 'building/*/cfc_*/cfc_act_on_sp'
+      rvCFCActOnSetp%MetaType = 'units'
+      rvCFCActOnSetp%VariableType = ''
+      rvCFCActOnSetp%Description = 'actuator on setpoint'
+      Call AddVariable(rvCFCActOnSetp)
+
+      rvCFCUvalueISO%VariableName = 'building/*/cfc_*/cfc_U_ISO'
+      rvCFCUvalueISO%MetaType = 'units'
+      rvCFCUvalueISO%VariableType = 'W/(m2 K)'
+      rvCFCUvalueISO%Description = 'U-value of CFC w/ DT=15 K and standard Rsi, Rse'
+      Call AddVariable(rvCFCUvalueISO)
+
+      rvCFCUvalueActual%VariableName = 'building/*/cfc_*/cfc_U_Actual'
+      rvCFCUvalueActual%MetaType = 'units'
+      rvCFCUvalueActual%VariableType = 'W/(m2 K)'
+      rvCFCUvalueActual%Description = 'U-value of CFC w/ DT as is and actual Rsi, Rse'
+      Call AddVariable(rvCFCUvalueActual)
+
+      rvCFCRgap%VariableName = 'building/*/cfc_*/*/cfc_R_gap'
+      rvCFCRgap%MetaType = 'units'
+      rvCFCRgap%VariableType = '(m2 K)/W'
+      rvCFCRgap%Description = 'CFC gap resistance'
+      Call AddVariable(rvCFCRgap)
 
       !Used by water_tanks.F
       rvPltSDHWSumDHWTankFuel%VariableName = 'plant/SDHW_summary/DHW_tank_fuel'
@@ -4458,25 +4492,6 @@ CONTAINS
       rvpltCosimAirPointCasualGains%VariableType = 'W'
       rvpltCosimAirPointCasualGains%Description = ''
       Call AddVariable(rvpltCosimAirPointCasualGains)
-
-      !Used by complex_fenestration.F
-      rvCFCShadeCtl%VariableName = 'building/*/cfc_*/cfc_shade_ctl'
-      rvCFCShadeCtl%MetaType = 'units'
-      rvCFCShadeCtl%VariableType = ''
-      rvCFCShadeCtl%Description = 'state of shade control'
-      Call AddVariable(rvCFCShadeCtl)
-
-      rvCFCSlatAngle%VariableName = 'building/*/cfc_*/cfc_shade_angle'
-      rvCFCSlatAngle%MetaType = 'units'
-      rvCFCSlatAngle%VariableType = 'degrees'
-      rvCFCSlatAngle%Description = 'angle of cfc controlled shade'
-      Call AddVariable(rvCFCSlatAngle)
-
-      rvCFCActOnSetp%VariableName = 'building/*/cfc_*/cfc_act_on_sp'
-      rvCFCActOnSetp%MetaType = 'units'
-      rvCFCActOnSetp%VariableType = ''
-      rvCFCActOnSetp%Description = 'actuator on setpoint'
-      Call AddVariable(rvCFCActOnSetp)
 
       End Subroutine UpdateH3kReport
 

@@ -888,3 +888,7 @@ C Back diffuse-diffuse transmittance
       REAL VisTBdd
 
 C---------------------------------------------------------------------------------
+C COMMONS for reporting of CFC type CONSTRUCTIONS
+      common/CFCthermal/CFC_ISO_Uvalue(mcom,mcfc),
+     &      CFC_nom_Uvalue(mcom,mcfc)
+      real CFC_ISO_Uvalue,CFC_nom_Uvalue
