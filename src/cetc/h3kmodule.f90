@@ -1848,13 +1848,13 @@ CONTAINS
       rvCFCActOnSetp%Description = 'actuator on setpoint'
       Call AddVariable(rvCFCActOnSetp)
 
-      rvCFCUvalueISO%VariableName = 'building/*/cfc_*/cfc_U_ISO'
+      rvCFCUvalueISO%VariableName = 'building/*/cfc_*/cfc_U_ISO_*'
       rvCFCUvalueISO%MetaType = 'units'
       rvCFCUvalueISO%VariableType = 'W/(m2 K)'
       rvCFCUvalueISO%Description = 'U-value of CFC w/ DT=15 K and standard Rsi, Rse'
       Call AddVariable(rvCFCUvalueISO)
 
-      rvCFCUvalueActual%VariableName = 'building/*/cfc_*/cfc_U_Actual'
+      rvCFCUvalueActual%VariableName = 'building/*/cfc_*/cfc_U_Actual_*'
       rvCFCUvalueActual%MetaType = 'units'
       rvCFCUvalueActual%VariableType = 'W/(m2 K)'
       rvCFCUvalueActual%Description = 'U-value of CFC w/ DT as is and actual Rsi, Rse'
@@ -1863,7 +1863,7 @@ CONTAINS
       rvCFCRgap%VariableName = 'building/*/cfc_*/*/cfc_R_gap'
       rvCFCRgap%MetaType = 'units'
       rvCFCRgap%VariableType = '(m2 K)/W'
-      rvCFCRgap%Description = 'CFC gap resistance'
+      rvCFCRgap%Description = 'CFC gap resistance (convective only!)'
       Call AddVariable(rvCFCRgap)
 
       !Used by water_tanks.F
