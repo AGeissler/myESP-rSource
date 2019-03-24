@@ -3855,7 +3855,7 @@ C ********************************************************************
 
       real RGap1, RGap2, Rsi, Rse, SBOLTZ, T0
       real RGap1nom ! experimental, 15 K nominal RGap for DGU U-value ...
-      real Gap1Width, hc_nom, TA, TB
+      real Gap1Width, hc_nom, TA, TB, Tm
 
       real solrad_dir       ! incident direct solar radiation [W/m2] - returned by sub. get_incident_solrad
       real solrad_diff      ! incident diffuse solar radiation [W/m2] - returned by sub. get_incident_solrad
@@ -4002,56 +4002,67 @@ C      0: gas gap
 C      1: glazing
 C     >2: blind layer
 C The following logic assumes that there are not more than 3 consecutive
-C glass layers - interspersed with gas layers, of course - in the CFC ...
+C glass layers - interspersed with gas layers, of course - in the CFC.
+C <<TO DO: correct logic for TGU ISO value, extend logic to cater for
+C          more glass / gap situations ... >>
             if ( icfcltp(icomp,icfctp,l).eq.0
      &           .and. rmlr_mass(icomp,icfctp,l).gt.0.2905E+02) then
-              ! this is a non-air gas layer and no IGU has been identified, yet,
+              ! This is a non-air gas layer and no IGU has been identified, yet,
               if (icfcltp(icomp,icfctp,l-1) .eq. 1) then
-                ! the previous layer is glass,
+                ! The previous layer is glass,
                 if ((l.le.(ne-1)) .and.
      &              (icfcltp(icomp,icfctp,l+1) .eq. 1)) then
-                  ! the next layer is also glass, so U-value can be / is calculated ...
+                  ! The next layer is also glass, so U-value can be / is calculated ...
                   if (DGU) then
+C                   If a second "glass - gap - glass" is found.
                     DGU = .false.
-                    TGU = .true. ! triple glazing unit
-                    Rsi = 0.13 ! actual internal convective resistance
-                    ! radiative part (heat transfer)
-                    RGap2 = SBOLTZ*ABS((T0+tfc(icomp,i,(l*2)-1))**4.0
-     &                               - (T0+tfc(icomp,i,(l*2)+1))**4.0)
+                    TGU = .true. ! Triple glazing unit
+                    Rsi = 0.13 ! Nominal internal surface resistance
+                    ! Radiative part (heat transfer)
+                    RGap2 = SBOLTZ*ABS((T0+tfc(icomp,i,(l*2)-1))**4
+     &                               - (T0+tfc(icomp,i,(l*2)+1))**4)
                     RGap2 = RGap2/ABS(tfc(icomp,i,(l*2)-1)
      &                                 - tfc(icomp,i,(l*2)+1))
                     RGap2 = RGap2/(  1.0/rlwEB_sv(icomp,icfctp,l-1)
      &                             + 1.0/rlwEF_sv(icomp,icfctp,l+1)
      &                             - 1.0 )
-                    ! overall gap resistance:
+                    ! Overall gap resistance:
                     RGap2 = RGap2 + 1.0/cfcRgap(icomp,i,l,2)
                     RGap2 = 1.0/RGap2
-                    ! add third glass layer resistance (lam = 1.0 W/(m2 K), assume 6 mm glass pane)
+                    ! Add glass layer resistance (lam = 1.0 W/(m K), assume 6 mm glass pane)
                     RGap2 = RGap2 + 0.006/1.0
                   else
+C                   Fall through to here after finding first glass - gap - glass pair.
                     DGU = .true.
                     Rse = 0.04 ! replace w/ actual external convective resistance + lw rad ...
                     Rsi = 0.13 ! replace w/ actual internal convective resistance + lw rad ...
-                    ! Gap radiative part (as heat transfer coefficient)
-                    RGap1 = SBOLTZ*ABS((T0+tfc(icomp,i,(l*2)-1))**4.0
-     &                               - (T0+tfc(icomp,i,(l*2)+1))**4.0)
-                    RGap1 = RGap1/ABS(tfc(icomp,i,(l*2)-1)
-     &                               - tfc(icomp,i,(l*2)+1))
+
+C                   Gap radiative heat transfer coefficient
+C                   h_r = (4 sig Tm^3)/(1/e1 + 1/e2 - 1) ; Tm = (T1 + T2)/2
+                    Tm=( 2.0*T0+tfc(icomp,i,(l*2)-1)
+     &                         +tfc(icomp,i,(l*2)+1) )/2.0
+                    RGap1 = 4.0*SBOLTZ*Tm**3
+c                    RGap1 = 4.0*SBOLTZ*ABS((T0+tfc(icomp,i,(l*2)-1))**4
+c     &                               - (T0+tfc(icomp,i,(l*2)+1))**4)
+c                    RGap1 = RGap1/ABS(tfc(icomp,i,(l*2)-1)
+c     &                               - tfc(icomp,i,(l*2)+1))
                     RGap1 = RGap1/(  1.0/rlwEB_sv(icomp,icfctp,l-1)
      &                             + 1.0/rlwEF_sv(icomp,icfctp,l+1)
      &                             - 1.0 )
-                    ! now for "nominal" U-value (experimental, 27.01.10)
-                    RGap1nom = SBOLTZ*ABS((T0+TA)**4.0
-     &                               - (T0+TB)**4.0)
-                    RGap1nom = RGap1nom/ABS(TA-TB)
+                    ! Now for "nominal" U-value (experimental, 27.01.10)
+                    Tm=( 2.0*T0+TA+TB )/2.0
+                    RGap1nom = 4.0*SBOLTZ*Tm**3
+c                    RGap1nom = SBOLTZ*ABS((T0+TA)**4
+c     &                                  - (T0+TB)**4)
+c                    RGap1nom = RGap1nom/ABS(TA-TB)
                     RGap1nom = RGap1nom/
      &                            (  1.0/rlwEB_sv(icomp,icfctp,l-1)
      &                             + 1.0/rlwEF_sv(icomp,icfctp,l+1)
      &                             - 1.0 )
-                    ! overall gap resistance:
+                    ! Overall gap resistance:
                     RGap1 = RGap1 + 1.0/cfcRgap(icomp,i,l,2)
                     RGap1 = 1.0/RGap1
-C calculate nominal convective gap resistance (code from lines 1836 ff.)
+C Calculate nominal convective gap resistance (code from lines 1836 ff.)
                     Gap1Width=THRMLI(icomp,i,l,4) ! gap width
                     CALL ConvVertCav(PELV(icomp,i),Gap1Width,TA,TB,
      &                    rmlr_mass(icomp,icfctp,l),
@@ -4059,10 +4070,10 @@ C calculate nominal convective gap resistance (code from lines 1836 ff.)
      &                    visc_A(icomp,icfctp,l),visc_B(icomp,icfctp,l),
      &                    spht_A(icomp,icfctp,l),spht_B(icomp,icfctp,l),
      &                    hc_nom)
-C end nom. conv. gap res.
+C End nom. conv. gap res.
                     RGap1nom = RGap1nom + hc_nom
                     RGap1nom = 1.0/RGap1nom
-                    ! add first and second glass layer resistances (for simplicity, assume 6 mm glass per pane, lam=1.0 W/(m2 K))
+                    ! Add first and second glass layer resistances (for simplicity, assume 6 mm glass per pane, lam=1.0 W/(m K))
                     RGap1 = RGap1 + 0.012/1.0
                     RGap1nom = RGap1nom + 0.012/1.0
                   endif ! DGU or TGU
