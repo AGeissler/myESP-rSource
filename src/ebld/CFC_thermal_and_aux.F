@@ -3876,9 +3876,6 @@ C ********************************************************************
       SBOLTZ=5.6697E-08 ! Stefan Boltzmann Constant
       T0=273.15         ! 0∞C in K
 
-      TA=17.5
-      TB=2.5   ! DT = 15 K for approx. U_ISO
-
 C.....Switch for zone name output here
       if (ReportBoolConfig("use_zonenames")) then
         write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
@@ -4040,8 +4037,8 @@ C                   Another "glass - gap - glass" has been found.
 
 C ISO U-value must be recalculated as DT = 15 K now is for TGU ...
 C                   Inner gap
-                    TA = 17.5
-                    TB = 10.0
+                    TA = 10.0
+                    TB = 17.5
 C                   << calc for (l*2)-1, (l*2)+1 >>
                     Tm=( 2.0*T0+TA+TB )/2.0
                     RGap2nom = 4.0*SBOLTZ*Tm**3
@@ -4057,11 +4054,11 @@ C                   << calc for (l*2)-1, (l*2)+1 >>
                     RGap2nom = 1.0/RGap2nom + 0.006/1.0
 
 C                   Outer gap
-                    TA = 10.
-                    TB =  2.5
+                    TA =  2.5
+                    TB = 10.
 C                   << calc for ((l-2)*2)-1, ((l-2)*2)+1 >>
-                    EmisFac = (   1.0/rlwEB_sv(icomp,icfctp,l-3)
-     &                          + 1.0/rlwEF_sv(icomp,icfctp,l-1)
+                    EmisFac = (   1.0/rlwEB_sv(icomp,icfctp,(l-3))
+     &                          + 1.0/rlwEF_sv(icomp,icfctp,(l-1))
      &                          - 1.0 )
                     Tm=( 2.0*T0+TA+TB )/2.0
                     RGap1nom = 4.0*SBOLTZ*Tm**3
@@ -4084,6 +4081,9 @@ C                   << calc for ((l-2)*2)-1, ((l-2)*2)+1 >>
                   else
 C Fall through to here after finding first glass - gap - glass pair.
                     DGU = .true.
+                    TA=2.5   ! DT = 15 K for approx. U_ISO
+                    TB=17.5
+
                     Rse = 0.04 ! replace w/ actual external convective resistance + lw rad ...
                     Rsi = 0.13 ! replace w/ actual internal convective resistance + lw rad ...
 
