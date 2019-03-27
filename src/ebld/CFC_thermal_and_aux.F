@@ -3854,7 +3854,7 @@ C ********************************************************************
       real fInc_angle
 
       real RGap1, RGap2, Rsi, Rse, SBOLTZ, T0
-      real RGap1nom ! experimental, 15 K surface-surface temperature difference for IGU U-value ...
+      real RGap1nom, RGap2nom ! experimental, 15 K surface-surface temperature difference for IGU U-value ...
       real GapWidth, hc_nom, TA, TB, Tm, EmisFac
 
       real solrad_dir  ! incident direct solar radiation [W/m2] - returned by sub. get_incident_solrad
@@ -3974,6 +3974,12 @@ c     &           cCFC_Chars)
 
           do 15 l=1,ne
 C Output of CFC layer data ******************************************
+C   |   |   |   |   |    |
+C l   1   2   3   4   5   ...
+C n 1 2 3 4 5 6 7 8 9 10 11
+C
+C l=2, l=4 gas layers, 1, 3 and 5 are glass (example)
+C
 C Filter output by layer type ...
             if ( (icfcltp(icomp,icfctp,l).lt.2)
 cx     &       .or.(icfcltp(icomp,icfctp,l).eq.2 .and. l.gt.1)) then
@@ -4000,7 +4006,7 @@ C Calculate U-value for IGU in CFC ...
 C Layer type index  >>icfcltp<<  :
 C      0: gas gap
 C      1: glazing
-C     >2: blind layer
+C     >2: blind/roller blind/drape/screen layer
 C The following logic assumes that there are not more than 3 consecutive
 C glass layers - interspersed with gas layers, of course - in the CFC.
 C <<TO DO: correct logic for TGU ISO value, extend logic to cater for
@@ -4014,7 +4020,7 @@ C          more glass / gap situations ... >>
      &              (icfcltp(icomp,icfctp,l+1) .eq. 1)) then
                   ! The next layer is also glass, so U-value can be / is calculated ...
                   if (DGU) then
-C                   A second "glass - gap - glass" has been found.
+C                   Another "glass - gap - glass" has been found.
                     DGU = .false.
                     TGU = .true. ! Triple glazing unit
                     Rsi = 0.13   ! replace w/ actual internal convective resistance + lw rad ...
@@ -4032,8 +4038,51 @@ C                   A second "glass - gap - glass" has been found.
                     ! Add glass layer resistance (lam = 1.0 W/(m K), assume 6 mm glass pane)
                     RGap2 = RGap2 + 0.006/1.0
 
+C ISO U-value must be recalculated as DT = 15 K now is for TGU ...
+C                   Inner gap
+                    TA = 17.5
+                    TB = 10.0
+C                   << calc for (l*2)-1, (l*2)+1 >>
+                    Tm=( 2.0*T0+TA+TB )/2.0
+                    RGap2nom = 4.0*SBOLTZ*Tm**3
+                    RGap2nom = RGap2nom/EmisFac
+                    GapWidth=THRMLI(icomp,i,l,4) ! gap width
+                    CALL ConvVertCav(PELV(icomp,i),GapWidth,TA,TB,
+     &                    rmlr_mass(icomp,icfctp,l),
+     &                    cond_A(icomp,icfctp,l),cond_B(icomp,icfctp,l),
+     &                    visc_A(icomp,icfctp,l),visc_B(icomp,icfctp,l),
+     &                    spht_A(icomp,icfctp,l),spht_B(icomp,icfctp,l),
+     &                    hc_nom)
+                    RGap2nom = RGap2nom + hc_nom
+                    RGap2nom = 1.0/RGap2nom + 0.006/1.0
+
+C                   Outer gap
+                    TA = 10.
+                    TB =  2.5
+C                   << calc for ((l-2)*2)-1, ((l-2)*2)+1 >>
+                    EmisFac = (   1.0/rlwEB_sv(icomp,icfctp,l-3)
+     &                          + 1.0/rlwEF_sv(icomp,icfctp,l-1)
+     &                          - 1.0 )
+                    Tm=( 2.0*T0+TA+TB )/2.0
+                    RGap1nom = 4.0*SBOLTZ*Tm**3
+                    RGap1nom = RGap1nom/EmisFac
+
+                    GapWidth=THRMLI(icomp,i,(l-2),4) ! gap width
+                    CALL ConvVertCav(PELV(icomp,i),GapWidth,TA,TB,
+     &                    rmlr_mass(icomp,icfctp,(l-2)),
+     &                    cond_A(icomp,icfctp,(l-2)),
+     &                    cond_B(icomp,icfctp,(l-2)),
+     &                    visc_A(icomp,icfctp,(l-2)),
+     &                    visc_B(icomp,icfctp,(l-2)),
+     &                    spht_A(icomp,icfctp,(l-2)),
+     &                    spht_B(icomp,icfctp,(l-2)),
+     &                    hc_nom)
+                    RGap1nom = RGap1nom + hc_nom
+                    RGap1nom = 1.0/RGap1nom
+                    RGap1nom = RGap1nom + 0.012/1.0
+
                   else
-C                   Fall through to here after finding first glass - gap - glass pair.
+C Fall through to here after finding first glass - gap - glass pair.
                     DGU = .true.
                     Rse = 0.04 ! replace w/ actual external convective resistance + lw rad ...
                     Rsi = 0.13 ! replace w/ actual internal convective resistance + lw rad ...
@@ -4087,7 +4136,7 @@ C Now calculate and output U-value for IGU of this construction
         else
           sIGU = 'TGU'
         endif
-        CFC_ISO_Uvalue(icomp,icfctp)=1.0/(RGap1nom + RGap2 + 0.17)
+        CFC_ISO_Uvalue(icomp,icfctp)=1.0/(RGap1nom + RGap2nom + 0.17)
         CFC_nom_Uvalue(icomp,icfctp)=1.0/(RGap1 + RGap2 + Rsi + Rse)
 
         call AddToReport (
