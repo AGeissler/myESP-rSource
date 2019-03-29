@@ -19,3 +19,4 @@ fi
 #./Install $1 $LOCATION --xml --SQLite  --X11 --no_dbs --no_training $debug $CVER --silent --quick_rebuild
 #./Install $1 $LOCATION --xml           --X11          --no_training $debug $CVER --silent --quick_rebuild --force
 #./Install $1 $LOCATION --xml           --X11          --no_training $debug $CVER --silent --quick_rebuild
+#./Install $1 $LOCATION --xml           --X11                         $debug $CVER --silent --quick_rebuild --force
