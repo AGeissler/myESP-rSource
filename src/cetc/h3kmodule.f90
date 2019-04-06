@@ -153,6 +153,7 @@ MODULE h3kmodule
          rvMfnTotalNodeFlowRate,rvMfnTotalNodeVolFlowRate,rvMfnTotalNodeTemp, &
          rvMfnConnectPressureDrop, rvMfnConnectFlowRate,rvMfnConnectVeloc, &
          rvMfnContamCon, rvMfnConnectCtlOnFrac, rvZoneLabel
+Type(ReportVariable) :: rvSurfaceArea, rvSurfLayDens, rvSurfLayThick
 
    !Used by SiteUtilities.F
    Type(ReportVariable) :: rvTFuelAllEndEnergyContent, rvTFuelAllEndQty, &
@@ -1084,6 +1085,27 @@ CONTAINS
       rvNodeTemp%VariableType = '(oC)'
       rvNodeTemp%Description = 'Temperature at node within multilayer construction'
       Call AddVariable(rvNodeTemp)
+
+!.....Output of gemetric data for embedded energy postprocessing
+      rvSurfaceArea%VariableName = 'building/*/*/area'
+      rvSurfaceArea%MetaType = 'units'
+      rvSurfaceArea%VariableType = '(m2)'
+      rvSurfaceArea%Description = 'Surface area'
+      Call AddVariable(rvSurfaceArea)
+
+      rvSurfLayDens%VariableName = 'building/*/*/*/density'
+      rvSurfLayDens%MetaType = 'units'
+      rvSurfLayDens%VariableType = '(kg/m3)'
+      rvSurfLayDens%Description = 'Surface layer material density'
+      Call AddVariable(rvSurfLayDens)
+
+      rvSurfLayThick%VariableName = 'building/*/*/*/thickness'
+      rvSurfLayThick%MetaType = 'units'
+      rvSurfLayThick%VariableType = '(m)'
+      rvSurfLayThick%Description = 'Surface layer thickness'
+      Call AddVariable(rvSurfLayThick)
+
+!.....End output geometric data
 
       rvClimateSolarDiffuseHorizontalRadiation%VariableName = 'climate/solar/diffuse_horizontal_radiation'
       rvClimateSolarDiffuseHorizontalRadiation%MetaType = 'units'

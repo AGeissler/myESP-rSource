@@ -254,6 +254,11 @@ class TReportsManager
       bool UseSurfaceNames();
 
       /**
+       * Return the current status of h3k output of geometric data (enabled/disabled)
+       */
+      bool OutputGeomDat();
+
+      /**
        * set CSV file name string
        */
       void setCSVFileName(const std::string& sFileName);
@@ -364,6 +369,7 @@ class TReportsManager
       bool bUseResFilenameRoot;
       bool bUseZoneNames;
       bool bUseSurfaceNames;
+      bool bOutputGeomDat;
 
       bool bStyleSheetGood;
       bool bLinkStyleSheet;

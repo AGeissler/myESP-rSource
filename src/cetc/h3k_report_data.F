@@ -359,6 +359,8 @@ C.....DECLARATIONS for H3Kreporting object
       CHARACTER*12 cZone_Chars   ! zname(MCOM)
       Character*12 cSurf_Chars   ! sname(MCOM,MS)
       character*2  cNode_Chars
+      character*2  cLayer_Chars
+      character*50 cValue         ! Option value
 
       CHARACTER*128 ZONE_LABEL
 
@@ -2340,6 +2342,45 @@ C............->Report data
      &         cNode_Chars)
            enddo  ! <- end iNode = 1,N of iSurface 1,N of iZone
          endif ! <- end lIncl_Node
+
+C.......======================================================
+C.......Geometry data for embedded energy postprocessing
+C.......Do only, if output is set to true in input.xml
+        call GetReportConfig ("output_geomdat",cValue)
+        if ( cValue(1:4) == 'true' ) then
+
+C.........Surface area in m2
+          Call AddToReport(rvSurfaceArea%Identifier,
+     &      sna(iZone,iSurface),
+     &      cZone_Chars,
+     &      cSurf_Chars)
+
+          layer_output: do iLayer = 1, nELts(iZone, iSurface)
+
+            if ( iLayer .gt. 9 ) then
+              write(cLayer_Chars, '(I2)')  iLayer
+            else
+              write(cLayer_Chars, '(A,I1)') '0', iLayer
+            endif
+
+C...........Layer material density in kg/m3
+            Call AddToReport(rvSurfLayDens%Identifier,
+     &        THRMLI(iZone,iSurface,iLayer,2),
+     &        cZone_Chars,
+     &        cSurf_Chars,
+     &        cLayer_Chars)
+
+C...........Layer thickness in m
+            Call AddToReport(rvSurfLayThick%Identifier,
+     &        THRMLI(iZone,iSurface,iLayer,4),
+     &        cZone_Chars,
+     &        cSurf_Chars,
+     &        cLayer_Chars)
+
+          enddo layer_output
+
+        endif  ! <- end output_geomdat
+
       enddo ! <- end iSurface 1,N of iZone
 
       endif ! <- end lIncl_Surf

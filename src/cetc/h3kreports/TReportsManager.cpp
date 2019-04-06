@@ -1053,7 +1053,7 @@ TReportsManager::TReportsManager(  )
    bUseResFilenameRoot = false;
    bUseZoneNames = false;
    bUseSurfaceNames = false;
-
+   bOutputGeomDat = false;
 
    //remove the out.csv and out.db3 on init since the save_to_disk
    //option will append to file and database as the simulation runs
@@ -1517,6 +1517,19 @@ bool TReportsManager::UseZoneNames(){
  ** ***************************************************************** */
 bool TReportsManager::UseSurfaceNames(){
   return bUseSurfaceNames;
+}
+
+/* ********************************************************************
+ ** Method:   OutputGeomDat
+ ** Scope:    public
+ ** Purpose:  Returns state of boolean
+ ** Params:   N/A
+ ** Returns:  boolean
+ ** Author:   Achim Geissler
+ ** Mod Date: 2019-04-05
+ ** ***************************************************************** */
+bool TReportsManager::OutputGeomDat(){
+  return bOutputGeomDat;
 }
 
 /* ********************************************************************
@@ -2670,31 +2683,38 @@ void TReportsManager::OutputTXTsummary(const char *sFileName, stSortedMapKeyRef 
             ptrBin = itDataMap->second.GetAnnualBin();
             sVarName = itDataMap->second.sVarName;
 
-            //push to output stream
-            summaryFile << sVarName << "::Total_Average " << StringValue(buffer,ptrBin->TotalAverage(m_AnnualBinStepCount)) << " " << sMetaValue << "\n";
-            summaryFile << sVarName << "::Active_Average " << StringValue(buffer,ptrBin->ActiveAverage()) << " " << sMetaValue << "\n";
-
-            if(ptrBin->ActiveTimesteps() > 0)
+            if(bOutputGeomDat)
             {
-               summaryFile << sVarName << "::Maximum " << StringValue(buffer,ptrBin->Max()) << " " << sMetaValue << "\n";
-               summaryFile << sVarName << "::Minimum " << StringValue(buffer,ptrBin->Min()) << " " << sMetaValue << "\n";
+               summaryFile << sVarName << "," << StringValue(buffer,ptrBin->TotalAverage(m_AnnualBinStepCount)) << "," << sMetaValue << "\n";
             }
             else
             {
-               summaryFile << sVarName << "::Maximum NaN " << sMetaValue << "\n";
-               summaryFile << sVarName << "::Minimum NaN " << sMetaValue << "\n";
-            }
-
-            if(strcmp(sMetaValue,"(W)") == 0)
-            {
-               gj = ptrBin->Sum() * (float)m_fMinutePerTimeStep * 60 / 1e09;
-               summaryFile << sVarName << "::AnnualTotal " << StringValue(buffer,gj) << " (GJ)\n";
-            }
-
-            if(strcmp(sMetaValue,"(kg/s)") == 0)
-            {
-               kg = ptrBin->Sum() * (float)m_fMinutePerTimeStep * 60;
-               summaryFile << sVarName << "::AnnualTotal " << StringValue(buffer,kg) << " (kg)\n";
+               //push to output stream
+               summaryFile << sVarName << "::Total_Average " << StringValue(buffer,ptrBin->TotalAverage(m_AnnualBinStepCount)) << " " << sMetaValue << "\n";
+               summaryFile << sVarName << "::Active_Average " << StringValue(buffer,ptrBin->ActiveAverage()) << " " << sMetaValue << "\n";
+   
+               if(ptrBin->ActiveTimesteps() > 0)
+               {
+                  summaryFile << sVarName << "::Maximum " << StringValue(buffer,ptrBin->Max()) << " " << sMetaValue << "\n";
+                  summaryFile << sVarName << "::Minimum " << StringValue(buffer,ptrBin->Min()) << " " << sMetaValue << "\n";
+               }
+               else
+               {
+                  summaryFile << sVarName << "::Maximum NaN " << sMetaValue << "\n";
+                  summaryFile << sVarName << "::Minimum NaN " << sMetaValue << "\n";
+               }
+   
+               if(strcmp(sMetaValue,"(W)") == 0)
+               {
+                  gj = ptrBin->Sum() * (float)m_fMinutePerTimeStep * 60 / 1e09;
+                  summaryFile << sVarName << "::AnnualTotal " << StringValue(buffer,gj) << " (GJ)\n";
+               }
+   
+               if(strcmp(sMetaValue,"(kg/s)") == 0)
+               {
+                  kg = ptrBin->Sum() * (float)m_fMinutePerTimeStep * 60;
+                  summaryFile << sVarName << "::AnnualTotal " << StringValue(buffer,kg) << " (kg)\n";
+               }
             }
             isEmpty = false;
          }
@@ -3235,6 +3255,9 @@ void TReportsManager::ParseConfigFile( const std::string& filePath  )
   // Output file name root = results file name root?
   m_params["use_surfacenames"] = inputXML.GetFirstNodeValue("use_surfacenames", inputXML.RootNode());
 
+  // Output geometric data for embedded energy?
+  m_params["output_geomdat"] = inputXML.GetFirstNodeValue("output_geomdat", inputXML.RootNode());
+
   // Save to disk, save_to_disk max attribute
   m_params["save_to_disk"] = inputXML.GetFirstNodeValue("save_to_disk", inputXML.RootNode());
   m_params["save_to_disk_every"] = inputXML.GetFirstAttributeValue("save_to_disk","every").c_str();
@@ -3407,6 +3430,14 @@ void TReportsManager::SetFlags(){
   //  bUseSurfaceNames = false;
     m_params["use_surfacenames"] = "true";
     bUseSurfaceNames = true;
+  }
+
+  // Output geometric data
+  if ( m_params["output_geomdat"] == "true" ){
+    bOutputGeomDat = true;
+  }else{
+    m_params["output_geomdat"] = "false";
+    bOutputGeomDat = false;
   }
 
   // Timestep averaging
