@@ -75,6 +75,8 @@ C*******************************************************************************
       include "h3k_report_data.h"
       include "qrun.h"
       include "CFC_common.h"
+      include "esprdbfile.h"
+      include "material.h"
 
 C.....Passed variable
       integer iZone            ! Zone number
@@ -326,6 +328,9 @@ C.....Surface azimuth (deg from north) and elevation angles (walls: 0 deg, ceili
       COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       real PAZI, PELV     
 
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
+
 C----------------------------------------------------------------------
 C     Variables for insulation layer search criteria
 C----------------------------------------------------------------------      
@@ -350,7 +355,7 @@ C.....Local variables
       INTEGER i_ZnCtl           ! Zone control flag
 
 
-      INTEGER iSurface, iNode,iViewSurface  ! Counters
+      INTEGER iSurface, iNode,iViewSurface,ic,lnsmlcn  ! Counters
 
       real SBC                              ! Stephan-Boltzmann constant
       parameter ( SBC=56.7E-9 )
@@ -360,6 +365,7 @@ C.....DECLARATIONS for H3Kreporting object
       Character*12 cSurf_Chars   ! sname(MCOM,MS)
       character*2  cNode_Chars
       character*2  cLayer_Chars
+      character*32 sLayer_Chars
       character*50 cValue         ! Option value
 
       CHARACTER*128 ZONE_LABEL
@@ -370,6 +376,10 @@ C.....DECLARATIONS for H3Kreporting object
       logical lFirstPass   !first pass indicator
       save lFirstPass
       data lFirstPass/.true./
+
+      logical lOutputGeomdat   ! do only once
+      save lOutputGeomdat
+      data lOutputGeomdat/.true./
 
 C lnblnk is a function returning the index of last non-blank character in a string.
       INTEGER LNBLNK
@@ -2345,41 +2355,70 @@ C............->Report data
 
 C.......======================================================
 C.......Geometry data for embedded energy postprocessing
-C.......Do only, if output is set to true in input.xml
-        call GetReportConfig ("output_geomdat",cValue)
-        if ( cValue(1:4) == 'true' ) then
+C.......Only necessary once, as this data does not change on time-step basis,
+C       usually.
+        if (lOutputGeomdat) then
+cx          lOutputGeomdat=.false.
+C.........Do only, if output is set to true in input.xml
+          call GetReportConfig ("output_geomdat",cValue)
+          if ( cValue(1:4) == 'true' ) then
 
-C.........Surface area in m2
-          Call AddToReport(rvSurfaceArea%Identifier,
-     &      sna(iZone,iSurface),
-     &      cZone_Chars,
-     &      cSurf_Chars)
-
-          layer_output: do iLayer = 1, nELts(iZone, iSurface)
-
-            if ( iLayer .gt. 9 ) then
-              write(cLayer_Chars, '(I2)')  iLayer
-            else
-              write(cLayer_Chars, '(A,I1)') '0', iLayer
-            endif
-
-C...........Layer material density in kg/m3
-            Call AddToReport(rvSurfLayDens%Identifier,
-     &        THRMLI(iZone,iSurface,iLayer,2),
+C.......  ..Surface area in m2
+            Call AddToReport(rvSurfaceArea%Identifier,
+     &        sna(iZone,iSurface),
      &        cZone_Chars,
-     &        cSurf_Chars,
-     &        cLayer_Chars)
+     &        cSurf_Chars)
 
-C...........Layer thickness in m
-            Call AddToReport(rvSurfLayThick%Identifier,
-     &        THRMLI(iZone,iSurface,iLayer,4),
-     &        cZone_Chars,
-     &        cSurf_Chars,
-     &        cLayer_Chars)
+            layer_output: do iLayer = 1, nELts(iZone, iSurface)
 
-          enddo layer_output
+              ic=izstocn(iZone,iSurface)
+cx              lnsmlcn=lnblnk(SSMLCN(ic)) ! construction name string length
+cx              ssmlcindex(ic)             ! construction index in data base
+cx        DO 994 iLayer=1,LAYERS(ssmlcindex(ic))
+C material.h:      character matname*32     ! name for material
+C material.h:      character mlcname*32     ! name of MLC legacy items only use first 12 char
+C material.h:      IPRMAT(MMLC,ME)          ! Index to material for each layer
+              lnsmlcn=lnblnk(matname(IPRMAT(ssmlcindex(ic),iLayer)))
+cx          write(MatNameForEmbed(icomp,i,IL),'(a)')
+cx     &      matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn)
 
-        endif  ! <- end output_geomdat
+              if ( iLayer .gt. 9 ) then
+                write(cLayer_Chars, '(I2)')  iLayer
+              else
+                write(cLayer_Chars, '(A,I1)') '0', iLayer
+              endif
+
+
+              write (sLayer_Chars,'(A)')
+     &          matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn)
+
+C.......  ....Layer material name
+cx              Call AddToReport(rvSurfLayMatnam%Identifier,
+cx     &          matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn),
+cx     &          cZone_Chars,
+cx     &          cSurf_Chars,
+cx     &          cLayer_Chars)
+
+C.......  ....Layer material density in kg/m3
+              Call AddToReport(rvSurfLayDens%Identifier,
+     &          THRMLI(iZone,iSurface,iLayer,2),
+     &          cZone_Chars,
+     &          cSurf_Chars,
+     &          sLayer_Chars)
+cx     &          cLayer_Chars)
+
+C.......  ....Layer thickness in m
+              Call AddToReport(rvSurfLayThick%Identifier,
+     &          THRMLI(iZone,iSurface,iLayer,4),
+     &          cZone_Chars,
+     &          cSurf_Chars,
+     &          sLayer_Chars)
+cx     &          cLayer_Chars)
+
+            enddo layer_output
+
+          endif  ! <- end output_geomdat
+        endif ! <- end check for "first encounter"
 
       enddo ! <- end iSurface 1,N of iZone
 

@@ -4382,6 +4382,22 @@ C << if newgeo is true then this might be the place to write
 C << out the obstruction information (after data structure has
 C << been updated so the zone does not need to be scanned.
 
+C Store material name for zone <ifoc>, surface <??> and layer <IL>
+C For each surface in current zone check for match to attributes.
+cx      DO 993 i=1,NZSUR(icomp)
+cx        ic=izstocn(icomp,i)
+cx        lnsmlcn=lnblnk(SSMLCN(ic)) ! construction name string length
+cx        ssmlcindex(ic)             ! construction index in data base
+cx        DO 994 iLayer=1,LAYERS(ssmlcindex(ic))
+C material.h:      character matname*32     ! name for material
+C material.h:      character mlcname*32     ! name of MLC legacy items only use first 12 char
+C material.h:      IPRMAT(MMLC,ME)          ! Index to material for each layer
+cx          lnsmlcn=lnblnk(matname(IPRMAT(ssmlcindex(ic),iLayer)))
+cx          write(MatNameForEmbed(icomp,i,IL),'(a)')
+cx     &      matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn)
+cx 994    CONTINUE
+cx 993  CONTINUE
+
       RETURN
       END
 
