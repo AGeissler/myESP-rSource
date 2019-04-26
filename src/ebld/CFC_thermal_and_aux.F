@@ -63,7 +63,7 @@ C      set_QELW_to_zero
 C      CFCoutput
 C      CFC_control
 C      get_incident_solrad
-C      CFCoutputH3K (A. Geissler)
+C      CFCoutputH3K
 C
 
 C ********************************************************************

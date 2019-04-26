@@ -968,8 +968,8 @@ C Any save level.
  31   continue
 
 C Get direct (VAL3(3,?) and diffuse (VAL3(1,?) solar.
-      CALL MOCLIM (IDAY,24)
-      CALL MOCLIM (IDAY,25)
+      CALL MOCLIM (IDAY,2)
+      CALL MOCLIM (IDAY,3)
 
       PI = 4.0 * ATAN(1.0)
       rad=PI/180.

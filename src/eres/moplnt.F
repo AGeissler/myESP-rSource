@@ -1708,7 +1708,7 @@ C start of the hour.
               iday=INT(ctime)
               call DASYSTIME(II,TIME)
               MINH=INT(time)+1
-              IPAR=4
+              IPAR=7
               ITS=1
               call MFCLIM(IDAY,MINH,ITS,IPAR,VALC)
               val(jstat)=VALC
@@ -1842,7 +1842,7 @@ C start of the hour.
               iday=INT(ctime)
               call DASYSTIME(II,TIME)
               MINH=INT(time)+1
-              IPAR=4
+              IPAR=7
               ITS=1
               call MFCLIM(IDAY,MINH,ITS,IPAR,VALC)
               val(jstat)=VALC
@@ -2237,7 +2237,7 @@ C start of the hour.
               iday=INT(ctime)
               call DASYSTIME(II,TIME)
               MINH=INT(time)+1
-              IPAR=4
+              IPAR=7
               ITS=1
               call MFCLIM(IDAY,MINH,ITS,IPAR,VALC)
               val(jstat)=VALC
@@ -2479,7 +2479,7 @@ C start of the hour.
               iday=INT(ctime)
               call DASYSTIME(II,TIME)
               MINH=INT(time)+1
-              IPAR=4
+              IPAR=7
               ITS=1
               call MFCLIM(IDAY,MINH,ITS,IPAR,VALC)
               val(jstat)=VALC

@@ -885,7 +885,6 @@ c          iflag=-1
 c        else
 c          PPD=0.7038+0.2974*XX**2.7810-0.084*exp(XX)
 c        endif
-        write(6,*)'XX',XX
         if (XX.gt.8.0) then
           iflag=-1
         elseif (XX.lt.0.0) then

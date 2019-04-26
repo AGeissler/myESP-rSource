@@ -99,6 +99,22 @@
 'methods and visually inspect the predictions.'
 ' '
 *enditem
+*item COLTOBCLM not_enough_metrics
+'For an ESP-r climate database to be usable, it must'
+'contain at least the following metrics:'
+'Dry bulb temperature'
+'Diffuse solar'
+'Direct or global solar'
+'Wind speed'
+'Wind direction'
+'Relative humidity'
+' '
+'Some of these metrics are missing from the directives'
+'you have defined in this menu. You may continue anyway'
+'with creating the climate database, but it will not be'
+'usable with ESP-r.'
+*enditem
+
 *subroutine MKOREANCLM
 *item MKOREANCLM confirm_lat_log_diff
 'The weather longitude does not necessarily have to '
@@ -780,6 +796,11 @@
 'Relative Humidity (%), wind direc (deg from north),'
 'and speed (m/sec)'
 *enditem
+*item RRITE pick_a_metric
+'Choose a climate metric index.'
+'Available metrics in the current climate file'
+'are shown in the text feedback.'
+*enditem
 *item SITEDIT what_is_the_year
 'The year is required to find the day of the week'
 'for a given julian day. The year 2001 has 1 Jan'
@@ -802,4 +823,18 @@
 'to match the model site, however, it should be close for best'
 'results. Make a note of which longitude you are using.'
 *enditem
+*subroutine EPWTOBCLM
+*item EPWTOBCLM missing_cld_data
+'Some of this data is missing in the EPW file.'
+'If you choose to use the available data, periods of missing'
+'data will be filled in with values of 0 (this corresponds to'
+'no cloud). You can edit the data manually after importing if'
+'you wish.'
+*item EPWTOBCLM missing_prs_data
+'Some of this data is missing in the EPW file.'
+'If you choose to use the available data, periods of missing'
+'data will be filled in with values of 101325 Pa (this'
+'corresponds to mean sea level pressure). You can edit the'
+'data manually after importing if you wish.'
+
 

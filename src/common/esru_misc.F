@@ -4340,7 +4340,7 @@ C If there are enough items allow paging control via EKPAGE.
 C Decode from the potential long list to the zone number via KEYIND.
         if(INPICK.ge.9)then
           call edisp(iuout,
-     &      'Only 8 surfaces can be removed in one action.')
+     &      'Only 8 surfaces can acted upon.')
           IVERT=-2
           goto 3
         endif
@@ -4363,7 +4363,7 @@ C Decode from the potential long list to the zone number via KEYIND.
           lnoth=lnblnk(SSOTHER(iccc,1))
           WRITE(outs,'(7a)')'Selected: ',SSNAME(iccc)(1:lnn),
      &      '  ',SSMLCN(iccc)(1:lnsmlcn),'  ',
-     &      SSOTHER(iccc,1)(1:lnoth),' to delete.'
+     &      SSOTHER(iccc,1)(1:lnoth),' to act on.'
           call edisp(iuout,outs)
         endif
       ELSE
@@ -4781,6 +4781,12 @@ C For help messages
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
+#ifdef OSI
+      integer nnlistf  ! for use with getfileslist
+#else
+      integer*8 nnlistf
+#endif
+
       helpinsub='discovercfg'  ! set for subroutine
       helptopic='cfg_avail_files'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -4797,7 +4803,8 @@ C Re-establish action and file separator prior to call to getfileslist.
       else
         fs = char(92)
       endif
-      call getfileslist(subpath,action,nlistf)
+      call getfileslist(subpath,action,nnlistf)
+      nlistf=int(nnlistf)
       call printfileslist(outs,'p')
 
 C Try to use information gathered from file scan.

@@ -40,14 +40,16 @@ C Parameter definitions.
 
 C MCM    - Current number of available climate metrics (*24 = record
 C          width of climate database)
-C NMCM   - Number of values in MCMALL (also the currect climate database
+C NMCM   - Number of values in MCMALL (also the current climate database
 C          version number)
 C MCMALL - Values of MCM from all previous versions
+
 C >>NOTE - Whenever the value of MCM is increased in the public release,
 C the array MCMALL must be appended with the new value and NMCM must be
 C incremented by 1. This maintains back-compatibility for old climate
 C databases. The idea is that the ith element in MCMALL is the correct
 C value of MCM to use for a version i database.
+
 C CMNAMA - Abreviations (6 characters)
 C CMNAMF - Full names (24 characters maximum)
 C CMUNIT - Units for values (6 characters maximum)
@@ -75,16 +77,16 @@ C CFMIN  - Minimum values (in climate file units)
      &  'ATMPRS'/)
 
       CHARACTER*24,PARAMETER :: CMNAMF(MCM)=
-     &(/'Dry bulb temperature    ',
-     &  'Diffuse horizontal solar',
-     &  'Direct normal solar     ',
-     &  'Global horizontal solar ',
-     &  'Wind speed              ',
-     &  'Wind direction          ',
-     &  'Relative humidity       ',
-     &  'Total cloud cover       ',
-     &  'Opaque cloud cover      ',
-     &  'Atmospheric pressure    '/)
+     &(/'dry bulb temperature    ',
+     &  'diffuse horizontal solar',
+     &  'direct normal solar     ',
+     &  'global horizontal solar ',
+     &  'wind speed              ',
+     &  'wind direction          ',
+     &  'relative humidity       ',
+     &  'total cloud cover       ',
+     &  'opaque cloud cover      ',
+     &  'atmospheric pressure    '/)
 
       CHARACTER*6,PARAMETER :: CMUNIT(MCM)=
      &(/'deg C ',
@@ -152,10 +154,8 @@ C CMXST  - Flags indicating which metrics are present
 C CLMVAL
 C CMIVAL - One day of integer values from climate file, plus an extra
 C time step for future values of the last hour
-C >>Note - Currently this just has intantaneous values read from the
-C climate file, and subroutines are defined, marked with tag 
-C <CLMNEW2OLD>, to map this to existing old data structures. In future,
-C the old data structures should be depreciated.
+C CMRVAL - One day of real climate values
+C CMDAYR - The day of data currently in CMRVAL, to prevent reading the same data again
 
       COMMON/CLMFIL/CFVER,CFYEAR,CFLAT,CFLONG,CFMCM,CFLOC
       integer CFVER,CFYEAR,CFMCM
@@ -166,8 +166,15 @@ C the old data structures should be depreciated.
       integer MNCM,NCM,CMCOL
       logical CMXST
 
-      COMMON/CLMVAL/CMIVAL(MCM,25)
-      integer CMIVAL
+      COMMON/CLMVAL/CMDAYR,CMIVAL(MCM,25),CMRVAL(MCM,24)
+      integer CMDAYR,CMIVAL
+      real CMRVAL
+
+
+C >>Note - subroutines are defined in commonclm.F, marked with tag <CLMNEW2OLD>,
+C to map these commons to existing old data structures. 
+C The old data structures should be depreciated in favour of this header.
+C This is a work in progress.
 
 
 

@@ -86,6 +86,7 @@ C Tollerance for surface matching.
       logical newgeo  ! to use for testing if new/old geometry file.
       logical hasanotherchild ! true is surface is parent
       logical greyok  ! for drawing red dot
+      logical modgeo  ! in case SVFC is updated
       integer isurloop,iverloop,ichildloop ! for use in loops
       integer icdn, icc ! for connection numbers
       integer lnmyp,lnssn  ! lengths of strings
@@ -299,7 +300,11 @@ C update IE1 for surfaces > IWHICH otherwise just compact IC1 & IE1.
             iedgshr(IX,ijj)=iedgshr(IX+1,ijj)
             imatshr(IX,ijj)=imatshr(IX+1,ijj)
   42      continue
-
+          NZNVER(IX)=NZNVER(IX+1)  ! and connection based edge lists
+          DO IV=1,NZNVER(IX)
+            NZJVN(IX,IV)= NZJVN(IX+1,IV)
+          ENDDO
+          
 C << this could be a useful place to manage the zonedata arrays >>
 
   235   CONTINUE
@@ -373,9 +378,9 @@ C G5 contents into the surface below. The G6 commons were done already.
           SUSE(IS,1)=SUSE(IS+1,1)
           SUSE(IS,2)=SUSE(IS+1,2)
           NVER(IS)=NVER(IS+1)
-          DO 67 IV=1,NVER(IS)
+          DO IV=1,NVER(IS)
             JVN(IS,IV)=JVN(IS+1,IV)
-   67     CONTINUE
+          ENDDO
    66   CONTINUE
    65   NSUR=NSUR-1
         NZSUR(ICOMP)=NSUR
@@ -422,14 +427,17 @@ C surface and then decrement nver for the parent surface.
                 else
                   do 750 IV=foundonepos,parentedges-1
                     JVN(isurloop,IV)=JVN(isurloop,IV+1)
+                    NZJVN(icc,IV)= NZJVN(icc,IV+1)
 
 C Debug.
 C                    write(6,*) 'packing jvn ',iv,iv+1,parentedges
 
   750             continue
-                  JVN(isurloop,parentedges)=0    ! zero last position
+                  JVN(isurloop,parentedges)=0     ! zero last position
+                  NZJVN(icc,parentedges)=0
                   NVER(isurloop)=NVER(isurloop)-1 ! decrement list length
-                  parentedges=NVER(isurloop)   ! so next pass works.
+                  NZNVER(icc)=NZNVER(icc)-1       ! and connection based edge lists
+                  parentedges=NVER(isurloop)      ! so next pass works.
                   foundone=0     ! reset
                   foundonepos=0
                   goto 760  ! start the process again.
@@ -461,7 +469,9 @@ C Debug.
 C                  write(6,*) 'clean first last duplicate vertex ',jjver
 
                   JVN(isurloop,NVER(isurloop))=0
+                  NZJVN(icc,NVER(isurloop))=0
                   NVER(isurloop)=NVER(isurloop)-1
+                  NZNVER(icc)=NZNVER(icc)-1       ! and connection based edge lists
                 endif
 
 C The other case that might be encountered is two consecutive
@@ -476,9 +486,12 @@ C                    write(6,*) 'clean 2nd duplicate vertex ',jjver
 
                     do 754 IV=JJVER,parentedges-1
                       JVN(isurloop,IV)=JVN(isurloop,IV+1)
+                      NZJVN(icc,IV)= NZJVN(icc,IV+1)
   754               continue
                     JVN(isurloop,parentedges)=0
+                    NZJVN(icc,parentedges)=0
                     NVER(isurloop)=NVER(isurloop)-1
+                    NZNVER(icc)=NZNVER(icc)-1
                   endif 
   753           continue
               endif   ! of hasanotherchild
@@ -538,13 +551,15 @@ C     &                ' at',iverloop,nver(iwhich),iwhich
                 else
                   do 756 IV=foundonepos,nver(iwhich)-1
                     JVN(iwhich,IV)=JVN(iwhich,IV+1)
-
+                    NZJVN(icother,IV)=NZJVN(icother,IV+1)
 C Debug.
 C                    write(6,*) 'packing oth jvn ',iv,iv+1,iwhich
 
   756             continue
                   JVN(iwhich,nver(iwhich))=0    ! zero last position
-                  NVER(iwhich)=NVER(iwhich)-1 ! decrement list length
+                  NZJVN(icother,nver(iwhich))=0
+                  NVER(iwhich)=NVER(iwhich)-1   ! decrement list length
+                  NZNVER(icother)=NZNVER(icother)-1
                   foundone=0     ! reset
                   foundonepos=0
 
@@ -930,16 +945,23 @@ C If iwhich1 & iwhich2 are the same skip this zero length line.
 C If either iwhich1 & iwhich2 are zero skip this zero length line.
                   if(iwhich1.eq.0.or.iwhich2.eq.0) goto 247
 
+C Double check that the line from iwhich1,iwhich2 is > 0.1m. If so
+C it can be considered for inserting new vertex into.
+                  xitem=X(iwhich1); yitem=Y(iwhich1); zitem=Z(iwhich1)
+                  xpitem=X(iwhich2);ypitem=Y(iwhich2);zpitem=Z(iwhich2)
+                  vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
+                  if(vdis.lt.0.1)goto 247
+
 C Report length of line. Use method of Ward/Radiance in fvect.c
                   call pointtoline(iwhich3,iwhich1,iwhich2,offset,
      &              matchver)
                   if(.NOT.matchver) goto 247
                   if(offset.le.CACC)then
                     write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3,2a)')
-     &               'New vertex ',iwhich3,' @',
+     &                'New vertex ',iwhich3,' @',
      &                X(NTV),Y(NTV),Z(NTV),' is close (',offset,
-     &                ') to edge ',IWHICH1,' & ',IWHICH2,' of surface ',
-     &                SNAME(ICOMP,ivj)
+     &                ') to edge ',IWHICH1,' &',IWHICH2,
+     &                ' of surface ',SNAME(ICOMP,ivj)
                     call edisp(iuout,outs)
 
 C If current surface (ivj) can take another vertex expand the
@@ -1014,6 +1036,8 @@ C Reverse the ordering.
 C Update the connection list. Move all others up and then insert with
 C default values (allow moderate trace (3rd parameter in addedsurf).
         call addedsurf(icomp,icon,1,ier)
+
+        call updatesvfc(icomp,modgeo)  ! update SVFC orientation string.
 
 C If more than one surface to copy save the updated zone before
 C copying the next surface.
@@ -1237,6 +1261,7 @@ C Update the connection list. Move all others up and then insert with
 C default values. (allow verbose trace (3rd parameter in addedsurf).
         ltrace=1
         call addedsurf(icomp,icon,ltrace,ier)
+        call updatesvfc(icomp,modgeo)  ! update SVFC orientation string.
         MODIFYVIEW=.TRUE.
       endif
 
@@ -1283,6 +1308,7 @@ C   for new position, IER is -3 user aborted action.
       DIMENSION  BX(MPL),BY(MPL),BZ(MPL),IBNXT(MPL)
       DIMENSION  SBBOX(3,2)
       logical newgeo  ! to use for testing if new/old geometry file.
+      logical modgeo  ! true if SVFC updated
 
 #ifdef OSI
       integer iupdown,isym    ! passed to etplot
@@ -1496,6 +1522,7 @@ C matched then set sother to point to the next surface that will be created.
 
 C Add surface to the connection list (icont) assuming an unknown boundary. 
       call addedsurf(icomp,icont,1,ier)
+      call updatesvfc(icomp,modgeo)  ! update SVFC orientation string.
 
 C If user requested mass be added then generate coordinates and
 C attributes for the matching surface.
@@ -1550,6 +1577,7 @@ C If version 1.1 of geometry specify the use of the surface.
 
 C Add surface to the connection list (icont) assuming an unknown boundary. 
         call addedsurf(icomp,icontm,1,ier)
+        call updatesvfc(icomp,modgeo)  ! update SVFC orientation string.
 
       endif
 
@@ -2016,8 +2044,16 @@ C added. If we have a corrupt JVN list (a zero entry) ignore.
                 do iwhich2=1,NVER(icursur)
                   if(iwhich1.eq.JVN(icursur,iwhich2)) notin=.false.
                   if(JVN(icursur,iwhich2).eq.0) notin=.false.
+                  if(JVN(icursur,iwhich1).eq.
+     &               JVN(icursur,iwhich2)) notin=.false.  ! two identical vertices
                 enddo
               endif
+
+C Also check that the line has some length.
+              xitem=X(itv1(ip)); yitem=Y(itv1(ip)); zitem=Z(itv1(ip))
+              xpitem=X(itv2(ip));ypitem=Y(itv2(ip));zpitem=Z(itv2(ip))
+              vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
+              if(vdis.lt.0.1) notin=.false.
               if(notin)then
                 call pointtoline(iwhich1,itv1(ip),itv2(ip),offset,
      &            matchver)
@@ -2238,7 +2274,7 @@ C      integer lnblnk  ! function definition
 C Parameters
       integer itrc,itru  ! tracel level and reporting unit
       integer icomp      ! zone number
-      integer is         ! surface number
+      integer is         ! surface number (parent)
       character act*2    ! user supplied action
       real XO1,ZO1,XW,ZH ! X and Z offset width and height of opening
       character rsname*12,rsotf*32,rsmlcn*32,rsuse1*12,rsuse2*12
@@ -2299,6 +2335,18 @@ C For help messages
 
       helpinsub='INSREC'  ! set for subroutine
 
+C Check that we can deal with additional complexity. E.G that
+C there is room for an additional surface and 4 vertices (one for extra
+C possible link to the existing surface) as well as if the number of
+C vertices in this surface +6 are < MV. 
+      IF((NSUR+1.GT.MS).OR.(NTV+4.GT.MTV).OR.(NVER(IS)+6.GT.MV).OR.
+     &   (NCON+1.GT.MCON))THEN
+        CALL USRMSG(' A new surface could not be added as it',
+     &    ' will make the model/zone/surface too complex!','W')
+        ier=1
+        RETURN
+      ENDIF
+
 C Depending on act.
       newgeo=.false.  ! assume older format geometry.
       if(act(1:2).eq.'ii')then
@@ -2307,12 +2355,6 @@ C Depending on act.
 
 C Insert window silently, code assumes G1 common block is fresh.
         IRT=1
-        IF((NSUR+1.GT.MS).OR.(NTV+4.GT.MTV).OR.(NVER(IS)+6.GT.MV).OR.
-     &     (NCON+1.GT.MCON))THEN
-          CALL USRMSG(' A new surface could not be added as it',
-     &      ' will make the model/zone/surface too complex!','W')
-          RETURN
-        ENDIF
         guesstype='window_grill_frame'
         goto 72
 
@@ -2320,12 +2362,6 @@ C Insert window silently, code assumes G1 common block is fresh.
 
 C Insert door silently.
         IRT=2
-        IF((NSUR+1.GT.MS).OR.(NTV+4.GT.MTV).OR.(NVER(IS)+6.GT.MV).OR.
-     &     (NCON+1.GT.MCON))THEN
-          CALL USRMSG(' A new surface could not be added as it',
-     &      ' will make the model/zone/surface too complex!','W')
-          RETURN
-        ENDIF
         guesstype='door_grill_frame'
         goto 72
 
@@ -2333,17 +2369,11 @@ C Insert door silently.
 
 C Insert percentage silently.
         IRT=3
-        IF((NSUR+1.GT.MS).OR.(NTV+4.GT.MTV).OR.(NVER(IS)+6.GT.MV).OR.
-     &     (NCON+1.GT.MCON))THEN
-          CALL USRMSG(' A new surface could not be added as it',
-     &      ' will make the model/zone/surface too complex!','W')
-          RETURN
-        ENDIF
         PERC = XO1
 
 C Determine opening width, height, X offset and z offset.
-        CALL ZSURLEHI(ICOMP,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
-C        CALL SURLEHI(IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
+C        CALL ZSURLEHI(ICOMP,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
+        CALL SURLEHI(IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
         XW=(XYMAX*SQRT(PERC))/10
         ZH=(ZMAX*SQRT(PERC))/10
         XO1=((XYMAX-XW)/2)
@@ -2380,17 +2410,6 @@ C fixed width frame (IRT=4).
      &  'within surface','at base (door)','% of surface area',
      &  'within frame','continue ?',' ',' ',IRT,nbhelp)
       if(IRT.eq.5)return
-
-C Check that we can deal with additonal complexity. E.G that
-C there is room for an additional surface and 4 vertices (one for extra
-C possible link to the existing surface) as well as if the number of
-C vertices in this surface +6 are < MV. 
-      IF((NSUR+1.GT.MS).OR.(NTV+4.GT.MTV).OR.(NVER(IS)+6.GT.MV).OR.
-     &   (NCON+1.GT.MCON))THEN
-        CALL USRMSG(' A new surface could not be added as it',
-     &    ' will make the model/zone/surface too complex!','W')
-        RETURN
-      ENDIF
 
       if(IRT.eq.1)then
 
@@ -2440,8 +2459,8 @@ C edited to a thick line if currently in graphics mode.
       endif
 
 C Report parent surface length and height (bounding box).
-      CALL ZSURLEHI(ICOMP,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
-C      CALL SURLEHI(IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
+C      CALL ZSURLEHI(ICOMP,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
+      CALL SURLEHI(IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
       Write(outs,'(a,f6.3,a,f6.3,a)') 'Parent surface width = ',
      &  XYMAX,' m, surface height = ',ZMAX,' m (bounding box).'
       call edisp(itru,outs)
@@ -2459,8 +2478,8 @@ C Warn if offsets or size are small.
         K=0
         CALL EGETWR(HOLD,K,XO1,0.025,99.0,'F','X offset',IER)
         CALL EGETWR(HOLD,K,ZO1,0.025,99.0,'F','Z offset',IER)
-        CALL EGETWR(HOLD,K,XW,0.1,99.0,'F','width',IER)
-        CALL EGETWR(HOLD,K,ZH,0.1,99.0,'F','height',IER)
+        CALL EGETWR(HOLD,K,XW,0.02,99.0,'F','width',IER)
+        CALL EGETWR(HOLD,K,ZH,0.02,99.0,'F','height',IER)
 
 C Test if the opening is going to be bigger than the bounding box.
         if((XW+XO1).ge.XYMAX)then
@@ -2484,8 +2503,8 @@ C Warn if offsets or size are small.
      &    ' ',36,' 0.1 0.8 2.1','Xoff Zoff width height',IER,nbhelp)
         K=0
         CALL EGETWR(HOLD,K,XO1,0.025,99.,'F','X offset',IER)
-        CALL EGETWR(HOLD,K,XW,0.1,99.0,'F','width',IER)
-        CALL EGETWR(HOLD,K,ZH,0.1,99.0,'F','height',IER)
+        CALL EGETWR(HOLD,K,XW,0.02,99.0,'F','width',IER)
+        CALL EGETWR(HOLD,K,ZH,0.02,99.0,'F','height',IER)
 
 C Test if the opening is going to be bigger than the bounding box.
         if((XW+XO1).ge.XYMAX)then
@@ -2729,7 +2748,7 @@ C     &    SSUSE(icon,1),SSUSE(icon,2)
 C Process holes within a surface types.
       if(IRT.eq.1.or.IRT.eq.3.or.IRT.eq.4)then
         ICS=isur
-        call mergechildinparent(1,IPS,ICS,IRT,ier)
+        call mergechildinparent(1,icomp,IPS,ICS,IRT,ier)
 
 C Feedback.
         write(louts,'(a,124i4)') 'parent surf after ',
@@ -2774,6 +2793,10 @@ C Discover matching MLC index.
         SSUSE(ICONT,1)=SUSE(NSUR,1)
         SSUSE(ICONT,2)=SUSE(NSUR,2)
         SSPARENT(ICONT)=SPARENT(NSUR)
+        NZNVER(ICONT)=NVER(NSUR)  ! update connection based geometry
+        do K=1,NZNVER(ICONT)
+          NZJVN(ICONT,K)=JVN(NSUR,K)
+        enddo
 
 C Now update the G7 common block to reflect additional surface.
         call zgupdate(1,icomp,ier)
@@ -2792,7 +2815,7 @@ C Signal to update the image if not in one of the silent modes.
 C A door topology might also apply to surfaces which share
 C one or more edges with the parent. Return icwhich1 & icwhich2
         ICS=isur
-        call mergedoorinparent(1,IPS,ICS,icwhich1,icwhich2,ier)
+        call mergedoorinparent(1,icomp,IPS,ICS,icwhich1,icwhich2,ier)
 
 C Since this rectangle is a new surface, add it to the connection list
 C assuming it has the same boundary conditions as the parent surface
@@ -2832,6 +2855,10 @@ C Discover matching MLC index.
         SSUSE(ICONT,1)=SUSE(NSUR,1)
         SSUSE(ICONT,2)=SUSE(NSUR,2)
         SSPARENT(ICONT)=SPARENT(NSUR)
+        NZNVER(ICONT)=NVER(NSUR)  ! update connection based geometry
+        do K=1,NZNVER(ICONT)
+          NZJVN(ICONT,K)=JVN(NSUR,K)
+        enddo
 
 C Now update the G7 common block to reflect additional surface.
         call zgupdate(1,icomp,ier)
@@ -3103,8 +3130,8 @@ C Typically the mark 234 has been used with this code.
 
 C ****************** addedsurf
 C addedsurf takes the current G1 & G5 common block values and copies them
-C to the G6 common block. This block of code had been replicated in
-C many locations and this consolidates this function.
+C to the G6 common block. It inserts default surface information into the 
+C connections-based data structures.
       subroutine addedsurf(icomp,icon,itrc,ier)
 #include "building.h"
 #include "geometry.h"
@@ -3158,6 +3185,10 @@ C Discover matching MLC index.
         SSUSE(ICON,1)=SUSE(NSUR,1)
         SSUSE(ICON,2)=SUSE(NSUR,2)
         SSPARENT(ICON)=SPARENT(NSUR)
+        NZNVER(ICON)=NVER(NSUR)  ! update connection based geometry
+        do K=1,NZNVER(ICON)
+          NZJVN(ICON,K)=JVN(NSUR,K)
+        enddo
 
 C If sother(NSUR,1) is 'ANOTHER' or one of the other known phrases
 C then the values of ICT and IC2 and IE2 should be updated so that
@@ -3197,14 +3228,18 @@ C Now update the G7 common block to reflect additional surface.
 C ******************
 C mergedoorinparent works with current common block variables.
 C Called from INSREC as well as clickonbitmap.
-      subroutine mergedoorinparent(itrc,IPS,ICS,icwhich1,icwhich2,ier)
+      subroutine mergedoorinparent(itrc,IZ,IPS,ICS,icwhich1,icwhich2,
+     &  ier)
 #include "building.h"
 #include "geometry.h"
       integer itrc ! 0 silent 1 chatter
-      integer IPS  ! parent surface
-      integer ICS  ! child surface
+      integer IZ   ! current zone
+      integer IPS  ! parent surface index
+      integer ICS  ! child surface index
       integer ier  ! if error condition
       COMMON/OUTIN/IUOUT,IUIN
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
 
       integer icwhich1,icwhich2,icvwhich1,icvwhich2
       integer ipwhich1a,ipwhich2a,ipwhich1b,ipwhich2b
@@ -3247,6 +3282,11 @@ C Feedback.
       ipwhich1b=0; ipwhich2b=0   ! parent edge vertex index
       ipvwhich1a=0; ipvwhich2a=0   ! parent vertex position
       ipvwhich1b=0; ipvwhich2b=0   ! parent vertex position
+
+C Connection for parent and child.
+      iccs=IZSTOCN(iz,ICS)
+      icps=IZSTOCN(iz,IPS)
+
       do ivc=1,NVER(ICS)  ! for each child vertex
         item=jvn(ICS,ivc)   ! vert of the child
         do iyy = 1,NVER(IPS)-1   ! for each parent vertex
@@ -3293,6 +3333,7 @@ C need to insert icwhich1. Use icstart logic for this.
       NC=NVER(ICS)+1
       do iyy = NC,2,-1  ! loop for 3 edges of door plus icwhich1
         NVER(IPS)=NVER(IPS)+1  ! increment parent
+        NZNVER(icps)=NVER(IPS)
         iii=NVER(IPS)+1
   448   continue
         iii=iii-1
@@ -3300,10 +3341,12 @@ C need to insert icwhich1. Use icstart logic for this.
         IF(iii.GT.ivll+1)GOTO 448
         if(icstart.eq.0)then
           jvn(IPS,iii)=icwhich1 ! assign icwhich1
+          NZJVN(icps,iii)=icwhich1
           ivll=ivll+1  ! shift insertion point to the right
           icstart=1
         elseif(icstart.eq.1)then
           jvn(IPS,iii)=jvn(ICS,iyy) ! assign child vertex
+          NZJVN(icps,iii)=jvn(ICS,iyy)
           ivll=ivll+1  ! shift insertion point to the right
         endif
       enddo
@@ -3319,16 +3362,19 @@ C ******************
 C mergechildinparent works with current common block variables.
 C Called from INSREC as well as clickonbitmap. Assumes that
 C common G1 is fresh.
-      subroutine mergechildinparent(itrc,IPS,ICS,IRT,ier)
+      subroutine mergechildinparent(itrc,IZ,IPS,ICS,IRT,ier)
 #include "building.h"
 #include "geometry.h"
       integer itrc ! 0 silent 1 chatter
+      integer IZ   ! current zone
       integer IPS  ! parent surface
       integer ICS  ! child surface
-      integer IRT  ! 1=simple child 3=  4=  5=
+      integer IRT  ! 1=simple child 3= % 4= frame 5=
       integer ier  ! if error condition
 
       COMMON/OUTIN/IUOUT,IUIN
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
 
       integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
       integer llparpos,lrparpos,ulparpos,urparpos
@@ -3340,6 +3386,10 @@ C common G1 is fresh.
 
       integer jvn1,jvn2
       DIMENSION  jvn1(MV),jvn2(MV)
+
+C Connection for parent and child.
+      iccs=IZSTOCN(iz,ICS)
+      icps=IZSTOCN(iz,IPS)
 
 C Logic for merging vertices into the parent surface
 C based on what is closest.
@@ -3356,76 +3406,102 @@ C      write(6,*) 'par llpos lrpos ulpos urpos',llpos,lrpos,ulpos,urpos
       CALL SURLEHI(ICS,XYMAX,ZMAX,lldpos,lrdpos,uldpos,urdpos)
 C      write(6,*) 'win lldpos lrdpos uldpos urdpos',
 C     &  lldpos,lrdpos,uldpos,urdpos
-     
+
+C For the case of a frame or % go with LL for both the parent and the child.
+      if(IRT.eq.3.or.IRT.eq.4)then
+        ipwhich=llpos
+        icwhich=lldpos
+        item=jvn(ICS,lldpos)   ! LL of the child
+        xitem=X(item); yitem=Y(item); zitem=Z(item)
+        shortestll=100.0
+        iptem=jvn(IPS,llpos)
+        xpitem=X(iptem); ypitem=Y(iptem); zpitem=Z(iptem)
+        vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
+        if(vdis.lt.shortestll) shortestll=vdis
+C        write(6,*) 
+C     &    'frame parent jvn position closest to child LL LR UR UL',
+C     &    llpos,lrpos,urpos,ulpos,' dist ',
+C     &    shortestll
+C        write(6,*) 
+C     &    'frame shortest dist ',shortestll,' parent pos ',ipwhich,
+C     &    ' parent vert is ',jvn(IPS,ipwhich),' @',
+C     &    X(jvn(IPS,ipwhich)),Y(jvn(IPS,ipwhich)),Z(jvn(IPS,ipwhich))
+        icvert=jvn(ICS,icwhich)
+C        write(6,*) 'frame child vertex pos is ',icwhich,
+C     &    ' child vert is ',icvert,' @',
+C     &    X(icvert),Y(icvert),Z(icvert)
+      else
+      
 C For each of the child vertex closest to LL LR UL UR find the
 C distance to parent vertices and report on the shortest.
-      ipwhich=0; icwhich=0; overall=100.0
-      item=jvn(ICS,lldpos)   ! LL of the child
-      xitem=X(item); yitem=Y(item); zitem=Z(item)
-      shortestll=100.0; llparpos=0
-      do iyy = 1,NVER(IPS)   ! apply iopenjvn to jvn
-        iptem=jvn(IPS,iyy)
-        xpitem=X(iptem); ypitem=Y(iptem); zpitem=Z(iptem)
-        vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
-        if(vdis.lt.shortestll)then
-          shortestll=vdis; llparpos=iyy
+        ipwhich=0; icwhich=0; overall=100.0
+        item=jvn(ICS,lldpos)   ! LL of the child
+        xitem=X(item); yitem=Y(item); zitem=Z(item)
+        shortestll=100.0; llparpos=0
+        do iyy = 1,NVER(IPS)   ! apply iopenjvn to jvn
+          iptem=jvn(IPS,iyy)
+          xpitem=X(iptem); ypitem=Y(iptem); zpitem=Z(iptem)
+          vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
+          if(vdis.lt.shortestll)then
+            shortestll=vdis; llparpos=iyy
+          endif
+        enddo
+        if(shortestll.lt.overall)then
+          overall=shortestll; ipwhich=llparpos; icwhich=lldpos
         endif
-      enddo
-      if(shortestll.lt.overall)then
-        overall=shortestll; ipwhich=llparpos; icwhich=lldpos
-      endif
-      item=jvn(ICS,lrdpos)   ! LR of the child
-      xitem=X(item); yitem=Y(item); zitem=Z(item)
-      shortestlr=100.0; lrparpos=0
-      do iyy = 1,NVER(IPS)   ! apply iopenjvn to jvn
-        iptem=jvn(IPS,iyy)
-        xpitem=X(iptem); ypitem=Y(iptem); zpitem=Z(iptem)
-        vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
-        if(vdis.lt.shortestlr)then
-          shortestlr=vdis; lrparpos=iyy
+        item=jvn(ICS,lrdpos)   ! LR of the child
+        xitem=X(item); yitem=Y(item); zitem=Z(item)
+        shortestlr=100.0; lrparpos=0
+        do iyy = 1,NVER(IPS)   ! apply iopenjvn to jvn
+          iptem=jvn(IPS,iyy)
+          xpitem=X(iptem); ypitem=Y(iptem); zpitem=Z(iptem)
+          vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
+          if(vdis.lt.shortestlr)then
+            shortestlr=vdis; lrparpos=iyy
+          endif
+        enddo
+        if(shortestlr.lt.overall)then
+          overall=shortestlr; ipwhich=lrparpos; icwhich=lrdpos
         endif
-      enddo
-      if(shortestlr.lt.overall)then
-        overall=shortestlr; ipwhich=lrparpos; icwhich=lrdpos
-      endif
-      item=jvn(ICS,urdpos)   ! UR of the child
-      xitem=X(item); yitem=Y(item); zitem=Z(item)
-      shortestur=100.0; urparpos=0
-      do iyy = 1,NVER(IPS)   ! apply iopenjvn to jvn
-        iptem=jvn(IPS,iyy)
-        xpitem=X(iptem); ypitem=Y(iptem); zpitem=Z(iptem)
-        vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
-        if(vdis.lt.shortestur)then
-          shortestur=vdis; urparpos=iyy
+        item=jvn(ICS,urdpos)   ! UR of the child
+        xitem=X(item); yitem=Y(item); zitem=Z(item)
+        shortestur=100.0; urparpos=0
+        do iyy = 1,NVER(IPS)   ! apply iopenjvn to jvn
+          iptem=jvn(IPS,iyy)
+          xpitem=X(iptem); ypitem=Y(iptem); zpitem=Z(iptem)
+          vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
+          if(vdis.lt.shortestur)then
+            shortestur=vdis; urparpos=iyy
+          endif
+        enddo
+        if(shortestur.lt.overall)then
+          overall=shortestur; ipwhich=urparpos; icwhich=urdpos
         endif
-      enddo
-      if(shortestur.lt.overall)then
-        overall=shortestur; ipwhich=urparpos; icwhich=urdpos
-      endif
-      item=jvn(ICS,uldpos)   ! UR of the child
-      xitem=X(item); yitem=Y(item); zitem=Z(item)
-      shortestul=100.0; ulparpos=0
-      do iyy = 1,NVER(IPS)   ! apply iopenjvn to jvn
-        iptem=jvn(IPS,iyy)
-        xpitem=X(iptem); ypitem=Y(iptem); zpitem=Z(iptem)
-        vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
-        if(vdis.lt.shortestul)then
-          shortestul=vdis; ulparpos=iyy
+        item=jvn(ICS,uldpos)   ! UR of the child
+        xitem=X(item); yitem=Y(item); zitem=Z(item)
+        shortestul=100.0; ulparpos=0
+        do iyy = 1,NVER(IPS)   ! apply iopenjvn to jvn
+          iptem=jvn(IPS,iyy)
+          xpitem=X(iptem); ypitem=Y(iptem); zpitem=Z(iptem)
+          vdis= crowxyz(xitem,yitem,zitem,xpitem,ypitem,zpitem)
+          if(vdis.lt.shortestul)then
+            shortestul=vdis; ulparpos=iyy
+          endif
+        enddo
+        if(shortestul.lt.overall)then
+          overall=shortestul; ipwhich=ulparpos; icwhich=uldpos
         endif
-      enddo
-      if(shortestul.lt.overall)then
-        overall=shortestul; ipwhich=ulparpos; icwhich=uldpos
+C        write(6,*) 'parent jvn position closest to child LL LR UR UL',
+C     &    llparpos,lrparpos,urparpos,ulparpos,' dist ',
+C     &    shortestll,shortestlr,shortestur,shortestul
+C        write(6,*) 'shortest dist ',overall,' parent pos ',ipwhich,
+C     &    ' parent vert is ',jvn(IPS,ipwhich),' @',
+C     &    X(jvn(IPS,ipwhich)),Y(jvn(IPS,ipwhich)),Z(jvn(IPS,ipwhich))
+        icvert=jvn(ICS,icwhich)
+C        write(6,*) 'child vertex pos is ',icwhich,
+C     &    ' child vert is ',icvert,' @',
+C     &    X(icvert),Y(icvert),Z(icvert)
       endif
-C      write(6,*) 'parent jvn position closest to child LL LR UR UL',
-C     &  llparpos,lrparpos,urparpos,ulparpos,' dist ',
-C     &  shortestll,shortestlr,shortestur,shortestul
-C      write(6,*) 'shortest dist ',overall,' parent pos ',ipwhich,
-C     &  ' parent vert is ',jvn(IPS,ipwhich),' @',
-C     &  X(jvn(IPS,ipwhich)),Y(jvn(IPS,ipwhich)),Z(jvn(IPS,ipwhich))
-      icvert=jvn(ICS,icwhich)
-C      write(6,*) 'child vertex pos is ',icwhich,
-C     &  ' child vert is ',icvert,' @',
-C     &  X(icvert),Y(icvert),Z(icvert)
 
 C For the child use cyclejvn to get an ordering that begins at
 C the childs closest vertex.
@@ -3439,12 +3515,6 @@ C      write(6,*) 'jvn1 ',(jvn1(j),j=1,NVER(ICS))
 C      write(6,*) 'jvn2 ',(jvn2(j),j=1,NVER(ICS))
 
       if(IRT.eq.1.or.IRT.eq.3.or.IRT.eq.4)then
-        if(IRT.eq.3.or.IRT.eq.4)then
-
-C For % & frame insert use traditional lower left of parent and child.
-          ipwhich=llparpos
-          icwhich=lldpos
-        endif
 
 C The process for a surface-within is to:
 C locate position ipwhich in the parent and then insert
@@ -3468,19 +3538,26 @@ C Add icvert to parent.
           icstart=0
           nc=NVER(ICS)
           NVER(IPS)=NVER(IPS)+1  ! increment parent
+          NZNVER(icps)=NVER(IPS)
           n=NVER(IPS)        
           jvn(IPS,n)=icvert ! assign
+          NZJVN(icps,n)=icvert
           do iyy = NC,1,-1     ! for each of the child vertices
             NVER(IPS)=NVER(IPS)+1  ! increment parent
+            NZNVER(icps)=NVER(IPS)
             n=NVER(IPS)        
             jvn(IPS,n)=jvn2(iyy) ! assign
+            NZJVN(icps,n)=jvn2(iyy)
           enddo
 
 C Add jvn(IPS,ipwhich) so as to rejoin the parent.
           NVER(IPS)=NVER(IPS)+1  ! increment parent
+          NZNVER(icps)=NVER(IPS)
           n=NVER(IPS)        
           jvn(IPS,n)=jvn(IPS,ipwhich) ! assign
-C Debug.
+          NZJVN(icps,n)=jvn(IPS,ipwhich)
+
+C Feedback.
           write(louts,'(a,124i4)') 'parent surf after ',
      &      (jvn(IPS,j),J=1,NVER(IPS))
           if(itrc.gt.0)call edisp248(iuout,louts,100)
@@ -3496,21 +3573,26 @@ C we reach iyy=0 then insert jvn(IPS,ipwhich).
           NC=NVER(ICS)+1
           do iyy = NC,0,-1  ! add iopenjvn to parent
             NVER(IPS)=NVER(IPS)+1  ! increment parent
+            NZNVER(icps)=NVER(IPS)
             iii=NVER(IPS)+1
   348       continue
             iii=iii-1
             jvn(IPS,iii)=jvn(IPS,iii-1)  ! copy lower existing up
+            NZJVN(icps,iii)=jvn(IPS,iii-1)
             IF(iii.GT.ivll+1)GOTO 348
             if(icstart.eq.0)then
               jvn(IPS,iii)=icvert ! assign icvert
+              NZJVN(icps,iii)=icvert
               ivll=ivll+1  ! shift insertion point to the right
               icstart=1
             elseif(icstart.eq.1)then
               if(iyy.gt.0)then
                 jvn(IPS,iii)=jvn2(iyy) ! assign
+                NZJVN(icps,iii)=jvn2(iyy)
                 ivll=ivll+1  ! shift insertion point to the right
               else
                 jvn(IPS,iii)=jvn(IPS,ipwhich) ! re-connect
+                NZJVN(icps,iii)=jvn(IPS,ipwhich)
                 ivll=ivll+1  ! shift insertion point to the right
               endif
             endif
@@ -3519,7 +3601,7 @@ C            write(6,'(a,124i4)') 'parent surf adj ',
 C     &        (jvn(IPS,j),J=1,NVER(IPS))
           enddo
 
-C Debug.
+C Feedback.
           write(louts,'(a,124i4)') 'parent surf after ',
      &      (jvn(IPS,j),J=1,NVER(IPS))
           if(itrc.gt.0)call edisp248(iuout,louts,100)

@@ -329,9 +329,9 @@ C col is 'r' red  'g' grey
       DIMENSION  COG1(3),COG2(3),COG3(3)
       character t13*13
 #ifdef OSI
-      integer iix,iiy,iid4,iicol
+      integer iix,iiy,iid4,iicol,ibsize
 #else
-      integer*8 iix,iiy,iid4,iicol
+      integer*8 iix,iiy,iid4,iicol,ibsize
 #endif
 
       if(MMOD.lt.8) return  ! in text mode do not draw

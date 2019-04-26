@@ -170,20 +170,14 @@ C check if the climate file exists via findwhichdbpath.
           ICLIM=IFIL
         endif
         llt=lnblnk(weather)
-        lndbp=lnblnk(standardclmpath)
-        write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &      weather(1:llt)
-        call EFOPRAN(ICLIM,llclmdb,144,0,ISTAT)
+        write(LCLIM,'(a)') weather(1:llt) ! set LCLIM
+        call CLMOPB(0,ISTAT)
         if(ISTAT.ge.0)then
 
 C Read site and year.
-          IREC=366
-          READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)ICYEAR,ICDNGH
-          IREC=368
-          READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
+          call CLMRDBMD(IER)
           CALL ERPFREE(ICLIM,ISTAT)
           ipathclim=2
-          write(LCLIM,'(a)') weather(1:llt) ! set LCLIM
         else
 
 C Use findwhichdbpath and then expand weather file path for checking.
@@ -197,27 +191,22 @@ C Use findwhichdbpath and then expand weather file path for checking.
      &        LCLIM(1:lnblnk(LCLIM))
           endif
           CALL ERPFREE(ICLIM,ISTAT)
-          call EFOPRAN(ICLIM,llclmdb,144,0,ISTAT)
+          call CLMOPB(0,ISTAT)
           write(currentfile,'(a)') llclmdb(1:lnblnk(llclmdb))
           if(ISTAT.ge.0)then
 
 C Read site and year.
-            IREC=366
-            READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)ICYEAR,ICDNGH
-            IREC=368
-            READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
+            call CLMRDBMD(IER)
             CALL ERPFREE(ICLIM,ISTAT)
           else
 
 C Not found, use the default weather file as a backstop.
             write(currentfile,'(a)') DCLIM(1:lnblnk(DCLIM))
+            LCLIM=DCLIM
             CALL ERPFREE(ICLIM,ISTAT)
-            CALL FPRAND(ICLIM,ISTAT,144,0,DCLIM)
+            call CLMOPB(0,ISTAT)
             if(ISTAT.ge.0)then
-              IREC=366
-              READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)ICYEAR,ICDNGH
-              IREC=368
-              READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
+              call CLMRDBMD(IER)
               CALL ERPFREE(ICLIM,ISTAT)
               LCLIM=DCLIM
               ipathclim=2  ! assume default weather is in standard folder

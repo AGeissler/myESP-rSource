@@ -22,7 +22,7 @@ C This subroutine draws a window with a simplified version of
 C the standard  psychrometric chart. Similar to code in
 C esrures/psychart.F - revised to for plotting weather data.
       SUBROUTINE PSYCHART
-      PARAMETER (MT=24)
+#include "climate.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
@@ -31,14 +31,10 @@ C esrures/psychart.F - revised to for plotting weather data.
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       common/grphlim/xmin,xmax,ytmin,ytmax
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
-      COMMON/MXMNC/YMAX(6),YMIN(6),TMAX,TMIN,DT
+      COMMON/MXMNC/YMAX(MCM),YMIN(MCM),TMAX,TMIN,DT
       COMMON/CLMDT1/CLMLOC
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
       integer ipixhist
       common/pixhist/ipixhist(8760,2)
      
@@ -178,20 +174,20 @@ C Read values of the weather for this day.
           IF(J.EQ.IDF)KF=IT2
           DO 41 K=KS,KF
 
-C For each hour...CTMP() is the horizontal azis value, 
+C For each hour...CMRVAL(1,) is the horizontal azis value, 
 C icolindex is scaled from the value of T or RH with the
 C range of T or RH via colmult.
             ihrplt=ihrplt+1
-            X=CTMP(K)
+            X=CMRVAL(1,K)
             call eclose(X,0.000,0.001,close)
-            RH=CHUM(K)
+            RH=CMRVAL(7,K)
             if(iwhich.eq.1)then
               iicol=0
               call winscl('-',iicol)
               icolindex=ncset
             elseif(iwhich.eq.2)then
               colmult=(real(ncset)/trange)
-              icolindex=nint((CTMP(K)-YMIN(2))*colmult)
+              icolindex=nint((CMRVAL(1,K)-YMIN(2))*colmult)
               if(icolindex.le.0) icolindex = 1
               if(icolindex.gt.ncset) icolindex = ncset
               if(cscaleok)then
@@ -203,7 +199,7 @@ C range of T or RH via colmult.
               endif
             elseif(iwhich.eq.3)then
               colmult=(real(ncset)/rhrange)
-              icolindex=nint((CHUM(K)-YMIN(6))*colmult)
+              icolindex=nint((CMRVAL(7,K)-YMIN(6))*colmult)
               if(icolindex.le.0) icolindex = 1
               if(icolindex.gt.ncset) icolindex = ncset
               if(cscaleok)then
@@ -214,14 +210,14 @@ C range of T or RH via colmult.
                 call winscl('-',iicol)
               endif
             endif
-            GS=1000.*(HUMRT1(CTMP(k),CHUM(k),PATMOS,IOPT))
+            GS=1000.*(HUMRT1(CMRVAL(1,k),CMRVAL(7,k),PATMOS,IOPT))
 
 C If within temperature range, plot it.
             if(X.ge.Xmin.and.X.le.Xmax)then
               call u2pixel(X,GS,iix,iiy)
 
 C Debug.
-C              write(6,*) ihrplt,colmult,icolindex,iix,iiy,CTMP(K),CHUM(K)
+C              write(6,*) ihrplt,colmult,icolindex,iix,iiy,CMRVAL(1,K),CMRVAL(7,K)
 
               ipixhist(ihrplt,1)= int(iix)
               ipixhist(ihrplt,2)= int(iiy)

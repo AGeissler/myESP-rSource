@@ -32,6 +32,8 @@ C           names and associated component.
 C  GETCMP:  Returns mass flow component index matching name ,
 C  MFWRIT:  Fluid flow model file: dump common data to file.
 C  MF3DWRIT:  3D Fluid flow model file: dump common block data to file.
+C  updatebothflownetworks: update the 3D and legacy flow network files
+C           when their attributes change (uses current names).
 
 C ************************* EMFREAD 
 C EMFREAD reads a mass flow network description file.
@@ -2142,6 +2144,7 @@ C Include which zone & surface the node is associated with. For
 C internal nodes the surface name will be '-'.
           ln_nn=lnblnk(NDNAM(INOD))
           ln_nza=lnblnk(NODASSOC(INOD,1))
+        
           ln_nsa=lnblnk(NODASSOC(INOD,2))
           if(NDTYP(INOD).eq.0)then
             write(com,'(a)') '   # internal unknown pressure'
@@ -2266,6 +2269,8 @@ C Make up comment for each component type.
           endif
 
 C Write three lines for each component.
+C << Consider how to remember if associated position was
+C << H (top edge) L (bottom edge) C (COG) or U (user edited).
 C << TAKE note of any non ISDCNN for use when writing *cnn >>
           write(ifprb,'(8a,i3,a,i1,a,i1)') '*cmp',tab,
      &      CMNAM(ICMP)(1:lncnn),tab,CMPASSOC(ICMP,1)(1:ln_nza),tab,
@@ -2360,3 +2365,145 @@ C Error trap on write error
 
       END
 
+C ********* updatebothflownetworks
+C A common task is to update the 3D and legacy flow network files
+C when their attributes change. This works with the current names
+C for the files.
+      subroutine updatebothflownetworks(ier)
+#include "building.h"
+#include "net_flow.h"
+#include "esprdbfile.h"
+      INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
+      COMMON/FILEP/IFIL
+      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
+      character LAPROB*72
+
+C To signal to MFWRIT that globals are available from graphic network.
+C Currently set .FALSE.
+      logical haveglobal
+      COMMON/MFLOW11/haveglobal
+
+C Documentation shared with graphic flow network.
+      COMMON/NWKSTR/LEGNWKNAM,NWKNAM,NWKDSC,NWKTYPSTR(MNWKTYP)
+      CHARACTER LEGNWKNAM*72,NWKNAM*72,NWKDSC*72,NWKTYPSTR*12
+
+      integer IUM,IER
+      
+      if(IPRODB.eq.IFIL+6)then
+        IUM=IPRODB
+      else
+        IUM=IFIL+6
+      endif
+      CALL EFOPSEQ(IUM,LAPROB,3,IER)
+      if(IER.eq.0)then
+        if(IAIRN.eq.1)then
+          haveglobal=.FALSE.
+        elseif(IAIRN.eq.2.or.IAIRN.eq.3)then
+          haveglobal=.TRUE.
+        endif
+        if(IAIRN.eq.1)then
+          CALL MFWRIT(IUM)
+        elseif(IAIRN.eq.3)then
+
+C Update both the 3D attribute and legacy versions of flow network.
+          CALL MF3DWRIT(IUM)
+          WRITE(NWKNAM,'(A)')LAPROB(1:lnblnk(LAPROB))
+          lnnwknam=lnblnk(NWKNAM)
+          write(LEGNWKNAM,'(2a)')NWKNAM(1:lnnwknam-6),'.afn'
+          CALL ERPFREE(IUM,ISTAT)
+          CALL EFOPSEQ(IUM,LEGNWKNAM,4,IER)
+          IAIRN=1  ! set so legacy format is written
+          CALL MFWRIT(IUM)
+          CALL ERPFREE(IUM,ISTAT)
+          IAIRN=3  ! reset to 3D attributes format
+        endif
+        CALL ERPFREE(IUM,ISTAT)
+      endif
+      return
+      end  ! of updatebothflownetworks
+
+C ************* doesflowrefsurface
+C doesflowrefsurface checks if the zone and surface associations
+C in a 3D flow network file match a specific surface.
+      subroutine doesflowrefsurface(izone,isurf,inode,icmp)
+#include "building.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+#include "geometry.h"
+
+C Passed parameters:
+      integer izone,isurf  ! zone and surface to check against
+      integer inode,icmp   ! if non-zero the index of the node & component
+
+      COMMON/OUTIN/IUOUT,IUIN
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
+
+      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
+      CHARACTER LAPROB*72
+
+      integer loop,ioc
+      integer lnnoda1,lnnoda2,lncmp1,lncmp2  ! string lengths
+      character msg*30
+      character outs*124
+
+      inode=0; icmp=0
+      ioc=IZSTOCN(izone,isurf)
+
+      if(IAIRN.ge.1.and.ICAAS(izone).ne.0)then ! Is there a flow network?
+        if(IAIRN.eq.3)then                     ! Is it 3D?
+          do loop=1,NNOD
+
+C Does one of the NODASSOC(NNOD,1) match the zone name and
+C NODASSOC(NNOD,2) match the surface name if so it probably
+C has an associated boundary node? Echo node information.
+            lnnoda1=lnblnk(NODASSOC(loop,1))
+            lnnoda2=lnblnk(NODASSOC(loop,2))
+            lnz=lnblnk(zname(izone))
+            if(NODASSOC(loop,1)(1:lnnoda1).eq.
+     &         zname(izone)(1:lnz).and.
+     &         NODASSOC(loop,2)(1:lnnoda2).eq.
+     &         SSNAME(ioc)(1:lnblnk(SSNAME(ioc))))then
+              if(NDTYP(loop).eq.0) msg=' internal unknown pressure'
+              if(NDTYP(loop).eq.1) msg=' internal known pressure'
+              if(NDTYP(loop).eq.2) msg=' boundary node known pres'
+              if(NDTYP(loop).eq.3) msg=' wind boundary node'
+              write(outs,'(4a,3f7.3,a)') 
+     &          SSNAME(ioc)(1:lnblnk(SSNAME(ioc))),
+     &          ' is associated with flow node ',NDNAM(loop),
+     &          ' @ ',HNOD(loop,1),HNOD(loop,2),HNOD(loop,3),
+     &          msg(1:lnblnk(msg))
+              call edisp(iuout,outs)
+              inode=loop   ! return the matching node index
+            endif
+          enddo  ! of NNOD
+
+C Does one of the CMPASSOC(NCMP,1) match the zone name and
+C CMPASSOC(NCMP,1) match the surface name?
+C Then echo the component information.
+          do loop=1,NCMP
+            lncmp1=lnblnk(CMPASSOC(loop,1))
+            lncmp2=lnblnk(CMPASSOC(loop,2))
+            lnz=lnblnk(zname(izone))
+            if(CMPASSOC(loop,1)(1:lncmp1).eq.
+     &         zname(izone)(1:lnz).and.
+     &         CMPASSOC(loop,2)(1:lncmp2).eq.
+     &         SSNAME(ioc)(1:lnblnk(SSNAME(ioc))))then
+              write(msg,'(2a)') ' ',LTPCMP(loop)(1:28)
+              write(outs,'(4a,3f7.3,a)') 
+     &          SSNAME(ioc)(1:lnblnk(SSNAME(ioc))),
+     &          ' is associated with flow cmp ',CMNAM(loop),
+     &          ' @ ',HCMP(loop,1,1),HCMP(loop,1,2),
+     &          HCMP(loop,1,3),msg(1:lnblnk(msg))
+              call edisp(iuout,outs)
+              icmp=loop  ! return the matching component index
+            endif
+          enddo  ! of NCMP
+        endif    ! of 3D
+      endif
+
+      return
+      end
+      

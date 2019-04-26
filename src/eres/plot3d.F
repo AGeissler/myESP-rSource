@@ -433,7 +433,7 @@ C display file.
           CALL GZAIRT(ID,NZNO(1),ISET)
           CALL XTVAL1(GVAL,ISTART,IEND,1)
         elseif(IGET.eq.2)then
-          CALL MOCLIM (ID,2)
+          CALL MOCLIM (ID,1)
           CALL XTVAL1(GVAL,ISTART,IEND,1)
         elseif(IGET.eq.3)then
           CALL GTMCON(ID,NZNO(1),ISET)
@@ -523,16 +523,16 @@ C Total convection inside.
           CALL GQSI(ID,NZNO(1),NCNOUT,ISET)
           CALL XTVAL1(GVAL,ISTART,IEND,1)
         elseif(IGET.eq.19)then
-          CALL MOCLIM (ID,19)
+          CALL MOCLIM (ID,3)
           CALL XTVAL1(GVAL,ISTART,IEND,1)
         elseif(IGET.eq.20)then
-          CALL MOCLIM (ID,20)
+          CALL MOCLIM (ID,2)
           CALL XTVAL1(GVAL,ISTART,IEND,1)
         elseif(IGET.eq.21)then
-          CALL MOCLIM (ID,21)
+          CALL MOCLIM (ID,5)
           CALL XTVAL1(GVAL,ISTART,IEND,1)
         elseif(IGET.eq.22)then
-          CALL MOCLIM (ID,22)
+          CALL MOCLIM (ID,7)
           CALL XTVAL1(GVAL,ISTART,IEND,1)
         elseif(IGET.eq.23)then
 

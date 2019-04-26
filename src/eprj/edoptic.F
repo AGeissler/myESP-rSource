@@ -2067,6 +2067,12 @@ C For help messages
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
+#ifdef OSI
+      integer nnlistf  ! for use with getfileslist
+#else
+      integer*8 nnlistf
+#endif
+
       helpinsub='setupies'  ! set for subroutine
 
 C Locate the IES files via the installed path.
@@ -2301,7 +2307,8 @@ C Re-display files in rad folder.
        call edisp(iuout,'Here is what is in the ../rad folder now.')
         subpath='../rad'
         action='fil'
-        call getfileslist(subpath,action,nlistf)
+        call getfileslist(subpath,action,nnlistf)
+        nlistf=int(nnlistf)
         call printfileslist(outs,'p')
         call edisp(iuout,outs)
 C       call usemodelradfile('ies',lltmp,istat)

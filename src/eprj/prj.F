@@ -5259,7 +5259,8 @@ C View factors and radiant sensors
      &      'area weighted','ray traced','cancel',IW,4)
 
 C Updating viewfactors can require configuration file to be updated
-C before calling mrt.
+C before calling mrt. NOTE: viewfactor block attributes will not be
+C known in the associated zone geometry file so update if required. 
           if(iw.eq.1.or.iw.eq.2)then
             DO 127 IC=1,inpic
               IUF=IFIL+2
@@ -5273,6 +5274,10 @@ C before calling mrt.
                 write(LVIEW(ICOMP),'(a)') NNAME(1:lnblnk(NNAME))
                 CALL EMKMRT(LVIEW(ICOMP),LGEOM(ICOMP),
      &            NZSUR(ICOMP),IUF,ICOMP,'v',IER)
+                call eclose(gversion(icomp),1.1,0.01,newgeo)
+                if(newgeo)then
+                  call geowrite(IUF,LGEOM(ICOMP),IComp,IUOUT,3,IER)
+                endif
               elseif(IVF(icomp).eq.0)then
                 if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
                   WRITE(LVIEW(icomp),'(A,A4)')

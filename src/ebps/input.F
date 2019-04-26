@@ -903,37 +903,9 @@ C been properly entered.
 C Collect & process single-year climate file
 C Note: the climate file uses a different error flag than
 C the global model definition, as it can be specified separately.
-
-C Take into account weather file location.
-C          lndbp=lnblnk(standardclmpath)
-C          if(ipathclim.eq.0.or.ipathclim.eq.1)then
-C            call addpath(lclim,llclmdb,concat)
-C          elseif(ipathclim.eq.2)then
-C            write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-C      &       LCLIM(1:lnblnk(LCLIM))
-C          endif
-
-C          write(currentfile,'(a)') llclmdb(1:lnblnk(llclmdb))
-C          IClmErr=0   ! clear error state before call
-C          call EFOPRAN(ICLIM,llclmdb,MCM*24,0,IClmErr)
          CALL CLMOPB(0,IClmErr)
          IF(iClmErr.eq.0)THEN
             CALL CLMRDBMD(IClmErr)
-            CALL CLMMDN2O
-C             IREC=366
-C             READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)ICYEAR,ICDNGH
-C             IREC=367
-C             READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)CLMLOC
-C             WRITE(OUTSTR,1000)CLMLOC,ICYEAR
-C  1000       FORMAT(' Climate data: ',A30,': ',I5)
-C             if(endless.or.issilient)then
-C               continue
-C             else
-C               CALL EDISP(IUOUT,' ')
-C               CALL EDISP(IUOUT,OUTSTR)
-C             endif
-C             IRTYPE=0
-C             IF(ICDNGH.EQ.123)IRTYPE=1
    
 C If older configuration, confirm the year.
             if(icfgv.lt.3)then

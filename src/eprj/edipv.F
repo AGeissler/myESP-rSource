@@ -1970,29 +1970,15 @@ C Set delimiter in reports to standard/literal format.
 C First check if climate datase exists: if so open.
       CALL ERPFREE(ICLIM,ISTAT)
 
-C Setup string buffer with distribution weather folder name.
-      llt=lnblnk(LCLIM)
-      lndbp=lnblnk(standardclmpath)
-      if(ipathclim.eq.0.or.ipathclim.eq.1)then
-        llclmdb=LCLIM
-      elseif(ipathclim.eq.2)then
-        write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &    LCLIM(1:lnblnk(LCLIM))
-      endif
-
-      call EFOPRAN(ICLIM,llclmdb,144,0,IER)
+      call CLMOPB(0,ISTAT)
       if(ISTAT.ge.0)then
         CALL ERPFREE(ICLIM,ISTAT)
-        call EFOPRAN(ICLIM,llclmdb,144,1,IER)
+        call CLMOPB(1,IER)
         call edisp(iuout,' opened climate file')
       endif
 
 C Scan the climate file for CLAT and CLONG details.
-      IREC=366
-      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)ICYEAR,ICDNGH
-      IF(ICYEAR.EQ.0)goto 1000
-      IREC=368
-      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
+      call CLMRDBMD(IER)
 
 C Help text for the dialogs
       helptopic='seasonal_climate_scan'

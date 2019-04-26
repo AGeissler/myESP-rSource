@@ -194,6 +194,11 @@ C IGET = 82 Observed zone RH (for display only)
 C IGET = 83 Observed zone heat (for display only)
 C IGET = 84 Observed zone cool (for display only)
 
+C IGET = 90 Total cloud cover (climate metric)
+C IGET = 91 Opaque cloud cover (climate metric) 
+C IGET = 92 Atmospheric pressure (climate metric)
+C IGET = 93 Global horizontal solar intensity (climate metric)
+
 
 C ************************ GOMSETUP ************************
 C Set default values for IGETNO array and associated plotting/ labeling arrays.
@@ -433,6 +438,7 @@ C above.
 #include "net_flow.h"
 #include "tdf2.h"
 #include "cfd.h"
+#include "climate.h"
       
       integer lnblnk  ! function definition
 
@@ -494,6 +500,7 @@ C MRT Sensors via geometry.h.
       CHARACTER ITEMS(19)*23
       CHARACTER ITEMC(29)*24
       CHARACTER ITEMT(13)*27
+      CHARACTER ITEMCM(MCM+1)*24
       character xfile*144,tg*1,delim*1
       character SUFFIX*8
       character ll1*12,ll2*12,ll3*12
@@ -934,31 +941,39 @@ C From the allclm type check the 1st static item value.
 
         inoc=0
         idnoc=0
-        if(irtype.eq.0)then
-          call MENUATOL('Select a climate metric',' Climate choices:',
-     &      'a Ambient temperature','b Solar Dir N','c Solar diffuse',
-     &      'd Wind speed','e Wind direction','f Ambient RH',
-     &      'g Sky illuminance',' ',' ',' ',' ',' ',inoc,idnoc,nbhelp)
-        else
-          call MENUATOL('Select a climate metric',' Climate choices:',
-     &      'a Ambient temperature','b Solar GlobH','c Solar diffuse',
-     &      'd Wind speed','e Wind direction','f Ambient RH',
-     &      'g Sky illuminance',' ',' ',' ',' ',' ',inoc,idnoc,nbhelp)
+
+C Climate metric sub-menu.
+        do icm=1,MCM
+          ITEMCM(icm)=CMNAMF(icm)
+        enddo
+        icm=MCM+1
+        ITEMCM(icm)='sky illuminance         '
+        IX=1
+        CALL EPICKS(IX,IVALS,'Select a climate metric.',
+     &    ' Climate metrics:',24,icm,ITEMCM,'clm metrics',IER,nbhelp)
+
+        if(IX.eq.0)goto 1
+        inoc=IVALS(1)
+        if(inoc.eq.0)goto 1
+        if (inoc.le.MCM) then
+          if (.not.CMXST(inoc)) then
+            call usrmsg('Metric not present in climate file.',' ','P')
+            goto 1
+          endif
         endif
         call usrmsg('  ','  ','-')
-        if(inoc.eq.0)goto 1
         if((NGET+1).GT.MZS)then
           call usrmsg('Number of graph items exceeded.',' ','P')
           goto 1
         endif
         NGET=NGET+1
-        if(inoc.eq.1)then
 
 C IGET = 2 outside temperature.
+        if(inoc.eq.1)then
           IGETNO(NGET,1)=2
           IGETNO(NGET,6)=-302; IGETNO(NGET,7)=4
           IGETNO(NGET,8)=1;    IGETNO(NGET,9)=14
-          GLABEL(NGET)='Ambient db (C)'; LNGLABEL(NGET)=14
+          GLABEL(NGET)='Ambient db Tmp'; LNGLABEL(NGET)=14
           if(IROC.eq.0)then
             SLABEL(NGET)='Ambient db temperature (C)'
             LNSLABEL(NGET)=26
@@ -971,40 +986,9 @@ C IGET = 2 outside temperature.
           endif
           write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
           LNTABLABEL(NGET)=LNSLABEL(NGET)
-        elseif(inoc.eq.2)then
 
-C IGET = 19 Direct solar. Set text based on current value of irtype.
-          IGETNO(NGET,1)=19
-          IGETNO(NGET,6)=-104; IGETNO(NGET,7)=9
-          IGETNO(NGET,8)=3;    IGETNO(NGET,9)=14
-          if(irtype.eq.0)then
-            GLABEL(NGET)='Direct normal solar'; LNGLABEL(NGET)=19
-            if(IROC.eq.0)then
-              SLABEL(NGET)='DN solar intensity (W/m^2)'
-              LNSLABEL(NGET)=26
-            elseif(IROC.eq.1)then
-              SLABEL(NGET)='DN solar intens (W/m^2/hr)'
-              LNSLABEL(NGET)=26
-            elseif(IROC.eq.-1)then
-              SLABEL(NGET)='DN solar intens (Whr/m^2)'
-              LNSLABEL(NGET)=25
-            endif
-          else
-            GLABEL(NGET)='Global horiz solar'; LNGLABEL(NGET)=18
-            if(IROC.eq.0)then
-              SLABEL(NGET)='Glo hor solar intensity (W/m^2)'
-              LNSLABEL(NGET)=31
-            elseif(IROC.eq.1)then
-              SLABEL(NGET)='Glo hor solar intens (W/m^2/hr)'
-              LNSLABEL(NGET)=31
-            elseif(IROC.eq.-1)then
-              SLABEL(NGET)='Glo hor solar intens (Whr/m^2)'
-              LNSLABEL(NGET)=30
-            endif
-          endif
-          write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
-          LNTABLABEL(NGET)=LNSLABEL(NGET)
-        elseif(inoc.eq.3)then
+C IGET = 20 Diffuse solar.
+        elseif(inoc.eq.2)then
           IGETNO(NGET,1)=20
           IGETNO(NGET,6)=-104; IGETNO(NGET,7)=5
           IGETNO(NGET,8)=3;    IGETNO(NGET,9)=14
@@ -1021,7 +1005,47 @@ C IGET = 19 Direct solar. Set text based on current value of irtype.
           endif
           write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
           LNTABLABEL(NGET)=LNSLABEL(NGET)
+
+C IGET = 19 Direct solar.
+        elseif(inoc.eq.3)then
+          IGETNO(NGET,1)=19
+          IGETNO(NGET,6)=-104; IGETNO(NGET,7)=9
+          IGETNO(NGET,8)=3;    IGETNO(NGET,9)=14
+          GLABEL(NGET)='Direct nor solar'; LNGLABEL(NGET)=16
+          if(IROC.eq.0)then
+            SLABEL(NGET)='DN solar intensity (W/m^2)'
+            LNSLABEL(NGET)=26
+          elseif(IROC.eq.1)then
+            SLABEL(NGET)='DN solar intens (W/m^2/hr)'
+            LNSLABEL(NGET)=26
+          elseif(IROC.eq.-1)then
+            SLABEL(NGET)='DN solar intens (Whr/m^2)'
+            LNSLABEL(NGET)=25
+          endif
+          write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
+          LNTABLABEL(NGET)=LNSLABEL(NGET)
+
+C IGET = 93 Global solar.
         elseif(inoc.eq.4)then
+          IGETNO(NGET,1)=93
+          IGETNO(NGET,6)=-104; IGETNO(NGET,7)=9
+          IGETNO(NGET,8)=3;    IGETNO(NGET,9)=14
+          GLABEL(NGET)='Glo horiz solar'; LNGLABEL(NGET)=15
+          if(IROC.eq.0)then
+            SLABEL(NGET)='Glo hor solar intensity (W/m^2)'
+            LNSLABEL(NGET)=31
+          elseif(IROC.eq.1)then
+            SLABEL(NGET)='Glo hor solar intens (W/m^2/hr)'
+            LNSLABEL(NGET)=31
+          elseif(IROC.eq.-1)then
+            SLABEL(NGET)='Glo hor solar intens (Whr/m^2)'
+            LNSLABEL(NGET)=30
+          endif
+          write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
+          LNTABLABEL(NGET)=LNSLABEL(NGET)
+        
+C IGET = 21 Wind speed.
+        elseif(inoc.eq.5)then
           IGETNO(NGET,1)=21
           IGETNO(NGET,6)=-203; IGETNO(NGET,7)=6
           IGETNO(NGET,8)=4;    IGETNO(NGET,9)=14
@@ -1038,7 +1062,9 @@ C IGET = 19 Direct solar. Set text based on current value of irtype.
           endif
           write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
           LNTABLABEL(NGET)=LNSLABEL(NGET)
-        elseif(inoc.eq.5)then
+
+C IGET = 34 Wind direction.
+        elseif(inoc.eq.6)then
           IGETNO(NGET,1)=34
           IGETNO(NGET,6)=-203; IGETNO(NGET,7)=4
           IGETNO(NGET,8)=4;    IGETNO(NGET,9)=14
@@ -1055,7 +1081,9 @@ C IGET = 19 Direct solar. Set text based on current value of irtype.
           endif
           write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
           LNTABLABEL(NGET)=LNSLABEL(NGET)
-        elseif(inoc.eq.6)then
+
+C IGET = 22 Relative humidity.
+        elseif(inoc.eq.7)then
           IGETNO(NGET,1)=22
           IGETNO(NGET,6)=-202; IGETNO(NGET,7)=7
           IGETNO(NGET,8)=4;    IGETNO(NGET,9)=14
@@ -1069,7 +1097,56 @@ C IGET = 19 Direct solar. Set text based on current value of irtype.
           endif
           write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
           LNTABLABEL(NGET)=LNSLABEL(NGET)
-        elseif(inoc.eq.7)then
+
+C IGET = 90 Total cloud cover.
+        elseif(inoc.eq.8)then
+          IGETNO(NGET,1)=90
+          IGETNO(NGET,6)=-203; IGETNO(NGET,7)=12
+          IGETNO(NGET,8)=4;    IGETNO(NGET,9)=14
+          GLABEL(NGET)='Total cloud'; LNGLABEL(NGET)=11
+          if(IROC.eq.0)then
+            SLABEL(NGET)='Tot cld (10th)'; LNSLABEL(NGET)=14
+          elseif(IROC.eq.1)then
+            SLABEL(NGET)='Tot cld change (10th/hr)'; LNSLABEL(NGET)=24
+          elseif(IROC.eq.-1)then
+            SLABEL(NGET)='Tot cld hours (10th.hr)'; LNSLABEL(NGET)=23
+          endif
+          write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
+          LNTABLABEL(NGET)=LNSLABEL(NGET)
+
+C IGET = 91 Opaque cloud cover.
+        elseif(inoc.eq.9)then
+          IGETNO(NGET,1)=91
+          IGETNO(NGET,6)=-203; IGETNO(NGET,7)=13
+          IGETNO(NGET,8)=4;    IGETNO(NGET,9)=14
+          GLABEL(NGET)='Opaque cloud'; LNGLABEL(NGET)=12
+          if(IROC.eq.0)then
+            SLABEL(NGET)='Opq cld (10th)'; LNSLABEL(NGET)=14
+          elseif(IROC.eq.1)then
+            SLABEL(NGET)='Opq cld change (10th/hr)'; LNSLABEL(NGET)=24
+          elseif(IROC.eq.-1)then
+            SLABEL(NGET)='Opq cld hours (10th.hr)'; LNSLABEL(NGET)=23
+          endif
+          write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
+          LNTABLABEL(NGET)=LNSLABEL(NGET)
+
+C IGET = 92 Atmospheric pressure.
+        elseif(inoc.eq.10)then
+          IGETNO(NGET,1)=92
+          IGETNO(NGET,6)=-202; IGETNO(NGET,7)=14
+          IGETNO(NGET,8)=4;    IGETNO(NGET,9)=14
+          GLABEL(NGET)='Atm pressure'; LNGLABEL(NGET)=13
+          if(IROC.eq.0)then
+            SLABEL(NGET)='Pressure (Pa)'; LNSLABEL(NGET)=13
+          elseif(IROC.eq.1)then
+            SLABEL(NGET)='Pressure change (Pa/hr)'; LNSLABEL(NGET)=23
+          elseif(IROC.eq.-1)then
+            SLABEL(NGET)='Pressure hours (Pa.hr)'; LNSLABEL(NGET)=22
+          endif
+          write(TABLABEL(NGET),'(2a)')GLABEL(NGET)(1:LNGLABEL(NGET))
+          LNTABLABEL(NGET)=LNSLABEL(NGET)
+
+        elseif(inoc.eq.MCM+1)then
           IGETNO(NGET,1)=26
           IGETNO(NGET,6)=-202; IGETNO(NGET,7)=8
           IGETNO(NGET,8)=4;    IGETNO(NGET,9)=10
@@ -3894,7 +3971,9 @@ C case of climate data or observed data GLABEL has already been set.
      &    IGETNO(NGET,1).eq.22.or.IGETNO(NGET,1).eq.26.or.
      &    IGETNO(NGET,1).eq.34.or.IGETNO(NGET,1).eq.80.or.
      &    IGETNO(NGET,1).eq.81.or.IGETNO(NGET,1).eq.82.or.
-     &    IGETNO(NGET,1).eq.83.or.IGETNO(NGET,1).eq.84) then
+     &    IGETNO(NGET,1).eq.83.or.IGETNO(NGET,1).eq.84.or.
+     &    IGETNO(NGET,1).eq.90.or.IGETNO(NGET,1).eq.91.or.
+     &    IGETNO(NGET,1).eq.92.or.IGETNO(NGET,1).eq.93) then
 
 C Do nothing.
         continue
@@ -4454,7 +4533,7 @@ C IGETNO(KGET,1) =  1 Zone temperature
       elseif(IGETNO(KGET,1).eq.2)then
 
 C IGETNO(KGET,1) =  2 Ambient temperature
-        CALL MOCLIM (IDAY,2)
+        CALL MOCLIM (IDAY,1)
         CALL XTVAL1(GVAL,ISTART,IEND,KGET)
       elseif(IGETNO(KGET,1).eq.3)then
 
@@ -4785,25 +4864,25 @@ C IGETNO(KGET,1) = 18 Solar absorbed on internal surfaces
       elseif(IGETNO(KGET,1).eq.19)then
 
 C IGETNO(KGET,1) = 19 Direct solar (climate parameter)
-        CALL MOCLIM (IDAY,24)
+        CALL MOCLIM (IDAY,3)
         CALL XTVAL1(GVAL,ISTART,IEND,KGET)
 
       elseif(IGETNO(KGET,1).eq.20)then
 
 C IGETNO(KGET,1) = 20 Diffuse solar (climate parameter)
-        CALL MOCLIM (IDAY,25)
+        CALL MOCLIM (IDAY,2)
         CALL XTVAL1(GVAL,ISTART,IEND,KGET)
 
       elseif(IGETNO(KGET,1).eq.21)then
 
 C IGETNO(KGET,1) = 21 Wind speed (climate parameter)
-        CALL MOCLIM (IDAY,26)
+        CALL MOCLIM (IDAY,5)
         CALL XTVAL1(GVAL,ISTART,IEND,KGET)
 
       elseif(IGETNO(KGET,1).eq.22)then
 
 C IGETNO(KGET,1) = 22 Ambient RH (climate parameter)
-        CALL MOCLIM (IDAY,28)
+        CALL MOCLIM (IDAY,7)
         CALL XTVAL1(GVAL,ISTART,IEND,KGET)
 
       elseif(IGETNO(KGET,1).eq.23)then
@@ -4996,7 +5075,7 @@ C IGETNO(KGET,1) = 28 Reactive electrical power consumption.
       elseif(IGETNO(KGET,1).eq.29)then
 
 C IGETNO(KGET,1) = 29 Delta T zone - ambient.
-        CALL MOCLIM (IDAY,2)
+        CALL MOCLIM (IDAY,1)
         CALL GZAIRT(IDAY,IGETNO(KGET,2),IGETNO(KGET,5))
         DO J2=ISTART,IEND
           GC(J2)=GVAL(J2)-VAL3(2,J2)
@@ -5103,7 +5182,7 @@ C taking into account ireportunit.
       elseif(IGETNO(KGET,1).eq.34)then
 
 C IGETNO(KGET,1) = 34 Wind direction (climate parameter)
-        CALL MOCLIM (IDAY,27)
+        CALL MOCLIM (IDAY,6)
         CALL XTVAL1(GVAL,ISTART,IEND,KGET)
       elseif(IGETNO(KGET,1).eq.35)then
 
@@ -5350,6 +5429,26 @@ C IGETNO(KGET,1) = 83 Zone observed heating
 
 C IGETNO(KGET,1) = 84 Zone observed cooling
         CALL MOMEASURED('ZNCLOBS ',IDAY,IGETNO(KGET,2),IGETNO(KGET,3))
+        CALL XTVAL1(GVAL,ISTART,IEND,KGET)
+
+C IGETNO(KGET,1) = 90 Total cloud cover (climate)
+      elseif(IGETNO(KGET,1).eq.90)then
+        CALL MOCLIM (IDAY,8)
+        CALL XTVAL1(GVAL,ISTART,IEND,KGET)
+
+C IGETNO(KGET,1) = 91 Opaque cloud cover (climate)
+      elseif(IGETNO(KGET,1).eq.91)then
+        CALL MOCLIM (IDAY,9)
+        CALL XTVAL1(GVAL,ISTART,IEND,KGET)
+
+C IGETNO(KGET,1) = 92 Atmospheric pressure (climate)
+      elseif(IGETNO(KGET,1).eq.92)then
+        CALL MOCLIM (IDAY,10)
+        CALL XTVAL1(GVAL,ISTART,IEND,KGET)
+
+C IGETNO(KGET,1) = 93 Global horizontal solar (climate)
+      elseif(IGETNO(KGET,1).eq.93)then
+        CALL MOCLIM (IDAY,4)
         CALL XTVAL1(GVAL,ISTART,IEND,KGET)
       endif
 

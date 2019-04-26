@@ -118,7 +118,7 @@ C If version facility invoked this subroutine then
 C just write operations file
       IF(IVER.NE.0)then
         ICOMP=IVER
-        if(cfgok.and.(.NOT.browse))then
+        if(cfgok)then
           CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
           IF(IER.LT.0)THEN
             call edisp(iuout,
@@ -883,8 +883,8 @@ C Edit or browse for operations file name.
         ENDIF
 
 C Save current information into a descriptive file
-C and rewrite the system configuration file if not browsing.
-        if(cfgok.and.(.NOT.browse))then
+C and rewrite the system configuration file.
+        if(cfgok)then
    11     CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
           IF(IER.LT.0)THEN
             DOK=.true.

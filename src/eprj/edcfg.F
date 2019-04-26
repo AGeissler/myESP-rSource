@@ -153,6 +153,7 @@ C TDF related.
       integer loop
       character hold32*32
       logical found_pandoc ! to test application existance
+      logical isrelated    ! test whether surface USE is flow related
 
       INTEGER :: itrc,itru,i,ic,icc,istat
       INTEGER :: iacc,icfoc,iclkok,idindcfg,lnnwknam
@@ -756,76 +757,9 @@ C text or graphic mode is required.
             haveflowattributes=0
             do loop=1,NCON
               iz=IC1(loop); is=IE1(loop)  ! current zone and surface.
-              if(SSUSE(loop,1)(1:1).eq.'-'.or.
-     &           SSUSE(loop,1)(1:5).eq.'FLOOR'.or.
-     &           SSUSE(loop,1)(1:5).eq.'FURNI'.or.
-     &           SSUSE(loop,1)(1:7).eq.'ITEQUIP'.or.
-     &           SSUSE(loop,1)(1:5).eq.'PARTN'.or.
-     &           SSUSE(loop,1)(1:4).eq.'ROOF'.or.
-     &           SSUSE(loop,1)(1:5).eq.'STRUC'.or.
-     &           SSUSE(loop,1)(1:7).eq.'FIXTURE'.or.
-     &           SSUSE(loop,1)(1:6).eq.'PLANTS')then
-                CYCLE
-              endif
-              if(SSUSE(loop,1)(1:4).eq.'DOOR'.or.
-     &           SSUSE(loop,1)(1:6).eq.'P-DOOR'.or.
-     &           SSUSE(loop,1)(1:6).eq.'H-DOOR'.or.
-     &           SSUSE(loop,1)(1:6).eq.'H-DOOR')then
-                if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
-                  continue   ! no flow
-                elseif(SSUSE(loop,2)(1:8).eq.'UNDERCUT')then
-                  haveflowattributes=haveflowattributes+1
-                elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
-                  haveflowattributes=haveflowattributes+1
-                elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
-                  haveflowattributes=haveflowattributes+1
-                endif
-              elseif(SSUSE(loop,1)(1:5).eq.'FRAME'.or.
-     &               SSUSE(loop,1)(1:7).eq.'F-FRAME')then
-                if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
-                  continue   ! no flow
-                elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
-                  haveflowattributes=haveflowattributes+1
-                elseif(SSUSE(loop,2)(1:4).eq.'VENT')then
-                  haveflowattributes=haveflowattributes+1
-                endif
-              elseif(SSUSE(loop,1)(1:5).eq.'GRILL')then
-                if(SSUSE(loop,2).eq.'CLOSED')then
-                  continue   ! no flow
-                elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
-                  haveflowattributes=haveflowattributes+1
-                elseif(SSUSE(loop,2)(1:5).eq.'INLET')then
-                  haveflowattributes=haveflowattributes+1
-                elseif(SSUSE(loop,2)(1:7).eq.'EXTRACT')then
-                  haveflowattributes=haveflowattributes+1
-                elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
-                  haveflowattributes=haveflowattributes+1
-                endif
-              elseif(SSUSE(loop,1)(1:6).eq.'WINDOW'.or.
-     &               SSUSE(loop,1)(1:8).eq.'D-WINDOW'.or.
-     &               SSUSE(loop,1)(1:8).eq.'S-WINDOW'.or.
-     &               SSUSE(loop,1)(1:8).eq.'C-WINDOW')then
-                if(SSUSE(loop,2).eq.'CLOSED')then
-                  continue   ! no flow
-                elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
-                  haveflowattributes=haveflowattributes+1 
-                elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
-                  haveflowattributes=haveflowattributes+1 
-                elseif(SSUSE(loop,2)(1:4).eq.'SASH')then
-                  haveflowattributes=haveflowattributes+2 
-                elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
-                  haveflowattributes=haveflowattributes+1 
-                endif
-              elseif(SSUSE(loop,1)(1:4).eq.'FICT')then
-                if(SSUSE(loop,2).eq.'CLOSED')then
-                  continue   ! no flow
-                elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
-                  haveflowattributes=haveflowattributes+1 
-                elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
-                  haveflowattributes=haveflowattributes+1 
-                elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
-                  haveflowattributes=haveflowattributes+1 
-                endif
+              call isuseflowrelated(iz,is,isrelated)
+              if(isrelated)then
+                haveflowattributes=haveflowattributes+1
               endif
             enddo
 
@@ -883,7 +817,9 @@ C to create the initial network based on these attributes.
               endif
               continue
             else
-              if(haveflowattributes.gt.2)then
+              if(haveflowattributes.ge.2)then
+
+C Build flow network from zone and surface attributes.
                 call scan_flow_use()
                 IAIRN=3
                 write(outs,'(2a)') '!!In next dialog use:',
@@ -924,76 +860,9 @@ C ask user if they want to scan otherwise ask user text or graphic.
           haveflowattributes=0
           do loop=1,NCON
             iz=IC1(loop); is=IE1(loop)  ! get current zone & surface.
-            if(SSUSE(loop,1)(1:1).eq.'-'.or.
-     &         SSUSE(loop,1)(1:5).eq.'FLOOR'.or.
-     &         SSUSE(loop,1)(1:5).eq.'FURNI'.or.
-     &         SSUSE(loop,1)(1:7).eq.'ITEQUIP'.or.
-     &         SSUSE(loop,1)(1:5).eq.'PARTN'.or.
-     &         SSUSE(loop,1)(1:4).eq.'ROOF'.or.
-     &         SSUSE(loop,1)(1:5).eq.'STRUC'.or.
-     &         SSUSE(loop,1)(1:7).eq.'FIXTURE'.or.
-     &         SSUSE(loop,1)(1:6).eq.'PLANTS')then
-              CYCLE
-            endif
-            if(SSUSE(loop,1)(1:4).eq.'DOOR'.or.
-     &         SSUSE(loop,1)(1:6).eq.'P-DOOR'.or.
-     &         SSUSE(loop,1)(1:6).eq.'H-DOOR'.or.
-     &         SSUSE(loop,1)(1:6).eq.'H-DOOR')then
-              if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
-                continue   ! no flow
-              elseif(SSUSE(loop,2)(1:8).eq.'UNDERCUT')then
-                haveflowattributes=haveflowattributes+1
-              elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
-                haveflowattributes=haveflowattributes+1
-              elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
-                haveflowattributes=haveflowattributes+1
-              endif
-            elseif(SSUSE(loop,1)(1:5).eq.'FRAME'.or.
-     &             SSUSE(loop,1)(1:7).eq.'F-FRAME')then
-              if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
-                continue   ! no flow
-              elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
-                haveflowattributes=haveflowattributes+1
-              elseif(SSUSE(loop,2)(1:4).eq.'VENT')then
-                haveflowattributes=haveflowattributes+1
-              endif
-            elseif(SSUSE(loop,1)(1:5).eq.'GRILL')then
-              if(SSUSE(loop,2).eq.'CLOSED')then
-                continue   ! no flow
-              elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
-                haveflowattributes=haveflowattributes+1
-              elseif(SSUSE(loop,2)(1:5).eq.'INLET')then
-                haveflowattributes=haveflowattributes+1
-              elseif(SSUSE(loop,2)(1:7).eq.'EXTRACT')then
-                haveflowattributes=haveflowattributes+1
-              elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
-                haveflowattributes=haveflowattributes+1
-              endif
-            elseif(SSUSE(loop,1)(1:6).eq.'WINDOW'.or.
-     &             SSUSE(loop,1)(1:8).eq.'D-WINDOW'.or.
-     &             SSUSE(loop,1)(1:8).eq.'S-WINDOW'.or.
-     &             SSUSE(loop,1)(1:8).eq.'C-WINDOW')then
-              if(SSUSE(loop,2).eq.'CLOSED')then
-                continue   ! no flow
-              elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
-                haveflowattributes=haveflowattributes+1 
-              elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
-                haveflowattributes=haveflowattributes+1 
-              elseif(SSUSE(loop,2)(1:4).eq.'SASH')then
-                haveflowattributes=haveflowattributes+2 
-              elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
-                haveflowattributes=haveflowattributes+1 
-              endif
-            elseif(SSUSE(loop,1)(1:4).eq.'FICT')then
-              if(SSUSE(loop,2).eq.'CLOSED')then
-                continue   ! no flow
-              elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
-                haveflowattributes=haveflowattributes+1 
-              elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
-                haveflowattributes=haveflowattributes+1 
-              elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
-                haveflowattributes=haveflowattributes+1 
-              endif
+            call isuseflowrelated(iz,is,isrelated)
+            if(isrelated)then
+              haveflowattributes=haveflowattributes+1
             endif
           enddo
           iacc=2
@@ -1050,6 +919,8 @@ C not clash with it so make a *g.afn variant.
               endif
             endif
           else
+
+C Build flow network from zone and surface attributes.
             call scan_flow_use()
             IAIRN=3
             write(outs,'(2a)') '!!In next dialog use:',
@@ -1359,14 +1230,14 @@ C FMI
       ELSEIF(INO.EQ.20)THEN
 
 C Call uncertainty definition controller.
-        helptopic='password_is_needed'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        call easki(IPASS,' ','Password?',
-     &    0,'-',0,'-',0,'password',IER,nbhelp)
-        if (IPASS.eq.101) then
+C        helptopic='password_is_needed'
+C        call gethelptext(helpinsub,helptopic,nbhelp)
+C        call easki(IPASS,' ','Password?',
+C     &    0,'-',0,'-',0,'password',IER,nbhelp)
+C        if (IPASS.eq.101) then
           call tstamp('>','PRJ: entering uncertainty control')
           call UNCERTA()
-        endif
+C        endif
       ELSEIF(INO.EQ.22)THEN
 
 C Select visualisation option.
@@ -2805,6 +2676,8 @@ C Find out if there are operation files in the model ../zones folder.
           endif
 
 C See if the source zone has a viewfactor file.
+C NOTE: any viewfactor block attributes will not yet be know by the
+C associated zone geometry file.
           if(IVF(ic).eq.1)then
             helptopic='copy_vwf_options'
             call gethelptext(helpinsub,helptopic,nbhelp)
@@ -2835,7 +2708,7 @@ C See if the source zone has a viewfactor file.
               else
                 goto 92
               endif
-            elseif(irop.eq.2)then
+            elseif(irop.eq.2)then  ! point to another zone's file.
               LVIEW(NCOMP)=LVIEW(IC)
               IVF(NCOMP)=1
             elseif(irop.eq.3)then
@@ -3206,12 +3079,6 @@ C Operation file creation and editing.
         if(IC.eq.99)then
 
 C Global tasks.
-          if(browse)then
-            call edisp(itru,'You are currently in browse mode.')
-            call edisp(itru,'Changes to zone operations file will')
-            call edisp(itru,'not be saved!')
-            call edisp(itru,' ')
-          endif
 
 C << Consider an additional global task of imposing a new infiltration
 C    rate on more than one zone possibly via a search and replace function.
@@ -3242,12 +3109,8 @@ C    and apply it to one or more other zones. >>
 C File is older format and assumed to be unsorted.
                     sorted=.false.
                     call PROCESSOLDCAS(ICOMP,0,iuout)
-                    if(browse)then
-                      continue
-                    else
-                      ip3ver(icomp)=21
-                      CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
-                    endif
+                    ip3ver(icomp)=21
+                    CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
                   else
 
 C File is current format and might be unsorted. If user is not
@@ -3263,12 +3126,8 @@ C browsing, update the operation file.
  400                CONTINUE
                     if(.NOT.sorted)then
                       call PROCESSOLDCAS(ICOMP,0,iuout)
-                      if(browse)then
-                        continue
-                      else
-                        ip3ver(icomp)=21
-                        CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
-                      endif
+                      ip3ver(icomp)=21
+                      CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
                     endif
                   endif
                 endif
@@ -3389,14 +3248,6 @@ C Deal with one zone.
 
         IUF=IFIL+1
 
-C If browsing, do not save files but allow ish to be started.
-        if(browse)then
-          call edisp(itru,'You are currently in browse mode.')
-          call edisp(itru,'The shading analysis module will start')
-          call edisp(itru,'but DO NOT attempt to save results!')
-          call edisp(itru,' ')
-          goto 255
-        endif
         IF(ISI(IC).eq.0)THEN
           if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
             WRITE(SFIL,'(A,A4)')zname(IC)(1:lnzname(IC)),'.shd'
@@ -3470,14 +3321,6 @@ C Loop back and see if another zone is requested.
 
 C Zone convective regime description. If an existing file the
 C call to hcfmk has the option to dereference it.
-
-C If browsing, do not save files but allow ish to be started.
-        if(browse)then
-          call edisp(itru,'You are currently in browse mode. You')
-          call edisp(itru,'can examine the heat transfer regimes')
-          call edisp(itru,'but DO NOT attempt to change them!')
-          call edisp(itru,' ')
-        endif
  260    IC=-1
         izdef=0
         call askzone(ic,izdef,' ','Zone Convection Selection',
@@ -3498,12 +3341,6 @@ C View factor editing, begin by identifying the zone and then
 C reading in the geometry file followed by view factor editing 
 C facilities. Call to edmrt might result in dereferenceing of
 C the file.         
-        if(browse)then
-          call edisp(itru,'You are currently in browse mode. You')
-          call edisp(itru,'can look at the surface viewfactor data')
-          call edisp(itru,'but DO NOT attempt to recalculate them!')
-          call edisp(itru,' ')
-        endif
  251    IC=-1
         izdef=0
         call askzone(ic,izdef,' ','Zone View Factors Selection',
@@ -3577,12 +3414,6 @@ C Loop back and see if another zone is requested.
 C Casual gain control.
         helptopic='zone_cgc_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        if(browse)then
-          call edisp(itru,'You are currently in browse mode. You can')
-          call edisp(itru,'look at the zone casual gain controls')
-          call edisp(itru,'but DO NOT attempt to modify them!')
-          call edisp(itru,' ')
-        endif
  252    IC=-1
         izdef=0
         call askzone(ic,izdef,' ','Zone CG Ctl Selection',
@@ -3591,12 +3422,7 @@ C Casual gain control.
         IUF=IFIL+1
         if(ICGC(IC).eq.1)then
 
-C If browsing do not bother to confirm file name, present menu.
-          if(browse)then
-            IUF=IFIL+1
-            call EDCASCTL(ITRC,IC,IER)
-            goto 252
-          endif
+C Initial user options.
           CALL EASKABC(' ','Casual gain control options:','edit',
      &      'dereference','cancel',irpt,nbhelp)
           if(irpt.eq.1)then
@@ -3614,11 +3440,6 @@ C     &        ' Dereferencing casual gain control file...done.',' ','-')
             goto 3
           endif
         else
-          if(browse)then
-            call usrmsg('No casual gain defined for this zone.',
-     &        'In browse mode so nothing to do.','P')
-            goto 252
-          endif
           if(ICGC(IC).eq.0)then
             CALL EASKAB(' ','Casual gain control options:',
      &        'create','cancel',irpt,nbhelp)
@@ -3669,27 +3490,23 @@ C CFD.
         IVISMOD=1
         MODIFYVIEW=.TRUE.
 
-C If browsing do not offer inclusion option.
-        if(browse)then
-          continue
+C Offer CFD domain inclusion option.
+        write(outs,'(3a)') 'Include ',LCFD(ic)(1:lnblnk(LCFD(ic))),
+     &    ' in the model? '
+        dok=.true.
+        CALL ASKOK(outs,'(see help)',OK,dok,nbhelp)
+        IF(OK)then
+          call usrmsg(' Including CFD domain...',' ','-')
+          CALL EMKCFG('-',IER)
+          IF(ICFD.GT.NCONF)NCONF=NCONF+1
+          call usrmsg(' Including CFD domain...done.',' ','-')
         else
-          write(outs,'(3a)') 'Include ',LCFD(ic)(1:lnblnk(LCFD(ic))),
-     &      ' in the model? '
-          dok=.true.
-          CALL ASKOK(outs,'(see help)',OK,dok,nbhelp)
-          IF(OK)then
-            call usrmsg(' Including CFD domain...',' ','-')
-            CALL EMKCFG('-',IER)
-            IF(ICFD.GT.NCONF)NCONF=NCONF+1
-            call usrmsg(' Including CFD domain...done.',' ','-')
-          else
-            IFCFD(IC)=0 
-            LCFD(IC)='UNKNOWN'
-            call usrmsg(' Dereferencing CFD domain...',' ','-')
-            CALL EMKCFG('-',IER)
-            IF(ICFD.LE.NCONF)NCONF=NCONF-1
-            call usrmsg(' Dereferencing CFD domain...done.',' ','-')
-          endif
+          IFCFD(IC)=0 
+          LCFD(IC)='UNKNOWN'
+          call usrmsg(' Dereferencing CFD domain...',' ','-')
+          CALL EMKCFG('-',IER)
+          IF(ICFD.LE.NCONF)NCONF=NCONF-1
+          call usrmsg(' Dereferencing CFD domain...done.',' ','-')
         endif
 
       elseif(INO.EQ.16)THEN
@@ -3704,15 +3521,6 @@ C Adaptive gridding module.
         call gethelptext(helpinsub,helptopic,nbhelp)
 
         IUF=IFIL+1
-
-C If browsing do not save files but allow grd to be started.
-        if(browse)then
-          call edisp(itru,'You are currently in browse mode.')
-          call edisp(itru,'The adaptive gridding module will start')
-          call edisp(itru,'but DO NOT attempt to save results!')
-          call edisp(itru,' ')
-          goto 257
-        endif
 
 C Offer creation of moisture transport data file or dereference.
         if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
@@ -4074,7 +3882,9 @@ C A .\ indicates that fdroot found no file separators. Must be in cfg folder.
         elseif(path(1:ldirpath).eq.dirpath(1:ldirpath))then
 
 C The path is to the installed esp-r training folder so we must be
-C browsing the model.
+C browsing the model.  Users should not work here. Warn them.
+          call usrmsg('Opening a model inside the ESP-r distribution',
+     &      'folder is discouraged!','W')
           browse=.true.
         else
 
@@ -5232,9 +5042,9 @@ C After transform update the g6 & g7 commons and find dependencies.
 C Depending on the nature of the change update the common block pmchange.
           call warnmod(IICOMP,'str')
 
-C Transform any MRT sensors associated with this zone.
+C Transform any MRT sensors associated with this zone and if a
+C newer geometry file also update the block attributes held there.
           if (IVF(IICOMP).eq.1) then
-C            NCUB(IICOMP) = 0
             CALL ERMRT(ITRC,ITRU,IUF,LVIEW(IICOMP),IICOMP,IER)
             if (NCUB(IICOMP).gt.0) then
               if(silent)then
@@ -5253,6 +5063,9 @@ C            NCUB(IICOMP) = 0
   73            continue
                 CALL EMKMRT(LVIEW(IICOMP),LGEOM(IICOMP),
      &                      NZSUR(IICOMP),IUF,IICOMP,'v',IER)
+                if(newgeo)then
+                  call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+                endif
               endif
             endif
           endif
@@ -5442,9 +5255,9 @@ C After transform update the g6 & g7 commons and find dependencies.
 C Depending on the nature of the change update the common block pmchange.
           call warnmod(IICOMP,'str')
 
-C Rotate any MRT sensors associated with this zone.
+C Rotate any MRT sensors associated with this zone and if newer
+C geometry file update its block attributes as well.
           if (IVF(IICOMP).eq.1) then
-C            NCUB(IICOMP) = 0
             CALL ERMRT(ITRC,ITRU,IUF,LVIEW(IICOMP),IICOMP,IER)
             if (NCUB(IICOMP).gt.0) then
               if(silent)then
@@ -5470,6 +5283,9 @@ C            NCUB(IICOMP) = 0
   76            continue
                 CALL EMKMRT(LVIEW(IICOMP),LGEOM(IICOMP),
      &                      NZSUR(IICOMP),IUF,IICOMP,'v',IER)
+                if(newgeo)then
+                  call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+                endif
               endif
             endif
           endif
@@ -5668,7 +5484,8 @@ C After scaling update the g6 & g7 commons and find dependencies.
 C Depending on the nature of the change update the common block pmchange.
           call warnmod(IICOMP,'str')
 
-C Scale origins of any MRT sensors associated with this zone.
+C Scale origins of any MRT sensors associated with this zone and
+C also update block attributes held in the geometry file.
           if (IVF(IICOMP).eq.1) then
 C            NCUB(IICOMP) = 0
             CALL ERMRT(ITRC,ITRU,IUF,LVIEW(IICOMP),IICOMP,IER)
@@ -5689,6 +5506,9 @@ C            NCUB(IICOMP) = 0
   73            continue
                 CALL EMKMRT(LVIEW(IICOMP),LGEOM(IICOMP),
      &                      NZSUR(IICOMP),IUF,IICOMP,'v',IER)
+                if(newgeo)then
+                  call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
+                endif
               endif
             endif
           endif

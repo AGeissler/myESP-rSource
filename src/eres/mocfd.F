@@ -2843,21 +2843,21 @@ C Ambient temperature.
         elseif (IMFGETNO(IGET,1).eq.10) then
 
 C Ambient wind speed.
-          IPAR=2
+          IPAR=5
           call MFCLIM(IDAY,IHR,ITS,IPAR,VAL)
           FLOWVALS(IGET)=VAL
 
         elseif (IMFGETNO(IGET,1).eq.11) then
 
 C Ambient wind direction.
-          IPAR=3
+          IPAR=6
           call MFCLIM(IDAY,IHR,ITS,IPAR,VAL)
           FLOWVALS(IGET)=VAL
 
         elseif (IMFGETNO(IGET,1).eq.12) then
 
 C Ambient RH.
-          IPAR=4
+          IPAR=7
           call MFCLIM(IDAY,IHR,ITS,IPAR,VAL)
           FLOWVALS(IGET)=VAL
 

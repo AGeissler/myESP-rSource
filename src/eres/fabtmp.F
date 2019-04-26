@@ -282,7 +282,7 @@ C Set 'outside' temperature. 1=same,2=constant,3=other zone,4=ground.
 C Use VAL3(2,?) to hold either external air or other zone temp.
       ISET=ISIM
       if(ie.eq.0)then
-        CALL MOCLIM(IDAY,2)
+        CALL MOCLIM(IDAY,1)
       elseif(ie.eq.3)then
         CALL GZAIRT(IDAY,IZC,ISET)
         CALL XTVAL3(GVAL,1,N,2)

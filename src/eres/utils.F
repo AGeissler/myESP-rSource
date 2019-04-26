@@ -776,7 +776,8 @@ C Then get index of colour for this zone, then plot text in that colour.
           if(iix.lt.ipixright) iix=ipixright
           lna=lnzname(NZNO(i))
           write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
-          call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+          iicol=NZNO(i)
+          call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
           call forceflush()
           call textpixwidth(word,ipixw)  ! get its width
           ipixright=iix+ipixw+3   ! pixel where next word should start
@@ -812,7 +813,8 @@ C Then get index of colour for this zone, then plot text in that colour.
           write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
           call textpixwidth(word,ipixw)  ! get its width
           ipixright=iix+ipixw+3   ! pixel where next word should start
-          call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+          iicol=NZNO(i)
+          call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
           icx=icx+lna+1
  143    continue
         call forceflush()
@@ -832,7 +834,8 @@ C Then get index of colour for this zone, then plot text in that colour.
             write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
             call textpixwidth(word,ipixw)  ! get its width
             ipixright=iix+ipixw+3   ! pixel where next word should start
-            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+            iicol=NZNO(i)
+            call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             icx=icx+lna+1
  144      continue
         endif
@@ -860,7 +863,8 @@ C Normal size res graphics window can hold ~30 on each line.
             if(iix.lt.ipixright) iix=ipixright
             lna=3   ! lna=2
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
-            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+            iicol=NZNO(i)
+            call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             call textpixwidth(word,ipixw)  ! get its width
             ipixright=iix+ipixw+3   ! pixel where next word should start
             icx=icx+lna+1
@@ -887,7 +891,8 @@ C Write out digits on two lines.
             if(iix.lt.ipixright) iix=ipixright
             lna=3  ! lna=2
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
-            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+            iicol=NZNO(i)
+            call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             call textpixwidth(word,ipixw)  ! get its width
             ipixright=iix+ipixw+3   ! pixel where next word should start
             icx=icx+lna+1
@@ -906,7 +911,8 @@ C Write out digits on two lines.
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
             call textpixwidth(word,ipixw)  ! get its width
             ipixright=iix+ipixw+3   ! pixel where next word should start
-            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+            iicol=NZNO(i)
+            call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             icx=icx+lna+1
           enddo
           iicol=0

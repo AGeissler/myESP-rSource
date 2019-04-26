@@ -126,6 +126,12 @@ C For help messages
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
+#ifdef OSI
+      integer nnlistf  ! for use with getfileslist
+#else
+      integer*8 nnlistf
+#endif
+
       helpinsub='pregist'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
@@ -857,7 +863,8 @@ C Provide a listing of the current contents of the ../images folder.
         write(subpath,'(4a)') odir(1:lnod),fs,
      &    path(1:lnblnk(path)),imgpth(1:lnblnk(imgpth))
         action='fil'
-        call getfileslist(subpath,action,nlistf)
+        call getfileslist(subpath,action,nnlistf)
+        nlistf=int(nnlistf)
         call printfileslist(outs,'p')
 
         write(limg,'(a)')imgpth(1:lnblnk(imgpth))
@@ -1175,6 +1182,12 @@ C For help messages
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
+#ifdef OSI
+      integer nnlistf  ! for use with getfileslist
+#else
+      integer*8 nnlistf
+#endif
+
       helpinsub='pfolders'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
@@ -1239,7 +1252,8 @@ C        write(6,*) 'OSX path is ',path
 
 C Remind user of available cfg files.
       action='cfg'
-      call getfileslist(subpath,action,nlistf)
+      call getfileslist(subpath,action,nnlistf)
+      nlistf=int(nnlistf)
       call printfileslist(outs,'p')
 
   42  continue
@@ -1466,7 +1480,8 @@ C << interface for dbspath here >>
      &    path(1:lnblnk(path)),dbspth(1:lnblnk(dbspth))
         write(outs,*) 'files in ',subpath
         action='fil'
-        call getfileslist(subpath,action,nlistf)
+        call getfileslist(subpath,action,nnlistf)
+        nlisft=int(nnlistf)
         call printfileslist(outs,'p')
 
       elseif(ino.eq.13)then

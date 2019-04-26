@@ -110,6 +110,12 @@ C to the selected file to have it relative to the cfg folder.
       logical unixok
       integer lnodir, lnpath
 
+#ifdef OSI
+      integer nnlistf  ! for use with getfileslist
+#else
+      integer*8 nnlistf
+#endif
+
 C Set folder separator (fs) to \ or / as required.
       ier=0
       call isunix(unixok)
@@ -346,10 +352,10 @@ C In OSX no need to prepend odir (just use the relative path defined above).
 
 C Clear the list of files and recover a list of files matching
 C the current criteria.
-      call getfileslist(subpath,action,nlistf)
-
+      call getfileslist(subpath,action,nnlistf)
+      nlistf=int(nnlistf)
 C Debug
-C      write(6,*) 'nlistf nboflistf ',nlistf,nboflistf
+C      write(6,*) 'nlistf nboflistf ',nnlistf,nlistf,nboflistf
 C      write(6,*) listfoldertype
 C      write(6,*) listfolder(1)
 C      write(6,*) listfolder(2)
@@ -572,6 +578,12 @@ C to the selected file to have it relative to the cfg folder.
       character odir*84      ! the directory executable was started from
       logical unixok
       integer lnodir, lnpath
+
+#ifdef OSI
+      integer nnlistf  ! for use with getfileslist
+#else
+      integer*8 nnlistf
+#endif
 
 C Set folder separator (fs) to \ or / as required.
       ier=0
@@ -816,13 +828,14 @@ C In OSX no need to prepend odir (just use the relative path defined above).
 
 C Clear the list of files and recover a list of files matching
 C the current criteria.
-      call getfileslist(subpath,action,nlistf)
+      call getfileslist(subpath,action,nnlistf)
+      nlistf=int(nnlistf)
 
 C Debug
-      write(6,*) 'nlistf nboflistf ',nlistf,nboflistf
-      write(6,*) listfoldertype
-      write(6,*) listfolder(1)
-      write(6,*) listfolder(2)
+C      write(6,*) 'nlistf nboflistf ',nnlistf,nlistf,nboflistf
+C      write(6,*) listfoldertype
+C      write(6,*) listfolder(1)
+C      write(6,*) listfolder(2)
       
 C Depending on `act`, print or browse or just return with number of files.
       if(act.eq.'p')then

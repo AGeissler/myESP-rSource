@@ -1668,7 +1668,7 @@ C Assume equal to incidence angle at 80degC.
 
 C Obtain module irradiance without taking into account reflectance
 C of front cover. This variable is used for reporting and debugging
-C purpses only.
+C purposes only.
       fQInc=exrad(ispmloc(ispmnod,2))
 
 C Impose specified shading treatment.

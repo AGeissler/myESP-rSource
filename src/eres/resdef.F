@@ -1363,8 +1363,7 @@ C are not referenced. Could we use these slots for something else?
   
 C Finally check if the climate file read in above exists.
 C << take into account location >>
-   44 IUNITC=IFIL+5
-      call EFOPRAN(IUNITC,LCLIM,144,0,IER)
+   44 CALL CLMOPB(0,IER)
       IF(IER.LT.0)then
 
 C Climate file not found - ask user for name.
@@ -1400,11 +1399,7 @@ C Also recover the solar radiation flag from the climate file.
 
 C << Note this sets the year from the climate file scan!  What
 C << if the model uses a different year?  Which one is used?
-
-      IRECC=366
-      READ(IUNITC,REC=IRECC,IOSTAT=ios,ERR=102)IYEAR,ICDNGH
-      IRTYPE=0
-      IF(ICDNGH.EQ.123)IRTYPE=1
+      CALL CLMRDBMD(IER)
 
     2 RETURN
 

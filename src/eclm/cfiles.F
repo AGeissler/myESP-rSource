@@ -34,29 +34,48 @@ C         to be transferred to a binary weather file.
 
 C 'MKBCLM' Allows a period of climatic data in a suitable ASCII file
 C to be transferred to a binary weather file.  The ASCII file should 
-C contain the following values for each hour:
-C col     description                 unit            variable
-C 1. Diffuse solar on the horizontal (W/M**2)         IDIF
-C 2. External dry bulb temperature   (TENTHS DEG.C)   ITMP
-C 3. Direct normal solar intensity   (W/M**2)         IDNR
-C    or
-C    Global horizontal radiation (W/M**2)
-C 4. Prevailing wind speed           (TENTHS M/S)     IVEL
-C 5. Wind direction                  (DEGREES)        IDIR
-C 6. Relative humidity               (PERCENT)        IHUM
+C contain climate metric values for each hour.  Metrics are defined in
+C climate.h.
+
+C *** Version 2+ climate files ***
+
+C Header lines should be:
+C CLIMATE 2
+C [site name]
+C [year],[latitude],[longitude difference]
+C [comma seperated metric flags (0 or column number) for each metric]
+C [period start julian day],[period finish julian day]
+
+C Columns can be in any order, defined by 4th header line. Metrics are
+C defined in header file climate.h.
+
+C *** Version 1 climate files ***
+
+C Header lines should be:
+C CLIMATE
+C [site name]
+C [year],[latitude],[longitude difference],[global horizontal flag]
+C [period start julian day],[period finish julian day]
+
+C Columns are in the order:
+C diffuse horizontal solar
+C dry bulb temperature
+C direct normal solar OR global horizontal solar (according to flag)
+C wind speed
+C wind direction
+C relative humidity
 
 C Each data line is comma separated and all values should be integers.
-C Parameters 2 & 4 have been multiplied by 10 ie.  12.3 degrees
-C is represented in the file as 123.  There should be 24 lines for
-C each day of the period being transferred.
-C Assume that the weather file has already been opened elsewhere.
+C Dry bulb temperature and wind speed metrics have been multiplied by 10
+C ie.  12.3 degrees is represented in the file as 123.  There should be
+C 24 lines for each day of the period being transferred.
 
-C Item 3 can be replaced by global horizontal radiation (W/M**2),
-C with the radiation flag set appropriately after the file has been
-C read in.
-C silent is a logical toggle, if .true. then do not interact with user.
+C Assume that the climate database (unit ICLIM) has already been opened
+C elsewhere.
+
       SUBROUTINE MKBCLM(ITRU,ICDESC,LASCI,IUNIT,IDS,IDF,silent,IER)
 #include "esprdbfile.h"
+#include "climate.h"
 
       COMMON/OUTIN/IUOUT,IUIN
 
@@ -65,11 +84,13 @@ C silent is a logical toggle, if .true. then do not interact with user.
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/RADTYP/IDNGH
       LOGICAL OK,DOK,silent
-      dimension ICLM(24,6)
+      dimension ICLM(24,MCM)
 
       CHARACTER CLMLOC*30
       CHARACTER LASCI*96,outs*124,OUTSTR*124
       integer IREAD  ! set to 1 if day demarcation lines
+
+      integer CFIND(MCM) ! Metric indices of each column in the file
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -106,29 +127,108 @@ C Open the ASCII file for reading.
 
 C Check and see if first line is *CLIMATE, if so read in site data.
 C If the user is not requesting new site data then skip over lines. 
-      CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'line 1',IER)
-      if(OUTSTR(1:8).eq.'*CLIMATE')then
-        IF(ICDESC.NE.1)then
-          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'site name',IER)
-          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'yr lat lng idngh',IER)
-          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'julian period',IER)
-        elseIF(ICDESC.eq.1)then
-          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'site name',IER)
-          CLMLOC=OUTSTR(1:30)
+      CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'line 1',IER)
+      if (ND.eq.2 .and. OUTSTR(1:9).eq.'*CLIMATE ') then
 
-          CALL STRIPC(IUNIT,OUTSTR,4,ND,1,'yr lat lng idngh',IER)
+C Check version number.
+        K=8
+        CALL EGETWI(OUTSTR,K,IVER,2,NMCM,'F','clm dbs version',IER)
+
+C Currently, only version number available is 2; otherwise if there is
+C no version number it's version 1.
+        CFVER=IVER
+        CFMCM=MCMALL(CFVER)
+        if(ICDESC.NE.1)then
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 1',IER)
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 2',IER)
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 3',IER)
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 4',IER)
+        elseif(ICDESC.eq.1)then
+
+C Header line 1: location          
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 1',IER)
+          CFLOC=OUTSTR(1:30)
+
+C Header line 2: year, latitude, longitude difference
+          CALL STRIPC(IUNIT,OUTSTR,3,ND,1,'clm head 2',IER)
           K=0
-          CALL EGETWI(OUTSTR,K,IYEAR,1900,2051,'W','year',IER)
-          CALL EGETWR(OUTSTR,K,CLAT,-90.,90.,'W','CLAT',IER)
-          CALL EGETWR(OUTSTR,K,CLONG,-15.,15.,'W','CLONG',IER)
+          CALL EGETWI(OUTSTR,K,CFYEAR,1900,2051,'W','year',IER)
+          CALL EGETWR(OUTSTR,K,CFLAT,-90.,90.,'W','CLAT',IER)
+          CALL EGETWR(OUTSTR,K,CFLONG,-15.,15.,'W','CLONG',IER)
+
+C Header line 3: metric flags
+          CALL STRIPC(IUNIT,OUTSTR,CFMCM,ND,1,'clm head 3',IER)
+          K=0
+          NCM=0
+          do i=1,CFMCM
+            write(outs,'(a,i2,a)')'clm met ',i,' flag'
+            CALL EGETWI
+     &        (OUTSTR,K,CMCOL(i),0,CFMCM,'W',outs(1:lnblnk(outs)),IER)
+            if (CMCOL(i).gt.0) then
+              CMXST(i)=.true.
+              NCM=NCM+1
+              CFIND(CMCOL(i))=i
+            else
+              CMXST(i)=.false.
+            endif
+          enddo
+          if (MCM.gt.CFMCM) then
+            do i=CFMCM+1,MCM
+              CMCOL(i)=0
+              CMXST(i)=.false.
+            enddo
+          endif
+
+C Check we have at least the required metrics.
+          CALL CLMCHKMET(IER)
+          if (IER.ne.0) goto 1003
+
+C Header line 4: period
+          CALL STRIPC(IUNIT,OUTSTR,2,ND,1,'clm head 4',IER)
+          K=0
+          CALL EGETWI(OUTSTR,K,IDS,1,365,'W','clm start',IER)
+          CALL EGETWI(OUTSTR,K,IDF,1,365,'W','clm end',IER)
+        endif
+
+      elseif(ND.eq.1 .and. OUTSTR(1:8).eq.'*CLIMATE')then
+        CFVER=1
+        CFMCM=MCMALL(CFVER)
+        if(ICDESC.NE.1)then
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 1',IER)
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 2',IER)
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 3',IER)
+        elseif(ICDESC.eq.1)then
+          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'clm head 1',IER)
+          CFLOC=OUTSTR(1:30)
+
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'clm head 2',IER)
+          K=0
+          CALL EGETWI(OUTSTR,K,CFYEAR,1900,2051,'W','year',IER)
+          CALL EGETWR(OUTSTR,K,CFLAT,-90.,90.,'W','CLAT',IER)
+          CALL EGETWR(OUTSTR,K,CFLONG,-15.,15.,'W','CLONG',IER)
           CALL EGETWI(OUTSTR,K,IDNGH,0,123,'W','IDNGH',IER)
 
-          CALL STRIPC(IUNIT,OUTSTR,2,ND,1,'julian period',IER)
+          CALL STRIPC(IUNIT,OUTSTR,2,ND,1,'clm head 3',IER)
           K=0
-          CALL EGETWI(OUTSTR,K,IDS,1,365,'W','ascii start',IER)
-          CALL EGETWI(OUTSTR,K,IDF,1,365,'W','ascii end',IER)
+          CALL EGETWI(OUTSTR,K,IDS,1,365,'W','clm start',IER)
+          CALL EGETWI(OUTSTR,K,IDF,1,365,'W','clm end',IER)
         endif
+
+        NCM=6
+        CMCOL(1:2)=(/2,1/)
+        if (IDNGH.eq.123) then
+          CMCOL(3:4)=(/0,3/)
+        else
+          CMCOL(3:4)=(/3,0/)
+        endif
+        CMCOL(5:7)=(/4,5,6/)
+        do k=8,MCM
+          CMCOL(k)=0
+        enddo
+
       else
+        CFVER=1
+        CFMCM=MCMALL(CFVER)
 
 C First line was not *CLIMATE so old style, back up and to on to
 C standard data reads.
@@ -141,25 +241,37 @@ C such questions now.
 C Define the year if not already done.
           helptopic='confirm_year'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKI(IYEAR,' ',' What is the year ? ',
+          CALL EASKI(CFYEAR,' ',' What is the year ? ',
      &             1900,'W',2015,'W',2001,'year',IER,nbhelp)
 
-          CLMLOC=' '
+          CFLOC=' '
           helptopic='confirm_site_name'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKS(CLMLOC,' ','Weather site name:',
+          CALL EASKS(CFLOC,' ','Weather site name:',
      &      30,'North_Pole','weather site. ',IER,nbhelp)
 
           helptopic='confirm_lat_log_diff'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKR(CLAT,' ',' Weather latitude:',
+          CALL EASKR(CFLAT,' ',' Weather latitude:',
      &      -89.9,'W',89.9,'W',30.0,'weather latitude',IER,nbhelp)
 
-          CALL EASKR(CLONG,
+          CALL EASKR(CFLONG,
      &      'Longitude (actual or longitude difference',
      &      'from local time meridian +east) ?',
      &      -14.9,'W',14.9,'W',0.0,'weather long',IER,nbhelp)
         endif
+
+        NCM=6
+        CMCOL(1:2)=(/2,1/)
+        if (IDNGH.eq.123) then
+          CMCOL(3:4)=(/0,3/)
+        else
+          CMCOL(3:4)=(/3,0/)
+        endif
+        CMCOL(5:7)=(/4,5,6/)
+        do k=8,MCM
+          CMCOL(k)=0
+        enddo
       endif
 
 C Loop through days.
@@ -170,95 +282,151 @@ C Loop through days.
         endif
         DO 20 J=1,24
 
+C Loop through metrics and read them in.
+          CALL STRIPC(IUNIT,OUTSTR,NCM,ND,1,'weather data',IER)
+
+          if (CFVER.ge.2) then
+            K=0
+            do icol=1,MCM
+              if (icol.gt.NCM) then
+                ICLM(j,icol)=0
+              else
+                imet=CFIND(icol)
+                write(outs,'(a,i2,a)')'clm col ',icol,' val'
+                CALL EGETWI(OUTSTR,K,IVAL,CFMIN(imet),CFMAX(imet),'W',
+     &            outs(1:lnblnk(outs)),IER)
+                ICLM(J,icol)=IVAL
+              endif
+            enddo
+          else
+
 C Read one hour's data from ASCII file.
-          CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'weather data',IER)
-          K=0
-          CALL EGETWI(OUTSTR,K,IDIF,0,0,'-','diffuse',IER)
-          CALL EGETWI(OUTSTR,K,ITMP,0,0,'-','temperature',IER)
-          CALL EGETWI(OUTSTR,K,IDNR,0,0,'-','direct',IER)
-          CALL EGETWI(OUTSTR,K,IVEL,0,0,'-','velocity',IER)
-          CALL EGETWI(OUTSTR,K,IDIR,0,0,'-','direction',IER)
-          CALL EGETWI(OUTSTR,K,IHUM,0,0,'-','humidity',IER)
+            K=0
+            CALL EGETWI(OUTSTR,K,IDIF,0,0,'-','diffuse',IER)
+            CALL EGETWI(OUTSTR,K,ITMP,0,0,'-','temperature',IER)
+            CALL EGETWI(OUTSTR,K,IDNR,0,0,'-','direct',IER)
+            CALL EGETWI(OUTSTR,K,IVEL,0,0,'-','velocity',IER)
+            CALL EGETWI(OUTSTR,K,IDIR,0,0,'-','direction',IER)
+            CALL EGETWI(OUTSTR,K,IHUM,0,0,'-','humidity',IER)
 
 C Since going from integer ESP units to ESP units in binary file no
 C need to worry about truncation errors.
-          ICLM(J,1)=IDIF
-          ICLM(J,2)=ITMP
-          ICLM(J,3)=IDNR
-          ICLM(J,4)=IVEL
-          ICLM(J,5)=IDIR
-          ICLM(J,6)=IHUM
+            ICLM(J,1)=IDIF
+            ICLM(J,2)=ITMP
+            ICLM(J,3)=IDNR
+            ICLM(J,4)=IVEL
+            ICLM(J,5)=IDIR
+            ICLM(J,6)=IHUM
+            do icol=7,MCM
+              ICLM(J,icol)=0
+            enddo
+
+          endif
    20   CONTINUE
+
+C Debug.
+c        do j=1,24
+c          write(6,*)'ICLM ',(ICLM(j,K),K=1,NCM)
+c        enddo
 
 C Transfer this to the binary file.
         IREC=IDD
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1002)
-     &       ((ICLM(J,K),K=1,6),J=1,24)
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1002)
+     &       ((ICLM(J,K),K=1,MCM),J=1,24)
    10 CONTINUE
 
-C Insert Climatic Year.
+C Insert climatic year.
       IREC=366
-      ICDNGH=IDNGH
-      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1001)IYEAR,ICDNGH
-      IREC=367
-      WRITE(ICLIM,REC=IREC)CLMLOC
-      IREC=368
-      WRITE(ICLIM,REC=IREC)CLAT,CLONG
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)CFYEAR
+
+C Insert location, latitude and longitude.
+      IREC=IREC+1
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)
+     &  CFLOC,CFLAT,CFLONG
+
+C Insert metric flags.
+      IREC=IREC+1
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)
+     &  (CMCOL(i),i=1,MCM)
+
+C Insert version - use latest version for the database no matter what
+C version of ASCII we were given.
+      CFVER=NMCM
+      CFMCM=MCM
+      IREC=IREC+1
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)CFVER
+
+      CALL CLMMDN2O
 
 C Close ASCIIfile.
       CALL ERPFREE(IUNIT,ISTAT)
       RETURN
 
- 1001 WRITE(outs,775)ISTAT
-  775 FORMAT(' Error ',I7,' writing weather database year')
+ 1001 call edisp(iuout,outs)
+      WRITE(outs,775)ISTAT
+  775 FORMAT(' Error ',I7,' writing weather database metadata')
       call edisp(iuout,outs)
       CALL ERPFREE(IUNIT,ISTAT)
       RETURN
 
- 1002 WRITE(outs,777)ISTAT
+ 1002 call edisp(iuout,outs)
+      WRITE(outs,777)ISTAT
   777 FORMAT(' Error ',I7,' writing weather database')
+      call edisp(iuout,outs)
+      CALL ERPFREE(IUNIT,ISTAT)
+      RETURN
+
+ 1003 outs=' Error: climate file does not include all required metrics'
       call edisp(iuout,outs)
       CALL ERPFREE(IUNIT,ISTAT)
       RETURN
 
       END
 
-C 'COLTOBCLM' Allows a period of column climatic data in a suitable ASCII file
-C to be transferred to a binary weather file.  The ASCII file should have 
-C columns of data (integers or reals) for diffuse solar, direct solar, dry bulb, 
-C wind speed, wind direction and RH. The user is asked which column holds which
-C data as well as the units of the data column. Columns can be space or tab or
-C comma separated.
 
-C For solar radiation units can be W/m2 real, W/m2 integer, integer tenths W/m2
-C or (sum direct+diffuse) KJ integer or real using one of three methods to
-C evaluate the diffuse component.
+
+C 'COLTOBCLM' Allows a period of column climatic data in a suitable
+C ASCII file to be transferred to a binary weather file.  The ASCII file
+C should have columns of data (integers or reals) for at least diffuse
+C solar, direct or global solar, dry bulb, wind speed, wind direction
+C and RH. The user is asked which column holds which data as well as the
+C units of the data column. Columns can be space or tab or comma
+C separated.
+
+C For solar radiation units can be W/m2 real, W/m2 integer, integer
+C tenths W/m2 or (sum direct+diffuse) KJ integer or real using one of
+C three methods to evaluate the diffuse component.
 C For dry bulb degrees C real, integer tenths deg C
-C For wind speed m/s real, m/s integer, integer tenths m/s, knots integer or real.
-C For wind direction degrees from north real or integer, integer tenths degrees
+C For wind speed m/s real, m/s integer, integer tenths m/s, knots
+C integer or real.
+C For wind direction degrees from north real or integer, integer tenths
+C degrees
 C For RH  % real, tenths % integer, between 0. and 1.
 
-C At the end of the process we have...
+C At the end of the process we have at least ...
 
 C contain the following values for each hour:
 C col     description                 unit            variable
-C 1. Diffuse solar on the horizontal (W/M**2)         IDIF
-C 2. External dry bulb temperature   (TENTHS DEG.C)   ITMP
+C 1. External dry bulb temperature   (TENTHS DEG.C)   ITMP
+C 2. Diffuse solar on the horizontal (W/M**2)         IDIF
 C 3. Direct normal solar intensity   (W/M**2)         IDNR
 C    or
-C    Global horizontal radiation (W/M**2)
+C    Global horizontal radiation     (W/M**2)
 C 4. Prevailing wind speed           (TENTHS M/S)     IVEL
 C 5. Wind direction                  (DEGREES)        IDIR
 C 6. Relative humidity               (PERCENT)        IHUM
 
-C Assume that the weather file has already been opened elsewhere.
+C ... plus any additional metrics (see header climate.h for metric
+C definitions)
 
-C Item 3 can be replaced by global horizontal radiation (W/M**2),
-C with the radiation flag set appropriately after the file has been
-C read in.
+C Assume that the climate database (unit ICLIM) has already been opened
+C elsewhere.
+
       SUBROUTINE COLTOBCLM(ITRU,LASCI,IUNIT,IDS,IDF,IER)
 #include "esprdbfile.h"
 #include "espriou.h"
+#include "climate.h"
+#include "epara.h"
 
       COMMON/OUTIN/IUOUT,IUIN
 
@@ -268,18 +436,20 @@ C read in.
       COMMON/RADTYP/IDNGH
       COMMON/APPRDIFF/iapprox_diff
       LOGICAL OK,DOK,silent
-      dimension ICLM(24,6)
+      dimension ICLM(24,MCM)
 
       CHARACTER CLMLOC*30
       CHARACTER DFILE*96
       CHARACTER LASCI*96,outs*124,OUTSTR*124,msgl2*48
-      CHARACTER IMPT*42
-      DIMENSION IMPT(24),IMSTC(7),ITUNITS(7)
+      CHARACTER IMPT*50,KEY*1,units*20
+      DIMENSION IMPT(35),IMSTC(MCM),ITUNITS(MCM),MITUNITS(MCM)
       character word*32  ! for skipped column data
       integer iwidest    ! the last column to look in
       integer IREAD  ! set to 1 if day demarcation lines
       real longit_for_diffuse_calcs,differ_from_Greenwich
-      real dbtc
+      real dbtc,rval
+      integer ival
+      logical btog,bcol
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -333,9 +503,8 @@ C End of file encountered, close the file and return to menu.
       CALL USRMSG(' ',msgl2,'-')
       CALL ERPFREE(IUNIT,ISTAT)
 
-C At some point ask user for the site information.
-C << to be done >>
-
+C Page this menu if needed.
+      MHEAD=5
  28   WRITE(IMPT(1),'(A,A)') '1 Import file: ',LASCI(1:26)
       WRITE(IMPT(2),'(A,I3)') '2 Begin reading @ line: ',IMSTL
       if(IREAD.eq.0)then
@@ -346,86 +515,160 @@ C << to be done >>
       write(IMPT(4),'(A,A)') '4 Enter site data   '
       IMPT(5) =      '  - - Column associations & units: - - - '
 
-C For solar radiation units can be W/m2 real, W/m2 integer, integer tenths W/m2
-      WRITE(IMPT(6),'(A,I2)') 'a Diffuse solar colm: ',IMSTC(1)
-      if(ITUNITS(1).eq.0)then
-        WRITE(IMPT(7),'(A)') 'b Diffuse solar >> W/m2 real'
-      elseif(ITUNITS(1).eq.1)then
-        WRITE(IMPT(7),'(A)') 'b Diffuse solar >> W/m2 integer'
-      elseif(ITUNITS(1).eq.2)then
-        WRITE(IMPT(7),'(A)') 'b Diffuse solar >> tenths W/m2 integer'
-      endif
-      WRITE(IMPT(8),'(A,I2)') 'c Ambient db T colm : ',IMSTC(2)
-      if(ITUNITS(2).eq.0)then
-        WRITE(IMPT(9),'(A)') 'd Ambient db T >> deg C real'
-      elseif(ITUNITS(2).eq.1)then
-        WRITE(IMPT(9),'(A)') 'd Ambient db T >> deg C integer'
-      elseif(ITUNITS(2).eq.2)then
-        WRITE(IMPT(9),'(A)') 'd Ambient db T >> tenths deg C integer'
-      endif
-      WRITE(IMPT(10),'(A,I2)')'e Direct solar colm : ',IMSTC(3)
-      if(ITUNITS(3).eq.0)then
-        WRITE(IMPT(11),'(A)')'f Direct solar >> W/m2 real '
-      elseif(ITUNITS(3).eq.1)then
-        WRITE(IMPT(11),'(A)')'f Direct solar >> W/m2 integer '
-      elseif(ITUNITS(3).eq.2)then
-        WRITE(IMPT(11),'(A)')'f Direct solar >> tenths W/m2 integer '
-      endif
-      WRITE(IMPT(12),'(A,I2)')'g Glob hor solar colm: ',IMSTC(4)
-      if(ITUNITS(4).eq.0)then
-        WRITE(IMPT(13),'(A)')'h Glob hor solar >> W/m2 real'
-      elseif(ITUNITS(4).eq.1)then
-        WRITE(IMPT(13),'(A)')'h Glob hor solar >> W/m2 integer'
-      elseif(ITUNITS(4).eq.2)then
-        WRITE(IMPT(13),'(A)')'h Glob hor solar >> tenths W/m2 integer'
-      elseif(ITUNITS(4).eq.3)then
-        WRITE(IMPT(13),'(A)')'h Glob hor solar >> dir+dif KJ/m2 real'
-      elseif(ITUNITS(4).eq.4)then
-        WRITE(IMPT(13),'(A)')'h Glob hor solar >> dir+dif KJ/m2 int'
-      endif
-      WRITE(IMPT(14),'(A,I2)')'i Wind speed colm: ',IMSTC(5)
-      if(ITUNITS(5).eq.0)then
-        WRITE(IMPT(15),'(A)')'j Wind speed >> m/s real'
-      elseif(ITUNITS(5).eq.1)then
-        WRITE(IMPT(15),'(A)')'j Wind speed >> m/s integer'
-      elseif(ITUNITS(5).eq.2)then
-        WRITE(IMPT(15),'(A)')'j Wind speed >> tenths m/s integer'
-      elseif(ITUNITS(5).eq.3)then
-        WRITE(IMPT(15),'(A)')'j Wind speed >> knots real'
-      elseif(ITUNITS(5).eq.4)then
-        WRITE(IMPT(15),'(A)')'j Wind speed >> knots integer'
-      endif
-      WRITE(IMPT(16),'(A,I2)')'i Wind direc colm: ',IMSTC(6)
-      if(ITUNITS(6).eq.0)then
-        WRITE(IMPT(17),'(A)')'j Wind direc >> degrees real'
-      elseif(ITUNITS(6).eq.1)then
-        WRITE(IMPT(17),'(A)')'j Wind direc >> degrees integer'
-      elseif(ITUNITS(6).eq.2)then
-        WRITE(IMPT(17),'(A)')'j Wind direc >> tenths deg integer'
-      endif
-      WRITE(IMPT(18),'(A,I2)')'i Relative humidity colm: ',IMSTC(7)
-      if(ITUNITS(7).eq.0)then
-        WRITE(IMPT(19),'(A,I2)')'j Relative humidity >> % real'
-      elseif(ITUNITS(7).eq.1)then
-        WRITE(IMPT(19),'(A,I2)')'j Relative humidity >> tenths % integ'
-      elseif(ITUNITS(7).eq.2)then
-        WRITE(IMPT(19),'(A,I2)')'j Relative humidity >> 0.0:1.0 real'
-      endif
-      IMPT(20) =     '  __________________________________   '
-      IMPT(21) =     '! View start of import file            '
-      IMPT(22) =     '< Import data                          '
-      IMPT(23) =     '? Help                                 '
-      IMPT(24) =     '- Exit                                 '
-      IMPTL=24
+      ILEN=MCM*2
+      MCTL=5
+      IPACT=CREATE
+      CALL EKPAGE(IPACT)
 
-C 1. Diffuse solar on the horizontal (W/M**2)         IDIF
-C 2. External dry bulb temperature   (TENTHS DEG.C)   ITMP
-C 3. Direct normal solar intensity   (W/M**2)         IDNR
-C    or
-C    Global horizontal radiation (W/M**2)
-C 4. Prevailing wind speed           (TENTHS M/S)     IVEL
-C 5. Wind direction                  (DEGREES)        IDIR
-C 6. Relative humidity               (PERCENT)        IHUM
+C Loop through the items until the page to be displayed. M is the
+C current menu line index. Build up text strings for the menu.
+      M=MHEAD
+      btog=.true.
+      imet=1
+      DO L=1,ILEN
+        IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
+          M=M+1
+          CALL EMKEY(L,KEY,IER)
+          if (btog) then
+            write(IMPT(M),'(a,1x,a,1x,a,1x,i2)')KEY,
+     &        CMNAMF(imet)(1:lnblnk(CMNAMF(imet))),'column:',IMSTC(imet)
+            btog=.false.
+          else
+
+C Different units for different metrics.
+            if (imet.eq.1) then ! dry bulb temperature
+              if(ITUNITS(imet).eq.0)then
+                units='degrees C real      '
+              elseif(ITUNITS(imet).eq.1)then
+                units='degrees C integer   '
+              elseif(ITUNITS(imet).eq.2)then
+                units='tenths deg C integer'
+              endif
+              MITUNITS(imet)=2
+
+            elseif (imet.eq.2 .or. imet.eq.3) then ! diffuse or direct solar
+              if(ITUNITS(imet).eq.0)then
+                units='W/m^2 real          '
+              elseif(ITUNITS(imet).eq.1)then
+                units='W/m^2 integer       '
+              elseif(ITUNITS(imet).eq.2)then
+                units='tenths W/m^2 integer'
+              endif
+              MITUNITS(imet)=2
+
+            elseif (imet.eq.4) then ! global horizontal solar
+              if(ITUNITS(imet).eq.0)then
+                units='W/m^2 real          '
+              elseif(ITUNITS(imet).eq.1)then
+                units='W/m^2 integer       '
+              elseif(ITUNITS(imet).eq.2)then
+                units='tenths W/m^2 integer'
+              elseif(ITUNITS(imet).eq.3)then
+                units='dir+dif KJ/m2 real  '
+              elseif(ITUNITS(imet).eq.4)then
+                units='dir+dif KJ/m2 int   '
+              endif
+              MITUNITS(imet)=4
+
+            elseif (imet.eq.5) then ! wind speed
+              if(ITUNITS(imet).eq.0)then
+                units='m/s real            '
+              elseif(ITUNITS(imet).eq.1)then
+                units='m/s integer         '
+              elseif(ITUNITS(imet).eq.2)then
+                units='tenths m/s integer  '
+              elseif(ITUNITS(imet).eq.3)then
+                units='knots real          '
+              elseif(ITUNITS(imet).eq.4)then
+                units='knots integer       '
+              endif
+              MITUNITS(imet)=4
+
+            elseif (imet.eq.6) then ! wind direction
+              if(ITUNITS(imet).eq.0)then
+                units='degrees real        '
+              elseif(ITUNITS(imet).eq.1)then
+                units='degrees integer     '
+              elseif(ITUNITS(imet).eq.2)then
+                units='tenths deg integer  '
+              endif
+              MITUNITS(imet)=2
+
+            elseif (imet.eq.7) then ! relative humidity
+              if(ITUNITS(imet).eq.0)then
+                units='% real              '
+              elseif(ITUNITS(imet).eq.1)then
+                units='% integer           '
+              elseif(ITUNITS(imet).eq.2)then
+                units='tenths % integer    '
+              elseif(ITUNITS(imet).eq.3)then
+                units='0.0 to 1.0 real     '
+              endif
+              MITUNITS(imet)=3
+
+            elseif (imet.eq.8) then ! total cloud cover
+              if(ITUNITS(imet).eq.0)then
+                units='tenths real         '
+              elseif(ITUNITS(imet).eq.1)then
+                units='tenths integer      '
+              elseif(ITUNITS(imet).eq.2)then
+                units='0.0 to 1.0 real     '
+              endif
+              MITUNITS(imet)=2
+
+            elseif (imet.eq.9) then ! opaque cloud cover
+              if(ITUNITS(imet).eq.0)then
+                units='tenths real         '
+              elseif(ITUNITS(imet).eq.1)then
+                units='tenths integer      '
+              elseif(ITUNITS(imet).eq.2)then
+                units='0.0 to 1.0 real     '
+              endif
+              MITUNITS(imet)=2
+
+            elseif (imet.eq.10) then ! atmospheric pressure
+              if(ITUNITS(imet).eq.0)then
+                units='Pa real             '
+              elseif(ITUNITS(imet).eq.1)then
+                units='Pa integer          '
+              elseif(ITUNITS(imet).eq.2)then
+                units='kPa real            '
+              elseif(ITUNITS(imet).eq.3)then
+                units='kPa integer         '
+              elseif(ITUNITS(imet).eq.4)then
+                units='tenths kPa integer  '
+              elseif(ITUNITS(imet).eq.5)then
+                units='bar real            '
+              elseif(ITUNITS(imet).eq.6)then
+                units='psi real            '
+              elseif(ITUNITS(imet).eq.7)then
+                units='atm real            '
+              endif
+              MITUNITS(imet)=7
+
+            endif
+
+            write(IMPT(M),'(a,1x,a,1x,a,1x,a)')KEY,
+     &        CMNAMF(imet)(1:lnblnk(CMNAMF(imet))),'>>',units
+
+            btog=.true.
+            imet=imet+1
+          endif
+        endif
+      enddo
+
+      IMPTL=M+MCTL
+      
+C If a long list include page facility text.
+      if (IPFLG.eq.0) then
+        IMPT(M+1)='  __________________________________   '
+      else
+        write(IMPT(M+1),'(a,i2,a,i2)')'0 page --- part: ',IPM,' of ',MPM
+      endif
+      IMPT(M+2) = '! View start of import file            '
+      IMPT(M+3) = '< Import data                          '
+      IMPT(M+4) = '? Help                                 '
+      IMPT(M+5) = '- Exit                                 '
 
 C Help text for this menu.
       helptopic='clm_import_param'
@@ -436,14 +679,17 @@ C Help text for this menu.
 
       IF(INODA.EQ.IMPTL)THEN
         RETURN
+
       ELSEIF(INODA.EQ.IMPTL-1)THEN
         helptopic='clm_import_param'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('period fields',nbhelp,'-',0,0,IER)
+
       ELSEIF(INODA.EQ.1)THEN
         DFILE='data.imp'
         CALL EASKS(LASCI,' Import file name? ',
      &   ' ',96,DFILE,'import file name',IER,nbhelp)
+
       ELSEIF(INODA.EQ.2)THEN
 
 C Specify that read of import file begins at (non_comment) line IMSTL.
@@ -467,21 +713,21 @@ C Confirm if any day demarcation lines.
 C Define the year if not already done.
         helptopic='confirm_year'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKI(IYEAR,' ',' What is the year ? ',
+        CALL EASKI(CFYEAR,' ',' What is the year ? ',
      &           1900,'W',2015,'W',2003,'year',IER,nbhelp)
 
-        CLMLOC=' '
+        CFLOC=' '
         helptopic='confirm_site_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKS(CLMLOC,' ','Weather site name:',
+        CALL EASKS(CFLOC,' ','Weather site name:',
      &    30,'North_Pole','weather site. ',IER,nbhelp)
 
         helptopic='confirm_lat_log_diff'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKR(CLAT,' ',' Weather latitude:',
+        CALL EASKR(CFLAT,' ',' Weather latitude:',
      &    -89.9,'W',89.9,'W',30.0,'weather latitude',IER,nbhelp)
 
-        CALL EASKR(CLONG,'Longitude (acutal or difference from the',
+        CALL EASKR(CFLONG,'Longitude (acutal or difference from the',
      &    'local time meridian +east) ?',
      &    -14.9,'W',14.9,'W',0.0,'weather long',IER,nbhelp)
 
@@ -493,111 +739,122 @@ C Define the year if not already done.
         
       ELSEIF(INODA.EQ.5)THEN
         continue
-      ELSEIF(INODA.EQ.6)THEN
-        IV=IMSTC(1)
-        CALL EASKI(IV,' ','Column for diffuse solar:',
-     &    1,'F',60,'W',1,'diffuse column',IER,nbhelp)
-        IMSTC(1)=IV
-        if(iwidest.lt.IV) iwidest=IV  ! remember
-      ELSEIF(INODA.EQ.7)THEN
-        ITUNITS(1)=ITUNITS(1)+1
-        if(ITUNITS(1).gt.2) ITUNITS(1)=0
-      ELSEIF(INODA.EQ.8)THEN
-        IV=IMSTC(2)
-        CALL EASKI(IV,' ','Column for Ambient db T:',
-     &    1,'F',60,'W',1,'dbT column',IER,nbhelp)
-        IMSTC(2)=IV
-        if(iwidest.lt.IV) iwidest=IV  ! remember
-      ELSEIF(INODA.EQ.9)THEN
-        ITUNITS(2)=ITUNITS(2)+1
-        if(ITUNITS(2).gt.2) ITUNITS(2)=0
-      ELSEIF(INODA.EQ.10)THEN
-        IV=IMSTC(3)
-        CALL EASKI(IV,' ','Column for Direct solar:',
-     &    1,'F',60,'W',1,'dir solar column',IER,nbhelp)
-        IMSTC(3)=IV   ! remember to set toggle for direct type
-        if(iwidest.lt.IV) iwidest=IV  ! remember
-      ELSEIF(INODA.EQ.11)THEN
-        ITUNITS(3)=ITUNITS(3)+1
-        if(ITUNITS(3).gt.2) ITUNITS(3)=0
-      ELSEIF(INODA.EQ.12)THEN
-        IV=IMSTC(4)
-        CALL EASKI(IV,' ','Column for Glob hor solar:',
-     &    1,'F',60,'W',1,'glob hor solar column',IER,nbhelp)
-        IMSTC(4)=IV   ! remember to set toggle for direct type
-        if(iwidest.lt.IV) iwidest=IV  ! remember
-      ELSEIF(INODA.EQ.13)THEN
-        ITUNITS(4)=ITUNITS(4)+1
-        if(ITUNITS(4).gt.4) ITUNITS(4)=0
-        if(ITUNITS(4).eq.3.or.ITUNITS(4).eq.4)then
-      
-C Set the radiation flag to Global horizontal.     
-          IDNGH=123
-          helptopic='confirm_lat_log_diff'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKR(longit_for_diffuse_calcs,' ',
-     &     'Weather site longitude (actual)? (west: positive):',
-     &     -180.0,'W',180.0,'W',30.0,'weather longitude',IER,nbhelp)
 
-          helptopic='local_time_difference'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKR(differ_from_Greenwich,' ',
-     &      ' Time difference from Greenwich? (west: positive) ',
-     &      -24.0,'W',24.0,'W',0.0,'time_difference',IER,nbhelp)
+      ELSEIF(INODA.GT.MHEAD .and. INODA.LE.(IMPTL-MCTL))THEN
 
-C Export weather data to ASCII file (with similar name).
-          helptopic='korea_met_conversion'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          call easkabc
-     &     ('Available models to approximate diffuse:',
-     &     ' ','Muneer','Maxwell','Erbs Klein & Duffie (default)',
-     &     IDIFF,nbhelp)
-
-C Set the global variable iapprox_diff to tell underlying calculation
-C method which equation set to use.
-          if(IDIFF.eq.1)then
-            iapprox_diff=1
-          elseif(IDIFF.eq.2)then  
-            iapprox_diff=2
-          elseif(IDIFF.eq.3)then  
-            iapprox_diff=3
-          endif
+C Item has been selected. Decode via KEYIND.
+        CALL KEYIND(IMPTL,INODA,iind,io)
+        if (MOD(iind,2).gt.0) then
+          imet=iind/2+1
+          bcol=.true.
+        else
+          imet=iind/2
+          bcol=.false.
         endif
-  
-      ELSEIF(INODA.EQ.14)THEN
-        IV=IMSTC(5)
-        CALL EASKI(IV,' ','Column for wind speed:',
-     &    1,'F',60,'W',1,'wind speed column',IER,nbhelp)
-        IMSTC(5)=IV
-        if(iwidest.lt.IV) iwidest=IV  ! remember
-      ELSEIF(INODA.EQ.15)THEN
-        ITUNITS(5)=ITUNITS(5)+1
-        if(ITUNITS(5).gt.4) ITUNITS(5)=0
-      ELSEIF(INODA.EQ.16)THEN
-        IV=IMSTC(6)
-        CALL EASKI(IV,' ','Column for wind direction:',
-     &    1,'F',60,'W',1,'wind direction column',IER,nbhelp)
-        IMSTC(6)=IV
-        if(iwidest.lt.IV) iwidest=IV  ! remember
-      ELSEIF(INODA.EQ.17)THEN
-        ITUNITS(6)=ITUNITS(6)+1
-        if(ITUNITS(6).gt.2) ITUNITS(6)=0
-      ELSEIF(INODA.EQ.18)THEN
-        IV=IMSTC(7)
-        CALL EASKI(IV,' ','Column for RH %:',
-     &    1,'F',60,'W',1,'RH % column',IER,nbhelp)
-        IMSTC(7)=IV
-        if(iwidest.lt.IV) iwidest=IV  ! remember
-      ELSEIF(INODA.EQ.19)THEN
-        ITUNITS(7)=ITUNITS(7)+1
-        if(ITUNITS(7).gt.2) ITUNITS(7)=0
-      ELSEIF(INODA.EQ.20)THEN
-        continue
-      ELSEIF(INODA.EQ.21)THEN
+
+C Ask user for the column number.
+        if (bcol) then
+          write(outs,'(3a)')'Column for ',CMNAMF(imet),':'
+          write(OUTSTR,'(2a)')CMNAMA(imet),' column'
+          IV=IMSTC(imet)
+          CALL EASKI(IV,' ',outs,0,'F',60,'W',1,OUTSTR,IER,nbhelp)
+          IMSTC(imet)=IV
+          if(iwidest.lt.IV) iwidest=IV  ! remember how many columns
+
+C Change units.
+        else
+          ITUNITS(imet)=ITUNITS(imet)+1
+          if(ITUNITS(imet).gt.MITUNITS(imet)) ITUNITS(imet)=0
+        endif
+
+      ELSEIF(INODA.EQ.IMPTL-4)THEN
+
+C If long list, allow paging.
+        IF(IPFLG.EQ.1)THEN
+          IPACT=EDIT
+          CALL EKPAGE(IPACT)
+        ENDIF
+      ELSEIF(INODA.EQ.IMPTL-3)THEN
         CALL EFOPSEQ(IUNIT,LASCI,1,IER)
         k=0
         goto 7
-      ELSEIF(INODA.EQ.22)THEN
+      ELSEIF(INODA.EQ.IMPTL-2)THEN
+
+C If we are getting global horizontal, and using an algorithm to
+C approximate diffuse from this, we need to confirm the longitude and
+C time difference and ask which algorithm to use.
+        if (IMSTC(4).gt.0) then
+          IDNGH=123
+          if (ITUNITS(4).eq.3 .or. ITUNITS(4).eq.4) then
+            helptopic='confirm_lat_log_diff'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            CALL EASKR(longit_for_diffuse_calcs,' ',
+     &       'Weather site longitude (actual)? (west: positive):',
+     &       -180.0,'W',180.0,'W',30.0,'weather longitude',IER,nbhelp)
+
+            helptopic='local_time_difference'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            CALL EASKR(differ_from_Greenwich,' ',
+     &        ' Time difference from Greenwich? (west: positive) ',
+     &        -24.0,'W',24.0,'W',0.0,'time_difference',IER,nbhelp)
+
+C Export weather data to ASCII file (with similar name).
+            helptopic='korea_met_conversion'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            call easkabc
+     &       ('Available models to approximate diffuse:',
+     &       ' ','Muneer','Maxwell','Erbs Klein & Duffie (default)',
+     &       IDIFF,nbhelp)
+
+            helptopic='clm_import_param'
+
+C Set the global variable iapprox_diff to tell underlying calculation
+C method which equation set to use.
+            if(IDIFF.eq.1)then
+              iapprox_diff=1
+            elseif(IDIFF.eq.2)then  
+              iapprox_diff=2
+            elseif(IDIFF.eq.3)then  
+              iapprox_diff=3
+            endif
+          endif
+        endif
+
+C Set up CMCOL and CMXST, and initialise ICLM.
+        icol=0
+        do imet=1,MCM
+          do i=1,24
+            ICLM(i,imet)=0
+          enddo
+          if (IMSTC(imet).gt.0) then
+            icol=icol+1
+            CMCOL(imet)=icol
+            CMXST(imet)=.true.
+          else
+            CMCOL(imet)=0
+            CMXST(imet)=.false.
+          endif
+        enddo
+        if (CMXST(4) .and. .not.CMXST(2) .and.
+     &    (ITUNITS(4).eq.3 .or. ITUNITS(4).eq.4)) then
+          CMXST(2)=.true.
+          CMCOL(2)=icol+1
+        endif
+
+C Check we have all the required metrics.
+        call CLMCHKMET(IER)
+        if (IER.ne.0) then
+          dok=.false.
+          ok=dok
+          helptopic='not_enough_metrics'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          call ASKOK(
+     &      'Not enough metrics for a usable climate database.',
+     &      'Continue anyway?',ok,dok,nbhelp)
+          helptopic='clm_import_param'
+          IER=0
+          if (.not.ok) goto 28
+        endif
 
 C Re-open the file and read how ever many lines prior to the data
 C that the user requested.
@@ -622,121 +879,195 @@ C Loop through days.
 
 C Read one hour's data from ASCII file into outstr. Loop through
 C each of the possible columns and if it matches one of the weather
-C data columns defined by the user read and convert the correct
+C data columns defined by the user read and convert to the correct
 C data format. If not a match just read the word and try the 
 C next column. If reached EOF then jump to end of loop.
             CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'weather data',IER)
             if(ier.ne.0) goto 20  ! EOF detected
             K=0
-            do 6 N1=1,iwidest   ! loop through the possible columns
+            do 6 N1=1,iwidest
+
+C Different units for different metrics.
               if(N1.eq.IMSTC(1))then
-                if(ITUNITS(1).eq.0)then
-                  CALL EGETWR(OUTSTR,K,DIF,0.0,0.0,'-',
-     &              'dif w/m2 real',IER)
-                  ICLM(J,1)= NINT(DIF)
-                elseif(ITUNITS(1).eq.1)then
-                  CALL EGETWI(OUTSTR,K,IDIF,0,0,'-','dif w/m2 int',IER)
-                  ICLM(J,1)=IDIF
-                elseif(ITUNITS(1).eq.2)then
-                 CALL EGETWI(OUTSTR,K,IDIF,0,0,'-','dif 10th w/m2',IER)
-                  ICLM(J,1)=IDIF/10  ! to get back to w/m2
-                endif
-              elseif(N1.eq.IMSTC(2))then
                 if(ITUNITS(2).eq.0)then
-                  CALL EGETWR(OUTSTR,K,dbtc,0.0,0.0,'-',
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'deg C real',IER)
-                  ICLM(J,2)= NINT(dbtc*10.0)
-C Debug.
-C                  write(6,*) j,dbtc,ICLM(J,2)
+                  ICLM(J,CMCOL(1))= NINT(rval*10.0)
                 elseif(ITUNITS(2).eq.1)then
-                  CALL EGETWI(OUTSTR,K,ITMP,0,0,'-','deg C int',IER)
-                  ICLM(J,2)=ITMP*10
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','deg C int',IER)
+                  ICLM(J,CMCOL(1))=ival*10
                 elseif(ITUNITS(2).eq.2)then
-                  CALL EGETWI(OUTSTR,K,ITMP,0,0,'-','10th deg C',IER)
-                  ICLM(J,2)=ITMP  ! no conversion needed
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','10th deg C',IER)
+                  ICLM(J,CMCOL(1))=ival  ! no conversion needed
                 endif
+
+              elseif(N1.eq.IMSTC(2))then
+                if(ITUNITS(1).eq.0)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
+     &              'dif w/m2 real',IER)
+                  ICLM(J,CMCOL(2))= NINT(rval)
+                elseif(ITUNITS(1).eq.1)then
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','dif w/m2 int',IER)
+                  ICLM(J,CMCOL(2))=ival
+                elseif(ITUNITS(1).eq.2)then
+                 CALL EGETWI(OUTSTR,K,ival,0,0,'-','dif 10th w/m2',IER)
+                  ICLM(J,CMCOL(2))=ival/10  ! to get back to w/m2
+                endif
+
               elseif(N1.eq.IMSTC(3))then
                 if(ITUNITS(3).eq.0)then
-                  CALL EGETWR(OUTSTR,K,DNR,0.0,0.0,'-',
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'dir w/m2 real',IER)
-                  ICLM(J,3)= NINT(DNR)
+                  ICLM(J,CMCOL(3))= NINT(rval)
                 elseif(ITUNITS(3).eq.1)then
-                  CALL EGETWI(OUTSTR,K,IDNR,0,0,'-','dir w/m2 int',IER)
-                  ICLM(J,3)=IDNR
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','dir w/m2 int',IER)
+                  ICLM(J,CMCOL(3))=ival
                 elseif(ITUNITS(3).eq.2)then
-                 CALL EGETWI(OUTSTR,K,IDNR,0,0,'-','dir 10th w/m2',IER)
-                  ICLM(J,3)=IDNR/10  ! to get back to w/m2
+                 CALL EGETWI(OUTSTR,K,ival,0,0,'-','dir 10th w/m2',IER)
+                  ICLM(J,CMCOL(3))=ival/10  ! to get back to w/m2
                 endif
-              elseif(N1.eq.IMSTC(4))then
-                if(ITUNITS(4).eq.0)then
-                  CALL EGETWR(OUTSTR,K,GLO,0.0,0.0,'-',
-     &              'glo w/m2 real',IER)
-                  ICLM(J,3)= NINT(GLO)
-                elseif(ITUNITS(4).eq.1)then
-                  CALL EGETWI(OUTSTR,K,IGLO,0,0,'-','glo w/m2 int',IER)
-                  ICLM(J,3)=IGLO
-                elseif(ITUNITS(4).eq.2)then
-                 CALL EGETWI(OUTSTR,K,IGLO,0,0,'-','glo 10th w/m2',IER)
-                  ICLM(J,3)=IGLO/10  ! to get back to w/m2
-                elseif(ITUNITS(4).eq.3)then
 
-C Source is global horizontal, so also need to derive the diffuse as
-C per the approach decoding Korea MET office data.
-                  CALL EGETWR(OUTSTR,K,GLO,0.0,0.0,'-',
+              elseif(N1.eq.IMSTC(4))then
+                btog=.false.
+                if(ITUNITS(4).eq.0)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
+     &              'glo w/m2 real',IER)
+                  ICLM(J,CMCOL(4))= NINT(rval)
+                elseif(ITUNITS(4).eq.1)then
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','glo w/m2 int',IER)
+                  ICLM(J,CMCOL(4))=ival
+                elseif(ITUNITS(4).eq.2)then
+                 CALL EGETWI(OUTSTR,K,ival,0,0,'-','glo 10th w/m2',IER)
+                  ICLM(J,CMCOL(4))=ival/10  ! to get back to w/m2
+                elseif(ITUNITS(4).eq.3)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'glo KJ/m2 real',IER)
-                  ICLM(J,3)= NINT(GLO*0.277777778)
+                  ICLM(J,CMCOL(4))= NINT(rval*0.277777778)
+                  btog=.true.
                 elseif(ITUNITS(4).eq.4)then
-                  CALL EGETWI(OUTSTR,K,IGLO,0,0,'-','glo KJ/m2 int',IER)
-                  ICLM(J,3)= NINT(IGLO*0.277777778)
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','glo KJ/m2 int',IER)
+                  ICLM(J,CMCOL(4))= NINT(ival*0.277777778)
+                  btog=.true.
                 endif
-                call edayr(IDD,imonth,iday)
-                CALL APPRDIFFUSE(iyear,imonth,iday,J,ICLM(J,3),
-     &            longit_for_diffuse_calcs,differ_from_Greenwich,DRAD)
-                IDRAD=NINT(DRAD)
-                ICLM(J,1)=IDRAD
+
+C Also need to derive the diffuse as per the approach for decoding
+C Korean MET office data.
+                if (btog) then
+                  call edayr(IDD,imonth,iday)
+                  CALL APPRDIFFUSE(iyear,imonth,iday,J,ICLM(J,4),
+     &              longit_for_diffuse_calcs,differ_from_Greenwich,DRAD)
+                  IDRAD=NINT(DRAD)
+                  ICLM(J,CMCOL(2))=IDRAD
+                endif
 C Debug.
 C                write(6,*) iyear,imonth,iday,j,iclm(j,3),drad
+
               elseif(N1.eq.IMSTC(5))then
                 if(ITUNITS(5).eq.0)then
-                  CALL EGETWR(OUTSTR,K,VEL,0.0,0.0,'-',
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'vel m/s real',IER)
-                  ICLM(J,4)= NINT(VEL*10.0)
+                  ICLM(J,CMCOL(5))= NINT(rval*10.0)
                 elseif(ITUNITS(5).eq.1)then
-                  CALL EGETWI(OUTSTR,K,IVEL,0,0,'-','vel m/s int',IER)
-                  ICLM(J,4)=IVEL*10
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','vel m/s int',IER)
+                  ICLM(J,CMCOL(5))=ival*10
                 elseif(ITUNITS(5).eq.2)then
-                  CALL EGETWI(OUTSTR,K,IVEL,0,0,'-','tenths m/s',IER)
-                  ICLM(J,4)=IVEL  ! no conversion required
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','tenths m/s',IER)
+                  ICLM(J,CMCOL(5))=ival  ! no conversion required
                 elseif(ITUNITS(5).eq.3)then
-                  CALL EGETWR(OUTSTR,K,VEL,0.0,0.0,'-',
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'vel knots real',IER)
-                  ICLM(J,4)= NINT((VEL*10.0)*0.51444)
+                  ICLM(J,CMCOL(5))= NINT((rval*10.0)*0.51444)
                 elseif(ITUNITS(5).eq.4)then
-                  CALL EGETWI(OUTSTR,K,IVEL,0,0,'-','vel knot int',IER)
-                  ICLM(J,4)= NINT((IVEL*10)*0.51444)
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','vel knot int',IER)
+                  ICLM(J,CMCOL(5))= NINT((ival*10)*0.51444)
                 endif
+
               elseif(N1.eq.IMSTC(6))then
                 if(ITUNITS(6).eq.0)then
-                  CALL EGETWR(OUTSTR,K,DIR,0.0,0.0,'-',
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'w dir real',IER)
-                  ICLM(J,5)= NINT(DIR)
+                  ICLM(J,CMCOL(6))= NINT(rval)
                 elseif(ITUNITS(6).eq.1)then
-                  CALL EGETWI(OUTSTR,K,IDIR,0,0,'-','w dir int',IER)
-                  ICLM(J,5)=IDIR
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','w dir int',IER)
+                  ICLM(J,CMCOL(6))=ival
                 elseif(ITUNITS(6).eq.2)then
-                 CALL EGETWI(OUTSTR,K,IDIR,0,0,'-','tenths dir dg',IER)
-                  ICLM(J,5)=IDIR/10  ! to get back to m/s
+                 CALL EGETWI(OUTSTR,K,ival,0,0,'-','tenths dir dg',IER)
+                  ICLM(J,CMCOL(6))=ival/10  ! to get back to degrees
                 endif
+
               elseif(N1.eq.IMSTC(7))then
                 if(ITUNITS(7).eq.0)then
-                  CALL EGETWR(OUTSTR,K,HUM,0.0,0.0,'-','RH % real',IER)
-                  ICLM(J,6)= NINT(HUM)
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','RH % real',IER)
+                  ICLM(J,CMCOL(7))= NINT(rval)
                 elseif(ITUNITS(7).eq.1)then
-                  CALL EGETWI(OUTSTR,K,IHUM,0,0,'-','RH % int',IER)
-                  ICLM(J,6)=IHUM
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','RH % int',IER)
+                  ICLM(J,CMCOL(7))=ival
                 elseif(ITUNITS(7).eq.2)then
-                  CALL EGETWR(OUTSTR,K,HUM,0.0,0.0,'-','RH 0.-1.',IER)
-                  ICLM(J,6)=NINT(HUM*100.0)
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','RH 10th % int',IER)
+                  ICLM(J,CMCOL(7))=ival/10 ! to get back to %
+                elseif(ITUNITS(7).eq.3)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','RH 0.-1.',IER)
+                  ICLM(J,CMCOL(7))=NINT(rval*100.0)
+                endif
+
+              elseif(N1.eq.IMSTC(8))then
+                if(ITUNITS(8).eq.0)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','tot cld real',
+     &              IER)
+                  ICLM(J,CMCOL(8))= NINT(rval)
+                elseif(ITUNITS(8).eq.1)then
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','tot cld int',IER)
+                  ICLM(J,CMCOL(8))= ival
+                elseif(ITUNITS(8).eq.2)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','tot cld 0.-1.',
+     &              IER)
+                  ICLM(J,CMCOL(8))= NINT(rval*10.0)
+                endif
+
+              elseif(N1.eq.IMSTC(9))then
+                if(ITUNITS(9).eq.0)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','opq cld real',
+     &              IER)
+                  ICLM(J,CMCOL(9))= NINT(rval)
+                elseif(ITUNITS(9).eq.1)then
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','opq cld int',IER)
+                  ICLM(J,CMCOL(9))= ival
+                elseif(ITUNITS(9).eq.2)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','opq cld 0.-1.',
+     &              IER)
+                  ICLM(J,CMCOL(9))= NINT(rval*10.0)
+                endif
+
+              elseif(N1.eq.IMSTC(10))then
+                if(ITUNITS(10).eq.0)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','pres real',IER)
+                  ICLM(J,CMCOL(10))= NINT(rval)
+                elseif(ITUNITS(10).eq.1)then
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','pres int',IER)
+                  ICLM(J,CMCOL(10))= ival
+                elseif(ITUNITS(10).eq.2)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','pres kPa real',
+     &              IER)
+                  ICLM(J,CMCOL(10))= NINT(rval*1000.0)
+                elseif(ITUNITS(10).eq.3)then
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','pres kPa int',IER)
+                  ICLM(J,CMCOL(10))= ival*1000
+                elseif(ITUNITS(10).eq.4)then
+                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','pres 10th kPa int',
+     &              IER)
+                  ICLM(J,CMCOL(10))= ival*100
+                elseif(ITUNITS(10).eq.5)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','pres bar real',
+     &              IER)
+                  ICLM(J,CMCOL(10))= NINT(rval*100000.0)
+                elseif(ITUNITS(10).eq.6)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','pres psi real',
+     &              IER)
+                  ICLM(J,CMCOL(10))= NINT(rval*6894.757)
+                elseif(ITUNITS(10).eq.7)then
+                  CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-','pres atm real',
+     &              IER)
+                  ICLM(J,CMCOL(10))= NINT(rval*101325.0)
                 endif
               else
 
@@ -749,17 +1080,31 @@ C The current column in the file is to be skipped over.
 C Transfer this to the binary file.
           IREC=IDD
           WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1002)
-     &         ((ICLM(J,K),K=1,6),J=1,24)
+     &         ((ICLM(J,K),K=1,MCM),J=1,24)
    10   CONTINUE
 
-C Insert Climatic Year.
+C Insert climatic year.
         IREC=366
-        ICDNGH=IDNGH
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1001)IYEAR,ICDNGH
-        IREC=367
-        WRITE(ICLIM,REC=IREC)CLMLOC
-        IREC=368
-        WRITE(ICLIM,REC=IREC)CLAT,CLONG
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)CFYEAR
+
+C Insert location, latitude and longitude.
+        IREC=IREC+1
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)
+     &    CFLOC,CFLAT,CFLONG
+
+C Insert metric flags.
+        IREC=IREC+1
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)
+     &    (CMCOL(i),i=1,MCM)
+
+C Insert version - use latest version for the database no matter what
+C version of ASCII we were given.
+        CFVER=NMCM
+        CFMCM=MCM
+        IREC=IREC+1
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)CFVER
+
+        CALL CLMMDN2O
 
 C Close ASCIIfile.
         CALL ERPFREE(IUNIT,ISTAT)
@@ -767,7 +1112,7 @@ C Close ASCIIfile.
       goto 28
 
  1001 WRITE(outs,775)ISTAT
-  775 FORMAT(' Error ',I7,' writing weather database year')
+  775 FORMAT(' Error ',I7,' writing weather database metadata')
       call edisp(iuout,outs)
       CALL ERPFREE(IUNIT,ISTAT)
       RETURN
@@ -785,29 +1130,11 @@ C ************* MKACLM *************************************************
 C 'MKACLM' Allows any period of climatic data in binary weather file to
 C be transferred to an ASCII file - if act = E then and ESP-r file and
 C if act = S an SQL tab separated file.  
-C If file will begin with the key phrase *CLIMATE then it begins
-C with site information.
 
-C The ASCII file will contain the following values for each hour:
-C col     description                 unit            variable
-C 1. Diffuse solar on the horizontal (W/m**2)         IDIF
-C 2. External dry bulb temperature   (TENTHS DEG.C)   ITMP
-C 3. Direct normal solar intensity   (W/m**2)         IDNR
-C    or
-C    Global horizontal radiation (W/M**2)
-C 4. Prevailing wind speed           (TENTHS m/s)     IVEL
-C 5. Wind direction                                   IDIR
-C 6. Relative humidity               (PERCENT)        IHUM
-
-C Each line will hold 6 space separated values (as integers).
-C Parameters 2 & 4 have been multiplied by 10 ie.  12.3 degrees are
-C represented in the file as 123.  There should be 24 lines for each day
-C of the period being transferred.
-
-C Item 3 will be replaced by global horizontal radiation (W/M**2),
-C if the radiation flag set was set to GH in the binary weather file.
+C See comments for subroutine MKBCLM above for a detailed explaination.
       SUBROUTINE MKACLM(ACT,LASCI,IAF,IBD,IED,IER)
 #include "esprdbfile.h"
+#include "climate.h"
       
       integer lnblnk  ! function definition
 
@@ -816,7 +1143,7 @@ C if the radiation flag set was set to GH in the binary weather file.
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/RADTYP/IDNGH
       COMMON/CLMDT1/CLMLOC
-      DIMENSION ICLM(24,6)
+      DIMENSION ICLM(24,MCM),RCLM(MCM)
 
       CHARACTER LASCI*96,outs*124,CLMLOC*30,outsd*124
       character act*1,tab*1,msg*19
@@ -842,53 +1169,43 @@ C confirm whether it should be overwritten. Open can be local or remote.
       ENDIF
 
       if(act.eq.'E')then
-        WRITE(IAF,'(A)',IOSTAT=ISTAT,ERR=1003)'*CLIMATE'
+        WRITE(IAF,'(A,I1)',IOSTAT=ISTAT,ERR=1003)'*CLIMATE ',NMCM
+
+C Write comments listing the metrics.
+        WRITE(IAF,'(A)')'# Col | Metric                   | Unit'
+        do icol=1,NCM
+          do imet=1,MCM
+            if (CMCOL(imet).eq.icol) then
+              WRITE(IAF,'(a,i3,4a)')'# ',icol,' | ',CMNAMF(imet),' | ',
+     &          CFUNIT(imet)
+              exit
+            endif
+          enddo
+        enddo
 
 C Create a header section with site name, period etc.
-        if(IDNGH.eq.0)then
-          WRITE(IAF,30,IOSTAT=ISTAT,ERR=1003)LCLIM(1:lnblnk(LCLIM)),
-     &            LASCI(1:lnblnk(LASCI))
-  30      FORMAT('# ascii weather file from ',a,' binary db,',/,
-     &    '# defined in: ',a,/,
-     &    '# col 1: Diffuse solar on the horizontal (W/m**2)',/,
-     &    '# col 2: External dry bulb temperature   (Tenths DEG.C)',/,
-     &    '# col 3: Direct normal solar intensity   (W/m**2)',/,
-     &    '# col 4: Prevailing wind speed           (Tenths m/s) ',/,
-     &    '# col 5: Wind direction     (clockwise deg from north) ',/,
-     &    '# col 6: Relative humidity               (Percent)')
-        else
-          WRITE(IAF,31,IOSTAT=ISTAT,ERR=1003)LCLIM(1:lnblnk(LCLIM)),
-     &            LASCI(1:lnblnk(LASCI))
-  31      FORMAT('# ascii weather file from ',a,' binary db,',/,
-     &    '# defined in: ',a,/,
-     &    '# col 1: Diffuse solar on the horizontal (W/m**2)',/,
-     &    '# col 2: External dry bulb temperature   (Tenths DEG.C)',/,
-     &    '# col 3: Global horizontal solar intensity   (W/m**2)',/,
-     &    '# col 4: Prevailing wind speed           (Tenths m/s) ',/,
-     &    '# col 5: Wind direction     (clockwise deg from north) ',/,
-     &    '# col 6: Relative humidity               (Percent)')
-        endif
-        WRITE(IAF,'(A,A)',IOSTAT=ISTAT,ERR=1003)CLMLOC,'  # site name'
-        outs=' '
-        WRITE(outs,'(I6,2F8.2,I4)',IOSTAT=ISTAT,ERR=1002)IYEAR,CLAT,
-     &      CLONG,IDNGH
+        WRITE(IAF,'(A,A)',IOSTAT=ISTAT,ERR=1003)CFLOC,
+     &    '   # climate location'
+        
+        WRITE(outs,'(I6,2F8.2)',IOSTAT=ISTAT,ERR=1003)CFYEAR,CFLAT,
+     &    CFLONG
         call SDELIM(outs,outsd,'C',IW)
-
-C When writing clarify which type of solar radiation is used.
-        if(IDNGH.eq.0)then
-          write(IAF,'(1x,2a)')outsd(1:lnblnk(outsd)),
-     &      '   # year, latitude, long diff, direct normal rad flag'
-        else
-          write(IAF,'(1x,2a)')outsd(1:lnblnk(outsd)),
-     &      '   # year, latitude, long diff, global horiz rad flag'
-        endif
+        write(IAF,'(1x,2a)')outsd(1:lnblnk(outsd)),
+     &    '   # year, latitude, longitude difference'
         outs=' '
+
+        WRITE(outs,'(I2.2)',IOSTAT=ISTAT,ERR=1003)(CMCOL(i),i=1,MCM)
+        call SDELIM(outs,outsd,'C',IW)
+        write(IAF,'(1x,2a)')outsd(1:lnblnk(outsd)),
+     &    '    # columns for each metric'
+        outs=' '
+
         WRITE(outs,'(2I6)',IOSTAT=ISTAT,ERR=1003)IBD,IED
         call SDELIM(outs,outsd,'C',IW)
         write(IAF,'(1x,2a)')outsd(1:lnblnk(outsd)),
      &    '    # period (julian days)'
       elseif(act.eq.'S')then
-        lcl=lnblnk(CLMLOC)
+        lcl=lnblnk(CFLOC)
         WRITE(IAF,'(15A)',IOSTAT=ISTAT,ERR=1003)'climate_site',tab,
      &    'datetime',tab,'db',tab,'dir_solar',tab,'diff_solar',tab,
      &    'wind_speed',tab,'wind_dir',tab,'rh'
@@ -902,7 +1219,7 @@ C Read in one day's data from binary file.
         IDD=I
         IREC=IDD
         READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
-     &      ((ICLM(J,K),K=1,6),J=1,24)
+     &      ((ICLM(J,K),K=1,CFMCM),J=1,24)
 
         CALL EDAYR(IDD,IDY,IMN)
         if(act.eq.'E')then
@@ -914,7 +1231,7 @@ C Read in one day's data from binary file.
 C Now transfer data hour-by-hour to ASCII file.
           outs=' '
           if(act.eq.'E')then
-            WRITE(outs,'(6I7)',IOSTAT=ISTAT,ERR=1002)(ICLM(J,K),K=1,6)
+            WRITE(outs,'(6I7)',IOSTAT=ISTAT,ERR=1002)(ICLM(J,K),K=1,NCM)
             call SDELIM(outs,outsd,'C',IW)
             write(IAF,'(1x,a)')outsd(1:lnblnk(outsd))
           elseif(act.eq.'S')then
@@ -960,19 +1277,21 @@ C up two characters.
             endif
 
 C Convert integer values in iclm to normal units.
-            db = real(iclm(j,2))/10.0
-            dir_solar = real(iclm(j,3))
-            diff_solar = real(iclm(j,1))
-            wind_speed = real(iclm(j,4))/10.0
-            wind_dir = real(iclm(j,5))
-            rh = real(iclm(j,6))
+            do imet=1,MCM
+              icol=CMCOL(imet)
+              if (icol.gt.0) then
+                if (imet.eq.1 .or. imet.eq.5) then
+                  RCLM(icol)=real(ICLM(j,icol))/10.0
+                else
+                  RCLM(icol)=real(ICLM(j,icol))
+                endif
+              endif
+            enddo
 
 C Write tab separated data out. Prepend whatever the current weather
 C location description is for the site.
-            WRITE(IAF,'(4A,f5.1,a,f6.1,a,f6.1,a,f6.1,a,f6.1,a,f5.1)',
-     &        IOSTAT=ISTAT,ERR=1003) CLMLOC(1:lcl),tab,msg,tab,db,tab,
-     &        dir_solar,tab,diff_solar,tab,wind_speed,tab,wind_dir,tab,
-     &        rh
+            WRITE(IAF,'(3A,(a,f6.1))',IOSTAT=ISTAT,ERR=1003)
+     &        CFLOC(1:lcl),tab,msg,(tab,RCLM(im),im=1,NCM)
           endif
    20   CONTINUE
    10 CONTINUE
@@ -1047,6 +1366,7 @@ C Assume that the weather file has already been opened elsewhere. Note some
 C files may have first line STN_ID if this is found skip and try next.
       SUBROUTINE MKOREANCLM(LASCI,IUNIT,ACT,IER)
 #include "esprdbfile.h"
+#include "climate.h"
 
 C Parameters
       character LASCI*96 ! file name to import
@@ -1390,14 +1710,40 @@ C Transfer this to the binary file.
         endif
       end do scan
 
-C Insert Climatic Year.
+      NCM=6
+      CMCOL(1:2)=(/2,1/)
+      if (IDNGH.eq.123) then
+        CMCOL(3:4)=(/0,3/)
+      else
+        CMCOL(3:4)=(/3,0/)
+      endif
+      CMCOL(5:7)=(/4,5,6/)
+      do k=8,MCM
+        CMCOL(k)=0
+      enddo
+
+C Insert climatic year.
       IREC=366
-      ICDNGH=IDNGH
-      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1001)IYEAR,ICDNGH
-      IREC=367
-      WRITE(ICLIM,REC=IREC)CLMLOC
-      IREC=368
-      WRITE(ICLIM,REC=IREC)CLAT,CLONG
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)CFYEAR
+
+C Insert location, latitude and longitude.
+      IREC=IREC+1
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)
+     &  CFLOC,CFLAT,CFLONG
+
+C Insert metric flags.
+      IREC=IREC+1
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)
+     &  (CMCOL(i),i=1,MCM)
+
+C Insert version - use latest version for the database no matter what
+C version of ASCII we were given.
+      CFVER=NMCM
+      CFMCM=MCM
+      IREC=IREC+1
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)CFVER
+
+      CALL CLMMDN2O
 
 C Close ASCIIfile.
       CALL ERPFREE(IUNIT,ISTAT)
@@ -1406,7 +1752,7 @@ C Close ASCIIfile.
       return  ! normal exit from subroutine
 
  1001 WRITE(outs,775)ISTAT
-  775 FORMAT(' Error ',I7,' writing weather database year')
+  775 FORMAT(' Error ',I7,' writing weather database metadata')
       call edisp(iuout,outs)
       return
 
@@ -1425,6 +1771,7 @@ C silent is a logical toggle: true keeps user interactions to a minimum.
       SUBROUTINE CFILIN(silent)
 #include "esprdbfile.h"
 #include "espriou.h"
+#include "climate.h"
       
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -1458,7 +1805,6 @@ C or passed into clm module).
       character LCMDFL*144,clmdb*144,L144*144,lltmp*144
       character fs*1
       character actreturn*1  ! users preference
-      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1525,14 +1871,15 @@ C name with the full path.
  291        continue
             iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
             if(iglib.eq.1.or.iglib.eq.3)then
-              ISTRW=96
+              CALL EASKF(LCMDFL,'New weather file (esp-r binary):',
+     &         ' ',96,DCLIM,'new weather file',IER,nbhelp)
             elseif(iglib.eq.2)then
-              ISTRW=144
+              CALL EASKF(LCMDFL,'New weather file (esp-r binary):',
+     &         ' ',144,DCLIM,'new weather file',IER,nbhelp)
             else
-              ISTRW=96
+              CALL EASKF(LCMDFL,'New weather file (esp-r binary):',
+     &         ' ',96,DCLIM,'new weather file',IER,nbhelp)
             endif
-            CALL EASKF(LCMDFL,'New weather file (esp-r binary):',
-     &        ' ',ISTRW,DCLIM,'new weather file',IER,nbhelp)
 
             IF(LCMDFL.EQ.' ')GOTO 291
             IER=0
@@ -1555,14 +1902,15 @@ C name with the full path.
  289      continue
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
-            ISTRW=96
+            CALL EASKF(LCMDFL,'Weather file (esp-r binary format):',
+     &        ' ',96,DCLIM,'weather file',IER,nbhelp)
           elseif(iglib.eq.2)then
-            ISTRW=144
+            CALL EASKF(LCMDFL,'Weather file (esp-r binary format):',
+     &        ' ',144,DCLIM,'weather file',IER,nbhelp)
           else
-            ISTRW=96
+            CALL EASKF(LCMDFL,'Weather file (esp-r binary format):',
+     &        ' ',96,DCLIM,'weather file',IER,nbhelp)
           endif
-          CALL EASKF(LCMDFL,'Weather file (esp-r binary format):',
-     &      ' ',ISTRW,DCLIM,'weather file',IER,nbhelp)
           IF(LCMDFL.EQ.' ')GOTO 289
           IER=0
           rescan=.true.
@@ -1582,19 +1930,22 @@ C name with the full path.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              ISTRW=96
+              CALL EASKF(L144,'Weather file (esp-r binary format):',
+     &          ' ',96,DCLIM,'weather file name',IER,nbhelp)
             elseif(llt.ge.96.and.llt.lt.124)then
-              ISTRW=124
+              CALL EASKF(L144,'Weather file (esp-r binary format):',
+     &          ' ',124,DCLIM,'weather file name',IER,nbhelp)
             elseif(llt.ge.124.and.llt.le.144)then
-              ISTRW=144
+              CALL EASKF(L144,'Weather file (esp-r binary format):',
+     &          ' ',144,DCLIM,'weather file name',IER,nbhelp)
             endif
           elseif(iglib.eq.2)then
-            ISTRW=144
+            CALL EASKF(L144,'Weather file (esp-r binary format):',
+     &        ' ',144,DCLIM,'weather file name',IER,nbhelp)
           else
-            ISTRW=96
+            CALL EASKF(L144,'Weather file (esp-r binary format):',
+     &        ' ',96,DCLIM,'weather file name',IER,nbhelp)
           endif
-          CALL EASKF(L144,'Weather file (esp-r binary format):',
-     &      ' ',ISTRW,DCLIM,'weather file name',IER,nbhelp)
           IF(L144(1:2).EQ.'  '.or.L144(1:4).eq.'UNKN')GOTO 290
           call st2file(L144,LCMDFL)
           IER=0
@@ -1618,32 +1969,19 @@ C Take into account the location of the weather file.
      &    LCMDFL(1:lnblnk(LCMDFL))  ! prepend db folder path
       endif
 
-      CALL FPRAND(ICLIM,ISTAT,144,0,lltmp)
-      if(ISTAT.eq.-301)then
-        CALL ERPFREE(ICLIM,ISTAT)
-        CALL FPRAND(ICLIM,ISTAT,144,3,lltmp)
-        if(.NOT.silent)call edisp(iuout,' opened new weather file')
-        llf=lnblnk(lltmp)
-        write(LCLIM,'(a)') lltmp(1:llf)
-        RETURN
-      elseif(ISTAT.ge.0)then
-        CALL ERPFREE(ICLIM,ISTAT)
-        CALL FPRAND(ICLIM,ISTAT,144,1,lltmp)
-        if(.NOT.silent)call edisp(iuout,' opened weather file')
-        llf=lnblnk(lltmp)
-        write(LCLIM,'(a)') lltmp(1:llf)
-        if(LCLIM.eq.DCLIM)call edisp(iuout,' Default weather assigned.')
-      endif
+      write(LCLIM,'(a)') lltmp(1:lnblnk(lltmp))
+      CALL CLMOPB(3,IER)
+      if (CFVER.eq.0) RETURN ! New climate file, return.
+      CALL CLMRDBMD(IER)
+      IYEAR=ICYEAR
 
-      IREC=366
-      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IDNGH
-      ICYEAR=IYEAR
-      ICDNGH=IDNGH
-      IF(IYEAR.EQ.0)goto 1000
-      IREC=367
-      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLMLOC
-      IREC=368
-      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
+C If we are unable to open the climate database, wait 3 seconds then
+C abort.
+      if (IER.ne.0) then
+        call pauses(3)
+        call EPAGEND
+        STOP
+      endif
 
 C << future records to read at this point with periods & documentation >>
 
@@ -1673,19 +2011,20 @@ C reset to indicate the weather was not in the list.
           endif
         endif
       endif
+
       call edisp(iuout,' ')
-      WRITE(outs,'(a,a30)')' Weather data: ',CLMLOC
+      WRITE(outs,'(a,a30)')' Weather data: ',CFLOC
       call edisp(iuout,outs)
 
 C Get longitude in degrees minutes and seconds.
-      ILONG=INT(CLONG)                 ! integer portion of degrees
-      FRAM=abs(clong)-abs(real(ilong)) ! fraction portion of degrees
+      ILONG=INT(CFLONG)                 ! integer portion of degrees
+      FRAM=abs(CFLONG)-abs(real(ilong)) ! fraction portion of degrees
       FRAD2=FRAM*60                    ! into minutes
       ILONGM=INT(FRAD2)                ! integer part of minutes
       FRAS=abs(FRAD2)-abs(real(ilongm))! fraction portion of minutes
       FRAS2=FRAS*60                    ! seconds
-C      write(6,*)'clong fra frad',CLONG,FRAM,FRAD2,ILONG,ILONGM,FRAS
-      if(clong.gt.0.0)then
+C      write(6,*)'CFLONG fra frad',CLONG,FRAM,FRAD2,ILONG,ILONGM,FRAS
+      if(CFLONG.gt.0.0)then
         write(longdms,'(i2,a,i2,a,f4.1,a)')
      &    ILONG,'deg ',ILONGM,minu,FRAS2,second
       else
@@ -1694,14 +2033,14 @@ C      write(6,*)'clong fra frad',CLONG,FRAM,FRAD2,ILONG,ILONGM,FRAS
       endif
 C      write(6,*) 'longdms ',longdms
 C Get latitude in degrees minutes and seconds.
-      ILAT=INT(CLAT)                  ! integer portion of degrees
-      FRAM=abs(clat)-abs(real(ilat))  ! fraction portion of degrees
+      ILAT=INT(CFLAT)                  ! integer portion of degrees
+      FRAM=abs(CFLAT)-abs(real(ilat))  ! fraction portion of degrees
       FRAD2=FRAM*60                   ! into minutes
       ILATM=INT(FRAD2)                ! integer part of minutes
       FRAS=abs(FRAD2)-abs(real(ilatm))! fraction portion of minutes
       FRAS2=FRAS*60                   ! seconds
-C      write(6,*)'clat fra frad',clat,FRAM,FRAD2,ILAT,ILATM,FRAS,FRAS2
-      if(clat.ge.0.0)then
+C      write(6,*)'CFLAT fra frad',clat,FRAM,FRAD2,ILAT,ILATM,FRAS,FRAS2
+      if(CFLAT.ge.0.0)then
         write(latdms,'(i2,a,i2,a,f4.1,a)')
      &    ILAT,'deg ',ILATM,minu,FRAS2,second
        else
@@ -1711,46 +2050,46 @@ C      write(6,*)'clat fra frad',clat,FRAM,FRAD2,ILAT,ILATM,FRAS,FRAS2
 C      write(6,*) 'latdms ',latdms
      
       if(IDNGH.GT.0)then       ! Global horizontal.
-        if(CLAT.LT.0.0)then    ! if south
-          ACLAT=ABS(CLAT)
-          if(CLONG.LT.0.0)then ! if west
-           ACLONG=ABS(CLONG)
-           WRITE(outs,109)ACLAT,latdms,CLONG,longdms,IYEAR
+        if(CFLAT.LT.0.0)then    ! if south
+          ACLAT=ABS(CFLAT)
+          if(CFLONG.LT.0.0)then ! if west
+           ACLONG=ABS(CFLONG)
+           WRITE(outs,109)ACLAT,latdms,ACLONG,longdms,IYEAR
  109       FORMAT(1X,F7.2,' (',a,')S',F7.2,' (',a,')W',': ',I4,2X,'GH')
           else                 ! if east
-           WRITE(outs,108)ACLAT,latdms,CLONG,longdms,IYEAR
+           WRITE(outs,108)ACLAT,latdms,CFLONG,longdms,IYEAR
  108       FORMAT(1X,F7.2,' (',a,')S',F7.2,' (',a,')E',': ',I4,2X,'GH')
           endif
         else                   ! if north
-          if(CLONG.LT.0.0)then ! if west
-           ACLONG=ABS(CLONG)
-           WRITE(outs,107)CLAT,latdms,CLONG,longdms,IYEAR
+          if(CFLONG.LT.0.0)then ! if west
+           ACLONG=ABS(CFLONG)
+           WRITE(outs,107)CFLAT,latdms,ACLONG,longdms,IYEAR
  107       FORMAT(1X,F7.2,' (',a,')N',F7.2,' (',a,')W',': ',I4,2X,'GH')
           else                 ! if east
-           WRITE(outs,102)CLAT,latdms,CLONG,longdms,IYEAR
+           WRITE(outs,102)CFLAT,latdms,CFLONG,longdms,IYEAR
  102       FORMAT(1X,F7.2,' (',a,')N',F7.2,' (',a,')E',': ',I4,2X,'GH')
           endif
         endif
         call edisp(iuout,outs)
         RETURN
       else                     ! Direct normal.
-        if(CLAT.LT.0.0)then    ! if south
-          ACLAT=ABS(CLAT)
-          if(CLONG.LT.0.0)then ! if west
-           ACLONG=ABS(CLONG)
-           WRITE(outs,106)ACLAT,latdms,CLONG,longdms,IYEAR
+        if(CFLAT.LT.0.0)then    ! if south
+          ACLAT=ABS(CFLAT)
+          if(CFLONG.LT.0.0)then ! if west
+           ACLONG=ABS(CFLONG)
+           WRITE(outs,106)ACLAT,latdms,ACLONG,longdms,IYEAR
  106       FORMAT(1X,F7.2,' (',a,')S',F7.2,' (',a,')W',': ',I4,2X,'DN')
           else                 ! if east
-           WRITE(outs,105)ACLAT,latdms,CLONG,longdms,IYEAR
+           WRITE(outs,105)ACLAT,latdms,CFLONG,longdms,IYEAR
  105       FORMAT(1X,F7.2,' (',a,')S',F7.2,' (',a,')E',': ',I4,2X,'DN')
           endif
         else                   ! if north
-          if(CLONG.LT.0.0)then ! if west
-           ACLONG=ABS(CLONG)
-           WRITE(outs,104)CLAT,latdms,CLONG,longdms,IYEAR
+          if(CFLONG.LT.0.0)then ! if west
+           ACLONG=ABS(CFLONG)
+           WRITE(outs,104)CFLAT,latdms,ACLONG,longdms,IYEAR
  104       FORMAT(1X,F7.2,' (',a,')N',F7.2,' (',a,')W',': ',I4,2X,'DN')
           else                 ! if east
-           WRITE(outs,103)CLAT,latdms,CLONG,longdms,IYEAR
+           WRITE(outs,103)CFLAT,latdms,CFLONG,longdms,IYEAR
  103       FORMAT(1X,F7.2,' (',a,')N',F7.2,' (',a,')E',': ',I4,2X,'DN')
           endif
         endif
@@ -1766,34 +2105,41 @@ C New weather file
 C ---------- CLMPUT 
 C CLMPUT Writes one day's weather data to the current weather file.
       SUBROUTINE CLMPUT(IDAY)
-      PARAMETER (MT=24)
+#include "climate.h"
+
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     A              CDIR(MT),CHUM(MT)
-      DIMENSION ICLM(24,6)
+      COMMON/RADTYP/IDNGH
+      DIMENSION ICLM(24,MCM)
       character outs*124
 
-      NDAY=IDAY
-      DO 40 J=1,24
-        ICLM(J,1)=NINT(CDIF(J))
-        ICLM(J,2)=NINT(10.*CTMP(J))
-        ICLM(J,3)=NINT(CDNR(J))
-        ICLM(J,4)=NINT(10.*CVEL(J))
-        ICLM(J,5)=NINT(CDIR(J))
-        ICLM(J,6)=NINT(CHUM(J))
-   40 CONTINUE
-      IREC=NDAY
-      WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)
-     &     ((ICLM(J,K),K=1,6),J=1,24)
+      do i=1,CFMCM
+        do j=1,24
+          ICLM(j,i)=0
+        enddo
+      enddo
+      do i=1,MCM
+        icol=CMCOL(i)
+        do j=1,24
+          if (icol.gt.0) then
+            if (i.eq.1 .or. i.eq.5) then
+              ICLM(j,icol)=NINT(10.*CMRVAL(i,j))
+            else
+              ICLM(j,icol)=NINT(CMRVAL(i,j))
+            endif
+          endif
+        enddo
+      enddo
 
-  50  RETURN
-1000  WRITE(IUOUT,'(A,I4,A)') ' Error ',ISTAT,
+      IREC=IDAY
+      WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=666)
+     &     ((ICLM(J,K),K=1,CFMCM),J=1,24)
+
+  999 RETURN
+  666 WRITE(IUOUT,'(A,I4,A)') ' Error ',ISTAT,
      &                        ' on writing weather database'
       call edisp(iuout,outs)
-      GO TO 50
+      GOTO 999
 
       END
 
@@ -1802,7 +2148,7 @@ C 'EPWTOBCLM' Allows a period of climatic data from EPW format ASCII file
 C to be transferred to a binary weather file.  The ASCII file should 
 C follow the formatting conventions of the EnergyPlus/Esp-r file format.
 C All items are comma separated in the EPW file format. Some fields
-C may be black (i.e. no space between commas)
+C may be blank (i.e. no space between commas)
 
 C First line of EPW file
 C Keyword `LOCATION` followed by 9 data fields as follows
@@ -1865,28 +2211,26 @@ C (33) Albedo
 C (34) Liquid precipitation
 C (35) Liquid precipitation rate
 
-C The data fields which can slot into the current esp-r file format are:
+C The data fields which can slot into the current esp-r file format (v2) are:
 C (16) diffuse horiz radiation Wh/m2: cast to integer IDIF,
 C (7) dry bulb temp C: cast to tenths of deg C ITMP,
 C (15) direct normal Wh/m2: cast to integer IDNR,
 C (22) wind speed m/sec: cast to tenths m/sec IVEL,
 C (21) wind direction degrees: cast to integer degrees IDIR,
-C (9) RH%: cast to integer percent IHUM.
+C (9) RH%: cast to integer percent IHUM,
+C (23) total sky cover: use as-is ITSC,
+C (24) opaque sky cover: use as-is IOSC,
+C (10) atmospheric pressure: cast to integer IATM,
 
-C col     description                 unit            variable
-C 1. Diffuse solar on the horizontal (W/M**2)         IDIF
-C 2. External dry bulb temperature   (TENTHS DEG.C)   ITMP
-C 3. Direct normal solar intensity   (W/M**2)         IDNR
-C 4. Prevailing wind speed           (TENTHS M/S)     IVEL
-C 5. Wind direction                  (DEGREES)        IDIR
-C 6. Relative humidity               (PERCENT)        IHUM
+C For available ESP-r climate metrics, see header file climate.h.
 
-C Item 3 can be replaced by global horizontal radiation (W/M**2),
+C Direct normal radiation can be replaced by global horizontal radiation (W/M**2),
 C with the radiation flag set appropriately after the file has been
 C read in.
       SUBROUTINE EPWTOBCLM(LASCI,IUNIT,IER)
 #include "esprdbfile.h"
 #include "espriou.h"
+#include "climate.h"
       
       integer lnblnk  ! function definition
 
@@ -1909,15 +2253,24 @@ C Design conditions line of text.
 
 C Comment lines.
       common/CLMCOM/clmcomment(2)
-      dimension ICLMEPW(12,31,24,6)
+      dimension ICLMEPW(12,31,24,MCM)
+      integer cfind(MCM)
 
       CHARACTER CLMLOC*30,WORD*24,uncert*50
       CHARACTER LASCI*96,outs*124,OUTSTR*248
       character dcline*248
+      logical close
 
 C Initial guess on string sizes.
       character city*32,provence*24,country*24,source*24
       character dayname*8,clmcomment*72,dpdescr*24
+
+C For help messages
+      character helpinsub*24   ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found (will be non-zero
+
+      helpinsub='EPWTOBCLM'
 
       city=' '
       provence=' '
@@ -1933,6 +2286,12 @@ C Initial guess on string sizes.
       idaystart=1
       imonfn=12
       idayfn=31
+      iambpatot=0
+      iambpaok=0
+      itotskycovtot=0
+      itotskycovok=0
+      iopqskycovtot=0
+      iopqskycovok=0
 
 C Clear the ICLMEPW array.
       do 5 ip=1,12
@@ -1980,7 +2339,11 @@ C   metre elevation [-1000. to 9999.] <real>
         CALL EGETP(OUTSTR,K,country,'W','country',IER)
         CALL EGETP(OUTSTR,K,source,'W','source description',IER)
         CALL EGETWI(OUTSTR,K,IWECid,0,0,'-','IWEC id',IER)
-        CALL EGETWR(OUTSTR,K,CLAT,-90.,90.,'W','CLAT',IER)
+        if (IER.ne.0) then
+          IWECid=0
+          IER=0
+        endif
+        CALL EGETWR(OUTSTR,K,CFLAT,-90.,90.,'W','CLAT',IER)
 
 C Read long and convert to longitude difference. Multiply time zone
 C difference by 15 to get degrees and then take difference with
@@ -1988,13 +2351,13 @@ C actual longitude to get esp-r CLONG
         CALL EGETWR(OUTSTR,K,ALONG,-180.,180.,'W','Actual LONG',IER)
         CALL EGETWR(OUTSTR,K,CTZONE,-12.,12.,'W','Time zone diff',IER)
         CTZ = CTZONE*15.0
-        CLONG = ALONG - CTZ
+        CFLONG = ALONG - CTZ
         CALL EGETWR(OUTSTR,K,CELEV,-1000.,9999.,'W','elevation m',IER)
 
-C Concatenate city state country to CLMLOC.
+C Concatenate city state country to CFLOC.
         write(outs,'(5a)') city(1:lnblnk(city)),' ',
      &    provence(1:lnblnk(provence)),' ',country(1:lnblnk(country))
-        CLMLOC=OUTS(1:30)
+        CFLOC=OUTS(1:30)
 
 C Set radiation flag to direct normal.
         IDNGH=0
@@ -2023,7 +2386,7 @@ C     in W/m-K <real>, soil density in kg/m3 <real>, soil specific
 C     heat in J/kg-K, monthly temperatures in deg C <12 reals>
 C        CALL EGETWI(OUTSTR,K,??,0,??,'W','nb of ground temps',IER)
         continue
-      elseif(OUTSTR(1:25).eq.'HOLIDAYS/DAYLIGHT SAVINGS')then
+      elseif(OUTSTR(1:24).eq.'HOLIDAYS/DAYLIGHT SAVING')then
 
 C Keyword `HOLIDAYS/DAYLIGHT SAVINGS` followed by
 C   leap year observance <string `Yes` `No`>, daylight savings start day <integer>,
@@ -2120,7 +2483,7 @@ C Loop through days. If first line then set the year.
         irecloop=irecloop+1
         K=0
         CALL EGETWI(OUTSTR,K,lyear,1900,2051,'-','line year',IER)
-        if(irecloop.eq.1) IYEAR=lyear
+        if(irecloop.eq.1) CFYEAR=lyear
         CALL EGETWI(OUTSTR,K,lmonth,1,12,'W','line month',IER)
         CALL EGETWI(OUTSTR,K,lday,1,31,'W','line day',IER)
         CALL EGETWI(OUTSTR,K,lhour,1,24,'W','line hour',IER)
@@ -2132,6 +2495,14 @@ C Loop through days. If first line then set the year.
         CALL EGETWR(OUTSTR,K,ambrh,0.0,100.0,'W','RH ',IER)
         IHUM=nint(ambrh)
         CALL EGETWR(OUTSTR,K,ambpa,0.0,0.0,'-','atmos press Pa ',IER)
+        iambpatot=iambpatot+1
+        call ECLOSE(ambpa,999999.,0.1,close)
+        if (close) then ! data not available
+          IATM=101325
+        else
+          iambpaok=iambpaok+1
+          IATM=nint(ambpa)
+        endif
         CALL EGETWR(OUTSTR,K,extthr,0.0,0.0,'-','extrter hor rad',IER)
         CALL EGETWR(OUTSTR,K,exttdnr,0.0,0.0,'-','extrter DN rad',IER)
         CALL EGETWR(OUTSTR,K,exttir,0.0,0.0,'-','extrter infrared',IER)
@@ -2158,7 +2529,21 @@ C use it.
         CALL EGETWR(OUTSTR,K,winspeed,0.0,99.0,'W','wind speed',IER)
         IVEL=nint(10.0*winspeed)
         CALL EGETWI(OUTSTR,K,itotskycov,0,100,'W','total sky cover',IER)
+        itsctot=itsctot+1
+        if (itotskycov.eq.99) then ! data not available
+          ITSC=0
+        else
+          itscok=itscok+1
+          ITSC=itotskycov
+        endif
         CALL EGETWI(OUTSTR,K,iopqskycov,0,100,'W','opaq sky cover',IER)
+        iosctot=iosctot+1
+        if (iopqskycov.eq.99) then ! data not available
+          IOSC=0
+        else
+          ioscok=ioscok+1
+          IOSC=iopqskycov
+        endif
         CALL EGETWR(OUTSTR,K,viskm,0.0,0.0,'-','km of visibility',IER)
         CALL EGETWR(OUTSTR,K,cldceil,0.0,0.0,'-','cloud ceiling m',IER)
         CALL EGETWI(OUTSTR,K,iobserv,0,0,'-',
@@ -2177,17 +2562,136 @@ C << update for albedo, percipitation depth and percipitation rate >>
 C Need to place current data into array structure prior to writing
 C out data to the binary file. Since going from integer ESP units
 C to ESP units in binary file no need to worry about truncation errors.
-        ICLMEPW(lmonth,lday,lhour,1)=IDIF
-        ICLMEPW(lmonth,lday,lhour,2)=ITMP
+        ICLMEPW(lmonth,lday,lhour,1)=ITMP
+        ICLMEPW(lmonth,lday,lhour,2)=IDIF
         ICLMEPW(lmonth,lday,lhour,3)=IDNR
-        ICLMEPW(lmonth,lday,lhour,4)=IVEL
-        ICLMEPW(lmonth,lday,lhour,5)=IDIR
-        ICLMEPW(lmonth,lday,lhour,6)=IHUM
+        ICLMEPW(lmonth,lday,lhour,4)=0
+        ICLMEPW(lmonth,lday,lhour,5)=IVEL
+        ICLMEPW(lmonth,lday,lhour,6)=IDIR
+        ICLMEPW(lmonth,lday,lhour,7)=IHUM
+        ICLMEPW(lmonth,lday,lhour,8)=ITSC
+        ICLMEPW(lmonth,lday,lhour,9)=IOSC
+        ICLMEPW(lmonth,lday,lhour,10)=IATM
+        NCM=6 ! this may be updated later after we check optional metrics
+        CMCOL(1:7)=(/1,2,3,0,4,5,6/)
+        CMXST(1:7)=(/.true.,.true.,.true.,.false.,.true.,.true.,.true./)
+
+C Currently, we will never have global horizontal from an EPW.
+C cfind maps columns in the new file to climate metrics. This is needed
+C even if the metric isn't included, because of the checks for missing
+C data below. We assume global horizontal would always have been the
+C last column in ICLMEPW. Column indices for optional metrics should be
+C 0, and are set below after checking for missing data.
+        cfind(1:10)=(/1,2,3,5,6,7,0,0,0,4/)
       endif
       goto 42
 
-C When last line of file read then proceed to write out information.
   43  continue
+
+C Check if optional climate metrics are available.
+C If there is no data, flag the metric as unavailable.
+C If all data is present, use it.
+C If there is some data, but not all, ask the user.
+      ioptcmskip=0
+      if (itotskycovok.gt.0) then
+        if (itotskycovok.lt.itotskycovtot) then
+          rtmp=real(itotskycovok)/real(itotskycovtot)*100.
+          write(outs,'(a,f5.1,a)')
+     &      'Only ',rtmp,'% of total cloud cover data is available.'
+          helptopic='missing_cld_data'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          call ASKOK(outs,'Do you want to use it?',close,.false.,nbhelp)
+          if (close) then
+            NCM=NCM+1
+            CMCOL(8)=NCM
+            cfind(NCM)=8
+            CMXST(8)=.true.
+          else
+            CMCOL(8)=0            
+            cfind(MCM-1-ioptcmskip)=8
+            ioptcmskip=ioptcmskip+1
+            CMXST(8)=.false.
+          endif
+        else
+          NCM=NCM+1
+          CMCOL(8)=NCM
+          cfind(NCM)=8
+          CMXST(8)=.true.
+        endif
+      else        
+        CMCOL(8)=0
+        cfind(MCM-1-ioptcmskip)=8
+        ioptcmskip=ioptcmskip+1
+        CMXST(8)=.false.
+      endif
+
+      if (iopqskycovok.gt.0) then
+        if (iopqskycovok.lt.iopqskycovtot) then
+          rtmp=real(iopqskycovok)/real(iopqskycovtot)*100.
+          write(outs,'(a,f5.1,a)')
+     &      'Only ',rtmp,'% of oqaque cloud cover data is available.'
+          call ASKOK(outs,'Do you want to use it?',close,.false.,nbhelp)
+          if (close) then
+            NCM=NCM+1
+            CMCOL(9)=NCM
+            cfind(NCM)=9
+            CMXST(9)=.true.
+          else
+            CMCOL(9)=0            
+            cfind(MCM-1-ioptcmskip)=9
+            ioptcmskip=ioptcmskip+1
+            CMXST(9)=.false.
+          endif
+        else
+          NCM=NCM+1
+          CMCOL(9)=NCM
+          cfind(NCM)=9
+          CMXST(9)=.true.
+        endif
+      else        
+        CMCOL(9)=0
+        cfind(MCM-1-ioptcmskip)=9
+        ioptcmskip=ioptcmskip+1
+        CMXST(9)=.false.
+      endif
+
+      if (iambpaok.gt.0) then
+        if (iambpaok.lt.iambpatot) then
+          rtmp=real(iambpaok)/real(iambpatot)*100.
+          write(outs,'(a,f5.1,a)')
+     &      'Only ',rtmp,'% of atmospheric pressure data is available.'
+          helptopic='missing_prs_data'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          call ASKOK(outs,'Do you want to use it?',close,.false.,nbhelp)
+          if (close) then
+            NCM=NCM+1
+            CMCOL(10)=NCM
+            cfind(NCM)=10
+            CMXST(10)=.true.
+          else
+            CMCOL(10)=0            
+            cfind(MCM-1-ioptcmskip)=10
+            ioptcmskip=ioptcmskip+1
+            CMXST(10)=.false.
+          endif
+        else
+          NCM=NCM+1
+          CMCOL(10)=NCM
+          cfind(NCM)=10
+          CMXST(10)=.true.
+        endif
+      else        
+        CMCOL(10)=0
+        cfind(MCM-1-ioptcmskip)=10
+        ioptcmskip=ioptcmskip+1
+        CMXST(10)=.false.
+      endif
+
+      write(6,*)'CMXST',CMXST
+      write(6,*)'CMCOL',CMCOL
+      write(6,*)'cfind',cfind
+
+C Write out information.
       do 51 im=1,12
         if(im.eq.1.or.im.eq.3.or.im.eq.5.or.im.eq.7)last=31
         if(im.eq.2)last=28
@@ -2196,21 +2700,44 @@ C When last line of file read then proceed to write out information.
         do 61 id=1,last
           CALL EDAY(id,im,IDD)
 
-C Transfer this to the binary file.
+C Zero data that we do not wish to include.
           IREC=IDD
+          do k=1,MCM
+            if (.not.CMXST(k)) then
+              do j=1,24
+                ICLMEPW(im,id,J,K)=0
+              enddo
+            endif
+          enddo
+
+C Transfer this to the binary file.
           WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1002)
-     &       ((ICLMEPW(im,id,J,K),K=1,6),J=1,24)
+     &       ((ICLMEPW(im,id,J,cfind(K)),K=1,MCM),J=1,24)
    61   continue
    51 continue
 
-C Insert Climatic Year.
+C Insert climatic year.
       IREC=366
-      ICDNGH=IDNGH
-      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1001)IYEAR,ICDNGH
-      IREC=367
-      WRITE(ICLIM,REC=IREC)CLMLOC
-      IREC=368
-      WRITE(ICLIM,REC=IREC)CLAT,CLONG
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)CFYEAR
+
+C Insert location, latitude and longitude.
+      IREC=IREC+1
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)
+     &  CFLOC,CFLAT,CFLONG
+
+C Insert metric flags.
+      IREC=IREC+1
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)
+     &  (CMCOL(i),i=1,MCM)
+
+C Insert version - use latest version for the database no matter what
+C version of ASCII we were given.
+      CFVER=NMCM
+      CFMCM=MCM
+      IREC=IREC+1
+      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)CFVER
+
+      CALL CLMMDN2O
 
 C Proposed additional records:
 C IREC=369 text from comment line 1
@@ -2230,7 +2757,7 @@ C Close ASCIIfile.
       RETURN
 
  1001 WRITE(outs,775)ISTAT
-  775 FORMAT(' Error ',I7,' writing weather database year')
+  775 FORMAT(' Error ',I7,' writing weather database metadata')
       call edisp(iuout,outs)
       CALL ERPFREE(IUNIT,ISTAT)
       RETURN
@@ -2242,5 +2769,8 @@ C Close ASCIIfile.
       RETURN
 
       END
+
+
+
 
 

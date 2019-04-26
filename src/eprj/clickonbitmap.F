@@ -137,7 +137,7 @@ C << what about another array marking the type of the coordinate >>
       character longtfile*144,fname*96
       integer nfile  ! nb of files in image folder
       character sfile*72,snpfile*72
-      logical xbmload,xbmsnap
+      logical xbmload,xbmsnap,modgeo
       logical completed,unique,CLOSEX,CLOSEY,addinganother
       logical unixok
       logical dodoor  ! true if adding door head points
@@ -765,11 +765,11 @@ C the name of the xbm file.
           sfile=' '
           snpfile=' '
           call edisp(iuout,' ')
-          call browsefilelist('?','img','fil',sfile,snpfile,nfile,iier)
+          call browsefilelist('?','img','xbm',sfile,snpfile,nfile,iier)
           if(nfile.gt.0)then
             sfile=' '
             snpfile=' '
-            call browsefilelist('b','img','fil',sfile,snpfile,nfile,
+            call browsefilelist('b','img','xbm',sfile,snpfile,nfile,
      &        iier)
             if(snpfile(1:2).ne.'  ')then
               write(fname,'(3a)')imgpth(1:lnblnk(imgpth)),fs,
@@ -2836,7 +2836,11 @@ C Add doors as surfaces (for up to 20).
                 CALL FILSUR(ICOMP,NSUR)
                 write(SNAME(ICOMP,NSUR),'(a)') dn(1:lnblnk(dn))
                 ltrace=1
+
+C Insert default surface information into the connections-based data structures.
+C and update SVFC orientation strings.
                 call addedsurf(icomp,icon,ltrace,ier)
+                call updatesvfc(icomp,modgeo)
 
 C The base vertex associated is ibedgeofdoor() assume that is the
 C index of the parent surface for use in mergedoorinparent. Note
@@ -2844,7 +2848,8 @@ C there will be two door clicks for each door so adjust index
 C of ibedgeofdoor to account for this.
                 IPS=ibedgeofdoor(iloc)  ! edge at the door click (iloc)
                 ICS=NSUR    ! point to new surface
-                call mergedoorinparent(1,IPS,ICS,icwhich1,icwhich2,ier)
+                call mergedoorinparent(1,icomp,IPS,ICS,icwhich1,
+     &            icwhich2,ier)
                 iloc=iloc+2
               end do
 
@@ -2912,16 +2917,19 @@ C Now do update for windows. Logic for up to 20 windows.
                 CALL FILSUR(ICOMP,NSUR)
                 write(SNAME(ICOMP,NSUR),'(a)') dn(1:lnblnk(dn))
                 ltrace=1
+
+C Insert default surface information into the connections-based data structures.
                 call addedsurf(icomp,icon,ltrace,ier)
                 IPS=ibedgeofwin(iloc)  ! edge at child click (iloc)
                 ICS=NSUR    ! point to new surface
                 IRT=1       ! as a simple rectangular child within
-                call mergechildinparent(0,IPS,ICS,IRT,ier)
+                call mergechildinparent(0,icomp,IPS,ICS,IRT,ier)
                 iloc=iloc+2
               end do
               write(outs,'(3a)') 'Updating ',
      &          zdesc(ICOMP)(1:lnzdesc(ICOMP)),'... for glazing'
               call edisp(iuout,outs)
+              call updatesvfc(icomp,modgeo)  ! update SVFC orientation string.
 
               gversion(icomp) =1.1
               call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)

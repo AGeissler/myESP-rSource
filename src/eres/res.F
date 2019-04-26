@@ -202,6 +202,7 @@ C     NSIGFIG=3
       IMFS=1
       IFDAY=2
       IFTIME=0
+      ICLIM=IFIL+5
       IOPTDB=IFIL+6
       IUTDF=IFIL+7
       IUTDFA=IFIL+8
@@ -317,6 +318,9 @@ C and dialog.
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
+        IMFS=5
+        IFS=4
+        ITFS=1
         LIMTTY=16
         LIMIT =16
       ENDIF

@@ -110,9 +110,9 @@ C   six is lintel above window or door, seven is Sill below window
 C   eight is jamb at window or door
       integer nbedgdup  ! number of duplicate edges in surface edge list
       integer iedgdup   ! for each edge, the connection and edge duplicated
-      integer nbedgshr  ! nb surface which share an edge
+      integer nbedgshr  ! number of adjacent surfaces sharing an edge
       integer iedgshr   ! for each edge, the adjacent surface
-      integer imatshr   ! for each edge, the adjacent material
+      integer imatshr   ! for each edge, the adjacent MLC index
       integer ibridgeshr ! for each edge likely type of thermal bridge
       common/G8/nbedgdup(MCON),iedgdup(MCON,MV),nbedgshr(MCON),
      &          iedgshr(MCON,MV),imatshr(MCON,MV),ibridgeshr(MCON,MV)
@@ -156,13 +156,13 @@ C areas which are of general interest to many subroutines.
       character zname*12  ! the zone name
       character zdesc*64  ! zone notes
       COMMON/precz/zname(MCOM),zdesc(MCOM)
+
+      integer lnzname,lnzdesc ! length of zname and zdesc strings
+      common/preczln/lnzname(MCOM),lnzdesc(MCOM)
       
 c Long zone name for H3K reports
       common/H3KSTORE_ZONE/zoneLabel(MCOM)
       CHARACTER zoneLabel*32      
-
-      integer lnzname,lnzdesc ! length of zname and zdesc strings
-      common/preczln/lnzname(MCOM),lnzdesc(MCOM)
 
 C Obstruction block commons (whole model)
       integer NOX,NOZ      ! gridding X and Z resolution of surfaces for shading

@@ -698,21 +698,18 @@ case "$complexity" in
      cp ${SRCdir}/include/cfd_small.h ${SRCdir}/include/cfd.h
      cp ${SRCdir}/include/control_small.h ${SRCdir}/include/control.h
      cp ${SRCdir}/include/net_flow_small.h ${SRCdir}/include/net_flow.h
-     cp ${SRCdir}/include/tdf2_small.h ${SRCdir}/include/tdf2.h
      ;;
    "$medium_prompt") 
      cp ${SRCdir}/include/building_medium.h ${SRCdir}/include/building.h
      cp ${SRCdir}/include/cfd_medium.h ${SRCdir}/include/cfd.h
      cp ${SRCdir}/include/control_medium.h ${SRCdir}/include/control.h
      cp ${SRCdir}/include/net_flow_medium.h ${SRCdir}/include/net_flow.h
-     cp ${SRCdir}/include/tdf2_medium.h ${SRCdir}/include/tdf2.h
      ;;
    "$large_prompt") 
      cp ${SRCdir}/include/building_large.h ${SRCdir}/include/building.h
      cp ${SRCdir}/include/cfd_large.h ${SRCdir}/include/cfd.h
      cp ${SRCdir}/include/control_large.h ${SRCdir}/include/control.h
      cp ${SRCdir}/include/net_flow_large.h ${SRCdir}/include/net_flow.h
-     cp ${SRCdir}/include/tdf2_large.h ${SRCdir}/include/tdf2.h
      ;;
 esac
 
@@ -1732,7 +1729,7 @@ echo "*ESPRC"                                            > ${ESPdir}/esprc
 echo "*gprn,rectangular dump,import"                    >> ${ESPdir}/esprc
 echo "*tprn,Text dump,/tmp/tx_dump"                     >> ${ESPdir}/esprc
 echo "*gxwd,screen dump,import -window root"            >> ${ESPdir}/esprc
-echo "*cad,CAD package,xzip,ZIP"                        >> ${ESPdir}/esprc
+echo "*cad,CAD package,gtool,UNKN"                      >> ${ESPdir}/esprc
 case "${MCTYPE}" in
   mingw)
          echo "*image_display,TIF,iexplore.exe"         >> ${ESPdir}/esprc

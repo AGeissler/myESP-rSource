@@ -1616,10 +1616,12 @@ C        call eddisp(itru,outs)
       endif
 
 C Reset text feedback font.
-      IMFS=lastmenufont
-      ITFS=lasttextfont    ! reset to proportional font in text feedback
-      IFS=lastbuttonfont
-      call userfonts(IFS,ITFS,IMFS)
+      if(MMOD.EQ.8)then
+        IMFS=lastmenufont
+        ITFS=lasttextfont    ! reset to proportional font in text feedback
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+      endif
 
 C End tag for tagged data
       if (delim.eq.'X') then

@@ -70,7 +70,6 @@ C file unit for the demands file. IER=0 is OK.
       COMMON/FILEP/IFIL
       common/pophelp/h(60)
 
-      common/user/browse
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
 C Floor area (optionally) associated with each demand type in an IPV.
@@ -92,7 +91,7 @@ C Flags noting whether casual gain periods are currently sorted.
       CHARACTER ITEM*36,H*72,LTMP*72,GFILE*72
       character hold*60
       character calename*32,calentag*12,calendayname*32
-      LOGICAL OK,DOK,XST,MODOPR,browse
+      LOGICAL OK,DOK,XST,MODOPR
       integer NITEMS,INO ! max items and current menu item
       integer ISTRW
 
@@ -345,7 +344,6 @@ C << deals with.
 
 C If the file changed then warn the user about lost data.
         if(MODOPR)then
-          if(browse)return
           dok=.true.
           h(1)='Recent changes might be lost if you do not save the'
           h(2)='data. '
@@ -482,8 +480,8 @@ C If older version check with user about upgrade.
         endif
 
 C Merge current information into a descriptive file
-C and save the system configuration file if not browsing.
-        if(cfgok.and.(.NOT.browse))then
+C and save the system configuration file.
+        if(cfgok)then
    11     CALL EMKBDMD(IUO,bdmds,IER)
           IF(IER.LT.0)THEN
             dok=.true.
@@ -503,8 +501,8 @@ C and save the system configuration file if not browsing.
           call edisp(IUOUT,' updating model configuration...')
           CALL EMKCFG('-',IER)
         else
-          call usrmsg('Cannot save model configuration while in ',
-     &                'browse mode, you must `own` the model! ','W')
+          call usrmsg('Cannot save model configuration that was ',
+     &                'not correctly scanned.','W')
           goto 20
         endif
         MODOPR=.false.

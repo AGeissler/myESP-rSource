@@ -385,8 +385,21 @@ C from the results library.
       IF(IGET.LT.15.AND.IGET.GT.4)IGET=IGET-4
       IF(IGET.LT.29.AND.IGET.GT.15)IGET=IGET-5
       IF(IGET.LE.35.AND.IGET.GT.29)IGET=IGET-6
-      IF(IGET.EQ.2.OR.IGET.GE.24)THEN
-        IF(IZ.EQ.1)CALL MOCLIM(ID,IGET)
+
+      IF(IZ.EQ.1)THEN
+        IF(IGET.EQ.2)THEN
+          CALL MOCLIM(ID,1)
+        ELSEIF(IGET.GE.25)THEN
+          CALL MOCLIM(ID,2)
+        ELSEIF(IGET.GE.24)THEN
+          CALL MOCLIM(ID,3)
+        ELSEIF(IGET.GE.26)THEN
+          CALL MOCLIM(ID,5)
+        ELSEIF(IGET.GE.27)THEN
+          CALL MOCLIM(ID,6)
+        ELSEIF(IGET.GE.28)THEN
+          CALL MOCLIM(ID,7)
+        ENDIF
       ENDIF
       CALL VGGET(II,ID,IGET,1)
 
@@ -832,15 +845,41 @@ C in this day, GET results for both parameters.
           IF(IGET1.LT.15.AND.IGET1.GT.4)IGET1=IGET1-4
           IF(IGET1.LT.29.AND.IGET1.GT.15)IGET1=IGET1-5
           IF(IGET1.LE.35.AND.IGET1.GT.29)IGET1=IGET1-6
-          IF(IZ.EQ.1.AND.(IGET1.EQ.2.OR.
-     &      (IGET1.GE.24.AND.IGET1.LE.28)))CALL MOCLIM(ID,IGET1)
+          IF(IZ.EQ.1)THEN
+            IF(IGET1.EQ.2)THEN
+              CALL MOCLIM(ID,1)
+            ELSEIF(IGET1.GE.25)THEN
+              CALL MOCLIM(ID,2)
+            ELSEIF(IGET1.GE.24)THEN
+              CALL MOCLIM(ID,3)
+            ELSEIF(IGET1.GE.26)THEN
+              CALL MOCLIM(ID,5)
+            ELSEIF(IGET1.GE.27)THEN
+              CALL MOCLIM(ID,6)
+            ELSEIF(IGET1.GE.28)THEN
+              CALL MOCLIM(ID,7)
+            ENDIF
+          ENDIF
           CALL VGGET(IZONE,ID,IGET1,1)
           IGET2=IVH
           IF(IGET2.LT.15.AND.IGET2.GT.4)IGET2=IGET2-4
           IF(IGET2.LT.29.AND.IGET2.GT.15)IGET2=IGET2-5
           IF(IGET2.LE.35.AND.IGET2.GT.29)IGET2=IGET2-6
-          IF(IZ.EQ.1.AND.(IGET2.EQ.2.OR.
-     &      (IGET2.GE.24.AND.IGET2.LE.28)))CALL MOCLIM(ID,IGET2)
+          IF(IZ.EQ.1)THEN
+            IF(IGET2.EQ.2)THEN
+              CALL MOCLIM(ID,1)
+            ELSEIF(IGET2.GE.25)THEN
+              CALL MOCLIM(ID,2)
+            ELSEIF(IGET2.GE.24)THEN
+              CALL MOCLIM(ID,3)
+            ELSEIF(IGET2.GE.26)THEN
+              CALL MOCLIM(ID,5)
+            ELSEIF(IGET2.GE.27)THEN
+              CALL MOCLIM(ID,6)
+            ELSEIF(IGET2.GE.28)THEN
+              CALL MOCLIM(ID,7)
+            ENDIF
+          ENDIF
           CALL VGGET(IZONE,ID,IGET2,2)
 
 C Stepping at defined output interval. ITS not used.

@@ -4868,9 +4868,13 @@ C Update linked MLC including the name of the original MLC.
               matsymindex(NMLC)=IWHICH
             else
               if(lnblnk(T32).le.28)then
-                WRITE(T32,'(2A)') T32OTH(1:lnblnk(T32OTH)),'_inv  '
-              elseif(lnblnk(T12).gt.29.and.lnblnk(T32).le.30)then
-                WRITE(T32,'(2A)') T32OTH(1:lnblnk(T32OTH)),'_i  '
+                WRITE(T32,'(2A)') T32OTH(1:lnblnk(T32OTH)),'_inv'
+              elseif(lnblnk(T32).eq.29)then
+                WRITE(T32,'(2A)') T32OTH(1:lnblnk(T32OTH)),'_i '
+              elseif(lnblnk(T32).eq.30)then
+                WRITE(T32,'(2A)') T32OTH(1:lnblnk(T32OTH)),'_i'
+              elseif(lnblnk(T32).eq.31)then
+                WRITE(T32,'(2A)') T32OTH(1:lnblnk(T32OTH)),'i'
               endif
               write(outs,'(3a)') '(original name ',
      &          T32OTH(1:lnblnk(T32OTH)),')'

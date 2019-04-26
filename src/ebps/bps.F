@@ -1057,13 +1057,10 @@ C Cast expanded weather file name back to LCLIM.
         call tstamp('>','SIM: change climate')
         call tstamp('>',LCLIM)
         ier=0
-        call EFOPRAN(ICLIM,llclmdb,MCM*24,0,IER)
+        call CLMOPB(0,IER)
         IF(ier.eq.0)THEN
-          IREC=366
-          READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)ICYEAR,ICDNGH
-          IREC=367
-          READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)CLMLOC
-          WRITE(OUTS,1000)CLMLOC,ICYEAR
+          CALL CLMRDBMD(IER)
+          WRITE(OUTS,1000)CFLOC,ICYEAR
  1000     FORMAT(' Climate data: ',A30,':',I5)
           if(endless.or.issilient)then
             continue

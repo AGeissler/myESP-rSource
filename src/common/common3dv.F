@@ -1180,6 +1180,7 @@ C Local arrays.
 #endif     
 
       CHARACTER temp*7
+      logical isfront
 
 C If not in graphic mode return.
       if(MMOD.lt.8)return
@@ -1229,6 +1230,15 @@ C where IANXT = Index of 'next' point. Clear IANXT & IBNXT arrays.
 C There are 4 initial vertices per block side and 6 sides.
         NAP=4
         DO 1000 I=1,6
+
+c I=3 is the north side on an unrotated cube, which is the way the
+C sensor points (for the purposes of radiance viewpoints).
+          if (I.eq.3) then
+            isfront=.true.
+          else
+            isfront=.false.
+          endif
+
           DO 1100 J = 1,NAP
             K = JVNB(I,J)
             AX(J) = XB(K)
@@ -1273,7 +1283,11 @@ C If IP1 is ever negative then jump to a later point.
  351      CONTINUE
           CALL ORTTRN(BX(IP1),BY(IP1),BZ(IP1),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
-          call eswline(iixlast,iiylast,iix,iiy)
+          if (isfront) then
+            call edwline(iixlast,iiylast,iix,iiy)
+          else
+            call eswline(iixlast,iiylast,iix,iiy)
+          endif
           call forceflush()
 
 C Repeat until next point is the first, remember position and skip
@@ -1289,7 +1303,11 @@ C past any -1 values of IBNXT, save IP1 as IPT for testing.
 C Complete the polygon.
           CALL ORTTRN(BX(IP),BY(IP),BZ(IP),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
-          call eswline(iixlast,iiylast,iix,iiy)
+          if (isfront) then
+            call edwline(iixlast,iiylast,iix,iiy)
+          else
+            call eswline(iixlast,iiylast,iix,iiy)
+          endif
           call forceflush()
  1000   CONTINUE
   301 CONTINUE

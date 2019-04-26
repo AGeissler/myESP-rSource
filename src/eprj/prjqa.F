@@ -1362,21 +1362,8 @@ C Check if any of the address fields are known.
           endif          
         endif
 
-
-C Setup string buffer with distribution weather folder name.
-        CALL ERPFREE(ICLIM,ISTAT)
-        llt=lnblnk(LCLIM)
-        lndbp=lnblnk(standardclmpath)
-        if(ipathclim.eq.0.or.ipathclim.eq.1)then
-          llclmdb=LCLIM
-        elseif(ipathclim.eq.2)then
-          write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &      LCLIM(1:llt)
-        endif
-
-        call EFOPRAN(ICLIM,llclmdb,144,0,IER)
-        IREC=367
-        READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLMLOC
+        call CLMOPB(0,IER)
+        call CLMRDBMD(IER)
 
 C Tell about climate taking note of timing of solar data.
         if(iSlr_half_hr_flg.eq.0)then

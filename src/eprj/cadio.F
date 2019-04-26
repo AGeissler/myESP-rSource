@@ -596,21 +596,21 @@ C If user request jump back and re-display the menu.
 C Gather information about IDF file version.
         ever=7.2
         CALL EASKATOG('EnergyPlus IDF file version','(see help):',
-     &    '4.0','5.0','6.0','7.2','8.0','8.5','cancel',IW,nbhelp)
+     &    '7.2','8.0','8.5','8.8','9.0','cancel','-',IW,nbhelp)
         if(IW.eq.1)then
-          ever=4.0
-        elseif(IW.eq.2)then
-          ever=5.0
-        elseif(IW.eq.3)then
-          ever=6.0
-        elseif(IW.eq.4)then
           ever=7.2
-        elseif(IW.eq.5)then
+        elseif(IW.eq.2)then
           ever=8.0
-        elseif(IW.eq.6)then
+        elseif(IW.eq.3)then
           ever=8.5
+        elseif(IW.eq.4)then
+          ever=8.8
+        elseif(IW.eq.5)then
+          ever=9.0
+        elseif(IW.eq.6)then
+          continue
         endif
-        if(IW.eq.7)then
+        if(IW.eq.6)then
           continue
         else
           call edisp(iuout,' Performing model conversion.')
@@ -1264,7 +1264,7 @@ C Clear allocatable arrays
 C ********* rexmpl
 C rexmpl: scan the exemplars file, parse information and offer the user
 C selection of or information about exemplars. 
-C useraction is returned - 'browse' or 'ownit' or 'continue'
+C useraction is returned - 'ownit' or 'continue'
 C Currently supports up to 30 items in a category.
       subroutine rexmpl(itrc,iexfil,exemplar,useraction,ier)
 #include "building.h"
@@ -2039,9 +2039,8 @@ C Error.
 
 C ***** archiveit
 C archiveit: archives the current model by building up an "include" file to
-C pass to tar archive. Detect where the current model is located
-C and if the user is browsing the model.
-C << to be done - then name file generated is never cleaned up >>
+C pass to tar archive. Detect where the current model is located.
+C NOTE: the name file generated is never cleaned up >>
       subroutine archiveit(ier)
 
       USE AIM2_InputData, ONLY: iAIM2,LAIM2
@@ -2081,13 +2080,9 @@ C ICLIM,LCLIM (for climate file)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       common/cctlnm/ctldoc,lctlf
-      common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       common/GTFIL/GTGEOM
       common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
       INTEGER :: ifcfd
-      common/rcmd/LCMDFL
-      common/user/browse
-      common/IPVF/lipvdatf
       COMMON/GR1D05/LGRD1D
       CHARACTER LGRD1D*72
       COMMON/GR1D06/IGR1D
@@ -2127,7 +2122,7 @@ C ICLIM,LCLIM (for climate file)
 
       character LPNF*72,LMOIST*72
       character*72 LCFD
-      character LCMDFL*144,LFIL*72
+      character LFIL*72
       
 C The string buffer doit and option used for tar command.
       character doit*248,option*4
@@ -2136,18 +2131,16 @@ C The string buffer doit and option used for tar command.
       character LAPROB*72
       character tp*42,tr*32
       character ctldoc*248,LCTLF*72,LGrdSt*72
-      character GTGEOM*72,lipvdatf*72
+      character GTGEOM*72
       character fs*1
       character LTMPFL*72
       character LF*72,LFL*144
       CHARACTER spflnam*72
       CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ
-      character LLASCI*144
       character hvacfile*72,LBSIMP*72
       character outs*124
 
-      logical browse,XST,unixok
-      LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      logical XST,unixok
 
 C Patdot is true if path is ./, patcfg is true if path is cfg,
 C patroot is true if path is at root level. 
@@ -2164,14 +2157,6 @@ C      character WORDS*32
       patcfg=.false.
       patroot=.false.
       pathome=.false.
-
-C Determine if user is browsing.
-      if(browse)then
-        call usrmsg('You do not own the current model and so are',
-     &    'not allowed to archive it.','W')
-        ier=1
-        return
-      endif
 
 C Set folder separator (fs) to \ or / as required. Create a temporary
 C file to hold the names of the files to be archived. Use esppid to
@@ -2210,8 +2195,12 @@ C Can user write at the curdir folder?
         call ckaccess(ifold,iaccess,icerr,curdir)
         if(iaccess.eq.1)then
           call isunix(unixok)
-          if(unixok)write(6,*) 'iaccess is ',iaccess,icerr,ifold,curdir
-          if(unixok)write(6,*) 'cannot write at',curdir(1:lcd)
+          if(unixok)then
+            write(6,*) 'iaccess is ',iaccess,icerr,ifold,curdir
+            write(6,*) 'cannot write at',curdir(1:lcd)
+            ier=1
+            return
+          endif
         endif
 
 C Determine how to treat the path. See if the root name falls into the
@@ -2263,7 +2252,12 @@ C Can user write at the path folder?
       call ckaccess(ifold,iaccess,icerr,path)
       if(iaccess.eq.1)then
         call isunix(unixok)
-        if(unixok)write(6,*) 'cannot write at',path(1:lnblnk(path))
+        if(unixok)then
+          write(6,*) 'iaccess is ',iaccess,icerr,ifold,path
+          write(6,*) 'cannot write at',path(1:lnblnk(path))
+          ier=1
+          return
+        endif
       endif
 
 C Determine how to treat the path. If the start of the path matches
@@ -2316,6 +2310,7 @@ C There is no such folder so check the full path to find out which folder
 C is one level above the cfg folder.
             call usrmsg('Cannot write tar file in folder above the',
      &        'model so canceling archive request.','W')
+            ier=1
             return
           endif
         endif
@@ -2357,6 +2352,7 @@ C There is no such folder so check the full path to find out which folder
 C is one level above the cfg folder.
             call usrmsg('Cannot write tar file in folder above the',
      &        'model so canceling archive request.','W')
+            ier=1
             return
           endif
         endif
@@ -2387,6 +2383,7 @@ C Do a final check to see if can write in curdir + tp
         call usrmsg(
      &    'Cannot resolve file paths in order to write archive...',
      &    LF,'W')
+        ier=1
         return
       endif
 

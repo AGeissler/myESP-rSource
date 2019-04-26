@@ -2440,21 +2440,21 @@ C Ambient temperature.
         elseif (IMFGETNO(I,1).eq.10) then
 
 C Ambient wind speed.
-          IPAR=2
+          IPAR=5
           call MFCLIM(IDAY,IHR,ITS,IPAR,VAL)
           FLOWVALS(I)=VAL
 
         elseif (IMFGETNO(I,1).eq.11) then
 
 C Ambient wind direction.
-          IPAR=3
+          IPAR=6
           call MFCLIM(IDAY,IHR,ITS,IPAR,VAL)
           FLOWVALS(I)=VAL
 
         elseif (IMFGETNO(I,1).eq.12) then
 
 C Ambient RH.
-          IPAR=4
+          IPAR=7
           call MFCLIM(IDAY,IHR,ITS,IPAR,VAL)
           FLOWVALS(I)=VAL
 
@@ -2770,6 +2770,7 @@ C MFCLIM: returns requested climate parameter for given timestep.
 
       SUBROUTINE MFCLIM(IDAY,IHR,ITS,IPAR,VAL)
 #include "building.h"
+#include "climate.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
@@ -2780,41 +2781,26 @@ C MFCLIM: returns requested climate parameter for given timestep.
       DIMENSION IDIF(MT+1),ITMP(MT+1),IDNR(MT+1),
      &          IVEL(MT+1),IDIR(MT+1),IHUM(MT+1)
 
-C Access climate file to recover climate data for requested timestep
-      IUNITC=IFIL+5
-      IREC=IDAY+ISDS
-      if (IREC.gt.365) IREC=1
-      READ(IUNITC,REC=IREC,IOSTAT=ISTAT,ERR=1000)(IDIF(J),ITMP(J),
-     &IDNR(J),IVEL(J),IDIR(J),IHUM(J),J=1,24)
-      IDIF(25)=IDIF(1)
-      ITMP(25)=ITMP(1)
-      IDNR(25)=IDNR(1)
-      IVEL(25)=IVEL(1)
-      IDIR(25)=IDIR(1)
-      IHUM(25)=IHUM(1)
-      IREC=IDAY+ISDS-1
-      READ(IUNITC,REC=IREC,IOSTAT=ISTAT,ERR=1000)(IDIF(J),ITMP(J),
-     &IDNR(J),IVEL(J),IDIR(J),IHUM(J),J=1,24)
+C Access climate file to recover climate data for requested timestep.
+      iidayf=IDAY+ISDS
+      iidayp=iidayf-1
+      if (iidayf.gt.365) then
+        iidayf=1
+      endif
+      CALL CLMRDBD(iidayp,iidayf,IER)
+      if (IER.ne.0) goto 1000
 
 C Set interpolation factor.
       XFAC=real(ITS-1)/real(NTS)
 
 C Get required data item.
-      if (IPAR.eq.1) then
-        VAL=real(ITMP(IHR))+XFAC*(real(ITMP(IHR+1))-real(ITMP(IHR)))
-        VAL=VAL/10.
-      elseif (IPAR.eq.2) then
-        VAL=real(IVEL(IHR))+XFAC*(real(IVEL(IHR+1))-real(IVEL(IHR)))
-        VAL=VAL/10.
-      elseif (IPAR.eq.3) then
-        VAL=real(IDIR(IHR))+XFAC*(real(IDIR(IHR+1))-real(IDIR(IHR)))
-      elseif (IPAR.eq.4) then
-        VAL=real(IHUM(IHR))+XFAC*(real(IHUM(IHR+1))-real(IHUM(IHR)))
-      endif
+      VAL=real(CMIVAL(IPAR,IHR))+XFAC*(real(CMIVAL(IPAR,IHR+1))-
+     &    real(CMIVAL(IPAR,IHR)))
+      if (IPAR.eq.1 .or. IPAR.eq.5) VAL=VAL/10.
 
  16   return
 
- 1000 write (outs,'(a,i5)') 'MFCLIM: climate file error at record',IREC
+ 1000 write (outs,'(a,i5)') 'MFCLIM: climate file error at day ',iidayp
       CALL edisp(iuout,outs)
       goto 16
 

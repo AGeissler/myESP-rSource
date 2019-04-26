@@ -5375,7 +5375,7 @@ C last vertext is reached point the end to the start point.
             iwhichs(ijj)=0
   46      continue
           list=NVER(isurf)
-          nbedgshr(icc)=0     ! reset for this connection
+          nbedgshr(icc)=0     ! reset number of shared edges for this connection
           do 42 i=1,list      ! loop through each vertex
             iedgshr(icc,i)=0
             imatshr(icc,i)=0
@@ -6248,14 +6248,11 @@ C Report on what was found.
 C ***************** ZDATA 
 C ZDATA reads NZONES geometry and uses common blocks G1 G2 etc to fill
 C common blocks ZNDATA so wireframes can be drawn without the
-C need to re-read geometry files.
+C need to re-read geometry files. It is called as the model cfg file
+C is initially read as well as prior to topology checks.
 
 C << what if we know that connetions are correct, could this be
 C << dones as part of the geometry file read?
-
-C << there are many places where VCOORD, NZNVER and NZJVN
-C << could be used insted of G1 common block.
-
 C VCOORD : X,Y & Z coordinates of each vertice in zone.
 C NZNVER : number of vertices associated with each connection.
 C NZJVN : topology of vertices associated with each connection.

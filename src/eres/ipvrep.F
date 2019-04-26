@@ -520,11 +520,11 @@ C If java then include fields for `project contact` and `site location`
 
 C Open the climate file and get its location name.
 C << take into account location >>
-        IUNITC=IFIL+5
-        CALL FPRAND(IUNITC,ISTAT,144,1,LCLIM)
+        CALL CLMOPB(1,IER)
+        CALL CLMRDBMD(IER)
         IRECC=367
         READ(IUNITC,REC=IRECC,IOSTAT=IOS,ERR=102)CLMLOC
-        CALL  ERPFREE(IUNITC,ISTAT)
+        CALL  ERPFREE(ICLIM,ISTAT)
         write(outs,'(a,a1,a)') '*climate',tab,CLMLOC
         call edisp(itru,outs)
         write(outs,'(a,a1,f6.2)') '*latitude',tab,sitelat

@@ -32,6 +32,7 @@ C climatic data sets compatible with ESP-r.
       
 #include "seasons.h"
 C seasons.h provides typper and typsea
+#include "climate.h"
       
       integer lnblnk  ! function definition
 
@@ -722,13 +723,26 @@ C Change radiation type.
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKAB(' Solar radiation type in file: ',' ',
      &    'direct normal','global horizontal',IRADT,nbhelp)
-        IRTYP=0
-        IF(IRADT.EQ.2)IRTYP=123
-        IDNGH=IRTYP
-        ICDNGH=IRTYP
-        IREC=366
-        READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR
-        WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IRTYP
+        if (CFVER.eq.1) then
+          IRTYP=0
+          IF(IRADT.EQ.2)IRTYP=123
+          IDNGH=IRTYP
+          ICDNGH=IRTYP
+          IREC=366
+          READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR
+          WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IRTYP
+        else
+          if (IRADT.eq.1 .and. CMXST(4)) then
+            CMCOL(3)=CMCOL(4); CMCOL(4)=0
+            CMXST(3)=.true.;   CMXST(4)=.false.
+          elseif (IRADT.eq.2 .and. CMXST(3)) then
+            CMCOL(4)=CMCOL(3); CMCOL(3)=0
+            CMXST(4)=.true.;   CMXST(3)=.false.
+          endif
+          IREC=368
+          WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)(CMCOL(i),i=1,CFMCM)
+          CALL CLMMDN2O
+        endif
         call tstamp('>','CLM: change radiation type')
         goto 3
  1000   call edisp(iuout,' Data file error! ')
@@ -1154,7 +1168,8 @@ C 'CLMTOT' displays in tabular format the climatic parameters for each
 C hour in any specified day.
 
       SUBROUTINE CLMTOT
-      PARAMETER (MT=24)
+#include "climate.h"
+
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/OUTPCH/ICOUT
       common/appw/iappw,iappx,iappy
@@ -1169,11 +1184,7 @@ C hour in any specified day.
       common/exporttg/xfile,tg,delim
       common/exporttgi/ixopen,ixloc,ixunit
 
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
-      character outs*124,xfile*144,tg*1,delim*1
+      character outs*124,outs2*124,xfile*144,tg*1,delim*1
       character blank*2  ! for edisp of blank line
       logical ok,dok
 
@@ -1251,44 +1262,34 @@ C Read values of the climatic parameters for this day.
 
 C Output all values in tabular form.
       CALL CSITEH
-      IF(IDNGH.EQ.0)THEN
-         WRITE(outs,6)IDD,IMM
-    6    FORMAT('           Period: Day',I3,' of month',I3)
-         call edisp(itru,outs)
-         call edisp(itru,blank)
-         WRITE(outs,61)
-   61    FORMAT(' Hr d.b. temp. dr.n. rad. df.h. rad.',
-     &          ' wd. vel. wd. dir. rel. h.')
-         call edisp(itru,outs)
-         WRITE(outs,62)
-   62    FORMAT(6X,'deg.C',6X,'W/m2 ',6X,'W/m2 ',6X,'m/s',
-     &          4X,'deg.f.n.',3X,'pct')
-         call edisp(itru,outs)
-         call edisp(itru,blank)
-      ELSEIF(IDNGH.EQ.123)THEN
-         WRITE(outs,63)IDD,IMM
-   63    FORMAT('           Period: Day',I3,' of month',I3)
-         call edisp(itru,outs)
-         WRITE(outs,64)
-   64    FORMAT(' Hr d.b. temp. Gl.h. rad. df.h. rad.',
-     &          ' wd. vel. wd. dir. rel. h.')
-         call edisp(itru,outs)
-         WRITE(outs,65)
-   65    FORMAT(6X,'deg.C',6X,'w/m2 ',6X,'w/m2 ',6X,'m/s',
-     &          4X,'deg.f.n.',3X,'pct')
-         call edisp(itru,outs)
-         call edisp(itru,blank)
-      ENDIF
-      DO 10 I=1,24
-      C1=CDIF(I)
-      C2=CTMP(I)
-      C3=CDNR(I)
-      C4=CVEL(I)
-      C5=CDIR(I)
-      C6=CHUM(I)
-      WRITE(outs,7)I,C2,C3,C1,C4,C5,C6
-    7 FORMAT(I3,F11.2,2F11.0,F9.2,F9.0,F8.2)
-      call eddisp(itru,outs)
+      WRITE(outs,6)IDD,IMM
+    6 FORMAT('           Period: Day',I3,' of month',I3)
+      call edisp(itru,outs)
+      call edisp(itru,blank)
+      write(outs,'(A)') ' Hr '
+      write(outs2,'(A)')'    '
+      k=4
+      do i=1,MCM
+        if (CMXST(i)) then
+          write(outs ,'(2A,1X)')outs(1:k) ,CMNAMA(i)
+          write(outs2,'(2A,1X)')outs2(1:k),CMUNIT(i)
+          k=k+7
+        endif
+      enddo
+      call edisp(itru,outs)
+      call edisp(itru,outs2)
+      call edisp(itru,blank)
+
+      DO 10 J=1,24
+        write(outs,'(I3,1X)')J
+        k=4
+        do i=1,MCM
+          if (CMXST(i)) then
+            write(outs,'(A,F6.1,1X)')outs(1:k),CMRVAL(i,J)
+            k=k+7
+          endif
+        enddo
+        call eddisp(itru,outs)
    10 CONTINUE
 
 C Consider another day?

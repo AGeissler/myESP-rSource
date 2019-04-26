@@ -39,10 +39,11 @@ C     X = interpolated value at time T (T1<=T<=T2)
 C     X1= value of climatic parameter at time T1
 C     X2= value of climatic parameter at time T2
 
-      SUBROUTINE MOCLIM(ID,icget)
+      SUBROUTINE MOCLIM(ID,icmet)
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
+#include "climate.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL
@@ -74,36 +75,46 @@ C 'simulation toggles' menu.
 
 
       DIMENSION IDIF(MT),ITMP(MT),IDNR(MT),IVEL(MT),IDIR(MT),IHUM(MT)
+      DIMENSION icmivall(MCM)
       DIMENSION VAL(MBITS+2)
       CHARACTER OUTS*124
       LOGICAL OK
 
 C Access climate file to recover climatic data for requested
 C day plus previous midnight values.
-      IUNITC=IFIL+5
-      IREC=ID-1
-      IF(IREC.EQ.0)IREC=365
-      READ(IUNITC,REC=IREC,IOSTAT=ISTAT,ERR=1000)(IDIF(J),ITMP(J),
-     &IDNR(J),IVEL(J),IDIR(J),IHUM(J),J=1,24)
-      IDIFL=IDIF(24)
-      ITMPL=ITMP(24)
-      IDNRL=IDNR(24)
-      IVELL=IVEL(24)
-      IDIRL=IDIR(24)
-      IHUML=IHUM(24)
+      iidayl=ID-1
+      IF(iidayl.EQ.0)iidayl=365
+      CALL CLMRDBD(iidayl,ID,IER)
+      if (IER.ne.0) goto 666
+      do icm=1,MCM
+        if (CMXST(icm)) then
+          icmivall(icm)=CMIVAL(icm,24)
+        endif
+      enddo
 
-C Read values for next day to get values at first hour of next day
-      irec = id +1
-      if (irec .EQ. 366) irec = 1
-      read(iunitc, rec=irec,iostat=istat,err=1000) (idif(j),itmp(j),
-     &idnr(j),ivel(j),idir(j),ihum(j),j=1,24)
-      idif_next = idif(1)
-      idnr_next = idnr(1)
+      iidayn=ID+1      
+      IF(iidayn.EQ.366)iidayl=1
+      CALL CLMRDBD(ID,iidayn,IER)
+      if (IER.ne.0) goto 666
+      idif_next=CMIVAL(2,25)
+      if (CMXST(4)) then
+        idnr_next=CMIVAL(4,25)
+      else
+        idnr_next=CMIVAL(3,25)
+      endif
 
-C Read values for requested day.
-      IREC=ID
-      READ(IUNITC,REC=IREC,IOSTAT=ISTAT,ERR=1000)(IDIF(J),ITMP(J),
-     &IDNR(J),IVEL(J),IDIR(J),IHUM(J),J=1,24)
+C C Read values for next day to get values at first hour of next day
+C       irec = id +1
+C       if (irec .EQ. 366) irec = 1
+C       read(iunitc, rec=irec,iostat=istat,err=1000) (idif(j),itmp(j),
+C      &idnr(j),ivel(j),idir(j),ihum(j),j=1,24)
+C       idif_next = idif(1)
+C       idnr_next = idnr(1)
+
+C C Read values for requested day.
+C       IREC=ID
+C       READ(IUNITC,REC=IREC,IOSTAT=ISTAT,ERR=1000)(IDIF(J),ITMP(J),
+C      &IDNR(J),IVEL(J),IDIR(J),IHUM(J),J=1,24)
 
 C Interpolate to obtain values for each computational time-step.
       IJ=0
@@ -135,44 +146,44 @@ C     &         I,J,T,TP,TF,TFL,ID
 C      CALL EDISP(IUOUT,OUTS)
 
 C Diffuse radiation.
-        IF(icget.EQ.25)THEN
+        IF(icmet.EQ.2)THEN
           K=1
           IF(I1.EQ.0)goto 1
 
           if ( iSlr_half_hr_flg .eq. 0 ) then
-             X1=FLOAT(IDIF(I1))
+             X1=FLOAT(CMIVAL(2,I1))
           else
 
 C Solar radiation data is half-hour centered value at previous hour
 C is average of previous hour and present hour.
-             x1 = ( FLOAT(IDIF(I1)) + FLOAT(IDIF(I2)) ) * 0.5
+             x1 = ( FLOAT(CMIVAL(2,I1)) + FLOAT(CMIVAL(2,I2)) ) * 0.5
           endif
           goto 2
 
     1     if ( iSlr_half_hr_flg .eq. 0 ) then
-             X1=FLOAT(IDIFL)
+             X1=FLOAT(icmivall(2))
           else
 
 C Solar radiation data is half-hour centered previous hour is 
 C hr 24 on previous day. take average of previous hour and present hour.
-             x1 = ( FLOAT(IDIFL) + FLOAT(IDIF(I2)) ) * 0.5
+             x1 = ( FLOAT(icmivall(2)) + FLOAT(CMIVAL(2,I2)) ) * 0.5
           endif
 
 
     2     if ( iSlr_half_hr_flg .eq. 0 ) then
-             X2=FLOAT(IDIF(I2))
+             X2=FLOAT(CMIVAL(2,I2))
           else
 
 C Solar radiation data is half hour centered. So the
 C present value is midnight.take average of value at
 C present hour plus 1st hour of next day.
              if ( i2 .eq. 24 ) then
-                x2 = ( FLOAT(IDIF(I2)) + FLOAT(idif_next) ) * 0.5
+                x2 = ( FLOAT(CMIVAL(2,I2)) + FLOAT(idif_next) ) * 0.5
              else
 
 C Otherwise take average of value at present hour and value
 C at the subsequent hour.
-                x2 = ( FLOAT(IDIF(I2)) + FLOAT(IDIF(I2+1)) ) * 0.5
+                x2 = ( FLOAT(CMIVAL(2,I2))+FLOAT(CMIVAL(2,I2+1)) ) * 0.5
              endif
           endif
 
@@ -204,15 +215,15 @@ C Loop until a db item matching this data type and day type is found.
             VAL3(K,IJ)=X1+(((T-TP)*(X2-X1))/(TF-TP))
             GVAL(IJ)=VAL3(K,IJ)
           endif
-        elseif(icget.EQ.2)then
+        elseif(icmet.EQ.1)then
 
 C External temperature.
           K=2
           IF(I1.EQ.0)goto 4
-          X1=FLOAT(ITMP(I1))/10.
+          X1=FLOAT(CMIVAL(1,I1))/10.
           goto 5
-    4     X1=FLOAT(ITMPL)/10.
-    5     X2=FLOAT(ITMP(I2))/10.
+    4     X1=FLOAT(icmivall(1))/10.
+    5     X2=FLOAT(CMIVAL(1,I2))/10.
           VAL3(K,IJ)=X1+(((T-T1)*(X2-X1))/(T2-T1))
           GVAL(IJ)=VAL3(K,IJ)
 
@@ -248,44 +259,46 @@ C If the first timestep then get last profile of previous day.
             VAL3(K,IJ)=X1+(((T-TP)*(X2-X1))/(TF-TP))
             GVAL(IJ)=VAL3(K,IJ)
           endif
-        elseif(icget.EQ.24)then
+        elseif(icmet.EQ.3 .or. icmet.EQ.4)then
 
 C Direct solar radiation.
+          icm=icmet
+
           K=3
           IF(I1.EQ.0)goto 6
           if ( iSlr_half_hr_flg .eq. 0 ) then
-             X1=FLOAT(IDNR(I1))
+             X1=FLOAT(CMIVAL(icm,I1))
           else
 
 C Solar radiation data is half-hour centered and the value at previous hour
 C is average of previous hour and present hour.
-             x1 = ( FLOAT(IDNR(I1)) + FLOAT(IDNR(I2)) ) * 0.5
+             x1 = ( FLOAT(CMIVAL(icm,I1)) + FLOAT(CMIVAL(icm,I2)) ) *0.5
           endif
           goto 7
 
     6     if ( iSlr_half_hr_flg .eq. 0 ) then     
-             X1=FLOAT(IDNRL)
+             X1=FLOAT(icmivall(icm))
           else
 
 C Solar radiation data is half-hour centered and the
 C previous hour is hr 24 on previous day. take average
 C of previous hour and present hour.
-             x1 = ( FLOAT(IDNRL) + FLOAT(IDNR(I2)) ) * 0.5
+             x1 = ( FLOAT(icmivall(icm)) + FLOAT(CMIVAL(icm,I2)) ) * 0.5
           endif
 
     7     if ( iSlr_half_hr_flg .eq. 0 ) then
-             X2=FLOAT(IDNR(I2))
+             X2=FLOAT(CMIVAL(icm,I2))
           else
 C Solar radiation data is half hour centered. So the
 C present value is midnight.take average of value at
 C present hour plus 1st hour of next day.
              if ( i2 .eq. 24 ) then
-                x2 = ( FLOAT(IDNR(I2)) + FLOAT(idnr_next) ) * 0.5
+                x2 = ( FLOAT(CMIVAL(icm,I2)) + FLOAT(idnr_next) ) * 0.5
              else
 
 C Otherwise take average of value at present hour and value
 C at the subsequent hour.
-                x2 = ( FLOAT(IDNR(I2)) + FLOAT(IDNR(I2+1)) ) * 0.5
+                x2 = (FLOAT(CMIVAL(icm,I2))+FLOAT(CMIVAL(icm,I2+1)))*0.5
              endif
           endif
 
@@ -335,15 +348,15 @@ C Global horizontal.
             VAL3(K,IJ)=X1+(((T-TP)*(X2-X1))/(TF-TP))
             GVAL(IJ)=VAL3(K,IJ)
           endif
-        elseif(icget.EQ.26)then
+        elseif(icmet.EQ.5)then
 
 C Wind speed.
           K=4
           IF(I1.EQ.0)goto 8
-          X1=FLOAT(IVEL(I1))/10.
+          X1=FLOAT(CMIVAL(5,I1))/10.
           goto 9
-    8     X1=FLOAT(IVELL)/10.
-    9     X2=FLOAT(IVEL(I2))/10.
+    8     X1=FLOAT(icmivall(5))/10.
+    9     X2=FLOAT(CMIVAL(5,I2))/10.
           VAL3(K,IJ)=X1+(((T-T1)*(X2-X1))/(T2-T1))
           GVAL(IJ)=VAL3(K,IJ)
 
@@ -380,15 +393,15 @@ C If the first timestep then get last profile of previous day.
             VAL3(K,IJ)=X1+(((T-TP)*(X2-X1))/(TF-TP))
             GVAL(IJ)=VAL3(K,IJ)
           endif
-        elseif(icget.EQ.27)then
+        elseif(icmet.EQ.6)then
 
 C Wind direction.
           K=5
           IF(I1.EQ.0)goto 11
-          X1=FLOAT(IDIR(I1))
+          X1=FLOAT(CMIVAL(6,I1))
           goto 12
-   11     X1=FLOAT(IDIRL)
-   12     X2=FLOAT(IDIR(I2))
+   11     X1=FLOAT(icmivall(6))
+   12     X2=FLOAT(CMIVAL(6,I2))
           VAL3(K,IJ)=X1+(((T-T1)*(X2-X1))/(T2-T1))
           GVAL(IJ)=VAL3(K,IJ)
 
@@ -423,15 +436,15 @@ C If the first timestep then get last profile of previous day.
             VAL3(K,IJ)=X1+(((T-TP)*(X2-X1))/(TF-TP))
             GVAL(IJ)=VAL3(K,IJ)
           endif
-        elseif(icget.EQ.28)then
+        elseif(icmet.EQ.7)then
 
 C Relative humidity.
           K=6
           IF(I1.EQ.0)goto 13
-          X1=FLOAT(IHUM(I1))
+          X1=FLOAT(CMIVAL(7,I1))
           goto 14
-   13     X1=FLOAT(IHUML)
-   14     X2=FLOAT(IHUM(I2))
+   13     X1=FLOAT(icmivall(7))
+   14     X2=FLOAT(CMIVAL(7,I2))
           VAL3(K,IJ)=X1+(((T-T1)*(X2-X1))/(T2-T1))
           GVAL(IJ)=VAL3(K,IJ)
 
@@ -466,14 +479,28 @@ C If the first timestep then get last profile of previous day.
             VAL3(K,IJ)=X1+(((T-TP)*(X2-X1))/(TF-TP))
             GVAL(IJ)=VAL3(K,IJ)
           endif
+
+C Total cloud cover, opqaue cloud cover, or pressure.
+C Currently none of these are implemented in temporal data.
+        elseif(icmet.EQ.8 .or. icmet.EQ.9 .or. icmet.EQ.10)then
+          icm=icmet
+          K=icm
+          IF(I1.EQ.0)goto 15
+          X1=FLOAT(CMIVAL(icm,I1))
+          goto 16
+   15     X1=FLOAT(icmivall(icm))
+   16     X2=FLOAT(CMIVAL(icm,I2))
+          VAL3(K,IJ)=X1+(((T-T1)*(X2-X1))/(T2-T1))
+          GVAL(IJ)=VAL3(K,IJ)
+
         ENDIF
    20   CONTINUE
    10 CONTINUE
 
-   16 RETURN
+  999 RETURN
 
- 1000 WRITE(outs,15)IREC
-   15 FORMAT(' MOCLIM: climate file error at record',I5)
+  666 WRITE(outs,19)ID
+   19 FORMAT(' MOCLIM: climate file error at day',I5)
       CALL edisp(iuout,outs)
-      goto 16
+      goto 999
       END

@@ -155,16 +155,8 @@ C Setup and pass in parameters to win3d.
         ifont=1
         call viewtext(' Frequency analysis',iside,isize,ifont)
 
-C Set axis label flag IL.
-        IF(IGET.EQ.1)IL=2
-        IF(IGET.EQ.2)IL=1
-        IF(IGET.EQ.3)IL=2
-        IF(IGET.EQ.4)IL=3
-        IF(IGET.EQ.5)IL=4
-        IF(IGET.EQ.6)IL=5
-
 C Draw histogram.
-        CALL HISDRW(IL,IG)
+        CALL HISDRW(IP,IG)
         graph_ok = .true.
       endif
       goto 75
@@ -178,19 +170,16 @@ C several bins and counts the frequency with which the variable
 C falls inside each bin.
 
       SUBROUTINE HISFRQ (IGET)
+
+#include "climate.h"
+
       PARAMETER (MF=100)
-      PARAMETER (MT=24)
 
       COMMON/FREQS/NBINS,XBIN1,XBINN,DXBIN,IFREQ,IHITS,IMISS,INBIN(MF)
       COMMON/FREQS1/ICBIN(MF),ITOTAL
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/DAYSF/KDS,KDF
-
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &CDIR(MT),CHUM(MT)
 
       COMMON/IFDFLG/IFLAGF
 
@@ -291,19 +280,7 @@ C AND ANALYSE IT
          DO 310 J=JS,JF
 
 C GET THE REQUIRED VALUE
-           if(IGET.eq.1)then
-             VAL=CDIF(J)
-           elseif(IGET.eq.2)then
-             VAL=CTMP(J)
-           elseif(IGET.eq.3)then
-             VAL=CDNR(J)
-           elseif(IGET.eq.4)then
-             VAL=CVEL(J)
-           elseif(IGET.eq.5)then
-             VAL=CDIR(J)
-           elseif(IGET.eq.6)then
-             VAL=CHUM(J)
-           endif
+           VAL=CMRVAL(IGET,J)
 
            IF (INIT.NE.0)goto 904
            XMAX = VAL
@@ -359,19 +336,7 @@ C AND ANALYSE IT
         DO 610 J=JS,JF
 
 C GET THE REQUIRED VALUE
-          if(IGET.eq.1)then
-            VAL=CDIF(J)
-          elseif(IGET.eq.2)then
-            VAL=CTMP(J)
-          elseif(IGET.eq.3)then
-            VAL=CDNR(J)
-          elseif(IGET.eq.4)then
-            VAL=CVEL(J)
-          elseif(IGET.eq.5)then
-            VAL=CDIR(J)
-          elseif(IGET.eq.6)then
-            VAL=CHUM(J)
-          endif
+          VAL=CMRVAL(IGET,J)
 
           XDIFF=(XMAX-XMIN)/100.0
           IB = int(((VAL - XBIN1) / DXBIN)) + 1
@@ -402,7 +367,9 @@ C Calculate cumulative frequency.
 
 C --------- HISDRW
 C 'HISDRW' draws a histogram of the frequency distribution
-      SUBROUTINE HISDRW(IL,IG)
+      SUBROUTINE HISDRW(IP,IG)
+
+#include "climate.h"
 
       PARAMETER (MF=100)
 
@@ -418,12 +385,7 @@ C 'HISDRW' draws a histogram of the frequency distribution
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
 #endif
 
-      CHARACTER*10 LABELX,LABLSX(5)
-      DATA LABLSX /'Temp. degC',
-     &             'Srad W/m^2',
-     &             'Wvel  m/s ',
-     &             'Wdir degFN',
-     &             'RelHum  % '/
+      CHARACTER*13 LABELX
 
       YMAX = IFREQ
       IF(IG.EQ.2)YMAX=ITOTAL
@@ -451,9 +413,11 @@ C Stuff this into static memory.
      &              sca,Xadd,Yadd)
       call linescale(iigl,Xadd,XSC,iigb,Yadd,YSC)
 
+C Assemble metric label.
+      write(LABELX,'(A,1X,A)')CMNAMA(IP),CMUNIT(IP)
+
 C Pick up the data increment for the horizontal axis and then draw
 C the horizontal axis.
-      LABELX=LABLSX(IL)
       CALL dintervalf(Xmin,Xmax,ddy1,ny,1)
       CALL horaxisdd(Xmin,Xmax,iigl,iigr,iigb,xadd,XSC,1,ddy1,ny,
      &  LABELX)

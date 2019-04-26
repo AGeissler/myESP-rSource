@@ -370,6 +370,7 @@ C << the text block from within clm!
 C espriou.h provides currentfile, cdblfil.
 #include "seasons.h"
 C seasons.h provides typper and typsea
+#include "climate.h"
       
       integer lnblnk  ! function definition
 
@@ -386,10 +387,6 @@ C      common/appw/iappw,iappx,iappy
       COMMON/CLMDT1/CLMLOC
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
       character clmlnam*32,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
@@ -589,8 +586,7 @@ C Context help
       CALL EMENU('Weather list item',ITM,nitms,INO)
       if(INO.EQ.nitms)then
 
-C Reset the graphic context prior to leaving. Currently commented out
-C (to match the initial menuchw comment out above).
+C Reset the graphic context prior to leaving.
         if(MMOD.EQ.8)then
           IMFS=lastmenu
           call userfonts(IFS,ITFS,IMFS)
@@ -1137,7 +1133,7 @@ C Set parameters for current day and analyse max, min mean.
             IF(I.EQ.IDF)JF=MIN0(KDF,IT2)
             DAYL=JF-JS+1
             DO 20 J=JS,JF
-              X=CTMP(J)
+              X=CMRVAL(1,J)
               IF(X.LE.XMAXJ)GO TO 2
               XMAXJ=X
               JTMX=J
@@ -1422,11 +1418,7 @@ C << to configuration file as well as climatelist and climate block
 
       subroutine mkitemclimatelist(iuf,ier)
 
-C Manual inclusion of a parameter from building.h
-      integer MSPS,MIPVA
-      parameter (MSPS=30)
-      parameter (MIPVA=MSPS)
-      
+#include "building.h"      
 #include "seasons.h"
 C seasons.h provides typper and typsea
       

@@ -101,6 +101,9 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
@@ -200,6 +203,7 @@ C      COMMON/MFLOWIT/fndegc,imix
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -232,6 +236,21 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface
+C offer option to update with default surface flow attribute position.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
           call pausems(100)
@@ -321,6 +340,7 @@ C
       real cx,cy,cz
       integer loop
       logical iswater
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -353,6 +373,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
@@ -464,6 +498,7 @@ C Supports position - needs testing.
       real cx,cy,cz
       integer loop
       logical iswater
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -496,6 +531,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif        
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
@@ -599,6 +648,7 @@ C Supports position - needs testing.
       real cx,cy,cz
       integer loop
       logical iswater
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -631,6 +681,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
@@ -735,6 +799,7 @@ C quadratic law volume flow resistance component (dP = a.m/ro+b.(m/ro)^2)
       real cx,cy,cz
       integer loop
       logical iswater
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -767,6 +832,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight
@@ -870,6 +949,7 @@ C quadratic law mass flow resistance component (dP = a.m + b.m^2)
       real cx,cy,cz
       integer loop
       logical iswater
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -902,6 +982,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
@@ -1005,7 +1099,7 @@ C constant volume flow rate component (m = rho . a)
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
-      logical iswater
+      logical iswater,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1038,6 +1132,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
@@ -1213,6 +1321,7 @@ C constant mass flow rate component (m = a)
       real cx,cy,cz
       integer loop
       logical iswater
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1245,6 +1354,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight crack 
@@ -1344,6 +1467,7 @@ C common orifice flow component (m = rho Cd A (2/rho dP)**.5)
       real cx,cy,cz
       integer loop
       logical iswater
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1376,6 +1500,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'or','r',valhx,valhy,valhz) ! highlight orifice 
@@ -1479,6 +1617,7 @@ C Supports positioin - needs testing.
       real cx,cy,cz
       integer loop
       logical iswater
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1511,6 +1650,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
@@ -1613,6 +1766,7 @@ C Support position.
       real cx,cy,cz
       integer loop
       logical iswater
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1645,6 +1799,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'or','r',valhx,valhy,valhz) ! highlight 
@@ -1729,7 +1897,7 @@ C specific air flow crack component. Supports position.
 
       CHARACTER hold*32,outs*124,name*12
       real VALHX,VALHY,VALHZ
-      logical ok,dok
+      logical ok,dok,isrelated
       integer loop
 
 C For help messages
@@ -1762,6 +1930,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           call symbol_flow_cmp(name,'cr','r',valhx,valhy,valhz) ! highlight crack 
           call pausems(100)
@@ -1864,6 +2046,7 @@ C Supports position - needs testing.
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1895,6 +2078,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           call symbol_flow_cmp(name,'bi','r',valhx,valhy,valhz) ! highlight 
           call pausems(100)
@@ -1998,6 +2195,7 @@ C Supports position - needs testing.
       real cx,cy,cz
       integer loop
       logical iswater
+      logical dok,ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2031,6 +2229,20 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
+          if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
+            call isuseflowrelated(iaz,ias,isrelated)
+            if(isrelated)then
+              dok=.false.
+              call askok('Update component position to reflect surface',
+     &          'flow attributes?',OK,dok,nbhelp)
+              if(ok)then
+                call update_cmp_pos(iaz,ias,icmp)
+              endif
+            endif
+          endif
           name=CMNAM(ICMP)
           if(.NOT.iswater)then
             call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
@@ -2219,6 +2431,9 @@ C If in graphic mode and IAIRN=3 then highlight the component.
      &      CMPASSOC(ICMP,1),':',CMPASSOC(ICMP,2),' @ ',
      &      HCMP(ICMP,1,1),HCMP(ICMP,1,2),HCMP(ICMP,1,3)
           call edisp(iuout,outs)
+
+C Check if HCMP is more than 1m from the COG of the associated surface.
+          call compare_cmp_pos(icmp,iaz,ias,tdis)
           name=CMNAM(ICMP)
           call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
           call pausems(100)
