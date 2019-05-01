@@ -355,7 +355,7 @@ C.....Local variables
       INTEGER i_ZnCtl           ! Zone control flag
 
 
-      INTEGER iSurface, iNode,iViewSurface,ic,lnsmlcn  ! Counters
+      INTEGER iSurface, iNode,iViewSurface,ic,lnsmlcn,ii,lnssmlc  ! Counters
 
       real SBC                              ! Stephan-Boltzmann constant
       parameter ( SBC=56.7E-9 )
@@ -366,6 +366,7 @@ C.....DECLARATIONS for H3Kreporting object
       character*2  cNode_Chars
       character*2  cLayer_Chars
       character*32 sLayer_Chars
+      character*32 sLayer_Dummy
       character*50 cValue         ! Option value
 
       CHARACTER*128 ZONE_LABEL
@@ -2371,14 +2372,13 @@ C.......  ..Surface area in m2
 
             layer_output: do iLayer = 1, nELts(iZone, iSurface)
 
-              ic=izstocn(iZone,iSurface)
-cx              lnsmlcn=lnblnk(SSMLCN(ic)) ! construction name string length
-cx              ssmlcindex(ic)             ! construction index in data base
-cx        DO 994 iLayer=1,LAYERS(ssmlcindex(ic))
+              ic=izstocn(iZone,iSurface) ! connection index in model
+C             SSMLCN(ic)                 ! construction name of connection ic
+              lnssmlc=lnblnk(SSMLCN(ic)) ! construction name string length
+C             ssmlcindex(ic)             ! construction index in data base
 C material.h:      character matname*32     ! name for material
 C material.h:      character mlcname*32     ! name of MLC legacy items only use first 12 char
 C material.h:      IPRMAT(MMLC,ME)          ! Index to material for each layer
-              lnsmlcn=lnblnk(matname(IPRMAT(ssmlcindex(ic),iLayer)))
 cx          write(MatNameForEmbed(icomp,i,IL),'(a)')
 cx     &      matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn)
 
@@ -2388,9 +2388,31 @@ cx     &      matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn)
                 write(cLayer_Chars, '(A,I1)') '0', iLayer
               endif
 
+C Logic from edcon.F, line 171 ff.
+              do ii=1,nmlc
+                if(SSMLCN(ic)(1:lnssmlc).eq.
+     &             mlcname(ii)(1:lnmlcname(ii)))then
+                  ssmlcindex(ic)=ii   ! remember MLC index
+                endif
+              enddo
 
-              write (sLayer_Chars,'(A)')
-     &          matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn)
+              lnsmlcn=lnblnk(matname(IPRMAT(ssmlcindex(ic),iLayer)))
+
+              call st2name(
+     &                matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn),
+     &                                                    sLayer_Dummy)
+
+              write (sLayer_Chars,'(A)') sLayer_Dummy(1:lnsmlcn)
+
+C DEBUG
+cx       write(*,*)'ic=',ic,', lnsmlcn=',lnsmlcn,
+cx     &           ', ssmlc(ic)=',SSMLCN(ic),
+cx     &           ', mlcname(ic)=',mlcname(ic),
+cx     &           ', ssmlcindex(ic)=',ssmlcindex(ic),
+cx     &           ', IPRMAT=',IPRMAT(ssmlcindex(ic),iLayer),
+cx     &           ', matname(IPRMAT)=',
+cx     &                  matname(IPRMAT(ssmlcindex(ic),iLayer)),
+cx     &           ', sLC=',sLayer_Chars,'.'
 
 C.......  ....Layer material name
 cx              Call AddToReport(rvSurfLayMatnam%Identifier,
