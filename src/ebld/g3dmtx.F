@@ -137,6 +137,9 @@ C which the heat pipe connects.
 
       integer ier
 
+      LOGICAL ISEOF
+      logical ok
+
       SML3=1.E-8
 
 C The augmented zone matrix configuration is as follows:
@@ -169,10 +172,10 @@ C connections.
         ICT=0
       ENDIF
    10 ICT=ICT+1
-      READ(ICNC,REC=ICT,IOSTAT=ISTAT,ERR=4)ND1,DST,A1,CND,ITP,I1C,I2C
+      READ(ICNC,REC=ICT,IOSTAT=ISTAT)ND1,DST,A1,CND,ITP,I1C,I2C
 
 C Complete the matrix coefficients generation process.
-      IF(ISTAT.LT.0)THEN
+      IF(ISEOF(ISTAT))THEN
         IF(ICOMP.EQ.-1)THEN
           CALL MZ3SU3
         ELSE
@@ -450,16 +453,18 @@ C *********************************************************************
       COMMON/GR3D132/T3F(MNOD3)
       COMMON/GR3D150/INDX3,DTIME
 
+      LOGICAL ISEOF
+
 C For the current zone determine the associated control function.
         IC=ICASCF(ICOMP)
 
 C Complete the matrix coefficients generation process.
       ICV=0
    50 ICV=ICV+1
-      READ(ICVS,REC=ICV,IOSTAT=ISTAT,ERR=5)ND1,VOLM,DNHC,IS,IL
+      READ(ICVS,REC=ICV,IOSTAT=ISTAT)ND1,VOLM,DNHC,IS,IL
 
 C Set-up air point equation coefficients.
-      IF(ISTAT.LT.0)THEN
+      IF(ISEOF(ISTAT))THEN
         GOTO 60
       ELSEIF(DNHC.GT.1.E-8)THEN
 
@@ -549,13 +554,15 @@ C *********************************************************************
       COMMON/GR3D132/T3F(MNOD3)
       COMMON/GR3D150/INDX3,DTIME
 
+      LOGICAL ISEOF
+
 C Complete the matrix coefficients generation process.
       ICV=0
    10 ICV=ICV+1
-      READ(ICVS,REC=ICV,IOSTAT=ISTAT,ERR=5)ND1,VOLM,DNHC
+      READ(ICVS,REC=ICV,IOSTAT=ISTAT)ND1,VOLM,DNHC
 
 C Set-up air point equation coefficients.
-      IF(ISTAT.LT.0)THEN
+      IF(ISEOF(ISTAT))THEN
         RETURN
       ELSEIF(DNHC.GT.1.E-8)THEN
 
@@ -733,12 +740,12 @@ C *********************************************************************
       COMMON/OUTIN/IUOUT,IUIN
       integer icascf
       COMMON/CCTL/ICASCF(MCOM)
-
-      COMMON/GR3D122/W3T(MNOD3T)
       COMMON/GR3D130/IFST(MNOD3),W3(MCFF3),NCLMN(MCFF3),NXT(MCFF3),SML3
       COMMON/GR3D131/IAIR,IPLT,IPRT,IAVL,NZMCF
 
       DOUBLE PRECISION FIJ,DW3T
+      real W3T(MNOD3T)
+      logical ok
 
 c      NZMCFS=NZMCF
       IWRNG=0
@@ -753,9 +760,9 @@ C Define the location of the control sensor.
         ELSE
           ISNSR=IAIR
         ENDIF
-       ELSE
-         ISNSR=IAIR
-       ENDIF
+      ELSE
+        ISNSR=IAIR
+      ENDIF
 
 C Perform forward reduction.
       DO 30 IEQ=1,IAIR-1
@@ -1152,6 +1159,8 @@ C *********************************************************************
       COMMON/GR3D131/IAIR,IPLT,IPRT,IAVL,NZMCF
       COMMON/GR3D132/T3F(MNOD3)
 
+      LOGICAL ISEOF
+
 C Initialize the zone's temperatures.
       TFA(ICOMP)=T3F(IAIR)
       DO 10 IS=1,NCONST(ICOMP)
@@ -1164,7 +1173,7 @@ C Initialize the zone's temperatures.
       READ(INDD,REC=IC,IOSTAT=ISTAT)ND1,IS1,ILCT,AVOLM
 
 C End of file reached.
-      IF(ISTAT.LT.0)THEN
+      IF(ISEOF(ISTAT))THEN
         DO 30 IS=1,NCONST(ICOMP)
           NE=NELTS(ICOMP,IS)
           INE=0

@@ -69,7 +69,7 @@ C as passed parameters as follows:
 C IVAL is the integer returned, PROMP1 & PROMP2 are the prompts to be
 C given to the user (similar to the syntax of USRMSG which allows
 C two lines or a leading blank line).
-C MIN is the minimum value, MAX is the maximum value.
+C MINV is the minimum value, MAXV is the maximum value.
 C MINACT and MAXACT are actions to take if the range is exceeded:
 C   'W' means warn user but accept, 'F' means refuse/fail to
 C   accept value and ask again, '-' means no range checking.
@@ -2743,10 +2743,10 @@ C Querry yes or no or default.
         IWI=1
         if (DEFLT) then
           if(DOK)then
-            call EASKATOG(MSG1,MSG2,'yes (default)','no',' ',' ',' ',
+            call EASKATOG(MSG1,MSG2,'yes (d)','no',' ',' ',' ',
      &      ' ',' ',IWI,newnbhelp)
           else
-            call EASKATOG(MSG1,MSG2,'yes','no (default)',' ',' ',' ',
+            call EASKATOG(MSG1,MSG2,'yes','no (d)',' ',' ',' ',
      &      ' ',' ',IWI,newnbhelp)
           endif
         else

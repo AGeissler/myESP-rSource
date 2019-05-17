@@ -223,7 +223,7 @@ C Convert from "c" strings to fortran strings, if unknown then exit.
 C Get input file and format.
       filname=inf
       write(outs,'(2a)')'Input file is: ',filname(1:lnblnk(filname))
-      call edisp248(iuout,outs,100)
+C      call edisp248(iuout,outs,100)
       if(iformat(1:3).eq.'dxf')then
 
 C Determine root name of dxf file (to make layer file from).

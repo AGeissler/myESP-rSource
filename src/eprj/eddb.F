@@ -140,10 +140,10 @@ C yet defined.
       lndbp=lnblnk(standarddbpath)
       WRITE(ITEMS(1),'(A)')'  Folder paths: '
       if(lndbp.lt.52)then
-        WRITE(ITEMS(2),'(2A)')'  Standard <std> = ',
+        WRITE(ITEMS(2),'(2A)')'   Standard dbs <std> = ',
      &    standarddbpath(1:lndbp)
       else
-        WRITE(ITEMS(2),'(2A)')'  Standard <std> = ',
+        WRITE(ITEMS(2),'(2A)')'   Standard dbs <std> = ',
      &    standarddbpath(1:52)
       endif
       if(cfgroot(1:2).ne.'  '.and.cfgroot(1:4).ne.'UNKN')then
@@ -151,19 +151,19 @@ C yet defined.
         lndbpth=lnblnk(dbspth)
         if(lnpth+lndbpth.lt.55)then
           WRITE(ITEMS(3),'(3A)')
-     &      '  Model <mod> = ',path(1:lnpth),dbspth(1:lndbpth)
+     &      '   Model <mod> = ',path(1:lnpth),dbspth(1:lndbpth)
         else
           if(lnpth.lt.50)then
             WRITE(ITEMS(3),'(3A)')
-     &        '  Model <mod> = ',path(1:lnpth),dbspth(1:5)
+     &        '   Model <mod> = ',path(1:lnpth),dbspth(1:5)
           else
             WRITE(ITEMS(3),'(2A)')
-     &        '  Model <mod> = ',path(1:lnpth)
+     &        '   Model <mod> = ',path(1:lnpth)
           endif
         endif
       else
         WRITE(ITEMS(3),'(A)')
-     &    '  Model <mod> = no model defined yet'
+     &    '   Model <mod> = no model yet defined'
       endif
       ITEMS(4) ='  _______________________________ '
       if(ipathclim.eq.0)then
@@ -185,7 +185,7 @@ C yet defined.
       elseif(ipathmat.eq.1)then
         lndbpth=lnblnk(dbspth)+2
         WRITE(ITEMS(7),'(2A)')'c material properties   : <mod>',
-     &    LFMAT(lndbpth:38)  ! try to print file name only
+     &    LFMAT(lndbpth:38)
       elseif(ipathmat.eq.2)then
         WRITE(ITEMS(7),'(2A)')'c material properties   : <std>',
      &    LFMAT(1:38)
@@ -309,10 +309,10 @@ C Help text for this menu.
         impx=0
         impy=0
         iwe=iw
-        CALL VWMENU('Standard data maintenance',ITEMS,NITMS,impx,impy,
+        CALL VWMENU('Database maintenance',ITEMS,NITMS,impx,impy,
      &    iwe,irpx,irpy,INO)
       else
-        CALL EMENU('Standard data maintenance',ITEMS,NITMS,INO)
+        CALL EMENU('Database maintenance',ITEMS,NITMS,INO)
       endif
       IF(INO.EQ.19)THEN
         if(browse)return   ! no change since browsing
@@ -342,8 +342,8 @@ C user for confirmation.
         if(cfgok.and.moddb)then
           dok=.true.
           CALL ASKOK(
-     &      'A possible change in file names detected. Update the',
-     &      'model NAME LIST to match? (see help)',
+     &      'A possible change in file names has been detected.',
+     &      'Update the model to match?',
      &      OK,DOK,nbhelp)
           if(.NOT.OK)return
           CALL EMKCFG('-',IER)
@@ -367,8 +367,8 @@ C See if there are existing zone construction files.
             else
               dok=.true.
               CALL ASKOK(
-     &         'Rebuild existing zone construction files to reflect',
-     &         'standard file changes? (see help)',OK,dok,nbhelp)
+     &         'Rebuild existing zone construction files',
+     &         'to reflect database changes?',OK,dok,nbhelp)
             endif
           endif
           if(.NOT.OK)return
@@ -391,8 +391,7 @@ C Weather file.
 
       ELSEIF(INO.eq.6)THEN
 
-C Multi-year weather file - only works in conjunction
-C with save level 5.
+C Multi-year weather file - works only in conjunction with save level 5.
          call usrmsg('The use of multi-year assessments is',
      &               'limited to results save level 5.','W')
          call MY_clm_db_menu()
@@ -597,7 +596,7 @@ C closemat1 or closemat2 will be set.
       character SOPT*12,outs248*248,GDESCR*36
       character t144*144   ! for use with erprcdb
       character lworking*144 
-      integer lndbp   ! for length of standard path
+      integer lndbp   ! for length of standard database path
       logical unixok
 
 C For help messages
@@ -2201,7 +2200,7 @@ C use the editing facility.
           write(outs,'(2a)') LPCDB(1:100),' created.'
         endif
         dok=.true.
-        CALL ASKOK(outs,' Browse or edit new file?',
+        CALL ASKOK(outs,'Browse or edit new file?',
      &    OK,dok,nbhelp)
         if(OK)then
           moddb=.true.
@@ -3057,7 +3056,7 @@ C use the editing facility.
      &     '... created.'
         endif
         dok=.true.
-        CALL ASKOK(outs,' Browse or edit file?',OK,dok,nbhelp)
+        CALL ASKOK(outs,'Browse or edit file?',OK,dok,nbhelp)
         if(OK)then
           moddb=.true.
           goto 44
@@ -3815,7 +3814,7 @@ C Set the value of ipathoptdb to signal local file.
 
 C Scan the new file and use the editing facility.
         dok=.true.
-        CALL ASKOK('  ',' Browse or edit new file?',
+        CALL ASKOK('  ','Browse or edit new file?',
      &    OK,dok,nbhelp)
         if(OK)then
           goto 44
@@ -4148,7 +4147,7 @@ C Update the current file and re-scan it and then open editing facilty.
 
 C Scan the new file and use the editing facility.
         dok=.true.
-        CALL ASKOK('  ',' Browse or edit new file?',
+        CALL ASKOK('  ','Browse or edit new file?',
      &    OK,dok,nbhelp)
         if(OK)then
           goto 44
@@ -4255,7 +4254,7 @@ C enter editing facilitiy.
       end
 
 C ********** EDDBCLM
-C EDDBCLM Changes the weather file current cfg file references.
+C EDDBCLM Changes the weather file referenced by the cfg file.
 C moddb is
 C APP is 4 character file name modifier (from version facility)
 C     if blank then no file name change implied.
@@ -4356,7 +4355,7 @@ C Just in case we got this far and ICLIM was not instanciated do it now.
       endif
       CALL ERPFREE(ICLIM,ISTAT)
 
-C Depending on where the weather is located offer different options.
+C Depending on where the weather file is located offer different options.
       call FINDFIL(llclmdb,XST)
       IF(.NOT.XST)THEN
         idno=2
@@ -4369,15 +4368,15 @@ C Depending on where the weather is located offer different options.
         copydef=.true.
       elseif(llclmdb(1:ldirpath).eq.dirpath(1:ldirpath))then
 
-C If corportate weather then offer the following choices:
+C If corporate weather then offer the following choices:
         idno=1
         isw=0
         call MENUATOL('  ','Weather <std>',
-     &    'a browse/edit','b select another from list',
+     &    'a browse/ edit','b select another from list',
      &    'c select from model ../dbs',
-     &    'd create new weather','e copy it to model',
-     &    'f weather >> ascii export','g ascii >> weather import',
-     &    'h EPW >> weather import',' ',' ',' ',' ',
+     &    'd create new weather file','e copy it to model',
+     &    'f export (to ascii file)','g import (from ascii file)',
+     &    'h import EPW file',' ',' ',' ',' ',
      &    isw,idno,nbhelp)
         copydef=.false.
       else
@@ -4386,11 +4385,11 @@ C If db exists locally offer the following choices:
         idno=1
         isw=0
         call MENUATOL('  ','Weather <mod>',
-     &    'a browse/edit','b select another from list',
+     &    'a browse/ edit','b select another from list',
      &    'c select from model ../dbs',
-     &    'd create new weather','e copy standard weather',
-     &    'f weather >> ascii export','g ascii >> weather import',
-     &    'h EPW >> weather import',' ',' ',' ',' ',
+     &    'd create new weather file','e copy standard weather',
+     &    'f export (to ascii file)','g  import (from ascii file)',
+     &    'h import EPW file',' ',' ',' ',' ',
      &    isw,idno,nbhelp)
         copydef=.true.
       endif
@@ -4407,12 +4406,12 @@ C If file exists read it and enter editing facility.
           if(ier.eq.0)then
             moddb=.true.
           else
-            call usrmsg('Problem encountered with weather!',
-     &                  'Please check db location and content.','W')
+            call usrmsg('Problem encountered with weather file.',
+     &                  'Please check file location and content.','W')
             goto 552
           endif
         else
-          call usrmsg('Sorry there is no file to browse/edit.',
+          call usrmsg('Sorry there is no file to browse/ edit.',
      &                'Please use one of the other options.','W')
           goto 552
         endif
@@ -4463,7 +4462,7 @@ C use a file dialog (X11) or browser (GTK) to go looking for it.
               ipathclim=0
  291          llt=lnblnk(lguess)
               iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-              CALL EASKXORGTKF(lguess,'Weather file:','Confirm:',
+              CALL EASKXORGTKF(lguess,'Weather files.','Options:',
      &          DCLIM,llclmdb,'climate file name',IER,numhelp)
               IF(llclmdb(1:2).EQ.'  ')GOTO 291
               if(ier.eq.-3)then

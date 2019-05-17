@@ -392,7 +392,7 @@ C Take command line file name as configuration file.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
         LCMDFL=inf
         write(outs248,'(a,a)')' the input file is: ',LCMDFL
-        call edisp248(iuout,outs248,80)
+C        call edisp248(iuout,outs248,80)
       else
         LCMDFL='  '
       endif

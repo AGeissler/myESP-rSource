@@ -227,8 +227,8 @@ C Take command line file name as initial file.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
         LCMDFL=inf
         write(outs248,'(a,a)')'Input file is: ',LCMDFL
-        call edisp(iuout,'  ')
-        call edisp248(iuout,outs248,80)
+C        call edisp(iuout,'  ')
+C        call edisp248(iuout,outs248,80)
       else
         LCMDFL='UNKNOWN'
       endif

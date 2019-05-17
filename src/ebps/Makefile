@@ -779,7 +779,6 @@ FMIcom.F:
 	rm -f FMIcom.F
 	ln -s $(COMdir)/FMIcom.F .
 
-
 strip:
 	strip $(PROG)
 	strip $(DLL)
@@ -813,7 +812,7 @@ clean:
 	pcomp4.F pcomps1.F pcomps.F pcompDH.F plibsv.F plot.F pltcfg.F plt_bc_components.F \
 	plt_zone_gain_coupling.F pmatrx.F pplib.F ppsub.F precal.F \
 	psychro.F rnor.F rwipv.F rwroam.F rwsbem.F shocc_dummy.c senrwl.F sensit.F sentim.F segmentedocc.f90 \
-	segoccfunc.F solar.F sort.F Annex42_fuel_cell.F spmatl.F stofunc.F \
+	segoccfunc.f90 solar.F sort.F Annex42_fuel_cell.F spmatl.F stofunc.F \
 	spmisc.F startup.F Annex42_combustion_CHP.F subsys.F tdfile.F trstyp.F tscon.F \
 	TWildCards.cpp utilf.F Vnt_data.mod wind_turbine_profile_model.F \
 	init_hvac_var.F \

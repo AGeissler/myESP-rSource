@@ -110,7 +110,8 @@ C For number of openings NOPEN
 
 C Saved state of the visualisation
       COMMON/MODVIS/IVISMOD
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
 
@@ -446,7 +447,7 @@ C << decide whether LCFDV needs to be > 72 char >>
           write(LCFD(1),'(a)') inf(1:72)
         endif
         write(outs,'(a,a)')' the input file is: ',LCFDV
-        call edisp(iuout,outs)
+C        call edisp(iuout,outs)
       else
         LCFDV='UNKNOWN'
         LCFD(1)='UNKNOWN'
@@ -1360,7 +1361,8 @@ C first view.
 
 C Saved state of the visualisation
       COMMON/MODVIS/IVISMOD
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
 
@@ -1407,7 +1409,7 @@ C Need to reset scale factors - do this by redrawing the domain.
       iz=0
 
 C Draw the domain prior to the arrows.
-      ISHSB=0; ISHAO=0; IFACES=1; ISHBLK=0; ISHGEO=0
+      ISHSB=0; ISHAO=0; IFACES=1; ISHBLK=0; ISHSRC=0; ISHGEO=0
       call redraw(IER)
 C      write(6,*) 'imgqua,NOX,NOZ,tscal,hLscal,hWscal,vLscal'
 C      write(6,*) imgqua,NOX,NOZ,tscal,hLscal,hWscal,vLscal

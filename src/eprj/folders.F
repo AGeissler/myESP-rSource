@@ -521,7 +521,7 @@ C Write out the model log file within the model doc folder.
         write(iunit,'(2a)')'Project notes for ',LCFGF(1:lnblnk(LCFGF))
         write(iunit,'(2a)')'Title: ',modeltitle(1:lnblnk(modeltitle))
         write(iunit,'(2a)')'In folder: ',pwd(1:lnblnk(pwd))
-        write(iunit,'(2a)')'By: ',uname(1:lnblnk(uname))
+        write(iunit,'(2a)')'Author: ',uname(1:lnblnk(uname))
         call dstamp(dstmp)
         write(iunit,'(2a)')'Date: ',dstmp
         write(iunit,'(a)')'Client: '
@@ -1035,14 +1035,13 @@ C Test if we can start a new prj within the model cfg folder.
         h(2)='restart in the model cfg folder. When prj'
         h(3)='has restarted this instance of prj will'
         h(4)='quit after a few seconds.'
-        CALL EASKABC(
-     &    'To provide full functionality prj needs to restart',
-     &    'focused on the model cfg folder','yes restart',
-     &    'continue','abort prj',IRT,4)
+        CALL EASKAB(
+     &    'Project Manager needs to restart.',
+     &    'Options:','restart','continue',IRT,4)
         if(irt.eq.1)then
           call pausems(1000)
-          call usrmsg('Invoking new prj focused on the model',
-     &      ' and this instance will close.','P')
+          call usrmsg('Invoking new ESP-r instance',
+     &      'focused on the model.','P')
 
 C Invoke prj in same mode and size and initial start.
           if(iappwpc.gt.0.and.iappwpc.le.200)then
@@ -1067,10 +1066,6 @@ C Clear allocatable arrays
         elseif(irt.eq.2)then
           ier=-2  ! pass back to calling code
           return
-        elseif(irt.eq.3)then
-          CALL DeallocateAllArrays
-          CALL EPAGEND
-          STOP
         endif
       else
 
@@ -1089,10 +1084,9 @@ C text string tmode='bg' to partially mimic background mode.
         h(2)='restart in the copied model cfg folder. When'
         h(3)='prj has restarted this instance of prj will'
         h(4)='persist until you close the DOS cmd window.'
-        CALL EASKABC(
-     &    'To provide full functionality prj needs to restart',
-     &    'focused on the model cfg folder','yes restart',
-     &    'continue','abort prj',IRT,4)
+        CALL EASKAB(
+     &    'To provide full functionality ESP-r needs to restart',
+     &    'Options','restart','continue',IRT,4)
         if(irt.eq.1)then
 
 C Separate two dos cmds with & but do not include & at end to force background
@@ -1126,10 +1120,6 @@ C Clear allocatable arrays
         elseif(irt.eq.2)then
           ier=-2
           return
-        elseif(irt.eq.3)then
-          CALL DeallocateAllArrays
-          CALL EPAGEND
-          STOP
         endif
       endif
       return
@@ -1150,6 +1140,7 @@ C geometry.h provides commons G0 and G2.
 
       common/FILEP/IFIL
       common/OUTIN/IUOUT,IUIN
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       
       common/rpath/path
 
@@ -1231,10 +1222,10 @@ C For native windows do not bother with usrdir.
 
 #ifdef OSX
 C In OSX slightly different logic. If path ls ./ then standard logic
-C works. If path begins with /usr/esru then no need to prepend odir.
+C works. If path begins with /opt/esp-r then no need to prepend odir.
       if(path(1:2).eq.'./')then
         continue
-      elseif(path(1:9).eq.'/usr/esru')then
+      elseif(path(1:10).eq.'/opt/esp-r')then
 
 C Debug.
 C        write(6,*) 'OSX path is ',path
@@ -1254,42 +1245,41 @@ C Remind user of available cfg files.
       action='cfg'
       call getfileslist(subpath,action,nnlistf)
       nlistf=int(nnlistf)
-      call printfileslist(outs,'p')
+      if(mmod.eq.8)then
+        continue
+      else
+        call printfileslist(outs,'p')
+      endif
 
   42  continue
       INO=-4
       WRITE(ITEMS(1),'(2A)') '  name: ',LCFGF(1:24)
       WRITE(ITEMS(2),'(2A)') '  path: ',path(1:23)
-      WRITE(ITEMS(3),'(A)')  '  .... Relative paths to .... '
+      ITEMS(3)  =            ' .... Relative paths to .... '
       WRITE(ITEMS(4),'(2A)') 'b zones   : ',zonepth(1:20)
       WRITE(ITEMS(5),'(2A)') 'c control : ',ctlpth(1:20)
       WRITE(ITEMS(6),'(2A)') 'd aim2    : ',aimpth(1:20)
       WRITE(ITEMS(7),'(2A)') 'e network : ',netpth(1:20)
       WRITE(ITEMS(8),'(2A)') 'f images  : ',imgpth(1:20)
       WRITE(ITEMS(9),'(2A)') 'g document: ',docpth(1:20)
-      WRITE(ITEMS(10),'(A)') '          : '
-      WRITE(ITEMS(11),'(2A)')'i radiance: ',radpth(1:20)
-      WRITE(ITEMS(12),'(2A)')'j local db: ',dbspth(1:20)
-      WRITE(ITEMS(13),'(2A)')'k hvac    : ',hvacpth(1:20)
-      WRITE(ITEMS(14),'(2A)')'k BASESIMP: ',bsmpth(1:20)
-      ITEMS(15)  =           ' _____________________________ '
-      ITEMS(16)  =           'l zone files                   '
-      ITEMS(17)  =           'm scan and rewrite model files '
-      ITEMS(18)  =           ' _____________________________ '
-      WRITE(ITEMS(19),'(A)') 'n list ASCII file              '
-      WRITE(ITEMS(20),'(A)') 'o edit ASCII file              '
-      WRITE(ITEMS(21),'(A)') 'p list files in esp-r/databases'
-      WRITE(ITEMS(22),'(A)') 'q list files in esp-r/climate  '
-      WRITE(ITEMS(23),'(A)') 'r read                         '
-      ITEMS(24)  =           '? help                         '
-      ITEMS(25)  =           '- exit this menu               '
-      nitems=25
+      WRITE(ITEMS(10),'(2A)')'i radiance: ',radpth(1:20)
+      WRITE(ITEMS(11),'(2A)')'j local db: ',dbspth(1:20)
+      WRITE(ITEMS(12),'(2A)')'k hvac    : ',hvacpth(1:20)
+      WRITE(ITEMS(13),'(2A)')'k BASESIMP: ',bsmpth(1:20)
+      ITEMS(14)  =           'l zone files                 '
+      ITEMS(15)  =           'n list ASCII file            '
+      ITEMS(16)  =           'o edit ASCII file            '
+      ITEMS(17)  =           'p list database files        '
+      ITEMS(18)  =           'q list weather files         '
+      ITEMS(19)  =           '? help                       '
+      ITEMS(20)  =           '- exit this menu             '
+      nitems=20
 
 C Help text for this menu.
       helptopic='cfg_path_overview'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-      CALL EMENU('Folders and Files',ITEMS,nitems,INO)
+      CALL EMENU('Folders and files',ITEMS,nitems,INO)
       if(INO.EQ.nitems)then
         if(browse)then
           continue
@@ -1304,20 +1294,18 @@ C Help text for this menu.
           endif
         endif
         return
+
       elseif(ino.eq.nitems-1)then
         helptopic='cfg_path_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('folders and files',nbhelp,'-',0,0,IER)
-      elseif(ino.eq.nitems-2)then
 
-C Test read of a X file type.
-        call edisp(iuout,'No current test.')
       elseif(ino.eq.4)then
-
         if(.NOT.browse)then
           t24=zonepth
-          CALL EASKS(t24,'Relative path from cfg',
-     &      'folder to zones folder?',
+          CALL EASKS(t24,
+     &      'Relative path from cfg folder to zones folder?',
+     &      'Confirm:',
      &       24,'../zones','relative zones path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
             zonepth=t24
@@ -1331,12 +1319,6 @@ C Test read of a X file type.
             sfile=' '
             snpfile=' '
             call browsefilelist('b','zon','geo',sfile,snpfile,nli,iier)
-
-C Debug.
-C            write(6,*) 'selected file is ',sfile
-C            write(6,*) 'selected file is ',snpfile
-C            write(6,*) 'iier is ',iier,nli
-
           endif
         else
           sfile=' '
@@ -1345,11 +1327,11 @@ C            write(6,*) 'iier is ',iier,nli
         endif
 
       elseif(ino.eq.5)then
-
         if(.NOT.browse)then
           t24=ctlpth
-          CALL EASKS(t24,'Relative path from cfg',
-     &      'folder to controls folder?',
+          CALL EASKS(t24,
+     &      'Relative path from cfg folder to controls folder?',
+     &      'Confirm:',
      &       24,'../ctl','relative controls path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
             ctlpth=t24
@@ -1365,11 +1347,11 @@ C            write(6,*) 'iier is ',iier,nli
         endif
 
       elseif(ino.eq.6)then
-
         if(.NOT.browse)then
           t24=aimpth
-          CALL EASKS(t24,'Relative path from cfg',
-     &      'folder to aim2 folder?',
+          CALL EASKS(t24,
+     &      'Relative path from cfg folder to aim2 folder?',
+     &      'Confirm:',
      &       24,'../aim2','relative aim2 path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
             aimpth=t24
@@ -1385,11 +1367,11 @@ C            write(6,*) 'iier is ',iier,nli
         endif
 
       elseif(ino.eq.7)then
-
         if(.NOT.browse)then
           t24=netpth
-          CALL EASKS(t24,'Relative path from cfg',
-     &      'folder to networks folder?',
+          CALL EASKS(t24,
+     &      'Relative path from cfg folder to networks folder?',
+     &      'Confirm:',
      &       24,'../nets','relative networks path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
             netpth=t24
@@ -1407,11 +1389,11 @@ C            write(6,*) 'iier is ',iier,nli
         endif
 
       elseif(ino.eq.8)then
-
         if(.NOT.browse)then
           t24=imgpth
-          CALL EASKS(t24,'Relative path from cfg',
-     &      'folder to images folder?',
+          CALL EASKS(t24,
+     &      'Relative path from cfg folder to images folder?',
+     &      'Confirm:',
      &       24,'../images','relative img path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
             imgpth=t24
@@ -1427,12 +1409,12 @@ C            write(6,*) 'iier is ',iier,nli
         endif
 
       elseif(ino.eq.9)then
-
         if(.NOT.browse)then
           t24=docpth
-          CALL EASKS(t24,'Relative path from cfg',
-     &       'folder to documents folder?',24,'../doc',
-     &        'relative doc path',IER,nbhelp)
+          CALL EASKS(t24,
+     &      'Relative path from cfg folder to documents folder?',
+     &      'Confirm:',24,'../doc',
+     &      'relative doc path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
             docpth=t24
             changedit=.true.
@@ -1447,15 +1429,11 @@ C            write(6,*) 'iier is ',iier,nli
         endif
 
       elseif(ino.eq.10)then
-
-C Nothing uses this tmp option currently.
-
-      elseif(ino.eq.11)then
-
         if(.NOT.browse)then
           t24=radpth
-          CALL EASKS(t24,'Relative path from cfg folder',
-     &      'folder to Radiance folder?',24,'../rad',
+          CALL EASKS(t24,
+     &      'Relative path from cfg folder to Radiance folder?',
+     &      'Confirm:',24,'../rad',
      &      'relative radiance path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
             radpth=t24
@@ -1470,7 +1448,7 @@ C Nothing uses this tmp option currently.
           call browsefilelist('p','rad','fil',sfile,snpfile,nli,iier)
         endif
 
-      elseif(ino.eq.12)then
+      elseif(ino.eq.11)then
 
 C Users (currently) cannot alter dbspth.
 C << interface for dbspath here >>
@@ -1482,14 +1460,18 @@ C << interface for dbspath here >>
         action='fil'
         call getfileslist(subpath,action,nnlistf)
         nlisft=int(nnlistf)
-        call printfileslist(outs,'p')
+        if(mmod.eq.8)then
+          continue
+        else
+          call printfileslist(outs,'p')
+        endif
 
-      elseif(ino.eq.13)then
-
+      elseif(ino.eq.12)then
         if(.NOT.browse)then
           t24=hvacpth
-          CALL EASKS(t24,'Relative path from cfg',
-     &      'folder to hvac folder?',
+          CALL EASKS(t24,
+     &      'Relative path from cfg folder to hvac folder?',
+     &      'Confirm:',
      &       24,'../hvac','relative hvac path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
             hvacpth=t24
@@ -1503,12 +1485,13 @@ C << interface for dbspath here >>
           snpfile=' '
           call browsefilelist('p','hva','hvac',sfile,snpfile,nli,iier)
         endif
-      elseif(ino.eq.14)then
 
+      elseif(ino.eq.13)then
         if(.NOT.browse)then
           t24=bsmpth
-          CALL EASKS(t24,'Relative path from cfg',
-     &      'folder to BASESIMP folder?',
+          CALL EASKS(t24,
+     &      'Relative path from cfg folder to BASESIMP folder?',
+     &      'Confirm:',
      &       24,'../bsm','relative bsm path',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
             bsmpth=t24
@@ -1523,8 +1506,7 @@ C << interface for dbspath here >>
           call browsefilelist('p','bsm','bsm',sfile,snpfile,nli,iier)
         endif
 
-      elseif(ino.eq.16)then
-
+      elseif(ino.eq.14)then
 C Zone file composition.
         IC=-1
  254    CALL EASKGEOF('Select a zone to focus on:',CFGOK,IC,'-',34,IER)
@@ -1535,14 +1517,7 @@ C Loop back and see if another zone is requested.
         IC=-1
         GOTO 254
 
-      elseif(ino.eq.17)then
-
-C Option to scan in current model files and then write them out
-C again, updating the file format as per value of igupgrade.
-C << to be done >>
-
-      elseif(ino.eq.19)then
-
+      elseif(ino.eq.15)then
 C List out an ASCII file.
     6   CALL EASKS(LFIL,' ','ASCII file name?',
      &    72,' ','ASCII file',IER,nbhelp)
@@ -1555,8 +1530,8 @@ C List out an ASCII file.
      &               ' ASCII file. Try again?',OK,dok,nbhelp)
           IF(OK)GOTO 6
         ENDIF
-      elseif(ino.eq.20)then
 
+      elseif(ino.eq.16)then
 C Allow user to edit a file. Append to path if necessary.
 C If vi then spawn a new window to do the editing in.
         CALL EASKS(LFIL,' ','ASCII file to edit?',
@@ -1579,9 +1554,8 @@ C and change any / to \.
      &    longtfile(1:lnblnk(longtfile)),' &'
         call runit(doit,tmode)
 
-      elseif(ino.eq.21)then
-
 C List files in corporate databases folder.
+      elseif(ino.eq.17)then
         sfile=' '
         snpfile=' '
         call browsefilelist('p','dbm','fil',sfile,snpfile,nli,iier)
@@ -1589,15 +1563,15 @@ C List files in corporate databases folder.
           call usrmsg('The folder includes more files than the list',
      &      'can handle - please be careful!','W')
         endif
-      elseif(ino.eq.22)then
 
-C List files in corporate climate folder..
+C List files in corporate weather file folder.
+      elseif(ino.eq.18)then
         sfile=' '
         snpfile=' '
         call browsefilelist('p','clm','fil',sfile,snpfile,nli,iier)
         if(nli.gt.MFFOLD) then
           call usrmsg('The folder includes more files than the list',
-     &      'can handle - please be careful!','W')
+     &      'can handle - please be careful.','W')
         endif
       else
         goto 42
@@ -2020,8 +1994,8 @@ C Edit zone name - read and then write the geometry file.
      &      ZN(1:lnblnk(ZN)),'.geo'
         endif
         L=LGEOM(IZ)
-        write(outs,'(3a)')' Geometry file for ',ZN(1:lnblnk(ZN)),' ?'
-   41   CALL EASKS(L,outs,' ',72,D,'Z geom',IER,nbhelp)
+        write(outs,'(3a)')'Geometry file for ',ZN(1:lnblnk(ZN)),'?'
+   41   CALL EASKS(L,outs,'Confirm:',72,D,'Z geom',IER,nbhelp)
         IF(L.eq.' '.or.IER.NE.0)GOTO 41
         if(LGEOM(IZ).ne.L)modcfg=.true.
         LGEOM(IZ)=L
@@ -2064,9 +2038,9 @@ C Edit zone name - read and then write the geometry file.
         elseif(IW.EQ.3)then
           goto 3
         endif
-        write(outs,'(3a)')' Construction file for ',ZN(1:lnblnk(ZN)),
-     &    ' ?'
-   42   CALL EASKS(L,outs,' ',72,D,'Z constr',IER,nbhelp)
+        write(outs,'(3a)')'Construction file for ',ZN(1:lnblnk(ZN)),
+     &    '?'
+   42   CALL EASKS(L,outs,'Confirm:',72,D,'Z constr',IER,nbhelp)
         IF(L.eq.' '.or.IER.NE.0)GOTO 42
         if(LTHRM(IZ).ne.L)modcfg=.true.
         LTHRM(IZ)=L
@@ -2109,8 +2083,8 @@ C Edit zone name - read and then write the geometry file.
         elseif(IW.EQ.3)then
           goto 3
         endif
-        write(outs,'(3a)')' Operations file for ',ZN(1:lnblnk(ZN)),' ?'
-   40   CALL EASKS(L,outs,' ',72,D,'Z operations',IER,nbhelp)
+        write(outs,'(3a)')'Operations file for ',ZN(1:lnblnk(ZN)),'?'
+   40   CALL EASKS(L,outs,'Confirm:',72,D,'Z operations',IER,nbhelp)
         IF(L.eq.' '.or.IER.NE.0)GOTO 40
         if(LPROJ(IZ).ne.L)modcfg=.true.
         LPROJ(IZ)=L
@@ -2201,7 +2175,7 @@ C There is no zone obstructions file so offer restricted choice.
      &        ZN(1:lnblnk(ZN)),'.obs'
           endif
           write(outs,'(3a)')'Obstruction file for ',ZN(1:lnblnk(ZN)),'?'
-   47     CALL EASKS(L,outs,' ',72,D,'Z obstr',IER,nbhelp)
+   47     CALL EASKS(L,outs,'Confirm:',72,D,'Z obstr',IER,nbhelp)
           IF(L(1:1).eq.' '.or.IER.NE.0)GOTO 47
           ZOBS(IZ)=L
           IOBS(IZ)=1
@@ -2284,8 +2258,8 @@ C There is no zone optic file so offer restricted choice.
           WRITE(D,'(3A,A4)') zonepth(1:lnblnk(zonepth)),'/',
      &      ZN(1:lnblnk(ZN)),'.tmc'
         endif
-        write(outs,'(3a)')' TMC file for ',ZN(1:lnblnk(ZN)),' ?'
-   51   CALL EASKS(L,outs,' ',72,D,'tmc file',IER,nbhelp)
+        write(outs,'(3a)')'TMC file for ',ZN(1:lnblnk(ZN)),'?'
+   51   CALL EASKS(L,outs,'Confirm:',72,D,'tmc file',IER,nbhelp)
         IF(L.eq.' '.or.IER.NE.0)GOTO 51
         LTWIN(IZ)=L
         ITW(IZ)=1
@@ -2367,8 +2341,8 @@ C There is no zone viewfactor file so offer restricted choice.
           WRITE(D,'(3A,A4)') zonepth(1:lnblnk(zonepth)),'/',
      &      ZN(1:lnblnk(ZN)),'.vwf'
         endif
-        write(outs,'(3a)')' Viewfactor file for ',ZN(1:lnblnk(ZN)),' ?'
-   46   CALL EASKS(L,outs,' ',72,D,'view factor',IER,nbhelp)
+        write(outs,'(3a)')'Viewfactor file for ',ZN(1:lnblnk(ZN)),'?'
+   46   CALL EASKS(L,outs,'Confirm:',72,D,'view factor',IER,nbhelp)
         IF(L.eq.' '.or.IER.NE.0)GOTO 46
         LVIEW(IZ)=L
         IVF(IZ)=1
@@ -2451,9 +2425,9 @@ C There is no zone casual gain control file so offer restricted choice.
      &      ZN(1:lnblnk(ZN)),'.cgc'
         endif
         L=' '
-        write(outs,'(3a)')' Casual gain control file for ',
-     &    ZN(1:lnblnk(ZN)),' ?'
-   52   CALL EASKS(L,outs,' ',72,D,'casual gain control file',
+        write(outs,'(3a)')'Casual gain control file for ',
+     &    ZN(1:lnblnk(ZN)),'?'
+   52   CALL EASKS(L,outs,'Confirm:',72,D,'casual gain control file',
      &    IER,nbhelp)
         IF(L.eq.' '.or.IER.NE.0)GOTO 52
         LCGCIN(IZ)=L
@@ -2537,9 +2511,9 @@ C There is no zone shading file so offer restricted choice.
      &      ZN(1:lnblnk(ZN)),'.shd'
         endif
         L=LSHAD(IZ)
-        write(outs,'(3a)')' Shading/ insolation file for ',
-     &    ZN(1:lnblnk(ZN)),' ?'
-   48   CALL EASKS(L,outs,' ',72,D,'shd db',IER,nbhelp)
+        write(outs,'(3a)')'Shading/ insolation file for ',
+     &    ZN(1:lnblnk(ZN)),'?'
+   48   CALL EASKS(L,outs,'Confirm:',72,D,'shd db',IER,nbhelp)
         IF(L.eq.' '.or.IER.NE.0)GOTO 48
         LSHAD(IZ)=L
         ISI(IZ)=1
@@ -2622,9 +2596,9 @@ C There is no zone view factor file so offer restricted choice.
      &      ZN(1:lnblnk(ZN)),'.htc'
         endif
         L=LHCCO(IZ)
-        write(outs,'(3a)')' Convection regime file for ',
-     &    ZN(1:lnblnk(ZN)),' ?'
-   49   CALL EASKS(L,outs,' ',72,D,'Z hc',IER,nbhelp)
+        write(outs,'(3a)')'Convection regime file for ',
+     &    ZN(1:lnblnk(ZN)),'?'
+   49   CALL EASKS(L,outs,'Confirm:',72,D,'Z hc',IER,nbhelp)
         IF(L.eq.' '.or.IER.NE.0)GOTO 49
         LHCCO(IZ)=L
         IHC(IZ)=1
@@ -2661,8 +2635,9 @@ C There is no zone view factor file so offer restricted choice.
      &       ZN(1:lnblnk(ZN)),'.dfd'
         endif
         L=LCFD(IZ)
-        write(outs,'(3a)')' Domain flow file for ',ZN(1:lnblnk(ZN)),' ?'
-   53   CALL EASKS(L,outs,' ',72,D,'Domain flow model file',IER,nbhelp)
+        write(outs,'(3a)')'Domain flow file for ',ZN(1:lnblnk(ZN)),'?'
+   53   CALL EASKS(L,outs,'Confirm:',72,D,
+     &    'Domain flow model file',IER,nbhelp)
         IF(L.eq.' '.or.IER.NE.0)GOTO 53
         LCFD(IZ)=L
         modcfg=.TRUE.
@@ -2691,27 +2666,27 @@ C There is no zone view factor file so offer restricted choice.
         endif
         WRITE(L,'(A,A4)')zname(IZ)(1:lnzname(IZ)),'.cvs'
         D = 'new.cvs'
-        write(outs,'(3a)')' 3D control volumes file for ',
-     &    ZN(1:lnblnk(ZN)),' ?'
-        CALL EASKS(L,outs,' ',72,D,'control volumes',IER,nbhelp)
+        write(outs,'(3a)')'3D control volumes file for ',
+     &    ZN(1:lnblnk(ZN)),'?'
+        CALL EASKS(L,outs,'Confirm:',72,D,'control volumes',IER,nbhelp)
         if(L(1:2).ne.'  ')L3DCVS(IZ)=L
 
         WRITE(L,'(A,A4)')zname(IZ)(1:lnzname(IZ)),'.cnc'
         D = 'new.cnc'
-        CALL EASKS(L,' 3D volumes connections file?',
-     &      ' ',72,D,'control connections file',IER,nbhelp)
+        CALL EASKS(L,'3D volumes connections file?',
+     &    'Confirm:',72,D,'control connections file',IER,nbhelp)
         if(L(1:2).ne.'  ')L3DCNC(IZ)=L
 
         WRITE(L,'(A,A4)')zname(IZ)(1:lnzname(IZ)),'.ndc'
         D = 'new.ndc'
-        CALL EASKS(L,' 3D coordinates file?',
-     &      ' ',72,D,'3D coordinates file',IER,nbhelp)
+        CALL EASKS(L,'3D coordinates file?',
+     &    'Confirm:',72,D,'3D coordinates file',IER,nbhelp)
         if(L(1:2).ne.'  ')L3DNDC(IZ)=L
 
         WRITE(L,'(A,A4)')zname(IZ)(1:lnzname(IZ)),'.3dt'
         D = 'new.3dt'
-        CALL EASKS(L,' 3D node temperatures file?',
-     &      ' ',72,D,'3D temperatures file',IER,nbhelp)
+        CALL EASKS(L,'3D node temperatures file?',
+     &    'Confirm:',72,D,'3D temperatures file',IER,nbhelp)
         if(L(1:2).ne.'  ')L3DTAQ(IZ)=L
         ZONE3D(IZ)=.true.
         modcfg=.TRUE.
@@ -2736,9 +2711,9 @@ C There is no zone view factor file so offer restricted choice.
         endif
         WRITE(L,'(A,A4)')zname(IZ)(1:lnzname(IZ)),'.mst'
         D = 'new.mst'
-        write(outs,'(3a)')' Moisture transport file for ',
-     &    ZN(1:lnblnk(ZN)),' ?'
-        CALL EASKS(L,outs,' ',72,D,'moisture file',IER,nbhelp)
+        write(outs,'(3a)')'Moisture transport file for ',
+     &    ZN(1:lnblnk(ZN)),'?'
+        CALL EASKS(L,outs,'Confirm:',72,D,'moisture file',IER,nbhelp)
         if(L(1:2).ne.'  ')then
           LMOIST(IZ)=L
           MSTRZN(IZ)=.true.
@@ -2764,9 +2739,9 @@ C There is no zone view factor file so offer restricted choice.
         endif
         WRITE(L,'(A,A4)')zname(IZ)(1:lnzname(IZ)),'.csm'
         D = 'new.csm'
-        write(outs,'(3a)')' Structured mesh file for ',
-     &    ZN(1:lnblnk(ZN)),' ?'
-        CALL EASKS(L,outs,' ',72,D,'structured file',IER,nbhelp)
+        write(outs,'(3a)')'Structured mesh file for ',
+     &    ZN(1:lnblnk(ZN)),'?'
+        CALL EASKS(L,outs,'Confirm:',72,D,'structured file',IER,nbhelp)
         if(L(1:2).ne.'  ')then
           LGrdSt=L
           IndxSt=IZ
@@ -2848,8 +2823,8 @@ C There is no zone cfc file so offer restricted choice.
           WRITE(D,'(3A,A4)') zonepth(1:lnblnk(zonepth)),'/',
      &      ZN(1:lnblnk(ZN)),'.cfc'
         endif
-        write(outs,'(3a)')' CFC file for ',ZN(1:lnblnk(ZN)),' ?'
-  511   CALL EASKS(L,outs,' ',72,D,'cfc file',IER,nbhelp)
+        write(outs,'(3a)')'CFC file for ',ZN(1:lnblnk(ZN)),'?'
+  511   CALL EASKS(L,outs,'Confirm:',72,D,'cfc file',IER,nbhelp)
         IF(L.eq.' '.or.IER.NE.0)GOTO 511
         lcfcin(IZ)=L
         icfc(IZ)=1

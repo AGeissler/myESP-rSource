@@ -321,6 +321,12 @@
 'The zones to include option controls the extent of the'
 'view bounding box.'
 '  '
+'Option k allows you to toggle between fisheye and perspective'
+'views. With a perspective view, view angles defined here will'
+'be passed to radiance. For a fisheye view, view angles are'
+'always 180 degrees. For glare assessments, fisheye views are'
+'highly recommended.'
+'  '
 'In plan view you can change the viewing parameters,'
 'the elevations are primarily for checking. '
 *enditem

@@ -39,12 +39,10 @@
 'the room so that you can double check that the gridding'
 'that you set up is correct. '
 ' '
-'It is also a good idea to view the domain in 1D 2D and 3D'
-'to ensure the grid is correct before defining other '
-'of the domain. You also have a number of options for'
-'what you see in the 1/2/3D views: '
-'  * cell gridding only'
-'  * cells plus boundary volumes and flow openings'
+'It is also a good idea to view the domain in 1D, 2D,'
+'and/or 3D to ensure the grid is correct before continuing'
+'with the domain. You can control what you see in the 3D'
+'view from this menu.''
 *enditem
         CALL EASKABCD('Options for 3D gridding:',' ','all faces',
         CALL PHELPD('grid visualization',23,'-',0,0,IER)

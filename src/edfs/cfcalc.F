@@ -3555,9 +3555,9 @@ C South wall.
 C North wall.
 C Previously, there was a bug in this section caused by
 C iterating K from JSBi to KSBf instead of KSBi to KSBf.
-C This had the effect that all solid boundary cells on the 
-C north face had a momentum in the V direction equal to the
-C starting V momentum specfied in the domain file.
+C This had the effect that solid boundary cells on the north face may
+C have had a momentum in the V direction equal to the starting V
+C momentum specfied in the domain file.
         ELSEIF(location.EQ.4)THEN
           J=JSBi(L,ICFD)
           DO 160 I=ISBi(L,ICFD),ISBf(L,ICFD)

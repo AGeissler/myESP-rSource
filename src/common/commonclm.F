@@ -1100,7 +1100,7 @@ C Set folder separator (fs) to \ or / as required.
 C Handle path to the climate file.
       lndbp=lnblnk(standardclmpath)
       if(ipathclim.eq.0.or.ipathclim.eq.1)then
-        call addpath(lclim,llclmdb,concat)
+        llclmdb=LCLIM
       elseif(ipathclim.eq.2)then
         write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
      &    LCLIM(1:lnblnk(LCLIM))

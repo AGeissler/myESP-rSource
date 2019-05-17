@@ -330,15 +330,15 @@ C If user has defined model and perhaps resized the display then
 C redraw the model image.
       if(indcfg.eq.2)then
         if(browse)then
-          CALL EMENU('Browse/ Simulate',ITEMS,nitems,INO)
+          CALL EMENU('Browse/ simulate',ITEMS,nitems,INO)
         else
-          CALL EMENU('Browse/ Edit/ Simulate',ITEMS,nitems,INO)
+          CALL EMENU('Browse/ edit/ simulate',ITEMS,nitems,INO)
         endif
       elseif(indcfg.eq.0)then
         if(browse)then
-          CALL EMENU('Browse/ Simulate',ITEMS,nitems,INO)
+          CALL EMENU('Browse/ simulate',ITEMS,nitems,INO)
         else
-          CALL EMENU('Browse/ Edit/ Simulate',ITEMS,nitems,INO)
+          CALL EMENU('Browse/ edit/ simulate',ITEMS,nitems,INO)
         endif
       else
         if(CFGOK.AND.MODIFYVIEW)then
@@ -370,9 +370,9 @@ C Redraw the configuration buttons.
           endif
         endif
         if(browse)then
-          CALL EMENU('Browse/ Simulate',ITEMS,nitems,INO)
+          CALL EMENU('Browse/ simulate',ITEMS,nitems,INO)
         else
-          CALL EMENU('Browse/ Edit/ Simulate',ITEMS,nitems,INO)
+          CALL EMENU('Browse/ edit/ simulate',ITEMS,nitems,INO)
         endif
       endif
       IF(INO.EQ.nitems)THEN
@@ -392,7 +392,7 @@ C Help text for the menu.
 C Save current common block information to file.
         if(browse)then
           call usrmsg('Cannot save the model while in browse',
-     &                'mode: you must own the model!','W')
+     &                'mode. You must own the model.','W')
           goto 3
         endif
 
@@ -406,7 +406,7 @@ C the older format.
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
           LCFGF=ltmp
         else
-          call usrmsg('Please re-enter the file name.',' ','W')
+          call usrmsg('Please re-enter.',' ','W')
           goto 89
         endif
         if(icfgv.eq.3.or.icfgv.eq.4)then
@@ -427,14 +427,14 @@ C Check connections file.
           endif
         endif
 
-        call tstamp('>','PRJ: save configuration')
+        call tstamp('>','prj: save configuration')
         call tstamp('>',LCFGF)
         CALL EMKCFG('-',IER)
         IF(IER.EQ.1)THEN
           DOK=.true.
           helptopic='disk_might_be_full'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK('Problem creating new file!',
+          CALL ASKOK('Problem creating new file.',
      &      'Try again?',OK,DOK,nbhelp)
           IF(OK)GOTO 89
         ENDIF
@@ -460,14 +460,14 @@ C Technical domains associated with the model.
           continue
         elseif(isindcfg-1.ne.indcfg)then
           dok=.false.
-          call askok('Are you sure you want to change the domains',
-     &      'in the model? (you might lose information)',
+          call askok('Are you sure you want to change',
+     &      'the model domains?',
      &      ok,dok,nbhelp)
           if(ok)then
             indcfg=isindcfg-1
-            call usrmsg('Updating model domains...',' ','-')
+            call usrmsg('Updating model domains ...',' ','-')
             CALL EMKCFG('-',IER)
-            call usrmsg('Updating model domains...done.',' ','-')
+            call usrmsg('Updating model domains ...done.',' ','-')
           endif
         endif
         IF(MMOD.EQ.8)then
@@ -488,7 +488,7 @@ C Model context.
         IF(CFGOK)THEN
           CALL EDSITE(ITRC,IER)
         ELSE
-          CALL USRMSG('Please define your model first!',' ','W')
+          CALL USRMSG('Please define your model first.',' ','W')
         ENDIF
         goto 3
       elseif(INO.EQ.5)THEN
@@ -503,7 +503,7 @@ C required parameters. In the latter case ask for a plant network file, display 
 C contents and invoke editing facilities.
 
         IF(.NOT.CFGOK)THEN
-          CALL USRMSG('Please define your plant network model first!',
+          CALL USRMSG('Please define your plant network model first.',
      &                ' ','W')
           GOTO 3
         else
@@ -515,9 +515,9 @@ C Present options for the plant network selection.
           do while (hvind.ne.nhvac_items)
           
           if(ihvacflag.eq.0)then
-            HVAC_ITEMS(1)='a Idealized           '
+            HVAC_ITEMS(1)='a Idealised           '
           elseif(ihvacflag.eq.1)then
-            HVAC_ITEMS(1)='a Idealized (defined) '
+            HVAC_ITEMS(1)='a Idealised (defined) '
           endif
           if(LPNF(1:4).eq.'UNKN'.or.LPNF(1:2).eq.'  ')then
             HVAC_ITEMS(2)='b Explicit            '
@@ -536,7 +536,7 @@ C If user does not wish to continue, exit and clear dialogue box.
             CALL USRMSG(' ',' ','-')
             GOTO 3
           elseif(hvind.eq.nhvac_items-1)then
-            CALL PHELPD('Idealized or Explicit Plant Model?',
+            CALL PHELPD('Idealised or explicit plant model?',
      &                   nbhelp,'-',0,0,IER)
           elseif(hvind.le.0)then
 
@@ -553,7 +553,7 @@ C Explicit plant model selected.
               dok=.false.
               CALL ASKOK(
      &          'Currently there is no plant network associated with',
-     &          'the model. Create/select one?',OK,DOK,nbhelp)
+     &          'the model. Create one?',OK,DOK,nbhelp)
               IF(.NOT.ok)GOTO 3
 
               if(netpth(1:2).eq.'  '.or.netpth(1:2).eq.'./')then
@@ -573,15 +573,15 @@ C Explicit plant model selected.
             iglib = igraphiclib()    ! determine if in X11, GTK or text mode.
  301        if(iglib.eq.2)then
               ISTRW=72
-              CALL EASKSCMD(ltmp,'Plant network definition file?',' ',
+              CALL EASKSCMD(ltmp,' ','Plant network definition file?',
      &          'dereference',clkok,ISTRW,DPNF,
-     &          'plant network file',iser,nbhelp)
+     &          'new file',iser,nbhelp)
               if(clkok)iclkok=2      ! note dereference.
               if(iser.eq.-3) goto 3  ! note GTK cancel.
             else
-              CALL EASKS2CMD(ltmp,'Plant network definition file?',' ',
+              CALL EASKS2CMD(ltmp,' ','Plant network definition file?',
      &          'cancel','dereference',iclkok,72,DPNF,
-     &          'plant network file',iser,nbhelp)
+     &          'new file',iser,nbhelp)
               if(iclkok.eq.1) goto 3 ! note X11 cancel.
             endif
 
@@ -601,9 +601,9 @@ C If simulation parameters, clear plant results names.
                 splres(2)='  '
                 splres(3)='  '
               endif
-              call usrmsg('Removing plant network...',' ','-')
+              call usrmsg('Removing plant network ...',' ','-')
               CALL EMKCFG('-',IER)
-              call usrmsg('Removing plant network...done.',' ','-')
+              call usrmsg('Removing plant network ...done.',' ','-')
               goto 3
             endif
 
@@ -630,7 +630,7 @@ C plant network or edit the existing network.
               ipedit=1
             endif
             if(OK)then
-              call tstamp('>','PRJ: enter epltnet')
+              call tstamp('>','prj: enter epltnet')
 
 C Reset the configuration type if appropriate but remember the
 C initial state to return to if there is a problem with the
@@ -649,13 +649,13 @@ C If an error has been encountered then reset the configuration type.
               if(iier.ne.0)then
                 indcfg=isindcfg
                 call usrmsg(
-     &            'No change in model recorded because of an error in',
-     &            'the plant network description.','E')
+     &            'Model change not recorded because of an error',
+     &            'in the plant network description.','E')
               else
-                call usrmsg('Updating model for plant network...',
+                call usrmsg('Updating model for plant network ...',
      &            ' ','-')
                 CALL EMKCFG('-',IER)
-                call usrmsg('Updating model for plant network...done.',
+                call usrmsg('Updating model for plant network ...done.',
      &            ' ','-')
               endif
             endif
@@ -670,20 +670,20 @@ C Air flow definition: this can be held in text or graphics format.
         helptopic='submenu_flow_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IAIRN.eq.0)then
-          call EASKABCD('Define air flow via:',' ',
-     &      'empirical air infiltration model','via schedule',
-     &      'flow network','cancel',IW,nbhelp)
+          call EASKABCD(' ','Define air flow via:',
+     &      'empirical infiltration model','schedule',
+     &      'new network','cancel',IW,nbhelp)
         elseif(IAIRN.eq.1)then
           XST=.false.
           call FINDFIL(LAPROB,XST)
           if(XST) then
             call edisp(iuout,' ')
-            call edisp(iuout,'The current legacy flow network is:')
+            call edisp(iuout,'The current flow network is:')
             call edisp(iuout,LAPROB)
           endif
-          call EASKATOG('Define air flow via:',' ',
-     &      'empirical air infiltration model','via schedule',
-     &      'flow network (defined)','new flow network',
+          call EASKATOG(' ','Define air flow via:',
+     &      'empirical infiltration model','schedule',
+     &      'exiting network','new network',
      &      'cancel',' ',' ',IW,nbhelp)
         elseif(IAIRN.eq.2)then
           XST=.false.
@@ -693,9 +693,9 @@ C Air flow definition: this can be held in text or graphics format.
             call edisp(iuout,'The current flow network is:')
             call edisp(iuout,LAPROB)
           endif
-          call EASKATOG('Define air flow via:',' ',
-     &      'empirical air infiltration model','via schedule',
-     &      'flow network (defined)','new flow network',
+          call EASKATOG(' ','Define air flow via:',
+     &      'empirical infiltration model','schedule',
+     &      'existing network','new network',
      &      'cancel',' ',' ',IW,nbhelp)
         elseif(IAIRN.eq.3)then
 
@@ -717,15 +717,15 @@ C Check if a legacy file also exists and if so offer it as an option.
             call edisp(iuout,LEGNWKNAM)
           endif
           if(.NOT.XSTL)then
-            call EASKATOG('Define air flow via:',' ',
-     &        'empirical air infiltration model','via schedule',
-     &        'flow network (3D defined)','new flow network',
+            call EASKATOG(' ','Define air flow via:',
+     &        'empirical infiltration model','schedule',
+     &        '3D network','new network',
      &        'cancel',' ',' ',IW,nbhelp)
           else
-            call EASKATOG('Define air flow via:',' ',
-     &        'empirical air infiltration model','via schedule',
-     &        'flow network (3D defined)','flow network (legacy)',
-     &        'new flow network','cancel',' ',IW,nbhelp)
+            call EASKATOG(' ','Define air flow via:',
+     &        'empirical infiltration model','schedule',
+     &        '3D network','existing network',
+     &        'new network','cancel',' ',IW,nbhelp)
           endif
         endif
 
@@ -740,7 +740,7 @@ C that prjfmk is not being called from the versioning facility.
           IC=-1
  250      CALL EASKGEOF('Select a zone:',CFGOK,IC,'-',34,IER)
           IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 3
-          call tstamp('>','PRJ: enter zone operations')
+          call tstamp('>','prj: enter zone operations')
           iver=0
           CALL PRJFMK(ITRC,ITRU,IUO,IC,IER,iver)
 
@@ -748,7 +748,7 @@ C Determine if another zone is requested.
           IC=-1
           GOTO 250
         ELSEIF(IW.EQ.3)THEN airflowtype
-          call tstamp('>','PRJ: enter fluid network')
+          call tstamp('>','prj: enter fluid network')
           if(IAIRN.eq.0)then  ! none defined
 
 C Look and see if any surfaces have USE attributes. If so
@@ -768,20 +768,20 @@ C to create the initial network based on these attributes.
             iacc=2
             if(haveflowattributes.gt.2)then
               call edisp(iuout,
-     &          'There are surfaces with mass flow USE attributes.')
+     &          'There are surfaces with mass flow attributes.')
               call edisp(iuout,
      &          'These can be used to help building your network.')
               iacc=3
               if(.NOT.XSTL)then
                 CALL EASKABCD('Descriptive method to employ:',' ',
-     &            'menus & lists','graphic tool',
-     &            'build network from scan surface USE attributes',
+     &            'menus & lists','graphics tool',
+     &            'scan of surface USE attributes',
      &            'continue',iacc,nbhelp)
                else
                 CALL EASKATOG('Descriptive method to employ:',' ',
      &            'legacy menus & lists','3D menus & lists',
-     &            'graphic tool',
-     &            'build network from scan surface USE attributes',
+     &            'graphics tool',
+     &            'scan of surface USE attributes',
      &            'continue',' ',' ',iacc,nbhelp)
                endif
             else
@@ -791,7 +791,7 @@ C to create the initial network based on these attributes.
               else
                 CALL EASKABCD('Descriptive method to employ:',' ',
      &            'legacy menus & lists','3D menus & lists',
-     &            'graphic tool','continue',iacc,nbhelp)
+     &            'graphics tool','continue',iacc,nbhelp)
               endif
             endif
             if(iacc.eq.1)then
@@ -827,11 +827,11 @@ C Build flow network from zone and surface attributes.
                 call edisp(iuout,outs)
                 write(LAPROB,'(a)') NWKNAM(1:lnblnk(NWKNAM))  ! update LAPROB.
                 call edisp(iuout,
-     &            'Updating configuration flow links...')
+     &            'Updating configuration flow links ...')
                 CALL EMKCFG('-',IER)
                 call edisp(iuout,
-     &            'Updating configuration flow links...done.')
-                call MFPROB(IER)  ! browse/edit the network.
+     &            'Updating configuration flow links ...done.')
+                call MFPROB(IER)   ! browse/edit the network.
                 goto 3
               else
                 goto 3
@@ -873,12 +873,12 @@ C ask user if they want to scan otherwise ask user text or graphic.
      &        'These can be used to help building your network.')
             iacc=3
             CALL EASKABCD('Descriptive method to employ:',' ',
-     &        'menus & lists','graphic tool',
-     &        'build network from scan surface USE attributes',
+     &        'menus & lists','graphics tool',
+     &        'from scan of surface USE attributes',
      &        'continue',iacc,nbhelp)
           else
             CALL EASKABC('Descriptive method to employ:',' ',
-     &        'menus & lists','graphic tool','continue',iacc,nbhelp)
+     &        'menus & lists','graphics tool','continue',iacc,nbhelp)
             if(iacc.eq.3) goto 3  ! jump back
           endif
           if(iacc.eq.1)then
@@ -928,10 +928,10 @@ C Build flow network from zone and surface attributes.
             call edisp(iuout,outs)
             write(LAPROB,'(a)') NWKNAM(1:lnblnk(NWKNAM))  ! update LAPROB
             call edisp(iuout,
-     &        'Updating configuration flow links...')
+     &        'Updating configuration flow links ...')
             CALL EMKCFG('-',IER)
             call edisp(iuout,
-     &        'Updating configuration flow links...done.')
+     &        'Updating configuration flow links ...done.')
             call MFPROB(IER)  ! and now browse/edit the network
             goto 3   ! jump back
           endif
@@ -1116,11 +1116,11 @@ C network file, convert into flow network commons and list out those commons.
         CALL MFCDAT
         CALL NETREAD(IUM,'R',IER)
         if(ier.ne.0)then
-          write(6,*) 'error state on return from enet ',ier
+C         write(6,*) 'error state on return from enet ',ier
         endif
         CALL NETTOFLW(ier)
         if(ier.ne.0)then
-          write(6,*) 'error state on filling common blocks ',ier
+C          write(6,*) 'error state on filling common blocks ',ier
         endif
         call mflist(iuout)
 
@@ -1222,10 +1222,11 @@ C Complex fenestration control description.
         CALL CONTRL(ITRC,ITRU,icfoc,IER)
         CTLOK=.TRUE.
 
-C FMI
+C <FMI>
       ELSEIF(INO.EQ.18)THEN
         call tstamp('>','PRJ: entering FMI specification')
         call FMI_ED(IER)
+C </FMI>
 
       ELSEIF(INO.EQ.20)THEN
 
@@ -1376,11 +1377,11 @@ C files splres or sblres and prepend user home folder if remote is 'true'.
 C There are no simulation parameter sets so take a guess at the
 C file name that the user might have given.
 C << Update this logic to use a default name based on the root name. >>
-          if(browse)then
-            write(longtfile,'(3a)') upath(1:lnblnk(upath)),fs,'libb'
-          else
+C          if(browse)then
+C            write(longtfile,'(3a)') upath(1:lnblnk(upath)),fs,'libb'
+C          else
             tfile='libb'
-          endif
+C          endif
           call edisp(iuout,'Take a note of the results file used.')
           call edisp248(iuout,longtfile,100)
           call edisp(iuout,' ')
@@ -3834,7 +3835,7 @@ C Also scan utility files if they exist.
         LTMP=' '    ! reset return string
         call edisp(iuout,'  ')  ! echo a blank line
         CALL EASKXORGTKF(LCMDFL,
-     &    'Model configuration file?',' ',
+     &    ' ','Configuration file?',
      &    DFCFG,LTMP,'model config file name',IER,nbhelp)
 
 C Cancel request, return and ensure that the calling
@@ -3869,7 +3870,7 @@ C If requested, find the path and local file name.
 C Debug (and the following tests are primarily for Linux/OSX/Unix).
 C        write(t144,*) ' after fdroot path is ',path(1:lnblnk(path))
 C        call edisp(iuout,t144)
-C        write(t144,*) ' model configuration is ',lcfgf(1:lnblnk(lcfgf))
+C        write(t144,*) ' model configuration file is ',lcfgf(1:lnblnk(lcfgf))
 C        call edisp(iuout,t144)
         if(path(1:2).eq.'./')then
 
@@ -4537,9 +4538,9 @@ C Scan the model topology and report on any problems encountered.
 C Model configuration file not found. Confirm with user.
         helptopic='cfg_not_found'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        WRITE(OUTSTR,'(A,2X,A)')' Could not find',LCFGF
-        CALL EASKABC(OUTSTR,' Options: (see help)',
-     &    'respecify','new configuration file','cancel',
+        WRITE(OUTSTR,'(A,2X,A)')' Could not locate',LCFGF
+        CALL EASKABC(OUTSTR,' Options:',
+     &    'respecify','new file','cancel',
      &    IW,nbhelp)
         if(IW.eq.1)then
           confirm=.true.

@@ -1301,7 +1301,7 @@ C Assumes that the path to the image is given.
       character doit*124,pf*72,gf*72,ugrf*72,ltmp*72
       character outs*124,outstr*124
       
-      dimension UGRV(72),UGRANG(72)
+      real UGRV
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
       integer iix1,iiy1,iix2,iiy2
@@ -1361,7 +1361,7 @@ C Calculate UGR from glare file and display to screen.
      &      gf(1:lnblnk(gf)),'.ugr'
         call runit(doit,'-')
         
-C Read file then display graph.
+C Read file then write to text feedback.
 C Check for daylight factor results.
         write (ugrf,'(2a)') gf(1:lnblnk(gf)),'.ugr'
         write (ltmp,'(2a)') 
@@ -1373,63 +1373,16 @@ C Check for daylight factor results.
           call edisp (iuout,'Angle  UGR')
           XMIN=0.0; XMAX=0.0; YMIN=0.0; YMAX=1.0
           call FPOPEN(ITA1,ISTAT,1,1,ltmp)
-          NUGR=0
-          if(ISTAT.eq.0)then
-  43        CALL STRIPC(ITA1,OUTSTR,0,ND,0,'UGR results',IFER)
-            if (IFER.eq.0.and.NUGR.lt.72) then
-              NUGR=NUGR+1
-              K=0
-              CALL EGETWR(OUTSTR,K,XTMP,0.,0.,'-','angle',IER)
-              UGRANG(NUGR)=-1.*XTMP
-              CALL EGETWR(OUTSTR,K,XTMP,0.,0.,'-','UGR value',IER)
-              UGRV(NUGR)=XTMP
-              xmin=amin1(xmin,UGRANG(NUGR))
-              xmax=amax1(xmax,UGRANG(NUGR))
-              ymin=amin1(ymin,UGRV(NUGR))
-              ymax=amax1(ymax,UGRV(NUGR))
-              write (outs,'(f6.1,f6.2)') UGRANG(NUGR),UGRV(NUGR)
-              call edisp (iuout,outs)
-              goto 43
-            endif
-          endif
+          CALL STRIPC(ITA1,OUTSTR,0,ND,0,'UGR results',IFER)
+          K=0
+          CALL EGETWR(OUTSTR,K,XTMP,0.,0.,'-','angle',IER)
+          CALL EGETWR(OUTSTR,K,XTMP,0.,0.,'-','UGR value',IER)
+          UGRV=XTMP
+          write (outs,'(5a,f6.2)')' UGR for scene ',
+     &      SCENERT(ISCENE)(1:lnblnk(SCENERT(ISCENE))),' view ',
+     &      rvewsh(ipckvew)(1:lnblnk(rvewsh(ipckvew))),': ',UGRV
+          call edisp (iuout,outs)
           call ERPFREE(ITA1,ISTAT)
-          call edisp (iuout,'Note: -ive angle to left of view center.')
-          if (MMOD.eq.8) then
-            CALL startbuffer()
-
-C Setup and pass in parameters to win3d.
-            iiw1=8; iiw2=8; iiw3=5; iiw4=3; iimenu=menuchw
-            iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
-            CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
-     &        iigl,iigr,iigt,iigb,iigw,iigwh)
-            igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
-            igw=int(iigw); igwh=int(iigwh)
-            igwid=igw
-            igheight=igwh
-            call axiscale(igwid,igheight,XMIN,XMAX,YMIN,YMAX,xsc,ysc,
-     &                  sca,Xadd,Yadd)
-
-C Stuff into static variables for later access and draw axis.
-            call linescale(iigl,Xadd,xsc,iigb,Yadd,ysc)
-            call dintervalf(YMIN,YMAX,DY,NDEC,0)
-            call vrtaxisdd(YMIN,YMAX,iigl,iigb,iigt,Yadd,ysc,0,
-     &        DY,NDEC,0,'UGR')
-            call dintervalf(Xmin,Xmax,DY,NDEC,0)
-            call horaxisdd(XMIN,XMAX,iigl,iigr,iigb,Xadd,xsc,0,
-     &        DY,NDEC,'Degrees from view center')
-
-C Draw values as a circle.
-            call u2pixel(UGRANG(1),UGRV(1),iix1,iiy1)
-            CALL ecirc(iix1,iiy1,3,1)
-            do 10 I=2,NUGR
-              call u2pixel(UGRANG(I),UGRV(I),iix2,iiy2)
-              call edwline(iix1,iiy1,iix2,iiy2)
-              CALL ecirc(iix2,iiy2,3,1)
-              iix1=iix2
-              iiy1=iiy2
- 10         continue
-            call forceflush()
-          endif
         endif
       else
         return
@@ -1585,7 +1538,7 @@ C Run findglare to identify glare sources.
         write(gf,'(2a)') picfil(1:lnblnk(picfil)),'_X.glr'
       endif
       write(doit,'(12a)') 'cd ',runpath(1:lnblnk(runpath)),
-     &  '; findglare -v -ga 5-',glst(1:lnblnk(glst)),':5 -p ',
+     &  '; findglare -v -p ',
      &   pf(1:lnblnk(pf)),' ',rendopt(1:lnblnk(rendopt)),' ',
      &   octfil(1:lnblnk(octfil)),' > ',gf(1:lnblnk(gf))
 

@@ -56,10 +56,10 @@ C Predefined entity variables.
       character itemcat*12 ! category for each object
 
 C << use parameters when available >>
-      dimension catname(6),cats(6)
-      dimension names(52),menus(52),itemcat(52)
+      dimension catname(MCATS),cats(MCATS)
+      dimension names(MITM),menus(MITM),itemcat(MITM)
       integer pointback(30) ! to point back to item in list
-      real bounding(52,3) ! width, depth, height
+      real bounding(MITM,3) ! width, depth, height
       character predef*144,fs*1
       integer loop
       logical unixok
@@ -190,6 +190,7 @@ C tags to assist user selection.
 
 #include "building.h"
 #include "espriou.h"
+#include "predefined.h"
 C espriou.h provides currentfile.
 
 C << Support more categories
@@ -209,9 +210,9 @@ C << use parameters when available >>
       character names*12  ! list of names of objects
       character menus*32  ! list of menus for objects
       character itemcat*12 ! category for each object
-      dimension catname(6),cats(6)
-      dimension names(52),menus(52),itemcat(52)
-      real bounding(52,3) ! width, depth, height for each    
+      dimension catname(MCATS),cats(MCATS)
+      dimension names(MITM),menus(MITM),itemcat(MITM)
+      real bounding(MITM,3) ! width, depth, height for each    
       integer IER         ! error return where zero is ok, 
                           ! ier=-1 file not found, ier=-2 no objects
 
@@ -219,7 +220,7 @@ C Graphics and ESP-r default commons
       COMMON/OUTIN/IUOUT,IUIN
 
       character OUTS*124,OUTSTR*124,loutstr*248
-      character WORD*24,ectime*24,phrase*32
+      character WORD*24,ectime*24,phrase*32,WORD12*12
       LOGICAL CONT
       integer loop    ! for looping
       real verpre     ! version of file
@@ -247,7 +248,7 @@ C << use parameters when ready >>
         catname(loop)=' '
       enddo    
       numitems=0
-      do loop=1,52
+      do loop=1,MITM
         names(loop)='  '
         menus(loop)='  '
         itemcat(loop)='  '
@@ -305,8 +306,8 @@ C Read date stamp << not yet used >>.
       elseif(WORD(1:9).EQ.'*Category')then
         numcat=numcat+1
         K=9
-        CALL EGETW(LOUTSTR,K,WORD,'W','cat name',IER)
-        write(catname(numcat),'(a)') WORD(1:lnblnk(WORD))
+        CALL EGETW(LOUTSTR,K,WORD12,'W','cat name',IER)
+        write(catname(numcat),'(a)') WORD12(1:lnblnk(WORD12))
         CALL EGETRM(LOUTSTR,K,phrase,'W','category menu',IER)
         IF(IER.NE.0) CONT=.FALSE.
         write(cats(numcat),'(a)') phrase(1:lnblnk(phrase))

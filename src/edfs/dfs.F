@@ -62,6 +62,9 @@ C Path to problem.
 C Defaults.
       COMMON/DEFLT3/DFCFD,DECMPDBFL,DICONDBFL
 
+C CFD results library.
+      common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
+
 C CFD common blocks.
       common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
@@ -204,6 +207,10 @@ C Default SIMOK: simulation failed.
 C CFD component number and building/mass flow component.
       ICFD=1
       ICP=1
+      
+C CFD results library: IRECPC=current record; ICFDSV=results version
+      IRECPC=0
+      ICFDSV=3
 
 C File units.
       IUOUT=6
@@ -390,7 +397,7 @@ C << decide whether LCFD needs to be > 72 char >>
           write(LCFD(1),'(a)') inf(1:72)
         endif
         write(outs,'(a,a)')' the input file is: ',LCFD(1)
-        call edisp(iuout,outs)
+C        call edisp(iuout,outs)
       else
         LCFD(1)='UNKNOWN'
       endif

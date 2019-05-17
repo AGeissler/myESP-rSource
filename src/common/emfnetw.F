@@ -2143,8 +2143,7 @@ C Write tag line.
 C Include which zone & surface the node is associated with. For
 C internal nodes the surface name will be '-'.
           ln_nn=lnblnk(NDNAM(INOD))
-          ln_nza=lnblnk(NODASSOC(INOD,1))
-        
+          ln_nza=lnblnk(NODASSOC(INOD,1))        
           ln_nsa=lnblnk(NODASSOC(INOD,2))
           if(NDTYP(INOD).eq.0)then
             write(com,'(a)') '   # internal unknown pressure'

@@ -216,7 +216,7 @@ C If user wishes to dereference the current hvac file, reset the hvac
 C file path and hvac flag, and call EMKCFG to save the configuration
 C file.
             if(ichoice.eq.1)then
-              if(cfgok.and.(.NOT.browse))then
+              if(cfgok)then
                 CALL HVAC_ZERO
                 hvacfile='  '        ! Clear hvac file path
                 def_hvacfile='  '    ! Clear temporary hvac file path

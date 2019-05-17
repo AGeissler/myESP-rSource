@@ -91,6 +91,8 @@ C asking which domain.
       COMMON/cfdhsh/NCFDSZ,NRCFDOM(MNZ)
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      LOGICAL CALPOL,CALLMA
+      CHARACTER POLNAM*12
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       common/GRDVRTS/iorg(MNZ),ixend(MNZ),iyend(MNZ),izend(MNZ),
      &  izende(MNZ)
@@ -99,8 +101,7 @@ C NCDOM - number of CFD domains
 C ICFDZ - thermal zone associated with each CFD domain
       COMMON/cfddoms/NCDOM,ICFDZ(MNZ)
 
-      LOGICAL CALPOL,CALLMA
-      CHARACTER LCFD*72,POLNAM*12
+      CHARACTER LCFD*72
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -194,10 +195,6 @@ C NCFDSZ is the number of records for each timestep (all CFD domains).
         endif
  10   continue
 
-C Set up contaminants in correct CFD domain
-      DO 1234 ICTM=1,NCTM(ICFD)
-        POLNAM(ICTM,ICFDZ(NCDOM))=POLNAM(ICTM,ICFD)
- 1234 CONTINUE
       if (NCDOM.eq.0) then
         call edisp(iuout,'No CFD zones detected')
       elseif (NCDOM.eq.1) then
@@ -528,6 +525,10 @@ C redefine name of image. As for temperature range.
           do 48 IM=1,Nview(ICOMP)
             ISOPT(IM)=-1
  48       continue
+
+C Create paraview boundary condition files, if needed.
+          if (imgtyp.eq.5) call paraviewbc
+
           do 50 IFRAME=ICTS,ICTF
             call RDCFDAT(IFRAME)
             if (imgtyp.eq.4) then
@@ -1581,6 +1582,7 @@ C   IMFLIST(LISTID,3) = Z cell
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       common/recov01/pifltog,lpifl
       character pifltog*4,lpifl*96
+      common/mfocup/iocpzone
 
       CHARACTER ITEM(35)*23, MTITLE*22, values*20
 

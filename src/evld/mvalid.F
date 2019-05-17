@@ -74,40 +74,39 @@ C      VlDirR='/usr/esru/esp-r/validation'
       H(3)='  a. analytical solution of the temperature distribution'
       H(4)='     within a multi-layered construction.'
       H(5)='  b. approved numerical solutions for specific cases'
-      H(6)='     (NOT YET AVAILABLE).'
-      H(7)='  c. empirical datasets for specific cases (NOT YET'
-      H(8)='     AVAILABLE).'
-      H(9)='  d. ASHRAE 140 and CEN/ISO standards.'
+      H(6)='     (unavailable).'
+      H(7)='  c. empirical datasets for specific cases (unavailable)'
+      H(8)='  d. ASHRAE 140 and CEN/ISO standards.'
       CALL USRMSG(' ',' ','-')
-      CALL EMENU('Validation Testing',ITEM,MITEM,INO)
+      CALL EMENU('Validation testing',ITEM,MITEM,INO)
 
 C Analytical.
       IF(INO.EQ.1)THEN
-        call tstamp('>','PRJ: analytical validation models enter')
+        call tstamp('>','prj: analytical validation models enter')
         CALL ANLYTC
-        call tstamp('>','PRJ: analytical validation models finish')
+        call tstamp('>','prj: analytical validation models finish')
 
 C Numerical.
       ELSEIF(INO.EQ.2)THEN
-        call tstamp('>','PRJ: numerical validation models enter')
+        call tstamp('>','prj: numerical validation models enter')
         CALL NUMERC
-        call tstamp('>','PRJ: numerical validation models finish')
+        call tstamp('>','prj: numerical validation models finish')
 
 C Empirical.
       ELSEIF(INO.EQ.3)THEN
-        call tstamp('>','PRJ: empirical validation models enter')
+        call tstamp('>','prj: empirical validation models enter')
         CALL EMIPRC
-        call tstamp('>','PRJ: empirical validation models finish')
+        call tstamp('>','prj: empirical validation models finish')
 
 C BESTEST.
       ELSEIF(INO.EQ.5)THEN
-        call tstamp('>','PRJ: standards validation models enter')
+        call tstamp('>','prj: standards validation models enter')
         call STNDRDS
-        call tstamp('>','PRJ: standards validation models finish')
+        call tstamp('>','prj: standards validation models finish')
           
 C Help.
       ELSEIF(INO.EQ.MITEM-1)THEN
-        CALL PHELPD('vld opening',9,'-',0,0,IER)
+        CALL PHELPD('vld opening',8,'-',0,0,IER)
 
 C Exit validation.
       ELSEIF(INO.EQ.MITEM)THEN
@@ -131,9 +130,9 @@ C *********************************************************************
       
    10 INO=-3
       ITEM(1)='a conduction'
-      ITEM(2)='b convection (NOT YET AVAILABLE)'
-      ITEM(3)='c radiation (NOT YET AVAILABLE)'
-      ITEM(4)='d moisture flow (NOT YET AVAILABLE)'
+      ITEM(2)='b convection (unavailable)'
+      ITEM(3)='c radiation (unavailable)'
+      ITEM(4)='d moisture flow (unavailable)'
       ITEM(5)='  ----------------------'
       ITEM(6)='? help                 '
       ITEM(7)='- exit this menu'
@@ -143,12 +142,12 @@ C *********************************************************************
       H(2)='facility. The available options are as follows.'
       H(4)='  a. transient heat conduction through a multi-layered'
       H(5)='     construction.'
-      H(6)='  b. surface convection test (NOT YET AVAILABLE).'
-      H(7)='  c. radiative heat flow test (NOT YET AVAILABLE).'
+      H(6)='  b. surface convection test (unavailable).'
+      H(7)='  c. radiative heat flow test (unavailable).'
       H(8)='  d. moisture diffusion through a multi-layered'
-      H(9)='     construction(NOT YET AVAILABLE).'
+      H(9)='     construction(unavailable).'
       CALL USRMSG(' ',' ','-')
-      CALL EMENU('Analytical Tests',ITEM,MITEM,INO)
+      CALL EMENU('Analytical tests',ITEM,MITEM,INO)
 
 C Conduction.
       IF(INO.EQ.1)THEN

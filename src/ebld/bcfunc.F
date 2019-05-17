@@ -999,17 +999,17 @@ C  assuming present time-row surface temperatures.
       ITYPE=IBCLAW(ICF,IDTYP,IPER)
       if(itype.eq.31)goto 6  ! jump back for trace
       if(ITYPE.eq.1)then
-            GOTO 8
-        elseif (ITYPE.eq.2) then
-            GOTO 9
-        elseif (ITYPE.eq.3) then
-            GOTO 11
-        elseif (ITYPE.eq.4) then
-            GOTO 12
-        elseif (ITYPE.eq.10) then
-            GOTO 10
-        else
-            GOTO 99
+        GOTO 8
+      elseif (ITYPE.eq.2) then
+        GOTO 9
+      elseif (ITYPE.eq.3) then
+        GOTO 11
+      elseif (ITYPE.eq.4) then
+        GOTO 12
+      elseif (ITYPE.eq.10) then
+        GOTO 10
+      else
+        GOTO 99
       endif
 
 C Thermostatic control period: is temperature within

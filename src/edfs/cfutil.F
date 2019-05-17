@@ -331,13 +331,25 @@ C Call with parameter "IFRAME" which is the time step!
      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
+      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
+     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      LOGICAL CALPOL,CALLMA
+      CHARACTER POLNAM*12
       COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
      1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       common/GRDVRTS/iorg(MNZ),ixend(MNZ),iyend(MNZ),izend(MNZ),
      &  izende(MNZ)
       COMMON/ICFNOD/ICFD,ICP
-
+      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
+     &          INSSO(MNVLS,MNZ)
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)    
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
       common/rpath/path
       character*72 path,lpath
 
@@ -349,16 +361,22 @@ C Call with parameter "IFRAME" which is the time step!
 C 'lflname' is the name of the current output file
       character lflname*72
 
+C If we have a version 3 results library, use domain origin vertex
+C cooridinates to ensure that multiple domains do not overlap in
+C paraview.
+      if (ICFDSV.eq.3) then
+        Xorg=VCOORD(ICP,IORG(ICFD),1)
+        Yorg=VCOORD(ICP,IORG(ICFD),2)
+        Zorg=VCOORD(ICP,IORG(ICFD),3)
+      else
+        Xorg=0.
+        Yorg=0.
+        Zorg=0.
+      endif
+
+C Write time step data files.
 C Set current filename to include current "frame number" (time step).
-C Cascade through possible lengths to avoid white space in
-C file name
-      IF (IFRAME.le.9) THEN
-        write(lflname,300) IFRAME
-      ELSE IF (IFRAME.le.99) THEN
-        write(lflname,301) IFRAME
-      ELSE
-        write(lflname,302) IFRAME
-      ENDIF
+      write(lflname,300) ICFD,IFRAME
 
 C Check and open data output file.
       IUNIT=IFIL+1
@@ -374,19 +392,6 @@ C from the ESP-r interface ...
       write(IUNIT,'(a)') 'ESP-r CFD output'
       write(IUNIT,'(a)') 'ASCII'
       write(IUNIT,'(a)') 'DATASET RECTILINEAR_GRID'
-
-C If we have a version 3 results library, use domain origin vertex
-C cooridinates to ensure that multiple domains do not overlap in
-C paraview.
-      if (ICFDSV.eq.3) then
-        Xorg=VCOORD(ICP,IORG(ICFD),1)
-        Yorg=VCOORD(ICP,IORG(ICFD),2)
-        Zorg=VCOORD(ICP,IORG(ICFD),3)
-      else
-        Xorg=0.
-        Yorg=0.
-        Zorg=0.
-      endif
 
 C Increase loop starts to "2" and reduced loop runs by "-1".
 C I.e., cut off one slice off each face of the CFD region
@@ -447,16 +452,370 @@ C Interpolate velocity vector components to take account of this.
             write(IUNIT,201)Uftmp,Vftmp,Wftmp
  104  continue
 
+C Continue with contaminant concentration.
+      if (NCTM(ICFD).gt.0) then
+        do ictm=1,NCTM(ICFD)
+          write(IUNIT,'(3a)') 'SCALARS ',
+     &      POLNAM(ictm,ICFD)(1:lnblnk(POLNAM(ictm,ICFD))),'_conc float'
+          write(IUNIT,'(a)') 'LOOKUP_TABLE default'
+
+          do 105 k=2,nk-1
+            do 105 j=2,nj-1
+              do 105 i=2,ni-1
+                write(IUNIT,201)POLCONCf(ictm,i,j,k)
+  105     continue
+        enddo
+      endif
+
+C Free the file handle
+      call ERPFREE(IUNIT,ISTAT)
+
 C Formats
  200  format(1E14.6)
  201  format(3E14.6)
  
- 300  format('ParaView_',I1,'.vtk')
- 301  format('ParaView_',I2,'.vtk')
- 302  format('ParaView_',I3,'.vtk')
+ 300  format('Domain',I2.2,'_',I3.3,'.vtk')
+
+      return
+      end
+
+C ********************************************************************
+C *   paraviewbc - output of paraview-readable files showing boundary 
+C     conditions.
+C
+      subroutine paraviewbc
+#include "cfd.h"
+#include "building.h"
+#include "geometry.h"
+
+      COMMON/FILEP/IFIL
+      COMMON/LOCAGE/AGEf(ntcelx,ntcely,ntcelz) 
+      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
+     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
+     2            DZHP(ntcelz),DZPL(ntcelz),
+     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
+     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
+      common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
+     &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      LOGICAL CALPOL,CALLMA
+      CHARACTER POLNAM*12
+      COMMON/CFDPOL/POLCONCp(MCTM,ntcelx,ntcely,ntcelz),
+     1              POLCONCf(MCTM,ntcelx,ntcely,ntcelz)
+      common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
+      common/GRDVRTS/iorg(MNZ),ixend(MNZ),iyend(MNZ),izend(MNZ),
+     &  izende(MNZ)
+      COMMON/ICFNOD/ICFD,ICP
+      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
+     &          INSSO(MNVLS,MNZ)
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)    
+      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
+      common/rpath/path
+      character*72 path,lpath
+
+      integer IFRAME
+
+      real Xtmp,Ytmp,Ztmp,Xorg,Yorg,Zorg
+
+C 'lflname' is the name of the current output file
+      character lflname*72
+
+C Read CFD domain file to retrieve boundary condition information.
+      call DFDREAD(ICP,0,0,IER)
+
+C If we have a version 3 results library, use domain origin vertex
+C cooridinates to ensure that multiple domains do not overlap in
+C paraview.
+      if (ICFDSV.eq.3) then
+        Xorg=VCOORD(ICP,IORG(ICFD),1)
+        Yorg=VCOORD(ICP,IORG(ICFD),2)
+        Zorg=VCOORD(ICP,IORG(ICFD),3)
+      else
+        Xorg=0.
+        Yorg=0.
+        Zorg=0.
+      endif
+
+C Write air flow openings file.
+C Set current filename to include current "frame number" (time step).
+      write(lflname,301) ICFD
+
+C Check and open data output file.
+      IUNIT=IFIL+1
+      lpath=path
+      path='./'
+      call EFOPSEQ(IUNIT,lflname,4,ier)
+      path=lpath
+
+C Write the '.vtk' header (total of 4 lines)
+      write(IUNIT,'(a)') '# vtk DataFile Version 3.0'
+      write(IUNIT,'(a)') 'ESP-r CFD blockage'
+      write(IUNIT,'(a)') 'ASCII'
+      write(IUNIT,'(a)') 'DATASET UNSTRUCTURED_GRID'
+
+C Find number of sources.
+      nopn=0
+      do iv=1,NVOL(ICFD)        
+        if(IVTYPE(iv,ICFD).ge.10 .and. IVTYPE(iv,ICFD).lt.20)nopn=nopn+1
+      enddo
+
+C Write source vertices.
+      npt=nopn*4
+      write(IUNIT,'(a,I4,a)')'POINTS ',npt,' float'
+      do iv=1,NVOL(ICFD)
+        if (IVTYPE(iv,ICFD).ge.10 .and. IVTYPE(iv,ICFD).lt.20) then
+          if (IVOLF(iv,ICFD).eq.1) then ! west
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &       (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &   (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+          elseif (IVOLF(iv,ICFD).eq.2) then ! east
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &       (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &   (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+          elseif (IVOLF(iv,ICFD).eq.3) then ! south
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &       (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &       (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+          elseif (IVOLF(iv,ICFD).eq.4) then ! north
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &   (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &   (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+          elseif (IVOLF(iv,ICFD).eq.5) then ! Low
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &       (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &       (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+          elseif (IVOLF(iv,ICFD).eq.6) then ! high
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &   (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+            write(IUNIT,'(3(E14.6,1X))')(Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &   (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+          endif
+        endif
+      enddo
+
+C Assemble sources from vertices.
+      nvt=npt+nopn
+      write(IUNIT,'(a,I3,1X,I4)')'CELLS ',nopn,nvt
+      i=0
+      do iv=1,NVOL(ICFD)
+        if (IVTYPE(iv,ICFD).ge.10 .and. IVTYPE(iv,ICFD).lt.20) then
+          write(IUNIT,'(5(I4,1X))')
+     &      4,(i),(i+1),(i+2),(i+3)
+          i=i+4
+        endif
+      enddo
+
+C Write cell types (pixels).
+      write(IUNIT,'(a,I3)')'CELL_TYPES ',nopn
+      do iv=1,NVOL(ICFD)
+        if (IVTYPE(iv,ICFD).ge.10 .and. IVTYPE(iv,ICFD).lt.20) then
+          write(IUNIT,'(a)')'8'
+        endif
+      enddo
+
+C Write cell colours (slightly translucent red).
+      write(IUNIT,'(a,I3)')'CELL_DATA ',nopn
+      write(IUNIT,'(a)')'SCALARS colour float 1'
+      write(IUNIT,'(a)')'LOOKUP_TABLE CellColors'
+      do iv=1,NVOL(ICFD)
+        if (IVTYPE(iv,ICFD).ge.10 .and. IVTYPE(iv,ICFD).lt.20) then
+          write(IUNIT,'(a)')'0.0'
+        endif
+      enddo
+      write(IUNIT,'(a)')'LOOKUP_TABLE CellColors 1'
+      write(IUNIT,'(a)')'1.0 0.5 0.5 0.7'
+      
+C Free the file handle
+      call ERPFREE(IUNIT,ISTAT)
+
+C Write blockages file.
+C Set current filename to include current "frame number" (time step).
+      write(lflname,302) ICFD
+
+C Check and open data output file.
+      IUNIT=IFIL+1
+      lpath=path
+      path='./'
+      call EFOPSEQ(IUNIT,lflname,4,ier)
+      path=lpath
+
+C Write the '.vtk' header (total of 4 lines)
+      write(IUNIT,'(a)') '# vtk DataFile Version 3.0'
+      write(IUNIT,'(a)') 'ESP-r CFD blockage'
+      write(IUNIT,'(a)') 'ASCII'
+      write(IUNIT,'(a)') 'DATASET UNSTRUCTURED_GRID'
+
+C Write blockage vertices.
+      npt=NBLK(ICFD)*8
+      write(IUNIT,'(a,I4,a)')'POINTS ',npt,' float'
+      do iblk=1,NBLK(ICFD)
+        iv=INBLK(iblk,ICFD)
+        write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &    (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+        write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &    (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+        write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &    (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+        write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &    (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+        write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &    (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+        write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &    (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+        write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &   (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+        write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &   (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+      enddo
+
+C Assemble blockages from vertices.
+      nvt=npt+NBLK(ICFD)
+      write(IUNIT,'(a,I3,1X,I4)')'CELLS ',NBLK(ICFD),nvt
+      i=0
+      do iblk=1,NBLK(ICFD)
+        write(IUNIT,'(9(I4,1X))')
+     &    8,(i),(i+1),(i+2),(i+3),(i+4),(i+5),(i+6),(i+7)
+        i=i+8
+      enddo
+
+C Write cell types (voxels).
+      write(IUNIT,'(a,I3)')'CELL_TYPES ',NBLK(ICFD)
+      do iblk=1,NBLK(ICFD)
+        write(IUNIT,'(a)')'11'
+      enddo
+
+C Write cell colours (grey).
+      write(IUNIT,'(a,I3)')'CELL_DATA ',NBLK(ICFD)
+      write(IUNIT,'(a)')'SCALARS colour float 1'
+      write(IUNIT,'(a)')'LOOKUP_TABLE CellColors'
+      do iblk=1,NBLK(ICFD)
+        write(IUNIT,'(a)')'0.0'
+      enddo
+      write(IUNIT,'(a)')'LOOKUP_TABLE CellColors 1'
+      write(IUNIT,'(a)')'0.5 0.5 0.5 1'
 
 C Free the file handle
       call ERPFREE(IUNIT,ISTAT)
+
+C Write sources file.
+C Set current filename to include current "frame number" (time step).
+      write(lflname,303) ICFD
+
+C Check and open data output file.
+      IUNIT=IFIL+1
+      lpath=path
+      path='./'
+      call EFOPSEQ(IUNIT,lflname,4,ier)
+      path=lpath
+
+C Write the '.vtk' header (total of 4 lines)
+      write(IUNIT,'(a)') '# vtk DataFile Version 3.0'
+      write(IUNIT,'(a)') 'ESP-r CFD blockage'
+      write(IUNIT,'(a)') 'ASCII'
+      write(IUNIT,'(a)') 'DATASET UNSTRUCTURED_GRID'
+
+C Find number of sources.
+      nsrc=0
+      do iv=1,NVOL(ICFD)
+        if (IVTYPE(iv,ICFD).eq.20) nsrc=nsrc+1
+      enddo
+
+C Write source vertices.
+      npt=nsrc*8
+      write(IUNIT,'(a,I4,a)')'POINTS ',npt,' float'
+      do iv=1,NVOL(ICFD)
+        if (IVTYPE(iv,ICFD).eq.20) then
+          write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &      (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+          write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &      (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+          write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+          write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,1)))
+          write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+          write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &     (Yorg+YV(JVCELLS(iv,ICFD,1))),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+          write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,1))),
+     &   (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+          write(IUNIT,'(3(E14.6,1X))') (Xorg+XU(IVCELLS(iv,ICFD,2)+1)),
+     &   (Yorg+YV(JVCELLS(iv,ICFD,2)+1)),(Zorg+ZW(KVCELLS(iv,ICFD,2)+1))
+        endif
+      enddo
+
+C Assemble sources from vertices.
+      nvt=npt+nsrc
+      write(IUNIT,'(a,I3,1X,I4)')'CELLS ',nsrc,nvt
+      i=0
+      do iv=1,NVOL(ICFD)
+        if (IVTYPE(iv,ICFD).eq.20) then
+          write(IUNIT,'(9(I4,1X))')
+     &      8,(i),(i+1),(i+2),(i+3),(i+4),(i+5),(i+6),(i+7)
+          i=i+8
+        endif
+      enddo
+
+C Write cell types (voxels).
+      write(IUNIT,'(a,I3)')'CELL_TYPES ',nsrc
+      do iv=1,NVOL(ICFD)
+        if (IVTYPE(iv,ICFD).eq.20) then
+          write(IUNIT,'(a)')'11'
+        endif
+      enddo
+
+C Write cell colours (translucent blue).
+      write(IUNIT,'(a,I3)')'CELL_DATA ',nsrc
+      write(IUNIT,'(a)')'SCALARS colour float 1'
+      write(IUNIT,'(a)')'LOOKUP_TABLE CellColors'
+      do iv=1,NVOL(ICFD)
+        if (IVTYPE(iv,ICFD).eq.20) then
+          write(IUNIT,'(a)')'0.0'
+        endif
+      enddo
+      write(IUNIT,'(a)')'LOOKUP_TABLE CellColors 1'
+      write(IUNIT,'(a)')'0.5 0.5 1.0 0.4'
+      
+C Free the file handle
+      call ERPFREE(IUNIT,ISTAT)
+
+ 301  format('Domain',I2.2,'_opn.vtk')
+ 302  format('Domain',I2.2,'_blk.vtk')
+ 303  format('Domain',I2.2,'_src.vtk')
+
       return
       end
 

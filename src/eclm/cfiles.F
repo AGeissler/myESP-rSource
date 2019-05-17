@@ -862,15 +862,12 @@ C that the user requested.
         write(currentfile,'(a)') LASCI(1:lnblnk(LASCI))
         N=0
    70   N=N+1
+        IF(N.GE.IMSTL) GOTO 71
         CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'line 1',IER)
-
-C If the user has specified that data import should start at the
-C line imstl of the column data file. If we are not there yet
-C read another of the column data file.
-        IF(N.LT.IMSTL) GOTO 70
+        GOTO 70
 
 C Loop through days.
-        DO 10 I=IDS,IDF
+   71   DO 10 I=IDS,IDF
           IDD=I
           IF(IREAD.EQ.1)then
             CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'day ln',IER)
@@ -889,27 +886,27 @@ C next column. If reached EOF then jump to end of loop.
 
 C Different units for different metrics.
               if(N1.eq.IMSTC(1))then
-                if(ITUNITS(2).eq.0)then
+                if(ITUNITS(1).eq.0)then
                   CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'deg C real',IER)
                   ICLM(J,CMCOL(1))= NINT(rval*10.0)
-                elseif(ITUNITS(2).eq.1)then
+                elseif(ITUNITS(1).eq.1)then
                   CALL EGETWI(OUTSTR,K,ival,0,0,'-','deg C int',IER)
                   ICLM(J,CMCOL(1))=ival*10
-                elseif(ITUNITS(2).eq.2)then
+                elseif(ITUNITS(1).eq.2)then
                   CALL EGETWI(OUTSTR,K,ival,0,0,'-','10th deg C',IER)
                   ICLM(J,CMCOL(1))=ival  ! no conversion needed
                 endif
 
               elseif(N1.eq.IMSTC(2))then
-                if(ITUNITS(1).eq.0)then
+                if(ITUNITS(2).eq.0)then
                   CALL EGETWR(OUTSTR,K,rval,0.0,0.0,'-',
      &              'dif w/m2 real',IER)
                   ICLM(J,CMCOL(2))= NINT(rval)
-                elseif(ITUNITS(1).eq.1)then
+                elseif(ITUNITS(2).eq.1)then
                   CALL EGETWI(OUTSTR,K,ival,0,0,'-','dif w/m2 int',IER)
                   ICLM(J,CMCOL(2))=ival
-                elseif(ITUNITS(1).eq.2)then
+                elseif(ITUNITS(2).eq.2)then
                  CALL EGETWI(OUTSTR,K,ival,0,0,'-','dif 10th w/m2',IER)
                   ICLM(J,CMCOL(2))=ival/10  ! to get back to w/m2
                 endif

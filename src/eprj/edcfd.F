@@ -73,7 +73,8 @@ C #include "esprdbfile.h"
       common/GRIDEFN/origin,xgrid,ygrid,zgrid,zegrid,ortho
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
       integer ncfdnd,icfdnd,NCONF
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
 
@@ -216,7 +217,7 @@ C Default values for visualisation.
         if (origin.and.xgrid.and.ygrid.and.zgrid) then
           IVISMOD=2
           HAS_GEOM=.TRUE.
-          ISHSB=-1; ISHAO=-1; IFACES=1; ISHBLK=-1; ISHGEO=1
+          ISHSB=-1; ISHAO=-1; IFACES=1; ISHBLK=-1; ISHSRC=-1; ISHGEO=1
         endif
       endif
       CALL ERPFREE(IUF,ISTAT)
@@ -387,7 +388,8 @@ C (the east (4,*) is for curvilinear gridding).
      &             CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
      &             ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
 
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
 
@@ -1930,7 +1932,8 @@ C IER=0 indicates no error.
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
       common/GRIDEFN/origin,xgrid,ygrid,zgrid,zegrid,ortho
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
@@ -1980,15 +1983,9 @@ C For help messages
 
       helpinsub='CFDBVAR'  ! set for subroutine
 
-C << Note: for more complex domains grow this menu needs
-C << to be one that can support multiple pages.
-
-C << Changed to allow paging, example taken from vertex selection menu >>
-C << EDVERT in edgeo.F                                                 >>
-
 C C Initialise zone vertex menu size variables based on window size. 
 C INO is the menu position, NITMS the current number of menu lines.
-      MHEAD=2
+      MHEAD=3
       MCTL=5
       ILEN=NVOL(ICFD)
       IPACT=CREATE
@@ -2000,8 +1997,9 @@ C Initial menu entry setup.
 
 C Create menu text.
       M=MHEAD
-      ITEM(1)='1 Infer from geometry'
-      ITEM(2)=' --------------------'
+      ITEM(1)='1 Infer edge BCs from geometry'
+      ITEM(2)='2 Infer internal BCs from geometry'
+      ITEM(3)=' --------------------'
       do 10 I=1,ILEN
         IF(I.GE.IST.AND.(I.LE.(IST+MIFULL)))THEN
           M=M+1
@@ -2211,8 +2209,15 @@ C Existing volume, edit according to type.
         endif
       elseif (INO.eq.1) then
 
-C Infer boundary conditions from geometry.
-        CALL GENCFDBC(IER)
+C Infer edge boundary conditions from geometry.
+        CALL GENCFDBC(1,IER)
+        if (IER.ne.0) then
+          CALL EDISP(IUOUT,'Boundary conditions not generated.')
+        endif
+      elseif (INO.eq.2) then
+
+C Infer internal boundary conditions from geometry.
+        CALL GENCFDBC(2,IER)
         if (IER.ne.0) then
           CALL EDISP(IUOUT,'Boundary conditions not generated.')
         endif
@@ -2354,7 +2359,7 @@ C display and print text feedback, then pause for half a second.
 
 C Error codes:
 C IER=1: unrecognised itype
-C IER=2: cells already contain a blockage or source (silent)
+C IER=2: cells already contain a blockage or source (silent) < currently unused >
 
       SUBROUTINE MKCFDBC(show,itype,ifac,i1,i2,j1,j2,k1,k2,nam,confsurf,
      &  pol,npol,dat1,dat2,dat3,dat4,dat5,IER)
@@ -2395,7 +2400,8 @@ C IER=2: cells already contain a blockage or source (silent)
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
      &          INSSO(MNVLS,MNZ)
       common/KEYVblkd/IVblkd(NTCELX,NTCELY,NTCELZ)
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
 
@@ -2543,13 +2549,6 @@ C IER=2: cells already contain a blockage or source (silent)
         KVCELLS(n,ICFD,1)=k1; KVCELLS(n,ICFD,2)=k2
         VOLNAME(n,ICFD)=nam
         VOLHeat(n,ICFD)=dat1
-        do i=i1,i2
-          do j=j1,j2
-            do k=k1,k2              
-              IVblkd(i,j,k)=1
-            enddo
-          enddo
-        enddo
       else
         IER=1
         write(outs,'(a,i2)')'MKCFDBC: unrecognised type ',itype
@@ -2601,7 +2600,7 @@ C IER=2: cells already contain a blockage or source (silent)
         endif
 
         write(outs,'(6a)')' Created ',stype(1:lstype),' BC',
-     &    sfac(1:lsfac),' called ',nam(1:lnblnk(nam))
+     &    sfac(1:lsfac),'called ',nam(1:lnblnk(nam))
         call EDISP(IUOUT,outs)
         call redraw(IER)
         call pausems(500)
@@ -2612,14 +2611,18 @@ C IER=2: cells already contain a blockage or source (silent)
 
 C ************************** GENCFDBC **************************
 C GENCFDBC attempts to infer CFD boundary conditions from zone geometry.
+C imode = 1: edge BCs (solid + opening)
+C imode = 2: internal BCs (blockages + sources)
 C IER=0 indicates no error.
 
-      SUBROUTINE GENCFDBC(IER)
+      SUBROUTINE GENCFDBC(imode,IER)
 
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "cfd.h"
+
+      integer imode
 
 #ifdef OSI
       integer iicol
@@ -2661,7 +2664,8 @@ C IER=0 indicates no error.
      &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -2681,7 +2685,7 @@ C For help messages
       helpinsub='GENCFDBC'  ! set for subroutine
 
 C Remember visualisation settings.
-      IISHSB=ISHSB; IISHAO=ISHAO; IISHBLK=ISHBLK
+      IISHSB=ISHSB; IISHAO=ISHAO; IISHBLK=ISHBLK; IISHSRC=ISHSRC
       IISHGEO=ISHGEO; IIFACES=IFACES
 
 C Ensure parent-child relationships are defined.
@@ -2691,28 +2695,42 @@ C Ensure parent-child relationships are defined.
 C If there are already some defined, ask user if they want to clear
 C existing boundary conditions.
       if (NVOL(ICFD).gt.0) then
-        outs='Do you want to clear all existing boundary conditions?'
-        dok=.true.
-        ok=dok
-        helptopic='cfdbc_infer_delete_exist'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(outs,' ',ok,dok,nbhelp)
-        if (ok) then
-          do I=1,NVOL(ICFD)
-            IVOLF(I,ICFD)=0
-            IVCELLS(I,ICFD,1)=0; IVCELLS(I,ICFD,2)=0
-            JVCELLS(I,ICFD,1)=0; JVCELLS(I,ICFD,2)=0
-            KVCELLS(I,ICFD,1)=0; KVCELLS(I,ICFD,2)=0
-            VOLNAME(I,ICFD)=' '; VCsurf(I,ICFD)=' '
-            IVTYPE(I,ICFD)=0
-            VOLTemp(I,ICFD)=0.; VOLHeat(I,ICFD)=0.
-            IVConfl(I,ICFD)=0
-            VOLHum(I,ICFD)=0.; VOLCO2(I,ICFD)=0.
-            VOLVel(I,ICFD)=0.
-            VOLDir(I,ICFD,1)=0.; VOLDir(I,ICFD,2)=0.
-            VOLArea(I,ICFD)=0.; VOLPres(I,ICFD)=0.
-          enddo
-          NVOL(ICFD)=0
+        if (imode.eq.0) then
+          outs='Do you want to clear all existing boundary conditions?'
+          dok=.true.
+          ok=dok
+          helptopic='cfdbc_infer_delete_exist'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL ASKOK(outs,' ',ok,dok,nbhelp)
+          if (ok) then
+            do I=1,NVOL(ICFD)              
+              if (IVTYPE(I,ICFD).lt.20) call DELCFDBC(I)
+            enddo
+          endif
+        elseif (imode.eq.1) then
+          outs='Do you want to clear all edge boundary conditions?'
+          dok=.true.
+          ok=dok
+          helptopic='cfdbc_infer_delete_exist'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL ASKOK(outs,' ',ok,dok,nbhelp)
+          if (ok) then
+            do I=1,NVOL(ICFD)
+              if (IVTYPE(I,ICFD).lt.20) call DELCFDBC(I)
+            enddo
+          endif
+        elseif (imode.eq.2) then
+          outs='Do you want to clear all internal boundary conditions?'
+          dok=.true.
+          ok=dok
+          helptopic='cfdbc_infer_delete_exist'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL ASKOK(outs,' ',ok,dok,nbhelp)
+          if (ok) then
+            do I=1,NVOL(ICFD)
+              if (IVTYPE(I,ICFD).ge.20) call DELCFDBC(I)
+            enddo
+          endif
         endif
       endif
 
@@ -2754,49 +2772,1357 @@ C Grab the X, Y, and Z coordinates of the domain extremes (in CFD axes)
 
 C Now, loop through surfaces in the zone and create solid and opening
 C BCs.
-      if (NZSUR(ICP).gt.0) then
-        write(outs,'(a)')
-     &    '*** Scanning surfaces for solid and opening BCs ***'
-        CALL EDISP(IUOUT,outs)
+      if (imode.eq.1) then
+        if (NZSUR(ICP).gt.0) then
+          write(outs,'(a)')
+     &      '*** Scanning surfaces for solid and opening BCs ***'
+          CALL EDISP(IUOUT,outs)
 
-        ok=.true.
-        do ISUR=1,NZSUR(ICP)
-          ICNN=IZSTOCN(ICP,ISUR)
+          ok=.true.
+          do ISUR=1,NZSUR(ICP)
+            ICNN=IZSTOCN(ICP,ISUR)
 
 C If this surface is a child, skip it; children are processed along with
 C their parent.
-          if (iparent(ICNN).ne.0) CYCLE
+            if (iparent(ICNN).ne.0) CYCLE
 
-          ifac=0
-          CALL GENEDGBC(isur,umax,vmax,wmax,ifac,ibctyp,isumin,isumax,
-     &      isvmin,isvmax,iswmin,iswmax,doafnasc,ISTAT)
+            ifac=0
+            CALL GENEDGBC(isur,umax,vmax,wmax,ifac,ibctyp,isumin,isumax,
+     &        isvmin,isvmax,iswmin,iswmax,doafnasc,ISTAT)
 
-          if (ISTAT.eq.0) then
-            CALL EDISP(IUOUT,'* No problems *')
-          elseif (ISTAT.eq.4 .or. ISTAT.eq.6) then
-            CALL EDISP(IUOUT,'* Surface skipped, but no problems *')            
-          else
-            CALL EDISP(IUOUT,'! Problem encountered !')
-            ok=.false.
+            if (ISTAT.eq.0) then
+              CALL EDISP(IUOUT,'* No problems *')
+            elseif (ISTAT.eq.4 .or. ISTAT.eq.6) then
+              CALL EDISP(IUOUT,'* Surface skipped, but no problems *')            
+            else
+              CALL EDISP(IUOUT,'! Problem encountered !')
+              ok=.false.
+            endif
+          enddo
+          if (.not.ok) then
+            CALL EDISP(IUOUT,
+     &        'Warning: boundaries may not be fully defined.')
+            CALL EDISP(IUOUT,
+     &        'Please check text feedback above.')
           endif
-        enddo
-        if (.not.ok) then
-          CALL EDISP(IUOUT,
-     &      'Warning: boundaries may not be fully defined.')
-          CALL EDISP(IUOUT,
-     &      'Please check text feedback above.')
+        else        
+          CALL EDISP(IUOUT,'*** No surfaces detected ***')
         endif
-      else        
-        CALL EDISP(IUOUT,'*** No surfaces detected ***')
+      endif
+
+C Now, loop through visual objects and create blockage BCs.
+      if (imode.eq.2) then
+        if (NBVOBJ(ICP).gt.0) then
+          write(outs,'(a)')
+     &      '*** Scanning visual objects for blockage BCs ***'
+          CALL EDISP(IUOUT,outs)
+          ok=.true.
+          do ivo=1,NBVOBJ(ICP)
+            CALL GENVOBC(ivo,ISTAT)
+
+            if (ISTAT.eq.0) then
+              CALL EDISP(IUOUT,'* No problems *')
+            elseif (ISTAT.eq.2) then
+              CALL EDISP(IUOUT,'* Entity(s) skipped, but no problems *')            
+            else
+              CALL EDISP(IUOUT,'! Problem encountered !')
+              ok=.false.
+            endif
+          enddo
+          if (.not.ok) then
+            CALL EDISP(IUOUT,
+     &      'Warning: problem(s) encountered while creating blockages.')
+            CALL EDISP(IUOUT,
+     &        'Please check text feedback above.')
+          endif
+        else
+          CALL EDISP(IUOUT,'*** No visual objects detected ***')
+        endif
       endif
 
 C Restore visualisation settings.
-      ISHSB=IISHSB; ISHAO=IISHAO; ISHBLK=IISHBLK
+      ISHSB=IISHSB; ISHAO=IISHAO; ISHBLK=IISHBLK; ISHSRC=IISHSRC
       ISHGEO=IISHGEO; IFACES=IIFACES
       call redraw(IER)
 
   999 RETURN
       END
+
+C ************ GENVOBC
+C GENVOBC is used in the auto-generation of CFD BCs inferred from
+C geometry.
+
+C Given a visual object index ivo, this subroutine creates blockage BCs
+C to represent each visual entity comprising the object, contracting BCs
+C where required to try and avoid intersecting blockages.
+
+C ISTAT = 1: Error.
+C ISTAT = 2: Entity(s) skipped, but no error.
+
+      SUBROUTINE GENVOBC(ivo,istat)
+
+#include "building.h"
+#include "model.h"
+#include "geometry.h"
+#include "cfd.h"
+
+      integer ivo,istat
+
+      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/ICFNOD/ICFD,ICP      
+      COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
+      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
+     &            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
+     &            DZHP(ntcelz),DZPL(ntcelz),
+     &            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
+     &            XU(ntcelx),YV(ntcely),ZW(ntcelz)
+      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
+     &          INSSO(MNVLS,MNZ)
+
+      character outs*124,vetyp*4,t12*12,tt12*12
+      logical ok,cureng,preveng,show,dou,dov,dow
+      real eumin,eumax,evmin,evmax,ewmin,ewmax,dum(1)
+      real tolumin,tolumax,tolvmin,tolvmax,tolwmin,tolwmax
+      integer aicls(8,3)
+      real ec(8,3) ! coordinates of entity vertices in CFD domain
+      integer aieext(MVOBJE,6) ! entity extents in scalar cell indices.
+      integer aiestat(MVOBJE) ! status of each entity:
+C -1: skipped
+C 0:  block
+C 1:  plane, surface normal in the u direction
+C 2:  plane, surface normal in the v direction
+C 3:  plane, surface normal in the w direction
+C 4:  stick, length in u direction
+C 5:  stick, length in v direction
+C 6:  stick, length in w direction
+C 7:  blob
+C A "plane" is an entity 1 cell thick in 1 dimension,
+C a "stick" is an entity 1 cell thick in 2 dimensions,
+C a "blob" is an entity 1 cell thick in 3 dimensions (i.e. a single cell);
+C otherwise an entity is a "block".
+      integer aiext(6),ajext(6) ! entity extents, instantiated depending
+C on status to check for intersections.
+      integer aiesplt(MVOBJE) ! entity that new ones were split from.
+      integer aie2nrw(MVOBJE) ! "too-narrow-ness":
+C Takes values 1 to 7, composed of the sum of:
+C 1 - too narrow in the u direction
+C 2 - too narrow in the v direction
+C 4 - too narrow in the w direction
+C Therefore:
+C 3 - u and v
+C 5 - u and w
+C 6 - v and w
+C 7 - u, v, and w
+
+      ISTAT=0
+
+      t12=VOBJNAME(ICP,ivo)
+      if (NBVOBJLIST(ICP,ivo).le.0) then
+        write(outs,'(a,i2.2,1x,2a)')'Visual object ',
+     &    ivo,t12(1:lnblnk(t12)),' has no entities, skipping.'
+        CALL EDISP(IUOUT,outs)
+        ISTAT=2
+        goto 999
+      else
+        write(outs,'(a,i2.2,1x,2a,i2.2,a)')'Visual object ',
+     &    ivo,t12(1:lnblnk(t12)),' has ',NBVOBJLIST(ICP,ivo),
+     &    ' entities, processing ...'
+        CALL EDISP(IUOUT,outs)
+      endif
+
+      CALL MKVOBJILIST(ICP)
+
+C Loop over visual entities comprising the object.
+      ne=NBVOBJLIST(ICP,ivo)
+      do ivoe=1,NBVOBJLIST(ICP,ivo)
+
+C Hijack the loop to initialise aiesplt.
+        aiesplt(ivoe)=0
+
+        ive=VOBJILIST(ICP,ivo,ivoe)
+        vetyp=VISTYP(ICP,ive)
+        t12=VISNAME(ICP,ive)
+
+        write(outs,'(a,i3.3,1x,2a)')' Processing visual entity ',ive,
+     &    t12(1:lnblnk(t12)),' ...'
+        CALL EDISP(IUOUT,outs)
+
+C Convert entity description into coordinates in common GB1.
+        if(vetyp.eq.'vis ')then
+          CALL CNVBLK(XOV(ICP,ive),YOV(ICP,ive),ZOV(ICP,ive),
+     &      DXOV(ICP,ive),DYOV(ICP,ive),DZOV(ICP,ive),
+     &      BANGOV(ICP,ive,1))
+        elseif(vetyp.eq.'vis3')then
+          CALL CNVBLK3A(XOV(ICP,ive),YOV(ICP,ive),ZOV(ICP,ive),
+     &      DXOV(ICP,ive),DYOV(ICP,ive),DZOV(ICP,ive),
+     &      BANGOV(ICP,ive,1),BANGOV(ICP,ive,2),BANGOV(ICP,ive,3))
+        elseif(vetyp.eq.'visp')then
+          call CNVVISP(ICP,ive)
+        endif
+
+C Establish extents.
+        eumin=99999.9; eumax=0.0
+        evmin=99999.9; evmax=0.0
+        ewmin=99999.9; ewmax=0.0
+        IER=0
+        ok=.true.
+        do I=1,8
+          CALL CFDTRANS(2,XB(I),YB(I),ZB(I),u,v,w,IER)
+          if (IER.ne.0) then
+            ok=.false.
+            EXIT
+          endif
+          ec(I,1)=u; ec(I,2)=v; ec(I,3)=w
+          if (u.lt.eumin) eumin=u
+          if (u.gt.eumax) eumax=u
+          if (v.lt.evmin) evmin=v
+          if (v.gt.evmax) evmax=v
+          if (w.lt.ewmin) ewmin=w
+          if (w.gt.ewmax) ewmax=w
+        enddo
+        if (.not.ok) then          
+          write(outs,'(a)')
+     &      ' Error transforming coordinates. Check gridding.'
+          CALL EDISP(IUOUT,outs)
+          ISTAT=1
+          goto 999
+        endif
+
+C Find grid cells to best match entity vertices. Note that this will
+C find indices on the velocity grid. This is negatively offset from the
+C scalar grid, so for example XU(1) is the negative U edge of the scalar
+C cell XP(1), and the positive U edge is XU(2). So the actual (scalar)
+C grid cells to use are ie?min and ie?max-1.
+        CALL FDCFDPT(2,eumin,evmin,ewmin,ieumin,ievmin,iewmin,IER)
+        CALL FDCFDPT(2,eumax,evmax,ewmax,ieumax,ievmax,iewmax,IER)
+        if (IER.ne.0) then
+          write(outs,'(a)')
+     &      ' Error finding cells to match geometry. Check gridding.'
+          CALL EDISP(IUOUT,outs)
+          ISTAT=1
+          goto 999
+        endif
+
+C Establish narrowness.
+C "Too narrow" is defined as less than half the cells width.
+C "Narrow" is defined as a single cell.
+C Store "too-narrow-ness" for detecting surface details.
+        inarrow=0
+        itoonarrow=0
+        aie2nrw(ivoe)=0
+        if (ieumin.eq.ieumax .or. ieumin.eq.ieumax-1) then
+          inarrow=inarrow+1
+          if ((eumax-eumin).lt.(SEW(ieumin)/2.0)) then
+            itoonarrow=itoonarrow+1
+            aie2nrw(ivoe)=aie2nrw(ivoe)+1
+          endif
+        endif
+        if (ievmin.eq.ievmax .or. ievmin.eq.ievmax-1) then
+          inarrow=inarrow+2
+          if ((evmax-evmin).lt.(SNS(ievmin)/2.0)) then
+            itoonarrow=itoonarrow+1
+            aie2nrw(ivoe)=aie2nrw(ivoe)+2
+          endif
+        endif
+        if (iewmin.eq.iewmax .or. iewmin.eq.iewmax-1) then
+          inarrow=inarrow+4
+          if ((ewmax-ewmin).lt.(SHL(iewmin)/2.0)) then
+            itoonarrow=itoonarrow+1
+            aie2nrw(ivoe)=aie2nrw(ivoe)+4
+          endif
+        endif
+
+C If it is too narrow in at least 2 dimensions, then it is not large
+C enough to represent.
+        if (itoonarrow.ge.2) then
+          write(outs,'(2a)')
+     &      ' This entity is too narrow, skipping.'
+          CALL EDISP(IUOUT,outs)
+          ISTAT=2
+          aiestat(ivoe)=-1
+          ne=ne-1
+          CYCLE
+
+C If it is narrow in at least 1 dimension, check for cases where the
+C extents straddle a cell boundary, and work out where it should go. In
+C the unlikely case that the cell boundary is on the exact midpoint,
+C default to the negative side in the axial direction.
+        elseif (inarrow.gt.0) then
+          if (ieumin.eq.ieumax) then
+            if (abs(eumin-XP(ieumin-1)).le.abs(eumax-XP(ieumax))) then
+              ieumin=ieumin-1
+            else
+              ieumax=ieumax+1
+            endif
+          endif
+          if (ievmin.eq.ievmax) then
+            if (abs(evmin-YP(ievmin-1)).le.abs(evmax-YP(ievmax))) then
+              ievmin=ievmin-1
+            else
+              ievmax=ievmax+1
+            endif
+          endif
+          if (iewmin.eq.iewmax) then
+            if (abs(ewmin-ZP(iewmin-1)).le.abs(ewmax-ZP(iewmax))) then
+              iewmin=iewmin-1
+            else
+              iewmax=iewmax+1
+            endif
+          endif
+        endif
+
+C Now make sure the entity is roughly oriented with the CFD domain axes.
+C For directions in which the entity is not narrow, ensure that 
+C coordinates for each vertex are within half the cells width of the
+C nearest extent. To protect against cases of thin diagonals, in each
+C plane of two non-narrow directions, ensure that more than two vertices
+C are not both close to one corner.
+
+C Set tolerances.
+        if (inarrow.eq.0 .or. inarrow.eq.2 .or.
+     &      inarrow.eq.4 .or. inarrow.eq.6) then
+          tolumin=abs(XU(ieumin)-XP(ieumin))
+          tolumax=abs(XU(ieumax)-XP(ieumax-1))
+          dou=.true.
+        else
+          dou=.false.
+        endif
+        if (inarrow.eq.0 .or. inarrow.eq.1 .or. 
+     &      inarrow.eq.4 .or. inarrow.eq.5) then
+          tolvmin=abs(YV(ievmin)-YP(ievmin))
+          tolvmax=abs(YV(ievmax)-YP(ievmax-1))
+          dov=.true.
+        else
+          dov=.false.
+        endif
+        if (inarrow.eq.0 .or. inarrow.eq.1 .or. 
+     &      inarrow.eq.2 .or. inarrow.eq.3) then
+          tolwmin=abs(ZW(iewmin)-ZP(iewmin))
+          tolwmax=abs(ZW(iewmax)-ZP(iewmax-1))
+          dow=.true.
+        else
+          dow=.false.
+        endif
+
+        do I=1,8
+
+C Check for closeness to extents.
+          if (dou) then
+            CALL ECLOSE(ec(I,1),eumin,tolumin,ok)
+            if (ok) then
+              aicls(I,1)=1
+            else
+              CALL ECLOSE(ec(I,1),eumax,tolumax,ok)
+              if (ok) then
+                aicls(I,1)=2
+              else
+                EXIT
+              endif
+            endif
+          endif
+          if (dov) then
+            CALL ECLOSE(ec(I,2),evmin,tolvmin,ok)
+            if (ok) then
+              aicls(I,2)=1
+            else
+              CALL ECLOSE(ec(I,2),evmax,tolvmax,ok)
+              if (ok) then
+                aicls(I,2)=2
+              else
+                EXIT
+              endif
+            endif
+          endif
+          if (dow) then
+            CALL ECLOSE(ec(I,3),ewmin,tolwmin,ok)
+            if (ok) then
+              aicls(I,3)=1
+            else
+              CALL ECLOSE(ec(I,3),ewmax,tolwmax,ok)
+              if (ok) then
+                aicls(I,3)=2
+              else
+                EXIT
+              endif
+            endif
+          endif
+
+C Check for thin diagonals.
+          if (I.gt.1) then
+
+C Number of vertices close to corners of the bounding box in each plane.
+            iuvnn=0; iuvnx=0; iuvxx=0; iuvxn=0
+            iuwnn=0; iuwnx=0; iuwxx=0; iuwxn=0
+            ivwnn=0; ivwnx=0; ivwxx=0; ivwxn=0
+
+            do J=I-1,1,-1
+              if (dou.and.dov) then
+                if (aicls(I,1).eq.1 .and. aicls(J,1).eq.1) then
+                  if (aicls(I,2).eq.1 .and. aicls(J,2).eq.1) then
+                    iuvnn=iuvnn+1
+                    if (iuvnn.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  elseif (aicls(I,2).eq.2 .and. aicls(J,2).eq.2) then
+                    iuvnx=iuvnx+1
+                    if (iuvnx.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  endif
+                elseif (aicls(I,1).eq.2 .and. aicls(J,1).eq.2) then
+                  if (aicls(I,2).eq.1 .and. aicls(J,2).eq.1) then
+                    iuvxn=iuvxn+1
+                    if (iuvxn.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  elseif (aicls(I,2).eq.2 .and. aicls(J,2).eq.2) then
+                    iuvxx=iuvxx+1
+                    if (iuvxx.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  endif
+                endif
+              endif
+              if (dou.and.dow) then
+                if (aicls(I,1).eq.1 .and. aicls(J,1).eq.1) then
+                  if (aicls(I,3).eq.1 .and. aicls(J,3).eq.1) then
+                    iuwnn=iuwnn+1
+                    if (iuwnn.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  elseif (aicls(I,3).eq.2 .and. aicls(J,3).eq.2) then
+                    iuwnx=iuwnx+1
+                    if (iuwnx.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  endif
+                elseif (aicls(I,1).eq.2 .and. aicls(J,1).eq.2) then
+                  if (aicls(I,3).eq.1 .and. aicls(J,3).eq.1) then
+                    iuwxn=iuwxn+1
+                    if (iuwxn.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  elseif (aicls(I,3).eq.2 .and. aicls(J,3).eq.2) then
+                    iuwxx=iuwxx+1
+                    if (iuwxx.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  endif
+                endif
+              endif
+              if (dov.and.dow) then
+                if (aicls(I,2).eq.1 .and. aicls(J,2).eq.1) then
+                  if (aicls(I,3).eq.1 .and. aicls(J,3).eq.1) then
+                    ivwnn=ivwnn+1
+                    if (ivwnn.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  elseif (aicls(I,3).eq.2 .and. aicls(J,3).eq.2) then
+                    ivwnx=ivwnx+1
+                    if (ivwnx.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  endif
+                elseif (aicls(I,2).eq.2 .and. aicls(J,2).eq.2) then
+                  if (aicls(I,3).eq.1 .and. aicls(J,3).eq.1) then
+                    ivwxn=ivwxn+1
+                    if (ivwxn.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  elseif (aicls(I,3).eq.2 .and. aicls(J,3).eq.2) then
+                    ivwxx=ivwxx+1
+                    if (ivwxx.gt.2) then
+                      ok=.false.
+                      EXIT
+                    endif
+                  endif
+                endif
+              endif
+            enddo
+            if (.not.ok) EXIT
+          endif
+        enddo
+
+        if (.not.ok) then
+          write(outs,'(a)')
+     &      ' This entity is not aligned with CFD axes, skipping.'
+          CALL EDISP(IUOUT,outs)
+          ISTAT=2
+          aiestat(ivoe)=-1
+          ne=ne-1
+          CYCLE
+        endif
+
+C Determine if entity is a block, a plane, a stick, or a blob.
+C A "plane" is an entity 1 cell thick in 1 dimension,
+C a "stick" is an entity 1 cell thick in 2 dimensions,
+C a "blob" is an entity 1 cell thick in 3 dimensions (i.e. a single cell);
+C otherwise an entity is a "block".
+        if (inarrow.eq.1) then ! plane, normal in u direction
+          aiestat(ivoe)=1
+        elseif (inarrow.eq.2) then ! plane, normal in v direction
+          aiestat(ivoe)=2
+        elseif (inarrow.eq.4) then ! plane, normal in w direction
+          aiestat(ivoe)=3
+        elseif (inarrow.eq.3) then ! stick, pointing in w direction
+          aiestat(ivoe)=6
+        elseif (inarrow.eq.5) then ! stick, pointing in v direction
+          aiestat(ivoe)=5
+        elseif (inarrow.eq.6) then ! stick, pointing in u direction
+          aiestat(ivoe)=4
+        elseif (inarrow.eq.7) then ! blob
+          aiestat(ivoe)=7
+        elseif (inarrow.eq.0) then! block
+          aiestat(ivoe)=0          
+        else
+          write(outs,'(a)')' Error determining entity status.'
+          CALL EDISP(IUOUT,outs)
+          ISTAT=1
+          goto 999
+        endif
+
+C Store entity extents, in terms of scalar cells.
+        aieext(ivoe,1)=ieumin; aieext(ivoe,2)=ieumax-1
+        aieext(ivoe,3)=ievmin; aieext(ivoe,4)=ievmax-1
+        aieext(ivoe,5)=iewmin; aieext(ivoe,6)=iewmax-1
+
+      enddo
+
+C We now have the extents and status of all entities that we want to
+C create. Check if there are none left.
+      if (ne.le.0) goto 999
+
+C Scan through and check for intersections. Follow these rules to
+C resolve them:
+C 1: First, if any entity is completely engulfed by another, skip it.
+C 2: Next, if a stick intersects anything, shorten or split it.
+C 3: Next, if a plane intersects anything, split it or slice stick(s)
+C    off the offending edge(s).
+C 4: Finally, if a block intersects anything, split the block or slice
+C    plane(s) off the offending face(s).
+      write(outs,'(a)')' Scanning entities for intersections ...'
+      CALL EDISP(IUOUT,outs)
+      isplt=0
+
+
+
+C First, scan for engulfing. This will handle any blobs.
+      do i=1,NBVOBJLIST(ICP,ivo)
+        if (aiestat(i).eq.-1) CYCLE
+
+C Is this entity engulfed by any other?
+        do j=1,NBVOBJLIST(ICP,ivo)
+          if (i.eq.j .or. aiestat(j).eq.-1) CYCLE          
+          if (aieext(i,1).ge.aieext(j,1) .and. 
+     &        aieext(i,2).le.aieext(j,2) .and.
+     &        aieext(i,3).ge.aieext(j,3) .and. 
+     &        aieext(i,4).le.aieext(j,4) .and.
+     &        aieext(i,5).ge.aieext(j,5) .and. 
+     &        aieext(i,6).le.aieext(j,6)) then
+
+C Yes, so skip it.
+            aiestat(i)=-1
+            ive=VOBJILIST(ICP,ivo,i)
+            jve=VOBJILIST(ICP,ivo,j)
+            t12=VISNAME(ICP,ive)
+            tt12=VISNAME(IVP,jve)
+            write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a)')' Entity ',
+     &        ive,t12(1:lnblnk(t12)),' is engulfed by entity ',
+     &        jve,tt12(1:lnblnk(tt12)),', skipping.'
+            call edisp(IUOUT,outs)
+            ISTAT=2
+            EXIT
+          endif
+        enddo
+      enddo
+
+
+
+C Now, scan sticks (aiestat 4-6).
+C Instantiate the number of entities and use a while instead of a for,
+C because the number of entities we need to scan may increase due to
+C splitting of existing entities.
+      ne=NBVOBJLIST(ICP,ivo)
+      i=0
+      do while (i.le.ne)
+        i=i+1
+        if (aiestat(i).lt.4 .or. aiestat(i).gt.6) CYCLE
+
+C aiext - extents of the "i" entity depending on orientation:
+C aiext(1) - negative end of the stick
+C aiext(2) - positive end of the stick
+C aiext(3 and 4) - coordinates of the blob seen by looking down the
+C                  length of the stick.
+        if (aiestat(i).eq.1) then ! plane normal is in u direction
+          aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+          aiext(3)=aieext(i,3); aiext(4)=aieext(i,5)
+        elseif (aiestat(i).eq.2) then ! plane normal is in v direction
+          aiext(1)=aieext(i,3); aiext(2)=aieext(i,4)
+          aiext(3)=aieext(i,1); aiext(4)=aieext(i,5)
+        elseif (aiestat(i).eq.3) then ! plane normal is in w direction
+          aiext(1)=aieext(i,5); aiext(2)=aieext(i,6)
+          aiext(3)=aieext(i,1); aiext(4)=aieext(i,3)
+        endif
+
+C Scan through all other entities (comparison entities).
+C We know that any entity split from the "i" entity won't intersect it,
+C so don't worry about increasing the value of ne inside the loop.
+        ne2=ne
+        do j=1,ne2
+          if (i.eq.j .or. aiestat(j).eq.-1) CYCLE
+
+C ajext - extents of the comparison entity depending on orientation of
+C the "i" entity:
+C aiext(1 and 2) - extents in the direction of the length of the stick
+C aiext(3, 4, 5 and 6) - extents in the plane to which the stick is
+C                        normal
+          if (aiestat(i).eq.4) then ! stick is in u direction
+            ajext(1)=aieext(j,1); ajext(2)=aieext(j,2)
+            ajext(3)=aieext(j,3); ajext(4)=aieext(j,4)
+            ajext(5)=aieext(j,5); ajext(6)=aieext(j,6)
+          elseif (aiestat(i).eq.5) then ! stick is in v direction
+            ajext(1)=aieext(j,3); ajext(2)=aieext(j,4)
+            ajext(3)=aieext(j,1); ajext(4)=aieext(j,2)
+            ajext(5)=aieext(j,5); ajext(6)=aieext(j,6)
+          elseif (aiestat(i).eq.6) then ! stick is in w direction
+            ajext(1)=aieext(j,5); ajext(2)=aieext(j,6)
+            ajext(3)=aieext(j,1); ajext(4)=aieext(j,2)
+            ajext(5)=aieext(j,3); ajext(6)=aieext(j,4)
+          endif
+
+C If the negative end of the stick is beyond the positive edge of the 
+C comparison entity, or if the positive end of the stick is before the
+C negative edge of the comparison entity, the two do not intersect.
+          if (aiext(1).gt.ajext(2) .or. aiext(2).lt.ajext(1)) CYCLE
+
+C Check for the case of a surface detail. If the stick is adjacent to
+C the comparison entity, and too narrow in that direction, and engulfed
+C by the comparison entity in the plane normal to that direction, then
+C it's probably a surface detail - ignore it.
+          if (aie2nrw(i).gt.0) then
+            ok=.true.
+            if (aiestat(i).eq.4) then
+              if ((aiext(3).eq.ajext(3)-1 .or. 
+     &             aiext(3).eq.ajext(4)+1) .and.
+     &            (aie2nrw(i).eq.2 .or. aie2nrw(i).eq.3 .or.
+     &             aie2nrw(i).eq.6 .or. aie2nrw(i).eq.7) .and.
+     &            (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and.
+     &             aiext(4).ge.ajext(5) .and. aiext(4).le.ajext(6)))then
+                ok=.false.
+
+              elseif ((aiext(4).eq.ajext(5)-1 .or. 
+     &                 aiext(4).eq.ajext(6)+1) .and.
+     &                (aie2nrw(i).eq.4 .or. aie2nrw(i).eq.5 .or.
+     &                 aie2nrw(i).eq.6 .or. aie2nrw(i).eq.7) .and.
+     &            (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and.
+     &             aiext(3).ge.ajext(3) .and. aiext(3).le.ajext(4)))then
+                ok=.false.
+              endif
+
+            elseif (aiestat(i).eq.5) then
+              if ((aiext(3).eq.ajext(3)-1 .or. 
+     &             aiext(3).eq.ajext(4)+1) .and.
+     &            (aie2nrw(i).eq.1 .or. aie2nrw(i).eq.3 .or.
+     &             aie2nrw(i).eq.5 .or. aie2nrw(i).eq.7) .and.
+     &            (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and.
+     &             aiext(4).ge.ajext(5) .and. aiext(4).le.ajext(6)))then
+                ok=.false.
+
+              elseif ((aiext(4).eq.ajext(5)-1 .or. 
+     &                 aiext(4).eq.ajext(6)+1) .and.
+     &                (aie2nrw(i).eq.4 .or. aie2nrw(i).eq.5 .or.
+     &                 aie2nrw(i).eq.6 .or. aie2nrw(i).eq.7) .and.
+     &            (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and.
+     &             aiext(3).ge.ajext(3) .and. aiext(3).le.ajext(4)))then
+                ok=.false.
+              endif
+
+            elseif (aiestat(i).eq.6) then
+              if ((aiext(3).eq.ajext(3)-1 .or. 
+     &             aiext(3).eq.ajext(4)+1) .and.
+     &            (aie2nrw(i).eq.1 .or. aie2nrw(i).eq.3 .or.
+     &             aie2nrw(i).eq.5 .or. aie2nrw(i).eq.7) .and.
+     &            (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and.
+     &             aiext(4).ge.ajext(5) .and. aiext(4).le.ajext(6)))then
+                ok=.false.
+
+              elseif ((aiext(4).eq.ajext(5)-1 .or. 
+     &                 aiext(4).eq.ajext(6)+1) .and.
+     &                (aie2nrw(i).eq.2 .or. aie2nrw(i).eq.3 .or.
+     &                 aie2nrw(i).eq.6 .or. aie2nrw(i).eq.7) .and.
+     &            (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and.
+     &             aiext(3).ge.ajext(3) .and. aiext(3).le.ajext(4)))then
+                ok=.false.
+              endif
+            endif
+
+            if (.not.ok) then
+              aiestat(i)=-1
+              ive=VOBJILIST(ICP,ivo,i)
+              jve=VOBJILIST(ICP,ivo,j)
+              t12=VISNAME(ICP,ive)
+              tt12=VISNAME(IVP,jve)
+              write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a)')' Entity ',ive,
+     &          t12(1:lnblnk(t12)),' is a surface detail of entity ',
+     &          jve,tt12(1:lnblnk(tt12)),', skipping.'
+              CALL edisp(IUOUT,outs)
+              EXIT
+            endif
+          endif
+
+C If the stick blob is not engulfed by the projection of the comparison
+C entity, the two do not intersect.
+          if (.not.(aiext(3).ge.ajext(3) .and.
+     &              aiext(3).le.ajext(4) .and.
+     &              aiext(4).ge.ajext(5) .and.
+     &              aiext(4).le.ajext(6))) CYCLE
+
+C Debug.
+          write(outs,'(a,i3.3,a,i3.3)')
+     &      ' Entity ',i,' intersects entity ',j
+          call edisp(IUOUT,outs)
+
+C Is the negative end of the stick engulfed?
+          preveng=aiext(1).ge.ajext(1)
+
+C Check for a stick-that-is-actually-a-blob; this can happen if a stick
+C has been shortened or split.
+          if (aiext(1).eq.aiext(2)) then
+            if (preveng) then
+              aiestat(i)=-1
+              EXIT
+            endif
+          endif
+
+C Scan through the stick (negative to positive) for any change in
+C engulfed-ness.
+          iengst=0
+          ok=.false.
+          do k=aiext(1)+1,aiext(2)
+            cureng=k.ge.ajext(1) .and. k.le.ajext(2)
+            if (cureng .and. .not.preveng) then 
+
+C Current cell is engulfed, previous isn't. Remember this cell and carry
+C on scanning, to see if the stick comes out the other end.
+              iengst=k
+
+            elseif (preveng .and. .not.cureng) then 
+
+C Current cell is not engulfed, previous is. 
+              if (iengst.gt.0) then
+
+C Stick is bisected by the comparison entity; split the stick.
+C Note that we set the status of the new entity as a stick, even if it
+C is a blob; this is to ensure that the "i" entity loop picks it up and
+C checks it against other entities (the code for sticks should handle
+C blobs just fine).
+                ne=ne+1
+                if (aiestat(i).eq.4) then
+                  aieext(i,2)=iengst-1
+                  aieext(ne,1)=k;           aieext(ne,2)=aiext(2)
+                  aieext(ne,3)=aieext(i,3); aieext(ne,4)=aieext(i,4)
+                  aieext(ne,5)=aieext(i,5); aieext(ne,6)=aieext(i,6)
+                elseif (aiestat(i).eq.5) then
+                  aieext(i,4)=iengst-1
+                  aieext(ne,1)=aieext(i,1); aieext(ne,2)=aieext(i,2)
+                  aieext(ne,3)=k;           aieext(ne,4)=aiext(2)
+                  aieext(ne,5)=aieext(i,5); aieext(ne,6)=aieext(i,6)
+                elseif (aiestat(i).eq.6) then
+                  aieext(i,6)=iengst-1
+                  aieext(ne,1)=aieext(i,1); aieext(ne,2)=aieext(i,2)
+                  aieext(ne,3)=aieext(i,3); aieext(ne,4)=aieext(i,4)
+                  aieext(ne,5)=k;           aieext(ne,6)=aiext(2)
+                endif
+                aiestat(ne)=aiestat(i)
+                isplt=isplt+1
+                aiesplt(isplt)=i
+                ok=.true.
+                EXIT
+
+              else
+
+C Negative end of the stick is engulfed up to this point; shorten the
+C stick.
+                if (aiestat(i).eq.4) then
+                  aieext(i,1)=k
+                elseif (aiestat(i).eq.5) then
+                  aieext(i,3)=k
+                elseif (aiestat(i).eq.6) then
+                  aieext(i,5)=k
+                endif
+                ok=.true.
+                EXIT
+              endif
+            endif
+            preveng=cureng
+          enddo
+
+C If ok is true, we've already dealt with the intersection.
+          if (ok) CYCLE
+
+C If we've reached this point then we've now been through the entire
+C stick. In theory, the only way we should get to this point is if the
+C positive end of the stick is engulfed, and we need to shorten the it.
+          if (iengst.gt.0) then
+            if (aiestat(i).eq.4) then
+              aieext(i,2)=iengst-1
+            elseif (aiestat(i).eq.5) then
+              aieext(i,4)=iengst-1
+            elseif (aiestat(i).eq.6) then
+              aieext(i,6)=iengst-1
+            endif
+            CYCLE
+          endif
+
+C If we get to here, something has gone wrong.
+          ive=VOBJILIST(ICP,ivo,i)
+          jve=VOBJILIST(ICP,ivo,j)
+          t12=VISNAME(ICP,ive)
+          tt12=VISNAME(IVP,jve)
+          write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a)')
+     &      ' Error while scanning for intersection of entities ',ive,
+     &      t12(1:lnblnk(t12)),' and ',jve,tt12(1:lnblnk(tt12)),'.'
+          CALL edisp(IUOUT,outs)
+          ISTAT=1
+          goto 999
+        enddo ! next comparison entity
+      enddo ! next i entity
+
+
+
+
+C Now, scan planes (aiestat 1-3).
+      i=0
+      do while (i.le.ne)
+        i=i+1
+        if (aiestat(i).lt.1 .or. aiestat(i).gt.3) CYCLE
+
+C aiext - extents of the "i" entity depending on orientation:
+C aiext(1, 2 , 3 and 4) - extents of the plane looking from the
+C                         direction of its normal
+C aiext(5) - coordinate in the normal axis (plane constant)
+        if (aiestat(i).eq.1) then ! plane normal is in u direction
+          aiext(1)=aieext(i,3); aiext(2)=aieext(i,4)
+          aiext(3)=aieext(i,5); aiext(4)=aieext(i,6)
+          aiext(5)=aieext(i,1)
+        elseif (aiestat(i).eq.2) then ! plane normal is in v direction
+          aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+          aiext(3)=aieext(i,5); aiext(4)=aieext(i,6)
+          aiext(5)=aieext(i,3)
+        elseif (aiestat(i).eq.3) then ! plane normal is in w direction
+          aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+          aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
+          aiext(5)=aieext(i,5)
+        endif
+
+C Scan through all other entities (comparison entities).
+        ne2=ne
+        do j=1,ne2
+          if (i.eq.j .or. aiestat(j).eq.-1) CYCLE
+
+C ajext - extents of the comparison entity depending on orientation of
+C the "i" entity:
+C ajext(1, 2, 3 and 4) - extents looking from the direction normal to
+C                        the "i" plane
+C ajext(5 and 6) - extents in the direction of the normal.
+          if (aiestat(i).eq.1) then ! plane normal is in u direction
+            ajext(1)=aieext(j,3); ajext(2)=aieext(j,4)
+            ajext(3)=aieext(j,5); ajext(4)=aieext(j,6)
+            ajext(5)=aieext(j,1); ajext(6)=aieext(j,2)
+          elseif (aiestat(i).eq.2) then ! plane normal is in v direction
+            ajext(1)=aieext(j,1); ajext(2)=aieext(j,2)
+            ajext(3)=aieext(j,5); ajext(4)=aieext(j,6)
+            ajext(5)=aieext(j,3); ajext(6)=aieext(j,4)
+          elseif (aiestat(i).eq.3) then ! plane normal is in w direction
+            ajext(1)=aieext(j,1); ajext(2)=aieext(j,2)
+            ajext(3)=aieext(j,3); ajext(4)=aieext(j,4)
+            ajext(5)=aieext(j,5); ajext(6)=aieext(j,6)
+          endif
+
+C In each of the two directions of the plane, if the negative edge of
+C the plane is beyond the positive edge of the comparison entity, or if
+C the positive end of the plane is before the negative edge of the
+C comparison entity, the two do not intersect.
+          if (aiext(1).gt.ajext(2) .or. aiext(2).lt.ajext(1) .or.
+     &        aiext(3).gt.ajext(4) .or. aiext(4).lt.ajext(3)) CYCLE
+
+C Check for the case of a surface detail. If the plane is adjacent to
+C the comparison entity, and too narrow in that direction, and engulfed
+C by the comparison entity in the plane normal to that direction, then
+C it's probably a surface detail - ignore it.
+          if (aie2nrw(i).gt.0) then
+            ok=.true.
+            if (aiestat(i).eq.1) then
+              if ((aiext(5).eq.ajext(5)-1 .or. 
+     &             aiext(5).eq.ajext(6)+1) .and.
+     &            (aie2nrw(i).eq.1 .or. aie2nrw(i).eq.3 .or.
+     &             aie2nrw(i).eq.5 .or. aie2nrw(i).eq.7) .and.
+     &            (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and.
+     &             aiext(3).ge.ajext(3) .and. aiext(4).le.ajext(4)))then
+                ok=.false.
+              endif
+
+            elseif (aiestat(i).eq.2) then
+              if ((aiext(5).eq.ajext(5)-1 .or. 
+     &             aiext(5).eq.ajext(6)+1) .and.
+     &            (aie2nrw(i).eq.2 .or. aie2nrw(i).eq.3 .or.
+     &             aie2nrw(i).eq.6 .or. aie2nrw(i).eq.7) .and.
+     &            (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and.
+     &             aiext(3).ge.ajext(3) .and. aiext(4).le.ajext(4)))then
+                ok=.false.
+              endif
+
+            elseif (aiestat(i).eq.3) then
+              if ((aiext(5).eq.ajext(5)-1 .or. 
+     &             aiext(5).eq.ajext(6)+1) .and.
+     &            (aie2nrw(i).eq.4 .or. aie2nrw(i).eq.5 .or.
+     &             aie2nrw(i).eq.6 .or. aie2nrw(i).eq.7) .and.
+     &            (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and.
+     &             aiext(3).ge.ajext(3) .and. aiext(4).le.ajext(4)))then
+                ok=.false.
+              endif
+            endif
+
+            if (.not.ok) then
+              aiestat(i)=-1
+              ive=VOBJILIST(ICP,ivo,i)
+              jve=VOBJILIST(ICP,ivo,j)
+              t12=VISNAME(ICP,ive)
+              tt12=VISNAME(IVP,jve)
+              write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a)')' Entity ',ive,
+     &          t12(1:lnblnk(t12)),' is a surface detail of entity ',
+     &          jve,tt12(1:lnblnk(tt12)),', skipping.'
+              CALL edisp(IUOUT,outs)
+              EXIT
+            endif
+          endif
+
+C If the plane constant is not within the extents of the comparison
+C entity in that direction, the two do not intersect.
+          if (.not.(aiext(5).ge.ajext(5) .and.
+     &              aiext(5).le.ajext(6))) CYCLE
+
+C Debug.
+          write(outs,'(a,i3.3,a,i3.3)')
+     &      ' Entity ',i,' intersects entity ',j
+          call edisp(IUOUT,outs)
+
+          ichkdm=0
+
+C There should be an intersection somewhere. There are 3 possible
+C scenarios:
+C 1 - A nice easy case where the plane is entirely bisected or sliced by
+C     the comparison entity. 
+C 2 - The comparison entity makes a hole in the plane. 
+C 3 - The comparison entity takes a chunk out of the edge of the plane.
+C     This is currently not handled.
+          if (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2)) then
+
+C Plane is engulfed at some point in its first dimension - search
+C dimension is the second.
+            ichkdm=3
+
+          elseif (aiext(3).ge.ajext(3) .and. aiext(4).le.ajext(4)) then
+
+C Plane is engulfed at some point in its second dimension - search
+C dimension is the first.
+            ickhdm=1
+
+          elseif (aiext(1).lt.ajext(1) .and. aiext(2).gt.ajext(2) .and.
+     &            aiext(3).lt.ajext(3) .and. aiext(4).gt.ajext(4)) then
+
+C Comparison entity makes a hole in the plane. In this case, do nothing
+C - when the comparison entity is scanned, it will be bisected.
+            CYCLE
+
+          else
+
+C The comparison entity takes a chunk out of the edge of the plane.
+C Currently this is not handled, so skip the plane.
+C TODO - address this
+            aiestat(i)=-1
+            ive=VOBJILIST(ICP,ivo,i)
+            jve=VOBJILIST(ICP,ivo,j)
+            t12=VISNAME(ICP,ive)
+            tt12=VISNAME(IVP,jve)
+            write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a,i3.3,a)')
+     &        ' Intersection of entities ',ive,t12(1:lnblnk(t12)),
+     &        ' and ',jve,tt12(1:lnblnk(tt12)),
+     &        ' is too complex, skipping entity ',ive,'.'
+            call edisp(IUOUT,outs)
+            ISTAT=2
+            EXIT
+          endif  
+
+C Is the negative edge of the plane engulfed?
+          preveng=aiext(ichkdm).ge.ajext(ichkdm)
+
+C Check for a plane-that-is-actually-a-stick in the search dimension;
+C this can happen if a stick has been shortened or split.
+          if (aiext(chkdm).eq.aiext(chkdm+1)) then
+            if (preveng) then
+              aiestat(i)=-1
+              EXIT
+            endif
+          endif
+
+C Scan through the plane in the search dimension (negative to positive)
+C for any change in engulfed-ness.
+          iengst=0
+          ok=.false.
+          do k=aiext(ichkdm)+1,aiext(ichkdm+1)
+            cureng=k.ge.ajext(ichkdm) .and. k.le.ajext(ichkdm+1)
+            if (cureng .and. .not.preveng) then 
+
+C Current stick is engulfed, previous isn't. Remember this cell and
+C carry on scanning, to see if the plane comes out the other end.
+              iengst=k
+
+            elseif (preveng .and. .not.cureng) then 
+
+C Current stick is not engulfed, previous is. 
+              if (iengst.gt.0) then
+
+C Plane is bisected by the comparison entity; split the plane.
+C Note that we set the status of the new entity as a plane, even if it
+C is a stick; this is to ensure that the "i" entity loop picks it up and
+C checks it against other entities (the code for planes should handle
+C sticks just fine).
+                ne=ne+1
+                if (aiestat(i).eq.1) then
+                  if (ichkdm.eq.1) then ! split in v direction
+                    aieext(i,4)=iengst-1
+                    aieext(ne,1)=aieext(i,1); aieext(ne,2)=aieext(i,2)
+                    aieext(ne,3)=k;           aieext(ne,4)=aiext(2)
+                    aieext(ne,5)=aieext(i,5); aieext(ne,6)=aieext(i,6)
+                  elseif (ichkdm.eq.3) then ! split in z direction
+                    aieext(i,6)=iengst-1
+                    aieext(ne,1)=aieext(i,1); aieext(ne,2)=aieext(i,2)
+                    aieext(ne,3)=aieext(i,3); aieext(ne,4)=aieext(i,4)
+                    aieext(ne,5)=k;           aieext(ne,6)=aiext(4)
+                  endif
+                elseif (aiestat(i).eq.2) then
+                  if (ichkdm.eq.1) then ! split in u direction
+                    aieext(i,2)=iengst-1
+                    aieext(ne,1)=k;           aieext(ne,2)=aiext(2)
+                    aieext(ne,3)=aieext(i,3); aieext(ne,4)=aieext(i,4)
+                    aieext(ne,5)=aieext(i,5); aieext(ne,6)=aieext(i,6)
+                  elseif (ichkdm.eq.3) then ! split in z direction
+                    aieext(i,6)=iengst-1
+                    aieext(ne,1)=aieext(i,1); aieext(ne,2)=aieext(i,2)
+                    aieext(ne,3)=aieext(i,3); aieext(ne,4)=aieext(i,4)
+                    aieext(ne,5)=k;           aieext(ne,6)=aiext(4)
+                  endif
+                elseif (aiestat(i).eq.3) then
+                  if (ichkdm.eq.1) then ! split in u direction
+                    aieext(i,2)=iengst-1
+                    aieext(ne,1)=k;           aieext(ne,2)=aiext(2)
+                    aieext(ne,3)=aieext(i,3); aieext(ne,4)=aieext(i,4)
+                    aieext(ne,5)=aieext(i,5); aieext(ne,6)=aieext(i,6)
+                  elseif (ichkdm.eq.3) then ! split in v direction
+                    aieext(i,4)=iengst-1
+                    aieext(ne,1)=aieext(i,1); aieext(ne,2)=aieext(i,2)
+                    aieext(ne,3)=k;           aieext(ne,4)=aiext(4)
+                    aieext(ne,5)=aieext(i,5); aieext(ne,6)=aieext(i,6)
+                  endif
+                endif
+                aiestat(ne)=aiestat(i)
+                isplt=isplt+1
+                aiesplt(isplt)=i
+                ok=.true.
+                EXIT
+
+              else
+
+C Negative end of the plane is engulfed up to this point; shorten the
+C plane.
+                if (aiestat(i).eq.1) then
+                  if (ichkdm.eq.1) then ! shorten in v direction
+                    aieext(i,3)=k
+                  elseif (ichkdm.eq.3) then ! shorten in z direction
+                    aieext(i,5)=k
+                  endif
+                elseif (aiestat(i).eq.2) then
+                  if (ichkdm.eq.1) then ! shorten in u direction
+                    aieext(i,1)=k
+                  elseif (ichkdm.eq.3) then ! shorten in z direction
+                    aieext(i,5)=k
+                  endif
+                elseif (aiestat(i).eq.3) then
+                  if (ichkdm.eq.1) then ! shorten in u direction
+                    aieext(i,1)=k
+                  elseif (ichkdm.eq.3) then ! shorten in v direction
+                    aieext(i,3)=k
+                  endif
+                endif
+                ok=.true.
+                EXIT
+              endif
+            endif
+            preveng=cureng
+          enddo
+
+C If ok is true, we've already dealt with the intersection.
+          if (ok) CYCLE
+
+C If we've reached this point then we've now been through the entire
+C search. In theory, the only way we should get to this point is if the
+C positive end of the plane is engulfed, and we need to shorten the it.
+          if (iengst.gt.0) then
+            if (aiestat(i).eq.1) then
+              if (ichkdm.eq.1) then ! shorten in v direction
+                aieext(i,4)=iengst-1
+              elseif (ichkdm.eq.3) then ! shorten in z direction
+                aieext(i,6)=iengst-1
+              endif
+            elseif (aiestat(i).eq.2) then
+              if (ichkdm.eq.1) then ! shorten in u direction
+                aieext(i,2)=iengst-1
+              elseif (ichkdm.eq.3) then ! shorten in z direction
+                aieext(i,6)=iengst-1
+              endif
+            elseif (aiestat(i).eq.3) then
+              if (ichkdm.eq.1) then ! shorten in u direction
+                aieext(i,2)=iengst-1
+              elseif (ichkdm.eq.3) then ! shorten in v direction
+                aieext(i,4)=iengst-1
+              endif
+            endif
+            CYCLE
+          endif
+
+C If we get to here, something has gone wrong.
+          ive=VOBJILIST(ICP,ivo,i)
+          jve=VOBJILIST(ICP,ivo,j)
+          t12=VISNAME(ICP,ive)
+          tt12=VISNAME(IVP,jve)
+          write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a)')
+     &      ' Error while scanning for intersection of entities ',ive,
+     &      t12(1:lnblnk(t12)),' and ',jve,tt12(1:lnblnk(tt12)),'.'
+          ISTAT=1
+          goto 999
+        enddo ! next comparison entity
+      enddo ! next i entity
+
+
+
+C Now, scan blocks (aiestat 0).
+      i=0
+      do while (i.le.ne)
+        i=i+1
+        if (aiestat(i).ne.0) CYCLE
+
+C aiext - extents of the "i" entity.
+        aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+        aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
+        aiext(5)=aieext(i,5); aiext(6)=aieext(i,6)
+
+C Scan through all other entities (comparison entities).
+        ne2=ne
+        do j=1,ne2
+          if (i.eq.j .or. aiestat(j).eq.-1) CYCLE
+
+C ajext - extents of the comparison entity.
+          ajext(1)=aieext(j,1); ajext(2)=aieext(j,2)
+          ajext(3)=aieext(j,3); ajext(4)=aieext(j,4)
+          ajext(5)=aieext(j,5); ajext(6)=aieext(j,6)
+
+C In each of the three dimensions, if the negative edge of the block is
+C beyond the positive edge of the comparison entity, or if the positive
+C end of the block is before the negative edge of the comparison entity,
+C the two do not intersect.
+          if (aiext(1).gt.ajext(2) .or. aiext(2).lt.ajext(1) .or.
+     &        aiext(3).gt.ajext(4) .or. aiext(4).lt.ajext(3) .or.
+     &        aiext(5).gt.ajext(5) .or. aiext(6).lt.ajext(6)) CYCLE
+
+C Debug.
+          write(outs,'(a,i3.3,a,i3.3)')
+     &      ' Entity ',i,' intersects entity ',j
+          call edisp(IUOUT,outs)
+
+          ichkdm=0
+
+C There should be an intersection somewhere. There are 2 possible
+C scenarios:
+C 1 - A nice easy case where the block is entirely engulfed by the
+C     comparison entity in two dimensions.
+C 2 - The comparison entity takes a chunk out of one or more face(s) of
+C     the block. This is currently not handled.
+          if (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and. 
+     &        aiext(3).ge.ajext(3) .and. aiext(4).le.ajext(4)) then
+
+C Block is engulfed is the u and v directions - search dimension is w.
+            ichkdm=5
+
+          elseif (aiext(1).ge.ajext(1) .and. aiext(2).le.ajext(2) .and. 
+     &            aiext(5).ge.ajext(5) .and. aiext(6).le.ajext(6)) then
+
+C Block is engulfed is the u and w directions - search dimension is v.
+            ichkdm=3
+
+          elseif (aiext(3).ge.ajext(3) .and. aiext(4).le.ajext(4) .and. 
+     &            aiext(5).ge.ajext(5) .and. aiext(6).le.ajext(6)) then
+
+C Block is engulfed is the v and w directions - search dimension is u.
+            ichkdm=1
+
+          else
+
+C The comparison entity takes a chunk out of one or more face(s) of the
+C block. Currently this is not handled, so skip the block.
+            aiestat(i)=-1
+            ive=VOBJILIST(ICP,ivo,i)
+            jve=VOBJILIST(ICP,ivo,j)
+            t12=VISNAME(ICP,ive)
+            tt12=VISNAME(IVP,jve)
+            write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a,i3.3,a)')
+     &        ' Intersection of entities ',ive,t12(1:lnblnk(t12)),
+     &        ' and ',jve,tt12(1:lnblnk(tt12)),
+     &        ' is too complex, skipping entity ',ive,'.'
+            call edisp(IUOUT,outs)
+            ISTAT=2
+            EXIT
+          endif  
+
+C Is the negative edge of the block engulfed?
+          preveng=aiext(ichkdm).ge.ajext(ichkdm)
+
+C Check for a block-that-is-actually-a-plane in the search dimension;
+C this can happen if a block has been shortened or split.
+          if (aiext(chkdm).eq.aiext(chkdm+1)) then
+            if (preveng) then
+              aiestat(i)=-1
+              EXIT
+            endif
+          endif
+
+C Scan through the block in the search dimension (negative to positive)
+C for any change in engulfed-ness.
+          iengst=0
+          ok=.false.
+          do k=aiext(ichkdm)+1,aiext(ichkdm+1)
+            cureng=k.ge.ajext(ichkdm) .and. k.le.ajext(ichkdm+1)
+            if (cureng .and. .not.preveng) then 
+
+C Current plane is engulfed, previous isn't. Remember this cell and
+C carry on scanning, to see if the block comes out the other end.
+              iengst=k
+
+            elseif (preveng .and. .not.cureng) then 
+
+C Current plane is not engulfed, previous is. 
+              if (iengst.gt.0) then
+
+C Block is bisected by the comparison entity; split the block.
+C Note that we set the status of the new entity as a block, even if it
+C is a plane; this is to ensure that the "i" entity loop picks it up and
+C checks it against other entities (the code for blocks should handle
+C planes just fine).
+                ne=ne+1
+                if (ichkdm.eq.1) then ! split in u direction
+                  aieext(i,2)=iengst-1
+                  aieext(ne,1)=k;           aieext(ne,2)=aiext(2)
+                  aieext(ne,3)=aieext(i,3); aieext(ne,4)=aieext(i,4)
+                  aieext(ne,5)=aieext(i,5); aieext(ne,6)=aieext(i,6)
+                elseif (ichkdm.eq.3) then ! split in v direction                  
+                  aieext(i,4)=iengst-1
+                  aieext(ne,1)=aieext(i,1); aieext(ne,2)=aieext(i,2)
+                  aieext(ne,3)=k;           aieext(ne,4)=aiext(4)
+                  aieext(ne,5)=aieext(i,5); aieext(ne,6)=aieext(i,6)
+                elseif (ichkdm.eq.3) then ! split in z direction
+                  aieext(i,6)=iengst-1
+                  aieext(ne,1)=aieext(i,1); aieext(ne,2)=aieext(i,2)
+                  aieext(ne,3)=aieext(i,3); aieext(ne,4)=aieext(i,4)
+                  aieext(ne,5)=k;           aieext(ne,6)=aiext(6)
+                endif
+                aiestat(ne)=aiestat(i)
+                isplt=isplt+1
+                aiesplt(isplt)=i
+                ok=.true.
+                EXIT
+
+              else
+
+C Negative end of the block is engulfed up to this point; slice planes
+C off the block.
+                if (ichkdm.eq.1) then ! shorten in u direction
+                  aieext(i,1)=k
+                elseif (ichkdm.eq.3) then ! shorten in v direction
+                  aieext(i,3)=k
+                elseif (ichkdm.eq.5) then ! shorten in z direction
+                  aieext(i,5)=k
+                endif
+                ok=.true.
+                EXIT
+              endif
+            endif
+            preveng=cureng
+          enddo
+
+C If ok is true, we've already dealt with the intersection.
+          if (ok) CYCLE
+
+C If we've reached this point then we've now been through the entire
+C search. In theory, the only way we should get to this point is if the
+C positive end of the block is engulfed, and we need to slic planes off
+C it.
+          if (ichkdm.eq.1) then ! shorten in u direction
+            aieext(i,2)=iengst-1
+          elseif (ichkdm.eq.3) then ! shorten in v direction
+            aieext(i,4)=iengst-1
+          elseif (ichkdm.eq.5) then ! shorten in z direction
+            aieext(i,6)=iengst-1
+          endif
+          CYCLE
+
+C If we get to here, something has gone wrong.
+          ive=VOBJILIST(ICP,ivo,i)
+          jve=VOBJILIST(ICP,ivo,j)
+          t12=VISNAME(ICP,ive)
+          tt12=VISNAME(IVP,jve)
+          write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a)')
+     &      ' Error while scanning for intersection of entities ',ive,
+     &      t12(1:lnblnk(t12)),' and ',jve,tt12(1:lnblnk(tt12)),'.'
+          ISTAT=1
+          goto 999
+        enddo ! next comparison entity
+      enddo ! next i entity
+      call edisp(IUOUT,' Done.')
+
+
+
+C Now, make blockages.
+      show=.true.
+      dum=(/0/)
+      do i=1,ne
+        if (aiestat(i).eq.-1) CYCLE
+
+        if (i.le.NBVOBJLIST(ICP,ivo)) then
+          ive=VOBJILIST(ICP,ivo,i)
+        else          
+          ive=aiesplt(ne-NBVOBJLIST(ICP,ivo))
+        endif
+
+        write (t12,'(a,i3.3,a,i3.3)')'blk',NBLK(ICFD)+1,'_ve',ive
+        call MKCFDBC(show,30,8,aieext(i,1),aieext(i,2),aieext(i,3),
+     &    aieext(i,4),aieext(i,5),aieext(i,6),t12,' ',dum,1,0.0,0.0,0.0,
+     &    0.0,0.0,IER)
+      enddo
+
+  999 RETURN
+      END
+
 
 C ************ GENEDGBC
 C GENEDGBC is a recursive sub used in the auto-generation of CFD BCs
@@ -2868,7 +4194,8 @@ C doafnasc is currently unused, pending further development.
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/ICFNOD/ICFD,ICP
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
@@ -2896,8 +4223,6 @@ C doafnasc is currently unused, pending further development.
      &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
-      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
 
       logical ok,dok,dochild(MCHILD),dothisur,lumped,show,isrect      
       logical bumin,bumax,bvmin,bvmax,bwmin,bwmax
@@ -3082,24 +4407,24 @@ C establish that the child is rectangular - wait until later.
             CALL CFDTRANS(2,VCOORD(ICP,IVRT,1),VCOORD(ICP,IVRT,2),
      &        VCOORD(ICP,IVRT,3),u,v,w,IER)
             if (ifac.eq.1 .or. ifac.eq.2) then
-              call ECLOSE(v,svmin,0.0001,ok)
-              if (.not.ok) call ECLOSE(v,svmax,0.0001,ok)
-              call ECLOSE(w,swmin,0.0001,dok)
-              if (.not.dok) call ECLOSE(w,swmax,0.0001,dok)
+              call ECLOSE(v,svmin,0.01,ok)
+              if (.not.ok) call ECLOSE(v,svmax,0.01,ok)
+              call ECLOSE(w,swmin,0.01,dok)
+              if (.not.dok) call ECLOSE(w,swmax,0.01,dok)
               if (ok.and.dok) icorners=icorners+1
               if (ok.or.dok) CYCLE
             elseif (ifac.eq.3 .or. ifac.eq.4) then
-              call ECLOSE(u,sumin,0.0001,ok)
-              if (.not.ok) call ECLOSE(u,sumax,0.0001,ok)
-              call ECLOSE(w,swmin,0.0001,dok)
-              if (.not.dok) call ECLOSE(w,swmax,0.0001,dok)
+              call ECLOSE(u,sumin,0.01,ok)
+              if (.not.ok) call ECLOSE(u,sumax,0.01,ok)
+              call ECLOSE(w,swmin,0.01,dok)
+              if (.not.dok) call ECLOSE(w,swmax,0.01,dok)
               if (ok.and.dok) icorners=icorners+1
               if (ok.or.dok) CYCLE
             elseif (ifac.eq.5 .or. ifac.eq.6) then
-              call ECLOSE(u,sumin,0.0001,ok)
-              if (.not.ok) call ECLOSE(u,sumax,0.0001,ok)
-              call ECLOSE(v,svmin,0.0001,dok)
-              if (.not.dok) call ECLOSE(v,svmax,0.0001,dok)
+              call ECLOSE(u,sumin,0.01,ok)
+              if (.not.ok) call ECLOSE(u,sumax,0.01,ok)
+              call ECLOSE(v,svmin,0.01,dok)
+              if (.not.dok) call ECLOSE(v,svmax,0.01,dok)
               if (ok.and.dok) icorners=icorners+1
               if (ok.or.dok) CYCLE
             endif
@@ -3137,22 +4462,22 @@ C extents.
           CALL CFDTRANS(2,VCOORD(ICP,IVRT,1),VCOORD(ICP,IVRT,2),
      &      VCOORD(ICP,IVRT,3),u,v,w,IER)
           if (ifac.eq.1 .or. ifac.eq.2) then
-            call ECLOSE(v,svmin,0.0001,ok)
-            if (.not.ok) call ECLOSE(v,svmax,0.0001,ok)
-            call ECLOSE(w,swmin,0.0001,dok)
-            if (.not.dok) call ECLOSE(w,swmax,0.0001,dok)
+            call ECLOSE(v,svmin,0.01,ok)
+            if (.not.ok) call ECLOSE(v,svmax,0.01,ok)
+            call ECLOSE(w,swmin,0.01,dok)
+            if (.not.dok) call ECLOSE(w,swmax,0.01,dok)
             if (ok.and.dok) CYCLE
           elseif (ifac.eq.3 .or. ifac.eq.4) then
-            call ECLOSE(u,sumin,0.0001,ok)
-            if (.not.ok) call ECLOSE(u,sumax,0.0001,ok)
-            call ECLOSE(w,swmin,0.0001,dok)
-            if (.not.dok) call ECLOSE(w,swmax,0.0001,dok)
+            call ECLOSE(u,sumin,0.01,ok)
+            if (.not.ok) call ECLOSE(u,sumax,0.01,ok)
+            call ECLOSE(w,swmin,0.01,dok)
+            if (.not.dok) call ECLOSE(w,swmax,0.01,dok)
             if (ok.and.dok) CYCLE
           elseif (ifac.eq.5 .or. ifac.eq.6) then
-            call ECLOSE(u,sumin,0.0001,ok)
-            if (.not.ok) call ECLOSE(u,sumax,0.0001,ok)
-            call ECLOSE(v,svmin,0.0001,dok)
-            if (.not.dok) call ECLOSE(v,svmax,0.0001,dok)
+            call ECLOSE(u,sumin,0.01,ok)
+            if (.not.ok) call ECLOSE(u,sumax,0.01,ok)
+            call ECLOSE(v,svmin,0.01,dok)
+            if (.not.dok) call ECLOSE(v,svmax,0.01,dok)
             if (ok.and.dok) CYCLE
           endif
           ISTAT=2
@@ -3269,12 +4594,7 @@ C geometry files are updated, this code shouild be updated accordingly.
         elseif (t12(1:5).eq.'CRACK') then
           ibctyp=3
         elseif (t12(1:4).eq.'OPEN') then
-          CALL ZSURLEHI(ICP,ISUR,XYDIS,ZDIS,i1,i2,i3,i4)
-          if (XYDIS/ZDIS.gt.1.0) then
-            ibctyp=6
-          else
-            ibctyp=5
-          endif
+          ibctyp=2
         elseif (t12(1:5).eq.'BIDIR') then
           ibctyp=8
         else
@@ -3433,17 +4753,21 @@ C Check for problems with the child.
      &        ' Error with child, parent will also be skipped.'
             CALL EDISP(IUOUT,outs)
             goto 999
-          endif
-          if (ISTAT.eq.2) then
+          elseif (ISTAT.eq.2) then
             write(outs,'(a)')
      &        ' Child is not rectangular, parent will also be skipped.'
             CALL EDISP(IUOUT,outs)
             goto 999
-          endif
-          if (ISTAT.ge.3 .and. ISTAT.le.5) then ! can't do child, but can still do parent
+          elseif (ISTAT.ge.3 .and. ISTAT.le.5) then ! can't do child, but can still do parent
+            write(outs,'(a)')
+     &        ' Child will be skipped, but processing will continue.'
+            CALL EDISP(IUOUT,outs)
             dochild(icld)=.false.
             CYCLE
           else
+            write(outs,'(a)')
+     &        ' No problems with child, processing will continue.'
+            CALL EDISP(IUOUT,outs)
             dochild(icld)=.true.
           endif
           icldbctyp(icld)=iibctyp
@@ -3506,23 +4830,23 @@ C in one of the children must be ommited from the check.
      &        VCOORD(ICP,IVRT,3),u,v,w,IER)
             if (ifac.eq.1 .or. ifac.eq.2) then
               call ECLOSE(v,svmin,0.0001,ok)
-              if (.not.ok) call ECLOSE(v,svmax,0.0001,ok)
+              if (.not.ok) call ECLOSE(v,svmax,0.01,ok)
               call ECLOSE(w,swmin,0.0001,dok)
-              if (.not.dok) call ECLOSE(w,swmax,0.0001,dok)
+              if (.not.dok) call ECLOSE(w,swmax,0.01,dok)
               if (ok.and.dok) icorners=icorners+1
               if (ok.or.dok) CYCLE
             elseif (ifac.eq.3 .or. ifac.eq.4) then
               call ECLOSE(u,sumin,0.0001,ok)
-              if (.not.ok) call ECLOSE(u,sumax,0.0001,ok)
+              if (.not.ok) call ECLOSE(u,sumax,0.01,ok)
               call ECLOSE(w,swmin,0.0001,dok)
-              if (.not.dok) call ECLOSE(w,swmax,0.0001,dok)
+              if (.not.dok) call ECLOSE(w,swmax,0.01,dok)
               if (ok.and.dok) icorners=icorners+1
               if (ok.or.dok) CYCLE
             elseif (ifac.eq.5 .or. ifac.eq.6) then
               call ECLOSE(u,sumin,0.0001,ok)
-              if (.not.ok) call ECLOSE(u,sumax,0.0001,ok)
+              if (.not.ok) call ECLOSE(u,sumax,0.01,ok)
               call ECLOSE(v,svmin,0.0001,dok)
-              if (.not.dok) call ECLOSE(v,svmax,0.0001,dok)
+              if (.not.dok) call ECLOSE(v,svmax,0.01,dok)
               if (ok.and.dok) icorners=icorners+1
               if (ok.or.dok) CYCLE
             endif
@@ -3531,13 +4855,13 @@ C in one of the children must be ommited from the check.
           enddo
           if (ISTAT.eq.2) then
             CALL EDISP(IUOUT,
-     &        ' This surface is not rectangular, skipping.')
+     &        ' Parent surface is not rectangular, skipping.')
             goto 999
           endif
           if (icorners.lt.4) then
             ISTAT=2
             CALL EDISP(IUOUT,
-     &        ' This surface is not aligned with CFD axes, skipping.')
+     &        ' Parent surface is not aligned with CFD axes, skipping.')
             goto 999
           endif
           isrect=.true.
@@ -3562,6 +4886,10 @@ C 3: Otherwise, highlight the surface and ask the user.
           if (NBCHILD(icnn).eq.1) then
 
 C Check proximity of child edges to parent edges.
+C isclose(side): 
+C 0 - not close
+C 1 - coincident
+C 2 - within 1 cell width
             if (icldext(1,1).eq.iparext(1)) then
               isclose(1)=1
             elseif (icldext(1,1)-1.eq.iparext(1)) then
@@ -3615,7 +4943,7 @@ C created in the invocation of GENEDGBC for that surface).
                 goto 70
               endif
 
-              ISHSB=0; ISHAO=0; ISHBLK=0; ISHGEO=-ISUR
+              ISHSB=0; ISHAO=0; ISHBLK=0; ISHSRC=0; ISHGEO=-ISUR
               call redraw(IER)
               IR=2
               helptopic='cfdbc_parentframing'
@@ -3637,7 +4965,7 @@ C Extend the extents of the child to those of the parent.
               elseif (IR.eq.3) then ! preview
 
 C First, show the parent surface highlighted.
-                ISHSB=0; ISHAO=0; ISHBLK=0; ISHGEO=-isur
+                ISHSB=0; ISHAO=0; ISHBLK=0; ISHSRC=0; ISHGEO=-isur
                 CALL redraw(IER)
                 CALL continuebox('Parent surface.',' ','ok')
 
@@ -3746,7 +5074,8 @@ C Create the boundary conditions that would be created for the parent.
                 endif
 
                 if (icreated.eq.1) then
-                  ISHSB=NSB(ICFD); ISHAO=0; ISHBLK=0; ISHGEO=-9999
+                  ISHSB=NSB(ICFD); ISHAO=0; ISHBLK=0; ISHSRC=0
+                  ISHGEO=-9999
                   call redraw(IER)
                   call continuebox(
      &              'Preview of parent surface boundary condition.',
@@ -3756,7 +5085,8 @@ C Create the boundary conditions that would be created for the parent.
 C Show the new boundary conditions highlighted, one by one, with a half
 C second delay.
    62             do i=1,icreated
-                    ISHSB=NSB(ICFD)-i+1; ISHAO=0; ISHBLK=0; ISHGEO=-9999
+                    ISHSB=NSB(ICFD)-i+1; ISHAO=0; ISHBLK=0; ISHSRC=0
+                    ISHGEO=-9999
                     call redraw(IER)
                     if (i.lt.icreated) call pausems(500)
                   enddo
@@ -3773,7 +5103,7 @@ C Delete BC(s) created for preview.
                 enddo
 
 C Show child surface.
-                ISHSB=0; ISHAO=0; ISHBLK=0; ISHGEO=-icldsur
+                ISHSB=0; ISHAO=0; ISHBLK=0; ISHSRC=0; ISHGEO=-icldsur
                 CALL redraw(IER)
                 CALL continuebox('Child surface.',' ','ok')
 
@@ -3943,6 +5273,26 @@ C its own invocation of this function; do not create BCs for it.
           call redraw(IER)
           call pausems(500)
           ISHGEO=-9999
+
+C Boundary condition geometry generation.
+C Boundary conditions are created by calling subroutine MKCFDBC.
+C Arguments 4 - 9 of this call are the cell indices of the extents of
+C the new BC; min (1) and max (2) in the i, j, and k directions.
+C Generally speaking, these extents are generated based on the extents
+C of the surface (and possibly any parents/children), and a rule set
+C denoted by ibctyp (iibctyp for a child surface). The stucture of this
+C code is broadly:
+C 1 - compute any distances and points required (e.g. midpoints) in
+C     terms of cell indices
+C 2 - assign new surface extents depending on which face the new surface
+C     is on, denoted by ifac
+C 3 - generate a name for the new BC, with the structure:
+C     FtypXXX_sYYY
+C     where F   = 1 character identifying face; W, E, S, N, L, H
+C           typ = 3 characters identifying BC type; sld, opn, blk, src
+C           XXX = 0 padded integer id for the new BC
+C           YYY = 0 padded integer id of the associated building surface
+C 4 - call MKCFDBC to generate the new BC.
 
 C Single solid BC for the whole surface.
           if (iibctyp.eq.1) then
@@ -4443,7 +5793,7 @@ C Create parent surface BC.
 
           write(outs,'(a,i3.3,2a)')' Creating BC(s) for surface ',
      &      isur,SSNAME(icnn)(1:lnblnk(SSNAME(icnn))),' ...'
-          ISHSB=0; ISHAO=0; ISHBLK=0; IFACES=1; ISHGEO=-isur
+          ISHSB=0; ISHAO=0; ISHBLK=0; ISHSRC=0; IFACES=1; ISHGEO=-isur
           call redraw(IER)
           call pausems(500)
           ISHGEO=-9999
@@ -5271,7 +6621,7 @@ C This surface is not a parent; create BC(s).
 
           write(outs,'(a,i3.3,2a)')' Creating BC(s) for surface ',
      &      isur,SSNAME(icnn)(1:lnblnk(SSNAME(icnn))),' ...'
-          ISHSB=0; ISHAO=0; ISHBLK=0; IFACES=1; ISHGEO=-isur
+          ISHSB=0; ISHAO=0; ISHBLK=0; ISHSRC=0; IFACES=1; ISHGEO=-isur
           call redraw(IER)
           call pausems(500)
           ISHGEO=-9999
@@ -5655,7 +7005,7 @@ C Find 75% of height, rounded, at least 1 row, at bottom edge.
             i3qtrhgt=nint(3.0*rrows/4.0)
             if (i3qtrhgt.eq.0) i3qtrhgt=1
             ibtm3qtrhgtmin=iparext(3)
-            ibtm3qtrhgtmin=iparext(3)+i3qtrhgt-1
+            ibtm3qtrhgtmax=iparext(3)+i3qtrhgt-1
 
 C Find 75% of width, rounded, at least 1 column, on vertical centre
 C line.
@@ -5711,6 +7061,7 @@ C Is there room left at the top?
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
      &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               ok=.true.
+              itophgt=(k2-k1+1)
             else
               ok=.false.
             endif
@@ -5718,7 +7069,7 @@ C Is there room left at the top?
 C Is there room at the left?
             if (imid3qtrwdtmin.gt.iparext(1)) then
               if (ok) then
-                itop=iparext(4)-2
+                itop=iparext(4)-1-itophgt
               else
                 itop=iparext(4)-1
               endif
@@ -5744,7 +7095,7 @@ C Is there room at the left?
 C Is there room at the right?
             if (imid3qtrwdtmax.lt.(iparext(2)-1)) then
               if (ok) then
-                itop=iparext(4)-2
+                itop=iparext(4)-1-itophgt
               else
                 itop=iparext(4)-1
               endif
@@ -5823,7 +7174,8 @@ C#include "building.h"
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
      &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
 
@@ -6138,7 +7490,8 @@ C #include "prj3dv.h"
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
@@ -6432,15 +7785,16 @@ C IER=0 indicates no error.
       common/KEYCASGN/IDcasgn(MNVLS,MNZ),Fcasgn(MNVLS,MNZ)
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
-      COMMON/SCHMTT/SCHMT(MCTM),GFM(MCTM),VCRIT(MCTM),TBOIL(MCTM),
-     &       TCRIT(MCTM),ISCHMT(MCTM)
-      COMMON/CTDFAF/ICTDFAF,SRCE(MNVLS,MCTM,MNZ),ICCSRC
+      COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
+     &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
      &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
       common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
       COMMON/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
@@ -6473,7 +7827,7 @@ C For help messages
       helpinsub='EDSRC'  ! set for subroutine
 
 C Initialise SRCE 
-      IF(ICTDFAF.NE.1)THEN
+      IF(ICTDFAF(ICFD).NE.1)THEN
         DO 420 ICTM=1,NCTM(ICFD)
           DO 520 II=1,NVOL(ICFD)
             SRCE(II,ICTM,ICFD)=' '
@@ -6527,7 +7881,7 @@ C Set boundary type string.
       ltmp=FACE
  144  if (IVTYPE(ISB,ICFD).eq.20)then
         ltmp='Static source'
-        IF(ICTDFAF.EQ.1)LTMP='From ctm network'
+        IF(ICTDFAF(ICFD).EQ.1)LTMP='From ctm network'
       endif
 
 C Create a menu showing definitions for different sources.
@@ -6542,7 +7896,7 @@ C Create a menu showing definitions for different sources.
       write(ITMSS(9),'(a,f4.2)')'g Cas gain fraction ',FCasgn(ISB,ICFD)
       write (ITMSS(10),'(a)')    '  Contaminant | source strength '
       WRITE (ITMSS(11),'(A)')    '     name     | (kg/s) or name  '
-      IF(ICTDFAF.EQ.1)THEN
+      IF(ICTDFAF(ICFD).EQ.1)THEN
         DO 141 ICTM=1,NCTM(ICFD)
           CALPOL(ICTM,ICFD)=.TRUE.
           WORD1=SRCE(ISB,ICTM,ICFD)
@@ -6572,6 +7926,24 @@ C Create a menu showing definitions for different sources.
       ITMSS(14+NCTM(ICFD))='? Help'
       ITMSS(15+NCTM(ICFD))='- exit'
       NITMS=15+NCTM(ICFD)
+
+      IF(MMOD.EQ.8)THEN
+        isrc=0
+        do 639 I=1,NVOL(ICFD)
+          if (IVTYPE(I,ICFD).eq.20) then
+            isrc=isrc+1
+            if (ISB.eq.I) then
+              ISHBLK_TMP=ISHBLK
+              ISHGEO_TMP=ISHGEO
+              ISHBLK=isrc
+              ISHGEO=0
+              CALL redraw(IER)
+              ISHBLK=ISHBLK_TMP
+              ISHGEO=ISHGEO_TMP
+            endif
+          endif
+639     continue   
+      ENDIF
 
 C Help text for this menu.
   7   helptopic='cfd_source_boundary_edit'
@@ -6616,13 +7988,9 @@ C Set coupling with contaminants network on/off
         CALL EASKABC('How to specify coundary condition',' ','static',
      &    'from contaminants network','cancel',IHOWL,nbhelp)
         IF(IHOWL.EQ.1)THEN
-          ICTDFAF=0
+          ICTDFAF(ICFD)=0
         ELSEIF(IHOWL.EQ.2)THEN
 
-C Contaminants currently only work for CFD domain 1.
-C If the user tries to input contaminants in any other domain,
-C inform them and do not allow it.
-          IF(ICFD.NE.1)GOTO 756
 
 C Take contaminant definitions from contaminant flow network
           DOK=.TRUE.
@@ -6632,10 +8000,10 @@ C Take contaminant definitions from contaminant flow network
           IF(ICFMFS(ICFD).NE.1)THEN
             CALL PHELPD(' ',nbhelp,'-',0,0,IER)
           ENDIF
-          ICTDFAF=1
+          ICTDFAF(ICFD)=1
           NCTM(ICFD)=NCONTM
-          IF(ICCSRC.NE.1)THEN
-            ICCSRC=1
+          IF(ICCSRC(ICFD).NE.1)THEN
+            ICCSRC(ICFD)=1
 
 C Add one more source type boundary condition for each opening type
 C boundary conditions and define the source strength to be from 
@@ -6734,7 +8102,7 @@ C Ask for information to calculate Schmidt number
      &        POLNAM(ICTM,ICFD),'parameters','manual','default',
      &        ISCHM,nbhelp)
             IF(ISCHM.EQ.1)THEN
-              ISCHMT(ICTM)=1
+              ISCHMT(ICTM,ICFD)=1
               CALL EASKS(HOLD,
      &          'enter mol mass(g/mol),crit vol(cm^3/mol)',
      &          'boiling pt (K) and crit pt (K)',32,
@@ -6744,17 +8112,17 @@ C Ask for information to calculate Schmidt number
               CALL EGETWR(HOLD,K,VL2,1.,1000.,'W','crit vol',IER)
               CALL EGETWR(HOLD,K,VL3,100.,500.,'W','T_boil',IER)
               CALL EGETWR(HOLD,K,VL4,100.,1000.,'W','T_crit',IER)
-              GFM(ICTM)=VL1
-              VCRIT(ICTM)=VL2; TBOIL(ICTM)=VL3; TCRIT(ICTM)=VL4
+              GFM(ICTM,ICFD)=VL1; VCRIT(ICTM,ICFD)=VL2; 
+              TBOIL(ICTM,ICFD)=VL3; TCRIT(ICTM,ICFD)=VL4
             ELSEIF(ISCHM.EQ.2)THEN
-              ISCHMT(ICTM)=0
+              ISCHMT(ICTM,ICFD)=0
               call EASKR(VAL,'What is Turbulent Schmidt Number for',
      &          POLNAM(ICTM,ICFD),0.1,'W',2.5,'W',1.,'schmidt #',
      &          IER,nbhelp)
-              SCHMT(ICTM)=VAL
+              SCHMT(ICTM,ICFD)=VAL
             ELSEIF(ISCHM.EQ.3)THEN
-              ISCHMT(ICTM)=0; SCHMT(ICTM)=1.0
-              IF(JHUMINDX(ICFD).EQ.ICTM)SCHMT(ICTM)=0.59
+              ISCHMT(ICTM,ICFD)=0; SCHMT(ICTM,ICFD)=1.0
+              IF(JHUMINDX(ICFD).EQ.ICTM)SCHMT(ICTM,ICFD)=0.59
             ENDIF
  789      CONTINUE
           helptopic='cfd_contam_sinks'
@@ -6864,7 +8232,7 @@ C If the user tries to input contaminants in any other domain,
 C inform them and do not allow it.
           IF(ICFD.NE.1)GOTO 756
 
-          IF(ICTDFAF.EQ.1)THEN
+          IF(ICTDFAF(ICFD).EQ.1)THEN
             helptopic='cfd_contam_delete_warn'
             call gethelptext(helpinsub,helptopic,nbhelp)
             CALL PHELPD('Not allowed',nbhelp,'-',0,0,IER)
@@ -6890,7 +8258,7 @@ C Ask for information to calculate Schmidt number
             CALL EASKABC('How to specify turbulent Schmidt #(see help)?'
      &       ,' ','parameters','manual','default',ISCHM,nbhelp)
             IF(ISCHM.EQ.1)THEN
-              ISCHMT(ICTM)=1
+              ISCHMT(ICTM,ICFD)=1
               CALL EASKS(HOLD,'enter mol mass(g/mol),crit vol(cm^3/mol)'
      &        ,'boiling pt (K) and crit pt (K)',32
      &        ,' 44.0 94.0 217.0 304.0',' ',IER,nbhelp)
@@ -6899,22 +8267,22 @@ C Ask for information to calculate Schmidt number
               CALL EGETWR(HOLD,K,VL2,1.,1000.,'W','crit vol',IER)
               CALL EGETWR(HOLD,K,VL3,100.,500.,'W','T_boil',IER)
               CALL EGETWR(HOLD,K,VL4,100.,1000.,'W','T_crit',IER)
-              GFM(ICTM)=VL1
-              VCRIT(ICTM)=VL2; TBOIL(ICTM)=VL3; TCRIT(ICTM)=VL4
+              GFM(ICTM,ICFD)=VL1; VCRIT(ICTM,ICFD)=VL2; 
+              TBOIL(ICTM,ICFD)=VL3; TCRIT(ICTM,ICFD)=VL4
             ELSEIF(ISCHM.EQ.2)THEN
-              ISCHMT(ICTM)=0
+              ISCHMT(ICTM,ICFD)=0
               call EASKR(VAL,'What is Turbulent Schmidt Number ',
      &           ' ',0.1,'W',2.5,'W',1.,'schmidt #',IER,nbhelp)
-              SCHMT(ICTM)=VAL
+              SCHMT(ICTM,ICFD)=VAL
             ELSEIF(ISCHM.EQ.3)THEN
-              ISCHMT(ICTM)=0; SCHMT(ICTM)=1.0
-              IF(JHUMINDX(ICFD).EQ.ICTM)SCHMT(ICTM)=0.59
+              ISCHMT(ICTM,ICFD)=0; SCHMT(ICTM,ICFD)=1.0
+              IF(JHUMINDX(ICFD).EQ.ICTM)SCHMT(ICTM,ICFD)=0.59
             ENDIF
           ENDIF
 
 C Delete Contaminant
         ELSEIF(IOWL.EQ.2)THEN
-          IF(ICTDFAF.EQ.1)THEN
+          IF(ICTDFAF(ICFD).EQ.1)THEN
             helptopic='cfd_contam_delete_warn'
             call gethelptext(helpinsub,helptopic,nbhelp)
             CALL PHELPD('Not allowed',nbhelp,'-',0,0,IER)
@@ -6930,12 +8298,12 @@ C Delete Contaminant
             DO 133 ICTM=INUO-1,NCTM(ICFD)-1
               POLNAM(ICTM,ICFD)=POLNAM(ICTM+1,ICFD)
               CALPOL(ICTM,ICFD)=CALPOL(ICTM+1,ICFD)
-              SCHMT(ICTM)=SCHMT(ICTM+1)
-              ISCHMT(ICTM)=ISCHMT(ICTM+1)
-              GFM(ICTM)=GFM(ICTM+1)
-              VCRIT(ICTM)=VCRIT(ICTM+1)
-              TBOIL(ICTM)=TBOIL(ICTM+1)
-              TCRIT(ICTM)=TCRIT(ICTM+1)
+              SCHMT(ICTM,ICFD)=SCHMT(ICTM+1,ICFD)
+              ISCHMT(ICTM,ICFD)=ISCHMT(ICTM+1,ICFD)
+              GFM(ICTM,ICFD)=GFM(ICTM+1,ICFD)
+              VCRIT(ICTM,ICFD)=VCRIT(ICTM+1,ICFD)
+              TBOIL(ICTM,ICFD)=TBOIL(ICTM+1,ICFD)
+              TCRIT(ICTM,ICFD)=TCRIT(ICTM+1,ICFD)
 
 C Reset humidity / water index if applicable
               IF(JHUMINDX(ICFD).EQ.INUO)THEN
@@ -6957,12 +8325,12 @@ C Delete this contaminant from all key volumes
             NCTM(ICFD)=NCTM(ICFD)-1
           ENDIF
         ENDIF
-        IF(ICTDFAF.NE.1)GOTO 144
+        IF(ICTDFAF(ICFD).NE.1)GOTO 144
 
 C Edit contaminants 
       elseif (INO.gt.11.and.INO.lt.12+NCTM(ICFD)) then
         ICTM=INO-11
-        IF(ICTDFAF.EQ.1)THEN
+        IF(ICTDFAF(ICFD).EQ.1)THEN
           helptopic='cfd_link_contam_sink'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('Contaminants Edit',10,'-',0,0,IER)
@@ -6994,7 +8362,7 @@ C Ask for information to calculate Schmidt number
         CALL EASKABC('How to specify turbulent Schmidt # (see help) ?'
      &     ,' ','parameters','manual','default',ISCHM,nbhelp)
         IF(ISCHM.EQ.1)THEN
-          ISCHMT(ICTM)=1
+          ISCHMT(ICTM,ICFD)=1
           CALL EASKS(HOLD,'enter mol mass (g/mol) crit vol (cm^3/mol)'
      &      ,'boiling pt (K) and crit pt (K)',32
      &      ,' 44.0 94.0 217.0 304.0',' ',IER,nbhelp)
@@ -7003,20 +8371,20 @@ C Ask for information to calculate Schmidt number
           CALL EGETWR(HOLD,K,VL2,1.,1000.,'W','crit vol',IER)
           CALL EGETWR(HOLD,K,VL3,100.,500.,'W','T_boil',IER)
           CALL EGETWR(HOLD,K,VL4,100.,1000.,'W','T_crit',IER)
-          GFM(ICTM)=VL1
-          VCRIT(ICTM)=VL2; TBOIL(ICTM)=VL3; TCRIT(ICTM)=VL4
+          GFM(ICTM,ICFD)=VL1; VCRIT(ICTM,ICFD)=VL2; 
+          TBOIL(ICTM,ICFD)=VL3; TCRIT(ICTM,ICFD)=VL4
         ELSEIF(ISCHM.EQ.2)THEN
-          ISCHMT(ICTM)=0
+          ISCHMT(ICTM,ICFD)=0
           call EASKR(VAL,'What is Turbulent Schmidt Number ',
      &         ' ',0.5,'W',1.5,'W',1.,'schmidt #',IER,nbhelp)
-          SCHMT(ICTM)=VAL
+          SCHMT(ICTM,ICFD)=VAL
         ELSEIF(ISCHM.EQ.3)THEN
-          ISCHMT(ICTM)=0; SCHMT(ICTM)=1.0
-          IF(JHUMINDX(ICFD).EQ.ICTM)SCHMT(ICTM)=0.59
+          ISCHMT(ICTM,ICFD)=0; SCHMT(ICTM,ICFD)=1.0
+          IF(JHUMINDX(ICFD).EQ.ICTM)SCHMT(ICTM,ICFD)=0.59
         ENDIF
 
 C Now get source sink information from contaminants network
-        IF(ICTDFAF.EQ.1)THEN
+        IF(ICTDFAF(ICFD).EQ.1)THEN
           helptopic='cfd_link_contam_sink'
           call gethelptext(helpinsub,helptopic,nbhelp)
           DOK=.FALSE.
@@ -7122,7 +8490,8 @@ C IER=0 indicates no error.
 
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
      &          INSSO(MNVLS,MNZ)
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
  

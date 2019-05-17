@@ -238,7 +238,7 @@ C If remote path then use EFOPRAN otherwise FPRAND.
 C Tell the user (and any log file) that their library will be used.
       write(outs,'(2A)')' Library file: ',RFILE
       call edisp(iuout,outs)
-      call tstamp('>','BPS: create zone results')
+      call tstamp('>','bps: create zone results')
       call tstamp('>',RFILE)
 
 C << the following code is for testing >>
@@ -726,67 +726,69 @@ C Depending on the domain of the file confirm its name.
         helptopic='multiple_result_sets'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,' Zone results library name ?',
-     &      ' ',72,'libb','zone results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Building results library name?',
+     &      72,'libb','zone results lib',IER,nbhelp)
         elseif(IW.eq.2)then
           write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/libb'
-          CALL EASKS(LFILE,' Zone results library name ?',
-     &      ' ',72,ltmp,'zone results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Building results library name?',
+     &      72,ltmp,'zone results lib',IER,nbhelp)
         endif
       elseif(topic(1:2).eq.'fi')then
         helptopic='mass_flow_res_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,' Mass flow results library name ?',
-     &      ' ',72,'libf','mass results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Network flow results library name ?',
+     &      72,'libf','mass results lib',IER,nbhelp)
         elseif(IW.eq.2)then
           write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/libf'
-          CALL EASKS(LFILE,' Mass flow results library name ?',
-     &      ' ',72,ltmp,'mass results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Network flow results library name ?',
+     &      72,ltmp,'mass results lib',IER,nbhelp)
         endif
       elseif(topic(1:2).eq.'pi')then
         helptopic='plant_res_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,' Plant results library name ?',
-     &      ' ',72,'libp','plnt results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Plant results library name?',
+     &      72,'libp','plnt results lib',IER,nbhelp)
         elseif(IW.eq.2)then
           write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/libp'
-          CALL EASKS(LFILE,' Plant results library name ?',
-     &      ' ',72,ltmp,'plnt results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Plant results library name?',
+     &      72,ltmp,'plnt results lib',IER,nbhelp)
         endif
       elseif(topic(1:2).eq.'mi')then
         helptopic='moisture_res_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,' Moisture flow results library name ?',
-     &      ' ',72,'libmoist','Moisture results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ','Moisture flow results library name?',
+     &      72,'libmoist','Moisture results lib',IER,nbhelp)
         elseif(IW.eq.2)then
           write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/libmoist'
-          CALL EASKS(LFILE,' Moisture flow results library name ?',
-     &      ' ',72,ltmp,'Moisture results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ' ,'Moisture flow results library name?',
+     &     72,ltmp,'Moisture results lib',IER,nbhelp)
         endif
       elseif(topic(1:2).eq.'ei')then
         helptopic='electrical_res_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,'Electrical network results library name ?',
-     &      ' ',72,'libe','electrical results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ',
+     &      'Electrical network results library name?',
+     &      72,'libe','electrical results lib',IER,nbhelp)
         elseif(IW.eq.2)then
           write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/libe'
-          CALL EASKS(LFILE,'Electrical network results library name ?',
-     &      ' ',72,ltmp,'electrical results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ',
+     &      'Electrical network results library name ?',
+     &      72,ltmp,'electrical results lib',IER,nbhelp)
         endif
       elseif(topic(1:2).eq.'di')then
         helptopic='cfd_res_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IW.eq.1)then
-          CALL EASKS(LFILE,' CFD results library name ?',
-     &      ' ',72,'CFD.res','CFD results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ' ,'CFD results library name?',
+     &      72,'CFD.res','CFD results lib',IER,nbhelp)
         elseif(IW.eq.2)then
           write(ltmp,'(2a)') upath(1:lnblnk(upath)),'/CFD.res'
-          CALL EASKS(LFILE,' CFD results library name ?',
-     &      ' ',72,ltmp,'CFD results lib',IER,nbhelp)
+          CALL EASKS(LFILE,' ' ,'CFD results library name?',
+     &      72,ltmp,'CFD results lib',IER,nbhelp)
         endif
       endif
       return

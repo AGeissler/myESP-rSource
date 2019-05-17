@@ -367,7 +367,8 @@ static int tfb_limit,tfb_limtty,tfb_line;   /* as in spad common block */
 /* remember prompts so can redisplay if window uncovered or resized */
 static char *askmsg1,*askmsg2,*askmsg3; /* remembered prompt character strings */
 static int asklm1, asklm2, asklm3, asklm4;    /* remember prompt lengths */
-static int asklprompt; /* left position of prompt text */
+static int asklprompt; /* left position of lower prompt text */
+static int asktprompt; /* left position of upper prompt text */
 
 static char help_list[HELP_LIST_LEN][73];	/* character arrays to hold help to be displayed
 				   by functions which include help */
@@ -1816,7 +1817,7 @@ void charsusingfnt_(n,cw,nlines)
  char *test = "_AiV_";
  int vfw,lt;
  int tf_height; /* tf_height is local font height in pixels */
- int tf_width;  /* tf_height is local font height in pixels */
+ int tf_width;  /* tf_width is local font width in pixels */
   if( *n == 0 ) {
     t0=(char *) getenv("EFONT_0");
     if ((t0 == NULL) || (t0  == "") || (strncmp(t0,"    ",4) == 0)) {
@@ -1934,6 +1935,7 @@ void feedbox_(menu_char,d_lines,gw,gh)
 /*
  If d_lines is 0 then there is no dialogue box.
 */
+/* XftTextExtents8 needed here */
   if (d_lines == 0){
     fbb.b_bottom= xrt_height - 5;
   } else {
@@ -2934,6 +2936,7 @@ void doitbox(box dobox,char* msg,int msglen,int asklen,long int* sav_font,long i
  *         *sav_font, *use_font font in current use, font to use within box,
  *         *b_bottom, *b_left pixel at lower left of box (supplied),
  *         act action to take (- is draw, ! is hilight and do  */
+  XGlyphInfo info;
   XftDraw *draw;
   int lm1;	/* local string lengths  */
   int bottom, left;	/* pixel at lower left of box (supplied) */
@@ -2943,14 +2946,26 @@ void doitbox(box dobox,char* msg,int msglen,int asklen,long int* sav_font,long i
   long int avail_cpw;	/* current value of copyright to pass to fortran. */
   long int iupx,iupy;	/* position of capture popup */
   int choice;	/* initial popup index */
+  int vfw;      /* pixels width for the box */
+  int padding;  /* character difference between msglen and asklen */
 
   bottom = *b_bottom; left = *b_left;
   s_font = *sav_font, u_font = *use_font;
-  lm1=msglen;
+  lm1=msglen; padding=(asklen - msglen);
   if (s_font != u_font) winfnt_(&u_font);
 
+// Use XftTextExtents8 to get the actual pixels needed for the string
+// rather than assuming f_width is suitable.
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff + (padding * f_width);  /* impose requested additional space */
+//  fprintf(stderr,"doitbox msg %s lm1 %d asklen %d vwf %d f_width %d asktimesfw %d\n",msg,lm1,asklen,vfw,f_width,(asklen * f_width));
+  if( (asklen * f_width) > vfw ) vfw = asklen * f_width;
+//  fprintf(stderr,"doitbox new vfw is %d\n",vfw);
+
   dobox.b_bottom = bottom - 2;  dobox.b_top = bottom - (f_height + 3);
-  dobox.b_left = left;  dobox.b_right = dobox.b_left + (asklen * f_width);
+/*  dobox.b_left = left;  dobox.b_right = dobox.b_left + (asklen * f_width); */
+  dobox.b_left = left;  dobox.b_right = dobox.b_left + vfw;
   if (strncmp(topic, "wire", 4) == 0) { /* assign box definition to relevant structure */
     wire = dobox;
   } else if (strncmp(topic, "azi", 3) == 0) {
@@ -3185,20 +3200,32 @@ void altbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
  *         *b_bottom, *b_left pixel at lower left of box (supplied),
  *         act action to take (- is draw, ! is hilight and do  */
 
-   XftDraw *draw;
+  XGlyphInfo info;
+  XftDraw *draw;
   int lm1;		/* local string lengths found by test  */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
+  int vfw;      /* pixels width for the box */
+  int padding;  /* character difference between msglen and asklen */
 
   bottom = *b_bottom; left = *b_left;
-  lm1=msglen;
+  lm1=msglen;  padding=(asklen - msglen);
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
+
+// Use XftTextExtents8 to get the actual pixels needed for the string
+// rather than assuming f_width is suitable.
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff + (padding * f_width);  /* impose requested additional space */
+//  fprintf(stderr,"altbox msg %s lm1 %d asklen %d vwf %d f_width %d asktimesfw %d\n",msg,lm1,asklen,vfw,f_width,(asklen * f_width));
+  if( (asklen * f_width) > vfw ) vfw = asklen * f_width;
+//  fprintf(stderr,"altbox new vfw is %d\n",vfw);
 
   altb.b_top = bottom - (f_height + 6);
   altb.b_bottom = bottom -2;
   altb.b_left = left;
-  altb.b_right = altb.b_left + (asklen * f_width);
+  altb.b_right = altb.b_left + vfw;
 
 // Define local drawable for Xft font.
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
@@ -3232,20 +3259,32 @@ void alt2box(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act)
  *         *b_bottom, *b_left pixel at lower left of box (supplied),
  *         act action to take (- is draw, ! is hilight and do  */
 
+  XGlyphInfo info;
   XftDraw *draw;
   int lm1;		/* local string lengths found by test  */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
+  int vfw;      /* pixels width for the box */
+  int padding;  /* character difference between msglen and asklen */
 
   bottom = *b_bottom; left = *b_left;
-  lm1=msglen;
+  lm1=msglen;  padding=(asklen - msglen);
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
+
+// Use XftTextExtents8 to get the actual pixels needed for the string
+// rather than assuming f_width is suitable.
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff + (padding * f_width);  /* impose requested additional space */
+//  fprintf(stderr,"alt2box msg %s lm1 %d asklen %d vwf %d f_width %d asktimesfw %d\n",msg,lm1,asklen,vfw,f_width,(asklen * f_width));
+  if( (asklen * f_width) > vfw ) vfw = asklen * f_width;
+//  fprintf(stderr,"alt2box new vfw is %d\n",vfw);
 
   altc.b_top = bottom - (f_height + 6);
   altc.b_bottom = bottom -2;
   altc.b_left = left;
-  altc.b_right = altc.b_left + (asklen * f_width);
+  altc.b_right = altc.b_left + vfw;
 
 // Define local drawable for Xft font.
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
@@ -3283,15 +3322,27 @@ void abcdboxs(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act
  *         *b_bottom, *b_left pixel at lower left of box (supplied),
  *         act action to take (- is draw, ! is hilight and do  */
 
+  XGlyphInfo info;
   XftDraw *draw;
   int lm1;		/* local string lengths  */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
+  int vfw;      /* pixels width for the box */
+  int padding;  /* character difference between msglen and asklen */
 
   bottom = *b_bottom; left = *b_left;
-  lm1=msglen;
+  lm1=msglen;  padding=(asklen - msglen);
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
+
+// Use XftTextExtents8 to get the actual pixels needed for the string
+// rather than assuming f_width is suitable.
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff + (padding * f_width);  /* impose requested additional space */
+//  fprintf(stderr,"abcdboxs msg %s lm1 %d asklen %d vwf %d f_width %d asktimesfw %d\n",msg,lm1,asklen,vfw,f_width,(asklen * f_width));
+  if( (asklen * f_width) > vfw ) vfw = asklen * f_width;
+//  fprintf(stderr,"abcdboxs new vfw is %d\n",vfw);
 
 // Define local drawable for Xft font.
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
@@ -3300,49 +3351,49 @@ void abcdboxs(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act
     a.b_top = bottom - (f_height + 6);
     a.b_bottom = bottom -2;
     a.b_left = left;
-    a.b_right = a.b_left + (asklen * f_width)+3;
+    a.b_right = a.b_left + vfw;
     xbox(a,fg,white,BMCLEAR |BMEDGES);   /* draw a box with edges  */
     XftDrawString8(draw, &xft_color,fst,a.b_left+4,a.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'b') {
     b.b_top = bottom - (f_height + 6);
     b.b_bottom = bottom -2;
     b.b_left = left;
-    b.b_right = b.b_left + (asklen * f_width)+3;
+    b.b_right = b.b_left + vfw;
     xbox(b,fg,white,BMCLEAR |BMEDGES);   /* draw b box with edges  */
     XftDrawString8(draw, &xft_color,fst,b.b_left+4,b.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'c') {
     c.b_top = bottom - (f_height + 6);
     c.b_bottom = bottom -2;
     c.b_left = left;
-    c.b_right = c.b_left + (asklen * f_width)+3;
+    c.b_right = c.b_left + vfw;
     xbox(c,fg,white,BMCLEAR |BMEDGES);   /* draw c box with edges  */
     XftDrawString8(draw, &xft_color,fst,c.b_left+4,c.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'd') {
     d.b_top = bottom - (f_height + 6);
     d.b_bottom = bottom -2;
     d.b_left = left;
-    d.b_right = d.b_left + (asklen * f_width)+3;
+    d.b_right = d.b_left + vfw;
     xbox(d,fg,white,BMCLEAR |BMEDGES);   /* draw d box with edges  */
     XftDrawString8(draw, &xft_color,fst,d.b_left+4,d.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'e') {
     e.b_top = bottom - (f_height + 6);
     e.b_bottom = bottom -2;
     e.b_left = left;
-    e.b_right = e.b_left + (asklen * f_width)+3;
+    e.b_right = e.b_left + vfw;
     xbox(e,fg,white,BMCLEAR |BMEDGES);   /* draw e box with edges  */
     XftDrawString8(draw, &xft_color,fst,e.b_left+4,e.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'f') {
     f.b_top = bottom - (f_height + 6);
     f.b_bottom = bottom -2;
     f.b_left = left;
-    f.b_right = f.b_left + (asklen * f_width)+3;
+    f.b_right = f.b_left + vfw;
     xbox(f,fg,white,BMCLEAR |BMEDGES);   /* draw f box with edges  */
     XftDrawString8(draw, &xft_color,fst,f.b_left+4,f.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'g') {
     g.b_top = bottom - (f_height + 6);
     g.b_bottom = bottom -2;
     g.b_left = left;
-    g.b_right = g.b_left + (asklen * f_width)+3;
+    g.b_right = g.b_left + vfw +1;
     xbox(g,fg,white,BMCLEAR |BMEDGES);   /* draw g box with edges  */
     XftDrawString8(draw, &xft_color,fst,g.b_left+4,g.b_bottom-3,(XftChar8 *) msg,lm1);
   }
@@ -3368,19 +3419,31 @@ void openaskbox_(msg1,msg2,asklen,len1,len2)
 {
   XftDraw *draw;
   XGlyphInfo info;
-  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
+  int lprompt,tprompt;   /* cursor position, prompt left side */
   int lm1, lm2;          /* local string lengths found by test  */
   int okbox_left, qbox_left, dbox_left;	/* positions of small boxes */
   long int saved_font;
-  int vfw;
+  int vfw,vfwm1,vfwm2;
 
   ask_len = *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
 
+/* Use XftTextExtents8 logic for sizing text areas. Currently code calling */
+/* this will have set fixed width fonts so that the editing area works. But */
+/* currently there is no provision for using proportional fonts for the prompts. */
+  vfw=vfwm1=vfwm2=0;
+
   f_to_c_l(msg1,&len1,&lm1);
+  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+  if( info.xOff > vfwm1 ) vfwm1= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskbox msg1 %s lm1 %d vwfm1 %d f_width %d timesfw %d\n",msg1,lm1,vfwm1,f_width,(lm1 * f_width));
+
   f_to_c_l(msg2,&len2,&lm2);
+  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+  if( info.xOff > vfwm2 ) vfwm2= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskbox msg2 %s lm2 %d vwfm2 %d f_width %d timesfw %d\n",msg2,lm2,vfwm2,f_width,(lm2 * f_width));
   asklm1=lm1; asklm2=lm2; /* remember prompt lengths */
 
   askbx.b_top = msgbx.b_bottom - (f_height + 6);
@@ -3403,33 +3466,20 @@ void openaskbox_(msg1,msg2,asklen,len1,len2)
        askbx.b_left = msgbx.b_left + 5;
   }
 
-/* determine left edge of prompt text */
-  lprompt = askbx.b_left;
-  tprompt = msgbx.b_right - ((lm1+2) * f_width);
-  vfw=0;
-  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
-  if( info.xOff > vfw ) vfw= info.xOff+5;
-  tpromptgl = msgbx.b_right - vfw;
-  if (tprompt < lprompt) lprompt = tprompt;
-  if (tpromptgl < lprompt) lprompt = tpromptgl;
-  tprompt = askbx.b_left - ((lm2+2) * f_width);
-  vfw=0;
-  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
-  if( info.xOff > vfw ) vfw= info.xOff+5;
-  tpromptgl = askbx.b_left - vfw;
-  if (tprompt < lprompt) lprompt = tprompt;
-  if (tpromptgl < lprompt) lprompt = tpromptgl;
-  if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
-  asklprompt = lprompt;
+/* determine left edge of prompt texts */
+  lprompt = askbx.b_left - vfwm2;    /* lower prompt left */
+  tprompt = askbx.b_left - vfwm1;    /* top prompt left */
+  if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
+  asklprompt = lprompt;  /* remember both the top and lower */
+  asktprompt = tprompt;
 
   msgbx.b_top =  xrt_height - ((f_height+4) * 2) - 3;
   msgbx.b_bottom=  xrt_height - 3;
   msgbx.b_left  = 2;
-/*  msgbx.b_right = xrt_width - (f_width * 11); */
   msgbx.b_right = xrt_width - 2;
 
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+    XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
     XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
   qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
   dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
@@ -3458,20 +3508,36 @@ void openaskaltbox_(msg1,msg2,alt,asklen,len1,len2,len3)
 {
   XftDraw *draw;
   XGlyphInfo info;
-  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
+  int lprompt,tprompt;   /* cursor position, prompt left side */
   int lm1, lm2, lm3;          /* local string lengths found by test  */
   int altbox_left, okbox_left, qbox_left, dbox_left;	/* positions of small boxes */
   long int saved_font;
-  int vfw;
+  int vfw,vfwm1,vfwm2,vfwm3;
 
   ask_len = *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
 
+/* Use XftTextExtents8 logic for sizing text areas. Currently code calling */
+/* this will have set fixed width fonts so that the editing area works. But */
+/* currently there is no provision for using proportional fonts for the prompts. */
+  vfw=vfwm1=vfwm2=vfwm3=0;
+
   f_to_c_l(msg1,&len1,&lm1);
+  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+  if( info.xOff > vfwm1 ) vfwm1= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskaltbox msg1 %s lm1 %d vwfm1 %d f_width %d timesfw %d\n",msg1,lm1,vfwm1,f_width,(lm1 * f_width));
+
   f_to_c_l(msg2,&len2,&lm2);
+  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+  if( info.xOff > vfwm2 ) vfwm2= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskaltbox msg2 %s lm2 %d vwfm2 %d f_width %d timesfw %d\n",msg2,lm2,vfwm2,f_width,(lm2 * f_width));
+
   f_to_c_l(alt,&len3,&lm3);
+  XftTextExtents8(theDisp,fst,alt,lm3,&info);
+  if( info.xOff > vfwm3 ) vfwm3= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskaltbox alt %s lm3 %d vwfm3 %d f_width %d timesfw %d\n",alt,lm3,vfwm3,f_width,(lm3 * f_width));
   asklm1=lm1; asklm2=lm2; asklm3=lm3; /* remember prompt lengths */
 
   askbx.b_top = msgbx.b_bottom - (f_height + 6);
@@ -3497,32 +3563,20 @@ void openaskaltbox_(msg1,msg2,alt,asklen,len1,len2,len3)
   }
 
 /* determine left edge of prompt text */
-  lprompt = askbx.b_left;
-  tprompt = msgbx.b_right - ((lm1+2) * f_width);
-  vfw=0;
-  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
-  if( info.xOff > vfw ) vfw= info.xOff+5;
-  tpromptgl = msgbx.b_right - vfw;
-  if (tprompt < lprompt) lprompt = tprompt;
-  if (tpromptgl < lprompt) lprompt = tpromptgl;
-  tprompt = askbx.b_left - ((lm2+2) * f_width);
-  vfw=0;
-  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
-  if( info.xOff > vfw ) vfw= info.xOff+5;
-  tpromptgl = askbx.b_left - vfw;
-  if (tprompt < lprompt) lprompt = tprompt;
-  if (tpromptgl < lprompt) lprompt = tpromptgl;
-  if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
-  asklprompt = lprompt;   /* remember the position */
+  lprompt = askbx.b_left - vfwm2;    /* lower prompt left */
+  tprompt = askbx.b_left - vfwm1;    /* top prompt left */
+  if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
+
+  asklprompt = lprompt;   /* remember both the top and lower */
+  asktprompt = tprompt;
 
   msgbx.b_top = xrt_height - ((f_height+4) * 2) - 3;
   msgbx.b_bottom= xrt_height - 3;
   msgbx.b_left  = 2;
-/*  msgbx.b_right = xrt_width - (f_width * 11); */
   msgbx.b_right = xrt_width - 2;
 
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+    XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
     XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
 
   altbox(alt,lm3,lm3+1,&msgbx.b_bottom,&altbox_left,'-');
@@ -3553,20 +3607,36 @@ void openaskcnclbox_(msg1,msg2,cncl,asklen,len1,len2,len3)
 {
   XftDraw *draw;
   XGlyphInfo info;
-  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
+  int lprompt,tprompt;   /* cursor position, prompt left side */
   int lm1, lm2, lm3;          /* local string lengths found by test  */
   int cnclbox_left, okbox_left, qbox_left, dbox_left;	/* positions of small boxes */
   long int saved_font;
-  int vfw;
+  int vfw,vfwm1,vfwm2,vfwm3;
 
   ask_len = *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
 
+/* Use XftTextExtents8 logic for sizing text areas. Currently code calling */
+/* this will have set fixed width fonts so that the editing area works. But */
+/* currently there is no provision for using proportional fonts for the prompts. */
+  vfw=vfwm1=vfwm2=vfwm3=0;
+
   f_to_c_l(msg1,&len1,&lm1);
+  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+  if( info.xOff > vfwm1 ) vfwm1= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskcnclbox msg1 %s lm1 %d vwfm1 %d f_width %d timesfw %d\n",msg1,lm1,vfwm1,f_width,(lm1 * f_width));
+
   f_to_c_l(msg2,&len2,&lm2);
+  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+  if( info.xOff > vfwm2 ) vfwm2= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskcnclbox msg2 %s lm2 %d vwfm2 %d f_width %d timesfw %d\n",msg2,lm2,vfwm2,f_width,(lm2 * f_width));
+
   f_to_c_l(cncl,&len3,&lm3);
+  XftTextExtents8(theDisp,fst,cncl,lm3,&info);
+  if( info.xOff > vfwm3 ) vfwm3= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskcnclbox cncl %s lm3 %d vwfm3 %d f_width %d timesfw %d\n",cncl,lm3,vfwm3,f_width,(lm3 * f_width));
   asklm1=lm1; asklm2=lm2; asklm3=lm3; /* remember prompt lengths */
 
   askbx.b_top = msgbx.b_bottom - (f_height + 6);
@@ -3592,32 +3662,19 @@ void openaskcnclbox_(msg1,msg2,cncl,asklen,len1,len2,len3)
   }
 
 /* determine left edge of prompt text */
-  lprompt = askbx.b_left;
-  tprompt = msgbx.b_right - ((lm1+2) * f_width);
-  vfw=0;
-  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
-  if( info.xOff > vfw ) vfw= info.xOff+5;
-  tpromptgl = msgbx.b_right - vfw;
-  if (tprompt < lprompt) lprompt = tprompt;
-  if (tpromptgl < lprompt) lprompt = tpromptgl;
-  tprompt = askbx.b_left - ((lm2+2) * f_width);
-  vfw=0;
-  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
-  if( info.xOff > vfw ) vfw= info.xOff+5;
-  tpromptgl = askbx.b_left - vfw;
-  if (tprompt < lprompt) lprompt = tprompt;
-  if (tpromptgl < lprompt) lprompt = tpromptgl;
-  if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
+  lprompt = askbx.b_left - vfwm2;    /* lower prompt left */
+  tprompt = askbx.b_left - vfwm1;    /* top prompt left */
+  if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
   asklprompt = lprompt;   /* remember the position */
+  asktprompt = tprompt;
 
   msgbx.b_top = xrt_height - ((f_height+4) * 2) - 3;
   msgbx.b_bottom= xrt_height - 3;
   msgbx.b_left  = 2;
-/*  msgbx.b_right = xrt_width - (f_width * 11); */
   msgbx.b_right = xrt_width - 2;
 
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+    XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
     XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
 
   altbox(cncl,lm3,lm3+1,&msgbx.b_bottom,&cnclbox_left,'-');
@@ -3648,21 +3705,42 @@ void openask2altbox_(msg1,msg2,alt,alt2,asklen,len1,len2,len3,len4)
 {
   XftDraw *draw;
   XGlyphInfo info;
-  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
+  int lprompt,tprompt;   /* cursor position, prompt left side */
   int lm1, lm2, lm3, lm4;          /* local string lengths found by test  */
   int altbox_left, alt2box_left, okbox_left, qbox_left, dbox_left;	/* positions of small boxes */
   long int saved_font;
-  int vfw;
+  int vfw,vfwm1,vfwm2,vfwm3,vfwm4;
 
   ask_len = *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
 
+/* Use XftTextExtents8 logic for sizing text areas. Currently code calling */
+/* this will have set fixed width fonts so that the editing area works. But */
+/* currently there is no provision for using proportional fonts for the prompts. */
+  vfw=vfwm1=vfwm2=vfwm3=vfwm4=0;
+
   f_to_c_l(msg1,&len1,&lm1);
+  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+  if( info.xOff > vfwm1 ) vfwm1= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskalt2box msg1 %s lm1 %d vwfm1 %d f_width %d timesfw %d\n",msg1,lm1,vfwm1,f_width,(lm1 * f_width));
+
   f_to_c_l(msg2,&len2,&lm2);
+  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+  if( info.xOff > vfwm2 ) vfwm2= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskalt2box msg2 %s lm2 %d vwfm2 %d f_width %d timesfw %d\n",msg2,lm2,vfwm2,f_width,(lm2 * f_width));
+
   f_to_c_l(alt,&len3,&lm3);
+  XftTextExtents8(theDisp,fst,alt,lm3,&info);
+  if( info.xOff > vfwm3 ) vfwm3= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskalt2box alt %s lm3 %d vwfm3 %d f_width %d timesfw %d\n",alt,lm3,vfwm3,f_width,(lm3 * f_width));
+
   f_to_c_l(alt2,&len4,&lm4);
+  XftTextExtents8(theDisp,fst,alt2,lm4,&info);
+  if( info.xOff > vfwm4 ) vfwm4= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"openaskalt2box alt2 %s lm4 %d vwfm4 %d f_width %d timesfw %d\n",alt2,lm4,vfwm4,f_width,(lm4 * f_width));
+
   asklm1=lm1; asklm2=lm2; asklm3=lm3; asklm4=lm4; /* remember prompt lengths */
 
   askbx.b_top = msgbx.b_bottom - (f_height + 6);
@@ -3690,32 +3768,20 @@ void openask2altbox_(msg1,msg2,alt,alt2,asklen,len1,len2,len3,len4)
   }
 
 /* determine left edge of prompt text */
-  lprompt = askbx.b_left;
-  tprompt = msgbx.b_right - ((lm1+2) * f_width);
-  vfw=0;
-  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
-  if( info.xOff > vfw ) vfw= info.xOff+5;
-  tpromptgl = msgbx.b_right - vfw;
-  if (tprompt < lprompt) lprompt = tprompt;
-  if (tpromptgl < lprompt) lprompt = tpromptgl;
-  tprompt = askbx.b_left - ((lm2+2) * f_width);
-  vfw=0;
-  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
-  if( info.xOff > vfw ) vfw= info.xOff+5;
-  tpromptgl = askbx.b_left - vfw;
-  if (tprompt < lprompt) lprompt = tprompt;
-  if (tpromptgl < lprompt) lprompt = tpromptgl;
-  if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
+  lprompt = askbx.b_left - vfwm2;    /* lower prompt left */
+  tprompt = askbx.b_left - vfwm1;    /* top prompt left */
+  if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
+
   asklprompt = lprompt;   /* remember the position */
+  asktprompt = tprompt;
 
   msgbx.b_top = xrt_height - ((f_height+4) * 2) - 3;
   msgbx.b_bottom= xrt_height - 3;
   msgbx.b_left  = 2;
-/*  msgbx.b_right = xrt_width - (f_width * 11); */
   msgbx.b_right = xrt_width - 2;
 
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-    XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+    XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
     XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
 
   altbox(alt,lm3,lm3+1,&msgbx.b_bottom,&altbox_left,'-');
@@ -4301,13 +4367,26 @@ void askdialog_(sstr,id,iq,f_len)
   long int saved_font;
   int initial_f_height;  /* font height used for the small boxes */
   unsigned int start_height,start_width;
-  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
+  int lprompt,tprompt;   /* cursor position, prompt left side */
   int iaux;         /* unused return from aux_menu      */
-  int vfw;
+  int vfw,vfwm1,vfwm2;
 
 /* remember position and size of the whole module (so as to detect changes) */
   XGetWindowAttributes(theDisp,win,&wa);
   start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width;
+
+/* Use XftTextExtents8 logic for sizing text areas. Currently code calling */
+/* this will have set fixed width fonts so that the editing area works. But */
+/* currently there is no provision for using proportional fonts for the prompts. */
+  vfw=vfwm1=vfwm2=0;
+
+  XftTextExtents8(theDisp,fst,askmsg1,asklm1,&info);
+  if( info.xOff > vfwm1 ) vfwm1= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"askdialog askmsg1 %s asklm1 %d vwfm1 %d f_width %d timesfw %d\n",askmsg1,asklm1,vfwm1,f_width,(asklm1 * f_width));
+
+  XftTextExtents8(theDisp,fst,askmsg2,asklm2,&info);
+  if( info.xOff > vfwm2 ) vfwm2= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"askdialog askmsg2 %s asklm2 %d vwfm2 %d f_width %d timesfw %d\n",askmsg2,asklm2,vfwm2,f_width,(asklm2 * f_width));
 
 /* ok box is 3rd box over and 7 char total to the right */
   okbox_left = msgbx.b_right - ((3 * 5) + (f_width * 7));
@@ -4356,7 +4435,7 @@ void askdialog_(sstr,id,iq,f_len)
         if(event.xvisibility.state == 0 ) {
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
@@ -4390,27 +4469,15 @@ void askdialog_(sstr,id,iq,f_len)
           }
 
           /* Determine new left edge of prompt text. */
-          lprompt = askbx.b_left;
-          tprompt = msgbx.b_right - ((asklm1+2) * f_width);
-          vfw=0;
-          XftTextExtents8(theDisp,fst,askmsg1,asklm1,&info);
-          if( info.xOff > vfw ) vfw= info.xOff+5;
-          tpromptgl = msgbx.b_right - vfw;
-          if (tprompt < lprompt) lprompt = tprompt;
-          if (tpromptgl < lprompt) lprompt = tpromptgl;
-          tprompt = askbx.b_left - ((asklm2+2) * f_width);
-          vfw=0;
-          XftTextExtents8(theDisp,fst,askmsg2,asklm2,&info);
-          if( info.xOff > vfw ) vfw= info.xOff+5;
-          tpromptgl = askbx.b_left - vfw;
-          if (tprompt < lprompt) lprompt = tprompt;
-          if (tpromptgl < lprompt) lprompt = tpromptgl;
-          if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
+          lprompt = askbx.b_left - vfwm2;    /* lower prompt left */
+          tprompt = askbx.b_left - vfwm1;    /* top prompt left */
+          if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
           asklprompt = lprompt;   /* remember the position */
+          asktprompt = tprompt;
 
           /* Redraw the prompt strings and then the boxes. One
              remaining glitch - the font seems to be smaller? */
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
@@ -4462,7 +4529,7 @@ void askdialog_(sstr,id,iq,f_len)
           /* redraw the dialog */ 
 /* debug  fprintf(stderr,"Inside askdialog display x %d y %d\n",x,y);  */
           if (saved_font != current_font) winfnt_(&saved_font);
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
@@ -4517,12 +4584,25 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
   int okbox_left, qbox_left, dbox_left, altbox_left;	/* positions of small boxes */
   int initial_f_height;  /* font height used for the small boxes */
   unsigned int start_height,start_width;
-  int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
-  int vfw;
+  int lprompt,tprompt;   /* cursor position, prompt left side */
+  int vfw,vfwm1,vfwm2;
 
 /* remember position and size of the whole module (so as to detect changes) */
   XGetWindowAttributes(theDisp,win,&wa);
   start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width;
+
+/* Use XftTextExtents8 logic for sizing text areas. Currently code calling */
+/* this will have set fixed width fonts so that the editing area works. But */
+/* currently there is no provision for using proportional fonts for the prompts. */
+  vfw=vfwm1=vfwm2=0;
+
+  XftTextExtents8(theDisp,fst,askmsg1,asklm1,&info);
+  if( info.xOff > vfwm1 ) vfwm1= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"askdialog askmsg1 %s asklm1 %d vwfm1 %d f_width %d timesfw %d\n",askmsg1,asklm1,vfwm1,f_width,(asklm1 * f_width));
+
+  XftTextExtents8(theDisp,fst,askmsg2,asklm2,&info);
+  if( info.xOff > vfwm2 ) vfwm2= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"askdialog askmsg2 %s asklm2 %d vwfm2 %d f_width %d timesfw %d\n",askmsg2,asklm2,vfwm2,f_width,(asklm2 * f_width));
 
 /* alt box is between ok and askbx  */
   altbox_left = msgbx.b_right - ((4 * 5) + (f_width * (8 + asklm3)));
@@ -4574,7 +4654,7 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
         if(event.xvisibility.state == 0 ) {
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           altbox(alt,asklm3,asklm3+1,&msgbx.b_bottom,&altbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
@@ -4610,27 +4690,15 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
           }
 
           /* Determine new left edge of prompt text. */
-          lprompt = askbx.b_left;
-          tprompt = msgbx.b_right - ((asklm1+2) * f_width);
-          vfw=0;
-          XftTextExtents8(theDisp,fst,askmsg1,asklm1,&info);
-          if( info.xOff > vfw ) vfw= info.xOff+5;
-          tpromptgl = msgbx.b_right - vfw;
-          if (tprompt < lprompt) lprompt = tprompt;
-          if (tpromptgl < lprompt) lprompt = tpromptgl;
-          tprompt = askbx.b_left - ((asklm2+2) * f_width);
-          vfw=0;
-          XftTextExtents8(theDisp,fst,askmsg2,asklm2,&info);
-          if( info.xOff > vfw ) vfw= info.xOff+5;
-          tpromptgl = askbx.b_left - vfw;
-          if (tprompt < lprompt) lprompt = tprompt;
-          if (tpromptgl < lprompt) lprompt = tpromptgl;
-          if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
+          lprompt = askbx.b_left - vfwm2;    /* lower prompt left */
+          tprompt = askbx.b_left - vfwm1;    /* top prompt left */
+          if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
           asklprompt = lprompt;   /* remember the position */
+          asktprompt = tprompt;
 
           /* Redraw the prompt strings and then the boxes. */
           if (saved_font != current_font) winfnt_(&saved_font);
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           altbox(alt,asklm3,asklm3+1,&msgbx.b_bottom,&altbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
@@ -4682,7 +4750,7 @@ void askaltdialog_(sstr,alt,id,iq,f_len,a_len)
 /* debug  fprintf(stderr,"Inside askdialog display x %d y %d\n",x,y);  */
           if (saved_font != current_font) winfnt_(&saved_font);
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           altbox(alt,asklm3,asklm3+1,&msgbx.b_bottom,&altbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
@@ -4740,11 +4808,24 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
   int initial_f_height;  /* font height used for the small boxes */
   unsigned int start_height,start_width;
   int lprompt,tprompt,tpromptgl;   /* cursor position, prompt left side */
-  int vfw;
+  int vfw,vfwm1,vfwm2;
 
 /* remember position and size of the whole module (so as to detect changes) */
   XGetWindowAttributes(theDisp,win,&wa);
   start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width;
+
+/* Use XftTextExtents8 logic for sizing text areas. Currently code calling */
+/* this will have set fixed width fonts so that the editing area works. But */
+/* currently there is no provision for using proportional fonts for the prompts. */
+  vfw=vfwm1=vfwm2=0;
+
+  XftTextExtents8(theDisp,fst,askmsg1,asklm1,&info);
+  if( info.xOff > vfwm1 ) vfwm1= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"askcncldialog askmsg1 %s asklm1 %d vwfm1 %d f_width %d timesfw %d\n",askmsg1,asklm1,vfwm1,f_width,(asklm1 * f_width));
+
+  XftTextExtents8(theDisp,fst,askmsg2,asklm2,&info);
+  if( info.xOff > vfwm2 ) vfwm2= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"askcncldialog askmsg2 %s asklm2 %d vwfm2 %d f_width %d timesfw %d\n",askmsg2,asklm2,vfwm2,f_width,(asklm2 * f_width));
 
 /* ok box is 4th box over and 8+asklm3 char total to the right */
   okbox_left = msgbx.b_right - ((4 * 5) + (f_width * (8 + asklm3)));
@@ -4796,7 +4877,7 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
         if(event.xvisibility.state == 0 ) {
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           altbox(cncl,asklm3,asklm3+1,&msgbx.b_bottom,&cnclbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
@@ -4834,27 +4915,15 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
           }
 
           /* Determine new left edge of prompt text. */
-          lprompt = askbx.b_left;
-          tprompt = msgbx.b_right - ((asklm1+2) * f_width);
-          vfw=0;
-          XftTextExtents8(theDisp,fst,askmsg1,asklm1,&info);
-          if( info.xOff > vfw ) vfw= info.xOff+5;
-          tpromptgl = msgbx.b_right - vfw;
-          if (tprompt < lprompt) lprompt = tprompt;
-          if (tpromptgl < lprompt) lprompt = tpromptgl;
-          tprompt = askbx.b_left - ((asklm2+2) * f_width);
-          vfw=0;
-          XftTextExtents8(theDisp,fst,askmsg2,asklm2,&info);
-          if( info.xOff > vfw ) vfw= info.xOff+5;
-          tpromptgl = askbx.b_left - vfw;
-          if (tprompt < lprompt) lprompt = tprompt;
-          if (tpromptgl < lprompt) lprompt = tpromptgl;
-          if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+5;
+          lprompt = askbx.b_left - vfwm2;    /* lower prompt left */
+          tprompt = askbx.b_left - vfwm1;    /* top prompt left */
+          if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
           asklprompt = lprompt;   /* remember the position */
+          asktprompt = tprompt;
 
           /* Redraw the prompt strings and then the boxes. */
           if (saved_font != current_font) winfnt_(&saved_font);
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (initial_f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);  /* print text */
           altbox(cncl,asklm3,asklm3+1,&msgbx.b_bottom,&cnclbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
@@ -4906,7 +4975,7 @@ void askcncldialog_(sstr,cncl,id,iq,f_len,a_len)
 /* debug  fprintf(stderr,"Inside askdialog display x %d y %d\n",x,y);  */
           if (saved_font != current_font) winfnt_(&saved_font);
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           altbox(cncl,asklm3,asklm3+1,&msgbx.b_bottom,&cnclbox_left,'-');
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
@@ -4957,6 +5026,7 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
   int	no_valid_event = TRUE;
   int	initial_button_in = FALSE;
   int x,y,len,lstrlen,lm3,lm4,iaux;
+  int vfw,vfwm1,vfwm2;
   long int impx,impy,ipflg,ishowmoreflg,uresp;
   long int saved_font;
   int okbox_left, qbox_left, dbox_left, altbox_left, alt2box_left; /* positions of small boxes */
@@ -4965,6 +5035,19 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
 /* remember position and size of the whole module (so as to detect changes) */
   XGetWindowAttributes(theDisp,win,&wa);
   start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width;
+
+/* Use XftTextExtents8 logic for sizing text areas. Currently code calling */
+/* this will have set fixed width fonts so that the editing area works. But */
+/* currently there is no provision for using proportional fonts for the prompts. */
+  vfw=vfwm1=vfwm2=0;
+
+  XftTextExtents8(theDisp,fst,askmsg1,asklm1,&info);
+  if( info.xOff > vfwm1 ) vfwm1= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"ask2altdialog askmsg1 %s asklm1 %d vwfm1 %d f_width %d timesfw %d\n",askmsg1,asklm1,vfwm1,f_width,(asklm1 * f_width));
+
+  XftTextExtents8(theDisp,fst,askmsg2,asklm2,&info);
+  if( info.xOff > vfwm2 ) vfwm2= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//  fprintf(stderr,"ask2altdialog askmsg2 %s asklm2 %d vwfm2 %d f_width %d timesfw %d\n",askmsg2,asklm2,vfwm2,f_width,(asklm2 * f_width));
 
 /* alt box is between ok and askbx  */
   altbox_left = msgbx.b_right - ((5 * 5) + (f_width * (9 + asklm3 + asklm4)));
@@ -5020,7 +5103,7 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
           altbox(alt,asklm3,asklm3+1,&msgbx.b_bottom,&altbox_left,'-');
           alt2box(alt2,asklm4,asklm4+1,&msgbx.b_bottom,&alt2box_left,'-');
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
@@ -5098,7 +5181,7 @@ void ask2altdialog_(sstr,alt,alt2,id,iq,f_len,a_len,b_len)
           altbox(alt,asklm3,asklm3+1,&msgbx.b_bottom,&altbox_left,'-');
           alt2box(alt2,asklm4,asklm4+1,&msgbx.b_bottom,&alt2box_left,'-');
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
+          XftDrawString8(draw, &xft_color,fst,asktprompt,msgbx.b_bottom - (f_height+8),(XftChar8 *) askmsg1,asklm1);
           XftDrawString8(draw, &xft_color,fst,asklprompt,msgbx.b_bottom - 3,(XftChar8 *) askmsg2,asklm2);
           qbox_("?",1,2,&msgbx.b_bottom,&qbox_left,'-');
           dbox("d",1,2,&msgbx.b_bottom,&dbox_left,'-');
@@ -5207,6 +5290,7 @@ void continuebox_(msg1,msg2,opta,len1,len2,len3)
    f_to_c_l(opta,&len3,&lm3);
 
 /* action box is right box and 2 char total to the right */
+/* XftTextExtents8 needed here */
   abox_left = msgbx.b_right - ((2 * 5) + (f_width * lm3+2));
 
 /* determine left edge of prompt text */
@@ -5340,7 +5424,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
   static char buf[80],*bp;
   char k_char,keypressed;
   int	no_valid_event = TRUE;
-  int x1,y1,lprompt,tprompt,tpromptgl;	/* cursor position, prompt left side and with glyph info  */
+  int x1,y1,lprompt,tprompt;	/* cursor position, prompt left side and with glyph info  */
   int qbox_left,abox_left,bbox_left,cbox_left,dbox_left,ebox_left,fbox_left,gbox_left;	/* positions of small boxes */
   int lm1,lm2,lm3,lm4,lm5,lm6,lm7,lm8,lm9,msg_bb;	/* local string lengths found by test      */
   int nopts;	/* number of options (based on if option text blank) */
@@ -5348,24 +5432,62 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
   static int blen = 0;
   unsigned int start_height,start_width;
   int iaux;         /* unused return from aux_menu      */
-  int vfw;
+  int vfw,vfwa,vfwb,vfwc,vfwd,vfwe,vfwf,vfwg,vfwm1,vfwm2;  /* pixel width of each option */
 
 /* Text within choice boxes use the butn_fnt so calling code should ensure that
    this has been reset appropriately before calling. */
    saved_font = current_font;
    if (saved_font != butn_fnt) winfnt_(&butn_fnt);
 
+/* Use XftTextExtents8 logic for sizing each option box */
+   vfw=vfwa=vfwb=vfwc=vfwd=vfwe=vfwf=vfwg=vfwm1=vfwm2=0;
+
 /* Find ends of strings passed and terminate. */
    nopts = 0;
    f_to_c_l(msg1,&len1,&lm1);
+   XftTextExtents8(theDisp,fst,msg1,lm1,&info);
+   if( info.xOff > vfwm1 ) vfwm1= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//   fprintf(stderr,"abcdefbox msg1 %s lm1 %d vwfm1 %d f_width %d timesfw %d\n",msg1,lm1,vfwm1,f_width,(lm1 * f_width));
+
    f_to_c_l(msg2,&len2,&lm2);
+   XftTextExtents8(theDisp,fst,msg2,lm2,&info);
+   if( info.xOff > vfwm2 ) vfwm2= info.xOff + 2*f_width;  /* allow for a bit of space on right */
+//   fprintf(stderr,"abcdefbox msg2 %s lm2 %d vwfm2 %d f_width %d timesfw %d\n",msg2,lm2,vfwm2,f_width,(lm2 * f_width));
+
    f_to_c_l(opta,&len3,&lm3);
+   XftTextExtents8(theDisp,fst,opta,lm3,&info);
+   if( info.xOff > vfwa ) vfwa= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"abcdefbox opta %s lm3 %d vwfa %d f_width %d timesfw %d\n",opta,lm3,vfwa,f_width,(lm3 * f_width));
+
    f_to_c_l(optb,&len4,&lm4); if ( lm4 > 1 ) nopts = 2;
+   XftTextExtents8(theDisp,fst,optb,lm4,&info);
+   if( info.xOff > vfwb ) vfwb= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"abcdefbox optb %s lm4 %d vwfb %d f_width %d timesfw %d\n",optb,lm4,vfwb,f_width,(lm4 * f_width));
+
    f_to_c_l(optc,&len5,&lm5); if ( lm5 > 1 ) nopts = 3;
+   XftTextExtents8(theDisp,fst,optc,lm5,&info);
+   if( info.xOff > vfwc ) vfwc= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"abcdefbox optc %s lm5 %d vwfc %d f_width %d timesfw %d\n",optc,lm5,vfwc,f_width,(lm5 * f_width));
+
    f_to_c_l(optd,&len6,&lm6); if ( lm6 > 1 ) nopts = 4;
+   XftTextExtents8(theDisp,fst,optd,lm6,&info);
+   if( info.xOff > vfwd ) vfwd= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"abcdefbox optd %s lm6 %d vwfd %d f_width %d timesfw %d\n",optd,lm6,vfwd,f_width,(lm6 * f_width));
+
    f_to_c_l(opte,&len7,&lm7); if ( lm7 > 1 ) nopts = 5;
+   XftTextExtents8(theDisp,fst,opte,lm7,&info);
+   if( info.xOff > vfwe ) vfwe= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"abcdefbox opte %s lm7 %d vwfe %d f_width %d timesfw %d\n",opte,lm7,vfwe,f_width,(lm7 * f_width));
+
    f_to_c_l(optf,&len8,&lm8); if ( lm8 > 1 ) nopts = 6;
+   XftTextExtents8(theDisp,fst,optf,lm8,&info);
+   if( info.xOff > vfwf ) vfwf= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"abcdefbox optf %s lm8 %d vwff %d f_width %d timesfw %d\n",optf,lm8,vfwf,f_width,(lm8 * f_width));
+
    f_to_c_l(optg,&len9,&lm9); if ( lm9 > 1 ) nopts = 7;
+   XftTextExtents8(theDisp,fst,optg,lm9,&info);
+   if( info.xOff > vfwg ) vfwg= info.xOff + 2*f_width;  /* impose requested additional space */
+//   fprintf(stderr,"abcdefbox optg %s lm9 %d vwfg %d f_width %d timesfw %d\n",optg,lm9,vfwg,f_width,(lm9 * f_width));
    if (nopts <2) return;	/* if less than 2 choices there is a problem. */
 
 /* remember position and size of the whole module (so as to detect changes) */
@@ -5376,63 +5498,51 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
   qbox_left = msgbx.b_right - ((f_width * 2)+3 );
 /* a, b, c, d, e, f and g boxs ... */
   if (nopts == 2) {
-    bbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm4+2)+3 ));
-    abox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm4+2+lm3+2)+3 ));
+    bbox_left = qbox_left - (vfwb+6 );
+    abox_left = qbox_left - (vfwa+vfwb+12 );
   } else if (nopts == 3) {
-    cbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm5+2)+3 ));
-    bbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm5+2+lm4+2)+3 ));
-    abox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm5+2+lm4+2+lm3+2)+3 ));
+    cbox_left = qbox_left - (vfwc+6 );
+    bbox_left = qbox_left - (vfwb+vfwc+12 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+18 );
   } else if (nopts == 4) {
-    dbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm6+2)+3 ));
-    cbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm6+2+lm5+2)+3 ));
-    bbox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm6+2+lm5+2+lm4+2)+3 ));
-    abox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm6+2+lm5+2+lm4+2+lm3+2)+3 ));
+    dbox_left = qbox_left - (vfwd+6 );
+    cbox_left = qbox_left - (vfwc+vfwd+12 );
+    bbox_left = qbox_left - (vfwb+vfwc+vfwd+18 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+vfwd+24 );
   } else if (nopts == 5) {
-    ebox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm7+2)+3 ));
-    dbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm7+2+lm6+2)+3));
-    cbox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm7+2+lm6+2+lm5+2)+3));
-    bbox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm7+2+lm6+2+lm5+2+lm4+2)+3));
-    abox_left = msgbx.b_right - ((6 * 5) + (f_width * (lm7+2+lm6+2+lm5+2+lm4+2+lm3+2)+3));
+    ebox_left = qbox_left - (vfwe+6 );
+    dbox_left = qbox_left - (vfwd+vfwe+12 );
+    cbox_left = qbox_left - (vfwc+vfwd+vfwe+18 );
+    bbox_left = qbox_left - (vfwb+vfwc+vfwd+vfwe+24 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+vfwd+vfwe+30 );
   } else if (nopts == 6) {
-    fbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm8+2)+3));
-    ebox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm8+2+lm7+2)+3));
-    dbox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm8+2+lm7+2+lm6+2)+3));
-    cbox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm8+2+lm7+2+lm6+2+lm5+2)+3));
-    bbox_left = msgbx.b_right - ((6 * 5) + (f_width * (lm8+2+lm7+2+lm6+2+lm5+2+lm4+2)+3));
-    abox_left = msgbx.b_right - ((7 * 5) + (f_width * (lm8+2+lm7+2+lm6+2+lm5+2+lm4+2+lm3+2)+3));
+    fbox_left = qbox_left - (vfwf+6 );
+    ebox_left = qbox_left - (vfwe+vfwf+12 );
+    dbox_left = qbox_left - (vfwd+vfwe+vfwf+18 );
+    cbox_left = qbox_left - (vfwc+vfwd+vfwe+vfwf+24 );
+    bbox_left = qbox_left - (vfwb+vfwc+vfwd+vfwe+vfwf+30 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+vfwd+vfwe+vfwf+36 );
   } else if (nopts == 7) {
-    gbox_left = msgbx.b_right - ((2 * 5) + (f_width * (lm9+2)+3));
-    fbox_left = msgbx.b_right - ((3 * 5) + (f_width * (lm9+2+lm8+2)+3));
-    ebox_left = msgbx.b_right - ((4 * 5) + (f_width * (lm9+2+lm8+2+lm7+2)+3));
-    dbox_left = msgbx.b_right - ((5 * 5) + (f_width * (lm9+2+lm8+2+lm7+2+lm6+2)+3));
-    cbox_left = msgbx.b_right - ((6 * 5) + (f_width * (lm9+2+lm8+2+lm7+2+lm6+2+lm5+2)+3));
-    bbox_left = msgbx.b_right - ((7 * 5) + (f_width * (lm9+2+lm8+2+lm7+2+lm6+2+lm5+2+lm4+2)+2));
-    abox_left = msgbx.b_right - ((8 * 5) + (f_width * (lm9+2+lm8+2+lm7+2+lm6+2+lm5+2+lm4+2+lm3+2)+3));
+    gbox_left = qbox_left - (vfwg+6 );
+    fbox_left = qbox_left - (vfwf+vfwg+12 );
+    ebox_left = qbox_left - (vfwe+vfwf+vfwg+18 );
+    dbox_left = qbox_left - (vfwd+vfwe+vfwf+vfwg+24 );
+    cbox_left = qbox_left - (vfwc+vfwd+vfwe+vfwf+vfwg+30 );
+    bbox_left = qbox_left - (vfwb+vfwc+vfwd+vfwe+vfwf+vfwg+36 );
+    abox_left = qbox_left - (vfwa+vfwb+vfwc+vfwd+vfwe+vfwf+vfwg+42 );
   }
 
 /* determine left edge of prompt text also check via XftTextExtents8 */
-  lprompt = abox_left;
-  tprompt = msgbx.b_right - ((lm1+3) * f_width);
-  vfw=0;
-  XftTextExtents8(theDisp,fst,msg1,lm1,&info);
-  if( info.xOff > vfw ) vfw= info.xOff+5;
-  tpromptgl = msgbx.b_right - vfw;
-  if (tprompt < lprompt) lprompt = tprompt;
-  if (tpromptgl < lprompt) lprompt = tpromptgl;
-  tprompt = abox_left - ((lm2+3) * f_width);
-  vfw=0;
-  XftTextExtents8(theDisp,fst,msg2,lm2,&info);
-  if( info.xOff > vfw ) vfw= info.xOff+5;
-  tpromptgl = abox_left - vfw;
-  if (tprompt < lprompt) lprompt = tprompt;
-  if (tpromptgl < lprompt) lprompt = tpromptgl;
-  if (lprompt < msgbx.b_left) lprompt = msgbx.b_left+2;
+  lprompt = abox_left - vfwm2;       /* lower prompt left */
+  tprompt = abox_left - vfwm1;       /* top prompt left */
+  if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
+//  tprompt = msgbx.b_right - vfwm1; /* top prompt left */
 
 // Define local drawable for Xft font.
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
   xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-  XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+  XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
   XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
   XFlush(theDisp);
   msg_bb = msgbx.b_bottom;
@@ -5458,7 +5568,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
         if(event.xvisibility.state == 0 ) {
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+          XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
           XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
           XFlush(theDisp);
           msg_bb = msgbx.b_bottom;
@@ -5482,7 +5592,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
 /* debug  fprintf(stderr,"abcdefbox detected configure event\n"); */
           refreshenv_();
           xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-          XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+          XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
           XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
           XFlush(theDisp);
           msg_bb = msgbx.b_bottom;
@@ -5572,7 +5682,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           iaux = aux_menu((XEvent *) &event);	/* check and see if text scrolled etc. */
           if ( iaux == 2 ) {	/* if resize then redraw the dialog */
             xbox(msgbx,fg,white,BMCLEAR |BMEDGES);   /* draw dialogue box with edges  */
-            XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
+            XftDrawString8(draw, &xft_color,fst,tprompt,msgbx.b_bottom-(f_height+8),(XftChar8 *) msg1,lm1);
             XftDrawString8(draw, &xft_color,fst,lprompt,msgbx.b_bottom-3,(XftChar8 *) msg2,lm2);
             XFlush(theDisp);
             msg_bb = msgbx.b_bottom;
@@ -5702,15 +5812,15 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
 
 /* sort out boxs along the horizontal line between graphics and text feedback boxes */
   winfnt_(&butn_fnt);
-  wire_left = disp.b_right - (f_width * 26);
-  capture_left = disp.b_right - (f_width * 9);  /* bit more space */
-  captext_left = disp.b_right - (f_width * 9);  /* bit more space */
-  elevplus_left = disp.b_right - (f_width * 30);
-  elevminus_left = disp.b_right - (f_width * 33);
-  elev_left = disp.b_right - (f_width * 45);
-  aziplus_left = disp.b_right - (f_width * 49);
-  aziminus_left = disp.b_right - (f_width * 52);
-  azi_left = disp.b_right - ((f_width * 62)+4);
+  wire_left = disp.b_right - (f_width * 28);
+  capture_left = disp.b_right - (f_width * 10);  /* bit more space */
+  captext_left = disp.b_right - (f_width * 10);  /* bit more space */
+  elevplus_left = disp.b_right - (f_width * 31);
+  elevminus_left = disp.b_right - (f_width * 34);
+  elev_left = disp.b_right - (f_width * 46);
+  aziplus_left = disp.b_right - (f_width * 50);
+  aziminus_left = disp.b_right - (f_width * 53);
+  azi_left = disp.b_right - ((f_width * 63)+4);
   udh = f_height + 2;
 
   winfnt_(&disp_fnt);	/* Reload the text display font. */
@@ -5734,7 +5844,7 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
 /* create the updown box */
  updown_text.b_bottom = disp.b_top -2;
  updown_text.b_top = updown_text.b_bottom - udh;
- updown_text.b_left =  disp.b_right - (f_width * 70);
+ updown_text.b_left =  disp.b_right - (f_width * 72);
  updown_text.b_right = updown_text.b_left + 30;
  xt = updown_text.b_left+10;         /* points for arrows */
  xb = updown_text.b_left+20;        /* points for arrows */
@@ -5752,7 +5862,7 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
    doitbox(wire,"image control",13,15,&saved_font,&box_fnt,&bottom,&left,"wire",'-');
  }
 
-/* include capture button to left of image control button */
+/* include capture button to right of image control button */
  if(capture_avail >= 1) {
    bottom = disp.b_top; left = capture_left;
    doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"capture",'-');
@@ -7614,12 +7724,14 @@ int		len_title;
   int   oldi,notted;    /* remember last motion hilight and if an item yet hilighted */
   unsigned int start_height,start_width;
 
-  elevplus_left = disp.b_right - (f_width * 30);
-  elevminus_left = disp.b_right - (f_width * 33);
-  elev_left = disp.b_right - (f_width * 45);
-  aziplus_left = disp.b_right - (f_width * 49);
-  aziminus_left = disp.b_right - (f_width * 52);
-  azi_left = disp.b_right - ((f_width * 62)+4);
+// Offsets from right are defined via character widths which may be
+// inaccurate for proportional fonts.
+  elevplus_left = disp.b_right - (f_width * 31);
+  elevminus_left = disp.b_right - (f_width * 34);
+  elev_left = disp.b_right - (f_width * 46);
+  aziplus_left = disp.b_right - (f_width * 50);
+  aziminus_left = disp.b_right - (f_width * 53);
+  azi_left = disp.b_right - ((f_width * 63)+4);
 
   if(m_lines == 0)return;	/* don't bother if no menu */
   iw = (int) *iwth;  /* character width to display */
@@ -8036,14 +8148,14 @@ int aux_menu(event)  XEvent *event; {
 /* update left position of boxes along horizontal bar */
    saved_font = menu_fnt;
    if (saved_font != butn_fnt) winfnt_(&butn_fnt);
-   wire_left = disp.b_right - (f_width * 26);
-   capture_left = disp.b_right - (f_width * 9);
-   elevplus_left = disp.b_right - (f_width * 30);
-   elevminus_left = disp.b_right - (f_width * 33);
-   elev_left = disp.b_right - (f_width * 45);
-   aziplus_left = disp.b_right - (f_width * 49);
-   aziminus_left = disp.b_right - (f_width * 52);
-   azi_left = disp.b_right - ((f_width * 62)+4);
+   wire_left = disp.b_right - (f_width * 28);
+   capture_left = disp.b_right - (f_width * 10);
+   elevplus_left = disp.b_right - (f_width * 31);
+   elevminus_left = disp.b_right - (f_width * 34);
+   elev_left = disp.b_right - (f_width * 46);
+   aziplus_left = disp.b_right - (f_width * 50);
+   aziminus_left = disp.b_right - (f_width * 53);
+   azi_left = disp.b_right - ((f_width * 63)+4);
    if (saved_font != butn_fnt) winfnt_(&saved_font);  /* restore std font */
 
 // Define local drawable for Xft font.
@@ -8763,7 +8875,7 @@ void opencpw_()
  label_ht = f_height+4;
  cpw_avail = 1;             /* tell the world that license is available */
  if (dialogue_lines != 0) { b_cpw = msgbx.b_top -6; } else { b_cpw = xrt_height -16; }
- l_cpw= xrt_width - ((f_width * 9) + 3);
+ l_cpw= xrt_width - ((f_width * 10) + 3);
  bottom = b_cpw; left = l_cpw;
  doitbox(cpw,"license",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'-');
  return;
@@ -8806,8 +8918,8 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
   cfgz.b_right = cfgn.b_right = cfgc.b_right = cfgdfn.b_right = viewbx.b_left+1;
 
   bh = f_height+2;	/* box height is font height +2 */
-  hdl = viewbx.b_right - (f_width * 19);
-  XftDrawString8(draw, &xft_color,fst,hdl,viewbx.b_top+bh-1,"Active definitions",18);
+  hdl = viewbx.b_right - (f_width * 9);
+  XftDrawString8(draw, &xft_color,fst,hdl,viewbx.b_top+bh-1,"Features",8);
   if (cfg_boxs == 0){	/* registration level  */
     cfgz.b_top = viewbx.b_top + bh;    cfgz.b_bottom = cfgz.b_top + bh;
     cfgz.b_right = viewbx.b_right - 2; cfgz.b_left = cfgz.b_right - (f_width * 14);
@@ -8875,7 +8987,7 @@ void opensetup_()
  saved_font = current_font;
  if (saved_font != butn_fnt) winfnt_(&butn_fnt);
  setup_avail = 1;             /* tell the world that setup is available */
- l_setup = xrt_width - ((f_width * 9) + 3);
+ l_setup = xrt_width - ((f_width * 10) + 3);
  if (dialogue_lines != 0) { b_setup = msgbx.b_top -24; } else { b_setup = xrt_height -34; }
 
  bottom = b_setup; left = l_setup;
@@ -8934,15 +9046,15 @@ void updazi_(avail)
   if(azi_avail == 0 && *avail >= 0) {	/* probably first time in */
     saved_font = current_font;
     if (saved_font != butn_fnt) winfnt_(&butn_fnt);
-    wire_left = disp.b_right - (f_width * 26);
-    capture_left = disp.b_right - (f_width * 9);
-    captext_left = disp.b_right - (f_width * 9);
-    elevplus_left = disp.b_right - (f_width * 30);
-    elevminus_left = disp.b_right - (f_width * 33);
-    elev_left = disp.b_right - (f_width * 45);
-    aziplus_left = disp.b_right - (f_width * 49);
-    aziminus_left = disp.b_right - (f_width * 52);
-    azi_left = disp.b_right - ((f_width * 62)+4);
+    wire_left = disp.b_right - (f_width * 28);
+    capture_left = disp.b_right - (f_width * 10);
+    captext_left = disp.b_right - (f_width * 10);
+    elevplus_left = disp.b_right - (f_width * 31);
+    elevminus_left = disp.b_right - (f_width * 34);
+    elev_left = disp.b_right - (f_width * 46);
+    aziplus_left = disp.b_right - (f_width * 50);
+    aziminus_left = disp.b_right - (f_width * 53);
+    azi_left = disp.b_right - ((f_width * 63)+4);
     if (saved_font != butn_fnt) winfnt_(&saved_font);  /* restore std font */
 
     bottom = disp.b_top; left = aziplus_left;

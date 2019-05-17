@@ -1301,7 +1301,6 @@ C Finally label lines, matching zone line colour if used.
               if(ICM.gt.nzonec) ICM=IMFGETNO(I,2)-nzonec
               if(ICM.gt.nzonec) ICM=IMFGETNO(I,2)-nzonec
               iicol=ICM
-C              call winscl('z',iicol)
             endif
           endif
           call u2pixel(TIMEold(I),Yold(I),iid1,iid2)

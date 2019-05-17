@@ -377,6 +377,7 @@ C First, select MRT sensors.
         endif
 
 C Now, create a viewpoint for each one.
+C For Glare analysis, use fisheye views.
         do IMRT=1,NSEL
 
 C Use coordinates at the centre of the top face of the MRT sensor.
@@ -405,59 +406,49 @@ C Would explain this.
 C Set -vu (?).
           vux=0.0; vuy=0.0; vuz=1.0
 
-C Set view angles.
+C Set view type and angles.
           angh=90.0; angv=60.0
+          if (SCENEPURP(ISCENE)(1:5).eq.'Glare') then
+            vewtyp='h' ! fisheye
+            anght=180.0
+            angvt=180.0
+          else
+            vewtyp='v' ! perspective
+            anght=angh
+            angvt=angv
+          endif          
 
           indxvew = indxvew +1
-          write(trvewsh,'(a,i2.2)')'vew',IMRT
+          write(trvewsh,'(a,i2.2)')'v',IMRT
           rvewsh(indxvew) = trvewsh  ! remember new name
           if(short)then
             if(okfore.and.okaft)then
-              write(doit,'(a,3F7.1,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F7.1,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo 0 -va 0'
             else
-              write(doit,'(a,3F7.1,a,3F7.3,a,3F5.2,4(a,F5.1))') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F7.1,a,3F7.3,a,3F5.2,4(a,F5.1))') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
             endif
           else
             if(okfore.and.okaft)then
-              write(doit,'(a,3F8.2,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F8.2,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo 0 -va 0'
             else
-              write(doit,'(a,3F8.2,a,3F7.3,a,3F5.2,4(a,F5.1))') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F8.2,a,3F7.3,a,3F5.2,4(a,F5.1))') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
             endif
           endif
           WRITE(vewcmds(indxvew),'(a)') doit  ! new cmd
 
         enddo     
-
-      elseif(ipckvew.eq.1)then
-
-C If the default view for exterior (intext zero) or interior view.
-        if(intext.eq.0)then
-          rvpx=-100.0; rvpy=-100.0; rvpz=100.0
-          call ang3vtx(OXMN,OYMN,OZMN,EYEM(1),EYEM(2),EYEM(3),OXMX,
-     &             OYMX,OZMX,eang)
-          angv=eang*1.25; angh=eang*1.25
-        else
-          rvpx=XMN+0.1; rvpy=YMN+0.1; rvpz=VIEWM(3)
-          angv=90.0; angh=90.0
-        endif
-
-C Given view point and viewed point return and update common values
-C of the azimuth and elevation.
-        call ln2az(rvpx,rvpy,rvpz,VIEWM(1),VIEWM(2),VIEWM(3),
-     &    azimuth,elevtn)
-        call AZ2UV(azimuth,elevtn,vdx,vdy,vdz)
 
       else
 
@@ -516,9 +507,10 @@ C Internal view.
             return
           endif
 
-        elseif(word(1:4).eq.'-vtv')then
+        elseif(word(1:3).eq.'-vt')then
 
 C An in-line view command within the rif file.
+          vewtyp(1:1)=word(4:4)
   42      CALL EGETW(OUTSTR,K,WORD,'-','command',IFLAG)
 
 C Debug.
@@ -538,7 +530,7 @@ C          write(6,*) outstr
             CALL EGETWR(OUTSTR,K,vux,0.,0.,'-','vu x',IER)
             CALL EGETWR(OUTSTR,K,vuy,0.,0.,'-','vu y',IER)
             CALL EGETWR(OUTSTR,K,vuz,0.,0.,'-','vu z',IER)
-            IF(IFLAG.ne.0)goto 43
+            IF(IER.ne.0)goto 43
           elseif(word(1:3).eq.'-vh')then
             CALL EGETWR(OUTSTR,K,angh,0.,0.,'-','horiz ang',IER)
             IF(IER.ne.0)goto 43
@@ -623,34 +615,39 @@ C Reconstitute the viewing eye angle.
       endif
       write(ITEM(10),'(A,F5.1)')  'i vert view angle: ',angv
       write(ITEM(11),'(A,2F6.1)') 'j clip front aft:',cutfor,cutaft
-      ITEM(12) =                  '  ___site___________________  '
+      if (vewtyp(1:1).eq.'v') then
+        write(ITEM(12),'(A)')     'k view type >> perspective'
+      elseif (vewtyp(1:1).eq.'h') then
+        write(ITEM(12),'(A)')     'k view type >> fisheye'
+      endif
+      ITEM(13) =                  '  ___site___________________  '
       if(ITPPSW.eq.0)then
 
 C Plan view.
-        write(ITEM(13),'(A,2F6.1)') 'l east min~max : ',XMN,XMX
-        write(ITEM(14),'(A,2F6.1)') 'm north min~max: ',YMN,YMX
+        write(ITEM(14),'(A,2F6.1)') 'l east min~max : ',XMN,XMX
+        write(ITEM(15),'(A,2F6.1)') 'm north min~max: ',YMN,YMX
       elseif(ITPPSW.eq.1)then
 
 C South elevation view.
-        write(ITEM(13),'(A,2F6.1)') 'l south min~max: ',XMN,XMX
-        write(ITEM(14),'(A,2F6.1)') 'm up    min~max: ',ZMN,ZMX
+        write(ITEM(14),'(A,2F6.1)') 'l south min~max: ',XMN,XMX
+        write(ITEM(15),'(A,2F6.1)') 'm up    min~max: ',ZMN,ZMX
       elseif(ITPPSW.eq.2)then
 
 C East elevation view.
-        write(ITEM(13),'(A,2F6.1)') 'l east min~max : ',YMN,YMX
-        write(ITEM(14),'(A,2F6.1)') 'm up    min~max: ',ZMN,ZMX
+        write(ITEM(14),'(A,2F6.1)') 'l east min~max : ',YMN,YMX
+        write(ITEM(15),'(A,2F6.1)') 'm up    min~max: ',ZMN,ZMX
       elseif(ITPPSW.eq.3)then
 
 C Perspective view.
-        write(ITEM(13),'(A,2F6.1)') 'l east min~max : ',XMN,XMX
-        write(ITEM(14),'(A,2F6.1)') 'm north min~max: ',YMN,YMX
+        write(ITEM(14),'(A,2F6.1)') 'l east min~max : ',XMN,XMX
+        write(ITEM(15),'(A,2F6.1)') 'm north min~max: ',YMN,YMX
       endif
-      ITEM(15) =                  '  __________________________  '
-      ITEM(16) =                  '> save view info              '
-      ITEM(17) =                  '  __________________________  '
-      ITEM(18) =                  '? help                        '
-      ITEM(19) =                  '- exit                        '
-      NITEMS = 19
+      ITEM(16) =                  '  __________________________  '
+      ITEM(17) =                  '> save view info              '
+      ITEM(18) =                  '  __________________________  '
+      ITEM(19) =                  '? help                        '
+      ITEM(20) =                  '- exit                        '
+      NITEMS = 20
 
 C Check if graphics are active.
       if (MMOD.ne.8) then
@@ -927,7 +924,15 @@ C Clipping fore and aft.
      &    0.0,'W',200.,'W',0.0,'clip dist aft',IER,nbhelp)
         vewdone=.false.
 
-      elseif(INO.EQ.13)then
+C toggle perspective or fisheye view.
+      elseif(INO.EQ.12)then
+        if (vewtyp(1:1).eq.'v') then
+          vewtyp='h'
+        elseif (vewtyp(1:1).eq.'h') then
+          vewtyp='v'
+        endif
+
+      elseif(INO.EQ.14)then
 
 C horiz axis...
         helptopic='e2r_east_axis'
@@ -972,7 +977,7 @@ C horiz axis...
         endif
         vewdone=.false.; do_redraw =.true.
 
-      elseif(INO.EQ.14)then
+      elseif(INO.EQ.15)then
 
 C vertical axis...
         helptopic='e2r_north_axis'
@@ -1017,7 +1022,7 @@ C vertical axis...
         endif
         vewdone=.false.; do_redraw =.true.
 
-      elseif(INO.EQ.16)then
+      elseif(INO.EQ.17)then
 
 C If an existing view then just update, if a new view then
 C extend the list and the view command. If viewed point is
@@ -1029,32 +1034,42 @@ C near origin can use shorter format.
         endif
         call eclose(cutfor,0.0,0.1,okfore)
         call eclose(cutaft,0.0,0.1,okaft)
+
+C Set up view bounds (for fisheye view).
+        if (vewtyp(1:1).eq.'h') then
+          anght=180.0
+          angvt=180.0
+        else
+          anght=angh
+          angvt=angv
+        endif
+
         if(addview)then
           indxvew = indxvew +1
           addview=.false.  ! turn off the toggle
           rvewsh(indxvew) = trvewsh  ! remember new name
           if(short)then
             if(okfore.and.okaft)then
-              write(doit,'(a,3F7.1,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F7.1,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo 0 -va 0'
             else
-              write(doit,'(a,3F7.1,a,3F7.3,a,3F5.2,4(a,F5.1))') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F7.1,a,3F7.3,a,3F5.2,4(a,F5.1))') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
             endif
           else
             if(okfore.and.okaft)then
-              write(doit,'(a,3F8.2,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F8.2,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo 0 -va 0'
             else
-              write(doit,'(a,3F8.2,a,3F7.3,a,3F5.2,4(a,F5.1))') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F8.2,a,3F7.3,a,3F5.2,4(a,F5.1))') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
             endif
           endif
@@ -1062,26 +1077,26 @@ C near origin can use shorter format.
         else
           if(short)then
             if(okfore.and.okaft)then
-              write(doit,'(a,3F7.1,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F7.1,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo 0 -va 0'
             else
-              write(doit,'(a,3F7.1,a,3F7.3,a,3F5.2,4(a,F5.1))') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F7.1,a,3F7.3,a,3F5.2,4(a,F5.1))') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
             endif
           else
             if(okfore.and.okaft)then
-              write(doit,'(a,3F8.2,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F8.2,a,3F7.3,a,3F5.2,2(a,F5.1),a)') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo 0 -va 0'
             else
-              write(doit,'(a,3F8.2,a,3F7.3,a,3F5.2,4(a,F5.1))') 
-     &        '-vtv -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &        ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+              write(doit,'(3a,3F8.2,a,3F7.3,a,3F5.2,4(a,F5.1))') 
+     &        '-vt',vewtyp,' -vp',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &        ' -vu ',vux,vuy,vuz,' -vh ',anght,' -vv ',angvt,
      &        ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
             endif
           endif

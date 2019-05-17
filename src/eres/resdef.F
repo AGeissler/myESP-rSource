@@ -1295,16 +1295,6 @@ C Set the default export file name based on model root name.
 
         ENDIF
 
-C Take into account weather file location.
-       lndbp=lnblnk(standardclmpath)
-       if(ipathclim.eq.0.or.ipathclim.eq.1)then
-         call addpath(lclim,llclmdb,concat)
-       elseif(ipathclim.eq.2)then
-         write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &     LCLIM(1:lnblnk(LCLIM))
-       endif
-       lclim=llclmdb  ! overwrite weather with expanded file name
-
 C If there is a model dispersed demands file read it.
        call FINDFIL(bdmds,XST)
        IF(XST)THEN
@@ -1362,7 +1352,15 @@ C are not referenced. Could we use these slots for something else?
   140 CONTINUE
   
 C Finally check if the climate file read in above exists.
-C << take into account location >>
+C Take into account weather file location.
+      lndbp=lnblnk(standardclmpath)
+      if(ipathclim.eq.0.or.ipathclim.eq.1)then
+        llclmdb=LCLIM
+      elseif(ipathclim.eq.2)then
+        write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
+     &    LCLIM(1:lnblnk(LCLIM))
+      endif
+
    44 CALL CLMOPB(0,IER)
       IF(IER.LT.0)then
 

@@ -1324,6 +1324,10 @@ C        write(6,*)'IZ,IVF(IZ)',IZ,IVF(IZ)
           IUF=IFIL+1
           LMRT=LVIEW(IZ)
           call ERMRT(0,IUOUT,IUF,LMRT,IZ,IER)
+          if (IER.ne.0) then
+            call edisp(IUOUT,'Error reading MRT sensor data.')
+            return
+          endif
           if (NCUB(IZ).gt.0) then
             do 20 J=1,NCUB(IZ)
               NTSEN=NTSEN+1

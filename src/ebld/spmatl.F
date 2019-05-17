@@ -1596,7 +1596,7 @@ C calculate correction factor for transmission of cover glass
 
 C Initialize array.
       do j=1,5
-         fTrans_Ads(j)=0.
+        fTrans_Ads(j)=0.
       enddo
 
 C Determine transmission-absorptance factors of the PV module

@@ -479,13 +479,13 @@ C Scan the defaults file silently for default configuration.
 C Take command line file name as initial configuration file.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
          lcmdfl=inf
-         call edisp(iuout,'  ')  ! echo blank line
+C         call edisp(iuout,'  ')  ! echo blank line
          write(outs248,'(2a)')'Input file is: ',lcmdfl
          if(pact(1:13).eq.'update_silent'.or.
      &      pact(1:16).eq.'useupdate_silent')then
            continue
          else
-           call edisp248(iuout,outs248,80)
+C           call edisp248(iuout,outs248,80)
          endif
       else
          lcmdfl=' '

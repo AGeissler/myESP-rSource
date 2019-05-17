@@ -4310,7 +4310,7 @@ C If a long list include page facility text.
 
 C Instanciate help message for this menu.
       H(1)='Surface(s) in the zone may be selected via its name'
-      H(2)='in the list. Up to 4 surfaces can be deleted in one'
+      H(2)='in the list. Up to 8 surfaces can be deleted in one'
       H(3)='action.'
 
 C Display the menu.
@@ -4340,7 +4340,7 @@ C If there are enough items allow paging control via EKPAGE.
 C Decode from the potential long list to the zone number via KEYIND.
         if(INPICK.ge.9)then
           call edisp(iuout,
-     &      'Only 8 surfaces can acted upon.')
+     &      'Only 8 surfaces can be acted upon.')
           IVERT=-2
           goto 3
         endif
@@ -4753,6 +4753,7 @@ C and ier = 1 was an error in composition.
 #include "espriou.h"
 #include "building.h"
 #include "model.h"
+      common/SPAD/MMOD,LIMIT,LIMTTY
       character subpath*84 ! folder to scan for cfg
       character sfile*144  ! full path of cfg file name selected
 
@@ -4792,8 +4793,12 @@ C For help messages
       call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Echo search criteria.
-      write(outs,*,IOSTAT=ios,ERR=16) 'models in folder ',subpath
-      call edisp(iuout,outs)
+      if(MMOD.EQ.8)then
+        continue
+      else
+        write(outs,*,IOSTAT=ios,ERR=16) 'models in folder ',subpath
+        call edisp(iuout,outs)
+      endif
 
 C Re-establish action and file separator prior to call to getfileslist.
       action='cfg'
@@ -4805,7 +4810,11 @@ C Re-establish action and file separator prior to call to getfileslist.
       endif
       call getfileslist(subpath,action,nnlistf)
       nlistf=int(nnlistf)
-      call printfileslist(outs,'p')
+      if(MMOD.EQ.8)then
+        continue
+      else
+        call printfileslist(outs,'p')
+      endif
 
 C Try to use information gathered from file scan.
       if(nlistf.gt.0)then
@@ -4839,7 +4848,8 @@ C          write(6,*) ij,' ',listfc70s(ij)
 C Select from the list. If prj was started in model cfg folder
 C (pwdtocfg = !) write with pwdinitial, otherwise also include
 C the pwdtocfg part of the path.
-C        write(6,*) 'pwdtocfg is ',pwdtocfg
+C        write(6,*) 'pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
+C        write(6,*) 'pwdinitial is ',pwdinitial(1:lnblnk(pwdinitial))
         CALL EPICKS(IX,ivlist,outs,' ',
      &    maxw,nboflistf,listfc70s,'Available files',IER,nbhelp)
         if(ix.eq.1)then
@@ -4862,7 +4872,7 @@ C        write(6,*) 'pwdtocfg is ',pwdtocfg
       endif
 
 C Debug.
-      write(6,*) 'sfile is ',sfile(1:lnblnk(sfile))
+C      write(6,*) 'sfile is ',sfile(1:lnblnk(sfile))
       return
 
 C Error conditions.

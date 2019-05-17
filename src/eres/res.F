@@ -436,9 +436,9 @@ C Scan the defaults file for default configuration.
 C Take command line file name as initial results file name.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
         LCMDFL=inf
-        call edisp(iuout,'  ')  ! echo blank line
+C        call edisp(iuout,'  ')  ! echo blank line
         write(outs248,'(a,a)')'The input file is: ',LCMDFL
-        call edisp248(iuout,outs248,90)
+C        call edisp248(iuout,outs248,90)
       else
         LCMDFL='UNKNOWN'
       endif
@@ -1048,10 +1048,6 @@ C Depending on computer type set integer size of passed parameters.
 
       SUBROUTINE BASESIMP_INPUTS(ICOMP,IER)
       integer icomp,ier
-      return
-      end
-
-      subroutine NEW2OLD()
       return
       end
 

@@ -973,7 +973,7 @@ C IGET = 2 outside temperature.
           IGETNO(NGET,1)=2
           IGETNO(NGET,6)=-302; IGETNO(NGET,7)=4
           IGETNO(NGET,8)=1;    IGETNO(NGET,9)=14
-          GLABEL(NGET)='Ambient db Tmp'; LNGLABEL(NGET)=14
+          GLABEL(NGET)='Ambient db (C)'; LNGLABEL(NGET)=14
           if(IROC.eq.0)then
             SLABEL(NGET)='Ambient db temperature (C)'
             LNSLABEL(NGET)=26

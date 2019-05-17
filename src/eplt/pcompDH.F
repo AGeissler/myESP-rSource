@@ -68,9 +68,11 @@ C     CDATA: 1 Duty (W) (+ve = cooling load, -ve = heating load)
       COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
 
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
+      COMMON/HN/NODE(MPCOM),RESID(MPCOM)
 
       PARAMETER (SMALL=1.0E-15)
       REAL      COUT(MPCOE),TMIN
+      integer   RESID
       character outs*124
       logical closea
 
@@ -109,18 +111,24 @@ C Mark temperature for iteration
 
 C Establish matrix equation self- and cross-coupling 
 C coefficients (Fully Implicit assumed)
-         COUT(1)=C2
-         COUT(2)=-C1
+         If(C1.gt.0.and.C2.gt.0)then
+	   COUT(1)=C2
+           COUT(2)=-C1
 
 C Limit outlet temperature to minimum to mimic heat exchanger performance
-	 TOUT=(QR+C1*CONVAR(ICON1,1))/C2
-         Q1=QR
-	 TMIN=ADATA(IPCOMP,1)
-	 if(TOUT.lt.TMIN.and.CONVAR(ICON1,1).gt.TMIN) then
-	   Q1=(C2*TMIN)-(C1*CONVAR(ICON1,1))
-	 elseif(CONVAR(ICON1,1).lt.TMIN) then
-	   Q1=0.0 ! No heat transfer if inlet below outlet lower limit
-	 endif
+	   TOUT=(QR+C1*CONVAR(ICON1,1))/C2
+           Q1=QR
+	   TMIN=ADATA(IPCOMP,1)
+	   if(TOUT.lt.TMIN.and.CONVAR(ICON1,1).gt.TMIN) then
+	     Q1=(C2*TMIN)-(C1*CONVAR(ICON1,1))
+	   elseif(CONVAR(ICON1,1).lt.TMIN) then
+	     Q1=0. ! No heat transfer if inlet below outlet lower limit
+	   endif
+	 else
+	   COUT(1)=1.
+           COUT(2)=-1.
+           Q1=0.
+         end if
 C and then present-time coefficient (ie. right hand side)
          COUT(3)=Q1
 	 QRES=QRESP+Q-Q1
@@ -131,13 +139,13 @@ C Store "environment" variables future values
 C 1st phase mass (ie. dry air) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
          COUT(1)=1.
-         COUT(2)=-PCONDR(ICON1)
+         COUT(2)=-1.
          COUT(3)=0.
 
 C 2nd phase mass (ie. vapour) balance coefficients
       ELSE IF(ISTATS.EQ.3) THEN
-         COUT(1)=0.
-	 COUT(2)=0.
+         COUT(1)=1.
+	 COUT(2)=-1.
 	 COUT(3)=0.
       END IF
 
@@ -146,6 +154,12 @@ C Store additional output variables for the results file.
       pcaout(ipcomp,1)=Q
       pcaout(ipcomp,2)=Q1
       pcaout(ipcomp,3)=QRES
+      if(QRES.lt.0.and.RESID(IPCOMP).eq.0) then
+        WRITE(outs,*) ' Residual heat demand for component',
+     &                  IPCOMP, 'check results'
+        call edisp(itu,outs)
+        RESID(IPCOMP)=1
+      end if
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -598,7 +612,7 @@ C Identify component node location in overall solution matrix
       INOD3=NPCDAT(IPCOMP,9)+2
       INOD4=NPCDAT(IPCOMP,9)+3
       ADJP=int(ADATA(IPCOMP,14)) ! Adjacent Pipe Comp ID
-      INOD5=NPCDAT(int(ADJP),9) ! Outside node of adjacent pipe
+      INOD5=NPCDAT(ADJP,9) ! Outside node of adjacent pipe
 
 C Set the node connectivity values
       Conn(1)=2.
@@ -1241,11 +1255,11 @@ C fixed RFF value input in ADATA#4. See exemplar xxx for details.
      &             ICONDX(MPCOM,MNODEC,MPCONC)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
       COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
-      COMMON/RFF/NODE(MPCOM)
+      COMMON/HN/NODE(MPCOM),RESID(MPCOM)
 
       REAL P_FRAC,SMALL,NODE,RF
      
-      INTEGER IMPEXP,IPCOMP,O1N,O2N,EN
+      INTEGER IMPEXP,IPCOMP,O1N,O2N,EN,RESID
 
       integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
      &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
@@ -1282,12 +1296,20 @@ C Relative Flow Nodes
       RF=ADATA(IPCOMP,4) ! RF value if fixed value for primary node
 
 C Check the specified valve position
-      IF(O1N.NE.99)THEN
+      IF(O1N.NE.999)THEN
         NODE(EN)=NODE(O1N)+NODE(O2N)
-        P_FRAC=NODE(O1N)/NODE(EN)
+        IF(NODE(EN).GT.0)THEN
+          P_FRAC=NODE(O1N)/NODE(EN)
+        ELSE
+          P_FRAC=1. ! Force to 1 under no flow conditions to avoid NaNs
+	END IF
       ELSE
-	NODE(O2N+1)=(RF+NODE(O2N))
-	P_FRAC=RF/NODE(O2N+1)
+	NODE(EN)=(RF+NODE(O2N))
+	IF(NODE(EN).GT.0)THEN
+          P_FRAC=RF/NODE(EN)
+        ELSE
+          P_FRAC=1. ! Force to 1 under no flow conditions to avoid NaNs
+	END IF
       ENDIF
 
 C Generate coefficients for the energy balance equation
@@ -1402,11 +1424,11 @@ C     CDATA: 1 Relative Flow Factor (RFF) (-)
      &             ICONDX(MPCOM,MNODEC,MPCONC)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
       COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
-      COMMON/RFF/NODE(MPCOM)
+      COMMON/HN/NODE(MPCOM),RESID(MPCOM)
 
       REAL V_POS,SMALL,BYP,CSL,NODE
      
-      INTEGER IMPEXP,IPCOMP,ILN,OLN
+      INTEGER IMPEXP,IPCOMP,ILN,OLN,RESID
 
       integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
      &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
@@ -1449,8 +1471,12 @@ C Check the specified valve position
       ELSE
 	NODE(ILN)=CSL+BYP
       ENDIF
-	
-      V_POS=CSL/NODE(ILN)
+
+      IF(NODE(ILN).GT.0)THEN
+	V_POS=CSL/NODE(ILN)
+      ELSE
+	V_POS=1. ! Force to 1 under no flow conditions to avoid NaNs
+      END IF
 
       IF(V_POS.LT.0.OR.V_POS.GT.1.)THEN
         V_POS=0.
@@ -1531,8 +1557,8 @@ C Trace output
 
 C ******************** CMP141C ********************
 C CMP141C generates for plant component IPCOMP with plant db code 1410 ie.
-C 2-node (ISV>20) Massless Diverter Valve.
-C Node 1 = Primary (Controlled) Outlet 1, Node 2 = Outlet 2
+C 3-node (ISV>20) Massless Diverter Valve.
+C Node 1 = Inlet, Node 2 = Primary (Controlled) Outlet 1, Node 3 = Outlet 2
 C No required input data (in plant configuration file)
 C Control variables (set by control loop or fixed value in plant config file) 
 C     CDATA: 1 Valve position (frac)
@@ -1566,8 +1592,8 @@ C     CDATA: 1 Valve position (frac)
 
       integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
      &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
-      integer ICONDX,ICON1,INOD1,INOD2,IPN1,IPN2,IPC1,IPC2,NPCON,
-     &IPCT,NPCDAT,NAPDAT,NCI,IPOFS1,IPOFS2,IX1,NITMS,I
+      integer ICONDX,ICON1,INOD1,INOD2,INOD3,IPN1,IPN2,IPC1,IPC2,
+     &NPCON,IPCT,NPCDAT,NAPDAT,NCI,IPOFS1,IPOFS2,IX1,NITMS,I
 
       real CDATA,CSVF,CSVP
       real CONVAR,PCONDR,PCONSD,QDATA
@@ -1587,9 +1613,10 @@ C Initialize pointers to inter-connection(s) ICON, and node(s) INOD
 C 1 connection
       ICON1=ICONDX(IPCOMP,1,1)
 
-C 2 Nodes 1) outlet 1 (controlled) 2) outlet 2
+C 3 Nodes 1) inlet, 2) outlet 1 (controlled), 3) outlet 2
       INOD1=NPCDAT(IPCOMP,9)
       INOD2=NPCDAT(IPCOMP,9)+1
+      INOD3=NPCDAT(IPCOMP,9)+2
 
 C Check the specified valve position
       V_POS=CDATA(IPCOMP,1)
@@ -1606,29 +1633,38 @@ C Generate coefficients for the energy balance equation
 
 C Massless model therefore no significant heat transfer assumed
 	 COUT(1)=1.
-	 COUT(2)=0.
+	 COUT(2)=-1.
 	 COUT(3)=1.
-	 COUT(4)=0.
-	 COUT(5)=CONVAR(ICON1,1)
-	 COUT(6)=CONVAR(ICON1,1)
+	 COUT(4)=-1.
+	 COUT(5)=1.
+	 COUT(6)=-1.
+	 COUT(7)=0.
+	 COUT(8)=0.
+	 COUT(9)=0.
          
 C 1st phase mass (ie. dry air) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
 	 COUT(1)=1.
-	 COUT(2)=((V_POS-1.)/V_POS)
+	 COUT(2)=-V_POS
 	 COUT(3)=1.
-	 COUT(4)=-V_POS
-	 COUT(5)=0.
-	 COUT(6)=0.
+	 COUT(4)=V_POS-1.
+	 COUT(5)=1.
+	 COUT(6)=-1.
+	 COUT(7)=0.
+	 COUT(8)=0.
+	 COUT(9)=0.
 
 C 2nd phase mass (ie. vapour) balance coefficients.
       ELSE IF(ISTATS.EQ.3) THEN
 	 COUT(1)=1.
-	 COUT(2)=((V_POS-1.)/V_POS)
+	 COUT(2)=-V_POS
 	 COUT(3)=1.
-	 COUT(4)=-V_POS
-	 COUT(5)=0.
-	 COUT(6)=0.
+	 COUT(4)=V_POS-1.
+	 COUT(5)=1.
+	 COUT(6)=-1.
+	 COUT(7)=0.
+	 COUT(8)=0.
+	 COUT(9)=0.
       END IF
 
 C Establish additional output variables
@@ -1639,7 +1675,7 @@ C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(37).NE.0) THEN
          WRITE(ITU,*) ' Component      ',IPCOMP,':'
-         WRITE(ITU,*) ' 2-node (ISV>0) Massless Diverter Valve'
+         WRITE(ITU,*) ' 3-node (ISV>0) Massless Diverter Valve'
          WRITE(ITU,*) ' Matrix node(s) ',INOD1,INOD2
          WRITE(ITU,*) ' Connection(s)  ',ICON1
          IF(ISTATS.EQ.1) THEN

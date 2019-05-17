@@ -266,7 +266,7 @@ C Trace output.
           GOTO 256
         ENDIF
       ELSE
-        outs='standalone did not converge,going to next timestep'
+        outs='standalone did not converge, going to next timestep'
         call edisp(iuout,outs)
         CALL MFBNDR(0)
         GOTO 257

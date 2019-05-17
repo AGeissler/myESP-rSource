@@ -750,7 +750,7 @@ C Generate combined name for dialog.
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(.NOT.DDOK)then
           IRT=1
-          CALL EASKATOG(' Actions to take on the new surface :',' ',
+          CALL EASKATOG(' ','Actions to take on the new surface:',
      &      'shift along normal','transform xyz','rotate','invert',
      &      'combination','continue ?',' ',IRT,nbhelp)
         endif
@@ -895,9 +895,9 @@ C Feedback to the user about using existing vertex.
      &            X(ixx),Y(ixx),Z(ixx)
                 call edisp(iuout,outs)
                 dok=.false.
-                call askok(
+                call askok(' ',
      &            'Use existing vertex instead of the new one?',
-     &            '  ',found,dok,nbhelp)
+     &            found,dok,nbhelp)
                 if(found)then
                   match=ixx
                   goto 145
@@ -976,9 +976,9 @@ C inserting the new vertex index.
                         dok=.true.
                         helptopic='vertex_close_edge'
                         call gethelptext(helpinsub,helptopic,nbhelp)
-                        call askok(
+                        call askok(' ',
      &                  'Insert this vertex into the adjacent surface?',
-     &                  '(see help)',ok,dok,nbhelp)
+     &                  ok,dok,nbhelp)
                       endif
                     else
                       ok=.false.
@@ -1079,7 +1079,7 @@ C Rescan the other zone before returning.
           endif
           if(inpick.gt.1)then
             dok=.true.
-            CALL ASKOK(outs,'(see help)',DDOK,dok,nbhelp)
+            CALL ASKOK(' ',outs,DDOK,dok,nbhelp)
           endif
           goto 191   ! jump back and process next surface
         endif
@@ -1728,8 +1728,8 @@ C vertex.
           else
             WRITE(HOLD,'(3f11.5,a)')X1(I-1),Y1(I-1),Z1(I-1),'  '
           endif
-          CALL EASKS(HOLD,' Vertex  X  Y  Z (in metres): ',
-     &     '  ',36,' 0. 0. 0. ','vertex coord',IER,nbhelp)
+          CALL EASKS(HOLD,' ','Vertex X Y Z (in metres):',
+     &      36,' 0. 0. 0. ','vertex coord',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,X1(I),-999.9,999.9,'W','Xcoord',IER)
           CALL EGETWR(HOLD,K,Y1(I),-999.9,999.9,'W','Ycoord',IER)
@@ -1763,9 +1763,9 @@ C Feedback to the user about using existing vertex.
      &            X(ixx),Y(ixx),Z(ixx)
                 call edisp(iuout,outs)
                 dok=.false.
-                call askok(
+                call askok(' ',
      &            'Use existing vertex instead of the new one?',
-     &            '  ',found,dok,nbhelp)
+     &            found,dok,nbhelp)
                 if(found)then
 C                  match=ixx  !  match is not yet used
                   goto 145
@@ -2634,7 +2634,9 @@ C Confirm opening.
         dok=.true.
         helptopic='confirm_location'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Position OK?','(see help)',OK,dok,nbhelp)
+        CALL ASKOK(
+     &   'The wireframe shows the position based on your input.',
+     &   'Accept position?',OK,dok,nbhelp)
         IF(.NOT.OK)GOTO 30
       endif
 
@@ -2927,9 +2929,9 @@ C inserting the new vertex index.
                     dok=.true.
                     helptopic='vertex_close_to_edge'
                     call gethelptext(helpinsub,helptopic,nbhelp)
-                    call askok(
+                    call askok(' ',
      &                'Insert this vertex into the adjacent surface?',
-     &                '(see help)',ok,dok,nbhelp)
+     &                ok,dok,nbhelp)
                   endif
                 else
                   ok=.false.

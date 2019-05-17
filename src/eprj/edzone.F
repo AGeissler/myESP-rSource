@@ -1021,15 +1021,15 @@ C Peview the bounding box of the object via DRWBB.
         write(temp,'(A)')name
         call drwbb(temp,ier)
 
-        CALL EASKABC('Options for predefined object: ',' ',
+        CALL EASKABC(' ','Options for predefined object: ',
      &    'apply transform and merge','revise transform','cancel',
      &    IW,nbhelp)
         if (IW.eq.1) then
 
 C Ask for single character to prepend to copied associated entities.
 C Then used predefembed to read in the predefined into the model.
-          CALL EASKABCD(' Character to pre-pend to copied entities:',
-     &      ' ',' a ',' b ',' c ',' d ',IBOPT,nbhelp)
+          CALL EASKABCD(' ','Character to pre-pend to copied entities:',
+     &      ' a ',' b ',' c ',' d ',IBOPT,nbhelp)
           if(ibopt.eq.1)prec='a'
           if(ibopt.eq.2)prec='b'
           if(ibopt.eq.3)prec='c'
@@ -1930,7 +1930,7 @@ C Check if Unix-based or DOS based.
           DOK=.true.
           helptopic='change_for_shading'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(' Reflect zone change in shading options:',' ',
+          CALL EASKABC(' ','Reflect zone change in shading options:',
      &   'recalculate (silent)','recalculate (interactive)','continue',
      &    IRT,nbhelp)
         endif

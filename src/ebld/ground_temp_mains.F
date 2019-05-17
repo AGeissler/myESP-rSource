@@ -581,30 +581,21 @@ C==========================================================================
 #include "esprdbfile.h"
 C esprdbfile.h supplies the following:
 C ICLIM,LCLIM (for climate file)
+#include "climate.h"
 
       INTEGER j     ! hour counter, 1-24
       INTEGER irec, iday_number
       INTEGER istat,iostat
-C climatic parameters 
-      INTEGER idif(24)     ! diffuse radiation
-      INTEGER itmp(24)     ! outdoor dry bulb temperature
-      INTEGER idnr(24)     ! direct normal radiation
-      INTEGER ivel(24)     ! wind speed
-      INTEGER idir(24)     ! wind direction
-      INTEGER ihum(24)     ! relative humidity
-      REAL rec
         
 C read in temperature values for present day
 C note: the climate file has already been opened - from the calling subroutine
-      irec=iday_number
-      read(iClim,rec=irec,iostat=istat,err=1000)
-     &    (idif(j),itmp(j),idnr(j),ivel(j),idir(j),ihum(j),j=1,24)
+      call CLMGET(iday_number)
 
 C A new common block is created for storing the daily dry bulb temperatures
 C common/daily_dry_bulb/DBT_day. 
 C This common block is stored in cetc/ground_temp_mains_common.h
       do 10 j = 1,24
-        DBT_day(j) = real(itmp(j)) / 10.
+        DBT_day(j) = CMRVAL(1,j)
  10   continue
 
  1000 continue         ! this needs to be an error message

@@ -654,7 +654,6 @@ C Debug.
 C      write(6,*)nzg,nznog(1),nznog(2),nznog(3)
 
       CALL INLNST(1)
-      itsnm=0
       nzg=1
       nznog(1)=ICOMP
       izgfoc=ICOMP
@@ -689,8 +688,8 @@ C Menu for zone geometry.
       IF(INO.EQ.ITEMC+25)THEN
         if(MODGEO)then
           DOK=.false.
-          CALL ASKOK('Save changes to zone composition and surface',
-     &         'attributes?',OK,DOK,nbhelp)
+          CALL ASKOK('Save changes to zone composition and',
+     &         'surface attributes?',OK,DOK,nbhelp)
           LTMP=LGEOM(ICOMP)
 
 C Test for saving current or new format geometry file.
@@ -780,8 +779,8 @@ C Zone description
 
 C Offer attempt to correct unbound edges.
           DOK=.false.
-          CALL ASKOK('Attempt to correct unbounded edges?',
-     &      ' ',OK,DOK,nbhelp)
+          CALL ASKOK(' ','Attempt to correct unbounded edges?',
+     &      OK,DOK,nbhelp)
           if(OK)then
             call ckvert(1,icomp,bound,iub,inv,'r',ier)
             MODGEO=.TRUE.
@@ -931,7 +930,7 @@ C Remind user of current surface boundary attributes.
           context=.true.
           if(ITRC.gt.1)CALL SURINFO(ICOMP,iuout,context)
           IRT=1
-          CALL EASKATOG('Surface attribution: ',' ',
+          CALL EASKATOG(' ','Surface attribution options:',
      &    'name','composition','boundary condition','usage',
      &    'cancel',' ',' ',IRT,nbhelp)
 
@@ -1769,7 +1768,7 @@ C Ask the user what the transform for each axis should be.
             CALL EGETWR(HOLD,K,VALZ,-99.,99.,'W','Z tr',IER)
             if(ier.ne.0)goto 43
             DOK=.true.
-            call askok('Apply this transform to zone surfaces?',' ',
+            call askok(' ','Apply this transform to zone surfaces?',
      &        ok,dok,nbhelp)
             if(.NOT.ok) goto 3
           elseif(INOR.eq.8)then
@@ -1785,10 +1784,10 @@ C between the two X and two Y and two Z. This uses G1 commons.
               x1=x(ivcs); y1=y(ivcs); z1=z(ivcs)     ! get position of initial vertex.
               x2=x(ivcf); y2=y(ivcf); z2=z(ivcf)     ! get position of initial vertex.
               VALX=x2-x1; VALY=y2-y1; VALZ=z2-z1
-              write(msgv,'(a,3F8.4)') 'The transform is ',
-     &          VALX,VALY,VALZ
+              write(msgv,'(a,3F8.4,a)') 'The transform is ',
+     &          VALX,VALY,VALZ,' Is this ok?'
               DOK=.true.
-              call askok(msgv,' Is this ok?',ok,dok,nbhelp)
+              call askok(' ',msgv,ok,dok,nbhelp)
               if(.NOT.ok) goto 77
             else
               goto 77
@@ -1847,10 +1846,10 @@ C Load and scan G1 for vertes in other zone and allow user to select one.
 C Re-establish the initial zone geometry.
               call georead(IFIL+1,LGEOM(icomp),icomp,0,iuout,IER)
               VALX=x2-x1; VALY=y2-y1; VALZ=z2-z1
-              write(msgv,'(a,3F8.4)') 'The transform is ',
-     &          VALX,VALY,VALZ
+              write(msgv,'(a,3F8.4,a)') 'The transform is ',
+     &          VALX,VALY,VALZ,' Is this ok?'
               DOK=.true.
-              call askok(msgv,' Is this ok?',ok,dok,nbhelp)
+              call askok(' ',msgv,ok,dok,nbhelp)
               if(.NOT.ok) goto 77
             else
 
@@ -2255,7 +2254,7 @@ C to temporarily draw it.
      &    'around its lower left corner:',
      &    -359.0,'W',359.0,'W',0.0,'rotation',IER,nbhelp)
      
-        call easkabc('Origin choices:',' ','edit object origin',
+        call easkabc(' ','Origin choices:','edit object origin',
      &    'use zone vertex','abort',ibopt,nbhelp)
         if(ibopt.eq.1)then
           write(hold,'(3f8.4)') DX,DY,DZ
@@ -2298,14 +2297,14 @@ C Peview the bounding box of the object via DRWBB.
         write(temp,'(A)')name
         call drwbb(temp,ier)
 
-        CALL EASKABC('Options for predefined object: ',' ',
+        CALL EASKABC(' ','Options for predefined objects:',
      &    'apply transform and merge','revise transform','cancel',
      &    IW,nbhelp)
         if (IW.eq.1) then
 
 C Ask for single character to prepend to copied associated entities.
-          CALL EASKATOG('Character to pre-pend to copied entities:',
-     &    ' ',' a ',' b ',' c ',' d ',' e ',' f ','...',IBOPT,nbhelp)
+          CALL EASKATOG(' ','Character to pre-pend to copied entities:',
+     &    ' a ',' b ',' c ',' d ',' e ',' f ','...',IBOPT,nbhelp)
           if(ibopt.eq.1)prec='a'
           if(ibopt.eq.2)prec='b'
           if(ibopt.eq.3)prec='c'
@@ -2313,8 +2312,9 @@ C Ask for single character to prepend to copied associated entities.
           if(ibopt.eq.5)prec='e'
           if(ibopt.eq.6)prec='f'
           if(ibopt.eq.7)then
-            CALL EASKATOG('Character to pre-pend to copied entities:',
-     &      ' ',' g ',' h ',' i ',' j ',' k ',' l ',' m',IBOPT,nbhelp)
+            CALL EASKATOG(' ',
+     &      'Character to pre-pend to copied entities:',
+     &      ' g ',' h ',' i ',' j ',' k ',' l ',' m',IBOPT,nbhelp)
             if(ibopt.eq.1)prec='g'
             if(ibopt.eq.2)prec='h'
             if(ibopt.eq.3)prec='i'
@@ -2799,8 +2799,8 @@ C Jump to previous zone after processing any remaining tasks.
         ianother=-1
         if(MODGEO)then
           DOK=.false.
-          CALL ASKOK('Save changes to zone composition and surface',
-     &         'attributes? (legacy and new format)',OK,DOK,nbhelp)
+          CALL ASKOK('Save changes to zone composition and',
+     &      'surface attributes? (legacy and new format)',OK,DOK,nbhelp)
           LTMP=LGEOM(ICOMP)
 
 C Test for saving current or new format geometry file.
@@ -2835,8 +2835,8 @@ C Jump to next zone after processing any remaining tasks.
         ianother=1
         if(MODGEO)then
           DOK=.false.
-          CALL ASKOK('Save changes to zone composition and surface',
-     &         'attributes? (legacy and new format)',OK,DOK,nbhelp)
+          CALL ASKOK('Save changes to zone composition and',
+     &      'surface attributes? (legacy and new format)',OK,DOK,nbhelp)
           LTMP=LGEOM(ICOMP)
 
 C Test for saving current or new format geometry file.
@@ -3060,7 +3060,7 @@ C If any changes update and then save geometry file before invoking ish.
 C Allow user to start shading analysis. If user does not cancel suggest
 C a new file name, ask the user to confirm that name and update the model
 C cfg file and then if the user says do it now call comission ish.
-        CALL EASKABC('Shading & insolation analysis options: ',' ',
+        CALL EASKABC(' ','Shading & insolation analysis options:',
      &   'do now','do later','cancel',IW,nbhelp)
         if(IW.eq.1.or.IW.eq.2)then
           if(ISI(ICOMP).eq.0)then
@@ -3246,7 +3246,7 @@ C Help messages.
      &     'all applicable surfaces','selected surfaces',
      &     'none','cancel',IIC,nbhelp)
       elseif(act.eq.'i'.or.act.eq.'I')then
-         CALL EASKABCD(' ','Insolation calculationoptions:',
+         CALL EASKABCD(' ','Insolation calculation options:',
      &      'all applicable surfaces','selected surfaces',
      &      'none','cancel ? ',IIC,nbhelp)
       else
@@ -3697,7 +3697,8 @@ C offer to add such a default entity to the flow network.
                 call edisp(iuout,outs)
                 INVT=0
                 CALL EASKABC(
-     &          'USE suggests an associated flow component','  ',
+     &          'The surface USE attribute suggests an associated',
+     &          'flow component. Options:',
      &          'pick existing flow component',
      &          'create one to match','cancel',INVT,nbhelp)
                 if(INVT.eq.1)then
@@ -4158,10 +4159,10 @@ C Use ssmlcindex to get MLC index for surface.
           if(LTHRM(ICOMP)(1:7).eq.'UNKNOWN'.or.
      &       LTHRM(ICOMP)(1:2).eq.'  ')then
             if(ssmlcindex(ioc).ne.0)then
-              write(outs,'(2a)') SN(1:lnblnk(SN)),'?'
+              write(outs,'(3a)') 'View thermo-physical properties of ',
+     &          SN(1:lnblnk(SN)),'?'
               dok=.false.
-              call askok('View thermo-physical properties of ',
-     &                    outs,ok,dok,nbhelp)
+              call askok(' ',outs,ok,dok,nbhelp)
               if(ok)then
                 call ETMLDB(1,iuout,ioc,imerr)        
               endif
@@ -4172,10 +4173,10 @@ C A non-blank, possibly known construction.
             XST=.FALSE.
             call FINDFIL(LTHRM(ICOMP),XST)
             if(XST)then
-              write(outs,'(2a)') SN(1:lnblnk(SN)),'?'
+              write(outs,'(3a)') 'View thermo-physical properties of ',
+     &          SN(1:lnblnk(SN)),'?'
               dok=.false.
-              call askok('View thermo-physical properties of ',outs,
-     &                   ok,dok,nbhelp)
+              call askok(' ',outs,ok,dok,nbhelp)
               if(ok)then
                 CALL ECONST(LTHRM(ICOMP),IFIL+2,ICOMP,0,IUOUT,IER)
 
@@ -4185,12 +4186,12 @@ C << properties and the optical name.
               endif
             endif
           endif
-          write(outs,'(2a)') SN(1:lnblnk(SN)),'?'
+          write(outs,'(3a)') 'Modify thermo-physical data of ',
+     &      SN(1:lnblnk(SN)),'?'
           dok=.false.
           helptopic='surface_non_symetric'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok('Modify thermo-physical data of',outs,
-     &      ok,dok,nbhelp)
+          call askok(' ',outs,ok,dok,nbhelp)
         else
           ok=.true.
         endif
@@ -4499,7 +4500,8 @@ C offer to add such a default entity to the flow network.
                 if(.NOT.found_association)then
                   INVT=0
                   CALL EASKABC(
-     &              'USE suggests an associated flow component','  ',
+     &              'The surface USE attribute suggests an associated',
+     &              'flow component. Options:',
      &              'pick existing flow component',
      &              'create one to match','cancel',INVT,nbhelp)
                   if(INVT.eq.1)then
@@ -5315,7 +5317,7 @@ C If horizontal relax the azimuth test.
             write(outs,'(3a)') 'Make thermophysical connection with ',
      &      ssname(IIC3),'?'
             INVT=0
-            CALL EASKABC(outs,'  ','yes',
+            CALL EASKABC(' ',outs,'yes',
      &        'yes and update other side','cancel',INVT,nbhelp)
             if(INVT.eq.1)then
               iz=ic1(iic3); iso=ie1(iic3) ! decode other zone and surf
@@ -5867,7 +5869,7 @@ C Do not need second tag if generating notional model
         helptopic='door_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','DOOR air leakage:',
+        CALL EASKATOG(' ','Surface DOOR USE attribute air leakage:',
      &    'closed','undercut','open','bidirectional',
      &    'cancel',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
@@ -5894,7 +5896,7 @@ C If a partition then update the other surface use attributes.
         helptopic='fict_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','FICT surface air leakage:',
+        CALL EASKATOG(' ','Surface FICT USE air leakage choices:',
      &    'closed','crack','open','bidirectional',
      &    'cancel',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
@@ -5938,7 +5940,7 @@ C If a partition then update the other surface use attributes.
         helptopic='frame_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','FRAME surface air leakage:',
+        CALL EASKATOG(' ','Surface FRAME USE air leakage choices:',
      &    'closed','crack','vent','cancel',
      &    ' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
@@ -5967,7 +5969,7 @@ C If a partition then update the other surface use attributes.
         helptopic='grill_use'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','GRILL surface air leakage:',
+        CALL EASKATOG(' ','Surface GRILL USE air leakage choices:',
      &    'closed','crack','mech vent inlet','mech vent extract',
      &    'natural air flow','duct','cancel',IRT,nbhelp)
         if(IRT.eq.1)then
@@ -6069,7 +6071,7 @@ C If a partition then update the other surface use attributes.
         helptopic='window_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','WINDOW surface air leakage:',
+        CALL EASKATOG(' ','Surface WINDOW USE air leakage choices:',
      &    'closed','crack','open','sash ','bidirectional',
      &    'cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
@@ -6099,8 +6101,8 @@ C If a partition then update the other surface use attributes.
 C If changed then save the zone geometry.
       if(changed)then
         DOK=.false.
-        CALL ASKOK('Save changes to surface attributes?',
-     &    ' ',OK,DOK,nbhelp)
+        CALL ASKOK('  ','Save changes to surface attributes?',
+     &    OK,DOK,nbhelp)
         LTMP=LGEOM(IZ)
 
 C Test for saving current or new format geometry file.
@@ -6314,7 +6316,7 @@ C Add USE2 'PERIM-CR'
         helptopic='door_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','DOOR air leakage:',
+        CALL EASKATOG(' ','Surface DOOR USE air leakage choices:',
      &    'closed','undercut','open','bidirectional',
      &    'cancel',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
@@ -6335,7 +6337,7 @@ C Add USE2 'PERIM-CR'
         helptopic='fict_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','FICT surface air leakage:',
+        CALL EASKATOG(' ','Surface FICT USE air leakage choices:',
      &    'closed','crack','open','bidirectional',
      &    'cancel',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
@@ -6367,7 +6369,7 @@ C Add USE2 'PERIM-CR'
         helptopic='frame_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','FRAME surface air leakage:',
+        CALL EASKATOG(' ','Surface FRAME USE air leakage choices:',
      &    'closed','crack','vent','cancel',
      &    ' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
@@ -6389,7 +6391,7 @@ C Add USE2 'PERIM-CR'
         helptopic='grill_use'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG('GRILL surface air leakage:','  ',
+        CALL EASKATOG('  ','Surface GRILL USE air leakage choices:',
      &    'closed','crack','mech vent inlet','mech vent extract',
      &    'natural air flow','duct','cancel',IRT,nbhelp)
         if(IRT.eq.1)then
@@ -6443,7 +6445,7 @@ C Do not need second tag if generating notional model
         helptopic='window_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
-        CALL EASKATOG(' ','WINDOW surface air leakage:',
+        CALL EASKATOG(' ','Surface WINDOW USE air leakage choices:',
      &    'closed','crack','open','sash ','bidirectional',
      &    'cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
@@ -6913,7 +6915,7 @@ C Show the new point on the current wireframe.
 
 C Ask if it should be added.
                 if(NTV.lt.MTV)then
-                  write(outs,'(a,i3,a)') 'Make vertex ',NTV+1,' a:'
+                  write(outs,'(a,i3,a)')'Make vertex ',NTV+1,' Options:'
                   invt=0
                   CALL EASKABC(' ',outs,'new vertex',
      &              'new vertex after editing','cancel',INVT,nbhelp)
@@ -7139,7 +7141,7 @@ C Use ratio calculation to make an aligned point vdislsp along the line.
 
             if(MMOD.eq.8)call wiresymbol(x3,y3,z3,2,24)
             dok=.true.
-            call askok('Is this aligned vertex ok?',' ',ok,dok,nbhelp)
+            call askok('  ','Is this aligned vertex ok?',ok,dok,nbhelp)
             if(ok)then
 
 C Update the coordinates in common blocks and return.
@@ -7152,7 +7154,7 @@ C Update the coordinates in common blocks and return.
         elseif(ino.eq.9)then
         
 C Find close vertices.
-          CALL EASKATOG('Search options:',' ',
+          CALL EASKATOG(' ','Search options:',
      &    'close vertices','close to a vertex','to an X','to a Y',
      &    'to a Z','cancel ',' ',INVT,nbhelp)
 C          CALL EASKABC(' ','Options:','find close vertices',
@@ -7289,7 +7291,7 @@ C Use ratio calculation.
 C Show the new point on the current wireframe.
             if(MMOD.eq.8)call wiresymbol(x3,y3,z3,2,24)
             dok=.true.
-            call askok('Apply this move?',' ',OK,dok,nbhelp)
+            call askok('  ','Apply this move?',OK,dok,nbhelp)
             if(OK)then
               x(IWHICH1)=x3; y(IWHICH1)=y3; z(IWHICH1)=z3
               VCOORD(ICOMP,IWHICH1,1)=x3; VCOORD(ICOMP,IWHICH1,2)=y3
@@ -7362,7 +7364,7 @@ C Show this point on the current wireframe.
             call forceflush()
           endif
           dok=.true.
-          call askok('Apply this change?',' ',OK,dok,nbhelp)
+          call askok('  ','Apply this change?',OK,dok,nbhelp)
           if(OK)then
             NTV=NTV+1; NZTV(icomp)=NTV; MODGEO=.true.
             x(NTV)=x3; y(NTV)=y3; z(NTV)=z3
@@ -7391,7 +7393,7 @@ C be a new vertex and update the wireframe. This logic will be
 C applied to the 'a' 'c' and 'f' options.
         if(ino.eq.1.or.ino.eq.3.or.ino.eq.5)then
           if(NTV.lt.MTV)then
-            write(outs,'(a,i3,a)') 'Make vertex ',NTV+1,' a:'
+            write(outs,'(a,i3,a)') 'Make vertex ',NTV+1,' Options:'
             CALL EASKABC(' ',outs,'new vertex',
      &        'new vertex after editing','cancel',INVT,nbhelp)
             if(INVT.eq.1)then
@@ -7507,7 +7509,7 @@ C Surface (ivj) vertex list has been updated. Go on to next surface.
 C See if another one is required.
               if(ino.eq.1)then
                 dok=.false.
-                call askok('Another vertex along the line? ',' ',
+                call askok(' ','Another vertex along the line? ',
      &            ok,dok,nbhelp)
                 if(ok)then
                   anotherone=.true.
@@ -7517,8 +7519,8 @@ C See if another one is required.
                 endif
               elseif(ino.eq.3)then
                 dok=.false.
-                call askok('Another vertex from this origin? ',
-     &            ' ',ok,dok,nbehlp)
+                call askok(' ','Another vertex from this origin?',
+     &            ok,dok,nbehlp)
                 if(ok)then
                   anotherone=.true.
                   goto 243
@@ -7527,8 +7529,9 @@ C See if another one is required.
                 endif
               elseif(ino.eq.5)then
                 dok=.false.
-                call askok('Another intersection of line and plane? ',
-     &            ' ',ok,dok,nbehlp)
+                call askok(' ',
+     &            'Another intersection of line and plane?',
+     &            ok,dok,nbehlp)
                 if(ok)then
                   anotherone=.true.
                   goto 243
@@ -7568,7 +7571,7 @@ C Alter vertex list by deleting/ copy / replicate / editing.
 C Ask if fine tolerance to be used.
           write(outs,'(a,f7.4,a)') 
      &      'Current tolerance for vertex matching is:',CACC,'m.'
-          CALL EASKABC(outs,'options:','accept tolerance',
+          CALL EASKABC(outs,'Options:','accept tolerance',
      &      'use fine tolerances','cancel',INVT,nbhelp)
           if(INVT.eq.1)then
             continue
@@ -7701,8 +7704,8 @@ C Show the point to be edited on the current wireframe.
 C Present vertex coords for editing then parse data from HOLD.
               WRITE(HOLD,'(3f11.5,a)')X(IFOC),Y(IFOC),Z(IFOC),'  '
               write(outs,'(a,i3,a)')
-     &          ' Vertex (',ifoc,') X  Y  Z (in metres):'
- 1146         CALL EASKS(HOLD,outs,' ',36,' 0. 0. 0. ','vertex coord',
+     &          'Vertex (',ifoc,') X Y Z (in metres):'
+ 1146         CALL EASKS(HOLD,' ',outs,36,' 0. 0. 0. ','vertex coord',
      &          IER,nbhelp)
               K=0
               CALL EGETWR(HOLD,K,X(IFOC),-999.9,999.9,'W','X cord',IER)
@@ -7874,18 +7877,18 @@ C Present vertex coords for editing then parse data from HOLD.
         WRITE(outs,'(a,i3,a,3f11.5)')' Vertex (',ifoc,') @ ',
      &    X(IFOC),Y(IFOC),Z(IFOC)
         call edisp(iuout,outs)
-        write(outs,'(a,i3,a)')' Vertex (',ifoc,') X  Y  Z (in metres):'
+        write(outs,'(a,i3,a)')'Vertex (',ifoc,') X Y Z (in metres):'
 
 C Depending on position within array of vertices adapt the dialog to
 C allow for jump to previous or next.
         if(ifoc.eq.1)then
-          call EASKS2CMD(HOLD,outs,' ',' ','next vertex',iclkok,36,
+          call EASKS2CMD(HOLD,' ',outs,' ','next vertex',iclkok,36,
      &      ' 0. 0. 0. ','vertex coord',IER,nbhelp)
         elseif(ifoc.eq.NZTV(icomp))then
-          call EASKS2CMD(HOLD,outs,' ','prev vertex',' ',iclkok,36,
+          call EASKS2CMD(HOLD,' ',outs,'prev vertex',' ',iclkok,36,
      &      ' 0. 0. 0. ','vertex coord',IER,nbhelp)
         else
-          call EASKS2CMD(HOLD,outs,' ','prev vertex','next vertex ',
+          call EASKS2CMD(HOLD,' ',outs,'prev vertex','next vertex ',
      &      iclkok,36,' 0. 0. 0. ','vertex coord',IER,nbhelp)
         endif
         K=0
@@ -8166,7 +8169,7 @@ C Check vertex topology.
 C Echo the current tolerances and ask if small features.
         write(outs,'(2a,f7.4,a)') 'If import has small features...',
      &    ' Current tolerance for vertex matching is:',CACC,'m.'
-        CALL EASKABC(outs,'options:','accept tolerance',
+        CALL EASKABC(outs,'Options:','accept tolerance',
      &    'use fine tolerances','cancel',INVT,nbhelp)
         if(INVT.eq.1)then
           continue
@@ -8714,7 +8717,7 @@ C << ?? make use of rsname etc in interactive use?? >>
 C Echo the current tolerances and ask if small features.
           write(outs,'(2a,f7.4,a)') 'If import has small features...',
      &      ' Current tolerance for vertex matching is:',CACC,'m.'
-          CALL EASKABC(outs,'options:','accept tolerance',
+          CALL EASKABC(outs,'Options:','accept tolerance',
      &      'use fine tolerances','cancel',INVT,nbhelp)
           if(INVT.eq.1)then
             continue
@@ -8738,7 +8741,7 @@ C Get vertical rectangular surface orgin.
           call tstamp('>','PRJ: add vertical surface')
 
 C Offer similar choices to setting up obstructions (see edobs.F)
-          call easkabcd('Origin choices:',' ','edit origin',
+          call easkabcd(' ','Origin choices:','edit origin',
      &      'use zone vertex','@ angle&dist from vertex','continue',
      &      ibopt,nbhelp)
           if(ibopt.eq.1)then
@@ -8829,7 +8832,7 @@ C Get horizontal rectangular surface orgin.
           call tstamp('>','PRJ: add horizontal surface')
 
 C Offer similar choices to setting up obstructions (see edobs.F)
-          call easkabcd('Origin choices:',' ','edit origin',
+          call easkabcd(' ','Origin choices:','edit origin',
      &      'use zone vertex','@ angle&dist from vertex','continue',
      &      ibopt,nbhelp)
           if(ibopt.eq.1)then
@@ -10861,8 +10864,10 @@ C not involve the user, jump straight to the 10%.
       if(act(1:1).eq.'-')then
         if(nbrdg(icomp).eq.0)then
           if(ISBEM.EQ.2)then
-            CALL EASKABCD('This zone:','(see help)',
-     &        'uses metal cladding','no metal cladding','fixed %',
+            CALL EASKABCD(
+     &        'The thermal bridge approach needs to know about metal',
+     &        'in the facade. This zone uses:',
+     &        'metal cladding','no metal cladding','fixed %',
      &        'exit',INVT,nbhelp)
             if(INVT.eq.1)then
               continue
@@ -10874,8 +10879,10 @@ C not involve the user, jump straight to the 10%.
               return
             endif
           else
-            CALL EASKABCD('This zone:','(see help)',
-     &        'uses metal cladding','no metal cladding','fixed %',
+            CALL EASKABCD(
+     &        'The thermal bridge approach needs to know about metal',
+     &        'in the facade. This zone uses:',
+     &        'metal cladding','no metal cladding','fixed %',
      &        'exit',INVT,nbhelp)
             if(INVT.eq.1)then
               continue

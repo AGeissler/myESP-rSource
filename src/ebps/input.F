@@ -933,7 +933,7 @@ C Kill simulation if in DLL mode
 C Warn the user that the climate file definition has failed. 
                write(louts,'(A,A,A)')
      &           'Warning: specified climate file (',
-     &           llclmdb(1:LNBLNK(llclmdb)), ') could not be found.'
+     &           LCLIM(1:LNBLNK(LCLIM)), ') could not be found.'
               
                call edisp248 (iuout,louts,100)
                if ( autook ) then
@@ -1705,7 +1705,7 @@ C If zone casual gain control file, read it in.
       endif
 
 C CFD domanin.
-      IF(ABS(IFCFD(ICOMP)).GT.0)THEN
+      IF(ABS(IFCFD(ICOMP)).GT.0 .and. CFDOK)THEN
         ICP=ICOMP
 
 C Set the flags that indicate whether there is thermal conflation
@@ -1742,7 +1742,6 @@ C set currentfile
             CALL DFDREAD(ICOMP,itrc,itu,IER)
           endif
           CALL CFDLENS
-          CFDOK=.true.
 
 C Open CFD monitoring file
           ICFMON(ICFD) = IFIL + 19 + (ICFD-1)*100

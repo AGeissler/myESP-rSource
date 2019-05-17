@@ -967,9 +967,6 @@ C Calculate the current period id for occupants.
           perocupl=CGLAT(icomp,iweekdayweekend,1,iperocup)
 
 C <FMI>
-C          ctlperocupc(icomp,2)=perocupc
-C          ctlperocupr(icomp,2)=perocupr
-C          ctlperocupl(icomp,2)=perocupl
 C Multiply by control value (CGCTL) as this may be set by an FMU, and
 C is set to a default of 1. (in MZCASG) even if it is not set by an FMU.
           ctlperocupc(icomp,2)=perocupc*CGCTL(ICOMP,2,1)
@@ -1006,15 +1003,9 @@ C <FMI>
 C Always multiply by control value (CGCTL) as this may be set by an FMU 
 C or casual gain control, and is set to a default of 1. (in MZCASG) even
 C if it is not set elsewhere.
-C          if(ICGCTL(ICOMP).eq.2)then
-            ctlperlightc(icomp,2)=perlightc*CGCTL(ICOMP,2,2)
-            ctlperlightr(icomp,2)=perlightr*CGCTL(ICOMP,2,2)
-            ctlperlightl(icomp,2)=perlightl*CGCTL(ICOMP,2,2)
-C          else
-C            ctlperlightc(icomp,2)=perlightc
-C            ctlperlightr(icomp,2)=perlightr
-C            ctlperlightl(icomp,2)=perlightl
-C          endif
+          ctlperlightc(icomp,2)=perlightc*CGCTL(ICOMP,2,2)
+          ctlperlightr(icomp,2)=perlightr*CGCTL(ICOMP,2,2)
+          ctlperlightl(icomp,2)=perlightl*CGCTL(ICOMP,2,2)
 C </FMI>
         else
           perlightc=0.0
@@ -1043,15 +1034,9 @@ C <FMI>
 C Always multiply by control value (CGCTL) as this may be set by an FMU 
 C or casual gain control, and is set to a default of 1. (in MZCASG) even
 C if it is not set elsewhere.
-C          if(ICGCTL(ICOMP).eq.3)then
-            ctlperequipc(icomp,2)=perequipc*CGCTL(ICOMP,2,3)
-            ctlperequipr(icomp,2)=perequipr*CGCTL(ICOMP,2,3)
-            ctlperequipl(icomp,2)=perequipl*CGCTL(ICOMP,2,3)
-C          else
-C            ctlperequipc(icomp,2)=perequipc
-C            ctlperequipr(icomp,2)=perequipr
-C            ctlperequipl(icomp,2)=perequipl
-C          endif
+          ctlperequipc(icomp,2)=perequipc*CGCTL(ICOMP,2,3)
+          ctlperequipr(icomp,2)=perequipr*CGCTL(ICOMP,2,3)
+          ctlperequipl(icomp,2)=perequipl*CGCTL(ICOMP,2,3)
 C </FMI>
 
         else
@@ -1077,16 +1062,12 @@ C to the equipment code block above.
           perotherr=CGSENR(icomp,iweekdayweekend,4,iperother)
           perotherl=CGLAT(icomp,iweekdayweekend,4,iperother)
 
-C <FMI> following lines commented </FMI>
-c          if(ICGCTL(ICOMP).eq.4)then
-            ctlperotherc(icomp,2)=perotherc*CGCTL(ICOMP,2,4)
-            ctlperotherr(icomp,2)=perotherr*CGCTL(ICOMP,2,4)
-            ctlperotherl(icomp,2)=perotherl*CGCTL(ICOMP,2,4)
-c          else
-c            ctlperotherc(icomp,2)=perotherc
-c            ctlperotherr(icomp,2)=perotherr
-c            ctlperotherl(icomp,2)=perotherl
-c          endif
+C <FMI>
+          ctlperotherc(icomp,2)=perotherc*CGCTL(ICOMP,2,4)
+          ctlperotherr(icomp,2)=perotherr*CGCTL(ICOMP,2,4)
+          ctlperotherl(icomp,2)=perotherl*CGCTL(ICOMP,2,4)
+C </FMI>
+
         else
           perotherc=0.0
           perotherr=0.0

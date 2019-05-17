@@ -343,6 +343,9 @@ C the input.xml can be read.
 C file before generating output.
       CALL chdir(path)
 
+C Update path to take account of this.
+      write(path,'(a)')'./'
+
 C Debug.
 C      write(*,*)'chdir'
 
@@ -973,7 +976,6 @@ C Present day.
 C Note: future year may correspond to another climate file
 C If this is a multi-year simulation, we may need to open the
 C approprate climate file.
-
         if ( bMY_sim_enabled ) then
            if ( .not. bMY_clm_file_open ( iMY_future_yr_index ) ) then
 C Close old file, if necessary.
@@ -984,8 +986,7 @@ C Close old file, if necessary.
 
 C Open new file.
            ier=0
-           call EfOpRan(iClim,cMY_clm_file_names(iMY_future_yr_index),
-     &                MCM*24,0,IER)
+           CALL CLMOPB(0,IER)
 
 C Set flag
             bMY_clm_file_open ( iMY_future_yr_index ) = .true.

@@ -1020,10 +1020,12 @@ C Uses similar conventions to DISCOMF above.
       SUBROUTINE DRAUGHT(IDAY,ITS,IZONE,IMRT,iflag,PPD,IER)
 
 #include "building.h"
+#include "model.h"
 #include "geometry.h"
 #include "cfd.h"
 
       COMMON/OUTIN/IUOUT,IUIN
+      COMMON/FILEP/IFIL
       common/rpath/path
       character path*72,LCMDFL*144,ltmpc*144,LTMP*72,lpath*72,outs*128
 
@@ -1038,6 +1040,7 @@ C Uses similar conventions to DISCOMF above.
 
       real PI,R,SA,CA,DX,DY,HI(3),XC,YC,ZC
       integer IHI(3)
+      character LMRT*72
 
 C Read CFD header data and set common block data.
       lpath=path
@@ -1053,7 +1056,10 @@ C initialise CFD - building domain transformation matrices.
       CALL INIT_CFDTRANS(IER)
 
 C Equation is for draught at the neck, so use a point in the centre of
-C the top face of the MRT sensor.      
+C the top face of the MRT sensor.
+      IUF=IFIL+1
+      LMRT=LVIEW(IZONE)
+      call ERMRT(0,IUOUT,IUF,LMRT,IZONE,IER)      
       PI = 4.0 * ATAN(1.0)
       R=PI/180.
       SA=SIN(CANG(IMRT)*R)
@@ -1241,10 +1247,12 @@ C GVAL.
       SUBROUTINE VERTdT(IDAY,IZONE,IMRT,IER)
 
 #include "building.h"
+#include "model.h"
 #include "geometry.h"
 #include "cfd.h"
 
       COMMON/OUTIN/IUOUT,IUIN
+      COMMON/FILEP/IFIL
       common/rpath/path
       character path*72,LCMDFL*144,ltmpc*144,LTMP*72,lpath*72,outs*128
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -1254,8 +1262,9 @@ C GVAL.
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       COMMON/cfddoms/NCDOM,ICFDZ(MNZ)
 
-      real PI,R,SA,CA,DX,DY,HI(3),LO(3),XC,YC,ZC
+      real PI,R,SA,CA,DX,DY,HI(3),XC,YC,ZC
       integer IHI(3),ILO(3)
+      character LMRT*72
 
 C Read CFD header data and set common block data.
       call RCFDLIBH(IZONE,IER)
@@ -1267,7 +1276,11 @@ C initialise CFD - building domain transformation matrices.
       endif
       CALL INIT_CFDTRANS(IER)
 
-C Get coordinates in the center of top and bottom faces of MRT sensor.
+C Get coordinates in the center of top face of MRT sensor.
+C dT between this point and floor level at this position.
+      IUF=IFIL+1
+      LMRT=LVIEW(IZONE)
+      call ERMRT(0,IUOUT,IUF,LMRT,IZONE,IER)
       PI = 4.0 * ATAN(1.0)
       R=PI/180.
       SA=SIN(CANG(IMRT)*R)
@@ -1277,16 +1290,11 @@ C Get coordinates in the center of top and bottom faces of MRT sensor.
       HI(1)=XOC(IMRT)+DX
       HI(2)=YOC(IMRT)+DY
       HI(3)=ZOC(IMRT)+DZC(IMRT)
-      LO(1)=XOC(IMRT)+DX
-      LO(2)=YOC(IMRT)+DY
-      LO(3)=ZOC(IMRT)      
 
       CALL GRIDGEO
       CALL CFDTRANS(2,HI(1),HI(2),HI(3),XC,YC,ZC,IER)
       CALL FDCFDPT(1,XC,YC,ZC,IHI(1),IHI(2),IHI(3),IER)
-
-      CALL CFDTRANS(2,LO(1),LO(2),LO(3),XC,YC,ZC,IER)
-      CALL FDCFDPT(1,XC,YC,ZC,ILO(1),ILO(2),ILO(3),IER)
+      ILO(1)=IHI(1); ILO(2)=IHI(2); ILO(3)=2
 
       if (IER.ne.0) then
         write(outs,'(a)')
@@ -1313,7 +1321,10 @@ C Get coordinates in the center of top and bottom faces of MRT sensor.
 
 C Check if there are CFD results available for this time step.
         CALL GETIFRM(IDAY,JTS,IFRAME,IER)
-        if (IER.ne.0) IER=0; goto 185
+        if (IER.ne.0) then
+          IER=0
+          goto 185
+        endif
   
         CALL RDCFDAT(IFRAME)
 

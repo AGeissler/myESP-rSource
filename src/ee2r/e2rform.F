@@ -1908,13 +1908,13 @@ C Similar logic to edoptic.F
               
 C Report what has been decided.
 C Debug
-                  write(6,*) 'found surface with fixture',icn,
-     &              SSUSE(icn,1),SSUSE(icn,2),combinedname,trnsx,
-     &              trnsy,trnsz,roties
-                  write(6,*) iescontrolledname(1)
-                  write(6,*) iescontrolledname(2)
-                  write(6,*) iescontrolledname(3)
-                  write(6,*) iescontrolledname(4)
+c                  write(6,*) 'found surface with fixture',icn,
+c     &              SSUSE(icn,1),SSUSE(icn,2),combinedname,trnsx,
+c     &              trnsy,trnsz,roties
+c                  write(6,*) iescontrolledname(1)
+c                  write(6,*) iescontrolledname(2)
+c                  write(6,*) iescontrolledname(3)
+c                  write(6,*) iescontrolledname(4)
 
 C For each control state.  Put a hash in front of subsequent lines (it is
 C up to the user to edit the file at simulation run time).
@@ -1928,20 +1928,20 @@ C up to the user to edit the file at simulation run time).
      &                  ' -rz ',roties,' -rx 0 -t ',
      &                  trnsx,trnsy,trnsz,' ',
      &                  iescontrolledname(loop2)(1:lnctl)
-                      WRITE(6,'(3a,f7.2,a,3f7.3,2a)') ' !xform -e -n ',
-     &                  combinedname(1:lncmb),' -rz ',roties,
-     &                  ' -rx 0 -t ',trnsx,trnsy,trnsz,' ',
-     &                  iescontrolledname(loop2)(1:lnctl)
+c                      WRITE(6,'(3a,f7.2,a,3f7.3,2a)') ' !xform -e -n ',
+c     &                  combinedname(1:lncmb),' -rz ',roties,
+c     &                  ' -rx 0 -t ',trnsx,trnsy,trnsz,' ',
+c     &                  iescontrolledname(loop2)(1:lnctl)
                     else
                       WRITE(iiesfil,'(3a,f7.2,a,3f7.3,2a)') 
      &                  '# !xform -e -n ',combinedname(1:lncmb),
      &                  ' -rz ',roties,' -rx 0 -t ',
      &                  trnsx,trnsy,trnsz,' ',
      &                  iescontrolledname(loop2)(1:lnctl)
-                      WRITE(6,'(3a,f7.2,a,3f7.3,2a)') 
-     &                  '# !xform -e -n ',combinedname(1:lncmb),' -rz ',
-     &                  roties,' -rx 0 -t ',trnsx,trnsy,trnsz,' ',
-     &                  iescontrolledname(loop2)(1:lnctl)
+c                      WRITE(6,'(3a,f7.2,a,3f7.3,2a)') 
+c     &                  '# !xform -e -n ',combinedname(1:lncmb),' -rz ',
+c     &                  roties,' -rx 0 -t ',trnsx,trnsy,trnsz,' ',
+c     &                  iescontrolledname(loop2)(1:lnctl)
                     endif
                   enddo  ! of loop2
 

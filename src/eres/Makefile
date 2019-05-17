@@ -24,7 +24,7 @@ default: $(PROG)
 
 MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o CFC_Module.o
 
-OBJECTS = res.o arrow.o ascii_mat.o c2fdum.o castyp.o cfdat.o cfgrid.o cfutil.o cgd.o \
+OBJECTS = res.o arrow.o ascii_mat.o c2fdum.o castyp.o cfdat.o cfdrw.o cfgrid.o cfutil.o cgd.o \
 	  comfort.o convect2.o ctread.o design.o dmdrep.o dossupport.o e3dviews.o \
 	  ecasctl.o CDBPlugins.o CDBCommon.o commonclm.o econstr.o econtrol.o \
 	  edatabase.o egeometry.o emfnetw.o enerbs.o enerbz.o enetmisc.o \
@@ -68,6 +68,9 @@ CFC_Module.f90:
 cfdat.F:
 	rm -f cfdat.F
 	ln -s $(DFSdir)/cfdat.F .
+cfdrw.F:
+	rm -f cfdrw.F
+	ln -s $(COMdir)/cfdrw.F .
 cfgrid.F:
 	rm -f cfgrid.F
 	ln -s $(COMdir)/cfgrid.F .
@@ -200,7 +203,7 @@ install:
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \
-	aim2_module.F arrow.F ascii_mat.F c2fdum.F cfdat.F cfgrid.F cfutil.F \
+	aim2_module.F arrow.F ascii_mat.F c2fdum.F cfdat.F cfdrw.F cfgrid.F cfutil.F \
 	cgd.F convect2.F ctread.F CDBPlugins.F CDBCommon.F commonclm.F \
 	dossupport.F e3dviews.F ecasctl.F econstr.F econtrol.F edatabase.F \
 	egeometry.F emfnetw.F enetmisc.F enetrewr.F eroper.F esru_misc.F \

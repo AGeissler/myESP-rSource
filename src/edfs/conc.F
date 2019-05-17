@@ -105,8 +105,8 @@ C
      &              SIFH(ntcelz),SIFL(ntcelz)
       COMMON/NORMCW/RENORMC,RENORMWV 
       common/SOLVER/ILISOL
-      COMMON/SCHMTT/SCHMT(MCTM),GFM(MCTM),VCRIT(MCTM),TBOIL(MCTM),
-     &       TCRIT(MCTM),ISCHMT(MCTM)
+      COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
+     &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
       COMMON/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
       COMMON/CFDMFS2/MFNEWN(MNVLS,MNZ),NFNDN,NCFDOPNO(MNVLS,MNZ),
      &               NFNPDN(MNZ)
@@ -114,7 +114,7 @@ C
       logical ACTCNN
 
 C Source / Sink model commons
-      COMMON/CTDFAF/ICTDFAF,SRCE(MNVLS,MCTM,MNZ),ICCSRC
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
      &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
       COMMON/CONTM9/SSSTR(MSPMNO,MCONTM)
@@ -189,7 +189,7 @@ C Contaminant linking is independant of CFD to mass flow conflation but
 C if a CFD to mass flow conflation is defined (recommended) contaminant
 C mass inflows and outflows from opening type boundary conditions are 
 C also considered.
-      IF(ICTDFAF.EQ.1)THEN
+      IF(ICTDFAF(ICFD).EQ.1)THEN
 
 C Get source model and strength associated with this boundary condition
         DO 698 IV=1,NVOL(ICFD)
@@ -257,14 +257,14 @@ C      write(6,*)'srcstr ',srcstr
 C Get turbulent Schmidt number for this contaminant
 C SCHMIL=0.94 was previously used for CO2 and 0.59 for moisture also
 C PRODR=0.0000153737 for CO2 and 0.0000166666 for moisture were used
-      IF(ISCHMT(ICTM).EQ.1)THEN
-        VL1=GFM(ICTM)
-        VL2=VCRIT(ICTM)
-        VL3=TBOIL(ICTM)
-        VL4=TCRIT(ICTM)
+      IF(ISCHMT(ICTM,ICFD).EQ.1)THEN
+        VL1=GFM(ICTM,ICFD)
+        VL2=VCRIT(ICTM,ICFD)
+        VL3=TBOIL(ICTM,ICFD)
+        VL4=TCRIT(ICTM,ICFD)
         CALL SCHMIDTT(VL1,VL2,VL3,VL4,TURSCH)
-      ELSEIF(ISCHMT(ICTM).EQ.0)THEN
-        TURSCH=SCHMT(ICTM)
+      ELSEIF(ISCHMT(ICTM,ICFD).EQ.0)THEN
+        TURSCH=SCHMT(ICTM,ICFD)
       ENDIF
       SCHMIL=TURSCH
       DO 50 I=2,NIM1

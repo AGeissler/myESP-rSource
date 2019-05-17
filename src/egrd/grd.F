@@ -280,7 +280,7 @@ C Take command line file name as initial configuration file.
         LCMDFL=inf
         call edisp(iuout,'  ')  ! echo blank line
         write(outs248,'(a,a)')'The input file is: ',LCMDFL
-        call edisp248(iuout,outs248,80)
+C        call edisp248(iuout,outs248,80)
       else
         LCMDFL='  '
       endif
@@ -321,20 +321,22 @@ C Open core of databases.
             CALL ZDATA (itrc,IER,NZONES,ISFSUM)
             CFGOK=.TRUE.
             numberofzones=ncomp
-            call updwire(numberofzones)
+            if (MMOD.eq.8) call updwire(numberofzones)
 
 C Initialize the 1D gridding variables.
             CALL INTGRD(GRDOK,ITRC)
             IF(GRDOK)THEN
 
 C Set flag so that bounds are checked.
-              DO 30 ICOMP=1,NCOMP
-                iZBFLG(ICOMP)=0
-   30         CONTINUE
-              CFGOK=.TRUE.
-              MODIFYVIEW=.TRUE.
-              MODLEN=.TRUE.
-              MODBND=.TRUE.
+              if (MMOD.eq.8) then
+                DO 30 ICOMP=1,NCOMP
+                  iZBFLG(ICOMP)=0
+   30           CONTINUE
+                CFGOK=.TRUE.
+                MODIFYVIEW=.TRUE.
+                MODLEN=.TRUE.
+                MODBND=.TRUE.
+              ENDIF
             ENDIF
           ELSE
             CFGOK=.FALSE.

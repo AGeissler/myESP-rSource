@@ -10,12 +10,14 @@ C Parameters for predefined objects. As objects might be sourced from
 C existing zone geometry files allow surfaces to be modarately complex
 C e.g. MV vertices/surface but limit the total number of surfaces and
 C vertices in an object.
-      integer MOMS,MOBS,MOTV,MOMB,MOMVB
-      PARAMETER (MOMS=12)       !- Mass surfaces/obj (6 pairs).
+      integer MOMS,MOBS,MOTV,MOMB,MOMVB,MITM,MCATS
+      PARAMETER (MOMS=20)       !- Mass surfaces/obj (10 pairs).
       PARAMETER (MOBS=36)       !- Boundary surfaces/obj.
       PARAMETER (MOTV=96)       !- Vertices/obj. -> 96
-      PARAMETER (MOMB=32)       !- Simple visual shapes or obstructions.
-      PARAMETER (MOMVB=14)      !- Compound visual shapes.
+      PARAMETER (MOMB=32)       !- Simple visual shapes
+      PARAMETER (MOMVB=14)      !- Compound visual shapes
+      PARAMETER (MITM=60)       !- Items in the database
+      PARAMETER (MCATS=10)      !- Categories
 
 C Commons for simple visual objects within a predefined object:
       character objname*12,objdesc*32  ! name and menu string

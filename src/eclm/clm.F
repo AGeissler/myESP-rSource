@@ -363,7 +363,7 @@ C Take command line file name to LCMDF and use as initial weather file.
       else
         LCMDFL=inf
         write(outs248,'(a,a)')' the input file is: ',LCMDFL
-        if(itrc.gt.1)call edisp248(iuout,outs248,80)
+C        if(itrc.gt.1)call edisp248(iuout,outs248,80)
       endif
 
 C Take command line action parameter:
@@ -813,8 +813,8 @@ C name with the full path.
         else
           ISTRW=96
         endif
-        CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &    ' ',ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
+        CALL EASKF(LLASCI,' ','Weather file (ascii version):',
+     &    ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
         IF(LLASCI(1:2).EQ.'  '.or.LLASCI(1:4).eq.'UNKN')GOTO 290
 
 C Cast back to 96 char name.
@@ -845,12 +845,12 @@ C Confirm the period to transfer.
 C Check whether it is an esp-r weather file or an EPW file.
         helptopic='clm_esp_or_epw'
         call gethelptext(helpinsub,helptopic,nbhelp)
-C        CALL EASKABCD('Weather import options:',' ',
-C     &   'EPW weather file','ASCII esp-r file','Korean MET',
+C        CALL EASKABCD(' ','Import options:',
+C     &   'EPW file','ASCII file','Korean MET',
 C     &   'continue',IICT,nbhelp)
-        CALL EASKATOG('Weather import options:',' ',
-     &   'EPW weather file','ASCII esp-r file','Korean MET',
-     &   'ASCII column data','continue',' ',' ',IICT,nbhelp)
+        CALL EASKATOG(' ','Import options:',
+     &   'EPW file','ASCII file','Korean MET',
+     &   'continue',' ',' ',' ',IICT,nbhelp)
         if(IICT.eq.1)then
           NTSPH=1
           LASCI=' '
@@ -932,8 +932,8 @@ C name with the full path.
           else
             ISTRW=96
           endif
-          CALL EASKF(LLASCI,'Weather ASCII file:',
-     &      ' ',ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
+          CALL EASKF(LLASCI,' ','Weather file (ascii):',
+     &      ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3
@@ -1008,8 +1008,8 @@ C name with the full path.
           else
             ISTRW=96
           endif
-          CALL EASKF(LLASCI,' Korean XXXH.dat file:',
-     &      ' ',ISTRW,DCLIM,'Korean weather file name',IER,nbhelp)
+          CALL EASKF(LLASCI,' ','Korean weather file (.dat):',
+     &      ISTRW,DCLIM,'Korean weather file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3
@@ -1023,8 +1023,8 @@ C Cast back to 96 char name and do the conversion.
 C Ask if older or newer file format.
           helptopic='korea_met_file_old_new'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('Korean met office file age options:',' ',
-     &     'older file','newer file','cancel',ICT,nbhelp)
+          CALL EASKABC(' ','Korean weather file format options:',
+     &     'old','new','cancel',ICT,nbhelp)
           if(ICT.eq.1)then
             call MKOREANCLM(LASCI,IUNIT,'old',IER)
           elseif(ICT.eq.2)then
@@ -1074,8 +1074,8 @@ C name with the full path.
           else
             ISTRW=96
           endif
-          CALL EASKF(LLASCI,'Weather ASCII file:',
-     &      ' ',ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
+          CALL EASKF(LLASCI,' ',' Weather file (ascii):',
+     &      ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3
@@ -1131,7 +1131,7 @@ C Delimiter.
         helptopic='clm_delimiter_choice'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=1
-        CALL EASKATOG('Delimeter to use between columns of data:',' ',
+        CALL EASKATOG(' ','Delimeter between data columns:',
      &    'normal spaces','single space','tab','comma','continue',' ',
      &    ' ',IWM,nbhelp)
         if(iwm.eq.1)then
@@ -1254,7 +1254,7 @@ C If output to file alter the edisp unit number.
       itru = icout
       if(ixopen.eq.1)then
         itru = ixunit
-        call usrmsg(' Output being directed to file...',' ','-')
+        call usrmsg(' Output being directed to file ...',' ','-')
       endif
 
 C Read values of the climatic parameters for this day.
@@ -1285,7 +1285,11 @@ C Output all values in tabular form.
         k=4
         do i=1,MCM
           if (CMXST(i)) then
-            write(outs,'(A,F6.1,1X)')outs(1:k),CMRVAL(i,J)
+            if (i.eq.1 .or. i.eq.5) then
+              write(outs,'(A,F6.1,1X)')outs(1:k),CMRVAL(i,J)
+            else
+              write(outs,'(A,I6,1X)')outs(1:k),int(CMRVAL(i,J))
+            endif
             k=k+7
           endif
         enddo

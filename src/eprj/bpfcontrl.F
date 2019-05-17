@@ -194,7 +194,7 @@ C            call edisp(iuout,'Reading existing control file.')
 C If user wishes to deselect current control reset file name to
 C blank, call ezctli to clear commons and save the configuration file.
       if(iclkok.eq.1)then
-        if(cfgok.and.(.NOT.browse))then
+        if(cfgok)then
           call ezctli
           LCTLF='  '
           CALL EMKCFG('-',IER)
@@ -756,9 +756,8 @@ C Local variable ireturn is non-zero to signal user wants to exit.
           endif
         endif
 
-C If not browsing the model ask user if they want to save any changes
-C to control file.
-        if(cfgok.and.(.NOT.browse))then
+C Ask user if they want to save any changes to control file.
+        if(cfgok)then
           IRETURN=1
           DOK=.TRUE.
           CALL ASKOK(' ','Save changes to control file?',OK,dok,nbhelp)
@@ -789,8 +788,8 @@ C Save the control file.
         IF(LASCI(1:2).NE.'  ')LCTLF=LASCI
 
 C Save current information into a descriptive file
-C and save the system configuration file if not browsing.
-        if(cfgok.and.(.NOT.browse))then
+C and save the system configuration file.
+        if(cfgok)then
           ICTLF=IFIL+1
           CALL CTLWRT(ICTLF,IER)
 C          call edisp(IUOUT,'Saving system configuration file.')

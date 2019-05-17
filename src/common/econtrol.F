@@ -1849,6 +1849,7 @@ c For each control function.
       DO 710 I=1,nCFCctlloops
         II=I
         ICF=II
+
 C Read header : * CONTROL FUNCTION.
         CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'* CONTROL ',IER)
         IF(IER.NE.0)GOTO 99

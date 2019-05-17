@@ -17,6 +17,8 @@ C PASSED VARIABLES
       character cPassedType*(*)
       character cAppName*8           ! Name of current application
       integer iuout                  ! Output channel.
+      integer mmod,limit,limtty
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
 C LOCAL VARIABLES
 C declare variables describing version and build information
@@ -50,27 +52,27 @@ C Arrays mapping binary names to longer descriptions
      &                 'vew' /
       
       
-      data cBinDesc / 'Acoustics Analysis Module',
+      data cBinDesc / 'Acoustics analysis tool',
      &                'BEMS link',
-     &                'Integrated Building Performance Simulator',
-     &                'Database Manager',
-     &                'Domain Flow Solver',
-     &                'Domain Flow Viewer',
-     &                ' ','Components DB Manager',
-     &                'Climate Analysist Tool',
+     &                'Integrated simulator',
+     &                'Database manager',
+     &                'Domain flow solver',
+     &                'Domain flow viewer',
+     &                ' ','Components DB manager',
+     &                'Weather analysis tool',
      &                'Radiance link',
-     &                'Data Conversion Utility',
+     &                'Data conversion utility',
      &                ' ',
-     &                'Construction Gridding Tool',
-     &                'Shading Analysis Tool',
-     &                'Mass Flow Solver',
+     &                'Construction gridding Tool',
+     &                'Shading analysis tool',
+     &                'Mass flow solver',
      &                'Mould analysis tool',
-     &                'Mean Radiant Temperature Module',
+     &                'Mean radiant temperature tool',
      &                'Network tool',
-     &                'Plant Database Tool',
-     &                'Project Manager',
-     &                'Results Analysis Tool',
-     &                'Hidden Line Viewer' /
+     &                'Plant component DB tool',
+     &                'Project manager',
+     &                'Results analysis Tool',
+     &                'Hidden line viewer' /
      
       save cBinNames, cBinDesc
       
@@ -130,15 +132,16 @@ C.......Release version
         call edisp(iuout,cTemp_a)      
       
       else 
-        
-        write(cTemp_a,'(2A)') "ESP-r ", 
-     &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex)))
-        call edisp(iuout,cTemp_a)      
-        
-        write(cTemp_a,'(6A)') "This application ", 
-     &       cAppName(1:lnblnk(cAppName)),
-     &       ", is part of ESP-r ",
+        if(mmod.eq.8)then
+          write(cTemp_a,'(3A)') "Welcome to the ESP-r ", 
+     &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex))),
+     &       "."
+        else
+          write(cTemp_a,'(5A)') "Welcome to the ESP-r ", 
+     &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex))),
+     &       ", which is part of ESP-r ",
      &       cRelease_Num(1:lnblnk(cRelease_Num)),"."
+        endif
         call edisp(iuout,cTemp_a)    
         
       endif 
@@ -252,7 +255,7 @@ C Include dynamically-created installation information.
 #include "build_info.h"
 
 C Write out version number. 
-      write(cVnum,'(3A)') "release ", 
+      write(cVnum,'(3A)') "Release ", 
      &      cRelease_Num(1:lnblnk(cRelease_Num)),
      &      "."
 
