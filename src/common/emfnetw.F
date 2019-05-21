@@ -1581,7 +1581,7 @@ C Node data.
           END IF
           call edisp(itru,outs)
    30   CONTINUE
- 1030   FORMAT(I4,1X,A,1x,2a,3F8.4,1X,G12.5,1X,a,F9.3,2X,a,F8.3)
+ 1030   FORMAT(I4,1X,A,1x,2a,3F8.4,1X,G12.5,1X,a,F9.3,2X,a,F9.3)
 10301   FORMAT(I4,1X,A,1x,2a,3F8.4,1X,A12,1X,a,F9.3,2X,a,F8.3)
       ENDIF
 
@@ -2105,7 +2105,7 @@ C graphic network file.
       REAL vergnf   ! 1.0 is 3D variant of ASCII network
       
       CHARACTER outs*124,outsd*124,tab*1,dstmp*24
-      character position*52,dposition*52,supl*32,supld*32
+      character position*52,dposition*52,supl*32,supld*34
       character com*124
 
 C      write(6,*) 'haveglobal',haveglobal
@@ -2162,7 +2162,7 @@ C internal nodes the surface name will be '-'.
      &        NDNAM(INOD)(1:ln_nn),tab,NDFLD(INOD),tab,NDTYP(INOD),
      &        tab,NODASSOC(INOD,1)(1:ln_nza),tab,
      &        NODASSOC(INOD,2)(1:ln_nsa),com(1:lnblnk(com))
-            write(supl,'(3F9.4)') TNOD(INOD),SUPNOD(INOD,1),
+            write(supl,'(3F10.4)') TNOD(INOD),SUPNOD(INOD,1),
      &        SUPNOD(INOD,2)
             call SDELIM(supl,supld,'C',IW)  ! make , separated
             write(ifprb,'(4a)') dposition(1:lnblnk(dposition)),
