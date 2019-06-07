@@ -691,7 +691,9 @@ C     Trace output
                   WRITE(ITU,*) ' Vel    = ',Vel,' (m/s)'
                   WRITE(ITU,*) ' Hfilm  = ',Hfilm,' (W/(m2 K))'
                   WRITE(ITU,*) ' UA     = ',UA,' (W/K)'
+                  WRITE(ITU,*) ' TetaMp = ',TetaMp(irf),' (C)'
                   WRITE(ITU,*) ' TetaMf = ',TetaMF(irf),' (C)'
+                  WRITE(ITU,*) ' Tpipep = ',Tpipep(irf),' (C)'
                   WRITE(ITU,*) ' Tpipef = ',Tpipef(irf),' (C)'
                   WRITE(ITU,*) ' PCNTMF = ',PCNTMF(IPCOMP),' (C)'
                END IF
