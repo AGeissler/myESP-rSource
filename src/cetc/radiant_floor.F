@@ -688,8 +688,11 @@ C     Trace output
                   WRITE(ITU,*) ' C1     = ',C1,' (W/K)'
                   WRITE(ITU,*) ' TC     = ',TC(IPCOMP),' (s)'
                   WRITE(ITU,*) ' ALPHA  = ',ALPHA,' (-)'
+                  WRITE(ITU,*) ' Vel    = ',Vel,' (m/s)'
                   WRITE(ITU,*) ' Hfilm  = ',Hfilm,' (W/(m2 K))'
                   WRITE(ITU,*) ' UA     = ',UA,' (W/K)'
+                  WRITE(ITU,*) ' TetaMf = ',TetaMF(irf),' (C)'
+                  WRITE(ITU,*) ' Tpipef = ',Tpipef(irf),' (C)'
                   WRITE(ITU,*) ' PCNTMF = ',PCNTMF(IPCOMP),' (C)'
                END IF
                WRITE(ITU,*) ' Matrix coefficients for ISTATS = ',ISTATS
