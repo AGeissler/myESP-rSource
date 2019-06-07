@@ -909,7 +909,7 @@ C change of inlet conditions (RCC). ALPHA set to fully implicit if
 C RCC changes by a factor of two from previous timestep and a small
 C timestep is used to avoid discretisation errors.
         TC(IPCOMP)=CM/AMAX1(SMALL,(C1+C2+UA))
-	RCC = (C1+C2+UA) / (PCRP(ICON1)+PCRP(ICON2)+PUAP(INOD1))
+        RCC = (C1+C2+UA) / (PCRP(ICON1)+PCRP(ICON2)+PUAP(INOD1))
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
         IF(IMPEXP.EQ.1) THEN

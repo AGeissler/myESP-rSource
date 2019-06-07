@@ -677,6 +677,8 @@ C     Trace output
             IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &           ITRACE(37).NE.0) THEN
                WRITE(ITU,*) ' Component      ',IPCOMP,':'
+               WRITE(ITU,'(A,I3,A,I3,A)')
+     &              '   is # ',irf,' of ',NRadFloor,' of this type.'
                WRITE(ITU,*)
      &              ' 1 node (ISV=20) Radiant Heating/Cooling System'
                WRITE(ITU,*) ' Matrix node(s) ',INOD1
@@ -686,6 +688,7 @@ C     Trace output
                   WRITE(ITU,*) ' C1     = ',C1,' (W/K)'
                   WRITE(ITU,*) ' TC     = ',TC(IPCOMP),' (s)'
                   WRITE(ITU,*) ' ALPHA  = ',ALPHA,' (-)'
+                  WRITE(ITU,*) ' Hfilm  = ',Hfilm,' (W/(m2 K))'
                   WRITE(ITU,*) ' UA     = ',UA,' (W/K)'
                   WRITE(ITU,*) ' PCNTMF = ',PCNTMF(IPCOMP),' (C)'
                END IF
