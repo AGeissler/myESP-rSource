@@ -250,7 +250,7 @@ C----------------------------------------------------------------------
 C     Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &     ITRACE(37).NE.0) WRITE(ITU,*) 
-     &' Entering radiant floor subroutine'
+     &' Entering radiant floor subroutine CMP95C'
 
       IF(INDCFG .NE. 3) THEN
          call usrmsg('Use this plant component only when the simulaton',
@@ -281,7 +281,7 @@ C     area of the fluid
       RCPAf = RHOFLD(3, Tin) * SHTFLD(3, Tin) * AreaF
 
 C     Product of density (Rho), specific heat (Cp) and cross-section surface
-C     area of the pipe material
+C     area of the pipe material [J/(m K)]
       RCPAp = ADATA(IPCOMP,6) * AreaP
 
 C     Conduction resistance of the pipe
@@ -458,7 +458,7 @@ C     calculate series coefficients: Aij abd Fij. See the above reports for more
 
  10         CONTINUE
 
-         ENDIF
+      ENDIF
 
 C----------------------------------------------------------------------
 C     Generate coefficients for energy balance equation
@@ -509,20 +509,21 @@ C     Heat source rate at the present time
                TetaIN = Tin - Tpipef(irf)
 
 C     Fluid average temperature over the circuit length
+C     (TetaMf = (Tfluid - Tpipe) at the present time)
                TFmean = TetaMf(irf) + Tpipef(irf)
 
 C     Calculate film coefficient and convection resistance
                CALL CVCOEFF1(3,TFmean, Vel, ADATA(IPCOMP,2), Hfilm)
                ResI = 1./( PI * ADATA(IPCOMP,2) * Hfilm + Small)
 
-C     Overall conductance
+C     Overall conductance ResI m K/W, UP W/(m K)
                UP = 1./(ResC + ResI)
                UA = UP*CirL
 
-C     This is a temporary variable
+C     This is a temporary variable RCPA* J/(m K)
                RCPAm = RCPAf + UP*ResC*RCPAp
 
-C     calculate the constant C (see the above reports)
+C     Calculate the constant C (see the above reports)
                C = UP/FLWCp
 
 C     Product of circuit length and constant C
@@ -613,13 +614,22 @@ C     Check whether or not convergence is reached
 
                   IF( (Error .LT. Tol) .AND. (ErrorF .LT. TolF)) GOTO 50
 
- 20            CONTINUE
+ 20         CONTINUE
 
- 50            CONTINUE
+C     Issue warning if not converged.
+            IF(Iter .eq. ITmax) THEN
+               write(outs,'(A,I3,A,I3,A,E10.5,A,E10.5)')
+     &           'Zone ',IZ,' Component ',ipcomp,
+     &           ', rel. e=',error/Tol,', rel. eF=',errorF/TolF
+               call usrmsg('Iteration in radiant_floor not converged:',
+     &          outs,'W')
+            ENDIF
+
+ 50         CONTINUE
 
 C     iteration now terminated --------------------------------------------
 
-C     temperatures and node heat injection flux (W)
+C     Temperatures and node heat injection flux (W)
                Ratio = ( (1. + CL)*ExpCL - 1.)/ (CL -1. + ExpCL)
                Tout = Ratio*Tin
      &              + (1. - Ratio)*(TetaMf(irf) + Tpipef(irf) )
@@ -628,7 +638,7 @@ C     temperatures and node heat injection flux (W)
                Qboiler = ADATA(IPCOMP,1) * FLWCp * (Tin - Tout)
                Qnode   = ADATA(IPCOMP,1) * Qcir
                GENFLXF(Iz,Is,In) = Qnode / AreaR
-C.....store the same flux for adiacent surface
+C     Store the same flux for adjacent surface
                if ( bCoupled_Zone( Iz, Is ) ) then
                  Iza = iCoupled_Zone ( Iz, Is)
                  Isa = iCoupled_Surf ( Iz, Is)
@@ -691,6 +701,8 @@ C     Trace output
                   WRITE(ITU,*) ' Vel    = ',Vel,' (m/s)'
                   WRITE(ITU,*) ' Hfilm  = ',Hfilm,' (W/(m2 K))'
                   WRITE(ITU,*) ' UA     = ',UA,' (W/K)'
+                  WRITE(ITU,*) ' Tin    = ',Tin,' (C)'
+                  WRITE(ITU,*) ' TFmean = ',TFmean,' (C)'
                   WRITE(ITU,*) ' TetaMp = ',TetaMp(irf),' (C)'
                   WRITE(ITU,*) ' TetaMf = ',TetaMF(irf),' (C)'
                   WRITE(ITU,*) ' Tpipep = ',Tpipep(irf),' (C)'
