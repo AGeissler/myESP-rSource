@@ -2402,6 +2402,11 @@ C Logic from edcon.F, line 171 ff.
      &                matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn),
      &                                                    sLayer_Dummy)
 
+
+CC zone/surface/constrname:matname/dens ... ??
+cx 1. st2name on mlcname(ii)(1:lnmlcname(ii)) => should be name with "_" instead of " "
+cx 2. output via new AddToReport, longer String sConMat_Chars ... (2 * 32 ?
+
               write (sLayer_Chars,'(A)') sLayer_Dummy(1:lnsmlcn)
 
 C DEBUG
