@@ -2407,6 +2407,10 @@ CC zone/surface/constrname:matname/dens ... ??
 cx 1. st2name on mlcname(ii)(1:lnmlcname(ii)) => should be name with "_" instead of " "
 cx 2. output via new AddToReport, longer String sConMat_Chars ... (2 * 32 ?
 
+
+cx add logic to calculate total area for each construction for model?
+cx see econdb.F, lines 6911 ... for logic (mlcrefs() called from prjqa, e.g. line 3384 
+
               write (sLayer_Chars,'(A)') sLayer_Dummy(1:lnsmlcn)
 
 C DEBUG
