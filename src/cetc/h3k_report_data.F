@@ -367,6 +367,7 @@ C.....DECLARATIONS for H3Kreporting object
       character*2  cLayer_Chars
       character*32 sLayer_Chars
       character*32 sLayer_Dummy
+      character*64 sConMat_Chars
       character*50 cValue         ! Option value
 
       CHARACTER*128 ZONE_LABEL
@@ -2402,16 +2403,21 @@ C Logic from edcon.F, line 171 ff.
      &                matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn),
      &                                                    sLayer_Dummy)
 
+              write (sLayer_Chars,'(A)') sLayer_Dummy(1:lnsmlcn)
 
-CC zone/surface/constrname:matname/dens ... ??
-cx 1. st2name on mlcname(ii)(1:lnmlcname(ii)) => should be name with "_" instead of " "
-cx 2. output via new AddToReport, longer String sConMat_Chars ... (2 * 32 ?
+C.............Build constrname:matname string
+              call st2name(
+     &                mlcname(ssmlcindex(ic))(
+     &                        1:lnmlcname(ssmlcindex(ic))),
+     &                                          sLayer_Dummy)
 
+              write (sConMat_Chars,'(A,A,A)')
+     &                   sLayer_Dummy(1:lnmlcname(ssmlcindex(ic))),':',
+     &                   sLayer_Chars(1:lnsmlcn)
 
 cx add logic to calculate total area for each construction for model?
-cx see econdb.F, lines 6911 ... for logic (mlcrefs() called from prjqa, e.g. line 3384 
+cx see edcondb.F, lines 6911 ... for logic (mlcrefs() called from prjqa, e.g. line 3384
 
-              write (sLayer_Chars,'(A)') sLayer_Dummy(1:lnsmlcn)
 
 C DEBUG
 cx       write(*,*)'ic=',ic,', lnsmlcn=',lnsmlcn,
@@ -2423,19 +2429,13 @@ cx     &           ', matname(IPRMAT)=',
 cx     &                  matname(IPRMAT(ssmlcindex(ic),iLayer)),
 cx     &           ', sLC=',sLayer_Chars,'.'
 
-C.......  ....Layer material name
-cx              Call AddToReport(rvSurfLayMatnam%Identifier,
-cx     &          matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn),
-cx     &          cZone_Chars,
-cx     &          cSurf_Chars,
-cx     &          cLayer_Chars)
-
 C.......  ....Layer material density in kg/m3
               Call AddToReport(rvSurfLayDens%Identifier,
      &          THRMLI(iZone,iSurface,iLayer,2),
      &          cZone_Chars,
      &          cSurf_Chars,
-     &          sLayer_Chars)
+     &          sConMat_Chars)
+cx     &          sLayer_Chars)
 cx     &          cLayer_Chars)
 
 C.......  ....Layer thickness in m
@@ -2443,7 +2443,8 @@ C.......  ....Layer thickness in m
      &          THRMLI(iZone,iSurface,iLayer,4),
      &          cZone_Chars,
      &          cSurf_Chars,
-     &          sLayer_Chars)
+     &          sConMat_Chars)
+cx     &          sLayer_Chars)
 cx     &          cLayer_Chars)
 
             enddo layer_output
