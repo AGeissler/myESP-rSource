@@ -2417,7 +2417,36 @@ C.............Build constrname:matname string
 
 cx add logic to calculate total area for each construction for model?
 cx see edcondb.F, lines 6911 ... for logic (mlcrefs() called from prjqa, e.g. line 3384
-
+C For each of the selected zones check each surface mlc attribute
+C for a match against mlcname.
+cx      found=.false.
+cx      if(mlcname(1:4).ne.'UNKN'.and.nzg.gt.0)then
+cx        lm=lnblnk(mlcname)
+cx        tareamlc=0.0
+cx        do 42 i=1,nzg
+cx          iz=nznog(i)
+cx          areamlc(iz)=0.0
+cx          do 43 j=1,NZSUR(iz)
+cx            ic=IZSTOCN(iz,j)
+cx            lnsmlcn=lnblnk(SSMLCN(ic))
+cx            if(mlcname(1:lm).eq.SSMLCN(ic)(1:lnsmlcn))then
+cx              found=.true.
+cx
+cxC Depending on the connection type, add the full or half area of surface.
+cx              if(ICT(ic).eq.0.or.ICT(ic).eq.1.or.ICT(ic).eq.2)then
+cx                areamlc(iz)=areamlc(iz)+SSNA(ic)
+cx                tareamlc=tareamlc+SSNA(ic)
+cx              elseif(ICT(ic).eq.4.or.ICT(ic).eq.5.or.ICT(ic).eq.3)then
+cx                areamlc(iz)=areamlc(iz)+SSNA(ic)
+cx                tareamlc=tareamlc+SSNA(ic)
+cx              else
+cx                areamlc(iz)=areamlc(iz)+(SSNA(ic)*0.5)
+cx                tareamlc=tareamlc+(SSNA(ic)*0.5)
+cx              endif
+cx            endif
+cx  43      continue
+cx  42    continue
+cx      endif
 
 C DEBUG
 cx       write(*,*)'ic=',ic,', lnsmlcn=',lnsmlcn,
