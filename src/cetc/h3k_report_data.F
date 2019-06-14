@@ -86,6 +86,9 @@ C.....Common variables
       integer ncomp          ! number of zones
       integer ncon           ! number of connections
 
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
+      integer IC1,IE1,ICT,IC2,IE2
+
       common/prec9/nConst(mcom),nELts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp)
       integer nConst          ! # of surfaces per zone
@@ -356,9 +359,15 @@ C.....Local variables
 
 
       INTEGER iSurface, iNode,iViewSurface,ic,lnsmlcn,ii,lnssmlc  ! Counters
+      INTEGER lm,imlc,iz,iSur
 
-      real SBC                              ! Stephan-Boltzmann constant
-      parameter ( SBC=56.7E-9 )
+      logical found
+
+      real SBC,tareamlc
+      parameter ( SBC=56.7E-9 )  ! Stephan-Boltzmann constant
+
+      dimension areamlc(MCOM)
+      real areamlc
 
 C.....DECLARATIONS for H3Kreporting object
       CHARACTER*12 cZone_Chars   ! zname(MCOM)
@@ -2360,7 +2369,7 @@ C.......Geometry data for embedded energy postprocessing
 C.......Only necessary once, as this data does not change on time-step basis,
 C       usually.
         if (lOutputGeomdat) then
-cx          lOutputGeomdat=.false.
+          if (iZone.eq.ncomp) lOutputGeomdat=.false.
 C.........Do only, if output is set to true in input.xml
           call GetReportConfig ("output_geomdat",cValue)
           if ( cValue(1:4) == 'true' ) then
@@ -2415,38 +2424,6 @@ C.............Build constrname:matname string
      &                   sLayer_Dummy(1:lnmlcname(ssmlcindex(ic))),':',
      &                   sLayer_Chars(1:lnsmlcn)
 
-cx add logic to calculate total area for each construction for model?
-cx see edcondb.F, lines 6911 ... for logic (mlcrefs() called from prjqa, e.g. line 3384
-C For each of the selected zones check each surface mlc attribute
-C for a match against mlcname.
-cx      found=.false.
-cx      if(mlcname(1:4).ne.'UNKN'.and.nzg.gt.0)then
-cx        lm=lnblnk(mlcname)
-cx        tareamlc=0.0
-cx        do 42 i=1,nzg
-cx          iz=nznog(i)
-cx          areamlc(iz)=0.0
-cx          do 43 j=1,NZSUR(iz)
-cx            ic=IZSTOCN(iz,j)
-cx            lnsmlcn=lnblnk(SSMLCN(ic))
-cx            if(mlcname(1:lm).eq.SSMLCN(ic)(1:lnsmlcn))then
-cx              found=.true.
-cx
-cxC Depending on the connection type, add the full or half area of surface.
-cx              if(ICT(ic).eq.0.or.ICT(ic).eq.1.or.ICT(ic).eq.2)then
-cx                areamlc(iz)=areamlc(iz)+SSNA(ic)
-cx                tareamlc=tareamlc+SSNA(ic)
-cx              elseif(ICT(ic).eq.4.or.ICT(ic).eq.5.or.ICT(ic).eq.3)then
-cx                areamlc(iz)=areamlc(iz)+SSNA(ic)
-cx                tareamlc=tareamlc+SSNA(ic)
-cx              else
-cx                areamlc(iz)=areamlc(iz)+(SSNA(ic)*0.5)
-cx                tareamlc=tareamlc+(SSNA(ic)*0.5)
-cx              endif
-cx            endif
-cx  43      continue
-cx  42    continue
-cx      endif
 
 C DEBUG
 cx       write(*,*)'ic=',ic,', lnsmlcn=',lnsmlcn,
@@ -2464,8 +2441,6 @@ C.......  ....Layer material density in kg/m3
      &          cZone_Chars,
      &          cSurf_Chars,
      &          sConMat_Chars)
-cx     &          sLayer_Chars)
-cx     &          cLayer_Chars)
 
 C.......  ....Layer thickness in m
               Call AddToReport(rvSurfLayThick%Identifier,
@@ -2473,11 +2448,63 @@ C.......  ....Layer thickness in m
      &          cZone_Chars,
      &          cSurf_Chars,
      &          sConMat_Chars)
-cx     &          sLayer_Chars)
-cx     &          cLayer_Chars)
 
             enddo layer_output
 
+C If last zone, add up all surface areas for this MLC
+C (use logic from mlcrefs(), edcondb.F, lines 6911 ff., called from prjqa, e.g. line 3384)
+            if (iZone.eq.ncomp) then
+
+C Debug
+cc      write(6,*)'Total area ... '
+
+              do imlc=1,nmlc
+                found=.false.
+                lm=lnmlcname(imlc)
+                write(sConMat_Chars,'(a)') mlcname(imlc)(1:lm)
+                tareamlc=0.0
+
+C Loop through zones and check each surface mlc attribute
+C for a match against mlcname.
+                do 42 iz=1,ncomp
+                  do 43 iSur=1,NZSUR(iz)
+                    ic=IZSTOCN(iz,iSur)
+                    lnsmlcn=lnblnk(SSMLCN(ic))
+                    if(mlcname(imlc)(1:lm).eq.
+     &                       SSMLCN(ic)(1:lnssmlc))then
+                      found=.true.
+C Debug
+cc      write(6,*)'... found ',mlcname(imlc)(1:lm)
+
+C Depending on the connection type, add the full or half area of surface.
+                      if(ICT(ic).eq.0.or.ICT(ic).eq.1.or.
+     &                                        ICT(ic).eq.2)then
+                        tareamlc=tareamlc+SSNA(ic)
+                      elseif(ICT(ic).eq.4.or.ICT(ic).eq.5.or.
+     &                                        ICT(ic).eq.3)then
+                        tareamlc=tareamlc+SSNA(ic)
+                      else
+                        tareamlc=tareamlc+(SSNA(ic)*0.5)
+                      endif
+                    endif
+  43              continue
+  42            continue
+
+C Debug
+cc      if (found) then
+        write(6,*)'... calculated ',mlcname(imlc)(1:lm),'=',tareamlc
+cc      endif
+
+C.................MLC total surface area in m2
+                if (found) then
+                  Call AddToReport(rvMLCArea%Identifier,
+     &              tareamlc,
+     &              sConMat_Chars)
+cx     &              mlcname(imlc)(1:lm))
+                endif
+              enddo  ! of imlc
+C ** end add up MLC areas
+            endif  ! <- end if last zone
           endif  ! <- end output_geomdat
         endif ! <- end check for "first encounter"
 
