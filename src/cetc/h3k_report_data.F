@@ -2483,9 +2483,9 @@ C Depending on the connection type, add the full or half area of surface.
   42            continue
 
 C Debug
-      if (found) then
-        write(6,*)'... calculated ',mlcname(imlc)(1:lm),'=',tareamlc
-      endif
+cc      if (found) then
+cc        write(6,*)'... calculated ',mlcname(imlc)(1:lm),'=',tareamlc
+cc      endif
 
 C...............MLC total surface area in m2
                 if (found) then
