@@ -1093,7 +1093,7 @@ CONTAINS
       rvSurfaceArea%Description = 'Surface area'
       Call AddVariable(rvSurfaceArea)
 
-      rvMLCArea%VariableName = 'building/*/totalarea'
+      rvMLCArea%VariableName = 'construction/*/totalarea'
       rvMLCArea%MetaType = 'units'
       rvMLCArea%VariableType = '(m2)'
       rvMLCArea%Description = 'MLC total area in model'

@@ -371,8 +371,9 @@ C.....DECLARATIONS for H3Kreporting object
       Character*12 cSurf_Chars   ! sname(MCOM,MS)
       character*2  cNode_Chars
       character*2  cLayer_Chars
-      character*32 sLayer_Chars
-      character*32 sLayer_Dummy
+      character*32 sDummy
+      character*32 sMaterialName
+      character*32 sConstructionName
       character*64 sConMat_Chars
       character*50 cValue         ! Option value
 
@@ -2386,8 +2387,6 @@ C             ssmlcindex(ic)             ! construction index in data base
 C material.h:      character matname*32     ! name for material
 C material.h:      character mlcname*32     ! name of MLC legacy items only use first 12 char
 C material.h:      IPRMAT(MMLC,ME)          ! Index to material for each layer
-cx          write(MatNameForEmbed(icomp,i,IL),'(a)')
-cx     &      matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn)
 
               if ( iLayer .gt. 9 ) then
                 write(cLayer_Chars, '(I2)')  iLayer
@@ -2405,22 +2404,25 @@ C Logic from edcon.F, line 171 ff.
 
               lnsmlcn=lnblnk(matname(IPRMAT(ssmlcindex(ic),iLayer)))
 
+C.............Build constrname:matname string
               call st2name(
      &                matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn),
-     &                                                    sLayer_Dummy)
+     &                                                    sDummy)
 
-              write (sLayer_Chars,'(A)') sLayer_Dummy(1:lnsmlcn)
+              if (sDummy(1:1).ne." ") then
+                write (sMaterialName,'(A)') sDummy(1:lnsmlcn)
+              else
+                write (sMaterialName,'(A)') "air"
+              endif
 
-C.............Build constrname:matname string
               call st2name(
      &                mlcname(ssmlcindex(ic))(
      &                        1:lnmlcname(ssmlcindex(ic))),
-     &                                          sLayer_Dummy)
+     &                                          sConstructionName)
 
-              write (sConMat_Chars,'(A,A,A)')
-     &                   sLayer_Dummy(1:lnmlcname(ssmlcindex(ic))),':',
-     &                   sLayer_Chars(1:lnsmlcn)
-
+              write (sConMat_Chars,'(A,A,A,A,A)')
+     &               sConstructionName(1:lnmlcname(ssmlcindex(ic))),':',
+     &               cLayer_Chars,':',sMaterialName(1:lnsmlcn)
 
 C DEBUG
 cx       write(*,*)'ic=',ic,', lnsmlcn=',lnsmlcn,
