@@ -462,6 +462,55 @@ C eqn. 111 from ISO 15099:2003
      &     real(RAS),real(NUSS),HC
           call edisp(itu,outs)
         endif
+      ELSEIF(ICOR.EQ.18)THEN
+
+C Gnielinski equation as given in Incropera/DeWitt, Fundamentals of Heat and
+C Mass Transfer, 6th Edition, page 515 eqn. 8.62 using eqn. 8.21 page 490 for
+C friction factor calculation.
+C Validity range: Pr
+C                 Re
+C
+C The model is for forced convection inside "ducts" using the hydraulic diameter as
+C characteristic lenght.
+C
+C If there is no air flow network or the flow velocity is small (Gr/Re^2 > 0.1) the
+C standard Alamdari/Hammond correlation (ICOR.eq.1) is used.
+C
+        LAMBAIR=2.63D-02  ! W/(m K)
+        RHOAIR=1.174D0    ! kg/m3
+        CPAIR=1.007D0     ! kJ/(kg K)
+        NUAIR=15.72D-6    ! m2/s
+        veloc=0.0         ! m/s
+        TFILM=(TFS(ICOMP,ISUR)+TFA(IAORZ))/2.0
+
+C       Get flow rate through channel from air flow network and
+C       calculate average velocity
+        IF (IAIRN.ne.0) THEN
+          IF ((ICAAS(ICOMP).gt.0).and.(ICAAS(IAORZ).gt.0)) THEN
+            call MFSNFL(2,ICAAS(ICOMP),ICAAS(IAORZ),FLIN,FLUT)
+            veloc=real(FLIN)*CHEIGHT/3600./VOL(ICOMP) ! m3/h m h/s /m3 => m/s
+            if(dotrace) then
+                write(outs,'(A,4I5,3E10.3)')
+     &         'ICOMP,ICAAS(ICOMP),IAORZ,ICAAS(IAORZ),Vol,veloc,FLIN ',
+     &         ICOMP,ICAAS(ICOMP),IAORZ,ICAAS(IAORZ),
+     &         VOL(ICOMP),veloc,REAL(FLIN)
+                call edisp(itu,outs)
+             endif
+          ENDIF
+        else
+C       Use basic Alamdari and Hammond correlation (same as ICOR=1)) if
+C       no air flow network defined. Issue warning.
+          call eclose(CHEIGHT,0.0,0.01,close)
+          if(close) CHEIGHT = 1.0  ! reset hight if close to zero
+          HC=((1.50*((DT/CHEIGHT)**0.25))**6.0
+     &       +(1.23*((DT)**(1.0/3.0)))**6.0)**(1.0/6.0)
+          write(outs,'(A,A)')' WARNING: Gnielinski: No afn!',
+     &            " Standard Alamdari and Hammond corr. used."
+          call edisp(itu,outs)
+        ENDIF ! afn available
+
+
+
       ELSEIF(ICOR.EQ.20)THEN
 
 C Alamdari and Hammond TEST VERSION that returns 2.6X standard hc value
