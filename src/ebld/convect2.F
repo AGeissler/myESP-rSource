@@ -96,10 +96,10 @@ C Commons added for ISO 15099 algorithm
 
       CHARACTER LAPROB*72
 
-      character outs*124
+      character outs*148
       logical dotrace,close
 
-      real veloc
+      real veloc,friction,CDEPTH,DH,Prandtl
 
       DOUBLE PRECISION NUAIR,LAMBAIR,RHOAIR,CPAIR,TFILM,BETA
       DOUBLE PRECISION NUSS,RAS,CNUS
@@ -294,8 +294,11 @@ C diameter of the entire surface.
         endif
       ELSEIF(ICOR.EQ.15)THEN
 
-C Correlations for the ventilated channels
+C Correlations for the naturally ventilated channels
 C Molina & Maestre correlation for SOLVENT ventilated channel
+C<< according to the source publication the temperature difference
+C   is not between the surface and air (inlet) but between air inlet
+C   and outlet temperatures of the channel! >>
         if (IAORZ.gt.0) then
           HC=3.00*(ABS(TFS(ICOMP,ISUR)-TFA(IAORZ)))**0.333
 
@@ -462,26 +465,30 @@ C eqn. 111 from ISO 15099:2003
      &     real(RAS),real(NUSS),HC
           call edisp(itu,outs)
         endif
-      ELSEIF(ICOR.EQ.18)THEN
+      ELSEIF((ICOR.EQ.18).AND.(IAORZ.GT.0))THEN
 
-C Gnielinski equation as given in Incropera/DeWitt, Fundamentals of Heat and
-C Mass Transfer, 6th Edition, page 515 eqn. 8.62 using eqn. 8.21 page 490 for
-C friction factor calculation.
-C Validity range: Pr
-C                 Re
+C Model for forced convection inside "smooth ducts" using the hydraulic
+C diameter as characteristic length.
 C
-C The model is for forced convection inside "ducts" using the hydraulic diameter as
-C characteristic lenght.
+C Gnielinski equation as given in Incropera et.al., "Fundamentals of
+C Heat and Mass Transfer", 6th Edition, page 515 eqn. 8.62 using
+C eqn. 8.21 page 490 for friction factor calculation.
+C Validity range: Pr > 0.6
+C                 Re > 3000.
 C
-C If there is no air flow network or the flow velocity is small (Gr/Re^2 > 0.1) the
+C If there is no air flow network or the flow velocity is small (Re < 3000) the
 C standard Alamdari/Hammond correlation (ICOR.eq.1) is used.
 C
         LAMBAIR=2.63D-02  ! W/(m K)
-        RHOAIR=1.174D0    ! kg/m3
-        CPAIR=1.007D0     ! kJ/(kg K)
         NUAIR=15.72D-6    ! m2/s
+        Prandtl=0.69      ! air
+C       Hydraulic diameter.
+        CDEPTH=VOL(ICOMP)/CHEIGHT/CWIDTH
+        DH=4.*CWIDTH*CDEPTH/(2*(CWIDTH+CDEPTH)) ! m
         veloc=0.0         ! m/s
-        TFILM=(TFS(ICOMP,ISUR)+TFA(IAORZ))/2.0
+
+        call eclose(HEIGHT,0.0,0.01,close)
+        if(close) HEIGHT = 2.5  ! reset height if close to zero
 
 C       Get flow rate through channel from air flow network and
 C       calculate average velocity
@@ -497,19 +504,53 @@ C       calculate average velocity
                 call edisp(itu,outs)
              endif
           ENDIF
+C         Calculate Reynolds number
+          REY=veloc*DH/real(NUAIR)
+
+          if (REY.gt.3000.) then
+C         Use Gnielinski model
+C           Calculate friction factor
+            friction=(0.79*LOG(REY)-1.64)**(-2)
+            HC=(friction/8.)*(REY - 1000.)*Prandtl/
+     &          (1. + 12.7*(friction/8.)**0.5*(Prandtl**0.667 - 1.))*
+     &          real(LAMBAIR)/DH
+          else
+C         Bouyancy dominant, use Alamdari and Hammond model (same as
+C         ICOR=1)
+            HC=((1.50*((DT/HEIGHT)**0.25))**6.0
+     &          +(1.23*((DT)**(1.0/3.0)))**6.0)**(1.0/6.0)
+          endif
+
         else
-C       Use basic Alamdari and Hammond correlation (same as ICOR=1)) if
-C       no air flow network defined. Issue warning.
-          call eclose(CHEIGHT,0.0,0.01,close)
-          if(close) CHEIGHT = 1.0  ! reset hight if close to zero
-          HC=((1.50*((DT/CHEIGHT)**0.25))**6.0
-     &       +(1.23*((DT)**(1.0/3.0)))**6.0)**(1.0/6.0)
+C       No air flow network defined. Use basic Alamdari and Hammond
+C       correlation and issue warning.
+          HC=((1.50*((DT/HEIGHT)**0.25))**6.0
+     &        +(1.23*((DT)**(1.0/3.0)))**6.0)**(1.0/6.0)
           write(outs,'(A,A)')' WARNING: Gnielinski: No afn!',
      &            " Standard Alamdari and Hammond corr. used."
           call edisp(itu,outs)
         ENDIF ! afn available
 
+        if(dotrace) then
+          write(outs,'(A,5E10.3,F5.2,2E12.4,F5.2)')
+     &     'Gnielinski: TS,TA,CWIDTH,CDEPTH,Dh,v,Re,f,HC',
+     &     TFS(ICOMP,ISUR),TFA(IAORZ),CWIDTH,CDEPTH,DH,
+     &       veloc,REY,friction,HC
+          call edisp(itu,outs)
+        endif
 
+      ELSEIF((ICOR.EQ.18).AND.(IAORZ.EQ.0))THEN
+
+C Gnielinski model expects air supply from adjacent zone, *not* the
+C ambient! Issue warning and use basic Alamdari and Hammond correlation.
+        write(outs,'(A,A)')' WARNING: Gnielinski: expects air from ',
+     &    " adj. zone! Standard Alamdari and Hammond corr. used."
+        call edisp(itu,outs)
+
+        call eclose(HEIGHT,0.0,0.01,close)
+        if(close) HEIGHT = 2.5  ! reset height if close to zero
+          HC=((1.50*((DT/HEIGHT)**0.25))**6.0
+     &        +(1.23*((DT)**(1.0/3.0)))**6.0)**(1.0/6.0)
 
       ELSEIF(ICOR.EQ.20)THEN
 
