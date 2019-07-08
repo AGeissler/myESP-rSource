@@ -7969,6 +7969,7 @@ C Pump circulates while there is a call for heat.
         BrinePumpPower=0.
         BrineFlow=0.0
       ENDIF
+        BrineFlow=BrineRatedFlow
 
 C Set return setpoints based on which function requires heat
       if (bDHWrqd) then
@@ -7995,18 +7996,20 @@ C Calculate the return water temperature set point if temperature compensation i
           IF(Tamb.GE.TempCompS.AND.Tamb.LT.TempCompE)THEN
             ReturnSP=((Tamb-TempCompS)*TempCompc0)+NomRetT
             ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
-            ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
+            ReturnSPH=ReturnSP+4. !0.5*(NomRetTDeadB)
 
-C Case where Tamb > Temp compensation saturation point
+C Case where Tamb > Temp compensation end point
           ELSEIF(Tamb.GE.TempCompE)THEN
             ReturnSP=((TempCompE-TempCompS)*TempCompc0)+NomRetT
             ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
             ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
           ENDIF
 
+          IF(ReturnSPH.GT.TinMax) ReturnSPH=TinMax
+
           IF(ReturnSP.GT.TinMax)THEN
             ReturnSP=TinMax
-            ReturnSPH=ReturnSP
+cx            ReturnSPH=ReturnSP
           ENDIF
         ENDIF
       endif ! space heat rq'd
@@ -8014,19 +8017,19 @@ C Case where Tamb > Temp compensation saturation point
 cx ISTAT.eq.1 was here, previously (171124)
 
 C Get ground source temperature
-        Tgrnd=convar(icon2,1)
+      Tgrnd=convar(icon2,1)
 
 C Determine whether machine should be on or off based on return water temperature.
-        ReturnT=CONVAR(ICON1,1)
+      ReturnT=CONVAR(ICON1,1)
 
 C Check if device switched off last TS
-        IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
-          bSwitched=.true.
-        ENDIF
+      IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
+        bSwitched=.true.
+      ENDIF
 
-        DeviceONOFFp=DeviceONOFF
+      DeviceONOFFp=DeviceONOFF
 
-        IF(CallforHeat)THEN
+      IF(CallforHeat)THEN
 
 C Check to see if the device is in the dead band.
         IF(ReturnT.GE.ReturnSPL.AND.ReturnT.LE.ReturnSPH)THEN
@@ -8037,17 +8040,17 @@ C Check to see if the device is in the dead band.
 
 C Evaluate the device status.
         IF(ReturnT.GT.ReturnSPH)THEN
-            DeviceONOFF=0
-          ELSEIF(ReturnT.LT.ReturnSPL)THEN
-            DeviceONOFF=1
-          ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
-            DeviceONOFF=1
-          ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
-            DeviceONOFF=0
-          ENDIF
-        ELSE
           DeviceONOFF=0
-        ENDIF ! call for heat
+        ELSEIF(ReturnT.LT.ReturnSPL)THEN
+          DeviceONOFF=1
+        ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
+          DeviceONOFF=1
+        ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
+          DeviceONOFF=0
+        ENDIF
+      ELSE
+        DeviceONOFF=0
+      ENDIF ! call for heat
 
 C Finally, check if device is in lockout time, i.e. last "off" was
 C less than lockouttime ago ... ((code from CMP42C(), line 5102 ff.))
@@ -8106,7 +8109,10 @@ C Calculate the COP based on the user-specified method.
           ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
             TL=Tgrnd
             TH=ReturnT
-            COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
+cx            TH=ToutMax
+            COP=min(COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.),
+     &               COPa0+(COPa1*(ToutMax-TL))
+     &                               +(COPa2*(ToutMax-TL)**2.))
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
           ELSE
