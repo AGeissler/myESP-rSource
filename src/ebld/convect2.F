@@ -495,7 +495,8 @@ C       calculate average velocity
         IF (IAIRN.ne.0) THEN
           IF ((ICAAS(ICOMP).gt.0).and.(ICAAS(IAORZ).gt.0)) THEN
             call MFSNFL(2,ICAAS(ICOMP),ICAAS(IAORZ),FLIN,FLUT)
-            veloc=real(FLIN)*CHEIGHT/3600./VOL(ICOMP) ! m3/h m h/s /m3 => m/s
+            veloc=max(real(FLIN),abs(real(FLUT)))*
+     &                      CHEIGHT/3600./VOL(ICOMP) ! m3/h m h/s /m3 => m/s
             if(dotrace) then
                 write(outs,'(A,4I5,3E10.3)')
      &         'ICOMP,ICAAS(ICOMP),IAORZ,ICAAS(IAORZ),Vol,veloc,FLIN ',
