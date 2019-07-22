@@ -177,6 +177,7 @@ C Name of current application.
       integer ier
       integer nitems,inos ! max items and current menu item
       integer ISFSUM  ! number of surfaces found
+      integer ISTRW
 
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
@@ -478,13 +479,13 @@ C Scan the defaults file silently for default configuration.
 C Take command line file name as initial configuration file.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
          lcmdfl=inf
-         call edisp(iuout,'  ')  ! echo blank line
+C         call edisp(iuout,'  ')  ! echo blank line
          write(outs248,'(2a)')'Input file is: ',lcmdfl
          if(pact(1:13).eq.'update_silent'.or.
      &      pact(1:16).eq.'useupdate_silent')then
            continue
          else
-           call edisp248(iuout,outs248,80)
+C           call edisp248(iuout,outs248,80)
          endif
       else
          lcmdfl=' '
@@ -957,22 +958,19 @@ C GTK version will be returning the name with the full path.
          iglib = igraphiclib()  ! find out if X11, GTK or text only.
          if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-               call easkf(ltmp,'Model Configuration file?',' ',
-     &           96,dfcfg,'config file name',ier,nbhelp)
+               ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-               call easkf(ltmp,'Model configuration file?',' ',
-     &           124,dfcfg,'config file name',ier,nbhelp)
+               ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-               call easkf(ltmp,'Model configuration file?',' ',
-     &           144,dfcfg,'config file name',ier,nbhelp)
+               ISTRW=144
             endif
          elseif(iglib.eq.2)then
-            call easkf(ltmp,'Model configuration file?',' ',
-     &        144,dfcfg,'config file name',ier,nbhelp)
+           ISTRW=144
          else
-            call easkf(ltmp,'Model configuration file?',' ',
-     &        96,dfcfg,'config file name',ier,nbhelp)
+           ISTRW=96
          endif
+         call easkf(ltmp,'Model configuration file?',' ',
+     &     ISTRW,dfcfg,'config file name',ier,nbhelp)
 
          if(ltmp(1:2).eq.'  '.or.ltmp(1:4).eq.'UNKN')goto 289
          call st2file(ltmp,lcmdfl)

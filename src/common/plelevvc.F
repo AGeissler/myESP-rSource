@@ -357,7 +357,6 @@ C common block via CNVBLK.
           WRITE(blabel,423)IB
   423     FORMAT('B',I2)
           iid1=iix+4; iid2=iiy-4;
-C          call wstxpt(iid1,iid2,blabel)
           call textatxy(iid1,iid2,blabel,'-',iicol)
           call forceflush()
   420   CONTINUE

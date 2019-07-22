@@ -560,20 +560,20 @@ C Reporting.
             call edisp(itu,' ')
           ENDIF
 
-   44 CONTINUE
-
+   44   CONTINUE
 
 C Alter component sequence for relative flow control components if any (i.e. RFlg=1).
 C Relative flow control requires components CMP_XXXC calls in pmatrx.f to be in 
 C order from furthest branch components backwards. Each RFC component, except final branch
 C junctions requires visibility of all downstream component relative flow values.
-      IF(RFlg.eq.1)THEN
-        CALL SRFCSEQ
-      ELSE
-	DO 19 IPCOMP=1,NPCOMP
-          RFCSEQ(IPCOMP)=IPCOMP
-   19   CONTINUE
-      ENDIF
+        IF(RFlg.eq.1)THEN
+          CALL SRFCSEQ
+        ELSE
+	  DO 19 IPCOMP=1,NPCOMP
+            RFCSEQ(IPCOMP)=IPCOMP
+   19     CONTINUE
+        ENDIF
+
 C Read number of plant component connections
         CALL STRIPC(iuc,OUTSTR,0,ND,1,'possible conn',IER)
         IF(IER.NE.0)RETURN

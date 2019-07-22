@@ -1603,7 +1603,7 @@ C            mechanism.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/ACCrec/IACC(MNZ)
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
 

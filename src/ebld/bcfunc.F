@@ -999,17 +999,17 @@ C  assuming present time-row surface temperatures.
       ITYPE=IBCLAW(ICF,IDTYP,IPER)
       if(itype.eq.31)goto 6  ! jump back for trace
       if(ITYPE.eq.1)then
-            GOTO 8
-        elseif (ITYPE.eq.2) then
-            GOTO 9
-        elseif (ITYPE.eq.3) then
-            GOTO 11
-        elseif (ITYPE.eq.4) then
-            GOTO 12
-        elseif (ITYPE.eq.10) then
-            GOTO 10
-        else
-            GOTO 99
+        GOTO 8
+      elseif (ITYPE.eq.2) then
+        GOTO 9
+      elseif (ITYPE.eq.3) then
+        GOTO 11
+      elseif (ITYPE.eq.4) then
+        GOTO 12
+      elseif (ITYPE.eq.10) then
+        GOTO 10
+      else
+        GOTO 99
       endif
 
 C Thermostatic control period: is temperature within
@@ -6512,7 +6512,8 @@ C of the type of space conditioning system. This is done later on
       IHLZP=IHLZ(IiCOMP)  ! set up pointer
       NEAR=.TRUE.
       if(ihlzp.ne.0) CALL ECLOSE(CGEF(IHLZP),0.0,0.001,NEAR)
-      IF(NEAR)QCM=0.0
+cx << ?? this should somehow not be the default !!!
+cx      IF(NEAR)QCM=0.0
 
 C Read setpoints from tdf here (CSP and HSP)
 C "COLUMNSETP" is an integer specifying the column within the

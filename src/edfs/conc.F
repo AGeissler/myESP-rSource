@@ -105,8 +105,8 @@ C
      &              SIFH(ntcelz),SIFL(ntcelz)
       COMMON/NORMCW/RENORMC,RENORMWV 
       common/SOLVER/ILISOL
-      COMMON/SCHMTT/SCHMT(MCTM),GFM(MCTM),VCRIT(MCTM),TBOIL(MCTM),
-     &       TCRIT(MCTM),ISCHMT(MCTM)
+      COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
+     &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
       COMMON/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
       COMMON/CFDMFS2/MFNEWN(MNVLS,MNZ),NFNDN,NCFDOPNO(MNVLS,MNZ),
      &               NFNPDN(MNZ)
@@ -114,7 +114,7 @@ C
       logical ACTCNN
 
 C Source / Sink model commons
-      COMMON/CTDFAF/ICTDFAF,SRCE(MNVLS,MCTM,MNZ),ICCSRC
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
      &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
       COMMON/CONTM9/SSSTR(MSPMNO,MCONTM)
@@ -137,8 +137,27 @@ C Common blocks for blockages and small supply openings
      &          INSSO(MNVLS,MNZ)
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
-      common/ocflux/COflux,H2Oexp,H2Oswt
-
+      REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
+     &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
+     &     Tsko_av1,Tco_av1,Tsk_av1
+      COMMON/ocflux1/headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
+     &        rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
+     &        Tsko_av1, Tco_av1, Tsk_av1
+      REAL tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,tavlegr1
+      REAL hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,HMETA2
+      integer cfdcheck, msegflag
+      COMMON/segtemp1/tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,
+     &       tavlegr1,hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,
+     &       cfdcheck, msegflag,HMETA2
+      REAL headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
+     &     rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
+     &     Tsko_av2,Tco_av2,Tsk_av2
+      COMMON/ocflux2/headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
+     &        rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
+     &        Tsko_av2, Tco_av2, Tsk_av2
+      REAL tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,tavlegr2
+      COMMON/segtemp2/tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,
+     &       tavlegr
       DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
       INTEGER SPMTYP,SSLINK1,SSLINK2
       LOGICAL OK,LINVOL,CALLMA,CALPOL
@@ -170,7 +189,7 @@ C Contaminant linking is independant of CFD to mass flow conflation but
 C if a CFD to mass flow conflation is defined (recommended) contaminant
 C mass inflows and outflows from opening type boundary conditions are 
 C also considered.
-      IF(ICTDFAF.EQ.1)THEN
+      IF(ICTDFAF(ICFD).EQ.1)THEN
 
 C Get source model and strength associated with this boundary condition
         DO 698 IV=1,NVOL(ICFD)
@@ -238,14 +257,14 @@ C      write(6,*)'srcstr ',srcstr
 C Get turbulent Schmidt number for this contaminant
 C SCHMIL=0.94 was previously used for CO2 and 0.59 for moisture also
 C PRODR=0.0000153737 for CO2 and 0.0000166666 for moisture were used
-      IF(ISCHMT(ICTM).EQ.1)THEN
-        VL1=GFM(ICTM)
-        VL2=VCRIT(ICTM)
-        VL3=TBOIL(ICTM)
-        VL4=TCRIT(ICTM)
+      IF(ISCHMT(ICTM,ICFD).EQ.1)THEN
+        VL1=GFM(ICTM,ICFD)
+        VL2=VCRIT(ICTM,ICFD)
+        VL3=TBOIL(ICTM,ICFD)
+        VL4=TCRIT(ICTM,ICFD)
         CALL SCHMIDTT(VL1,VL2,VL3,VL4,TURSCH)
-      ELSEIF(ISCHMT(ICTM).EQ.0)THEN
-        TURSCH=SCHMT(ICTM)
+      ELSEIF(ISCHMT(ICTM,ICFD).EQ.0)THEN
+        TURSCH=SCHMT(ICTM,ICFD)
       ENDIF
       SCHMIL=TURSCH
       DO 50 I=2,NIM1
@@ -278,13 +297,12 @@ C Should loop through conc sources here.
           do 70 I=IVCELLS(IV,ICFD,1),IVCELLS(IV,ICFD,2)
             do 71 J=JVCELLS(IV,ICFD,1),JVCELLS(IV,ICFD,2)
               do 72 K=KVCELLS(IV,ICFD,1),KVCELLS(IV,ICFD,2)
-               if (POLNAM(ICTM,ICFD) .eq. 'Sweat') then
-!                call DynamicOcc(1,1.5,1)
-                VOLPOL(ICTM,IV,ICFD)=H2Oswt+H2Oexp
+               if (POLNAM(ICTM,ICFD) .eq. 'Sweat1') then
+                VOLPOL(ICTM,IV,ICFD)=H2Oswt1+H2Oexp1
                 SRCSTR(IV,ICFD)=VOLPOL(ICTM,IV,ICFD)
-!               if (ITRC.eq.1) then
-!                print *, SRCSTR(IV,ICFD)
-!               endif
+               elseif (POLNAM(ICTM,ICFD) .eq. 'Sweat2') then
+                VOLPOL(ICTM,IV,ICFD)=H2Oswt2+H2Oexp2
+                SRCSTR(IV,ICFD)=VOLPOL(ICTM,IV,ICFD)
                endif
                 SU(I,J,K)=SRCSTR(IV,ICFD)
  72           continue
@@ -539,7 +557,7 @@ C always of the zero-gradient type.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
      &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),

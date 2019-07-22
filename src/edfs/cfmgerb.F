@@ -81,7 +81,7 @@ C Commons for trace.
 C MITMFS is the max number of times cfd will be invoked using mfs 
 C determined boundary conditions at one time step to attain mutual
 C cfd-mfs convergence.
-      PARAMETER(MITMFS=20)
+      PARAMETER(MITMFS=10)
 
       ICFD=IND
       ICP=ICOMP
@@ -266,7 +266,7 @@ C Trace output.
           GOTO 256
         ENDIF
       ELSE
-        outs='standalone did not converge,going to next timestep'
+        outs='standalone did not converge, going to next timestep'
         call edisp(iuout,outs)
         CALL MFBNDR(0)
         GOTO 257
@@ -347,6 +347,7 @@ C SURFCONF - Calls CFMNGE each time step there is surface conflation.
       SUBROUTINE SURFCONF(ICOMP)
 #include "cfd.h"
 #include "building.h"
+#include "schedule.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -390,12 +391,36 @@ C To support writing ASCII file.
      2            DZHP(ntcelz),DZPL(ntcelz),
      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
+      REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
+     &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
+     &     Tsko_av1,Tco_av1,Tsk_av1
+      COMMON/ocflux1/headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
+     &        rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
+     &        Tsko_av1, Tco_av1, Tsk_av1
+      REAL tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,tavlegr1
+      REAL hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,HMETA2
+      integer cfdcheck, msegflag
+      COMMON/segtemp1/tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,
+     &       tavlegr1,hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,
+     &       cfdcheck,msegflag,HMETA2
+      REAL headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
+     &     rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
+     &     Tsko_av2,Tco_av2,Tsk_av2
+      COMMON/ocflux2/headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
+     &        rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
+     &        Tsko_av2, Tco_av2, Tsk_av2
+      REAL tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,tavlegr2
+      COMMON/segtemp2/tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,
+     &       tavlegr
+      REAL ic(31,4),inc(31,4)
+      Integer inn,i
       CHARACTER LCFD*72
       character cfd3dascii*72
       character doit*248
       LOGICAL areaSSO
       CHARACTER*72 outs
       character ICFDSTR*10,ICPSTR*10
+      character louts*1000,loutsd*1000 
 
 C This subroutine initiates a CFD analysis if (for the given time-step) there
 C is surface conflation between the thermal and CFD domains.
@@ -476,7 +501,7 @@ C decide what to do with the coefficients).
       
 C Save solution information (IFCFD wil be negative if past start-up period).
 C Calculate current simulation timestep. - possibly use to synchornise results.
-        write(6,*) 'about to call cfdlib with ifcfd is',IFCFD(ICP)
+c        write(6,*) 'about to call cfdlib with ifcfd is',IFCFD(ICP)
         if(IFCFD(ICP).lt.0)then
           call cfdlib
 
@@ -515,10 +540,16 @@ C dfv that displays a 3D rendering of the current solution.
                 write(38,'(a,120f9.5)') 'Wf:',(Wf(I,J,K),I=2,NI)
               endif
               if (IEQSV(4).eq.1) then
-                write(38,'(a,120f7.2)') 'Tf:',(Tf(I,J,K),I=2,NI)
+C                write(38,'(a,120f7.2)') 'Tf:',(Tf(I,J,K),I=2,NI)
+                write(louts,'(120f7.2)') (Tf(I,J,K),I=2,NI)
+                call SDELIM(louts,loutsd,'C',IW)
+                write(38,'(2a)') 'Tf: ',loutsd(1:lnblnk(loutsd))
               endif
-              if (IEQSV(5).eq.1) then
-                write(38,'(a,120f7.2)') 'AGEf:',(AGEf(I,J,K),I=2,NI)
+              if (IEQSV(5).eq.1) then  ! to allow occassional 1K seconds.
+C                write(38,'(a,120f8.1)') 'AGEf: ',(AGEf(I,J,K),I=2,NI)
+                write(louts,'(120f8.1)') (AGEf(I,J,K),I=2,NI)
+                call SDELIM(louts,loutsd,'C',IW)
+                write(38,'(2a)') 'AGEf: ',loutsd(1:lnblnk(loutsd))
               endif
               DO ICTM=1,NCTM(ICFD)
                 if (IEQSV(5+ICTM).eq.1) then
@@ -528,6 +559,31 @@ C dfv that displays a 3D rendering of the current solution.
               ENDDO      
  101        continue
  10       continue
+! write the body and skin temperature for current time step and surrounding temperature
+          if (cfdcheck.GT.1.and.HMETA2.LT.1) then
+C Debug file. Comment out next 29 lines when proven.
+          open(unit=92,file="initial_condition1.txt",status="old")
+          do i=1,25
+             read (92,*) (ic(i,j),j=1,4)
+             write(38,'( 6f9.5)') (ic(i,j),j=1,4)
+          end do
+          CLOSE ( UNIT=92 )
+           write(38,*) tavhead1,tavtrunk1,tavarml1,tavarmr1,
+     &       tavlegl1,tavlegr1,Qoccsens1,Qocclat1,
+     &       Tsko_av1, Tco_av1, Tsk_av1
+!          elseif (cfdcheck.GT.1.and.HMETA2.GT.1) then
+!          open(unit=94,file="initial_condition2.txt",status="old")
+!          do i=1,25
+!             read (94,*) (ic(i,j),j=1,4)
+!             write(38,'( 6f9.5)') (ic(i,j),j=1,4)
+!          end do
+!          CLOSE ( UNIT=94 )
+
+!           write(38,*) tavhead2,tavtrunk2,tavarml2,tavarmr2, 
+!     &       tavlegl2,tavlegr2,Qoccsens2,Qocclat2,
+!     &       Tsko_av2, Tco_av2, Tsk_av2
+           endif
+
           write(38,'(a)') 'end_cfd3dascii'
           CLOSE ( UNIT=38 )
 

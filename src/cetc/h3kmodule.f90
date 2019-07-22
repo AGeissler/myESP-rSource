@@ -20,7 +20,8 @@ MODULE h3kmodule
    !Public subroutines and functions
    public :: ReportNextTimeStep, ReportNewSeason, SetReportParameter, &
              isH3KEnabled, UpdateH3kSimInfo, UpdateH3kReport, &
-             GenerateOutput, UpdateConfigFile, SetReportConfig, &
+             GenerateOutput, SetReportFilename, UpdateConfigFile, &
+             SetReportConfig, &
              GetReportConfig, ReportToggleConfig, GetReportList, &
              isReportingInstalled, SetReportEnable, IsH3kVarEnabled, &
              SetAdditionalValues
@@ -152,6 +153,7 @@ MODULE h3kmodule
          rvMfnTotalNodeFlowRate,rvMfnTotalNodeVolFlowRate,rvMfnTotalNodeTemp, &
          rvMfnConnectPressureDrop, rvMfnConnectFlowRate,rvMfnConnectVeloc, &
          rvMfnContamCon, rvMfnConnectCtlOnFrac, rvZoneLabel
+   Type(ReportVariable) :: rvSurfaceArea, rvSurfLayMatnam, rvSurfLayDens, rvSurfLayThick, rvMLCArea
 
    !Used by SiteUtilities.F
    Type(ReportVariable) :: rvTFuelAllEndEnergyContent, rvTFuelAllEndQty, &
@@ -176,7 +178,8 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvCFCazimuth,rvCFCelevation,rvSolarIncidentDirect,rvSolarIncidentDiff, &
          rvShadingFractionDirect,rvShadingFractionDiffuse, &
          rvCFCtranDir,rvCFCtranDiff,rvCFCvertprofileangle,rvSolarIncidentDirectShaded, &
-         rvSolarIncidentDiffShaded,rvSolarShadeFrac
+         rvSolarIncidentDiffShaded,rvSolarShadeFrac,rvCFCUvalueISO,rvCFCUvalueActual, &
+         rvCFCShadeCtl, rvCFCSlatAngle, rvCFCActOnSetp, rvCFCRgap
 
    !Used by water_tanks.F
    Type(ReportVariable) :: rvPltSDHWSumDHWTankFuel,rvPltSDHWSumDHWTankElec,rvPltWaterTemp, &
@@ -197,7 +200,7 @@ MODULE h3kmodule
 
    !Used by moistr.F
    Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode,rvBldMstStoreCap,rvBldMstStorage, &
-        rvBldMstStorageMass,rvBldMstTNode
+        rvBldMstStorageMass,rvBldMstTNode,rvMstItCnt
 
    !Used by pcomp2.F
    !Claude - potential error found rvPltDefrostStat
@@ -364,7 +367,7 @@ MODULE h3kmodule
    !Used by spmatl.F
    Type(ReportVariable) :: rvBldSPMatlEffIrr,rvBldSPMatlIncAngl,rvBldSPMatlTrnsAngl, &
          rvBldSPMatlTrns0,rvBldSPMatlTrns60,rvBldSPMatlTtlIncAr,rvBldSPMatlTtlIncTtl, &
-         rvBldSPMatlDrtIncAr,rvBldSPMatlDffIncAr,rvBldSPMatlPVPow,rvBuiSpm
+         rvBldSPMatlDrtIncAr,rvBldSPMatlDffIncAr,rvBldSPMatlPVPow,rvBuiSpm,rvBldSPMatlEff
 
    !Used by BC_data.F
    Type(ReportVariable) :: rvBndCndStpInt,rvBndCndLnInt
@@ -382,9 +385,6 @@ MODULE h3kmodule
       rvpltACCMoistFlowToEspr, rvpltCosimAirPointTemperatures, rvpltCosimAirPointHumidities, &
       rvpltCosimAirPointCasualGains
 
-   !Used by complex_fenestration.F
-   Type(ReportVariable) :: rvCFCShadeCtl, rvCFCSlatAngle
-   
 CONTAINS
    ! ********************************************************************
    ! Subroutine: UpdateH3kReport
@@ -1085,6 +1085,39 @@ CONTAINS
       rvNodeTemp%VariableType = '(oC)'
       rvNodeTemp%Description = 'Temperature at node within multilayer construction'
       Call AddVariable(rvNodeTemp)
+
+!.....Output of gemetric data for embedded energy postprocessing
+      rvSurfaceArea%VariableName = 'building/*/*/area'
+      rvSurfaceArea%MetaType = 'units'
+      rvSurfaceArea%VariableType = '(m2)'
+      rvSurfaceArea%Description = 'Surface area'
+      Call AddVariable(rvSurfaceArea)
+
+      rvMLCArea%VariableName = 'construction/*/totalarea'
+      rvMLCArea%MetaType = 'units'
+      rvMLCArea%VariableType = '(m2)'
+      rvMLCArea%Description = 'MLC total area in model'
+      Call AddVariable(rvMLCArea )
+
+      rvSurfLayMatnam%VariableName = 'building/*/*/*/material'
+      rvSurfLayMatnam%MetaType = 'units'
+      rvSurfLayMatnam%VariableType = '(-)'
+      rvSurfLayMatnam%Description = 'Surface layer material name'
+      Call AddVariable(rvSurfLayMatnam)
+
+      rvSurfLayDens%VariableName = 'building/*/*/*/density'
+      rvSurfLayDens%MetaType = 'units'
+      rvSurfLayDens%VariableType = '(kg/m3)'
+      rvSurfLayDens%Description = 'Surface layer material density'
+      Call AddVariable(rvSurfLayDens)
+
+      rvSurfLayThick%VariableName = 'building/*/*/*/thickness'
+      rvSurfLayThick%MetaType = 'units'
+      rvSurfLayThick%VariableType = '(m)'
+      rvSurfLayThick%Description = 'Surface layer thickness'
+      Call AddVariable(rvSurfLayThick)
+
+!.....End output geometric data
 
       rvClimateSolarDiffuseHorizontalRadiation%VariableName = 'climate/solar/diffuse_horizontal_radiation'
       rvClimateSolarDiffuseHorizontalRadiation%MetaType = 'units'
@@ -1831,6 +1864,42 @@ CONTAINS
       rvCFCvertprofileangle%Description = 'CFC vertical profile angle '
       Call AddVariable(rvCFCvertprofileangle)
 
+      rvCFCShadeCtl%VariableName = 'building/*/cfc_*/cfc_shade_ctl'
+      rvCFCShadeCtl%MetaType = 'units'
+      rvCFCShadeCtl%VariableType = ''
+      rvCFCShadeCtl%Description = 'state of shade control'
+      Call AddVariable(rvCFCShadeCtl)
+
+      rvCFCSlatAngle%VariableName = 'building/*/cfc_*/cfc_shade_angle'
+      rvCFCSlatAngle%MetaType = 'units'
+      rvCFCSlatAngle%VariableType = 'degrees'
+      rvCFCSlatAngle%Description = 'angle of cfc controlled shade'
+      Call AddVariable(rvCFCSlatAngle)
+
+      rvCFCActOnSetp%VariableName = 'building/*/cfc_*/cfc_act_on_sp'
+      rvCFCActOnSetp%MetaType = 'units'
+      rvCFCActOnSetp%VariableType = ''
+      rvCFCActOnSetp%Description = 'actuator on setpoint'
+      Call AddVariable(rvCFCActOnSetp)
+
+      rvCFCUvalueISO%VariableName = 'building/*/cfc_*/cfc_U_ISO_*'
+      rvCFCUvalueISO%MetaType = 'units'
+      rvCFCUvalueISO%VariableType = 'W/(m2 K)'
+      rvCFCUvalueISO%Description = 'U-value of CFC w/ DT=15 K and standard Rsi, Rse'
+      Call AddVariable(rvCFCUvalueISO)
+
+      rvCFCUvalueActual%VariableName = 'building/*/cfc_*/cfc_U_Actual_*'
+      rvCFCUvalueActual%MetaType = 'units'
+      rvCFCUvalueActual%VariableType = 'W/(m2 K)'
+      rvCFCUvalueActual%Description = 'U-value of CFC w/ DT as is and actual Rsi, Rse'
+      Call AddVariable(rvCFCUvalueActual)
+
+      rvCFCRgap%VariableName = 'building/*/cfc_*/*/cfc_R_gap'
+      rvCFCRgap%MetaType = 'units'
+      rvCFCRgap%VariableType = '(m2 K)/W'
+      rvCFCRgap%Description = 'CFC gap resistance (convective only!)'
+      Call AddVariable(rvCFCRgap)
+
       !Used by water_tanks.F
       rvPltSDHWSumDHWTankFuel%VariableName = 'plant/SDHW_summary/DHW_tank_fuel'
       rvPltSDHWSumDHWTankFuel%MetaType = 'units'
@@ -1996,6 +2065,12 @@ CONTAINS
       Call AddVariable(rvPltSDHWsumAvailSolEn)
 
       !Used by moistr.F
+      rvMstItCnt%VariableName = 'building/*/mst_iterations'
+      rvMstItCnt%MetaType = 'units'
+      rvMstItCnt%VariableType = '(-)'
+      rvMstItCnt%Description = 'Iterations needed in moisture model for time step'
+      Call AddVariable(rvMstItCnt)
+
       rvBldMstVapPressNode%VariableName = 'building/*/*/*/mn_vappress'
       rvBldMstVapPressNode%MetaType = 'units'
       rvBldMstVapPressNode%VariableType = '(Pa)'
@@ -2111,16 +2186,16 @@ CONTAINS
       rvPltDefrostStat%Description = 'ASHP: Defrost Status 0-off, 1-on, -1-lockout'
       Call AddVariable(rvPltDefrostStat)
 
-      rvPltDHWDrawStoch%VariableName = 'plant/*/misc_data/DHW_draw_stoch'
+      rvPltDHWDrawStoch%VariableName = 'plant/*/DHW_draw_stoch'
       rvPltDHWDrawStoch%MetaType = 'units'
       rvPltDHWDrawStoch%VariableType = '(kg/s)'
       rvPltDHWDrawStoch%Description = 'Hot water draw rate'
       Call AddVariable(rvPltDHWDrawStoch)
 
-      rvPltDHWDrawStochTp%VariableName = 'plant/*/misc_data/DHW_draw_stock/type_*'
+      rvPltDHWDrawStochTp%VariableName = 'plant/*/DHW_draw_stoch_type_*'
       rvPltDHWDrawStochTp%MetaType = 'units'
       rvPltDHWDrawStochTp%VariableType = '(kg/s)'
-      rvPltDHWDrawStochTp%Description = 'Draw for type'
+      rvPltDHWDrawStochTp%Description = 'Draw rate for type'
       Call AddVariable(rvPltDHWDrawStochTp)
 
       !Used by pcomp3.F
@@ -4219,6 +4294,12 @@ CONTAINS
       rvBldSPMatlEffIrr%Description = 'Effective irradiance of PV module (/m^2)'
       Call AddVariable(rvBldSPMatlEffIrr)
 
+      rvBldSPMatlEff%VariableName = 'building/spmatl/*/misc_data/efficiency'
+      rvBldSPMatlEff%MetaType = 'units'
+      rvBldSPMatlEff%VariableType = '%'
+      rvBldSPMatlEff%Description = 'Efficiency of PV module'
+      Call AddVariable(rvBldSPMatlEff)
+
       rvBldSPMatlIncAngl%VariableName = 'building/spmatl/*/misc_data/incidence_angle'
       rvBldSPMatlIncAngl%MetaType = 'units'
       rvBldSPMatlIncAngl%VariableType = '-'
@@ -4273,6 +4354,7 @@ CONTAINS
       rvBldSPMatlPVPow%Description = 'Power produced by PV module'
       Call AddVariable(rvBldSPMatlPVPow)
 
+!      rvBuiSpm%VariableName = 'bui/spm/*/*/*'
       rvBuiSpm%VariableName = 'bui/spm/*/*'
       rvBuiSpm%MetaType = '*'
       rvBuiSpm%VariableType = '*'
@@ -4445,19 +4527,6 @@ CONTAINS
       rvpltCosimAirPointCasualGains%Description = ''
       Call AddVariable(rvpltCosimAirPointCasualGains)
 
-      !Used by complex_fenestration.F
-      rvCFCShadeCtl%VariableName = 'building/*/cfc_*/cfc_shade_ctl'
-      rvCFCShadeCtl%MetaType = 'units'
-      rvCFCShadeCtl%VariableType = ''
-      rvCFCShadeCtl%Description = 'state of shade control'
-      Call AddVariable(rvCFCShadeCtl)
-
-      rvCFCSlatAngle%VariableName = 'building/*/cfc_*/cfc_shade_angle'
-      rvCFCSlatAngle%MetaType = 'units'
-      rvCFCSlatAngle%VariableType = 'degrees'
-      rvCFCSlatAngle%Description = 'angle of cfc controlled shade'
-      Call AddVariable(rvCFCSlatAngle)
-      
       End Subroutine UpdateH3kReport
 
 
@@ -4782,6 +4851,23 @@ CONTAINS
       call rep_cleanup_files()
    End Subroutine
 
+   ! ********************************************************************
+   ! Subroutine: SetReportFilename
+   ! Purpose:  Wrapper to the C++ call set_report_filename( )
+   !           This method sets the h3k output file name (.csv).
+   ! Params:   cName = output file name for .csv
+   ! Returns:  N/A
+   ! Author:   Achim Geissler
+   ! Mod Date: 2018-11-24
+   ! ********************************************************************
+   Subroutine SetReportFilename( cName )
+      character(len=*), intent(in) :: cName
+
+      if (isH3KEnabled()) then
+         !Call c++
+         call set_report_filename( cName )
+      endif
+   End Subroutine
 
    ! ********************************************************************
    ! Subroutine: SetReportParameter

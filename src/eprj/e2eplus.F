@@ -28,7 +28,7 @@ C ******* Translate esp data to EnergyPlus file geom and materials.
 
 C itrc (integer) =0 turns off reporting, =1 brief
 C ioout (integer) is the file unit to write to
-C ver (real) should be 1.4 or 2.0 or 3.0
+C ver (real) should be 7.2 8.0 8.5 8.8 9.0
 #include "building.h"
 #include "model.h"
 #include "site.h"
@@ -207,21 +207,19 @@ C simicolon.
 C Check the version number and set iver as well as a character variable
 C to represent a 2 char or 4 char indentation.
       iver = 0
-      call eclose(ver,4.0,0.001,closea)
-      call eclose(ver,5.0,0.001,closeb)
-      call eclose(ver,6.0,0.001,closec)
-      call eclose(ver,7.2,0.001,closed)
-      call eclose(ver,8.0,0.001,closee)
-      call eclose(ver,8.5,0.001,closef)
-      if(closea) iver = 40; indent = '    '
-      if(closeb) iver = 50; indent = '    '
-      if(closec) iver = 60; indent = '    '
-      if(closed) iver = 72; indent = '    '
-      if(closee) iver = 80; indent = '    '
-      if(closef) iver = 85; indent = '    '
+      call eclose(ver,7.2,0.001,closea)
+      call eclose(ver,8.0,0.001,closeb)
+      call eclose(ver,8.5,0.001,closec)
+      call eclose(ver,8.8,0.001,closed)
+      call eclose(ver,9.0,0.001,closee)
+      if(closea) iver = 72; indent = '    '
+      if(closeb) iver = 80; indent = '    '
+      if(closec) iver = 85; indent = '    '
+      if(closed) iver = 88; indent = '    '
+      if(closee) iver = 90; indent = '    '
       if(iver.eq.0)then
         call usrmsg(
-     &    'Only V4.0 5.0 6.0 7.2 8.0 8.5 IDF files recognized',
+     &    'Only 7.2 8.0 8.5 8.8 9.0 IDF files recognized',
      &    ' ','W')
         return
       endif
@@ -270,16 +268,7 @@ C Write header of file.
      &  modeltitle(1:lnblnk(modeltitle))
       WRITE(ioout,'(2a)',iostat=ios,err=2) '!- DATE: ',dstmp
       WRITE(ioout,'(a)',iostat=ios,err=2)  ' '
-      if(iver.eq.40)then
-        WRITE(ioout,'(5a)',iostat=ios,err=2) '  VERSION',com,'4.0',sim,
-     &  '   !- Version Identifier'
-      elseif(iver.eq.50)then
-        WRITE(ioout,'(5a)',iostat=ios,err=2) '  VERSION',com,'5.0',sim,
-     &  '   !- Version Identifier'
-      elseif(iver.eq.60)then
-        WRITE(ioout,'(5a)',iostat=ios,err=2) '  VERSION',com,'6.0',sim,
-     &  '   !- Version Identifier'
-      elseif(iver.eq.72)then
+      if(iver.eq.72)then
         WRITE(ioout,'(5a)',iostat=ios,err=2) '  VERSION',com,'7.2',sim,
      &  '   !- Version Identifier'
       elseif(iver.eq.80)then
@@ -287,6 +276,12 @@ C Write header of file.
      &  '   !- Version Identifier'
       elseif(iver.eq.85)then
         WRITE(ioout,'(5a)',iostat=ios,err=2) '  VERSION',com,'8.5',sim,
+     &  '   !- Version Identifier'
+      elseif(iver.eq.88)then
+        WRITE(ioout,'(5a)',iostat=ios,err=2) '  VERSION',com,'8.8',sim,
+     &  '   !- Version Identifier'
+      elseif(iver.eq.90)then
+        WRITE(ioout,'(5a)',iostat=ios,err=2) '  VERSION',com,'9.0',sim,
      &  '   !- Version Identifier'
       endif
       WRITE(ioout,'(a)',iostat=ios,err=2) ' '
@@ -520,12 +515,24 @@ C << add the simulatio parameter set name >>
       if(nsset.gt.0)then 
         WRITE(ioout,'(4a)',iostat=ios,err=2) indent,
      &    spfdescr(1)(1:lnblnk(spfdescr(1))),com,'   !- Name'
-        WRITE(ioout,'(a,i2,a,i2,2a)',iostat=ios,err=2) indent,
+        if(iver.ge.90)then
+          WRITE(ioout,'(a,i2,a,i2,4a)',iostat=ios,err=2) indent,
+     &    isstmon(1),com,isstday(1),com,' ',com,
+     &    '   !- Begin Month & Day Of Month & Year (from sim param set)'
+        else
+          WRITE(ioout,'(a,i2,a,i2,2a)',iostat=ios,err=2) indent,
      &    isstmon(1),com,isstday(1),com,
      &    '   !- Begin Month & Day Of Month (from sim param set)'
-        WRITE(ioout,'(a,i2,a,i2,2a)',iostat=ios,err=2) indent,
+        endif
+        if(iver.ge.90)then
+          WRITE(ioout,'(a,i2,a,i2,4a)',iostat=ios,err=2) indent,
+     &    isfnmon(1),com,isfnday(1),com,' ',com,
+     &    '   !- End Month & Day Of Month & Year (from sim param set)'
+        else
+          WRITE(ioout,'(a,i2,a,i2,2a)',iostat=ios,err=2) indent,
      &    isfnmon(1),com,isfnday(1),com,
      &    '   !- End Month & Day Of Month (from sim param set)'
+        endif
         CALL EWEEKD(isstday(1),isstmon(1),IYEAR,IDWK)
 
 C Interpret day of week for start day from project year.
@@ -572,10 +579,9 @@ C the configuration file data for lat and long.
       WRITE(ioout,'(a)',iostat=ios,err=2) ' '
       WRITE(ioout,'(2a)',iostat=ios,err=2) '  Site:Location',com
       ier=0
-      call EFOPRAN(ICLIM,LCLIM,144,0,IER)
+      CALL CLMOPB(0,IER)
       if(ier.eq.0)then
-        IREC=367
-        READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)CLMLOC
+        CALL CLMRDBMD(IER)
         CALL ERPFREE(ICLIM,ISTAT)
         WRITE(ioout,'(4a)',iostat=ios,err=2) indent,
      &    CLMLOC(1:lnblnk(CLMLOC)),com,'   !- Name'
@@ -1684,8 +1690,13 @@ C Now write out the people.
         WRITE(ioout,'(5a)',iostat=ios,err=7) '    ',
      &    zname(mz)(1:lnzname(mz)),'People',com,'   !- Name'
 
-        WRITE(ioout,'(4a)',iostat=ios,err=5) '    ',
+        if(iver.ge.85)then
+          WRITE(ioout,'(4a)',iostat=ios,err=5) '    ',
+     &    zname(mz)(1:lnzname(mz)),com,'   !- Zone or ZoneList Name'
+        else
+          WRITE(ioout,'(4a)',iostat=ios,err=5) '    ',
      &    zname(mz)(1:lnzname(mz)),com,'   !- Zone Name'
+        endif
         lll=lnblnk(lodlabel(mz,1))
         WRITE(ioout,'(6a)',iostat=ios,err=5) '    ',
      &    zname(mz)(1:lnzname(mz)),' ',lodlabel(mz,1)(1:lll),com,
@@ -1708,10 +1719,8 @@ C Further logic required if there is more than one radiant/convective split.
         WRITE(ioout,'(5a)',iostat=ios,err=5) '    ',
      &    'Activity level ',zname(mz)(1:lnzname(mz)),com,
      &    '   !- Activity Level Schedule Name (W/person)'
-        if(iver.gt.50)then
-          WRITE(ioout,'(3a)',iostat=ios,err=5) '    ',com,
-     &      '   !- Carbon Dioxide Generation Rate {m3/s-W}'
-        endif
+        WRITE(ioout,'(3a)',iostat=ios,err=5) '    ',com,
+     &    '   !- Carbon Dioxide Generation Rate {m3/s-W}'
         WRITE(ioout,'(3a)',iostat=ios,err=7) '    ',com,
      &    '   !- Enable ASHRAE 55 Comfort Warnings'
         WRITE(ioout,'(3a)',iostat=ios,err=5) '    ZoneAveraged',com,
@@ -2263,8 +2272,12 @@ C     &        '   !- Outside Boundary Condition Object'
 C Also include viewfactor to ground value depending on orientation.
             WRITE(ioout,'(a)',iostat=ios,err=6) 
      &        sitestring(1:lnblnk(sitestring))
-            WRITE(ioout,'(3a)',iostat=ios,err=6) indent,com,
+            if(iver.ge.90)then
+              continue  ! Shading Control Name token not in V9.0
+            else
+              WRITE(ioout,'(3a)',iostat=ios,err=6) indent,com,
      &        '   !-   Shading Control Name'
+            endif
             WRITE(ioout,'(3a)',iostat=ios,err=6) indent,com,
      &        '   !-   Frame and Divider Name'
             WRITE(ioout,'(4a)',iostat=ios,err=6) indent,'1.0',com,
@@ -2591,8 +2604,8 @@ C To avoid possible duplicate names pre-pend the zone name to block.
 
 C Reports - report details and dxf for surfaces
       WRITE(ioout,'(a)',iostat=ios,err=2) ' '
-      WRITE(ioout,'(7a)',iostat=ios,err=2)'  Output:Surfaces:List',
-     &  com,'Details',com,'ThickPolyline',sim,
+      WRITE(ioout,'(5a)',iostat=ios,err=2)'  Output:Surfaces:List',
+     &  com,'Details',sim,
      &  '   !- Type, Name and Specifications for reports'
      
       WRITE(ioout,'(a)',iostat=ios,err=2) ' '

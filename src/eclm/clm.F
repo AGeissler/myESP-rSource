@@ -32,6 +32,7 @@ C climatic data sets compatible with ESP-r.
       
 #include "seasons.h"
 C seasons.h provides typper and typsea
+#include "climate.h"
       
       integer lnblnk  ! function definition
 
@@ -105,6 +106,7 @@ C Name of current application
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ic,iwm  ! for radio buttons
       integer NITEM,INO  ! max items and current menu item
+      integer ISTRW
 
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -361,7 +363,7 @@ C Take command line file name to LCMDF and use as initial weather file.
       else
         LCMDFL=inf
         write(outs248,'(a,a)')' the input file is: ',LCMDFL
-        if(itrc.gt.1)call edisp248(iuout,outs248,80)
+C        if(itrc.gt.1)call edisp248(iuout,outs248,80)
       endif
 
 C Take command line action parameter:
@@ -721,13 +723,26 @@ C Change radiation type.
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKAB(' Solar radiation type in file: ',' ',
      &    'direct normal','global horizontal',IRADT,nbhelp)
-        IRTYP=0
-        IF(IRADT.EQ.2)IRTYP=123
-        IDNGH=IRTYP
-        ICDNGH=IRTYP
-        IREC=366
-        READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR
-        WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IRTYP
+        if (CFVER.eq.1) then
+          IRTYP=0
+          IF(IRADT.EQ.2)IRTYP=123
+          IDNGH=IRTYP
+          ICDNGH=IRTYP
+          IREC=366
+          READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR
+          WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IRTYP
+        else
+          if (IRADT.eq.1 .and. CMXST(4)) then
+            CMCOL(3)=CMCOL(4); CMCOL(4)=0
+            CMXST(3)=.true.;   CMXST(4)=.false.
+          elseif (IRADT.eq.2 .and. CMXST(3)) then
+            CMCOL(4)=CMCOL(3); CMCOL(3)=0
+            CMXST(4)=.true.;   CMXST(3)=.false.
+          endif
+          IREC=368
+          WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)(CMCOL(i),i=1,CFMCM)
+          CALL CLMMDN2O
+        endif
         call tstamp('>','CLM: change radiation type')
         goto 3
  1000   call edisp(iuout,' Data file error! ')
@@ -787,22 +802,19 @@ C name with the full path.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &        ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &        ' ',124,DCLIM,'weather file name',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &        ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &      ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(LLASCI,'Weather file (esp-r ascii format):',
-     &      ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(LLASCI,' ','Weather file (ascii version):',
+     &    ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
         IF(LLASCI(1:2).EQ.'  '.or.LLASCI(1:4).eq.'UNKN')GOTO 290
 
 C Cast back to 96 char name.
@@ -833,12 +845,12 @@ C Confirm the period to transfer.
 C Check whether it is an esp-r weather file or an EPW file.
         helptopic='clm_esp_or_epw'
         call gethelptext(helpinsub,helptopic,nbhelp)
-C        CALL EASKABCD('Weather import options:',' ',
-C     &   'EPW weather file','ASCII esp-r file','Korean MET',
+C        CALL EASKABCD(' ','Import options:',
+C     &   'EPW file','ASCII file','Korean MET',
 C     &   'continue',IICT,nbhelp)
-        CALL EASKATOG('Weather import options:',' ',
-     &   'EPW weather file','ASCII esp-r file','Korean MET',
-     &   'ASCII column data','continue',' ',' ',IICT,nbhelp)
+        CALL EASKATOG(' ','Import options:',
+     &   'EPW file','ASCII file','Korean MET',
+     &   'continue',' ',' ',' ',IICT,nbhelp)
         if(IICT.eq.1)then
           NTSPH=1
           LASCI=' '
@@ -855,22 +867,19 @@ C name with the full path.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(LLASCI,'EPW file:',
-     &          ' ',96,DCLIM,'EPW file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(LLASCI,'EPW file:',
-     &          ' ',124,DCLIM,'EPW file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(LLASCI,'EPW file:',
-     &          ' ',144,DCLIM,'EPW file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(LLASCI,'EPW file:',
-     &        ' ',144,DCLIM,'EPW file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(LLASCI,'EPW file:',
-     &        ' ',96,DCLIM,'EPW file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(LLASCI,'EPW file:',
+     &      ' ',ISTRW,DCLIM,'EPW file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3
@@ -912,22 +921,19 @@ C name with the full path.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(LLASCI,'Weather ASCII file:',
-     &          ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(LLASCI,'Weather ASCII file:',
-     &          ' ',124,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(LLASCI,'Weather ASCII file:',
-     &          ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(LLASCI,'Weather ASCII file:',
-     &        ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(LLASCI,'Weather ASCII file:',
-     &        ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(LLASCI,' ','Weather file (ascii):',
+     &      ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3
@@ -991,22 +997,19 @@ C name with the full path.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(LLASCI,'Korean XXXH.dat file:',
-     &          ' ',96,DCLIM,'Korean weather file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(LLASCI,' Korean XXXH.dat file:',
-     &          ' ',124,DCLIM,'Korean weather file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(LLASCI,' Korean XXXH.dat file:',
-     &          ' ',144,DCLIM,'Korean weather file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(LLASCI,' Korean XXXH.dat file:',
-     &        ' ',144,DCLIM,'Korean weather file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(LLASCI,' Korean XXXH.dat file:',
-     &        ' ',96,DCLIM,'Korean weather file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(LLASCI,' ','Korean weather file (.dat):',
+     &      ISTRW,DCLIM,'Korean weather file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3
@@ -1020,8 +1023,8 @@ C Cast back to 96 char name and do the conversion.
 C Ask if older or newer file format.
           helptopic='korea_met_file_old_new'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('Korean met office file age options:',' ',
-     &     'older file','newer file','cancel',ICT,nbhelp)
+          CALL EASKABC(' ','Korean weather file format options:',
+     &     'old','new','cancel',ICT,nbhelp)
           if(ICT.eq.1)then
             call MKOREANCLM(LASCI,IUNIT,'old',IER)
           elseif(ICT.eq.2)then
@@ -1060,22 +1063,19 @@ C name with the full path.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(LLASCI,'Column ASCII file:',
-     &          ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(LLASCI,'Column ASCII file:',
-     &          ' ',124,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(LLASCI,'Column ASCII file:',
-     &          ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(LLASCI,'Weather ASCII file:',
-     &        ' ',144,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(LLASCI,'Weather ASCII file:',
-     &        ' ',96,DCLIM,'ASCII weather file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(LLASCI,' ',' Weather file (ascii):',
+     &      ISTRW,DCLIM,'ASCII weather file name',IER,nbhelp)
 
 C If user canceled loop show menu again.
           if(ier.eq.-3) goto 3
@@ -1131,7 +1131,7 @@ C Delimiter.
         helptopic='clm_delimiter_choice'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=1
-        CALL EASKATOG('Delimeter to use between columns of data:',' ',
+        CALL EASKATOG(' ','Delimeter between data columns:',
      &    'normal spaces','single space','tab','comma','continue',' ',
      &    ' ',IWM,nbhelp)
         if(iwm.eq.1)then
@@ -1168,7 +1168,8 @@ C 'CLMTOT' displays in tabular format the climatic parameters for each
 C hour in any specified day.
 
       SUBROUTINE CLMTOT
-      PARAMETER (MT=24)
+#include "climate.h"
+
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/OUTPCH/ICOUT
       common/appw/iappw,iappx,iappy
@@ -1183,11 +1184,7 @@ C hour in any specified day.
       common/exporttg/xfile,tg,delim
       common/exporttgi/ixopen,ixloc,ixunit
 
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
-      character outs*124,xfile*144,tg*1,delim*1
+      character outs*124,outs2*124,xfile*144,tg*1,delim*1
       character blank*2  ! for edisp of blank line
       logical ok,dok
 
@@ -1257,7 +1254,7 @@ C If output to file alter the edisp unit number.
       itru = icout
       if(ixopen.eq.1)then
         itru = ixunit
-        call usrmsg(' Output being directed to file...',' ','-')
+        call usrmsg(' Output being directed to file ...',' ','-')
       endif
 
 C Read values of the climatic parameters for this day.
@@ -1265,44 +1262,38 @@ C Read values of the climatic parameters for this day.
 
 C Output all values in tabular form.
       CALL CSITEH
-      IF(IDNGH.EQ.0)THEN
-         WRITE(outs,6)IDD,IMM
-    6    FORMAT('           Period: Day',I3,' of month',I3)
-         call edisp(itru,outs)
-         call edisp(itru,blank)
-         WRITE(outs,61)
-   61    FORMAT(' Hr d.b. temp. dr.n. rad. df.h. rad.',
-     &          ' wd. vel. wd. dir. rel. h.')
-         call edisp(itru,outs)
-         WRITE(outs,62)
-   62    FORMAT(6X,'deg.C',6X,'W/m2 ',6X,'W/m2 ',6X,'m/s',
-     &          4X,'deg.f.n.',3X,'pct')
-         call edisp(itru,outs)
-         call edisp(itru,blank)
-      ELSEIF(IDNGH.EQ.123)THEN
-         WRITE(outs,63)IDD,IMM
-   63    FORMAT('           Period: Day',I3,' of month',I3)
-         call edisp(itru,outs)
-         WRITE(outs,64)
-   64    FORMAT(' Hr d.b. temp. Gl.h. rad. df.h. rad.',
-     &          ' wd. vel. wd. dir. rel. h.')
-         call edisp(itru,outs)
-         WRITE(outs,65)
-   65    FORMAT(6X,'deg.C',6X,'w/m2 ',6X,'w/m2 ',6X,'m/s',
-     &          4X,'deg.f.n.',3X,'pct')
-         call edisp(itru,outs)
-         call edisp(itru,blank)
-      ENDIF
-      DO 10 I=1,24
-      C1=CDIF(I)
-      C2=CTMP(I)
-      C3=CDNR(I)
-      C4=CVEL(I)
-      C5=CDIR(I)
-      C6=CHUM(I)
-      WRITE(outs,7)I,C2,C3,C1,C4,C5,C6
-    7 FORMAT(I3,F11.2,2F11.0,F9.2,F9.0,F8.2)
-      call eddisp(itru,outs)
+      WRITE(outs,6)IDD,IMM
+    6 FORMAT('           Period: Day',I3,' of month',I3)
+      call edisp(itru,outs)
+      call edisp(itru,blank)
+      write(outs,'(A)') ' Hr '
+      write(outs2,'(A)')'    '
+      k=4
+      do i=1,MCM
+        if (CMXST(i)) then
+          write(outs ,'(2A,1X)')outs(1:k) ,CMNAMA(i)
+          write(outs2,'(2A,1X)')outs2(1:k),CMUNIT(i)
+          k=k+7
+        endif
+      enddo
+      call edisp(itru,outs)
+      call edisp(itru,outs2)
+      call edisp(itru,blank)
+
+      DO 10 J=1,24
+        write(outs,'(I3,1X)')J
+        k=4
+        do i=1,MCM
+          if (CMXST(i)) then
+            if (i.eq.1 .or. i.eq.5) then
+              write(outs,'(A,F6.1,1X)')outs(1:k),CMRVAL(i,J)
+            else
+              write(outs,'(A,I6,1X)')outs(1:k),int(CMRVAL(i,J))
+            endif
+            k=k+7
+          endif
+        enddo
+        call eddisp(itru,outs)
    10 CONTINUE
 
 C Consider another day?

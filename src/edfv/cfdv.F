@@ -106,11 +106,12 @@ C For number of openings NOPEN
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
 
 C Saved state of the visualisation
       COMMON/MODVIS/IVISMOD
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
 
@@ -186,6 +187,7 @@ C Commons from mocfd.F (RDCFDAT)
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer NITMS  ! max items and current menu item
       integer ISHSB,ISHAO,IFACES
+      integer ISTRW
 
 C length of performance file plus last digits now previous and next.
       integer lncfd3d,cfd3dnow,cfd3dprev,cfd3dnext
@@ -445,7 +447,7 @@ C << decide whether LCFDV needs to be > 72 char >>
           write(LCFD(1),'(a)') inf(1:72)
         endif
         write(outs,'(a,a)')' the input file is: ',LCFDV
-        call edisp(iuout,outs)
+C        call edisp(iuout,outs)
       else
         LCFDV='UNKNOWN'
         LCFD(1)='UNKNOWN'
@@ -637,8 +639,9 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             IER=0; XST=NXST
             goto 77  ! redraw it
           elseif(iw.eq.3)then
+            ISTRW=72
             CALL EASKF(cfd3dasci,'Domain performance name?','  ',
-     &        72,'cfd3dasci','Domain performance file',IER,nbhelp)
+     &        ISTRW,'cfd3dasci','Domain performance file',IER,nbhelp)
             XST=.FALSE.
             INQUIRE (FILE=cfd3dasci,EXIST=XST)
             IER=0
@@ -652,8 +655,9 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             IER=0; XST=NXST
             goto 77  ! redraw it
           else
+            ISTRW=72
             CALL EASKF(cfd3dasci,'Domain performance name?','  ',
-     &        72,'cfd3dasci','Domain performance file',IER,nbhelp)
+     &        ISTRW,'cfd3dasci','Domain performance file',IER,nbhelp)
             XST=.FALSE.
             INQUIRE (FILE=cfd3dasci,EXIST=XST)
             IER=0
@@ -667,8 +671,9 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             IER=0; XST=PXST
             goto 77  ! redraw it
           else
+            ISTRW=72
             CALL EASKF(cfd3dasci,'Domain performance name?','  ',
-     &        72,'cfd3dasci','Domain performance file',IER,nbhelp)
+     &        ISTRW,'cfd3dasci','Domain performance file',IER,nbhelp)
             XST=.FALSE.
             INQUIRE (FILE=cfd3dasci,EXIST=XST)
             IER=0
@@ -1356,7 +1361,8 @@ C first view.
 
 C Saved state of the visualisation
       COMMON/MODVIS/IVISMOD
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
 
@@ -1403,7 +1409,7 @@ C Need to reset scale factors - do this by redrawing the domain.
       iz=0
 
 C Draw the domain prior to the arrows.
-      ISHSB=0; ISHAO=0; IFACES=1; ISHBLK=0; ISHGEO=0
+      ISHSB=0; ISHAO=0; IFACES=1; ISHBLK=0; ISHSRC=0; ISHGEO=0
       call redraw(IER)
 C      write(6,*) 'imgqua,NOX,NOZ,tscal,hLscal,hWscal,vLscal'
 C      write(6,*) imgqua,NOX,NOZ,tscal,hLscal,hWscal,vLscal

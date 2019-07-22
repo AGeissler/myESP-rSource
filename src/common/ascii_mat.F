@@ -1398,6 +1398,7 @@ C Name of current application - only invoke editing if prj.
       dimension namelist(6000)
       integer loop,ih  ! loop indices
       integer iln,iln2 ! length of name strings
+      integer index    ! for cfcatindex
       logical dupfound,concat,unixok,ok,dok
       integer iCFCtype, ival
 
@@ -1516,10 +1517,10 @@ C Record the name and then check and see if it is a duplicate.
         endif
 
         write(cfcname(cfcdbitems),'(a)') WORD32(1:lnblnk(WORD32))
-        CALL EGETWI(LOUTSTR,K,cfcitmindex(cfcdbitems),1,MGIT_CFC,'F',
-     &    'item index',IER)
-        CALL EGETWI(LOUTSTR,K,cfccatindex(cfcdbitems),1,MGCL_CFC,'F',
-     &    'category index',IER)
+        CALL EGETWI(LOUTSTR,K,index,1,MGIT_CFC,'F','item index',IER)
+        cfcitmindex(cfcdbitems)=int(index,2)
+        CALL EGETWI(LOUTSTR,K,index,1,MGCL_CFC,'F','category index',IER)
+        cfccatindex(cfcdbitems)=int(index,2)
         CALL EGETRM(LOUTSTR,K,WORD248,'-','item doc',IER)
         write(cfcdoc(cfcdbitems),'(a)') WORD248(1:lnblnk(WORD248))
 
@@ -1536,7 +1537,7 @@ C Record the name and then check and see if it is a duplicate.
         cfcdbthick(cfcdbitems)=VAL(4)
 
         CALL EGETWI(LOUTSTR,K,iCFCtype,0,0,'-','shade type',IER)
-        CFCshdtp(cfcdbitems) = iCFCtype
+        CFCshdtp(cfcdbitems) = int(iCFCtype,2)
 
         if (CFCshdtp(cfcdbitems).eq.iGlazing)then
             CALL EGETWR(LOUTSTR,K,VAL(5),0.,0.,'-',
@@ -1730,16 +1731,16 @@ cx ... read vis data!!
         else if (CFCshdtp(cfcdbitems).eq.iGasGap)then
             CALL EGETWI(LOUTSTR,K,ival,0,100,'-',
      &           '% mole frac. air',IER)
-            CFCfillAir(cfcdbitems) = ival
+            CFCfillAir(cfcdbitems) = int(ival,2)
             CALL EGETWI(LOUTSTR,K,ival,0,100,'-',
      &           '% mole frac. Ar',IER)
-            CFCfillAr(cfcdbitems) = ival
+            CFCfillAr(cfcdbitems) = int(ival,2)
             CALL EGETWI(LOUTSTR,K,ival,0,100,'-',
      &           '% mole frac. Kr',IER)
-            CFCfillKr(cfcdbitems) = ival
+            CFCfillKr(cfcdbitems) = int(ival,2)
             CALL EGETWI(LOUTSTR,K,ival,0,100,'-',
      &           '% mole frac. Xe',IER)
-            CFCfillXe(cfcdbitems)  = ival
+            CFCfillXe(cfcdbitems)  = int(ival,2)
             CALL EGETWI(LOUTSTR,K,ival,0,100,'-',
      &           '% mole frac. SF6',IER)
             CFCfillSF6(cfcdbitems) = ival

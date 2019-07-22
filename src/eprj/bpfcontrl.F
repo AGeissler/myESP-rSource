@@ -91,6 +91,7 @@ C ipeerptbk is pointer from position in display to day type.
       integer IW   ! for radio button
       integer MVERT,IVERT ! max items and current menu item
       logical CFCfilexists,CFCcontrolOK
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -193,7 +194,7 @@ C            call edisp(iuout,'Reading existing control file.')
 C If user wishes to deselect current control reset file name to
 C blank, call ezctli to clear commons and save the configuration file.
       if(iclkok.eq.1)then
-        if(cfgok.and.(.NOT.browse))then
+        if(cfgok)then
           call ezctli
           LCTLF='  '
           CALL EMKCFG('-',IER)
@@ -588,8 +589,9 @@ C Toggle focus
 
 C Edit project level description.
         t248=ctldoc
+        ISTRW=72
         CALL EASKS248(t248,' ','Control system description?',
-     &    72,'Base case control','overall control desc',IER,nbhelp)
+     &    ISTRW,'Base case control','overall control desc',IER,nbhelp)
         if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')ctldoc=t248
         if(ctldoc(1:5).EQ.'NONE ')then
           if(IMFS.eq.4) IMFS=0
@@ -604,39 +606,46 @@ C Edit project level description.
 C Edit building/plant/flow/global/complex fen. control description.
         if(icfoc.eq.0)then
           t248=znctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ','Zone control description?',
-     &      72,'Zone control','building control descr.',IER,nbhelp)
+     &      ISTRW,'Zone control','building control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')znctldoc=t248
         elseif(icfoc.eq.1)then
           t248=plctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ','Plant control description?',
-     &      72,'Plant control','plant control descr.',IER,nbhelp)
+     &      ISTRW,'Plant control','plant control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')plctldoc=t248
         elseif(icfoc.eq.2)then
           t248=flctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ','Flow control description?',
-     &      72,'Flow control','flow control descr.',IER,nbhelp)
+     &      ISTRW,'Flow control','flow control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')flctldoc=t248
         elseif(icfoc.eq.3)then
           t248=glctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ','Global control description?',
-     &      72,'Global control','global control descr.',IER,nbhelp)
+     &      ISTRW,'Global control','global control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')glctldoc=t248
         elseif(icfoc.eq.4)then
           t248=elctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ','Electrical control description?',
-     &      72,'Electrical control','electrical control descr.',
+     &      ISTRW,'Electrical control','electrical control descr.',
      &      IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')elctldoc=t248
         elseif(icfoc.eq.5)then
           t248=opticdoc
+          ISTRW=72
           CALL EASKS248(t248,' ',' Optical control description?',
-     &      72,'Optical control','optic control descr.',IER,nbhelp)
+     &      ISTRW,'Optical control','optic control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')opticdoc=t248
         elseif(icfoc.eq.6)then
           t248=CFCctldoc
+          ISTRW=72
           CALL EASKS248(t248,' ',' Complex fen. control description?',
-     &      72,'Complex fen. control',
+     &      ISTRW,'Complex fen. control',
      &      'complex fen. control descr.',IER,nbhelp)
           if(t248(1:2).ne.'  '.and.t248(1:4).ne.'UNKN')CFCctldoc=t248
         endif
@@ -747,9 +756,8 @@ C Local variable ireturn is non-zero to signal user wants to exit.
           endif
         endif
 
-C If not browsing the model ask user if they want to save any changes
-C to control file.
-        if(cfgok.and.(.NOT.browse))then
+C Ask user if they want to save any changes to control file.
+        if(cfgok)then
           IRETURN=1
           DOK=.TRUE.
           CALL ASKOK(' ','Save changes to control file?',OK,dok,nbhelp)
@@ -780,8 +788,8 @@ C Save the control file.
         IF(LASCI(1:2).NE.'  ')LCTLF=LASCI
 
 C Save current information into a descriptive file
-C and save the system configuration file if not browsing.
-        if(cfgok.and.(.NOT.browse))then
+C and save the system configuration file.
+        if(cfgok)then
           ICTLF=IFIL+1
           CALL CTLWRT(ICTLF,IER)
 C          call edisp(IUOUT,'Saving system configuration file.')
@@ -5678,7 +5686,10 @@ C Note: isense will eventually be passed to IFCTYP(II,1,1)=isense
      &     'e absolute delta T between nodes','f pressure at node',
      &     'g delta P between nodes',
      &     'h abs delta P between nodes',
-     &     'i contaminant concentration at node',' ',' ',' ',
+     &     'i contaminant concentration at node',
+     &     'j delta pvap btw. zone and ambient',
+     &     'k delta RH btw. zone and ambient',
+     &     'l RH in zone',
      &     ino,idno,nbhelp)
           if(ino.eq.0)then
             call usrmsg('You did not select a valid control law.',
@@ -5716,6 +5727,18 @@ C Depening on the users selection set isense and nsup.
             isn3=icpk(1)
             isn4=2
             isense=41
+          endif
+          if(ino.eq.10)then
+            isense=30
+            nsup=2
+          endif
+          if(ino.eq.11)then
+            isense=31
+            nsup=2
+          endif
+          if(ino.eq.12)then
+            isense=17
+cx            nsup=2
           endif
         elseif(IW.eq.2)then
           isn1= -4

@@ -759,7 +759,11 @@ C the ficticious limit then mark to be skipped. Convert visible
 C transmission to transmissivity (as per Ward 1/12/94 Radiance 2.4 paper).
 C If TMC has an opaque layer then set gvt to a small number.
         if(mlctype(IM)(1:4).NE.'OPAQ')then
-          CALL EROPTDB(ITRC,iuout,OPT,GDESCR,IER)
+          if(mlctype(IM)(1:3).EQ.'CFC')then
+            VTRN=0.65
+          else ! TMC
+            CALL EROPTDB(ITRC,iuout,OPT,GDESCR,IER)
+          endif
           if(VTRN.gt.0.02)then
           gvt1=(sqrt(0.8402528435+(0.007252224*VTRN*VTRN))-0.9166530661)
           gvt=gvt1/0.0036261119/VTRN
@@ -1344,15 +1348,12 @@ C   All connections: create one surface (no shift).
           endif
 
 C Find the matching mlc index and set the material name.
-C Radiance does not yet know what to do with CFC and CFC2.
 C << use call to matchmlcdesc >>
           ICF=-1
           ifict=0
           call matchmlcdesc(SSMLCN(icn),icf)
           if(ICF.eq.-1.or.SSMLCN(icn)(1:4).eq.'UNKN')then
-            if (SSOTF(icn)(1:4).ne.'OPAQ'.and.
-     &          SSOTF(icn)(1:4).ne.'CFC '.and.
-     &          SSOTF(icn)(1:4).ne.'CFC2') then
+            if (SSOTF(icn)(1:4).ne.'OPAQ') then
               material='unknown_glz'
             else
               material='unknown'
@@ -1395,9 +1396,7 @@ C Aternative glazing descriptions file.
               WRITE(ita2,'(a)') outs
               WRITE(ita2,'(a)') '  '
             endif
-          elseif(SSOTF(icn)(1:4).ne.'OPAQ'.and.
-     &           SSOTF(icn)(1:4).ne.'CFC '.and.
-     &           SSOTF(icn)(1:4).ne.'CFC2')then
+          elseif(SSOTF(icn)(1:4).ne.'OPAQ')then
 
 C Create surface based on the following:
 C  Focus zone - create.
@@ -1909,13 +1908,13 @@ C Similar logic to edoptic.F
               
 C Report what has been decided.
 C Debug
-                  write(6,*) 'found surface with fixture',icn,
-     &              SSUSE(icn,1),SSUSE(icn,2),combinedname,trnsx,
-     &              trnsy,trnsz,roties
-                  write(6,*) iescontrolledname(1)
-                  write(6,*) iescontrolledname(2)
-                  write(6,*) iescontrolledname(3)
-                  write(6,*) iescontrolledname(4)
+c                  write(6,*) 'found surface with fixture',icn,
+c     &              SSUSE(icn,1),SSUSE(icn,2),combinedname,trnsx,
+c     &              trnsy,trnsz,roties
+c                  write(6,*) iescontrolledname(1)
+c                  write(6,*) iescontrolledname(2)
+c                  write(6,*) iescontrolledname(3)
+c                  write(6,*) iescontrolledname(4)
 
 C For each control state.  Put a hash in front of subsequent lines (it is
 C up to the user to edit the file at simulation run time).
@@ -1929,20 +1928,20 @@ C up to the user to edit the file at simulation run time).
      &                  ' -rz ',roties,' -rx 0 -t ',
      &                  trnsx,trnsy,trnsz,' ',
      &                  iescontrolledname(loop2)(1:lnctl)
-                      WRITE(6,'(3a,f7.2,a,3f7.3,2a)') ' !xform -e -n ',
-     &                  combinedname(1:lncmb),' -rz ',roties,
-     &                  ' -rx 0 -t ',trnsx,trnsy,trnsz,' ',
-     &                  iescontrolledname(loop2)(1:lnctl)
+c                      WRITE(6,'(3a,f7.2,a,3f7.3,2a)') ' !xform -e -n ',
+c     &                  combinedname(1:lncmb),' -rz ',roties,
+c     &                  ' -rx 0 -t ',trnsx,trnsy,trnsz,' ',
+c     &                  iescontrolledname(loop2)(1:lnctl)
                     else
                       WRITE(iiesfil,'(3a,f7.2,a,3f7.3,2a)') 
      &                  '# !xform -e -n ',combinedname(1:lncmb),
      &                  ' -rz ',roties,' -rx 0 -t ',
      &                  trnsx,trnsy,trnsz,' ',
      &                  iescontrolledname(loop2)(1:lnctl)
-                      WRITE(6,'(3a,f7.2,a,3f7.3,2a)') 
-     &                  '# !xform -e -n ',combinedname(1:lncmb),' -rz ',
-     &                  roties,' -rx 0 -t ',trnsx,trnsy,trnsz,' ',
-     &                  iescontrolledname(loop2)(1:lnctl)
+c                      WRITE(6,'(3a,f7.2,a,3f7.3,2a)') 
+c     &                  '# !xform -e -n ',combinedname(1:lncmb),' -rz ',
+c     &                  roties,' -rx 0 -t ',trnsx,trnsy,trnsz,' ',
+c     &                  iescontrolledname(loop2)(1:lnctl)
                     endif
                   enddo  ! of loop2
 

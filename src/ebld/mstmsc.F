@@ -20,7 +20,7 @@ C Boston, MA 02111-1307 USA.
 
 C *********************************************************************
 C BETA01 derives the mass transfer coefficient from heat transfer
-C coefficient using Lewis relation (Marieke 1994, Webb 1991 ASHREA
+C coefficient using Lewis relation (Marieke 1994, Webb 1991 ASHRAE
 C transactions, V97, pp.11411-7).
 C BETA01       convective mass transfer coefficient (s/m)
 C R            universal gas constant  8314.4  (J/mole K)
@@ -92,7 +92,12 @@ C *********************************************************************
       FUNCTION U02(iMM,RH,Uh,CFF,EXPT,DNSTY)
       COMMON/MOIST17/RHmax
 
-      IF(RH.GT.RHmax)RH=RHmax
+      if ((DNSTY.lt.0.01))then
+C       We have an air layer, set average value ...
+        DNSTY=1.18
+      endif
+
+cx      IF(RH.GT.RHmax)RH=RHmax  !! covered in U01()!
       U02=U01(iMM,RH,Uh,CFF,EXPT)/DNSTY
       IF(U02.LT.0.0)STOP 'Error (704): negative moisture content.'
       RETURN
@@ -149,7 +154,13 @@ C *********************************************************************
       SMALL=1.0E-15
 
       IF(RH.GT.RHmax)RH=RHmax
-      XI02=XI01(iMM,RH,Uh,CFF,EXPT)/DNSTY
+
+      if ((DNSTY.lt.0.01))then
+C       We have an air layer, set average value ...
+        DNSTY=1.18
+      endif
+
+      XI02=XI01(iMM,RH,Uh,CFF,EXPT)/DBLE(DNSTY)
       IF(XI02.LT.DBLE(SMALL))then
         call edisp(iuout,'XI02: (706) very small moisture capacity.')
         call epwait
@@ -408,7 +419,7 @@ C       Otto model
         else
           write(outs,'(a,4F12.6,a)')
      &     'DELT01: small my for: VPRMa VPRMb VPRMc RH',
-     &      VPRMa,VPRMb,VPRMc,RH,' resetting to .1'
+     &      VPRMa,VPRMb,VPRMc,RH,' resetting to 1.883e-9'
           call edisp(iuout,outs)
           DELT01=1.883e-9
         endif
@@ -416,7 +427,7 @@ C       Otto model
       IF(DELT01.LT.SMALL)then
         write(outs,'(a,4F12.6,a)') 
      &   'DELT01: small vapour perm for: VPRMa VPRMb VPRMc RH',
-     &    VPRMa,VPRMb,VPRMc,RH,' resetting to 1.0E-13'
+     &    VPRMa,VPRMb,VPRMc,RH,' resetting to 1.0E-15'
         call edisp(iuout,outs)
         DELT01=1.0E-15
       endif

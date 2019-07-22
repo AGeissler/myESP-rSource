@@ -25,6 +25,7 @@ C GRIDCRV: Distribute grid cells according curvilinear data in 2-D.
 C GRIDGEO: Calculate geometrical properties and interpolation factors 
 C          of gridded domain.
 C LINVOL:  Logical function: TRUE if inside nominated volume.
+C FDCFDPT: Finds CFD grid cell that most closely matches coordinates.
 
 C ************************** GRID **************************
 C GRID: Controling routine for all gridding.
@@ -556,3 +557,141 @@ C Ki,Kf start and end of J direction
  
       RETURN
       END
+
+C ****** FDCFDPT
+C FDCFDPT finds the CFD grid cell that most closely matches coordinates
+C of a search point Xin, Yin, Zin. It returns the indices of this grid
+C cell in IU, IV and IW.
+C If MODE = 1, finds cell on the scalar grid.
+C If MODE = 2, finds cells on the velocity grid (i.e. scalar cell
+C boundaries)
+      SUBROUTINE FDCFDPT(MODE,Xin,Yin,Zin,IU,IV,IW,IER)
+
+#include "building.h"
+#include "cfd.h"      
+
+      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
+      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
+     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
+     2            DZHP(ntcelz),DZPL(ntcelz),
+     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
+     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
+
+      REAL Xin,Yin,Zin,prev,XX,YY,ZZ
+      INTEGER IU,IV,IW
+      logical close
+
+      IU=0; IV=0; IW=0
+      IER=0
+
+C U (X) direction.
+C Initialise previous value to coordinate of first grid cell.
+      if (MODE.eq.1) then
+        prev=XP(1)
+      elseif (MODE.eq.2) then
+        prev=XU(1)
+      else
+        CALL EDISP(IUOUT,' FDCFDPT: Unrecognised mode')
+        IER=1
+        return        
+      endif
+
+C Loop through subsequent grid cells.
+      do I=2,NI
+        if (MODE.eq.1) then
+          XX=XP(I)
+        elseif (MODE.eq.2) then
+          XX=XU(I)
+        endif
+
+C If this grid cell is at or past the search point, then either this 
+C grid cell or the previous one is the closest to the search point.
+        call eclose(Xin,XX,0.0001,close)
+        if (XX.gt.Xin.or.close) then
+          if (abs(XX-Xin).lt.abs(prev-Xin)) then
+            IU=I
+          else
+            IU=I-1
+          endif
+          exit
+        endif
+        prev=XX
+      enddo
+
+      if (IU.eq.0) then
+        CALL EDISP(IUOUT,' FDCFDPT: Cannot find X grid point')
+        IER=1
+        return
+      endif
+
+C V (Y) direction.
+      if (MODE.eq.1) then
+        prev=YP(1)
+      elseif (MODE.eq.2) then
+        prev=YV(1)
+      else
+        CALL EDISP(IUOUT,' FDCFDPT: Unrecognised mode')
+        IER=1
+        return        
+      endif
+      do J=2,NJ
+        if (MODE.eq.1) then
+          YY=YP(J)
+        elseif (MODE.eq.2) then
+          YY=YV(J)
+        endif
+        call eclose(Yin,YY,0.0001,close)
+        if (YY.gt.Yin.or.close) then
+          if (abs(YY-Yin).lt.abs(prev-Yin)) then
+            IV=J
+          else
+            IV=J-1
+          endif
+          exit
+        endif
+        prev=YY
+      enddo
+
+      if (IV.eq.0) then
+        CALL EDISP(IUOUT,' FDCFDPT: Cannot find Y grid point')
+        IER=1
+        return
+      endif
+
+C W (Z) direction.
+      if (MODE.eq.1) then
+        prev=ZP(1)
+      elseif (MODE.eq.2) then
+        prev=ZW(1)
+      else
+        CALL EDISP(IUOUT,' FDCFDPT: Unrecognised mode')
+        IER=1
+        return        
+      endif
+      do K=2,NK
+        if (MODE.eq.1) then
+          ZZ=ZP(K)
+        elseif (MODE.eq.2) then
+          ZZ=ZW(K)
+        endif
+        call eclose(Zin,ZZ,0.0001,close)
+        if (ZZ.gt.Zin.or.close) then
+          if (abs(ZZ-Zin).lt.abs(prev-Zin)) then
+            IW=K
+          else
+            IW=K-1
+          endif
+          exit
+        endif
+        prev=ZZ
+      enddo
+
+      if (IW.eq.0) then
+        CALL EDISP(IUOUT,' FDCFDPT: Cannot find Z grid point')
+        IER=1
+        return
+      endif
+
+      return
+      end

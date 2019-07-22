@@ -64,7 +64,7 @@ C Comfort parameters and hash table.
 
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -520,11 +520,11 @@ C If java then include fields for `project contact` and `site location`
 
 C Open the climate file and get its location name.
 C << take into account location >>
-        IUNITC=IFIL+5
-        CALL FPRAND(IUNITC,ISTAT,144,1,LCLIM)
+        CALL CLMOPB(1,IER)
+        CALL CLMRDBMD(IER)
         IRECC=367
         READ(IUNITC,REC=IRECC,IOSTAT=IOS,ERR=102)CLMLOC
-        CALL  ERPFREE(IUNITC,ISTAT)
+        CALL  ERPFREE(ICLIM,ISTAT)
         write(outs,'(a,a1,a)') '*climate',tab,CLMLOC
         call edisp(itru,outs)
         write(outs,'(a,a1,f6.2)') '*latitude',tab,sitelat
@@ -3192,7 +3192,7 @@ C      common/OUTIN/IUOUT,IUIN
 
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -3562,6 +3562,7 @@ C Simulator parameters. autook signals silent operation.
       character tg*1,act*1
       character longtfile*144,longtfiledos*144
       logical concat,remote,unixok,there
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -3622,22 +3623,19 @@ C Each call is a toggle.
           llt=lnblnk(xfile)
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(xfile,' Export file name? ',
-     &          ' ',96,'export.txt','export file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(xfile,' Export file name? ',
-     &          ' ',124,'export.txt','export file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(xfile,' Export file name? ',
-     &          ' ',144,'export.txt','export file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(xfile,' Export file name? ',
-     &        ' ',144,'export.txt','export file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(xfile,' Export file name? ',
-     &        ' ',96,'export.txt','binary events db',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(xfile,' Export file name? ',
+     &      ' ',ISTRW,'export.txt','binary events db',IER,nbhelp)
 
 C If user request cancel then return after resetting ixopen to zero.
           if(ier.eq.-3)then

@@ -163,6 +163,12 @@ C prevailing controller type, determines sensed condition (SVCTL).
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
+      common/FVALG/GFA(MCOM)
+
+C Atmospheric pressure
+      COMMON/ATPRES/PATMOS
+      real PATMOS
+
       DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
       character outs*124
 
@@ -198,7 +204,8 @@ C Match mass flow controller type.
         endif
       else
         if((ICLCTP.NE.1.AND.ICLCTP.NE.3.AND.ICLCTP.NE.5.AND.ICLCTP.NE.7
-     &           .AND.ICLCTP.NE.9.AND.ICLCTP.NE.11.AND.ICLCTP.NE.41)
+     &           .AND.ICLCTP.NE.9.AND.ICLCTP.NE.11.AND.ICLCTP.NE.17
+     &           .AND.ICLCTP.NE.41)
      &           .AND.(ICLCTP.LT.24.OR.ICLCTP.GT.34))then
           WRITE(outs,*) ' CFFVAR: mass flow control function ',ICFP
           call edisp(iuout,outs)
@@ -277,7 +284,7 @@ C Controller type 9: senses some additional plant output
 
 C Controller type 11 senses relative humidity (%).
         ELSE IF(ICLCTP.EQ.11) THEN
-          PATMOS=1013.25
+cx          PATMOS=1013.25
           SVCTL=PCRH2(CSVF(IN,1),CSVF(IN,3)/CSVF(IN,2),PATMOS)
         ELSE
           call edisp(iuout,
@@ -331,6 +338,11 @@ C Controller type 5 senses mass flow at a connection.
           elseif(ICLCTP.EQ.5)then
             SVCTL=sngl(flw1(ifs2)+flw2(ifs2))
 
+C Controller type 17 senses relative humidity of zone node.
+C ((possibly only usable when moisture modelling is active ...))
+          elseif(ICLCTP.EQ.17)then
+            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS))
+
 C Controller type 24 senses temperature difference between nodes.
           elseif(ICLCTP.EQ.24)then
             SVCTL=TNOD(ifs2)-TNOD(ifs3)
@@ -354,6 +366,20 @@ C Controller type 28 senses ABS pressure difference between nodes.
 C Controller type 29 senses ABS mass flow at a connection.
           elseif(ICLCTP.EQ.29)then
             SVCTL=sngl(DABS(FLW1(ifs2)+FLW2(ifs2)))
+
+C Controller type 30 senses vapour pressure difference between zone
+C and ambient nodes. ISF1=-4, IFAN(ICFP,1)=-3
+C ((possibly only usable when moisture modelling is active ...))
+          elseif(ICLCTP.EQ.30)then
+            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)/100.
+     &                                      *Psat01m(TFA(IFS2))
+     &                                    -HFLF/100.*Psat01m(TFLWF))
+
+C Controller type 31 senses difference between zone and ambient nodes
+C relative humidity (in %). ISF1=-4, IFAN(ICFP,1)=-3
+C ((possibly only usable when moisture modelling is active ...))
+          elseif(ICLCTP.EQ.31)then
+            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)-HFLF)
 
 C Controller type 41 senses contaminant concentration at node
           elseif(ICLCTP.EQ.41)then

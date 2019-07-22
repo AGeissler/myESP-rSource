@@ -63,6 +63,7 @@ C Parameters
       character group*32,key*1,look*32,tlook*32
       character llclmdb*144,h*72
       integer NCO,ICO ! max items and current menu item
+      integer ISTRW
 
 C Set default early winter, spring, summer, autumn, late winter periods.
       CALL EDAY(9,1,ia1wins)
@@ -209,22 +210,19 @@ C with the GTK version.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(llclmdb,' Weather file (esp-r binary format)?',
-     &        ' ',96,DCLIM,'weather file name',IER,4)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(llclmdb,' Weather file (esp-r binary format)?',
-     &        ' ',124,DCLIM,'weather file name',IER,4)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(llclmdb,' Weather file (esp-r binary format)?',
-     &        ' ',144,DCLIM,'weather file name',IER,4)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(llclmdb,' Weather file (esp-r binary format)?',
-     &      ' ',144,DCLIM,'weather file name',IER,4)
+          ISTRW=144
         else
-          CALL EASKF(llclmdb,' Weather file (esp-r binary format)?',
-     &      ' ',96,DCLIM,'weather file name',IER,4)
+          ISTRW=96
         endif
+        CALL EASKF(llclmdb,' Weather file (esp-r binary format)?',
+     &    ' ',ISTRW,DCLIM,'weather file name',IER,4)
         IF(llclmdb(1:2).EQ.'  ')GOTO 289
 
 C Cast back to clmdb.

@@ -63,9 +63,8 @@ C      set_QELW_to_zero
 C      CFCoutput
 C      CFC_control
 C      get_incident_solrad
+C      CFCoutputH3K
 C
-C The subroutines defined in <complex_fenestration_1.F> are required
-C for (some of) the above functions.
 
 C ********************************************************************
 C                   --fenestration_controller--
@@ -1431,6 +1430,9 @@ c      real TFS,QFS
       COMMON/PREC1I/APRAT(MCOM,MS),HEIGHT(MCOM,MS)
       real aprat,height
 
+      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
+      real PAZI,PELV
+
       integer nc,nn,ne,i,j,icomp,isur,icfctp,inode,nnod,itypenext
       integer itype,layertype,nd_blnd,nd_cav,nd_glass, IER
       real Tglass,Text,fnnod,Tavg
@@ -1593,8 +1595,9 @@ C.................If shade is retracted determine gap thickness between glass la
                     TB=tfc(icomp,isur,(i+3)*2+1)
                     L=THRMLI(icomp,isur,i+1,4)+THRMLI(icomp,isur,i+3,4)
                   endif
-                
-                  CALL ConvVertCav(L,TA,TB,rmlr_mass(icomp,icfctp,i+1),
+
+                  CALL ConvVertCav(PELV(icomp,isur),L,TA,TB,
+     &            rmlr_mass(icomp,icfctp,i+1),
      &            cond_A(icomp,icfctp,i+1),cond_B(icomp,icfctp,i+1),
      &            visc_A(icomp,icfctp,i+1),visc_B(icomp,icfctp,i+1),
      &            spht_A(icomp,icfctp,i+1),spht_B(icomp,icfctp,i+1),hc)
@@ -1613,7 +1616,8 @@ C.................air gap on the other side of the (retracted) shade.
                   L=lthk
                   !hc=0.
 
-                  CALL ConvVertCav(L,TA,TB,rmlr_mass(icomp,icfctp,i+1),
+                  CALL ConvVertCav(PELV(icomp,isur),L,TA,TB,
+     &            rmlr_mass(icomp,icfctp,i+1),
      &            cond_A(icomp,icfctp,i+1),cond_B(icomp,icfctp,i+1),
      &            visc_A(icomp,icfctp,i+1),visc_B(icomp,icfctp,i+1),
      &            spht_A(icomp,icfctp,i+1),spht_B(icomp,icfctp,i+1),hc)
@@ -1645,7 +1649,8 @@ C.................air gap on the other side of the (retracted) shade.
                   endif
 
                   !hc=0.
-                  CALL ConvVertCav(L,TA,TB,rmlr_mass(icomp,icfctp,i+1),
+                  CALL ConvVertCav(PELV(icomp,isur),L,TA,TB,
+     &            rmlr_mass(icomp,icfctp,i+1),
      &            cond_A(icomp,icfctp,i+1),cond_B(icomp,icfctp,i+1),
      &            visc_A(icomp,icfctp,i+1),visc_B(icomp,icfctp,i+1),
      &            spht_A(icomp,icfctp,i+1),spht_B(icomp,icfctp,i+1),hc)
@@ -1862,27 +1867,39 @@ C Save future terms.
 C ********************************************************************
 C                        --ConvVertCav--
 C
-C Calculates convection coefficient between two vertical surfaces in 
-C an enclosed cavity based on cavity thickness (L), bounding surface
-C temperatures(TA, TB) and fill gas properties (mlr_mass,condA,condB,
-C viscA,viscB,spchtA,spchtB). Returns (hc).
+C Calculates convection coefficient between two surfaces at tilt
+C angle (ang) in an enclosed cavity based on cavity thickness (L),
+C bounding surface temperatures(TA, TB) and fill gas properties
+C (mlr_mass,condA,condB, viscA,viscB,spchtA,spchtB). Returns
+C convection coefficient (hc) in W/(m2 K).
 C
-C Reference:
+C References:
 C Shewen, E., Hollands, K.G.T., Raithby, G.D. (1996) 'Heat Transfer
 C by Natural Convection Across a Vertical Cavity of Large Aspect
 C Ratio', Journal of Heat Transfer, Vol. 118, pp.993-995.
 C
+C EN 673:1996
+C
+C ISO 15099:2003
+C
 C ********************************************************************
-      subroutine ConvVertCav(L,TA,TB,mlr_mass,condA,condB,
-     &                          viscA,viscB,spchtA,spchtB,hc)
+      subroutine ConvVertCav(ang,L,TA,TB,mlr_mass,condA,condB,
+     &                             viscA,viscB,spchtA,spchtB,hc)
+cx      subroutine ConvVertCav(L,TA,TB,mlr_mass,condA,condB,
+cx     &                          viscA,viscB,spchtA,spchtB,hc)
       IMPLICIT NONE
+#include "building.h"
+#include "CFC_common.h"
+C provides i_hcond
 C gas molar mass, A and B gas property coefficients
       real mlr_mass,condA,condB,viscA,viscB,spchtA,spchtB
 
-      real L,TA,TB,hc
+      real ang,L,TA,TB,hc
       real g,R,P,Tm,ro,cp,k,mu,dT,Ra,Nu
+      real A,n,PI,rad
+      real gam,Nu1,Nu2,GG,Agv,XX,YY,Nu_v,Nu_60
       real small
-      logical close_dT, close_L
+      logical close_dT, close_L, close_Ra, close_ang
 
 C Small real number to check for values close to 0.
       small = 1.0e-6
@@ -1895,23 +1912,17 @@ C This is a crude idealized treatment.
       endif
 
       g=9.806402                       !gravity [m/s2]
+cx << use climate pressure if available ... ?! >>
       P=101325.                        !abs pressure [Pa]
       R=8.314472                       !universal gas constant [J/mol.K]
+      PI = 4.0 * ATAN(1.0)
+      rad=PI/180.                      ! conversion grad -> rad
 
 C Convert temperature to Kelvin
       TA=TA+273.15
       TB=TB+273.15
 
       if(TA.gt.0.0.and.TB.gt.0.0)then
-        Tm=0.5*(TA+TB)                   !mean temp
-
-C Calculate gas properties based on linear Temperature fit
-        k=condA+condB*Tm                 !conductivity [W/m.K]
-        mu=viscA+viscB*Tm                !viscosity[N.sec/m^2]
-        cp=spchtA+spchtB*Tm              !specific heat [J/kg.K]
-
-        ro=(P*mlr_mass)/(R*Tm*1000.)     !density [kg/m^3]
-
         dT=ABS(TA-TB)                    !temp. diff.
 
 C Check if dT = 0 or L = 0, which will cause divide by zero exceptions.
@@ -1925,19 +1936,151 @@ C.........Set convection coefficient to a small number
 
         else
 
+          Tm=0.5*(TA+TB)                   !mean temp
+
+C Calculate gas properties based on linear Temperature fit
+          k=condA+condB*Tm                 !conductivity [W/m.K]
+          mu=viscA+viscB*Tm                !viscosity[N.sec/m^2]
+          cp=spchtA+spchtB*Tm              !specific heat [J/kg.K]
+
+          ro=(P*mlr_mass)/(R*Tm*1000.)     !density [kg/m^3]
+
 C.........Calculate Rayleigh number
           Ra = ro*ro*cp*dT*L*L*L*g/(mu*k*Tm)
 
+          call eclose(Ra,0.00,0.01,close_Ra)
+          if (close_Ra) Ra=1.0
+
+          if (i_hconv.eq.0) then
 C.........Calculate Nusselt number (Shewen, Hollands and Raithby 1996)
-          Nu = SQRT(1.+((0.0665*Ra**(0.33333))/
+            Nu = SQRT(1.+((0.0665*Ra**(0.33333))/
      &           (1.+(9000./Ra)**1.4))**(2))
 
-C.........Calculate convective heat transfer coefficient.
+          elseif (i_hconv.eq.1) then
+
+C.........Calculate Nusselt number acc. to EN 673:1996 ***
+C           Calculate coefficients A and n (EN 673, tilted glass) from tilt angle ang
+C           A=0.036 ! (0deg, vert) 0.10 (45deg) 0.16 (90deg, horiz)
+            A=0.036667+0.0013778*ang !  R= 0.99983
+C           n=0.38  ! (0deg, vert) 0.31 (45deg) 0.28 (90deg, horiz)
+            n=0.38-0.002*ang+(9.8765E-6)*ang**2. ! R=1
+
+C           Angle dependant Nusselt number (EN 673 eqn 6)
+C           Nu = A*Ra**(n)
+            Nu=1.0
+            if (Ra.gt.0.) Nu=A*exp(n*log(Ra)) ! x**y
+C
+C           'ang' is PELV(icomp,isurf) and defined as
+C           0∞   for vertical surfaces
+C          90∞   for horizontal surfaces facing upward ('ceiling') and
+C         -90∞   for horizontal surfaces facing downward ('floor')
+
+            if ((ang.lt.0.).and.(ang.gt.-45.)) then
+C             use vertical value for now
+              Nu=0.036*exp(0.38*log(Ra))
+C           if heat flux downwards, set Nu=0.1 (very small convective coefficent)
+            elseif (ang.le.-45.) then
+              Nu=0.1
+            endif
+C           Now Nu is set according to EN 673:1996
+
+          else ! i_hconv.eq.2
+
+C...........Calculate Nusselt number acc. to ISO 15099:2003 ***
+C           Section 5.3.3
+C           gam =   0deg ... horizontal glazing, heat flow upwards
+C           gam =  90deg ... vertical glazing, heat flow horizontal
+C           gam = 180deg ... horizontal glazing, heat flow downwards
+C
+C           It is assumed that TA is "outside" and TB is "inside".
+C           Base eqns assume that TA < TB, i.e. heat flow from inside
+C           to outside. If TA > TB, the complement of the tilt angle
+C           is to be used, i.e. 180deg - gam instead of gam. and
+C           calculations done with 180deg - gam!
+C
+            if (TA .le. TB) then
+              gam = 90. - ang
+            else ! TA > TB, use complement angles
+              gam = 90. + ang ! 180 - (90. - ang)
+            endif
+
+C           Vertical value (eqn. 49) is necessary for more than one
+C           angle, always calculate:
+            Agv=22. ! Ag,v = H / dg,v ??? height ??? where from ???
+C           Use max vertice z - min vertice z per surface?
+
+            if (Ra .gt. 50000.) then
+              Nu1=0.673838*exp(0.333333*log(Ra))
+            elseif ((Ra.le. 50000.) .and. (Ra .gt. 10000.)) then
+              Nu1=0.028154*exp(0.4134*log(Ra))
+            else ! Ra < 10000.
+              Nu1=1.+1.7596678E-10*exp(2.2984755*log(Ra))
+            endif
+            Nu2=0.242*exp(0.272*log(Ra/Agv))
+            Nu_v=max(Nu1,Nu2)! Nusselt for vertical cavity
+
+C           Value for 60deg is also used for more than one angle,
+C           also always calculate:
+            if (Ra .gt. 500) then
+              XX = log(Ra/3160.)
+              XX = log(1.+ exp(20.6*XX))
+              GG = 0.5/exp(0.1*XX)
+
+              XX = exp(0.314*log(Ra))/(1.+GG)
+              XX = exp(7.*log(0.0936*XX))
+              Nu1= exp((1./7.)*log(1.+XX))
+            else
+              Nu1=0.25
+            endif
+
+            Nu2 = (0.104+0.175/Agv)*exp(0.283*log(Ra))
+            Nu_60=max(Nu1,Nu2) ! Nusselt for 60 deg tilt
+
+c           Check if vertical
+            call eclose(ang,0.00,0.01,close_ang)
+
+            if ((0. .le.gam) .and. (gam.lt. 60.)) then
+              XX = (1.-1708./(Ra*cos(gam*rad)))
+              XX = (XX + abs(XX))/2.
+              YY = (exp(0.333333*log(Ra*cos(gam*rad)/5830.))-1.)
+              YY = (YY + abs(YY))/2.
+              Nu = 1.+1.44*XX*
+     &             (1.-(1708.*exp(1.6*log(sin(1.8*gam*rad))))/
+     &                                       (Ra*cos(gam*rad)))+YY
+
+            elseif (gam .eq. 60.) then
+              Nu = Nu_60
+
+            elseif ((60. .lt.gam) .and. (gam.lt. 90.)) then
+C           linear interpolation between Nu_60 and Nu_v
+              Nu = gam*(Nu_v-Nu_60)/30.+Nu_60-2.*(Nu_v-Nu_60)
+
+            elseif (close_ang) then ! vertical
+              Nu = Nu_v
+
+            else ! between 90 and 180 deg
+              Nu=1.+(Nu_v-1.)*sin(gam*rad)
+
+            endif
+C         Now Nu is set according to ISO 15099:2003
+
+          endif ! which model?
+
+C Nusselt number Nu is now set, so, finally
+C calculate convective heat transfer coefficient.
           hc = Nu*k/L     !(W/m^2.K)
 
-        end if
+        endif ! .not. close_dT or close_L
 
-      end if
+      else
+C     Temperatures not valid ...
+
+
+      endif ! TA and TB gt. 0.
+
+C Debug:
+C      write(*,*)'A=',A,'; n=',n,'; Ra=',
+C        Ra,'; Nu=',Nu,'; hc=',hc
 
  1000 return
       end
@@ -2298,7 +2441,7 @@ C geometry.h for zname.
       real pazi,pelv
 
       integer icomp,isurf,icfctp
-      real pi,r,omega_v,omega_h
+      real pi,r,omega_v,omega_h,pang_ih,pang_vh
 
 C.....DECLARATIONS for H3Kreporting object
       CHARACTER*12   cZone_Chars, cSurf_Chars
@@ -2308,9 +2451,36 @@ C.....DECLARATIONS for H3Kreporting object
 
 C.....Vertical profile angle
       omega_v = ATAN(TAN(SALT*r)/COS(SAZI*r-PAZI(icomp,isurf)*r))/r
+
+C     Correct for blind assembly tilt angle PELV if not vertical
+C     (A. Geissler, 2011)
+C     In ESP-r, PELV is defined as:
+C         0∞   for vertical surfaces (accept +- 5∞ as vertical, here)
+C        90∞   for horizontal surfaces facing upward ('ceiling') and
+C       -90∞   for horizontal surfaces facing downward ('floor')
+      if (abs(PELV(icomp,isurf)).gt.5.) then
+C       In ref. C. Chantrasrisalai, PhD Thesis 2007, Oklahoma State
+C       University, page 61 eqn. 4-1b the blind assembly tilt
+C       angle (Sig) is defined as
+C           0∞   for blind assembly facing upward,
+C          90∞   for blind assembly vertical and
+C         180∞   for blind assembly facing the ground.
+C       Eqn. 4-1b for the ESP-r angle reference system becomes
+        omega_v=omega_v - PELV(icomp,isurf)
+      endif
+
 C.....Horizontal profile angle
       omega_h = SAZI-PAZI(ICOMP,ISURF)
-      
+
+C     Correct for blind assembly tilt angle PELV if not vertical
+C     (A. Geissler, 2011)
+      if (abs(PELV(icomp,isurf)).gt.5.) then
+        pang_vh=ATAN(TAN(SALT*r)/COS(SAZI*r-PAZI(icomp,isurf)*r))/r
+        pang_ih=pang_vh-PELV(icomp,isurf)
+C       Eqn. 4-1d:
+        omega_h=atan(cos(pang_vh)*tan(omega_h)/cos(pang_ih))
+      endif
+
 C.....Switch for zone name output here
       if (ReportBoolConfig("use_zonenames")) then
         write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
@@ -2926,6 +3096,9 @@ C net_flow supplies MNOD
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
       
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
+
       COMMON/ADJC/IE(MCOM,MS),ATP(MCOM,MS),ATF(MCOM,MS),
      &            ARP(MCOM,MS),ARF(MCOM,MS)
       integer IE
@@ -2947,6 +3120,7 @@ C      dimension vb_phiX(mcom,mcfc,mdty,MT)
 C      real slat_angleX
 
       integer IER,ISD,itdi,IFOC     ! used in context with tdf ...
+      integer IDF,IDS               ! used in context with daytypes
       integer i,j,k                 ! do loop indices
       integer ictlfun               ! control function index
       integer nctldaytypes          ! number of control day types
@@ -2962,7 +3136,7 @@ C      real slat_angleX
       integer isen1, isen2, isen3   ! sensor details
       integer ictype                ! control type
       integer ischedule_shdstateONorOFF
-      real VAL
+      real VAL,TPF,TPS
       real shdONsetpoint,shdMIDsetpoint,shdCLSsetpoint
       real shdOFFsetpoint
       real shdONslatPOSITION
@@ -3039,57 +3213,49 @@ C to the sensor location of the associated control function.
 C Loop through each complex fenestration control function.
 
       IF (nCFCctlloops.gt.0)THEN
-        do 10 i = 1, nCFCctlloops
-          ictlfun = i
-          nctldaytypes = nCFCctldaytypes(i)
-          
-C Determine if period validy dates of daytypes in current 
-C control loop are valid for current calendar day.
-          
-          ! for weekday, saturday and sunday daytypes
-          IF(nctldaytypes.eq.0)THEN
-            if(idayofweek.eq.6)then
-              idaytype = 2
-            elseif(idayofweek.eq.7)then
-              idaytype = 3
-            else
-              idaytype = 1
-            endif
-            if(iday.le.iCFCctldatevalid(i,idaytype,2).and.iday
-     &      .ge.iCFCctldatevalid(i,idaytype,1))goto 11                    
-          ELSE
-            ! Loop through each daytype until a valid daytype is found
-            do 20 j = 1, nctldaytypes
-              idaytype = j
-              if(iday.le.iCFCctldatevalid(i,j,2).and.iday
-     &               .ge.iCFCctldatevalid(i,j,1))goto 11
-  20        continue
-          ENDIF
+        do 10 ictlfun = 1, nCFCctlloops
+          nctldaytypes = nCFCctldaytypes(ictlfun)
 
-C If we are here then no control for control loop i. Skip to end of loop and 
-C continue with next control period.  
-          goto 10
-      
-C Commence control solution.    
-  11      if(btimef.gt.24.)btimef = btimef - 24.  
+C If NDAYT=0 set data to all calendar day types.
+          NIN=0
+          IF(nctldaytypes.EQ.0)THEN
+            nctldaytypes=NBDAYTYPE
+            NIN=-1*NBDAYTYPE
+          ENDIF
+          DO 15 idaytype=1,nctldaytypes
+            IDS=iCFCctldatevalid(ictlfun,idaytype,1)
+            IDF=iCFCctldatevalid(ictlfun,idaytype,2)
+            IF(iday.GE.IDS.AND.iday.LE.IDF) GOTO 20
+   15     CONTINUE
+          WRITE(outs,*) ' CFCCNTR: CFC control ',ictlfun
+          call edisp(iuout,outs)
+          WRITE(outs,*) '      no valid day type for year-day ',iday
+          call edisp(iuout,outs)
+          call edisp(iuout,
+     &         ' CFCCNTR: cannot locate appropriate day type')
+          call epwait
+          CALL EPAGEND
+          STOP
+
+C Check number of periods in each day and the start and finish times
+   20     if(NIN.le.-1.or.nctldaytypes.lt.1)idaytype=icalender(iday)
           nperiods = nCFCdayctlperiods(ictlfun,idaytype)
-      
-          do 40 k = 1, nperiods
-            iperiod = k
-            if(k.eq.nperiods)then
-              if(btimef.gt.
-     &          CFCctlperiodstart(ictlfun,idaytype,nperiods))
-     &          goto 12
-            else
-              if(btimef.le.
-     &           CFCctlperiodstart(ictlfun,idaytype,k+1))goto 12
-            endif   
-  40      continue    
- 
-C If we are here then no control for control function i. Skip to end of loop
-C and continue with next control period.   
-          goto 10
- 
+          IF(nperiods.EQ.0) STOP ' CFCCNTR: no day-periods defined'
+          DO 22 iperiod=1,nperiods
+            TPS=CFCctlperiodstart(ictlfun,idaytype,iperiod)
+            IF(iperiod.LT.nperiods) THEN
+              TPF=CFCctlperiodstart(ictlfun,idaytype,iperiod+1)
+            ELSE
+             TPF=24.
+            END IF
+            IF(btimef.GT.TPS.AND.btimef.LE.TPF) GOTO 12
+   22     CONTINUE
+          call edisp(iuout,
+     &         ' CFCCNTR: cannot locate appropriate day-period')
+          call epwait
+          CALL EPAGEND
+          STOP
+
 C Now we have found a valid daytype and period. Apply appropriate control law. 
 C <<Currently only basic control is avaialble so no need to call separate routine>>
 
@@ -3464,6 +3630,12 @@ C...........Pad zone index to 'XX'
      &             cZone_Chars,
      &             cCFC_Chars )
 
+            call AddToReport (                      ! Report actuator on setpoint.
+     &             rvCFCActOnSetp%Identifier,
+     &             shdONsetpoint,
+     &             cZone_Chars,
+     &             cCFC_Chars )
+
   44      CONTINUE
         END IF
   43  CONTINUE
@@ -3637,4 +3809,352 @@ C -------------------------------------------------------------------
 
  1000 return
 
+      end
+
+C ********************************************************************
+C                         --CFC_output for h3k --
+C
+C H3K CFC output generation invoked in MZNUMA (ebps/bmatsv.F, line 1611).
+C
+C Generates time-step output to h3k if active
+C
+C ********************************************************************
+      subroutine CFCoutputH3K(icomp)
+      USE h3kmodule
+
+      IMPLICIT NONE
+#include "building.h"
+#include "geometry.h"
+#include "CFC_common.h"
+      COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
+     &             NPGAP(MCOM,MS,MGP)
+      integer nconst,nelts,ngaps,npgap
+      COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
+      integer nnds,nndz,nndc,nndl
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/SUNPOS/SAZI,SALT,ISUNUP
+      real sazi,salt
+      integer isunup
+      COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
+      real qfp,qff,tp,tf,qdp,qdf,vp,vf,dp,df,hp,hf
+      COMMON/VTHP14/THRMLI(MCOM,MS,ME,7)
+      real thrmli
+      COMMON/FVALA/TFA(MCOM),QFA(MCOM)
+      real tfa,qfa
+      COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
+      real TFC,QFC
+      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
+      real pazi,pelv
+      COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
+     &              HCOF(MCOM,MS)
+      real hcip,hcif,hcop,hcof
+
+      COMMON/PVANG/fInc_angle(MS)
+      real fInc_angle
+
+      real RGap1, RGap2, Rsi, Rse, SBOLTZ, T0
+      real RGap1nom, RGap2nom ! experimental, 15 K surface-surface temperature difference for IGU U-value ...
+      real GapWidth, hc_nom, TA, TB, Tm, EmisFac
+
+      real solrad_dir  ! incident direct solar radiation [W/m2] - returned by sub. get_incident_solrad
+      real solrad_diff ! incident diffuse solar radiation [W/m2] - returned by sub. get_incident_solrad
+      real ang         ! angle of incidence on surface "90" is eq. to "does not see sun"
+      real psazi,pselv ! solar azimuth and elevation angles relativ to surface
+
+      integer i,j,k,l,nn,nc,ne,icfctp,icomp,ivblayr
+      integer iH3K_NameLen(2)
+
+      CHARACTER*3 cConstrName,sIGU
+      CHARACTER*3 cLayerName
+      character*12 cZone_Chars
+      Character*12 cSurf_Chars   ! sname(MCOM,MS)
+      character*2  cCFC_Chars
+
+      logical TGU,DGU
+
+      SBOLTZ=5.6697E-08 ! Stefan Boltzmann Constant
+      T0=273.15         ! 0∞C in K
+
+C.....Switch for zone name output here
+      if (ReportBoolConfig("use_zonenames")) then
+        write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
+      else
+C.......Pad zone index to 'XX'
+        write (cZone_Chars,'(A,I3.3)') 'zone_',icomp
+      endif ! use_zonenames
+
+C Number of constructions in zone:
+      nc=nconst(icomp)
+cx ... alternative: ??
+c      zone_surface_loop: do iSurface = 1, nzsur(iZone)
+
+      do 13 i=1,nc
+
+        if (icfcfl(icomp,i).gt.0) then
+          icfctp=icfcfl(icomp,i)
+          ne=nelts(icomp,i)
+          nn=nndc(icomp,i)
+          DGU = .false.
+          TGU = .false.
+          RGap1 = 0.0
+          RGap2 = 0.0
+          Rsi   = 0.13
+          Rse   = 0.04
+          sIGU = 'XXX'
+
+C.........Pad surface / construction index to 'XX'
+          if ( i > 9 ) then                       ! Tag output with CFC type.
+            write( cCFC_Chars, '(I2)' ) i
+          else
+            write( cCFC_Chars, '(A,I1)' ) '0', i
+          end if
+
+C.........Switch for surface name output here
+c          if (ReportBoolConfig ("use_surfacenames")) then
+c            write (cSurf_Chars,'(A)')
+c        &          sname(iZone,iSurface)(1:lnsname(iZone,iSurface))
+c          else
+C...........Pad surface index to 'XX'
+c            if ( iSurface .gt. 9 ) then
+c              write (cSurf_Chars,'(A,I2)') 'surface_',iSurface
+c            else
+c              write (cSurf_Chars,'(A,I1)') 'surface_0',iSurface
+c            endif
+c          endif ! use_surfacenames
+
+C Output of CFC construction data ***********************************
+C CFC Direct and diffuse radiation incidence
+c          call AddToReport (
+c     &           rvCFCRadTot%Identifier,
+c     &           RadIncDirS(icomp,i) + RadIncDifS(icomp,i),
+c     &           cZone_Chars,
+c     &           cCFC_Chars)
+
+c          call AddToReport (
+c     &           rvCFCRadDifSky%Identifier,
+c     &           RadIncDifSky(icomp,i),
+c     &           cZone_Chars,
+c     &           cCFC_Chars)
+
+c          call AddToReport (
+c     &           rvCFCRadDifGrd%Identifier,
+c     &           RadIncDifGrd(icomp,i),
+c     &           cZone_Chars,
+c     &           cCFC_Chars)
+
+C CFC beam and diffuse transmission
+c          call AddToReport (
+c     &           rvCFCTransBB%Identifier,
+c     &           transBB_S(icomp,i),
+c     &           cZone_Chars,
+c     &           cCFC_Chars)
+
+c          call AddToReport (
+c     &           rvCFCTransD%Identifier,
+c     &           transD_S(icomp,i),
+c     &           cZone_Chars,
+c     &           cCFC_Chars)
+
+C CFC beam and diffuse transmission for light
+c          call AddToReport (
+c     &           rvCFCTransBBvis%Identifier,
+c     &           transBB_V(icomp,i),
+c     &           cZone_Chars,
+c     &           cCFC_Chars)
+
+c          call AddToReport (
+c     &           rvCFCTransDvis%Identifier,
+c     &           transD_V(icomp,i),
+c     &           cZone_Chars,
+c     &           cCFC_Chars)
+
+          do 15 l=1,ne
+C Output of CFC layer data ******************************************
+C   |   |   |   |   |    |
+C l   1   2   3   4   5   ...
+C n 1 2 3 4 5 6 7 8 9 10 11
+C
+C l=2, l=4 gas layers, 1, 3 and 5 are glass (example)
+C
+C Filter output by layer type ...
+            if ( (icfcltp(icomp,icfctp,l).lt.2)
+cx     &       .or.(icfcltp(icomp,icfctp,l).eq.2 .and. l.gt.1)) then
+     &       .or.(icfcltp(icomp,icfctp,l).ge.2 .and. l.gt.1)) then
+
+C.......Pad layer index to 'XX'
+              if ( l .gt. 9 ) then
+                write (cLayerName,'(A,I2)') 'l', l
+              else
+                write (cLayerName,'(A,I1)') 'l0', l
+              endif
+
+              if ( icfcltp(icomp,icfctp,l).eq.0 ) then
+C CFC gap resistance if layer is gap (convective, only!)
+                call AddToReport (
+     &             rvCFCRgap%Identifier,
+     &             cfcRgap(icomp,i,l,2),
+     &             cZone_Chars,
+     &             cCFC_Chars,
+     &             cLayerName)
+              endif
+
+C Calculate U-value for IGU in CFC ...
+C Layer type index  >>icfcltp<<  :
+C      0: gas gap
+C      1: glazing
+C     >2: blind/roller blind/drape/screen layer
+C The following logic assumes that there are not more than 3 consecutive
+C glass layers - interspersed with gas layers, of course - in the CFC.
+C <<TO DO: correct logic for TGU ISO value, extend logic to cater for
+C          more glass / gap situations ... >>
+            if ( icfcltp(icomp,icfctp,l).eq.0
+     &           .and. rmlr_mass(icomp,icfctp,l).gt.0.2905E+02) then
+              ! This is a non-air gas layer and no IGU has been identified, yet,
+              if (icfcltp(icomp,icfctp,l-1) .eq. 1) then
+                ! The previous layer is glass,
+                if ((l.le.(ne-1)) .and.
+     &              (icfcltp(icomp,icfctp,l+1) .eq. 1)) then
+                  ! The next layer is also glass, so U-value can be / is calculated ...
+                  if (DGU) then
+C                   Another "glass - gap - glass" has been found.
+                    DGU = .false.
+                    TGU = .true. ! Triple glazing unit
+                    Rsi = 0.13   ! replace w/ actual internal convective resistance + lw rad ...
+                    ! Radiative part (heat transfer)
+                    Tm=( 2.0*T0+tfc(icomp,i,(l*2)-1)
+     &                         +tfc(icomp,i,(l*2)+1) )/2.0
+                    RGap2 = 4.0*SBOLTZ*Tm**3
+                    EmisFac = (   1.0/rlwEB_sv(icomp,icfctp,l-1)
+     &                          + 1.0/rlwEF_sv(icomp,icfctp,l+1)
+     &                          - 1.0 )
+                    RGap2 = RGap2/EmisFac
+                    ! Overall gap resistance:
+                    RGap2 = RGap2 + 1.0/cfcRgap(icomp,i,l,2)
+                    RGap2 = 1.0/RGap2
+                    ! Add glass layer resistance (lam = 1.0 W/(m K), assume 6 mm glass pane)
+                    RGap2 = RGap2 + 0.006/1.0
+
+C ISO U-value must be recalculated as DT = 15 K now is for TGU ...
+C                   Inner gap
+                    TA = 10.0
+                    TB = 17.5
+C                   << calc for (l*2)-1, (l*2)+1 >>
+                    Tm=( 2.0*T0+TA+TB )/2.0
+                    RGap2nom = 4.0*SBOLTZ*Tm**3
+                    RGap2nom = RGap2nom/EmisFac
+                    GapWidth=THRMLI(icomp,i,l,4) ! gap width
+                    CALL ConvVertCav(PELV(icomp,i),GapWidth,TA,TB,
+     &                    rmlr_mass(icomp,icfctp,l),
+     &                    cond_A(icomp,icfctp,l),cond_B(icomp,icfctp,l),
+     &                    visc_A(icomp,icfctp,l),visc_B(icomp,icfctp,l),
+     &                    spht_A(icomp,icfctp,l),spht_B(icomp,icfctp,l),
+     &                    hc_nom)
+                    RGap2nom = RGap2nom + hc_nom
+                    RGap2nom = 1.0/RGap2nom + 0.006/1.0
+
+C                   Outer gap
+                    TA =  2.5
+                    TB = 10.
+C                   << calc for ((l-2)*2)-1, ((l-2)*2)+1 >>
+                    EmisFac = (   1.0/rlwEB_sv(icomp,icfctp,(l-3))
+     &                          + 1.0/rlwEF_sv(icomp,icfctp,(l-1))
+     &                          - 1.0 )
+                    Tm=( 2.0*T0+TA+TB )/2.0
+                    RGap1nom = 4.0*SBOLTZ*Tm**3
+                    RGap1nom = RGap1nom/EmisFac
+
+                    GapWidth=THRMLI(icomp,i,(l-2),4) ! gap width
+                    CALL ConvVertCav(PELV(icomp,i),GapWidth,TA,TB,
+     &                    rmlr_mass(icomp,icfctp,(l-2)),
+     &                    cond_A(icomp,icfctp,(l-2)),
+     &                    cond_B(icomp,icfctp,(l-2)),
+     &                    visc_A(icomp,icfctp,(l-2)),
+     &                    visc_B(icomp,icfctp,(l-2)),
+     &                    spht_A(icomp,icfctp,(l-2)),
+     &                    spht_B(icomp,icfctp,(l-2)),
+     &                    hc_nom)
+                    RGap1nom = RGap1nom + hc_nom
+                    RGap1nom = 1.0/RGap1nom
+                    RGap1nom = RGap1nom + 0.012/1.0
+
+                  else
+C Fall through to here after finding first glass - gap - glass pair.
+                    DGU = .true.
+                    TA=2.5   ! DT = 15 K for approx. U_ISO
+                    TB=17.5
+
+                    Rse = 0.04 ! replace w/ actual external convective resistance + lw rad ...
+                    Rsi = 0.13 ! replace w/ actual internal convective resistance + lw rad ...
+
+C                   Gap radiative heat transfer coefficient
+C                   h_r = (4 sig Tm^3)/(1/e1 + 1/e2 - 1) ; Tm = (T1 + T2)/2
+                    Tm=( 2.0*T0+tfc(icomp,i,(l*2)-1)
+     &                         +tfc(icomp,i,(l*2)+1) )/2.0
+                    RGap1 = 4.0*SBOLTZ*Tm**3
+                    EmisFac = (   1.0/rlwEB_sv(icomp,icfctp,l-1)
+     &                          + 1.0/rlwEF_sv(icomp,icfctp,l+1)
+     &                          - 1.0 )
+                    RGap1 = RGap1/EmisFac
+                    ! Overall gap resistance including (simplified fixed thickness)
+                    ! glass panes, 6 mm glass per pane, lam=1.0 W/(m K)
+                    RGap1 = RGap1 + 1.0/cfcRgap(icomp,i,l,2)
+                    RGap1 = 1.0/RGap1
+                    RGap1 = RGap1 + 0.012/1.0
+
+                    ! Now for "nominal" (ISO) U-value (experimental, 27.01.10)
+                    Tm=( 2.0*T0+TA+TB )/2.0
+                    RGap1nom = 4.0*SBOLTZ*Tm**3
+                    RGap1nom = RGap1nom/EmisFac
+C Calculate convective gap resistance for ISO DT (code from lines 1836 ff.)
+                    GapWidth=THRMLI(icomp,i,l,4) ! gap width
+                    CALL ConvVertCav(PELV(icomp,i),GapWidth,TA,TB,
+     &                    rmlr_mass(icomp,icfctp,l),
+     &                    cond_A(icomp,icfctp,l),cond_B(icomp,icfctp,l),
+     &                    visc_A(icomp,icfctp,l),visc_B(icomp,icfctp,l),
+     &                    spht_A(icomp,icfctp,l),spht_B(icomp,icfctp,l),
+     &                    hc_nom)
+C End nom. conv. gap res.
+                    RGap1nom = RGap1nom + hc_nom
+                    RGap1nom = 1.0/RGap1nom
+                    RGap1nom = RGap1nom + 0.012/1.0
+                  endif ! DGU or TGU
+                endif ! following layer is glass
+              endif ! previous layer is glass
+            endif ! current layer is gas
+C Debug ...
+c          if (l .eq. ne) then
+c           write(*,*)'Typ=',icfctp,' RGap1=',RGap1,' RGap2=',RGap2
+c          endif
+
+          end if ! filter layer type
+ 15     continue  ! loop through layers of construction
+
+C Now calculate and output U-value for IGU of this construction
+        if (DGU) then
+          sIGU = 'DGU'
+        else
+          sIGU = 'TGU'
+        endif
+        CFC_ISO_Uvalue(icomp,icfctp)=1.0/(RGap1nom + RGap2nom + 0.17)
+        CFC_nom_Uvalue(icomp,icfctp)=1.0/(RGap1 + RGap2 + Rsi + Rse)
+
+        call AddToReport (
+     &         rvCFCUvalueISO%Identifier,
+     &         CFC_ISO_Uvalue(icomp,icfctp),
+     &         cZone_Chars,
+     &         cCFC_Chars,
+     &         sIGU)
+
+        call AddToReport (
+     &         rvCFCUvalueActual%Identifier,
+     &         CFC_nom_Uvalue(icomp,icfctp),
+     &         cZone_Chars,
+     &         cCFC_Chars,
+     &         sIGU)
+
+      end if ! icfcfl .gt. 0
+ 13   continue ! loop through constructions of zone
+
+      return
       end

@@ -56,6 +56,7 @@ C    temperatures, PCNTMF, if defined to exist
       SUBROUTINE MZPADJ(ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
  
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/TC/ITC,ICNT
@@ -66,7 +67,6 @@ C    temperatures, PCNTMF, if defined to exist
      &           IPC2(MPCON),IPN2(MPCON),PCONDR(MPCON),PCONSD(MPCON,2)
       COMMON/C11/NCONT,IPCC(MPCOM),INDCP(MPCOM),CNTDAT(MPCOM,3)
       COMMON/C12PS/NPCDAT(MPCOM,9),IPOFS1(MCOEFG),IPOFS2(MCOEFG,MPVAR)
-      COMMON/C14/UGRDTP(12,MGRDP),NGRDP
  
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
       COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
@@ -92,6 +92,7 @@ C    temperatures, PCNTMF, if defined to exist
 C Contextual buffer
       character cContext*124
       character outs*124  ! for warning messages
+      integer icnt        ! index for containment
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -273,7 +274,8 @@ C Collect containment temperature
 C Allows monthly ground containment temp for DH plant components                 
         ELSEIF(INDCP(ICONT).EQ.5) THEN
       	  CALL EDAYR(IDYP,ID,IM) ! Identify month
-	  PCNTMF(IPC)=UGRDTP(IM,CNTDAT(ICONT,1))
+          icnt=int(CNTDAT(ICONT,1))
+	  PCNTMF(IPC)=UGRDTP(IM,icnt)
          
 C New containment types go here!
         ELSE

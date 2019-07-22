@@ -206,6 +206,7 @@ C clrtextbuf: Clears the graphic text buffer common blocks.
 C  UPDVIEW: Called from C to pass back updates to common VIEWPX & GFONT
 C  WIREPK:  Called from 'C' upon a wireframe control button pick.
 C  EPROMPT: Does nothing, for compatibility only.
+C  ISEOF:   Checks for an EOF from a READ statement.
 
 C ************** st2name
 C st2name takes `string' swap blanks & wildcards to _ : return as `name'.
@@ -546,11 +547,7 @@ C beyond the lnblnk then shorten string to ipos.
 
 
 
-
-
-
-
-C These routines are used to open a user-specified file
+C The following subroutines are used to open a user-specified file
 C with a meaningful error message if this is not possible.
 
 C << with a bit of work the 'e' version calls can do this
@@ -877,6 +874,7 @@ C Parameters
       character LTMP124*124    ! local string buffer
       integer iglib      ! for detecting GTK or X11
       INTEGER llt,lfn    ! length of the local string buffer
+      integer ISTRW
 
 C Depending on whether it is X11 or GTK or text setup dialogs. The
 C X11 and text will work with 96 or 124 char string.
@@ -911,21 +909,27 @@ C If in text or GTK mode echo FILEN.
 C Adjust dialog depending on initial length of file name. If shorter
 C than 32 char the use shortest width.
         if(llt.lt.42)then
-          CALL EASKF(LTMP72,PROMP1,PROMP2,72,DFILE,ERMSG,IER,NHELP)
+          ISTRW=72
+          CALL EASKF(LTMP72,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
           write(llitem,'(a)') LTMP72(1:lnblnk(LTMP72))
         elseif(llt.lt.96)then
-          CALL EASKF(LTMP96,PROMP1,PROMP2,96,DFILE,ERMSG,IER,NHELP)
+          ISTRW=96
+          CALL EASKF(LTMP96,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
           write(llitem,'(a)') LTMP96(1:lnblnk(LTMP96))
         elseif(llt.ge.96.and.llt.lt.124)then
-          CALL EASKF(LTMP124,PROMP1,PROMP2,124,DFILE,ERMSG,IER,NHELP)
+          ISTRW=124
+          CALL EASKF(LTMP124,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
           write(llitem,'(a)') LTMP124(1:lnblnk(LTMP124))
         elseif(llt.ge.124.and.llt.le.144)then
-          CALL EASKF(llitem,PROMP1,PROMP2,144,DFILE,ERMSG,IER,NHELP)
+          ISTRW=144
+          CALL EASKF(llitem,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
         endif
       elseif(iglib.eq.2)then
-        CALL EASKF(llitem,PROMP1,PROMP2,144,DFILE,ERMSG,IER,NHELP)
+        ISTRW=144
+        CALL EASKF(llitem,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
       else
-        CALL EASKF(LTMP96,PROMP1,PROMP2,96,DFILE,ERMSG,IER,NHELP)
+        ISTRW=96
+        CALL EASKF(LTMP96,PROMP1,PROMP2,ISTRW,DFILE,ERMSG,IER,NHELP)
         write(llitem,'(a)') LTMP96(1:lnblnk(LTMP96))
       endif
 
@@ -2555,7 +2559,7 @@ C ESIND: Returns SIN of angle where angle is given in degrees.
 
 C ******************** ECOSD
       FUNCTION ECOSD (DEG)
-C ECOSD: Returns COS of angel where angle is given in degrees.
+C ECOSD: Returns COS of angle where angle is given in degrees.
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
       ECOSD = COS (RAD*DEG)
@@ -2564,7 +2568,7 @@ C ECOSD: Returns COS of angel where angle is given in degrees.
 
 C ******************** ETAND
       FUNCTION ETAND (DEG)
-C ETAND: Returns TAN of angel where angle is given in degrees.
+C ETAND: Returns TAN of angle where angle is given in degrees.
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
       ETAND = TAN (RAD*DEG)
@@ -7716,6 +7720,14 @@ C runit invokes the command. system() is a C function which
 C works well on MSYS and Linux while execute_command_line is
 C a gfortran facility which works on MSYS2. If runit is not 
 C working then try switching bweteen these options.
+
+C *** UNIX ONLY ***
+C tg: '-' call the command as-is.
+C     'text' call the command in an xterm.
+C     'silent' suppress stdout (redirect to /dev/null).
+C     '[file_name]' redirect stdout to "[file_name].out" and
+C                   redirect stderr to "[file_name].err"
+C                   maximum 8 characters
       subroutine runit(cmd,tg)
       common/OUTIN/IUOUT,IUIN
       character*(*) cmd,tg
@@ -7731,24 +7743,35 @@ C Find if Unix or NT.
       call isunix(unixok)
       if(unixok)then
         LN=max(1,lnblnk(tg))
-        LN=min0(LN,4)
+        LN=min0(LN,8)
         write (tmode,'(a)') tg(1:LN)
         if(tmode(1:4).eq.'text')then
           LN=max(1,lnblnk(cmd))
           write(tmp,'(a,a)') 'xterm -e ',cmd(1:LN)
 C          i = system(tmp)
          call execute_command_line (tmp, exitstat=i)
-        else
+        elseif(tmode(1:6).eq.'silent')then
+          LN=max(1,lnblnk(cmd))
+          write(tmp,'(a,a)') cmd(1:LN),' > /dev/null'
+C          i = system(tmp)
+         call execute_command_line (tmp, exitstat=i)
+        elseif(tmode(1:1).eq.'-')then
 C          i = system(cmd)
           call execute_command_line (cmd, exitstat=i)
+        else          
+          LN2=max(1,lnblnk(cmd))
+          write(tmp,'(6a)') cmd(1:LN2),' >',tmode(1:LN),'.out 2>',
+     &      tmode(1:LN),'.err'
+C          i = system(tmp)
+         call execute_command_line (tmp, exitstat=i)
         endif
         if(i.gt.0.and.i.le.126)then
-          call edisp(iuout,'task terminated with an error condition')
+C         call edisp(iuout,' task terminated with an error condition')
           LN=max(1,lnblnk(cmd))
           write(tmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
           call edisp248(iuout,tmp,100)
         elseif(i.eq.127)then
-          call edisp(iuout,'task requested was unknown.')
+          call edisp(iuout,' task requested was unknown.')
           LN=max(1,lnblnk(cmd))
           write(tmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
           call edisp248(iuout,tmp,100)
@@ -7781,7 +7804,102 @@ C            write (cmd,'(a)') tmp(1:lnblnk(tmp))
 C        i = system(cmd)
         call execute_command_line (tmp, exitstat=i)
         if(i.gt.0.and.i.le.126)then
-          call edisp(iuout,'task terminated with an error condition')
+C         call edisp(iuout,' task terminated with an error condition')
+          LN=lnblnk(cmd)
+          write(ltmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
+          call edisp248(iuout,ltmp,90)
+        elseif(i.eq.127)then
+          call edisp(iuout,'task requested was unknown.')
+          LN=lnblnk(cmd)
+          write(ltmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
+          call edisp248(iuout,ltmp,90)
+        endif
+
+C An even older method of asking OS to do some work.
+C        call cissue(cmd,ifail)
+        return
+      endif
+      end  ! of runit
+
+
+C ************* runitv
+C runitv: Execute a command string, in text (runs in a new xterm) or graphics
+C mode with a status indicator which is returned to the calling code.
+C  Assumes that command string terminates in a '&' if the
+C user wishes to run in background mode. For minGW xterm is not used.
+C As runit is sometimes called with verbose command strings ensure
+C the local buffer (tmp & ltmp) can handle 1K characters.
+C WARNING - possible OS dependency:
+C runit invokes the command. system() is a C function which
+C works well on MSYS and Linux while execute_command_line is
+C a gfortran facility which works on MSYS2. If runit is not 
+C working then try switching bweteen these options.
+      subroutine runitv(cmd,tg,i)
+      common/OUTIN/IUOUT,IUIN
+      character*(*) cmd,tg
+      integer i
+      character tmp*1200,ltmp*1200,tmode*8,message*248
+      character dq*1
+      integer system
+      logical unixok
+
+      dq = char(34)  ! double quote
+
+C Find if Unix or NT.
+      call isunix(unixok)
+      if(unixok)then
+        LN=max(1,lnblnk(tg))
+        LN=min0(LN,4)
+        write (tmode,'(a)') tg(1:LN)
+        if(tmode(1:4).eq.'text')then
+          LN=max(1,lnblnk(cmd))
+          write(tmp,'(a,a)') 'xterm -e ',cmd(1:LN)
+C          i = system(tmp)
+         call execute_command_line (tmp, exitstat=i)
+        else
+C          i = system(cmd)
+          call execute_command_line (cmd, exitstat=i)
+        endif
+        if(i.gt.0.and.i.le.126)then
+C          call edisp(iuout,' task terminated with an error condition')
+          LN=max(1,lnblnk(cmd))
+          write(tmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
+C          call edisp248(iuout,tmp,100)
+        elseif(i.eq.127)then
+          call edisp(iuout,' task requested was unknown.')
+          LN=max(1,lnblnk(cmd))
+          write(tmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
+          call edisp248(iuout,tmp,100)
+        endif
+        return
+      else
+
+C Non-linux only uses tg if passed as 'bg'. It then
+C attempts to mimic starting a background task.
+        write (tmode,'(a)') tg(1:lnblnk(tg))
+        LN=lnblnk(cmd)
+        if (cmd(LN:LN).eq."&") then
+          write (tmp,'(4a)') dq,'start ',cmd(1:LN-1),dq
+C          write (cmd,'(a)') tmp(1:lnblnk(tmp))
+          call edisp248(iuout,tmp,90)
+        else
+          if(tmode.eq.'bg')then  ! background
+            write (tmp,'(7a)') dq,'start /B ',dq,dq,' ',
+     &        cmd(1:LN),dq
+C            write (cmd,'(a)') tmp(1:lnblnk(tmp))
+          else
+            write (tmp,'(3a)') dq,cmd(1:LN),dq
+C            write (cmd,'(a)') tmp(1:lnblnk(tmp))
+          endif
+          call edisp248(iuout,tmp,90)
+          call edisp(iuout,' ')
+          call forceflush()
+        endif
+
+C        i = system(cmd)
+        call execute_command_line (tmp, exitstat=i)
+        if(i.gt.0.and.i.le.126)then
+C         call edisp(iuout,'task terminated with an error condition')
           LN=lnblnk(cmd)
           write(ltmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
           call edisp248(iuout,ltmp,90)
@@ -8882,4 +9000,25 @@ C.....upon error, report to user.
       endif
       return
       end
-      
+
+C ------------------- ISEOF
+C ISEOF is a function. Called with an ISTAT value from a READ statement
+C performed on a binary (random access) file, it returns a logical that
+C signals whether the EOF has been reached. This is present because
+C ISTAT codes are compiler-dependent, so it is convenient to centralise
+C this check in case of future changes. This function could do with
+C improvement in future, perhaps making use of #ifdef statements on a
+C set of variables that define which compiler has been used.
+
+      LOGICAL FUNCTION ISEOF(ISTAT)
+
+      if ( ISTAT.LT.0     ! EOF
+     &.or. ISTAT.EQ.5002) ! non-existing record number
+     &then
+        ISEOF=.TRUE.
+      else
+        ISEOF=.FALSE.
+      endif
+
+      RETURN
+      END

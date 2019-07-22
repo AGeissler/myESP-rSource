@@ -814,6 +814,12 @@ C DSTR is a string to use as a default.
       character prompt*144
       LOGICAL OK,DOK,unixok
 
+#ifdef OSI
+      integer IISTRW
+#else
+      integer*8 IISTRW
+#endif
+
    20 IER=0
 
 C Remember the file name in case user wants to abort.
@@ -1264,6 +1270,7 @@ C DSTR is a string to use as a default.
       CHARACTER t72*72,t72a*72,t72b*72,t72c*72
       character outstr*248,word*248,prompt*144,LASTS*248,outs*124
       LOGICAL next,OK,DOK,unixok
+      integer ISTRW
 
    20 IER=0
       WORD=' '
@@ -1487,6 +1494,7 @@ C DSTR is a string to use as a default.
       character t72e*72,t72f*72
       character outstr*248,word*248,prompt*144,LASTS*248,outs*124
       LOGICAL next,OK,DOK,unixok
+      integer ISTRW
 
    20 IER=0
       WORD=' '
@@ -1771,6 +1779,7 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       CHARACTER*(*) PROMP1,PROMP2,CMD,ERMSG,STRVAL,DSTR
       CHARACTER WORD*72,A*1,LASTS*72,OUTSTR*124,prompt*144
       LOGICAL OK,CMDACT,DOK,unixok
+      integer ISTRW
 
    20 IER=0
       CMDACT=.FALSE.
@@ -2156,6 +2165,7 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       CHARACTER*(*) PROMP1,PROMP2,CMD,CMD2,ERMSG,STRVAL,DSTR
       CHARACTER WORD*96,A*1,LASTS*96,OUTSTR*124,prompt*144
       LOGICAL OK,DOK,unixok
+      integer istrw
 
    20 IER=0
       ICACT=0
@@ -3493,7 +3503,6 @@ C Parameters.
 
 C limtty is the initial request for text feedback height (in lines)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      CHARACTER*(*) TITLE
       CHARACTER HEAD*255
 
       CHARACTER*5 MM

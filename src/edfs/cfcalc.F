@@ -467,8 +467,8 @@ C Find the maximum source of residual.
 C Write/ plot residuals and monitoring values.
 C First check if output for this iteration.
 
-C << If in text or script mode report less frequently,
-C << especially if the domain is large.
+C If in text or script mode report less frequently,
+C especially if the domain is large.
       if (mod(NITER,NPLT).eq.0.or.NITER.le.1) then
 
 C Check time taken to run since last check.
@@ -476,40 +476,43 @@ c        write(6,*)'checking time'
         if(NITER.eq.1)then
           call cpu_time(sec_now)
           NITER_pre=1
-c          write(6,*)'NITER=1, sec_now=',sec_now
+C          write(6,*)'NITER=1, sec_now=',sec_now
         else
-c          write(6,*)'NITER=',NITER
+C          write(6,*)'NITER=',NITER,NITER_pre
           sec_pre=sec_now
           call cpu_time(sec_now)
           sec_tkn=(sec_now-sec_pre)/real((NITER-NITER_pre))
-c          write(6,*)'sec_pre=',sec_pre,'sec_now=',sec_now,
-c     &                                        'sec_tkn=',sec_tkn
+C          write(6,*)'sec_pre=',sec_pre,'sec_now=',sec_now,
+C     &                                        'sec_tkn=',sec_tkn
           NITER_pre=NITER
 
-C For graphics mode re-display target is 0.75 seconds.
+C For graphics mode re-display target is 2 seconds.
           IF(MMOD.eq.8)THEN
-            if ((sec_tkn*50.).lt.0.75) then
+            NPLT=50  ! Initial assumption
+            if ((sec_tkn*50.).lt.2.0) then
               NPLT=100  ! Maximum NPLT
             else
-C Output ~ every 0.75 seconds, constrained to increments of 10 iterations (rounded up).
-              NPLT=int(0.75/sec_tkn)
-              sec_tkn=real(NPLT)/10.  ! sec_tkn no longer needed, use as temporary variable.
-              NPLT=(int(sec_tkn)+1)*10
+C Output ~ every 2 seconds, constrained to increments of 25 iterations (rounded up).
+              NPLT=int(2.0/sec_tkn)
+              sec_tkn=real(NPLT)/25.  ! sec_tkn no longer needed, use as temporary variable.
+              NPLT=(int(sec_tkn)+1)*25
             endif
           ELSE  ! we have text mode
-            if ((sec_tkn*50.).lt.5.0) then
-              NPLT=100  ! Maximum NPLT of 100.
+            if ((sec_tkn*50.).lt.10.0) then
+              NPLT=200  ! Maximum NPLT of 200.
             else
-C Output ~ every 9 seconds, constrained to increments of 10 iterations (rounded up).
-              NPLT=int(9.0/sec_tkn)
-              sec_tkn=real(NPLT)/10.  ! sec_tkn no longer needed, use as temporary variable.
-              NPLT=(int(sec_tkn)+1)*10
+C Output ~ every 15 seconds, constrained to increments of 25 iterations (rounded up).
+              NPLT=int(15.0/sec_tkn)
+              sec_tkn=real(NPLT)/25.  ! sec_tkn no longer needed, use as temporary variable.
+              NPLT=(int(sec_tkn)+1)*25
             endif
           ENDIF
         endif
-C If in graphical mode, maximum NPLT of 40
-        if ((MMOD.eq.8).and.(NPLT.gt.40)) then
-          NPLT=40
+C        write(6,*)'NPLOT is now=',NPLT
+
+C If in graphical mode, maximum NPLT of 50
+        if ((MMOD.eq.8).and.(NPLT.gt.50)) then
+          NPLT=50
         endif
 
 C Write residuals and monitoring values in a ASCII format file.
@@ -565,7 +568,7 @@ C Not in graphics mode => list data.
         endif
       else
         if (NITER.eq.1.and.IBLACT.eq.0) then
-          CALL EDISP(IUOUT,'Monitoring will start shortly...')
+          CALL EDISP(IUOUT,'Monitoring will commence shortly ...')
           IF(MMOD.eq.8)THEN
             CALL EDISP(IUOUT,
      &             '`<` on plot represents convergence criterion.')
@@ -878,7 +881,7 @@ C            and sets it uniform to the whole CFD domain
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/ICFNOD/ICFD,ICP
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 
@@ -3498,7 +3501,7 @@ C INDBND - Initialize some boundary conditions.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
      &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),
@@ -3552,9 +3555,9 @@ C South wall.
 C North wall.
 C Previously, there was a bug in this section caused by
 C iterating K from JSBi to KSBf instead of KSBi to KSBf.
-C This had the effect that all solid boundary cells on the 
-C north face had a momentum in the V direction equal to the
-C starting V momentum specfied in the domain file.
+C This had the effect that solid boundary cells on the north face may
+C have had a momentum in the V direction equal to the starting V
+C momentum specfied in the domain file.
         ELSEIF(location.EQ.4)THEN
           J=JSBi(L,ICFD)
           DO 160 I=ISBi(L,ICFD),ISBf(L,ICFD)
@@ -3699,7 +3702,7 @@ C INOUT - Set up all inlet and outlet conditions.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/ICFNOD/ICFD,ICP
 
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
@@ -3988,7 +3991,7 @@ C fixed in a cell.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/COEF/AP(ntcelx,ntcely,ntcelz),AE(ntcelx,ntcely,ntcelz),
      1            AW(ntcelx,ntcely,ntcelz),AN(ntcelx,ntcely,ntcelz),
      2            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),

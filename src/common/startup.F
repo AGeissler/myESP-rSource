@@ -1198,7 +1198,7 @@ C initial values because they will not be used.
 
 C Assume initial values for interactive use. Default to putting
 C temporary files in the users home folder.
-        teditor='vi'
+        teditor='nano'
         tedlbl='word processor'
         tpreview='GROFF -p '
         tprevlbl='document previewer'
@@ -1209,8 +1209,8 @@ C temporary files in the users home folder.
         foldlbl='folder browser'
         foldexe='xfs '
         cadlbl='CAD package'
-        cadexe=' '
-        cadfmt='DXF'
+        cadexe='gtool'
+        cadfmt='UNKN'
         replbl='No report generator'
         repexe='UNKNOWN'
         gprcmd='UNKNOWN'
@@ -1358,7 +1358,7 @@ C Caputre text buffer to a file, capextf is in wwlib.c
       elseif(WORD(1:4).eq.'*cad')then
         CALL EGETP(OUTSTR,K,cadlbl,'W','cad lbl',IER)
         CALL EGETP(OUTSTR,K,cadexe,'W','cad exe',IER)
-        CALL EGETW(OUTSTR,K,cadfmt,'W','cad fnt',IER)
+        CALL EGETW(OUTSTR,K,cadfmt,'W','cad fmt',IER)
         write(outs,'(a,a,2x,a,2x,a)')' Local CAD: ',cadlbl,cadexe,cadfmt
         if(itrc.gt.1)call edisp(iuout,outs)
       elseif(WORD(1:8).eq.'*journal')then

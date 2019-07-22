@@ -110,9 +110,9 @@ C   six is lintel above window or door, seven is Sill below window
 C   eight is jamb at window or door
       integer nbedgdup  ! number of duplicate edges in surface edge list
       integer iedgdup   ! for each edge, the connection and edge duplicated
-      integer nbedgshr  ! nb surface which share an edge
+      integer nbedgshr  ! number of adjacent surfaces sharing an edge
       integer iedgshr   ! for each edge, the adjacent surface
-      integer imatshr   ! for each edge, the adjacent material
+      integer imatshr   ! for each edge, the adjacent MLC index
       integer ibridgeshr ! for each edge likely type of thermal bridge
       common/G8/nbedgdup(MCON),iedgdup(MCON,MV),nbedgshr(MCON),
      &          iedgshr(MCON,MV),imatshr(MCON,MV),ibridgeshr(MCON,MV)
@@ -156,13 +156,13 @@ C areas which are of general interest to many subroutines.
       character zname*12  ! the zone name
       character zdesc*64  ! zone notes
       COMMON/precz/zname(MCOM),zdesc(MCOM)
+
+      integer lnzname,lnzdesc ! length of zname and zdesc strings
+      common/preczln/lnzname(MCOM),lnzdesc(MCOM)
       
 c Long zone name for H3K reports
       common/H3KSTORE_ZONE/zoneLabel(MCOM)
       CHARACTER zoneLabel*32      
-
-      integer lnzname,lnzdesc ! length of zname and zdesc strings
-      common/preczln/lnzname(MCOM),lnzdesc(MCOM)
 
 C Obstruction block commons (whole model)
       integer NOX,NOZ      ! gridding X and Z resolution of surfaces for shading
@@ -227,20 +227,23 @@ C LNVISNAME,LNVISMAT - length of strings.
       integer LNVISNAME,LNVISMAT
       common/GSVLN/LNVISNAME(MCOM,MB),LNVISMAT(MCOM,MB)
 
-C Group visual items to create a visual objects (up to 20) from
-C up to 14 visual primitives.
+C Group visual items to create a visual objects (up to MVOBJ) from
+C up to MVOBJE visual primitives.
 C VOBJNAME (12 char) name of visual object
 C VOBJDESC (32 char) description of visual object
-C VOBJLIST (12 char) associated (up to 14) visual blocks
+C VOBJLIST (12 char) associated (up to MVOBJE) visual blocks
+C VOBJILIST (integer) indices of associated visual blocks
 C LNVOBJNAME,LNVOBJDESC,LNVOBJLIST - length of strings.
 C NBVOBJ - number of visual objects in each zone
 C NBVOJBLIST - number of primitives in ojbect
       character VOBJNAME*12,VOBJDESC*32,VOBJLIST*12
-      common/GSVOBJN/VOBJNAME(MCOM,50),VOBJDESC(MCOM,50),
-     &  VOBJLIST(MCOM,50,14)
-      integer NBVOBJ,LNVOBJNAME,LNVOBJDESC,LNVOBJLIST,NBVOBJLIST
-      common/GSVOBJI/NBVOBJ(MCOM),LNVOBJNAME(MCOM,50),
-     &  LNVOBJDESC(MCOM,50),LNVOBJLIST(MCOM,50,14),NBVOBJLIST(MCOM,50)
+      common/GSVOBJN/VOBJNAME(MCOM,MVOBJ),VOBJDESC(MCOM,MVOBJ),
+     &  VOBJLIST(MCOM,MVOBJ,MVOBJE)
+      integer NBVOBJ,LNVOBJNAME,LNVOBJDESC,LNVOBJLIST,NBVOBJLIST,
+     &        VOBJILIST
+      common/GSVOBJI/NBVOBJ(MCOM),LNVOBJNAME(MCOM,MVOBJ),
+     &  LNVOBJDESC(MCOM,MVOBJ),LNVOBJLIST(MCOM,MVOBJ,MVOBJE),
+     &  NBVOBJLIST(MCOM,MVOBJ),VOBJILIST(MCOM,MVOBJ,MVOBJE)
 
 C MRT sensors for the model.
       integer ncub  ! for each zone number of mrt sensors

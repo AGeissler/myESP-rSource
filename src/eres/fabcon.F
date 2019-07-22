@@ -626,9 +626,9 @@ C IE = 4 ; ground temperature
       if(ie.eq.0)then
 
 C External temp and RH.
-        CALL MOCLIM(IDAYO,2)
+        CALL MOCLIM(IDAYO,1)
         TO=VAL3(2,ITIMO)
-        CALL MOCLIM(IDAYO,28)
+        CALL MOCLIM(IDAYO,7)
         RHO=VAL3(6,ITIMO)
       elseif(ie.eq.1)then
         TO=TI
@@ -659,7 +659,7 @@ C and if user defined get it.
         else
           TO=UGRDTP(IMTHN,ie2(icc))
         endif
-        CALL MOCLIM(IDAYO,28)
+        CALL MOCLIM(IDAYO,7)
         RHO=VAL3(6,ITIMO)
       endif
 
@@ -1017,15 +1017,15 @@ C Determine the 'other' zone and connection information.
           CALL SURADJ(ICOMP,ISUR,IE,TMPO,IZC,ISC,ICN,CSTR)
           icc=izstocn(icomp,isur)
           if(ie.eq.0)then
-            CALL MOCLIM(IDAYO,2)
-            CALL MOCLIM(IDAYO,28)
+            CALL MOCLIM(IDAYO,1)
+            CALL MOCLIM(IDAYO,7)
           elseif(ie.eq.3)then
             CALL GZAIRT(IDAYO,IZC,ISET)
             CALL XTVAL1(GVAL,1,N,4)
             CALL GZRH(IDAYO,IZC,ISET)
             CALL XTVAL1(GVAL,1,N,5)
           elseif(ie.eq.4)then
-            CALL MOCLIM(IDAYO,28)
+            CALL MOCLIM(IDAYO,7)
           endif
 
 C For each timestep in the day extract the appropriate data from

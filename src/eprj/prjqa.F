@@ -1362,21 +1362,8 @@ C Check if any of the address fields are known.
           endif          
         endif
 
-
-C Setup string buffer with distribution weather folder name.
-        CALL ERPFREE(ICLIM,ISTAT)
-        llt=lnblnk(LCLIM)
-        lndbp=lnblnk(standardclmpath)
-        if(ipathclim.eq.0.or.ipathclim.eq.1)then
-          llclmdb=LCLIM
-        elseif(ipathclim.eq.2)then
-          write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &      LCLIM(1:llt)
-        endif
-
-        call EFOPRAN(ICLIM,llclmdb,144,0,IER)
-        IREC=367
-        READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLMLOC
+        call CLMOPB(0,IER)
+        call CLMRDBMD(IER)
 
 C Tell about climate taking note of timing of solar data.
         if(iSlr_half_hr_flg.eq.0)then
@@ -1492,14 +1479,22 @@ C << to be done >>
 C Jump back point if err=1000 called when reading climate.
  1001 if(siteinfo.eq.2)then
         if(NGRDP.gt.0)then
-          do 22 igrdp=1,NGRDP    
-            if(markdown)then
-              call edispxtr(itu,'Ground temperatures Jan-Dec  ')
+          if(markdown)then
+            call edispxtr(itu,'Ground temperatures Jan-Dec  ')
+          else
+            if (NGRDPH.gt.0) then
+              call edisp(itu,'Ground temperatures/humidities Jan-Dec:')
             else
               call edisp(itu,'Ground temperatures Jan-Dec:')
             endif
-            WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
+          endif
+          do 22 igrdp=1,NGRDP
+            WRITE(OUTS,'(12F7.1)')(UGRDTP(J,IGRDP),J=1,12)
             call edisp(itu,outs)
+            if (NGRDPH.gt.0) then
+              WRITE(OUTS,'(12F7.1)')(UGRDHUM(J,IGRDP),J=1,12)
+              call edisp(itu,outs)
+            endif
  22       continue
           call edisp(itu,' ')
         endif
@@ -3058,7 +3053,7 @@ C then rescan that zone file with verbose setting.
             elseif(zoneextrainfo.eq.2)then
               call FINDFIL(LHCCO(ivz),XST)
               IF(XST)THEN
-                call ehtcff(LHCCO(ivz),IUF,itu,IER)
+                call ehtcff(LHCCO(ivz),IUF,IER)
                 call listhtc(itu,ivz,IER)
               endif
             endif

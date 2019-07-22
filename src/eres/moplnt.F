@@ -745,6 +745,7 @@ C Defaults.
       logical XST,ok,dok
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       integer nsim  ! number of simulations
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -777,22 +778,19 @@ C name with the full path.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(ltmp,'Plant library name ? ',' ',96,DFILE,
-     &        'plant library file',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(ltmp,'Plant library name ? ',' ',124,DFILE,
-     &        'plant library file',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(ltmp,'Plant library name ? ',' ',144,DFILE,
-     &        'plant library file',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(ltmp,'Plant library name ? ',' ',144,DFILE,
-     &      'plant library file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(ltmp,'Plant library name ? ',' ',96,DFILE,
-     &      'plant library file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(ltmp,'Plant library name? ',' ',ISTRW,DFILE,
+     &    'plant library file',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if(LTMP(1:2).eq.'  '.or.LTMP(1:4).eq.'UNKN')goto 6
@@ -934,15 +932,14 @@ C If using X11 assume that the full path is less than 96 chars
 C but if using GTK then we need the full length to avoid truncation.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
-            CALL EASKF(longtmp,'Model configuration file ?',' ',96,
-     &        DFCFG,'config file name',IER,nbhelp)
+            ISTRW=96
           elseif(iglib.eq.2)then
-            CALL EASKF(longtmp,'Model configuration file ?',' ',144,
-     &        DFCFG,'config file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(longtmp,'Model configuration file ?',' ',96,
-     &        DFCFG,'config file name',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(longtmp,'Model configuration file?',' ',ISTRW,
+     &      DFCFG,'config file name',IER,nbhelp)
           if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
           if (longtmp(1:2).ne.'  ') GOTO 289
@@ -1023,15 +1020,14 @@ C If using X11 assume that the full path is less than 96 chars
 C but if using GTK then we need the full length to avoid truncation.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(ltmp,' ',' Climate file name ? ',
-     &      96,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(ltmp,' ',' Climate file name ? ',
-     &      144,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(ltmp,' ',' Climate file name ? ',
-     &      96,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(ltmp,' ','Climate file name? ',
+     &    ISTRW,DCLIM,'climate file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
@@ -1494,19 +1490,23 @@ C Flags identifying if results libries are available. =0 no lib, =1 lib exists.
       integer IGX  ! see common graf2
       integer iside,isize,ifont     ! passed to viewtext
       integer iupdown,isym,iid1,iid2    ! passed to etplot
-      integer iicol
+      integer iicol,ibsize
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
+      integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 IGX  ! see common graf2
       integer*8 iside,isize,ifont     ! passed to viewtext
       integer*8 iupdown,isym,iid1,iid2    ! passed to etplot
-      integer*8 iicol
+      integer*8 iicol,ibsize
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
+      integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
       logical colok,ok,dok,unixok
+
+      real*8 ENTERVAL8,ctime
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1607,6 +1607,7 @@ C Ask for set point value.
 C TSTART and TFINISH - start and finish timesteps from 00h00 on the 
 C first day of output.
       ENTERVAL=1.0/FLOAT(NPTS)/24.0
+      ENTERVAL8=1.0/real(NPTS)/24.0
       istart=((ioh1-1)+(iods-IPSDS)*24)*npts
       if(istart.eq.0)istart=1
       iend  =((ioh2)+(iodf-IPSDS)*24)*npts-1
@@ -1614,7 +1615,15 @@ C first day of output.
       TFINSH=float(iend)
 
 C Debug.
-C      write(6,*) 'start and finish for graph ',TSTART,TFINSH
+cc      write(6,*) 'start and finish for graph ',TSTART,TFINSH
+cc      write(6,*) 'NPTS    =',NPTS
+cc      write(6,*) 'ioh1    =',ioh1
+cc      write(6,*) 'iods    =',iods
+cc      write(6,*) 'IPSDS   =',IPSDS
+cc      write(6,*) 'ioh2    =',ioh2
+cc      write(6,*) 'iodf    =',iodf
+cc      write(6,*) 'enterval=',ENTERVAL
+cc      write(6,*) 'nout    =',nout
 
 C Set add profile label ADDLIN=0 i.e. no add
       ADDLIN=0
@@ -1677,10 +1686,13 @@ C First recover bounds of selected data when no averaging is required
 C << no occupancy sensing at this time >>
       if(iav.eq.0) then
         if(idaver.eq.0) then
-           ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
+          ctime=real(ioh1-1)/24.0+ENTERVAL8/2.+real(iods)
         else
-           ctime=float(ioh1-1)/24.0+enterval+float(iods)
-        endif
+          ctime=real(ioh1-1)/24.0+ENTERVAL8+real(iods)
+       endif
+
+C Debug.
+cc      write(6,*) 'ctime   =',ctime
 
 C For each timestep.
         do 100 ii=istart, iend, nout
@@ -1710,7 +1722,7 @@ C start of the hour.
               iday=INT(ctime)
               call DASYSTIME(II,TIME)
               MINH=INT(time)+1
-              IPAR=4
+              IPAR=7
               ITS=1
               call MFCLIM(IDAY,MINH,ITS,IPAR,VALC)
               val(jstat)=VALC
@@ -1804,17 +1816,17 @@ C          write(6,'(F10.5,12(2x,G10.3))')
 C     &      ctime,(val(jjj),jjj=1,npget)
 
 C update ctime for the next loop.
-          ctime=ctime+enterval*float(nout)
+          ctime=ctime+enterval8*real(nout)
   100   continue
       else
 
 C Case when averaging is required
         if(idaver.eq.0) then
-          ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
-     &              +ENTERVAL*float(nout)/2.
+          ctime=real(ioh1-1)/24.0+ENTERVAL8/2.+real(iods)
+     &              +ENTERVAL8*real(nout)/2.
         else
-          ctime=float(ioh1-1)/24.0+enterval+float(iods)
-     &              +ENTERVAL*float(nout)/2.
+          ctime=real(ioh1-1)/24.0+enterval8+real(iods)
+     &              +ENTERVAL8*real(nout)/2.
         endif
         do 111 jj=1,npget
   111     val(jj)=0.0
@@ -1844,7 +1856,7 @@ C start of the hour.
               iday=INT(ctime)
               call DASYSTIME(II,TIME)
               MINH=INT(time)+1
-              IPAR=4
+              IPAR=7
               ITS=1
               call MFCLIM(IDAY,MINH,ITS,IPAR,VALC)
               val(jstat)=VALC
@@ -1950,7 +1962,7 @@ C by occupancy.
   61        continue
 
 C Tidy up in preparation for the next loop.
-            ctime=ctime+enterval*float(nout)
+            ctime=ctime+enterval8*real(nout)
             do 113 jj=1,npget
               val(jj)=0.0
   113       continue
@@ -2085,15 +2097,16 @@ C Empty bins of hits.
 
 C Write graph head and set up axis positions and draw.
         IF(MMOD.EQ.8)THEN
-          iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-          if(iglib.eq.1)then
-            call feedbox(menuchw,2,igfw,igfh)
-            call opengdisp(menuchw,LIMTTY,2,igdw,igdh)
-          endif
 
 C Setup and pass in parameters to win3d.
           iiw1=9; iiw2=30; iiw3=4; iiw4=3; iimenu=menuchw
           iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+          ilf=2; ild=LIMTTY
+          iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+          if(iglib.eq.1)then
+            call feedbox(iimenu,ilf,igfw,igfh)
+            call opengdisp(iimenu,ild,ilf,igdw,igdh)
+          endif
           CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &      iigl,iigr,iigt,iigb,iigw,iigwh)
           igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
@@ -2133,10 +2146,21 @@ C Recover and plot data. If listing to file or text feedback then
 C write out labels for each column at the start.
       if (MENUTYPE.eq.4) then
         if(idaver.eq.0) then
-           ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
+           ctime=real(ioh1-1)/24.0+ENTERVAL8/2.+real(iods)
         else
-           ctime=float(ioh1-1)/24.0+enterval+float(iods)
+           ctime=real(ioh1-1)/24.0+enterval8+real(iods)
         endif
+C Debug.
+cc        write(6,*) 'float(ioh1-1)/24.0 =',float(ioh1-1)/24.0
+cc        write(6,*) 'float(iods) =',float(iods)
+cc        write(6,*) 'ENTERVAL    =',ENTERVAL
+cc        ENTERVAL8=real(ENTERVAL/2.)
+cc        write(6,*) 'ENTERVAL/2. =',ENTERVAL8
+cc        write(6,*) 'ctime 2 =',ctime
+cc        write(6,*) 'ctime 3 =',real(ioh1-1)/24.0
+cc     &                +ENTERVAL8+real(iods)
+cc        write(6,*) 'ctime 4 =',float(iods)+ENTERVAL/2.
+
         iday=INT(ctime)
         CALL STDATE(IYEAR,IDAY,DESCR,DESCR1)
         if (IDHFLG.eq.1) then
@@ -2200,15 +2224,17 @@ C Now, for each system timestep get the non-averaged data and
 C deal with it.
       if(iav.eq.0) then
         if(idaver.eq.0) then
-           ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
+           ctime=real(ioh1-1)/24.0+ENTERVAL8/2.+real(iods)
            gtime=TSTART
         else
-           ctime=float(ioh1-1)/24.0+enterval+float(iods)
+           ctime=real(ioh1-1)/24.0+enterval8+real(iods)
            gtime=TSTART
         endif
 
 C Debug.
-C        write(6,*) 'initial ctime gtime ',ctime,gtime,enterval
+cc        write(6,*) 'ctime; gtime; enterval ',ctime,gtime,enterval
+cc        write(6,*) 'istart  =',istart
+cc        write(6,*) 'iend    =',iend
 
 C For each timestep.
         do 200 ii=istart, iend, nout
@@ -2238,7 +2264,7 @@ C start of the hour.
               iday=INT(ctime)
               call DASYSTIME(II,TIME)
               MINH=INT(time)+1
-              IPAR=4
+              IPAR=7
               ITS=1
               call MFCLIM(IDAY,MINH,ITS,IPAR,VALC)
               val(jstat)=VALC
@@ -2328,8 +2354,8 @@ C Split flow time into hours and minutes, repeating every 24 hours.
               write (outs,'(a5)') DESCRH
               K=6
             else
-              write (outs,'(f10.4)') ctime
-              K=11
+              write (outs,'(f14.8)') ctime
+              K=15
             endif
             do 410 IXY=1,NPGET
               KE=K+11
@@ -2433,7 +2459,7 @@ C Hours below.
           endif
 
 C Tidy up in preparation for the next loop.
-          ctime=ctime+enterval*float(nout)
+          ctime=ctime+enterval8*real(nout)
           gtime=gtime+float(nout)
 
 C Debug.
@@ -2444,12 +2470,12 @@ C          write(6,*) 'incr ii ctime gtime ',ii,ctime,gtime
 
 C Case when averaging IS required
         if(idaver.eq.0) then
-          ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
-     &              +ENTERVAL*float(nout)/2.
+          ctime=real(ioh1-1)/24.0+ENTERVAL8/2.+real(iods)
+     &              +ENTERVAL8*real(nout)/2.
           gtime=TSTART
         else
-          ctime=float(ioh1-1)/24.0+enterval+float(iods)
-     &              +ENTERVAL*float(nout)/2.
+          ctime=real(ioh1-1)/24.0+enterval8+real(iods)
+     &              +ENTERVAL8*real(nout)/2.
           gtime=TSTART
         endif
         do 211 jj=1,npget
@@ -2480,7 +2506,7 @@ C start of the hour.
               iday=INT(ctime)
               call DASYSTIME(II,TIME)
               MINH=INT(time)+1
-              IPAR=4
+              IPAR=7
               ITS=1
               call MFCLIM(IDAY,MINH,ITS,IPAR,VALC)
               val(jstat)=VALC
@@ -2579,8 +2605,8 @@ C Split flow time into hours and minutes, repeating every 24 hours.
                 write (outs,'(a5)') DESCRH
                 K=6
               else
-                write (outs,'(f10.4)') ctime
-                K=11
+                write (outs,'(f14.8)') ctime
+                K=15
               endif
               do 412 IXY=1,NPGET
                 KE=K+11
@@ -2686,7 +2712,7 @@ C Hours below.
             endif
 
 C Tidy up in preparation for the next loop.
-            ctime=ctime+enterval*float(nout)
+            ctime=ctime+enterval8*real(nout)
             gtime=gtime+float(nout)
             do 213 jj=1,npget
               val(jj)=0.0
@@ -2751,15 +2777,16 @@ C indicate that several flow items (e.g. nodes) are included.
 
 C Write graph head and set up axis positions and draw.
             IF(MMOD.EQ.8)THEN
-              iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-              if(iglib.eq.1)then
-                call feedbox(menuchw,2,igfw,igfh)
-                call opengdisp(menuchw,LIMTTY,2,igdw,igdh)
-              endif
 
 C Setup and pass in parameters to win3d.
               iiw1=9; iiw2=30; iiw3=4; iiw4=3; iimenu=menuchw
               iigl=igl; iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
+              iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+              if(iglib.eq.1)then
+                ilf=2; ild=LIMTTY
+                call feedbox(iimenu,ilf,igfw,igfh)
+                call opengdisp(iimenu,ild,ilf,igdw,igdh)
+              endif
               CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &          iigl,iigr,iigt,iigb,iigw,iigwh)
               igl=int(iigl); igr=int(iigr);igt=int(iigt);igb=int(iigb)
@@ -2838,6 +2865,7 @@ C histogram metric is selected it will be the first one.
       elseif (MENUTYPE.eq.3) then
 
 C Finally label lines, matching zone line colour if used.
+        ibsize=0
         do 202 I=1,NPGET
           Iax=IPGETNO(I,8)
           call linescale(iigl,Xadd,TSC,iigb,Yadd(Iax),YSC(Iax))
@@ -2848,11 +2876,10 @@ C Finally label lines, matching zone line colour if used.
               if(ICM.gt.nzonec) ICM=IPGETNO(I,2)-nzonec
               if(ICM.gt.nzonec) ICM=IPGETNO(I,2)-nzonec
               iicol=ICM
-              call winscl('z',iicol)
             endif
           endif
           call u2pixel(TIMEold(I),Yold(I),iid1,iid2)
-          call wstxpt(iid1,iid2,t20)
+          call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
@@ -2862,10 +2889,11 @@ C Finally label lines, matching zone line colour if used.
 
 C If there are optional user defined labels draw them.
         if(ngrlbl.gt.0)then
+          ibsize=0; iicol=0
           do 201 ijj=1,ngrlbl
             t24=grlbl(ijj)
             iid1=lblpx(ijj); iid2=lblpy(ijj);
-            call wstxpt(iid1,iid2,t24)
+            call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
  201      continue
         endif
       elseif (MENUTYPE.eq.5) then

@@ -138,7 +138,7 @@ c Initialise plant time-step controller variables.
 c If monitoring is on then while in start-up period, display message .
       if(monitr.eq.1.and.itcnst.gt.0)
      & call usrmsg(' ',
-     &     ' Monitoring will commence shortly, please wait...','-')
+     &     ' Monitoring will commence shortly ...','-')
 
 C Remember the 'start value' of the UNIX system clock.
       ISTIME=TIME()
@@ -359,7 +359,7 @@ C report was issued more than 5 seconds ago.
          ILTIME=Ictime
          ietim=istime+(ictime-istime)*100/iperc
          write(outs,'(I4,A,A)') iperc,
-     &      ' %   complete; expected finish time : ',
+     &      '% complete; expected finish time: ',
      &      ectime(ietim)
          call edisp(iuout,outs)
       END IF

@@ -49,19 +49,20 @@ C IC = zone number (if in dfs set to 1)
       COMMON/SHOUT/ICOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
-
+      COMMON/ICFNOD/ICFD,ICP
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
      2            DZHP(ntcelz),DZPL(ntcelz),
      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
       COMMON/MODVIS/IVISMOD
 
-      CHARACTER ITEM(16)*32
+      CHARACTER ITEM(16)*31
       character outs*124,ETEXT*30
 
       logical GRMODE
@@ -117,33 +118,63 @@ C we are focused on this zone, no origin no grid, no surface normals
 
 C Let the user pick a menu item.
    1  INO=-5
-      ITEM(1) ='a Plot x-y plane (2D) grid     '
-      ITEM(2) ='b Plot x-z plane (2D) grid     '
-      ITEM(3) ='c Plot y-z plane (2D) grid     '
-      ITEM(4) =' --3D grid options -------     '
-      if (HAS_GEOM) then
-        ITEM(5) ='d  geometry+grid               '
-        ITEM(6) ='e  geometry+grid+solid         '
-        ITEM(7) ='f  geometry+grid+solid+openings'
+      ITEM(1) =  'a Plot x-y plane (2D) grid     '
+      ITEM(2) =  'b Plot x-z plane (2D) grid     '
+      ITEM(3) =  'c Plot y-z plane (2D) grid     '
+      ITEM(4) =  ' --3D grid options -------     '
+      if (.not.HAS_GEOM) then
+        ITEM(5)= '  no zone geometry available   '
+      elseif (ISHGEO.eq.0) then
+        ITEM(5)= 'd zone geometry >> off         '
+      elseif (ISHGEO.gt.0) then
+        ITEM(5)= 'd zone geometry >> bold lines  '
       else
-        ITEM(5) ='   option not available        '
-        ITEM(6) ='   option not available        '
-        ITEM(7) ='   option not available        '
+        ITEM(5)= 'd zone geometry >> normal lines'
       endif
-      ITEM(8) ='g  only grid                   '
-      ITEM(9) ='h  only grid+solid             '
-      ITEM(10)='i  only grid+solid+openings    '
-      ITEM(11)='  ------------------------     '
-      ITEM(12)='j List x plane coordinates     '
-      ITEM(13)='k List y plane coordinates     '
-      ITEM(14)='l List z plane coordinates     '
-      ITEM(15)='? Help                         '
-      ITEM(16)='- Exit                         '
+      if (IFACES.eq.0) then
+        ITEM(6)= 'e CFD grid >> off              '
+      elseif (IFACES.eq.1) then
+        ITEM(6)= 'e CFD grid >> all              '
+      elseif (IFACES.eq.2) then
+        ITEM(6)= 'e CFD grid >> X direction only '
+      elseif (IFACES.eq.3) then
+        ITEM(6)= 'e CFD grid >> Y direction only '
+      elseif (IFACES.eq.4) then
+        ITEM(6)= 'e CFD grid >> Z direction only '
+      endif
+      if (ISHSB.eq.0) then
+        ITEM(7)= 'f solid boundaries >> off      '
+      else
+        ITEM(7)= 'f solid boundaries >> on       '
+      endif
+      if (ISHAO.eq.0) then
+        ITEM(8)= 'g air flow openings >> off     '
+      else
+        ITEM(8)= 'g air flow openings >> on      '
+      endif
+      if (ISHBLK.eq.0) then
+        ITEM(9)= 'h blockages >> off             '
+      else
+        ITEM(9)= 'h blockages >> on              '
+      endif
+      if (ISHSRC.eq.0) then
+        ITEM(10)='i sources >> off               '
+      else
+        ITEM(10)='i sources >> on                '
+      endif
+      ITEM(11)=  '  ------------------------     '
+      ITEM(12)=  'j List x plane coordinates     '
+      ITEM(13)=  'k List y plane coordinates     '
+      ITEM(14)=  'l List z plane coordinates     '
+      ITEM(15)=  '? Help                         '
+      ITEM(16)=  '- Exit                         '
       NITMS=16
 
 C Help text for menu.
       helptopic='dfs_display_list_grid'
       call gethelptext(helpinsub,helptopic,nbhelp)
+
+      if (MODIFYVIEW) call redraw(IER)
 
    12 CALL EMENU('Grid visualisation',ITEM,NITMS,INO)
       IF(INO.EQ.0)THEN
@@ -165,70 +196,60 @@ C x-z plane grid.
 
 C y-z plane grid.
         WRITE(ETEXT,'(A,A15)') ' Y-Z grid for ',ZNAME(ic)
-        call VGRID2D(YZ,ZZ,YV,ZW,NJ,NK,ETEXT,'Y axis (m)','Z')
+        call VGRID2D(YZ,ZZ,YV,ZW,NJ,NK,ETEXT,'Y axis (m)','Z')        
       ELSEIF(INO.EQ.5.and.GRMODE)THEN
 
-C 3D gridding with zone geometry.
-
-C << how about an option to place grid on one face only ?? >>
-
-        CALL EASKABCD('Options for 3D gridding:',' ','all faces',
-     &    'south->north','east->west','high->low',IWO,nbhelp)
-
-C Initialise building - CFD domain transformations.
-        ISHSB=0; ISHAO=0; IFACES=iwo; ISHBLK=0; ISHGEO=1
+C Toggle geometry.
+        if (ISHGEO.eq.0) then ! off -> bold lines
+          ISHGEO=1
+        elseif (ISHGEO.gt.0) then ! bold -> normal lines
+          ISHGEO=-MS-1
+        else ! -> off
+          ISHGEO=0
+        endif
         MODIFYVIEW=.TRUE.
-        call redraw(IER)
       ELSEIF(INO.EQ.6.and.GRMODE)THEN
 
-C 3D gridding with zone geometry and solids.
-        CALL EASKABCD('Options for 3D gridding:',' ','all faces',
-     &    'south->north','east->west','high->low',IWO,nbhelp)
-
-C Initialise building - CFD domain transformations.
-        ISHSB=-1; ISHAO=0; IFACES=iwo; ISHBLK=-1; ISHGEO=1
+C Toggle CFD grid.
+        IFACES=IFACES+1 ! 0 -> 1 -> 2 -> 3 -> 4 -> 0
+        if (IFACES.gt.4) IFACES=0
         MODIFYVIEW=.TRUE.
-        call redraw(IER)
       ELSEIF(INO.EQ.7.and.GRMODE)THEN
 
-C 3D gridding with zone geometry and solids and openings.
-        CALL EASKABCD('Options for 3D gridding:',' ','all faces',
-     &    'south->north','east->west','high->low',IWO,nbhelp)
-
-C Initialise building - CFD domain transformations.
-        ISHSB=-1; ISHAO=-1; IFACES=iwo; ISHBLK=-1; ISHGEO=1
+C Toggle solid boundaries
+        if (ISHSB.eq.0) then ! off -> on
+          ISHSB=-1
+        else ! -> off
+          ISHSB=0
+        endif
         MODIFYVIEW=.TRUE.
-        call redraw(IER)
       ELSEIF(INO.EQ.8.and.GRMODE)THEN
 
-C 3D gridding without zone geometry.
-        CALL EASKABCD('Options for 3D gridding:',' ','all faces',
-     &    'south->north','east_.west','high->low',IWO,nbhelp)
-
-C Initialise building - CFD domain transformations.
-        ISHSB=0; ISHAO=0; IFACES=iwo; ISHBLK=0; ISHGEO=0
+C Toggle air flow openings.
+        if (ISHAO.eq.0) then ! off -> on
+          ISHAO=-1
+        else ! -> off
+          ISHAO=0
+        endif
         MODIFYVIEW=.TRUE.
-        call redraw(IER)
       ELSEIF(INO.EQ.9.and.GRMODE)THEN
 
-C 3D gridding without zone geometry and with solids.
-        CALL EASKABCD('Options for 3D gridding:',' ','all faces',
-     &    'south->north','east->west','high->low',IWO,nbhelp)
-
-C Initialise building - CFD domain transformations.
-        ISHSB=-1; ISHAO=0; IFACES=iwo; ISHBLK=-1; ISHGEO=0
+C Toggle blockages.
+        if (ISHBLK.eq.0) then ! off -> on
+          ISHBLK=-1
+        else ! -> off
+          ISHBLK=0
+        endif
         MODIFYVIEW=.TRUE.
-        call redraw(IER)
       ELSEIF(INO.EQ.10.and.GRMODE)THEN
 
-C 3D gridding without zone geometry and with solids and openings.
-        CALL EASKABCD('Options for 3D gridding:',' ','all faces',
-     &    'south->north','east->west','high->low',IWO,nbhelp)
-
-C Initialise building - CFD domain transformations.
-        ISHSB=-1; ISHAO=-1; IFACES=iwo; ISHBLK=-1; ISHGEO=0
+C Toggle sources.
+        if (ISHSRC.eq.0) then ! off -> on
+          ISHSRC=-1
+        else ! -> off
+          ISHSRC=0
+        endif
         MODIFYVIEW=.TRUE.
-        call redraw(IER)
       ELSEIF(INO.EQ.12)THEN
 
 C Text listings
@@ -286,19 +307,6 @@ C Text listings
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('grid visualization',nbhelp,'-',0,0,IER)
       ELSEIF(INO.EQ.16)THEN
-
-C Finish grid visualization, returning display to initial state.
-        IF(MMOD.EQ.8)THEN
-          call startbuffer()
-
-C Setup and pass in parameters to win3d.
-          iiw1=4; iiw2=1; iiw3=1; iiw4=3; iimenu=menuchw
-          iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
-          CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
-     &      iigl,iigr,iigt,iigb,iigw,iigwh)
-          igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
-          igw=int(iigw); igwh=int(iigwh)
-        ENDIF
         return
       ELSE 
         INO=-1
@@ -529,15 +537,15 @@ C Store the scaling parameters used in drawing the axes.
 C ********************* VGRID3D *********************
 C VGRID3D - draws the CFD domain gridding in 3d.
 C   izin = 0 then do not draw zone geometry.
-C   izin > 0 then draw geometry for zone iz in bold lines
+C   izin > 0 then draw geometry for zone izin in bold lines
 C   izin < 0 then draw geometry for zone ICP in normal lines,
 C            highlighting surface izin in bold lines.
 C Note: izin can be set to a large negative number (greater than number
 C of surfaces) to draw geometry in normal lines only.
 C   ig = 0 then do not graw any grid.
 C   ig = 1 then draw all face grids.
-C   ig = 2 then draw only north and south face grid.
-C   ig = 3 then draw only east and west face grid.
+C   ig = 2 then draw only east and west face grid.
+C   ig = 3 then draw only north and south face grid.
 C   ig = 4 then draw only top and bottom face grid.
       SUBROUTINE VGRID3D(izin,ig)
 #include "building.h"
@@ -742,7 +750,7 @@ C Draw the dotted line after casting to local variable.
       endif
 
 C Loop through all Z-Y plane grid lines.
-      if(ig.eq.1.or.ig.eq.3)then
+      if(ig.eq.1.or.ig.eq.2)then
         do 30 K=2,NK    ! is along the West Z face
           do 40 J=2,NJ  ! is along the West Y face
 
@@ -821,7 +829,7 @@ C Draw line to end point.
       endif
 
 C Loop through all Z-X plane grid lines.
-      if(ig.eq.1.or.ig.eq.2)then
+      if(ig.eq.1.or.ig.eq.3)then
         do 50 K=2,NK    ! along South face X axis
           do 60 I=2,NI  ! along South face Z axis
 
@@ -1340,13 +1348,15 @@ C VAO3D - draws the air openings - highlighting the chosen one.
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      character VOLNAME*12, VCsurf*12
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
       character LLOCAT*4,outs*124,temp*12
-      character VOLNAME*12, VCsurf*12
+      logical colok
 #ifdef OSI
       integer iixs,iiys,iix,iiy,iicol
 #else
@@ -1358,14 +1368,25 @@ C Check in graphics mode.
 
       if(NOPEN(ICFD).eq.0)return
 
+C Check if we have colour.
+      colok=.false.
+      if(nzonec.ge.6)colok=.true.
+
 C Draw round solid boundaries and last character of label.
       do 70 Iaop=1,NOPEN(ICFD)
 c        write (outs,'(i10)') IWOPEN(Iaop,ICFD)
-        write (outs,'(i10)') IVOLF(IVOLN(Iaop,ICFD),ICFD)
+        write (outs,'(i10)') IVOLF(IVOLNOP(Iaop,ICFD),ICFD)
         write (LLOCAT,'(a)') outs(lnblnk(outs):lnblnk(outs))
         K=0
         call EGETWI(LLOCAT,K,ILOCAT,1,6,'F',
      &                                  'Illegal surface orient.',IER)
+
+C Set colour to red.
+        if (colok) then
+          iicol=0
+          call winscl('z',iicol)
+        endif
+
         if (ILOCAT.eq.1.or.ILOCAT.eq.2) then
           if (ILOCAT.eq.2) then
             MNOD=NI
@@ -1443,10 +1464,10 @@ C Label in center of boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          write (temp,'(a)')VOLNAME(IVOLN(Iaop,ICFD),ICFD)
-     &                       (1:LNBLNK(VOLNAME(IVOLN(Iaop,ICFD),ICFD)))
+          write (temp,'(a)')VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)
+     &      (1:LNBLNK(VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)))
           iicol=0
-          call textatxy(iix,iiy,temp,'-',iicol)
+          call textatxy(iix,iiy,temp,'z',iicol)
           call forceflush()
 
         elseif (ILOCAT.eq.3.or.ILOCAT.eq.4) then
@@ -1526,10 +1547,10 @@ C Label in center of boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          write (temp,'(a)')VOLNAME(IVOLN(Iaop,ICFD),ICFD)
-     &                       (1:LNBLNK(VOLNAME(IVOLN(Iaop,ICFD),ICFD)))
+          write (temp,'(a)')VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)
+     &      (1:LNBLNK(VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)))
           iicol=0
-          call textatxy(iix,iiy,temp,'-',iicol)
+          call textatxy(iix,iiy,temp,'z',iicol)
           call forceflush()
         elseif (ILOCAT.eq.5.or.ILOCAT.eq.6) then
           if (ILOCAT.eq.6) then
@@ -1608,13 +1629,18 @@ C Label in center of boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          write (temp,'(a)')VOLNAME(IVOLN(Iaop,ICFD),ICFD)
-     &                       (1:LNBLNK(VOLNAME(IVOLN(Iaop,ICFD),ICFD)))
+          write (temp,'(a)')VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)
+     &      (1:LNBLNK(VOLNAME(IVOLNOP(Iaop,ICFD),ICFD)))
           iicol=0
-          call textatxy(iix,iiy,temp,'-',iicol)
+          call textatxy(iix,iiy,temp,'z',iicol)
           call forceflush()
         endif
  70   continue
+
+      if(colok)then
+        iicol=0
+        call winscl('-',iicol)
+      endif
 
       return
       end
@@ -1641,6 +1667,8 @@ C      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/ICFNOD/ICFD,ICP
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      character VOLNAME*12, VCsurf*12
 
 C integer NBLK() is the number of blockages in each domain
 C integer INBLK() points to the volume which defines the blockage shape
@@ -1649,7 +1677,7 @@ C integer INSSO() point to the volume which defines the small supply shape
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
      &          INSSO(MNVLS,MNZ)
 
-      character temp*4
+      character temp*12
 
 C Arrays iixv iiyv iizz are the 8 coords of a box in the usual order.
 #ifdef OSI
@@ -1748,13 +1776,198 @@ C Label in center of blockage.
         CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
         CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
         call u2pixel(X1,Y1,iix,iiy)
-        write (temp,'(a,i2.2)') 'Bl',IBLK
+          write (temp,'(a)')VOLNAME(indxvol,ICFD)
+     &      (1:LNBLNK(VOLNAME(indxvol,ICFD)))
         iicol=0
         call textatxy(iix,iiy,temp,'-',iicol)
         call forceflush()
 
-C Draw around blockage in single or double lines is the usual order.
+C Draw around blockage in single or double lines in the usual order.
         if (iblk.eq.ISBL) then
+          call edwline(iixv(1),iiyv(1),iixv(2),iiyv(2))
+          call edwline(iixv(2),iiyv(2),iixv(3),iiyv(3))
+          call edwline(iixv(3),iiyv(3),iixv(4),iiyv(4))
+          call edwline(iixv(4),iiyv(4),iixv(1),iiyv(1))
+          call edwline(iixv(5),iiyv(5),iixv(6),iiyv(6))
+          call edwline(iixv(6),iiyv(6),iixv(7),iiyv(7))
+          call edwline(iixv(7),iiyv(7),iixv(8),iiyv(8))
+          call edwline(iixv(8),iiyv(8),iixv(5),iiyv(5))
+          call edwline(iixv(1),iiyv(1),iixv(6),iiyv(6))
+          call edwline(iixv(2),iiyv(2),iixv(7),iiyv(7))
+          call edwline(iixv(3),iiyv(3),iixv(8),iiyv(8))
+          call edwline(iixv(4),iiyv(4),iixv(5),iiyv(5))
+        else
+          call eswline(iixv(1),iiyv(1),iixv(2),iiyv(2))
+          call eswline(iixv(2),iiyv(2),iixv(3),iiyv(3))
+          call eswline(iixv(3),iiyv(3),iixv(4),iiyv(4))
+          call eswline(iixv(4),iiyv(4),iixv(1),iiyv(1))
+          call eswline(iixv(5),iiyv(5),iixv(6),iiyv(6))
+          call eswline(iixv(6),iiyv(6),iixv(7),iiyv(7))
+          call eswline(iixv(7),iiyv(7),iixv(8),iiyv(8))
+          call eswline(iixv(8),iiyv(8),iixv(5),iiyv(5))
+          call eswline(iixv(1),iiyv(1),iixv(6),iiyv(6))
+          call eswline(iixv(2),iiyv(2),iixv(7),iiyv(7))
+          call eswline(iixv(3),iiyv(3),iixv(8),iiyv(8))
+          call eswline(iixv(4),iiyv(4),iixv(5),iiyv(5))
+        endif
+        call forceflush()
+
+ 70   continue
+
+      return
+      end
+
+C ********************* VSRC3D *********************
+C VSRC3D - draws sources - highlighting the chosen one.
+C << currently only draws in the 3D view not individual sections >>
+      SUBROUTINE VSRC3D(ISRC)
+#include "building.h"
+C #include "geometry.h"
+#include "cfd.h"
+#include "prj3dv.h"
+      
+C      integer lnblnk  ! function definition
+
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+
+C      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
+      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
+     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
+     2            DZHP(ntcelz),DZPL(ntcelz),
+     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
+     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
+      COMMON/ICFNOD/ICFD,ICP
+      common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
+     &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
+      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
+      character VOLNAME*12, VCsurf*12
+       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
+     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
+     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
+     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
+     &          VOLPol(MCTM,MNVLS,MNZ)
+      common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+
+      character temp*12
+      logical colok
+
+C Arrays iixv iiyv iizz are the 8 coords of a box in the usual order.
+#ifdef OSI
+      integer iicol,iixs,iiys,iix,iiy,iixv(8),iiyv(8)
+#else
+      integer*8 iicol,iixs,iiys,iix,iiy,iixv(8),iiyv(8)
+#endif
+      real XPP,YPP,ZPP  ! points taking into account zone minimum
+      real XX,YY,ZZ
+
+C Check in graphics mode.
+      IF(MMOD.ne.8) return
+
+C Check if we have colour.
+      colok=.false.
+      if(nzonec.ge.6)colok=.true.
+      iisrc=0
+
+C Loop through volumes.
+      do 70 iv=1,NVOL(ICFD)
+
+C Identify sources.
+        if (IVTYPE(iv,ICFD).ne.20) cycle
+        iisrc=iisrc+1
+
+C Find the cells for this volume (without shift).
+        Ii=IVCELLS(iv,ICFD,1)
+        If=IVCELLS(iv,ICFD,2)
+        Ji=JVCELLS(iv,ICFD,1)
+        Jf=JVCELLS(iv,ICFD,2)
+        Ki=KVCELLS(iv,ICFD,1)
+        Kf=KVCELLS(iv,ICFD,2)
+
+C Debug echo the coordinates of the blockage.
+C        xd=XU(If+1)-XU(Ii)
+C        write(6,*) 'cords X are:',XU(Ii),XU(If+1),xd
+C        yd=YV(Jf+1)-YV(Ji)
+C        write(6,*) 'cords Y are:',YV(Ji),YV(Jf+1),yd
+C        zd=ZW(Kf+1)-ZW(Ki)
+C        write(6,*) 'cords Z are:',ZW(Ki),ZW(Kf+1),zd
+
+C Transform local coords to screen coords and remember.
+C Lower front left hand corner of blockage.
+        CALL CFDTRANS(1,XU(Ii),YV(Ji),ZW(Ki),XPP,YPP,ZPP,IER)
+        CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
+        CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
+        call u2pixel(X1,Y1,iixs,iiys)
+        iixv(1)=iixs; iiyv(1)=iiys
+
+C Lower front right hand corner of blockage.
+        CALL CFDTRANS(1,XU(If+1),YV(Ji),ZW(Ki),XPP,YPP,ZPP,IER)
+        CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
+        CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
+        call u2pixel(X1,Y1,iix,iiy)
+        iixv(2)=iix; iiyv(2)=iiy
+
+C Lower back right hand corner of blockage.
+        CALL CFDTRANS(1,XU(If+1),YV(Jf+1),ZW(Ki),XPP,YPP,ZPP,IER)
+        CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
+        CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
+        call u2pixel(X1,Y1,iix,iiy)
+        iixv(3)=iix; iiyv(3)=iiy
+
+C Lower back left hand corner of blockage.
+        CALL CFDTRANS(1,XU(Ii),YV(Jf+1),ZW(Ki),XPP,YPP,ZPP,IER)
+        CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
+        CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
+        call u2pixel(X1,Y1,iixs,iiys)
+        iixv(4)=iixs; iiyv(4)=iiys
+
+C Upper back left corner of blockage.
+        CALL CFDTRANS(1,XU(Ii),YV(Jf+1),ZW(Kf+1),XPP,YPP,ZPP,IER)
+        CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
+        CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
+        call u2pixel(X1,Y1,iix,iiy)
+        iixv(5)=iix; iiyv(5)=iiy
+
+C Upper front left corner of blockage
+        CALL CFDTRANS(1,XU(Ii),YV(Ji),ZW(Kf+1),XPP,YPP,ZPP,IER)
+        CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
+        CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
+        call u2pixel(X1,Y1,iix,iiy)
+        iixv(6)=iix; iiyv(6)=iiy
+
+C Upper front right corner of blockage.
+        CALL CFDTRANS(1,XU(If+1),YV(Ji),ZW(Kf+1),XPP,YPP,ZPP,IER)
+        CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
+        CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
+        call u2pixel(X1,Y1,iix,iiy)
+        iixv(7)=iix; iiyv(7)=iiy
+
+C Upper back right corner of blockage.
+        CALL CFDTRANS(1,XU(If+1),YV(Jf+1),ZW(Kf+1),XPP,YPP,ZPP,IER)
+        CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
+        CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
+        call u2pixel(X1,Y1,iix,iiy)
+        iixv(8)=iix; iiyv(8)=iiy
+        call forceflush()
+
+C Label in center of blockage.
+        CALL CFDTRANS(1,XU(If+1),YV(Ji),ZW(Kf+1),XX,YY,ZZ,IER)
+        CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
+        CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
+        call u2pixel(X1,Y1,iix,iiy)
+          write (temp,'(a)')VOLNAME(iv,ICFD)
+     &      (1:LNBLNK(VOLNAME(iv,ICFD)))
+        iicol=1
+        call textatxy(iix,iiy,temp,'z',iicol)
+        call forceflush()
+
+C Set colour to ??.
+        if (colok) then
+          iicol=1
+          call winscl('z',iicol)
+        endif
+
+C Draw around blockage in single or double lines in the usual order.
+        if (iisrc.eq.ISRC) then
           call edwline(iixv(1),iiyv(1),iixv(2),iiyv(2))
           call edwline(iixv(2),iiyv(2),iixv(3),iiyv(3))
           call edwline(iixv(3),iiyv(3),iixv(4),iiyv(4))
@@ -2304,7 +2517,8 @@ C for CFD visualisation.
 #include "prj3dv.h"
 
       COMMON/ICFNOD/ICFD,ICP
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
+     &              INITD
       logical HAS_GEOM
       character INITD*6
       common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
@@ -2316,6 +2530,12 @@ C for CFD visualisation.
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
+
+C Turn off building grid and origin, but preserve global settings.
+      ITORGP=ITORG
+      ITORG=1
+      ITGRDP=ITGRD
+      ITGRD=1
 
 C Check initialisation.
 C INITD is a 6 character integer string composed of ICFD and ICP, each
@@ -2343,12 +2563,12 @@ c      write(6,*)HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO
 C Draw grid.
 C ISHGEO = 1: Draw zone geometry in bold lines.
 C ISHGEO = 0: Do not draw zone geometry.
-C ISHGEO < 0: Draw zone geometry in normal lines, highlighting surface
-C             ISHGEO in bold lines.
+C ISHGEO < 0: Draw zone ICP geometry in normal lines, highlighting
+C             surface ISHGEO in bold lines.
 C IFACES = 0: Do not draw the CFD grid.
 C IFACES = 1: Draw CFD grid in all 3 dimensions in dotted lines.
-C IFACES = 2: Draw CFD grid in u direction (north-south) only.
-C IFACES = 3: Draw CFD grid in v direction (east-west) only.
+C IFACES = 2: Draw CFD grid in u direction (east-west) only.
+C IFACES = 3: Draw CFD grid in v direction (north-south) only.
 C IFACES = 4: Draw CFD grid in w direction (high-low) only.
       if (ISHGEO.eq.1) then
         call VGRID3D(ICP,IFACES)
@@ -2368,16 +2588,6 @@ C ISHSB > 0: Draw BCs, highlighting number ISHSB in bold lines.
         call VSB3D(ISHSB)
       endif
 
-C Draw air flow openings if needed.
-C ISHAO = 0: Do not draw BCs.
-C ISHAO < 0: Draw all BCs in normal lines.
-C ISHAO > 0: Draw BCs, highlighting number ISHAO in bold lines.
-      if (ISHAO.lt.0) then
-        call VAO3D(0) 
-      elseif (ISHAO.gt.0) then
-        call VAO3D(ISHAO)
-      endif
-
 C Draw blockages if needed.
 C ISHBLK = 0: Do not draw BCs.
 C ISHBLK < 0: Draw all BCs in normal lines.
@@ -2386,6 +2596,26 @@ C ISHBLK > 0: Draw BCs, highlighting number ISHBLK in bold lines.
         call VSBL3D(0)
       elseif (ISHBLK.gt.0) then
         call VSBL3D(ISHBLK)
+      endif
+
+C Draw sources if needed.
+C ISHBLK = 0: Do not draw BCs.
+C ISHBLK < 0: Draw all BCs in normal lines.
+C ISHBLK > 0: Draw BCs, highlighting number ISHBLK in bold lines.
+      if (ISHSRC.lt.0) then
+        call VSRC3D(0)
+      elseif (ISHSRC.gt.0) then
+        call VSRC3D(ISHSRC)
+      endif
+
+C Draw air flow openings if needed.
+C ISHAO = 0: Do not draw BCs.
+C ISHAO < 0: Draw all BCs in normal lines.
+C ISHAO > 0: Draw BCs, highlighting number ISHAO in bold lines.
+      if (ISHAO.lt.0) then
+        call VAO3D(0) 
+      elseif (ISHAO.gt.0) then
+        call VAO3D(ISHAO)
       endif
 
 C Draw title.
@@ -2398,6 +2628,10 @@ C Draw title.
       MODIFYVIEW=.FALSE.
       MODLEN=.FALSE.
       MODBND=.FALSE.
+
+C Restore global settings.
+      ITORG=ITORGP
+      ITGRD=ITGRDP
 
  999  return
       end

@@ -534,7 +534,7 @@ C Find CFD point closest to MRT sensor.
             DY=(DXC(IMRT)/2.)*SA+(DYC(IMRT)/2.)*CA
             CALL CFDTRANS(2,XOC(IMRT)+DX,YOC(IMRT)+DY,
      &                      ZOC(IMRT)+DZC(IMRT)/2,XC,YC,ZC,IER)
-            CALL FDCFDPT(XC,YC,ZC,IIX,IIY,IIZ,IER)
+            CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
             if (IER.ne.0) then
               call edisp(iuout,' Problem finding CFD point')
             else
@@ -885,7 +885,6 @@ c          iflag=-1
 c        else
 c          PPD=0.7038+0.2974*XX**2.7810-0.084*exp(XX)
 c        endif
-        write(6,*)'XX',XX
         if (XX.gt.8.0) then
           iflag=-1
         elseif (XX.lt.0.0) then
@@ -1021,10 +1020,12 @@ C Uses similar conventions to DISCOMF above.
       SUBROUTINE DRAUGHT(IDAY,ITS,IZONE,IMRT,iflag,PPD,IER)
 
 #include "building.h"
+#include "model.h"
 #include "geometry.h"
 #include "cfd.h"
 
       COMMON/OUTIN/IUOUT,IUIN
+      COMMON/FILEP/IFIL
       common/rpath/path
       character path*72,LCMDFL*144,ltmpc*144,LTMP*72,lpath*72,outs*128
 
@@ -1039,6 +1040,7 @@ C Uses similar conventions to DISCOMF above.
 
       real PI,R,SA,CA,DX,DY,HI(3),XC,YC,ZC
       integer IHI(3)
+      character LMRT*72
 
 C Read CFD header data and set common block data.
       lpath=path
@@ -1054,7 +1056,10 @@ C initialise CFD - building domain transformation matrices.
       CALL INIT_CFDTRANS(IER)
 
 C Equation is for draught at the neck, so use a point in the centre of
-C the top face of the MRT sensor.      
+C the top face of the MRT sensor.
+      IUF=IFIL+1
+      LMRT=LVIEW(IZONE)
+      call ERMRT(0,IUOUT,IUF,LMRT,IZONE,IER)      
       PI = 4.0 * ATAN(1.0)
       R=PI/180.
       SA=SIN(CANG(IMRT)*R)
@@ -1067,7 +1072,7 @@ C the top face of the MRT sensor.
 
       CALL GRIDGEO
       CALL CFDTRANS(2,HI(1),HI(2),HI(3),XC,YC,ZC,IER)
-      CALL FDCFDPT(XC,YC,ZC,IHI(1),IHI(2),IHI(3),IER)
+      CALL FDCFDPT(1,XC,YC,ZC,IHI(1),IHI(2),IHI(3),IER)
 
       if (IER.ne.0) then
         write(outs,'(a)')
@@ -1233,88 +1238,6 @@ c          write(6,*)'izend(ICFD)',izend(ICFD)
       return
       end
 
-C ****** FDCFDPT
-C FDCFDPT finds the CFD grid point that most closely matches coordinates
-C Xin, Yin, Zin. It returns the indices of this grid point in IU, IV and
-C IW.
-      SUBROUTINE FDCFDPT(Xin,Yin,Zin,IU,IV,IW,IER)
-
-#include "building.h"
-#include "cfd.h"      
-
-      COMMON/OUTIN/IUOUT,IUIN
-      COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
-      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
-     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
-     2            DZHP(ntcelz),DZPL(ntcelz),
-     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
-     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
-
-      REAL Xin,Yin,Zin,prev
-      INTEGER IU,IV,IW
-
-      IU=0;IV=0;IW=0
-
-      prev=-999.
-      do I=1,NI
-        if (XP(I).ge.Xin) then
-          if (abs(XP(I)-Xin).lt.abs(prev-Xin)) then
-            IU=I
-          else
-            IU=I-1
-          endif
-          exit
-        endif
-        prev=XP(I)
-      enddo
-
-      if (IU.eq.0) then
-        CALL EDISP(IUOUT,' FDCFDPT: Cannot find X grid point')
-        IER=1
-        return
-      endif
-
-      prev=-999.
-      do J=1,NJ
-        if (YP(J).ge.Yin) then
-          if (abs(YP(J)-Yin).lt.abs(prev-Yin)) then
-            IV=J
-          else
-            IV=J-1
-          endif
-          exit
-        endif
-        prev=YP(J)
-      enddo
-
-      if (IV.eq.0) then
-        CALL EDISP(IUOUT,' FDCFDPT: Cannot find Y grid point')
-        IER=1
-        return
-      endif
-
-      prev=-999.
-      do K=1,NK
-        if (ZP(K).ge.Zin) then
-          if (abs(ZP(K)-Zin).lt.abs(prev-Zin)) then
-            IW=K
-          else
-            IW=K-1
-          endif
-          exit
-        endif
-        prev=ZP(K)
-      enddo
-
-      if (IW.eq.0) then
-        CALL EDISP(IUOUT,' FDCFDPT: Cannot find Z grid point')
-        IER=1
-        return
-      endif
-
-      return
-      end
-
 C ****** VERTdT
 C VERTdT finds the vertical air temperature difference between the top
 C and bottom of an MRT sensor. To do this it needs CFD results in the
@@ -1324,10 +1247,12 @@ C GVAL.
       SUBROUTINE VERTdT(IDAY,IZONE,IMRT,IER)
 
 #include "building.h"
+#include "model.h"
 #include "geometry.h"
 #include "cfd.h"
 
       COMMON/OUTIN/IUOUT,IUIN
+      COMMON/FILEP/IFIL
       common/rpath/path
       character path*72,LCMDFL*144,ltmpc*144,LTMP*72,lpath*72,outs*128
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -1337,8 +1262,9 @@ C GVAL.
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       COMMON/cfddoms/NCDOM,ICFDZ(MNZ)
 
-      real PI,R,SA,CA,DX,DY,HI(3),LO(3),XC,YC,ZC
+      real PI,R,SA,CA,DX,DY,HI(3),XC,YC,ZC
       integer IHI(3),ILO(3)
+      character LMRT*72
 
 C Read CFD header data and set common block data.
       call RCFDLIBH(IZONE,IER)
@@ -1350,7 +1276,11 @@ C initialise CFD - building domain transformation matrices.
       endif
       CALL INIT_CFDTRANS(IER)
 
-C Get coordinates in the center of top and bottom faces of MRT sensor.
+C Get coordinates in the center of top face of MRT sensor.
+C dT between this point and floor level at this position.
+      IUF=IFIL+1
+      LMRT=LVIEW(IZONE)
+      call ERMRT(0,IUOUT,IUF,LMRT,IZONE,IER)
       PI = 4.0 * ATAN(1.0)
       R=PI/180.
       SA=SIN(CANG(IMRT)*R)
@@ -1360,16 +1290,11 @@ C Get coordinates in the center of top and bottom faces of MRT sensor.
       HI(1)=XOC(IMRT)+DX
       HI(2)=YOC(IMRT)+DY
       HI(3)=ZOC(IMRT)+DZC(IMRT)
-      LO(1)=XOC(IMRT)+DX
-      LO(2)=YOC(IMRT)+DY
-      LO(3)=ZOC(IMRT)      
 
       CALL GRIDGEO
       CALL CFDTRANS(2,HI(1),HI(2),HI(3),XC,YC,ZC,IER)
-      CALL FDCFDPT(XC,YC,ZC,IHI(1),IHI(2),IHI(3),IER)
-
-      CALL CFDTRANS(2,LO(1),LO(2),LO(3),XC,YC,ZC,IER)
-      CALL FDCFDPT(XC,YC,ZC,ILO(1),ILO(2),ILO(3),IER)
+      CALL FDCFDPT(1,XC,YC,ZC,IHI(1),IHI(2),IHI(3),IER)
+      ILO(1)=IHI(1); ILO(2)=IHI(2); ILO(3)=2
 
       if (IER.ne.0) then
         write(outs,'(a)')
@@ -1396,7 +1321,10 @@ C Get coordinates in the center of top and bottom faces of MRT sensor.
 
 C Check if there are CFD results available for this time step.
         CALL GETIFRM(IDAY,JTS,IFRAME,IER)
-        if (IER.ne.0) IER=0; goto 185
+        if (IER.ne.0) then
+          IER=0
+          goto 185
+        endif
   
         CALL RDCFDAT(IFRAME)
 

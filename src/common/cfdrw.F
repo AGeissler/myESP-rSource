@@ -133,7 +133,7 @@ C VOLPres - BC volume pressure if applicable
       common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
 C ICFDNOD = mass flow network node representative of CFD domain
 C ICFDCNN = list of mfs connections representative of CFD openings
-      COMMON/CTDFAF/ICTDFAF,SRCE(MNVLS,MCTM,MNZ),ICCSRC
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
 C ICTDFAF = 1 if contamiant sources defined in contaminants network are
 C           used as sources within CFD domain, it is still possible to 
 C           fall back to static source strengths in CFD standalone
@@ -147,8 +147,8 @@ C          - dfs conflation.
 C IDCasgn = Identification number of casual gain type assocated with
 C this key volume
 C FCasgn  = Fraction of this casual gain emitted into the key volume
-      COMMON/SCHMTT/SCHMT(MCTM),GFM(MCTM),VCRIT(MCTM),TBOIL(MCTM),
-     &       TCRIT(MCTM),ISCHMT(MCTM)
+      COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
+     &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
 C SCHMT = Turbulent Schmidt number for contaminants (=2*Schmidt number)
 C GFM = gram formula mass for contaminants
 C VCRIT = specific volume at critical point for contaminants
@@ -354,11 +354,13 @@ C Boundary conditions.
      &  NCTM(ICFD),' contaminants, humdity is contaminant number ',
      &  JHUMINDX(ICFD),' )'
       DO 156 ICTM=1,NCTM(ICFD)
-        IF(ISCHMT(ICTM).EQ.0)THEN
-          WRITE(IUF,'(A,1X,I3,1X,F9.4)')POLNAM(ICTM,ICFD),0,SCHMT(ICTM)
-        ELSEIF(ISCHMT(ICTM).EQ.1)THEN
-          WRITE(IUF,'(A,1X,I3,1X,4F6.1)')POLNAM(ICTM,ICFD),1,GFM(ICTM),
-     &         VCRIT(ICTM),TBOIL(ICTM),TCRIT(ICTM)                  
+        IF(ISCHMT(ICTM,ICFD).EQ.0)THEN
+          WRITE(IUF,'(A,1X,I3,1X,F9.4)')POLNAM(ICTM,ICFD),0,
+     &      SCHMT(ICTM,ICFD)
+        ELSEIF(ISCHMT(ICTM,ICFD).EQ.1)THEN
+          WRITE(IUF,'(A,1X,I3,1X,4F6.1)')POLNAM(ICTM,ICFD),1,
+     &         GFM(ICTM,ICFD),VCRIT(ICTM,ICFD),TBOIL(ICTM,ICFD),
+     &         TCRIT(ICTM,ICFD)
         ENDIF
  156  CONTINUE
       PNAMWRT=.FALSE.
@@ -376,7 +378,7 @@ C Boundary conditions.
           PCCSTRA=' '
           DO 91 ICTM=1,NCTM(ICFD)
             CALL RELSTR(VOLPOL(ICTM,I,ICFD),PCCSTRA,ILN,IER)
-            IF(SRCE(I,ICTM,ICFD)(:1).EQ.' '.OR.ICTDFAF.NE.1)THEN
+            IF(SRCE(I,ICTM,ICFD)(:1).EQ.' '.OR.ICTDFAF(ICFD).NE.1)THEN
               PCCSTRB='none'
             ELSE
               PCCSTRB=SRCE(I,ICTM,ICFD)(1:12)
@@ -623,10 +625,10 @@ C Common blocks for blockages and small supply openings
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
      &          INSSO(MNVLS,MNZ)
 
-C Common block for calculation of turbulent Schmidt number for contaminants
-      COMMON/SCHMTT/SCHMT(MCTM),GFM(MCTM),VCRIT(MCTM),TBOIL(MCTM),
-     &       TCRIT(MCTM),ISCHMT(MCTM)
-      COMMON/CTDFAF/ICTDFAF,SRCE(MNVLS,MCTM,MNZ),ICCSRC
+C Common block for calculation of turbulent Schmidt number for contaminants.
+      COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
+     &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
 
       common/APPNAME/cAppName
       character cAppName*12
@@ -1067,7 +1069,7 @@ C Read in volume name, type and geometry.
           K=0
           CALL EGETW(OUTSTR,K,WORD,'W','volumes name',IER)
           VOLNAME(IV,ICFD)=WORD(1:12)
-          IF(VOLNAME(IV,ICFD)(1:4).EQ.'SRC_')ICCSRC=1
+          IF(VOLNAME(IV,ICFD)(1:4).EQ.'SRC_')ICCSRC(ICFD)=1
           CALL EGETW(OUTSTR,K,WORD,'W','volumes name',IER)
           write (TYPE,'(a)') WORD(1:6)
           if (WORD(1:4).eq.'West') then
@@ -1532,19 +1534,20 @@ C Read data to calculate turbulent Schmidt number
             CALL STRIPC(IFL,OUTSTR,0,ND,1,'tur schmdt #',IER)
             K=0
             CALL EGETW(OUTSTR,K,WORD,'W','ctm name',IER)
-            CALL EGETWI(OUTSTR,K,ISCHMT(ICTM),0,1,'w','shmdt index',IER)
-            IF(ISCHMT(ICTM).EQ.0)THEN
+            CALL EGETWI(OUTSTR,K,ISCHMT(ICTM,ICFD),0,1,'w','shmdt index'
+     &        ,IER)         
+            IF(ISCHMT(ICTM,ICFD).EQ.0)THEN
               CALL EGETWR(OUTSTR,K,VL1,0.1,2.5,'-','tur shmdt #',IER)
-              SCHMT(ICTM)=VL1
-            ELSEIF(ISCHMT(ICTM).EQ.1)THEN
+              SCHMT(ICTM,ICFD)=VL1
+            ELSEIF(ISCHMT(ICTM,ICFD).EQ.1)THEN
               CALL EGETWR(OUTSTR,K,VL1,1.,1000.,'W','molar mass',IER)
               CALL EGETWR(OUTSTR,K,VL2,1.,1000.,'W','crit vol',IER)
               CALL EGETWR(OUTSTR,K,VL3,100.,500.,'W','T_boil',IER)
               CALL EGETWR(OUTSTR,K,VL4,100.,1000.,'W','T_crit',IER)
-              GFM(ICTM)=VL1
-              VCRIT(ICTM)=VL2
-              TBOIL(ICTM)=VL3
-              TCRIT(ICTM)=VL4
+              GFM(ICTM,ICFD)=VL1
+              VCRIT(ICTM,ICFD)=VL2
+              TBOIL(ICTM,ICFD)=VL3
+              TCRIT(ICTM,ICFD)=VL4
             ENDIF
  156      CONTINUE
         ENDIF
@@ -1580,12 +1583,12 @@ C Read line containing contaminant name information
      &                  POLNAM(ICTM,ICFD)(1:LNBLNK(POLNAM(ICTM,ICFD))),
      &                                 ' has turbulent Schmidt number'
             outs_pre=outs
-            if (ISCHMT(ICTM).eq.1) then
+            if (ISCHMT(ICTM,ICFD).eq.1) then
               write(outs,'(2a)')outs_pre(1:LNBLNK(outs_pre)),
      &                                  ' calculated at each time step'
             else
               write(outs,'(a,1X,f8.4)')outs_pre(1:LNBLNK(outs_pre)),
-     &                                                      SCHMT(ICTM)
+     &                                                  SCHMT(ICTM,ICFD)
             endif
             call edisp(itu,outs)
   711     continue
@@ -1636,7 +1639,7 @@ C           write(6,*)'fcasgn',fcasgn(15,1),fcasgn(16,1)
                 IF(WORD(1:4).EQ.'none')THEN
                   SRCE(IV,ICTM,ICFD)=' '
                 ELSE
-                  ICTDFAF=1
+                  ICTDFAF(ICFD)=1
                   SRCE(IV,ICTM,ICFD)=WORD(1:12)
                 ENDIF
               ENDIF
@@ -2124,7 +2127,7 @@ C          endif
 C Read iteration control data.
       CALL STRIPC(IFL,OUTSTR,0,ND,1,'iteration control',IER)
       K=0
-      CALL EGETWI(OUTSTR,K,IVAL,10,8000,'W','max iter',IER)
+      CALL EGETWI(OUTSTR,K,IVAL,10,15000,'W','max iter',IER)
       MAXITR(ICFD)=IVAL
       CALL EGETWR(OUTSTR,K,VAL,0.,0.,'-','conv crit',IER)
       SRMAX(ICFD)=VAL
@@ -2224,13 +2227,15 @@ C      (used in the case of curvilinear Z)
      &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
      &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLN(MCFND,MNZ)
+     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
      &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),
      &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
      &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
+      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
+     &          INSSO(MNVLS,MNZ)
       common/EQTION/CALLU(MNZ),CALLV(MNZ),CALLW(MNZ),CALLT(MNZ),
      &             CALLC(MNZ),KEMDL(MNZ),BUOY(MNZ),BOUSSI(MNZ),
      &             ZEROT(MNZ),ZandKE(MNZ),MITzero(MNZ)
@@ -2277,6 +2282,7 @@ C Buoyancy.
 C Boundary conditions.
       ISB=0
       IOP=0
+      IBK=0
       ISBND = 0
 
 C Solid boundaries.
@@ -2376,7 +2382,7 @@ C Air flow openings.
         elseif (IVTYPE(IKV,ICFD).eq.10) then
 C        ltmp='Pressure'
           IOP=IOP+1
-          IVOLN(IOP,ICFD)=IKV
+          IVOLNOP(IOP,ICFD)=IKV
           IWOPEN(IOP,ICFD)=0
           IOPENi(IOP,ICFD)=IVCELLS(IKV,ICFD,1)
           IOPENf(IOP,ICFD)=IVCELLS(IKV,ICFD,2)
@@ -2390,7 +2396,7 @@ C        ltmp='Pressure'
         elseif (IVTYPE(IKV,ICFD).eq.11) then
 C        ltmp='Velocity'
           IOP=IOP+1
-          IVOLN(IOP,ICFD)=IKV
+          IVOLNOP(IOP,ICFD)=IKV
           IWOPEN(IOP,ICFD)=IVOLF(IKV,ICFD)
           IOPENi(IOP,ICFD)=IVCELLS(IKV,ICFD,1)
           IOPENf(IOP,ICFD)=IVCELLS(IKV,ICFD,2)
@@ -2404,7 +2410,7 @@ C        ltmp='Velocity'
         elseif (IVTYPE(IKV,ICFD).eq.12) then
 C        ltmp='Zero gradient'
           IOP=IOP+1
-          IVOLN(IOP,ICFD)=IKV
+          IVOLNOP(IOP,ICFD)=IKV
           IWOPEN(IOP,ICFD)=-IVOLF(IKV,ICFD)
           IOPENi(IOP,ICFD)=IVCELLS(IKV,ICFD,1)
           IOPENf(IOP,ICFD)=IVCELLS(IKV,ICFD,2)
@@ -2416,7 +2422,7 @@ C        ltmp='Zero gradient'
         elseif (IVTYPE(IKV,ICFD).eq.13) then
 C        ltmp='Mass flow'
           IOP=IOP+1
-          IVOLN(IOP,ICFD)=IKV
+          IVOLNOP(IOP,ICFD)=IKV
           IWOPEN(IOP,ICFD)=99
           IOPENi(IOP,ICFD)=IVCELLS(IKV,ICFD,1)
           IOPENf(IOP,ICFD)=IVCELLS(IKV,ICFD,2)
@@ -2427,11 +2433,15 @@ C        ltmp='Mass flow'
           FIXM(IOP,ICFD)=VOLVel(IKV,ICFD)
           FIXT(IOP,ICFD)=VOLTemp(IKV,ICFD)
           FIXC(IOP,ICFD)=VOLCO2(IKV,ICFD)
+        elseif (IVTYPE(IKV,ICFD).eq.30) then
+          IBK=IBK+1
+          INBLK(IBK,ICFD)=IKV
         endif
  10   continue
 
       NSB(ICFD)=ISB 
       NOPEN(ICFD)=IOP
+      NBLK(ICFD)=IBK
 
 C Pressure reference position if no openings.
       IF(NOPEN(ICFD).EQ.0)THEN
@@ -2907,14 +2917,14 @@ C Convergence criteria
 C ************************ SCHCHK ************************
 C SCHCHK checks the turbulent schmidt number of all containments
 C defined in the CFD domain to be non - zero. If any 
-C contaminant is zero it is set to the default value unity
+C contaminant is zero it is set to the default value unity.
 
       SUBROUTINE SCHCHK
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
-      COMMON/SCHMTT/SCHMT(MCTM),GFM(MCTM),VCRIT(MCTM),TBOIL(MCTM),
-     &       TCRIT(MCTM),ISCHMT(MCTM)
+      COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
+     &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
       LOGICAL ISCLOSE,CALLMA,CALPOL
@@ -2922,8 +2932,8 @@ C contaminant is zero it is set to the default value unity
 
       ISCLOSE=.FALSE.
       DO 234 ICTM=1,NCTM(ICFD)
-        CALL ECLOSE(SCHMT(ICTM),0.0,0.01,ISCLOSE)
-        IF(ISCLOSE)SCHMT(ICTM)=1.0
+        CALL ECLOSE(SCHMT(ICTM,ICFD),0.0,0.01,ISCLOSE)
+        IF(ISCLOSE)SCHMT(ICTM,ICFD)=1.0
  234  CONTINUE
       RETURN
       END
@@ -2931,7 +2941,7 @@ C contaminant is zero it is set to the default value unity
 C ************************ BCEKCK ************************
 C BCEKCK checks the boundary conditions of all boundary cells  
 C (blockages are yet not considered) to be defined.
-C itrc signals verbose reporting if greater than zero
+C itrc signals verbose reporting if greater than zero.
       SUBROUTINE BCEKCK(ITRC)
 #include "cfd.h"
       
@@ -2947,7 +2957,7 @@ C Passed parameter.
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
       common/grdmax/NTCX,NTCY,NTCZ
 
-      character VOLNAME*12, VCsurf*12,OUTSTR*72,FACE*7,STARST*72
+      character VOLNAME*12, VCsurf*12,OUTSTR*124,FACE*7,STARST*72
       INTEGER IXZST(NTCELX,NTCELZ),IXYHH(NTCELX,NTCELY)
       INTEGER IYZET(NTCELY,NTCELZ),IXZNT(NTCELX,NTCELZ)
       INTEGER IXYLL(NTCELX,NTCELY),IYZWT(NTCELY,NTCELZ)
@@ -3114,18 +3124,16 @@ C North and South facing boundary conditions
       DO 311 IX=1,NTCX
         DO 312 IZ=1,NTCZ
           IF(IXZST(IX,IZ).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # x=',IX,
-     &      ' and cell # z=',IZ,' are not defined as boundary '
-            STARST='conditions facing South or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # x=',IX,
+     &      ' and cell # z=',IZ,' are not defined as boundary ',
+     &      'conditions facing South or defined more than once '
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
           IF(IXZNT(IX,IZ).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # x=',IX,
-     &      ' and cell # z=',IZ,' are not defined as boundary'
-            STARST='conditions facing North or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # x=',IX,
+     &      ' and cell # z=',IZ,' are not defined as boundary ',
+     &      'conditions facing North or defined more than once.'
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
  312    CONTINUE
  311  CONTINUE
@@ -3134,18 +3142,16 @@ C East and West facing boundary conditions
       DO 411 IY=1,NTCY
         DO 412 IZ=1,NTCZ
           IF(IYZWT(IY,IZ).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # y=',IY,
-     &      ' and cell # z=',IZ,' are not defined as boundary'
-            STARST='conditions facing West or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # y=',IY,
+     &      ' and cell # z=',IZ,' are not defined as boundary ',
+     &      'conditions facing West or defined more than once.'
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
           IF(IYZET(IY,IZ).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # y=',IY,
-     &      ' and cell # z=',IZ,' are not defined as boundary'
-            STARST='conditions facing East or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # y=',IY,
+     &      ' and cell # z=',IZ,' are not defined as boundary ',
+     &      'conditions facing East or defined more than once'
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
  412    CONTINUE
  411  CONTINUE
@@ -3154,18 +3160,16 @@ C High and Low facing boundary conditions
       DO 511 IX=1,NTCX
         DO 512 IY=1,NTCY
           IF(IXYLL(IX,IY).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # x=',IX,
-     &      ' and cell # y=',IY,' are not defined as boundary'
-            STARST='conditions facing Low or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # x=',IX,
+     &      ' and cell # y=',IY,' are not defined as boundary ',
+     &      'conditions facing Low or defined more than once.'
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
           IF(IXYHH(IX,IY).NE.1)THEN
-            WRITE(OUTSTR,'(A,I3,A,I3,A)')'Boundary cell # x=',IX,
-     &      ' and cell # y=',IY,' are not defined as boundary'
-            STARST='conditions facing High or defined more than once'
+            WRITE(OUTSTR,'(A,I3,A,I3,2A)')'Boundary cell # x=',IX,
+     &      ' and cell # y=',IY,' are not defined as boundary ',
+     &      'conditions facing High or defined more than once.'
             CALL EDISP(IUOUT,OUTSTR)
-            CALL EDISP(IUOUT,STARST)
           ENDIF
  512    CONTINUE
  511  CONTINUE
@@ -3188,9 +3192,9 @@ C Passed parameters.
       COMMON/ZTURB/rMOOT(MNZ),nZtoKE(MNZ)
       common/grdmax/NTCX,NTCY,NTCZ
       common/GRIDEFN/origin,xgrid,ygrid,zgrid,zegrid,ortho
-      COMMON/SCHMTT/SCHMT(MCTM),GFM(MCTM),VCRIT(MCTM),TBOIL(MCTM),
-     &       TCRIT(MCTM),ISCHMT(MCTM)
-      COMMON/CTDFAF/ICTDFAF,SRCE(MNVLS,MCTM,MNZ),ICCSRC
+      COMMON/SCHMTT/SCHMT(MCTM,MNZ),GFM(MCTM,MNZ),VCRIT(MCTM,MNZ),
+     &       TBOIL(MCTM,MNZ),TCRIT(MCTM,MNZ),ISCHMT(MCTM,MNZ)
+      COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
       character SRCE*12
       logical origin,xgrid,ygrid,zgrid,zegrid,ortho
       LOGICAL BUOYA,BOUSSA
@@ -3209,8 +3213,6 @@ C Passed parameters.
       zgrid=.false.
       zegrid=.false.
       ortho=.false.
-      ICTDFAF=0
-      ICCSRC=0
 
       RETURN
       END

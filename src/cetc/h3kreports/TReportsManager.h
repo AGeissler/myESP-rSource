@@ -175,6 +175,9 @@ class TReportsManager
       //Public method, trigger to generate all the reports
       void GenerateOutput();
 
+      //Public method to set report filename
+      void SetReportFilename(const std::string& param);
+
       //Public method to set report parameters
       void SetReportParameter(const std::string& param, const std::string& value);
 
@@ -249,6 +252,11 @@ class TReportsManager
        * Return the current status of h3k output surface names (enabled/disabled)
        */
       bool UseSurfaceNames();
+
+      /**
+       * Return the current status of h3k output of geometric data (enabled/disabled)
+       */
+      bool OutputGeomDat();
 
       /**
        * set CSV file name string
@@ -361,6 +369,7 @@ class TReportsManager
       bool bUseResFilenameRoot;
       bool bUseZoneNames;
       bool bUseSurfaceNames;
+      bool bOutputGeomDat;
 
       bool bStyleSheetGood;
       bool bLinkStyleSheet;

@@ -73,8 +73,9 @@ C The current view data which is embedded in the vewcmds strings.
       real angh,angv      ! horizontal and vertical angle of view (deg)
       real azimuth,elevtn ! view direc azimuth & elevation to match  vdx vdy vdz
       real cutfor,cutaft  ! cut distances
+      character vewtyp*1  ! view type; v=perspective, h=fisheye
       common/radv/rvpx,rvpy,rvpz,vdx,vdy,vdz,vux,vuy,vuz,angh,angv,
-     &            azimuth,elevtn,cutfor,cutaft
+     &            azimuth,elevtn,cutfor,cutaft,vewtyp
 
 C Radiance scenes
       integer indxscn  ! number of scene descriptors zero is the initial state, two

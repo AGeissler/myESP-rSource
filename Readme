@@ -83,6 +83,10 @@ directory and compiler family:
 
   $ sudo ./Install -d <installation path> --gcc4
 
+ESP-r is able to work cooperatively with third party support tools,
+most notably gtool for 3D geometry definition Radiance for lighting
+simulation.
+
 7. POST INSTALLATION CONFIGURATION
 
 On most Linux and Cygwin systems, the only post-installation

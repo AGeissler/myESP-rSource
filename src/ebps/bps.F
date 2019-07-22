@@ -187,6 +187,7 @@ C UA1 from uncertainty.h
 #include "esprdbfile.h"
 #include "material.h"
 #include "espriou.h"
+#include "climate.h"
 
       integer lnblnk  ! function definition
 
@@ -212,6 +213,8 @@ C and dllmesg tells the details of the error.
       COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
+      COMMON/CLMDT1/CLMLOC
+      CHARACTER CLMLOC*30
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -360,6 +363,7 @@ C Flags for multi-year simulation menus
       integer ier
       integer NITMS,INO  ! max items and current menu item
       integer ACCON,CFD2BLD,CFD2MFS
+      integer ISTRW
 
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -512,7 +516,7 @@ C Check for endless running mode.
         autook=.true.
         endless=.true.
         call edisp(iuout,'Reality-Emulator endless-running mode.')
-        call tstamp('>','SIM: Endless-running mode')
+        call tstamp('>','bps: Endless-running mode')
       endif
       
 C create new child thread to timeout simulation if required.
@@ -720,9 +724,9 @@ C after scan of .esprc file. Do it silently.
 C Take command line file name as initial configuration file.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
         LCMDFL=inf
-        call edisp(iuout,'  ')  ! echo blank line
+C        call edisp(iuout,'  ')  ! echo blank line
         write(outs248,'(a,a)') 'The input file is: ',LCMDFL
-        call edisp248(iuout,outs248,90)
+C        call edisp248(iuout,outs248,90)
         call tstamp('>',outs248)
       else
         LCMDFL='UNKNOWN'
@@ -794,21 +798,21 @@ C Debug.
 C              write(*,*)'Silent-running mode.'
               autook=.true.; issilient=.true.
               call edisp(iuout,'Silent-running mode.')
-              call tstamp('>','SIM: Silent-running mode')
+              call tstamp('>','bps: Silent-running mode')
             elseif(aut(1:7).eq.'endless')then
 C Debug.
 C              write(*,*)'Endless-running mode.'
               autook=.true.
               endless=.true.
               call edisp(iuout,'Endless-running mode.')
-              call tstamp('>','SIM: Endless-running mode')
+              call tstamp('>','bps: Endless-running mode')
             else
               autook=.false.
             endif
           else
             spsname='  '
           endif
-          call tstamp('>','SIM: enter input checks')
+          call tstamp('>','bps: enter input checks')
 
 C Note: call to MZINPT corrupts IGR1D on some compilers.
           CALL MZINPT(IREP,ier)
@@ -820,7 +824,7 @@ C If running dll note the failure mode.
             write(iLogFile,*) 'details: ',dllmesg
             return
           endif
-          call tstamp('>','SIM: exit input checks')
+          call tstamp('>','bps: exit input checks')
 
 C Increment input flag if no input data errors detected.
           IF(IER.EQ.0)THEN
@@ -847,10 +851,10 @@ C Increment input flag if no input data errors detected.
             if(iw.eq.1)then
               INPOK=.FALSE.
             elseif(iw.eq.2)then
-              call tstamp('>','SIM: use model with init scan warning')
+              call tstamp('>','bps: use model with init scan warning')
               INPOK=.TRUE.
             elseif(iw.eq.3)then
-              call tstamp('>','SIM: abort after error scan problem')
+              call tstamp('>','bps: abort after error scan problem')
               call pauses(2)   ! pause for 2 seconds then abort program.
               if( dll ) then
                 dllsubr='bps MAIN'
@@ -959,12 +963,12 @@ C       will have to be updated.
           ino=4
         endif
       else
-        CALL EMENU('ESP-r integrated simulator',ITEM,NITMS,INO)
+        CALL EMENU('Integrated simulator',ITEM,NITMS,INO)
       endif
 
 C Enter configuration file
       IF(INO.EQ.1)THEN
-        call tstamp('>','SIM: enter read model')
+        call tstamp('>','bps: enter read model')
         CALL MZINPT(IREP,ier)
         if(ier.eq.2.and.dll)then
           open(UNIT=iLogFile, FILE=cLogFile,position='APPEND' )
@@ -1008,7 +1012,7 @@ C Initialize the structured gridding variables.
           IF(IER.EQ.0)CALL INITST
           IF(IER.NE.0)INPOK=.FALSE.
         ENDIF
-        call tstamp('>','SIM: exit read model')
+        call tstamp('>','bps: exit read model')
       ELSEIF(INO.EQ.2 .and. .not. bMY_sim_enabled )THEN
 
 C Single-year climate file definition
@@ -1019,51 +1023,39 @@ C a climate file by reading records 366 and 367.
         call gethelptext(helpinsub,helptopic,nbhelp)
         iclim=ifil
         call erpfree(iclim,istat)
-
-C Take into account weather file location.
-        lndbp=lnblnk(standardclmpath)
-        if(ipathclim.eq.0.or.ipathclim.eq.1)then
-          call addpath(lclim,llclmdb,concat)
-        elseif(ipathclim.eq.2)then
-          write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &      LCLIM(1:lnblnk(LCLIM))
-        endif
+        
+        llt=lnblnk(LCLIM)
+        write(llclmdb,'(a)') LCLIM(1:llt)
 
  291    llt=lnblnk(llclmdb)
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(llclmdb,'Weather file:',
-     &        ' ',96,DCLIM,'weather file name',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(llclmdb,'Weather file:',
-     &        ' ',124,DCLIM,'weather file name',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(llclmdb,'Weather file:',
-     &        ' ',144,DCLIM,'weather file name',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(llclmdb,'Weather file:',
-     &      ' ',144,DCLIM,'weather file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(llclmdb,'Weather file:',
-     &      ' ',96,DCLIM,'weather file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(llclmdb,'Weather file:',
+     &    ' ',ISTRW,DCLIM,'weather file name',IER,nbhelp)
         IF(llclmdb(1:2).EQ.'  ')GOTO 291
         IER=0
 
 C Cast expanded weather file name back to LCLIM.
         llt=lnblnk(llclmdb)
         write(LCLIM,'(a)') llclmdb(1:llt)
-        call tstamp('>','SIM: change climate')
+        call tstamp('>','bps: change climate')
         call tstamp('>',LCLIM)
         ier=0
-        call EFOPRAN(ICLIM,llclmdb,144,0,IER)
+        call CLMOPB(0,IER)
         IF(ier.eq.0)THEN
-          IREC=366
-          READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)ICYEAR,ICDNGH
-          IREC=367
-          READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=103)CLMLOC
+          CALL CLMRDBMD(IER)
           WRITE(OUTS,1000)CLMLOC,ICYEAR
  1000     FORMAT(' Climate data: ',A30,':',I5)
           if(endless.or.issilient)then
@@ -1097,7 +1089,7 @@ C Set flag: climate data ok
           IF(OK)THEN
             goto 20
           ELSE
-            call tstamp('>','SIM: abort after error scanning climate')
+            call tstamp('>','bps: abort after error scanning climate')
             call pauses(2)   ! pause for 2 seconds then abort program.
             CALL ERPFREE(ICLIM,ISTAT)
             if( dll ) return
@@ -1148,7 +1140,7 @@ C Check that climate & building configurations files are ok
 
         ELSE
 
-          call tstamp('>','SIM: enter initiate simulation')
+          call tstamp('>','bps: enter initiate simulation')
           IF(BLDG3D)THEN
 
 C For the multi-D model, check that the 1-D grid distribution is default.
@@ -1169,7 +1161,7 @@ C For the multi-D model, check that the 1-D grid distribution is default.
           ELSE
             CALL MZSIML
           ENDIF
-          call tstamp('>','SIM: exit initiate simulation')
+          call tstamp('>','bps: exit initiate simulation')
         ENDIF
       elseif(ino.eq.6)then
 

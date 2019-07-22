@@ -57,6 +57,7 @@ C HOT3000: Fuel cell.
 #include "h3k_report_data.h"
 #include "hvac_parameters.h"
 #include "FMI.h"
+#include "climate.h"
 
       integer lnblnk  ! function definition
 
@@ -342,6 +343,9 @@ C the input.xml can be read.
 C file before generating output.
       CALL chdir(path)
 
+C Update path to take account of this.
+      write(path,'(a)')'./'
+
 C Debug.
 C      write(*,*)'chdir'
 
@@ -352,6 +356,16 @@ C Initialise the h3k report variables
          Call UpdateH3kReport
 C*h3koutput* Initialize fortran data variables
          Call H3KSTORE_ZERO_DATA
+C.....-> set h3k output file name
+        call GETTOKENS(sblres(1),IW,LocalWords)
+        iRootLen=lnblnk(LocalWords(IW))
+
+C     -4 implies a 3-letter ending and the "."; a more general solution
+C     would be preferable
+        iRootLen=iRootLen-4
+
+        write(cOutputRoot,'(A)')LocalWords(IW)(1:iRootLen)
+        CALL SetReportFilename(cOutputRoot(1:iRootLen))
       ENDIF
 
 C Open file to store hvac simulation results. This is only a temporary
@@ -718,7 +732,7 @@ C Building side time step.
 C If monitoring is on then while in start-up period, display message.
       if((montrb.eq.1.or.monitr.eq.1).and.itcnst.gt.0)
      & call usrmsg(' ',
-     &     ' Monitoring will commence shortly, please wait...','-')
+     &     ' Monitoring will commence shortly ...','-')
 
 C Remember the 'start value' of the unix system clock.
       call getsecs(istime)
@@ -778,18 +792,7 @@ C If this is a single year simulation, open the climate file. During
 C multi-year simulations, the climate files will be opened inside
 C the simulation loop
       if ( .not. bMY_sim_enabled ) then
-
-C Take into account weather file location.
-        lndbp=lnblnk(standardclmpath)
-        if(ipathclim.eq.0.or.ipathclim.eq.1)then
-          call addpath(lclim,llclmdb,concat)
-        elseif(ipathclim.eq.2)then
-          write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &      LCLIM(1:lnblnk(LCLIM))
-        endif
-
-        call EFOPRAN(ICLIM,llclmdb,144,0,IClmErr)
-
+        CALL CLMOPB(0,IClmErr)
       endif
 
 C In the case that we have a gshp input file, dhw input file, and/or basesimp
@@ -848,8 +851,8 @@ C debug (end)
         endif quick_run_init
 
 
-C For multi-year simulaitons, determine the current
-C and future time row years, and the incidies of these
+C For multi-year simulations, determine the current
+C and future time row years, and the indices of these
 C years with respect to the multi-year climate databases
         MY_sim_initialize: if ( bMY_sim_enabled ) then
 C Years
@@ -857,12 +860,12 @@ C Years
           iMY_future_year = iMY_Start_year + int(float(i)/365.0)
 
 C Assign global year (iYear), present year (iYear_p) & future year
-C (iYear_f)
+C (iYear_f).
           iYear   = iMY_current_year
           iYear_p = iMY_current_year
           iYear_f = iMY_future_year
 
-C Year indicies
+C Year indices.
           iMY_current_yr_index = iMY_start_yr_index
      &                + ( iMY_current_year - iMY_Start_year )
           iMY_future_yr_index = iMY_start_yr_index
@@ -924,15 +927,10 @@ C through Sunday 7.
 C Establish climatic data for present day and first
 C hour of future day: future day first.
 
-C The climate database contains records in the following
-C order. Note: the database stores all records in
-C integer format.
-C col 1: Diffuse solar on the horizontal (W/m**2)
-C col 2: External dry bulb temperature   (Tenths DEG.C)
-C col 3: Direct normal solar intensity   (W/m**2)
-C col 4: Prevailing wind speed           (Tenths m/s)
-C col 5: Wind direction     (clockwise deg from north)
-C col 6: Relative humidity               (Percent)
+C The climate database contains records in the order specified by CMCOL
+C in climate.h.
+C Note: the database stores all records in integer format.
+
 
 C If this is a multi-year simulation, we may need to
 C open the approprate climate file.
@@ -947,8 +945,8 @@ C Close old file, if necessary.
 
 C Open new file.
             ier=0
-            call EfOpRan(iClim,cMY_clm_file_names(iMY_current_yr_index),
-     &                144,0,IER)
+            LCLIM=cMY_clm_file_names(iMY_current_yr_index)
+            CALL CLMOPB(1,IER)
 
 C set flag
             bMY_clm_file_open ( iMY_current_yr_index ) = .true.
@@ -972,25 +970,12 @@ C Initialize ground temperature profile parameters
         endif
 
 C Present day.
-        irec=idyp
-        read(iClim,rec=irec,iostat=istat,err=1000)
-     &    (idif(j),itmp(j),idnr(j),ivel(j),idir(j),ihum(j),j=1,24)
-
-C If humidity is greater than 100 this may cause problems at simulation
-C time and cause simulation to stop without warning
-        do 211 j=1,24
-          if(ihum(j).gt.100.)then
-            write(outs,'(A)')'Relative humidity in climate file > 100'
-            call edisp(itu,outs)
-            write(outs,'(A)')'This may cause simulation to fail'
-            call edisp(itu,outs)
-          endif
- 211    continue
+        CALL CLMRDBD(idyp,idyf,IER)
+        CALL CLMDN2O
 
 C Note: future year may correspond to another climate file
-C If this is a multi-year simulation, we may need to  open the
+C If this is a multi-year simulation, we may need to open the
 C approprate climate file.
-
         if ( bMY_sim_enabled ) then
            if ( .not. bMY_clm_file_open ( iMY_future_yr_index ) ) then
 C Close old file, if necessary.
@@ -1001,19 +986,19 @@ C Close old file, if necessary.
 
 C Open new file.
            ier=0
-           call EfOpRan(iClim,cMY_clm_file_names(iMY_future_yr_index),
-     &                144,0,IER)
+           CALL CLMOPB(0,IER)
 
 C Set flag
             bMY_clm_file_open ( iMY_future_yr_index ) = .true.
           endif
         endif
-C Future day
-        irec=idyf
 
-C Get values for first hour of the future day.
-        read(iClim,rec=irec,iostat=istat,err=1000)
-     &    idiff,itmpf,idnrf,ivelf,idirf,ihumf
+C Debug.
+c        write(6,*)'climate data'
+c        do j=1,24
+c          write(6,*)idif(j),itmp(j),idnr(j),ivel(j),idir(j),ihum(j)
+c        enddo
+c        write(6,*)idiff,itmpf,idnrf,ivelf,idirf,ihumf
 
 C Check for uncertainty associated with climate data.
         UAFLG=0.
@@ -1050,7 +1035,7 @@ C be populated in subsequent runs.
             UAFLG=UAFLG+UACTL(IUA,1)
  67       continue
           if (UAFLG.gt.0.01)then
-	    write(6,*)'bmatsv calling uat01a for',idyp,ihrp
+C            write(6,*)'bmatsv calling uat01a for',idyp,ihrp
             call UAT01a(idyp,ihrp)
           endif
 
@@ -1129,7 +1114,7 @@ C value for this hour.
           endif
 
 C Process building zones first; if no building, n=1.
-C Is building computational time-step less than one hour ?
+C Is building computational time-step less than one hour?
           n=ntstep
           do 30 kk=1,n
             k=kk
@@ -1155,7 +1140,7 @@ c Global control: initialise commons, save/retrieve data.
               call RTRVPV
             endif
 
-C For type 6 time-step controller, retrieve and save data,
+C For type 6 time-step controller, retrieve and save data.
             if(itsct.eq.6.and.itsok.eq.1)then
               if(i.ge.itssch(ntsctr,4).and.i.le.itssch(ntsctr,5))then
                 call tscon6(i,j,ntsctr,irew)
@@ -1183,7 +1168,7 @@ C New day events in SHOCC occur when btimef first exceeds 24.0 ...
 
             if(btimef.gt.24.0)btimef=btimef-24.
 
-C H3Kreports: send simulation time to reporting object
+C H3Kreports: send simulation time to reporting object.
             if ( isH3KEnabled() ) Then
               call H3K_Report_time(
      &          btimep, btimef, ihrp, ihrf, idyp, idyf, its, ntstep,
@@ -1340,7 +1325,7 @@ C current zone for the current time step: this will be reset if CFD is
 C invoked.
                 mHCcfd(ICP) = 0
 
-C Debug
+C Debug.
 C               write(6,*) 'MZNUMA (ICP,IFCFD(ICP))',ICP,IFCFD(ICP)
 
 C Invoke CFD if there is `surface conflation' between the thermal domain
@@ -1414,7 +1399,7 @@ C be rotated (about the site origin) and then recompose the matrix.
                 call eclose(OBROT,zrotp(icomp),0.0001,close)
                 IF(.NOT.close)THEN
 
-C Debug...
+C Debug.
 C                 if(itrc.gt.1)then
                     write(outs,'(A,F6.2)')'proceeding with rotation..',
      &                OBROT
@@ -1450,7 +1435,7 @@ C as is the case with tdf (above)
                 S_TIME=REAL(IDYP)+HOUR/24.0        ! Calculate simulation time
                 DO 130 IPDR=1,NPDR
 
-C Calculate roaming day of year
+C Calculate roaming day of year.
                   IRoamD=LDYS(IPDR)
                   IRoamM=LMTS(IPDR)
                   CALL EDAY(IRoamD,IRoamM,IYDNRoam)
@@ -1550,7 +1535,7 @@ C Find number of data blocks per hour to be saved.
                 call mzls3(icomp,iday,itsmus,ndbph)
               ENDIF
 
-C transport miscellaneous simulation data to reporting object
+C Transport miscellaneous simulation data to reporting object.
               if ( isH3KEnabled() ) then
                  call H3K_transport_build_data(icomp)
                  if (IAIRN .ne. 0) THEn
@@ -1581,8 +1566,10 @@ C For 3D zone model, close the associated files.
                 CALL ERPFREE(ILWV,ISTAT)
               ENDIF
 
-C CFC output
+C CFC extensive reporting output (for debugging)
 c              call CFCoutput(icomp)
+C CFC designated h3k output function (U-value ...)
+              call CFCoutputH3K(icomp)
 
    40       continue
 
@@ -1964,10 +1951,10 @@ C report was issued more than 5 seconds ago.
 
 C Unix variant.
           write(outs,'(I4,A,A)') iperc,
-     &      ' %   complete; expected finish time : ',
+     &      '% complete; expected finish time: ',
      &      ectime(ietim)
 C NT variant.
-C         write(outs,'(I4,A)') iperc,' %   complete; '
+C         write(outs,'(I4,A)') iperc,'% complete; '
           if(endless.or.issilient)then
             continue
           else
@@ -2064,15 +2051,6 @@ C
 C Set the .csv output root file name to the root file name of the 
 C building results library file.
       if ( isH3Kenabled() ) then
-        call GETTOKENS(sblres(1),IW,LocalWords)
-        iRootLen=lnblnk(LocalWords(IW))
-
-C     -4 implies a 3-letter ending and the "."; a more general solution
-C     would be preferable
-        iRootLen=iRootLen-4
-
-        write(cOutputRoot,'(A)')LocalWords(IW)(1:iRootLen)
-
         CALL GenerateOutput(cOutputRoot(1:iRootLen))
 cx      CALL GenerateOutput
       endif

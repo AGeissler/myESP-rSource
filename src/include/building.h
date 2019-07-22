@@ -22,7 +22,7 @@ C Type declarations.
       integer MNRS,MNFA,MROW,MCOL,MLAY,MLEV,MGRID,MMTR,MBND,MSNOD
       integer MMAT,MIPVM,MIPVA,MSPS,MDTY,MGTY,MGPER
       integer MCNDV,MCNDC,MPICK,MVAR,MIMG
-      integer MCFC,MSPMRES,MBL,MSPMSPLM
+      integer MCFC,MSPMRES,MBL,MSPMSPLM,MVOBJ,MVOBJE
 
 C Geometry.
       PARAMETER (MCOM=82)      !- Zones.
@@ -58,6 +58,8 @@ C Shading/insolation.
       PARAMETER (MOZ=120)      !- Grid lines in z-direction.
       PARAMETER (MISUR=10)     !- Surfaces insolated from one source.
       PARAMETER (MBP=8)        !- TMC blind control periods.
+      PARAMETER (MVOBJ=50)     !- Visual objects
+      PARAMETER (MVOBJE=14)    !- Visual entities per object.
 
 C Variable thermo-physical properties.
       PARAMETER (MTHF=12)      !- Thermal functions.

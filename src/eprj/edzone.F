@@ -1021,15 +1021,15 @@ C Peview the bounding box of the object via DRWBB.
         write(temp,'(A)')name
         call drwbb(temp,ier)
 
-        CALL EASKABC('Options for predefined object: ',' ',
+        CALL EASKABC(' ','Options for predefined object: ',
      &    'apply transform and merge','revise transform','cancel',
      &    IW,nbhelp)
         if (IW.eq.1) then
 
 C Ask for single character to prepend to copied associated entities.
 C Then used predefembed to read in the predefined into the model.
-          CALL EASKABCD(' Character to pre-pend to copied entities:',
-     &      ' ',' a ',' b ',' c ',' d ',IBOPT,nbhelp)
+          CALL EASKABCD(' ','Character to pre-pend to copied entities:',
+     &      ' a ',' b ',' c ',' d ',IBOPT,nbhelp)
           if(ibopt.eq.1)prec='a'
           if(ibopt.eq.2)prec='b'
           if(ibopt.eq.3)prec='c'
@@ -1930,7 +1930,7 @@ C Check if Unix-based or DOS based.
           DOK=.true.
           helptopic='change_for_shading'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(' Reflect zone change in shading options:',' ',
+          CALL EASKABC(' ','Reflect zone change in shading options:',
      &   'recalculate (silent)','recalculate (interactive)','continue',
      &    IRT,nbhelp)
         endif
@@ -2291,11 +2291,12 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
       if(vdis.ne.0.0)then
 
 C The original C code returned the square of distance
-C so unpack via sqrt call.
+C so unpack via sqrt call.  The 0.00001 below should protect
+C from stressing SQRT in cases of actual distances of a few mm.
         d2l=(vdis1-(vdis+vdis1-vdis2)*
      &      (vdis+vdis1-vdis2)/vdis/4.0)
-        if(abs(d2l).lt.0.0003)then
-          offset=d2l   ! if really small d2l
+        if(abs(d2l).lt.0.00001)then
+          offset=d2l   ! if small d2l 
         else
           offset=SQRT(d2l)
         endif

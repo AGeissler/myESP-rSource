@@ -223,7 +223,7 @@ C Convert from "c" strings to fortran strings, if unknown then exit.
 C Get input file and format.
       filname=inf
       write(outs,'(2a)')'Input file is: ',filname(1:lnblnk(filname))
-      call edisp248(iuout,outs,100)
+C      call edisp248(iuout,outs,100)
       if(iformat(1:3).eq.'dxf')then
 
 C Determine root name of dxf file (to make layer file from).
@@ -3688,6 +3688,7 @@ C Passed in parameters.
       character tcname*248   ! for editing image notes
       character WORDS(12)*32,testw*32
       character MODE*4
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -3738,8 +3739,9 @@ C Debug.
         helptopic='cfg_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
         LCFTMP='  '
+        ISTRW=32
         CALL EASKSCMD(LCFTMP,' ','Model root name?',
-     &    'cancel',clkok,32,'new_model','model root name',IER,nbhelp)
+     &    'cancel',clkok,ISTRW,'new_model','model root name',IER,nbhelp)
         call usrmsg(' ',' ','-')
         if(clkok) return         ! User selected cancel.
 

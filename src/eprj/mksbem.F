@@ -16352,7 +16352,6 @@ C Passed parameters.
       integer I_coldmonth  !Month of the year with coldest average temperature
       logical unixok
       character fs*1
-      character llclmdb*144
       integer lndbp
 
       REAL MidMonthDay(12)
@@ -16371,16 +16370,7 @@ C Set folder separator (fs) to \ or / as required.
 
       call edisp(iuout,'Generating ground temperatures.')
 
-C Setup string buffer with distribution weather folder name.
-      lndbp=lnblnk(standardclmpath)
-      if(ipathclim.eq.0.or.ipathclim.eq.1)then
-        llclmdb=LCLIM
-      elseif(ipathclim.eq.2)then
-        write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &    LCLIM(1:lnblnk(LCLIM))
-      endif
-
-      call EFOPRAN(ICLIM,llclmdb,144,0,IER)
+      call CLMOPB(0,IER)
       IF(ier.ne.0)return
 
 C Initialise

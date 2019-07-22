@@ -217,14 +217,14 @@ C Scan the defaults file for default configuration.
 
 C Take command line file name to LCMDF and use as initial climate file.
       if(inf(1:2).eq.'  '.or.inf(1:4).eq.'UNKN')then
-        call edisp(iuout,'ERROR: B2E no input file specified')
+        call edisp(iuout,'Error: no input file specified')
         call epwait
         call epagend
         STOP
       else
         INTER=inf
         write(OUTS248,'(A,A)')' the input file is: ',INTER
-        CALL EDISP248(IUOUT,OUTS248,80)
+C        CALL EDISP248(IUOUT,OUTS248,80)
       endif
 
 C Call the B2E engine, the main controlling routine with the filename argument .

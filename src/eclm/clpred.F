@@ -35,22 +35,22 @@ C *********** CLPRED
 C  Subroutine CLPRED allows the user to predict/transform climatic data.
 C  'CLPRED' calls other subroutines each of which will predict particular
 C  climatic variables.
-C IST = 1 is not currently used.
-C IST = 2 the user is interested in transforming the data
-C IST = 3 the user is interested in curve fitting.
-      SUBROUTINE CLPRED(IST)
+C imode = 1 is not currently used.
+C imode = 2 the user is interested in transforming the data
+C imode = 3 the user is interested in curve fitting.
+      SUBROUTINE CLPRED(imode)
 #include "esprdbfile.h"
+#include "climate.h"
+#include "epara.h"
       
       integer lnblnk  ! function definition
 
       PARAMETER (MT=24,MD=365,MAAS=9)
       COMMON/OUTIN/IUOUT,IUIN
 
-C PRADB is direct normal radiation, PRADD is diffuse radiation
-C PTEMP is ambient dry bulb, PWV is wind velocity
-C PRH is relative hunidity, PLAST is previous value of current focus.
-      COMMON/PCLIM/PRADB(MD,MT),PRADD(MD,MT),PTEMP(MD,MT),
-     &             PWV(MD,MT),PWD(MD,MT),PRH(MD,MT),PLAST(MD,MT)
+C PCLMVAL holds climate data, similarly to CMRVAL, but for multiple days.
+C PLAST holds previous values of current focus.
+      COMMON/PCLIM/PCLMVAL(MCM,MD,MT),PLAST(MD,MT)
       COMMON/FILEP/IFIL
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       integer NDAY
@@ -63,12 +63,13 @@ C PRH is relative hunidity, PLAST is previous value of current focus.
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/PERPER/PERST2
 
-      CHARACTER*27 ITEM(14)
-      character PRML*48,PRM*24,CLMLOC*30,PERST2*44,str*60
+      CHARACTER*27 ITEM(30)
+      character PRML*48,PRM*24,CLMLOC*30,PERST2*44,str*60,KEY*1
       character outs*124
-      DIMENSION ICLM(24,6),ICK(6),WVEL(24),NANG(MAAS),WRDF(MAAS)
+      DIMENSION ICK(MCM),WVAL(24),NANG(MAAS),WRDF(MAAS)
       logical OK,dok,FOUND
       integer NITEMS,INO  ! max items and current menu item
+      integer menumetric(MCM)
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -77,11 +78,11 @@ C For help messages
 
       helpinsub='CLPRED'  ! set for this subroutine
    1  ISAVE=1
-      if(ist.eq.1)then
+      if(imode.eq.1)then
         CALL EDISP(IUOUT,'Select period')
-      elseif(ist.eq.2)then
+      elseif(imode.eq.2)then
         CALL EDISP(IUOUT,'Select period to be transformed')
-      elseif(ist.eq.3)then
+      elseif(imode.eq.3)then
         CALL EDISP(IUOUT,'Select period that is to be predicted')
       endif
       CALL SELPER(IER)
@@ -91,17 +92,13 @@ C For help messages
       ID=0
       DO 55 I=IYDS,IYDF
         ID=ID+1
-        II=I
-        IREC=II
-        READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=999)((ICLM(J,K),K=1,6),
-     &         J=1,24)
+        CALL CLMGET(I)
         DO 656 J=1,24
-          PRADD(ID,J)=REAL(ICLM(J,1))
-          PTEMP(ID,J)=REAL(ICLM(J,2))/10.
-          PRADB(ID,J)=REAL(ICLM(J,3))
-          PWV(ID,J)=REAL(ICLM(J,4))/10.
-          PWD(ID,J)=REAL(ICLM(J,5))
-          PRH(ID,J)=REAL(ICLM(J,6))
+          do K=1,MCM
+            if (CMXST(K)) then
+              PCLMVAL(K,ID,J)=CMRVAL(K,J)
+            endif
+          enddo
   656   CONTINUE
    55 CONTINUE
 
@@ -109,48 +106,73 @@ C For help messages
       CALL EASKS(STR,'On changing weather data it is usual to change'
      &   ,'synopsis ',30,'synopsis. ','new synopsis',IER,0)
       ICV=0
-      DO 10 I=1,4
+      DO 10 I=1,MCM
         ICK(I)=0
    10 CONTINUE
    11 helptopic='curve_fitting_overview'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-      if(ist.eq.1)then
-        ITEM(1)='p Change period           '
-      elseif(ist.eq.2)then
-        ITEM(1)='p Change transform period '
-      elseif(ist.eq.3)then
-        ITEM(1)='p Change curve-fit period '
+      MHEAD=2
+      MCTL=7
+      ILEN=NCM
+      IPACT=CREATE
+      CALL EKPAGE(IPACT)
+
+      if(imode.eq.1)then
+        ITEM(1)='1 Change period           '
+      elseif(imode.eq.2)then
+        ITEM(1)='1 Change transform period '
+      elseif(imode.eq.3)then
+        ITEM(1)='1 Change curve-fit period '
       endif
       ITEM(2) ='  ------------------------ '
-      ITEM(3) ='1 Direct radiation         '
-      ITEM(4) ='2 Diffuse radiation        '
-      ITEM(5) ='3 Dry bulb temperature     '
-      ITEM(6) ='4 Relative humidity %      '
-      ITEM(7) ='5 Wind speed               '
-      ITEM(8) ='6 Wind direction           '
-      IF(IST.EQ.1)ITEM(9) =' N/A                     '
-      IF(IST.EQ.2)ITEM(9)='7 Wind direction & speed  '
-      IF(IST.EQ.3)ITEM(9)='7 Direct and diffuse model'
-      if(ist.eq.1)then
-        ITEM(10)='! Draw data              '
-      elseif(ist.eq.2)then
-        ITEM(10)='! Draw transformed data  '
-      elseif(ist.eq.3)then
-        ITEM(10)='! Draw curve-fit data    '
+
+      M=MHEAD
+      I=0
+      do imet=1,MCM
+        if (CMXST(imet)) then
+          I=I+1
+          menumetric(I)=imet
+          IF(I.GE.IST.AND.(I.LE.(IST+MIFULL)))THEN
+            M=M+1
+            call EMKEY(I,KEY,IER)
+            write (ITEM(M),'(a,1x,a)') KEY,CMNAMF(imet)
+          ENDIF
+        endif
+      enddo
+
+C If a long list include page facility text.      
+      IF(IPFLG.EQ.0)THEN  
+        ITEM(M+1)='  ------------------------ '
+      ELSE
+        WRITE(ITEM(M+1),'(a8,i2,a4,i2,a)')'0 Page: ',IPM,' of ',MPM,
+     &    ' --------- '
+      ENDIF
+
+      IF(imode.EQ.1)ITEM(M+2) =' N/A                     '
+      IF(imode.EQ.2)ITEM(M+2)='* Wind direction & speed  '
+      IF(imode.EQ.3)ITEM(M+2)='* Direct and diffuse model'
+      if(imode.eq.1)then
+        ITEM(M+3)='! Draw data              '
+      elseif(imode.eq.2)then
+        ITEM(M+3)='! Draw transformed data  '
+      elseif(imode.eq.3)then
+        ITEM(M+3)='! Draw curve-fit data    '
       endif
-      ITEM(11)='s Save weather data        '
-      ITEM(12)='  ------------------------ '
-      ITEM(13)='? Help                     '
-      ITEM(14)='- Exit                     '
-      NITEMS=14
+      ITEM(M+4)='> Save weather data        '
+      ITEM(M+5)='  ------------------------ '
+      ITEM(M+6)='? Help                     '
+      ITEM(M+7)='- Exit                     '
+
+C Number of actual items displayed.
+      NITMS=M+MCTL
 
       INO=-2
-      if(ist.eq.1)then
+      if(imode.eq.1)then
         CALL EMENU(' Weather prediction',ITEM,NITEMS,INO)
-      elseif(ist.eq.2)then
+      elseif(imode.eq.2)then
         CALL EMENU(' Weather transforms',ITEM,NITEMS,INO)
-      elseif(ist.eq.3)then
+      elseif(imode.eq.3)then
         CALL EMENU(' Weather curve-fits',ITEM,NITEMS,INO)
       endif
       if(ino.eq.nitems)then
@@ -189,23 +211,37 @@ C Update weather binary file for the period the user had selected
 C as well as writing out the tail of the file.
           DO 256 IDAY=IYDS,IYDF
             IDI=IDAY-IYDS+1
-            DO 257 IT=1,MT 
-              CDNR(IT)=PRADB(IDI,IT)
-              CDIF(IT)=PRADD(IDI,IT)
-              CTMP(IT)=PTEMP(IDI,IT)
-              CHUM(IT)=PRH(IDI,IT)
-              CVEL(IT)=PWV(IDI,IT)
-              CDIR(IT)=PWD(IDI,IT)
+            DO 257 IT=1,24 
+              do imet=1,MCM
+                if (CMXST(imet)) then
+                  CMRVAL(imet,IT)=PCLMVAL(imet,IDI,IT)
+                endif
+              enddo
  257        CONTINUE
             CALL CLMPUT(IDAY)
  256      CONTINUE
-          IREC=366
-          IADN=IDNGH
-          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IADN
-          IREC=367
-          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLMLOC
-          IREC=368
-          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
+
+          if (CFVER.eq.1) then
+            IREC=366
+            IADN=IDNGH
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFYEAR,IADN
+            IREC=367
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLOC
+            IREC=368
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLAT,CFLONG
+          else
+            IREC=366
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)CFYEAR
+            IREC=IREC+1
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &        CFLOC,CFLAT,CFLONG
+            IREC=IREC+1
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &        (CMCOL(i),i=1,CFMCM)
+            IREC=IREC+1
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)CFVER
+          endif
+
           ISAVE=1
           call edisp(iuout,'Weather data saved for...')
           call edisp(iuout,PERST2)
@@ -225,116 +261,89 @@ C as well as writing out the tail of the file.
         CALL PHELPD('weather prediction',nbhelp,'clm_predict',0,0,IER)
       elseif(ino.eq.1)then
         goto 1
-      ELSEIF(INO.GE.3.AND.INO.LE.9)THEN
+      ELSEIF(INO.gt.MHEAD.and.INO.le.(NITMS-MCTL))THEN
+
+C Select a climate metric.
+        CALL KEYIND(NITMS,INO,imenu,IO)
+        IP=menumetric(imenu)
 
 C Save the current values of the item of interest into PLAST.
         DO 356 IDAY=IYDS,IYDF
           IDI=IDAY-IYDS+1
           DO 357 IT=1,MT 
-            if(ino.eq.3)then
-              PLAST(IDI,IT)=PRADB(IDI,IT)
-            elseif(ino.eq.4)then
-              PLAST(IDI,IT)=PRADD(IDI,IT)
-            elseif(ino.eq.5)then
-              PLAST(IDI,IT)=PTEMP(IDI,IT)
-            elseif(ino.eq.6)then
-              PLAST(IDI,IT)=PRH(IDI,IT)
-            elseif(ino.eq.7)then
-              PLAST(IDI,IT)=PWV(IDI,IT)
-            elseif(ino.eq.9)then
-              PLAST(IDI,IT)=PWV(IDI,IT)
-            endif
+            PLAST(IDI,IT)=PCLMVAL(IP,IDI,IT)
  357      CONTINUE
  356    CONTINUE
-        if(ino.eq.3)then
-          ICV=1
-          ICK(1)=1
-          PRM='direct radiation '
-          V_MAX=1400.
-          V_MIN=0.
-        elseif(ino.eq.4)then
-          ICV=1
-          ICK(2)=1
-          PRM='diffuse radiation '
-          V_MAX=1400.
-          V_MIN=0.
-        elseif(ino.eq.5)then
-          ICV=2
-          ICK(3)=1
-          PRM='dry bulb temperature '
-          V_MAX=100.
-          V_MIN=-100.
-        elseif(ino.eq.6)then
-          ICV=3
-          ICK(4)=1
-          PRM='relative humidity % '
-          V_MAX=100.
-          V_MIN=0.
-        elseif(ino.eq.7)then
-          ICV=4
-          ICK(5)=1
-          PRM='wind speed '
-          V_MAX=80.
-          V_MIN=0.
-        elseif(ino.eq.9)then
-          ICV=4
-          ICK(6)=1
-          PRM='wind speed '
-          V_MAX=80.
-          V_MIN=0.
+
+        ICK(IP)=1
+        PRM=CMNAMF(IP)
+        if (IP.eq.1 .or. IP.eq.5) then
+          V_MAX=real(CFMAX(IP))/10.
+          V_MIN=real(CFMIN(IP))/10.
+        else
+          V_MAX=real(CFMAX(IP))
+          V_MIN=real(CFMIN(IP))
         endif
+
+C   ICV=1 graphs the normal direct and diffuse solar radiation,
+C   ICV=2 graphs the ambient dry bulb temperature,
+C   ICV=3 graphs the relative humidity,
+C   ICV=4 graphs the wind velocity.
+C   ICV=5 graphs the total and opaque cloud cover.
+C   ICV=6 graphs the atmospheric pressure.
+        if(IP.eq.1)then
+          ICV=2
+        elseif(IP.eq.2 .or. IP.eq.3 .or. IP.eq.4)then
+          ICV=1
+        elseif(IP.eq.7)then
+          ICV=3
+        elseif(IP.eq.5)then
+          ICV=4
+        elseif(IP.eq.6)then
+          ICV=4
+        elseif(IP.eq.8 .or. IP.eq.9)then
+          ICV=5
+        elseif(IP.eq.10)then
+          ICV=6
+        endif
+
         call startbuffer()
         CALL PDRAW(ICV,-1,IYDS,IYDF)
 
-        IF(INO.EQ.6)THEN
+        IF(IP.EQ.7)THEN
           helptopic='interdependant_rh_temp'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('RH prediction',nbhelp,'RH changing',0,0,IER)
-        ELSEIF(INO.EQ.8)THEN
+        endif
 
-C To activate wind direction prediction change ino.eq.88 to ino.eq.8 in
-C the following code blocks 
+C Sinusoidal variable prediction.
+        if (imode.eq.3) then
+          IF(IP.EQ.6)THEN
+
 C<< Normal distribution of wind direction can be supported in future
-          write(str,'(2a)')'wind direction prediction is currently',
-     &    'not supported'
-
-          call edisp(iuout,' ')
-          call edisp(iuout,str)
-          call edisp(iuout,' ')
-          GOTO 11
-        ENDIF
-        ISAVE=0
-        if(IST.EQ.2)then
-          IF(INO.EQ.3)THEN
-            CALL POLYTR(1,IYDS,IYDF)
-          ELSEIF(INO.EQ.4)THEN
-            CALL POLYTR(2,IYDS,IYDF)
-          ELSEIF(INO.EQ.5)THEN
-            CALL POLYTR(3,IYDS,IYDF)
-          ELSEIF(INO.EQ.6)THEN
-            CALL POLYTR(4,IYDS,IYDF)
-          ELSEIF(INO.EQ.7)THEN
-            CALL POLYTR(5,IYDS,IYDF)
-          ELSEIF(INO.EQ.88)THEN
-            CALL POLYTR(6,IYDS,IYDF)
-          ENDIF
-        ENDIF
-
-C Prediction of solar radiation as function of turbidity and
-C precipitable water content
-        IF(IST.EQ.3)THEN
-          IF(INO.EQ.9)THEN
-            helptopic='jk_page_direct_normal'
-            call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL PHELPD('rad prediction',nbhelp,'rad prediction',
-     &         0,0,IER)
-            ICV=1
-            ICK(1)=1
-            ICK(2)=1
-            CALL PSOLRD(IYDS,IYDF)
-            CALL EDISP(IUOUT,'Calculating direct and diffuse radiation')
+            write(str,'(2a)')'wind direction prediction is currently',
+     &      'not supported'
+            call edisp(iuout,' ')
+            call edisp(iuout,str)
+            call edisp(iuout,' ')
+            GOTO 11
+          ELSEIF(IP.EQ.8 .or. IP.eq.9)THEN
+            write(str,'(2a)')'cloud cover prediction is currently',
+     &      'not supported'
+            call edisp(iuout,' ')
+            call edisp(iuout,str)
+            call edisp(iuout,' ')
+            GOTO 11          
+          ELSEIF(IP.EQ.10)THEN
+            write(str,'(2a)')'pressure prediction is currently',
+     &      'not supported'
+            call edisp(iuout,' ')
+            call edisp(iuout,str)
+            call edisp(iuout,' ')
             GOTO 11
           ENDIF
+
+          ISAVE=0
           WRITE(PRML,'(2A)')PRM(1:LNBLNK(PRM)),' occur ?'
           helptopic='hour_max_min'
           call gethelptext(helpinsub,helptopic,nbhelp)
@@ -347,32 +356,49 @@ C precipitable water content
           CALL EASKR(VALMIN,'Minimum ',PRM,
      &    V_MIN,'F',V_MAX,'-',1.,'min value',IER,2)
           IF(IER.NE.0)GOTO 999
-          CALL SINUSD(HOUR,VALMAX,VALMIN,WVEL)
+          CALL SINUSD(HOUR,VALMAX,VALMIN,WVAL)
           DO 50 ID=IYDS,IYDF
             IDI=ID-IYDS+1
             DO 60 IHR=1,24
-              IF(INO.EQ.3)THEN
-                PRADB(IDI,IHR)=WVEL(IHR)
-              ELSEIF(INO.EQ.4)THEN
-                PRADD(IDI,IHR)=WVEL(IHR)
-              ELSEIF(INO.EQ.5)THEN
-                PTEMP(IDI,IHR)=WVEL(IHR)
-              ELSEIF(INO.EQ.6)THEN
-                PRH(IDI,IHR)=WVEL(IHR)
-              ELSEIF(INO.EQ.7)THEN
-                PWV(IDI,IHR)=WVEL(IHR)
-              ELSEIF(INO.EQ.88)THEN
-                PWD(IDI,IHR)=WVEL(IHR)
-              ENDIF
+              PCLMVAL(IP,IDI,IHR)=WVAL(IHR)
    60       CONTINUE
    50     CONTINUE
+
+C Transform data.
+        elseif(imode.EQ.2)then
+          ISAVE=0
+          CALL POLYTR(IP,IYDS,IYDF)
+        ENDIF
+      elseif (INO.eq.(NITMS-6)) then
+ 
+C If there are enough items allow paging control via EKPAGE.
+        IF(IPFLG.EQ.1)THEN
+          IPACT=EDIT
+          CALL EKPAGE(IPACT)
+        ENDIF
+
+      elseif (INO.eq.NITMS-5) then
+
+C Prediction of solar radiation as function of turbidity and
+C precipitable water content
+        IF(imode.EQ.3)THEN
+          helptopic='jk_page_direct_normal'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL PHELPD('rad prediction',nbhelp,'rad prediction',
+     &       0,0,IER)
+          ICV=4
+          ICK(2)=1
+          ICK(3)=1
+          CALL PSOLRD(IYDS,IYDF)
+          CALL EDISP(IUOUT,'Calculating direct and diffuse radiation')
+          GOTO 11
         ENDIF
 
 C Wind speed reduction based on wind direction (if allowable maximum
 C segments is changed then remember to change maximum allowable angular 
 C segments MAAS)
         NSEG=3   ! initial value
-        IF(IST.EQ.2)THEN
+        IF(imode.EQ.2)THEN
           IF(INO.EQ.9)THEN
             helptopic='interdependant_rh_temp'
             call gethelptext(helpinsub,helptopic,nbhelp)
@@ -403,9 +429,10 @@ C segments MAAS)
                 FOUND=.FALSE.
                 DO 7045 ISEG=1,NSEG
                   IF(.NOT.FOUND)THEN
-                    IF(PWD(IDI,IHR).LT.NANG(ISEG))THEN
-                      PWV(IDI,IHR)=NINT(WRDF(ISEG)*REAL(PWV(IDI,IHR)))
-                     FOUND=.TRUE.
+                    IF(PCLMVAL(6,IDI,IHR).LT.NANG(ISEG))THEN
+                      PCLMVAL(5,IDI,IHR)=
+     &                  NINT(WRDF(ISEG)*REAL(PCLMVAL(5,IDI,IHR)))
+                      FOUND=.TRUE.
                     ENDIF
                   ENDIF
  7045           CONTINUE
@@ -413,7 +440,7 @@ C segments MAAS)
  5045       CONTINUE
           ENDIF
         ENDIF
-      elseif(ino.eq.10)then
+      elseif(ino.eq.NITMS-4)then
 
 C Draw variables.
         IF(ICV.GT.0)THEN
@@ -424,7 +451,7 @@ C Draw variables.
      &                ' please select again...','W')
         ENDIF
         goto 11
-      elseif(ino.eq.11)then
+      elseif(ino.eq.NITMS-3)then
         DO 20 I=1,4
           IF(ICK(I).NE.1)THEN
             dok=.true.
@@ -440,22 +467,38 @@ C Update weather binary file for each altered day as well as the tail.
               DO 156 IDAY=IYDS,IYDF
                 IDI=IDAY-IYDS+1
                 DO 157 IT=1,MT 
-                  CDNR(IT)=PRADB(IDI,IT)
-                  CDIF(IT)=PRADD(IDI,IT)
-                  CTMP(IT)=PTEMP(IDI,IT)
-                  CHUM(IT)=PRH(IDI,IT)
-                  CVEL(IT)=PWV(IDI,IT)
-                  CDIR(IT)=PWD(IDI,IT)
+                  do imet=1,MCM
+                    if (CMXST(imet)) then
+                      CMRVAL(imet,IT)=PCLMVAL(imet,IDI,IT)
+                    endif
+                  enddo
  157            CONTINUE
                 CALL CLMPUT(IDAY)
  156          CONTINUE
-              IREC=366
-              IADN=IDNGH
-              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IADN
-              IREC=367
-              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLMLOC
-              IREC=368
-              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
+
+              if (CFVER.eq.1) then
+                IREC=366
+                IADN=IDNGH
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFYEAR,IADN
+                IREC=367
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLOC
+                IREC=368
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLAT,CFLONG
+              else
+                IREC=366
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &            CFYEAR
+                IREC=IREC+1
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &            CFLOC,CFLAT,CFLONG
+                IREC=IREC+1
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &            (CMCOL(j),j=1,CFMCM)
+                IREC=IREC+1
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &            CFVER
+              endif
+
               ISAVE=1
               call edisp(iuout,'Weather data saved for...')
               call edisp(iuout,PERST2)
@@ -484,12 +527,13 @@ C Error handling
 C POLYTR transforms weather data for a given period according to some
 C polynomial function
       SUBROUTINE POLYTR(ICLMT,IYDS,IYDF)
+#include "climate.h"
+
       PARAMETER (MT=24,MD=365)
       COMMON/OUTIN/IUOUT,IUIN
-      COMMON/PCLIM/PRADB(MD,MT),PRADD(MD,MT),PTEMP(MD,MT),
-     &             PWV(MD,MT),PWD(MD,MT),PRH(MD,MT),PLAST(MD,MT)
+      COMMON/PCLIM/PCLMVAL(MCM,MD,MT),PLAST(MD,MT)
       DIMENSION A(10)
-      character COEFFS*72,STR*72
+      character COEFFS*72,STR*72,outs*124
       integer ILC  ! for radio button
 
 C For help messages
@@ -497,27 +541,16 @@ C For help messages
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
-C Setup limits for weather parameters
       helpinsub='POLYTR'  ! set for this subroutine
-      IF(ICLMT.EQ.1)THEN
-        CLMIN=0.
-        CLMAX=1400.
-      ELSEIF(ICLMT.EQ.2)THEN
-        CLMIN=0.
-        CLMAX=1400.
-      ELSEIF(ICLMT.EQ.3)THEN
-        CLMIN=-1000.
-        CLMAX=1000.
-      ELSEIF(ICLMT.EQ.4)THEN
-        CLMIN=0.
-        CLMAX=100.
-      ELSEIF(ICLMT.EQ.5)THEN
-        CLMIN=0.
-        CLMAX=10000.
-      ELSEIF(ICLMT.EQ.6)THEN
-        CLMIN=0.
-        CLMAX=360.
-      ENDIF
+
+C Setup limits for weather parameters
+      if (ICLMT.eq.1 .or. ICLMT.eq.5) then
+        CLMIN=real(CFMIN(ICLMT))/10.
+        CLMAX=real(CFMAX(ICLMT))/10.
+      else
+        CLMIN=real(CFMIN(ICLMT))
+        CLMAX=real(CFMAX(ICLMT))
+      endif
 
       IDS=IYDS
       helptopic='polynomial_fit_overview'
@@ -571,53 +604,20 @@ C Setup limits for weather parameters
       DO 505 ID=IDS,IYDI
         IDI=ID-IYDS+1
         DO 605 IHR=1,24
-          IF(ICLMT.EQ.1)THEN
-            X=PRADB(IDI,IHR)
-            CALL POLYNOM(X,A,NORD,Y)
-            PRADB(IDI,IHR)=Y
-          ELSEIF(ICLMT.EQ.2)THEN
-            X=PRADD(IDI,IHR)
-            CALL POLYNOM(X,A,NORD,Y)
-            PRADD(IDI,IHR)=Y
-          ELSEIF(ICLMT.EQ.3)THEN
-            X=PTEMP(IDI,IHR)
-            CALL POLYNOM(X,A,NORD,Y)
-            PTEMP(IDI,IHR)=Y
-          ELSEIF(ICLMT.EQ.4)THEN
-            X=PRH(IDI,IHR)
-            CALL POLYNOM(X,A,NORD,Y)
-            PRH(IDI,IHR)=Y
-          ELSEIF(ICLMT.EQ.5)THEN
-            X=PWV(IDI,IHR)
-            CALL POLYNOM(X,A,NORD,Y)
-            PWV(IDI,IHR)=Y
-          ELSEIF(ICLMT.EQ.6)THEN
-            X=PWD(IDI,IHR)
-            CALL POLYNOM(X,A,NORD,Y)
-            PWD(IDI,IHR)=Y
-          ENDIF
 
-C Range checking of parameters should be moved to above if-else ladder
-          IF((PRADB(IDI,IHR)+PRADD(IDI,IHR)).GT.1400.)THEN
-            PRADB(IDI,IHR)=1400.-PRADD(IDI,IHR)
-            CALL EDISP(IUOUT,'resetting radiation to within 1400W/m^2')
-          ENDIF
-          IF(PTEMP(IDI,IHR).GT.1000..OR.PTEMP(IDI,IHR).LT.-1000.)THEN
-            PTEMP(IDI,IHR)=0.0
-            CALL EDISP(IUOUT,'out of range temperature reset to 0')
-          ENDIF
-          IF(PRH(IDI,IHR).GT.100..OR.PRH(IDI,IHR).LT.0.)THEN
-            PRH(IDI,IHR)=50.
-            CALL EDISP(IUOUT,'out of range RH reset to 50%')
-          ENDIF
-          IF(PWV(IDI,IHR).GT.1000..OR.PWV(IDI,IHR).LT.0.)THEN
-            PWV(IDI,IHR)=0
-            CALL EDISP(IUOUT,'out of range wind speed reset to 0')
-          ENDIF
-          IF(PWD(IDI,IHR).GT.360..OR.PWD(IDI,IHR).LT.0.)THEN
-            PWD(IDI,IHR)=0
-            CALL EDISP(IUOUT,'out of range wind direction reset to 0')
-          ENDIF
+C Transform value.
+          X=PCLMVAL(ICLMT,IDI,IHR)
+          CALL POLYNOM(X,A,NORD,Y)
+          PCLMVAL(ICLMT,IDI,IHR)=Y
+
+c Range checking.
+          if (PCLMVAL(ICLMT,IDI,IHR).gt.CLMAX) then
+            write(outs,'(3a,f6.1)')' out of range ',CMNAMF,' set to ',
+     &        CLMAX
+          elseif (PCLMVAL(ICLMT,IDI,IHR).lt.CLMIN) then
+            write(outs,'(3a,f6.1)')' out of range ',CMNAMF,' set to ',
+     &        CLMIN
+          endif
   605   CONTINUE
   505 CONTINUE
       RETURN
@@ -637,6 +637,8 @@ C   ICV=1 graphs the normal direct and diffuse solar radiation,
 C   ICV=2 graphs the ambient dry bulb temperature,
 C   ICV=3 graphs the relative humidity,
 C   ICV=4 graphs the wind velocity.
+C   ICV=5 graphs the total and opaque cloud cover.
+C   ICV=6 graphs the atmospheric pressure.
 C ICL is zero instructs the graphing to omit the previous
 C   value of the selected data. If ICL is positive then draw
 C   the current and previous values. If ICL is negative draw
@@ -647,13 +649,12 @@ C The user may choose a more suitable period within IYDS to IYDF by
 C seleting the PERIOD facility from menu PDRAW.
 
       SUBROUTINE PDRAW(ICV,ICL,IYDS,IYDF)
+#include "climate.h"
+
       PARAMETER (MD=365,MT=24)
 
-C PRADB is direct normal radiation, PRADD is diffuse radiation
-C PTEMP is ambient dry bulb, PWV is wind velocity
-C PRH is relative hunidity, PLAST is previous value of current focus.
-      COMMON/PCLIM/PRADB(MD,MT),PRADD(MD,MT),PTEMP(MD,MT),
-     &             PWV(MD,MT),PWD(MD,MT),PRH(MD,MT),PLAST(MD,MT)
+C PCLMVAL is current climate values, PLAST is previous value of current focus.
+      COMMON/PCLIM/PCLMVAL(MCM,MD,MT),PLAST(MD,MT)
       COMMON/CLIM1/CLMV(7,MD,MT),ICMAX,ICMAX2,ICMIN
 
 C<< Redraw should be done after clearing graphical feedback area,
@@ -674,28 +675,48 @@ C Set up the climatic data for determination of the max/min values.
       DO 10 I=IDS,IDF
         DO 20 J=1,24
           if(icv.eq.1)then
-            IF(NINT(PRADB(I,J)).GT.ICMAX)ICMAX=NINT(PRADB(I,J))
-            IF(NINT(PRADD(I,J)).GT.ICMAX2)ICMAX2=NINT(PRADD(I,J))
+            if (CMXST(4)) then
+              iind=4
+            else
+              iind=3
+            endif
+            itmp=NINT(PCLMVAL(iind,I,J))
+            IF(itmp.GT.ICMAX)ICMAX=itmp
+            CLMV(1,I,J)=itmp
+            itmp=NINT(PCLMVAL(2,I,J))
+            IF(itmp.GT.ICMAX2)ICMAX2=itmp
+            CLMV(5,I,J)=itmp
             ICMIN=0
-            CLMV(1,I,J)=PRADB(I,J)
-            CLMV(5,I,J)=PRADD(I,J)
-            if(icl.ne.0) CLMV(7,I,J)=PLAST(I,J)
           elseif(icv.eq.2)then
-            IF(NINT(PTEMP(I,J)).GT.ICMAX)ICMAX=NINT(PTEMP(I,J))
-            IF(NINT(PTEMP(I,J)).LT.ICMIN)ICMIN=NINT(PTEMP(I,J))
-            CLMV(2,I,J)=PTEMP(I,J)
-            if(icl.ne.0) CLMV(7,I,J)=PLAST(I,J)
+            itmp=NINT(PCLMVAL(1,I,J))
+            IF(itmp.GT.ICMAX)ICMAX=itmp
+            IF(itmp.LT.ICMIN)ICMIN=itmp
+            CLMV(2,I,J)=itmp
           elseif(icv.eq.3)then
-            IF(NINT(PRH(I,J)).GT.ICMAX)ICMAX=NINT(PRH(I,J))
-            IF(NINT(PRH(I,J)).LT.ICMIN)ICMIN=NINT(PRH(I,J))
-            CLMV(3,I,J)=PRH(I,J)
-            if(icl.ne.0) CLMV(7,I,J)=PLAST(I,J)
+            itmp=NINT(PCLMVAL(7,I,J))
+            IF(itmp.GT.ICMAX)ICMAX=itmp
+            IF(itmp.LT.ICMIN)ICMIN=itmp
+            CLMV(3,I,J)=itmp
           elseif(icv.eq.4)then
-            IF(NINT(PWV(I,J)).GT.ICMAX)ICMAX=NINT(PWV(I,J))
-            IF(NINT(PWV(I,J)).LT.ICMIN)ICMIN=NINT(PWV(I,J))
-            CLMV(4,I,J)=PWV(I,J)
-            if(icl.ne.0) CLMV(7,I,J)=PLAST(I,J)
+            itmp=NINT(PCLMVAL(5,I,J))
+            IF(itmp.GT.ICMAX)ICMAX=itmp
+            IF(itmp.LT.ICMIN)ICMIN=itmp
+            CLMV(4,I,J)=itmp
+          elseif(icv.eq.5)then
+            itmp=NINT(PCLMVAL(8,I,J))
+            IF(itmp.GT.ICMAX)ICMAX=itmp
+            CLMV(1,I,J)=itmp
+            itmp=NINT(PCLMVAL(9,I,J))
+            IF(itmp.GT.ICMAX2)ICMAX2=itmp
+            CLMV(5,I,J)=itmp
+            ICMIN=0
+          elseif(icv.eq.6)then
+            itmp=NINT(PCLMVAL(10,I,J))
+            IF(itmp.GT.ICMAX)ICMAX=itmp
+            IF(itmp.LT.ICMIN)ICMIN=itmp
+            CLMV(2,I,J)=itmp
           endif
+          if(icl.ne.0) CLMV(7,I,J)=PLAST(I,J)
    20   CONTINUE
    10 CONTINUE
       CALL PCGRF(ICV,ICL,IDS,IDF)
@@ -707,9 +728,10 @@ C it is used to predict the direct normal and the horizontal diffuse
 C solar irradiance for any site at any time of day for particular
 C values of atmospheric turbidity and precipitable water content.
       SUBROUTINE PSOLRD(IYDS,IYDF)
+#include "climate.h"
+
       PARAMETER (MT=24,MD=365)
-      COMMON/PCLIM/PRADB(MD,MT),PRADD(MD,MT),PTEMP(MD,MT),
-     &             PWV(MD,MT),PWD(MD,MT),PRH(MD,MT),PLAST(MD,MT)
+      COMMON/PCLIM/PCLMVAL(MCM,MD,MT),PLAST(MD,MT)
       DIMENSION SOLALT(24),SOLAZI(24)
       DIMENSION B(4,3)
       character outs*124
@@ -816,8 +838,8 @@ C ITSHFT is not defined!!!
       ITSHFT=0
       IX=IHR-ITSHFT
       IF(SOLALT(IHR).GT.0.0)GOTO 12
-      PRADB(IDI,IHR)=0.
-      PRADD(IDI,IHR)=0.
+      PCLMVAL(3,IDI,IHR)=0.
+      PCLMVAL(2,IDI,IHR)=0.
       GOTO 20
 
 C Estimate the air mass corrected for height of site.
@@ -831,7 +853,7 @@ C Estimate the air mass corrected for height of site.
      &      2661.05*(SSA**6))
    14 CORAM=AMASS*CORALT
 
-C Calculation of the direct normal component PRADB
+C Calculation of the direct normal component PCLMVAL(3,,)
       D2=0
       DO 30 I=1,4
       DO 40 J=1,3
@@ -841,19 +863,19 @@ C Calculation of the direct normal component PRADB
       D2=D2+D1*(CORAM**(I-1))
    30 CONTINUE
       BM=ISC*EXP(D2)
-      PRADB(IDI,IHR)=BM*CORISC*EXP(-(ATTURB*CORAM))
-      IF(PRADB(IDI,IHR).GT.0.0)GOTO 58
-   61 PRADB(IDI,IHR)=0.
-      PRADD(IDI,IHR)=0.
+      PCLMVAL(3,IDI,IHR)=BM*CORISC*EXP(-(ATTURB*CORAM))
+      IF(PCLMVAL(3,IDI,IHR).GT.0.0)GOTO 58
+   61 PCLMVAL(3,IDI,IHR)=0.
+      PCLMVAL(2,IDI,IHR)=0.
       GOTO 20
 
-C Calculation of the diffuse radiation component PRADD.
+C Calculation of the diffuse radiation component PCLMVAL(2,,).
    58 HT=SOLALT(IX)/10.0
       A0=2.+47.382*HT+29.671*(HT**2)-15.861*(HT**3)+4.3463*(HT**4)
      &   -0.57764*(HT**5)+0.03472*(HT**6)-0.0007362*(HT**7)
       A1=(297.0+1.8313*HT-3.7082*(HT**2)+4.1233*(HT**3)
      &   -0.6409*(HT**4)+0.02855*(HT**5))/1000
-      PRADD(IDI,IHR)=(CORISC*A0)-(A1*PRADB(IDI,IHR)*
+      PCLMVAL(2,IDI,IHR)=(CORISC*A0)-(A1*PCLMVAL(3,IDI,IHR)*
      &                    (ESIND(SOLALT(IX))))
    20 CONTINUE
    10 CONTINUE

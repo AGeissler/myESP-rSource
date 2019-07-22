@@ -105,7 +105,7 @@ C Set up the node description string (12 chars)
      &      KEY,NDNAM(L),FTYPN(NDFLD(L)),NODTYP,HNOD(L,3),SUPNOD(L,1),
      &      SUPNOD(L,2)
           else
-            WRITE(VERT(M),'(A,1X,A,1X,A,1X,A,3F5.1,F5.1,F6.1)')
+            WRITE(VERT(M),'(A,1X,A,1X,A,1X,A,3F5.1,F5.1,F8.1)')
      &      KEY,NDNAM(L),FTYPN(NDFLD(L)),NODTYP,HNOD(L,1),HNOD(L,2),
      &      HNOD(L,3),SUPNOD(L,1),SUPNOD(L,2)
           endif

@@ -36,10 +36,8 @@ C espriou.h provides current file.
       character OUTSTR*148,WORD*20,rviewf*72,outs*148
       character LOUTSTR*248
       character tfile*72
-      logical usevtl,usevtv
 
       IER=0
-      usevtl=.false.; usevtv=.false.
 
 C Attempt to read in rview file, note it is assumed to be one line.
 C View values read into the radv common block.
@@ -89,8 +87,8 @@ C with rvu.
         elseif(word(1:3).eq.'-vs')then
           CALL EGETWR(LOUTSTR,K,vs,0.,0.,'-','skip vl',IER)
           IF(IER.ne.0)goto 43
-        elseif(word(1:4).eq.'-vtv')then
-          usevtv=.true.
+        elseif(word(1:3).eq.'-vt')then
+          vewtyp(1:1)=word(4:4)
         elseif(word(1:3).eq.'-vo')then
           CALL EGETWR(LOUTSTR,K,cutfor,0.,0.,'-','cut front',IER)
           IF(IER.ne.0)goto 43
@@ -100,8 +98,6 @@ C with rvu.
         elseif(word(1:3).eq.'-vl')then
           CALL EGETWR(LOUTSTR,K,vl,0.,0.,'-','skip vl',IER)
           IF(IER.ne.0)goto 43
-        elseif(word(1:4).eq.'-vtl')then
-          usevtl=.true.
         else
           goto 43
         endif
@@ -113,17 +109,10 @@ C with rvu.
       ier=0
 
       call edisp(iuout,' ')
-      if(usevtv)then
-        write(outs,'(a,3F8.2,a,3F7.3,a,3F6.3,4(a,F5.1))') 
-     &    'rview -vtv -vp ',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &    ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
-     &    ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
-      else
-        write(outs,'(a,3F8.2,a,3F7.3,a,3F6.3,4(a,F5.1))') 
-     &    'rview -vtl -vp ',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
-     &    ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
-     &    ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
-      endif
+      write(outs,'(3a,3F8.2,a,3F7.3,a,3F6.3,4(a,F5.1))') 
+     &  'rview -vt',vewtyp,' -vp ',rvpx,rvpy,rvpz,' -vd',vdx,vdy,vdz,
+     &  ' -vu ',vux,vuy,vuz,' -vh ',angh,' -vv ',angv,
+     &  ' -vs 0 -vl 0 -vo ',cutfor,' -va ',cutaft
       call edisp(iuout,outs)
 
       return

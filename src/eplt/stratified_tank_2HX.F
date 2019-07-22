@@ -735,6 +735,12 @@ C---- Call stratified tank function
      &  STEPCOUNT, MIXCOUNT, NSECAVG,
      &  TF_STANK(1,I_STANK),IER)
 
+C---- Containment heat loss
+        QDATA(IPCOMP)=QLOSS
+
+      call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+      call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+
 C---- Check error code
 
       IF (IER .NE. 0) THEN

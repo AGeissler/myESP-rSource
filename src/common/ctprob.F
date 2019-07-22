@@ -316,6 +316,7 @@ C Definitions of most variables is given in ctread.F
 
       integer NTSTEPCT   ! for local editing.
       integer NITEMS,NITEML,INO,INNO,ISO ! max items and current menu item
+      integer ISTRW
 
 C set contaminant file
       IUNIT=IFIL+72
@@ -377,8 +378,10 @@ C (differienciate between unix and non-unix machine types).
           ENDIF
         ENDIF
       ENDIF
+      ISTRW=72
  2001 CALL EASKSCMD(CTMF,' contaminant model file ?',
-     &  ' ','dereference',clkok,72,' ','contaminant model file',IER,7)
+     &  ' ','dereference',clkok,ISTRW,' ','contaminant model file',
+     &  IER,7)
       call usrmsg(' ',' ','- ')
 
 C If user wishes to deselect the current file name to
@@ -1048,6 +1051,7 @@ C Definitions of most variables is given in ctread.F
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "building.h"
+#include "epara.h"
 
       COMMON/POPHELP/H(60)
 
@@ -1057,7 +1061,7 @@ C Definitions of most variables is given in ctread.F
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
      &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
 
-      CHARACTER CONTMNAM*12,SSNAME*12,H*72
+      CHARACTER CONTMNAM*12,SSNAME*12,H*72,KEY*1
       CHARACTER*33 ITEMS(MCNN+20)
       INTEGER SPMTYP,SSLINK1,SSLINK2
       REAL SPMSUP
@@ -1078,57 +1082,119 @@ C Definitions of most variables is given in ctread.F
       H(11)='from contaminants and nodes. The source/sink has to be'
       H(12)='deleted in order to unlink'
 
-C Linking contaminants
+      MHEAD=1
+      MCTL=3
+
+C Linking contaminants.
       IF(NLP.EQ.1)THEN
 
+ 703    ILEN=NSPMNO
+        IPACT=CREATE
+        CALL EKPAGE(IPACT)
+        M=MHEAD
+
 C Get source/sink to be linked
- 703    INNO=-2
+        INNO=-2
         ITEMS(1) =' Source Name:          type:'
-        DO 100 ISPMNO=1,NSPMNO
-          WRITE(ITEMS(ISPMNO+1),'(2A,A12,I12)')CHAR(96+ISPMNO),' ',
-     &               SSNAME(ISPMNO),SPMTYP(ISPMNO)
+        DO 100 I=1,ILEN
+          if (I.GE.IST.AND.(I.LE.(IST+MIFULL))) then
+            M=M+1
+            call EMKEY(I,KEY,IER)
+            WRITE(ITEMS(M),'(2A,A12,I12)')KEY,' ',SSNAME(I),SPMTYP(I)
+          endif
  100    CONTINUE
-        ITEMS(NSPMNO+2)=' ------------------------------- '
-        ITEMS(NSPMNO+3)='? help                   '
-        ITEMS(NSPMNO+4)='- exit                   '
-        NITEMS=NSPMNO+4
+
+C Number of actual items displayed.
+        NITEMS=M+MCTL
+
+C If a long list include page facility text.      
+        IF(IPFLG.EQ.0)THEN  
+          ITEMS(M+1)=' ------------------------------- '
+        ELSE
+          WRITE(ITEMS(M+1),'(a,i2,a,i2,a)')'0 Page: ',IPM,' of ',MPM,
+     &      ' --------------- '
+        ENDIF
+        ITEMS(M+2)='? Help'
+        ITEMS(M+3)='- exit'
+
         CALL EMENU('Choose source/sink model',ITEMS,NITEMS,INNO)
-        IF(INNO.EQ.(NSPMNO+4))THEN
+        IF(INNO.EQ.NITEMS)THEN
           RETURN
-        ELSEIF(INNO.EQ.(NSPMNO+3))THEN
+        ELSEIF(INNO.EQ.(NITEMS-1))THEN
           CALL PHELPD('source/sink-cntmnt-node linkage',12,'-',0,0,IER)
           GOTO 703
-        ELSEIF(INNO.GT.1.AND.INNO.LT.(NSPMNO+2))THEN
-          IDSSLN1=INNO-1
+        elseif (INNO.eq.(NITEMS-2)) then
+ 
+C If there are enough items allow paging control via EKPAGE.
+          IF(IPFLG.EQ.1)THEN
+            IPACT=EDIT
+            CALL EKPAGE(IPACT)
+          ENDIF
+
+        ELSEIF(INNO.GT.MHEAD.AND.INNO.LE.NITEMS)THEN
+
+          CALL KEYIND(NITEMS,INNO,IINNO,IO)
+          IDSSLN1=IINNO
+
         ELSE
           GOTO 703
         ENDIF
 
-C Get contaminant to be linked
- 702    INNO=-2
+ 702    ILEN=NCONTM
+        IPACT=CREATE
+        CALL EKPAGE(IPACT)
+        M=MHEAD
+
+C Get contaminant to be linked.
+        INNO=-2
         ITEMS(1) =' name:   ambient (max) conc:'
-        DO 20 ICONTM=1,NCONTM
-          AMBCONC=0.0
-          AMBMAX=0.0
-          DO 254 IT=2,MT
-            AMBCONC=MAX(CNCAA(ICONTM,IT),CNCAA(ICONTM,IT-1))
-            AMBMAX=MAX(AMBMAX,AMBCONC)
- 254      CONTINUE
-          WRITE(ITEMS(1+ICONTM),'(2A,A12,A,F8.6)')
-     &     CHAR(96+ICONTM),' ',CONTMNAM(ICONTM),' ',AMBMAX
- 20     CONTINUE
-        ITEMS(NCONTM+2) =' ------------------------'
-        ITEMS(NCONTM+3) ='? help                   '
-        ITEMS(NCONTM+4) ='- exit                   '
-        NITEMS=NCONTM+4
+        DO 200 I=1,ILEN
+          if (I.GE.IST.AND.(I.LE.(IST+MIFULL))) then
+            M=M+1
+            call EMKEY(I,KEY,IER)
+            AMBCONC=0.0
+            AMBMAX=0.0
+            DO 254 IT=2,MT
+              AMBCONC=MAX(CNCAA(I,IT),CNCAA(I,IT-1))
+              AMBMAX=MAX(AMBMAX,AMBCONC)
+ 254        CONTINUE
+            WRITE(ITEMS(M),'(2A,A12,A,F8.6)')KEY,' ',CONTMNAM(I),' ',
+     &        AMBMAX
+          endif
+ 200    CONTINUE
+
+C Number of actual items displayed.
+        NITEMS=M+MCTL
+
+C If a long list include page facility text.      
+        IF(IPFLG.EQ.0)THEN  
+          ITEMS(M+1)=' ------------------------------- '
+        ELSE
+          WRITE(ITEMS(M+1),'(a,i2,a,i2,a)')'0 Page: ',IPM,' of ',MPM,
+     &      ' --------------- '
+        ENDIF
+        ITEMS(M+2)='? Help'
+        ITEMS(M+3)='- exit'
+
         CALL EMENU('Choose contaminants',ITEMS,NITEMS,INNO)
-        IF(INNO.EQ.(NCONTM+4))THEN
+        IF(INNO.EQ.NITEMS)THEN
           RETURN
-        ELSEIF(INNO.EQ.(NCONTM+3))THEN
+        ELSEIF(INNO.EQ.(NITEMS-1))THEN
           CALL PHELPD('source/sink-cntmnt-node linkage',12,'-',0,0,IER)
           GOTO 702
-        ELSEIF(INNO.GT.1.AND.INNO.LT.(NCONTM+2))THEN
-          ICONTM=INNO-1
+
+        elseif (INNO.eq.(NITEMS-2)) then
+ 
+C If there are enough items allow paging control via EKPAGE.
+          IF(IPFLG.EQ.1)THEN
+            IPACT=EDIT
+            CALL EKPAGE(IPACT)
+          ENDIF
+
+        ELSEIF(INNO.GT.MHEAD.AND.INNO.LE.NITEMS)THEN
+
+          CALL KEYIND(NITEMS,INNO,IINNO,IO)
+          ICONTM=IINNO
           ISPMNO=1
           DO WHILE(SS1)
             IF(SSLINK1(ISPMNO,ICONTM).NE.0)THEN
@@ -1144,55 +1210,113 @@ C Get contaminant to be linked
         ENDIF
       ELSE
 
-C Get source/sink to be linked
- 701    INNO=-2
+ 701    ILEN=NSPMNO
+        IPACT=CREATE
+        CALL EKPAGE(IPACT)
+        M=MHEAD
+
+C Get source/sink to be linked.
+        INNO=-2
         ITEMS(1) =' Source Name:          type:'
-        DO 101 ISPMNO=1,NSPMNO
-          WRITE(ITEMS(ISPMNO+1),'(2A,A12,I12)')CHAR(96+ISPMNO),' ',
-     &               SSNAME(ISPMNO),SPMTYP(ISPMNO)
+        DO 101 I=1,ILEN
+          if (I.GE.IST.AND.(I.LE.(IST+MIFULL))) then
+            M=M+1
+            call EMKEY(I,KEY,IER)
+            WRITE(ITEMS(M),'(2A,A12,I12)')KEY,' ',SSNAME(I),SPMTYP(I)
+          endif
  101    CONTINUE
-        ITEMS(NSPMNO+2)=' ------------------------------- '
-        ITEMS(NSPMNO+3)='? help                   '
-        ITEMS(NSPMNO+4)='- exit                   '
-        NITEMS=NSPMNO+4
+
+C Number of actual items displayed.
+        NITEMS=M+MCTL
+
+C If a long list include page facility text.      
+        IF(IPFLG.EQ.0)THEN  
+          ITEMS(M+1)=' ------------------------------- '
+        ELSE
+          WRITE(ITEMS(M+1),'(a,i2,a,i2,a)')'0 Page: ',IPM,' of ',MPM,
+     &      ' --------------- '
+        ENDIF
+        ITEMS(M+2)='? Help'
+        ITEMS(M+3)='- exit'
+
         CALL EMENU('Choose source/sink model',ITEMS,NITEMS,INNO)
-        IF(INNO.EQ.(NSPMNO+4))THEN
+        IF(INNO.EQ.NITEMS)THEN
           RETURN
-        ELSEIF(INNO.EQ.(NSPMNO+3))THEN
+        ELSEIF(INNO.EQ.(NITEMS-1))THEN
           CALL PHELPD('source/sink-cntmnt-node linkage',12,'-',0,0,IER)
           GOTO 701
-        ELSEIF(INNO.GT.1.AND.INNO.LT.(NSPMNO+2))THEN
-          IDSSLN2=INNO-1
+
+        elseif (INNO.eq.(NITEMS-2)) then
+ 
+C If there are enough items allow paging control via EKPAGE.
+          IF(IPFLG.EQ.1)THEN
+            IPACT=EDIT
+            CALL EKPAGE(IPACT)
+          ENDIF
+
+        ELSEIF(INNO.GT.MHEAD.AND.INNO.LE.NITEMS)THEN
+
+          CALL KEYIND(NITEMS,INNO,IINNO,IO)
+          IDSSLN2=IINNO
         ELSE
           GOTO 701
         ENDIF
 
-c Get node to be linked
- 708    INNO=-2
-        ITEMS(1) ='Node name:'
-        JNOD=0
-        DO 706 INOD=1,NNOD
-          IF(NDTYP(INOD).LT.2)THEN
-           JNOD=JNOD+1
-           WRITE(ITEMS(JNOD+1),'(2A1,A12)')CHAR(96+JNOD),' ',NDNAM(INOD)
-          ENDIF
- 706    CONTINUE
-        ITEMS(JNOD+2) =' ------------------------'
-        ITEMS(JNOD+3) ='? help                   '
-        ITEMS(JNOD+4) ='- exit                   '
-        NITEMS=JNOD+4
+ 708    ILEN=NNOD
+        IPACT=CREATE
+        CALL EKPAGE(IPACT)
+        M=MHEAD
+
+c Get node to be linked.
+        INNO=-2
+        ITEMS(1) =' Node name:'
+        DO 201 I=1,ILEN
+          if (I.GE.IST.AND.(I.LE.(IST+MIFULL))) then
+            IF(NDTYP(I).LT.2)THEN
+              M=M+1
+              call EMKEY(I,KEY,IER)
+              WRITE(ITEMS(M),'(2A1,A12)')KEY,' ',NDNAM(I)
+            ENDIF
+
+          endif
+ 201    CONTINUE
+
+C Number of actual items displayed.
+        NITEMS=M+MCTL
+
+C If a long list include page facility text.      
+        IF(IPFLG.EQ.0)THEN  
+          ITEMS(M+1)=' ------------------------------- '
+        ELSE
+          WRITE(ITEMS(M+1),'(a,i2,a,i2,a)')'0 Page: ',IPM,' of ',MPM,
+     &      ' --------------- '
+        ENDIF
+        ITEMS(M+2)='? Help'
+        ITEMS(M+3)='- exit'
+
         CALL EMENU('Choose nodes',ITEMS,NITEMS,INNO)
-        IF(INNO.EQ.(JNOD+4))THEN
+        IF(INNO.EQ.NITEMS)THEN
           RETURN
-        ELSEIF(INNO.EQ.(JNOD+3))THEN
+        ELSEIF(INNO.EQ.(NITEMS-1))THEN
           CALL PHELPD('source/sink-cntmnt-node linkage',12,'-',0,0,IER)
           GOTO 708
-        ELSEIF(INNO.GT.1.AND.INNO.LT.(JNOD+2))THEN
+
+        elseif (INNO.eq.(NITEMS-2)) then
+ 
+C If there are enough items allow paging control via EKPAGE.
+          IF(IPFLG.EQ.1)THEN
+            IPACT=EDIT
+            CALL EKPAGE(IPACT)
+          ENDIF
+
+        ELSEIF(INNO.GT.MHEAD.AND.INNO.LE.NITEMS)THEN
+
+          CALL KEYIND(NITEMS,INNO,IINNO,IO)
           INODEN=0
           DO 717 INOD=1,NNOD
             IF(NDTYP(INOD).LT.2)THEN
               INODEN=INODEN+1
-              IF(INODEN.EQ.(INNO-1))IJK=INOD
+              IF(INODEN.EQ.(IINNO))IJK=INOD
             ENDIF
  717      CONTINUE
           ISPMNO=1

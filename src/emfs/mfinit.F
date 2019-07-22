@@ -58,6 +58,7 @@ C Defaults.
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ier
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -133,22 +134,19 @@ C reason IAPRES is still zero then set to 11.
       iglib = igraphiclib()
       if(iglib.eq.1.or.iglib.eq.3)then
         if(llt.lt.96)then
-          CALL EASKF(lltmp,'Pressure coefficients database?',' ',
-     &      96,DAPRES,'pressure coefficients db',IER,nbhelp)
+          ISTRW=96
         elseif(llt.ge.96.and.llt.lt.124)then
-          CALL EASKF(lltmp,'Pressure coefficients database?',' ',
-     &      124,DAPRES,'pressure coefficients db',IER,nbhelp)
+          ISTRW=124
         elseif(llt.ge.124.and.llt.le.144)then
-          CALL EASKF(lltmp,'Pressure coefficients database?',' ',
-     &      144,DAPRES,'pressure coefficients db',IER,nbhelp)
+          ISTRW=144
         endif
       elseif(iglib.eq.2)then
-        CALL EASKF(lltmp,'Pressure coefficients database?',' ',
-     &    144,DAPRES,'pressure coefficients db',IER,nbhelp)
+        ISTRW=144
       else
-        CALL EASKF(lltmp,'Pressure coefficients database?',' ',
-     &    96,DAPRES,'pressure coefficients db',IER,nbhelp)
+        ISTRW=96
       endif
+      CALL EASKF(lltmp,'Pressure coefficients database?',' ',
+     &  ISTRW,DAPRES,'pressure coefficients db',IER,nbhelp)
 
       IF(LLTMP.EQ.' ')GOTO 288
       LAPRES=lltmp
@@ -176,22 +174,19 @@ C Assign weather file and read year number.
       iglib = igraphiclib()
       if(iglib.eq.1.or.iglib.eq.3)then
         if(llt.lt.96)then
-          CALL EASKF(lltmp,'Weather file?',' ',
-     &      96,DCLIM,'weather file',IER,nbhelp)
+          ISTRW=96
         elseif(llt.ge.96.and.llt.lt.124)then
-          CALL EASKF(lltmp,'Weather file?',' ',
-     &      124,DCLIM,'weather file',IER,nbhelp)
+          ISTRW=124
         elseif(llt.ge.124.and.llt.le.144)then
-          CALL EASKF(lltmp,'Weather file?',' ',
-     &      144,DCLIM,'weather file',IER,nbhelp)
+          ISTRW=144
         endif
       elseif(iglib.eq.2)then
-        CALL EASKF(lltmp,'Climate file?',' ',
-     &    144,DCLIM,'weather file',IER,nbhelp)
+        ISTRW=144
       else
-        CALL EASKF(lltmp,'Climate file?',' ',
-     &    96,DCLIM,'weather file',IER,nbhelp)
+        ISTRW=96
       endif
+      CALL EASKF(lltmp,'Climate file?',' ',
+     &  ISTRW,DCLIM,'weather file',IER,nbhelp)
       CALL ERPFREE(IFCLM,ISTAT)
       ier=0
       call EFOPRAN(IFCLM,lltmp,144,1,IER)

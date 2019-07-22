@@ -21,81 +21,65 @@ C Boston, MA 02111-1307 USA.
 C The file commonclm.f is a collection of subroutines associated
 C with climate data that are used by multiple applications.
 
-C CLMGET Recover one day's data from climate file into common block for use.
-C AZALT  Calculate the solar azimuth and elevation angles at each hour
-C        of the day for any site.
+C CLMGET    Fetch a days (real) data from climate database into common block for use.
+C AZALT     Calculate the solar azimuth and elevation angles at each hour
+C           of the day for any site.
+C clmddscan Scan a climate file and determine the degree days.
+C CLMCHKMET Check that we have at least the required 6 climate metrics.
+C CLMRDBMD  Read metadata at the end of a binary climate database.
+C CLMMDN2O  Map climate metadata commons in climate.h to old commons for all modules.
+C CLMRDBD   Read a days (integer) data from a climate database.
+C CLMDN2O   Map climate data commons in climate.h to old commons in bps.
+C CLMOPB    Open a climate database.
 
 C ---------- CLMGET
 C Recover one day's data from climate file into common block for use.
+C Assume we've already read header data.
       SUBROUTINE CLMGET(IDAY)
       implicit none
-      
-      integer MT
-      PARAMETER (MT=24)
+#include "climate.h"
 
       integer iday  ! passed in julian day of the year
-      integer ifil,iuout,iuin,idngh
+      integer ifil,iuout,iuin,idngh,ier
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/RADTYP/IDNGH
 
-      integer NDAY  ! current day that data has been scanned for
-      real CDIF     ! diffuse solar
-      real CTMP     ! ambient dry bulb temperature
-      real CDNR     ! direct normal solar
-      real CVEL     ! wind velocity
-      real CDIR     ! wind direction
-      real CHUM     ! ambient RH
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
-      COMMON/CLMVAR/VNAME(6)
+      integer j,k,IDAYP1
 
-      integer iclm,irec,j,k,istat
-      DIMENSION ICLM(24,6)
-      character outs*124,VNAME*32
+C Check if we are trying to read the same data we already have.
+      if (IDAY.eq.CMDAYR) goto 999
 
-      VNAME(1)='Diffuse horiz. radiation (W/m^2)'
-      VNAME(2)='Dry bulb temperature (C)        '
-      if(IDNGH.eq.0)then
-        VNAME(3)='Direct normal radiation (W/m^2) '
-      else
-        VNAME(3)='Global horiz. radiation (W/m^2) '
-      endif
-      VNAME(4)='Wind velocity (m/s)             '
-      VNAME(5)='Wind direction (degrees)        '
-      VNAME(6)='Relative humidity (%)           '
+C Read data from climate file.
+C CMDAYR is set in CLMRDBD.
+      CALL CLMRDBD(IDAY,IDAY,IER)
+      if (IER.gt.0) goto 666
 
-      IF(IDAY.EQ.NDAY)GO TO 50
-      IREC=IDAY
-      READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)((ICLM(J,K),K=1,6),
-     &J=1,24)
-      DO 40 J=1,24
-        CDIF(J)=real(ICLM(J,1))
-        CTMP(J)=0.1* real(ICLM(J,2))
-        CDNR(J)=real(ICLM(J,3))
-        CVEL(J)=0.1* real(ICLM(J,4))
-        CDIR(J)=real(ICLM(J,5))
-        CHUM(J)=real(ICLM(J,6))
-  40  CONTINUE
-      NDAY=IDAY
+C Data now in CMIVAL. Convert this to actual values and put into CMVAL.
+      do j=1,24
+        do k=1,MCM
+          if (CMXST(K)) then
+            if (k.eq.1 .or. k.eq.5) then
+              CMRVAL(K,J)=real(CMIVAL(K,J))*0.1
+            else
+              CMRVAL(K,J)=real(CMIVAL(K,J))
+            endif
+          endif
+        enddo
+      enddo
 
-  50  CONTINUE
-      RETURN
+  999 RETURN
 
 C Error messages.
-1000  write(outs,'(A,I4)')' Problem reading record ',IREC
-      call edisp(iuout,outs)
-      call edisp(iuout,' substituting zeros for data.')
-      DO 10 J=1,24
-        CDIF(J)=0.0
-        CTMP(J)=0.0
-        CDNR(J)=0.0
-        CVEL(J)=0.0
-        CDIR(J)=0.0
-        CHUM(J)=0.0
-  10  CONTINUE
+  666 call edisp(iuout,
+     &  ' Error encountered; substituting zeros for data.')
+      do j=1,24
+        do k=1,MCM
+          CMRVAL(K,J)=0.0
+        enddo
+      enddo
 
-      RETURN
+      goto 999
       END
 
 C ************ AZALT
@@ -240,6 +224,7 @@ C  icuryear (integer) the applicable year
 #include "seasons.h"
 C seasons.h provides typper and typsea
 #include "ipvdata.h"
+#include "climate.h"
 
       integer lnblnk  ! function definition
 
@@ -248,16 +233,6 @@ C seasons.h provides typper and typsea
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/RADTYP/IDNGH
-
-      integer NDAY  ! current day that data has been scanned for
-      real CDIF     ! diffuse solar
-      real CTMP     ! ambient dry bulb temperature
-      real CDNR     ! direct normal solar
-      real CVEL     ! wind velocity
-      real CDIR     ! wind direction
-      real CHUM     ! ambient RH
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
 
 C dm* variables are from ipvdata.h.
 C sea* variables are from season.h
@@ -352,14 +327,14 @@ C For each hour in the day work out radiation and then degree days.
               DIRH=0.
             else
               IF(IDNGH.EQ.0)THEN
-                DIRH=CDNR(J)*ESIND(ALT(J))
+                DIRH=CMRVAL(3,J)*ESIND(ALT(J))
               ELSE
-                DIRH=CDNR(J)-CDIF(J)
+                DIRH=CMRVAL(4,J)-CMRVAL(2,J)
               ENDIF
-              GHSUM(k)=(GHSUM(k)+DIRH+CDIF(J))
+              GHSUM(k)=(GHSUM(k)+DIRH+CMRVAL(2,J))
             endif
 
-            TT=CTMP(J)
+            TT=CMRVAL(1,J)
             IF(TT.GT.hddbaset)then
             else
 
@@ -509,14 +484,14 @@ C For each day read climate data, set parameters and analyse.
               DIRH=0.
             else
               IF(IDNGH.EQ.0)THEN
-                DIRH=CDNR(J)*ESIND(ALT(J))
+                DIRH=CMRVAL(3,J)*ESIND(ALT(J))
               ELSE
-                DIRH=CDNR(J)-CDIF(J)
+                DIRH=CMRVAL(4,J)-CMRVAL(2,J)
               ENDIF
-              GHSUMW=(GHSUMW+DIRH+CDIF(J))
+              GHSUMW=(GHSUMW+DIRH+CMRVAL(2,J))
             endif
 
-            TT=CTMP(J)
+            TT=CMRVAL(1,J)
             IF(TT.GT.hddbaset)then
             else
 
@@ -819,7 +794,387 @@ C day ratio.
         ix=1
  43   continue
 
-
       return
       end
-            
+
+C ---------------- CLMCHKMET -------------------
+C CLMCHKMET checks that we have at least the required 6 metrics in a v2+
+C climate file. IER=0 if yes, 1 if no.
+      SUBROUTINE CLMCHKMET(IER)
+#include "climate.h"
+
+      IER=1
+      if (CMXST(1)
+     &  .and.CMXST(2)
+     &  .and.(CMXST(3)
+     &    .or.CMXST(4))
+     &  .and.CMXST(5)
+     &  .and.CMXST(6)
+     &  .and.CMXST(7)) IER=0
+
+      RETURN
+      END
+
+C ---------------- CLMRDBMD -------------------
+C CLMRDBMD reads metadata at the end of a binary climate database
+C and sets values of commons CLMFIL and CLMMET in climate.h.
+C It is assumed that the file is already open and we already know the
+C version (CFVER in climate.h).
+      SUBROUTINE CLMRDBMD(IER)
+#include "esprdbfile.h"
+#include "climate.h"
+
+      COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
+      COMMON/RADTYP/IDNGH
+
+      dimension ISCM(MCM)
+
+c      write(6,*)'CFVER ',CFVER ! debug
+      if (CFVER.eq.1) then
+        IREC=366
+        READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)CFYEAR,ICDNGH
+c        write(6,*)'CFYEAR,ICDNGH ',CFYEAR,ICDNGH ! debug
+        IREC=IREC+1
+        READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)CFLOC
+c        write(6,*)'CFLOC ',CFLOC ! debug
+        IREC=IREC+1
+        READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)CFLAT,CFLONG
+c        write(6,*)'CFLAT,CFLONG ',CFLAT,CFLONG ! debug
+
+        NCM=6
+        CMXST(1:2)=(/.true.,.true./)
+        CMCOL(1:2)=(/2,1/)
+        if (ICDNGH.eq.123) then
+          CMXST(3:4)=(/.false.,.true./)
+          CMCOL(3:4)=(/0,3/)
+        else
+          CMXST(3:4)=(/.true.,.false./)
+          CMCOL(3:4)=(/3,0/)
+        endif
+        CMXST(5:7)=(/.true.,.true.,.true./)
+        CMCOL(5:7)=(/4,5,6/)
+        do i=8,MCM
+          CMXST(i)=.false.
+          CMCOL(i)=0
+        enddo
+
+      elseif (CFVER.gt.1) then
+        IREC=366
+        READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)CFYEAR
+c        write(6,*)'CFYEAR ',CFYEAR ! debug
+        IREC=IREC+1
+        READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)CFLOC,CFLAT,CFLONG
+c        write(6,*)'CFLOC,CFLAT,CFLONG ',CFLOC,CFLAT,CFLONG ! debug
+        IREC=IREC+1
+        READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)(CMCOL(i),i=1,CFMCM)
+c        write(6,*)'CMCOL ',CMCOL ! debug
+        NCM=0
+        do i=1,CFMCM
+          if (CMCOL(i).ge.1) then
+            CMXST(i)=.true.
+            NCM=NCM+1
+          else
+            CMXST(i)=.false.
+          endif
+        enddo
+        if (MCM.gt.CFMCM) then
+          do i=CFMCM+1,MCM
+            CMCOL(i)=0
+            CMXST(i)=.false.
+          enddo
+        endif
+
+      else
+        goto 666
+
+      endif
+
+      CALL CLMCHKMET(IER)
+      CALL CLMMDN2O
+
+ 999  RETURN
+
+ 666  IER=1
+      goto 999
+
+      END
+
+C ---------------- CLMMDN2O -------------------
+C <CLMNEW2OLD>
+C CLMMDN2O maps values of new climate commons in climate.h to old
+C commons, for metadata from a binary climate database.
+
+C This should work for all modules.
+
+      SUBROUTINE CLMMDN2O
+
+#include "climate.h"
+
+C in BPS.
+      COMMON/DNORGH/IRTYPE
+      INTEGER irtype
+
+C in CLM.
+      COMMON/RADTYP/IDNGH
+      COMMON/CLMDT1/CLMLOC
+      CHARACTER CLMLOC*30
+
+C in both.
+      COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
+      INTEGER icyear,icdngh
+      REAL clat,clong
+
+      if (CMXST(4)) then
+        IRTYPE=1
+        IDNGH=123
+        ICDNGH=123
+      else
+        IRTYPE=0
+        IDNGH=0
+        ICDNGH=0
+      endif
+      CLMLOC=CFLOC
+      ICYEAR=CFYEAR
+      CLAT=CFLAT
+      CLONG=CFLONG
+
+      RETURN
+      END
+
+C ---------------- CLMRDBD -------------------
+C CLMRDBD reads IDAYPs weather data from a binary climate database, 
+C plus the first time step of IDAYFs weather data, and puts values into
+C common CMIVAL.
+
+      SUBROUTINE CLMRDBD(IDAYP,IDAYF,IER)
+
+#include "climate.h"
+#include "esprdbfile.h"
+
+      COMMON/OUTIN/IUOUT,IUIN
+
+      character outs*124
+      integer CFIVAL(MCM,25)
+
+C Check if we are trying to read the same data we already have.
+      if (IDAYP.eq.CMDAYR) goto 999
+
+C Read data.
+c      write(6,*)'CFMCM ',CFMCM ! debug
+      IREC=IDAYP
+      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=666)
+     &  ((CFIVAL(i,j),i=1,CFMCM),j=1,24)
+      IREC=IDAYF
+      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=666)
+     &  (CFIVAL(i,25),i=1,CFMCM)
+
+
+C Assign values to CMIVAL and range check.
+c      write(6,*)'CMIVAL' ! debug
+      do j=1,25
+        do i=1,MCM
+          icol=CMCOL(i)
+          if (icol.eq.0) then
+            CMIVAL(i,j)=0
+          else
+            ival=CFIVAL(icol,j)
+            if (ival.gt.CFMAX(i)) then
+              l=lnblnk(CMNAMF(i))
+              write(outs,'(3a,i2.2,a,i3.3,a)')' Warning: ',
+     &          CMNAMF(i)(1:l),' at hour ',j,' day ',IDAYP,
+     &          ' is greater than maximum'
+              CALL EDISP(IUOUT,outs)
+            elseif (ival.lt.CFMIN(i)) then
+              l=lnblnk(CMNAMF(i))
+              write(outs,'(3a,i2.2,a,i3.3,a)')' Warning: ',
+     &          CMNAMF(i)(1:l),' at hour ',j,' day ',IDAYP,
+     &          ' is less than minimum'
+              CALL EDISP(IUOUT,outs)
+            endif
+            CMIVAL(i,j)=ival
+          endif
+        enddo
+
+C Debug.
+c        write(6,*)'CMIVAL'
+c        write(6,*)(CMIVAL(i,j),i=1,MCM)
+      enddo
+
+C Set the day of data we now have in commons.
+      CMDAYR=IDAYP
+
+  999 RETURN
+
+  666 IER=1
+c      WRITE(6,*)outs ! debug
+      goto 999
+
+      END
+
+C ---------------- CLMDN2O -------------------
+C <CLMNEW2OLD>
+C CLMDN2O maps values of new climate commons in climate.h to old
+C commons, for data from a binary climate database.
+
+C This should work for all modules.
+
+      SUBROUTINE CLMDN2O
+
+#include "climate.h"
+#include "building.h"
+
+C in BPS.      
+      common/clim/idif(mt),itmp(mt),idnr(mt),ivel(mt),idir(mt),
+     &            ihum(mt),idiff,itmpf,idnrf,ivelf,idirf,ihumf
+
+      do i=1,24
+        idif(i)=CMIVAL(2,i)
+        itmp(i)=CMIVAL(1,i)
+        if (CMXST(3)) then
+          idnr(i)=CMIVAL(3,i)
+        elseif (CMXST(4)) then
+          idnr(i)=CMIVAL(4,i)
+        endif
+        ivel(i)=CMIVAL(5,i)
+        idir(i)=CMIVAL(6,i)
+        ihum(i)=CMIVAL(7,i)
+      enddo
+
+      idiff=CMIVAL(2,25)
+      itmpf=CMIVAL(1,25)
+      if (CMXST(3)) then
+        idnrf=CMIVAL(3,25)
+      elseif (CMXST(4)) then
+        idnrf=CMIVAL(4,25)
+      endif
+      ivelf=CMIVAL(5,25)
+      idirf=CMIVAL(6,25)
+      ihumf=CMIVAL(7,25)
+
+      RETURN
+      END
+
+C ---------------- CLMOPB -------------------
+C CLMOPB attempts to open an existing binary climate database. You need
+C to know the record width before you open the database. Version 1
+C climate databases have a fixed record width of 144
+C (24 hours * 6 metrics). This subroutine was written in 2018, when
+C version 2 climate databases were introduced; these have a record width
+C of 24 hours * MCM (in climate.h) metrics. This subroutine maintains
+C back-compatibility using a list of all possible values for MCM,
+C including previous versions (MCMALL in climate.h).
+
+C This subroutine also sets the version of the climate database (CFVER
+C in climate.h).
+
+C IEXIST is passed to EFOPRAN (in esru_lib.F):
+C   0 - should exist, no message but error -301 if not.
+C   1 - should exist, message & error -301 if not.
+C   2 - should not exist, error 300 & message if exists.
+C   3 - if exists use otherwise create.
+C   4 - if exists ask user before overwriting otherwise create.
+
+      SUBROUTINE CLMOPB(IEXIST,IER)
+
+#include "climate.h"
+#include "esprdbfile.h"
+#include "espriou.h"
+
+      COMMON/OUTIN/IUOUT,IUIN
+      
+      logical fok,unixok
+      character fs*1,llclmdb*144,outs*124
+      integer itmp
+      real rtmp,rtmp2
+
+      CFVER=0
+
+C Set folder separator (fs) to \ or / as required.
+      call isunix(unixok)
+      if(unixok)then
+        fs = char(47)
+      else
+        fs = char(92)
+      endif
+
+C Handle path to the climate file.
+      lndbp=lnblnk(standardclmpath)
+      if(ipathclim.eq.0.or.ipathclim.eq.1)then
+        llclmdb=LCLIM
+      elseif(ipathclim.eq.2)then
+        write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
+     &    LCLIM(1:lnblnk(LCLIM))
+      endif
+
+C Try to open the file.
+      write(currentfile,'(a)') llclmdb(1:lnblnk(llclmdb))
+      IER=0
+      call ERPFREE(ICLIM,IER)   
+      call EFOPRAN(ICLIM,llclmdb,MCM*24,0,IER)
+      if (IER.eq.-301) then
+        if (IEXIST.eq.2 .or. IEXIST.eq.3 .or. IEXIST.eq.4) then
+          call ERPFREE(ICLIM,IER)   
+          call EFOPRAN(ICLIM,llclmdb,MCM*24,IEXIST,IER)
+          if (IER.ne.0) goto 666
+          write(outs,'(2a)')' Opened new climate database ',
+     &      LCLIM(1:lnblnk(LCLIM))
+          call EDISP(IUOUT,outs)
+          goto 999
+        else
+          goto 666
+        endif
+      elseif (IER.ne.0) then
+        goto 666
+      endif
+
+C Check if we can read the 4th line of metadata. IOSTAT codes are
+C implementation-dependant, so we just test for any error.
+      IREC=369
+      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=6661)itmp
+      CFVER=itmp
+      CFMCM=MCM
+      IER=0
+      goto 999
+
+C If we get to here, there has been an error. We might have opened
+C the climate database with the wrong record width. Loop (backwards) 
+C through MCMALL and try to open the database with previous possible
+C record widths.
+ 6661 fok=.false. 
+c      write(6,*)outs ! Debug
+      do 6662 i=NMCM-1,1,-1
+        call ERPFREE(ICLIM,IER)
+        call EFOPRAN(ICLIM,llclmdb,MCMALL(i)*24,0,IER)
+
+C If we have reached the first value in MCMALL, this could be a v1
+C database in which case the 4th line of metadata doesn't exist; try the
+C 3rd.
+        if (i.eq.1) then
+          IREC=368
+          READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=6662)rtmp,rtmp2
+          itmp=1
+
+        else          
+          READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=6662)itmp
+        endif
+        CFVER=itmp
+        fok=.true.
+        CFMCM=MCMALL(i)
+        exit
+ 6662 continue
+
+      if (fok) then
+        IER=0
+      else
+        IER=ISTAT
+        goto 666
+      endif
+
+ 999  RETURN
+
+ 666  write(outs,'(2a)')' Error opening climate database ',
+     &  LCLIM(1:lnblnk(LCLIM))
+      call edisp(IUOUT,outs)
+      goto 999
+
+      END

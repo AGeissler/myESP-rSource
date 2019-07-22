@@ -521,7 +521,7 @@ C Complex fenestration control information.
 
       DO 109 I=1,nCFCctlloops
         II=I
-        WRITE(IUNIT,'(A, I4)',IOSTAT=ios,ERR=1)'* Control function',I
+        WRITE(IUNIT,'(A, I4)',IOSTAT=ios,ERR=1)'* Control function ',I
         CALL EVCNTRL(6,II,1,1,'S',SSTR)
         LN=max(1,LNBLNK(SSTR))
         WRITE(IUNIT,'(A,A)',IOSTAT=ios,ERR=1)'# ',SSTR(1:ln)
@@ -535,11 +535,21 @@ C Complex fenestration control information.
         WRITE(IUNIT,'(3I5,A)',IOSTAT=ios,ERR=1)
      &   (iCFCactuator(II,J),J=1,3),
      &  '  # actuator data'
-        WRITE(IUNIT,'(I5,A)',IOSTAT=ios,ERR=1)nCFCctldaytypes(II),
-     &  ' # No. day types'
         NN=nCFCctldaytypes(II)
-        IF(NN.EQ.0)NN=nbdaytype
-
+        IF(NN.EQ.0)THEN  ! All day types have individual controls
+          NN=nbdaytype
+          daytype='individual'
+          WRITE(IUNIT,'(I5,A,I2)',IOSTAT=ios,ERR=1)nCFCctldaytypes(II),
+     &    ' # day types follow calendar ',nbdaytype
+        ELSEIF(NN.EQ.1)THEN ! All day types have same controls
+          daytype='all daytypes'
+          WRITE(IUNIT,'(I5,2A)',IOSTAT=ios,ERR=1)nCFCctldaytypes(II),
+     &    '  # ',daytype
+        ELSE ! Day types are not used but periods of validity are active
+          daytype=' '
+          WRITE(IUNIT,'(I5,A)',IOSTAT=ios,ERR=1)nCFCctldaytypes(II),
+     &    ' # No. day types using dates of validity'
+        ENDIF
         DO 209 J=1,NN
           JJ=J
           CALL STDATE(IYEAR,iCFCctldatevalid(II,JJ,1),DS,DS1)
@@ -547,8 +557,11 @@ C Complex fenestration control information.
           write(outs,'(4a)') '  # valid ',DS1,' - ',DE1
           WRITE(IUNIT,'(2I5,a)',IOSTAT=ios,ERR=1)
      &     (iCFCctldatevalid(II,JJ,K),K=1,2),outs(1:lnblnk(outs))
-          WRITE(IUNIT,'(I6,A)',IOSTAT=ios,ERR=1)
-     &     nCFCdayctlperiods(II,JJ),'  # No. of periods in day'
+          IF(DAYTYPE(1:1).NE.' '.OR.DAYTYPE(1:12).NE.'all daytypes')
+     &    DAYTYPE=CALENTAG(J)
+          WRITE(IUNIT,'(I6,2A)',IOSTAT=ios,ERR=1)
+     &      nCFCdayctlperiods(II,JJ),'  # No. of periods in day: ',
+     &      DAYTYPE
           LL=nCFCdayctlperiods(II,JJ)
 
           DO 309 K=1,LL

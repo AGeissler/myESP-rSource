@@ -23,7 +23,8 @@ C time-series data over any period. For the vertical surface
 C component data is given for both isotropic and anisotropic skies.
 
       SUBROUTINE CLMINT
-      PARAMETER (MT=24)
+#include "climate.h"
+
       COMMON/OUTPCH/ICOUT
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -31,10 +32,6 @@ C component data is given for both isotropic and anisotropic skies.
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       common/exporttgi/ixopen,ixloc,ixunit
 
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     A              CDIR(MT),CHUM(MT)
       DIMENSION ALT(24),AZI(24)
       character PERST1*14,PERST2*44,PERST3*44
       character outs*124
@@ -96,21 +93,21 @@ C NOW READ VALUES OF THE CLIMATIC PARAMETERS FOR THIS DAY.
       NHRS=NHRS+1
 
       IF(IDNGH.EQ.0)THEN
-        DIRH=CDNR(J)*ESIND(ALT(J))
-        SRADT=CDIF(J)+DIRH
-        DIRN=CDNR(J)
+        DIRH=CMRVAL(3,J)*ESIND(ALT(J))
+        SRADT=CMRVAL(2,J)+DIRH
+        DIRN=CMRVAL(3,J)
       ELSE
-        DIRH=CDNR(J)-CDIF(J)
-        SRADT=CDNR(J)
+        DIRH=CMRVAL(4,J)-CMRVAL(2,J)
+        SRADT=CMRVAL(4,J)
         DIRN=DIRH/ESIND(ALT(J))
       ENDIF
 
       IF(SRADT.GT.0.0001)THEN
-        CLOUDC=1.-((CDIF(J)**2)/(SRADT**2))
+        CLOUDC=1.-((CMRVAL(2,J)**2)/(SRADT**2))
       ENDIF
 
-      FHSUM=FHSUM+CDIF(J)
-      GHSUM=GHSUM+DIRH+CDIF(J)
+      FHSUM=FHSUM+CMRVAL(2,J)
+      GHSUM=GHSUM+DIRH+CMRVAL(2,J)
       DNSUM=DNSUM+DIRN
 
 C Set BETA for a vertical surface, elevation = 0.
@@ -124,7 +121,7 @@ C Set CAI for a vertical south surface.
 
 C Anisotropic case (Klucher model).
       SSUM=SSUM+DIRN*CAI+0.5*0.25*(1.-ECOSD(BETA))*SRADT+
-     &     CDIF(J)*0.5*(1.+ECOSD(BETA))*
+     &     CMRVAL(2,J)*0.5*(1.+ECOSD(BETA))*
      &     (1.0+(CLOUDC*((ESIND(0.5*(BETA)))**3)))*
      &     (1.0+(CLOUDC*((ESIND(90.-ALT(J)))**3)*CAI*CAI))
 
@@ -137,32 +134,32 @@ C Anisotropic case (Muneer model).
 C Surface shaded.
          TILTF=ECOSD(BETA/2.)**2+.25*(ESIND(BETA)-BETA*R*ECOSD(BETA)
      &         -3.14159*ESIND(BETA/2.)**2)
-         SSUM1=SSUM1+DIRN*CAI+CDIF(J)*TILTF
+         SSUM1=SSUM1+DIRN*CAI+CMRVAL(2,J)*TILTF
 
-      ELSEIF((SRADT-CDIF(J)).LT.5.)then
+      ELSEIF((SRADT-CMRVAL(2,J)).LT.5.)then
 
 C Surface sun-lit under overcast sky.
          TILTF=ECOSD(BETA/2.)**2+.13*(ESIND(BETA)-BETA*R*ECOSD(BETA)
      &         -3.14159*ESIND(BETA/2.)**2)
-         SSUM1=SSUM1+DIRN*CAI+CDIF(J)*CAI*(1.+ESIND(BETA/2.)**3)
-         IF(ALT(J).GT.6.)SSUM1=SSUM1+DIRN*CAI+CDIF(J)*TILTF
+         SSUM1=SSUM1+DIRN*CAI+CMRVAL(2,J)*CAI*(1.+ESIND(BETA/2.)**3)
+         IF(ALT(J).GT.6.)SSUM1=SSUM1+DIRN*CAI+CMRVAL(2,J)*TILTF
 
       ELSE
 
 C Surface sun-lit under non-overcast sky.
          TILTF=ECOSD(BETA/2.)**2-.5*(ESIND(BETA)-BETA*R*ECOSD(BETA)
      &         -3.14159*ESIND(BETA/2.)**2)
-         SSUM1=SSUM1+DIRN*CAI+CDIF(J)*CAI*(1.+ESIND(BETA/2.)**3)
+         SSUM1=SSUM1+DIRN*CAI+CMRVAL(2,J)*CAI*(1.+ESIND(BETA/2.)**3)
          IF(ALT(J).GT.6.)THEN
-            FFX=(SRADT-CDIF(J))/XXE
-            SSUM1=SSUM1+DIRN*CAI+CDIF(J)*((FFX*CAI/ESIND(ALT(J)))
+            FFX=(SRADT-CMRVAL(2,J))/XXE
+            SSUM1=SSUM1+DIRN*CAI+CMRVAL(2,J)*((FFX*CAI/ESIND(ALT(J)))
      &                 +TILTF*(1.-FFX))
          ENDIF
       ENDIF
 
 C Isotropic case.
       SSUM2=SSUM2+DIRN*CAI+0.5*0.25*(1.-ECOSD(90.-0.))*SRADT+
-     &CDIF(J)*0.5*(1.+ECOSD(90.-0.))
+     &CMRVAL(2,J)*0.5*(1.+ECOSD(90.-0.))
    20 CONTINUE
    10 CONTINUE
 

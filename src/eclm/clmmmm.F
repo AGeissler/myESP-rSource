@@ -20,35 +20,25 @@ C Boston, MA 02111-1307 USA.
 
 C 'CLMMMM' COMPUTES THE MAXIMUM, MINIMUM AND MEAN VALUES OF THE CHOSEN
 C CLIMATIC PARAMETER:
-C   IP=1 DIFFUSE HORIZ RADIATION
-C      2 EXTERNAL AIR TEMEPRATURE
-C      3 DIRECT NORMAL RADIATION
-C      4 WIND SPEED
-C      5 WIND DIRECTION
-C      6 RELATIVE HUMIDITY
+C   IP = climate metric index, see climate.h
 C  FOR THE SPECIFIED PERIOD.   THE TIME OF OCCURRENCE OF
 C THE MAXIMUM AND MINIMUM VALUES IS ALSO GIVEN - IF THESE VALUES
 C OCCUR ON MORE THAN ONE OCCASION THEN THE TIME OF THE FIRST OCCURRENCE
 C IS GIVEN.   OTHER TIMES CAN THEN BE FOUND BY MODIFYING THE ANALYSIS
 C PERIOD ACCORDINGLY.
 
-      SUBROUTINE CLMMMM(IP,act)
-      PARAMETER (MT=24)
+      SUBROUTINE CLMMMM(IP,act)      
+#include "climate.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTPCH/ICOUT
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/DAYSF/KDS,KDF
       common/exporttgi/ixopen,ixloc,ixunit
-
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
-      COMMON/CLMVAR/VNAME(6)
  
       character DESCR*7,DESCR1*10,DESCRX*7,DESCR1X*10
-      character outs*124,act*1,VNAME*32
+      character outs*124,act*1
       character NMTHNM(12)*3
       
       DATA NMTHNM/'Jan','Feb','Mar','Apr','May','Jun','Jul',
@@ -61,8 +51,9 @@ C If output to file alter the edisp unit number.
         call usrmsg(' Output being directed to file...',' ','-')
       endif
       CALL CHEAD(30)
-      WRITE(outs,12)VNAME(IP)
-   12 FORMAT(' ',A)
+      ln=lnblnk(CMNAMF(IP))
+      lu=lnblnk(CMUNIT(IP))
+      WRITE(outs,'(4a)')CMNAMF(IP)(1:ln),' (',CMUNIT(IP)(1:lu),')'
       call edisp(itru,outs)
       call edisp(itru,' ')
       if(act.eq.'-'.or.act.eq.'D'.or.act.eq.'d')then
@@ -112,19 +103,7 @@ C AND ANALYSE IT.
         DO 20 J=JS,JF
 
 C GET THE REQUIRED VALUE.
-          if(IP.eq.1)then
-            X=CDIF(J)
-          elseif(IP.eq.2)then
-            X=CTMP(J)
-          elseif(IP.eq.3)then
-            X=CDNR(J)
-          elseif(IP.eq.4)then
-            X=CVEL(J)
-          elseif(IP.eq.5)then
-            X=CDIR(J)
-          elseif(IP.eq.6)then
-            X=CHUM(J)
-          endif
+          X=CMRVAL(IP,J)
 
 C MAX.
           IF(X.LE.XMAXJ)GO TO 2
@@ -145,7 +124,6 @@ C CONVERT DAY TO D,M.
         CALL EDAYR(II,IDD,IMM)
         CALL EWEEKD(IDD,IMM,IYEAR,IDWK)
         if(IMM.EQ.MTH1)GO TO 40
-
 
 C Compute parameters for this week or month.
         XMEAN=XMEANM/HRM
@@ -191,7 +169,9 @@ C REINITIALISE.
         HRM=0.
         if(act.eq.'-'.or.act.eq.'D'.or.act.eq.'d')then
           CALL CHEAD(30)
-          WRITE(outs,12)VNAME(IP)
+          ln=lnblnk(CMNAMF(IP))
+          lu=lnblnk(CMUNIT(IP))
+          WRITE(outs,'(4a)')CMNAMF(IP)(1:ln),' (',CMUNIT(IP)(1:lu),')'
           call edisp(itru,outs)
           call edisp(itru,
      &' D  M   T    Minimum  Time        Maximum  Time            Mean')
@@ -288,22 +268,17 @@ C IS GIVEN.   OTHER TIMES CAN THEN BE FOUND BY MODIFYING THE ANALYSIS
 C PERIOD ACCORDINGLY.
 
       SUBROUTINE CLMMMSYNOP(IP)
-      PARAMETER (MT=24)
+#include "climate.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTPCH/ICOUT
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/DAYSF/KDS,KDF
       common/exporttgi/ixopen,ixloc,ixunit
-
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
-      COMMON/CLMVAR/VNAME(6)
  
       character DESCR*7,DESCR1*10,DESCRX*7,DESCR1X*10
-      character DESCRW*7,DESCRW1*10,outs*124,VNAME*32
+      character DESCRW*7,DESCRW1*10,outs*124
       logical ok,dok
 
 C For help messages
@@ -320,7 +295,9 @@ C If output to file alter the edisp unit number.
         call usrmsg(' Output being directed to file...',' ','-')
       endif
       CALL CHEAD(30)
-      WRITE(outs,'(1x,a)')VNAME(IP)
+      ln=lnblnk(CMNAMF(IP))
+      lu=lnblnk(CMUNIT(IP))
+      WRITE(outs,'(4a)')CMNAMF(IP)(1:ln),' (',CMUNIT(IP)(1:lu),')'
       call edisp(itru,outs)
       call edisp(itru,' ')
       call edisp(itru,
@@ -371,19 +348,7 @@ C AND ANALYSE IT.
         DO 20 J=JS,JF
 
 C GET THE REQUIRED VALUE.
-          if(IP.eq.1)then
-            X=CDIF(J)
-          elseif(IP.eq.2)then
-            X=CTMP(J)
-          elseif(IP.eq.3)then
-            X=CDNR(J)
-          elseif(IP.eq.4)then
-            X=CVEL(J)
-          elseif(IP.eq.5)then
-            X=CDIR(J)
-          elseif(IP.eq.6)then
-            X=CHUM(J)
-          endif
+          X=CMRVAL(IP,J)
 
 C MAX.
           IF(X.LE.XMAXJ)GO TO 2

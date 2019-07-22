@@ -23,32 +23,28 @@ C  RRITE: allows one day of hourly values to be edited
 C  SITEDIT: edits site related data in a weather file.
 
 C ************ RRITE
-C 'RRITE' allows one day of hourly values (of the 6 weather
+C 'RRITE' allows one day of hourly values of weather
 C parameters to be edtied by the user and merged into the
 C weather file.
       SUBROUTINE RRITE
 #include "esprdbfile.h"
-      PARAMETER (MT=24)
+#include "climate.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/RADTYP/IDNGH
       common/appw/iappw,iappx,iappy
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
-
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     A              CDIR(MT),CHUM(MT)
-
       COMMON/CLMDT1/CLMLOC
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
+      COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
+      DIMENSION IPICK(MCM)
       DIMENSION item(31),holdd(24)
       CHARACTER*30 CLMLOC
-      CHARACTER outs*124,item*40,holdd*34,hold*36,key*1
+      CHARACTER outs*124,item*32,hold*10,key*1
       character head*16
-      logical ok,dok,altered
+      logical ok,dok,altered,mxmn
       integer onleft  ! number of left axis
       integer onright ! number of right axis
       integer mitem,INO  ! max items and current menu item
@@ -69,8 +65,6 @@ C For help messages
 
       helpinsub='RRITE'  ! set for MAIN
       altered=.false.
-      onleft = 2      ! assume all axes to be drawn
-      onright = 3
   31  CONTINUE
 
 C Day to be transferred.
@@ -83,6 +77,10 @@ C Read in the current data so partial editing possible.
 
 C Determine the record in the weather file.
       IREC=IDAY
+
+C Set current metric.
+      icurmet=1
+
   18  continue
       INO=-3
       if(MMOD.eq.8)then
@@ -98,23 +96,47 @@ C more of the graph can be seen.
           LIMTTY=8
           LIMIT =8
         endif
-        call clmdrwd(iday,onleft,onright)
+
+C Save period in commons and set to selected day.
+        iid1=ID1; iid2=ID2; iim1=IM1; iim2=IM2
+        iit1=IT1; iit2=IT2; iids=IDS; iidf=IDF
+        ID1=IOD ; ID2=IOD ; IM1=IOM ; IM2=IOM
+        IT1=1   ; IT2=24  ; IDS=IDAY; IDF=IDAY
+
+C Select only the current metric.
+        do imet=1,MCM
+          if (CMXST(imet) .and. imet.eq.icurmet) then
+            IPICK(imet)=1
+          else
+            IPICK(imet)=0
+          endif
+        enddo
+        mxmn=.true.
+        onleft=0
+        if (IPICK(1).eq.1) onleft=onleft+1
+        if (IPICK(5).eq.1) onleft=onleft+1
+        if (IPICK(10).eq.1) onleft=onleft+1
+        onright=0
+        if (IPICK(2).eq.1 .or. IPICK(3).eq.1 .or. IPICK(4).eq.1) 
+     &    onright=onright+1
+        if (IPICK(6).eq.1) onright=onright+1
+        if (IPICK(7).eq.1) onright=onright+1
+        if (IPICK(8).eq.1 .or. IPICK(9).eq.1) onright=onright+1
+        call CLMDRW(IPICK,mxmn,onleft,onright,'-')
+
+C Restore saved period to commons.
+        ID1=iid1; ID2=iid2; IM1=iim1; IM2=iim2
+        IT1=iit1; IT2=iit2; IDS=iids; IDF=iidf
       endif
 
       write(item(1),'(2a)') '  ',clmloc
-      item(2)=  '  hr  radiation  dry blb  RH   wind     '
+      ln=lnblnk(CMNAMF(icurmet))
+      write(item(2),'(2a)')'1 ',CMNAMF(icurmet)(1:ln)
+      write(item(3),'(2a)')'  hr    ',CMUNIT(icurmet)
 
-C If IDNGH=123 then this is global horizontal.
-      IF(IDNGH.EQ.0)THEN
-        item(3)='      diff dir N  temp    %  direc speed'
-      ELSEIF(IDNGH.EQ.123)THEN
-        item(3)='      diff glo H  temp    %  direc speed'
-      ENDIF
       do 40 I=1,24
-        write (holdd(i),'(2i6,f6.1,2i5,f6.1)') INT(CDIF(I)),
-     &    INT(CDNR(I)),CTMP(I),INT(CHUM(I)),INT(CDIR(I)),CVEL(I)
         CALL EMKEY(I,KEY,IER)
-        write (item(i+3),'(a1,i3,a34)')key,i,holdd(i)
+        write (item(i+3),'(a1,i3,f10.1)')key,i,CMRVAL(icurmet,I)
   40  continue
       item(28)= ' _______________________________________'
       item(29)= '> update database'
@@ -135,13 +157,28 @@ C Check if user wishes to edit another day.
           CALL ASKOK(' ','Update database?',OK,dok,nbhelp)
           if(OK)then
             call CLMPUT(IDAY)
-            IREC=366
-            IADN=IDNGH
-            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IADN
-            IREC=367
-            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLMLOC
-            IREC=368
-            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
+            if (CFVER.eq.1) then
+              IREC=366
+              IADN=IDNGH
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFYEAR,IADN
+              IREC=367
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLOC
+              IREC=368
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLAT,CFLONG
+            else
+              IREC=366
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &          CFYEAR
+              IREC=IREC+1
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &          CFLOC,CFLAT,CFLONG
+              IREC=IREC+1
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &          (CMCOL(i),i=1,CFMCM)
+              IREC=IREC+1
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &          CFVER
+            endif
           endif
           altered=.false.
         endif
@@ -189,13 +226,28 @@ C Setup and pass in parameters to win3d.
 
 C Transfer all climatic data to file.
         call CLMPUT(IDAY)
-        IREC=366
-        IADN=IDNGH
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IADN
-        IREC=367
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLMLOC
-        IREC=368
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
+        if (CFVER.eq.1) then
+          IREC=366
+          IADN=IDNGH
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFYEAR,IADN
+          IREC=367
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLOC
+          IREC=368
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLAT,CFLONG
+        else
+          IREC=366
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &       CFYEAR
+          IREC=IREC+1
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &       CFLOC,CFLAT,CFLONG
+          IREC=IREC+1
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &       (CMCOL(i),i=1,CFMCM)
+          IREC=IREC+1
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &       CFVER
+        endif
         altered=.false.
 
 C Check if user wishes to edit another day.
@@ -206,27 +258,49 @@ C Check if user wishes to edit another day.
         IF(OK)GOTO 31
       elseif(INO.gt.3.and.INO.lt.29)then
         ifoc=ino-3
-        WRITE(HOLD,'(a)')holdd(ifoc)
-        IF(IDNGH.EQ.0)THEN
-          write(outs,'(a,i2,a)')'At hour ',ifoc,
-     &    ' diff rad, direct N rad, db temp, RH %, wind direc & speed'
-        ELSEIF(IDNGH.EQ.123)THEN
-          write(outs,'(a,i2,a)')'At hour ',ifoc,
-     &     ' diff rad, glob hor rad, db temp, RH %, wind direc & speed'
-        ENDIF
+        WRITE(HOLD,'(f10.1)')CMRVAL(icurmet,ifoc)
+        ln=lnblnk(CMNAMF(icurmet))
+        write(outs,'(2a,i2)')CMNAMF(icurmet)(1:ln),' at hour ',ifoc
         helptopic='one_day_data_summary'
         call gethelptext(helpinsub,helptopic,nbhelp)
-  42    CALL EASKS(HOLD,outs,' ',36,' 0. 0. 10. 10 0 0.0 ','clm data',
+  42    CALL EASKS(HOLD,outs,CMUNIT(icurmet),10,' 0. ','clm datum',
      &    IER,nbhelp)
         K=0
-        CALL EGETWR(HOLD,K,CDIF(IFOC),0.0,1353.0,'W','dif sol',IER)
-        CALL EGETWR(HOLD,K,CDNR(IFOC),0.0,1353.0,'W','dir sol',IER)
-        CALL EGETWR(HOLD,K,CTMP(IFOC),-30.0,60.0,'W','db tmp',IER)
-        CALL EGETWR(HOLD,K,CHUM(IFOC),0.0,100.0,'W','RH',IER)
-        CALL EGETWR(HOLD,K,CDIR(IFOC),-359.0,359.0,'W','w dir',IER)
-        CALL EGETWR(HOLD,K,CVEL(IFOC),0.0,60.0,'W','w vel',IER)
+        if (icurmet.eq.1 .or. icurmet.eq.5) then
+          rtmpmax=real(CFMAX(icurmet))/10.
+          rtmpmin=real(CFMIN(icurmet))/10.
+        else          
+          rtmpmax=real(CFMAX(icurmet))
+          rtmpmin=real(CFMIN(icurmet))
+        endif
+        CALL EGETWR(HOLD,K,CMRVAL(icurmet,ifoc),rtmpmin,rtmpmax,'W',
+     &    'clm datum',IER)
         if(ier.ne.0)goto 42
         altered=.true.
+
+C Change focus metric.
+      elseif (ino.eq.2) then
+        call edisp(iuout,'Available climate metrics:')
+        do imet=1,MCM
+          if (CMXST(imet)) then
+            write(outs,'(i2.2,1x,a)')imet,CMNAMF(imet)
+            call EDISP(iuout,outs(1:lnblnk(outs)))
+          endif
+        enddo
+        if (CFVER.eq.1) then
+          itmp=7
+        else
+          itmp=CFMCM
+        endif
+        helptopic='pick_a_metric'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+  295   call EASKI(icurmet,'See text feedback for available metrics',
+     &    'Metric index:',1,'F',itmp,'F',1,'focus metric',IER,nbhelp)
+        if (.not.CMXST(icurmet)) then
+          call usrmsg('This metric not available.',
+     &      'Please choose another.','W')
+          goto 295
+        endif
       else
         ino= -1
         goto 18
@@ -246,6 +320,7 @@ C ********** SITEDIT
 C SITEDIT edits site related data in a weather file.
       SUBROUTINE SITEDIT
 #include "esprdbfile.h"
+#include "climate.h"
       COMMON/FILEP/IFIL
       COMMON/RADTYP/IDNGH
 
@@ -264,46 +339,53 @@ C Ask for the year (2007 convenintly has monday on 1 Jan).
       helptopic='what_is_the_year'
       call gethelptext(helpinsub,helptopic,nbhelp)
       CALL EASKI(IYEAR,' ',' What is the year ? ',
-     &         1900,'F',2051,'W',2007,'year',IER,nbhelp)
-      ICYEAR=IYEAR
-
-C Now transfer to the weather file.
-      IREC=366
-      IADN=IDNGH
-      WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IADN
+     &         1900,'F',2051,'W',2019,'year',IER,nbhelp)
+      CFYEAR=IYEAR
 
 C Determine the weather data location.
-      T30=CLMLOC
+      T30=CFLOC
       helptopic='what_is_descr'
       call gethelptext(helpinsub,helptopic,nbhelp)
       CALL EASKS(T30,'Weather site name (up to 30 char)','Confirm:',
      &  30,'North_Pole','weather site. ',IER,nbhelp)
-      if(T30(1:2).ne.'  ') CLMLOC=T30
-      IREC=367
-      WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLMLOC
+      if(T30(1:2).ne.'  ') CFLOC=T30
 
       helptopic='what_is_latitude'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKR(CLAT,' ','Weather site latitude:',
+      CALL EASKR(CFLAT,' ','Weather site latitude:',
      &  -89.9,'W',89.9,'W',30.0,'weather latitude',IER,nbhelp)
 
       helptopic='what_is_long_diff'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKR(CLONG,'Weather site either longitude or longitude',
+      CALL EASKR(CFLONG,'Weather site either longitude or longitude',
      &  'difference from local time meridian +east:',
      &  -14.9,'W',14.9,'W',0.0,'weather long diff',IER,nbhelp)
-      IREC=368
-      WRITE(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
 
-C Transfer all climatic data to file.
-      IREC=366
-      IADN=IDNGH
-      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)IYEAR,IADN
-      IREC=367
-      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLMLOC
-      IREC=368
-      WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CLAT,CLONG
+C Transfer climate metadata to file.
+      if (CFVER.eq.1) then
+        IREC=366
+        IADN=IDNGH
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFYEAR,IADN
+        IREC=367
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLOC
+        IREC=368
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLAT,CFLONG
+      else
+        IREC=366
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &     CFYEAR
+        IREC=IREC+1
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &     CFLOC,CFLAT,CFLONG
+        IREC=IREC+1
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &     (CMCOL(i),i=1,CFMCM)
+        IREC=IREC+1
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+     &     CFVER
+      endif
 
+      CALL CLMMDN2O
    36 RETURN
 
 1000  write(outs,'(A,I4)')' Problem writing site data on rec ',IREC

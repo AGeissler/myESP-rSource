@@ -2,6 +2,12 @@ C Copy of several subroutines from mfprb3.F supporting the drawing
 C of 3D flow networks.
 
 C  mfwfdraw - draws 3D flow network overlay on wireframe from commons passed colour.
+C  symbol_flow_nd - draw a symbol for a flow node with optional name and type.
+C  symbol_flow_cmp - draw a symbol for a flow component with name and symbol type.
+C  draw_flow_link - draw_flow_link places dotted line between a flow node and
+C  mfwfdraw - fluid flow file: draw node & components from common block contents.
+C  draw_flow_value - places dotted line between a flow node and
+
 
 C ************************* MFWFDRAW 
 C MFWFDRAW Fluid flow file: draw common block contents.
@@ -21,6 +27,10 @@ C      COMMON/OUTIN/IUOUT,IUIN
       integer POS,NEG,CMPIS
       real xc,yc,zc,xw,yw,zw
       integer idms
+      logical iswater
+      character altcol*1,ccol*1
+
+      altcol='b'  ! blue alternative colour
 
       if(MMOD.lt.8) return  ! in text mode do not draw
       if(net3ddelay.eq.1)idms=40
@@ -34,10 +44,18 @@ C Node data.
           name=NDNAM(INOD)
           xw=HNOD(INOD,1);yw=HNOD(INOD,2); zw=HNOD(INOD,3)
           if(NDTYP(INOD).eq.0)then
-            call symbol_flow_nd(name,'iu',col,xw,yw,zw)
+            if(NDFLD(INOD).eq.1)then
+              call symbol_flow_nd(name,'iu',col,xw,yw,zw)
+            else
+              call symbol_flow_nd(name,'iu',altcol,xw,yw,zw)
+            endif
             call pausems(idms)
           elseif(NDTYP(INOD).eq.1)then
-            call symbol_flow_nd(name,'ik',col,xw,yw,zw)
+            if(NDFLD(INOD).eq.1)then
+              call symbol_flow_nd(name,'ik',col,xw,yw,zw)
+            else
+              call symbol_flow_nd(name,'ik',altcol,xw,yw,zw)
+            endif
             call pausems(idms)
           elseif(NDTYP(INOD).eq.2)then
             call symbol_flow_nd(name,'bk',col,xw,yw,zw)
@@ -57,38 +75,79 @@ C << CONSIDER NWPCMP()  >>
         DO ICMP=1,NCMP
           name=CMNAM(ICMP)
           xc=HCMP(ICMP,1,1);yc=HCMP(ICMP,1,2); zc=HCMP(ICMP,1,3)
+          call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
           IF(ITPCMP(ICMP).EQ. 10) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 11) THEN
             continue  ! Self regulating vent
           ELSE IF(ITPCMP(ICMP).EQ. 12) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law vol flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law vol flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law vol flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 15) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law mass flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 17) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law mass flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 20) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law vol flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law vol flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! quadratic law vol flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 25) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law mass flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law mass flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! quadratic law mass flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 30) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant vol flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant vol flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! constant vol flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 35) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant mass flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant mass flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! constant mass flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 40) THEN
-            call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Common orifice flow
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Common orifice flow
+            else
+              call symbol_flow_cmp(name,'or',altcol,xc,yc,zc) ! Common orifice flow
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 50) THEN
-            call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Laminar pipe vol
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Laminar pipe vol
+            else
+              call symbol_flow_cmp(name,'cd',altcol,xc,yc,zc) ! Laminar pipe vol
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.110) THEN
             call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Specific air flow
@@ -100,7 +159,11 @@ C << CONSIDER NWPCMP()  >>
             call symbol_flow_cmp(name,'bi',col,xc,yc,zc) ! Specific air flow door
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.210) THEN
-            call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! General flow conduit
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! General flow conduit
+            else
+              call symbol_flow_cmp(name,'cd',altcol,xc,yc,zc) ! General flow conduit
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.211) THEN
             call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Cowls and roof outlets (box)
@@ -118,16 +181,32 @@ C << CONSIDER NWPCMP()  >>
             call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Conduit starts in diverg 4 leg
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.310) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow inducer (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow inducer (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! General flow inducer (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.410) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow corrector (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow corrector (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! General flow corrector (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.420) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Corrector polynomial (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Corrector polynomial (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! Corrector polynomial (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.460) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Fixed flow rates controller (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Fixed flow rates controller (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! Fixed flow rates controller (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.500) THEN
             call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! multi-configuration (box)
@@ -137,18 +216,20 @@ C << CONSIDER NWPCMP()  >>
       endif
 
 C Connections drawn as dotted lines from node -> component -> node.
-  
-C << CONSIDER NWPCMP()  >>
-
       IF(NCNN.gt.0)then
         DO ICNN=1,NCNN
           POS=NODPS(ICNN); NEG=NODNE(ICNN)
+          if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
+            ccol='r'
+          else
+            ccol='b'
+          endif
           CMPIS=ITPCON(ICNN)
           xc=HCMP(CMPIS,1,1); yc=HCMP(CMPIS,1,2); zc=HCMP(CMPIS,1,3)
           call draw_flow_link(HNOD(POS,1),HNOD(POS,2),HNOD(POS,3),
-     &       xc,yc,zc)
+     &       xc,yc,zc,ccol)
           call draw_flow_link(xc,yc,zc,
-     &       HNOD(NEG,1),HNOD(NEG,2),HNOD(NEG,3))
+     &       HNOD(NEG,1),HNOD(NEG,2),HNOD(NEG,3),ccol)
         ENDDO
       endif
 
@@ -189,6 +270,7 @@ C Get pixel position to draw at.
 
 C Draw circles depending on type. (powderblue is 27) (navy blue is 34)
       if(col.eq.'r') iicol=0   ! red
+      if(col.eq.'b') iicol=13  ! royal blue
       if(col.eq.'g') iicol=32  ! grey50
       call winscl('z',iicol)
       if(type.eq.'bw')then
@@ -208,24 +290,19 @@ C Draw circles depending on type. (powderblue is 27) (navy blue is 34)
 C Write name for other than 'iu'.
       if(type.eq.'iu')then
         write(t13,'(A)')name(1:lnblnk(name))
-C        IF(IFS.GT.0)CALL winfnt(0)
         iid4 = iix +8  ! offset to right of circle
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
         ibsize=0
         call textsizeatxy(iid4,iiy+8,t13,ibsize,'z',iicol)
-C        IF(IFS.GT.0)CALL winfnt(IFS)
         call forceflush()
       else
         write(t13,'(A)')name(1:lnblnk(name))
-C        IF(IFS.GT.0)CALL winfnt(0)
         iid4 = iix +8  ! offset to right of circle
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
         ibsize=0
-C        call winscl('z',iicol)
         call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
-C        IF(IFS.GT.0)CALL winfnt(IFS)
         call forceflush()
       endif
       iicol=0
@@ -252,9 +329,9 @@ C col is 'r' red  'g' grey
       DIMENSION  COG1(3),COG2(3),COG3(3)
       character t13*13
 #ifdef OSI
-      integer iix,iiy,iid4,iicol
+      integer iix,iiy,iid4,iicol,ibsize
 #else
-      integer*8 iix,iiy,iid4,iicol
+      integer*8 iix,iiy,iid4,iicol,ibsize
 #endif
 
       if(MMOD.lt.8) return  ! in text mode do not draw
@@ -267,6 +344,7 @@ C Get pixel position to draw at.
 
 C Draw symbol depending on type.
       if(col.eq.'r') iicol=0   ! red
+      if(col.eq.'b') iicol=13  ! royal blue
       if(col.eq.'g') iicol=32  ! grey50
       call winscl('z',iicol)
       if(type.eq.'bx')then
@@ -288,6 +366,7 @@ C Write name to the right of the symbol.
         write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +8
         if(col.eq.'r') iicol=0   ! red
+        if(col.eq.'b') iicol=13  ! royal blue
         if(col.eq.'g') iicol=32  ! grey50
         call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
@@ -295,6 +374,7 @@ C Write name to the right of the symbol.
         write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +10
         if(col.eq.'r') iicol=0   ! red
+        if(col.eq.'b') iicol=13  ! royal blue
         if(col.eq.'g') iicol=32  ! grey50
         call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
@@ -302,6 +382,7 @@ C Write name to the right of the symbol.
         write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +10
         if(col.eq.'r') iicol=0   ! red
+        if(col.eq.'b') iicol=13  ! royal blue
         if(col.eq.'g') iicol=32  ! grey50
         call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
@@ -309,6 +390,7 @@ C Write name to the right of the symbol.
         write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +8
         if(col.eq.'r') iicol=0   ! red
+        if(col.eq.'b') iicol=13  ! royal blue
         if(col.eq.'g') iicol=32  ! grey50
         call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
@@ -316,6 +398,7 @@ C Write name to the right of the symbol.
         write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +8
         if(col.eq.'r') iicol=0   ! red
+        if(col.eq.'b') iicol=13  ! royal blue
         if(col.eq.'g') iicol=32  ! grey50
         call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
@@ -330,13 +413,13 @@ C ********* draw_flow_link
 C Draw_flow_link places dotted line between a flow node and
 C component in such as way as to not obscure node and/or component.
 
-      subroutine draw_flow_link(xs,ys,zs,xe,ye,ze)
+      subroutine draw_flow_link(xs,ys,zs,xe,ye,ze,col)
 #include "building.h"
 #include "prj3dv.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 C      COMMON/OUTIN/IUOUT,IUIN
       real xs,ys,zs,xe,ye,ze
-
+      character col*1
       real tdis
 C      character outs*124
       DIMENSION COG1(3),COG2(3),COG3(3)
@@ -382,7 +465,10 @@ C Now do the other end.
       call u2pixel(COG3(1),COG3(2),iix2,iiy2)
 
 C Draw a dotted line (in red=0) (powderblue 27) (navy blue 34) (midnight blue 1).
-      iicol=0  ! red
+      if(col.eq.'r') iicol=0   ! red
+      if(col.eq.'b') iicol=13   ! royal blue
+      if(col.eq.'g') iicol=32  ! grey50
+C      iicol=0  ! red
       call winscl('z',iicol)
       call edline(iix1,iiy1,iix2,iiy2,2)
       call forceflush()
@@ -410,6 +496,10 @@ C      COMMON/OUTIN/IUOUT,IUIN
       integer POS,NEG,CMPIS
       real xc,yc,zc,xw,yw,zw
       integer idms
+      logical iswater
+      character altcol*1
+
+      altcol='b'  ! blue alternative colour
 
       if(MMOD.lt.8) return  ! in text mode do not draw
       if(net3ddelay.eq.1)idms=20
@@ -423,16 +513,32 @@ C Node data.
           name=NDNAM(INOD)
           xw=HNOD(INOD,1);yw=HNOD(INOD,2); zw=HNOD(INOD,3)
           if(NDTYP(INOD).eq.0)then
-            call symbol_flow_nd(name,'iu',col,xw,yw,zw)
+            if(NDFLD(INOD).eq.1)then
+              call symbol_flow_nd(name,'iu',col,xw,yw,zw)
+            else
+              call symbol_flow_nd(name,'iu',altcol,xw,yw,zw)
+            endif
             call pausems(idms)
           elseif(NDTYP(INOD).eq.1)then
-            call symbol_flow_nd(name,'ik',col,xw,yw,zw)
+            if(NDFLD(INOD).eq.1)then
+              call symbol_flow_nd(name,'ik',col,xw,yw,zw)
+            else
+              call symbol_flow_nd(name,'ik',altcol,xw,yw,zw)
+            endif
             call pausems(idms)
           elseif(NDTYP(INOD).eq.2)then
-            call symbol_flow_nd(name,'bk',col,xw,yw,zw)
+            if(NDFLD(INOD).eq.1)then
+              call symbol_flow_nd(name,'bk',col,xw,yw,zw)
+            else
+              call symbol_flow_nd(name,'bk',altcol,xw,yw,zw)
+            endif
             call pausems(idms)
           elseif(NDTYP(INOD).eq.3)then
-            call symbol_flow_nd(name,'bw',col,xw,yw,zw)
+            if(NDFLD(INOD).eq.1)then
+              call symbol_flow_nd(name,'bw',col,xw,yw,zw)
+            else
+              call symbol_flow_nd(name,'bw',altcol,xw,yw,zw)
+            endif
             call pausems(idms)
           endif
         ENDDO
@@ -446,38 +552,79 @@ C << CONSIDER NWPCMP()  >>
         DO ICMP=1,NCMP
           name=CMNAM(ICMP)
           xc=HCMP(ICMP,1,1);yc=HCMP(ICMP,1,2); zc=HCMP(ICMP,1,3)
+          call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
           IF(ITPCMP(ICMP).EQ. 10) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 11) THEN
             continue  ! Self regulating vent
           ELSE IF(ITPCMP(ICMP).EQ. 12) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law vol flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law vol flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law vol flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 15) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law mass flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 17) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law mass flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 20) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law vol flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law vol flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! quadratic law vol flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 25) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law mass flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law mass flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! quadratic law mass flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 30) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant vol flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant vol flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! constant vol flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 35) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant mass flow (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant mass flow (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! constant mass flow (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 40) THEN
-            call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Common orifice flow
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Common orifice flow
+            else
+              call symbol_flow_cmp(name,'or',altcol,xc,yc,zc) ! Common orifice flow
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ. 50) THEN
-            call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Laminar pipe vol
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Laminar pipe vol
+            else
+              call symbol_flow_cmp(name,'cd',altcol,xc,yc,zc) ! Laminar pipe vol
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.110) THEN
             call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Specific air flow
@@ -489,7 +636,11 @@ C << CONSIDER NWPCMP()  >>
             call symbol_flow_cmp(name,'bi',col,xc,yc,zc) ! Specific air flow door
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.210) THEN
-            call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! General flow conduit
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! General flow conduit
+            else
+              call symbol_flow_cmp(name,'cd',altcol,xc,yc,zc) ! General flow conduit
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.211) THEN
             call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Cowls and roof outlets (box)
@@ -507,16 +658,32 @@ C << CONSIDER NWPCMP()  >>
             call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Conduit starts in diverg 4 leg
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.310) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow inducer (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow inducer (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! General flow inducer (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.410) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow corrector (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow corrector (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! General flow corrector (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.420) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Corrector polynomial (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Corrector polynomial (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! Corrector polynomial (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.460) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Fixed flow rates controller (box)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Fixed flow rates controller (box)
+            else
+              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! Fixed flow rates controller (box)
+            endif
             call pausems(idms)
           ELSE IF(ITPCMP(ICMP).EQ.500) THEN
             call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! multi-configuration (box)
@@ -530,7 +697,7 @@ C << CONSIDER NWPCMP()  >>
       END
 
 C ********* draw_flow_value
-C Draw_flow_link places dotted line between a flow node and
+C Draw_flow_value places dotted line between a flow node and
 C component in such as way as to not obscure node and/or component.
 
       subroutine draw_flow_value(word,xs,ys,zs,xe,ye,ze)
@@ -562,9 +729,11 @@ C      write(outs,'(a,3f7.3,a,3f7.3,a,2f9.4)') ' Distance between ',
 C     &   xs,ys,zs,' & ',xe,ye,ze,' =',tdis,hdis
 C      call edisp(iuout,outs)
       if(tdis.gt.10)then
-        vdis=0.35
+        vdis=0.3
+      elseif(tdis.gt.2.and.tdis.le.10)then
+        vdis=0.2
       else
-        vdis=0.25
+        vdis=0.1
       endif
 
 C Use ratio calculation.

@@ -1635,7 +1635,7 @@ C             if (btest(innum,6) .eq. .TRUE.) nclosed = 1
              if (btest(innum,6)) nclosed = 1
         elseif (gcode.eq.90) then
           nblwpoints = innum   ! expected number of points
-          write(6,*) 'gcode90 ',innum,realin,nblwpoints
+C          write(6,*) 'gcode90 ',innum,realin,nblwpoints
         elseif (gcode.eq.210) then
           xnorm = realin
         elseif (gcode.eq.220) then

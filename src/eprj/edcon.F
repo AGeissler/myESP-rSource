@@ -454,9 +454,17 @@ C current menu line index. Build up text strings for the menu.
           lnsn=lnblnk(SSNAME(icn1))
           if(lnsn.lt.10) lnsn=10
           lnop=lnblnk(OPTIC)
-          WRITE(VERT(M),14)KEY,SSNAME(icn1)(1:lnsn),
+          iwid=8+lnsn+4+lnsmlcn+lnop
+          if(iwid.le.48)then
+            WRITE(VERT(M),14)KEY,SSNAME(icn1)(1:lnsn),
      &      SSOTF(icn1)(1:4),
      &      SSMLCN(icn1)(1:lnsmlcn),OPTIC(1:lnop)
+          else
+            lnop=lnop-(iwid-48)
+            WRITE(VERT(M),14)KEY,SSNAME(icn1)(1:lnsn),
+     &      SSOTF(icn1)(1:4),
+     &      SSMLCN(icn1)(1:lnsmlcn),OPTIC(1:lnop)
+          endif
    14     FORMAT(A,2X,A,2X,A,2X,A,1X,A)
         ENDIF
    10 CONTINUE
@@ -621,8 +629,8 @@ C Ask for name of file to put common block information into.
       ENDIF
 
 C Save current information into a descriptive file
-C and save the system configuration file if not browsing.
-      if(cfgok.and.(.NOT.browse))then
+C and save the system configuration file.
+      if(cfgok)then
         IUF=IFIL+2
         call tstamp('>','PRJ: save zone construction')
         CALL EMKCON(LTHRM(ICOMP),IUF,ICOMP,QUIET,IER)

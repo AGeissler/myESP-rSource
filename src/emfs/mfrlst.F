@@ -69,7 +69,7 @@ C Initial menu entry setup.
 C Set up fluid types (6 characters): up to 10 can be supported
       FTYPN(1)='air'
       FTYPN(2)='water'
-      FTYPN(2)='steam'
+      FTYPN(3)='steam'
 C etc ...
 
 C Loop through the items until the page to be displayed. M is the 

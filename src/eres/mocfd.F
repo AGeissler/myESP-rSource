@@ -91,6 +91,8 @@ C asking which domain.
       COMMON/cfdhsh/NCFDSZ,NRCFDOM(MNZ)
       common/EQTION3/CALLMA(MNZ),CALPOL(MCTM,MNZ),POLNAM(MCTM,MNZ),
      &               NCTM(MNZ),JHUMINDX(MNZ),URFC(MCTM)
+      LOGICAL CALPOL,CALLMA
+      CHARACTER POLNAM*12
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       common/GRDVRTS/iorg(MNZ),ixend(MNZ),iyend(MNZ),izend(MNZ),
      &  izende(MNZ)
@@ -99,8 +101,7 @@ C NCDOM - number of CFD domains
 C ICFDZ - thermal zone associated with each CFD domain
       COMMON/cfddoms/NCDOM,ICFDZ(MNZ)
 
-      LOGICAL CALPOL,CALLMA
-      CHARACTER LCFD*72,POLNAM*12
+      CHARACTER LCFD*72
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -194,10 +195,6 @@ C NCFDSZ is the number of records for each timestep (all CFD domains).
         endif
  10   continue
 
-C Set up contaminants in correct CFD domain
-      DO 1234 ICTM=1,NCTM(ICFD)
-        POLNAM(ICTM,ICFDZ(NCDOM))=POLNAM(ICTM,ICFD)
- 1234 CONTINUE
       if (NCDOM.eq.0) then
         call edisp(iuout,'No CFD zones detected')
       elseif (NCDOM.eq.1) then
@@ -528,6 +525,10 @@ C redefine name of image. As for temperature range.
           do 48 IM=1,Nview(ICOMP)
             ISOPT(IM)=-1
  48       continue
+
+C Create paraview boundary condition files, if needed.
+          if (imgtyp.eq.5) call paraviewbc
+
           do 50 IFRAME=ICTS,ICTF
             call RDCFDAT(IFRAME)
             if (imgtyp.eq.4) then
@@ -756,7 +757,7 @@ C Find CFD point closest to MRT sensor.
             DY=(DXC(IMRT)/2.)*SA+(DYC(IMRT)/2.)*CA
             CALL CFDTRANS(2,XOC(IMRT)+DX,YOC(IMRT)+DY,
      &                      ZOC(IMRT)+DZC(IMRT)/2,XC,YC,ZC,IER)
-            CALL FDCFDPT(XC,YC,ZC,IIX,IIY,IIZ,IER)
+            CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
             if (IER.ne.0) then
               call edisp(iuout,' Problem finding CFD point')
             endif
@@ -831,7 +832,7 @@ C Find CFD plane closest to selected Z height.
             CALL GRIDGEO
             CALL CFDTRANS(2,ZCOG(ICOMP,1),ZCOG(ICOMP,2),ZCOG(ICOMP,3),
      &        XC,YC,ZC,IER)
-            CALL FDCFDPT(XC,YC,ZC,IIX,IIY,IIZ,IER)
+            CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
             if (IER.ne.0) then
               call edisp(iuout,' Problem finding CFD point')
               goto 3
@@ -1340,6 +1341,7 @@ C           a file.
       integer igraphiclib  ! external definition
       character outs*124,ACT*1
       logical is_open,XST
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1382,22 +1384,19 @@ C name with the full path.
    11 iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
       if(iglib.eq.1.or.iglib.eq.3)then
         if(llt.lt.96)then
-          CALL EASKF(ltmpc,'CFD library name?',' ',96,LTMP,
-     &    'CFDresfl name',IER,nbhelp)
+          ISTRW=96
         elseif(llt.ge.96.and.llt.lt.124)then
-          CALL EASKF(ltmpc,'CFD library name?',' ',124,LTMP,
-     &    'CFDresfl name',IER,nbhelp)
+          ISTRW=124
         elseif(llt.ge.124.and.llt.le.144)then
-          CALL EASKF(ltmpc,'CFD library name?',' ',144,LTMP,
-     &    'CFDresfl name',IER,nbhelp)
+          ISTRW=144
         endif
       elseif(iglib.eq.2)then
-        CALL EASKF(ltmpc,'CFD library name?',' ',144,LTMP,
-     &  'CFDresfl name',IER,nbhelp)
+        ISTRW=144
       else
-        CALL EASKF(ltmpc,'CFD library name?',' ',96,LTMP,
-     &  'CFDresfl name',IER,nbhelp)
+        ISTRW=96
       endif
+      CALL EASKF(ltmpc,'CFD library name?',' ',ISTRW,LTMP,
+     &  'CFDresfl name',IER,nbhelp)
       if(ier.eq.-3) goto 925  ! cancel detected, no CFD.
 
       if(ltmpc(1:2).ne.'  '.and.ltmpc(1:4).ne.'UNKN')then
@@ -1440,7 +1439,7 @@ C          write(6,*) IRLEN,ICFDSV,(IEQSV(J),J=1,5+MCTM)
       ELSE
         call usrmsg(' Could not find: ',LTMP,'W')
         path=lpath
-        goto 924
+        goto 11
       ENDIF
       path=lpath
 
@@ -1562,7 +1561,7 @@ C   IMFLIST(LISTID,3) = Z cell
       COMMON/ICFNOD/ICFD,ICP
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
       COMMON/MFPK2/NMFLST,IMFLIST(MFCNLST,MFCNEL+1)
-      character SMFLABEL*32,GMFLABEL*20,GLMFLABEL*32
+      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
       COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
       integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
       COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
@@ -1583,6 +1582,7 @@ C   IMFLIST(LISTID,3) = Z cell
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       common/recov01/pifltog,lpifl
       character pifltog*4,lpifl*96
+      common/mfocup/iocpzone
 
       CHARACTER ITEM(35)*23, MTITLE*22, values*20
 
@@ -1812,7 +1812,7 @@ C each have a different line colour.
         IMFGETNO(NMFGET,6)=1
         IMFGETNO(NMFGET,7)=1
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Ambient db Tmp'; LNGMFLABEL(NMFGET)=14
+        GMFLABEL(NMFGET)='Ambient db (C)'; LNGMFLABEL(NMFGET)=14
         GLMFLABEL(NMFGET)='Ambient dry bulb Temp'
         LNGLMFLABEL(NMFGET)=21
         if(IROC.eq.0)then
@@ -1867,7 +1867,7 @@ C Wind direction: IMFGET = 11
         IMFGETNO(NMFGET,6)=4
         IMFGETNO(NMFGET,7)=4
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Wind dir'; LNGMFLABEL(NMFGET)=8
+        GMFLABEL(NMFGET)='Wind direction'; LNGMFLABEL(NMFGET)=14
         GLMFLABEL(NMFGET)='Wind direction'; LNGLMFLABEL(NMFGET)=14
         if(IROC.eq.0)then
           SMFLABEL(NMFGET)='Wind direction (deg)'
@@ -2517,7 +2517,7 @@ C Find CFD grid cell closest to an MRT sensor.
             DY=(DXC(IMRT)/2.)*SA+(DYC(IMRT)/2.)*CA
             CALL CFDTRANS(2,XOC(IMRT)+DX,YOC(IMRT)+DY,
      &                      ZOC(IMRT)+DZC(IMRT)/2,XC,YC,ZC,IER)
-            CALL FDCFDPT(XC,YC,ZC,ilayer,jlayer,klayer,IER)
+            CALL FDCFDPT(1,XC,YC,ZC,ilayer,jlayer,klayer,IER)
             ilayer=ilayer-1
             jlayer=jlayer-1
             klayer=klayer-1
@@ -2551,7 +2551,7 @@ C Find CFD plane closest to selected Z height.
             CALL GRIDGEO
             CALL CFDTRANS(2,ZCOG(ICP,1),ZCOG(ICP,2),ZCOG(ICP,3),
      &        XC,YC,ZC,IER)
-            CALL FDCFDPT(XC,YC,ZC,ilayer,jlayer,klayer,IER)
+            CALL FDCFDPT(1,XC,YC,ZC,ilayer,jlayer,klayer,IER)
 
 C Decrement ?layers, because FDCFDPT includes wall grid points.
             ilayer=ilayer-1
@@ -2845,21 +2845,21 @@ C Ambient temperature.
         elseif (IMFGETNO(IGET,1).eq.10) then
 
 C Ambient wind speed.
-          IPAR=2
+          IPAR=5
           call MFCLIM(IDAY,IHR,ITS,IPAR,VAL)
           FLOWVALS(IGET)=VAL
 
         elseif (IMFGETNO(IGET,1).eq.11) then
 
 C Ambient wind direction.
-          IPAR=3
+          IPAR=6
           call MFCLIM(IDAY,IHR,ITS,IPAR,VAL)
           FLOWVALS(IGET)=VAL
 
         elseif (IMFGETNO(IGET,1).eq.12) then
 
 C Ambient RH.
-          IPAR=4
+          IPAR=7
           call MFCLIM(IDAY,IHR,ITS,IPAR,VAL)
           FLOWVALS(IGET)=VAL
 
@@ -2869,7 +2869,7 @@ C Ambient RH.
 
       RETURN
 
- 1000 call edisp(iuout,'CFD read data fault. Cannot read file.')
+ 1000 call edisp(iuout,' GOCFDGET: Cannot read CFD results libary.')
       call erpfree(iunit,istat)
       return
 

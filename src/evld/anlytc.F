@@ -910,7 +910,7 @@ C Copy the default validation model.
       CALL EROPER(ITRC,IUOUT,IUnit,IComp,IER)
       CALL EZCTLR(IUnit,ITRC,IUOUT,IER)
       IF(IHC(IComp).EQ.1)
-     &   call ehtcff(LHCCO(ICOMP),IUnit,IUOUT,IER)
+     &   call ehtcff(LHCCO(ICOMP),IUnit,IER)
       RETURN
       END
 

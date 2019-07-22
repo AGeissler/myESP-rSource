@@ -824,6 +824,7 @@ C default file names for databases
       dimension xl(MPCP),zl(MPCP),ior(MPCP),isut(5),inum(5)
       logical ok,dok
       integer iglib  ! are we running X11 or GTK
+      integer ISTRW
 
 C Parameters to see whether for a surface a coordinate set has been 
 C defined
@@ -1322,22 +1323,19 @@ C Read in pc from file c2e.cpdb rather than the standard pressure db.
           iglib = igraphiclib()
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(lltmp,' ','Pressure coefficients database?',
-     &          96,DAPRES,'pressure coef database',IER,3)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(lltmp,' ','Pressure coefficients database?',
-     &          124,DAPRES,'pressure coef database',IER,3)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(lltmp,' ','Pressure coefficients database?',
-     &          144,DAPRES,'pressure coef database',IER,3)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(lltmp,' ','Pressure coefficients database?',
-     &        144,DAPRES,'pressure coef database',IER,3)
+            ISTRW=144
           else
-            CALL EASKF(lltmp,' ','Pressure coefficients database?',
-     &        96,DAPRES,'pressure coef database',IER,3)
+            ISTRW=96
           endif
+          CALL EASKF(lltmp,' ','Pressure coefficients database?',
+     &      ISTRW,DAPRES,'pressure coef database',IER,3)
 
 C Write data to new file. 
 C 777      LAPRES=' '

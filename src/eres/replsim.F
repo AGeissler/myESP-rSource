@@ -57,6 +57,7 @@ C #include "geometry.h"
       character outs*124
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,XST,ok,dok,CFCDBOK
       logical dmdsok
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -105,18 +106,15 @@ C but if using GTK then we need the full length to avoid truncation.
 
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(longtmp,' ',
-     &      ' Corresponding system configuration file name ? ',
-     &      96,' ','configuration file',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(longtmp,' ',
-     &      ' Corresponding system configuration file name ? ',
-     &      144,' ','configuration file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(longtmp,' ',
-     &      ' Corresponding system configuration file name ? ',
-     &      96,' ','configuration file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(longtmp,' ',
+     &    'Corresponding system configuration file name?',
+     &    ISTR,' ','configuration file',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if (longtmp.eq.' ') goto 45

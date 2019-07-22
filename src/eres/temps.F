@@ -362,7 +362,7 @@ C Find CFD point closest to MRT sensor.
         DY=(DXC(IMRT)/2.)*SA+(DYC(IMRT)/2.)*CA
         CALL CFDTRANS(2,XOC(IMRT)+DX,YOC(IMRT)+DY,
      &                  ZOC(IMRT)+DZC(IMRT)/2,XC,YC,ZC,IER)
-        CALL FDCFDPT(XC,YC,ZC,IIX,IIY,IIZ,IER)
+        CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
         if (IER.ne.0) goto 924
         IXCEL=IIX-1
         IYCEL=IIY-1

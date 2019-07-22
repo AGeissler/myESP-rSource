@@ -176,11 +176,11 @@ C Set reasonable defaults to allow viewer to export xfig views in text mode.
 C Take command line file name as initail viewer file.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
         LCMDFL=inf
-        call edisp(iuout,'  ')  ! echo blank line
+C        call edisp(iuout,'  ')  ! echo blank line
         write(outs248,'(a,a)')'The input file is: ',LCMDFL
-        call edisp248(iuout,outs248,80)
+C        call edisp248(iuout,outs248,80)
       else
-        call edisp(iuout,'  ')  ! echo blank line
+C        call edisp(iuout,'  ')  ! echo blank line
         LCMDFL=' '
       endif
 

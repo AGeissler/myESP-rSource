@@ -514,7 +514,7 @@ C Read header : * CONTROL FUNCTION.
         IF(IER.NE.0)GOTO 99
         HDG=OUTSTR(1:5)
         IF(HDG.NE.'* CON'.AND.HDG.NE.'* Con'.AND.HDG.NE.'* con')THEN
-          CALL USRMSG(' ',' * CONTROL string not found ','W')
+          CALL USRMSG(' ',' * CONTROL string (bui) not found ','W')
           GOTO 1111
         ENDIF
 
@@ -775,7 +775,7 @@ C Read header : * control loops.
         IF(IER.NE.0)GOTO 99
         HDG=OUTSTR(1:5)
         IF(HDG.NE.'* CON'.AND.HDG.NE.'* Con'.AND.HDG.NE.'* con')THEN
-          CALL USRMSG(' ',' * CONTROL string not found ','W')
+          CALL USRMSG(' ',' * CONTROL string (plt) not found ','W')
           GOTO 1111
         ENDIF
 
@@ -1328,7 +1328,7 @@ C Read header : * control loops.
         IF(IER.NE.0)GOTO 99
         HDG=OUTSTR(1:5)
         IF(HDG.NE.'* CON'.AND.HDG.NE.'* Con'.AND.HDG.NE.'* con')THEN
-          CALL USRMSG(' ',' * CONTROL string not found ','W')
+          CALL USRMSG(' ',' * CONTROL string (eln) not found ','W')
           GOTO 1111
         ENDIF
 
@@ -1833,7 +1833,7 @@ C Reporting:
       IF(ITRC.GE.1)THEN
         CALL EDISP(ITRU,' ')
         WRITE(OUTSTR,2501)nCFCctlloops
-2501    FORMAT(' Within the current model',I3,' control loops',
+2501    FORMAT(' Within the current model',I3,' CFC control loops',
      &         ' have been specified. ')
         CALL EDISP(ITRU,OUTSTR)
         CALL EDISP(ITRU,' The overall project control is ')
@@ -1855,7 +1855,7 @@ C Read header : * CONTROL FUNCTION.
         IF(IER.NE.0)GOTO 99
         HDG=OUTSTR(1:5)
         IF(HDG.NE.'* CON'.AND.HDG.NE.'* Con'.AND.HDG.NE.'* con')THEN
-          CALL USRMSG(' ',' * CONTROL string not found ','W')
+          CALL USRMSG(' ',' * CONTROL string (CFC) not found ','W')
           GOTO 1111
         ENDIF
 
@@ -1935,23 +1935,18 @@ C Day types.
         CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'day types',IER)
         KG=0
         CALL EGETWI(OUTSTR,KG,nCFCctldaytypes(II),0,MCDT,'F',
-     &              'number of control day type(s)',IER)
+     &              'number of CFC control day type(s)',IER)
         IF(IER.NE.0)GOTO 99
 
 C Reporting:
         IF(ITRC.GE.1)THEN
-          IF(nCFCctldaytypes(II).EQ.0)THEN
-            CALL EDISP(ITRU,
-     &      ' The function day types are Weekdays, Saturdays & Sundays')
-          ELSE
-            WRITE(OUTSTR,778)nCFCctldaytypes(II)
- 778        FORMAT(' There have been ',I2,' day type(s) defined.')
-            CALL EDISP(ITRU,OUTSTR)
-          ENDIF
+          CALL EDISP(ITRU,' For CFC control')
+          CALL EDISP(ITRU,' the following day types have been defined')
+          write(outstr,'(20a)') (CALENTAG(idty),idty=1,NBDAYTYPE)
         ENDIF
 
-        nn=nCFCctldaytypes(ii)
-        if(nn.eq.0)nn=nbdaytype
+        nn=nCFCctldaytypes(ii)  ! a zero says use all day types
+        if(nn.eq.0)nn=NBDAYTYPE
         do 720 j=1,nn
           jj=j
           CALL STRIPC(IUNIT,OUTSTR,2,ND,1,'validity',IER)
@@ -1961,8 +1956,7 @@ C Reporting:
      &              'control activation start day number',IER)
           CALL EGETWI(OUTSTR,KG,iCFCctldatevalid(II,JJ,2),1,365,'F',
      &              'control activation end day number',IER)
-          IF(iCFCctldatevalid(II,JJ,2).LT.
-     &     iCFCctldatevalid(II,JJ,1))THEN
+          IF(iCFCctldatevalid(II,JJ,2).LT.iCFCctldatevalid(II,JJ,1))THEN
             CALL USRMSG(' ',' Start & End dates reversed.','W')
             GOTO 2000
           ENDIF
@@ -1970,7 +1964,7 @@ C Reporting:
           CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'periods',IER)
           KG=0
           CALL EGETWI(OUTSTR,KG,nCFCdayctlperiods(II,JJ),1,MCDP,'F',
-     &              'control periods during day',IER)
+     &              'CFC control periods during day',IER)
           IF(IER.NE.0)GOTO 99
 
           LL=nCFCdayctlperiods(II,JJ)
@@ -1999,7 +1993,7 @@ C Reporting:
               GOTO 2000
             ENDIF
 
-            CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'data next',IER)
+            CALL STRIPC(IUNIT,OUTSTR,0,ND,1,'misc data',IER)
             IF(IER.NE.0)GOTO 99
             KG=0
             CALL EGETWR(OUTSTR,KG,CFCmiscdata(II,JJ,KK,1),0.,
@@ -2538,13 +2532,16 @@ C Flow control type.
         IF(IFCTYP(II,JJ,KK).eq.5)SSTR= '1st phase > flow  '
         IF(IFCTYP(II,JJ,KK).eq.7)SSTR= '2nd phase > flow  '
         IF(IFCTYP(II,JJ,KK).eq.9)SSTR= 'plant > flow      '
-        IF(IFCTYP(II,JJ,KK).eq.11)SSTR='RH > flow         '
+        IF(IFCTYP(II,JJ,KK).eq.11)SSTR='RH (pltcnn) > flow'
+        IF(IFCTYP(II,JJ,KK).eq.17)SSTR='RH (zone) > flow  '
         IF(IFCTYP(II,JJ,KK).eq.24)SSTR='delt T > flow     '
         IF(IFCTYP(II,JJ,KK).eq.25)SSTR='abs Delt T > flow '
         IF(IFCTYP(II,JJ,KK).eq.26)SSTR='pressure > flow   '
         IF(IFCTYP(II,JJ,KK).eq.27)SSTR='delt prs > flow   '
         IF(IFCTYP(II,JJ,KK).eq.28)SSTR='abs delt P > flow '
         IF(IFCTYP(II,JJ,KK).eq.29)SSTR='abs flow > flow   '
+        IF(IFCTYP(II,JJ,KK).eq.30)SSTR='delt pD > flow    '
+        IF(IFCTYP(II,JJ,KK).eq.31)SSTR='delt RH > flow    '
         IF(IFCTYP(II,JJ,KK).eq.41)SSTR='contam conc > flow'
         IF(IFSN(II,1).EQ.-3)SSTR='outside ambient > flow  '
       ELSEIF(WHICH.EQ.'L'.OR.WHICH.EQ.'l')THEN

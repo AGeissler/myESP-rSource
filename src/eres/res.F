@@ -141,6 +141,7 @@ C Name of current application
       logical libheading ! have we printed report heading (library name etc).
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
+      integer ISTRW
 
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -201,6 +202,7 @@ C     NSIGFIG=3
       IMFS=1
       IFDAY=2
       IFTIME=0
+      ICLIM=IFIL+5
       IOPTDB=IFIL+6
       IUTDF=IFIL+7
       IUTDFA=IFIL+8
@@ -316,6 +318,9 @@ C and dialog.
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
+        IMFS=5
+        IFS=4
+        ITFS=1
         LIMTTY=16
         LIMIT =16
       ENDIF
@@ -431,9 +436,9 @@ C Scan the defaults file for default configuration.
 C Take command line file name as initial results file name.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
         LCMDFL=inf
-        call edisp(iuout,'  ')  ! echo blank line
+C        call edisp(iuout,'  ')  ! echo blank line
         write(outs248,'(a,a)')'The input file is: ',LCMDFL
-        call edisp248(iuout,outs248,90)
+C        call edisp248(iuout,outs248,90)
       else
         LCMDFL='UNKNOWN'
       endif
@@ -490,18 +495,15 @@ C Read the plant configuration file.
 
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1.or.iglib.eq.3)then
-            CALL EASKF(longtmp,' ',
-     &        ' Corresponding system configuration file name ?',
-     &        96,' ','configuration file',IER,nbhelp)
+            ISTRW=96
           elseif(iglib.eq.2)then
-            CALL EASKF(longtmp,' ',
-     &        ' Corresponding system configuration file name ?',
-     &        144,' ','configuration file',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(longtmp,' ',
-     &        ' Corresponding system configuration file name ?',
-     &        96,' ','configuration file',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(longtmp,' ',
+     &      'Corresponding system configuration file name?',
+     &      ISTRW,' ','configuration file',IER,nbhelp)
           if(ier.eq.-3) goto 902  ! cancel detected pass back -3 in ier.
 
           call fdroot(longtmp,path,LCFGF)
@@ -1046,10 +1048,6 @@ C Depending on computer type set integer size of passed parameters.
 
       SUBROUTINE BASESIMP_INPUTS(ICOMP,IER)
       integer icomp,ier
-      return
-      end
-
-      subroutine NEW2OLD()
       return
       end
 

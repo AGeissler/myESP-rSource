@@ -20,7 +20,7 @@ C Maximum number of plant database entries (=ESPpdb:MAXPC)
 C Maximum number of component BDATA
       PARAMETER (MBDATA=140)
 C Maximum number of plant network matrix coefficients (<= MPCOM * MPCOE)
-      PARAMETER (MCOEFG=2000)
+      PARAMETER (MCOEFG=5250)
 C Maximum number of data per component inter-connection (held by CONVAR)
       PARAMETER (MCONVR=4)
 C Maximum number plant component additional output variables

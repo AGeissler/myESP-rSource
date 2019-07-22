@@ -839,9 +839,9 @@ C Set chosen result set.
 600     CONTINUE
 
 C Get extenal climate parameters.
-        CALL MOCLIM(IDY,2)
+        CALL MOCLIM(IDY,1)
         X=GVAL(IBPSYTS)
-        CALL MOCLIM(IDY,28)
+        CALL MOCLIM(IDY,7)
         Z=GVAL(IBPSYTS)
         Y=1000.*HUMRT1(X,Z,PATMOS,IOPT)
         CALL PSYPLOT(X,Y,0,0)

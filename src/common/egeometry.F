@@ -48,6 +48,7 @@ C  INSINFO: English description of default insolation options.
 C  VERINFO: Prints vertex/surface list summaries.
 C  SURLIST: takes an list of surfaces (lstsf) returns descriptive
 C           string (sdescr) to be used in headers.
+C  MKVOBJILIST: Populates common VOBJILIST.
 
  
 C ******************** EGOMIN 
@@ -2501,7 +2502,10 @@ C If nmrtsen > 0 and ncub = 0 then reset ncub.
         elseif(WORD(1:13).eq.'*visual_start')then
 
 C Read another line to get the visual entities. There are slightly different
-C formats depending on whether the key is '*vis', '*vis3', 'visp'.
+C formats depending on whether the tag is:
+C *vis  - block perpendicular to the floor
+C *vis3 - block with arbitrary orientation
+C *visp - general 6 sided polygon
    73     CALL STRIPC1K(IUNIT,lkout,99,ND,0,'*vis tags',IER)
           k=0
           CALL EGETP(lkout,K,phrase,'W','visual tag',IER)
@@ -5355,7 +5359,7 @@ C last vertext is reached point the end to the start point.
             iwhichs(ijj)=0
   46      continue
           list=NVER(isurf)
-          nbedgshr(icc)=0     ! reset for this connection
+          nbedgshr(icc)=0     ! reset number of shared edges for this connection
           do 42 i=1,list      ! loop through each vertex
             iedgshr(icc,i)=0
             imatshr(icc,i)=0
@@ -6228,14 +6232,11 @@ C Report on what was found.
 C ***************** ZDATA 
 C ZDATA reads NZONES geometry and uses common blocks G1 G2 etc to fill
 C common blocks ZNDATA so wireframes can be drawn without the
-C need to re-read geometry files.
+C need to re-read geometry files. It is called as the model cfg file
+C is initially read as well as prior to topology checks.
 
 C << what if we know that connetions are correct, could this be
 C << dones as part of the geometry file read?
-
-C << there are many places where VCOORD, NZNVER and NZJVN
-C << could be used insted of G1 common block.
-
 C VCOORD : X,Y & Z coordinates of each vertice in zone.
 C NZNVER : number of vertices associated with each connection.
 C NZJVN : topology of vertices associated with each connection.
@@ -6895,4 +6896,36 @@ C Only give feedback if non-DOS.
       endif
       ierr=1
       return
+      END
+
+C *********** MKVOBJILIST
+C This subroutine populates common VOBJILIST (in geometry.h) for zone
+C iz. This is a list of indices of associated visual entities for
+C each visual object.
+
+C TODO: replace all uses of VOBJLIST with VOBJILIST.
+
+      SUBROUTINE MKVOBJILIST(iz)
+
+#include "building.h"
+#include "geometry.h"
+
+      character t12*12
+
+      if (NBVOBJ(iz).le.0) goto 999
+      if (NBVIS(iz).le.0) goto 999
+      do ivo=1,NBVOBJ(iz)
+        if (NBVOBJLIST(iz,ivo).le.0) CYCLE
+        do ivoe=1,NBVOBJLIST(iz,ivo)
+          t12=VOBJLIST(iz,ivo,ivoe)
+          do ive=1,NBVIS(iz)
+            if (VISNAME(iz,ive).eq.t12) then
+              VOBJILIST(iz,ivo,ivoe)=ive
+              EXIT
+            endif
+          enddo
+        enddo
+      enddo
+
+  999 RETURN
       END

@@ -1299,6 +1299,7 @@ c      character domain_s*16,category_s*16
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer icdbf   !0 if old format, 1 if new format.
+      integer ISTRW
 
 C Assume old format initially
       icdbf=0
@@ -1337,22 +1338,19 @@ C Deal with local or standard db location when making up the selection string.
       iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
       if(iglib.eq.1.or.iglib.eq.3)then
         if(llt.lt.96)then
-          CALL EASKF(lltmp,'Plant component database file name? ',' ',
-     &      96,DPCDB,' Database name ',IER,7)
+          ISTRW=96
         elseif(llt.ge.96.and.llt.lt.124)then
-          CALL EASKF(lltmp,'Plant component database file name? ',' ',
-     &      124,DPCDB,' Database name ',IER,7)
+          ISTRW=124
         elseif(llt.ge.124.and.llt.le.144)then
-          CALL EASKF(lltmp,'Plant component database file name? ',' ',
-     &      144,DPCDB,' Database name ',IER,7)
+          ISTRW=144
         endif
       elseif(iglib.eq.2)then
-        CALL EASKF(lltmp,'Plant component database file name? ',' ',
-     &    144,DPCDB,' Database name ',IER,7)
+        ISTRW=144
       else
-        CALL EASKF(lltmp,'Plant component database file name? ',' ',
-     &    96,DPCDB,' Database name ',IER,7)
+        ISTRW=96
       endif
+      CALL EASKF(lltmp,'Plant component database file name? ',' ',
+     &  ISTRW,DPCDB,' Database name ',IER,7)
       
 C Figure out local or standard database folder.
       call findwhichdbpath('pdb',lltmp,ier)

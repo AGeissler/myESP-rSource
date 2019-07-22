@@ -99,7 +99,7 @@ C Occupancy filter info.
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
 
-      character SMFLABEL*32,GMFLABEL*20,GLMFLABEL*32
+      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
       COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
       integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
       COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
@@ -121,7 +121,7 @@ C Simulator parameters.
       character TLABEL*60,trange*20,tranged*20,t28*28,dg*1
       character outs*124,outs248*248
       character outs800*800,outs800d*800  ! really long string buffers
-      character ALABEL(6)*12,t20*20,act*1
+      character ALABEL(6)*12,t20*24,act*1
       CHARACTER PDESCR*60,SDESCR*44,DESCR*7,DESCR1*10
       character lltmpc*144
       CHARACTER DESCRH*5,DESCRD*5,NT*14,XT*14
@@ -143,6 +143,7 @@ C Simulator parameters.
       integer POS,NEG,CMPIS
       real xc,yc,zc
       character word*12   ! for 3D value plotting.
+      integer ISTRW
 
       logical colok,ok,dok,CFDOK
 #ifdef OSI
@@ -212,22 +213,19 @@ C name with the full path.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(lltmpc,'Flow Library name? ',' ',96,DAFRES,
-     &        'flow library file',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(lltmpc,'Flow Library name? ',' ',124,DAFRES,
-     &        'flow library file',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(lltmpc,'Flow Library name? ',' ',144,DAFRES,
-     &        'flow library file',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(lltmpc,'Flow Library name? ',' ',144,DAFRES,
-     &      'flow library file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(lltmpc,'Flow Library name? ',' ',96,DAFRES,
-     &      'flow library file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(lltmpc,'Flow Library name? ',' ',ISTRW,DAFRES,
+     &    'flow library file',IER,nbhelp)
 
 C If user cancel.
         if(ier.eq.-3)then
@@ -1303,7 +1301,6 @@ C Finally label lines, matching zone line colour if used.
               if(ICM.gt.nzonec) ICM=IMFGETNO(I,2)-nzonec
               if(ICM.gt.nzonec) ICM=IMFGETNO(I,2)-nzonec
               iicol=ICM
-C              call winscl('z',iicol)
             endif
           endif
           call u2pixel(TIMEold(I),Yold(I),iid1,iid2)
@@ -1646,7 +1643,7 @@ C pixel references for calls to viewtext.
       IF(MMOD.EQ.8)THEN
 
 C Setup and pass in parameters to win3d.
-        iiw1=9; iiw2=30; iiw3=4; iiw4=3; iimenu=menuchw
+        iiw1=9; iiw2=32; iiw3=4; iiw4=3; iimenu=menuchw
         iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
         ilf=2; ild=LIMTTY
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.

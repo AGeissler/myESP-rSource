@@ -20,16 +20,13 @@ C Boston, MA 02111-1307 USA.
 
 C CLMSEQ identifies days and hours within the user-specified period that
 C contain values with a range of values and reports the occurrances. The
-C weather data values to be scanned are passed via the IP parameter:
-C   EXTERNAL AIR TEMPERATURE (IP = 2),
-C  DIRECT NORMAL SOLAR RADIATION (IP = 3),
-C  DIFFUSE HORIZONTAL SOLAR RADIATION (IP = 1),
-C  WIND SPEED (IP = 4), WIND DIRECTION (IP = 5),
-C  OR EXTERNAL RELATIVE HUMIDITY (IP = 6).
+C weather data values to be scanned are passed via the IP parameter.
+C IP is equal to climate metric index as defined in climate.h
+
 C This facility allows 'cold' or 'hot' or 'nice' days to be located.
 
       SUBROUTINE CLMSEQ(IP,XL,XU,nbdays,nbhours)
-      PARAMETER (MT=24)
+#include "climate.h"
 
 C Passed parameters:
       integer IP  ! which weather variable
@@ -40,16 +37,11 @@ C Passed parameters:
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/OUTPCH/ICOUT
-      COMMON/CLMVAR/VNAME(6)
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       common/exporttgi/ixopen,ixloc,ixunit
 
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
-      character PERST1*14,PERST2*44,PERST3*44,outs*124,VNAME*32
+      character PERST1*14,PERST2*44,PERST3*44,outs*124
       integer nbhoursinday   ! occurrances for current day
       character descr*7,DESCR1*10 
     
@@ -73,7 +65,10 @@ C If output to file alter the edisp unit number.
       WRITE(outs,'(1X,A44)')PERST2
       call edisp(iuout,outs)
 
-      WRITE(outs,'(2A)')' Analysis of ',VNAME(IP)
+      ln=lnblnk(CMNAMF(IP))
+      lu=lnblnk(CMUNIT(IP))
+      WRITE(outs,'(5A)')' Analysis of ',CMNAMF(IP)(1:ln),' (',
+     &  CMUNIT(IP)(1:lu),')'
       call edisp(itru,outs)
       WRITE(outs,51)XL,XU
 51    FORMAT(' specified range :',F8.2,' to ',F8.2)
@@ -99,19 +94,7 @@ C Read weather data for this day.
         DO 20 J=JS,JF        ! loop hours of the current period
 
 C Determine if appropriate parameter is within range.
-          if(IP.eq.1)then
-            X=CDIF(J)
-          elseif(IP.eq.2)then
-            X=CTMP(J)
-          elseif(IP.eq.3)then
-            X=CDNR(J)
-          elseif(IP.eq.4)then
-            X=CVEL(J)
-          elseif(IP.eq.5)then
-            X=CDIR(J)
-          elseif(IP.eq.6)then
-            X=CHUM(J)
-          endif
+          X=CMRVAL(IP,J)
 
           if(XXU.GT.X.AND.XXL.LT.X)then
             nbhours = nbhours+1            ! increment overall summation

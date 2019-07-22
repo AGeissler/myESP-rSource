@@ -256,6 +256,7 @@ C  difference between the external ambient and surface temperatures.
 #include "CFC_common.h"
 #include "net_flow.h"
 #include "tdf2.h"
+#include "climate.h"
 
       integer lnblnk  ! function definition
 
@@ -518,7 +519,7 @@ C Consider nodes 2-6.
 
       CALL EDAYR(IDYP,ID,IM)
 
-C If the first timestep of the simulation initialise
+C If the first timestep of the simulation, initialise
 C all of the nodes to the ground temperature, otherwise
 C only reset the lowest node.
       if(nsinc.gt.1)then
@@ -559,10 +560,32 @@ C Evaluate the quantity of cloud cover.
     6 CLOUD1=CLOUDC
    12 CONTINUE
 
-C Atmospheric pressure (fixed, but should depend on
-C site elevation).
+C Atmospheric pressure (fixed, but should depend on site elevation).
       PATM=965.0
 
+C Check if measured cloud cover and atmospheric pressure data is available in climate database.
+      IF(CMXST(8))THEN
+        IF(IHRF.gt.1)THEN
+          CCTOTAL=REAL(CMIVAL(8,IHRF))/10. !total cloud cover fraction
+        ELSE
+          CCTOTAL=REAL(CMIVAL(8,25))/10.  !first hour of next day
+        ENDIF
+      ENDIF
+      IF(CMXST(9))THEN
+        IF(IHRF.gt.1)THEN
+          CCOPAQUE=REAL(CMIVAL(9,IHRF))/10. !opaque cloud cover fraction
+        ELSE
+          CCOPAQUE=REAL(CMIVAL(9,25))/10.  !first hour of next day
+        ENDIF
+      ENDIF   
+      IF(CMXST(10))THEN
+        IF(IHRF.gt.1)THEN
+          PATM=REAL(CMIVAL(10,IHRF))/100.  !convert from Pa to mbar
+        ELSE
+          PATM=REAL(CMIVAL(10,25))/100.  !first hour of next day
+        ENDIF
+      ENDIF
+      
 C Compute the dew point temperature TDP.
       PSAT=6.1078*EXP(17.08085*TF/(234.175+TF))
       IF(ABS(PSAT).LT.1.0E-6)PSAT=1.0E-6
@@ -576,10 +599,10 @@ C For zero RF set dew point temperature to 293.
          TDP=293.0
       ENDIF
 
-C Here provide the different sky temperature options
+C Here provide the different sky temperature options.
       IF(iExt_longwave_flg.EQ.0)THEN
 
-C Use default Martin & Berdahl calculation
+C Use default Martin & Berdahl calculation.
 C Clear sky condition:
         PI = 4.0 * ATAN(1.0)
         TIM=2.0*PI*real(IHRF)/24.0
@@ -593,12 +616,23 @@ C Cloudy condition: assume cloud base is at 3km.
 C Radiation from the atmosphere:
         RSKY=SBC*(E0+(1.0-E0)*CLOUDC*GAMMA)*(TF+ZEROK)**4
 
-C Assume the atmosphere is a black body emitter:
+C If opaque and total cloud data is available from climate file, recalculate using
+C Martin-Berdahl (1984).
+        IF(CMXST(8).AND.CMXST(9))THEN  !total and opaque cloud cover data available
+          COPAQUE=CCOPAQUE*exp(-2.0/8.2)   !assume opaque cloud base is 2000m
+          CTHIN=(CCTOTAL-CCOPAQUE)*0.4*exp(-8.0/8.2) !assume thin cloud base is 8000m
+          RSKY=SBC*(E0+(1.0-E0)*(COPAQUE+CTHIN))*(TF+ZEROK)**4
+        ELSEIF(.NOT.CMXST(8).AND.CMXST(9))THEN  !only opaque cloud cover data available
+          COPAQUE=CCOPAQUE*exp(-3.0/8.2)   !assume cloud base is 3000m
+          CTHIN=0.0
+          RSKY=SBC*(E0+(1.0-E0)*(COPAQUE+CTHIN))*(TF+ZEROK)**4
+        ENDIF 
+
+C Assume the atmosphere is a black body emitter.
         TSKY=(RSKY/SBC)**0.25
         TSKYBM=TSKY
       ELSEIF(iExt_longwave_flg.EQ.1)THEN
 
-C Use Clarke's calculation
 C Clear sky temperature as in bld #5.4 (after Swinbank).
         TCSKY=0.05532*((TWBF+ZEROK)**1.5)
 
@@ -610,7 +644,7 @@ C Cloudy sky temperature as JC Book.
          TSKY=TSKYJC   
       ELSEIF(iExt_longwave_flg.EQ.2)THEN
 
-C Use Cole's calculation
+C Use Cole's calculation.
         EAIR=0.527+0.161*(EXP(8.45*(1.0-(273.0/(TWBF+ZEROK)))))
         ECLOUD=0.16*EAIR+0.84
 
@@ -627,7 +661,7 @@ C Sky temperature after Cole.
         TSKY=TSKYNEU
       ELSEIF(iExt_longwave_flg.EQ.3)THEN
 
-C Use Czeplak & Kasten calculation
+C Use Czeplak & Kasten calculation.
         ECZ=(9.365E-06)*(TF+ZEROK)**2
         RWOLKE=(ECZ+(1.0-ECZ)*(0.9-0.065*CBH))*SBC*((TF+ZEROK)**4)
         RKLAR=(1.174*SBC*ECZ*(TF+ZEROK)**4)-33.0
@@ -637,21 +671,21 @@ C Use Czeplak & Kasten calculation
         TSKY=TSKYCZ
       ELSEIF(iExt_longwave_flg.EQ.4)THEN
 
-C Use Swinbank (clear - uses dry bulb T) calculation
+C Use Swinbank (clear - uses dry bulb T) calculation.
 C Swinbank model with ambient air temperature.
         TSKYSW=0.05532*((TF+ZEROK)**1.5)       
         TSW=TSKYSW-ZEROK
         TSKY=TSKYSW
       ELSEIF(iExt_longwave_flg.EQ.5)THEN
 
-C Use Swinbank (clear - uses wet bulb T) calculation
+C Use Swinbank (clear - uses wet bulb T) calculation.
 C Clear sky temperature as in bld #5.4 (after Swinbank).
         TCSKY=0.05532*((TWBF+ZEROK)**1.5)        
         TCS=TCSKY-ZEROK
         TSKY=TCSKY
       ENDIF
 
-C If sky temperature is to be read from a temporal file then
+C If sky temperature is to be read from a temporal file then 
 C set it here.
       IF(ISKYTMP.gt.0)THEN
         itdi=ISKYTMP
@@ -659,18 +693,18 @@ C set it here.
         CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
         TSKY=VAL(ISD)+273.15   ! convert from C to K
         write(outs,'(a,F7.1,a,F7.1,a)')'MZELWE: measured sky temp (',
-     &   TSKY,' (degK) ',TSKY-ZEROK ,'(C) as been imposed.'
+     &   TSKY,'K has been imposed.'
         call edisp(iuout,outs)
         TTMPRL=TSKY   ! remember for trace report
       ENDIF
 
       IF(TSKY.LT.200.0.OR.TSKY.GT.325.0)then
-       write(outs,'(a,F7.1,a)')
-     &   'MZELWE: a dubious sky temperature (',
-     &   TSKY,'K has been calculated.'
+        write(outs,'(a,F7.1,a)')
+     &   'MZELWE: a dubious sky temperature of',TSKY,
+     &   'K has been calculated.'
         call edisp(iuout,outs)
         call edisp(iuout,
-     & ' The computed flux is ok unless another warning is given.')
+     &   'The computed flux is OK unless another warning is given.')
       endif
       CONTINUE
 
@@ -688,12 +722,6 @@ C buildings.
 C Longwave loss from ground: GRLW is the longwave reflectance.
       GRLW=0.05
       QGLF=(1.0-GRLW)*SBC*((TSKY**4)-((GTF(1)+ZEROK)**4))
-
-C For NT: required because QT is being corrupted!!!!
-C Re-initialise QT.
-C      QT=QFF+QDF*ESIND(SALT)
-C      IF(IRTYPE.EQ.1)QT=QDF
-C End For NT
 
 C Ground solar gain. 
       QGGF=0.0
@@ -843,12 +871,12 @@ c the most appropriate surface is found.
 C  Compute present time step future time row values.
       TGRD=GTF(1)+ZEROK
       IF(TGRD.LT.200.0.OR.TGRD.GT.350.0)then
-       write(outs,'(a,F8.2,a)')
-     &   'MZELWE: a dubious ground temperature (',
-     &   TGRD,') has been calculated.'
+        write(outs,'(a,F8.2,a)')
+     &   'MZELWE: a dubious ground temperature of',TGRD,
+     &   'C has been calculated.'
         call edisp(iuout,outs)
         call edisp(iuout,
-     & ' The computed flux is ok unless another warning is given.')
+     &   'The computed flux is ok unless another warning is given.')
       endif
       CONTINUE
 
@@ -865,21 +893,8 @@ C longwave flux exchange.
         IF(EE(ICOMP,I).LT.1.0E-5)goto 49
 
 C Surrounding buildings component.
-C      QELWFB(I)=A1(ICOMP,I)*SBC*(TBLD(I)**4-(TFC(ICOMP,I,1)
-C     &+ZEROK)**4)/(2/EE(ICOMP,I)-1.0)
-
-C (Paul Strachan) Temporary: remove next 9 lines and
-C re-enable previous 2.
-
-C Surrounding buildings component.
-        IF(EE(ICOMP,I).LE.1.0)THEN
-          QELWFB(I)=A1(ICOMP,I)*SBC*(TBLD(I)**4-(TFC(ICOMP,I,1)+
-     &              ZEROK)**4)/(2.0/EE(ICOMP,I)-1.0)
-        ELSE
-C Modify equation if emissivity is artificially high (>1).
-          QELWFB(I)=A1(ICOMP,I)*SBC*(TBLD(I)**4-(TFC(ICOMP,I,1)+
-     &              ZEROK)**4)*EE(ICOMP,I)
-        ENDIF
+        QELWFB(I)=A1(ICOMP,I)*SBC*(TBLD(I)**4-(TFC(ICOMP,I,1)+
+     &      ZEROK)**4)/(2.0/EE(ICOMP,I)-1.0)
 
 C Sky component.
         QELWFK(I)=B1(ICOMP,I)*SBC*EE(ICOMP,I)*(TSKY**4-
@@ -902,10 +917,6 @@ C   q12 = ------------- (T1**4 - T2**4)
 C          1    1
 C          -- + -- - 1
 C          e1   e2
-
-C For NT: required because GRLW is being corrupted!!!!
-C        GRLW=0.05
-C End For NT
 
         call eclose(RNEIG,180.0,1.0,closer)
         IF(C1(ICOMP,I).GT.0.95.AND.closer)THEN
@@ -930,7 +941,7 @@ C     - used in CFC longwave exchange for outdoor blinds
         TEQV(I)=(A1(ICOMP,I)*(TBLD(I)**4)+B1(ICOMP,I)*(TSKY**4)+
      &          C1(ICOMP,I)*(TGRD**4))**0.25
 
-C Estimate contribution to external longwave flux (for CFC output)
+C Estimate contribution to external longwave flux (for CFC output).
         Bld_fraction(icomp,i)=(A1(ICOMP,I)*(TBLD(I)**4))/(TEQV(I)**4)
         Sky_fraction(icomp,i)=(B1(ICOMP,I)*(TSKY**4))/(TEQV(I)**4)
         Grd_fraction(icomp,i)=(C1(ICOMP,I)*(TGRD**4))/(TEQV(I)**4)
@@ -941,13 +952,9 @@ C Estimate contribution to external longwave flux (for CFC output)
         HROF(I)=QELWF(I)/DT
 
 C High longwave flux ****** WARNING MESSAGE ******
-C      IF(ABS(QELWF(I)).GT.400.0)THEN
-
-C (Paul Strachan) Temporary: remove next 2 lines and
-C restore last one.
-
-C Don't use correlation if artificial emissivity used (>1)
-        IF(ABS(QELWF(I)).GT.495.0.AND.EE(ICOMP,I).LE.1.)THEN
+C Limit of 800W/m2 arbitrary but unlikely to be exceeded even for high 
+C surface temperatures up to ~70degC.
+        IF(ABS(QELWF(I)).GT.800.0)THEN
           call zsid(icomp,I,ZSDES,ZSDESC,ZSDESS)
           write(outs,'(A,F12.1,A,A,A,F8.1,A,I6)')
      &    ' MZELWE: a longwave flux of',QELWF(I),
@@ -960,9 +967,8 @@ C Don't use correlation if artificial emissivity used (>1)
      &    QELWFG(I),' (T=',TGRD,')'
           call edisp(iuout,outs)
 
-!         CORRELATION?
-          QELWF(I)=(3.0+1.7*VF)*(TF-TFC(ICOMP,I,1))
-
+C Correlation based on CIBSE Guide A: hr = 4 . SBC . Ts^3
+          QELWF(I)=4.0*SBC*(TFC(ICOMP,I,1)+ZEROK)**3*(TF-TFC(ICOMP,I,1))
           write(outs,'(A,F9.1,A)')
      &    '  A correlation long wave flux value of',QELWF(I),
      &    ' W/m^2 will be used instead.'
@@ -2188,6 +2194,7 @@ c in common/hvac_timestep_parameters is included via hvac_parameters.h.
       character outs*124
       real ADDMOIST
       real EVC_ADDMOIST
+      real xx ! dummy return value for HUMR, HUMRAT & TWB function calls.
 
 C Moisture modelling is invoked for the current zone.
       IF(MSTROK.AND.MSTRZN(ICOMP))THEN
@@ -2396,9 +2403,9 @@ C constant wet bulb in a similar way as for the direct evaporative cooling in En
       if(iflgevapC(icomp).EQ.1) THEN
       
 C Bring and print TWB from outdoors   
-        call HUMR(TF,HF,PATMOS) !first get outdoor humidity ratio
-        call TWB(TF,GlobalHumRatio,PATMOS,IOPT) !then calculate outdoor wet bulb temperature
-        call HUMRAT(TFA(ICOMP),GlobalOutsTWB,PATMOS,IOPT)
+        xx=HUMR(TF,HF,PATMOS) !first get outdoor humidity ratio
+        xx=TWB(TF,GlobalHumRatio,PATMOS,IOPT) !then calculate outdoor wet bulb temperature
+        xx=HUMRAT(TFA(ICOMP),GlobalOutsTWB,PATMOS,IOPT)
          
 C Assuming indoor moisture content is less than the outdoor
         if(GFA(ICOMP).lt.GlobalOtherHR)then 

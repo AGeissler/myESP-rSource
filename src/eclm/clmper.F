@@ -370,6 +370,7 @@ C << the text block from within clm!
 C espriou.h provides currentfile, cdblfil.
 #include "seasons.h"
 C seasons.h provides typper and typsea
+#include "climate.h"
       
       integer lnblnk  ! function definition
 
@@ -386,10 +387,6 @@ C      common/appw/iappw,iappx,iappy
       COMMON/CLMDT1/CLMLOC
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
       character clmlnam*32,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
@@ -416,6 +413,7 @@ C ITM is main item editing menu.
       integer onleft  ! number of left axis
       integer onright ! number of right axis
       integer nitms,INO  ! max items and current menu item
+      integer ISTRW
 
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -588,8 +586,7 @@ C Context help
       CALL EMENU('Weather list item',ITM,nitms,INO)
       if(INO.EQ.nitms)then
 
-C Reset the graphic context prior to leaving. Currently commented out
-C (to match the initial menuchw comment out above).
+C Reset the graphic context prior to leaving.
         if(MMOD.EQ.8)then
           IMFS=lastmenu
           call userfonts(IFS,ITFS,IMFS)
@@ -653,22 +650,19 @@ C        write(6,*) llasci
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(LLASCI,'Weather file installed location:',
-     &        ' ',96,DCLIM,'weather file location',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(LLASCI,'Weather file installed location:',
-     &        ' ',124,DCLIM,'weather file location',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(LLASCI,'Weather file installed location:',
-     &        ' ',144,DCLIM,'weather file location',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(LLASCI,'Weather file installed location:',
-     &      ' ',144,DCLIM,'weather file location',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(LLASCI,'Weather file installed location:',
-     &      ' ',96,DCLIM,'weather file location',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(LLASCI,'Weather file installed location:',
+     &    ' ',ISTRW,DCLIM,'weather file location',IER,nbhelp)
         IF(LLASCI(1:2).EQ.'  '.or.LLASCI(1:4).eq.'UNKN')GOTO 290
 
 C Cast back to 72 char name.
@@ -1139,7 +1133,7 @@ C Set parameters for current day and analyse max, min mean.
             IF(I.EQ.IDF)JF=MIN0(KDF,IT2)
             DAYL=JF-JS+1
             DO 20 J=JS,JF
-              X=CTMP(J)
+              X=CMRVAL(1,J)
               IF(X.LE.XMAXJ)GO TO 2
               XMAXJ=X
               JTMX=J
@@ -1321,22 +1315,19 @@ C call mkitemclimatelist and then close file.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(llitem,' Climatelist entry text block?',
-     &        ' ',96,DFILE,'climatelist entry file',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(llitem,' Climatelist entry text block?',
-     &        ' ',124,DFILE,'climatelist entry file',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(llitem,' Climatelist entry text block?',
-     &        ' ',144,DFILE,'climatelist entry file',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(llitem,' Climatelist entry text block?',
-     &      ' ',144,DFILE,'climatelist entry file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(llitem,' Climatelist entry text block?',
-     &      ' ',96,DFILE,'climatelist entry file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(llitem,' Climatelist entry text block?',
+     &    ' ',ISTRW,DFILE,'climatelist entry file',IER,nbhelp)
         iuf=ifil+1
         CALL EFOPSEQ(iuf,llitem,4,IER)
         call mkitemclimatelist(iuf,ier)
@@ -1427,11 +1418,7 @@ C << to configuration file as well as climatelist and climate block
 
       subroutine mkitemclimatelist(iuf,ier)
 
-C Manual inclusion of a parameter from building.h
-      integer MSPS,MIPVA
-      parameter (MSPS=30)
-      parameter (MIPVA=MSPS)
-      
+#include "building.h"      
 #include "seasons.h"
 C seasons.h provides typper and typsea
       

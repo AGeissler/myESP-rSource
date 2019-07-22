@@ -700,10 +700,61 @@ C   prescribed by the user.
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
-      common/ocflux/COflux,H2Oexp,H2Oswt
+      COMMON/HUMIDT/HUMf(ntcelx,ntcely,ntcelz) 
+      COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
+     1             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
+      COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
+     1            Wf(ntcelx,ntcely,ntcelz),
+     2            P(ntcelx,ntcely,ntcelz),PP(ntcelx,ntcely,ntcelz),
+     3            TEf(ntcelx,ntcely,ntcelz),EDf(ntcelx,ntcely,ntcelz)
+
+!!! These common passes the environmnetal parameters arround each body segment to the physiology model 
+      REAL headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
+     &     rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
+     &     Tsko_av1,Tco_av1,Tsk_av1
+      COMMON/ocflux1/headflux1,trunkflux1,larmflux1,rarmflux1,llegflux1,
+     &        rlegflux1,H2Oexp1,H2Oswt1,Qoccsens1,Qocclat1,COflux,
+     &        Tsko_av1, Tco_av1, Tsk_av1
+      REAL tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,tavlegr1
+      REAL hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr
+      integer cfdcheck, msegflag
+      COMMON/segtemp1/tavhead1,tavtrunk1,tavarml1,tavarmr1,tavlegl1,
+     &       tavlegr1,hrhead,hrtrunk,hrarml,hrarmr,hrlegl,hrlegr,
+     &       cfdcheck, msegflag,HMETA2
+      REAL headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
+     &     rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
+     &     Tsko_av2,Tco_av2,Tsk_av2
+      COMMON/ocflux2/headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
+     &        rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
+     &        Tsko_av2, Tco_av2, Tsk_av2
+      REAL tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,tavlegr2
+      COMMON/segtemp2/tavhead2,tavtrunk2,tavarml2,tavarmr2,tavlegl2,
+     &       tavlegr2
+      COMMON/ocfluxo/H2Oexp,H2Oswt,COnflux
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
       character VOLNAME*12,VCsurf*12
 
+      REAL SAT1X,SAT2X,SAT3X,SAT4X,FAT1X,FAT2X,FAT3X,FAT4X
+      REAL SAT1Y,SAT2Y,SAT3Y,SAT4Y,FAT1Y,FAT2Y,FAT3Y,FAT4Y
+      REAL SARH1,SARH2,SARH3,SARH4,FARH1,FARH2,FARH3,FARH4
+      REAL Svel1,Svel2,Svel3,Svel4,Fvel1,Fvel2,Fvel3,Fvel4
+      REAL Velhead1,Veltrunk1,Velarml1,Velarmr1,Vellegl1,Vellegr1
+      SAT1X=0.0
+      SAT2X=0.0
+      SAT3X=0.0
+      SAT4X=0.0
+      FAT1X=0.0
+      FAT2X=0.0
+      FAT3X=0.0
+      FAT4X=0.0
+      SAT1Y=0.0
+      SAT2Y=0.0
+      SAT3Y=0.0
+      SAT4Y=0.0
+      FAT1Y=0.0
+      FAT2Y=0.0
+      FAT3Y=0.0
+      FAT4Y=0.0
 C Set values for all faces.
       do 40 IFACE=1,6
         IST=IVCELLS(IBLK,ICFD,1)
@@ -785,7 +836,31 @@ C Blockage on High face of adjacent cell.
               endif
 
 C Set combined convective/ diffusive flux terms.
-              If (VOLNAME(IBLK,ICFD).eq.'Occ'.or.
+             if (VOLNAME(IBLK,ICFD).eq.'head1')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+headflux1*AREA/SH
+              Elseif(VOLNAME(IBLK,ICFD).eq.'head2')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+headflux2*AREA/SH
+              Elseif (VOLNAME(IBLK,ICFD).eq.'trunk1')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+trunkflux1*AREA/SH
+              Elseif (VOLNAME(IBLK,ICFD).eq.'trunk2')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+trunkflux2*AREA/SH
+              Elseif(VOLNAME(IBLK,ICFD).eq.'arml1')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+larmflux1*AREA/SH
+              Elseif(VOLNAME(IBLK,ICFD).eq.'arml2')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+larmflux2*AREA/SH
+              Elseif(VOLNAME(IBLK,ICFD).eq.'armr1')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+rarmflux1*AREA/SH
+              Elseif(VOLNAME(IBLK,ICFD).eq.'armr2')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+rarmflux2*AREA/SH
+              Elseif(VOLNAME(IBLK,ICFD).eq.'legl1')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+llegflux1*AREA/SH
+              Elseif(VOLNAME(IBLK,ICFD).eq.'legl2')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+llegflux2*AREA/SH
+              Elseif(VOLNAME(IBLK,ICFD).eq.'legr1')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+rlegflux1*AREA/SH
+              Elseif(VOLNAME(IBLK,ICFD).eq.'legr2')then
+                SU(II,JJ,KK)=SU(II,JJ,KK)+rlegflux2*AREA/SH
+              ElseIf (VOLNAME(IBLK,ICFD).eq.'Occ'.or.
      &             VOLNAME(IBLK,ICFD).eq.'Occ1'.or.
      &             VOLNAME(IBLK,ICFD).eq.'Occ2'.or.
      &             VOLNAME(IBLK,ICFD).eq.'Occ3'.or.
@@ -793,15 +868,10 @@ C Set combined convective/ diffusive flux terms.
      &             VOLNAME(IBLK,ICFD).eq.'Occ5'.or.
      &             VOLNAME(IBLK,ICFD).eq.'Occ6'.or.
      &             VOLNAME(IBLK,ICFD).eq.'Occ7')then
-!               call DynamicOcc(1,1.5,1)
-                SU(II,JJ,KK)=SU(II,JJ,KK)+COflux*AREA/SH
-                              
-!               if (NITER.eq.1) then
-!               print *, COflux 
-!               end if
-               else
+                SU(II,JJ,KK)=SU(II,JJ,KK)+COnflux*AREA/SH
+              Else
                SU(II,JJ,KK)=SU(II,JJ,KK)+VOLHeat(IBLK,ICFD)*AREA/SH
-               endif
+               Endif
 c       write(*,*)'SU_contrib=',VOLHeat(IBLK,ICFD) 
 c      pause'heat blockage'
  30         continue
@@ -809,6 +879,155 @@ c      pause'heat blockage'
  10     continue
  40   continue
 
+      If ((VOLNAME(IBLK,ICFD).eq.'head1').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'trunk1').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'armr1').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'arml1').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'legr1').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'legl1').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'head2').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'trunk2').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'armr2').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'arml2').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'legr2').or.
+     &     (VOLNAME(IBLK,ICFD).eq.'legl2'))then
+
+        IST=IVCELLS(IBLK,ICFD,1)
+        IFN=IVCELLS(IBLK,ICFD,2)
+        JST=JVCELLS(IBLK,ICFD,1)
+        JFN=JVCELLS(IBLK,ICFD,2)
+        KST=KVCELLS(IBLK,ICFD,1)
+        KFN=KVCELLS(IBLK,ICFD,2)
+
+C Loop through whole blockage.
+        do II=IST,IFN
+          do JJ=JST,JFN
+            do KK=KST,KFN
+
+
+C<< Calculating the average aire temperature and relative humidity of blockage nearest air cell
+C<< four cell points at Zstart and four at Zfinish 
+                if(II.eq.IST.and.JJ.eq.JST.and.KK.eq.KST)then
+                SAT1X=Tf(II,JJ-1,KK)    
+                SAT1Y=Tf(II-1,JJ,KK)                  
+                SARH1=HUMF(II,JJ-1,KK)
+                Svel1=SQRT((SQRT(abs(Uf(II,JJ-1,KK))**2+
+     &               abs(Vf(II,JJ-1,KK))**2)))**2+abs(Wf(II,JJ-1,KK))**2)            
+                elseif(II.eq.IST.and.JJ.eq.JFN.and.KK.eq.KST)then
+                SAT2X=Tf(II,JJ+1,KK)
+                SAT2Y=Tf(II-1,JJ,KK)
+                SARH2=HUMF(II,JJ+1,KK)
+                Svel2=SQRT((SQRT(abs(Uf(II,JJ+1,KK))**2+
+     &               abs(Vf(II,JJ+1,KK))**2)))**2+abs(Wf(II,JJ+1,KK))**2)
+                elseif(II.eq.IFN.and.JJ.eq.JST.and.KK.eq.KST)then
+                SAT3X=Tf(II,JJ-1,KK)
+                SAT3Y=Tf(II+1,JJ,KK)
+                SARH3=HUMF(II,JJ-1,KK)
+                Svel3=SQRT((SQRT(abs(Uf(II,JJ-1,KK))**2+
+     &               abs(Vf(II,JJ-1,KK))**2)))**2+abs(Wf(II,JJ-1,KK))**2)
+                elseif(II.eq.IFN.and.JJ.eq.JFN.and.KK.eq.KST)then
+                SAT4X=Tf(II,JJ+1,KK)
+                SAT4Y=Tf(II+1,JJ,KK)
+                SARH4=HUMF(II,JJ+1,KK)
+                Svel4=SQRT((SQRT(abs(Uf(II,JJ+1,KK))**2+
+     &               abs(Vf(II,JJ+1,KK))**2)))**2+abs(Wf(II,JJ+1,KK))**2)
+                elseif(II.eq.IST.and.JJ.eq.JST.and.KK.eq.KFN)then
+                FAT1X=Tf(II,JJ-1,KK)
+                FAT1Y=Tf(II-1,JJ,KK)                    
+                FARH1=HUMF(II,JJ-1,KK)
+                Fvel1=SQRT((SQRT(abs(Uf(II,JJ-1,KK))**2+
+     &               abs(Vf(II,JJ-1,KK))**2)))**2+abs(Wf(II,JJ-1,KK))**2)
+                elseif(II.eq.IST.and.JJ.eq.JFN.and.KK.eq.KFN)then
+                FAT2X=Tf(II,JJ+1,KK)
+                FAT2Y=Tf(II-1,JJ,KK)
+                FARH2=HUMF(II,JJ+1,KK)
+                Fvel2=SQRT((SQRT(abs(Uf(II,JJ+1,KK))**2+
+     &               abs(Vf(II,JJ+1,KK))**2)))**2+abs(Wf(II,JJ+1,KK))**2)
+                elseif(II.eq.IFN.and.JJ.eq.JST.and.KK.eq.KFN)then
+                FAT3X=Tf(II,JJ-1,KK)
+                FAT3Y=Tf(II+1,JJ,KK)
+                FARH3=HUMF(II,JJ-1,KK)
+                Fvel3=SQRT((SQRT(abs(Uf(II,JJ-1,KK))**2+
+     &               abs(Vf(II,JJ-1,KK))**2)))**2+abs(Wf(II,JJ-1,KK))**2)
+                elseif(II.eq.IFN.and.JJ.eq.JFN.and.KK.eq.KFN)then
+                FAT4X=Tf(II,JJ+1,KK)
+                FAT4Y=Tf(II+1,JJ,KK)
+                FARH4=HUMF(II,JJ+1,KK)
+                Fvel4=SQRT((SQRT(abs(Uf(II,JJ-1,KK))**2+
+     &               abs(Vf(II,JJ-1,KK))**2)))**2+abs(Wf(II,JJ-1,KK))**2)
+                endif
+
+          enddo
+        enddo
+      enddo
+
+      If (VOLNAME(IBLK,ICFD).eq.'head1')then
+                tavhead1=(FAT1X+FAT2X+FAT3X+FAT4X+FAT1Y+FAT2Y+FAT3Y
+     &                +FAT4Y)/8.0
+                hrhead=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
+     &           FARH4)/8.0
+                Velhead1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
+     &            Fvel4)/8
+      elseif (VOLNAME(IBLK,ICFD).eq.'trunk1')then
+          tavtrunk1=(SAT1X+SAT2X+SAT3X+SAT4X+FAT1X+FAT2X+FAT3X+
+     &     FAT4X+SAT1Y+SAT2Y+SAT3Y+SAT4Y+FAT1Y+FAT2Y+FAT3Y+FAT4Y)/16.0
+                hrtrunk=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
+     &           FARH4)/8.0
+                Veltrunk1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
+     &            Fvel4)/8
+      elseif (VOLNAME(IBLK,ICFD).eq.'armr1')then
+                tavarmr1=(SAT1X+SAT2X+FAT1X+FAT2X+SAT1Y+SAT2Y+
+     &            FAT1Y+FAT2Y)/8.0
+                hrarmr=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
+     &           FARH4)/8.0
+                Velarmr1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
+     &            Fvel4)/8
+      elseif (VOLNAME(IBLK,ICFD).eq.'arml1')then
+                tavarml1=(SAT3X+SAT4X+FAT3X+FAT4X+SAT3Y+SAT4Y+
+     &           FAT3Y+FAT4Y)/8.0
+                hrarml=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
+     &           FARH4)/8.0
+                Velarml1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
+     &            Fvel4)/8
+      elseif (VOLNAME(IBLK,ICFD).eq.'legr1')then
+                tavlegr1=(SAT1X+SAT2X+SAT3X+SAT4X+SAT1Y+SAT2Y+SAT3Y+
+     &           SAT4Y+FAT1Y+FAT2Y)/10.0
+                hrlegr=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
+     &           FARH4)/8.0
+                Vellegr1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
+     &            Fvel4)/8
+      elseif (VOLNAME(IBLK,ICFD).eq.'legl1')then
+                tavlegl1=(SAT1X+SAT2X+SAT3X+SAT4X+SAT1Y+SAT2Y+SAT3Y+
+     &           SAT4Y+FAT3Y+FAT4Y)/10.0
+                hrlegl=(SARH1+SARH2+SARH3+SARH4+FARH1+FARH2+FARH3+
+     &           FARH4)/8.0
+                Vellegl1=(Svel1+Svel2+Svel3+Svel4+Fvel1+Fvel2+Fvel3+
+     &            Fvel4)/8
+                cfdcheck=2
+C********************************
+      elseif (VOLNAME(IBLK,ICFD).eq.'head2')then
+                tavhead2=(FAT1X+FAT2X+FAT3X+FAT4X+FAT1Y+FAT2Y+FAT3Y
+     &                +FAT4Y)/8.0
+      elseif (VOLNAME(IBLK,ICFD).eq.'trunk2')then
+          tavtrunk2=(SAT1X+SAT2X+SAT3X+SAT4X+FAT1X+FAT2X+FAT3X+
+     &     FAT4X+SAT1Y+SAT2Y+SAT3Y+SAT4Y+FAT1Y+FAT2Y+FAT3Y+FAT4Y)/16.0
+      elseif (VOLNAME(IBLK,ICFD).eq.'armr2')then
+                tavarmr2=(SAT1X+SAT2X+FAT1X+FAT2X+SAT1Y+SAT2Y+
+     &            FAT1Y+FAT2Y)/8.0
+      elseif (VOLNAME(IBLK,ICFD).eq.'arml2')then
+                tavarml2=(SAT3X+SAT4X+FAT3X+FAT4X+SAT3Y+SAT4Y+
+     &           FAT3Y+FAT4Y)/8.0
+      elseif (VOLNAME(IBLK,ICFD).eq.'legr2')then
+                tavlegr2=(SAT1X+SAT2X+SAT3X+SAT4X+SAT1Y+SAT2Y+SAT3Y+
+     &           SAT4Y+FAT1Y+FAT2Y)/10.0
+      elseif (VOLNAME(IBLK,ICFD).eq.'legl2')then
+                tavlegl2=(SAT1X+SAT2X+SAT3X+SAT4X+SAT1Y+SAT2Y+SAT3Y+
+     &           SAT4Y+FAT3Y+FAT4Y)/10.0
+                cfdcheck=2
+
+      endif
+!               print *,tavhead1, Velhead1, tavlegl1, vellegl1 
+      ENDIF
       RETURN
       END
 

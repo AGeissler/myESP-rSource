@@ -776,7 +776,8 @@ C Then get index of colour for this zone, then plot text in that colour.
           if(iix.lt.ipixright) iix=ipixright
           lna=lnzname(NZNO(i))
           write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
-          call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+          iicol=NZNO(i)
+          call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
           call forceflush()
           call textpixwidth(word,ipixw)  ! get its width
           ipixright=iix+ipixw+3   ! pixel where next word should start
@@ -812,7 +813,8 @@ C Then get index of colour for this zone, then plot text in that colour.
           write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
           call textpixwidth(word,ipixw)  ! get its width
           ipixright=iix+ipixw+3   ! pixel where next word should start
-          call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+          iicol=NZNO(i)
+          call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
           icx=icx+lna+1
  143    continue
         call forceflush()
@@ -832,7 +834,8 @@ C Then get index of colour for this zone, then plot text in that colour.
             write(word,'(a)',iostat=ios,err=1) zname(NZNO(I))(1:lna)
             call textpixwidth(word,ipixw)  ! get its width
             ipixright=iix+ipixw+3   ! pixel where next word should start
-            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+            iicol=NZNO(i)
+            call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             icx=icx+lna+1
  144      continue
         endif
@@ -860,7 +863,8 @@ C Normal size res graphics window can hold ~30 on each line.
             if(iix.lt.ipixright) iix=ipixright
             lna=3   ! lna=2
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
-            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+            iicol=NZNO(i)
+            call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             call textpixwidth(word,ipixw)  ! get its width
             ipixright=iix+ipixw+3   ! pixel where next word should start
             icx=icx+lna+1
@@ -887,7 +891,8 @@ C Write out digits on two lines.
             if(iix.lt.ipixright) iix=ipixright
             lna=3  ! lna=2
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
-            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+            iicol=NZNO(i)
+            call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             call textpixwidth(word,ipixw)  ! get its width
             ipixright=iix+ipixw+3   ! pixel where next word should start
             icx=icx+lna+1
@@ -906,7 +911,8 @@ C Write out digits on two lines.
             write(word,'(i3.3)',iostat=ios,err=1) NZNO(I)
             call textpixwidth(word,ipixw)  ! get its width
             ipixright=iix+ipixw+3   ! pixel where next word should start
-            call textsizeatxy(iix,iiy,word,ibsize,'z',NZNO(i))
+            iicol=NZNO(i)
+            call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             icx=icx+lna+1
           enddo
           iicol=0
@@ -1318,6 +1324,10 @@ C        write(6,*)'IZ,IVF(IZ)',IZ,IVF(IZ)
           IUF=IFIL+1
           LMRT=LVIEW(IZ)
           call ERMRT(0,IUOUT,IUF,LMRT,IZ,IER)
+          if (IER.ne.0) then
+            call edisp(IUOUT,'Error reading MRT sensor data.')
+            return
+          endif
           if (NCUB(IZ).gt.0) then
             do 20 J=1,NCUB(IZ)
               NTSEN=NTSEN+1
@@ -1679,6 +1689,7 @@ C   the file name.
       character longtfile*144,longtfiledos*144
       logical concat,remote,unixok
       integer lenxfile
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1740,22 +1751,19 @@ C Each call is a toggle.
           llt=lnblnk(xfile)
           if(iglib.eq.1.or.iglib.eq.3)then
             if(llt.lt.96)then
-              CALL EASKF(xfile,' Export file name? ',
-     &          ' ',96,'export.txt','export file name',IER,nbhelp)
+              ISTRW=96
             elseif(llt.ge.96.and.llt.lt.124)then
-              CALL EASKF(xfile,' Export file name? ',
-     &          ' ',124,'export.txt','export file name',IER,nbhelp)
+              ISTRW=124
             elseif(llt.ge.124.and.llt.le.144)then
-              CALL EASKF(xfile,' Export file name? ',
-     &          ' ',144,'export.txt','export file name',IER,nbhelp)
+              ISTRW=144
             endif
           elseif(iglib.eq.2)then
-            CALL EASKF(xfile,' Export file name? ',
-     &        ' ',144,'export.txt','export file name',IER,nbhelp)
+            ISTRW=144
           else
-            CALL EASKF(xfile,' Export file name? ',
-     &        ' ',96,'export.txt','binary events db',IER,nbhelp)
+            ISTRW=96
           endif
+          CALL EASKF(xfile,'Export file name?',
+     &      ' ',ISTRW,'export.txt','binary events db',IER,nbhelp)
 
 C If user request cancel then return after resetting ixopen to zero.
           if(ier.eq.-3)then

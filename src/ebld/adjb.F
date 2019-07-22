@@ -354,8 +354,15 @@ C Connection with the 3D ground model.
                 ATF(ICOMP,I)=TEMP3G(ICOMP)
               ENDIF
               ARF(ICOMP,I)=0.0
-              APf(ICOMP,I)=0.6*Psat01(TF)
 
+              IF(NGRDPH.gt.0) THEN
+                APf(ICOMP,I)=UGRDHUM(IMNTH,IE2(J))
+cx                APf(ICOMP,I)=0.98*Psat01(ATF(ICOMP,I))
+cx                APf(ICOMP,I)=0.6*Psat01(TF)
+              ELSE
+cx              APf(ICOMP,I)=0.6*Psat01(TF)
+                APf(ICOMP,I)=0.98*Psat01(ATF(ICOMP,I))
+              ENDIF
 C Connection 5: Adiabatic case (adjacent zone air temperature set to
 C external surface temperature). Note that this is an exact treatment.
 C The following parameters assume a corresponding action in MZSETU.

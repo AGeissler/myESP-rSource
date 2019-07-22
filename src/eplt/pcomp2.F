@@ -192,13 +192,11 @@ C Store "environment" variables future values
          PCRF(ICON1)=C1
          PCQF(INOD1)=Q
 
-C GF New Start
 C Establish "containment loss" data
          QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
-C GF New End
+         call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+         call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C 1st phase mass (ie. water) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -735,8 +733,12 @@ C fluid heat capacity rate(s) C (W/K), ie. SUM(mass flow * specific heat)
          CM=ADATA(IPCOMP,1)*ADATA(IPCOMP,2)
          C1=PCONDR(ICON1)*CONVAR(ICON1,2)*SHTFLD(3,CONVAR(ICON1,1))
 
-C Calculate current component time-constant TC
+C Calculate current component time-constant TC and determine rate of 
+C change of inlet conditions (RCC). ALPHA set to fully implicit if
+C RCC changes by a factor of two from previous timestep and a small
+C timestep is used to avoid discretisation errors.
          TC(IPCOMP)=CM/AMAX1(SMALL,(C1+UA))
+         RCC = (C1+UA) / (PCRP(ICON1)+PUAP(INOD1))
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          IF(IMPEXP.EQ.1) THEN
@@ -744,7 +746,13 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          ELSE IF(IMPEXP.EQ.2) THEN
             ALPHA=RATIMP
          ELSE IF(IMPEXP.EQ.3) THEN
-            IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
+            IF(RCC.GT.2.OR.RCC.LT.0.5)THEN
+               IF(TIMSEC.LT.300)THEN 		
+                 ALPHA=1.
+               ELSE
+		 ALPHA=RATIMP
+               END IF
+            ELSE IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
                ALPHA=1.
             ELSE
                ALPHA=RATIMP
@@ -776,11 +784,11 @@ C Store "environment" variables future values
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
-C       For embedded pipes:
-	    call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
+C For embedded pipes:
+        call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
 
 C 1st phase mass (ie. water) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -896,8 +904,12 @@ C fluid heat capacity rate(s) C (W/K), ie. SUM(mass flow * specific heat)
         C1=PCONDR(ICON1)*CONVAR(ICON1,2)*SHTFLD(3,CONVAR(ICON1,1))
         C2=PCONDR(ICON2)*CONVAR(ICON2,2)*SHTFLD(3,CONVAR(ICON2,1))
 
-C Calculate current component time-constant TC
+C Calculate current component time-constant TC and determine rate of 
+C change of inlet conditions (RCC). ALPHA set to fully implicit if
+C RCC changes by a factor of two from previous timestep and a small
+C timestep is used to avoid discretisation errors.
         TC(IPCOMP)=CM/AMAX1(SMALL,(C1+C2+UA))
+        RCC = (C1+C2+UA) / (PCRP(ICON1)+PCRP(ICON2)+PUAP(INOD1))
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
         IF(IMPEXP.EQ.1) THEN
@@ -905,7 +917,13 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
         ELSE IF(IMPEXP.EQ.2) THEN
           ALPHA=RATIMP
         ELSE IF(IMPEXP.EQ.3) THEN
-          IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
+	  IF(RCC.GT.2.OR.RCC.LT.0.5)THEN
+            IF(TIMSEC.LT.300)THEN 		
+              ALPHA=1.
+            ELSE
+	      ALPHA=RATIMP
+            END IF
+          ELSE IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
             ALPHA=1.
           ELSE
             ALPHA=RATIMP
@@ -940,11 +958,11 @@ C Store "environment" variables future values
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
-C       For embedded two leg junction:
-	    call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
+C For embedded two leg junction:
+        call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
 
 C 1st phase mass (ie. water) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -1395,7 +1413,7 @@ C during the previous time-step
             FGAS=BDATA(IPCOMP,2)*BDATA(IPCOMP,1)
             PHIW=ETA*FGAS*BDATA(IPCOMP,3)
             PHISB=(BDATA(IPCOMP,7)
-     &             +BDATA(IPCOMP,8)*(CSVF(INOD1,1)-PCNTMF(IPCOMP)))
+     &            +BDATA(IPCOMP,8)*(CSVF(INOD2,1)-PCNTMF(IPCOMP)))
      &            *BDATA(IPCOMP,1)*BDATA(IPCOMP,3)
          END IF
 
@@ -1413,11 +1431,15 @@ C Boiler actual ON/OFF state PCDATF(IPCOMP,1) (-)
 C Inter-node fluid heat capacity rate (W/K)
          PCDATF(IPCOMP,2)=CSVF(INOD1,2)*SHTFLD(3,CSVF(INOD1,1))
 
-C Calculate current component time-constant TC
+C Calculate current component time-constant TC and determine rate of 
+C change of inlet conditions (RCC). ALPHA set to fully implicit if
+C RCC changes by a factor of two from previous timestep and a small
+C timestep is used to avoid discretisation errors.
          TC(IPCOMP)=AMAX1(
      &        CM/AMAX1(SMALL,(C1)),
      &        CM/AMAX1(SMALL,(PCDATF(IPCOMP,2)
      &                        +PHISB/(CSVF(INOD1,1)-PCNTMF(IPCOMP)))))
+         RCC = C1 / PCRP(ICON1)
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          IF(IMPEXP.EQ.1) THEN
@@ -1425,7 +1447,13 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          ELSE IF(IMPEXP.EQ.2) THEN
             ALPHA=RATIMP
          ELSE IF(IMPEXP.EQ.3) THEN
-            IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
+            IF(RCC.GT.2.OR.RCC.LT.0.5)THEN
+              IF(TIMSEC.LE.300) THEN 		
+               	 ALPHA=1.
+	      ELSE
+                 ALPHA=RATIMP
+              END IF  
+            ELSE IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
                ALPHA=1.
             ELSE
                ALPHA=RATIMP
@@ -1829,7 +1857,7 @@ C            2 Total radiator heat emission (W)
 
       PARAMETER (SMALL=1.0E-15)
       REAL      COUT(MPCOE)
-      logical closea,close
+      logical closea,close,closec
 
       DIMENSION INOD(8),Q(8)
 
@@ -1855,10 +1883,11 @@ C Initialize the nominal log mean temperature difference DTLM0
          call eclose(TE0TMP,1.00,0.0001,close)
          IF(ABS(TS0-TE0).LT.SMALL.OR.ABS(TX0-TE0).LT.SMALL
      &      .OR.(TS0-TE0)/(TX0-TE0).LT.SMALL.OR.close) then
-C     &      .OR.(TS0-TE0)/(TX0-TE0).EQ.1.0) THEN
+	   DTLM0=0.	   
          ELSE
            DTLM0=(TS0-TX0)/ALOG((TS0-TE0)/(TX0-TE0))
          END IF
+	 DTAM0=((TS0+TX0)/2.)-TE0
 
 C Then evaluate the current environment temperature
          IF(INDCFG.EQ.2.OR.NINT(BDATA(IPCOMP,6)).EQ.0) THEN
@@ -1890,26 +1919,41 @@ C on it, mark current node 1 temperature for iteration
 C Now calculate the heat emission at each successive radiator part
 C and the total heat emission PCDATF(IPCOMP,2)
          PCDATF(IPCOMP,2)=0.
-         DO 14 IP=2,8
-            TS=CSVF(INOD(IP-1),1)
-            TX=CSVF(INOD(IP),1)
-            TXTMP=(tx-te)
-            call eclose(TXTMP,0.00,0.0001,close)
-C            if((tx-te).ne.0.0) then
-            if(.NOT.close) then
-              TSTMP=(TS-TE)/(TX-TE)
-              call eclose(TSTMP,1.00,0.0001,close)
-               IF(ABS(TS-TE).LT.SMALL.OR.ABS(TX-TE).LT.SMALL
-     &            .OR.(TS-TE)/(TX-TE).LT.SMALL.OR.close)then
-C     &            .OR.(TS-TE)/(TX-TE).EQ.1.0) THEN
-               ELSE
-                  DTLM=(TS-TX)/ALOG((TS-TE)/(TX-TE))
-               END IF
-            endif
-            DTR=AMAX1(SMALL,(DTLM/DTLM0))
-            Q(IP)=BDATA(IPCOMP,2)/7.*DTR**BDATA(IPCOMP,1)
-            PCDATF(IPCOMP,2)=PCDATF(IPCOMP,2)+Q(IP)
-   14    CONTINUE
+	 IF(CONVAR(ICON1,2).le.0.0001)then
+           DO 15 IP=1,8
+               TX=CSVF(INOD(IP),1)
+	       DTR=AMAX1(SMALL,((TX-TE)/DTAM0))
+               Q(IP)=BDATA(IPCOMP,2)/8.*DTR**BDATA(IPCOMP,1)
+               PCDATF(IPCOMP,2)=PCDATF(IPCOMP,2)+Q(IP)
+   15      CONTINUE
+	 ELSE
+           DO 14 IP=2,8
+             TS=CSVF(INOD(IP-1),1)
+             TX=CSVF(INOD(IP),1)
+	     if(DTLM0.eq.0)THEN
+	       DTAM=((TS+TX)/2.)-TE
+	       DTR=AMAX1(SMALL,(DTAM/DTAM0))
+               Q(IP)=BDATA(IPCOMP,2)/7.*DTR**BDATA(IPCOMP,1)
+               PCDATF(IPCOMP,2)=PCDATF(IPCOMP,2)+Q(IP)
+	     else
+               TXTMP=(tx-te)
+               call eclose(TXTMP,0.00,0.0001,close)
+               if(.NOT.close) then
+                 TSTMP=(TS-TE)/(TX-TE)
+                 call eclose(TSTMP,1.00,0.0001,close)
+                 IF(ABS(TS-TE).LT.SMALL.OR.ABS(TX-TE).LT.SMALL
+     &             .OR.(TS-TE)/(TX-TE).LT.SMALL.OR.close)then
+		    DTLM=0.
+                 ELSE
+                    DTLM=(TS-TX)/ALOG((TS-TE)/(TX-TE))
+                 END IF
+               endif
+               DTR=AMAX1(SMALL,(DTLM/DTLM0))
+               Q(IP)=BDATA(IPCOMP,2)/7.*DTR**BDATA(IPCOMP,1)
+               PCDATF(IPCOMP,2)=PCDATF(IPCOMP,2)+Q(IP)
+	     end if
+   14      CONTINUE
+         END IF
 
 C Establish heat capacity of component mass CM (J/K) and
 C fluid heat capacity rate(s) C (W/K), ie. SUM(mass flow * specific heat)
@@ -1920,14 +1964,23 @@ C Inter-node fluid heat capacity rate (W/K)
 
 C Calculate current component time-constant TC, based on node 1 only
          TC(IPCOMP)=CM/AMAX1(SMALL,C1)
+         RCC = C1 / PCRP(ICON1)
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          IF(IMPEXP.EQ.1) THEN
             ALPHA=1.
+	 ELSE IF(C1.lt.0.00001) THEN
+	    ALPHA=1.
          ELSE IF(IMPEXP.EQ.2) THEN
             ALPHA=RATIMP
          ELSE IF(IMPEXP.EQ.3) THEN
-            IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
+            IF(RCC.GT.2.OR.RCC.LT.0.5)THEN
+              IF(TIMSEC.LE.300) THEN 		
+               	 ALPHA=1.
+	      ELSE
+                 ALPHA=RATIMP
+              END IF  
+            ELSE IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
                ALPHA=1.
             ELSE
                ALPHA=RATIMP
@@ -1936,6 +1989,9 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             CM=0.
             ALPHA=1.
          END IF
+
+	 call eclose(C1,0.00,0.0001,closec)
+         if(closec)ALPHA=1.
 
 C Establish matrix equation self-coupling coefficients,
 C  node 1
@@ -1951,21 +2007,31 @@ C then matrix equation cross-coupling coefficient,
          COUT(16)=ALPHA*C1
 C and then present-time coefficients (ie. right hand sides)
 C  node 1
-         COUT(17)=((1.-ALPHA)*PCRP(ICON1)-CM/TIMSEC)*CSVP(INOD(1),1)
+         IF(CONVAR(ICON1,2).gt.0.0001)then
+           COUT(17)=((1.-ALPHA)*PCRP(ICON1)-CM/TIMSEC)*CSVP(INOD(1),1)
      &            +(1.-ALPHA)*(-PCRP(ICON1))*PCTP(ICON1)
+         END IF
 C  nodes 2 to 8
          COEF1=(1.-ALPHA)*(-PCDATP(IPCOMP,1))
          COEF2=(1.-ALPHA)*PCDATP(IPCOMP,1)-CM/TIMSEC
-         DO 22 IP=2,8
-            COUT(16+IP)=COEF1*CSVP(INOD(IP-1),1)
+         IF(CONVAR(ICON1,2).gt.0.0001)then
+           DO 22 IP=2,8
+             COUT(16+IP)=COEF1*CSVP(INOD(IP-1),1)
      &                 +COEF2*CSVP(INOD(IP),1)
      &                 +ALPHA*Q(IP)+(1.-ALPHA)*PCQP(INOD(IP))
-   22    CONTINUE
+   22      CONTINUE
+         ELSE
+	   DO 23 IP=1,8
+             COUT(16+IP)=COEF1*CSVP(INOD(IP-1),1)
+     &                 +COEF2*CSVP(INOD(IP),1)
+     &                 +ALPHA*Q(IP)+(1.-ALPHA)*PCQP(INOD(IP))
+   23      CONTINUE
+         END IF
 
 C Store "environment" variables future values
          PCTF(ICON1)=CONVAR(ICON1,1)
          PCRF(ICON1)=C1
-         DO 24 IP=2,8
+         DO 24 IP=1,8
             PCQF(INOD(IP))=Q(IP)
    24    CONTINUE
 
@@ -2574,11 +2640,9 @@ C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(futureTemp-pcntmp(ipcomp))+
      &                (1.-alpha)*(presentTemp-pcntmp(ipcomp)))
 
-C GF New Start
 C Establish "containment loss" data
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
-C GF New End
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C Establish additional output variables
          QCOIL=H*(CSVF(INOD2,1)-CSVF(INOD1,1))
@@ -2905,6 +2969,9 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             ALPHA=1.
         END IF
 
+cx      ... for now ... (movable, 30.10.2018)
+        ALPHA=1.
+
 C Establish matrix equation self- and cross-coupling coefficients.
         COUT(1)=ALPHA*(-C1-UA/2.)-CW1/TIMSEC
         COUT(2)=ALPHA*(-C2-UA/2.)-CW2/TIMSEC
@@ -2942,8 +3009,8 @@ C Addition output for results analysis.
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C 1st phase mass (ie. "water") balance coefficients
 
@@ -7000,6 +7067,10 @@ C water outlet temperature and ambient temperature compensation can be applied [
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
+      common/pstctr/nsincp,nsncpr
+      integer nsincp          ! number of plant side time increments
+      integer nsncpr          ! number of ??
+
       COMMON/PCEQU/IMPEXP,RATIMP
 
 C     Variables for iteration in plant loop (?)
@@ -7057,6 +7128,9 @@ C Electrical details for specified plant components
       common/elpcp/NPEL,PFP(mpcom),IPFP(mpcom),PWRP(mpcom),
      &BVOLTP(mpcom),IPHP(mpcom)
 
+      common/forlock/NSINCP_lock
+      integer NSINCP_lock
+
       REAL SMALL
       PARAMETER (SMALL=1.0E-20)
 
@@ -7098,7 +7172,7 @@ C Electrical details for specified plant components
 
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
-      REAL TG1,TG2,GRNDSourceDepth,LimFac
+      REAL TG1,TG2,GRNDSourceDepth,LimFac,CfH_out
       INTEGER IM,ID,curDoM,curMonth,NDMonth
 
       DIMENSION NDMonth(12)
@@ -7331,6 +7405,7 @@ C NTSBO = total no. of timesteps HP is off due to lockout
 
         IF (bSwitched) THEN
           if (bBLKOUT) then
+            NSINCP_lock=NSINCP
             INSO=1
             ITSBO=0
             bSwitched=.false. ! only set once after signal
@@ -7339,9 +7414,10 @@ C NTSBO = total no. of timesteps HP is off due to lockout
 
         IF (INSO.EQ.1) THEN
           IF (ITSBO.GT.NTSBO) INSO=0
-          ITSBO=ITSBO+1
-cx        write(*,*)"NSINC=",NSINC,"; ITS=",ITS,"; NTSBO=",NTSBO,
-cx     &            "; ITSBO=",ITSBO,"; INSO=",INSO
+          if (NSINCP_lock.lt.NSINCP) then
+            ITSBO=ITSBO+1
+            NSINCP_lock=NSINCP
+          endif
           DeviceONOFF=0
         ENDIF
 C == end lockout
@@ -7356,9 +7432,10 @@ C Calculate the TOTAL device power draw (W)
             Ta=Tgrnd
             CompPower=1000.*(Compa0+(Compa1*Ta)+(Compa2*Td))
           ELSEIF(CompModel.eq.3)THEN
-            Td=ReturnT
+            Td=min(ReturnT,ToutMax)
             Ta=Tgrnd
-            CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
+            CompPower=1000.*(Compa0*EXP(Compa1*(Td-Ta))
+     &                   +Compa2*(ToutMax-(BDATA(IPCOMP,17))))!adapted exponential power consumption.
           ENDIF
           if(CompPower.LT.0.0)CompPower=0.0
 
@@ -7382,7 +7459,13 @@ C Calculate the COP based on the user-specified method.
 
 C Set limits on calculated values of COP
           IF(COP.LT.0.0) COP=0.0
-          IF(COP.GT.18.0) COP=18.0
+          if (bSHrqd) then
+C           This probably should either not be necessary or a input variable!
+            IF(COP.GT.9.0) COP=9.0
+          elseif (bDHWrqd) then
+C           This probably should either not be necessary or a input variable!
+            IF(COP.GT.3.5) COP=3.5
+          endif
 
 cx "after line 7840 ... " ((2node- GSHP, which file version??))
 C Limit output temperature to Toutmax ((suggestion by Graeme))
@@ -7490,8 +7573,8 @@ C Establish "containment loss" data
         QDATA(IPCOMP)=UAMod*(alpha*(futureTemp-pcntmp(ipcomp))+
      &                (1.-alpha)*(presentTemp-pcntmp(ipcomp)))
 
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C Store "environment" variables future values
         PCTF(ICON1)=CONVAR(ICON1,1)
@@ -7503,7 +7586,15 @@ C Addition output for results analysis.
         PCAOUT(IPCOMP,1)=HeatOutput
         PCAOUT(IPCOMP,2)=COP
         PCAOUT(IPCOMP,3)=Tgrnd
-        PCAOUT(IPCOMP,4)=DeviceONOFF
+        if (DeviceONOFF.eq.1) then
+          if (bDHWrqd) then
+           PCAOUT(IPCOMP,4)=2.
+          else
+           PCAOUT(IPCOMP,4)=1.
+          endif
+        else
+          PCAOUT(IPCOMP,4)=0.
+        endif
         PCAOUT(IPCOMP,5)=ReturnSP
         PCAOUT(IPCOMP,6)=TotRealPower
         PCAOUT(IPCOMP,7)=TotReacPower
@@ -7515,8 +7606,16 @@ C Make select results available in XML and CVS output.
 C---------------------------------------------------------------------------------
         IPCOMP_LEN = lnblnk(pcname(IPCOMP))
 
+        if (bSHrqd) then
+          CfH_out = 1.
+        elseif (bDHWrqd) then
+          CfH_out = 2.
+        else
+          CfH_out = 0.
+        endif
+
         call AddToReport(rvPltCallForHeat%Identifier,
-     &         CDATA(IPCOMP,1),
+     &         CfH_out,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
         call AddToReport(rvPltHOut%Identifier,
@@ -7690,6 +7789,10 @@ C water outlet temperature and ground source temperature compensation can be app
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
+      common/pstctr/nsincp,nsncpr
+      integer nsincp          ! number of plant side time increments
+      integer nsncpr          ! number of ??
+
       COMMON/PCEQU/IMPEXP,RATIMP
 
 C     Variables for iteration in plant loop (?)
@@ -7742,6 +7845,9 @@ C Electrical details for specified plant components
       common/elpcp/NPEL,PFP(mpcom),IPFP(mpcom),PWRP(mpcom),
      &BVOLTP(mpcom),IPHP(mpcom)
 
+      common/forlock/NSINCP_lock
+      integer NSINCP_lock
+
       REAL SMALL
       PARAMETER (SMALL=1.0E-20)
 
@@ -7784,7 +7890,7 @@ C Electrical details for specified plant components
       REAL COUT(MPCOE),QDATA,PCAOUT,CDATA
 
       REAL BrinePumpRating,BrineRatedFlow,BrinePumpPower,
-     &      BrinePumpPf,BrineFlow,LimFac
+     &      BrinePumpPf,BrineFlow,LimFac,CfH_out
 
       LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd,bSHpref
 
@@ -7863,6 +7969,7 @@ C Pump circulates while there is a call for heat.
         BrinePumpPower=0.
         BrineFlow=0.0
       ENDIF
+        BrineFlow=BrineRatedFlow
 
 C Set return setpoints based on which function requires heat
       if (bDHWrqd) then
@@ -7889,18 +7996,20 @@ C Calculate the return water temperature set point if temperature compensation i
           IF(Tamb.GE.TempCompS.AND.Tamb.LT.TempCompE)THEN
             ReturnSP=((Tamb-TempCompS)*TempCompc0)+NomRetT
             ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
-            ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
+            ReturnSPH=ReturnSP+4. !0.5*(NomRetTDeadB)
 
-C Case where Tamb > Temp compensation saturation point
+C Case where Tamb > Temp compensation end point
           ELSEIF(Tamb.GE.TempCompE)THEN
             ReturnSP=((TempCompE-TempCompS)*TempCompc0)+NomRetT
             ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
             ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
           ENDIF
 
+          IF(ReturnSPH.GT.TinMax) ReturnSPH=TinMax
+
           IF(ReturnSP.GT.TinMax)THEN
             ReturnSP=TinMax
-            ReturnSPH=ReturnSP
+cx            ReturnSPH=ReturnSP
           ENDIF
         ENDIF
       endif ! space heat rq'd
@@ -7908,19 +8017,19 @@ C Case where Tamb > Temp compensation saturation point
 cx ISTAT.eq.1 was here, previously (171124)
 
 C Get ground source temperature
-        Tgrnd=convar(icon2,1)
+      Tgrnd=convar(icon2,1)
 
 C Determine whether machine should be on or off based on return water temperature.
-        ReturnT=CONVAR(ICON1,1)
+      ReturnT=CONVAR(ICON1,1)
 
 C Check if device switched off last TS
-        IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
-          bSwitched=.true.
-        ENDIF
+      IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
+        bSwitched=.true.
+      ENDIF
 
-        DeviceONOFFp=DeviceONOFF
+      DeviceONOFFp=DeviceONOFF
 
-        IF(CallforHeat)THEN
+      IF(CallforHeat)THEN
 
 C Check to see if the device is in the dead band.
         IF(ReturnT.GE.ReturnSPL.AND.ReturnT.LE.ReturnSPH)THEN
@@ -7931,29 +8040,31 @@ C Check to see if the device is in the dead band.
 
 C Evaluate the device status.
         IF(ReturnT.GT.ReturnSPH)THEN
-            DeviceONOFF=0
-          ELSEIF(ReturnT.LT.ReturnSPL)THEN
-            DeviceONOFF=1
-          ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
-            DeviceONOFF=1
-          ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
-            DeviceONOFF=0
-          ENDIF
-        ELSE
           DeviceONOFF=0
-        ENDIF ! call for heat
+        ELSEIF(ReturnT.LT.ReturnSPL)THEN
+          DeviceONOFF=1
+        ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
+          DeviceONOFF=1
+        ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
+          DeviceONOFF=0
+        ENDIF
+      ELSE
+        DeviceONOFF=0
+      ENDIF ! call for heat
 
 C Finally, check if device is in lockout time, i.e. last "off" was
 C less than lockouttime ago ... ((code from CMP42C(), line 5102 ff.))
 C Lock out time (in seconds), Heat pump should not be turned on/off
 C with high frequency. When HP is turned off, wait this amount of time
 C before turning on again.
-C INSO = HP on/off (1/0) flag for lockout
-C ITSBO = present no. of timesteps HP is off due to lockout
-C NTSBO = total no. of timesteps HP is off due to lockout
+C NSINCP = plant time step increment counter
+C INSO   = HP on/off (1/0) flag for lockout
+C ITSBO  = present no. of timesteps HP is off due to lockout
+C NTSBO  = total no. of timesteps HP is off due to lockout
 
         IF (bSwitched) THEN
           if (bBLKOUT) then
+            NSINCP_lock=NSINCP
             INSO=1
             ITSBO=0
             bSwitched=.false. ! only set once after signal
@@ -7962,7 +8073,10 @@ C NTSBO = total no. of timesteps HP is off due to lockout
 
         IF (INSO.EQ.1) THEN
           IF (ITSBO.GT.NTSBO) INSO=0
-          ITSBO=ITSBO+1
+          if (NSINCP_lock.lt.NSINCP) then
+            ITSBO=ITSBO+1
+            NSINCP_lock=NSINCP
+          endif
           DeviceONOFF=0
         ENDIF
 C == end lockout
@@ -7977,9 +8091,10 @@ C Calculate the TOTAL device power draw (W)
             Ta=Tgrnd
             CompPower=1000.*(Compa0+(Compa1*Ta)+(Compa2*Td))
           ELSEIF(CompModel.eq.3)THEN
-            Td=ReturnT
+            Td=min(ReturnT,ToutMax)
             Ta=Tgrnd
-            CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta)) !exponential power consumption.
+            CompPower=1000.*(Compa0*EXP(Compa1*(Td-Ta))
+     &                   +Compa2*(ToutMax-(BDATA(IPCOMP,17))))!adapted exponential power consumption.
           ENDIF
 
           if(CompPower.LT.0.0)CompPower=0.0
@@ -7994,7 +8109,10 @@ C Calculate the COP based on the user-specified method.
           ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
             TL=Tgrnd
             TH=ReturnT
-            COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
+cx            TH=ToutMax
+            COP=min(COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.),
+     &               COPa0+(COPa1*(ToutMax-TL))
+     &                               +(COPa2*(ToutMax-TL)**2.))
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
           ELSE
@@ -8004,7 +8122,13 @@ C Calculate the COP based on the user-specified method.
 
 C Set limits on calculated values of COP
           IF(COP.LT.0.0) COP=0.0
-          IF(COP.GT.18.0) COP=18.0
+          if (bSHrqd) then
+C           This probably should either not be necessary or a input variable!
+            IF(COP.GT.9.0) COP=9.0
+          elseif (bDHWrqd) then
+C           This probably should either not be necessary or a input variable!
+            IF(COP.GT.3.5) COP=3.5
+          endif
 
 C Limit output temperature to Toutmax ((suggestion by Graeme))
           IF(CSVF(INOD1,1).GE.Toutmax)then
@@ -8134,8 +8258,8 @@ C Establish "containment loss" data
         QDATA(IPCOMP)=UAMod*(alpha*(futureTemp-pcntmp(ipcomp))+
      &                (1.-alpha)*(presentTemp-pcntmp(ipcomp)))
 
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 
 C Store "environment" variables future values
@@ -8151,7 +8275,15 @@ C Addition output for results analysis.
         PCAOUT(IPCOMP,1)=HeatOutput
         PCAOUT(IPCOMP,2)=COP
         PCAOUT(IPCOMP,3)=Tgrnd
-        PCAOUT(IPCOMP,4)=DeviceONOFF
+        if (DeviceONOFF.eq.1) then
+          if (bDHWrqd) then
+           PCAOUT(IPCOMP,4)=2.
+          else
+           PCAOUT(IPCOMP,4)=1.
+          endif
+        else
+          PCAOUT(IPCOMP,4)=0.
+        endif
         PCAOUT(IPCOMP,5)=ReturnSP
         PCAOUT(IPCOMP,6)=TotRealPower
         PCAOUT(IPCOMP,7)=TotReacPower
@@ -8163,8 +8295,16 @@ C Make select results available in XML and CVS output.
 C---------------------------------------------------------------------------------
         IPCOMP_LEN = lnblnk(pcname(IPCOMP))
 
+        if (bSHrqd) then
+          CfH_out = 1.
+        elseif (bDHWrqd) then
+          CfH_out = 2.
+        else
+          CfH_out = 0.
+        endif
+
         call AddToReport(rvPltCallForHeat%Identifier,
-     &         CDATA(IPCOMP,1),
+     &         CfH_out,
      &         pcname(IPCOMP)(1:IPCOMP_LEN))
 
         call AddToReport(rvPltHOut%Identifier,
@@ -8985,8 +9125,8 @@ C Store "environment" variables future values.
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C 1st phase mass (ie. dry air) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -9259,8 +9399,8 @@ C Store "environment" variables future values.
 C Establish "containment loss" data
         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	    call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+        call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C 1st phase mass (ie. dry air) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -9431,11 +9571,10 @@ C Commons for DWHStochastic calculation.
 
       REAL COUT(MPCOE)
       character outs*124
-      Integer iNameLength              ! temporary variable length
+      Integer iNameLength,iAddDatNumLen ! temporary variable length
 
       character*15 pcname
-      character*6 char_tmp            ! used for reporting
-
+      character*2 char_tmp              ! used for reporting
 
       logical DHWsubmin,DHWCalc,Weekend,indraw,DisPos
 
@@ -9737,7 +9876,7 @@ C Store individual type flows as addtitional output.
         NAPDAT(IPCOMP)=6
         DO 109 iDHWType=1,NDrawType
           PCAOUT(IPCOMP,iDHWType)=
-     &DHWDrawTypeTotV(iDHWType)*(DenS/1000.)
+     &                DHWDrawTypeTotV(iDHWType)*(DenS/1000.)
   109   CONTINUE
 
 C------------------------------------------------------
@@ -9752,13 +9891,19 @@ C.....Format string as: 'plant/NAME/misc_data/DHW_draw_stoch'
      &         pcname(IPCOMP)(1:iNameLength))
 
         DO 111 iDHWType=1,NDrawType
-            write(char_tmp,'(I2)')iDHWType
+             if (iDHWType<10) then  ! First nine draw types.
+               iAddDatNumLen = 1
+               write(char_tmp,'(I1)')iDHWType
+             else           ! The max. num. of types is currently only 6
+               iAddDatNumLen = 2
+               write(char_tmp,'(I2)')iDHWType
+             endif
 
 C.....Format string as: 'plant/NAME/misc_data/DHW_draw_stoch/type_#'
             Call AddToReport(rvPltDHWDrawStochTp%Identifier,
      &               DHWDrawTypeTotV(iDHWType)*(DenS/1000.),
      &               pcname(IPCOMP)(1:iNameLength),
-     &               char_tmp(1:lnblnk(char_tmP)))
+     &               char_tmp(1:iAddDatNumLen))
   111   Continue
 
 c      write(87,*)'DHW: mass flow rate '

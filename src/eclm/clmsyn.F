@@ -32,16 +32,20 @@ C simulaton period to be appropriately set in terms of the inherent
 C characteristics of the chosen climatic collection.
 
       SUBROUTINE CLMSYN
-      COMMON/CLMVAR/VNAME(6)
+#include "climate.h"
+#include "epara.h"
+
       COMMON/RADTYP/IDNGH
       COMMON/OUTIN/IUOUT,IUIN
 
-      CHARACTER*26 ITEM(23)
-      character outs*124,VNAME*32
+      CHARACTER*26 ITEM(30)
+      character outs*124
       logical ok,dok
       integer NITMS,INO  ! max items and current menu item
       integer nbdays,nbhours  ! summation of days hours within range
       logical close
+      character KEY*1
+      integer menumetric(MCM)
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -52,62 +56,76 @@ C For help messages
       nbdays= 0; nbhours=0  ! clear
 
       call usrmsg('  ','  ','-')
-      ITEM(1) ='p set period              '
-      ITEM(2) ='  ____________________    '
-      ITEM(3) ='0 set time of day         '
-      ITEM(4) ='  ____________________    '
-      ITEM(5) ='1 dry bulb temperature    '
-      if(IDNGH.eq.0)then
-       ITEM(6)='2 direct normal solar     '
-      else
-       ITEM(6)='2 global horizontal solar '
-      endif
-      ITEM(7) ='3 diffuse horizontal solar'
-      ITEM(8) ='4 wind speed (m/s)        '
-      ITEM(9) ='5 wind direction (deg)    '
-      ITEM(10)='6 relative humidity (%)   '
-      ITEM(11)='  ____________________    '
-      ITEM(12)='m maximum & minimum       '
-      ITEM(13)='r days within a range     '
-      ITEM(14)='d degree days or hours    '
-      ITEM(15)='a average values          '
-      ITEM(16)='i integrate radiation     '
-      ITEM(17)='h frequency histogram     '
-      ITEM(18)='  ____________________    '
-      ITEM(19)='c climatic severity index '
-      ITEM(20)='s find typical weeks      '
-      ITEM(21)='  ____________________    '
-      ITEM(22)='? help                    '
-      ITEM(23)='- exit                    '
 
-      NITMS=23
+      MHEAD=4
+      MCTL=13
+      ILEN=NCM
+      IPACT=CREATE
+      CALL EKPAGE(IPACT)
+
+      ITEM(1) ='1 set period              '
+      ITEM(2) ='  ____________________    '
+      ITEM(3) ='2 set time of day         '
+      ITEM(4) ='  ____________________    '
+
+      M=MHEAD
+      I=0
+      do imet=1,MCM
+        if (CMXST(imet)) then
+          I=I+1
+          menumetric(I)=imet
+          IF(I.GE.IST.AND.(I.LE.(IST+MIFULL)))THEN
+            M=M+1
+            call EMKEY(I,KEY,IER)
+            write (ITEM(M),'(a,1x,a)') KEY,CMNAMF(imet)
+          ENDIF
+        endif
+      enddo
+
+C If a long list include page facility text.      
+      IF(IPFLG.EQ.0)THEN  
+        ITEM(M+1)='  ____________________    '
+      ELSE
+        WRITE(ITEM(M+1),'(a8,i2,a4,i2,a)')'0 Page: ',IPM,' of ',MPM,
+     &    ' _____    '
+      ENDIF
+      ITEM(M+2)= '3 maximum & minimum       '
+      ITEM(M+3)= '4 days within a range     '
+      ITEM(M+4)= '5 degree days or hours    '
+      ITEM(M+5)= '6 average values          '
+      ITEM(M+6)= '7 integrate radiation     '
+      ITEM(M+7)= '8 frequency histogram     '
+      ITEM(M+8)= '  ____________________    '
+      ITEM(M+9)= '! climatic severity index '
+      ITEM(M+10)='@ find typical weeks      '
+      ITEM(M+11)='  ____________________    '
+      ITEM(M+12)='? help                    '
+      ITEM(M+13)='- exit                    '
+
+C Number of actual items displayed.
+      NITMS=M+MCTL
+
       IP=0
     7 INO=-2
     6 CALL EMENU('  Synoptic analysis',ITEM,NITMS,INO)
       
-      if(ino.eq.nitms)then
-        return
-      elseif(ino.eq.nitms-1)then
-        helptopic='typical_week_overview'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL PHELPD('weather synopsis',nbhelp,'-',0,0,IER)
-      elseif(ino.eq.1)then
+      if(ino.eq.1)then
         CALL selper(ier)
       elseif(ino.eq.3)then
         CALL CLMDAY(IER)
-      elseif(ino.eq.5)then
-        IP=2
-      elseif(ino.eq.6)then
-        IP=3
-      elseif(ino.eq.7)then
-        IP=1
-      elseif(ino.eq.8)then
-        IP=4
-      elseif(ino.eq.9)then
-        IP=5
-      elseif(ino.eq.10)then
-        IP=6
-      elseif(ino.eq.12)then
+      elseif (INO.gt.MHEAD.and.INO.le.(NITMS-MCTL)) then
+
+C Select a climate metric.
+        CALL KEYIND(NITMS,INO,imenu,IO)
+        IP=menumetric(imenu)
+      elseif (INO.eq.(NITMS-12)) then
+ 
+C If there are enough items allow paging control via EKPAGE.
+        IF(IPFLG.EQ.1)THEN
+          IPACT=EDIT
+          CALL EKPAGE(IPACT)
+        ENDIF
+      elseif(ino.eq.NITMS-11)then
 
 C MAXIMUM, MINIMUM AND MEAN VALUES.
         if(IP.EQ.0)then
@@ -126,7 +144,7 @@ C MAXIMUM, MINIMUM AND MEAN VALUES.
           CALL CLMMMM(IP,'m')
         endif
         IP=0
-      elseif(ino.eq.13)then
+      elseif(ino.eq.NITMS-10)then
 
 C Call sequence routine to get days within a user defined range.
         if(IP.EQ.0)then
@@ -135,7 +153,9 @@ C Call sequence routine to get days within a user defined range.
         endif
 
 C Make sure that upper is above lower.
-        WRITE(outs,'(1X,A)')VNAME(IP)
+        ln=lnblnk(CMNAMF(IP))
+        lu=lnblnk(CMUNIT(IP))
+        WRITE(outs,'(1X,4A)')CMNAMF(IP)(1:ln),' (',CMUNIT(IP)(1:lu),')'
         helptopic='days_in_range_limits'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKR(XL,outs,' Lower value for range:  ',
@@ -149,7 +169,7 @@ C Make sure that upper is above lower.
      &    ' and total hours within range is ',nbhours
         call edisp(iuout,outs)
         IP=0
-      elseif(ino.eq.14)then
+      elseif(ino.eq.NITMS-9)then
 
 C Degree days.
         helptopic='dd_day_week_month'
@@ -170,25 +190,25 @@ C Degree days.
         elseif(iddc.eq.6)then
           call SYNOPDEG('h')
         endif
-      elseif(ino.eq.15)then
+      elseif(ino.eq.NITMS-8)then
 
 C AVERAGE DAILY WEATHER.
         CALL CLMAV(IP)
-      elseif(ino.eq.16)then
+      elseif(ino.eq.NITMS-7)then
 
 C Integration of radiation data.
         CALL CLMINT
-      elseif(ino.eq.17)then
+      elseif(ino.eq.NITMS-6)then
 
 C Frequency distribution histogram.
       IF(IP.GT.0)CALL HISCLM(IP)
       IF(IP.LE.0)call edisp(iuout,
      &  'Weather variable has not been selected.')
-      elseif(ino.eq.19)then
+      elseif(ino.eq.NITMS-4)then
 
 C CSI equation calculation.
         CALL CSIEQN
-      elseif(ino.eq.20)then
+      elseif(ino.eq.NITMS-3)then
 
 C Look for DD and Radiation typical week.
         dok=.true.
@@ -205,6 +225,12 @@ C << But where are the best-fit weeks reported? >>
         else
           call DDRADSUM('-')
         endif
+      elseif(ino.eq.nitms-1)then
+        helptopic='typical_week_overview'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL PHELPD('weather synopsis',nbhelp,'-',0,0,IER)
+      elseif(ino.eq.nitms)then
+        return
       else
         INO=-1
         GOTO 6
@@ -217,7 +243,8 @@ C << But where are the best-fit weeks reported? >>
 C ******** `CSIEQN' calculates the Severity of the weather in
 C  terms of a dimensionless number - the CSI.
       SUBROUTINE CSIEQN
-      PARAMETER (MT=24)
+#include "climate.h"
+
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -227,10 +254,6 @@ C  terms of a dimensionless number - the CSI.
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       common/exporttgi/ixopen,ixloc,ixunit
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/CLMDT1/CLMLOC
@@ -428,10 +451,14 @@ C     IF(J.GT.4.AND.J.LT.9)goto 3
     2 J=JJ
       CALL CLMGET(II)
       DO 20 K=1,24
-      ADDT=ADDT+CTMP(K)
-      ADDDR=ADDDR+CDNR(K)
-      ADDFR=ADDFR+CDIF(K)
-      ADDW=ADDW+CVEL(K)
+      ADDT=ADDT+CMRVAL(1,K)
+      if (CMXST(4)) then
+        ADDDR=ADDDR+CMRVAL(4,K)
+      else
+        ADDDR=ADDDR+CMRVAL(3,K)
+      endif
+      ADDFR=ADDFR+CMRVAL(2,K)
+      ADDW=ADDW+CMRVAL(5,K)
       NHRS=NHRS+1
    20 CONTINUE
       goto 10
@@ -492,27 +519,22 @@ C     IF(I.GT.4.AND.I.LT.9)goto 30
 
 C  CLMAV COMPUTES THE DAILY PROFILES(HOUR BY HOUR)OVER THE
 C  SPECIFIED PERIOD OF THE MIN,MAX MEAN,ST.DEV. ETC. FOR THE CHOSEN
-C CLIMATIC PARAMETER:
-C   IP=1 DIFFUSE HORIZ RADIATION
-C      2 EXTERNAL AIR TEMEPRATURE
-C      3 DIRECT NORMAL RADIATION
-C      4 WIND SPEED
-C      5 WIND DIRECTION
-C      6 RELATIVE HUMIDITY
+C IP is climate metric index, as defined in climate.h.
 
       SUBROUTINE CLMAV(IP)
+#include "climate.h"
+
       PARAMETER (MT=24)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTPCH/ICOUT
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/DAYSF/KDS,KDF
       common/exporttgi/ixopen,ixloc,ixunit
-      COMMON/CLMVAR/VNAME(6)
 
       DIMENSION XJ(MT),XLO(MT),XHI(MT)
       DIMENSION XMAXI(MT),XMINI(MT),XMEANI(MT),X2I(MT)
       DIMENSION XMAXM(MT),XMINM(MT),XMEANM(MT),X2M(MT)
-      character outs*124,VNAME*32
+      character outs*124
 
 C If IP is zero then warn user and return.
       if(IP.eq.0)then
@@ -621,8 +643,10 @@ C If output to file alter the edisp unit number.
         call usrmsg(' Output being directed to file...',' ','-')
       endif
       CALL CHEAD(30)
-      WRITE(outs,100)MTH1,VNAME(IP)
- 100  FORMAT(' Month',I3,8X,': ',A)
+      ln=lnblnk(CMNAMF(IP))
+      lu=lnblnk(CMUNIT(IP))
+      WRITE(outs,'(A,I3,5A)')' Month',MTH1,'        : ',
+     &  CMNAMF(IP)(1:ln),' (',CMUNIT(IP)(1:lu),')'
       call edisp(itru,outs)
       WRITE(outs,16)
   16  FORMAT('   Hr',5X,'Min',5X,'Max',7X,'Mean',3X,'Dev.n',
@@ -724,7 +748,10 @@ C INITIALISE MONTHLY
 C NOW COMPUTE PARAMETERS FOR WHOLE PERIOD
       IF(IMM.EQ.IM1)GO TO 19
       CALL CHEAD(30)
-      WRITE(outs,'(2A)')' All period      :',VNAME(IP)
+      ln=lnblnk(CMNAMF(IP))
+      lu=lnblnk(CMUNIT(IP))
+      WRITE(outs,'(5A)')' All period      : ',CMNAMF(IP)(1:ln),' (',
+     &  CMUNIT(IP)(1:lu),')'
       call edisp(itru,outs)
       WRITE(itru,16)
       call edisp(itru,outs)
@@ -759,7 +786,7 @@ C ********* CLMDEG *******
 C CLMDEG computes degree days or equivalent for the given period.
 C Display is per day.
       SUBROUTINE CLMDEG(act)
-      PARAMETER (MT=24)
+#include "climate.h"
 
 C Passed parameter
       character act*1  ! d for degree day h for degree hour reporting
@@ -768,11 +795,6 @@ C Passed parameter
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/DAYSF/KDS,KDF
       common/exporttgi/ixopen,ixloc,ixunit
-
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
 
       character outs*124
       logical ddok  ! true if DD reporting false if DH reporting
@@ -847,7 +869,7 @@ C SET PARAMETERS FOR THIS DAY
 
 C AND ANALYSE IT
       DO 20 J=JS,JF
-      TT=CTMP(J)
+      TT=CMRVAL(1,J)
       IF(TT.GT.BT)GO TO 2
 
 C T BELOW BASE,SAVE DEG-HRS IN DNJ
@@ -994,7 +1016,7 @@ C ********* SYNOPDEG *******
 C SYNOPDEG computes monthly heating and cooling DEGREE DAYS 
 C for the given period.
       SUBROUTINE SYNOPDEG(act)
-      PARAMETER (MT=24)
+#include "climate.h"
 
 C Passed parameter
       character act*1  ! d for degree day h for degree hour reporting
@@ -1002,11 +1024,6 @@ C Passed parameter
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/DAYSF/KDS,KDF
       common/exporttgi/ixopen,ixloc,ixunit
-
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
 
       character outs*124
       logical ddok  ! true if DD reporting false if DH reporting
@@ -1088,7 +1105,7 @@ C SET PARAMETERS FOR THIS DAY
 
 C AND ANALYSE IT
         DO 20 J=JS,JF
-          TT=CTMP(J)
+          TT=CMRVAL(1,J)
           IF(TT.GT.HBT)then
           else
 
@@ -1227,22 +1244,14 @@ C SYNOPDEGS computes seasonal heating and cooling DEGREE DAYS
 C for the given period.
       SUBROUTINE SYNOPDEGS
 
-C Manual inclusion of a parameter from building.h
-      integer MSPS,MIPVA
-      parameter (MSPS=30)
-      parameter (MIPVA=MSPS)
-
+#include "building.h"
 #include "seasons.h"
 C seasons.h provides typper and typsea
+#include "climate.h"
 
-      PARAMETER (MT=24)
       COMMON/OUTPCH/ICOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       common/exporttgi/ixopen,ixloc,ixunit
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
 
       character outs*124,PERST1*14,PERST2*44,PERST3*44
 
@@ -1353,7 +1362,7 @@ C For each day read weather data, set parameters and analyse.
           UPJC=0.0
           DAYL=24.0
           DO 20 J=1,24
-            TT=CTMP(J)
+            TT=CMRVAL(1,J)
             IF(TT.GT.HBT)then
             else
 
@@ -1425,18 +1434,14 @@ C ******* SYNOPWDEG *******
 C SYNOPWDEG computes weekly heating and cooling DEGREE DAYS 
 C for the given period.
       SUBROUTINE SYNOPWDEG
-      PARAMETER (MT=24)
+#include "climate.h"
+
       COMMON/OUTPCH/ICOUT
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/DAYSF/KDS,KDF
       common/exporttg/xfile,tg,delim
       common/exporttgi/ixopen,ixloc,ixunit
-
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
 
       character outs*124,DESCR*7,DESCR1*10,xfile*144,tg*1,delim*1
       logical ok,dok
@@ -1513,7 +1518,7 @@ C For each day read weather data, set parameters and analyse.
 
 C AND ANALYSE IT
         DO 20 J=JS,JF
-          TT=CTMP(J)
+          TT=CMRVAL(1,J)
           IF(TT.GT.HBT)then
           else
 
@@ -1640,31 +1645,15 @@ C AV DEGDAYS PER DAY OVER PERIOD
 
 C TO GET ONE DAY OF ONE CLIMATE PARAMETER
       SUBROUTINE CLMGT1(IDD,IP,XJ)
-      PARAMETER (MT=24)
+#include "climate.h"
 
       DIMENSION XJ(24)
-      integer NDAY
-      real CDIF,CTMP,CDNR,CVEL,CDIR,CHUM
-      COMMON/CLMDAT/NDAY,CDIF(MT),CTMP(MT),CDNR(MT),CVEL(MT),
-     &              CDIR(MT),CHUM(MT)
 
       CALL CLMGET(IDD)
 
 C Recover required value.
       DO 20 J=1,24
-        if(IP.eq.1)then
-          X=CDIF(J)
-        elseif(IP.eq.2)then
-          X=CTMP(J)
-        elseif(IP.eq.3)then
-          X=CDNR(J)
-        elseif(IP.eq.4)then
-          X=CVEL(J)
-        elseif(IP.eq.5)then
-          X=CDIR(J)
-        elseif(IP.eq.6)then
-          X=CHUM(J)
-        endif
+        X=CMRVAL(IP,J)
         XJ(J)=X
   20  CONTINUE
 

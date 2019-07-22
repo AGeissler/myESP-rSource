@@ -168,49 +168,51 @@ C Special material output. << use alternative data recovery >>.
 C Network flow tabular output. If iairn=3 we can display the
 C flow network in 3D at this point.
         if(iairn.eq.3)then
+          if (MMOD.eq.8) then
 
 C Initialise coordinates for eye point, view point and angle of view.
-          EYEM(1)=-100.; EYEM(2)=-100.; EYEM(3)=100.
-          VIEWM(1)=10.; VIEWM(2)=10.; VIEWM(3)=10.
-          ANG=40.
+            EYEM(1)=-100.; EYEM(2)=-100.; EYEM(3)=100.
+            VIEWM(1)=10.; VIEWM(2)=10.; VIEWM(3)=10.
+            ANG=40.
 
 C General image option flags.
-          ITDSP=0; ITBND=1; ITEPT=0
-          ITZNM=0; ITSNM=1; ITVNO=1
-          ITORG=0; ITSNR=1; ITOBS=0
-          ITGRD=0; GRDIS=0.0
-          ITPPSW=0
+            ITDSP=0; ITBND=1; ITEPT=0
+            ITZNM=0; ITSNM=1; ITVNO=1
+            ITORG=0; ITSNR=1; ITOBS=0
+            ITGRD=0; GRDIS=0.0
+            ITPPSW=0
 
 C Clear current viewing box and re-establish image bounds.
-          CALL startbuffer
+            CALL startbuffer
 
 C Setup and pass in parameters to win3d.
-          iiw1=4; iiw2=4; iiw3=3; iiw4=3; iimenu=menuchw
-          iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
-          CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
-     &      iigl,iigr,iigt,iigb,iigw,iigwh)
-          igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
-          igw=int(iigw); igwh=int(iigwh)
-          igwid=igw; igheight=igwh
+            iiw1=4; iiw2=4; iiw3=3; iiw4=3; iimenu=menuchw
+            iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+            CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
+     &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
+            igw=int(iigw); igwh=int(iigwh)
+            igwid=igw; igheight=igwh
 
 C Get bounds for image.
-          nzg=NCOMP
-          do 29 iz=1,nzg
-            nznog(iz)=iz
-  29      continue
-          call bndobj(0,IER)
+            nzg=NCOMP
+            do 29 iz=1,nzg
+              nznog(iz)=iz
+  29        continue
+            call bndobj(0,IER)
 
-          HANG=ANG/2.0; HITH=1.0; YON=1300.0
-          CALL LENS(IER)
+            HANG=ANG/2.0; HITH=1.0; YON=1300.0
+            CALL LENS(IER)
 
 C Determine scaling ratios for the drawing and axis.
 C Determine the 2D coords of the site extremes.
-          CALL SITE2D(SXMX,SXMN,SYMX,SYMN,ier)
+            CALL SITE2D(SXMX,SXMN,SYMX,SYMN,ier)
 C          write(6,*) SXMX,SXMN,SYMX,SYMN
-          CALL axiscale(igwid,igheight,SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,
-     &      Xadd,Yadd)
+            CALL axiscale(igwid,igheight,SXMN,SXMX,SYMN,SYMX,xsc,ysc,
+     &        sca,Xadd,Yadd)
 C          write(6,*) SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,Xadd,Yadd
-          call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
+            call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
+          endif
 
 C Read 3D flow network, report contents and draw the network.
           IUM=IFIL+6
@@ -309,7 +311,7 @@ C act='m' called from ipv metric with parameters already set.
       integer lnblnk  ! function definition
 
       COMMON/OUTPCH/ICOUT
-C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -321,7 +323,7 @@ C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)
@@ -409,15 +411,17 @@ C Write tag line if tagged output requested.
       endif
 
 C Switch to fixed font for text feedback.
-      lastmenufont=IMFS
-      lastbuttonfont=IFS
-      lasttextfont=ITFS
-      if(ITFS.eq.4) ITFS=0
-      if(ITFS.eq.5) ITFS=1
-      if(ITFS.eq.6) ITFS=2
-      if(ITFS.eq.7) ITFS=3
-      call userfonts(IFS,ITFS,IMFS)
-      call winfnt(itfs)
+      if(MMOD.EQ.8)then
+        lastmenufont=IMFS
+        lastbuttonfont=IFS
+        lasttextfont=ITFS
+        if(ITFS.eq.4) ITFS=0
+        if(ITFS.eq.5) ITFS=1
+        if(ITFS.eq.6) ITFS=2
+        if(ITFS.eq.7) ITFS=3
+        call userfonts(IFS,ITFS,IMFS)
+        call winfnt(itfs)
+      endif
       
 C Write general header information (skip if IPV mode).
       if(act(1:1).ne.'m')then
@@ -859,12 +863,14 @@ C Writing to screen so use shorter file buffer.
  421    CONTINUE
  10   continue
  
-      IMFS=lastmenufont
-      ITFS=lasttextfont    ! reset to proportional font in text feedback
-      IFS=lastbuttonfont
-      call userfonts(IFS,ITFS,IMFS)
-      call winfnt(imfs)  ! back to menu font     
-      call usrmsg(' ',' ','-')  ! refresh dialog 
+      if(MMOD.EQ.8)then
+        IMFS=lastmenufont
+        ITFS=lasttextfont    ! reset to proportional font in text feedback
+        IFS=lastbuttonfont
+        call userfonts(IFS,ITFS,IMFS)
+        call winfnt(imfs)  ! back to menu font     
+        call usrmsg(' ',' ','-')  ! refresh dialog
+      endif
 
 C Explain inlv dT comment.
       if (IINLVDT.eq.1) then
@@ -914,7 +920,7 @@ C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
 
-      character SLABEL*32,GLABEL*20,TABLABEL*36
+      character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
       integer LNSLABEL,LNGLABEL,LNTABLABEL  ! lengths for label strings
       COMMON/LNGETLABEL/LNSLABEL(MZS),LNGLABEL(MZS),LNTABLABEL(MZS)

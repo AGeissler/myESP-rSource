@@ -426,11 +426,12 @@ C Derived casual gain and electrical data.
      &        CGSENC(MCOM,MDTY,MGTY,MGPER),CGSENR(MCOM,MDTY,MGTY,MGPER),
      &        CGLAT(MCOM,MDTY,MGTY,MGPER),CGCTL(MCOM,2,MGTY)
 C<< Dynamic people
-      REAL META,NBMEN,NBWOM,NBCHI
-      common/CASGNSO/META(MCOM,MDTY,MGTY,MGPER),
+      REAL META1,META2,NBMEN,NBWOM,NBCHI
+      common/CASGNSO/META1(MCOM,MDTY,MGTY,MGPER),
      &         NBMEN(MCOM,MDTY,MGTY,MGPER),NBWOM(MCOM,MDTY,MGTY,MGPER),
      &         NBCHI(MCOM,MDTY,MGTY,MGPER),CONCC(MCOM,MDTY,MGTY,MGPER),
-     &         RADCC(MCOM,MDTY,MGTY,MGPER),CLOTH(MCOM,MDTY,MGTY,MGPER)
+     &         RADCC(MCOM,MDTY,MGTY,MGPER),CLOTH(MCOM,MDTY,MGTY,MGPER),
+     &         META2(MCOM,MDTY,MGTY,MGPER)
       common/CASGNSE/ELQ(MCOM,MDTY,MGTY,MGPER,MPHAS),
      &               ELR(MCOM,MDTY,MGTY,MGPER,MPHAS)
 
@@ -501,7 +502,8 @@ C Zero derived gains.
             CGSENC(ICOMP,ID,IG,IP)=0.
             CGSENR(ICOMP,ID,IG,IP)=0.
             CGLAT(ICOMP,ID,IG,IP)=0.
-            META(MCOM,MDTY,MGTY,MGPER)=0.
+            META1(MCOM,MDTY,MGTY,MGPER)=0.
+            META2(MCOM,MDTY,MGTY,MGPER)=0.
             NBMEN(MCOM,MDTY,MGTY,MGPER)=0.
             NBWOM(MCOM,MDTY,MGTY,MGPER)=0.
             NBCHI(MCOM,MDTY,MGTY,MGPER)=0.
@@ -693,13 +695,14 @@ C<< the dynamic model is called in Casual.F MZCASI for each time step if there i
             IPER=NCGPER(ICOMP,IDAY,ITYP)
             TCGS(ICOMP,IDAY,ITYP,IPER)=ICGS(IDAY,I)
             TCGS(ICOMP,IDAY,ITYP,IPER+1)=ICGF(IDAY,I)           
-            META(ICOMP,IDAY,ITYP,IPER)=metabolic(IDAY,I)
+            META1(ICOMP,IDAY,ITYP,IPER)=metabolic(IDAY,I)
             NBMEN(ICOMP,IDAY,ITYP,IPER)=tnbmen(IDAY,I)
             NBWOM(ICOMP,IDAY,ITYP,IPER)=tnbwomen(IDAY,I)
             NBCHI(ICOMP,IDAY,ITYP,IPER)=tnbchild(IDAY,I)
             RADCC(ICOMP,IDAY,ITYP,IPER)=RADC(IDAY,I)
             CONCC(ICOMP,IDAY,ITYP,IPER)=CONC(IDAY,I)
             CLOTH(ICOMP,IDAY,ITYP,IPER)=clov(IDAY,I)
+            META2(ICOMP,IDAY,ITYP,IPER)=airvel(IDAY,I)
           endif
         else
           write(6,*) 'unknown combination',ICGUnit(iday,I),ITYP

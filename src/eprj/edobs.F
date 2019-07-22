@@ -742,6 +742,7 @@ C If silent is true then either create or deference silently. If
 C the geometry file is version 1.1 or greater then it can hold
 C the block information.  Because this is called from several
 C code blocks it is still necessary to re-scan the zone files.
+
       SUBROUTINE ECROBS(ITRC,ITRU,IUF,ICOMP,silent,IER)
 #include "building.h"
 #include "model.h"
@@ -759,6 +760,7 @@ C geometry.h provides commons G0/G2/precz/GS5/GS6.
       LOGICAL XST,unixok,silent,makedummy
       logical newgeo  ! to use for testing if new/old geometry file.
       logical clkok   ! to register user actions in dialog
+      integer ISTRW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -924,12 +926,14 @@ C newgeo is true adapt the help message and the dialog text.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.2)then
           if(newgeo)then
+            ISTRW=72
             CALL EASKSCMD(LTMP,'Legacy obstructions import (see help):',
-     &        ' ','browse',clkok,72,OFILE,'obstruction file',
+     &        ' ','browse',clkok,ISTRW,OFILE,'obstruction file',
      &        ISER,nbhelp)
           else
+            ISTRW=72
             CALL EASKSCMD(LTMP,'Zone obstructions file (see help):',
-     &        ' ','browse',clkok,72,OFILE,'obstruction file',
+     &        ' ','browse',clkok,ISTRW,OFILE,'obstruction file',
      &        ISER,nbhelp)
           endif
           if(clkok)iclkok=2   ! notice browse button

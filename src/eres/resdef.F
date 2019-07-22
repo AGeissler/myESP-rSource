@@ -73,6 +73,7 @@ C Simulator parameters.
       character EFILEABS*144
       character path*72,lcmdfl*144,ltmpc*144,lpath*72
       logical XST
+      integer ISTRW
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -108,22 +109,19 @@ C name with the full path.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
           if(llt.lt.96)then
-            CALL EASKF(ltmpc,' Library name ? ',' ',96,DEFRLB,
-     &        'library file',IER,nbhelp)
+            ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
-            CALL EASKF(ltmpc,' Library name ? ',' ',124,DEFRLB,
-     &        'library file',IER,nbhelp)
+            ISTRW=124
           elseif(llt.ge.124.and.llt.le.144)then
-            CALL EASKF(ltmpc,' Library name ? ',' ',144,DEFRLB,
-     &        'library file',IER,nbhelp)
+            ISTRW=144
           endif
         elseif(iglib.eq.2)then
-          CALL EASKF(ltmpc,' Library name ? ',' ',144,DEFRLB,
-     &      'library file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(ltmpc,' Library name ? ',' ',96,DEFRLB,
-     &      'library file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(ltmpc,'Library name?',' ',ISTRW,DEFRLB,
+     &    'library file',IER,nbhelp)
 
 C If user cancel set iftype to -2 and return (assume calling code
 C will act on this.
@@ -787,6 +785,7 @@ C NZNO - zone number of each.
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/DEFLT/IDEFLT
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/SETPIK/NS,NSNO(MNRS),ISETON(MNRS),IMET,IFAFLG(MNRS,MNFA)
       COMMON/ZONPIK/NZ,NZNO(MCOM)
@@ -822,10 +821,14 @@ C array zn for use in the selection list.
       endif
 
 C If only one zone then set NZNO and NZ accordingly.
-      IF(NCOMP.EQ.1)then
-        NZNO(1)=1
-        NZ=1
-        RETURN
+C Disable this behaviour in script mode to maintain consistency for
+C automation.
+      IF(MMOD.ne.-6)THEN
+        IF(NCOMP.EQ.1)then
+          NZNO(1)=1
+          NZ=1
+          RETURN
+        endif
       endif
 
 C Otherwise select the zones from a list of zone names.
@@ -941,6 +944,7 @@ C longtmp is the model configuration file with full path.
       CHARACTER NAME*6,longtmp*144
       character outs*124,znpad*15,path*72,MODE*4
       character louts*248
+      integer ISTRW
       
       logical XST,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical dmdsok  ! for dispersed demands
@@ -1246,18 +1250,15 @@ C If using X11 assume that the full path is less than 96 chars
 C but if using GTK then we need the full length to avoid truncation.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(longtmp,' ',
-     &      ' Corresponding system configuration file name ? ',
-     &      96,' ','configuration file',IER,nbhep)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(longtmp,' ',
-     &      ' Corresponding system configuration file name ? ',
-     &      144,' ','configuration file',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(longtmp,' ',
-     &      ' Corresponding system configuration file name ? ',
-     &      96,' ','configuration file',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(longtmp,' ',
+     &    'Corresponding system configuration file name?',
+     &    ISTRW,' ','configuration file',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if (longtmp.eq.' ') goto 45
@@ -1294,16 +1295,6 @@ C Set the default export file name based on model root name.
 
         ENDIF
 
-C Take into account weather file location.
-       lndbp=lnblnk(standardclmpath)
-       if(ipathclim.eq.0.or.ipathclim.eq.1)then
-         call addpath(lclim,llclmdb,concat)
-       elseif(ipathclim.eq.2)then
-         write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
-     &     LCLIM(1:lnblnk(LCLIM))
-       endif
-       lclim=llclmdb  ! overwrite weather with expanded file name
-
 C If there is a model dispersed demands file read it.
        call FINDFIL(bdmds,XST)
        IF(XST)THEN
@@ -1338,15 +1329,14 @@ C If using X11 assume that the full path is less than 96 chars
 C but if using GTK then we need the full length to avoid truncation.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(longtmp,' Model configuration file ?',' ',96,
-     &      DFCFG,'config file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(longtmp,' Model configuration file ?',' ',144,
-     &      DFCFG,'config file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(longtmp,' Model configuration file ?',' ',96,
-     &      DFCFG,'config file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(longtmp,'Model configuration file?',' ',ISTRW,
+     &    DFCFG,'config file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if (longtmp(1:2).ne.'  ') GOTO 289
@@ -1362,9 +1352,16 @@ C are not referenced. Could we use these slots for something else?
   140 CONTINUE
   
 C Finally check if the climate file read in above exists.
-C << take into account location >>
-   44 IUNITC=IFIL+5
-      call EFOPRAN(IUNITC,LCLIM,144,0,IER)
+C Take into account weather file location.
+      lndbp=lnblnk(standardclmpath)
+      if(ipathclim.eq.0.or.ipathclim.eq.1)then
+        llclmdb=LCLIM
+      elseif(ipathclim.eq.2)then
+        write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
+     &    LCLIM(1:lnblnk(LCLIM))
+      endif
+
+   44 CALL CLMOPB(0,IER)
       IF(IER.LT.0)then
 
 C Climate file not found - ask user for name.
@@ -1380,15 +1377,14 @@ C If using X11 assume that the full path is less than 96 chars
 C but if using GTK then we need the full length to avoid truncation.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          CALL EASKF(longtmp,' ',' Climate file name ? ',
-     &      96,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=96
         elseif(iglib.eq.2)then
-          CALL EASKF(longtmp,' ',' Climate file name ? ',
-     &      144,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=144
         else
-          CALL EASKF(longtmp,' ',' Climate file name ? ',
-     &      96,DCLIM,'climate file name',IER,nbhelp)
+          ISTRW=96
         endif
+        CALL EASKF(longtmp,' ','Climate file name?',
+     &    ISTRW,DCLIM,'climate file name',IER,nbhelp)
         if(ier.eq.-3) return  ! cancel detected pass back -3 in ier.
 
         if(longtmp(1:2).ne.'  '.and.longtmp(1:4).ne.'UNKN')then
@@ -1401,11 +1397,7 @@ C Also recover the solar radiation flag from the climate file.
 
 C << Note this sets the year from the climate file scan!  What
 C << if the model uses a different year?  Which one is used?
-
-      IRECC=366
-      READ(IUNITC,REC=IRECC,IOSTAT=ios,ERR=102)IYEAR,ICDNGH
-      IRTYPE=0
-      IF(ICDNGH.EQ.123)IRTYPE=1
+      CALL CLMRDBMD(IER)
 
     2 RETURN
 

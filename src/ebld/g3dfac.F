@@ -67,6 +67,7 @@ C *********************************************************************
       CHARACTER MSG*82,L3DTMP*72,FLTYP*25,LTMP*72,path*72
 
       integer ier
+      logical ISEOF
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -120,10 +121,10 @@ C Create the nodes distribution file.
         MAXNOD=0
         IC=0
    20   IC=IC+1
-        READ(ICVS,REC=IC,IOSTAT=ISTAT,ERR=5)ND1,VOLM1,DMM,IS1,IL1
+        READ(ICVS,REC=IC,IOSTAT=ISTAT)ND1,VOLM1,DMM,IS1,IL1
 
 C End of file reached.
-        IF(ISTAT.LT.0)THEN
+        IF(ISEOF(ISTAT))THEN
           WRITE(MSG,'(A,I3,A)')' Control volumes file for zone (',
      &                         ICOMP,') read successfully.'
           CALL EDISP(IUOUT,MSG)
@@ -188,10 +189,10 @@ C Open the 3D temporary file.
         INS=0
         IC=0
    50   IC=IC+1
-        READ(ICNC,REC=IC,IOSTAT=ISTAT,ERR=7)ND1,DMM,ARA,DMM,ITP,IP1,IP2
+        READ(ICNC,REC=IC,IOSTAT=ISTAT)ND1,DMM,ARA,DMM,ITP,IP1,IP2
 
 C End of file reached.
-        IF(ISTAT.LT.0)THEN
+        IF(ISEOF(ISTAT))THEN
           WRITE(MSG,'(A,I3,A)')' Connections file for zone (',ICOMP,
      &                         ') read successfully.'
           CALL EDISP(IUOUT,MSG)
@@ -450,6 +451,7 @@ C *********************************************************************
       logical unixok
       integer ier
       character msg*90
+      logical ISEOF
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -473,8 +475,8 @@ C Re-order the nodes (reduce the fill ins).
       IC=0
    20 IC=IC+1
       msg='icnc reading ND1 DST ARC CND ITP IP1 IP2'
-      READ(ICNC,REC=IC,IOSTAT=ISTAT,ERR=1)ND1,DST,ARC,CND,ITP,IP1,IP2
-      IF(ISTAT.LT.0)THEN
+      READ(ICNC,REC=IC,IOSTAT=ISTAT)ND1,DST,ARC,CND,ITP,IP1,IP2
+      IF(ISEOF(ISTAT))THEN
         GOTO 30
 
 C Connection with another node within the same zone.
@@ -544,8 +546,8 @@ C Re-order the connections file.
       IC=0
   100 IC=IC+1
       msg='ift3 reading ND1 DST ARC CND ITP IP1 IP2'
-      READ(ITF3,REC=IC,IOSTAT=ISTAT,ERR=1)ND1,DST,ARC,CND,ITP,IP1,IP2
-      IF(ISTAT.LT.0)THEN
+      READ(ITF3,REC=IC,IOSTAT=ISTAT)ND1,DST,ARC,CND,ITP,IP1,IP2
+      IF(ISEOF(ISTAT))THEN
         CALL EFDELET(ITF3,ISTAT)
         call isunix(unixok)
         if(unixok)then
@@ -574,8 +576,8 @@ C Re-order the connections file.
 C Re-order the control volumes file.
   110 IC=IC+1
       msg='ift3 reading ND VOLM DNHC ISF IL'
-      READ(ITF3,REC=IC,IOSTAT=ISTAT,ERR=1)ND,VOLM,DNHC,ISF,IL
-      IF(ISTAT.LT.0)THEN
+      READ(ITF3,REC=IC,IOSTAT=ISTAT)ND,VOLM,DNHC,ISF,IL
+      IF(ISEOF(ISTAT))THEN
         CALL EFDELET(ITF3,ISTAT)
         call isunix(unixok)
         if(unixok)then
@@ -601,8 +603,8 @@ C Re-order the control volumes file.
 C Re-order the nodes file.
   130 IC=IC+1
       msg='ift3 reading XND YND ZND'
-      READ(ITF3,REC=IC,IOSTAT=ISTAT,ERR=1)XND,YND,ZND
-      IF(ISTAT.LT.0)THEN
+      READ(ITF3,REC=IC,IOSTAT=ISTAT)XND,YND,ZND
+      IF(ISEOF(ISTAT))THEN
         NODTOT=IC-1
         CALL EFDELET(ITF3,ISTAT)
         CALL ERPFREE(INDC,ISTAT)
@@ -624,8 +626,8 @@ C Re-order the nodes file.
 C Re-order the nodes file.
   150 IC=IC+1
       msg='ift3 reading T3P T3F'
-      READ(ITF3,REC=IC,IOSTAT=ISTAT,ERR=1)T3P,T3F
-      IF(ISTAT.LT.0)THEN
+      READ(ITF3,REC=IC,IOSTAT=ISTAT)T3P,T3F
+      IF(ISEOF(ISTAT))THEN
         CALL EFDELET(ITF3,ISTAT)
         CALL ERPFREE(ITAQ,ISTAT)
         RETURN
@@ -652,10 +654,12 @@ C *********************************************************************
 
       COMMON/GR3D110/ICVS,ICNC,INDC,INDD,ITAQ,ITLW,ILWV,ITF3
 
+      logical ISEOF
+
       IRCRD=0
    10 IRCRD=IRCRD+1
       READ(INDD,REC=IRCRD,IOSTAT=ISTAT,ERR=1)NODE,ISURFC,ILYR
-      IF(ISTAT.LT.0)THEN
+      IF(ISEOF(ISTAT))THEN
         RETURN
       ELSEIF(NODE.EQ.INODE)THEN
         WRITE(INDD,REC=IRCRD,ERR=2)NODE,ISURFC,ILYR,ARAEND

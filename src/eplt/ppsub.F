@@ -232,15 +232,32 @@ C Assign properties values
         Pr=0.708-2.2E-4*(Tf-27.)
       ELSEIF (N.EQ.3) THEN
         RHO=RHOFLD(3,Tf)
-        Rk=-8.23171E-6*Tf**2+1.96785E-3*Tf+0.5665745
-        Rmu=1.825372E-7*Tf**2-3.1195E-5*Tf+0.001639325
-        Pr=1.480565E-3*Tf**2-0.245234*Tf+11.99837
+C       Empirical equations seem to have following approximate upper
+C       limits (a lower limit of -50 °C seems O.K. for them):
+C        Rk  Tf_max = 120 °C ; Rk_max  = 0.68418
+C        Rmu Tf_max =  85 °C ; Rmu_min = 0.00030658
+C        Pr  Tf_max =  83 °C ; Pr_min  = 1.8436
+        if (Tf.lt.120.) then
+          Rk=-8.23171E-6*Tf**2+1.96785E-3*Tf+0.5665745
+        else
+          Rk=0.68418
+        endif
+        if (Tf.lt.85.) then
+          Rmu=1.825372E-7*Tf**2-3.1195E-5*Tf+0.001639325
+        else
+          Rmu=0.00030658
+        endif
+        if (Tf.lt.83.) then
+          Pr=1.480565E-3*Tf**2-0.245234*Tf+11.99837
+        else
+          Pr=1.8436
+        endif
       ENDIF
 
       Re=RHO*D*u/Rmu
 
 C for turbulent flow required to check whether it is cooling or heating
-      IF (Re.GT.2300.) THEN
+      IF ((Re.GT.2300.).and.(Tf.gt.-5.)) THEN
         h=0.023*(Rk/D)*Re**0.8*Pr**(1./3.)
 
 C for laminar flow assuming constant wall temperature

@@ -64,6 +64,7 @@ C will have been defined prior to calling edmrt.
       integer icni,icnj  ! connection numbers for pair of surfaces.
       integer MVERT,IVERT ! max items and current menu item
       logical newgeo
+      integer ISTRW
 
 C Passed parameters for cfgtogg
 #ifdef OSI
@@ -242,8 +243,8 @@ C an offset from prj start position.
 C Test the error return from ermrt call.
           CALL ERMRT(ITRC,ITRU,IUF,LVIEW(ICOMP),ICOMP,IER)
           if(ier.eq.3)then
-            write(6,*) 
-     &      'zone surface mrt surfs mismatch on return from mrt'
+            call edisp(iuout,
+     &      'zone surface mrt surfs mismatch on return from mrt')
           endif
           return
         endif
@@ -258,8 +259,9 @@ C and no MRT sensors.
       if(IVF(ICOMP).eq.1)then
         LTMP=LVIEW(ICOMP)
         clkok=.false.
+        ISTRW=72
    46   CALL EASKSCMD(LTMP,'Zone viewfactor file? ',' ',
-     &    'dereference',clkok,72,VFILE,'viewfactor file',IER,nbhelp)
+     &    'dereference',clkok,ISTRW,VFILE,'viewfactor file',IER,nbhelp)
         if(clkok)then
           LVIEW(ICOMP)='UNKNOWN'
           IVF(ICOMP)=0
@@ -326,8 +328,9 @@ C No mrt file referenced so offer default name as well as an option
 C to back out of the facility.
         LTMP=VFILE
         clkok=.false.
+        ISTRW=72
    47   CALL EASKSCMD(LTMP,'Zone viewfactor file? ',' ',
-     &    'dereference',clkok,72,VFILE,'viewfactor file',IER,nbhelp)
+     &    'dereference',clkok,ISTRW,VFILE,'viewfactor file',IER,nbhelp)
         if(clkok)then
           return
         else
@@ -355,13 +358,11 @@ C Test the error return from ermrt call.
 C LVIEW does not exist create initial file with area weighted
 C viewfactors. If NCUB(ICOMP) was defined via the geometry file
 C then use that information.
-C            write(6,*) ' EDMRT b',icomp,NCUB(ICOMP)
 C            NCUB(ICOMP)=0
             CALL usrmsg('Creating area weighted viewfactor file...',
      &        ' ','-')
             CALL EMKMRT(LVIEW(ICOMP),LGEOM(ICOMP),NZSUR(ICOMP),IUF,
      &        ICOMP,'a',IER)
-            write(6,*) ' EDMRT c',icomp,NCUB(ICOMP)
             if(ier.ne.0)then
               call usrmsg(
      &  'Problem detected while creating viewfactor data file.',
@@ -561,13 +562,11 @@ C Add a mrt sensor.
           CANG(NCU)=0.
           write(CUBN(NCU),'(A,I2.2)')'sen_',NCU
           MODIFYVIEW=.TRUE.
-        write(6,*) ' EDMRT g',icomp,NCUB(ICOMP)
 
 C Also save mrt sensors to geometry file.
           call eclose(gversion(ICOMP),1.1,0.01,newgeo)
           if(newgeo)then
             call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
-        write(6,*) ' EDMRT h',icomp,NCUB(ICOMP)
           endif
         ELSE
           CALL USRMSG(' ',' Too many sensors defined!','W')
@@ -790,7 +789,7 @@ C Set menu header text.
       WRITE(VERT(4),'(A,F7.3)') 'd Sensor width (X): ',DXC(ICUB)
       WRITE(VERT(5),'(A,F7.3)') 'e Sensor depth (Y): ',DYC(ICUB)
       WRITE(VERT(6),'(A,F7.3)') 'f Sensor height(Z): ',DZC(ICUB)
-      WRITE(VERT(7),'(A,F5.1)') 'g Sensor rotation : ',CANG(ICUB)
+      WRITE(VERT(7),'(A,F6.1)') 'g Sensor rotation : ',CANG(ICUB)
       WRITE(VERT(8),'(A,A6)')   'h Sensor name : ',CUBN(ICUB)
       VERT(9)    ='  _______________________ '
       VERT(10)   ='? Help                    '

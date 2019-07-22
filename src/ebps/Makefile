@@ -41,8 +41,8 @@ BPS_OBJECTS = bps.o adaptconf1.o adaptconf2.o adjb.o adjp.o ascii_mat.o \
 	  bndarybl.o bndaryl.o bndaryt.o bsim2cfd.o btherm.o c2fdum.o casual.o cfcalc.o \
 	  CDBPlugins.o CDBCommon.o \
 	  cfconv.o cfdat.o cfdrw.o cfgrid.o cfmgerb.o cfutil.o chkconvg.o chtmst.o \
-	  climi.o cntmnt.o conc.o convect1.o convect2.o ctread.o dayfac.o drylink.o dossupport.o dynamicoccup.o ecasctl.o \
-	  econstr.o econtrol.o edatabase.o egeometry.o egrid.o emfnetw.o emoist.o \
+	  climi.o cntmnt.o commonclm.o conc.o convect1.o convect2.o ctread.o dayfac.o drylink.o dossupport.o \
+	  dynamicoccup.o ecasctl.o econstr.o econtrol.o edatabase.o egeometry.o egrid.o emfnetw.o emoist.o \
 	  enetbound.o enetmath.o enetmisc.o enetpost.o enetrewr.o enetsetu.o \
 	  enetsolv.o eroper.o esgrid.o esru_misc.o esystem.o EV_model.o filelist.o g3dfac.o \
 	  g3dfnc.o g3dmtx.o gcfunc.o gsdmtx.o inital.o initalc.o initalp.o \
@@ -51,8 +51,8 @@ BPS_OBJECTS = bps.o adaptconf1.o adaptconf2.o adjb.o adjp.o ascii_mat.o \
 	  moistr.o monitor.o montrb.o mstmsc.o mzmrx5.o mzout6.o mzoutp.o nwkrewr.o \
 	  pcloop.o pcomp1.o pcomp2.o pcomp3.o pcomp4.o pcompDH.o pcomps.o pcomps1.o \
 	  plibsv.o plot.o pltcfg.o pmatrx.o pplib.o ppsub.o precal.o psychro.o \
-	  reslib.o rnor.o rwipv.o rwroam.o rwsbem.o senrwl.o sensit.o sentim.o simcon.o solar.o sort.o \
-	  spmatl.o spmisc.o stofunc.o subsys.o tdfile.o tdrecbps.o trstyp.o \
+	  reslib.o rnor.o rwipv.o rwroam.o rwsbem.o segmentedocc.o segoccfunc.o senrwl.o sensit.o sentim.o \
+	   simcon.o solar.o sort.o spmatl.o spmisc.o stofunc.o subsys.o tdfile.o tdrecbps.o trstyp.o \
 	  tscon.o utilf.o MechVentIN.o CentralVentSys.o \
 	  hvacinput.o hvacsim.o furnace.o init_hvac_var.o fan.o ashp.o \
 	  ashp_cooling.o baseboard.o hvac_output.o h3koutput.o h3kstore.o \
@@ -70,7 +70,7 @@ BPS_OBJECTS = bps.o adaptconf1.o adaptconf2.o adjb.o adjp.o ascii_mat.o \
 	  solar_collectors.o ground_temp_mains.o Lookup_data.o readTrnsys.o trnsys_wrapper.o trnsys_lib.o \
 	  tank_intank_hx.o mains_temp_draw_profiles.o stratified_tank.o stratified_tank_byp.o SiteUtilities.o RE-H2-ctl.o \
 	  ncm_overheating.o CFC_opt_props.o CFC_thermal_and_aux.o editCFC.o NCHE.o stratified_tank_1HX.o stratified_tank_2HX.o \
-	  AirFlowModelRoutines.o Res_elec_Ctl.o harmonizer_timing.o qrun.o azalt.o
+	  AirFlowModelRoutines.o Res_elec_Ctl.o harmonizer_timing.o qrun.o
 
 MODULES = aim2.mod aim2_calcdata.mod aim2_h2k_dummy.mod aim2_inputdata.mod aim2_timestep.mod start_up.mod parse_command_line.mod \
           h3kmodule.f90 CFC_Module.mod
@@ -202,6 +202,9 @@ climi.F:
 cntmnt.F:
 	rm -f cntmnt.F
 	ln -s $(MFSdir)/cntmnt.F .
+commonclm.F:
+	rm -f commonclm.F
+	ln -s $(COMdir)/commonclm.F .
 conc.F:
 	rm -f conc.F
 	ln -s $(DFSdir)/conc.F .
@@ -451,6 +454,12 @@ sensit.F:
 sentim.F:
 	rm -f sentim.F
 	ln -s $(BLDdir)/sentim.F .
+segmentedocc.f90:
+	rm -f segmentedocc.f90
+	ln -s $(BLDdir)/segmentedocc.f90 .
+segoccfunc.f90:
+	rm -f segoccfunc.f90
+	ln -s $(BLDdir)/segoccfunc.f90 .
 solar.F:
 	rm -f solar.F
 	ln -s $(BLDdir)/solar.F .
@@ -677,9 +686,6 @@ shocc_dummy.c:
 qrun.F:
 	rm -f qrun.F
 	ln -s $(COMdir)/qrun.F
-azalt.F:
-	rm -f azalt.F
-	ln -s $(COMdir)/azalt.F
 
 ##Unused 'time-out' code.
 ##timeout.cpp:
@@ -773,7 +779,6 @@ FMIcom.F:
 	rm -f FMIcom.F
 	ln -s $(COMdir)/FMIcom.F .
 
-
 strip:
 	strip $(PROG)
 	strip $(DLL)
@@ -792,7 +797,7 @@ clean:
 	CETC_BATTERY.F cetc_cogen.F compressed_cylinder.F ConfigureH3kReports.F \
 	ConfigureH3kReports.o cfcalc.F cfconv.F cfdat.F cfdrw.F cfgrid.F cfmgerb.F \
 	cfutil.F chemical_properties.F \
-	chkconvg.F chtmst.F climi.F cntmnt.F conc.F convect1.F convect2.F ctread.F dayfac.F \
+	chkconvg.F chtmst.F climi.F cntmnt.F commonclm.F conc.F convect1.F convect2.F ctread.F dayfac.F \
 	dossupport.F drylink.F dynamicoccup.F ecasctl.F econstr.F econtrol.F edatabase.F egeometry.F \
 	egrid.F emfnetw.F emoist.F enetbound.F enetmath.F enetmisc.F enetpost.F \
 	enetrewr.F enetsetu.F enetsolv.F enet_state_variable_manipulate.F eroper.F esgrid.F ESPrTrnsysData.F \
@@ -806,8 +811,8 @@ clean:
 	mzout6.F mzoutp.F ncm_overheating.F nwkrewr.F pcloop.F pcomp1.F pcomp2.F pcomp3.F \
 	pcomp4.F pcomps1.F pcomps.F pcompDH.F plibsv.F plot.F pltcfg.F plt_bc_components.F \
 	plt_zone_gain_coupling.F pmatrx.F pplib.F ppsub.F precal.F \
-	psychro.F rnor.F rwipv.F rwroam.F rwsbem.F shocc_dummy.c senrwl.F sensit.F sentim.F solar.F sort.F \
-	Annex42_fuel_cell.F spmatl.F stofunc.F \
+	psychro.F rnor.F rwipv.F rwroam.F rwsbem.F shocc_dummy.c senrwl.F sensit.F sentim.F segmentedocc.f90 \
+	segoccfunc.f90 solar.F sort.F Annex42_fuel_cell.F spmatl.F stofunc.F \
 	spmisc.F startup.F Annex42_combustion_CHP.F subsys.F tdfile.F trstyp.F tscon.F \
 	TWildCards.cpp utilf.F Vnt_data.mod wind_turbine_profile_model.F \
 	init_hvac_var.F \
@@ -821,7 +826,7 @@ clean:
 	tank_intank_hx.F mains_temp_draw_profiles.F stratified_tank.F stratified_tank_byp.F \
 	FMIsim.F FMIc.c FMIsim_dummy.F FMIcom.F \
 	CFC_opt_props.F CFC_thermal_and_aux.F editCFC.F NCHE.F stratified_tank_1HX.F stratified_tank_2HX.F \
-	AirFlowModelRoutines.F Res_elec_Ctl.F h3kmodule.f90 qrun.F azalt.F CFC_Module.f90 cfc_module.mod
+	AirFlowModelRoutines.F Res_elec_Ctl.F h3kmodule.f90 qrun.F CFC_Module.f90 cfc_module.mod
 
 distclean: clean
 

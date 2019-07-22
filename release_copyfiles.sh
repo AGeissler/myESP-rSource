@@ -11,12 +11,13 @@ IFS=$'\n'
 
 # 1. Step : Set up some variables
 TEST=false
-prefix="/Users/achim.geissler/Downloads"
-#prefix="/Users/achim/Downloads"
-release="ESP-r_V13.2.9_Src"
+#prefix="/Users/achim.geissler/Downloads"
+prefix="/Users/achim/Downloads"
+release="ESP-r_V13.3.3_Src"
 
-# 2. Step : create file listings for the subdirectories src, models,
-#           data and doc:
+# 2. Step : create file listings for the source root directory and
+#           subdirectories src, models, modish, data and doc:
+diff -q --exclude=CompileQuiet --exclude=diff_root.txt ./ ${prefix}/${release}/. > diff_root.txt
 diff -rq src ${prefix}/${release}/src > diff_src.txt
 diff -rq models ${prefix}/${release}/models > diff_models.txt
 diff -rq modish ${prefix}/${release}/modish > diff_modish.txt
@@ -35,9 +36,8 @@ diff -rq doc ${prefix}/${release}/doc > diff_doc.txt
 #    Where <curpath> = <folder>[/<folder>[/...]]
 #          <newpath> = <prefix>/<release>/<curpath>
 #
-#     Get current line
 
-filelist=(diff_src.txt diff_models.txt diff_modish.txt diff_data.txt diff_doc.txt)
+filelist=(diff_src.txt diff_models.txt diff_modish.txt diff_data.txt diff_doc.txt diff_root.txt)
 #filelist=(diff_models.txt)
 
 for file in "${filelist[@]}"
@@ -71,7 +71,11 @@ do
            cp -R ${pth}/${fn} ${pth2}/${fn}
          fi
        else
-         if [ ${fn} != ".git" ]; then
+#         if [ ${fn} != ".git" ]; then
+         if [ ${fn} != ".git" ] && [ ${fn} != ".gitignore" ] \
+                                && [ ${fn} != ".gitmodules" ] \
+                                && [ ${fn} != ".project" ] \
+                                && [ ${fn} != "release_copyfiles.sh" ]; then
            if [ "$TEST" = "true" ]; then
              echo "rm -R ${pth2}/${fn}"
            else

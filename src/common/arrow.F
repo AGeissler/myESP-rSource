@@ -228,7 +228,7 @@ C Copy pixel locations to ipoints.
       RETURN
 
  9999 call isunix(unixok)
-      if(unixok) write(6,*) 
-     &  'Error: cannot find smallest coefficient in vector.'
+      if(unixok) call edisp(icout, 
+     &  'Error: cannot find smallest coefficient in vector.')
       return
       end

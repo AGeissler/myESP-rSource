@@ -70,7 +70,7 @@ C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 
       COMMON/UA32/IMISCD(MNCNG,2)
-      COMMON/UATD/UACLIM(6,4),UACTL(7,5),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
 
       character USETNAME*96   ! the synopsis for each MC-run
       character uheader*1000  ! header including name of each uncertainty changed
@@ -149,7 +149,7 @@ C Common blocks UA3 UA4 within uncertainty.h
 #include "control.h"
 
       COMMON/UA32/IMISCD(MNCNG,2)
-      COMMON/UATD/UACLIM(6,4),UACTL(7,5),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
 
       character USETNAME*96   ! the synopsis for each MC-run
       character uheader*1000  ! header including name of each uncertainty changed
@@ -349,7 +349,7 @@ C UAT03 flags which climate data should be adjusted when reading from db.
 C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/UATD/UACLIM(6,4),UACTL(7,5),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
 
       CHARACTER ITEM(6)*20
 
@@ -402,7 +402,7 @@ C urunvals and also the intermediate state of uheader.
       common/clim/idif(mt),itmp(mt),idnr(mt),ivel(mt),idir(mt),
      &            ihum(mt),idiff,itmpf,idnrf,ivelf,idirf,ihumf
 
-      COMMON/UATD/UACLIM(6,4),UACTL(7,5),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
 
       character USETNAME*96   ! the synopsis for each MC-run
       character uheader*1000  ! header including name of each uncertainty changed
