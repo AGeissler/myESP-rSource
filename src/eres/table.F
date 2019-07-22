@@ -30,12 +30,8 @@ C MOTABL produces tabular output for a 24 hour period.
       SUBROUTINE MOTABL
 #include "building.h"
 #include "model.h"
-C #include "geometry.h"
 #include "prj3dv.h"
 #include "net_flow.h"
-C #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C default file names for databases
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/FILEP/IFIL

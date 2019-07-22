@@ -111,11 +111,11 @@ C             array 'PC'.
 C ntcoe     : Total number of coefficients in compact matrix including
 C             new non-zero elements.
 
+#include "building.h"
 #include "gencompDB.h"
 #include "gencompDB_common.h"
 #include "plant.h"
 #include "net_flow.h"
-#include "building.h"
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
  

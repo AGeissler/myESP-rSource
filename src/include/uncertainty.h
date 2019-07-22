@@ -26,12 +26,15 @@ C Common blocks associated with sensitivity studies.
 
       integer NICNG  ! number of uncertainty distributions (e.g. +-)
       integer IDTYPU ! distribution type: 1=materials, 2=MLC, 
-                     ! 3=weather, 4=operations, 5=hc coef, 101=geometry
-      integer IDMAT  ! for each distribution type (?,1) & (?,2) specific focus,
-                     ! (?,3) change (%; +/-; explicit)
+                     ! 3=weather, 4=operations, 5=hc coef, 6=optical,
+                     ! 1001=control
+      integer IDATR  ! for each distribution type (?,1) & (?,2) specific focus,
+                     ! (?,3) change (%; +/-; explicit) (?,4) control &casual daytype,
+                     ! (?,5) control & casual period
       real DATU      ! for each distribution the low and high value 
-      COMMON/UA3/NICNG,IDTYPU(MNCNG),IDMAT(MNCNG,3),DATU(MNCNG,2)
+      COMMON/UA3/NICNG,IDTYPU(MNCNG),IDATR(MNCNG,5),DATU(MNCNG,2)
 
       integer NIACT  ! number of links between distributions and locations
       integer IACTD  ! for each distribution the associated location
-      COMMON/UA4/NIACT,IACTD(MNACT,2)
+      integer DISTTYPE ! the distribution type (normal/uniform) for each link
+      COMMON/UA4/NIACT,IACTD(MNACT,2),DISTTYPE(MNACT)

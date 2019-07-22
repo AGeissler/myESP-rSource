@@ -121,10 +121,11 @@ C             array 'PC'.
 C ntcoe     : Total number of coefficients in compact matrix including
 C             new non-zero elements.
       SUBROUTINE MZPMXT(IUNIT)
+
+#include "building.h"
 #include "plant.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "gencompDB.h"  
 #include "gencompDB_common.h"
 

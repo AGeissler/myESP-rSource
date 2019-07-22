@@ -473,7 +473,7 @@ C of miscellaneous data items.
 C Save number of nodes associated with each component.
             NPCDAT(iPComp,4) = ICODE/10
             IF(NPCDAT(iPComp,4).eq.139.or.NPCDAT(iPComp,4).eq.140)then
-	      RFlg=1
+              RFlg=1
             ENDIF
             NPCDAT(iPComp,8) = NNODE
           ENDIF
@@ -569,7 +569,7 @@ C junctions requires visibility of all downstream component relative flow values
         IF(RFlg.eq.1)THEN
           CALL SRFCSEQ
         ELSE
-	  DO 19 IPCOMP=1,NPCOMP
+          DO 19 IPCOMP=1,NPCOMP
             RFCSEQ(IPCOMP)=IPCOMP
    19     CONTINUE
         ENDIF
@@ -1065,7 +1065,11 @@ C Once all controlled diverters per branch are found, locate upstream junctions
         IPNUM=IPCNT-1+IPDIV
         IPCF=IPCP(IPNUM)
         IF(NPCDAT(IPCF,4).EQ.139.AND.FND(IPCF).EQ.0)THEN
-          JCK=0
+          IF(TADATA(IPCF,1).EQ.999)THEN
+            JCK=1
+          ELSE
+            JCK=0
+          ENDIF
           DO IPDIV=1,NPCNT
             IF(JNC(IPDIV).EQ.TADATA(IPCF,1).OR.
      &           JNC(IPDIV).EQ.TADATA(IPCF,2))THEN

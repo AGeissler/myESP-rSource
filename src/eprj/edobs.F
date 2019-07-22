@@ -1093,6 +1093,7 @@ C Parameters
       logical close   ! to see if non-zero block elevation.
       logical havesaved  ! to signal zone file written
       logical modmlc  ! to pick MLC
+      logical ok,dok
       integer llbm    ! length for material
       real top        ! for the highest point of the block
       integer NITMS,IVERT ! max items and current menu item
@@ -1154,7 +1155,8 @@ C display in the command menu (depending on obstruction type).
       ITOBS = IB
 
 C Set menu header text. No support for angled obstructions in legacy
-C geometry files.
+C geometry files. If block is type 'obs' or 'obs3' then setup a menu
+C for these types and which includes an option to convert to general.
       if(BLOCKTYP(ICOMP,IB)(1:4).eq.'obs '.or.
      &   BLOCKTYP(ICOMP,IB)(1:4).eq.'obs3')then
         WRITE(VERT(1),'(A,3F6.2)')  'a origin X Y Z:',XOB(ICOMP,IB),
@@ -1215,6 +1217,8 @@ C geometry files.
         VERT(24)                  = '? help                          '
         VERT(25)                  = '- exit                          '
       else
+
+C General polygon based obstruction.
         VERT(1)                   = ' coords   X     Y      Z      '
         WRITE(VERT(2),'(A,3F8.3)')  'a 1:',XBP(iz,ib,1),YBP(iz,ib,1),
      &    ZBP(iz,ib,1)
@@ -1257,8 +1261,9 @@ C geometry files.
           VERT(19)=                 '< jump to previous obstruction  '
           VERT(20)=                 '                                '
         endif
-        VERT(21)                  = '? help                          '
-        VERT(22)                  = '- exit                          '
+        VERT(21)                  = '* transform position            '
+        VERT(22)                  = '? help                          '
+        VERT(23)                  = '- exit                          '
 
       endif
       
@@ -1282,7 +1287,7 @@ C Now display the menu.
         NITMS=25
         CALL EMENU('Block Details',VERT,NITMS,IVERT)
       else
-        NITMS=22
+        NITMS=23
         CALL EMENU('Obstruction Details',VERT,NITMS,IVERT)
       endif
 
@@ -1517,7 +1522,7 @@ C Convert current obstruction block into general polygon obstruction.
       else
 
 C Interface options if a general polygon obstruction.
-        if(IVERT.EQ.20)then
+        if(IVERT.EQ.23)then
           ITOBS = 0
           CALL redraw(IER)
           ianother=0  ! signal no jump to previous or next
@@ -1696,7 +1701,66 @@ C Jump to next obstruction.
           ianother=1
           return
         ELSEIF(IVERT.EQ.21)THEN
+
+C Transforms of polygon obstructions.
+          hold = ' 0.000  0.000  0.000    '
+  439     CALL EASKS(HOLD,'Transform (X Y Z metres) to apply:',' ',
+     &      36,' 0. 0. 0.','transforms XYZ',IER,nbhelp)
+          K=0
+          CALL EGETWR(HOLD,K,VALX,-99.,99.,'W','X tr',IER)
+          CALL EGETWR(HOLD,K,VALY,-99.,99.,'W','Y tr',IER)
+          CALL EGETWR(HOLD,K,VALZ,-99.,99.,'W','Z tr',IER)
+          if(ier.ne.0)goto 439
+          DOK=.true.
+          call askok(' ','Apply this transform to the obstruction?',
+     &      ok,dok,nbhelp)
+          if(.NOT.ok) goto 92
+          if(iobs(icomp).eq.1)then
+            call edisp(iuout,' Obstruction data prior to transform.')
+            CALL EGOMST(IUF,ICOMP,ZOBS(ICOMP),0,ITRC,iuout,IER)
+            if(BLOCKTYP(icomp,ib)(1:4).eq.'obs '.or.
+     &         BLOCKTYP(icomp,ib)(1:4).eq.'obs3')then
+              XOB(icomp,ib)=XOB(icomp,ib)+VALX
+              YOB(icomp,ib)=YOB(icomp,ib)+VALY
+              ZOB(icomp,ib)=ZOB(icomp,ib)+VALZ
+            else
+              do ibe=1,8
+                XBP(icomp,ib,ibe)=XBP(icomp,ib,ibe)+VALX
+                YBP(icomp,ib,ibe)=YBP(icomp,ib,ibe)+VALY
+                ZBP(icomp,ib,ibe)=ZBP(icomp,ib,ibe)+VALZ
+              enddo
+            endif
+            CALL MKGOMST(IUF,ZOBS(ICOMP),ICOMP,IER)
+            MODIFYVIEW=.TRUE.
+            call warnmod(ICOMP,'ob+')
+          elseif(iobs(icomp).eq.2)then
+
+C The zone geometry has just been written with transformed verticies
+C so now apply the transform to the obstructions (only).
+            call eclose(gversion(icomp),1.1,0.01,newgeo)
+            if(newgeo)then
+              if(BLOCKTYP(icomp,ib)(1:4).eq.'obs '.or.
+     &           BLOCKTYP(icomp,ib)(1:4).eq.'obs3')then
+                XOB(icomp,ib)=XOB(icomp,ib)+VALX
+                YOB(icomp,ib)=YOB(icomp,ib)+VALY
+                ZOB(icomp,ib)=ZOB(icomp,ib)+VALZ
+              else
+                do ibe=1,8
+                  XBP(icomp,ib,ibe)=XBP(icomp,ib,ibe)+VALX
+                  YBP(icomp,ib,ibe)=YBP(icomp,ib,ibe)+VALY
+                  ZBP(icomp,ib,ibe)=ZBP(icomp,ib,ibe)+VALZ
+                enddo
+              endif
+              call geowrite(IUF,LGEOM(ICOMP),ICOMP,iuout,3,IER)
+              MODIFYVIEW=.TRUE.
+              call warnmod(ICOMP,'ob+')
+            endif
+          endif
+
+        ELSEIF(IVERT.EQ.22)THEN
           CALL PHELPD('obstr menu',48,'-',0,0,IER)
+        ELSEIF(IVERT.EQ.23)THEN
+          return   ! user request exit
         ELSE
           GOTO 92
         ENDIF

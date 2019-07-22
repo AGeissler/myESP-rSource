@@ -21,7 +21,7 @@ C Boston, MA 02111-1307 USA.
 C ***************** MFCDAT
 C Fills valid fluid flow component type arrays
       SUBROUTINE MFCDAT
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 

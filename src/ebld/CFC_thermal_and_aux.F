@@ -3068,11 +3068,9 @@ C ********************************************************************
       use h3kmodule
       IMPLICIT NONE
 #include "building.h"
-C Use geometry.h for zname
 #include "geometry.h"
 #include "control.h"
 #include "CFC_common.h"
-C net_flow supplies MNOD
 #include "net_flow.h"
 #include "tdf2.h"
       COMMON/OUTIN/IUOUT,IUIN

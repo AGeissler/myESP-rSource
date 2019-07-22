@@ -57,6 +57,7 @@ C Therefore we will make the implementation universal - the Schmidt
 C number is given in the input "dfd"-file. 
 C 
       SUBROUTINE CALCCONC(ICTMNO) 
+#include "building.h"
 #include "cfd.h"
 #include "net_flow.h"
 #include "net_flow_data.h"

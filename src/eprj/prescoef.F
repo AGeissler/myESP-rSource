@@ -793,12 +793,9 @@ C Take the parameters required by CPCALC, create an input file
 C and calculate the pressure coeffcients
 
       SUBROUTINE CPCACAL (IER)
-#include "net_flow.h"
 #include "building.h"
+#include "net_flow.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
-C default file names for databases
       
       integer lnblnk  ! function definition
 
@@ -1376,8 +1373,8 @@ C EMKAPCD: Creates an ascii pressure coefficient database based on the
 C current contents of pc-data in common block.
  
       SUBROUTINE EMKAPCDB(FINA,IER)
-#include "net_flow.h"
 #include "building.h"
+#include "net_flow.h"
       integer lnblnk  ! function definition
 
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
@@ -1421,9 +1418,9 @@ C EDPCDB Display a pressure coefficient db and allow changes
 C IER=0 OK, IER=1 problem.
 
       SUBROUTINE EDPCDB(IER)
+#include "building.h"
 #include "net_flow.h"
 #include "epara.h"
-#include "building.h"
 #include "esprdbfile.h"
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -1750,6 +1747,7 @@ C*******  SUBROUTINE EDPCST(IER,moddb,IFOC)
 C EDPCST allows changes of the name of a pressure coefficient 
 C set or the values of the pressure coefficients.
       SUBROUTINE EDPCST(IER,moddb,IFOC)
+#include "building.h"
 #include "net_flow.h"
       integer iCountWords
 
@@ -1832,6 +1830,7 @@ C its location).
 C INPC is the number of pc sets that allready exist in case
 C that the data that is read in should be appended to an existing file.
       SUBROUTINE ERPRCDB(FINA,INPC,ICO,IER)
+#include "building.h"
 #include "net_flow.h"
 #include "esprdbfile.h"
       COMMON/OUTIN/IUOUT,IUIN

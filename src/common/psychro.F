@@ -248,23 +248,18 @@ C ******************** SATVP
 C SATVP: Evaluates saturated vapour pressure (mbar).
       FUNCTION SATVP(TD)
       DOUBLE PRECISION T
-
-      IF (TD.LT.-100) TD=-100.
-      IF (TD.GT.373.95) TD=373.5
-
-      T=DBLE(TD+273.16)
+      T=TD+273.16
 
 C Check for above ice/water.
       IF(TD.GE.0.0)goto 1
 
 C Ice.
-      SATVP=real(10**(dble(10.5380997)-
-     &               (dble(2663.91)/(T-dble(0.01)))))
+      SATVP=real(10**(dble(10.5380997)-(dble(2663.91)/(T- dble(0.01)))))
       RETURN
 
 C Water.
     1 SVP=real((dble(28.59051)-dble(8.2)*
-     &    DLOG10(T)+dble(2.4804E-03)*T-dble(3142.31)/T))
+     &    DLOG10(T)+2.4804E-03*T-3142.31/T))
       SATVP=(10**(SVP))*1000.0
       RETURN
       END
@@ -300,7 +295,7 @@ C First guess is adiabatic saturation temperature.
       IF(GS1.LE.GS.AND.TINC.LT.0.0)TINC=-0.5*TINC
       T1=T1+TINC
       GDIFF=GS1-GS
-      IF(ABS(GDIFF).LT.0.000005)goto 1
+      IF(ABS(GDIFF).LT.0.00001)goto 1
       IF(ABS(TINC).GT.0.005)goto 10
       TINC=0.25
       goto 10

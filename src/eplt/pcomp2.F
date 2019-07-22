@@ -747,10 +747,10 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             ALPHA=RATIMP
          ELSE IF(IMPEXP.EQ.3) THEN
             IF(RCC.GT.2.OR.RCC.LT.0.5)THEN
-               IF(TIMSEC.LT.300)THEN 		
+               IF(TIMSEC.LT.300)THEN 
                  ALPHA=1.
                ELSE
-		 ALPHA=RATIMP
+                 ALPHA=RATIMP
                END IF
             ELSE IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
                ALPHA=1.
@@ -917,11 +917,11 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
         ELSE IF(IMPEXP.EQ.2) THEN
           ALPHA=RATIMP
         ELSE IF(IMPEXP.EQ.3) THEN
-	  IF(RCC.GT.2.OR.RCC.LT.0.5)THEN
-            IF(TIMSEC.LT.300)THEN 		
+          IF(RCC.GT.2.OR.RCC.LT.0.5)THEN
+            IF(TIMSEC.LT.300)THEN 
               ALPHA=1.
             ELSE
-	      ALPHA=RATIMP
+              ALPHA=RATIMP
             END IF
           ELSE IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
             ALPHA=1.
@@ -1027,6 +1027,7 @@ C     CDATA: 1 Volume flow rate (m^3/s)
 
       SUBROUTINE CMP24C(IPCOMP,COUT,ISTATS)
        use h3kmodule
+
 #include "plant.h"
 #include "building.h"
 #include "net_flow.h"
@@ -1448,9 +1449,9 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             ALPHA=RATIMP
          ELSE IF(IMPEXP.EQ.3) THEN
             IF(RCC.GT.2.OR.RCC.LT.0.5)THEN
-              IF(TIMSEC.LE.300) THEN 		
-               	 ALPHA=1.
-	      ELSE
+              IF(TIMSEC.LE.300) THEN 
+                 ALPHA=1.
+              ELSE
                  ALPHA=RATIMP
               END IF  
             ELSE IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
@@ -1883,11 +1884,11 @@ C Initialize the nominal log mean temperature difference DTLM0
          call eclose(TE0TMP,1.00,0.0001,close)
          IF(ABS(TS0-TE0).LT.SMALL.OR.ABS(TX0-TE0).LT.SMALL
      &      .OR.(TS0-TE0)/(TX0-TE0).LT.SMALL.OR.close) then
-	   DTLM0=0.	   
+           DTLM0=0.   
          ELSE
            DTLM0=(TS0-TX0)/ALOG((TS0-TE0)/(TX0-TE0))
          END IF
-	 DTAM0=((TS0+TX0)/2.)-TE0
+         DTAM0=((TS0+TX0)/2.)-TE0
 
 C Then evaluate the current environment temperature
          IF(INDCFG.EQ.2.OR.NINT(BDATA(IPCOMP,6)).EQ.0) THEN
@@ -1919,23 +1920,23 @@ C on it, mark current node 1 temperature for iteration
 C Now calculate the heat emission at each successive radiator part
 C and the total heat emission PCDATF(IPCOMP,2)
          PCDATF(IPCOMP,2)=0.
-	 IF(CONVAR(ICON1,2).le.0.0001)then
+         IF(CONVAR(ICON1,2).le.0.0001)then
            DO 15 IP=1,8
                TX=CSVF(INOD(IP),1)
-	       DTR=AMAX1(SMALL,((TX-TE)/DTAM0))
+               DTR=AMAX1(SMALL,((TX-TE)/DTAM0))
                Q(IP)=BDATA(IPCOMP,2)/8.*DTR**BDATA(IPCOMP,1)
                PCDATF(IPCOMP,2)=PCDATF(IPCOMP,2)+Q(IP)
    15      CONTINUE
-	 ELSE
+         ELSE
            DO 14 IP=2,8
              TS=CSVF(INOD(IP-1),1)
              TX=CSVF(INOD(IP),1)
-	     if(DTLM0.eq.0)THEN
-	       DTAM=((TS+TX)/2.)-TE
-	       DTR=AMAX1(SMALL,(DTAM/DTAM0))
+             if(DTLM0.eq.0)THEN
+               DTAM=((TS+TX)/2.)-TE
+               DTR=AMAX1(SMALL,(DTAM/DTAM0))
                Q(IP)=BDATA(IPCOMP,2)/7.*DTR**BDATA(IPCOMP,1)
                PCDATF(IPCOMP,2)=PCDATF(IPCOMP,2)+Q(IP)
-	     else
+             else
                TXTMP=(tx-te)
                call eclose(TXTMP,0.00,0.0001,close)
                if(.NOT.close) then
@@ -1943,7 +1944,7 @@ C and the total heat emission PCDATF(IPCOMP,2)
                  call eclose(TSTMP,1.00,0.0001,close)
                  IF(ABS(TS-TE).LT.SMALL.OR.ABS(TX-TE).LT.SMALL
      &             .OR.(TS-TE)/(TX-TE).LT.SMALL.OR.close)then
-		    DTLM=0.
+                    DTLM=0.
                  ELSE
                     DTLM=(TS-TX)/ALOG((TS-TE)/(TX-TE))
                  END IF
@@ -1951,7 +1952,7 @@ C and the total heat emission PCDATF(IPCOMP,2)
                DTR=AMAX1(SMALL,(DTLM/DTLM0))
                Q(IP)=BDATA(IPCOMP,2)/7.*DTR**BDATA(IPCOMP,1)
                PCDATF(IPCOMP,2)=PCDATF(IPCOMP,2)+Q(IP)
-	     end if
+             end if
    14      CONTINUE
          END IF
 
@@ -1969,15 +1970,15 @@ C Calculate current component time-constant TC, based on node 1 only
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          IF(IMPEXP.EQ.1) THEN
             ALPHA=1.
-	 ELSE IF(C1.lt.0.00001) THEN
-	    ALPHA=1.
+         ELSE IF(C1.lt.0.00001) THEN
+            ALPHA=1.
          ELSE IF(IMPEXP.EQ.2) THEN
             ALPHA=RATIMP
          ELSE IF(IMPEXP.EQ.3) THEN
             IF(RCC.GT.2.OR.RCC.LT.0.5)THEN
-              IF(TIMSEC.LE.300) THEN 		
-               	 ALPHA=1.
-	      ELSE
+              IF(TIMSEC.LE.300) THEN 
+                ALPHA=1.
+            ELSE
                  ALPHA=RATIMP
               END IF  
             ELSE IF(TIMSEC.GT.0.63*TC(IPCOMP)) THEN
@@ -1990,7 +1991,7 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             ALPHA=1.
          END IF
 
-	 call eclose(C1,0.00,0.0001,closec)
+         call eclose(C1,0.00,0.0001,closec)
          if(closec)ALPHA=1.
 
 C Establish matrix equation self-coupling coefficients,
@@ -2021,7 +2022,7 @@ C  nodes 2 to 8
      &                 +ALPHA*Q(IP)+(1.-ALPHA)*PCQP(INOD(IP))
    22      CONTINUE
          ELSE
-	   DO 23 IP=1,8
+           DO 23 IP=1,8
              COUT(16+IP)=COEF1*CSVP(INOD(IP-1),1)
      &                 +COEF2*CSVP(INOD(IP),1)
      &                 +ALPHA*Q(IP)+(1.-ALPHA)*PCQP(INOD(IP))
@@ -2968,9 +2969,6 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             CW2=0.
             ALPHA=1.
         END IF
-
-cx      ... for now ... (movable, 30.10.2018)
-        ALPHA=1.
 
 C Establish matrix equation self- and cross-coupling coefficients.
         COUT(1)=ALPHA*(-C1-UA/2.)-CW1/TIMSEC
@@ -4729,6 +4727,7 @@ C            3 Overall efficiency (-)
 C     CDATA: 1 Mass flow rate (kg/s)
 
       SUBROUTINE CMP39C(IPCOMP,COUT,ISTATS)
+
 #include "plant.h"
 #include "building.h"
 #include "net_flow.h"
@@ -6373,6 +6372,9 @@ C NTSBO       = total no. of timesteps boiler is to be off due to lockout
       COMMON/pstctr/nsincp,nsncpr
       INTEGER nsincp, nsncpr
 
+      COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
+      REAL QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
+
       REAL SMALL
       PARAMETER (SMALL=1.0E-20)
       REAL      COUT(MPCOE),TOTMAS,UA,TFLOW,
@@ -6643,6 +6645,7 @@ C Calculate time boiler has been on
           timeCompOn=noTStepsOn*TIMSEC  ! Time boiler is ON (sec)
 
 C If in pre-purge time boiler no heat or gas is supplied only fan is on
+          tempAmb=TF
           if(timeCompOn.le.time1stPrePurge)then
 
 C Q is the heat lost due to air purging through boiler =m*Cp*dTemp
@@ -6953,7 +6956,7 @@ C Calculate full load %CO2 and dTFlue
       dTFlue= a5 + a6*fRate + a7*fRate**2 + a8*fRate**3
       tempFlue=T_ret+dTFlue
       tempAmb=TF
-      p_atmosp = PT01(tempAmb,0) ! at altitude = 0
+      p_atmosp = PT01(tempAmb,0.) ! at altitude = 0
       L_H2O = EVAP01(tempFlue)
 
 C Determine excess air factor (it is worked out as a ratio and does not
@@ -7969,7 +7972,6 @@ C Pump circulates while there is a call for heat.
         BrinePumpPower=0.
         BrineFlow=0.0
       ENDIF
-        BrineFlow=BrineRatedFlow
 
 C Set return setpoints based on which function requires heat
       if (bDHWrqd) then
@@ -7996,20 +7998,18 @@ C Calculate the return water temperature set point if temperature compensation i
           IF(Tamb.GE.TempCompS.AND.Tamb.LT.TempCompE)THEN
             ReturnSP=((Tamb-TempCompS)*TempCompc0)+NomRetT
             ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
-            ReturnSPH=ReturnSP+4. !0.5*(NomRetTDeadB)
+            ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
 
-C Case where Tamb > Temp compensation end point
+C Case where Tamb > Temp compensation saturation point
           ELSEIF(Tamb.GE.TempCompE)THEN
             ReturnSP=((TempCompE-TempCompS)*TempCompc0)+NomRetT
             ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
             ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
           ENDIF
 
-          IF(ReturnSPH.GT.TinMax) ReturnSPH=TinMax
-
           IF(ReturnSP.GT.TinMax)THEN
             ReturnSP=TinMax
-cx            ReturnSPH=ReturnSP
+            ReturnSPH=ReturnSP
           ENDIF
         ENDIF
       endif ! space heat rq'd
@@ -8017,19 +8017,19 @@ cx            ReturnSPH=ReturnSP
 cx ISTAT.eq.1 was here, previously (171124)
 
 C Get ground source temperature
-      Tgrnd=convar(icon2,1)
+        Tgrnd=convar(icon2,1)
 
 C Determine whether machine should be on or off based on return water temperature.
-      ReturnT=CONVAR(ICON1,1)
+        ReturnT=CONVAR(ICON1,1)
 
 C Check if device switched off last TS
-      IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
-        bSwitched=.true.
-      ENDIF
+        IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
+          bSwitched=.true.
+        ENDIF
 
-      DeviceONOFFp=DeviceONOFF
+        DeviceONOFFp=DeviceONOFF
 
-      IF(CallforHeat)THEN
+        IF(CallforHeat)THEN
 
 C Check to see if the device is in the dead band.
         IF(ReturnT.GE.ReturnSPL.AND.ReturnT.LE.ReturnSPH)THEN
@@ -8040,17 +8040,17 @@ C Check to see if the device is in the dead band.
 
 C Evaluate the device status.
         IF(ReturnT.GT.ReturnSPH)THEN
+            DeviceONOFF=0
+          ELSEIF(ReturnT.LT.ReturnSPL)THEN
+            DeviceONOFF=1
+          ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
+            DeviceONOFF=1
+          ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
+            DeviceONOFF=0
+          ENDIF
+        ELSE
           DeviceONOFF=0
-        ELSEIF(ReturnT.LT.ReturnSPL)THEN
-          DeviceONOFF=1
-        ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
-          DeviceONOFF=1
-        ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
-          DeviceONOFF=0
-        ENDIF
-      ELSE
-        DeviceONOFF=0
-      ENDIF ! call for heat
+        ENDIF ! call for heat
 
 C Finally, check if device is in lockout time, i.e. last "off" was
 C less than lockouttime ago ... ((code from CMP42C(), line 5102 ff.))
@@ -8109,10 +8109,7 @@ C Calculate the COP based on the user-specified method.
           ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
             TL=Tgrnd
             TH=ReturnT
-cx            TH=ToutMax
-            COP=min(COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.),
-     &               COPa0+(COPa1*(ToutMax-TL))
-     &                               +(COPa2*(ToutMax-TL)**2.))
+            COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
           ELSE

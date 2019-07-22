@@ -327,9 +327,9 @@ C            must be updated to handle these variables.
       SUBROUTINE FMI_SIMSTEP(IER)
 
 #include "building.h"
+#include "model.h"
 #include "FMI.h"
 #include "net_flow.h"
-#include "model.h"
 #include "geometry.h"
 #include "tdf2.h"
 

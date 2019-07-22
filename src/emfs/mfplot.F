@@ -39,7 +39,6 @@ C     VOL() -  volume used for calculating change rate in case IDIM=3
       SUBROUTINE MFPLOT(itrc,itru,IFRES,ier)
 #include "building.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 #include "net_flow.h"
 #include "net_flow_data.h"
       

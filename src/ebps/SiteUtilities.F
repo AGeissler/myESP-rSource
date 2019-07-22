@@ -617,7 +617,7 @@ C-----------------------------------------------------------------------
 
           fSiteEnergyUse( iSiteComp, iFuel, iEndUse ) =
      &       fSUFuelEnergyUse ( iFuel, iEndUse )
-	 
+ 
         enddo use_loop
 
       enddo fuel_loop
@@ -681,7 +681,7 @@ C.......Get the appropriate fuel cost based on the month and rate block.
             fSiteFuelCost( iSiteComp, iFuel, iEndUse ) =
      &            fConvertEnergyToFuelAmount(
      &            fSUFuelEnergyUse( iFuel, iEndUse ),
-     &            iFuel ) * fuel_cost	 
+     &            iFuel ) * fuel_cost 
 
         enddo use_loop
 
@@ -716,7 +716,7 @@ C=======================================================================
 #include "OffsiteUtilitiesPrivate.h"
 
       logical bNumsAreClose
-      logical bInStartup	  
+      logical bInStartup  
 
 C-----------------------------------------------------------------------
 C     Loop through fuels, end-uses and stuff fuel consumption into
@@ -728,7 +728,7 @@ C-----------------------------------------------------------------------
 
           fPltEnergyUse( iPltComp, iFuel, iEndUse ) =
      &       fSUFuelEnergyUse( iFuel, iEndUse )
-	 
+ 
 C...........Mark uncatagorized end-uses for reapportionment
             if ( iEndUse == iUseUncatagorized ) then
 
@@ -749,8 +749,8 @@ C...........Mark uncatagorized end-uses for reapportionment
 
         enddo use_loop
 
-      enddo fuel_loop	  
-	  
+      enddo fuel_loop  
+  
 C-----------------------------------------------------------------------
 C     AddToSumFuelUseArray adds fSUFuelEnergyUse to the fSumFuelUse
 C     array. StorePltFuelCosts fetches the appropriate fuel cost based
@@ -972,8 +972,8 @@ C.......TOU rate (electricity only).
       enddo fuel_loop
 
       return
-      end	  
-	  
+      end  
+  
 C=StoreCasualNGZoneEnergyUse=================================================
 C
 C ABSTRACT
@@ -1069,7 +1069,7 @@ C.........Sum fuel/end-use consumtion for all components
             fSiteEnergyUse( iPltComponents, iFuel, iEndUse ) =
      &           fSiteEnergyUse( iPltComponents, iFuel, iEndUse )
      &         + fPltEnergyUse( iPltComp, iFuel, iEndUse )
-	  
+  
           enddo plt_component_loop
 
 c         POWOC
@@ -1314,7 +1314,7 @@ C.........Zero end-use energy use (by fuel) array slot
             fEndUseFuelCost ( iFuel, iEndUse ) =
      &              fEndUseFuelCost ( iFuel, iEndUse )
      &            + fSiteFuelCost( iSiteComp, iFuel, iEndUse ) 
-	 
+
 C...........Add minimum monthly fuel charge to end use type iExtraBillingCharges
             call AddMonthlyMinFuelCharge( iEndUse, iFuel )
 

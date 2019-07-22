@@ -26,8 +26,8 @@ C  UAT03:    Edits data: Climate parameters - stores changes
 C  UAT03a:   Edits data: Climate parameters - uses changes when a days data is read in.
 
 C ******************** UATFLG ********************
-C UATFLG edits control data based on time.
-
+C UATFLG determines if control data is within NTG start day/time and
+C NTG finish day/time.
       SUBROUTINE UATFLG(IDAY,IHOUR,ILOC,IVALID)
 #include "building.h"
 #include "uncertainty.h"
@@ -69,25 +69,38 @@ C UAT01 flags which control data should be changed during the simulation.
 C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/UA32/IMISCD(MNCNG,2)
-      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(MNACT,7,6),UAMCSA(MNACT)
 
       character USETNAME*96   ! the synopsis for each MC-run
       character uheader*1000  ! header including name of each uncertainty changed
       character urunvals*1000 ! attribute changed-to value of each uncertainty change for the run.
       COMMON/USETN/USETNAME(MNRS),uheader,urunvals
 
+C Logical flag for uncertainty header has been printed.
+      logical uncertheadprinted
+      common/uncerthead/uncertheadprinted
+
+      logical headerdone
+      logical itemunique  ! should we include in fort.37
+      logical isunique    ! for test against past
+      integer itemsinheader,nbpastitems,nbdatahits
+      character pastphrase*42
+      common/uhead/headerdone,itemunique(400),pastphrase(400),
+     &  itemsinheader,nbpastitems,nbdatahits
+
       integer lstur, lfnur
-      character strval*12,uhphrase*42
+      character strval*12,uhphrase*42,uhroot*42
+      character urunvalsd*1000
+      character ubasecase*1000,ubasecased*1000,baseval*4
 
       CHARACTER ITEM(7)*20
 
 C Data stored in UA3 has the following meaning in this routine:
-C IDMAT(?,1): Control function reference number.
-C IDMAT(?,2): Control function day type.
-C IMISCD(?,1): Control function period.
-C IMISCD(?,2): Uncertain parameter.
-C IDMAT(?,3): Change type (%; +/-; explicit).
+C IDATR(?,1): Control function reference number.
+C IDATR(?,2): Control function day type.
+C IDATR(?,3): Change type (%; +/-; explicit).
+C IDATR(?,4): Control function period.
+C IDATR(?,5): Uncertain parameter.
 C Define variables for current location and change.
       if(urunvals(1:2).eq.'  ')then
         lstur=1; lfnur=1  ! reset counters for urunvals buffer
@@ -96,12 +109,22 @@ C Define variables for current location and change.
       endif
       ICC=IACTD(IACT,1)
       ICL=IACTD(IACT,2)
+      itopic= IDATR(ICC,5)  ! which of the 7 topics
+      ICF=IDATR(ICC,1)
+      ICP=IDATR(ICC,4)
 
 C If initial append to uheader.
       if(uheader(1:2).eq.'  ')then
         lstuh=1; lfnuh=1  ! reset counters for uheader buffer
       else
         lstuh=lnblnk(uheader)+2; lfnuh=lnblnk(uheader)+2  ! to append to uheader buffer
+      endif
+
+C And for the Delta values.
+      if(urunvals(1:2).eq.'  ')then
+        lstur=1; lfnur=1  ! reset counters for urunvals buffer
+      else
+        lstur=lnblnk(urunvals)+2; lfnur=lnblnk(urunvals)+2  ! to append to urunvals buffer
       endif
 
       ITEM(1) ='Period start time'
@@ -113,77 +136,185 @@ C If initial append to uheader.
       ITEM(7) ='Cooling set point'
 
       write (36,*) '   '
-      write (36,*) 'Entering subroutine UAT01'
-      write (36,*) ITEM(IMISCD(ICC,2)),' will be edited.'
+      write (36,*) 'Entering subroutine UAT01',' distr',ICC,' loc',ICL
+      write (36,*) ITEM(itopic),itopic,' will be edited.'
 
-      write (36,*) ' IDMAT: ',(IDMAT(ICC,IX),IX=1,3)
-      write (36,*) ' IMISCD: ',(IMISCD(ICC,IX),IX=1,2)
+      write (36,*) ' IDATR: ctl func & day type & change typ',
+     &  (IDATR(ICC,IX),IX=1,3)
+      write (36,*) ' IDATR: func period & parameter',
+     &  (IDATR(ICC,IX),IX=4,5)
       write (36,*) ' DATU: ',(DATU(ICC,IX),IX=1,2)
-      UACTL(IMISCD(ICC,2),1)=float(IDMAT(ICC,3))
-      UACTL(IMISCD(ICC,2),5)=float(IACT)  ! which of the uncertainty tasks
-      if (IDMAT(ICC,3).eq.1) then
-        UACTL(IMISCD(ICC,2),2)=((DATU(ICC,1)/100.)*DIR)+1.0
-      elseif (IDMAT(ICC,3).eq.2) then
-        UACTL(IMISCD(ICC,2),2)=DATU(ICC,1)*DIR
-      else
-        UACTL(IMISCD(ICC,2),2)=0.
-      endif
-      UACTL(IMISCD(ICC,2),3)=IACT
-      write (36,*) ' UACTL: ',(UACTL(IX,1),IX=1,7)
-      write (36,*) ' UACTL: ',(UACTL(IX,2),IX=1,7)
-      write (36,*) ' UACTL: ',(UACTL(IX,3),IX=1,7)
-      write (36,*) ' UACTL: ',(UACTL(IX,4),IX=1,7)
-      write (36,*) ' UACTL: ',(UACTL(IX,5),IX=1,7)
 
+C UACTL (iact,?,1)=change type (%,+/-); (?,2)=magnitude; (?,3)=associated action;
+C UACTL (?,?,4)=time status (0 not active, 1 active)
+C UACTL (?,?,5)=counter for the uncertainty action being dealt with
+C UACTL (?,?,6)=value of DIR
+      UACTL(iact,itopic,1)=float(IDATR(ICC,3))
+      UACTL(iact,itopic,5)=float(IACT)  ! which of the uncertainty tasks
+      if (IDATR(ICC,3).eq.1) then
+        UACTL(iact,itopic,2)=((DATU(ICC,1)/100.)*DIR)+1.0
+      elseif (IDATR(ICC,3).eq.2) then
+        UACTL(iact,itopic,2)=DATU(ICC,1)*DIR
+      else
+        UACTL(iact,itopic,2)=0.
+      endif
+      UACTL(iact,itopic,3)=IACT
+      UACTL(iact,itopic,6)=DIR
+      write (36,'(a,7f8.3)')' UACTL: chg type',(UACTL(iact,IX,1),IX=1,7)
+      write (36,'(a,7f8.3)')' UACTL: value   ',(UACTL(iact,IX,2),IX=1,7)
+      write (36,'(a,7f8.3)')' UACTL: ',(UACTL(iact,IX,3),IX=1,7)
+      write (36,'(a,7f8.3)')' UACTL: time sta',(UACTL(iact,IX,4),IX=1,7)
+      write (36,'(a,7f8.3)')' UACTL: iact    ',(UACTL(iact,IX,5),IX=1,7)
+      write (36,'(a,7f8.3)')' UACTL: DIR     ',(UACTL(iact,IX,6),IX=1,7)
+
+C Make specific header string for each change (to match urunvals)
+      lncng=lnblnk(LCNG(ICC))
+      lnloc=lnblnk(LLOC(ICL))
+      if(lncng.gt.18)lncng=18
+      uhphrase=' '
+      write(uhphrase,'(4a,i2.2,a,i2.2,a)')LCNG(ICC)(1:lncng),
+     &  ':',LLOC(ICL)(1:lnloc),':',ICF,':',ICP,','
+      luhphrase=lnblnk(uhphrase)
+      write(36,'(2a)') 'UAT01 ',uhphrase(1:luhphrase)
+
+C Remember the root name of the phrase so that subsequent duplicates can
+C be ignored in the fort.37 file. If the initial item the increment counters
+C otherwise search pastphrase(s) for match.
+      uhroot=' '
+      write(uhroot,'(4a)')LCNG(ICC)(1:lncng),':',
+     &                    LLOC(ICL)(1:lnloc),','
+      luhroot=lnblnk(uhroot)
+      write(36,'(2a)') 'UAT01 ',uhroot(1:luhroot)
+      if(itemsinheader.eq.0)then
+        nbpastitems=nbpastitems+1
+        write(pastphrase(nbpastitems),'(a)') uhroot(1:luhroot)
+        itemunique(1)=.TRUE.
+        write(36,*) 'UAT01 unique item',nbpastitems,uhroot(1:luhroot)
+      elseif(itemsinheader.eq.1)then
+        lnpast=lnblnk(pastphrase(1))
+        if(uhroot(1:luhroot).eq.pastphrase(1)(1:lnpast))then
+          itemunique(itemsinheader+1)=.FALSE.
+        else
+          itemunique(itemsinheader+1)=.TRUE.
+          nbpastitems=nbpastitems+1
+          write(pastphrase(nbpastitems),'(a)') uhroot(1:luhroot)
+          write(36,*)'UAT01 unique item',nbpastitems,uhroot(1:luhroot)
+        endif
+      else
+
+C If we ever get a match unset isunique.
+        isunique=.true.
+        do loop=1,nbpastitems
+          lnpast=lnblnk(pastphrase(loop))
+          if(uhroot(1:luhroot).eq.
+     &       pastphrase(loop)(1:lnpast))then
+            isunique=.false.
+          endif
+        enddo
+        if(isunique)then
+          itemunique(itemsinheader+1)=.TRUE.
+          nbpastitems=nbpastitems+1
+          write(pastphrase(nbpastitems),'(a)')
+     &      uhroot(1:luhroot)
+          write(36,*)'unique item',nbpastitems,
+     &      uhroot(1:luhroot)
+        endif
+      endif
+
+C If unique then include it in the header.
+      write(36,*) 'itemunique array ',itemunique
+      if(itemunique(itemsinheader+1))then
+        lfnuh=lstuh+luhroot
+        if(lfnuh.lt.1000)then
+          write(uheader(lstuh:lfnuh),'(a)') uhroot(1:luhroot)
+          lstuh=lfnuh
+          if(.NOT.headerdone)itemsinheader=itemsinheader+1
+        endif
+      else
+        if(.NOT.headerdone)itemsinheader=itemsinheader+1
+      endif
+
+C Add to urunvals
+      strval=' '        ! clear string buffer for the DIR value
+      call relstr(DIR,strval,lna,ier)
+      lstrval=lnblnk(strval)
+      lfnur=lstur+lstrval
+      if(lfnur.lt.1000)then
+        write(urunvals(lstur:lfnur),'(a)') strval(1:lstrval)
+        lstur=lfnur+2
+        write(36,'(a,i3,2a)') 'contents of urunvals @',iact,
+     &    ' is ',urunvals(1:lnblnk(urunvals))
+      endif
+
+C If this was the last uncertainty i.e. if iact=NIACT header is done.
+      if(iact.eq.NIACT)then
+        write(36,*) 'set header buffer done UAT01 ',
+     &    itemsinheader,iact
+        headerdone=.true.
+      endif
+
+C Write current header buffer and values buffer. Test if the
+C whole header might have been written.  Remove the trailing
+C comma from the initial line of fort.37.
+      if(headerdone)then
+        if(.NOT.uncertheadprinted)then
+          lnhead=lnblnk(uheader)
+          write(36,'(2a)') 'UAT01 writing: ',uheader(1:lnhead-1)
+          write(37,'(a)') uheader(1:lnhead-1)
+          uncertheadprinted=.true.
+ 
+C Write out one line of zeros to represent the base case.
+          ubasecase='  '; ubasecased='  '; baseval='0.00'
+          lbase=4; lstbase=1; lfnbase=1
+
+C Debug.
+C          write(6,*) 'itemunique ',itemunique
+          do loop=1,itemsinheader
+            lfnbase=lstbase+lbase
+            if(lfnbase.lt.1000)then
+              write(ubasecase(lstbase:lfnbase),'(a)') baseval(1:lbase)
+              lstbase=lfnbase+2
+            endif
+          enddo
+          call SDELIM(ubasecase,ubasecased,'C',IW)
+          lnbase=lnblnk(ubasecased)
+          write(37,'(a)') ubasecased(1:lnbase-1)
+        endif
+
+C Add comma separations to the data and write it but do not
+C clear urunvals
+        if(iact.eq.NIACT)then
+          call SDELIM(urunvals,urunvalsd,'C',IW)
+          write(36,'(2a)') 'UAT01a ',urunvalsd(1:lnblnk(urunvalsd))
+C          write(37,'(a)') urunvalsd(1:lnblnk(urunvalsd))
+C          urunvals='  '  ! clear string buffer prior to next run
+C          urunvalsd='  '
+        endif
+      endif
       RETURN
       END
 
 
 C ******************** UAT01a ********************
 C UAT01a alters control data during simulation.
-
-      SUBROUTINE UAT01a(IDAY,IHOUR)
+C DIR is embedded within 
+      SUBROUTINE UAT01a(IACT,IDAY,IHOUR)
 #include "building.h"
 C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 #include "control.h"
 
-      COMMON/UA32/IMISCD(MNCNG,2)
-      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
-
-      character USETNAME*96   ! the synopsis for each MC-run
-      character uheader*1000  ! header including name of each uncertainty changed
-      character urunvals*1000 ! attribute changed-to value of each uncertainty change for the run.
-      COMMON/USETN/USETNAME(MNRS),uheader,urunvals
-
-      logical headerdone
-      common/uhead/headerdone
-
-      integer lstur, lfnur
-      character strval*12,uhphrase*42
+      COMMON/UATD/UACLIM(6,4),UACTL(MNACT,7,6),UAMCSA(MNACT)
 
       character ITEM(7)*20
       real ACNG
-
-      if(urunvals(1:2).eq.'  ')then
-        lstur=1; lfnur=1  ! reset counters for urunvals buffer
-      else
-        lstur=lnblnk(urunvals)+2; lfnur=lnblnk(urunvals)+2  ! to append to urunvals buffer
-      endif
-
-C If initial append to uheader.
-      if(uheader(1:2).eq.'  ')then
-        lstuh=1; lfnuh=1  ! reset counters for uheader buffer
-      else
-        lstuh=lnblnk(uheader)+2; lfnuh=lnblnk(uheader)+2  ! to append to uheader buffer
-      endif
-
+      
 C Data stored in UA03 has the following meaning in this routine:
-C IDMAT(?,1): Control function reference number.
-C IDMAT(?,2): Control function day type.
-C IMISCD(?,1): Control function period.
-C IMISCD(?,2): Uncertain parameter.
-C IDMAT(?,3): Change type (%; +/-; explicit).
+C IDATR(?,1) (ICF): Control function reference number.
+C IDATR(?,2) (ICD): Control function day type.
+C IDATR(?,4) (ICP): Control function period.
+C IDATR(?,5): Uncertain parameter.
+C IDATR(?,3): Change type (%; +/-; explicit).
 C Define variables for current location (in time) and change.
       ITEM(1) ='Period start time   '
       ITEM(2) ='Maximum heating flux'
@@ -193,150 +324,110 @@ C Define variables for current location (in time) and change.
       ITEM(6) ='Heating set point   '
       ITEM(7) ='Cooling set point   '
 
+C Check for various iact related to control.
       do 10 I=1,7
 
 C Check if control parameter is in valid time period.
-        if (nint(UACTL(I,1)).eq.0) goto 10
-        ICC=IACTD(nint(UACTL(I,3)),1)
-        ICL=IACTD(nint(UACTL(I,3)),2)
+        if (nint(UACTL(iact,I,1)).eq.0) goto 10
 
-        ICF=IDMAT(ICC,1)
-        ICD=IDMAT(ICC,2)
-        ICP=IMISCD(ICC,1)
+        ICC=IACTD(nint(UACTL(iact,I,3)),1)
+        ICL=IACTD(nint(UACTL(iact,I,3)),2)
+        ICF=IDATR(ICC,1)
+        ICD=IDATR(ICC,2)
+        ICP=IDATR(ICC,4)
         call UATFLG(IDAY,IHOUR,ICL,IVALID)
 
-C If UACTL(?,4) not yet set then time to change value.
-        if (IVALID.gt.nint(UACTL(I,4))) then
-          UACTL(I,4)=float(IVALID)  ! set 4th slot
+C If UACTL(iact,?,4) not yet set then time to change value.
+        if (IVALID.gt.nint(UACTL(iact,I,4))) then
+          UACTL(iact,I,4)=float(IVALID)  ! set 4th slot
           write (36,*) '   '
-          write (36,*) 'Entering subroutine UAT01a',IDAY,IHOUR
+          write (36,'(a,7i4,f5.2)') 
+     &      'Entering subroutine UAT01a topic day hour dis loc',
+     &      I,IDAY,IHOUR,ICC,ICL,ICD,ICP,UACTL(iact,I,3)
 
-C Make specific header string for each change (to match urunvals)
-          lncng=lnblnk(LCNG(ICC))
-          lnloc=lnblnk(LLOC(ICL))
-          if(lncng.gt.18)lncng=18
-          uhphrase=' '
-          write(uhphrase,'(4a,i2.2,a,i2.2)')LCNG(ICC)(1:lncng),':',
-     &      LLOC(ICL)(1:lnloc),':',ICF,':',ICP
-          luhphrase=lnblnk(uhphrase)
-          write(36,'(a)') uhphrase
-          lfnuh=lstuh+luhphrase
-          if(lfnuh.lt.1000)then
-            write(uheader(lstuh:lfnuh),'(a)')uhphrase(1:luhphrase)
-            lstuh=lfnuh+2
-          endif
-          strval=' '        ! clear string buffer for the value changed
-
-          if (nint(UACTL(I,1)).gt.0) then   ! echo the before value
-            ICC=IACTD(nint(UACTL(I,3)),1)
-            ICL=IACTD(nint(UACTL(I,3)),2)
-            ICF=IDMAT(ICC,1)
-            ICD=IDMAT(ICC,2)
-            ICP=IMISCD(ICC,1)
-            if(I.eq.1)then
-              write (36,*)ITEM(I)(1:lnblnk(ITEM(I))),tbcps(ICF,ICD,ICP)
-            else
-              write (36,*)ITEM(I)(1:lnblnk(ITEM(I))),
-     &          bmiscd(ICF,ICD,ICP,I)
-            endif
+          if(I.eq.1)then
+            write (36,'(a,f7.2)')ITEM(I)(1:lnblnk(ITEM(I))),
+     &        tbcps(ICF,ICD,ICP)
+          else
+            write (36,'(a,f7.2)')ITEM(I)(1:lnblnk(ITEM(I))),
+     &        bmiscd(ICF,ICD,ICP,I)
           endif
 
 C Uncertainty defined and in valid time period.
-          if (nint(UACTL(I,1)).eq.1) then ! % change
-            PCNG=UACTL(I,2)
+          if (nint(UACTL(iact,I,1)).eq.1) then ! % change
+            PCNG=UACTL(iact,I,2)
             if (I.eq.1) then  ! the period
               tbcps(ICF,ICD,ICP)=tbcps(ICF,ICD,ICP)*PCNG
-              call relstr(tbcps(ICF,ICD,ICP),strval,lna,ier)
             else
               bmiscd(ICF,ICD,ICP,I)=bmiscd(ICF,ICD,ICP,I)*PCNG
-              call relstr(bmiscd(ICF,ICD,ICP,I),strval,lna,ier)
             endif
-          elseif (nint(UACTL(I,1)).eq.2) then  ! abs change
-            ACNG=UACTL(I,2)
+          elseif (nint(UACTL(iact,I,1)).eq.2) then  ! abs change
+            ACNG=UACTL(iact,I,2)
             if (I.eq.1) then  ! the period
               tbcps(ICF,ICD,ICP)=tbcps(ICF,ICD,ICP)+ACNG
-              call relstr(tbcps(ICF,ICD,ICP),strval,lna,ier)
             else
               bmiscd(ICF,ICD,ICP,I)=bmiscd(ICF,ICD,ICP,I)+ACNG
-              call relstr(bmiscd(ICF,ICD,ICP,I),strval,lna,ier)
             endif
           endif
-          if (nint(UACTL(I,1)).gt.0) then   ! echo the updated value
+          if (nint(UACTL(iact,I,1)).gt.0) then   ! echo the updated value
             if(I.eq.1)then
-              write (36,*)ITEM(I)(1:lnblnk(ITEM(I))),tbcps(ICF,ICD,ICP)
+              write (36,'(a,f7.2)')ITEM(I)(1:lnblnk(ITEM(I))),
+     &          tbcps(ICF,ICD,ICP)
             else
-              write (36,*)ITEM(I)(1:lnblnk(ITEM(I))),
+              write (36,'(a,f7.2)')ITEM(I)(1:lnblnk(ITEM(I))),
      &          bmiscd(ICF,ICD,ICP,I)
             endif
           endif
 
-C Add to urunvals
-          lstrval=lnblnk(strval)
-          lfnur=lstur+lstrval
-          if(lfnur.lt.1000)then
-            write(urunvals(lstur:lfnur),'(a)') strval(1:lstrval)
-            lstur=lfnur+2
-          endif
-
-        elseif (IVALID.lt.nint(UACTL(I,4))) then
+        elseif (IVALID.lt.nint(UACTL(iact,I,4))) then
 
 C If IVALID has flipped back to zero then unset the prior change.
-          UACTL(I,4)=float(IVALID)
+          UACTL(iact,I,4)=float(IVALID)
           write (36,*) '   '
           write (36,*) 'Entering subroutine UAT01a',IDAY,IHOUR
-          if (nint(UACTL(I,1)).gt.0) then   ! echo the before value
-            ICC=IACTD(nint(UACTL(I,3)),1)
-            ICL=IACTD(nint(UACTL(I,3)),2)
-            ICF=IDMAT(ICC,1)
-            ICD=IDMAT(ICC,2)
-            ICP=IMISCD(ICC,1)
+          if (nint(UACTL(iact,I,1)).gt.0) then   ! echo the before value
+            ICC=IACTD(nint(UACTL(iact,I,3)),1)
+            ICL=IACTD(nint(UACTL(iact,I,3)),2)
+            ICF=IDATR(ICC,1)
+            ICD=IDATR(ICC,2)
+            ICP=IDATR(ICC,4)
             if(I.eq.1)then
-              write (36,*)ITEM(I)(1:lnblnk(ITEM(I))),tbcps(ICF,ICD,ICP)
+              write (36,'(a,f7.2)')ITEM(I)(1:lnblnk(ITEM(I))),
+     &          tbcps(ICF,ICD,ICP)
             else
-              write (36,*)ITEM(I)(1:lnblnk(ITEM(I))),
+              write (36,'(a,f7.2)')ITEM(I)(1:lnblnk(ITEM(I))),
      &          bmiscd(ICF,ICD,ICP,I)
             endif
           endif
 
 C Uncertainty defined and leaving valid time period.
-          if (nint(UACTL(I,1)).eq.1) then 
-            PCNG=UACTL(I,2)*(-1.0)
+          if (nint(UACTL(iact,I,1)).eq.1) then 
+            PCNG=UACTL(iact,I,2)*(-1.0)
             if (I.eq.1) then  ! the period
               tbcps(ICF,ICD,ICP)=tbcps(ICF,ICD,ICP)*PCNG
             else
               bmiscd(ICF,ICD,ICP,I)=bmiscd(ICF,ICD,ICP,I)*PCNG
             endif
-          elseif (nint(UACTL(I,1)).eq.2) then 
-            ACNG=UACTL(I,2)*(-1.0)
+          elseif (nint(UACTL(iact,I,1)).eq.2) then 
+            ACNG=UACTL(iact,I,2)*(-1.0)
             if (I.eq.1) then  ! the period
               tbcps(ICF,ICD,ICP)=tbcps(ICF,ICD,ICP)+ACNG
             else
               bmiscd(ICF,ICD,ICP,I)=bmiscd(ICF,ICD,ICP,I)+ACNG
             endif
           endif
-          if (nint(UACTL(I,1)).gt.0) then   ! echo the updated value
+          if (nint(UACTL(iact,I,1)).gt.0) then   ! echo the updated value
             if(I.eq.1)then
-              write (36,*)ITEM(I)(1:lnblnk(ITEM(I))),tbcps(ICF,ICD,ICP)
+              write (36,'(a,f7.2)')ITEM(I)(1:lnblnk(ITEM(I))),
+     &          tbcps(ICF,ICD,ICP)
             else
-              write (36,*)ITEM(I)(1:lnblnk(ITEM(I))),
+              write (36,'(a,f7.2)')ITEM(I)(1:lnblnk(ITEM(I))),
      &          bmiscd(ICF,ICD,ICP,I)
             endif
           endif
         endif
  10   continue
 
-C Write current header buffer and values buffer. Test if the
-C whole header might have been written. 
-      if(.NOT.headerdone)then
-        write (37,'(2a)') 'uheader ',uheader(1:lnblnk(uheader))
-        write (37,'(2a)') 'urunvals ',urunvals(1:lnblnk(urunvals))
-        do I=1,7
-          if (nint(UACTL(I,5)).eq.NIACT)then
-            headerdone=.true.
-            write(36,*) 'set headerdone in UAT01a'
-          endif
-        enddo
-      endif
       RETURN
       END
 
@@ -349,13 +440,13 @@ C UAT03 flags which climate data should be adjusted when reading from db.
 C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(MNACT,7,6),UAMCSA(MNACT)
 
       CHARACTER ITEM(6)*20
 
 C Data stored in UA03 has the following meaning in this routine:
-C IDMAT(?,1): Climate parameter reference number.
-C IDMAT(?,3): Change type (%; +/-; explicit).
+C IDATR(?,1): Climate parameter reference number.
+C IDATR(?,3): Change type (%; +/-; explicit).
 C Define variables for current location and change.
       ICC=IACTD(IACT,1)
       ICL=IACTD(IACT,2)
@@ -368,23 +459,26 @@ C Define variables for current location and change.
 
       write (36,*) '   '
       write (36,*) 'Entering subroutine UAT03'
-      write (36,*) ITEM(IDMAT(ICC,1)),' will be edited.'
+      write (36,*) ITEM(IDATR(ICC,1)),' will be edited.'
 
-      write (36,*) ' IDMAT: ',(IDMAT(ICC,IX),IX=1,3)
-      UACLIM(IDMAT(ICC,1),1)=float(IDMAT(ICC,3))
-      UACLIM(IDMAT(ICC,1),4)=float(IACT)  ! remember which task
-      if (IDMAT(ICC,3).eq.1) then
-        UACLIM(IDMAT(ICC,1),2)=((DATU(ICC,1)/100.)*DIR)+1.0
-      elseif (IDMAT(ICC,3).eq.2) then
-        UACLIM(IDMAT(ICC,1),2)=DATU(ICC,1)*DIR
+      write (36,*) ' IDATR: ',(IDATR(ICC,IX),IX=1,3)
+      UACLIM(IDATR(ICC,1),1)=float(IDATR(ICC,3))
+      UACLIM(IDATR(ICC,1),4)=float(IACT)  ! remember which task
+      if (IDATR(ICC,3).eq.1) then
+        UACLIM(IDATR(ICC,1),2)=((DATU(ICC,1)/100.)*DIR)+1.0
+      elseif (IDATR(ICC,3).eq.2) then
+        UACLIM(IDATR(ICC,1),2)=DATU(ICC,1)*DIR
       else
-        UACLIM(IDMAT(ICC,1),2)=0.
+        UACLIM(IDATR(ICC,1),2)=0.
       endif
-      UACLIM(IDMAT(ICC,1),3)=ICL
+      UACLIM(IDATR(ICC,1),3)=ICL
       write (36,*) ' UACLIM: ',(UACLIM(IX,1),IX=1,6)
       write (36,*) ' UACLIM: ',(UACLIM(IX,2),IX=1,6)
       write (36,*) ' UACLIM: ',(UACLIM(IX,3),IX=1,6)
       write (36,*) ' UACLIM: ',(UACLIM(IX,4),IX=1,6)
+
+C << Potentially could put the fort.37 calls at this point
+C << because this is called at the start of the set.
 
       RETURN
       END
@@ -402,18 +496,27 @@ C urunvals and also the intermediate state of uheader.
       common/clim/idif(mt),itmp(mt),idnr(mt),ivel(mt),idir(mt),
      &            ihum(mt),idiff,itmpf,idnrf,ivelf,idirf,ihumf
 
-      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(MNACT,7,6),UAMCSA(MNACT)
 
       character USETNAME*96   ! the synopsis for each MC-run
       character uheader*1000  ! header including name of each uncertainty changed
       character urunvals*1000 ! attribute changed-to value of each uncertainty change for the run.
       COMMON/USETN/USETNAME(MNRS),uheader,urunvals
 
+      logical uncertheadprinted
+      common/uncerthead/uncertheadprinted
+
       logical headerdone
-      common/uhead/headerdone
+      logical itemunique  ! should we include in fort.37
+      integer itemsinheader,nbpastitems,nbdatahits
+      character pastphrase*42
+      common/uhead/headerdone,itemunique(400),pastphrase(400),
+     &  itemsinheader,nbpastitems,nbdatahits
 
       integer lstur, lfnur
-      character strval*10,uhphrase*42
+      character strval*10,uhphrase*42,uhroot*42
+      character urunvalsd*1000
+      character ubasecase*1000,ubasecased*1000,baseval*4
 
       if(urunvals(1:2).eq.'  ')then
         lstur=1; lfnur=1  ! reset counters for urunvals buffer
@@ -429,8 +532,8 @@ C If initial append to uheader.
       endif
 
 C Data stored in UA03 has the following meaning in this routine:
-C IDMAT(?,1): Climate parameter reference number.
-C IDMAT(?,3): Change type (%; +/-; explicit).
+C IDATR(?,1): Climate parameter reference number.
+C IDATR(?,3): Change type (%; +/-; explicit).
 C UACLIM(?,4): which of the uncertainty tasks is being processed
 C Define variables for current location (in time) and change.
       write (36,*) '   '
@@ -443,88 +546,123 @@ C Set time marker to whole day (i.e. -1)
         write (36,'(a,24i5)') 'ambient',(itmp(IX),IX=1,24)
 
 C Make specific header string for each change (to match urunvals)
+
+C << ??? why 24 separate values for the header? >>
+
         do ih=1,24
-          write(uhphrase,'(a,i2.2)') 'amb_db',ih
+          write(uhphrase,'(a,i2.2,a)') 'amb_db',ih,','
           luhphrase=8
           lfnuh=lstuh+luhphrase
           if(lfnuh.lt.1000)then
             write(uheader(lstuh:lfnuh),'(a)')uhphrase(1:luhphrase)
             lstuh=lfnuh+1
+            itemsinheader=itemsinheader+1
           endif
         enddo
-        if(.NOT.headerdone) write (37,'(2a)') 'uheader ',
-     &    uheader(1:lnblnk(uheader))
+
+C << If we have a mix of uncertainties and this is not the last
+C << one then perhaps this should not be set??
+
+        if(headerdone)then
+          if(.NOT.uncertheadprinted)then
+            write (37,'(2a)') 'uheader ',uheader(1:lnblnk(uheader))
+            uncertheadprinted=.true.
+          endif
+        endif
       endif
       if (nint(UACLIM(2,1)).gt.0) then
         write (36,'(a,24i5)') 'sol dir',(idnr(IX),IX=1,24)
         do ih=1,24
-          write(uhphrase,'(a,i2.2)') 'sol_dir',ih
+          write(uhphrase,'(a,i2.2,a)') 'sol_dir',ih,','
           luhphrase=9
           lfnuh=lstuh+luhphrase
           if(lfnuh.lt.1000)then
             write(uheader(lstuh:lfnuh),'(a)')uhphrase(1:luhphrase)
-            lstuh=lfnuh+2
+            lstuh=lfnuh+1
+            itemsinheader=itemsinheader+1
           endif
         enddo
-        if(.NOT.headerdone) write (37,'(2a)') 'uheader ',
-     &    uheader(1:lnblnk(uheader))
+        if(headerdone)then
+          if(.NOT.uncertheadprinted)then
+            write (37,'(2a)') 'uheader ',uheader(1:lnblnk(uheader))
+            uncertheadprinted=.true.
+          endif
+        endif
       endif
       if (nint(UACLIM(3,1)).gt.0) then
         write (36,'(a,24i5)') 'sol dif',(idif(IX),IX=1,24)
         do ih=1,24
-          write(uhphrase,'(a,i2.2)') 'sol_dif',ih
+          write(uhphrase,'(a,i2.2,a)') 'sol_dif',ih,','
           luhphrase=9
           lfnuh=lstuh+luhphrase
           if(lfnuh.lt.1000)then
             write(uheader(lstuh:lfnuh),'(a)')uhphrase(1:luhphrase)
-            lstuh=lfnuh+2
+            lstuh=lfnuh+1
+            itemsinheader=itemsinheader+1
           endif
         enddo
-        if(.NOT.headerdone) write (37,'(2a)') 'uheader ',
-     &    uheader(1:lnblnk(uheader))
+        if(headerdone)then
+          if(.NOT.uncertheadprinted)then
+            write (37,'(2a)') 'uheader ',uheader(1:lnblnk(uheader))
+            uncertheadprinted=.true.
+          endif
+        endif
       endif
       if (nint(UACLIM(4,1)).gt.0) then
         write (36,'(a,24i5)') 'wind vel',(ivel(IX),IX=1,24)
         do ih=1,24
-          write(uhphrase,'(a,i2.2)') 'wind_v',ih
+          write(uhphrase,'(a,i2.2,a)') 'wind_v',ih,','
           luhphrase=8
           lfnuh=lstuh+luhphrase
           if(lfnuh.lt.1000)then
             write(uheader(lstuh:lfnuh),'(a)')uhphrase(1:luhphrase)
-            lstuh=lfnuh+2
+            lstuh=lfnuh+1
+            itemsinheader=itemsinheader+1
           endif
         enddo
-        if(.NOT.headerdone) write (37,'(2a)') 'uheader ',
-     &    uheader(1:lnblnk(uheader))
+        if(headerdone)then
+          if(.NOT.uncertheadprinted)then
+            write (37,'(2a)') 'uheader ',uheader(1:lnblnk(uheader))
+            uncertheadprinted=.true.
+          endif
+        endif
       endif
       if (nint(UACLIM(5,1)).gt.0) then
         write (36,'(a,24i5)') 'wind dir',(idir(IX),IX=1,24)
         do ih=1,24
-          write(uhphrase,'(a,i2.2)') 'wind_d',ih
+          write(uhphrase,'(a,i2.2,a)') 'wind_d',ih,','
           luhphrase=8
           lfnuh=lstuh+luhphrase
           if(lfnuh.lt.1000)then
             write(uheader(lstuh:lfnuh),'(a)')uhphrase(1:luhphrase)
-            lstuh=lfnuh+2
+            lstuh=lfnuh+1
+            itemsinheader=itemsinheader+1
           endif
         enddo
-        if(.NOT.headerdone)then
-          write (37,'(2a)') 'uheader ',uheader(1:lnblnk(uheader))
+        if(headerdone)then
+          if(.NOT.uncertheadprinted)then
+            write (37,'(2a)') 'uheader ',uheader(1:lnblnk(uheader))
+            uncertheadprinted=.true.
+          endif
         endif
       endif
       if (nint(UACLIM(6,1)).gt.0) then
         write (36,'(a,24i5)') 'rel hum',(ihum(IX),IX=1,24)
         do ih=1,24
-          write(uhphrase,'(a,i2.2)') 'rel_hu',ih
+          write(uhphrase,'(a,i2.2,a)') 'rel_hu',ih,','
           luhphrase=8
           lfnuh=lstuh+luhphrase
           if(lfnuh.lt.1000)then
             write(uheader(lstuh:lfnuh),'(a)')uhphrase(1:luhphrase)
-            lstuh=lfnuh+2
+            lstuh=lfnuh+1
+            itemsinheader=itemsinheader+1
           endif
         enddo
-        if(.NOT.headerdone)then
-          write (37,'(2a)') 'uheader ',uheader(1:lnblnk(uheader))
+        if(headerdone)then
+          if(.NOT.uncertheadprinted)then
+            write (37,'(2a)') 'uheader ',uheader(1:lnblnk(uheader))
+            uncertheadprinted=.true.
+          endif
         endif
       endif
 
@@ -533,7 +671,7 @@ C Test if this is the last uncertainty item, if so header is complete.
         do I=1,6
           if (nint(UACLIM(I,4)).eq.NIACT)then
             headerdone=.true.
-            write(36,*) 'set headerdone in UAT03a'
+C            write(36,*) 'set headerdone in UAT03a'
           endif
         enddo
       endif
@@ -600,7 +738,10 @@ C Add to urunvals
               lstur=lfnur+2
             endif
  20       continue
-          write (37,'(2a)') 'urunvals ',urunvals(1:lnblnk(urunvals))
+
+C Add comma separations to the data.
+          call SDELIM(urunvals,urunvalsd,'C',IW)
+          write (37,'(2a)') 'urunvals ',urunvalsd(1:lnblnk(urunvalsd))
         elseif (nint(UACLIM(I,1)).eq.2) then 
           ACNG=UACLIM(I,2)
           if (I.eq.1) then
@@ -653,7 +794,8 @@ C Add to urunvals
               lstur=lfnur+2
             endif
  30       continue
-          write (37,'(2a)') 'urunvals ',urunvals(1:lnblnk(urunvals))
+          call SDELIM(urunvals,urunvalsd,'C',IW)
+          write (37,'(2a)') 'urunvals ',urunvalsd(1:lnblnk(urunvalsd))
         endif
  10   continue
 

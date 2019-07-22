@@ -2438,6 +2438,7 @@ C This routine manages the creation of connections, the routine can
 C be called from the c-side to delete a connection (mode='c')
 
         SUBROUTINE NETWMCO(IMODE,IMOPT)     
+#include "building.h"
 #include "gnetwk.h"
 #include "net_flow.h"
 #include "epara.h"
@@ -4297,10 +4298,9 @@ C Select a real value based on external information held in
 C a .summary file for the current model. Up to 6 real values
 C are returned. If ier=-1 then summary file was not available.
       subroutine selrelexttag(icn,exttag,AVAL,SVAL,ier)
+#include "building.h"
 #include "gnetwk.h"
 #include "net_flow.h"
-#include "building.h"
-C #include "geometry.h"
 #include "epara.h"
       
       integer lnblnk  ! function definition

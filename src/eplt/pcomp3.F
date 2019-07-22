@@ -2804,13 +2804,13 @@ C Store "environment" varaibles future values
 
 C AG New Start
 C Establish "containment loss" data
-         QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
+       QDATA(IPCOMP)=UA*(alpha*(csvf(inod1,1)-pcntmf(ipcomp))+
      &                (1.-alpha)*(csvp(inod1,1)-pcntmp(ipcomp)))
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
-	 call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
+       call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iConvective)
+       call store_plt_gain ( IPCOMP, 0.5*QDATA(IPCOMP), iRadiant)
 
 C    For embedded HE
-	 call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
+       call store_plt_gain ( IPCOMP, QDATA(IPCOMP), iConductive)
 C AG New End
 
 C 1st phase (i.e. water) mass balance coefficients

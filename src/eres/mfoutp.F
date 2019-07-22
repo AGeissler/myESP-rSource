@@ -212,7 +212,9 @@ C name with the full path.
         call gethelptext(helpinsub,helptopic,nbhelp)
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
-          if(llt.lt.96)then
+          if(llt.lt.72)then
+            ISTRW=72
+          elseif(llt.ge.72.and.llt.lt.96)then
             ISTRW=96
           elseif(llt.ge.96.and.llt.lt.124)then
             ISTRW=124
@@ -1464,6 +1466,7 @@ C PROMPT1 and PROMPT2 are text prompt strings
 C NH is number of help strings.
 
       SUBROUTINE ASKMFNOD(IOPT,NNPK,INPK,PROMPT1,PROMPT2,NH)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1488,6 +1491,7 @@ C PROMPT1 and PROMPT2 are text prompt strings
 C NH is number of help strings.
 
       SUBROUTINE ASKMFCTM(NCPK,ICPK,PROMPT1,PROMPT2,NH)
+#include "building.h"
 #include "net_flow.h"
 
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
@@ -1516,6 +1520,7 @@ C then silently return all connections associated with the node
 C (absolute value of INODE).
 
       SUBROUTINE ASKMFCON(INODE,NNPK,ICPK)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 

@@ -2313,7 +2313,7 @@ C inside.
 C Add additional absorbed (reporting)
              CFCabs=0.
              do 555 ij=1,ncfc_el(icomp,icfctp)
-                 CFCabs=CFCabs+AbsSol(ij)
+               CFCabs=CFCabs+AbsSol(ij)
   555        continue
              q2cfc(2)=q2cfc(2)+CFCabs*SNA(ICOMP,i)
 
@@ -2322,20 +2322,18 @@ C Add additional absorbed (reporting)
 C Assign additional absorbed to CFC layer nodes
              inode=1
              do 203 j=1,ne
-             nnod=nndl(icomp,i,j)
-             fnnod=float(nnod)
-             qtmca(i,inode,2)=qtmca(i,inode,2)+
-     &                              AbsSol(j)/(fnnod*2.)
-             do 208 jj=2,nnod
+               nnod=nndl(icomp,i,j)
+               fnnod=float(nnod)
+               qtmca(i,inode,2)=qtmca(i,inode,2)+
+     &                          AbsSol(j)/(fnnod*2.)
+               do 208 jj=2,nnod
+                 inode=inode+1
+                 qtmca(i,inode,2)=qtmca(i,inode,2)+
+     &                            AbsSol(j)/fnnod
+  208          continue
                inode=inode+1
                qtmca(i,inode,2)=qtmca(i,inode,2)+
-     &                              AbsSol(j)/fnnod
-
-  208       continue
-             inode=inode+1
-             qtmca(i,inode,2)=qtmca(i,inode,2)+
-     &                               AbsSol(j)/(fnnod*2.)
-
+     &                          AbsSol(j)/(fnnod*2.)
   203       continue
 
           ELSE

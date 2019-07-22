@@ -3639,9 +3639,9 @@ C Identify plant file; skip if this is '* Plant' record.
           endif
         endif
         LPNF=OUTSTR(1:72)
-	IF(LPNF(1:7).EQ.'*end') THEN
+        IF(LPNF(1:7).EQ.'*end') THEN
           goto 1001
-	ENDIF ! GF New End
+        ENDIF ! GF New End
         IF(LPNF(1:7).EQ.'* Plant'.OR.LPNF(1:7).EQ.'* PLANT') THEN
           CALL STRIPC(IUC,OUTSTR,0,ND,1,'* plant',IER)
           if(IER.NE.0)then
@@ -3651,7 +3651,7 @@ C Identify plant file; skip if this is '* Plant' record.
           LPNF=OUTSTR(1:72)
 
 C Read temporal file name 
-	  CALL STRIPC(IUC,OUTSTR,0,ND,1,'boundary/model name',IER)
+          CALL STRIPC(IUC,OUTSTR,0,ND,1,'boundary/model name',IER)
           BPF=OUTSTR(1:72)
           if(IER.NE.0)then
             call edisp(iuout,'Problem reading * Boundary line')

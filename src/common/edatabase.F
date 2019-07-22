@@ -1641,7 +1641,7 @@ C Markdown flag.
       integer lnlist
 
       DIMENSION PNAM(ME)
-      CHARACTER OUTSTR*148,PNAM*124,outstr2*224
+      CHARACTER OUTSTR*160,PNAM*124,outstr2*224
       CHARACTER SOPT*12,GDESCR*36
       integer lnmlcn,lnmlco,lnother
       CHARACTER layertp*9
@@ -1666,7 +1666,7 @@ C Pick up general description of the composite.
      &        'Details of transparent construction ',
      &        mlcname(ifoc)(1:lnmlcname(ifoc)),' with ',
      &        mlcoptical(ifoc)(1:lnmlco),
-     &        ' optics with an overall thickness of ',THKMLC(ifoc),'m.'
+     &        ' optics and overall thickness of ',THKMLC(ifoc),'m.'
             call edisp2tr(ITRU,OUTSTR)
           else
             WRITE(OUTSTR,'(5a,f6.3)')

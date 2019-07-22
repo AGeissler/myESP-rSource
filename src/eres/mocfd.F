@@ -1383,7 +1383,9 @@ C file, while the GTK version will be returning the
 C name with the full path.
    11 iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
       if(iglib.eq.1.or.iglib.eq.3)then
-        if(llt.lt.96)then
+        if(llt.lt.72)then
+          ISTRW=72
+        elseif(llt.ge.72.and.llt.lt.96)then
           ISTRW=96
         elseif(llt.ge.96.and.llt.lt.124)then
           ISTRW=124

@@ -486,15 +486,10 @@ C        write(6,*) 'the module is ',module,' request to initialise only'
         H(46)='     variants of the current model (perhaps in support'
         H(47)='     of design options appraisal).'
         H(48)=' `browse/edit/simulate` - access to options that allow'
-        H(57)='     the model to be browsed, edited (but only if'
-        H(58)='     owned) or simulated.'
+        H(49)='     the model to be browsed, edited (but only if'
+        H(50)='     owned) or simulated.'
         if(initonly.eq.0)then
-          CALL PHELPD('prj opening',58,'-',0,0,IER)
-          H(1)='While the Project Manager is normally run in graphics'
-          H(2)='mode, it may also be started in text/script mode or'
-          H(3)='passed a model at invocation time. Type `ESP-r -help`'
-          H(4)='at the command prompt for options.'
-          CALL PHELPD('prj opening',4,'-',0,0,IER)
+          CALL PHELPD('prj opening',50,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'pro')then
         H(1)= '     ESP-r Standard Profiles Database '

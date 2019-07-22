@@ -34,25 +34,11 @@ C ********** MAIN
       USE START_UP
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0 and G2.
 #include "geometry.h"
-C UA1 in uncertainty.h
 #include "uncertainty.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
-C LOPTDB,IOPTDB (for optical database)
-C LPCDB/IPCDB (for plant template database)
-C LPRFDB,IPRODB (for event profile database)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
-C ICLIM,LCLIM (for climate file)
-C LSBEM (SBEM database)
-C LPREDEF (predefined objects)
-C default file names for databases
 #include "material.h"
 #include "espriou.h"
-C espriou.h provides currentfile, defdbfl exemfl.
 #include "control.h"
 #include "net_flow.h"
 #include "prj3dv.h"
@@ -1046,6 +1032,9 @@ C      ITRC=1  ! why reset this ?
       ITEMS(4) =  ' .... Model selection ........'
       ITEMS(5) =  'd open existing'
       ITEMS(6) =  'e create new'
+
+C Debug.
+C      write(6,*) ' model management browse status ',browse
 
       if(CFGOK)then
         if(browse)then
@@ -3751,11 +3740,11 @@ C Check to see if this connection only pointed to once in the whole list.
                   if(.NOT.dup)then
                     if(ICT(i2).eq.3)dup=.true.
                   else
-                    prob=.true.
+                    prob=.true.  ! we have a 2nd mention
                   endif
                 endif
   291         continue
-              if(nbhelp.lt.60.and.dup)then
+              if(nbhelp.lt.60.and.prob)then
                 nbhelp=nbhelp+1
                 write(h(nbhelp),'(2a)') 
      &            'Duplicates surface <> master list ',CXSTR(1:36)

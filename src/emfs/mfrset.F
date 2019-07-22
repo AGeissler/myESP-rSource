@@ -27,7 +27,7 @@ C   calculates nodes fluid density,
 C   calculates connections stack pressure,
 C   shows simulation progress.
       SUBROUTINE MFRSET(IFCLM,LAST)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN

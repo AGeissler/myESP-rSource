@@ -616,6 +616,9 @@ t0=(char *) getenv("EFONT_0");
 /* fprintf(stderr,"t0 is %s \n",t0); */
 if ((t0 == NULL) || (t0  == "") || (strncmp(t0,"    ",4) == 0)) {
   strncpy(font_0,"Ubuntu Mono,Monospace-8:medium",30);
+#ifdef OSX
+  strncpy(font_0,"DejaVu Sans Mono-8:medium",25);
+#endif
 } else {
   strcpy(font_0,getenv("EFONT_0"));
 }
@@ -625,6 +628,9 @@ if((fst_0 =  XftFontOpenName(theDisp,0,font_0)) == NULL) {
 }
 if (((t0=(char *) getenv("EFONT_1"))== NULL) || ((t0=(char *) getenv("EFONT_1"))== "")) {
   strncpy(font_1,"Ubuntu Mono,Monospace-9:medium",30);
+#ifdef OSX
+  strncpy(font_1,"DejaVu Sans Mono-9:medium",25);
+#endif
 } else {
   strcpy(font_1,getenv("EFONT_1"));
 }
@@ -634,6 +640,9 @@ if((fst_1 = XftFontOpenName(theDisp,0,font_1)) == NULL) {
 }
 if (((t0=(char *) getenv("EFONT_2"))== NULL) || ((t0=(char *) getenv("EFONT_2"))== "")) {
   strncpy(font_2,"Ubuntu Mono,Monospace-10:medium",31);
+#ifdef OSX
+  strncpy(font_1,"DejaVu Sans Mono-10:medium",26);
+#endif
 } else {
   strcpy(font_2,getenv("EFONT_2"));
 }
@@ -643,6 +652,9 @@ if((fst_2 = XftFontOpenName(theDisp,0,font_2)) == NULL) {
 }
 if (((t0=(char *) getenv("EFONT_3"))== NULL) || ((t0=(char *) getenv("EFONT_3"))== "")) {
   strncpy(font_3,"Ubuntu Mono,Monospace-11:medium",31);
+#ifdef OSX
+  strncpy(font_3,"DejaVu Sans Mono-11:medium",26);
+#endif
 } else {
   strcpy(font_3,getenv("EFONT_3"));
 }
@@ -2603,35 +2615,46 @@ void qbox_(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
  *        *b_bottom, *b_left are pixel at lower left of box (supplied)
  *        act is the action `-` nothing, `!` blink it. */
 
+  XGlyphInfo info;
   XftDraw *draw;
   int lm1;		/* local string lengths */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
+  int vfw;      /* pixels width for the box */
+  int padding;  /* character difference between msglen and asklen */
 
   bottom = *b_bottom; left = *b_left;
-  lm1=msglen;
+  lm1=msglen; padding=(asklen - msglen);
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
+
+// Use XftTextExtents8 to get the actual pixels needed for the string.
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff + (padding * f_width);  /* impose requested additional space */
+//  fprintf(stderr,"qbox msg %s lm1 %d asklen %d vwf %d f_width %d asktimesfw %d\n",msg,lm1,asklen,vfw,f_width,(asklen * f_width));
+  if( (asklen * f_width) > vfw ) vfw = asklen * f_width;
+//  fprintf(stderr,"qbox new vfw is %d\n",vfw);
 
   querb.b_top = bottom - (f_height + 6);
   querb.b_bottom = bottom -2;
   querb.b_left = left;
-  querb.b_right = querb.b_left + (asklen * f_width);
+  querb.b_right = querb.b_left + vfw;
 
 // Define local drawable for Xft font.
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
   if(act == '-') {
     xbox(querb,fg,white,BMCLEAR |BMEDGES);   /* draw querry box with edges  */
-    XftDrawString8(draw, &xft_color,fst,querb.b_left+4,querb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,querb.b_left+3,querb.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if(act == '!') {
     xbox(querb,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XftDrawString8(draw, &xft_color,fst,querb.b_left+4,querb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,querb.b_left+3,querb.b_bottom-3,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     Timer(200);
     xbox(querb,fg,white, BMCLEAR | BMEDGES);             /* clear box */
-    XftDrawString8(draw, &xft_color,fst,querb.b_left+4,querb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,querb.b_left+3,querb.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
   XftDrawDestroy(draw);
@@ -2650,35 +2673,47 @@ void dbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
  *        *b_bottom, *b_left are pixel at lower left of box (supplied)
  *        act is the action `-` nothing, `!` blink it. */
 
+  XGlyphInfo info;
   XftDraw *draw;
   int lm1;		/* local string lengths found by test  */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
+  int vfw;      /* pixels width for the box */
+  int padding;  /* character difference between msglen and asklen */
 
   bottom = *b_bottom; left = *b_left;
-  lm1=msglen;
+  lm1=msglen; padding=(asklen - msglen);
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
+
+// Use XftTextExtents8 to get the actual pixels needed for the string.
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff + (padding * f_width);  /* impose requested additional space */
+//  fprintf(stderr,"dbox msg %s lm1 %d asklen %d vwf %d f_width %d asktimesfw %d\n",msg,lm1,asklen,vfw,f_width,(asklen * f_width));
+  if( (asklen * f_width) > vfw ) vfw = asklen * f_width;
+//  fprintf(stderr,"dbox new vfw is %d\n",vfw);
 
   defb.b_top = bottom - (f_height + 6);
   defb.b_bottom = bottom -2;
   defb.b_left = left;
-  defb.b_right = defb.b_left + (asklen * f_width);
+//  defb.b_right = defb.b_left + (asklen * f_width);
+  defb.b_right = defb.b_left + vfw;
 
 // Define local drawable for Xft font.
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
   if(act == '-') {
     xbox(defb,fg,white,BMCLEAR |BMEDGES);   /* draw querry box with edges  */
-    XftDrawString8(draw, &xft_color,fst,defb.b_left+4,defb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,defb.b_left+3,defb.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if (act == '!') {
     xbox(defb,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);       /* invert box */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XftDrawString8(draw, &xft_color,fst,defb.b_left+4,defb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,defb.b_left+3,defb.b_bottom-3,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     Timer(200);
     xbox(defb,fg,white, BMCLEAR | BMEDGES);              /* clear box */
-    XftDrawString8(draw, &xft_color,fst,defb.b_left+4,defb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,defb.b_left+3,defb.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
   XftDrawDestroy(draw);
@@ -2697,35 +2732,47 @@ void okbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
  *        *b_bottom, *b_left are pixel at lower left of box (supplied)
  *        act is the action `-` nothing, `!` blink it. */
 
-   XftDraw *draw;
+  XGlyphInfo info;
+  XftDraw *draw;
   int lm1;		/* local string lengths  */
   int  bottom, left;	/* pixel at lower left of box (supplied) */
   long int saved_font;
+  int vfw;      /* pixels width for the box */
+  int padding;  /* character difference between msglen and asklen */
 
   bottom = *b_bottom; left = *b_left;
-  lm1=msglen;
+  lm1=msglen;  padding=(asklen - msglen);
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
+
+// Use XftTextExtents8 to get the actual pixels needed for the string.
+  vfw=0;
+  XftTextExtents8(theDisp,fst,msg,lm1,&info);
+  if( info.xOff > vfw ) vfw= info.xOff + (padding * f_width);  /* impose requested additional space */
+//  fprintf(stderr,"okbox msg %s lm1 %d asklen %d vwf %d f_width %d asktimesfw %d\n",msg,lm1,asklen,vfw,f_width,(asklen * f_width));
+  if( (asklen * f_width) > vfw ) vfw = asklen * f_width;
+//  fprintf(stderr,"okbox new vfw is %d\n",vfw);
 
   okb.b_top = bottom - (f_height + 6);
   okb.b_bottom = bottom -2;
   okb.b_left = left;
-  okb.b_right = okb.b_left + (asklen * f_width);
+//  okb.b_right = okb.b_left + (asklen * f_width);
+  okb.b_right = okb.b_left + vfw;
 
 // Define local drawable for Xft font.
    draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
   if(act == '-') {
     xbox(okb,fg,white,BMCLEAR |BMEDGES);   /* draw querry box with edges  */
-    XftDrawString8(draw, &xft_color,fst,okb.b_left+4,okb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,okb.b_left+3,okb.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if (act == '!') {
     xbox(okb,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);        /* invert box */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XftDrawString8(draw, &xft_color,fst,okb.b_left+4,okb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,okb.b_left+3,okb.b_bottom-3,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     Timer(200);
     xbox(okb,fg,white, BMCLEAR | BMEDGES);               /* clear box */
-    XftDrawString8(draw, &xft_color,fst,okb.b_left+4,okb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,okb.b_left+3,okb.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
   XftDrawDestroy(draw);
@@ -2954,8 +3001,7 @@ void doitbox(box dobox,char* msg,int msglen,int asklen,long int* sav_font,long i
   lm1=msglen; padding=(asklen - msglen);
   if (s_font != u_font) winfnt_(&u_font);
 
-// Use XftTextExtents8 to get the actual pixels needed for the string
-// rather than assuming f_width is suitable.
+// Use XftTextExtents8 to get the actual pixels needed for the string.
   vfw=0;
   XftTextExtents8(theDisp,fst,msg,lm1,&info);
   if( info.xOff > vfw ) vfw= info.xOff + (padding * f_width);  /* impose requested additional space */
@@ -2987,11 +3033,11 @@ void doitbox(box dobox,char* msg,int msglen,int asklen,long int* sav_font,long i
 
   if(act == '-') {
     xbox(dobox,fg,white,BMCLEAR |BMEDGES);   /* draw box with edges & text */
-    XftDrawString8(draw, &xft_color,fst,dobox.b_left+4,dobox.b_bottom-2,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,dobox.b_left+3,dobox.b_bottom-2,(XftChar8 *) msg,lm1);
   } else if (act == '!') {
     xbox(dobox,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);        /* invert */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XftDrawString8(draw, &xft_color,fst,dobox.b_left+4,dobox.b_bottom-2,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,dobox.b_left+3,dobox.b_bottom-2,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     if (s_font != u_font) winfnt_(&s_font);  /* restore std font during action */
@@ -3085,7 +3131,7 @@ void doitbox(box dobox,char* msg,int msglen,int asklen,long int* sav_font,long i
 
     if (s_font != u_font) winfnt_(&u_font);
     xbox(dobox,fg,white, BMCLEAR | BMEDGES);               /* clear box */
-    XftDrawString8(draw, &xft_color,fst,dobox.b_left+4,dobox.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,dobox.b_left+3,dobox.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);
   XftDrawDestroy(draw);
@@ -3231,16 +3277,16 @@ void altbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act){
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
   if(act == '-') {
     xbox(altb,fg,white,BMCLEAR |BMEDGES);   /* draw commands box with edges  */
-    XftDrawString8(draw, &xft_color,fst,altb.b_left+4,altb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altb.b_left+3,altb.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if (act == '!') {
     xbox(altb,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);        /* invert box */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XftDrawString8(draw, &xft_color,fst,altb.b_left+4,altb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altb.b_left+3,altb.b_bottom-3,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     Timer(200);
     xbox(altb,fg,white, BMCLEAR | BMEDGES);               /* clear box */
-    XftDrawString8(draw, &xft_color,fst,altb.b_left+4,altb.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altb.b_left+3,altb.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
   XftDrawDestroy(draw);
@@ -3272,8 +3318,7 @@ void alt2box(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act)
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
 
-// Use XftTextExtents8 to get the actual pixels needed for the string
-// rather than assuming f_width is suitable.
+// Use XftTextExtents8 to get the actual pixels needed for the string.
   vfw=0;
   XftTextExtents8(theDisp,fst,msg,lm1,&info);
   if( info.xOff > vfw ) vfw= info.xOff + (padding * f_width);  /* impose requested additional space */
@@ -3290,16 +3335,16 @@ void alt2box(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act)
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
   if(act == '-') {
     xbox(altc,fg,white,BMCLEAR |BMEDGES);   /* draw commands box with edges  */
-    XftDrawString8(draw, &xft_color,fst,altc.b_left+4,altc.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altc.b_left+3,altc.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if (act == '!') {
     xbox(altc,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);        /* invert box */
     XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-    XftDrawString8(draw, &xft_color,fst,altc.b_left+4,altc.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altc.b_left+3,altc.b_bottom-3,(XftChar8 *) msg,lm1);
     XFlush(theDisp);
     XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
     Timer(200);
     xbox(altc,fg,white, BMCLEAR | BMEDGES);               /* clear box */
-    XftDrawString8(draw, &xft_color,fst,altc.b_left+4,altc.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,altc.b_left+3,altc.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
   XftDrawDestroy(draw);
@@ -3335,8 +3380,7 @@ void abcdboxs(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
 
-// Use XftTextExtents8 to get the actual pixels needed for the string
-// rather than assuming f_width is suitable.
+// Use XftTextExtents8 to get the actual pixels needed for the string.
   vfw=0;
   XftTextExtents8(theDisp,fst,msg,lm1,&info);
   if( info.xOff > vfw ) vfw= info.xOff + (padding * f_width);  /* impose requested additional space */
@@ -3353,49 +3397,49 @@ void abcdboxs(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act
     a.b_left = left;
     a.b_right = a.b_left + vfw;
     xbox(a,fg,white,BMCLEAR |BMEDGES);   /* draw a box with edges  */
-    XftDrawString8(draw, &xft_color,fst,a.b_left+4,a.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,a.b_left+3,a.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'b') {
     b.b_top = bottom - (f_height + 6);
     b.b_bottom = bottom -2;
     b.b_left = left;
     b.b_right = b.b_left + vfw;
     xbox(b,fg,white,BMCLEAR |BMEDGES);   /* draw b box with edges  */
-    XftDrawString8(draw, &xft_color,fst,b.b_left+4,b.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,b.b_left+3,b.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'c') {
     c.b_top = bottom - (f_height + 6);
     c.b_bottom = bottom -2;
     c.b_left = left;
     c.b_right = c.b_left + vfw;
     xbox(c,fg,white,BMCLEAR |BMEDGES);   /* draw c box with edges  */
-    XftDrawString8(draw, &xft_color,fst,c.b_left+4,c.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,c.b_left+3,c.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'd') {
     d.b_top = bottom - (f_height + 6);
     d.b_bottom = bottom -2;
     d.b_left = left;
     d.b_right = d.b_left + vfw;
     xbox(d,fg,white,BMCLEAR |BMEDGES);   /* draw d box with edges  */
-    XftDrawString8(draw, &xft_color,fst,d.b_left+4,d.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,d.b_left+3,d.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'e') {
     e.b_top = bottom - (f_height + 6);
     e.b_bottom = bottom -2;
     e.b_left = left;
     e.b_right = e.b_left + vfw;
     xbox(e,fg,white,BMCLEAR |BMEDGES);   /* draw e box with edges  */
-    XftDrawString8(draw, &xft_color,fst,e.b_left+4,e.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,e.b_left+3,e.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'f') {
     f.b_top = bottom - (f_height + 6);
     f.b_bottom = bottom -2;
     f.b_left = left;
     f.b_right = f.b_left + vfw;
     xbox(f,fg,white,BMCLEAR |BMEDGES);   /* draw f box with edges  */
-    XftDrawString8(draw, &xft_color,fst,f.b_left+4,f.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,f.b_left+3,f.b_bottom-3,(XftChar8 *) msg,lm1);
   } else if ( act == 'g') {
     g.b_top = bottom - (f_height + 6);
     g.b_bottom = bottom -2;
     g.b_left = left;
     g.b_right = g.b_left + vfw +1;
     xbox(g,fg,white,BMCLEAR |BMEDGES);   /* draw g box with edges  */
-    XftDrawString8(draw, &xft_color,fst,g.b_left+4,g.b_bottom-3,(XftChar8 *) msg,lm1);
+    XftDrawString8(draw, &xft_color,fst,g.b_left+3,g.b_bottom-3,(XftChar8 *) msg,lm1);
   }
   XFlush(theDisp);  /* added to force draw */
   XftDrawDestroy(draw);
@@ -4067,10 +4111,10 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
 
   if (use_font != butn_fnt) winfnt_(&butn_fnt);
-    XftDrawString8(draw, &xft_color,fst,dismissbx.b_left+4,dismissbx.b_bottom-2,(XftChar8 *) "dismiss",7);
+    XftDrawString8(draw, &xft_color,fst,dismissbx.b_left+3,dismissbx.b_bottom-2,(XftChar8 *) "dismiss",7);
   if( showmoreflg == 1) {
     xbox(showmorebx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
-    XftDrawString8(draw, &xft_color,fst,showmorebx.b_left+4,showmorebx.b_bottom-2,(XftChar8 *) "more",4);
+    XftDrawString8(draw, &xft_color,fst,showmorebx.b_left+3,showmorebx.b_bottom-2,(XftChar8 *) "more",4);
   }
   winfnt_(&use_font);
 
@@ -4118,10 +4162,10 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
           xbox(helpbx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
           xbox(dismissbx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
           if (use_font != butn_fnt) winfnt_(&butn_fnt);
-          XftDrawString8(draw, &xft_color,fst,dismissbx.b_left+4,dismissbx.b_bottom-2,(XftChar8 *) "dismiss",7);
+          XftDrawString8(draw, &xft_color,fst,dismissbx.b_left+3,dismissbx.b_bottom-2,(XftChar8 *) "dismiss",7);
           if( showmoreflg == 1) {
             xbox(showmorebx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
-            XftDrawString8(draw, &xft_color,fst,showmorebx.b_left+4,showmorebx.b_bottom-2,(XftChar8 *) "more",4);
+            XftDrawString8(draw, &xft_color,fst,showmorebx.b_left+3,showmorebx.b_bottom-2,(XftChar8 *) "more",4);
           }
           winfnt_(&use_font);
           if(ilen <= 20) {
@@ -4164,10 +4208,10 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
           xbox(helpbx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
           xbox(dismissbx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
           if (use_font != butn_fnt) winfnt_(&butn_fnt);
-          XftDrawString8(draw, &xft_color,fst,dismissbx.b_left+4,dismissbx.b_bottom-2,(XftChar8 *) "dismiss",7);
+          XftDrawString8(draw, &xft_color,fst,dismissbx.b_left+3,dismissbx.b_bottom-2,(XftChar8 *) "dismiss",7);
           if( showmoreflg == 1) {
             xbox(showmorebx,fg,white,BMCLEAR|BMEDGES);	/* draw help display box  */
-            XftDrawString8(draw, &xft_color,fst,showmorebx.b_left+4,showmorebx.b_bottom-2,(XftChar8 *) "show more",9); 
+            XftDrawString8(draw, &xft_color,fst,showmorebx.b_left+3,showmorebx.b_bottom-2,(XftChar8 *) "show more",9); 
           }
           winfnt_(&use_font);
           if(ilen <= 20) {
@@ -5363,7 +5407,7 @@ void continuebox_(msg1,msg2,opta,len1,len2,len3)
           xbox(a,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XftDrawString8(draw, &xft_color,fst,a.b_left+4,a.b_bottom-3,(XftChar8 *) opta,lm3);
+          XftDrawString8(draw, &xft_color,fst,a.b_left+3,a.b_bottom-3,(XftChar8 *) opta,lm3);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           break;
         } else {
@@ -5442,7 +5486,8 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
 /* Use XftTextExtents8 logic for sizing each option box */
    vfw=vfwa=vfwb=vfwc=vfwd=vfwe=vfwf=vfwg=vfwm1=vfwm2=0;
 
-/* Find ends of strings passed and terminate. */
+/* Find ends of strings passed and terminate. Add 2 character widths
+   to each vfwm* to allow a bit of white space around the word. */
    nopts = 0;
    f_to_c_l(msg1,&len1,&lm1);
    XftTextExtents8(theDisp,fst,msg1,lm1,&info);
@@ -5614,7 +5659,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(a,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XftDrawString8(draw, &xft_color,fst,a.b_left+4,a.b_bottom-3,(XftChar8 *) opta,lm3);
+          XftDrawString8(draw, &xft_color,fst,a.b_left+3,a.b_bottom-3,(XftChar8 *) opta,lm3);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 1;
    	  break;
@@ -5623,7 +5668,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(b,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XftDrawString8(draw, &xft_color,fst,b.b_left+4,b.b_bottom-3,(XftChar8 *) optb,lm4);
+          XftDrawString8(draw, &xft_color,fst,b.b_left+3,b.b_bottom-3,(XftChar8 *) optb,lm4);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 2;
           break;
@@ -5632,7 +5677,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(c,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XftDrawString8(draw, &xft_color,fst,c.b_left+4,c.b_bottom-3,(XftChar8 *) optc,lm5);
+          XftDrawString8(draw, &xft_color,fst,c.b_left+3,c.b_bottom-3,(XftChar8 *) optc,lm5);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 3;
           break;
@@ -5641,7 +5686,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(d,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XftDrawString8(draw, &xft_color,fst,d.b_left+4,d.b_bottom-3,(XftChar8 *) optd,lm6);
+          XftDrawString8(draw, &xft_color,fst,d.b_left+3,d.b_bottom-3,(XftChar8 *) optd,lm6);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 4;
           break;
@@ -5650,7 +5695,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(e,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XftDrawString8(draw, &xft_color,fst,e.b_left+4,e.b_bottom-3,(XftChar8 *) opte,lm7);
+          XftDrawString8(draw, &xft_color,fst,e.b_left+3,e.b_bottom-3,(XftChar8 *) opte,lm7);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 5;
           break;
@@ -5659,7 +5704,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(f,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XftDrawString8(draw, &xft_color,fst,f.b_left+4,f.b_bottom-3,(XftChar8 *) optf,lm8);
+          XftDrawString8(draw, &xft_color,fst,f.b_left+3,f.b_bottom-3,(XftChar8 *) optf,lm8);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 6;
           break;
@@ -5668,7 +5713,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
           xbox(g,fg,ginvert,BMEDGES|BMNOT|BMCLEAR); /* invert box */
           Timer(50);
           XSetForeground(theDisp,theGC, white); XSetBackground(theDisp,theGC, ginvert);
-          XftDrawString8(draw, &xft_color,fst,g.b_left+4,g.b_bottom-3,(XftChar8 *) optg,lm9);
+          XftDrawString8(draw, &xft_color,fst,g.b_left+3,g.b_bottom-3,(XftChar8 *) optg,lm9);
           XSetForeground(theDisp,theGC, fg); XSetBackground(theDisp,theGC, bg);
           *ok = 7;
           break;
@@ -8627,11 +8672,11 @@ point*/
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgz,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"registration ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"registration ",13);
         avail_cfg = 'r';
         cfgpk_(&avail_cfg,len_avail);	/* pass back registration to fortran  */
         xbox(cfgz,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"registration ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"registration ",13);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
       } else if (cfg_boxs >= 1 && xboxinside(cfgz,x,y)) {
 
@@ -8639,11 +8684,11 @@ point*/
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgz,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"zones        ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"zones        ",13);
         avail_cfg = 'z';
         cfgpk_(&avail_cfg,len_avail);	/* pass back zones to fortran */
         xbox(cfgz,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"zones        ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"zones        ",13);
         if (iiocfgz >= 1) {	/* zones images */
           eyex = cfgz.b_right - 14;
           eyey = cfgz.b_bottom - (f_height/2);
@@ -8656,14 +8701,14 @@ point*/
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgn,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgn.b_left+4,cfgn.b_bottom-2,"networks     ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgn.b_left+3,cfgn.b_bottom-2,"networks     ",13);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
         avail_cfg = 'n';
         cfgpk_(&avail_cfg,len_avail);	/* pass back plant to fortran */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgn,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgn.b_left+4,cfgn.b_bottom-2,"networks     ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgn.b_left+3,cfgn.b_bottom-2,"networks     ",13);
         if (iiocfgn >= 1) {	/* network images */
           eyex = cfgn.b_right - 14;
           eyey = cfgn.b_bottom - (f_height/2);
@@ -8676,14 +8721,14 @@ point*/
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgc,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgc.b_left+4,cfgc.b_bottom-2,"controls     ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgc.b_left+3,cfgc.b_bottom-2,"controls     ",13);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
         avail_cfg = 'c';
         cfgpk_(&avail_cfg,len_avail);	/* pass back plant to fortran */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgc,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgc.b_left+4,cfgc.b_bottom-2,"controls     ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgc.b_left+3,cfgc.b_bottom-2,"controls     ",13);
         if (iiocfgc >= 1) {	/* network images */
           eyex = cfgc.b_right - 14;
           eyey = cfgc.b_bottom - (f_height/2);
@@ -8696,14 +8741,14 @@ point*/
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgdfn,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+4,cfgdfn.b_bottom-2,"domain flow  ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+3,cfgdfn.b_bottom-2,"domain flow  ",13);
         if (saved_font != disp_fnt) winfnt_(&saved_font);  /* restore std font */
         avail_cfg = 'd';
         cfgpk_(&avail_cfg,len_avail);	/* pass back cfd to fortran */
         saved_font = current_font;
         if (saved_font != disp_fnt) winfnt_(&disp_fnt);
         xbox(cfgdfn,fg,white, BMCLEAR |BMEDGES);      /* invert box */
-        XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+4,cfgdfn.b_bottom-2,"domain flow  ",13);
+        XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+3,cfgdfn.b_bottom-2,"domain flow  ",13);
         if (iiocfgdfn >= 1) {	/* network images */
           eyex = cfgdfn.b_right - 14;
           eyey = cfgdfn.b_bottom - (f_height/2);
@@ -8723,11 +8768,11 @@ point*/
         xbox(msehbx,fg,white, BMCLEAR);
         if (butid == 1) {
           xbox(mouse1,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
-          XftDrawString8(draw, &xft_color,fst,msehbx.b_left+4,msehbx.b_bottom-2,(XftChar8 *) mseb1h,strlen(mseb1h));
+          XftDrawString8(draw, &xft_color,fst,msehbx.b_left+3,msehbx.b_bottom-2,(XftChar8 *) mseb1h,strlen(mseb1h));
         } else if (butid == 2) {
           xbox(mouse2,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
           bh = f_width*(10-strlen(mseb2h))/2;
-          XftDrawString8(draw, &xft_color,fst,msehbx.b_left+4+bh,msehbx.b_bottom-2,(XftChar8 *) mseb2h,strlen(mseb2h));
+          XftDrawString8(draw, &xft_color,fst,msehbx.b_left+3+bh,msehbx.b_bottom-2,(XftChar8 *) mseb2h,strlen(mseb2h));
         } else if (butid == 3) {
           xbox(mouse3,fg,ginvert, BMCLEAR | BMNOT |BMEDGES);      /* invert box */
           bh = f_width*strlen(mseb3h);
@@ -8924,13 +8969,13 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
     cfgz.b_top = viewbx.b_top + bh;    cfgz.b_bottom = cfgz.b_top + bh;
     cfgz.b_right = viewbx.b_right - 2; cfgz.b_left = cfgz.b_right - (f_width * 14);
     xbox(cfgz,fg,white, BMCLEAR | BMEDGES);
-    XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"registration",12);
+    XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"registration",12);
   } else {
     if (oocfgz == 1) {	/* zones */
       cfgz.b_top = viewbx.b_top + bh +2;    cfgz.b_bottom = cfgz.b_top + bh;
       cfgz.b_right = viewbx.b_right - 2; cfgz.b_left = cfgz.b_right - (f_width * 13);
       xbox(cfgz,fg,white, BMCLEAR | BMEDGES);
-      XftDrawString8(draw, &xft_color,fst,cfgz.b_left+4,cfgz.b_bottom-2,"zones      ",11);
+      XftDrawString8(draw, &xft_color,fst,cfgz.b_left+3,cfgz.b_bottom-2,"zones      ",11);
       if (iiocfgz >= 1) {	/* zones images */
         eyex = cfgz.b_right - 14;
         eyey = cfgz.b_bottom - (f_height/2);
@@ -8941,7 +8986,7 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
       cfgn.b_top   = viewbx.b_top +bh +bh +6;   cfgn.b_bottom = cfgn.b_top + bh;
       cfgn.b_right = viewbx.b_right - 2; cfgn.b_left = cfgn.b_right - (f_width * 13);
       xbox(cfgn,fg,white, BMCLEAR | BMEDGES);
-      XftDrawString8(draw, &xft_color,fst,cfgn.b_left+4,cfgn.b_bottom-2,"networks   ",11);
+      XftDrawString8(draw, &xft_color,fst,cfgn.b_left+3,cfgn.b_bottom-2,"networks   ",11);
       if (iiocfgn >= 1) {	/* network images */
         eyex = cfgn.b_right - 14;
         eyey = cfgn.b_bottom - (f_height/2);
@@ -8952,7 +8997,7 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
       cfgc.b_top   = viewbx.b_top + (3 * bh) +10;   cfgc.b_bottom = cfgc.b_top + bh;
       cfgc.b_right = viewbx.b_right - 2; cfgc.b_left = cfgc.b_right - (f_width * 13);
       xbox(cfgc,fg,white, BMCLEAR | BMEDGES);   /* draw the controls box */
-      XftDrawString8(draw, &xft_color,fst,cfgc.b_left+4,cfgc.b_bottom-2,"controls   ",11);
+      XftDrawString8(draw, &xft_color,fst,cfgc.b_left+3,cfgc.b_bottom-2,"controls   ",11);
       if (iiocfgc >= 1) {	/* network images */
         eyex = cfgc.b_right - 14;
         eyey = cfgc.b_bottom - (f_height/2);
@@ -8963,7 +9008,7 @@ void opencfg_(cfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz,iicfgn,iicfgc,iicfgdfn)
       cfgdfn.b_top   = viewbx.b_top + (4 * bh) +14;   cfgdfn.b_bottom = cfgdfn.b_top + bh;
       cfgdfn.b_right = viewbx.b_right - 2; cfgdfn.b_left = cfgdfn.b_right - (f_width * 13);
       xbox(cfgdfn,fg,white, BMCLEAR | BMEDGES);
-      XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+4,cfgdfn.b_bottom-2,"domain flow",11);
+      XftDrawString8(draw, &xft_color,fst,cfgdfn.b_left+3,cfgdfn.b_bottom-2,"domain flow",11);
       if (iiocfgdfn >= 1) {	/* network images */
         eyex = cfgdfn.b_right - 14;
         eyey = cfgdfn.b_bottom - (f_height/2);

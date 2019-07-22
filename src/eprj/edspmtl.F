@@ -334,17 +334,14 @@ C Number of miscellaneous data items
 C Data items.
 
       subroutine EDSPM(ISPM,MODE,ITRU)
-#include "net_flow.h"
 #include "building.h"
+#include "net_flow.h"
 #include "model.h"
 #include "geometry.h"
 #include "plant.h"
 #include "power.h"
 #include "epara.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 #include "material.h"
 #include "prj3dv.h"
       

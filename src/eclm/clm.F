@@ -210,14 +210,14 @@ c Initialise output device, assume minimal trace, set reduced
 C size of window display.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=600
+        iappw=620
         iappx=80
         iappy=80
       else
         if(iappx.le.0)iappx=80
         if(iappy.le.0)iappy=80
         if(iappw.le.200)then
-          iappwi=int(600*iappw*0.01)
+          iappwi=int(620*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue
@@ -245,6 +245,9 @@ C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
 C and dialog.
         IMFS=5
         IFS=5
+#ifdef OSX
+        IFS=4  ! use a smaller dialog font
+#endif
         ITFS=5
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
@@ -846,11 +849,11 @@ C Check whether it is an esp-r weather file or an EPW file.
         helptopic='clm_esp_or_epw'
         call gethelptext(helpinsub,helptopic,nbhelp)
 C        CALL EASKABCD(' ','Import options:',
-C     &   'EPW file','ASCII file','Korean MET',
+C     &   'EPW file','ASCII esp-r file','Korean MET',
 C     &   'continue',IICT,nbhelp)
         CALL EASKATOG(' ','Import options:',
-     &   'EPW file','ASCII file','Korean MET',
-     &   'continue',' ',' ',' ',IICT,nbhelp)
+     &   'EPW file','ASCII esp-r file','Korean MET',
+     &   'ASCII column data','continue',' ',' ',IICT,nbhelp)
         if(IICT.eq.1)then
           NTSPH=1
           LASCI=' '

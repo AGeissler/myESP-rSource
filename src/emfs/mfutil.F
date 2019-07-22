@@ -312,6 +312,7 @@ C     IER    - 0 they do match; 1 they don't match
 
       SUBROUTINE MFCRIM(IFRES,IER)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -538,6 +539,7 @@ C     DIMFAC - factor for calculating the appropriate flow dimension
 
       SUBROUTINE MFSNFL(IDIM,NODE,NODC,FLIN,FLUT)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -610,6 +612,7 @@ C     DIMFAC - factor for calculating the appropriate flow dimension
 
       SUBROUTINE MFSTFL(IDIM,FLWIN,FLWUT)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 

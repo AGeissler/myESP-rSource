@@ -1383,9 +1383,9 @@ C If LTDFA is still UNKNOWN set to default name.
           endif
         endif
 
-C << if creating a new file assist by checking whether there
-C << are simulation parameter sets and startup days to guide
-C << the user
+C If creating a new file assist by checking whether there
+C are simulation parameter sets and startup days to guide
+C the user
 
 C << might also be a place to generate the initial lines of
 C << asci header with the year of the model etc.

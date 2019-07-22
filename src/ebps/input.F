@@ -175,17 +175,8 @@ C                         use the inside surface node temperature
 #include "building.h"
 #include "model.h"
 #include "site.h"
-
-C espriou.h provides current file.
 #include "espriou.h"
-
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LPCDB/IPCDB (for plant template database)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
-C ICLIM,LCLIM (for climate file)
-C default file names for databases
-
 #include "material.h"
 #include "plant.h"
 #include "power.h"
@@ -1119,6 +1110,23 @@ C Toggle for extreme silent running (endless) mode.
       logical endless,issilient
       common/endlessmode/endless,issilient
 
+C Uncertainties
+      character USETNAME*96   ! the synopsis for each MC-run
+      character uheader*1000  ! header including name of each uncertainty changed
+      character urunvals*1000 ! attribute changed-to value of each uncertainty
+                              ! change for the run.
+      COMMON/USETN/USETNAME(MNRS),uheader,urunvals
+
+C Logical flag for uncertainty header has been printed.
+      logical uncertheadprinted
+      common/uncerthead/uncertheadprinted
+      logical headerdone
+      logical itemunique  ! should we include in fort.37
+      integer itemsinheader,nbpastitems,nbdatahits
+      character pastphrase*42
+      common/uhead/headerdone,itemunique(400),pastphrase(400),
+     &  itemsinheader,nbpastitems,nbdatahits
+
       CHARACTER*72 LMOIST,LMSTR
       character outs*124,CXSTR*78,spflnam*72
       character dllsubr*12,dllmesg*124
@@ -1283,7 +1291,8 @@ C Also instanciate izsfloor and izsceil
           endif
   80    continue
 
-C Assign two nodes per layer.
+C Assign two nodes per layer and setup the coefficients. This should
+C catch any thermophysical changes made via MCSA.
         CALL NODTWO(IZ)
         NNDS=NNDS+NNDZ(IZ)
         CALL MZCOE1(IZ)

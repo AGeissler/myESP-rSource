@@ -58,6 +58,7 @@ C ******************** MOFLOWSU ********************
 C MOFLOWSU clears commons/ sets default values.
 
       SUBROUTINE MOFLOWSU
+#include "building.h"
 #include "net_flow.h"
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
@@ -2118,6 +2119,7 @@ C ************************ GOMFGETSU ************************
 C GOMFGETSU: Sets up arrays for mass flow data recovery.
 
       SUBROUTINE GOMFGETSU
+#include "building.h"
 #include "net_flow.h"
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
@@ -2179,6 +2181,7 @@ C GOMFGET: Retrieves data from the mass flow result library according
 C to arrays IMFGETNO and MFRECVR.
 
       SUBROUTINE GOMFGET(IDAY,IHR,ITS)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -2479,6 +2482,7 @@ C ************************ MASS2VOL ************************
 C MASS2VOL: Converts mass flow rate to volume flow rate (kg/s) -> (m^3/s)
 
       SUBROUTINE MASS2VOL(ICON,VFLOW1,VFLOW2)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -2517,6 +2521,7 @@ C    connections should be counted.
 C IUNIT: 1=kg/s; 2=m^3/s; 3=ac/h
 
       SUBROUTINE MFSUMCON(IG,IUNIT,FLIN,FLOUT)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 

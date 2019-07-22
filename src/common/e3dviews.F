@@ -51,6 +51,7 @@ C Viewing transformation matrices TEMAT is:
 C Local variables
       real T1MAT,T2MAT,R1MAT
       DIMENSION T1MAT(4,4),T2MAT(4,4),R1MAT(4,4)
+      DIMENSION X(8),Y(8),Z(8),aixmn(1),aiymn(1),aixmx(1),aiymx(1)
       real SKALE,PI,T,SH,CH
 
       SKALE = 1000.0        ! we are looking from 1km
@@ -79,15 +80,55 @@ C T2MAT is a 4 x 4 transform matrix
       T2MAT(4,3) = -HITH
       T2MAT(4,4) = 1.0
 
-      SH=SIN(HANG*PI/180.0)  ! sine of half angle
-      CH=COS(HANG*PI/180.0)  ! cosine of half angle
-      T=SH/CH
-
       CALL HMATMUL(T1MAT,T2MAT,TEMAT)
 
       CALL HREVMAT(TEMAT,ETMMAT,IERR)
 
       IF (IERR .LT. 0) GOTO  999
+
+C If optimum view bounds calculate view angle from site extremes.
+      if (ITBND.eq.1) then
+
+C Convert site extremes to eye space coordinates.
+        CALL  ORTTRN(XMN,YMN,ZMN,TEMAT,X(1),Y(1),Z(1),IERR)
+        CALL  ORTTRN(XMX,YMN,ZMN,TEMAT,X(2),Y(2),Z(2),IERR)
+        CALL  ORTTRN(XMN,YMX,ZMN,TEMAT,X(3),Y(3),Z(3),IERR)
+        CALL  ORTTRN(XMX,YMX,ZMN,TEMAT,X(4),Y(4),Z(4),IERR)
+        CALL  ORTTRN(XMN,YMN,ZMX,TEMAT,X(5),Y(5),Z(5),IERR)
+        CALL  ORTTRN(XMX,YMN,ZMX,TEMAT,X(6),Y(6),Z(6),IERR)
+        CALL  ORTTRN(XMN,YMX,ZMX,TEMAT,X(7),Y(7),Z(7),IERR)
+        CALL  ORTTRN(XMX,YMX,ZMX,TEMAT,X(8),Y(8),Z(8),IERR)
+        IER=IERR
+
+C Find minimum x and y coordinates.
+        aixmn=MINLOC(X); aiymn=MINLOC(Y)
+        ixmn=aixmn(1); iymn=aiymn(1)
+
+C Find maximum x and y coordinates.
+        aixmx=MAXLOC(X); aiymx=MAXLOC(Y)
+        ixmx=aixmx(1); iymx=aiymx(1)
+
+C Calculate z values to use.
+        if (ixmn.eq.iymn) then
+          szmn=Z(ixmn)
+        else
+          szmn=(Z(ixmn)+Z(iymn))/2
+        endif
+        if (ixmx.eq.iymx) then
+          szmx=Z(ixmx)
+        else
+          szmx=(Z(ixmx)+Z(iymx))/2
+        endif
+
+C Find angle between extremes and eye point.
+        call ang3vtx(X(ixmn),Y(iymn),szmn,0.,0.,0.,X(ixmx),Y(iymx),szmx,
+     &    ANG)
+      endif
+
+      HANG=ANG/2.0
+      SH=SIN(HANG*PI/180.0)  ! sine of half angle
+      CH=COS(HANG*PI/180.0)  ! cosine of half angle
+      T=SH/CH
 
 C Now compute ETSMAT eye to screen matrix
       ETSMAT(1,1) = SKALE
@@ -866,6 +907,56 @@ C Find maximum 2D y coordinate.
 
       SXMN=SXMN*1.1; SXMX=SXMX*1.1
       SYMN=SYMN*1.1; SYMX=SYMX*1.1
+
+      RETURN
+      END
+
+C---- OPTANG -----------------------------------------------------------
+C OPTANG calculates view angle for optimum bounding.
+      SUBROUTINE OPTANG(oang,ier)
+#include "building.h"
+#include "prj3dv.h"
+
+C Parameters
+      real oang
+      integer ier
+
+      real X1,X2,X3,X4,X5,X6,X7,X8 ! use with orttrn calls
+      real Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8
+      integer ierr   ! to trap errors 
+
+      SXMX=-1.E+7; SYMX=-1.E+7; SXMN=1.E+7;  SYMN=1.E+7;
+      ZVAL=1000.
+
+C Convert site extremes to eye space coordinates.
+      CALL  ORTTRN(XMN,YMN,ZMN,TEMAT,X1,Y1,Z1,IERR)
+      CALL  ORTTRN(XMX,YMN,ZMN,TEMAT,X2,Y2,Z2,IERR)
+      CALL  ORTTRN(XMN,YMX,ZMN,TEMAT,X3,Y3,Z3,IERR)
+      CALL  ORTTRN(XMX,YMX,ZMN,TEMAT,X4,Y4,Z4,IERR)
+      CALL  ORTTRN(XMN,YMN,ZMX,TEMAT,X5,Y5,Z5,IERR)
+      CALL  ORTTRN(XMX,YMN,ZMX,TEMAT,X6,Y6,Z6,IERR)
+      CALL  ORTTRN(XMN,YMX,ZMX,TEMAT,X7,Y7,Z7,IERR)
+      CALL  ORTTRN(XMX,YMX,ZMX,TEMAT,X8,Y8,Z8,IERR)
+      IER=IERR
+
+C Find minimal x coordinate.
+      SXMN=AMIN1(X1,X2,X3,X4,X5,X6,X7,X8,SXMN)
+
+C Find minimal y coordinate.
+      SYMN=AMIN1(Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8,SYMN)
+
+C Find maximum 2D x coordinate.
+      SXMX=AMAX1(X1,X2,X3,X4,X5,X6,X7,X8,SXMX)
+
+C Find maximum 2D y coordinate.
+      SYMX=AMAX1(Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8,SYMX)
+
+      SXMN=SXMN; SXMX=SXMX
+      SYMN=SYMN; SYMX=SYMX
+
+C find angle between extremes and eye point.
+      call ang3vtx(SXMN,SYMN,ZVAL,0.,0.,0.,SXMX,SYMX,1000.,eang)
+      oang=eang
 
       RETURN
       END

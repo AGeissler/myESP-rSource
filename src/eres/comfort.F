@@ -698,7 +698,6 @@ C a given zone/day/time step.
 
       subroutine getocup(izone,iday,istep,ioc,ier)
 #include "building.h"
-C #include "geometry.h"
 #include "net_flow.h"
 #include "tdf2.h"
 

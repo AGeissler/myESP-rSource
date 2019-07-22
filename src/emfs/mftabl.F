@@ -39,6 +39,7 @@ C     VOL() - volume used for calculating change rate in case IDIM=3
 
       SUBROUTINE MFTABL(itrc,IFRES,ier)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY

@@ -306,7 +306,7 @@ C Subroutine Preres writes out contaminant concentration vector CNCAJAM
 C to CCONC(NNOD,NCONTM)
 
       SUBROUTINE PRERES
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -400,9 +400,9 @@ C ISTYP  = Source/sink type
 C RCMGL  = Rate of contaminant mass gained/lost from each source/sink
 
       SUBROUTINE CTSASM
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "FMI.h"
 
 C Simulation time commons

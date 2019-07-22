@@ -256,6 +256,7 @@ C STIME  - used to transfer the simulation time to mfs.
 #include "plant.h"
 #include "cfd.h"
 #include "roam.h"
+#include "uncertainty.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
@@ -316,6 +317,10 @@ C CFD-related data.
      &              zSWAp(mcom),zSWAf(mcom)
       real zfldK,zfldD,zfldC,zfldA,zSWAp,zSWAf
       LOGICAL znotair
+
+C Sensitivty commons. Save flow only if IMET is zero otherwise
+C if IMET>0 only if ISIM=1.
+      COMMON/UA5/IMET,ISIM,NRSIM
 
       DOUBLE PRECISION FLW1,FLW2,HDP,HDV,HFL,PRES,PSTACK,RESID,SAFLW
       LOGICAL MFSAVE,dotrace
@@ -530,7 +535,7 @@ C Plant only therefore save.
       endif
 
 C Debug.
-C     if (MFSAVE) then
+C      if (MFSAVE) then
 C        write(6,*) 'std flow startup reached '
 C      else
 C        write(6,*) 'std flow startup not reached '
@@ -542,10 +547,32 @@ C     &    IFLWN,ISCALL,itsmus,itsplt
 C Save results.
       if (MFSAVE) then
 
+C If assessment is part of a sensitivity run set only save
+C the base case set (flow results do not yet support
+C multiple sets).
+        if(IMET.eq.0)then
+
 C MFOUTP - should only write here for trace (equivalent to the
 C ASCII version of flow results file).
-        if(dotrace)call MFOUTP(ITU)
-        call MFOUTPB(IMFRES)
+          if(dotrace)call MFOUTP(ITU)
+          call MFOUTPB(IMFRES)
+        elseif(IMET.eq.1.or.IMET.eq.2.or.IMET.eq.3)then
+          if(NRSIM.eq.1)then
+            if(dotrace)call MFOUTP(ITU)
+            call MFOUTPB(IMFRES)
+          elseif(NRSIM.gt.1.and.ISIM.eq.1)then
+            if(dotrace)call MFOUTP(ITU)
+            call MFOUTPB(IMFRES)
+          else
+C            write(6,*) 'flow results not written for ',ISIM,' set.'
+            continue
+          endif
+        endif
+
+C MFOUTP - should only write here for trace (equivalent to the
+C ASCII version of flow results file).
+C        if(dotrace)call MFOUTP(ITU)
+C        call MFOUTPB(IMFRES)
       endif
 
 C Establish building side ventilation conductances if MFLWCA

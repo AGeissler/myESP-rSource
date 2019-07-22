@@ -578,7 +578,7 @@ C previous value is returned instead; this is done to avoid numerical
 C problems when using the derivative in Newton-Raphson technique
 
       SUBROUTINE MFNPDV(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 
       COMMON/MFLW11/PSTACK(MCNN),HDP(MCNN),HDV(MCNN),HFL(MCNN)
@@ -619,7 +619,7 @@ C     FCOF = SUPCMP(ICMP,2) - flow coefficient a (m^3/s/Pa^b)
 C     FEXP = SUPCMP(ICMP,3) - flow exponent b (-)
 
       SUBROUTINE MF010C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -678,7 +678,7 @@ C     FCOF = SUPCMP(ICMP,2) - air flow at 20 Pa, 15 or 30 m3/h
 C     FEXP = SUPCMP(ICMP,3) - number of devices
 
       SUBROUTINE MF011C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -783,6 +783,7 @@ C Change Date: 30 Sept. 2014
 C
       SUBROUTINE MF012C(ICNN,DELP,DERIV)
 cc      implicit none
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -862,7 +863,7 @@ C     FCOF = SUPCMP(ICMP,2) - flow coefficient a (kg/s/Pa^b)
 C     FEXP = SUPCMP(ICMP,3) - flow exponent b (-)
 
       SUBROUTINE MF015C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -910,7 +911,7 @@ C     FCOF = SUPCMP(ICMP,2) - flow coefficient a (kg.m^3)^.5/s/Pa^b)
 C     FEXP = SUPCMP(ICMP,3) - flow exponent b (-)
 
       SUBROUTINE MF017C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -962,7 +963,7 @@ C     COFA = SUPCMP(ICMP,2) - flow coefficient a (Pa/m^3/s)
 C     COFB = SUPCMP(ICMP,3) - flow coefficient b (Pa/(m^3/s)^2)
 
       SUBROUTINE MF020C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1035,7 +1036,7 @@ C     COFA = SUPCMP(ICMP,2) - flow coefficient a (Pa/(kg/s))
 C     COFB = SUPCMP(ICMP,3) - flow coefficient b (Pa/(kg/s)^2)
 
       SUBROUTINE MF025C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1108,7 +1109,7 @@ C In the case of range based control FLOW is multiplied by the
 C control ratio returned in ctlpos.
 
       SUBROUTINE MF030C(ICNN,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1144,7 +1145,7 @@ C In the case of range based control FLOW is multiplied by the
 C control ratio returned in ctlpos.
 
       SUBROUTINE MF035C(ICNN,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1175,7 +1176,7 @@ C In the case of range based control FLOW is multiplied by the
 C control ratio returned in ctlpos.
 
       SUBROUTINE MF040C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1226,7 +1227,7 @@ C     OLNG = SUPCMP(ICMP,2) - length of flow path (m)
 C     ORAD = SUPCMP(ICMP,3) - radius of opening   (m)
 
       SUBROUTINE MF050C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SHOUT/ICOUT
@@ -1289,7 +1290,7 @@ C In the case of range based control FLOW is multiplied by the
 C control ratio returned in ctlpos.
 
       SUBROUTINE MF110C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1339,7 +1340,7 @@ C     FEXP = f{SUPCMP(ICMP,2)} - crack width  (m)
 C     FCOF = f{SUPCMP(ICMP,3)} - crack length (m)
 
       SUBROUTINE MF120C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1401,7 +1402,7 @@ C     TPOS                  - absolute temperature +ve side (K)
 C     TNEG                  - absolute temperature -ve side (K)
 
       SUBROUTINE MF130C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1522,7 +1523,7 @@ C     RHO                   - fluid density (kg/m^3)
 C     VEL                   - velocity (m/s)
 
       SUBROUTINE MF210C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SHOUT/ICOUT
@@ -1654,7 +1655,7 @@ C     LNIT                  - local iteration counter
 C     RHO                   - fluid density (kg/m^3)
 
       SUBROUTINE MF211C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1787,7 +1788,7 @@ C     QPQC           - ratio of Qp over Qc (-)
 C     QPAQC          - ratio of Qp' over Qc (-)
 
       SUBROUTINE MF220C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SHOUT/ICOUT
@@ -1880,7 +1881,7 @@ C     QPQC           - ratio of Qp over Qc (-)
 C     QPAQC          - ratio of Qp' over Qc (-)
 
       SUBROUTINE MF230C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SHOUT/ICOUT
@@ -1972,7 +1973,7 @@ C     QPQC           - ratio of Qp over Qc (-)
 C     QPA1QC,QPA2QC  - ratio of Qp',Qp' over Qc (-)
 
       SUBROUTINE MF240C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SHOUT/ICOUT
@@ -2080,7 +2081,7 @@ C     QPQC           - ratio of Qp over Qc (-)
 C     QPA1QC,QPA2QC  - ratio of Qp',Qp" over Qc (-)
 
       SUBROUTINE MF250C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SHOUT/ICOUT
@@ -2191,7 +2192,7 @@ C     M2,GM2                - upper bound search interval m2 and g(m2)
 C     RHO                   - fluid density (kg/m^3)
 
       SUBROUTINE MF310C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SHOUT/ICOUT
@@ -2388,7 +2389,7 @@ C     HR              - relative valve position H/H100 'at' FLWR (-)
 C     HH100           - relative valve position H/H100 (-)
 
       SUBROUTINE MF410C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -2476,7 +2477,7 @@ C     HH100           - relative valve position H/H100 (-)
 C     ZETA            - local loss coefficient due to controller (-)
 C
       SUBROUTINE MF420C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -2543,7 +2544,7 @@ C     FLWLOW=SUPCMP(ICMP,2) - flow rate when S <  Ssp (m^3/s)
 C     FLWUP =SUPCMP(ICMP,3) - flow rate when S >= Ssp (m^3/s)
 C
       SUBROUTINE MF460C(ICNN,DELP,DERIV)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -2829,7 +2830,7 @@ C *************** MFOUTP
 C MFOUTP writes fluid flow simulation results to trace file.
 C (the same trace file as used for other issues).
       SUBROUTINE MFOUTP(IFRES)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -2985,6 +2986,7 @@ C *************** MFOUTPH
 C MFOUTP writes header for fluid flow simulation binary results file.
 
       SUBROUTINE MFOUTPH(IFRES)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 

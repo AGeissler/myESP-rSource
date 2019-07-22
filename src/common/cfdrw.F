@@ -530,9 +530,9 @@ C itu is the unit to send reports to
 C IER is set to one if file cannot be read, otherwise negative if
 C     there is an error while scanning file.
       SUBROUTINE DFDREAD(IZONE,itrc,itu,IER)
+#include "building.h"
 #include "cfd.h"
 #include "net_flow.h"
-#include "building.h"
 #include "geometry.h"
 #include "espriou.h"
 C espriou.h provides currentfile.
@@ -2486,6 +2486,7 @@ C IND is the index of the node.
 C ICN is the index of the connection.
 C OPENNAM (char 12) name of the opening.
       subroutine CFMFSU(IV,ITRC,IND,ICN,OPENNAM)
+#include "building.h"
 #include "cfd.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
@@ -2630,7 +2631,7 @@ C      write(6,*)'CFMFSU(ACTCNN)',(ACTCNN(I),I=1,NCNN)
 C ************************* MFLISTemp
 C MFLISTemp - list common block contents for debugging only.
       SUBROUTINE MFLISTemp
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN

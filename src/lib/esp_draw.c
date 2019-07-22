@@ -319,7 +319,6 @@ int  len;        /* len is length passed from fortran */
      f_width  = font_calculations_array[serif_largest].f_width;
  }
 
-
  gtk_widget_modify_font(graphic, pfd);	/* << ?? >> */
  context = gtk_widget_get_pango_context (graphic);
 

@@ -134,11 +134,13 @@ C If altered then do a bound check on the current zone and update display.
 C If static views ITBND=0 then do not update VIEWM when calling BNDOBJ.
       IF(MODIFYVIEW)THEN
         if(izgfoc.NE.0)CALL ESCZONE(izgfoc)
-        IF(MODBND)CALL BNDOBJ(0,IER)
+        IF(MODBND)THEN
+          CALL BNDOBJ(0,IER)
+          MODLEN=.TRUE.
+        ENDIF
 
 C If viewpoint or bounds different then initialise viewing paramters.
         IF(MODLEN)THEN
-          HANG=ANG/2.0
           DIS = (VIEWM(1)-EYEM(1))**2 + (VIEWM(2)-EYEM(2))**2 +
      &          (VIEWM(3)-EYEM(3))**2
           IF(DIS.GE.SMALL)THEN
@@ -1715,7 +1717,7 @@ C Passed parameters.
 
 C Explicit local variables
       real COG1,COG2,COG3
-      dimension COG1(3),COG2(3),COG3(3)
+      dimension COG1(3),COG2(3),X(2),Y(2),Z(2),NNXT(2)
       real GRIDD,XD,DD
       real GXMN,GYMN,XINC,YINC
       logical close,greyok
@@ -1777,20 +1779,26 @@ C Transform one end of line.
         COG1(2)=YMN-GRIDD
         COG1(3)=RH
         CALL VECTRN(COG1,TEMAT,COG2,IER)
-        CALL VECTRN(COG2,ETSMAT,COG3,IER)
-        call u2pixel(COG3(1),COG3(2),iix,iiy)
+        X(1)=COG2(1); Y(1)=COG2(2); Z(1)=COG2(3)
 
 C Transform other end of line.
         COG1(1)=XINC
         COG1(2)=YMX+GRIDD
         COG1(3)=RH
         CALL VECTRN(COG1,TEMAT,COG2,IER)
-        CALL VECTRN(COG2,ETSMAT,COG3,IER)
-        call u2pixel(COG3(1),COG3(2),iix1,iiy1)
+        X(2)=COG2(1); Y(2)=COG2(2); Z(2)=COG2(3)
 
 C Draw the dotted line, first take calculated pixels and
 C cast to local variable to pass to edline. Only do this if
 C the length of the line is more than one pixel.
+        COG1(1)=X(1); COG1(2)=Y(1); COG1(3)=Z(1)
+        CALL VECTRN(COG1,ETSMAT,COG2,IER)
+        call u2pixel(COG2(1),COG2(2),iix,iiy)
+
+        COG1(1)=X(2); COG1(2)=Y(2); COG1(3)=Z(2)
+        CALL VECTRN(COG1,ETSMAT,COG2,IER)
+        call u2pixel(COG2(1),COG2(2),iix1,iiy1)
+
         if(iix.eq.iix1.and.iiy.eq.iiy1)then
           continue
         else
@@ -1816,16 +1824,22 @@ C Transform one end of line.
         COG1(2)=YINC
         COG1(3)=RH
         CALL VECTRN(COG1,TEMAT,COG2,IER)
-        CALL VECTRN(COG2,ETSMAT,COG3,IER)
-        call u2pixel(COG3(1),COG3(2),iix,iiy)
+        X(1)=COG2(1); Y(1)=COG2(2); Z(1)=COG2(3)
 
 C Transform other end of line.
         COG1(1)=XMX+GRIDD
         COG1(2)=YINC
         COG1(3)=RH
         CALL VECTRN(COG1,TEMAT,COG2,IER)
-        CALL VECTRN(COG2,ETSMAT,COG3,IER)
-        call u2pixel(COG3(1),COG3(2),iix1,iiy1)
+        X(2)=COG2(1); Y(2)=COG2(2); Z(2)=COG2(3)
+
+        COG1(1)=X(1); COG1(2)=Y(1); COG1(3)=Z(1)
+        CALL VECTRN(COG1,ETSMAT,COG2,IER)
+        call u2pixel(COG2(1),COG2(2),iix,iiy)
+
+        COG1(1)=X(2); COG1(2)=Y(2); COG1(3)=Z(2)
+        CALL VECTRN(COG1,ETSMAT,COG2,IER)
+        call u2pixel(COG2(1),COG2(2),iix1,iiy1)
 
 C Draw the dotted line after casting to local variable.
         if(iix.eq.iix1.and.iiy.eq.iiy1)then

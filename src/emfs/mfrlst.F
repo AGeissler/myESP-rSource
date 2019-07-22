@@ -29,7 +29,7 @@ C             to editing routines.
 C ********************** ASKRNOD
 C ASKRNOD presents a list of mass flow nodes returning the index IS.
       SUBROUTINE ASKRNOD(head,MOD,IS,IER)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "epara.h"
@@ -179,7 +179,7 @@ C If there are enough items allow paging control via EKPAGE.
 C ********************** ASKRCMP
 C ASKRCMP presents a list of mass flow components returning the index IS.
       SUBROUTINE ASKRCMP(head,MOD,IS,IER)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "epara.h"
@@ -309,7 +309,7 @@ C ********************** ASKRCON
 C ASKRCON presents a list of mass flow connections returning the 
 C Starting and ending node numbers.
       SUBROUTINE ASKRCON(head,MOD,INODPS,INODNE,IC,IER)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "epara.h"

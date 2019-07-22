@@ -522,8 +522,6 @@ C Open the climate file and get its location name.
 C << take into account location >>
         CALL CLMOPB(1,IER)
         CALL CLMRDBMD(IER)
-        IRECC=367
-        READ(IUNITC,REC=IRECC,IOSTAT=IOS,ERR=102)CLMLOC
         CALL  ERPFREE(ICLIM,ISTAT)
         write(outs,'(a,a1,a)') '*climate',tab,CLMLOC
         call edisp(itru,outs)

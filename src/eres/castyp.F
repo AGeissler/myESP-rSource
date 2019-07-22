@@ -43,7 +43,6 @@ C VAL3(22,?) holds controlled casual type 4.
 
       SUBROUTINE ZCASC(IZONE,IDAY)
 #include "building.h"
-C #include "geometry.h"
 #include "net_flow.h"
 #include "tdf2.h"
 
@@ -320,7 +319,6 @@ C VAL3(22,?) holds controlled casual type 4.
 
       SUBROUTINE CASRT(IZONE,IDAY)
 #include "building.h"
-C #include "geometry.h"
 #include "net_flow.h"
 #include "tdf2.h"
 
@@ -455,7 +453,6 @@ C VAL3(22,?) holds controlled casual type 4.
 
       SUBROUTINE ZCASCF(IZONE,IDAY,IJDAY)
 #include "building.h"
-C #include "geometry.h"
 #include "net_flow.h"
 #include "tdf2.h"
 

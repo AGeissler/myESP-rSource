@@ -273,9 +273,9 @@ C Collect containment temperature
                   
 C Allows monthly ground containment temp for DH plant components                 
         ELSEIF(INDCP(ICONT).EQ.5) THEN
-      	  CALL EDAYR(IDYP,ID,IM) ! Identify month
+          CALL EDAYR(IDYP,ID,IM) ! Identify month
           icnt=int(CNTDAT(ICONT,1))
-	  PCNTMF(IPC)=UGRDTP(IM,icnt)
+          PCNTMF(IPC)=UGRDTP(IM,icnt)
          
 C New containment types go here!
         ELSE

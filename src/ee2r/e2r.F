@@ -216,7 +216,7 @@ C Make case insensitive.
 C Set defaults.
       CFGOK=.false.; MLDBOK=.false.; MATDBOK=.false.
       CTLOK=.false.; OPTKOK=.false.
-      MODIFYVIEW=.false.; MODLEN=.false.; MODBND=.false.
+      MODIFYVIEW=.TRUE.; MODLEN=.TRUE.; MODBND=.TRUE.
       XST=.false.
       LRADCF='UNKNOWN'
       LCFGF='UNKNOWN'

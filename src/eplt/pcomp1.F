@@ -701,6 +701,7 @@ C            3 Overall efficiency (-)
 C     CDATA: 1 Volume flow rate (m^3/s)
 
       SUBROUTINE CMP03C(IPCOMP,COUT,ISTATS)
+
 #include "plant.h"
 #include "building.h"
 #include "net_flow.h"
@@ -3524,6 +3525,7 @@ C            3 Overall efficiency (-)
 C     CDATA: 1 Mass flow rate (kg/s)
 
       SUBROUTINE CMP15C(IPCOMP,COUT,ISTATS)
+
 #include "plant.h"
 #include "building.h"
 #include "net_flow.h"

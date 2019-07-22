@@ -33,10 +33,10 @@ C           geometry model (needed for graphic feedback scaling).
 C ********************* CFDDTA *********************
 C CFDDTA - Reads the CFD configuration file.
       SUBROUTINE CFDDTA(itrc,itu,ICOMP,IBLD,IMFN,IER)
+#include "building.h"
 #include "cfd.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "geometry.h"
       
       integer lnblnk  ! function definition
@@ -1385,6 +1385,7 @@ C Error trap on read error.
 C ********************* IGETCN *********************
 C IGETCN - Identify mass flow connection. (used for coupling purpose)
       FUNCTION IGETCN(OUTSTR,WORD,WORD1,WORD2,IER)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1419,6 +1420,7 @@ C ********************* IGETND *********************
 C IGETND - Identify mass flow network node associated with a CFD node.
 C          (used for coupling purpose)
       FUNCTION IGETND(OUTSTR,WORD,IER)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 

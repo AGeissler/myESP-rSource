@@ -138,7 +138,7 @@ C ******* Default views formation.
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
 
       COMMON/ZONPIK/NZ,NZNO(MCOM)
-      integer IZLST(MCOM),ISLST(MCOM)
+      integer IZLST(MCON),ISLST(MCON)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -148,7 +148,7 @@ C ******* Default views formation.
       logical short     ! for shorter format
       logical okfore,okaft ! for near zero cuts
 
-      DIMENSION ITEM(19),IVALS(MCOM),VALT(20),IVALV(20)
+      DIMENSION ITEM(21),IVALS(MCOM),VALT(20),IVALV(20)
 
       character item*30,hold*28,VALT*28,OUTSTR*148,WORD*20
       character outs*124
@@ -230,9 +230,9 @@ C adding in the ground disk.
         DD=SQRT(XD)*1.5
         cx=XMN+((XMX-XMN)/2.)
         cy=YMN+((YMX-YMN)/2.)
-        XMN=cx-DD; XMX=cx+DD; 
-        YMN=cy-DD; YMX=cy+DD
-        ZMN=ZMN; ZMX=DD
+        tXMN=cx-DD; tXMX=cx+DD; 
+        tYMN=cy-DD; tYMX=cy+DD
+        tZMN=tZMN; tZMX=DD
       endif
       MODBND=.FALSE.; MODLEN=.FALSE.
 
@@ -302,15 +302,13 @@ C not yet written to vewcmds array.
           write(outs,'(a,3f7.3,a,2f7.2)') 'Converting vector ',
      &      vdx,vdy,vdz,' to ',azimuth,elevtn
           call edisp(iuout,outs)
-          XMN=AMIN1(XMN,rvpx); YMN=AMIN1(YMN,rvpy)
-          ZMN=AMIN1(ZMN,rvpz)
-          XMX=AMAX1(XMX,rvpx); YMX=AMAX1(YMX,rvpy)
-          ZMX=AMAX1(ZMX,rvpz)
+          tXMN=AMIN1(XMN,rvpx); tYMN=AMIN1(YMN,rvpy)
+          tZMN=AMIN1(ZMN,rvpz)
+          tXMX=AMAX1(XMX,rvpx); tYMX=AMAX1(YMX,rvpy)
+          tZMX=AMAX1(ZMX,rvpz)
           EYEM(1)=rvpx; EYEM(2)=rvpy; EYEM(3)=rvpz
           write(outs,'(a,3f8.3)') 'Setting eyepoint to ',rvpx,rvpy,rvpz
           call edisp(iuout,outs)
-          OXMN=XMN; OYMN=YMN; OZMN=ZMN  ! update
-          OXMX=XMX; OYMX=YMX; OZMX=ZMX
 
           if(intext.eq.0)then
 
@@ -344,28 +342,63 @@ C Internal view.
 
       elseif(ipckvew.eq.indxvew+1)then
 
-C User request a new view. Take the current wireframe information
-C as a start. Ask for name of new viewpoint or vp file and set 
-C eye point at centre.
+C User requested a new view. Take the current wireframe information
+C as a start.
         addview = .true.
+
+C External view.
         if(intext.eq.0)then
-          rvpx=XMN; rvpy=YMN; rvpz=ZMX
+
+C Take eye point from 3D view commons.
+          rvpx=EYEM(1); rvpy=EYEM(2); rvpz=EYEM(3)
+
+C Calculate azimuth and elevation from eye point -> view point line, and
+C convert to unit vector.
+          call ln2az(rvpx,rvpy,rvpz,VIEWM(1),VIEWM(2),VIEWM(3),
+     &      azimuth,elevtn)
+          call AZ2UV(azimuth,elevtn,vdx,vdy,vdz)
+
+C Set radiance view angles.
+          angh=ANG; angv=ANG
+
+C Default to fisheye view for glare analysis, perspective for everything
+C else.
+          ITPPSW=3
+          if (SCENEPURP(ISCENE)(1:5).eq.'Glare') then
+            vewtyp='h' ! fisheye
+            anght=180.0
+            angvt=180.0
+          else
+            vewtyp='v' ! perspective
+            anght=angh
+            angvt=angv
+          endif 
+
+C Internal view.
         else
-          rvpx=XMN+0.1  ! slightly inside room
-          rvpy=YMN+0.1
+          ITPPSW=0
+          rvpx=tXMN+0.1  ! slightly inside room
+          rvpy=tYMN+0.1
           rvpz=VIEWM(3) ! at room centre
         endif
 
-C Given view point and viewed point return and update common values
-C of the azimuth and elevation.
-        call ln2az(rvpx,rvpy,rvpz,VIEWM(1),VIEWM(2),VIEWM(3),
-     &    azimuth,elevtn)
         CALL EASKS(trvewsh,'Name for view?',' ',10,'vew1',
      &    'short view tag',IER,nbhelp)
         call edisp(iuout,
      &    'Please adjust the new view point and save it.')
 
       elseif(ipckvew.eq.indxvew+3)then
+
+C This option only recommended for internal views.
+        if (intext.eq.0) then
+          helptopic='ext_MRTview'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          write(outs,'(a)')
+     &      'This option is not recommended for external views.'
+          dok=.false.
+          call ASKOK(outs,'Do you wish to continue?',ok,dok,nbhelp)
+          if (.not.ok) goto 10
+        endif
 
 C Create a viewpoint for each selected MRT sensor, pointing in the direction of the sensor rotation.
 C First, select MRT sensors.
@@ -448,7 +481,8 @@ C Set view type and angles.
           endif
           WRITE(vewcmds(indxvew),'(a)') doit  ! new cmd
 
-        enddo     
+        enddo    
+        goto 142 
 
       else
 
@@ -474,19 +508,15 @@ C Read a radiance view point file and make sure that the
 C view point is within the bounds of the image.
               call RRVEW(ITA2,lview,IER)
               call UV2AZ(vdx,vdy,vdz,azimuth,elevtn)
-              XMN=AMIN1(XMN,rvpx); YMN=AMIN1(YMN,rvpy)
-              ZMN=AMIN1(ZMN,rvpz)
-              XMX=AMAX1(XMX,rvpx); YMX=AMAX1(YMX,rvpy)
-              ZMX=AMAX1(ZMX,rvpz)
+              tXMN=AMIN1(XMN,rvpx); tYMN=AMIN1(YMN,rvpy)
+              tZMN=AMIN1(ZMN,rvpz)
+              tXMX=AMAX1(XMX,rvpx); tYMX=AMAX1(YMX,rvpy)
+              tZMX=AMAX1(ZMX,rvpz)
               EYEM(1)=rvpx; EYEM(2)=rvpy; EYEM(3)=rvpz
               if(intext.eq.0)then
 
 C External view.
-                ITPPSW=3
-                call ang3vtx(OXMN,OYMN,OZMN,EYEM(1),EYEM(2),EYEM(3),
-     &             OXMX,OYMX,OZMX,eang)
-                angv=eang*1.25; angh=eang*1.25
-                ANG=angh; HANG=ANG/2.0; ITBND=0
+                ITPPSW=3; ANG=angh; ITBND=0
                 call edisp(iuout,' ')
                 call edisp(iuout,'Switching to static viewing angles.')
                 MODIFYVIEW=.TRUE.; MODLEN=.TRUE.
@@ -551,38 +581,24 @@ C          write(6,*) outstr
 C Got all of the viewing data.
   43      continue
           call UV2AZ(vdx,vdy,vdz,azimuth,elevtn)  ! re-establish
-          XMN=AMIN1(XMN,rvpx); YMN=AMIN1(YMN,rvpy)
-          ZMN=AMIN1(ZMN,rvpz)
-          XMX=AMAX1(XMX,rvpx); YMX=AMAX1(YMX,rvpy)
-          ZMX=AMAX1(ZMX,rvpz)
+          tXMN=AMIN1(XMN,rvpx); tYMN=AMIN1(YMN,rvpy)
+          tZMN=AMIN1(ZMN,rvpz)
+          tXMX=AMAX1(XMX,rvpx); tYMX=AMAX1(YMX,rvpy)
+          tZMX=AMAX1(ZMX,rvpz)
           EYEM(1)=rvpx; EYEM(2)=rvpy; EYEM(3)=rvpz
           if(intext.eq.0)then
 
 C External view.
-            ITPPSW=3; ANG=angh; HANG=ANG/2.0; ITBND=0
+            ITPPSW=3; ANG=angh; ITBND=0
             call edisp(iuout,' ')
             call edisp(iuout,'Switching to static viewing angles.')
-            MODIFYVIEW=.TRUE.
-            MODLEN=.TRUE.
+            MODIFYVIEW=.TRUE.; MODLEN=.TRUE.
           else
             ITPPSW=0
             call edisp(iuout,' ')
             call edisp(iuout,'Use plan or elevation views.')
           endif
         endif
-      endif
-
-C Reflect eyepoint in the perspective view.
-      if(intext.eq.0)then
-        ITPPSW=3; ANG=angh*1.1; HANG=ANG/2.0; ITBND=0
-        call edisp(iuout,' ')
-        call edisp(iuout,'Switching to static viewing angles... ')
-        MODIFYVIEW=.TRUE.
-        MODLEN=.TRUE.
-      else
-        ITPPSW=0
-        call edisp(iuout,' ')
-        call edisp(iuout,'Use plan or elevation views for interiors...')
       endif
 
 10    INO = -4
@@ -615,39 +631,47 @@ C Reconstitute the viewing eye angle.
       endif
       write(ITEM(10),'(A,F5.1)')  'i vert view angle: ',angv
       write(ITEM(11),'(A,2F6.1)') 'j clip front aft:',cutfor,cutaft
-      if (vewtyp(1:1).eq.'v') then
+      if (vewtyp(1:1).eq.'h') then
+        write(ITEM(12),'(A)')     'k view type >> fisheye'        
+      elseif (vewtyp(1:1).eq.'v') then      
         write(ITEM(12),'(A)')     'k view type >> perspective'
-      elseif (vewtyp(1:1).eq.'h') then
-        write(ITEM(12),'(A)')     'k view type >> fisheye'
+      else ! default to perspective if not set.
+        vewtyp='v'
+        write(ITEM(12),'(A)')     'k view type >> perspective'
       endif
       ITEM(13) =                  '  ___site___________________  '
       if(ITPPSW.eq.0)then
 
 C Plan view.
-        write(ITEM(14),'(A,2F6.1)') 'l east min~max : ',XMN,XMX
-        write(ITEM(15),'(A,2F6.1)') 'm north min~max: ',YMN,YMX
+        write(ITEM(14),'(A,2F6.1)') 'l east min~max : ',tXMN,tXMX
+        write(ITEM(15),'(A,2F6.1)') 'm north min~max: ',tYMN,tYMX
       elseif(ITPPSW.eq.1)then
 
 C South elevation view.
-        write(ITEM(14),'(A,2F6.1)') 'l south min~max: ',XMN,XMX
-        write(ITEM(15),'(A,2F6.1)') 'm up    min~max: ',ZMN,ZMX
+        write(ITEM(14),'(A,2F6.1)') 'l south min~max: ',tXMN,tXMX
+        write(ITEM(15),'(A,2F6.1)') 'm up    min~max: ',tZMN,tZMX
       elseif(ITPPSW.eq.2)then
 
 C East elevation view.
-        write(ITEM(14),'(A,2F6.1)') 'l east min~max : ',YMN,YMX
-        write(ITEM(15),'(A,2F6.1)') 'm up    min~max: ',ZMN,ZMX
+        write(ITEM(14),'(A,2F6.1)') 'l east min~max : ',tYMN,tYMX
+        write(ITEM(15),'(A,2F6.1)') 'm up    min~max: ',tZMN,tZMX
       elseif(ITPPSW.eq.3)then
 
 C Perspective view.
-        write(ITEM(14),'(A,2F6.1)') 'l east min~max : ',XMN,XMX
-        write(ITEM(15),'(A,2F6.1)') 'm north min~max: ',YMN,YMX
+        write(ITEM(14),'(A,2F6.1)') 'l east min~max : ',tXMN,tXMX
+        write(ITEM(15),'(A,2F6.1)') 'm north min~max: ',tYMN,tYMX
       endif
       ITEM(16) =                  '  __________________________  '
       ITEM(17) =                  '> save view info              '
-      ITEM(18) =                  '  __________________________  '
-      ITEM(19) =                  '? help                        '
-      ITEM(20) =                  '- exit                        '
-      NITEMS = 20
+      if (MMOD.eq.8) then
+        ITEM(18) =                '! update from model display   '
+      else
+        ITEM(18) =                '  not available               '
+      endif
+      ITEM(19) =                  '  __________________________  '
+      ITEM(20) =                  '? help                        '
+      ITEM(21) =                  '- exit                        '
+      NITEMS = 21
 
 C Check if graphics are active.
       if (MMOD.ne.8) then
@@ -731,8 +755,8 @@ C Select point from plan or current perspective.
             call usrmsg(' ',' Select point via cursor...','-')
             igwid=igw
             igheight=igwh
-            call axiscale(igwid,igheight,XMN,XMX,YMN,YMX,xsc,ysc,sca,
-     &        Xadd,Yadd)
+            call axiscale(igwid,igheight,tXMN,tXMX,tYMN,tYMX,xsc,ysc,
+     &        sca,Xadd,Yadd)
             call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
 
 C << implemented in GTK? >>
@@ -740,7 +764,7 @@ C << implemented in GTK? >>
             ix=int(iix); iy=int(iiy)
 
 C Debug.
-C            write(6,*) 'axiscale ',igwid,igheight,XMN,XMX,YMN,YMX,
+C            write(6,*) 'axiscale ',igwid,igheight,tXMN,tXMX,tYMN,tYMX,
 C     &        xsc,ysc,sca,Xadd,Yadd
 C            write(6,*) 'trackview iix,iiy,ix,iy,igb,igl,ITPPSW',
 C     &        iix,iiy,ix,iy,igb,igl,ITPPSW
@@ -751,17 +775,17 @@ C Note: the coordinate is an offset from the lower left corner
 C of the zone plan display and for zones which do not start at
 C the site origin we need to add in offsets.
             if(ITPPSW.eq.0)then
-              ex=((FLOAT(ix-igl)/sca)-Xadd)+XMN
-              ey=((FLOAT(igb-iy)/sca)-Yadd)+YMN
+              ex=((FLOAT(ix-igl)/sca)-Xadd)+tXMN
+              ey=((FLOAT(igb-iy)/sca)-Yadd)+tYMN
             elseif(ITPPSW.eq.1)then
-              ex=((FLOAT(ix-igl)/sca)-Xadd)+XMN
-              ey=((FLOAT(igb-iy)/sca)-Yadd)+ZMN
+              ex=((FLOAT(ix-igl)/sca)-Xadd)+tXMN
+              ey=((FLOAT(igb-iy)/sca)-Yadd)+tZMN
             elseif(ITPPSW.eq.2)then
-              ex=((FLOAT(ix-igl)/sca)-Xadd)+YMN
-              ey=((FLOAT(igb-iy)/sca)-Yadd)+ZMN
+              ex=((FLOAT(ix-igl)/sca)-Xadd)+tYMN
+              ey=((FLOAT(igb-iy)/sca)-Yadd)+tZMN
             elseif(ITPPSW.eq.3)then
-              ex=((FLOAT(ix-igl)/sca)-Xadd)+XMN
-              ey=((FLOAT(igb-iy)/sca)-Yadd)+YMN
+              ex=((FLOAT(ix-igl)/sca)-Xadd)+tXMN
+              ey=((FLOAT(igb-iy)/sca)-Yadd)+tYMN
             endif
             iupdown=0; isym=6
             call etplot(ex,ey,iupdown,isym)
@@ -938,39 +962,39 @@ C horiz axis...
         helptopic='e2r_east_axis'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ITPPSW.eq.0)then
-  41      WRITE(HOLD,'(1x,2f8.3)')XMN,XMX
+  41      WRITE(HOLD,'(1x,2f8.3)')tXMN,tXMX
           CALL EASKS(HOLD,' East axis minimum and maximum: ',
      &      '  ',28,' ','east axis min-max',IER,nbhelp)
           K=0
-          CALL EGETWR(HOLD,K,XMN,-300.,300.,'W','X min',IER)
-          CALL EGETWR(HOLD,K,XMX,XMN,300.,'W','X max',IER)
+          CALL EGETWR(HOLD,K,tXMN,-300.,300.,'W','X min',IER)
+          CALL EGETWR(HOLD,K,tXMX,tXMN,300.,'W','X max',IER)
           if(ier.ne.0)goto 41
           igwid=igw; igheight=igwh
-          call axiscale(igwid,igheight,XMN,XMX,YMN,YMX,xsc,ysc,sca,
+          call axiscale(igwid,igheight,tXMN,tXMX,tYMN,tYMX,xsc,ysc,sca,
      &       Xadd,Yadd)
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
         elseif(ITPPSW.eq.1)then
- 141      WRITE(HOLD,'(1x,2f8.3)')XMN,XMX
+ 141      WRITE(HOLD,'(1x,2f8.3)')tXMN,tXMX
           CALL EASKS(HOLD,' South axis minimum and maximum: ',
      &      '  ',28,' ','south axis min-max',IER,nbhelp)
           K=0
-          CALL EGETWR(HOLD,K,XMN,-300.,300.,'W','X min',IER)
-          CALL EGETWR(HOLD,K,XMX,XMN,300.,'W','X max',IER)
+          CALL EGETWR(HOLD,K,tXMN,-300.,300.,'W','X min',IER)
+          CALL EGETWR(HOLD,K,tXMX,tXMN,300.,'W','X max',IER)
           if(ier.ne.0)goto 141
           igwid=igw; igheight=igwh
-          call axiscale(igwid,igheight,XMN,XMX,ZMN,ZMX,xsc,ysc,sca,
+          call axiscale(igwid,igheight,tXMN,tXMX,tZMN,tZMX,xsc,ysc,sca,
      &      Xadd,Yadd)
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
         elseif(ITPPSW.eq.2)then
- 241      WRITE(HOLD,'(1x,2f8.3)')YMN,YMX
+ 241      WRITE(HOLD,'(1x,2f8.3)')tYMN,tYMX
           CALL EASKS(HOLD,' East axis minimum and maximum: ',
      &      '  ',28,' ','east axis min-max',IER,nbhelp)
           K=0
-          CALL EGETWR(HOLD,K,YMN,-300.,300.,'W','Y min',IER)
-          CALL EGETWR(HOLD,K,YMX,YMN,300.,'W','Y max',IER)
+          CALL EGETWR(HOLD,K,tYMN,-300.,300.,'W','Y min',IER)
+          CALL EGETWR(HOLD,K,tYMX,tYMN,300.,'W','Y max',IER)
           if(ier.ne.0)goto 241
           igwid=igw; igheight=igwh
-          call axiscale(igwid,igheight,YMN,YMX,ZMN,ZMX,xsc,ysc,sca,
+          call axiscale(igwid,igheight,tYMN,tYMX,tZMN,tZMX,xsc,ysc,sca,
      &      Xadd,Yadd)
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
         elseif(ITPPSW.eq.3)then
@@ -983,39 +1007,39 @@ C vertical axis...
         helptopic='e2r_north_axis'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ITPPSW.eq.0)then
- 144      WRITE(HOLD,'(1x,2f8.3)')YMN,YMX
+ 144      WRITE(HOLD,'(1x,2f8.3)')tYMN,tYMX
           CALL EASKS(HOLD,' North axis minimum and maximum: ',
      &      '  ',28,' ','north axis min-max',IER,nbhelp)
           K=0
-          CALL EGETWR(HOLD,K,YMN,-300.,300.,'W','Y min',IER)
-          CALL EGETWR(HOLD,K,YMX,YMN,300.,'W','Y max',IER)
+          CALL EGETWR(HOLD,K,tYMN,-300.,300.,'W','Y min',IER)
+          CALL EGETWR(HOLD,K,tYMX,tYMN,300.,'W','Y max',IER)
           if(ier.ne.0)goto 144
           igwid=igw; igheight=igwh
-          call axiscale(igwid,igheight,XMN,XMX,YMN,YMX,xsc,ysc,sca,
+          call axiscale(igwid,igheight,tXMN,tXMX,tYMN,tYMX,xsc,ysc,sca,
      &      Xadd,Yadd)
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
         elseif(ITPPSW.eq.1)then
- 145      WRITE(HOLD,'(1x,2f8.3)')ZMN,ZMX
+ 145      WRITE(HOLD,'(1x,2f8.3)')tZMN,tZMX
           CALL EASKS(HOLD,' Up axis minimum and maximum: ',
      &      '  ',28,' ','up axis min-max',IER,nbhelp)
           K=0
-          CALL EGETWR(HOLD,K,ZMN,-300.,300.,'W','Y min',IER)
-          CALL EGETWR(HOLD,K,ZMX,ZMN,300.,'W','Y max',IER)
+          CALL EGETWR(HOLD,K,tZMN,-300.,300.,'W','Y min',IER)
+          CALL EGETWR(HOLD,K,tZMX,tZMN,300.,'W','Y max',IER)
           if(ier.ne.0)goto 145
           igwid=igw; igheight=igwh
-          call axiscale(igwid,igheight,XMN,XMX,ZMN,ZMX,xsc,ysc,sca,
+          call axiscale(igwid,igheight,tXMN,tXMX,tZMN,tZMX,xsc,ysc,sca,
      &      Xadd,Yadd)
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
         elseif(ITPPSW.eq.2)then
- 245      WRITE(HOLD,'(1x,2f8.3)')ZMN,ZMX
+ 245      WRITE(HOLD,'(1x,2f8.3)')tZMN,tZMX
           CALL EASKS(HOLD,' Up axis minimum and maximum: ',
      &      '  ',28,' ','up axis min-max',IER,nbhelp)
           K=0
-          CALL EGETWR(HOLD,K,ZMN,-300.,300.,'W','Y min',IER)
-          CALL EGETWR(HOLD,K,ZMX,ZMN,300.,'W','Y max',IER)
+          CALL EGETWR(HOLD,K,tZMN,-300.,300.,'W','Y min',IER)
+          CALL EGETWR(HOLD,K,tZMX,tZMN,300.,'W','Y max',IER)
           if(ier.ne.0)goto 245
           igwid=igw; igheight=igwh
-          call axiscale(igwid,igheight,YMN,YMX,ZMN,ZMX,xsc,ysc,sca,
+          call axiscale(igwid,igheight,tYMN,tYMX,tZMN,tZMX,xsc,ysc,sca,
      &      Xadd,Yadd)
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
         elseif(ITPPSW.eq.3)then
@@ -1109,12 +1133,23 @@ C Set up view bounds (for fisheye view).
         endif
         vewdone=.true.
 
+C Update view point from model display.
+      elseif(INO.eq.18)then
+        if (MMOD.ne.8) goto 10
+        rvpx=EYEM(1); rvpy=EYEM(2); rvpz=EYEM(3)
+        angh=ANG; angv=ANG
+        call ln2az(rvpx,rvpy,rvpz,VIEWM(1),VIEWM(2),VIEWM(3),
+     &    azimuth,elevtn)
+        call AZ2UV(azimuth,elevtn,vdx,vdy,vdz)
+
       elseif(INO.EQ.(NITEMS-1))then
 
 c Explains main menu.
         helptopic='view_definition_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('view menu',nbhelp,'-',0,0,IER)
+
+C Exit.
       elseif(INO.EQ.NITEMS)then
         if(vewdone)then
           return

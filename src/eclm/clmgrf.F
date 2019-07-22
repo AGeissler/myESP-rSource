@@ -434,8 +434,8 @@ C the top of the graph.
               iiz=igt-10
               call textatxy(iix,iiz,'Winter','z',iicol)
             endif
-            iiz=igt-5
-            call esymbol(iix,iiz,8,1)
+            iiz=igt-5; isym=8
+            call esymbol(iix,iiz,isym,1)
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -452,8 +452,8 @@ C the top of the graph.
               iiz=igt-10
               call textatxy(iix,iiz,'Spring','z',iicol)
             endif
-            iiz=igt-5
-            call esymbol(iix,iiz,3,0)
+            iiz=igt-5; isym=3
+            call esymbol(iix,iiz,isym,0)
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -470,9 +470,9 @@ C the top of the graph.
               iiz=igt-10
               call textatxy(iix,iiz,'Summer','z',iicol)
             endif
-            iiz=igt-5
+            iiz=igt-5; isym=8
 C            call esymbol(iix,iiz,32,0)
-            call esymbol(iix,iiz,8,0)
+            call esymbol(iix,iiz,isym,0)
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -489,8 +489,8 @@ C            call esymbol(iix,iiz,32,0)
               iiz=igt-10
               call textatxy(iix,iiz,'Autumn','z',iicol)
             endif
-            iiz=igt-5
-            call esymbol(iix,iiz,3,0)
+            iiz=igt-5; isym=3
+            call esymbol(iix,iiz,isym,0)
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -507,8 +507,8 @@ C            call esymbol(iix,iiz,32,0)
               iiz=igt-10
               call textatxy(iix,iiz,'Winter','z',iicol)
             endif
-            iiz=igt-5
-            call esymbol(iix,iiz,17,0)
+            iiz=igt-5; isym=17
+            call esymbol(iix,iiz,isym,0)
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -524,8 +524,8 @@ C Typical week in each season.
               call winscl('z',iicol) ! symbol using line colour
             endif
             call u2pixel(TIME,0.0,iix,iiy)
-            iiz=igt
-            call esymbol(iix,iiz,8,1)
+            iiz=igt; isym=8
+            call esymbol(iix,iiz,isym,1)
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -538,8 +538,8 @@ C Typical week in each season.
               call winscl('z',iicol) ! symbol using line colour
             endif
             call u2pixel(TIME,0.0,iix,iiy)
-            iiz=igt
-            call esymbol(iix,iiz,8,1)
+            iiz=igt; isym=8
+            call esymbol(iix,iiz,isym,1)
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -552,8 +552,8 @@ C Typical week in each season.
               call winscl('z',iicol) ! symbol using line colour
             endif
             call u2pixel(TIME,0.0,iix,iiy)
-            iiz=igt
-            call esymbol(iix,iiz,8,1)
+            iiz=igt; isym=8
+            call esymbol(iix,iiz,isym,1)
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -566,8 +566,8 @@ C Typical week in each season.
               call winscl('z',iicol) ! symbol using line colour
             endif
             call u2pixel(TIME,0.0,iix,iiy)
-            iiz=igt
-            call esymbol(iix,iiz,8,1)
+            iiz=igt; isym=8
+            call esymbol(iix,iiz,isym,1)
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -580,8 +580,8 @@ C Typical week in each season.
               call winscl('z',iicol) ! symbol using line colour
             endif
             call u2pixel(TIME,0.0,iix,iiy)
-            iiz=igt
-            call esymbol(iix,iiz,8,1)
+            iiz=igt; isym=8
+            call esymbol(iix,iiz,isym,1)
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0

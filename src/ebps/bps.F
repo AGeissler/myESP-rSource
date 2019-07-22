@@ -335,6 +335,10 @@ C Toggle for extreme silent running (endless) mode.
       logical endless,issilient
       common/endlessmode/endless,issilient
 
+C Logical flag for uncertainty header has been printed.
+      logical uncertheadprinted
+      common/uncerthead/uncertheadprinted
+      
       integer iverb     ! verbosity passed on command line
 
       LOGICAL OK,dok,OK3D
@@ -354,6 +358,11 @@ C      logical gopher  ! not references
       character t16*16,outs248*248
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
+
+      character mca*12        ! to force Monte Carlo assessments
+      integer nbsets          ! how many sets to run
+      COMMON/UAMET/IUNCMET,nbsets
+      COMMON/UA5/IMET,ISIM,NRSIM
 
 C Flags for multi-year simulation menus
       logical bOptOut, bDone, bMY_clm_err, bExists, bCreate
@@ -496,9 +505,26 @@ C all console write is rerouted to the log file
         call SetDllParms(MODL,iappw,iappx,iappy,inf,sps,aut,actf)
         browsing='no'
       else
-        call parsim(iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
-     &    actf)
+C        call parsim(iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
+C     &    actf)
+C        write(6,*)iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
+C     &    actf
+
+C Get command line parameters from local subroutine parbps.
+        call parbps(iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
+     &    actf,mca,nbsets)
+        write(6,*)iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
+     &    actf,mca,nbsets
         itrc=iverb    ! set trace after call to parsim
+        if(mca(1:3).eq.'MCA')then
+          IUNCMET=3
+          IMET=3
+          if(nbsets.gt.0) NRSIM=nbsets
+        else
+          IUNCMET=0
+          IMET=0
+          NRSIM=0
+        endif
       endif
 
 C Detect if the simulator was started up from the project manager
@@ -567,6 +593,7 @@ C Use process ID as seed for random number generator (for use in
 C uncertainty analysis routines)
       call esppid(ipid)
       x=RSTART(ipid)
+      uncertheadprinted=.false.
 
 C If your compiler does not support floating-point arithmetic
 C according to ANSI/IEEE Std 754-1985 comment out the following code.
@@ -1327,6 +1354,160 @@ C Error.
       goto 902
 
       end subroutine SubBps
+
+C ****************************************
+C Local variant of command line parsing for the simulator.
+C parbps parse command line paramters for ecnv.
+      subroutine parbps(iverb,termtype,iappw,iappx,iappy,inf,browse,
+     &  sps,aut,actf,mca,nbsets)
+      
+      integer lnblnk  ! function definition
+
+C Declare  calling parameter types
+      integer, intent(inout)  ::  iverb, termtype,iappw,iappx,iappy
+      character(144), intent(inout)  :: inf
+      character(96), intent(inout) :: actf
+      character(12), intent(inout) :: aut
+      character(4), intent(inout) :: browse
+      character(30), intent(inout) :: sps
+      character(72)  :: argument,sTimeout
+      character(12), intent(inout) :: mca  ! is 'mca' or 'bc' or '-'
+      integer, intent(inout)  ::  nbsets   ! number of sets to run
+
+      COMMON/OUTIN/IUOUT,IUIN
+C Timeout information
+      COMMON/TIMEOUT/sTimeout,iTimeoutFlag
+      integer :: iTimeoutFlag
+      integer :: err
+
+      integer iargc,m
+      integer i
+      real conv
+      character prog*72,outs*248,appn*24
+      character mode*8
+      logical unixok
+
+      inf  = 'UNKNOWN'
+      mca  = '-'  ! assume not doing monti-carlo
+      iverb = 0   ! assume not verbose
+      nbsets = 0  ! assume no monti-carlo sets
+
+C Get number of arguments and command name.
+      termtype = 8      ! assume graphic mode unless otherwise instructed
+      mode = 'graphic'
+      aut  = 'default'
+      m = iargc()
+      i = 0
+      call getarg(i,prog)
+      call findapp(prog,appn)
+      call isunix(unixok)
+
+C If one parameter.
+      if(m.eq.0)then
+        stop
+      elseif(m.ge.1)then
+  41    i= i+1
+        if(i.gt.m)goto 42
+        call getarg(i,argument)
+        if(argument(1:5).eq.'-help')then
+         call edisp(iuout,'This is the ESP-r Simulator. ')
+         call edisp(iuout,'  Use: [-mode {text|graphic}]')
+         call edisp(iuout,'       [-file <configuration file>]')
+         call edisp(iuout,'       [-v|-vv] verbose or very verbose')
+         call edisp(iuout,'   [-p <param_set_name> <how>]')
+         call edisp(iuout,'   (where how {interactive|silent} defines')
+         call edisp(iuout,'    whether the user interacts')
+         call edisp(iuout,'   [-actf file providing bems commands')
+         call edisp(iuout,'   [-s < width, offset left & top>]')
+         call edisp(iuout,'   [-b {no|yes}]')
+         call edisp(iuout,' ')
+         call edisp(iuout,'  where -mode options are:')
+         call edisp(iuout,'    text    = text mode')
+         call edisp(iuout,'    graphic = graphic mode')
+         call edisp(iuout,'    script = script mode')
+         call edisp(iuout,'  where -b (browse options) are used to')
+         call edisp(iuout,'    indicate that the user has requested')
+         call edisp(iuout,'    a simulation for a model they are')
+         call edisp(iuout,'    browsing (in which case the results')
+         call edisp(iuout,'    will be placed in the users home')
+         call edisp(iuout,'    folder. Default is no.')
+         call edisp(iuout,' ')
+          stop
+        elseif(argument(1:3).eq.'-vv')then
+          iverb = 2   ! tell application to run with debug verbose
+        elseif(argument(1:2).eq.'-v')then
+          iverb = 1   ! tell application to run with debug moderate
+                      ! Note: this option MUST follow -version for both to be supported
+        elseif(argument(1:5).eq.'-mode')then
+
+          i=i+1
+          call getarg(i,argument)
+          if(argument(1:4).eq.'text')then
+            termtype = -1
+            mode = 'text'
+          elseif(argument(1:4).eq.'page')then
+            termtype = -2
+            mode = 'page'
+          elseif(argument(1:5).eq.'graph')then
+            termtype = 8
+            mode = 'graphic'
+          elseif(argument(1:6).eq.'script')then
+            termtype = -6
+            mode = 'script'
+          endif
+        elseif(argument(1:5).eq.'-file')then
+          i=i+1
+          call getarg(i,inf)
+        elseif(argument(1:5).eq.'-actf')then
+          i=i+1
+          call getarg(i,actf)
+        elseif(argument(1:4).eq.'-mca')then
+          mca  = 'MCA'  ! set monti-carlo assessment
+          i=i+1
+          call getarg(i,argument)  ! number of Monti-Carlo sets
+          read(argument,*,IOSTAT=IOS,ERR=2)nbsets
+        elseif(argument(1:2).eq.'-b')then
+          i=i+1
+          call getarg(i,browse)
+        elseif(argument(1:2).eq.'-p')then
+          i=i+1
+          call getarg(i,sps)
+          i=i+1
+          call getarg(i,aut)
+        elseif(argument(1:8).eq.'-timeout')then
+          i=i+1
+          call getarg(i,sTimeout)
+          iTimeoutFlag = 1
+        endif
+        goto 41
+
+  42    continue
+  
+        if ( iverb == 2 ) then
+          write(outs,'(6a)') 'Starting ',appn(1:lnblnk(appn)),
+     &      ' in mode ',mode(1:lnblnk(mode)),' with file ',
+     &      inf(1:lnblnk(inf))
+          if(unixok)call edisp248(iuout,outs,90)
+          outs=' '
+          write(outs,'(7a)') 'and parameters ',sps(1:lnblnk(sps)),
+     &      ' in ',aut,' mode and ',browse,' browsing.'
+          if(unixok)call edisp248(iuout,outs,90)
+        endif
+        return
+      endif
+
+C Errors.
+   2  call isunix(unixok)
+      if(unixok)then
+        if(IOS.eq.2)then
+          write(6,'(a)')
+     &      'bps: permission error getting parameters.'
+        else
+          write(6,'(a)')'bps: error extracting parameters.'
+        endif
+        return
+      endif
+      end
 
 C Dummy routines (needed for call back from c).
       subroutine imgdisp(iforce,focus,ier)

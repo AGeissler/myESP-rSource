@@ -60,7 +60,10 @@ C Tell wireframe control the current number of selected zones.
 C If altered then do a bound check on the current zone and update display.
       IF(MODIFYVIEW)THEN
         if(izgfoc.NE.0)CALL ESCZONE(izgfoc)
-        IF(MODBND)CALL BNDOBJ(0,IER)
+        IF(MODBND)THEN
+          CALL BNDOBJ(0,IER)
+          MODLEN=.TRUE.
+        ENDIF
 
 C If viewpoint or bounds different then initialise viewing paramters.
         IF(MODLEN)THEN

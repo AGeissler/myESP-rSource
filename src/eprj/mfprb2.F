@@ -51,6 +51,7 @@ C Fluid flow component supplementary data input for
 C power law volume flow resistance component (m = rho . a . dP^b [m^3/s])
 C Supports position - needs testing.
       SUBROUTINE MF010I(ICMP,IER)
+
 #include "building.h"
 #include "geometry.h"
 #include "net_flow.h"
@@ -2529,6 +2530,7 @@ C      '  '   '   '     '    '  '  '    '  '
 C     SUPCMP(ICMP,13) - Ccp coefficient a5 (-)
 
       SUBROUTINE MF220I(ICMP,IER)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -2614,6 +2616,7 @@ C     SUPCMP(ICMP,13) - Ccp coefficient a5 (-)
 
       SUBROUTINE MF230I(ICMP,IER)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -2697,6 +2700,7 @@ C     SUPCMP(ICMP,17) - Ccp coefficient a9 (-)
 
       SUBROUTINE MF240I(ICMP,IER)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -2783,6 +2787,7 @@ C     SUPCMP(ICMP,17) - Ccp coefficient a9 (-)
 
       SUBROUTINE MF250I(ICMP,IER)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -2863,6 +2868,7 @@ C << data instanciation needs to change.
 C << Position not yet done >>
       SUBROUTINE MF310I(ICMP,IER)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -3031,6 +3037,7 @@ C Fluid flow component supplementary data input or check for
 C general flow corrector (ie. valve or damper)
       SUBROUTINE MF410I(ICMP,IER)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -3127,6 +3134,7 @@ C flow corrector (ie. valve or damper) with polynomial flow resistance.
 C See synopsis for SUPCMP data.
       SUBROUTINE MF420I(ICMP,IER)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -3200,6 +3208,8 @@ C ******************* MF460I
 C Fluid flow component supplementary data input or check for
 C fixed flow rates controller. See synopsis for SUPCMP data.
       SUBROUTINE MF460I(ICMP,IER)
+
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -3258,6 +3268,8 @@ C ******************* MF500I
 C Fluid flow component supplementary data input or check for
 C fixed flow rates controller. See synopsis for SUPCMP data.
       SUBROUTINE MF500I(ICMP,IER)
+
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN

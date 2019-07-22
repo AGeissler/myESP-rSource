@@ -816,7 +816,7 @@ C           Newton-Raphson method used.
 
               f_Ni = a_cyc_0 - (gamma1 + gamma2*dummy
      &                                 + gamma3*dummy**2
-     & 	                               + gamma4*dummy**3)
+     &                                 + gamma4*dummy**3)
 
               fstr_Ni = -1. * (gamma2 + 2*gamma3*dummy
      &                                + 3*gamma4*dummy**2)
@@ -4348,7 +4348,7 @@ C Ageing Parameters (new model)
      &     ageing_temp_factor,  ! Temperature factor b
      &     ageing_soc_factor,   ! State of charge factor c
      &     calc_a_cycl,         ! cyclic ageing factor per timestep
-     &     calc_a_time,	        ! calendaric ageing factor per timestep
+     &     calc_a_time,         ! calendaric ageing factor per timestep
      &     Delta_Cycle,         !
      &     Delta_DOD            ! DOD difference between DOD_t and DOD_t-1
 
@@ -4430,8 +4430,8 @@ C         described by a 3rd order polynomial which ideally is
 C         based on measurements of the battery used.
           ageing_cycle(IPWC) = gamma1                             ! Total cyclic ageing
      &             + gamma2*cycles_used_Lion(IPWC)
-     & 	           + gamma3*cycles_used_Lion(IPWC)**2
-     & 	           + gamma4*cycles_used_Lion(IPWC)**3
+     &             + gamma3*cycles_used_Lion(IPWC)**2
+     &             + gamma4*cycles_used_Lion(IPWC)**3
 
         ELSE ! (cyc_mode .EQ. 2) THEN
 C         Guenther method

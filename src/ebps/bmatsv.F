@@ -178,7 +178,7 @@ C so configuration can be passed to h3kreports
       common/avrage/idaver
 
 C Uncertainty common.
-      COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
+      COMMON/UATD/UACLIM(6,4),UACTL(MNACT,7,6),UAMCSA(MNACT)
 
 C Common holding flag indicating presence of hvac data input file:
 C ihvacflag=1 there is hvac file; ihvacflag=0 no hvac file.
@@ -302,7 +302,7 @@ C Flag for whether plant network has storage tank that uses mains make up
 C water
       logical itank_flag
 
-      logical autook
+      logical autook,ok
       integer ier,IClmErr
       logical unixok,concat
       character fs*1
@@ -1029,15 +1029,25 @@ C Set present and future hours.
 
 C Check for uncertainty associated with control data. The
 C UACTL array will be zero during the base case run but will
-C be populated in subsequent runs.
-          UAFLG=0.
-          do 67 IUA=1,7
-            UAFLG=UAFLG+UACTL(IUA,1)
- 67       continue
-          if (UAFLG.gt.0.01)then
-C            write(6,*)'bmatsv calling uat01a for',idyp,ihrp
-            call UAT01a(idyp,ihrp)
-          endif
+C be populated in subsequent runs. Loop through available
+C uncertainty actions to identify which are related to control.
+          do loop=1,NIACT
+           ichgtyp=0
+           if(IACTD(loop,1).gt.0)then
+             ichgtyp=IDTYPU(IACTD(loop,1))
+           endif
+           if (ichgtyp.eq.1001) then
+             iact=loop 
+             UAFLG=0.
+             do 67 IUA=1,7
+               UAFLG=UAFLG+UACTL(iact,IUA,1)
+ 67          continue
+             if (UAFLG.gt.0.01)then
+C              write(6,*)'bmatsv calling uat01a for',iact,idyp,ihrp
+               call UAT01a(iact,idyp,ihrp)
+             endif
+           endif
+         enddo
 
 C Increment number of TSC operations counter if present hour
 C is greater than finish hour for present TSC operation.
@@ -2090,10 +2100,10 @@ C Trace output.
      &   itrace(40).ne.0) call edisp(itu,' Leaving subroutine mznuma.')
       return
 
- 1000 write(outs,'(A,I3)') ' mznuma: climate file error @ rec ',irec
-      call edisp(iuout,outs)
-      call epwait
-      goto 16
+C 1000 write(outs,'(A,I3)') ' mznuma: climate file error @ rec ',irec
+C      call edisp(iuout,outs)
+C      call epwait
+C      goto 16
 
       end
 

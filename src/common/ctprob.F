@@ -37,9 +37,9 @@ C Dump contaminant model to file
 C Definitions of most variables is given in ctread.F
 
       SUBROUTINE CTWRIT(IFCTM)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 
       integer lnblnk  ! function definition
 
@@ -285,10 +285,10 @@ C -inant definition
 C Definitions of most variables is given in ctread.F
 
       SUBROUTINE CTPROB
-#include "net_flow.h"
-#include "net_flow_data.h"
 #include "building.h"
 #include "model.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/POPHELP/H(60)
@@ -865,8 +865,8 @@ C Add, delete, edit chemical reaction information
 C Definitions of most variables is given in ctread.F
 
       SUBROUTINE CSIACR(NADC,MEDIT)
-#include "net_flow.h"
 #include "building.h"
+#include "net_flow.h"
 
       COMMON/POPHELP/H(60)
 
@@ -1048,9 +1048,9 @@ C or NLP=2 (link source/sink to node)
 C Definitions of most variables is given in ctread.F
 
       SUBROUTINE SCNLNK(NLP)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "epara.h"
 
       COMMON/POPHELP/H(60)
@@ -1342,6 +1342,7 @@ C Definitions of most variables is given in ctread.F
 C NADC is the action to take 1 = add, 2 = delete, 3 = copy
 C ISPMNU is ??
       SUBROUTINE CSIADC(NADC,ISPMNU)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -2014,9 +2015,9 @@ C Definitions of most variables is given in ctread.F
 C NADC is ??
 C MEDIT is ??
       SUBROUTINE CTIADC(NADC,MEDIT)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 
       COMMON/OUTIN/IUOUT,IUIN
       COMMON/POPHELP/H(60)
@@ -2337,9 +2338,9 @@ C Definitions of most variables is given in ctread.F
 
       SUBROUTINE CTLIST(INDEX)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 
       COMMON/OUTIN/IUOUT,IUIN
 

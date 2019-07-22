@@ -465,9 +465,9 @@ C << patched Dec 2005 for additional misc data item specifying
 C << what comprises ON 
       SUBROUTINE FCL00
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "control.h"
 #include "FMI.h"
       COMMON/mfctl/ctlpos(MCNN)
@@ -539,9 +539,9 @@ C </FMI>
 C *******  FCL01 Proportional controller with hysteresis
       SUBROUTINE FCL01
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "control.h"
 
       COMMON/mfctl/ctlpos(MCNN)
@@ -578,9 +578,9 @@ C nominal rate or area associated with each range (0.0 is off,
 C 1.0 is nominal rate or area, 1.5 would be 1.5 x nominal etc.).
       SUBROUTINE FCL02
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "control.h"
 
       COMMON/mfctl/ctlpos(MCNN)
@@ -637,8 +637,8 @@ C            write(6,*) icnn,signal,ctlpos(icnn)
 
 C ***** POSITN
       FUNCTION POSITN(SIGNAL)
-#include "net_flow.h"
 #include "building.h"
+#include "net_flow.h"
 #include "control.h"
 
 C SIGL  - signal lower limit Sl (whatever is sensed by ctl loop)
@@ -706,9 +706,9 @@ C logical AND/OR as specified in the sensor definition
  
       subroutine FCL03
  
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "control.h"
  
       COMMON/OUTIN/IUOUT,IUIN
@@ -868,9 +868,9 @@ C by setting the ALPHA parameter = 0.
 
       subroutine FCL04
  
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "geometry.h"
 #include "control.h"
 
@@ -1178,9 +1178,9 @@ C each component/connection that is to be controlled
 C 1.0 is nominal rate or area, 1.5 would be 1.5 x nominal etc.).
       SUBROUTINE FCL05
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "control.h"
 
       COMMON/OUTIN/IUOUT,IUIN
@@ -1279,9 +1279,9 @@ C PCL05 (Proportional)
 C PCL14 (multisensor of plant loops)
       SUBROUTINE FCL06
       
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "control.h"
 
       COMMON/FCLSOL/ICFP,IDTYPP,IPERP

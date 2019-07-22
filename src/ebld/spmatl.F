@@ -296,7 +296,7 @@ C Panel power output.
          else
             pvpwr=-pvpwr
          endif
-         vpv=vmpmod*scell	!- panel voltage
+         vpv=vmpmod*scell  !- panel voltage
 
 C Fixed resistance load, use iteration to calculate panel current.
       elseif(ilodt.eq.1)then
@@ -349,7 +349,7 @@ C Fixed voltage type load (e.g. a battery), calculate panel power.
          else
             pvpwr=-pvpwr
          endif
-         vpv=valf*scell		!- panel voltage
+         vpv=valf*scell  !- panel voltage
       endif
 
 C Results output.
@@ -1429,8 +1429,8 @@ C Local variables.
 
       real    X1, X2, Y1, Y2    !- variables used for interpolation calculation
 
-      integer iNum_layers	!- number of layers in PV module surface
-      integer iPV_layer   !- layer number with PV
+      integer iNum_layers   !- number of layers in PV module surface
+      integer iPV_layer     !- layer number with PV
 
       real    fTrans_Ads(5) !- transmission at 5 angles (0,40,55,70,80 degrees)
                             !  for PV module surface calculated as the sum of
@@ -1713,7 +1713,7 @@ C a converter, calculate the maximum output voltage. Note that
 C the Watsun-PV model assumes that the maximum power point voltage
 C has the same dependancy on cell temperature and incident irradiance
 C as the open circuit voltage.
-          fVmp=fVmpRef/float(iScell)*		!- cell value
+          fVmp=fVmpRef/float(iScell)*   !- cell value
      &            (1.+fGamma*(fTPnl-fTref))*
      &            max(0.,(1.+fBeta*log((fQPnl+fSmall)/fQref)))
 
@@ -1736,11 +1736,11 @@ C Current at maximum power point. Note that the Watsun-PV
 C model assumes that the maximum power point current has the same
 C dependancy on cell temperature and incident irradiance as the
 C short circuit current.
-          fImp=fImpRef/iNPBrch*(fQPnl/fQref)*		!- cell value
+          fImp=fImpRef/iNPBrch*(fQPnl/fQref)*   !- cell value
      &              (1.-fAlpha*(fTPnl-fTref))
 
 C Calculate voltage at maximum power point.
-          fVmp=fVmpRef/iScell*				!- cell value
+          fVmp=fVmpRef/iScell*                  !- cell value
      &              (1.+fGamma*(fTPnl-fTref))*
      &              max(0.,(1.+fBeta*log(fQPnl/fQref)))
 
@@ -2982,7 +2982,7 @@ C Latent heat stored (J/kg).
         shtliqa=val6
         shtliqb=val7
         shtliq=(0.5*shtliqa*(tsoli+tmelt)+shtliqb)*(tsoli-tmelt)
-	if(tfcm.lt.tmelt)then
+        if(tfcm.lt.tmelt)then
           appcon=consol
           appsht=shtsol
           spcmf=0.0
@@ -3008,7 +3008,7 @@ C Latent heat stored (J/kg).
         shtb=0.76224
         c1=exp(shta)
         shtliq=(c1/shtb)*(exp(shtb*tsoli)-exp(shtb*tmelt))/1000
-	if(tfcm.lt.tmelt)then
+        if(tfcm.lt.tmelt)then
           appcon=consol
           appsht=shtsol
           spcmf=0.0
@@ -5230,7 +5230,7 @@ C Process the 3 nodes of the PCM layer.
             nloc=inode+1
             efthk=thrmli(icomp,isurf,ielem,4)*0.25
          endif
-         THKsum=THKsum+efthk		!- total PCM thickness
+         THKsum=THKsum+efthk    !- total PCM thickness
 
 C Establish temperature of the PCM material node from tfc if the node
 C is intra-construction and tfs if located at the internal surface.
@@ -5288,28 +5288,28 @@ C coeficients of nodal energy balance equations.
             x1=0
          endif
          x2=1./pcmsht
-         if(iphnl.eq.1.and.ielem.eq.1)then			!- outermost node
+         if(iphnl.eq.1.and.ielem.eq.1)then      !- outermost node
             vcp(isurf,nloc,1)=c(icomp,isurf,nloc,1)*x1
             vcp(isurf,nloc,2)=c(icomp,isurf,nloc,2)*factp
             qcp(isurf,nloc)=qc(icomp,isurf,nloc)*x1
             vcf(isurf,nloc,1)=c(icomp,isurf,nloc,1)*x2
             vcf(isurf,nloc,2)=c(icomp,isurf,nloc,2)*factf
             qcf(isurf,nloc)=qc(icomp,isurf,nloc)*x2
-         elseif(iphnl.eq.2)then					!- centre node
+         elseif(iphnl.eq.2)then                 !- centre node
             vcp(isurf,nloc,1)=c(icomp,isurf,nloc,1)*factp
             vcp(isurf,nloc,2)=c(icomp,isurf,nloc,2)*factp
             qcp(isurf,nloc)=qc(icomp,isurf,nloc)*x1
             vcf(isurf,nloc,1)=c(icomp,isurf,nloc,1)*factf
             vcf(isurf,nloc,2)=c(icomp,isurf,nloc,2)*factf
             qcf(isurf,nloc)=qc(icomp,isurf,nloc)*x2
-         elseif(iphnl.eq.3.and.ielem.eq.nelts(icomp,isurf))then	!- internal surface node
+         elseif(iphnl.eq.3.and.ielem.eq.nelts(icomp,isurf))then  !- internal surface node
             vcp(isurf,nloc,1)=c(icomp,isurf,nloc,1)*factp
             vcp(isurf,nloc,2)=c(icomp,isurf,nloc,2)*x1
             qcp(isurf,nloc)=qc(icomp,isurf,nloc)*x1
             vcf(isurf,nloc,1)=c(icomp,isurf,nloc,1)*factf
             vcf(isurf,nloc,2)=c(icomp,isurf,nloc,2)*x2
             qcf(isurf,nloc)=qc(icomp,isurf,nloc)*x2
-         elseif(iphnl.eq.1.or.iphnl.eq.3)then			!- interface node
+         elseif(iphnl.eq.1.or.iphnl.eq.3)then    !- interface node
 
 C Redefine modification factors to take account of weighted node
 C thermal capacity.
@@ -5411,7 +5411,7 @@ C time step.
 
 C Results output.
       ndatspm(ispmnod)=4
-C	if(nsinc.le.1)then
+C     if(nsinc.le.1)then
          strspm(ispmnod,1)='/AppCON'
          unitspm(ispmnod,1)='(W/(m.degC))'
          txtspm(ispmnod,1)='Average conductivity of PCM layer'
@@ -5427,7 +5427,7 @@ C	if(nsinc.le.1)then
          strspm(ispmnod,4)='/PCMFAC'
          unitspm(ispmnod,4)='(-)'
          txtspm(ispmnod,4)='PCMFAC of middle node'
-C	endif
+C      endif
 
 
       if(Rtot.gt.0)dataspm(ispmnod,1)=THKsum/Rtot

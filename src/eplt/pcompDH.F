@@ -71,7 +71,7 @@ C     CDATA: 1 Duty (W) (+ve = cooling load, -ve = heating load)
       COMMON/HN/NODE(MPCOM),RESID(MPCOM)
 
       PARAMETER (SMALL=1.0E-15)
-      REAL      COUT(MPCOE),TMIN
+      REAL      COUT(MPCOE),TMIN,NODE
       integer   RESID
       character outs*124
       logical closea
@@ -91,7 +91,7 @@ C Generate coefficients for energy balance equation
 C Then initialize timestep duty Q and required duty, QR, including residual unmet demand 
          IF(CONVAR(ICON1,2).GT.SMALL) THEN
            Q=CDATA(IPCOMP,1)
-	   QR=Q+QRESP
+           QR=Q+QRESP
          ELSE
            Q=0.0
            QR=QRESP
@@ -101,9 +101,9 @@ C Establish inlet and outlet fluid heat capacity rate C1 and C2 (W/K),
 C ie. mass flow * specific heat
          C1=PCONDR(ICON1)*CONVAR(ICON1,2)*SHTFLD(3,CONVAR(ICON1,1))+
      &      PCONDR(ICON1)*CONVAR(ICON1,3)*SHTFLD(2,CONVAR(ICON1,1))
-	 Rmw1=CSVF(INOD1,2)
-	 Tmw1=CSVF(INOD1,1)
-	 C2=Rmw1*SHTFLD(3,Tmw1)
+         Rmw1=CSVF(INOD1,2)
+         Tmw1=CSVF(INOD1,1)
+         C2=Rmw1*SHTFLD(3,Tmw1)
 
 C Mark temperature for iteration
          ICSV(INOD1,1)=1
@@ -112,29 +112,29 @@ C Mark temperature for iteration
 C Establish matrix equation self- and cross-coupling 
 C coefficients (Fully Implicit assumed)
          If(C1.gt.0.and.C2.gt.0)then
-	   COUT(1)=C2
+           COUT(1)=C2
            COUT(2)=-C1
 
 C Limit outlet temperature to minimum to mimic heat exchanger performance
-	   TOUT=(QR+C1*CONVAR(ICON1,1))/C2
+           TOUT=(QR+C1*CONVAR(ICON1,1))/C2
            Q1=QR
-	   TMIN=ADATA(IPCOMP,1)
-	   if(TOUT.lt.TMIN.and.CONVAR(ICON1,1).gt.TMIN) then
-	     Q1=(C2*TMIN)-(C1*CONVAR(ICON1,1))
-	   elseif(CONVAR(ICON1,1).lt.TMIN) then
-	     Q1=0. ! No heat transfer if inlet below outlet lower limit
-	   endif
-	 else
-	   COUT(1)=1.
+           TMIN=ADATA(IPCOMP,1)
+           if(TOUT.lt.TMIN.and.CONVAR(ICON1,1).gt.TMIN) then
+             Q1=(C2*TMIN)-(C1*CONVAR(ICON1,1))
+           elseif(CONVAR(ICON1,1).lt.TMIN) then
+             Q1=0. ! No heat transfer if inlet below outlet lower limit
+           endif
+         else
+           COUT(1)=1.
            COUT(2)=-1.
            Q1=0.
          end if
 C and then present-time coefficient (ie. right hand side)
          COUT(3)=Q1
-	 QRES=QRESP+Q-Q1
+         QRES=QRESP+Q-Q1
 
 C Store "environment" variables future values
-	 PCDATF(IPCOMP,1)=QRES
+         PCDATF(IPCOMP,1)=QRES
 
 C 1st phase mass (ie. dry air) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -145,8 +145,8 @@ C 1st phase mass (ie. dry air) balance coefficients
 C 2nd phase mass (ie. vapour) balance coefficients
       ELSE IF(ISTATS.EQ.3) THEN
          COUT(1)=1.
-	 COUT(2)=-1.
-	 COUT(3)=0.
+         COUT(2)=-1.
+         COUT(3)=0.
       END IF
 
 C Store additional output variables for the results file.
@@ -199,22 +199,22 @@ C Modulating control with user-defined turndown limit and lockout time
 C Required input data (in plant configuration file)
 C Shell = outer casing + insulation + inner tank walls
 C     ADATA: 1 Boiler rating (kW) 
-C	     2 Shell total mass (kg) (not water)
-C	     3 Casing outer diameter (m)
-C	     4 Casing thickness (m)
-C	     5 Insulation thickness (m)
-C            6 Tank wall thickness (m)
-C	     7 Turndown limit (frac)
-C	     8 Full load efficiency at Tc (frac)
-C	     9 Gradient of efficiency curve for Tj < Tc (1/K) (Ashrae)
-C           10 Gradient of efficiency curve for Tj > Tc (1/K)
-C	    11 Upper boiler temperature limit (C)
-C	    12 Casing thermal conductivity 
-C	    13 Insulation thermal conductivity
-C           14 Tank wall thermal conductivity
-C	    15 Shell average heat capacity
-C	    16 Water Volume (m3)
-C           17 Lockout Time (min)     
+C        2 Shell total mass (kg) (not water)
+C        3 Casing outer diameter (m)
+C        4 Casing thickness (m)
+C        5 Insulation thickness (m)
+C        6 Tank wall thickness (m)
+C        7 Turndown limit (frac)
+C        8 Full load efficiency at Tc (frac)
+C        9 Gradient of efficiency curve for Tj < Tc (1/K) (Ashrae)
+C       10 Gradient of efficiency curve for Tj > Tc (1/K)
+C       11 Upper boiler temperature limit (C)
+C       12 Casing thermal conductivity 
+C       13 Insulation thermal conductivity
+C       14 Tank wall thermal conductivity
+C       15 Shell average heat capacity
+C       16 Water Volume (m3)
+C       17 Lockout Time (min)     
 C
 C Control variables (set by control loop or fixed value in plant config file) 
 C     CDATA: 1 Control signal (frac)
@@ -262,6 +262,7 @@ C            5 Spare
 
       PARAMETER (SMALL=1.0E-20)
       REAL      COUT(MPCOE),BLKOUT,CSGNL,QDATA,PCAOUT,KC
+      REAL      ID  ! internal diameter
       character outs*124
 
 C Trace output
@@ -294,7 +295,7 @@ C First calculate boiler efficiency ETA based on current node 1 temp.
 C so mark node 1 temperature for iteration
          ICSV(INOD1,1)=1
          CSVI(INOD1,1)=CSVF(INOD1,1)
-	 ICSV(INOD2,1)=1
+         ICSV(INOD2,1)=1
          CSVI(INOD2,1)=CSVF(INOD2,1)
          ICSV(INOD3,1)=1
          CSVI(INOD3,1)=CSVF(INOD3,1)
@@ -307,7 +308,7 @@ C so mark node 1 temperature for iteration
 
 C Establish boiler setpoint (fraction of full load)
          CSGNL=CDATA(IPCOMP,1)
-	 if(CSGNL.LE.ADATA(IPCOMP,7)) THEN ! Turndown limit and lockout
+         if(CSGNL.LE.ADATA(IPCOMP,7)) THEN ! Turndown limit and lockout
 
 C Lock out time (in seconds), If boiler control signal falls below the
 C turndown limit it is shut down for this amount of time unless temperature
@@ -323,9 +324,9 @@ C NTSBO = total no. of timesteps boiler is off due to lockout
 
          IF(BINSO(IPCOMP).EQ.1)THEN
            BITSBO(IPCOMP)=BITSBO(IPCOMP)+1
-C 	   Reset at end of lockout period
+C    Reset at end of lockout period
            IF(BITSBO(IPCOMP).GE.NTSBO) BINSO(IPCOMP)=0 
-C 	   Reset if boiler temperature close to low limit
+C    Reset if boiler temperature close to low limit
            IF(CSGNL.GE.0.99) THEN 
              BINSO(IPCOMP)=0
            ELSE
@@ -391,11 +392,11 @@ C Flow*heat capacities for fluid nodes
          Cf2=Rmf2*Cpf2
 
 C Outside convective heat transfer coefficient
-         Na=1
+         Na=1                 ! set as water
+	 ID=ADATA(IPCOMP,3)   ! and internal diameter
          Call CVCOEFF2(Na,Te,Ts,Ue,ID,ho)
 C Inside conduction heat transfer coefficient (no flow assumed)
 C Equivalent cylinder with ends ignored assumed
-         ID=real(ADATA(IPCOMP,3))
 C Cylinder length equivalent to cylinder area without ends
          RL=(4.*ADATA(IPCOMP,16))/(3.14159*ID**2)+(ID/2)
          KC=(2.*3.14159*0.598*RL)/(1./(sqrt(0.5)))
@@ -594,6 +595,7 @@ C     CDATA: none
       DIMENSION Conn(4)
       logical closea
       logical closebp
+      integer ADJP
 
       COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
       COMMON/PP0C/A(MPP,MPPC),B(MPP,MPPC),Alpha
@@ -727,7 +729,7 @@ C then modify heat transfer coefficients by re-arranging input data
         Cf3=Rmf3*Cpf3
         Cf4=Rmf4*Cpf4
 C Check if inside waterr transport delay is required for future time step
-C        DY=(Uf*TIMSEC)/RL
+        DY=(Uf*TIMSEC)/RL
 C        IF (DY.lt.1.0) THEN
 C          IF(DY.LT.0.0001) then
 C            DELAY=1.
@@ -741,6 +743,7 @@ C        ELSE
 C          DELAY=0.
 C        ENDIF
         DELAY=0.
+        N=0
         Call TRNSDLAY(IPCOMP,DELAY,Tf0P,Tf3P,Tp2P,N,DY,Cf3,Csf,
      &                Tf0,Tf3,Tf4)
 C Calculate current component time-constant TC based on response

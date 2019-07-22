@@ -216,6 +216,9 @@ C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
 C and dialog.
         IMFS=5
         IFS=5
+#ifdef OSX
+        IFS=4  ! use a smaller dialog font
+#endif
         ITFS=4
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults

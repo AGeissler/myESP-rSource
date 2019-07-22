@@ -843,9 +843,9 @@ C       'E' - Edit
 C       'C' - Copy
 C << if IAIRN=3 could we use mfnodeposition ?? >> 
       SUBROUTINE MFNDES(MOD,INOD)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "epara.h"
@@ -1675,22 +1675,29 @@ C To supporting 3D overlay increment NCMP.
       ELSEIF(MOD.EQ.'D')THEN
         IFCMP=ICMP
 
-C Ask if it is OK to delete associated connections if not then return
-        dok=.true.
-        helptopic='flow_component_delete'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Delete connections associated with component?',
-     &    '(see help)',OK,dok,nbhelp)
-        IF(.NOT.OK) RETURN  
-      
-C Delete associated connections
-        DO 40 ICON=NCNN,1,-1
+C  Check for associated connections and warn user.
+        ok=.true.
+        DO ICON=NCNN,1,-1
           IF(ITPCON(ICON).EQ.IFCMP)THEN
-             CALL MFLDES('D',ICON)
-             WRITE(OUTS,'(A,I3)') 'Deleted connection ... ',ICON
-             CALL EDISP(IUOUT,OUTS)
+            ok=.false.
+            WRITE(OUTS,'(A,I3)') 
+     &        'This component is referenced by connection... ',ICON
+            CALL EDISP(IUOUT,OUTS)
+            zplus=HNOD(NODPS(ICON),3)+HGTPS(ICON)
+            zminus=HNOD(NODNE(ICON),3)+HGTNE(ICON)
+            WRITE(outs,1070)
+     &        ICON,NDNAM(NODPS(ICON)),HGTPS(ICON),NDNAM(NODNE(ICON)),
+     &        HGTNE(ICON),CMNAM(ITPCON(ICON)),zplus,zminus
+ 1070       FORMAT(1X,I4,1X,A12,F7.3,3X,A12,F7.3,3X,A12,1X,2F8.3)
+            CALL EDISP(iuout,outs)
           ENDIF
-  40    CONTINUE
+        ENDDO
+
+C If there were no dependencies delete the component.
+        IF(.NOT.OK)then
+          call edisp(iuout,'Please delete these connections first.')
+          RETURN
+        endif  
 
 C Now delete the component.
         IF(ICMP.LT.NCMP) THEN
@@ -1709,7 +1716,7 @@ C Now delete the component.
               NWPCMP(i)=NWPCMP(i+1)
               HCMP(i,1,1)=HCMP(i+1,1,1); HCMP(i,1,2)=HCMP(i+1,1,2)
               HCMP(i,1,3)=HCMP(i+1,1,3)
-              HCMP(i,2,1)=HCMP(i+1,2,1); HCMP(i,1,2)=HCMP(i+1,2,2)
+              HCMP(i,2,1)=HCMP(i+1,2,1); HCMP(i,2,2)=HCMP(i+1,2,2)
               HCMP(i,2,3)=HCMP(i+1,2,3)
             endif
   76      CONTINUE
@@ -1756,7 +1763,7 @@ C Now delete the component.
           HCMP(ifcmp,1,2)=HCMP(icmp,1,2)
           HCMP(ifcmp,1,3)=HCMP(icmp,1,3)
           HCMP(ifcmp,2,1)=HCMP(icmp,2,1)
-          HCMP(ifcmp,1,2)=HCMP(icmp,2,2)
+          HCMP(ifcmp,2,2)=HCMP(icmp,2,2)
           HCMP(ifcmp,2,3)=HCMP(icmp,2,3)
         endif
         changed=.true.
@@ -2187,8 +2194,8 @@ C Fluid flow model file: edit or input wind speed reduction factor
 
       SUBROUTINE MFWRED
 
-#include "net_flow.h"
 #include "building.h"
+#include "net_flow.h"
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"

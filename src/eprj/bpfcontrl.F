@@ -6387,6 +6387,7 @@ C PROMPT1 and PROMPT2 are text prompt strings
 C NH is number of help strings.
 
       SUBROUTINE ASKMFCTM(NCPK,ICPK,PROMPT1,PROMPT2,NH)
+#include "building.h"
 #include "net_flow.h"
 
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)

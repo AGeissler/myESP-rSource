@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# import_materialsAndConstructions_fromEplusModel.py version 4.2b.
+# import_materialsAndConstructions_fromEplusModel.py version 4.2c.
 # Scans an EnergyPlus idf file, and imports materials and constructions into ESP-r ASCII databases.
 # Designed for use with EnergyPlus v8.5 models, other versions may not be supported.
 # Will import classes "Material", "Material:NoMass", "Material:InfraredTransparent", "Material:AirGap",
@@ -8,8 +8,8 @@
 #   - Material - All data except diffusion resistance (default value of 20.0 MNs/g.m is assumed) imported.
 #   - Material:NoMass - Conductivity calculated from thermal resistance assuming default thickness of 0.1 m.
 #     Values of density (10.0 kg/m^3) and specific heat capacity (10.0 J/kg.K) are assumed, to represent
-#     minimal mass.  Emissivity and solar absorptivity imported, diffusion resistance from "fict" material
-#     (19200.0 MNs/g.m) assumed.
+#     minimal mass.  Emissivity and solar absorptivity imported if available, from "fict" material if not
+#     (0.99, 0.01 respectively). Diffusion resistance from "fict" material (19200.0 MNs/g.m) assumed.
 #   - Material:InfraredTransparent - No data given in idf file, so these materials are imported as effectively
 #     fictional materials using properties of the existing "fict" ESP-r material, but are considered opaque.
 #   - Material:AirGap - ESP-r handles air gaps rather differently; the thermal resistance of these material
@@ -225,6 +225,7 @@ for s_line in f_idfFile:
 # "no mass" material found. Use thermal resistance to calculate conductivity,
 # scan emissivity and absorptivity.
     elif found_noMass:
+        print('found_noMass s_line '+s_line)
         linecount=linecount+1
         s_line_strpd=s_line.strip()
 # Strip out comments, denoted in idf by "!".
@@ -259,9 +260,31 @@ for s_line in f_idfFile:
 # Limit to a minimum of 0.01.
             if d_cond<0.01: d_cond=0.01
             lls_text[1][0]='{:.3f}'.format(d_cond)
+# If this is the end line, we have no more data. Assume values of emissivity and absorptivity equal to ESP-r "fict" material.
+            if b_isEndLine:
+                lls_text[1][3]='0.990'
+                lls_text[1][4]='0.990'
+                lls_text[1][5]='0.010'
+                lls_text[1][6]='0.010'
+# Finished reading, reset counts and logicals and write entry to database.
+                linecount=0
+                b_isEndLine=False
+                found_noMass=False
+                f_matDbs.write(','.join(lls_text[0])+'\n')
+                f_matDbs.write(','.join(lls_text[1])+'\n')
         elif linecount==4:
             lls_text[1][3]=s_val
             lls_text[1][4]=s_val
+# If this is the end line, we have no more data. Assume value of absorptivity equal to ESP-r "fict" material.
+            if b_isEndLine:
+                lls_text[1][5]='0.010'
+                lls_text[1][6]='0.010'
+# Finished reading, reset counts and logicals and write entry to database.
+                linecount=0
+                b_isEndLine=False
+                found_noMass=False
+                f_matDbs.write(','.join(lls_text[0])+'\n')
+                f_matDbs.write(','.join(lls_text[1])+'\n')
         elif linecount==5:
             lls_text[1][5]=s_val
             lls_text[1][6]=s_val
@@ -478,6 +501,7 @@ for s_line in f_idfFile:
 # Found construction. Scan name and layer material names (outside to inside, same as ESP-r luckily),
 # construct appropriate listings and write to the ESP-r constructions database.
     elif found_con:
+        print('found_con s_line '+s_line)
         linecount=linecount+1
         s_line_strpd=s_line.strip()
 # Strip out comments, denoted in idf by "!".
@@ -562,6 +586,7 @@ for s_line in f_idfFile:
 # Scan for materials or constructions.
     else:
         s_val=s_line.strip()
+        print(s_val)
         if s_val=='Material,':
             found=True
             matcount=matcount+1
@@ -583,6 +608,7 @@ for s_line in f_idfFile:
         elif s_val=='Material:AirGap,':
             found_airGap=True
         elif s_val=='Construction,':
+            print('found_con')
             found_con=True
             ls_text=['# layers  description  type  optics name   symmetry tag',]
         elif s_val=='WindowMaterial:SimpleGlazingSystem,':

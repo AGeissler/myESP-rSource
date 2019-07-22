@@ -44,24 +44,18 @@ C << of reporing if from command line.
 #include "building.h"
 #include "model.h"
 #include "site.h"
-
-C geometry.h provides commons G0/G2/G7/prec2/precz/c20.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "control.h"
 #include "tdf2.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C database file names and unit numbers and path types
 #include "material.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 #include "sbem.h"
 #include "ipvdata.h"
 #include "seasons.h"
 #include "schedule.h"
-C derived.h are derived areas and U values for zones and the model
 #include "derived.h"
 #include "plant.h"
 #include "power.h"
@@ -1437,17 +1431,15 @@ cx          NRGRDT = 4
             itrunc=1
             ipos=1
             do while (itrunc.ne.0)
-              call arlist(ipos,12,eGrdTp,12,'S',outs2,loutln,itrunc)
+              call arlist(ipos,12,eGrdTp,12,'S',outs,loutln,itrunc)
               if(markdown)then
-                WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',outs2
-                call edispxtr(itu,outs248)
-cx     &          'Calculated ground temp at 0.5m depth  ')
-cx                call edisp2tr(itu,outs2)
+                WRITE(outs2,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',
+     &            outs(1:lnblnk(outs))
+                call edispxtr(itu,outs2)
               else
-                WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',outs2
-                call edispxtr(itu,outs248)
-cx                call edisp(itu,'Calculated ground temp at 0.5m depth')
-cx                call edisp(itu,outs2)
+                WRITE(outs2,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',
+     &            outs(1:lnblnk(outs))
+                call edisp(itu,outs2)
               endif
               ipos=itrunc+1
             end do
@@ -2772,7 +2764,7 @@ C See if an even or odd number of items in list.
               if(markdown)then
                 WRITE(outs,'(i5,3F11.4)') I,X(I),Y(I),Z(I)
               else
-                WRITE(outs,'(a,i3,3F12.5)')'*vertex ',I,
+                WRITE(outs,'(a,i3,3F10.4)')'*vertex ',I,
      &            X(I),Y(I),Z(I)
               endif
               call edisp(itu,outs)
@@ -2785,7 +2777,7 @@ C See if an even or odd number of items in list.
      &          X(k),Y(k),Z(k),K+MNULEN,
      &          X(K+MNULEN),Y(K+MNULEN),Z(K+MNULEN)
               else
-                WRITE(outs,'(a,i3,3f11.5,a,i3,3f11.5)') 'vertex ',k,
+                WRITE(outs,'(a,i3,3f10.4,a,i3,3f10.4)') 'vertex ',k,
      &          X(k),Y(k),Z(k),'   vertex ',K+MNULEN,
      &          X(K+MNULEN),Y(K+MNULEN),Z(K+MNULEN)
               endif
@@ -2798,7 +2790,7 @@ C Put odd vertex in right column.
                 WRITE(outs,'(38x,i5,3f11.4)') NZTV(izz),
      &          X(NZTV(izz)),Y(NZTV(izz)),Z(NZTV(izz))
               else
-                WRITE(outs,'(46x,a,i3,3f11.5)') 'vertex ',NZTV(izz),
+                WRITE(outs,'(46x,a,i3,3f10.4)') 'vertex ',NZTV(izz),
      &          X(NZTV(izz)),Y(NZTV(izz)),Z(NZTV(izz))
               endif
               call edisp(itu,outs)

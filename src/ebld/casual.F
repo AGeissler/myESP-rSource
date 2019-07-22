@@ -2220,6 +2220,9 @@ C vertical unobstructed illum otherwise use horizontal illum.
         IF(IES.EQ.0)THEN
           call eclose(CGY(ICOMP,N,1),1.00,0.01,close)
           IF(close)THEN
+
+C Establish solar data.
+            CALL MZSINT(ICOMP,QDIR,QDIF)
             CALL VRTILM(PAZI(ICOMP,J),QDIR,QDIF,SRADDO,SKYDIF)
             zelum(N)=SRADDO*suneff+SKYDIF*skyeff
             if(IFT.EQ.1)then

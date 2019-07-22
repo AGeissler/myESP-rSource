@@ -44,7 +44,7 @@ extendedDebug="no"         # Extended debugging.
 use_intel="no"             # Use Intel compilers.
 skip_ish_calcs="no"        # Binary shading file creation.
 reuse_ish_calcs="yes"      # Map ascii shading files to binary.
-clean="no"                # Clean object files after compilation.
+clean="yes"                # Clean object files after compilation.
 unversioned="no"           # Check for versioning info.
 
 # ESP-r executables (bld & plt not included by default because their
@@ -1996,6 +1996,11 @@ zzz
   cp ${SCRIPTdir}/Linux_model_2dos ${ESPdir}/scripts/
   cp ${SCRIPTdir}/Linux_model_to_dos ${ESPdir}/scripts/
   cp ${SCRIPTdir}/dos_model_to_linux ${ESPdir}/scripts/
+  cp ${SCRIPTdir}/convert_idf_2_espr.sh ${ESPdir}/scripts/
+  cp ${SCRIPTdir}/associate_geometryAndDatabases_fromEplusModel.py ${ESPdir}/scripts/
+  cp ${SCRIPTdir}/import_geometryAndAttribution_fromEplusModel.py ${ESPdir}/scripts/
+  cp ${SCRIPTdir}/import_materialsAndConstructions_fromEplusModel.py ${ESPdir}/scripts/
+  cp ${SCRIPTdir}/pandoc_ref.docx ${ESPdir}/scripts/
   echo " done."
 fi
 

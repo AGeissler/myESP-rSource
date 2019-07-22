@@ -1531,8 +1531,8 @@ C Reverse the ordering, redraw image and return.
                 JVN(ins,iyy)=jvn1(izz)
               enddo
             enddo ! of ins
-            iZBFLG(ICOMP)=0   ! ??	    
-            call zgupdate(1,icomp,ier)  ! ??
+            iZBFLG(ICOMP)=0   ! reset  
+            call zgupdate(1,icomp,ier)  ! update commons
             call geowrite(IFIL+1,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             MODIFYVIEW=.TRUE.
             CALL INLNST(1)
@@ -1732,7 +1732,8 @@ C this for obs in separate file.
           elseif(iobs(icomp).eq.2)then
 
 C The zone geometry has just been written with transformed verticies
-C so now apply the transform to the obstructions (only).
+C so now apply the transform to the obstructions (only) as well.
+C as transform general polygon obstructions.
             call eclose(gversion(icomp),1.1,0.01,newgeo)
             dok=.true.
             call askok('Apply this rotation to obstructions',
@@ -1746,9 +1747,20 @@ C so now apply the transform to the obstructions (only).
                 YYY=YOB(icomp,ij)-Y1
                 XR=XXX*CA+YYY*SA
                 YR=YYY*CA-XXX*SA
-                XOB(icomp,ij)=XR+X1
-                YOB(icomp,ij)=YR+Y1
-                BANGOB(icomp,ij,1)=BANGOB(icomp,ij,1)+VAL
+                if(BLOCKTYP(icomp,ij)(1:4).eq.'obs '.or.
+     &             BLOCKTYP(icomp,ij)(1:4).eq.'obs3')then
+                  XOB(icomp,ij)=XR+X1
+                  YOB(icomp,ij)=YR+Y1
+                  BANGOB(icomp,ij,1)=BANGOB(icomp,ij,1)+VAL
+                else
+                  do ibe=1,8
+                    XXX=XBP(icomp,ij,ibe)-X1
+                    YYY=YBP(icomp,ij,ibe)-Y1
+                    XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+                    XBP(icomp,ij,ibe)=XR+X1
+                    YBP(icomp,ij,ibe)=YR+Y1
+                  enddo
+                endif
   87          continue
               call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             endif
@@ -1963,9 +1975,18 @@ C Transform any obstructions associated with this zone.
               call edisp(iuout,' Obstruction data prior to transform.')
               CALL EGOMST(IFIL+2,ICOMP,ZOBS(ICOMP),0,ITRC,iuout,IER)
               do ij=1,nbobs(icomp)
-                XOB(icomp,ij)=XOB(icomp,ij)+VALX
-                YOB(icomp,ij)=YOB(icomp,ij)+VALY
-                ZOB(icomp,ij)=ZOB(icomp,ij)+VALZ
+                if(BLOCKTYP(icomp,ij)(1:4).eq.'obs '.or.
+     &             BLOCKTYP(icomp,ij)(1:4).eq.'obs3')then
+                  XOB(icomp,ij)=XOB(icomp,ij)+VALX
+                  YOB(icomp,ij)=YOB(icomp,ij)+VALY
+                  ZOB(icomp,ij)=ZOB(icomp,ij)+VALZ
+                else
+                  do ibe=1,8
+                    XBP(icomp,ij,ibe)=XBP(icomp,ij,ibe)+VALX
+                    YBP(icomp,ij,ibe)=YBP(icomp,ij,ibe)+VALY
+                    ZBP(icomp,ij,ibe)=ZBP(icomp,ij,ibe)+VALZ
+                  enddo
+                endif
               enddo
               CALL MKGOMST(IFIL+2,ZOBS(ICOMP),ICOMP,IER)
             endif
@@ -3311,7 +3332,7 @@ C Loop through each surface in the zone and make up display list based on the
 C attributes of the surface. For shading or insulation mark surfaces
 C which are not applicable. The do loop needs to use nzsur so that all
 C surfaces are presented even if only ilimit can be copied.
-        DO 11 I=1,NZSUR(IZONE)
+        DO I=1,NZSUR(IZONE)
          ioc=IZSTOCN(izone,i)
          lnl=lnblnk(SSMLCN(ioc))
          if(lnl.gt.16) lnl=16  ! truncate MLC name in list
@@ -3337,7 +3358,7 @@ C surfaces are presented even if only ilimit can be copied.
              write(STMP(I),'(2a)') SSNAME(ioc),' not applicable'
            endif
          endif
-   11   CONTINUE
+       enddo
 
         if(act.eq.'c'.or.act.eq.'C')then
 
@@ -4220,7 +4241,7 @@ C Find the optical name.
             ELSEIF(mlctype(ISEL)(1:4).EQ.'CFC2')then
               SOTF(IS)='CFC2'
             ELSE
-              WRITE(SOTF(ISS),'(A)') mlcoptical(ISEL)
+              WRITE(SOTF(IS),'(A)') mlcoptical(ISEL)
             ENDIF
             SSOTF(ioc)=SOTF(is)
             MODGEO=.TRUE.
@@ -6548,14 +6569,14 @@ C on first entry to the vertex editing facility.
       call edisp(itru,' Vertices ( index X Y Z) in the zone...')
       if(NZTV(icomp).lt.20)then
         DO 960 I = 1,NZTV(icomp)
-          WRITE(outs,'(a,i4,3F12.5)')'*vertex ',I,
+          WRITE(outs,'(a,i4,3F10.4)')'*vertex ',I,
      &      X(I),Y(I),Z(I)
           call edisp(itru,outs)
 960     CONTINUE
       else
         MNULEN=(NZTV(icomp)/2)
         DO 193 K=1,MNULEN
-          WRITE(outs,'(a,i4,3f11.5,a,i4,3f11.5)') 'vertex ',k,
+          WRITE(outs,'(a,i4,3f10.4,a,i4,3f10.4)') 'vertex ',k,
      &      X(k),Y(k),Z(k),'   vertex ',K+MNULEN,
      &      X(K+MNULEN),Y(K+MNULEN),Z(K+MNULEN)
           call edisp(itru,outs)
@@ -6563,7 +6584,7 @@ C on first entry to the vertex editing facility.
 
 C Put odd vertex in right column.
         if(odd)then
-          WRITE(outs,'(46x,a,i4,3f11.5)') 'vertex ',NZTV(icomp),
+          WRITE(outs,'(46x,a,i4,3f10.4)') 'vertex ',NZTV(icomp),
      &      X(NZTV(icomp)),Y(NZTV(icomp)),Z(NZTV(icomp))
          call edisp(itru,outs)
         endif 
@@ -11284,8 +11305,8 @@ C It is passed the current zone index (izone) and returns
 C modgeo=.true. if a change to common blocks G5 and G6 have
 C been made.
 
-#include "net_flow.h"
 #include "building.h"
+#include "net_flow.h"
 #include "geometry.h"
 
       integer IZSTOCN  ! for each zone:surface a pointer to connection index.

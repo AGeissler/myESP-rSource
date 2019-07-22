@@ -197,7 +197,7 @@ C Initialize global common data.
       LIMIT =24
 C     NSIGFIG=3
       NSIGFIG=4
-      IFS=1
+      IFS=0
       ITFS=1
       IMFS=1
       IFDAY=2
@@ -280,14 +280,14 @@ C Needed for CFD 3-D views.
 C Initialise output device.
       MMOD=MODL
       if(iappw.eq.0.and.iappx.eq.0.and.iappy.eq.0)then
-        iappw=620
+        iappw=660
         iappx=60
         iappy=70
       else
         if(iappx.le.0)iappx=60
         if(iappy.le.0)iappy=70
         if(iappw.le.200)then
-          iappwi=int(620*iappw*0.01)
+          iappwi=int(660*iappw*0.01)
           iappw=iappwi
         elseif(iappw.gt.200)then
           continue

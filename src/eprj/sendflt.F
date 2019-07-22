@@ -59,10 +59,6 @@ C Set default uncertainties. 5% as %. If user asks.
 C Setup for menu.
 C Gather the names of the various classes and present this list.
   40  ICO=-1
-
-C << arrange defaults by the general topic
-C << update the DFLTMAT to work with multiple main and sub-topics
-C << show % or a in a column plus the value for the topic.
       ITEM(1) =' Weather...                    '
       if(IDFLTR(3,1).eq.1) sym=' %'
       if(IDFLTR(3,1).eq.2) sym=' a'

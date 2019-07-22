@@ -21,9 +21,9 @@ C MFWFDRAW Fluid flow file: draw common block contents.
 C colour is either 'r' red, 'b' blue or 'g' grey50 for components.
       SUBROUTINE MFWFDRAW(col)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
       
 C      COMMON/OUTIN/IUOUT,IUIN
       COMMON/SPAD/MMOD,LIMIT,LIMTTY

@@ -185,12 +185,12 @@ C Possibly read in flow function generator supplementary data items.
 C Possibly open ascii plant-side boundary data file.
       if(pbyfil)then
 C Check for boundary file defined in configuration file
-	if(BPF(1:3).eq.'../')then
+        if(BPF(1:3).eq.'../')then
           iunit=ifil+9
           CALL EFOPSEQ(IUNIT,BPF,1,IER)
           rewind(iunit)
           write(currentfile,'(a)') BPF(1:lnblnk(BPF))
-	else
+        else
 C User input of boundary file location
           helptopic='timestep_boundary_file'
           call gethelptext(helpinsub,helptopic,nbhelp)

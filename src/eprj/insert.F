@@ -2741,7 +2741,11 @@ C If version 1.1 of geometry specify the use of the surface.
           iz=icomp; isur=nsur
         else
           iz=icomp; isur=nsur; icon=ICONT
-          call edituse(iz,isur,icon,guesstype)
+          if(iz.gt.0.and.isur.gt.0.and.icon.gt.0)then
+            call edituse(iz,isur,icon,guesstype)
+          elseif(iz.gt.0.and.isur.gt.0.and.icon.eq.0)then
+            write(6,*) 'edituse with',iz,isur,icon
+          endif
         endif
 C        write(6,*) 'use is ',isur,icon,SUSE(isur,1),SUSE(isur,2),
 C     &    SSUSE(icon,1),SSUSE(icon,2)

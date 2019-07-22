@@ -274,10 +274,14 @@
 'name for the view (this is the identifier help in the RIF'
 'file.'
 *enditem
-        CALL EPICKS(INPIC,IVALS,' ','Which zones to include:',
-  334 CALL EPICKS(IX,IVALV,' Select a view: ',' ',
-        CALL EASKAB(' One of the options must be selected:',' ',
-        CALL EASKS(trvewsh,'Name for view?',' ',10,'vew1',
+
+*item VEWFORM ext_MRTview
+'The purpose of the currently selected scene is to create'
+'external views. MRT sensors exist inside a model, so it is'
+'not recommended to create view points at MRT sensors within'
+'the current scene. You should create a new scene for your'
+'specific purpose.'
+
 *item VEWFORM view_definition_menu
 'This menu selects the viewpoint and direction, from'
 'where the Radiance image will be viewed.'

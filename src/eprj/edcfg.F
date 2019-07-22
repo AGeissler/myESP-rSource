@@ -40,6 +40,7 @@ C information to be saved to a new file.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+C UA1 in uncertainty.h
 #include "uncertainty.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
@@ -315,7 +316,7 @@ C work? if iAIM2=0 then the next line tests for iAIM2=1.)
       ITEMS(23)  ='s simulation                   '
       ITEMS(24)  ='t results analysis             '
       ITEMS(25)  ='u QA reporting                 '
-      ITEMS(26)  ='                               '
+      ITEMS(26)  ='v calibration                  '
       ITEMS(27)  =' ... Miscellaneous.....        '
       ITEMS(28)  ='! save model                   '
       ITEMS(29)  ='? help                         '
@@ -1306,6 +1307,9 @@ C Set folder separator (fs) to \ or / as required.
           fs = char(92)
         endif
 
+C Debug.
+C        write(6,*) 'edcfg res remote is ',remote,nsset
+
         if(nsset.gt.0)then
 
 C If there are simulation parameter sets, use the names of the results
@@ -1481,7 +1485,9 @@ C If markdown true reset after report generated.
 
       ELSEIF(INO.EQ.26)THEN
 
-C Calibration (to be added later).
+C Calibration. First check if there is an uncertainty definition
+C in the model. If there is list its directives.
+        call CALIB(ITRC,ITRU,IER)
         goto 3
       ELSE
         GOTO 3

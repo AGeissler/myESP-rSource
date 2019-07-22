@@ -3149,8 +3149,6 @@ C Set all to not applicable and then instanciate available options.
       hclngdescr(16)='Bar-Cohen buoyancy ventilated channels          '
       hcshtdescr(17)='ISO 15099 corr buoyancy in chan '
       hclngdescr(17)='ISO 15099 corr buoyancy flow in vented vert chan'
-      hcshtdescr(18)='Gnielinski corr force vent chan '
-      hclngdescr(18)='Gnielinski corr for (forced) vented vert channel'
       hcshtdescr(20)='Alamdari & Hammond vertical 2.6X'
       hclngdescr(20)='Alamdari & Hammond 2.65X test for vertical surf '
       hcshtdescr(21)='Alamdari & Hammond vertical 3X  '

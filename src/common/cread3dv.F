@@ -118,21 +118,9 @@ C Setup and pass in parameters to win3d.
 
 C Determine scaling ratios for the drawing and axis.  If static
 C assume 1000 -1000 etc, if optimum then use SXMX,SYMX + 10% etc.
-
-C << why the difference? in static and optimum scaling ?? >>
-
-      IF(ITBND.EQ.0)THEN
-        CALL axiscale(igwid,igheight,-1000.,1000.,-1000.,1000.,xsc,ysc,
-     &                sca,Xadd,Yadd)
-        call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
-      ELSEIF(ITBND.EQ.1)THEN
-
-C Determine the 2D coords of the site extremes.
-        CALL SITE2D(SXMX,SXMN,SYMX,SYMN,ier)
-        CALL axiscale(igwid,igheight,SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,
-     &                Xadd,Yadd)
-        call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
-      ENDIF
+      CALL axiscale(igwid,igheight,-1000.,1000.,-1000.,1000.,xsc,ysc,
+     &              sca,Xadd,Yadd)
+      call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
 
 C Refresh the dialogue box if terminal type 8.
       IF(MMOD.EQ.8)CALL USRMSG(' ',' ','-')

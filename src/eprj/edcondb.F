@@ -3818,7 +3818,7 @@ C CLSSEL (36 char) is an array for menu items for the selected class.
       CHARACTER*66 MLCITM(37)
       character managearray*32  ! string array for material management
       dimension managearray(150)
-      integer pointback(30) ! to point back to item in list
+      integer pointback(36) ! to point back to item in list
       integer iwhichmanage,iwhichmsel
       dimension iwhichmanage(150),iwhichmsel(150) ! for each management array point back
       integer iwhicharray   ! for each item in menu point back to array

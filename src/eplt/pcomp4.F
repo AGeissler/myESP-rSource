@@ -719,6 +719,7 @@ C     BDATA: 1 Overall fan efficiency  (-)
 C     CDATA: 1 Volume flow rate  (m^3/s)
 
       SUBROUTINE CMP56C(IPCOMP,COUT,ISTATS)
+
 #include "plant.h"
 #include "building.h"
 #include "net_flow.h"

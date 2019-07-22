@@ -766,7 +766,7 @@ C Grab all of the coordinates and transform.
           IF(IER.NE.0) CONT=.FALSE.
         else
 
-C Even if we are not focuse on it need to jump 2 lines.
+C Even if we are not focused on it need to jump 2 lines.
           CALL LSTRIPC(IFA,LOUTSTR,99,ND,1,'first 4 coord',IER)
           CALL LSTRIPC(IFA,LOUTSTR,99,ND,1,'2nd 4 coord',IER)
         endif

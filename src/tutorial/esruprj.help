@@ -103,6 +103,22 @@
 'Values as entered must add to 1.0.'
 *enditem
 
+*subroutine ShieldingAndTerrainMenu
+*item ShieldingAndTerrainMenu AIM_terrain_menu
+'The weather station terrain is used to specify the '
+'terrain at the weather station and the building site'
+'terrain is used to specify the local terrain for the'
+'building.  The default for the weather station is'
+' opton c) Open Flat terrain, grass.'
+'  '
+'The two terrains are used to calculate the wind speed'
+'correction factor. This is a function of the surface'
+'roughness lengths at the building site and weather '
+'station, the height of the eaves, and the height of '
+'the anemometer at the weather station. '
+'This is equation 27 from Bradley (1993, p8).'
+*enditem
+
 *subroutine TerrainMenu
 *item TerrainMenu AIM_terrain_options
 'The weather station and building site terrains may differ. The'
@@ -11176,7 +11192,7 @@ For the purposes of ESP-r, the use of WIS is focused on the'
 '  Also during the ratings test the circulation fan power will be'
 '  recorded. This is not used while heating but is a required value.'
 '  If the power is <0 then the value is set internally.'
-*endite
+*enditem
 
 *item HPCOLD zone_hvac_hp_sensible
 'This is capacity at ARI rating conditions (26.7 oC Tdb'

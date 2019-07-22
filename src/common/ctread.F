@@ -43,9 +43,9 @@ C CNCNI: Initial contaminant concentration in each node (may be
 C different from ambient concentration)
 
       SUBROUTINE CTREAD(ier)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
       
       integer lnblnk  ! function definition
 

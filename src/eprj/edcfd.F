@@ -89,8 +89,7 @@ C 3D visualisation mode.
       character ltmp*72,dtmp*72,LCFD*72
       CHARACTER*72 TITLE,CFTRFL,LPHI
       character*72 DFCFD,DECMPDBFL,DICONDBFL
-      integer found,zngeo
-      integer IWO  ! for radio button
+      integer found
       integer NITMS,INO ! max items and current menu item
 
 #ifdef OSI
@@ -250,10 +249,7 @@ C Present menu of options for editing CFD input file.
 
 C Only display if domain geometry has been defined.
         if (origin.and.xgrid.and.ygrid.and.zgrid) then
-
-
           call redraw(IER)
-
         else
 
 C Just display title.
@@ -395,7 +391,6 @@ C (the east (4,*) is for curvilinear gridding).
 
 C 3D visualisation mode.
       COMMON/MODVIS/IVISMOD
-      common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
 
 C Arrays for sorting domains from (see code for comments).
       dimension XS(MTV),XSS(MTV),XSI(MTV),YS(MTV),YSS(MTV),YSI(MTV)
@@ -407,9 +402,7 @@ C Arrays for sorting domains from (see code for comments).
       LOGICAL ZEROT,ZandKE,MITzero,vclose
 
       character ITEM(14)*36
-      character outs*124,outs248*248,ETEXT*82
-      CHARACTER*72 TITLE,CFTRFL,LPHI
-      integer zngeo
+      character outs*124,outs248*248
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer iorgt,ixendt,iyendt,izendt,izendet  ! for local editing
@@ -418,12 +411,10 @@ C Arrays for sorting domains from (see code for comments).
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
-      integer iside,isize,ifont
       integer ilf,igfw,igfh,ild,igdw,igdh
 #else
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
-      integer*8 iside,isize,ifont
       integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
@@ -462,35 +453,8 @@ C Check if we have vertex at ends of axis data.
 
 C Display zone geometry with vertex numbers to aid in selection
 C Restore standard graphics window variables.
-        if(MMOD.EQ.8)then
-
-C Setup and pass in parameters to win3d.
-          iiw1=4; iiw2=1; iiw3=1; iiw4=3; iimenu=menuchw
-          iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
-          ilf=2; ild=LIMTTY
-          iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-          if(iglib.eq.1)then
-            CALL feedbox(iimenu,ilf,igfw,igfh)
-            CALL opengdisp(iimenu,ild,ilf,igdw,igdh)
-          endif
-          CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
-     &      iigl,iigr,iigt,iigb,iigw,iigwh)
-          igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
-          igw=int(iigw); igwh=int(iigwh)
-          call startbuffer()
-
-C Redraw zone and vertex points. Note, if user has returned
-C from 3D grid visualisation then G1 common blocks will need
-C to be refreshed.
-          nzg=1; nznog(1)=izone; izgfoc=izone
-          CALL ESCZONE(izone)
-          CALL BNDOBJ(0,IER)
-          CALL ERCZONE(izone)
-          MODIFYVIEW=.TRUE.; MODLEN=.TRUE.; MODBND=.TRUE.
-          itvno=0; itznm=1; itsnm=1
-          CALL INLNST(1)
-          CALL ADJVIEW(IER)
-        endif
+        IVISMOD=1
+        if(MMOD.EQ.8) call redraw(IER)
 
         write(outs,*) 'Coordinates in the zone...'
         call edisp(iuout,outs)
@@ -544,7 +508,8 @@ C No cancels so instanciate variables.
         ixend(ICFD)=ixendt; iyend(ICFD)=iyendt; izend(ICFD)=izendt
         IVISMOD=2
         HAS_GEOM=.TRUE.
-        ISHSB=-1; ISHAO=-1; IFACES=1; ISHBLK=-1
+        ISHSB=-1; ISHAO=-1; IFACES=1; ISHBLK=-1; ISHSRC=-1; ISHGEO=1
+        if (MMOD.eq.8) call redraw(IER)        
       endif
 
 C Make sure axes are orthogonal, as dfs only supports Cartesian coordinates.
@@ -1117,7 +1082,7 @@ C User did not cancel so instanciate values.
 
 C Need to ask for vertices which represent the
 C top and bottom boundaries of the curvilinear x-section.
-            call TOPBOT(izone,'-',IER)
+            call TOPBOT(izone,IER)
 
 C Grid Zeast-axis.
             call GRIDDEF(4,NREG,NTCZe,zedis,NCELZe,ZREGe,Zplawe,ier)
@@ -1916,7 +1881,6 @@ C IER=0 indicates no error.
 #include "building.h"
 #include "cfd.h"
 #include "epara.h"
-#include "prj3dv.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -1932,27 +1896,6 @@ C IER=0 indicates no error.
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
       common/GRIDEFN/origin,xgrid,ygrid,zgrid,zegrid,ortho
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
-     &              INITD
-      logical HAS_GEOM
-      character INITD*6
-      common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
-      COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
-     &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
-     &             JOPENf(MCFND,MNZ),KOPENi(MCFND,MNZ),
-     &             KOPENf(MCFND,MNZ),FIXM(MCFND,MNZ),
-     &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
-     &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
-     &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
-      COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
-     &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
-     &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),
-     &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
-     &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
-     &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
-      common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
-     &          INSSO(MNVLS,MNZ)
 
       dimension IDEL(MNVLS)
 
@@ -1960,21 +1903,13 @@ C IER=0 indicates no error.
       character KEY*1,t24*24
       character VOLNAME*12,VCsurf*12,t12*12,d12*12
       character NAMES(MNVLS)*12
-      character zngeo*3,etext*82
       CHARACTER*72 TITLE,CFTRFL,LPHI
-      character outs*124
-      logical origin,xgrid,ygrid,zgrid,zegrid,ortho,ok,dok,show
+      logical origin,xgrid,ygrid,zgrid,zegrid,ortho,show
 
 C      integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer INB     ! for radio button
-      integer NITMS,INO,IAIN,IIND ! max items and current menu item
+      integer NITMS,INO,IAIN ! max items and current menu item
       real dum(1)
-
-#ifdef OSI
-      integer iside,isize,ifont
-#else
-      integer*8 iside,isize,ifont
-#endif
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1993,7 +1928,6 @@ C INO is the menu position, NITMS the current number of menu lines.
 
 C Initial menu entry setup.
  5    IER=0
-      ILEN=NVOL(ICFD)
 
 C Create menu text.
       M=MHEAD
@@ -2048,7 +1982,7 @@ C If a long list include page facility text.
         ITEM(M+1)=' --------------------'
       ELSE
         WRITE(ITEM(M+1),'(a,i2,a,i2,a)')'0 Page: ',IPM,' of ',MPM,
-     &                                                      ' --------'
+     &    ' --------'
       ENDIF
       ITEM(M+2)='+ Add/ delete a boundary definition'
       ITEM(M+3)='! View current gridding'
@@ -2136,11 +2070,11 @@ C A solid boundary has been added.
             call MKCFDBC(show,1,0,0,0,0,0,0,0,d12,t12,dum,1,
      &        20.0,0.0,0.0,0.0,0.0,IER)
             call EDSLDB(IZONE,NVOL(ICFD),IER)
-            call NEW2OLD
+c            call NEW2OLD
             
           elseif (INB.eq.3) then
 
-C A contaminate source has been added.
+C A source has been added.
             write (t12,'(a,i3.3)') 'Source',NVOL(ICFD)+1
             d12='  '
             call EASKS(t12,'Boundary condition name?',' ',12,d12,
@@ -2183,6 +2117,13 @@ C Delete a boundary condition. First, ask which one.
           endif
         endif
 
+C Update paging commons.
+        MHEAD=3
+        MCTL=5
+        ILEN=NVOL(ICFD)
+        IPACT=CREATE
+        CALL EKPAGE(IPACT)
+
       elseif (INO.eq.(NITMS-4)) then
  
 C If there are enough items allow paging control via EKPAGE.
@@ -2191,7 +2132,7 @@ C If there are enough items allow paging control via EKPAGE.
           CALL EKPAGE(IPACT)
         ENDIF
           
-      elseif (INO.le.NVOL(ICFD).and.INO.gt.MHEAD) then
+      elseif (INO.GT.MHEAD.AND.INO.LT.(NITMS-MCTL+1)) then
 
 C Edit volume identified by KEYIND.
         CALL KEYIND(NITMS,INO,IAIN,IO)
@@ -2207,6 +2148,13 @@ C Existing volume, edit according to type.
         elseif (IVTYPE(IAIN,ICFD).eq.30) then
           call EDBLK(IAIN,IER)
         endif
+
+C Update paging commons.
+        MHEAD=3
+        MCTL=5
+        ILEN=NVOL(ICFD)
+        IPACT=CREATE
+        CALL EKPAGE(IPACT)
       elseif (INO.eq.1) then
 
 C Infer edge boundary conditions from geometry.
@@ -2214,6 +2162,13 @@ C Infer edge boundary conditions from geometry.
         if (IER.ne.0) then
           CALL EDISP(IUOUT,'Boundary conditions not generated.')
         endif
+
+C Update paging commons.
+        MHEAD=3
+        MCTL=5
+        ILEN=NVOL(ICFD)
+        IPACT=CREATE
+        CALL EKPAGE(IPACT)
       elseif (INO.eq.2) then
 
 C Infer internal boundary conditions from geometry.
@@ -2221,6 +2176,13 @@ C Infer internal boundary conditions from geometry.
         if (IER.ne.0) then
           CALL EDISP(IUOUT,'Boundary conditions not generated.')
         endif
+        
+C Update paging commons.
+        MHEAD=3
+        MCTL=5
+        ILEN=NVOL(ICFD)
+        IPACT=CREATE
+        CALL EKPAGE(IPACT)
 
       endif
       goto 5
@@ -2350,10 +2312,6 @@ C itype=13: VOLTemp,VOLArea,VOLVel ,-      ,-
 C itype=20: VOLHeat,VOLHum ,VOLCO2 ,-      ,-
 C itype=30: VOLHeat,-      ,-      ,-      ,-
 
-C If a blockage or source is created, this will first ensure the cells
-C do not already contain a source or a blockage. If so, returns silently
-C with IER=2.
-
 C If show is true, will highlight the boundary condition in the 3D model
 C display and print text feedback, then pause for half a second.
 
@@ -2399,14 +2357,12 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
      &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
      &          INSSO(MNVLS,MNZ)
-      common/KEYVblkd/IVblkd(NTCELX,NTCELY,NTCELZ)
       COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
      &              INITD
       logical HAS_GEOM
       character INITD*6
 
       character outs*124,stype*8,sfac*15
-      logical xit
 
       if (itype.eq.1) then
         NVOL(ICFD)=NVOL(ICFD)+1
@@ -2525,7 +2481,6 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
         VOLArea(n,ICFD)=dat2
         VOLVel(n,ICFD)=dat3
       elseif (itype.eq.20) then
-
         NVOL(ICFD)=NVOL(ICFD)+1
         n=NVOL(ICFD)
         IVTYPE(n,ICFD)=itype
@@ -2539,7 +2494,6 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
         VOLHum(n,ICFD)=dat2
         VOLCO2(n,ICFD)=dat3
       elseif (itype.eq.30) then
-
         NVOL(ICFD)=NVOL(ICFD)+1
         n=NVOL(ICFD)
         IVTYPE(n,ICFD)=itype
@@ -2561,19 +2515,19 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
         if (itype.ge.1 .and. itype.le.6) then
           stype='solid   '
           lstype=5          
-          ISHSB=NSB(ICFD); ISHAO=-1; ISHBLK=-1
+          ISHSB=NSB(ICFD); ISHAO=-1; ISHBLK=-1; ISHSRC=-1;
         elseif (itype.ge.10 .and. itype.le.13) then
           stype='opening '
           lstype=7
-          ISHSB=-1; ISHAO=NOPEN(ICFD); ISHBLK=-1
+          ISHSB=-1; ISHAO=NOPEN(ICFD); ISHBLK=-1; ISHSRC=-1;
         elseif (itype.eq.20) then
           stype='source  '
           lstype=6
-          ISHSB=-1; ISHAO=-1; ISHBLK=-1 ! << Need to implement sources
+          ISHSB=-1; ISHAO=-1; ISHBLK=-1; ISHSRC=-1 ! << Need to implement number of sources variable
         elseif (itype.eq.30) then
           stype='blockage'
           lstype=8
-          ISHSB=-1; ISHAO=-1; ISHBLK=NBLK(ICFD)
+          ISHSB=-1; ISHAO=-1; ISHBLK=NBLK(ICFD); ISHSRC=-1
         endif
 
         if (ifac.eq.1) then 
@@ -2624,58 +2578,28 @@ C IER=0 indicates no error.
 
       integer imode
 
-#ifdef OSI
-      integer iicol
-#else
-      integer*8 iicol
-#endif
-
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN      
       common/GRDVRTS/iorg(MNZ),ixend(MNZ),iyend(MNZ),izend(MNZ),
      &  izende(MNZ)
-      COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
-     1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
-     2            DZHP(ntcelz),DZPL(ntcelz),
-     3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
-     4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
       COMMON/ICFNOD/ICFD,ICP
-      common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
-      character VOLNAME*12,VCsurf*12
       common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
      &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
-      COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
-     &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
-     &             JOPENf(MCFND,MNZ),KOPENi(MCFND,MNZ),
-     &             KOPENf(MCFND,MNZ),FIXM(MCFND,MNZ),
-     &             FIXT(MCFND,MNZ),FIXC(MCFND,MNZ),
-     &             FIXK(MCFND,MNZ),FIXE(MCFND,MNZ),
-     &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
-     &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
-      COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
-     &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
-     &              KSBi(MNSBZ,MNZ),KSBf(MNSBZ,MNZ),
-     &              ISUFLC(MNSBZ,MNZ),IWSB(MNSBZ,MNZ),SSB(MNSBZ,MNZ),
-     &              SSBHC(MNSBZ,MNZ),IVOLNSB(MNSBZ,MNZ),
-     &              ITCtype(MNSBZ,MNZ),icTREF(MNSBZ,MNZ)
       COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
      &              INITD
       logical HAS_GEOM
       character INITD*6
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      character outs*124,t6*6,t12*12,facstr*1
+      character outs*124,t6*6
       logical ok,dok
-      logical bumin,bumax,bvmin,bvmax,bwmin,bwmax,doafnasc
-      real umin,umax,vmin,vmax,wmin,wmax,r1,r2,u,v,w
-      real sumin,sumax,svmin,svmax,swmin,swmax
-      integer snum
+      logical doafnasc
+      real vmax,wmin,wmax,r1,r2
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2690,7 +2614,7 @@ C Remember visualisation settings.
 
 C Ensure parent-child relationships are defined.
       call GEOREAD(IFIL+1,LGEOM(ICP),ICP,1,IUOUT,IER)
-      call suredgeadj(0,'c',ICP,IER)
+      call SURREL2('u',ICP,IER)
 
 C If there are already some defined, ask user if they want to clear
 C existing boundary conditions.
@@ -2862,7 +2786,6 @@ C ISTAT = 2: Entity(s) skipped, but no error.
       SUBROUTINE GENVOBC(ivo,istat)
 
 #include "building.h"
-#include "model.h"
 #include "geometry.h"
 #include "cfd.h"
 
@@ -3336,7 +3259,7 @@ C Yes, so skip it.
             ive=VOBJILIST(ICP,ivo,i)
             jve=VOBJILIST(ICP,ivo,j)
             t12=VISNAME(ICP,ive)
-            tt12=VISNAME(IVP,jve)
+            tt12=VISNAME(ICP,jve)
             write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a)')' Entity ',
      &        ive,t12(1:lnblnk(t12)),' is engulfed by entity ',
      &        jve,tt12(1:lnblnk(tt12)),', skipping.'
@@ -3544,6 +3467,19 @@ C blobs just fine).
                   aieext(ne,3)=aieext(i,3); aieext(ne,4)=aieext(i,4)
                   aieext(ne,5)=k;           aieext(ne,6)=aiext(2)
                 endif
+
+C Update current instanciated i entity extents.
+                if (aiestat(i).eq.1) then ! plane normal is in u direction
+                  aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+                  aiext(3)=aieext(i,3); aiext(4)=aieext(i,5)
+                elseif (aiestat(i).eq.2) then ! plane normal is in v direction
+                  aiext(1)=aieext(i,3); aiext(2)=aieext(i,4)
+                  aiext(3)=aieext(i,1); aiext(4)=aieext(i,5)
+                elseif (aiestat(i).eq.3) then ! plane normal is in w direction
+                  aiext(1)=aieext(i,5); aiext(2)=aieext(i,6)
+                  aiext(3)=aieext(i,1); aiext(4)=aieext(i,3)
+                endif
+
                 aiestat(ne)=aiestat(i)
                 isplt=isplt+1
                 aiesplt(isplt)=i
@@ -3561,6 +3497,19 @@ C stick.
                 elseif (aiestat(i).eq.6) then
                   aieext(i,5)=k
                 endif
+
+C Update current instanciated i entity extents.
+                if (aiestat(i).eq.1) then ! plane normal is in u direction
+                  aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+                  aiext(3)=aieext(i,3); aiext(4)=aieext(i,5)
+                elseif (aiestat(i).eq.2) then ! plane normal is in v direction
+                  aiext(1)=aieext(i,3); aiext(2)=aieext(i,4)
+                  aiext(3)=aieext(i,1); aiext(4)=aieext(i,5)
+                elseif (aiestat(i).eq.3) then ! plane normal is in w direction
+                  aiext(1)=aieext(i,5); aiext(2)=aieext(i,6)
+                  aiext(3)=aieext(i,1); aiext(4)=aieext(i,3)
+                endif
+
                 ok=.true.
                 EXIT
               endif
@@ -3573,7 +3522,7 @@ C If ok is true, we've already dealt with the intersection.
 
 C If we've reached this point then we've now been through the entire
 C stick. In theory, the only way we should get to this point is if the
-C positive end of the stick is engulfed, and we need to shorten the it.
+C positive end of the stick is engulfed, and we need to shorten it.
           if (iengst.gt.0) then
             if (aiestat(i).eq.4) then
               aieext(i,2)=iengst-1
@@ -3582,6 +3531,19 @@ C positive end of the stick is engulfed, and we need to shorten the it.
             elseif (aiestat(i).eq.6) then
               aieext(i,6)=iengst-1
             endif
+
+C Update current instanciated i entity extents.
+            if (aiestat(i).eq.1) then ! plane normal is in u direction
+              aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+              aiext(3)=aieext(i,3); aiext(4)=aieext(i,5)
+            elseif (aiestat(i).eq.2) then ! plane normal is in v direction
+              aiext(1)=aieext(i,3); aiext(2)=aieext(i,4)
+              aiext(3)=aieext(i,1); aiext(4)=aieext(i,5)
+            elseif (aiestat(i).eq.3) then ! plane normal is in w direction
+              aiext(1)=aieext(i,5); aiext(2)=aieext(i,6)
+              aiext(3)=aieext(i,1); aiext(4)=aieext(i,3)
+            endif
+
             CYCLE
           endif
 
@@ -3737,7 +3699,7 @@ C dimension is the second.
 
 C Plane is engulfed at some point in its second dimension - search
 C dimension is the first.
-            ickhdm=1
+            ichkdm=1
 
           elseif (aiext(1).lt.ajext(1) .and. aiext(2).gt.ajext(2) .and.
      &            aiext(3).lt.ajext(3) .and. aiext(4).gt.ajext(4)) then
@@ -3770,7 +3732,7 @@ C Is the negative edge of the plane engulfed?
 
 C Check for a plane-that-is-actually-a-stick in the search dimension;
 C this can happen if a stick has been shortened or split.
-          if (aiext(chkdm).eq.aiext(chkdm+1)) then
+          if (aiext(ichkdm).eq.aiext(ichkdm+1)) then
             if (preveng) then
               aiestat(i)=-1
               EXIT
@@ -3837,6 +3799,22 @@ C sticks just fine).
                     aieext(ne,5)=aieext(i,5); aieext(ne,6)=aieext(i,6)
                   endif
                 endif
+
+C Update current instantiated i entity extents.
+                if (aiestat(i).eq.1) then ! plane normal is in u direction
+                  aiext(1)=aieext(i,3); aiext(2)=aieext(i,4)
+                  aiext(3)=aieext(i,5); aiext(4)=aieext(i,6)
+                  aiext(5)=aieext(i,1)
+                elseif (aiestat(i).eq.2) then ! plane normal is in v direction
+                  aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+                  aiext(3)=aieext(i,5); aiext(4)=aieext(i,6)
+                  aiext(5)=aieext(i,3)
+                elseif (aiestat(i).eq.3) then ! plane normal is in w direction
+                  aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+                  aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
+                  aiext(5)=aieext(i,5)
+                endif
+
                 aiestat(ne)=aiestat(i)
                 isplt=isplt+1
                 aiesplt(isplt)=i
@@ -3866,6 +3844,22 @@ C plane.
                     aieext(i,3)=k
                   endif
                 endif
+
+C Update current instantiated i entity extents.
+                if (aiestat(i).eq.1) then ! plane normal is in u direction
+                  aiext(1)=aieext(i,3); aiext(2)=aieext(i,4)
+                  aiext(3)=aieext(i,5); aiext(4)=aieext(i,6)
+                  aiext(5)=aieext(i,1)
+                elseif (aiestat(i).eq.2) then ! plane normal is in v direction
+                  aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+                  aiext(3)=aieext(i,5); aiext(4)=aieext(i,6)
+                  aiext(5)=aieext(i,3)
+                elseif (aiestat(i).eq.3) then ! plane normal is in w direction
+                  aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+                  aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
+                  aiext(5)=aieext(i,5)
+                endif
+
                 ok=.true.
                 EXIT
               endif
@@ -3878,7 +3872,7 @@ C If ok is true, we've already dealt with the intersection.
 
 C If we've reached this point then we've now been through the entire
 C search. In theory, the only way we should get to this point is if the
-C positive end of the plane is engulfed, and we need to shorten the it.
+C positive end of the plane is engulfed, and we need to shorten it.
           if (iengst.gt.0) then
             if (aiestat(i).eq.1) then
               if (ichkdm.eq.1) then ! shorten in v direction
@@ -3899,6 +3893,22 @@ C positive end of the plane is engulfed, and we need to shorten the it.
                 aieext(i,4)=iengst-1
               endif
             endif
+
+C Update current instantiated i entity extents.
+            if (aiestat(i).eq.1) then ! plane normal is in u direction
+              aiext(1)=aieext(i,3); aiext(2)=aieext(i,4)
+              aiext(3)=aieext(i,5); aiext(4)=aieext(i,6)
+              aiext(5)=aieext(i,1)
+            elseif (aiestat(i).eq.2) then ! plane normal is in v direction
+              aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+              aiext(3)=aieext(i,5); aiext(4)=aieext(i,6)
+              aiext(5)=aieext(i,3)
+            elseif (aiestat(i).eq.3) then ! plane normal is in w direction
+              aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+              aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
+              aiext(5)=aieext(i,5)
+            endif
+
             CYCLE
           endif
 
@@ -4000,7 +4010,7 @@ C Is the negative edge of the block engulfed?
 
 C Check for a block-that-is-actually-a-plane in the search dimension;
 C this can happen if a block has been shortened or split.
-          if (aiext(chkdm).eq.aiext(chkdm+1)) then
+          if (aiext(ichkdm).eq.aiext(ichkdm+1)) then
             if (preveng) then
               aiestat(i)=-1
               EXIT
@@ -4046,6 +4056,12 @@ C planes just fine).
                   aieext(ne,3)=aieext(i,3); aieext(ne,4)=aieext(i,4)
                   aieext(ne,5)=k;           aieext(ne,6)=aiext(6)
                 endif
+
+C Update current instanciated i entity extents.
+                aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+                aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
+                aiext(5)=aieext(i,5); aiext(6)=aieext(i,6)
+
                 aiestat(ne)=aiestat(i)
                 isplt=isplt+1
                 aiesplt(isplt)=i
@@ -4063,6 +4079,12 @@ C off the block.
                 elseif (ichkdm.eq.5) then ! shorten in z direction
                   aieext(i,5)=k
                 endif
+
+C Update current instanciated i entity extents.
+                aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+                aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
+                aiext(5)=aieext(i,5); aiext(6)=aieext(i,6)
+
                 ok=.true.
                 EXIT
               endif
@@ -4075,16 +4097,24 @@ C If ok is true, we've already dealt with the intersection.
 
 C If we've reached this point then we've now been through the entire
 C search. In theory, the only way we should get to this point is if the
-C positive end of the block is engulfed, and we need to slic planes off
+C positive end of the block is engulfed, and we need to slice planes off
 C it.
-          if (ichkdm.eq.1) then ! shorten in u direction
-            aieext(i,2)=iengst-1
-          elseif (ichkdm.eq.3) then ! shorten in v direction
-            aieext(i,4)=iengst-1
-          elseif (ichkdm.eq.5) then ! shorten in z direction
-            aieext(i,6)=iengst-1
+          if (iengst.gt.0) then
+            if (ichkdm.eq.1) then ! shorten in u direction
+              aieext(i,2)=iengst-1
+            elseif (ichkdm.eq.3) then ! shorten in v direction
+              aieext(i,4)=iengst-1
+            elseif (ichkdm.eq.5) then ! shorten in z direction
+              aieext(i,6)=iengst-1
+            endif
+
+C Update current instanciated i entity extents.
+            aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
+            aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
+            aiext(5)=aieext(i,5); aiext(6)=aieext(i,6)
+
+            CYCLE
           endif
-          CYCLE
 
 C If we get to here, something has gone wrong.
           ive=VOBJILIST(ICP,ivo,i)
@@ -4115,9 +4145,10 @@ C Now, make blockages.
         endif
 
         write (t12,'(a,i3.3,a,i3.3)')'blk',NBLK(ICFD)+1,'_ve',ive
+        tt12='            '
         call MKCFDBC(show,30,8,aieext(i,1),aieext(i,2),aieext(i,3),
-     &    aieext(i,4),aieext(i,5),aieext(i,6),t12,' ',dum,1,0.0,0.0,0.0,
-     &    0.0,0.0,IER)
+     &    aieext(i,4),aieext(i,5),aieext(i,6),t12,tt12,dum,1,0.0,0.0,
+     &    0.0,0.0,0.0,IER)
       enddo
 
   999 RETURN
@@ -4184,7 +4215,6 @@ C doafnasc is currently unused, pending further development.
       RECURSIVE SUBROUTINE GENEDGBC(isur,umax,vmax,wmax,ifac,ibctyp,
      &  isumin,isumax,isvmin,isvmax,iswmin,iswmax,doafnasc,ISTAT)
 #include "building.h"
-#include "model.h"
 #include "geometry.h"
 #include "cfd.h"
 
@@ -4202,13 +4232,6 @@ C doafnasc is currently unused, pending further development.
       COMMON/C24/IZSTOCN(MCOM,MS)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
-      common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
-      character VOLNAME*12,VCsurf*12
-      common/KEYVDAT/IVTYPE(MNVLS,MNZ),VOLTemp(MNVLS,MNZ),
-     &          VOLHeat(MNVLS,MNZ),IVConfl(MNVLS,MNZ),VOLHum(MNVLS,MNZ),
-     &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
-     &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
-     &          VOLPol(MCTM,MNVLS,MNZ)
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
      &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
      &             JOPENf(MCFND,MNZ),KOPENi(MCFND,MNZ),
@@ -4733,7 +4756,6 @@ C Now, check for children.
         write(outs,'(a)')' Child surfaces detected.'
         CALL EDISP(IUOUT,outs)
         icldtotca=0
-        icldvert=0
         ncldverts=0
         do icld=1,NBCHILD(icnn)
           icldcnn=ICHILD(icnn,icld)
@@ -5782,7 +5804,7 @@ C Is there room at the right?
 
 C 9 and 10 are for frames.
           elseif (iibctyp.eq.9 .or. iibctyp.eq.10) then
-            write(6,'(a)')
+            write(outs,'(a)')
      &' This surface is a frame, but has no children. Check usage tags.'
             call EDISP(IUOUT,outs)
           endif
@@ -7120,7 +7142,7 @@ C Is there room at the right?
 
 C 9 and 10 are for frames.
           elseif (ibctyp.eq.9 .or. ibctyp.eq.10) then
-            write(6,'(a)')
+            write(outs,'(a)')
      &' This surface is a frame, but has no children. Check usage tags.'
             call EDISP(IUOUT,outs)
           endif
@@ -7131,16 +7153,6 @@ C 9 and 10 are for frames.
 
       RETURN
       END
-
-
-
-
-
-
-
-
-
-
 
 
 C ************************** EDAIRO **************************
@@ -7163,8 +7175,6 @@ C#include "building.h"
      &          VOLCO2(MNVLS,MNZ),VOLVel(MNVLS,MNZ),VOLDir(MNVLS,MNZ,2),
      &          VOLArea(MNVLS,MNZ),VOLPres(MNVLS,MNZ),
      &          VOLPol(MCTM,MNVLS,MNZ)
-      common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
-      CHARACTER*72 TITLE,CFTRFL,LPHI
 
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
      &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
@@ -7184,13 +7194,6 @@ C#include "building.h"
       character VOLNAME*12, VCsurf*12,t20*20
       integer IWO  ! for radio button
       integer NITMS,INO ! max items and current menu item
-      character zngeo*3,etext*82
-
-#ifdef OSI
-      integer iside,isize,ifont
-#else
-      integer*8 iside,isize,ifont
-#endif
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -7210,13 +7213,13 @@ C Check if new opening.
      &    Ki.lt.0.or.Kf.lt.0) then 
         t20='Air opening'
         if(IVOLF(IAO,ICFD).ne.0)IFACE=IVOLF(IAO,ICFD)
-        call PIKCELS(t20,VOLNAME(IAO,ICFD),Ii,If,Ji,Jf,Ki,Kf,
-     &    IFACE,IER)
+        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(IAO,ICFD)=IFACE
 C        write(6,*) 'face a',IAO,ICFD,IFACE
         IVCELLS(IAO,ICFD,1)=Ii+1; IVCELLS(IAO,ICFD,2)=If+1
         JVCELLS(IAO,ICFD,1)=Ji+1; JVCELLS(IAO,ICFD,2)=Jf+1
         KVCELLS(IAO,ICFD,1)=Ki+1; KVCELLS(IAO,ICFD,2)=Kf+1
+        call NEW2OLD
       endif
 
 C Generate text for location index
@@ -7351,13 +7354,13 @@ C Reset location to whole of volume for non face choices.
       elseif (INO.eq.5) then
         t20='Air opening'
         if(IVOLF(IAO,ICFD).ne.0)IFACE=IVOLF(IAO,ICFD)
-        call PIKCELS(t20,VOLNAME(IAO,ICFD),Ii,If,Ji,Jf,Ki,Kf,
-     &    IFACE,IER)
+        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(IAO,ICFD)=IFACE
 C        write(6,*) 'face b',IAO,ICFD,IFACE
         IVCELLS(IAO,ICFD,1)=Ii+1; IVCELLS(IAO,ICFD,2)=If+1
         JVCELLS(IAO,ICFD,1)=Ji+1; JVCELLS(IAO,ICFD,2)=Jf+1
         KVCELLS(IAO,ICFD,1)=Ki+1; KVCELLS(IAO,ICFD,2)=Kf+1
+        call NEW2OLD
       elseif (INO.eq.8) then
         if (IVTYPE(IAO,ICFD).eq.10) then
           VAL=VOLPres(IAO,ICFD)
@@ -7405,6 +7408,7 @@ C ************************** MFCONF **************************
 C MFCONF defines conflation of CFD and mfs 
 
       SUBROUTINE MFCONF(ICFD)
+#include "building.h"
 #include "cfd.h"
 #include "net_flow.h"
 
@@ -7494,7 +7498,6 @@ C #include "prj3dv.h"
      &              INITD
       logical HAS_GEOM
       character INITD*6
-      common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
 
       COMMON/Sbdary/NSB(MNZ),ISBi(MNSBZ,MNZ),ISBf(MNSBZ,MNZ),
      &              JSBi(MNSBZ,MNZ),JSBf(MNSBZ,MNZ),
@@ -7506,8 +7509,7 @@ C #include "prj3dv.h"
       character ITMSS(13)*40
       character face*6,ltmp*16,t12*12,d12*12,outs*124
       character VOLNAME*12, VCsurf*12
-      CHARACTER t20*20,ETEXT*82,zngeo*3
-      character TITLE*72,CFTRFL*72,LPHI*72
+      CHARACTER t20*20
       integer IWO  ! for radio button
       integer NITMS,INO ! max items and current menu item
 
@@ -7516,12 +7518,6 @@ C For help messages
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
-#ifdef OSI
-      integer iside,isize,ifont
-#else
-      integer*8 iside,isize,ifont
-#endif
-
       helpinsub='EDSLDB'  ! set for subroutine
 
 C Adjust each cell by -1 as dfs adds fictitious cells around the domain.
@@ -7529,7 +7525,6 @@ C Adjust each cell by -1 as dfs adds fictitious cells around the domain.
       Ji=JVCELLS(ISB,ICFD,1)-1; Jf=JVCELLS(ISB,ICFD,2)-1
       Ki=KVCELLS(ISB,ICFD,1)-1; Kf=KVCELLS(ISB,ICFD,2)-1
       itrc=0   ! silent feedback initially
-      XZ=0.; YZ=0.; ZZ=0.
 
 C Check if new solid boundary.
       if (Ii.lt.0.or.If.lt.0.or.
@@ -7537,13 +7532,13 @@ C Check if new solid boundary.
      &    Ki.lt.0.or.Kf.lt.0) then 
         t20='Solid boundary'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(t20,VOLNAME(ISB,ICFD),Ii,If,Ji,Jf,Ki,Kf,
-     &    IFACE,IER)
+        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
 C        write(6,*) 'face c',ISB,ICFD,IFACE
         IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
+        call NEW2OLD
       endif
 
 C Generate text for location index
@@ -7721,13 +7716,13 @@ C Try to remember non conflated option if building surface chosen.
       elseif (INO.eq.5) then
         t20='Solid boundary'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(t20,VOLNAME(ISB,ICFD),Ii,If,Ji,Jf,Ki,Kf,
-     &    IFACE,IER)
+        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
 C        write(6,*) 'face d',ISB,ICFD,IFACE
         IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
+        call NEW2OLD
       elseif (INO.eq.8) then
         if (IVTYPE(ISB,ICFD).eq.1) then
           VAL=VOLTemp(ISB,ICFD)
@@ -7768,6 +7763,7 @@ C EDSRC controls the editing of CFD sources - humidity, CO2, etc.
 C IER=0 indicates no error.
 
       SUBROUTINE EDSRC(ISB,IER)
+#include "building.h"
 #include "cfd.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
@@ -7797,7 +7793,6 @@ C IER=0 indicates no error.
      &              INITD
       logical HAS_GEOM
       character INITD*6
-      common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
       common/pophelp/h(60)   ! needed for dynamic popup
       character H*72
 
@@ -7810,14 +7805,6 @@ C IER=0 indicates no error.
       LOGICAL CALPOL,CALLMA,OK,DOK
       INTEGER SPMTYP,SSLINK1,SSLINK2
       integer NITMS,INO,NITMSS1,IIO,NITMSS2,IXO,NITUM,INUO,NITMSS3 ! max items and current menu item
-      character TITLE*72,CFTRFL*72,LPHI*72
-      CHARACTER ETEXT*82,zngeo*3
-
-#ifdef OSI
-      integer iside,isize,ifont
-#else
-      integer*8 iside,isize,ifont
-#endif
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -7846,13 +7833,13 @@ C Check if new source.
      &    Ki.lt.0.or.Kf.lt.0) then 
         t20='Source definition'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(t20,VOLNAME(ISB,ICFD),Ii,If,Ji,Jf,Ki,Kf,
-     &    IFACE,IER)
+        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
 C        write(6,*) 'face e',ISB,ICFD,IFACE
         IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
+        call NEW2OLD
       endif
 
 C Generate text for location index
@@ -7966,7 +7953,6 @@ C Display menu.
         CALL PHELPD('Warning',nbhelp,'-',0,0,IER)
       ENDIF
       CALL EMENU('Sources edit',ITMSS,NITMS,INO)
-      write(6,*)INO
       if (INO.lt.1) then
         goto 7
       elseif (ITMSS(INO)(1:1).eq.' ') then
@@ -8188,13 +8174,13 @@ C Define CFD grid cells for source type boundary condition
         call gethelptext(helpinsub,helptopic,nbhelp)
         t20='Source definition'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(t20,VOLNAME(ISB,ICFD),Ii,If,Ji,Jf,Ki,Kf,
-     &    IFACE,IER)
+        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
 C        write(6,*) 'face f',ISB,ICFD,IFACE
         IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
+        call NEW2OLD
       elseif (INO.eq.7) then
         helptopic='cfd_source_boundary_edit'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -8485,9 +8471,6 @@ C IER=0 indicates no error.
      2            DZHP(ntcelz),DZPL(ntcelz),
      3            SEW(ntcelx),SNS(ntcely),SHL(ntcelz),
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
-      common/param2/TITLE(MNZ),CFTRFL(MNZ),LPHI(MNZ)
-      CHARACTER*72 TITLE,CFTRFL,LPHI
-
       common/blksso/NBLK(MNZ),INBLK(MNVLS,MNZ),NSSO(MNZ),
      &          INSSO(MNVLS,MNZ)
       COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
@@ -8495,19 +8478,12 @@ C IER=0 indicates no error.
       logical HAS_GEOM
       character INITD*6
  
-      character ITMSS(14)*50,FACE*6
+      character ITMSS(14)*50
       character ltmp*16,t12*12,d12*12,t20*20
       character VOLNAME*12, VCsurf*12
-      character zngeo*3,etext*82
 
       logical ERROR
       integer NITMS,INO ! max items and current menu item
-
-#ifdef OSI
-      integer iside,isize,ifont
-#else
-      integer*8 iside,isize,ifont
-#endif
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -8529,40 +8505,16 @@ C Check if new blockage.
      &    Ki.lt.0.or.Kf.lt.0) then 
         t20='Blockage'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(t20,VOLNAME(ISB,ICFD),Ii,If,Ji,Jf,Ki,Kf,
-     &    IFACE,IER)
+        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
-C        write(6,*) 'face g',ISB,ICFD,IFACE
         IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
-      endif
-
-
-C Generate text for location index. (not yet used in the interface)
- 5    FACE='  '
-      if (IVOLF(ISB,ICFD).eq.1) then
-        FACE='West'
-      elseif (IVOLF(ISB,ICFD).eq.2) then
-        FACE='East'
-      elseif (IVOLF(ISB,ICFD).eq.3) then
-        FACE='South'
-      elseif (IVOLF(ISB,ICFD).eq.4) then
-        FACE='North'
-      elseif (IVOLF(ISB,ICFD).eq.5) then
-        FACE='Low'
-      elseif (IVOLF(ISB,ICFD).eq.6) then
-        FACE='High'
-      elseif (IVOLF(ISB,ICFD).eq.7) then
-        FACE='Whole'
-      elseif (IVOLF(ISB,ICFD).eq.8) then
-        FACE='Block'
-      elseif (IVOLF(ISB,ICFD).eq.9) then
-        FACE='Source'
+        call NEW2OLD
       endif
 
 C Set boundary type string.
-      ltmp='  '
+    5 ltmp='  '
       if (IVTYPE(ISB,ICFD).eq.30) then
         ltmp='Blockage'
       endif
@@ -8573,9 +8525,9 @@ C Create a menu showing definitions for different conflation schemes.
       zd=ZW(Kf+2)-ZW(Ki+1)
 
 C Debug echo the coordinates of the blockage.
-      write(6,*) 'cords X are:',XU(Ii+1),XU(If+2),xd
-      write(6,*) 'cords Y are:',YV(Ji+1),YV(Jf+2),yd
-      write(6,*) 'cords Z are:',ZW(Ki+1),ZW(Kf+2),zd
+c      write(6,*) 'cords X are:',XU(Ii+1),XU(If+2),xd
+c      write(6,*) 'cords Y are:',YV(Ji+1),YV(Jf+2),yd
+c      write(6,*) 'cords Z are:',ZW(Ki+1),ZW(Kf+2),zd
 
       write (ITMSS(1),'(a,a)')   'a Name: ',VOLNAME(ISB,ICFD)
       write (ITMSS(2),'(3a)')   '  Type: ',ltmp
@@ -8632,13 +8584,12 @@ C Get boundary name.
       elseif (INO.eq.5) then
  79     t20='Blockage'
         if(IVOLF(ISB,ICFD).ne.0)IFACE=IVOLF(ISB,ICFD)
-        call PIKCELS(t20,VOLNAME(ISB,ICFD),Ii,If,Ji,Jf,Ki,Kf,
-     &    IFACE,IER)
+        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
         IVOLF(ISB,ICFD)=IFACE
-C        write(6,*) 'face h',ISB,ICFD,IFACE
         IVCELLS(ISB,ICFD,1)=Ii+1; IVCELLS(ISB,ICFD,2)=If+1
         JVCELLS(ISB,ICFD,1)=Ji+1; JVCELLS(ISB,ICFD,2)=Jf+1
         KVCELLS(ISB,ICFD,1)=Ki+1; KVCELLS(ISB,ICFD,2)=Kf+1
+        call NEW2OLD
 
 C Check for illegal volume (vol must be 1 cells thick in all directions).
         ERROR=.false.
@@ -8753,7 +8704,7 @@ C Display menu and then decode returned value.
 C ************************** PIKCELS **************************
 C PIKCELS controls the editing of the cells defining a boundary region.
 
-      SUBROUTINE PIKCELS(BTYPE,BNAME,Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+      SUBROUTINE PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
 
 #include "cfd.h"
       integer iCountWords
@@ -8770,7 +8721,7 @@ C XU YV ZW are the start of the cells.
      4            XU(ntcelx),YV(ntcely),ZW(ntcelz)
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 
-      character BTYPE*20,BNAME*12,s30*30,dflt*30,lface*7,t30*30
+      character s30*30,dflt*30,lface*7,t30*30
       character outs*124
       integer IFACE   ! for radio button
 
@@ -9030,7 +8981,7 @@ C Top face.
 C Check for conflicts.
       if (IMTCH.eq.0) then
         call usrmsg ('Cells must be at a boundary face.','  ','W')
-        call PIKCELS(BTYPE,BNAME,Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
+        call PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
       elseif (IMTCH.gt.1) then
         call usrmsg ('Cannot resolve boundary face.',
      &               'Please choose from the following list.','W')
@@ -9065,7 +9016,7 @@ C Check for incompatable face/ cell definition
 C ************* TOPBOT 
 C TOPBOT: Define upper and lower curvilinear x-section for use in
 C gridding generation.
-      SUBROUTINE TOPBOT(ICOMP,act,IER)
+      SUBROUTINE TOPBOT(ICOMP,IER)
 #include "building.h"
 #include "geometry.h"
 #include "prj3dv.h"
@@ -9083,7 +9034,7 @@ C Curvilinear boundary vertex numbers.
       DIMENSION COG1(3),COG2(3),COG3(3),JJVN(MV)
       integer ISTRW
 
-      CHARACTER act*1,HOLD*96,outs*124
+      CHARACTER HOLD*96,outs*124
 #ifdef OSI
       integer iix,iiy,iixx,iiyy,ixd,iyd,iik
 #else
@@ -9605,6 +9556,7 @@ C PROMPT1 and PROMPT2 are text prompt strings
 C NH is number of help strings.
 
       SUBROUTINE ASKMFNOD(IOPT,NNPK,INPK,PROMPT1,PROMPT2,NH)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -9633,6 +9585,7 @@ C then silently return all connections associated with the node
 C (absolute value of INODE).
 
       SUBROUTINE ASKMFCON(INODE,NNPK,ICPK,PROMPT1,PROMPT2)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 

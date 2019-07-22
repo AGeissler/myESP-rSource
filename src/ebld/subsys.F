@@ -2522,7 +2522,7 @@ C Evaluate zone relative humidity and test for condensation.
 
 C Next check not really necessary.
       IF(ZRH.LT.0.0)THEN
-        write(outs,'(A,I3,A,F7.2,a)')
+        write(outs,'(A,I3,A,F8.2,a)')
      &  ' MZVAPC: for zone',ICOMP,' the computed relative humidity of',
      &  ZRH,' has been reset to zero.'
         call edisp(iuout,outs)

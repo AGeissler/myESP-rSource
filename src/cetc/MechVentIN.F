@@ -133,7 +133,7 @@ c
      x ' power consumption data', IUOUT, iErr)
                   ERVTest(i,4) = VAL
                Endif
-            Endif			   
+            Endif
 c --- Continue HVI test data (varies with model, type, rated flow rate
 c
             If ( iErr .eq. 0 ) Then
@@ -148,7 +148,7 @@ c Set 2: "low" temperature
      x ' "low" temperature', IUOUT, iErr)
                If ( iCVSType == 2 ) HRVTest(i,1) = VAL
                If ( iCVSType == 4 ) ERVTest(i,1) = VAL
-			   
+
             Endif
 c
             If ( iErr .eq. 0 ) Then
