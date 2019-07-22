@@ -153,7 +153,7 @@ MODULE h3kmodule
          rvMfnTotalNodeFlowRate,rvMfnTotalNodeVolFlowRate,rvMfnTotalNodeTemp, &
          rvMfnConnectPressureDrop, rvMfnConnectFlowRate,rvMfnConnectVeloc, &
          rvMfnContamCon, rvMfnConnectCtlOnFrac, rvZoneLabel
-Type(ReportVariable) :: rvSurfaceArea, rvSurfLayDens, rvSurfLayThick
+   Type(ReportVariable) :: rvSurfaceArea, rvSurfLayMatnam, rvSurfLayDens, rvSurfLayThick, rvMLCArea
 
    !Used by SiteUtilities.F
    Type(ReportVariable) :: rvTFuelAllEndEnergyContent, rvTFuelAllEndQty, &
@@ -1092,6 +1092,18 @@ CONTAINS
       rvSurfaceArea%VariableType = '(m2)'
       rvSurfaceArea%Description = 'Surface area'
       Call AddVariable(rvSurfaceArea)
+
+      rvMLCArea%VariableName = 'construction/*/totalarea'
+      rvMLCArea%MetaType = 'units'
+      rvMLCArea%VariableType = '(m2)'
+      rvMLCArea%Description = 'MLC total area in model'
+      Call AddVariable(rvMLCArea )
+
+      rvSurfLayMatnam%VariableName = 'building/*/*/*/material'
+      rvSurfLayMatnam%MetaType = 'units'
+      rvSurfLayMatnam%VariableType = '(-)'
+      rvSurfLayMatnam%Description = 'Surface layer material name'
+      Call AddVariable(rvSurfLayMatnam)
 
       rvSurfLayDens%VariableName = 'building/*/*/*/density'
       rvSurfLayDens%MetaType = 'units'
