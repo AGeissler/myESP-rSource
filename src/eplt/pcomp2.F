@@ -8002,7 +8002,7 @@ C Calculate the return water temperature set point if temperature compensation i
           IF(Tamb.GE.TempCompS.AND.Tamb.LT.TempCompE)THEN
             ReturnSP=((Tamb-TempCompS)*TempCompc0)+NomRetT
             ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
-            ReturnSPH=ReturnSP+4. !0.5*(NomRetTDeadB)
+            ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
 
 C Case where Tamb > Temp compensation end point
           ELSEIF(Tamb.GE.TempCompE)THEN
