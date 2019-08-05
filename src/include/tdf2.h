@@ -34,7 +34,7 @@ C Maximum number of timesteps in an hour.
       PARAMETER (MHTS=60)
       
 C Array size for maximum items available of temporal definition
-      PARAMETER (MTI=31)
+      PARAMETER (MTI=32)
 
 C Related to TDF header.
       integer NWPR   ! Number of words per record in the TAB file.
@@ -104,7 +104,7 @@ C a zero indicates that that particular zone is not associated and
 C a non-zero indicates the index of the item. For example icasual(3)=6
 C says that the 3rd zone in the model uses a casual gains item which
 C is the 6th item in the temporal file.
-      integer IALLCLM   ! if non-zero a item holding all climate data used
+      integer IALLCLM   ! if non-zero an item holding all climate data used
       integer ICASUAL   ! if non-zero lumped casual gains are used 
       integer IZIVENT   ! if non-zero ventilation & infiltration used
       integer IRAIRVL   ! if non-zero room air velocity (not yet used)
@@ -141,6 +141,8 @@ C is the 6th item in the temporal file.
       integer IZNRHOBS  ! if non-zero observed zone rh available for viewing
       integer IZNHTOBS  ! if non-zero observed zone heating available for viewing
       integer IZNCLOBS  ! if non-zero observed zone cooling available for viewing
+      integer IGRNDRFL  ! if non-zero ground reflectance is provided at each time step
+      
       COMMON/TDFFLG2/IALLCLM,ICASUAL(MCOM),IZIVENT(MCOM),IRAIRVL(MCOM),
      &       ISETPTT(MCOM),ICTLSTA(MCOM),ISKYLUX,IDBTEXT,IWINDVL,
      &       IWINDDR,IRELHUM,IDIFHSL,IDIRSOL,IGLOHSL,IOBJVEL,IOBJDIR,
@@ -148,4 +150,5 @@ C is the 6th item in the temporal file.
      &       IBIDIRS(MCOM,MS),IVERSOL(MCOM,MS),IHTCLSETP(MCOM),
      &       IDBTZNOBS(MCOM),ISURTOBS(MCOM,MS),IMFNTDFP(MNOD),IMFNTDFF,
      &       IPERVSEN,IStorageHeater(MCOM),IELECPWR(MCOM),ICFCCTL(MCOM),
-     &       IRAININD,IZNRHOBS(MCOM),IZNHTOBS(MCOM),IZNCLOBS(MCOM)
+     &       IRAININD,IZNRHOBS(MCOM),IZNHTOBS(MCOM),IZNCLOBS(MCOM),
+     &       IGRNDRFL

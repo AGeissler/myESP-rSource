@@ -88,7 +88,7 @@ C Tollerance for surface matching.
       logical greyok  ! for drawing red dot
       logical modgeo  ! in case SVFC is updated
       integer isurloop,iverloop,ichildloop ! for use in loops
-      integer icdn, icc ! for connection numbers
+      integer icc ! for connection numbers
       integer lnmyp,lnssn  ! lengths of strings
       integer myedges ! number of edges in the child surface
       integer parentedges  ! number of edges in the parent surface
@@ -158,12 +158,12 @@ C While looping remember the connection associated with zone:surf.
               iotherzone=IC1(IXU)
               write(outs,'(5a)') 
      &          'Freeing `other side` information of ',
-     &          ssname(ixu)(1:lnblnk(ssname(ixu))),' ',
-     &          zname(iotherzone)(1:lnzname(iotherzone)),'...'
+     & sname(iotherzone,IE1(ixu))(1:lnblnk(sname(iotherzone,IE1(ixu)))),
+     &          ' ',zname(iotherzone)(1:lnzname(iotherzone)),'...'
               call edisp(iuout,outs)
 
-C The ssother() array has changed so the other zone should
-C be rewritten. Scan it and update ssother and then write.
+C The sother() array has changed so the other zone should
+C be rewritten. Scan it and update sother and then write.
 
 C << goal is to have all of the information within zone geometry
 C << files held in memory so files can be updated without having
@@ -175,9 +175,9 @@ C << to re-read. several steps required before this is possible.
 
 C Adjust the data structures.
               ICT(IXU)=-1; IC2(IXU)=0; IE2(IXU)=0
-              SSOTHER(IXU,1)='UNKNOWN'
-              SSOTHER(IXU,2)='0'
-              SSOTHER(IXU,3)='0'
+              SOTHER(IC1(IXU),IE1(IXU),1)='UNKNOWN'
+              SOTHER(IC1(IXU),IE1(IXU),2)='0'
+              SOTHER(IC1(IXU),IE1(IXU),3)='0'
 
 C Logic to decide whether to upgrade other zone geometry format.
               if(igupgrade.eq.2.and.(.NOT.newgeo))then
@@ -201,7 +201,7 @@ C and which is about to be moved down should be adjusted.
           if(ICT(IXU).EQ.3)then
             if(IC2(IXU).eq.ICOMP.and.IE2(IXU).gt.IWHICH)THEN
 
-C The ssother() array has changed so the other zone should
+C The sother() array has changed so the other zone should
 C be rewritten. Scan it and update ssother and then write.
               iotherzone=IC1(IXU)
               write(outs,'(3a)') 
@@ -213,11 +213,11 @@ C be rewritten. Scan it and update ssother and then write.
               call georead(IFIL+2,LGEOM(iotherzone),iotherzone,0,
      &            iuout,IER)
 
-C Update IE2 and ssother third tag in the other zone.
+C Update IE2 and sother third tag in the other zone.
               IE2(IXU)=IE2(IXU)-1
-              write(ssother(ixu,1),'(a)') 'ANOTHER'
-              write(ssother(ixu,2),'(i2.2)') IC2(ixu)
-              write(ssother(ixu,3),'(i3.3)') IE2(ixu)
+              write(sother(IC1(IXU),IE1(IXU),1),'(a)') 'ANOTHER'
+              write(sother(IC1(IXU),IE1(IXU),2),'(i2.2)') IC2(ixu)
+              write(sother(IC1(IXU),IE1(IXU),3),'(i3.3)') IE2(ixu)
 
 C Logic to decide whether to upgrade other zone geometry format.
               if(igupgrade.eq.2.and.(.NOT.newgeo))then
@@ -242,11 +242,10 @@ C Is the surface to be deleted a child of another surface. If it
 C is remember the name of the parent surface and also remember the
 C indices of the vertices used by the child so that they can be
 C removed from the parent surface.
-        icdn=izstocn(icomp,iwhich)
-        if(SSPARENT(icdn)(1:2).eq.'- ')then
+        if(SPARENT(icomp,iwhich)(1:2).eq.'- ')then
           myparentis='- '
         else
-          myparentis=SSPARENT(icdn)
+          myparentis=SPARENT(icomp,iwhich)
           myedges=NVER(iwhich)
           do 746 iyy = 1,MV
             if(iyy.le.myedges)then
@@ -267,18 +266,8 @@ C update IE1 for surfaces > IWHICH otherwise just compact IC1 & IE1.
             IE1(IX)=IE1(IX+1)
           ENDIF
           ICT(IX)=ICT(IX+1); IC2(IX)=IC2(IX+1); IE2(IX)=IE2(IX+1)
-          SSNAME(ix)=SSNAME(IX+1)
-          SSOTF(IX)=SSOTF(IX+1)
-          SSMLCN(IX)=SSMLCN(IX+1)
           ssmlcindex(IX)=ssmlcindex(IX+1)
           SSTHICK(IX)=SSTHICK(IX+1)
-          SSVFC(IX)=SSVFC(IX+1)
-          SSOTHER(IX,1)=SSOTHER(IX+1,1)
-          SSOTHER(IX,2)=SSOTHER(IX+1,2)
-          SSOTHER(IX,3)=SSOTHER(IX+1,3)
-          SSUSE(IX,1)=SSUSE(IX+1,1)
-          SSUSE(IX,2)=SSUSE(IX+1,2)
-          SSPARENT(IX)=SSPARENT(IX+1)
           SSNA(IX)=SSNA(IX+1)
           SSPAZI(IX)=SSPAZI(IX+1)
           SSPELV(IX)=SSPELV(IX+1)
@@ -300,9 +289,11 @@ C update IE1 for surfaces > IWHICH otherwise just compact IC1 & IE1.
             iedgshr(IX,ijj)=iedgshr(IX+1,ijj)
             imatshr(IX,ijj)=imatshr(IX+1,ijj)
   42      continue
-          NZNVER(IX)=NZNVER(IX+1)  ! and connection based edge lists
-          DO IV=1,NZNVER(IX)
-            NZJVN(IX,IV)= NZJVN(IX+1,IV)
+
+C Decode connection back to zone and/or surface.
+          isznver(IC1(IX),IE1(IX))=isznver(IC1(IX),IE1(IX)+1)
+          DO IV=1,isznver(IC1(IX),IE1(IX))
+            iszjvn(IC1(IX),IE1(IX),IV)= iszjvn(IC1(IX),IE1(IX)+1,IV)
           ENDDO
           
 C << this could be a useful place to manage the zonedata arrays >>
@@ -368,15 +359,15 @@ C G5 contents into the surface below. The G6 commons were done already.
         endif
         DO 66 IS=IWHICH,NSUR-1
           SNAME(ICOMP,IS)=SNAME(ICOMP,IS+1)
-          SOTF(IS)=SOTF(IS+1)
-          SMLCN(IS)=SMLCN(IS+1)
-          SVFC(IS)=SVFC(IS+1)
-          SOTHER(IS,1)=SOTHER(IS+1,1)
-          SOTHER(IS,2)=SOTHER(IS+1,2)
-          SOTHER(IS,3)=SOTHER(IS+1,3)
-          SPARENT(IS)=SPARENT(IS+1)
-          SUSE(IS,1)=SUSE(IS+1,1)
-          SUSE(IS,2)=SUSE(IS+1,2)
+          SOTF(ICOMP,IS)=SOTF(ICOMP,IS+1)
+          SMLCN(ICOMP,IS)=SMLCN(ICOMP,IS+1)
+          SVFC(ICOMP,IS)=SVFC(ICOMP,IS+1)
+          SOTHER(ICOMP,IS,1)=SOTHER(ICOMP,IS+1,1)
+          SOTHER(ICOMP,IS,2)=SOTHER(ICOMP,IS+1,2)
+          SOTHER(ICOMP,IS,3)=SOTHER(ICOMP,IS+1,3)
+          SPARENT(ICOMP,IS)=SPARENT(ICOMP,IS+1)
+          SUSE(ICOMP,IS,1)=SUSE(ICOMP,IS+1,1)
+          SUSE(ICOMP,IS,2)=SUSE(ICOMP,IS+1,2)
           NVER(IS)=NVER(IS+1)
           DO IV=1,NVER(IS)
             JVN(IS,IV)=JVN(IS+1,IV)
@@ -402,9 +393,9 @@ C reference in the parent. Use addvert to do the deletion.
           lnmyp=lnblnk(myparentis)
           do 747 isurloop=1,NZSUR(ICOMP)
             parentedges=NVER(isurloop)
-            icc=izstocn(icomp,isurloop)
-            lnssn=lnblnk(ssname(icc))
-            if(myparentis(1:lnmyp).eq.ssname(icc)(1:lnssn))then
+            lnssn=lnblnk(sname(icomp,isurloop))
+            if(myparentis(1:lnmyp).eq.
+     &         sname(icomp,isurloop)(1:lnssn))then
   760         foundone=0   ! where the logic beings
               foundonepos=0
               do 748 iverloop=1,parentedges
@@ -427,16 +418,17 @@ C surface and then decrement nver for the parent surface.
                 else
                   do 750 IV=foundonepos,parentedges-1
                     JVN(isurloop,IV)=JVN(isurloop,IV+1)
-                    NZJVN(icc,IV)= NZJVN(icc,IV+1)
+                    iszjvn(icomp,isurloop,IV)=
+     &                iszjvn(icomp,isurloop,IV+1)
 
 C Debug.
 C                    write(6,*) 'packing jvn ',iv,iv+1,parentedges
 
   750             continue
                   JVN(isurloop,parentedges)=0     ! zero last position
-                  NZJVN(icc,parentedges)=0
+                  iszjvn(icomp,isurloop,parentedges)=0
                   NVER(isurloop)=NVER(isurloop)-1 ! decrement list length
-                  NZNVER(icc)=NZNVER(icc)-1       ! and connection based edge lists
+                  isznver(icomp,isurloop)=isznver(icomp,isurloop)-1
                   parentedges=NVER(isurloop)      ! so next pass works.
                   foundone=0     ! reset
                   foundonepos=0
@@ -449,9 +441,8 @@ C wrapped around the child. Check if it has another child and
 C if so do a search for duplicate vertices.
               hasanotherchild=.false.
               do 751 ichildloop=1,NZSUR(ICOMP)
-                icchild=izstocn(icomp,ichildloop)
-                if(ssparent(icchild)(1:12).eq.
-     &             ssname(icc)(1:12))then
+                if(sparent(icomp,ichildloop)(1:12).eq.
+     &             sname(icomp,isurloop)(1:12))then
                   hasanotherchild=.true.
                 endif
   751         continue
@@ -469,9 +460,9 @@ C Debug.
 C                  write(6,*) 'clean first last duplicate vertex ',jjver
 
                   JVN(isurloop,NVER(isurloop))=0
-                  NZJVN(icc,NVER(isurloop))=0
+                  iszjvn(icomp,isurloop,NVER(isurloop))=0
                   NVER(isurloop)=NVER(isurloop)-1
-                  NZNVER(icc)=NZNVER(icc)-1       ! and connection based edge lists
+                  isznver(icomp,isurloop)=isznver(icomp,isurloop)-1
                 endif
 
 C The other case that might be encountered is two consecutive
@@ -486,12 +477,13 @@ C                    write(6,*) 'clean 2nd duplicate vertex ',jjver
 
                     do 754 IV=JJVER,parentedges-1
                       JVN(isurloop,IV)=JVN(isurloop,IV+1)
-                      NZJVN(icc,IV)= NZJVN(icc,IV+1)
+                      iszjvn(icomp,isurloop,IV)=
+     &                  iszjvn(icomp,isurloop,IV+1)
   754               continue
                     JVN(isurloop,parentedges)=0
-                    NZJVN(icc,parentedges)=0
+                    iszjvn(icomp,isurloop,parentedges)=0
                     NVER(isurloop)=NVER(isurloop)-1
-                    NZNVER(icc)=NZNVER(icc)-1
+                    isznver(icomp,isurloop)=isznver(icomp,isurloop)-1
                   endif 
   753           continue
               endif   ! of hasanotherchild
@@ -514,9 +506,8 @@ C of the normal ordering of the vertices.
             if(ier.eq.0)then
               continue
             elseif(ier.gt.0)then
-              icother=izstocn(icomp,ier)
               write(outs,'(a,i3,2a)') 'The vertex ',ijj,
-     &          ' is also referenced by surface ',ssname(icother)
+     &          ' is also referenced by surface ',sname(icomp,ier)
               dok=.true.
               helptopic='remove_vert_as_well'
               call gethelptext(helpinsub,helptopic,nbhelp)
@@ -551,15 +542,15 @@ C     &                ' at',iverloop,nver(iwhich),iwhich
                 else
                   do 756 IV=foundonepos,nver(iwhich)-1
                     JVN(iwhich,IV)=JVN(iwhich,IV+1)
-                    NZJVN(icother,IV)=NZJVN(icother,IV+1)
+                    iszjvn(icomp,ier,IV)=iszjvn(icomp,ier,IV+1)
 C Debug.
 C                    write(6,*) 'packing oth jvn ',iv,iv+1,iwhich
 
   756             continue
                   JVN(iwhich,nver(iwhich))=0    ! zero last position
-                  NZJVN(icother,nver(iwhich))=0
-                  NVER(iwhich)=NVER(iwhich)-1   ! decrement list length
-                  NZNVER(icother)=NZNVER(icother)-1
+                  iszjvn(icomp,ier,nver(iwhich))=0
+                 NVER(iwhich)=NVER(iwhich)-1   ! decrement list length
+                  isznver(icomp,iwhich)=isznver(icomp,iwhich)-1
                   foundone=0     ! reset
                   foundonepos=0
 
@@ -710,11 +701,11 @@ C the final name uses the allowed character set.
             goto 141
           endif
         endif
-        SOTF1=SOTF(IS)
-        SMLCN1=SMLCN(IS)
-        SVFC1=SVFC(IS)
-        SUSE11=SUSE(IS,1)
-        SUSE12=SUSE(IS,2)
+        SOTF1=SOTF(ICOMP,IS)
+        SMLCN1=SMLCN(ICOMP,IS)
+        SVFC1=SVFC(ICOMP,IS)
+        SUSE11=SUSE(ICOMP,IS,1)
+        SUSE12=SUSE(ICOMP,IS,2)
 
 C Now re-read focus zone and copy the data into normal common
 C blocks. Because the surface to be added is not yet in the
@@ -731,15 +722,15 @@ C Up the surface count.
         NZTV(ICOMP)=NTV
         NVER(NSUR)=NVER1
         SNAME(ICOMP,NSUR)=SNAME1
-        SOTF(NSUR)=SOTF1
-        SMLCN(NSUR)=SMLCN1
-        SVFC(NSUR)=SVFC1
-        SOTHER(NSUR,1)='UNKNOWN'
-        SOTHER(NSUR,2)='-'
-        SOTHER(NSUR,3)='-'
-        SUSE(NSUR,1)=SUSE11
-        SUSE(NSUR,2)=SUSE12
-        SPARENT(NSUR)='-'
+        SOTF(ICOMP,NSUR)=SOTF1
+        SMLCN(ICOMP,NSUR)=SMLCN1
+        SVFC(ICOMP,NSUR)=SVFC1
+        SOTHER(ICOMP,NSUR,1)='UNKNOWN'
+        SOTHER(ICOMP,NSUR,2)='-'
+        SOTHER(ICOMP,NSUR,3)='-'
+        SUSE(ICOMP,NSUR,1)=SUSE11
+        SUSE(ICOMP,NSUR,2)=SUSE12
+        SPARENT(ICOMP,NSUR)='-'
 
 C Generate combined name for dialog.
         ZSDES=' '
@@ -914,9 +905,9 @@ C add a new vertex to the end of the zone list.
               NZTV(icomp)=NTV
               JVN(NSUR,ix)=NTV
               X(NTV)=X1(ix); Y(NTV)=Y1(ix); Z(NTV)=Z1(ix)
-              VCOORD(ICOMP,ntv,1)=X1(ix)
-              VCOORD(ICOMP,ntv,2)=Y1(ix)
-              VCOORD(ICOMP,ntv,3)=Z1(ix)
+              szcoords(ICOMP,ntv,1)=X1(ix)
+              szcoords(ICOMP,ntv,2)=Y1(ix)
+              szcoords(ICOMP,ntv,3)=Z1(ix)
               XMN=AMIN1(XMN,X(NTV))
               YMN=AMIN1(YMN,Y(NTV))
               ZMN=AMIN1(ZMN,Z(NTV))
@@ -1253,7 +1244,7 @@ C snamdup to ensure that it is a unique name (in this zone).
           goto 52
         endif
 
-C Set context for the use of the surface SSUSE.
+C Set context for the use of the surface SUSE.
 C << subroutine to use guesstype needs to be added as in INSREC >>
 C        guesstype='any_type'
 
@@ -1473,9 +1464,9 @@ C its future position via `one connection past the current last
       DO 251 J = 1,4
         X(NTV+J)=XXW(J); Y(NTV+J)=YYW(J); Z(NTV+J)=ZZW(J)
         JVN(NSUR,J)=NTV+J
-        VCOORD(ICOMP,ntv+J,1)=XXW(J)
-        VCOORD(ICOMP,ntv+J,2)=YYW(J)
-        VCOORD(ICOMP,ntv+J,3)=ZZW(J)
+        szcoords(ICOMP,ntv+J,1)=XXW(J)
+        szcoords(ICOMP,ntv+J,2)=YYW(J)
+        szcoords(ICOMP,ntv+J,3)=ZZW(J)
   251 CONTINUE
 
 C Remember the reverse order of vertices for matching surface.
@@ -1489,35 +1480,35 @@ C Remember the reverse order of vertices for matching surface.
       call st2name(SN,SNAME(ICOMP,NSUR))  ! copy SN into SNAME
 
       if(act(1:1).eq.'V'.or.act(1:1).eq.'v')then
-        SVFC(NSUR)='VERT'
+        SVFC(ICOMP,NSUR)='VERT'
       elseif(act(1:1).eq.'H'.or.act(1:1).eq.'h')then
-        SVFC(NSUR)='CEIL'
+        SVFC(ICOMP,NSUR)='CEIL'
       endif
 
-      SOTHER(NSUR,1)='UNKNOWN'
-      SOTHER(NSUR,2)='0'
-      SOTHER(NSUR,3)='0'
-      SPARENT(NSUR)='-'
+      SOTHER(ICOMP,NSUR,1)='UNKNOWN'
+      SOTHER(ICOMP,NSUR,2)='0'
+      SOTHER(ICOMP,NSUR,3)='0'
+      SPARENT(ICOMP,NSUR)='-'
 
-      WRITE(SMLCN(NSUR),'(A)')constr
-      write(SOTF(NSUR),'(a)') OPT(1:12)
+      WRITE(SMLCN(ICOMP,NSUR),'(A)')constr
+      write(SOTF(ICOMP,NSUR),'(a)') OPT(1:12)
 
 C If version 1.1 of geometry specify the use of the surface.
       call eclose(gversion(icomp),1.1,0.01,newgeo)
       if(newgeo)then
-        SUSE(nsur,1)='PARTN'
-        SUSE(nsur,2)='- '
+        SUSE(ICOMP,nsur,1)='PARTN'
+        SUSE(ICOMP,nsur,2)='- '
       else
-        SUSE(NSUR,1)='-'
-        SUSE(NSUR,2)='-'
+        SUSE(ICOMP,NSUR,1)='-'
+        SUSE(ICOMP,NSUR,2)='-'
       endif
 
 C Just before calling addedsurf if this initial surface is going to be
 C matched then set sother to point to the next surface that will be created.
       if(act(2:2).eq.'M'.or.act(2:2).eq.'m')then
-        SOTHER(NSUR,1)='ANOTHER'
-        write(SOTHER(NSUR,2),'(i2.2)')INT(icomp)
-        write(SOTHER(NSUR,3),'(i3.3)')INT(NSUR+1)
+        SOTHER(ICOMP,NSUR,1)='ANOTHER'
+        write(SOTHER(ICOMP,NSUR,2),'(i2.2)')INT(icomp)
+        write(SOTHER(ICOMP,NSUR,3),'(i3.3)')INT(NSUR+1)
       endif
 
 C Add surface to the connection list (icont) assuming an unknown boundary. 
@@ -1537,9 +1528,9 @@ C Update the data for the matching surface.
         DO 252 J = 1,4
           X(NTV+J)=XXM(J); Y(NTV+J)=YYM(J); Z(NTV+J)=ZZM(J)
           JVN(NSUR,J)=JVNM(J)  ! user the reversed order list.
-          VCOORD(ICOMP,ntv+J,1)=XXM(J)
-          VCOORD(ICOMP,ntv+J,2)=YYM(J)
-          VCOORD(ICOMP,ntv+J,3)=ZZM(J)
+          szcoords(ICOMP,ntv+J,1)=XXM(J)
+          szcoords(ICOMP,ntv+J,2)=YYM(J)
+          szcoords(ICOMP,ntv+J,3)=ZZM(J)
   252   CONTINUE
 
 C If SN is less than 12 characters add an _
@@ -1552,27 +1543,27 @@ C If SN is less than 12 characters add an _
         call st2name(SN,SNAME(ICOMP,NSUR))  ! copy SN into SNAME
 
         if(act(1:1).eq.'V'.or.act(1:1).eq.'v')then
-          SVFC(NSUR)='VERT'
+          SVFC(ICOMP,NSUR)='VERT'
         elseif(act(1:1).eq.'H'.or.act(1:1).eq.'h')then
-          SVFC(NSUR)='CEIL'
+          SVFC(ICOMP,NSUR)='CEIL'
         endif
 
-        SOTHER(NSUR,1)='ANOTHER'
-        write(SOTHER(NSUR,2),'(i2.2)')INT(icomp)
-        write(SOTHER(NSUR,3),'(i3.3)')INT(NSUR-1)
-        SPARENT(NSUR)='-'
+        SOTHER(ICOMP,NSUR,1)='ANOTHER'
+        write(SOTHER(ICOMP,NSUR,2),'(i2.2)')INT(icomp)
+        write(SOTHER(ICOMP,NSUR,3),'(i3.3)')INT(NSUR-1)
+        SPARENT(ICOMP,NSUR)='-'
 
-        WRITE(SMLCN(NSUR),'(A)')constr
-        write(SOTF(NSUR),'(a)') OPT(1:12)
+        WRITE(SMLCN(ICOMP,NSUR),'(A)')constr
+        write(SOTF(ICOMP,NSUR),'(a)') OPT(1:12)
 
 C If version 1.1 of geometry specify the use of the surface.
         call eclose(gversion(icomp),1.1,0.01,newgeo)
         if(newgeo)then
-          SUSE(nsur,1)='PARTN'
-          SUSE(nsur,2)='- '
+          SUSE(ICOMP,nsur,1)='PARTN'
+          SUSE(ICOMP,nsur,2)='- '
         else
-          SUSE(NSUR,1)='-'
-          SUSE(NSUR,2)='-'
+          SUSE(ICOMP,NSUR,1)='-'
+          SUSE(ICOMP,NSUR,2)='-'
         endif
 
 C Add surface to the connection list (icont) assuming an unknown boundary. 
@@ -1610,8 +1601,6 @@ C Parameters passed.
 
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
 
 C Tollerance for surface matching.
       real ANGCC  ! angle between surfaces tolerance
@@ -1684,24 +1673,23 @@ C it is then it should not be delted so set iier
 
 C Vertex is free of connections so loop through the vertices in each
 C surface and any JNV larger than IWHICH should be decremented by one.
-C Update as NZJVN well.
+C Update as iszjvn well.
             DO 792 IS=1,NSUR
-              icc=IZSTOCN(icomp,is)
               DO 794 IV=1,NVER(IS)
                 IF(JVN(IS,IV).GT.IWHICH)THEN
                   JVN(IS,IV)=JVN(IS,IV)-1
-                  NZJVN(icc,IV)=JVN(IS,IV)
+                  iszjvn(icomp,is,IV)=JVN(IS,IV)
                 ENDIF
   794         CONTINUE
   792       CONTINUE
 
 C Now loop through the vertices and copy the contents of vertices >
-C IWHICH into the next lower one and also update VCOORD.
+C IWHICH into the next lower one and also update szcoords.
             DO 791 IVV=IWHICH,NTV-1
               X(IVV)=X(IVV+1); Y(IVV)=Y(IVV+1); Z(IVV)=Z(IVV+1)
-              VCOORD(ICOMP,ivv,1)=VCOORD(ICOMP,ivv+1,1)
-              VCOORD(ICOMP,ivv,2)=VCOORD(ICOMP,ivv+1,2)
-              VCOORD(ICOMP,ivv,3)=VCOORD(ICOMP,ivv+1,3)
+              szcoords(ICOMP,ivv,1)=szcoords(ICOMP,ivv+1,1)
+              szcoords(ICOMP,ivv,2)=szcoords(ICOMP,ivv+1,2)
+              szcoords(ICOMP,ivv,3)=szcoords(ICOMP,ivv+1,3)
   791       CONTINUE
 
 C Finally decrement NZTV and NTV.
@@ -1774,7 +1762,7 @@ C                  match=ixx  !  match is not yet used
   144       continue
 
 C If an existing vertex is close then skip to next, otherwise
-C add a new vertex to the end of the zone list and update vcoord.
+C add a new vertex to the end of the zone list and update szcoords.
   145       if(found)then
               continue
             else
@@ -1835,7 +1823,7 @@ C user otherwise continue.
   244     continue
 
 C If an existing vertex is close then skip to next, otherwise
-C add a new vertex to the end of the zone list and update vcoord.
+C add a new vertex to the end of the zone list and update szcoords.
   245     if(found)then
             call edisp(iuout,'Duplicate of existing vertex. Ignoring.')
             continue
@@ -2655,15 +2643,15 @@ C surface in the zone`. ICONO is the connection for the parent surface.
         if(IRT.eq.1.or.IRT.eq.2.or.IRT.eq.3)then
           X(NTV+J)=XA(J); Y(NTV+J)=YA(J); Z(NTV+J)=ZA(J)
           JVN(NSUR,J)=NTV+J
-          VCOORD(ICOMP,ntv+J,1)=XA(J)
-          VCOORD(ICOMP,ntv+J,2)=YA(J)
-          VCOORD(ICOMP,ntv+J,3)=ZA(J)
+          szcoords(ICOMP,ntv+J,1)=XA(J)
+          szcoords(ICOMP,ntv+J,2)=YA(J)
+          szcoords(ICOMP,ntv+J,3)=ZA(J)
         else
           X(NTV+J)=XFA(J); Y(NTV+J)=YFA(J); Z(NTV+J)=ZFA(J)
           JVN(NSUR,J)=NTV+J
-          VCOORD(ICOMP,ntv+J,1)=XFA(J)
-          VCOORD(ICOMP,ntv+J,2)=YFA(J)
-          VCOORD(ICOMP,ntv+J,3)=ZFA(J)
+          szcoords(ICOMP,ntv+J,1)=XFA(J)
+          szcoords(ICOMP,ntv+J,2)=YFA(J)
+          szcoords(ICOMP,ntv+J,3)=ZFA(J)
         endif
   151 CONTINUE
 C Debug
@@ -2684,30 +2672,30 @@ C     &  nsur,NVER(nsur),(jvn(nsur,j),J=1,NVER(nsur))
 
 C Assign parent name if in silent name, otherwise use placeholder.
       if(act(1:2).eq.'sw'.or.act(1:2).eq.'sd'.or.act(1:2).eq.'sp')then
-        write(sparent(nsur),'(a)') rsparent
+        write(sparent(ICOMP,nsur),'(a)') rsparent
       else
-        SPARENT(NSUR)='-'
+        SPARENT(ICOMP,NSUR)='-'
       endif
 
 C New surface to inherit the general properties of the parent. If
 C parent is already marked as ANOTHER then set to UNKNOWN
 C (otherwise there will be two surfaces point to the same other surface).
-      SOTF(NSUR)=SOTF(IS); SVFC(NSUR)=SVFC(IS)
-      if(SOTHER(IS,1)(1:7).eq.'ANOTHER')then
-        SOTHER(NSUR,1)='UNKNOWN'
-        SOTHER(NSUR,2)='00'
-        SOTHER(NSUR,3)='000'
+      SOTF(ICOMP,NSUR)=SOTF(ICOMP,IS); SVFC(ICOMP,NSUR)=SVFC(ICOMP,IS)
+      if(SOTHER(ICOMP,IS,1)(1:7).eq.'ANOTHER')then
+        SOTHER(ICOMP,NSUR,1)='UNKNOWN'
+        SOTHER(ICOMP,NSUR,2)='00'
+        SOTHER(ICOMP,NSUR,3)='000'
       else
-        SOTHER(NSUR,1)=SOTHER(IS,1)
-        SOTHER(NSUR,2)=SOTHER(IS,2)
-        SOTHER(NSUR,3)=SOTHER(IS,3)
+        SOTHER(ICOMP,NSUR,1)=SOTHER(ICOMP,IS,1)
+        SOTHER(ICOMP,NSUR,2)=SOTHER(ICOMP,IS,2)
+        SOTHER(ICOMP,NSUR,3)=SOTHER(ICOMP,IS,3)
       endif
-      SUSE(NSUR,1)='-'; SUSE(NSUR,2)='-'
+      SUSE(ICOMP,NSUR,1)='-'; SUSE(ICOMP,NSUR,2)='-'
 
 C If in silent mode assign construction otherwise select. 
       if(act(1:2).eq.'sw'.or.act(1:2).eq.'sd'.or.act(1:2).eq.'sp')then
-        WRITE(SMLCN(NSUR),'(A)') rsmlcn(1:12)
-        WRITE(SOTF(NSUR),'(A)')  rsotf(1:12)  ! only 1st 12 char
+        WRITE(SMLCN(ICOMP,NSUR),'(A)') rsmlcn(1:12)
+        WRITE(SOTF(ICOMP,NSUR),'(A)')  rsotf(1:12)  ! only 1st 12 char
       else
         CALL EPMENSV
         if(mlcver.eq.0)then
@@ -2720,14 +2708,14 @@ C If in silent mode assign construction otherwise select.
         endif
         CALL EPMENRC
         IF(ISEL.GT.0)then
-          WRITE(SMLCN(NSUR),'(A)') mlcname(ISEL)
-          IF(mlctype(ISEL)(1:4).NE.'OPAQ')SOTF(NSUR)='TRAN'
-          IF(mlctype(ISEL)(1:4).EQ.'OPAQ')SOTF(NSUR)='OPAQUE'
-          IF(mlctype(ISEL)(1:4).EQ.'CFC ')SOTF(NSUR)='CFC '
-          IF(mlctype(ISEL)(1:4).EQ.'CFC2')SOTF(NSUR)='CFC2'
+          WRITE(SMLCN(ICOMP,NSUR),'(A)') mlcname(ISEL)
+          IF(mlctype(ISEL)(1:4).NE.'OPAQ')SOTF(ICOMP,NSUR)='TRAN'
+          IF(mlctype(ISEL)(1:4).EQ.'OPAQ')SOTF(ICOMP,NSUR)='OPAQUE'
+          IF(mlctype(ISEL)(1:4).EQ.'CFC ')SOTF(ICOMP,NSUR)='CFC '
+          IF(mlctype(ISEL)(1:4).EQ.'CFC2')SOTF(ICOMP,NSUR)='CFC2'
         else
-          WRITE(SMLCN(NSUR),'(A)') 'UNKNOWN'
-          SOTF(NSUR)='OPAQUE'
+          WRITE(SMLCN(ICOMP,NSUR),'(A)') 'UNKNOWN'
+          SOTF(ICOMP,NSUR)='OPAQUE'
         endif
       endif
 
@@ -2736,8 +2724,8 @@ C If version 1.1 of geometry specify the use of the surface.
       if(newgeo)then
         if(act(1:2).eq.'sw'.or.act(1:2).eq.'sd'.or.
      &     act(1:2).eq.'sp')then
-          WRITE(SUSE(NSUR,1),'(A)')  rsuse1(1:8)
-          WRITE(SUSE(NSUR,2),'(A)')  rsuse2(1:8)
+          WRITE(SUSE(ICOMP,NSUR,1),'(A)')  rsuse1(1:8)
+          WRITE(SUSE(ICOMP,NSUR,2),'(A)')  rsuse2(1:8)
           iz=icomp; isur=nsur
         else
           iz=icomp; isur=nsur; icon=ICONT
@@ -2747,8 +2735,8 @@ C If version 1.1 of geometry specify the use of the surface.
             write(6,*) 'edituse with',iz,isur,icon
           endif
         endif
-C        write(6,*) 'use is ',isur,icon,SUSE(isur,1),SUSE(isur,2),
-C     &    SSUSE(icon,1),SSUSE(icon,2)
+C        write(6,*) 'use is ',isur,icon,SUSE(ICOMP,isur,1),
+C     &    SUSE(ICOMP,isur,2)
       endif
 
 C Process holes within a surface types.
@@ -2784,24 +2772,14 @@ C Update common blocks G6 & G7 (insert data into connections based list).
           IE2(ICONT)=IE2(ICONO)
         endif
         IZSTOCN(icomp,nsur)=icont
-        SSNAME(ICONT)=SNAME(ICOMP,NSUR)
-        SSOTF(ICONT)=SOTF(NSUR)
-        SSMLCN(ICONT)=SMLCN(NSUR)
 
 C Discover matching MLC index.
-        call matchmlcdesc(SMLCN(NSUR),imlcindex)
+        call matchmlcdesc(SMLCN(icomp,NSUR),imlcindex)
         ssmlcindex(ICONT)=imlcindex
         SSTHICK(ICONT)=SSTHICK(NSUR)
-        SSVFC(ICONT)=SVFC(NSUR)
-        SSOTHER(ICONT,1)=SOTHER(NSUR,1)
-        SSOTHER(ICONT,2)=SOTHER(NSUR,2)
-        SSOTHER(ICONT,3)=SOTHER(NSUR,3)
-        SSUSE(ICONT,1)=SUSE(NSUR,1)
-        SSUSE(ICONT,2)=SUSE(NSUR,2)
-        SSPARENT(ICONT)=SPARENT(NSUR)
-        NZNVER(ICONT)=NVER(NSUR)  ! update connection based geometry
-        do K=1,NZNVER(ICONT)
-          NZJVN(ICONT,K)=JVN(NSUR,K)
+        isznver(icomp,NSUR)=NVER(NSUR)
+        do K=1,isznver(icomp,NSUR)
+          iszjvn(icomp,NSUR,K)=JVN(NSUR,K)
         enddo
 
 C Now update the G7 common block to reflect additional surface.
@@ -2846,24 +2824,17 @@ C Update common blocks G6 & G7 (insert data into connections based list).
           IE2(ICONT)=IE2(ICONO)
         endif
         IZSTOCN(icomp,nsur)=icont
-        SSNAME(ICONT)=SNAME(ICOMP,NSUR)
-        SSOTF(ICONT)=SOTF(NSUR)
-        SSMLCN(ICONT)=SMLCN(NSUR)
+C        SSNAME(ICONT)=SNAME(ICOMP,NSUR)
+C        SSOTF(ICONT)=SOTF(ICOMP,NSUR)
+C        SSMLCN(ICONT)=SMLCN(NSUR)
 
 C Discover matching MLC index.
-        call matchmlcdesc(SMLCN(NSUR),imlcindex)
+        call matchmlcdesc(SMLCN(ICOMP,NSUR),imlcindex)
         ssmlcindex(ICONT)=imlcindex
         SSTHICK(ICONT)=SSTHICK(NSUR)
-        SSVFC(ICONT)=SVFC(NSUR)
-        SSOTHER(ICONT,1)=SOTHER(NSUR,1)
-        SSOTHER(ICONT,2)=SOTHER(NSUR,2)
-        SSOTHER(ICONT,3)=SOTHER(NSUR,3)
-        SSUSE(ICONT,1)=SUSE(NSUR,1)
-        SSUSE(ICONT,2)=SUSE(NSUR,2)
-        SSPARENT(ICONT)=SPARENT(NSUR)
-        NZNVER(ICONT)=NVER(NSUR)  ! update connection based geometry
-        do K=1,NZNVER(ICONT)
-          NZJVN(ICONT,K)=JVN(NSUR,K)
+        isznver(icomp,NSUR)=NVER(NSUR)
+        do K=1,isznver(icomp,NSUR)
+          iszjvn(icomp,NSUR,K)=JVN(NSUR,K)
         enddo
 
 C Now update the G7 common block to reflect additional surface.
@@ -3094,18 +3065,11 @@ C Typically the mark 234 has been used with this code.
         ICT(IX)=ICT(IX-1)
         IC2(IX)=IC2(IX-1)
         IE2(IX)=IE2(IX-1)
-        SSNAME(IX)=SSNAME(IX-1)
-        SSOTF(IX)=SSOTF(IX-1)
-        SSMLCN(IX)=SSMLCN(IX-1)
+C        SSNAME(IX)=SSNAME(IX-1)
+C        SSOTF(IX)=SSOTF(IX-1)
+C        SSMLCN(IX)=SSMLCN(IX-1)
         ssmlcindex(IX)=ssmlcindex(IX-1)
         SSTHICK(IX)=SSTHICK(IX-1)
-        SSVFC(IX)=SSVFC(IX-1)
-        SSOTHER(IX,1)=SSOTHER(IX-1,1)
-        SSOTHER(IX,2)=SSOTHER(IX-1,2)
-        SSOTHER(IX,3)=SSOTHER(IX-1,3)
-        SSUSE(IX,1)=SSUSE(IX-1,1)
-        SSUSE(IX,2)=SSUSE(IX-1,2)
-        SSPARENT(IX)=SSPARENT(IX-1)
         SSNA(IX)=SSNA(IX-1)
         SSPAZI(IX)=SSPAZI(IX-1)
         SSPELV(IX)=SSPELV(IX-1)
@@ -3173,49 +3137,35 @@ C Update common blocks G6 & G7
         IE2(ICON)=0
         IZSTOCN(icomp,nsur)=icon
 
-C Debug.
-C        write(6,*) 'addedsurf icomp icon nsur izs',icomp,icon,nsur,
-C     &    IZSTOCN(icomp,nsur)
-        SSNAME(ICON)=SNAME(ICOMP,NSUR)
-        SSOTF(ICON)=SOTF(NSUR)
-        SSMLCN(ICON)=SMLCN(NSUR)
-
 C Discover matching MLC index.
-        call matchmlcdesc(SMLCN(NSUR),imlcindex)
+        call matchmlcdesc(SMLCN(ICOMP,NSUR),imlcindex)
         ssmlcindex(ICON)= imlcindex
         SSTHICK(ICON)=SSTHICK(NSUR)
-        SSVFC(ICON)=SVFC(NSUR)
-        SSOTHER(ICON,1)=SOTHER(NSUR,1)
-        SSOTHER(ICON,2)=SOTHER(NSUR,2)
-        SSOTHER(ICON,3)=SOTHER(NSUR,3)
-        SSUSE(ICON,1)=SUSE(NSUR,1)
-        SSUSE(ICON,2)=SUSE(NSUR,2)
-        SSPARENT(ICON)=SPARENT(NSUR)
-        NZNVER(ICON)=NVER(NSUR)  ! update connection based geometry
-        do K=1,NZNVER(ICON)
-          NZJVN(ICON,K)=JVN(NSUR,K)
+        isznver(icomp,NSUR)=NVER(NSUR)
+        do K=1,isznver(icomp,NSUR)
+          iszjvn(icomp,NSUR,K)=JVN(NSUR,K)
         enddo
 
-C If sother(NSUR,1) is 'ANOTHER' or one of the other known phrases
+C If sother(ICOMP,NSUR,1) is 'ANOTHER' or one of the other known phrases
 C then the values of ICT and IC2 and IE2 should be updated so that
 C the connections file is correct.
-        if(SOTHER(NSUR,1)(1:7).eq.'ANOTHER')then
-          read(SOTHER(NSUR,2),'(i2)') ival1
-          read(SOTHER(NSUR,3),'(i3)') ival2
+        if(SOTHER(ICOMP,NSUR,1)(1:7).eq.'ANOTHER')then
+          read(SOTHER(ICOMP,NSUR,2),'(i2.2)') ival1
+          read(SOTHER(ICOMP,NSUR,3),'(i3.3)') ival2
           ICT(ICON)=3; IC2(ICON)=ival1; IE2(ICON)=ival2
-        elseif(SOTHER(NSUR,1)(1:9).eq.'ADIABATIC')then
+        elseif(SOTHER(ICOMP,NSUR,1)(1:9).eq.'ADIABATIC')then
           ICT(ICON)=5
-        elseif(SOTHER(NSUR,1)(1:8).eq.'CONSTANT')then
-          read(SOTHER(NSUR,2),'(i2)') ival1
-          read(SOTHER(NSUR,3),'(i3)') ival2
+        elseif(SOTHER(ICOMP,NSUR,1)(1:8).eq.'CONSTANT')then
+          read(SOTHER(ICOMP,NSUR,2),'(i2.2)') ival1
+          read(SOTHER(ICOMP,NSUR,3),'(i3.3)') ival2
           ICT(ICON)=2; IC2(ICON)=ival1; IE2(ICON)=ival2
-        elseif(SOTHER(NSUR,1)(1:6).eq.'GROUND')then
-          read(SOTHER(NSUR,2),'(i2)') ival1
-          read(SOTHER(NSUR,3),'(i3)') ival2
+        elseif(SOTHER(ICOMP,NSUR,1)(1:6).eq.'GROUND')then
+          read(SOTHER(ICOMP,NSUR,2),'(i2.2)') ival1
+          read(SOTHER(ICOMP,NSUR,3),'(i3.3)') ival2
           ICT(ICON)=4; IC2(ICON)=ival1; IE2(ICON)=ival2
-        elseif(SOTHER(NSUR,1)(1:7).eq.'SIMILAR')then
-          read(SOTHER(NSUR,2),'(i2)') ival1
-          read(SOTHER(NSUR,3),'(i3)') ival2
+        elseif(SOTHER(ICOMP,NSUR,1)(1:7).eq.'SIMILAR')then
+          read(SOTHER(ICOMP,NSUR,2),'(i2.2)') ival1
+          read(SOTHER(ICOMP,NSUR,3),'(i3.3)') ival2
           ICT(ICON)=1; IC2(ICON)=ival1; IE2(ICON)=ival2
         endif
 
@@ -3244,8 +3194,6 @@ C Called from INSREC as well as clickonbitmap.
       integer ICS  ! child surface index
       integer ier  ! if error condition
       COMMON/OUTIN/IUOUT,IUIN
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
 
       integer icwhich1,icwhich2,icvwhich1,icvwhich2
       integer ipwhich1a,ipwhich2a,ipwhich1b,ipwhich2b
@@ -3288,10 +3236,6 @@ C Feedback.
       ipwhich1b=0; ipwhich2b=0   ! parent edge vertex index
       ipvwhich1a=0; ipvwhich2a=0   ! parent vertex position
       ipvwhich1b=0; ipvwhich2b=0   ! parent vertex position
-
-C Connection for parent and child.
-      iccs=IZSTOCN(iz,ICS)
-      icps=IZSTOCN(iz,IPS)
 
       do ivc=1,NVER(ICS)  ! for each child vertex
         item=jvn(ICS,ivc)   ! vert of the child
@@ -3339,7 +3283,7 @@ C need to insert icwhich1. Use icstart logic for this.
       NC=NVER(ICS)+1
       do iyy = NC,2,-1  ! loop for 3 edges of door plus icwhich1
         NVER(IPS)=NVER(IPS)+1  ! increment parent
-        NZNVER(icps)=NVER(IPS)
+        isznver(IZ,IPS)=NVER(IPS)
         iii=NVER(IPS)+1
   448   continue
         iii=iii-1
@@ -3347,12 +3291,12 @@ C need to insert icwhich1. Use icstart logic for this.
         IF(iii.GT.ivll+1)GOTO 448
         if(icstart.eq.0)then
           jvn(IPS,iii)=icwhich1 ! assign icwhich1
-          NZJVN(icps,iii)=icwhich1
+          iszjvn(iz,IPS,iii)=icwhich1
           ivll=ivll+1  ! shift insertion point to the right
           icstart=1
         elseif(icstart.eq.1)then
           jvn(IPS,iii)=jvn(ICS,iyy) ! assign child vertex
-          NZJVN(icps,iii)=jvn(ICS,iyy)
+          iszjvn(iz,IPS,iii)=jvn(ICS,iyy)
           ivll=ivll+1  ! shift insertion point to the right
         endif
       enddo
@@ -3379,23 +3323,17 @@ C common G1 is fresh.
       integer ier  ! if error condition
 
       COMMON/OUTIN/IUOUT,IUIN
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
 
       integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
       integer llparpos,lrparpos,ulparpos,urparpos
       integer lldpos,lrdpos,uldpos,urdpos
-      integer ivc,ivll
+      integer ivll
       real shortestll,shortestlr,shortestul,shortestur
       real overall
       character louts*496
 
       integer jvn1,jvn2
       DIMENSION  jvn1(MV),jvn2(MV)
-
-C Connection for parent and child.
-      iccs=IZSTOCN(iz,ICS)
-      icps=IZSTOCN(iz,IPS)
 
 C Logic for merging vertices into the parent surface
 C based on what is closest.
@@ -3544,24 +3482,24 @@ C Add icvert to parent.
           icstart=0
           nc=NVER(ICS)
           NVER(IPS)=NVER(IPS)+1  ! increment parent
-          NZNVER(icps)=NVER(IPS)
+          isznver(IZ,IPS)=NVER(IPS)
           n=NVER(IPS)        
           jvn(IPS,n)=icvert ! assign
-          NZJVN(icps,n)=icvert
+          iszjvn(IZ,IPS,n)=icvert
           do iyy = NC,1,-1     ! for each of the child vertices
             NVER(IPS)=NVER(IPS)+1  ! increment parent
-            NZNVER(icps)=NVER(IPS)
+            isznver(IZ,IPS)=NVER(IPS)
             n=NVER(IPS)        
             jvn(IPS,n)=jvn2(iyy) ! assign
-            NZJVN(icps,n)=jvn2(iyy)
+            iszjvn(IZ,IPS,n)=jvn2(iyy)
           enddo
 
 C Add jvn(IPS,ipwhich) so as to rejoin the parent.
           NVER(IPS)=NVER(IPS)+1  ! increment parent
-          NZNVER(icps)=NVER(IPS)
+          isznver(IZ,IPS)=NVER(IPS)
           n=NVER(IPS)        
           jvn(IPS,n)=jvn(IPS,ipwhich) ! assign
-          NZJVN(icps,n)=jvn(IPS,ipwhich)
+          iszjvn(IZ,IPS,n)=jvn(IPS,ipwhich)
 
 C Feedback.
           write(louts,'(a,124i4)') 'parent surf after ',
@@ -3579,26 +3517,26 @@ C we reach iyy=0 then insert jvn(IPS,ipwhich).
           NC=NVER(ICS)+1
           do iyy = NC,0,-1  ! add iopenjvn to parent
             NVER(IPS)=NVER(IPS)+1  ! increment parent
-            NZNVER(icps)=NVER(IPS)
+            isznver(IZ,IPS)=NVER(IPS)
             iii=NVER(IPS)+1
   348       continue
             iii=iii-1
             jvn(IPS,iii)=jvn(IPS,iii-1)  ! copy lower existing up
-            NZJVN(icps,iii)=jvn(IPS,iii-1)
+            iszjvn(IZ,IPS,iii)=jvn(IPS,iii-1)
             IF(iii.GT.ivll+1)GOTO 348
             if(icstart.eq.0)then
               jvn(IPS,iii)=icvert ! assign icvert
-              NZJVN(icps,iii)=icvert
+              iszjvn(IZ,IPS,iii)=icvert
               ivll=ivll+1  ! shift insertion point to the right
               icstart=1
             elseif(icstart.eq.1)then
               if(iyy.gt.0)then
                 jvn(IPS,iii)=jvn2(iyy) ! assign
-                NZJVN(icps,iii)=jvn2(iyy)
+                iszjvn(IZ,IPS,iii)=jvn2(iyy)
                 ivll=ivll+1  ! shift insertion point to the right
               else
                 jvn(IPS,iii)=jvn(IPS,ipwhich) ! re-connect
-                NZJVN(icps,iii)=jvn(IPS,ipwhich)
+                iszjvn(IZ,IPS,iii)=jvn(IPS,ipwhich)
                 ivll=ivll+1  ! shift insertion point to the right
               endif
             endif

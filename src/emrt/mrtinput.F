@@ -260,7 +260,7 @@ C Initial menu entry setup return if no file has been read in.
           M=M+1
           CALL EMKEY(L,KEY,IER)
           ICN=IZSTOCN(ICOMP,L)
-          WRITE(STMENU(M),14)KEY,L,SSNAME(ICN),EMISI(L),temp(L)
+          WRITE(STMENU(M),14)KEY,L,SNAME(ICOMP,L),EMISI(L),temp(L)
    14     FORMAT(A1,I3,1X,A12,F5.2,F7.2)
         ENDIF
    10 CONTINUE

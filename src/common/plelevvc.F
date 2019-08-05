@@ -28,7 +28,7 @@ C P gives a plan.  Inpic is the number of zones, ivals is a
 C array of selected zones to include.
 
 C This version does not scan geometry or obstruction files and
-C instead uses the VCOORD coordinates.
+C instead uses the szcoords coordinates.
 
       SUBROUTINE PLELEV(direc)
 #include "building.h"
@@ -118,12 +118,12 @@ C Establish the maximum and minimum vertix values for the model.
       do 11 mz=1,newpic
         newfoc=nznog(mz)
         do 10 i=1,nztv(newfoc)
-          xmn=amin1(xmn,VCOORD(newfoc,i,1))
-          ymn=amin1(ymn,VCOORD(newfoc,i,2))
-          zmn=amin1(zmn,VCOORD(newfoc,i,3))
-          xmx=amax1(xmx,VCOORD(newfoc,i,1))
-          ymx=amax1(ymx,VCOORD(newfoc,i,2))
-          zmx=amax1(zmx,VCOORD(newfoc,i,3))
+          xmn=amin1(xmn,szcoords(newfoc,i,1))
+          ymn=amin1(ymn,szcoords(newfoc,i,2))
+          zmn=amin1(zmn,szcoords(newfoc,i,3))
+          xmx=amax1(xmx,szcoords(newfoc,i,1))
+          ymx=amax1(ymx,szcoords(newfoc,i,2))
+          zmx=amax1(zmx,szcoords(newfoc,i,3))
    10   continue
 
 C Convert obstruction block geometry to (/gb1/) and
@@ -233,13 +233,13 @@ C Move to first vertex of zone.
         iupdown=0
         isym=0
         if(direc.eq.'P')then
-          call etplot(VCOORD(newfoc,1,1),VCOORD(newfoc,1,2),
+          call etplot(szcoords(newfoc,1,1),szcoords(newfoc,1,2),
      &      iupdown,isym)
         elseif(direc.eq.'S')then
-          call etplot(VCOORD(newfoc,1,1),VCOORD(newfoc,1,3),
+          call etplot(szcoords(newfoc,1,1),szcoords(newfoc,1,3),
      &      iupdown,isym)
         elseif(direc.eq.'E')then
-          call etplot(VCOORD(newfoc,1,2),VCOORD(newfoc,1,3),
+          call etplot(szcoords(newfoc,1,2),szcoords(newfoc,1,3),
      &      iupdown,isym)
         endif
         call forceflush()
@@ -251,16 +251,16 @@ C by each of the edge points.
           isym=0
           icc=IZSTOCN(newfoc,i)
           if(icc.gt.0)then
-            j=NZJVN(icc,1)
+            j=iszjvn(newfoc,i,1)
             if(j.gt.0)then
               if(direc.eq.'P')then
-                call etplot(VCOORD(newfoc,j,1),VCOORD(newfoc,j,2),
+                call etplot(szcoords(newfoc,j,1),szcoords(newfoc,j,2),
      &            iupdown,isym)
               elseif(direc.eq.'S')then
-                call etplot(VCOORD(newfoc,j,1),VCOORD(newfoc,j,3),
+                call etplot(szcoords(newfoc,j,1),szcoords(newfoc,j,3),
      &            iupdown,isym)
               elseif(direc.eq.'E')then
-                call etplot(VCOORD(newfoc,j,2),VCOORD(newfoc,j,3),
+                call etplot(szcoords(newfoc,j,2),szcoords(newfoc,j,3),
      &            iupdown,isym)
               endif
               call forceflush()
@@ -273,20 +273,20 @@ C by each of the edge points.
      &        'unknown surface.','P')
           endif
 
-          k=NZNVER(icc)
+          k=isznver(newfoc,i)
           do 50 l=2,k
             iupdown=-302
             isym=0
-            m=NZJVN(icc,l)
+            m=iszjvn(newfoc,i,l)
             if(m.gt.0)then
               if(direc.eq.'P')then
-                call etplot(VCOORD(newfoc,m,1),VCOORD(newfoc,m,2),
+                call etplot(szcoords(newfoc,m,1),szcoords(newfoc,m,2),
      &            iupdown,isym)
               elseif(direc.eq.'S')then
-                call etplot(VCOORD(newfoc,m,1),VCOORD(newfoc,m,3),
+                call etplot(szcoords(newfoc,m,1),szcoords(newfoc,m,3),
      &            iupdown,isym)
               elseif(direc.eq.'E')then
-                call etplot(VCOORD(newfoc,m,2),VCOORD(newfoc,m,3),
+                call etplot(szcoords(newfoc,m,2),szcoords(newfoc,m,3),
      &            iupdown,isym)
               endif
               call forceflush()
@@ -298,13 +298,13 @@ C Back to the initial point of the surface.
           isym=0
           if(j.gt.0)then
             if(direc.eq.'P')then
-              call etplot(VCOORD(newfoc,j,1),VCOORD(newfoc,j,2),
+              call etplot(szcoords(newfoc,j,1),szcoords(newfoc,j,2),
      &          iupdown,isym)
             elseif(direc.eq.'S')then
-              call etplot(VCOORD(newfoc,j,1),VCOORD(newfoc,j,3),
+              call etplot(szcoords(newfoc,j,1),szcoords(newfoc,j,3),
      &          iupdown,isym)
             elseif(direc.eq.'E')then
-              call etplot(VCOORD(newfoc,j,2),VCOORD(newfoc,j,3),
+              call etplot(szcoords(newfoc,j,2),szcoords(newfoc,j,3),
      &          iupdown,isym)
             endif
             call forceflush()

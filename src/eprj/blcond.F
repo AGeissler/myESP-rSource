@@ -174,7 +174,7 @@ C List the thermal conductivity of the layers.
               DPNDC='Constant        '
             ENDIF 
             WRITE(MSGSET,'(1X,2A,I2,2A)')
-     &          SSNAME(ioc),' ----- ',J,' ---------- ',DPNDC
+     &          SNAME(icomp,i),' ----- ',J,' ---------- ',DPNDC
             CALL EDISP(IUOUT,MSGSET)
    30     CONTINUE
    20   CONTINUE
@@ -333,7 +333,7 @@ C For help messages
 
       DO 10 I=1,NZSUR(icomp)
         ioc=IZSTOCN(icomp,i)
-        WRITE(ITEM(I),'(A)')SSNAME(ioc)
+        WRITE(ITEM(I),'(A)')SNAME(icomp,i)
    10 CONTINUE
       call edisp(iuout,'Select surfaces for which the conductivity is')
       call edisp(iuout,TEXT)
@@ -500,11 +500,11 @@ C *********************************************************************
       integer lnsn
 
       ioc=IZSTOCN(icomp,icnst)
-      lnsn=lnblnk(ssname(ioc))
+      lnsn=lnblnk(sname(icomp,icnst))
 
       WRITE(NAMELYR,'(5A,I2,A)') ' WARNING The layer ( ',
      &  zname(ICOMP)(1:lnzname(ICOMP)),', ',
-     &  SSNAME(ioc)(1:lnsn),', ',ILYR,') is already defined.'
+     &  SNAME(icomp,icnst)(1:lnsn),', ',ILYR,') is already defined.'
       RETURN
       END
 

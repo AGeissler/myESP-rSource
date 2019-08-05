@@ -168,16 +168,16 @@ C the construction was not found.
 
 C Find matching MLC. Gather materials array index for each 
 C layer of each surface in the zone. IPRZ is used elsewhere.
-        call matchmlcdesc(SSMLCN(ICN),ic)
+        call matchmlcdesc(SMLCN(ICOMP,ISUR),ic)
 
         ICKNE=LAYERS(IC)
         DO 23 IL=1,LAYERS(IC)
           IPRZ(ISUR,IL)=IPRMAT(IC,IL)
    23   CONTINUE
         if(ICKNE.eq.0)then
-          lml=lnblnk(SSMLCN(ICN))
+          lml=lnblnk(SMLCN(ICOMP,ISUR))
           write(outs,'(5A)') ' The construction ',
-     &      SSMLCN(ICN)(1:lml),' of ',SSNAME(ICN),
+     &      SMLCN(ICOMP,ISUR)(1:lml),' of ',SNAME(ICOMP,ISUR),
      &      ' was not found in the mlc db...'
           call edisp(iuout,outs)
           call edisp(iuout,' ')
@@ -475,7 +475,7 @@ C Setup and pass in parameters to win3d.
       endif
 
       CALL SURADJ(ICOMP,ISUR,IE,T,IZC,ISC,ICN,CSTR)
-      SN=SSNAME(ICN)
+      SN=SNAME(ICOMP,ISUR)
       ZN=zname(ICOMP)
       WRITE(ETEXT,'(6A)')' Temperature profiles within ',
      &   SN(1:lnblnk(SN)),' of ',ZN(1:lnblnk(ZN)),' facing ',
@@ -491,21 +491,21 @@ C Setup and pass in parameters to win3d.
 
 C Determine if the surface is transparent or opaque. At this point
 C CFC and CFC2 are still classed with opaque.
-      IF(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &   SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+      IF(SOTF(ICOMP,ISUR)(1:4).EQ.'OPAQ'.OR.
+     &   SOTF(ICOMP,ISUR)(1:4).EQ.'UNKN')THEN
          TSTR='opaque'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC ')THEN
+      ELSEIF(SOTF(ICOMP,ISUR)(1:4).EQ.'CFC ')THEN
          TSTR='CFC'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC2')THEN
+      ELSEIF(SOTF(ICOMP,ISUR)(1:4).EQ.'CFC2')THEN
          TSTR='CFC2'
       ELSE
          TSTR='trnsp.'
       ENDIF
 
 C Print info on surface.
-      lml=lnblnk(SSMLCN(ICN))
+      lml=lnblnk(SMLCN(ICOMP,ISUR))
       WRITE(ETEXT,'(5a,f6.2,a)')' It is ',TSTR,', composed of ',
-     &  SSMLCN(ICN)(1:lml),', with area ',SNA(ICOMP,ISUR),' m2.'
+     &  SMLCN(ICOMP,ISUR)(1:lml),', with area ',SNA(ICOMP,ISUR),' m2.'
       GTEXT=ETEXT
       if(MMOD.EQ.8)then
         iside=4

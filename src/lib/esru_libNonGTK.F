@@ -4958,10 +4958,11 @@ C Select one of the current zones and then a surface.
           izone=IVALS(1)
           DO 11 I=1,NZSUR(IZONE)
            ioc=IZSTOCN(izone,i)
-           lnl=lnblnk(SSMLCN(ioc))
+           lnl=lnblnk(SMLCN(izone,i))
            if(lnl.gt.16) lnl=16  ! truncate MLC name in list
-           write(STMP(I),'(5a)') SSNAME(ioc),'|',SSMLCN(ioc)(1:lnl),'|',
-     &       SSOTHER(ioc,1)(1:16)
+           write(STMP(I),'(5a)') SNAME(izone,i),'|',
+     &       SMLCN(izone,i)(1:lnl),
+     &       '|',SOTHER(izone,i,1)(1:16)
    11     CONTINUE
           INPIC=1
           write(msg2,'(a)') ' name & type & exposure'

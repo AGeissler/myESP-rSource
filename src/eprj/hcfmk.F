@@ -617,7 +617,7 @@ C and ANGLE=+90 for ceilings.
 C Vertical surface. See `in-floor' heating for definitions of CVdata.
 C Treatment for wall depends on whether it is a heated surface.
             CVdata(IPER,ISUR,1) = 1.
-            SN=SSNAME(ICC)
+            SN=SNAME(icomp,isur)
             dok=.false.
             helptopic='htc_buoyancy_wall_panel'
             call gethelptext(helpinsub,helptopic,nbhelp)
@@ -770,12 +770,12 @@ C Vertical surface. Set control law to 1:
             CVdata(IPER,ISUR,1) = 1.
 
 C Treatment (ICOR) depends on whether this is a wall or window.
-            if(SSOTF(icc)(1:4).ne.'OPAQ')then
+            if(SOTF(icomp,isur)(1:4).ne.'OPAQ')then
 
 C It's a window. Use Khalifa window correlation or wall correlation?
 C Add some help here to explain that the window correlations may
 C overpredict convection.
-              SN=SSNAME(ICC)
+              SN=SNAME(icomp,isur)
               WRITE(outs,'(3a)') ' Use window eq for ',
      &                           SN(1:lnblnk(SN))
               dok=.false.
@@ -846,13 +846,13 @@ C Vertical surface. See `heater under window'for definitions of CVdata.
             CVdata(IPER,ISUR,1) = 1.
 
 C Treatment depends on whether this is a wall or window.
-            if(SSOTF(ICC)(1:4).ne.'OPAQ')then
+            if(SOTF(icomp,isur)(1:4).ne.'OPAQ')then
 
 C It's a window. Use Khalifa window correlation (ICOR=31)
 C or wall correlation (ICOR=6)?
 C Add some help here to explain that the window correlations may
 C overpredict convection.
-              SN=SSNAME(ICC)
+              SN=SNAME(icomp,isur)
               WRITE(outs,'(3a)') ' Use window eq for ',
      &                           SN(1:lnblnk(SN))
               dok=.false.
@@ -867,7 +867,7 @@ C overpredict convection.
             else
 
 C It's a wall. Treatment depends on location relative to heater.
-              SN=SSNAME(ICC)
+              SN=SNAME(icomp,isur)
               WRITE(outs,'(3a)') ' Is surface ',SN(1:lnblnk(SN)),
      &                           ' close to the heater?'
               dok=.false.
@@ -1261,7 +1261,7 @@ C Vertical surface. Set control law to 1:
           CVdata(IPER,ISUR,1) = 1.
 
 C Treatment (ICOR) depends on whether fan blows directly on the surface.
-          SN=SSNAME(ICC)
+          SN=SNAME(icomp,isur)
           WRITE(outs,'(3a)') ' Does fan blow directly on surface ',
      &                       SN(1:lnblnk(SN))
           dok=.false.
@@ -2025,8 +2025,6 @@ C NS is the number of surface in the zone << why pass this value? >>
      &            ICTL(MP),IHCI(MP,MS),IHCE(MP,MS),CVdata(MP,MS,8)
       common/HCFPHI/hcfpdescr(MP)
       COMMON/HCCEN/CENLOC(MP,14)
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       character outs*124,SN*12,SNH*16,ITEM(MS+5)*34,KEY*1
       CHARACTER stuff*10
       character hcfpdescr*72
@@ -2096,10 +2094,9 @@ C current menu line index. Build up text strings for the menu.
         DO 10 L=1,ILEN
           IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
             M=M+1
-            icc=izstocn(iz,l)
             CALL EMKEY(L,KEY,IER)
-            WRITE(ITEM(M),'(a,1x,3a,2f7.2)') KEY,SSNAME(icc),' ',
-     &        SSVFC(icc),HCI(IN,L),HCE(IN,L)
+            WRITE(ITEM(M),'(a,1x,3a,2f7.2)') KEY,SNAME(iz,l),' ',
+     &        SVFC(iz,l),HCI(IN,L),HCE(IN,L)
           ENDIF
    10   CONTINUE
 
@@ -2139,9 +2136,8 @@ C If there are enough items allow paging control via EKPAGE.
 
 C Edit item identified by KEYIND.
           CALL KEYIND(NITEMS,INO,IS,IO)
-          icc=izstocn(iz,is) 
           write(outs,'(a,i3,1x,a)')'Hc values for surface',is,
-     &      SSNAME(ICC)(1:lnblnk(SSNAME(ICC)))
+     &      SNAME(iz,is)(1:lnblnk(SNAME(iz,is)))
           write (SNH,'(2f7.2)') HCI(IN,IS),HCE(IN,IS)
           CALL EASKS(SNH,outs,'inside, outside?',16,' -1.0 -1.0 ',
      &      'hc values',IER,nbhelp)
@@ -2167,8 +2163,7 @@ C heat transfer. Also see SELCOR2 and HTBOUY.
         call gethelptext(helpinsub,helptopic,nbhelp)
         hcfpdescr(IN) = 'User supplied hc correlations'
         DO 71 J=1,NS
-          icc=izstocn(iz,j) 
-          SN=SSNAME(icc)
+          SN=SNAME(iz,j)
           WRITE(outs,'(a,i3,1x,a,a,I2)')' Correlation for surface',J,
      &           SN(1:lnblnk(SN)),' inside : period',IN
           IH=IHCI(IN,J)
@@ -2181,8 +2176,7 @@ C heat transfer. Also see SELCOR2 and HTBOUY.
           endif
    71   CONTINUE
         DO 72 J=1,NS
-          icc=izstocn(iz,j) 
-          SN=SSNAME(icc)
+          SN=SNAME(iz,j)
           WRITE(outs,'(a,i3,1x,a,a,I2)')' Correlation for surface',J,
      &           SN(1:lnblnk(SN)),' outside : period',IN
           IH=IHCE(IN,J)
@@ -2202,8 +2196,7 @@ C Adaptive control.
         call gethelptext(helpinsub,helptopic,nbhelp)
         hcfpdescr(IN) = 'User supplied adaptive hc correlations'
         DO 81 J=1,NS
-          icc=izstocn(iz,j) 
-          SN=SSNAME(icc)
+          SN=SNAME(iz,j)
           Ilaw=99
           WRITE(outs,'(a,i3,1x,a,a,I2)')' Control law for surface',J,
      &           SN(1:lnblnk(SN)),' inside : period',IN
@@ -2245,8 +2238,7 @@ C Other control laws not yet supported.
         helptopic='zone_htc_adaptive_sim'
         call gethelptext(helpinsub,helptopic,nbhelp)
         DO 82 J=1,NS
-          icc=izstocn(iz,j) 
-          SN=SSNAME(icc)
+          SN=SNAME(iz,j)
           Ilaw=99
           WRITE(outs,'(a,i3,1x,a,a,I2)')' Control law for surface',J,
      &           SN(1:lnblnk(SN)),' outside : period',IN
@@ -2316,15 +2308,13 @@ C Initial menu entry setup.
         INO=-2
         ibase=nint(CENLOC(IN,1))
         if(ibase.ne.0)then
-          icc1=izstocn(iz,ibase) 
-          write(item(1),'(2a)') 'a base surf is ',SSNAME(icc1)
+          write(item(1),'(2a)') 'a base surf is ',SNAME(iz,ibase)
         else
           write(item(1),'(2a)') 'a base surf is ','not yet defined'
         endif
         itop=nint(CENLOC(IN,2))
         if(itop.ne.0)then
-          icc2=izstocn(iz,itop) 
-          write(item(2),'(2a)') 'b top surf is ',SSNAME(icc2)
+          write(item(2),'(2a)') 'b top surf is ',SNAME(iz,itop)
         else
           write(item(2),'(2a)') 'b top surf is ','not yet defined'
         endif
@@ -2556,8 +2546,6 @@ C       jj=12-14 wall inside, partition, external
       COMMON/Vld20/Vldtng
       COMMON/VERTC/IAORZ,CWIDTH,CHEIGHT
       common/HCFPHI/hcfpdescr(MP)
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
 
       dimension HCIA(MS),HCEA(MS),IHCIA(MS),IHCEA(MS)
       character*12 sn(MS)
@@ -2583,8 +2571,7 @@ C       jj=12-14 wall inside, partition, external
 C Also list the names of the surfaces of the zone use more than
 C one line if necessary.
       do 42 ij=1,nzsur(icomp)
-        icc=izstocn(icomp,ij) 
-        sn(ij)=ssname(icc)
+        sn(ij)=sname(icomp,ij)
   42  continue
       itrunc=1
       ipos=1
@@ -2925,8 +2912,6 @@ C held in a *.htc file.
       integer lnblnk  ! function definition
 
       COMMON/OUTIN/IUOUT,IUIN
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/HCFP/IHCFP,ST(MP),EN(MP),HCI(MP,MS),HCE(MP,MS),
      &            ICTL(MP),IHCI(MP,MS),IHCE(MP,MS),CVdata(MP,MS,8)
       common/HCFPHI/hcfpdescr(MP)
@@ -2982,21 +2967,20 @@ C Recover and list out the available correlations.
 C Convection coefficients.
           call edisp(itru,'   Surface orinetation  Inside     Outside')
           DO 860 J=1,NS
-            icc=izstocn(icomp,j)
             call eclose(HCI(I,J),-1.0,0.01,indefault)
             call eclose(HCE(I,J),-1.0,0.01,outdefault)
             if(indefault.and.outdefault)then
-              WRITE(outs,'(I3,5a)') J,' ',SSNAME(ICC),' (',
-     &          SSVFC(ICC),')   default   default'
+              WRITE(outs,'(I3,5a)') J,' ',SNAME(icomp,j),' (',
+     &          SVFC(icomp,j),')   default   default'
             elseif(indefault.and.(.NOT.outdefault))then
-              WRITE(outs,'(I3,5a,F8.3)') J,' ',SSNAME(ICC),' (',
-     &          SSVFC(ICC),')   default ',HCE(I,J)
+              WRITE(outs,'(I3,5a,F8.3)') J,' ',SNAME(icomp,j),' (',
+     &          SVFC(icomp,j),')   default ',HCE(I,J)
             elseif(.NOT.indefault.and.outdefault)then
-              WRITE(outs,'(I3,5a,F8.3,a)') J,' ',SSNAME(ICC),' (',
-     &          SSVFC(ICC),')  ',HCI(I,J),'   default '
+              WRITE(outs,'(I3,5a,F8.3,a)') J,' ',SNAME(icomp,j),' (',
+     &          SVFC(icomp,j),')  ',HCI(I,J),'   default '
             else
-              WRITE(outs,'(I3,5a,2(1X,F8.3))') J,' ',SSNAME(ICC),
-     &          ' (',SSVFC(ICC),') ',HCI(I,J),HCE(I,J)
+              WRITE(outs,'(I3,5a,2(1X,F8.3))') J,' ',SNAME(icomp,j),
+     &          ' (',SVFC(icomp,j),') ',HCI(I,J),HCE(I,J)
             endif
             call edisp(itru,outs)
   860     CONTINUE
@@ -3006,28 +2990,27 @@ C Convection coefficients.
 C Correlation indices.
           call edisp(itru,'   Surface orientation  Inside     Outside')
           DO 861 J=1,NS
-            icc=izstocn(icomp,j)
             indefault=.false.; outdefault=.false.
             if(IHCI(I,J).eq.-1) indefault=.true.
             if(IHCE(I,J).eq.-1) outdefault=.true.
             if(indefault.and.outdefault)then
-              WRITE(outs,'(I3,5a)') J,' ',SSNAME(ICC),' (',
-     &          SSVFC(ICC),')  default   default'
+              WRITE(outs,'(I3,5a)') J,' ',SNAME(icomp,j),' (',
+     &          SVFC(icomp,j),')  default   default'
               call edisp(itru,outs)
             elseif(indefault.and.(.NOT.outdefault))then
-              WRITE(outs,'(I3,5a,I8)') J,' ',SSNAME(ICC),' (',
-     &          SSVFC(ICC),')  default ',IHCE(I,J)
+              WRITE(outs,'(I3,5a,I8)') J,' ',SNAME(icomp,j),' (',
+     &          SVFC(icomp,j),')  default ',IHCE(I,J)
               call edisp(itru,outs)
               write(outs,'(2a)')'   other face ',hclngdescr(IHCE(I,J))
               call edisp(itru,outs)
             elseif(.NOT.indefault.and.outdefault)then
-              WRITE(outs,'(I3,5a,I8,a)') J,' ',SSNAME(ICC),' (',
-     &          SSVFC(ICC),') ',IHCI(I,J),'  default '
+              WRITE(outs,'(I3,5a,I8,a)') J,' ',SNAME(icomp,j),' (',
+     &          SVFC(icomp,j),') ',IHCI(I,J),'  default '
               call edisp(itru,outs)
               write(outs,'(2a)')'   inside face ',hclngdescr(IHCI(I,J))
               call edisp(itru,outs)
             else
-              WRITE(outs,5205) J,SSNAME(icc),' (',SSVFC(icc),') ',
+              WRITE(outs,5205) J,SNAME(icomp,j),' (',SVFC(icomp,j),') ',
      &          IHCI(I,J),IHCE(I,J)
  5205         FORMAT(I3,1x,4a,2(2X,I8))
               call edisp(itru,outs)
@@ -3045,8 +3028,7 @@ C Control laws and associated data.
      &      '----- Inside -----     ----- Outside -----'
           call edisp(itru,outs)
           DO 862 J=1,NS
-            icc=izstocn(icomp,j) 
-            WRITE(outs,5206)J,SSNAME(ICC),' (',SSVFC(ICC),') ',
+            WRITE(outs,5206)J,SNAME(icomp,j),' (',SVFC(icomp,j),') ',
      &        (CVdata(I,J,jj),jj=1,8)
  5206       FORMAT(I3,1x,4a,4(f4.0,1x),3x,4(f4.0,1x))
             call edisp(itru,outs)
@@ -3057,13 +3039,11 @@ C Control laws and associated data.
           ibase=nint(CENLOC(I,1))
           itop=nint(CENLOC(I,2))
           if(ibase.ne.0.and.itop.ne.0)then
-            icc1=izstocn(icomp,ibase) 
-            icc2=izstocn(icomp,itop)
-            lssn1=lnblnk(SSNAME(icc1)) 
-            lssn2=lnblnk(SSNAME(icc2)) 
+            lssn1=lnblnk(SNAME(icomp,ibase)) 
+            lssn2=lnblnk(SNAME(icomp,itop)) 
             write(outs,'(5a)') ' CEN regime based on typical floor ',
-     &        SSNAME(icc1)(1:lssn1),' and typcial ceiling ',
-     &        SSNAME(icc2)(1:lssn2),'.'
+     &        SNAME(icomp,ibase)(1:lssn1),' and typcial ceiling ',
+     &        SNAME(icomp,itop)(1:lssn2),'.'
           else
             write(outs,'(2a)') ' CEN regime with undefined floor ',
      &        ' and/or ceiling surfaces.'

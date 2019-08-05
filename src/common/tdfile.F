@@ -327,6 +327,7 @@ C in the configuration file if called from simulator or res.
             ISKYTMP=0
             IGLOVRT=0
             IRAININD=0
+            IGRNDRFL=0
 
 C Search instances in temporal file to find match(s).
             NDATA=NITDF
@@ -379,6 +380,8 @@ C in the tdf file.
                 IOBJDIR=ifoc
               elseif(TTYPE(ifoc)(1:7).EQ.'RAININD')then
                 IRAININD=ifoc
+              elseif(TTYPE(ifoc)(1:7).EQ.'GRNDRFL')then
+                IGRNDRFL=ifoc                
               endif
               WRITE(OUTS,'(A,I2,7A,I2,A)')
      &            ' Tdf item:',M,' :',DBTAG(M),
@@ -1170,8 +1173,8 @@ C Keep reading until the tag *pointers is found.
       endif
 
 C Read the header information. Newer files will include
-C the number of colums actually used (nuwpr). For others
-C we have to recover this form ntbits().
+C the number of columns actually used (nuwpr). For others
+C we have to recover this from ntbits().
       CALL LSTRIPC(iafil,outstr,99,ND,1,'line 1',IER)
       IF(ier.ne.0)THEN
         write(msgl2,'(2a)') ' error on line 1 of ',AFIL(1:lnblnk(AFIL))

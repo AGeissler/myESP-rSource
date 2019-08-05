@@ -294,11 +294,11 @@ C diameter of the entire surface.
         endif
       ELSEIF(ICOR.EQ.15)THEN
 
-C Correlations for the naturally ventilated channels
+C Correlations for the naturally ventilated channels.
 C Molina & Maestre correlation for SOLVENT ventilated channel
-C<< according to the source publication the temperature difference
-C   is not between the surface and air (inlet) but between air inlet
-C   and outlet temperatures of the channel! >>
+C according to the source publication the temperature difference
+C is not between the surface and air (inlet) but between air inlet
+C and outlet temperatures of the channel!
         if (IAORZ.gt.0) then
           HC=3.00*(ABS(TFS(ICOMP,ISUR)-TFA(IAORZ)))**0.333
 

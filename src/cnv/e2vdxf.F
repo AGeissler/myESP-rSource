@@ -462,7 +462,7 @@ C blocks use 3DPOLY for all surfaces in the model.
 C          if(iv.eq.3.or.iv.eq.4)then
 C            WRITE(ioout,'(A)')'3DFACE'
 C            WRITE(ioout,'(A)')'  8'
-C            if(SOTF(isf).eq.'TRAN')then
+C            if(SOTF(mz,isf).eq.'TRAN')then
 C              WRITE(ioout,'(A4,a)') 'TRN_',ZN(:lnblnk(ZN))
 C            else
 C              WRITE(ioout,'(A)') ZN(:lnblnk(ZN))
@@ -495,7 +495,7 @@ C          else
 C Write as a 3DPOLY with VERTEX.
             WRITE(ioout,'(A)')'POLYLINE'
             WRITE(ioout,'(A)')'  8'
-            if(SOTF(isf).eq.'TRAN')then
+            if(SOTF(mz,isf).eq.'TRAN')then
               WRITE(ioout,'(A4,a)') 'TRN_',ZN(1:lnblnk(ZN))
             else
               WRITE(ioout,'(A)') ZN(1:lnblnk(ZN))
@@ -603,7 +603,7 @@ C Write surface information to the THF file.
           WRITE(ioout,'(a)')'0 '
           WRITE(ioout,'(I2)')NSUR
           DO 50 J=1,NSUR
-            WRITE(ioout,'(a,a8)')'1 ',SMLCN(J)(1:8)
+            WRITE(ioout,'(a,a8)')'1 ',SMLCN(newfoc,J)(1:8)
             WRITE(ioout,'(I3,1X,124I4)')NVER(J),(JVN(J,K),K=1,NVER(J))
    50     continue
 

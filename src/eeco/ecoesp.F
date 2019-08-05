@@ -842,7 +842,7 @@ C Recover zone data (read only, no display).
       OPQ=0.
       TRN=0.
       DO 41 I=1,NSUR
-        if(SOTF(I)(1:4).NE.'OPAQ')then
+        if(SOTF(ICOMP,I)(1:4).NE.'OPAQ')then
           TRN=TRN+SNA(I)
         else
           OPQ=OPQ+SNA(I)
@@ -877,7 +877,7 @@ C current menu line index. Build up text strings for the menu.
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
           M=M+1
           CALL EMKEY(L,KEY,IER)
-          WRITE(VERT(M),14)KEY,SNAME(ICOMP,L),SMLCN(L),SNA(L)
+          WRITE(VERT(M),14)KEY,SNAME(ICOMP,L),SMLCN(ICOMP,L),SNA(L)
    14     FORMAT(A1,1X,A12,2X,A12,2X,F7.2)
         ENDIF
    10 CONTINUE
@@ -966,7 +966,8 @@ C Selected more thane once.
      &  ' constr name |other side ')
         CALL EDISP(ITRU,OUTSTR)
         WRITE(OUTSTR,8894)SNAME(ICOMP,IS),SNA(IS),PAZI(IS),
-     &       PELV(IS),SOTF(IS),SVFC(IS),SMLCN(IS),SOTHER(IS,1)(1:13)
+     &    PELV(IS),SOTF(ICOMP,IS),SVFC(ICOMP,IS),SMLCN(ICOMP,IS),
+     &    SOTHER(ICOMP,IS,1)(1:13)
  8894   FORMAT(1X,A12,1X,F7.2,F5.0,F5.0,1X,A4,1X,A4,1X,A12,1X,A13)
         CALL EDISP(ITRU,OUTSTR)
       ELSE
@@ -1795,26 +1796,19 @@ C XXX            ISelCon(ITmp) = IN
 
 C Look for the mlc index (IFC)
 C Scan the list of MLC name in database (CompoNam) and check
-C if it correspond to the selected connection (SSMLCN)
+C if it correspond to the selected surface (SMLCN)
 C if so affect the MLC nomber to ISelComp and pass to the next 
-C Selected connection
-C            lstr=lnblnk(SMLCN(IN))
+C selected connection.
             ICF=0
             DO 20 IC=1,NbComp
-C              if(lstr.le.MS)then
-                IF (CompoNam(IC)(1:12).EQ.SSMLCN(IN)(1:12))THEN
-                  ICF=IC
-                  GOTO 363
-                ENDIF
-C              else
-C                IF(CompoNam(IC)(1:12).EQ.SSMLCN(IN)(1:12)) THEN 
-C                  ICF=IC
-C                  GOTO 363
-C                ENDIF
-C              endif
+              IF (CompoNam(IC)(1:12).EQ.
+     &            SMLCN(IC1(IN),IE1(IN))(1:12))THEN
+                ICF=IC
+                GOTO 363
+              ENDIF
  20         CONTINUE
 363         IF (ICF.EQ.0) THEN
-              WRITE(outs,'(a,a)')SSMLCN(IN),'not in mlc db.'
+              WRITE(outs,'(a,a)')SMLCN(IC1(IN),IE1(IN)),'not in mlc db.'
               CALL edisp(Ichanel,outs)
               GOTO 666
             ENDIF
@@ -1892,8 +1886,9 @@ C previous zone. Thus, partition are not taken into account twice.
 C No need to test the first zone 
           IF(IZ.GT.1)THEN
             Iother = iCurCon
-            if ( (SSOTHER(Iother,1)(1:8).NE.'EXTERIOR') .OR.
-     &                 (SSOTHER(Iother,1)(1:7).NE.'SIMILAR')) then
+            if ((SOTHER(IC1(Iother),IE1(Iother),1)(1:8).NE.'EXTERIOR')
+     &      .OR.(SOTHER(IC1(Iother),IE1(Iother),1)(1:7).NE.'SIMILAR')
+     &      ) then
               IF (zname(nznog(IZ)).eq.'zname(nznog(1)') THEN
                       ii = 0
               ENDIF
@@ -1902,7 +1897,8 @@ C Loop over all zones to find if other side is a zone that was
 C already scaned. No need to test the last zone 
               DO 345 IT=1,(IZ-1)
 C if other side is one of the previous zone,  go to next surface
-                if(SSOTHER(Iother,1)(1:lnblnk(SSOTHER(Iother,1))).EQ. 
+                if(SOTHER(IC1(Iother),IE1(Iother),1)
+     &            (1:lnblnk(SOTHER(IC1(Iother),IE1(Iother),1))).EQ. 
      &             zname(nznog(IT))(1:lnzname(nznog(IT))) ) then
                   Exist=.TRUE.
                   IOpsitZone= ic2(IZSTOCN(ICurZone,N))
@@ -2829,26 +2825,20 @@ C            ISelCon(ITmp) = IN
 
 C Look for the mlc index (IFC)
 C Scan the list of MLC name in database (CompoNam) and check
-C if it correspond to the selected connection (SSMLCN)
+C if it correspond to the selected surface (SMLCN)
 C if so affect the MLC nomber to ISelComp and pass to the next 
 C Selected connection
-            lstr=lnblnk(SMLCN(IN))
+            lstr=lnblnk(SMLCN(IC1(IN),IE1(IN)))
             ICF=0
             DO 20 IC=1,NbComp
-Cxxx              if(lstr.le.MS)then
-                IF (CompoNam(IC)(1:12).EQ.SSMLCN(IN)(1:12))THEN
-                  ICF=IC
-                  GOTO 363
-                ENDIF
-Cxxx              else
-Cxxx                IF(CompoNam(IC)(1:12).EQ.SSMLCN(IN)(1:12)) THEN 
-Cxxx                  ICF=IC
-Cxxx                  GOTO 363
-Cxxx                ENDIF
-Cxxx              endif
+              IF (CompoNam(IC)(1:12).EQ.
+     &            SMLCN(IC1(IN),IE1(IN))(1:12))THEN
+                ICF=IC
+                GOTO 363
+              ENDIF
  20         CONTINUE
 363         IF (ICF.EQ.0) THEN
-              WRITE(outs,'(a,a)')SSMLCN(IN),'not in mlc db.'
+              WRITE(outs,'(a,a)')SMLCN(IC1(IN),IE1(IN)),'not in mlc db.'
               CALL edisp(Ichanel,outs)
               GOTO 666
             ENDIF
@@ -2989,8 +2979,9 @@ C partition are not taken into account twice.
 C No need to test the first zone 
             IF(IZ.GT.1)THEN
               Iother = iCurCon
-              if ( (SSOTHER(Iother,1)(1:8).NE.'EXTERIOR') .OR.
-     &                 (SSOTHER(Iother,1)(1:7).NE.'SIMILAR')) then
+            if((SOTHER(IC1(Iother),IE1(Iother),1)(1:8).NE.'EXTERIOR')
+     &      .OR.(SOTHER(IC1(Iother),IE1(Iother),1)(1:7).NE.'SIMILAR')
+     &      ) then
                 IF (zname(nznog(IZ)).eq.'zname(nznog(1)') THEN
                       ii = 0
                 ENDIF
@@ -2999,7 +2990,8 @@ C Loop over all zones to find if other side is a zone that was
 C already scaned. No need to test the last zone 
                 DO 345 IT=1,(IZ-1)
 C if other side is one of the previous zone,  go to next surface
-                  if(SSOTHER(Iother,1)(1:lnblnk(SSOTHER(Iother,1))).EQ. 
+                  if(SOTHER(IC1(Iother),IE1(Iother),1)
+     &              (1:lnblnk(SOTHER(IC1(Iother),IE1(Iother),1))).EQ. 
      &              zname(nznog(IT))(1:lnzname(nznog(IT))) ) then
                     Exist=.TRUE.
                     IOpsitZone= ic2(IZSTOCN(ICurZone,N))
@@ -3120,11 +3112,11 @@ C Mass of one surface and sum over the zone
             IF (itrc.EQ.3) THEN
               IF (ICalType.EQ.1) THEN
                 IV = IV + 1
-                WRITE(outs,93) ' Zone: ',zname(nznog(IZ)),
-     &                         ' Surface: ', SName(nznog(IZ),ICurSurf),
-     &                         ' Composite: ',SMLCN(ICurSurf),
-     &                         'Area [m2]: ',Area,
-     &                         'Perim. [m]: ',Perimeter
+                WRITE(outs,93)' Zone: ',zname(nznog(IZ)),
+     &                        ' Surface: ', SName(nznog(IZ),ICurSurf),
+     &                        ' Composite: ',SMLCN(nznog(IZ),ICurSurf),
+     &                        'Area [m2]: ',Area,
+     &                        'Perim. [m]: ',Perimeter
  93             FORMAT(6(a),2(2x,a,1x, F6.2))
                 CALL edisp(Ichanel,outs)
               ELSEIF (ICalType.EQ.2) THEN
@@ -3533,7 +3525,7 @@ C--------------------------
                   if (ICalType.eq.1) then
                     IF (M.EQ.14) THEN
                       TotMass= TotRecyM + TotBurnM + TotDumpM
-                      WRITE(outs,58) SMLCN(N), TotMass,
+                      WRITE(outs,58) SMLCN(nznog(IZ),N), TotMass,
      &                    TotRecyM/TotMass, TotRecyM,
      &                    TotBurnM/TotMass, TotBurnM,
      &                    TotDumpM/TotMass, TotDumpM
@@ -3545,12 +3537,13 @@ C--------------------------
                       TotBurnM = 0.0
                       TotRecyM = 0.0
                     ELSE
-                      WRITE(outs,581)SName(nznog(IZ),N),SMLCN(N),
-     &                        CompoMass ,(CompoTot(IY),IY=1,MIMP)
+                      WRITE(outs,581)SName(nznog(IZ),N),
+     &                  SMLCN(nznog(IZ),N),
+     &                  CompoMass ,(CompoTot(IY),IY=1,MIMP)
 581                   FORMAT(1X,A12, 3x, A12, 5(3x,1E9.3))
                     ENDIF
                   elseif (ICalType.eq.2) then
-                    WRITE(outs,582)SMLCN(N),
+                    WRITE(outs,582)SMLCN(nznog(IZ),N),
      &               CompoMass ,(CompoTot(IY),IY=1,MIMP)
 582                 FORMAT(1X,12x, 3x, A12, 5(3x,1E9.3))
                   endif
@@ -3887,34 +3880,34 @@ C the perimiter of the polygon with global commons.
 
 C First confirm whether there are any duplicate references to vertices
 c (indicates a polygon with a hole in it).
-          do 40 m=1,NZNVER(icc)
-            do 41 n=1,NZNVER(icc)
+          do 40 m=1,isznver(izone,isurf)
+            do 41 n=1,isznver(izone,isurf)
               IF(m.EQ.n)goto 41
-              J1=NZJVN(icc,n)
-              J2=NZJVN(icc,m)
+              J1=iszjvn(izone,isurf,n)
+              J2=iszjvn(izone,isurf,m)
               IF(J1.EQ.J2)dupedges=.true.
   41        continue
   40      continue
 
 C Step through the vertices of each edge in turn and find distance.
-          list=NZNVER(icc)-1
+          list=isznver(izone,isurf)-1
           do 42 i=1,list
-            j=NZJVN(icc,i)
-            k=NZJVN(icc,i+1)
+            j=iszjvn(izone,isurf,i)
+            k=iszjvn(izone,isurf,i+1)
             vdis=0.0
-            vdis= crowxyz(VCOORD(izone,j,1),VCOORD(izone,j,2),
-     &        VCOORD(izone,j,3),VCOORD(izone,k,1),
-     &        VCOORD(izone,k,2),VCOORD(izone,k,3))
+            vdis= crowxyz(szcoords(izone,j,1),szcoords(izone,j,2),
+     &        szcoords(izone,j,3),szcoords(izone,k,1),
+     &        szcoords(izone,k,2),szcoords(izone,k,3))
             perim=perim+vdis
   42      continue
 
 C Link back to start vertex
-          j=NZJVN(icc,NZNVER(icc))
-          k=NZJVN(icc,1)
+          j=iszjvn(izone,isurf,isznver(izone,isurf))
+          k=iszjvn(izone,isurf,1)
           vdis=0.0
-          vdis= crowxyz(VCOORD(izone,j,1),VCOORD(izone,j,2),
-     &      VCOORD(izone,j,3),VCOORD(izone,k,1),
-     &      VCOORD(izone,k,2),VCOORD(izone,k,3))
+          vdis= crowxyz(szcoords(izone,j,1),szcoords(izone,j,2),
+     &      szcoords(izone,j,3),szcoords(izone,k,1),
+     &      szcoords(izone,k,2),szcoords(izone,k,3))
           perim=perim+vdis
         endif
       endif

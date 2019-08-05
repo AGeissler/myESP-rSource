@@ -653,17 +653,7 @@ C Clear the connection list.
         ICT(ICC)=-1   ! Set to -1 to signal connection type is not yet defined.
         IC2(ICC)=0
         IE2(ICC)=0
-        SSPARENT(icc)=' '
-        SSNAME(icc)=' '
-        SSOTF(icc)=' '
-        SSMLCN(icc)=' '
         ssmlcindex(icc)=0  ! no matching MLC
-        SSVFC(icc)=' '
-        SSOTHER(icc,1)='UNKNOWN'
-        SSOTHER(icc,2)='0'
-        SSOTHER(icc,3)='0'
-        SSUSE(icc,1)='-'
-        SSUSE(icc,2)='-'
         ssna(icc)=0.0
         sspazi(icc)=0.0
         sspelv(icc)=0.0
@@ -2988,15 +2978,15 @@ C block for later recovery.
 
       DO 66 IS=1,NSUR
         SNAME1(IS)=SNAME(ICOMP,IS)
-        SOTF1(IS)=SOTF(IS)
-        SMLCN1(IS)=SMLCN(IS)
-        SVFC1(IS)=SVFC(IS)
-        SOTHER1(IS,1)=SOTHER(IS,1)
-        SOTHER1(IS,2)=SOTHER(IS,2)
-        SOTHER1(IS,3)=SOTHER(IS,3)
-        SUSE1(IS,1)=SUSE(IS,1)
-        SUSE1(IS,2)=SUSE(IS,2)
-        SPARENT1(IS)=SPARENT(IS)
+        SOTF1(IS)=SOTF(ICOMP,IS)
+        SMLCN1(IS)=SMLCN(ICOMP,IS)
+        SVFC1(IS)=SVFC(ICOMP,IS)
+        SOTHER1(IS,1)=SOTHER(ICOMP,IS,1)
+        SOTHER1(IS,2)=SOTHER(ICOMP,IS,2)
+        SOTHER1(IS,3)=SOTHER(ICOMP,IS,3)
+        SUSE1(IS,1)=SUSE(ICOMP,IS,1)
+        SUSE1(IS,2)=SUSE(ICOMP,IS,2)
+        SPARENT1(IS)=SPARENT(ICOMP,IS)
         NVER1(IS)=NVER(IS)
         DO 67 IV=1,NVER1(IS)
           JVN1(IS,IV)=JVN(IS,IV)
@@ -3044,15 +3034,15 @@ C block for later recovery.
 
       DO 66 IS=1,NSUR
         SNAME(ICOMP,IS)=SNAME1(IS)
-        SOTF(IS)=SOTF1(IS)
-        SMLCN(IS)=SMLCN1(IS)
-        SVFC(IS)=SVFC1(IS)
-        SOTHER(IS,1)=SOTHER1(IS,1)
-        SOTHER(IS,2)=SOTHER1(IS,2)
-        SOTHER(IS,3)=SOTHER1(IS,3)
-        SUSE(IS,1)=SUSE1(IS,1)
-        SUSE(IS,2)=SUSE1(IS,2)
-        SPARENT(IS)=SPARENT1(IS)
+        SOTF(ICOMP,IS)=SOTF1(IS)
+        SMLCN(ICOMP,IS)=SMLCN1(IS)
+        SVFC(ICOMP,IS)=SVFC1(IS)
+        SOTHER(ICOMP,IS,1)=SOTHER1(IS,1)
+        SOTHER(ICOMP,IS,2)=SOTHER1(IS,2)
+        SOTHER(ICOMP,IS,3)=SOTHER1(IS,3)
+        SUSE(ICOMP,IS,1)=SUSE1(IS,1)
+        SUSE(ICOMP,IS,2)=SUSE1(IS,2)
+        SPARENT(ICOMP,IS)=SPARENT1(IS)
         NVER(IS)=NVER1(IS)
         DO 67 IV=1,NVER(IS)
           JVN(IS,IV)=JVN1(IS,IV)
@@ -4061,27 +4051,28 @@ C current menu line index. Build up text strings for the menu.
           if(icc.lt.1)then
             continue
           else
-            lnsmlcn=lnblnk(SSMLCN(icc))
+            lnsmlcn=lnblnk(SMLCN(izone,L))
             if(lnsmlcn.gt.16) lnsmlcn=16
             if(MOD.eq.'-')then
-              WRITE(VERT(M),14)KEY,SSNAME(icc),SSMLCN(icc)(1:lnsmlcn)
+              WRITE(VERT(M),14)KEY,SNAME(izone,L),
+     &          SMLCN(izone,L)(1:lnsmlcn)
    14         FORMAT(A1,1X,A,1X,A)
             endif
           endif
    
 C Display surface name plus some context information.
           if(icc.gt.0)then
-            lnn=lnblnk(SSNAME(icc))
+            lnn=lnblnk(SNAME(izone,L))
             if(lnn.lt.8) lnn=8
-            lnsmlcn=lnblnk(SSMLCN(icc))
+            lnsmlcn=lnblnk(SMLCN(izone,L))
             if(lnsmlcn.lt.10) lnsmlcn=10
-            lnoth=lnblnk(SSOTHER(icc,1))
+            lnoth=lnblnk(SOTHER(izone,L,1))
             if((lnn+lnsmlcn+lnoth).lt.36)then
-              WRITE(VERTS(M),13)KEY,SSNAME(icc)(1:lnn),
-     &          SSMLCN(icc)(1:lnsmlcn),SSOTHER(icc,1)(1:lnoth)
+              WRITE(VERTS(M),13)KEY,SNAME(izone,L)(1:lnn),
+     &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth)
             else
-              WRITE(VERTS(M),13)KEY,SSNAME(icc)(1:lnn),
-     &          SSMLCN(icc)(1:15),SSOTHER(icc,1)(1:lnoth)
+              WRITE(VERTS(M),13)KEY,SNAME(izone,L)(1:lnn),
+     &          SMLCN(izone,L)(1:15),SOTHER(izone,L,1)(1:lnoth)
             endif
    13       FORMAT(A,1X,A,2X,A,2X,A)
           else
@@ -4143,7 +4134,7 @@ C BASESIMP editing facility (once).
         loopend=NZSUR(IZONE)
         DO i=loopstart,loopend
           icc=IZSTOCN(izone,i)
-          IF(SSOTHER(icc,1)(1:8).EQ.'BASESIMP')THEN
+          IF(SOTHER(izone,i,1)(1:8).EQ.'BASESIMP')THEN
             usesbasesimp=.true.
           END IF
         END DO
@@ -4256,36 +4247,37 @@ C current menu line index. Build up text strings for the menu.
           if(icc.lt.1)then
             continue
           else
-            lnsmlcn=lnblnk(SSMLCN(icc))
+            lnsmlcn=lnblnk(SMLCN(izone,L))
             if(lnsmlcn.gt.16) lnsmlcn=16
           endif
    
           if(icc.gt.0)then
-            lnn=lnblnk(SSNAME(icc))
+            lnn=lnblnk(SNAME(izone,L))
             if(lnn.lt.8) lnn=8
-            lnsmlcn=lnblnk(SSMLCN(icc))
+            lnsmlcn=lnblnk(SMLCN(izone,L))
             if(lnsmlcn.lt.10) lnsmlcn=10
-            lnoth=lnblnk(SSOTHER(icc,1))
+            lnoth=lnblnk(SOTHER(izone,L,1))
             if((lnn+lnsmlcn+lnoth).lt.36)then
               if(ISCNLIST(icc).eq.0)then
-                WRITE(VERTS(M),'(7a)')KEY,'  ',SSNAME(icc)(1:lnn),
-     &            '  ',SSMLCN(icc)(1:lnsmlcn),'  ',
-     &            SSOTHER(icc,1)(1:lnoth)
+                WRITE(VERTS(M),'(7a)')KEY,'  ',SNAME(izone,L)(1:lnn),
+     &            '  ',SMLCN(izone,L)(1:lnsmlcn),'  ',
+     &            SOTHER(izone,L,1)(1:lnoth)
               else
-                WRITE(VERTS(M),'(8a)')KEY,'  ',SSNAME(icc)(1:lnn),
-     &            '  ',SSMLCN(icc)(1:lnsmlcn),'  ',
-     &             SSOTHER(icc,1)(1:lnoth),' *'
+                WRITE(VERTS(M),'(8a)')KEY,'  ',SNAME(izone,L)(1:lnn),
+     &            '  ',SMLCN(izone,L)(1:lnsmlcn),'  ',
+     &             SOTHER(izone,L,1)(1:lnoth),' *'
               endif
             else
               if(ISCNLIST(icc).eq.0)then
                 lnoth=36-(lnn+15+7+1)
-                WRITE(VERTS(M),'(7a)')KEY,'  ',SSNAME(icc)(1:lnn),
-     &            '  ',SSMLCN(icc)(1:15),'  ',SSOTHER(icc,1)(1:lnoth)
+                WRITE(VERTS(M),'(7a)')KEY,'  ',SNAME(izone,L)(1:lnn),
+     &            '  ',SMLCN(izone,L)(1:15),'  ',
+     &            SOTHER(izone,L,1)(1:lnoth)
               else
                 lnoth=36-(lnn+15+9+1)
-                WRITE(VERTS(M),'(8a)')KEY,'  ',SSNAME(icc)(1:lnn),
-     &            '  ',SSMLCN(icc)(1:15),'  ',SSOTHER(icc,1)(1:lnoth),
-     &            ' *'
+                WRITE(VERTS(M),'(8a)')KEY,'  ',SNAME(izone,L)(1:lnn),
+     &            '  ',SMLCN(izone,L)(1:15),'  ',
+     &            SOTHER(izone,L,1)(1:lnoth),' *'
               endif
             endif
           else
@@ -4358,12 +4350,12 @@ C Decode from the potential long list to the zone number via KEYIND.
           ISLIST(INPICK)=IFOC
           iccc=IZSTOCN(izone,IFOC)  ! get which connection
           ISCNLIST(iccc)=1          ! mark for *
-          lnn=lnblnk(SSNAME(iccc))
-          lnsmlcn=lnblnk(SSMLCN(iccc))
-          lnoth=lnblnk(SSOTHER(iccc,1))
-          WRITE(outs,'(7a)')'Selected: ',SSNAME(iccc)(1:lnn),
-     &      '  ',SSMLCN(iccc)(1:lnsmlcn),'  ',
-     &      SSOTHER(iccc,1)(1:lnoth),' to act on.'
+          lnn=lnblnk(SNAME(izone,IFOC))
+          lnsmlcn=lnblnk(SMLCN(izone,IFOC))
+          lnoth=lnblnk(SOTHER(izone,IFOC,1))
+          WRITE(outs,'(7a)')'Selected: ',SNAME(izone,IFOC)(1:lnn),
+     &      '  ',SMLCN(izone,IFOC)(1:lnsmlcn),'  ',
+     &      SOTHER(izone,IFOC,1)(1:lnoth),' to act on.'
           call edisp(iuout,outs)
         endif
       ELSE
@@ -4393,9 +4385,6 @@ C databases have been opened.
       common/OUTIN/IUOUT,IUIN
       common/pophelp/h(60)
 
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
-
 C Special materials file flag
       DIMENSION PNAM(ME),item(ME+10)
       integer header,footer
@@ -4404,8 +4393,7 @@ C Special materials file flag
 
 C Check name of surface with construction name in MLC common.
       imatch=0
-      icc=IZSTOCN(icomp,is)
-      call matchmlcdesc(SSMLCN(icc),imatch)
+      call matchmlcdesc(SMLCN(icomp,is),imatch)
       if(imatch.eq.0) then
          call edisp(iuout,'Error: probably no construction defined!')
          ier=1
@@ -4417,7 +4405,7 @@ C Check name of surface with construction name in MLC common.
 C Write menu displaying a list of layer names
       header=3
       footer=3
-      write(item(1),'(a,a)') 'a surface name: ',SSNAME(icc)
+      write(item(1),'(a,a)') 'a surface name: ',SNAME(icomp,is)
       write(item(2),'(a,a)') 'c constr name: ',mlcname(imatch)(1:16)
       item(3)='  ----------------------------'
       do 10 j=1,LAYERS(imatch)
@@ -4631,8 +4619,6 @@ C << not required for this. >>
 
       integer lnblnk  ! function definition
 
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       CHARACTER ZSDES*28,ZSDESC*20,SST1*12,ZST1*12,ZSDESS*16
 
       ZSDESC=' '
@@ -4644,8 +4630,7 @@ C << not required for this. >>
         ZSDES ='-'
         return
       endif
-      icc=izstocn(iz,is)
-      SST1=SSNAME(icc)
+      SST1=SNAME(iz,is)
       lsn0=lnblnk(SST1)
       lsn1=MIN0(lsn0,5)
       lsn2=MIN0(lsn0,9)

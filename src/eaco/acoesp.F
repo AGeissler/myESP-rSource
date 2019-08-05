@@ -211,8 +211,8 @@ C Recover zone data (read only, no display).
       TRN=0.
       DO 41 I=1,NSUR
         icon=IZSTOCN(icomp,i)
-        if(SSOTF(icon)(1:4).NE.'OPAQ'.AND.
-     &            SSOTF(icon)(1:4).NE.'CFC ')then
+        if(SOTF(icomp,i)(1:4).NE.'OPAQ'.AND.
+     &     SOTF(icomp,i)(1:4).NE.'CFC ')then
           TRN=TRN+SNA(I)
         else
           OPQ=OPQ+SNA(I)
@@ -569,17 +569,17 @@ C for each surface in the zone according to the frequency band
               CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
             DO 400 I = 1,NSUR
               icon=IZSTOCN(nZnog(J),I)
-              In = MLCIndex(SSMLCN(icon))
+              In = MLCIndex(SMLCN(nZnog(J),I))
               IF (SNA(I) .GT. 0.) THEN
                 if (IOctave .EQ. 1) then
-                  WRITE(outs,311) SSNAME(icon), SSMLCN(icon),
+                  WRITE(outs,311) SNAME(nZnog(J),I), SMLCN(nZnog(J),I),
      &                           (SysAbsCo(In,IY),IY=2,17,3)
  311              FORMAT(1X,A,3x, 5x, 3x, A, 6(4x, F4.2))
                   call edisp(Ichanel,outs)
                 elseif (IOctave .EQ. 2) then
                   IF (ICompact.EQ.1) THEN
-                    WRITE(outs,321) SSNAME(icon),SNA(I), 
-     &                 SSMLCN(icon),(SysAbsCo(In,IY),IY=3,15,3)
+                    WRITE(outs,321) SNAME(nZnog(J),I),SNA(I), 
+     &                 SMLCN(nZnog(J),I),(SysAbsCo(In,IY),IY=3,15,3)
  321                FORMAT(1X,A,3x,F5.1,3x,a, 6(4x, F4.2))
                     call edisp(Ichanel,outs)
                     WRITE(outs,322) (SysAbsCo(In,IY),IY=2,17,3)
@@ -591,7 +591,7 @@ C for each surface in the zone according to the frequency band
                     call edisp(Ichanel,' ')
                   ELSE
 C Display material name rather surface name
-                    WRITE(outs,324) SSMLCN(icon),
+                    WRITE(outs,324) SMLCN(nZnog(J),I),
      &               (SysAbsCo(In,IY),IY=1,17)
  324                FORMAT(1X,A,2x,7x, 17(2x, F4.2))
                     call edisp(Ichanel,outs)
@@ -753,16 +753,16 @@ C Display equivalent surface for MATERIAL
               call SurfEquiCalc(nznog(k), M, IAirAb)
             DO 200 I = 1,NSUR
               icon=IZSTOCN(nZnog(k),I)
-              ISys = MLCIndex(SSMLCN(icon))
+              ISys = MLCIndex(SMLCN(nZnog(k),I))
               IF (SNA(I) .GT. 0.) THEN
                 if (IOctave .EQ. 1) then
-                  WRITE(outs,111)SSNAME(icon),SNA(I),SSMLCN(icon),
-     &                           (SurfEquM(I,IY),IY=2,17,3)
+                  WRITE(outs,111)SNAME(nZnog(k),I),SNA(I),
+     &              SMLCN(nZnog(k),I),(SurfEquM(I,IY),IY=2,17,3)
  111              FORMAT(1X,A,1x, F7.1, 1x, A, 2x, 6(2x, F6.1))
                   call edisp(Ichanel,outs)
                   IF (ABS(SNA(I)-SNAeff(I)).GT.0.001) THEN
                     DO 997 J = 1,MaxFur
-                      if (CovSurf(J).EQ.SSNAME(icon)) then
+                      if (CovSurf(J).EQ.SNAME(nZnog(k),I)) then
                         WRITE(outs,116) '*',-XNbFur(J),FurType(J),
      &                    (-XNbFur(J)* SysAbsCo(ISys,IY),IY=2,17,3)
  116                    FORMAT(13x,A,1x,F7.1,1x,A,2x, 6(2x,F6.1))
@@ -772,8 +772,8 @@ C Display equivalent surface for MATERIAL
                   ENDIF
                 elseif (IOctave .EQ. 2) then
                   IF (ICompact.EQ.1) THEN
-                    WRITE(outs,206)SSNAME(icon),SNA(I),
-     &                SSMLCN(icon),(SurfEquM(I,IY),IY=3,15,3)
+                    WRITE(outs,206)SNAME(nZnog(k),I),SNA(I),
+     &                SMLCN(nZnog(k),I),(SurfEquM(I,IY),IY=3,15,3)
  206                FORMAT(1X,A,3x, F7.1, 3x, A, 6(2x, F6.1))
                     call edisp(Ichanel,outs)
                     WRITE(outs,208) (SurfEquM(I,IY),IY=2,17,3)
@@ -786,7 +786,7 @@ C Display equivalent surface for MATERIAL
                     if (ABS(SNA(I)-SNAeff(I)).GT.0.001) then
 C If furniture infront of surface
                       DO 999 J = 1,MaxFur
-                        if (CovSurf(J).EQ.SSNAME(icon)) then
+                        if (CovSurf(J).EQ.SNAME(nZnog(k),I)) then
                           WRITE(outs,216)'*',-XNbFur(J),FurType(J),
      &                      (-XNbFur(J)* SysAbsCo(ISys,IY),IY=3,15,3)
  216                      FORMAT(1X,A12,3x, F6.1, 3x, A12, 
@@ -805,7 +805,7 @@ C If furniture infront of surface
  999                  CONTINUE
                     endif
                   ELSE
-                    WRITE(extraouts,214) SSNAME(icon),SNA(I),
+                    WRITE(extraouts,214) SNAME(nZnog(k),I),SNA(I),
      &                         (SurfEquM(I,IY),IY=1,17)
  214                FORMAT(1X,A12,1x,F7.1,1x,17(F6.1))
                     call edisp(Ichanel,extraouts)
@@ -813,7 +813,7 @@ C If furniture infront of surface
                     if (ABS(SNA(I)-SNAeff(I)).GT.0.001) then
 C If furniture infront of surface
                       DO 998 J = 1,MaxFur
-                       if (CovSurf(J).NE.SSNAME(icon)) then
+                       if (CovSurf(J).NE.SNAME(nZnog(k),I)) then
                           WRITE(extraouts,117) '*',FurType(IndexFur(J)),
      &                    -XNbFur(J),
      &                    (-XNbFur(J)* SysAbsCo(Isys,IY),IY=1,17)

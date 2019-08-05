@@ -116,75 +116,75 @@ C 1. scan G6 common and check that CFCs are VERT and EXTERIOR
       DO 10 IS=1,NZSUR(icomp)
         icn1=izstocn(icomp,is)
         imlc = ssmlcindex(icn1)
-        IF(SSOTF(icn1)(1:3).eq.'CFC')then
-            if(SSVFC(icn1)(1:4).eq.'VERT'.and.
-     &            SSOTHER(icn1,1)(1:5).eq.'EXTER')then
-                  ncfccount=ncfccount+1   !count CFCs in zone
-                  con_name(is)=SSMLCN(icn1)
+        IF(SOTF(icomp,is)(1:3).eq.'CFC')then
+            if(SVFC(icomp,is)(1:4).eq.'VERT'.and.
+     &         SOTHER(icomp,is,1)(1:5).eq.'EXTER')then
+              ncfccount=ncfccount+1   !count CFCs in zone
+              con_name(is)=SMLCN(icomp,is)
 
 C 2.  scan constructions layers and check that there are air gaps
 C between each glazing/shading layer
-                  igap=0
-                  do 15 ie=2,ne(is),2
-                   check_CFC_or_CFC2:
-     &             IF(SSOTF(icn1)(1:4).EQ.'CFC ') THEN    
-                     igap=igap+1
-                     if(ie.ne.IPAIRG(IS,igap))then
-                       CALL USRMSG(
+              igap=0
+              do 15 ie=2,ne(is),2
+                check_CFC_or_CFC2:
+     &          IF(SOTF(icomp,is)(1:4).EQ.'CFC ') THEN    
+                  igap=igap+1
+                  if(ie.ne.IPAIRG(IS,igap))then
+                    CALL USRMSG(
      &             ' CFCs must have alternating solid and gas',
      &             ' gap layers. Check constructions and try again.',
      &             'W') 
-                       IER=1
-                       return
-                     endif
-                     legacy_CFC_xst = .true.
-                   ELSEIF(SSOTF(icn1)(1:4).EQ.'CFC2')THEN
-                     cfcarrayindex = ITMCFCDB(imlc,ie)
-                     if(CFCshdtp(cfcarrayindex).ne.iGasGap
+                    IER=1
+                    return
+                  endif
+                  legacy_CFC_xst = .true.
+                ELSEIF(SOTF(icomp,is)(1:4).EQ.'CFC2')THEN
+                  cfcarrayindex = ITMCFCDB(imlc,ie)
+                  if(CFCshdtp(cfcarrayindex).ne.iGasGap
      &              .or.
      &           (CFCshdtp(cfcarrayindex).eq.iGasGap.and.ie.eq.ne(is))
      &              .or.
      &           (CFCshdtp(cfcarrayindex).eq.iGasGap.and.ie.eq.1)
-     &                 )then
+     &              )then
 
-                       CALL USRMSG(
+                    CALL USRMSG(
      &             ' CFCs must have alternating solid and gas',
      &             ' gap layers. Check constructions and try again.',
      &             'W') 
-                       IER=1
-                       return
-                     endif
-                     CFC2_xst = .true.
-                   ENDIF check_CFC_or_CFC2
- 15               continue
+                    IER=1
+                    return
+                  endif
+                  CFC2_xst = .true.
+                ENDIF check_CFC_or_CFC2
+ 15           continue
 
 C 3.  scan constructions layers and check that there isn't more
 C than 1 shade layer (for CFC2 type only).
-                  iShdLayers = 0
-                  do 16 ie=1,ne(is),1
-                   IF(SSOTF(icn1)(1:4).EQ.'CFC2')THEN
-                     cfcarrayindex = ITMCFCDB(imlc,ie)
-                     if(CFCshdtp(cfcarrayindex).gt.iGlazing)then
-                       iShdLayers = iShdLayers+1
-                     endif
+              iShdLayers = 0
+              do 16 ie=1,ne(is),1
+                IF(SOTF(icomp,is)(1:4).EQ.'CFC2')THEN
+                  cfcarrayindex = ITMCFCDB(imlc,ie)
+                  if(CFCshdtp(cfcarrayindex).gt.iGlazing)then
+                    iShdLayers = iShdLayers+1
+                  endif
 
-                     if(iShdLayers.gt.1)then
-                       CALL USRMSG(
+                  if(iShdLayers.gt.1)then
+                    CALL USRMSG(
      &             ' Currently only one shade layer is allowed',
      &             ' Check constructions and try again.',
      &             'W') 
-                       IER=1
-                       return
-                     endif
-                   ENDIF
- 16               continue
+                    IER=1
+                    return
+                  endif
+                ENDIF
+ 16           continue
 
             else
-                  CALL USRMSG(
-     &            ' CFC must be VERT and EXTERIOR',
-     &            ' please update geometry and try again.','W')
-                  IER=1
-                  return
+              CALL USRMSG(
+     &          ' CFC must be VERT and EXTERIOR',
+     &          ' please update geometry and try again.','W')
+              IER=1
+              return
             end if
         ELSE
             con_name(is)=' '
@@ -250,7 +250,7 @@ C go through CFC constructions and ask user to assign type for each one,
       DO 40 IS=1,NZSUR(icomp)
         icn1=izstocn(icomp,is)
         itype=0
-        IF(SSOTF(icn1)(1:3).eq.'CFC')then
+        IF(SOTF(icomp,is)(1:3).eq.'CFC')then
 
           if(ncfccount.lt.nmaxtypes)ncfccount=ncfccount+1
 
@@ -261,8 +261,8 @@ C go through CFC constructions and ask user to assign type for each one,
           H(5)=' http://uwspace.uwaterloo.ca'
           H(6)=' /bitstream/10012/4164/1/Lomanowski_Bartosz.pdf'
 
-          write(outs,'(4A)')'Surface: ',SSNAME(icn1),
-     &      'Constr: ',SSMLCN(icn1)
+          write(outs,'(4A)')'Surface: ',SNAME(icomp,is),
+     &      'Constr: ',SMLCN(icomp,is)
           CALL EASKI(itype,'CFC type for: ',outs,1,'F',
      &    ncfctypes,'F',ncfccount,'CFC type',IER,1)
           if(IER.EQ.-3)GOTO 99
@@ -302,7 +302,7 @@ C constructions cannot have the same CFC type)
          icompare2=im_cfcfl(icomp,iss)
           if(icompare2.gt.0)then
             if(icompare2.eq.icompare1)then
-              if(SSMLCN(icn1).ne.SSMLCN(icn2))then
+              if(SMLCN(icomp,is).ne.SMLCN(icomp,iss))then
                  CALL USRMSG(
      &           ' Two different CFC compositions cannot',
      &           ' have same CFC type, please try again. ','W')
@@ -1743,9 +1743,9 @@ C if the surface attribute should be updated.
       DO 10 I=1,NS
        icfcfl(icomp,i)=iva(i)
        icn=izstocn(icomp,i)        
-       IF(icfcfl(icomp,i).NE.0.AND.(SSOTF(icn)(1:3).NE.'CFC'))THEN
+       IF(icfcfl(icomp,i).NE.0.AND.(SOTF(icomp,i)(1:3).NE.'CFC'))THEN
          WRITE(OUTS,'(5a)')' The CFC file ',LUA(1:lnblnk(LUA)),
-     &      ' not sure if ',SSNAME(icn),
+     &      ' not sure if ',SNAME(icomp,i),
      &     ' is a complex fenestration constr.'
          call edisp(itru,outs)
          call edisp(itru,' Check your zone files.')
@@ -1769,9 +1769,10 @@ C Reporting.
         CALL EDISP(ITRU,' Name         Description  TRAN/CFC Reference')
         DO 31, ISR=1,NS
           icn=izstocn(icomp,isr)
-          lnsmlcn=lnblnk(SSMLCN(ICN))
-          WRITE(OUTS,'(1X,A,2X,A,2X,A,I5)')SSNAME(icn),
-     &      SSMLCN(icn)(1:lnsmlcn),SSOTF(icn)(1:4),icfcfl(icomp,isr)
+          lnsmlcn=lnblnk(SMLCN(icomp,isr))
+          WRITE(OUTS,'(1X,A,2X,A,2X,A,I5)')SNAME(icomp,isr),
+     &      SMLCN(icomp,isr)(1:lnsmlcn),SOTF(icomp,isr)(1:4),
+     &      icfcfl(icomp,isr)
           CALL EDISP(ITRU,OUTS)
    31   CONTINUE
       ENDIF
@@ -1790,9 +1791,9 @@ C layers matches mlc database.
           IF(IERR.EQ.1)THEN
             write(outs,'(6a)')
      &      ' Mismatched CFC & mlc layers: ',
-     &      SSNAME(J)(1:lnblnk(SSNAME(J))),' in ',
+     &      SNAME(icomp,J)(1:lnblnk(SNAME(icomp,J))),' in ',
      &      zname(ICOMP)(1:lnblnk(zname(ICOMP))),' composed of ',
-     &      SSMLCN(J)
+     &      SMLCN(icomp,J)
             call edisp(iuout,outs)
             goto 1002
           ENDIF
@@ -2355,7 +2356,7 @@ C write out corresponding surfaces to each CFC type in zone
             if(icfcfl(icomp,j).eq.LL)then
               icn=izstocn(icomp,j)
               M=M+1
-              WRITE(VERT(M), '(a6,a12)')'',SSNAME(icn)
+              WRITE(VERT(M), '(a6,a12)')'',SNAME(icomp,j)
             endif
    40     continue
 

@@ -510,7 +510,7 @@ C List viewfactor contents. Switch to fixed font for text feedback.
           DO 850 J=1,NZS
             ICNI=IZSTOCN(ICOMP,I)
             ICNJ=IZSTOCN(ICOMP,J)
-            WRITE(outs,5203)SSNAME(icni),I,SSNAME(icnj),J,VEWF(I,J)
+            WRITE(outs,5203)SNAME(ICOMP,I),I,SNAME(ICOMP,J),J,VEWF(I,J)
  5203       FORMAT(10X,A12,I3,'  to ',A12,I3,' = ',F6.4)
             call edisp(itru,outs)
   850     CONTINUE
@@ -591,8 +591,8 @@ C offer the user a chance to re-edit if not close to one.
           if(MM.NE.IS)then
             ICNI=IZSTOCN(ICOMP,IS)
             ICNJ=IZSTOCN(ICOMP,MM)
-            write(outs,'(4A)') ' For ',SSNAME(ICNI),' to ',
-     &        SSNAME(ICNJ)
+            write(outs,'(4A)') ' For ',SNAME(ICOMP,IS),' to ',
+     &        SNAME(ICOMP,MM)
             V=VEWF(IS,MM)
             CALL EASKR(V,outs,' view factor: ',
      &        0.,'F',0.999,'F',0.,'viewfactors',IER,nbhelp)

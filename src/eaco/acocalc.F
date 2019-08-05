@@ -192,7 +192,7 @@ C Surface area (SNA) - Furniture area (XnbFur)
         IF (CovSurf(IFur).NE.'none') THEN          
           DO 51 ISurf = 1, NSUR
             icon=IZSTOCN(izone,isurf)
-            IF (CovSurf(IFur).EQ.SSNAME(icon)) THEN
+            IF (CovSurf(IFur).EQ.SNAME(izone,isurf)) THEN
               SNAeff(ISurf) =  SNAeff(ISurf) - XNbFur(IFur)
               GOTO 50
             ENDIF
@@ -210,7 +210,7 @@ C to its surface name and calcule the equivalente area of the MATERIAL
 
           if (SNAeff(ICurSurf) .GT. 0.) then
             SurfTot = SurfTot + SNAeff(ICurSurf)
-            ICurComp = MLCIndex(SSMLCN(icon))
+            ICurComp = MLCIndex(SMLCN(izone,ICurSurf))
           endif
 
 C For each frenquency, compute the equivalente surface FOR MATERIAL and 

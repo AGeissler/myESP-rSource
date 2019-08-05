@@ -393,6 +393,8 @@ C Vertical axis label depending on generic type.
         LABEL1='set numb. (1-40)'
       ELSEIF(FOCUS(1:8).EQ.'BAMSNSET')THEN
         LABEL1='various units   '
+      ELSEIF(FOCUS(1:7).EQ.'GRNDRFL')THEN 
+        LABEL1='ratio 0 to 1    '           
       ELSE
 
 C Add in additional generic data definitions here.

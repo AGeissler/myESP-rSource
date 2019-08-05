@@ -792,7 +792,7 @@ C Check for blind shutter control.
               do 111 isf=1,nsur
                ICN=IZSTOCN(newfoc,isf)
                if(ITMCFL(newfoc,isf).gt.0.AND.
-     &            SSMLCN(icn)(1:lnblnk(SSMLCN(icn))).eq.
+     &            SMLCN(newfoc,isf)(1:lnblnk(SMLCN(newfoc,isf))).eq.
      &            mlcname(IM)(1:lnmlcname(IM)))then
                 if (IBCMT(newfoc,ITMCFL(newfoc,isf)).gt.0) then
                  VTRAN=TVTR2(newfoc,ITMCFL(newfoc,isf),NABS)
@@ -1106,7 +1106,7 @@ C Display the other zone, resetting all surface lines to std.
 C Generate combined zone & generate surface names as identifiers.
         DO IS=1,NSUR
           ICN=IZSTOCN(newfoc,is)
-          write(zsn(is),'(3a)') ZN(1:lnblnk(ZN)),':',SSNAME(icn)
+          write(zsn(is),'(3a)') ZN(1:lnblnk(ZN)),':',SNAME(newfoc,is)
         ENDDO  ! IS
 
         WRITE(irofil,'(3a)')'# ',ZN(1:lnblnk(ZN)),' Surface defs..'
@@ -1351,34 +1351,34 @@ C Find the matching mlc index and set the material name.
 C << use call to matchmlcdesc >>
           ICF=-1
           ifict=0
-          call matchmlcdesc(SSMLCN(icn),icf)
-          if(ICF.eq.-1.or.SSMLCN(icn)(1:4).eq.'UNKN')then
-            if (SSOTF(icn)(1:4).ne.'OPAQ') then
+          call matchmlcdesc(SMLCN(newfoc,isf),icf)
+          if(ICF.eq.-1.or.SMLCN(newfoc,isf)(1:4).eq.'UNKN')then
+            if (SOTF(newfoc,isf)(1:4).ne.'OPAQ') then
               material='unknown_glz'
             else
               material='unknown'
             endif
           else
-            lnsm=lnblnk(SSMLCN(icn))
-            write(material,'(a)') SSMLCN(icn)(1:lnsm)
+            lnsm=lnblnk(SMLCN(newfoc,isf))
+            write(material,'(a)') SMLCN(newfoc,isf)(1:lnsm)
             if(iskip(icf).eq.1)ifict=1
           endif
 
 C Check if this surface is associated with a diffuse light source
 C anchor. If so alter the material.
           founddiffuse=.false.
-          if(SSUSE(icn,1)(1:7).eq.'FIXTURE')then
-            if(SSUSE(icn,2)(1:2).eq.'- ')then
+          if(SUSE(newfoc,isf,1)(1:7).eq.'FIXTURE')then
+            if(SUSE(newfoc,isf,2)(1:2).eq.'- ')then
               continue
             else
 
-C Found something SSUSE(icn,2) becomes the material name.
+C Found something SUSE(,,2) becomes the material name.
               if(iesfil(1:8).eq.'embedded')then
                 founddiffuse=.true.
                 write(outs,*) 'found surface with fixture',icn,
-     &            SSUSE(icn,1),SSUSE(icn,2)
+     &            SUSE(newfoc,isf,1),SUSE(newfoc,isf,2)
                 call edisp(iuout,outs)
-                write(material,'(a)') SSUSE(icn,2)
+                write(material,'(a)') SUSE(newfoc,isf,2)
               endif
             endif
           endif
@@ -1396,7 +1396,7 @@ C Aternative glazing descriptions file.
               WRITE(ita2,'(a)') outs
               WRITE(ita2,'(a)') '  '
             endif
-          elseif(SSOTF(icn)(1:4).ne.'OPAQ')then
+          elseif(SOTF(newfoc,isf)(1:4).ne.'OPAQ')then
 
 C Create surface based on the following:
 C  Focus zone - create.
@@ -1766,6 +1766,8 @@ C Passed parameters.
       COMMON/C1/NCOMP,NCON
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
+      integer IC1,IE1,ICT,IC2,IE2
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       real BB(2,3)   ! bounding box in site coordinates
       real roties    ! assumed rotation
 
@@ -1800,15 +1802,16 @@ C Generate help for the various dialogs.
 C Loop through all the surfaces looking for SUSE=FIXTURE.
       found=.false.
       do icn=1,ncon
-        if(SSUSE(icn,1)(1:7).eq.'FIXTURE')then
-          if(SSUSE(icn,2)(1:2).eq.'- ')then
+        izz=IC1(icn); iss=IE1(icn)
+        if(SUSE(izz,iss,1)(1:7).eq.'FIXTURE')then
+          if(SUSE(izz,iss,2)(1:2).eq.'- ')then
             continue
           else
 
 C Found something - think of what to do...
             found=.true.
             write(outs,*) 'found surface with fixture',icn,
-     &        SSUSE(icn,1),SSUSE(icn,2)
+     &        SUSE(izz,iss,1),SUSE(izz,iss,2)
             call edisp(iuout,outs)
           endif
         endif
@@ -1845,14 +1848,14 @@ C Process each zone.
       do newfoc=1,ncomp
         do isf=1,nzsur(newfoc)
           ICN=IZSTOCN(newfoc,isf)
-          if(SSUSE(icn,1)(1:7).eq.'FIXTURE')then
-            if(SSUSE(icn,2)(1:2).eq.'- ')then
+          if(SUSE(newfoc,isf,1)(1:7).eq.'FIXTURE')then
+            if(SUSE(newfoc,isf,2)(1:2).eq.'- ')then
               continue
             else
 
 C Loop through the known IES entities to find a match.
               do loop=1,nbofies
-                if(iesname(loop).eq.SSUSE(icn,2))then
+                if(iesname(loop).eq.SUSE(newfoc,isf,2))then
 
 C The transform (assuming the IES data is centred at the
 C site origin) is to the surface centre of gravity.
@@ -1887,10 +1890,11 @@ C Associated surface is wider along Y axis.
                   
 C Name for the beastie - probably based on zone:surface:iesname
                   lnz=lnblnk(zname(newfoc))
-                  lns=lnblnk(ssname(icn))
-                  lnu=lnblnk(SSUSE(icn,2))
+                  lns=lnblnk(sname(newfoc,isf))
+                  lnu=lnblnk(SUSE(newfoc,isf,2))
                   write(combinedname,'(5a)') zname(newfoc)(1:lnz),
-     &              ':',ssname(icn)(1:lns),':',SSUSE(icn,2)(1:lnu)
+     &              ':',sname(newfoc,isf)(1:lns),':',
+     &              SUSE(newfoc,isf,2)(1:lnu)
                   lncmb=lnblnk(combinedname)
 
 C Similar logic to edoptic.F
@@ -1909,7 +1913,7 @@ C Similar logic to edoptic.F
 C Report what has been decided.
 C Debug
 c                  write(6,*) 'found surface with fixture',icn,
-c     &              SSUSE(icn,1),SSUSE(icn,2),combinedname,trnsx,
+c     &              SUSE(newfoc,isf,1),SUSE(newfoc,isf,2),combinedname,trnsx,
 c     &              trnsy,trnsz,roties
 c                  write(6,*) iescontrolledname(1)
 c                  write(6,*) iescontrolledname(2)
@@ -1920,7 +1924,7 @@ C For each control state.  Put a hash in front of subsequent lines (it is
 C up to the user to edit the file at simulation run time).
                   do loop2=1,iespercents(loop)
                     write(iescontrolledname(loop2),'(a,i3.3,a)')
-     &                SSUSE(icn,2)(1:lnu),iiessteps(loop2),'.rad'
+     &                SUSE(newfoc,isf,2)(1:lnu),iiessteps(loop2),'.rad'
                     lnctl=lnblnk(iescontrolledname(loop2))
                     if(loop2.eq.1)then
                       WRITE(iiesfil,'(3a,f7.2,a,3f7.3,2a)') 

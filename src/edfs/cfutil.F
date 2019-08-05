@@ -365,9 +365,9 @@ C If we have a version 3 results library, use domain origin vertex
 C cooridinates to ensure that multiple domains do not overlap in
 C paraview.
       if (ICFDSV.eq.3) then
-        Xorg=VCOORD(ICP,IORG(ICFD),1)
-        Yorg=VCOORD(ICP,IORG(ICFD),2)
-        Zorg=VCOORD(ICP,IORG(ICFD),3)
+        Xorg=szcoords(ICP,IORG(ICFD),1)
+        Yorg=szcoords(ICP,IORG(ICFD),2)
+        Zorg=szcoords(ICP,IORG(ICFD),3)
       else
         Xorg=0.
         Yorg=0.
@@ -531,9 +531,9 @@ C If we have a version 3 results library, use domain origin vertex
 C cooridinates to ensure that multiple domains do not overlap in
 C paraview.
       if (ICFDSV.eq.3) then
-        Xorg=VCOORD(ICP,IORG(ICFD),1)
-        Yorg=VCOORD(ICP,IORG(ICFD),2)
-        Zorg=VCOORD(ICP,IORG(ICFD),3)
+        Xorg=szcoords(ICP,IORG(ICFD),1)
+        Yorg=szcoords(ICP,IORG(ICFD),2)
+        Zorg=szcoords(ICP,IORG(ICFD),3)
       else
         Xorg=0.
         Yorg=0.

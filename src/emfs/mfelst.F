@@ -450,7 +450,7 @@ C Starting and ending node numbers.
 C If MOD = 'M' then include option to add an item then the appropriate
 C          interaction is begun.
       SUBROUTINE ASKCON(head,MOD,INODPS,INODNE,IC,IER)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "epara.h"

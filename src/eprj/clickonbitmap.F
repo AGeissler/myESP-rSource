@@ -1747,26 +1747,18 @@ C zone geometry file can be created.
               JVN(1,1)=1; JVN(1,2)=2; JVN(1,3)=3
               NZTV(icomp)=NTV
               SNAME(ICOMP,1)='first'
-              SOTF(1)='OPAQUE'; SMLCN(1)='UNKN'; SVFC(1)='FLOR'
-              SOTHER(1,1)='UNKNOWN'; SOTHER(1,2)='0'; SOTHER(1,3)='0'
-              SUSE(1,1)='-'; SUSE(1,2)='-'; SPARENT(1)='-'
+              SOTF(ICOMP,1)='OPAQUE'; SMLCN(ICOMP,1)='UNKN'
+              SVFC(ICOMP,1)='FLOR'; SOTHER(ICOMP,1,1)='UNKNOWN'
+              SOTHER(ICOMP,1,2)='0'; SOTHER(ICOMP,1,3)='0'
+              SUSE(ICOMP,1,1)='-'; SUSE(ICOMP,1,2)='-'
+              SPARENT(ICOMP,1)='-'
 
 C Update the connection list for an initial surface.
               ICCC=NCON
               ICCC=ICCC+1
               IC1(ICCC)=ICOMP; IE1(ICCC)=1; ICT(ICCC)=0
               IC2(ICCC)=0; IE2(ICCC)=0
-              SSNAME(iccc)=SNAME(ICOMP,1)
-              SSOTF(iccc)=SOTF(1)
-              SSMLCN(iccc)=SMLCN(1)
               ssmlcindex(iccc)=0  ! no matching MLC
-              SSVFC(iccc)=SVFC(1)
-              SSOTHER(iccc,1)=SOTHER(1,1)
-              SSOTHER(iccc,2)=SOTHER(1,2)
-              SSOTHER(iccc,3)=SOTHER(1,3)
-              SSUSE(iccc,1)=SUSE(1,1)
-              SSUSE(iccc,2)=SUSE(1,2)
-              SSPARENT(iccc)=SPARENT(1)
               IZSTOCN(icomp,1)=iccc
               NCON=ICCC
 
@@ -1803,9 +1795,9 @@ C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
 C the zone can be calculated.
               DO 41 J=1,NZTV(ICOMP)
-                VCOORD(ICOMP,J,1)=X(J)
-                VCOORD(ICOMP,J,2)=Y(J)
-                VCOORD(ICOMP,J,3)=Z(J)
+                szcoords(ICOMP,J,1)=X(J)
+                szcoords(ICOMP,J,2)=Y(J)
+                szcoords(ICOMP,J,3)=Z(J)
    41         CONTINUE
  
 C Save this to file before passing into the geometry editing facility.
@@ -2713,17 +2705,7 @@ C Update the connection list.
             DO 432 ICC=1,NSUR
               ICCC=ICCC+1; IC1(ICCC)=ICOMP; IE1(ICCC)=ICC
               ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
-              SSNAME(iccc)=SNAME(icomp,icc)
-              SSOTF(iccc)=SOTF(icc)
-              SSMLCN(iccc)=SMLCN(icc)
               ssmlcindex(iccc)=0  ! no matching MLC
-              SSVFC(iccc)=SVFC(icc)
-              SSOTHER(iccc,1)=SOTHER(icc,1)
-              SSOTHER(iccc,2)=SOTHER(icc,2)
-              SSOTHER(iccc,3)=SOTHER(icc,3)
-              SSUSE(iccc,1)=SUSE(icc,1)
-              SSUSE(iccc,2)=SUSE(icc,2)
-              SSPARENT(iccc)=SPARENT(icc)
               IZSTOCN(icomp,icc)=iccc
   432       CONTINUE
             NCON=ICCC
@@ -2762,9 +2744,9 @@ C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
 C the zone can be calculated.
             DO J=1,NZTV(ICOMP)
-              VCOORD(ICOMP,J,1)=X(J)
-              VCOORD(ICOMP,J,2)=Y(J)
-              VCOORD(ICOMP,J,3)=Z(J)
+              szcoords(ICOMP,J,1)=X(J)
+              szcoords(ICOMP,J,2)=Y(J)
+              szcoords(ICOMP,J,3)=Z(J)
             ENDDO
  
 C Save this to file before passing into the geometry editing facility.
@@ -4072,16 +4054,16 @@ C Similar logic to ADDVERT. Consider found if within CACC.
         enddo  ! of ixx
 
 C If an existing vertex is close then skip to next, otherwise
-C add a new vertex to the end of the zone list and update vcoord.
+C add a new vertex to the end of the zone list and update szcoords.
   145   if(found)then
           continue
         else
           NTV=NTV+1
           NZTV(icomp)=NTV
           X(NTV)=XQ; Y(NTV)=YQ; Z(NTV)=ZQ
-          VCOORD(ICOMP,ntv,1)=XQ
-          VCOORD(ICOMP,ntv,2)=YQ
-          VCOORD(ICOMP,ntv,3)=ZQ
+          szcoords(ICOMP,ntv,1)=XQ
+          szcoords(ICOMP,ntv,2)=YQ
+          szcoords(ICOMP,ntv,3)=ZQ
           XMN=AMIN1(XMN,X(NTV))
           YMN=AMIN1(YMN,Y(NTV))
           ZMN=AMIN1(ZMN,Z(NTV))
@@ -4216,9 +4198,9 @@ C anything in the zone. This code does the merge and save.
       NTV=NTV+1
       NZTV(icomp)=NTV
       X(NTV)=QX; Y(NTV)=QY; Z(NTV)=QZ
-      VCOORD(ICOMP,ntv,1)=QX
-      VCOORD(ICOMP,ntv,2)=QY
-      VCOORD(ICOMP,ntv,3)=QZ
+      szcoords(ICOMP,ntv,1)=QX
+      szcoords(ICOMP,ntv,2)=QY
+      szcoords(ICOMP,ntv,3)=QZ
       XMN=AMIN1(XMN,X(NTV))
       YMN=AMIN1(YMN,Y(NTV))
       ZMN=AMIN1(ZMN,Z(NTV))

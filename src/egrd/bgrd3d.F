@@ -598,7 +598,7 @@ C current menu line index. Build up text strings for the menu.
           icon=IZSTOCN(iz,is1)
           WRITE(ENAME,'(A6,I2,A1)')'edge (',IBDYSE(L,2),')'
           WRITE(VERT(M),'(A1,1X,A12,A6,A9,1X,A5)')KEY,
-     &              SSNAME(icon),'<-->',ENAME,STTS
+     &      SNAME(iz,is1),'<-->',ENAME,STTS
         ENDIF
    20 CONTINUE
 
@@ -660,7 +660,7 @@ C List existing edges.
           icon1=IZSTOCN(iz,isf1)
           icon2=IZSTOCN(iz,isf2)
           WRITE(TEXT,'(3(I3,3X),3(A12,3X))')IEG,IVXEDG(IEG,1),
-     &      IVXEDG(IEG,2),SSNAME(icon1),SSNAME(icon2),STATS
+     &      IVXEDG(IEG,2),SNAME(iz,isf1),SNAME(iz,isf2),STATS
           CALL EDISP(IUOUT,TEXT)
    30   CONTINUE
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
@@ -789,7 +789,7 @@ C        CALL EPAGE
           icon1=IZSTOCN(iz,isf1)
           icon2=IZSTOCN(iz,isf2)
           WRITE(TEXT,'(3(I3,3X),3(A12,3X))')IEG,IVXEDG(IEG,1),
-     &      IVXEDG(IEG,2),SSNAME(icon1),SSNAME(icon2),STATS
+     &      IVXEDG(IEG,2),SNAME(iz,isf1),SNAME(iz,isf2),STATS
           CALL EDISP(IUOUT,TEXT)
    30   CONTINUE
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
@@ -923,7 +923,7 @@ C List existing edges.
           icon1=IZSTOCN(iz,isf1)
           icon2=IZSTOCN(iz,isf2)
           WRITE(TEXT,'(3(I3,3X),3(A12,3X))')IEG,IVXEDG(IEG,1),
-     &      IVXEDG(IEG,2),SSNAME(icon1),SSNAME(icon2),STATS
+     &      IVXEDG(IEG,2),SNAME(iz,isf1),SNAME(iz,isf2),STATS
           CALL EDISP(IUOUT,TEXT)
    30   CONTINUE
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
@@ -950,7 +950,7 @@ C List existing corners.
           icon2=IZSTOCN(iz,isf2)
           icon3=IZSTOCN(iz,isf3)
           WRITE(TEXT,'(2(I3,3X),4(A12,3X))')ICRN,IVXCRN(ICRN),
-     &          SSNAME(icon1),SSNAME(icon2),SSNAME(icon3),STATS
+     &          SNAME(iz,isf1),SNAME(iz,isf2),SNAME(iz,isf3),STATS
           CALL EDISP(IUOUT,TEXT)
    40   CONTINUE
       ELSEIF(IVERT.EQ.(MVERT-1))THEN

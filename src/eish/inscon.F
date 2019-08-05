@@ -336,8 +336,8 @@ C Clear return array and select all applicable surfaces.
             enddo  ! of i
             do i=1,nzsur(icomp)
               icn=izstocn(icomp,i)
-              if(ssother(icn,1)(1:5).eq.'EXTER'.and.
-     &           ssotf(icn)(1:4).ne.'OPAQ')then
+              if(sother(icomp,i,1)(1:5).eq.'EXTER'.and.
+     &           sotf(icomp,i)(1:4).ne.'OPAQ')then
                 ntmc=ntmc+1
                 iva(ntmc)=i
               endif
@@ -585,7 +585,7 @@ C Refresh the view of the zone prior to display of the intersection points.
             CALL redraw(IER)
             write(outs,'(3a,i2,a,i3,2a)') 'Direct insolation: ',
      &        month(mon),' @ ',j,':00, from surface ',isrc,' ',
-     &        ssname(iccisrc)
+     &        sname(icomp,isrc)
             call usrmsg(' ',outs,'-')
           endif
 
@@ -659,11 +659,11 @@ C system.
             call trnsf2i(ihr)
 
 C Set up source surface global coordinates.
-            do inv=1,nznver(iccisrc)
-              iwhich=nzjvn(iccisrc,inv)
-              xf(inv)=vcoord(icomp,iwhich,1)
-              yf(inv)=vcoord(icomp,iwhich,2)
-              zf(inv)=vcoord(icomp,iwhich,3)
+            do inv=1,isznver(icomp,isrc)
+              iwhich=iszjvn(icomp,isrc,inv)
+              xf(inv)=szcoords(icomp,iwhich,1)
+              yf(inv)=szcoords(icomp,iwhich,2)
+              zf(inv)=szcoords(icomp,iwhich,3)
             enddo  ! of ivn
 
 C Initiate source surface grid point-by-point analysis.
@@ -1176,7 +1176,7 @@ C Checks.
       if(pintot.lt.0.99.or.pintot.gt.1.01)then
          icn=izstocn(icomp,ii)
          write(outs,'(a,f5.3,3a,i2)') 'Warning: solar split is ',
-     &                   pintot,' in ',ssname(icn),' at hour ',jj
+     &                pintot,' in ',sname(icomp,ii),' at hour ',jj
          call edisp(iuout,outs)
       endif
 

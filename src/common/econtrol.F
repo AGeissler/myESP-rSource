@@ -2368,7 +2368,7 @@ C Actuator.
           write(zn,'(a)') zname(IBAN(II,1))
           if(IBAN(II,2).gt.0)then
             icc=IZSTOCN(IBAN(II,1),IBAN(II,2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(IBAN(II,1),IBAN(II,2))
           else
             sn='-'
           endif
@@ -4201,7 +4201,7 @@ C Ideal Sensor.
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
             icc=IZSTOCN(icsn(1),icsn(2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(1),icsn(2))
           else
             sn='-'
           endif
@@ -4283,7 +4283,7 @@ C Plant Sensor.
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
             icc=IZSTOCN(icsn(1),icsn(2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(1),icsn(2))
           else
             sn='-'
           endif
@@ -4366,7 +4366,7 @@ C Flow Sensor.
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
             icc=IZSTOCN(icsn(1),icsn(2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(1),icsn(2))
           else
             sn='-'
           endif
@@ -4470,7 +4470,7 @@ C Optical Sensor.
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
             icc=IZSTOCN(icsn(1),icsn(2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(1),icsn(2))
           else
             sn='-'
           endif
@@ -4554,7 +4554,7 @@ C Ideal Sensor.
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
             icc=IZSTOCN(icsn(1),icsn(2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(1),icsn(2))
           else
             sn='-'
           endif
@@ -4610,7 +4610,7 @@ C Ideal Sensor.
           write(zn,'(a)') zname(icsn(2))
           if(icsn(3).gt.0)then
             icc=IZSTOCN(icsn(2),icsn(3))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(2),icsn(3))
           else
             sn='-'
           endif

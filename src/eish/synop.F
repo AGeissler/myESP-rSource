@@ -90,7 +90,7 @@ C hours.
         ishdh=0
 
 C Write output header information.
-        sn=ssname(icn)
+        sn=sname(icomp,i)
         write(outs,'(a,i3,3a)') 'Surface ',i,' (',sn(1:lnblnk(sn)),')'
         call edisp(itru,outs)
         write(outs,'(3a)') ' Hour   Direct   Diffuse   Solar   Solar'
@@ -273,7 +273,7 @@ C Re-establish what isc(i) is.
       do 10 i=1,nzsur(icomp)
         if(isc(i).eq.0)goto 10
         icn=izstocn(icomp,i)
-        sn=ssname(icn)
+        sn=sname(icomp,i)
 
 C shddt & shdft are shading summations, ishdh is number of sun-up
 C hours. 
@@ -412,7 +412,7 @@ C Display on a surface-by-surface basis.
       do 10 i=1,nzsur(icomp)
         if(ntmc(i).eq.0)goto 10
         icn=izstocn(icomp,i)
-        sn=ssname(icn)
+        sn=sname(icomp,i)
 
 C ntmc is 0 or 1.
         kount=kount+ntmc(i)
@@ -470,7 +470,7 @@ C non zero pinsst.
                   if(k.eq.1)then
                     l=insst(kount,j,k)
                     icm=izstocn(icomp,l)
-                    sn=ssname(icm)
+                    sn=sname(icomp,l)
                     write(outs,1001)j,pso(i,j)*100.0,l,
      &                sn(1:12),pinsst(kount,j,k)*100.0,sazi,salt
  1001               format(i3,':00',f6.1,'% ',i3,' (',a,')',
@@ -479,7 +479,7 @@ C non zero pinsst.
                   else
                     l=insst(kount,j,k)
                     icm=izstocn(icomp,l)
-                    sn=ssname(icm)
+                    sn=sname(icomp,l)
                     write(outs,1002)l,sn(1:12),
      &                    pinsst(kount,j,k)*100.0
  1002               format(13x,i3,' (',a,')',f6.1,'%')

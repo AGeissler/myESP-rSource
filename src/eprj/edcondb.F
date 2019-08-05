@@ -3418,9 +3418,9 @@ C Find the index of the MLC which matches each surface.
               DO 9994 I=1,NZSUR(icomp)
                 icn1=izstocn(icomp,i)
                 ssmlcindex(icn1)=0  ! assume no matching MLC          
-                lnssmlc=lnblnk(SSMLCN(icn1))
+                lnssmlc=lnblnk(SMLCN(icomp,i))
                 do 5 ii=1,nmlc
-                  if(SSMLCN(icn1)(1:lnssmlc).eq.
+                  if(SMLCN(icomp,i)(1:lnssmlc).eq.
      &               mlcname(ii)(1:lnmlcname(ii)))then
                     ssmlcindex(icn1)=ii   ! remember MLC index     
                   endif
@@ -4666,9 +4666,9 @@ C Find the index of the MLC which matches each surface.
                 DO I=1,NZSUR(icomp)
                   icn1=izstocn(icomp,i)
                   ssmlcindex(icn1)=0  ! assume no matching MLC          
-                  lnssmlc=lnblnk(SSMLCN(icn1))
+                  lnssmlc=lnblnk(SMLCN(icomp,i))
                   do ii=1,nmlc
-                    if(SSMLCN(icn1)(1:lnssmlc).eq.
+                    if(SMLCN(icomp,i)(1:lnssmlc).eq.
      &                 mlcname(ii)(1:lnmlcname(ii)))then
                       ssmlcindex(icn1)=ii   ! remember MLC index     
                     endif
@@ -5195,6 +5195,7 @@ C Paramters
       
       integer ncomp,ncon
       common/C1/NCOMP,NCON
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       
@@ -6321,15 +6322,17 @@ C If they do then warn the user.
           write(outs,'(a)') ' Checking surface attributes...'
           CALL USRMSG(' ',outs,'-')
           do icc=1,ncon
-            lnssmlc=lnblnk(SSMLCN(icc)); lnsn=lnblnk(SSNAME(icc))
-            lnso=lnblnk(SSOTHER(icc,1))
-            if(SSMLCN(icc)(1:lnssmlc).eq.T32(1:lnt32))then
+            lnssmlc=lnblnk(SMLCN(IC1(icc),IE1(icc))) 
+            lnsn=lnblnk(SNAME(IC1(icc),IE1(icc)))
+            lnso=lnblnk(SOTHER(IC1(icc),IE1(icc),1))
+            if(SMLCN(IC1(icc),IE1(icc))(1:lnssmlc).eq.T32(1:lnt32))then
               WRITE(outs,'(a,I3,1X,F7.2,F5.0,F5.0,1X,A,1X,A,
      &          1X,A,1X,A,1X,A)')'found: ',icc,
      &          SSNA(icc),SSPAZI(icc),SSPELV(icc),
-     &          SSNAME(icc)(1:lnsn),
-     &          SSOTF(icc),SSVFC(icc),SSMLCN(icc)(1:lnssmlc),
-     &          SSOTHER(icc,1)(1:lnso)
+     &          SNAME(IC1(icc),IE1(icc))(1:lnsn),
+     &          SOTF(IC1(icc),IE1(icc)),SVFC(IC1(icc),IE1(icc)),
+     &          SMLCN(IC1(icc),IE1(icc))(1:lnssmlc),
+     &          SOTHER(IC1(icc),IE1(icc),1)(1:lnso)
               call edisp(iuout,outs)
               modgeo=.true.
             endif
@@ -6463,7 +6466,7 @@ C Select Opaque or transparent or complex fenestration construction.
 C At this point need to check to see if this change needs to be
 C applied to surfaces within the model. If there are zones loop
 C through them and see if any surfaces have this construction 
-C attribute. If they do reset SSOTF and update the geometry file.
+C attribute. If they do reset SOTF and update the geometry file.
 
 C << good place to try and use connection based information >>
         if(ncomp.gt.0)then
@@ -6487,15 +6490,16 @@ C << good place to try and use connection based information >>
 C Loop to find surfaces which use this construction.
             do i=1,nsur
               ioc=IZSTOCN(IZ,i)
-              lnssmlc=lnblnk(SSMLCN(ioc))
-              if(SSMLCN(ioc)(1:lnssmlc).eq.
+              lnssmlc=lnblnk(SMLCN(IZ,i))
+              if(SMLCN(IZ,i)(1:lnssmlc).eq.
      &           mlcname(ifoc)(1:lnmlcname(ifoc)))then
-                write(sn,'(a)') SSNAME(ioc)
-                write(SSOTF(ioc),'(a)') mlctype(ifoc)
+                write(sn,'(a)') SNAME(IZ,i)
+                write(SOTF(IZ,i),'(a)') mlctype(ifoc)
                 WRITE(outs,'(a,I3,1X,F7.2,F5.0,F5.0,1X,A,1X,A,
      &            1X,A,1X,A,1X,A)')'updated:   ',I,
-     &            SSNA(ioc),SSPAZI(ioc),SSPELV(ioc),SN,SSOTF(ioc),
-     &            SSVFC(ioc),SSMLCN(ioc)(1:lnssmlc),SSOTHER(ioc,1)(1:13)
+     &            SSNA(ioc),SSPAZI(ioc),SSPELV(ioc),SN,SOTF(IZ,i),
+     &            SVFC(IZ,i),SMLCN(IZ,i)(1:lnssmlc),
+     &            SOTHER(IZ,i,1)(1:13)
                 call edisp(iuout,outs)
                 modgeo=.true.
               endif
@@ -6574,15 +6578,16 @@ C Check to see if this change needs to be applied to surfaces within the model.
 C Loop to find surfaces which use this construction.
             do i=1,nsur
               ioc=IZSTOCN(IZ,i)
-              lnssmlc=lnblnk(SSMLCN(ioc))
-              if(SSMLCN(ioc)(1:lnssmlc).eq.
+              lnssmlc=lnblnk(SMLCN(IZ,i))
+              if(SMLCN(IZ,i)(1:lnssmlc).eq.
      &           mlcname(ifoc)(1:lnmlcname(ifoc)))then
-                write(sn,'(a)') SSNAME(ioc)
-                write(SSOTF(ioc),'(a)') mlctype(ifoc)
+                write(sn,'(a)') SNAME(IZ,i)
+                write(SOTF(IZ,i),'(a)') mlctype(ifoc)
                 WRITE(outs,'(a,I3,1X,F7.2,F5.0,F5.0,1X,A,1X,A,
      &            1X,A,1X,A,1X,A)')'updated:   ',I,
-     &            SSNA(ioc),SSPAZI(ioc),SSPELV(ioc),SN,SSOTF(ioc),
-     &            SSVFC(ioc),SSMLCN(ioc)(1:lnssmlc),SSOTHER(ioc,1)(1:13)
+     &            SSNA(ioc),SSPAZI(ioc),SSPELV(ioc),SN,SOTF(IZ,i),
+     &            SVFC(IZ,i),SMLCN(IZ,i)(1:lnssmlc),
+     &            SOTHER(IZ,i,1)(1:13)
                 call edisp(iuout,outs)
                 modgeo=.true.
               endif
@@ -6919,8 +6924,8 @@ C for a match against mlcname.
           areamlc(iz)=0.0
           do 43 j=1,NZSUR(iz)
             ic=IZSTOCN(iz,j)
-            lnsmlcn=lnblnk(SSMLCN(ic))
-            if(mlcname(1:lm).eq.SSMLCN(ic)(1:lnsmlcn))then
+            lnsmlcn=lnblnk(SMLCN(iz,j))
+            if(mlcname(1:lm).eq.SMLCN(iz,j)(1:lnsmlcn))then
               found=.true.
 
 C Depending on the connection type, add the full or half area of surface.

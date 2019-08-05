@@ -681,7 +681,7 @@ C If yes than save coordinates ...
             zcoab(nuco)=ZZDP
             azim(nuco)=SSPAZI(icc)
             if (azim(nuco).gt.359.9) azim(nuco)=0.0
-            type(nuco)=SSVFC(icc)
+            type(nuco)=SVFC(IC,ISO)
             elev(nuco)=SSPELV(icc)
           endif
 
@@ -700,8 +700,8 @@ C Open geometry file for surface property check.
 C  Check whether zone has external transparent surface(s)
             do 42 IZW=1,NZSUR(izu)
               icc=izstocn(izu,izw)
-              if(SSOTF(icc)(1:4).eq.'TRAN'.and.
-     &           SSOTHER(icc,1)(1:8).eq.'EXTERIOR') then
+              if(SOTF(izu,izw)(1:4).eq.'TRAN'.and.
+     &           SOTHER(izu,izw,1)(1:8).eq.'EXTERIOR') then
 
 C  If so then display zone and centre point of the 
 C  transparent surface of the zone 
@@ -777,7 +777,7 @@ C If yes save cordinates.
                   zcoab(nuco)=zpc
                   azim(nuco)=SSPAZI(icc)
                   if (azim(nuco).gt.359.9) azim(nuco)=0.0
-                  type(nuco)=SSVFC(icc)
+                  type(nuco)=SVFC(izu,izw)
                   elev(nuco)=SSPELV(icc)
                 endif
               endif               

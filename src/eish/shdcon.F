@@ -280,7 +280,7 @@ C Clear return array and select all applicable surfaces.
             np=0
             do 13 i=1,nzsur(icomp)
                icn=izstocn(icomp,i)
-               if(ssother(icn,1)(1:5).eq.'EXTER')then
+               if(sother(icomp,i,1)(1:5).eq.'EXTER')then
                   np=np+1
                   iva(np)=i
                endif

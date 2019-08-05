@@ -1060,7 +1060,7 @@ C are applicable.
             INPIC=NZSUR(IZONE)
             do I=1,INPIC
               icn1=izstocn(izone,i)
-              STMP(I)=SSNAME(icn1)
+              STMP(I)=SNAME(izone,i)
               NSNOG(icurrent,IZ,I)=0
             enddo
             call edisp(iuout,'Surface selection ')
@@ -6559,8 +6559,7 @@ C the _cal material. And write out the zone geometry file.
            if(act.eq.'p'.or.act.eq.'P')then
              continue
            else
-             write(SMLCN(IS),'(a)') mlcname(NMLC)
-             write(SSMLCN(ioc),'(a)') mlcname(NMLC)
+             write(SMLCN(IZ,IS),'(a)') mlcname(NMLC)
              call geowrite(IFIL+1,LGEOM(IZ),IZ,iuout,3,IER)
            endif
  20      continue  ! of associated surfaces
@@ -6596,7 +6595,7 @@ C Set number of matching layers to zero.
 C Find correct MLC. Check if the legacy material index matches
 C the passed value. C Find matching MLC.
       ioc=IZSTOCN(izone,isurf)
-      call matchmlcdesc(SSMLCN(ioc),i)
+      call matchmlcdesc(SMLCN(izone,isurf),i)
       IMLC=i
       do 20 J=1,LAYERS(IMLC)
         if (IPR(IMLC,J).eq.IPRIM) then

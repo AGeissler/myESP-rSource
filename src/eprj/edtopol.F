@@ -884,9 +884,9 @@ C Remember topology attributes for reference zone.
         call georead(IUO,LGEOM(IZ),IZ,0,iuout,IER)
         do 322 IJ=1,NSUR
           ICN=IZSTOCN(iz,ij)
-          TOTHER(IJ,1)=SSOTHER(ICN,1)
-          TOTHER(IJ,2)=SSOTHER(ICN,2)
-          TOTHER(IJ,3)=SSOTHER(ICN,3)
+          TOTHER(IJ,1)=SOTHER(iz,ij,1)
+          TOTHER(IJ,2)=SOTHER(iz,ij,2)
+          TOTHER(IJ,3)=SOTHER(iz,ij,3)
   322   continue
         MODIFYVIEW=.TRUE.
         MODBND=.TRUE.
@@ -1445,7 +1445,7 @@ C update the attributes.
               write(tother(JS,3),'(i3.3)') IE2(ic)
               UPDGEO=.TRUE.
               ICN=IZSTOCN(II,JJ)
-              SN=SSNAME(icn)
+              SN=SNAME(II,JJ)
               WRITE(outs,'(4a)')' accepting match to surface ',
      &          SN(1:lnblnk(SN)),' in ',zname(II)(1:lnzname(II))
               call edisp(iuout,outs)
@@ -1461,7 +1461,7 @@ C make it a partition without bothering to ask the user.
                 write(tother(JS,3),'(i3.3)') IE2(ic)
                 UPDGEO=.TRUE.
                 ICN=IZSTOCN(II,JJ)
-                SN=SSNAME(icn)
+                SN=SNAME(II,JJ)
                 WRITE(outs,'(3a)')' accepting match to surface ',
      &            SN(1:lnblnk(SN)),' in current zone.'
                 call edisp(iuout,outs)
@@ -1476,7 +1476,7 @@ C make it a partition without bothering to ask the user.
                   write(tother(JS,3),'(i3.3)') IE2(ic)
                   UPDGEO=.TRUE.
                   ICN=IZSTOCN(II,JJ)
-                  SN=SSNAME(icn)
+                  SN=SNAME(II,JJ)
                   WRITE(outs,'(3a)')' accepting match to surface ',
      &              SN(1:lnblnk(SN)),' in current zone.'
                   call edisp(iuout,outs)
@@ -1536,7 +1536,7 @@ C << this logic might be useful elsewhere >>
               call eclose(DAZI,180.0,3.0,closea)
               call eclose(SELV,0.0,3.0,closee)
               ICN=IZSTOCN(IIx,JJx)
-              SN=SSNAME(ICN)
+              SN=SNAME(IIx,JJx)
               if(closea.and.closee)then
                 WRITE(outs,'(4a)')
      &            ' Probable (orientation close) match to surface ',
@@ -1603,7 +1603,7 @@ C the view on it and calculate the angle of view to that box.
               izgfoc = IZ
               if(MMOD.eq.8)CALL CADJVIEW(IER)
               ICN=IZSTOCN(II,JJ)
-              SN=SSNAME(ICN)
+              SN=SNAME(II,JJ)
               WRITE(outs,'(4a)')' Probable match to surface ',
      &            SN(1:lnblnk(SN)),' in ',zname(II)(1:lnzname(II))
               dok=.true.
@@ -1698,9 +1698,8 @@ C Reset line style.
   110   CONTINUE
 
 C Update geometry file if required.  Do this by re-reading the
-C geometry file, then update SOTHER and SSOTHER and write out the
-C geometry file with the updated boundary tag. The ssother will be
-C held in memory until the connections file is written.
+C geometry file, then update SOTHER and write out the
+C geometry file with the updated boundary tag.
 
 C << what about using CALL ESCZONE(ICOMP) and then CALL ERCZONE(ICOMP)? >>
 
@@ -1708,13 +1707,9 @@ C << what about using CALL ESCZONE(ICOMP) and then CALL ERCZONE(ICOMP)? >>
           call edisp(iuout,' Updating surface attributes...')
           call georead(IFIL+2,LGEOM(IZ),IZ,0,iuout,IER)
           do 323 IJ=1,NSUR
-            SOTHER(IJ,1)=TOTHER(IJ,1)
-            SOTHER(IJ,2)=TOTHER(IJ,2)
-            SOTHER(IJ,2)=TOTHER(IJ,3)
-            ICN=IZSTOCN(iz,ij)
-            SSOTHER(ICN,1)=TOTHER(IJ,1)
-            SSOTHER(ICN,2)=TOTHER(IJ,2)
-            SSOTHER(ICN,3)=TOTHER(IJ,3)
+            SOTHER(IZ,IJ,1)=TOTHER(IJ,1)
+            SOTHER(IZ,IJ,2)=TOTHER(IJ,2)
+            SOTHER(IZ,IJ,2)=TOTHER(IJ,3)
   323     continue
   
 C Debug.
@@ -1841,7 +1836,7 @@ C upgrading the current connection. Display the connection and the
 C surface attribute and ask user if attribute should be used. First
 C check for easy matches.
         ICN=IZSTOCN(IC1(ICC),iss)
-        WRITE(SO,'(A)')SSOTHER(ICN,1)(1:12)
+        WRITE(SO,'(A)')SOTHER(IC1(ICC),iss,1)(1:12)
 
 C Set connected zone name if one exists.
         if(IC2(ICC).ne.0)then
@@ -2343,14 +2338,15 @@ C Remind user of surface attributes.
 C Loop through surfaces in the zone and report on which ones match.
               do 91 i=1,nsur
                 icc=izstocn(ivals(iz),i)
-                lnssmlc=lnblnk(SSMLCN(icc))
-                if(SSMLCN(icc)(1:lnssmlc).eq.
+                lnssmlc=lnblnk(SMLCN(ivals(iz),i))
+                if(SMLCN(ivals(iz),i)(1:lnssmlc).eq.
      &             mlcname(ISEL)(1:lnmlcname(ISEL)))then
-                  write(sn,'(a)') SSNAME(icc)
+                  write(sn,'(a)') SNAME(ivals(iz),i)
                   WRITE(outs,'(2a,F7.2,F5.0,F5.0,1X,A,
      &              1X,A,1X,A,1X,A)') 'Match: ',sn,SSNA(icc),
-     &              SSPAZI(icc),SSPELV(icc),SSOTF(icc)(1:4),
-     &              SSVFC(icc),SSMLCN(icc)(1:12),SSOTHER(icc,1)
+     &              SSPAZI(icc),SSPELV(icc),SOTF(ivals(iz),icc)(1:4),
+     &              SVFC(ivals(iz),icc),SMLCN(ivals(iz),i)(1:12),
+     &              SOTHER(ivals(iz),i,1)
                   call edisp(iuout,outs)
                   if(inpic+1.lt.99)then
                     write(outs,'(5a)') ' Include in anchor list ',
@@ -3077,14 +3073,15 @@ C Loop through surfaces in the zone and report on which ones match.
 C icc is the connection number of the current surface.
               do 91 i=1,nsur
                 icc=izstocn(ivals(iz),i)
-                lnssmlc=lnblnk(SSMLCN(icc))
-                if(SSMLCN(icc)(1:lnssmlc).eq.
+                lnssmlc=lnblnk(SMLCN(ivals(iz),i))
+                if(SMLCN(ivals(iz),i)(1:lnssmlc).eq.
      &             mlcname(ISEL)(1:lnmlcname(ISEL)))then
-                  write(sn,'(a)') SSNAME(icc)
+                  write(sn,'(a)') SNAME(ivals(iz),i)
                   WRITE(outs,'(2a,F7.2,F5.0,F5.0,1X,A,1X,A,
      &              1X,A,1X,A)')'Match: ',sn,SSNA(icc),
-     &              SSPAZI(icc),SSPELV(icc),SSOTF(icc)(1:4),
-     &              SSVFC(icc),SSMLCN(icc)(1:12),SSOTHER(icc,1)
+     &              SSPAZI(icc),SSPELV(icc),SOTF(ivals(iz),i)(1:4),
+     &              SVFC(ivals(iz),i),SMLCN(ivals(iz),i)(1:12),
+     &              SOTHER(ivals(iz),i,1)
                   call edisp(iuout,outs)
                   write(outs,'(5a)') ' Apply construction to ',
      &              zn(1:lnblnk(zn)),':',sn(1:lnblnk(sn)),'?'
@@ -3094,7 +3091,7 @@ C icc is the connection number of the current surface.
 
 C If the user agrees update the construction attributes.
                     ioc=IZSTOCN(IVALS(IZ),i)
-                    write(SN,'(a12)') SSNAME(ioc)
+                    write(SN,'(a12)') SNAME(IVALS(IZ),i)
                     if(ICT(ioc).eq.3)then  ! detect partition
                       showother=.true.
                       icoth=IZSTOCN(IC2(ioc),IE2(ioc))
@@ -3102,20 +3099,18 @@ C If the user agrees update the construction attributes.
                       showother=.false.
                       icoth=0
                     endif
-                    WRITE(SSMLCN(ioc),'(A)') mlcname(ISELR)
-                    WRITE(SMLCN(i),'(A)') mlcname(ISELR)
+                    WRITE(SMLCN(IVALS(IZ),i),'(A)') mlcname(ISELR)
                     ssmlcindex(ioc)=ISELR       ! update array
 
 C Update the optical name.
                     IF(mlctype(ISELR)(1:4).EQ.'OPAQ')then
-                      SOTF(i)='OPAQUE'; SSOTF(ioc)='OPAQUE'
+                      SOTF(IVALS(IZ),i)='OPAQUE'
                     ELSEIF(mlctype(ISELR)(1:4).EQ.'CFC ')then
-                      SOTF(i)='CFC '; SSOTF(ioc)='CFC '
+                      SOTF(IVALS(IZ),i)='CFC '
                     ELSEIF(mlctype(ISELR)(1:4).EQ.'CFC2')then
-                      SOTF(i)='CFC2'; SSOTF(ioc)='CFC2'
+                      SOTF(IVALS(IZ),i)='CFC2'
                     ELSE
-                      WRITE(SOTF(i),'(A)') mlcoptical(ISELR)
-                      WRITE(SSOTF(ioc),'(A)') mlcoptical(ISELR)
+                      WRITE(SOTF(IVALS(IZ),i),'(A)') mlcoptical(ISELR)
                     ENDIF
 
 C Save this surface attribute change to current geometry file.
@@ -3137,12 +3132,13 @@ C the other side construction is also dealt with if required.
                       ii=ssmlcindex(ioc)
                       updoth=.false.
                       if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
-                        lnssmlc=lnblnk(SSMLCN(icoth))
-                        if(SSMLCN(icoth)(1:lnssmlc).eq.
+                        lnssmlc=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
+                        if(SMLCN(IC2(ioc),IE2(ioc))(1:lnssmlc).eq.
      &                     mlcname(ii)(1:lnmlcname(ii)))then
                           TOSMLCN= mlcname(ii)
                           write(TOOPT,'(a)') mlcoptical(ii)
-                        elseif(SSMLCN(icoth)(1:4).eq.'UNKN')then
+                        elseif(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.
+     &                         'UNKN')then
                           TOSMLCN= mlcname(ii)
                           write(TOOPT,'(a)') mlcoptical(ii)
                           updoth=.true.
@@ -3157,27 +3153,28 @@ C the other side construction is also dealt with if required.
 
 C If the current construction is nonsymmetric then it should not be
 C used for a partition (and db does not have a linked MLC - inform the user.
-                        lnsmlcn=lnblnk(SSMLCN(ioc))
+                        lnsmlcn=lnblnk(SMLCN(IVALS(IZ),i))
                         write(outs,'(5a)') 'Surface ',SN(1:lnblnk(SN)),
      &                    ' has a nonsymmetric construction ',
-     &                    SSMLCN(ioc)(1:lnsmlcn),'.'
+     &                    SMLCN(IVALS(IZ),i)(1:lnsmlcn),'.'
                         call edisp(iuout,outs)
-                        lnsmlcn=lnblnk(SSMLCN(icoth))
+                        lnsmlcn=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
                         write(outs,'(5a)') 'It faces ',
-     &                    SSNAME(icoth),' which is composed of ',
-     &                    SSMLCN(icoth)(1:lnsmlcn),
+     &                    SNAME(IC2(ioc),IE2(ioc)),
+     &                    ' which is composed of ',
+     &                    SMLCN(IC2(ioc),IE2(ioc))(1:lnsmlcn),
      &                    ' (which may not match).'
                         call edisp(iuout,outs)
                         call edisp(iuout,
      &            'Please check that one construction has inverted')
                         call edisp(iuout,
      &            'layers or revise the common constructions.')
-                        if(SSMLCN(icoth)(1:4).eq.'UNKN')then
+                        if(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
                           TOSMLCN= mlcname(ii)  ! replace UNKNOWN
                           iissmlci=ssmlcindex(ioc)
                           updoth=.true.
                         else
-                          TOSMLCN= SSMLCN(icoth)
+                          TOSMLCN= SMLCN(IC2(ioc),IE2(ioc))
                           iissmlci=ssmlcindex(icoth)  ! leave it alone
                           updoth=.false.
                         endif
@@ -3185,12 +3182,12 @@ C used for a partition (and db does not have a linked MLC - inform the user.
 
 C We have a non-symmetric MLC which does point to a reversed version
 C so check to see if the name of the other MLC matches mlcsymetric.
-                        lnsmlcn=lnblnk(SSMLCN(icoth))
-                        if(SSMLCN(icoth)(1:4).eq.'UNKN')then
+                        lnsmlcn=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
+                        if(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
                           TOSMLCN= mlcsymetric(ii)
                           write(TOOPT,'(a)') mlcoptical(ii)
                           updoth=.true.
-                        elseif(SSMLCN(icoth)(1:lnsmlcn).eq.
+                        elseif(SMLCN(IC2(ioc),IE2(ioc))(1:lnsmlcn).eq.
      &                         mlcsymetric(ii)(1:lnsmlcn))then
                           TOSMLCN= mlcsymetric(ii)
                           write(TOOPT,'(a)') mlcoptical(ii)
@@ -3206,11 +3203,12 @@ C so check to see if the name of the other MLC matches mlcsymetric.
 C First backup the current zones data before reading in the other
 C zone.
                         CALL ESCZONE(IVALS(IZ))
-                        lnicoth=lnblnk(SSMLCN(icoth))
+                        lnicoth=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
                         write(outs,'(6a)') 
      &                    'Updating `other side` composition of ',
      &                    SN(1:lnblnk(SN)),' from ',
-     &                    SSMLCN(icoth)(1:lnicoth),' > ',TOSMLCN
+     &                    SMLCN(IC2(ioc),IE2(ioc))(1:lnicoth),
+     &                    ' > ',TOSMLCN
                         call edisp(iuout,outs)
                         call eclose(gversion(IC2(ioc)),1.1,0.01,newgeo)
                         if(newgeo)then
@@ -3221,11 +3219,11 @@ C zone.
      &                      0,0,iuout,IER)
                         endif
 
-C Assign new MLC name to the icoth surface as well as SSOTF with the
+C Assign new MLC name to the icoth surface as well as SOTF with the
 C optical properties and MLC index from material.h commons.
-                        SSMLCN(icoth)=TOSMLCN
+                        SMLCN(IC2(ioc),IE2(ioc))=TOSMLCN
                         if(iissmlci.ne.0) ssmlcindex(icoth)=iissmlci  ! update
-                        write(SSOTF(icoth),'(a)') TOOPT
+                        write(SOTF(IC2(ioc),IE2(ioc)),'(a)') TOOPT
 
 C Logic to decide whether to update other zone geometry format.
                         call eclose(gversion(IC2(ioc)),1.1,0.01,newgeo)
@@ -3246,11 +3244,10 @@ C Logic to decide whether to update other zone geometry format.
 
 C Read current zone data back in to commons. But the backed up data
 C might not include the name of the newly selected mlc name so just
-C to be sure reset smlcn with ssmlcn so it will show up in the menu
+C to be sure reset smlcn with smlcn so it will show up in the menu
 C when it is re-freshed.
                         CALL ERCZONE(IVALS(IZ))
-                        SMLCN(i)=SSMLCN(ioc)
-                        SOTF(i)=SSOTF(ioc)
+                        SOTF(IVALS(IZ),i)=SOTF(IC2(ioc),IE2(ioc))
                         call usrmsg(' Updating other side...done.',
      &                    ' ','-')
                         updoth=.false.
@@ -3328,14 +3325,14 @@ C Anchor point substitution.
             icc=izstocn(iz,is)
             LTMP=LGEOM(IZ)
             call georead(IUF,LTMP,IZ,1,iuout,IER)
-            WRITE(SSMLCN(icc),'(A)') mlcname(ISELR)
+            WRITE(SMLCN(iz,is),'(A)') mlcname(ISELR)
 
 C << this is a place to update ssmlcindex? >>
 
-            IF(mlctype(ISELR)(1:4).NE.'OPAQ')SSOTF(icc)='TRAN'
-            IF(mlctype(ISELR)(1:4).EQ.'OPAQ')SSOTF(icc)='OPAQUE'
-            IF(mlctype(ISELR)(1:4).EQ.'CFC ')SSOTF(icc)='CFC '
-            IF(mlctype(ISELR)(1:4).EQ.'CFC2')SSOTF(icc)='CFC2'
+            IF(mlctype(ISELR)(1:4).NE.'OPAQ')SOTF(iz,is)='TRAN'
+            IF(mlctype(ISELR)(1:4).EQ.'OPAQ')SOTF(iz,is)='OPAQUE'
+            IF(mlctype(ISELR)(1:4).EQ.'CFC ')SOTF(iz,is)='CFC '
+            IF(mlctype(ISELR)(1:4).EQ.'CFC2')SOTF(iz,is)='CFC2'
             call eclose(gversion(IZ),1.1,0.01,newgeo)
             if(igupgrade.eq.2.and.(.NOT.newgeo))then
               gversion(iz) =1.1
@@ -3426,10 +3423,11 @@ C << this is a place to update ssmlcindex? >>
             do 11 i=1,nsur
               icc=izstocn(ivals(iz),i)
               apply=.true.
-              if(ins1.eq.1.and.SSOTF(icc)(1:4).ne.'OPAQ'.and.
-     &            SSOTF(icc)(1:4).ne.'CFC '.and.
-     &            SSOTF(icc)(1:4).ne.'CFC2')apply=.false.
-              if(ins1.eq.2.and.SSOTF(icc)(1:4).eq.'OPAQ')apply=.false.
+              if(ins1.eq.1.and.SOTF(ivals(iz),i)(1:4).ne.'OPAQ'.and.
+     &            SOTF(ivals(iz),i)(1:4).ne.'CFC '.and.
+     &            SOTF(ivals(iz),i)(1:4).ne.'CFC2')apply=.false.
+              if(ins1.eq.2.and.SOTF(ivals(iz),i)(1:4).eq.'OPAQ')
+     &          apply=.false.
 
 C Determine the match in the system topology. 
               CALL SURADJ(IVALS(IZ),I,IE,TMP,IZC,ISC,IC,DESCRC)
@@ -3450,30 +3448,33 @@ C Determine the match in the system topology.
 C Orientation check.
 C 'vertical','sloped','horizontal up','horizontal down',
 C 'any horizontal','any orien.','cancel'.
-              if(ins3.eq.1.and.SSVFC(icc)(1:4).ne.'VERT')then
+              if(ins3.eq.1.and.SVFC(ivals(iz),i)(1:4).ne.'VERT')then
                 apply=.false.
-              elseif(ins3.eq.2.and.SSVFC(icc)(1:4).ne.'SLOP')then
+              elseif(ins3.eq.2.and.SVFC(ivals(iz),i)(1:4).ne.'SLOP')then
                 apply=.false.
-              elseif(ins3.eq.3.and.SSVFC(icc)(1:4).ne.'CEIL')then
+              elseif(ins3.eq.3.and.SVFC(ivals(iz),i)(1:4).ne.'CEIL')then
                 apply=.false.
-              elseif(ins3.eq.4.and.SSVFC(icc)(1:4).ne.'FLOR')then
+              elseif(ins3.eq.4.and.SVFC(ivals(iz),i)(1:4).ne.'FLOR')then
                 apply=.false.
-              elseif((ins3.eq.5.and.SSVFC(icc)(1:4).eq.'FLOR').or.
-     &               (ins3.eq.5.and.SSVFC(icc)(1:4).eq.'CEIL'))then
+              elseif(
+     &          (ins3.eq.5.and.SVFC(ivals(iz),i)(1:4).eq.'FLOR').or.
+     &          (ins3.eq.5.and.SVFC(ivals(iz),i)(1:4).eq.'CEIL'))then
                 continue
               elseif(ins3.eq.6)then
                 continue
               endif
 
-              if(ins4.eq.2.and.SSMLCN(icc)(1:4).ne.'UNKN')apply=.false.
+              if(ins4.eq.2.and.SMLCN(ivals(iz),i)(1:4).ne.
+     &          'UNKN')apply=.false.
 
               if(apply)then
-                write(sn,'(a)') SSNAME(icc)
-                lnsmlcn=lnblnk(SSMLCN(icc))
+                write(sn,'(a)') SNAME(ivals(iz),i)
+                lnsmlcn=lnblnk(SMLCN(ivals(iz),i))
                 WRITE(outs,'(a7,I3,1X,F7.2,F5.0,F5.0,1X,A,1X,A,
      &            1X,A,1X,A,1X,A)')'Match: ',I,SSNA(icc),
-     &            SSPAZI(icc),SSPELV(icc),SN,SSOTF(icc)(1:4),
-     &            SSVFC(icc),SSMLCN(icc)(1:lnsmlcn),SSOTHER(icc,1)(1:13)
+     &            SSPAZI(icc),SSPELV(icc),SN,SOTF(ivals(iz),i)(1:4),
+     &            SVFC(ivals(iz),i),SMLCN(ivals(iz),i)(1:lnsmlcn),
+     &            SOTHER(ivals(iz),i,1)(1:13)
                 call edisp(iuout,outs)
                 write(outs,'(5a)') ' Apply construction to ',
      &            zn(1:lnblnk(zn)),':',sn(1:lnblnk(sn)),'?'
@@ -3481,14 +3482,18 @@ C 'any horizontal','any orien.','cancel'.
                 CALL ASKOK(' ',outs,OK,dok,nbhelp)
                 IF(OK)then
                   ioc=IZSTOCN(IVALS(IZ),i)
-                  WRITE(SSMLCN(ioc),'(A)') mlcname(ISEL)
+                  WRITE(SMLCN(IVALS(IZ),i),'(A)') mlcname(ISEL)
 
 C << this is a place to update ssmlcindex? >>
 
-                  IF(mlctype(ISEL)(1:4).NE.'OPAQ')SSOTF(ioc)='TRAN'
-                  IF(mlctype(ISEL)(1:4).EQ.'OPAQ')SSOTF(ioc)='OPAQ'
-                  IF(mlctype(ISEL)(1:4).EQ.'CFC ')SSOTF(ioc)='CFC '
-                  IF(mlctype(ISEL)(1:4).EQ.'CFC2')SSOTF(ioc)='CFC2'
+                  IF(mlctype(ISEL)(1:4).NE.'OPAQ')SOTF(IVALS(IZ),i)=
+     &              'TRAN'
+                  IF(mlctype(ISEL)(1:4).EQ.'OPAQ')SOTF(IVALS(IZ),i)=
+     &              'OPAQ'
+                  IF(mlctype(ISEL)(1:4).EQ.'CFC ')SOTF(IVALS(IZ),i)=
+     &              'CFC '
+                  IF(mlctype(ISEL)(1:4).EQ.'CFC2')SOTF(IVALS(IZ),i)=
+     &              'CFC2'
                 endif
               endif
  11         continue

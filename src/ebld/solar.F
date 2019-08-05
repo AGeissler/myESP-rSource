@@ -2972,6 +2972,15 @@ C Useful constants
       PI = 4.0 * ATAN(1.0)
       R = PI / 180.
 
+C If ground reflectance (albedo) is to be read from a temporal file then 
+C set it here.
+      IF(IGRNDRFL.gt.0)THEN
+        itdi=IGRNDRFL
+        IFOC=itdi
+        CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
+        groundrefl=VAL(ISD)
+      ENDIF
+        
 C Sky diffuse radiation is model dependent (Perez 1990 is the default).
       IF(ISKYFL.EQ.-1)THEN
 
@@ -4275,12 +4284,12 @@ C **** IMPORTANT: TAKE ONLY THE 1ST 12 CHARS FROM "DESC" ****
 
 C Debug.
 C        write(6,*) 'desc', mlcname(ictl_constrdbindex_number)
-C        write(6,*) 'ssmlcn', SSMLCN(izstocn(icomp,ISURFNumber))
+C        write(6,*) 'smlcn', SMLCN(icomp,ISURFNumber)
 
               write(ctl_constrdb_name,'(a)')
      &             mlcname(ictl_constrdbindex_number)
               write(name_constr_ofStudy,'(a)')
-     &             SSMLCN(izstocn(icomp,ISURFNumber))
+     &             SMLCN(icomp,ISURFNumber)
 
 C controls start here
 C<<< Consider changing ioan(1,1) in the future to ioan(iol,1)>>>>

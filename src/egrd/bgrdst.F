@@ -247,7 +247,7 @@ C current menu line index. Build up text strings for the menu.
             STTS='| Not Defined'
           ENDIF
           icon=IZSTOCN(iz,L)
-          WRITE(ITEM(M),'(A1,1X,A12,2X,A14)')KEY,SSNAME(icon),STTS
+          WRITE(ITEM(M),'(A1,1X,A12,2X,A14)')KEY,SNAME(iz,L),STTS
         ENDIF
    20 CONTINUE
 
@@ -981,7 +981,7 @@ C current menu line index. Build up text strings for the menu.
             WRITE(ITEM(M),'(A1,3X,I2,7X,A12)')KEY,L,'no material'
           ELSE
             icon=IZSTOCN(IComp,IMtrS(L))
-            SrfNm=SSNAME(icon)
+            SrfNm=SNAME(IComp,IMtrS(L))
             WRITE(ITEM(M),'(A1,3X,I2,7X,A12,6X,I3)')KEY,L,SrfNm,IMtrE(L)
           ENDIF
         ENDIF
@@ -1088,7 +1088,7 @@ C List material geometries
      &                  IMLayS(Lst),IMRowE(Lst),IMColE(Lst),IMLayE(Lst)
           ELSE
            icon=IZSTOCN(IComp,IMtrS(Lst))
-           SrfNm=SSNAME(icon)
+           SrfNm=SNAME(IComp,IMtrS(Lst))
            WRITE(LstMtr,51)Lst,SrfNm,IMtrE(Lst),IMRowS(Lst),IMColS(Lst),
      &                  IMLayS(Lst),IMRowE(Lst),IMColE(Lst),IMLayE(Lst)
           ENDIF

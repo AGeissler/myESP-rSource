@@ -153,7 +153,7 @@ C Show the surface selection menu.
             STTS='( D )'
           ENDIF
           icon=IZSTOCN(iz,iss)
-          WRITE(ITEMS(ISS),'(A12,A5)')SSNAME(icon),STTS
+          WRITE(ITEMS(ISS),'(A12,A5)')SNAME(iz,iss),STTS
    50   CONTINUE
         INPICK=1
    60   CALL EPICKS(INPICK,IVALS,' ',' ',17,
@@ -164,7 +164,7 @@ C Show the surface selection menu.
           SRFOK=.FALSE.
         ELSEIF(IS.GT.0.AND.IS.LE.NSUR)THEN
           icon=IZSTOCN(iz,is)
-          SSRF=SSNAME(icon)
+          SSRF=SNAME(iz,is)
           SRFOK=.TRUE.
           CALL TRNSF4(IS)
           XMIN=XMINS(IS)+1.E-3
@@ -1047,8 +1047,8 @@ C Draw the selected edge.
           ENDIF
           icon1=IZSTOCN(iz,ISFEDG(IEG,1))
           icon2=IZSTOCN(iz,ISFEDG(IEG,2))
-          SRF(1)=SSNAME(icon1)
-          SRF(2)=SSNAME(icon2)
+          SRF(1)=SNAME(iz,ISFEDG(IEG,1))
+          SRF(2)=SNAME(iz,ISFEDG(IEG,2))
           EDGOK=.TRUE.
         ELSEIF(IEG.EQ.0)THEN
           EDGOK=.FALSE.
@@ -1154,7 +1154,7 @@ C List edge informations.
           icon1=IZSTOCN(iz,isf1)
           icon2=IZSTOCN(iz,isf2)
           WRITE(MSG,'(3(I3,3X),3(A12,3X))')IG,IVXEDG(IG,1),
-     &      IVXEDG(IG,2),SSNAME(icon1),SSNAME(icon2),STATS
+     &      IVXEDG(IG,2),SNAME(iz,isf1),SNAME(iz,isf2),STATS
           CALL EDISP(IUOUT,MSG)
    90   CONTINUE
       ELSEIF(INO.EQ.MITEM-1)THEN
@@ -1381,8 +1381,8 @@ C Define the two surfaces.
       SZN=ZNAME(IZ)
       icon1=IZSTOCN(iz,is1)
       icon2=IZSTOCN(iz,is2)
-      SRF(1)=SSNAME(icon1)
-      SRF(2)=SSNAME(icon2)
+      SRF(1)=SNAME(iz,is1)
+      SRF(2)=SNAME(iz,is2)
       IL=1
       IF(MMOD.EQ.8)CALL FHCEDG(IZ,IEG,IL)
       IDRW=1
@@ -1572,7 +1572,7 @@ C List construction details.
       ELSEIF(INO.EQ.(MITEM-2))THEN
         BAR='I'
         icon=IZSTOCN(iz,is2)
-        WRITE(TEXT,'(A12,4X,A1,10A)')SSNAME(icon),
+        WRITE(TEXT,'(A12,4X,A1,10A)')SNAME(iz,is2),
      &        '-',('--------',IX=1,NDXE(IEG))
         CALL EDISP(IUOUT,TEXT)
         WRITE(TEXT,'(14X,2X,A1,8(2X,I3,2X,A1))')
@@ -1588,7 +1588,7 @@ C List construction details.
           CALL EDISP(IUOUT,TEXT)
   100   CONTINUE
         icon=IZSTOCN(iz,is1)
-        WRITE(TEXT,'(18X,A12)')SSNAME(icon)
+        WRITE(TEXT,'(18X,A12)')SNAME(iz,is1)
         CALL EDISP(IUOUT,TEXT)
 
 C Display help statements.
@@ -1707,14 +1707,14 @@ C Setup and pass in parameters to win3d.
       isize=itfs
       CALL ETLABEL(LABELN,XLAB,YLAB,ipos,isize)
       icon=IZSTOCN(iz,is1)
-      WRITE(LABELS,'(A12)') SSNAME(icon)
+      WRITE(LABELS,'(A12)') SNAME(iz,is1)
       XLAB=XMX2/2.
       YLAB=YMN2-XYMX/10.
       ipos=2
       isize=itfs+2
       CALL ETLABEL(LABELS,XLAB,YLAB,ipos,isize)
       icon=IZSTOCN(iz,is2)
-      WRITE(LABELS,'(A12)') SSNAME(icon)
+      WRITE(LABELS,'(A12)') SNAME(iz,is2)
       XLAB=XMN2-XMX2/10.
       YLAB=YMX2/2.
       ipos=1
@@ -2062,9 +2062,9 @@ C Draw the selected corner.
           icon1=IZSTOCN(iz,ISFCRN(ICR,1))
           icon2=IZSTOCN(iz,ISFCRN(ICR,2))
           icon3=IZSTOCN(iz,ISFCRN(ICR,3))
-          SRF(1)=SSNAME(icon1)
-          SRF(2)=SSNAME(icon2)
-          SRF(3)=SSNAME(icon3)
+          SRF(1)=SNAME(iz,ISFCRN(ICR,1))
+          SRF(2)=SNAME(iz,ISFCRN(ICR,2))
+          SRF(3)=SNAME(iz,ISFCRN(ICR,3))
           CRNOK=.TRUE.
         ELSEIF(ICR.EQ.0)THEN
           CRNOK=.FALSE.
@@ -2177,7 +2177,7 @@ C List the corners informations.
           icon3=IZSTOCN(iz,isf3)
 
           WRITE(MSG,'(2(I3,3X),4(A12,3X))')ICC,IVXCRN(ICC),
-     &          SSNAME(icon1),SSNAME(icon2),SSNAME(icon3),STATS
+     &      SNAME(iz,isf1),SNAME(iz,isf2),SNAME(iz,isf3),STATS
           CALL EDISP(IUOUT,MSG)
    70   CONTINUE
       ELSEIF(INO.EQ.MITEM-1)THEN
@@ -2401,9 +2401,9 @@ C Define the three surfaces.
       icon2=IZSTOCN(iz,is2)
       icon3=IZSTOCN(iz,is3)
       SZN=zname(IZ)
-      SRF(1)=SSNAME(icon1)
-      SRF(2)=SSNAME(icon2)
-      SRF(3)=SSNAME(icon3)
+      SRF(1)=SNAME(iz,is1)
+      SRF(2)=SNAME(iz,is2)
+      SRF(3)=SNAME(iz,is3)
       IL=1
       IF(MMOD.EQ.8)CALL FHCCRN(IZ,ICR,IL)
       INO=-3
@@ -2591,7 +2591,7 @@ C Copy the construction data of existing corner level.
 C List construction details.
         BAR='I'
         icon=IZSTOCN(iz,is2)
-        WRITE(TEXT,'(A12,4X,A1,10A)') SSNAME(icon),
+        WRITE(TEXT,'(A12,4X,A1,10A)') SNAME(iz,is2),
      &                    '-',('--------',IX=1,NDXC(ICR))
         CALL EDISP(IUOUT,TEXT)
         WRITE(TEXT,'(14X,2X,A1,8(2X,I3,2X,A1))')
@@ -2607,7 +2607,7 @@ C List construction details.
           CALL EDISP(IUOUT,TEXT)
   100   CONTINUE
         icon=IZSTOCN(iz,is1)
-        WRITE(TEXT,'(18X,A12)') SSNAME(icon)
+        WRITE(TEXT,'(18X,A12)') SNAME(iz,is1)
         CALL EDISP(IUOUT,TEXT)
       ELSEIF(INO.EQ.(MITEM-1))THEN
 
@@ -2730,14 +2730,14 @@ C Setup and pass in parameters to win3d.
       isize=itfs
       CALL ETLABEL(LABELN,XLAB,YLAB,ipos,isize)
       icon=IZSTOCN(iz,is1)
-      WRITE(LABELS,'(A12)') SSNAME(icon)
+      WRITE(LABELS,'(A12)') SNAME(iz,is1)
       XLAB=XMX2/2.
       YLAB=YMN2-XYMX/10.
       ipos=2
       isize=itfs+2
       CALL ETLABEL(LABELS,XLAB,YLAB,ipos,isize)
       icon=IZSTOCN(iz,is2)
-      WRITE(LABELS,'(A12)') SSNAME(icon)
+      WRITE(LABELS,'(A12)') SNAME(iz,is2)
       XLAB=XMN2-XMX2/10.
       YLAB=YMX2/2.
       ipos=1

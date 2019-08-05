@@ -1058,7 +1058,7 @@ C         ( Multiply by -1 to convert from ESP-r to HOT3000 sign
 C           conventions. Positive values of fSurface_balance_net
 C           indicate heat transfer from the building to the surroundings.
 C-----------------------------------------------------------------------
-	
+
 C.........If in HOT3000 mode, compute window heat loss at innermost layer,
 C.........and estimate the inward flowing fraction of absorbed solar energy
 C.........that is added to the reported solar gain. 
@@ -1092,7 +1092,7 @@ C...........Compute flux
      &             * sna( iZone, iSurface )
      &             * ( TFs( iZone ,iSurface ) -
      &                 TFc( iZone, iSurface, nndc(iZone, iSurface) - 1 )
-     &               )	 
+     &               ) 
 
 C...........Now extract the U-value and SHGC contributions of the net conductive heat 
 C...........loss calculated at the innermost glass pane. The solar heat gain contribution
@@ -1121,7 +1121,7 @@ C...........which includes any fill gas and coating effects.
             fSurSolarHeatGainIFF = -1.0 * ( fSurface_balance_net - 
      &                           ( fUvalue * sna( iZone, iSurface ) *
      &                           (TFA(iZone)-TF) ) ) 
-	 
+ 
 C...........Since U-value is estimated, it's possible that the IFF will be slightly
 C...........negative. If this is the case, set to 0.0. 
             if ( fSurSolarHeatGainIFF .lt. 0.0) 
@@ -1238,7 +1238,7 @@ C-----------------------------------------------------------------------
           endif is_flux_positive
 
         elseif ( bZoneHeated(iZone) ) then
-		
+
           fSurLoss = fSurface_balance_net
           fSurGain = 0.0
 
@@ -1456,8 +1456,8 @@ C.....Thermal loads
       fSUMNetLoad  = fSUMNetLoad  + fZoneHeatLoad - fZoneCoolLoad
       fSUMHeatLoss = fSUMHeatLoss + fZoneHeatLoad
       fSUMHeatGain = fSUMHeatGain + fZoneCoolLoad
-	  
-	  fSUMFreeCooling = fSUMFreeCooling + fFreeCoolDelivered(iZone)
+  
+      fSUMFreeCooling = fSUMFreeCooling + fFreeCoolDelivered(iZone)
 
 C.....Air load
       fSUMVentilationLoad  = fSUMVentilationLoad + fZoneVentilationLoad
@@ -1644,10 +1644,10 @@ C....Free cooling control flag
             call AddToReport (
      &         rvFreeCoolCtlFlag%Identifier,
      &         0.0,
-     &         cZone_Chars)	  
+     &         cZone_Chars)  
         endif
       endif
-	 
+ 
 C Convert heat injection/extraction metrics to "per m2 of floor area"
       Qm2_ZONE=Q_ZONE/zbasea(iZone)
       Qm2_Heat=Q_Heat/zbasea(iZone)
@@ -2381,8 +2381,7 @@ C.......  ..Surface area in m2
             layer_output: do iLayer = 1, nELts(iZone, iSurface)
 
               ic=izstocn(iZone,iSurface) ! connection index in model
-C             SSMLCN(ic)                 ! construction name of connection ic
-              lnssmlc=lnblnk(SSMLCN(ic)) ! construction name string length
+              lnssmlc=lnblnk(SMLCN(iZone,iSurface)) ! construction name string length
 C             ssmlcindex(ic)             ! construction index in data base
 C material.h:      character matname*32     ! name for material
 C material.h:      character mlcname*32     ! name of MLC legacy items only use first 12 char
@@ -2396,7 +2395,7 @@ C material.h:      IPRMAT(MMLC,ME)          ! Index to material for each layer
 
 C Logic from edcon.F, line 171 ff.
               do ii=1,nmlc
-                if(SSMLCN(ic)(1:lnssmlc).eq.
+                if(SMLCN(iZone,iSurface)(1:lnssmlc).eq.
      &             mlcname(ii)(1:lnmlcname(ii)))then
                   ssmlcindex(ic)=ii   ! remember MLC index
                 endif
@@ -2426,7 +2425,7 @@ C.............Build constrname:matname string
 
 C DEBUG
 cx       write(*,*)'ic=',ic,', lnsmlcn=',lnsmlcn,
-cx     &           ', ssmlc(ic)=',SSMLCN(ic),
+cx     &           ', ssmlc(ic)=',SMLCN(iZone,iSurface),
 cx     &           ', mlcname(ic)=',mlcname(ic),
 cx     &           ', ssmlcindex(ic)=',ssmlcindex(ic),
 cx     &           ', IPRMAT=',IPRMAT(ssmlcindex(ic),iLayer),
@@ -2464,7 +2463,7 @@ C for a match against mlcname.
                 do 42 iz=1,ncomp
                   do 43 iSur=1,NZSUR(iz)
                     ic=IZSTOCN(iz,iSur)
-                    if(SSMLCN(ic)(1:lnblnk(SSMLCN(ic))).eq.
+                    if(SMLCN(iz,iSur)(1:lnblnk(SMLCN(iz,iSur))).eq.
      &                                  mlcname(imlc)(1:lm))then
                       found=.true.
 C Debug

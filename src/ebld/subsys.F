@@ -726,6 +726,18 @@ C Longwave loss from ground: GRLW is the longwave reflectance.
 C Ground solar gain. 
       QGGF=0.0
       IF(ISUNUP.EQ.0)goto 305
+
+C If ground reflectance (albedo) is to be read from a temporal file then 
+C set it here.
+      IF(IGRNDRFL.gt.0)THEN
+        itdi=IGRNDRFL
+        IFOC=itdi
+        CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
+        groundrefl=VAL(ISD)
+        write(outs,'(a,F4.2,a)')'Ground reflectance of ',
+     &   groundrefl,' has been imposed.'
+        call edisp(iuout,outs)
+      ENDIF
       QGGF=QT*(1.0-groundrefl)
   305 CONTINUE
 

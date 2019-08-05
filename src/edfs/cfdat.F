@@ -1467,9 +1467,9 @@ C   from common block variable icp.
 
       do 10 IS=1,nzsur(icp)
         icon=IZSTOCN(icp,is)
-        lnssn=lnblnk(SSNAME(icon))
+        lnssn=lnblnk(SNAME(icp,is))
         lnsurf=lnblnk(SURF)
-        IF(SSNAME(icon)(1:lnssn).EQ.SURF(1:lnsurf))then
+        IF(SNAME(icp,is)(1:lnssn).EQ.SURF(1:lnsurf))then
           IDSURF=IS
           GOTO 99
         ENDIF

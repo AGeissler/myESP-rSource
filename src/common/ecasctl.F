@@ -669,9 +669,9 @@ C List only the classic TMC surfaces (not CFC or CFC2).
      &     ' # No of TMC(s) in zone ' 
           DO 112 IL=1,NZSUR(ICOMP)
             icc=IZSTOCN(icomp,il)
-            IF(SSOTF(icc)(1:4).NE.'OPAQ'.AND.
-     &         SSOTF(icc)(1:4).NE.'CFC '.AND.
-     &         SSOTF(icc)(1:4).NE.'CFC2')THEN
+            IF(SOTF(icomp,il)(1:4).NE.'OPAQ'.AND.
+     &         SOTF(icomp,il)(1:4).NE.'CFC '.AND.
+     &         SOTF(icomp,il)(1:4).NE.'CFC2')THEN
               DO 114 L=1,NDF(ICOMP,N) 
                 WRITE(IUNIT,'(I3,F7.4,A)',IOSTAT=ios,ERR=1)IL,
      &               DFDAT(ICOMP,N,IL,L),' # TMC number & coresp DF '

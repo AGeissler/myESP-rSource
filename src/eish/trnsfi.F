@@ -96,17 +96,17 @@ C rotation.
 
 C Get the current connection
       icc=izstocn(izone,is)
-      ip1=nzjvn(icc,1)
-      xor=vcoord(izone,ip1,1)
-      yor=vcoord(izone,ip1,2)
-      zor=vcoord(izone,ip1,3)
+      ip1=iszjvn(izone,is,1)
+      xor=szcoords(izone,ip1,1)
+      yor=szcoords(izone,ip1,2)
+      zor=szcoords(izone,ip1,3)
 
 C Transform target surface coordinates.
-      do 10 i=1,nznver(icc)
-         ip=nzjvn(icc,i)
-         xs=vcoord(izone,ip,1)
-         ys=vcoord(izone,ip,2)
-         zs=vcoord(izone,ip,3)
+      do 10 i=1,isznver(izone,is)
+         ip=iszjvn(izone,is,i)
+         xs=szcoords(izone,ip,1)
+         ys=szcoords(izone,ip,2)
+         zs=szcoords(izone,ip,3)
 
 C Transformed x.
          xft(i)=(xs-xor)*a(1)+(ys-yor)*a(2)-(xs-xor)*a(3)
@@ -164,11 +164,11 @@ C Trace output.
          call edisp(icout,outs)
          call edisp(icout,
      &     'Original XYZ coordinates:    Transformed X`Y`Z` coords:')
-         do 9995 i=1,nznver(icc)
-           ip=nzjvn(icc,i)
-           xs=vcoord(izone,ip,1)
-           ys=vcoord(izone,ip,2)
-           zs=vcoord(izone,ip,3)
+         do 9995 i=1,isznver(izone,is)
+           ip=iszjvn(izone,is,i)
+           xs=szcoords(izone,ip,1)
+           ys=szcoords(izone,ip,2)
+           zs=szcoords(izone,ip,3)
            write(outs,'(i3,2x,3f8.3,2x,3f8.3)')
      &       i,xs,ys,zs,xft(i),yft(i),zft(i)
            call edisp(icout,outs)

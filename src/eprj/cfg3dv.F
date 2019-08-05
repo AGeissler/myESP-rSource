@@ -121,9 +121,8 @@ C      COMMON/OUTIN/IUOUT,IUIN
       COMMON/C24/IZSTOCN(MCOM,MS)
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
-C VCOORD : X,Y & Z coordinates in model (via geometry.h).
-C NZNVER : number of vertices associated with each connection (via geometry.h).
-C NZJVN : topology of vertices associated with each connection (via geometry.h).
+C szcoords : X,Y & Z coordinates in model (via geometry.h).
+C iszjvn : topology of vertices (via geometry.h).
 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL  ISTOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -269,9 +268,9 @@ C If there are no surfaces yet defined then draw the vertices with
 C label and loop back to the next body.
       IF(NZSUR(nznog(IZ)).EQ.0.AND.NZTV(nznog(IZ)).GT.1)THEN
         DO 202 IV=1,NZTV(nznog(IZ))
-          COG1(1)=VCOORD(nznog(IZ),IV,1)
-          COG1(2)=VCOORD(nznog(IZ),IV,2)
-          COG1(3)=VCOORD(nznog(IZ),IV,3)
+          COG1(1)=szcoords(nznog(IZ),IV,1)
+          COG1(2)=szcoords(nznog(IZ),IV,2)
+          COG1(3)=szcoords(nznog(IZ),IV,3)
           CALL VECTRN(COG1,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iix,iiy)
@@ -289,17 +288,18 @@ C each surface and its vertex list and see how many hits.
           IHIT=0
           DO 8792 IS=1,NZSUR(nznog(IZ))
             icc=IZSTOCN(nznog(IZ),IS)
-            DO 8794 IV=1,NZNVER(icc)
-              IF(IZV.EQ.NZJVN(icc,IV))IHIT=IHIT+1
+            DO 8794 IV=1,isznver(nznog(IZ),IS)
+C              IF(IZV.EQ.(icc,IV))IHIT=IHIT+1
+              IF(IZV.EQ.iszjvn(nznog(IZ),IS,IV))IHIT=IHIT+1
  8794       CONTINUE
  8792     CONTINUE
 
 C If less than 2 hits draw the vertex as an open circle, if no hits
 C draw it as a solid circle.
           IF(IHIT.LT.2)THEN
-            COG1(1)=VCOORD(nznog(IZ),IZV,1)
-            COG1(2)=VCOORD(nznog(IZ),IZV,2)
-            COG1(3)=VCOORD(nznog(IZ),IZV,3)
+            COG1(1)=szcoords(nznog(IZ),IZV,1)
+            COG1(2)=szcoords(nznog(IZ),IZV,2)
+            COG1(3)=szcoords(nznog(IZ),IZV,3)
             CALL VECTRN(COG1,TEMAT,COG2,IER)
             CALL VECTRN(COG2,ETSMAT,COG3,IER)
             call u2pixel(COG3(1),COG3(2),iix,iiy)
@@ -351,16 +351,17 @@ C NAP   = Number of vertex points on surface
 C IANXT = Index of 'next' point
 C IAPNT = Pointer to first vertex of polygon
         IAPNT = 1
-        NAP = NZNVER(icc)
-        DO 1100 J = 1,NZNVER(icc)
-          K = NZJVN(icc,J)
-          AX(J) = VCOORD(nznog(IZ),K,1)
-          AY(J) = VCOORD(nznog(IZ),K,2)
-          AZ(J) = VCOORD(nznog(IZ),K,3)
+        NAP = isznver(nznog(IZ),I)
+        DO 1100 J = 1,isznver(nznog(IZ),I)
+C          K = (icc,J)
+          K = iszjvn(nznog(IZ),I,J)
+          AX(J) = szcoords(nznog(IZ),K,1)
+          AY(J) = szcoords(nznog(IZ),K,2)
+          AZ(J) = szcoords(nznog(IZ),K,3)
           IANXT(J) = J + 1
  1100   CONTINUE
 
-        IANXT(NZNVER(icc)) = IAPNT
+        IANXT(isznver(nznog(IZ),I)) = IAPNT
 
 C-----------------------------------------------------------------------
 C Transform surface polygon to EYE co-ordinates
@@ -400,25 +401,25 @@ C << Note: later change MLCN to 32 char >>
         if(ITHLS.eq.1.and.ITHLZ.gt.0)then
           WRITE(MLCN,'(A)') mlcname(ITHLZ)
           lnssmlc=lnblnk(MLCN)
-          if(MLCN(1:lnssmlc).eq.SSMLCN(ICC)(1:lnssmlc))then
+          if(MLCN(1:lnssmlc).eq.SMLCN(nznog(IZ),I)(1:lnssmlc))then
             IPEN= -305
           else
             IPEN= 1
           endif
         elseif(ITHLS.eq.2)then
-          if(ITHLZ.eq.1.and.SSOTF(ICC)(1:4).eq.'OPAQ')then
+          if(ITHLZ.eq.1.and.SOTF(nznog(IZ),I)(1:4).eq.'OPAQ')then
             IPEN= -305
           else
             IPEN= 1
           endif
-          if(ITHLZ.eq.2.and.SSOTF(ICC)(1:4).ne.'OPAQ')then
+          if(ITHLZ.eq.2.and.SOTF(nznog(IZ),I)(1:4).ne.'OPAQ')then
             IPEN= -305
           else
             IPEN= 1
           endif
         elseif(ITHLS.eq.3)then
-          if(SSMLCN(ICC)(1:4).eq.'UNKN'.or.
-     &       SSOTHER(ICC,1)(1:4).eq.'UNKN')then
+          if(SMLCN(nznog(IZ),I)(1:4).eq.'UNKN'.or.
+     &       SOTHER(nznog(IZ),I,1)(1:4).eq.'UNKN')then
             IPEN= -305
           else
             IPEN= 1
@@ -443,7 +444,7 @@ C If vertex are to be labeled do it in the smallest font, also place
 C a 2pixel square dot at the vertex so if it is embedded in a line
 C it can be seen. Then move cursor to vertex and remember position.
           IF(ITVNO.EQ.0.AND.NAP.EQ.NBP)THEN
-            IV=NZJVN(icc,IP)
+            IV=iszjvn(nznog(IZ),I,IP)
             call esymbol(iix,iiy,8,1)
             CALL VERTLBL(iix,iiy,IV,ier)
           ENDIF
@@ -512,7 +513,8 @@ C unless duplicate line has already been drawn.
 C If vertex are to be labeled do it in the smallest font and
 C move cursor back to vertex and remember position.
           IF(ITVNO.EQ.0.AND.NAP.EQ.NBP)THEN
-            IV=NZJVN(icc,IP1)
+C            IV=(icc,IP1)
+            IV=iszjvn(nznog(IZ),I,IP1)
             call esymbol(iix,iiy,8,1)
             CALL VERTLBL(iix,iiy,IV,ier)
             iixlast=iix   ! cast for edline call
@@ -597,17 +599,17 @@ C Patch for cfg is to only label highlighted surfaces.
                 CALL VECTRN(VN,TEMAT,COG2,IER)
                 CALL VECTRN(COG2,ETSMAT,COG3,IER)
                 call u2pixel(COG3(1),COG3(2),iixc,iiyc)
-                write(stemp,'(A)')SSNAME(IC)
+                write(stemp,'(A)')SNAME(nznog(IZ),I)
                 call arrow(CG,VN,0.3,0.1,ipoints,'a',2)
 
                 CALL winfnt(issize)
 
 C Offset the surface name depending on orientation.
-                IF(SSVFC(icc).EQ.'VERT')THEN
+                IF(SVFC(nznog(IZ),I).EQ.'VERT')THEN
                   iixc=iixc+5
-                ELSEIF(SSVFC(icc).EQ.'CEIL')THEN
+                ELSEIF(SVFC(nznog(IZ),I).EQ.'CEIL')THEN
                   iixc=iixc+5
-                ELSEIF(SSVFC(icc).EQ.'FLOR')THEN
+                ELSEIF(SVFC(nznog(IZ),I).EQ.'FLOR')THEN
                   iixc=iixc+5
                 ELSE
                   iixc=iixc+5

@@ -99,17 +99,17 @@ C rotation.
 C Get the current connection
       icc=izstocn(izone,is)
 
-      ip1=nzjvn(icc,1)
-      xor=vcoord(izone,ip1,1)
-      yor=vcoord(izone,ip1,2)
-      zor=vcoord(izone,ip1,3)
+      ip1=iszjvn(izone,is,1)
+      xor=szcoords(izone,ip1,1)
+      yor=szcoords(izone,ip1,2)
+      zor=szcoords(izone,ip1,3)
 
 C Transform target surface coordinates.
-      do 10 i=1,nznver(icc)
-         ip=nzjvn(icc,i)
-         xs=vcoord(izone,ip,1)
-         ys=vcoord(izone,ip,2)
-         zs=vcoord(izone,ip,3)
+      do 10 i=1,isznver(izone,is)
+         ip=iszjvn(izone,is,i)
+         xs=szcoords(izone,ip,1)
+         ys=szcoords(izone,ip,2)
+         zs=szcoords(izone,ip,3)
 
 C Transformed x.
          xft(i)=(xs-xor)*a(1)+(ys-yor)*a(2)-(xs-xor)*a(3)
@@ -167,11 +167,12 @@ C Trace output.
         call edisp(icout,outs)
         call edisp(icout,
      &    'Original XYZ coordinates: Transformed X`Y`Z` coords:')
-        do 9995 i=1,nznver(icc)
-          ip=nzjvn(icc,i)
-          xs=vcoord(izone,ip,1)
-          ys=vcoord(izone,ip,2)
-          zs=vcoord(izone,ip,3)
+        do 9995 i=1,isznver(izone,is)
+C          ip=(icc,i)
+          ip=iszjvn(izone,is,i)
+          xs=szcoords(izone,ip,1)
+          ys=szcoords(izone,ip,2)
+          zs=szcoords(izone,ip,3)
           write(outs,'(i3,2x,3f8.2,2x,3f8.2)')
      &      i,xs,ys,zs,xft(i),yft(i),zft(i)
           call edisp(icout,outs)
@@ -634,19 +635,21 @@ C           face vertices.
 C Compute azimuth and elevation angles for face 'IS'.
 C Get the current connection
       icc=izstocn(izone,is)
-      nv=nznver(icc)
+      nv=isznver(izone,is)
       do 10 i=1,nv
          k=i+1
          if(i.eq.nv)k=1
-         ip1=nzjvn(icc,i)
-         ip2=nzjvn(icc,k)
+C         ip1=(icc,i)
+         ip1=iszjvn(izone,is,i)
+C         ip2=(icc,k)
+         ip2=iszjvn(izone,is,k)
 
-         xsum=xsum+vcoord(izone,ip1,2)*vcoord(izone,ip2,3)-
-     &        vcoord(izone,ip1,3)*vcoord(izone,ip2,2)
-         ysum=ysum+vcoord(izone,ip1,3)*vcoord(izone,ip2,1)-
-     &        vcoord(izone,ip1,1)*vcoord(izone,ip2,3)
-         zsum=zsum+vcoord(izone,ip1,1)*vcoord(izone,ip2,2)-
-     &        vcoord(izone,ip1,2)*vcoord(izone,ip2,1)
+         xsum=xsum+szcoords(izone,ip1,2)*szcoords(izone,ip2,3)-
+     &        szcoords(izone,ip1,3)*szcoords(izone,ip2,2)
+         ysum=ysum+szcoords(izone,ip1,3)*szcoords(izone,ip2,1)-
+     &        szcoords(izone,ip1,1)*szcoords(izone,ip2,3)
+         zsum=zsum+szcoords(izone,ip1,1)*szcoords(izone,ip2,2)-
+     &        szcoords(izone,ip1,2)*szcoords(izone,ip2,1)
    10 continue
       pazi(is)=90.0
       if(abs(xsum).lt.0.00001)pazi(is)=0.0
@@ -663,14 +666,16 @@ C Get the current connection
     2 continue
 
 C Now compute local X-axis tilt angle.
-      iv1=nzjvn(icc,1)
-      iv2=nzjvn(icc,2)
-      dz=vcoord(izone,iv2,3)-vcoord(izone,iv1,3)
-      dist=((vcoord(izone,iv2,1)-vcoord(izone,iv1,1))**2+
-     &      (vcoord(izone,iv2,2)-vcoord(izone,iv1,2))**2+
-     &      (vcoord(izone,iv2,3)-vcoord(izone,iv1,3))**2)**.5
+C      iv1=(icc,1)
+      iv1=iszjvn(izone,is,1)
+C      iv2=(icc,2)
+      iv2=iszjvn(izone,is,2)
+      dz=szcoords(izone,iv2,3)-szcoords(izone,iv1,3)
+      dist=((szcoords(izone,iv2,1)-szcoords(izone,iv1,1))**2+
+     &      (szcoords(izone,iv2,2)-szcoords(izone,iv1,2))**2+
+     &      (szcoords(izone,iv2,3)-szcoords(izone,iv1,3))**2)**.5
       ptilt(is)=asin(dz/dist)/r
-      if(vcoord(izone,iv1,3).gt.vcoord(izone,iv2,3))
+      if(szcoords(izone,iv1,3).gt.szcoords(izone,iv2,3))
      &  ptilt(is)=-ptilt(is)
 
 C For the special case of a horizontal surface, the
@@ -688,41 +693,49 @@ C an adjusted Z value.
         zsum=0.
         do 20 i=1,4
           if(i.eq.1)then
-              ip1=nzjvn(icc,1)
-              ip2=nzjvn(icc,2)
-              xx1=vcoord(izone,ip1,1)
-              xx2=vcoord(izone,ip2,1)
-              yy1=vcoord(izone,ip1,2)
-              yy2=vcoord(izone,ip2,2)
-              zz1=vcoord(izone,ip1,3)
-              zz2=vcoord(izone,ip2,3)
+C              ip1=(icc,1)
+              ip1=iszjvn(izone,is,1)
+C              ip2=(icc,2)
+              ip2=iszjvn(izone,is,2)
+              xx1=szcoords(izone,ip1,1)
+              xx2=szcoords(izone,ip2,1)
+              yy1=szcoords(izone,ip1,2)
+              yy2=szcoords(izone,ip2,2)
+              zz1=szcoords(izone,ip1,3)
+              zz2=szcoords(izone,ip2,3)
           elseif(i.eq.2)then
-              ip1=nzjvn(icc,2)
-              ip2=nzjvn(icc,2)
-              xx1=vcoord(izone,ip1,1)
-              xx2=vcoord(izone,ip2,1)
-              yy1=vcoord(izone,ip1,2)
-              yy2=vcoord(izone,ip2,2)
-              zz1=vcoord(izone,ip1,3)
-              zz2=vcoord(izone,ip2,3)+0.1
+C              ip1=(icc,2)
+              ip1=iszjvn(izone,is,2)
+C              ip2=(icc,2)
+              ip2=iszjvn(izone,is,2)
+              xx1=szcoords(izone,ip1,1)
+              xx2=szcoords(izone,ip2,1)
+              yy1=szcoords(izone,ip1,2)
+              yy2=szcoords(izone,ip2,2)
+              zz1=szcoords(izone,ip1,3)
+              zz2=szcoords(izone,ip2,3)+0.1
           elseif(i.eq.3)then
-              ip1=nzjvn(icc,2)
-              ip2=nzjvn(icc,1)
-              xx1=vcoord(izone,ip1,1)
-              xx2=vcoord(izone,ip2,1)
-              yy1=vcoord(izone,ip1,2)
-              yy2=vcoord(izone,ip2,2)
-              zz1=vcoord(izone,ip1,3)+0.1
-              zz2=vcoord(izone,ip2,3)+0.1
+C              ip1=(icc,2)
+              ip1=iszjvn(izone,is,2)
+C              ip2=(icc,1)
+              ip2=iszjvn(izone,is,1)
+              xx1=szcoords(izone,ip1,1)
+              xx2=szcoords(izone,ip2,1)
+              yy1=szcoords(izone,ip1,2)
+              yy2=szcoords(izone,ip2,2)
+              zz1=szcoords(izone,ip1,3)+0.1
+              zz2=szcoords(izone,ip2,3)+0.1
           elseif(i.eq.4)then
-              ip1=nzjvn(icc,1)
-              ip2=nzjvn(icc,1)
-              xx1=vcoord(izone,ip1,1)
-              xx2=vcoord(izone,ip2,1)
-              yy1=vcoord(izone,ip1,2)
-              yy2=vcoord(izone,ip2,2)
-              zz1=vcoord(izone,ip1,3)+0.1
-              zz2=vcoord(izone,ip2,3)
+C              ip1=(icc,1)
+              ip1=iszjvn(izone,is,1)
+C              ip2=(icc,1)
+              ip2=iszjvn(izone,is,1)
+              xx1=szcoords(izone,ip1,1)
+              xx2=szcoords(izone,ip2,1)
+              yy1=szcoords(izone,ip1,2)
+              yy2=szcoords(izone,ip2,2)
+              zz1=szcoords(izone,ip1,3)+0.1
+              zz2=szcoords(izone,ip2,3)
           endif
           xsum=xsum+yy1*zz2-zz1*yy2
           ysum=ysum+zz1*xx2-xx1*zz2

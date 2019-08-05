@@ -1120,18 +1120,18 @@ C (No centre of gravity required if this is the site origin).
       IF(IZ.GE.1)THEN
         DO I=1,nztv(IVZ)
           IF(ITBND.NE.0)THEN
-            ZXMN(IVZ)=AMIN1(ZXMN(IVZ),VCOORD(IVZ,I,1))
-            ZYMN(IVZ)=AMIN1(ZYMN(IVZ),VCOORD(IVZ,I,2))
-            ZZMN(IVZ)=AMIN1(ZZMN(IVZ),VCOORD(IVZ,I,3))
-            ZXMX(IVZ)=AMAX1(ZXMX(IVZ),VCOORD(IVZ,I,1))
-            ZYMX(IVZ)=AMAX1(ZYMX(IVZ),VCOORD(IVZ,I,2))
-            ZZMX(IVZ)=AMAX1(ZZMX(IVZ),VCOORD(IVZ,I,3))
-            XMN=AMIN1(XMN,VCOORD(IVZ,I,1))
-            YMN=AMIN1(YMN,VCOORD(IVZ,I,2))
-            ZMN=AMIN1(ZMN,VCOORD(IVZ,I,3))
-            XMX=AMAX1(XMX,VCOORD(IVZ,I,1))
-            YMX=AMAX1(YMX,VCOORD(IVZ,I,2))
-            ZMX=AMAX1(ZMX,VCOORD(IVZ,I,3))
+            ZXMN(IVZ)=AMIN1(ZXMN(IVZ),szcoords(IVZ,I,1))
+            ZYMN(IVZ)=AMIN1(ZYMN(IVZ),szcoords(IVZ,I,2))
+            ZZMN(IVZ)=AMIN1(ZZMN(IVZ),szcoords(IVZ,I,3))
+            ZXMX(IVZ)=AMAX1(ZXMX(IVZ),szcoords(IVZ,I,1))
+            ZYMX(IVZ)=AMAX1(ZYMX(IVZ),szcoords(IVZ,I,2))
+            ZZMX(IVZ)=AMAX1(ZZMX(IVZ),szcoords(IVZ,I,3))
+            XMN=AMIN1(XMN,szcoords(IVZ,I,1))
+            YMN=AMIN1(YMN,szcoords(IVZ,I,2))
+            ZMN=AMIN1(ZMN,szcoords(IVZ,I,3))
+            XMX=AMAX1(XMX,szcoords(IVZ,I,1))
+            YMX=AMAX1(YMX,szcoords(IVZ,I,2))
+            ZMX=AMAX1(ZMX,szcoords(IVZ,I,3))
           ENDIF
         ENDDO  ! of I
 

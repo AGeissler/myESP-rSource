@@ -167,9 +167,9 @@ C Refresh the index of the MLC which matches each surface.
         icn1=izstocn(icomp,i)
         if(icn1.ge.1)then
           ssmlcindex(icn1)=0  ! assume no matching MLC          
-          lnssmlc=lnblnk(SSMLCN(icn1))
+          lnssmlc=lnblnk(SMLCN(icomp,i))
           do ii=1,nmlc
-            if(SSMLCN(icn1)(1:lnssmlc).eq.
+            if(SMLCN(icomp,i)(1:lnssmlc).eq.
      &         mlcname(ii)(1:lnmlcname(ii)))then
               ssmlcindex(icn1)=ii   ! remember MLC index     
             endif
@@ -186,7 +186,7 @@ C geometry facility first.
         if(icn1.eq.0)then
           ig=ig+1
         else
-          if(SSMLCN(icn1)(1:4).EQ.'UNKN')ig=ig+1
+          if(SMLCN(icomp,i)(1:4).EQ.'UNKN')ig=ig+1
         endif
   11  CONTINUE
       if(ig.gt.3)then
@@ -297,11 +297,12 @@ C Do not check for UK NCM models.
         icn1=izstocn(icomp,is)
 
 C Debug.
-C        write(6,*) icn1,SSOTF(icn1),ITMCFL(ICOMP,IS),inoti
+C        write(6,*) icn1,SOTF(icomp,is),ITMCFL(ICOMP,IS),inoti
 
-        IF((SSOTF(icn1)(1:4).EQ.'OPAQ').AND.ITMCFL(ICOMP,IS).ne.0)then
+        IF((SOTF(icomp,is)(1:4).EQ.'OPAQ').AND.
+     &      ITMCFL(ICOMP,IS).ne.0)then
           if(inoti.eq.0)then
-            write(outs,'(A,A)')SSNAME(icn1),' is opaque.'
+            write(outs,'(A,A)')SNAME(icomp,is),' is opaque.'
             dok=.true.
             helptopic='confirm_surf_opaque'
             call gethelptext(helpinsub,helptopic,nbhelp)
@@ -309,14 +310,14 @@ C        write(6,*) icn1,SSOTF(icn1),ITMCFL(ICOMP,IS),inoti
      &        OK,DOK,nbhelp)
             if(OK)then
               ITMCFL(ICOMP,IS)=0
-              SSOTF(icn1)='OPAQUE'
+              SOTF(ICOMP,IS)='OPAQUE'
             endif
           else
             continue
           endif
         endif
-        IF(SSOTF(icn1)(1:4).NE.'OPAQ'.AND.
-     &     SSOTF(icn1)(1:3).NE.'CFC')TFOUND=.TRUE.
+        IF(SOTF(ICOMP,IS)(1:4).NE.'OPAQ'.AND.
+     &     SOTF(ICOMP,IS)(1:3).NE.'CFC')TFOUND=.TRUE.
         IF(ITMCFL(ICOMP,IS).GT.0)TFOUND=.TRUE.
   60  CONTINUE
       IF(.NOT.TFOUND)THEN
@@ -375,9 +376,9 @@ C Now, check to see if there are any CFC surfaces and assemble ICFCFL index.
       CFCFOUND=.FALSE.
       DO 611 IS=1,NZSUR(icomp)
         icn1=izstocn(icomp,is)
-        if(SSOTF(icn1)(1:3).EQ.'CFC')then
-            CFCFOUND=.TRUE.
-            icfcfl(icomp,is)=1 !assign 1 by default
+        if(SOTF(icomp,is)(1:3).EQ.'CFC')then
+          CFCFOUND=.TRUE.
+          icfcfl(icomp,is)=1 !assign 1 by default
         else
             icfcfl(icomp,is)=0
         end if
@@ -449,21 +450,21 @@ C current menu line index. Build up text strings for the menu.
             optic=' - '
           endif
           icn1=izstocn(icomp,L)
-          lnsmlcn=lnblnk(SSMLCN(icn1))
+          lnsmlcn=lnblnk(SMLCN(icomp,L))
           if(lnsmlcn.gt.16) lnsmlcn=16
-          lnsn=lnblnk(SSNAME(icn1))
+          lnsn=lnblnk(SNAME(icomp,L))
           if(lnsn.lt.10) lnsn=10
           lnop=lnblnk(OPTIC)
           iwid=8+lnsn+4+lnsmlcn+lnop
           if(iwid.le.48)then
-            WRITE(VERT(M),14)KEY,SSNAME(icn1)(1:lnsn),
-     &      SSOTF(icn1)(1:4),
-     &      SSMLCN(icn1)(1:lnsmlcn),OPTIC(1:lnop)
+            WRITE(VERT(M),14)KEY,SNAME(icomp,L)(1:lnsn),
+     &      SOTF(icomp,L)(1:4),
+     &      SMLCN(icomp,L)(1:lnsmlcn),OPTIC(1:lnop)
           else
             lnop=lnop-(iwid-48)
-            WRITE(VERT(M),14)KEY,SSNAME(icn1)(1:lnsn),
-     &      SSOTF(icn1)(1:4),
-     &      SSMLCN(icn1)(1:lnsmlcn),OPTIC(1:lnop)
+            WRITE(VERT(M),14)KEY,SNAME(icomp,L)(1:lnsn),
+     &      SOTF(icomp,L)(1:4),
+     &      SMLCN(icomp,L)(1:lnsmlcn),OPTIC(1:lnop)
           endif
    14     FORMAT(A,2X,A,2X,A,2X,A,1X,A)
         ENDIF
@@ -558,8 +559,8 @@ C TMC details, check that something transparent first.
         TFOUND=.FALSE.
         DO 71 IS=1,NZSUR(icomp)
           icn1=izstocn(icomp,is)
-          IF(SSOTF(icn1)(1:4).NE.'OPAQ'.AND.
-     &      SSOTF(icn1)(1:3).NE.'CFC')TFOUND=.TRUE.
+          IF(SOTF(icomp,is)(1:4).NE.'OPAQ'.AND.
+     &       SOTF(icomp,is)(1:3).NE.'CFC')TFOUND=.TRUE.
   71    CONTINUE
         IF(TFOUND)THEN
           CALL EPMENSV
@@ -659,8 +660,8 @@ C If any of the surfaces are transparent save this info.
       TFOUND=.FALSE.
       DO 61 IS=1,NZSUR(icomp)
         icn1=izstocn(icomp,is)
-        IF(SSOTF(icn1)(1:4).NE.'OPAQ'.AND.
-     &     SSOTF(icn1)(1:3).NE.'CFC')TFOUND=.TRUE.
+        IF(SOTF(icomp,is)(1:4).NE.'OPAQ'.AND.
+     &     SOTF(icomp,is)(1:3).NE.'CFC')TFOUND=.TRUE.
         IF(ITMCFL(ICOMP,IS).GT.0)TFOUND=.TRUE.
   61  CONTINUE
       IF(TFOUND)THEN
@@ -692,7 +693,7 @@ C If any of the surfaces are CFCs then save this info.
       CFCFOUND=.FALSE.
       DO 612 IS=1,NZSUR(icomp)
         icn1=izstocn(icomp,is)
-        IF(SSOTF(icn1)(1:3).EQ.'CFC')CFCFOUND=.TRUE.
+        IF(SOTF(icomp,is)(1:3).EQ.'CFC')CFCFOUND=.TRUE.
         IF(icfcfl(ICOMP,IS).GT.0)CFCFOUND=.TRUE.
  612  CONTINUE
       IF(CFCFOUND)THEN
@@ -862,15 +863,18 @@ C Switch to fixed width font for both the menu and text feedback.
 C Setup text for menu.
    12 INODA=-3
       icn1=izstocn(icomp,isur)
-   13 write(ISD(1),'(A,A)') '  surface name    : ',SSNAME(icn1)
-      if(SSOTF(icn1)(1:4).eq.'OPAQ'.or.
-     &   SSOTF(icn1)(1:4).eq.'TRAN'.or.
-     &   SSOTF(icn1)(1:3).eq.'CFC')then
-        write(ISD(2),'(A,A)') 'a surface type    : ',SSOTF(icn1)(1:12)
+   13 write(ISD(1),'(A,A)') '  surface name    : ',SNAME(icomp,isur)
+      if(SOTF(icomp,isur)(1:4).eq.'OPAQ'.or.
+     &   SOTF(icomp,isur)(1:4).eq.'TRAN'.or.
+     &   SOTF(icomp,isur)(1:3).eq.'CFC')then
+        write(ISD(2),'(A,A)') 'a surface type    : ',
+     &    SOTF(icomp,isur)(1:12)
       else
-        WRITE(ISD(2),'(A,A)') 'a optical set name: ',SSOTF(icn1)(1:12)
+        WRITE(ISD(2),'(A,A)') 'a optical set name: ',
+     &    SOTF(icomp,isur)(1:12)
       endif
-      write(ISD(3),'(A,A)') 'b construction    : ',SSMLCN(icn1)(1:16)
+      write(ISD(3),'(A,A)') 'b construction    : ',
+     &  SMLCN(icomp,isur)(1:16)
       if(ITMCFL(ICOMP,ISUR).GT.0)then
         optic=TOPTIC(ICOMP,ITMCFL(ICOMP,ISUR))
         write(ISD(4),'(2A)')'  optical property: ',optic
@@ -881,7 +885,7 @@ C Setup text for menu.
       ISD(5)='  ______________________________________ '
 
 C Surface properties. If CFC, don't write out emiss and abs.
-      IF(SSOTF(icn1)(1:3).EQ.'CFC') THEN
+      IF(SOTF(icomp,isur)(1:3).EQ.'CFC') THEN
         ISD(6)='                                          '
         ISD(7)='                                          '
       ELSE
@@ -899,7 +903,7 @@ C Find composite which matches.
 
 C For each layer.
       M=M+1
-      IF(SSOTF(icn1)(1:4).EQ.'CFC2') THEN
+      IF(SOTF(icomp,isur)(1:4).EQ.'CFC2') THEN
         ISD(M)=' lyr|CFCl|Thick|Conduc-|Density|Specific'
         M=M+1
         ISD(M)='    |db  |metre|tivity |       |heat    '
@@ -921,7 +925,7 @@ C Multilayer construction has not been defined.
         ELSE
 
           check_CFC2_or_MLC:
-     &    IF(SSOTF(icn1)(1:4).EQ.'CFC2') THEN
+     &    IF(SOTF(icomp,isur)(1:4).EQ.'CFC2') THEN
             cfcarrayindex=ITMCFCDB(ICF,IE)
 
             if(cfcarrayindex.eq.0)then
@@ -1004,13 +1008,13 @@ C or fictitious (bookkeeping purposes only). If transparent ask user
 C which set of optical properties to use. (This will probably result in
 C an additional surface attribute!!!)
 C Additional option to choose CFC type.
-        if(SSOTF(icn1)(1:4).eq.'OPAQ')then
+        if(SOTF(icomp,isur)(1:4).eq.'OPAQ')then
           ino=1
-        elseif(SSOTF(icn1)(1:4).eq.'TRAN')then
+        elseif(SOTF(icomp,isur)(1:4).eq.'TRAN')then
           ino=2
-        elseif(SSOTF(icn1)(1:4).eq.'UNKN')then
+        elseif(SOTF(icomp,isur)(1:4).eq.'UNKN')then
           ino=1
-        elseif(SSOTF(icn1)(1:3).eq.'CFC')then
+        elseif(SOTF(icomp,isur)(1:3).eq.'CFC')then
           ino=3
         else
           ino=2
@@ -1023,14 +1027,14 @@ C Additional option to choose CFC type.
         IF(ilno.eq.ino)GOTO 12
         IF(ino.eq.0)GOTO 12
         IF(ino.EQ.1)THEN
-          SSOTF(icn1)='OPAQUE'
+          SOTF(icomp,isur)='OPAQUE'
         ELSEIF(ino.EQ.2)THEN
-          SSOTF(icn1)='TRAN'
+          SOTF(icomp,isur)='TRAN'
         ELSEIF(ino.EQ.3)THEN
-          if(SSOTF(icn1)(1:4).eq.'CFC ')then
-            SSOTF(icn1)='CFC '
-          elseif(SSOTF(icn1)(1:4).eq.'CFC2')then
-            SSOTF(icn1)='CFC2'
+          if(SOTF(icomp,isur)(1:4).eq.'CFC ')then
+            SOTF(icomp,isur)='CFC '
+          elseif(SOTF(icomp,isur)(1:4).eq.'CFC2')then
+            SOTF(icomp,isur)='CFC2'
           endif
         ELSEIF(ino.EQ.4)THEN
           GOTO 12
@@ -1057,29 +1061,29 @@ C the OPAQUE/TRANSPARENT flag as well.
           RETURN
         ENDIF
         IF(IC.GT.0)THEN
-          WRITE(SSMLCN(icn1),'(A)') mlcname(IC)
+          WRITE(SMLCN(icomp,isur),'(A)') mlcname(IC)
           ssmlcindex(icn1)=IC   ! update array
           if(mlctype(IC)(1:4).EQ.'TRAN')then
-            SSOTF(icn1)='TRAN'
+            SOTF(icomp,isur)='TRAN'
           endif
           if(mlctype(IC)(1:4).EQ.'OPAQ')then
-            SSOTF(icn1)='OPAQUE'
+            SOTF(icomp,isur)='OPAQUE'
             ITMCFL(ICOMP,ISUR)=0
           endif
           if(mlctype(IC)(1:4).EQ.'CFC ')then
-            SSOTF(icn1)='CFC '
+            SOTF(icomp,isur)='CFC '
             ITMCFL(ICOMP,ISUR)=0
           endif
           if(mlctype(IC)(1:4).EQ.'CFC2')then
-            SSOTF(icn1)='CFC2'
+            SOTF(icomp,isur)='CFC2'
             ITMCFL(ICOMP,ISUR)=0
           endif
         ELSE
 
 C User selected UNKNOWN so reset variables
-          WRITE(SSMLCN(icn1),'(A)') 'UNKNOWN'
+          WRITE(SMLCN(icomp,isur),'(A)') 'UNKNOWN'
           ssmlcindex(icn1)=0   ! update array
-          SSOTF(icn1)='OPAQUE'
+          SOTF(icomp,isur)='OPAQUE'
           ITMCFL(ICOMP,ISUR)=0
           GOTO 12
         ENDIF
@@ -1094,7 +1098,7 @@ C Gather information about each layer via materials data structures.
         DO 223, IL=1,LAYERS(IC)
 
           check_CFC2_or_MLC_2:
-     &    IF(SSOTF(icn1)(1:4).EQ.'CFC2') THEN
+     &    IF(SOTF(icomp,isur)(1:4).EQ.'CFC2') THEN
 
             cfcarrayindex=ITMCFCDB(IC,IL)
             if(cfcarrayindex.gt.0)then
@@ -1133,10 +1137,10 @@ C Update array NAIRG.
               else
                 NAIRG(ISUR)=NAIRG(ISUR)+1
                 IPAIRG(ISUR,NAIRG(ISUR))=IL
-                IF(SSVFC(icn1)(1:4).EQ.'VERT')THEN
+                IF(SVFC(icomp,isur)(1:4).EQ.'VERT')THEN
                    RAIRG(ISUR,NAIRG(ISUR))=DRAIR(IC,IL,1)
-                ELSEIF(SSVFC(icn1)(1:4).EQ.'FLOR'.OR.
-     &                 SSVFC(icn1)(1:4).EQ.'CEIL')THEN
+                ELSEIF(SVFC(icomp,isur)(1:4).EQ.'FLOR'.OR.
+     &                 SVFC(icomp,isur)(1:4).EQ.'CEIL')THEN
                    RAIRG(ISUR,NAIRG(ISUR))=DRAIR(IC,IL,2)
                 ELSE
                    RAIRG(ISUR,NAIRG(ISUR))=DRAIR(IC,IL,3)
@@ -1178,7 +1182,7 @@ C Assign surface properties.
   223   CONTINUE
         MODGEO=.TRUE.
       ELSEIF(INODA.EQ.6)THEN
-        IF(SSOTF(icn1)(1:3).NE.'CFC') THEN
+        IF(SOTF(icomp,isur)(1:3).NE.'CFC') THEN
 C Emissivity.
 C << todo take advantage of the out/in data within the material arrays. >>
           CALL EASKR(EMISI(ISUR),' ','Inside emissivity  ?',
@@ -1188,7 +1192,7 @@ C << todo take advantage of the out/in data within the material arrays. >>
           MODCON=.TRUE.
         ENDIF
       ELSEIF(INODA.EQ.7)THEN
-        IF(SSOTF(icn1)(1:3).NE.'CFC') THEN
+        IF(SOTF(icomp,isur)(1:3).NE.'CFC') THEN
 C Absorptivity.
 C << todo take advantage of the out/in data within the material arrays. >>
           CALL EASKR(ABSI(ISUR),' ',' Inside absorptivity ? ',
@@ -1351,9 +1355,9 @@ C equivalent MLC in the array. If name is UNKN then ask user to select.
 
 C << The logic for dealing with TRAN/OPAQ needs to be updated! >>
         NAIRG(IS)=0
-        IF(SSMLCN(ioc)(1:4).EQ.'UNKN')THEN
+        IF(SMLCN(ICOMP,is)(1:4).EQ.'UNKN')THEN
   245     WRITE(outs,'(3A)')' Composition of ',
-     &      SSNAME(ioc)(1:lnblnk(SSNAME(ioc))),
+     &      SNAME(ICOMP,is)(1:lnblnk(SNAME(ICOMP,is))),
      &      ' is unknown. Please select one...'
           call edisp(iuout,outs)
           if(mlcver.eq.0)then
@@ -1363,22 +1367,22 @@ C << The logic for dealing with TRAN/OPAQ needs to be updated! >>
             CALL EDMLDB2(modmlc,'-',ISEL,IER)
           endif
           IF(ISEL.GT.0)THEN
-            WRITE(SSMLCN(ioc),'(A)') mlcname(ISEL)
+            WRITE(SMLCN(ICOMP,is),'(A)') mlcname(ISEL)
             ssmlcindex(ioc)=ISEL  ! update other surf index
             if(mlctype(ISEL)(1:4).EQ.'TRAN')then
-              SSOTF(ioc)='TRAN'
+              SOTF(ICOMP,is)='TRAN'
               ITMCFL(ICOMP,IS)=1
             endif
             if(mlctype(ISEL)(1:4).EQ.'OPAQ')then
-              SSOTF(ioc)='OPAQUE'
+              SOTF(ICOMP,is)='OPAQUE'
               ITMCFL(ICOMP,IS)=0
             endif
             if(mlctype(ISEL)(1:4).EQ.'CFC ')then
-              SSOTF(ioc)='CFC '
+              SOTF(ICOMP,is)='CFC '
               ITMCFL(ICOMP,IS)=0
             endif
             if(mlctype(ISEL)(1:4).EQ.'CFC2')then
-              SSOTF(ioc)='CFC2'
+              SOTF(ICOMP,is)='CFC2'
               ITMCFL(ICOMP,IS)=0
             endif
 
@@ -1393,13 +1397,13 @@ C Remember this change by saving the file.
 C Reset number of layers, if at end of loop it is still 0 then
 C the construction was not found and must be asked for.
         NE(IS)=0
-        lnsmlcn=lnblnk(SSMLCN(ioc))
+        lnsmlcn=lnblnk(SMLCN(ICOMP,is))
         if(ssmlcindex(ioc).eq.0)then
           write(outs,'(5A)') ' The construction ',
-     &      SSMLCN(ioc)(1:lnsmlcn),' of ',SSNAME(ioc),
+     &      SMLCN(ICOMP,is)(1:lnsmlcn),' of ',SNAME(ICOMP,is),
      &      ' was not found in the mlc db...'
           call usrmsg(outs,'resetting attribute to UNKNOWN.','W')
-          SSMLCN(ioc)='UNKNOWN'
+          SMLCN(ICOMP,is)='UNKNOWN'
           goto 244
         endif
 
@@ -1411,7 +1415,7 @@ C Gather information about each layer. Read in the materials info.
         DO 23, IL=1,LAYERS(IC)
 
           check_CFC2_or_MLC:
-     &    If(SSOTF(ioc)(1:4).EQ.'CFC2')THEN      
+     &    If(SOTF(ICOMP,is)(1:4).EQ.'CFC2')THEN      
             
             cfcarrayindex=ITMCFCDB(IC,IL)
             if(cfcarrayindex.gt.0)then
@@ -1453,10 +1457,10 @@ C Deal with air gap resistance if layer is a gap.
               else
                 NAIRG(IS)=NAIRG(IS)+1
                 IPAIRG(IS,NAIRG(IS))=IL
-                IF(SSVFC(ioc)(1:4).EQ.'VERT')THEN
+                IF(SVFC(ICOMP,is)(1:4).EQ.'VERT')THEN
                   RAIRG(IS,NAIRG(IS))=DRAIR(IC,IL,1)
-                ELSEIF(SSVFC(ioc)(1:4).EQ.'FLOR'.OR.
-     &                 SSVFC(ioc)(1:4).EQ.'CEIL')THEN
+                ELSEIF(SVFC(ICOMP,is)(1:4).EQ.'FLOR'.OR.
+     &                 SVFC(ICOMP,is)(1:4).EQ.'CEIL')THEN
                   RAIRG(IS,NAIRG(IS))=DRAIR(IC,IL,2)
                 ELSE
                   RAIRG(IS,NAIRG(IS))=DRAIR(IC,IL,3)
@@ -1741,8 +1745,8 @@ C to 0.
       lastopt='  '
       DO 10 IS=1,NZSUR(icomp)
         icn1=izstocn(icomp,is)
-        IF(SSOTF(icn1)(1:4).EQ.'OPAQ'.OR.
-     &     SSOTF(icn1)(1:3).EQ.'CFC')THEN
+        IF(SOTF(icomp,is)(1:4).EQ.'OPAQ'.OR.
+     &     SOTF(icomp,is)(1:3).EQ.'CFC')THEN
           ITMCFL(ICOMP,IS)=0
           GOTO 10
         ENDIF
@@ -1752,19 +1756,19 @@ C Use ssmlcindex to get matching MLC index
         if(ssmlcindex(icn1).ne.0) ICF=ssmlcindex(icn1)
         IF(ICF.EQ.-1)THEN
           WRITE(outs,'(A,A12)')
-     &    ' select a transparent one for: ',SSNAME(icn1)
+     &    ' select a transparent one for: ',SNAME(icomp,is)
           if(mlcver.eq.0)then
             CALL EPKMLC(ISEL,'From the available composites please',
      &        outs,IER)
           else
             WRITE(outs,'(2A)')
      &      'From available composites select a transparent one for: ',
-     &      SSNAME(icn1)
+     &      SNAME(icomp,is)
             call edisp(iuout,outs)
             CALL EDMLDB2(modmlc,'-',ISEL,IER)
           endif
           IF(ISEL.GT.0)THEN
-            WRITE(SSMLCN(icn1),'(A)') mlcname(ISEL)
+            WRITE(SMLCN(icomp,is),'(A)') mlcname(ISEL)
             ssmlcindex(icn1)=ISEL   ! update array
             ICF=ISEL
           ELSE
@@ -1792,11 +1796,11 @@ C Switch back to opaque construction.
               CALL EDMLDB2(modmlc,'-',ISEL,IER)
             endif
             if(ISEL.GT.0)then
-              WRITE(SSMLCN(icn1),'(A)') mlcname(ISEL)
+              WRITE(SMLCN(icomp,is),'(A)') mlcname(ISEL)
               ssmlcindex(icn1)=ISEL   ! update array
               ICF=ISEL
               ITMCFL(ICOMP,IS)=0
-              SSOTF(icn1)='OPAQUE'
+              SOTF(icomp,is)='OPAQUE'
               OPT='OPAQUE'
               goto 10
             else
@@ -1811,7 +1815,7 @@ C Switch back to opaque construction.
               CALL EDMLDB2(modmlc,'-',ISEL,IER)
             endif
             if(ISEL.GT.0)then
-              WRITE(SSMLCN(icn1),'(A)') mlcname(ISEL)
+              WRITE(SMLCN(icomp,is),'(A)') mlcname(ISEL)
               ssmlcindex(icn1)=ISEL   ! update array
               ICF=ISEL
             else
@@ -1824,7 +1828,7 @@ C Check to see if this new construction has a known set of opticals.
         WRITE(OPT,'(A)') mlcoptical(ICF)(1:12)
         IF(OPT(1:2).EQ.'  '.OR.OPT(1:7).EQ.'UNKNOWN'.OR.
      &     OPT(1:6).EQ.'OPAQUE')THEN
-          WRITE(outs,'(1X,A,A)')SSMLCN(icn1),
+          WRITE(outs,'(1X,A,A)')SMLCN(icomp,is),
      &      ' has unknown optical properties!'
           CALL EASKABC(outs,' Do you want to: ',
      &      'supply optical properties','select another composite',
@@ -1838,7 +1842,7 @@ C << todo consider how one might treat a cancel request within eoptks
             GOTO 246
           else
             ITMCFL(ICOMP,IS)=0
-            SSOTF(icn1)='OPAQUE'
+            SOTF(ICOMP,IS)='OPAQUE'
             OPT='OPAQUE'
             goto 10
           ENDIF
@@ -1900,9 +1904,10 @@ C Display of current information...
       CALL EDISP(ITRU,' Name         Description  TRANS   Reference')
       DO 31, ISR=1,NZSUR(icomp)
         icn1=izstocn(icomp,isr)
-        lnsmlcn=lnblnk(SSMLCN(icn1))
-        WRITE(outs,'(1X,A,2X,A,2X,A,I4)')SSNAME(icn1),
-     &    SSMLCN(icn1)(1:lnsmlcn),SSOTF(icn1)(1:6),ITMCFL(ICOMP,ISR)
+        lnsmlcn=lnblnk(SMLCN(icomp,isr))
+        WRITE(outs,'(1X,A,2X,A,2X,A,I4)')SNAME(icomp,isr),
+     &   SMLCN(icomp,isr)(1:lnsmlcn),SOTF(icomp,isr)(1:6),
+     &   ITMCFL(ICOMP,ISR)
         CALL EDISP(ITRU,outs)
    31 CONTINUE
       DO 202 I=1,NTMC

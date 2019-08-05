@@ -160,9 +160,8 @@ C into GB1 common block.
       integer JVNB
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
 
-C VCOORD : X,Y & Z coordinates in model (via geometry.h).
-C NZNVER : number of vertices associated with each connection (via geometry.h).
-C NZJVN : topology of vertices associated with each connection (via geometry.h).
+C szcoords : X,Y & Z coordinates in model (via geometry.h).
+C iszjvn : topology of vertices (via geometry.h).
 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL  ISTOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK

@@ -546,7 +546,7 @@ C      if(IAIRN.eq.3) return
       PI = 4.0 * ATAN(1.0)
 
       iz=IC1(loop); is=IE1(loop)  ! get current zone & surface.
-      write(SN,'(a)') SSNAME(loop)
+      write(SN,'(a)') SNAME(iz,is)
       write(ZN,'(a)') ZNAME(iz)
       name='  '
       lnsn=lnblnk(SN)
@@ -574,22 +574,22 @@ C Jump out when inthenetwork becomes true.
         enddo  ! of loop2
       endif
 
-C Note: llpos, lrpos etc are the position in the nzjvn list at each
+C Note: llpos, lrpos etc are the position in the iszjvn list at each
 C of the corners of the surface.
       CALL ZSURLEHI(IZ,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
       if(llpos.gt.0.and.ulpos.gt.0)then
-        edgelower=vcoord(iz,nzjvn(loop,llpos),3)
-        edgeupper=vcoord(iz,nzjvn(loop,ulpos),3)
+        edgelower=szcoords(iz,iszjvn(iz,is,llpos),3)
+        edgeupper=szcoords(iz,iszjvn(iz,is,ulpos),3)
       endif
 
 C For DOOR variants.
-      if(SSUSE(loop,1)(1:4).eq.'DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'P-DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'H-DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'H-DOOR')then
-        if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
+      if(SUSE(iz,is,1)(1:4).eq.'DOOR'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'P-DOOR'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'H-DOOR'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'H-DOOR')then
+        if(SUSE(iz,is,2)(1:6).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:8).eq.'UNDERCUT')then
+        elseif(SUSE(iz,is,2)(1:8).eq.'UNDERCUT')then
 
 C Undercut at door - crack component, assume width = 5mm, length = door width
 C at lowest horizontal edge.  Ok.
@@ -609,7 +609,7 @@ C at lowest horizontal edge.  Ok.
             call symbol_flow_cmp(name,'cr','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Open door - common orifice component, (type 40) IVALCM(10) MF040I 
           if(inthenetwork)then
@@ -629,7 +629,7 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
             call symbol_flow_cmp(name,'or','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Bidirectional door - door component,  IVALCM(14)=130 MF130I
           if(inthenetwork)then
@@ -652,13 +652,13 @@ C Bidirectional door - door component,  IVALCM(14)=130 MF130I
           endif
           call pausems(30)
         endif
-      elseif(SSUSE(loop,1)(1:5).eq.'FRAME'.or.
-     &       SSUSE(loop,1)(1:7).eq.'F-FRAME')then
+      elseif(SUSE(iz,is,1)(1:5).eq.'FRAME'.or.
+     &       SUSE(iz,is,1)(1:7).eq.'F-FRAME')then
 
 C For FRAME vairants.
-        if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
+        if(SUSE(iz,is,2)(1:6).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Frame crack - crack component, assume width = 1mm,
 C length = 0.5* frame inside perimeter, on centre line. OK
@@ -680,7 +680,7 @@ C length = 0.5* frame inside perimeter, on centre line. OK
             call symbol_flow_cmp(name,'cr','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:4).eq.'VENT')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'VENT')then
 
 C Frame trickle vent - air flow opening, assume width = 0.2* frame inside width,
 C height = 10mm, at highest horizontal edge. OK
@@ -702,12 +702,12 @@ C height = 10mm, at highest horizontal edge. OK
           endif
           call pausems(30)
         endif
-      elseif(SSUSE(loop,1)(1:5).eq.'GRILL')then
+      elseif(SUSE(iz,is,1)(1:5).eq.'GRILL')then
 
 C For GRILLs.
-        if(SSUSE(loop,2).eq.'CLOSED')then
+        if(SUSE(iz,is,2).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Grill crack - crack component, assume width = 1mm,
 C length = 0.5* frame inside perimeter, on centre line.
@@ -729,7 +729,7 @@ C length = 0.5* frame inside perimeter, on centre line.
             call symbol_flow_cmp(name,'cr','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:5).eq.'INLET')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'INLET')then
 
 C Grill inlet - a conduit (type 210) IVALCM(15), as in MF210I
           call zsurfprm(iz,is,dupedges,perim)
@@ -750,7 +750,7 @@ C Grill inlet - a conduit (type 210) IVALCM(15), as in MF210I
             call symbol_flow_cmp(name,'cd','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:7).eq.'EXTRACT')then
+        elseif(SUSE(iz,is,2)(1:7).eq.'EXTRACT')then
 
 C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
           call zsurfprm(iz,is,dupedges,perim)
@@ -771,7 +771,7 @@ C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
             call symbol_flow_cmp(name,'bx','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I 
           call zsurfprm(iz,is,dupedges,perim)
@@ -794,13 +794,13 @@ C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I
           call pausems(30)
         endif
 
-      elseif(SSUSE(loop,1)(1:6).eq.'WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'D-WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'S-WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'C-WINDOW')then
-        if(SSUSE(loop,2).eq.'CLOSED')then
+      elseif(SUSE(iz,is,1)(1:6).eq.'WINDOW'.or.
+     &    SUSE(iz,is,1)(1:8).eq.'D-WINDOW'.or.
+     &    SUSE(iz,is,1)(1:8).eq.'S-WINDOW'.or.
+     &    SUSE(iz,is,1)(1:8).eq.'C-WINDOW')then
+        if(SUSE(iz,is,2).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Window crack - crack component, assume width = 1mm,
 C length = window width, at surface COG.
@@ -821,7 +821,7 @@ C length = window width, at surface COG.
             call symbol_flow_cmp(name,'cr','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Window open - common orifice component, (type 40) IVALCM(10) MF040I 
           if(inthenetwork)then
@@ -857,7 +857,7 @@ C Window open - common orifice component, (type 40) IVALCM(10) MF040I
             call symbol_flow_cmp(name,'or','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:4).eq.'SASH')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'SASH')then
 
 C Window sash - 2 common orifice component, (type 40) IVALCM(10) MF040I
           if(inthenetwork)then
@@ -896,7 +896,7 @@ C Now create the upper orifice.
             call symbol_flow_cmp(name,'or','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Window bidirectional - specific door component width & height 
           if(inthenetwork)then
@@ -920,10 +920,10 @@ C Window bidirectional - specific door component width & height
           call pausems(30)
         endif
 
-      elseif(SSUSE(loop,1)(1:4).eq.'FICT')then
-        if(SSUSE(loop,2).eq.'CLOSED')then
+      elseif(SUSE(iz,is,1)(1:4).eq.'FICT')then
+        if(SUSE(iz,is,2).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Fict crack - crack component, assume width = 1mm,
 C length = window width, at lowest horizontal edge.
@@ -943,7 +943,7 @@ C length = window width, at lowest horizontal edge.
             call symbol_flow_cmp(name,'cr','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I 
           if(inthenetwork)then
@@ -979,7 +979,7 @@ C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I
             call symbol_flow_cmp(name,'or','g',xc,yc,zc)
           endif
           call pausems(30)
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Fict bi-directional - door component IVALCM(14)=130 MF130I
           if(inthenetwork)then
@@ -1112,13 +1112,13 @@ C Reset all surface lines to standard width and display the zone.
           CALL EPMENRC
           loop=izstocn(iz,iso)
 
-C Note: llpos, lrpos etc are the position in the nzjvn list at each
+C Note: llpos, lrpos etc are the position in the iszjvn list at each
 C of the corners of the surface.
           call zsurfprm(iz,iso,dupedges,perim)
           CALL ZSURLEHI(IZ,ISO,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
           if(llpos.gt.0.and.ulpos.gt.0)then
-            edgelower=vcoord(iz,nzjvn(loop,llpos),3)
-            edgeupper=vcoord(iz,nzjvn(loop,ulpos),3)
+            edgelower=szcoords(iz,iszjvn(iz,iso,llpos),3)
+            edgeupper=szcoords(iz,iszjvn(iz,iso,ulpos),3)
           endif
           write(outs,'(a,3f8.3)') 'Surface COG is:',
      &      SSURCOG(loop,1),SSURCOG(loop,2),SSURCOG(loop,3)
@@ -1352,13 +1352,13 @@ C Calculate offset.
             x3 = XYDIS*SIN(RYAZI); y3 = XYDIS*COS(RYAZI)
           ENDIF
 
-C Note: llpos, lrpos etc are the position in the nzjvn list at each
+C Note: llpos, lrpos etc are the position in the iszjvn list at each
 C of the corners of the surface.
           call zsurfprm(iz,iso,dupedges,perim)
           CALL ZSURLEHI(IZ,ISO,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
           if(llpos.gt.0.and.ulpos.gt.0)then
-            edgelower=vcoord(iz,nzjvn(loop,llpos),3)
-            edgeupper=vcoord(iz,nzjvn(loop,ulpos),3)
+            edgelower=szcoords(iz,iszjvn(iz,iso,llpos),3)
+            edgeupper=szcoords(iz,iszjvn(iz,iso,ulpos),3)
           endif
           write(outs,'(a,3f8.3)') 'Surface COG is:',
      &      SSURCOG(loop,1),SSURCOG(loop,2),SSURCOG(loop,3)
@@ -1662,16 +1662,16 @@ C If so we do not need to create this component.
         endif
 
 C Cases to ignore.
-        if(SSUSE(loop,1)(1:1).eq.'-'.or.
-     &     SSUSE(loop,1)(1:4).eq.'WALL'.or.
-     &     SSUSE(loop,1)(1:5).eq.'FLOOR'.or.
-     &     SSUSE(loop,1)(1:5).eq.'FURNI'.or.
-     &     SSUSE(loop,1)(1:7).eq.'ITEQUIP'.or.
-     &     SSUSE(loop,1)(1:5).eq.'PARTN'.or.
-     &     SSUSE(loop,1)(1:4).eq.'ROOF'.or.
-     &     SSUSE(loop,1)(1:5).eq.'STRUC'.or.
-     &     SSUSE(loop,1)(1:7).eq.'FIXTURE'.or.
-     &     SSUSE(loop,1)(1:6).eq.'PLANTS')then
+        if(SUSE(iz,is,1)(1:1).eq.'-'.or.
+     &     SUSE(iz,is,1)(1:4).eq.'WALL'.or.
+     &     SUSE(iz,is,1)(1:5).eq.'FLOOR'.or.
+     &     SUSE(iz,is,1)(1:5).eq.'FURNI'.or.
+     &     SUSE(iz,is,1)(1:7).eq.'ITEQUIP'.or.
+     &     SUSE(iz,is,1)(1:5).eq.'PARTN'.or.
+     &     SUSE(iz,is,1)(1:4).eq.'ROOF'.or.
+     &     SUSE(iz,is,1)(1:5).eq.'STRUC'.or.
+     &     SUSE(iz,is,1)(1:7).eq.'FIXTURE'.or.
+     &     SUSE(iz,is,1)(1:6).eq.'PLANTS')then
           CYCLE
         endif
 
@@ -1911,10 +1911,10 @@ C attributes build up a list of likely components.
       iz=izone; is=isurf
       loop=IZSTOCN(izone,isurf)
       
-      write(SN,'(a)') SSNAME(loop)
-      lsn=lnblnk(SSNAME(loop))
+      write(SN,'(a)') SNAME(izone,isurf)
+      lsn=lnblnk(SNAME(izone,isurf))
       write(zsn,'(3a)') zname(iz)(1:lnzname(iz)),
-     &  ':',SSNAME(loop)(1:lsn)
+     &  ':',SNAME(izone,isurf)(1:lsn)
       lnzsn=lnblnk(zsn)  ! remember length of combined zone:surface name
 
 C Check if partition and linkatpartition already set.
@@ -1926,12 +1926,12 @@ C If so we do not need to create this component.
       name='  '
       call conxinfo(1,loop,CXSTR)
 
-C Note: llpos, lrpos etc are the position in the nzjvn list at each
+C Note: llpos, lrpos etc are the position in the iszjvn list at each
 C of the corners of the surface.
       CALL ZSURLEHI(IZ,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
       if(llpos.gt.0.and.ulpos.gt.0)then
-        edgelower=vcoord(iz,nzjvn(loop,llpos),3)
-        edgeupper=vcoord(iz,nzjvn(loop,ulpos),3)
+        edgelower=szcoords(iz,iszjvn(izone,isurf,llpos),3)
+        edgeupper=szcoords(iz,iszjvn(izone,isurf,ulpos),3)
       endif
 
 C Figure out the delta for the boundary node would be if
@@ -1947,27 +1947,27 @@ C 0.9m along normal vector.
       ENDIF
 
 C Cases to ignore.
-      if(SSUSE(loop,1)(1:1).eq.'-'.or.
-     &   SSUSE(loop,1)(1:4).eq.'WALL'.or.
-     &   SSUSE(loop,1)(1:5).eq.'FLOOR'.or.
-     &   SSUSE(loop,1)(1:5).eq.'FURNI'.or.
-     &   SSUSE(loop,1)(1:7).eq.'ITEQUIP'.or.
-     &   SSUSE(loop,1)(1:5).eq.'PARTN'.or.
-     &   SSUSE(loop,1)(1:4).eq.'ROOF'.or.
-     &   SSUSE(loop,1)(1:5).eq.'STRUC'.or.
-     &   SSUSE(loop,1)(1:7).eq.'FIXTURE'.or.
-     &   SSUSE(loop,1)(1:6).eq.'PLANTS')then
+      if(SUSE(iz,is,1)(1:1).eq.'-'.or.
+     &   SUSE(iz,is,1)(1:4).eq.'WALL'.or.
+     &   SUSE(iz,is,1)(1:5).eq.'FLOOR'.or.
+     &   SUSE(iz,is,1)(1:5).eq.'FURNI'.or.
+     &   SUSE(iz,is,1)(1:7).eq.'ITEQUIP'.or.
+     &   SUSE(iz,is,1)(1:5).eq.'PARTN'.or.
+     &   SUSE(iz,is,1)(1:4).eq.'ROOF'.or.
+     &   SUSE(iz,is,1)(1:5).eq.'STRUC'.or.
+     &   SUSE(iz,is,1)(1:7).eq.'FIXTURE'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'PLANTS')then
         return
       endif
 
 C For DOOR variants.
-      if(SSUSE(loop,1)(1:4).eq.'DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'P-DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'H-DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'H-DOOR')then
-        if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
+      if(SUSE(iz,is,1)(1:4).eq.'DOOR'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'P-DOOR'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'H-DOOR'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'H-DOOR')then
+        if(SUSE(iz,is,2)(1:6).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:8).eq.'UNDERCUT')then
+        elseif(SUSE(iz,is,2)(1:8).eq.'UNDERCUT')then
 
 C Undercut at door - crack component, assume width = 5mm, length = door width
 C at lowest horizontal edge.  Ok.
@@ -2077,7 +2077,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
     
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Open door - common orifice component, (type 40) IVALCM(10) MF040I 
           write(name,'(a,i2.2,a,i3.3)') 'DoOPz',iz,':',is
@@ -2196,7 +2196,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
   
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Bidirectional door - door component,  IVALCM(14)=130 MF130I
 C assume width = door width, height = door height, discharge factor = 0.5.
@@ -2316,13 +2316,13 @@ C Reality checks here...
           endif
 
         endif
-      elseif(SSUSE(loop,1)(1:5).eq.'FRAME'.or.
-     &       SSUSE(loop,1)(1:7).eq.'F-FRAME')then
+      elseif(SUSE(iz,is,1)(1:5).eq.'FRAME'.or.
+     &       SUSE(iz,is,1)(1:7).eq.'F-FRAME')then
 
 C For FRAME vairants.
-        if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
+        if(SUSE(iz,is,2)(1:6).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Frame crack - crack component, assume width = 1mm,
 C length = 0.5* frame inside perimeter, on centre line. OK
@@ -2429,7 +2429,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
 
-        elseif(SSUSE(loop,2)(1:4).eq.'VENT')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'VENT')then
 
 C Frame trickle vent - air flow opening, assume width = 0.2* frame inside width,
 C height = 10mm, at highest horizontal edge. OK
@@ -2535,12 +2535,12 @@ C Reality checks here...
           endif
 
         endif
-      elseif(SSUSE(loop,1)(1:5).eq.'GRILL')then
+      elseif(SUSE(iz,is,1)(1:5).eq.'GRILL')then
 
 C For GRILLs.
-        if(SSUSE(loop,2).eq.'CLOSED')then
+        if(SUSE(iz,is,2).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Grill crack - crack component, assume width = 1mm,
 C length = 0.5* frame inside perimeter, on centre line.
@@ -2648,7 +2648,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
 
-        elseif(SSUSE(loop,2)(1:5).eq.'INLET')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'INLET')then
 
 C A grill inlet could be a volume flow rate component or a conduit.
           write(outs,'(3a)')'Grill inlet for ',zsn(1:lnzsn),' can be'
@@ -2893,7 +2893,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
 
-        elseif(SSUSE(loop,2)(1:7).eq.'EXTRACT')then
+        elseif(SUSE(iz,is,2)(1:7).eq.'EXTRACT')then
 
 C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
           write(name,'(a,i2.2,a,i3.3)') 'GrEXz',iz,':',is
@@ -3095,7 +3095,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
 
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I 
           call zsurfprm(iz,is,dupedges,perim)
@@ -3218,13 +3218,13 @@ C Reality checks here...
           endif
 
         endif
-      elseif(SSUSE(loop,1)(1:6).eq.'WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'D-WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'S-WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'C-WINDOW')then
-        if(SSUSE(loop,2).eq.'CLOSED')then
+      elseif(SUSE(iz,is,1)(1:6).eq.'WINDOW'.or.
+     &    SUSE(iz,is,1)(1:8).eq.'D-WINDOW'.or.
+     &    SUSE(iz,is,1)(1:8).eq.'S-WINDOW'.or.
+     &    SUSE(iz,is,1)(1:8).eq.'C-WINDOW')then
+        if(SUSE(iz,is,2).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Window crack - crack component, assume width = 1mm,
 C length = window width, at surface COG.
@@ -3330,7 +3330,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
 
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Window open - common orifice component, (type 40) IVALCM(10) MF040I 
 C If width/height >1: 
@@ -3461,7 +3461,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
 
-        elseif(SSUSE(loop,2)(1:4).eq.'SASH')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'SASH')then
 
 C Window sash - 2 common orifice component, (type 40) IVALCM(10) MF040I
 C For first, assume width = window width,
@@ -3701,7 +3701,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
 
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Window bidirectional - specific door component width & height 
 C based on the surface width & height. discharge factor = 0.6,
@@ -3821,10 +3821,10 @@ C Reality checks here...
           endif
 
         endif
-      elseif(SSUSE(loop,1)(1:4).eq.'FICT')then
-        if(SSUSE(loop,2).eq.'CLOSED')then
+      elseif(SUSE(iz,is,1)(1:4).eq.'FICT')then
+        if(SUSE(iz,is,2).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Fict crack - crack component, assume width = 1mm,
 C length = window width, at lowest horizontal edge.
@@ -3929,7 +3929,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
 
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I 
 C If width/height >1: wider than it is tall, assume
@@ -4065,7 +4065,7 @@ C Reality checks here...
             continue  ! << for similar creat another node ....
           endif
 
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Fict bi-directional - door component IVALCM(14)=130 MF130I
 C Make is slightly smaller than the opening.
@@ -4247,9 +4247,9 @@ C Temporarily use same file unit as profiles db.
       iz=izone; is=isurf; icmp=indexofcmp
       loop=IZSTOCN(izone,isurf)
       
-      lsn=lnblnk(SSNAME(loop))
+      lsn=lnblnk(SNAME(izone,isurf))
       write(zsn,'(3a)') zname(iz)(1:lnzname(iz)),
-     &  ':',SSNAME(loop)(1:lsn)
+     &  ':',SNAME(izone,isurf)(1:lsn)
       lnzsn=lnblnk(zsn)  ! remember length of combined zone:surface name
 
 C Check if partition and linkatpartition already set.
@@ -4260,12 +4260,12 @@ C If so we do not need to create this component.
       name='  '
       call conxinfo(1,loop,CXSTR)
 
-C Note: llpos, lrpos etc are the position in the nzjvn list at each
+C Note: llpos, lrpos etc are the position in the iszjvn list at each
 C of the corners of the surface.
       CALL ZSURLEHI(IZ,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
       if(llpos.gt.0.and.ulpos.gt.0)then
-        edgelower=vcoord(iz,nzjvn(loop,llpos),3)
-        edgeupper=vcoord(iz,nzjvn(loop,ulpos),3)
+        edgelower=szcoords(iz,iszjvn(izone,isurf,llpos),3)
+        edgeupper=szcoords(iz,iszjvn(izone,isurf,ulpos),3)
       endif
 
 C Figure out the delta for the boundary node would be if
@@ -4274,27 +4274,27 @@ C 0.9m along normal vector.
       RYAZI = AZ*RAD; RSALT = EL*RAD
 
 C Cases to ignore.
-      if(SSUSE(loop,1)(1:1).eq.'-'.or.
-     &   SSUSE(loop,1)(1:4).eq.'WALL'.or.
-     &   SSUSE(loop,1)(1:5).eq.'FLOOR'.or.
-     &   SSUSE(loop,1)(1:5).eq.'FURNI'.or.
-     &   SSUSE(loop,1)(1:7).eq.'ITEQUIP'.or.
-     &   SSUSE(loop,1)(1:5).eq.'PARTN'.or.
-     &   SSUSE(loop,1)(1:4).eq.'ROOF'.or.
-     &   SSUSE(loop,1)(1:5).eq.'STRUC'.or.
-     &   SSUSE(loop,1)(1:7).eq.'FIXTURE'.or.
-     &   SSUSE(loop,1)(1:6).eq.'PLANTS')then
+      if(SUSE(iz,is,1)(1:1).eq.'-'.or.
+     &   SUSE(iz,is,1)(1:4).eq.'WALL'.or.
+     &   SUSE(iz,is,1)(1:5).eq.'FLOOR'.or.
+     &   SUSE(iz,is,1)(1:5).eq.'FURNI'.or.
+     &   SUSE(iz,is,1)(1:7).eq.'ITEQUIP'.or.
+     &   SUSE(iz,is,1)(1:5).eq.'PARTN'.or.
+     &   SUSE(iz,is,1)(1:4).eq.'ROOF'.or.
+     &   SUSE(iz,is,1)(1:5).eq.'STRUC'.or.
+     &   SUSE(iz,is,1)(1:7).eq.'FIXTURE'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'PLANTS')then
         return
       endif
 
 C For DOOR variants.
-      if(SSUSE(loop,1)(1:4).eq.'DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'P-DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'H-DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'H-DOOR')then
-        if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
+      if(SUSE(iz,is,1)(1:4).eq.'DOOR'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'P-DOOR'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'H-DOOR'.or.
+     &   SUSE(iz,is,1)(1:6).eq.'H-DOOR')then
+        if(SUSE(iz,is,2)(1:6).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:8).eq.'UNDERCUT')then
+        elseif(SUSE(iz,is,2)(1:8).eq.'UNDERCUT')then
 
 C Undercut at door - crack component, assume width = 5mm, length = door width
 C at lowest horizontal edge.  Ok.
@@ -4315,7 +4315,7 @@ C Report on Delta Height with associated surf lower.
           call edisp(iuout,outs)
           call pausems(100)
     
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Open door - common orifice component, (type 40) IVALCM(10) MF040I 
           write(name,'(a,i2.2,a,i3.3)') 'DoOPz',iz,':',is
@@ -4335,7 +4335,7 @@ C Report on Delta Height with associated surf COG.
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(100)
   
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Bidirectional door - door component,  IVALCM(14)=130 MF130I
 C assume width = door width, height = door height, discharge factor = 0.5.
@@ -4361,13 +4361,13 @@ C Report on Delta Height between surface COG and zone COG.
           call edisp(iuout,outs)
           call pausems(100)
         endif
-      elseif(SSUSE(loop,1)(1:5).eq.'FRAME'.or.
-     &       SSUSE(loop,1)(1:7).eq.'F-FRAME')then
+      elseif(SUSE(iz,is,1)(1:5).eq.'FRAME'.or.
+     &       SUSE(iz,is,1)(1:7).eq.'F-FRAME')then
 
 C For FRAME vairants.
-        if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
+        if(SUSE(iz,is,2)(1:6).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Frame crack - crack component, assume width = 1mm,
 C length = 0.5* frame inside perimeter, on centre line. OK
@@ -4390,7 +4390,7 @@ C Report on Delta Height with associated surf COG.
           call edisp(iuout,outs)
           call pausems(100)
 
-        elseif(SSUSE(loop,2)(1:4).eq.'VENT')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'VENT')then
 
 C Frame trickle vent - air flow opening, assume width = 0.2* frame inside width,
 C height = 10mm, at highest horizontal edge. OK
@@ -4412,12 +4412,12 @@ C Report on Delta Height with associated surf upper.
           call edisp(iuout,outs)
           call pausems(100)
         endif
-      elseif(SSUSE(loop,1)(1:5).eq.'GRILL')then
+      elseif(SUSE(iz,is,1)(1:5).eq.'GRILL')then
 
 C For GRILLs.
-        if(SSUSE(loop,2).eq.'CLOSED')then
+        if(SUSE(iz,is,2).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Grill crack - crack component, assume width = 1mm,
 C length = 0.5* frame inside perimeter, on centre line.
@@ -4440,7 +4440,7 @@ C Report on Delta Height with associated surf COG.
           call edisp(iuout,outs)
           call pausems(100)
 
-        elseif(SSUSE(loop,2)(1:5).eq.'INLET')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'INLET')then
 
           write(name,'(a,i2.2,a,i3.3)') 'Grill ',iz,':',is
           xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
@@ -4463,7 +4463,7 @@ C Report on Delta Height with associated surf COG.
           call edisp(iuout,outs)
           call pausems(50)
 
-        elseif(SSUSE(loop,2)(1:7).eq.'EXTRACT')then
+        elseif(SUSE(iz,is,2)(1:7).eq.'EXTRACT')then
 
 C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
           write(name,'(a,i2.2,a,i3.3)') 'GrEXz',iz,':',is
@@ -4491,7 +4491,7 @@ C Report on Delta Height with associated surf COG.
           call edisp(iuout,outs)
           call pausems(30)
 
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I 
           call zsurfprm(iz,is,dupedges,perim)
@@ -4514,13 +4514,13 @@ C Report on Delta Height with associated surf COG.
           call pausems(30)
 
         endif
-      elseif(SSUSE(loop,1)(1:6).eq.'WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'D-WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'S-WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'C-WINDOW')then
-        if(SSUSE(loop,2).eq.'CLOSED')then
+      elseif(SUSE(iz,is,1)(1:6).eq.'WINDOW'.or.
+     &    SUSE(iz,is,1)(1:8).eq.'D-WINDOW'.or.
+     &    SUSE(iz,is,1)(1:8).eq.'S-WINDOW'.or.
+     &    SUSE(iz,is,1)(1:8).eq.'C-WINDOW')then
+        if(SUSE(iz,is,2).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Window crack - crack component, assume width = 1mm,
 C length = window width, at surface COG.
@@ -4542,7 +4542,7 @@ C Report on Delta Height with associated surf lower.
           call edisp(iuout,outs)
           call pausems(30)
 
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Window open - common orifice component, (type 40) IVALCM(10) MF040I 
 C If width/height >1: 
@@ -4577,7 +4577,7 @@ C Report on Delta Height with associated surf COG.
           call edisp(iuout,outs)
           call pausems(30)
 
-        elseif(SSUSE(loop,2)(1:4).eq.'SASH')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'SASH')then
 
 C Window sash - 2 common orifice component, (type 40) IVALCM(10) MF040I
 C For first, assume width = window width,
@@ -4625,7 +4625,7 @@ C Report on Delta Height with associated surf upper.
           call edisp(iuout,outs)
           call pausems(30)
 
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Window bidirectional - specific door component width & height 
 C based on the surface width & height. discharge factor = 0.6,
@@ -4651,10 +4651,10 @@ C Report on Delta Height with associated surf lower.
           call edisp(iuout,outs)
           call pausems(30)
         endif
-      elseif(SSUSE(loop,1)(1:4).eq.'FICT')then
-        if(SSUSE(loop,2).eq.'CLOSED')then
+      elseif(SUSE(iz,is,1)(1:4).eq.'FICT')then
+        if(SUSE(iz,is,2).eq.'CLOSED')then
           continue   ! no flow
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Fict crack - crack component, assume width = 1mm,
 C length = window width, at lowest horizontal edge.
@@ -4675,7 +4675,7 @@ C Report on Delta Height with associated surf lower.
           call edisp(iuout,outs)
           call pausems(30)
 
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I 
 C If width/height >1: wider than it is tall, assume
@@ -4710,7 +4710,7 @@ C Report on Delta Height with associated surf COG.
           call edisp(iuout,outs)
           call pausems(30)
 
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Fict bi-directional - door component IVALCM(14)=130 MF130I
 C Make is slightly smaller than the opening.
@@ -4785,87 +4785,87 @@ C Temporarily use same file unit as profiles db.
       call conxinfo(1,loop,CXSTR)
 
 C Cases to ignore.
-      if(SSUSE(loop,1)(1:1).eq.'-'.or.
-     &   SSUSE(loop,1)(1:4).eq.'WALL'.or.
-     &   SSUSE(loop,1)(1:5).eq.'FLOOR'.or.
-     &   SSUSE(loop,1)(1:5).eq.'FURNI'.or.
-     &   SSUSE(loop,1)(1:7).eq.'ITEQUIP'.or.
-     &   SSUSE(loop,1)(1:5).eq.'PARTN'.or.
-     &   SSUSE(loop,1)(1:4).eq.'ROOF'.or.
-     &   SSUSE(loop,1)(1:5).eq.'STRUC'.or.
-     &   SSUSE(loop,1)(1:7).eq.'FIXTURE'.or.
-     &   SSUSE(loop,1)(1:6).eq.'PLANTS')then
+      if(SUSE(izone,isurf,1)(1:1).eq.'-'.or.
+     &   SUSE(izone,isurf,1)(1:4).eq.'WALL'.or.
+     &   SUSE(izone,isurf,1)(1:5).eq.'FLOOR'.or.
+     &   SUSE(izone,isurf,1)(1:5).eq.'FURNI'.or.
+     &   SUSE(izone,isurf,1)(1:7).eq.'ITEQUIP'.or.
+     &   SUSE(izone,isurf,1)(1:5).eq.'PARTN'.or.
+     &   SUSE(izone,isurf,1)(1:4).eq.'ROOF'.or.
+     &   SUSE(izone,isurf,1)(1:5).eq.'STRUC'.or.
+     &   SUSE(izone,isurf,1)(1:7).eq.'FIXTURE'.or.
+     &   SUSE(izone,isurf,1)(1:6).eq.'PLANTS')then
         isrelated=.false.
         return
       endif
 
 C For DOOR variants.
-      if(SSUSE(loop,1)(1:4).eq.'DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'P-DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'H-DOOR'.or.
-     &   SSUSE(loop,1)(1:6).eq.'H-DOOR')then
-        if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
+      if(SUSE(izone,isurf,1)(1:4).eq.'DOOR'.or.
+     &   SUSE(izone,isurf,1)(1:6).eq.'P-DOOR'.or.
+     &   SUSE(izone,isurf,1)(1:6).eq.'H-DOOR'.or.
+     &   SUSE(izone,isurf,1)(1:6).eq.'H-DOOR')then
+        if(SUSE(izone,isurf,2)(1:6).eq.'CLOSED')then
           isrelated=.false.
           return
-        elseif(SSUSE(loop,2)(1:8).eq.'UNDERCUT')then
+        elseif(SUSE(izone,isurf,2)(1:8).eq.'UNDERCUT')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(izone,isurf,2)(1:4).eq.'OPEN')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(izone,isurf,2)(1:5).eq.'BIDIR')then
           isrelated=.true.
         endif
-      elseif(SSUSE(loop,1)(1:5).eq.'FRAME'.or.
-     &       SSUSE(loop,1)(1:7).eq.'F-FRAME')then
+      elseif(SUSE(izone,isurf,1)(1:5).eq.'FRAME'.or.
+     &       SUSE(izone,isurf,1)(1:7).eq.'F-FRAME')then
 
 C For FRAME vairants.
-        if(SSUSE(loop,2)(1:6).eq.'CLOSED')then
+        if(SUSE(izone,isurf,2)(1:6).eq.'CLOSED')then
           isrelated=.false.
           return
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(izone,isurf,2)(1:5).eq.'CRACK')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:4).eq.'VENT')then
+        elseif(SUSE(izone,isurf,2)(1:4).eq.'VENT')then
           isrelated=.true.
         endif
-      elseif(SSUSE(loop,1)(1:5).eq.'GRILL')then
+      elseif(SUSE(izone,isurf,1)(1:5).eq.'GRILL')then
 
 C For GRILLs.
-        if(SSUSE(loop,2).eq.'CLOSED')then
+        if(SUSE(izone,isurf,2).eq.'CLOSED')then
           isrelated=.false.
           return
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(izone,isurf,2)(1:5).eq.'CRACK')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:5).eq.'INLET')then
+        elseif(SUSE(izone,isurf,2)(1:5).eq.'INLET')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:7).eq.'EXTRACT')then
+        elseif(SUSE(izone,isurf,2)(1:7).eq.'EXTRACT')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(izone,isurf,2)(1:4).eq.'OPEN')then
           isrelated=.true.
         endif
-      elseif(SSUSE(loop,1)(1:6).eq.'WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'D-WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'S-WINDOW'.or.
-     &    SSUSE(loop,1)(1:8).eq.'C-WINDOW')then
-        if(SSUSE(loop,2).eq.'CLOSED')then
+      elseif(SUSE(izone,isurf,1)(1:6).eq.'WINDOW'.or.
+     &    SUSE(izone,isurf,1)(1:8).eq.'D-WINDOW'.or.
+     &    SUSE(izone,isurf,1)(1:8).eq.'S-WINDOW'.or.
+     &    SUSE(izone,isurf,1)(1:8).eq.'C-WINDOW')then
+        if(SUSE(izone,isurf,2).eq.'CLOSED')then
           isrelated=.false.
           return
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(izone,isurf,2)(1:5).eq.'CRACK')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(izone,isurf,2)(1:4).eq.'OPEN')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:4).eq.'SASH')then
+        elseif(SUSE(izone,isurf,2)(1:4).eq.'SASH')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(izone,isurf,2)(1:5).eq.'BIDIR')then
           isrelated=.true.
         endif
-      elseif(SSUSE(loop,1)(1:4).eq.'FICT')then
-        if(SSUSE(loop,2).eq.'CLOSED')then
+      elseif(SUSE(izone,isurf,1)(1:4).eq.'FICT')then
+        if(SUSE(izone,isurf,2).eq.'CLOSED')then
           isrelated=.false.
           return
-        elseif(SSUSE(loop,2)(1:5).eq.'CRACK')then
+        elseif(SUSE(izone,isurf,2)(1:5).eq.'CRACK')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:4).eq.'OPEN')then
+        elseif(SUSE(izone,isurf,2)(1:4).eq.'OPEN')then
           isrelated=.true.
-        elseif(SSUSE(loop,2)(1:5).eq.'BIDIR')then
+        elseif(SUSE(izone,isurf,2)(1:5).eq.'BIDIR')then
           isrelated=.true.
         endif
       endif
@@ -4909,8 +4909,8 @@ C associated zone and surface names associated with this component.
         if(zname(loop)(1:lnzname(loop)).eq.ZN(1:lnczn))then
           do loop2=1,NZSUR(loop)
             icn=IZSTOCN(loop,loop2)
-            lsn=lnblnk(SSNAME(icn))
-            if(SN(1:lncsn).eq.SSNAME(icn)(1:lsn))then
+            lsn=lnblnk(SNAME(loop,loop2))
+            if(SN(1:lncsn).eq.SNAME(loop,loop2)(1:lsn))then
               iaz=loop; ias=loop2    ! to pass back
               xc=SSURCOG(icn,1); yc=SSURCOG(icn,2) ! remember
               zc=SSURCOG(icn,3)

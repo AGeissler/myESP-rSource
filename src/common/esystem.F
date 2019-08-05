@@ -248,7 +248,7 @@ C Seasons.
 
 C NZSUR is the number of surfaces in each zone (from geometry.h).
 C NZTV is the number of vertices in each zone (from geometry.h).
-C VCOORD, NZNVER & NZJVN (from geometry.h)
+C szcoords, iszjvn (from geometry.h)
 
 C IFPNF is the unit for the plant network file.
 C LPNF (72 char) plant network file name.
@@ -3290,19 +3290,19 @@ C If MODE='ALL ' also find co-planer surfaces & edges of similar materials.
           if(MODE(1:3).eq.'ALL'.or.MODE(1:3).eq.'all')then
             call suredgeadj(itrc,'-',icomp,ier)
 
-C Instanciate the vcoord and nzjvn nzvner arrays.
+C Instanciate the szcoords and iszjvn nzvner arrays.
             DO 40 J=1, NZTV(ICOMP)
-              VCOORD(ICOMP,J,1)=X(J)
-              VCOORD(ICOMP,J,2)=Y(J)
-              VCOORD(ICOMP,J,3)=Z(J)
+              szcoords(ICOMP,J,1)=X(J)
+              szcoords(ICOMP,J,2)=Y(J)
+              szcoords(ICOMP,J,3)=Z(J)
    40       CONTINUE
             DO 50 J=1, nzsur(ICOMP)
               icc=IZSTOCN(icomp,j)
               if(icc.ne.0)then
-                NZNVER(icc)=NVER(J)
-                N = NVER(J)
+                isznver(icomp,J)=NVER(J)
+                N = isznver(icomp,J)
                 DO 60 K=1,N
-                  NZJVN(icc,K)=JVN(J,K)
+                  iszjvn(icomp,J,K)=JVN(J,K)
    60           CONTINUE
               endif
    50       CONTINUE
@@ -3941,7 +3941,7 @@ C Trap out of range IC1 and IE1 variables.
       endif
 
       ictype = ICT(ICON)  ! assign local variable
-      SST1=SSNAME(ICON)
+      SST1=SNAME(IC1(ICON),IE1(ICON))
       lsn1=lnblnk(SST1)
       ZST1=zname(IC1(ICON))
       lzn1=lnblnk(ZST1)
@@ -3968,7 +3968,7 @@ C Trap out of range IC1 and IE1 variables.
      &    I4,' W rad')
       ELSEIF(ictype.EQ.3)THEN
         ICM=IZSTOCN(IC2(ICON),IE2(ICON))
-        SST2=SSNAME(ICM)
+        SST2=SNAME(IC2(ICON),IE2(ICON))
         lsn2=lnblnk(SST2)
         ZST2=zname(IC2(ICON))
         lzn2=lnblnk(ZST2)

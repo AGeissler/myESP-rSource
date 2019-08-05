@@ -43,7 +43,7 @@ C      BCL15:  optimum start control.
 C      BCL16:  optimum stop control.
 C      BCL17:  fuzzy logic PI/PD control.
 C      BCL18:  null control.
-C      bcl19:  multi-sensor basic control.
+C      BCl19:  multi-sensor basic control.
 C      BCL20:  evaporative source.
 C      BCL21:  master/slave control.
 C      BCL22:  VAV cooling with CAV heating.
@@ -5635,6 +5635,7 @@ C This control law is suitable for a type 0 controller.
      &TAUXSN(MCF,MSEN)
      
       character outs*124
+      character ctl_logic*124
 
       DIMENSION AUXHSP(MSEN),AUXCSP(MSEN)
       
@@ -5684,7 +5685,6 @@ C CSP = cooling set point temp. (deg.C)
       QCN=-BMISCD(ICF,IDTYP,IPER,5)
       HSP=BMISCD(ICF,IDTYP,IPER,6)
       CSP=BMISCD(ICF,IDTYP,IPER,7)
-      IF(TCTL.LE.CSP.AND.TCTL.GE.HSP)goto 1000
 
 C NSEN(ICF) = number of auxiliary sensors for control function.
       NSEN(ICF)=INT(BMISCD(ICF,IDTYP,IPER,8))
@@ -5732,13 +5732,31 @@ C heating or cooling is demanded.
  20   CONTINUE
 
 C Check whether neither heating nor cooling required.
-      IF(IHEATING.EQ.0.AND.ICOOLING.EQ.0)goto 1000
+      IF(IHEATING.EQ.0.AND.ICOOLING.EQ.0)then
+        ctl_logic='No heating or cooling required in auxiliary zones'//
+     &    ' -> do nothing.'
+        goto 1000
+      endif
+
+C Check whether we need to inject/subtract heat from the source zone when heating/cooling required in aux zone.
+      IF(TCTL.GE.HSP.AND.IHEATING.EQ.1)then
+        ctl_logic='Heating required in at least 1 auxiliary zone but'//
+     &  ' source is hotter than setpoint -> do nothing.'
+        goto 1000
+      endif
+      IF(TCTL.LE.CSP.AND.ICOOLING.EQ.1)then
+        ctl_logic='Cooling required in at least 1 auxiliary zone but'//
+     &  ' source is cooler than setpoint -> do nothing.'
+        goto 1000
+      endif
 
 C For the case of simultaneous heating and cooling
 C demand of auxiliary zones, do not control the
 C current zone, and issue a warning.
       IF(IHEATING.EQ.1.AND.ICOOLING.EQ.1)THEN
          CALL EDISP(IUOUT,' BCL19: simultaneous heating and cooling')
+         ctl_logic='Simultaneous heating and cooling required'//
+     &  ' among auxiliary zones -> do nothing.'
          goto 1000
       ENDIF
 
@@ -5750,6 +5768,8 @@ C within range, attempt to control this zone's temperature.
 C If heating required an aux zone and this zone is below its setpoint
 C then attempt to heat this zone to its heating setpoint.
       IF(IHEATING.EQ.1.and.TCTL.LT.HSP)then
+      ctl_logic='Heating required by an aux zone, source is below'//
+     &  ' heating setpoint -> heating source zone.'
         IPLT=1
         QMX=QHM
         QMN=QHN
@@ -5778,6 +5798,8 @@ C Is this capacity available ?
 C If auxiliary zones demand cooling and actuation zone is > cooling
 C set point then Temp. too high, cool to CSP.
       if(ICOOLING.EQ.1.and.TCTL.GT.CSP)then
+      ctl_logic='Cooling required by an aux zone, source is above'//
+     &  ' cooling setpoint -> cooling source zone.'
         Q=(BB3-BB1*CSP)/BB2
         IPLT=2
         QMX=QCM
@@ -5808,13 +5830,15 @@ C Is this available ?
 C Trace output.
  1000 IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) THEN
-         write(outs,'(A,F10.3,A,2F10.3)')' Local sensed temp = ',TCTL,
-     &                                   ' Local setpoints = ',HSP,CSP
+         write(outs,'(A,F10.3,A,2F10.3)')' Source sensed temp = ',TCTL,
+     &                                   ' Source setpoints = ',HSP,CSP
          call edisp(itu,outs)
-         write(outs,'(A,F10.3)')' Aux sensed value = ',TAUXSN(ICF,1)
+         write(outs,'(A,F10.3)')' Aux #1 sensed value = ',TAUXSN(ICF,1)
          call edisp(itu,outs)
-         write(outs,'(A,I3,A,I3)') ' Aux heat yes/no = ',IHEATING,
-     &                             ' Aux cool yes/no = ',ICOOLING
+         write(outs,'(A,I3,A,I3)') ' Any aux heat yes/no = ',IHEATING,
+     &                             ' Any aux cool yes/no = ',ICOOLING
+         call edisp(itu,outs)
+         write(outs,'(A)') ctl_logic
          call edisp(itu,outs)
          write(outs,'(A,F10.3,A,F10.3)') ' Qfuture = ',QFUT,
      &                                   ' Tfuture = ',TFUT
@@ -8429,11 +8453,11 @@ C air gap values depending on the surface orientation.
 C Keep track of the air gaps in the composite. 
               nairg(ii)=nairg(ii)+1
               ipairg(ii,nairg(ii))=i
-              if(svfc(ii).eq.'VERT')then
+              if(svfc(ICMP,ii).eq.'VERT')then
                 rairg(ii,nairg(ii))=drair(ic,i,1)
-              elseif(svfc(ii).eq.'FLOR')then
+              elseif(svfc(ICMP,ii).eq.'FLOR')then
                 rairg(ii,nairg(ii))=drair(ic,i,2)
-              elseif(svfc(ii).eq.'CEIL')then
+              elseif(svfc(ICMP,ii).eq.'CEIL')then
                 rairg(ii,nairg(ii))=drair(ic,i,3)
               endif
               RGAPS(ICMP,II,nairg(ii))=rairg(ii,nairg(ii))

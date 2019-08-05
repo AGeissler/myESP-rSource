@@ -928,16 +928,16 @@ C NAP   = Number of vertex points on surface
 C IANXT = Index of 'next' point
 C IAPNT = Pointer to first vertex of polygon
           IAPNT = 1
-          NAP = NZNVER(icc)
-          DO 1100 J = 1,NZNVER(icc)
-            K = NZJVN(icc,J)
-            AX(J) = VCOORD(iz,K,1)
-            AY(J) = VCOORD(iz,K,2)
-            AZ(J) = VCOORD(iz,K,3)
+          NAP = isznver(iz,I)
+          DO 1100 J = 1,isznver(iz,I)
+            K = iszjvn(iz,I,J)
+            AX(J) = szcoords(iz,K,1)
+            AY(J) = szcoords(iz,K,2)
+            AZ(J) = szcoords(iz,K,3)
             IANXT(J) = J + 1
  1100     CONTINUE
 
-          IANXT(NZNVER(icc)) = IAPNT
+          IANXT(isznver(iz,I)) = IAPNT
 
 C-----------------------------------------------------------------------
 C Transform surface polygon to EYE co-ordinates
@@ -2063,17 +2063,17 @@ C orthogonal matrix, hence the inverse equals the transpose.
       real Ox,Oy,Oz,Uxu,Uxv,Uxw,Uyu,Uyv,Uyw,Uzu,Uzv,Uzw
 
 C Get coordinates of CFD origin vertex, in terms of the geometry domain.
-      Ox=VCOORD(ICP,IORG(ICFD),1)
-      Oy=VCOORD(ICP,IORG(ICFD),2)
-      Oz=VCOORD(ICP,IORG(ICFD),3)
+      Ox=szcoords(ICP,IORG(ICFD),1)
+      Oy=szcoords(ICP,IORG(ICFD),2)
+      Oz=szcoords(ICP,IORG(ICFD),3)
 
 C Get unit vector for i axis in terms of building geometry, from
 C coordinates of origin and end of axis vertices.
-      vdx=VCOORD(ICP,ixend(ICFD),1)-Ox
+      vdx=szcoords(ICP,ixend(ICFD),1)-Ox
 c      write(6,*)'vdx',vdx
-      vdy=VCOORD(ICP,ixend(ICFD),2)-Oy
+      vdy=szcoords(ICP,ixend(ICFD),2)-Oy
 c      write(6,*)'vdy',vdy
-      vdz=VCOORD(ICP,ixend(ICFD),3)-Oz
+      vdz=szcoords(ICP,ixend(ICFD),3)-Oz
 c      write(6,*)'vdz',vdz
       CROWA = vdx*vdx + vdy*vdy + vdz*vdz
       CROWA=SQRT(CROWA)
@@ -2086,9 +2086,9 @@ c      write(6,*)'vdz',vdz
       Uzu=vdz/crowa
 
 C Similarly for j axis.
-      vdx=VCOORD(ICP,iyend(ICFD),1)-Ox
-      vdy=VCOORD(ICP,iyend(ICFD),2)-Oy
-      vdz=VCOORD(ICP,iyend(ICFD),3)-Oz
+      vdx=szcoords(ICP,iyend(ICFD),1)-Ox
+      vdy=szcoords(ICP,iyend(ICFD),2)-Oy
+      vdz=szcoords(ICP,iyend(ICFD),3)-Oz
       CROWA = vdx*vdx + vdy*vdy + vdz*vdz
       CROWA=SQRT(CROWA)
       if (abs(crowa).lt.0.001) then
@@ -2100,9 +2100,9 @@ C Similarly for j axis.
       Uzv=vdz/crowa
 
 C Similarly for k axis.
-      vdx=VCOORD(ICP,izend(ICFD),1)-Ox
-      vdy=VCOORD(ICP,izend(ICFD),2)-Oy
-      vdz=VCOORD(ICP,izend(ICFD),3)-Oz
+      vdx=szcoords(ICP,izend(ICFD),1)-Ox
+      vdy=szcoords(ICP,izend(ICFD),2)-Oy
+      vdz=szcoords(ICP,izend(ICFD),3)-Oz
       CROWA = vdx*vdx + vdy*vdy + vdz*vdz
       CROWA=SQRT(CROWA)
       if (abs(crowa).lt.0.001) then

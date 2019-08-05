@@ -3539,9 +3539,9 @@ C Find the index of the MLC which matches each surface.
         DO 9994 I=1,NZSUR(icomp)
           icn1=izstocn(icomp,i)
           ssmlcindex(icn1)=0  ! assume no matching MLC
-          lnsmlc=lnblnk(SSMLCN(icn1))         
+          lnsmlc=lnblnk(SMLCN(icomp,i))         
           do 5 ii=1,nmlc
-            if(SSMLCN(icn1)(1:lnsmlc).eq.
+            if(SMLCN(icomp,i)(1:lnsmlc).eq.
      &         mlcname(ii)(1:lnmlcname(ii)))then
               ssmlcindex(icn1)=ii   ! remember MLC index  
             endif

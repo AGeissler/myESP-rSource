@@ -458,6 +458,15 @@ C dimension predef_notes(6)
 C variables signalling shading oiaplic and insolation of interest
       integer oiaplic(2)
 
+      integer icomp_base,ioffset,icomp_match
+
+C Local variables for visible entities.
+      real VOP,XOVT,YOVT,ZOVT,DXOVT,DYOVT,DZOVT  ! for origin and delta
+      real BANGOVT(3)
+      real xvpt,yvpt,zvpt
+      dimension xvpt(8),yvpt(8),zvpt(8)
+      character vname*12,vmat*12,vtype*4
+
 C variables signalling linear thermal bridges are of interest
 C variables signalling viewfactors are of interest?
 
@@ -997,9 +1006,9 @@ C Remember what their new index (within the zone is.
             X(NTV)=vertmass(ix,1)
             Y(NTV)=vertmass(ix,2)
             Z(NTV)=vertmass(ix,3)
-            VCOORD(ICOMP,ntv,1)=vertmass(ix,1)
-            VCOORD(ICOMP,ntv,2)=vertmass(ix,2)
-            VCOORD(ICOMP,ntv,3)=vertmass(ix,3)
+            szcoords(ICOMP,ntv,1)=vertmass(ix,1)
+            szcoords(ICOMP,ntv,2)=vertmass(ix,2)
+            szcoords(ICOMP,ntv,3)=vertmass(ix,3)
           endif
         enddo  ! of ix
 
@@ -1033,15 +1042,15 @@ C << this logic needs to be adapted >>
             JVN(NSUR,J)=boundjvn(ix,J)
           enddo
           SNAME(ICOMP,NSUR)=bsurname(ix)
-          SOTF(NSUR)=bsuropt(ix)
-          SMLCN(NSUR)=bsurmat(ix)
-          SVFC(NSUR)='UNKN'
-          SPARENT(NSUR)='-'
-          SUSE(nsur,1)='WALL'
-          SUSE(nsur,2)='- '
-          SOTHER(NSUR,1)='UNKNOWN'
-          SOTHER(NSUR,2)='0'
-          SOTHER(NSUR,3)='0'
+          SOTF(ICOMP,NSUR)=bsuropt(ix)
+          SMLCN(ICOMP,NSUR)=bsurmat(ix)
+          SVFC(ICOMP,NSUR)='UNKN'
+          SPARENT(ICOMP,NSUR)='-'
+          SUSE(ICOMP,nsur,1)='WALL'
+          SUSE(ICOMP,nsur,2)='- '
+          SOTHER(ICOMP,NSUR,1)='UNKNOWN'
+          SOTHER(ICOMP,NSUR,2)='0'
+          SOTHER(ICOMP,NSUR,3)='0'
 
 C Update the connection list. Move all others up and then insert with
 C moderate moderate trace (3rd parameter in addedsurf).
@@ -1062,21 +1071,21 @@ C line 1044 of insert.F of the subroutine ADDSUR.
             JVN(NSUR,J)=masjvn(ix,J)
           enddo
           SNAME(ICOMP,NSUR)=msurname(ix)
-          SOTF(NSUR)=msuropt(ix)
-          SMLCN(NSUR)=msurmat(ix)
-          SVFC(NSUR)='UNKN'
-          SPARENT(NSUR)='-'
-          SUSE(nsur,1)='FURNI'  ! predefined mass
-          SUSE(nsur,2)='- '
+          SOTF(ICOMP,NSUR)=msuropt(ix)
+          SMLCN(ICOMP,NSUR)=msurmat(ix)
+          SVFC(ICOMP,NSUR)='UNKN'
+          SPARENT(ICOMP,NSUR)='-'
+          SUSE(ICOMP,nsur,1)='FURNI'  ! predefined mass
+          SUSE(ICOMP,nsur,2)='- '
 
 C Set each pair to be back-to-back. Logic for up to 10 mass surfaces.
-          SOTHER(NSUR,1)='ANOTHER'
+          SOTHER(ICOMP,NSUR,1)='ANOTHER'
           if(ix.eq.1.or.ix.eq.3.or.ix.eq.5.or.ix.eq.7.or.ix.eq.9)then
-            write(SOTHER(NSUR,2),'(i2.2)')INT(icomp)
-            write(SOTHER(NSUR,3),'(i3.3)')INT(NSUR+1)
+            write(SOTHER(ICOMP,NSUR,2),'(i2.2)')INT(icomp)
+            write(SOTHER(ICOMP,NSUR,3),'(i3.3)')INT(NSUR+1)
           else
-            write(SOTHER(NSUR,2),'(i2.2)')INT(icomp)
-            write(SOTHER(NSUR,3),'(i3.3)')INT(NSUR-1)
+            write(SOTHER(ICOMP,NSUR,2),'(i2.2)')INT(icomp)
+            write(SOTHER(ICOMP,NSUR,3),'(i3.3)')INT(NSUR-1)
           endif
 
 C Update the connection list. Move all others up and then insert with

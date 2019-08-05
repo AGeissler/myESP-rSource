@@ -250,7 +250,7 @@ C----------------------------------------------------------------------
 C     Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &     ITRACE(37).NE.0) WRITE(ITU,*) 
-     &' Entering radiant floor subroutine CMP95C'
+     &' Entering radiant floor subroutine RadFloor_CoeffGen'
 
       IF(INDCFG .NE. 3) THEN
          call usrmsg('Use this plant component only when the simulaton',

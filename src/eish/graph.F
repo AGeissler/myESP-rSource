@@ -87,7 +87,7 @@ C ask user what to do.
 C Find connection and number of edges and then retrieve the
 C surface transformed coordinates.
       icc=izstocn(icomp,is)
-      nv=nznver(icc)
+      nv=isznver(icomp,is)
       irec=irecs(is)
       read(iunit,rec=irec,iostat=istat,err=1000)(xft(i),i=1,nv)
       irec=irec+1
@@ -128,7 +128,7 @@ C Find maximum & minimum surface coordinates for this surface.
       zmax=-1.E+8
       xmin=1.E+8
       zmin=1.E+8
-      do 10 i=1,nznver(icc)
+      do 10 i=1,isznver(icomp,is)
         xmax=amax1(xmax,xft(i))
         zmax=amax1(zmax,zft(i))
         xmin=amin1(xmin,xft(i))
@@ -252,7 +252,7 @@ C Display header information. Calculate graphic boundaries.
       igw=int(iigw); igwh=int(iigwh)
       icn=izstocn(icomp,isur)
 
-      write(etext,1)month(mon),ihour,isur,ssname(icn)
+      write(etext,1)month(mon),ihour,isur,sname(icomp,isur)
     1 format('Direct shading: ',a3,', @ ',i2,':00, Surface ',i3,
      &       ' (',a,').')
       iside=1
@@ -637,7 +637,7 @@ C Draw the grid on the surface.
 
 C Heading on graph.
       write(etext,'(3a,f6.2,3a,f7.2,a,f7.2)')'Direct shading: ',
-     &  month(imon),' @ ',vtime,' ',ssname(iccf),' azim',sazi1,
+     &  month(imon),' @ ',vtime,' ',sname(izone,its),' azim',sazi1,
      &  ' elev',salt1
       iside=1
       isize=1
@@ -859,10 +859,10 @@ C For each surface do initial filtering.
           goto 111  ! cannot be seen by solar vector
         elseif(fbc(its,icc).eq.'B')then
           goto 111  ! other surface is behind
-        elseif(ssother(icc,1)(1:7).eq.'SIMILAR')then
+        elseif(sother(izone,loop,1)(1:7).eq.'SIMILAR')then
           goto 111  ! do not face outside
         endif
-        if(ssother(icc,1)(1:8).eq.'EXTERIOR')then
+        if(sother(izone,loop,1)(1:8).eq.'EXTERIOR')then
              
           EQN(1)=ssureqn(icc,1)
           EQN(2)=ssureqn(icc,2)

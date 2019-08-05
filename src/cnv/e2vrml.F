@@ -189,7 +189,7 @@ C Read in the zone geometry.
 
 C Work out the colours for each of the surfaces in this zone by 
 C finding MLC match.
-          call matchmlcdesc(SMLCN(j),im)
+          call matchmlcdesc(SMLCN(newfoc,j),im)
 
 C For the inside and outside layer get surface properties.
           matarrayindex=IPRMAT(IM,1)   ! which array index
@@ -222,7 +222,8 @@ C Write entry for this surface in the HTML file.
      &       ' name         |other side ')
  894      FORMAT(I3,F9.3,F5.0,F5.0,1X,A12,1X,A4,1X,A4,1X,A12,2X,A13)
           WRITE(ioblk,894)J,SNA(j),PAZI(j),PELV(j),
-     &        SNAME(newfoc,j),SOTF(j),SVFC(j),SMLCN(j),SOTHER(j,1)
+     &        SNAME(newfoc,j),SOTF(newfoc,j),SVFC(newfoc,j),
+     &        SMLCN(newfoc,j),SOTHER(newfoc,j,1)
           write(ioblk,'(a)')  '</PRE>'
           write(ioblk,'(a)')  ' '
 

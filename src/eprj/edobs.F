@@ -342,7 +342,7 @@ C wall.
         CALL EPMENRC
         if(IRS.ne.0)then
           icc=izstocn(ICOMP,IRS)
-          write(blkroot,'(a)')SSNAME(icc)(1:8)
+          write(blkroot,'(a)')SNAME(ICOMP,IRS)(1:8)
           CALL EASKS(blkroot,' Root name for related obstructions?',
      &      ' ',8,'revl  ','reveal root name',IER,nbhelp)
 

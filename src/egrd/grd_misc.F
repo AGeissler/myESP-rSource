@@ -276,7 +276,7 @@ C Setup and pass in parameters to win3d.
       igw=int(iigw); igwh=int(iigwh)
 
       icon=IZSTOCN(icomp,isur)
-      WRITE(ETEXT,1)MTHNAM(MON),IHOUR,ISUR,SSNAME(icon)
+      WRITE(ETEXT,1)MTHNAM(MON),IHOUR,ISUR,SNAME(icomp,isur)
     1 FORMAT(' Shading patterns: ',A3,' at hour',I3,' for surface',I3,
      &       ' ',a)
       iside=1

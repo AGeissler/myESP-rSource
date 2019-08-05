@@ -305,8 +305,9 @@ C of the vertex symbols.
 C Continue on with any surfaces in the zone. If zone is zero then
 C we are drawing grid.
       DO 1000 I=1,NSUR
+        isur=I
         if(iz.ne.0)then
-          icc=IZSTOCN(nznog(IZ),I)
+          icc=IZSTOCN(nznog(IZ),isur)
         else
           icc=0
         endif
@@ -378,8 +379,9 @@ C ITHLS = 3 partial attributes
         if(ITHLS.eq.1.and.ITHLZ.gt.0)then
           WRITE(MLCN,'(A)') mlcname(ITHLZ)
           if(ICC.gt.0)then
-            lnssmlc=lnblnk(SSMLCN(icc))
-            if(MLCN(1:lnmlcname(ITHLZ)).eq.SSMLCN(ICC)(1:lnssmlc))then
+            lnssmlc=lnblnk(SMLCN(nznog(IZ),isur))
+            if(MLCN(1:lnmlcname(ITHLZ)).eq.
+     &         SMLCN(nznog(IZ),isur)(1:lnssmlc))then
               IPEN= -305
             else
               IPEN= 1
@@ -389,12 +391,12 @@ C ITHLS = 3 partial attributes
           endif
         elseif(ITHLS.eq.2)then
           if(ICC.gt.0)then
-            if(ITHLZ.eq.1.and.SSOTF(ICC)(1:4).eq.'OPAQ')then
+            if(ITHLZ.eq.1.and.SOTF(nznog(IZ),isur)(1:4).eq.'OPAQ')then
               IPEN= -305
             else
               IPEN= 1
             endif
-            if(ITHLZ.eq.2.and.SSOTF(ICC)(1:4).eq.'TRAN')then
+            if(ITHLZ.eq.2.and.SOTF(nznog(IZ),isur)(1:4).eq.'TRAN')then
               IPEN= -305
             else
               IPEN= 1
@@ -404,8 +406,8 @@ C ITHLS = 3 partial attributes
           endif
         elseif(ITHLS.eq.3)then
           if(ICC.gt.0)then
-            if(SSMLCN(ICC)(1:3).eq.'UNK'.or.
-     &         SSOTHER(ICC,1)(1:3).eq.'UNK')then
+            if(SMLCN(nznog(IZ),isur)(1:3).eq.'UNK'.or.
+     &         SOTHER(nznog(IZ),isur,1)(1:3).eq.'UNK')then
               IPEN= -305
             else
               IPEN= 1
@@ -580,7 +582,7 @@ C to normal size.
           IF(NAP.EQ.NBP)THEN
             if(icc.ne.0)then
               CALL winfnt(issize)
-              write(stemp,'(A)')SSNAME(IC)
+              write(stemp,'(A)')SNAME(nznog(IZ),isur)
 
 C If surface normals to be displayed draw an arrow and
 C offset the surface name depending on orientation.
@@ -593,8 +595,9 @@ C offset the surface name depending on orientation.
                 CALL VECTRN(COG2,ETSMAT,COG3,IER)
                 call u2pixel(COG3(1),COG3(2),iixc,iiyc)
                 call arrow(CG,VN,0.3,0.1,ipoints,'a',2)
-                IF(SSVFC(icc).EQ.'VERT'.or.SSVFC(icc).EQ.'CEIL'.or.
-     &             SSVFC(icc).EQ.'FLOR')THEN
+                IF(SVFC(nznog(IZ),isur).EQ.'VERT'.or.
+     &             SVFC(nznog(IZ),isur).EQ.'CEIL'.or.
+     &             SVFC(nznog(IZ),isur).EQ.'FLOR')THEN
                   iixc=iixc+5
                 ELSE
                   iixc=iixc+5
@@ -608,7 +611,7 @@ C offset the surface name depending on orientation.
                 CALL VECTRN(CG,TEMAT,COG2,IER)
                 CALL VECTRN(COG2,ETSMAT,COG3,IER)
                 call u2pixel(COG3(1),COG3(2),iixc,iiyc)
-                IF(SSVFC(icc).EQ.'VERT')THEN
+                IF(SVFC(nznog(IZ),isur).EQ.'VERT')THEN
 
 C Draw arrow and horizontal line.
                   iid1=iixc+3; iid2=iiyc-3
@@ -618,7 +621,7 @@ C Draw arrow and horizontal line.
                   iid1=iixc+7
                   call eswline(iixc,iiyc,iid1,iiyc)
                   iixc=iixc+7
-                ELSEIF(SSVFC(icc).EQ.'CEIL')THEN
+                ELSEIF(SVFC(nznog(IZ),isur).EQ.'CEIL')THEN
 
 C Draw arrow to surface then up and horizontal to the text.
                   iid1=iixc+3; iid2=iiyc-3
@@ -630,7 +633,7 @@ C Draw arrow to surface then up and horizontal to the text.
                   iid1=iiyc-5; iid2=iixc+7; iid3=iiyc-5
                   call eswline(iixc,iid1,iid2,iid3)
                   iiyc=iiyc-5; iixc=iixc+7
-                ELSEIF(SSVFC(icc).EQ.'FLOR')THEN
+                ELSEIF(SVFC(nznog(IZ),isur).EQ.'FLOR')THEN
 
 C Draw arrow to surface then down and horizontal to the text.
                   iid1=iixc+3; iid2=iiyc+3

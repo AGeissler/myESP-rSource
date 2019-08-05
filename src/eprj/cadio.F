@@ -2895,9 +2895,9 @@ C as opaque.
             lsn=lnblnk(sname(newfoc,j))
             write(zsn,'(3a)') zname(newfoc)(1:lnzname(newfoc)),
      &        ':',sname(newfoc,j)(1:lsn)
-            if (SSOTF(icn)(1:4).ne.'OPAQ'.and.
-     &          SSOTF(icn)(1:4).ne.'CFC '.and.
-     &          SSOTF(icn)(1:4).ne.'CFC2') then
+            if (SOTF(newfoc,j)(1:4).ne.'OPAQ'.and.
+     &          SOTF(newfoc,j)(1:4).ne.'CFC '.and.
+     &          SOTF(newfoc,j)(1:4).ne.'CFC2') then
               write(ioout,'(a)')' VIS '
               write(ioout,'(a)')' 0 '
             else
@@ -3064,15 +3064,6 @@ C Update the connection list and hash.
           ICCC=ICCC+1
           IC1(ICCC)=ICOMP; IE1(ICCC)=ICC; ICT(ICCC)=-1   ! mark as unknown at this time.
           IC2(ICCC)=0; IE2(ICCC)=0
-          SSNAME(iccc)=SNAME(icomp,icc)
-          SSOTF(iccc)=SOTF(icc)
-          SSMLCN(iccc)=SMLCN(icc)
-          SSVFC(iccc)=SVFC(icc)
-          SSOTHER(iccc,1)=SOTHER(icc,1)
-          SSOTHER(iccc,2)=SOTHER(icc,2)
-          SSOTHER(iccc,3)=SOTHER(icc,3)
-          SSUSE(iccc,1)=SUSE(icc,1); SSUSE(iccc,2)=SUSE(icc,2)
-          SSPARENT(iccc)=SPARENT(icc)
           IZSTOCN(icomp,icc)=iccc
         ENDDO
         NCON=ICCC
@@ -3094,20 +3085,20 @@ C Update the G7 common blocks and then assign ZBASEA.
 
 C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
-C the zone can be calculated. Also instanciate nznver and nzjvn
+C the zone can be calculated. Also instanciate isznver and iszjvn
 C for the new zone (as is done in subroutine zdata).
         DO 40 J=1,NZTV(ICOMP)
-          VCOORD(ICOMP,J,1)=X(J)
-          VCOORD(ICOMP,J,2)=Y(J)
-          VCOORD(ICOMP,J,3)=Z(J)
+          szcoords(ICOMP,J,1)=X(J)
+          szcoords(ICOMP,J,2)=Y(J)
+          szcoords(ICOMP,J,3)=Z(J)
    40   CONTINUE
         DO 50 J=1,nzsur(ICOMP)
           icc=IZSTOCN(icomp,j)
           if(icc.ne.0)then
-            NZNVER(icc)=NVER(J)
-            N = NVER(J)
+            isznver(icomp,j)=NVER(J)
+            N = isznver(icomp,j)
             DO 60 K=1,N
-              NZJVN(icc,K)=JVN(J,K)
+              iszjvn(icomp,j,K)=JVN(J,K)
    60       CONTINUE
           endif
    50   continue

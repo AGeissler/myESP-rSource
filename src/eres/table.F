@@ -1241,13 +1241,13 @@ C in terms of surface so negate it to have contribution to air node.
               CALL FLTIAV(JD,CQ,CQOUT,NEL)
               DO 61 ISTP=ISTART,IEND
                 IF(IE.EQ.0)THEN
-                  if(SSOTF(ICN)(1:4).EQ.'OPAQ')then
+                  if(SOTF(IZN,ISN)(1:4).EQ.'OPAQ')then
                     VAL(3)=VAL(3)+CQOUT(ISTP)*(-1.0)
                   else
                     VAL(1)=VAL(1)+CQOUT(ISTP)*(-1.0)
                   endif
                 ELSE
-                  if(SSOTF(ICN)(1:4).EQ.'OPAQ')then
+                  if(SOTF(IZN,ISN)(1:4).EQ.'OPAQ')then
                     VAL(4)=VAL(4)+CQOUT(ISTP)*(-1.0)
                   else
                     VAL(2)=VAL(2)+CQOUT(ISTP)*(-1.0)

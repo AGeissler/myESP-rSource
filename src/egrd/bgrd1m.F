@@ -178,7 +178,7 @@ C Show the constructions menu.
         INPICK=1
         DO 50 ISRF=1,NC
           icc=izstocn(iz,isrf)
-          ITEMC(ISRF)=SSNAME(icc)
+          ITEMC(ISRF)=SNAME(iz,isrf)
    50   CONTINUE
    60   CALL EPICKS(INPICK,IVALS,' ',' ',20,NC,ITEMC,' ',
      &    IER,nbhelp)
@@ -189,7 +189,7 @@ C Show the constructions menu.
           NE=NELTS(IZ,IS)
           WRITE(TXT,'(10(2X,I2))')(MNDL(IZ,IS,IL),IL=1,NE)
           WRITE(MSG1,'(3A)')" Enter the number of moisture ",
-     &    "nodes/layer in the surface: ",SSNAME(icc)
+     &    "nodes/layer in the surface: ",SNAME(iz,is)
           CALL EASKS(TXT,MSG1,' ',72,' ',' data ',IER,nbhelp)
           NCFF = iCountWords(TXT)
           IF(NCFF.NE.NE)THEN
@@ -324,7 +324,7 @@ C For help messages
    10 INO=-3
       IF(IS.GE.1.AND.IS.LE.NC)THEN
         icc=izstocn(iz,is)
-        SURFNM=SSNAME(icc)
+        SURFNM=SNAME(iz,is)
       ELSE
         SURFNM=' '
       ENDIF
@@ -352,7 +352,7 @@ C Show the constructions menu.
         INPICK=1
         DO 20 IS2=1,NC
           icc=izstocn(iz,is2)
-          ITEMC(IS2)=SSNAME(icc)
+          ITEMC(IS2)=SNAME(iz,is2)
    20   CONTINUE
    30   CALL EPICKS(INPICK,IVALS,' ',' ',20,NC,ITEMC,' ',
      &    IER,nbhelp)

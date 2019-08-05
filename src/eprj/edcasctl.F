@@ -365,8 +365,9 @@ C treats CFC and CFC2 with opaque surfaces.
         m=m+1   
         write(ITEM(m),'(A)') '  Source surface & DF(s) per photocell:'
         do 44 ii = 1,NSUR
-          if(SOTF(II)(1:4).NE.'OPAQ'.AND.SOTF(II)(1:4).NE.'CFC '.AND.
-     &       SOTF(II)(1:4).NE.'CFC2')THEN
+          if(SOTF(icomp,II)(1:4).NE.'OPAQ'.AND.
+     &       SOTF(icomp,II)(1:4).NE.'CFC '.AND.
+     &       SOTF(icomp,II)(1:4).NE.'CFC2')THEN
             m=m+1
             CALL EMKEY(m,KEY,IER)
             write(sn,'(a)') sname(icomp,II)
@@ -886,8 +887,9 @@ C Loop through all surfaces and find out number of TMCs: It
 C does not (yet) count CFC and CFC2 as transparent.
           ICOUNT=0
           do i = 1, NSUR
-            if(SOTF(I)(1:4).NE.'OPAQ'.AND.SOTF(I)(1:4).NE.'CFC '.AND.
-     &         SOTF(I)(1:4).NE.'CFC2')THEN
+            if(SOTF(ICOMP,I)(1:4).NE.'OPAQ'.AND.
+     &         SOTF(ICOMP,I)(1:4).NE.'CFC '.AND.
+     &         SOTF(ICOMP,I)(1:4).NE.'CFC2')THEN
               ICOUNT=ICOUNT+1              
             endif
           enddo   ! of I

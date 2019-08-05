@@ -215,7 +215,7 @@ C *** Listing requested. If to file then write higher resolution.
          call edisp(itu,outs)
          do 20 i=1,nzsur(icomp)
             icn=izstocn(icomp,i)
-            sn=ssname(icn)
+            sn=sname(icomp,i)
             if(verbose)then
               write(outs,2)i,sn(1:11),(pso(i,j),j=1,12)
     2         format(I3,' (',a,')  Direct,  01-12 hrs ',12(f5.2))
@@ -265,7 +265,7 @@ C *** Edit requested.
 
 C Direct shading.
          icn=izstocn(icomp,isur)
-         sn=ssname(icn)
+         sn=sname(icomp,isur)
    11    write(outs,'(3a)')'Direct shading factors for surface `',
      &                         sn(1:lnblnk(sn)),'`,'
          write(hold,'(12f5.2)') (pso(isur,i),i=1,12)
@@ -366,7 +366,7 @@ C Write direct and diffuse shading factors.
      &    '24 hour external surface shading'
          do 100 i = 1,nzsur(icomp)
             icn=izstocn(icomp,i)
-            sn=ssname(icn)
+            sn=sname(icomp,i)
             write(outl,'(12f7.4)') (pso(i,j),j=1,12)
             call sdelim(outl,outld,'S',iw)
             write(iuj,'(a)',iostat=istat,err=1002)
@@ -393,7 +393,7 @@ C Generate packed list of names of insolation sources.
            if(ioffs(i).ne.0)then
              isourcecount=isourcecount+1
              icn=izstocn(icomp,i)
-             sourcename(isourcecount)=ssname(icn)
+             sourcename(isourcecount)=sname(icomp,i)
            endif
  101     continue
 
@@ -1040,7 +1040,7 @@ C Write direct and diffuse shading factors.
      &  '24 hour external surface shading'
       do 100 i = 1,nzsur(icomp)
          icn=izstocn(icomp,i)
-         sn=ssname(icn)
+         sn=sname(icomp,i)
          write(outl,'(12f7.4)') (pso(i,j),j=1,12)
          call sdelim(outl,outld,'S',iw)
          write(iuj,'(a)',iostat=istat,err=1002)
@@ -1067,7 +1067,7 @@ C Generate packed list of names of insolation sources.
          if(ioffs(i).ne.0)then
            isourcecount=isourcecount+1
            icn=izstocn(icomp,i)
-           sourcename(isourcecount)=ssname(icn)
+           sourcename(isourcecount)=sname(icomp,i)
          endif
  101  continue
 

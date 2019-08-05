@@ -657,14 +657,14 @@ C Use YOS to hold dummy values for surface indentation.
      &      '   0.000    # vertices, surfaces, rotation angle'
       write(iotmp2,'(a)')'#  X co-ord, Y co-ord, Z co-ord '
       do 58 ivv=1,NZTV(iv)
-         write(iotmp2,'(3f11.5)')VCOORD(iv,ivv,1),VCOORD(iv,ivv,2),
-     &         VCOORD(iv,ivv,3)
+         write(iotmp2,'(3f11.5)')szcoords(iv,ivv,1),szcoords(iv,ivv,2),
+     &         szcoords(iv,ivv,3)
   58  continue
       write(iotmp2,'(a)')'# no of vert & list of associated vert'
       do 59 is=1,NZSUR(iv)
         icc=IZSTOCN(iv,is)
-        WRITE(iotmp2,5650)NZNVER(icc),
-     &          (NZJVN(icc,J),J=1,NZNVER(icc))
+        WRITE(iotmp2,5650) isznver(iv,is),
+     &    (iszjvn(iv,is,J),J=1,isznver(iv,is))
 5650    FORMAT(i4,124(I4,','))
         ndum(is)=0
         Y0S(is)=0.0
@@ -1081,17 +1081,17 @@ C Matches or adds a vertex to a zone.
       logical clx,cly,clz,match,unixok
       character outs*124
 
-C NZTV(IZ)= NVT, NZSUR(IZ)=NSUR,  VCOORD(IZ,K,3)= x,y,z
-C NZNVER(icc) = NVER(J), NZJVN(icc,K) = JVN(J,K)
+C NZTV(IZ)= NVT, NZSUR(IZ)=NSUR,  szcoords(IZ,K,3)= x,y,z
+C isznver(IZ,J) = NVER(J), iszjvn(IZ,J,K) = JVN(J,K)
 C Check and see if the current point is close to an existing
 C vertex. If so point to it, otherwise add to vertex list.
 C Update the surface topology.
       match=.false.
       if(NZTV(iz).gt.0)then
         do 40 iv=1,NZTV(iz)
-          call eclose(x1,vcoord(iz,iv,1),0.001,clx)
-          call eclose(y1,vcoord(iz,iv,2),0.001,cly)
-          call eclose(z1,vcoord(iz,iv,3),0.001,clz)
+          call eclose(x1,szcoords(iz,iv,1),0.001,clx)
+          call eclose(y1,szcoords(iz,iv,2),0.001,cly)
+          call eclose(z1,szcoords(iz,iv,3),0.001,clz)
           if(clx.and.cly.and.clz)then
             match=.true.
             ivmatch = iv
@@ -1105,15 +1105,15 @@ C Update the surface topology.
         call edisp(iuout,outs)
       endif
       if(match)then
-        NZNVER(icc) = NZNVER(icc)+1
-        NZJVN(icc,NZNVER(icc))=ivmatch
+        isznver(iz,is) = isznver(iz,is)+1
+        iszjvn(iz,is,isznver(iz,is))=ivmatch
       else
         NZTV(iz) = NZTV(iz)+1
-        NZNVER(icc) = NZNVER(icc)+1
-        NZJVN(icc,NZNVER(icc)) = NZTV(iz)
-        vcoord(iz,NZTV(iz),1) = x1
-        vcoord(iz,NZTV(iz),2) = y1
-        vcoord(iz,NZTV(iz),3) = z1
+        isznver(iz,is) = isznver(iz,is)+1
+        iszjvn(iz,is,isznver(iz,is)) = NZTV(iz)
+        szcoords(iz,NZTV(iz),1) = x1
+        szcoords(iz,NZTV(iz),2) = y1
+        szcoords(iz,NZTV(iz),3) = z1
       endif
 
       return

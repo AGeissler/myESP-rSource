@@ -299,7 +299,7 @@ C CFD-MFS trace output delimeters.
 C Convection coefficients.
  258  DO 100 I=1,NCONST(ICP)
         icon=IZSTOCN(icp,i)
-        SFNAM(I)=SSNAME(icon)
+        SFNAM(I)=SNAME(icp,i)
  100  CONTINUE
 
 C Surface conflation:

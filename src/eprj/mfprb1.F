@@ -1139,7 +1139,7 @@ C General image option flags.
 
 C Remember which zone and surface.
           icc=izstocn(iz,iso)
-          CMPASSOC(IFNOD,1)=ZNAME(IZ); CMPASSOC(IFNOD,2)=SSNAME(icc)
+          CMPASSOC(IFNOD,1)=ZNAME(IZ); CMPASSOC(IFNOD,2)=SNAME(iz,iso)
           changed=.true.
 
  
@@ -2004,6 +2004,11 @@ C Legacy file, do not report on component height.
 C Checks for component validity ...
 C Also check that a flow merge/split component is not being used in a
 C duplicate connection.
+        if(ICMP.eq.0)then
+          WRITE(OUTS,'(A)') 'No component selected! Returning.'
+          call edisp(iuout,outs)
+          return
+        endif
         ICMPTP=ITPCMP(ICMP)
         DMFCON=.FALSE.
         IF(ICMPTP.EQ.220.OR.ICMPTP.EQ.230.OR.

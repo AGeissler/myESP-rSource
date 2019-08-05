@@ -1144,6 +1144,7 @@ C the user is interested in for stats/ graphs/ listings etc.
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
       DIMENSION IVA(MS),IVALS(MS)
       character ST(MS)*12,CSTR*25
@@ -1169,7 +1170,7 @@ C Create list of surfaces in current zone (IZ) and reset call parameters.
       INPIC=NZSUR(IZ)
       DO 11 I=1,INPIC
         CALL SURADJ(IZ,I,IE,T,IZC,ISC,ICN,CSTR)
-        ST(I)=SSNAME(ICN)
+        ST(I)=SNAME(IC1(icn),IE1(icn))
         IVA(I)=0
    11 CONTINUE
 

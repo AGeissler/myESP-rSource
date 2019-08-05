@@ -66,7 +66,7 @@ C x & y values for this surface by scanning each vertex.
       zmax=-1.E+10
       xmin=1.E+10
       zmin=1.E+10
-      nv=nznver(icc)
+      nv=isznver(izone,its)
       do i=1,nv
          xmax=amax1(xmax,xft(i))
          zmax=amax1(zmax,zft(i))
@@ -224,11 +224,11 @@ C one grid cell.
       endif
 
 C Compute x & y & z values for centre point of each grid cell.
-      NV = NZNVER(icc)
+      NV = isznver(izone,its)
       DO J = 1,NV
-        XX(J) = VCOORD(izone,NZJVN(icc,J),1)
-        YY(J) = VCOORD(izone,NZJVN(icc,J),2)
-        ZZ(J) = VCOORD(izone,NZJVN(icc,J),3)
+        XX(J) = szcoords(izone,iszjvn(izone,its,J),1)
+        YY(J) = szcoords(izone,iszjvn(izone,its,J),2)
+        ZZ(J) = szcoords(izone,iszjvn(izone,its,J),3)
       ENDDO  ! of J
 
 C For each grid point calculate offset from lower left and compute its
@@ -733,10 +733,10 @@ C        itothits=0  ! reset counter for nb of grid hits for surface
             goto 112  ! cannot be seen by solar vector
           elseif(fbc(its,icc).eq.'B')then
             goto 112  ! other surface is behind
-          elseif(ssother(icc,1)(1:7).eq.'SIMILAR')then
+          elseif(sother(izone,loop,1)(1:7).eq.'SIMILAR')then
             goto 112  ! do not face outside
           endif
-          if(ssother(icc,1)(1:8).eq.'EXTERIOR')then
+          if(sother(izone,loop,1)(1:8).eq.'EXTERIOR')then
              
             EQN(1)=ssureqn(icc,1)
             EQN(2)=ssureqn(icc,2)
@@ -1175,16 +1175,16 @@ C Get the current connection and number of surfaces in zone.
 C Transform surface into into site coordinates in the
 C surface of the plane. Make up XX,YY,ZZ to pass across to the
 C transform routine.
-      N = NZNVER(icc)
+      N = isznver(izone,is)
       DO J = 1,N
-        ip1=NZJVN(icc,J)
-        XX(J) = VCOORD(izone,ip1,1)
+        ip1=iszjvn(izone,is,J)
+        XX(J) = szcoords(izone,ip1,1)
         XMN=AMIN1(XMN,XX(J))
         XMX=AMAX1(XMX,XX(J))
-        YY(J) = VCOORD(izone,ip1,2)
+        YY(J) = szcoords(izone,ip1,2)
         YMN=AMIN1(YMN,YY(J))
         YMX=AMAX1(YMX,YY(J))
-        ZZ(J) = VCOORD(izone,ip1,3)
+        ZZ(J) = szcoords(izone,ip1,3)
         ZMN=AMIN1(ZMN,ZZ(J))
         ZMX=AMAX1(ZMX,ZZ(J))
       ENDDO  ! of J
@@ -1428,7 +1428,7 @@ C Process initial selection.
             np=0
             do i=1,nzsur(izone)
                icn=izstocn(izone,i)
-               if(ssother(icn,1)(1:5).eq.'EXTER')then
+               if(sother(izone,i,1)(1:5).eq.'EXTER')then
                   np=np+1
                  iva(np)=i
                endif
@@ -1442,8 +1442,8 @@ C Process initial selection.
             np=0
             do i=1,nzsur(izone)
                icn=izstocn(izone,i)
-               if(ssother(icn,1)(1:5).eq.'EXTER'.and.
-     &                    ssotf(icn)(1:4).ne.'OPAQ')then
+               if(sother(izone,i,1)(1:5).eq.'EXTER'.and.
+     &            sotf(izone,i)(1:4).ne.'OPAQ')then
                   np=np+1
                   iva(np)=i
                endif
@@ -1459,22 +1459,22 @@ C Process initial selection.
          do i=1,inpic
             icn=izstocn(izone,i)
             if(act.eq.'s'.or.act.eq.'S')then
-               if(ssother(ICN,1)(1:5).eq.'EXTER')then
-                  write(stmp(I),'(5a)')ssname(icn),'|',ssotf(icn)(1:4),
-     &                             '|',ssother(icn,1)(1:15)
+               if(sother(izone,i,1)(1:5).eq.'EXTER')then
+                  write(stmp(I),'(5a)')sname(izone,i),'|',
+     &              sotf(izone,i)(1:4),'|',sother(izone,i,1)(1:15)
                else
-                  write(stmp(I),'(2a)')ssname(icn),' not applicable'
+                  write(stmp(I),'(2a)')sname(izone,i),' not applicable'
                endif
             elseif(act.eq.'-')then
-               write(stmp(i),'(5a)')ssname(icn),'|',ssotf(icn)(1:4),
-     &                             '|',ssother(icn,1)(1:15)
+               write(stmp(i),'(5a)')sname(izone,i),'|',
+     &           sotf(izone,i)(1:4),'|',sother(izone,i,1)(1:15)
             elseif(act.eq.'i'.or.act.eq.'I')then
-               if(ssother(icn,1)(1:5).eq.'EXTER'.and.
-     &                           ssotf(icn)(1:4).ne.'OPAQ')then
-                  write(stmp(i),'(5a)')ssname(icn),'|',ssotf(icn)(1:4),
-     &                             '|',ssother(icn,1)(1:15)
+               if(sother(izone,i,1)(1:5).eq.'EXTER'.and.
+     &            sotf(izone,i)(1:4).ne.'OPAQ')then
+                  write(stmp(i),'(5a)')sname(izone,i),'|',
+     &              sotf(izone,i)(1:4),'|',sother(izone,i,1)(1:15)
                else
-                  write(stmp(i),'(2a)')ssname(icn),' not applicable'
+                  write(stmp(i),'(2a)')sname(izone,i),' not applicable'
                endif
             endif
             iva(i)=0
@@ -1496,10 +1496,10 @@ C Process initial selection.
          do i=1,inpic
             icn=izstocn(izone,i)
             if(isc(i).eq.1)then
-               write(stmp(i),'(5a)')ssname(icn),'|',ssotf(icn)(1:4),
-     &                         '|',ssother(icn,1)(1:15)
+               write(stmp(i),'(5a)')sname(izone,i),'|',
+     &           sotf(izone,i)(1:4),'|',sother(izone,i,1)(1:15)
             else
-               write(stmp(i),'(2a)')ssname(icn),' not assessed'
+               write(stmp(i),'(2a)')sname(izone,i),' not assessed'
             endif
             iva(i)=0
          enddo  ! of i
@@ -1589,7 +1589,7 @@ C Get the current connection and number of surfaces in zone.
       icc=izstocn(icomp,is)
 
 C Determine if point xx,zz is within surface 'is'.
-      np=nznver(icc)
+      np=isznver(icomp,is)
       do i=1,np
          ii=2*i-1
          c(ii)=xft(i)
@@ -1718,7 +1718,7 @@ C Get the current connection and number of surfaces in zone.
 
 C Determine if point xx,zz is within surface 'is'. And setup
 C the local arrays.
-      np=nznver(icc)
+      np=isznver(icomp,is)
       nc=np+1
       xarray(nc)=xft(1)
       yarray(nc)=zft(1)
@@ -1848,31 +1848,31 @@ C Check the surface normal and figure out which is the largest.
 
 C Determine if point xx,zz is within surface 'is'. And setup
 C the local arrays.
-      np=nznver(icc)
+      np=isznver(icomp,is)
       nc=np+1
       if(drop.eq.'X')then
         xx=yp; yy=zp
-        xarray(nc)=VCOORD(icomp,NZJVN(icc,1),2)
-        yarray(nc)=VCOORD(icomp,NZJVN(icc,1),3)
+        xarray(nc)=szcoords(icomp,iszjvn(icomp,is,1),2)
+        yarray(nc)=szcoords(icomp,iszjvn(icomp,is,1),3)
         do loop=1,np
-          xarray(loop)=VCOORD(icomp,NZJVN(icc,loop),2)
-          yarray(loop)=VCOORD(icomp,NZJVN(icc,loop),3)
+          xarray(loop)=szcoords(icomp,iszjvn(icomp,is,loop),2)
+          yarray(loop)=szcoords(icomp,iszjvn(icomp,is,loop),3)
         enddo
       elseif(drop.eq.'Y')then
         xx=xp; yy=zp
-        xarray(nc)=VCOORD(icomp,NZJVN(icc,1),1)
-        yarray(nc)=VCOORD(icomp,NZJVN(icc,1),3)
+        xarray(nc)=szcoords(icomp,iszjvn(icomp,is,1),1)
+        yarray(nc)=szcoords(icomp,iszjvn(icomp,is,1),3)
         do loop=1,np
-          xarray(loop)=VCOORD(icomp,NZJVN(icc,loop),1)
-          yarray(loop)=VCOORD(icomp,NZJVN(icc,loop),3)
+          xarray(loop)=szcoords(icomp,iszjvn(icomp,is,loop),1)
+          yarray(loop)=szcoords(icomp,iszjvn(icomp,is,loop),3)
         enddo
       elseif(drop.eq.'Z')then
         xx=xp; yy=yp
-        xarray(nc)=VCOORD(icomp,NZJVN(icc,1),1)
-        yarray(nc)=VCOORD(icomp,NZJVN(icc,1),2)
+        xarray(nc)=szcoords(icomp,iszjvn(icomp,is,1),1)
+        yarray(nc)=szcoords(icomp,iszjvn(icomp,is,1),2)
         do loop=1,np
-          xarray(loop)=VCOORD(icomp,NZJVN(icc,loop),1)
-          yarray(loop)=VCOORD(icomp,NZJVN(icc,loop),2)
+          xarray(loop)=szcoords(icomp,iszjvn(icomp,is,loop),1)
+          yarray(loop)=szcoords(icomp,iszjvn(icomp,is,loop),2)
         enddo
       endif
 C Debug.
@@ -2222,7 +2222,7 @@ C Ignore self.
             if(icc.eq.icco) fbc(loop,icco)='-'
           enddo  ! of loop3
         enddo  ! of loop2
-        write(6,'(22a)') SSNAME(icc),' ',(fbc(loop,j),j=1,20)
+        write(6,'(22a)') SNAME(icomp,loop),' ',(fbc(loop,j),j=1,20)
       enddo    ! of loop
       return
       end  ! of frontsurbox
@@ -2311,7 +2311,7 @@ C If both are same sign then in front.
             endif
           enddo  ! of loop2
         endif    ! of nbobs
-        write(6,'(22a)') SSNAME(icc),' ',(ofbc(loop,j),j=1,20)
+        write(6,'(22a)') SNAME(icomp,loop),' ',(ofbc(loop,j),j=1,20)
       enddo    ! of loop
       return
       end

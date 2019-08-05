@@ -93,7 +93,7 @@ C Recover and update irecs for surface `is`.
       irecs(is)=irecl
       write(iunit,rec=irec,iostat=istat,err=1000)(irecs(i),i=1,nzs)
       irec=irecs(is)
-      nv=nznver(icc)
+      nv=isznver(icomp,is)
       write(iunit,rec=irec,iostat=istat,err=1000)(xft(i),i=1,nv)
       irec=irec+1
       write(iunit,rec=irec,iostat=istat,err=1000)(zft(i),i=1,nv)
@@ -255,25 +255,25 @@ C sky portion.
 C Check for inappropriate shading values.
       if(mode.eq.'dir'.and.pso(is,ihour).gt.1.0)then
          write(outs,'(3a,f5.3,a,i2,a)') 'Direct shading factor for ',
-     &        ssname(icn),' is ',pso(is,ihour),' @ ',ihour,
+     &        sname(icomp,is),' is ',pso(is,ihour),' @ ',ihour,
      &        'hrs - saved as 1.0.'
          call edisp248(iuout,outs,124)
          pso(is,ihour)=1.0
       elseif(mode.eq.'dir'.and.pso(is,ihour).lt.0.0)then
          write(outs,'(3a,f5.3,a,i2,a)') 'Direct shading factor for ',
-     &        ssname(icn),' is ',pso(is,ihour),' @ ',ihour,
+     &        sname(icomp,is),' is ',pso(is,ihour),' @ ',ihour,
      &        'hrs - saved as 0.0.'
          call edisp248(iuout,outs,124)
          pso(is,ihour)=0.0
       elseif(mode.eq.'dif'.and.psof(is,ihour).gt.1.0)then
         write(outs,'(3a,f5.3,a,i2,a)') 'Diffuse shading factor for ',
-     &        ssname(icn),' is ',psof(is,ihour),' @ ',ihour,
+     &        sname(icomp,is),' is ',psof(is,ihour),' @ ',ihour,
      &        'hrs - saved as 1.0.'
         call edisp248(iuout,outs,124)
         psof(is,ihour)=1.0
       elseif(mode.eq.'dif'.and.psof(is,ihour).lt.0.0)then
         write(outs,'(3a,f5.3,a,i2,a)') 'Diffuse shading factor for ',
-     &        ssname(icn),' is ',psof(is,ihour),' @ ',ihour,
+     &        sname(icomp,is),' is ',psof(is,ihour),' @ ',ihour,
      &        'hrs - saved as 0.0.'
         call edisp248(iuout,outs,124)
         psof(is,ihour)=0.0

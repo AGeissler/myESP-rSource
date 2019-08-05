@@ -47,7 +47,6 @@ C ****** GTOPOL
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      common/C6/INDCFG
       
       CHARACTER*33 ITEMS(12)
       character*45 VERTS(MGRT)

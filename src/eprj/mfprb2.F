@@ -150,7 +150,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -283,7 +283,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -441,7 +441,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -591,7 +591,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -742,7 +742,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -893,7 +893,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1043,7 +1043,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1265,7 +1265,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1411,7 +1411,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1560,7 +1560,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1710,7 +1710,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1845,7 +1845,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1975,7 +1975,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -2130,7 +2130,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -2319,7 +2319,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -2480,7 +2480,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update

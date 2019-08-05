@@ -656,8 +656,8 @@ C General image option flags.
      &    'component. ',IER)
       ENDIF
       CALL EPMENRC
-      if(SOTF(ISO)(1:4).eq.'OPAQ'.or.SOTF(ISO)(1:4).eq.'CFC '.or.
-     &   SOTF(ISO)(1:4).eq.'CFC2')then
+      if(SOTF(IZ,ISO)(1:4).eq.'OPAQ'.or.SOTF(IZ,ISO)(1:4).eq.'CFC '.or.
+     &   SOTF(IZ,ISO)(1:4).eq.'CFC2')then
         ISPMF=1
       else
         ISPMF=0
@@ -681,9 +681,9 @@ c      IVAL=IFOC
       CALL redraw(IER)
       MODIFYVIEW=.TRUE.
       MODBND=.TRUE.
-C      if(SOTF(ISO)(1:4).eq.'OPAQ'.or.SOTF(ISO)(1:4).eq.'CFC '.or.
-C     &   SOTF(ISO)(1:4).eq.'CFC2')then
-      if(SOTF(ISO)(1:4).eq.'OPAQ')then
+C      if(SOTF(IZ,ISO)(1:4).eq.'OPAQ'.or.SOTF(IZ,ISO)(1:4).eq.'CFC '.or.
+C     &   SOTF(IZ,ISO)(1:4).eq.'CFC2')then
+      if(SOTF(IZ,ISO)(1:4).eq.'OPAQ')then
         ISPMF=1
       else
         ISPMF=0
@@ -977,8 +977,8 @@ C Free standing turbine does not need this information.
 C Check composite name of surface with composite name in MLC common.
         imatch=0
         do 5 i=1,nmlc
-          lnssmlc=lnblnk(SMLCN(iso))
-          if(SMLCN(iso)(1:lnssmlc).eq.
+          lnssmlc=lnblnk(SMLCN(IZ,iso))
+          if(SMLCN(IZ,iso)(1:lnssmlc).eq.
      &       mlcname(i)(1:lnmlcname(i))) then
             imatch=i          
           endif

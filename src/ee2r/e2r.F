@@ -1442,16 +1442,16 @@ C Get the current connection and number of surfaces in zone.
 C Transform surface into into site coordinates in the
 C surface of the plane. Make up XX,YY,ZZ to pass across to the
 C transform routine.
-      N = NZNVER(icc)
+      N = isznver(izone,is)
       DO J = 1,N
-        ip1=NZJVN(icc,J)
-        XX(J) = VCOORD(izone,ip1,1)
+        ip1=iszjvn(izone,is,J)
+        XX(J) = szcoords(izone,ip1,1)
         XMN=AMIN1(XMN,XX(J))
         XMX=AMAX1(XMX,XX(J))
-        YY(J) = VCOORD(izone,ip1,2)
+        YY(J) = szcoords(izone,ip1,2)
         YMN=AMIN1(YMN,YY(J))
         YMX=AMAX1(YMX,YY(J))
-        ZZ(J) = VCOORD(izone,ip1,3)
+        ZZ(J) = szcoords(izone,ip1,3)
         ZMN=AMIN1(ZMN,ZZ(J))
         ZMX=AMAX1(ZMX,ZZ(J))
       ENDDO  ! of J

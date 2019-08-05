@@ -1044,7 +1044,7 @@ C and highest point and centre of gravity of surface.
             icc=IZSTOCN(IZ,IS)
             CALL CONXMENU(icc,CXITM)
             write(outsn,'(a,1x,a,1x,6f9.3)',iostat=ios,err=13) 
-     &        zname(IZ),SSNAME(icc),SSNA(icc),SSPAZI(icc),
+     &        zname(IZ),SNAME(IZ,IS),SSNA(icc),SSPAZI(icc),
      &        SSPELV(icc),szlow,szcog,szhigh
             call SDELIM(outsn,outsd,'C',IW)
             write(42,'(3a)',iostat=ios,err=13)
@@ -1912,9 +1912,9 @@ C Find the index of the MLC which matches each surface.
             DO 9994 I=1,NZSUR(icomp)
               icn1=izstocn(icomp,i)
               ssmlcindex(icn1)=0  ! assume no matching MLC          
-              lnssmlc=lnblnk(SSMLCN(icn1))
+              lnssmlc=lnblnk(SMLCN(icomp,i))
               do 5 ii=1,nmlc
-                if(SSMLCN(icn1)(1:lnssmlc).eq.
+                if(SMLCN(icomp,i)(1:lnssmlc).eq.
      &             mlcname(ii)(1:lnmlcname(ii))) then
                   ssmlcindex(icn1)=ii   ! remember MLC index     
                 endif
@@ -1989,17 +1989,17 @@ C Recover connections associated with that zone.
               jict(jixu)=ICT(IXU)
               jic2(jixu)=IC2(IXU)
               jie2(jixu)=IE2(IXU)
-              jsotf(jixu)=SSOTF(IXU)
-              jsmlcn(jixu)=SSMLCN(IXU)
+              jsotf(jixu)=SOTF(IC1(ixu),IE1(ixu))
+              jsmlcn(jixu)=SMLCN(IC1(ixu),IE1(ixu))
               jmlcindex(jixu)=ssmlcindex(IXU)
-              jsvfc(jixu)=SSVFC(IXU)
-              jsother(jixu,1)=SSOTHER(IXU,1)
-              jsother(jixu,2)=SSOTHER(IXU,2)
-              jsother(jixu,3)=SSOTHER(IXU,3)
-              jsuse(jixu,1)=SSUSE(IXU,1)
-              jsuse(jixu,2)=SSUSE(IXU,2)
-              jsname(jixu)=SSNAME(IXU)
-              jsparent(jixu)=SSPARENT(IXU)
+              jsvfc(jixu)=SVFC(IC1(ixu),IE1(ixu))
+              jsother(jixu,1)=SOTHER(IC1(ixu),IE1(ixu),1)
+              jsother(jixu,2)=SOTHER(IC1(ixu),IE1(ixu),2)
+              jsother(jixu,3)=SOTHER(IC1(ixu),IE1(ixu),3)
+              jsuse(jixu,1)=SUSE(IC1(ixu),IE1(ixu),1)
+              jsuse(jixu,2)=SUSE(IC1(ixu),IE1(ixu),2)
+              jsname(jixu)=SNAME(IC1(ixu),IE1(ixu))
+              jsparent(jixu)=SPARENT(IC1(ixu),IE1(ixu))
             endif
    35     continue
 
@@ -2294,17 +2294,16 @@ C 'similar' and 'adiabatic' connections if found.
             IC1(ICCC)=NCOMP
             IE1(ICCC)=ICC 
             IZSTOCN(ncomp,icc)=iccc
-            SSOTF(ICCC)=jsotf(icc)
-            SSMLCN(ICCC)=jsmlcn(icc)
+            SOTF(ncomp,icc)=jsotf(icc)
+            SMLCN(ncomp,icc)=jsmlcn(icc)
             ssmlcindex(ICCC)=jmlcindex(icc)
-            SSVFC(ICCC)=jsvfc(icc)
-            SSOTHER(ICCC,1)=jsother(icc,1)
-            SSOTHER(ICCC,2)=jsother(icc,2)
-            SSOTHER(ICCC,3)=jsother(icc,3)
-            SSUSE(ICCC,1)=jsuse(icc,1)
-            SSUSE(ICCC,2)=jsuse(icc,2)
-            SSNAME(ICCC)=jsname(icc)
-            SSPARENT(ICCC)=jsparent(icc)
+            SVFC(ncomp,icc)=jsvfc(icc)
+            SOTHER(ncomp,icc,1)=jsother(icc,1)
+            SOTHER(ncomp,icc,2)=jsother(icc,2)
+            SOTHER(ncomp,icc,3)=jsother(icc,3)
+            SUSE(ncomp,icc,1)=jsuse(icc,1)
+            SUSE(ncomp,icc,2)=jsuse(icc,2)
+            SPARENT(ncomp,icc)=jsparent(icc)
             if(jict(ICC).eq.0)then
               ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
             elseif(jict(ICC).eq.1.or.jict(ICC).eq.2)then
@@ -2312,12 +2311,9 @@ C 'similar' and 'adiabatic' connections if found.
               IC2(ICCC)=jic2(ICC)
               IE2(ICCC)=jie2(ICC)
             elseif(jict(ICC).eq.3)then
-              SOTHER(ICC,1)='UNKNOWN'
-              SOTHER(ICC,2)='0'
-              SOTHER(ICC,3)='0'
-              SSOTHER(ICCC,1)='UNKNOWN'
-              SSOTHER(ICCC,2)='0'
-              SSOTHER(ICCC,3)='0'
+              SOTHER(ncomp,icc,1)='UNKNOWN'
+              SOTHER(ncomp,icc,2)='0'
+              SOTHER(ncomp,icc,3)='0'
               ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
             elseif(jict(ICC).eq.4.or.jict(ICC).eq.5)then
               ICT(ICCC)=jict(ICC)
@@ -2335,9 +2331,9 @@ C Update the global coordinates for this zone's surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
 C the zone can be calculated.
           DO 41 J=1,NZTV(ncomp)
-            VCOORD(ncomp,J,1)=X(J)
-            VCOORD(ncomp,J,2)=Y(J)
-            VCOORD(ncomp,J,3)=Z(J)
+            szcoords(ncomp,J,1)=X(J)
+            szcoords(ncomp,J,2)=Y(J)
+            szcoords(ncomp,J,3)=Z(J)
    41     CONTINUE
 
 C Now it is ok to write out the copied zone.
@@ -4409,9 +4405,9 @@ C copy # of plant component nodes from bps to prj commons
 
 C We know how many zone so use ZDATA to finish instanciating the
 C common blocks for:
-C   VCOORD : X,Y & Z coordinates of each vertice in zone.
-C   NZNVER : number of vertices associated with each connection.
-C   NZJVN : topology of vertices associated with each connection.
+C   szcoords : X,Y & Z coordinates of each vertice in zone.
+C   isznver : number of vertices associated with each surface.
+C   iszjvn : topology of vertices.
         NZONES=NCOMP
         ISFSUM=0
         CALL ZDATA (ITRC,IER,NZONES,ISFSUM)
@@ -4464,9 +4460,9 @@ C Find the index of the MLC which matches each surface.
             icn1=izstocn(icomp,i)
             if(icn1.ge.1)then
               ssmlcindex(icn1)=0  ! assume no matching MLC          
-              lnssmlc=lnblnk(SSMLCN(icn1))
+              lnssmlc=lnblnk(SMLCN(icomp,i))
               do 5 ii=1,nmlc
-                if(SSMLCN(icn1)(1:lnssmlc).eq.
+                if(SMLCN(icomp,i)(1:lnssmlc).eq.
      &             mlcname(ii)(1:lnmlcname(ii)))then
                   ssmlcindex(icn1)=ii   ! remember MLC index     
                 endif
@@ -4961,6 +4957,8 @@ C      of obstruction data.
      &  silent,itru,ier)
       implicit none
 #include "building.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
@@ -4976,17 +4974,21 @@ C      of obstruction data.
       common/FILEP/IFIL
       integer iuout,iuin
       common/OUTIN/IUOUT,IUIN
+      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
+      CHARACTER LAPROB*72
             
       logical newgeo  ! to use for testing if new/old geometry file.
       
       character*72 LTMP
       character ZN*12
       character outs*124
-      logical DOK,OK
-      integer iuf   ! file type 
-      integer iicomp  ! index of current zone
-      integer itrc,ij,i,iz  ! types for local variables
-      integer ibe   ! loop for faces of obstruction
+      logical DOK,OK,goforit
+      integer iuf          ! file type 
+      integer iicomp       ! index of current zone
+      integer itrc,ij,i,iz ! types for local variables
+      integer ibe          ! loop for faces of obstruction
+      integer inod,icmp  ! for flow logic
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -5009,6 +5011,8 @@ C For help messages
 
 C Find out the version number so we know what to do with obstructions later.
           call eclose(gversion(IICOMP),1.1,0.01,newgeo)
+
+C Scan the zone geometry and apply transform.
           call georead(IUF,LTMP,IICOMP,1,iuout,IER)
           DO 62 I=1,NTV
             X(I)=X(I)+VALX
@@ -5016,7 +5020,7 @@ C Find out the version number so we know what to do with obstructions later.
             Z(I)=Z(I)+VALZ
    62     continue
           iZBFLG(IICOMP)=0
-  
+
           if(nbvis(iicomp).gt.0)then
 
 C Visual object transforms.
@@ -5032,7 +5036,8 @@ C Visual object transforms.
             enddo    ! of ij
           endif
 
-C Decide whether to upgrade the geometry file format.
+C Decide whether to upgrade the geometry file format and
+C then write out the updated geometry.
           if(igupgrade.eq.2.and.(.NOT.newgeo))then
             gversion(iicomp) =1.1
             newgeo = .true.
@@ -5048,6 +5053,44 @@ C After transform update the g6 & g7 commons and find dependencies.
 
 C Depending on the nature of the change update the common block pmchange.
           call warnmod(IICOMP,'str')
+
+C If there are associated flow entities transform them as well.
+          if(IAIRN.ge.1.and.ICAAS(IICOMP).ne.0)then
+
+C Apply the transform to the position of nodes and components
+C associated with this zone. Loop through all the surfaces and
+C items associated in the network apply this transform to.
+            goforit=.false.
+            do ij=1,nzsur(iicomp)
+              call doesflowrefsurface(iicomp,ij,inod,icmp)
+              if(inod.gt.0.or.icmp.gt.0)call usrmsg(
+     &          'Updating associated network entities.',
+     &          'Please double check!','-')
+              if(inod.gt.0)then
+                HNOD(INOD,1)=HNOD(INOD,1)+VALX
+                HNOD(INOD,2)=HNOD(INOD,2)+VALY
+                HNOD(INOD,3)=HNOD(INOD,3)+VALZ
+                goforit=.true.
+              endif
+              if(icmp.gt.0)then
+                HCMP(ICMP,1,1)=HCMP(ICMP,1,1)+VALX 
+                HCMP(ICMP,1,2)=HCMP(ICMP,1,2)+VALY
+                HCMP(ICMP,1,3)=HCMP(ICMP,1,3)+VALZ
+                goforit=.true.
+              endif
+            enddo
+
+C Also reflect change in zone COG.
+            i=ICAAS(iicomp)
+            HNOD(i,1)=ZCOG(iicomp,1); HNOD(i,2)=ZCOG(iicomp,2)
+            HNOD(i,3)=ZCOG(iicomp,3)
+            write(outs,'(3a,3f7.3)') 'Updating ',NDNAM(i),' @',
+     &        HNOD(i,1),HNOD(i,2),HNOD(i,3)
+            call edisp(iuout,outs)
+            if(goforit)then
+              call updatebothflownetworks(ier)
+            endif
+          endif
 
 C Transform any MRT sensors associated with this zone and if a
 C newer geometry file also update the block attributes held there.
@@ -5092,14 +5135,18 @@ C transform origin.
             if(OK)then
               CALL EGOMST(IUF,IICOMP,ZOBS(IICOMP),0,ITRC,ITRU,IER)
               do 63 ij=1,nbobs(iicomp)
-                XOB(iicomp,ij)=XOB(iicomp,ij)+VALX
-                YOB(iicomp,ij)=YOB(iicomp,ij)+VALY
-                ZOB(iicomp,ij)=ZOB(iicomp,ij)+VALZ
-                do 88 ibe=1,8
-                  XBP(iicomp,ij,ibe)=XBP(iicomp,ij,ibe)+VALX
-                  YBP(iicomp,ij,ibe)=YBP(iicomp,ij,ibe)+VALY
-                  ZBP(iicomp,ij,ibe)=ZBP(iicomp,ij,ibe)+VALZ
-  88            continue
+                if(BLOCKTYP(iicomp,ij)(1:4).eq.'obs '.or.
+     &             BLOCKTYP(iicomp,ij)(1:4).eq.'obs3')then
+                  XOB(iicomp,ij)=XOB(iicomp,ij)+VALX
+                  YOB(iicomp,ij)=YOB(iicomp,ij)+VALY
+                  ZOB(iicomp,ij)=ZOB(iicomp,ij)+VALZ
+                else
+                  do ibe=1,8
+                    XBP(iicomp,ij,ibe)=XBP(iicomp,ij,ibe)+VALX
+                    YBP(iicomp,ij,ibe)=YBP(iicomp,ij,ibe)+VALY
+                    ZBP(iicomp,ij,ibe)=ZBP(iicomp,ij,ibe)+VALZ
+                  enddo
+                endif
   63          continue
               CALL MKGOMST(IUF,ZOBS(IICOMP),IICOMP,IER)
             endif
@@ -5118,14 +5165,18 @@ C apply the transform and write the file back out.
               endif
               if(OK)then
                 do 64 ij=1,nbobs(iicomp)
-                  XOB(iicomp,ij)=XOB(iicomp,ij)+VALX
-                  YOB(iicomp,ij)=YOB(iicomp,ij)+VALY
-                  ZOB(iicomp,ij)=ZOB(iicomp,ij)+VALZ
-                  do 89 ibe=1,8
-                    XBP(iicomp,ij,ibe)=XBP(iicomp,ij,ibe)+VALX
-                    YBP(iicomp,ij,ibe)=YBP(iicomp,ij,ibe)+VALY
-                    ZBP(iicomp,ij,ibe)=ZBP(iicomp,ij,ibe)+VALZ
-  89              continue
+                  if(BLOCKTYP(iicomp,ij)(1:4).eq.'obs '.or.
+     &               BLOCKTYP(iicomp,ij)(1:4).eq.'obs3')then
+                    XOB(iicomp,ij)=XOB(iicomp,ij)+VALX
+                    YOB(iicomp,ij)=YOB(iicomp,ij)+VALY
+                    ZOB(iicomp,ij)=ZOB(iicomp,ij)+VALZ
+                  else
+                    do ibe=1,8
+                      XBP(iicomp,ij,ibe)=XBP(iicomp,ij,ibe)+VALX
+                      YBP(iicomp,ij,ibe)=YBP(iicomp,ij,ibe)+VALY
+                      ZBP(iicomp,ij,ibe)=ZBP(iicomp,ij,ibe)+VALZ
+                    enddo
+                  endif
   64            continue
                 call geowrite(IUF,LTMP,IICOMP,ITRU,3,IER)
               endif
@@ -5163,6 +5214,8 @@ C user can un-do this action.
 
       implicit none
 #include "building.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
@@ -5178,24 +5231,27 @@ C user can un-do this action.
       common/FILEP/IFIL
       integer iuout,iuin
       common/OUTIN/IUOUT,IUIN
+      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
+      CHARACTER LAPROB*72
       
       logical newgeo  ! to use for testing if new/old geometry file.
       
       character*72 LTMP
       character ZN*12
       character outs*124
-      logical DOK,OK
+      logical DOK,OK,goforit
       integer itrc,iuf,iicomp,ij,iz
       integer ibe   ! loop for faces of obstruction
       real A,pi,XR,YR,XXX,YYY,CA,SA
       real angr   ! rotation angle
+      integer i,inod,icmp
 
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
-       
       helpinsub='globalrotate'  ! set for subroutine
       helptopic='global_rotate_options'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -5239,7 +5295,6 @@ C Visual object rotation.
             enddo    ! of ij
           endif
 
-
 C Remember user directive for future un-do.
           rotateit(iicomp,1)=0.0
           rotateit(iicomp,2)=0.0
@@ -5262,6 +5317,44 @@ C After transform update the g6 & g7 commons and find dependencies.
 C Depending on the nature of the change update the common block pmchange.
           call warnmod(IICOMP,'str')
 
+C Rotation of nodes and components associated with surfaces in the
+C zone need to be dealt with.
+          if(IAIRN.ge.1.and.ICAAS(IICOMP).ne.0)then
+            call usrmsg(
+     &      'Updating associated flow entities.',
+     &      'Please check!','-')
+            goforit=.false.
+            PI = 4.0 * ATAN(1.0)
+            A=-VAL*PI/180.0; CA=COS(A); SA=SIN(A)
+            do ij=1,nzsur(iicomp)
+              call doesflowrefsurface(iicomp,ij,inod,icmp)
+              if(inod.gt.0)then  ! relocate node and alter orientation
+                XXX=HNOD(INOD,1)-X1; YYY=HNOD(INOD,2)-Y1
+                XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+                HNOD(INOD,1)=XR+X1; HNOD(INOD,2)=YR+Y1
+                SUPNOD(INOD,2)=SUPNOD(INOD,2)+VAL
+                goforit=.true.
+              endif
+              if(icmp.gt.0)then  ! relocate component
+                XXX=HCMP(ICMP,1,1)-X1; YYY=HCMP(ICMP,1,2)-Y1
+                XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+                HCMP(ICMP,1,1)=XR+X1; HCMP(ICMP,1,2)=YR+Y1
+                goforit=.true.
+              endif
+            enddo
+
+C Also reflect change in zone COG.
+            i=ICAAS(iicomp)
+            HNOD(i,1)=ZCOG(iicomp,1); HNOD(i,2)=ZCOG(iicomp,2)
+            HNOD(i,3)=ZCOG(iicomp,3)
+            write(outs,'(3a,3f7.3)') 'Updating ',NDNAM(i),' @',
+     &        HNOD(i,1),HNOD(i,2),HNOD(i,3)
+            call edisp(iuout,outs)
+            if(goforit)then
+              call updatebothflownetworks(ier)
+            endif
+          endif
+
 C Rotate any MRT sensors associated with this zone and if newer
 C geometry file update its block attributes as well.
           if (IVF(IICOMP).eq.1) then
@@ -5276,16 +5369,11 @@ C geometry file update its block attributes as well.
               endif
               if (OK) then
                 PI = 4.0 * ATAN(1.0)
-                A=-VAL*PI/180.
-                CA=COS(A)
-                SA=SIN(A)
+                A=-VAL*PI/180.0; CA=COS(A); SA=SIN(A)
                 do 76 ij=1,NCUB(IICOMP)
-                  XXX=XOC(ij)-X1
-                  YYY=YOC(ij)-Y1
-                  XR=XXX*CA+YYY*SA
-                  YR=YYY*CA-XXX*SA
-                  XOC(ij)=XR+X1
-                  YOC(ij)=YR+Y1
+                  XXX=XOC(ij)-X1; YYY=YOC(ij)-Y1
+                  XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+                  XOC(ij)=XR+X1; YOC(ij)=YR+Y1
                   CANG(ij)=CANG(ij)+VAL
   76            continue
                 CALL EMKMRT(LVIEW(IICOMP),LGEOM(IICOMP),
@@ -5315,21 +5403,22 @@ C Rotate any obstructions associated with this zone.
               CA=COS(A)
               SA=SIN(A)
               do 86 ij=1,nbobs(iicomp)
-                XXX=XOB(iicomp,ij)-X1
-                YYY=YOB(iicomp,ij)-Y1
-                XR=XXX*CA+YYY*SA
-                YR=YYY*CA-XXX*SA
-                XOB(iicomp,ij)=XR+X1
-                YOB(iicomp,ij)=YR+Y1
-                BANGOB(iicomp,ij,1)=BANGOB(iicomp,ij,1)+VAL
-                do 89 ibe=1,8
-                  XXX=XBP(iicomp,ij,ibe)-X1
-                  YYY=YBP(iicomp,ij,ibe)-Y1
-                  XR=XXX*CA+YYY*SA
-                  YR=YYY*CA-XXX*SA
-                  XBP(iicomp,ij,ibe)=XR+X1
-                  YBP(iicomp,ij,ibe)=YR+Y1
-  89            continue
+                XXX=XOB(iicomp,ij)-X1; YYY=YOB(iicomp,ij)-Y1
+                XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
+                if(BLOCKTYP(iicomp,ij)(1:4).eq.'obs '.or.
+     &             BLOCKTYP(iicomp,ij)(1:4).eq.'obs3')then
+                  XOB(iicomp,ij)=XR+X1; YOB(iicomp,ij)=YR+Y1
+                  BANGOB(iicomp,ij,1)=BANGOB(iicomp,ij,1)+VAL
+                else
+                  do ibe=1,8
+                    XXX=XBP(iicomp,ij,ibe)-X1
+                    YYY=YBP(iicomp,ij,ibe)-Y1
+                    XR=XXX*CA+YYY*SA
+                    YR=YYY*CA-XXX*SA
+                    XBP(iicomp,ij,ibe)=XR+X1
+                    YBP(iicomp,ij,ibe)=YR+Y1
+                  enddo
+                endif
   86          continue
               CALL MKGOMST(IUF,ZOBS(IICOMP),IICOMP,IER)
               write(outs,'(3a)') ' Rotating: ',zn(1:lnblnk(zn)),

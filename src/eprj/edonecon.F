@@ -62,8 +62,8 @@ C Parameters passed
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,dok,CFCDBOK
       LOGICAL UPDGEO,browse,modcfg,close,updoth
 
-C TOTHER is a temporary array for manipulating SSOTHER.
-C SO is a tempporary array to hold current surface SSOTHER.
+C TOTHER is a temporary array for manipulating SOTHER.
+C SO is a tempporary array to hold current surface SOTHER.
       DIMENSION TOTHER(MS,3),SO(3)
       CHARACTER CXSTR*78,outs*124,DESCRC*25
       character SO*24,TOTHER*24
@@ -98,9 +98,9 @@ C Edit item identified by ifoc after reporting on current values.
 
 C Remember current surface attribute.
       ICN=IZSTOCN(IC1(IFOC),IE1(IFOC))
-      WRITE(SO(1),'(A)')SSOTHER(icn,1)
-      WRITE(SO(2),'(A)')SSOTHER(icn,2)
-      WRITE(SO(3),'(A)')SSOTHER(icn,3)
+      WRITE(SO(1),'(A)')SOTHER(IC1(IFOC),IE1(IFOC),1)
+      WRITE(SO(2),'(A)')SOTHER(IC1(IFOC),IE1(IFOC),2)
+      WRITE(SO(3),'(A)')SOTHER(IC1(IFOC),IE1(IFOC),3)
 
 C Display the reference zone (if type 3 then display both).
 C Remember the topology attributes for reference zone.
@@ -108,9 +108,9 @@ C Remember the topology attributes for reference zone.
       call georead(IUO,LGEOM(IC1(IFOC)),IC1(IFOC),0,iuout,IER)
       do 322 IJ=1,NSUR
         ICN=IZSTOCN(IC1(IFOC),IJ)
-        write(TOTHER(IJ,1),'(a)') SSOTHER(ICN,1)
-        write(TOTHER(IJ,2),'(a)') SSOTHER(ICN,2)
-        write(TOTHER(IJ,3),'(a)') SSOTHER(ICN,3)
+        write(TOTHER(IJ,1),'(a)') SOTHER(IC1(IFOC),IE1(IFOC),1)
+        write(TOTHER(IJ,2),'(a)') SOTHER(IC1(IFOC),IE1(IFOC),2)
+        write(TOTHER(IJ,3),'(a)') SOTHER(IC1(IFOC),IE1(IFOC),3)
   322 continue
       MODIFYVIEW=.TRUE.
       MODBND=.TRUE.
@@ -409,13 +409,10 @@ C Update zone geometry if attributes have changed.
         call usrmsg(' Updating problem...',' ','-')
         call georead(IUO,LGEOM(IC1(IFOC)),IC1(IFOC),0,iuout,IER)
         do 323 IJ=1,NSUR
-          SOTHER(IJ,1)=TOTHER(IJ,1)
-          SOTHER(IJ,2)=TOTHER(IJ,2)
-          SOTHER(IJ,2)=TOTHER(IJ,3)
+          SOTHER(IC1(IFOC),IJ,1)=TOTHER(IJ,1)
+          SOTHER(IC1(IFOC),IJ,2)=TOTHER(IJ,2)
+          SOTHER(IC1(IFOC),IJ,2)=TOTHER(IJ,3)
           ICN=IZSTOCN(IC1(IFOC),ij)
-          SSOTHER(ICN,1)=TOTHER(IJ,1)
-          SSOTHER(ICN,2)=TOTHER(IJ,2)
-          SSOTHER(ICN,3)=TOTHER(IJ,3)
   323   continue
         call eclose(gversion(IC1(IFOC)),1.1,0.01,newgeo)
         if(igupgrade.eq.2.and.(.NOT.newgeo))then
@@ -450,9 +447,9 @@ C other zone) and write out that zones geometry.
         call georead(IUO,LGEOM(IC2(IFOC)),IC2(IFOC),0,iuout,IER)
 
         ICN=IZSTOCN(IC2(IFOC),IE2(IFOC))
-        SSOTHER(ICN,1)='ANOTHER'
-        write(SSOTHER(ICN,2),'(i2.2)') IC1(IFOC)
-        write(SSOTHER(ICN,3),'(i3.3)') IE1(IFOC)
+        SOTHER(IC2(IFOC),IE2(IFOC),1)='ANOTHER'
+        write(SOTHER(IC2(IFOC),IE2(IFOC),2),'(i2.2)') IC1(IFOC)
+        write(SOTHER(IC2(IFOC),IE2(IFOC),3),'(i3.3)') IE1(IFOC)
 
         call eclose(gversion(IC2(IFOC)),1.1,0.01,newgeo)
         if(igupgrade.eq.2.and.(.NOT.newgeo))then
@@ -501,7 +498,7 @@ C information. This is shorter than the string returned by CONXINFO.
       integer lzn22  ! length of 12 or less
 
       CXITM=' '
-      SST1=SSNAME(ICON)
+      SST1=SNAME(IC1(icon),IE1(icon))
       lsn1=MIN0(lnblnk(SST1),9)
       lsn12=lnblnk(SST1)
       ZST1=zname(IC1(ICON))
@@ -544,7 +541,7 @@ C information. This is shorter than the string returned by CONXINFO.
 C For partitions, try full length for zones and surface and then cut
 C back to short items in 3 stages, otherwise drop back to max 9 char.
         ICM=IZSTOCN(IC2(ICON),IE2(ICON))
-        SST2=SSNAME(ICM)
+        SST2=SNAME(IC2(ICON),IE2(ICON))
         lsn2=MIN0(lnblnk(SST2),9)
         lsn22=lnblnk(SST2)
         ZST2=zname(IC2(ICON))
@@ -650,29 +647,29 @@ C NAPICS counts number of corners located for surface.
       NAPICS=0
 
 C NSV holds number of vertices for this surface.
-      NSV=NZNVER(icc)
+      NSV=isznver(IZN,JSURF)
 
 C Loop over each vertex to locate an apex.
       DO 10 I=1, NSV
          IND=I
-         IVERT1= NZJVN(icc,IND)
-         X1=VCOORD(IZN,IVERT1,1)
-         Y1=VCOORD(IZN,IVERT1,2)
-         Z1=VCOORD(IZN,IVERT1,3)
+         IVERT1= iszjvn(IZN,JSURF,IND)
+         X1=szcoords(IZN,IVERT1,1)
+         Y1=szcoords(IZN,IVERT1,2)
+         Z1=szcoords(IZN,IVERT1,3)
 
          IND=IND+1
          IF (IND.GT.NSV) IND=1
-         IVERT2= NZJVN(icc,IND)
-         X2=VCOORD(IZN,IVERT2,1)
-         Y2=VCOORD(IZN,IVERT2,2)
-         Z2=VCOORD(IZN,IVERT2,3)
+         IVERT2= iszjvn(IZN,JSURF,IND)
+         X2=szcoords(IZN,IVERT2,1)
+         Y2=szcoords(IZN,IVERT2,2)
+         Z2=szcoords(IZN,IVERT2,3)
 
          IND=IND+1
          IF (IND.GT.NSV) IND=1
-         IVERT3= NZJVN(icc,IND)
-         X3=VCOORD(IZN,IVERT3,1)
-         Y3=VCOORD(IZN,IVERT3,2)
-         Z3=VCOORD(IZN,IVERT3,3)
+         IVERT3= iszjvn(IZN,JSURF,IND)
+         X3=szcoords(IZN,IVERT3,1)
+         Y3=szcoords(IZN,IVERT3,2)
+         Z3=szcoords(IZN,IVERT3,3)
 
 C Find angles of edge 1.
          CALL LINDIR(X1,Y1,Z1,X2,Y2,Z2,ALPHA1,THETA1,skip1)

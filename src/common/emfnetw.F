@@ -40,7 +40,7 @@ C EMFREAD reads a mass flow network description file.
 C Reads allow comments and most input data checks are performed.
 C It assumes that the file is already open.
       SUBROUTINE EMFREAD(IFPRB,IER)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       
@@ -1044,7 +1044,7 @@ C ****************** MFCMPSUPCHECK
 C Mfcmpsupcheck: check flow components for correct number of supplemental
 C data items.
       subroutine mfcmpsupcheck(ICMP,IER)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -1469,7 +1469,7 @@ C Error trap on read error
 C ****************** MFERR 
 C MFERR Error trap routine.
       SUBROUTINE MFERR(ICMP,MSG,IER)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -1489,9 +1489,9 @@ C ************************* MFLIST
 C MFLIST Fluid flow file: list common block contents.
       SUBROUTINE MFLIST(itru)
 
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-#include "building.h"
 #include "geometry.h"
       
       integer lnblnk  ! function definition
@@ -1581,7 +1581,7 @@ C Node data.
           END IF
           call edisp(itru,outs)
    30   CONTINUE
- 1030   FORMAT(I4,1X,A,1x,2a,3F8.4,1X,G12.5,1X,a,F9.3,2X,a,F9.3)
+ 1030   FORMAT(I4,1X,A,1x,2a,3F8.4,1X,G12.5,1X,a,F9.3,2X,a,F8.3)
 10301   FORMAT(I4,1X,A,1x,2a,3F8.4,1X,A12,1X,a,F9.3,2X,a,F8.3)
       ENDIF
 
@@ -1856,7 +1856,7 @@ C<< Plant and air flow node mapping to be added
 
 C***** Error checking.
       SUBROUTINE CNTERR(ICMP,NEWDI)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1878,6 +1878,7 @@ C***** Error checking.
 C**** GETND returns mass flow node index matching NAME. If not found
 C return 0 index with the message ermsg if in verbose mode (ivbs=1).
       subroutine GETND(NAME,index,ivbs,MSG)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       
@@ -1909,6 +1910,7 @@ C**** GETCN returns mass flow connection index matching two node names
 C and associated component. If not found return 0 index
 C with the message msg if in verbose mode (ivbs=1).
       subroutine GETCN(NDPOS,NDNEG,CMPID,index,ivbs,MSG)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       
@@ -1947,6 +1949,7 @@ C**** GETCMP returns mass flow component index matching name
 C If not found return 0 index with the message
 C msg if in verbose mode (ivbs=1).
       subroutine GETCMP(NAME,index,ivbs,MSG)
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/OUTIN/IUOUT,IUIN
@@ -1977,7 +1980,7 @@ C If called from graphic network (haveglobal true) simulation
 C parameters also included at end of the file
 
       SUBROUTINE MFWRIT(IFPRB)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -2081,7 +2084,7 @@ C MFWRIT 3D Fluid flow model file: dump common block data to file.
 C If called from graphic network (haveglobal true) simulation 
 C parameters also included at end of the file
       SUBROUTINE MF3DWRIT(IFPRB)
-
+#include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       integer lnblnk  ! function definition
@@ -2105,7 +2108,7 @@ C graphic network file.
       REAL vergnf   ! 1.0 is 3D variant of ASCII network
       
       CHARACTER outs*124,outsd*124,tab*1,dstmp*24
-      character position*52,dposition*52,supl*32,supld*34
+      character position*52,dposition*52,supl*32,supld*32
       character com*124
 
 C      write(6,*) 'haveglobal',haveglobal
@@ -2162,7 +2165,7 @@ C internal nodes the surface name will be '-'.
      &        NDNAM(INOD)(1:ln_nn),tab,NDFLD(INOD),tab,NDTYP(INOD),
      &        tab,NODASSOC(INOD,1)(1:ln_nza),tab,
      &        NODASSOC(INOD,2)(1:ln_nsa),com(1:lnblnk(com))
-            write(supl,'(3F10.4)') TNOD(INOD),SUPNOD(INOD,1),
+            write(supl,'(3F9.4)') TNOD(INOD),SUPNOD(INOD,1),
      &        SUPNOD(INOD,2)
             call SDELIM(supl,supld,'C',IW)  ! make , separated
             write(ifprb,'(4a)') dposition(1:lnblnk(dposition)),
@@ -2394,7 +2397,7 @@ C Documentation shared with graphic flow network.
       else
         IUM=IFIL+6
       endif
-      CALL EFOPSEQ(IUM,LAPROB,3,IER)
+      CALL EFOPSEQ(IUM,LAPROB,4,IER)
       if(IER.eq.0)then
         if(IAIRN.eq.1)then
           haveglobal=.FALSE.
@@ -2464,13 +2467,13 @@ C has an associated boundary node? Echo node information.
             if(NODASSOC(loop,1)(1:lnnoda1).eq.
      &         zname(izone)(1:lnz).and.
      &         NODASSOC(loop,2)(1:lnnoda2).eq.
-     &         SSNAME(ioc)(1:lnblnk(SSNAME(ioc))))then
+     &         SNAME(izone,isurf)(1:lnblnk(SNAME(izone,isurf))))then
               if(NDTYP(loop).eq.0) msg=' internal unknown pressure'
               if(NDTYP(loop).eq.1) msg=' internal known pressure'
               if(NDTYP(loop).eq.2) msg=' boundary node known pres'
               if(NDTYP(loop).eq.3) msg=' wind boundary node'
               write(outs,'(4a,3f7.3,a)') 
-     &          SSNAME(ioc)(1:lnblnk(SSNAME(ioc))),
+     &          SNAME(izone,isurf)(1:lnblnk(SNAME(izone,isurf))),
      &          ' is associated with flow node ',NDNAM(loop),
      &          ' @ ',HNOD(loop,1),HNOD(loop,2),HNOD(loop,3),
      &          msg(1:lnblnk(msg))
@@ -2489,10 +2492,10 @@ C Then echo the component information.
             if(CMPASSOC(loop,1)(1:lncmp1).eq.
      &         zname(izone)(1:lnz).and.
      &         CMPASSOC(loop,2)(1:lncmp2).eq.
-     &         SSNAME(ioc)(1:lnblnk(SSNAME(ioc))))then
+     &         SNAME(izone,isurf)(1:lnblnk(SNAME(izone,isurf))))then
               write(msg,'(2a)') ' ',LTPCMP(loop)(1:28)
               write(outs,'(4a,3f7.3,a)') 
-     &          SSNAME(ioc)(1:lnblnk(SSNAME(ioc))),
+     &          SNAME(izone,isurf)(1:lnblnk(SNAME(izone,isurf))),
      &          ' is associated with flow cmp ',CMNAM(loop),
      &          ' @ ',HCMP(loop,1,1),HCMP(loop,1,2),
      &          HCMP(loop,1,3),msg(1:lnblnk(msg))

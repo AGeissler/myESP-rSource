@@ -5042,8 +5042,8 @@ C no radiant plant component.
             elseif(IPK.eq.18)then
 
 C Determine if the surface is transparent or opaque.
-              if(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &           SSOTF(ICN)(1:4).EQ.'UNKN')then
+              if(SOTF(IZ,IS)(1:4).EQ.'OPAQ'.OR.
+     &           SOTF(IZ,IS)(1:4).EQ.'UNKN')then
                 GVAL(JTS)=qswrde/(SAREA*absorb)
               else
                 call edisp(iuout,

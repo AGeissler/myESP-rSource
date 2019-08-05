@@ -268,15 +268,6 @@ C Update the connection list and hash.
           ICCC=ICCC+1
           IC1(ICCC)=ICOMP; IE1(ICCC)=ICC; ICT(ICCC)=-1   ! mark as unknown at this time.
           IC2(ICCC)=0; IE2(ICCC)=0
-          SSNAME(iccc)=SNAME(icomp,icc)
-          SSOTF(iccc)=SOTF(icc)
-          SSMLCN(iccc)=SMLCN(icc)
-          SSVFC(iccc)=SVFC(icc)
-          SSOTHER(iccc,1)=SOTHER(icc,1)
-          SSOTHER(iccc,2)=SOTHER(icc,2)
-          SSOTHER(iccc,3)=SOTHER(icc,3)
-          SSUSE(iccc,1)=SUSE(icc,1); SSUSE(iccc,2)=SUSE(icc,2)
-          SSPARENT(iccc)=SPARENT(icc)
           IZSTOCN(icomp,icc)=iccc
    32   CONTINUE
         NCON=ICCC
@@ -306,9 +297,12 @@ C User will begin with a minimal GEN body.
         JVN(1,1)=1; JVN(1,2)=2; JVN(1,3)=3; JVN(1,4)=4
         NZTV(icomp)=NTV
         SNAME(ICOMP,1)='first'
-        SOTF(1)='OPAQUE'; SMLCN(1)='UNKN'; SVFC(1)='FLOR'
-        SOTHER(1,1)='UNKNOWN'; SOTHER(1,2)='0'; SOTHER(1,3)='0'
-        SUSE(1,1)='-'; SUSE(1,2)='-'; SPARENT(1)='-'
+        SOTF(ICOMP,1)='OPAQUE'; SMLCN(ICOMP,1)='UNKN' 
+        SVFC(ICOMP,1)='FLOR'
+        SOTHER(ICOMP,1,1)='UNKNOWN'; SOTHER(ICOMP,1,2)='0'
+        SOTHER(ICOMP,1,3)='0'
+        SUSE(ICOMP,1,1)='-'; SUSE(ICOMP,1,2)='-' 
+        SPARENT(ICOMP,1)='-'
         IUZBASEA(icomp)=0; IBASES(ICOMP,1)=1
 
 C Update the connection list and hash for initial surface.
@@ -316,16 +310,6 @@ C Update the connection list and hash for initial surface.
         ICCC=ICCC+1
         IC1(ICCC)=ICOMP; IE1(ICCC)=1; ICT(ICCC)=-1  ! mark as unknown
         IC2(ICCC)=0; IE2(ICCC)=0
-        SSNAME(iccc)=SNAME(ICOMP,1)
-        SSOTF(iccc)=SOTF(1)
-        SSMLCN(iccc)=SMLCN(1)
-        SSVFC(iccc)=SVFC(1)
-        SSOTHER(iccc,1)=SOTHER(1,1)
-        SSOTHER(iccc,2)=SOTHER(1,2)
-        SSOTHER(iccc,3)=SOTHER(1,3)
-        SSUSE(iccc,1)=SUSE(1,1)
-        SSUSE(iccc,2)=SUSE(1,2)
-        SSPARENT(iccc)=SPARENT(1)
         IZSTOCN(icomp,1)=iccc
         NCON=ICCC
         MODBND=.TRUE.; MODIFYVIEW=.TRUE.; MODLEN=.TRUE.
@@ -394,20 +378,20 @@ C Find co-planer surfaces and edges of similar materials.
 
 C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
-C the zone can be calculated. Also instanciate nznver and nzjvn
+C the zone can be calculated. Also instanciate iszjvn
 C for the new zone (as is done in subroutine zdata).
       DO 40 J=1,NZTV(ICOMP)
-        VCOORD(ICOMP,J,1)=X(J)
-        VCOORD(ICOMP,J,2)=Y(J)
-        VCOORD(ICOMP,J,3)=Z(J)
+        szcoords(ICOMP,J,1)=X(J)
+        szcoords(ICOMP,J,2)=Y(J)
+        szcoords(ICOMP,J,3)=Z(J)
    40 CONTINUE
       DO 50 J=1,nzsur(ICOMP)
         icc=IZSTOCN(icomp,j)
         if(icc.ne.0)then
-          NZNVER(icc)=NVER(J)
-          N = NVER(J)
+          isznver(icomp,j)=NVER(J)
+          N = isznver(icomp,j)
           DO 60 K=1,N
-            NZJVN(icc,K)=JVN(J,K)
+            iszjvn(icomp,j,K)=JVN(J,K)
    60     CONTINUE
         endif
    50 continue
@@ -638,42 +622,42 @@ C the connections list, then remind user to double check topology.
           ICCC=ICCC+1
           IC1(ICCC)=IC
           IE1(ICCC)=ICC
-          if(SOTHER(icc,1)(1:8).eq.'EXTERIOR')then
+          if(SOTHER(NCOMP,icc,1)(1:8).eq.'EXTERIOR')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' is a EXTERIOR connection which will be used.'
             call edisp(iuout,outs)
             ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:7).eq.'SIMILAR')then
+          elseif(SOTHER(NCOMP,icc,1)(1:7).eq.'SIMILAR')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' is a SIMILAR connection which will be used.'
             call edisp(iuout,outs)
             ICT(ICCC)=1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:9).eq.'ADIABATIC')then
+          elseif(SOTHER(NCOMP,icc,1)(1:9).eq.'ADIABATIC')then
             ICT(ICCC)=5; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:8).eq.'CONSTANT')then
+          elseif(SOTHER(NCOMP,icc,1)(1:8).eq.'CONSTANT')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &    ' was a CONSTANT connection. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(icc,1)='UNKNOWN'
+            SOTHER(NCOMP,icc,1)='UNKNOWN'
             ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:6).eq.'GROUND')then
+          elseif(SOTHER(NCOMP,icc,1)(1:6).eq.'GROUND')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &      ' was a GROUND connection. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(icc,1)='UNKNOWN'
+            SOTHER(NCOMP,icc,1)='UNKNOWN'
             ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:7).eq.'UNKNOWN')then
+          elseif(SOTHER(NCOMP,icc,1)(1:7).eq.'UNKNOWN')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &    ' has an undefined boundary. Confirm its surface attributes.'
             call edisp(iuout,outs)
             ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:7).eq.'ANOTHER')then
+          elseif(SOTHER(NCOMP,icc,1)(1:7).eq.'ANOTHER')then
 
 C Existing partitions in an imported zone are reset to UNKNOWN.
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' was a partition. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(icc,1)='UNKNOWN'
+            SOTHER(NCOMP,icc,1)='UNKNOWN'
             ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
             altered = .true.   ! will need to write out geometry
           else
@@ -682,7 +666,7 @@ C Existing partitions in an imported zone are reset to UNKNOWN.
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' might be a partition. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(icc,1)='UNKNOWN'
+            SOTHER(NCOMP,icc,1)='UNKNOWN'
             ICT(ICCC)=-1
             IC2(ICCC)=0
             IE2(ICCC)=0
@@ -690,23 +674,13 @@ C Existing partitions in an imported zone are reset to UNKNOWN.
           endif
   
 C Update the connection based data structures.
-          SSNAME(iccc)=SNAME(NCOMP,icc)
-          SSOTF(iccc)=SOTF(icc)
-          SSMLCN(iccc)=SMLCN(icc)
-          SSVFC(iccc)=SVFC(icc)
-          SSOTHER(iccc,1)=SOTHER(icc,1)
-          SSOTHER(iccc,2)=SOTHER(icc,2)
-          SSOTHER(iccc,3)=SOTHER(icc,3)
-          SSUSE(iccc,1)=SUSE(icc,1)
-          SSUSE(iccc,2)=SUSE(icc,2)
-          SSPARENT(iccc)=SPARENT(icc)
           IZSTOCN(ncomp,icc)=iccc
 
 C Find the index of the MLC which matches this surface.
           ssmlcindex(iccc)=0  ! assume no matching MLC          
           do 5 ii=1,nmlc
-            lnssmlc=lnblnk(SSMLCN(iccc))
-            if(SSMLCN(iccc)(1:lnssmlc).eq.
+            lnssmlc=lnblnk(SMLCN(NCOMP,icc))
+            if(SMLCN(NCOMP,icc)(1:lnssmlc).eq.
      &         mlcname(ii)(1:lnmlcname(ii)))then
               ssmlcindex(iccc)=ii   ! remember MLC index     
             endif
@@ -718,9 +692,9 @@ C Update the global coordinates for this new zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
 C the zone can be calculated.
         DO 40 J=1,NZTV(NCOMP)
-          VCOORD(NCOMP,J,1)=X(J)
-          VCOORD(NCOMP,J,2)=Y(J)
-          VCOORD(NCOMP,J,3)=Z(J)
+          szcoords(NCOMP,J,1)=X(J)
+          szcoords(NCOMP,J,2)=Y(J)
+          szcoords(NCOMP,J,3)=Z(J)
    40   CONTINUE
 
 C If any of the boundary conditions were altered then write out
@@ -1400,12 +1374,9 @@ C If the surface connection type is 3 and it (ic2) points back to IW2
 C then reset sother and ict and ie2 and ic2.
             if(ICT(ioc).EQ.3)then
               if(IC2(ioc).eq.IW2)then
-                SOTHER(ISX,1)='UNKNOWN'
-                SOTHER(ISX,2)='0'
-                SOTHER(ISX,3)='0'
-                SSOTHER(ioc,1)='UNKNOWN'
-                SSOTHER(ioc,2)='0'
-                SSOTHER(ioc,3)='0'
+                SOTHER(IX,ISX,1)='UNKNOWN'
+                SOTHER(IX,ISX,2)='0'
+                SOTHER(IX,ISX,3)='0'
                 ICT(ioc)=-1
                 IE2(ioc)=0
                 IC2(ioc)=0

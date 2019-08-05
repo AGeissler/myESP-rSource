@@ -1113,11 +1113,11 @@ C Loop through all the surfaces in the current location ICL for the
 C target zone - search for MLC's with the same name as MATNAM(ICC).
         do 20 JJ=1,NSGU(ICL,II)
          IS=NSNOG(ICL,II,JJ)
-         if (SMLCN(IS)(1:12).eq.MATNAM(ICC,1)(1:12)) then
+         if (SMLCN(IZ,IS)(1:12).eq.MATNAM(ICC,1)(1:12)) then
 
 C This construction has uncertainties defined, but which MLC database 
 C entry is it? C Find matching MLC.
-          call matchmlcdesc(SMLCN(is),imlc)
+          call matchmlcdesc(SMLCN(IZ,is),imlc)
           do 30 IE=1,NE(IS)
 C           write (36,*) 'iprmat(imlc,ie): ',IPRMAT(IMLC,IE),imlc,ie
 C           write (36,*) 'IDATR(ICC,1): ',IDATR(ICC,1),icc
@@ -1268,10 +1268,10 @@ C is then we have to edit the matching surface in this zone ISURF.
           do 60 JJ=1,NSGU(ICL,II)
            IS=NSNOG(ICL,II,JJ)
            if (IS.eq.ISC) then
-            if (SMLCN(ISURF)(1:12).eq.MATNAM(ICC,1)(1:12))then
+            if (SMLCN(IZONE,ISURF)(1:12).eq.MATNAM(ICC,1)(1:12))then
 
 C Find matching MLC.
-             call matchmlcdesc(SMLCN(isurf),imlc)
+             call matchmlcdesc(SMLCN(IZONE,isurf),imlc)
              do 50 IE=1,NE(ISURF)
               write (36,*) 'iprmat(imlc,ie): ',IPRMAT(IMLC,IE),imlc,ie
               write (36,*) 'IDATR(ICC,1): ',IDATR(ICC,1),icc
@@ -2315,7 +2315,7 @@ C Set number of matching layers to zero.
 
 C Find correct MLC. Check if the material array index matches
 C the passed value. C Find matching MLC.
-      call matchmlcdesc(SMLCN(isurf),i)
+      call matchmlcdesc(SMLCN(IZONE,isurf),i)
       if(i.eq.0) return  ! no match found
       do 20 J=1,LAYERS(I)
         if (IPRMAT(I,J).eq.IPRIM) then

@@ -1435,7 +1435,7 @@ C Check physical properties where possible.
               write(outs,'(A,A)')' For: ',CXSTR
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
               write(outs,'(A,A,i3,a,i3,A)')' the mlc layers (',
-     &          SMLCN(NS1),NELTS(NZ1,NS1),' & ',NELTS(NZ2,NS2),
+     &          SMLCN(NZ1,NS1),NELTS(NZ1,NS1),' & ',NELTS(NZ2,NS2),
      &          ') don`t match.'
               IF(IWMOFF.ne.1)call edisp(iuout,outs)
               IWARN=IWARN+1
@@ -1445,7 +1445,8 @@ C Check physical properties where possible.
               write(outs,'(A,A)')' For: ',CXSTR
               if(IWMOFF.ne.1)call edisp(iuout,outs)
               write(outs,'(A,A,2i3,A)')' the no. of mlc air gaps (',
-     &         SMLCN(NS1),NGAPS(NZ1,NS1),NGAPS(NZ2,NS2),') don`t match.'
+     &         SMLCN(NZ1,NS1),NGAPS(NZ1,NS1),NGAPS(NZ2,NS2),
+     &         ') don`t match.'
               if(IWMOFF.ne.1)call edisp(iuout,outs)
               IWARN=IWARN+1
               goto 20

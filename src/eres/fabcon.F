@@ -209,7 +209,7 @@ C Generate a descriptive string for the time period to be displayed
 C and the simulation and output timesteps. Use opengdisp to get
 C pixel references for calls to viewtext.
       CALL SURADJ(ICOMP,ISUR,IE,T,IZC,ISC,ICN,CSTR)
-      SN=SSNAME(ICN)
+      SN=SNAME(ICOMP,ISUR)
       ZN=zname(ICOMP)
       CALL HDDATE(PDESCR)
       CALL HDSTEP(SDESCR)
@@ -257,21 +257,21 @@ C Setup and pass in parameters to win3d.
 
 C Determine if the surface is transparent or opaque. At this point
 C CFC and CFC2 are still mostly treated as opaque.
-      IF(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &   SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+      IF(SOTF(ICOMP,ISUR)(1:4).EQ.'OPAQ'.OR.
+     &   SOTF(ICOMP,ISUR)(1:4).EQ.'UNKN')THEN
          TSTR='opaque'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC ')THEN
+      ELSEIF(SOTF(ICOMP,ISUR)(1:4).EQ.'CFC ')THEN
          TSTR='CFC'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC2')THEN
+      ELSEIF(SOTF(ICOMP,ISUR)(1:4).EQ.'CFC2')THEN
          TSTR='CFC2'
       ELSE
          TSTR='trnsp.'
       ENDIF
 
 C Display surface information.
-      lml=lnblnk(SSMLCN(ICN))
+      lml=lnblnk(SMLCN(ICOMP,ISUR))
       WRITE(ETEXT,'(5a,f6.2,a)')' It is ',TSTR,', composed of ',
-     &  SSMLCN(ICN)(1:lml),', with area ',SNA(ICOMP,ISUR),' m2.'
+     &  SMLCN(ICOMP,ISUR)(1:lml),', with area ',SNA(ICOMP,ISUR),' m2.'
       if(MMOD.EQ.8)then
         iside=3
         isize=0
@@ -308,6 +308,7 @@ C timestep.
       COMMON/OUTPCH/ICOUT
       common/exporttg/xfile,tg,delim
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -406,7 +407,8 @@ C izctime is number of timesteps when some surface in zone has condensation.
       do 42 ij=1,NC
         CALL SURADJ(izone,ij,IE,T,IZC,ISC,ICN,CSTR)
         hrs=ihit(ij)*TFACT
-        WRITE(outs,'(1x,a,i5,f8.2)') ssname(icn),ihit(ij),hrs
+        WRITE(outs,'(1x,a,i5,f8.2)') sname(IC1(icn),IE1(icn)),
+     &    ihit(ij),hrs
         call edisp(itru,outs)
   42  continue
       hrs=izctime(IZONE)*TFACT
@@ -972,7 +974,7 @@ C Check which version of materials database.
 C For each surface.
       do 20 ISUR=1,NZSUR(ICOMP)
         CALL SURADJ(ICOMP,ISUR,IE,T,IZC,ISC,ICN,CSTR)
-        SN=SSNAME(ICN)
+        SN=SNAME(IC1(icn),IE1(icn))
 
 C Determine diffusion resistance factor for each element
 C check if gap via materials array and compute layer thickness.

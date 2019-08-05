@@ -3183,22 +3183,22 @@ C connection class. << This could be simplified with new izver. >>
         DO 210 ISN= 1,NN
           CALL SURADJ(IZONE,ISN,IE,T,IZC,ISC,ICN,CSTR)
           IF(IE.EQ.0)THEN
-            if(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &         SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+            if(SOTF(IZONE,ISN)(1:4).EQ.'OPAQ'.OR.
+     &         SOTF(IZONE,ISN)(1:4).EQ.'UNKN')THEN
               SURFAE=SURFAE+SNA(IZONE,ISN)*EMISI(ISN)
             else
               SURFTE=SURFTE+SNA(IZONE,ISN)*EMISI(ISN)
             endif
           ELSEIF(IE.EQ.4)THEN
-            if(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &         SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+            if(SOTF(IZONE,ISN)(1:4).EQ.'OPAQ'.OR.
+     &         SOTF(IZONE,ISN)(1:4).EQ.'UNKN')THEN
               SURFAG=SURFAG+SNA(IZONE,ISN)*EMISI(ISN)
             else
               SURFTG=SURFTG+SNA(IZONE,ISN)*EMISI(ISN)
             endif
           ELSE
-            if(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &         SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+            if(SOTF(IZONE,ISN)(1:4).EQ.'OPAQ'.OR.
+     &         SOTF(IZONE,ISN)(1:4).EQ.'UNKN')THEN
               SURFAI=SURFAI+SNA(IZONE,ISN)*EMISI(ISN)
             else
               SURFTI=SURFTI+SNA(IZONE,ISN)*EMISI(ISN)

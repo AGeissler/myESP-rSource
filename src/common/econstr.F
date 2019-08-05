@@ -372,14 +372,14 @@ C Write out the construction file data.
 
       DO 1180 I=1,NZSUR(icomp)
         icn1=izstocn(icomp,i)
-        lnslmlcn=lnblnk(SSMLCN(icn1))
+        lnslmlcn=lnblnk(SMLCN(icomp,i))
         WRITE(IFILT,5632,IOSTAT=IOS,ERR=146)NE(I),NAIRG(I),I,
-     &      SSNAME(icn1),SSMLCN(icn1)(1:lnslmlcn)
+     &      SNAME(icomp,i),SMLCN(icomp,i)(1:lnslmlcn)
 5632    FORMAT(I6,',',I6,'  # ',I3,' ',A,' ',A)
 
 C Trap in case of mlc not being found.
         if(NE(I).eq.0)then
-          write(outs,'(A,A)') ' FAILURE: writing out ',SSNAME(icn1)
+          write(outs,'(A,A)') ' FAILURE: writing out ',SNAME(icomp,i)
           call usrmsg(outs,' Please check!....','W')
           ier=1
           goto 99
@@ -555,12 +555,12 @@ C Reporting.
 
 C Jump if not all requied and not the focus surface.
         if(isur.ne.0.and.isur.ne.i)goto 9994
-        sn=SSNAME(icn1)
+        sn=SNAME(icomp,i)
 
 C Find matching MLC index in ii and assign to imatch array.
         imatch(i)=0
         RT(I)=0.
-        call matchmlcdesc(SSMLCN(icn1),ii)
+        call matchmlcdesc(SMLCN(icomp,i),ii)
         imatch(i)=ii          
         if(imatch(i).eq.0) then
           call edisp(iuout,'Warning: no matching MLC defined!')
@@ -587,7 +587,7 @@ C For each layer recover the name of material. For non-airgap layers
 C add resistance for layer (using data from constructions file)
           DO 15, IL=1,NELT
 C...........If CFC2, get details from CFClayers db
-            IF(SSOTF(icn1)(1:4).EQ.'CFC2') THEN
+            IF(SOTF(icomp,i)(1:4).EQ.'CFC2') THEN
               cfcarrayindex=ITMCFCDB(imatch(i),IL)
               if(cfcarrayindex.gt.0)then
                 write(NAM,'(a)') cfcname(cfcarrayindex)(1:32)
@@ -632,21 +632,21 @@ C Find matching air gap layer and resistance.
 
 C Jump if not all requied and not the focus surface.
         if(isur.ne.0.and.isur.ne.i)goto 9986
-        sn=SSNAME(icn1)
-        lsml=lnblnk(SSMLCN(icn1))
+        sn=SNAME(icomp,i)
+        lsml=lnblnk(SMLCN(icomp,i))
         if(OPT(i)(1:4).eq.'OPAQ')then
           write(outs,'(4a)') sn(1:lnblnk(sn)),' is composed of ',
-     &      SSMLCN(icn1)(1:lsml),' and is opaque:'
+     &      SMLCN(icomp,i)(1:lsml),' and is opaque:'
         elseif(OPT(i)(1:11).eq.'USE GSLedit'.or.
      &         OPT(i)(1:3).eq.'N/A')then
           write(outs,'(4a)') sn(1:lnblnk(sn)),' is composed of ',
-     &      SSMLCN(icn1)(1:lsml),' and is complex fenestration const.'
+     &      SMLCN(icomp,i)(1:lsml),' and is complex fenestration const.'
         elseif(OPT(i)(1:7).eq.'UNKNOWN')then
           write(outs,'(4a)') sn(1:lnblnk(sn)),' is composed of ',
-     &      SSMLCN(icn1)(1:lsml),' and has unknown optical properties:'
+     &     SMLCN(icomp,i)(1:lsml),' and has unknown optical properties:'
         else
           write(outs,'(5a)') sn(1:lnblnk(sn)),' is composed of ',
-     &      SSMLCN(icn1)(1:lsml),' & optics ',OPT(i)
+     &      SMLCN(icomp,i)(1:lsml),' & optics ',OPT(i)
         endif
         CALL EDISP(ITRU,OUTS)
         NELT=NE(I)
@@ -689,11 +689,11 @@ C 0.10 inside upward flow and 0.17 inside downward flow.
         UVALUED=1.0/RTD
         RTI=RT(I)+0.13+0.13
         UVALUEI=1.0/RTI
-        lnssmlcn=lnblnk(SSMLCN(icn1))
-        IF(SSOTF(icn1)(1:4).NE.'CFC2') THEN
+        lnsmlcn=lnblnk(SMLCN(icomp,i))
+        IF(SOTF(icomp,i)(1:4).NE.'CFC2') THEN
           write(OUTS,'(3A,3F7.3,a,F7.3)')
      &      ' ISO 6946 U values (hor/up/dn heat flow) for ',
-     &      SSMLCN(icn1)(1:lnssmlcn),' is',
+     &      SMLCN(icomp,i)(1:lnsmlcn),' is',
      &      UVALUEH,UVALUEU,UVALUED,' (partn)',UVALUEI
           call edisp(itru,OUTS)
         ENDIF
@@ -827,9 +827,10 @@ C if the surface attribute should be updated.
         icn1=izstocn(icomp,i)
         if(icn1.ne.0)then
           ITMCFL(ICOMP,I)=IVA(I)
-          IF(ITMCFL(ICOMP,I).NE.0.AND.(SSOTF(icn1)(1:4).EQ.'OPAQ'))THEN
+          IF(ITMCFL(ICOMP,I).NE.0.AND.
+     &      (SOTF(icomp,i)(1:4).EQ.'OPAQ'))THEN
             WRITE(OUTS,'(5a)')'The TMC file ',LUA(1:lnblnk(LUA)),
-     &        ' not sure if ',SSNAME(icn1),' is transparent.'
+     &        ' not sure if ',SNAME(icomp,i),' is transparent.'
             call edisp(itru,outs)
             call edisp(itru,' Check your zone files.')
           ENDIF
@@ -857,9 +858,10 @@ C Reporting.
         CALL EDISP(ITRU,' Name         Description  TRANS   Reference')
         DO 31, ISR=1,NS
           icn=izstocn(icomp,isr)
-          lnslmlcn=lnblnk(SSMLCN(icn))
-          WRITE(OUTS,'(1X,A,2X,A,2X,A,I4)')SSNAME(icn),
-     &      SSMLCN(icn)(1:lnslmlcn),SSOTF(icn)(1:6),ITMCFL(ICOMP,ISR)
+          lnslmlcn=lnblnk(SMLCN(icomp,isr))
+          WRITE(OUTS,'(1X,A,2X,A,2X,A,I4)')SNAME(icomp,isr),
+     &      SMLCN(icomp,isr)(1:lnslmlcn),SOTF(icomp,isr)(1:6),
+     &      ITMCFL(ICOMP,ISR)
           CALL EDISP(ITRU,OUTS)
    31   CONTINUE
       ENDIF
@@ -879,14 +881,14 @@ C the list points to an existing set of properties.
         IERR=0
         DO 90 J=1,NS
           icn=izstocn(icomp,j)
-          lnslmlcn=lnblnk(SSMLCN(icn))
+          lnslmlcn=lnblnk(SMLCN(icomp,j))
           IF(ITMCFL(ICOMP,J).EQ.I.AND.NTGLAZ.NE.NE(J))IERR=1
           IF(IERR.EQ.1)THEN
             write(outs,'(6a,1x,a)')
      &      ' Mismatched TMC & mlc layers: ',
-     &      SSNAME(icn)(1:lnblnk(SSNAME(icn))),' in ',
+     &      SNAME(icomp,j)(1:lnblnk(SNAME(icomp,j))),' in ',
      &      zname(ICOMP)(1:lnzname(ICOMP)),' composed of ',
-     &      SSMLCN(icn)(1:lnslmlcn),TOPTIC(ICOMP,I)
+     &      SMLCN(icomp,j)(1:lnslmlcn),TOPTIC(ICOMP,I)
             call edisp(iuout,outs)
             goto 1002
           ENDIF

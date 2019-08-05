@@ -1695,7 +1695,7 @@ C Trap out of range IC1 and IE1 variables.
         RETURN
       endif
 
-      SST1=SSNAME(ICON)
+      SST1=SNAME(IC1(icon),IE1(icon))
       lsn1=lnblnk(SST1)
       ZST1=ZNAME(IC1(ICON))
       lzn1=lnblnk(ZST1)
@@ -1723,7 +1723,7 @@ C Trap out of range IC1 and IE1 variables.
       ELSEIF(ICT(ICON).EQ.3.AND.ICF.GT.0)THEN
         ICM=IZSTOCN(IC2(ICON),IE2(ICON))
         if(ICM.gt.0)then
-          SST2=SSNAME(ICM)
+          SST2=SNAME(IC2(ICON),IE2(ICON))
           lsn2=lnblnk(SST2)
           ZST2=zname(IC2(ICON))
           lzn2=lnblnk(ZST2)

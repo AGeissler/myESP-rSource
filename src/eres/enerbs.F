@@ -72,12 +72,12 @@ C Determine which surface is of interest.
 C Determine the 'other' zone and connection information
 C and then if the surface is transparent or opaque.
       CALL SURADJ(IZONE,ISFN,IE,T,IZC,ISC,ICN,CSTR)
-      IF(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &   SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+      IF(SOTF(IZONE,ISFN)(1:4).EQ.'OPAQ'.OR.
+     &   SOTF(IZONE,ISFN)(1:4).EQ.'UNKN')THEN
         TSTR='opaque MLC'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC ')THEN
+      ELSEIF(SOTF(IZONE,ISFN)(1:4).EQ.'CFC ')THEN
         TSTR='CFC const.'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC2')THEN
+      ELSEIF(SOTF(IZONE,ISFN)(1:4).EQ.'CFC2')THEN
         TSTR='CFC const.'
       ELSE
         TSTR='trnsp. MLC'
@@ -91,7 +91,7 @@ C Reset ouput channel if redirecting.
 
 C Output general header information for load or energy use.
 C Get surface and zone name.
-      SN=SSNAME(ICN)
+      SN=SNAME(IZONE,ISFN)
       ZN=zname(IZONE)
       if(SNAPSH)then
         call edisp(itru,' ')

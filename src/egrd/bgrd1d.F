@@ -132,7 +132,7 @@ C Show the constructions menu.
             IF(ILUMP(ICOMP,IS).GE.1)THEN
               ITEMC(IS)=' ** LUMPED **'
             ELSE
-              ITEMC(IS)=SSNAME(icn1)
+              ITEMC(IS)=SNAME(icomp,is)
             ENDIF
    60     CONTINUE
           CALL EPICKS(INPICK,IVALSC,' ',' ',20,NC,ITEMC,' ',
@@ -541,7 +541,7 @@ C Display the available constructions menu.
           ITEMC(2)='----------------------------'
           DO 70 IS=1,NC
             icn1=izstocn(icomp,is)
-            WRITE(ITEMC(IS+2),'(A,A,F7.1)')SSNAME(icn1),':',
+            WRITE(ITEMC(IS+2),'(A,A,F7.1)')SNAME(icomp,is),':',
      &              HCSRF(ICOMP,IS,IEXT)
    70     CONTINUE
           CALL EPICKS(INPICK,IVALSC,' ',' ',28,NC+2,ITEMC,' ',

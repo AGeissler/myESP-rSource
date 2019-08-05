@@ -203,6 +203,9 @@ C Observed zone cooling for display in res
       GTYPES(31)='ZNCLOBS'   ! use this for observed cooling
       GMENUS(31)='Zone cool (observed): '
 
+      GTYPES(32)='GRNDRFL'   ! use this for observed cooling
+      GMENUS(32)='Ground reflectance: '      
+
 C If not looking for a specific item then return.
       IF(FOCUS(1:7).EQ.'ALLCLMT')THEN
 
@@ -749,6 +752,20 @@ C Rain indicator, currently only used for FMI: one data item.
         GMF(1)='INTG,1,0,0,1'
         MGMA(1)='Indicator value (0 or 1): '
         FOUND=.TRUE.
+
+
+      ELSEIF(FOCUS(1:7).EQ.'GRNDRFL')THEN
+        GAIDE   ='Ground reflectance (0 to 1)'
+        GHELP(1)='Ground reflectance (0 to 1) '
+        GHELP(2)='(measured). '
+        GMH='2,1,0,0,1,0,-999.0'
+        GDHDRT(1)='   time  | ground     |'
+        GDHDRT(2)='   of day| reflectance|' 
+        GDHDRT(3)='Ground reflectance (-):'
+        GMF(1)='REAL,1,0.2,0.,1.0'
+        MGMA(1)='Ground reflectance (-): '
+        FOUND=.TRUE.      
+      
 
       ELSEIF(FOCUS(1:4).EQ.'ALL ')THEN
         RETURN

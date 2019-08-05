@@ -955,9 +955,9 @@ C Find the index of the MLC which matches each surface.
               icn1=izstocn(icomp,i)
               if(icn1.gt.0)then
                 ssmlcindex(icn1)=0  ! assume no matching MLC          
-                lnssmlc=lnblnk(SSMLCN(icn1))
+                lnssmlc=lnblnk(SMLCN(icomp,i))
                 do 5 ii=1,nmlc
-                  if(SSMLCN(icn1)(1:lnssmlc).eq.
+                  if(SMLCN(icomp,i)(1:lnssmlc).eq.
      &               mlcname(ii)(1:lnmlcname(ii)))then
                     ssmlcindex(icn1)=ii   ! remember MLC index  
                   endif
@@ -3476,7 +3476,7 @@ C constructions are known.
       call gethelptext(helpinsub,helptopic,nbhelp)
       mlcok=.true.
       do 40 i=1,ncon
-        if(SSMLCN(i)(1:7).eq.'UNKNOWN')then
+        if(SMLCN(IC1(I),IE1(I))(1:7).eq.'UNKNOWN')then
           CALL ZSID(IC1(I),IE1(I),ZSDES,ZSDESC,ZSDESS)
           mlcok=.false.
           if(nbhelp.lt.60)then
@@ -3500,7 +3500,7 @@ C constructions are known.
       call gethelptext(helpinsub,helptopic,nbhelp)
       bndryok=.true.
       do 41 i=1,ncon
-        if(SSOTHER(i,1)(1:7).eq.'UNKNOWN')then
+        if(SOTHER(IC1(I),IE1(I),1)(1:7).eq.'UNKNOWN')then
           CALL ZSID(IC1(I),IE1(I),ZSDES,ZSDESC,ZSDESS)
           bndryok=.false.
           if(nbhelp.lt.60)then
@@ -3528,7 +3528,7 @@ C constructions are known.
       do 42 i=1,ncon
         CALL ZSID(IC1(I),IE1(I),ZSDES,ZSDESC,ZSDESS)
         CALL CONXINFO(1,i,CXSTR)
-        if(ICT(i).eq.0.and.SSOTHER(i,1)(1:5).ne.'EXTER')then
+        if(ICT(i).eq.0.and.SOTHER(IC1(I),IE1(I),1)(1:5).ne.'EXTER')then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3538,10 +3538,10 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'connection is ... ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute ... ',
-     &        SSOTHER(i,1)
+     &        SOTHER(IC1(I),IE1(I),1)
           endif
         endif
-        if(ICT(i).eq.1.and.SSOTHER(i,1)(1:5).ne.'SIMIL')then
+        if(ICT(i).eq.1.and.SOTHER(IC1(I),IE1(I),1)(1:5).ne.'SIMIL')then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3551,10 +3551,10 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'connection is ... ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute ... ',
-     &        SSOTHER(i,1)
+     &        SOTHER(IC1(I),IE1(I),1)
           endif
         endif
-        if(ICT(i).eq.2.and.SSOTHER(i,1)(1:5).ne.'CONST')then
+        if(ICT(i).eq.2.and.SOTHER(IC1(I),IE1(I),1)(1:5).ne.'CONST')then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3564,10 +3564,10 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'connection is ... ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute ... ',
-     &        SSOTHER(i,1)
+     &        SOTHER(IC1(I),IE1(I),1)
           endif
         endif
-        if(ICT(i).eq.3.and.SSOTHER(i,1)(1:5).eq.'CONST')then
+        if(ICT(i).eq.3.and.SOTHER(IC1(I),IE1(I),1)(1:5).eq.'CONST')then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3577,10 +3577,10 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'connection... ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute ... ',
-     &        SSOTHER(i,1)
+     &        SOTHER(IC1(I),IE1(I),1)
           endif
         endif
-        if(ICT(i).eq.3.and.SSOTHER(i,1)(1:5).eq.'SIMIL')then
+        if(ICT(i).eq.3.and.SOTHER(IC1(I),IE1(I),1)(1:5).eq.'SIMIL')then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3590,10 +3590,10 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute ... ',
-     &        SSOTHER(i,1)
+     &        SOTHER(IC1(I),IE1(I),1)
           endif
         endif
-        if(ICT(i).eq.3.and.SSOTHER(i,1)(1:5).eq.'EXTER')then
+        if(ICT(i).eq.3.and.SOTHER(IC1(I),IE1(I),1)(1:5).eq.'EXTER')then
           bndrysxc=.false.
           if(nbhelp.lt.59)then
             nbhelp=nbhelp+1
@@ -3603,7 +3603,7 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
           endif
         endif
-        if(ICT(i).eq.3.and.SSOTHER(i,1)(1:5).eq.'GROUN')then
+        if(ICT(i).eq.3.and.SOTHER(IC1(I),IE1(I),1)(1:5).eq.'GROUN')then
           bndrysxc=.false.
           if(nbhelp.lt.59)then
             nbhelp=nbhelp+1
@@ -3631,13 +3631,13 @@ C Do same check as in solar.F.
                 write(h(nbhelp),'(2a)') 'connection is ... ',CXSTR(1:50)
                 nbhelp=nbhelp+1
                 write(h(nbhelp),'(2a)') 'for surface attribute ...',
-     &           SSMLCN(i)
+     &           SMLCN(IC1(i),IE1(i))
               endif
             endif
           endif
         endif
 
-        if(ICT(i).eq.4.and.SSOTHER(i,1)(1:5).ne.'GROUN')then
+        if(ICT(i).eq.4.and.SOTHER(IC1(i),IE1(i),1)(1:5).ne.'GROUN')then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3647,10 +3647,10 @@ C Do same check as in solar.F.
             write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute ... ',
-     &        SSOTHER(i,1)
+     &        SOTHER(IC1(i),IE1(i),1)
           endif
         endif
-        if(ICT(i).eq.5.and.SSOTHER(i,1)(1:5).ne.'ADIAB')then
+        if(ICT(i).eq.5.and.SOTHER(IC1(i),IE1(i),1)(1:5).ne.'ADIAB')then
           bndrysxc=.false.
           if(nbhelp.lt.58)then
             nbhelp=nbhelp+1
@@ -3660,10 +3660,10 @@ C Do same check as in solar.F.
             write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute ... ',
-     &        SSOTHER(i,1)
+     &        SOTHER(IC1(i),IE1(i),1)
           endif
         endif
-        if(ICT(i).eq.6.and.SSOTHER(i,1)(1:5).ne.'BASES')then
+        if(ICT(i).eq.6.and.SOTHER(IC1(i),IE1(i),1)(1:5).ne.'BASES')then
 
 C HOT3000: BASESIMP.
           bndrysxc=.false.
@@ -3675,7 +3675,7 @@ C HOT3000: BASESIMP.
             write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
             nbhelp=nbhelp+1
             write(h(nbhelp),'(2a)') 'found surface attribute ... ',
-     &        SSOTHER(i,1)
+     &        SOTHER(IC1(i),IE1(i),1)
           endif
         endif
 C HOT3000: BASESIMP.

@@ -480,15 +480,15 @@ C use the exact values from the results library.
           CALL CSCONV(IDAY,IZONE,ISN,CQ)
           DO 61 ISTP=ISTART,IEND
             IF(IE.GE.1)THEN
-              IF(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &           SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+              IF(SOTF(IZONE,ISN)(1:4).EQ.'OPAQ'.OR.
+     &           SOTF(IZONE,ISN)(1:4).EQ.'UNKN')THEN
                 VAL1(14,ISTP)=VAL1(14,ISTP)+CQ(ISTP)*(-1.0)
               ELSE
                 VAL1(16,ISTP)=VAL1(16,ISTP)+CQ(ISTP)*(-1.0)
               ENDIF
             ELSEIF(IE.EQ.0)THEN
-              IF(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &           SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+              IF(SOTF(IZONE,ISN)(1:4).EQ.'OPAQ'.OR.
+     &           SOTF(IZONE,ISN)(1:4).EQ.'UNKN')THEN
                 VAL1(13,ISTP)=VAL1(13,ISTP)+CQ(ISTP)*(-1.0)
               ELSE
                 VAL1(15,ISTP)=VAL1(15,ISTP)+CQ(ISTP)*(-1.0)

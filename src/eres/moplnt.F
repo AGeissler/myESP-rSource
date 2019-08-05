@@ -1508,8 +1508,6 @@ C Flags identifying if results libries are available. =0 no lib, =1 lib exists.
 
       logical colok,ok,dok,unixok
 
-      real*8 ENTERVAL8,ctime
-
 C For help messages
       character helpinsub*24   ! subroutine name
       character helptopic*24 ! string (unique) for topic
@@ -1609,7 +1607,6 @@ C Ask for set point value.
 C TSTART and TFINISH - start and finish timesteps from 00h00 on the 
 C first day of output.
       ENTERVAL=1.0/FLOAT(NPTS)/24.0
-      ENTERVAL8=1.0/real(NPTS)/24.0
       istart=((ioh1-1)+(iods-IPSDS)*24)*npts
       if(istart.eq.0)istart=1
       iend  =((ioh2)+(iodf-IPSDS)*24)*npts-1
@@ -1617,15 +1614,7 @@ C first day of output.
       TFINSH=float(iend)
 
 C Debug.
-cc      write(6,*) 'start and finish for graph ',TSTART,TFINSH
-cc      write(6,*) 'NPTS    =',NPTS
-cc      write(6,*) 'ioh1    =',ioh1
-cc      write(6,*) 'iods    =',iods
-cc      write(6,*) 'IPSDS   =',IPSDS
-cc      write(6,*) 'ioh2    =',ioh2
-cc      write(6,*) 'iodf    =',iodf
-cc      write(6,*) 'enterval=',ENTERVAL
-cc      write(6,*) 'nout    =',nout
+C      write(6,*) 'start and finish for graph ',TSTART,TFINSH
 
 C Set add profile label ADDLIN=0 i.e. no add
       ADDLIN=0
@@ -1688,13 +1677,10 @@ C First recover bounds of selected data when no averaging is required
 C << no occupancy sensing at this time >>
       if(iav.eq.0) then
         if(idaver.eq.0) then
-          ctime=real(ioh1-1)/24.0+ENTERVAL8/2.+real(iods)
+           ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
         else
-          ctime=real(ioh1-1)/24.0+ENTERVAL8+real(iods)
-       endif
-
-C Debug.
-cc      write(6,*) 'ctime   =',ctime
+           ctime=float(ioh1-1)/24.0+enterval+float(iods)
+        endif
 
 C For each timestep.
         do 100 ii=istart, iend, nout
@@ -1818,17 +1804,17 @@ C          write(6,'(F10.5,12(2x,G10.3))')
 C     &      ctime,(val(jjj),jjj=1,npget)
 
 C update ctime for the next loop.
-          ctime=ctime+enterval8*real(nout)
+          ctime=ctime+enterval*float(nout)
   100   continue
       else
 
 C Case when averaging is required
         if(idaver.eq.0) then
-          ctime=real(ioh1-1)/24.0+ENTERVAL8/2.+real(iods)
-     &              +ENTERVAL8*real(nout)/2.
+          ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
+     &              +ENTERVAL*float(nout)/2.
         else
-          ctime=real(ioh1-1)/24.0+enterval8+real(iods)
-     &              +ENTERVAL8*real(nout)/2.
+          ctime=float(ioh1-1)/24.0+enterval+float(iods)
+     &              +ENTERVAL*float(nout)/2.
         endif
         do 111 jj=1,npget
   111     val(jj)=0.0
@@ -1964,7 +1950,7 @@ C by occupancy.
   61        continue
 
 C Tidy up in preparation for the next loop.
-            ctime=ctime+enterval8*real(nout)
+            ctime=ctime+enterval*float(nout)
             do 113 jj=1,npget
               val(jj)=0.0
   113       continue
@@ -2148,21 +2134,10 @@ C Recover and plot data. If listing to file or text feedback then
 C write out labels for each column at the start.
       if (MENUTYPE.eq.4) then
         if(idaver.eq.0) then
-           ctime=real(ioh1-1)/24.0+ENTERVAL8/2.+real(iods)
+           ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
         else
-           ctime=real(ioh1-1)/24.0+enterval8+real(iods)
+           ctime=float(ioh1-1)/24.0+enterval+float(iods)
         endif
-C Debug.
-cc        write(6,*) 'float(ioh1-1)/24.0 =',float(ioh1-1)/24.0
-cc        write(6,*) 'float(iods) =',float(iods)
-cc        write(6,*) 'ENTERVAL    =',ENTERVAL
-cc        ENTERVAL8=real(ENTERVAL/2.)
-cc        write(6,*) 'ENTERVAL/2. =',ENTERVAL8
-cc        write(6,*) 'ctime 2 =',ctime
-cc        write(6,*) 'ctime 3 =',real(ioh1-1)/24.0
-cc     &                +ENTERVAL8+real(iods)
-cc        write(6,*) 'ctime 4 =',float(iods)+ENTERVAL/2.
-
         iday=INT(ctime)
         CALL STDATE(IYEAR,IDAY,DESCR,DESCR1)
         if (IDHFLG.eq.1) then
@@ -2226,17 +2201,15 @@ C Now, for each system timestep get the non-averaged data and
 C deal with it.
       if(iav.eq.0) then
         if(idaver.eq.0) then
-           ctime=real(ioh1-1)/24.0+ENTERVAL8/2.+real(iods)
+           ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
            gtime=TSTART
         else
-           ctime=real(ioh1-1)/24.0+enterval8+real(iods)
+           ctime=float(ioh1-1)/24.0+enterval+float(iods)
            gtime=TSTART
         endif
 
 C Debug.
-cc        write(6,*) 'ctime; gtime; enterval ',ctime,gtime,enterval
-cc        write(6,*) 'istart  =',istart
-cc        write(6,*) 'iend    =',iend
+C        write(6,*) 'initial ctime gtime ',ctime,gtime,enterval
 
 C For each timestep.
         do 200 ii=istart, iend, nout
@@ -2461,7 +2434,7 @@ C Hours below.
           endif
 
 C Tidy up in preparation for the next loop.
-          ctime=ctime+enterval8*real(nout)
+          ctime=ctime+enterval*float(nout)
           gtime=gtime+float(nout)
 
 C Debug.
@@ -2472,12 +2445,12 @@ C          write(6,*) 'incr ii ctime gtime ',ii,ctime,gtime
 
 C Case when averaging IS required
         if(idaver.eq.0) then
-          ctime=real(ioh1-1)/24.0+ENTERVAL8/2.+real(iods)
-     &              +ENTERVAL8*real(nout)/2.
+          ctime=float(ioh1-1)/24.0+ENTERVAL/2.+float(iods)
+     &              +ENTERVAL*float(nout)/2.
           gtime=TSTART
         else
-          ctime=real(ioh1-1)/24.0+enterval8+real(iods)
-     &              +ENTERVAL8*real(nout)/2.
+          ctime=float(ioh1-1)/24.0+enterval+float(iods)
+     &              +ENTERVAL*float(nout)/2.
           gtime=TSTART
         endif
         do 211 jj=1,npget
@@ -2714,7 +2687,7 @@ C Hours below.
             endif
 
 C Tidy up in preparation for the next loop.
-            ctime=ctime+enterval8*real(nout)
+            ctime=ctime+enterval*float(nout)
             gtime=gtime+float(nout)
             do 213 jj=1,npget
               val(jj)=0.0

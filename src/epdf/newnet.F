@@ -2178,7 +2178,7 @@ C with ier=1.
 
 C Check composite name of surface with composite name in MLC common.
       imatch=0
-      call matchmlcdesc(SMLCN(is),imatch)
+      call matchmlcdesc(SMLCN(IZ,is),imatch)
       if(imatch.eq.0) then
          call edisp(iuout,'Error: probably no MLC defined!')
          return
