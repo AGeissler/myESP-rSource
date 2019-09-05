@@ -3992,15 +3992,6 @@ C Ambient temperature for temp compensation end [Deg C]
 C Temp compensation gradient (-)
       TempCompc0=BDATA(IPCOMP,24)
 
-C Nominal water return temperature DHW (Deg C)
-cx      NomRetT=BDATA(IPCOMP,20)
-cx      IF(NomRetT.GE.TinMax)THEN
-      IF(BDATA(IPCOMP,28).GE.BDATA(IPCOMP,30))THEN
-        WRITE(OUTS,'(a)')'Error in GSHP Tnom DHW >= Tin max DHW'
-        call EDISP(IUOUT,OUTS)
-        STOP
-      ENDIF
-
 C Is a lock out time defined?
       BLKOUT=BDATA(IPCOMP,25)*60.
 
@@ -4011,6 +4002,15 @@ C Is a lock out time defined?
       endif
 
       bSwitched=.false.
+
+C Nominal water return temperature DHW (Deg C)
+cx      NomRetT=BDATA(IPCOMP,20)
+cx      IF(NomRetT.GE.TinMax)THEN
+      IF(BDATA(IPCOMP,28).GE.BDATA(IPCOMP,30))THEN
+        WRITE(OUTS,'(a)')'Error in GSHP Tnom DHW >= Tin max DHW'
+        call EDISP(IUOUT,OUTS)
+        STOP
+      ENDIF
 
 C Nominal water return deadband DHW (Deg C)
 cx      IF((NomRetT+0.5*(NomRetTDeadB)).GE.TinMax)THEN

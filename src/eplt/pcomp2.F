@@ -7286,15 +7286,16 @@ C Case where Tamb > Temp compensation saturation point
             ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
           ENDIF
 
+          IF(ReturnSPH.GT.TinMax) ReturnSPH=TinMax
+
           IF(ReturnSP.GT.TinMax)THEN
             ReturnSP=TinMax
-            ReturnSPH=ReturnSP
+cx            ReturnSPH=ReturnSP
           ENDIF
         ENDIF
       endif ! space heat rq'd
 
-C Generate coefficients for energy balance equation
-      IF (ISTATS.EQ.1) THEN
+cx ISTAT.eq.1 was here, previously (190904)
 
 C       Set ground source temperature based on BDATA.
         call eclose(BDATA(IPCOMP,26),1.0,0.001,bGrndSrc1)
@@ -7455,7 +7456,9 @@ C Calculate the COP based on the user-specified method.
           ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Tgrnd
             TL=Tgrnd
             TH=ReturnT
-            COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
+            COP=min(COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.),
+     &               COPa0+(COPa1*(ToutMax-TL))
+     &                               +(COPa2*(ToutMax-TL)**2.))
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ground T
           ELSE
@@ -7508,7 +7511,7 @@ C       accordingly (assume controller is still operating).
         ENDIF
 
 C Generate coefficients for energy balance equation
-cx      IF (ISTATS.EQ.1) THEN
+      IF (ISTATS.EQ.1) THEN
 
 C Establish the nodal thermal capacities (see CMP36C).
         CM=CompMass*AveSpHt
@@ -7517,8 +7520,8 @@ C Node 1 water
         C1=DeviceFlow*SHTFLD(3,CONVAR(ICON1,1))
 
 C Set heat loss to zero if no containment defined
-cx        CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
-cx        IF(CLOSE) UAMod=0.0
+        CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
+        IF(CLOSE) UAMod=0.0
 
 C Calculate the electrical demand of the device assumung the controller is ON.
         CtlPower=CtlRating
@@ -8120,7 +8123,7 @@ cx            TH=ToutMax
      &               COPa0+(COPa1*(ToutMax-TL))
      &                               +(COPa2*(ToutMax-TL)**2.))
           ELSEIF(COPModel.EQ.4)THEN
-            COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
+            COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ground T
           ELSE
             WRITE(OUTS,'(a)')'Error in 2node-GSHP, COP model # '
             CALL EDISP(IUOUT,OUTS)
