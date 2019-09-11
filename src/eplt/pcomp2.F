@@ -7036,8 +7036,8 @@ C           18 Tin max (degC)
 C           19 Ambient temp compensation on/off (-)
 C           20 Nominal water return temperature (Deg C)
 C           21 Nominal water return deadband (Deg C)
-C           22 Ground source temperature for temp compensation start [Deg C]
-C           23 Ground source temperature for temp compensation end [Deg C]
+C           22 Amb. air Temperature for temp compensation start [Deg C]
+C           23 Amb. air Temperature for temp compensation end [Deg C]
 C           24 Temp compensation gradient [deg C return/deg C ground source] (degCr/degCa)
 C           25 Heat pump lock out time (min)
 C           26 Ground source model [1 - standard profile 2 - user profile 3 - f(depth)]
