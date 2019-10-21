@@ -7185,7 +7185,7 @@ C Electrical details for specified plant components
       DATA NDMonth/31,28,31,30,31,30,31,31,30,31,30,31/
 
       LOGICAL CLOSE,CLOSEA,bSHrqd,bDHWrqd,bSHpref,
-     &                     bGrndSrc1,bGrndSrc2,bGrndSrc3,bIsSH
+     &                     bGrndSrc1,bGrndSrc2,bGrndSrc3
 
       CHARACTER OUTS*248,PCNAME*15
 
@@ -7297,14 +7297,14 @@ cx            ReturnSPH=ReturnSP
 
 cx ISTAT.eq.1 was here, previously (190904)
 
-C      Set ground source temperature based on BDATA.
-       call eclose(BDATA(IPCOMP,26),1.0,0.001,bGrndSrc1)
-       call eclose(BDATA(IPCOMP,26),2.0,0.001,bGrndSrc2)
-       call eclose(BDATA(IPCOMP,26),3.0,0.001,bGrndSrc3)
+C       Set ground source temperature based on BDATA.
+        call eclose(BDATA(IPCOMP,26),1.0,0.001,bGrndSrc1)
+        call eclose(BDATA(IPCOMP,26),2.0,0.001,bGrndSrc2)
+        call eclose(BDATA(IPCOMP,26),3.0,0.001,bGrndSrc3)
 
-       if (bGrndSrc1 .or. bGrndSrc2) then
-C      Standard ground temperature profile from grdtmp(12,mgrdp), see esru_blk.F,
-C      or user defined ground temperature profile from ugrdtp(12,mgrdp).
+        if (bGrndSrc1 .or. bGrndSrc2) then
+C       Standard ground temperature profile from grdtmp(12,mgrdp), see esru_blk.F,
+C       or user defined ground temperature profile from ugrdtp(12,mgrdp).
 
           if (bGrndSrc2) then
             if (NGRDP.le.0) then
@@ -7370,12 +7370,6 @@ C       Ground source temperature option invalid
 C Determine whether machine should be on or off based on return
 C water temperature.
         ReturnT=CONVAR(ICON1,1)
-
-      write(*,*) "CD(HP,1)=",CDATA(IPCOMP,1),
-     &           ", CD(HP,2)=",CDATA(IPCOMP,2),
-     &           ", CD(HP,3)=",CDATA(IPCOMP,3),
-     &           ", BD(17)=",BDATA(IPCOMP,17),
-     &           ", ReturnT=",ReturnT
 
 C Check if device switched off last TS
         IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
@@ -7447,21 +7441,8 @@ C Calculate the TOTAL device power draw (W)
           ELSEIF(CompModel.eq.3)THEN
             Td=min(ReturnT,ToutMax)
             Ta=Tgrnd
-            call eclose(ABS(ToutMax-(BDATA(IPCOMP,17))),0.0,10.,bIsSH)
-            write(*,*)"ToutMax=",ToutMax,
-     &                ", BD(17)=",BDATA(IPCOMP,17)
-            if (bIsSH) then
-              CompPower=1000.*Compa0*EXP(Compa1*(Td-Ta))
-               write(*,*)"bIsSH, ToutMax=",ToutMax,
-     &                   ", BD(17)=",BDATA(IPCOMP,17),
-     &                   ", CompP=",CompPower
-            else
-              CompPower=1000.*(Compa0*EXP(Compa1*(Td-Ta))
+            CompPower=1000.*(Compa0*EXP(Compa1*(Td-Ta))
      &                   +Compa2*(ToutMax-(BDATA(IPCOMP,17))))!adapted exponential power consumption.
-cx               write(*,*)"ToutMax=",ToutMax,
-cx     &                   ", BD(17)=",BDATA(IPCOMP,17),
-cx     &                   ", CompP=",CompPower
-            endif
           ENDIF
           if(CompPower.LT.0.0)CompPower=0.0
 
@@ -7594,11 +7575,6 @@ C Establish the present and known coefficient i.e. RHS
      &          -ALPHA*HeatOutput
      &          -(1.-ALPHA)*PCQP(INOD1)
      &          -(1.-ALPHA)*PUAP(INOD1)*PCNTMP(IPCOMP)
-
-               write(*,*)"ALPHA=",ALPHA,
-     &                   ", COUT(1)=",COUT(1),
-     &                   ", COUT(2)=",COUT(2),
-     &                   ", COUT(3)=",COUT(3)
 
 C Establish "containment loss" data
         presentTemp=csvp(inod1,1)
