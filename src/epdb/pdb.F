@@ -69,9 +69,9 @@ C Name of current application
       character outs*124,outs248*248
       character path*72,fs*1
       character tab*1
-      character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*68 ! for banner title via epages call
-      character buffer*124    ! for listing summary of components
+      character cVnum*38       ! returned from ESPrVersionNum
+      character pagestitle*112 ! for banner title via epages call
+      character buffer*124     ! for listing summary of components
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ier
