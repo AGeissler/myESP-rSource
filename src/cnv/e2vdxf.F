@@ -27,6 +27,7 @@ C lindir: finds the angles associate with a line in space.
       subroutine e2vdxf(incobs)
 #include "building.h"
 #include "model.h"
+#include "CFC_common.h"
 
 C geometry.h provides commons G0/G1/G2/G5/precz/GS5.
 #include "geometry.h"
@@ -248,7 +249,7 @@ C If an obstruction for zone then make it the next layer.
         endif
 
 C If there are transparent surfaces put them in another layer << .. >>
-        if(ITW(mz).EQ.1)then
+        if((ITW(mz).EQ.1).or.(icfc(mz).EQ.1))then
           write(ioout,'(a)')'LAYER'
           write(ioout,'(a)')'  2'
           write(ioout,'(a4,a)') 'TRN_',ZN(1:lnblnk(ZN))
@@ -495,7 +496,9 @@ C          else
 C Write as a 3DPOLY with VERTEX.
             WRITE(ioout,'(A)')'POLYLINE'
             WRITE(ioout,'(A)')'  8'
-            if(SOTF(mz,isf).eq.'TRAN')then
+            if((SOTF(mz,isf).eq.'TRAN').or.
+     &         (SOTF(mz,isf).eq.'CFC ').or.
+     &         (SOTF(mz,isf).eq.'CFC2'))then
               WRITE(ioout,'(A4,a)') 'TRN_',ZN(1:lnblnk(ZN))
             else
               WRITE(ioout,'(A)') ZN(1:lnblnk(ZN))
