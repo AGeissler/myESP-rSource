@@ -196,9 +196,8 @@ c Common for the weather data
 
       REAL QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
 
-      common/outin/iuout,iuin
-
-      INTEGER iuout,iuin
+      common/outin/iuout,iuin,ieout
+      INTEGER iuout,iuin,ieout
 
 c Local variables
       INTEGER ihour_year,i,GSHP_HP_mode
@@ -1852,9 +1851,9 @@ c Local variables
      &     ASHPC_CAP,density_inlet,DENSITY_AIR,shr,SENS_HEAT_RATIO,
      &     TWB_ACMODEL,exit_hum_ratio,actual_ss_capacity
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
-      INTEGER max_num_iterations,iuout,iuin
+      INTEGER max_num_iterations,iuout,iuin,ieout
 
 c Assume that upper limit of maximum humidity ratio for dry conditions
 c is equal to 0.1
@@ -1984,9 +1983,8 @@ c Local variables
 
       INTEGER iteration_counter
 
-      common/outin/iuout,iuin
-
-      INTEGER iuout,iuin
+      common/outin/iuout,iuin,ieout
+      INTEGER iuout,iuin,ieout
 
 c Maximum amount of possible economizer cooling
       if(tout_avg.lt.tdb1) then
@@ -2217,9 +2215,8 @@ c Local variables
 
       INTEGER iteration_counter
 
-      common/outin/iuout,iuin
-
-      INTEGER iuout,iuin
+      common/outin/iuout,iuin,ieout
+      INTEGER iuout,iuin,ieout
 
 c Maximum amount of possible economizer cooling
       if(tout_avg.lt.tdb1) then
@@ -2432,9 +2429,8 @@ c Local variables
 
       INTEGER number_iterations
 
-      common/outin/iuout,iuin
-
-      INTEGER iuout,iuin
+      common/outin/iuout,iuin,ieout
+      INTEGER iuout,iuin,ieout
 
 c Initialize latent load
       rlatent_load = 0.
@@ -2575,9 +2571,8 @@ c Variables passed in call
       INTEGER  GCEP_HP_mode,  GSHP_HP_mode
       INTEGER ifan_operation,ihvac_type
 
-C      common/outin/iuout,iuin
-
-C      INTEGER iuout,iuin
+C      common/outin/iuout,iuin,ieout
+C      INTEGER iuout,iuin,ieout
 
 c Local variables
       REAL GSHP_CAP,SENS_HEAT_RATIO,ASHPC_CAP

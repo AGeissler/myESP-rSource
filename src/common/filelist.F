@@ -39,13 +39,12 @@ C parameter ier returned as 2 if problem writing file name path.
 
       subroutine browsefilelist(act,where,what,sfile,snpfile,nlist,ier)
 #include "espriou.h"
-C espriou.h for parameter MFFOLD
 #include "building.h"
 #include "model.h"
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character h*72
       common/pophelp/h(60)
       common/rpath/path
@@ -135,11 +134,6 @@ C to the current working directory.
       subpath=' '; odir=' '
       call usrdir(odir)
       lnodir=lnblnk(odir); lnpath=lnblnk(path)
-
-C Debug.
-C      write(6,*) 'odir is ',odir(1:lnblnk(odir)),' ',lnodir
-C      write(6,*) 'path is ',path(1:lnblnk(path)),' ',lnpath
-C      write(6,*) 'imgpth is ',imgpth(1:lnblnk(imgpth))
 
       if(where(1:3).eq.'cfg')then
         write(subpath,'(3a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
@@ -348,18 +342,14 @@ C In OSX no need to prepend odir (just use the relative path defined above).
         write(outs,*) '.json files in ',subpath
       endif
 
+      call edisp(iuout,' ')
       call edisp248(iuout,outs,90) 
 
 C Clear the list of files and recover a list of files matching
 C the current criteria.
       call getfileslist(subpath,action,nnlistf)
       nlistf=int(nnlistf)
-C Debug
-C      write(6,*) 'nlistf nboflistf ',nnlistf,nlistf,nboflistf
-C      write(6,*) listfoldertype
-C      write(6,*) listfolder(1)
-C      write(6,*) listfolder(2)
-      
+
 C Depending on `act`, print or browse or just return with number of files.
       if(act.eq.'p')then
         call printfileslist(outs,'p')
@@ -384,8 +374,6 @@ C Try to use information gathered from file scan.
           do 76 ij=1,nboflistf
             listfc70(ij)=' '
             lex=lenlistfolder(ij)
-C Debug.
-C            write(6,*) lex,listfolder(ij)
             if(lex.gt.70) lex=70
             if(lex.le.1)then
               write(listfc70(ij),'(a)') '  '
@@ -404,8 +392,6 @@ C Sort both file name lists in ascending order.
           call SORTSTRA(listfc70s,nboflistf)
           call SORTSTRA(listfolders,nboflistf)
           do ij=1,nboflistf
-C            write(6,*) ij,' ',listfc70s(ij)
-C            write(6,*) ij,' ',listfolders(ij)
             lenlistfolders(ij)=lnblnk(listfolders(ij))
           enddo
 
@@ -416,16 +402,8 @@ C (which is sorted the same way) for the returned file name.
           if(ix.eq.1)then
             write(sfile,'(3a)')relative(1:lnblnk(relative)),fs,
      &        listfolders(ivlist(ix))(1:lenlistfolders(ivlist(ix)))
-
-C Debug.
-C            write(6,*) sfile
-
             write(snpfile,'(a)')
      &        listfolders(ivlist(ix))(1:lenlistfolders(ivlist(ix)))
-
-C Debug.
-C            write(6,*) snpfile
-
           else
 
 C Nothing selected, revert to original name. << expand logic here >>
@@ -514,7 +492,7 @@ C Parameters
       integer nlist
       integer ier
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character h*72
       common/pophelp/h(60)
       common/rpath/path
@@ -612,11 +590,6 @@ C to the current working directory.
       call usrdir(odir)
       lnodir=lnblnk(odir); lnpath=lnblnk(path)
 
-C Debug.
-C      write(6,*) 'odir is ',odir(1:lnblnk(odir)),' ',lnodir
-C      write(6,*) 'path is ',path(1:lnblnk(path)),' ',lnpath
-C      write(6,*) 'imgpth is ',imgpth(1:lnblnk(imgpth))
-
       if(where(1:3).eq.'cfg')then
         write(subpath,'(3a)',iostat=ios,err=1) odir(1:lnblnk(odir)),fs,
      &    path(1:lnblnk(path))
@@ -824,18 +797,13 @@ C In OSX no need to prepend odir (just use the relative path defined above).
         write(outs,*) '.json files in ',subpath
       endif
 
+      call edisp(iuout,' ')
       call edisp248(iuout,outs,90) 
 
 C Clear the list of files and recover a list of files matching
 C the current criteria.
       call getfileslist(subpath,action,nnlistf)
       nlistf=int(nnlistf)
-
-C Debug
-C      write(6,*) 'nlistf nboflistf ',nnlistf,nlistf,nboflistf
-C      write(6,*) listfoldertype
-C      write(6,*) listfolder(1)
-C      write(6,*) listfolder(2)
       
 C Depending on `act`, print or browse or just return with number of files.
       if(act.eq.'p')then
@@ -861,8 +829,7 @@ C Try to use information gathered from file scan.
           do 76 ij=1,nboflistf
             listfc70(ij)=' '
             lex=lenlistfolder(ij)
-C Debug.
-C            write(6,*) lex,listfolder(ij)
+
             if(lex.gt.70) lex=70
             if(lex.le.1)then
               write(listfc70(ij),'(a)') '  '
@@ -881,8 +848,6 @@ C Sort both file name lists in ascending order.
           call SORTSTRA(listfc70s,nboflistf)
           call SORTSTRA(listfolders,nboflistf)
           do ij=1,nboflistf
-C            write(6,*) ij,' ',listfc70s(ij)
-C            write(6,*) ij,' ',listfolders(ij)
             lenlistfolders(ij)=lnblnk(listfolders(ij))
           enddo
 
@@ -898,15 +863,9 @@ C (which is sorted the same way) to select up to nboflistf.
              write(sfilelist(loop),'(3a)')
      &       relative(1:lnblnk(relative)),fs,
      &       listfolders(ivlist(loop))(1:lenlistfolders(ivlist(loop)))
-
-C Debug.
-C             write(6,*) sfilelist(loop)
-
              write(snpfilelist(loop),'(a)')
      &        listfolders(ivlist(loop))(1:lenlistfolders(ivlist(loop)))
 
-C Debug.
-C             write(6,*) snpfilelist(loop)
            enddo
            nlist=IX  ! pass back the number of files selected
           endif
@@ -978,7 +937,7 @@ C Passed parameters
       character*(*) title   ! title of the printed list
       character act*1       ! action l is list p is packed lines
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       character t96*96
       character*72 printfile
       integer lntitle

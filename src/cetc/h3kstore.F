@@ -790,9 +790,10 @@ C - Alex, Feb 24, 2004.
 
 
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
         INTEGER IUOUT
         INTEGER IUIN
+        INTEGER IEOUT
 
 C     Once per hour storage of results, averaged over that hour.
       common/rdcgen/irdact

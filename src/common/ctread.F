@@ -49,7 +49,7 @@ C different from ambient concentration)
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ER1/IER1
       COMMON/FILEP/IFIL
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
@@ -59,7 +59,8 @@ C different from ambient concentration)
       COMMON/CONTM3/CNCAA(MCONTM,MT),FILEFA(MCONTM,MCNN)
      &,FORCAB(MCONTM,MCONTM)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
       COMMON/CONTM6/CNCNI(MCONTM,MNOD)
 
       CHARACTER*124 OUTSTR,CNTMDESC
@@ -128,7 +129,7 @@ C Read contaminant name and ambient concentrations
         IF(IER.NE.0) GOTO 1009
         CONTMNAM(ICONTM)=PHRASE
 
-C Now get ambient concentrations.
+C Get ambient concentrations.
 C << if this is reading a long list of numbers we could use an
 C << alternative technique to fill the array.
         DO 987 IT=1,MT
@@ -141,32 +142,32 @@ C << alternative technique to fill the array.
           IF(IER.NE.0) GOTO 1009
  987    CONTINUE
 
-C Now get source/sink models 
+C Get source/sink model.
         CALL STRIPC(IUNIT,OUTSTR,0,ITEMS,1,'ambient conc',IER)
         IF(IER.NE.0) GOTO 1009
         K=0
-        CALL EGETWI(OUTSTR,K,NSSNO,0,MSPMNO,'F',' ',IER)
+        CALL EGETWI(OUTSTR,K,NSSM,0,MSPMNO,'F',' ',IER)
         IF(IER.NE.0) GOTO 1009
 
-C Fill common block for sources/sinks associated with each contaminant
-        IF(NSSNO.EQ.0) THEN
+C Fill common block for sources/sinks associated with each contaminant.
+        IF(NSSM.EQ.0) THEN
           CONTINUE
         ELSE
-          DO 188 ISSNO=1,NSSNO
+          DO 188 ISSM=1,NSSM
             CALL EGETWI(OUTSTR,K,N,0,MSPMNO,'F',' ',IER)
-            SSLINK1(ISSNO,ICONTM)=N
+            SSLINK1(ISSM,ICONTM)=N
  188      CONTINUE
         ENDIF
 
  10   CONTINUE
 
-C Skip section header
+C Skip section header.
       CALL STRIPC(IUNIT,OUTSTR,0,ITEMS,1,' ',IER)
       IF(IER.NE.0) GOTO 1009
       IF(OUTSTR(1:9).NE.'SECTION_3') GOTO 1015
 
 C Skip contaminant names if rates are defined otherwise 
-C this is SECTION_4
+C this is SECTION_4.
   7   CALL STRIPC(IUNIT,OUTSTR,0,ITEMS,1,' ',IER)
       IF(IER.NE.0) GOTO 1009
       IF(OUTSTR(1:9).EQ.'SECTION_4') THEN
@@ -353,18 +354,18 @@ C Read Supplementary data items depending upon type
         IF(IER.NE.0) GOTO 1017
  19   CONTINUE
 
-C Now go on to source/sink linkage with nodes
+C Now go on to source/sink linkage with nodes.
       CALL STRIPC(IUNIT,OUTSTR,0,ITEMS,1,' ',IER)
       IF(IER.NE.0) GOTO 1009
       IF(OUTSTR(1:9).NE.'SECTION_7') GOTO 1021
 
-C Determine number of internal nodes (KNOD)
+C Determine number of internal nodes (KNOD).
       KNOD=0
       DO 201 INOD=1,NNOD
         IF(NDTYP(INOD).LT.2) KNOD=KNOD+1
  201  CONTINUE
 
-C Now read sources/sinks linked with the nodes
+C Read sources/sinks linked with the nodes.
       DO 202 JNOD=1,KNOD
         CALL STRIPC(IUNIT,OUTSTR,0,ITEMS,1,' ',IER)
         IF(IER.NE.0) GOTO 1009
@@ -373,22 +374,23 @@ C Now read sources/sinks linked with the nodes
         IF(IER.NE.0) GOTO 1009
         CALL EGETWI(OUTSTR,K,INOD,0,MNOD,'F',' ',IER)
         IF(IER.NE.0) GOTO 1009
-        CALL EGETWI(OUTSTR,K,NSSNO,0,MSPMNO,'F',' ',IER)
+        CALL EGETWI(OUTSTR,K,iNSSNO,0,MSPMNO,'F',' ',IER)
         IF(IER.NE.0) GOTO 1009
-        IF(NSSNO.EQ.0)GOTO 202
-        DO 203 ISSNO=1,NSSNO
+        NSSNO(INOD)=iNSSNO
+        IF(iNSSNO.EQ.0)GOTO 202
+        DO 203 ISSNO=1,iNSSNO
           CALL EGETWI(OUTSTR,K,N,0,MSPMNO,'F',' ',IER)
           IF(IER.NE.0) GOTO 1009
           SSLINK2(ISSNO,INOD)=N
  203    CONTINUE
  202  CONTINUE      
 
-C Close contaminant file
+C Close contaminant file.
       CALL ERPFREE(IUNIT,ISTAT)
 
       RETURN
 
-C Error Messages
+C Error Messages.
  1009 CALL USRMSG(' error reading contaminant file',' ','W')
       ier=1
       RETURN

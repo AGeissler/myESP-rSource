@@ -137,23 +137,14 @@ c     *********************************************************************
       IMPLICIT NONE
 
 #include "hvac_parameters.h"
-
 #include "building.h"
-
 #include "hvac_common.h"
-
 #include "ashp_common.h"
-
 #include "SOFC.h"
-
 #include "gcep_common.h"
-
 #include "OffsiteUtilitiesPublic.h"
-
 #include "control.h"
-
 #include "h3k_report_data.h"
-
 #include "qrun.h"
 
 C Function determining if HOT3000 features enabled?

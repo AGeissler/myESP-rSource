@@ -92,8 +92,8 @@ C Passed arguements
 C----------------------------------------------------------------------
 C     ESP-r variables 
 C----------------------------------------------------------------------
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout ! channels for writing messages to screen
 
 C----------------------------------------------------------------------
 C     Local variables
@@ -464,8 +464,8 @@ C Passed arguements
 C----------------------------------------------------------------------
 C     ESP-r variables 
 C----------------------------------------------------------------------
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout    ! channels for writing messages to screen
 C----------------------------------------------------------------------
 C     Local variables
 C----------------------------------------------------------------------
@@ -651,8 +651,8 @@ C External functions.
       character achar
 
 C ESP-r variables
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen     
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout  ! channels for writing messages to screen     
 
       common/pophelp/h(60)
       character h*72       ! help text      
@@ -1219,8 +1219,8 @@ C.......................exit loop.
 C----------------------------------------------------------------------
 C           User wants to sort records
 C----------------------------------------------------------------------
-            call AskOk('This operation will sort the records by year.',
-     &                  'Continue?', bAnswer, .true., 0)
+            call EAskOk('This operation will sort the records by year.',
+     &                  'Continue?', bAnswer, 0)
             if (bAnswer) then
                call Sort_MY_clm_db(cContext,'fix',bOrderChanged)
 C..............Update save status
@@ -1232,9 +1232,9 @@ C----------------------------------------------------------------------
 C           User wants to check for continuity and fill in missing
 C           records 
 C----------------------------------------------------------------------
-            call AskOk('This operation will sort the records by year',
-     &                 'and fill in any missing records. Continue?',
-     &                 bAnswer, .true., 0)
+            call EAskOk('This operation will sort the records by year',
+     &                 'and fill missing records. Continue?',
+     &                 bAnswer, 0)
             if (bAnswer) then
 C..............Sort records and fill in missing ones
                call Sort_MY_clm_db(cContext,'fix',bOrderChanged)
@@ -1250,9 +1250,9 @@ C..............Update save status
 C----------------------------------------------------------------------
 C           User wants to delete duplicate records
 C----------------------------------------------------------------------
-            call AskOk('This operation will sort the records by year',
+            call EAskOk('This operation will sort the records by year',
      &                 'and delete duplicate records. Continue?',
-     &                 bAnswer, .true., 0)
+     &                 bAnswer, 0)
             if (bAnswer) then
                bOrderChanged  = .false.
                bDuplicates    = .false.
@@ -1337,8 +1337,8 @@ C Passed arguements
 C----------------------------------------------------------------------
 C     ESP-r variables 
 C----------------------------------------------------------------------
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen     
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout   ! channels for writing messages to screen     
 
       common/pophelp/h(60)
       character h*72       ! help text
@@ -1526,8 +1526,8 @@ C----------------------------------------------------------------------
 C----------------------------------------------------------------------
 C     ESP-r variables 
 C----------------------------------------------------------------------
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout, iuin,ieout   ! channels for writing messages to screen
 C----------------------------------------------------------------------
 C     Local variables
 C----------------------------------------------------------------------
@@ -1657,8 +1657,8 @@ C----------------------------------------------------------------------
 C----------------------------------------------------------------------
 C     ESP-r variables 
 C----------------------------------------------------------------------
-      common/outin/iuout,iuin
-      integer iuout, iuin         ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout, iuin, ieout  ! channels for writing messages to screen
 
 C----------------------------------------------------------------------
 C     Local variables
@@ -1788,8 +1788,8 @@ C----------------------------------------------------------------------
 C----------------------------------------------------------------------
 C     ESP-r variables 
 C----------------------------------------------------------------------
-      common/outin/iuout,iuin
-      integer iuout, iuin         ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout, iuin, ieout  ! channels for writing messages to screen
 C----------------------------------------------------------------------
 C     Local variables
 C----------------------------------------------------------------------
@@ -1904,8 +1904,8 @@ C Passed arguements
 C----------------------------------------------------------------------
 C     ESP-r variables 
 C----------------------------------------------------------------------
-      common/outin/iUout,iuin
-      integer iUout, iuin         ! channels for writing messages to screen
+      common/outin/iUout,iuin,ieout
+      integer iUout, iuin, ieout    ! channels for writing messages to screen
       
 C----------------------------------------------------------------------
 C     Local variables 
@@ -2052,8 +2052,8 @@ C Passed arguements
 C----------------------------------------------------------------------
 C     ESP-r variables 
 C----------------------------------------------------------------------
-      common/outin/iUout,iuin
-      integer iUout, iuin         ! channels for writing messages to screen
+      common/outin/iUout,iuin,ieout
+      integer iUout, iuin, ieout    ! channels for writing messages to screen
       
 C----------------------------------------------------------------------
 C     Local variables 

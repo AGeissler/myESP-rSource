@@ -1550,12 +1550,12 @@ C ------------------------------------------------------------------------------
 #include "dhw_common.h"
 #include "ground_temp_mains_common.h"
 #include "espriou.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
 C Declarations for local variables and variables passed in common blocks.
       character outs*124,OUTSTR*124
-      integer IUOUT,IUIN,IFIL,IUNIT,ISTAT,IER,ND,k,ival
+      integer IUOUT,IUIN,IEOUT,IFIL,IUNIT,ISTAT,IER,ND,k,ival
       real val
       INTEGER  iTankNumber
       logical error_flag, close, close2, close3

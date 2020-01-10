@@ -23,10 +23,11 @@ C     MZGCTL: global control executive.
 C      CFFNGR: function generator.
 
       SUBROUTINE MZGCTL
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GCLSOL/igf,IDTYPG,IPERG
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
       common/btime/btimep,btimef
@@ -64,6 +65,8 @@ C If NDAYT=0 set data to all day types
       call edisp(iuout,outs)
       call edisp(iuout,
      &       ' MZGCTL: cannot locate appropriate day type')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPAGEND
       STOP
 
@@ -84,6 +87,8 @@ C Check number of periods in each day and the start and finish times
       IF(btimef.GT.TPS.AND.btimef.LE.TPF) GOTO 30
    22 CONTINUE
       call edisp(iuout,' MZGCTL: cannot locate appropriate day-period')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPAGEND
       STOP
 
@@ -114,6 +119,8 @@ C New global controllers inserted here!
      &    IGCLAW(igf,IDTYPG,IPERG),' has been referenced ',
      &    igf,IDTYPG,IPERG
         call edisp(iuout,outs)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       END IF
@@ -128,6 +135,7 @@ C ******************** CFFNGR ********************
 C CFFNGR is a function generator.
 
       SUBROUTINE CFFNGR(IFNC,TCTL)
+
 #include "building.h"
 #include "control.h"
 
@@ -399,10 +407,11 @@ C GCFVAR determines the sensed condition associated
 C with the sensor defined for the global control function.
 
       SUBROUTINE GCFVAR(GVAR)
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
@@ -553,8 +562,9 @@ C Which is currently not supported.
 C ******************** GFMVAR
 
       SUBROUTINE GFMVAR
-#include "control.h"
+
 #include "building.h"
+#include "control.h"
 
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
@@ -640,6 +650,7 @@ C Which is not supported..
 C *******  GCL01 Global On-Off controller.
 
       SUBROUTINE GCL01
+
 #include "building.h"
 #include "control.h"
 
@@ -698,6 +709,7 @@ C *******  GCL01 Global On-Off controller.
 C *******  GCL02 Global Capacity Management controller.
 
       SUBROUTINE GCL02
+
 #include "building.h"
 #include "control.h"
 
@@ -751,6 +763,7 @@ C *******  GCL02 Global Capacity Management controller.
 C *******  GCL03 Global "Sequence On" Controller.
 
       SUBROUTINE GCL03
+
 #include "building.h"
 #include "control.h"
 
@@ -811,6 +824,7 @@ C *******  GCL04 Global "Free-float" Controller.
 C *******  GCL05 Global Multi sensing Controller.
 
       SUBROUTINE GCL05
+
 #include "building.h"
 #include "control.h"
 #include "net_flow.h"

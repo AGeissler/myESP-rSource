@@ -119,8 +119,8 @@ C-------------------------------------------------------------------------------
 C Common blocks.
 C--------------------------------------------------------------------------------------------
 C Unit numbers for providing feedback to user during simulation.
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Trace output.
       COMMON/TC/ITC,ICNT
@@ -262,8 +262,8 @@ C-------------------------------------------------------------------------------
 C Common blocks.
 C--------------------------------------------------------------------------------------------
 C Unit numbers for providing feedback to user during simulation.
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Connecting node data.
       COMMON/C10/NPCON,IPC1,IPN1,IPCT,IPC2,IPN2,PCONDR,PCONSD

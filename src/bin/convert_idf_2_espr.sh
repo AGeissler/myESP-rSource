@@ -84,11 +84,11 @@ echo "*indx    0 # Project registration" >> $2.cfg
 echo " 55.900   -4.100   # Latitude & Longitude (diff from time meridian)" >> $2.cfg
 echo "      1   0.200   # Site exposure & ground reflectivity" >> $2.cfg
 echo "* DATABASES" >> $2.cfg
-echo "*stdmat  material.db4.a" >> $2.cfg
+echo "*stdmat  material.db" >> $2.cfg
 echo "*stdcfcdb  CFClayers.db1.a" >> $2.cfg
-echo "*stdmlc  multicon.db5" >> $2.cfg
-echo "*stdopt  optics.db2" >> $2.cfg
-echo "*stdprs  pressc.db1" >> $2.cfg
+echo "*stdmlc  multicon.db" >> $2.cfg
+echo "*stdopt  optics.db"   >> $2.cfg
+echo "*stdprs  pressc.db1"  >> $2.cfg
 echo "*stdevn  profiles.db2.a" >> $2.cfg
 echo "*stdclm  clm67" >> $2.cfg
 echo "*stdmscldb  mscomp.db1" >> $2.cfg

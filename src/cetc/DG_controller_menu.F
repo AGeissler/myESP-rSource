@@ -28,11 +28,11 @@ C Edit plant control function II.
 #include "plant.h" 
 #include "DG_controller_include.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/H(60)
 
 C.....ESP-r common block variables
-      integer iuout, iuin
+      integer iuout, iuin,ieout
       character H*72            !<- array for help prompts.
 
 C.....Array containing user-defined DG controller configuration
@@ -177,13 +177,13 @@ C.....Determine if hot and/or cold water storage are in use
       H(9)='     coupled cold water storage tank)'
       H(10)= ' '
 
-      call ASKOK('Is the CHP system coupled to a hot water',
+      call EASKOK('Is the CHP system coupled to a hot water',
      &     'tank that you wish to control?', bDG_HOT_control,
-     &     .true.,9)
+     &     9)
 
-      call ASKOK('Is the CHP system coupled to a cold water',
+      call EASKOK('Is the CHP system coupled to a cold water',
      &     'tank that you wish to control?', bDG_COLD_control,
-     &     .false.,9)
+     &     9)
       
 C.........Determine which tank has priority
       if ( bDG_HOT_control .and. bDG_cold_control ) then

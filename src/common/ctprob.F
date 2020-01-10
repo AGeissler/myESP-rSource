@@ -50,7 +50,8 @@ C Definitions of most variables is given in ctread.F
       COMMON/CONTM3/CNCAA(MCONTM,MT),FILEFA(MCONTM,MCNN)
      &,FORCAB(MCONTM,MCONTM)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
       COMMON/CONTM6/CNCNI(MCONTM,MNOD)
 
       CHARACTER*10 SOUTS
@@ -290,7 +291,7 @@ C Definitions of most variables is given in ctread.F
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/POPHELP/H(60)
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       COMMON/USER/BROWSE
@@ -301,7 +302,8 @@ C Definitions of most variables is given in ctread.F
       COMMON/CONTM3/CNCAA(MCONTM,MT),FILEFA(MCONTM,MCNN)
      &,FORCAB(MCONTM,MCONTM)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
 
       CHARACTER*124 CNTMDESC
       CHARACTER*72 CNTMFIL,H,CTMF
@@ -311,7 +313,7 @@ C Definitions of most variables is given in ctread.F
       CHARACTER*55 ITEML(MCNN+20)
       INTEGER SPMTYP,SSLINK1,SSLINK2
       REAL SPMSUP
-      LOGICAL OK,DOK,CLKOK,XST,CLOSER,UNIXOK
+      LOGICAL OK,CLKOK,XST,CLOSER,UNIXOK
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,BROWSE,CFCDBOK
 
       integer NTSTEPCT   ! for local editing.
@@ -335,9 +337,8 @@ C flow network prior to defining a contaminant model
       H(10)= 'contaminant model will need to be modified accordingly.'
       IF(NOCNTM.LE.0) THEN
         CALL PHELPD('contamn model def',10,'-',0,0,IER)
-        DOK=.false.
-        CALL ASKOK(' ',
-     &    'Proceed with contaminant model definition?',OK,DOK,10)
+        CALL EASKOK(' ',
+     &    'Proceed with contaminant model definition?',OK,10)
         IF(.NOT.OK) RETURN
       ENDIF
       H(1)='You have chosen a contaminant model. '
@@ -423,11 +424,8 @@ C If specified file is a new (not created) file
           outs='Scanning contaminants file...done.'
           call edisp(iuout,outs)
         endif
-        DOK=.false.
-        h(1)='A listing of the contaminant model is a good way to '
-        h(2)='review the contaminant regime in this zone. '
-        CALL ASKOK('Display a synopsis of the contaminant model ?',
-     &    ' ',OK,DOK,2)
+        h(1)='Lists the contaminant model.'
+        CALL EASKOK(' ','Synopsis of contaminant model?',OK,1)
         IF(OK) THEN
           INDEX=0
           CALL CTLIST(INDEX)
@@ -472,11 +470,9 @@ C Setup Contaminant Model network
         CALL CTLIST(INDEX)
         GOTO 2000
       ELSEIF(INO.EQ.1) THEN
-        DOK=.true.
-        h(1)='This warning is to ensure that you do not loose existing'
-        h(2)='data without being informed. '
-        CALL ASKOK(' Reading or creating a new contaminant file will ',
-     &    ' overwrite any existing data! Is this ok?',OK,DOK,2)
+        h(1)='Take care not to lose existing data.'
+        CALL EASKOK('This will overwrite existing data!',
+     &              'Proceed?',OK,1)
         IF(.NOT.OK)THEN
           GOTO 2000
         ELSE
@@ -775,12 +771,11 @@ C Now put in filter efficiencies if any
             CALL EASKR(VAL,' ','Enter filter efficiency (0 to 1)
      &        ',0.0,'F',1.0,'F',0.01,'filter eff',IER,1)
             FILEFA(ICONTM,ICNN)=VAL
-            DOK=.false.
             h(1)='If you say yes then you will be taken back to the '
             h(2)='details menu to allow further data to be entered.  '
-            CALL ASKOK(
+            CALL EASKOK(' ',
      &        'Edit more filter efficiencies for this contaminant?',
-     &        ' ',OK,DOK,2)
+     &        OK,2)
             IF(OK)THEN
               GOTO 2018
             ELSE
@@ -818,11 +813,10 @@ C Now put in filter efficiencies if any
       GOTO 2000
 
 C Ask if changes need to be saved
- 5000 DOK=.true.
-      h(1)='You probably changed the contaminant data. This is your'
+ 5000 h(1)='You probably changed the contaminant data. This is your'
       h(2)='chance to save these changes. If you say no then the'
       h(3)='zone contaminant file will not be re-written. '
-      CALL ASKOK('Do you want to save any changes?',' ',OK,DOK,3)
+      CALL EASKOK(' ','Save changes?',OK,3)
       IF(OK)THEN
         IF(NTSTEPC.LE.0)GOTO 7000
    81   CALL EASKS(CTMF,' Contaminant model file ? ',
@@ -842,12 +836,11 @@ C Ask if changes need to be saved
       ENDIF
 
 C Update the configuration file so that contmainant information is known
-      DOK=.true.
       h(1)='There is a relationship between the contaminant description'
       h(2)='and the mass flow network. Changing one without the other '
       h(3)='can cause problems. '
-      CALL ASKOK(' Update the model mass flow links ',
-     &  ' to reflect any changes in contaminant model ?',OK,DOK,3)
+      CALL EASKOK('Update mass flow links to capture',
+     &            'changes in the contaminant model?',OK,3)
       IF(OK)THEN
         CALL EDISP(IUOUT,' ')
         CALL EDISP(IUOUT,' Updating configuration contaminant data...')
@@ -876,7 +869,7 @@ C Definitions of most variables is given in ctread.F
 
       CHARACTER OUTS*124,H*72,CONTMNAM*12
       CHARACTER*55 ITEML(MCONTM+20)
-      LOGICAL OK,DOK,EDIT,CLOSER,FOUND
+      LOGICAL OK,EDIT,CLOSER,FOUND
 
       IF(MEDIT.NE.0)THEN
         H(1) ='The first contaminant is the one that will be generated'
@@ -885,8 +878,7 @@ C Definitions of most variables is given in ctread.F
         H(4) ='contaminant generated according to the equation:'
         H(5) ='increase of mass in cntmnt1 = mass of cntmnt2 * '
         H(6) ='rate constant of cntmnt1 formed by cntmnt2'
-        DOK=.false.
-        CALL ASKOK('Edit this chemical reaction',' ',OK,DOK,6)
+        CALL EASKOK(' ','Edit this chemical reaction',OK,6)
         IF(.NOT.OK)RETURN
         EDIT=.TRUE.
         IADC=1
@@ -1059,7 +1051,8 @@ C Definitions of most variables is given in ctread.F
       COMMON/CONTM3/CNCAA(MCONTM,MT),FILEFA(MCONTM,MCNN)
      &,FORCAB(MCONTM,MCONTM)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
 
       CHARACTER CONTMNAM*12,SSNAME*12,H*72,KEY*1
       CHARACTER*33 ITEMS(MCNN+20)
@@ -1346,18 +1339,19 @@ C ISPMNU is ??
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/POPHELP/H(60)
 
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
 
       CHARACTER CONTMNAM*12,SSNAME*12,T12*12,SSID*12,H*72
       CHARACTER*33 ITEMS(MCNN+20)
       INTEGER SPMTYP,SSLINK1,SSLINK2
       REAL SPMSUP
-      LOGICAL OK,DOK,EDIT
+      LOGICAL OK,EDIT
       integer iadc   ! local variable signaling edit choice.
 
 C If the ispmnu parameter is non-zero then give the user the option
@@ -1366,10 +1360,9 @@ C not be edited (just allow add copy delete).
       IF(ISPMNU.NE.0)THEN
         EDIT=.TRUE.
         IADC=1
-        DOK=.false.
         h(1)='This is your chance to backup and not change the details'
         h(2)='of this contaminant source. '
-        CALL ASKOK('Edit this source/sink?',' ',OK,DOK,2)
+        CALL EASKOK(' ','Edit this source/ sink?',OK,2)
         IF(.NOT.OK)RETURN
       ELSE
         EDIT=.FALSE.
@@ -1394,11 +1387,10 @@ C editing then also use this facility.
          IF((.NOT.EDIT.AND.(SSID(1:12).EQ.SSNAME(ISPMNO)(1:12))).OR.
      &     (EDIT.AND.(SSID(1:12).EQ.SSNAME(ISPMNO)(1:12)
      &     .AND.ISPMNO.NE.ISPMNU)))THEN
-            DOK=.true.
             h(1)='contaminant descriptions should not include'
             h(2)='duplicate names of sources or sinks. '
-            CALL ASKOK('This a duplicate source or sink name...',
-     &        'Try again?',OK,DOK,2)
+            CALL EASKOK('Duplicate source/ sink name!',
+     &        'Retry?',OK,2)
             IF(.NOT.OK)RETURN
             GOTO 141
           ENDIF
@@ -1766,7 +1758,7 @@ C Now get supplementary data items for personal CO2 emission.
             H(12)='so please check your model. '
             H(13)='<< further work required in CSIADC >> '
             IV=1
-            CALL EASKI(IV,' ','Choose activity level (see help) ? ',
+            CALL EASKI(IV,' ','Choose activity level?',
      &        1,'F',6,'F',1,'source/sink suppl data',IERI,13)
             if(ieri.eq.-3) goto 2007
             IF(.NOT.EDIT) THEN
@@ -1777,7 +1769,7 @@ C Now get supplementary data items for personal CO2 emission.
             IF(IV.EQ.6)THEN
               IV=100
               if(EDIT) IV=NINT(SPMSUP(ISPMNU,9))
-              CALL EASKI(IV,' ','Choose metabolic rate (Watts) ? ',
+              CALL EASKI(IV,' ','Metabolic rate (W)?',
      &          100,'-',1000,'-',1,'source/sink suppl data',IERI,13)
               if(ieri.eq.-3) goto 2007
               IF(.NOT.EDIT) THEN
@@ -1788,7 +1780,7 @@ C Now get supplementary data items for personal CO2 emission.
             ENDIF
             IV=1
             if(EDIT) IV=NINT(SPMSUP(ISPMNU,2))
-            CALL EASKI(IV,' ','Occupation start time (day of month)? ',
+            CALL EASKI(IV,' ','Occupation start day?',
      &        1,'W',31,'W',1,'source/sink suppl data',IERI,13)
             if(ieri.eq.-3) goto 2007
             IF(.NOT.EDIT) THEN
@@ -1798,7 +1790,7 @@ C Now get supplementary data items for personal CO2 emission.
             ENDIF
             IV=1
             if(EDIT) IV=NINT(SPMSUP(ISPMNU,3))
-            CALL EASKI(IV,' ','Occupation start time (month)? ',
+            CALL EASKI(IV,' ','Occupation start time month?',
      &        1,'W',12,'W',1,'source/sink suppl data',IERI,13)
             if(ieri.eq.-3) goto 2007
             IF(.NOT.EDIT) THEN
@@ -1808,7 +1800,7 @@ C Now get supplementary data items for personal CO2 emission.
             ENDIF
             IV=1
             if(EDIT) IV=NINT(SPMSUP(ISPMNU,4))
-            CALL EASKI(IV,' ','Occupation start time (hour of day)? ',
+            CALL EASKI(IV,' ','Occupation start hour?',
      &        0,'W',24,'W',1,'source/sink suppl data',IERI,13)
             if(ieri.eq.-3) goto 2007
             IF(.NOT.EDIT) THEN
@@ -1818,7 +1810,7 @@ C Now get supplementary data items for personal CO2 emission.
             ENDIF
             IV=1
             if(EDIT) IV=NINT(SPMSUP(ISPMNU,5))
-            CALL EASKI(IV,' ','Occupation stop time (day of month)? ',
+            CALL EASKI(IV,' ','Occupation stop day?',
      &        1,'W',31,'W',1,'source/sink suppl data',IERI,13)
             if(ieri.eq.-3) goto 2007
             IF(.NOT.EDIT) THEN
@@ -1828,7 +1820,7 @@ C Now get supplementary data items for personal CO2 emission.
             ENDIF
             IV=1
             if(EDIT) IV=NINT(SPMSUP(ISPMNU,6))
-            CALL EASKI(IV,' ','Occupation stop time (month)? ',
+            CALL EASKI(IV,' ','Occupation stop month?',
      &        1,'W',12,'W',1,'source/sink suppl data',IERI,13)
             if(ieri.eq.-3) goto 2007
             IF(.NOT.EDIT) THEN
@@ -1838,7 +1830,7 @@ C Now get supplementary data items for personal CO2 emission.
             ENDIF
             IV=1
             if(EDIT) IV=NINT(SPMSUP(ISPMNU,7))
-            CALL EASKI(IV,' ','Occupation stop time (hour of day)? ',
+            CALL EASKI(IV,' ','Occupation stop hour?',
      &        0,'W',24,'W',1,'source/sink suppl data',IERI,13)
             if(ieri.eq.-3) goto 2007
             IF(.NOT.EDIT) THEN
@@ -1854,12 +1846,12 @@ C Now get supplementary data items for personal CO2 emission.
             ENDIF
           ENDIF
 
-C Place to instanciate data if user did not cancel.
+C Place to instantiate data if user did not cancel.
 C << to be done. >>
         ENDIF
       ELSEIF(IADC.EQ.2)THEN
 
-C To delete a source/sink model
+C To delete a source/sink model.
  2011   IIO=-2
         H(1) = 'Choose source/sink to be deleted'
         ITEMS(1) =' Source Name:          type:'
@@ -1877,10 +1869,9 @@ C To delete a source/sink model
           CALL PHELPD('Delete source/sink ',1,'-',0,0,IER)
           GOTO 2011
         ELSEIF(IIO.GT.1.AND.IIO.LT.(NSPMNO+2))THEN
-          DOK=.false.
           h(1)='Just in case you selected delete by mistake this is '
           h(2)='a chance to back out of the decision. '
-          CALL ASKOK('Delete this source/sink model?',' ',OK,DOK,2)
+          CALL EASKOK(' ','Delete source/sink model?',OK,2)
           IF(.NOT.OK)RETURN
           ISSDEL=IIO-1
 
@@ -1940,7 +1931,7 @@ C Move remaining source/sink models 'up' in relevant arrays
         ENDIF
       ELSEIF(IADC.EQ.3)THEN
 
-C Copy a source/sink
+C Copy a source/sink.
  2012   IIO=-2
         H(1) = 'Choose source/sink to be copied'
         ITEMS(1) =' Source Name:          type:'
@@ -1958,10 +1949,9 @@ C Copy a source/sink
           CALL PHELPD('Copy source/sink ',1,'-',0,0,IER)
           GOTO 2012
         ELSEIF(IIO.GT.1.AND.IIO.LT.(NSPMNO+2))THEN
-          DOK=.false.
           h(1)='In case you selected copy by mistake, here is your '
           h(2)='chance to back out of the decision. '
-          CALL ASKOK('Copy this contaminant',' ',OK,DOK,2)
+          CALL EASKOK(' ','Copy contaminant?',OK,2)
           IF(.NOT.OK)RETURN
           ISSCPY=IIO-1
 
@@ -1974,11 +1964,10 @@ C Get source/sink name
           CALL ST2NAME(T12,SSID)
           DO 9 ISPMNO=1,NSPMNO
             IF(SSID(1:12).EQ.SSNAME(ISPMNO)(1:12))THEN
-              DOK=.false.
               h(1)='contaminant descriptions should not include '
               h(2)='duplicate names for sources and/or sinks. '
-              CALL ASKOK('This a duplicate source or sink name.',
-     &          'Try again ?',OK,DOK,2)
+              CALL EASKOK('Suplicate source/ sink name!',
+     &          'Retry?',OK,2)
               IF(.NOT.OK)RETURN
               GOTO 151
             ENDIF
@@ -2019,14 +2008,15 @@ C MEDIT is ??
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/POPHELP/H(60)
 
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM3/CNCAA(MCONTM,MT),FILEFA(MCONTM,MCNN)
      &,FORCAB(MCONTM,MCONTM)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
       COMMON/CONTM6/CNCNI(MCONTM,MNOD)
 
       CHARACTER OUTS*124,H*72,STR*62
@@ -2034,16 +2024,15 @@ C MEDIT is ??
       CHARACTER*33 ITEMS(MCNN+20)
       INTEGER SPMTYP,SSLINK1,SSLINK2
       REAL SPMSUP,WCONCA(MT)
-      LOGICAL OK,DOK,EDIT
+      LOGICAL OK,EDIT
       integer IW  ! for radio button
 
       IF(MEDIT.NE.0)THEN
         EDIT=.TRUE.
         ICONTAM=MEDIT
-        DOK=.false.
         h(1)='Just in case you selected edit by mistake, here is '
         h(2)='a chance to go back. '
-        CALL ASKOK('Edit this contaminant',' ',OK,DOK,2)
+        CALL EASKOK(' ','Edit contaminant?',OK,2)
         IF(.NOT.OK)RETURN
         IADC=1
       ELSE
@@ -2059,19 +2048,18 @@ C Get Contaminant name and check to be unique
         ELSE
           T12='cntmnt1'
         ENDIF
- 11     CALL EASKS(T12,' ',' Contaminant name (<= 12 characters): ',12,
+ 11     CALL EASKS(T12,' ','Contaminant name (<= 12 characters)?',12,
      &' cntmnt1 ','contaminant',IER,2)
         CALL ST2NAME(T12,CNTMN)
         K=0
         CALL EGETRM(CNTMN,K,CNTMID,'W','contaminant name',IER)
         DO 10 ICONTM=1,NCONTM
           IF(CNTMID(1:12).EQ.CONTMNAM(ICONTM)(1:12).AND.ICONTM.NE.
-     &      MEDIT)THEN
-            DOK=.true.
+     &    MEDIT)THEN
             h(1)='contaminant descriptions should not include '
             h(2)='duplicate names for containments. '
-            CALL ASKOK('This a duplicate containment name.',
-     &        'Try again?',OK,DOK,2)
+            CALL EASKOK('Duplicate containment name!',
+     &        'Retry?',OK,2)
             IF(.NOT.OK)RETURN
             GOTO 11
           ENDIF
@@ -2213,10 +2201,9 @@ C To delete a contaminant
           CALL PHELPD('Delete contaminant ',1,'-',0,0,IER)
           GOTO 2013
         ELSEIF(IIO.GT.2.AND.IIO.LT.(NCONTM+3))THEN
-          DOK=.false.
           h(1)='If you selected delete by mistake this is a chance to'
           h(2)='back out of the decision. '
-          CALL ASKOK('Delete this contaminant',' ',OK,DOK,2)
+          CALL EASKOK(' ','Delete contaminant',OK,2)
           IF(.NOT.OK)RETURN
           ICTDEL=IIO-2
           CONTMNAM(ICTDEL)=' '
@@ -2288,10 +2275,9 @@ C Copy a contaminant
           CALL PHELPD('Copy contaminant ',1,'-',0,0,IER)
           GOTO 2014
         ELSEIF(IIO.GT.2.AND.IIO.LT.(NCONTM+3))THEN
-          DOK=.false.
           h(1)='In case you requested copy by mistake, this is a chance'
           h(2)='to back out without changing anything. '
-          CALL ASKOK('Copy this contaminant',' ',OK,DOK,2)
+          CALL EASKOK(' ','Copy contaminant',OK,2)
           IF(.NOT.OK)RETURN
           ICTCPY=IIO-2
 
@@ -2304,11 +2290,10 @@ C Get Contaminant name and check to be unique
           CALL ST2NAME(T12,CNTMID)
           DO 43 ICONTM=1,NCONTM
             IF(CNTMID(1:12).EQ.CONTMNAM(ICONTM)(1:12))THEN
-              DOK=.true.
               h(1)='Duplicate containment names are not allowed in a '
               h(2)='contaminant description. '
-              CALL ASKOK('This a duplicate containment name.',
-     &          'Try again ?',OK,DOK,2)
+              CALL EASKOK('Duplicate containment name!',
+     &          'Retry?',OK,2)
               IF(.NOT.OK)RETURN
               GOTO 121
             ENDIF
@@ -2342,14 +2327,15 @@ C Definitions of most variables is given in ctread.F
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/CONTM/CNTMFIL,CNTMDESC,NTSTEPC
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM3/CNCAA(MCONTM,MT),FILEFA(MCONTM,MCNN)
      &,FORCAB(MCONTM,MCONTM)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
       COMMON/CONTM6/CNCNI(MCONTM,MNOD)
 
       CHARACTER OUTS*124,CNTMDESC*124,LOUT*124,OUT*124

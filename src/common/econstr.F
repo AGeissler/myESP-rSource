@@ -62,7 +62,7 @@ C espriou.h provides currentfile.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/VTHP14/THRMLI(MCOM,MS,ME,7)
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
@@ -82,7 +82,7 @@ C Error subroutine and error details for dll mode.
       integer lsn  ! length of currentfile
 
 C Thermal property checking values follow.
-      DATA CONCH/250./,DENCH/8900./,SHTCH/3000./,THKCH/0.5/
+      DATA CONCH/250./,DENCH/8900./,SHTCH/4200./,THKCH/0.5/
 
       IER=0
 
@@ -492,7 +492,7 @@ C on common blocks. If isur=0 then all, otherwise for one surface.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
@@ -773,7 +773,7 @@ c         (not used in the current implementation),
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -1112,7 +1112,7 @@ C *********************************************************************
       SUBROUTINE THERMS(FLTHRM,IIN,ITRC,IER)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/VTHP11/NTHF,IBTHAL(MTHF,3)
       COMMON/VTHP12/NTHEQ(MTHF),BTHDT(MTHF,MTHEQ,MDATA)
 
@@ -1150,7 +1150,7 @@ C *********************************************************************
       SUBROUTINE THERMR(FLTHRM,IIN,ITRC,IER)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON

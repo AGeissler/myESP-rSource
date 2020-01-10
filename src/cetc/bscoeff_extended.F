@@ -39,7 +39,7 @@ C               except the `basic' ones covered in COEFBAS.
 
       SUBROUTINE COEFEXT1(iconfig)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/Dsumuo/BSa1,BSb1,BSc1,BSd1,BSe1,BSf1,BSg1,BSh1,BSi1,BSj1
       COMMON/Dsumur/BSq2,BSr2,BSu2,BSv2,BSw2,BSx2,BSs2,BSt2,BSy2,BSa2,
      &              BSb2,BSc2,BSd2,BSe2,BSf2,BSg2,BSh2
@@ -2303,7 +2303,7 @@ C               Debra Haltrecht in 1998.
 
       SUBROUTINE COEFEXT2(iconfig)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/Dsumuo/BSa1,BSb1,BSc1,BSd1,BSe1,BSf1,BSg1,BSh1,BSi1,BSj1
       COMMON/Dsumur/BSq2,BSr2,BSu2,BSv2,BSw2,BSx2,BSs2,BSt2,BSy2,BSa2,
      &              BSb2,BSc2,BSd2,BSe2,BSf2,BSg2,BSh2
@@ -2581,7 +2581,7 @@ C               Julia Purdy in summer of 1999.
 
       SUBROUTINE COEFEXT3(iconfig)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/Dsumuo/BSa1,BSb1,BSc1,BSd1,BSe1,BSf1,BSg1,BSh1,BSi1,BSj1
       COMMON/Dsumur/BSq2,BSr2,BSu2,BSv2,BSw2,BSx2,BSs2,BSt2,BSy2,BSa2,
      &              BSb2,BSc2,BSd2,BSe2,BSf2,BSg2,BSh2
@@ -3704,7 +3704,7 @@ C               Kamel Haddad in summer of 1999.
 
       SUBROUTINE COEFEXT4(iconfig)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/Dsumuo/BSa1,BSb1,BSc1,BSd1,BSe1,BSf1,BSg1,BSh1,BSi1,BSj1
       COMMON/Dsumur/BSq2,BSr2,BSu2,BSv2,BSw2,BSx2,BSs2,BSt2,BSy2,BSa2,
      &              BSb2,BSc2,BSd2,BSe2,BSf2,BSg2,BSh2
@@ -4902,7 +4902,7 @@ C               Julia Purdy in October 1999.
 
       SUBROUTINE COEFEXT5(iconfig)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/Dsumuo/BSa1,BSb1,BSc1,BSd1,BSe1,BSf1,BSg1,BSh1,BSi1,BSj1
       COMMON/Dsumur/BSq2,BSr2,BSu2,BSv2,BSw2,BSx2,BSs2,BSt2,BSy2,BSa2,
      &              BSb2,BSc2,BSd2,BSe2,BSf2,BSg2,BSh2

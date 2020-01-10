@@ -30,7 +30,7 @@ C     correct fluid type.
       SUBROUTINE PEM_static_template(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -220,7 +220,7 @@ C---- Header files req'd for ESP-r common blocks
 C=======================================================================
 C     START ESP-r common blocks
 C=======================================================================
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -255,7 +255,7 @@ C     Declare common variables (req'd for use of IMPLICIT NONE statement
 C     w/FORTRAN 90 compilers
 C-------------------------------------------------------------------------
       INTEGER MAXITP,ICSV,itrclp,NPCOMP,
-     &     NCI,ICONTP,ICONDX,ITCF,iuout,iuin,
+     &     NCI,ICONTP,ICONDX,ITCF,iuout,iuin,ieout,
      &     ITRACE,IZNTRC,ITU,ITC,ICNT,NPCDAT,
      &     IPOFS1,IPOFS2,NPCON,IPC1,
      &     IPN1,IPCT,IPC2,IPN2,IHRP,IHRF,

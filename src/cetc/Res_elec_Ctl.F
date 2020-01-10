@@ -82,9 +82,10 @@ C-------------------------------------------------------------------------------
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER IUOUT           !-write unit number
       INTEGER IUIN            !-read unit number
+      INTEGER IEOUT           !-error unit number
 
 C ESP-r COMMONs
        COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -385,7 +386,7 @@ cx        batDODMax = ??
       ENDIF
 
 C     Depth of discharge '0' with tolerance 0.005 (0.5%) is viewed as "full"
-      call eclose(batDOD(IPWC_battery),0.,0.005, bBatteryFull)
+      call eclose(batDOD(IPWC_battery),0.0,0.005, bBatteryFull)
 
 C     Check against depth of discharge 'batDODMax', for which battery is
 C     considered "empty"
@@ -678,9 +679,10 @@ c #include "power.h"
 c #include "BATTERY.h"
 
 C Common declarations
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       integer   iuout           !- write unit number
       integer   iuin            !- read unit number
+      integer   ieout           !- error unit number
 
 C Local variables
       character outstr*124            !- string containing error message
@@ -713,9 +715,10 @@ C===============================================================================
 C-----------------------------------------------------------------------------------------
 C COMMON declarations
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       integer   iuout           !- write unit number
       integer   iuin            !- read unit number
+      integer   ieout           !- error unit number
 
       common/filep/ifil
       integer   ifil            !- basic file unit number
@@ -1075,7 +1078,7 @@ C     mainly for 2nd life usage ...
         write(cErrLoc,'(A)')'cycles used'
       endif
 C     Set cycles used only if legacy ageing model is active
-      call eclose(POWCDAT(IPWC_battery,82),0,0.01,bLegacyModel)
+      call eclose(POWCDAT(IPWC_battery,82),0.0,0.01,bLegacyModel)
       if (bLegacyModel) then
         cycles_used_Lion(IPWC_battery) = cycles_used
       else
@@ -1084,7 +1087,7 @@ C     Set cycles used only if legacy ageing model is active
     ! Check if cycles used equal zero and set abuseFlag accordingly
     ! (avoid resetting of cycles_used_Lion in InitSimulation()
     ! of CETC_BATTERY.F (line 595 ff.))
-      call eclose(cycles_used_Lion(IPWC_battery),0,0.1,bBatteryNew)
+      call eclose(cycles_used_Lion(IPWC_battery),0.0,0.1,bBatteryNew)
       if (bBatteryNew) then
         abuseFlag=0
       else
@@ -1383,8 +1386,8 @@ C-------------------------------------------------------------------------------
       COMMON/FILEP/IFIL
       INTEGER  IFIL
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER  IUOUT,IUIN,IEOUT
 
 C---------------------------------------------------------------------------------
 C Declare local variables.
@@ -1604,8 +1607,8 @@ C     Subroutine parameters
 C-------------------------------------------------------------------------------
 C     ESP-r commons
 C-------------------------------------------------------------------------------
-      COMMON/OUTIN/IUOUT,IUIN           ! Number for default output and input screens
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT           ! Number for default output and input screens
+      INTEGER  IUOUT,IUIN,IEOUT
 
 C Common holding simulation type (building, building+plant, or plant-only simulation)
       integer indcfg

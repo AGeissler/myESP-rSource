@@ -39,7 +39,7 @@ C Data format is: *tag value
 #include "building.h"
 #include "FMI.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/C1/NCOMP,NCON
       INTEGER NCOMP,NCON
 
@@ -636,7 +636,7 @@ C Data format is: *tag value
 #include "FMI.h"
 #include "geometry.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/C1/NCOMP,NCON
       INTEGER NCOMP,NCON
 

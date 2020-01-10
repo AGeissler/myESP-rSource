@@ -44,7 +44,7 @@ C        the routine.
       COMMON/ECMPDBNAM/ECMPDBFL
       COMMON/FILEP/IFIL
       COMMON/POPHELP/H(60)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DEFLT3/DFCFD,DECMPDBFL,DICONDBFL
 
       DIMENSION SSTR(90),VAR(MPWDAT),SPMISC(MPWDAT)
@@ -55,7 +55,7 @@ C        the routine.
       character*72 DFCFD,DECMPDBFL,DICONDBFL
       REAL VAR,SPMISC
       INTEGER MODE,TYPE
-      LOGICAL OK,dok
+      LOGICAL OK
 
       IER=0
       ltmp='  '
@@ -99,12 +99,11 @@ C Assign field dividers based on the call type.
       IECFIL=IFIL+1
       CALL EFOPSEQ(IECFIL,ECMPDBFL,1,IER)
       IF(IER.NE.0) THEN
-        dok=.false.
         h(1)='The standard database of electrical components located'
         write(h(2),'(2a)') 'at ',DECMPDBFL(1:lnblnk(DECMPDBFL))
         h(3)='seems to be missing or has a different name. '
-        CALL ASKOK('Could not find the electrical components database',
-     &    'Try again?',OK,dok,3)
+        CALL EASKOK('Electrical components database not found!',
+     &    'Retry?',OK,3)
         IF(.NOT.OK) THEN 
           IER=1
           CALL ERPFREE(IECFIL,ISTAT)

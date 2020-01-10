@@ -225,7 +225,6 @@ for s_line in f_idfFile:
 # "no mass" material found. Use thermal resistance to calculate conductivity,
 # scan emissivity and absorptivity.
     elif found_noMass:
-        print('found_noMass s_line '+s_line)
         linecount=linecount+1
         s_line_strpd=s_line.strip()
 # Strip out comments, denoted in idf by "!".
@@ -501,7 +500,6 @@ for s_line in f_idfFile:
 # Found construction. Scan name and layer material names (outside to inside, same as ESP-r luckily),
 # construct appropriate listings and write to the ESP-r constructions database.
     elif found_con:
-        print('found_con s_line '+s_line)
         linecount=linecount+1
         s_line_strpd=s_line.strip()
 # Strip out comments, denoted in idf by "!".
@@ -586,7 +584,6 @@ for s_line in f_idfFile:
 # Scan for materials or constructions.
     else:
         s_val=s_line.strip()
-        print(s_val)
         if s_val=='Material,':
             found=True
             matcount=matcount+1
@@ -608,7 +605,6 @@ for s_line in f_idfFile:
         elif s_val=='Material:AirGap,':
             found_airGap=True
         elif s_val=='Construction,':
-            print('found_con')
             found_con=True
             ls_text=['# layers  description  type  optics name   symmetry tag',]
         elif s_val=='WindowMaterial:SimpleGlazingSystem,':

@@ -78,9 +78,9 @@ c Variable passed in call
 
       COMMON/FILEP/IFIL
       COMMON/ER/IER
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
-      INTEGER IUNIT,IFIL,k,IER,ND,ival,i,ISTAT,IUOUT, IUIN
+      INTEGER IUNIT,IFIL,k,IER,ND,ival,i,ISTAT,IUOUT,IUIN,IEOUT
       REAL val
 
 c Define the characters variables associated with the utility
@@ -240,10 +240,10 @@ c Variable passed in call
 
       COMMON/FILEP/IFIL
       COMMON/ER/IER
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 c Declare local variables
-      INTEGER IUNIT,IFIL,ND,IER,k,ival,j,IUOUT,IUIN
+      INTEGER IUNIT,IFIL,ND,IER,k,ival,j,IUOUT,IUIN,IEOUT
       REAL val
 
 c Define the characters variables associated with the utility 
@@ -486,10 +486,10 @@ c Variable passed in call
 
       COMMON/FILEP/IFIL
       COMMON/ER/IER
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 c Declare local variables
-      INTEGER IUNIT,IFIL,ND,IER,k,ival,j,IUOUT,IUIN
+      INTEGER IUNIT,IFIL,ND,IER,k,ival,j,IUOUT,IUIN,IEOUT
       REAL val
 
 c Define the characters variables associated with the utility 
@@ -1034,10 +1034,10 @@ c functions STRIPC,EGETWI,and EGETWR
 
       COMMON/FILEP/IFIL
       COMMON/ER/IER
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 c Declare local variables
-      INTEGER IUNIT,IFIL,ND,IER,k,ival,j,IUOUT,IUIN
+      INTEGER IUNIT,IFIL,ND,IER,k,ival,j,IUOUT,IUIN,IEOUT
       REAL val
 
 c Other local variables
@@ -1287,10 +1287,10 @@ c Variables in call
 
       COMMON/FILEP/IFIL
       COMMON/ER/IER
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 c Declare local variables
-      INTEGER IUNIT,IFIL,ND,IER,k,ival,j,IUOUT,IUIN
+      INTEGER IUNIT,IFIL,ND,IER,k,ival,j,IUOUT,IUIN,IEOUT
       REAL val
 
 c Define the characters variables associated with the utility 
@@ -1381,8 +1381,8 @@ c Local Variables
       REAL tdb1r,den1r,cp1r,w1r,fan_capr,tdb2r,h2r,
      &h4r,tdb4r,w4r,const1,const2,A,B,C,delta,tdb3r
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER iuout,iuin,ieout
 
 c Following moist air states are defined:
 c  state 1   condition of return air from conditioned zones

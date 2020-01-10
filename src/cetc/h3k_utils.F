@@ -541,11 +541,11 @@ C----------------------------------------------------------------------
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer iTc,iCnt
-      integer iUout,iUin
+      integer iUout,iUin,ieout
       integer iTcf,iTrace,iZntrc,iTu
 
 C-----------------------------------------------------------------------
@@ -656,11 +656,11 @@ C----------------------------------------------------------------------
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer iTc,iCnt
-      integer iUout,iUin
+      integer iUout,iUin,ieout
       integer iTcf,iTrace,iZntrc,iTu
 
 C-----------------------------------------------------------------------
@@ -769,11 +769,11 @@ C----------------------------------------------------------------------
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer iTc,iCnt
-      integer iUout,iUin
+      integer iUout,iUin,ieout
       integer iTcf,iTrace,iZntrc,iTu
 
 C-----------------------------------------------------------------------
@@ -882,11 +882,11 @@ C----------------------------------------------------------------------
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer iTc,iCnt
-      integer iUout,iUin
+      integer iUout,iUin,ieout
       integer iTcf,iTrace,iZntrc,iTu
 
 C-----------------------------------------------------------------------

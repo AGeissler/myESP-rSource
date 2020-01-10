@@ -28,11 +28,18 @@ C 'AZALT' CALCULATES THE SOLAR AZIMUTH AND THE SOLAR ALTITUDE
 C ANGLES AT EACH HOUR OF THE DAY , FOR ANY SITE.
       SUBROUTINE AZALT(IYD,ITS,RLONGT,RLATIT,SOLALT,SOLAZI)
       COMMON/UAZALT/INIT,GLAT,GLON
-      COMMON/OUTIN/IUOUT,IUIN
-      common/pophelp/h(60)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION SOLALT(24),SOLAZI(24)
-      logical OK,dok,close
-      character h*72
+      logical OK,close
+
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found
+
+      helpinsub='AZALT'  ! set for subroutine
+      helptopic='azalt_limits'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
       PI = 4.0 * ATAN(1.0)
       INIT = 0
@@ -119,13 +126,10 @@ C  in north or south hemispheres.
    10 CONTINUE
       RETURN
 
-   14 call edisp(iuout,' Lat/Lon error in AZALT :')
+   14 call edisp(iuout,' Lat/Lon error in AZALT:')
       call edisp(iuout,' default site Glasgow (55.9N, 4.15W)')
-      dok=.true.
-      h(1)='There are some limits that should not be exceeded.'
-      h(2)='If you say no the the program will stop. '
-      CALL ASKOK('Lat was outwith +-90.0 or Long difference more than',
-     &  '+- 15 deg. Continue with default Lat/Long?',OK,dok,2)
+      CALL EASKOK('Lat. > +/- 90.0 deg. or Long. diff. > +/- 15 deg.',
+     &  'Continue with default values?',OK,nbhelp)
       if(.NOT.OK)STOP
    18 RLATIT=GLAT
       RLONGT=GLON

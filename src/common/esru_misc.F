@@ -80,15 +80,12 @@ C in a new model file.
 #include "building.h"
 #include "model.h"
 #include "site.h"
-
-C geometry.h provides commons G0/G2/G4/G5/c20/precz.
 #include "geometry.h"
 #include "cfd.h"
 #include "sbem.h"
 #include "ipvdata.h"
 #include "seasons.h"
 #include "schedule.h"
-C derived.h are derived areas and U values for zones and the model
 #include "derived.h"
 #include "plant.h"
 #include "power.h"
@@ -165,8 +162,6 @@ C Assume: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7
 
 C IPV description.
       common/IPVF/lipvdatf
-
-C Anchor data in model.h.
 
 C Non-linear thermophysical properties.
       COMMON/VTHP18/LNLTHP
@@ -409,6 +404,16 @@ C Clear anchors.
         enddo   ! of j
       enddo     ! of i
 
+C Clear zone groups.
+      nzgroup=0
+      do i=1,20
+        zglbl(i)='undefined'
+        izgnumber(i)=0
+        do j=1,40
+          izglist(i,j)=0
+        enddo   ! of j
+      enddo     ! of i
+      
 C Set initial primary conversions and emissions.
       ipconv=0
       pcnvht=1.0; pcnvcl=1.0; pcnvlt=1.0; pcnvfn=1.0; pcnvhw=1.0
@@ -653,12 +658,6 @@ C Clear the connection list.
         ICT(ICC)=-1   ! Set to -1 to signal connection type is not yet defined.
         IC2(ICC)=0
         IE2(ICC)=0
-        ssmlcindex(icc)=0  ! no matching MLC
-        ssna(icc)=0.0
-        sspazi(icc)=0.0
-        sspelv(icc)=0.0
-        ssperim(icc)=0.0
-        ssthick(icc)=0.0
       ENDDO  ! of ICC
       icfgv=4  ! set cfg file version to latest type
       NCON=0
@@ -1170,7 +1169,7 @@ C geometry.h provides common block GS5/GS6/GS7/GS8
 
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER ZF*72  ! zone file name
       character outl*124,outld*124
@@ -2295,7 +2294,7 @@ C Passed parameters:
       integer nwvert  ! returned number of conformant new vertices
       integer ier   ! if 1 can not deal with complexity
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Local variables:
       DIMENSION  TMAT(4,4),RMAT(4,4)
@@ -2627,7 +2626,7 @@ C   CROSSES THE POLYGON AN ODD NUMBER OF TIMES, THEN THE
 C   POINT IS INSIDE OF THE POLYGON.  
 C .................................................................. 
       SUBROUTINE PNPOLY(PX,PY,XX,YY,N,INOUT)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       REAL X(200),Y(200),XX(N),YY(N) 
       LOGICAL MX,MY,NX,NY 
       character outs*124
@@ -3378,7 +3377,7 @@ C Parameters.
       integer IER            ! zero is no problem
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
 
       integer ncomp,ncon
@@ -3580,14 +3579,7 @@ C If a long list include page facility text and info on portion seen.
       endif
 
 C Help message for this menu.
-      H(1)='A zone may be selected via the name in the list.'
-      h(2)='If you have just created a file it may not show up'
-      h(3)='as defined until you exit and re-enter this menu.'
-      h(4)=' '
-      h(5)='If the topic is shading then a number of global'
-      h(6)='tasks can be performed - dereferencing current'
-      h(7)='files or specifying zones to include in an'
-      h(8)='insolation analysis.'
+      h(1)='Select the required zone from the menu.'
 
 C Display the menu.
       CALL EMENU(title,VERT,MVERT,IVERT)
@@ -3606,7 +3598,7 @@ C If no selection has been made before exit then display error message.
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
 C Display help text.
-        CALL PHELPD('zone geom file section',8,'-',0,0,IER)
+        CALL PHELPD('zone geom file section',1,'-',0,0,IER)
       ELSEIF(IVERT.EQ.(MVERT-2).and.IDZONE.ne.0.and.MCTL.eq.4)THEN
 
 C Take default zone.
@@ -3663,6 +3655,8 @@ C operations defined, `s` note shading defined, `z` note zone attrib
 C complete, `v` note view factors, `g` casual gain ctl, `d` domain flow,
 C `h` heat transfer (comvective) methods, 'b' obstruction blocks,
 C `-` zone names only.
+C If there have been groups-of-zones defined also include these
+C in the list (at the bottom).
       SUBROUTINE ASKMULTIZONE(INPIC,IVALS,prompt,title,mod,IER)
 #include "building.h"
 #include "model.h"
@@ -3673,7 +3667,7 @@ C `-` zone names only.
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
 
       integer ncomp,ncon
@@ -3684,8 +3678,9 @@ C `-` zone names only.
       CHARACTER*(*) prompt,title
 
       DIMENSION VERT(35),IVALS(MCOM)
-      CHARACTER VERT*27,KEY*1,prompt2*36
-      character h*72,mod*1,outs*124
+      DIMENSION GERT(20),IGVAL(20)  ! For groups.
+      CHARACTER VERT*27,gert*20,KEY*1,prompt2*36
+      character h*72,mod*1,outs*124,msg*96
       CHARACTER*72 LCFD
 
 C Clear IVALS and INPICK.
@@ -3695,10 +3690,22 @@ C Clear IVALS and INPICK.
         IVALS(I)=0
    40 CONTINUE
 
+C Makeup list of zone groups.
+      if(nzgroup.gt.0)then
+        do i=1,nzgroup
+          CALL EMKEY(i,KEY,IER)
+          write(gert(i),'(a,1x,a)')KEY,zglbl(i)(1:lnblnk(zglbl(i)))
+        enddo
+      endif
+
 C Initialise zone menu variables based on window size.
 C IVERT is the menu position, MVERT the current number of menu lines.
       MHEAD=0
-      MCTL=3
+      if(nzgroup.gt.0)then
+        MCTL=4
+      else
+        MCTL=3
+      endif
       ILEN=NCOMP
       IPACT=CREATE
       CALL EKPAGE(IPACT)
@@ -3858,9 +3865,15 @@ C If a long list include page facility text and info on portion seen.
    15   FORMAT ('0 page part: ',I1,' -- of:',I1)
       ENDIF
 
-      VERT(M+2)  ='? help                  '
-      VERT(M+3)  ='- exit this menu        '
-
+C If groups defined.
+      if(nzgroup.gt.0)then
+        VERT(M+2)  ='! via group-of-zones    '
+        VERT(M+3)  ='? help                  '
+        VERT(M+4)  ='- exit this menu        '
+      else
+        VERT(M+2)  ='? help                  '
+        VERT(M+3)  ='- exit this menu        '
+      endif
       write(prompt2,'(a)') ' select one or more...'
 
 C Instanciate help message for this menu.
@@ -3923,6 +3936,27 @@ C        write(6,*) 'ivals is ',ivals
 
 C Display help text.
         CALL PHELPD('zone files section',4,'-',0,0,IER)
+      ELSEIF(IVERT.EQ.(MVERT-2).AND.nzgroup.gt.0)THEN
+
+C Display a list of groups. Allow uset to select.
+        INPIC=1
+        CALL EPICKS(INPIC,IGVAL,' ','Available groups:',
+     &    16,nzgroup,zglbl,'group list',IER,1)
+        write(msg,'(a,i2,a)') 'Includes ',izgnumber(IGVAL(1)),
+     &    'zones.'
+        call edisp(iuout,msg)
+        if(IGVAL(1).gt.0)then
+          INPIC=0; limit=izgnumber(IGVAL(1))
+          do j=1,limit
+            INPIC=INPIC+1
+            IVALS(INPIC)=izglist(IGVAL(1),j)
+            write(outs,*) 'including ',zname(IVALS(INPIC))
+            call edisp(iuout,outs)
+          enddo
+          write(6,*) 'inpic is ',inpic
+          write(6,*) 'ivals is ',ivals
+          return
+        endif
       ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
 
 C Look through previous selections and see if IFOC is unique, if
@@ -4106,9 +4140,10 @@ C If MOD has been passed as a M then return -2 to indicate further processing
       VERT(M+4)   ='- exit              '
       VERTS(M+4)  ='- exit              '
 
-C Instanciate help message for this menu.
-      H(1)='A surface in the zone will be selected via its name'
-      H(2)='in the list (which can be edited elsewhere).'
+C Instantiate help message for this menu.
+      H(1)='Select a surface from the menu.'
+      H(2)='For construction layer selection, first'
+      H(3)='select the surface and then the layer.'
 
 C Display the menu.
       call usrmsg(PROMPT1,PROMPT2,'-')
@@ -4144,7 +4179,7 @@ C BASESIMP editing facility (once).
         RETURN  ! return to the parent call
 
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
-        CALL PHELPD('zone geom file section',2,'-',0,0,IER)
+        CALL PHELPD('zone geom file section',3,'-',0,0,IER)
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
 
 C Allow user to say several to be attributed.
@@ -4191,7 +4226,7 @@ C Designed to show attributes in list.
 #include "geometry.h"
 #include "epara.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -4382,7 +4417,7 @@ C databases have been opened.
 #include "esprdbfile.h"
 #include "material.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
 
 C Special materials file flag
@@ -4499,7 +4534,7 @@ C TMP  : is IE2 (constant temperature if IE=2)
 
       SUBROUTINE SURADJ(IZONE,ISFN,IE,TMP,IZC,ISC,IC,DESCR)
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -4570,7 +4605,7 @@ C *********************************************************************
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -4747,7 +4782,7 @@ C Local variables.
       character outs*124,t144*144
       logical unixok
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
     
       integer nboflistf  ! how many folders or file names passed
       integer listfoldertype   ! zero if unused one if folder two if file
@@ -4892,7 +4927,7 @@ C Ppath is returned for information purposes << consider removing this >>
 #include "building.h"
 #include "model.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*(*) ppath,filen,fstring
 C      character fstring*72
       character fs*1

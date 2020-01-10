@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # This script coordinates the installation of ESP-r executables,
-# databases, training and support materials. It can be used on
-# linux, cygwin, mingw, OS X and Windows platforms.
+# databases, example models and support materials. It can be used
+# on linux, cygwin, mingw, OS X and Windows platforms.
 
 # Source and target directories.
 HOMEdir=`pwd`			# Current directory.
@@ -28,7 +28,7 @@ opt="-O1"                  # optimization to be applied
 FFLAGS="-I../include "     # Fortran compiler flags.
 CFLAGS="-I../include "     # C compiler flags.
 LD_FLAGS=" "               # Link-loader flags.
-complexity="2"             # Model complixity supported (medium is default).
+complexity="2"             # Model complixity.
 platform="auto-detect"     # Installation platform.
 install_dbs="yes"          # Install databases.
 install_training="yes"     # Install training models.
@@ -162,7 +162,7 @@ fi
 # Install script help.
 if [ $help -eq 1 ]; then
   echo " "
-  echo " Usage: Install [OPTIONS] [NAME]"
+  echo " Usage: ./Install [OPTIONS] [NAME]"
   echo " "
   echo " This script will install all or parts of ESP-r"
   echo " on your computer. A complete default installation"
@@ -172,7 +172,7 @@ if [ $help -eq 1 ]; then
   echo "   $ ./Install"
   echo " "
   echo " Alternatively, command line arguments can be used"
-  echo " to control specific aspects: some examples follow."
+  echo " to control specific aspects; some examples follow."
   echo " "
   echo " To install ESP-r in a directory other than the"
   echo " default (/opt/esp-r):"
@@ -181,13 +181,13 @@ if [ $help -eq 1 ]; then
   echo " "
   echo " To build specific executables (bps, prj etc.):"
   echo " "
-  echo "   $ ./Install <program list> "
+  echo "   $ ./Install <program list>"
   echo " "
   echo " To build and install in a specific location:"
   echo " "
   echo "   $ ./Install -d <directory> <program list>"
   echo " "
-  echo " To invoke the script in silent mode:"
+  echo " To install ESP-r in silent mode:"
   echo " "
   echo  "  $ ./Install --silent"
   echo " "
@@ -212,8 +212,14 @@ if [ $help -eq 1 ]; then
   echo " "
   echo "    --extra-debug"
   echo "           Adds pedantic range checking, floating-point"
-  echo "           exceptionhandling and stack dump capabilities"
-  echo "           (supported only by Intel and gcc4 compilers)."
+  echo "           exception handling and stack dump capabilities"
+  echo "           (supported by Intel and gcc4 compilers)."
+  echo " "
+  echo "    --quick_rebuild"
+  echo "           Preserve object files after running the Install"
+  echo "           script to facilitate rapid recompilation in cases"
+  echo "           where a limited number of source files are being"
+  echo "           modified."
   echo " "
   echo "    --force"
   echo "           Overwrite a corrupted installation."
@@ -222,19 +228,31 @@ if [ $help -eq 1 ]; then
   echo "           Use the gcc4 or newer compilers (gcc, g++ and gFortran)."
   echo "           (the default)."
   echo " "
-  echo "    --opt0: no compiler optimization"
-  echo "    --opt1: -O1 compiler optimization ~x1.5 speed"
-  echo "    --opt2: -O2 compiler optimization ~x1.7 speed"
-  echo "    --opt3: -O3 compiler optimization ~x1.8 speed"
+  echo "    --opt0"
+  echo "           No compiler optimisation"
   echo " "
-  echo "    --small: constrained model size for older computers or"
-  echo "             with limited memory i.e. virtual computers."
-  echo "    --medium: standard model size for current computers"
-  echo "              this is the default."
-  echo "    --complex: complex models for computers with lots of"
-  echo "               memory and disk space."
+  echo "    --opt1"
+  echo "           -O1 compiler optimisation ~x1.5 speed"
   echo " "
-  echo "    -h, --help:  Display this help message."
+  echo "    --opt2"
+  echo "           -O2 compiler optimisation ~x1.7 speed"
+  echo " "
+  echo "    --opt3"
+  echo "           -O3 compiler optimisation ~x1.8 speed"
+  echo " "
+  echo "    --small"
+  echo "           Constrained model size for computers with"
+  echo "           limited memory, e.g. a virtual machine."
+  echo " "
+  echo "    --medium"
+  echo "           Standard model size (the default)."
+  echo " "
+  echo "    --complex"
+  echo "           Complex model case for computers with"
+  echo "           large memory and disk space."
+  echo " "
+  echo "    -h, --help"
+  echo "           Display this help message."
   echo " "
   echo "    --intel"
   echo "           Use the Intel compiler suite (icc,ifort,icpc)."
@@ -250,20 +268,19 @@ if [ $help -eq 1 ]; then
   echo "           Skip installation of training models."
   echo " "
   echo "    --no-svn-query"
-  echo "           Do not query svn for versioning information"
-  echo "           (useful if the svn repository is unavailable)."
+  echo "           Do not query svn for versioning information."
   echo " "
   echo "    --skip-ish-calcs"
   echo "           Skip recalculation of shading files associated"
-  echo "           with training and validation models."
+  echo "           with example and validation models."
   echo " "
   echo "    --reuse_ish_calcs"
   echo "           Convert existing ascii shading files associated"
-  echo "           with training and validation models."
+  echo "           with example and validation models."
   echo " "
   echo "    --silent"
   echo "           Invoke a silent installation using default"
-  echo "           options (perhaps replaced by command-line "
+  echo "           options (perhaps replaced by command-line"
   echo "           alternatives)."
   echo " "
   echo "    --X11, --GTK, --noX"
@@ -277,12 +294,12 @@ if [ $help -eq 1 ]; then
   echo "    --SQLite"
   echo "           Compile bps with support for results exporting"
   echo "           to a SQLite database (requires the libsqlite3.so"
-  echo "           library - a work in progress)."
+  echo "           library)."
   echo " "
   echo "    --FMI"
   echo "           Add Functional Mockup Interface functionality"
   echo "           to prj and bps (the required header files and"
-  echo "           libraries must be are available - see the FMI"
+  echo "           libraries must be available - see the FMI"
   echo "           developers guide in doc/manual/FMI/Developers)."
   echo " "
   echo "    --co-sim <PATH>"
@@ -293,15 +310,17 @@ if [ $help -eq 1 ]; then
   echo "    -v, --verbose"
   echo "           Print compilation messages to screen."
   echo " "
+  echo "      --platform <OS>"
+  echo "           Specify platform operating system (e.g. '--platform Linux')"
+  echo " "
   echo " Notes:"
   echo " "
   echo " 1. From ESP-r Version 12.3 on it is not possible to compile"
   echo "    with gcc3/ g77, which are obsolete. Use gcc4/ gFortran."
   echo " "
   echo " 2. There are two flavours of ESP-r: the full distribution"
-  echo "    based on X11 graphic libraries and version based on"
+  echo "    based on X11 graphic libraries and a version based on"
   echo "    GTK graphic libraries that lacks some features."
-  echo " "
   exit
 fi
 
@@ -312,8 +331,8 @@ if [ "$xml_support" = "yes" ] || [ "$xml_support" = "prompt" ]; then
       xml_libs_found="no"
       if [ "$mode" = "silent" ]; then
          echo " "
-         echo " Warning: libxml2 headers not found in /usr/include"
-         echo " or /usr/local/include - xml output support disabled."
+         echo "Warning: libxml2 headers not found in /usr/include"
+         echo "or /usr/local/include - xml output support disabled."
       fi
    else
     xml_libs_found="yes"
@@ -347,9 +366,9 @@ if [ "$SQLite_support" = "yes" ]; then
      "" ) SQLite_libs_found="no"; 
           SQLite_support="no"; 
           if [ "$mode" = "silent" ]; then
-             echo " ";
-             echo " Warning: Library libsqlite3 not found.";
-             echo " SQLite support disabled.";
+             echo " "
+             echo "Warning: Library libsqlite3 not found."
+             echo "SQLite support disabled."
           fi
           ;;
      *  ) SQLite_libs_found="yes";
@@ -357,8 +376,8 @@ if [ "$SQLite_support" = "yes" ]; then
              SQLite_support="no"
              if [ "$mode" = "silent" ]; then
                 echo " "
-                echo " Warning: SQLite requires the xml option which"
-                echo " has not been enabled. SQLite support disabled."
+                echo "Warning: SQLite requires the xml option which"
+                echo "has not been enabled. SQLite support disabled."
              fi
           else
             LIBSQLITE3_INCLUDE="-I/usr/lib -lsqlite3"
@@ -374,8 +393,8 @@ if [ "$FMI_support" = "prompt" ]; then
     found=false
     if [ "$mode" = "silent" ]; then
       echo " "
-      echo " Warning: FMI library libfmilib_shared.so not"
-      echo " found in /usr/lib. FMI support disabled."
+      echo "Warning: FMI library libfmilib_shared.so not"
+      echo "found in /usr/lib. FMI support disabled."
     fi
   fi
   if [ ! -d "/usr/include/FMI" ] && 
@@ -387,8 +406,8 @@ if [ "$FMI_support" = "prompt" ]; then
     found=false
     if [ "$mode" = "silent" ]; then
       echo " "
-      echo " Warning: FMI header files not found in"
-      echo " in /usr/include. FMI support disabled."
+      echo "Warning: FMI header files not found in"
+      echo "in /usr/include. FMI support disabled."
     fi
   fi
   if $found; then
@@ -422,36 +441,36 @@ if [ "$platform" = "auto-detect" ]; then
       platform="prompt";
       if [ "$mode" = "silent" ]; then
          echo " "
-         echo " Error: could not determine computer architecture"
-         echo " ${architecture}. Specify using the --platform switch"
-         echo " or run script in interactive mode."
+         echo "Error: could not determine computer architecture"
+         echo "${architecture}. Specify using the --platform switch"
+         echo "or run script in interactive mode."
          exit
        fi
    fi
 fi
 
 echo " "
-echo " ESP-r installation script."
+echo "Executing ESP-r installation script."
 echo " "
-echo " This script creates the ESP-r system based on the source"
-echo " files found in directory ${HOMEdir}"
-echo " and installs the result in directory ${DESTdir}."
+echo "This creates and the ESP-r system based on the source files found in"
+echo "directory ${HOMEdir}"
+echo "and installs the result in directory ${DESTdir}."
 echo " "
-echo " If you are new to this procedure, you are advised to consult"
-echo " file ${SRCdir}/Readme before proceeding."
+echo "If you are new to this procedure, please consult"
+echo "file ${SRCdir}/Readme before proceeding."
 echo " "
-echo " Use Install --help to get a list of the avaiable options."
+echo "Use Install --help to obtain a list of the avaiable options."
 
 # Prompt user for basic options if script is running interactively.
 if [ "$mode" = "interactive" ]; then
    echo " "
-   echo " Please answer the following questions. Default answers"
-   echo " are in []; press return to accept."
+   echo "Please answer the following questions. Default answers"
+   echo "are in []; press return to accept."
    if [ "${platform}" = "auto-detect" ]; then
       YN=none;
       echo " "
-      echo " Your computer identifies itself as ${architecture} with"
-      echo " ${machine} processor. Is this correct (y/n)? [y]"
+      echo "Your computer identifies itself as ${architecture} with"
+      echo "${machine} processor. Is this correct (y/n)? [y]"
       while [ "$YN" != "y" ] && [ "$YN" != "n" ] && [ "$YN" != "" ]
       do
          if [ "$YN" != "none" ]; then
@@ -475,22 +494,22 @@ if [ "$mode" = "interactive" ]; then
       do
          if [ $A != "none" ]; then
             echo " "
-            echo " Please choose an option from the list."
+            echo "Choose an option from the list."
          fi
          echo " "
-         echo " Computer type:"
-         echo "  (1) Solaris;"
-         echo "  (2) Linux;"
-         echo "  (3) Cygwin;"
-         echo "  (4) MinGW;"
-         echo "  (5) MacOS X (10.4 or later)."
+         echo "Computer type:"
+         echo " (1) Solaris;"
+         echo " (2) Linux;"
+         echo " (3) Cygwin;"
+         echo " (4) MinGW;"
+         echo " (5) MacOS X (10.4 or later)."
          read A
          # Use the 'known_host' keyword to permit compilation
          # on frequently used, nonstandard hosts.
          if [ "$A" = "known_host" ]; then
           echo " "
-          echo " Host: "
-          echo "  (1) nrn7 (SunOS)"
+          echo "Host: "
+          echo " (1) nrn7 (SunOS)"
           read A
           case $A in
             1) custom_host="nrn7"
@@ -541,12 +560,12 @@ if [ "$compiler" = "prompt" ] && [ "$mode" = "interactive" ]; then
   do
      if [ $A != "none" ]; then
         echo " "
-        echo " Please select a compiler set [2]."
+        echo "Please select a compiler set [2]."
      fi
-     echo " Select a compiler set [2]:"
-     echo "  (1) Sun 90 (cc and f90);"
-     echo "  (2) GNU (gcc 4.X and gfortran);"
-     echo "  (3) Intel (icc, icpc and ifort)."
+     echo "Select a compiler set [2]:"
+     echo " (1) Sun 90 (cc and f90);"
+     echo " (2) GNU (gcc 4.X and gfortran);"
+     echo " (3) Intel (icc, icpc and ifort)."
      read A
      if [ "$A" = "" ]; then
        A="2"
@@ -559,7 +578,7 @@ if [ "$compiler" = "prompt" ] && [ "$mode" = "interactive" ]; then
   esac
 else
   echo " "
-  echo " The $compiler compiler set will be used."
+  echo "The $compiler compiler set will be used."
 fi
 
 # Prompt for inclusion of H3K reports (in xml output)
@@ -572,20 +591,20 @@ if [ "$mode" = "interactive" ]; then
       [ "$platform" = "sun" ] ; then
       if [ "${xml_libs_found}" = "no" ]; then
          echo " "
-         echo " Error: libxml2 library not found in /usr/include"
-         echo " or /usr/local/include. Support for xml output will be"
-         echo " disabled but the rest of the installation will"
-         echo " proceed normally."
+         echo "Error: libxml2 library not found in /usr/include"
+         echo "or /usr/local/include. Support for xml output will be"
+         echo "disabled but the rest of the installation will"
+         echo "proceed normally."
       else
         case "${xml_support}" in
-          yes) echo " Including xml support.";;
-          no)  echo " xml support not included.";;
+          yes) echo "xml support included.";;
+          no)  echo "xml support not included.";;
         esac
       fi
    else
        echo " "
-       echo " xml output support is not available on ${platform}"
-       echo " and is therefore disabled in bps."
+       echo "xml output support not available on ${platform}"
+       echo "and is therefore disabled."
        xml_support="no"
        SQLite_support="no"
    fi
@@ -600,10 +619,10 @@ fi
 if [ "$mode" = "interactive" ]; then
   if [ "${FMI_libs_found}" = "no" ]; then
     echo " "
-    echo " FMI library resources could not be located. Please"
-    echo " follow instructions in manual/FMI/Users.txt. FMI"
-    echo " will be disabled but the rest of the ESP-r"
-    echo " installation will proceed normally."
+    echo "FMI library resources could not be located. Please"
+    echo "follow instructions in manual/FMI/Users.txt. FMI"
+    echo "will be disabled but the rest of the installation"
+    echo "will proceed normally."
     echo
     FMI_support="no"
   elif [ "${FMI_libs_found}" = "yes" ]; then
@@ -612,9 +631,9 @@ if [ "$mode" = "interactive" ]; then
        ! [ "$machine" = "i386" ] &&
        ! [ "$machine" = "i686" ]; then
       echo " "
-      echo " FMI is not supported on $platform $machine."
-      echo " It is recommended that only advanced users"
-      echo " proceed with FMI enabled."
+      echo "FMI not supported on $platform $machine."
+      echo "Only advanced users should proceed with"
+      echo "FMI enabled."
       echo 
     fi
     if [ "$FMI_support" = "prompt" ]; then
@@ -626,7 +645,7 @@ if [ "$mode" = "interactive" ]; then
           echo "Please answer 'y' or 'n'."
         fi
         echo " "
-        echo " Install with FMI support (y/n)? [n]"
+        echo "Include FMI support (y/n)? [n]"
         read B
         if [ "$B" = "" ]; then
           case "${FMI_support}" in
@@ -638,19 +657,19 @@ if [ "$mode" = "interactive" ]; then
       if [ "$B" = "y" ]; then
         FMI_support="yes"
         echo " "
-        echo " FMI enabled."
+        echo "FMI enabled."
       else
         FMI_support="no"
         echo " "
-        echo " FMI disabled."
+        echo "FMI disabled."
       fi
     fi
   elif [ "${FMI_libs_found}" = "assume" ]; then
     echo
-    echo " FMI headers and library are assumed to be"
-    echo " within the compiler/linker paths. No checks"
-    echo " will be made for these resources before"
-    echo " compiling with FMI support enabled."
+    echo "FMI headers and library are assumed to be"
+    echo "within the compiler/ linker paths. No checks"
+    echo "will be made for these resources before"
+    echo "compiling with FMI support enabled."
   fi
 else
   if [ "$FMI_support" = "prompt" ]; then
@@ -662,21 +681,21 @@ fi
 if [ "$mode" = "interactive" ]; then
   case "${xLibs}" in
      X11) echo " "
-          echo " Building with X11 interface.";;
+          echo "Building with X11 interface.";;
      GTK) echo " "
-          echo " Building with GTK interface.";;
+          echo "Building with GTK interface.";;
      noX) echo " "
-          echo " Building with text only interface.";;
+          echo "Building with text only interface.";;
   esac
 else
   # Assume X11 is available on all systems except mingw.
   if [ "$platform" = "mingw" ]; then
     xLibs=noX
     echo " "
-    echo " Text only applications will be compiled."
+    echo "Text only applications will be compiled."
   else
     echo " "
-    echo " The $xLibs libraries will be used."
+    echo "The $xLibs libraries will be used."
   fi
 fi
 # Prepend grapics library to target list.
@@ -695,21 +714,12 @@ default="$medium_prompt"
 case "$complexity" in
    "$small_prompt") 
      cp ${SRCdir}/include/building_small.h ${SRCdir}/include/building.h
-     cp ${SRCdir}/include/cfd_small.h ${SRCdir}/include/cfd.h
-     cp ${SRCdir}/include/control_small.h ${SRCdir}/include/control.h
-     cp ${SRCdir}/include/net_flow_small.h ${SRCdir}/include/net_flow.h
      ;;
    "$medium_prompt") 
      cp ${SRCdir}/include/building_medium.h ${SRCdir}/include/building.h
-     cp ${SRCdir}/include/cfd_medium.h ${SRCdir}/include/cfd.h
-     cp ${SRCdir}/include/control_medium.h ${SRCdir}/include/control.h
-     cp ${SRCdir}/include/net_flow_medium.h ${SRCdir}/include/net_flow.h
      ;;
    "$large_prompt") 
      cp ${SRCdir}/include/building_large.h ${SRCdir}/include/building.h
-     cp ${SRCdir}/include/cfd_large.h ${SRCdir}/include/cfd.h
-     cp ${SRCdir}/include/control_large.h ${SRCdir}/include/control.h
-     cp ${SRCdir}/include/net_flow_large.h ${SRCdir}/include/net_flow.h
      ;;
 esac
 
@@ -717,12 +727,12 @@ esac
 if [ "$mode" = "interactive" ]; then
   case "${debugging}" in
     yes) echo " "
-         echo " Building with debug symbols.";;
+         echo "Building with debug symbols.";;
     no)  echo " "
-         echo " Building without debug symbols.";;
+         echo "Building without debug symbols.";;
   esac
 
-  # Installation of databases required?
+# Installation of databases required?
   B="none"
   while [ "$B" != "y" ] && [ "$B" != "n" ] && [ "$B" != "Y" ] && [ "$B" != "N" ]
   do
@@ -732,9 +742,9 @@ if [ "$mode" = "interactive" ]; then
     fi
     case "${install_dbs}" in
       yes) echo " "
-           echo " Install databases (y/n)? [y]";;
+           echo "Install databases (y/n)? [y]";;
       *)   echo " "
-           echo " Install databases (y/n)? [n]";;
+           echo "Install databases (y/n)? [n]";;
     esac
     read B
     if [ "$B" = "" ]; then
@@ -750,7 +760,7 @@ if [ "$mode" = "interactive" ]; then
     install_dbs="no"
   fi
 
-  # Install training models?
+# Install training models?
   B="none"
   while [ "$B" != "y" ] && [ "$B" != "n" ] && [ "$B" != "Y" ] && [ "$B" != "N" ]
   do
@@ -759,8 +769,8 @@ if [ "$mode" = "interactive" ]; then
         echo "Please answer 'y' or 'n'."
     fi
     case "${install_training}" in
-      yes) echo " Install training models (y/n)? [y]";;
-      *)   echo " Install training models (y/n)? [n]";;
+      yes) echo "Install training models (y/n)? [y]";;
+      *)   echo "Install training models (y/n)? [n]";;
     esac
     read B
     if [ "$B" = "" ]; then
@@ -797,7 +807,7 @@ case $platform in
    nrn7)     MCTYPE=sun;;
 esac
 
-# Location of x libraries.
+# Location of X libraries.
 case $xLibs in
   GTK) XINSTALLDIR="`pkg-config gtk+-2.0 --cflags --libs`";;
   X11) X11_found="no"
@@ -876,12 +886,12 @@ case $xLibs in
        # If X11 not found, ask user for location.
        if [ "$X11_found" = "no" ] && [ "$mode" = "interactive" ]; then
          echo " "
-         echo " The X11 libraries could not be found in ($XDEFDIR)."
+         echo "X11 libraries not found in ($XDEFDIR)."
          try_agian="y"
          while [ "$try_agian" == "y" ] || [ "$try_agian" == "Y" ]
          do
-           echo " Do you wish to search for the X11 libraries at"
-           echo " an alternative location?"
+           echo "Search for the X11 libraries at"
+           echo "an alternative location?"
            read try_again
            if [ "$try_agian" = "" ]; then
              try_again="y"
@@ -894,7 +904,7 @@ case $xLibs in
                X11_found="yes"
                try_agian="no"
              else
-               echo " X11 could not be found at $XINSTALLDIR!"
+               echo "X11 libraries not found in $XINSTALLDIR!"
              fi
            fi
          done
@@ -902,7 +912,7 @@ case $xLibs in
        # If X11 not found, issue an error and quit.
        if [ "$X11_found" = "no" ]; then
          echo " "
-         echo " Error: could not find the X11 libraries - exiting."
+         echo "Error: X11 libraries not found ... exiting."
          echo " "
          exit
        fi
@@ -914,11 +924,11 @@ case $xLibs in
            X11INCLUDEDIR=/usr/include
          else
            echo " "
-           echo " Error: the X11 libraries were found at $XINSTALLDIR but"
-           echo " the corresponding header files (e.g. X.h) could not be"
-           echo " located at $XINSTALLDIR/include/X11. Please check if"
-           echo " the X11 development package is installed (usually called"
-           echo " xfree86-devel, xorg-X11-devel or libX11-devel.)"
+           echo "Error: the X11 libraries were found at $XINSTALLDIR but"
+           echo "the corresponding header files (e.g. X.h) could not be"
+           echo "located at $XINSTALLDIR/include/X11. Please check if"
+           echo "the X11 development package is installed (usually called"
+           echo "xfree86-devel, xorg-X11-devel or libX11-devel.)"
            exit
          fi
        fi
@@ -1200,12 +1210,12 @@ if [ ! -d $DESTdir ]; then
   # No! Is script running interactively or has user specified a 'force?'
   if [ $mode = "interactive" ] && [ "$preserve_espr_dir" == "yes" ] ; then
     echo " "
-    echo " Installation directory ${DESTdir} does not exist."
+    echo "Installation directory ${DESTdir} does not exist."
     A=none
     while [ "$A" != "y" ] && [ "$A" != "n" ]
     do
       echo " "
-      echo " Do you wish to create it (y/n)? [y]"
+      echo "Do you wish to create it (y/n)? [y]"
       read A
       if [ "$A" = "" ]; then
         A="y"
@@ -1227,15 +1237,15 @@ if [ ! -d $DESTdir ]; then
     if [ ! -d ${DESTdir} ]; then
       # User may not have write permissions, warn and exit.
       echo " "
-      echo " Destination directory ${DESTdir} could not be created"
-      echo " Installation aborted."
+      echo "Destination directory ${DESTdir} could not be"
+      echo "created ... installation aborted."
       exit
     fi
   else
     # User does not want to create directory and it does not exist.
     echo " "
-    echo " Destination directory ${DESTdir} does not exist."
-    echo " Installation aborted"
+    echo "Destination directory ${DESTdir} does not exist ..."
+    echo "installation aborted."
     exit
   fi
 fi
@@ -1243,8 +1253,8 @@ fi
 # Confirm installation directory is writable.
 if [ ! -w $DESTdir ] || [ ! -d $DESTdir ]; then
   echo " "
-  echo " Cannot write to installation directory $DESTdir."
-  echo " Installation aborted."
+  echo "Cannot write to installation directory $DESTdir ..."
+  echo "installation aborted."
   exit
 fi
 
@@ -1254,7 +1264,7 @@ if [ "$enable_cosim" == "yes" ]; then
 	# set it to the ESP-r installation directory.
 	if [ $COSIMdir == " " ]; then
 	    ${COSIMdir} = ${DESTdir}/bin 
-	    echo " Co-simulation directory is ${DESTdir}."
+	    echo "Co-simulation directory is ${DESTdir}."
 	fi
 	# Check if co-simulation installation directories exists and
         # create it if necessary.
@@ -1262,13 +1272,13 @@ if [ "$enable_cosim" == "yes" ]; then
 	if [ ! -d $COSIMdir ]; then
 	  if [ $mode = "interactive" ] ; then
 	    echo " "
-	    echo " The co-simulation installation directory,"
-            echo " ${COSIMdir}, does not exist."
+	    echo "Co-simulation installation directory"
+            echo "${COSIMdir} does not exist."
 	    A=none
 	    while [ "$A" != "y" ] && [ "$A" != "n" ]
 	    do
 	      echo " "
-	      echo " Do you wish to create it (y/n)? [y]"
+	      echo "Do you wish to create it (y/n)? [y]"
 	      read A
 	      if [ "$A" = "" ]; then
 	        A="y"
@@ -1290,22 +1300,22 @@ if [ "$enable_cosim" == "yes" ]; then
 	    if [ ! -d ${COSIMdir} ]; then
 	      # User may not have write permission.
 	      echo " "
-	      echo " Destination directory, ${COSIMdir}, could not"
-	      echo " be created. Installation aborted."
+	      echo "Destination directory ${COSIMdir} could not"
+	      echo "be created ... installation aborted."
 	      exit
 	    fi
 	  else
 	    # User does not want to create directory and it does not exist.
 	    echo " "
-	    echo " Destination directory, ${COSIMdir}, does not"
-	    echo " exist. Installation aborted."
+	    echo "Destination directory ${COSIMdir} does not"
+	    echo "exist ... installation aborted."
 	    exit
 	  fi
 	fi
 	if [ ! -w $COSIMdir ] || [ ! -d $COSIMdir ]; then
 	  echo " "
-	  echo " Cannot write to co-simulation installation directory,"
-	  echo " ${COSIMdir}. Installation aborted."
+	  echo "Cannot write to co-simulation installation directory"
+	  echo "${COSIMdir} ... installation aborted."
 	  exit
 	fi
 fi
@@ -1331,17 +1341,17 @@ if [ "$create_espr_dir" = "no" ]; then
      corrupted_tree="yes"
      if [ "$create_espr_dir" = "no" ]; then
       echo " "
-      echo " The ESP-r installation directory tree does not exist at"
-      echo " ${DESTdir} or may have been corrupted. The following directories"
-      echo " are required."
-      echo "    $ESPdir"
-      echo "    $ESPdir/bin "
-      echo "    $ESPdir/climate "
-      echo "    $ESPdir/databases "
-      echo "    $ESPdir/electric_loads "
-      echo "    $ESPdir/lib "
-      echo "    $ESPdir/manual "
-      echo "    $ESPdir/xsl "
+      echo "The ESP-r installation directory tree does not exist at"
+      echo "${DESTdir} or may have been corrupted. The following directories"
+      echo "are required."
+      echo "   $ESPdir"
+      echo "   $ESPdir/bin "
+      echo "   $ESPdir/climate "
+      echo "   $ESPdir/databases "
+      echo "   $ESPdir/electric_loads "
+      echo "   $ESPdir/lib "
+      echo "   $ESPdir/manual "
+      echo "   $ESPdir/xsl "
     fi
 
     if [ "$mode" = "interactive" ] && [ "$preserve_espr_dir" = "yes" ] ; then
@@ -1349,7 +1359,7 @@ if [ "$create_espr_dir" = "no" ]; then
       while [ "$A" != "y" ] && [ "$A" != "n" ]
       do
         echo " "
-        echo " Do you wish to create this directory tree (y/n)? [y]"
+        echo "Create this directory tree (y/n)? [y]"
         read A
         if [ "$A" = "" ]; then
           A="y"
@@ -1372,8 +1382,8 @@ if [ "$corrupted_tree" = "yes" ] || [ "$create_espr_dir" = "yes" ]; then
     echo " directory tree at ${DESTdir}. Installation aborted."
     if [ "$mode" = "silent" ]; then
       echo " "
-      echo " Use the '--force' option to overwrite the directory"
-      echo " structure. Run 'Install --help' for more information."
+      echo "Use the '--force' option to overwrite the directory"
+      echo "structure. Run 'Install --help' for more information."
       exit
     fi
   fi
@@ -1397,22 +1407,22 @@ fi
 # Initiate make.
 if [ "${make_msg_file}" = "" ]; then
   echo " "
-  echo " Intended shell command:"
-  echo " make MCTYPE=${MCTYPE} MCC=${CC} MCPL=${CPL} MFC=${FC} DESTdir=${DESTdir} ESPdir=${ESPdir} ESPBinDir=${ESPBinDir} WWLINK=${WWLINK} EXE="${EXE}" XINSTALLDIR=${XINSTALLDIR} CFLAGS=${CFLAGS} FFLAGS=${FFLAGS} LD_FLAGS=${LD_FLAGS} ULIBS=${ULIBS} xml_status=${xml_status} $targets"
+  echo "Intended shell command:"
+  echo "make MCTYPE=${MCTYPE} MCC=${CC} MCPL=${CPL} MFC=${FC} DESTdir=${DESTdir} ESPdir=${ESPdir} ESPBinDir=${ESPBinDir} WWLINK=${WWLINK} EXE="${EXE}" XINSTALLDIR=${XINSTALLDIR} CFLAGS=${CFLAGS} FFLAGS=${FFLAGS} LD_FLAGS=${LD_FLAGS} ULIBS=${ULIBS} xml_status=${xml_status} $targets"
   echo " "
-  echo " where the $xlibs libraries are in ${XINSTALLDIR}."
+  echo "where the $xlibs libraries are in ${XINSTALLDIR}."
 fi
 
 if [ "$mode" = "interactive" ]; then
   A=x
   while [ "$A" != y ] && [ "$A" != n ] && [ "$A" != "" ]
   do
-    echo " Proceed with installation (y/n)? [y]"
+    echo "Proceed with installation (y/n)? [y]"
     read A
   done
   if [ "$A" = "n" ]; then
     echo " "
-    echo " Aborting ESP-r installation."
+    echo "Aborting ESP-r installation."
     exit
   fi
 fi
@@ -1710,9 +1720,9 @@ if [ "${LinkDB}" = "yes" ]; then
   # Default databases.
   echo "*clm ${DBInstDir}/climate/clm67"                >> ${ESPdir}/default
   echo "*prs ${DBInstDir}/databases/pressc.db1"         >> ${ESPdir}/default
-  echo "*prm ${DBInstDir}/databases/material.db4.a"     >> ${ESPdir}/default
-  echo "*mlc ${DBInstDir}/databases/multicon.db5"       >> ${ESPdir}/default
-  echo "*opt ${DBInstDir}/databases/optics.db2"         >> ${ESPdir}/default
+  echo "*prm ${DBInstDir}/databases/material.db"        >> ${ESPdir}/default
+  echo "*mlc ${DBInstDir}/databases/multicon.db"        >> ${ESPdir}/default
+  echo "*opt ${DBInstDir}/databases/optics.db"          >> ${ESPdir}/default
   echo "*evn ${DBInstDir}/databases/profiles.db2.a"     >> ${ESPdir}/default
   echo "*pdb ${DBInstDir}/databases/plantc.db1"         >> ${ESPdir}/default
   echo "*ecdb ${DBInstDir}/databases/elcomp.db1"        >> ${ESPdir}/default
@@ -1721,6 +1731,7 @@ if [ "${LinkDB}" = "yes" ]; then
   echo "*mldb ${DBInstDir}/databases/mould.db1"         >> ${ESPdir}/default
   echo "*sbem ${DBInstDir}/databases/SBEM.db1"          >> ${ESPdir}/default
   echo "*cfcdb ${DBInstDir}/databases/CFClayers.db2.a"  >> ${ESPdir}/default
+  echo "*pre ${DBInstDir}/databases/predefined.db1"     >> ${ESPdir}/default
 fi
 echo "*end"                                             >> ${ESPdir}/default
 
@@ -1802,6 +1813,7 @@ if [ "$install_dbs" = "yes" ]; then
 # Constructions.
   echo -n "    - installing materials databases ..."
   cd ${DATdir}/databases
+  cp multicon.db ${DESTdir}/databases
   cp multicon.db3 ${DESTdir}/databases
   cp multicon.db4 ${DESTdir}/databases
   cp multicon.db5 ${DESTdir}/databases
@@ -1811,6 +1823,7 @@ if [ "$install_dbs" = "yes" ]; then
   cp cellular.materialdb ${DESTdir}/databases
   cp north_american.materialdb.a ${DESTdir}/databases
   cp north_american.constrdb ${DESTdir}/databases
+  cp material.db ${DESTdir}/databases
   cp material.db3.a ${DESTdir}/databases
   cp material.db4.a ${DESTdir}/databases
   cp CFClayers.db1.a ${DESTdir}/databases
@@ -1864,6 +1877,7 @@ $CLM -mode text -file $1 -act asci2bin silent $2  >/dev/null 2>/dev/null
 # Miscellaneous.
   echo -n "    - installing miscellaneous databases ..."
   cd ${DATdir}/databases
+  cp optics.db ${DESTdir}/databases
   cp optics.db2 ${DESTdir}/databases
   cp optics.db3 ${DESTdir}/databases
   cp ccht-optics.db1 ${DESTdir}/databases
@@ -1871,7 +1885,6 @@ $CLM -mode text -file $1 -act asci2bin silent $2  >/dev/null 2>/dev/null
   cp pressc.db1 ${DESTdir}/databases
   cp predefined.db1 ${DESTdir}/databases
   cp flow_icons.db6 ${DESTdir}/databases
-  cp ccht-optics.db1 ${DESTdir}/databases
   cp profiles.db2.a ${DESTdir}/databases
   cp icons.db1 ${DESTdir}/databases
   cp components.db1 ${DESTdir}/databases

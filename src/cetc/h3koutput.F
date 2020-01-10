@@ -799,7 +799,7 @@ C     tzph,tzpc are zone heating/cooling use over time.
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       COMMON/SHOUT/ICOUT
       COMMON/FILEP/IFIL

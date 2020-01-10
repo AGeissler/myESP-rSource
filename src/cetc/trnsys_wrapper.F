@@ -58,8 +58,8 @@ C 4. Check whether the containment of the trnsys component should be defined
 #include "building.h"
 #include "trnsys.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -493,8 +493,8 @@ C 3. its right-hand coefficients are from trnsys output (or input).
 #include "building.h"
 #include "trnsys.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -1395,8 +1395,8 @@ C   DM1   dimensionless
       IMPLICIT NONE
 
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C     Transferred parameters
       LOGICAL toTrnsys   !true: converting units from esp-r to trnsys
@@ -1672,8 +1672,8 @@ C This subroutine checks whether trnsys error has been generated.
       SUBROUTINE checkTrnsysError(iUnit, iType)
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Transferred parameters
       INTEGER  iUnit, iType

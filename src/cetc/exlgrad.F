@@ -95,6 +95,7 @@ C  Words may be separated by blanks, tabs or commas.
         INTEGER        IRT
         INTEGER        IUOUT
         INTEGER        IUIN
+        INTEGER        IEOUT
         INTEGER        IER
         INTEGER        jMon
         INTEGER        k
@@ -107,7 +108,7 @@ C Common block created to store flag and user-input values.
 
 C These common blocks are copied over from EDSITE to 
 C define global variables needed.
-        COMMON/OUTIN/IUOUT,IUIN
+        COMMON/OUTIN/IUOUT,IUIN,IEOUT
         COMMON/POPHELP/h(60)
 
         CALL EDISP(IUOUT,' ')     

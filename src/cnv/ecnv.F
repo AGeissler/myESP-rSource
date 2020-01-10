@@ -31,11 +31,6 @@ C to code from ABACUS, Department of Architecture & Building Science.
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure database)
-C LOPTDB,IOPTDB (for optical database)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
-C UA1 in uncertainty.h
 #include "uncertainty.h"
 #include "material.h"
 #include "espriou.h"
@@ -54,7 +49,7 @@ C UA1 in uncertainty.h
       common/dxfe/oformat,indxzon,head
 
 C ESP-r commons.
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/rpath/path
       common/FILEP/IFIL
@@ -79,10 +74,18 @@ C      common/SHOCCcfg/bSHOCCed,SHOCCshlFile,bZoneSHOCCed(mcom),
 C     &                SHOCCshzFile(mcom)
 C      logical bSHOCCed,bZoneSHOCCed
 C      character SHOCCshlFile*72,SHOCCshzFile*72
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
      
 C Name of current application
       common/APPNAME/cAppName
       character cAppName*12     
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
 
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL XST
@@ -95,6 +98,7 @@ C Name of current application
       character LTMP*144
       character path*72,mpath*72
       character upgcfg*72
+      character dstmp*24,uname*24,tfile*72
 
       character MODE*4
       character buffer*144
@@ -145,6 +149,7 @@ C iotmp2 for miscel output files.
       ipathapres=0; ipathoptdb=0; ipathpcdb=0; ipathprodb=0
       ipathmat=0; ipathmul=0; ipathclim=0; ipathsbem=0; ipathmsc=0
       ipathmould=0
+      AUTOVR=.false. ! by default ask to overwrite files
 
 C Get command line parameters. 
 C input formats are: [esp|dxf|ww] where:
@@ -217,6 +222,23 @@ C Scan the defaults file for default system configuration file.
 C Make temporary use of file unit IFIL+5.  Note: escdef must come
 C after scan of .esprc file.
       call escdef(IFIL+5,'-',IER)
+
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+927          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for cnv'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Convert from "c" strings to fortran strings, if unknown then exit.
 
@@ -438,6 +460,8 @@ C If iverb passed as non-zero then change directive.
      &      'Exiting from project manager','P')
 
 C Clear allocatable arrays
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           CALL DeallocateAllArrays
           CALL EPAGEND
           STOP
@@ -480,6 +504,8 @@ C << consider more passed parameters to fine-tune entity types >>
           open(ioout,file=filname2,status='UNKNOWN', err=901)
           call e2vdxf(incobs)
           call edisp(iuout,' End of conversion.')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
           STOP
         endif
@@ -489,6 +515,8 @@ C Create THF (THINGS) file.
           open(ioout,file=filname2,status='UNKNOWN', err=901)
           call e2thf(incobs)
           call edisp(iuout,' End of conversion.')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
           STOP
         endif
@@ -513,6 +541,8 @@ C << consider updating to a newer format such as SVG >>
           CALL ERPFREE(ioout,ISTAT)
           CALL ERPFREE(ioblk,ISTAT)  ! free up the html file
           call edisp(iuout,' End of conversion.')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
           STOP
         endif
@@ -589,7 +619,8 @@ C Write the number of coordinates and lines.
           endif
    10   continue
         close(ioout)
-
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
 
@@ -600,7 +631,8 @@ C The high level scan of a DXF file starts here. It works by
 C calling readgc to recover information from the DXF file until
 C and EOF is located. It looks for 'HEAD' and 'TABL' and 'ENDSEC'.
       call scandxf(filname,filname1,filname2,itmprm,itrc) 
-
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPAGEND
       STOP
 
@@ -631,7 +663,7 @@ C << update this to generate v1.1 geometry file >>
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -755,8 +787,8 @@ C  Putcoods writes co-ordinates into .vew file or esp geometry commons.
       
       integer lnblnk  ! function definition
       
-      integer IUOUT,IUIN
-      COMMON/OUTIN/IUOUT,IUIN
+      integer IUOUT,IUIN,IEOUT
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ioin,ioout,ioblk
       common/io/ioin,ioout,ioblk
@@ -927,7 +959,7 @@ C itrc sets debug mode if greater than one.
       subroutine readgc(itrc)
 #include "dxfdata.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ioin,ioout,ioblk
       common/io/ioin,ioout,ioblk
@@ -1074,7 +1106,7 @@ C Matches or adds a vertex to a zone.
       subroutine matchv(iz,is,match,x1,y1,z1)
 #include "building.h"
 #include "geometry.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -1159,7 +1191,7 @@ C << MUST be updated to reflect ipath and longer database names >>
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/C6/INDCFG
@@ -1421,6 +1453,18 @@ C calls in esru_lib.F
       return
       end
 
+      subroutine chgpan(ix,iy)
+      return
+      end
+
+      subroutine chgzoom(imode)
+      return
+      end
+
+      subroutine optview
+      return
+      end
+
       subroutine chgsun(isunhour)
       return
       end
@@ -1506,7 +1550,7 @@ C parcnv parse command line paramters for ecnv.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer iargc,m
       integer termtype
@@ -1657,7 +1701,7 @@ C << could this be done with G6 and with ??
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
 C Tollerance for surface matching.
@@ -1676,7 +1720,7 @@ C Tollerance for surface matching.
       DIMENSION invesur(MS),jvn1(MV)
       CHARACTER outs*124,louts*496,msg*96
       logical hilight
-      logical greyok,matchver,notin,OK,dok,adjusted
+      logical greyok,matchver,notin,OK,adjusted
       logical newgeo  ! version of geom file
       integer icursur,ipair
       integer iii
@@ -1835,12 +1879,11 @@ C inserting the new vertex index.
      &                    SNAME(icomp,icursur),'.'
                         if(ivb.ne.0) call edisp(iuout,outs)
                       else
-                        dok=.true.
                         call edisp248(iuout,louts,100)
                         write(msg,'(a,f6.4,3a)') 'Insert this (',offset,
      &                    'm) to edge vertex in ',
      &                    SNAME(icomp,icursur),'?'
-                        call askok(' ',msg,ok,dok,nbhelp)
+                        call easkok(' ',msg,ok,nbhelp)
                       endif
                     else
                       ok=.false.
@@ -1894,8 +1937,7 @@ C        write(6,*) 'edges per surface ',NVER
             write(outs,'(3a)')
      &        'Checked the edges of surface ',SNAME(icomp,is),
      &        ' looks like surface needs to be inverted.'
-            dok=.true.
-            call askok(outs,'Invert its edges?',ok,dok,nbhelp)
+            call easkok(outs,'Invert its edges?',ok,nbhelp)
             if(ok)then
               adjusted=.true.  ! ensure option to save is given
               do 146, iyy = 1,NVER(is)
@@ -1917,11 +1959,10 @@ C        write(6,*) 'edges per surface ',NVER
 
 C If any of the edge lists were altered give option to update.
       if(adjusted)then
-        dok=.true.
         if(ivb.eq.0)then
           ok=.true.
         else
-          call askok(' ','Update geometry file?',ok,dok,nbhelp)
+          call easkok(' ','Update geometry file?',ok,nbhelp)
         endif
 
 C Update the geometry file.
@@ -3628,7 +3669,7 @@ C espriou.h provides currentfile and MFFOLD.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       common/C1/NCOMP,NCON
@@ -3664,7 +3705,7 @@ C Calendar.
 C Passed in parameters.
       character root*32,mpath*72,menu*72
 
-      logical XST,OK,dok,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      logical XST,OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical OKI,concat,unixok,clkok
 
       character dstmp*24,LCFTMP*32
@@ -3720,8 +3761,8 @@ C Silent continue, there is nothing to do (currently).
 C Silent new within the pre-registration process.
 
 C Debug.
-        write(6,*)  ' pregist ',root
-        write(6,*)  ' pregist ',mpath
+C        write(6,*)  ' pregist ',root
+C        write(6,*)  ' pregist ',mpath
 
         write(LCFTMP,'(a)') root(1:lnblnk(root))
       elseif(act(1:2).eq.'sw')then
@@ -3729,8 +3770,8 @@ C Debug.
 C Silent within the pre-registration process.
 
 C Debug.
-        write(6,*)  ' pregist ',root
-        write(6,*)  ' pregist ',mpath
+C        write(6,*)  ' pregist ',root
+C        write(6,*)  ' pregist ',mpath
 
         write(LCFTMP,'(a)') root(1:lnblnk(root))
 
@@ -3811,7 +3852,6 @@ C Check existance of this file (should not overwrite an existing file).
       CALL ERPFREE(IFCFG,ISTAT)
       call FINDFIL(LCFGF,XST)
       if(XST)then
-        dok=.true.
         helptopic='cfg_overwrite_warning'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(act(1:2).eq.'sn')then
@@ -3819,8 +3859,8 @@ C Check existance of this file (should not overwrite an existing file).
         elseif(act(1:2).eq.'sw')then
           OK=.true.
         elseif(act(1:1).eq.'i')then
-          call askok('There is an existing configuration with',
-     &    'this name. Do you want to overwrite it?',OK,dok,nbhelp)
+          call easkok('An existing configuration has this name!',
+     &                'Overwrite?',OK,nbhelp)
         endif
         if(.not.OK)goto 289
       endif
@@ -4167,9 +4207,7 @@ C If user request jump back and re-display the menu.
 
 C Ask user whether file is in ../doc and if so use fdroot if GTK.
       if(iglib.eq.2)then
-        dok=.true.
-        CALL ASKOK('Is this file in the model ../doc folder?',
-     &    ' ',OK,dok,3)
+        CALL EASKOK(' ','Is this file in the doc folder?',OK,3)
         if(OK)then
           call fdroot(lltmp,lpath,fname)
           write(lmodellog,'(3a)') docpth(1:lnblnk(docpth)),fs,
@@ -4189,9 +4227,8 @@ C information.
       if(XST)then
         CALL LISTAS(IUNIT,lmodellog,IER)
         IF(IER.ne.0)THEN
-          dok=.true.
-          CALL ASKOK('Problem detected with log file!',
-     &               'Try again?',OK,dok,nbhelp)
+          CALL EASKOK('Problem detected with log file!',
+     &                'Try again?',OK,nbhelp)
           IF(OK)GOTO 53
         ENDIF
       else
@@ -4218,10 +4255,9 @@ C necessary.  If vi then spawn a new window to do the editing.
 
 C << This would be a good place to offer an internal editing popup
 C << which uses GTK facilities.
-      dok=.false.
       helptopic='cfg_model_log_file'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' ','Edit log file?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Edit log file?',OK,nbhelp)
       IF(OK)then
 
 C Check if Unix-based or DOS based.
@@ -4347,7 +4383,7 @@ C closemat1 or closemat2 will be set.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       logical XST,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -4649,8 +4685,6 @@ C model cfg file if a change is made.
 #include "model.h"
 #include "esprdbfile.h"
 #include "espriou.h"  
-C espriou.h for climatelist file name.
-C #include "control.h"
 #include "schedule.h"
 
 #include "seasons.h"
@@ -4662,8 +4696,8 @@ C Parameters passed
       character act*1 ! action to take
       integer ier     ! error state
 
-      integer iuout,iuin
-      common/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer ifil
       integer iyear,ibdoy,iedoy,ifday,iftime
@@ -4691,7 +4725,7 @@ C Local variables.
       integer icomp
       integer ipatday1,ipatday2,ipatday3,ipatday4,ipatday5,ipatday6  ! remember what the new day types are
       integer idol,idaynum,idtyy,idwknum,imthnum  ! for determining day of week
-      logical ok,dok,xst
+      logical ok,xst
 
 C Variables for handling climate file.
       character llclmdb*144
@@ -4906,7 +4940,7 @@ C Setup string buffer with distribution weather folder name.
             INQUIRE (FILE=cdblfil,EXIST=XST)
             if(XST)then
               IUF=IFIL+2
-              call scancdblist(IUF,llclmdb,ok,ier)
+              call scancdblist(IUF,llclmdb,'p',ok,ier)
               if(ok)then
                 continue
               else
@@ -5034,9 +5068,9 @@ C the control file if it exists and then process zone operation files.
 C If user agrees apply these two new day types to the current calendar.
 C Loop through all days, if one of the original 3 day types revise them
 C to use the new Mon-Sat & Sunday types.
-                  DOK=.true.
-                  CALL ASKOK('Apply these new day types to the current',
-     &              'calendar of the model?',OK,DOK,nbhelp)
+                  CALL EASKOK(' ',
+     &              'Apply these day types to the model calendar?',
+     &              OK,nbhelp)
                   if(OK)then
                     DO 123 IDOL=1,365
                       IF(ICALENDER(IDOL).LE.3)THEN
@@ -5154,15 +5188,11 @@ C Loop through all days, if one of the original 3 day types revise them
 C to use the new seasonal day types. The 5 sesaons in the weather data
 C are applied so that win1 and win2 both get the winter day types and
 C spring and autumn both get the transition day type.
-                  DOK=.true.
-                  CALL ASKOK('Apply these new day types to the current',
-     &              'calendar of the model?',OK,DOK,nbhelp)
+                  CALL EASKOK(' ',
+     &              'Apply these day types to model calendar?',
+     &              OK,nbhelp)
                   if(OK)then
-C Debug.
-C                    write(6,*) nbdaytype,ipatday1,ipatday2,ipatday3,
-C     &ipatday4,ipatday5,ipatday6
-C                    write(6,*) is1wins,is1winf,is2wins,is2winf,
-C     &is1sprs,is1sprf,is2sprs,is2sprf,is1sums,is1sumf
+
                     DO 124 IDOL=1,365
                       IF(ICALENDER(IDOL).LE.3)THEN
                         CALL EDAYR(IDOL,IDAYNUM,IMTHNUM)
@@ -5199,7 +5229,7 @@ C     &is1sprs,is1sprf,is2sprs,is2sprf,is1sums,is1sumf
                           ENDIF
                         endif
 
-C If the julian day did not match then fall back on day of the week.
+C If the Julian day did not match then fall back on day of the week.
                         if(IDTYY.eq.0)then
                           IF(IDWKNUM.LT.6)THEN
                             IDTYY=1 ! WEEKDAY
@@ -5364,8 +5394,8 @@ C user can select one or more.
 C << potential place to support seasonal day type allocations >>
 
           IHDT=0
-          CALL EASKABC('How to add day types (see help)?',' ',
-     &    'One by one','Follow pattern','cancel',IHDT,nbhelp)
+          CALL EASKABC(' ','Add day types:',
+     &    'one-by-one','by pattern','cancel',IHDT,nbhelp)
           IF(IHDT.EQ.1)THEN
             idt=idvals(1)
             do 78 ld=1,365
@@ -5654,10 +5684,12 @@ C Fill second month with real data or blanks.
         if(MMOD.eq.8)call startbuffer()
         line=3
         write(etext,'(20x,i4)') iyear
-        iside=line
-        isize=0
-        ifont=2
-        call viewtext(etext,iside,isize,ifont)
+        iside=line; isize=0; ifont=2
+        if(mmod.eq.8)then
+          call viewtext(etext,iside,isize,ifont)
+        else
+          call viewtextwwc(etext,iside,isize,ifont)
+        endif
 
 C If number of months to display is a multiple of 2 display side by side.
 C imon1 and imon2 are possible months to dispalay (if zero then do not).
@@ -5677,11 +5709,19 @@ C heading and then find the start day of the week for each.
             iside=line
             isize=0
             ifont=2
-            call viewtext(etext,iside,isize,ifont)
+            if(mmod.eq.8)then
+              call viewtext(etext,iside,isize,ifont)
+            else
+              call viewtextwwc(etext,iside,isize,ifont)
+            endif
             line=line+1
             write(etext,'(a)') mohead
             iside=line
-            call viewtext(etext,iside,isize,ifont)
+            if(mmod.eq.8)then
+              call viewtext(etext,iside,isize,ifont)
+            else
+              call viewtextwwc(etext,iside,isize,ifont)
+            endif
             call edayr(mdays(imon1),idayn,imthn)
             call eweekd(idayn,imthn,iyear,im1dwk)
             call edayr(mdays(imon2),idayn,imthn)
@@ -5695,11 +5735,19 @@ C heading and then find the start day of the week for each.
               iside=line
               isize=0
               ifont=2
-              call viewtext(etext,iside,isize,ifont)
+              if(mmod.eq.8)then
+                call viewtext(etext,iside,isize,ifont)
+              else
+                call viewtextwwc(etext,iside,isize,ifont)
+              endif
               line=line+1
               write(etext,'(a)') mohead(1:22)
               iside=line
-              call viewtext(etext,iside,isize,ifont)
+              if(mmod.eq.8)then
+                call viewtext(etext,iside,isize,ifont)
+              else
+                call viewtextwwc(etext,iside,isize,ifont)
+              endif
               call edayr(mdays(imon1),idayn,imthn)
               call eweekd(idayn,imthn,iyear,im1dwk)
               im2dwk=0
@@ -5711,17 +5759,25 @@ C heading and then find the start day of the week for each.
               iside=line
               isize=0
               ifont=2
-              call viewtext(etext,iside,isize,ifont)
+              if(mmod.eq.8)then
+                call viewtext(etext,iside,isize,ifont)
+              else
+                call viewtextwwc(etext,iside,isize,ifont)
+              endif
               line=line+1
               write(etext,'(a)') mohead
               iside=line
-              call viewtext(etext,iside,isize,ifont)
+              if(mmod.eq.8)then
+                call viewtext(etext,iside,isize,ifont)
+              else
+                call viewtextwwc(etext,iside,isize,ifont)
+              endif
               call edayr(mdays(imon1),idayn,imthn)
               call eweekd(idayn,imthn,iyear,im1dwk)
               call edayr(mdays(imon2),idayn,imthn)
               call eweekd(idayn,imthn,iyear,im2dwk)
             endif
-            call forceflush()
+            if(mmod.eq.8) call forceflush()
           endif
 
 C For one or two current months fill the m1slots and m2slots.
@@ -5807,12 +5863,20 @@ C Plot out the first 7 days.
               write(word3(1:3),'(a)') am1slots(J)(1:3)
               idcol=m1slots(j,2)
               iicol=0
-              if(idcol.eq.0)call winscl('-',iicol)
+              if(idcol.eq.0.and.mmod.eq.8)call winscl('-',iicol)
               call findviewtext(icx,line,isize,iix,iiy)
               if(idcol.eq.0)then
-                call textatxy(iix,iiy,word3,'-',idcol)
+                if(mmod.eq.8)then
+                  call textatxy(iix,iiy,word3,'-',idcol)
+                else
+                  call textatxywwc(iix,iiy,word3,'-',idcol)
+                endif
               else
-                call textatxy(iix,iiy,word3,'z',idcol)
+                if(mmod.eq.8)then
+                  call textatxy(iix,iiy,word3,'z',idcol)
+                else
+                  call textatxywwc(iix,iiy,word3,'z',idcol)
+                endif
               endif
               icx=icx+3
   147       continue
@@ -5823,12 +5887,20 @@ C Shift over another character and print out the 2nd months line.
               write(word3(1:3),'(a)') am2slots(J)(1:3)
               idcol=m2slots(j,2)
               iicol=0
-              if(idcol.eq.0)call winscl('-',iicol)
+              if(idcol.eq.0.and.mmod.eq.8)call winscl('-',iicol)
               call findviewtext(icx,line,isize,iix,iiy)
               if(idcol.eq.0)then
-                call textatxy(iix,iiy,word3,'-',idcol)
+                if(mmod.eq.8)then
+                  call textatxy(iix,iiy,word3,'-',idcol)
+                else
+                  call textatxywwc(iix,iiy,word3,'-',idcol)
+                endif
               else
-                call textatxy(iix,iiy,word3,'z',idcol)
+                if(mmod.eq.8)then
+                  call textatxy(iix,iiy,word3,'z',idcol)
+                else
+                  call textatxywwc(iix,iiy,word3,'z',idcol)
+                endif
               endif
               icx=icx+3
   148       continue
@@ -5838,28 +5910,40 @@ C Shift over another character and print out the 2nd months line.
 C Also include list of day types.
         line=line+2
         iicol=0
-        call winscl('-',iicol)
+        if(mmod.eq.8) call winscl('-',iicol)
         write(etext,*) 'Calendar: ',calename
-        iside=line
-        isize=0
-        ifont=2
-        call viewtext(etext,iside,isize,ifont)
+        iside=line; isize=0; ifont=2
+        if(mmod.eq.8)then
+          call viewtext(etext,iside,isize,ifont)
+        else
+          call viewtextwwc(etext,iside,isize,ifont)
+        endif
         do 151 icd = 1,nbdaytype
           line=line+1
           write(etext,*) calentag(icd),' ',calendayname(icd)
           idcol=icd
           iicol=0
-          if(idcol.eq.0)call winscl('-',iicol)
+          if(idcol.eq.0.and.mmod.eq.8)call winscl('-',iicol)
           call findviewtext(3,line,isize,iix,iiy)
           if(idcol.eq.0)then
-            call textatxy(iix,iiy,etext,'-',idcol)
+            if(mmod.eq.8)then
+              call textatxy(iix,iiy,etext,'-',idcol)
+            else
+              call textatxywwc(iix,iiy,etext,'-',idcol)
+            endif
           else
-            call textatxy(iix,iiy,etext,'z',idcol)
+            if(mmod.eq.8)then
+              call textatxy(iix,iiy,etext,'z',idcol)
+            else
+              call textatxywwc(iix,iiy,etext,'z',idcol)
+            endif
           endif
  151    continue
         iicol=0
-        call winscl('-',iicol)
-        call forceflush()
+        if(mmod.eq.8)then
+          call winscl('-',iicol)
+          call forceflush()
+        endif
       endif
       return
 
@@ -5887,8 +5971,8 @@ C Parameters passed
                            ! have a different number of day types
       integer ier          ! error state
 
-      integer iuout,iuin
-      common/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       integer nbdaytype,nbcaldays,icalender
       COMMON/FILEP/IFIL
@@ -5920,9 +6004,9 @@ C The treatment of day types within addctld is based on an assumption
 C that nbdaytpe is not incremented until after the addctld call.
         IDT=nbdaytype     ! set to the not-yet-incremented value
         IHDTP=1
-        CALL EASKABC('Control pattern for new day type (see help)?',
-     &    ' ','One period free floating',
-     &    'Use pattern of last day type','cancel',IHDTP,nbhelp)
+        CALL EASKABC(' ','Control pattern for new day type:',
+     &     'one period free floating',
+     &     'use pattern of last day type','cancel',IHDTP,nbhelp)
         if(IHDTP.eq.1)then
           dayact='SA'       ! assume silent addition
         elseif(IHDTP.eq.2)then
@@ -6064,7 +6148,7 @@ C If interactive ask what to do, otherwise take passed directives.
 C If interactive ask, otherwise take IDT as the day type to act on.
         if(ACT(1:2).eq.'--')then
           ID=1
-          CALL EASKI(ID,' ',' Which day type (index)? ',
+          CALL EASKI(ID,' ',' Which day type (index)?',
      &      1,'F',MB,'F',1,'delete day type',IERI,nbhelp)
           if(ieri.eq.-3) return
         else
@@ -6212,8 +6296,7 @@ C update nbcdt - let it remain at zero.
         elseif(icfoc.eq.1.and.NN+1.LE.mcdt)then
           if(ACT(1:2).eq.'--')then
             IP=1
-            CALL EASKI(IP,' How many periods in this day type? ',
-     &        '(default is 1 period free floating)',
+            CALL EASKI(IP,' ','How many periods in day type?',
      &        1,'F',mcdp,'F',1,'ctl periods',IERI,nbhelp)
             if(ieri.eq.-3) goto 77
           else
@@ -6235,8 +6318,7 @@ C update nbcdt - let it remain at zero.
         elseif(icfoc.eq.2.and.NN+1.LE.mcdt)then
           if(ACT(1:2).eq.'--')then
             IP=1
-            CALL EASKI(IP,' How many periods in this day type? ',
-     &        '(default is 1 period free floating)',
+            CALL EASKI(IP,' ','How many periods in day type?',
      &        1,'F',mcdp,'F',1,'ctl periods',IERI,nbhelp)
             if(ieri.eq.-3) goto 77
           else
@@ -6273,8 +6355,7 @@ C update nbcdt - let it remain at zero.
         elseif(icfoc.eq.5.and.NN+1.LE.mcdt)then
           if(ACT(1:2).eq.'--')then
             IP=1
-            CALL EASKI(IP,' How many periods in this day type? ',
-     &        '(default is 1 period free floating)',
+            CALL EASKI(IP,' ','How many periods in day type?',
      &        1,'F',mcdp,'F',1,'ctl periods',IERI,nbhelp)
             if(ieri.eq.-3) goto 77
           else
@@ -6296,8 +6377,7 @@ C update nbcdt - let it remain at zero.
         elseif(icfoc.eq.6.and.NN+1.LE.MCDT)then
           if(ACT(1:2).eq.'--')then
             IP=1
-            CALL EASKI(IP,' How many periods in this day type? ',
-     &        '(default is 1 period free floating)',
+            CALL EASKI(IP,' ','How many periods in day type?',
      &        1,'F',MCDP,'F',1,'ctl periods',IERI,nbhelp)
             if(ieri.eq.-3) goto 77
           else
@@ -6324,7 +6404,7 @@ C in silent mode assume passed value of IDT. If using calendar days do not
 C update nbcdt - let it remain at zero.
         if(ACT(1:2).eq.'--')then
           IDC=1
-          CALL EASKI(IDC,' ',' Which day type to copy ? ',
+          CALL EASKI(IDC,' ','Day type to copy?',
      &      1,'F',MB,'F',1,'copy day type',IERI,nbhelp)
           if(ieri.eq.-3) goto 77
         else

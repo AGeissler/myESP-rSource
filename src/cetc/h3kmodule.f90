@@ -1503,7 +1503,7 @@ CONTAINS
       rvTFuelAllEndEnergyContent%VariableName = 'total_fuel_use/*/all_end_uses/energy_content'
       rvTFuelAllEndEnergyContent%MetaType = 'units'
       rvTFuelAllEndEnergyContent%VariableType = '(W)'
-      rvTFuelAllEndEnergyContent%Description = '*** Not Defined ***'
+      rvTFuelAllEndEnergyContent%Description = '*** Not Defined'
       Call AddVariable(rvTFuelAllEndEnergyContent)
 
       rvTFuelAllEndEnergyContElec%VariableName = 'total_fuel_use/electricity/all_end_uses/energy_content'
@@ -1556,7 +1556,7 @@ CONTAINS
 
       rvTFuelAllEndQty%VariableName = 'total_fuel_use/*/all_end_uses/quantity'
       rvTFuelAllEndQty%MetaType = 'units'
-      rvTFuelAllEndQty%VariableType = '*** Not defined ***'
+      rvTFuelAllEndQty%VariableType = '*** Not defined'
       rvTFuelAllEndQty%Description = 'Total amount of fuel used on site'
       Call AddVariable(rvTFuelAllEndQty)
       
@@ -1664,13 +1664,13 @@ CONTAINS
       
       rvTFuelQty%VariableName = 'total_fuel_use/*/*/quantity'
       rvTFuelQty%MetaType = 'units'
-      rvTFuelQty%VariableType = '*** Type not defined ***'
+      rvTFuelQty%VariableType = '*** Type not def'
       rvTFuelQty%Description = '*** Description not defined ***'
       Call AddVariable(rvTFuelQty)
 
       rvTFuelCst%VariableName = 'total_fuel_cost/*/*/quantity'
       rvTFuelCst%MetaType = 'units'
-      rvTFuelCst%VariableType = '*** Type not defined ***'
+      rvTFuelCst%VariableType = '*** Type not def'
       rvTFuelCst%Description = '*** Description not defined ***'
       Call AddVariable(rvTFuelCst)
 
@@ -3373,7 +3373,7 @@ CONTAINS
 
       rvPltRatioX%VariableName = 'plant/*/misc_data/ratio_X'
       rvPltRatioX%MetaType = 'units'
-      rvPltRatioX%VariableType = '(kg/kg adsorbent)'
+      rvPltRatioX%VariableType = '(kg/kg adsorb)'
       rvPltRatioX%Description = 'Ratio of adsorbate to adsorbent'
       Call AddVariable(rvPltRatioX)
 

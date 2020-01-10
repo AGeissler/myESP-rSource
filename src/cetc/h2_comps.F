@@ -66,9 +66,10 @@ C-------------------------------------------------------------------------------
 C ESP-r COMMONs
 C------------------------------------------------------------------------------------
 
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
        INTEGER NPCOMP          !-number of plant components
@@ -297,9 +298,10 @@ C-------------------------------------------------------------------------------
 C ESP-r COMMONs
 C------------------------------------------------------------------------------------
 
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        COMMON/TC/ITC,ICNT
        INTEGER ITC             !-trace output index
@@ -1536,9 +1538,10 @@ C-------------------------------------------------------------------------------
        FUNCTION H2OLiquidEnthalpy(fTemp)
        IMPLICIT NONE
 
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        REAL   fTemp    !- temperature (oC)
        REAL   fTemp_K  !- temperature (K)
@@ -1620,9 +1623,10 @@ C-------------------------------------------------------------------------------
        FUNCTION H2GasEnthalpy(fTemp)
        IMPLICIT NONE
 
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        REAL   fTemp    !- temperature (oC)
        REAL   fTemp_K  !- temperature (K)
@@ -1751,9 +1755,10 @@ C-------------------------------------------------------------------------------
        FUNCTION O2GasEnthalpy(fTemp)
        IMPLICIT NONE
 
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        REAL   fTemp    !- temperature (oC)
        REAL   fTemp_K  !- temperature (K)

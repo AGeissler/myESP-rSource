@@ -96,8 +96,8 @@ C ------------------------------------------------------------------------------
 #include "building.h"
 #include "TAC.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -337,8 +337,8 @@ C ------------------------------------------------------------------------------
 #include "SOFC.h"
 #include "TAC.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -1085,8 +1085,8 @@ C ------------------------------------------------------------------------------
 #include "building.h"
 #include "TAC.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -1260,8 +1260,8 @@ C ------------------------------------------------------------------------------
 #include "building.h"
 #include "TAC.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT

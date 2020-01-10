@@ -42,7 +42,7 @@ C   to common block for retention until the second call to ctlexp
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       common/rpath/path
 
@@ -235,7 +235,7 @@ C ixunit is the file unit number for the export file.
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       common/rcmd/LCMDFL
       common/rpath/path
@@ -484,7 +484,7 @@ C if the user is working remotely from the model.
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/rpath/path
 
       character*(*) msg,xfile

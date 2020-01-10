@@ -71,8 +71,8 @@ C ICLIM,LCLIM (for climate file)
 
       common/FILEP/IFIL
       INTEGER :: ifil
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
       common/pophelp/h(60)
       
       integer ncomp,ncon
@@ -187,12 +187,12 @@ C Assume: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7
       INTEGER :: idwe1,idwe2
 
 C Strings associated with one climatelist item.
-C clmlnam (char*32) is the selection list string
+C clmlnam (char*42) is the selection list string
 C clmlaid is aide (char*72) memoire for list item
 C clmldbfile (char*144) is the climate file (with path info)
 C clmlavail (char*10) is either ONLINE or OFFLINE
 C clmlhelp (char*72) is array of help strings
-      character clmlnam*32,clmlaid*72,clmldbfile*144,clmlavail*10
+      character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
 
@@ -200,7 +200,6 @@ C Numbers associated with one climatelist item.
       common/clmlnum/nbclmlhelp
       INTEGER :: nbclmlhelp
 
-C Anchor data in model.h.
       common/ACTDOM/CFDOK
       logical CFDOK
 
@@ -370,7 +369,7 @@ C Control for writing out multi-climate sim presets
       
       INTEGER :: ier,i,ia,iav,icc,icd,id1,id2,id3,id4,im1,im2,im3,im4
       INTEGER :: ij,img,ios,iss,iuf,iw,j,l,lcfgl,lcfgr,lct,lctn,loutlen
-      INTEGER :: loutln,ncn
+      INTEGER :: loutln,ncn,lnzglbl
       
       IUF=IFIL+1
       IER=0
@@ -789,6 +788,10 @@ C Solar radiation (half hour data) flag.
      &    iSlr_half_hr_flg,'  # solar timing half-hour centred'
       endif
 
+C Write site altitude.
+      WRITE(IFCFG,'(A,F6.1)',IOSTAT=IOS,ERR=2) 
+     &  '*sitealt ',sitealt
+
 C Twb_out=Twb_in flag for direct evaporative cooling.
       do 888 ii = 1,ncomp      
         if(iflgevapC(ii).eq.1)then
@@ -932,7 +935,7 @@ C Changing orientation enabled if present
          WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*roaming ',LROAM
       ENDIF
 
-C Write uncertainty analysis library file if known.
+C Write uncertainty analysis file if known.
       if(lnblnk(LUALF).eq.0)then
         continue
       elseif(LUALF(1:7).eq.'UNKNOWN')then
@@ -1530,7 +1533,7 @@ C Re-build zone:surface to connection hash array.
         IZSTOCN(IC1(icc),IE1(icc))=icc
  43   continue
 
-C If there is more than one anchor concept write them out.
+C If there is at least one anchor concept write them out.
       if(NALOC.gt.0)then
         WRITE(IFCFG,'(A,i2)',IOSTAT=IOS,ERR=3) '*Anchor ',NALOC
         do 44 ia=1,NALOC
@@ -1549,6 +1552,28 @@ C Write packed string of the items associated with each anchor.
             ipos=itrunc+1
           end do
  44     continue
+        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=3) '*End'
+      endif
+
+C If there are any groups of zones defined write them out.
+      if(nzgroup.gt.0)then
+        WRITE(IFCFG,'(A,i2)',IOSTAT=IOS,ERR=3) '*Group ',nzgroup
+        do ia=1,nzgroup
+          lnzglbl=lnblnk(zglbl(ia))
+          WRITE(IFCFG,'(2A,i3)',IOSTAT=IOS,ERR=3) zglbl(ia)(1:lnzglbl),
+     &      ', ',izgnumber(ia)
+          do L=1,izgnumber(ia)
+            iav(l)=izglist(ia,l)
+          enddo
+          itrunc=1
+          ipos=1
+          do while (itrunc.ne.0)
+            call ailist(ipos,izgnumber(ia),iav,40,'S',outs,loutlen,
+     &        itrunc)
+            write(IFCFG,'(1x,a)',IOSTAT=ios,ERR=3) outs(1:loutlen)
+            ipos=itrunc+1
+          end do
+        enddo
         WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=3) '*End'
       endif
 
@@ -1782,7 +1807,7 @@ C Parameters
       logical prob  ! true if there is a problem
       integer iprob ! number of mis-matches detected
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON

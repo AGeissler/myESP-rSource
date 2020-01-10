@@ -43,7 +43,7 @@ C        the routine.
 
       COMMON/FILEP/IFIL
       COMMON/POPHELP/H(60)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Note string buffer array supports up to 90 lines of text
 C for a component.
@@ -140,9 +140,9 @@ C If a problem update help text (ensure no string buffer overflow).
         write(h(3),'(2a)') DMCMPDBFL(1:68),'.'
         h(4)=' '
         dok=.true.
-        CALL ASKOK(
-     &    'Could not find the miscellaneous components database.',
-     &    'Try again?',OK,dok,8)
+        CALL EASKOK(
+     &    'Could not locate the miscellaneous components database!',
+     &    'Retry?',OK,8)
         IF(.NOT.OK) THEN 
           IER=1
           CALL ERPFREE(IMCFIL,ISTAT)

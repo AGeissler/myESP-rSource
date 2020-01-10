@@ -34,7 +34,7 @@ C geometry.h provides commons G0/G1/G2/G5/precz/GS5.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       integer ncomp,ncon
@@ -145,6 +145,8 @@ C Free the viewer file and reread the geometry file.
    4    continue
 
         CALL ERPFREE(ioout,ISTAT)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call edisp(iuout,' End of conversion.')
         CALL EPAGEND
         STOP
@@ -539,6 +541,8 @@ C Close the dxf file.
       write(ioout,'(a)')'  0'
       write(ioout,'(a3)')'EOF'
       CALL ERPFREE(ioout,ISTAT)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
 
       call edisp(iuout,' End of conversion.')
       CALL EPAGEND
@@ -555,7 +559,7 @@ C THF (THINGS) file for use in MicroGDS.
 #include "model.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       integer ncomp,ncon

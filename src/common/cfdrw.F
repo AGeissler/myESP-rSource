@@ -560,7 +560,7 @@ C   Yplaw(IREG,ICFD) - y-power law coefficient of region IREG per domain (ICFD).
 C   Zplaw(IREG,ICFD) - West wall z-power law coef of region IREG per domain (ICFD).
 C   Zplawe(IREG,ICFD) - East wall z-power law coef of region IREG per domain (ICFD).
 C      (used in the case of curvilinear Z)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/GRIDFN/NCELX(MNREG,MNZ),NCELY(MNREG,MNZ),NCELZ(MNREG,MNZ),
      &  NCELZE(MNREG,MNZ),XREG(MNREG,MNZ),YREG(MNREG,MNZ),
@@ -2200,6 +2200,7 @@ C Print message about version number
 C ********************* NEW2OLD *********************
 C NEW2OLD - Copies new data structure to old.
       SUBROUTINE NEW2OLD
+#include "building.h"
 #include "cfd.h"
 
 C Grid and Geometry definition:
@@ -2495,7 +2496,7 @@ C Passed parameters.
       integer iv,itrc,ind,icn
       character OPENNAM*12
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ICFNOD/ICFD,ICP
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
       COMMON/MFCFD/NCNRMV,ICNRMV(MCFND,MNZ),NCNON,ICNON(2*MCFND,MNZ)
@@ -2511,7 +2512,7 @@ C Passed parameters.
       double precision FLW1,FLW2,PRES,RESID,SAFLW
 
 C Debug
-c      WRITE(6,*)'CFMFSU IV,IND,ICN,OPENNAM',IV,IND,ICN,OPENNAM
+C      WRITE(6,*)'CFMFSU IV,IND,ICN,OPENNAM',IV,IND,ICN,OPENNAM
 
 C Get CFD opening number and CFD domain number as integer
       IER=0
@@ -2634,7 +2635,7 @@ C MFLISTemp - list common block contents for debugging only.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLCLM/DRYB,QDIF,QDNR,IRVH,WDIR,WSPD,WRED
       CHARACTER outs*124,fldtyp*6,nodtyp*20
 
@@ -2795,6 +2796,7 @@ C Error trap
 C ********************* CFDDEFLT *********************
 C CFDDEFLT - Sets default values for all data items.
       SUBROUTINE CFDDEFLT
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -2921,6 +2923,7 @@ C defined in the CFD domain to be non - zero. If any
 C contaminant is zero it is set to the default value unity.
 
       SUBROUTINE SCHCHK
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -2944,6 +2947,7 @@ C BCEKCK checks the boundary conditions of all boundary cells
 C (blockages are yet not considered) to be defined.
 C itrc signals verbose reporting if greater than zero.
       SUBROUTINE BCEKCK(ITRC)
+#include "building.h"
 #include "cfd.h"
       
       integer lnblnk  ! function definition
@@ -2952,7 +2956,7 @@ C Passed parameter.
       integer itrc
 
       COMMON/ICFNOD/ICFD,ICP
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
       common/KEYVOLN/VOLNAME(MNVLS,MNZ),VCsurf(MNVLS,MNZ)
@@ -3092,33 +3096,33 @@ C Warn user if cell number starts/stops wrongly
  1    CONTINUE
 
 C Debug if itrc is greater than two and NON DOS.
-      call isunix(unixok)
-      IF(ITRC.GT.2.and.unixok)THEN
-        do iz=1,ntcz
-          write(6,*)'ixzst ',(ixzst(ix,iz),ix=1,ntcx)
-        enddo
+C      call isunix(unixok)
+C      IF(ITRC.GT.2.and.unixok)THEN
+C        do iz=1,ntcz
+C          write(6,*)'ixzst ',(ixzst(ix,iz),ix=1,ntcx)
+C        enddo
 
-        do iz=1,ntcz
-          write(6,*)'ixznt ',(ixznt(ix,iz),ix=1,ntcx)
-        enddo
+C        do iz=1,ntcz
+C          write(6,*)'ixznt ',(ixznt(ix,iz),ix=1,ntcx)
+C        enddo
 
-        do iz=1,ntcz
-          write(6,*)'iyzet ',(iyzet(iy,iz),iy=1,ntcy)
-        enddo
+C        do iz=1,ntcz
+C          write(6,*)'iyzet ',(iyzet(iy,iz),iy=1,ntcy)
+C        enddo
 
-        do iz=1,ntcz
-          write(6,*)'iyzwt ',(iyzwt(iy,iz),iy=1,ntcy)
-        enddo
+C        do iz=1,ntcz
+C          write(6,*)'iyzwt ',(iyzwt(iy,iz),iy=1,ntcy)
+C        enddo
  
-        do ix=1,ntcx
-          write(6,*)'ixyhh ',(ixyhh(ix,iy),iy=1,ntcy)
-        enddo
+C        do ix=1,ntcx
+C          write(6,*)'ixyhh ',(ixyhh(ix,iy),iy=1,ntcy)
+C        enddo
 
 C Debug.
 C        do ix=1,ntcx
 C          write(6,*)'ixyll ',(ixyll(ix,iy),iy=1,ntcy)
 C        enddo
-      ENDIF
+C      ENDIF
 
 C Do checks and issue warning messages if any
 C North and South facing boundary conditions
@@ -3181,6 +3185,7 @@ C ************************ RESETCFD ************************
 C RESETCFD sets all CFD common blocks that are independant 
 C of domain and zone to initial values.
       SUBROUTINE RESETCFD(IER)
+#include "building.h"
 #include "cfd.h"
 
 C Passed parameters.

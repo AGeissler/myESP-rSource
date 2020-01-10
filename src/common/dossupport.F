@@ -53,7 +53,7 @@ C ier is zero if ok.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Strings for dos version of source and destination of db file.
       character rootpdos*72,upathdos*72,dq*1,outs*124
@@ -157,7 +157,7 @@ C ier is zero if ok.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Strings for dos version of source and destination of db file.
       character rootpdos*144,upathdos*144,dq*1,louts*248
@@ -260,7 +260,7 @@ C ier is zero if ok.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Strings for dos version of source and destination of db file.
       character dq*1,outs*248
