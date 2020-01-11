@@ -7065,11 +7065,11 @@ C     ADATA: 1 Mass of component (solids+liquid) (kg)
 C            2 Mass weighted average specific heat node (J/kgK)
 C            3 UA modulus for component (W/K)
 
-C     BDATA: 1 COP model [1 - fixed COP 2 - modified Carnot efficiency; 3- f(dT) 4 - polynomial]
-C            2 Model coef a0
-C            3 Model coef a1
-C            4 Model coef a2
-C            5 Model coef a3
+C     BDATA: 1 COP model [1 - fixed COP 2 - modified Carnot efficiency; 3- f(dT) 4 - polynomial 5 - linear]
+C            2 Model coef a0 [model 5: offset SH]
+C            3 Model coef a1 [model 5: slope SH]
+C            4 Model coef a2 [model 5: offset DHW]
+C            5 Model coef a3 [model 5: slope DHW]
 C            6 Device power draw (kW) model [1 - fixed 2- polynomial 3-exponential b0*e^(b1)]
 C            7 Model coef b0
 C            8 Model coef b1
@@ -7512,6 +7512,14 @@ C Calculate the COP based on the user-specified method.
      &                               +(COPa2*(ToutMax-TL)**2.))
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ground T
+          ELSEIF(COPModel.EQ.5)THEN
+            TL=Tgrnd
+            TH=ToutMax
+            if (bSHrqd) then
+              COP=COPa0+COPa1*(TH-TL)
+            else
+              COP=COPa2+COPa3*(TH-TL)
+            endif
           ELSE
             WRITE(OUTS,'(a)')'Error in 1-node GSHP, COP model # '
             CALL EDISP(IUOUT,OUTS)
