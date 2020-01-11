@@ -35,7 +35,7 @@ C geometry.h provides commons G0/G1/G2/G5/c20/precz.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
@@ -482,8 +482,8 @@ C Now invoke e2r to do the work.
           call usrmsg('About to start Radiance in order to generate',
      &      'descriptive files for coupled casual gain control.','W')
           call EASKAB(
-     &    'Radiance is being used to asses light levels:',' ',
-     &    'Create & edit Radiance model','Continue',IW,nbhelp)
+     &    ' ','Radiance is being used to assess light levels:',
+     &    'Create & edit Radiance model','Cancel',IW,nbhelp)
           if (IW.eq.1) then
             write(doitl,'(3a,i3,a)')'e2r -file ',LCFGF(1:lnblnk(LCFGF)),
      &        ' -purpose Coupling -zone ',ICOMP,' -act Create'
@@ -493,8 +493,8 @@ C Now invoke e2r to do the work.
         endif
         if (ldcoef) then
  8888     call EASKAB(
-     &    'If Radiance is being used for daylight coefficients:',' ',
-     &    'Create Radiance model and calcute','Continue',IW,nbhelp)
+     &    ' ','If Radiance is being used for daylight coefficients:',
+     &    'Create Radiance model and calculate','Cancel',IW,nbhelp)
           if (IW.eq.1) then
             write(doitl,'(3a,i3,2a)')'e2r -file ',
      &        LCFGF(1:lnblnk(LCFGF)),' -purpose Day_coef -zone ',

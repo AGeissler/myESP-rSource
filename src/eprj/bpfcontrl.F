@@ -41,6 +41,7 @@ C check_CFC_control_validity: Checks complex fenestration control function
 C                             data for validity.
 
       SUBROUTINE CONTRL(ITRC,ITRU,icfoc,IER)
+
 #include "building.h"
 #include "geometry.h"
 #include "epara.h"
@@ -52,7 +53,7 @@ C                             data for validity.
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
@@ -86,7 +87,7 @@ C ipeerptbk is pointer from position in display to day type.
       CHARACTER outs*124,LASCI*72
       character t248*248,SSTR*96
       character sfile*72,snpfile*72,fs*1
-      logical LINKED,OK,dok,XST,browse,unixok
+      logical LINKED,OK,XST,browse,unixok
       integer icomp
       integer IW   ! for radio button
       integer MVERT,IVERT ! max items and current menu item
@@ -164,7 +165,7 @@ C one. If an existing name also provide option to deference it.
 C Present current/default name and a browse option. If browse selected
 C then set iclkok variable and jump to browse functions.
         LASCI=LCTLF
-        CALL EASKS2CMD(LASCI,'Control file? (suggested name)',' ',
+        CALL EASKS2CMD(LASCI,'Control file?',' ',
      &    'cancel','browse',iclkok,72,' ','Control file',IER,nbhelp)
         if(iclkok.eq.1)then
           return
@@ -185,8 +186,8 @@ C            call edisp(iuout,'Reading existing control file.')
             return
           endif
         endif
-        CALL EASKS2CMD(LASCI,'Control file? (see help)',
-     &    ' ','dereference','browse',iclkok,72,' ','Control file',
+        CALL EASKS2CMD(LASCI,' ','Control file:',
+     &    'dereference','browse',iclkok,72,' ','Control file',
      &    IER,nbhelp)
       endif
       call usrmsg(' ',' ','-')
@@ -724,9 +725,8 @@ C Local variable ireturn is non-zero to signal user wants to exit.
         IRETURN=0
         if(icfoc.eq.0)then
           if(.NOT.LINKED)then
-            dok=.false.
-            CALL ASKOK('Control functions have not yet been',
-     &        'associated with zones. Exit anyway?',OK,dok,nbhelp)
+            CALL EASKOK('Control functions not associated with zones!',
+     &           'Exit anyway?',OK,nbhelp)
             IF(OK)then
               IRETURN=1
             else
@@ -759,8 +759,7 @@ C Local variable ireturn is non-zero to signal user wants to exit.
 C Ask user if they want to save any changes to control file.
         if(cfgok)then
           IRETURN=1
-          DOK=.TRUE.
-          CALL ASKOK(' ','Save changes to control file?',OK,dok,nbhelp)
+          CALL EASKOK(' ','Save changes to control file?',OK,nbhelp)
           IF(OK)THEN
             ICTLF=IFIL+1
             CALL CTLWRT(ICTLF,IER)
@@ -1342,6 +1341,7 @@ C ***** totctlper
 C Finds the current number of periods in all control loops
 C of type icfoc.
       subroutine totctlper(icfoc,ncper)
+
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
@@ -1421,10 +1421,11 @@ C of type icfoc.
 C *********** EBCNTRL
 C Edit building control function II.
       SUBROUTINE EBCNTRL(ITRC,II,IV,IER)
+
 #include "building.h"
 #include "plant.h"
 #include "control.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -1657,16 +1658,16 @@ C starting up the menu based control period definition.
         endif
 
         ictyp=0
-        SALT(1)= 'Basic control for heating/cooling      '
-        SALT(2)= 'Free-float control                     '
-        SALT(3)= 'Basic pre-heat or pre-cool control     '
+        SALT(1)= 'Basic ideal control                    '
+        SALT(2)= 'No control (free-floating)             '
+        SALT(3)= 'Pre-heat (cool)control                 '
         SALT(4)= 'Fixed heat injection and extraction    '
-        SALT(5)= 'PID control action for heating/cooling '
+        SALT(5)= 'PID control action                     '
         SALT(6)= 'Flux connection between zone & plant   '
         SALT(7)= 'Multi-stage control with hysteresis    '
         SALT(8)= 'Variable supply temp. with constraints '
-        SALT(9)= 'Heat pipe                              '
-        SALT(10)='Two position controller for heat/cool  '
+        SALT(9)= 'Heat pipe emulator                     '
+        SALT(10)='Two position controller                '
         SALT(11)='Match sensed & recorded values (ideal) '
         SALT(12)='Match sensed & recorded values (on/off)'
         SALT(13)='Time-proportioning (on/off)            '
@@ -1674,12 +1675,12 @@ C starting up the menu based control period definition.
         SALT(15)='Optimum start control (with rewind)    '
         SALT(16)='Optimum stop control                   '
         SALT(17)='Fuzzy Logic PI or PD control           '
-        SALT(18)='Null control.                          '
-        SALT(19)='Multi-sensor heating/cooling           '
+        SALT(18)='Null control                           '
+        SALT(19)='Multi-sensor control                   '
         SALT(20)='Evaporative source (surface)           '
         SALT(21)='Slave capacity control                 '
         SALT(22)='VAV cooling with CAV reheat            '
-        SALT(23)='Match sensed values (ideal:2 setpoints)'
+        SALT(23)='Match sensed values (2 setpoints)      '
         SALT(24)='Adaptive human comfort model           '
         if(iclaw.ne.0)then
           write(outs,'(a,a)') 'Current control law: ',SALT(iclaw)
@@ -1964,7 +1965,7 @@ C string to remind the user.
 123         continue   
           endif
 
-          CALL EASKR(cm(1),' ','Number of misc data items (see help)',
+          CALL EASKR(cm(1),' ','Number of misc data items?',
      &      10.,'F',18.,'F',12.,'no. of misc data items',IER,nbhelp)
 
   53      WRITE(HOLD,'(4f8.0)')cm(2),cm(3),cm(4),cm(5)
@@ -1986,7 +1987,7 @@ C string to remind the user.
           if(I6.eq.1)then
             cm(7)=3.0
           else  
-            CALL EASKR(cm(7),' ','Multi-sensor mode (see help)?',
+            CALL EASKR(cm(7),' ','Multi-sensor mode?',
      &        1.,'F',4.,'F',0.,'multi-sensor mode',IER,nbhelp)
           endif
           
@@ -2007,14 +2008,14 @@ C string to remind the user.
             call decodesensor(0,icsn,SSTR,SSTRB,ier)
             call edisp(iuout,SSTR)
             CALL EASKR(cm(ndx),' ',
-     &        ' Aux sensor detail 1st item (see help)?',
-     &        -5.,'F',0.,'-',1.,' Aux sen detail 1st item',IER,nbhelp)
-            CALL EASKR(cm(ndx+1),' ',' Aux sensor detail 2nd item?',
-     &        0.,'F',0.,'-',0.,' Aux sen detail 2nd item',IER,nbhelp)          
-            CALL EASKR(cm(ndx+2),' ',' Aux sensor detail 3rd item?',
-     &        0.,'F',0.,'-',0.,' Aux sen detail 3rd item',IER,nbhelp)          
+     &        'Aux. sensor detail 1st item?',
+     &        -5.,'F',0.,'-',1.,'Aux. sen detail 1st item',IER,nbhelp)
+            CALL EASKR(cm(ndx+1),' ','Aux. sensor detail 2nd item?',
+     &        0.,'F',0.,'-',0.,'Aux. sen detail 2nd item',IER,nbhelp)          
+            CALL EASKR(cm(ndx+2),' ','Aux. sensor detail 3rd item?',
+     &        0.,'F',0.,'-',0.,'Aux. sen detail 3rd item',IER,nbhelp)          
             CALL EASKR(cm(ndx+3),' ',
-     &        ' Aux sensor detail 4th item (always use zero)?',
+     &        'Aux. sensor detail 4th item (always use zero)?',
      &        0.,'F',0.,'-',0.,' Aux sen detail 4th item',IER,nbhelp)
 125       continue 
           lastndx=ndx+4         
@@ -2025,8 +2026,7 @@ C string to remind the user.
 C Weighted auxiliary sensors mode,
               ndx=lastndx  ! set to next slot after aux senor data.        
               if(i6.eq.1) cm(ndx)=100.0  ! if only one sensor.
-              CALL EASKR(cm(ndx),' ',
-     &          'Sensor weighting (between 0.0 & 100.0)?',
+              CALL EASKR(cm(ndx),' ','Sensor weighting %?',
      &          0.,'F',100.,'F',50.,' Aux sensor weighting',IER,nbhelp)
 126         continue
           else
@@ -2122,15 +2122,15 @@ C string to remind the user.
             SSTR=' '
             call decodesensor(0,icsn,SSTR,SSTRB,ier)
             call edisp(iuout,SSTR)
-            CALL EASKR(cm(ndx),' ',' Aux sen detail 1st item ?',
-     &        -3.,'F',0.,'-',0.,' Aux sen detail 1st item',IER,nbhelp)
-            CALL EASKR(cm(ndx+1),' ',' Aux sen detail 2nd item ?',
-     &        0.,'F',0.,'-',0.,' Aux sen detail 2nd item',IER,nbhelp)          
+            CALL EASKR(cm(ndx),' ','Aux. sen detail 1st item ?',
+     &        -3.,'F',0.,'-',0.,'Aux. sen detail 1st item',IER,nbhelp)
+            CALL EASKR(cm(ndx+1),' ','Aux. sen detail 2nd item ?',
+     &        0.,'F',0.,'-',0.,'Aux. sen detail 2nd item',IER,nbhelp)          
             CALL EASKR(cm(ndx+2),' ',' Aux sen detail 3rd item ?',
-     &        0.,'F',0.,'-',0.,' Aux sen detail 3rd item',IER,nbhelp)
+     &        0.,'F',0.,'-',0.,'Aux. sen detail 3rd item',IER,nbhelp)
             CALL EASKR(cm(ndx+3),' ',
      &        ' Aux sen detail 4th item (always use zero)?',
-     &        0.,'F',0.,'-',0.,' Aux sen detail 4th item',IER,nbehlp)
+     &        0.,'F',0.,'-',0.,'Aux. sen detail 4th item',IER,nbehlp)
 135       continue 
 
           I7=INT(cm(7))
@@ -2139,7 +2139,7 @@ C string to remind the user.
 
 C Weighted auxiliary sensors mode,   
             ndx=12+(L-1)+4*(I6-1)
-            CALL EASKR(cm(ndx),' ',' Aux sensor weighting ? ',
+            CALL EASKR(cm(ndx),' ','Aux. sensor weighting?',
      &       0.,'F',100.,'F',50.,' Aux sensor weighting',IER,nbhelp)
 136        continue
           endif 
@@ -2299,8 +2299,8 @@ C controler is implemented in bcfunc.F in subroutine BCL19.
 C First 7 data-items are equal to basic controller above.
           call edisp(iuout,' Ideal multi-sensor ON/OFF controller:')
           cm(1)=6.0
-          CALL EASKS(HOLD,' Max & Min heat capacity, Max & Min cool ',
-     &      ' capacity for basic control (see help): ',
+          CALL EASKS(HOLD,'Max & Min heat capacity, Max & Min cool ',
+     &      'capacity for basic control?',
      &      40,' 1000. 0. 1000. 0. ','max min heat cool',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(2),0.,999999.,'F','Max Heat',IER)
@@ -2312,7 +2312,7 @@ C First 7 data-items are equal to basic controller above.
  244      WRITE(HOLD,'(2f8.2)')cm(6),cm(7)
           CALL EASKS(HOLD,
      &      'Heating & cooling setpoints within the zone where flux',
-     &      'is injected or extracted (see help)',40,' 20. 24. ',
+     &      'is injected or extracted?',40,' 20. 24. ',
      &      'heat cool setpoints',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(6),-100.,100.,'F','Heat setp',IER)
@@ -2362,7 +2362,7 @@ C string to remind the user.
           endif
 
           I8=int(cm(8))
-          CALL EASKI(I8,' ',' Number of aux sensors (see help)',
+          CALL EASKI(I8,' ','Number of aux. sensors?',
      &      0,'F',MSEN,'F',3,'no. of aux sensors',IERI,nbhelp)
           if(ieri.eq.-3) goto 92
           cm(1)=7.+6.*I8
@@ -2388,13 +2388,13 @@ C << air node to sense.
             call edisp(iuout,' ')
             WRITE(outs,'(a,i2,a)')' For aux sensor ',L,' define....'
             call edisp(iuout,outs)
-            CALL EASKR(cm(ndx),' ',' Aux sensor detail 1st item ?',
+            CALL EASKR(cm(ndx),' ',' Aux sensor detail 1st item?',
      &        -3.,'F',0.,'-',1.,' Aux sensor detail 1st item',
      &        IER,nbhelp)
-            CALL EASKR(cm(ndx+1),' ',' Aux sensor detail 2nd item ?',
+            CALL EASKR(cm(ndx+1),' ',' Aux sensor detail 2nd item?',
      &        0.,'F',0.,'-',0.,' Aux sensor detail 2nd item',
      &        IER,nbhelp)
-            CALL EASKR(cm(ndx+2),' ',' Aux sensor detail 3rd item ?',
+            CALL EASKR(cm(ndx+2),' ',' Aux sensor detail 3rd item?',
      &        0.,'F',0.,'-',0.,' Aux sensor detail 3rd item',
      &        IER,nbhelp)
             CALL EASKR(cm(ndx+3),' ',
@@ -2402,11 +2402,11 @@ C << air node to sense.
      &        0.,'F',0.,'-',0.,' Aux sensor detail 4th item',
      &        IER,nbhelp)
 
-            CALL EASKR(cm(ndx+4),' ',' Aux sensor heating set-point ?',
+            CALL EASKR(cm(ndx+4),' ',' Aux sensor heating set-point?',
      &        0.,'F',0.,'-',0.,' Aux sensor heating set-point',
      &        IER,nbhelp)
 
-            CALL EASKR(cm(ndx+5),' ',' Aux sensor cooling set-point ?',
+            CALL EASKR(cm(ndx+5),' ',' Aux sensor cooling set-point?',
      &        0.,'F',0.,'-',0.,' Aux sensor cooling set-point',
      &        IER,nbhelp)
 
@@ -2442,10 +2442,10 @@ C Surface area and HTC picked up from ESP-r
             call phelpd('pool control help',nbhelp,'-',0,0,IER)       
 
             write(hold,'(3(f10.4,2X))') Abasin,alpha,alphar
-            CALL EASKS(HOLD,'Pool surface area(m^2), convective and',
-     &        'radiant heat trans coefts (W/m^2.K)',40,
+            CALL EASKS(HOLD,'Pool surface area (m^2), convective and',
+     &        'radiant heat trans coeffs (W/m^2.K)',40,
      &        '100.0   1.5   5.1',
-     &        ' surf area and coefts',IER,nbhelp)
+     &        ' surf area and coeffs',IER,nbhelp)
             K=0
             CALL EGETWR(HOLD,K,Abasin,0.,9999.,'W','Abasin',IER)
             CALL EGETWR(HOLD,K,alpha,0.,99.,'W','alpha',IER)
@@ -2456,18 +2456,17 @@ C Surface area and HTC picked up from ESP-r
             cm(4)=alpha
             cm(5)=alphar
             write(hold,'(2(f10.4,2X))') tbas,tbasex
-            CALL EASKS(HOLD,'Pool temperature and ground temperature',
-     &        '(degC)',40,
-     &        '27.0 12.0',
-     &        ' pool and ground temperatures',IER,nbhelp)
+            CALL EASKS(HOLD,' ',
+     &       'Pool temperature and ground temperature (C)',
+     &        40,'27.0 12.0',' pool and ground temperatures',IER,nbhelp)
             K=0
             CALL EGETWR(HOLD,K,tbas,0.,99.,'W','tbas',IER)
             CALL EGETWR(HOLD,K,Tbasex,0.,99.,'W','tbasex',IER)
             cm(6)=tbas
             cm(7)=tbasex
             write(hold,'(2(f10.4,2X))') fsupply,tsupply
-            CALL EASKS(HOLD,'water supply rate (kg/s), water supply ',
-     &        'temp (degC)',40,
+            CALL EASKS(HOLD,'Water supply rate (kg/s) and',
+     &        'temperature (C)?',40,
      &        '5.0 25.0',
      &        ' water data ',IER,nbhelp)   
             k=0
@@ -2476,8 +2475,8 @@ C Surface area and HTC picked up from ESP-r
             cm(8)=fsupply
             cm(9)=tsupply  
             write(hold,'(2(f10.4,2X))') abasw,ubasw
-            CALL EASKS(HOLD,'submerged wall surface area (m^2), ',
-     &        'submerged wall U-value (W/m^2K)',40,
+            CALL EASKS(HOLD,'Submerged wall surface area (m^2) and',
+     &        'U-value (W/m^2K)?',40,
      &        '100.0 0.3',
      &        ' water data ',IER,nbhelp)   
             k=0
@@ -2549,7 +2548,7 @@ C domain therefore refer to same reference publication)
 C The fall-through (none of the above) control edit.
           helptopic='sys_bctl_fall_through'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKI(NITEMS,' ',' No of control law data items ?',
+          CALL EASKI(NITEMS,' ','No of control law data items?',
      &      0,'F',MISC,'F',1,'control law data items',IERI,nbhelp)
           if(ieri.eq.-3) goto 92
           cm(1)=FLOAT(NITEMS)
@@ -2586,10 +2585,11 @@ C Extract from working array to bmiscd() common structure
 C *********** EOCNTRL
 C Edit optical control function II.
       SUBROUTINE EOCNTRL(II,IV,IER)
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C      COMMON/GPICK/GS(MGOPT),nopt
 
       common/sctl/tcps,ictyp,iclaw,cm(misc)
@@ -2697,8 +2697,8 @@ C Explanation
       elseif(IVERT.EQ.mvert-2)then
 
 C Add or delete a period.
-        CALL EASKABC('Options:',' ',
-     &    'add period','delete period','continue',iad,nbhelp)
+        CALL EASKABC(' ','Options:',
+     &    'add period','delete period','cancel',iad,nbhelp)
         if(iad.eq.1)then
           call addctldp(5,II,JJ,'A')
         elseif(iad.eq.2)then
@@ -2752,7 +2752,7 @@ C function (ie. all periods are the same).
         IOCLAW(II,JJ,KK)=iclaw
 
         if(ioclaw(II,JJ,KK).eq.1)then
-  61      CALL EASKR(tcps,' ',' Period start time ? ',
+  61      CALL EASKR(tcps,' ','Period start time?',
      &      0.,'F',24.,'F',0.,'control start',IER,nbhelp)
           if(KK.GT.1)then
             IF(tocps(II,JJ,KK-1).GE.tcps)then
@@ -2767,7 +2767,7 @@ C function (ie. all periods are the same).
             endif
           endif
         elseif(ioclaw(II,JJ,KK).eq.2)then
-  62      CALL EASKR(tcps,' ',' Period start time ? ',
+  62      CALL EASKR(tcps,' ','Period start time?',
      &      0.,'F',24.,'F',0.,'control start',IER,nbhelp)
           if(KK.GT.1)then
             IF(tocps(II,JJ,KK-1).GE.tcps)then
@@ -2993,12 +2993,12 @@ C
 C This subroutine provides an interface for editing a complex
 C fenestration control function in prj. It is based on subroutine
 C EBCNTRL. 
-C
-C ********************************************************************
+
       SUBROUTINE edit_CFC_control(ITRC,II,IV,IER)
+
 #include "building.h"
 #include "control.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/sctl/tcps,ictyp,iclaw,cm(misc)
 
@@ -3170,7 +3170,7 @@ C Remember current control type
         call edisp(iuout,SALT(iCFCctltype(II,JJ,KK)))
         
         IX=1
-  64    CALL EPICKS(IX,IVALS,' ',' Controller type: (see help)',
+  64    CALL EPICKS(IX,IVALS,' ','Controller type?',
      &         40,9,SALT,'controller type',IER,nbhelp)
         if(ix.eq.0.or.IVALS(1).eq.0)goto 64
         if(ix.ne.0)iCFCctltype(II,JJ,KK)=IVALS(1)
@@ -3241,7 +3241,7 @@ C Complex fenestration contol law.
      &                      PSALT(iCFCctllaw(II,JJ,KK))
         call edisp(iuout,outs)
         IX=1
-  65    CALL EPICKS(IX,IPVALS,' ',' Complex fen. control law: ',
+  65    CALL EPICKS(IX,IPVALS,' ','Complex fenestration control law?',
      &         40,9,PSALT,'control law',IER,nbhelp)
         if(ix.eq.0.or.IPVALS(1).eq.0)goto 65
         if(ix.ne.0)iclaw=IPVALS(1)
@@ -3323,9 +3323,10 @@ C starting up the menu based control period definition.
 C *********** EPCNTRL
 C Edit plant control function II.
       SUBROUTINE EPCNTRL(ITRC,II,IV,IER)
+
 #include "building.h"
 #include "control.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/sctl/tcps,ictyp,iclaw,cm(misc)
       DIMENSION SALT(42),IVALS(42),PSALT(18),IPVALS(18)
@@ -3418,8 +3419,8 @@ C Explanation
       elseif(IVERT.EQ.mvert-2)then
 
 C Add or delete a period.
-        CALL EASKABC('Options:',' ',
-     &    'add period','delete period','continue',iad,nbhelp)
+        CALL EASKABC(' ','Options:',
+     &    'add period','delete period','cancel',iad,nbhelp)
         if(iad.eq.1)then
           call addctldp(1,II,JJ,'A')
         elseif(iad.eq.2)then
@@ -3506,7 +3507,7 @@ C of if:elseif:else recover.
         call edisp(iuout,' Current controller type: ')
         call edisp(iuout,SALT(IPCTYP(II,JJ,KK)+1))
         IX=1
-        CALL EPICKS(IX,IVALS,' ',' Controller type: (see help)',
+        CALL EPICKS(IX,IVALS,' ','Controller type?',
      &         40,42,SALT,'controller type',IER,nbhelp)
         if(ix.ne.0)IPCTYP(II,JJ,KK)=IVALS(1)-1
         ictyp=IPCTYP(II,JJ,KK)
@@ -3549,7 +3550,7 @@ C loops
         call gethelptext(helpinsub,helptopic,nbhelp)
 
  910    IF(IPCTYP(II,JJ,KK).NE.41)THEN
-          CALL EPICKS(IX,IPVALS,' ',' Plant control law: ',
+          CALL EPICKS(IX,IPVALS,' ','Plant control law?',
      &         40,13,PSALT,'control law',IER,nbhelp)
           if(ix.ne.0)iclaw=IPVALS(1)-1
 
@@ -3562,7 +3563,7 @@ C determined in loops that these sensors sense)
           PSALT(1)='Multi-sensor (senses loops)'
           PSALT(2)='Idealised optimal start control'
           PSALT(3)='Idealised optimal stop control'
-          CALL EPICKS(IX,IPVALS,' ',' Plant control law: ',
+          CALL EPICKS(IX,IPVALS,' ','Plant control law?',
      &         40,3,PSALT,'control law',IER,nbhelp)
           if(ix.ne.0)then
             if(IPVALS(1).eq.1)then
@@ -4103,8 +4104,8 @@ C Proportional Integral Room controller
      &       ,CM(8),CM(9)
           CALL EDISP(IUOUT,HOLD)
           CALL EASKS(HOLD,
-     &    ' nominal, max, min, prop band, BDATA, reset time (sec)',
-     &    'optional control loop, static value (see help)',
+     &    'Nominal, max, min, prop band, BDATA, reset time (s)',
+     &    'optional control loop, static value?',
      &    70,HOLD,'PI room ctrlr',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(2),1.,1.,'-','Setpoint nominal ',IER)
@@ -4119,7 +4120,7 @@ C Proportional Integral Room controller
  102      write(HOLD,'(2(F5.2,1X))')CM(10),CM(11)
           CALL EASKS(HOLD,
      &    'Optional flow control connection numbers',
-     &    'connection no.1 , connection no. 2 (see help)',
+     &    'connection no.1 , connection no. 2?',
      &    70,HOLD,'PI room ctrlr',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(10),1.,1.,'-','connection no. 1 ',IER)
@@ -4136,8 +4137,8 @@ C Outside temperature compensation controller
           call edisp(iuout,'alpha, beta, gamma')
   111     write(HOLD,'(3(F5.2,1X))')cm(2),cm(3),cm(4)
           CALL EDISP(IUOUT,HOLD)
-          CALL EASKS(HOLD,'alpha, beta, gamma',
-     &    '(see help)',70,HOLD,'OTC ctrlr',IER,nbhelp)
+          CALL EASKS(HOLD,' ','alpha, beta, gamma',
+     &     70,HOLD,'OTC ctrlr',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(2),1.,1.,'-','alpha ',IER)
           CALL EGETWR(HOLD,K,cm(3),1.,1.,'-','beta',IER)
@@ -4149,7 +4150,7 @@ C Outside temperature compensation controller
      &    CM(9),CM(10),CM(11)
           CALL EDISP(IUOUT,HOLD)
           CALL EASKS(HOLD,'nominal1, nominal, max, min, BDATA',
-     &      'optional control loop, static value (see help)',
+     &      'optional control loop, static value?',
      &      70,HOLD,'OTC ctrlr',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(5),1.,1.,'-','nominal1',IER)
@@ -4163,7 +4164,7 @@ C Outside temperature compensation controller
  131      write(HOLD,'(2(F5.2,1X))')CM(10),CM(11)
           CALL EASKS(HOLD,
      &    'Optional flow control connection numbers',
-     &    'connection no.1 , connection no. 2 (see help)',
+     &    'connection no.1 , connection no. 2?',
      &    70,HOLD,'PI room ctrlr',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(12),1.,1.,'-','connection no. 1 ',IER)
@@ -4194,15 +4195,15 @@ C Idealised optimum start controller
           CALL EDISP(IUOUT,HOLD)
  112      DO 1114 iclp=1,NCLP
             write(hold,'(f5.2)')cm(iclp+1)
-            CALL EASKS(HOLD,'Loop number to sense',
-     &      '(see help)',70,HOLD,'ideal optimum start ctrlr',IER,nbhelp)
+            CALL EASKS(HOLD,' ','Loop number to sense?',
+     &      70,HOLD,'ideal optimum start ctrlr',IER,nbhelp)
             K=0
             CALL EGETWR(HOLD,K,cm(1+ICLP),1.,1.,'-','loop no.',IER)
  1114     CONTINUE
           write(hold,'(2f5.2)')cm(nclp+2),cm(nclp+3)
           CALL EASKS(HOLD,
-     &    'period no. to optimise, time to come up to temperature',
-     &    'overriding loop number if any (zero otherwise) (see help)',
+     &    'Period no. to optimise, time to come up to temperature',
+     &    'overriding loop number if any (zero otherwise)?',
      &    70,HOLD,'ideal optimum start ctrlr',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(NCLP+2),1.,1.,'-','period no.',IER)
@@ -4241,8 +4242,8 @@ C Idealised optimum stop controller
           CALL EDISP(IUOUT,HOLD)
  212      DO 2114 iclp=1,NCLP
             write(hold,'(f5.2)')cm(iclp+1)
-            CALL EASKS(HOLD,'Loop number to sense',
-     &      '(see help)',70,HOLD,'ideal optimum start ctrlr',IER,nbhelp)
+            CALL EASKS(HOLD,' ','Loop number to sense?',
+     &      70,HOLD,'ideal optimum start ctrlr',IER,nbhelp)
             K=0
             CALL EGETWR(HOLD,K,cm(1+ICLP),1.,1.,'-','loop no.',IER)
  2114     CONTINUE
@@ -4282,6 +4283,7 @@ C Extract from working array to pmiscd() common structure
 C *********** EFCNTRL
 C Edit flow control function II.
       SUBROUTINE EFCNTRL(II,IV,IER)
+
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
@@ -4289,7 +4291,7 @@ C Edit flow control function II.
 #include "control.h"      
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/sctl/tcps,ictyp,iclaw,cm(misc)
 
@@ -4398,8 +4400,8 @@ C Explanation
       elseif(IVERT.EQ.mvert-2)then
 
 C Add or delete a period.
-        CALL EASKABC('Options:',' ',
-     &    'add period','delete period','continue',iad,nbhelp)
+        CALL EASKABC(' ','Options:',
+     &    'add period','delete period','cancel',iad,nbhelp)
         if(iad.eq.1)then
           call addctldp(2,II,JJ,'A')
         elseif(iad.eq.2)then
@@ -4468,7 +4470,7 @@ C What is the equivalent for flow.....
           IFCLAW(II,JJ,KK)=iclaw
         endif
 
-  62    CALL EASKR(tcps,' ',' Period start time ? ',
+  62    CALL EASKR(tcps,' ',' Period start time?',
      &    0.,'F',24.,'F',0.,'control start',IER,nbhelp)
         if(KK.GT.1)then
           IF(TFCPS(II,JJ,KK-1).GE.tcps)then
@@ -4492,9 +4494,9 @@ C Miscellaneous data for on / off controller.
           cm(1)=3.
   53      WRITE(HOLD,'(3f11.5)')cm(2),cm(3),cm(4)
           CALL EASKS(HOLD,
-     &    ' On/Off setpoint, action (1=on above setpoint, -1=on below)',
-     &      ' and fraction ON (see help):',42,' 30. 1. 1. ',
-     &      ' flow on/off controller',IER,nbhelp)
+     &    'On/Off setpoint, action (1=on above setpoint, -1=on below)',
+     &      'and fraction ON?',42,' 30. 1. 1. ',
+     &      'flow on/off controller',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(2),0.,0.,'-','set pt',IER)
           CALL EGETWR(HOLD,K,cm(3),-1.,1.,'F','action',IER)
@@ -4509,8 +4511,8 @@ C Miscellaneous data for proportional controller.
           cm(1)=5.
   54      WRITE(HOLD,'(5f8.2)')cm(2),cm(3),cm(4),cm(5),cm(6)
           CALL EASKS(HOLD,
-     &   ' Proportional: signal lower lmt, lower valve psn (%), signal',
-     &   ' upper lmt, upper valve psn (%), hysteresis: ',42,
+     &    'Proportional: signal lower lmt, lower valve psn (%),',
+     &    'signal upper lmt, upper valve psn (%), hysteresis?',42,
      &      ' 10.  0.  20. 100.  1.',' flow proportional controller',
      &      IER,nbhelp)
           K=0
@@ -4527,9 +4529,9 @@ C Miscellaneous data for range based controller.
           call gethelptext(helpinsub,helptopic,nbhelp)
           cm(1)=6.
   55      WRITE(HOLD,'(3f10.4)')cm(2),cm(3),cm(4)
-          CALL EASKS(HOLD,
-     &      ' Range setpoints: low, mid, high (see help)',
-     &      ' : ',42,' 0. 10. 20. ',' flow range controller',
+          CALL EASKS(HOLD,' ',
+     &      'Range setpoints: low, mid, high?',
+     &      42,' 0. 10. 20. ',' flow range controller',
      &      IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(2),0.,0.,'-','low set pt',IER)
@@ -4537,9 +4539,9 @@ C Miscellaneous data for range based controller.
           CALL EGETWR(HOLD,K,cm(4),0.,0.,'-','high set pt',IER)
           if(ier.ne.0)goto 55
  157      WRITE(HOLD,'(3f9.4)')cm(5),cm(6),cm(7)
-          CALL EASKS(HOLD,
-     &      ' Ratios of rate or area for: low, mid, high (see help)',
-     &      ' : ',42,' 0.1 1.0 2.0 ',' flow range controller',
+          CALL EASKS(HOLD,' ',
+     &      ' Ratios of rate or area for: low, mid, high?',
+     &      42,' 0.1 1.0 2.0 ',' flow range controller',
      &      IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(5),0.,0.,'-','low ratio',IER)
@@ -4628,8 +4630,8 @@ C Auxiliary sensor details,
             CALL EASKR(cm(ndx+4),' ',' Aux sensor set-point ? ',
      &        -100.,'F',0.,'-',0.,' Aux sensor set-point',IER,nbhelp)
             write(msg2,'(a,f5.2)') ' setpoint ',cm(ndx+4)
-            CALL EASKAB('Action Flag (see help)',' ','Direct',
-     &      'Inverse',IW,nbhelp)
+            CALL EASKAB(' ','Action flag?','Direct','Inverse',
+     &                 IW,nbhelp)
             IF(IW.EQ.1)THEN
               cm(ndx+5)=1.0
             ELSEIF(IW.EQ.2)THEN
@@ -4739,7 +4741,7 @@ C Ask for node associated with operative temperature
         elseif(iclaw.eq.5)then
 
 C PI controller
-          helptopic='flow_ctl_adaptive'
+          helptopic='flow_ctl_pi'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL ECLOSE(CM(1),0.0,0.001,close1)
           IF(CLOSE1)THEN
@@ -4756,9 +4758,9 @@ C PI controller
      &      ' nominal, max flow , min flow , prop band, reset time')
  101      WRITE(HOLD,'(5F8.3)')CM(2),CM(3),CM(4),CM(5),CM(6)
           CALL EDISP(IUOUT,HOLD)
-          CALL EASKS(HOLD,
-     &    ' nominal, max flow, min flow, prop band, reset time (sec)',
-     &    '(see help)',42,HOLD,'PI controller',IER,nbhelp)
+          CALL EASKS(HOLD,' ',
+     &    'nominal, max flow, min flow, prop band, reset time (s)?',
+     &    42,HOLD,'PI controller',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,cm(2),1.,1.,'-','Setpoint nominal ',IER)
           CALL EGETWR(HOLD,K,cm(3),1.,1.,'-','Setpoint max',IER)
@@ -4766,16 +4768,15 @@ C PI controller
           CALL EGETWR(HOLD,K,cm(5),1.E-6,1.E6,'F','Prop band',IER)
           CALL EGETWR(HOLD,K,cm(6),1.E-6,1.E6,'F','Int reset time',IER)
           IAD=0
-          CALL EASKAB('Action flag (see help)',' ',
-     &    ' direct ',' inverse ',iad,nbhelp)
+          CALL EASKAB(' ','Action flag:','direct','inverse',iad,nbhelp)
           IF(IAD.EQ.2)IAD=-1
           CM(7)=REAL(IAD)
           IAD=0
           CM(8)=0.
-          CALL EASKABC('Which sensor to use',' ',
-     &    'this loops sensor','multisensor loop','continue',iad,nbhelp)
+          CALL EASKABC(' ','Sensor to use:',
+     &    'this loop`s sensor','multisensor loop','cancel',iad,nbhelp)
           IF(IAD.EQ.2)THEN
-            CALL EASKR(ocli,' ',' control loop index ',
+            CALL EASKR(ocli,' ','Control loop index?',
      &      0.,'-',24.,'-',0.,'control loop index',IER,nbhelp)
             CM(8)=ocli
           ENDIF
@@ -4803,10 +4804,11 @@ C Extract from working array to fmiscd() common structure
 C *********** EGCNTRL
 C Edit global control function II.
       SUBROUTINE EGCNTRL(ITRC,II,IV,IER)
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/sctl/tcps,ictyp,iclaw,cm(misc)
 
       CHARACTER outs*124,SSTR*96,TMP*96,LTMP*248
@@ -4893,8 +4895,8 @@ C Explanation
 
 
 C Add or delete a period.
-        CALL EASKABC('Options:',' ',
-     &    'add period','delete period','continue',iad,nbhelp)
+        CALL EASKABC(' ','Options:',
+     &    'add period','delete period','cancel',iad,nbhelp)
         if(iad.eq.1)then
           call addctldp(3,II,JJ,'A')
         elseif(iad.eq.2)then
@@ -4955,7 +4957,7 @@ C of if:elseif:else recover.
         iclaw=ino
         IGCLAW(II,JJ,KK)=iclaw
 
-  62    CALL EASKR(tcps,' ',' Period start time ? ',
+  62    CALL EASKR(tcps,' ','Period start time?',
      &    0.,'F',24.,'F',0.,'control start',IER,nbhelp)
         if(KK.GT.1)then
           IF(TGCPS(II,JJ,KK-1).GE.tcps)then
@@ -5161,12 +5163,13 @@ C flow control, nsup is the number of supplemental items for associated
 C flow connections.It is assumed that the user will make one selection only.
       subroutine senloc(prompt,title,icfoc,II,isn1,isn2,isn3,isn4,
      &  isn5,isense,nsup,errmsg,IER)
+
 #include "building.h"
 #include "net_flow.h"
 #include "plant.h"
 #include "epara.h"
 #include "control.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
@@ -5179,7 +5182,7 @@ C Usual proportional fonts set when prj started.
       common /pcdat/ nnodes(mpcom), isv(mpcom,mnodec), 
      &               ndcon(mpcom,mnodec)
      
-      LOGICAL SELECT,OK,dok
+      LOGICAL SELECT,OK
       LOGICAL active_option
       CHARACTER*(*) prompt,title,errmsg
 
@@ -5238,7 +5241,7 @@ C help text blocks for the current control domain.
         WRITE(VERT(2),'(a)') 'b senses mix of zone db temp and MRT  '
         WRITE(VERT(3),'(a)') '  senses an ambient condition...      '
         WRITE(VERT(4),'(a)') 'c   dry bulb temperature              '
-        WRITE(VERT(5),'(a)') 'd   sol-air temperature (not for flow)'
+        WRITE(VERT(5),'(a)') 'd   sol-air temperature               '
         WRITE(VERT(6),'(a)') 'e   wind speed                        '
         WRITE(VERT(7),'(a)') 'f   wind direction                    '
         WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar radiation'
@@ -5255,7 +5258,7 @@ C help text blocks for the current control domain.
         WRITE(VERT(2),'(a)') 'b senses mix of zone db temp and MRT  '
         WRITE(VERT(3),'(a)') '  senses an ambient condition...      '
         WRITE(VERT(4),'(a)') 'c   dry bulb temperature              '
-        WRITE(VERT(5),'(a)') 'd   sol-air temperature (not for flow)'
+        WRITE(VERT(5),'(a)') 'd   sol-air temperature               '
         WRITE(VERT(6),'(a)') 'e   wind speed                        '
         WRITE(VERT(7),'(a)') 'f   wind direction                    '
         WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar radiation'
@@ -5305,12 +5308,12 @@ C help text blocks for the current control domain.
         WRITE(VERT(2),'(a)') 'b senses mix of zone db temp and MRT  '
         WRITE(VERT(3),'(a)') '  senses an ambient condition...      '
         WRITE(VERT(4),'(a)') 'c   dry bulb temperature              '
-        WRITE(VERT(5),'(a)') 'd   sol-air temperature (not for flow)'
+        WRITE(VERT(5),'(a)') 'd   sol-air temperature               '
         WRITE(VERT(6),'(a)') 'e   wind speed                        '
         WRITE(VERT(7),'(a)') 'f   wind direction                    '
         WRITE(VERT(8),'(a)') 'g   diffuse horizontal solar radiation'
         WRITE(VERT(9),'(a)') 'h   direct normal solar radiation     '
-        WRITE(VERT(10),'(a)')'i   direct sol rad incident on surface'
+        WRITE(VERT(10),'(a)')'i   direct solar radiation on surface '
         WRITE(VERT(11),'(a)')'j senses lux levels (not working)     '
         WRITE(VERT(12),'(a)')'k no sensor, temporal data file       '
         WRITE(VERT(13),'(a)')'  ------------------------------------'
@@ -5375,13 +5378,13 @@ C Ask for the specific zone.
         CALL EPMENRC
         SELECT=.TRUE.
         if(icfoc.ne.5)then
-          CALL EASKABC('Specific location: ',' ','zone air point',
-     &      'surface','continue',IW,nbhelp)
+          CALL EASKABC(' ','Location: ','air point',
+     &      'surface','cancel',IW,nbhelp)
         elseif(icfoc.eq.5)then
 
 C For optical controls, always assume zone air point
           call edisp(iuout,
-     &      ' The location is at the specified zone air point')
+     &      ' The location is at the specified zone air point.')
           IW=1
         endif
         if(IW.eq.1)then
@@ -5391,9 +5394,8 @@ C For optical controls, always assume zone air point
           CALL EPMENSV
           call EASKSUR(isn1,isn2,'-','Available surfaces.',' ',IER)
           CALL EPMENRC
-          CALL EASKABC('Specific location in surface: ',' ',
-     &      'at inside face','node within surface (see help)',
-     &      'continue',IWN,nbhelp)
+          CALL EASKABC(' ','Location:',
+     &      'inside surface','internal node','cancel',IWN,nbhelp)
           if(IWN.eq.1)then
             isn3=0
           elseif(IWN.eq.2)then
@@ -5429,7 +5431,7 @@ C Senses output (plant control) or temperature (flow control) of a plant compone
 C Offer the user a cancel option.
         isn1T=-1
         isn2T=isn2
-        CALL ASKPCMP('Plant component for sensor ? ','-',IP,IER)
+        CALL ASKPCMP('Plant component for sensor? ','-',IP,IER)
         if(IP.eq.0) goto 3
         ISN2T=IP
         isn3T=isn3
@@ -5498,14 +5500,20 @@ C Power control sensor not yet implemented, return zeros.
 
 C Senses mix of zone db temp and MRT.
         isn1T=-2
-        CALL EPMENSV
-        idef=0
-        isn2T=isn2
-        call askzone(isn2T,idef,'Zone for sensor','Select zone','-',
-     &    'MRT sensor',34,ier)
-        CALL EPMENRC
+        call EASKAB(' ','Options:',
+     &    'current zone','a specific zone',IW,nbehlp)
+        if(IW.eq.1)then
+          isn2T=0   ! indicate the curren zone
+        else
+          CALL EPMENSV
+          idef=0
+          isn2T=isn2
+          call askzone(isn2T,idef,'Zone for sensor','Select zone','-',
+     &      'MRT sensor',34,ier)
+          CALL EPMENRC
+        endif
         isn3T=isn3
-        CALL EASKI(isn3T,' ',' Convective weighting factor (%) ?',
+        CALL EASKI(isn3T,' ','Convective factor (%)?',
      &      0,'F',100,'-',50,'convective weighting',IERI,nbhelp)
         if(ieri.eq.-3) goto 3
 
@@ -5548,8 +5556,8 @@ C Ask for the specific zone.
         call EASKSUR(isn1,isn2,'-','Available surfaces.',' ',IER)
         CALL EPMENRC
 
-C<<<<<need to confirm isn2 because it will need to be assigned to >>>>>>>>>>>
-C<<<<<<<<<<the outside face of the surface >>>>>>>>>>>>>>>>>>
+C<<<<< Need to confirm isn2 because it will need to be assigned to
+C<<<<< the outside face of the surface.
         isn3=0
         nsup=0
       elseif(ivert.eq.10.and.icfoc.eq.6)then
@@ -5667,8 +5675,8 @@ C  isn1= -4  always
 C  isn2  index node/connection
 C  isn3  2nd index node (for differences), or contaminant number
 C  isn4=  0 node, 1=connection (tie in with type later), 2 contaminant control
-        CALL EASKABC(' ',' Flow sensor at:',' flow node (typical) ',
-     &    ' specific flow connection (see help) ','continue',IW,nbhelp)
+        CALL EASKABC(' ','Sensor at:','network node',
+     &    'network connection','cancel',IW,nbhelp)
         if(IW.eq.1)then
 
 C Flow controller. Note: there is only one `type` per flow function 
@@ -5746,7 +5754,7 @@ cx            nsup=2
           SALT(2)='senses 2nd ph mass flow at connection  ' 
           SALT(3)='senses abs mass flow rate at connection' 
           IX=1
-          CALL EPICKS(IX,IVALS,' ',' Controller type: ',
+          CALL EPICKS(IX,IVALS,' ','Controller type:',
      &         40,3,SALT,'controller type',IER,nbhelp)
           if(ix.ne.0)then
             nsup=2
@@ -5800,14 +5808,11 @@ C Not one of the legal menu choices.
 
 C Query user for any nested controls (unless thermo substitution).
       if(icfoc.eq.0.and.isn1.ne.-99)then
-        dok=.false.
-        CALL ASKOK(' Are there any nested control functions ?',
-     &    ' (currently only property substitution allowed) ',OK,
-     &    dok,nbhelp)
+        CALL EASKOK(' ','Any nested control functions?',OK,nbhelp)
         if(OK)then
           isn4T=isn4
           CALL EASKI(isn4T,' ',
-     &      ' Control function (index) to be nested: ',
+     &      ' Control function to be nested?',
      &        0,'F',0,'-',1,'nested control',IERI,nbhelp)
           if(ieri.eq.-3) then
             continue
@@ -5831,6 +5836,7 @@ C flow control, nsup is the number of supplemental items for associated
 C flow connections.It is assumed that the user will make one selection only.
       SUBROUTINE actloc(prompt,title,icfoc,II,isn1,ian1,ian2,ian3,
      &  errmsg,IER)
+
 #include "building.h"
 #include "geometry.h"
 #include "net_flow.h"
@@ -5841,7 +5847,8 @@ C flow connections.It is assumed that the user will make one selection only.
 #include "esprdbfile.h"
 #include "material.h"
 #include "CFC_common.h"
-      COMMON/OUTIN/IUOUT,IUIN
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
@@ -5909,15 +5916,15 @@ C Offer the user option to cancel.
         helptopic='actlocation_prop_sub'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ian1T=ian1
-        CALL EASKI(ian1T,' ',' First surface index (see help)?',
+        CALL EASKI(ian1T,' ','First surface index?',
      &     0,'F',MS,'F',1,'1st surf for subst',IERI,nbhelp)
         if(ieri.eq.-3) return
         ian2T=ian2
-        CALL EASKI(ian2T,' ',' Second surface index (see help)?',
+        CALL EASKI(ian2T,' ','Second surface index?',
      &     0,'F',MS,'F',1,'2nd surf for subst',IERI,nbhelp)
         if(ieri.eq.-3) return
         ian3T=ian3
-        CALL EASKI(ian3T,' ',' Third surface index (see help)?',
+        CALL EASKI(ian3T,' ','Third surface index?',
      &     0,'F',MS,'F',1,'3rd surf for subst',IERI,nbhelp)
         if(ieri.eq.-3) return
         ian1=ian1T
@@ -6011,7 +6018,7 @@ C Display the menu.
 
 C If no selection has been made before exit then display error message.
         IF(.NOT.SELECT)then
-          call usrmsg(errmsg,' Please select a menu option. ','W')
+          call usrmsg(errmsg,' Please select a menu option!','W')
           IVERT=-2
           goto 92
         endif
@@ -6037,16 +6044,16 @@ C Decode from the potentially long list to the zone number via KEYIND.
         CALL KEYIND(MVERT,IVERT,IFOC,IO)
         SELECT=.TRUE.
         ian1 = IFOC
-        CALL EASKABC('Specific location: ',' ','zone air point',
-     &    'surface','continue',IW,nbhelp)
+        CALL EASKABC(' ','Location: ','air point',
+     &    'surface','cancel',IW,nbhelp)
         if(IW.eq.1)then
           ian2=0; ian3=0
         elseif(IW.eq.2)then
           CALL EPMENSV
           call EASKSUR(ian1,ian2,'-','Available surfaces.',' ',IER)
           CALL EPMENRC
-          CALL EASKABC('Specific location in surface: ',' ',
-     &      'at inside face','node within surface','continue',
+          CALL EASKABC(' ','Location:',
+     &      'inside surface','internal node','cancel',
      &      IWN,nbhelp)
           if(IWN.eq.1)then
             ian3=0
@@ -6080,7 +6087,7 @@ C Within a plant component (offer the user a cancel option)
 C otherwise fall through to exit.
         ian1T=-1
         IP=-1
-        CALL ASKPCMP('Plant component for actuator ? ','-',IP,IER)
+        CALL ASKPCMP('Plant component for actuator?','-',IP,IER)
         if(IP.le.0) goto 3
         IAN2T=IP
 
@@ -6100,7 +6107,7 @@ C otherwise fall through to exit.
 C At a flow connection.
         ian1= -3
         CALL EPMENSV
-        call ASKCON(' Flow connection?','-',INS,INE,IC,IER)
+        call ASKCON('Flow connection?','-',INS,INE,IC,IER)
         CALL EPMENRC
         write(outs,'(6A)') ' Selected ',NDNAM(NODPS(IC)),
      &    ' - ',NDNAM(NODNE(IC)),' via ',CMNAM(ITPCON(IC))
@@ -6202,12 +6209,18 @@ C Check that selected CFC type contains a shading layer.
 
 C Actuates radiant convective mix.
         ian1T=-2
-        CALL EPMENSV
-        idef=0
-        ian2T=ian2
-        call askzone(ian2T,idef,'Zone for actuation','Select zone','-',
-     &    'mixed injection',34,ier)
-        CALL EPMENRC
+        call EASKAB(' ','Options:',
+     &    'current zone','a specific zone',IW,nbehlp)
+        if(IW.eq.1)then
+          ian2T=0   ! indicate the current zone
+        else
+          CALL EPMENSV
+          idef=0
+          ian2T=ian2
+          call askzone(ian2T,idef,'Zone for actuation','Select zone',
+     &      '-','mixed injection',34,ier)
+          CALL EPMENRC
+        endif
         ian3T=ian3
         CALL EASKI(ian3T,' ',' Convective weighting factor (%) ?',
      &      0,'F',100,'-',50,'convective weighting',IERI,nbhelp)
@@ -6430,10 +6443,11 @@ C    that is not supported yet. The calling routine should then
 C    deal with the dialogs using standard sequential method.
       subroutine editctlperiod(head,icfoc,icloop,iday,iper,nper,
      &  loopdaytype,prevstart,act,ier)
+
 #include "building.h"
 #include "control.h"
 #include "epara.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
@@ -6471,20 +6485,20 @@ C   for control law one.
       CHARACTER VERT*45,KEY*1,SSTR*96,TMP*96,ltmp*248,SALT*42
       character menu*32,prompt1*72,prompt2*72
       character outs*124
-      character*(*) head  ! the title passed from calling code
+      character*(*) head         ! the title passed from calling code
 
       integer icfoc,icloop,iday,iper,nper,loopdaytype  ! passed parameters
-      logical close,close1,close2,close3,modval,OK,dok ! to test if variable has changed.
-      real tcpst  ! for local editing.
-      integer imasctlindex    ! index of master control used by slave controller.
-      integer iclawcurrent    ! to remember the current control law
+      logical close,close1,close2,close3,modval,OK     ! to test if variable has changed.
+      real tcpst                        ! for local editing.
+      integer imasctlindex              ! index of master control used by slave controller.
+      integer iclawcurrent              ! to remember the current control law
       integer ivalue,imini,imaxi,idefa  ! local values for editing as integer
-      integer MVERT,IVERT ! max items and current menu item
+      integer MVERT,IVERT               ! max items and current menu item
 
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp         ! number of help lines found
 
       helpinsub='editctlperiod'  ! set for subroutine
 
@@ -6616,9 +6630,8 @@ C Within the header so skip request.
       ELSEIF(IVERT.EQ.MVERT)THEN
         if(icfoc.eq.6)modval=.true.   !always save for complex fen. data
         if(modval)then
-          dok=.false.
-          CALL ASKOK(' The control period data has changed.',
-     &      ' Accept changes?',OK,dok,nctlhelp)
+          CALL EASKOK('Control period data has changed!',
+     &          'Accept changes?',OK,nctlhelp)
           if(ok)then
             tcps=tcpst
             do 13 ij=1,misc
@@ -6724,16 +6737,16 @@ C control law to trap changes.
 C Re-instanciate help specifically for summary of control laws.
           helptopic='bld_ctl_period_data'
           call gethelptext(helpinsub,helptopic,nbhelp)
-  63      CALL EPICKS(IX,IVALS,' ',' Control law option:',
+  63      CALL EPICKS(IX,IVALS,' ','Control law option:',
      &      42,24,SALT,'control law (indented=old or obscure)',
      &      IER,nbhelp)
           if(ix.eq.0.or.IVALS(1).eq.0)goto 63
           if(iclawcurrent.ne.IVALS(1))then
 
 C Control law has changed so provide some default values for the
-C new control law prior to re-forming the menu display.
-C Note: for those control laws which are not supported with
-C the new menu structure return to the calling subroutine.
+C new control law prior to re-forming the menu.
+C For  control laws that are not supported by the
+C new menu structure, return to the calling subroutine.
             modval=.true.
             iclaw=IVALS(1)
             write(TMP,'(a)') SALT(iclaw)  ! update string for menu
@@ -6767,7 +6780,7 @@ C the new menu structure return to the calling subroutine.
               cmlocal(12)=0.0
               goto 90
             elseif(iclaw.eq.5)then
-              cmlocal(1)=10.0        ! varies (this is the smallest) no yet supported.
+              cmlocal(1)=10.0       ! varies (this is the smallest) no yet supported.
               cmlocal(2)=1.0        ! reset to default values
               cmlocal(3)=1000.0
               cmlocal(4)=0.0
@@ -6801,7 +6814,7 @@ C the new menu structure return to the calling subroutine.
               goto 90
             elseif(iclaw.eq.8)then
               cmlocal(1)=6.0
-              cmlocal(2)=30.0        ! reset to default values
+              cmlocal(2)=30.0       ! reset to default values
               cmlocal(3)=10.0
               cmlocal(4)=1.0
               cmlocal(5)=18.0
@@ -6818,7 +6831,7 @@ C the new menu structure return to the calling subroutine.
               return
             elseif(iclaw.eq.10)then
               cmlocal(1)=6.0
-              cmlocal(2)=1000.0        ! reset to default values
+              cmlocal(2)=1000.0     ! reset to default values
               cmlocal(3)=1000.0
               cmlocal(4)=18.0
               cmlocal(5)=22.0
@@ -6830,16 +6843,16 @@ C the new menu structure return to the calling subroutine.
               cmlocal(12)=0.0
               goto 90
             elseif(iclaw.eq.11)then
-              cmlocal(1)=10.0        ! varies (this is the smallest)
+              cmlocal(1)=10.0       ! varies (this is the smallest)
               ier=11
               return
             elseif(iclaw.eq.12)then
-              cmlocal(1)=10.0        ! varies (this is the smallest)
+              cmlocal(1)=10.0       ! varies (this is the smallest)
               ier=12
               return
             elseif(iclaw.eq.13)then
               cmlocal(1)=12.0
-              cmlocal(2)=1000.0        ! reset to default values
+              cmlocal(2)=1000.0     ! reset to default values
               cmlocal(3)=1000.0
               cmlocal(4)=18.0
               cmlocal(5)=22.0
@@ -6854,7 +6867,7 @@ C the new menu structure return to the calling subroutine.
               goto 90
             elseif(iclaw.eq.14)then
               cmlocal(1)=14.0
-              cmlocal(2)=20.0        ! reset to default values
+              cmlocal(2)=20.0       ! reset to default values
               cmlocal(3)=2.0
               cmlocal(4)=1.0
               cmlocal(5)=2.0
@@ -6871,7 +6884,7 @@ C the new menu structure return to the calling subroutine.
               goto 90
             elseif(iclaw.eq.15)then
               cmlocal(1)=6.0        ! varies (this is the smallest) no yet supported.
-              cmlocal(2)=1000.0      ! reset to default values
+              cmlocal(2)=1000.0     ! reset to default values
               cmlocal(3)=20.0
               cmlocal(4)=1.0
               cmlocal(5)=8.0
@@ -6985,7 +6998,7 @@ C Complex fenestration control law
         endif
 
 C Re-ask for the control law for the period.
-  64    CALL EPICKS(IX,IVALS,' ',' Control law option:',
+  64    CALL EPICKS(IX,IVALS,' ','Control law option:',
      &      42,9,SALT,'control law ',IER,nbhelp)
         if(ix.eq.0.or.IVALS(1).eq.0)goto 64
         if(iclawcurrent.ne.IVALS(1))then
@@ -7404,7 +7417,7 @@ C Depending on the current number of miscel items also do humidity.
             prompt1(12)=
      & 'RH control not enabled (value is 0.0) change to 1.0 for'
             prompt2(12)=
-     & 'moisture injection or 2.0 for temperature control(see help).'
+     & 'moisture injection or 2.0 for temperature control.'
             ndec(12)=1; vmin(12)=0.0; vmax(12)=2.0; vdef(12)=0.0
             continue
           elseif(int(cm(1)).eq.11)then
@@ -7429,7 +7442,7 @@ C Depending on the current number of miscel items also do humidity.
               prompt1(12)=
      & 'Moisture injection enabled (value is 1.0) change to 2.0'
               prompt2(12)=
-     & 'for temperature control or 0.0 for no RH control(see help).'
+     & 'for temperature control or 0.0 for no RH control.'
               ndec(12)=1; vmin(12)=0.0; vmax(12)=2.0; vdef(12)=0.0
             elseif(int(cm(12)).eq.2)then
               menu(10)=' '
@@ -7444,7 +7457,7 @@ C Depending on the current number of miscel items also do humidity.
               prompt1(12)=
      & 'Temperature control enabled (value is 2.0) change to 1.0'
               prompt2(12)=
-     & 'for moisture injection or 0.0 for no RH control(see help).'
+     & 'for moisture injection or 0.0 for no RH control.'
               ndec(12)=1; vmin(12)=0.0; vmax(12)=2.0; vdef(12)=0.0
             endif
           endif
@@ -7560,7 +7573,7 @@ C Depending on the current number of miscel items also do humidity.
           elseif(nint(cm(2)).eq.3)then
             menu(11)='Derivative action time [secs] '
             prompt1(11)='Derivative action time [secs] '
-            prompt2(11)='(see help) '
+            prompt2(11)=' '
             ndec(11)=1; vmin(11)=1.0; vmax(11)=10000.0; vdef(11)=600.0
             menu(12)=' '
             prompt1(12)=' '
@@ -7569,11 +7582,11 @@ C Depending on the current number of miscel items also do humidity.
           elseif(nint(cm(2)).eq.4)then
             menu(11)='Integral action time [secs] '
             prompt1(11)='Integral action time [secs] '
-            prompt2(11)='(see help) '
+            prompt2(11)=' '
             ndec(11)=1; vmin(11)=1.0; vmax(11)=10000.0; vdef(11)=600.0
             menu(12)='Derivative action time [secs] '
             prompt1(12)='Derivative action time [secs] '
-            prompt2(12)='(see help) '
+            prompt2(12)=' '
             ndec(12)=1; vmin(12)=1.0; vmax(12)=10000.0; vdef(12)=600.0
           endif
         elseif(iclaw.eq.6)then
@@ -8319,8 +8332,6 @@ C Create prompts, min/max values for complex fen. data based on control type.
       end
 
 C ********************************************************************
-C                      --check_CFC_control_validity--
-C
 C Created by: Bart Lomanowski
 C Initial Creation Date: June 2009
 C
@@ -8336,15 +8347,17 @@ C       checkOK - return status used in subroutine CONTRL
 C ********************************************************************      
       subroutine check_CFC_control_validity(checkOK)
       IMPLICIT NONE
+
 #include "building.h"
 #include "control.h"
 
-C-----Working variables
+C Working variables
       integer ndaytypes
       integer iact1, iact2, iact3
       integer isen1, isen2, isen3
       integer ictype, ilaw
-C-----Loop indices
+
+C Loop indices
       integer ictlfun,idaytype,iperiod
 
       logical checkOK
@@ -8352,14 +8365,13 @@ C-----Loop indices
       
       checkOK  = .false.
 
-C -------------------------------------------------------------------
-C Loop through control functions, daytypes and periods
-C -------------------------------------------------------------------      
+C Loop through control functions, daytypes and periods.     
       if(nCFCctlloops.gt.0)then
         do 10 ictlfun=1, nCFCctlloops
         
           ndaytypes = nCFCctldaytypes(ictlfun)
-C---------if ndaytypes is 0 we have weekday, saturday, sunday types. Set daytypes = 3
+
+C If ndaytypes = 0 we have weekday, saturday, sunday types. Set daytypes = 3
           if(ndaytypes.eq.0)ndaytypes = 3
           
           do 20 idaytype=1, ndaytypes
@@ -8378,9 +8390,7 @@ C---------if ndaytypes is 0 we have weekday, saturday, sunday types. Set daytype
               ictype = iCFCctltype(ictlfun,idaytype,iperiod)
               ilaw   = iCFCctllaw(ictlfun,idaytype,iperiod)        
               
-C -------------------------------------------------------------------
-C Check for control data validity.
-C -------------------------------------------------------------------        
+C Check for control data validity.        
                 if(ictype.eq.1)then        ! senses temperature, actuates shade ON/OFF
                   if((isen1.eq.-3.and.(isen2.eq.0.or.isen2.eq.1))
      &                .or.isen1.eq.-2.or.isen1.gt.0)then
@@ -8484,7 +8494,8 @@ C -------------------------------------------------------------------
                 endif            
 
                 if(.not.checkOK)then
-C ----------------Construct user message            
+
+C Construct user message            
                   if(ictype.eq.1)then
                     write(ctype,'(A)')
      &               ' senses temp. > actuates shade ON/OFF'

@@ -105,6 +105,8 @@ void  setzscale_();
 void  updwire_(long int* avail);
 void  foundcolour_(long int* md,long int* nic,long int* ncs,long int* ngs,long int* nzc);
 void  winclr_();
+void  win3dwwc_(long int* menu_char,long int* cl,long int* cr,long int* ct,long int* cb,
+        long int* vl,long int* vr,long int* vt,long int* vb,long int* gw,long int* gh);
 void  win3d_(long int* menu_char,long int* cl,long int* cr,long int* ct,long int* cb,
         long int* vl,long int* vr,long int* vt,long int* vb,long int* gw,long int* gh);
 void  startbuffer_();
@@ -148,19 +150,26 @@ int ixavail();
 
 /* Shared functions in esp_draw.c */
 void  wstxpt_(long int* x,long int* y,char* buff,int len);
+void  textatxywwc_(long int* x,long int* y,char* buff,char* act,long int *n,int len);
 void  textatxy_(long int* x,long int* y,char* buff,char* act,long int *n,int len);
 void  textpixwidth_(char* buff,long int* pixelwidth,int len);
+void  viewtextwwc_(char* msg,long int* linep,long int* side,long int* size,int len);
 void  viewtext_(char* msg,long int* linep,long int* side,long int* size,int len);
 void  findviewtext_(long int* charposp,long int* linep,long int* size,long int* irx,
         long int* iry);
 void  drawswl(int xa,int ya,int xb,int yb);
+void  esymbolwwc_(long int* x,long int* y,long int* sym,long int* size);
 void  esymbol_(long int* x,long int* y,long int* sym,long int* size);
 void  drawpoint(int xa,int ya);
+void  elinewwc_(long int* x,long int* y,long int* operation);
 void  eline_(long int* x,long int* y,long int* operation);
 void  edline_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  edash_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
+void  eswlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
 void  eswline_(long int* x1,long int* y1,long int* x2,long int* y2);
+void  edwlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
 void  edwline_(long int* x1,long int* y1,long int* x2,long int* y2);
+void  echainwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  echain_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  drawdwl(int xa,int ya,int xb,int yb);
 void  drawvwl(int xa,int ya,int xb,int yb,int width);

@@ -20,12 +20,18 @@ intialisation and graphics, using ww. The routines are :-
 	feedbox		:- setup feedback display box
 	winfnt(n)	:- changes the font (various sizes 0...7)
 	wstxpt(x,y,buff,len):-outputs a string beginning at pixel x and y.
+	textatxywwc(x,y,buff,act,n,len):-outputs to file a coloured string beginning at pixel x&y.
 	textatxy(x,y,buff,act,n,len):-outputs a coloured string beginning at pixel x&y.
 	textsizeatxy(x,y,buff,size,act,n,len):-outputs a sized coloured string beginning at pixel x&y.
+	win3dwwc(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gh)
+                        :- opens a viewing box taking into account menu
+                           width and dialogue box.
 	win3d(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gh)
                         :- opens a viewing box taking into account menu
                            width and dialogue box.
 	win3dclr_()     :- clear viewing box.
+	viewtextwwc_(msg,line,side,size,len)
+                        :- writes viewtext attributes to file.
 	viewtext_(msg,line,side,size,len)
                         :- displays a line of text within the viewing
                            box with size and location parameters
@@ -48,20 +54,30 @@ intialisation and graphics, using ww. The routines are :-
 	egdisp_(msg,iw,line,len)
                         :- writes text in the scrolling text display area.
 	egdispclr_()    :- clears scrolling text display at EPAGEW.
+	elinewwc_(x,y,operation)
+                        :- writes eline attributes to file.
 	eline_(x,y,operation)
                         :- draws or moves a line @ pixel location x y.
 	edline_(x1,y1,x2,y2,ipdis)
                         :- draws a dotted line from x1 y1 to x2 y2.
 	edash_(x1,y1,x2,y2,ipdis)
                         :- draws a dashed line from x1 y1 to x2 y2.
+	echainwwc_(x1,y1,x2,y2,ipdis)
+                        :- writes echain attributes to file.
 	echain_(x1,y1,x2,y2,ipdis)
                         :- draws a chained line from x1 y1 to x2 y2.
+	edwlinewwc_(x1,y1,x2,y2)
+                        :- writes edwline attributes to file.
 	edwline_(x1,y1,x2,y2)
                         :- draws a double width line from x1 y1 to x2 y2.
+	eswlinewwc_(x1,y1,x2,y2)
+                        :- writes eswline attributes to file.
 	eswline_(x1,y1,x2,y2)
                         :- draws a single width line from x1 y1 to x2 y2.
 	ecirc_(x,y,rad,operation)
                         :- draws a filled or open circle @ location x y.
+	esymbolwwc_(x,y,sym,size)
+                        :- writes esymbol attributes to file.
 	esymbol_(x,y,sym,size)
                         :- draws one of 32 symbols at location x y.
 	updhelp_(items,nitmsptr,iw,len_items)
@@ -245,6 +261,9 @@ extern profgrdump_();
 extern cpwpk_();
 extern chgazi_();     /* in esrucom/common3dv.F */
 extern chgelev_();    /* in esrucom/common3dv.F */
+extern chgpan_();     /* in esrucom/common3dv.F */
+extern optview_();    /* in esrucom/common3dv.F */
+extern chgzoom_();    /* in esrucom/common3dv.F */
 extern chgeye_();     /* in esrucom/common3dv.F */
 extern chgsun_();     /* in esrucom/common3dv.F */
 extern chgzonpik_();  /* in esrucom/common3dv.F */
@@ -617,7 +636,7 @@ t0=(char *) getenv("EFONT_0");
 if ((t0 == NULL) || (t0  == "") || (strncmp(t0,"    ",4) == 0)) {
   strncpy(font_0,"Ubuntu Mono,Monospace-8:medium",30);
 #ifdef OSX
-  strncpy(font_0,"DejaVu Sans Mono-8:medium",25);
+  strncpy(font_0,"DejaVu Sans Mono-7:medium",25);
 #endif
 } else {
   strcpy(font_0,getenv("EFONT_0"));
@@ -629,7 +648,7 @@ if((fst_0 =  XftFontOpenName(theDisp,0,font_0)) == NULL) {
 if (((t0=(char *) getenv("EFONT_1"))== NULL) || ((t0=(char *) getenv("EFONT_1"))== "")) {
   strncpy(font_1,"Ubuntu Mono,Monospace-9:medium",30);
 #ifdef OSX
-  strncpy(font_1,"DejaVu Sans Mono-9:medium",25);
+  strncpy(font_1,"DejaVu Sans Mono-8:medium",25);
 #endif
 } else {
   strcpy(font_1,getenv("EFONT_1"));
@@ -641,7 +660,7 @@ if((fst_1 = XftFontOpenName(theDisp,0,font_1)) == NULL) {
 if (((t0=(char *) getenv("EFONT_2"))== NULL) || ((t0=(char *) getenv("EFONT_2"))== "")) {
   strncpy(font_2,"Ubuntu Mono,Monospace-10:medium",31);
 #ifdef OSX
-  strncpy(font_1,"DejaVu Sans Mono-10:medium",26);
+  strncpy(font_1,"DejaVu Sans Mono-9:medium",25);
 #endif
 } else {
   strcpy(font_2,getenv("EFONT_2"));
@@ -653,7 +672,7 @@ if((fst_2 = XftFontOpenName(theDisp,0,font_2)) == NULL) {
 if (((t0=(char *) getenv("EFONT_3"))== NULL) || ((t0=(char *) getenv("EFONT_3"))== "")) {
   strncpy(font_3,"Ubuntu Mono,Monospace-11:medium",31);
 #ifdef OSX
-  strncpy(font_3,"DejaVu Sans Mono-11:medium",26);
+  strncpy(font_3,"DejaVu Sans Mono-10:medium",26);
 #endif
 } else {
   strcpy(font_3,getenv("EFONT_3"));
@@ -1564,6 +1583,25 @@ long int *itime,*lix, *liy; /* persistance, position from lower left of the 3dvi
  return;
 }
 
+/* ********* Write a string beginning at pixel x and y to file. ******* */
+void wstxptwwc_(x,y,buff,len)
+char *buff;
+long int *x, *y;       /* x y is the position of the string */
+int  len;        /* len is length passed from fortran */
+{
+ int ilen;
+ f_to_c_l(buff,&len,&ilen);
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*wstxpt\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
+
 /* ********* Write a string beginning at pixel x and y. ******* */
 void wstxpt_(x,y,buff,len)
 char *buff;
@@ -1581,6 +1619,23 @@ int  len;        /* len is length passed from fortran */
  XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
  XftDrawDestroy(draw);
 
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*wstxpt\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
+/* ********* textatxywwc_() write a string at pixel x y to file. ******* */
+void textatxywwc_(x,y,buff,act,n,len)
+long int *x, *y;  /* x y is the position of the string */
+char *buff;
+char *act;        /* single character passed for colour set */
+long int *n;      /* colour index within the set */
+int  len;         /* len is length passed from fortran */
+{
 /* If echo send parameters to wwc file */
  if ( wwc_ok == 1) {
    fprintf(wwc,"*wstxpt\n");
@@ -1648,6 +1703,28 @@ int  len;         /* len is length passed from fortran */
  }
  XftDrawDestroy(draw);
  XSetForeground(theDisp,theGC,fg);
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*wstxpt\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
+/* ********* textsizeatxywwc_() write to file version. ******* */
+/* NOTE: different parameter list from X version */
+void textsizeatxywwc_(x,y,buff,size,act,n,len)
+long int *x, *y; /* x y is the position of the string */
+char *buff;
+long int *size;  /* font size indicator (see below) */
+char *act;       /* single character passed for colour set */
+long int *n;     /* colour index within the set */
+int  len;        /* len is length passed from fortran */
+{
+ int ilen;
+ f_to_c_l(buff,&len,&ilen);
 
 /* If echo send parameters to wwc file */
  if ( wwc_ok == 1) {
@@ -2040,6 +2117,22 @@ this enables the size of the scroll bar to be set*/
   return;
 }
 
+
+/* **************  Open a 3D viewing box attributes to file *************** */
+void win3dwwc_(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gwht)
+ long int	*menu_char,*gw,*gwht;
+ long int	*cl,*cr,*ct,*cb;
+ long int	*vl,*vr,*vt,*vb;
+{
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*win3d\n");
+   fprintf(wwc,"%ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld\n",
+		*menu_char,*cl,*cr,*ct,*cb,*vl,*vr,*vt,*vb,*gw,*gwht);
+ }
+ return;
+} /* win3dwwc_ */
+
 /* **************  Open a 3D viewing box *************** */
 /*
  Passed the character width of the main control menu (menu_char),
@@ -2118,6 +2211,27 @@ void win3dclr_()
   if(network_gpc) scrollvh();
   return;
 }
+
+/* **************  Display text to file *************** */
+/*
+ Write viewtext attribures to file.
+*/
+void viewtextwwc_(msg,linep,side,size,len)
+  char  *msg;              /* character string  */
+  int len;                 /* length from f77   */
+  long int *linep, *side, *size;     /* position indicators */
+{
+  int t_len;
+
+  f_to_c_l(msg,&len,&t_len); if ( t_len < len ) msg[t_len] = '\0';
+
+  if ( wwc_ok == 1) { /* If echo send parameters to wwc file */
+    fprintf(wwc,"*viewtext\n");
+    fprintf(wwc,"%ld %ld %ld\n",*linep,*side,*size);
+    fprintf(wwc,"%s\n",msg);
+  }
+  return;
+} /* viewtextwwc  */
 
 /* **************  Display text in viewing box *************** */
 /*
@@ -2206,6 +2320,33 @@ void findviewtext_(charposp,linep,size,irx,iry)
   winfnt_(&saved_font);                     /* restore font */
   return;
 } /* viewtext  */
+
+
+/* **************  Display teklib tlabel to file ******* */
+/*
+ Write etlabel attributes to file.
+*/
+void etlabelwwc_(msg,x,y,ipos,size,len)
+  char  *msg;       /* character string  */
+  int len;          /* length from f77   */
+  long int *size;   /* font size */
+  long int *ipos;   /* 0=centred, 1=right, 2=centred top,
+                       3=left,4=centered bottom.
+                    */
+  float *x,*y;      /* position in user units */
+{
+  int t_len;
+
+  f_to_c_l(msg,&len,&t_len); if ( t_len < len ) msg[t_len] = '\0';
+
+  if ( wwc_ok == 1) { /* If echo send parameters to wwc file */
+    fprintf(wwc,"*etlabel\n");
+    fprintf(wwc,"%f %f %ld %ld\n",*x,*y,*ipos,*size);
+    fprintf(wwc,"%s\n",msg);
+  }
+  return;
+} /* etlabelwwc */
+
 
 /* **************  Display text as in old teklib tlabel ******* */
 /*
@@ -2335,6 +2476,24 @@ void drawswl(xa,ya,xb,yb)
   XDrawLine(theDisp,win,theGC,xa,ya,xb,yb);
   return;
 }
+
+
+/* *************** ESRU symbol drawing routine to file *************** */
+/*
+ Write esymbol attributes to file.
+*/
+void esymbolwwc_(x,y,sym,size)
+  long int *x, *y, *sym, *size;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*esymbol\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x,*y,*sym,*size);
+  }
+  return;
+}
+
 
 /* *************** ESRU symbol drawing routine. *************** */
 /*
@@ -6097,7 +6256,7 @@ void drawpoint(xa,ya)
   XDrawPoint(theDisp,win,theGC,xa,ya);
 }
 
-/* ******  Routine to trak mouse in view box. ********** */
+/* ******  Routine to track mouse in view box. ********** */
 void trackview_(ichar,irx,iry)
  long int *ichar,*irx,*iry;	/* character returned, mouse position	*/
 {
@@ -6136,14 +6295,14 @@ void trackview_(ichar,irx,iry)
         }
         break;
       case ButtonPress:
-       *irx = x = event.xbutton.x;  *iry = y = event.xbutton.y;
-       *ichar = (long int)event.xbutton.button;
-       if (xboxinside(viewbx,x,y)){
+        *irx = x = event.xbutton.x;  *iry = y = event.xbutton.y;
+        *ichar = (long int)event.xbutton.button;
+        if (xboxinside(viewbx,x,y)){
           no_valid_event = FALSE;
           drawpoint(x,y);
           drawpoint(x+5,y+5);
           break;
-       }
+        }
       case KeyPress:	/* (XKeyEvent)&ev */
         blen = XLookupString((XKeyEvent*)&event,buf,80,&ks,(XComposeStatus *) NULL);
         if(blen > 0) {
@@ -6161,6 +6320,216 @@ void trackview_(ichar,irx,iry)
   XUndefineCursor(theDisp,win);  XDefineCursor(theDisp,win,arrow_cursor); /* turn on arrow cursor */
   return;
 }
+
+/* ******  Routine to allow mouse control in view box without menu. ********** */
+/* assumes azi_avail is 1 (i.e. view control buttons are active) */
+void controlview_()
+{
+  XEvent event;
+  XWindowAttributes wa;
+  KeySym     ks;
+  static char buf[80];
+  int	no_valid_event;
+  int	x,y,butid;
+  int x_old,y_old,ifrlk,idx,idy;
+  static int blen = 0;
+  unsigned int start_height,start_width;
+  long int saved_font,bottom,left;
+
+/* remember position and size of the whole module (so as to detect changes) */
+  XGetWindowAttributes(theDisp,win,&wa);
+  start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width;
+
+  no_valid_event = TRUE;
+  while ( no_valid_event) {
+    XNextEvent(theDisp, &event);
+    switch (event.type) {
+      case VisibilityNotify:
+/* debug fprintf(stderr,"trackview: vis event %d\n",event.xvisibility.state); */
+        if(event.xvisibility.state == 0 ) {
+          refreshenv_();
+        }
+        break;
+      case ConfigureNotify: /* user resized window, clear and then restore dialogue. */
+        XGetWindowAttributes(theDisp,win,&wa);
+        if(start_height == (unsigned int)wa.height && start_width == (unsigned int)wa.width) {	/* no need to update window */
+          no_valid_event = TRUE;
+        }
+        if(start_height != (unsigned int)wa.height || start_width != (unsigned int)wa.width) {	/* window resized so force update */
+/* debug  fprintf(stderr,"trackview detected configure event\n"); */
+          refreshenv_();
+        }
+        break;
+      case ButtonPress:
+        x = event.xbutton.x;  y = event.xbutton.y;
+        butid = (int)event.xbutton.button;
+        if (xboxinside(viewbx,x,y)){
+
+  /* inside graphics display */
+  /* act depending on which button was pressed */
+
+  /* left mouse click */
+  /* if view controls are present, enable freelook until mouse is released */
+          if (butid==1) {
+            if (azi_avail >=1) {
+              x_old=x;
+              y_old=y;
+              no_valid_event = TRUE;
+              while (no_valid_event) {
+                XNextEvent(theDisp,&event);
+                switch (event.type) {
+                  case MotionNotify: /* while mouse is moving track position  */
+                    x = event.xmotion.x; y = event.xmotion.y;
+                    idx=x-x_old; idy=y-y_old;
+                    ifrlk=1;
+                    if (abs(idx)>10) {
+                      chgazi_(&idx,&ifrlk);
+                      x_old=x;
+                    }
+                    if (abs(idy)>10) {
+                      chgelev_(&idy,&ifrlk);
+                      y_old=y;
+                    }
+                    break;
+                  case ButtonRelease:   /* button released so jump out of loop  */
+                    idx=0;
+                    ifrlk=0;
+                    chgazi_(&idx,&ifrlk);
+                    no_valid_event = FALSE;
+                    break;
+                  default:
+                    no_valid_event = TRUE;
+                    break;
+                }
+              }
+            }
+
+  /* right mouse click */
+  /* if view controls are present, enable pan until mouse is released */
+          } else if (butid==3) {
+            if (azi_avail >=1) {
+              x_old=x;
+              y_old=y;
+              no_valid_event = TRUE;
+              while (no_valid_event) {
+                XNextEvent(theDisp,&event);
+                switch (event.type) {
+                  case MotionNotify: /* while mouse is moving track position  */
+                    x = event.xmotion.x; y = event.xmotion.y;
+                    idx=x-x_old; idy=y-y_old;
+                    if (abs(idx)>10 || abs(idy)>10) {
+                      chgpan_(&idx,&idy);
+                      x_old=x; y_old=y;
+                    }
+                    break;
+                  case ButtonRelease:   /* button released so jump out of loop  */
+                    idx=0; idy=0;
+                    chgpan_(&idx,&idy);
+                    no_valid_event = FALSE;
+                    break;
+                  default:
+                    no_valid_event = TRUE;
+                    break;
+                }
+              }
+            }
+
+  /* middle mouse click */
+  /* if view controls are present, return to optimum view bounds */
+          } else if (butid==2) {
+            if (azi_avail>=1) {
+              optview_();
+              no_valid_event = TRUE;
+              while (no_valid_event) {
+                XNextEvent(theDisp,&event);
+                switch (event.type) {
+                  case ButtonRelease:   /* button released so jump out of loop  */
+                    no_valid_event = FALSE;
+                    break;
+                  default:
+                    no_valid_event = TRUE;
+                    break;
+                }
+              }
+            }
+
+  /* mouse wheel up/down */
+  /* if view controls are present, zoom in/out */
+          } else if (butid==4 || butid==5) {
+            if (azi_avail>=1) {
+              idx=butid-3;
+              chgzoom_(&idx);
+              no_valid_event = TRUE;
+              while (no_valid_event) {
+                XNextEvent(theDisp,&event);
+                switch (event.type) {
+                  case ButtonRelease:   /* button released so jump out of loop  */
+                    no_valid_event = FALSE;
+                    break;
+                  default:
+                    no_valid_event = TRUE;
+                    break;
+                }
+              }
+            }
+          }
+        }
+        no_valid_event = TRUE;
+        break;
+
+      case KeyPress:	/* (XKeyEvent)&ev */
+        blen = XLookupString((XKeyEvent*)&event,buf,80,&ks,(XComposeStatus *) NULL);
+
+/* Space bar tells us to exit this loop and return */
+        if(ks==XK_space) {
+          no_valid_event = FALSE;
+
+/* Arrow keys activate rotation buttons as normal */
+        } else if (ks==XK_Left || ks==XK_KP_Left) { /* left arrow pressed */
+          no_valid_event = TRUE;
+          saved_font = current_font; bottom = disp.b_top; left = aziminus_left;
+          dosymbox(aziminus,2,&saved_font,&box_fnt,&bottom,&left,"aziminus",'!');
+        } else if (ks==XK_Right || ks==XK_KP_Right) { /* right arrow pressed */
+          no_valid_event = TRUE;
+          saved_font = current_font; bottom = disp.b_top; left = aziplus_left;
+          dosymbox(aziplus,2,&saved_font,&box_fnt,&bottom,&left,"aziplus",'!');
+        } else if (ks==XK_Up || ks==XK_KP_Up) { /* up arrow pressed */
+          no_valid_event = TRUE;
+          saved_font = current_font; bottom = disp.b_top; left = elevplus_left;
+          dosymbox(elevplus,2,&saved_font,&box_fnt,&bottom,&left,"elevplus",'!');
+        } else if (ks==XK_Down || ks==XK_KP_Down) { /* down arrow pressed */
+          no_valid_event = TRUE;
+          saved_font = current_font; bottom = disp.b_top; left = elevminus_left;
+          dosymbox(elevminus,2,&saved_font,&box_fnt,&bottom,&left,"elevminus",'!');
+        }
+        break;
+    }
+  }
+  if(XPending(theDisp) > 0) {
+    while ( XPending(theDisp) > 0) {
+      XNextEvent (theDisp,&event);	/* flush events */
+    }
+  }
+  return;
+}
+
+
+/* *************** ESRU line drawing routine to file. *************** */
+/*
+ Write eline attributes to file.
+*/
+void elinewwc_(x,y,operation)
+  long int *x, *y, *operation;
+{
+
+/* If echo send parameters to wwc file */
+   if ( wwc_ok == 1) {
+     fprintf(wwc,"*eline\n");
+     fprintf(wwc,"%ld %ld %ld\n",*x,*y,*operation);
+   }
+   return;
+}
+
 
 /* *************** ESRU line drawing routine. *************** */
 /*
@@ -6244,7 +6613,6 @@ void pixel2u_(ux,uy,gx,gy)
 /* *************** General line plotting to wwc file. *************** */
 /*
  As below, but outputs lines to wwc file without drawing them.
-
 */
  void etplotwwc_(ux,uy,updown,sym)
    float *ux, *uy;
@@ -6259,7 +6627,6 @@ void pixel2u_(ux,uy,gx,gy)
      fprintf(wwc,"*etplot\n");
      fprintf(wwc,"%f %f %ld %ld\n",*ux,*uy,*updown,*sym);
     }
-
     return;
   }
 
@@ -6373,6 +6740,22 @@ void etplot_(ux,uy,updown,sym)
   return;
 }
 
+/* *************** Dotted line drawing to file. *************** */
+/*
+ Write edline attributes to file.
+*/
+void edlinewwc_(x1,y1,x2,y2,ipdis)
+  long int *x1, *y1, *x2, *y2, *ipdis;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edline\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
+  }
+  return;
+}
+
 /* *************** Dotted line drawing routine. *************** */
 /*
  This function is passed both sets of pixel co-ords.
@@ -6436,6 +6819,22 @@ void drawdwl(xa,ya,xb,yb)
   return;
 }
 
+/* *************** ESRU double width line to file. *************** */
+/*
+ Writes edwine attributest to file.
+*/
+void edwlinewwc_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edwline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
 /* *************** ESRU double width line drawing routine. *************** */
 /*
  Draws a two pixel wide line between two pixel coordinates.
@@ -6457,6 +6856,21 @@ void edwline_(x1,y1,x2,y2)
   jx = (int) *x2;  jy = (int) *y2;
   XSetLineAttributes(theDisp,theGC,(unsigned int)width,LineSolid,CapNotLast,JoinMiter);
   XDrawLine(theDisp,win,theGC,ix,iy,jx,jy);
+  return;
+}
+
+
+/* *************** ESRU single width line to file. *************** */
+/*
+ Writes eswline attributes to file.
+*/
+void eswlinewwc_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+  if ( wwc_ok == 1 && wwc_macro != 1) {	/* If echo send parameters to wwc file */
+    fprintf(wwc,"*eswline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
   return;
 }
 
@@ -6487,6 +6901,21 @@ void drawvwl(xa,ya,xb,yb,width)
 {
   XSetLineAttributes(theDisp,theGC,(unsigned int)width,LineSolid,CapNotLast,JoinMiter);
   XDrawLine(theDisp,win,theGC,xa,ya,xb,yb);
+}
+
+
+/* *************** ESRU dashed line drawing to file. *************** */
+
+void edashwwc_(x1,y1,x2,y2,ipdis)
+  long int *x1, *y1, *x2, *y2, *ipdis;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edash\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
+  }
+  return;
 }
 
 /* *************** ESRU dashed line drawing routine. *************** */
@@ -6592,6 +7021,23 @@ void edash_(x1,y1,x2,y2,ipdis)
     dash_on++;                        /* flip status           */
     if(dash_on > 1) dash_on = 0;
     if(dash_on == 1)XDrawLine(theDisp,win,theGC,ixl,iyl,ix2,iy2);  /* complete frac of dash */
+  }
+  return;
+}
+
+
+/* *************** ESRU chained line drawing routine. *************** */
+/*
+ Echainwwc writes chained line instructions to file.
+*/
+void echainwwc_(x1,y1,x2,y2,ipdis)
+  long int *x1, *y1, *x2, *y2, *ipdis;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*echain\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
   }
   return;
 }
@@ -7168,6 +7614,34 @@ void labelstr(n,val,WticC,sstr)
 } /* labelstr */
 
 
+/* ************** VRTAXISDDWWC *********************** */
+/*
+ Write to file vertical axis attributes.
+*/
+
+void vrtaxisddwwc_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
+
+ float *ymn, *ymx,  *yadd, *sca, *dddy;
+ long int  *offl,*offb, *offt, *mode, *nny, *side;
+ int  mlen;
+ char  *msg;
+{
+ int ilen;
+ char msg2[80];
+
+ f_to_c_l(msg,&mlen,&ilen); strncpy(msg2,msg,(unsigned int)ilen); msg2[ilen] = '\0';
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+    fprintf(wwc,"*vrtaxis\n");
+    fprintf(wwc,"%f %f %ld %ld %ld %f %f %ld %ld\n",
+		*ymn,*ymx,*offl,*offb,*offt,*yadd,*sca,*mode,*side);
+    fprintf(wwc,"%s\n",msg2);
+ }
+ return;
+} /* vrtaxisddwwc */
+
+
 /* ************** VRTAXISDD *********************** */
 /*
  Construct and draw a vertical axis via where: YMN,YMX are the data
@@ -7331,6 +7805,32 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
   XftDrawDestroy(draw);
   return;
 } /* vrtaxsdd_ */
+
+
+/* ************** HORAXSddwwc *********************** */
+/*
+ Write horizontal axis attributes to file.
+*/
+
+void horaxisddwwc_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
+
+ float *xmn, *xmx, *sca, *xadd, *dddx;
+ long int   *offl,*offr,*offb, *mode, *nnx;
+ int   mlen;
+ char  *msg;
+{
+ int ilen;
+ char msg2[80];
+
+ f_to_c_l(msg,&mlen,&ilen); strncpy(msg2,msg,(unsigned int)ilen); msg2[ilen] = '\0';
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*horaxis\n");
+   fprintf(wwc,"%f %f %ld %ld %ld %f %f %ld\n",
+                *xmn,*xmx,*offl,*offr,*offb,*xadd,*sca,*mode);
+   fprintf(wwc,"%s\n",msg2);
+ }
+ return;
+} /* horaxisddwwc_ */
 
 
 /* ************** HORAXSdd *********************** */
@@ -8661,9 +9161,9 @@ point*/
         doitbox(setup,"fonts  ",7,9,&saved_font,&box_fnt,&bottom,&left,"setup",'!');
       } else if (cpw_avail >=1 && xboxinside(cpw,x,y)) {
 
-/* selected license */
+/* selected licence */
         saved_font = current_font; bottom = b_cpw; left = l_cpw;
-        doitbox(cpw,"license",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'!');
+        doitbox(cpw,"licence",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'!');
       } else if (cfg_boxs == 0 && xboxinside(cfgz,x,y)) {
 
 /* Check buttons inside graphics feedback.  If in button then do required
@@ -8794,40 +9294,118 @@ point*/
       } else if (xboxinside(viewbx,x,y)){
 
 /* inside graphics display */
+/* act depending on which button was pressed */
+
+/* left mouse click */
 /* if view controls are present, enable freelook until mouse is released */
-        if (azi_avail >=1) {
-          x_old=x;
-          y_old=y;
-          no_valid_event = TRUE;
-          while ( no_valid_event) {
-            XNextEvent(theDisp,event);
-            switch (event->type) {
-              case MotionNotify: /* while mouse is moving track position  */
-                x = event->xmotion.x; y = event->xmotion.y;
-                idx=x-x_old; idy=y-y_old;
-                ifrlk=1;
-                if (abs(idx)>10) {
+        if (butid==1) {
+          if (azi_avail >=1) {
+            x_old=x;
+            y_old=y;
+            no_valid_event = TRUE;
+            while (no_valid_event) {
+              XNextEvent(theDisp,event);
+              switch (event->type) {
+                case MotionNotify: /* while mouse is moving track position  */
+                  x = event->xmotion.x; y = event->xmotion.y;
+                  idx=x-x_old; idy=y-y_old;
+                  ifrlk=1;
+                  if (abs(idx)>10) {
+                    chgazi_(&idx,&ifrlk);
+                    x_old=x;
+                  }
+                  if (abs(idy)>10) {
+                    chgelev_(&idy,&ifrlk);
+                    y_old=y;
+                  }
+                  break;
+                case ButtonRelease:   /* button released so jump out of loop  */
+                  idx=0;
+                  ifrlk=0;
                   chgazi_(&idx,&ifrlk);
-                  x_old=x;
-                }
-                if (abs(idy)>10) {
-                  chgelev_(&idy,&ifrlk);
-                  y_old=y;
-                }
-                break;
-              case ButtonRelease:   /* button released so jump out of loop  */
-                idx=0;
-                ifrlk=0;
-                chgazi_(&idx,&ifrlk);
-                no_valid_event = FALSE;
-                break;
-              default:
-                no_valid_event = TRUE;
-                break;
+                  no_valid_event = FALSE;
+                  break;
+                default:
+                  no_valid_event = TRUE;
+                  break;
+              }
             }
           }
+          but_rlse=5;
+
+/* right mouse click */
+/* if view controls are present, enable pan until mouse is released */
+        } else if (butid==3) {
+          if (azi_avail >=1) {
+            x_old=x;
+            y_old=y;
+            no_valid_event = TRUE;
+            while (no_valid_event) {
+              XNextEvent(theDisp,event);
+              switch (event->type) {
+                case MotionNotify: /* while mouse is moving track position  */
+                  x = event->xmotion.x; y = event->xmotion.y;
+                  idx=x-x_old; idy=y-y_old;
+                  if (abs(idx)>10 || abs(idy)>10) {
+                    chgpan_(&idx,&idy);
+                    x_old=x; y_old=y;
+                  }
+                  break;
+                case ButtonRelease:   /* button released so jump out of loop  */
+                  idx=0; idy=0;
+                  chgpan_(&idx,&idy);
+                  no_valid_event = FALSE;
+                  break;
+                default:
+                  no_valid_event = TRUE;
+                  break;
+              }
+            }
+          }
+          but_rlse=5;
+
+/* middle mouse click */
+/* if view controls are present, return to optimum view bounds */
+        } else if (butid==2) {
+          if (azi_avail>=1) {
+            optview_();
+            no_valid_event = TRUE;
+            while (no_valid_event) {
+              XNextEvent(theDisp,event);
+              switch (event->type) {
+                case ButtonRelease:   /* button released so jump out of loop  */
+                  no_valid_event = FALSE;
+                  break;
+                default:
+                  no_valid_event = TRUE;
+                  break;
+              }
+            }
+          }
+          but_rlse=5;
+
+/* mouse wheel up/down */
+/* if view controls are present, zoom in/out */
+        } else if (butid==4 || butid==5) {
+          if (azi_avail>=1) {
+            idx=butid-3;
+            chgzoom_(&idx);
+            no_valid_event = TRUE;
+            while (no_valid_event) {
+              XNextEvent(theDisp,event);
+              switch (event->type) {
+                case ButtonRelease:   /* button released so jump out of loop  */
+                  no_valid_event = FALSE;
+                  break;
+                default:
+                  no_valid_event = TRUE;
+                  break;
+              }
+            }
+          }
+          but_rlse=5;
         }
-        but_rlse=5;
+
       }
     XftDrawDestroy(draw);
     return (but_rlse);
@@ -8907,7 +9485,7 @@ void refreshenv_()
    return;
 } /* refreshenv */
 
-/* ******  Place license button on screen ********** */
+/* ******  Place licence button on screen ********** */
 /* Place towards the right side of window and just above the base. */
 void opencpw_()
 {
@@ -8918,11 +9496,11 @@ void opencpw_()
  saved_font = current_font; cpwfont=4;
  if (saved_font != butn_fnt) winfnt_(&butn_fnt);
  label_ht = f_height+4;
- cpw_avail = 1;             /* tell the world that license is available */
+ cpw_avail = 1;             /* tell the world that licence is available */
  if (dialogue_lines != 0) { b_cpw = msgbx.b_top -6; } else { b_cpw = xrt_height -16; }
  l_cpw= xrt_width - ((f_width * 10) + 3);
  bottom = b_cpw; left = l_cpw;
- doitbox(cpw,"license",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'-');
+ doitbox(cpw,"licence",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'-');
  return;
 } /* opencpw */
 

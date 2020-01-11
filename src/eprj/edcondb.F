@@ -49,12 +49,12 @@ C Parameters
       integer imatarrayindex ! is the returned index in matdatarray
 
       common/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/exporttg/xfile,tg,delim
       COMMON/exporttgi/ixopen,ixloc,ixunit
-      LOGICAL OK,DOK,MODDB
+      LOGICAL OK,MODDB
 
 C CLSDES (30 char) is an array for menu items listing each class.
 C CLSSEL (36 char) is an array for menu items for the selected class.
@@ -192,9 +192,8 @@ C Changes were made so remove the existing file via delfiledosorunix
 C and write a new file based on current common blocks. If the original
 C file was binary then alter the name of the saved file to add a '.a'
 C at the end.
-          dok=.true.
-          CALL ASKOK('Changes have been made in this file. ',
-     &      'Save the materials changes?',OK,dok,nbhelp)
+          CALL EASKOK(' ',
+     &      'Save materials changes?',OK,nbhelp)
           if(.NOT.OK)then
             IMFS=lastmenufont    ! reset to original proportional font
             ITFS=lasttextfont
@@ -228,8 +227,7 @@ C            call delfiledosorunix(lltmp,ider)
               write(lworking,'(3a)') standarddbpath(1:lndbp),fs,
      &          LFMAT(1:lnblnk(LFMAT))
             endif
-C Debug.
-C            write(6,*) 'working materials ',lworking
+
             CALL mkascimat(IAF,lworking,IER)
           endif
 
@@ -272,7 +270,7 @@ C List one or more classifications.
           write(xfile,'(a)') 'material_listing.txt'  ! initial file name
           call ctlexp(xfile,ixopen,ixloc,ixunit,'T','prim db text',IER)
 
-C If user canceled the listing the reset unit to iuout and loop back.
+C If user cancelled the listing the reset unit to iuout and loop back.
           if(ier.eq.-3)then
             itu = iuout
             goto 40
@@ -575,9 +573,8 @@ C Changes were made so remove the existing file via delfiledosorunix
 C and write a new file based on current common blocks. If the original
 C file was binary then alter the name of the saved file to add a '.a'
 C at the end.
-            dok=.true.
-            CALL ASKOK('Changes have been made in this file. ',
-     &        'Save the materials changes?',OK,dok,nbhelp)
+            CALL EASKOK(' ',
+     &          'Save materials changes?',OK,nbhelp)
             if(.NOT.OK)then
               CALL EPMENRC   ! recover initial menu state
               IMFS=lastmenufont    ! reset to original proportional font
@@ -612,8 +609,7 @@ C              call delfiledosorunix(lltmp,ider)
                 write(lworking,'(3a)') standarddbpath(1:lndbp),fs,
      &            LFMAT(1:lnblnk(LFMAT))
               endif
-C Debug.
-C              write(6,*) 'working materials ',lworking
+
               CALL mkascimat(IAF,lworking,IER)
             endif
 
@@ -649,9 +645,8 @@ C a new file via mkascimat. If it was an older file format
 C and the user has not made any changes confirm that the
 C file is to be updated.
           IF(.NOT.MODDB)THEN
-            dok=.true.
-            CALL ASKOK('No changes in the materials file. Do you want',
-     &        'to update it anyway:',OK,dok,nbhelp)
+            CALL EASKOK('No changes detected!',
+     &        'Update file anyway?',OK,nbhelp)
             if(.NOT.OK)then
               goto 3  ! jump back to inner menu without doing anything
             endif
@@ -689,23 +684,23 @@ C material database.
 
 C Reset flag to show db is current with local arrays.
           MODDB=.FALSE.
-          CALL USRMSG(' ','Changes saved...','-')
+          CALL USRMSG(' ','Changes saved ...','-')
 
         ELSEIF(INO.EQ.NITMS-3)THEN
 
 C Add delete or copy material from db.
-          CALL EASKATOG('Options: ',' ','Delete existing material',
-     &      'Add material','Derive non-homogeneous material',
-     &      'copy existing material','cancel','  ','  ',IW,nbhelp)
+          CALL EASKATOG('Options: ',' ','delete existing',
+     &      'add new','derive non-homogeneous material',
+     &      'copy existing','cancel','  ','  ',IW,nbhelp)
           IF(IW.EQ.1)THEN
 
 C Ask the user which material to remove (use the managearray list of material
 C names created in the do 30 loop above) then loop through materials and
 C copy the contents of material > IWHICH into the next lower one.
-            CALL USRMSG(' ',' Which item of list? ','-')
+            CALL USRMSG(' ',' Which item from list?','-')
             INPIC=1
             CALL EPMENSV
-            CALL EPICKS(INPIC,iwhichmsel,'Delete which material',
+            CALL EPICKS(INPIC,iwhichmsel,'Delete which material?',
      &        'Confirm:',32,matcatitems(IC),managearray,
      &        'Material to delete',IER,nbhelp)
             CALL EPMENRC
@@ -1099,15 +1094,14 @@ C Re-establish secondary menu fonts when returning from edonemat.
             iwhich=matlegindex(ifoc)
             write(outs,'(a,i3,4a)') 'Material (',iwhich,') ',
      &        matname(IFOC)(1:lsn),' : ',matdoc(IFOC)(1:48)
-            dok=.true.
-            CALL ASKOK(outs,'Use it:',OK,dok,1)
+            CALL EASKOK(outs,'Use it?',OK,1)
             if(OK)then
-              imatarrayindex=IFOC ! set to selected array index
+              imatarrayindex=IFOC  ! set to selected array index
               IMFS=lastmenufont    ! reset to proportional font
               ITFS=lasttextfont
               IFS=lastbuttonfont
               call userfonts(IFS,ITFS,IMFS)
-              return              ! task complete return to calling subroutine
+              return               ! task complete return to calling subroutine
             endif
           endif
         ENDIF
@@ -1141,10 +1135,10 @@ C Parameters
       integer icfcarrayindex ! is the returned index in matdatarray
 
       common/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/exporttg/xfile,tg,delim
       COMMON/exporttgi/ixopen,ixloc,ixunit
-      LOGICAL OK,DOK,MODDB
+      LOGICAL OK,MODDB
 
 C CLSDES (30 char) is an array for menu items listing each class.
 C CLSSEL (36 char) is an array for menu items for the selected class.
@@ -1221,7 +1215,7 @@ C Gather the names of the various classes and present this list.
             svcfccat(M)=I
             CALL EMKEY(M-1,KEY,IER)
             WRITE(CLSDES(M),'(A1,1X,A,A,I3,A)')KEY,
-     &      cfccatname(I)(1:26),' (',cfccatitems(I),')'
+     &      cfccatname(I)(1:24),' (',cfccatitems(I),')'
           ENDIF
         ENDIF
    44 CONTINUE
@@ -1383,7 +1377,7 @@ C Add another category to the database << not yet tested >>
           cfccatindex(ILNE)=cfccats  ! remember its category
           cfcdbitems=cfcdbitems+1    ! increment nb of db items
 
-C.........Search for maximum item index in the db and add 1
+C Search for maximum item index in the db and add 1.
           imax=0
           DO J=1,cfcdbitems
             if(cfcitmindex(J).gt.imax)then
@@ -1440,10 +1434,12 @@ C Display the materials of the classification in a menu.
 
         iItem=1
         DO 30 J=1,cfcdbitems
+
 C Loop through all of the items in the array and list out those that are
 C associated with this class.
           if(cfccatindex(J).eq.IC)then
             IF(iItem.GE.IST.AND.(iItem.LE.(IST+MIFULL)))THEN
+
 C Remember the array index that goes with the menu position (m).
               M=M+1
               iwhicharray(M)=J  ! menu position M relates to data array J.
@@ -1500,9 +1496,8 @@ C Changes were made so remove the existing file via delfiledosorunix
 C and write a new file based on current common blocks. If the original
 C file was binary then alter the name of the saved file to add a '.a'
 C at the end.
-            dok=.true.
-            CALL ASKOK('Changes have been made in this file. ',
-     &        'Save the CFC layers changes?',OK,dok,nbhelp)
+            CALL EASKOK(' ',
+     &        'Save CFC layers changes?',OK,nbhelp)
             IF(.NOT.OK)GOTO 4
             chgdb=.true.   ! pass back signal to update
             CALL ERPFREE(IFMUL,ISTAT)  ! in case other unit is still open
@@ -1521,8 +1516,7 @@ C              call delfiledosorunix(lltmp,ider)
               lndbp=lnblnk(standarddbpath)
               write(lworking,'(3a)') standarddbpath(1:lndbp),fs,
      &            LCFCDB(1:lnblnk(LCFCDB))
-C Debug.
-C              write(6,*) 'working materials ',lworking
+
               CALL mkascicfc(IAF,lworking,IER)
             endif
 
@@ -1567,10 +1561,8 @@ C a new file via mkascicfc. If it was an older file format
 C and the user has not made any changes confirm that the
 C file is to be updated.
           IF(.NOT.MODDB)THEN
-            dok=.true.
-            CALL ASKOK(
-     &        'No changes in the CFC layers file. Do you want',
-     &        'to update it anyway:',OK,dok,nbhelp)
+            CALL EASKOK('No changes detected',
+     &        'Update file anyway?',OK,nbhelp)
             if(.NOT.OK)then
               goto 3  ! jump without doing anything
             endif
@@ -1593,19 +1585,19 @@ C            call delfiledosorunix(lltmp,ider)
 
 C Reset flag to show db is current with local arrays.
           MODDB=.FALSE.
-          CALL USRMSG(' ','Changes saved...','-')
+          CALL USRMSG(' ','Changes saved ...','-')
 
         ELSEIF(INO.EQ.NITMS-3)THEN
 
 C Add, delete or copy CFC layer from db.
-          CALL EASKATOG('Options: ',' ','Delete CFC layer',
-     &      'Add CFC layer',
+          CALL EASKATOG('Options: ',' ','delete CFC layer',
+     &      'add CFC layer',
      &      'copy CFC layer','cancel',' ',' ','  ',IW,nbhelp)
           IF(IW.EQ.1)THEN
 
 C Ask the user which one to remove then loop through CFC layers and
 C copy the contents of CFC layer > IWHICH into the next lower one.
-            CALL USRMSG(' ',' Which item of list? ','-')
+            CALL USRMSG(' ',' Which item from list?','-')
             CALL EMENU('Delete CFC layer',PDBM,NITMS,IW)
             IWHICH=iwhicharray(IW)
             DO 791 IVV=IWHICH,cfcdbitems-1
@@ -1681,7 +1673,7 @@ C Add a CFC layer, initiate it to the values of last material in class.
                 cfcdbthick(ILNE)=cfcdbthick(lastcatitem)
                 cfccatindex(ILNE)=cfccatindex(lastcatitem)  ! keep in same category
 
-C...............Search for maximum item index in the db and add 1
+C Search for maximum item index in the db and add 1.
                 imax=0
                 DO J=1,cfcdbitems
                   if(cfcitmindex(J).gt.imax)then
@@ -1765,7 +1757,7 @@ C and then resetn MODDB and chgdb if mod is true.
 C Copy an existing CFC layer to a new one at end of the array.
 C Use iwhicharray to go from the menu position to the array
 C end of the array.  
-            CALL USRMSG(' ',' Which item of list?','-')
+            CALL USRMSG(' ',' Which item from list?','-')
             CALL EMENU('Copy CFC layer',PDBM,NITMS,IW)
             IWHICH=iwhicharray(IW)
             ILNE=cfcdbitems+1
@@ -1789,7 +1781,7 @@ C If there is room add a note about its origin.
             cfcdbthick(ILNE)=cfcdbthick(IWHICH)
             cfccatindex(ILNE)=cfccatindex(IWHICH)  ! keep in same category
 
-C...........Search for maximum item index in the db and add 1
+C Search for maximum item index in the db and add 1
             imax=0
             DO J=1,cfcdbitems
               if(cfcitmindex(J).gt.imax)then
@@ -1798,7 +1790,7 @@ C...........Search for maximum item index in the db and add 1
             END DO
             cfcitmindex(ILNE)=imax+1
 
-C...........CFC shade or fill gas layer attributes
+C CFC shade or fill gas layer attributes
             CFCshdtp(ILNE) = CFCshdtp(IWHICH)
             CFCsolreflout(ILNE) = CFCsolreflout(IWHICH)
             CFCsolreflin(ILNE) = CFCsolreflin(IWHICH)
@@ -1897,8 +1889,7 @@ C and then resetn MODDB and chgdb if mod is true.
             CALL EDISP248(iuout,cfcdoc(IFOC),90)
             write(outs,'(4a)') 'CFC layer ',
      &        cfcname(IFOC)(1:lsn),' : ',cfcdoc(IFOC)(1:48)
-            dok=.true.
-            CALL ASKOK(outs,'Use it:',OK,dok,1)
+            CALL EASKOK(outs,'Use it?',OK,1)
             if(OK)then
               icfcarrayindex=IFOC ! set to selected array index
               return
@@ -1930,7 +1921,7 @@ C Passed parameters.
       logical mod    ! set to true if modified
       integer ier    ! non-zero if there is an issue
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION PELM(30)
       CHARACTER PELM*40,tnam*32,tdoc*248,message*32
@@ -1938,7 +1929,7 @@ C Passed parameters.
       real IRTRAN,SOLDRTRN,soldrotrfl,soldrinrfl,vistran
       real visotrfl,visinrfl,render
       real airg1,airg2,airg3  ! for gap resistance
-      logical modify,dok,ok
+      logical modify,ok
 
 C Local variables for gas materials.
       integer jsur   ! for radio button
@@ -2039,9 +2030,7 @@ C Help text for this menu.
 C If there has been a modification check with user prior to
 C updating the common blocks.
         if(modify)then
-          dok=.true.
-          CALL ASKOK(' ','Accept changes in material (see help)?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Accept changes?',OK,nbhelp)
           if(OK)then
             write(matname(index),'(a)') tnam(1:lnblnk(tnam))
             write(matdoc(index),'(a)') tdoc(1:lnblnk(tdoc))
@@ -2290,7 +2279,7 @@ C Passed parameters.
       DIMENSION PELM(30)
       CHARACTER PELM*40,tnam*32,tdoc*248,message*32
       real DBCON,DBDEN,DBSHT,THICK
-      logical modify,dok,ok
+      logical modify,ok
 
 C.....CFC shade or fill gas layer attributes
       real locCFCsolreflout
@@ -2326,7 +2315,7 @@ C.....CFC shade or fill gas layer attributes
       integer locCFCfillKr
       integer locCFCfillXe
       integer locCFCfillSF6
-      character locCFC_IGDB_ID*8
+      character locCFC_IGDB_ID*6  ! to match f90 module definition
 
 C Local variables for gas materials.
       integer jsur   ! for radio button
@@ -2393,9 +2382,9 @@ C Work with local variables.
    3  IW=-4
       WRITE(PELM(1),'(A,1X,A)')    'a Name:',tnam(1:32)
       WRITE(PELM(2),'(A,1X,A)')    'b Note:',tdoc(1:32)
-      WRITE(PELM(3),'(A,1X,F9.3)') 'c Conductivity (W/(m-K)  :',DBCON
-      WRITE(PELM(4),'(A,1X,F8.2)') 'd Density (kg/m**3)      :',DBDEN
-      WRITE(PELM(5),'(A,1X,F8.2)') 'e Specific Heat (J/(kg-K):',DBSHT
+      WRITE(PELM(3),'(A,1X,F9.3)') 'c Conductivity (W/(m.K)  :',DBCON
+      WRITE(PELM(4),'(A,1X,F8.2)') 'd Density (kg/m^3)      :',DBDEN
+      WRITE(PELM(5),'(A,1X,F8.2)') 'e Specific Heat (J/(kg.K):',DBSHT
       WRITE(PELM(6),'(A,F9.2)')    'k Default thickness (mm) :',THICK
 
 
@@ -2560,9 +2549,8 @@ C.......sum to 100%, alert user and goto 3
 C If there has been a modification check with user prior to
 C updating the common blocks.
         if(modify)then
-          dok=.true.
-          CALL ASKOK(' ','Accept changes in CFC layer (see help)?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Accept changes in CFC layer?',
+     &      OK,nbhelp)
           if(OK)then
             write(cfcname(index),'(a)') tnam(1:lnblnk(tnam))
             write(cfcdoc(index),'(a)') tdoc(1:lnblnk(tdoc))
@@ -2627,15 +2615,15 @@ C updating the common blocks.
           modify=.true.
         endif
       ELSEIF(IW.EQ.3)THEN
-        CALL EASKR(DBCON,'Conductivity (W/(m deg.C)','confirm:',
+        CALL EASKR(DBCON,'Conductivity (W/(m.K)','confirm:',
      &    0.001,'W',300.,'W',1.,'conductivity',IER,nbhelp)
         modify=.true.
       ELSEIF(IW.EQ.4)THEN
-        CALL EASKR(DBDEN,'Density (kg/m**3)','confirm:',
+        CALL EASKR(DBDEN,'Density (kg/m^3)','confirm:',
      &    1.0,'W',9000.,'W',100.,'density',IER,nbhelp)
         modify=.true.
       ELSEIF(IW.EQ.5)THEN
-        CALL EASKR(DBSHT,'Specific heat (J/(kg deg.C)','confirm:',
+        CALL EASKR(DBSHT,'Specific heat (J/(kg.K)','confirm:',
      &    1.0,'W',2000.,'W',100.,'specific heat',IER,nbhelp)
         modify=.true.
       ELSEIF(IW.EQ.6)THEN
@@ -3012,13 +3000,11 @@ C Passed parameters
 C MPN is max number of tranparent glazings per multilayer construction
 C If this parameter is changed also change it in subroutine GVALUE
       PARAMETER (MPN=3)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       
       integer ncomp,ncon
       common/C1/NCOMP,NCON
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       
       COMMON/exporttg/xfile,tg,delim
       COMMON/exporttgi/ixopen,ixloc,ixunit
@@ -3027,7 +3013,7 @@ C If this parameter is changed also change it in subroutine GVALUE
 
       integer matarrayindex ! the indes within matdatarray
 
-      LOGICAL OK,DOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,ISZERO,CFCDBOK
+      LOGICAL OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,ISZERO,CFCDBOK
       logical moddb,layermatch,closemat1,closemat2
       logical unixok,modmlc
       DIMENSION IVAL(MGCL)  ! for selecting categories
@@ -3043,7 +3029,7 @@ C If this parameter is changed also change it in subroutine GVALUE
       REAL TRNT(MPN),REF(MPN),OREF(MPN),OEMS(MPN)
       integer IW   ! for radio button
       integer NITMS,INO ! max items and current menu item
-      integer icn1,ii  ! for current connection
+      integer ii  ! for current connection
       integer lnssmlc,lnt32 ! for string lengths
 
 C For help messages
@@ -3180,7 +3166,7 @@ C Check for changes or respond to user request to save.
             mlcdbdoc(1)=
      & 'A V1 format constructions file imported from a legacy file and'
             mlcdbdoc(2)=
-     & 'based on material.db4.a and CFClayers db CFClayers.db1.a'
+     & 'based on material.db and CFClayers db CFClayers.db1.a'
             mlccatname(1)='walls'; lnmlccatname(1)=5
             mlccatmenu(1)='opaque facade constructions'
             mlccatdoc(1)=
@@ -3314,9 +3300,9 @@ C Call ctlexp a 2nd time to close the file.
 
 C Manage the list of constructions.
         IW=1
-        call easkatog('Constructions options:',' ',
-     &    'add (at end of list)','delete','copy','copy & invert',
-     &    'continue',' ',' ',IW,nbhelp)
+        call easkatog(' ','Construction options:',
+     &    'add','delete','copy','copy & invert',
+     &    'cancel',' ',' ',IW,nbhelp)
         if(IW.EQ.1)then
 
 C Add a construction. Update this to account for OPAQ/TRAN/CFC.
@@ -3374,8 +3360,7 @@ C Compact the list by moving all the items in common MLC up one.
           call epkmlc(iwhich,'Delete which construction?',' ',ierr)
           CALL EPMENRC
           if(iwhich.eq.0) goto 2
-          dok=.false.
-          CALL ASKOK(' ',' Are you sure? ',OK,dok,1)
+          CALL EASKOK(' ','Are you sure?',OK,1)
           IF(.NOT.OK)GOTO 2
           moddb = .true.
           chgdb=.true.
@@ -3404,7 +3389,7 @@ C Compact the list by moving all the items in common MLC up one.
           CALL EKPAGE(IPACT)
 
 C At this point update the construction file and then if there are
-C zones in the model update the pointers to ssmlcindex.
+C zones in the model update the pointers to smlcindex.
           CALL EMKAMLD(iuout,IER)
           chgdb=.true.
           moddb=.false.
@@ -3416,13 +3401,12 @@ C Scan for matching MLC for surfaces.
 
 C Find the index of the MLC which matches each surface.
               DO 9994 I=1,NZSUR(icomp)
-                icn1=izstocn(icomp,i)
-                ssmlcindex(icn1)=0  ! assume no matching MLC          
+                smlcindex(icomp,i)=0  ! assume no matching MLC          
                 lnssmlc=lnblnk(SMLCN(icomp,i))
                 do 5 ii=1,nmlc
                   if(SMLCN(icomp,i)(1:lnssmlc).eq.
      &               mlcname(ii)(1:lnmlcname(ii)))then
-                    ssmlcindex(icn1)=ii   ! remember MLC index     
+                    smlcindex(icomp,i)=ii   ! remember MLC index     
                   endif
   5             continue
  9994         continue
@@ -3796,18 +3780,16 @@ C Parameters
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       common/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       integer ncomp,ncon
       common/C1/NCOMP,NCON
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/exporttg/xfile,tg,delim
       COMMON/exporttgi/ixopen,ixloc,ixunit
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       COMMON/GVALCAL/CLAMDA(MMLC)
-      LOGICAL OK,DOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,ISZERO,CFCDBOK
+      LOGICAL OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,ISZERO,CFCDBOK
       logical moddb,layermatch
       logical unixok,modmlc
 
@@ -3961,9 +3943,8 @@ C Now display the menu.
 
 C Changes were made so remove the existing file via delfiledosorunix
 C and write a new file based on current common blocks. << TO DO >>
-          dok=.true.
-          CALL ASKOK('Changes have been made in this file. ',
-     &      'Save the constructions changes?',OK,dok,nbhelp)
+          CALL EASKOK(' ',
+     &      'Save constructions changes?',OK,nbhelp)
           IF(.NOT.OK) return
           chgdb=.true.   ! pass back signal to update
           CALL ERPFREE(IFMUL,ISTAT)  ! in case other unit is still open
@@ -3982,8 +3963,7 @@ C prepended.
             lndbp=lnblnk(standarddbpath)
             write(lworking,'(4a)') standarddbpath(1:lndbp),fs,
      &          LFMUL(1:lnblnk(LFMUL)),'-'
-C Debug.
-C            write(6,*) 'working constructions ',lworking
+
             CALL EMKAMLD2(iuout,IER) ! write it out
           endif
 
@@ -4022,7 +4002,7 @@ C List one or more classifications.
           write(xfile,'(a)') 'construction_listing.txt'  ! initial file name
           call ctlexp(xfile,ixopen,ixloc,ixunit,'T','prim db text',IER)
 
-C If user canceled the listing the reset unit to iuout and loop back.
+C If user cancelled the listing the reset unit to iuout and loop back.
           if(ier.eq.-3)then
             itu = iuout
             IMFS=lastmenufont  ! re-established fixed menu fonts
@@ -4363,9 +4343,8 @@ C Constrain the width of the menu if possible.
 
 C Changes were made so remove the existing file via delfiledosorunix
 C and write a new file based on current common blocks.
-            dok=.true.
-            CALL ASKOK('Changes have been made in this file. ',
-     &        'Save the constructions changes?',OK,dok,nbhelp)
+            CALL EASKOK(' ',
+     &        'Save constructions changes?',OK,nbhelp)
             if(.NOT.OK)then
               CALL EPMENRC   ! recover initial menu state
               IMFS=lastmenufont  ! re-established fixed menu fonts
@@ -4418,9 +4397,8 @@ C Save constructions db with all entities. First delete the
 C existing file via delfiledosorunix and then write
 C a new file via XXXX.
           if(.NOT.MODDB)then
-            dok=.true.
-            CALL ASKOK('No changes in the constructions file. ',
-     &        'Do you want to update it anyway:',OK,dok,nbhelp)
+            CALL EASKOK('No changes detected!',
+     &        'Update file anyway?',OK,nbhelp)
             if(.NOT.OK)then
               IMFS=lastmenufont      ! reset to original proportional font
               IFS=lastbuttonfont
@@ -4445,7 +4423,7 @@ C a new file via XXXX.
 
 C Reset flag to show db is current with local arrays.
           MODDB=.FALSE.
-          CALL USRMSG(' ','Changes saved...','-')
+          CALL USRMSG(' ','Changes saved ...','-')
 
         ELSEIF(INO.EQ.NITMS-3)THEN
 
@@ -4505,9 +4483,9 @@ C Call ctlexp a 2nd time to close the file.
 
 C Manage the list of constructions.
           IW=1
-          call easkatog('Constructions options:',' ',
-     &      'add (at end of list)','delete','copy','copy & invert',
-     &      'continue',' ',' ',IW,nbhelp)
+          call easkatog(' ','Constructions options:',
+     &      'add','delete','copy','copy & invert',
+     &      'cancel',' ',' ',IW,nbhelp)
           if(IW.EQ.1)then
 
 C Add a construction. Update this to account for OPAQ/TRAN/CFC.
@@ -4604,8 +4582,7 @@ C not to do recursive calls use epkmlc rather than EDMLDB2.
             endif
             CALL EPMENRC
             if(iwhich.eq.0) goto 2
-            dok=.false.
-            CALL ASKOK(' ',' Are you sure? ',OK,dok,1)
+            CALL EASKOK(' ','Are you sure?',OK,1)
             IF(.NOT.OK) GOTO 2
             moddb = .true.
             chgdb=.true.
@@ -4652,7 +4629,7 @@ C Find its category and decrement its counter
             CALL EKPAGE(IPACT)
 
 C At this point update the construction file and then if there are
-C zones in the model update the pointers to ssmlcindex.
+C zones in the model update the pointers to smlcindex.
             CALL EMKAMLD(iuout,IER)
             chgdb=.true.
             moddb=.false.
@@ -4664,13 +4641,12 @@ C Scan for matching MLC for surfaces.
 
 C Find the index of the MLC which matches each surface.
                 DO I=1,NZSUR(icomp)
-                  icn1=izstocn(icomp,i)
-                  ssmlcindex(icn1)=0  ! assume no matching MLC          
+                  smlcindex(icomp,i)=0  ! assume no matching MLC          
                   lnssmlc=lnblnk(SMLCN(icomp,i))
                   do ii=1,nmlc
                     if(SMLCN(icomp,i)(1:lnssmlc).eq.
      &                 mlcname(ii)(1:lnmlcname(ii)))then
-                      ssmlcindex(icn1)=ii   ! remember MLC index     
+                      smlcindex(icomp,i)=ii   ! remember MLC index     
                     endif
                   enddo ! of II
                 enddo   ! of I
@@ -5191,7 +5167,7 @@ C Paramters
       integer IER   ! zero is ok, one is a problem
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       common/C1/NCOMP,NCON
@@ -5201,7 +5177,7 @@ C Paramters
       
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       COMMON/GOPT/DG(5),HG(5),UVAL,VTRN,NTL,AB(ME,5),RF(ME),SRF,SAB
-      LOGICAL     OK,DOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      LOGICAL     OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical newgeo  ! to use for testing if new/old geometry file.
 
 
@@ -5664,9 +5640,8 @@ C Linked to another construction, check if it should be updated to match.
               write(outs,'(5a,i4)') 'Construction ',
      &          mlcname(ifoc)(1:lnmlcname(ifoc)),' is linked to ',
      &          mlcsymetric(ifoc)(1:lnmlct),' index ',matsymindex(ifoc)
-              dok=.true.
-              CALL ASKOK(outs,'Update the linked construction as well?',
-     &          OK,dok,nbhelp)
+              CALL EASKOK(outs,
+     &         'Update the linked construction as well?',OK,nbhelp)
               if(OK)then
 
 C Find matching MLC and copy data associated with the current MLC to
@@ -5726,7 +5701,7 @@ C Finally copy temporary data into opposite layer.
 
             call edisp(iuout,'  ')
             call edisp(iuout,
-     &        'Please ensure that you save the constructions...')
+     &        'Please save the constructions ...')
           endif
 
         ENDIF check_CFC2_or_MLC_3
@@ -5780,10 +5755,11 @@ C               "Backflip"
           endif
 
         ELSE  ! we have a non CFC2 mlc
+
 C Adjust layer for desired U-value.
-          CALL EASKABCD('Adjust options: ',' ',
-     &      'Alter (solid) thickness','Alter gap R',
-     &      'Find alternative material','Continue',IW,nbhelp)
+          CALL EASKABCD(' ','Adjust options:',
+     &      '(solid) thickness','gap resistance',
+     &      'alternative material','cancel',IW,nbhelp)
           IF(IW.EQ.1.or.IW.eq.2)THEN
 
 C Report the current U value.
@@ -6023,8 +5999,8 @@ C Process the request.
       ELSEIF(ILED.EQ.NLED-5)THEN
 
 C ! add or delete a Layer.
-        CALL EASKABCD(' Layer options: ',' ',' Delete',
-     &    ' Append @ inside face',' Insert','Continue',IW,nbhelp)
+        CALL EASKABCD(' ','Layer options:','delete',
+     &    'append @ inside surface','insert','cancel',IW,nbhelp)
         IF(IW.EQ.1)THEN
 
 C If number of layers is edited then ask the user which one to remove.
@@ -6110,13 +6086,10 @@ C << to cancel part way through the process.
 
 C Ask if user wishes to browse through materials to find suitable
 C reference. Use (potentially multi-page) elistmat to select via materials array.
-            dok=.true.
             check_CFC2_or_MLC_5:
      &      IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
-              call askok(
-     &          'Change the CFC layer reference via browsing available',
-     &          'CFC layers? (NO keeps the current CFC layer)',
-     &          OK,dok,nbhelp)
+              call easkok(' ','Change the CFC layer reference?',
+     &           OK,nbhelp)
               if(OK)then
                 iwhich = 0
                 CALL ELISTCFC(iwhich,chdb,'-',cfcarrayindex,IER)
@@ -6146,10 +6119,8 @@ C code can recover the details of a confused layer.
 
             ELSE ! check_CFC2_or_MLC_5
 
-              call askok(
-     &          'Change the material reference via browsing available',
-     &          'materials? (NO keeps the current material)',
-     &          OK,dok,nbhelp)
+              call easkok(' ','Change the material reference?',
+     &          OK,nbhelp)
               IF(OK)then
                 iwhich = 0
                 CALL EPMENSV
@@ -6273,11 +6244,6 @@ C Not a gap so set DRAIR to something and set default thickness.
               ENDIF
               VAL=guessthick
 
-C Debug
-C              write(6,*) 'laydesc',LAYDESC(IFOC,ILN)
-C              write(6,*) 'PNAM',PNAM(ILN),iln
-C              write(6,*) 'iprmat',IPRMAT(IFOC,ILN),matarrayindex
-
             ENDIF check_CFC2_or_MLC_5
 
             CALL EASKR(VAL,'Layer thickness (mm)','Confirm:',
@@ -6286,7 +6252,6 @@ C              write(6,*) 'iprmat',IPRMAT(IFOC,ILN),matarrayindex
             DTHK(IFOC,ILN)=VAL*0.001
 
 cx << check CFC min layer thickness here?>>
-
 
           ELSE
             CALL USRMSG(' ',' Exceeds layer limit!','W')
@@ -6304,7 +6269,7 @@ C Check if layers no longer match.
           call ismlcsymmetric(ifoc,layermatcha)
           if(.NOT.layermatcha)then
             call edisp(iuout,'Layers might now be nonsymmetric.')
-            call edisp(iuout,'This will be reconciled when exiting.')
+            call edisp(iuout,'This will be resolved when exiting.')
           endif
         ENDIF
       ELSEIF(ILED.EQ.1)THEN
@@ -6322,17 +6287,18 @@ C If they do then warn the user.
           write(outs,'(a)') ' Checking surface attributes...'
           CALL USRMSG(' ',outs,'-')
           do icc=1,ncon
-            lnssmlc=lnblnk(SMLCN(IC1(icc),IE1(icc))) 
-            lnsn=lnblnk(SNAME(IC1(icc),IE1(icc)))
-            lnso=lnblnk(SOTHER(IC1(icc),IE1(icc),1))
-            if(SMLCN(IC1(icc),IE1(icc))(1:lnssmlc).eq.T32(1:lnt32))then
+            iczn=IC1(icc)        ! and zone
+            icsur=IE1(icc)   ! and surface
+            lnssmlc=lnblnk(SMLCN(iczn,icsur)) 
+            lnsn=lnblnk(SNAME(iczn,icsur))
+            lnso=lnblnk(SOTHER(iczn,icsur,1))
+            if(SMLCN(iczn,icsur)(1:lnssmlc).eq.T32(1:lnt32))then
               WRITE(outs,'(a,I3,1X,F7.2,F5.0,F5.0,1X,A,1X,A,
-     &          1X,A,1X,A,1X,A)')'found: ',icc,
-     &          SSNA(icc),SSPAZI(icc),SSPELV(icc),
-     &          SNAME(IC1(icc),IE1(icc))(1:lnsn),
-     &          SOTF(IC1(icc),IE1(icc)),SVFC(IC1(icc),IE1(icc)),
-     &          SMLCN(IC1(icc),IE1(icc))(1:lnssmlc),
-     &          SOTHER(IC1(icc),IE1(icc),1)(1:lnso)
+     &          1X,A,1X,A,1X,A)')'found: ',icc,SNA(iczn,icsur),
+     &          SPAZI(iczn,icsur),SPELV(iczn,icsur),
+     &          SNAME(iczn,icsur)(1:lnsn),SOTF(iczn,icsur),
+     &          SVFC(iczn,icsur),SMLCN(iczn,icsur)(1:lnssmlc),
+     &          SOTHER(iczn,icsur,1)(1:lnso)
               call edisp(iuout,outs)
               modgeo=.true.
             endif
@@ -6497,7 +6463,7 @@ C Loop to find surfaces which use this construction.
                 write(SOTF(IZ,i),'(a)') mlctype(ifoc)
                 WRITE(outs,'(a,I3,1X,F7.2,F5.0,F5.0,1X,A,1X,A,
      &            1X,A,1X,A,1X,A)')'updated:   ',I,
-     &            SSNA(ioc),SSPAZI(ioc),SSPELV(ioc),SN,SOTF(IZ,i),
+     &            SNA(IZ,i),SPAZI(IZ,i),SPELV(IZ,i),SN,SOTF(IZ,i),
      &            SVFC(IZ,i),SMLCN(IZ,i)(1:lnssmlc),
      &            SOTHER(IZ,i,1)(1:13)
                 call edisp(iuout,outs)
@@ -6544,8 +6510,7 @@ C and reference for materials matches.
   777     CALL EDWINO(SOPT,IER)
           CALL EROPTDB(ITRC,iuout,SOPT,GDESCR,IER)
           IF(IER.EQ.2)THEN
-            dok=.true.
-            CALL ASKOK(' ',' Not found... try again? ',OK,dok,nbhelp)
+            CALL EASKOK('Not found!','Retry?',OK,nbhelp)
             IF(OK)GOTO 777
           ENDIF
           write(mlcoptical(ifoc),'(a)') SOPT
@@ -6585,7 +6550,7 @@ C Loop to find surfaces which use this construction.
                 write(SOTF(IZ,i),'(a)') mlctype(ifoc)
                 WRITE(outs,'(a,I3,1X,F7.2,F5.0,F5.0,1X,A,1X,A,
      &            1X,A,1X,A,1X,A)')'updated:   ',I,
-     &            SSNA(ioc),SSPAZI(ioc),SSPELV(ioc),SN,SOTF(IZ,i),
+     &            SNA(IZ,i),SPAZI(IZ,i),SPELV(IZ,i),SN,SOTF(IZ,i),
      &            SVFC(IZ,i),SMLCN(IZ,i)(1:lnssmlc),
      &            SOTHER(IZ,i,1)(1:13)
                 call edisp(iuout,outs)
@@ -6613,7 +6578,7 @@ C out of date zone construction files.
           enddo  ! of iz
         endif
 
-      ELSEIF(ILED.EQ.7)THEN
+      ELSEIF(ILED.EQ.8)THEN
 
 C Allow linking to inverted construction.
         helptopic='edit_wall_details'
@@ -6623,16 +6588,17 @@ C Allow linking to inverted construction.
      &      'There is no need to link to an `inverted` version of this',
      &      'construction. It is symmetric and ok for partitions.','W')
         elseif(mlcsymetric(ifoc)(1:12).EQ.'NONSYMMETRIC')then
-          dok=.true.
-          CALL ASKOK('Would you like to link this construction to',
-     &      'another which has `inverted` layers?',OK,dok,nbhelp)
+
+          CALL EASKOK(' ',
+     &           'Link construction to one with reversed layers?',
+     &           OK,nbhelp)
           if(OK)then
             if(mlcver.eq.0)then
               call epkmlc(iwhich,
-     &          'Link with which `inverted` construction?',' ',ierr)
+     &          'Link with which reversed construction?',' ',ierr)
             else
               call epkmlc(iwhich,
-     &          'Link with which `inverted` construction?',
+     &          'Link with which reversed construction?',
      &          '(via this global list)',ierr)
             endif
             if(iwhich.eq.0) goto 3
@@ -6670,19 +6636,14 @@ C construction and reset showother.
         endif
       ELSEIF(ILED.GT.8.AND.ILED.LE.NLED-6)THEN
 
-C Edit Layer ...
-C Ask if user wishes to browse through materials to find suitable
-C reference.
-        dok=.true.
+C Edit Layer: ask if user wishes to browse through materials to
+C find suitable reference.
         helptopic='edit_wall_details'
         call gethelptext(helpinsub,helptopic,nbhelp)
 
         check_CFC2_or_MLC_6:
      &  IF(mlctype(ifoc)(1:4).EQ.'CFC2')THEN
-
-          CALL ASKOK(
-     &    'Change the CFC layer reference via browsing available',
-     &    'CFC layers?(NO keeps the current CFC layer)',OK,dok,nbhelp)
+          CALL EASKOK(' ','Change the CFC layer reference?',OK,nbhelp)
           if(OK)then
             iwhich=0
             CALL ELISTCFC(iwhich,chdb,'-',cfcarrayindex,IER)
@@ -6710,9 +6671,7 @@ C menu display.
 
         ELSE ! check_CFC2_or_MLC_6
 
-          CALL ASKOK(
-     &    'Change the material reference via browsing available',
-     &    'materials? (NO keeps the current material)',OK,dok,nbhelp)
+          CALL EASKOK(' ','Change the material reference ?',OK,nbhelp)
           if(OK)then
             iwhich=0
             CALL EPMENSV
@@ -6723,9 +6682,6 @@ C If iwhich came back as a zero then the material actually was
 C the traditional gap so reset matarrayindex.
             if(iwhich.eq.0)then
               matarrayindex=0 
-C Debug.
-C              write(6,*) 'reset matarrayindex for legacy gap',
-C     &          matarrayindex,iwhich
             endif
             if(matopaq(matarrayindex)(1:1).eq.'g'.or.
      &         matopaq(matarrayindex)(1:1).eq.'h'.or.
@@ -6930,14 +6886,14 @@ C for a match against mlcname.
 
 C Depending on the connection type, add the full or half area of surface.
               if(ICT(ic).eq.0.or.ICT(ic).eq.1.or.ICT(ic).eq.2)then
-                areamlc(iz)=areamlc(iz)+SSNA(ic)
-                tareamlc=tareamlc+SSNA(ic)
+                areamlc(iz)=areamlc(iz)+SNA(iz,j)
+                tareamlc=tareamlc+SNA(iz,j)
               elseif(ICT(ic).eq.4.or.ICT(ic).eq.5.or.ICT(ic).eq.3)then
-                areamlc(iz)=areamlc(iz)+SSNA(ic)
-                tareamlc=tareamlc+SSNA(ic)
+                areamlc(iz)=areamlc(iz)+SNA(iz,j)
+                tareamlc=tareamlc+SNA(iz,j)
               else
-                areamlc(iz)=areamlc(iz)+(SSNA(ic)*0.5)
-                tareamlc=tareamlc+(SSNA(ic)*0.5)
+                areamlc(iz)=areamlc(iz)+(SNA(iz,j)*0.5)
+                tareamlc=tareamlc+(SNA(iz,j)*0.5)
               endif
             endif
   43      continue
@@ -7037,7 +6993,7 @@ C allmat presents a list of all materials to select from.
 C Parameters
       integer imatarrayindex ! is the index in matdatarray
 
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION VERT(35)
       CHARACTER VERT*80,KEY*1
 C      character outs*124

@@ -49,7 +49,7 @@ C Parameters passed
       integer ier     ! error state
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
@@ -59,7 +59,7 @@ C Parameters passed
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
-      LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,dok,CFCDBOK
+      LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL UPDGEO,browse,modcfg,close,updoth
 
 C TOTHER is a temporary array for manipulating SOTHER.
@@ -68,6 +68,7 @@ C SO is a tempporary array to hold current surface SOTHER.
       CHARACTER CXSTR*78,outs*124,DESCRC*25
       character SO*24,TOTHER*24
       logical newgeo  ! to use for testing if new/old geometry file.
+      integer icz,ics ! associated zone and surface
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -97,20 +98,21 @@ C Edit item identified by ifoc after reporting on current values.
       CALL EDISP(iuout,outs)
 
 C Remember current surface attribute.
-      ICN=IZSTOCN(IC1(IFOC),IE1(IFOC))
-      WRITE(SO(1),'(A)')SOTHER(IC1(IFOC),IE1(IFOC),1)
-      WRITE(SO(2),'(A)')SOTHER(IC1(IFOC),IE1(IFOC),2)
-      WRITE(SO(3),'(A)')SOTHER(IC1(IFOC),IE1(IFOC),3)
+      ICN=IZSTOCN(IC1(IFOC),IE1(IFOC)) ! remember connection
+      icz=IC1(IFOC); ics=IE1(IFOC)     ! and associated zone surface
+      WRITE(SO(1),'(A)')SOTHER(icz,ics,1)
+      WRITE(SO(2),'(A)')SOTHER(icz,ics,2)
+      WRITE(SO(3),'(A)')SOTHER(icz,ics,3)
 
 C Display the reference zone (if type 3 then display both).
 C Remember the topology attributes for reference zone.
       IUO=IFIL+1
-      call georead(IUO,LGEOM(IC1(IFOC)),IC1(IFOC),0,iuout,IER)
+      call georead(IUO,LGEOM(icz),icz,0,iuout,IER)
       do 322 IJ=1,NSUR
-        ICN=IZSTOCN(IC1(IFOC),IJ)
-        write(TOTHER(IJ,1),'(a)') SOTHER(IC1(IFOC),IE1(IFOC),1)
-        write(TOTHER(IJ,2),'(a)') SOTHER(IC1(IFOC),IE1(IFOC),2)
-        write(TOTHER(IJ,3),'(a)') SOTHER(IC1(IFOC),IE1(IFOC),3)
+        ICN=IZSTOCN(icz,IJ)
+        write(TOTHER(IJ,1),'(a)') SOTHER(icz,ics,1)
+        write(TOTHER(IJ,2),'(a)') SOTHER(icz,ics,2)
+        write(TOTHER(IJ,3),'(a)') SOTHER(icz,ics,3)
   322 continue
       MODIFYVIEW=.TRUE.
       MODBND=.TRUE.
@@ -123,17 +125,17 @@ C has not a type 3 then don`t highlight.
       if(ICT(IFOC).eq.3)then
         LINSTY(IFOC)=2
         nzg=2
-        nznog(1)=IC1(IFOC)
+        nznog(1)=icz
         nznog(2)=IC2(IFOC)
-        CALL SURADJ(IC1(IFOC),IC2(IFOC),IE,TMP,IZC,ISC,IC,DESCRC)
+        CALL SURADJ(icz,ics,IE,TMP,IZC,ISC,IC,DESCRC)
         LINSTY(IC)=2
-        izgfoc=IC1(IFOC)
+        izgfoc=icz
         CALL redraw(IER)
       else
         LINSTY(IFOC)=2
         nzg=1
-        nznog(1)=IC1(IFOC)
-        izgfoc=IC1(IFOC)
+        nznog(1)=icz
+        izgfoc=icz
         CALL redraw(IER)
       endif
 
@@ -163,9 +165,9 @@ C Editing of items.
         IE2(IFOC)=0
         IC2(IFOC)=0
         if(SO(1)(1:8).ne.'EXTERIOR')then
-          TOTHER(IE1(IFOC),1)='EXTERIOR'
-          TOTHER(IE1(IFOC),2)='0'
-          TOTHER(IE1(IFOC),3)='0'
+          TOTHER(ics,1)='EXTERIOR'
+          TOTHER(ics,2)='0'
+          TOTHER(ics,3)='0'
           UPDGEO=.TRUE.
         endif
       elseif(iart.eq.2)then 
@@ -182,9 +184,9 @@ C Editing of items.
         IC2(IFOC)=INT(VALT)
         IE2(IFOC)=INT(VALW)
         if(SO(1)(1:7).ne.'SIMILAR')then
-          TOTHER(IE1(IFOC),1)='SIMILAR'
-          write(tother(IE1(IFOC),2),'(i2.2)') IC2(ifoc)
-          write(tother(IE1(IFOC),3),'(i3.3)') IE2(ifoc)
+          TOTHER(ics,1)='SIMILAR'
+          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
       elseif(iart.eq.3)then 
@@ -202,9 +204,9 @@ C Editing of items.
      &    IER,nbhelp)
         IE2(IFOC)=INT(VAL)
         if(SO(1)(1:8).ne.'CONSTANT')then
-          TOTHER(IE1(IFOC),1)='CONSTANT'
-          write(tother(IE1(IFOC),2),'(i2.2)') IC2(ifoc)
-          write(tother(IE1(IFOC),3),'(i3.3)') IE2(ifoc)
+          TOTHER(ics,1)='CONSTANT'
+          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
       elseif(iart.eq.4)then 
@@ -222,9 +224,9 @@ C and display both zones.
         CALL INLNST(1)
         LINSTY(IFOC)=2
         nzg=2
-        nznog(1)=IC1(IFOC)
+        nznog(1)=icz
         nznog(2)=IZ
-        izgfoc=IC1(IFOC)
+        izgfoc=icz
         CALL redraw(IER)
         MODIFYVIEW=.TRUE.
         MODBND=.TRUE.
@@ -239,23 +241,22 @@ C and display both zones.
           ICT(IFOC)=3
           IC2(IFOC)=IZ
           IE2(IFOC)=IS
-          TOTHER(IE1(IFOC),1)='ANOTHER'
-          write(tother(IE1(IFOC),2),'(i2.2)') IC2(ifoc)
-          write(tother(IE1(IFOC),3),'(i3.3)') IE2(ifoc)
+          TOTHER(ics,1)='ANOTHER'
+          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
 
 C If applicable find other surface, return it`s connection number and
 C point it to the current surface.
           updoth=.false.
-          dok=.true.
-          CALL ASKOK(' ','Update other side?',updoth,dok,nbhelp)
+          CALL EASKOK(' ','Update other side?',updoth,nbhelp)
           if(updoth)then
             CALL SURADJ(IZ,IS,IE,TMP,IZC,ISC,ICO,DESCRC)
             IC1(ICO)=IZ
             IE1(ICO)=IS
             ICT(ICO)=3
-            IC2(ICO)=IC1(IFOC)
-            IE2(ICO)=IE1(IFOC)
+            IC2(ICO)=icz
+            IE2(ICO)=ics
           endif
         else
           call edisp(iuout,' ')
@@ -293,9 +294,9 @@ C profile has not been defined.
           IC2(IFOC)=iic2
           IE2(IFOC)=0
           if(SO(1)(1:6).ne.'GROUND')then
-            TOTHER(IE1(IFOC),1)='GROUND'
-            write(tother(IE1(IFOC),2),'(i2.2)') IC2(ifoc)
-            write(tother(IE1(IFOC),3),'(i3.3)') IE2(ifoc)
+            TOTHER(ics,1)='GROUND'
+            write(tother(ics,2),'(i2.2)') IC2(ifoc)
+            write(tother(ics,3),'(i3.3)') IE2(ifoc)
             UPDGEO=.TRUE.
           endif
         ELSE
@@ -320,9 +321,9 @@ C profile has not been defined.
           IC2(IFOC)=0
           IE2(IFOC)=iie2
           if(SO(1)(1:6).ne.'GROUND')then
-            TOTHER(IE1(IFOC),1)='GROUND'
-            write(tother(IE1(IFOC),2),'(i2.2)') IC2(ifoc)
-            write(tother(IE1(IFOC),3),'(i3.3)') IE2(ifoc)
+            TOTHER(ics,1)='GROUND'
+            write(tother(ics,2),'(i2.2)') IC2(ifoc)
+            write(tother(ics,3),'(i3.3)') IE2(ifoc)
             UPDGEO=.TRUE.
           endif
         else
@@ -338,9 +339,9 @@ C Link to a 3D conduction model..
         IC2(IFOC)=-3
         IE2(IFOC)=0
         if(SO(1)(1:6).ne.'GROUND')then
-          TOTHER(IE1(IFOC),1)='GROUND'
-          write(tother(IE1(IFOC),2),'(i2.2)') IC2(ifoc)
-          write(tother(IE1(IFOC),3),'(i3.3)') IE2(ifoc)
+          TOTHER(ics,1)='GROUND'
+          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
       elseif(iart.eq.8)then 
@@ -348,9 +349,9 @@ C Link to a 3D conduction model..
         IE2(IFOC)=0
         IC2(IFOC)=0
         if(SO(1)(1:9).ne.'ADIABATIC')then
-          TOTHER(IE1(IFOC),1)='ADIABATIC'
-          write(tother(IE1(IFOC),2),'(i2.2)') IC2(ifoc)
-          write(tother(IE1(IFOC),3),'(i3.3)') IE2(ifoc)
+          TOTHER(ics,1)='ADIABATIC'
+          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
       elseif(iart.eq.9)then 
@@ -375,9 +376,9 @@ C attribute to the surface under consideration.
      &    IER,nbhelp)
         IE2(IFOC)=Ifrac
         if(SO(1)(1:8).ne.'BASESIMP')then
-          TOTHER(IE1(IFOC),1)='BASESIMP'
-          write(tother(IE1(IFOC),2),'(i2.2)') IC2(ifoc)
-          write(tother(IE1(IFOC),3),'(i3.3)') IE2(ifoc)
+          TOTHER(ics,1)='BASESIMP'
+          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
 C BASESIMP end.
@@ -392,9 +393,9 @@ C CEN 13791 partition start
         IC2(IFOC)=INT(VALT)
         IE2(IFOC)=INT(VALW)
         if(SO(1)(1:7).ne.'IDENT_CEN')then
-          TOTHER(IE1(IFOC),1)='IDENT_CEN'
-          write(tother(IE1(IFOC),2),'(i2.2)') IC2(ifoc)
-          write(tother(IE1(IFOC),3),'(i3.3)') IE2(ifoc)
+          TOTHER(ics,1)='IDENT_CEN'
+          write(tother(ics,2),'(i2.2)') IC2(ifoc)
+          write(tother(ics,3),'(i3.3)') IE2(ifoc)
           UPDGEO=.TRUE.
         endif
 C CEN 13791 partition end
@@ -407,22 +408,22 @@ C Update zone geometry if attributes have changed.
       if(browse) return
       if(UPDGEO)then
         call usrmsg(' Updating problem...',' ','-')
-        call georead(IUO,LGEOM(IC1(IFOC)),IC1(IFOC),0,iuout,IER)
+        call georead(IUO,LGEOM(icz),icz,0,iuout,IER)
         do 323 IJ=1,NSUR
-          SOTHER(IC1(IFOC),IJ,1)=TOTHER(IJ,1)
-          SOTHER(IC1(IFOC),IJ,2)=TOTHER(IJ,2)
-          SOTHER(IC1(IFOC),IJ,2)=TOTHER(IJ,3)
-          ICN=IZSTOCN(IC1(IFOC),ij)
+          SOTHER(icz,IJ,1)=TOTHER(IJ,1)
+          SOTHER(icz,IJ,2)=TOTHER(IJ,2)
+          SOTHER(icz,IJ,2)=TOTHER(IJ,3)
+          ICN=IZSTOCN(icz,ij)
   323   continue
-        call eclose(gversion(IC1(IFOC)),1.1,0.01,newgeo)
+        call eclose(gversion(icz),1.1,0.01,newgeo)
         if(igupgrade.eq.2.and.(.NOT.newgeo))then
-          gversion(IC1(IFOC)) =1.1
+          gversion(icz) =1.1
           newgeo = .true.
         endif
         if(newgeo)then
-          call geowrite(IUO,LGEOM(IC1(IFOC)),IC1(IFOC),iuout,3,IER)
+          call geowrite(IUO,LGEOM(icz),icz,iuout,3,IER)
         else
-          call emkgeo(IUO,LGEOM(IC1(IFOC)),IC1(IFOC),3,IER)
+          call emkgeo(IUO,LGEOM(icz),icz,3,IER)
         endif
         IF(IER.NE.0)CALL USRMSG(' ',
      &         ' Problem updating surface attribute...','W')
@@ -448,8 +449,8 @@ C other zone) and write out that zones geometry.
 
         ICN=IZSTOCN(IC2(IFOC),IE2(IFOC))
         SOTHER(IC2(IFOC),IE2(IFOC),1)='ANOTHER'
-        write(SOTHER(IC2(IFOC),IE2(IFOC),2),'(i2.2)') IC1(IFOC)
-        write(SOTHER(IC2(IFOC),IE2(IFOC),3),'(i3.3)') IE1(IFOC)
+        write(SOTHER(IC2(IFOC),IE2(IFOC),2),'(i2.2)') icz
+        write(SOTHER(IC2(IFOC),IE2(IFOC),3),'(i3.3)') ics
 
         call eclose(gversion(IC2(IFOC)),1.1,0.01,newgeo)
         if(igupgrade.eq.2.and.(.NOT.newgeo))then
@@ -622,7 +623,7 @@ C         THETA is measured from the XY plane.
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       DIMENSION COORD(MV,3)

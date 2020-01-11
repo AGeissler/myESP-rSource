@@ -39,8 +39,10 @@ C user's manual.
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -221,7 +223,11 @@ C Read 3D flow network, report contents and draw the network.
           CALL EMF3DREAD(IUM,'S',IER)
           call edisp(iuout,' ')
           CALL MFLIST(iuout)
-          call MFWFDRAW('r')  ! Draw flow network.
+          if(NNOD.gt.50.or.NCMP.gt.50)then
+            call MFWFDRAW('r',0,0)  ! Draw flow network without names if complex
+          else
+            call MFWFDRAW('r',1,1)  ! Draw flow network with names
+          endif 
           CALL ERPFREE(IUM,ISTAT)
           call pauses(1)
         endif
@@ -810,7 +816,7 @@ C to graphical result display.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -835,7 +841,7 @@ C To extend logic to maximize plotting area.
 
       CHARACTER ETEXT*124, RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      CHARACTER PDESCR*60,SDESCR*44,outsd*96,outsd1*124
+      CHARACTER PDESCR*60,SDESCR*44,outsd*124,outsd1*126
       character graftitle*64,grlbl*24,t64*64
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
@@ -969,12 +975,20 @@ C Cast values back depending on machine type.
      &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       endif
       iside=1; isize=0; ifont=1
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
      &  SDESCR(11:lnblnk(SDESCR))
       iside=2
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       if(nzonec.ge.NZ)then
         call colznlist(3,1,ierr)
@@ -983,7 +997,11 @@ C Cast values back depending on machine type.
         if(ierr.ne.1)then
           write(outsd1,'(1x,a)')outsd
           iside=3
-          call viewtext(outsd1,iside,isize,ifont)
+          if(mmod.eq.8)then
+            call viewtext(outsd1,iside,isize,ifont)
+          else
+            call viewtextwwc(outsd1,iside,isize,ifont)
+          endif
         endif
       endif
 
@@ -1027,10 +1045,10 @@ C ****************************************************
 
               SUBROUTINE MOCOPT
               
-      COMMON/OUTIN/IUOUT,IUIN              
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT              
       COMMON/CGHOPT/ERPLOT,TRPLOT,SPPLOT,NCTLGH,ICTLGH,ISP,ITHR
       COMMON/CTLDAT/SPH,SPC,TRH,TRC,ICF,IDTYP,IPER,IBLW,PLTCTL,ILOOP
-      LOGICAL ERPLOT,TRPLOT,SPPLOT,ITHR,ISP,PLTCTL,OK,dok
+      LOGICAL ERPLOT,TRPLOT,SPPLOT,ITHR,ISP,PLTCTL,OK
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1045,19 +1063,15 @@ C      write(6,*) ' Entering MOCOPT'
       CALL EDISP(IUOUT,' ') 
       helptopic='res_control_point_t'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      dok=.false.
-      CALL ASKOK(' ','Plot control error?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Plot control error?',OK,nbhelp)
       IF(OK)ERPLOT=.TRUE.
-      dok=.false.
-      CALL ASKOK(' ','Plot control set-point?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Plot control set-point?',OK,nbhelp)
       IF(OK)SPPLOT=.TRUE. 
-      dok=.false.
-      CALL ASKOK(' ','Plot throttling range?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Plot throttling range?',OK,nbhelp)
       IF(OK)TRPLOT=.TRUE.
-      dok=.true.
-      CALL ASKOK(' ','Plot plant loop(s)? ',OK,dok,nbhelp)
+      CALL EASKOK(' ','Plot plant loop(s)?',OK,nbhelp)
       IF(OK)THEN
-10      CALL EASKI(iloop,' ','Which plant control loop? ',
+10      CALL EASKI(iloop,' ','Which plant control loop?',
      &    1,'F',20,'F',1,'plant loop',IER,nbhelp)
         IF(IER.NE.0)goto 10
       ENDIF
@@ -1102,9 +1116,6 @@ C ****************************************************
 
       LOGICAL ERPLOT,TRPLOT,SPPLOT,ITHR,ISP,PLTCTL
       
-C Debug.
-C      write(6,*) ' Entering MOCDAT'
-
 C If routine called by mogdrw, time may be greater than 24.0;
       TIME=TME
       IF(TIME.GT.24.0)TIME=(TIME-(IDAY-IODS)*24.0)      

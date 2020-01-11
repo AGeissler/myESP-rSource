@@ -36,13 +36,11 @@ C will have been defined prior to calling edmrt.
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/user/browse
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
 
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
       COMMON/MRTF/FFL(MCUB,6,MSM),VEWF(MS,MS)
@@ -53,7 +51,6 @@ C will have been defined prior to calling edmrt.
       COMMON/GFONT/IFS,ITFS,IMFS
 
       DIMENSION VERT(35)
-      DIMENSION SNA(MS),PAZI(MS),PELV(MS)
       LOGICAL concat,cfgmod,browse,clkok,XST
       logical silent,unixok
       CHARACTER VERT*46,LTMP*72
@@ -61,7 +58,6 @@ C will have been defined prior to calling edmrt.
       character doit*248,tmode*8,tfile*72,ZN*12
       character act*1
       character longtfile*144,longtfiledos*144
-      integer icni,icnj  ! connection numbers for pair of surfaces.
       integer MVERT,IVERT ! max items and current menu item
       logical newgeo
       integer ISTRW
@@ -135,17 +131,15 @@ C Set VEWF array in preparation for editing or silent creation.
       call georead(IUF,LGEOM(ICOMP),ICOMP,1,IUOUT,IER)
 
 C << update logic to use alternative source for ZOA rather than call zinfo >>
-      CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+      CALL ZINFO(icomp,ZOA,ZVOL,'q')
       NS=NZSUR(ICOMP)
       DO 111 I=1,NS
         II=I
         DO 201 J=1,NS
           JJ=J
-          icc=izstocn(icomp,ii)
-          jcc=izstocn(icomp,jj)
           VEWF(II,JJ)=0.0
           IF(II.EQ.JJ)goto 201
-          VEWF(II,JJ)=(SSNA(jcc)/(ZOA-SSNA(icc)))
+          VEWF(II,JJ)=(SNA(icomp,jj)/(ZOA-SNA(icomp,ii)))
   201   CONTINUE
   111 CONTINUE
       if(silent)then
@@ -291,17 +285,15 @@ C file is out of date.
      &      'Re-make via ray-tracing calcs','dereferemce',
      &      IW,nbhelp)
           if(IW.eq.1.or.IW.eq.2)then
-            CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+            CALL ZINFO(icomp,ZOA,ZVOL,'q')
             NS=NZSUR(icomp)
             DO I=1,NS
               II=I
               DO 21 J=1,NS
                 JJ=J
-                icc=izstocn(icomp,ii)
-                jcc=izstocn(icomp,jj)
                 VEWF(II,JJ)=0.0
                 IF(II.EQ.JJ)goto 21
-                VEWF(II,JJ)=(SSNA(jcc)/(ZOA-SSNA(icc)))
+                VEWF(II,JJ)=(SNA(icomp,jj)/(ZOA-SNA(icomp,ii)))
    21         CONTINUE
             ENDDO
             if(IW.eq.1)then
@@ -465,9 +457,7 @@ C the zone, obstructions and sensors.
         call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
      &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
         WRITE(etext,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
-        iside=1
-        isize=1
-        ifont=1
+        iside=1; isize=1; ifont=1
         call viewtext(etext,iside,isize,ifont)
       endif
       CALL ESCZONE(ICOMP)
@@ -508,8 +498,6 @@ C List viewfactor contents. Switch to fixed font for text feedback.
         call edisp(itru,' View Factors from Surface to Surface')
         DO 860 I=1,NZS
           DO 850 J=1,NZS
-            ICNI=IZSTOCN(ICOMP,I)
-            ICNJ=IZSTOCN(ICOMP,J)
             WRITE(outs,5203)SNAME(ICOMP,I),I,SNAME(ICOMP,J),J,VEWF(I,J)
  5203       FORMAT(10X,A12,I3,'  to ',A12,I3,' = ',F6.4)
             call edisp(itru,outs)
@@ -589,8 +577,6 @@ C offer the user a chance to re-edit if not close to one.
      &    'Select surface for viewfactor editing.',' ',IER)
   31    do 33 MM=1,NZS
           if(MM.NE.IS)then
-            ICNI=IZSTOCN(ICOMP,IS)
-            ICNJ=IZSTOCN(ICOMP,MM)
             write(outs,'(4A)') ' For ',SNAME(ICOMP,IS),' to ',
      &        SNAME(ICOMP,MM)
             V=VEWF(IS,MM)
@@ -605,9 +591,9 @@ C offer the user a chance to re-edit if not close to one.
           call edisp(iuout,outs)
   33    continue
         IF(ABS(A).LT.0.9.OR.ABS(A).GT.1.002)then
-          write(outs,'(A,F8.5,A)')' currently the total is ',A,
-     &      ' and should be close to zero...please re-edit...'
-          call easkab(outs,' ','re-edit','continue',IW,nbhelp)
+          write(outs,'(A,F8.5,A)')'The total is ',A,
+     &      ' and should be close to zero!'
+          call easkab(outs,'Options:','re-edit','cancel',IW,nbhelp)
           if(iw.eq.1)then
             A=0.0  ! clear the accumulator
             goto 31
@@ -619,24 +605,22 @@ C offer the user a chance to re-edit if not close to one.
 C View factor calculations - offer choice of default viewfactors or
 C call to MRT. Recover information on areas in the current zone for
 C use in area weighted computation.
-        call easkabc(' Zone viewfactor calculations can be either',
-     &    ':','Area weighted','Based on ray-tracing calcs','continue',
+        call easkabc(' ','Viewfactor calculation options:',
+     &    'wrea-weighted','ray-tracing','cancel',
      &    IW,nbhelp)
         if(IW.eq.1)then
 
 C << Rewrite logic to use G7 common blocks rather than call zinfo. >>
 
-          CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+          CALL ZINFO(icomp,ZOA,ZVOL,'q')
           NS=NZSUR(icomp)
           DO 11 I=1,NS
             II=I
             DO 20 J=1,NS
               JJ=J
-              icc=izstocn(icomp,ii)
-              jcc=izstocn(icomp,jj)
               VEWF(II,JJ)=0.0
               IF(II.EQ.JJ)goto 20
-              VEWF(II,JJ)=(SSNA(jcc)/(ZOA-SSNA(icc)))
+              VEWF(II,JJ)=(SNA(icomp,jj)/(ZOA-SNA(icomp,ii)))
    20       CONTINUE
    11     CONTINUE
         elseif(IW.eq.2)then
@@ -680,8 +664,8 @@ C an offset from prj start position.
           helptopic='pause_for_calcs'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('espvwf running',nbhelp,'-',0,0,IER)
-          CALL EASKABC(' Post calculation choices :',' ',
-     &      'use new data','revert (no viewfactors)','continue',
+          CALL EASKABC(' ','Post calculation options:',
+     &      'use new data','revert (no view factors)','cancel',
      &      irt,nbhelp)
           if(irt.eq.1)then
 
@@ -733,7 +717,7 @@ C EDMRTS: Edit details of a MRT sensor block.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       DIMENSION VERT(15)

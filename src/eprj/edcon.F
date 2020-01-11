@@ -53,7 +53,7 @@ C geometry.h provides commons G0/G2/c20/precz.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
@@ -68,7 +68,7 @@ C geometry.h provides commons G0/G2/c20/precz.
       common/user/browse
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
-      LOGICAL OK,DOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      LOGICAL OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL browse,savereturn
 
       DIMENSION VERT(35),libcmt(MTMC)
@@ -166,12 +166,12 @@ C Refresh the index of the MLC which matches each surface.
       do I=1,NZSUR(icomp)
         icn1=izstocn(icomp,i)
         if(icn1.ge.1)then
-          ssmlcindex(icn1)=0  ! assume no matching MLC          
+          smlcindex(icomp,i)=0  ! assume no matching MLC          
           lnssmlc=lnblnk(SMLCN(icomp,i))
           do ii=1,nmlc
             if(SMLCN(icomp,i)(1:lnssmlc).eq.
      &         mlcname(ii)(1:lnmlcname(ii)))then
-              ssmlcindex(icn1)=ii   ! remember MLC index     
+              smlcindex(icomp,i)=ii   ! remember MLC index     
             endif
           enddo
         endif
@@ -303,11 +303,9 @@ C        write(6,*) icn1,SOTF(icomp,is),ITMCFL(ICOMP,IS),inoti
      &      ITMCFL(ICOMP,IS).ne.0)then
           if(inoti.eq.0)then
             write(outs,'(A,A)')SNAME(icomp,is),' is opaque.'
-            dok=.true.
             helptopic='confirm_surf_opaque'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL ASKOK(outs,'Confirm surface is opaque?',
-     &        OK,DOK,nbhelp)
+            CALL EASKOK(outs,'Confirm?',OK,nbhelp)
             if(OK)then
               ITMCFL(ICOMP,IS)=0
               SOTF(ICOMP,IS)='OPAQUE'
@@ -500,9 +498,7 @@ C has resized the display, redraw.
         call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
      &               iicfgz,iicfgn,iicfgc,iicfgdfn)
         WRITE(etext,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
-        iside=1
-        isize=1
-        ifont=2
+        iside=1; isize=1; ifont=2
         call viewtext(etext,iside,isize,ifont)
       endif
 
@@ -520,11 +516,11 @@ C Now display the menu.
       ELSEIF(IVERT.EQ.MVERT)THEN
         if(browse)return
         if(MODGEO.OR.MODCON)then
-          dok=.true.
           helptopic='attribute_recent_change'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK('Save changes in surface attributes or',
-     &    ' constructions before exiting?',OK,dok,nbhelp)
+          CALL EASKOK(' ',
+     &      'Save changes to surface attributes or constructions?',
+     &       OK,nbhelp)
           if(.NOT.OK)RETURN
           savereturn=.false.
           goto 43
@@ -636,12 +632,11 @@ C and save the system configuration file.
         call tstamp('>','PRJ: save zone construction')
         CALL EMKCON(LTHRM(ICOMP),IUF,ICOMP,QUIET,IER)
         IF(IER.EQ.1)THEN
-          dok=.true.
           helptopic='constr_write_error'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(
-     &      ' Problem detected while saving the thermophysical',
-     &      ' properties..try again? (see help)',OK,dok,nbhelp)
+          CALL EASKOK(
+     &     'Problem detected while saving thermophysical properties!',
+     &     'Retry?',OK,nbhelp)
           IF(OK)then
             goto 88
           else
@@ -651,8 +646,8 @@ C and save the system configuration file.
         endif
         CALL EMKCFG('-',IER)
       else
-        call usrmsg('Cannot save model while in browse ',
-     &              'mode, you must `own` the model! ','W')
+        call usrmsg('Cannot save model in browse mode,',
+     &              'you must own it!','W')
         goto 92
       endif
 
@@ -728,11 +723,9 @@ C----------------
 
 C If geometry info has changed then save it as well.
       IF(MODGEO)THEN
-        dok=.true.
         helptopic='attribute_recent_change'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Save zone geometry to reflect recent changes',
-     &    'to surfaces and attributes? (see help)',OK,dok,nbhelp)
+        CALL EASKOK(' ','Save zone geometry?',OK,nbhelp)
         if(OK)then
           call eclose(gversion(ICOMP),1.1,0.01,newgeo)
           if(igupgrade.eq.2.and.(.NOT.newgeo))then
@@ -782,13 +775,11 @@ C Parameters
       logical MODCON ! return true if altered construction
       integer ier    ! zero is ok, one materials not available
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
 C Optical and geometric properties.
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       common/PRECT4/TOPTIC(MCOM,MTMC)
 
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
@@ -862,7 +853,6 @@ C Switch to fixed width font for both the menu and text feedback.
 
 C Setup text for menu.
    12 INODA=-3
-      icn1=izstocn(icomp,isur)
    13 write(ISD(1),'(A,A)') '  surface name    : ',SNAME(icomp,isur)
       if(SOTF(icomp,isur)(1:4).eq.'OPAQ'.or.
      &   SOTF(icomp,isur)(1:4).eq.'TRAN'.or.
@@ -899,7 +889,7 @@ C Surface properties. If CFC, don't write out emiss and abs.
 
 C Find composite which matches.
       ICF=-1
-      if(ssmlcindex(icn1).ne.0) ICF=ssmlcindex(icn1)
+      if(smlcindex(icomp,isur).ne.0) ICF=smlcindex(icomp,isur)
 
 C For each layer.
       M=M+1
@@ -1062,7 +1052,7 @@ C the OPAQUE/TRANSPARENT flag as well.
         ENDIF
         IF(IC.GT.0)THEN
           WRITE(SMLCN(icomp,isur),'(A)') mlcname(IC)
-          ssmlcindex(icn1)=IC   ! update array
+          smlcindex(icomp,isur)=IC   ! update array
           if(mlctype(IC)(1:4).EQ.'TRAN')then
             SOTF(icomp,isur)='TRAN'
           endif
@@ -1082,7 +1072,7 @@ C the OPAQUE/TRANSPARENT flag as well.
 
 C User selected UNKNOWN so reset variables
           WRITE(SMLCN(icomp,isur),'(A)') 'UNKNOWN'
-          ssmlcindex(icn1)=0   ! update array
+          smlcindex(icomp,isur)=0   ! update array
           SOTF(icomp,isur)='OPAQUE'
           ITMCFL(ICOMP,ISUR)=0
           GOTO 12
@@ -1108,8 +1098,8 @@ C Gather information about each layer via materials data structures.
               if(CFCshdtp(cfcarrayindex).eq.iGasGap)then
                 NAIRG(ISUR)=NAIRG(ISUR)+1
                 IPAIRG(ISUR,NAIRG(ISUR))=IL
-C...............Gap resistance is not used for CFCs, but gap layer position
-C...............information is, so set to arbitrary non-zero value.
+C Gap resistance is not used for CFCs, but gap layer position
+C information is, so set to arbitrary non-zero value.
                 RAIRG(ISUR,NAIRG(ISUR))=0.001          
               endif
             endif
@@ -1264,7 +1254,7 @@ C Parameters
       logical MODCON ! return true if altered construction
       integer ier    ! zero is ok
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -1368,7 +1358,7 @@ C << The logic for dealing with TRAN/OPAQ needs to be updated! >>
           endif
           IF(ISEL.GT.0)THEN
             WRITE(SMLCN(ICOMP,is),'(A)') mlcname(ISEL)
-            ssmlcindex(ioc)=ISEL  ! update other surf index
+            smlcindex(icomp,is)=ISEL  ! update other surf index
             if(mlctype(ISEL)(1:4).EQ.'TRAN')then
               SOTF(ICOMP,is)='TRAN'
               ITMCFL(ICOMP,IS)=1
@@ -1398,7 +1388,7 @@ C Reset number of layers, if at end of loop it is still 0 then
 C the construction was not found and must be asked for.
         NE(IS)=0
         lnsmlcn=lnblnk(SMLCN(ICOMP,is))
-        if(ssmlcindex(ioc).eq.0)then
+        if(smlcindex(icomp,is).eq.0)then
           write(outs,'(5A)') ' The construction ',
      &      SMLCN(ICOMP,is)(1:lnsmlcn),' of ',SNAME(ICOMP,is),
      &      ' was not found in the mlc db...'
@@ -1407,7 +1397,7 @@ C the construction was not found and must be asked for.
           goto 244
         endif
 
-        IC=ssmlcindex(ioc)
+        IC=smlcindex(icomp,is)
         MODCON=.TRUE.
         NE(IS)=LAYERS(IC)
 
@@ -1425,8 +1415,8 @@ C Gather information about each layer. Read in the materials info.
               if(CFCshdtp(cfcarrayindex).eq.iGasGap)then
                 NAIRG(IS)=NAIRG(IS)+1
                 IPAIRG(IS,NAIRG(IS))=IL
-C...............Gap resistance is not used for CFCs, but gap layer position
-C...............information is, so set to arbitrary non-zero value.
+C Gap resistance is not used for CFCs, but gap layer position
+C information is, so set to arbitrary non-zero value.
                 RAIRG(IS,NAIRG(IS))=0.001          
               endif
             endif
@@ -1445,9 +1435,6 @@ C And if matarrayindex is zero then resetn dbcon dbden dbsht.
      &         matarrayindex.eq.0)then
               DBCON=0.0; DBDEN=0.0; DBSHT=0.0
               E=0.99; A=0.99
-
-C Debug            write(6,*) 'EDZCON',ic,il,DRAIR(IC,IL,1),
-C     &        DRAIR(IC,IL,2),DRAIR(IC,IL,3)
 
 C Deal with air gap resistance if layer is a gap.
               if(NAIRG(IS)+1.gt.MGP)then
@@ -1513,6 +1500,7 @@ C each of the existing surfaces and find the unique optical types which
 C exist in this zone.  Then for each of these we need to write out their
 C optical properties as gathered from the optical database.  Make use of
 C the number of composite layers to build this up.
+
       SUBROUTINE MKTWIN(IFU,ICOMP,QUIET,IER)
 #include "building.h"
 #include "model.h"
@@ -1526,7 +1514,7 @@ C Parameter
       logical QUIET ! if true then no dialog
       integer IER   ! if zero then ok
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
@@ -1545,12 +1533,12 @@ C Parameter
       dimension ival(MS)
       CHARACTER TOPTIC*12,louts*248,lkouts*1000
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp         ! number of help lines found
 
-      helpinsub='MKTWIN'  ! set for subroutine
+      helpinsub='MKTWIN'     ! set for subroutine
 
 C If in quiet mode then the file should exist, but if it is not a
 C silly name open it and inform.
@@ -1564,9 +1552,6 @@ C silly name open it and inform.
             goto 98
           else
             CALL EFOPSEQ(IFU,LTWIN(ICOMP),4,IER)
-C Debug
-C            call edisp(iuout,' Creating a new TMC file...')
-C            call edisp(iuout,LTWIN(ICOMP))
           endif
         endif
       ELSE
@@ -1693,6 +1678,7 @@ C construction database, which if they are transparent make reference
 C to a named optical property in the optical properties database (if
 C UNKNOWN then the user must supply this information manually). It scans
 C through each of the existing surfaces and finds unique optical types.
+
       SUBROUTINE EDTWIN(ITRC,ITRU,ICOMP,IER)
 #include "building.h"
 #include "geometry.h"
@@ -1701,7 +1687,7 @@ C through each of the existing surfaces and finds unique optical types.
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -1719,7 +1705,7 @@ C through each of the existing surfaces and finds unique optical types.
       COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
      &             IBCFT(MCOM,MBP,MTMC),IBCSUR(MCOM,MTMC)
       COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
-      LOGICAL found,OK,dok
+      LOGICAL found,OK
       logical canceled   ! toggle set if user interupts an edit session.
       logical modmlc     ! for selecting MLC
       integer IRT        ! for radio button
@@ -1744,16 +1730,15 @@ C description (mlcname) and remember its index ICF, otherwise set ITMCFL
 C to 0.
       lastopt='  '
       DO 10 IS=1,NZSUR(icomp)
-        icn1=izstocn(icomp,is)
         IF(SOTF(icomp,is)(1:4).EQ.'OPAQ'.OR.
      &     SOTF(icomp,is)(1:3).EQ.'CFC')THEN
           ITMCFL(ICOMP,IS)=0
           GOTO 10
         ENDIF
 
-C Use ssmlcindex to get matching MLC index
+C Use smlcindex to get matching MLC index
  246    ICF=-1
-        if(ssmlcindex(icn1).ne.0) ICF=ssmlcindex(icn1)
+        if(smlcindex(icomp,is).ne.0) ICF=smlcindex(icomp,is)
         IF(ICF.EQ.-1)THEN
           WRITE(outs,'(A,A12)')
      &    ' select a transparent one for: ',SNAME(icomp,is)
@@ -1769,7 +1754,7 @@ C Use ssmlcindex to get matching MLC index
           endif
           IF(ISEL.GT.0)THEN
             WRITE(SMLCN(icomp,is),'(A)') mlcname(ISEL)
-            ssmlcindex(icn1)=ISEL   ! update array
+            smlcindex(icomp,is)=ISEL   ! update array
             ICF=ISEL
           ELSE
             RETURN
@@ -1797,7 +1782,7 @@ C Switch back to opaque construction.
             endif
             if(ISEL.GT.0)then
               WRITE(SMLCN(icomp,is),'(A)') mlcname(ISEL)
-              ssmlcindex(icn1)=ISEL   ! update array
+              smlcindex(icomp,is)=ISEL   ! update array
               ICF=ISEL
               ITMCFL(ICOMP,IS)=0
               SOTF(icomp,is)='OPAQUE'
@@ -1816,7 +1801,7 @@ C Switch back to opaque construction.
             endif
             if(ISEL.GT.0)then
               WRITE(SMLCN(icomp,is),'(A)') mlcname(ISEL)
-              ssmlcindex(icn1)=ISEL   ! update array
+              smlcindex(icomp,is)=ISEL   ! update array
               ICF=ISEL
             else
               return
@@ -1975,10 +1960,8 @@ C control attached.  Provide a jump back point in case the user
 C invokes a cancel during the editing.
       canceled=.false.
   203 if(canceled)then
-        dok=.false.
-        CALL ASKOK('Try again to define the optical control?',
-     &    '(A `no` clears the control definitions.)',OK,
-     &    dok,nbhelp)
+        CALL EASKOK(' ','Try again to define optical control?',
+     &            OK,nbhelp)
         if(.NOT.OK) then
 
 C Clear the optical control common blocks that might have
@@ -2010,11 +1993,10 @@ C been set during the prior edit.
             GOTO 22
           endif
         else
-          dok=.false.
           helptopic='detect_existing_opt_ctl'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          WRITE(OUTS,'(A,I2,A)')'For TMC type ',IT,' is there any'
-          CALL ASKOK(OUTS,'optical control?',OK,dok,nbhelp)
+          WRITE(OUTS,'(A,I2,A)')'For TMC type ',IT,':'
+          CALL EASKOK(OUTS,'is there optical control?',OK,nbhelp)
           IF(.NOT.OK)THEN
             IBCMT(ICOMP,IT)=0
             GOTO 22
@@ -2165,7 +2147,6 @@ C << todo: consider how to react to a cancel request within eoptks
    22 CONTINUE
       GOTO 200
 
-
 C Error messages.
   98  CALL USRMSG('A problem was encountered reading the Optical',
      &   'Properties db, or a property set was not located.','W')
@@ -2186,7 +2167,7 @@ C transparent construction data editing.
       SUBROUTINE EOPTKS(ITRC,ITRU,WHICH,IER)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/GOPT/DG(5),HG(5),UVAL,VTRN,NTL,AB(ME,5),RF(ME),SRF,SAB
       CHARACTER SOPT*12,GDESCR*36,HOLD*42
@@ -2280,10 +2261,11 @@ C Loop through referenced mlc and derives the longest timeconstant.
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
 c ITCNST  - number of start-up days
       COMMON/PREC7/ITCNST
@@ -2316,7 +2298,7 @@ c First determine maximum thermal diffusivity and associated
 c homogeneous layer. Locate if the MLC database item is used.
         found=.false.
         do 42 icn=1,ncon
-          if(ssmlcindex(icn).eq.ic) then
+          if(smlcindex(ic1(icn),ie1(icn)).eq.ic) then
             found=.true.
             goto 43
           endif

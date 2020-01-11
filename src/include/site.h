@@ -1,12 +1,18 @@
 C This header relates to site-related model entities in ESP-r. It is
-C dependant on building.h and should follow building.h so that
+C dependent on building.h and should follow building.h so that
 C parameters will have been defined.
 
 C Site position.
-      real  sitelat  ! site latitude (degrees) 
-      real  sitelongdif  ! longitudinal difference between the site and the
-                         ! reference time meridian (east +ve)
+      real  sitelat      ! site latitude (degrees), North +ve.
+      real  sitelongdif  ! longitude difference (degrees) between the site 
+                         ! and the reference time meridian, East +ve.
       COMMON/C4/sitelat,sitelongdif
+
+      real  sitealt      ! site altitude (m) above sea level
+      real  atmpres      ! atmospheric pressure, dependent on site altitude if not in climate file (Pa)
+      real  patmos       ! atmospheric pressure in mbar, used extensively in psychrometrics
+      real  extairden    ! external air density, dependent on atmospheric pressure, temperature and RH
+      COMMON/ALTPRESDEN/sitealt,atmpres,patmos,extairden
 
 C Exposure of the building on the site as well as ground and snow reflection data.
       integer siteexposureindex  ! site exposure index :
@@ -40,7 +46,7 @@ C Site viewfactors from building surfaces to the site.
 C Monthly profiles of temperatures and humidities defined by the user
 C and standard profiles.
       real UGRDTP    ! user defined monthly temperature profile
-      integer NGRDP  ! numer of user defined monthly profiles
+      integer NGRDP  ! number of user defined monthly profiles
       real UGRDHUM   ! user defined monthly humidity profile
       integer NGRDPH ! numer of user defined monthly humidity profiles
 

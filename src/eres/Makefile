@@ -16,16 +16,18 @@ PROG = res$(EXE)
 REPdir = $(SRCdir)/cetc/h3kreports
 default: $(PROG)
 
-.SUFFIXES: .o .F
+.SUFFIXES: .o .F .f90
 .F.o:
 	$(MFC) $(FFLAGS) -c $<
-%.o : %.f90
+.f90.o:
+	$(MFC) $(FFLAGS) -c $<
+.o :
 	$(MCC) $(FFLAGS) -c $<
 
 MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o CFC_Module.o
 
 OBJECTS = res.o arrow.o ascii_mat.o c2fdum.o castyp.o cfdat.o cfdrw.o cfgrid.o cfutil.o cgd.o \
-	  comfort.o convect2.o ctread.o design.o dmdrep.o dossupport.o e3dviews.o \
+	  comfort.o convect2.o ctlwrt.o ctread.o design.o dmdrep.o dossupport.o e3dviews.o \
 	  ecasctl.o CDBPlugins.o CDBCommon.o commonclm.o econstr.o econtrol.o \
 	  edatabase.o egeometry.o emfnetw.o enerbs.o enerbz.o enetmisc.o \
 	  enetrdisp.o enetres.o enetrewr.o eroper.o esru_misc.o esystem.o \
@@ -86,6 +88,9 @@ commonclm.F:
 convect2.F:
 	rm -f convect2.F
 	ln -s $(BLDdir)/convect2.F .
+ctlwrt.F:
+	rm -f ctlwrt.F
+	ln -s $(COMdir)/ctlwrt.F .
 ctread.F:
 	rm -f ctread.F
 	ln -s $(COMdir)/ctread.F .
@@ -204,7 +209,7 @@ install:
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \
 	aim2_module.F arrow.F ascii_mat.F c2fdum.F cfdat.F cfdrw.F cfgrid.F cfutil.F \
-	cgd.F convect2.F ctread.F CDBPlugins.F CDBCommon.F commonclm.F \
+	cgd.F convect2.F ctlwrt.F ctread.F CDBPlugins.F CDBCommon.F commonclm.F \
 	dossupport.F e3dviews.F ecasctl.F econstr.F econtrol.F edatabase.F \
 	egeometry.F emfnetw.F enetmisc.F enetrewr.F eroper.F esru_misc.F \
 	esystem.F filelist.F fanger.F initalc.F item.F mfcdat.F mfutil.F nwkrewr.F pltcfg.F \

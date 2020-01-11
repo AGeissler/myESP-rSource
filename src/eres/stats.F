@@ -40,7 +40,7 @@ C results. Available at present:
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/OUTPCH/ICOUT
@@ -774,7 +774,7 @@ C act='p' iget parameters already set.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
@@ -1651,7 +1651,7 @@ C Get common precz from geometry.h
 
       integer lnblnk
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -1855,7 +1855,7 @@ C act='p' iget parameters already set.
 
       integer lnblnk
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
@@ -1869,6 +1869,7 @@ C act='p' iget parameters already set.
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
+      COMMON/GRTOOL/IHFLAG,IDHFLG,ILFLAG
 
 C Markdown flag.
       logical markdown
@@ -2272,12 +2273,19 @@ C Climate data therefore do not print zone names.
      &'occurance     value        above     below            '
           call edisp(itru,outs)
         else
-          write (outs,'(a,a)') '    Maximum               Minimum',
-     &                         '              Mean    No of hours'
-          call eddisp(itru,outs)
-          write (outs,'(a,a)') '  value    occurrence   value',
-     &            '    occurrence    value   above    below'
-          call eddisp(itru,outs)
+          if(ilflag.eq.0.or.ilflag.eq.2)then
+            write (outs,'(a,a)') '    Maximum               Minimum',
+     &                           '              Mean    No of hours'
+            call eddisp(itru,outs)
+            write (outs,'(a,a)') '  value    occurrence   value',
+     &        '    occurrence    value   above    below'
+            call eddisp(itru,outs)
+          elseif(ilflag.eq.1)then
+            write (outs,'(2a)') 
+     &       'Description Maximum_val Maximum_occur Minimum_val ',
+     &       'Minimum_occur Mean_val Hours_above Hours_below %_above'
+            call eddisp(itru,outs)
+          endif
         endif
 
 C Now generate climate data output text.
@@ -2354,13 +2362,22 @@ C Generate and display column headings.
      &'occurance     value        above     below            '
             call edisp(itru,outs)
           else
-            write(outs,'(a,a)')' Description              Maximum',
+            if(ilflag.eq.0.or.ilflag.eq.2)then
+              write(outs,'(a,a)')' Description              Maximum',
      & '                Minimum             Mean    No of hours     %'
-            call eddisp(itru,outs)
-            write(outs,'(a,a)')
+              call eddisp(itru,outs)
+              write(outs,'(a,a)')
      & '                        value  occurrence',
      & '     value  occurrence     value   above  below   above'
-            call eddisp(itru,outs)
+              call eddisp(itru,outs)
+            elseif(ilflag.eq.1)then
+
+C User requested single line header, use the curren separator.
+              write (outs,'(2a)') 
+     &        'Description Maximum_val Maximum_occur Minimum_val ',
+     &        'Minimum_occur Mean_val Hours_above Hours_below %_above'
+              call eddisp(itru,outs)
+            endif
           endif
         elseif(IGETNO(NGET,9).le.12)then
           if(markdown)then
@@ -2377,13 +2394,20 @@ C Generate and display column headings.
      &'occurance     value        above     below            '
             call edisp(itru,outs)
           else
-            write(outs,'(a,a)')' Description       Maximum',
+            if(ilflag.eq.0.or.ilflag.eq.2)then
+              write(outs,'(a,a)')' Description       Maximum',
      & '                Minimum            Mean    No of hours     %'
-            call eddisp(itru,outs)
-            write(outs,'(a,a)')'                value  occurrence',
+              call eddisp(itru,outs)
+              write(outs,'(a,a)')'                value  occurrence',
      & '     value  occurrence     value   above  below   above'
-            call eddisp(itru,outs)
-         endif
+              call eddisp(itru,outs)
+            elseif(ilflag.eq.1)then
+              write (outs,'(2a)') 
+     &        'Description Maximum_val Maximum_occur Minimum_val ',
+     &        'Minimum_occur Mean_val Hours_above Hours_below %_above'
+              call eddisp(itru,outs)
+            endif
+          endif
         else
           if(markdown)then
             write (outs,'(2a)') 
@@ -2399,12 +2423,20 @@ C Generate and display column headings.
      &'occurance     value        above     below            '
             call edisp(itru,outs)
           else
-            write(outs,'(a,a)')' Description          Maximum',
+            if(ilflag.eq.0.or.ilflag.eq.2)then
+              write(outs,'(a,a)')' Description          Maximum',
      & '                Minimum            Mean    No of hours     %'
-            call eddisp(itru,outs)
-            write(outs,'(a,a)')'                    value  occurrence',
+              call eddisp(itru,outs)
+              write(outs,'(2a)')
+     & '                    value  occurrence',
      & '     value  occurrence    value   above  below   above'
-            call eddisp(itru,outs)
+              call eddisp(itru,outs)
+            elseif(ilflag.eq.1)then
+              write (outs,'(2a)') 
+     &        'Description Maximum_val Maximum_occur Minimum_val ',
+     &        'Minimum_occur Mean_val Hours_above Hours_below %_above'
+              call eddisp(itru,outs)
+            endif
           endif
         endif
         do 30 I=1,NGET
@@ -2602,7 +2634,7 @@ C Also called by recovert if act = 'p' << needs checking >>
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
@@ -2613,6 +2645,9 @@ C Also called by recovert if act = 'p' << needs checking >>
 
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
+      COMMON/GRTOOL/IHFLAG,IDHFLG,ILFLAG
+      common/exporttg/xfile,tg,delim
+      character xfile*144,tg*1,delim*1
 
       character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
@@ -2634,7 +2669,7 @@ C Markdown flag.
       logical headingcontext ! has set or period changed so heading needs reprint
       common/libhead/libheading,headingcontext
 
-      character prompt*124,outs*148,prompte*124
+      character prompt*124,outs*148,outsd*148,prompte*124
       CHARACTER RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       CHARACTER PDESCR*60,SDESCR*44,act*1
@@ -2784,18 +2819,29 @@ C Energy requirements.
      &'kWhrs             required'
           call edisp(itru,outs)
         else
-          write(outs,'(2A)')
+          if(ilflag.eq.0.or.ilflag.eq.2)then
+            write(outs,'(2A)')
      &'    Zone                 Sensible heating            Sensible ',
      &'cooling         Humidification    Dehumidification'
-          call edisp(itru,outs)
-          write(outs,'(2A)')
+            call edisp(itru,outs)
+            write(outs,'(2A)')
      &' id name                 Energy       Hours          Energy   ',
      &'    Hours       Energy   Hours    Energy  Hours'
-          call edisp(itru,outs)
-          write(outs,'(2A)')
+            call edisp(itru,outs)
+            write(outs,'(2A)')
      &'                     kWhrs  kWhrs/m2 required    kWhrs  kWhrs/',
      &'m2 required     kWhrs  required   kWhrs  required'
-          call edisp(itru,outs)
+            call edisp(itru,outs)
+          elseif(ilflag.eq.1)then
+
+C User requested single line header, use the current separator.
+            write(outs,'(3A)')
+     &        'Id Zone_name Sens_heat_kWh Sens_heat_kWhm2 ',
+     &        'Heat_hrs Sens_cool_kWh Sens_cool_kWhm2 ',
+     &        'Cool_hrs Humid_kWh Humid_hrs Dehumid_kWh Dehumid_hrs'
+            call SDELIM(outs,outsd,delim,IW)
+            call edisp(itru,outsd)
+          endif
         endif
       endif
 
@@ -3002,7 +3048,6 @@ C << file does not need to be scanned to get the surface emissivity.
 
       COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
 
-      COMMON/RECV5/SNA(MCOM,MS)
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
       COMMON/SETNAM/RSNAME(MNRS)

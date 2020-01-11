@@ -38,7 +38,7 @@ C Common blocks UA1 UA3 within uncertainty.h
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       real DFLTRANGE     ! topic & attribute increments
       integer IDFLTR     ! 1=% 2=abs
@@ -238,7 +238,7 @@ C Common blocks UA3 within uncertainty.h
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/UA31/MATNAM(MNCNG,2)
 
@@ -378,7 +378,7 @@ C SDDEF003 - Weather parameters distribution definition.
 C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       real DFLTRANGE     ! topic & attribute increments
       integer IDFLTR     ! 1=% 2=abs
@@ -453,7 +453,7 @@ C << for period end.
 C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       real DFLTRANGE     ! topic & attribute increments
       integer IDFLTR     ! 1=% 2=abs
@@ -539,7 +539,7 @@ C << has not yet been tested >>
 C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       IDATR(ICDEF,1)=1
       IDATR(ICDEF,2)=1
@@ -583,7 +583,7 @@ C zone & TMC type & TMC period
 C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ICDEF  ! current index
       
 C For help messages
@@ -630,7 +630,7 @@ C Surface area if IDATR(ICDEF,1)=2
 C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       real DFLTRANGE     ! topic & attribute increments
       integer IDFLTR     ! 1=% 2=abs
@@ -715,7 +715,7 @@ C SDDEF1001 - Control distribution definition.
 C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       real DFLTRANGE     ! topic & attribute increments
       integer IDFLTR     ! 1=% 2=abs

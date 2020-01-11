@@ -8,12 +8,14 @@ C (it uses some parameters from building.h).
       integer MPL !  Max. number of vertices in polygon structure
       PARAMETER  (MPL = 200)
 
-C Viewing transformation matrices
-      real TEMAT  ! model to eye matrix(4x4).
-      real TSMAT  ! 4x4 transform
-      real ETMMAT ! model to eye reverse matrix(4x4).
-      real ETSMAT ! Eye to Screen Matrix.
-      COMMON/DRWMAT/TEMAT(4,4),TSMAT(4,4),ETMMAT(4,4),ETSMAT(4,4)
+C Viewing transformation matrices (all 4x4)
+      real TEMAT  ! model to eye
+      real TSMAT  ! model to screen
+      real ETMMAT ! eye to model 
+      real ETSMAT ! eye to screen
+      real STMMAT ! screen to model
+      COMMON/DRWMAT/TEMAT(4,4),TSMAT(4,4),ETMMAT(4,4),ETSMAT(4,4),
+     &              STMMAT(4,4)
 
 C View frustrum clip flags
       real TPCLIP    ! ?? clip in 3 axis

@@ -52,6 +52,11 @@ C Surface attributes for the current zone.
       integer lnsname,lnsotf ! length of sname and sotf strings
       common/G5LN/lnsname(MCOM,MS),lnsotf(MCOM,MS)
 
+C Althought smlcn(mcom,ms) holds the name of the construction, also knowing the
+C matching index in the database can save search time.
+      integer smlcindex  ! for each surface points to MLC db item or zero
+      common/precmlc/smlcindex(MCOM,MS)
+
 C Surface polygon information for the current zone.
       real X,Y,Z   ! coordinate in space (m)
       integer NSUR ! number of surfaces in the zone
@@ -136,13 +141,10 @@ C G9 holds information on children of a surface and its parent.
 C Global coordinates for whole model (zone & surface based). These are used
 C to accumulate information prior to the generation of the connection list.
       integer isznver   ! nb of edges per surface in poly shaped zone
-                        ! equivalent to nznver and nver
+                        ! equivalent to nver
       integer iszjvn    ! indices of coords making up edges of each surface
-                        ! equivalent to NZJVN and jvn
-      real szcoords     ! coordinates associated with each zone, equivalent
-                        ! to X Y Z and VCOORD for shape=box ignore,
-                        ! for shape=extrude the 1st value is X and 2nd is Y
-                        ! For shape=poly the Z is also used.
+                        ! equivalent to jvn
+      real szcoords     ! X Y Z coordinates associated with each zone.
       common/metageo/isznver(MCOM,MS),iszjvn(MCOM,MS,MV),
      &               szcoords(MCOM,MTV,3)
 
@@ -253,21 +255,15 @@ C MRT sensors for the model.
      &  ZOC(MCUB),DXC(MCUB),DYC(MCUB),
      &  DZC(MCUB),CANG(MCUB),IVFOK(MCUB),CUBN(MCUB)
 
-C The following section hold arrays associated with each zone connection
-C in the model. These data structures are typically used when the model
-C composition is fixed (surfaces are not being added or subtracted) and
-C all surfaces in the model need to be accessed.
-      real ssna    ! surface area of each polygon
-      real sspazi  ! plane azimuth angle (degrees 0=north, 90=west)
-      real sspelv  ! plane elevation angle (degrees 0=wall, 90=ceiling -90=floor
-      real ssperim ! perimeter of each surface (m).
-      real ssureqn ! equation of each polygon A*X + B*Y + C*Z = D
-      real ssurcog ! vertex weighted COG of polygon,
-      real ssurvn  ! unit normal vector from COG of polygon.
-      real ssthick ! thickness of surface (m) based on MLC and zero if no MLC
-      common/g7/ssna(MCON),sspazi(MCON),sspelv(MCON),ssperim(MCON),
-     &          ssureqn(MCON,4),ssurcog(MCON,3),ssurvn(MCON,3),
-     &          ssthick(MCON)
+C Derived attributes of surfaces.
+      real sna     ! surface area of each polygon
+      real spazi   ! plane azimuth angle (degrees 0=north, 90=west)
+      real spelv   ! plane elevation angle (degrees 0=wall, 90=ceiling -90=floor
+      real sureqn  ! equation of each polygon A*X + B*Y + C*Z = D
+      real surcog  ! vertex weighted COG of polygon,
+      real survn  ! unit normal vector from COG of polygon.
+      common/derived/sna(MCOM,MS),spazi(MCOM,MS),spelv(MCOM,MS),
+     &  sureqn(MCOM,MS,4),surcog(MCOM,MS,3),survn(MCOM,MS,3)
 
 C izsfloor is the index (within the zone) of a floor surface in each zone
 C  (zero if no surface is close to horizontal facing up).
@@ -275,9 +271,4 @@ C izsceil is the index (within the zone) of a ceiling surface in each zone
 C  (zero if no surface is close to horizontal facing down).
       integer izsfloor,izsceil
       COMMON/PREC16/izsfloor(MCOM),izsceil(MCOM)
-
-C Althought ssmlcn(mcon) holds the name of the construction, also knowing the
-C matching index in the database can save search time.
-      integer ssmlcindex  ! for each connection points to MLC db item or zero
-      common/precmlc/ssmlcindex(MCON)
 

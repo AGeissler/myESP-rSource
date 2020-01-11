@@ -2,10 +2,12 @@ C VIEWER MAIN PROGRAM
 
       program viewer
       USE START_UP
+#include "building.h"
+#include "model.h"
 #include "viewer.h"
 #include "viewer.h2"
 #include "espriou.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -21,16 +23,24 @@ C Path to problem and command line file (if any).
 
 C Name of current application
       common/APPNAME/cAppName
-
       character cAppName*12
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
 
       logical     unixok
 
       character outs*124,inf*144,path*72,LCMDFL*144,fs*1
       character outs248*248
+      character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character pagestitle*68 ! for banner title via epages call
 
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -72,6 +82,7 @@ C Initialise terminal and begin program.
       LIMTTY=6
       LIMIT =6
       call parpsf(MODL,iappw,iappx,iappy,inf)
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -121,10 +132,12 @@ C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
 C and dialog.
         IMFS=5
         IFS=5
-#ifdef OSX
-        IFS=4  ! use a smaller dialog font
-#endif
         ITFS=4
+#ifdef OSX
+        IMFS=4
+        IFS=4  ! use a smaller fonts
+        ITFS=4
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
@@ -134,7 +147,7 @@ C and dialog.
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Viewing Facility ',
+      write(pagestitle,'(2a)') 'Viewing facility of ESP-r',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -176,6 +189,23 @@ C Set reasonable defaults to allow viewer to export xfig views in text mode.
       write(outs,'(11x,I8,I9,I8,I8)')MPT,MSF,MED,MBB
       call edisp(iuout,outs)
 
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=942          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for viewer'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
+
 C Take command line file name as initail viewer file.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
         LCMDFL=inf
@@ -192,6 +222,8 @@ C init =0 INITIALISE INPUT, 1 ADD MORE DATA.
       call input(init)
 
       call chat
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPAGEND
       stop
 
@@ -200,7 +232,7 @@ C init =0 INITIALISE INPUT, 1 ADD MORE DATA.
 
       subroutine chgazi(icazi,ifrlk)
 #include "viewer.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       PI = 4.0 * ATAN(1.0)
       tdis= crow(DDDD,CCCC)
       call ln2az(CCCC(1),CCCC(2),CCCC(3),DDDD(1),DDDD(2),DDDD(3),az,el)
@@ -226,7 +258,7 @@ C init =0 INITIALISE INPUT, 1 ADD MORE DATA.
 
       subroutine chgelev(icelev,ifrlk)
 #include "viewer.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       PI = 4.0 * ATAN(1.0)
       tdis= crow(DDDD,CCCC)
       call ln2az(CCCC(1),CCCC(2),CCCC(3),DDDD(1),DDDD(2),DDDD(3),az,el)
@@ -247,6 +279,18 @@ C init =0 INITIALISE INPUT, 1 ADD MORE DATA.
       DDDD(2)=Y+CCCC(2)
       DDDD(3)=Z+CCCC(3)
       CALL PLTTEK
+      return
+      end
+
+      subroutine chgpan(ix,iy)
+      return
+      end
+
+      subroutine chgzoom(imode)
+      return
+      end
+
+      subroutine optview
       return
       end
 

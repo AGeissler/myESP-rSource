@@ -42,7 +42,7 @@ C Parameters
       real objbb(3) ! width, depth, height
       integer ier   ! return 0 if one selected 1 if problem 2 if none
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
 C Predefined entity variables.
@@ -98,11 +98,11 @@ C Take into account path to the db.
       iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
       ISTRW=96
       if(iglib.eq.1.or.iglib.eq.3)then
-        CALL EASKF(predef,'Predefined objects file ?',
-     &    ' ',ISTRW,'predefined.db1','predefined file',IER,nbhelp)
+        CALL EASKF(predef,' ','Predefined objects file?',
+     &    ISTRW,'predefined.db1','predefined file',IER,nbhelp)
       else
-        CALL EASKF(predef,'Predefined objects file ?',
-     &    ' ',ISTRW,'predefined.db1','predefined file',IER,nbhelp)
+        CALL EASKF(predef,' ','Predefined objects file?',
+     &    ISTRW,'predefined.db1','predefined file',IER,nbhelp)
       endif
 
 C Scan predefined database returning list of categories & items
@@ -166,7 +166,6 @@ C Now select from matching entries.
 
 C Decode which one and set name and ier.
         ifoc=IVALS(1); ifoc2=pointback(ifoc)
-C        write(6,*) 'ifoc ',ifoc,ifoc2,menus(ifoc2),names(ifoc2)
         write(objmenu,'(a)') menus(ifoc2)  ! menu entry to pass across
         write(objectname,'(a)') names(ifoc2)  ! name to pass across
         objbb(1)=bounding(ifoc2,1)
@@ -185,6 +184,7 @@ C        write(6,*) 'ifoc ',ifoc,ifoc2,menus(ifoc2),names(ifoc2)
 C ******************************** PREDEFSCAN
 C Read tag-data version of predefined objects file for high level
 C tags to assist user selection.
+
       SUBROUTINE PREDEFSCAN(IFA,LASCI,numcat,catname,cats,numitems,
      &  names,menus,itemcat,bounding,IER)
 
@@ -192,9 +192,6 @@ C tags to assist user selection.
 #include "espriou.h"
 #include "predefined.h"
 C espriou.h provides currentfile.
-
-C << Support more categories
-C << Support more entities in database
 
       integer lnblnk  ! function definition
 
@@ -204,7 +201,6 @@ C Parameters
       integer numcat      ! how many categoris found
       integer numitems    ! how many items found
 
-C << use parameters when available >>
       character catname*12 ! category names
       character cats*32   ! category menu entries
       character names*12  ! list of names of objects
@@ -216,8 +212,8 @@ C << use parameters when available >>
       integer IER         ! error return where zero is ok, 
                           ! ier=-1 file not found, ier=-2 no objects
 
-C Graphics and ESP-r default commons
-      COMMON/OUTIN/IUOUT,IUIN
+C Graphics and ESP-r default commons.
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character OUTS*124,OUTSTR*124,loutstr*248
       character WORD*24,ectime*24,phrase*32,WORD12*12
@@ -241,7 +237,6 @@ C Open the file.
       write(currentfile,'(a)') LASCI(1:lnblnk(LASCI))
 
 C Clear the arrays to be returned.
-C << use parameters when ready >>
       numcat=0
       do loop=1,6
         cats(loop)=' '
@@ -341,7 +336,7 @@ C Read date stamp << not yet used >>.
         continue  ! look for more key words
       elseif(WORD(1:9).EQ.'*includes')then
 
-C work-in-progress.
+C Work-in-progress.
         continue  ! look for more key words
       elseif(WORD(1:8).EQ.'*sourced')then
        continue  ! look for more key words
@@ -374,15 +369,15 @@ C visp has two additional lines of data.
         continue  ! look for more key words
       elseif(WORD(1:5).EQ.'*vis3')then
 
-C work-in-progress.
+C Work-in-progress.
         continue  ! look for more key words
       elseif(WORD(1:4).EQ.'*vis')then
 
-C work-in-progress.
+C Work-in-progress.
         continue  ! look for more key words
       elseif(WORD(1:8).EQ.'*vobject')then
 
-C work-in-progress.
+C Work-in-progress.
         continue  ! look for more key words
       else
         write(outs,'(3a)') 'Unknown tag ',WORD,' continuing...'
@@ -402,10 +397,11 @@ C If there were no errors in reading header line then read another.
 
       END
        
-C ******************************** PREDEFEMBED
+C ****** PREDEFEMBED
 C Read tag-data version of predefined objects file and merge
 C these data structures into the zone (ICOMP).
-C Currently entity is found in predefined.h 
+C Currently entity is found in predefined.h.
+
       SUBROUTINE PREDEFEMBED(IFA,LASCI,ICOMP,DX,DY,DZ,DA,name,prec,IER)
       
       IMPLICIT NONE
@@ -430,8 +426,8 @@ C Parameters
       character prec*1    ! character to pre-pend to names so unique
       integer IER         ! error return where zero is ok, 
                           ! ier=-1 file not found, ier=-2 no objects
-      integer iuout,iuin
-      COMMON/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       integer ncomp,ncon
@@ -699,8 +695,8 @@ C Scan visp definition and instanciate model entity.
           nbv=nbvis(icomp)
           CALL EGETWI(LOUTSTR,K,iv,8,8,'F','vis nb vertices',IER)
           CALL EGETWI(LOUTSTR,K,iv,6,6,'F','vis nb faces',IER)
-          CALL EGETWR(LOUTSTR,K,VX,0.,1.,'W','vis opacity',IER)
-          OPOV(icomp,nbv)=VX
+          CALL EGETWR(LOUTSTR,K,VOP,0.,1.,'W','vis opacity',IER)
+          OPOV(icomp,nbv)=VOP
           if(iszone)then
             CALL EGETW(LOUTSTR,K,WORD,'W','vis blk zone name',IFLAG)
 C << data structure >>
@@ -775,7 +771,7 @@ C Grab all of the coordinates and transform.
           IF(IER.NE.0) CONT=.FALSE.
         else
 
-C Even if we are not focused on it need to jump 2 lines.
+C Even if we are not focused on it, need to jump 2 lines.
           CALL LSTRIPC(IFA,LOUTSTR,99,ND,1,'first 4 coord',IER)
           CALL LSTRIPC(IFA,LOUTSTR,99,ND,1,'2nd 4 coord',IER)
         endif
@@ -1126,8 +1122,8 @@ C Parameters
       integer ITRU   ! file unit for feedback
       integer IER    ! zero is ok
 
-      integer iuout,iuin
-      common/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER WORD*32
       CHARACTER tmpvfc*4,tother*15,tother1*15
@@ -1951,8 +1947,8 @@ C Parameters
       character ACT*2 ! action to take QA or EX
       integer IER    ! zero is ok
 
-      integer iuout,iuin
-      common/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       character tab*1    ! separator
       character outs*124
@@ -2373,8 +2369,8 @@ C Parameters
       character name*12   ! item to embed
       integer IER         ! error return where zero is ok, 
                           ! ier=-1 file not found, ier=-2 no objects
-      integer iuout,iuin
-      COMMON/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character OUTS*124,OUTSTR*124,loutstr*248
       character WORD*24,phrase*32
       logical CONT,foundit

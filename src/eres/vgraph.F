@@ -38,7 +38,7 @@ C time-dependent variables to be plotted for one or more zones.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -281,7 +281,7 @@ C at the time of graph construction.
       SUBROUTINE VGMXN(JPICK)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/ZONPIK/NZ,NZNO(MCOM)
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -494,7 +494,7 @@ C      =29  - dew point temperature
 #include "geometry.h"
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
@@ -1005,7 +1005,7 @@ C to graphical result display.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -1015,7 +1015,7 @@ C to graphical result display.
       CHARACTER ETEXT*82
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       CHARACTER PDESCR*60,SDESCR*44,VITEM*24,HITEM*24
-      CHARACTER outsd*96,outsd1*124
+      CHARACTER outsd*124,outsd1*126
       integer lsn1
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
@@ -1056,26 +1056,40 @@ C Setup and pass in parameters to win3d.
 
       lsn1=MIN0(lnblnk(RFILE),42)
       WRITE(ETEXT,'(1X,A,A,A)')SDESCR,' Lib:',RFILE(1:lsn1)
-      iside=1
-      isize=0
-      ifont=1
-      call viewtext(etext,iside,isize,ifont)
+      iside=1; isize=0; ifont=1
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       WRITE(ETEXT,'(1X,A60)')PDESCR
       iside=2
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       call znlist(outsd,len,ierr) 
       if(ierr.ne.1)then
         write(outsd1,'(1x,a)')outsd
         iside=3
-        call viewtext(outsd1,iside,isize,ifont)
+        if(mmod.eq.8)then
+          call viewtext(outsd1,iside,isize,ifont)
+        else
+          call viewtextwwc(outsd1,iside,isize,ifont)
+        endif
       endif
 
       WRITE(ETEXT,'(4a)')' Variables: Vert=',
      &  VITEM(1:lnblnk(VITEM)),'  Horiz=',HITEM(1:lnblnk(HITEM))
       iside=4
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       RETURN
       END

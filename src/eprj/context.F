@@ -49,7 +49,7 @@ C ITRU unit number for user output, IER=0 indicates no error.
       integer iCountWords
 
       COMMON/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -83,7 +83,7 @@ C iSlr_half_hr_flg =0 = hour-centred; 1 = half-hour centred.
       common/CWEC_SOL/iSlr_half_hr_flg
       integer iSlr_half_hr_flg
 
-      logical MODSIT,browse,XST,modish,OK,DOK,unixok
+      logical MODSIT,browse,XST,modish,OK,unixok
       logical FOUND
       dimension SALT(8),IVALS(8)
       character*10 wkd1, wkd2
@@ -137,48 +137,48 @@ C Begin with high level menu.
       IER=0
       WRITE(ITEMS(1),'(A,F6.2)')'a site latitude: ',sitelat
       WRITE(ITEMS(2),'(A,F6.2)')'b longitude difference:',sitelongdif
+      WRITE(ITEMS(3),'(A,F6.1)')'c site altitude:',sitealt
       if(iSlr_half_hr_flg.eq.0)then
-        WRITE(ITEMS(3),'(A)')   'c solar timing: hour centred'
+        WRITE(ITEMS(4),'(A)')   'd solar timing: hour centred'
       elseif(iSlr_half_hr_flg.eq.1)then
-        WRITE(ITEMS(3),'(A)')   'c solar timing: half-hour centred'
+        WRITE(ITEMS(4),'(A)')   'd solar timing: half-hour centred'
       else
-        WRITE(ITEMS(3),'(A)')   'c solar timing: not defined'
+        WRITE(ITEMS(4),'(A)')   'd solar timing: not defined'
       endif
 
-      WRITE(ITEMS(4),'(A,A)')   'c exposure: ',SEXP(1:21)
+      WRITE(ITEMS(5),'(A,A)')   'e exposure: ',SEXP(1:21)
       IF(groundreflmodel.EQ.1) THEN
-        WRITE(ITEMS(5),'(a,f5.3,a)')
-     &                   'd grd reflectivity: const. (',groundrefl,')'
+        WRITE(ITEMS(6),'(a,f5.3,a)')
+     &                   'f grd reflectivity: const. (',groundrefl,')'
       ELSEIF(groundreflmodel.EQ.2) THEN
-        ITEMS(5) =       'd grd reflectivity: simple'
+        ITEMS(6) =       'f grd reflectivity: simple'
       ELSEIF(groundreflmodel.EQ.3) THEN
-        ITEMS(5) =       'd grd reflectivity: advanced'
+        ITEMS(6) =       'f grd reflectivity: advanced'
       ENDIF
-      WRITE(ITEMS(6),'(4a)')    'e weekends: ',wkd1,'/',wkd2
-      WRITE(ITEMS(7),'(a,I4)')  'f year: ',IYEAR
-      ITEMS(8) =                'g calendar (holidays)            '
-      ITEMS(9) =                'h building and client address    '
-      ITEMS(10)=                'i simulationist address          '
-      ITEMS(11)=                'j                                '
+      WRITE(ITEMS(7),'(4a)')    'g weekends: ',wkd1,'/',wkd2
+      WRITE(ITEMS(8),'(a,I4)')  'h year: ',IYEAR
+      ITEMS(9) =                'i Julian calendar                '
+      ITEMS(10)=                'j building and client address    '
+      ITEMS(11)=                'k simulationist address          '
       ITEMS(12)=                '  ___________________________    '
       if(GTGEOM(1:2).eq.'  '.or.GTGEOM(1:4).eq.'UNKN')then
-        ITEMS(13)=              'k ground topology                '
+        ITEMS(13)=              'l ground topology                '
       else
-        WRITE(ITEMS(13),'(2A)') 'k ground topology:',GTNAME(1:13)
+        WRITE(ITEMS(13),'(2A)') 'l ground topology:',GTNAME(1:13)
       endif
-      WRITE(ITEMS(14),'(A,i2)') 'l ground temperature profiles:',NGRDP
-      ITEMS(15)=                'm 3-D ground representation      '
+      WRITE(ITEMS(14),'(A,i2)') 'm ground temperature profiles:',NGRDP
+      ITEMS(15)=                'n 3-D ground representation      '
       ITEMS(16)=                '  ___________________________    '
-      ITEMS(17)=                'n primary energy conversions     '
-      ITEMS(18)=                'o fan/lift/DHW dispersed demands '
-      ITEMS(19)=                'p integrated performance view    '
+      ITEMS(17)=                'o primary energy conversions     '
+      ITEMS(18)=                'p fan/lift/DHW dispersed demands '
+      ITEMS(19)=                'q integrated performance view    '
       ITEMS(20)=                '  ___________________________    '
-      ITEMS(21)=                'q pressure coefficients calc.    '
-      ITEMS(22)=                'r use observed/temporal data     '
+      ITEMS(21)=                'r pressure coefficients calc.    '
+      ITEMS(22)=                's use observed/temporal data     '
       ITEMS(23)=                '  ___________________________    '
-      WRITE(ITEMS(24),'(a,i3)') 's define images: ',noimg
-      ITEMS(25)=                't UK NCM specifications          '
-c      ITEMS(26)=                'u transient orientation         '
+      WRITE(ITEMS(24),'(a,i3)') 't define images: ',noimg
+      ITEMS(25)=                'u UK NCM specifications          '
+c      ITEMS(26)=                'v transient orientation         '
       ITEMS(26)=                '          '
       ITEMS(27)=                ' _____________________________   '
       ITEMS(28)=                '? help                           '
@@ -189,7 +189,7 @@ C Help text for this menu.
       helptopic='context_overview_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-      CALL EMENU('Model Context',ITEMS,nitms,INO)
+      CALL EMENU('Model context',ITEMS,nitms,INO)
       IF(INO.EQ.nitms)THEN
 
 C Update configuration if context changed. If lat/long changes then
@@ -242,10 +242,9 @@ C starting up a new xterm (i.e. use '-' rather than 'text')
                     call edisp(iuout,'Possible error in calculations.')
                   endif
                 else
-                  DOK=.TRUE.
                   write(outs,'(3a)') 'Proceed with shading for ',
      &              zname(iz)(1:lnzname(iz)),'?'
-                  CALL ASKOK(outs,' ',OK,DOK,nbhelp)
+                  CALL EASKOK(' ',outs,OK,nbhelp)
                   if(OK)then
                     call comissionish(iz,'ir ',ier)
                     if(ier.ne.0)then
@@ -268,6 +267,8 @@ C Produce help text for the menu.
         CALL PHELPD('Model context',nbhelp,'-',0,0,IER)
 
       ELSEIF(INO.EQ.1)THEN
+        helptopic='context_lat_long'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         slat=sitelat  ! sitelat is in common C4 in site.h
         CALL EASKR(SLAT,' ','Site latitude?',
      &       -89.9,'W',89.9,'W',55.9,'site latitude',IER,nbhelp)
@@ -276,17 +277,30 @@ C Produce help text for the menu.
         modish=.true.
 
       ELSEIF(INO.EQ.2)THEN
+        helptopic='context_lat_long'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         slon=sitelongdif  ! sitelongdif is in common C4 in site.h
         CALL EASKR(SLON,
-     &    'Longitude difference from time meridian (east +ve)?',
-     &    ':',-15.0,'W',15.0,'W',-4.1,'longitude difference',IER,nbhelp)
+     &    'Longitude difference from time meridian',
+     &    '(East +ve, West -ve)?',-15.0,'W',15.0,'W',-4.1,
+     &    'longitude difference',IER,nbhelp)
         IF(IER.EQ.0)sitelongdif=SLON
         MODSIT=.true.
         modish=.true.
 
       ELSEIF(INO.EQ.3)THEN
+        helptopic='context_lat_long'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKR(sitealt,' ',
+     &    'Site altitude',-100.0,'W',3000.0,'W',0.0,
+     &    'site altitude',IER,nbhelp)
+        MODSIT=.true.
+
+      ELSEIF(INO.EQ.4)THEN
 
 C Solar radiation timing toggle.
+        helptopic='context_solar_timing'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(iSlr_half_hr_flg.eq.1)then
           iSlr_half_hr_flg=0
         elseif(iSlr_half_hr_flg.eq.0)then
@@ -294,10 +308,7 @@ C Solar radiation timing toggle.
         endif
         MODSIT=.true.
 
-      ELSEIF(INO.EQ.4)THEN
-
-C        WRITE(SALT(8),53)skyview,groundview,buildingview
-C  53    FORMAT('user defined)
+      ELSEIF(INO.EQ.5)THEN
         SALT(8)='user defined'
 
         helptopic='site_exposure_options'
@@ -340,29 +351,29 @@ C  53    FORMAT('user defined)
         ENDIF
         MODSIT=.true.
 
-      ELSEIF(INO.EQ.5)THEN
+      ELSEIF(INO.EQ.6)THEN
 
-C Ground reflectance type
+C Ground reflectance type.
         helptopic='context_ground_refl'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABCD(' ','Ground reflectance method?',
      &    'constant','monthly simple','mnthly advanced','cancel',
      &    IW,nbhelp)
 
-C---- Constant ground reflectance        
+C Constant ground reflectance.       
         if (IW.EQ.1) then
           groundreflmodel=1
-          CALL EASKR(groundrefl,' ',' Ground reflectance?',
+          CALL EASKR(groundrefl,' ','Ground reflectance?',
      &        0.0,'W',0.99,'W',0.2,'ground reflectance',IER,nbhelp)
           MODSIT=.true.
-C---- Simple or advanced models: ask for monthly values 
+C Simple or advanced models, ask for monthly values.
         elseif (IW.EQ.2 .OR. IW.EQ.3) then
           groundreflmodel=IW
           
    83     HOLD=' '
           WRITE(HOLD,'(1X,6F7.2)')(groundreflmonth(J),J=1,6)
           CALL EASKS(HOLD,' ',
-     &      'January thro June ground reflectance (no snow)?',
+     &      'January thro` June ground reflectance (no snow)?',
      &      72,'0.2 0.2 0.2 0.2 0.2 0.2','gr albedo jan-jun',
      &      IER,nbhelp)
           NV = iCountWords(HOLD)
@@ -377,7 +388,7 @@ C---- Simple or advanced models: ask for monthly values
           HOLD = ' '
           WRITE(HOLD,'(1X,6F7.2)')(groundreflmonth(J),J=7,12)
           CALL EASKS(HOLD,' ',
-     &      'July thro December ground reflectance (no snow)?',
+     &      'July thro` December ground reflectance (no snow)?',
      &       72,'0.2 0.2 0.2 0.2 0.2 0.2','gr albedo jul-dec',
      &      IER,nbhelp)
           NV = iCountWords(HOLD)
@@ -393,14 +404,14 @@ C---- Simple model: ask for average albedo of snow, and number of days
 C     with snow on the ground
           if (IW.EQ.2) then
             CALL EASKR(snowgroundrefl,' ',
-     &        ' Average ground reflectance in the presence of snow?',
+     &        ' Average ground reflectance with snow?',
      &        0.0,'W',0.99,'W',0.4,'snow reflectance',IER,nbhelp)
             MODSIT=.true.
    87       CONTINUE
             HOLD=' '
             WRITE(HOLD,'(6(1X,I2))')(dayswithsnow(J),J=1,6)
             CALL EASKS(HOLD,' ',
-     &        'Number of days in January thro June with snow?',
+     &        'Number of days in January thro` June with snow?',
      &        72,'0 0 0 0 0 0','days with snow jan-jun',IER,nbhelp)
             NV = iCountWords(HOLD)
             IF (NV.NE.6) GOTO 87
@@ -414,7 +425,7 @@ C     with snow on the ground
             HOLD = ' '
             WRITE(HOLD,'(6(1X,I2))')(dayswithsnow(J),J=7,12)
             CALL EASKS(HOLD,' ',
-     &        'Number of days in July thro December with snow?',
+     &        'Number of days in July thro` December with snow?',
      &        72,'0 0 0 0 0 0 ','days with snow jul-dec',IER,nbhelp)
             NV = iCountWords(HOLD)
             IF (NV.NE.6) GOTO 89
@@ -429,25 +440,25 @@ C---- Advanced model: ask for albedo of fresh snow, and file containing
 C     hourly snow depths
           if (IW.EQ.3) then
             CALL EASKR(snowgroundrefl,' ',
-     &        ' Ground reflectance in the presence of fresh snow?',
+     &        ' Ground reflectance with fresh snow?',
      &        0.0,'W',0.99,'W',0.5,'snow reflectance',IER,nbhelp)
     
    92       CONTINUE
-            CALL EASKS(SNFNAM,'Enter name of snow depth file',
+            CALL EASKS(SNFNAM,'Name of snow depth file',
      &        ' ',72,' ','Snow depth file',IER,nbhelp)
             CALL FINDFIL(SNFNAM,FOUND)
             IF(.NOT.FOUND) THEN
-              DOK=.FALSE.
-              CALL ASKOK('File not found: continue?',' ',
-     &          OK,DOK,nbhelp)
+              CALL EASKOK('File not found!','Retry?',OK,nbhelp)
               IF (.NOT.OK) GOTO 92
             ENDIF
           endif
         endif
 
-      ELSEIF(INO.EQ.6)THEN
+      ELSEIF(INO.EQ.7)THEN
 
 C Weekends def.
+        helptopic='context_weekends'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         call edisp(iuout,'Please define weekend days.')
         idwe1T=idwe1
         CALL EASKI(idwe1T,'Day index (Mon=1,Tue=2, ...) for',
@@ -466,7 +477,7 @@ C Weekends def.
         wkd2=wkday(idwe2)
         MODSIT=.true.
 
-      ELSEIF(INO.EQ.7)THEN
+      ELSEIF(INO.EQ.8)THEN
 
 C Change the year and if calendar has not been set up initialise
 C and then list the months of the year.  If there is an existing
@@ -531,15 +542,14 @@ C day types in the calendar the user probably has defined their own scheme.
      &        'Simulation year and calendar mismatch rectified')
           endif
         endif
-        dok=.false.
-        call askok(' ','View calendar?',ok,dok,nbhelp)
+        call easkok(' ','View calendar?',ok,nbhelp)
         if(ok)then
           loop=12
           loopst=1
           call calenprint(iuout,'t',iyear,loopst,loop)
         endif
 
-      ELSEIF(INO.EQ.8)THEN
+      ELSEIF(INO.EQ.9)THEN
 
 C Calendar functions. If number of daytypes is zero or less than
 C the legacy assumption of 3 daytypes then initialise prior to
@@ -552,17 +562,17 @@ C calendar.
         act = '-'
         call calenmanage(act,ier)
 
-      ELSEIF(INO.EQ.9)THEN
+      ELSEIF(INO.EQ.10)THEN
 
 C The address of the model and client (as entered in the ncm file).
         call edsbmbld()
 
-      ELSEIF(INO.EQ.10)THEN
+      ELSEIF(INO.EQ.11)THEN
 
 C The address of the simulation team (as entered in the ncm file).
         call edsbmbld()
 
-      ELSEIF(INO.EQ.11)THEN
+      ELSEIF(INO.EQ.12)THEN
 
 C Future option.
         continue
@@ -570,6 +580,8 @@ C Future option.
       ELSEIF(INO.EQ.13)THEN
 
 C Ground topology.
+        helptopic='context_ground_topology'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         call easkabcd(' ','Ground topology defining options:',
      &    'select current','create manually','create via bitmap',
      &    'cancel',iwgt,nbhelp)
@@ -603,12 +615,14 @@ C Ground temperature profiles.
 C        call edisp(iuout,' ')  
 C        write(outs,'(a,i3,a)')' There are currently ',NGRDP,' profiles.'      
 C        call edisp(iuout,outs) 
+        helptopic='context_ground_temps'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABC(' ','Ground temperature profile options:',
      &   'list','edit','add',IRT,nbhelp)
         if(IRT.eq.1)then
           if(NGRDP.gt.0)then
             do 22 igrdp=1,NGRDP    
-              CALL EDISP(iuout,' Profile for Jan. thro Dec.:')
+              CALL EDISP(iuout,' Profile for Jan. thro` Dec.:')
               WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
               call edisp(iuout,outs)
  22         continue
@@ -636,7 +650,7 @@ C        call edisp(iuout,outs)
           endif
         endif
    93   WRITE(HOLD,'(1X,6F7.2)')(UGRDTP(J,IFOC),J=1,6)
-        CALL EASKS(HOLD,' ','Temperatures, January- thro June?',
+        CALL EASKS(HOLD,' ','Temperatures, January thro` June?',
      &      72,' ','gr prof jan-jun',IER,nbhelp)
         NV = iCountWords(HOLD)
         if(NV.ne.6)goto 93
@@ -648,7 +662,7 @@ C        call edisp(iuout,outs)
    94   CONTINUE
    95   hold = ' '
         WRITE(HOLD,'(1X,6F7.2)')(UGRDTP(J,IFOC),J=7,12)
-        CALL EASKS(HOLD,' ','Temperatures, July thro December?',
+        CALL EASKS(HOLD,' ','Temperatures, July thro` December?',
      &      72,' ','gr prof jan-jun',IER,1)
         NV = iCountWords(HOLD)
         if(NV.ne.6)goto 95
@@ -669,6 +683,8 @@ C 3-D Ground representations....
       ELSEIF(INO.EQ.17)THEN
 
 C Primary energy conversions.
+        helptopic='context_PEC'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABC(' ','Energy demand conversion options:',
      &   'initialise and edit','edit','cancel',IR,nbhelp)
         if(IR.eq.1)then
@@ -693,8 +709,6 @@ C IPV data in the case of a legacy model cfg file (depreciate).
           elseif(lipvdatf(1:7).eq.'UNKNOWN')then
             write(ltmp,'(2a)') cfgroot(1:lr),'.ipv'
           elseif(lipvdatf(1:8).eq.'internal')then
-
-C << really we should just recommend that user updates cfg version >>
 
 C Legacy cfg with internl IPV description. If nipvassmt is still zero then
 C nothing has been created yet so initialise and save to the
@@ -784,8 +798,9 @@ C        CALL ROAMING
       END
 
 c ****** ROAMING *****
-C Roaming manages data associated with rotating a model as a
-C function of time. Important variables are defined in roam.h
+C Manages data associated with rotating a model as afunction
+C of time. Important variables are defined in roam.h.
+
       SUBROUTINE ROAMING
 #include "building.h"
 #include "model.h"
@@ -793,12 +808,12 @@ C function of time. Important variables are defined in roam.h
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
-      CHARACTER*72 DFLTNAME,OUTS
-      CHARACTER TEMPSTR*30
-      INTEGER IOK
-      LOGICAL OK,DOK
+      character*72 DFLTNAME,OUTS
+      character TEMPSTR*30
+      integer IOK
+      logical OK
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -810,7 +825,6 @@ C For help messages
 C Initialise variables
       IOK=0
       OK=.FALSE.
-      DOK=.TRUE.
 
 C Help message
       helptopic='roaming_choices'
@@ -821,14 +835,14 @@ C Help message
         IROAM=1
         CALL PHELPD('Roaming Introduction',nbhelp,'-',0,0,IER)
         CALL EASKAB(' ','Roaming file actions:',
-     &    'create template','cancel and exit',IOK,nbhelp)
+     &    'create template','cancel',IOK,nbhelp)
         IF(IOK.EQ.1)THEN
           CALL WROAM
           CALL RROAM
         ENDIF
       ELSE
-        CALL EASKS2CMD(LROAM,' Roaming file? (see help)',
-     &    ' ','dereference','browse',IACT,72,' ','Roaming file',
+        CALL EASKS2CMD(LROAM,' ','Roaming file?',
+     &    'dereference','browse',IACT,72,' ','Roaming file',
      &    IER,nbhelp)
         IF(IACT.EQ.1)THEN
           IROAM=0
@@ -840,7 +854,7 @@ C Help message
       ENDIF
 
 C Display file contents
-      CALL ASKOK('View location information?',' ',OK,dok,nbhelp)
+      CALL EASKOK(' ','View location information?',OK,nbhelp)
       IF(OK)THEN
         CALL EDISP(IUOUT,' ')
         WRITE(OUTS,'(A,F3.1)')'ESP-r Roaming file version number ',VERS
@@ -852,7 +866,7 @@ C Display file contents
      &    LOCRM(ILOC),XLOCLT(ILOC),XLOCLG(ILOC)
           CALL EDISP(IUOUT,OUTS)
  1000   CONTINUE
-        CALL ASKOK('View cruise schedule?',' ',OK,dok,nbhelp)
+        CALL EASKOK(' ','View cruise schedule?',OK,nbhelp)
         IF(OK)THEN
           CALL EDISP(IUOUT,
      &    'start hr, dy, mth, orientation, day type, location')
@@ -878,15 +892,15 @@ C Update configuration file
       END
 
 C ****** manageimages
-C manageimages allows the user to manage images associated with a
-C model including view and add images (delete not yet working).
+C Allows the user to manage images associated with a model
+C including view and add images (delete not yet working).
       subroutine manageimages(modsit)
 #include "building.h"
 #include "model.h"
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/user/browse
 
 C Images.
@@ -1033,7 +1047,7 @@ C Edit image documentation if version supports it.
               if(icfgv.gt.3)then
                 tcname=imgdoc(noimg)
                 ISTRW=72
-                CALL EASKS248(tcname,' ','Image notes:',
+                CALL EASKS248(tcname,' ','Image notes?',
      &            ISTRW,'associated image','image notes',IER,nbhelp)
                 if(tcname(1:2).ne.'  ')imgdoc(noimg)=tcname
               endif
@@ -1047,7 +1061,7 @@ C Edit image documentation if version supports it.
             continue
           else
             limg=' '
-            call easks(limg,'Image file name',' ',72,'xxx.gif',
+            call easks(limg,' ','Image file name?',72,'xxx.gif',
      &        'image file name',ier,12)
             iformat='GIF '
             ifocus='****'
@@ -1062,7 +1076,7 @@ C Edit image description if version supports it.
               if(icfgv.gt.3)then
                 tcname=imgdoc(noimg)
                 ISTRW=72
-                CALL EASKS248(tcname,' ','Image notes:',
+                CALL EASKS248(tcname,' ','Image notes?',
      &            ISTRW,'associated image','image notes',IER,nbhelp)
                 if(tcname(1:2).ne.'  ')imgdoc(noimg)=tcname
               endif
@@ -1076,7 +1090,7 @@ C Edit image description if version supports it.
      &        imgfoc(IW),limgfil(IW) 
             call edisp(iuout,outs)  
   33      CONTINUE
-          call usrmsg('Option to delete an image not yet available.',
+          call usrmsg('Option to delete an image not available.',
      &                ' ','W')
           goto 36
         elseif(iok.eq.4)then
@@ -1107,7 +1121,7 @@ C Edit current image description if version allows.
           if(icfgv.gt.3)then
             tcname=imgdoc(inoi-2)
             ISTRW=72
-            CALL EASKS248(tcname,' ','Image notes:',
+            CALL EASKS248(tcname,' ','Image notes?',
      &        ISTRW,'associated image','image notes',IER,nbhelp)
             if(tcname(1:2).ne.'  ')imgdoc(inoi-2)=tcname
           endif
@@ -1118,10 +1132,11 @@ C Edit current image description if version allows.
       end
 
 C ************* setuptemporal
-C Setuptemporal coordinates access to and initial creation of
+C Coordinates access to and initial creation of
 C temporal data to be associated with a model.
 
       SUBROUTINE setuptemporal(MODSIT,IER)
+
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
@@ -1133,23 +1148,23 @@ C temporal data to be associated with a model.
       
       integer lnblnk  ! function definition
 
-      COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/SPAD/MMOD,LIMIT,LIMTTY
+      common/FILEP/IFIL
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/user/browse
      
 C TDF related.
-      COMMON/TDFFLG0/DBTAG(MIT),DBTASK(MIT),DBZN(MIT),DBSN(MIT)
+      common/TDFFLG0/DBTAG(MIT),DBTASK(MIT),DBZN(MIT),DBSN(MIT)
 
       common/sctl/tcps,ictyp,iclaw,cm(misc)
       integer icascf
       common/cctl/icascf(mcom)
       integer iairn,icaas
       character LAPROB*72
-      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
-      CHARACTER PROMPT1*72, PROMPT2*72
+      common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      character PROMPT1*72, PROMPT2*72
 
-      logical MODSIT,browse,OK,dok,unixok
+      logical MODSIT,browse,OK,unixok
       logical FOUND,XST,shd_xst
 
       character outs*124,ltmp*72,hold*40
@@ -1160,7 +1175,7 @@ C TDF related.
       character*34 ITEMS(7)
       integer ier,ian3,ilayer
       integer nitms,irt ! max items and current menu item
-      DIMENSION INPK(MNOD)
+      dimension INPK(MNOD)
 
 C Action to pass to tdfedit. Prior 'update' option moved into
 C esrub2e rather than invoking tdf.
@@ -1203,7 +1218,7 @@ C file, what is currently used and other management tasks.
         call edisp(iuout,' ')
         call edisp(iuout,'Temporal data is available for this model')
         call edisp(iuout,'but is held in an old format. Please')
-        call edisp(iuout,'update via the edit/list option.')
+        call edisp(iuout,'update via the edit/ list option.')
         call edisp(iuout,' ')
       elseif(iabs(itdflg).eq.2)then
 
@@ -1212,7 +1227,7 @@ C file, what is currently used and other management tasks.
         call edisp(iuout,' ')
         call edisp(iuout,'Temporal data is available for this model.')
         call edisp(iuout,'but is held in an old format. Please')
-        call edisp(iuout,'udate via the edit/list option.')
+        call edisp(iuout,'udate via the edit/ list option.')
         call edisp(iuout,' ')
       elseif(iabs(itdflg).eq.3)then
         continue
@@ -1235,7 +1250,7 @@ C Begin with high level menu.
         if(browse)then
           call usrmsg(
      &   'No temporal data associated with this model! Because you',
-     &   'are in browse mode no changes may be made to the model.','W')
+     &   'are in browse mode no changes may be made.','W')
           return
         endif
         WRITE(ITEMS(1),'(A)')'a create temporal entities file'
@@ -1244,7 +1259,7 @@ C Begin with high level menu.
         WRITE(ITEMS(4),'(A)')'? help '
         WRITE(ITEMS(5),'(A)')'- exit '
         nitms=5
-        CALL EMENU('Temporal file options:',ITEMS,nitms,irt)
+        CALL EMENU('Temporal file options',ITEMS,nitms,irt)
         if(irt.EQ.nitms)then
           return
         elseif(irt.EQ.nitms-1)then
@@ -1272,7 +1287,7 @@ C Begin with high level menu.
         WRITE(ITEMS(6),'(A)')'? help '
         WRITE(ITEMS(7),'(A)')'- exit '
         nitms=7
-        CALL EMENU('Temporal file options:',ITEMS,nitms,irt)
+        CALL EMENU('Temporal file options',ITEMS,nitms,irt)
         if(irt.EQ.nitms)then
           return
         elseif(irt.EQ.nitms-1)then
@@ -1404,7 +1419,7 @@ C << later add add a file browse function it is probably in the nets
 C << folder in most new models.
         if(LTDFA(1:4).eq.'UNKN') LTDFA=DLTDF
         ltmp=LTDFA
-        CALL EASKS(ltmp,' ','Existing temporal definitions file?',
+        CALL EASKS(ltmp,' ','Temporal definitions file?',
      &    72,DLTDF,'existing temporal definitions file',IER,nbhelp)
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
           continue
@@ -1452,10 +1467,10 @@ C Scan the first record of this file.
             endif
             CALL ERPFREE(IUTDF,ISTAT)
             if(iabs(itdflg).gt.1)then
-              call usrmsg('Including temporal file in model...',
+              call usrmsg('Including temporal file in model ...',
      &          ' ','-')
               CALL EMKCFG('-',IER)
-              call usrmsg('Including temporal file in model...done.',
+              call usrmsg('Including temporal file in model ...done.',
      &          ' ','-')
             endif
             goto 42
@@ -1481,10 +1496,10 @@ C Scan the first record of this file.
           endif
           CALL ERPFREE(IUTDF,ISTAT)
           if(iabs(itdflg).gt.1)then
-            call usrmsg('Including temporal file in model...',
+            call usrmsg('Including temporal file in model ...',
      &        ' ','-')
             CALL EMKCFG('-',IER)
-            call usrmsg('Including temporal file in model...done.',
+            call usrmsg('Including temporal file in model ... done.',
      &        ' ','-')
           endif
           goto 42
@@ -1505,9 +1520,9 @@ C Dereference or ignore, depending on the file type.
           call clrtabc
           itdflg=0
           NITDF=0
-          call usrmsg('Removing temporal references...',' ','-')
+          call usrmsg('Removing temporal references ...',' ','-')
           CALL EMKCFG('-',IER)
-          call usrmsg('Removing temporal references...done.',' ','-')
+          call usrmsg('Removing temporal references ... done.',' ','-')
           MODSIT=.false.
           return
         endif
@@ -1519,7 +1534,7 @@ C List associations.
         else
           if(ITEMSTD.gt.0)then
             call edisp(iuout,' ')
-            call edisp(iuout,' Temporal entities currently used...')
+            call edisp(iuout,' Temporal entities currently used')
             call edisp(iuout,'  ________________________________')
             call edisp(iuout,'  |temporal    |generic |associated')
             call edisp(iuout,
@@ -1531,7 +1546,7 @@ C List associations.
   28        continue
             call edisp(iuout,' ')
           else
-            call edisp(iuout,'Currently no temporal items are used.')
+            call edisp(iuout,'Currently no temporal items used.')
           endif
         endif
         goto 42
@@ -1540,14 +1555,14 @@ C List associations.
 C Use/manage entity associations.
         if(itdflg.eq.0)then
           call usrmsg(
-     &    'No temporal file yet. Can only create associations with',
-     &    'existing entities. ','W')
+     &    'No temporal file yet. You can only create associations',
+     &    'with existing entities. ','W')
           goto 42
         endif
 
         ltmp=LTDFA
-        CALL EASKS(ltmp,' Temporal definitions file name?',
-     &    ' ',72,DLTDF,'temporal definitions db name',IER,nbhelp)
+        CALL EASKS(ltmp,' ','Temporal definitions file name?',
+     &    72,DLTDF,'temporal definitions db name',IER,nbhelp)
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
 
 C Depending on its type read the header of the temporal file.
@@ -1594,26 +1609,26 @@ C Befor management option list current db items and then associations.
   228     continue
           call edisp(iuout,' ')
         else
-          call edisp(iuout,'Currently no temporal items are used.')
+          call edisp(iuout,'Currently no temporal items used.')
         endif
 
 C Manage the list of DBTAG/DBTASK/DBZN/DBSN.
         itro=0
         if(ITEMSTD.eq.0)then
-          call easkabc('Temporal association options:',' ',
-     &      'n/a','add association','continue',ITRO,nbhelp)
+          call easkabc(' ','Associations options:',
+     &      'n/a','add','cancel',ITRO,nbhelp)
           if(itro.eq.3) goto 42
         else
-          call easkabcd('Temporal association options:',' ',
-     &      'delete association','add association','edit association',
-     &      'continue',ITRO,nbhelp)
+          call easkabcd(' ','Associations options:',
+     &      'delete','add','edit',
+     &      'cancel',ITRO,nbhelp)
           if(itro.eq.4) goto 42
         endif
         if(itro.eq.1)then
 
 C Delete an association and move others up.
-          CALL EASKI(it,'Temporal item which you do not want to use',
-     &      'in this model?',1,'F',itemstd,'F',1,'selec index',
+          CALL EASKI(it,' ','Temporal item to be removed?',
+     &      1,'F',itemstd,'F',1,'selec index',
      &      IERI,nbhelp)
           if(ieri.eq.-3) goto 42
 
@@ -1631,16 +1646,17 @@ C Delete an association and move others up.
           endif
           ITEMSTD=ITEMSTD-1
           MODSIT=.true.
-          call usrmsg('Compacting temporal references...',' ','-')
+          call usrmsg('Compacting temporal references ...',' ','-')
           CALL EMKCFG('-',IER)
-          call usrmsg('Compacting temporal references...done.',' ','-')
+          call usrmsg('Compacting temporal references ... done.',
+     &                ' ','-')
           MODSIT=.false.
         elseif(itro.eq.2.or.itro.eq.3)then
 
 C Add association or edit current association.
           if(itro.eq.3)then
-            CALL EASKI(ite,'Which temporal association to modify?',
-     &        '(index)',1,'F',itemstd,'F',1,'selec tdf assoc',
+            CALL EASKI(ite,' ','Temporal association to modify?',
+     &        1,'F',itemstd,'F',1,'selec tdf assoc',
      &        IERI,nbhelp)
             if(ieri.eq.-3) goto 42
             if(ite.ne.0)then
@@ -1655,8 +1671,8 @@ C Reset itemstd to the item to be edited.
               if(ieri.eq.-3) goto 42
             endif
           elseif(itro.eq.2)then
-            CALL EASKI(it,'Temporal item index to associate with',
-     &        'this model?',1,'F',NITDF,'F',1,'selec tdf index',
+            CALL EASKI(it,' ','Temporal item index to associate',
+     &        1,'F',NITDF,'F',1,'selec tdf index',
      &        IERI,nbhelp)
             if(ieri.eq.-3) goto 42
             ITEMSTD=ITEMSTD+1
@@ -1690,7 +1706,7 @@ C Use DBZN to indicate that tdf ventilation associated with a zone.
 C << need to support the no ventilation case? >>
             IC=-1
  251        izdef=0
-            call askzone(ic,izdef,' Related zone for ventilation?',
+            call askzone(ic,izdef,'Related zone for ventilation?',
      &        'Related zone','-','Ventilation requires a zone.',34,ier)
             IF(IC.EQ.-1)GOTO 251
             if(ic.eq.0)then
@@ -1705,7 +1721,7 @@ C << Think about this, it might need to know about which surfaces
 C << the velocity should be associated with an outside surface?
             IC=-1
  252        izdef=0
-            call askzone(ic,izdef,' Related zone for air velocity?',
+            call askzone(ic,izdef,'Related zone for air velocity?',
      &        'Related zone','-','Air velocity requires a zone.',34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 252
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
@@ -1716,7 +1732,7 @@ C << Think about what this could be used for...if could be a number
 C << between 0.0 and 1.0 giving ON fraction.
             IC=-1
  254        izdef=0
-            call askzone(ic,izdef,' Related zone for control state?',
+            call askzone(ic,izdef,'Related zone for control state?',
      &        'Related zone','-','Set point requires a zone.',34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 254
             write(DBZN(ITE),'(a)') zname(IC)(1:12)
@@ -1727,7 +1743,7 @@ C << between 0.0 and 1.0 giving ON fraction.
 C Depending on the type of the data, ask for associated zone.
             IC=-1
  1252       izdef=0
-            call askzone(ic,izdef,' Related zone for activity db?',
+            call askzone(ic,izdef,'Related zone for activity db?',
      &      'Related zone','-','Activity db can be assigned to a zone.',
      &      34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 1252
@@ -1762,8 +1778,8 @@ C copy data into cm variables for later editing.
               helptopic='temporal_ctl_linkage'
               call gethelptext(helpinsub,helptopic,nbhelp)
               irtc=0
-              CALL EASKABC(' Control linkage options:',' ',
-     &          'use existing control','create new control','continue',
+              CALL EASKABC(' ','Control linkage options:',
+     &          'use existing','new','cancel',
      &          IRTC,nbhelp)
               if(irtc.eq.1)then
                 CALL EASKI(ispl,'Control loop to use set point data?',
@@ -1785,7 +1801,7 @@ C setpoint so create another one, fill in as much information as
 C possible and link back to the temporal item. Increment ncf.
               call edisp(iuout,'No applicable controls found.')
               irtc=0
-              CALL EASKABC(' Control linkage options:',' ',
+              CALL EASKABC(' ','Control linkage options:',
      &          'n/a','create new control','cancel',IRTC,nbhelp)
               if(irtc.eq.1.or.irtc.eq.3)then
                 goto 42
@@ -1820,14 +1836,14 @@ C Add another controls
 C Confirm capacities.
   553       WRITE(HOLD,'(2f8.0)')cm(2),cm(3)
             if(TTYPE(it)(1:6).eq.'ACTIVI')then
-              CALL EASKS(HOLD,
-     &        'Heating and cooling setpoint column number ',
-     &        '(respectively):',40,' 5.0 6.0 ',
-     &        ' track another column number(s)',IER,nbhelp)
+              CALL EASKS(HOLD,' ',
+     &        'Heating and cooling setpoint column number?',
+     &        40,' 5.0 6.0 ',
+     &        'track another column number(s)',IER,nbhelp)
             elseif(TTYPE(it)(1:6).eq.'HTCLSE')then     
-              CALL EASKS(HOLD,
-     &        'Heating and cooling setpoint column number ',
-     &        '(respectively):',40,' 2.0 3.0 ',
+              CALL EASKS(HOLD,' ',
+     &        'Heating and cooling setpoint column number?',
+     &        40,' 2.0 3.0 ',
      &        ' track another column number(s)',IER,nbhelp)
             endif    
             K=0
@@ -1843,12 +1859,12 @@ C Update the control period data.
 C Update the control file and link the control loop to the correct zone.
             icascf(IC)=ispl
             ICTLF=IFIL+1
-            call usrmsg('Updating model control for temporal link...',
+            call usrmsg('Updating model control for temporal link ...',
      &        ' ','-')
             CALL CTLWRT(ICTLF,IER)
             CALL EMKCFG('-',IER)
             call usrmsg(
-     &        'Updating model control for temporal link...done.',
+     &        'Updating model control for temporal link ... done.',
      &        ' ','-')
             DBSN(ITE)='ALL'
           elseif(TTYPE(it)(1:6).eq.'SETPTT')then
@@ -1892,8 +1908,8 @@ C control law in the first period.
 C If there are possible control laws and if the user selects one of them
 C copy data into cm variables for later editing.
               irtc=0
-              CALL EASKABC(' Control linkage options:',' ',
-     &          'use existing control','create new control','continue',
+              CALL EASKABC(' ','Control linkage options:',
+     &          'use existing','new','cancel',
      &          IRTC,nbhelp)
               if(irtc.eq.1)then
                 CALL EASKI(ispl,'Control loop to use set point data?',
@@ -1925,7 +1941,7 @@ C setpoint so create another one, fill in as much information as
 C possible and link back to the temporal item. Increment ncf.
               call edisp(iuout,'No applicable controls found.')
               irtc=0
-              CALL EASKABC(' Control linkage options:',' ',
+              CALL EASKABC(' ','Control linkage options:',
      &          'n/a','create new control','cancel',IRTC,nbhelp)
               if(irtc.eq.1.or.irtc.eq.3)then
                 goto 42
@@ -2000,12 +2016,12 @@ C Update the control period data.
 C Update the control file and link the control loop to the correct zone.
             icascf(IC)=ispl
             ICTLF=IFIL+1
-            call usrmsg('Updating model control for temporal link...',
+            call usrmsg('Updating model control for temporal link ...',
      &        ' ','-')
             CALL CTLWRT(ICTLF,IER)
             CALL EMKCFG('-',IER)
             call usrmsg(
-     &        'Updating model control for temporal link...done.',
+     &        'Updating model control for temporal link ... done.',
      &        ' ','-')
             DBSN(ITE)='ALL'
           elseif(TTYPE(it)(1:8).eq.'BIDIRSET')then
@@ -2014,7 +2030,7 @@ C Depending on the type of data, ask for associated surface.
             IC=-1
  352        izdef=0
             call askzone(ic,izdef,
-     &        ' Related zone for bidirectional data set?',
+     &        'Related zone for bidirectional data set?',
      &        'Related zone','-','Optical sets require a zone.',
      &        34,ier)
             IF(IC.EQ.0.OR.IC.EQ.-1)GOTO 352
@@ -2183,8 +2199,8 @@ C control law in the first period.
 C There are possible control loops. If the user selects one of them
 C copy data into cm variables for later editing.
               irtc=0
-              CALL EASKABC(' CFC control linkage options:',' ',
-     &          'use existing control','create new control','continue',
+              CALL EASKABC(' ','CFC control linkage options:',
+     &          'use existing',' new','cancel',
      &          IRTC,nbhelp)
               if(irtc.eq.1)then
                 CALL EASKI(ispl,'Control loop to use tdf data?',
@@ -2200,7 +2216,7 @@ C copy data into cm variables for later editing.
 cx                cm(4)=bmiscd(ispl,1,1,4)
 cx                cm(5)=bmiscd(ispl,1,1,5)
               elseif(irtc.eq.2) then
-C              ?? create new??
+C ? create new
 
               elseif(irtc.eq.3)then
                 goto 42
@@ -2313,14 +2329,40 @@ C Update the control file.
 
 cx **** END CFCCTL
 cx ******************************************************************
-
+          elseif(TTYPE(it)(1:7).eq.'SUPPLWT')then
+            itdfpcmp=0
+            CALL EASKI(itdfpcmp,
+     &        'Plant component number to associate with',
+     &        'measured temperatures',1,'F',MPCOM,'F',1,'input number',
+     &        IERI,nbhelp)
+            if(itdfpcmp.le.9)then
+              write(DBZN(ITE),'(A9,I1)') 'plantCom_', itdfpcmp !plant component number
+            elseif(itdfpcmp.ge.10.and.itdfpcmp.le.99)then
+              write(DBZN(ITE),'(A9,I2)') 'plantCom_', itdfpcmp !plant component number
+            else
+              write(DBZN(ITE),'(A9,I3)') 'plantCom_', itdfpcmp !plant component number
+            endif
+            DBSN(ITE)='ALL' 
+          elseif(TTYPE(it)(1:7).eq.'PUMPVFR')then
+            itdfpvfrcmp=0
+            CALL EASKI(itdfpvfrcmp,
+     &        'Plant component number to associate with',
+     &        'measured flow rate',1,'F',MPCOM,'F',1,'input number',
+     &        IERI,nbhelp)
+            if(itdfpvfrcmp.le.9)then
+              write(DBZN(ITE),'(A12,I1)') 'plantVFRCom_', itdfpvfrcmp !plant component number
+            elseif(itdfpvfrcmp.ge.10.and.itdfpvfrcmp.le.99)then
+              write(DBZN(ITE),'(A12,I2)') 'plantVFRCom_', itdfpvfrcmp !plant component number
+            else
+              write(DBZN(ITE),'(A12,I3)') 'plantVFRCom_', itdfpvfrcmp !plant component number
+            endif
+            DBSN(ITE)='ALL' 
           else
             DBZN(ITE)='ALL'
             DBSN(ITE)='ALL'            
           endif
           if(itro.eq.2)then
-            dok=.false.
-            CALL ASKOK(' ','Use another temporal item?',OK,DOK,nbhelp)
+            CALL EASKOK(' ','Use another temporal item?',OK,nbhelp)
             if(OK)then
               IRT=4
               goto 27
@@ -2569,6 +2611,7 @@ C Note that there is no specific logic to remind a user to update the
 C model cfg file if a change is made.
       subroutine calenmanage(act,ier)
       implicit none
+
 #include "epara.h"
 #include "building.h"
 #include "model.h"
@@ -2587,8 +2630,8 @@ C Parameters passed
       character act*1 ! action to take
       integer ier     ! error state
 
-      integer iuout,iuin
-      common/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer ifil
       integer iyear,ibdoy,iedoy,ifday,iftime
@@ -2616,7 +2659,7 @@ C Local variables.
       integer icomp
       integer ipatday1,ipatday2,ipatday3,ipatday4,ipatday5,ipatday6  ! remember what the new day types are
       integer idol,idaynum,idtyy,idwknum,imthnum  ! for determining day of week
-      logical ok,dok,xst
+      logical ok,xst
 
 C Variables for handling climate file.
       character llclmdb*144
@@ -2831,7 +2874,7 @@ C Setup string buffer with distribution weather folder name.
             INQUIRE (FILE=cdblfil,EXIST=XST)
             if(XST)then
               IUF=IFIL+2
-              call scancdblist(IUF,llclmdb,ok,ier)
+              call scancdblist(IUF,llclmdb,'p',ok,ier)
               if(ok)then
                 continue
               else
@@ -2856,9 +2899,9 @@ C Default season definitions.
 C Dialog based on whether or not seasons have been found.
 
           if(nbdaytype.ge.3.and.nbdaytype.le.MDTY)then
-            CALL EASKABCD(' Options:',' ','add day type',
-     &        'add set of day types','delete (not available)',
-     &        'continue',IRT,nbhelp)
+            CALL EASKABCD(' ',' Options:','add day type',
+     &        'add set of day types','n/a',
+     &        'cancel',IRT,nbhelp)
             if(irt.eq.1)then
 
 C If there is a control file, scan it and then loop through each of the
@@ -2959,9 +3002,9 @@ C the control file if it exists and then process zone operation files.
 C If user agrees apply these two new day types to the current calendar.
 C Loop through all days, if one of the original 3 day types revise them
 C to use the new Mon-Sat & Sunday types.
-                  DOK=.true.
-                  CALL ASKOK('Apply these new day types to the current',
-     &              'calendar of the model?',OK,DOK,nbhelp)
+                  CALL EASKOK(' ',
+     &               'Apply new day types to current calendar?',
+     &                OK,nbhelp)
                   if(OK)then
                     DO 123 IDOL=1,365
                       IF(ICALENDER(IDOL).LE.3)THEN
@@ -3079,9 +3122,9 @@ C Loop through all days, if one of the original 3 day types revise them
 C to use the new seasonal day types. The 5 sesaons in the weather data
 C are applied so that win1 and win2 both get the winter day types and
 C spring and autumn both get the transition day type.
-                  DOK=.true.
-                  CALL ASKOK('Apply these new day types to the current',
-     &              'calendar of the model?',OK,DOK,nbhelp)
+                  CALL EASKOK(' ',
+     &               'Apply new day types to current calendar?',
+     &                OK,nbhelp)
                   if(OK)then
 C Debug.
 C                    write(6,*) nbdaytype,ipatday1,ipatday2,ipatday3,
@@ -3392,6 +3435,7 @@ C ********** updatectlfornewdaytype
 C updatectlfornewdaytype adds an additional day type to each of the
 C model control domains. 
       subroutine updatectlfornewdaytype(havectl,usecalendar,ier)
+
 #include "building.h"
 #include "control.h"
 
@@ -3401,8 +3445,8 @@ C Parameters passed
                            ! have a different number of day types
       integer ier          ! error state
 
-      integer iuout,iuin
-      common/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       integer nbdaytype,nbcaldays,icalender
       COMMON/FILEP/IFIL
@@ -3689,10 +3733,12 @@ C Fill second month with real data or blanks.
         if(MMOD.eq.8)call startbuffer()
         line=3
         write(etext,'(20x,i4)') iyear
-        iside=line
-        isize=0
-        ifont=2
-        call viewtext(etext,iside,isize,ifont)
+        iside=line; isize=0; ifont=2
+        if(mmod.eq.8)then
+          call viewtext(etext,iside,isize,ifont)
+        else
+          call viewtextwwc(etext,iside,isize,ifont)
+        endif
 
 C If number of months to display is a multiple of 2 display side by side.
 C imon1 and imon2 are possible months to dispalay (if zero then do not).
@@ -3709,14 +3755,20 @@ C heading and then find the start day of the week for each.
             imon2=im+1
             line=line+1
             write(etext,'(8x,a,17x,a)') ramonth(imon1),ramonth(imon2)
-            iside=line
-            isize=0
-            ifont=2
-            call viewtext(etext,iside,isize,ifont)
+            iside=line; isize=0; ifont=2
+            if(mmod.eq.8)then
+              call viewtext(etext,iside,isize,ifont)
+            else
+              call viewtextwwc(etext,iside,isize,ifont)
+            endif
             line=line+1
             write(etext,'(a)') mohead
             iside=line
-            call viewtext(etext,iside,isize,ifont)
+            if(mmod.eq.8)then
+              call viewtext(etext,iside,isize,ifont)
+            else
+              call viewtextwwc(etext,iside,isize,ifont)
+            endif
             call edayr(mdays(imon1),idayn,imthn)
             call eweekd(idayn,imthn,iyear,im1dwk)
             call edayr(mdays(imon2),idayn,imthn)
@@ -3730,11 +3782,19 @@ C heading and then find the start day of the week for each.
               iside=line
               isize=0
               ifont=2
-              call viewtext(etext,iside,isize,ifont)
+              if(mmod.eq.8)then
+                call viewtext(etext,iside,isize,ifont)
+              else
+                call viewtextwwc(etext,iside,isize,ifont)
+              endif
               line=line+1
               write(etext,'(a)') mohead(1:22)
               iside=line
-              call viewtext(etext,iside,isize,ifont)
+              if(mmod.eq.8)then
+                call viewtext(etext,iside,isize,ifont)
+              else
+                call viewtextwwc(etext,iside,isize,ifont)
+              endif
               call edayr(mdays(imon1),idayn,imthn)
               call eweekd(idayn,imthn,iyear,im1dwk)
               im2dwk=0
@@ -3746,17 +3806,25 @@ C heading and then find the start day of the week for each.
               iside=line
               isize=0
               ifont=2
-              call viewtext(etext,iside,isize,ifont)
+              if(mmod.eq.8)then
+                call viewtext(etext,iside,isize,ifont)
+              else
+                call viewtextwwc(etext,iside,isize,ifont)
+              endif
               line=line+1
               write(etext,'(a)') mohead
               iside=line
-              call viewtext(etext,iside,isize,ifont)
+              if(mmod.eq.8)then
+                call viewtext(etext,iside,isize,ifont)
+              else
+                call viewtextwwc(etext,iside,isize,ifont)
+              endif
               call edayr(mdays(imon1),idayn,imthn)
               call eweekd(idayn,imthn,iyear,im1dwk)
               call edayr(mdays(imon2),idayn,imthn)
               call eweekd(idayn,imthn,iyear,im2dwk)
             endif
-            call forceflush()
+            if(mmod.eq.8) call forceflush()
           endif
 
 C For one or two current months fill the m1slots and m2slots.
@@ -3842,7 +3910,7 @@ C Plot out the first 7 days.
               write(word3(1:3),'(a)') am1slots(J)(1:3)
               idcol=m1slots(j,2)
               iicol=0
-              if(idcol.eq.0)call winscl('-',iicol)
+              if(idcol.eq.0.and.mmod.eq.8)call winscl('-',iicol)
               call findviewtext(icx,line,isize,iix,iiy)
 C              iix=ix; iiy=iy
               if(idcol.eq.0)then
@@ -3859,7 +3927,7 @@ C Shift over another character and print out the 2nd months line.
               write(word3(1:3),'(a)') am2slots(J)(1:3)
               idcol=m2slots(j,2)
               iicol=0
-              if(idcol.eq.0)call winscl('-',iicol)
+              if(idcol.eq.0.and.mmod.eq.8)call winscl('-',iicol)
               call findviewtext(icx,line,isize,iix,iiy)
 C              iix=ix; iiy=iy
               if(idcol.eq.0)then
@@ -3875,18 +3943,20 @@ C              iix=ix; iiy=iy
 C Also include list of day types.
         line=line+2
         iicol=0
-        call winscl('-',iicol)
+        if(mmod.eq.8) call winscl('-',iicol)
         write(etext,*) 'Calendar: ',calename
-        iside=line
-        isize=0
-        ifont=2
-        call viewtext(etext,iside,isize,ifont)
+        iside=line; isize=0; ifont=2
+        if(mmod.eq.8)then
+          call viewtext(etext,iside,isize,ifont)
+        else
+          call viewtextwwc(etext,iside,isize,ifont)
+        endif
         do 151 icd = 1,nbdaytype
           line=line+1
           write(etext,*) calentag(icd),' ',calendayname(icd)
           idcol=icd
           iicol=0
-          if(idcol.eq.0)call winscl('-',iicol)
+          if(idcol.eq.0.and.mmod.eq.8)call winscl('-',iicol)
           call findviewtext(3,line,isize,iix,iiy)
 C          iix=ix; iiy=iy
           if(idcol.eq.0)then
@@ -3896,8 +3966,10 @@ C          iix=ix; iiy=iy
           endif
  151    continue
         iicol=0
-        call winscl('-',iicol)
-        call forceflush()
+        if(mmod.eq.8)then
+          call winscl('-',iicol)
+          call forceflush()
+        endif
       endif
       return
 
@@ -3918,7 +3990,7 @@ C EDDGTP Sets up ground temperature profiles
 #include "site.h"
       integer iCountWords
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER HOLD*72,OUTS*124
       LOGICAL MODSIT
@@ -4040,13 +4112,13 @@ C files if possible.
 
       character act*4  ! site or asci
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
 
       character outs*248,shdafile*72
-      logical XST,XSTA,OK,DOK,unixok
+      logical XST,XSTA,OK,unixok
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -4091,8 +4163,8 @@ C the site change.
       if(act.eq.'SITE'.or.act.eq.'site'.or.act.eq.'Site')then
         helptopic='reflect_site_change'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' Reflect site change in shading options:',' ',
-     &    'recalculate (silent)','recalculate (interactive)','continue',
+        CALL EASKABC(' ',' Reflect site change in shading options:',
+     &    'recalculate (silent)','recalculate (interactive)','cancel',
      &    IRT,nbhelp)
         if(IRT.eq.1.or.IRT.eq.2)then
           do 43 iz=1,ncomp
@@ -4110,10 +4182,9 @@ C as the command line.
                 call edisp(iuout,'Possible error in calculations.')
               endif
             else
-              DOK=.true.
               write(outs,'(3a)') 'Proceed with shading for ',
-     &          zname(iz)(1:lnzname(iz)),' ?'
-              CALL ASKOK(outs,' ',OK,DOK,nbhelp)
+     &          zname(iz)(1:lnzname(iz)),'?'
+              CALL EASKOK(' ',outs,OK,nbhelp)
               if(OK)then
                 call comissionish(iz,'ira',ier)
                 if(ier.ne.0)then
@@ -4128,10 +4199,10 @@ C as the command line.
       elseif(act.eq.'ASCI'.or.act.eq.'asci')then
         helptopic='reflect_site_change'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' Shading filling in missing data options:',' ',
+        CALL EASKABCD(' ','Shading filling in missing data options:',
      &    'import from ASCII if available (silent)',
      &    'recalculate missing (silent)',
-     &    'recalculate (interactive)','continue',IRT,nbhelp)
+     &    'recalculate (interactive)','cancel',IRT,nbhelp)
         if(IRT.eq.1.or.IRT.eq.2.or.IRT.eq.3)then
           do iz=1,ncomp
             if(ISI(iz).gt.0)then
@@ -4150,7 +4221,7 @@ C an `-act update_silent` as the command line.
                 else
                   if(XST)then
 
-C << TODO actually read ISH file and see if syntax is correct >>
+C << TODO read ISH file and ensure syntax is correct >>
                     continue  ! bin exists so can skip recalculation
                   else
                     call comissionish(iz,'sua',ier)
@@ -4165,10 +4236,10 @@ C << TODO actually read ISH file and see if syntax is correct >>
                   call edisp(iuout,'Possible error in calculations.')
                 endif
               elseif(IRT.eq.3)then
-                DOK=.true.
+
                 write(outs,'(3a)') 'Proceed with shading for ',
-     &            zname(iz)(1:lnzname(iz)),' ?'
-                CALL ASKOK(outs,' ',OK,DOK,nbhelp)
+     &            zname(iz)(1:lnzname(iz)),'?'
+                CALL EASKOK(' ',outs,OK,nbhelp)
                 if(OK)then
                   call comissionish(iz,'ira',ier)
                   if(ier.ne.0)then

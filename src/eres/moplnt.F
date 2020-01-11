@@ -36,7 +36,7 @@ C PLTTAB handles results view/setup requests for plant.
 
       PARAMETER (MSYSRS=20)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRTOOL/IHFLAG,IDHFLG,ILFLAG
       common/exporttg/xfile,tg,delim
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
@@ -704,7 +704,7 @@ C default file names for databases
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/pres/iunitp
       COMMON/FILEP/IFIL
       COMMON/PPERS/IpSD1,IpSM1,IpSD2,IpSM2,IpSDS,IpSDF,NpTS,IpSav
@@ -742,7 +742,7 @@ C Defaults.
       character lctlf*72,ctldoc*248,scname*12,MODE*4
       character firstbit*72,secondbit*72,path*72
       character longtmp*144
-      logical XST,ok,dok
+      logical XST,ok
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       integer nsim  ! number of simulations
       integer ISTRW
@@ -819,11 +819,10 @@ C Set record length of library file.
 
 C Try again? Note: because of space limits only echo the start of
 C the plant file name.
-        dok=.false.
         helptopic='plant_res_file_not'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        write(outs,'(2a)') ' Could not find ',LTMP(1:72)
-        CALL ASKOK(outs,' Do you want to try again?',OK,dok,nbhelp)
+        write(outs,'(3a)') 'Could not find ',LTMP(1:72),'!'
+        CALL EASKOK(outs,'Retry?',OK,nbhelp)
         IF(.NOT.OK) return
         goto  6
       endif
@@ -1166,7 +1165,7 @@ C naout (number of additional output data) is returned.
 #include "gencompDB.h"
 #include "gencompDB_common.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/ntype/isv(mpcom,mnodec)
       common/adopdesc/adopdsc(mpcom,MPCRES)
@@ -1177,7 +1176,7 @@ C naout (number of additional output data) is returned.
 C Common for new format component database
       COMMON/NCDBFORM/ICDBF
 
-      LOGICAL OK,dok,unixok
+      LOGICAL OK,unixok
       CHARACTER PZDESC*25,cdate*16,buffer*80,adopdsc*30,
      &UCDBNam*16, CdbCat*32, CDBDesc*72, argstr*12
       character fs*1
@@ -1218,24 +1217,22 @@ C 'irecln' is defined in 'plantdb.h'.
       endif
   100 call EFOPRAN(ipcdb,lltmp,IRECLN,1,IER)
 
-C Check for error on openening.
+C Check for error on opening.
       if(ier.gt.0) then
          ok=.false.
-         dok=.false.
          helptopic='res_plant_db_not'
          call gethelptext(helpinsub,helptopic,nbhelp)
-         CALL ASKOK('Error occurred on opening data base file',
-     &              ' Try again?',OK,dok,nbhelp)
+         CALL EASKOK('Error opening plant component database!',
+     &              'Retry?',OK,nbhelp)
          if(ok) goto 100
       elseif(ier.lt.0) then
 
 C File doesn't exist.
          ok=.false.
-         dok=.false.
          helptopic='res_plant_db_not'
          call gethelptext(helpinsub,helptopic,nbhelp)
-         CALL ASKOK(' Plant component database does not exist.',
-     &                 ' Try again?',OK,dok,nbhelp)
+         CALL EASKOK('Plant component database does not exist.',
+     &              'Retry?',OK,nbhelp)
          CALL USRMSG(' ',' ','-')
          if(ok) goto 100
       endif
@@ -1247,9 +1244,8 @@ C Old file, so check header.
 
 C Attempt to open the file as a new format cdb (ASCII) file. 
           ok=.false.
-          dok=.false.
-          CALL ASKOK('Error occurred on opening data base file',
-     &              ' Try again?',OK,dok,nbhelp)
+          CALL EASKOK('Error opening plant component database!',
+     &              'Retry?',OK,nbhelp)
           if(ok) goto 100
       endif
 
@@ -1419,6 +1415,7 @@ C the command line was a plant results file.
 
       SUBROUTINE SYSOUTP(act,imode)
 #include "building.h"
+#include "site.h"
 #include "plant.h"
 C act='p' iget parameters already set.
       
@@ -1426,7 +1423,7 @@ C act='p' iget parameters already set.
 
       PARAMETER (MSYSRS=20)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -1506,7 +1503,7 @@ C Flags identifying if results libries are available. =0 no lib, =1 lib exists.
       integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
-      logical colok,ok,dok,unixok
+      logical colok,ok,unixok
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1739,7 +1736,7 @@ C Node second phase mass flow rate (kg/s)
 C Node relative humidity %
             if(IPGETNO(jstat,1).eq.4.and.csv2m(nsnd).gt.0.0) 
      &        val(jstat)=pcrh2(csv1m(nsnd),
-     &                         csv3m(nsnd)/csv2m(nsnd),1013.25)
+     &                         csv3m(nsnd)/csv2m(nsnd),patmos)
 
 C Node specific humidity (kg(v)/kg(a))
             if(IPGETNO(jstat,1).eq.5.and.csv2m(nsnd).gt.0.0) 
@@ -1765,7 +1762,7 @@ C  ..moist air..
 C Node Dew Point temperature (C)
             if(IPGETNO(jstat,1).eq.7.and.csv2m(nsnd).gt.0.0.and.
      &         isv(ipc,nsnd).eq.21) 
-     &        val(jstat)=dewpt(csv3m(nsnd)/csv2m(nsnd),1013.25)
+     &        val(jstat)=dewpt(csv3m(nsnd)/csv2m(nsnd),patmos)
 
 C Additional output. Note that 'nsnd' is NOT a node, 
 C it is the additional output number for the component considered.
@@ -1873,7 +1870,7 @@ C Node second phase mass flow rate (kg/s)
 C Node relative humidity %
             if(IPGETNO(jstat,1).eq.4.and.csv2m(nsnd).gt.0.0) 
      &        val(jstat)=val(jstat)+pcrh2(csv1m(nsnd),
-     &                   csv3m(nsnd)/csv2m(nsnd),1013.25)
+     &                   csv3m(nsnd)/csv2m(nsnd),patmos)
 
 C Node specific humidity (kg(v)/kg(a))
             if(IPGETNO(jstat,1).eq.5.and.csv2m(nsnd).gt.0.0) 
@@ -1899,7 +1896,7 @@ C ..moist air..
 C Node Dew Point temperature (C)
             if(IPGETNO(jstat,1).eq.7.and.csv2m(nsnd).gt.0.0.and.
      &         isv(ipc,nsnd).eq.21)  val(jstat)=val(jstat)
-     &                          +dewpt(csv3m(nsnd)/csv2m(nsnd),1013.25)
+     &                          +dewpt(csv3m(nsnd)/csv2m(nsnd),patmos)
 
 C Additional output.
 C Note, in this case 'nsnd' is NOT a node, 
@@ -1983,10 +1980,9 @@ C If in pif mode use default bin setup.
         if (act(1:1).eq.'p'.and.autook)then
           ok=.TRUE.
         else
-          dok=.true.
           helptopic='plant_freq_reporting'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok('  ','Use default bin set-up?',OK,dok,nbhelp)
+          call easkok(' ','Use default bins?',OK,nbhelp)
         endif
         if(ok)then
 
@@ -2104,25 +2100,31 @@ C Setup and pass in parameters to win3d.
 
         WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
      &    SDESCR(11:lnblnk(SDESCR))
-        iside=1
-        isize=0
-        ifont=1
-        call viewtext(etext,iside,isize,ifont)
+        iside=1; isize=0; ifont=1
+        if(mmod.eq.8)then
+          call viewtext(etext,iside,isize,ifont)
+        else
+          call viewtextwwc(etext,iside,isize,ifont)
+        endif
 
         iancline=0
         if(graftitle(1:2).ne.'  ')then
           t64=graftitle
           if(iancline.gt.0)then
-            iside=3
-            isize=1
-            ifont=2
-            call viewtext(t64,iside,isize,ifont)
+            iside=3; isize=1; ifont=2
+            if(mmod.eq.8)then
+              call viewtext(t64,iside,isize,ifont)
+            else
+              call viewtextwwc(t64,iside,isize,ifont)
+            endif
           endif
           if(iancline.eq.0)then
-            iside=2
-            isize=1
-            ifont=2
-            call viewtext(t64,iside,isize,ifont)
+            iside=2; isize=1; ifont=2
+            if(mmod.eq.8)then
+              call viewtext(t64,iside,isize,ifont)
+            else
+              call viewtextwwc(t64,iside,isize,ifont)
+            endif
           endif
         endif
 
@@ -2264,7 +2266,7 @@ C Node temperature (C), first phase, 2nd phase.
 C Node relative humidity %
             if(IPGETNO(jstat,1).eq.4.and.csv2m(nsnd).gt.0.0) 
      &        val(jstat)=pcrh2(csv1m(nsnd),
-     &                         csv3m(nsnd)/csv2m(nsnd),1013.25)
+     &                         csv3m(nsnd)/csv2m(nsnd),patmos)
 
 C Node specific humidity (kg(v)/kg(a))
             if(IPGETNO(jstat,1).eq.5.and.csv2m(nsnd).gt.0.0) 
@@ -2290,7 +2292,7 @@ C  ..moist air..
 C Node Dew Point temperature (C)
             if(IPGETNO(jstat,1).eq.7.and.csv2m(nsnd).gt.0.0.and.
      &         isv(ipc,nsnd).eq.21) 
-     &        val(jstat)=dewpt(csv3m(nsnd)/csv2m(nsnd),1013.25)
+     &        val(jstat)=dewpt(csv3m(nsnd)/csv2m(nsnd),patmos)
 
 C Additional output. Note that 'nsnd' is NOT a node, 
 C it is the additional output number for the component considered.
@@ -2329,8 +2331,8 @@ C Split flow time into hours and minutes, repeating every 24 hours.
               write (outs,'(a5)') DESCRH
               K=6
             else
-              write (outs,'(f14.8)') ctime
-              K=15
+              write (outs,'(f10.4)') ctime
+              K=11
             endif
             do 410 IXY=1,NPGET
               KE=K+11
@@ -2506,7 +2508,7 @@ C Node temperature (C), first phase, 2nd phase.
 C Node relative humidity %
             if(IPGETNO(jstat,1).eq.4.and.csv2m(nsnd).gt.0.0) 
      &        val(jstat)=val(jstat)+pcrh2(csv1m(nsnd),
-     &                   csv3m(nsnd)/csv2m(nsnd),1013.25)
+     &                   csv3m(nsnd)/csv2m(nsnd),patmos)
 
 C Node specific humidity (kg(v)/kg(a))
             if(IPGETNO(jstat,1).eq.5.and.csv2m(nsnd).gt.0.0) 
@@ -2532,7 +2534,7 @@ C ..moist air..
 C Node Dew Point temperature (C)
             if(IPGETNO(jstat,1).eq.7.and.csv2m(nsnd).gt.0.0.and.
      &         isv(ipc,nsnd).eq.21)  val(jstat)=val(jstat)
-     &                          +dewpt(csv3m(nsnd)/csv2m(nsnd),1013.25)
+     &                          +dewpt(csv3m(nsnd)/csv2m(nsnd),patmos)
 
 C Additional output.
 C Note, in this case 'nsnd' is NOT a node, 
@@ -2580,8 +2582,8 @@ C Split flow time into hours and minutes, repeating every 24 hours.
                 write (outs,'(a5)') DESCRH
                 K=6
               else
-                write (outs,'(f14.8)') ctime
-                K=15
+                write (outs,'(f10.4)') ctime
+                K=11
               endif
               do 412 IXY=1,NPGET
                 KE=K+11
@@ -2751,29 +2753,24 @@ C indicate that several flow items (e.g. nodes) are included.
           if(MMOD.eq.8)then
 
 C Write graph head and set up axis positions and draw.
-            IF(MMOD.EQ.8)THEN
-
 C Setup and pass in parameters to win3d.
-              iiw1=9; iiw2=30; iiw3=4; iiw4=3; iimenu=menuchw
-              iigl=igl; iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
-              iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
-              if(iglib.eq.1)then
-                ilf=2; ild=LIMTTY
-                call feedbox(iimenu,ilf,igfw,igfh)
-                call opengdisp(iimenu,ild,ilf,igdw,igdh)
-              endif
-              CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
-     &          iigl,iigr,iigt,iigb,iigw,iigwh)
-              igl=int(iigl); igr=int(iigr);igt=int(iigt);igb=int(iigb)
-              igw=int(iigw); igwh=int(iigwh)
-              call startbuffer()
-            ENDIF
+            iiw1=9; iiw2=30; iiw3=4; iiw4=3; iimenu=menuchw
+            iigl=igl; iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
+            iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+            if(iglib.eq.1)then
+              ilf=2; ild=LIMTTY
+              call feedbox(iimenu,ilf,igfw,igfh)
+              call opengdisp(iimenu,ild,ilf,igdw,igdh)
+            endif
+            CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
+     &        iigl,iigr,iigt,iigb,iigw,iigwh)
+            igl=int(iigl); igr=int(iigr);igt=int(iigt);igb=int(iigb)
+            igw=int(iigw); igwh=int(iigwh)
+            call startbuffer()
 
             WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
      &        SDESCR(11:lnblnk(SDESCR))
-            iside=1
-            isize=0
-            ifont=1
+            iside=1; isize=0; ifont=1
             call viewtext(etext,iside,isize,ifont)
             TLABEL='  '
             if(NPGET.eq.1)then

@@ -48,7 +48,7 @@ C << TODO call padjview from the wire-frame control menu.
 C Passed parameter.
       integer ier
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
 C      real CG(3)
@@ -146,7 +146,7 @@ C Passed parameter.
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -204,11 +204,8 @@ C Local variables to pass to edline and axiscale.
 C The following logic embeds the sequence of steps used when setting
 C up and drawing standard zones but for pre-defined objects.
 
-C << TODO enable a mode so that the viewing buttons work and one could
-C << rotate around the entity.
-
 C If not in graphic mode return.
-      if(MMOD.lt.8)return
+      if(mmod.lt.8)return
       SMALL=0.01
 
 C Tell wireframe control the current number of selected zones.

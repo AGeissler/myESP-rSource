@@ -39,7 +39,7 @@ C routines.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/INITL/INIT1,INIT2
@@ -126,7 +126,7 @@ C name with the full path.
         else
           ISTRW=96
         endif
-        CALL EASKF(ltmpc,'Library name?',' ',ISTRW,DEFRLB,
+        CALL EASKF(ltmpc,' ','Building results file name?',ISTRW,DEFRLB,
      &    'library file',IER,nbhelp)
 
 C If user cancel set iftype to -2 and return (assume calling code
@@ -235,8 +235,8 @@ C The simulator created record width is less so close and reopen.
           close(iunit)
           call EFOPRAN(iunit,LTMP,nzrl,1,IER)
           IBLIB=1
-          write(outs,'(A,I3)')' Opening file with record length',nzrl
-          call edisp(iuout,outs)
+C          write(outs,'(A,I3)')' Opening file with record length',nzrl
+C          call edisp(iuout,outs)
         elseif (nreclx.gt.nzrl) then
 
 C The simulator created record width is larger so close and reopen.
@@ -252,11 +252,13 @@ C If the record widths still do not match then give up.
      &        'Unable to open library (record width',nreclx,
      &        'to large). Stopping!'
             call usrmsg(outs,LTMP,'W')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             CALL EPAGEND
             STOP
           endif
-          write(outs,'(A,I3)')' Opening file with record length',nzrl
-          call edisp(iuout,outs)
+C          write(outs,'(A,I3)')' Opening file with record length',nzrl
+C          call edisp(iuout,outs)
           IBLIB=1
         else
           if(LTMP.eq.DEFRLB) then
@@ -281,10 +283,12 @@ C Establish if this database contains result-sets.
       IREC=1
       READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=7)NSIM,nzrl,izver,IMET
       IF(NSIM.EQ.0)then
-        call easkab('Library is incomplete or corrupt...  Do you want',
-     &    ' to:','attempt to continue (DANGEROUS)','give up?',IW,
+        call easkab('Library is incomplete or corrupt!',
+     &    'Options:','continue','cancel',IW,
      &    nbhelp)
         if(IW.eq.2)then
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
           STOP
         else
@@ -293,10 +297,12 @@ C Establish if this database contains result-sets.
       elseif(NSIM.gt.MNRS) then
         helptopic='reslib_nb_sets_dialog'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkab('Library has more than 30 result sets! Do you',
-     &    ' want to:','attempt to continue (DANGEROUS)',
-     &    'give up?',IW,nbhelp)
+        call easkab('Library has >30 result sets!',
+     &    'Options:','continue',
+     &    'cancel',IW,nbhelp)
         if(IW.eq.2)then
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
           STOP
         else
@@ -317,8 +323,14 @@ C Establish if this database contains result-sets.
 
 C Read in all file names and miscellaneous data associated
 C with the results held in this database and stored in the
-C header block.
-    8 ISTREC=MNRS
+C header block. If izver is <= 4 then it will have been created
+C with an MNRS parameter of 100 whereas izver >4 will have a
+C MNRS of 200.
+    8 if(izver.le.4)then
+        ISTREC=100
+      else
+        ISTREC=MNRS
+      endif
       CALL MOINIT(ISTREC,IER)
 
 C If the user was asked to browse for the model configuration file
@@ -347,9 +359,9 @@ C Note: flow results are opened at call to mfoutp.
 
 C Error messages.
    13 if(IOS.eq.2)then
-        CALL USRMSG('No permission to read library header',' ','W')
+        CALL USRMSG('No permission to read library header!',' ','W')
       else
-        CALL USRMSG('File read error in library header',' ','W')
+        CALL USRMSG('File read error in library header!',' ','W')
       endif
       RETURN
       END
@@ -392,7 +404,7 @@ C TNAME (temporary value)
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DEFLT/IDEFLT
       COMMON/FILEP/IFIL
 
@@ -596,14 +608,14 @@ C        write(6,*) 'B ',RSNAME
      &        'the uncertainties','a particular set',IW,nbhelp)
           elseif (IMET.eq.3) then
             write (outs,'(2a)')'The current result library holds data ',
-     &        'from a monte carlo uncertainty analysis'
+     &        'from a montecarlo uncertainty analysis'
             call easkab(outs,'Do you wish to analyse:',
      &        'the uncertainties','a particular set',IW,nbhelp)
           else
             IW=2
           endif
           if(IW.eq.1)then  ! Advise user which menu option to select.
-            call edisp(iuout,'  ')
+            call edisp(iuout,' ')
             call edisp(iuout,'Choose SENSITIVITY option in menu.')
           endif
           if (IW.eq.2) then
@@ -612,13 +624,14 @@ C Choose one of the sets, otherwise set one is the base case and all
 C other sets are chosen. 
             ITMP=1
             ITEMS=NSIM
-            CALL EPICKS(ITMP,ITMPSETS,' ',' Which set for analysis: ',
+            CALL EPICKS(ITMP,ITMPSETS,' ','Set for analysis:',
      &        40,ITEMS,RSNAME,' result-set list',IER,nbhelp)
             ISIM=ITMPSETS(1)
             NS=0
           else
-            write (outs,'(a,a)') 'Set one from the library will be ',
-     &                 'used as the base-case result set, and will also'
+            write (outs,'(a,a)') 'Set one from the library will be',
+     &                 'used as the base case result set, and will also'
+            call edisp(iuout,' ')
             call EDISP(iuout,outs)
             call EDISP(iuout,'be the set used for detailed analysis.')
             ISIM=1
@@ -741,7 +754,7 @@ C               the output interval if NOUT > 1 (IAV=1 yes; IAV=0 no)
       SUBROUTINE MOOPER
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DEFLT/IDEFLT
       COMMON/C6/INDCFG
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -762,7 +775,7 @@ C               the output interval if NOUT > 1 (IAV=1 yes; IAV=0 no)
       common/libhead/libheading,headingcontext
 
       character outs*124,PDESCR*60
-      logical ok,dok
+      logical ok
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -787,15 +800,16 @@ C timestep as simulation, assume no filtering.
         iocut=0
         CALL HDDATE(PDESCR)
         write(outs,'(1x,a)') PDESCR
+        call edisp(iuout,' ')
         call edisp(iuout,outs)
-        call edisp(iuout,' Output time-step interval = 1')
+        call edisp(iuout,'Output time-step interval = 1')
         return
 
 C Reset so heading printed at next available opportunity.
         libheading=.false.; headingcontext=.false.
       endif
 
-      call edisp(iuout,' Output period and interval definition')
+C      call edisp(iuout,'Output period and interval definition')
 
    9  call ASKPER(IFDAY,IER)
 
@@ -815,7 +829,7 @@ C Start time must be before finish time.
 C Output time-step increment ?
    18 helptopic='res_output_timestep'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKI(NOUT,' ',' Output time-step increment ? ',
+      CALL EASKI(NOUT,' ','Output time-step increment?',
      &  1,'F',60,'F',1,'output time-step',IER,nbhelp)
 
 C Reset so heading printed at next available opportunity.
@@ -823,9 +837,8 @@ C Reset so heading printed at next available opportunity.
 
       IAV=0
       if (NOUT.gt.1) then
-        dok=.false.
-        call askok(' ','Average results over each output interval?',
-     &    ok,dok,nbhelp)
+        call easkok(' ','Average results over output interval?',
+     &    ok,nbhelp)
         if(ok)then
           IAV=1
         else
@@ -838,16 +851,18 @@ C Reset so heading printed at next available opportunity.
 
 C ******************** MOZDFN ********************
 C MOZDFN allows user-definition of the zones to be
-C considered on output.
+C considered on output if there are groups these are
+C offered.
 C Common block variables are:
 C NZ   - number of zones for output.
 C NZNO - zone number of each.
 
       SUBROUTINE MOZDFN
 #include "building.h"
+#include "model.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DEFLT/IDEFLT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -909,9 +924,11 @@ C Otherwise select the zones from a list of zone names.
 
 C Show list of zones (make list the same width as other res
 C menus. Internally EPICKS adds 4 to the width passed. So
-C for typical 23 character menu lets use 20.
-      CALL EPICKS(INPIC,IVALS,' ','Which zones to include:',
-     &  20,NCOMP,zn,' zone list',IER,nbhelp)
+C for typical 23 character menu use 20.
+      call ASKMULTIZON(INPIC,IVALS,'Which zones to include:',
+     &  'zone list','-',IER) 
+C      CALL EPICKS(INPIC,IVALS,' ','Which zones to include:',
+C     &  20,NCOMP,zn,' zone list',IER,nbhelp)
       NZ=INPIC
       DO 40 I=1,INPIC
         NZNO(I)=IVALS(I)
@@ -967,13 +984,20 @@ C ier is zero if no problems and -3 if user issued a cancel.
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
+
+C Record lengths for zone (nzrl), plant (nprl), electrical(nerl) results libraries.
+      common/reclen/nzrl,nprl,nerl
       common/recver/izver,ipver,iever
       common/rpath/path
       character xfile*144,tg*1,delim*1
       common/exporttg/xfile,tg,delim
+
+      character calename*32,calentag*12,calendayname*32
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -981,16 +1005,15 @@ C ier is zero if no problems and -3 if user issued a cancel.
       COMMON/DNORGH/IRTYPE
       COMMON/RECV3/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
-      COMMON/RECV5/SNA(MCOM,MS)
       common/PREC18/ZTRANA(MCOM)
 
 C Nothing references ZGAE and ZGAI.
       COMMON/RECV8/ZGAE(MCOM),ZGAI(MCOM)
       COMMON/RECV9/CHARDM(MCOM,MS)
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
-      COMMON/RECV12/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &              HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
+      COMMON/RECV12/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
+     &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
+     &       HCFVE(MCOM,MDTY,MS,MBP)
       COMMON/RECVBP/IBP
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
@@ -1007,6 +1030,7 @@ C Defaults.
 C longtmp is the model configuration file with full path.
       CHARACTER NAME*6,longtmp*144
       character outs*124,znpad*15,path*72,MODE*4
+      character mlcn*32,optn*32
       character louts*248
       integer ISTRW
       
@@ -1040,21 +1064,6 @@ C Set folder separator (fs) to \ or / as required.
       IREC=ISTREC+2
       IBP=1
       READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)NCOMP,NCON
-
-C If an oder library the start record is probably 32 so if
-C the data scan yields a silly number reset IREC and try and
-C read again.
-      if(NCOMP.gt.MCOM.or.NCON.gt.MCON)then
-        IREC=30+2
-        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)NCOMP,NCON
-        if(NCOMP.gt.MCOM.or.NCON.gt.MCON)then
-          write(outs,*) 'WARNING: ncomp at record was dubious',NCOMP,
-     &       IREC
-          call edisp(iuout,outs)
-          call edisp(iuout,'this results file needs to be scanned')
-          call edisp(iuout,'with an older version of res.')
-        endif
-      endif
       IREC=IREC+1
       IF(NCOMP.GT.0)goto 3
       IBP=2
@@ -1072,10 +1081,15 @@ C read again.
     3 READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)modeltitle
       IREC=IREC+1
       NCP=NCOMP
-      IF(NCP.GT.20)NCP=20
+      if(izver.le.4)then
+        IF(NCP.GT.20)NCP=20      ! V4 restricted width
+      else
+        IF(NCP.GT.nzrl)NCP=nzrl  ! V5 use the full width of records
+      endif
       READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NCCODE(I),I=1,NCP)
       IREC=IREC+1
-      IF(NCOMP.LE.20)goto 4
+      if(izver.le.4.and.NCOMP.LE.20)goto 4
+      if(izver.gt.4)goto 4
       READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NCCODE(I),I=21,NCOMP)
       IREC=IREC+1
 
@@ -1091,69 +1105,79 @@ C required at present.
       IF(IBP.EQ.2)RETURN
       XX=FLOAT(NCON)/20.
       IJ=INT(XX)+1
-      DO 1030 I=1,NCOMP
-      READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)LPROJ(I)
-      IREC=IREC+1
 
- 1030 CONTINUE
+C Get the names of each zone operation file.
+      DO I=1,NCOMP
+        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)LPROJ(I)
+        IREC=IREC+1
+      ENDDO
 
-C Added to save the name of each zone geometry file in LGEOM(MCOM).
-      DO 1031 I=1,NCOMP
+C Get the names of each zone geometry file.
+      DO I=1,NCOMP
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)CHDUM
         LGEOM(I)=CHDUM
         IREC=IREC+1
- 1031 CONTINUE
+      ENDDO
 
-C Added to save the name of each zone LSHAD file.
-      DO 1032 I=1,NCOMP
+C Get the name of each zone LSHAD file.
+      DO I=1,NCOMP
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)LSHAD(I)
         IREC=IREC+1
- 1032 CONTINUE
+      ENDDO
 
-C Added to save the name of each zone thermal properties file.
-      DO 1033 I=1,NCOMP
+C Get the name of each zone thermal properties file.
+      DO I=1,NCOMP
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)LTHRM(I)
         IREC=IREC+1
- 1033 CONTINUE
+      ENDDO
 
-C Other file names read in so next line not required.
-C     IREC=IREC+3*NCOMP
+C Connection data - older files read in increments of 20
+C and V5 uses nzrl.
+      if(izver.le.4)then
+        limit=20; limit1=20-1
+        XX=FLOAT(NCON)/FLOAT(limit)
+        IJ=INT(XX)+1
+      else
+        limit=FLOAT(nzrl); limit1=nzrl-1
+        XX=FLOAT(NCON)/FLOAT(limit)
+        IJ=INT(XX)+1
+      endif
       DO 104 I=1,IJ
-        J1=I*20-19
-        J2=I*20
+        J1=I*limit-limit1
+        J2=I*limit
         IF(I.EQ.IJ)J2=NCON
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(IC1(J),J=J1,J2)
         IREC=IREC+1
   104 CONTINUE
       DO 105 I=1,IJ
-        J1=I*20-19
-        J2=I*20
+        J1=I*limit-limit1
+        J2=I*limit
         IF(I.EQ.IJ)J2=NCON
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(IE1(J),J=J1,J2)
         IREC=IREC+1
   105 CONTINUE
       DO 106 I=1,IJ
-        J1=I*20-19
-        J2=I*20
+        J1=I*limit-limit1
+        J2=I*limit
         IF(I.EQ.IJ)J2=NCON
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(ICT(J),J=J1,J2)
         IREC=IREC+1
   106 CONTINUE
       DO 107 I=1,IJ
-        J1=I*20-19
-        J2=I*20
+        J1=I*limit-limit1
+        J2=I*limit
         IF(I.EQ.IJ)J2=NCON
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(IC2(J),J=J1,J2)
         IREC=IREC+1
   107 CONTINUE
       DO 108 I=1,IJ
-        J1=I*20-19
-        J2=I*20
+        J1=I*limit-limit1
+        J2=I*limit
         IF(I.EQ.IJ)J=NCON
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(IE2(J),J=J1,J2)
         IREC=IREC+1
   108 CONTINUE
-      DO 20 I=1,NCOMP
+      DO 20 I=1,NCOMP   ! zone name (one per record).
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)znpad
         write(ZNAME(I),'(a)') znpad(1:12)
         lnzname(I)=lnblnk(znpad)  ! update string length
@@ -1161,13 +1185,14 @@ C     IREC=IREC+3*NCOMP
    20 CONTINUE
       READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NCONST(I),I=1,NCP)
 
-C Also assing NZSUR common.
+C Also fill NZSUR common.
       do 1108 i=1,NCP
         NZSUR(i)=NCONST(i)
  1108 continue
       IREC=IREC+1
 
-      IF(NCOMP.LE.20)goto 202
+      if(izver.le.4.and.NCOMP.LE.20)goto 202
+      if(izver.gt.4)goto 202
       READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NCONST(I),I=21,NCOMP)
       do 1109 i=21,NCOMP
         NZSUR(i)=NCONST(i)
@@ -1178,16 +1203,16 @@ C      write(6,*) 'nconst=',nconst
 C      write(6,*) 'nzsur=',nzsur
 
       IREC=IREC+1
-  202 DO 30 I=1,NCOMP
+  202 DO I=1,NCOMP    ! number of layers of each surface in zone
         NN=NCONST(I)
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NELTS(I,J),J=1,NN)
         IREC=IREC+1
-   30 CONTINUE
-      DO 40 I=1,NCOMP
+      ENDDO
+      DO I=1,NCOMP    ! number of air gaps in each surface in zone
         NN=NCONST(I)
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NGAPS(I,J),J=1,NN)
         IREC=IREC+1
-   40 CONTINUE
+      ENDDO
       DO 50 I=1,NCOMP
         NN=NCONST(I)
         DO 60 J=1,NN,5
@@ -1227,7 +1252,6 @@ C Read floor area of each zone (this is actually already available
 C in common block prec17 defined in geometry.h. Potentially we
 C do not need to read this array here. But later if we decide not
 C to scan geometry files this line would be needed.
-C << this is a place where record width is tied to number of zones! >>
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(ZBASEA(I),I=1,NCOMP)
         IREC=IREC+1
 
@@ -1235,7 +1259,6 @@ C Debug.
 C        write(6,*) 'FLOOR A:',IREC,(ZBASEA(I),I=1,NCOMP)
       
 C Read area of transparent surfaces connected to external boundary.
-C << this is a place where record width is tied to number of zones! >>
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(ZTRANA(I),I=1,NCOMP)
         IREC=IREC+1
 
@@ -1244,50 +1267,80 @@ C        write(6,*) 'TRAN A:',IREC,(ZTRANA(I),I=1,NCOMP)
 
       endif
 
-C Read surface areas in each zone.
-      DO 90 I=1,NCOMP
+      DO I=1,NCOMP   ! Surface area of each surface in each zone.
         NN=NCONST(I)
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(SNA(I,J),J=1,NN)
         IREC=IREC+1
-   90 CONTINUE
+      ENDDO
 
 C ZOA Not needed so skip ncomp records
 C << could be location of other one-per-zone data >>.
-      DO 100 I=1,NCOMP
+      DO I=1,NCOMP
         IREC=IREC+1
-  100 CONTINUE
-      DO 110 I=1,NCOMP
+      ENDDO
+      DO I=1,NCOMP   ! Characteristic dimension of each surface.
         NN=NCONST(I)
         READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(CHARDM(I,J),J=1,NN)
         IREC=IREC+1
-  110 CONTINUE
-      DO 120 I=1,NCOMP
+      ENDDO
+      DO I=1,NCOMP   ! Azimuth of each surface.
         NN=NCONST(I)
-        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(PAZI(I,J),J=1,NN)
+        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(SPAZI(I,J),J=1,NN)
         IREC=IREC+1
-  120 CONTINUE
-      DO 130 I=1,NCOMP
+      ENDDO
+      DO I=1,NCOMP   ! Elevation of each surface.
         NN=NCONST(I)
-        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(PELV(I,J),J=1,NN)
+        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(SPELV(I,J),J=1,NN)
         IREC=IREC+1
-  130 CONTINUE
-      READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NHCFP(I),I=1,NCP)
-      IREC=IREC+1
-      IF(NCOMP.LE.20)goto 203
-      READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NHCFP(I),I=21,NCOMP)
-      IREC=IREC+1
-  203 DO 150 I=1,NCOMP
-       IF(NHCFP(I).EQ.0)goto 150
-       NN=NCONST(I)
-       NP=NHCFP(I)
-       DO 160 K=1,NP
-        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)HCFPST(I,K),
-     &      HCFPFT(I,K),(HCFVI(I,J,K),J=1,NN)
+      ENDDO
+
+C If V5 then their could be multiple HC day types.
+      if(izver.gt.4)then
+        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000) NBDAYTYPE
         IREC=IREC+1
-        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(HCFVE(I,J,K),J=1,NN)
+        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NCHDT(I),I=1,NCOMP)
         IREC=IREC+1
-  160  CONTINUE
-  150 CONTINUE
+        loop=1
+        DO IJ=1,NCOMP  ! Determine if any HC coefficients are multi-day.
+          if(NCHDT(IJ).eq.NBDAYTYPE) loop=NBDAYTYPE
+        ENDDO
+        DO IJ=1,loop   !  Read hc periods for each zone and day type.
+          READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NHCFP(I,IJ),I=1,NCP)
+          IREC=IREC+1
+          DO 280 I=1,NCOMP
+            IF(NHCFP(I,IJ).EQ.0)goto 280 ! skip zones with no HC coefficients.
+            NP=NHCFP(I,IJ)
+            NN=NCONST(I)
+            DO K=1,NP
+              READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)HCFPST(I,IJ,K),
+     &          HCFPFT(I,IJ,K),(HCFVI(I,IJ,J,K),J=1,NN)
+              IREC=IREC+1
+              READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)
+     &         (HCFVE(I,IJ,J,K),J=1,NN)
+              IREC=IREC+1
+            ENDDO
+  280     CONTINUE
+        ENDDO
+      else   ! Fill only first day type.
+        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NHCFP(I,1),I=1,NCP)
+        IREC=IREC+1
+        if(NCOMP.LE.20)goto 203
+        READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)(NHCFP(I,1),I=21,NCOMP)
+        IREC=IREC+1
+  203   DO 150 I=1,NCOMP
+          IF(NHCFP(I,1).EQ.0)goto 150 ! skip zones with no HC coefficients
+          NN=NCONST(I)
+          NP=NHCFP(I,1)
+          DO K=1,NP
+            READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)HCFPST(I,1,K),
+     &       HCFPFT(I,1,K),(HCFVI(I,1,J,K),J=1,NN)
+            IREC=IREC+1
+            READ(IUNIT,REC=IREC,IOSTAT=ios,ERR=1000)
+     &       (HCFVE(I,1,J,K),J=1,NN)
+            IREC=IREC+1
+          ENDDO
+  150   CONTINUE
+      endif
 
 C Read inside and outside indices of heat transfer coef. (by default
 C each is one)
@@ -1511,7 +1564,7 @@ C also checked for consistency.
       SUBROUTINE MOCHEK(IER)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
       COMMON/ZONPIK/NZ,NZNO(MCOM)
@@ -1608,7 +1661,7 @@ C closemat1 or closemat2 will be set.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       logical XST,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK

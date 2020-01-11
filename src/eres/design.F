@@ -1,7 +1,3 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
-
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
@@ -13,27 +9,20 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
-
-C      MODESQ
-C      MORANK
-C      MOEBAL
+C    MODESQ: main controller for the design questions facility.
+C    MORANK: rank ordering of zones.
+C    MOEBAL: retrieval of energy balance data.
 
 C ******************** MODESQ ********************
 
-C MODESQ is the main controlling routine for the
-C design question facility.
+C Main controller for the design questions facility.
 
       SUBROUTINE MODESQ
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
@@ -53,30 +42,30 @@ C design question facility.
       logical close
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
-      character helpinsub*24   ! subroutine name
+C For help messages.
+      character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp         ! number of help lines found
 
-      helpinsub='MODESQ'  ! set for cfiles
+      helpinsub='MODESQ'     ! set for cfiles
 
-      ITEM(1) ='2 Result set    '
-      ITEM(2) ='3 Define period '
-      ITEM(3) ='4 Define zones  '
+      ITEM(1) ='2 result set    '
+      ITEM(2) ='3 period        '
+      ITEM(3) ='4 zones         '
       ITEM(4) ='  ...........   '
-      ITEM(5) ='a Overheating   '
-      ITEM(6) ='b Underheating  '
-      ITEM(7) ='c Energy gains  '
-      ITEM(8) ='d Energy losses '
+      ITEM(5) ='a overheating   '
+      ITEM(6) ='b underheating  '
+      ITEM(7) ='c energy gains  '
+      ITEM(8) ='d energy losses '
       ITEM(9) ='  ...........   '
-      ITEM(10)='-END   '
+      ITEM(10)='- exit this menu'
 
       LABEL(1)='Air infilt'
       LABEL(2)='Air ventil'
-      LABEL(3)='Ex wnd con'
-      LABEL(4)='In wnd con'
-      LABEL(5)='Ex Dr cond'
-      LABEL(6)='In Dr cond'
+      LABEL(3)='Ex wd cond'
+      LABEL(4)='In wd cond'
+      LABEL(5)='Ex dr cond'
+      LABEL(6)='In dr cond'
       LABEL(7)='Air solar '
       LABEL(8)='Cnv casual'
       LABEL(9)='Opaque cnv'
@@ -89,13 +78,14 @@ C Help text for menu.
       helptopic='res_design_q_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-    4 CALL EMENU('Design Questions',ITEM,NITMS,INO)
+    4 CALL EMENU('Design questions',ITEM,NITMS,INO)
 
 C Test for illegal menu pick.
       IF(INO.EQ.0.OR.INO.EQ.4.OR.INO.EQ.9)goto 1
       IF(ISAVE.EQ.1.AND.(INO.EQ.8.OR.(INO.GE.11.AND.INO.LE.21)))then
-        call edisp(iuout,' The save option chosen prior to simulation')
-        call edisp(iuout,' disables this command selection.')
+        call edisp(iuout,' ')
+        call edisp(iuout,'The save option chosen prior to simulation')
+        call edisp(iuout,'disables this command selection.')
         goto 1
       endif
       IF(INO.EQ.1)CALL MORESS
@@ -107,7 +97,7 @@ C Test for illegal menu pick.
       IG=INO-4
       goto 8
 
-C Output menu error signal and allow reselection from menu.
+C Offer menu reselection.
     1 INO=-1
       goto 4
 
@@ -115,20 +105,20 @@ C Set design questions.
     8 GOTO(11,31,51,71),IG
 
 C Test for overheating.
-   11 call edisp(IUOUT,' Design Question 1: Overheating')
-      call edisp(IUOUT,' ')
-      call edisp(IUOUT,' Critical variable: air temperature (1)')
-      call edisp(IUOUT,'             controlled temperature (2)')
-      call edisp(IUOUT,'             resultant temperature  (3) ?')
+   11 call edisp(iuout,' ')
+      call edisp(iuout,'Design question 1: overheating')
       call edisp(iuout,' ')
+      call edisp(iuout,'Critical variable: (1) air temperature,')
+      call edisp(iuout,'(2) controlled temperature, (3) resultant')
+      call edisp(iuout,'temperature.')
 
       helptopic='res_design_critical_var'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKI(IDQV1,' ',' Which critical variable ? ',
+      CALL EASKI(IDQV1,' ','Critical variable? ',
      &  1,'F',3,'F',1,'design 1 critical var',IER,nbhelp)
 
 C Solicit upper temperature limit.
-      CALL EASKR(DQV1,' ',' Upper temperature limit ? ',
+      CALL EASKR(DQV1,' ','Upper temperature limit?',
      &   0.0,'-',0.0,'-',24.,'upper temp limit',IER,nbehlp)
 
 C Set appropriate value of IGET.
@@ -136,15 +126,12 @@ C Set appropriate value of IGET.
       IF(IDQV1.EQ.2)IGET=5
       IF(IDQV1.EQ.3)IGET=4
 
-C Now answer question 1.
-C Call MOMXMN and return variables.
       IDESQ=1
-C      CALL MOMXMN(IGET)
 
 C Rank order all considered zones.
       CALL MORANK(DQA,IRANK,VRANK)
 
-C Check upper limit.
+C Check upper temperature limit.
       NZONES=0
       DO 10 I=1,NZ
       IF(VRANK(I).GT.DQV1)NZONES=NZONES+1
@@ -152,11 +139,10 @@ C Check upper limit.
 
       IF(NZONES.EQ.0)THEN
         call edisp(icout,' ')
-        call edisp(icout,' Answer: no overheating occurs !')
+        call edisp(icout,'Answer: no overheating occurs!')
       ELSE IF(NZONES.GT.0)THEN
         call edisp(icout,' ')
-        call edisp(icout,' Answer: overheating occurs in zone(s):')
-        call edisp(icout,' ')
+        call edisp(icout,'Answer: overheating occurs in zone(s):')
         do 19 J=1,NZONES
           write(outs,'(A)')zname(IRANK(J))(1:lnzname(IRANK(J)))
           call edisp(icout,outs)
@@ -166,19 +152,19 @@ C Check upper limit.
       goto 3
 
 C Test for underheating.
-   31 call edisp(iuout,' Design Question 2: Underheating')
-      call edisp(iuout,' ')
-      call edisp(iuout,' Critical variable: air temperature (1)')
-      call edisp(iuout,'                control temperature (2)')
-      call edisp(iuout,'              resultant temperature (3) ?')
+   31 call edisp(iuout,' ')
+      call edisp(iuout,'Design question 2: underheating')
+      call edisp(iuout,'Critical variable: (1) air temperature,')
+      call edisp(iuout,'(2) control temperature, (3) resultant')
+      call edisp(iuout,'temperature.')
       call edisp(iuout,' ')
       helptopic='res_design_critical_var'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKI(IDQV2,' ',' Which critical variable ? ',
+      CALL EASKI(IDQV2,' ','Critical variable?',
      &  1,'F',3,'F',1,'design 2 critical var',IER,nbhelp)
 
 C Solicit lower temperature limit.
-      CALL EASKR(DQV2,' ',' Lower temperature limit ? ',
+      CALL EASKR(DQV2,' ','Lower temperature limit?',
      &   0.0,'-',0.0,'-',24.,'upper temp limit',IER,nbhelp)
 
 C Set appropriate value of IGET.
@@ -186,10 +172,7 @@ C Set appropriate value of IGET.
       IF(IDQV2.EQ.2)IGET=5
       IF(IDQV2.EQ.3)IGET=4
 
-C Answer question 2.
-C Call MOMXMN and return variables.
       IDESQ=2
-C      CALL MOMXMN(IGET)
 
 C Rank order all considered zones.
       CALL MORANK(DQB,IRANK,VRANK)
@@ -205,10 +188,10 @@ C Check upper limit.
 
       IF(NZONES.EQ.0)THEN
         call edisp(icout,' ')
-        call edisp(icout,' Answer: no underheating occurs !')
+        call edisp(icout,'Answer: no underheating occurs!')
       ELSE IF(NZONES.GT.0)THEN
         call edisp(icout,' ')
-        call edisp(icout,' Answer: underheating occurs in zone(s):')
+        call edisp(icout,'Answer: underheating occurs in zone(s):')
         do 12 J=1,NZONES
           write(outs,'(A)')zname(KDUM(J))(1:lnzname(KDUM(J)))
           call edisp(icout,outs)
@@ -217,11 +200,11 @@ C Check upper limit.
       IDESQ=0
       goto 3
 
-C Test for largest gains to space.
-   51 call edisp(iuout,' Design Question 3: Energy gains')
-      call edisp(iuout,' ')
-
-C Call MOEBAL to obtain gains information.
+C Test for largest energy gains to zone.
+   51 call edisp(iuout,' ')
+      call edisp(iuout,'Design Question 3: energy gains')
+      
+C Obtain energy gains information.
       CALL MOEBAL
       DO 50 I=1,10
         DQA(I)=VAL2(I,1)
@@ -237,7 +220,6 @@ C Rank order all considered zones.
       IF(J.NE.I)THEN
         IF(XV.LT.DQA(J))ICOUNT=ICOUNT+1
         call eclose(XV,DQA(J),0.0001,close)
-C        IF(XV.EQ.DQA(J).AND.J.LT.I)ICOUNT=ICOUNT+1
         IF(close.AND.J.LT.I)ICOUNT=ICOUNT+1
       ENDIF
    70 CONTINUE
@@ -248,16 +230,15 @@ C        IF(XV.EQ.DQA(J).AND.J.LT.I)ICOUNT=ICOUNT+1
    60 CONTINUE
 
 C Calculate main gains to space: included only
-C if > 75% of the total.  More sophisticated
-C rules probably required.
+C if > 75% of the total.
       SUM=0.0
       IK=0
    53 IK=IK+1
       SUM=SUM+VRANK(IK)
       POFTOT=SUM/TVAL
       IF(POFTOT.LT.0.75)goto 53
-
-      write(outs,'(3A)')' Main gains to ',zname(NZNO(1)),' are:'
+      call edisp(icout,' ')
+      write(outs,'(3A)')'Main gains to ',zname(NZNO(1)),' are:'
       call edisp(icout,outs)
       DO 55 I=1,IK
       IR=IRANK(I)
@@ -266,12 +247,11 @@ C rules probably required.
       call edisp(icout,outs)
    55 CONTINUE
 
-C Write values.
       IDESQ=0
       goto 3
 
-C Test for largest losses to space.
-   71 call edisp(iout,' Design Question 4: Energy losses')
+C Test for largest energy losses from zone.
+   71 call edisp(iout,'Design Question 4: energy losses')
 
 C Call MOEBAL to obtain gains information.
       CALL MOEBAL
@@ -289,7 +269,6 @@ C Rank order all considered zones.
       IF(J.NE.I)THEN
         IF(XV.LT.DQB(J))ICOUNT=ICOUNT+1
         call eclose(XV,DQB(J),0.0001,close)
-C        IF(XV.EQ.DQB(J).AND.J.LT.I)ICOUNT=ICOUNT+1
         IF(close.AND.J.LT.I)ICOUNT=ICOUNT+1
       ENDIF
    82 CONTINUE
@@ -304,15 +283,14 @@ C        IF(XV.EQ.DQB(J).AND.J.LT.I)ICOUNT=ICOUNT+1
    83 CONTINUE
 
 C Calculate main losses to space. Include only
-C losses > 75% of total.  More sophisticated
-C rules are probably required.
+C losses > 75% of total.
       SUM=0.0
       IK=0
    73 IK=IK+1
       SUM=SUM+ZDUM(IK)
       POFTOT=SUM/TVAL
       IF(POFTOT.LT.0.75)goto 73
-
+      call edisp(icout,' ')
       write(outs,'(3A)')' Main losses from',zname(NZNO(1)),' are:'
       call edisp(icout,outs)
       DO 75 I=1,IK
@@ -322,7 +300,6 @@ C rules are probably required.
         call edisp(icout,outs)
    75 CONTINUE
 
-C Write out values.
       IDESQ=0
       goto 3
 
@@ -331,7 +308,7 @@ C Write out values.
 
 C ******************** MORANK ********************
 
-c Routine to perform rank ordering of zones.
+C Rank ordering of zones.
 
       SUBROUTINE MORANK(XVAL,IRANK,VRANK)
 #include "building.h"
@@ -350,7 +327,6 @@ c Routine to perform rank ordering of zones.
       IF(J.NE.IZ)THEN
         IF(XV.LT.XVAL(J))ICOUNT=ICOUNT+1
         call eclose(XV,XVAL(J),0.0001,close)
-C        IF(XV.EQ.XVAL(J).AND.J.LT.IZ)ICOUNT=ICOUNT+1
         IF(close.AND.J.LT.IZ)ICOUNT=ICOUNT+1
       ENDIF
    20 CONTINUE
@@ -365,8 +341,7 @@ C        IF(XV.EQ.XVAL(J).AND.J.LT.IZ)ICOUNT=ICOUNT+1
 
 C ******************** MOEBAL ********************
 
-C MOEBAL allows the retrieval of the energy balance 'picture'
-C for any zone over the defined output period.
+C Retrieval of energy balance data.
 
       SUBROUTINE MOEBAL
 #include "building.h"

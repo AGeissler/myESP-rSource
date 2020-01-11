@@ -55,7 +55,7 @@ C seasons.h provides typper and typsea
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
 
 C Where ESP-r was installed (as recorded when it was compiled).
@@ -234,7 +234,7 @@ C list. If not instanciate season and typical start and end dates.
           INQUIRE (FILE=cdblfil,EXIST=XST)
           if(XST)then
             IUF=IFIL+2
-            call scancdblist(IUF,llclmdb,ok,ier)
+            call scancdblist(IUF,llclmdb,'p',ok,ier)
             if(ok)then
               continue
             else
@@ -418,7 +418,7 @@ C Parameters
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -429,18 +429,15 @@ C Parameters
       common/cctlnm/ctldoc,lctlf
       integer icascf
       common/cctl/icascf(mcom)
-
-C Where ESP-r was installed (as recorded when it was compiled).
       common/deflt4/dinstpath
-      character dinstpath*60
-
-      COMMON/Vld20/Vldtng
-      logical Vldtng
+      character dinstpath*60 ! instal folder as recorded when ESP-r was compiled
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
       common/SLNTFULL/ifullysilent
       integer ifullysilent !flag to drive the silent model creation without
                            !questions about the operation files data
 
-C hasname (string array) the surface name for each surface (so fillsur does not wipe)
+C hasname (string array) the surface name for each surface (so filsur does not wipe)
       character hasname*12
       dimension hasname(MS)  ! name to use for each surface
       DIMENSION XX(MS),YY(MS)
@@ -462,7 +459,6 @@ C Strings for surface attributes to pass to insrec.
       character rsname*12,rsotf*32,rsmlcn*32,rsuse1*12,rsuse2*12
       character rsparent*12
       integer newsurf   ! index of surface when adding door/glazing
-      integer ibcs      ! connection associated with base surface
       real angr         ! for rotation
 
 C If browsing then user cannot create a new zone.
@@ -655,15 +651,15 @@ C Instanciate the surface constructions.
         write(smlcn(icomp,icc),'(a)') hasconstr(icc)
 
 C Loop thru all of the known constructions to find the matching construction.
-C Also set ssmlcindex for this surface.
+C Also set smlcindex for this surface.
         imatch=0
-        ssmlcindex(iccc)=0  ! assume no matching MLC          
+        smlcindex(icomp,icc)=0  ! assume no matching MLC          
         do 5 ii=1,nmlc
           lnssmlc=lnblnk(SMLCN(icomp,icc))
           if(SMLCN(icomp,icc)(1:lnssmlc).eq.
      &       mlcname(ii)(1:lnmlcname(ii)))then
             imatch=ii
-            ssmlcindex(iccc)=ii   ! remember MLC index     
+            smlcindex(icomp,icc)=ii   ! remember MLC index     
           endif
   5     continue
 
@@ -746,19 +742,16 @@ C Set connection based variables.
 C Update the G7 common blocks and then if assign ZBASEA.
       call zgupdate(0,ICOMP,ier)
       if(ishape.eq.1)then
-        ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-        ZBASEA(icomp)= SSNA(ibcs)
+        ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
       elseif(ishape.eq.2)then
-        ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-        ZBASEA(icomp)= SSNA(ibcs)
+        ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
       elseif(ishape.eq.3)then
 
 C For poly shape loop to find the floor in order to set up the floor area
         do 222 iSurface=1,NSUR
           if(SVFC(icomp,iSurface).eq.'FLOR')then
             IBASES(ICOMP,1)=iSurface
-            ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-            ZBASEA(icomp)= SSNA(ibcs)
+            ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
           endif
  222    continue
       endif
@@ -921,7 +914,7 @@ C Set to current zone operation file format.
         isource=0
         ifullysilent=1
         idest=icomp
-        Vldtng=.true.
+        AUTOVR=.true.
         call COPYAIRFL(isource,idest,afact,iflow,vflow,sfile,
      &    itrc,'s',ier)
 
@@ -936,6 +929,7 @@ C Just in case sort the data.
         call PROCESSOLDCAS(ICOMP,0,iuout)
         IUO=IFIL+2
         CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
+        AUTOVR=.false.
       endif
 
 C Update configuration file to know about the construction files.
@@ -968,21 +962,20 @@ C and act on the information within the file.
        integer MSZ   ! number of META zones array sizes, edit to
                      ! match MCOM in building.h
        PARAMETER (MSZ=82)
+
 #include "building.h"
 #include "model.h"
 #include "site.h"
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 #include "control.h"
 #include "seasons.h"
-C seasons.h required prior to ipvdata.h
 #include "ipvdata.h"
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -2339,21 +2332,19 @@ C the file with minimum interaction.
       integer MSZ   ! number of META zones array sizes, edit to
                     ! match MCOM in building.h
       PARAMETER (MSZ=82)
+
 #include "building.h"
 #include "model.h"
 #include "site.h"
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "espriou.h"
-C#include "control.h"
-C espriou.h provides currentfile.
 #include "seasons.h"
-C seasons.h provides typper and typsea
 #include "ipvdata.h"
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON

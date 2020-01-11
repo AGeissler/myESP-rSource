@@ -52,26 +52,26 @@ C Arrays mapping binary names to longer descriptions
      &                 'vew' /
       
       
-      data cBinDesc / 'Acoustics analysis tool',
+      data cBinDesc / 'Acoustics analysis',
      &                'BEMS link',
      &                'Integrated simulator',
      &                'Database manager',
      &                'Domain flow solver',
      &                'Domain flow viewer',
      &                ' ','Components DB manager',
-     &                'Weather analysis tool',
+     &                'Weather manager',
      &                'Radiance link',
      &                'Data conversion utility',
      &                ' ',
-     &                'Construction gridding Tool',
-     &                'Shading analysis tool',
+     &                'Construction gridding',
+     &                'Shading analysis',
      &                'Mass flow solver',
-     &                'Mould analysis tool',
-     &                'Mean radiant temperature tool',
+     &                'Mould analysis',
+     &                'Mean radiant temperature',
      &                'Network tool',
-     &                'Plant component DB tool',
+     &                'Plant component manager',
      &                'Project manager',
-     &                'Results analysis Tool',
+     &                'Results analysis',
      &                'Hidden line viewer' /
      
       save cBinNames, cBinDesc
@@ -124,26 +124,25 @@ C  e.g.: 'ESP-r integrated builing performance simulator (bps)'
 C.....ESP-r banner 
       if ( bRelease ) then 
 C.......Release version        
-        write(cTemp_a,'(5A)') "ESP-r ", 
+        write(cTemp_a,'(4A)')  
      &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex))), 
-     &       " Release ", 
+     &       " of ESP-r Release ", 
      &       cRelease_Num(1:lnblnk(cRelease_Num)),
      &       "."
         call edisp(iuout,cTemp_a)      
       
       else 
         if(mmod.eq.8)then
-          write(cTemp_a,'(3A)') "Welcome to the ESP-r ", 
+          write(cTemp_a,'(3A)') "Welcome to the ", 
      &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex))),
-     &       "."
+     &       " of ESP-r."
         else
-          write(cTemp_a,'(5A)') "Welcome to the ESP-r ", 
+          write(cTemp_a,'(5A)') "Welcome to the ", 
      &       cBinDesc(iBinIndex)(1:lnblnk(cBinDesc(iBinIndex))),
-     &       ", which is part of ESP-r ",
+     &       " of ESP-r ",
      &       cRelease_Num(1:lnblnk(cRelease_Num)),"."
+          call edisp(iuout,cTemp_a)    
         endif
-        call edisp(iuout,cTemp_a)    
-        
       endif 
       
 C If cType is silent return at this point.
@@ -152,13 +151,10 @@ C If cType is silent return at this point.
 C Check if source was versioned and if it is a working copy.
       if ( .not. bVersioned ) then     
         call edisp(iuout," ")
-        call edisp(iuout,
-     &  "This copy of ESP-r is not under versioning control.")
-        call edisp(iuout,
-     &  "You can obtain a versioned copy of ESP-r here:")
+        call edisp(iuout,"You can obtain a copy of ESP-r here:")
         call edisp(iuout," ")
-        write (cTemp_a,'(A)') 
-     &  "   http://www.esru.strath.ac.uk/"
+        write (cTemp_a,'(2A)') "   https://www.strath.ac.uk/research/",
+     &  "energysystemsresearchunit/applications/esp-r/"
         call edisp(iuout,cTemp_a)
       endif
 
@@ -175,24 +171,6 @@ C Source code version: ' - Source: BRANCH @ rXYZ (modified state)'.
       if ( bBuild_Info ) then 
         call edisp(iuout," ")       
         call edisp(iuout,"Build information:")
-        if ( bVersioned ) then 
-C          write (cTemp_a,'(5A)') 
-C     &      "  SVN source -       ",
-C     &      cBranch(1:lnblnk(cBranch)), 
-C     &      "@r",
-C     &      cRevision(1:lnblnk(cRevision))
-C          if ( bModified ) then
-C            write (cTemp_a,'(2A)') cTemp_a(1:lnblnk(cTemp_a)),
-C     &        " (locally modified)"
-C          else 
-C            write (cTemp_a,'(2A)') cTemp_a(1:lnblnk(cTemp_a)),
-C     &        " (unmodified)"
-C          endif
-C        else
-C           write (cTemp_a,'(A)') 
-C     &       "  SVN source -       UNKNOWN"
-        endif 
-C        call edisp(iuout,cTemp_a)      
 
 C Build platform (e.g.i686:LINUX:2.6.9-gentoo-r1).
         write (cTemp_a,'(6A)')   "  Platform -         ",
@@ -201,7 +179,7 @@ C Build platform (e.g.i686:LINUX:2.6.9-gentoo-r1).
      &         cOSversion(1:lnblnk(cOSversion))
         call edisp(iuout,cTemp_a)      
          
-C Compilers used (e.g. gcc/g++/g77).
+C Compilers used (e.g. gcc/g++/gfortran).
         write (cTemp_a,'(6A)')   "  Compilers -        ",
      &         cCC(1:lnblnk(cCC)),"/",
      &         cCPL(1:lnblnk(cCPL)),"/",

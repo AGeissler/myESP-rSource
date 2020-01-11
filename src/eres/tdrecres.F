@@ -40,7 +40,7 @@ C day and VAL(2...) are timestep fields.
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
 
@@ -149,7 +149,7 @@ C Parameters
       integer izone ! the associated zone
       integer isurf ! the associated surface
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/GET2/XDUM(MTS),XDUM1(MTS),GVAL(MTS)

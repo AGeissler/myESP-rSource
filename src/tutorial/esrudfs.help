@@ -17,9 +17,7 @@
 'It is advisable not to choose OK if velocity residuals'
 'appear to be decreasing'
 *enditem
-          CALL ASKOK('Mass residual is max do you want to lower velocity
-          CALL ASKOK('Solution may still converge if velocity URFs are'
-          CALL ASKOK('It may converge if velocity URFs are lowered',
+
 *subroutine cgd
 *item cgd dfs_display_list_grid
 'This facility displays or lists the CFD grid.'
@@ -44,8 +42,7 @@
 'with the domain. You can control what you see in the 3D'
 'view from this menu.''
 *enditem
-        CALL EASKABCD('Options for 3D gridding:',' ','all faces',
-        CALL PHELPD('grid visualization',23,'-',0,0,IER)
+
 *subroutine CHECK
 *item CHECK dfs_convergence_accept
 'Based on the convergence criteria you gave the solution'
@@ -54,9 +51,7 @@
 'If you do not accept it more iterations will be tried.'
 'You will be asked for a new limit (up to 10000).'
 *enditem
-      CALL ASKOK('Do you accept it as converged solution?',' ',
-      CALL ASKOK('Would you like to increase the',
-      CALL EASKI(IVAL,' ',' New maximum number of iterations (-) ?',
+
 *item CHECK under_relaxation_factor
 'Changing the under-relaxation factors may help the '
 'problem to converge.  Generally making the values '
@@ -74,38 +69,14 @@
 '  '
 'And lastly you can alter the number of sweeps.'
 *enditem
-        CALL ASKOK(' Would you like to change linear ',
-        CALL EASKR(VAL,' ',' P under-relaxation factor (-) ? ',
-        CALL EASKR(VAL,' ',' U under-relaxation factor (-) ? ',
-        CALL EASKR(VAL,' ',' V under-relaxation factor (-) ? ',
-        CALL EASKR(VAL,' ',' W under-relaxation factor (-) ? ',
-        CALL EASKR(VAL,' ',' T under-relaxation factor (-) ? ',
-        CALL EASKR(VAL,' ',' K under-relaxation factor (-) ? ',
-        CALL EASKR(VAL,' ',' Epsilon under-relaxation factor (-) ? '
-        CALL EASKR(VAL,' ',' Viscosity under-relaxation factor (-) ? '
-        CALL EASKR(VAL,' ',' Density under-relaxation factor (-) ? '
-        CALL ASKOK(' Would you like to change fictitious ',
-        CALL EASKR(VAL,' ',' U under-relaxation factor (-) ? ',
-        CALL EASKR(VAL,' ',' V under-relaxation factor (-) ? ',
-        CALL EASKR(VAL,' ',' W under-relaxation factor (-) ? ',
-        CALL EASKR(VAL,' ',' T under-relaxation factor (-) ?',
-        CALL EASKR(VAL,' ',' K under-relaxation factor (-) ?',
-        CALL EASKR(VAL,' ',' Epsilon under-relaxation factor (-) ?'
-        CALL ASKOK('Would you like to change the number',
-        CALL EASKI(IVAL,' ',' P number of sweeps (-) ? ',
-        CALL EASKI(IVAL,' ',' U number of sweeps (-) ? ',
-        CALL EASKI(IVAL,' ',' V number of sweeps (-) ? ',
-        CALL EASKI(IVAL,' ',' W number of sweeps (-) ? ',
-        CALL EASKI(IVAL,' ',' T number of sweeps (-) ? ',
-        CALL EASKI(IVAL,' ',' K number of sweeps (-) ? ',
-        CALL EASKI(IVAL,' ',' Epsilon number of sweeps (-) ? '
+
 *subroutine SCHMIDTT
 *item dfs dfs_config_file_name
 'To run a simulation a domain configuration file name must be'
 'provided, otherwise one must be created before running the'
 'program. '
 *enditem
-  289   CALL EASKF(LCFD(1),'Domain flow definition file name?','  ',
+
 *item dfs dfs_simulation_toggles
 'There is currently no help provided for the simulation'
 'toggles section of dfs. (any volunteer?) '
@@ -120,10 +91,7 @@
 '  The simulation period in hours (if transient)'
 '  The simulation timestep in hours (if transient)'
 *enditem
-        CALL PHELPD('dfs simul toggles',2,'-',0,0,IER)
-        CALL EASKAB('  ','What kind of simulation is?',
-        CALL EASKR(V,'  ','Simulation period (h) ? ',
-        CALL EASKR(V,'  ',' Simulation time-step (h) ? ',
+
 *item dfs dfs_results_menu
 'There is not much help for results sub-menu of dfs ;-( '
 '  '
@@ -151,23 +119,14 @@
 '  '
 'to quit MATLAB, enter: quit'
 *enditem
-  389     CALL EASKS(RESFL,' Result file name ? ','  ',
-          CALL PHELPD('PHOTON file',8,'-',0,0,IER)
-          CALL PHELPD('PHOTON analysis',8,'-',0,0,IER)
-  74      CALL EASKI(islice,'  ',' Enter slice number ',
-  76      CALL EASKI(jslice,'  ',' Enter slice number ',
-  78      CALL EASKI(kslice,'  ',' Enter slice number ',
-          CALL PHELPD('MATLAB file',8,'-',0,0,IER)
-          CALL PHELPD('MATLAB analysis',2,'-',0,0,IER)
+
 *item dfs dfs_flow_vectors
 'Flow vectors from a previous simulation can be'
 'saved for analysis later.  If you have a flow '
 'vectors file then you can continue with the '
 'visualisation. '
 *enditem
-            call EASKABC('There are no results to visualise!',
-            call EASKS(t72,'Results file name?','  ',72,
-            call EASKS(t72,'Results library file name?','  ',72,
+
 *item dfs dfs_ask_to_keep_results
 'Assuming you have run DFS stand-alone and already looked'
 'results and generated images there may be no need to '
@@ -180,23 +139,14 @@
 'need to keep such files because they will be regenerated if'
 'you re-calculate.'
 *enditem
-        CALL ASKOK(' ',' Delete results file before exiting?',OK,dok,5)
-        CALL ASKOK(' ','Delete temporary file before exiting?',
+
 *subroutine CALCLMA
 *item CALCLMA
 'Based on the convergence criteria you gave the solution'
 'reached the iteration limit before convergence. If you '
 'do not accept the solution more iterations will be tried.'
 *enditem
-      CALL ASKOK('Maximum iterations reached,','accept solution?',
-*subroutine GENMIST
-*item GENMIST
-*enditem
-        CALL EASKR(VAL,'Droplet diameter (microns)?',' ',0.0,'-',
-*subroutine tecplotend
-*item tecplotend
-*enditem
-      CALL EASKS(lflname,'TECPLOT file name?','  ',
+
 *subroutine VISOUT
 *item VISOUT dfs_2D_slice_menu
 'This facility is used to generate images of the'
@@ -214,8 +164,7 @@
 'image data and you must select a view prior to'
 'generating the image. '
 *enditem
-        CALL PHELPD('flow vis facility',14,'-',0,0,IER)
-        call EASKABC(' ','View definitions:',
+
 *item VISOUT 2D_slice_view_name
 'Please supply a root name for the image.  '
 'In the case of a dynamic viualisation the frame number'
@@ -234,21 +183,14 @@
 ' View from East or West asks for X layer'
 ' View from Top or Bottom asks for Z layer'
 *enditem
-          CALL EASKS(t12,' ',' Name for image ? ',
-          CALL EASKATOG('View direction:',' ','South','East',
-          CALL EASKI(ilayer,'  ',' Which Y layer ',
-          CALL EASKI(ilayer,'  ',' Which X layer ',
-          CALL EASKI(ilayer,'  ',' Which Y layer ',
-          CALL EASKI(ilayer,'  ',' Which X layer ',
-          CALL EASKI(ilayer,'  ',' Which Z layer ',
-          CALL EASKI(ilayer,'  ',' Which Z layer ',
+
 *item VISOUT 2D_slice_resolution
 'Higher resolution requires greater processing time'
 'and disk space. [Low] quality images are often'
 'sufficient, although [medium] and [high] quality'
 'may be desirable for inclusion in publications.'
 *enditem
-          call EASKABC(' ','Image resolution?','Low','Medium','High',
+
 *item VISOUT 2D_slice_multi_edit
 'Please supply a root name for the image.  '
 'In the case of a dynamic viualisation the frame number'
@@ -272,26 +214,17 @@
 'sufficient, although [medium] and [high] quality'
 'may be desirable for inclusion in publications.'
 *enditem
-        call EASKATOG(outs,' ','Name','View dir & layer','Resolution',
-          CALL EASKS(t12,' ',' Name for image ? ',
-          CALL EASKATOG('View direction:',' ','South','East',
-          CALL EASKI(ilayer,'  ',' Which Y layer ',
-          CALL EASKI(ilayer,'  ',' Which X layer ',
-          CALL EASKI(ilayer,'  ',' Which Y layer ',
-          CALL EASKI(ilayer,'  ',' Which X layer ',
-          CALL EASKI(ilayer,'  ',' Which Z layer ',
-          CALL EASKI(ilayer,'  ',' Which Z layer ',
-          call EASKABC(' ','Image resolution?','Low','Medium','High',
+
 *item VISOUT 2D_slice_arrows
 'By altering these settings, you can control'
 'the appearance of the flow vectors.'
 *enditem
-          call EASKS(t24,
+
 *item VISOUT 2D_slice_frequency
 'For a conflated simulation images can be created at'
 'the required frequency.'
 *enditem
-          CALL EASKI(IFR,' ',' Number of timesteps between images?',
+
 *subroutine VISMAK
 *item VISMAK 2D_animation_select
 'Depending on the type of reporting that you have selected'
@@ -301,8 +234,7 @@
 'that you want to view each one and whether the scale parameters'
 'from the previous view should be used.
 *enditem
-          call ASKOK('  ',outs,GENVEW,dok,2)
-          call ASKOK(
+
 *subroutine FTV
 *item FTV vector_colour_choice
 'The colour of the vector will depend on the chosen'
@@ -313,8 +245,7 @@
 'the background of the figure. Try out different combinations'
 'to see what works best for the image.'
 *enditem
-            CALL EASKATOG(outs,' ','Air speed','Temperature',
-            call EASKAB('  ','Apply colour to:','Vector','Background',
+
 *item FTV contaminant_select_list
 'The contaminant selection menu does not yet have'
 'any help associated with it. ;-( '
@@ -323,19 +254,19 @@
 'You are requested to provide a maximum and minimum value for the'
 'scale of the vertical axis. '
 *enditem
- 203        call EASKS(t24,'  ',
+
 *subroutine GETVECLIB
 *item GETVECLIB range_for_colour_scale
 'The colour scale for the graph requires a maximum and minimum'
 'temperature for setting the colour scale.'
 *enditem
-        CALL EASKS(t24,
+
 *subroutine wrFVP
 *item wrFVP flow_vis_parameter_file
 'Information about the flow visuals can be saved to a text file'
 'for later review. Please supply a file name.'
 *enditem
- 1      call EASKS(t72,'File name for flow visualization parameters ?',
+
 *subroutine dfv
 *item dfv dfv_results_menu
 'There is not much help for results sub-menu of dfv ;-( '
@@ -364,16 +295,7 @@
 '  '
 'to quit MATLAB, enter: quit'
 *enditem
-  389     CALL EASKS(RESFL,' Result file name ? ','  ',
-          CALL PHELPD('PHOTON file',8,'-',0,0,IER)
-          CALL PHELPD('PHOTON analysis',8,'-',0,0,IER)
-  74      CALL EASKI(islice,'  ',' Enter slice number ',
-  76      CALL EASKI(jslice,'  ',' Enter slice number ',
-  78      CALL EASKI(kslice,'  ',' Enter slice number ',
-          CALL PHELPD('MATLAB file',8,'-',0,0,IER)
-          CALL PHELPD('MATLAB analysis',2,'-',0,0,IER)
 *item dfv contaminant_scale_req
 'You are requested to provide a maximum and minimum value for the'
 'scale of the vertical axis. '
 *enditem
- 203        call EASKS(t24,'  ',

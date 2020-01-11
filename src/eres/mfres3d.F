@@ -1,24 +1,25 @@
 C Copy of several subroutines from mfprb3.F supporting the drawing
 C of 3D flow networks.
 
-C  mfwfdraw - draws 3D flow network overlay on wireframe from commons passed colour.
+C  mfwfdraw - draws 3D flow network overlay on wireframe with passed colour.
 C  symbol_flow_nd - draw a symbol for a flow node with optional name and type.
 C  symbol_flow_cmp - draw a symbol for a flow component with name and symbol type.
 C  draw_flow_link - draw_flow_link places dotted line between a flow node and
-C  mfwfdraw - fluid flow file: draw node & components from common block contents.
-C  draw_flow_value - places dotted line between a flow node and
+C  mfwfdrawnc - fluid flow file: draw 3D nodes & components.
+C  draw_flow_value - places dotted line between a flow node and shows flow value
 
 
 C ************************* MFWFDRAW 
-C MFWFDRAW Fluid flow file: draw common block contents.
+C MFWFDRAW: draw 3D flow entities from common block contents.
 C colour is either 'r' red or 'g' grey50 for components.
-      SUBROUTINE MFWFDRAW(col)
+C Omitt node names indnm=0 or component names icmpnm for clarity
+      SUBROUTINE MFWFDRAW(col,indnm,icmpnm)
 
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer net3ddelay  ! delay between timesteps in 3D network
       common/delay3d/net3ddelay
@@ -41,7 +42,8 @@ C      COMMON/OUTIN/IUOUT,IUIN
 C Node data.
       IF(NNOD.gt.0)then
         DO INOD=1,NNOD
-          name=NDNAM(INOD)
+          if(indnm.gt.0) name=NDNAM(INOD)
+          if(indnm.eq.0) name='- '
           xw=HNOD(INOD,1);yw=HNOD(INOD,2); zw=HNOD(INOD,3)
           if(NDTYP(INOD).eq.0)then
             if(NDFLD(INOD).eq.1)then
@@ -73,7 +75,8 @@ C << CONSIDER NWPCMP()  >>
 
       IF(NCMP.gt.0)then
         DO ICMP=1,NCMP
-          name=CMNAM(ICMP)
+          if(icmpnm.gt.0) name=CMNAM(ICMP)
+          if(icmpnm.eq.0) name='- '
           xc=HCMP(ICMP,1,1);yc=HCMP(ICMP,1,2); zc=HCMP(ICMP,1,3)
           call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
@@ -226,10 +229,10 @@ C Connections drawn as dotted lines from node -> component -> node.
           endif
           CMPIS=ITPCON(ICNN)
           xc=HCMP(CMPIS,1,1); yc=HCMP(CMPIS,1,2); zc=HCMP(CMPIS,1,3)
-          call draw_flow_link(HNOD(POS,1),HNOD(POS,2),HNOD(POS,3),
-     &       xc,yc,zc,ccol)
-          call draw_flow_link(xc,yc,zc,
-     &       HNOD(NEG,1),HNOD(NEG,2),HNOD(NEG,3),ccol)
+          xn=HNOD(POS,1); yn=HNOD(POS,2); zn=HNOD(POS,3)
+          call draw_flow_link(xn,yn,zn,xc,yc,zc,ccol)
+          xn=HNOD(NEG,1); yn=HNOD(NEG,2); zn=HNOD(NEG,3)
+          call draw_flow_link(xc,yc,zc,xn,yn,zn,ccol)
         ENDDO
       endif
 
@@ -254,6 +257,8 @@ C type='bw' boundary wind, 'bk' boundary known
       COMMON/GFONT/IFS,ITFS,IMFS
       DIMENSION  COG1(3),COG2(3),COG3(3)
       character t13*13
+      logical doname
+      
 #ifdef OSI
       integer iix,iiy,iid4,iicol,ibsize
 #else
@@ -261,6 +266,10 @@ C type='bw' boundary wind, 'bk' boundary known
 #endif
 
       if(MMOD.lt.8) return  ! in text mode do not draw
+      
+      write(t13,'(A)')name(1:lnblnk(name))
+      doname=.true.
+      if(t13(1:2).eq.'- ') doname=.false.
 
 C Get pixel position to draw at.
       COG1(1)=xw; COG1(2)=yw; COG1(3)=zw
@@ -289,20 +298,18 @@ C Draw circles depending on type. (powderblue is 27) (navy blue is 34)
 
 C Write name for other than 'iu'.
       if(type.eq.'iu')then
-        write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +8  ! offset to right of circle
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
         ibsize=0
-        call textsizeatxy(iid4,iiy+8,t13,ibsize,'z',iicol)
+        if(doname)call textsizeatxy(iid4,iiy+8,t13,ibsize,'z',iicol)
         call forceflush()
       else
-        write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +8  ! offset to right of circle
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'g') iicol=32  ! grey50
         ibsize=0
-        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
+        if(doname)call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       endif
       iicol=0
@@ -328,6 +335,8 @@ C col is 'r' red  'g' grey
       COMMON/GFONT/IFS,ITFS,IMFS
       DIMENSION  COG1(3),COG2(3),COG3(3)
       character t13*13
+      logical doname
+      
 #ifdef OSI
       integer iix,iiy,iid4,iicol,ibsize
 #else
@@ -335,6 +344,10 @@ C col is 'r' red  'g' grey
 #endif
 
       if(MMOD.lt.8) return  ! in text mode do not draw
+
+      write(t13,'(A)')name(1:lnblnk(name))
+      doname=.true.
+      if(t13(1:2).eq.'- ') doname=.false.
 
 C Get pixel position to draw at.
       COG1(1)=xw; COG1(2)=yw; COG1(3)=zw
@@ -360,47 +373,41 @@ C Draw symbol depending on type.
       endif
 
 C Write name to the right of the symbol.
-      t13=' '
       ibsize=0
       if(type.eq.'bx')then
-        write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +8
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'b') iicol=13  ! royal blue
         if(col.eq.'g') iicol=32  ! grey50
-        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
+        if(doname)call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       elseif(type.eq.'cr')then
-        write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +10
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'b') iicol=13  ! royal blue
         if(col.eq.'g') iicol=32  ! grey50
-        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
+        if(doname)call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       elseif(type.eq.'cd')then
-        write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +10
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'b') iicol=13  ! royal blue
         if(col.eq.'g') iicol=32  ! grey50
-        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
+        if(doname)call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       elseif(type.eq.'or')then
-        write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +8
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'b') iicol=13  ! royal blue
         if(col.eq.'g') iicol=32  ! grey50
-        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
+        if(doname)call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       elseif(type.eq.'bi')then
-        write(t13,'(A)')name(1:lnblnk(name))
         iid4 = iix +8
         if(col.eq.'r') iicol=0   ! red
         if(col.eq.'b') iicol=13  ! royal blue
         if(col.eq.'g') iicol=32  ! grey50
-        call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
+        if(doname)call textsizeatxy(iid4,iiy+5,t13,ibsize,'z',iicol)
         call forceflush()
       endif
       iicol=0
@@ -417,7 +424,7 @@ C component in such as way as to not obscure node and/or component.
 #include "building.h"
 #include "prj3dv.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       real xs,ys,zs,xe,ye,ze
       character col*1
       real tdis
@@ -481,19 +488,19 @@ C      iicol=0  ! red
 C ************************* MFWFDRAWNC 
 C MFWFDRAW Fluid flow file: draw node & components from common block contents.
 C colour is either 'r' red or 'g' grey50 for components.
-      SUBROUTINE MFWFDRAWNC(col)
+C Omitt node names indnm=0 or component names icmpnm for clarity
+      SUBROUTINE MFWFDRAWNC(col,indnm,icmpnm)
 
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
       
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer net3ddelay  ! delay between timesteps in 3D network
       common/delay3d/net3ddelay
       character col*1
       CHARACTER name*12
-      integer POS,NEG,CMPIS
       real xc,yc,zc,xw,yw,zw
       integer idms
       logical iswater
@@ -509,7 +516,7 @@ C      COMMON/OUTIN/IUOUT,IUIN
       
 C Node data.
       IF(NNOD.gt.0)then
-        DO INOD=1,NNOD
+        do INOD=1,NNOD
           name=NDNAM(INOD)
           xw=HNOD(INOD,1);yw=HNOD(INOD,2); zw=HNOD(INOD,3)
           if(NDTYP(INOD).eq.0)then
@@ -541,7 +548,7 @@ C Node data.
             endif
             call pausems(idms)
           endif
-        ENDDO
+        enddo
       endif
 
 C Component data.
@@ -550,7 +557,8 @@ C << CONSIDER NWPCMP()  >>
 
       IF(NCMP.gt.0)then
         DO ICMP=1,NCMP
-          name=CMNAM(ICMP)
+          if(icmpnm.gt.0) name=CMNAM(ICMP)
+          if(icmpnm.eq.0) name='- '
           xc=HCMP(ICMP,1,1);yc=HCMP(ICMP,1,2); zc=HCMP(ICMP,1,3)
           call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
@@ -704,7 +712,7 @@ C component in such as way as to not obscure node and/or component.
 #include "building.h"
 #include "prj3dv.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       character word*12

@@ -38,7 +38,7 @@ C izgfoc greater than zero represents the zone which is currently being edited.
 C Passed parameter.
       integer ier
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
@@ -67,7 +67,6 @@ C If altered then do a bound check on the current zone and update display.
 
 C If viewpoint or bounds different then initialise viewing paramters.
         IF(MODLEN)THEN
-          HANG=ANG/2.0
           DIS = (VIEWM(1)-EYEM(1))**2 + (VIEWM(2)-EYEM(2))**2 +
      &          (VIEWM(3)-EYEM(3))**2
           IF(DIS.GE.SMALL)THEN
@@ -111,7 +110,7 @@ C Passed parameter.
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -173,7 +172,7 @@ C Clear current viewing box and re-establish image bounds.
       CALL startbuffer()
 
 C Setup and pass in parameters to win3d.
-      iiw1=4; iiw2=1; iiw3=1; iiw4=3; iimenu=menuchw
+      iiw1=4; iiw2=1; iiw3=0; iiw4=1; iimenu=menuchw
       iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
       CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &  iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -183,7 +182,7 @@ C Setup and pass in parameters to win3d.
       igheight=igwh
 
 C Determine scaling ratios for the drawing and axis.  If static
-C assume 1000 -1000 etc, if optimum then use SXMX,SYMX + 10% etc.
+C assume 1000 -1000 etc, if optimum then use SXMX,SYMX + 2% etc.
 
 C << why different assumption for static?? >>
 
@@ -313,15 +312,15 @@ C draw it as a solid circle.
 C If less than 2 hits then draw a legend for the meaning
 C of the vertex symbols.
             CALL winfnt(issize)
-            iid1=igl+20; iid2=igb+25;
+            iid1=igl+10; iid2=igb+5;
             CALL ecirc(iid1,iid2,3,1)
             write(temp,'(A)')'Unlinked vertex'
-            iid1=igl+30; iid2=igb+30;
+            iid1=igl+20; iid2=igb+10;
             call textatxy(iid1,iid2,temp,'-',iicol)
-            iid1=igl+140; iid2=igb+25;
+            iid1=igl+130; iid2=igb+5;
             CALL ecirc(iid1,iid2,3,0)
             write(temp20,'(A)')'Single-linked vertex'
-            iid1=igl+150; iid2=igb+30;
+            iid1=igl+140; iid2=igb+10;
             call textatxy(iid1,iid2,temp20,'-',iicol)
             CALL winfnt(IMFS)
           ENDIF
@@ -445,7 +444,11 @@ C a 2pixel square dot at the vertex so if it is embedded in a line
 C it can be seen. Then move cursor to vertex and remember position.
           IF(ITVNO.EQ.0.AND.NAP.EQ.NBP)THEN
             IV=iszjvn(nznog(IZ),I,IP)
-            call esymbol(iix,iiy,8,1)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiy,8,1)
+            else
+              call esymbolwwc(iix,iiy,8,1)
+            endif
             CALL VERTLBL(iix,iiy,IV,ier)
           ENDIF
           iixlast=iix   ! cast for edline call
@@ -467,7 +470,11 @@ C            write(6,*) 'nap nbp nbedgdup iedge j',nap,nbp,nbedgdup(icc),
 C     &        iedge,j
 
             if(NAP.ne.NBP)then
-              call eswline(iixlast,iiylast,iix,iiy)
+              if(mmod.eq.8)then
+                call eswline(iixlast,iiylast,iix,iiy)
+              else
+                call eswlinewwc(iixlast,iiylast,iix,iiy)
+              endif
             else
 
 C If there will be diagonal lines drawn (duplicate edges) check if the
@@ -479,7 +486,11 @@ C with the co-planer.
                   found=.false.
                 else
                   LD=4
-                  call edline(iixlast,iiylast,iix,iiy,LD)
+                  if(mmod.eq.8)then
+                    call edline(iixlast,iiylast,iix,iiy,LD)
+                  else
+                    call edlinewwc(iixlast,iiylast,iix,iiy,LD)
+                  endif
                   found=.true.
                 endif
               endif
@@ -488,23 +499,41 @@ C If this edge is shared with a co-planer surface with the same construction
 C and greys can be done reset forground to 50% grey otherwise draw black,
 C unless duplicate line has already been drawn.
               if(imatshr(icc,iedge).eq.0)then
-                if(.NOT.found)call eswline(iixlast,iiylast,iix,iiy)
+                if(.NOT.found)then
+                  if(mmod.eq.8)then
+                    call eswline(iixlast,iiylast,iix,iiy)
+                  else
+                    call eswlinewwc(iixlast,iiylast,iix,iiy)
+                  endif
+                endif
               else
                 if(greyok)then
                   iicol=nifgrey-3
-                  call winscl('i',iicol)
+                  if(mmod.eq.8) call winscl('i',iicol)
                 endif
-                call eswline(iixlast,iiylast,iix,iiy)
+                if(mmod.eq.8)then
+                  call eswline(iixlast,iiylast,iix,iiy)
+                else
+                  call eswlinewwc(iixlast,iiylast,iix,iiy)
+                endif
                 if(greyok)then
                   iicol=0
-                  call winscl('-',iicol)
+                  if(mmod.eq.8) call winscl('-',iicol)
                 endif
               endif
             endif
           elseif(IPEN.eq.-305)then
-            call edwline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           endif
           iixc=iixc+iix
           iiyc=iiyc+iiy
@@ -513,9 +542,12 @@ C unless duplicate line has already been drawn.
 C If vertex are to be labeled do it in the smallest font and
 C move cursor back to vertex and remember position.
           IF(ITVNO.EQ.0.AND.NAP.EQ.NBP)THEN
-C            IV=(icc,IP1)
             IV=iszjvn(nznog(IZ),I,IP1)
-            call esymbol(iix,iiy,8,1)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiy,8,1)
+            else
+              call esymbolwwc(iix,iiy,8,1)
+            endif
             CALL VERTLBL(iix,iiy,IV,ier)
             iixlast=iix   ! cast for edline call
             iiylast=iiy
@@ -536,7 +568,11 @@ C Complete the polygon.
 C Normal (not highlighted) edge being drawn, if NAP = NBP then check
 C common/G8 for hints as to alternate greys or dots.
             if(NAP.ne.NBP)then
-              call eswline(iixlast,iiylast,iix,iiy)
+              if(mmod.eq.8)then
+                call eswline(iixlast,iiylast,iix,iiy)
+              else
+                call eswlinewwc(iixlast,iiylast,iix,iiy)
+              endif
             else
 
 C If there will be diagonal lines drawn (duplicate edges) check if the
@@ -548,7 +584,11 @@ C with the co-planer.
                   found=.false.
                 else
                   LD=4
-                  call edline(iixlast,iiylast,iix,iiy,LD)
+                  if(mmod.eq.8)then
+                    call edline(iixlast,iiylast,iix,iiy,LD)
+                  else
+                    call edlinewwc(iixlast,iiylast,iix,iiy,LD)
+                  endif
                   found=.true.
                 endif
               endif
@@ -557,23 +597,41 @@ C If this edge is shared with a co-planer surface with the same construction
 C and greys can be done reset forground to 50% grey otherwise draw black,
 C unless duplicate line has already been drawn.
               if(imatshr(icc,iedge).eq.0)then
-                if(.NOT.found)call eswline(iixlast,iiylast,iix,iiy)
+                if(.NOT.found)then
+                  if(mmod.eq.8)then
+                    call eswline(iixlast,iiylast,iix,iiy)
+                  else
+                    call eswlinewwc(iixlast,iiylast,iix,iiy)
+                  endif
+                endif
               else
                 if(greyok)then
                   iicol=nifgrey-3
-                  call winscl('i',iicol)
+                  if(mmod.eq.8) call winscl('i',iicol)
                 endif
-                call eswline(iixlast,iiylast,iix,iiy)
+                if(mmod.eq.8)then
+                  call eswline(iixlast,iiylast,iix,iiy)
+                else
+                  call eswlinewwc(iixlast,iiylast,iix,iiy)
+                endif
                 if(greyok)then
                   iicol=0
-                  call winscl('-',iicol)
+                  if(mmod.eq.8) call winscl('-',iicol)
                 endif
               endif
             endif
           elseif(IPEN.eq.-305)then
-            call edwline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           endif
           iixc=iixc+iix
           iiyc=iiyc+iiy
@@ -590,12 +648,12 @@ C Patch for cfg is to only label highlighted surfaces.
           IF(iixc.GT.0.AND.iiyc.GT.0.AND.(NAP.EQ.NBP))THEN
             if(icc.ne.0)then
               if(LINSTY(icc).eq.2)then
-                CG(1)=SSURCOG(icc,1)
-                CG(2)=SSURCOG(icc,2)
-                CG(3)=SSURCOG(icc,3)
-                VN(1)=SSURVN(icc,1)
-                VN(2)=SSURVN(icc,2)
-                VN(3)=SSURVN(icc,3)
+                CG(1)=SURCOG(nznog(IZ),I,1)
+                CG(2)=SURCOG(nznog(IZ),I,2)
+                CG(3)=SURCOG(nznog(IZ),I,3)
+                VN(1)=SURVN(nznog(IZ),I,1)
+                VN(2)=SURVN(nznog(IZ),I,2)
+                VN(3)=SURVN(nznog(IZ),I,3)
                 CALL VECTRN(VN,TEMAT,COG2,IER)
                 CALL VECTRN(COG2,ETSMAT,COG3,IER)
                 call u2pixel(COG3(1),COG3(2),iixc,iiyc)

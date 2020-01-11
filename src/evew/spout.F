@@ -34,7 +34,7 @@ C--------------------------------------------------------------------
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character*(*) A
       character outs*80
@@ -52,7 +52,7 @@ C--------------------------------------------------------------
 C   TO OUTPUT STRING ON SPAD2 WITH CONTROL
 
 #include "viewer.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character*(*) A
 

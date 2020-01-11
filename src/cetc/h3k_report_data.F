@@ -294,10 +294,6 @@ C.....Flags for temperature-dependence of MLC themal properties
       common/vthp32/ivthps,ivthpz(mcom)
       logical ivthps, ivthpz
 
-C.....Surface area data
-      common/prec1/sna(mcom,ms)
-      real sna                 ! Area of a surface
-
       common/cctl/icascf(mcom)  ! Zone control type
       integer icascf
 
@@ -324,12 +320,8 @@ C.....Sky temperature and cloud cover; ground temperature,
      &TSKY,CLOUDC,CLOUD1,CLOUD2,CLOUD3,TBAVE,TBROOF,TBNRTH,
      &TBSUTH,TBEAST,TBWEST
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
-
-C.....Surface azimuth (deg from north) and elevation angles (walls: 0 deg, ceilings: 90 deg, floors: -90 deg)
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-      real PAZI, PELV     
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -910,8 +902,8 @@ C.........construction and compute the heat loss at that layer.
 C............For floors, take the outermost layer for heat loss estimation.
 C............For walls and ceiling, take the innermost layer for heat loss
 C............estimation. 
-C............Elevation angle (PELV) of floor surfaces is -90
-             call eclose(PELV(iZone,iSurface),-90.0,small,close)  
+C............Elevation angle (SPELV) of floor surfaces is -90
+             call eclose(SPELV(iZone,iSurface),-90.0,small,close)  
 
              IF ( close )THEN    ! surface is a floor
 
@@ -2382,7 +2374,7 @@ C.......  ..Surface area in m2
 
               ic=izstocn(iZone,iSurface) ! connection index in model
               lnssmlc=lnblnk(SMLCN(iZone,iSurface)) ! construction name string length
-C             ssmlcindex(ic)             ! construction index in data base
+C             smlcindex(izone,isurface)             ! construction index in data base
 C material.h:      character matname*32     ! name for material
 C material.h:      character mlcname*32     ! name of MLC legacy items only use first 12 char
 C material.h:      IPRMAT(MMLC,ME)          ! Index to material for each layer
@@ -2397,16 +2389,17 @@ C Logic from edcon.F, line 171 ff.
               do ii=1,nmlc
                 if(SMLCN(iZone,iSurface)(1:lnssmlc).eq.
      &             mlcname(ii)(1:lnmlcname(ii)))then
-                  ssmlcindex(ic)=ii   ! remember MLC index
+                  smlcindex(izone,isurface)=ii   ! remember MLC index
                 endif
               enddo
 
-              lnsmlcn=lnblnk(matname(IPRMAT(ssmlcindex(ic),iLayer)))
+              lnsmlcn=lnblnk(matname(IPRMAT(smlcindex(izone,isurface),
+     &                       iLayer)))
 
 C.............Build constrname:matname string
               call st2name(
-     &                matname(IPRMAT(ssmlcindex(ic),iLayer))(1:lnsmlcn),
-     &                                                    sDummy)
+     &          matname(IPRMAT(smlcindex(izone,isurface),
+     &          iLayer))(1:lnsmlcn),sDummy)
 
               if (sDummy(1:1).ne." ") then
                 write (sMaterialName,'(A)') sDummy(1:lnsmlcn)
@@ -2415,22 +2408,23 @@ C.............Build constrname:matname string
               endif
 
               call st2name(
-     &                mlcname(ssmlcindex(ic))(
-     &                        1:lnmlcname(ssmlcindex(ic))),
-     &                                          sConstructionName)
+     &           mlcname(smlcindex(izone,isurface))(
+     &           1:lnmlcname(smlcindex(izone,isurface))),
+     &           sConstructionName)
 
               write (sConMat_Chars,'(A,A,A,A,A)')
-     &               sConstructionName(1:lnmlcname(ssmlcindex(ic))),':',
-     &               cLayer_Chars,':',sMaterialName(1:lnsmlcn)
+     &          sConstructionName(1:lnmlcname(
+     &          smlcindex(izone,isurface))),':',
+     &          cLayer_Chars,':',sMaterialName(1:lnsmlcn)
 
 C DEBUG
 cx       write(*,*)'ic=',ic,', lnsmlcn=',lnsmlcn,
 cx     &           ', ssmlc(ic)=',SMLCN(iZone,iSurface),
 cx     &           ', mlcname(ic)=',mlcname(ic),
-cx     &           ', ssmlcindex(ic)=',ssmlcindex(ic),
-cx     &           ', IPRMAT=',IPRMAT(ssmlcindex(ic),iLayer),
+cx     &           ', smlcindex(izone,isurface)=',smlcindex(izone,isurface),
+cx     &           ', IPRMAT=',IPRMAT(smlcindex(izone,isurface),iLayer),
 cx     &           ', matname(IPRMAT)=',
-cx     &                  matname(IPRMAT(ssmlcindex(ic),iLayer)),
+cx     &                  matname(IPRMAT(smlcindex(izone,isurface),iLayer)),
 cx     &           ', sLC=',sLayer_Chars,'.'
 
 C.......  ....Layer material density in kg/m3
@@ -2472,12 +2466,12 @@ cc      write(6,*)'... found ',mlcname(imlc)(1:lm)
 C Depending on the connection type, add the full or half area of surface.
                       if(ICT(ic).eq.0.or.ICT(ic).eq.1.or.
      &                                        ICT(ic).eq.2)then
-                        tareamlc=tareamlc+SSNA(ic)
+                        tareamlc=tareamlc+SNA(iz,iSur)
                       elseif(ICT(ic).eq.4.or.ICT(ic).eq.5.or.
      &                                        ICT(ic).eq.3)then
-                        tareamlc=tareamlc+SSNA(ic)
+                        tareamlc=tareamlc+SNA(iz,iSur)
                       else
-                        tareamlc=tareamlc+(SSNA(ic)*0.5)
+                        tareamlc=tareamlc+(SNA(iz,iSur)*0.5)
                       endif
                     endif
   43              continue
@@ -3146,8 +3140,8 @@ C**********************************************************************
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN                 ! trace output unit numbers
-      integer iuout, iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT                 ! trace output unit numbers
+      integer iuout, iuin,ieout
 
 C.....ESP-r commons
 C NPCON,      # of connections in plant network

@@ -1,7 +1,3 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
-
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
@@ -13,39 +9,25 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
+C A collection of routines dealing with dispersed energy demands (for fans, lifts etc.).
+C    ERBDMD: reads the model-defined dispersed demand profiles.
+C    DMDSTOT: retrieves max, min, average and total values for each demand.
+C    DDMDS: reconstructs one day's values for each demand.
+C    DMDTYP: determines the demand types 1-7 (MGTY) at each time step.
 
-C Routines which deal with dispersed demands (fans/lifts/etc.).
-
-C  ERBDMD reads model dispersed demand profiles for fans, pumps, DHW etc.
-
-C  DMDSTOT retrieves max, min, totals & average for dispersed demands.
-
-C  DDMDS reconstructs one day's values of each dispersed demands.
- 
-C  DMDTYP works out the demand types 1-7 (MGTY) at each time step.
-
-
-C ******************** ERBDMD
-C Similar prjdmds.F except do not bother to set idmdinc or report of contents.
-C ERBDMD reads model dispersed demand profiles for fans, pumps, DHW etc.
-
-C << Note: why not just use ERBDMD in prjdmds.F? >>
+C ********** ERBDMD
+C Reads the model-defined dispersed demand profiles. (Similar to routine in prjdmds.F
+C except does not set idmdinc or report result.)
 
       SUBROUTINE ERBDMD(ITRC,IUO,IER)
 #include "building.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 #include "schedule.h"
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
-
-      COMMON/BLM2/dmdfla(MGTY)
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      common/BLM2/dmdfla(MGTY)
 
 C Calendar commons.
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
@@ -55,7 +37,7 @@ C Calendar commons.
 C Error subroutine and error details for dll mode.
       common/dllerr/dllsubr,dllmesg
 
-      CHARACTER outstr*124,loutstr*248
+      character outstr*124,loutstr*248
       character dllsubr*12,dllmesg*124,WORD*20,outs*124,outs2*124
       character calename*32,calentag*12,calendayname*32
       character dstmp*24
@@ -71,13 +53,14 @@ C Initialise project data file.
       CALL EFOPSEQ(IUO,bdmds,1,IER)
       IF(IER.NE.0)THEN
         write(outs,'(3a)') 'Dispersed demands file ',
-     &    bdmds(1:lnblnk(bdmds)),' could not be opened.'
+     &    bdmds(1:lnblnk(bdmds)),' could not be opened!'
         if(dll)then
           dllsubr='ERBDMD'
           dllmesg=outs
           ier=2
           return
         else
+          call edisp(ioout,' ')
           call edisp(iuout,outs)
           IER=1
           RETURN
@@ -87,7 +70,7 @@ C Initialise project data file.
 
 C Read lines from file, discarding comments. To allow for operation
 C names with spaces copy directly from OUTSTR rather than parsing
-C it into words.  Use long stip for dmdsdesc line. 
+C it into words. Use long stip for dmdsdesc line. 
       CALL LSTRIPC(IUO,LOUTSTR,0,ND,1,'dispersed notes',IER)
       IF(IER.NE.0)RETURN
 
@@ -113,20 +96,13 @@ C Detect header and set a version number.
         idmdver=0
       endif
 
-C Debug.
-C      write(6,*) 'calendar ',calename
-C      write(6,*) 'day types ',nbdaytype
-
-C Loop through all of the calendar day types.
+C Loop through all calendar day types. (Limit is 7 day types.)
       do 30 idt=1,nbdaytype
         CALL STRIPC(IUO,OUTSTR,0,ND,1,'day type demand periods',IER)
         K=0
         CALL EGETWI(OUTSTR,K,NBCAS(idt),0,MC,'W','periods in day',IER)
         IF(NBCAS(idt).EQ.0)goto 30
         DO 40 I=1,NBCAS(idt)
-
-C << if there are more than 7 types then logic needs to change >>
-
           CALL STRIPC(IUO,OUTSTR,99,ND,1,'Period gain detl',IER)
           K=0
           if(ND.eq.7)then
@@ -151,8 +127,8 @@ C << if there are more than 7 types then logic needs to change >>
           IF(IBCGS(idt,I).GT.IBCGF(idt,I))then
 
 C If periods are out of sync then return with a warning.
-            write(outs,'(3a)') ' Period start-end mismatch in...',
-     &        OUTSTR(1:50),'...'
+            write(outs,'(3a)') 'Period start-end mismatch in ',
+     &        OUTSTR(1:50),'!'
             if(dll)then
               dllsubr='ERBDMD'
               dllmesg=outs
@@ -160,6 +136,7 @@ C If periods are out of sync then return with a warning.
               CALL ERPFREE(IUO,ISTAT)
               return
             else
+              call edisp(iuout,' ')
               call edisp(iuout,outs)
               IER=1
               CALL ERPFREE(IUO,ISTAT)
@@ -169,9 +146,9 @@ C If periods are out of sync then return with a warning.
           X=BRADC(idt,I)+BCONC(idt,I)
           if(X.GT.1.02)then
 
-C If radiant plus convective is over unity warn.
-            write(outs,'(3a)') ' Radiant & convec frc>1.02 in...',
-     &        OUTSTR(1:50),'...'
+C If radiant plus convective is > 1.0 issue warning..
+            write(outs,'(3a)') 'Radiant & convec summation > 1.0 in ',
+     &        OUTSTR(1:50),'!'
             if(dll)then
               dllsubr='ERBDMD'
               dllmesg=outs
@@ -179,6 +156,7 @@ C If radiant plus convective is over unity warn.
               CALL ERPFREE(IUO,ISTAT)
               return
             else
+              call edisp(iuout,' ')
               call edisp(iuout,outs)
               IER=1
               CALL ERPFREE(IUO,ISTAT)
@@ -186,13 +164,12 @@ C If radiant plus convective is over unity warn.
             endif
           endif
           IF(X.LT..95.AND.ITRC.GT.1)call edisp(iuout,
-     &                            ' Demand rad:con sum < 1.0')
+     &                            'Demand rad+con < 1.0!')
    40   CONTINUE
         IF(IER.NE.0)RETURN
    30 continue
 
-C Check to see if demand labels have been added to the end of the file.
-C << if more than 7 types then consider alt logic >>
+C Check if demand labels have been added to the end of the file.
     8 CALL STRIPC(IUO,OUTSTR,99,ND,1,'Dispersed type labels',IERV)
       IF(ND.NE.7.OR.IERV.ne.0) THEN
         goto 1001
@@ -205,7 +182,6 @@ C << if more than 7 types then consider alt logic >>
       ENDIF      
 
 C Check for areas associated with each demand label.
-C << revise for something other than 7 types >>
       CALL STRIPC(IUO,OUTSTR,99,ND,1,'Dispersed type areas',IERV)
       IF(ND.NE.7.OR.IERV.ne.0) THEN
         goto 1001
@@ -217,20 +193,14 @@ C << revise for something other than 7 types >>
  1233   CONTINUE
       ENDIF      
 
- 1235 CONTINUE    ! jump back point if types were not found.
+ 1235 CONTINUE    ! jump back point if types not found.
 
-C Distributed demands reporting not in esrures version.
-C      if(ITRC.GE.1)call BDMDINF(iuout,IER)
-
-C Now free project data file.
+C Free project data file.
       CALL ERPFREE(IUO,ISTAT)
       RETURN
 
-C << Occup is a silly name for a dispersed demand - who cares if
-C << there are people not in a zone?
-
 C Error messages.
- 1001 call usrmsg(' ',' No type names found ...supplying defaults.','-')
+ 1001 call usrmsg(' ','No type names found ... supplying defaults.','-')
       blodlabel(1)='Other '
       blodlabel(2)='Lights'
       blodlabel(3)='SmallPower'      
@@ -240,8 +210,8 @@ C Error messages.
       blodlabel(7)='DomesticHW'      
       goto 1235
 
- 1002 write(outs,'(3a)') 'ERBDMD: conversion error in...',
-     &  OUTSTR(1:50),'...'
+ 1002 write(outs,'(3a)') 'ERBDMD: conversion error in ',
+     &  OUTSTR(1:50),'!'
       lsn=MIN0(lnblnk(currentfile),110)
       write(outs2,'(2a)') 'in: ',currentfile(1:lsn)
       if(dll)then
@@ -251,6 +221,7 @@ C Error messages.
         CALL ERPFREE(IUO,ISTAT)
         return
       else
+        call edisp(iuout,' ')
         call edisp(iuout,outs)
         call edisp(iuout,outs2)
         IER=1
@@ -262,28 +233,23 @@ C Error messages.
 
 
 C ******************** DMDSTOT ********************
-C DMDSTOT retrieves max, min, totals and average for dispersed
-C demands (not associated with specific zones) for the currently
-C selected period. 
+C Retrieve max, min, average and total values for each demand. 
 
       SUBROUTINE DMDSTOT(XMAX,XMIN,XTOT,XAVE)
 #include "building.h"
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
-
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
 
-C The parameters returned.
       dimension XMAX(MGTY),XMIN(MGTY),XTOT(MGTY),XAVE(MGTY)
-
       dimension NX(MGTY)
       character prompts*52,prompte*52
 
-      prompts=' Scanning non-specific demands...'
-      prompte=' Scanning non-specific demands...done.'
+      prompts='Scanning non-specific demands ...'
+      prompte='Scanning non-specific demands ... done.'
 
-C Setup parameters and call DDMDS for each output day to get required data.
+C Set up parameters and call DDMDS for each output day to get required data.
 C DDMDS recovers the data in VAL3 positions 15-21 (and averages output if required.)
       do 5 I=1,MGTY
         XMAX(I)=-1.E+10
@@ -304,9 +270,7 @@ C offset from the gain type is 14 within the VAL3 array.
           IX=I+14
           NDTS=24*NTS
           DO 421 J = 1,NDTS,NOUT
-C            ih=J/NTS
             IF(IDAY.LE.IODS.AND.(FLOAT(J)/NTS).LT.IOH1)goto 421
-
             IF (VAL3(IX,J).GT.XMAX(i)) XMAX(i)=VAL3(IX,J)
             IF (VAL3(IX,J).LT.XMIN(i)) XMIN(i)=VAL3(IX,J)
             XTOT(i)=XTOT(i)+VAL3(IX,J)
@@ -328,19 +292,19 @@ C Calculate averages.
 
       END
 
-C ******************** DDMDS ********************
+C ********** DDMDS
 
-C DDMDS reconstructs one day's values of each of dispersed demands.
+C Reconstructs one day's values for each demand.
 C To save space VAL3(15,I) to VAL3(21,I) are used for temporary storage.
 C The method used shifts information from the demands file into the
 C equivalent of bps timestep averaging.
-C VAL3(15,?) holds other demands.
-C VAL3(16,?) holds lighting demands.
-C VAL3(17,?) holds small power demands.
-C VAL3(18,?) holds fans demands.
-C VAL3(19,?) holds pump demands.
-C VAL3(20,?) holds lifts demands.
-C VAL3(21,?) holds DHW demands.
+C   VAL3(15,?) - other demands.
+C   VAL3(16,?) - lighting demands.
+C   VAL3(17,?) - small power demands.
+C   VAL3(18,?) - fans demands.
+C   VAL3(19,?) - pump demands.
+C   VAL3(20,?) - lifts demands.
+C   VAL3(21,?) - DHW demands.
 
       SUBROUTINE DDMDS(IDAY)
 #include "building.h"
@@ -352,12 +316,12 @@ C VAL3(21,?) holds DHW demands.
 
       IEND=24*NTS
 
-C Initialise 'present values'.
+C Initialise 'present' values.
       pddt1=0.0; pddt2=0.0; pddt3=0.0; pddt4=0.0
       pddt5=0.0; pddt6=0.0; pddt7=0.0
 
-C Note that the demand at the first timestep of the day is dependent
-C on the demand at the last timestep of the previous day.    
+C Note that the demand at the first time step of the day is dependent
+C on the demand at the last time step of the previous day.    
 C If IDAY is equal to the first day of the simulation then there is no
 C previous day so assume DUCCT?= current day.
       IF(IDAY.EQ.IODS.AND.IDAY.EQ.ISDS)THEN
@@ -367,8 +331,8 @@ C previous day so assume DUCCT?= current day.
         Dhddt5=hddt1; Dhddt6=hddt1; Dhddt7=hddt1
       ELSEIF(IDAY.EQ.IODS.AND.IDAY.GT.ISDS)THEN
 
-C Need to get the last timestep of the previous day to have the last 
-C timestep for interpolation before recovering the demands
+C Get the last time step of the previous day to have the last 
+C time step for interpolation before recovering the demands
 C for the day in question.
         CALL DMDTYP(IDAY-1,IEND,hddt1,hddt2,hddt3,hddt4,hddt5,
      &    hddt6,hddt7)
@@ -415,22 +379,20 @@ C Save the last timestep for use the next day.
       RETURN
       END
 
-C ******************** DMDTYP ********************
+C ********** DMDTYP
 
-C DMDTYP work out the demand types 1-7 (MGTY) at each time step.
-C Given the information in common block bl3data returns:
-C hddt1,hddt2,hddt3,hddt4,hddt5,hddt6,hddt7
-C However, because of the averaging in bps, the beginning and ending
-C of each period will have to be shifted in the calling routine.
-
-C << may have to include an hddt8 and hddt9 etc. >>
+C Determines the demand types 1-7 (MGTY) at each time step.
+C Given the information in common block bl3data, the routine returns:
+C hddt1,hddt2,hddt3,hddt4,hddt5,hddt6,hddt7. However, because of the
+C averaging in bps, the beginning and ending of each period is
+C shifted in the calling routine.
 
       SUBROUTINE DMDTYP(IDAY,ITSTEP,hddt1,hddt2,hddt3,hddt4,hddt5,
      &  hddt6,hddt7)
 #include "building.h"
 #include "schedule.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Demands floor area for each demand type.
       COMMON/BLM2/dmdfla(MGTY)
@@ -441,10 +403,7 @@ C Demands floor area for each demand type.
 C Assume that IYEAR is available via RESDEF.
 C Determine whether IDAY is a weekday, Saturday or Sunday.
 C Determine the month and day of month via EDAYR.
-
-C << it is implied that there are only weekdays, sat and sun >>
-C << this will need to change to deal with calendar day types >>
-C << do check for number of calendar day types >>
+C << This will need to change to deal with calendar day types. >>
 
       CALL EDAYR(IDAY,IDAYN,IMTHN)
       CALL EWEEKD(IDAYN,IMTHN,IYEAR,IDWK)
@@ -459,12 +418,12 @@ C Find the hour of the day and initialise the values to be returned.
       hddt6=0.0
       hddt7=0.0
 
-C Note: Because there can be more than one demand of each
+C Because there can be more than one demand of each
 C type, hddt? etc. need to be summed.
 
       IF(IDWK.EQ.7)THEN
 
-C If a Sunday then check if there are any demands at this hour.
+C Sunday - check if there are any demands at this hour.
         idt = 3
         IF(NBCAS(idt).GE.1)THEN
           DO 10 ICNN=1,NBCAS(idt)
@@ -486,7 +445,7 @@ C If a Sunday then check if there are any demands at this hour.
               ELSEIF(IBCGT(idt,ICNN).EQ.7)THEN
                 hddt7=hddt7+X7
               ELSE
-C Warm of more than 7 types.
+C Warm if more than 7 types.
               ENDIF
               if(IBCGT(idt,ICNN).EQ.-1)THEN
                 hddt1=hddt1+(X7*dmdfla(1))
@@ -503,14 +462,14 @@ C Warm of more than 7 types.
               ELSEIF(IBCGT(idt,ICNN).EQ.-7)THEN
                 hddt7=hddt7+(X7*dmdfla(7))
               ELSE
-C Warm of more than 7 types.
+C Warm if more than 7 types.
               ENDIF
             ENDIF
    10     CONTINUE
         ENDIF
       ELSEIF(IDWK.EQ.6)THEN
 
-C If a Saturday then check if there are any demands at this hour.
+C Saturday - check if there are any demands at this hour.
         idt = 2
         IF(NBCAS(idt).GE.1)THEN
           DO 20 ICNN=1,NBCAS(idt)
@@ -532,7 +491,7 @@ C If a Saturday then check if there are any demands at this hour.
               ELSEIF(IBCGT(idt,ICNN).EQ.7)THEN
                 hddt7=hddt7+X6
               ELSE
-C Warm of more than 7 types.
+C Warm if more than 7 types.
               ENDIF
               if(IBCGT(idt,ICNN).EQ.-1)THEN
                 hddt1=hddt1+(X6*dmdfla(1))
@@ -549,14 +508,14 @@ C Warm of more than 7 types.
               ELSEIF(IBCGT(idt,ICNN).EQ.-7)THEN
                 hddt7=hddt7+(X6*dmdfla(7))
               ELSE
-C Warm of more than 7 types.
+C Warm if more than 7 types.
               ENDIF
             ENDIF
    20     CONTINUE
         ENDIF
       ELSE
 
-C If a weekday then check if there are any demands at this hour.
+C Weekday - check if there are any demands at this hour.
         idt = 1
         IF(NBCAS(idt).GE.1)THEN
           DO 30 ICNN=1,NBCAS(idt)
@@ -578,7 +537,7 @@ C If a weekday then check if there are any demands at this hour.
               ELSEIF(IBCGT(idt,ICNN).EQ.7)THEN
                 hddt7=hddt7+X
               ELSE
-C Warm of more than 7 types.
+C Warm if more than 7 types.
               ENDIF
               if(IBCGT(idt,ICNN).EQ.-1)THEN
                 hddt1=hddt1+(X*dmdfla(1))
@@ -595,7 +554,7 @@ C Warm of more than 7 types.
               ELSEIF(IBCGT(idt,ICNN).EQ.-7)THEN
                 hddt7=hddt7+(X*dmdfla(7))
               ELSE
-C Warm of more than 7 types.
+C Warm if more than 7 types.
               ENDIF
             ENDIF
    30     CONTINUE

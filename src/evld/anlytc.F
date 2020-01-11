@@ -1,7 +1,3 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
-
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
@@ -13,10 +9,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C *********************************************************************
 C This file contains the following subroutines and functions:
@@ -41,13 +33,13 @@ C   VRes11
 C   VPSimu
 C   VAn111
 
-C *********************************************************************
-C AnlCnd
-C *********************************************************************
+
+C ********** AnlCnd **********
+
       SUBROUTINE AnlCnd
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       character h*72
       common/pophelp/h(60)
@@ -55,15 +47,18 @@ C *********************************************************************
       COMMON/Vld02/Tinit,IndBO,IndBI,Tout,Tin,Hout,Hin
       COMMON/Vld04/DTime,NTime,MonNod,NRoot,NIter
       COMMON/Vld10/VlDirR,VlDirL
-      COMMON/Vld20/Vldtng
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
       common/deflt4/dinstpath
 
       character item(12)*28,STRS*124,STRA*124,MsgB*25,MsgC*8
       CHARACTER*72 Msg,MsgT,LstDtl,FileS,FileA,FileF
       character VlDirR*96,VlDirL*72
       CHARACTER Promp*72,dinstpath*60
+      character dummy*12
 
-      logical VldOK,Vldtng
+      logical VldOK
+
       integer MITEM,INO ! max items and current menu item
 
       MonNod=1
@@ -72,45 +67,44 @@ C *********************************************************************
      &  '/validation/analytical/conduction01'
 C      VlDirR='/usr/esru/esp-r/validation/analytical/conduction01'
    10 INO=-3
-      ITEM(1)='1 multi-layered construction'
+      ITEM(1)='1 construction       '
       ITEM(2)='2 initial temperature'
-      ITEM(3)='3 external boundary'
-      ITEM(4)='4 internal boundary'
-      ITEM(5)='  __________________________'
-      ITEM(6)='a advanced options'
-      ITEM(7)='l list model details'
+      ITEM(3)='3 external boundary  '
+      ITEM(4)='4 internal boundary  '
+      ITEM(5)='  ___________________'
+      ITEM(6)='a advanced options   '
+      ITEM(7)='l list details       '
       ITEM(8)='p perform calculation'
-      ITEM(9)='c compare results'
-      ITEM(10)='  __________________________'
-      ITEM(11)='? help                 '
-      ITEM(12)='- exit this menu'
+      ITEM(9)='c compare results    '
+      ITEM(10)='  __________________ '
+      ITEM(11)='? help               '
+      ITEM(12)='- exit this menu     '
       MITEM=12
 
-      CALL USRMSG('  ','  ','-')
-      CALL EMENU('Analytical Conduction',ITEM,MITEM,INO)
+      CALL EMENU('Conduction test',ITEM,MITEM,INO)
 
 C Multi-layered construction.
       IF(INO.EQ.1)THEN
         if(MonNod.ne.1)then
           MonNod=1
-C          call edisp(iuout,'Monitored node set external surface node.')
         endif
         CALL VldCon
 
 C Initial Temperature.
       ELSEIF(INO.EQ.2)THEN
-        WRITE(Msg,'(A)')'Initial temperature:'
-        H(1)='Enter the model initial temperature.'
+        WRITE(Msg,'(A)')'Initial temperature?'
+        H(1)='Enter the initial temperature for construction nodes.'
         CALL EASKR(Tinit,' ',Msg,0.,'-',1.,'-',0.,'temperature',IER,1)
 
 C External boundary.
       ELSEIF(INO.EQ.3)THEN
         if(NLayer.lt.1)then
-          call usrmsg('  ','Define construction first!','w')
+          call edisp(iuout,' ')
+          call edisp(iuout,'Define construction first!')
         else
-          MsgT='External boundary type:'
+          MsgT='External boundary options:'
           MsgC='cancel'
-          CALL EASKABC(MsgT,' ','convective','adiabatic',MsgC,IW,0)
+          CALL EASKABC(' ',MsgT,'convective','adiabatic',MsgC,IW,0)
 
 C Convective boundary.
           IF(IW.EQ.1)THEN
@@ -128,12 +122,13 @@ C Adiabatic boundary.
 C Internal boundary.
       ELSEIF(INO.EQ.4)THEN
         if(NLayer.lt.1)then
-          call usrmsg('  ','Define construction first!','w')
+          call edisp(iuout,' ')
+          call edisp(iuout,'Define construction first!')
         else
-          MsgT='Internal boundary type?'
-          MsgB='known surface temperature'
+          MsgT='Internal boundary options:'
+          MsgB='constant surface temp.'
           MsgC='cancel'
-          CALL EASKABC(MsgT,' ','convective',MsgB,MsgC,IW,0)
+          CALL EASKABC(' ',MsgT,'convective',MsgB,MsgC,IW,0)
 
 C Convective boundary.
           IF(IW.EQ.1)THEN
@@ -146,8 +141,9 @@ C Known surface temperature.
             IndBI=3
             Hin=1.0e32
             WRITE(Promp,'(A)')'Surface temperature?'
-            H(1)='Enter the surface temperature.'
-            CALL EASKR(Tin,' ',Promp,0.,'-',1.,'-',0.,' temp. ',IER,1)
+            H(1)='The internal surface temperature will be held'
+            H(2)='at this value.'
+            CALL EASKR(Tin,' ',Promp,0.,'-',1.,'-',0.,' temp. ',IER,2)
           ENDIF
         endif
 
@@ -162,7 +158,7 @@ C List model details.
      &       'Initial temperature (deg.C):', Tinit
         CALL EDISP(IUOUT,LstDtl)
         IF(IndBO.EQ.0)THEN
-          WRITE(LstDtl,'(A)')'External boundary not yet defined.'
+          WRITE(LstDtl,'(A)')'External boundary not defined.'
         ELSEIF(IndBO.EQ.1)THEN
           WRITE(LstDtl,'(a,a,f7.2,a,f7.2,a)')'Convective external ',
      &    'boundary (To= ',Tout,', hc= ',Hout,' ).'
@@ -191,7 +187,7 @@ C List model details.
         CALL EDISP(IUOUT,LstDtl)
         CALL EDISP(IUOUT,' ')
         IF(IndBI.EQ.0)THEN
-          WRITE(LstDtl,'(A)')'Internal boundary not yet defined.'
+          WRITE(LstDtl,'(A)')'Internal boundary not defined.'
         ELSEIF(IndBI.EQ.1)THEN
           WRITE(LstDtl,'(a,a,f7.2,a,f7.2,a)')'Convective internal ',
      &    'boundary (Ti= ',Tin,', hc= ',Hin,' ).'
@@ -206,13 +202,16 @@ C List model details.
 C Perform calculation.
       ELSEIF(INO.EQ.MITEM-4)THEN
         if(NLayer.lt.1)then
-          call usrmsg('  ','Define construction first.','w')
+          call edisp(iuout,' ')
+          call edisp(iuout,'Define construction first!')
         elseif(IndBO.eq.0)then
-          call usrmsg('  ','Define exterior boundary first.','w')
+          call edisp(iuout,' ')
+          call edisp(iuout,'Define external boundary first!')
         elseif(IndBI.eq.0)then
-          call usrmsg('  ','Define interior boundary first.','w')
+          call edisp(iuout,' ')
+          call edisp(iuout,'Define internal boundary first!')
         else
-          Vldtng=.true.
+          AUTOVR=.true.
 
 C Copy the default validation model.
           call VCpyDr(NPER,ier)
@@ -235,46 +234,46 @@ C Perform analytical solution.
           else
             VldOK=.false.
           endif
-          Vldtng=.false.
+          AUTOVR=.false.
         endif
 
 C Compare results.
       ELSEIF(INO.EQ.MITEM-3)THEN
         if(VldOK)then
-          WRITE(Msg,'(A)')'Define output type:'
-          H(1)='Define output type.'
-          CALL EASKABC(Msg,' ','graphic feedback (NA)',
-     &                'text feedback','save to file',IW,1)
+          H(1)='Select the destination for the comparison.'
+          CALL EASKABC(' ','Output to:',
+     &                'screen','file',' ',IW,1)
           IOutS=IFIL+20
           FileS='Simulation.out'
           CALL EFOPSEQ(IOutS,FileS,1,IER)
           IOutA=IFIL+21
           FileA='Analytical.out'
           CALL EFOPSEQ(IOutA,FileA,1,IER)
-          if(IW.eq.1.or.IW.eq.2)then
+          if(IW.eq.1)then
             IOutC=IUOut
-          elseif(IW.eq.3)then
+          elseif(IW.eq.2.or.IW.eq.3)then
             IOutF=IFIL+19
-            call easks(FileF,' Output file name?',' ',
-     &      72,'Validation.out','name',IER,0)
+            call easks(FileF,' ','File name?',72,'Comparison.out',
+     &         'name',IER,0)
             CALL EFOPSEQ(IOutF,FileF,4,IER)
             IOutC=IOutF
           endif
-          WRITE(LstDtl,'(a)')' Time (hr)  Simulation  Analytical'
+          WRITE(LstDtl,'(a)')'Time (hr)  Simulation  Analytical'
+          call edisp(iuout,' ')
+          call edisp(iuout,'Analytical test results')
           CALL EDISP(IOutC,LstDtl)
-          WRITE(LstDtl,'(a)')'-----------------------------------'
-          CALL EDISP(IOutC,LstDtl)
+          CALL STRIPC(IOutS,STRS,2,ND,0,' ',IER)
           DO 30 ITime=0,NTime
             VTime=ITime*DTime/3600.0
             CALL STRIPC(IOutS,STRS,2,ND,0,' ',IER)
             K=0
-            CALL EGETWR(STRS,K,Dummy,0.,0.,'-','time',IER)
-            CALL EGETWR(STRS,K,TempS,0.,0.,'-','time',IER)
+            CALL EGETW(STRS,K,Dummy,'-','time',IER)
+            CALL EGETWR(STRS,K,TempS,0.,0.,'-','temp',IER)
             CALL STRIPC(IOutA,STRA,2,ND,0,' ',IER)
             K=0
-            CALL EGETWR(STRA,K,Dummy,0.,0.,'-','time',IER)
-            CALL EGETWR(STRA,K,TempA,0.,0.,'-','time',IER)
-            WRITE(LstDtl,'(2X,F8.2,4X,F7.2,2X,F7.2)')VTime,TempS,TempA
+            CALL EGETW(STRA,K,Dummy,'-','time',IER)
+            CALL EGETWR(STRA,K,TempA,0.,0.,'-','temp',IER)
+            WRITE(LstDtl,'(2X,F8.2,5X,F7.2,3X,F7.2)')VTime,TempS,TempA
             CALL EDISP(IOutC,LstDtl)
    30     continue
           if(IW.eq.3)then
@@ -283,30 +282,26 @@ C Compare results.
           CALL ERPFREE(IOutS,ISTAT)
           CALL ERPFREE(IOutA,ISTAT)
         else
-          call usrmsg('  ','Perform calculations first.','w')
+          call edisp(iuout,' ')
+          call edisp(iuout,'Perform calculation first!')
         endif
 
 C Help.
       ELSEIF(INO.EQ.MITEM-1)THEN
-        H(1)='This is the main controller for the analytical'
-        H(2)='validation. Four types of validation can be performed:'
-        H(3)='1 conduction testing of temperature distribution'
-        H(4)='  within multi-layered building construction.'
-        H(5)='2 convection comparision (NOT AVAILABLE).'
-        H(6)='3 radiation testing (NOT AVAILABLE).'
-        H(7)='4 moisture flow validation (NOT AVAILABLE).'
-        CALL PHELPD('vld opening',7,'-',0,0,IER)
+        H(1)='This menu supports the setting of the parameters'
+        H(2)='of the analytical conduction test.'
+        CALL PHELPD('vld opening',2,'-',0,0,IER)
 
-C Return to the main vld menu.
+C Return to the calling menu.
       ELSEIF(INO.EQ.MITEM)THEN
         RETURN
       ENDIF
       GOTO 10
       END
 
-C *********************************************************************
-C VldAdv
-C *********************************************************************
+
+C ********** VldAdv **********
+
       SUBROUTINE VldAdv
 #include "building.h"
 
@@ -325,39 +320,37 @@ C *********************************************************************
       WRITE(ITEM(1),'(A13,F8.1,A2)')'1 Time step: ',DTime,' s'
       WRITE(ITEM(2),'(A,I5)')'2 Number of steps: ',NTime
       if(MonNod.eq.1)then
-        WRITE(ITEM(3),'(A)')'3 Monitored node : Ext. surface'
+        WRITE(ITEM(3),'(A)')'3 Monitored node: Ext. surface'
       elseif(MonNod.eq.-1)then
-        WRITE(ITEM(3),'(A)')'3 Monitored node : Int. surface'
+        WRITE(ITEM(3),'(A)')'3 Monitored node: Int. surface'
       else
-        WRITE(ITEM(3),'(A,I3)')'3 Monitored node : ',MonNod
+        WRITE(ITEM(3),'(A,I3)')'3 Monitored node: ',MonNod
       endif
       ITEM(4)='  _____________________________'
       WRITE(ITEM(5),'(A,F5.2)')'a Implicitness degree: ',Gam
       ITEM(6)='  _____________________________'
       WRITE(ITEM(7),'(A,I6)')'4 Number of eigenvalues: ',NRoot
-      WRITE(ITEM(8),'(A,I6)')'5 Maximum iterrations  : ',NIter
+      WRITE(ITEM(8),'(A,I6)')'5 Maximum iterrations: ',NIter
       ITEM(9)='  _____________________________'
-      ITEM(10)='? help                 '
-      ITEM(11)='- Exit '
+      ITEM(10)='? help '
+      ITEM(11)='- exit menu'
       MITEM=11
 
-      CALL USRMSG('  ','  ','-')
-      CALL EMENU('   Advanced Options',ITEM,MITEM,INO)
+      CALL EMENU('Advanced options',ITEM,MITEM,INO)
 
 C Simulation time step.
       IF(INO.EQ.1)THEN
-        WRITE(Msg,'(A)')'Enter simulation time step:'
-        H(1)='    Enter simulation time step in seconds. The multipile'
-        H(2)=' of the entered value should equal to 1 hour. Otherwise,'
-        H(3)=' the entered value will be approximated.'
-        CALL EASKR(DTime,' ',Msg,1.,'F',2.,'-',3600.,'time step',IER,3)
+        WRITE(Msg,'(A)')'Simulation time step?'
+        H(1)='Enter the simulation time step in seconds up to'
+        H(2)='and including 3600.'
+        CALL EASKR(DTime,' ',Msg,1.,'F',2.,'-',3600.,'time step',IER,2)
         DTime=3600.0/INT(3600.0/DTime+0.5)
 
 C Number of simulation time steps.
       ELSEIF(INO.EQ.2)THEN
-        WRITE(Msg,'(A)')'Enter the number of simulation time steps:'
-        H(1)='Enter the number of simulation time steps.'
-        H(2)='If you cancel the current value will be retained. '
+        WRITE(Msg,'(A)')'Number of simulation time steps:'
+        H(1)='The simulation period will equal the number entered'
+        H(2)='here multiplied by the given time step.'
         NTimeT=NTime
         CALL EASKI(NTimeT,' ',Msg,1,'F',3600,'W',60,'time steps',
      &    IERI,2)
@@ -369,10 +362,11 @@ C Number of simulation time steps.
 
 C Monitoring location.
       ELSEIF(INO.EQ.3)THEN
-        WRITE(Msg,'(A)')'Enter the monitoring location:'
-        H(1)='Enter the monitoring location.'
-        CALL EASKABC(Msg,' ','External surface','Internal surface',
-     &              'Within Construction',IW,1)
+        WRITE(Msg,'(A)')'Monitoring location options:'
+        H(1)='This defines an arbitrary location where the results will'
+        H(2)='be monitored as the simulation proceeds.'
+        CALL EASKABC(' ',Msg,'external surface','internal surface',
+     &              'intra-construction',IW,2)
         IF(IW.EQ.1)THEN
           MonNod=1
         ELSEIF(IW.EQ.2)THEN
@@ -382,12 +376,11 @@ C Monitoring location.
           do 100 il=1,NLayer
             MaxNd=MaxNd+NPLyr(il)
   100     continue
-          WRITE(Msg,'(A)')'Enter the monitoring node number:'
-          H(1)='Enter monitoring node number counting from the'
-          H(2)='outside surface node, which is the first node.'
-          H(3)='If you cancel the previous value will be retained.'
+          WRITE(Msg,'(A)')'Construction node number?'
+          H(1)='This is the construction node number commencing from'
+          H(2)='node 1 located at the outside surface.' 
           MonNodT=MonNod
-          CALL EASKI(MonNodT,Msg,' ',1,'F',MaxNd,'F',2,'node',IERI,3)
+          CALL EASKI(MonNodT,Msg,' ',1,'F',MaxNd,'F',2,'node',IERI,2)
           if(ieri.eq.-3)then
             goto 10
           else
@@ -397,18 +390,18 @@ C Monitoring location.
 
 C Zone side equations implicitness degree.
       ELSEIF(INO.EQ.5)THEN
-        CALL EASKR(Gam,' ',' Zone side equations implicitness degree: ',
-     &         0.,'F',1.,'F',0.5,' implicitness degree',IER,0)
+        H(1)='Enter 0 for fully explicit, 1 for fully implicit'
+        H(2)='and 0.5 for Crank-Nicolson'
+        CALL EASKR(Gam,' ','Equations implicitness degree?',
+     &         0.,'F',1.,'F',0.5,'implicitness degree',IER,2)
 
 C Number of eigenvalues
       ELSEIF(INO.EQ.7)THEN
-        WRITE(Msg,'(A)')'Enter the number of eigenvalues:'
-        H(1)=' Enter the number of eigenvalues.  In general, the'
-        H(2)=' higher the number of eigenvalue the more accurate '
-        H(3)=' analytical results are produced. '
-        H(4)='If you cancel the previous value will be retained.'
+        WRITE(Msg,'(A)')'Number of eigenvalues:'
+        H(1)='In general, the higher the number of eigenvalue'
+        H(2)='the more accurate will be the analytical result.'
         NRootT=NRoot
-        CALL EASKI(NRoot,' ',Msg,1,'F',1000,'W',100,'number',IERI,4)
+        CALL EASKI(NRoot,' ',Msg,1,'F',1000,'W',100,'number',IERI,3)
         if(ieri.eq.-3)then
           goto 10
         else
@@ -417,42 +410,32 @@ C Number of eigenvalues
 
 C Maximum iterrations
       ELSEIF(INO.EQ.8)THEN
-        WRITE(Msg,'(A)')'Enter the maximum number of iterrations:'
-        H(1)='    Enter the maximum number of iterrations for each'
-        H(2)=' eigenvalue determination.  The procedure used for'
-        H(3)=' determining the required eiven values is called sign-'
-        H(4)=' count method.  This method is always converging to the'
-        H(5)=' require value.  Accordingly, when the procedure does'
-        H(6)=' not reach the assign accuracy the last value will be'
-        H(7)=' used and no warning message will be given.  Therefore,'
-        H(8)=' it is recommended to set the iteration number to values'
-        H(9)=' above 500.'
-        H(10)=' NB: the small magnitude eigenvalues, which are the most'
-        H(11)=' effective on the result accuracy will always converge'
-        H(12)=' within the first 100 iterrations.'
-        H(13)='If you cancel the previous value will be retained.'
+        WRITE(Msg,'(A)')'Maximum number of iterrations?'
+        H(1)='The sign-count method is used to determine the required'
+        H(2)='eivenvalues. While this will always converge to the'
+        H(3)='require value, it sometimes requires more iterations'
+        H(4)='than the default value of 500. In this case raise the'
+        H(5)='value. Note that small magnitude eigenvalues, which'
+        H(6)='are the most effective in terms of result accuracy,'
+        H(7)='will converge within the first 100 iterrations.'
+
         NIterT=NIter
         CALL EASKI(NIterT,' ',Msg,100,'W',3000,'W',500,'number',
-     &    IERI,13)
+     &    IERI,7)
         if(ieri.eq.-3)then
           goto 10
         else
           NIter=NIterT
         endif
+      
+C Menu help.
       ELSEIF(INO.EQ.MITEM-1)THEN
+        H(1)='This is the advanced options menu. Because the'
+        H(2)='default values of the displayed parameters are'
+        H(3)='usually acceptable, you should not alter them'
+        H(4)='unless you fully understand the implications.'
 
-C Help.
-        H(1)='This is the advanced options menu.  The default '
-        H(2)='values are usually acceptable.  These options should not'
-        H(3)='be altered unless fully understood.  The available '
-        H(4)='options are:'
-        H(5)='1 used to set the results time step in seconds.'
-        H(6)='2 define the number of results required.'
-        H(7)='3 locate the node to be monitored.'
-        H(8)='4 set the number of eigenvalues required.'
-        H(9)='5 assign the maximum number of iterrations allowable'
-        H(10)='  in dtermining each eigenvalue.'
-        CALL PHELPD('vld opening',10,'-',0,0,IER)
+        CALL PHELPD('vld opening',4,'-',0,0,IER)
 
 C Exit advanced options menu.
       ELSEIF(INO.EQ.MITEM)THEN
@@ -461,9 +444,9 @@ C Exit advanced options menu.
       GOTO 10
       END
 
-C *********************************************************************
-C VldBnd
-C *********************************************************************
+
+C ********** VldBnd **********
+
       SUBROUTINE VldBnd(TempB,HTranB)
       integer iCountWords
 
@@ -477,9 +460,8 @@ C *********************************************************************
       H(1)=' You should enter the following data:'
       H(2)=' 1. ambient temperature.'
       H(3)=' 2. conective heat transfer coefficient (hc).'
-      H(4)=' '
-  10  CALL EASKS(StrVal,'Enter the ambient temperature and hc value:',
-     &  '  ',25,' ','boundary details',IER,4)
+  10  CALL EASKS(StrVal,' ','Ambient temperature and hc value?',
+     &       20,' ','boundary details',IER,3)
       CALL USRMSG('  ','  ','-')
       NInp = iCountWords(StrVal)
       NExpct=2
@@ -494,9 +476,8 @@ C *********************************************************************
       RETURN
       END
 
-C ****************************   VldCon    ****************************
-C VldCon
-C *********************************************************************
+C ********** VldCon **********
+
       SUBROUTINE VldCon
 #include "epara.h"
 #include "building.h"
@@ -608,18 +589,18 @@ C Delete surface boundary.
         ENDIF
         GOTO 30
 
-C Display help messages.
+C Display help.
       ELSEIF(INO.EQ.(NITEMS-1))THEN
-        H(1)=' This menu should be used for defining the boundary'
-        H(2)=' surfaces. To define a box, the grid coordinates'
-        H(3)=' of two diagonally opposite corners of the box are'
-        H(4)=' required. The coordinates of the first corner should'
-        H(5)=' be smaller than those for the second corner.  The'
-        H(6)=' general rule is that each portion of a surface'
-        H(7)=' lying either inside or on the surface of the'
-        H(8)=' defined box will get the specified condition.'
-        H(9)=' New boundary boxes will superpose preceding ones.'
-        H(10)=' '
+        H(1)='This menu is used to define the boundary'
+        H(2)='surfaces. To define a box, the grid coordinates'
+        H(3)='of two diagonally opposite corners of the box are'
+        H(4)='required. The coordinates of the first corner should'
+        H(5)='be smaller than those for the second corner.  The'
+        H(6)='general rule is that each portion of a surface'
+        H(7)='lying either inside or on the surface of the'
+        H(8)='defined box will inherit the specified condition.'
+        H(9)='New boundary boxes will superpose preceding ones.'
+
         CALL PHELPD('local components ',10,'-',0,0,IER)
 
 C Return to multi-gridding menu.
@@ -629,9 +610,9 @@ C Return to multi-gridding menu.
       GOTO 10
       END 
 
-C ****************************   VConEd    ****************************
-C VConEd 
-C *********************************************************************
+
+C ********** VConEd **********
+
       SUBROUTINE VConEd(I,ier)
 #include "building.h"
       integer iCountWords
@@ -644,44 +625,40 @@ C *********************************************************************
 
       WRITE(StrVal,602)Cond(I),Dens(I),Cp(I),DX(I),NPLyr(I)
  602  FORMAT(2X,F8.4,2X,F8.1,2X,F8.1,2X,F8.4,2X,I4)
-      H(1)=' You should enter five values as follows:'
-      H(2)=' 1. layer conductivity [W/(m deg.C)].'
-      H(3)=' 2. layer density [kg/m**3].'
-      H(4)=' 3. layer specific heat [J/(kg deg.C)].'
-      H(5)=' 4. layer thickness [meter]'
-      H(6)=' 5. number of nodes numerically representing the layer.'
-      H(7)='    Note that each layer contains two half nodes (i.e., '
-      H(8)='    control volumes) one at each boundary.  Furthermore,'
-      H(9)='    the number of nodes for each layer should be at least'
-      H(10)='    two.  That is one full node and two half nodes.'
-      H(11)=' '
-  10  CALL EASKS(StrVal,'Enter the required values:','  ',72,'  ',
-     &  'layer details',IER,11)
+      H(1)=' Enter five values as follows.'
+      H(2)=' 1. layer conductivity [W/(m.K)].'
+      H(3)=' 2. layer density [kg/m^3].'
+      H(4)=' 3. layer specific heat [J/(kg.k)].'
+      H(5)=' 4. layer thickness [m]'
+      H(6)=' 5. number of nodes representing the layer(s) (>2).'
+  10  CALL EASKS(StrVal,' ',
+     &       'k, rho, Cp, Dx, Nnodes?',72,' ','layer details',IER,6)
       if(ier.ne.0)return
       CALL USRMSG('  ','  ','-')
       NInp = iCountWords(StrVal)
       NExpct=5
       IF(NInp.NE.NExpct)THEN
-        WRITE(Msg,'(A,I1,A)')'You should enter ',NExpct,' values.'
+        WRITE(Msg,'(A,I1,A)')'Enter ',NExpct,' values.'
         CALL USRMSG('  ',Msg,'W')
         GOTO 10
       ENDIF
       K=0
-      CALL EGETWR(StrVal,K,Cond(I),0.,100.,'W',' cond ',IER)
+      CALL EGETWR(StrVal,K,Cond(I),0.,100.,'W','cond ',IER)
       if(ier.ne.0)return
-      CALL EGETWR(StrVal,K,Dens(I),0.,10000.,'W',' density ',IER)
+      CALL EGETWR(StrVal,K,Dens(I),0.,10000.,'W','density ',IER)
       if(ier.ne.0)return
-      CALL EGETWR(StrVal,K,Cp(I),0.,10000.,'W',' Cp ',IER)
+      CALL EGETWR(StrVal,K,Cp(I),0.,10000.,'W','Cp ',IER)
       if(ier.ne.0)return
-      CALL EGETWR(StrVal,K,DX(I),0.,10.,'W',' thickness ',IER)
+      CALL EGETWR(StrVal,K,DX(I),0.,10.,'W','thickness ',IER)
       if(ier.ne.0)return
       CALL EGETWI(StrVal,K,NPLyr(I),2,MN-1,'F','nodes',IER)
       RETURN
       END
 
-C ******************************************************************
-C VEigen Determines the eigen value.
-C ******************************************************************
+
+C ********** VEigen **********
+C Determines the problem eigenvalues.
+
       SUBROUTINE VEigen(K,Beta)
 
       COMMON/Vld04/DTime,NTime,MonNod,NRoot,NIter
@@ -719,9 +696,10 @@ C      WRITE(*,*)"Eigenvalue was not determined."
       RETURN
       END
 
-C ******************************************************************
-C NPEign estimates the number of positive eigen value
-C ******************************************************************
+
+C ********** NPEign **********
+C Determines the number of positive eigenvalues.
+
       FUNCTION NPEign(Beta)
 #include "building.h"
 #include "validation.h"
@@ -767,9 +745,10 @@ C Calculate the sign count of K.
       RETURN
       END
 
-C ******************************************************************
-C VldP estimates the VldP value
-C ******************************************************************
+
+C ********** VldP **********
+C Determines the VldP value.
+
       FUNCTION VldP(L,Beta,XX)
 #include "building.h"
 #include "validation.h"
@@ -784,9 +763,10 @@ C ******************************************************************
       RETURN
       END
 
-C ******************************************************************
-C VldQ estimates the VldQ value
-C ******************************************************************
+
+C ********** VldQ **********
+C Determines the VldQ value.
+
       FUNCTION VldQ(L,Beta,xx)
 #include "building.h"
 #include "validation.h"
@@ -801,9 +781,9 @@ C ******************************************************************
       RETURN
       END
 
-C ******************************************************************
-C Omg estimates the Omg value
-C ******************************************************************
+C ********** Omg **********
+C Determines the Omg value.
+
       FUNCTION Omg(L,Beta)
 #include "building.h"
 #include "validation.h"
@@ -816,33 +796,9 @@ C ******************************************************************
       RETURN
       END
 
-C *********************************************************************
-C AnlCnv
-C *********************************************************************
-      SUBROUTINE AnlCnv
 
-      RETURN
-      END
+C ********** VCpyDr **********
 
-C *********************************************************************
-C AnlRad
-C *********************************************************************
-      SUBROUTINE AnlRad
-
-      RETURN
-      END
-
-C *********************************************************************
-C AnlMfl
-C *********************************************************************
-      SUBROUTINE AnlMfl
-
-      RETURN
-      END
-
-C *********************************************************************
-C VCpyDr
-C *********************************************************************
       SUBROUTINE VCpyDr(NPER,ier)
 #include "building.h"
 #include "model.h"
@@ -850,7 +806,7 @@ C *********************************************************************
 C geometry.h provides commons G0 and G2.
 C #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/pophelp/h(60)
 
@@ -867,29 +823,23 @@ C #include "geometry.h"
 
       logical xst
 
-C Check if the root validation directory is available.
+C Check if the root validation folder is available.
       IER=0
       INQUIRE (FILE=VlDirR,EXIST=XST)
       if(.NOT.XST)then
-        call usrmsg('  ','The root validation folder is unavailable',
-     &    'W')
+        call usrmsg(' ','Validation folder unavailable!','W')
         ier=-1
         return
       endif
 
 C Copy the default validation model.
-      VlDirL='Validation'
-      H(1)=' Enter the name of the directory within which the'
-      H(2)=' Validation model will be defined, and results will be'
-      H(3)=' saved. This directory will be created in your home'
-      H(4)=' directory.'
-      CALL EASKS(VlDirL,'Local validation directory name?',' ',72,' ',
-     &                    'directory name',IER,4)
+      VlDirL='Analytical'
+      H(1)='Folder to contain the test model and results (this'
+      H(2)='will be created in your home directory).'
+      CALL EASKS(VlDirL,' ','Model folder name?',72,' ',
+     &                    'folder name',IER,2)
       WRITE(doit,'(2a,1x,3a)') 'rcp -r ',VlDirR(1:lnblnk(VlDirR)),
      &  upath(1:lnblnk(upath)),'/',VlDirL(1:lnblnk(VlDirL))
-      CALL USRMSG(
-     &  'The validation directory is created in your home folder.',
-     &  'The calculations may take some time.  Please wait ...','-')
       call runit(doit,'-')
       WRITE(LCMDFL,'(5a)')upath(:lnblnk(upath)),'/',
      &        VlDirL(1:lnblnk(VlDirL)),'/cfg/','/conduction.cfg'
@@ -899,7 +849,6 @@ C Copy the default validation model.
       IUnit=IFIL+1
       IFCFG=IFIL+5
       IAPROB=IFIL+6
-      call edisp(iuout,'  ')  ! echo blank line in case of warning
       MODE='ALL '
       CALL ERSYS(LCFGF,IFCFG,IAPROB,MODE,ITRC,IER)
       NZONES=NCOMP
@@ -914,19 +863,23 @@ C Copy the default validation model.
       RETURN
       END
 
-C *********************************************************************
-C VMP111  modifies the variables of the validation model.
-C *********************************************************************
+
+C ********** VMP111 **********
+C Modifies the parameters of the test.
+
       SUBROUTINE VMP111
 #include "building.h"
 #include "geometry.h"
 #include "control.h"
+#include "schedule.h"
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
-      COMMON/HCFP/IHCFP,ST(MP),EN(MP),HCI(MP,MS),HCE(MP,MS),
-     &            ICTL(MP),IHCI(MP,MS),IHCE(MP,MS),CVdata(MP,MS,8)
+      COMMON/HCFP/IHCDT,IHCFP(MDTY),ST(MDTY,MBP),EN(MDTY,MBP),
+     &            HCI(MDTY,MBP,MS),HCE(MDTY,MBP,MS),ICTL(MDTY,MBP),
+     &            IHCI(MDTY,MBP,MS),IHCE(MDTY,MBP,MS),
+     &            CVdata(MDTY,MBP,MS,8)
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
       COMMON/T2/CON(MS,ME),DEN(MS,ME),SHT(MS,ME),THK(MS,ME)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
@@ -942,14 +895,14 @@ C *********************************************************************
         NGAPS(IComp,isur)=0
         ne(isur)=NLayer
         if(IndBO.eq.1)then
-          HCE(1,isur)=Hout
+          HCE(1,1,isur)=Hout
         elseif(IndBO.eq.2)then
-          HCE(1,isur)=15.0
+          HCE(1,1,isur)=15.0
         endif
         if(IndBI.eq.1)then
-          HCI(1,isur)=Hin
+          HCI(1,1,isur)=Hin
         elseif(IndBI.eq.3)then
-          HCI(1,isur)=10.0
+          HCI(1,1,isur)=10.0
         endif
         NAIRG(isur)=0
         NNDC(IComp,isur)=1
@@ -990,16 +943,15 @@ C *********************************************************************
       return
       end
 
-C *********************************************************************
-C VSaveP  saves the variables of the validation model into associated
-C         files.
-C *********************************************************************
+
+C ********** VSaveP **********
+C Saves the parameters of the test to the model files.
+
       SUBROUTINE VSaveP(NPER,ier)
 #include "building.h"
 #include "model.h"
-C #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/GR1D05/LGRD1D
       CHARACTER LGRD1D*72
@@ -1046,9 +998,10 @@ C Save additional files if existing.
       return
       end
 
-C *********************************************************************
-C VIn111  creates the script file required for bps simulation.
-C *********************************************************************
+
+C ********** VIn111 **********
+C Creates the script for bps simulation.
+
       SUBROUTINE VIn111(ier)
 
       COMMON/FILEP/IFIL
@@ -1061,25 +1014,22 @@ C *********************************************************************
       CHARACTER*72 FILE,path,dinstpath*60
 
       IUF=IFil+2
-      FILE='RunFile.exe'
+      FILE='RunBps.exe'
       CALL EFOPSEQ(IUF,FILE,3,IER)
       write(IUF,'(a)')'bps -mode text << EOF'
       write(IUF,'(a)')'a'
-      write(IUF,'(a,a)')path(1:lnblnk(path)),'conduction.cfg'
-      write(IUF,'(a)')'n'
-      write(IUF,'(a)')'0'
-      write(IUF,'(2a)') dinstpath(1:lnblnk(dinstpath)),'/climate/clm67'
-C      write(IUF,'(a)')'/usr/esru/esp-r/climate/clm67'
+      write(IUF,'(2a)')path(1:lnblnk(path)),'conduction.cfg'
+      write(IUF,'(a)')'b'
+      write(IUF,'(2a)')dinstpath(1:lnblnk(dinstpath)),'/climate/clm67'
       write(IUF,'(a)')'c'
-      write(IUF,'(a)')'a'
-      write(IUF,'(a)')'conduction.res'
+      write(IUF,'(2a)')path(1:lnblnk(path)),'conduction.res'
       write(IUF,'(a)')'1 1'
       idy=int(DTime*NTime/3600.0/24.0)+2
       call edayr(idy,id,im)
       write(IUF,'(i2,1x,i2)')id,im
+      write(IUF,'(a)')'3'
       write(IUF,'(a)')'1'
       write(IUF,'(a)')'g'
-      write(IUF,'(a)')'101'
       write(IUF,'(a)')'f'
       write(IUF,'(F7.2)')Tinit
       write(IUF,'(a)')'a'
@@ -1092,13 +1042,11 @@ C      write(IUF,'(a)')'/usr/esru/esp-r/climate/clm67'
       write(IUF,'(a)')'*'
       write(IUF,'(a)')'s'
       write(IUF,'(a)')'n'
-      write(IUF,'(a)')'../ctl/conduction.ctl'
-      write(IUF,'(a)')'validation'
+      write(IUF,'(a)')'conduction'
       write(IUF,'(a)')'y'
       write(IUF,'(a)')'y'
       write(IUF,'(a)')'-'
       write(IUF,'(a)')'-'
-      write(IUF,'(a)')'y'
       write(IUF,'(a)')'EOF'
       CALL ERPFREE(IUF,ISTAT)
       return
@@ -1120,39 +1068,41 @@ C *********************************************************************
       CALL EFOPSEQ(IUF,FILE,3,IER)
       write(IUF,'(a)')'res -mode text << EOF'
       write(IUF,'(a,a)')path(1:lnblnk(path)),'conduction.res'
-      write(IUF,'(a)')'a'
       write(IUF,'(a)')'c'
-      write(IUF,'(a)')'*'
-      write(IUF,'(a)')'a'
-      write(IUF,'(a)')'>'
-      write(IUF,'(a)')'a'
-      write(IUF,'(a)')'Simulation.out'
-      write(IUF,'(a)')'Validation'
       write(IUF,'(a)')'g'
-      write(IUF,'(a)')'f'
-      if(MonNod.eq.1)then
-        write(IUF,'(a)')'b'
-        write(IUF,'(a)')'a'
-      elseif(MonNod.eq.-1)then
-        write(IUF,'(a)')'a'
-        write(IUF,'(a)')'a'
-      else
-        write(IUF,'(a)')'c'
-        write(IUF,'(a)')'a'
-        write(IUF,'(I2)')MonNod
-      endif
-      write(IUF,'(a)')'!'
+      write(IUF,'(a)')'b'
+      write(IUF,'(a)')'l'
+      write(IUF,'(a)')'-'
+      write(IUF,'(a)')'a'
+      write(IUF,'(a)')'1'
       write(IUF,'(a)')'>'
+      write(IUF,'(a)')'b'
+      write(IUF,'(a,a)')path(1:lnblnk(path)),'Simulation.out'
+      write(IUF,'(a)')'Outside nodes temperature'
+      write(IUF,'(a)')'!'
       write(IUF,'(a)')'-'
       write(IUF,'(a)')'-'
-      write(IUF,'(a)')'y'
+      write(IUF,'(a)')'-'
       write(IUF,'(a)')'EOF'
       CALL ERPFREE(IUF,ISTAT)
+
+C      if(MonNod.eq.1)then
+C        write(IUF,'(a)')'b'
+C        write(IUF,'(a)')'a'
+C      elseif(MonNod.eq.-1)then
+C        write(IUF,'(a)')'a'
+C        write(IUF,'(a)')'a'
+C      else
+C       write(IUF,'(a)')'c'
+C        write(IUF,'(a)')'a'
+C        write(IUF,'(I2)')MonNod
+C      endif
+
       return
       end
 
 C *********************************************************************
-C VPSimu  execute bps simulation based on script file RunFile.exe.
+C VPSimu  execute bps simulation based on script file RunBps.exe.
 C *********************************************************************
       SUBROUTINE VPSimu
 
@@ -1161,7 +1111,7 @@ C *********************************************************************
       character doit*124,path*72
 
       write(doit,'(3a)')'chmod 755 ',path(1:lnblnk(path)),
-     &                     'RunFile.exe'
+     &                     'RunBps.exe'
       call runit(doit,'-')
       write(doit,'(3a)')'rm -f ',path(1:lnblnk(path)),
      &                     'conduction.res'
@@ -1169,7 +1119,7 @@ C *********************************************************************
       write(doit,'(3a)')'rm -f fort1964.tmp'
       call runit(doit,'-')
       write(doit,'(2a)')path(1:lnblnk(path)),
-     &                 'RunFile.exe > fort1964.tmp'
+     &                 'RunBps.exe > fort1964.tmp'
       call runit(doit,'-')
       write(doit,'(3a)')'rm -f fort1964.tmp'
       call runit(doit,'-')

@@ -38,7 +38,7 @@ C If ACT is "V" will go to variable reporting menu.
 
       character*1 ACT
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       logical XST
 
@@ -73,7 +73,7 @@ C asking which domain.
 #include "building.h"
 #include "cfd.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       
       integer ncomp,ncon
@@ -388,7 +388,7 @@ C MCFDM - define the parameters for the visualization of results.
       integer lnblnk  ! function definition
       integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
@@ -415,7 +415,7 @@ C MCFDM - define the parameters for the visualization of results.
       character LBITrt*12,t12*12,t24*24
       integer IWM,IWE  ! for radio buttons
       integer NITMS,INO ! max items and current menu item
-      logical ok,dok
+      logical ok
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -541,8 +541,7 @@ C Create paraview boundary condition files, if needed.
 C If drawing on screen allow a pause between each timestep. If user
 C says no then exit the loop.
               if(imgtyp.eq.0.or.imgtyp.eq.3)then
-                dok=.true.
-                call ASKOK('View next timestep?',' ',ok,dok,nbhelp)
+                call EASKOK(' ','View next timestep?',ok,nbhelp)
                 iF(.NOT.ok) goto 51
               endif
             endif
@@ -1028,7 +1027,7 @@ C IOPT=3 user selects period
 
       SUBROUTINE CFDPER(IOPT)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/cfdsmper/ICDYS,ICDYF,CFTS,CFTF
       COMMON/cfdotper/ICDYOS,ICDYOF,CFTOS,CFTOF
@@ -1132,7 +1131,7 @@ C      use first timestep of output period)
 #include "building.h"
 #include "cfd.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/cfdsmper/ICDYS,ICDYF,CFTS,CFTF
@@ -1330,7 +1329,7 @@ C           a file.
 #include "building.h"
 #include "cfd.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       common/rpath/path
@@ -1563,11 +1562,10 @@ C   IMFLIST(LISTID,3) = Z cell
       COMMON/ICFNOD/ICFD,ICP
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
       COMMON/MFPK2/NMFLST,IMFLIST(MFCNLST,MFCNEL+1)
-      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
-      COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
-      integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
-      COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
-     &                 LNGLMFLABEL(MFRS)
+      character SMFLABEL*32,GLMFLABEL*32
+      COMMON/MFLABEL/SMFLABEL(MFRS),GLMFLABEL(MFRS)
+      integer  LNSMFLABEL,LNGLMFLABEL ! length of label strings
+      COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGLMFLABEL(MFRS)
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
       common/cmftpar/WVEL,ACTL,CLO,iocut,iocuset
@@ -1575,7 +1573,7 @@ C   IMFLIST(LISTID,3) = Z cell
       common/exporttg/xfile,tg,delim
       character xfile*144,tg*1,delim*1
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRAF1/YMAX(6),YMIN(6),YAXSET(6),ADDLIN,horaxisdiv
       integer YAXSET,ADDLIN,horaxisdiv
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
@@ -1588,8 +1586,8 @@ C   IMFLIST(LISTID,3) = Z cell
 
       CHARACTER ITEM(35)*23, MTITLE*22, values*20
 
-      logical XST,SELCEL,SELCTM,dok,OKL
-      character SUFFIX*6
+      logical XST,SELCEL,SELCTM,OKL
+      character SUFFIX*10
       CHARACTER outs*124,hold*24
       character ll1*12,ll2*12,ll3*12,t64*64,t24*24
       character zn*12
@@ -1814,7 +1812,6 @@ C each have a different line colour.
         IMFGETNO(NMFGET,6)=1
         IMFGETNO(NMFGET,7)=1
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Ambient db (C)'; LNGMFLABEL(NMFGET)=14
         GLMFLABEL(NMFGET)='Ambient dry bulb Temp'
         LNGLMFLABEL(NMFGET)=21
         if(IROC.eq.0)then
@@ -1842,7 +1839,6 @@ C Wind speed: IMFGET = 10
         IMFGETNO(NMFGET,6)=6
         IMFGETNO(NMFGET,7)=6
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Wind speed'; LNGMFLABEL(NMFGET)=10
         GLMFLABEL(NMFGET)='Wind speed'; LNGLMFLABEL(NMFGET)=10
         if(IROC.eq.0)then
           SMFLABEL(NMFGET)='Wind speed (m/sec)'
@@ -1869,7 +1865,6 @@ C Wind direction: IMFGET = 11
         IMFGETNO(NMFGET,6)=4
         IMFGETNO(NMFGET,7)=4
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Wind direction'; LNGMFLABEL(NMFGET)=14
         GLMFLABEL(NMFGET)='Wind direction'; LNGLMFLABEL(NMFGET)=14
         if(IROC.eq.0)then
           SMFLABEL(NMFGET)='Wind direction (deg)'
@@ -1896,7 +1891,6 @@ C Ambient RH: IMFGET = 12
         IMFGETNO(NMFGET,6)=7
         IMFGETNO(NMFGET,7)=4
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Ambient RH'; LNGMFLABEL(NMFGET)=10
         GLMFLABEL(NMFGET)='Ambient relative humidity'
         LNGLMFLABEL(NMFGET)=25
         if(IROC.eq.0)then
@@ -2387,9 +2381,8 @@ C Find out point where text should be drawn.
           t24=grlbl(igrl)
           iicol=0; ibsize=0
           call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
-          dok=.true.
-          CALL ASKOK('Include another user supplied label?',' ',
-     &      OKL,dok,nbhelp)
+          CALL EASKOK(' ','Include another user supplied label?',
+     &      OKL,nbhelp)
           if(OKL) goto 291
 
         elseif(MENUTYPE.eq.4) then
@@ -2421,7 +2414,6 @@ C Debug.
 C        do 999 I=1,NMFGET
 C          write(6,*) (IMFGETNO(I,K),K=1,8)
 C          write(6,*) SMFLABEL(I)
-C          write(6,*) GMFLABEL(I)
 C          write(6,*) GLMFLABEL(I)
 C          write(6,*) '  '
 C 999    continue
@@ -2569,32 +2561,31 @@ C Decrement ?layers, because FDCFDPT includes wall grid points.
 
         endif
 
-C If in graphic mode, highlight the cell and ask user to confirm this is
-C the cell they want.
-        if (MMOD.eq.8) then
+C This code deactivated pending further testing.
 
-C If MRT sensor or COG, refresh display to avoid showing previous cell
-C highlights.
-          if (iopt.eq.2.or.iopt.eq.3) then
-            call INIT_CFDTRANS(IER)
-            call VGRID3D(ICP,1)
-          endif
+C C If in graphic mode, highlight the cell and ask user to confirm this is
+C C the cell they want.
+C         if (MMOD.eq.8) then
 
-          call V1CEL3D(ilayer,jlayer,klayer)
-          dok=.true.
-          CALL ASKOK('Is this the cell you want?',' ',OKL,dok,nbhelp)
-          if (.not.OKL) goto 346
-        endif
+C C If MRT sensor or COG, refresh display to avoid showing previous cell
+C C highlights.
+C           if (iopt.eq.2.or.iopt.eq.3) then
+C             call INIT_CFDTRANS(IER)
+C             call VGRID3D(ICP,1)
+C           endif
 
-C Assemble label.
-        if (.not.SELCTM) then
-          write(GMFLABEL(NMFGET),'(I2.2,a,I2.2,a,I2.2,a)')
-     &      IMFLIST(NMFLST,1),'-',IMFLIST(NMFLST,2),'-',
-     &      IMFLIST(NMFLST,3),SUFFIX
-          LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
-          GLMFLABEL=GMFLABEL
-          LNGLMFLABEL(NMFGET)=LNGMFLABEL(NMFGET)
-        endif
+C           call V1CEL3D(ilayer,jlayer,klayer)
+C           CALL EASKOK('Is this the cell you want?',' ',OKL,nbhelp)
+C           if (.not.OKL) goto 346
+C         endif
+
+C C Assemble label.
+C         if (.not.SELCTM) then
+C           write(GLMFLABEL(NMFGET),'(I2.2,a,I2.2,a,I2.2,a)')
+C      &      IMFLIST(NMFLST,1),'-',IMFLIST(NMFLST,2),'-',
+C      &      IMFLIST(NMFLST,3),SUFFIX
+C           LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
+C         endif
 
       endif
 
@@ -2604,18 +2595,14 @@ C Select contaminant if needed.
         IMFGETNO(NMFGET,2)=ICTM
 
         if (SELCEL) then
-          write(GMFLABEL(NMFGET),'(I2.2,a,I2.2,a,I2.2,1x,a)')
+          write(GLMFLABEL(NMFGET),'(I2.2,a,I2.2,a,I2.2,1x,a)')
      &      IMFLIST(NMFLST,1),'-',IMFLIST(NMFLST,2),'-',
      &      IMFLIST(NMFLST,3),POLNAM(ICTM,ICFD)(1:11)
-          LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
-          GLMFLABEL=GMFLABEL
-          LNGLMFLABEL(NMFGET)=LNGMFLABEL(NMFGET)
+          LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
         else
-          write(GMFLABEL(NMFGET),'(I2.2,a,I2.2,a,I2.2,1x,a)')
+          write(GLMFLABEL(NMFGET),'(I2.2,a,I2.2,a,I2.2,1x,a)')
      &      POLNAM(ICTM,ICFD)(1:12)
-          LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
-          GLMFLABEL=GMFLABEL
-          LNGLMFLABEL(NMFGET)=LNGMFLABEL(NMFGET)          
+          LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))        
         endif
 
       endif
@@ -2671,7 +2658,7 @@ C   IMFLIST(LISTID,3) = Z cell
 #include "cfd.h"
 #include "net_flow.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/cfdsmper/ICDYS,ICDYF,CFTS,CFTF
       COMMON/cfdotper/ICDYOS,ICDYOF,CFTOS,CFTOF
@@ -2876,7 +2863,6 @@ C Ambient RH.
       return
 
       END
-
 
 
 

@@ -47,7 +47,7 @@ C seasons.h provides typper and typsea
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       
       integer ncomp,ncon
@@ -126,7 +126,7 @@ C Setup string buffer with distribution weather folder name.
         INQUIRE (FILE=cdblfil,EXIST=XST)
         if(XST)then
           IUF=IFIL+2
-          call scancdblist(IUF,llclmdb,ok,ier)
+          call scancdblist(IUF,llclmdb,'p',ok,ier)
           if(ok)then
             continue
           else
@@ -660,7 +660,7 @@ C assessment.
             MODSIT=.true.
   195     continue
         endif
-        CALL EASKAB('Options: ',' ','add another day','continue',
+        CALL EASKAB(' ','Options:','add another day','cancel',
      &    IW,nbhelp)
         if(IW.eq.1)then
           nipvdispjd=nipvdispjd+1
@@ -790,9 +790,9 @@ C Domestic hot water day ratio.
       elseif(INO.EQ.m+14)then
         helptopic='ipv_season_scan'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Options: ',' ',
+        CALL EASKABC(' ','Options:',
      &    'scan climatelist for seasons & periods',
-     &    'scan for day/DD ratios','continue',IW,nbhelp)
+     &    'scan for day/DD ratios','cancel',IW,nbhelp)
         if(IW.eq.1.or.IW.eq.2)then
 
 C Expand climate file name in case of standard location.
@@ -809,7 +809,7 @@ C Rescan climate to acquire ratios from the climatelist file.
           INQUIRE (FILE=cdblfil,EXIST=XST)
           if(XST)then
             IUF=IFIL+2
-            call scancdblist(IUF,llclmdb,ok,ier)
+            call scancdblist(IUF,llclmdb,'p',ok,ier)
           endif
         endif
         if(IW.eq.1)then
@@ -1683,7 +1683,7 @@ C << add logic to allow for two extreme seasons
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/C6/INDCFG
       COMMON/PREC7/ITCNST
 
@@ -1911,7 +1911,7 @@ C << periods for assessment e.g. a fortnight?
 C seasons.h provides typper and typsea
 #include "ipvdata.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
 
@@ -2059,7 +2059,7 @@ C days and the best first winter assessment week degree days.
      &    hddratio(1),' HDD & ',cddratio(1),' CDD.'
         call easkab(
      &    'The ratio of the winter assessment to all winter seasons',
-     &    outs,'accept','continue',
+     &    outs,'accept','cancel',
      &    iok,nbhelp)
         if(iok.eq.1)then
           dmheat(1)=hddratio(1)
@@ -2099,7 +2099,7 @@ C Do the transitional seasons.
      &    hddratio(2),' HDD & ',cddratio(2),' CDD.'
         call easkab(
      &    'The ratio of the trans assessment to all trans seasons',
-     &    outs,'accept','continue',
+     &    outs,'accept','cancel',
      &    iok,nbhelp)
         if(iok.eq.1)then
           dmheat(2)=hddratio(2)

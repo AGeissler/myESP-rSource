@@ -18,15 +18,15 @@ C License along with ESP-r. If not, write to the Free
 C Software Foundation, Inc., 59 Temple Place, Suite 330,
 C Boston, MA 02111-1307 USA.
 
-C Project Manager: file cadio.F comprising
+C This file comprises:
 C exportcad: controls model export facilities.
-C cadin:     Drives the conversion of CAD input into data model.
-C rexmpl:    Scan the exemplars file and offer user list/info on exemplars.
+C cadin:     drives the conversion of CAD input into data model.
+C rexmpl:    scan the exemplars file and offer user list/info on exemplars.
 C wtarentry: write entry in tar names file accountin for ../
-C archiveit:  Archive the current model.
 
 C ********** exportcad
-C exportcad: controls model export facilities.
+C Controls model export facilities.
+
       subroutine exportcad(itrc,IER)
 
 #include "building.h"
@@ -35,25 +35,29 @@ C exportcad: controls model export facilities.
       
       integer lnblnk  ! function definition
 
-      COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/OUTIN/IUOUT,IUIN
+      common/SPAD/MMOD,LIMIT,LIMTTY
+      common/OUTIN/IUOUT,IUIN,IEOUT
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
+      common/FILEP/IFIL
+      integer ncomp,ncon
+      common/C1/NCOMP,NCON
 
       common/rpath/path
       common/appw/iappw,iappx,iappy
       integer iappw,iappx,iappy
-      common/user/browse
 
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
-      COMMON/exporttg/xfile,tg,delim
-      COMMON/exporttgi/ixopen,ixloc,ixunit
+      common/exporttg/xfile,tg,delim
+      common/exporttgi/ixopen,ixloc,ixunit
+      COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
-      logical OK,DOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,concat,CFCDBOK
-      logical unixok,browse
+      logical OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,concat,CFCDBOK
+      logical unixok,found
       integer iappwpc ! application height as % of nominal size
 
-      DIMENSION ITEMS1(11)
+      DIMENSION ITEMS1(13)
+      DIMENSION IVALS(MCOM)
 
       character LFIL*72,path*72,ltmp*72
       character dradcf*72   ! default name
@@ -70,7 +74,7 @@ C exportcad: controls model export facilities.
       integer NITMS,INO1 ! max items and current menu item
       integer lnradcf,lnltmp  ! lengths of file names
 
-C Passed parameters for cfgtogg
+C Passed parameters for cfgtogg.
 #ifdef OSI
       integer icfg_type  ! model cfg type
       integer icfgz      ! if non-zero then there are zones
@@ -92,7 +96,7 @@ C Passed parameters for cfgtogg
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -115,7 +119,7 @@ C Set folder separator (fs) to \ or / as required.
       ioout=2  ! set initial value
       lfil='  '
 
-C Check if xfig exists
+C Check if xfig exists.
       if(unixok)then
         found_xfig=.false.; hold32='xfig'
         call isinstalled(hold32,found_xfig)
@@ -141,20 +145,23 @@ C Check if xfig exists
       ITEMS1(7)  ='g to VRML #2.0             '
       ITEMS1(8)  ='h to ESP-r meta file       '
       ITEMS1(9)  ='i to VEF file              '
-      ITEMS1(10) ='? help                     '
-      ITEMS1(11) ='- exit this menu           '
+      ITEMS1(10) ='! select zones to include  '
+      ITEMS1(11) ='* adjust viewing parameters'
+      ITEMS1(12) ='? help                     '
+      ITEMS1(13) ='- exit this menu           '
 
 C Help text for this menu.
       helptopic='cad_export_choices'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      NITMS=11
+      NITMS=13
       CALL EMENU('Export Model',ITEMS1,NITMS,INO1)
 
 C Prepare filter command lines with path.
 
       if(INO1.EQ.1.or.INO1.EQ.2.or.INO1.EQ.3.or.INO1.EQ.5.or.
      &   INO1.eq.6.or.INO1.eq.7.or.INO1.eq.8.or.INO1.eq.9.or.
-     &   INO1.eq.10.or.INO1.eq.11)then
+     &   INO1.eq.10.or.INO1.eq.11.or.INO1.eq.12.or.
+     &   INO1.eq.13)then
         continue
       else
 
@@ -185,9 +192,6 @@ C        write(6,*) ' pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
 
 C Construct a 'VIEWER' format file.  First compose file name taking
 C into account pwdinitial and pwdtocfg.
-C Debug  write(6,*) 'the pwd command was ',
-C     &    pwdinitial(1:lnblnk(pwdinitial))
-C        write(6,*) ' pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
         if(pwdtocfg(1:1).eq.'!')then
           write(L144,'(4a)')path(1:lnblnk(path)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vew'
@@ -196,7 +200,6 @@ C        write(6,*) ' pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
      &      pwdtocfg(1:lnblnk(pwdtocfg)),fs,
      &      cfgroot(1:lnblnk(cfgroot)),'.vew'
         endif
-C Debug write(6,*) 'b l144 is ',L144(1:lnblnk(L144))
 
         call tstamp('>','PRJ: export to viewer')
 
@@ -402,9 +405,8 @@ C rcf name OK and differs from prior name, update cfg file and start e2r.
           lradcf = ltmp
         endif
 
-C RADIANCE creation. Starts e2r with current configuration file.
-        dok=.true.
-        CALL ASKOK(' ','Run RADIANCE conversion tool?',OK,dok,nbhelp)
+C Start e2r with current configuration file.
+        CALL EASKOK(' ','Run Radiance controller app?',OK,nbhelp)
         if(OK)then
 
 C Save cfg file including ../rad folder and lradcf file name and start e2r.
@@ -446,59 +448,66 @@ C Set browsing to no.
       ELSEIF(INO1.EQ.4)THEN
 
 C Toggle output redirection to xfig.
-        dok=.true.
-        call askok(' ','Is wireframe composition ok?',oke,dok,nbhelp)
+        call easkok(' ','Accept wireframe composition?',oke,nbhelp)
         if(.NOT.oke)then
           call usrmsg('Adjust wireframe image and',
      &      'then re-select this option.','W')
           goto 33
         endif
 
-        if (MMOD.eq.8) then
+        if (MMOD.ne.8) then
+          call edisp(iuout,' ')
+          call edisp(iuout,'Drawing to virtual screen...')
+        endif
 
-C User is in graphic mode so open the export file and then request that
-C the wireframe is redrawn (in the C code the low level calls will be
-C writing out the vector information to the export file.
-          write(xfile,'(2a)') cfgroot(1:lnblnk(cfgroot)),'_wire'
-          call ctlexp(xfile,ixopen,ixloc,ixunit,'G','wire frame',IER)
+C Open the export file and then request that the wireframe
+C or virtual wireframe is redrawn (in the C code the low level calls
+C will be writing out the vector information to the export file.
+        write(xfile,'(2a)') cfgroot(1:lnblnk(cfgroot)),'_wire'
+        call ctlexp(xfile,ixopen,ixloc,ixunit,'G','wire frame',IER)
 
 C If user canceled the wireframe export loop back.
-          if(ier.eq.-3)then
-            goto 33
-          endif
-          call usrmsg('Sending wireframe ... ',' ','-')
-          MODIFYVIEW=.TRUE.
-          CALL redraw(IER)
-          call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                 iicfgz,iicfgn,iicfgc,iicfgdfn)
-          call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
-     &                 iicfgz,iicfgn,iicfgc,iicfgdfn)
-          WRITE(etext,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
-          iside=1
-          isize=1
-          ifont=1
-          call viewtext(etext,iside,isize,ifont)
+        if(ier.eq.-3)then
+          goto 33
+        endif
+        call usrmsg('Sending wireframe ... ',' ','-')
+        MODIFYVIEW=.TRUE.
+        CALL redraw(IER)
 
 C Toggle the wirefram export file closed.
-          call usrmsg('Sending wireframe ...done.',' ','-')
-          call ctlexp(xfile,ixopen,ixloc,ixunit,'G','Wire frame',IER)
-          MODIFYVIEW=.TRUE.
+        call usrmsg('Sending wireframe ...done.',' ','-')
+        call ctlexp(xfile,ixopen,ixloc,ixunit,'G','Wire frame',IER)
+        MODIFYVIEW=.TRUE.
 
 C Check if conversion to xfig wanted.
-          dok=.true.
-          call askok(' ','Convert output to xfig format?',ok,dok,nbhelp)
-          if(ok)then
-            write(ffile,'(a,a4)') xfile(1:lnblnk(xfile)),'.fig'
-            doit = ' '
-            write(doit,'(4a)') 'ecnv -if ww -in ',
-     &        xfile(1:lnblnk(xfile)),' -of xfig -out ',
-     &        ffile(1:lnblnk(ffile))
-            call usrmsg('Starting xfig conversion: ',doit,'-')
-            call runit(doit,'-')
+        call easkok(' ','Convert output to xfig format?',ok,nbhelp)
+        if(ok)then
+          write(ffile,'(a,a4)') xfile(1:lnblnk(xfile)),'.fig'
+          doit = ' '
+          write(doit,'(4a)') 'ecnv -if ww -in ',
+     &      xfile(1:lnblnk(xfile)),' -of xfig -out ',
+     &      ffile(1:lnblnk(ffile))
+          call usrmsg('Starting xfig conversion: ',doit,'-')
+          call runit(doit,'-')
 
-C << still to be done - remove the initial _wire file after fig file
-C << has been created
+          iuj=ifil+1  ! remove the intermediate _wire file
+          close(iuj)
+          CALL EFOPSEQ(iuj,xfile,1,IER)
+          CALL EFDELET(iuj,ISTAT)
 
+          if(found_xfig)then
+            call easkok(' ','Invoke xfig?',ok,nbhelp)
+            if(ok)then
+              call edisp(iuout,' ')
+              call edisp(iuout,'Optional: use fig2dev to create a png')
+              call edisp(iuout,'image via:')
+              call edisp(iuout,'fig2dev -L png -m 1.5 -S 4 -b 10 ')
+              call edisp(iuout,'  xx.fig > xx.png')
+              doit = ' '
+              write(doit,'(3a)') 'xfig ',ffile(1:lnblnk(ffile)),' &'
+              call usrmsg('Starting xfig: ',doit,'-')
+              call runit(doit,'-')
+            endif
           endif
         endif
 
@@ -784,11 +793,42 @@ C If user request jump back and re-display the menu.
         goto 33
 
       ELSEIF(INO1.EQ.10)THEN
-      
-C Pop up the help text.
-       CALL PHELPD('export menu',nbhelp,'-',0,0,IER)
+        call edisp(iuout,' ')  ! select zones to include
+        call edisp(iuout,'You can choose a subset of zones to include')
+        call edisp(iuout,'in the export to xfig (other exports will')
+        call edisp(iuout,'be included in a future update).')
+        INPIC=NCOMP    ! Select zones or groups via ASKMULTIZON.
+        call ASKMULTIZON(INPIC,IVALS,'Zones to include:',
+     &    'zone list','-',IER) 
+        nzg = inpic
+        if(izgfoc.ne.0)then
+          found=.false.
+          do mz=1,nzg
+            nznog(mz)=IVALS(mz)
+            if(ivals(mz).eq.izgfoc)found=.true.
+          enddo
+          if(.NOT.found)then
+            nzg=nzg+1
+            nznog(nzg)=izgfoc
+          endif
+        elseif(izgfoc.eq.0)then
+          do mz=1,nzg
+            nznog(mz)=IVALS(mz)
+          enddo
+        endif
+        MODBND=.TRUE.
+        MODLEN=.TRUE.
+        MODIFYVIEW=.TRUE.
 
       ELSEIF(INO1.EQ.11)THEN
+        call edisp(iuout,' ')
+        call edisp(iuout,'In the viewing environment menu:')
+        call edisp(iuout,'toggle hidden/display options as required.')
+        call edisp(iuout,'Currently used with xfig exports.')
+        call evset('-',IER)                          ! adjust viewing parameters.
+      ELSEIF(INO1.EQ.12)THEN
+       CALL PHELPD('export menu',nbhelp,'-',0,0,IER) ! Pop up the help text.
+      ELSEIF(INO1.EQ.13)THEN
         RETURN
       else
         goto 33
@@ -813,8 +853,11 @@ C Used by the Project Manager.
 
       common/FILEP/IFIL
       INTEGER :: ifil
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
+      common/warncounter/iecount
+      character iefile*72
+      common/logs/iefile
       
       integer ncomp,ncon
       common/C1/NCOMP,NCON
@@ -830,7 +873,7 @@ C The model root and mpath passed to silentmodel call.
       character metaroot*32,metampath*72
       common/cadmeta/metaroot,metampath
 
-      LOGICAL OK,DOK,concat,browse,confirm,ckpath,unixok
+      LOGICAL OK,concat,browse,confirm,ckpath,unixok
       logical itisanexemplar  ! passed to newprb to ensure correct browse mode.
 
       character LFIL*72,LCMDFL*144
@@ -906,12 +949,9 @@ C Create one or more dummy zones for gtool to work with.
      &    cadexe(1:lnblnk(cadexe)),'?'
 
         call usrmsg(
-     &    'After the CAD tool starts, the Project Manager will exit. ',
-     &    'Please restart it when the CAD tool session is finished.',
-     &    'W')
-        dok=.true.
-        CALL ASKOK(outs,
-     &    '(make note of where files are placed)',OK,dok,nbhelp)
+     &    'After the CAD tool starts, Project Manager will exit.',
+     &    'Please restart it when the CAD session is finished.','W')
+        CALL EASKOK(' ',outs,OK,nbhelp)
         IF(OK)then
           call pausems(1000)
           write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' &'
@@ -923,6 +963,11 @@ C Create one or more dummy zones for gtool to work with.
 
 C Clear allocatable arrays
           CALL DeallocateAllArrays
+          close(ieout)
+          if(iecount.eq.0)then     ! if there were no warnings delete
+            open(ieout,file=iefile,status='UNKNOWN')
+            call efdelet(ieout,istat)
+          endif
           CALL EPAGEND
           STOP
         endif
@@ -939,9 +984,8 @@ C is a DXF file.
         if(LFIL(1:2).ne.'  '.and.LFIL(1:4).ne.'UNKN')then
           INQUIRE (FILE=LFIL,EXIST=XST)
           if(.NOT.XST)then
-            write(outs,'(a,a)')'Could not find: ',LFIL(1:lnblnk(LFIL))
-            dok=.false.
-            call askok(outs,'Try again?',OK,dok,nbhelp)
+            write(outs,'(a,a)')'Could not locate ',LFIL(1:lnblnk(LFIL))
+            call easkok(outs,'Retry?',OK,nbhelp)
             if(OK)then
               goto 29
             else
@@ -1025,21 +1069,19 @@ C Invoke export of current ESP-r model to DXF.
         call edisp(iuout,outs)
         write(outs,'(3a)') ' Proceed with ',
      &    cadlbl(1:lnblnk(cadlbl)),' ?'
-        dok=.true.
-        CALL ASKOK(outs,'(if the tool is available)',OK,dok,nbhelp)
+        CALL EASKOK(' ',outs,OK,nbhelp)
         IF(OK)then
           call runit(cadexe,'graph')
         endif
       endif
 
- 28   dok=.true.
-      if(cadfmt(1:3).eq.'DXF')then
-        CALL ASKOK(' ','Import the DXF file?',OK,dok,nbhelp)
+ 28   if(cadfmt(1:3).eq.'DXF')then
+        CALL EASKOK(' ','Import DXF file?',OK,nbhelp)
       elseif(cadfmt(1:5).eq.'gbXML')then
         OK=.true.
       endif
       IF(OK)then
-        CALL EASKS(LFIL,'File to import ?',
+        CALL EASKS(LFIL,'File to import?',
      &    ' ',72,' ','cad import file',IER,nbhelp)
 
 C Read the first couple of lines of the import file to see if it
@@ -1047,9 +1089,8 @@ C is a DXF file.
         CALL ERPFREE(ifun,ISTAT)
         call FPOPEN(ifun,ISTAT,1,0,LFIL)
         IF(ISTAT.LT.0)THEN
-          write(outs,'(a,a)')'Could not find: ',LFIL(1:lnblnk(LFIL))
-          dok=.false.
-          call askok(outs,'Try again?',OK,dok,nbhelp)
+          write(outs,'(a,a)')'Could not locate ',LFIL(1:lnblnk(LFIL))
+          call easkok(outs,'Retry?',OK,nbhelp)
           if(OK)then
             goto 28
           else
@@ -1063,7 +1104,7 @@ C is a DXF file.
           call edisp(iuout,'this file is assumed to be a gbXML file.')
           call edisp(iuout,' ')
           call edisp(iuout,'An example of [full path to model folder]:')
-          call edisp(iuout,'/home/fred/Models/office_block')
+          call edisp(iuout,'/home/fred/Models/office')
           cadfmt='gbXML'
           CALL EASKS(placemodelin,'Folder for model (give full path):',
      &      ' ',96,' ','model folder',IER,nbhelp)
@@ -1075,13 +1116,7 @@ C Setup various file names needed.
           write(cfgpath,'(3a)')  placemodelin,fs,'cfg'
           thecfgis='  '
           write(thecfgis,'(a)') 'bldg-1.cfg'
-C          call edisp(iuout,'  ')
-C          call edisp(iuout,'The full path is:')
-C          call edisp(iuout,exemplar)
-C          call edisp(iuout,'The model cfg folder is:')
-C          call edisp(iuout,cfgpath)
-C          call edisp(iuout,'The cfg file is is:')
-C          call edisp(iuout,thecfgis)
+
         else
           CALL STRIPC(ifun,OUTSTR,0,ND,1,'CAD 2nd line',IER)
           if(OUTSTR(1:7).eq.'SECTION')then
@@ -1172,13 +1207,18 @@ C gtoolin sets up files and invokes the CAD tool gtool.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,IEOUT
+      common/warncounter/iecount
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
 
 C External cad package.
       common/cad3rd/cadlbl,cadexe,cadfmt
 
-      LOGICAL OK,DOK,unixok
+      LOGICAL OK,unixok
 
       character outs*124,OUTSTR*124,doit*248
       character cadlbl*20,cadexe*20,cadfmt*5
@@ -1203,8 +1243,8 @@ C Tell the user to create a model configuration file.
       CALL PHELPD('CAD warning',nbhelp,'-',0,0,IER)
 
 C Ask user which format of CAD file will be scanned in.
-      write(msg2,'(2a)') 'Invoke ',cadexe(1:lnblnk(cadexe))
-      CALL ASKOK(' ',msg2,OK,dok,nbhelp)
+      write(msg2,'(3a)') 'Invoke ',cadexe(1:lnblnk(cadexe)),'?'
+      CALL EASKOK(' ',msg2,OK,nbhelp)
       if(OK)then
 
 C Check if CAD tool has been installed. If not do not start.
@@ -1235,9 +1275,7 @@ C Create one or more dummy zones for gtool to work with.
      &    'After the CAD tool starts the Project Manager will exit.',
      &    'Please restart it when you finish the CAD tool session.',
      &    'W')
-        dok=.true.
-        CALL ASKOK(outs,
-     &    '(make note of where files are placed)',OK,dok,nbhelp)
+        CALL EASKOK(' ',outs,OK,nbhelp)
         IF(OK)then
           call pausems(1000)
           write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' &'
@@ -1246,6 +1284,11 @@ C Create one or more dummy zones for gtool to work with.
           call usrmsg(
      &    'Shutting down Project Manager','...','-')
           call pausems(1000)
+          close(ieout)
+          if(iecount.eq.0)then     ! if there were no warnings delete
+            open(ieout,file=iefile,status='UNKNOWN')
+            call efdelet(ieout,istat)
+          endif
 
 C Clear allocatable arrays
           CALL DeallocateAllArrays
@@ -1262,7 +1305,7 @@ C Clear allocatable arrays
 
 C ********* rexmpl
 C rexmpl: scan the exemplars file, parse information and offer the user
-C selection of or information about exemplars. 
+C selection of, or information about, exemplars. 
 C useraction is returned - 'ownit' or 'continue'
 C Currently supports up to 30 items in a category.
       subroutine rexmpl(itrc,iexfil,exemplar,useraction,ier)
@@ -1281,7 +1324,7 @@ C Passed parameters.
       integer ier     ! returned as 1 if no exemplars file found
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
       
@@ -1313,7 +1356,7 @@ C      common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
       character tgroup*42,key*1,look*70,tlook*70
       character outs*124,rootp*84,separ*42
       character doit*248
-      character exdescr*81,doc*72,head*42
+      character exdescr*81,doc*72,head*50
       character cfg*144,cfg_path*84,cfg_root*72,doc_file*96
       character ilog*144
       character tmode*12
@@ -1383,13 +1426,14 @@ C Clear some of the local strings.
 C Read the header and see if '*EXEMPLARS'
       CALL STRIPC(iexfil,OUTSTR,0,ND,0,'exemplars header',IER)
       if(outstr(1:10).ne.'*EXEMPLARS')then
-        call edisp(iuout,' Not an exemplars file!')
+        call edisp(iuout,' ')
+        call edisp(iuout,'This is not an exemplars file!')
         ier=1
         return
       endif
 
-C In the first pass make up the display, beginning with
-C an organizational header and the `names' of each exemplar.
+C In the first pass make up the menu, beginning with
+C an organisational header and the `names' of each exemplar.
 C Clear group related help and length of menu.
       do i=1,13
         gh(i)=' '
@@ -1562,9 +1606,10 @@ C file for this topic.
           write(h(nbhelp+ih),'(a)')gh(ih)(1:lex)
         enddo
       endif
-      head = group(igrsel)(1:lnblnk(group(igrsel)))
+      write(head,'(2a)') 'Group: ',
+     &           group(igrsel)(1:lnblnk(group(igrsel)))
       IX=1
-      CALL EPICKS(IX,IVALS,' ','category items',
+      CALL EPICKS(IX,IVALS,' ','Category items:',
      &  iwsub,in,subitem,head,IER,nbhelp+nghelp)
       IF(IX.EQ.0)then
 
@@ -1581,7 +1626,6 @@ C Exit from detail level back to group level.
       endif
       if(inl2in(ICO).eq.0)goto 42
       look=name(inl2in(ICO))
-C      write(6,*) 'focus on ',ico,' ',look
 
 C Open the related configuration file (if it exists), find its log file.
       CALL ERPFREE(iexfil+1,ISTAT)
@@ -1599,7 +1643,7 @@ C Open the related configuration file (if it exists), find its log file.
      &      doc(1:lnblnk(doc))
           CALL ERPFREE(iexfil+1,ISTAT)
           call tstamp('>','PRJ: list exemplar documentation')
-          call edisp(iuout,'  ')
+          call edisp(iuout,' ')
           CALL LISTAS(iexfil+1,doc_file,IER)
         else
           goto 242  ! read another line
@@ -1610,7 +1654,7 @@ C Attempt to access the exempler.
 
       else
          call usrmsg('This exemplar is currently off-line.',
-     &     'Arrange access via your local ESP-r administrator.','W')
+     &     'Arrange access via your ESP-r administrator.','W')
          exemplar='UNKNOWN'
          CALL ERPFREE(iexfil+1,ISTAT)
          rewind(iexfil,ERR=92)
@@ -1723,14 +1767,14 @@ C In case there is a log file mentioned.
 
 C If a log file mentioned in exemplars file show it.
               if(ilog(1:2).ne.'  ')then
-                call edisp(iuout,'  ')
+                call edisp(iuout,' ')
                 CALL LISTAS(iexfil+1,ilog,IER)
               endif
 
 C Reached the end of the item, check if it is to be chosen.
 C If there are zones existing, remove them from memory.
               CALL EASKAB(exdescr,'Options:',
-     &          'proceed','cancel',IW,nbhelp)
+     &          'proceed','cancel',IW,0)
               if(IW.eq.1)then
                 if(upath.ne.' ')then
 
@@ -1739,11 +1783,6 @@ C word in the path to the exemplar root folder.
                   call fdroot(rootp,cfg_path,cfg_root)
                   lex=lnblnk(exemplar)
                   lcfgr=lnblnk(cfg_root)
-
-C Debug the model source.
-C                  write(outs,'(a,2i4,2a)') 'cfg_root = ',lex,lcfgr,
-C     &              '  ',cfg_root(1:lcfgr)
-C                  call edisp(iuout,outs)
 
 C Loop along the exemplar string to locate the position of the root
 C folder in the path of the exemplar.
@@ -1758,9 +1797,7 @@ C folder in the path of the exemplar.
 
 C The balance of the exemplar string after the cfg_root.
                   write(cfgcfg,'(a)') exemplar(ilex+lcfgr:lex)
-C                  write(6,*) cfgcfg,' ',ilex+lcfgr,lex
                   write(thecfgis,'(a)') cfgcfg(6:lnblnk(cfgcfg))
-C                  write(6,*) 'the cfg is ',thecfgis(1:lnblnk(thecfgis))
                   call isunix(unixok)
                   if(unixok)then
 
@@ -1777,9 +1814,9 @@ C If prj was started in a Models folder prepend to path.
                     endif
                     write(dguess,'(3a)') upath(1:lnblnk(upath)),fs,
      &                cfg_root(1:lcfgr)
-                    call edisp(iuout,'  ')  ! echo a blank line
+                    call edisp(iuout,' ')  ! echo a blank line
                     CALL EASKXORGTKF(lguess,' ','Copy model to:',               
-     &                dguess,lltmp,'models folder',IER,nbhelp)
+     &                dguess,lltmp,'models folder',IER,0)
 
                     write(doit,'(2a)') 'mkdir ',lltmp(1:lnblnk(lltmp))
                     call runit(doit,'-')
@@ -1787,7 +1824,6 @@ C If prj was started in a Models folder prepend to path.
 
 C Add /cfg to lltmp to get the configuration folder
                     write(cfgpath,'(3a)')lltmp(1:lnblnk(lltmp)),fs,'cfg'
-C                    write(6,*) 'cfgpath=',cfgpath(1:lnblnk(cfgpath))
 
 C Make up the command to copy from the exemplar source folder to the
 C users defined destination. If we add cfgcfg to lltmp we should have
@@ -1804,11 +1840,6 @@ C this into the suggested path.
                     upathdos=' '
                     lnrp=lnblnk(rootp)
                     lnblankrp=iprevblnk(rootp,lnrp)
-
-C Debug the model source.
-C                    write(outs,'(a,2i3,2a)') 'rootp = ',lnrp,lnblankrp,
-C     &                ' ',rootp(1:lnrp)
-C                    call edisp(iuout,outs)
 
                     call backslashit(rootp,rootpdos)
                     if(itrc.gt.0)then
@@ -1834,20 +1865,13 @@ C there is a file browser returning folder name via lltmp.
                     endif
                     write(dguess,'(3a)') upath(1:lnblnk(upath)),fs,
      &                cfg_root(1:lcfgr)
-                    call edisp(iuout,'  ')  ! echo a blank line
+                    call edisp(iuout,' ')  ! echo a blank line
                     CALL EASKXORGTKF(lguess,' ','Copy model to:',
-     &                dguess,lltmp,'models folder',IER,nbhelp)
+     &                dguess,lltmp,'models folder',IER,0)
 
                     lnup=lnblnk(lltmp)
                     lnblankup=iprevblnk(lltmp,lnup)
                     call backslashit(lltmp,upathdos)
-
-C Debug.
-                    write(outs,'(a,2i3,2a)') 'upath = ',lnup,lnblankup,
-     &                ' ',upath(1:lnup)
-                    call edisp(iuout,outs)
-                    write(outs,'(2a)') 'destination = ',upathdos(1:lnup)
-                    call edisp(iuout,outs)
 
 C If upathdos folder does not exist then need to create it.
                     if(lnblankup.gt.1)then
@@ -1889,12 +1913,12 @@ C There are no blanks in either source or destination strings.
                   endif  ! of non-unix
 
 C If trace is verbose echo the command.
-                  if(itrc.ge.0)then
-                    call edisp(iuout,
-     &                'Copying exemplar to destination folder via:')
-                    call edisp248(iuout,doit,100)
-                    call pausems(5000)
-                  endif
+C                  if(itrc.ge.0)then
+C                    call edisp(iuout,
+C     &                'Copying exemplar to destination folder via:')
+C                    call edisp248(iuout,doit,100)
+C                    call pausems(5000)
+C                  endif
                   call runit(doit,'-')
                   if(unixok)then
 
@@ -1902,7 +1926,6 @@ C If Unix-like then append tail of exemplar string (cfgcfg) to the users selecte
 C path to get the new exemplar name.
                     write(exemplar,'(2a)') lltmp(1:lnblnk(lltmp)),
      &                cfgcfg(1:lnblnk(cfgcfg))
-C                    write(6,*) exemplar
                   else
 
 C If Windows based then append cfg & cfg file string to the path to make
@@ -1912,13 +1935,7 @@ C up the exemplar name (this assumes a standard layout of model).
                     write(cfgpath,'(3a)')upathdos(1:lnblnk(upathdos)),
      &                fs,'cfg'
                   endif
-C                  call edisp(iuout,'  ')
-C                  call edisp(iuout,'The full path is:')
-C                  call edisp(iuout,exemplar)
-C                  call edisp(iuout,'The model cfg folder is:')
-C                  call edisp(iuout,cfgpath)
-C                  call edisp(iuout,'The cfg file is:')
-C                  call edisp(iuout,thecfgis)
+
                   call tstamp('>','prj: owning exemplar')
                   call tstamp('>',exemplar)
                   useraction='ownit   '
@@ -1981,7 +1998,7 @@ C the user to kill it.
       end
 
 C ***** wtarentry
-C wtarentry: write entry in tar names file taking into account case where file
+C Write entry in tar names file taking into account case where file
 C name begins with ../ .
       subroutine wtarentry(iunit,pathome,tr,ltr,tp,ltp,lf)
       integer lnblnk  ! function definition
@@ -2036,769 +2053,6 @@ C Error.
 
       end
 
-
-C ***** archiveit
-C archiveit: archives the current model by building up an "include" file to
-C pass to tar archive. Detect where the current model is located.
-C NOTE: the name file generated is never cleaned up >>
-      subroutine archiveit(ier)
-
-      USE AIM2_InputData, ONLY: iAIM2,LAIM2
-      
-      IMPLICIT NONE
-
-#include "building.h"
-#include "model.h"
-C UA1 in uncertainty.h
-#include "uncertainty.h"
-#include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
-C LOPTDB,IOPTDB (for optical database)
-C LPCDB/IPCDB (for plant template database)
-C LPRFDB,IPRODB (for event profile database)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
-C ICLIM,LCLIM (for climate file)
-#include "schedule.h"
-#include "plant.h"
-#include "power.h"
-
-      integer lnblnk  ! function definition
-
-      common/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
-      common/FILEP/IFIL
-      INTEGER :: ifil
-      common/rpath/path
-      
-      integer ncomp,ncon
-      COMMON/C1/NCOMP,NCON
-      COMMON/C6/INDCFG
-      INTEGER :: INDCFG
-      COMMON/C23/IFPNF,LPNF
-      INTEGER :: IFPNF
-      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
-      INTEGER :: iairn,icaas
-      common/cctlnm/ctldoc,lctlf
-      common/GTFIL/GTGEOM
-      common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
-      INTEGER :: ifcfd
-      COMMON/GR1D05/LGRD1D
-      CHARACTER LGRD1D*72
-      COMMON/GR1D06/IGR1D
-      LOGICAL IGR1D
-      COMMON/GRND100/GRND3D
-      LOGICAL GRND3D
-      COMMON/GRND108/LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
-      CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDNDD,LGDTAQ
-      COMMON/GRSD100/IndxSt
-      INTEGER :: IndxSt
-      COMMON/GRSD101/LGrdSt
-      common/GR3D100/BLDG3D,ZONE3D(MCOM)
-      LOGICAL :: BLDG3D,ZONE3D
-      common/GR3D108/L3DCVS(MCOM),L3DCNC(MCOM),L3DNDC(MCOM),L3DTAQ(MCOM)
-      COMMON/VTHP18/LNLTHP
-      CHARACTER LNLTHP*72
-      COMMON/VTHP31/INTHPS,INTHPZ(MCOM)
-      LOGICAL INTHPS,INTHPZ
-      common/MOIST01/MSTROK,MSTRZN(MCOM)
-      LOGICAL :: MSTROK,MSTRZN
-      common/MOIST02/LMOIST(MCOM)
-      common/spmfxst/ispmxist,spflnam
-      INTEGER :: ispmxist
-      character imgfmt*4  ! GIF XBMP TIF JPG
-      character imgfoc*4  ! FZON FNET FCTL FDFS
-      character limgfil*72  ! file name (extend to 144 char)
-      character imgdoc*248  ! text associated with image
-      common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
-
-      integer noimg  ! number of images
-      integer iton   ! zero if images not yet shown, one if yes
-      common/imagfi/noimg,iton
-      common/hvacinfo/ihvacflag,hvacfile
-      INTEGER :: ihvacflag
-      common/bsmtdef/iBSIMP(MCOM),LBSIMP(MCOM)
-      INTEGER :: ibsimp
-
-      character LPNF*72,LMOIST*72
-      character*72 LCFD
-      character LFIL*72
-      
-C The string buffer doit and option used for tar command.
-      character doit*248,option*4
-      character path*72
-      character curdir*84
-      character LAPROB*72
-      character tp*42,tr*32
-      character ctldoc*248,LCTLF*72,LGrdSt*72
-      character GTGEOM*72
-      character fs*1
-      character LTMPFL*72
-      character LF*72,LFL*144
-      CHARACTER spflnam*72
-      CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ
-      character hvacfile*72,LBSIMP*72
-      character outs*124
-
-      logical XST,unixok
-
-C Patdot is true if path is ./, patcfg is true if path is cfg,
-C patroot is true if path is at root level. 
-      logical patdot,patcfg,patroot,pathome,localdb
-      character WORDS(12)*32
-C      character WORDS*32
-
-      INTEGER :: lc,j,iw,iuf,iunit,ito,istat,ipid,img,ifold,i,ier
-      INTEGER :: iaccess,icerr,ios,lcd,llf,lr,ltp,ltr
-      integer iwds,lniwd,lniwd1
-
-      iunit=ifil+1
-      patdot=.false.
-      patcfg=.false.
-      patroot=.false.
-      pathome=.false.
-
-C Set folder separator (fs) to \ or / as required. Create a temporary
-C file to hold the names of the files to be archived. Use esppid to
-C get the process number. If that file happens to already exist then
-C remove it and then open for writing.
-      call isunix(unixok)
-      if(unixok)then
-        fs = char(47)
-        call esppid(ipid)
-        write(LTMPFL,'(a,i7,a)') cfgroot(1:lnblnk(cfgroot)),ipid,
-     &    '.names'
-        call st2file(LTMPFL,LFIL)
-        write (LTMPFL,'(3a)')upath(1:lnblnk(upath)),fs,
-     &    LFIL(1:lnblnk(LFIL))
-        INQUIRE (FILE=LTMPFL(1:lnblnk(LTMPFL)),EXIST=XST)
-        if(XST)then
-          call edisp(iuout,'Removing existing name file.')
-          call FPOPEN(IUNIT,ISTAT,1,1,LTMPFL)
-          call EFDELET(IUNIT,ISTAT)
-        endif
-        call FPOPEN(IUNIT,ISTAT,1,2,LTMPFL)
-      else
-        fs = char(92)
-      endif
-
-C Determine the current path to the top level folder of the model.
-      call usrdir(curdir)
-      lcd = lnblnk(curdir)
-
-C Check and see if curdir is the same as upath (i.e. esp-r started
-C in users home folder.
-      if(curdir(1:lcd).eq.upath(1:lnblnk(upath)))then
-
-C Can user write at the curdir folder?
-        ifold=-1
-        call ckaccess(ifold,iaccess,icerr,curdir)
-        if(iaccess.eq.1)then
-          call isunix(unixok)
-          if(unixok)then
-            write(6,*) 'iaccess is ',iaccess,icerr,ifold,curdir
-            write(6,*) 'cannot write at',curdir(1:lcd)
-            ier=1
-            return
-          endif
-        endif
-
-C Determine how to treat the path. See if the root name falls into the
-C path somewhere.
-        call GETTOKENS(path,IW,WORDS)
-        lr=lnblnk(cfgroot)
-        if(IW.gt.0)then
-          do 94 ito=1,IW
-
-C If cfg in tokens then check folder above and see if it matches the
-C model root name. If so check and see if it is the first token (if
-C so then easy to write, if not then try for the token before that).
-            if(WORDS(ito)(1:3).eq.'cfg'.and.ito.gt.1)then
-              if((ito-1).eq.1)then
-                write(tp,'(3a)') WORDS(ito-1)(1:lnblnk(WORDS(ito-1))),
-     &            fs,'cfg'
-                ltp=lnblnk(tp)
-                write(tr,'(a)') WORDS(ito-1)(1:lnblnk(WORDS(ito-1)))
-                ltr=lnblnk(tr)
-                patroot=.true.
-                pathome=.true.
-              elseif((ito-1).eq.2)then
-                write(tp,'(5a)') WORDS(ito-2)(1:lnblnk(WORDS(ito-2))),
-     &            fs,WORDS(ito-1)(1:lnblnk(WORDS(ito-1))),fs,'cfg'
-                ltp=lnblnk(tp)
-                write(tr,'(a)') WORDS(ito-1)(1:lnblnk(WORDS(ito-1)))
-                ltr=lnblnk(tr)
-                patroot=.true.
-                pathome=.true.
-              elseif((ito-1).eq.3)then
-                write(tp,'(7a)') WORDS(ito-3)(1:lnblnk(WORDS(ito-3))),
-     &            fs,WORDS(ito-2)(1:lnblnk(WORDS(ito-2))),
-     &            fs,WORDS(ito-1)(1:lnblnk(WORDS(ito-1))),fs,'cfg'
-                ltp=lnblnk(tp)
-                write(tr,'(a)') WORDS(ito-1)(1:lnblnk(WORDS(ito-1)))
-                ltr=lnblnk(tr)
-                patroot=.true.
-                pathome=.true.
-              endif
-            endif
-  94      continue
-        endif
-        if(patroot)goto 98
-      endif
-
-
-C Can user write at the path folder?
-      ifold=-1
-      call ckaccess(ifold,iaccess,icerr,path)
-      if(iaccess.eq.1)then
-        call isunix(unixok)
-        if(unixok)then
-          write(6,*) 'iaccess is ',iaccess,icerr,ifold,path
-          write(6,*) 'cannot write at',path(1:lnblnk(path))
-          ier=1
-          return
-        endif
-      endif
-
-C Determine how to treat the path. If the start of the path matches
-C the root name check for rootname/cfg folders.
-      lr=lnblnk(cfgroot)
-      write(tp,'(3a)') cfgroot(1:lr),fs,'cfg'
-      write(tr,'(a)') cfgroot(1:lr)
-      if(path(1:lr).eq.cfgroot(1:lr))then
-        if(path(1:lr+4).eq.tp(1:lr+4))then
-          ltp=lnblnk(tp)
-          write(tr,'(a)') cfgroot(1:lr)
-          ltr=lnblnk(tr)
-          patroot=.true.
-        endif
-      elseif(path(1:2).eq.'./')then
-        call GETTOKENS(curdir,IW,WORDS)
-        iwds=iw   ! remember how many words
-        if(iwds.gt.0)then
-
-C Find out how many characters are in the two folders above where we
-C are now so this can be subtracted from curdir for testing.
-          lniwd1=lnblnk(WORDS(iwds-1))
-          lniwd=lnblnk(WORDS(iwds))
-          write(LF,'(3a)') WORDS(iwds-1)(1:lniwd1),
-     &            fs,WORDS(iwds)(1:lniwd)
-          llf=lnblnk(LF)
-          write(LF,'(a)') curdir(1:lcd-llf)
-
-C Debug.
-          call isunix(unixok)
-          if(unixok)then
-            write(outs,*) 'checking writing at ',LF(1:lnblnk(LF))
-            call usrmsg(outs,' ','-')
-          endif
-          ifold=-1
-          call ckaccess(ifold,iaccess,icerr,LF)
-          if(ifold.eq.1.and.icerr.eq.0)then
-            lniwd1=lnblnk(WORDS(iwds-1))
-            lniwd=lnblnk(WORDS(iwds))
-            write(tp,'(3a)') WORDS(iwds-1)(1:lniwd1),
-     &            fs,WORDS(iwds)(1:lniwd)
-            ltp=lnblnk(tp)
-            write(tr,'(a)') WORDS(iwds-1)(1:lniwd1)
-            ltr=lnblnk(tr)
-            patdot=.true.
-            goto 98
-          else
-
-C There is no such folder so check the full path to find out which folder
-C is one level above the cfg folder.
-            call usrmsg('Cannot write tar file in folder above the',
-     &        'model folder so cancelling archive request.','W')
-            ier=1
-            return
-          endif
-        endif
-      elseif(path(1:3).eq.'cfg')then
-
-C User started esp-r one folder above the cfg folder. First test if
-C cfg is appended to the curdir and this is a true path. If so then
-C will do a cd ../ before the tar command and so cfgroot can be included
-C in the tp name.
-        call GETTOKENS(curdir,IW,WORDS)
-        iwds=iw   ! remember how many words
-        if(iwds.gt.0)then
-
-C Find out how many characters are in the folder above where we
-C are now so this can be subtracted from curdir for testing.
-          lniwd=lnblnk(WORDS(iwds))
-          write(LF,'(a)') WORDS(iwds)(1:lniwd)
-          llf=lnblnk(LF)
-          write(LF,'(a)') curdir(1:lcd-llf)
-
-C Debug.
-          call isunix(unixok)
-          if(unixok)then
-            write(outs,*) 'checking writing at ',LF(1:lnblnk(LF))
-            call usrmsg(outs,' ','-')
-          endif
-          ifold=-1
-          call ckaccess(ifold,iaccess,icerr,LF)
-          if(ifold.eq.1.and.icerr.eq.0)then
-            patcfg=.true.
-            write(tp,'(3a)') WORDS(iwds)(1:lniwd),fs,'cfg'
-            ltp=lnblnk(tp)
-            write(tr,'(a)') WORDS(iwds)(1:lniwd)
-            ltr=lnblnk(tr)
-            goto 98
-          else
-
-C There is no such folder so check the full path to find out which folder
-C is one level above the cfg folder.
-            call usrmsg('Cannot write tar file in folder above the',
-     &        'model so cancelling archive request.','W')
-            ier=1
-            return
-          endif
-        endif
-      else
-
-C There is no such folder so check the full path to find out which folder
-C is one level above the cfg folder.
-        call GETTOKENS(path,IW,WORDS)
-        iwds=iw   ! remember how many words
-        if(iwds.gt.0)then
-          do 95 ito=1,iwds
-            lniwd=lnblnk(WORDS(ito-1))
-            if(WORDS(ito)(1:3).eq.'cfg'.and.ito.gt.1)then
-              write(tp,'(3a)') WORDS(ito-1)(1:lniwd),fs,'cfg'
-              ltp=lnblnk(tp)
-              write(tr,'(a)') WORDS(ito-1)(1:lniwd)
-              ltr=lnblnk(tr)
-            endif
-  95      continue
-        endif
-      endif
-
-C Do a final check to see if can write in curdir + tp
-      ifold=-1
-      write(LF,'(3a)') curdir(1:lnblnk(curdir)),fs,tp(1:ltp)
-      call ckaccess(ifold,iaccess,icerr,LF)
-      if(iaccess.eq.1)then
-        call usrmsg(
-     &    'Cannot resolve file paths in order to write archive.',
-     &    LF,'W')
-        ier=1
-        return
-      endif
-
-C Build up a list of the current files used in the model.
-  98  write(IUNIT,'(3a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &  LCFGF(1:lnblnk(LCFGF))
-      write(IUNIT,'(3a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &  LCNN(1:lnblnk(LCNN))
-
-C For each of the databases figure out if the database is
-C local (if ipath* value is 1).
-      do 41 i=1,8
-        localdb=.false.
-        if(i.eq.1)then
-          LFL=LFMAT
-          if(ipathmat.eq.1) localdb=.true.
-        elseif(i.eq.2)then
-          LFL=LFMUL
-          if(ipathmul.eq.1) localdb=.true.
-        elseif(i.eq.3)then
-          LFL=LOPTDB
-          if(ipathoptdb.eq.1) localdb=.true.
-        elseif(i.eq.4)then
-          LFL=LAPRES
-          if(ipathapres.eq.1) localdb=.true.
-        elseif(i.eq.5)then
-          LFL=LPRFDB
-          if(ipathprodb.eq.1) localdb=.true.
-        elseif(i.eq.6)then
-          LFL=LCLIM
-        elseif(i.eq.7)then
-          LFL=LPCDB
-          if(ipathpcdb.eq.1) localdb=.true.
-        elseif(i.eq.8)then
-          LFL=lfmould
-          if(ipathmould.eq.1) localdb=.true.
-        endif
-        if(localdb.and.LFL(1:4).ne.'UNKN')then
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LFL)
-        endif
-  41  continue
-
-C Write model contents file if it exists.
-C << to be done >>
-
-C Write control file if it exists.
-      if(LCTLF(1:4).eq.'UNKN'.or.LCTLF(1:2).eq.'  ')then
-        continue
-      else
-        lc=lnblnk(ctlpth)
-        if(ctlpth(1:lc).eq.LCTLF(1:lc))then
-          if(ctlpth(1:3).eq.'../')then
-            if(.NOT.pathome)then
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &          ctlpth(4:lc),fs,LCTLF(lc+2:lnblnk(LCTLF))
-            else
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &          ctlpth(1:lc),fs,LCTLF(lc+2:lnblnk(LCTLF))
-            endif
-          elseif(ctlpth(1:2).eq.'./')then
-           write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &       ctlpth(3:lc),fs,LCTLF(lc+1:lnblnk(LCTLF))
-          endif
-        else
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LCTLF)
-        endif
-      endif
-
-C Write HOT3000 hvac file if known.
-      if(ihvacflag.eq.0)then
-        continue
-      else
-        call wtarentry(iunit,pathome,tr,ltr,tp,ltp,hvacfile)
-      endif
-
-C Write HOT3000 AIM-2 file if known.
-      if(iAIM2.eq.0)then
-        continue
-      elseif(LAIM2(1:7).eq.'UNKNOWN'.or.LAIM2(1:2).eq.'  ')then
-        continue
-      else
-        lc=lnblnk(aimpth)
-        if(aimpth(1:lc).eq.LAIM2(1:lc))then
-          if(aimpth(1:3).eq.'../')then
-            if(.NOT.pathome)then
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &          aimpth(4:lc),fs,LAIM2(lc+2:lnblnk(LAIM2))
-            else
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &          aimpth(1:lc),fs,LAIM2(lc+2:lnblnk(LAIM2))
-            endif
-          elseif(aimpth(1:2).eq.'./')then
-            write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &        aimpth(3:lc),fs,LAIM2(lc+1:lnblnk(LAIM2))
-          endif
-        else
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LAIM2)
-        endif
-      endif
-
-C Write uncertainty analysis library file if known.
-      call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LUALF)
-
-C Write images if any.
-      if(noimg.gt.0)then
-        lc=lnblnk(imgpth)
-        do 42 img=1,noimg
-          write(LF,'(a)') limgfil(img)
-          if(imgpth(1:lc).eq.LF(1:lc))then
-            if(imgpth(1:3).eq.'../')then
-              if(.NOT.pathome)then
-                write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &            imgpth(4:lc),fs,LF(lc+2:lnblnk(LF))
-              else
-                write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &            imgpth(1:lc),fs,LF(lc+2:lnblnk(LF))
-              endif
-            elseif(imgpth(1:2).eq.'./')then
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &          imgpth(3:lc),fs,LF(lc+1:lnblnk(LF))
-            endif
-          else
-            call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-          endif
- 42     continue
-      endif
-
-C Write non-specific demands.
-      if(bdmds(1:4).eq.'UNKN'.or.bdmds(1:2).eq.'  ')then
-        continue
-      else
-        lc=lnblnk(ctlpth)
-        if(ctlpth(1:lc).eq.bdmds(1:lc))then
-          if(ctlpth(1:3).eq.'../')then
-            if(.NOT.pathome)then
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &          ctlpth(4:lc),fs,bdmds(lc+2:lnblnk(bdmds))
-            else
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &          ctlpth(1:lc),fs,bdmds(lc+2:lnblnk(bdmds))
-            endif
-          elseif(ctlpth(1:2).eq.'./')then
-           write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &      ctlpth(3:lc),fs,bdmds(lc+1:lnblnk(bdmds))
-          endif
-        else
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,bdmds)
-        endif
-      endif
-
-C Write Radiance scene file.
-      if(lradcf(1:4).eq.'UNKN'.or.lradcf(1:2).eq.'  ')then
-        continue
-      else
-        call wtarentry(iunit,pathome,tr,ltr,tp,ltp,lradcf)
-      endif
-
-C Non-linear thermophysical properties configuration file.
-
-C << ?? why write to unit 6 rather than iunit ?? >>
-       call isunix(unixok)
-       if(INTHPS)then
-        if(unixok)WRITE(6,'(2A)') '*nlt ',LNLTHP(1:lnblnk(LNLTHP))
-      endif
-      if(IGR1D)then
-        if(unixok)WRITE(6,'(2A)') '*g1d ',LGRD1D(1:lnblnk(LGRD1D))
-      endif
-      if(spflnam(1:4).eq.'UNKN'.or.spflnam(1:2).eq.'  ')then
-        continue
-      else
-        if(ispmxist.gt.0)then
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,spflnam)
-        endif
-      endif
-      if(ientxist.gt.0)then
-        write(IUNIT,'(a)') entflnam(1:lnblnk(entflnam))
-      endif
-
-C Temporal database.
-      if(LTDF(1:4).eq.'UNKN'.or.LTDF(1:2).eq.'  ')then
-        continue
-      else
-        if(LTDF(1:3).eq.'../')then
-          if(.NOT.pathome)then
-            write(IUNIT,'(3a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &        LTDF(4:lnblnk(LTDF))
-          else
-            write(IUNIT,'(3a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &        LTDF(1:lnblnk(LTDF))
-          endif
-        elseif(LTDF(1:2).eq.'./')then
-          write(IUNIT,'(3a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &     LTDF(3:lnblnk(LTDF))
-        else
-          write(IUNIT,'(3a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &     LTDF(1:lnblnk(LTDF))
-        endif
-      endif
-
-C Project log file.
-      call wtarentry(iunit,pathome,tr,ltr,tp,ltp,lmodellog)
-
-C Ground information.
-      IF(GRND3D)THEN
-        call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LGDCVS)
-        call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LGDCNC)
-        call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LGDNDC)
-        call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LGDTAQ)
-      ENDIF
-
-C Ground topology.
-      call wtarentry(iunit,pathome,tr,ltr,tp,ltp,GTGEOM)
-
-C Write zone files.
-      DO 920 I = 1,NCOMP
-        do 921 J = 1,10
-          LF='UNKNOWN'
-          if(J.eq.1)then
-            write(LF,'(a)') LGEOM(I)
-          elseif(J.eq.2)then
-            write(LF,'(a)') LPROJ(I)
-          elseif(J.eq.3)then
-            write(LF,'(a)') LTHRM(I)
-          elseif(J.eq.4.and.IOBS(I).EQ.1)then
-            write(LF,'(a)') ZOBS(I)  ! if obs is separate file
-          elseif(J.eq.5.and.ITW(I).EQ.1)then
-            write(LF,'(a)') LTWIN(I)
-          elseif(J.eq.6.and.IVF(I).EQ.1)then
-            write(LF,'(a)') LVIEW(I)
-          elseif(J.eq.7.and.ICGC(I).EQ.1)then
-            write(LF,'(a)') LCGCIN(I)
-          elseif(J.eq.8.and.ISI(I).EQ.1)then
-            write(LF,'(a)') LSHAD(I)  ! binary shading file
-          elseif(J.eq.9.and.ISI(I).EQ.1)then
-            write(LF,'(2a)')LSHAD(I)(1:lnblnk(LSHAD(I))),'.a'  !ascii version
-            call FINDFIL(LF,XST)
-            if(XST)then
-              continue ! it was found
-            else
-              LF='UNKNOWN'
-            endif
-          elseif(J.eq.10.and.IHC(I).EQ.1)then
-            write(LF,'(a)') LHCCO(I)
-          endif
-          if(LF(1:4).eq.'UNKN'.or.LF(1:2).eq.'  ')then
-            continue
-          else
-            lc=lnblnk(zonepth)
-            if(zonepth(1:lc).eq.LF(1:lc))then
-              if(zonepth(1:3).eq.'../')then
-                if(.NOT.pathome)then
-                  write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &              zonepth(4:lc),fs,LF(lc+2:lnblnk(LF))
-                else
-                  write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2)  tp(1:ltp),fs,
-     &              zonepth(1:lc),fs,LF(lc+2:lnblnk(LF))
-                endif
-              elseif(zonepth(1:2).eq.'./')then
-                write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &            zonepth(3:lc),fs,LF(lc+1:lnblnk(LF))
-              endif
-            else
-              call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-            endif
-          endif
- 921    continue
-
-C Write zone BASESIMP description if known.
-        if(iBSIMP(i).eq.0)then
-          continue
-        else
-          write(LF,'(a)') LBSIMP(I)
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-        endif
-
-C Write zone CFD file if known.
-        if(lnblnk(LCFD(I)).eq.0)then
-          continue
-        elseif(LCFD(I)(1:7).eq.'UNKNOWN'.or.LCFD(I)(1:2).eq.'  ')then
-          continue
-        else
-          write(LF,'(a)') LCFD(I)
-          lc=lnblnk(zonepth)
-          if(zonepth(1:lc).eq.LF(1:lc))then
-            if(zonepth(1:3).eq.'../')then
-              if(.NOT.pathome)then
-                write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &            zonepth(4:lc),fs,LF(lc+2:lnblnk(LF))
-              else
-                write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &            zonepth(1:lc),fs,LF(lc+2:lnblnk(LF))
-              endif
-            elseif(zonepth(1:2).eq.'./')then
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &         zonepth(3:lc),fs,LF(lc:lnblnk(LF))
-            endif
-          else
-            call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-          endif
-        endif
-
-C The following write statements do not detect the file location
-        if(ZONE3D(I))then
-          write(LF,'(a)') L3DCVS(I)
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-          write(LF,'(a)') L3DCNC(I)
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-          write(LF,'(a)') L3DNDC(I)
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-          write(LF,'(a)') L3DTAQ(I)
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-        endif
-        if(MSTRZN(I))then
-          write(LF,'(a)') LMOIST(I)
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-        endif
-        if(IndxSt.EQ.I)then
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LGrdSt)
-        endif
- 920  continue
-
-C Flow network.
-      if(IAIRN.GE.1)then
-        write(LF,'(a)') LAPROB
-        lc=lnblnk(netpth)
-        if(netpth(1:lc).eq.LF(1:lc))then
-          if(netpth(1:3).eq.'../')then
-            if(.NOT.pathome)then
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &          netpth(4:lc),fs,LF(lc+2:lnblnk(LF))
-            else
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &          netpth(1:lc),fs,LF(lc+2:lnblnk(LF))
-            endif
-          elseif(netpth(1:2).eq.'./')then
-            write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &       netpth(3:lc),fs,LF(lc:lnblnk(LF))
-          endif
-        else
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-        endif
-      endif
-      if(INDCFG.EQ.2.or.INDCFG.EQ.3)then
-
-C Plant network information.
-        write(LF,'(a)') LPNF
-        lc=lnblnk(netpth)
-        if(netpth(1:lc).eq.LF(1:lc))then
-          if(netpth(1:3).eq.'../')then
-            if(.NOT.pathome)then
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &          netpth(4:lc),fs,LF(lc+2:lnblnk(LF))
-            else
-              write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tp(1:ltp),fs,
-     &          netpth(1:lc),fs,LF(lc+2:lnblnk(LF))
-            endif
-          elseif(netpth(1:2).eq.'./')then
-            write(IUNIT,'(5a)',IOSTAT=IOS,ERR=2) tr(1:ltr),fs,
-     &        netpth(3:lc),fs,LF(lc:lnblnk(LF))
-          endif
-        else
-          call wtarentry(iunit,pathome,tr,ltr,tp,ltp,LF)
-        endif
-      endif
-      call ERPFREE(IUNIT,ISTAT)
-
-C Depending on current folder invoke tar with list of file names and
-C create a tar file which includes root name of the project and the
-C current pid number (to prevent overwriting).
-C Use ifdef compiler variable passed into Make to identify which
-C tar option to use. Most typical is -T.
-      option=' -T '
-
-C Unix/Linux/Cygwin versions of tar.
-      call esppid(ipid)
-      write(LFIL,'(a,i7,a)') cfgroot(1:lnblnk(cfgroot)),ipid,'.tar'
-      call st2file(LFIL,LF)
-      if(patdot)then
-        write(doit,'(4a)',IOSTAT=IOS,ERR=3) 'cd ../../; tar cf ',
-     &    LF(1:lnblnk(LF)),option,LTMPFL(1:lnblnk(LTMPFL))
-        call usrmsg('creating archive via',doit,'-')
-        call runit(doit,'-')
-      endif
-      if(patcfg)then
-        write(doit,'(4a)',IOSTAT=IOS,ERR=3) 'cd ../; tar cf ',
-     &    LF(1:lnblnk(LF)),option,LTMPFL(1:lnblnk(LTMPFL))
-        call usrmsg('creating archive via',doit,'-')
-        call runit(doit,'-')
-      endif
-      if(patroot)then
-        write(doit,'(4a)',IOSTAT=IOS,ERR=3) 'cd ./; tar cf ',
-     &    LF(1:lnblnk(LF)),option,LTMPFL(1:lnblnk(LTMPFL))
-        call usrmsg('creating archive via',doit,'-')
-        call runit(doit,'-')
-      endif
-      call usrmsg(' ',' ','P')
-
-      return
-
-    2 if(IOS.eq.2)then
-        CALL USRMSG('Permission problem when writing data.',' ','W')
-      else
-        CALL USRMSG('Problem writing data.',' ','W')
-      endif
-      call ERPFREE(IUNIT,ISTAT)
-      return
-    3 if(IOS.eq.2)then
-        CALL USRMSG(
-     &   'Permission problem writing archive command.',' ','W')
-      else
-        CALL USRMSG('Problem writing archive command.',' ','W')
-      endif
-      return
-      end
-
 C e2vef takes an esp-r problem definition and creates a vef
 C vertex-edge-face file in file unit ioout (assumed to already be opened).
       subroutine e2vef(itrc,ioout,act,icol)
@@ -2808,7 +2062,7 @@ C vertex-edge-face file in file unit ioout (assumed to already be opened).
 
 C Parameter
       character act*1  ! g for GEN p for PLA
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/C1/NCOMP,NCON
@@ -2968,14 +2222,12 @@ C ************ create_dummy_zones
       subroutine create_dummy_zones()
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0 and G2.
 #include "geometry.h"
 #include "prj3dv.h"
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
 
       integer ncomp,ncon
@@ -3080,8 +2332,7 @@ C Update the connection list and hash.
 C Update the G7 common blocks and then assign ZBASEA.
         call zgupdate(1,ICOMP,ier)
 
-        ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-        ZBASEA(icomp)= SSNA(ibcs)
+        ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
 
 C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of

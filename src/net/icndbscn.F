@@ -81,7 +81,7 @@ C espriou.h provides currentfile.
 
       COMMON/ICONDBNAM/ICONDBFL
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DEFLT3/DFCFD,DECMPDBFL,DICONDBFL
 
       dimension iatrdom(MNWKTYP),dtagatr(MNWKTYP,MIATRB,5),
@@ -95,7 +95,7 @@ C espriou.h provides currentfile.
       character dgtagatr*12,dgmenuatr*32,dgatrib*12
       character*72 DFCFD,DECMPDBFL,DICONDBFL
 
-      LOGICAL OK,DOK,CONT
+      LOGICAL OK,CONT
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -130,11 +130,10 @@ C base list.
       ICONFIL=IFIL+1
       CALL EFOPSEQ(ICONFIL,ICONDBFL,1,IER)
       IF(IER.NE.0) THEN
-        dok=.false.
         helptopic='scan_of_icon_db'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('could not find the icon database.','Try again?',
-     &    OK,dok,nbhelp)
+        CALL EASKOK('Could not locate the icons database!','Retry?',
+     &    OK,nbhelp)
         IF(.NOT.OK) THEN 
           IER=1
           CALL ERPFREE(ICONFIL,ISTAT)
@@ -469,7 +468,7 @@ C   the menu associated with the icon (icmenu 36 char)
 
       COMMON/ICONDBNAM/ICONDBFL
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       dimension vert(MICNV,2),iedge(MICNE,5),idot(MICND,4),
      &  iarc(MICND,7),ilabel(MICND,4),labeltx(MICND),text(60),
@@ -820,7 +819,7 @@ C  the icon in the db (40 char).
 
       COMMON/ICONDBNAM/ICONDBFL
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character tagatr*12,menuatr*32,atrib*12
       dimension tagatr(MIATRB,5),atrib(MIATRB,3),menuatr(MIATRB)
@@ -1304,7 +1303,7 @@ C subsequent access to arrays.
 
       COMMON/ICONDBNAM/ICONDBFL
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER OUTSTR*124,outs*124,WORD*24,PHRASE*48
       CHARACTER ICONDBFL*72

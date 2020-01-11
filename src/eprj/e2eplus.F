@@ -32,21 +32,14 @@ C ver (real) should be 7.2 8.0 8.5 8.8 9.0
 #include "building.h"
 #include "model.h"
 #include "site.h"
-
-C geometry.h provides commons G0/G1/G2/G4/G5/G7/G9/prec2/prec17/precz/GS5/GS6.
 #include "geometry.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure database)
-C LOPTDB,IOPTDB (for optical database)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
-C ICLIM,LCLIM (for climate file)
 #include "material.h"
 #include "schedule.h"
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       
@@ -104,7 +97,7 @@ C Extended simulation parameters for each set.
 
       character GDESCR*36
       CHARACTER NAM*72,outs*124
-      character CLMLOC*30
+      character CLMLOC*42
       character ctldoc*248,LCTLF*72
       character ZSDES*28,ZSDESC*20,ZSDESS*16,mlc_name*32
       character dstmp*24
@@ -170,7 +163,7 @@ C << need to revise OPT to be 32 char >>
       logical found,close,close1,foundmlc
       logical closea,closeb,closec,closed,closee,closef
       logical haveobs,haveish,havehc,haveusrgrnd,havestdgrnd,XST
-      logical loadonday,ok,dok
+      logical loadonday,ok
       logical newgeo  ! to use for testing if new/old geometry file
       logical findchildvert  ! to remember child vertices
       logical treatasmass    ! if true treat surface as internal mass
@@ -180,7 +173,7 @@ C << need to revise OPT to be 32 char >>
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp         ! number of help lines found
 
 C Viewfactor to ground.
       dimension PROPG(8)
@@ -349,11 +342,9 @@ C blocks, otherwise set to `MinimalShadowing`.
         endif
       endif
 
-C Confirm use of CTF
-      dok=.false.
+C Confirm use of CTF.
       nbhelp=1  ! need to work up some help messages
-      call askok('Do you want to use ConductionTransferFunction',
-     &  '(a no forces ConductionFiniteDifference)?',usectf,dok,nbhelp)
+      call easkok(' ','Use ConductionTransferFunction?',usectf,nbhelp)
 
 C Interpret warmup days. Use simulation parameter set value or calculate
 C via call to scntcnst. If newer idf also write out minimum warmup.
@@ -1548,9 +1539,6 @@ C Further logic required if there is more than one radiant/convective split.
         WRITE(ioout,'(3a)',iostat=ios,err=5) indent,
      &    sim,'   !- End-Use Category'
 
-
-C --------------------------------------
-
 C Write out the initial portion of people compact schedule.
   12    continue
         WRITE(ioout,'(a)',iostat=ios,err=7) ' '
@@ -1856,7 +1844,7 @@ C Debug.
 
         DO 64 IS=1,NSUR
           icc=izstocn(mz,is)
-          ichil=ichild(icc,1)
+C          ichil=ichild(icc,1)
 
 C Info about children of this surface.
 C Debug.
@@ -2064,12 +2052,10 @@ C If ESP-r thinks there is no parent confirm with user.
               write(outs,'(3a)')'Surface ',ZSDES(1:lnblnk(ZSDES)),
      &          ' is transparent without parent surface.'
               call edisp(iuout,outs)
-              dok=.false.
               izz=ic1(icc)
               write(outs,'(5a)') 'Does ',sname(mz,is),
      &          ' have a parent surface in ',zname(izz),'?'
-              call askok(outs,
-     &          ' (saying no skips this subsurface)',ok,dok,nbhelp)
+              call easkok(' ',outs,ok,nbhelp)
               if(ok)then
                 write(outs,'(5a)') 'Specify parent surface for ',
      &            sname(mz,is),' in ',zname(izz),'.'
@@ -2297,7 +2283,7 @@ C CEN or a Dynamic Similar connection that does not have an opposite.
      &          zname(mz)(1:lnzname(mz)),
      &          com,'   !- Zone Name'
               WRITE(ioout,'(a,f8.4,2a)',iostat=ios,err=6) indent,
-     &          SSNA(icc),sim,'   !-  Surface Area {m2}'
+     &          SNA(mz,is),sim,'   !-  Surface Area {m2}'
               goto 60   ! jump to next surface
             else
 

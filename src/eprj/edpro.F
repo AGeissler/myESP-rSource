@@ -53,7 +53,7 @@ C   control information to the configuration control file.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION ITEM(35)
       CHARACTER outs*124,KEY*1,ITEM*42
@@ -308,7 +308,7 @@ C << as multiple casual gain types
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -575,7 +575,7 @@ C EDEVENT: Edit details of a profile event.
       SUBROUTINE EDEVENT(IPR,IFOC,IER)
 #include "esprdbfile.h"
 #include "profile.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
       logical shiftnext
 
@@ -737,7 +737,7 @@ C << to pack the output.
       integer lnblnk  ! function definition
       CHARACTER*(*) LLASCI   ! ascii file name
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character ermsg*48   ! for read error messages
 
       IER =0
@@ -793,6 +793,7 @@ C based on the current common block data.
 #include "esprdbfile.h"
 #include "profile.h"
 
+      common/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       integer ifs,itfs,imfs
@@ -819,6 +820,8 @@ C based on the current common block data.
         call usrmsg(' ',' Profile requested not within db','W')
         return
       endif
+
+      if(mmod.ne.8) return
 
       YMAX=100.
       YMIN=0.
@@ -851,9 +854,7 @@ C Pick up the data increment for the horizontal axis.
 C Print header
       WRITE(etext,16)IPRO,PDBDESC(IPRO)
    16 FORMAT('Profile ',I3,': ',A40)
-      iside=1
-      isize=0
-      ifont=ifs
+      iside=1; isize=0; ifont=ifs
       call viewtext(etext,iside,isize,ifont)
 
       DO 60 I=1,MPRFDBPER

@@ -5,6 +5,8 @@ C  mfwfdraw - draws 3D flow network overlay on wireframe from commons passed col
 C  symbol_flow_nd - draws a flow node symbol passed name type colour & position
 C  symbol_flow_cmp - draws a flow component symbol passed name type colour & position
 C  draw_flow_link - draws a flow connection between two coordinates
+C  draw_connect_assoc - draws the nodes & components associated
+C                       with flow connection IFCN.
 C  draw_surf_flow_symbol - places flow symbol after user chooses surface USE 
 
 C mfcompposition - user interactions eastablishing flow component position.
@@ -16,7 +18,7 @@ C create_surface_node_cmp - scans surface USE attributes related to mass flows,
 C   extracts position information, fills flow common blocks.
 C isuseflowrelated - tests whether surface attributes are flow related.
 
-C ************************* MFWFDRAW 
+C ************************* MFWFDRAW
 C MFWFDRAW Fluid flow file: draw common block contents.
 C colour is either 'r' red, 'b' blue or 'g' grey50 for components.
       SUBROUTINE MFWFDRAW(col)
@@ -24,11 +26,11 @@ C colour is either 'r' red, 'b' blue or 'g' grey50 for components.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      
-C      COMMON/OUTIN/IUOUT,IUIN
+
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       character col*1
-      CHARACTER name*12
+      CHARACTER name*12,twochar*2
       integer POS,NEG,CMPIS
       real xc,yc,zc,xw,yw,zw
       logical inview,inv2,inv3,iswater
@@ -75,6 +77,8 @@ C Component data.
       IF(NCMP.gt.0)then
         DO ICMP=1,NCMP
           name=CMNAM(ICMP)
+          call get_component_code(ICMP,twochar)
+          
           xc=HCMP(ICMP,1,1);yc=HCMP(ICMP,1,2); zc=HCMP(ICMP,1,3)
           call withinview(xc,yc,zc,inview,ier)
           if(inview)then
@@ -155,7 +159,7 @@ C Component data.
               call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Specific air flow
               call pausems(30)
             ELSE IF(ITPCMP(ICMP).EQ.120) THEN
-              call symbol_flow_cmp(name,'cr',col,xc,yc,zc) ! Specific air flow crack 
+              call symbol_flow_cmp(name,'cr',col,xc,yc,zc) ! Specific air flow crack
               call pausems(30)
             ELSE IF(ITPCMP(ICMP).EQ.130) THEN
               call symbol_flow_cmp(name,'bi',col,xc,yc,zc) ! Specific air flow door
@@ -318,7 +322,7 @@ C Write name for other than 'iu'.
       endif
       iicol=0
       call winscl('-',iicol)
-      
+
       return
       end
 
@@ -426,7 +430,7 @@ C Write name to the right of the symbol.
       endif
       iicol=0
       call winscl('-',iicol)
-      
+
       return
       end
 
@@ -438,7 +442,7 @@ C component in such as way as to not obscure node and/or component.
 #include "building.h"
 #include "prj3dv.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       real xs,ys,zs,xe,ye,ze
       character col*1
       real tdis
@@ -451,7 +455,7 @@ C      character outs*124
 #endif
 
       if(MMOD.lt.8) return  ! in text mode do not draw
-      
+
 C Find distance and report.
       tdis= crowxyz(xs,ys,zs,xe,ye,ze)
 C      write(outs,'(a,3f7.3,a,3f7.3,a,f9.4)') ' Distance between ',
@@ -500,7 +504,6 @@ C      iicol=0  ! red
       return
       end
 
-C  
 C Based on the surface USE attributes draw relevant symbol
 C on the wire-frame. If act 'v' show names.
       subroutine draw_surf_flow_symbol(loop,act)
@@ -517,7 +520,7 @@ C Passed parameters.
       integer loop     ! the connection number for the surface
       character act*1  ! '-' try not to show component name
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -541,7 +544,7 @@ C Cases to ignore.
       endif
 
 C Under what circumstances do we not want to draw symbols?  << NOT YET DECIDED >>
-C      if(IAIRN.eq.3) return  
+C      if(IAIRN.eq.3) return
 
       PI = 4.0 * ATAN(1.0)
 
@@ -567,7 +570,7 @@ C Jump out when inthenetwork becomes true.
      &       SN(1:lnsn).eq.CMPASSOC(loop2,2)(1:lncsn))then
             write(name,'(a)') CMNAM(loop2)(1:lnblnk(CMNAM(loop2)))
             xc=HCMP(loop2,1,1); yc=HCMP(loop2,1,2) ! recover
-            zc=HCMP(loop2,1,3) 
+            zc=HCMP(loop2,1,3)
             inthenetwork=.true.
             EXIT
           endif
@@ -591,17 +594,17 @@ C For DOOR variants.
           continue   ! no flow
         elseif(SUSE(iz,is,2)(1:8).eq.'UNDERCUT')then
 
-C Undercut at door - crack component, assume width = 5mm, length = door width
+C Undercut at door - crack component, assume width = 10mm, length = door width
 C at lowest horizontal edge.  Ok.
           if(inthenetwork)then
             continue
           else
             write(name,'(a)') 'DoCr'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
             zc=edgelower
           endif
           write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &    ' door undercut 5mm x ',XYMAX,'m @XYZ',xc,yc,zc
+     &    ' door undercut 10mm x ',XYMAX,'m @XYZ',xc,yc,zc
           if(act.eq.'v') call edisp(iuout,outs)
           if(inthenetwork)then
             call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
@@ -611,17 +614,17 @@ C at lowest horizontal edge.  Ok.
           call pausems(30)
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Open door - common orifice component, (type 40) IVALCM(10) MF040I 
+C Open door - common orifice component, (type 40) IVALCM(10) MF040I
           if(inthenetwork)then
             continue
           else
             write(name,'(a)') 'DoOP'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
           endif
           write(outs,'(2a,f6.1,a,f6.1,a,f7.3,a,3f6.2)') name,
      &      ' door open width ',XYMAX,' height',ZMAX,
-     &      ' area',SSNA(loop),'m2 COG @XYZ',xc,yc,zc
+     &      ' area',SNA(iz,is),'m2 COG @XYZ',xc,yc,zc
           if(act.eq.'v') call edisp(iuout,outs)
           if(inthenetwork)then
             call symbol_flow_cmp(name,'or','r',xc,yc,zc)
@@ -636,8 +639,8 @@ C Bidirectional door - door component,  IVALCM(14)=130 MF130I
             continue
           else
             write(name,'(a)') 'DoBI'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
           endif
           VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
           write(outs,'(2a,f6.1,a,f6.1,a,3f7.3,a,f6.3)') name,
@@ -667,8 +670,8 @@ C length = 0.5* frame inside perimeter, on centre line. OK
             continue
           else
             write(name,'(a)') 'FrCr'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
           endif
           write(outs,'(2a,f6.1,a,3f7.3)') name,
      &      ' frame crack width 1mm len',perim*0.5,' COG @XYZ',
@@ -682,17 +685,17 @@ C length = 0.5* frame inside perimeter, on centre line. OK
           call pausems(30)
         elseif(SUSE(iz,is,2)(1:4).eq.'VENT')then
 
-C Frame trickle vent - air flow opening, assume width = 0.2* frame inside width,
+C Frame trickle vent - air flow opening, assume width = 0.25* frame inside width,
 C height = 10mm, at highest horizontal edge. OK
           if(inthenetwork)then
             continue
           else
             write(name,'(a)') 'FrVe'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
             zc=edgeupper
           endif
           write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &      ' frame trickle vent width ',XYMAX*0.2,' height 10mm @XYZ',
+     &      ' frame trickle vent width ',XYMAX*0.25,' height 10mm @XYZ',
      &      xc,yc,zc
           if(act.eq.'v') call edisp(iuout,outs)
           if(inthenetwork)then
@@ -716,8 +719,8 @@ C length = 0.5* frame inside perimeter, on centre line.
             continue
           else
             write(name,'(a)') 'GrCR'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
           endif
           write(outs,'(2a,f6.1,a,3f7.3)') name,
      &      ' grill crack width 1mm length',perim*0.5,' COG @XYZ',
@@ -737,12 +740,12 @@ C Grill inlet - a conduit (type 210) IVALCM(15), as in MF210I
             continue
           else
             write(name,'(a)') 'GrIN'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
           endif
           write(outs,'(2a,f6.1,a,3f7.3)') name,
      &      ' grill inlet hydr diam',
-     &      4.0*SSNA(loop)/perim,' COG @XYZ',xc,yc,zc
+     &      4.0*SNA(iz,is)/perim,' COG @XYZ',xc,yc,zc
           if(act.eq.'v') call edisp(iuout,outs)
           if(inthenetwork)then
             call symbol_flow_cmp(name,'cd','r',xc,yc,zc)
@@ -758,12 +761,12 @@ C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
             continue
           else
             write(name,'(a)') 'GrEX'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
           endif
           write(outs,'(2a,f6.1,a,3f7.3)') name,
      &      ' grill extract hydr diam',
-     &      4.0*SSNA(loop)/perim,' COG @XYZ',xc,yc,zc
+     &      4.0*SNA(iz,is)/perim,' COG @XYZ',xc,yc,zc
           if(act.eq.'v') call edisp(iuout,outs)
           if(inthenetwork)then
             call symbol_flow_cmp(name,'bx','r',xc,yc,zc)
@@ -773,17 +776,17 @@ C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
           call pausems(30)
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I 
+C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I
           call zsurfprm(iz,is,dupedges,perim)
           if(inthenetwork)then
             continue
           else
             write(name,'(a)') 'GrOP'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
           endif
           write(outs,'(2a,f6.1,a,3f6.2)') name,
-     &      ' grill orifice area',SSNA(loop),' COG @XYZ',
+     &      ' grill orifice area',SNA(iz,is),' COG @XYZ',
      &      xc,yc,zc
           if(act.eq.'v') call edisp(iuout,outs)
           if(inthenetwork)then
@@ -809,8 +812,8 @@ C length = window width, at surface COG.
             continue
           else
             write(name,'(a)') 'WiCr'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
           endif
           write(outs,'(2a,f6.1,a,3f7.3)') name,
      &      ' window crack width 1mm length',XYMAX,' @XYZ',xc,yc,zc
@@ -823,7 +826,7 @@ C length = window width, at surface COG.
           call pausems(30)
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Window open - common orifice component, (type 40) IVALCM(10) MF040I 
+C Window open - common orifice component, (type 40) IVALCM(10) MF040I
           if(inthenetwork)then
             continue
           else
@@ -833,8 +836,8 @@ C Window open - common orifice component, (type 40) IVALCM(10) MF040I
             if(inthenetwork)then
               continue
             else
-              xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-              zc=SSURCOG(loop,3)
+              xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+              zc=SURCOG(iz,is,3)
             endif
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &        ' window open width ',XYMAX*0.25,' height',ZMAX,
@@ -843,8 +846,8 @@ C Window open - common orifice component, (type 40) IVALCM(10) MF040I
             if(inthenetwork)then
               continue
             else
-              xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-              zc=SSURCOG(loop,3)
+              xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+              zc=SURCOG(iz,is,3)
             endif
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &        ' window open width ',XYMAX,' height',ZMAX*0.25,
@@ -864,7 +867,7 @@ C Window sash - 2 common orifice component, (type 40) IVALCM(10) MF040I
             continue
           else
             write(name,'(a)') 'WiSL'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
             zc=edgelower
           endif
           write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f6.2)') name,
@@ -877,13 +880,13 @@ C Window sash - 2 common orifice component, (type 40) IVALCM(10) MF040I
             call symbol_flow_cmp(name,'or','g',xc,yc,zc)
           endif
           call pausems(30)
-    
+
 C Now create the upper orifice.
           if(inthenetwork)then
             continue
           else
             write(name,'(a)') 'WiSU'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
             zc=edgeupper
           endif
           write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f6.2)') name,
@@ -898,13 +901,13 @@ C Now create the upper orifice.
           call pausems(30)
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
-C Window bidirectional - specific door component width & height 
+C Window bidirectional - specific door component width & height
           if(inthenetwork)then
             continue
           else
             write(name,'(a)') 'WiBi'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
           endif
           VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
           write(outs,'(2a,f6.1,a,f6.1,a,3f7.3,a,f6.3)') name,
@@ -931,7 +934,7 @@ C length = window width, at lowest horizontal edge.
             continue
           else
             write(name,'(a)') 'FiCR'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
             zc=edgelower
           endif
           write(outs,'(2a,f6.1,a,3f7.3)') name,
@@ -945,7 +948,7 @@ C length = window width, at lowest horizontal edge.
           call pausems(30)
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I 
+C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I
           if(inthenetwork)then
             continue
           else
@@ -955,8 +958,8 @@ C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I
             if(inthenetwork)then
               continue
             else
-              xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-              zc=SSURCOG(loop,3)
+              xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+              zc=SURCOG(iz,is,3)
             endif
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &      ' fict open width ',XYMAX*0.25,' height',ZMAX,
@@ -965,8 +968,8 @@ C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I
             if(inthenetwork)then
               continue
             else
-              xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-              zc=SSURCOG(loop,3)
+              xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+              zc=SURCOG(iz,is,3)
             endif
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &      ' fict open width ',XYMAX,' height',ZMAX*0.25,
@@ -986,7 +989,7 @@ C Fict bi-directional - door component IVALCM(14)=130 MF130I
             continue
           else
             write(name,'(a)') 'FiBI'
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
             zc=edgelower
           endif
           write(outs,'(2a,f6.1,a,f6.1,a,3f7.3)') name,
@@ -1004,7 +1007,486 @@ C Fict bi-directional - door component IVALCM(14)=130 MF130I
       return
       end
 
-C ***************** mfcompposition 
+C ***************** draw_node_assoc
+C draw_connect_assoc draws the connections & components associated
+C with flow node X.
+      subroutine draw_node_assoc(IFNOD)
+#include "building.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+#include "model.h"
+#include "geometry.h"
+#include "prj3dv.h"
+
+      integer lnblnk  ! function definition
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/FILEP/IFIL
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
+      CHARACTER LAPROB*72
+      COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+
+      CHARACTER outs*124
+      logical inview
+      logical found
+      CHARACTER name*12,zn*12,sn*12,twochar*2
+      character altcol*1
+      character col*1
+      real xc,yc,zc,xw,yw,zw
+
+C If 3D and graphic mode draw the zones associated with the
+C connection if they are internal known/unknown as well as 
+c adjacent connections (in grey) and highlight the current connection.
+      nbzones=0; izn1=0; izn2=0; iposn=0; inegn=0; nzg=0
+C If 3D and graphic mode draw the node and adjacent connections.
+C If associated with a specific zone also read and draw it.
+      if(MMOD.eq.8)then  ! in text mode do not draw
+        found=.false.
+        DO loop=1,NCOMP
+          if(ICAAS(loop).gt.0)then
+            i=ICAAS(loop)
+            if(NDNAM(i).eq.NDNAM(IFNOD))then
+              write(outs,'(3A)')zname(loop)(1:lnzname(loop)),
+     &          ' is currently linked to: ',NDNAM(I)
+              call edisp(iuout,' ')
+              call edisp(iuout,outs)
+              CALL INLNST(1)
+              nzg=1
+              nznog(1)=loop
+              izgfoc=loop
+              call georead(IFIL+1,LGEOM(loop),loop,0,iuout,IER)
+              MODIFYVIEW=.TRUE.; MODBND=.TRUE.
+              ITORG=1; ITGRD=1; ITBND=1  ! do not show origin or grid
+              CALL redraw(IER)
+              found=.true.
+              exit   ! no need to loop any more
+            endif
+          endif
+        enddo  ! of loop
+
+C If not found then it is a boundary node. Add logic to draw
+C it and the adjacent zone.
+        if(.NOT.found)then
+
+C Check associated components for links to a zone.
+          nbzones=0
+          DO ICON=NCNN,1,-1
+            IF(NODPS(ICON).EQ.IFNOD.OR.NODNE(ICON).EQ.IFNOD)THEN
+              zn=cmpassoc(itpcon(icon),1)  ! get associated zone
+              lnzn=lnblnk(zn)
+              sn=cmpassoc(itpcon(icon),2)  ! get associated surface
+              lnsn=lnblnk(sn)
+              WRITE(outs,'(9A)')
+     &          NDNAM(NODPS(ICON)),' --> ',NDNAM(NODNE(ICON)),
+     &          ' via ',CMNAM(ITPCON(ICON)),' associated with ',
+     &          zn(1:lnzn),':',sn(1:lnsn)
+              CALL EDISP(IUOUT,' ')
+              CALL EDISP(IUOUT,OUTS)
+              do loop=1,NCOMP
+                 lntzn=lnblnk(zname(loop))
+                 if(zn(1:lnzn).eq.zname(loop)(1:lntzn))then
+                   nbzones=nbzones+1
+                   nzg=nbzones
+                   nznog(nbzones)=loop
+                   izgfoc=loop
+                 endif
+               enddo
+               if(nbzones.eq.1)then
+                  call georead(IFIL+1,LGEOM(izgfoc),izgfoc,0,iuout,IER)
+                  CALL INLNST(1)
+                  MODIFYVIEW=.TRUE.; MODBND=.TRUE.
+                  ITORG=1; ITGRD=1; ITBND=1 ! do not show origin or grid
+                  CALL redraw(IER)
+               elseif(nbzones.gt.1)then
+                  CALL INLNST(1)
+                  MODIFYVIEW=.TRUE.; MODBND=.TRUE.
+                  ITORG=1; ITGRD=1; ITBND=1  ! do not show origin or grid
+                  CALL redraw(IER)
+               endif
+             endif
+          ENDDO
+        endif
+        col='r'     ! red for current node.
+        altcol='b'  ! blue alternative colour
+        name=NDNAM(IFNOD)
+        xw=HNOD(IFNOD,1);yw=HNOD(IFNOD,2); zw=HNOD(IFNOD,3)
+
+C Check within viewing angle and draw node symbol.
+        call withinview(xw,yw,zw,inview,ier)
+        if(inview)then
+          if(NDTYP(IFNOD).eq.0)then
+            if(NDFLD(IFNOD).eq.1)then
+              call symbol_flow_nd(name,'iu',col,xw,yw,zw)
+            else
+              call symbol_flow_nd(name,'iu',altcol,xw,yw,zw)
+            endif
+            call pausems(30)
+          elseif(NDTYP(IFNOD).eq.1)then
+            if(NDFLD(IFNOD).eq.1)then
+              call symbol_flow_nd(name,'ik',col,xw,yw,zw)
+            else
+              call symbol_flow_nd(name,'ik',altcol,xw,yw,zw)
+            endif
+            call pausems(30)
+          elseif(NDTYP(IFNOD).eq.2)then
+            call symbol_flow_nd(name,'bk',col,xw,yw,zw)
+            call pausems(30)
+          elseif(NDTYP(IFNOD).eq.3)then
+            call symbol_flow_nd(name,'bw',col,xw,yw,zw)
+            call pausems(30)
+          endif
+                
+C Display associated connections.
+          DO ICON=NCNN,1,-1
+            IF(NODPS(ICON).EQ.IFNOD.OR.NODNE(ICON).EQ.IFNOD)THEN
+              zn=cmpassoc(itpcon(icon),1)  ! get associated zone
+              lnzn=lnblnk(zn)
+              sn=cmpassoc(itpcon(icon),2)  ! get associated surface
+              lnsn=lnblnk(sn)
+              WRITE(OUTS,'(A,I3,10A)') 
+     &          'Used by connection... ',ICON,' ',
+     &          NDNAM(NODPS(ICON)),' --> ',NDNAM(NODNE(ICON)),
+     &          ' via ',CMNAM(ITPCON(ICON)),' associated with ',
+     &          zn(1:lnzn),':',sn(1:lnsn)
+              CALL EDISP(IUOUT,OUTS)
+
+C Draw the associated components.
+              name=CMNAM(ITPCON(ICON))
+
+              IFCN=ITPCON(ICON)
+              call get_component_code(IFCN,twochar)
+
+              xc=HCMP(ITPCON(ICON),1,1); yc=HCMP(ITPCON(ICON),1,2)
+              zc=HCMP(ITPCON(ICON),1,3)
+              IF(ITPCMP(ITPCON(ICON)).EQ. 10) THEN
+                call symbol_flow_cmp(name,twochar,'b',xc,yc,zc)
+              ELSE
+                call symbol_flow_cmp(name,twochar,col,xc,yc,zc)
+              ENDIF
+
+C Draw the connection betwen node and component (but not to the other node).
+              call draw_flow_link(xw,yw,zw,xc,yc,zc,col)
+            endif
+          ENDDO
+        endif    ! node within viewing area
+      endif      ! of graphic mode
+      
+      end
+
+C ***************** draw_connect_assoc
+C draw_connect_assoc draws the nodes & components associated
+C with flow connection IFCN.
+      subroutine draw_connect_assoc(IFCN)
+#include "building.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+#include "model.h"
+#include "geometry.h"
+#include "prj3dv.h"
+
+      integer lnblnk  ! function definition
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/FILEP/IFIL
+      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
+      CHARACTER LAPROB*72
+      COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+
+      CHARACTER outs*124
+      logical inview
+      CHARACTER name*12,zn*12,sn*12,twochar*2
+      character altcol*1
+      character col*1
+      real xc,yc,zc,xw,yw,zw
+
+C If 3D and graphic mode draw the zones associated with the
+C connection if they are internal known/unknown as well as 
+c adjacent connections (in grey) and highlight the current connection.
+      nbzones=0; izn1=0; izn2=0; iposn=0; inegn=0; nzg=0
+      if(NDTYP(NODPS(IFCN)).eq.0.or.NDTYP(NODPS(IFCN)).eq.1)then
+        do loop=1,NCOMP
+          if(ICAAS(loop).gt.0)then
+            i=ICAAS(loop)
+            if(NDNAM(i).eq.NDNAM(NODPS(IFCN)))then
+              write(outs,'(3A)')zname(loop)(1:lnzname(loop)),
+     &          ' is currently linked to +node: ',NDNAM(I)
+              call edisp(iuout,' ')
+              call edisp(iuout,outs)
+              nbzones=nbzones+1
+              nzg=nzg+1
+              nznog(nbzones)=loop
+              izgfoc=loop
+              izn1=loop; iposn=NODPS(IFCN) ! remember zone and pos node
+              CYCLE  ! no need to check further
+            endif
+          endif
+        enddo
+      else
+        iposn=NODPS(IFCN)
+      endif
+      if(NDTYP(NODNE(IFCN)).eq.0.or.NDTYP(NODNE(IFCN)).eq.1)then
+        do loop=1,NCOMP
+          if(ICAAS(loop).gt.0)then
+            i=ICAAS(loop)
+            if(NDNAM(i).eq.NDNAM(NODNE(IFCN)))then
+              write(outs,'(3A)')zname(loop)(1:lnzname(loop)),
+     &          ' is currently linked to -node: ',NDNAM(I)
+              call edisp(iuout,' ')
+              call edisp(iuout,outs)
+              nbzones=nbzones+1  ! node positive
+              nzg=nzg+1
+              nznog(nbzones)=loop
+              izgfoc=loop
+              if(nbzones.eq.1)izn1=loop   ! remember zone
+              if(nbzones.eq.2)then
+                izn2=loop
+                izgfoc=0    ! set to draw multiple zones
+              endif
+              inegn=NODNE(IFCN)           ! and negative node
+              CYCLE  ! no need to check further
+            endif
+          endif
+        enddo
+      else
+        inegn=NODNE(IFCN)
+      endif
+      if(nbzones.eq.1)then
+        call georead(IFIL+1,LGEOM(izn1),izn1,0,iuout,IER)
+        CALL INLNST(1)
+        MODIFYVIEW=.TRUE.; MODBND=.TRUE.
+        ITORG=1; ITGRD=1; ITBND=1  ! do not show origin or grid
+        CALL redraw(IER)
+      elseif(nbzones.gt.1)then
+        CALL INLNST(1)
+        MODIFYVIEW=.TRUE.; MODBND=.TRUE.
+        ITORG=1; ITGRD=1; ITBND=1  ! do not show origin or grid
+        CALL redraw(IER)
+      endif
+
+C Draw the positive node.
+      col='r'     ! red for current node.
+      altcol='b'  ! blue alternative colour
+      name=NDNAM(iposn)
+      xw=HNOD(iposn,1);yw=HNOD(iposn,2); zw=HNOD(iposn,3)
+
+C Check within viewing angle and draw node symbol.
+      call withinview(xw,yw,zw,inview,ier)
+      if(inview)then
+        if(NDTYP(iposn).eq.0)then
+          if(NDFLD(iposn).eq.1)then
+            call symbol_flow_nd(name,'iu',col,xw,yw,zw)
+          else
+            call symbol_flow_nd(name,'iu',altcol,xw,yw,zw)
+          endif
+          call pausems(30)
+        elseif(NDTYP(iposn).eq.1)then
+          if(NDFLD(iposn).eq.1)then
+            call symbol_flow_nd(name,'ik',col,xw,yw,zw)
+          else
+            call symbol_flow_nd(name,'ik',altcol,xw,yw,zw)
+          endif
+          call pausems(30)
+        elseif(NDTYP(iposn).eq.2)then
+          call sym bol_flow_nd(name,'bk',col,xw,yw,zw)
+          call pausems(30)
+        elseif(NDTYP(iposn).eq.3)then
+          call symbol_flow_nd(name,'bw',col,xw,yw,zw)
+          call pausems(30)
+        endif
+
+C Draw connections associated with positive node.
+        DO ICON=NCNN,1,-1
+          IF(NODPS(ICON).EQ.iposn.OR.NODNE(ICON).EQ.iposn)THEN
+            if(ICON.eq.IFCN)then
+              col='r'     ! red for current connection.
+            else
+              col='g'     ! grey for current connection.
+            endif
+            zn=cmpassoc(itpcon(icon),1)  ! get associated zone
+            lnzn=lnblnk(zn)
+            sn=cmpassoc(itpcon(icon),2)  ! get associated surface
+            lnsn=lnblnk(sn)
+            WRITE(OUTS,'(A,I3,10A)') 
+     &        'Connection... ',ICON,' ',
+     &        NDNAM(NODPS(ICON)),' --> ',NDNAM(NODNE(ICON)),
+     &        ' via ',CMNAM(ITPCON(ICON)),' associated with ',
+     &        zn(1:lnzn),':',sn(1:lnsn)
+            CALL EDISP(IUOUT,OUTS)
+
+C Draw the associated components.
+            name=CMNAM(ITPCON(ICON))
+            xc=HCMP(ITPCON(ICON),1,1); yc=HCMP(ITPCON(ICON),1,2)
+            zc=HCMP(ITPCON(ICON),1,3)
+
+            IFCNT=ITPCON(ICON)
+            call get_component_code(IFCNT,twochar)
+            IF(ITPCMP(ITPCON(ICON)).EQ. 10) THEN
+              call symbol_flow_cmp(name,twochar,'b',xc,yc,zc)
+            ELSE
+              call symbol_flow_cmp(name,twochar,col,xc,yc,zc)
+            ENDIF
+
+C Draw the connection betwen node and component (but not to the other node).
+            call draw_flow_link(xw,yw,zw,xc,yc,zc,col) ! comp to positive
+          endif
+        enddo  ! of ICON
+      endif
+
+C Draw negative node.
+      col='r'     ! red for current node.
+      altcol='b'  ! blue alternative colour
+      name=NDNAM(inegn)
+      xw=HNOD(inegn,1);yw=HNOD(inegn,2); zw=HNOD(inegn,3)
+
+C Check within viewing angle and draw node symbol.
+      call withinview(xw,yw,zw,inview,ier)
+      if(inview)then
+        if(NDTYP(inegn).eq.0)then
+          if(NDFLD(inegn).eq.1)then
+            call symbol_flow_nd(name,'iu',col,xw,yw,zw)
+          else
+            call symbol_flow_nd(name,'iu',altcol,xw,yw,zw)
+          endif
+          call pausems(30)
+        elseif(NDTYP(inegn).eq.1)then
+          if(NDFLD(inegn).eq.1)then
+            call symbol_flow_nd(name,'ik',col,xw,yw,zw)
+          else
+            call symbol_flow_nd(name,'ik',altcol,xw,yw,zw)
+          endif
+          call pausems(30)
+        elseif(NDTYP(inegn).eq.2)then
+          call symbol_flow_nd(name,'bk',col,xw,yw,zw)
+          call pausems(30)
+        elseif(NDTYP(inegn).eq.3)then
+          call symbol_flow_nd(name,'bw',col,xw,yw,zw)
+          call pausems(30)
+        endif
+
+C Draw connections (grey) associated with negative node.
+        DO ICON=NCNN,1,-1
+          IF(NODPS(ICON).EQ.inegn.OR.NODNE(ICON).EQ.inegn)THEN
+            if(ICON.eq.IFCN)then
+              col='r'     ! red for current connection.
+            else
+              col='g'     ! red for current connection.
+            endif
+            zn=cmpassoc(itpcon(icon),1)  ! get associated zone
+            lnzn=lnblnk(zn)
+            sn=cmpassoc(itpcon(icon),2)  ! get associated surface
+            lnsn=lnblnk(sn)
+            WRITE(OUTS,'(A,I3,10A)') 
+     &        'Connection... ',ICON,' ',
+     &        NDNAM(NODPS(ICON)),' --> ',NDNAM(NODNE(ICON)),
+     &        ' via ',CMNAM(ITPCON(ICON)),' associated with ',
+     &        zn(1:lnzn),':',sn(1:lnsn)
+            CALL EDISP(IUOUT,OUTS)
+
+C Draw the associated components.
+            name=CMNAM(ITPCON(ICON))
+            xc=HCMP(ITPCON(ICON),1,1); yc=HCMP(ITPCON(ICON),1,2)
+            zc=HCMP(ITPCON(ICON),1,3)
+
+            IFCNT=ITPCON(ICON)
+            call get_component_code(IFCNT,twochar)
+            IF(ITPCMP(ITPCON(ICON)).EQ. 10) THEN
+              call symbol_flow_cmp(name,twochar,'b',xc,yc,zc)
+            ELSE
+              call symbol_flow_cmp(name,twochar,col,xc,yc,zc)
+            ENDIF
+
+C Draw the connection betwen node and component (but not to the other node).
+            call draw_flow_link(xw,yw,zw,xc,yc,zc,col) ! comp to negative
+          endif
+        enddo  ! of ICON
+      endif
+
+C Force highlight both legs of connection plus component.
+      col='r'     ! red for current connection.
+      xw=HNOD(iposn,1);yw=HNOD(iposn,2); zw=HNOD(iposn,3)
+      xc=HCMP(ITPCON(IFCN),1,1); yc=HCMP(ITPCON(IFCN),1,2)
+      zc=HCMP(ITPCON(IFCN),1,3)
+      call get_component_code(IFCN,twochar)
+      call symbol_flow_cmp(name,twochar,col,xc,yc,zc)
+      call draw_flow_link(xw,yw,zw,xc,yc,zc,col) ! comp to positive
+      xw=HNOD(inegn,1);yw=HNOD(inegn,2); zw=HNOD(inegn,3)
+      call draw_flow_link(xw,yw,zw,xc,yc,zc,col) ! comp to negative
+      return
+      end    ! of draw_connect_assoc
+
+C ***************** get_component_code
+C get_component_code returns a 2 character code for the component
+C type to use when drawing components.
+C with flow connection IFCN.
+      subroutine get_component_code(IFCN,twochar)
+#include "building.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+
+      integer IFCN    ! flow component
+      character twochar*2
+
+      twochar='--'
+      IF(ITPCMP(IFCN).EQ. 10) THEN
+        twochar='bx'
+      ELSEIF(ITPCMP(IFCN).EQ. 12) THEN
+        twochar='bx' ! power law vol flow (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 15) THEN
+        twochar='bx' ! power law mass flow (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 17) THEN
+        twochar='bx' ! power law mass flow (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 20) THEN
+        twochar='bx' ! quadratic law vol flow (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 25) THEN
+        twochar='bx' ! quadratic law mass flow (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 30) THEN
+        twochar='bx' ! constant vol flow (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 35) THEN
+        twochar='bx' ! constant mass flow (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 40) THEN
+        twochar='or' ! Common orifice flow
+      ELSEIF(ITPCMP(IFCN).EQ. 50) THEN
+        twochar='cd' ! Laminar pipe vol
+      ELSEIF(ITPCMP(IFCN).EQ. 110) THEN
+        twochar='or' ! Specific air flow
+      ELSEIF(ITPCMP(IFCN).EQ. 120) THEN
+        twochar='cr' ! Specific air flow crack
+      ELSEIF(ITPCMP(IFCN).EQ. 130) THEN
+        twochar='bi' ! Specific air flow door
+      ELSEIF(ITPCMP(IFCN).EQ. 210) THEN
+        twochar='cd' ! General flow conduit
+      ELSEIF(ITPCMP(IFCN).EQ. 211) THEN
+        twochar='bx' ! Cowls and roof outlets (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 220) THEN
+        twochar='cd' ! Conduit ending in conv 3 leg
+      ELSEIF(ITPCMP(IFCN).EQ. 230) THEN
+        twochar='cd' ! Conduit starts in diverg 3 leg
+      ELSEIF(ITPCMP(IFCN).EQ. 240) THEN
+        twochar='cd' ! Conduit ending in conv 4 leg
+      ELSEIF(ITPCMP(IFCN).EQ. 250) THEN
+        twochar='cd' ! Conduit starts in diverg 4 leg
+      ELSEIF(ITPCMP(IFCN).EQ. 310) THEN
+        twochar='bx' ! General flow inducer (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 410) THEN
+        twochar='bx' ! General flow corrector (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 420) THEN
+        twochar='bx' ! Corrector polynomial (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 460) THEN
+        twochar='bx' ! Fixed flow rates controller (box)
+      ELSEIF(ITPCMP(IFCN).EQ. 500) THEN
+        twochar='bx' ! multi-configuration (box)
+      ENDIF
+      return
+      end  ! of get_component_code
+
+C ***************** mfcompposition
 C mfcompposition does user interactions for flow component position.
 C passed component index and returns associated zone & surface, the
 C position and several useful surface derived attributes.
@@ -1028,20 +1510,17 @@ C Parameters passed
       real cwidth,cheight ! returned surface width & height
       integer IER  ! 0=use all returns, 1 use only position,  3 not 3D file
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       CHARACTER LAPROB*72
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       common/gzonpik/izgfoc,nzg,nznog(mcom)
 
       CHARACTER outs*124,HOLD*36,MSG*48
       real edgelower,edgeupper  ! Z of current surface lower & upper edges.
-      integer loop
       integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
       logical dupedges
 
@@ -1094,7 +1573,7 @@ C General image option flags. Rescan the zone geometry file.
           CALL BNDOBJ(0,IER)
           CALL ERCZONE(IZ)
           ITDSP=1; ITBND=1; ITEPT=0; ITZNM=0; ITSNM=0
-          ITVNO=1; ITORG=1; ITSNR=1; ITGRD=1
+          ITVNO=1; ITORG=1; ITBND=1; ITSNR=1; ITGRD=1
           GRDIS=0.0; ITPPSW=0
 
 C Reset all surface lines to standard width and display the zone.
@@ -1110,7 +1589,6 @@ C Reset all surface lines to standard width and display the zone.
           CALL EASKSUR(IZ,ISO,'A','Select surface ',
      &      'to associate with this flow entity.',IER)
           CALL EPMENRC
-          loop=izstocn(iz,iso)
 
 C Note: llpos, lrpos etc are the position in the iszjvn list at each
 C of the corners of the surface.
@@ -1121,21 +1599,21 @@ C of the corners of the surface.
             edgeupper=szcoords(iz,iszjvn(iz,iso,ulpos),3)
           endif
           write(outs,'(a,3f8.3)') 'Surface COG is:',
-     &      SSURCOG(loop,1),SSURCOG(loop,2),SSURCOG(loop,3)
+     &      SURCOG(iz,iso,1),SURCOG(iz,iso,2),SURCOG(iz,iso,3)
           call edisp(iuout,outs)
           write(outs,'(a,3f8.3)') 'Surface upper edge is:',
-     &      SSURCOG(loop,1),SSURCOG(loop,2),edgeupper
+     &      SURCOG(iz,iso,1),SURCOG(iz,iso,2),edgeupper
           call edisp(iuout,outs)
           write(outs,'(a,3f8.3)') 'Surface lower edge is:',
-     &      SSURCOG(loop,1),SSURCOG(loop,2),edgelower
+     &      SURCOG(iz,iso,1),SURCOG(iz,iso,2),edgelower
           call edisp(iuout,outs)
           write(outs,'(a,f7.1,f6.2)') 'Surface area & perimeter:',
-     &      SSNA(loop),perim 
+     &      SNA(iz,iso),perim
           call edisp(iuout,outs)
           write(outs,'(a,f7.1,f6.2)') 'Surface width & height:',
-     &      XYMAX,ZMAX 
+     &      XYMAX,ZMAX
           call edisp(iuout,outs)
-          carea=SSNA(loop)  ! instanciate suggested values
+          carea=SNA(iz,iso)  ! instanciate suggested values
           cperim=perim
           cwidth=XYMAX
           cheight=ZMAX
@@ -1146,22 +1624,22 @@ C In the future remember the COG/upper/lower/manual decision.
      &      'surface COG','surface upper edge',
      &      'surface lower edge','manual edit',IW,nbhelp)
           if(iw.eq.1)then
-            cx=SSURCOG(loop,1)
-            cy=SSURCOG(loop,2)
-            cz=SSURCOG(loop,3)
+            cx=SURCOG(iz,iso,1)
+            cy=SURCOG(iz,iso,2)
+            cz=SURCOG(iz,iso,3)
             ier=0
             call usrmsg(' ',' ','-')
             return
           elseif(iw.eq.2)then
-            cx=SSURCOG(loop,1)
-            cy=SSURCOG(loop,2)
+            cx=SURCOG(iz,iso,1)
+            cy=SURCOG(iz,iso,2)
             cz=edgeupper
             ier=0
             call usrmsg(' ',' ','-')
             return
           elseif(iw.eq.3)then
-            cx=SSURCOG(loop,1) 
-            cy=SSURCOG(loop,2)
+            cx=SURCOG(iz,iso,1)
+            cy=SURCOG(iz,iso,2)
             cz=edgelower
             ier=0
             call usrmsg(' ',' ','-')
@@ -1205,7 +1683,7 @@ C Extract XYZ values from the string.
       RETURN
       END
 
-C ***************** mfnodeposition 
+C ***************** mfnodeposition
 C mfnodeposition does user interactions for flow node position.
 C passed node index and returns associated zone & surface, the
 C position and several useful surface derived attributes.
@@ -1227,20 +1705,17 @@ C Parameters passed
       real cwidth,cheight ! returned surface width & height
       integer IER  ! 0=use all returns, 1 use only position,  3 not 3D file
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       CHARACTER LAPROB*72
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       common/gzonpik/izgfoc,nzg,nznog(mcom)
 
       CHARACTER outs*124,HOLD*36
       real edgelower,edgeupper  ! Z of current surface lower & upper edges.
-      integer loop
       integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
       logical dupedges
 
@@ -1303,7 +1778,7 @@ C General image option flags. Rescan the zone geometry file.
           CALL BNDOBJ(0,IER)
           CALL ERCZONE(IZ)
           ITDSP=1; ITBND=1; ITEPT=0; ITZNM=0; ITSNM=0
-          ITVNO=1; ITORG=1; ITSNR=1; ITGRD=1
+          ITVNO=1; ITORG=1; ITBND=1; ITSNR=1; ITGRD=1
           GRDIS=0.0; ITPPSW=0
 
 C Reset all surface lines to standard width and display the zone.
@@ -1339,10 +1814,9 @@ C For boundary known and wind pressure request a surface.
           CALL EASKSUR(IZ,ISO,'A','Select surface ',
      &      'to associate with this node.',IER)
           CALL EPMENRC
-          loop=izstocn(iz,iso)  ! the connection
 
 C Calculate offset.
-          V1=0.9; AZ=sspazi(loop); EL=sspelv(loop)
+          V1=0.9; AZ=spazi(iz,iso); EL=spelv(iz,iso)
           RYAZI = AZ*RAD; RSALT = EL*RAD
           z3 = V1*SIN(RSALT)
           XYDIS = V1*COS(RSALT)
@@ -1361,21 +1835,21 @@ C of the corners of the surface.
             edgeupper=szcoords(iz,iszjvn(iz,iso,ulpos),3)
           endif
           write(outs,'(a,3f8.3)') 'Surface COG is:',
-     &      SSURCOG(loop,1),SSURCOG(loop,2),SSURCOG(loop,3)
+     &      SURCOG(iz,iso,1),SURCOG(iz,iso,2),SURCOG(iz,iso,3)
           call edisp(iuout,outs)
           write(outs,'(a,3f8.3)') 'Surface upper edge is:',
-     &      SSURCOG(loop,1),SSURCOG(loop,2),edgeupper
+     &      SURCOG(iz,iso,1),SURCOG(iz,iso,2),edgeupper
           call edisp(iuout,outs)
           write(outs,'(a,3f8.3)') 'Surface lower edge is:',
-     &      SSURCOG(loop,1),SSURCOG(loop,2),edgelower
+     &      SURCOG(iz,iso,1),SURCOG(iz,iso,2),edgelower
           call edisp(iuout,outs)
           write(outs,'(a,f7.1,f6.2)') 'Surface area & perimeter:',
-     &      SSNA(loop),perim 
+     &      SNA(iz,iso),perim
           call edisp(iuout,outs)
           write(outs,'(a,f7.1,f6.2)') 'Surface width & height:',
-     &      XYMAX,ZMAX 
+     &      XYMAX,ZMAX
           call edisp(iuout,outs)
-          carea=SSNA(loop)  ! instanciate suggested values
+          carea=SNA(iz,iso) ! instanciate suggested values
           cperim=perim
           cwidth=XYMAX
           cheight=ZMAX
@@ -1385,23 +1859,23 @@ C Present options COG, upper edge, lower edge or manual edit.
      &      'Position options (node will be 1m away from surface:',
      &      ' ','surface COG','surface upper edge',
      &      'surface lower edge','manual edit',IW,nbhelp)
-          if(iw.eq.1)then  
-            cx=x3+SSURCOG(loop,1)
-            cy=y3+SSURCOG(loop,2)
-            cz=z3+SSURCOG(loop,3)
+          if(iw.eq.1)then
+            cx=x3+SURCOG(iz,iso,1)
+            cy=y3+SURCOG(iz,iso,2)
+            cz=z3+SURCOG(iz,iso,3)
             ier=0
             call usrmsg(' ',' ','-')
             return
-          elseif(iw.eq.2)then  
-            cx=x3+SSURCOG(loop,1)
-            cy=y3+SSURCOG(loop,2)
+          elseif(iw.eq.2)then
+            cx=x3+SURCOG(iz,iso,1)
+            cy=y3+SURCOG(iz,iso,2)
             cz=z3+edgeupper
             ier=0
             call usrmsg(' ',' ','-')
             return
-          elseif(iw.eq.3)then  
-            cx=x3+SSURCOG(loop,1) 
-            cy=y3+SSURCOG(loop,2)
+          elseif(iw.eq.3)then
+            cx=x3+SURCOG(iz,iso,1)
+            cy=y3+SURCOG(iz,iso,2)
             cz=z3+edgelower
             ier=0
             call usrmsg(' ',' ','-')
@@ -1461,7 +1935,7 @@ C esprdbfile.h supplies the following:
 C LPRFDB,IPRODB (for event profile database)
 #include "prj3dv.h"
       INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -1469,7 +1943,7 @@ C LPRFDB,IPRODB (for event profile database)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       character LAPROB*72
-      COMMON/MFLOWIT/fndegc,imix 
+      COMMON/MFLOWIT/fndegc,imix
 
 C To signal to MFWRIT that globals are available from graphic network.
 C Currently set .FALSE.
@@ -1510,7 +1984,7 @@ C Set folder separator (fs) to \ or / as required.
         fs = char(92)
       endif
 
-      WRITE(OUTS,'(A)') 
+      WRITE(OUTS,'(A)')
      &  'Which zones to include in the fluid flow network?'
       IZN=NCOMP
 
@@ -1639,7 +2113,7 @@ C unix and non-unix machine types).
       endif
       CALL EFOPSEQ(IUM,LAPROB,4,IER)
       CALL USRMSG(
-     &  'Generating flow nodes for selected zones ...',' ','-')  
+     &  'Generating flow nodes for selected zones ...',' ','-')
       DO IZT=1,IZN
 
 C Setup default internal flow node for zone IZT.
@@ -1742,7 +2216,7 @@ C network are know.
       call edisp(iuout,' ')
       call edisp(iuout,' Updating configuration mass flow links...')
       CALL EMKCFG('-',IER)
-      
+
       return
       end
 
@@ -1758,11 +2232,11 @@ C after this subroutine returns.
 C LPRFDB,IPRODB (for event profile database)
 #include "prj3dv.h"
       INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       character LAPROB*72
-      COMMON/MFLOWIT/fndegc,imix 
+      COMMON/MFLOWIT/fndegc,imix
 
 C Zone fluid.
 C  zfldK - conductivity;
@@ -1780,7 +2254,7 @@ C  zSWA - shortwave absorption (W).
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
-      
+
       IZ=izone
       NNOD=NNOD+1
 
@@ -1788,7 +2262,7 @@ C Get zone information. For the zone associated with the current
 C surface instanciate pointer from zone to the node.
       ICAAS(IZ)=NNOD
 
-C Set node type to internal and fill in the data on volume, position 
+C Set node type to internal and fill in the data on volume, position
 C and temperature, setting the node name to the zone name.
       NDTYP(NNOD)=0; NDFLD(NNOD)=1 ! internal unkn air
       HNOD(NNOD,1)=ZCOG(IZ,1); HNOD(NNOD,2)=ZCOG(IZ,2)
@@ -1839,7 +2313,7 @@ C esprdbfile.h supplies the following:
 C LPRFDB,IPRODB (for event profile database)
 #include "prj3dv.h"
       INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
@@ -1848,7 +2322,7 @@ C LPRFDB,IPRODB (for event profile database)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       character LAPROB*72
-      COMMON/MFLOWIT/fndegc,imix 
+      COMMON/MFLOWIT/fndegc,imix
 
       integer linkatpartition  ! have we done component on side of partition
       COMMON/linkpart/linkatpartition(MCON)
@@ -1869,7 +2343,7 @@ C  zSWA - shortwave absorption (W).
       character CXSTR*78
       CHARACTER prompt*72,hold*32,fs*1,SN*12,zsn*28
       character ccol*1
-      logical ok,dok,unixok
+      logical ok,unixok
       logical dupedges
       integer loop
       integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
@@ -1910,7 +2384,7 @@ C attributes build up a list of likely components.
       PI = 4.0 * ATAN(1.0); RAD = PI/180.0;
       iz=izone; is=isurf
       loop=IZSTOCN(izone,isurf)
-      
+
       write(SN,'(a)') SNAME(izone,isurf)
       lsn=lnblnk(SNAME(izone,isurf))
       write(zsn,'(3a)') zname(iz)(1:lnzname(iz)),
@@ -1936,7 +2410,7 @@ C of the corners of the surface.
 
 C Figure out the delta for the boundary node would be if
 C 0.9m along normal vector.
-      V1=0.9; AZ=sspazi(loop); EL=sspelv(loop)
+      V1=0.9; AZ=spazi(izone,isurf); EL=spelv(izone,isurf)
       RYAZI = AZ*RAD; RSALT = EL*RAD
       z3 = V1*SIN(RSALT)
       XYDIS = V1*COS(RSALT)
@@ -1969,13 +2443,13 @@ C For DOOR variants.
           continue   ! no flow
         elseif(SUSE(iz,is,2)(1:8).eq.'UNDERCUT')then
 
-C Undercut at door - crack component, assume width = 5mm, length = door width
+C Undercut at door - crack component, assume width = 10mm, length = door width
 C at lowest horizontal edge.  Ok.
           write(name,'(a,i2.2,a,i3.3)') 'DoCrz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgelower
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' door undercut 5mm x ',XYMAX,'m @XYZ',xc,yc,zc
+     &      ' door undercut 10mm x ',XYMAX,'m @XYZ',xc,yc,zc
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
@@ -1985,7 +2459,7 @@ C at lowest horizontal edge.  Ok.
           ITPCMP(NCMP)=IVALCM(13); LTPCMP(NCMP)=LVALCM(13)  !crack (120)
           ISDCMP(NCMP)=3; ISDCNN(NCMP)=0
           SUPCMP(NCMP,1)=1.
-          SUPCMP(NCMP,2)=5.0/1000.0
+          SUPCMP(NCMP,2)=10.0/1000.0
           SUPCMP(NCMP,3)=XYMAX
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
@@ -2001,15 +2475,15 @@ C Report on Delta Height with associated surf lower.
 
 C Define boundary point ~1m from facade.
             write(name,'(a,i2.2,a,i3.3)') 'BW-Cr',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
             zw=z3+edgelower
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &        ' Wind boundary undercut azim',sspazi(loop),
+     &        ' Wind boundary undercut azim',spazi(iz,is),
      &        ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -2030,7 +2504,7 @@ C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with component
             HGTNE(NCNN)=edgelower-ZCOG(IZ,3)
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2044,10 +2518,10 @@ C associated zone.
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -2062,7 +2536,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2076,16 +2550,16 @@ C Reality checks here...
           else
             continue  ! << for similar creat another node ....
           endif
-    
+
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Open door - common orifice component, (type 40) IVALCM(10) MF040I 
+C Open door - common orifice component, (type 40) IVALCM(10) MF040I
           write(name,'(a,i2.2,a,i3.3)') 'DoOPz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,f6.1,a,f7.3,a,3f6.2)') zsn(1:lnzsn),
      &      ' ',name,' door open width ',XYMAX,' height',ZMAX,
-     &      ' area',SSNA(loop),'m2 COG @XYZ',xc,yc,zc
+     &      ' area',SNA(iz,is),'m2 COG @XYZ',xc,yc,zc
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
@@ -2095,15 +2569,15 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
           ITPCMP(NCMP)=IVALCM(10); LTPCMP(NCMP)=LVALCM(10) ! common orifice (40)
           ISDCMP(NCMP)=3; ISDCNN(NCMP)=0
           SUPCMP(NCMP,1)=1.
-          SUPCMP(NCMP,2)=SSNA(loop)
+          SUPCMP(NCMP,2)=SNA(iz,is)
           if(SUPCMP(NCMP,3).lt.0.001) SUPCMP(NCMP,3)=0.6
-          write(prompt,'(3a,F8.5,a)') 
+          write(prompt,'(3a,F8.5,a)')
      &      'The current discharge coef of ',
      &      CMNAM(NCMP),' is ',SUPCMP(NCMP,3),'.'
           call edisp(iuout,prompt)
           VAL2=SUPCMP(NCMP,3)
-          CALL EASKR(VAL2,'Discharge coefficient (see help)',
-     &      '  ',0.,'W',0.,'-',10.,
+          CALL EASKR(VAL2,' ','Discharge coefficient?',
+     &      0.,'W',0.,'-',10.,
      &      'discharge coef in comp',IER,nbhelp)
           SUPCMP(NCMP,3)=VAL2
           NWPCMP(NCMP)=0  ! start and end the same
@@ -2111,7 +2585,7 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(100)
@@ -2119,15 +2593,15 @@ C Report on Delta Height with associated surf COG.
 
 C Define boundary point 1m from facade.
             write(name,'(a,i2.2,a,i3.3)') 'BW-Op',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &        ' Wind boundary opening azim',sspazi(loop),
+     &        ' Wind boundary opening azim',spazi(iz,is),
      &        ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -2147,9 +2621,9 @@ C and then to the adjacent zone.
 C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with component
-            HGTNE(NCNN)=SSURCOG(loop,3)-ZCOG(IZ,3)
+            HGTNE(NCNN)=SURCOG(iz,is,3)-ZCOG(IZ,3)
             NDSCNN(NCNN,1)=0
-            NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined orifice
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2166,7 +2640,7 @@ C Define connection with adjacent zone. Check if linkatpartition is still
 C zero. If so mark this connection and update the other surface as well. 
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -2181,7 +2655,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2195,7 +2669,7 @@ C Reality checks here...
           else
             continue  ! << for similar creat another node ....
           endif
-  
+
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Bidirectional door - door component,  IVALCM(14)=130 MF130I
@@ -2203,11 +2677,11 @@ C assume width = door width, height = door height, discharge factor = 0.5.
 C Need to draw component at surf COG but the real base is at bottom
 C edge.
           write(name,'(a,i2.2,a,i3.3)') 'DoBIz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           VAL1=XYMAX; VAL2=ZMAX
           VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
-          VAL4=SSURCOG(loop,3)-ZCOG(IZ,3)        ! surf COG to zone COG
+          VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3)        ! surf COG to zone COG
           write(outs,'(4a,f6.1,a,f6.1,a,3f7.3,a,f6.3)') zsn(1:lnzsn),
      &      ' ',name,' door bidir width ',XYMAX,
      &      ' height',ZMAX,' coef 0.5 base @XYZ',xc,yc,zc,
@@ -2215,7 +2689,7 @@ C edge.
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
-          NCMP=NCMP+1 ! use logic in MF040I 
+          NCMP=NCMP+1 ! use logic in MF040I
           CMNAM(NCMP)=name
           CMPASSOC(NCMP,1)=ZNAME(IZ); CMPASSOC(NCMP,2)=SN
           ITPCMP(NCMP)=IVALCM(14); LTPCMP(NCMP)=LVALCM(14) ! bi-directional (130)
@@ -2235,22 +2709,22 @@ C edge.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,zc)
           call pausems(100)
-    
+
 C Report on Delta Height between surface COG and zone COG.
           write(outs,'(a,f7.3)') 'Delta Z with base is',VAL4
           call edisp(iuout,outs)
           call pausems(100)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Bi',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &        ' Wind boundary bidir azim',sspazi(loop),
+     &        ' Wind boundary bidir azim',spazi(iz,is),
      &        ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -2271,7 +2745,7 @@ C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with component
             HGTNE(NCNN)=VAL4   ! bi-dir assume surf COG to zone COG
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined orifice
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2285,7 +2759,7 @@ C Define connection with adjacent zone. Check if linkatpartition is still
 C zero. If so mark this connection and update the other surface as well. 
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -2300,7 +2774,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2324,14 +2798,14 @@ C For FRAME vairants.
           continue   ! no flow
         elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
-C Frame crack - crack component, assume width = 1mm,
+C Frame crack - crack component, assume width = 2mm,
 C length = 0.5* frame inside perimeter, on centre line. OK
           call zsurfprm(iz,is,dupedges,perim)
           write(name,'(a,i2.2,a,i3.3)') 'FrCrz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' frame crack width 1mm len',perim*0.5,' COG @XYZ',
+     &      ' frame crack width 2mm len',perim*0.5,' COG @XYZ',
      &      xc,yc,zc
           useit=.true.
           call edisp(iuout,CXSTR)
@@ -2342,7 +2816,7 @@ C length = 0.5* frame inside perimeter, on centre line. OK
           ITPCMP(NCMP)=IVALCM(13); LTPCMP(NCMP)=LVALCM(13)  !crack
           ISDCMP(NCMP)=3; ISDCNN(NCMP)=0
           SUPCMP(NCMP,1)=1.
-          SUPCMP(NCMP,2)=1.0/1000.0
+          SUPCMP(NCMP,2)=2.0/1000.0
           SUPCMP(NCMP,3)=perim*0.5
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
@@ -2351,20 +2825,20 @@ C length = 0.5* frame inside perimeter, on centre line. OK
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(100)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Cr',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &        ' Wind boundary crack azim',sspazi(loop),
+     &        ' Wind boundary crack azim',spazi(iz,is),
      &        ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -2384,8 +2858,8 @@ C and then to the adjacent zone.
 C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with crack
-            HGTNE(NCNN)=SSURCOG(loop,3)-ZCOG(IZ,3)
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            HGTNE(NCNN)=SURCOG(iz,is,3)-ZCOG(IZ,3)
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2396,10 +2870,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -2414,7 +2888,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2431,13 +2905,13 @@ C Reality checks here...
 
         elseif(SUSE(iz,is,2)(1:4).eq.'VENT')then
 
-C Frame trickle vent - air flow opening, assume width = 0.2* frame inside width,
+C Frame trickle vent - air flow opening, assume width = 0.25* frame inside width,
 C height = 10mm, at highest horizontal edge. OK
           write(name,'(a,i2.2,a,i3.3)') 'FrVez',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgeupper
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' frame trickle vent width ',XYMAX*0.2,' height 10mm @XYZ',
+     &      ' frame trickle vent width ',XYMAX*0.25,' height 10mm @XYZ',
      &      xc,yc,zc
           useit=.true.
           call edisp(iuout,CXSTR)
@@ -2448,7 +2922,7 @@ C height = 10mm, at highest horizontal edge. OK
           ITPCMP(NCMP)=IVALCM(12); LTPCMP(NCMP)=LVALCM(12) ! Specific air op (110)
           ISDCMP(NCMP)=2; ISDCNN(NCMP)=0
           SUPCMP(NCMP,1)=1.
-          SUPCMP(NCMP,2)=(XYMAX*0.2)*0.01
+          SUPCMP(NCMP,2)=(XYMAX*0.25)*0.01
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
@@ -2461,15 +2935,15 @@ C Report on Delta Height with associated surf upper.
           call pausems(100)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Ve',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
             zw=z3+edgeupper
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &        ' Wind boundary azim',sspazi(loop),
+     &        ' Wind boundary azim',spazi(iz,is),
      &        ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -2490,7 +2964,7 @@ C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with crack
             HGTNE(NCNN)=edgeupper-ZCOG(IZ,3)
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2501,10 +2975,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -2519,7 +2993,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2542,14 +3016,14 @@ C For GRILLs.
           continue   ! no flow
         elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
-C Grill crack - crack component, assume width = 1mm,
+C Grill crack - crack component, assume width = 2mm,
 C length = 0.5* frame inside perimeter, on centre line.
           call zsurfprm(iz,is,dupedges,perim)
           write(name,'(a,i2.2,a,i3.3)') 'GrCRz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' grill crack width 1mm length',perim*0.5,' COG @XYZ',
+     &      ' grill crack width 2mm length',perim*0.5,' COG @XYZ',
      &      xc,yc,zc
           useit=.true.
           call edisp(iuout,CXSTR)
@@ -2560,7 +3034,7 @@ C length = 0.5* frame inside perimeter, on centre line.
           ITPCMP(NCMP)=IVALCM(13); LTPCMP(NCMP)=LVALCM(13)  !crack (120)
           ISDCMP(NCMP)=3; ISDCNN(NCMP)=0
           SUPCMP(NCMP,1)=1.
-          SUPCMP(NCMP,2)=1.0/1000.0
+          SUPCMP(NCMP,2)=2.0/1000.0
           SUPCMP(NCMP,3)=perim*0.5
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
@@ -2569,20 +3043,20 @@ C length = 0.5* frame inside perimeter, on centre line.
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(100)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Cr',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &        ' Wind boundary crack azim',sspazi(loop),
+     &        ' Wind boundary crack azim',spazi(iz,is),
      &        ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -2602,9 +3076,9 @@ C and then to the adjacent zone.
 C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with crack
-            HGTNE(NCNN)=SSURCOG(loop,3)-ZCOG(IZ,3)
+            HGTNE(NCNN)=SURCOG(iz,is,3)-ZCOG(IZ,3)
             NDSCNN(NCNN,1)=0
-            NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2615,10 +3089,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -2633,7 +3107,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2659,8 +3133,8 @@ C A grill inlet could be a volume flow rate component or a conduit.
 C     SUPCMP(ICMP,1) - fluid type (1=air, 2=water)
 C     SUPCMP(ICMP,2) - volume flow rate m^3/s
             write(name,'(a,i2.2,a,i3.3)') 'GrMEI',iz,':',is
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
             write(outs,'(4a,3f7.3)') zsn(1:lnzsn),' ',name,
      &        ' grill mechanical extract COG @XYZ',xc,yc,zc
             useit=.true.
@@ -2708,9 +3182,8 @@ C Derive from litres/second/person and nb of people.
 
               VAL= (val2/1000.0) * val3
               write(prompt,'(3a,F8.5,a)') 'The flow through ',
-     &          CMNAM(NCMP),' (m^3/s) is now ',VAL,'.'
-              dok=.true.
-              call askok(prompt,'Is this ok?',OK,dok,nbhelp)
+     &          CMNAM(NCMP),' (m^3/s) is ',VAL,'.'
+              call easkok(prompt,'Is this OK?',OK,nbhelp)
               if (.NOT.OK) goto 242
               SUPCMP(NCMP,2)=VAL
             elseif(iw.eq.3)then
@@ -2727,9 +3200,8 @@ C Convert any existing value to m3/hr
               IF(IER.NE.0) GOTO 221
               if(val2.gt.0.0) VAL = (val2/3600.0)
               write(prompt,'(3a,F8.5,a)') 'The flow through ',
-     &          CMNAM(NCMP),' (m^3/s) is now ',VAL,'.'
-              dok=.true.
-              call askok(prompt,'Is this ok?',OK,dok,nbhelp)
+     &          CMNAM(NCMP),' (m^3/s) is ',VAL,'.'
+              call easkok(prompt,'Is this OK?',OK,nbhelp)
               if (.NOT.OK) goto 242
               SUPCMP(NCMP,2)=VAL
             elseif(iw.eq.4)then
@@ -2749,9 +3221,8 @@ C Based on ach against the volume of a particular node.
               IF(IER.NE.0) GOTO 222
               VAL = (SUPNOD(IV,2) * VAL2)/3600.0
               write(prompt,'(3a,F8.5,a)') 'The flow through ',
-     &          CMNAM(NCMP),' (m^3/s) is now ',VAL,'.'
-              dok=.true.
-              call askok(prompt,'Is this ok?',OK,dok,nbhelp)
+     &          CMNAM(NCMP),' (m^3/s) is ',VAL,'.'
+              call easkok(prompt,'Is this OK?',OK,nbhelp)
               if (.NOT.OK) goto 242
               SUPCMP(NCMP,2)=VAL
             endif
@@ -2781,11 +3252,11 @@ C     SUPCMP(ICMP,5) - absolute wall roughness (m)
 C     SUPCMP(ICMP,6) - sum of local dynamic loss factors (-)
             call zsurfprm(iz,is,dupedges,perim)
             write(name,'(a,i2.2,a,i3.3)') 'GrINz',iz,':',is
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
      &        ' grill inlet hydr diam',
-     &        4.0*SSNA(loop)/perim,' COG @XYZ',xc,yc,zc
+     &        4.0*SNA(iz,is)/perim,' COG @XYZ',xc,yc,zc
             useit=.true.
             call edisp(iuout,CXSTR)
             call edisp(iuout,outs)
@@ -2795,8 +3266,8 @@ C     SUPCMP(ICMP,6) - sum of local dynamic loss factors (-)
             ITPCMP(NCMP)=IVALCM(15); LTPCMP(NCMP)=LVALCM(15) ! conduit (210)
             ISDCMP(NCMP)=6; ISDCNN(NCMP)=0
             SUPCMP(NCMP,1)=1.
-            SUPCMP(NCMP,2)=4.0*SSNA(loop)/perim
-            SUPCMP(NCMP,3)=SSNA(loop)
+            SUPCMP(NCMP,2)=4.0*SNA(iz,is)/perim
+            SUPCMP(NCMP,3)=SNA(iz,is)
             SUPCMP(NCMP,4)=1.0
             SUPCMP(NCMP,5)=1.00000E-04
             SUPCMP(NCMP,6)=6.00000E-03
@@ -2813,20 +3284,20 @@ C     SUPCMP(ICMP,6) - sum of local dynamic loss factors (-)
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(50)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-IN',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &        ' Wind boundary inlet azim',sspazi(loop),
+     &        ' Wind boundary inlet azim',spazi(iz,is),
      &        ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -2846,9 +3317,9 @@ C and then to the adjacent zone.
 C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with crack
-            HGTNE(NCNN)=SSURCOG(loop,3)-ZCOG(IZ,3)
+            HGTNE(NCNN)=SURCOG(iz,is,3)-ZCOG(IZ,3)
             NDSCNN(NCNN,1)=0
-            NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2860,7 +3331,7 @@ C Reality checks here...
 
 C Define connection with adjacent zone. As in INLET the other zone is
 C positive and this zone is negative. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               NEG=ICAAS(IC1(loop))  ! the current zone node
               POS=ICAAS(IC2(loop))  ! the other zone is positive
@@ -2878,7 +3349,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -2898,11 +3369,11 @@ C Reality checks here...
 C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
           write(name,'(a,i2.2,a,i3.3)') 'GrEXz',iz,':',is
           call zsurfprm(iz,is,dupedges,perim)
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
      &      ' grill extract hydr diam',
-     &      4.0*SSNA(loop)/perim,' COG @XYZ',xc,yc,zc
+     &      4.0*SNA(iz,is)/perim,' COG @XYZ',xc,yc,zc
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
@@ -2950,9 +3421,8 @@ C Derive from litres/second/person and nb of people.
 
             VAL= (val2/1000.0) * val3
             write(prompt,'(3a,F8.5,a)') ' The flow through ',
-     &        CMNAM(NCMP),' (m^3/s) is now ',VAL,'.'
-            dok=.true.
-            call askok(prompt,' Is this ok? ',OK,dok,nbhelp)
+     &        CMNAM(NCMP),' (m^3/s) is ',VAL,'.'
+            call easkok(prompt,'Is this OK?',OK,nbhelp)
             if (.NOT.OK) goto 42
             SUPCMP(NCMP,2)=VAL
           elseif(iw.eq.3)then
@@ -2970,9 +3440,8 @@ C Convert any existing value to m3/hr
             IF(IER.NE.0) GOTO 21
             if(val2.gt.0.0) VAL = (val2/3600.0)
             write(prompt,'(3a,F8.5,a)') ' The flow through ',
-     &        CMNAM(NCMP),' (m^3/s) is now ',VAL,'.'
-            dok=.true.
-            call askok(prompt,' Is this ok? ',OK,dok,nbhelp)
+     &        CMNAM(NCMP),' (m^3/s) is ',VAL,'.'
+            call easkok(prompt,'Is this OK?',OK,nbhelp)
             if (.NOT.OK) goto 42
             SUPCMP(NCMP,2)=VAL
           elseif(iw.eq.4)then
@@ -2993,9 +3462,8 @@ C Based on ach against the volume of a particular zone.
             IF(IER.NE.0) GOTO 22
             VAL = (SUPNOD(NCMP,2) * VAL2)/3600.0
             write(prompt,'(3a,F8.5,a)') ' The flow through ',
-     &        CMNAM(NCMP),' (m^3/s) is now ',VAL,'.'
-            dok=.true.
-            call askok(prompt,' Is this ok? ',OK,dok,nbhelp)
+     &        CMNAM(NCMP),' (m^3/s) is ',VAL,'.'
+            call easkok(prompt,'Is this OK?',OK,nbhelp)
             if (.NOT.OK) goto 42
             SUPCMP(NCMP,2)=VAL
           endif
@@ -3009,20 +3477,20 @@ C Based on ach against the volume of a particular zone.
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-EX',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &        ' Wind boundary extract azim',sspazi(loop),
+     &        ' Wind boundary extract azim',spazi(iz,is),
      &        ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             if(znotair(iz))then
@@ -3050,7 +3518,7 @@ C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! an extract has zero height differences
             HGTNE(NCNN)=0.0   ! an extract has zero height differences
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3062,10 +3530,10 @@ C Reality checks here...
 
 C Define connection with adjacent zone. As this is an extract
 C the current zone is positive. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -3080,7 +3548,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3097,32 +3565,32 @@ C Reality checks here...
 
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I 
+C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I
           call zsurfprm(iz,is,dupedges,perim)
           write(name,'(a,i2.2,a,i3.3)') 'GrOPz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,3f6.2)') zsn(1:lnzsn),' ',name,
-     &      ' grill orifice area',SSNA(loop),' COG @XYZ',
+     &      ' grill orifice area',SNA(iz,is),' COG @XYZ',
      &      xc,yc,zc
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
-          NCMP=NCMP+1 ! use logic in MF040I 
+          NCMP=NCMP+1 ! use logic in MF040I
           CMNAM(NCMP)=name
           CMPASSOC(NCMP,1)=ZNAME(IZ); CMPASSOC(NCMP,2)=SN
           ITPCMP(NCMP)=IVALCM(10); LTPCMP(NCMP)=LVALCM(10) ! common orifice
           ISDCMP(NCMP)=3; ISDCNN(NCMP)=0
           SUPCMP(NCMP,1)=1.
-          SUPCMP(NCMP,2)=SSNA(loop)
+          SUPCMP(NCMP,2)=SNA(iz,is)
           if(SUPCMP(NCMP,3).lt.0.001) SUPCMP(NCMP,3)=0.65
-          write(prompt,'(3a,F8.5,a)') 
+          write(prompt,'(3a,F8.5,a)')
      &      'The current discharge coef of ',
      &      CMNAM(NCMP),' is ',SUPCMP(NCMP,3),'.'
           call edisp(iuout,prompt)
           VAL2=SUPCMP(NCMP,3)
-          CALL EASKR(VAL2,'Discharge coefficient (see help)',
-     &      '  ',0.,'W',0.,'-',10.,
+          CALL EASKR(VAL2,' ','Discharge coefficient?',
+     &      0.,'W',0.,'-',10.,
      &      'discharge coef in comp',IER,nbhelp)
           SUPCMP(NCMP,3)=VAL2
           NWPCMP(NCMP)=0  ! start and end the same
@@ -3132,20 +3600,20 @@ C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Op',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &      ' Wind boundary opening azim',sspazi(loop),
+     &      ' Wind boundary opening azim',spazi(iz,is),
      &      ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             if(znotair(iz))then
@@ -3172,8 +3640,8 @@ C and then to the adjacent zone.
 C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with crack
-            HGTNE(NCNN)=SSURCOG(loop,3)-ZCOG(IZ,3)
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            HGTNE(NCNN)=SURCOG(iz,is,3)-ZCOG(IZ,3)
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3184,10 +3652,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -3202,7 +3670,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3227,13 +3695,13 @@ C Reality checks here...
         elseif(SUSE(iz,is,2)(1:5).eq.'CRACK')then
 
 C Window crack - crack component, assume width = 1mm,
-C length = window width, at surface COG.
+C length = window perimeter, at surface COG.
           call zsurfprm(iz,is,dupedges,perim)
           write(name,'(a,i2.2,a,i3.3)') 'WiCrz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' window crack width 1mm length',XYMAX,' @XYZ',xc,yc,zc
+     &      ' window crack width 2mm length',perim,' @XYZ',xc,yc,zc
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
@@ -3243,8 +3711,8 @@ C length = window width, at surface COG.
           ITPCMP(NCMP)=IVALCM(13); LTPCMP(NCMP)=LVALCM(13) !crack
           ISDCMP(NCMP)=3; ISDCNN(NCMP)=0
           SUPCMP(NCMP,1)=1.
-          SUPCMP(NCMP,2)=1.0/1000.0
-          SUPCMP(NCMP,3)=XYMAX
+          SUPCMP(NCMP,2)=2.0/1000.0
+          SUPCMP(NCMP,3)=perim
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
@@ -3252,20 +3720,20 @@ C length = window width, at surface COG.
 
 C Report on Delta Height with associated surf lower.
           write(outs,'(a,f7.3)') 'Delta Z with surf lower is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Cr',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &        ' Wind boundary crack azim',sspazi(loop),
+     &        ' Wind boundary crack azim',spazi(iz,is),
      &        ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -3285,8 +3753,8 @@ C and then to the adjacent zone.
 C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with crack
-            HGTNE(NCNN)=SSURCOG(loop,3)-ZCOG(IZ,3)
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            HGTNE(NCNN)=SURCOG(iz,is,3)-ZCOG(IZ,3)
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3297,10 +3765,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -3315,7 +3783,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3332,8 +3800,8 @@ C Reality checks here...
 
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Window open - common orifice component, (type 40) IVALCM(10) MF040I 
-C If width/height >1: 
+C Window open - common orifice component, (type 40) IVALCM(10) MF040I
+C If width/height >1:
 C wider than it is tall, assume width = 0.25* window width,
 C height = 1* window height, on the centre line
 C If width/height <=1: taller than it is wide
@@ -3341,15 +3809,15 @@ C assume width = 1* window width,
 C height = 0.25* window height, at lowest horizontal edge. OK.
           write(name,'(a,i2.2,a,i3.3)') 'WiOpz',iz,':',is
           if((XYMAX/ZMAX).gt.1.0)then
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &        ' window open width ',XYMAX*0.25,' height',ZMAX,
      &        ' area',((XYMAX*0.25)*ZMAX),'m2 COG @Z',xc,yc,zc
             VAL=(XYMAX*0.25)*ZMAX
           else
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &        ' window open width ',XYMAX,' height',ZMAX*0.25,
      &        ' area',(XYMAX*(ZMAX*0.25)),'m2 COG @Z',xc,yc,zc
@@ -3358,7 +3826,7 @@ C height = 0.25* window height, at lowest horizontal edge. OK.
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
-          NCMP=NCMP+1 ! use logic in MF040I 
+          NCMP=NCMP+1 ! use logic in MF040I
           CMNAM(NCMP)=name
           CMPASSOC(NCMP,1)=ZNAME(IZ); CMPASSOC(NCMP,2)=SN
           ITPCMP(NCMP)=IVALCM(10); LTPCMP(NCMP)=LVALCM(10) ! common orifice
@@ -3366,13 +3834,13 @@ C height = 0.25* window height, at lowest horizontal edge. OK.
           SUPCMP(NCMP,1)=1.
           SUPCMP(NCMP,2)=VAL
           if(SUPCMP(NCMP,3).lt.0.001) SUPCMP(NCMP,3)=0.5
-          write(prompt,'(3a,F8.5,a)') 
+          write(prompt,'(3a,F8.5,a)')
      &      'The current discharge coef of ',
      &      CMNAM(NCMP),' is ',SUPCMP(NCMP,3),'.'
           call edisp(iuout,prompt)
           VAL2=SUPCMP(NCMP,3)
-          CALL EASKR(VAL2,'Discharge coefficient (see help)',
-     &      '  ',0.,'W',0.,'-',10.,
+          CALL EASKR(VAL2,' ','Discharge coefficient?',
+     &      0.,'W',0.,'-',10.,
      &      'discharge coef in comp',IER,nbhelp)
           SUPCMP(NCMP,3)=VAL2
           call edisp(iuout,outs)
@@ -3380,23 +3848,23 @@ C height = 0.25* window height, at lowest horizontal edge. OK.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(30)
-    
+
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Op',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &        ' Wind boundary opening azim',sspazi(loop),
+     &        ' Wind boundary opening azim',spazi(iz,is),
      &        ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -3416,8 +3884,8 @@ C and then to the adjacent zone.
 C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with crack
-            HGTNE(NCNN)=SSURCOG(loop,3)-ZCOG(IZ,3)
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            HGTNE(NCNN)=SURCOG(iz,is,3)-ZCOG(IZ,3)
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3428,10 +3896,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -3446,7 +3914,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3471,7 +3939,7 @@ C height = 0.125* window height, at lowest horizontal edge
           write(6,*) 'lower sash W H llpos lrpos ulpos urpos',
      &       xymax,zmax,llpos,lrpos,ulpos,urpos
           write(name,'(a,i2.2,a,i3.3)') 'WiSLz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgelower
           write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f6.2)') name,
      &      ' width ',XYMAX,' height',ZMAX*0.125,
@@ -3479,7 +3947,7 @@ C height = 0.125* window height, at lowest horizontal edge
           VAL=XYMAX*(ZMAX*0.125)
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
-          NCMP=NCMP+1 ! use logic in MF040I 
+          NCMP=NCMP+1 ! use logic in MF040I
           CMNAM(NCMP)=name
           CMPASSOC(NCMP,1)=ZNAME(IZ); CMPASSOC(NCMP,2)=SN
           ITPCMP(NCMP)=IVALCM(10); LTPCMP(NCMP)=LVALCM(10)  ! common orifice opening
@@ -3487,20 +3955,20 @@ C height = 0.125* window height, at lowest horizontal edge
           SUPCMP(NCMP,1)=1.
           SUPCMP(NCMP,2)=VAL
           if(SUPCMP(NCMP,3).lt.0.001) SUPCMP(NCMP,3)=0.5
-          write(prompt,'(3a,F8.5,a)') 
+          write(prompt,'(3a,F8.5,a)')
      &      'The current discharge coef of ',
      &      CMNAM(NCMP),' is ',SUPCMP(NCMP,3),'.'
           call edisp(iuout,prompt)
           VAL2=SUPCMP(NCMP,3)
-          CALL EASKR(VAL2,'Discharge coefficient (see help)',
-     &      '  ',0.,'W',0.,'-',10.,
+          CALL EASKR(VAL2,' ','Discharge coefficient?',
+     &      0.,'W',0.,'-',10.,
      &      'discharge coef in comp',IER,nbhelp)
           SUPCMP(NCMP,3)=VAL2
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(30)
-    
+
 C Report on Delta Height with associated surf lower.
           write(outs,'(a,f7.3)') 'Delta Z with surf lower is',
      &      edgelower-ZCOG(IZ,3)
@@ -3510,15 +3978,15 @@ C Report on Delta Height with associated surf lower.
 C If at boundary setup the lower boundary node.
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-SL',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
             zw=z3+edgelower
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &      ' Wind boundary sash azim',sspazi(loop),
+     &      ' Wind boundary sash azim',spazi(iz,is),
      &      ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -3539,7 +4007,7 @@ C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with orifice
             HGTNE(NCNN)=edgelower-ZCOG(IZ,3)
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined lower orifice
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3550,10 +4018,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -3568,7 +4036,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3587,13 +4055,13 @@ C Now create the upper orifice.
           write(6,*) 'upper sash W H llpos lrpos ulpos urpos',
      &       xymax,zmax,llpos,lrpos,ulpos,urpos
           write(name,'(a,i2.2,a,i3.3)') 'WiSUz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgeupper
           write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f6.2)') name,
      &      ' width ',XYMAX,' height',ZMAX*0.125,
      &      ' area',(XYMAX*(ZMAX*0.125)),'m2 upper @XYZ',xc,yc,zc
           VAL=XYMAX*(ZMAX*0.125)
-          NCMP=NCMP+1 ! use logic in MF040I 
+          NCMP=NCMP+1 ! use logic in MF040I
           CMNAM(NCMP)=name
           CMPASSOC(NCMP,1)=ZNAME(IZ); CMPASSOC(NCMP,2)=SN
           ITPCMP(NCMP)=IVALCM(10); LTPCMP(NCMP)=LVALCM(10)  ! common orifice opening
@@ -3601,13 +4069,13 @@ C Now create the upper orifice.
           SUPCMP(NCMP,1)=1.
           SUPCMP(NCMP,2)=VAL
           if(SUPCMP(NCMP,3).lt.0.001) SUPCMP(NCMP,3)=0.5
-          write(prompt,'(3a,F8.5,a)') 
+          write(prompt,'(3a,F8.5,a)')
      &      'The current discharge coef of ',
      &      CMNAM(NCMP),' is ',SUPCMP(NCMP,3),'.'
           call edisp(iuout,prompt)
           VAL2=SUPCMP(NCMP,3)
-          CALL EASKR(VAL2,'Discharge coefficient (see help)',
-     &      '  ',0.,'W',0.,'-',10.,
+          CALL EASKR(VAL2,' ','Discharge coefficient',
+     &      0.,'W',0.,'-',10.,
      &      'discharge coef in comp',IER,nbhelp)
           SUPCMP(NCMP,3)=VAL2
           useit=.true.
@@ -3617,7 +4085,7 @@ C Now create the upper orifice.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(30)
-    
+
 C Report on Delta Height with associated surf upper.
           write(outs,'(a,f7.3)') 'Delta Z with surf upper is',
      &      edgeupper-ZCOG(IZ,3)
@@ -3628,15 +4096,15 @@ C Report on Delta Height with associated surf upper.
 
 C Now the boundary at the upper orifice.
             write(name,'(a,i2.2,a,i3.3)') 'BW-SU',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
             zw=z3+edgeupper
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &      ' Wind boundary sash azim',sspazi(loop),
+     &      ' Wind boundary sash azim',spazi(iz,is),
      &      ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -3657,7 +4125,7 @@ C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with orifice
             HGTNE(NCNN)=edgeupper-ZCOG(IZ,3)
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined lower orifice
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3668,10 +4136,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -3686,7 +4154,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3703,16 +4171,16 @@ C Reality checks here...
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
-C Window bidirectional - specific door component width & height 
+C Window bidirectional - specific door component width & height
 C based on the surface width & height. discharge factor = 0.6,
 C Draw on the centre line. The VAL4 is Surf COG to Zone COG.
           write(name,'(a,i2.2,a,i3.3)') 'WiBiz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           VAL1=XYMAX; VAL2=ZMAX
           VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
-          VAL4=SSURCOG(loop,3)-ZCOG(IZ,3)        ! surf COG to zone COG
-          write(outs,'(4a,f6.1,a,f6.1,a,3f7.3,a,f6.3)') 
+          VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3)        ! surf COG to zone COG
+          write(outs,'(4a,f6.1,a,f6.1,a,3f7.3,a,f6.3)')
      &      zsn(1:lnzsn),' ',name,
      &      ' bidir width ',XYMAX,' height',ZMAX,
      &      ' coef 0.6 @XYZ',xc,yc,zc,
@@ -3720,7 +4188,7 @@ C Draw on the centre line. The VAL4 is Surf COG to Zone COG.
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
-          NCMP=NCMP+1 ! use logic in MF040I 
+          NCMP=NCMP+1 ! use logic in MF040I
           CMNAM(NCMP)=name
           CMPASSOC(NCMP,1)=ZNAME(IZ); CMPASSOC(NCMP,2)=SN
           ITPCMP(NCMP)=IVALCM(14); LTPCMP(NCMP)=LVALCM(14) ! bi-directional
@@ -3740,22 +4208,22 @@ C Draw on the centre line. The VAL4 is Surf COG to Zone COG.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,zc)
           call pausems(30)
-    
+
 C Report on Delta Height with associated surf lower.
           write(outs,'(a,f7.3)') 'Delta Z with base is',VAL4
           call edisp(iuout,outs)
           call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Bi',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &      ' Wind boundary opening azim',sspazi(loop),
+     &      ' Wind boundary opening azim',spazi(iz,is),
      &      ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -3776,7 +4244,7 @@ C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with component
             HGTNE(NCNN)=VAL4   ! bi-dir assume surf COG to zone COG
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined orifice
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3787,10 +4255,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -3805,7 +4273,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3829,10 +4297,10 @@ C Reality checks here...
 C Fict crack - crack component, assume width = 1mm,
 C length = window width, at lowest horizontal edge.
           write(name,'(a,i2.2,a,i3.3)') 'FiCRz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgelower
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' fict crack width ',XYMAX,' height 1mm @XYZ',xc,yc,zc
+     &      ' fict crack width ',XYMAX,' height 2mm @XYZ',xc,yc,zc
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
@@ -3842,7 +4310,7 @@ C length = window width, at lowest horizontal edge.
           ITPCMP(NCMP)=IVALCM(13); LTPCMP(NCMP)=LVALCM(13)  !crack
           ISDCMP(NCMP)=3; ISDCNN(NCMP)=0
           SUPCMP(NCMP,1)=1.
-          SUPCMP(NCMP,2)=1.0/1000.0
+          SUPCMP(NCMP,2)=2.0/1000.0
           SUPCMP(NCMP,3)=XYMAX
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
@@ -3856,15 +4324,15 @@ C Report on Delta Height with associated surf lower.
           call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Cr',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
             zw=z3+edgelower
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &      ' Wind boundary fict azim',sspazi(loop),
+     &      ' Wind boundary fict azim',spazi(iz,is),
      &      ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -3885,7 +4353,7 @@ C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with crack
             HGTNE(NCNN)=edgelower-ZCOG(IZ,3)
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3896,10 +4364,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop))  ! the other zone 
+              NEG=ICAAS(IC2(loop))  ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -3914,7 +4382,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -3931,7 +4399,7 @@ C Reality checks here...
 
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I 
+C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I
 C If width/height >1: wider than it is tall, assume
 C width = 0.25* window width,
 C height = 1* window height, on the centre line.
@@ -3940,15 +4408,15 @@ C assume width = 1* window width,
 C height = 0.25* window height, at lowest horizontal edge
           write(name,'(a,i2.2,a,i3.3)') 'FiOPz',iz,':',is
           if((XYMAX/ZMAX).gt.1.0)then
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &      ' fict open width ',XYMAX*0.25,' height',ZMAX,
      &      ' area',((XYMAX*0.25)*ZMAX),'m2 COG @Z',xc,yc,zc
             VAL=(XYMAX*0.25)*ZMAX
           else
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &      ' fict open width ',XYMAX,' height',ZMAX*0.25,
      &      ' area',(XYMAX*(ZMAX*0.25)),'m2 COG @Z',xc,yc,zc
@@ -3957,7 +4425,7 @@ C height = 0.25* window height, at lowest horizontal edge
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
-          NCMP=NCMP+1 ! use logic in MF040I 
+          NCMP=NCMP+1 ! use logic in MF040I
           CMNAM(NCMP)=name
           CMPASSOC(NCMP,1)=ZNAME(IZ); CMPASSOC(NCMP,2)=SN
           ITPCMP(NCMP)=IVALCM(10); LTPCMP(NCMP)=LVALCM(10) ! common orifice
@@ -3965,13 +4433,13 @@ C height = 0.25* window height, at lowest horizontal edge
           SUPCMP(NCMP,1)=1.
           SUPCMP(NCMP,2)=VAL
           if(SUPCMP(NCMP,3).lt.0.001) SUPCMP(NCMP,3)=0.5
-          write(prompt,'(3a,F8.5,a)') 
+          write(prompt,'(3a,F8.5,a)')
      &      'The current discharge coef of ',
      &      CMNAM(NCMP),' is ',SUPCMP(NCMP,3),'.'
           call edisp(iuout,prompt)
           VAL2=SUPCMP(NCMP,3)
-          CALL EASKR(VAL2,'Discharge coefficient (see help)',
-     &      '  ',0.,'W',0.,'-',10.,
+          CALL EASKR(VAL2,' ','Discharge coefficient?',
+     &      0.,'W',0.,'-',10.,
      &      'discharge coef in comp',IER,nbhelp)
           SUPCMP(NCMP,3)=VAL2
           NWPCMP(NCMP)=0  ! start and end the same
@@ -3981,20 +4449,20 @@ C height = 0.25* window height, at lowest horizontal edge
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Op',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &      ' Wind boundary opening azim',sspazi(loop),
+     &      ' Wind boundary opening azim',spazi(iz,is),
      &      ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0; TNOD(NNOD)=0.0
             if(znotair(iz))then
               SUPNOD(NNOD,1)=2  ! mark flow node as water
@@ -4020,8 +4488,8 @@ C and then to the adjacent zone.
 C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with orifice
-            HGTNE(NCNN)=SSURCOG(loop,3)-ZCOG(IZ,3)
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            HGTNE(NCNN)=SURCOG(iz,is,3)-ZCOG(IZ,3)
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined crack
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -4032,10 +4500,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -4050,7 +4518,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -4074,9 +4542,9 @@ C Need to draw component at surf COG but the real base is at bottom
 C edge.
           VAL1=XYMAX*0.75; VAL2=ZMAX*0.75
           VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
-          VAL4=SSURCOG(loop,3)-ZCOG(IZ,3)        ! surf COG to zone COG
+          VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3)        ! surf COG to zone COG
           write(name,'(a,i2.2,a,i3.3)') 'FiBIz',iz,':',is
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
             zc=edgelower
             write(outs,'(2a,f6.1,a,f6.1,a,3f7.3,a,f6.3)') name,
      &      ' fict bidir width ',XYMAX*0.75,' height',ZMAX*0.75,
@@ -4085,7 +4553,7 @@ C edge.
           useit=.true.
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
-          NCMP=NCMP+1 ! use logic in MF040I 
+          NCMP=NCMP+1 ! use logic in MF040I
           CMNAM(NCMP)=name
           CMPASSOC(NCMP,1)=ZNAME(IZ); CMPASSOC(NCMP,2)=SN
           ITPCMP(NCMP)=IVALCM(14); LTPCMP(NCMP)=LVALCM(14) ! bi-directional
@@ -4105,22 +4573,22 @@ C edge.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,VAL3)
           call pausems(30)
-    
+
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with zone COG is',VAL4
           call edisp(iuout,outs)
           call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-BI',iz,':',is
-            xw=x3+SSURCOG(loop,1);yw=y3+SSURCOG(loop,2)
-            zw=z3+SSURCOG(loop,3)
+            xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
+            zw=z3+SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,3f7.3)') name,
-     &      ' Wind boundary fict azim',sspazi(loop),
+     &      ' Wind boundary fict azim',spazi(iz,is),
      &      ' @XYZ',xw,yw,zw
             call edisp(iuout,outs)
             NNOD=NNOD+1; NDTYP(NNOD)=3; NDFLD(NNOD)=1
             HNOD(NNOD,1)=xw; HNOD(NNOD,2)=yw; HNOD(NNOD,3)=zw
-            SUPNOD(NNOD,2)=sspazi(loop)
+            SUPNOD(NNOD,2)=spazi(iz,is)
             SUPNOD(NNOD,1)=1.0
             TNOD(NNOD)=0.0
             write(NDNAM(NNOD),'(a)') name
@@ -4141,7 +4609,7 @@ C Reality checks here...
             NODPS(NCNN)=POS; NODNE(NCNN)=NEG
             HGTPS(NCNN)=0.0   ! boundary always in line with component
             HGTNE(NCNN)=VAL4   ! bi-dir assume surf COG to zone COG
-            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+            NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
             ITPCON(NCNN)=CMPIS ! use the just-defined orifice
             write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &        NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -4152,10 +4620,10 @@ C Reality checks here...
           elseif(ICT(loop).eq.3)then
 
 C Define connection with adjacent zone. Check if linkatpartition is still
-C zero. If so mark this connection and update the other surface as well. 
+C zero. If so mark this connection and update the other surface as well.
             if(linkatpartition(loop).eq.0)then
               POS=ICAAS(IC1(loop))  ! the current zone node is positive
-              NEG=ICAAS(IC2(loop)) ! the other zone 
+              NEG=ICAAS(IC2(loop)) ! the other zone
               if(NDFLD(POS).eq.1.and.NDFLD(NEG).eq.1)then
                 ccol='r'
               else
@@ -4170,7 +4638,7 @@ C Reality checks here...
               NODPS(NCNN)=POS; NODNE(NCNN)=NEG
               HGTPS(NCNN)= HCMP(NCMP,1,3)-ZCOG(IZ,3)  ! diff comp & zone
               HGTNE(NCNN)= HCMP(NCMP,1,3)-ZCOG(IC2(loop),3)  ! diff comp & other zone
-              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0                 
+              NDSCNN(NCNN,1)=0; NDSCNN(NCNN,2)=0
               ITPCON(NCNN)=CMPIS ! use the just-defined crack
               write(outs,'(a,i3,6a)') 'add connection ',ncnn,' +nd',
      &          NDNAM(POS),' to ',NDNAM(NEG),' via cmp',CMNAM(CMPIS)
@@ -4193,10 +4661,9 @@ C Reality checks here...
      &    'm (bounding box).'
         call edisp(iuout,outs)
       endif
-      
+
       return
       end
-
 
 C Subroutine to update position of an flow node.
       subroutine update_node_pos(indexofnode,X,Y,Z,sup1,sup2)
@@ -4213,11 +4680,11 @@ C current surface USE attributes.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
-      COMMON/MFLOWIT/fndegc,imix 
+      COMMON/MFLOWIT/fndegc,imix
 
       integer linkatpartition  ! have we done component on side of partition
       COMMON/linkpart/linkatpartition(MCON)
@@ -4246,7 +4713,7 @@ C Temporarily use same file unit as profiles db.
       PI = 4.0 * ATAN(1.0); RAD = PI/180.0;
       iz=izone; is=isurf; icmp=indexofcmp
       loop=IZSTOCN(izone,isurf)
-      
+
       lsn=lnblnk(SNAME(izone,isurf))
       write(zsn,'(3a)') zname(iz)(1:lnzname(iz)),
      &  ':',SNAME(izone,isurf)(1:lsn)
@@ -4270,7 +4737,7 @@ C of the corners of the surface.
 
 C Figure out the delta for the boundary node would be if
 C 0.9m along normal vector.
-      V1=0.9; AZ=sspazi(loop); EL=sspelv(loop)
+      V1=0.9; AZ=spazi(iz,is); EL=spelv(iz,is)
       RYAZI = AZ*RAD; RSALT = EL*RAD
 
 C Cases to ignore.
@@ -4296,13 +4763,13 @@ C For DOOR variants.
           continue   ! no flow
         elseif(SUSE(iz,is,2)(1:8).eq.'UNDERCUT')then
 
-C Undercut at door - crack component, assume width = 5mm, length = door width
+C Undercut at door - crack component, assume width = 10mm, length = door width
 C at lowest horizontal edge.  Ok.
           write(name,'(a,i2.2,a,i3.3)') 'DoCrz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgelower
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' door undercut 5mm x ',XYMAX,'m @XYZ',xc,yc,zc
+     &      ' door undercut 10mm x ',XYMAX,'m @XYZ',xc,yc,zc
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
@@ -4314,27 +4781,27 @@ C Report on Delta Height with associated surf lower.
      &      edgelower-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(100)
-    
+
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Open door - common orifice component, (type 40) IVALCM(10) MF040I 
+C Open door - common orifice component, (type 40) IVALCM(10) MF040I
           write(name,'(a,i2.2,a,i3.3)') 'DoOPz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,f6.1,a,f7.3,a,3f6.2)') zsn(1:lnzsn),
      &      ' ',name,' door open width ',XYMAX,' height',ZMAX,
-     &      ' area',SSNA(loop),'m2 COG @XYZ',xc,yc,zc
+     &      ' area',SNA(iz,is),'m2 COG @XYZ',xc,yc,zc
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(100)
-  
+
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
 C Bidirectional door - door component,  IVALCM(14)=130 MF130I
@@ -4342,10 +4809,10 @@ C assume width = door width, height = door height, discharge factor = 0.5.
 C Need to draw component at surf COG but the real base is at bottom
 C edge.
           write(name,'(a,i2.2,a,i3.3)') 'DoBIz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
-          VAL4=SSURCOG(loop,3)-ZCOG(IZ,3)        ! surf COG to zone COG
+          VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3)        ! surf COG to zone COG
           write(outs,'(4a,f6.1,a,f6.1,a,3f7.3,a,f6.3)') zsn(1:lnzsn),
      &      ' ',name,' door bidir width ',XYMAX,
      &      ' height',ZMAX,' coef 0.5 base @XYZ',xc,yc,zc,
@@ -4355,7 +4822,7 @@ C edge.
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,zc)
           call pausems(100)
-    
+
 C Report on Delta Height between surface COG and zone COG.
           write(outs,'(a,f7.3)') 'Delta Z with base is',VAL4
           call edisp(iuout,outs)
@@ -4373,10 +4840,10 @@ C Frame crack - crack component, assume width = 1mm,
 C length = 0.5* frame inside perimeter, on centre line. OK
           call zsurfprm(iz,is,dupedges,perim)
           write(name,'(a,i2.2,a,i3.3)') 'FrCrz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' frame crack width 1mm len',perim*0.5,' COG @XYZ',
+     &      ' frame crack width 2mm len',perim*0.5,' COG @XYZ',
      &      xc,yc,zc
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
@@ -4386,19 +4853,19 @@ C length = 0.5* frame inside perimeter, on centre line. OK
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(100)
 
         elseif(SUSE(iz,is,2)(1:4).eq.'VENT')then
 
-C Frame trickle vent - air flow opening, assume width = 0.2* frame inside width,
+C Frame trickle vent - air flow opening, assume width = 0.25* frame inside width,
 C height = 10mm, at highest horizontal edge. OK
           write(name,'(a,i2.2,a,i3.3)') 'FrVez',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgeupper
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' frame trickle vent width ',XYMAX*0.2,' height 10mm @XYZ',
+     &      ' frame trickle vent width ',XYMAX*0.25,' height 10mm @XYZ',
      &      xc,yc,zc
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
@@ -4423,10 +4890,10 @@ C Grill crack - crack component, assume width = 1mm,
 C length = 0.5* frame inside perimeter, on centre line.
           call zsurfprm(iz,is,dupedges,perim)
           write(name,'(a,i2.2,a,i3.3)') 'GrCRz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' grill crack width 1mm length',perim*0.5,' COG @XYZ',
+     &      ' grill crack width 2mm length',perim*0.5,' COG @XYZ',
      &      xc,yc,zc
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
@@ -4436,15 +4903,15 @@ C length = 0.5* frame inside perimeter, on centre line.
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(100)
 
         elseif(SUSE(iz,is,2)(1:5).eq.'INLET')then
 
           write(name,'(a,i2.2,a,i3.3)') 'Grill ',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,3f7.3)') zsn(1:lnzsn),' ',name,
      &      ' grill mechanical extract COG @XYZ',xc,yc,zc
           call edisp(iuout,outs)
@@ -4459,7 +4926,7 @@ C Report on Delta Height with associated surf COG.
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(50)
 
@@ -4468,11 +4935,11 @@ C Report on Delta Height with associated surf COG.
 C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
           write(name,'(a,i2.2,a,i3.3)') 'GrEXz',iz,':',is
           call zsurfprm(iz,is,dupedges,perim)
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
      &      ' grill extract hydr diam',
-     &      4.0*SSNA(loop)/perim,' COG @XYZ',xc,yc,zc
+     &      4.0*SNA(iz,is)/perim,' COG @XYZ',xc,yc,zc
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
@@ -4487,19 +4954,19 @@ C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(30)
 
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I 
+C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I
           call zsurfprm(iz,is,dupedges,perim)
           write(name,'(a,i2.2,a,i3.3)') 'GrOPz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,3f6.2)') zsn(1:lnzsn),' ',name,
-     &      ' grill orifice area',SSNA(loop),' COG @XYZ',
+     &      ' grill orifice area',SNA(iz,is),' COG @XYZ',
      &      xc,yc,zc
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
@@ -4509,7 +4976,7 @@ C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(30)
 
@@ -4526,10 +4993,10 @@ C Window crack - crack component, assume width = 1mm,
 C length = window width, at surface COG.
           call zsurfprm(iz,is,dupedges,perim)
           write(name,'(a,i2.2,a,i3.3)') 'WiCrz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' window crack width 1mm length',XYMAX,' @XYZ',xc,yc,zc
+     &      ' window crack width 2mm length',XYMAX,' @XYZ',xc,yc,zc
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
@@ -4538,14 +5005,14 @@ C length = window width, at surface COG.
 
 C Report on Delta Height with associated surf lower.
           write(outs,'(a,f7.3)') 'Delta Z with surf lower is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(30)
 
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Window open - common orifice component, (type 40) IVALCM(10) MF040I 
-C If width/height >1: 
+C Window open - common orifice component, (type 40) IVALCM(10) MF040I
+C If width/height >1:
 C wider than it is tall, assume width = 0.25* window width,
 C height = 1* window height, on the centre line
 C If width/height <=1: taller than it is wide
@@ -4553,14 +5020,14 @@ C assume width = 1* window width,
 C height = 0.25* window height, at lowest horizontal edge. OK.
           write(name,'(a,i2.2,a,i3.3)') 'WiOpz',iz,':',is
           if((XYMAX/ZMAX).gt.1.0)then
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &        ' window open width ',XYMAX*0.25,' height',ZMAX,
      &        ' area',((XYMAX*0.25)*ZMAX),'m2 COG @Z',xc,yc,zc
           else
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &        ' window open width ',XYMAX,' height',ZMAX*0.25,
      &        ' area',(XYMAX*(ZMAX*0.25)),'m2 COG @Z',xc,yc,zc
@@ -4570,10 +5037,10 @@ C height = 0.25* window height, at lowest horizontal edge. OK.
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(30)
-    
+
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(30)
 
@@ -4587,7 +5054,7 @@ C height = 0.125* window height, at lowest horizontal edge
           write(6,*) 'lower sash W H llpos lrpos ulpos urpos',
      &       xymax,zmax,llpos,lrpos,ulpos,urpos
           write(name,'(a,i2.2,a,i3.3)') 'WiSLz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgelower
           write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f6.2)') name,
      &      ' width ',XYMAX,' height',ZMAX*0.125,
@@ -4597,7 +5064,7 @@ C height = 0.125* window height, at lowest horizontal edge
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(30)
-    
+
 C Report on Delta Height with associated surf lower.
           write(outs,'(a,f7.3)') 'Delta Z with surf lower is',
      &      edgelower-ZCOG(IZ,3)
@@ -4608,7 +5075,7 @@ C Now the upper orifice.
           write(6,*) 'upper sash W H llpos lrpos ulpos urpos',
      &       xymax,zmax,llpos,lrpos,ulpos,urpos
           write(name,'(a,i2.2,a,i3.3)') 'WiSUz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgeupper
           write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f6.2)') name,
      &      ' width ',XYMAX,' height',ZMAX*0.125,
@@ -4618,7 +5085,7 @@ C Now the upper orifice.
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(30)
-    
+
 C Report on Delta Height with associated surf upper.
           write(outs,'(a,f7.3)') 'Delta Z with surf upper is',
      &      edgeupper-ZCOG(IZ,3)
@@ -4627,15 +5094,15 @@ C Report on Delta Height with associated surf upper.
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR')then
 
-C Window bidirectional - specific door component width & height 
+C Window bidirectional - specific door component width & height
 C based on the surface width & height. discharge factor = 0.6,
 C Draw on the centre line. The VAL4 is Surf COG to Zone COG.
           write(name,'(a,i2.2,a,i3.3)') 'WiBiz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-          zc=SSURCOG(loop,3)
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+          zc=SURCOG(iz,is,3)
           VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
-          VAL4=SSURCOG(loop,3)-ZCOG(IZ,3)        ! surf COG to zone COG
-          write(outs,'(4a,f6.1,a,f6.1,a,3f7.3,a,f6.3)') 
+          VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3)        ! surf COG to zone COG
+          write(outs,'(4a,f6.1,a,f6.1,a,3f7.3,a,f6.3)')
      &      zsn(1:lnzsn),' ',name,
      &      ' bidir width ',XYMAX,' height',ZMAX,
      &      ' coef 0.6 @XYZ',xc,yc,zc,
@@ -4645,7 +5112,7 @@ C Draw on the centre line. The VAL4 is Surf COG to Zone COG.
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,zc)
           call pausems(30)
-    
+
 C Report on Delta Height with associated surf lower.
           write(outs,'(a,f7.3)') 'Delta Z with base is',VAL4
           call edisp(iuout,outs)
@@ -4659,10 +5126,10 @@ C Report on Delta Height with associated surf lower.
 C Fict crack - crack component, assume width = 1mm,
 C length = window width, at lowest horizontal edge.
           write(name,'(a,i2.2,a,i3.3)') 'FiCRz',iz,':',is
-          xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+          xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgelower
           write(outs,'(4a,f6.1,a,3f7.3)') zsn(1:lnzsn),' ',name,
-     &      ' fict crack width ',XYMAX,' height 1mm @XYZ',xc,yc,zc
+     &      ' fict crack width ',XYMAX,' height 2mm @XYZ',xc,yc,zc
           call edisp(iuout,CXSTR)
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
@@ -4677,7 +5144,7 @@ C Report on Delta Height with associated surf lower.
 
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
-C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I 
+C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I
 C If width/height >1: wider than it is tall, assume
 C width = 0.25* window width,
 C height = 1* window height, on the centre line.
@@ -4686,14 +5153,14 @@ C assume width = 1* window width,
 C height = 0.25* window height, at lowest horizontal edge
           write(name,'(a,i2.2,a,i3.3)') 'FiOPz',iz,':',is
           if((XYMAX/ZMAX).gt.1.0)then
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &      ' fict open width ',XYMAX*0.25,' height',ZMAX,
      &      ' area',((XYMAX*0.25)*ZMAX),'m2 COG @Z',xc,yc,zc
           else
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
-            zc=SSURCOG(loop,3)
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
+            zc=SURCOG(iz,is,3)
             write(outs,'(2a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') name,
      &      ' fict open width ',XYMAX,' height',ZMAX*0.25,
      &      ' area',(XYMAX*(ZMAX*0.25)),'m2 COG @Z',xc,yc,zc
@@ -4706,7 +5173,7 @@ C height = 0.25* window height, at lowest horizontal edge
 
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with surf COG is',
-     &      SSURCOG(loop,3)-ZCOG(IZ,3)
+     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
           call edisp(iuout,outs)
           call pausems(30)
 
@@ -4718,9 +5185,9 @@ C width = 0.75* width, height = 0.75*height, discharge factor = 0.4
 C Need to draw component at surf COG but the real base is at bottom
 C edge.
           VAL3=ABS(ZCOG(iz,3)-edgelower)  ! base to zone COG
-          VAL4=SSURCOG(loop,3)-ZCOG(IZ,3)        ! surf COG to zone COG
+          VAL4=SURCOG(iz,is,3)-ZCOG(IZ,3)        ! surf COG to zone COG
           write(name,'(a,i2.2,a,i3.3)') 'FiBIz',iz,':',is
-            xc=SSURCOG(loop,1); yc=SSURCOG(loop,2) ! remember
+            xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
             zc=edgelower
             write(outs,'(2a,f6.1,a,f6.1,a,3f7.3,a,f6.3)') name,
      &      ' fict bidir width ',XYMAX*0.75,' height',ZMAX*0.75,
@@ -4731,7 +5198,7 @@ C edge.
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,VAL3)
           call pausems(30)
-    
+
 C Report on Delta Height with associated surf COG.
           write(outs,'(a,f7.3)') 'Delta Z with zone COG is',VAL4
           call edisp(iuout,outs)
@@ -4760,10 +5227,10 @@ C Parameters passed.
       integer izone,isurf  ! the zone and surface index
       logical isrelated    ! true is USE associated with flow
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
-      COMMON/MFLOWIT/fndegc,imix 
+      COMMON/MFLOWIT/fndegc,imix
 
       character CXSTR*78
       integer loop
@@ -4881,17 +5348,14 @@ C surface. Called from flow facilities as a reality check.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
 
 C Passed parameters:
       integer indexofcmp  ! passed in component index
       integer iaz,ias     ! index of matching zone and surface
-      
-      CHARACTER outs*144
+
       CHARACTER msg*124,zn*12,sn*12
       integer loop,loop2
 
@@ -4908,16 +5372,15 @@ C associated zone and surface names associated with this component.
       do loop=1,NCOMP
         if(zname(loop)(1:lnzname(loop)).eq.ZN(1:lnczn))then
           do loop2=1,NZSUR(loop)
-            icn=IZSTOCN(loop,loop2)
             lsn=lnblnk(SNAME(loop,loop2))
             if(SN(1:lncsn).eq.SNAME(loop,loop2)(1:lsn))then
               iaz=loop; ias=loop2    ! to pass back
-              xc=SSURCOG(icn,1); yc=SSURCOG(icn,2) ! remember
-              zc=SSURCOG(icn,3)
+              xc=SURCOG(loop,loop2,1); yc=SURCOG(loop,loop2,2) ! remember
+              zc=SURCOG(loop,loop2,3)
               tdis= crowxyz(xc,yc,zc,HCMP(indexofcmp,1,1),
      &          HCMP(indexofcmp,1,2),HCMP(indexofcmp,1,3))
               if(tdis.gt.1.0)then
-                write(msg,'(a,3f7.3,a,3f7.3,a,f7.3)') 
+                write(msg,'(a,3f7.3,a,3f7.3,a,f7.3)')
      &           'The distance between component @ ',
      &           HCMP(indexofcmp,1,1),
      &           HCMP(indexofcmp,1,2),HCMP(indexofcmp,1,3),

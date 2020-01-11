@@ -27,7 +27,7 @@ C Boston, MA 02111-1307 USA.
 C Parameters for eline calls.
       integer LNMVAB, LNDRAB
       parameter (LNMVAB=1, LNDRAB=0)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -77,9 +77,7 @@ C Cast values for horaxis.
 
 C Title strings.
       WRITE(etext,'(A,A)')  ' TDF file: ',LTDF(1:50)
-      iside=1
-      isize=0
-      ifont=1
+      iside=1; isize=0; ifont=1
       call viewtext(etext,iside,isize,ifont)
       ETEXT=' '
       IVBTIM=1
@@ -116,142 +114,322 @@ C User a while loop to traverse the item columns.
 C If plotting colours for different lines set this.
         if(colok)then
           iicol=M
-          call winscl('z',iicol)
+          if(mmod.eq.8) call winscl('z',iicol)
         endif
         IF(M.EQ.1)THEN
           iid1=50; iid2=igt-15;
           if(use14)then
-            call textatxy(iid1,iid2,temp2,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp2,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp2,'-',iicol)
+            endif
           else
-            call textatxy(iid1,iid2,temp3,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp3,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp3,'-',iicol)
+            endif
           endif
           iid1=20; iid2=igt-20;
-          call eline (iid1,iid2, LNMVAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNMVAB)
+          else
+            call elinewwc (iid1,iid2, LNMVAB)
+          endif
           iid1=45; iid2=igt-20;
-          call eline (iid1,iid2, LNDRAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNDRAB)
+          else
+            call elinewwc (iid1,iid2, LNDRAB)
+          endif
           iid1=30; iid2=igt-20;
-          call esymbol(iid1,iid2,0,0)
+          if(mmod.eq.8)then
+            call esymbol(iid1,iid2,0,0)
+          else
+            call esymbolwwc(iid1,iid2,0,0)
+          endif
           IFSYM(1)=0
         ELSEIF(M.EQ.2)THEN
           iid1=50; iid2=igt-35;
           if(use14)then
-            call textatxy(iid1,iid2,temp2,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp2,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp2,'-',iicol)
+            endif
           else
-            call textatxy(iid1,iid2,temp3,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp3,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp3,'-',iicol)
+            endif
           endif
           iid1=20; iid2=igt-40;
-          call eline (iid1,iid2, LNMVAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNMVAB)
+          else
+            call elinewwc (iid1,iid2, LNMVAB)
+          endif
           iid1=45; iid2=igt-40;
-          call eline (iid1,iid2, LNDRAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNDRAB)
+          else
+            call elinewwc (iid1,iid2, LNDRAB)
+          endif
           iid1=30; iid2=igt-40;
-          call esymbol(iid1,iid2,1,0)
+          if(mmod.eq.8)then
+            call esymbol(iid1,iid2,1,0)
+          else
+            call esymbolwwc(iid1,iid2,1,0)
+          endif
           IFSYM(2)=1
         ELSEIF(M.EQ.3)THEN
           iid1=170; iid2=igt-15;
           if(use14)then
-            call textatxy(iid1,iid2,temp2,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp2,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp2,'-',iicol)
+            endif
           else
-            call textatxy(iid1,iid2,temp3,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp3,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp3,'-',iicol)
+            endif
           endif
           iid1=140; iid2=igt-20;
-          call eline (iid1,iid2, LNMVAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNMVAB)
+          else
+            call elinewwc (iid1,iid2, LNMVAB)
+          endif
           iid1=165; iid2=igt-20;
-          call eline (iid1,iid2, LNDRAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNDRAB)
+          else
+            call elinewwc (iid1,iid2, LNDRAB)
+          endif
           iid1=150; iid2=igt-20;
-          call esymbol(iid1,iid2,2,0)
+          if(mmod.eq.8)then
+            call esymbol(iid1,iid2,2,0)
+          else
+            call esymbolwwc(iid1,iid2,2,0)
+          endif
           IFSYM(3)=2
         ELSEIF(M.EQ.4)THEN
           iid1=170; iid2=igt-35;
           if(use14)then
-            call textatxy(iid1,iid2,temp2,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp2,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp2,'-',iicol)
+            endif
           else
-            call textatxy(iid1,iid2,temp3,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp3,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp3,'-',iicol)
+            endif
           endif
           iid1=140; iid2=igt-40;
-          call eline (iid1,iid2, LNMVAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNMVAB)
+          else
+            call elinewwc (iid1,iid2, LNMVAB)
+          endif
           iid1=165; iid2=igt-40;
-          call eline (iid1,iid2, LNDRAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNDRAB)
+          else
+            call elinewwc (iid1,iid2, LNDRAB)
+          endif
           iid1=150; iid2=igt-40;
-          call esymbol(iid1,iid2,3,0)
+          if(mmod.eq.8)then
+            call esymbol(iid1,iid2,3,0)
+          else
+            call esymbolwwc(iid1,iid2,3,0)
+          endif
           IFSYM(4)=3
         ELSEIF(M.EQ.5)THEN
           iid1=290; iid2=igt-15;
           if(use14)then
-            call textatxy(iid1,iid2,temp2,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp2,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp2,'-',iicol)
+            endif
           else
-            call textatxy(iid1,iid2,temp3,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp3,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp3,'-',iicol)
+            endif
           endif
           iid1=260; iid2=igt-20;
-          call eline (iid1,iid2, LNMVAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNMVAB)
+          else
+            call elinewwc (iid1,iid2, LNMVAB)
+          endif
           iid1=285; iid2=igt-20;
-          call eline (iid1,iid2, LNDRAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNDRAB)
+          else
+            call elinewwc (iid1,iid2, LNDRAB)
+          endif
           iid1=270; iid2=igt-20;
-          call esymbol(iid1,iid2,4,0)
+          if(mmod.eq.8)then
+            call esymbol(iid1,iid2,4,0)
+          else
+            call esymbolwwc(iid1,iid2,4,0)
+          endif
           IFSYM(5)=4
         ELSEIF(M.EQ.6)THEN
           iid1=290; iid2=igt-35;
           if(use14)then
-            call textatxy(iid1,iid2,temp2,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp2,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp2,'-',iicol)
+            endif
           else
-            call textatxy(iid1,iid2,temp3,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp3,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp3,'-',iicol)
+            endif
           endif
           iid1=260; iid2=igt-40;
-          call eline (iid1,iid2, LNMVAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNMVAB)
+          else
+            call elinewwc (iid1,iid2, LNMVAB)
+          endif
           iid1=285; iid2=igt-40;
-          call eline (iid1,iid2, LNDRAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNDRAB)
+          else
+            call elinewwc (iid1,iid2, LNDRAB)
+          endif
           iid1=270; iid2=igt-40;
-          call esymbol(iid1,iid2,5,0)
+          if(mmod.eq.8)then
+            call esymbol(iid1,iid2,5,0)
+          else
+            call esymbolwwc(iid1,iid2,5,0)
+          endif
           IFSYM(6)=5
         ELSEIF(M.EQ.7)THEN
           iid1=410; iid2=igt-15;
           if(use14)then
-            call textatxy(iid1,iid2,temp2,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp2,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp2,'-',iicol)
+            endif
           else
-            call textatxy(iid1,iid2,temp3,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp3,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp3,'-',iicol)
+            endif
           endif
           iid1=380; iid2=igt-20;
-          call eline (iid1,iid2, LNMVAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNMVAB)
+          else
+            call elinewwc (iid1,iid2, LNMVAB)
+          endif
           iid1=405; iid2=igt-20;
-          call eline (iid1,iid2, LNDRAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNDRAB)
+          else
+            call elinewwc (iid1,iid2, LNDRAB)
+          endif
           iid1=390; iid2=igt-20;
-          call esymbol(iid1,iid2,6,0)
+          if(mmod.eq.8)then
+            call esymbol(iid1,iid2,6,0)
+          else
+            call esymbolwwc(iid1,iid2,6,0)
+          endif
           IFSYM(7)=6
         ELSEIF(M.EQ.8)THEN
           iid1=410; iid2=igt-35;
           if(use14)then
-            call textatxy(iid1,iid2,temp2,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp2,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp2,'-',iicol)
+            endif
           else
-            call textatxy(iid1,iid2,temp3,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp3,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp3,'-',iicol)
+            endif
           endif
           iid1=380; iid2=igt-40;
-          call eline (iid1,iid2, LNMVAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNMVAB)
+          else
+            call elinewwc (iid1,iid2, LNMVAB)
+          endif
           iid1=405; iid2=igt-40;
-          call eline (iid1,iid2, LNDRAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNDRAB)
+          else
+            call elinewwc (iid1,iid2, LNDRAB)
+          endif
           iid1=390; iid2=igt-40;
-          call esymbol(iid1,iid2,7,0)
+          if(mmod.eq.8)then
+            call esymbol(iid1,iid2,7,0)
+          else
+            call esymbolwwc(iid1,iid2,7,0)
+          endif
           IFSYM(8)=7
         ELSEIF(M.EQ.9)THEN
           iid1=530; iid2=igt-15;
           if(use14)then
-            call textatxy(iid1,iid2,temp2,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp2,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp2,'-',iicol)
+            endif
           else
-            call textatxy(iid1,iid2,temp3,'-',iicol)
+            if(mmod.eq.8)then
+              call textatxy(iid1,iid2,temp3,'-',iicol)
+            else
+              call textatxywwc(iid1,iid2,temp3,'-',iicol)
+            endif
           endif
           iid1=500; iid2=igt-20;
-          call eline (iid1,iid2, LNMVAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNMVAB)
+          else
+            call elinewwc (iid1,iid2, LNMVAB)
+          endif
           iid1=525; iid2=igt-20;
-          call eline (iid1,iid2, LNDRAB)
+          if(mmod.eq.8)then
+            call eline (iid1,iid2, LNDRAB)
+          else
+            call elinewwc (iid1,iid2, LNDRAB)
+          endif
           iid1=510; iid2=igt-20;
-          call esymbol(iid1,iid2,8,1)
+          if(mmod.eq.8)then
+            call esymbol(iid1,iid2,8,1)
+          else
+            call esymbolwwc(iid1,iid2,8,1)
+          endif
           IFSYM(9)=8
         ENDIF
 
 C Reset colour to black.
         if(colok)then
           iicol=0
-          call winscl('-',iicol)
+          if(mmod.eq.8) call winscl('-',iicol)
         endif
-        call forceflush()
+        if(mmod.eq.8) call forceflush()
       enddo  ! of while loop
 
 C Scale and draw axes.
@@ -395,6 +573,10 @@ C Vertical axis label depending on generic type.
         LABEL1='various units   '
       ELSEIF(FOCUS(1:7).EQ.'GRNDRFL')THEN 
         LABEL1='ratio 0 to 1    '           
+      ELSEIF(FOCUS(1:7).EQ.'SUPPLWT')THEN !Supply water temperature for pcloop.F PCL03
+        LABEL1='temperature deg C '   
+      ELSEIF(FOCUS(1:7).EQ.'PUMPVFR')THEN !water volume flow rate for pcloop.F PCL08
+        LABEL1='vol flow rate l/h' 
       ELSE
 
 C Add in additional generic data definitions here.
@@ -430,7 +612,7 @@ C Try axis of hours.
 C If plotting colours for different lines set this.
         if(colok)then
           iicol=M
-          call winscl('z',iicol)
+          if(mmod.eq.8) call winscl('z',iicol)
         endif
 
 C Scan TAB columns. Depending on which field use different symbol.
@@ -440,7 +622,11 @@ C Scan TAB columns. Depending on which field use different symbol.
           VAL=TABU(ITCOL(IFOC,iloop))
           iix=igl+INT((1.+Xadd)*xsc)
           iiy=igb-INT((VAL+Yadd)*ysc)
-          call eline (iix,iiy, LNMVAB)
+          if(mmod.eq.8)then
+            call eline (iix,iiy, LNMVAB)
+          else
+            call elinewwc (iix,iiy, LNMVAB)
+          endif
           iilastx=iix
           iilasty=iiy
 
@@ -455,30 +641,59 @@ C Use while loop to traverse the records in temporal.
             VAL=TABU(ITCOL(IFOC,iloop))
             iix=igl+INT((REAL(iloop2)+Xadd)*xsc)
             iiy=igb-INT((VAL+Yadd)*ysc)
-            call eline (iilastx,iilasty, LNMVAB)
-            call eline (iix,iiy, LNDRAB)
+            if(mmod.eq.8)then
+              call eline (iilastx,iilasty, LNMVAB)
+              call eline (iix,iiy, LNDRAB)
+            else
+              call elinewwc (iilastx,iilasty, LNMVAB)
+              call elinewwc (iix,iiy, LNDRAB)
+            endif
             iilastx=iix
             iilasty=iiy
             if(iperiod.gt.200.and.iperiod.le.500)then
               IR=INT(AMOD(REAL(iloop2),REAL(NTSPH*4)))
-              IF(IR.EQ.0)CALL esymbol(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+              IF(IR.EQ.0)then
+                if(mmod.eq.8)then
+                  CALL esymbol(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+                else
+                  CALL esymbolwwc(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+                endif
+              endif
             elseif(iperiod.gt.500.and.iperiod.le.1000)then
               IR=INT(AMOD(REAL(iloop2),REAL(NTSPH*12)))
-              IF(IR.EQ.0)CALL esymbol(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+              IF(IR.EQ.0)then
+                if(mmod.eq.8)then
+                  CALL esymbol(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+                else
+                  CALL esymbolwwc(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+                endif
+              endif
             elseif(iperiod.gt.1000)then
               IR=INT(AMOD(REAL(iloop2),REAL(NTSPH*24)))
-              IF(IR.EQ.0)CALL esymbol(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+              IF(IR.EQ.0)then
+                if(mmod.eq.8)then
+                  CALL esymbol(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+                else
+                  CALL esymbolwwc(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+                endif
+              endif
             else
               IR=INT(AMOD(REAL(iloop2),REAL(NTSPH)))
-              IF(IR.EQ.0)CALL esymbol(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+              IF(IR.EQ.0)then
+                if(mmod.eq.8)then
+                  CALL esymbol(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+                else
+                  CALL esymbolwwc(iix,iiy,IFSYM(iloop-ISFLDS+1),0)
+                endif
+              endif
             endif
           enddo  ! of while loop2
         ENDIF
         if(colok)then
           iicol=0
-          call winscl('-',iicol)
+          if(mmod.eq.8) call winscl('-',iicol)
         endif
-        call forceflush()
+        if(mmod.eq.8) call forceflush()
       enddo  ! of while loop
 
       RETURN

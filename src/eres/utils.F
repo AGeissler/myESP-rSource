@@ -357,7 +357,7 @@ C where TNODHF is interpolated data at prior half step and TNODHN
 C is interpolated data at future half step.
 
       SUBROUTINE HALFST(ISTEP,NSTEP,P,IAP,FLH,F,IAF,FRH,FN,IAFN)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
 C Check range.
@@ -421,13 +421,11 @@ C Stepping at defined output interval.
           DOUT(JT)=DIN(JT)*TFACT
         ELSE
           K1=J
-          K2=J+NOUT
+          K2=J+NOUT-1
           DO 50 L=K1,K2
-            XMULT=1.
-            IF(L.EQ.K1.OR.L.EQ.K2)XMULT=.5
-            DOUT(JT)=DOUT(JT)+DIN(L)*XMULT
+            DOUT(JT)=DOUT(JT)+DIN(L)
    50     CONTINUE
-          DIV=FLOAT(K2-K1)
+          DIV=FLOAT(NOUT)
           DOUT(JT)=(DOUT(JT)/DIV)*TFACT
         ENDIF
    30 CONTINUE
@@ -441,7 +439,7 @@ C Given: IOM1, IOD1, IOH1 and IOM2, IOD2, IOH2
 
       SUBROUTINE HDDATE(DESCR)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/AVRAGE/IDAVER
@@ -674,7 +672,7 @@ C Not a domain combination that we can work with.
 C ******************** ZNLIST ********************
 C ZNLIST takes the current selected zones and builds a descriptive
 C string (96 char) to be used in headers. 
-C Currently only deals with up to 28 zones.
+C Currently only deals with up to 38 zones.
       SUBROUTINE ZNLIST(zdescr,length,ierr)
 #include "building.h"
 
@@ -682,7 +680,9 @@ C Get common block precz/lnprecz from geometry.h
 #include "geometry.h"
 
       COMMON/ZONPIK/NZ,NZNO(MCOM)
-      CHARACTER zdescr*96,outs*244,outsd*96
+      CHARACTER zdescr*124,outs*244,outsd*124
+      integer ncomp,ncon
+      common/C1/NCOMP,NCON
       logical unixok
 
       length=0
@@ -690,7 +690,7 @@ C Get common block precz/lnprecz from geometry.h
         lna=lnzname(NZNO(i))
         length=length+lna+1
   42  continue
-      if(length.lt.96)then
+      if(length.lt.124)then
         WRITE(outs,5,iostat=ios,err=1)(zname(NZNO(I)),I=1,NZ)
     5   FORMAT(' Zones: ',20(a,' '))
         call sdelim(outs,outsd,'S',IW)
@@ -698,16 +698,27 @@ C Get common block precz/lnprecz from geometry.h
         return
       else
         if(NZ.eq.1)then
-         WRITE(ZDESCR,'(A,I3,A,A)')' Zone (',NZNO(1),') ',zname(NZNO(1))
-        elseif(NZ.gt.1.and.NZ.LE.22)THEN
-         WRITE(ZDESCR,6)(NZNO(I),I=1,NZ)
-    6    FORMAT(' Zones: ',22(I3,','))
-        ELSEIF(NZ.GT.22.AND.NZ.LE.28)THEN
-         WRITE(ZDESCR,7)(NZNO(I),I=1,9),(NZNO(J),J=10,NZ)
-    7    FORMAT(' Zn: ',9(I1,','),20(I3,','))
-        ELSEIF(NZ.GT.28)THEN
-         WRITE(ZDESCR,8)(NZNO(I),I=1,9),(NZNO(J),J=10,28)
-    8    FORMAT(' Zn: ',9(I1,','),20(I3,','))
+          WRITE(ZDESCR,'(A,I3,2A)')' Zone (',NZNO(1),') ',zname(NZNO(1))
+        elseif(NZ.gt.1.and.NZ.LE.28)THEN
+          WRITE(outs,6,iostat=ios,err=1)(NZNO(I),I=1,NZ)
+    6     FORMAT(' Zones: ',28(I4))
+          call sdelim(outs,outsd,'S',IW)
+          zdescr=outsd
+        ELSEIF(NZ.GT.28.AND.NZ.LE.38)THEN
+          WRITE(outs,7,iostat=ios,err=1)(NZNO(I),I=1,NZ)
+    7     FORMAT(' Zn: ',38(I4))
+          call sdelim(outs,outsd,'S',IW)
+          zdescr=outsd
+        ELSEIF(NZ.GT.38)THEN
+          if(NZ.eq.NCOMP)then
+            write(zdescr,'(a)') ' Zones: all'
+          else
+            iloop=MIN0(40,NZ)
+            WRITE(outs,8,iostat=ios,err=1)(NZNO(I),I=1,iloop)
+    8       FORMAT(' Zn: ',40(I4),'...')
+            call sdelim(outs,outsd,'S',IW)
+            zdescr=outsd
+          endif
         ENDIF
         return
       endif
@@ -730,22 +741,26 @@ C zone names on one or two lines, otherwise use numbers.
 #include "building.h"
 #include "geometry.h"
 
+      common/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/ZONPIK/NZ,NZNO(MCOM)
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       character word*24
       logical unixok
 
-      integer NZL,ipixright,ipixright2nd  ! pixel width of name & position at right
+      integer NZL
       integer length,isecond,i,lna
       
 #ifdef OSI
       integer iix,iiy,iicol,iiline,iicx,ipixw,iisize,ibsize
+      integer ipixright,ipixright2nd  ! pixel width of name & position at right
 #else
       integer*8 iix,iiy,iicol,iiline,iicx,ipixw,iisize,ibsize
+      integer*8 ipixright,ipixright2nd
 #endif
 
 C Figure out how much text there is to write out. isecond is the last
 C zone index that fit within 72 characters.
+      if(mmod.ne.8) return
       length=0
       isecond=0
       do 42 i=1,NZ
@@ -1068,7 +1083,7 @@ C Parameters.
       integer izone          ! which zone was selected
       integer IMW            ! menu width
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ZONPIK/NZ,NZNO(MCOM)
       
       integer ncomp,ncon
@@ -1118,7 +1133,7 @@ C interested in for surface balances etc.
 
       SUBROUTINE ASKSUR(IZONE,ISFN)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CALL EASKSUR(IZONE,ISFN,'-','Select surface to be reported on.',
      &        ' ',IER)
@@ -1140,7 +1155,7 @@ C the user is interested in for stats/ graphs/ listings etc.
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -1201,7 +1216,7 @@ C anchor type 'SURF'. Definitions in model.h.
 #include "building.h"
 #include "model.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
@@ -1277,7 +1292,7 @@ C selected zones
 #include "model.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       integer ncomp,ncon
@@ -1377,7 +1392,7 @@ C the user is interested in.
       SUBROUTINE ASKICN(IZONE,ISFN,INN)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -1423,7 +1438,7 @@ C IMO, IDO and TIME.
 
       SUBROUTINE ASKRTIM(IFDAY,IMO,IDO,IJDAY,TIME,IT,IER)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
       character HOLD*24,HOLD2*24
@@ -1511,31 +1526,20 @@ C Given the range of VAL1 to process ie. VAL1(1,ISTEP) to VAL1(IMAX,ISTEP).
    90   CONTINUE
       ELSE
 
-C Compute average over NOUT timesteps (use L vs N in test
-C so that in multiple timesteps/hr the last steps of the
-C last hour get counted).
+C Compute average over NOUT timesteps. 
         K1=ISTEP
-        K2=ISTEP+NOUT
+        K2=ISTEP+NOUT-1
         DO 50 K=1,IMAX
           XVAL1(K)=0.
    50   CONTINUE
 
-        N=24*NTS
         DO 60 L=K1,K2
-          XMULT=1.
-          IF(L.EQ.K1.OR.L.EQ.K2)XMULT=.5
           DO 70 M=1,IMAX
-            IF(L.LE.N)THEN
-              XVAL1(M)=XVAL1(M)+VAL1(M,L)*XMULT
-            ELSE
-
-C Should really get information here from next day.
-              XVAL1(M)=XVAL1(M)+VAL1(M,N)*XMULT
-            ENDIF
+            XVAL1(M)=XVAL1(M)+VAL1(M,L)
    70     CONTINUE
    60   CONTINUE
 
-        DIV=FLOAT(K2-K1)
+        DIV=FLOAT(NOUT)
         DO 80 M=1,IMAX
           XVAL1(M)=XVAL1(M)/DIV
    80   CONTINUE
@@ -1548,7 +1552,7 @@ C ************* ASKPER
 C ASKPER: Provides interface to specification of a period of days. 
       SUBROUTINE ASKPER(IFDAY,IER)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
@@ -1578,7 +1582,7 @@ C Write out simulation period.
         helptopic='res_output_period'
         call gethelptext(helpinsub,helptopic,nbhelp)
         write(HOLD,'(I6,I4)') IODS,IOH1
-        CALL EASKS(HOLD,' ',' Start day-of-year & time: ',
+        CALL EASKS(HOLD,' ','Start year day and hour?',
      &    20,' 9  1 ','startdoy and time',IER,nbhelp)
         K=0
         CALL EGETWI(HOLD,K,IODS,1,365,'F','start day of year',IER)
@@ -1592,7 +1596,7 @@ C Write out simulation period.
         endif
 
         write(HOLD,'(I6,I4)') IODF,IOH2
-        CALL EASKS(HOLD,' ',' End day-of-year & time: ',
+        CALL EASKS(HOLD,' ','End year day and hour?',
      &    20,' 15  24 ','end doy and time',IER,nbhelp)
         K=0
         CALL EGETWI(HOLD,K,IODF,1,365,'F','end day of year',IER)
@@ -1609,7 +1613,7 @@ C Write out simulation period.
         helptopic='res_output_period'
         call gethelptext(helpinsub,helptopic,nbhelp)
         write(HOLD,'(I6,I4,I4)') IOD1,IOM1,IOH1
-        CALL EASKS(HOLD,' ',' Start day-of-month, month & time: ',
+        CALL EASKS(HOLD,' ','Start day, month & hour?',
      &    20,' 9  1 ','start dom, month and time',IER,nbhelp)
         K=0
         CALL EGETWI(HOLD,K,IOD1,1,31,'F','start day of month',IER)
@@ -1634,7 +1638,7 @@ C Check range, then convert to IODS.
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EDAYR(IODF,IOD2,IOM2)
   282   write(HOLD,'(I6,I4,I4)') IOD2,IOM2,IOH2
-        CALL EASKS(HOLD,' ',' End day-of-month, month & time: ',
+        CALL EASKS(HOLD,' ','End day, month & hour?',
      &    20,' 9  1 ','end dom, month and time',IER,nbhelp)
         K=0
         CALL EGETWI(HOLD,K,IOD2,1,31,'F','end day of month',IER)
@@ -1671,7 +1675,7 @@ C ixunit is the file unit number for the export file.
       subroutine ctlexp(xfile,ixopen,ixunit,ixpunit,tg,msg,IER)
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/rcmd/LCMDFL
       common/rpath/path
 

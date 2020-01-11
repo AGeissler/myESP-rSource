@@ -70,7 +70,7 @@ C IALT is the number of text alternatives available for a text field.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL      
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TDFG1/GAIDE,GHELP(MHEL),GDHDRT(3),GMH
       COMMON/TDFG5/GMF(MBITS),MGMA(MBITS)
       COMMON/TDFG6/IALT(MBITS)
@@ -869,7 +869,7 @@ C IPS is the timestep to insert data at.
 #include "tdf2.h"
       
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER LIMP*96,LEXP*96
       COMMON/TDFIO/LIMP,IUIMP,ITIMP,LEXP,IUEXP,ITEXP
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
@@ -967,8 +967,8 @@ C Help text for this menu.
       ELSEIF(INODA.EQ.4)THEN
 
 C Define import file format.
-        CALL EASKABC('Import options:',' ',
-     &    'UNKNOWN','ASCII column data','continue',IWM,nbhelp)
+        CALL EASKABC(' ','Import options:',
+     &    'UNKNOWN','ASCII column data','cancel',IWM,nbhelp)
         if(IWM.ge.3)goto 13
         ITIMP=IWM-1
       ELSEIF(INODA.EQ.5)THEN
@@ -1196,7 +1196,7 @@ C from a file and to which static value it matches.
 #include "tdf2.h"
       
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER LIMP*96,LEXP*96
       COMMON/TDFIO/LIMP,IUIMP,ITIMP,LEXP,IUEXP,ITEXP
      

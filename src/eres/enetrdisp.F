@@ -867,7 +867,7 @@ C network corresponding to graphical result display.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/ELRFIL/ELRFLNAM
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -928,18 +928,28 @@ C Setup and pass in parameters to win3d.
 C Prevent buffer overflow.
       lnerl=MIN0(LNBLNK(ELRFLNAM),107)
       WRITE(ETEXT,'(A,1X,A)') 'Electrical from ',ELRFLNAM(1:lnerl)
-      iside=1
-      isize=0
-      ifont=1
-      call viewtext(etext,iside,isize,ifont)
+      iside=1; isize=0; ifont=1
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       WRITE(ETEXT,'(A)')PDESCR
       iside=2
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       WRITE(ETEXT,'(A)')SDESCR
       iside=3
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
 
 C Write a maximum of four of the selected data entities to screen
@@ -977,7 +987,11 @@ C Scale scratch unit labels to match the axis scaling.
         WRITE(LOUT(IPOS:IPOS+3),'(A)')'...'
       ENDIF        
       iside=4
-      call viewtext(lout,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(lout,iside,isize,ifont)
+      else
+        call viewtextwwc(lout,iside,isize,ifont)
+      endif
       RETURN
       END
 

@@ -1,7 +1,9 @@
+C This include must be placed after building.h in the source code.
 C Include file for network flow.
 C Updated December 2005 for additional nodes, components and control laws.
 C Updated January 2007 for additional connections.
 C Updated June 2008 for "implicit none" callability
+C Updated August 2019 to use building.h parameters.
 
 C Type declarations:
       integer MNOD, MCMP, MCNN, MNDS, MCMV, MCMS, MCNS
@@ -10,7 +12,7 @@ C Type declarations:
       integer MSPMNO, MSRC
 
 C Maximum number of nodes, components, connections.
-      PARAMETER (MNOD=100,MCMP=100,MCNN=199)
+      PARAMETER (MNOD=MCOM*3,MCMP=MCOM*3,MCNN=MCOM*4)
 C Maximum number of node supplementary data items
       PARAMETER (MNDS=2)
 C Number of valid fluid flow component types
@@ -26,7 +28,7 @@ C Maximum number of wind pressure distribution sets
 C Maximum number of CPCALC derived pressure distribution sets
       PARAMETER (MPCP=20)
 C Record width of binary results file (should be larger of MNOD or MCMS + 6)
-      PARAMETER (NMRL=100)
+      PARAMETER (NMRL=MCOM*3)
 C Results analysis:
 C Max number of connection lists and number of connections allowed.
       PARAMETER (MFCNLST=20)

@@ -32,7 +32,7 @@ C READPIF - read performance information file and gather data.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/DEFLT/IDEFLT
@@ -500,7 +500,7 @@ C current menu (moget) selections.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/recov01/pifltog,lpifl
       common/recov02/lname,ldisc

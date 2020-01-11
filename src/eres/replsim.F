@@ -1,7 +1,3 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
-
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
@@ -13,31 +9,26 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
+C This file contains the following subroutines.
+C MOGCFG - Requests the system configuration file and reports
+C          the files associated with the original simulations.
+C SYNOPF - Displays the names of the files used in a simulation.
 
-C This file contains the following routines which recreate
-C data included in sim but not saved in the results library.
-C  MOGCFG  reports and checks main files associated with simulation.
-
-C ******************** MOGCFG ********************
-
-C MOGCFG asks for system configuration file and reports back all
-C of the files associated with the original simulation.  Similar to
-C MZINPT code in espbps/input.f.
+C ********** MOGCFG
+C Requests the system configuration file and reports
+C the files associated with the original simulations.
+C (Similar to MZINPT in espbps/input.f.)
 
       SUBROUTINE MOGCFG
 #include "building.h"
+#include "site.h"
 #include "model.h"
 #include "schedule.h"
 #include "net_flow.h"
-C #include "geometry.h"
 #include "tdf2.h"
 #include "esprdbfile.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/trc/itrc
 
@@ -55,16 +46,16 @@ C #include "geometry.h"
       character longtmp*144
       CHARACTER MODE*4,OUTSTR*124,LCTLF*72,CTLDOC*248
       character outs*124
-      LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,XST,ok,dok,CFCDBOK
+      LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,XST,ok,CFCDBOK
       logical dmdsok
       integer ISTRW
 
-C For help messages
+C For help messages.
       character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      character helptopic*24   ! string (unique) for topic
+      integer nbhelp           ! number of help lines found
 
-      helpinsub='MOGCFG'  ! set for subroutine
+      helpinsub='MOGCFG'       ! set for subroutine
 
 C The common code method of reading in a system configuration file
 C uses the same common blocks as MOINIT so there is no convenient way
@@ -93,12 +84,13 @@ C Set the default export file name based on model root name.
 
       ELSE
 
-C Not found, might be in a remote folder.  Warn user first.
- 45     WRITE(OUTSTR,'(A,A)')' Could not find ',LCFGF
+C Configuration file not found.
+ 45     WRITE(OUTSTR,'(A,A,A)')' Could not find ',LCFGF,'!'
+        call edisp(iuout,' ')
         call edisp(iuout,outstr)
 
 C If using X11 assume that the full path is less than 96 chars
-C but if using GTK then we need the full length to avoid truncation.
+C but if using GTK then the full length is needed to avoid truncation.
         helptopic='res_ask_cfg_file'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('no system file',nbhelp,'-',0,0,IER)
@@ -123,9 +115,8 @@ C but if using GTK then we need the full length to avoid truncation.
         RETURN
       ENDIF
 
-C Check the geometry and operation files by reading them in. Note,
+C Check the geometry and operation files. Note that
 C if izver >=4 the zone operation file is not needed.
-      call usrmsg(' ',' Checking existence of descriptive files...','-')
       DO 30 J=1,NCOMP
         IUNIT=IFIL+1
         call georead(IUNIT,LGEOM(J),J,1,IUOUT,IER)
@@ -153,16 +144,13 @@ C Also scan the model dispersed demands file if it exists.
         dmdsok=.false.
       endif
 
-      call usrmsg(' ',
-     &  ' Checking existence of descriptive files...done.','-')
-
-C Check existance of system control file.
+C Check existence of system control file.
       if(CTLDOC(1:4).ne.'NONE')then
         if(LCTLF(1:2).ne.'  ')then
           CALL EZCTLR(IUNIT,0,IUOUT,IER)
           IF(IER.EQ.1)then
-            call edisp(iuout,' System control file read error, or does')
-            call edisp(iuout,' not exist.  Take care with analysis!')
+            call edisp (iuout,' ')
+            call edisp(iuout,'System control file read error!')
           endif
         endif
       endif
@@ -172,11 +160,19 @@ C If tdf file used then open it so data is available for reading.
         call supplyandcheck(ltdfa,'R',ier)
       endif
 
+C Calculate default external air pressure and air density based on site altitude.
+C Although atmospheric pressure may be available in the climate database,
+C it is not currently use in psychrometric calculations in the results analyser.
+      atmpres = PRESSURE_ALT(sitealt)
+
+C For default air density, assume 0 degree Celsius and 50% RH.
+C This will be recalculated as needed at prevailing conditions.
+      extairden=AIR_DENSITY(atmpres,0.0,50.0)
+
 C Ask user about description of the files used in the simulation.
       if(itrc.ne.0)then
-        dok=.false.
-        call askok('Do you want a listing of the files ',
-     &             'used in the simulation?',ok,dok,nbhelp)
+        call easkok(' ','List files used in the simulation(s)?',
+     &               ok,nbhelp)
         if(ok)then
           call SYNOPF
           RETURN
@@ -189,14 +185,15 @@ C Ask user about description of the files used in the simulation.
 
       END
 
-C ******************** SYNOPF ********************
-C SYNOPF displays the names of the files used in a simulation
+C ********** SYNOPF
+C Displays the names of the files used in a simulation.
 
       SUBROUTINE SYNOPF
 #include "building.h"
 #include "model.h"
 #include "CFC_common.h"
-      COMMON/OUTIN/IUOUT,IUIN
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
 
       integer ncomp,ncon
@@ -262,14 +259,3 @@ C Echo names of files for visual check.
       RETURN
       END
 
-
-C ******************** MZUTIL ********************
-C MZUTIL no longer used (utility files scanned from configuration file.
-
-
-c ******************** MZCGCF ********************
-c No longer used - ercgcf(itrc,itru,LCGCIN,ICOMP,ier) instead.
-
-
-C ******************** MOIHC ********************
-C No longer used - convection routines in esrubld used instead.

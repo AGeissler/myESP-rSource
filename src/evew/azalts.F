@@ -28,13 +28,14 @@ C Parameters:
       integer IYD,IHR,ITS
       real RLONGT,RLATIT,SOLALT,SOLAZI
 
-      integer INIT,IUOUT,IUIN
+      integer INIT
       real GLAT,GLON
       COMMON/UAZALT/INIT,GLAT,GLON
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer IUOUT,IUIN,IEOUT
 
 C Local definitions:
-      logical close,OK,dok
+      logical close,OK
       real PI,DECLIN,SDDECL,CDDECL,CDTIME,TIME,TIMCOE,ABSTMC,ASDTIM
       real ALT,SDLAT,CDLAT,AZMUTH
 
@@ -126,12 +127,13 @@ C in north or south hemispheres.
    10 CONTINUE
       RETURN
 
-   14 dok=.false.
-      helptopic='azalt_limits_warning'
+   14 helptopic='azalt_limits_warning'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('Lat was outwith +-90.0 or Long difference more than',
-     &  '+- 15 deg. Continue with default Lat/Long?',OK,dok,2)
+      CALL EASKOK('Latitude > +/-90.0 or Long. Diff. > +/- 15!',
+     &  'Continue with default values?',OK,2)
       if(.NOT.OK)then
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       endif

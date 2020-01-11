@@ -69,7 +69,7 @@ C seasons.h provides typper and typsea
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
 
 C Climate data.
@@ -282,7 +282,7 @@ C Parameters
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -319,7 +319,6 @@ C Surface attributes (zone & surface based).
 C hasname (string array) the surface name for each surface (so fillsur does not wipe)
       character hasname*12
       dimension hasname(MS)  ! name to use for each surface
-      DIMENSION SNA(MS),PAZI(MS),PELV(MS)
       integer jvn1(MV) ! to hold list of edges for inverting
       character fs*1
       character ctldoc*248,LCTLF*72,zd*64
@@ -335,8 +334,6 @@ C hasname (string array) the surface name for each surface (so fillsur does not 
       character choices(15)*32
       character defmlc*32  ! names of default MLC for Office
       dimension defmlc(13)
-
-      integer ibcs      ! connection associated with base surface
 
 C If browsing then user cannot create a new zone.
       if(browse)then
@@ -456,13 +453,13 @@ C Take derived surface use. If blank reset to a '-'
 C Loop thru all of the known constructions to find the matching construction.
 C Also set smlcindex for this surface.
         imatch=0
-        ssmlcindex(iccc)=0  ! assume no matching MLC          
+        smlcindex(icomp,icc)=0  ! assume no matching MLC          
         do 5 ii=1,nmlc
           lnssmlc=lnblnk(SMLCN(icomp,icc))
           if(SMLCN(icomp,icc)(1:lnssmlc).eq.
      &       mlcname(ii)(1:lnmlcname(ii)))then
             imatch=ii
-            ssmlcindex(iccc)=ii   ! remember MLC index     
+            smlcindex(icomp,icc)=ii   ! remember MLC index     
           endif
   5     continue
 
@@ -534,14 +531,16 @@ C FLOR and CEIL check against geometric position within the zone.
 C Now use information saved in zgupdate to make sure SVFC
 C attribute are correct (e.g. surfaceType InteriorFloor might
 C be a ceiling.
-      CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+      CALL ZINFO(icomp,ZOA,ZVOL,'q')
       do iSurface=1,NSUR
         ioc=IZSTOCN(icomp,iSurface)  ! recover connection
-        if(PELV(iSurface).GE.-1.5.AND.PELV(iSurface).LE.1.5)then
+        if(SPELV(icomp,iSurface).GE.-1.5.AND.
+     &     SPELV(icomp,iSurface).LE.1.5)then
           if(SVFC(icomp,iSurface).NE.'VERT')then
             SVFC(icomp,iSurface)='VERT'
           endif
-        elseif(PELV(iSurface).GE.88.5.AND.PELV(iSurface).LE.91.5)then
+        elseif(SPELV(icomp,iSurface).GE.88.5.AND.
+     &         SPELV(icomp,iSurface).LE.91.5)then
           if(SVFC(icomp,iSurface).NE.'CEIL')then
             SVFC(icomp,iSurface)='CEIL'
             write(smlcn(ICOMP,iSurface),'(a)')
@@ -550,8 +549,8 @@ C be a ceiling.
             write(smlcn(ICOMP,iSurface),'(a)') 
      &        defmlc(8)(1:lnblnk(defmlc(8)))
           endif
-        elseif(PELV(iSurface).GE.-91.5.AND.
-     &         PELV(iSurface).LE.-88.5)then
+        elseif(SPELV(ICOMP,iSurface).GE.-91.5.AND.
+     &         SPELV(ICOMP,iSurface).LE.-88.5)then
           if(SVFC(icomp,iSurface).NE.'FLOR')then
             SVFC(icomp,iSurface)='FLOR'
             write(smlcn(ICOMP,iSurface),'(a)')
@@ -648,8 +647,7 @@ C For poly shape loop to find the floor in order to set up the floor area
       do iSurface=1,NSUR
         if(SVFC(icomp,iSurface).eq.'FLOR')then
           IBASES(ICOMP,1)=iSurface
-          ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-          ZBASEA(icomp)= SSNA(ibcs)
+          ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
         endif
       enddo
 
@@ -841,21 +839,20 @@ C the model.
        integer MSZ   ! number of zones array sizes, edit to
                      ! match MCOM in building.h
        PARAMETER (MSZ=82)
+
 #include "building.h"
 #include "model.h"
 #include "site.h"
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 #include "control.h"
 #include "seasons.h"
-C seasons.h required prior to ipvdata.h
 C #include "ipvdata.h"
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -1005,7 +1002,7 @@ C     logical lmatch
       real ht_Setpoint,cl_Setpoint !heating and cooling set-points
       integer isilentncf !silent decide how many control functions needed
       integer lsn  ! length of currentfile
-      logical simxml,ok,dok,decr
+      logical simxml,ok,decr
       integer jvn1(MV) ! to hold list of opening edges
       integer idebg    ! debug level
       logical isSI     ! false if Units are Imperial

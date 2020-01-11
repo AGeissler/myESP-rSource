@@ -3,6 +3,7 @@ C Magnitude set for large models. Code including this header
 C must have included net_flow.h prior to include tdf2.h.
 
       INTEGER MIT,MTABC,MHEL,MBITS,MGAT,MGAR,MGAI,MALT,MHTS,MTI
+      INTEGER MPCOMTDF
 
 C Allowed number of tabular entries in the TDF file. For large
 C models there may be one item per zone so this should reflect
@@ -34,7 +35,10 @@ C Maximum number of timesteps in an hour.
       PARAMETER (MHTS=60)
       
 C Array size for maximum items available of temporal definition
-      PARAMETER (MTI=32)
+      PARAMETER (MTI=34)
+      
+C Array size for maximum items of plant components for tdf purposes
+      PARAMETER (MPCOMTDF=200) !initial attempt to take this from plant.h failed, so hardwiring it
 
 C Related to TDF header.
       integer NWPR   ! Number of words per record in the TAB file.
@@ -141,7 +145,9 @@ C is the 6th item in the temporal file.
       integer IZNRHOBS  ! if non-zero observed zone rh available for viewing
       integer IZNHTOBS  ! if non-zero observed zone heating available for viewing
       integer IZNCLOBS  ! if non-zero observed zone cooling available for viewing
-      integer IGRNDRFL  ! if non-zero ground reflectance is provided at each time step
+      integer IGRNDRFL  ! if non-zero, ground reflectance is provided at each time step
+      integer ISUPPLWT  ! if non-zero, supply water temperature (PCL03) is provided at each time step
+      integer IPUMPVFR  ! if non-zero, the volumetric flow rate (l/h in tdf converted to m3/s in PCL08) is provided at each time step
       
       COMMON/TDFFLG2/IALLCLM,ICASUAL(MCOM),IZIVENT(MCOM),IRAIRVL(MCOM),
      &       ISETPTT(MCOM),ICTLSTA(MCOM),ISKYLUX,IDBTEXT,IWINDVL,
@@ -151,4 +157,4 @@ C is the 6th item in the temporal file.
      &       IDBTZNOBS(MCOM),ISURTOBS(MCOM,MS),IMFNTDFP(MNOD),IMFNTDFF,
      &       IPERVSEN,IStorageHeater(MCOM),IELECPWR(MCOM),ICFCCTL(MCOM),
      &       IRAININD,IZNRHOBS(MCOM),IZNHTOBS(MCOM),IZNCLOBS(MCOM),
-     &       IGRNDRFL
+     &       IGRNDRFL,ISUPPLWT(MPCOMTDF),IPUMPVFR(MPCOMTDF)

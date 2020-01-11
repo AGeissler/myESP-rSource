@@ -36,6 +36,7 @@ C  EASKS2CMD Ask user for a string with prompt, 2 alts, error messages & help.
 C  EPICKS:  Allows several selections to be made from an array of strings.
 C  MENUATOL Single item menu pick with items passed via parameters.
 C  ASKOK:   Generic yes/no/default facility returning OK as a logical parameter.
+C  EASKOK:   Generic yes/no facility returning OK as a logical parameter.
 C  EASKATOG: Generic A/B/C... choice facility returning 1-7 according
 C           to which of the choices has been chosen.
 
@@ -95,13 +96,13 @@ C     &             1,'F',MCOM,'W',1,'zone number',IER,2)
       SUBROUTINE EASKI(IVAL,PROMP1,PROMP2,MINV,MINACT,
      &                 MAXV,MAXACT,IDEFLT,ERMSG,IER,NHELP)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       CHARACTER*(*) PROMP1,PROMP2,ERMSG
       CHARACTER MINACT*1,MAXACT*1,A*1,WORD*10,STR1*10,STR2*10
       CHARACTER ask*16,OUTSTR*124,DSTR*124,outs*124
       character prompt*144
-      LOGICAL OK,DOK,unixok
+      LOGICAL OK,unixok
       integer ivalold   ! to remember passed value in case of cancel
 
       IER=0
@@ -240,8 +241,7 @@ C Check IVALT against minimum and respond based on MINACT.
    28   FORMAT('The input value for `',a,'` (',a,
      &         ') should be greater than ',a,'!')
         IF(MINACT.EQ.'W')THEN
-          DOK=.true.
-          CALL ASKOK(OUTSTR,'Is this OK?',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,'Is this OK?',OK,newnbhelp)
           IVAL=IVALT
           IF(.NOT.OK)GOTO 20
           IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
@@ -262,8 +262,7 @@ C Check IVALT against minimum and respond based on MINACT.
    39   FORMAT('The input value for `',a,'` (',a,')',
      &         ' should be less than ',a,'!')
         IF(MAXACT.EQ.'W')THEN
-          DOK=.true.
-          CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
           IVAL=IVALT
           IF(.NOT.OK)GOTO 20
           IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
@@ -335,13 +334,13 @@ C    ...
       SUBROUTINE EASKR(RVAL,PROMP1,PROMP2,RMIN,MINACT,
      &                 RMAX,MAXACT,DEFLT,ERMSG,IER,NHELP)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       CHARACTER*(*) PROMP1,PROMP2,ERMSG
       CHARACTER MINACT*1,MAXACT*1,A*1,WORD*16,STR1*16,STR2*16
       CHARACTER OUTSTR*124,DSTR*124,outs*124
       character ask*16,prompt*144
-      LOGICAL OK,close,DOK,unixok
+      LOGICAL OK,close,unixok
 
 C If RVAL is outwith range for failure then set to default.
       if(MINACT.EQ.'F'.and.RVAL.LT.RMIN)RVAL=DEFLT
@@ -375,17 +374,18 @@ C Generate help and default strings.
       WRITE(DSTR,27,iostat=ios,err=1)STR2(1:IW2)
    27 FORMAT('The default value (',a,') will be used.')
 
-      CALL REL16STR(DEFLT,STR1,IW1,IER)
-      CALL REL16STR(RVAL,STR2,IW2,IER)
-      call helpcurrentreal(deflt,rval,ermsg,nhelp,newnbhelp,ier)
+C Create help text line with current and default value.
+C      CALL REL16STR(DEFLT,STR1,IW1,IER)
+C      CALL REL16STR(RVAL,STR2,IW2,IER)
+C      call helpcurrentreal(deflt,rval,ermsg,nhelp,newnbhelp,ier)
 
 C Begin with prompts.
       IF(MMOD.EQ.8)THEN
 
 C If in graphic mode use graphic facilities to edit the number.
         WORD=' '
-        CALL PHELPW(newnbhelp,IHW,IER)
-        call dupphelp(newnbhelp)
+        CALL PHELPW(nhelp,IHW,IER)
+        call dupphelp(nhelp)
         LN1=max(1,lnblnk(PROMP1))
         LN2=max(1,lnblnk(PROMP2))
         if((LN1+LN2+1).lt.144)then
@@ -456,7 +456,7 @@ C A 'D' or 'd' detected, set to default value.
 
 C A probable request for help has been received. Print out the lines of
 C help supplied and then provide the prompt again.
-            CALL PHELPD('ask user real',newnbhelp,'-',0,0,IER)
+            CALL PHELPD('ask user real',nhelp,'-',0,0,IER)
             GOTO 20
           endif
         ELSEIF(WORD.EQ.' ')THEN
@@ -491,8 +491,7 @@ C Check RVALT against minimum and respond based on MINACT.
    28   FORMAT('The input value for `',a,'` (',a,
      &         ') should be greater than ',a,'!')
         IF(MINACT.EQ.'W')THEN
-          DOK=.false.
-          CALL ASKOK(OUTSTR,'Is this OK?',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,'Is this OK?',OK,nhelp)
           RVAL=RVALT
           IF(.NOT.OK)GOTO 20
           IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
@@ -513,8 +512,7 @@ C Check RVALT against minimum and respond based on MINACT.
    39   FORMAT('The input value for `',a,'` (',a,
      &         ')',' should be less than ',a,'!')
         IF(MAXACT.EQ.'W')THEN
-          DOK=.false.
-          CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,'Is this ok?',OK,nhelp)
           RVAL=RVALT
           IF(.NOT.OK)GOTO 20
           IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
@@ -587,13 +585,13 @@ C by the user.
       SUBROUTINE EASKE(RVAL,PROMP1,PROMP2,RMIN,MINACT,
      &                 RMAX,MAXACT,DEFLT,ERMSG,IER,NHELP)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       CHARACTER*(*) PROMP1,PROMP2,ERMSG
       CHARACTER MINACT*1,MAXACT*1,A*1,WORD*16,STR1*10,STR2*10
       CHARACTER ask*16,OUTSTR*124,DSTR*124,outs*124
       character prompt*144
-      LOGICAL OK,close,DOK,unixok
+      LOGICAL OK,close,unixok
 
       IER=0
 
@@ -611,19 +609,20 @@ C on the fortran side before the call).
 C Generate help and default strings.
       CALL EXPSTR(DEFLT,STR2,IW2,IER)
       WRITE(DSTR,27,iostat=ios,err=1)STR2(1:IW2)
-   27 FORMAT(' The default value (',a,') will be used.')
+   27 FORMAT('The default value (',a,') will be used.')
 
-      CALL EXPSTR(DEFLT,STR1,IW1,IER)
-      CALL EXPSTR(RVAL,STR2,IW2,IER)
-      call helpcurrentreal(deflt,rval,ermsg,nhelp,newnbhelp,ier)
+C Create a line of help text with current and default value.
+C      CALL EXPSTR(DEFLT,STR1,IW1,IER)
+C      CALL EXPSTR(RVAL,STR2,IW2,IER)
+C      call helpcurrentreal(deflt,rval,ermsg,nhelp,newnbhelp,ier)
 
 C Begin with prompts.
       IF(MMOD.EQ.8)THEN
 
 C If in graphic mode use graphic facilities to edit the number.
         WORD=' '
-        CALL PHELPW(newnbhelp,IHW,IER)
-        call dupphelp(newnbhelp)
+        CALL PHELPW(nhelp,IHW,IER)
+        call dupphelp(nhelp)
         LN1=max(1,lnblnk(PROMP1))
         LN2=max(1,lnblnk(PROMP2))
         if((LN1+LN2+1).lt.144)then
@@ -693,7 +692,7 @@ C A 'D' or 'd' detected, set to default value.
 
 C A probable request for help has been received. Print out the lines of
 C help supplied and then provide the prompt again.
-            CALL PHELPD('ask user real',newnbhelp,'-',0,0,IER)
+            CALL PHELPD('ask user real',nhelp,'-',0,0,IER)
             GOTO 20
           endif
         ELSEIF(WORD.EQ.' ')THEN
@@ -727,8 +726,7 @@ C Check RVALT against minimum and respond based on MINACT.
      &    STR1(1:IW1),STR2(1:IW2)
    28   FORMAT(' The value of ',a,' (',a,') is less than ',a,'!')
         IF(MINACT.EQ.'W')THEN
-          DOK=.false.
-          CALL ASKOK(OUTSTR,' Is this OK ? ',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,' Is this OK ? ',OK,nhelp)
           RVAL=RVALT
           IF(.NOT.OK)GOTO 20
           IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
@@ -748,8 +746,7 @@ C Check RVALT against minimum and respond based on MINACT.
      &    STR1(1:IW1),STR2(1:IW2)
    39   FORMAT(' The value of ',a,' (',a,')',' is greater than ',a,'!')
         IF(MAXACT.EQ.'W')THEN
-          DOK=.false.
-          CALL ASKOK(OUTSTR,' Is this ok? ',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,' Is this ok? ',OK,nhelp)
           RVAL=RVALT
           IF(.NOT.OK)GOTO 20
           IF(MMOD.EQ.8)call usrmsg('  ','  ','-')
@@ -807,12 +804,12 @@ C DSTR is a string to use as a default.
       SUBROUTINE EASKF(FILEN,PROMP1,PROMP2,ISTRW,DSTR,ERMSG,IER,NHELP)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,FILEN,DSTR
       CHARACTER WORD144*144,A*1,LASTS*144,OUTSTR*124,outs*124
       character prompt*144
-      LOGICAL OK,DOK,unixok
+      LOGICAL OK,unixok
 
 #ifdef OSI
       integer IISTRW
@@ -881,8 +878,7 @@ C        IF(IFLG.EQ.-2)THEN
 C          LN=max(1,LNBLNK(DSTR))
 C          WRITE(OUTSTR,'(3a)',iostat=ios,err=1)' The default is ',
 C     &      DSTR(1:LN),'.'
-C          DOK=.true.
-C          CALL ASKOK(OUTSTR,' Is this ok?',OK,DOK,NHL)
+C          CALL EASKOK(OUTSTR,' Is this ok?',OK,NHL)
 C          IF(OK)THEN
 C            FILEN=DSTR(1:LN)
 C            RETURN
@@ -948,8 +944,7 @@ C A 'D' or 'd' detected, set to default.
             LN=max(1,LNBLNK(DSTR))
             WRITE(OUTSTR,'(3a)',iostat=ios,err=1)'The default is `',
      &        DSTR(1:LN),'`.'
-            DOK=.true.
-            CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+            CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
             IF(OK)THEN
               FILEN=DSTR(1:LN)
               RETURN
@@ -1056,12 +1051,12 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       SUBROUTINE EASKS(STRVAL,PROMP1,PROMP2,ISTRW,DSTR,ERMSG,IER,NHELP)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,STRVAL,DSTR
       CHARACTER WORD*96,A*1,LASTS*96,OUTSTR*124,outs*124
       character prompt*144
-      LOGICAL OK,DOK,unixok
+      LOGICAL OK,unixok
       integer last    ! last blank (or one) in the string.
 
    20 WORD=' '
@@ -1124,10 +1119,10 @@ C A cancel answer detected, set ier to -3 and return.
           LN=max(1,LNBLNK(DSTR))
           WRITE(OUTSTR,'(3a)',iostat=ios,err=1)'The default is `',
      &      DSTR(1:LN),'`.'
-          DOK=.true.
-          CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
           IF(OK)THEN
             STRVAL=DSTR(1:LN)
+            call usrmsg('  ','  ','-')
             RETURN
           ELSE
             GOTO 20
@@ -1141,6 +1136,7 @@ C wishes to use prior/existing string.
             call isunix(unixok)
             if(unixok) WRITE(IUOUT,55,iostat=ios,err=1)LASTS(1:last)
             STRVAL=LASTS(1:last)
+            call usrmsg('  ','  ','-')
             RETURN
           ELSE
             CALL USRMSG(' The current string is blank!',
@@ -1173,8 +1169,7 @@ C A 'D' or 'd' detected, set to default.
             LN=max(1,LNBLNK(DSTR))
             WRITE(OUTSTR,'(3a)',iostat=ios,err=1)'The default is `',
      &        DSTR(1:LN),'`.'
-            DOK=.true.
-            CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+            CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
             IF(OK)THEN
               STRVAL=DSTR(1:LN)
               RETURN
@@ -1264,12 +1259,12 @@ C DSTR is a string to use as a default.
       SUBROUTINE EASKS248(STRVAL,PROMP1,PROMP2,ISTRW,DSTR,ERMSG,IER,
      &   NHELP)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,STRVAL,DSTR
       CHARACTER t72*72,t72a*72,t72b*72,t72c*72
       character outstr*248,word*248,prompt*144,LASTS*248,outs*124
-      LOGICAL next,OK,DOK,unixok
+      LOGICAL next,OK,unixok
       integer ISTRW
 
    20 IER=0
@@ -1337,10 +1332,10 @@ C A cancel answer detected, set ier to -3 and return.
           LN=max(1,LNBLNK(DSTR))
           WRITE(OUTSTR,'(3a)',iostat=ios,err=1)' The default is ',
      &      DSTR(1:LN),'.'
-          DOK=.true.
-          CALL ASKOK(OUTSTR,' Is this ok?',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,' Is this ok?',OK,newnbhelp)
           IF(OK)THEN
             STRVAL=DSTR(1:LN)
+            call usrmsg(' ',' ','-')
             RETURN
           ELSE
             GOTO 20
@@ -1354,9 +1349,10 @@ C wishes to use prior/existing string.
             call isunix(unixok)
             if(unixok)then
               WRITE(IUOUT,55,iostat=ios,err=1)LASTS(1:last)
-   55         FORMAT(' The existing string (',a,') will be used.')
+   55         FORMAT('The existing string (',a,') will be used.')
             endif
             STRVAL=LASTS(1:last)
+            call usrmsg(' ',' ','-')
             RETURN
           ELSE
             CALL USRMSG(' The current string is blank!',
@@ -1367,10 +1363,7 @@ C wishes to use prior/existing string.
 
 C Must have input a character string.
         STRVAL=WORD(1:lnblnk(WORD))
-
-C Debug.
-C        write(6,*) 'eask248 returning ',STRVAL(1:lnblnk(STRVAL))
-
+        call usrmsg(' ',' ','-')
         RETURN
       ELSE
 
@@ -1487,13 +1480,13 @@ C DSTR is a string to use as a default.
       SUBROUTINE EASKS496(STRVAL,PROMP1,PROMP2,ISTRW,DSTR,ERMSG,IER,
      &   NHELP)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       CHARACTER*(*) PROMP1,PROMP2,ERMSG,STRVAL,DSTR
       CHARACTER t72*72,t72a*72,t72b*72,t72c*72,t72d*72
       character t72e*72,t72f*72
       character outstr*248,word*248,prompt*144,LASTS*248,outs*124
-      LOGICAL next,OK,DOK,unixok
+      LOGICAL next,OK,unixok
       integer ISTRW
 
    20 IER=0
@@ -1562,10 +1555,10 @@ C A cancel answer detected, set ier to -3 and return.
           LN=max(1,LNBLNK(DSTR))
           WRITE(OUTSTR,'(3a)',iostat=ios,err=1)' The default is ',
      &      DSTR(1:LN),'.'
-          DOK=.true.
-          CALL ASKOK(OUTSTR,' Is this ok?',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,' Is this ok?',OK,newnbhelp)
           IF(OK)THEN
             STRVAL=DSTR(1:LN)
+            call usrmsg(' ',' ','-')
             RETURN
           ELSE
             GOTO 20
@@ -1582,6 +1575,7 @@ C wishes to use prior/existing string.
    55         FORMAT(' The existing string (',a,') will be used.')
             endif
             STRVAL=LASTS(1:last)
+            call usrmsg(' ',' ','-')
             RETURN
           ELSE
             CALL USRMSG(' The current string is blank!',
@@ -1592,10 +1586,7 @@ C wishes to use prior/existing string.
 
 C Must have input a character string.
         STRVAL=WORD(1:lnblnk(WORD))
-
-C Debug.
-C        write(6,*) 'eask496 returning ',STRVAL(1:lnblnk(STRVAL))
-
+        call usrmsg(' ',' ','-')
         RETURN
       ELSE
 
@@ -1773,12 +1764,12 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       SUBROUTINE EASKSCMD(STRVAL,PROMP1,PROMP2,CMD,CMDACT,ISTRW,DSTR,
      &  ERMSG,IER,NHELP)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       CHARACTER*(*) PROMP1,PROMP2,CMD,ERMSG,STRVAL,DSTR
       CHARACTER WORD*72,A*1,LASTS*72,OUTSTR*124,prompt*144
-      LOGICAL OK,CMDACT,DOK,unixok
+      LOGICAL OK,CMDACT,unixok
       integer ISTRW
 
    20 IER=0
@@ -1833,10 +1824,10 @@ C A cancel answer detected, set ier to -3 and return.
           LN=max(1,LNBLNK(DSTR))
           WRITE(OUTSTR,'(3a)') 'The default is `',
      &      DSTR(1:LN),'`.'
-          DOK=.true.
-          CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
           IF(OK)THEN
             STRVAL=DSTR(1:LN)
+            call usrmsg(' ',' ','-')
             RETURN
           ELSE
             GOTO 20
@@ -1851,6 +1842,7 @@ C wishes to use prior/existing string.
               if(unixok) WRITE(IUOUT,55)LASTS(1:last)
               STRVAL=LASTS(1:last)
               CMDACT=.TRUE.
+              call usrmsg(' ',' ','-')
               RETURN
             ENDIF
           ENDIF
@@ -1892,8 +1884,7 @@ C A 'D' or 'd' detected, set to default.
             LN=max(1,LNBLNK(DSTR))
             WRITE(OUTSTR,'(3a)') 'The default is `',
      &        DSTR(1:LN),'`.'
-            DOK=.true.
-            CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+            CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
             IF(OK)THEN
               STRVAL=DSTR(1:LN)
               RETURN
@@ -1969,13 +1960,13 @@ C should be generalized.
       SUBROUTINE EASKSCNCL(STRVAL,PROMP1,PROMP2,CNCL,CNCLACT,ISTRW,
      &  DSTR,ERMSG,IER,NHELP)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       CHARACTER*(*) PROMP1,PROMP2,CNCL,ERMSG,STRVAL,DSTR
       CHARACTER WORD*96,A*1,LASTS*96,OUTSTR*124
       character outstr248*248,prompt*144
-      LOGICAL OK,CNCLACT,DOK,unixok
+      LOGICAL OK,CNCLACT,unixok
 
    20 IER=0
       CNCLACT=.FALSE.
@@ -2024,10 +2015,10 @@ C leading blanks from string returned.
           LN=max(1,LNBLNK(DSTR))
           WRITE(OUTSTR,'(3a)') 'The default is `',
      &      DSTR(1:LN),'`.'
-          DOK=.true.
-          CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
           IF(OK)THEN
             STRVAL=DSTR(1:LN)
+            call usrmsg(' ',' ','-')
             RETURN
           ELSE
             GOTO 20
@@ -2071,8 +2062,7 @@ C A 'D' or 'd' detected, set to default.
             LN=max(1,LNBLNK(DSTR))
             WRITE(OUTSTR,'(3a)') 'The default is `',
      &        DSTR(1:LN),'`.'
-            DOK=.true.
-            CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+            CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
             IF(OK)THEN
               STRVAL=DSTR(1:LN)
               RETURN
@@ -2159,12 +2149,12 @@ C        CALL USRMSG(' ',' selected string is:'//XNAME,'-')
       SUBROUTINE EASKS2CMD(STRVAL,PROMP1,PROMP2,CMD,CMD2,ICACT,ISTRW,
      &  DSTR,ERMSG,IER,NHELP)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       CHARACTER*(*) PROMP1,PROMP2,CMD,CMD2,ERMSG,STRVAL,DSTR
       CHARACTER WORD*96,A*1,LASTS*96,OUTSTR*124,prompt*144
-      LOGICAL OK,DOK,unixok
+      LOGICAL OK,unixok
       integer istrw
 
    20 IER=0
@@ -2220,8 +2210,7 @@ C A cancel answer detected, set ier to -3 and return.
           LN=max(1,LNBLNK(DSTR))
           WRITE(OUTSTR,'(3a)') 'The default is `',
      &      DSTR(1:LN),'`.'
-          DOK=.true.
-          CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+          CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
           IF(OK)THEN
             STRVAL=DSTR(1:LN)
             RETURN
@@ -2297,8 +2286,7 @@ C A 'D' or 'd' detected, set to default.
             LN=max(1,LNBLNK(DSTR))
             WRITE(OUTSTR,'(3a)') 'The default is `',
      &        DSTR(1:LN),'`.'
-            DOK=.true.
-            CALL ASKOK(OUTSTR,'Is this ok?',OK,DOK,newnbhelp)
+            CALL EASKOK(OUTSTR,'Is this ok?',OK,newnbhelp)
             IF(OK)THEN
               STRVAL=DSTR(1:LN)
               RETURN
@@ -2859,7 +2847,7 @@ C If NHELP=-1 there is no default option.
       SUBROUTINE ASKOK(MSG1,MSG2,OK,DOK,NHELP)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       CHARACTER*(*) MSG1,MSG2
@@ -3006,6 +2994,121 @@ C looping, creating infinite output. Stop the program.
 
       END
 
+
+C ******************** EASKOK
+C EASKOK Generic choice facility returning logical variable
+C from a yes no.
+C In the case of a graphic menu the messages will appear in a
+C dialogue box at the bottom of the graphic window.
+      SUBROUTINE EASKOK(MSG1,MSG2,OK,NHELP)
+
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer ifs,itfs,imfs
+      COMMON/GFONT/IFS,ITFS,IMFS
+      CHARACTER*(*) MSG1,MSG2
+      CHARACTER ANS*2,MSG3*124,opta*14,optb*14,optc*14
+      character optd*2,opte*2,optf*2,optg*2,outs*124
+      character prompt*144
+      logical ok
+      integer lastmenufont,iuse
+
+      call helpwithblank('Ok dialog',nhelp,newnbhelp,ier)
+
+C Print out message according to the combination of strings passed. Use
+C the dialogue box if terminal type 8.
+      IF(MMOD.LT.8)THEN
+
+C Setup a single line menu to pick from via EASKS.
+   21   LN=max(1,LNBLNK(MSG2))
+        WRITE(MSG3,'(2a)')MSG2(1:LN),' [Y]es [N]o ?'
+        LN1=max(1,lnblnk(MSG1))
+        LN3=max(1,lnblnk(MSG3))
+        ans = '  '
+        WRITE(IUOUT,'(a)')MSG1(1:LN1)
+        WRITE(IUOUT,'(a)')MSG3(1:LN3)
+
+C Querry yes or no.
+        READ(IUIN,'(A2)',IOSTAT=IOS,ERR=1,END=666)ANS
+        IF(ANS(1:1).EQ.'Y'.OR.ANS(1:1).EQ.'y')THEN
+          OK=.TRUE.
+        ELSEIF(ANS(1:1).EQ.'N'.OR.ANS(1:1).EQ.'n')THEN
+          OK=.FALSE.
+        ELSE
+          CALL USRMSG(' ','You must make a choice!','-')
+          GOTO 21
+        ENDIF
+      ELSEIF(MMOD.EQ.8)THEN
+
+
+C Save off current menu font and if mono-space set to proportional.
+        lastmenufont=IMFS
+        if(IMFS.ge.0.and.IMFS.le.3)then
+          IUSE=IMFS+4
+          call userfonts(IFS,ITFS,IUSE)
+        endif
+
+C Querry yes or no. Concat MSG1 & MSG2 together for prompt.
+  19    continue
+        LN1=max(1,lnblnk(MSG1))
+        LN2=max(1,lnblnk(MSG2))
+        if((LN1+LN2+1).lt.144)then
+          if(LN1.eq.1)then
+            write(prompt,'(a)') MSG2(1:LN2)
+          else
+            write(prompt,'(3a)') MSG1(1:LN1),' ',MSG2(1:LN2)
+          endif
+        else
+          LN2=142-LN1
+          write(prompt,'(3a)') MSG1(1:LN1),' ',MSG2(1:LN2)
+        endif
+        opta='yes'
+        optb='no'
+        optc='  '
+        optd='  '
+        opte='  '
+        optf='  '
+        optg='  '
+        iw=0
+        call espabcbox(prompt,opta,optb,optc,optd,opte,optf,optg,IW)
+
+C Debug.
+C        write(6,*) 'espabcbox selected iw ',iw,opta,optb,optc
+
+        IF(IW.eq.1)THEN
+          OK=.TRUE.
+        ELSEIF(IW.eq.2)THEN
+          OK=.FALSE.
+        ELSEIF(IW.EQ.8.OR.IW.EQ.-8)THEN
+
+C A probable request for help has been received. Print out the lines
+C of help supplied and then provide the prompt again.
+          CALL PHELPD('this multi-choice',newnbhelp,'-',0,0,IER)
+          GOTO 19
+        ENDIF
+        IMFS=lastmenufont    ! re-establish font
+        call userfonts(IFS,ITFS,IMFS)
+      ENDIF
+      RETURN
+
+   1  if(IOS.eq.2)then
+        write(outs,*) 
+     &  'EASKOK: permissions exception while composing prompt.'
+        call edisp(iuout,outs)
+      else
+        write(outs,*) 'EASKOK: error composing prompt.'
+        call edisp(iuout,outs)
+      endif
+      RETURN
+      
+C If an EOF is detected when reading from IUIN, we often get infinite
+C looping, creating infinite output. Stop the program.
+  666 write(IUOUT,*)'EASKOK: EOF detected, error in input commands.'
+      call pauses(1)
+      STOP
+
+      END
+
 C ******************** EASKATOG
 C EASKATOG choice of 3 - 7 items returning 1 to 7 according to
 C which of the choices has been chosen.
@@ -3025,7 +3128,7 @@ C Parameters passed.
       integer iwhich  ! select passed back
       integer nhelp   ! number of lines of help to display
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -3179,7 +3282,7 @@ C and the messages will appear in a pop-up dialogue box.
       SUBROUTINE EASKDOZEN(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,EOPT,FOPT,
      &  GOPT,HOPT,IOPT,JOPT,KOPT,LOPT,IWHICH,NHELP)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -3365,7 +3468,7 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C EMPAGE: Low level screen control for paging based on terminal MMOD.
 C The available terminal see EPAGES.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER DUMMY*1,blnk*2,blnk2*2,cont*8,prompt*72
 
       cont='continue'
@@ -3590,7 +3693,7 @@ C string to form the heading of menu, ITEMS is an array of character
 C strings making up the menu, NITMS is the number of items in the menu,
 C INO is the number of the item chosen.
       SUBROUTINE EMENU(NAME,ITEMS,NITMS,INO)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       CHARACTER*1 JJ
       CHARACTER*(*) NAME,ITEMS(NITMS)
@@ -3824,7 +3927,7 @@ C graphic window. The user must have previously called open_msg_box(2).
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*(*) MSG1,MSG2
       CHARACTER outs*124,LEVEL*1,blnk*2,blnk2*2,cont*8
       character prompt*144
@@ -3958,7 +4061,7 @@ C graphic window. The user must have previously called open_msg_box(2).
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*(*) MSG1,MSG2
       CHARACTER outs*124,LEVEL*1,blnk*2,blnk2*2,cont*8
       character prompt*144
@@ -4106,7 +4209,7 @@ C For type 8 manages the text which is passed to inserttext for
 C treatment as a scrolling window.
       SUBROUTINE EDISP(ITRU,MSG)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/textbuf/dispbuf(500)
       common/textbufl/indexbuf,lnbuf(500)
       CHARACTER*(*) MSG
@@ -4205,7 +4308,7 @@ C For type 8 manages the text which is passed to inserttext for
 C treatment as a scrolling window.
       SUBROUTINE EDISPxtr(ITRU,MSG)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/textbuf/dispbuf(500)
       common/textbufl/indexbuf,lnbuf(500)
       CHARACTER*(*) MSG
@@ -4305,7 +4408,7 @@ C For type 8 manages the text which is passed to inserttext for
 C treatment as a scrolling window.
       SUBROUTINE EDISP2tr(ITRU,MSG)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/textbuf/dispbuf(500)
       common/textbufl/indexbuf,lnbuf(500)
       CHARACTER*(*) MSG
@@ -4401,7 +4504,7 @@ C ****** write current text buffer to an appropraite file
 
 C Path to model and command line file (if any).
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/rpath/path
       common/pophelp/h(60)
@@ -4547,7 +4650,7 @@ C ****** invoke graphics capture proforma
 
 C Path to model and command line file (if any).
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/rpath/path
       common/pophelp/h(60)
 
@@ -4684,7 +4787,7 @@ C terminal type 8.
       SUBROUTINE PHELPD(MSG,NHELP,OTHER,IBX,IBY,IER)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       dimension lh(30)
       CHARACTER*(*) MSG,OTHER
@@ -4876,7 +4979,7 @@ C C code does not destroy it. Note: this uses the esp_text.c version
 C rather than the esru_x.c version.
       SUBROUTINE dupphelp(NH)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       CHARACTER H*72,dh*72
 
@@ -4937,7 +5040,7 @@ C GDUPDATE Update the graphical display of the model.
 #include "building.h"
 #include "prj3dv.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/rpath/path
       COMMON/PREC8/SLAT,SLON
@@ -5030,6 +5133,233 @@ C EVSET provides a dummy setup environment for wire frame view.
       integer ier
       return
       END
+
+C **************** ASKMULTIZON
+C ASKMULTIZON presents a list of zones to select one or more from.
+C It is passed a prompt, menu title, and number of allowable items inpic
+C It returns inpick and array IVALS. Variant of standard version in
+C esru_misc.F 
+C MOD display modifier `-` zone names only.
+C If there have been groups-of-zones defined also include these
+C in the list (at the bottom).
+      SUBROUTINE ASKMULTIZON(INPIC,IVALS,prompt,title,mod,IER)
+#include "building.h"
+#include "model.h"
+#include "geometry.h"
+#include "schedule.h"
+#include "epara.h"
+
+      integer lnblnk  ! function definition
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/pophelp/h(60)
+
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+
+      LOGICAL FOUND
+      CHARACTER*(*) prompt,title
+
+      DIMENSION VERT(35),IVALS(MCOM)
+      DIMENSION GERT(20),IGVAL(20)  ! For groups.
+      CHARACTER VERT*23,gert*23,KEY*1,prompt2*36
+      character h*72,mod*1,outs*124,msg*96
+
+C Clear IVALS.
+      IER=0
+      maxinpic=INPIC; INPIC=0
+      DO 40 I=1,NCOMP
+        IVALS(I)=0
+   40 CONTINUE
+
+C Makeup list of zone groups.
+      if(nzgroup.gt.0)then
+        do i=1,nzgroup
+          write(gert(i),'(2a,i2,a)')zglbl(i)(1:lnblnk(zglbl(i))),' (',
+     &     izgnumber(i),'zn)'
+        enddo
+      endif
+
+C Initialise zone menu variables based on window size.
+C IVERT is the menu position, MVERT the current number of menu lines.
+      MHEAD=0
+      if(nzgroup.gt.0)then
+        MCTL=5
+      else
+        MCTL=4
+      endif
+      ILEN=NCOMP
+      IPACT=CREATE
+      CALL EKPAGE(IPACT)
+
+C Initial menu entry setup.
+   92 IER=0
+      IVERT=-3
+
+C Build up text strings for the menu.
+    3 M=MHEAD
+      DO 10 L=1,ILEN
+        IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
+          M=M+1
+          CALL EMKEY(L,KEY,IER)
+          VERT(M)=' '
+          WRITE(VERT(M),'(a1,1x,a)')KEY,zname(L)
+          do K=1,INPIC  ! mark those selected
+            if (IVALS(K).eq.L) then
+              WRITE(VERT(M),'(a1,1x,2a)')KEY,zname(L),' *'
+            endif
+          enddo
+        ENDIF
+   10 CONTINUE
+
+C Number of actual items displayed.
+      MVERT=M+MCTL
+
+C If a long list include page facility text and info on portion seen.
+      IF(IPFLG.EQ.0)THEN
+        VERT(M+1)=  '  __________________  '
+      ELSE
+        WRITE(VERT(M+1),15)IPM,MPM
+   15   FORMAT ('0 page part: ',I1,' -- of:',I1)
+      ENDIF
+
+C If groups defined.
+      if(nzgroup.gt.0)then
+        if(maxinpic.eq.NCOMP)then
+          VERT(M+2)='* All                 '
+        else
+          VERT(M+2)='                      '
+        endif
+        VERT(M+3)  ='! via group-of-zones  '
+        VERT(M+4)  ='? help                '
+        VERT(M+5)  ='- exit this menu      '
+      else
+        if(maxinpic.eq.NCOMP)then
+          VERT(M+2)='* All                 '
+        else
+          VERT(M+2)='                      '
+        endif
+        VERT(M+3)  ='? help                '
+        VERT(M+4)  ='- exit this menu      '
+      endif
+      write(prompt2,'(a)') ' select one or more...'
+
+C Instanciate help message for this menu.
+      H(1)='Zones may be selected via the names in the list.'
+      h(2)='If you have just updated a file it may not show up'
+      h(3)='as defined until you exit and re-enter this menu. '
+      h(4)=' '
+
+C Display the menu.
+      call usrmsg(PROMPT,PROMPT2,'-')
+      CALL EMENU(title,VERT,MVERT,IVERT)
+      IF(IVERT.LE.MHEAD)THEN
+        IVERT=-1
+        goto 3
+      ELSEIF(IVERT.EQ.MVERT)THEN
+
+C Debug.
+C        write(6,*) 'inpic is ',inpic
+C        write(6,*) 'ivals is ',ivals
+        RETURN
+      ELSEIF(IVERT.EQ.(MVERT-1))THEN
+
+C Display help text.
+        CALL PHELPD('zone files section',4,'-',0,0,IER)
+      ELSEIF(IVERT.EQ.(MVERT-2).AND.nzgroup.gt.0)THEN
+
+C Display a list of groups of associated zones.
+        INPIC=1
+        CALL EPMENSV
+        CALL EPICKS(INPIC,IGVAL,' ','Available groups:',
+     &    23,nzgroup,gert,'group list',IER,1)
+        CALL EPMENRC
+        write(msg,'(a,i2,a)') 'Includes ',izgnumber(IGVAL(1)),
+     &    'zones.'
+        call edisp(iuout,msg)
+        if(IGVAL(1).gt.0)then
+          INPIC=0; limit=izgnumber(IGVAL(1))
+          do j=1,limit
+            INPIC=INPIC+1
+            IVALS(INPIC)=izglist(IGVAL(1),j)
+            write(outs,*) 'including ',zname(IVALS(INPIC))
+            call edisp(iuout,outs)
+          enddo
+          return
+        endif
+      ELSEIF(IVERT.EQ.(MVERT-3).AND.nzgroup.gt.0)THEN
+        DO I=1,NCOMP  ! Select all zones.
+          IVALS(I)=I
+        ENDDO
+        INPIC=NCOMP
+        call edisp(iuout,'All zones selected')
+        return
+      ELSEIF(IVERT.EQ.(MVERT-2).AND.nzgroup.eq.0)THEN
+        DO I=1,NCOMP  ! Select all zones.
+          IVALS(I)=I
+        ENDDO
+        INPIC=NCOMP
+        call edisp(iuout,'All zones selected')
+        return
+      ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
+
+C Look through previous selections and see if IFOC is unique, if
+C so update IVALS and loop back for another.
+        CALL KEYIND(MVERT,IVERT,IFOC,IO)
+        FOUND=.FALSE.
+        IF(INPIC.GT.0)THEN
+          DO 44 J=1,INPIC
+            IF(IVALS(J).EQ.IFOC.or.FOUND) then
+              FOUND=.TRUE.
+              if (J+1.gt.NCOMP) then
+                IVALS(J)=0
+              else
+                IVALS(J)=IVALS(J+1)
+              endif
+            endif
+  44      CONTINUE
+          IF(.NOT.FOUND)THEN
+            if (INPIC.lt.NCOMP) then
+              INPIC=INPIC+1
+              IVALS(INPIC)=IFOC
+              write(outs,*) 'added ',vert(ivert)(2:lnblnk(vert(ivert)))
+              call edisp(iuout,outs)
+              goto 3
+            endif
+          ELSE
+            INPIC=INPIC-1
+            write(outs,*) 'removed ',
+     &        vert(ivert)(2:lnblnk(vert(ivert)))
+            call edisp(iuout,outs)
+            goto 3  ! to re-fresh the items in the list.
+          ENDIF
+        ELSEIF(INPIC.EQ.0)THEN
+          INPIC=1
+          IVALS(INPIC)=IFOC
+          write(outs,*) 'added ',vert(ivert)(2:lnblnk(vert(ivert)))
+          call edisp(iuout,outs)
+          goto 3
+        ENDIF
+      endif
+
+      IF(IVERT.EQ.(MVERT-3))THEN
+
+C If there are enough items allow paging control via EKPAGE.
+        IF(IPFLG.EQ.1)THEN
+          IPACT=EDIT
+          CALL EKPAGE(IPACT)
+        ENDIF
+      else
+
+C Not one of the legal menu choices.
+        IVERT=-1
+        goto 92
+      endif
+      IVERT=-2
+      goto 3
+
+      END
+
 
 
 C ********* dummy subroutines and functions to match what is found

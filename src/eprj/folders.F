@@ -60,7 +60,7 @@ C Passed in parameters.
       character root*32,mpath*72,menu*72
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       common/C1/NCOMP,NCON
@@ -93,7 +93,7 @@ C Calendar.
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
-      logical XST,OK,dok,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      logical XST,OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical OKI,concat,unixok,clkok
 
       character dstmp*24,LCFTMP*32
@@ -157,24 +157,16 @@ C Silent continue, there is nothing to do (currently).
 
 C Silent new within the pre-registration process.
 
-C Debug.
-C        write(6,*)  ' pregist ',root
-C        write(6,*)  ' pregist ',mpath
-
         write(LCFTMP,'(a)') root(1:lnblnk(root))
       elseif(act(1:2).eq.'sw')then
 
 C Silent within the pre-registration process.
 
-C Debug.
-C        write(6,*)  ' pregist ',root
-C        write(6,*)  ' pregist ',mpath
-
         write(LCFTMP,'(a)') root(1:lnblnk(root))
 
       elseif(act(1:1).eq.'i')then
 
-        helptopic='cfg_overview'
+        helptopic='model_root_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         LCFTMP='  '
         ISTRW=32
@@ -252,7 +244,6 @@ C Check existance of this file (should not overwrite an existing file).
       CALL ERPFREE(IFCFG,ISTAT)
       call FINDFIL(LCFGF,XST)
       if(XST)then
-        dok=.true.
         helptopic='cfg_overwrite_warning'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(act(1:2).eq.'sn')then
@@ -260,8 +251,8 @@ C Check existance of this file (should not overwrite an existing file).
         elseif(act(1:2).eq.'sw')then
           OK=.true.
         elseif(act(1:1).eq.'i')then
-          call askok('There is an existing configuration with',
-     &    'this name. Do you want to overwrite it?',OK,dok,nbhelp)
+          call easkok('Configuration file exists!',
+     &                'Overwrite?',OK,nbhelp)
         endif
         if(.not.OK)goto 289
       endif
@@ -282,7 +273,7 @@ C Silent new within the pre-registration process.
 C Create the folder mpath and inside that the standard model folders.
         lnmp=lnblnk(mpath)
         write(doit,'(2a)') 'mkdir ',mpath(1:lnmp)
-        call usrmsg('Creating model folders...','  ','-')
+C        call usrmsg('Creating model folders ...','  ','-')
         call runit(doit,'-')
         call pausems(100)
         call usrmsg('  ','  ','-')
@@ -575,7 +566,7 @@ C Instanciate standard folder names for use within model configuration file.
       write(odir,'(a)')cfgroot(1:lncr)
       lnod=lncr
       write(doit,'(2a)') 'mkdir ',cfgroot(1:lncr)
-      call usrmsg('Creating folders...','  ','-')
+C      call usrmsg('Creating model folders ...','  ','-')
       call runit(doit,'-')
       call pausems(100)
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'cfg'
@@ -690,7 +681,7 @@ C Instanciate standard folder names for use within model configuration file.
       write(doit,'(4a)') 'mkdir ',cfgroot(1:lncr),fs,'bsm'
       call runit(doit,'-')
       call pausems(100)
-      call usrmsg('Creating folders...done.','  ','P')
+C      call usrmsg('Creating model folders ... done.','  ','P')
 
 C Re-establish pwd and then project folders.  Note longer paths
 C can cause the path variable to have a string buffer overflow.
@@ -699,24 +690,19 @@ C can cause the path variable to have a string buffer overflow.
       lnod=lnblnk(odir)
       lncr=lnblnk(cfgroot)
       if(lnod+lncr+6.lt.72)then
-        call edisp(iuout,'  ')
         write(path,'(6a)')odir(1:lnod),fs,cfgroot(1:lncr),fs,'cfg',fs
         write(cfgpath,'(5a)')odir(1:lnod),fs,cfgroot(1:lncr),fs,'cfg'
+        call edisp(iuout,' ')
         call edisp(iuout,
-     &    'New model configuration file is in folder:')
+     &    'Model configuration file folder is:')
         call edisp(iuout,path)
       else
         write(outs,'(6a)')odir(1:lnod),fs,cfgroot(1:lncr),fs,'cfg',fs
         call usrmsg(
-     &    'The derived path (below) is > 72 char give shorter root',
+     &    'Derived path is >72 chararacters, give a shorter root name',
      &    outs,'W')
         goto 289
       endif
-
-C Having tested the explicit path reset.
-      write(path,'(4a)') cfgroot(1:lncr),fs,'cfg',fs
-      write(outs,'(2a)') 'Resetting model path to: ',path
-      call edisp(iuout,outs)
 
 C General description of the model.
   52  helptopic='cfg_model_descriptor'
@@ -734,7 +720,7 @@ C General description of the model.
       endif
 
 C Documentation.
-  53  helptopic='cfg_model_log_file'
+  53  helptopic='project_log_file'
       call gethelptext(helpinsub,helptopic,nbhelp)
       if(lmodellog(1:2).eq.'  '.or.lmodellog(1:4).eq.'UNKN')then
         lr=lnblnk(cfgroot)
@@ -763,8 +749,8 @@ C full path to the file.
         write(lguess,'(a)') lmodellog(1:lnblnk(lmodellog))
       endif
       call edisp(iuout,'  ')  ! echo blank line
-      CALL EASKXORGTKF(lguess,
-     &  'Project log file:',' ',lldef,lltmp,'log file',IER,nbhelp)
+      CALL EASKXORGTKF(lguess,' ',
+     &  'Project log file?',lldef,lltmp,'log file',IER,nbhelp)
 
 C If user request jump back and re-display the menu.
       if(ier.eq.-3)then
@@ -773,9 +759,8 @@ C If user request jump back and re-display the menu.
 
 C Ask user whether file is in ../doc and if so use fdroot if GTK.
       if(iglib.eq.2)then
-        dok=.true.
-        CALL ASKOK('Is this file in the model ../doc folder?',
-     &    ' ',OK,dok,3)
+        CALL EASKOK(' ','Is file in the model doc folder?',
+     &       OK,3)
         if(OK)then
           call fdroot(lltmp,lpath,fname)
           write(lmodellog,'(3a)') docpth(1:lnblnk(docpth)),fs,
@@ -795,9 +780,8 @@ C information.
       if(XST)then
         CALL LISTAS(IUNIT,lmodellog,IER)
         IF(IER.ne.0)THEN
-          dok=.true.
-          CALL ASKOK('Problem detected with log file!',
-     &               'Try again?',OK,dok,nbhelp)
+          CALL EASKOK('Problem detected with log file!',
+     &                'Retry?',OK,nbhelp)
           IF(OK)GOTO 53
         ENDIF
       else
@@ -824,10 +808,9 @@ C necessary.  If vi then spawn a new window to do the editing.
 
 C << This would be a good place to offer an internal editing popup
 C << which uses GTK facilities.
-      dok=.false.
-      helptopic='cfg_model_log_file'
+      helptopic='project_log_file'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' ','Edit log file?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Edit log file?',OK,nbhelp)
       IF(OK)then
 
 C Check if Unix-based or DOS based.
@@ -851,10 +834,9 @@ C and change any / to \.
       endif
 
 C Ask about images and a results summary.
-      dok=.false.
       helptopic='cfg_model_images'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' ','Associate images now?',OKI,dok,nbhelp)
+      CALL EASKOK(' ','Associate images?',OKI,nbhelp)
       if(OKI)then
 
 C Provide a listing of the current contents of the ../images folder.
@@ -888,8 +870,7 @@ C Edit image description if newer configuration file.
           endif
         endif
         if(noimg.lt.MIMG)then
-          dok=.false.
-          CALL ASKOK(' ',' Another image?',OK,dok,nbhelp)
+          CALL EASKOK(' ','Another image?',OK,nbhelp)
           if(OK)then
             write(limg,'(a)')imgpth(1:lnblnk(imgpth))
             iformat='GIF '
@@ -905,13 +886,19 @@ C Ask for site position.
         helptopic='cfg_latitude_longitude'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKR(SLAT,' ','Site latitude?',
-     &    -89.9,'W',89.9,'W',55.9,'site latitude',IER,nbhelp)
+     &    -89.95,'W',89.95,'W',55.86,'site latitude',IER,nbhelp)
         IF(IER.EQ.0)sitelat=SLAT
 
-        CALL EASKR(SLON,
-     &   'Longitude difference from local time meridian (east +ve)?',
-     &   ':',-15.0,'W',15.0,'W',-4.1,'longitude difference',IER,nbhelp)
+        CALL EASKR(SLON,' ',
+     &   'Longitude difference from local time meridian?',
+     &   -15.0,'W',15.0,'W',-4.25,'longitude difference',IER,nbhelp)
         IF(IER.EQ.0)sitelongdif=SLON
+
+C Ask for site altitude.
+        helptopic='cfg_latitude_longitude'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKR(sitealt,' ','Site altitude (m)?',
+     &    -100.0,'W',3000.0,'W',0.0,'site altitude',IER,nbhelp)
 
 C Ask for year, initialise and then print out the calendar if the
 C user does not cancel the operation. Because there have been no
@@ -920,22 +907,13 @@ C initial set of days.
         helptopic='cfg_model_year'
         call gethelptext(helpinsub,helptopic,nbhelp)
         iyeart=iyear
-        CALL EASKI(IYEART,' ','Assessment year?',
-     &    1900,'W',2051,'W',2007,'assessment year',IERI,nbhelp)
+        CALL EASKI(IYEART,' ','Associated assessment year?',
+     &    1900,'W',2051,'W',2019,'assessment year',IERI,nbhelp)
         if(ieri.eq.-3) then
           call calenmanage('i',ier)
         else
           iyear=iyeart
           call calenmanage('i',ier)
-
-C Comment out printing of initial calendar as it can cause a crash
-C on some 64bit computers.
-C          loop=8
-C          loopst=1
-C          call calenprint(iuout,'t',iyear,loopst,loop)
-C          call edisp(iuout,' ')
-C          call calenprint(iuout,'g',iyear,loopst,loop)
-C          call edisp(iuout,' ')
         endif
 
         helptopic='cfg_model_other'
@@ -1007,19 +985,30 @@ C Parameters
       common/childt/childterminal
       integer iappwpc ! application %
 
-      common/pophelp/h(60)
-      character h*72
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      common/warncounter/iecount
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
 
       integer lnblnk  ! function definition
       character doit*248
       character tmode*8
       logical unixok
 
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='refocus'     ! set for subroutine
+      helptopic='warn_restart'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
 C Set folder separator (fs) to \ or / as required.
       ier=0
       call isunix(unixok)
-      write(6,*) 'using refocus'
 
 C If original application was started with -s X figure out what this was.
       call terminalmode(childterminal,tmode)
@@ -1031,42 +1020,41 @@ C If original application was started with -s X figure out what this was.
 
 C Test if we can start a new prj within the model cfg folder.
       if(unixok)then
-        h(1)='To provide full functionality prj should'
-        h(2)='restart in the model cfg folder. When prj'
-        h(3)='has restarted this instance of prj will'
-        h(4)='quit after a few seconds.'
-        CALL EASKAB(
-     &    'Project Manager needs to restart.',
-     &    'Options:','restart','continue',IRT,4)
-        if(irt.eq.1)then
-          call pausems(1000)
-          call usrmsg('Invoking new ESP-r instance',
-     &      'focused on the model.','P')
+C        CALL EASKAB(
+C     &    'Project Manager needs to restart.',
+C     &    'Options:','restart','cancel',IRT,nbhelp)
+C        if(irt.eq.1)then
+C          call edisp(iuout,' ')
+C          call edisp(iuout,
+C     &    'Invoking new ESP-r instance focused on the selected model.')
 
 C Invoke prj in same mode and size and initial start.
-          if(iappwpc.gt.0.and.iappwpc.le.200)then
-            write(doit,'(5a,3i4,3a)')  'cd ',
-     &        cfgpath(1:lnblnk(cfgpath)),'; prj -mode ',tmode,
-     &        ' -s ',iappwpc,iappx+10,iappy+10,' -file ',
-     &        thecfgis(1:lnblnk(thecfgis)),' &'
-          else
-            write(doit,'(5a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
-     &        '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' &'
-          endif
-C          write(doit,'(5a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
-C     &      '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' &'
-          call edisp248(iuout,doit,100)
-          call runit(doit,'-')
-          call pausems(1000)
+        if(iappwpc.gt.0.and.iappwpc.le.200)then
+          write(doit,'(5a,3i4,3a)')  'cd ',
+     &      cfgpath(1:lnblnk(cfgpath)),'; prj -mode ',tmode,
+     &      ' -s ',iappwpc,iappx+10,iappy+10,' -file ',
+     &      thecfgis(1:lnblnk(thecfgis)),' &'
+        else
+          write(doit,'(5a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
+     &      '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' &'
+        endif
+        call edisp248(iuout,doit,100)
+        call runit(doit,'-')
+        call pausems(1000)
 
 C Clear allocatable arrays
-          CALL DeallocateAllArrays
-          CALL EPAGEND
-          STOP
-        elseif(irt.eq.2)then
-          ier=-2  ! pass back to calling code
-          return
+        call DeallocateAllArrays
+        close(ieout)
+        if(iecount.eq.0)then     ! if there were no warnings delete
+          open(ieout,file=iefile,status='UNKNOWN')
+          call efdelet(ieout,istat)
         endif
+        call EPAGEND
+        STOP
+C        elseif(irt.eq.2)then
+C          ier=-2  ! pass back to calling code
+C          return
+C        endif
       else
 
 C For Non-unix place a & between the commands and also set the
@@ -1075,52 +1063,52 @@ C text string tmode='bg' to partially mimic background mode.
         write(doit,'(4a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
      &    ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
         call edisp248(iuout,doit,100)
-        call edisp(iuout,'  ')
+        call edisp(iuout,' ')
         call edisp(iuout,'If restart does not cleanly open the model')
         call edisp(iuout,'type the command into a DOS cmd terminal or')
         call edisp(iuout,'click on the model cfg file in that folder.')
         call pausems(1000)
-        h(1)='To provide full functionality prj should'
-        h(2)='restart in the copied model cfg folder. When'
-        h(3)='prj has restarted this instance of prj will'
-        h(4)='persist until you close the DOS cmd window.'
-        CALL EASKAB(
-     &    'To provide full functionality ESP-r needs to restart',
-     &    'Options','restart','continue',IRT,4)
-        if(irt.eq.1)then
+C        call EASKAB(
+C     &    'To provide full functionality ESP-r needs to restart',
+C     &    'Options','restart','cancel',IRT,nbhelp)
+C        if(irt.eq.1)then
 
 C Separate two dos cmds with & but do not include & at end to force background
 C mode via runit parameter. The initial prj tends not to close unless the
 C DOS cmd window is Xed.
-          doit='  '
+         doit='  '
 
 C Invoke prj in same mode and size and initial start.
-          if(iappwpc.gt.0.and.iappwpc.le.200)then
-            write(doit,'(5a,3i4,2a)')  'cd ',
-     &        cfgpath(1:lnblnk(cfgpath)),' & prj -mode ',tmode,
-     &        ' -s ',iappwpc,iappx+10,iappy+10,' -file ',
-     &        thecfgis(1:lnblnk(thecfgis))
-          else
-            write(doit,'(4a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
-     &        ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
-          endif
-C          write(doit,'(4a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
-C     &      ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
-          call edisp248(iuout,doit,100)
-          call pausems(2000)
-C << see if we can implement a bg for tmode in esru_lib.F
-          tmode='bg'
-          call runit(doit,tmode)
-          call pausems(1000)
+         if(iappwpc.gt.0.and.iappwpc.le.200)then
+           write(doit,'(5a,3i4,2a)')  'cd ',
+     &       cfgpath(1:lnblnk(cfgpath)),' & prj -mode ',tmode,
+     &       ' -s ',iappwpc,iappx+10,iappy+10,' -file ',
+     &       thecfgis(1:lnblnk(thecfgis))
+         else
+           write(doit,'(4a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
+     &       ' & prj -file ',thecfgis(1:lnblnk(thecfgis))
+         endif
+         call edisp248(iuout,doit,100)
+         call pausems(2000)
+
+C << See if we can implement a bg for tmode in esru_lib.F. >>
+         tmode='bg'
+         call runit(doit,tmode)
+         call pausems(1000)
 
 C Clear allocatable arrays
-          CALL DeallocateAllArrays
-          CALL EPAGEND
-          STOP
-        elseif(irt.eq.2)then
-          ier=-2
-          return
-        endif
+         call DeallocateAllArrays
+         close(ieout)
+         if(iecount.eq.0)then     ! if there were no warnings delete
+           open(ieout,file=iefile,status='UNKNOWN')
+           call efdelet(ieout,istat)
+         endif
+         call EPAGEND
+         STOP
+C        elseif(irt.eq.2)then
+C          ier=-2
+C          return
+C        endif
       endif
       return
 
@@ -1139,7 +1127,7 @@ C geometry.h provides commons G0 and G2.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       
       common/rpath/path
@@ -1150,7 +1138,7 @@ C External text editor.
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       common/user/browse
 
-      logical OK,DOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      logical OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical concat,unixok,changedit,browse
 
       character*72 path,LFIL,odir
@@ -1200,10 +1188,6 @@ C first list any files with .cfg in name.
 C If subpath is less than 72 char with odir + path use that
 C otherwise just use path.
 
-C Debug...
-C      write(6,*) 'usrdir is ',odir(1:lnod)
-C      write(6,*) 'path is ',path(1:lnpath)
-
       subpath=' '
       if(unixok)then
         if(lnod+lnpath+1.le.72)then
@@ -1218,7 +1202,8 @@ C For native windows do not bother with usrdir.
       endif
       write(outs,'(2a)') 'configuration files in ',
      &  subpath(1:lnblnk(subpath))
-      call edisp(iuout,outs)
+C      call edisp(iuout,' ')
+C      call edisp(iuout,outs)
 
 #ifdef OSX
 C In OSX slightly different logic. If path ls ./ then standard logic
@@ -1227,15 +1212,13 @@ C works. If path begins with /opt/esp-r then no need to prepend odir.
         continue
       elseif(path(1:10).eq.'/opt/esp-r')then
 
-C Debug.
-C        write(6,*) 'OSX path is ',path
-
         subpath=' '
         write(subpath,'(a)') path(1:lnblnk(path))
         write(outs,'(2a)') 'configuration files in ',
      &    subpath(1:lnblnk(subpath))
-        call edisp(iuout,outs)
-        call edisp(iuout,' ')
+C        call edisp(iuout,' ')
+C        call edisp(iuout,outs)
+
       else
         continue
       endif
@@ -1255,16 +1238,16 @@ C Remind user of available cfg files.
       INO=-4
       WRITE(ITEMS(1),'(2A)') '  name: ',LCFGF(1:24)
       WRITE(ITEMS(2),'(2A)') '  path: ',path(1:23)
-      ITEMS(3)  =            ' .... Relative paths to .... '
-      WRITE(ITEMS(4),'(2A)') 'b zones   : ',zonepth(1:20)
-      WRITE(ITEMS(5),'(2A)') 'c control : ',ctlpth(1:20)
-      WRITE(ITEMS(6),'(2A)') 'd aim2    : ',aimpth(1:20)
-      WRITE(ITEMS(7),'(2A)') 'e network : ',netpth(1:20)
-      WRITE(ITEMS(8),'(2A)') 'f images  : ',imgpth(1:20)
+      ITEMS(3)  =            ' ... Relative path to:'
+      WRITE(ITEMS(4),'(2A)') 'b zones: ',zonepth(1:20)
+      WRITE(ITEMS(5),'(2A)') 'c control: ',ctlpth(1:20)
+      WRITE(ITEMS(6),'(2A)') 'd aim2: ',aimpth(1:20)
+      WRITE(ITEMS(7),'(2A)') 'e network: ',netpth(1:20)
+      WRITE(ITEMS(8),'(2A)') 'f images: ',imgpth(1:20)
       WRITE(ITEMS(9),'(2A)') 'g document: ',docpth(1:20)
       WRITE(ITEMS(10),'(2A)')'i radiance: ',radpth(1:20)
       WRITE(ITEMS(11),'(2A)')'j local db: ',dbspth(1:20)
-      WRITE(ITEMS(12),'(2A)')'k hvac    : ',hvacpth(1:20)
+      WRITE(ITEMS(12),'(2A)')'k hvac: ',hvacpth(1:20)
       WRITE(ITEMS(13),'(2A)')'k BASESIMP: ',bsmpth(1:20)
       ITEMS(14)  =           'l zone files                 '
       ITEMS(15)  =           'n list ASCII file            '
@@ -1285,9 +1268,8 @@ C Help text for this menu.
           continue
         else
           if(changedit)then
-            dok=.true.
-            CALL ASKOK(' ','Update system configuration file?',
-     &                 OK,dok,nbhelp)
+            CALL EASKOK(' ','Update system configuration file?',
+     &                 OK,nbhelp)
             if(OK)CALL EMKCFG('-',IER)
             if(ier.eq.0)CFGOK=.TRUE.
             changedit=.false.
@@ -1525,15 +1507,14 @@ C List out an ASCII file.
         IUNIT=IFIL+1
         CALL LISTAS(IUNIT,LFIL,IER)
         IF(IER.LT.0)THEN
-          dok=.false.
-          CALL ASKOK('Problem detected while trying to open',
-     &               ' ASCII file. Try again?',OK,dok,nbhelp)
+          CALL EASKOK('Problem opening ASCII file!',
+     &                'Retry?',OK,nbhelp)
           IF(OK)GOTO 6
         ENDIF
 
-      elseif(ino.eq.16)then
 C Allow user to edit a file. Append to path if necessary.
 C If vi then spawn a new window to do the editing in.
+      elseif(ino.eq.16)then
         CALL EASKS(LFIL,' ','ASCII file to edit?',
      &              72,' ','ASCII file',IER,nbhelp)
         call isunix(unixok)
@@ -1554,7 +1535,7 @@ C and change any / to \.
      &    longtfile(1:lnblnk(longtfile)),' &'
         call runit(doit,tmode)
 
-C List files in corporate databases folder.
+C List files in databases folder.
       elseif(ino.eq.17)then
         sfile=' '
         snpfile=' '
@@ -1564,7 +1545,7 @@ C List files in corporate databases folder.
      &      'can handle - please be careful!','W')
         endif
 
-C List files in corporate weather file folder.
+C List files in weather file folder.
       elseif(ino.eq.18)then
         sfile=' '
         snpfile=' '
@@ -1580,23 +1561,16 @@ C List files in corporate weather file folder.
 
       end
 
-C ********* edimage
-C Edimage controls specification of an image associated with the
-C model. All information is passed via parameters.
+C ****** edimage
+C Controls specification of an image associated with the
+C model.
 C limg (char*72) is the image file name
 C iformat (char*4) image format 'GIF ' 'TIF ' 'XBMP' or 'XWD '
 C ifocus (char*4) image focus '****' 'FZON' 'FNET' 'FCTL' 'FDFS' or 'FPER'
       subroutine edimage(limg,iformat,ifocus,ier)
 
-C Remove comments to enable debug.
-C      integer lnblnk  ! function definition
-C      COMMON/FILEP/IFIL
-C      common/OUTIN/IUOUT,IUIN
-C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
-
-      logical XST,OK,dok
+      logical XST,OK
       character iformat*4,ifocus*4,limg*72,t5*5
-C      character outs*124
       integer IRT,IRF  ! for radio buttons
 
 C For help messages
@@ -1622,9 +1596,8 @@ C      call edisp(iuout,outs)
       XST=.false.
       call findfil(limg,XST)
       if(.NOT.XST)then
-        dok=.false.
-        CALL ASKOK('Could not locate image file.','Try again?',
-     &             OK,dok,nbhelp)
+        CALL EASKOK('Image file not located!','Retry?',
+     &              OK,nbhelp)
         if(OK)then
           goto 242
         else
@@ -1680,8 +1653,8 @@ C      call edisp(iuout,outs)
       return
       end
 
-C ************* EDBUILD 
-C EDBUILD edits building information for system configuration file.
+C ****** EDBUILD 
+C Edits building information for system configuration file.
 C ITRU unit number for user output. IER=0 indicates no error. 
       subroutine edbuild(IZ,IER)
 #include "building.h"
@@ -1692,13 +1665,10 @@ C ITRU unit number for user output. IER=0 indicates no error.
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       common/rpath/path
-
       common/user/browse
-
-C CFD
       common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
       common/GR3D100/BLDG3D,ZONE3D(MCOM)
       LOGICAL BLDG3D,ZONE3D
@@ -1706,8 +1676,8 @@ C CFD
       common/MOIST01/MSTROK,MSTRZN(MCOM)
       LOGICAL MSTROK,MSTRZN
       common/MOIST02/LMOIST(MCOM)
-      COMMON/GRSD100/IndxSt
-      COMMON/GRSD101/LGrdSt
+      common/GRSD100/IndxSt
+      common/GRSD101/LGrdSt
 
       logical browse
       logical newgeo  ! to use for testing if new/old geometry file.
@@ -1726,7 +1696,7 @@ C CFD
       integer*8 impx,impy,iwe
 #endif
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -1773,7 +1743,7 @@ C Find out the length of each of the files:names to be displayed.
       lm=LNBLNK(LMOIST(IZ))
       ln=LNBLNK(lcfcin(IZ))
 
-C Find maximum with of text and title. IWA is for required files,
+C Find maximum width of text and title. IWA is for required files,
 C IWC is for optional files, IW is the overall width.
       IWA=MAX0(36,la+18,lb+18,lc+18,lt)
       if(IWA.le.72)then
@@ -1790,27 +1760,27 @@ C IWC is for optional files, IW is the overall width.
       endif
       IW=MAX0(36,IWB+18,IWD+22)
 
-      WRITE(ITEMS(1),'(2A)')  '  path : ',path(1:IW-10)
-      WRITE(ITEMS(2),'(2A)')  'a zone name     : ',zname(IZ)
+      WRITE(ITEMS(1),'(2A)')  '  path: ',path(1:IW-10)
+      WRITE(ITEMS(2),'(2A)')  'a zone name: ',zname(IZ)
       ITEMS(3)=               ' _____________________________    '
-      ITEMS(4)=               ' mandatory descriptions ...       '
+      ITEMS(4)=               ' ... mandatory descriptions       '
       if(LGEOM(IZ)(1:7).eq.'UNKNOWN')then
-        WRITE(ITEMS(5),'(A)') 'b  geometry     : not yet created'
+        WRITE(ITEMS(5),'(A)') 'b  geometry: not yet created'
       else
-        WRITE(ITEMS(5),'(2A)')'b  geometry     : ',LGEOM(IZ)(1:IWB)
+        WRITE(ITEMS(5),'(2A)')'b  geometry: ',LGEOM(IZ)(1:IWB)
       endif
       if(LTHRM(IZ)(1:7).eq.'UNKNOWN')then
-        WRITE(ITEMS(6),'(A)') 'c  construction : not yet created'
+        WRITE(ITEMS(6),'(A)') 'c  construction: not yet created'
       else
-        WRITE(ITEMS(6),'(2A)')'c  construction : ',LTHRM(IZ)(1:IWB)
+        WRITE(ITEMS(6),'(2A)')'c  construction: ',LTHRM(IZ)(1:IWB)
       endif
       if(LPROJ(IZ)(1:7).eq.'UNKNOWN')then
-        WRITE(ITEMS(7),'(A)') 'd  operations   : not yet created'
+        WRITE(ITEMS(7),'(A)') 'd  operations: not yet created'
       else
-        WRITE(ITEMS(7),'(2A)')'d  operations   : ',LPROJ(IZ)(1:IWB)
+        WRITE(ITEMS(7),'(2A)')'d  operations: ',LPROJ(IZ)(1:IWB)
       endif
       ITEMS(8)=               ' _____________________________    '
-      ITEMS(9)=               ' extended descriptions ...        '
+      ITEMS(9)=               ' ... extended descriptions        '
 
 C If older model indicate solar obstructions. For newer models such
 C data can be in the geometry file. Test for version of geometry file
@@ -1818,9 +1788,9 @@ C and revise label as appropriate.
 
 C << to be done >>
       if(ZOBS(IZ)(1:7).eq.'UNKNOWN')then
-        WRITE(ITEMS(10),'(A)') 'e  obstructions     : '
+        WRITE(ITEMS(10),'(A)') 'e  obstructions: '
       else
-        WRITE(ITEMS(10),'(2A)') 'e  obstructions     : ',ZOBS(IZ)(1:IWD)
+        WRITE(ITEMS(10),'(2A)') 'e  obstructions: ',ZOBS(IZ)(1:IWD)
       endif
       if(LTWIN(IZ)(1:7).eq.'UNKNOWN')then
        WRITE(ITEMS(11),'(A)') 'g  transparent cnstr: '
@@ -1828,9 +1798,9 @@ C << to be done >>
        WRITE(ITEMS(11),'(2A)') 'g  transparent cnstr: ',LTWIN(IZ)(1:IWD)
       endif
       if(LVIEW(IZ)(1:7).eq.'UNKNOWN')then
-       WRITE(ITEMS(12),'(A)') 'h  view factors     : '
+       WRITE(ITEMS(12),'(A)') 'h  view factors: '
       else
-       WRITE(ITEMS(12),'(2A)') 'h  view factors     : ',LVIEW(IZ)(1:IWD)
+       WRITE(ITEMS(12),'(2A)') 'h  view factors: ',LVIEW(IZ)(1:IWD)
       endif
       if(LCGCIN(IZ)(1:7).eq.'UNKNOWN')then
         WRITE(ITEMS(13),'(A)') 'i  casual gain cntrl: '
@@ -1838,19 +1808,19 @@ C << to be done >>
       WRITE(ITEMS(13),'(2A)') 'i  casual gain cntrl: ',LCGCIN(IZ)(1:IWD)
       endif
       if(LSHAD(IZ)(1:7).eq.'UNKNOWN')then
-       WRITE(ITEMS(14),'(A)') 'j  shading          : '
+       WRITE(ITEMS(14),'(A)') 'j  shading: '
       else
-       WRITE(ITEMS(14),'(2A)') 'j  shading          : ',LSHAD(IZ)(1:IWD)
+       WRITE(ITEMS(14),'(2A)') 'j  shading: ',LSHAD(IZ)(1:IWD)
       endif
       if(LHCCO(IZ)(1:7).eq.'UNKNOWN')then
-       WRITE(ITEMS(15),'(A)') 'k  convection cntrl : '
+       WRITE(ITEMS(15),'(A)') 'k  convection cntrl: '
       else
-       WRITE(ITEMS(15),'(2A)') 'k  convection cntrl : ',LHCCO(IZ)(1:IWD)
+       WRITE(ITEMS(15),'(2A)') 'k  convection cntrl: ',LHCCO(IZ)(1:IWD)
       endif
       if(LCFD(IZ)(1:7).eq.'UNKNOWN')then
-       WRITE(ITEMS(16),'(A)') 'o  cfd domain       : '
+       WRITE(ITEMS(16),'(A)') 'o  cfd domain: '
       else
-       WRITE(ITEMS(16),'(2A)') 'o  cfd domain       : ',LCFD(IZ)(1:IWD)
+       WRITE(ITEMS(16),'(2A)') 'o  cfd domain: ',LCFD(IZ)(1:IWD)
       endif
       if(ZONE3D(IZ))then
         WRITE(ITEMS(17),'(A)')'p  adaptive gridding: included'
@@ -1858,15 +1828,15 @@ C << to be done >>
         WRITE(ITEMS(17),'(A)')'p  adaptive gridding: '
       endif
       if(MSTRZN(IZ))then
-       WRITE(ITEMS(18),'(2A)')'q  moisture trans.  : ',
+       WRITE(ITEMS(18),'(2A)')'q  moisture trans.: ',
      &                           LMOIST(IZ)(1:IWD)
       else
-       WRITE(ITEMS(18),'(A)') 'q  moisture trans.  : '
+       WRITE(ITEMS(18),'(A)') 'q  moisture trans.: '
       endif
       if(IZ.eq.IndxSt)then
-       WRITE(ITEMS(19),'(2A)')'r  structured mesh  : ',LGrdSt(1:IWD)
+       WRITE(ITEMS(19),'(2A)')'r  structured mesh: ',LGrdSt(1:IWD)
       else
-       WRITE(ITEMS(19),'(A)') 'r  structured mesh  : '
+       WRITE(ITEMS(19),'(A)') 'r  structured mesh: '
       endif
       if(lcfcin(IZ)(1:7).eq.'UNKNOWN')then
        WRITE(ITEMS(20),'(A)') 's  CFC constr: '
@@ -2013,8 +1983,9 @@ C Edit zone name - read and then write the geometry file.
           WRITE(D,'(3A,A4)') zonepth(1:lnblnk(zonepth)),'/',
      &      ZN(1:lnblnk(ZN)),'.con'
         endif
-        CALL EASKABC(' For zone construction file',
-     &      ' :','edit name','browse','continue',IW,nbhelp)
+        CALL EASKABC(' ',
+     &      'Zone constructions file options:',
+     &      'edit name','browse','cancel',IW,nbhelp)
         if(IW.EQ.1)then
           L=LTHRM(IZ)
         elseif(IW.EQ.2)then
@@ -2058,8 +2029,9 @@ C Edit zone name - read and then write the geometry file.
           WRITE(D,'(3A,A4)') zonepth(1:lnblnk(zonepth)),'/',
      &      ZN(1:lnblnk(ZN)),'.opr'
         endif
-        CALL EASKABC(' For zone operation file',
-     &      ' :','edit name','browse','continue',IW,nbhelp)
+        CALL EASKABC(' ',
+     &      'Zone operation file options:',
+     &      'edit name','browse','cancel',IW,nbhelp)
         if(IW.EQ.1)then
           L=LPROJ(IZ)
         elseif(IW.EQ.2)then
@@ -2106,8 +2078,8 @@ C is no need for obstruction file.
           helptopic='cfg_obs_file_name'
           call gethelptext(helpinsub,helptopic,nbhelp)
           if(IOBS(IZ).eq.1)then
-            CALL EASKABCD(' For zone obstruction file',' :',
-     &        'edit name','browse','dereference it','continue',
+            CALL EASKABCD(' ','Zone obstructions file options:',
+     &        'edit name','browse','dereference','cancel',
      &        IW,nbhelp)
             if(IW.EQ.1)then
               L=ZOBS(IZ)
@@ -2141,8 +2113,9 @@ C is no need for obstruction file.
           else
 
 C There is no zone obstructions file so offer restricted choice.
-            CALL EASKABC(' For zone obstruction file',
-     &        ' :','edit name','browse','continue',IW,nbhelp)
+            CALL EASKABC(' ',
+     &        'Zone obstructions file options:',
+     &        'edit name','browse','cancel',IW,nbhelp)
             if(IW.EQ.1)then
               L=' '
             elseif(IW.EQ.2)then
@@ -2190,8 +2163,8 @@ C There is no zone obstructions file so offer restricted choice.
         helptopic='cfg_tmc_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ITW(IZ).eq.1)then
-          CALL EASKABCD(' For the zone TMC file',' :',
-     &      'change name','browse','dereference it','continue',
+          CALL EASKABCD(' ','Zone TMC file options:',
+     &      'change name','browse','dereference','cancel',
      &      IW,nbhelp)
           if(IW.EQ.1)then
             L=LTWIN(IZ)
@@ -2225,8 +2198,8 @@ C There is no zone obstructions file so offer restricted choice.
         else
 
 C There is no zone optic file so offer restricted choice.
-          CALL EASKABC(' For the zone TMC file',' :',
-     &      'edit name','browse','continue',IW,nbhelp)
+          CALL EASKABC(' ','Zone TMC file options:',
+     &      'edit name','browse','cancel',IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then
@@ -2273,8 +2246,8 @@ C There is no zone optic file so offer restricted choice.
         helptopic='cfg_vwf_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IVF(IZ).eq.1)then
-          CALL EASKABCD(' For zone view factor file',' :',
-     &      'change name','browse','dereference it','continue',
+          CALL EASKABCD(' ','Zone view factor file options:',
+     &      'change name','browse','dereference','cancel',
      &      IW,nbhelp)
           if(IW.EQ.1)then
             L=LVIEW(IZ)
@@ -2308,8 +2281,8 @@ C There is no zone optic file so offer restricted choice.
         else
 
 C There is no zone viewfactor file so offer restricted choice.
-          CALL EASKABC(' For zone view factor file',' :',
-     &      'edit name','browse','continue',IW,nbhelp)
+          CALL EASKABC(' ','Zone view factor file options:',
+     &      'edit name','browse','canel',IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then
@@ -2356,8 +2329,8 @@ C There is no zone viewfactor file so offer restricted choice.
         helptopic='cfg_cgc_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ICGC(IZ).eq.1)then
-          CALL EASKABCD(' For zone casual gain control file',' :',
-     &      'change name','browse','dereference it','continue',
+          CALL EASKABCD(' ','Zone casual gain control file options:',
+     &      'change name','browse','dereference','cancel',
      &      IW,nbhelp)
           if(IW.EQ.1)then
             L=LCGCIN(IZ)
@@ -2391,8 +2364,8 @@ C There is no zone viewfactor file so offer restricted choice.
         else
 
 C There is no zone casual gain control file so offer restricted choice.
-          CALL EASKABC(' For zone casual gain control file',' :',
-     &      'edit name','browse','continue',IW,nbhelp)
+          CALL EASKABC(' ','Zone casual gain control file options:',
+     &      'edit name','browse','cancel',IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then
@@ -2442,8 +2415,8 @@ C There is no zone casual gain control file so offer restricted choice.
         helptopic='cfg_shd_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ISI(IZ).eq.1)then
-          CALL EASKABCD(' For zone shading/ insolation file',' :',
-     &      'change name','browse','dereference it','continue',
+          CALL EASKABCD(' ','Zone shading/ insolation file options:',
+     &      'change name','browse','dereference','cancel',
      &      IW,nbhelp)
           if(IW.EQ.1)then
             L=LSHAD(IZ)
@@ -2477,8 +2450,8 @@ C There is no zone casual gain control file so offer restricted choice.
         else
 
 C There is no zone shading file so offer restricted choice.
-          CALL EASKABC(' For zone shading /insolation file',' :',
-     &      'edit name','browse','continue',IW,nbhelp)
+          CALL EASKABC(' ','Zone shading/ insolation file options:',
+     &      'edit name','browse','cancel',IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then
@@ -2527,8 +2500,8 @@ C There is no zone shading file so offer restricted choice.
         helptopic='cfg_htc_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(IHC(IZ).eq.1)then
-          CALL EASKABCD(' For the convection regime file',' :',
-     &      'change name','browse','dereference it','continue',
+          CALL EASKABCD(' ','Convection regime file options:',
+     &      'change name','browse','dereference','cancel',
      &      IW,nbhelp)
           if(IW.EQ.1)then
             L=LHCCO(IZ)
@@ -2562,8 +2535,8 @@ C There is no zone shading file so offer restricted choice.
         else
 
 C There is no zone view factor file so offer restricted choice.
-          CALL EASKABC(' For zone convection regime file',' :',
-     &      'edit name','browse','continue',IW,nbhelp)
+          CALL EASKABC(' ','Zone convection regime file options:',
+     &      'edit name','browse','cancel',IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then
@@ -2755,8 +2728,8 @@ C There is no zone view factor file so offer restricted choice.
         helptopic='cfg_cfc_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(icfc(IZ).eq.1)then
-          CALL EASKABCD(' For the zone CFC file',' :',
-     &      'change name','browse','dereference it','continue',
+          CALL EASKABCD(' ','Zone CFC file options:',
+     &      'change name','browse','dereference','cancel',
      &      IW,nbhelp)
           if(IW.EQ.1)then
             L=lcfcin(IZ)
@@ -2790,8 +2763,8 @@ C There is no zone view factor file so offer restricted choice.
         else
 
 C There is no zone cfc file so offer restricted choice.
-          CALL EASKABC(' For the zone CFC file',' :',
-     &      'edit name','browse','continue',IW,nbhelp)
+          CALL EASKABC(' ','Zone CFC file options:',
+     &      'edit name','browse','cancel',IW,nbhelp)
           if(IW.EQ.1)then
             L=' '
           elseif(IW.EQ.2)then

@@ -45,7 +45,7 @@ C can proceed.
 #include "geometry.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DEFLT/IDEFLT
 
       integer ncomp,ncon
@@ -139,7 +139,7 @@ C SAINTRA calculates summary statistics within result sets.
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -735,10 +735,10 @@ C If climate data then do not print zone headings.
         call edisp(itru,outs)
       else
         XTAVE=0.
-        write (outs,'(a,a)')'   Set               Maximum   Minimum ',
+        write (outs,'(a,a)')'    Set               Maximum   Minimum ',
      &                            '     Mean     Standard     Integral'
         call edisp(itru,outs)
-        write (outs,'(a,40x,a)')'id name   ','   deviation   (unit*hrs)'
+        write (outs,'(a,40x,a)')'id  name  ','   deviation   (unit*hrs)'
         call edisp(itru,outs)
         do 30 I=1,NGET
           if ((NY(I)-1).eq.0) then
@@ -747,10 +747,10 @@ C If climate data then do not print zone headings.
             YSTD(I)=sqrt(YTOTSD(I)/float(NY(I)-1))
           endif
           if (NY(I).eq.0) then
-            write (outs,'(i2,1x,a15,a)') NSNO(I), RSNAME(NSNO(I)), 
+            write (outs,'(i3,1x,a15,a)') NSNO(I), RSNAME(NSNO(I)), 
      &                           'No data: probably due to filtering.'
           else
-            write (outs,'(i2,1x,a15,4f10.3,3x,f10.3)') NSNO(I),
+            write (outs,'(i3,1x,a15,4f10.3,3x,f10.3)') NSNO(I),
      &         RSNAME(NSNO(I)),YMAX(I),YMIN(I),YAVE(I),YSTD(I),
      &         YTOT(I)/real(NOUT)
           endif
@@ -796,7 +796,7 @@ C if act = 's' or plots graphs if act = 'g'.
 #include "geometry.h"
 
       character*1 act
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ncomp,ncon
@@ -931,15 +931,30 @@ C Print header information.
           write (outs,22) 'Sets: ',(NSNO(ISX),ISX=39,77)
           call edisp(ITRU,outs)
           if (NS.lt.117) then
-            write (outs,22) 'Sets: ',(NSNO(ISX),ISX=78,NS)
+            write (outs,23) 'Sets: ',(NSNO(ISX),ISX=78,NS)
             call edisp(ITRU,outs)
           else
-            write (outs,22) 'Sets: ',(NSNO(ISX),ISX=78,116)
+            write (outs,23) 'Sets: ',(NSNO(ISX),ISX=78,116)
             call edisp(ITRU,outs)
+            if (NS.lt.155) then
+              write (outs,23) 'Sets: ',(NSNO(ISX),ISX=117,NS)
+              call edisp(ITRU,outs)
+            else
+              write (outs,23) 'Sets: ',(NSNO(ISX),ISX=117,155)
+              call edisp(ITRU,outs)
+              if (NS.lt.194) then
+                write (outs,23) 'Sets: ',(NSNO(ISX),ISX=156,NS)
+                call edisp(ITRU,outs)
+              else
+                write (outs,23) 'Sets: ',(NSNO(ISX),ISX=156,194)
+                call edisp(ITRU,outs)
+              endif
+            endif
           endif
         endif
       endif
  22   format(a,39(i2,','))
+ 23   format(a,39(i3,','))
       call edisp(ITRU,'  ')
 
 C TSTART and TFINISH - start and finish times in hours from 0000 on the 
@@ -1431,7 +1446,7 @@ C SAPARSEN calculates individual parameter uncertainties.
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -1663,7 +1678,7 @@ C importantly an analysis of variance table.
       SUBROUTINE SANOVA
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
@@ -1775,7 +1790,7 @@ C NTO - total number of observations
       SUBROUTINE DIFFOW(NT,ND,TT,GT,NO,NTO)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
@@ -1830,7 +1845,7 @@ C WHSET displays currently chosen sets and lets user toggle selections.
 #include "building.h"
 #include "epara.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/SIMPKA/NSIM

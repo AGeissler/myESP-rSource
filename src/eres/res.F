@@ -1,8 +1,4 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
-
-C ESP-r is free software.  You can redistribute it and/or
+C ESP-r is free software. You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
 C (version 2 or later).
@@ -13,93 +9,77 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
+C This file comprises the following subroutines.
+C MAIN    - Initialises the user terminal and user-specified
+C           results file, then displays the menu.
+C imgdisp - Display images associated with a model either at application
+C           start-up or at specific points thereafter.
+C Various dummy subroutines.
 
-C This file contains the following routine:
-
-C ******************** MAIN ********************
-
-C The main program initialises the user terminal and
-C the user-specified results database and displays the
-C main menu.
-
-C Common block variables are:
-
-C IUOUT &   - write and read unit numbers set via the
-C IUIN        following DATA statement.
-C IFIL      - basic file unit number. Actual file unit numbers are:
-C     IFIL +  0 : building results library
-C     IFIL +  1 : any temporarily opened file
-C     IFIL +  2 : any temporarily opened file (?)
-C     IFIL +  3 : primitive construction database
-C     IFIL +  4 : mass flow results library
-C     IFIL +  5 : climate file
-C     IFIL +  6 : output data file
-C     IFIL +  7 : TDF file
-C     IFIL +  8 : for external help text
-C     IFIL +  9 : MLC database
-C     IFIL + 10 : plant results library
-C     IFIL + 11 : plant component database
-C     IFIL + 12 : output data parameters file (for xvgr/ xmgr)
-C     IFIL + 13 : recovery parameters file
-C     IFIL + 14 : CFD results library
-C     IFIL + 21 : power flow results library 
-
-C ICOUT     - output channel number to which data is written.
-C           - Principle use is for function button facility on workstations.
-
-C For operational details refer to the ESP-r program user's manual.
+C ********** MAIN
       program res
       USE START_UP
 #include "building.h"
+#include "site.h"
 #include "model.h"
 #include "esprdbfile.h"
 #include "material.h"
-C esprdbfile.h supplies the following:
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
-C default file names for databases
 #include "espriou.h"
 #include "prj3dv.h"
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
-      COMMON/FILEP/IFIL
-      COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      integer ifs,itfs,imfs
-      COMMON/GFONT/IFS,ITFS,IMFS
+C IUOUT & IUIN - user write and read unit numbers.
+      common/OUTIN/IUOUT,IUIN,IEOUT
+
+C IFIL, the basic file unit number, is set to 10.
+C   +  0: building results library
+C   +  1: any temporarily opened file
+C   +  2: any temporarily opened file (?)
+C   +  3: primitive construction database
+C   +  4: mass flow results library
+C   +  5: weather file
+C   +  6: output data file
+C   +  7: TDF file
+C   +  8: for external help text
+C   +  9: MLC database
+C   + 10: plant results file
+C   + 11: plant component database
+C   + 12: output data parameters file (for xvgr/ xmgr)
+C   + 13: recovery parameters file
+C   + 14: CFD results file
+C   + 21: power flow results file
+      common/FILEP/IFIL
+      common/SPAD/MMOD,LIMIT,LIMTTY
+      common/GFONT/IFS,ITFS,IMFS
       common/appw/iappw,iappx,iappy
-      integer menuchw,igl,igr,igt,igb,igw,igwh
+
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
-
-      COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
-      COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
-      COMMON/OUTPCH/ICOUT
-      COMMON/DEFLT/IDEFLT
-      COMMON/PSY1/PATMOS,IOPT
+      common/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      common/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
+      common/OUTPCH/ICOUT    ! output channel
+      common/DEFLT/IDEFLT
       common/trc/itrc
       common/exporttg/xfile,tg,delim
-      COMMON/EXPORTI/ixopen,ixunit,ixpunit
+      common/EXPORTI/ixopen,ixunit,ixpunit
 
-C Flags identifying if results libries are available. =0 no lib, =1 lib exists.
-      COMMON/LIBOK/IBLIB,IFLIB,ICLIB,IELIB,IPLIB
+C Flags identifying if results files are available (0 no, 1 yes)..
+      common/LIBOK/IBLIB,IFLIB,ICLIB,IELIB,IPLIB
 
 C Defaults.
       character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
-      COMMON/DEFLT2/DFCFG,DFCTL,DEFRLB,DAFRES,DAPROB,DPNF
+      common/DEFLT2/DFCFG,DFCTL,DEFRLB,DAFRES,DAPROB,DPNF
 
 C Simulation period and save option.
-      COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
+      common/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
 C Simulator parameters and performance information requested data.
-      COMMON/SPFL/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
-     &  startupok
       LOGICAL     spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
      &  startupok
+      common/SPFL/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
+     &  startupok
+
       common/SPFLN/spsname
       common/ract/paction
       common/recov01/pifltog,lpifl
@@ -115,7 +95,11 @@ C Comfort parameters and hash table.
 C Project journal on/off, unit number, cmd, file name.
       common/journopt/journio,iuj,journcmd,jfile
 
-      integer ireportunit ! zero is default one is W two is kW three Joules
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
+      integer ireportunit ! 0 is default, 1 is W, 2 is KW, 3 is J.
       common/repunit/ireportunit
 
 C CFD commons.
@@ -123,7 +107,7 @@ C CFD commons.
       common/flvpar/Lflpar(MCOM)
 
 C Flags for generic data retrieval routines:
-      COMMON/IGETFLG/IOCUPF,ialstused,IROC
+      common/IGETFLG/IOCUPF,ialstused,IROC
 
 C Optional title for graph and up to 10 other labels and their positions.
       common/grextras/graftitle,grlbl(10),ngrlbl,lblpx(10),lblpy(10)
@@ -132,16 +116,20 @@ C Significant figure reporting limit (NSIGFIG).
       common/SFIG/NSIGFIG
       COMMON/pres/iunitp  ! file unit for plant
 
-      COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL     CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       
-C Name of current application
+C Name of current application.
       common/APPNAME/cAppName
 
-      logical libheading ! have we printed report heading (library name etc).
-      logical headingcontext ! has set or period changed so heading needs reprint
+      logical libheading     ! have we printed report heading (library name etc.).
+      logical headingcontext ! has set or period changed so heading needs reprinted.
       common/libhead/libheading,headingcontext
       integer ISTRW
+
+C Ask to overwrite flag.
+      common/OVRWT/AUTOVR
+      logical AUTOVR
 
 #ifdef OSI
       integer iigl,iigr,iigt,iigb,iigw,iigwh
@@ -157,45 +145,44 @@ C Name of current application
       
       logical     unixok,there
 
-      CHARACTER ITEM(19)*23
-      CHARACTER*96 actf
-      CHARACTER*72 Lflpar
+      character ITEM(19)*23
+      character*96 actf
+      character*72 Lflpar
       character inf*144,LCMDFL*144,outs248*248,xfile*144
       character outs*124,MODE*4,tg*1,delim*1
       character*72 LFCFG
       character path*72,spsname*30,paction*16
       character fs*1,act*16,aut*12
-      character journcmd*20,jfile*72,uname*24,cjfile*72,OUTSTR*124
+      character journcmd*20,jfile*72,cjfile*72,OUTSTR*124
       character bact*4,pifltog*4,lpifl*96
       character graftitle*64,grlbl*24
       character firstbit*72,secondbit*72
       character longtmp*144
+      character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character pagestitle*68 ! for banner title via epages call
 
-      integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
+      integer iglib     ! if 1 then X11, 2 then GTK, 3 then text only
       integer NITMS,INO ! max items and current menu item
 
 C For help messages
       character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
+      character helptopic*24 ! unique string for topic
+      integer nbhelp         ! number of help lines found
 
-C Initialize global common data.
+C Initialise global common data.
       call ezero
       call curmodule('res ')
       cAppName = 'res'
-      helpinapp='res'  ! set once for the application
-      helpinsub='res'  ! set for MAIN
+      helpinapp='res'   ! set once for the application
+      helpinsub='res'   ! set for MAIN
       IUOUT=6
       IUIN=5
       ICOUT=0
       IFIL=10
       LIMTTY=24
       LIMIT =24
-C     NSIGFIG=3
       NSIGFIG=4
       IFS=0
       ITFS=1
@@ -207,9 +194,10 @@ C     NSIGFIG=3
       IUTDF=IFIL+7
       IUTDFA=IFIL+8
       iunitp=IFIL+10
-      matver=0.0   ! initial assumption of binary materials database
-      ireportunit=0 ! assume normal units for tabular listings
+      matver=0.0     ! initial assumption of binary materials database
+      ireportunit=0  ! assume normal units for tabular listings
       libheading=.false.; headingcontext=.false. ! no heading yet printed
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -222,8 +210,7 @@ C Set folder separator (fs) to \ or / as required.
       write(upath,'(a1,a1)')'.',fs
       call parres(MODL,iappw,iappx,iappy,inf,act,aut,actf)
 
-C Flags identifying if results libries are available. 
-C =0 no lib, =1 lib exists.  Set all = 0 initially
+C Flags identifying if results files are available. Initialise all to 0.
       IBLIB=0
       IFLIB=0
       ICLIB=0
@@ -242,7 +229,7 @@ C Initial values for common/IGETFLG/ flags.
       ialstused=0
       IROC=0
 
-C Assume that the configuration, mlc db, primitive db, control file
+C Assume that the configuration, mlc db, primitive db and control file
 C have not been read in.
       CFGOK=.FALSE.
       MLDBOK=.FALSE.
@@ -252,7 +239,6 @@ C have not been read in.
       pifltog='OFF'
       lpifl='UNKNOWN'
       IDEFLT=1
-      PATMOS=1013.25
       IOPT=2
       graftitle=' '
       ngrlbl=0
@@ -260,7 +246,7 @@ C have not been read in.
       grlbl(5)=' '; grlbl(6)=' '; grlbl(7)=' '; grlbl(8)=' '
       grlbl(9)=' '; grlbl(10)=' '
 
-C Set CFD visualization parameter files to UNKNOWN
+C Set CFD visualisation parameter files to UNKNOWN.
       do 8 I=1,MCOM
         Lflpar(I)='UNKNOWN'
  8    continue
@@ -268,7 +254,7 @@ C Set CFD visualization parameter files to UNKNOWN
       IMOPTS=0
 
 C Initialise coordinates for eye point, view point and angle of view.
-C Needed for CFD 3-D views.
+C (required for 3-D CFD views).
       EYEM(1)=-100.
       EYEM(2)=-100.
       EYEM(3)=100.
@@ -309,12 +295,17 @@ C Set pixels high to iappw and pixels wide to factor in monitor size.
       endif
       IF(MMOD.EQ.8)THEN
 
-C Set initial font sizes (IMFS is for menus, IFS is for dialog & ITFS text feedback).
-C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
-C and dialog.
+C Set initial font sizes (IMFS is for menus, IFS is for dialog and ITFS is for text
+C feedback). Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for
+C menus and dialog.
         IMFS=5
         IFS=4
         ITFS=1
+#ifdef OSX
+        IMFS=4
+        IFS=4   ! use a smaller dialog font
+        ITFS=0
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
@@ -325,9 +316,9 @@ C and dialog.
         LIMIT =16
       ENDIF
 
-C Find the current ESP-r version number and add it to application title.
+C Find the current ESP-r version number and add it to the application window title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Results Analysis ',
+      write(pagestitle,'(2a)') 'Results Analyser of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -342,7 +333,7 @@ C Find the current ESP-r version number and add it to application title.
 
 C Open the text display box equal to LIMTTY if MMOD = 8.
       IF(MMOD.EQ.8)THEN
-        iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+        iglib = igraphiclib()  ! find out if X11, GTK or text only.
         if(iglib.eq.1)then
 
 C Setup and pass in parameters to win3d.
@@ -373,9 +364,6 @@ C Setup and pass in parameters to win3d.
         ngset=0
         nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
-
-c Debug
-C        write(6,*) 'colurs ',nifgrey,ncset,ngset,nzonec
         call startbuffer()
       ELSE
         
@@ -390,7 +378,7 @@ C Set reasonable defaults for text mode.
         CALL ESPrVersion("summary",cAppName,IUOUT)
       endif
 
-C Find the users home folder then get users custom settings.
+C Find the user's home folder and get user's custom settings.
 C Make temporary use of file unit ixunit.
       ixunit = ifil + 6
       call usrhome(upath)
@@ -402,9 +390,9 @@ C Make temporary use of file unit ixunit.
       IUOUT=6  ! and make sure iuout is not zero
       call scesprc(esprc,ixunit,0,IIER)
 
-C If there is a journal active set up to add to the journal. First
-C get the root journal file (setup by prj) from the users home folder.
-C All subsequent tstamp messages will be appended to root journal.
+C If there is a journal active, prepare to add to the journal. First
+C get the root journal file name from the user's home folder.
+C All subsequent tstamp messages will be appended to this file.
       iuj=IFIL+10
       if(journio.eq.1)then
         uname=' '
@@ -430,15 +418,21 @@ C All subsequent tstamp messages will be appended to root journal.
         call tstamp('>',outs)
       endif
 
+C Open the session file.
+  902 ieout=ifil+932          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for res'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  904 continue
+
 C Scan the defaults file for default configuration.
- 902  call escdef(ixunit,'s',IER)
+      call escdef(ixunit,'s',IER)
 
 C Take command line file name as initial results file name.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
         LCMDFL=inf
-C        call edisp(iuout,'  ')  ! echo blank line
-        write(outs248,'(a,a)')'The input file is: ',LCMDFL
-C        call edisp248(iuout,outs248,90)
       else
         LCMDFL='UNKNOWN'
       endif
@@ -452,7 +446,6 @@ C Check for command line actions.
          call tstamp('>',outs)
          if(aut(1:6).eq.'silent')then
            autook=.true.
-           call edisp(iuout,'Silent-running mode.')
            call tstamp('>','Silent-running mode')
          else
            autook=.false.
@@ -479,15 +472,14 @@ C Assume CFClayers input from IFIL+10.
       icfcdb=ifil+10 
       write(LCFCDB,'(a)') DCFCDB(1:lnblnk(DCFCDB))
 
-C Initialise results library.
+C Initialise results file.
       CALL MORFIL(iftype)
       if(iftype.eq.-2)then
         iftype=0
-        goto 4    ! user canceled the file browse jump to menu.
+        goto 4    ! user cancelled the file browse jump to menu.
       elseif(iftype.eq.-1) then
 
-C Get the name of the configuration file name 
-C Read the plant configuration file.
+C Get the name of the configuration file name and read the plant configuration file.
         if(IPLIB.eq.0.or.IPLIB.eq.1)then
           helptopic='res_dialog_for_cfg_file'
           call gethelptext(helpinsub,helptopic,nbhelp)
@@ -504,7 +496,7 @@ C Read the plant configuration file.
           CALL EASKF(longtmp,' ',
      &      'Corresponding system configuration file name?',
      &      ISTRW,' ','configuration file',IER,nbhelp)
-          if(ier.eq.-3) goto 902  ! cancel detected pass back -3 in ier.
+          if(ier.eq.-3) goto 902  ! cancel detected, pass back -3 in ier.
 
           call fdroot(longtmp,path,LCFGF)
 
@@ -517,18 +509,19 @@ C export file name to reflect the model root name.
           write(xfile,'(2a)') cfgroot(1:lnblnk(cfgroot)),'.csv'
         endif
 
-C If we have a plant only file go straight to the plant results menu.
+C If we have a plant-only file go straight to the plant results menu.
         call sysoutp('-',0)
 
 C Free all assigned files.
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call erpfree(iunitp,istat)
-        call usrmsg('Closing results analysis...',' ','P')
         CALL MOFREE
         CALL EPAGEND
         STOP         
       endif
 
-C Define result-set requires from this database.
+C Define result-set required from this file.
       call tstamp('>','RES: select result set')
       CALL MORESS
 
@@ -541,7 +534,10 @@ C Specify the system configuration file.
       ITRC=IW-1
       CALL MOGCFG
 
-C Zones to be included.
+C PATMOS is atmospheric pressure in mbar; atmpres is in Pa.
+        PATMOS=atmpres/100.0
+
+C Get zones to be included.
       CALL MOZDFN
       
 C Specify output period.
@@ -553,14 +549,16 @@ C If there are general results images to be shown (ie. with
 C an image focus of FRES then show them now.
       call imgdisp(0,'FRES',ier)
 
-C If a command line action passed, see if action to be done before
+C If a command line action passed, see if action is to be done before
 C presenting the main menu. If running silent then exit.
       if(paction(1:4).eq.'ipv_')then
-        call edisp(iuout,'Generating IPV report...')
+        call edisp(iuout,'Generating IPV report ...')
         call ipvrep(iier)
-        call edisp(iuout,'Generating IPV report...done.')
+        call edisp(iuout,'Generating IPV report ... done.')
         if(autook)then
           CALL MOFREE
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
           STOP
         endif
@@ -569,11 +567,13 @@ C presenting the main menu. If running silent then exit.
 C If running in BEMS mode, use the commands in actf to guide extraction.
         bact='OPSS'
         write(bact,'(a4)') paction(6:9)
-        call edisp(iuout,'Generating BEMS report...')
+        call edisp(iuout,'Generating BEMS report ...')
         call bemsrep(actf,bact,iier)
-        call edisp(iuout,'Generating BEMS report...done.')
+        call edisp(iuout,'Generating BEMS report ... done.')
         if(autook)then
           CALL MOFREE
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
           STOP
         endif
@@ -583,13 +583,15 @@ C If providing a performance information file then scan contents.
 C Set lpifl to file passed in parameter and set pifltog to OFF so
 C that current user selections do not overwrite these contents.
         call edisp(iuout,' ')
-        call edisp(iuout,'Generating specified output(s)...')
+        call edisp(iuout,'Generating specified output(s) ...')
         lpifl=actf
         pifltog='OFF '
         call READPIF(ierr)
-        call edisp(iuout,'Generating specified output(s)...done.')
+        call edisp(iuout,'Generating specified output(s) ... done.')
         if(autook)then
           CALL MOFREE
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           CALL EPAGEND
           STOP
         endif
@@ -600,39 +602,39 @@ C and zone definition will remain in force until explicitly
 C changed via the appropriate menu command.
 
 C Setup for menu text.
-    4 ITEM(1)   ='1 Select result file  '
-      ITEM(2)   ='2 Select result set   '
-      ITEM(3)   ='3 Define output period'
-      ITEM(4)   ='4 Select zones        '
-      ITEM(5)   ='  ------------------- '
-      ITEM(6)   ='a Graphs              '
-      ITEM(7)   ='c Timestep reports    '
-      ITEM(8)   ='d Enquire about       '
-      ITEM(9)   ='e Plant results       '
-      ITEM(10)  ='f Indoor env. quality '
-      ITEM(11)  ='g Electrical results  '
-      ITEM(12)  ='h CFD visualisation   '
-      ITEM(13)  ='i Sensitivity         '
-      ITEM(14)  ='j IPV                 '
-      ITEM(15)  ='  ------------------- '
+    4 ITEM(1)   ='1 results file         '
+      ITEM(2)   ='2 result set           '
+      ITEM(3)   ='3 output period        '
+      ITEM(4)   ='4 building zones       '
+      ITEM(5)   ='  -------------------- '
+      ITEM(6)   ='a graphs               '
+      ITEM(7)   ='c reports              '
+      ITEM(8)   ='d enquire about        '
+      ITEM(9)   ='e plant results        '
+      ITEM(10)  ='f indoor environment   '
+      ITEM(11)  ='g electrical results   '
+      ITEM(12)  ='h flow results         '
+      ITEM(13)  ='i sensitivity results  '
+      ITEM(14)  ='j IPV                  '
+      ITEM(15)  ='  -------------------- '
       IF(ITRC.EQ.0)THEN
-        ITEM(16)='r Report >> silent    '
+        ITEM(16)='r report >> silent     '
       ELSEIF(ITRC.EQ.1)THEN
-        ITEM(16)='r Report >> summary   '
+        ITEM(16)='r report >> summary    '
       ELSEIF(ITRC.EQ.2)THEN
-        ITEM(16)='r Report >> detailed  '
+        ITEM(16)='r report >> detailed   '
       ENDIF
-      ITEM(17)=  '* Preferences         '
-      ITEM(18)=  '? Help                '
-      ITEM(19)=  '- Quit                '
+      ITEM(17)=  '* preferences          '
+      ITEM(18)=  '? help                 '
+      ITEM(19)=  '- quit Analyser        '
 
       NITMS=19
       INO=-2
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is 1).
       call askabout('res ',1)
 
-    5 CALL EMENU('results analysis',ITEM,NITMS,INO)
+    5 CALL EMENU('Analyser options',ITEM,NITMS,INO)
 
 C Test for illegal menu pick.
     6 IF(INO.EQ.0.OR.INO.EQ.5.OR.INO.EQ.15)goto 2
@@ -642,29 +644,32 @@ C Test for illegal menu pick.
       ENDIF
       IF(INO.EQ.1)THEN
         IDEFLT=1
-        call tstamp('>','RES: open new results database')
+        call tstamp('>','RES: open new results file')
         CALL MORFIL(itype)
         if(iftype.eq.-2)then
           iftype=0
-          goto 4    ! user canceled the file browse jump to menu.
+          goto 4    ! user cancelled the file browse, jump to menu.
         endif
         CALL MORESS
 
         CALL MOGCFG
 
-C Zones to be included.
+C PATMOS is atmospheric pressure in mbar; atmpres is in Pa.
+        PATMOS=atmpres/100.0
+
+C Zones selection.
         CALL MOZDFN
 
-C Read mass flow library.
+C Read mass flow file.
         IFRES=IFIL+4
         call MFREADH(IFRES,ITRC)
 
-C Specify output period.
+C Output period selection.
         call tstamp('>','RES: default output period set')
         CALL MOOPER
 
 C If there are general results images to be shown (ie. with
-C an image focus of FRES then show them now.
+C an image focus of FRES) then show them now.
         call imgdisp(0,'FRES',ier)
         IDEFLT=0
       ELSEIF(INO.EQ.2)THEN
@@ -725,28 +730,29 @@ C Res preferences.
         CALL SETUP(iuout,IER)
       ELSEIF(INO.EQ.(NITMS-1))THEN
 
-C Help via the askabout facility in esru_ask.F The zero requests display
+C Help via askabout in esru_ask.F (the zero requests display).
         call askabout('res ',0)
       ELSEIF(INO.EQ.NITMS)THEN
 
-C Program termination. Free all assigned files and temporal scrach.
-        call usrmsg(' Closing results analysis...',' ','P')
+C Program termination.
         CALL MOFREE
 
-C Delete any temporal scratch file if temporal data associated with
+C Delete any scratch file if temporal data is associated with
 C the model.
         if(ITDFLG.ne.0)then
           CALL ERPFREE(IUTDF,ISTAT)
           lnts=lnblnk(LTDF)
           if(LTDF(lnts-15:lnts).eq.'.temporalscratch')then
-            call usrmsg('Deleting scratch file...',LTDF,'P')
+            call usrmsg('Deleting scratch file ...',LTDF,'P')
             call EFOPRAN(iutdf,LTDF,1,1,IER)
             CALL EFDELET(iutdf,ISTAT)
-            call usrmsg('Deleting scratch file...done.',LTDF,'P')
+            call usrmsg('Deleting scratch file ... done.',LTDF,'P')
           endif
         endif
 
         call tstamp('>','Finish results analysis')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         goto 999        
       ELSE
@@ -758,90 +764,88 @@ C Output menu error signal and allow re-selection from menu.
     2 INO=-1
       goto 5
 
- 901  call edisp(iuout,'Error opening journal file, continuing.')
+ 901  call edisp(iuout,' ')
+      call edisp(iuout,'Error opening journal file ... continuing.')
       goto 902
+ 903  call edisp(iuout,' ')
+      call edisp(iuout,'Error opening session log ... continuing.')
+      goto 904
 
  999  END PROGRAM
 
 
 C ********** imgdisp
-C imgdisp displays images associated with start-up or at specific points
-C and the image browser has not been invoked do this now. In the case
-C of the GTK version use an in-built GTK function rather than an
-C external tool.
+C Displays images associated with a model either at application start-up
+C or at specific points thereafter.
+
       subroutine imgdisp(iforce,focus,ier)
 #include "building.h"
 #include "model.h"
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
-C A set of possible image formats which can be accepted within
-C a model configuration file. These definitions are held in the
-C .esprc file. To add additional image types and/or 3rd
-C party display applications edit the ESP-r Install script which
-C creates the .esprc file.
-C   imgtyp is the number of different image formats supported
-C   fmttag (4 char) is a tag for each image formt (e.g. GIF, XBMP)
-C   fmtexe (20 char) is the application name used to display
-C          images of type fmttag.
+C Possible image formats are defined in the .esprc file. To add
+C additional formats edit the ESP-r Install script at the point
+C where it creates the .esprc file.
+C   imgtyp           - the number of image formats supported.
+C   fmttag (4 char)  - GIF, PNG, XBMP etc.
+C   fmtexe (20 char) - application used to display each images type.
       common/showimg/imgtyp,fmttag(5),fmtexe(5)
 
-C Images in the model.
-C  imgfmt (4 char) gives the format of each image associated with
-C         the model, it must match one of the known fmttag.
-C  imgfoc (4 char) associates an image with a specific topic:
-C         'FZON' is related to zone composition
-C         'FNET' is related to network composition
-C         'FCTL' is related to control composition
-C         'FDFS' is related to CFD domains
-C         'FPER' is related to predicted performance
-C         '****' is a general image displayed at startup
-C  limgfil (72 char) name of the image file << ?? longer string >>
-      character imgfmt*4  ! GIF XBMP TIF JPG
-      character imgfoc*4  ! FZON FNET FCTL FDFS
-      character limgfil*72  ! file name (extend to 144 char)
-      character imgdoc*248  ! text associated with image
+C Images associated with the model.
+C   imgfmt (4 char)  - gives the image format.
+C   imgfoc (4 char)  - associates an image with a specific topic:
+C         'FZON' for zone composition
+C         'FNET' for network composition
+C         'FCTL' for control composition
+C         'FDFS' for flow domains
+C         'FPER' for performance
+C         '****' for an image to be displayed at application start-up.
+C   limgfil (72 char) - name of the image file.
+      character imgfmt*4   ! GIF XBMP TIF JPG
+      character imgfoc*4   ! FZON FNET FCTL FDFS
+      character limgfil*72 ! file name (extend to 144 char)
+      character imgdoc*248 ! text associated with image
       common/imagf/imgfmt(MIMG),imgfoc(MIMG),limgfil(MIMG),imgdoc(MIMG)
 
-      integer noimg  ! number of images
-      integer iton   ! zero if images not yet shown, one if yes
+      integer noimg        ! number of images.
+      integer iton         ! 0 if images not yet shown, 1 if yes.
       common/imagfi/noimg,iton
 
       character ilist*200,dolist*254
       character fmttag*4,fmtexe*20,tfile*72,focus*4
       character longtfile*144,longtfiledos*144
       character topic*248,head*136,act*1
-      integer iglib  ! if one then X11 if 2 then GTK if 3 text only.
+      integer iglib        ! if 1 then X11 if 2 then GTK, if 3 text only.
 
       logical concat,show,unixok
 
-C For help messages
-      character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+C For help messages.
+      character helpinsub*24 ! calling subroutine.
+      character helptopic*24 ! help topic.
+      integer nbhelp         ! number of help lines found.
 
       helpinsub='imgdisp'  ! set for cfiles
 
-C Check if Unix-based or DOS based.
+C Check if Unix- or DOS-based.
       call isunix(unixok)
 
-C Loop through the images and display those which match the 'focus'
-C and can be displayed with a known utility. Iforce, if set to 1,
-C forces display.
+C Loop through images and display those that match the 'focus'.
+C Iforce = 1 forces display.
       if(noimg.eq.0)return
       if(imgtyp.eq.0)then
-        call edisp(iuout,'* No image display application available.')
-        call edisp(iuout,'Ask your administrator to define one via')
-        call edisp(iuout,'your .esprc file.')
+        call edisp(iuout,' ')
+        call edisp(iuout,'Image display application not found!')
+        call edisp(iuout,'(Define one via the .esprc file.)')
         return
       endif
 
-      iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+      iglib = igraphiclib()  ! find out if X11, GTK or text only.
       if(iglib.eq.1)then
 
-C If X11 version then request an external agent to display the image.
+C For X11 version request display via an external app.
         if((iton.eq.0.or.iforce.eq.1))then
           do 498 imgv=1,imgtyp
             ilist=' '
@@ -849,8 +853,8 @@ C If X11 version then request an external agent to display the image.
             do 49 img=1,noimg
               if(imgfmt(img)(1:3).eq.fmttag(imgv)(1:3))then
 
-C If focus is `****` then show images marked with `****` , otherwise
-C begins with and `S`, otherwise attempt to match the focus and the image. 
+C If focus is `****` show all images marked with `****` or beginning with
+C a `S`, otherwise attempt to match the focus and the image. 
                 show=.false.
                 if(focus(1:4).eq.'****'.and.
      &             imgfoc(img)(1:1).eq.'S')show=.true.
@@ -861,10 +865,9 @@ C begins with and `S`, otherwise attempt to match the focus and the image.
                     call addpath(limgfil(img),longtfile,concat)
                   else
 
-C If running on a non-unix machine see if there are spaces in the name
-C and change any / to \.  If X11 then an external application is used
-C an double quoting is useful. If GTK then internal function used and
-C quotes are not required.
+C If running on a non-linux machine, determie if there are spaces in the
+C name and change any / to \. If X11 use external application. If GTK use
+C an internal function.
                     call addpath(limgfil(img),longtfile,concat)
                     if(iglib.eq.1)then
                       call cmdfiledos(longtfile,longtfiledos,ier)
@@ -887,11 +890,11 @@ C quotes are not required.
               dolist=' '
               if(fmtexe(imgv)(1:2).eq.'  ')then
                 call usrmsg(
-     &    'The image display tool has not be defined. Ask your',
-     &    'administrator to update the .esprc file definition.','W')
+     &    'An image display tool canot be located. Define',
+     &    'one via your .esprc file.','W')
               else
 
-C If cfg recent version then display image documentation as well.
+C For most recent cfg file format, display image documentation as well.
                 if(icfgv.gt.3)then
                   call edisp248(iuout,imgdoc(img),100)
                 endif
@@ -906,10 +909,10 @@ C If cfg recent version then display image documentation as well.
         endif
       elseif(iglib.eq.2)then
 
-C If GTK version then use GTK calls to display images in popup.
+C If GTK version, use function call to display images in popup.
         if((iton.eq.0.or.iforce.eq.1))then
 
-C Setup help text for the popup.
+C Help text for the popup.
           helptopic='images_associated_with'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPW(nbhelp,IHW,IER)
@@ -920,11 +923,10 @@ C Setup help text for the popup.
      &         imgfmt(img)(1:3).eq.'TIF'.or.
      &         imgfmt(img)(1:3).eq.'JPG')then
 
-C If focus is `****` then show images marked with `****` , otherwise
-C begins with and `S`, otherwise attempt to match the focus and the image. 
+C If focus is `****` then show images marked with `****` or beginning
+C with a `S`, otherwise attempt to match the focus and the image. 
 C Create a string topic to pass to the display routine along with
 C the image file name.
-C << tag for editing ?? >>
               show=.false.
               if(focus(1:4).eq.'****'.and.
      &           imgfoc(img)(1:1).eq.'S')show=.true.
@@ -947,7 +949,7 @@ C and change any / to \.
                   write(topic,'(a)') imgdoc(img)(1:idl)
                 endif
 
-C Provide some feedback, set the title of the popup and then call C
+C Provide some feedback, set the title of the popup and then call
 C function in lib/esp_draw.c
                 call edisp(iuout,topic)
                 write(head,'(2a)') 'Image: ',longtfile(1:ixl)
@@ -964,7 +966,8 @@ C function in lib/esp_draw.c
       end
 
 
-C Dummy routines from common3dv.F
+C ********** Dummy subroutines (from common3dv.F)
+
       SUBROUTINE ADJVIEW(IER)
       ier=0
       return
@@ -983,6 +986,18 @@ C Dummy routines from common3dv.F
       return
       end
 
+      subroutine chgpan(ix,iy)
+      return
+      end
+
+      subroutine chgzoom(imode)
+      return
+      end
+
+      subroutine optview
+      return
+      end
+
       subroutine chgsun(isunhour)
       return
       end
@@ -991,10 +1006,10 @@ C Dummy routines from common3dv.F
      &   JITOBS,JITVIS,JITVOBJ,JITSNR,JITGRD,JITORG,GDIS,JITBND,JITDSP,
      &   JITHLS,JITHLZ,JITPPSW)
 
-C Passed paramters.
+C Passed parameters.
       real EVX,EVY,EVZ,VX,VY,VZ,EAN,DIS
 
-C Depending on computer type set integer size of passed parameters.
+C Depending on computer type, set integer size of passed parameters.
 #ifdef OSI
       integer JITZNM,JITSNM,JITVNO,JITOBS,JITVIS,JITVOBJ,JITSNR,JITGRD
       integer JITORG,JITBND,JITDSP,JITHLS,JITHLZ,JITPPSW

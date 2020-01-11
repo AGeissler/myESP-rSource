@@ -9,6 +9,8 @@ intialisation and dummy routines for graphics. The routines are :-
 	windcl(n,ir,ig,ib)
 			:- define the colour 'n' in RGB using ir,ig,ib
 	feedbox		:- setup feedback display box
+	viewtextwwc_(msg,line,side,size,len)
+                        :- writes viewtext attributes to file.
 	viewtext_(msg,line,side,size,len)
                         :- displays a line of text within the viewing
                            box with size and location parameters

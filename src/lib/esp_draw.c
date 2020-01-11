@@ -3,18 +3,27 @@
 
    Functions:
      wstxpt_() write a string beginning at pixel x and y.
+     textatxywwc_() write a string to file at pixel x y in colour xcolid.
      textatxy_() write a string at pixel x y in colour xcolid.
+     textsizeatxywwc_() write to file attributes of testsizeatxy.
      textsizeatxy_() write a string at pixel x y with size & in colour xcolid.
      textpixwidth_() find width of string (buff) in current font.
+     viewtextwwc_() display text in graphics box
      viewtext_() display text in graphics box
      findviewtext_() find position of display text in graphics box
      drawswl() draw a line of width 1 between two points
+     esymbolwwc_() symbol drawing routine.
      esymbol_() symbol drawing routine.
+     elinewwc_() line drawing routine.
      eline_() line drawing routine.
      edline_() dotted line drawing routine.
+     edlinewwc_() dotted line drawing routine.
      edash_() dashed line drawing routine.
+     eswlinewwc_() single width line drawing routine.
      eswline_() single width line drawing routine.
+     edwlinewwc_() double width line drawing routine.
      edwline_() double width line drawing routine.
+     echainwwc_() chained line drawing routine.
      echain_() chained line drawing routine.
      drawdwl() draw a line of width 2 between two points
      drawvwl() draw a line of user defined width between two points
@@ -23,6 +32,7 @@
      axiscale_() determine scaling ratios
      linescale_() store scaling parameters for lines
      etplot_() general line plotting.
+     etplotwwc_() general line plotting.
      erectan_() rectangle drawing routine.
      egrbox_() grey box drawing routine.
      etriang_() triangle drawing routine.
@@ -50,6 +60,24 @@ extern int  wwc_macro;   /* assume this set in esru_util.c */
 extern gint f_height;
 extern gint f_width;
 
+
+/* ********* wstxptwwc_() write a string beginning at pixel x and y to file. ******* */
+void wstxptwwc_(x,y,buff,len)
+char *buff;
+long int *x, *y;       /* x y is the position of the string */
+int  len;        /* len is length passed from fortran */
+{
+ char buffer[248];
+ const char* get_text;
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*wstxpt\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
 
 
 /* ********* wstxpt_() write a string beginning at pixel x and y. ******* */
@@ -132,6 +160,24 @@ int  len;        /* len is length passed from fortran */
    fprintf(wwc,"%s\n",buff);
  }
 */
+ return;
+}
+
+
+/* ********* textatxywwc_() write a string at pixel x y in colour act & n. ******* */
+void textatxywwc_(x,y,buff,act,n,len)
+long int *x, *y;       /* x y is the position of the string */
+char *buff;
+char *act;  /* single character passed for colour set */
+long int *n;       /* colour index within the set */
+int  len;        /* len is length passed from fortran */
+{
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*textatxy\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
  return;
 }
 
@@ -260,6 +306,27 @@ int  len;        /* len is length passed from fortran */
  }
  return;
 }
+
+/* ********* textsizeatxywwc_() write a string of size at pixel to file. ******* */
+void textsizeatxywwc_(x,y,buff,size,act,n,len)
+long int *x, *y;       /* x y is the position of the string */
+char *buff;
+long int *size;    /* font size indicator (see below) */
+char *act;  /* single character passed for colour set */
+long int *n;       /* colour index within the set */
+int  len;        /* len is length passed from fortran */
+{
+ int ilen;
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*textatxy\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
 
 /* ********* textsizeatxy_() write a string of size at pixel x y in colour act & n. ******* */
 void textsizeatxy_(x,y,buff,size,act,n,len)
@@ -465,6 +532,28 @@ int  len;        /* len is length passed from fortran */
  return;
 }
 
+/* ************** viewtextwwc_() display text in graphics box to file *************** */
+/*
+ Version to write to file.
+*/
+void viewtextwwc_(msg,linep,side,size,len)
+  char  *msg;                    /* character string  */
+  int len;                 /* length from f77   */
+  long int *linep, *side, *size;     /* position indicators */
+{
+  int t_len;
+  t_len = 0;
+  f_to_c_l(msg,&len,&t_len); if ( t_len < len ) msg[t_len] = '\0';
+
+  if ( wwc_ok == 1) { /* If echo send parameters to wwc file */
+    fprintf(wwc,"*viewtext\n");
+    fprintf(wwc,"%ld %ld %ld\n",*linep,*side,*size);
+    fprintf(wwc,"%s\n",msg);
+  }
+  return;
+} /* viewtextwwc  */
+
+
 /* ************** viewtext_() display text in graphics box *************** */
 /*
  Given a string 'msg' and the 'line' where the string should be written
@@ -659,6 +748,23 @@ void drawswl(xa,ya,xb,yb)
   gint width = 1;
   gdk_gc_set_line_attributes(gc,width,GDK_LINE_SOLID,GDK_CAP_NOT_LAST,GDK_JOIN_MITER); /* gives same as default */
   gdk_draw_line(gr_image,gc,xa,ya,xb,yb);
+  return;
+}
+
+
+/* *************** esymbolwwc_() symbol drawing routine to file. *************** */
+/*
+ esymbolwwc version to write to file.
+*/
+void esymbolwwc_(x,y,sym,size)
+  long int *x, *y, *sym, *size;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*esymbol\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x,*y,*sym,*size);
+  }
   return;
 }
 
@@ -1312,6 +1418,24 @@ void testcscaleb_()
   return;
 }
 
+
+/* *************** elinewwc_() line drawing routine to file. *************** */
+/*
+ eline commands to file.
+*/
+void elinewwc_(x,y,operation)
+  long int *x, *y, *operation;
+{
+
+/* If echo send parameters to wwc file */
+   if ( wwc_ok == 1) {
+     fprintf(wwc,"*eline\n");
+     fprintf(wwc,"%ld %ld %ld\n",*x,*y,*operation);
+   }
+   return;
+}
+
+
 /* *************** eline_() line drawing routine. *************** */
 /*
  co-ords, operation flag equiv to fwwutil parameters:
@@ -1348,6 +1472,23 @@ void eline_(x,y,operation)
      xold = xold+x1; yold = yold+y1;
    }
    return;
+}
+
+
+/* *************** edlinewwc_() dotted line drawing to file. *************** */
+/*
+ edline commands to file.
+*/
+void edlinewwc_(x1,y1,x2,y2,ipdis)
+  long int *x1, *y1, *x2, *y2, *ipdis;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edline\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
+  }
+  return;
 }
 
 /* *************** edline_() dotted line drawing routine. *************** */
@@ -1408,6 +1549,23 @@ void edline_(x1,y1,x2,y2,ipdis)
   } else if ( ldash >= 6 ) {
     gdk_gc_set_dashes (gc, 0, "\2\6", 2);	/* dash style shortish solid with 6 pixel blank */
     gdk_draw_line(gr_image,gc,ix1,iy1,ix2,iy2);
+  }
+  return;
+}
+
+
+/* *************** edashwwc_() dashed line drawing routine. *************** */
+/*
+ Edash commands to file.
+*/
+void edashwwc_(x1,y1,x2,y2,ipdis)
+  long int *x1, *y1, *x2, *y2, *ipdis;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edash\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
   }
   return;
 }
@@ -1473,6 +1631,21 @@ void edash_(x1,y1,x2,y2,ipdis)
   return;
 }
 
+/* *************** ESRU single width line to file. *************** */
+/*
+ Writes eswline attributest to file.
+*/
+void eswlinewwc_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+  if ( wwc_ok == 1 && wwc_macro != 1) {	/* If echo send parameters to wwc file */
+    fprintf(wwc,"*eswline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
+
 /* *************** eswline_() single width line drawing routine. *************** */
 /*
  Draws a single pixel wide line between two pixel coordinates passed from fortran.
@@ -1491,6 +1664,20 @@ void eswline_(x1,y1,x2,y2)
   return;
 }
 
+
+/* *************** edwlinewwc_() double width line drawing routine to file. *************** */
+void edwlinewwc_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edwline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
+
 /* *************** edwline_() double width line drawing routine. *************** */
 /*
  Draws a two pixel wide line between two pixel coordinates.
@@ -1506,6 +1693,29 @@ void edwline_(x1,y1,x2,y2)
   width = 2;
   gdk_gc_set_line_attributes(gc,width,GDK_LINE_SOLID,GDK_CAP_NOT_LAST,GDK_JOIN_MITER); /* gives same as default */
   gdk_draw_line(gr_image,gc,ix1,iy1,ix2,iy2);
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edwline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
+
+/* *************** echainwwc_() chained line drawing routine. *************** */
+/*
+ Echain commands to file.
+*/
+void echainwwc_(x1,y1,x2,y2,ipdis)
+  long int *x1, *y1, *x2, *y2, *ipdis;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edash\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
+  }
   return;
 }
 
@@ -1757,10 +1967,9 @@ void pixel2u_(ux,uy,gx,gy)
   return;
 }
 
-/* *************** etplot_wwc_() general line plotting to wwc file. *************** */
+/* *************** etplotwwc_() general line plotting to wwc file. *************** */
 /*
  As below, but ouputs lines to wwc file without drawing them.
-
 */
 void etplotwwc_(ux,uy,updown,sym)
   float *ux, *uy;
@@ -2185,6 +2394,33 @@ void labelstr(n,val,WticC,sstr)
   return;
 } /* labelstr */
 
+
+/* **************  etlabelwwc_() display text as in old teklib tlabel to file ******* */
+/*
+ Version which writes to wwc file.
+*/
+void etlabelwwc_(msg,x,y,ipos,size,len)
+  char  *msg;       /* character string  */
+  int len;          /* length from f77   */
+  long int *size;   /* font size */
+  long int *ipos;   /* 0=centred, 1=right, 2=centred top,
+                       3=left,4=centered bottom.
+                    */
+  float *x,*y;      /* position in user units */
+{
+  int t_len;	/* for the truncated length of msg */
+  t_len = 0;
+  f_to_c_l(msg,&len,&t_len); if ( t_len < len ) msg[t_len] = '\0';
+
+  if ( wwc_ok == 1) { /* If echo send parameters to wwc file */
+    fprintf(wwc,"*etlabel\n");
+    fprintf(wwc,"%f %f %ld %ld\n",*x,*y,*ipos,*size);
+    fprintf(wwc,"%s\n",msg);
+  }
+  return;
+} /* etlabelwwc */
+
+
 /* **************  etlabel_() display text as in old teklib tlabel ******* */
 /*
  Given a string 'msg' and a reference position x,y in user units
@@ -2254,6 +2490,39 @@ void etlabel_(msg,x,y,ipos,size,len)
   }
   return;
 } /* etlabel */
+
+
+/* ************** vrtaxisddwwc_() construct and draw a vert axis to file*************** */
+/*
+ Version to write vert axis to file.
+*/
+
+void vrtaxisddwwc_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
+
+ float *ymn, *ymx,  *yadd, *sca, *dddy;
+ long int  *offl,*offb, *offt, *mode, *nny, *side;
+ int  mlen;
+ char  *msg;
+{
+/*
+ Local variables: WticL is the maximum character width of a tic label,
+ ix & iy are the pixel coords, vertadj is half of the text height.
+*/
+ gint ilen;
+ char msg2[80];
+
+ ilen = 0;
+ f_to_c_l(msg,&mlen,&ilen); strncpy(msg2,msg,(unsigned int)ilen); msg2[ilen] = '\0';
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+    fprintf(wwc,"*vrtaxis\n");
+    fprintf(wwc,"%f %f %ld %ld %ld %f %f %ld %ld\n",
+		*ymn,*ymx,*offl,*offb,*offt,*yadd,*sca,*mode,*side);
+    fprintf(wwc,"%s\n",msg2);
+ }
+ return;
+} /* vrtaxisddwwc */
 
 
 /* ************** vrtaxisdd_() construct and draw a vert axis *************** */
@@ -2429,6 +2698,33 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
   g_object_unref (layout);	/* clear the layout */
   return;
 } /* vrtaxsdd_ */
+
+
+/* ************ horaxisddwwc_() construct and draw a horiz axis to file *************** */
+/*
+ Write horizontal axis attributes to file.
+*/
+
+void horaxisddwwc_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
+
+ float *xmn, *xmx, *sca, *xadd, *dddx;
+ long int   *offl,*offr,*offb, *mode, *nnx;
+ int   mlen;
+ char  *msg;
+{
+ gint ilen;
+ char msg2[80];
+ ilen = 0;
+ f_to_c_l(msg,&mlen,&ilen); strncpy(msg2,msg,(unsigned int)ilen); msg2[ilen] = '\0';
+
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*horaxis\n");
+   fprintf(wwc,"%f %f %ld %ld %ld %f %f %ld\n",
+                *xmn,*xmx,*offl,*offr,*offb,*xadd,*sca,*mode);
+   fprintf(wwc,"%s\n",msg2);
+ }
+ return;
+} /* horaxisddwwc_ */
 
 
 /* ************ horaxisdd_() construct and draw a horiz axis *************** */

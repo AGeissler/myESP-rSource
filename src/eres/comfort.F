@@ -1,7 +1,3 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
-
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
@@ -13,33 +9,24 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
-C  MOCMFT provides a zone comfort assessment for a
-C         particular 24 hour period.
-
+C MOCMFT:  provides a zone comfort assessment for a particular 24 hour period.
 C getocup: Determine if zone is occupied at time step, for filtering.
 C DISCOMF: Returns local dicomfort information (PPD).
 C DRAUGHT: PPD due to draughts (nothing calls this yet).
 C OFFSETTEMP: air velocity required to maintain comfort (nothing calls this yet).
 C ASHRAEZONE: inside/ outside ASHRAE comfort zone (nothing calls this yet).
-C RCFDVRTS: Reads domain origins from a CFD domain file (needed for 
-C           old CFD results libraries).
-C VERTdT: Calculate vertical temperature difference between top and
-C         bottom of an MRT sensor, using CFD results.
+C RCFDVRTS: Reads domain origins from a CFD domain file (needed for old CFD results files).
+C VERTdT:  Calculate vertical temperature difference between top and
+C          bottom of an MRT sensor, using CFD results.
 
-C ******************** MOCMFT ********************
-C MOCMFT provides a zone comfort assessment for a
-C particular 24 hour period.
-C If act = 'V' then provide verbose (standard) comfort facility,
-C if act = 'I' to set comfort parameters before calling D or M,
-C if act = 'D' return days PPD in GVAL,
-C if act = 'M' return days PMV in GVAL.
-C if act = 'E' return days PMV (effective temperature) in GVAL.
+C ************ MOCMFT
+C Provides a zone comfort assessment for a particular 24 hour period.
+C If act = 'V' then provide verbose (standard) comfort facility.
+C        = 'I' set comfort parameters before calling D or M.
+C        = 'D' return PPD in GVAL.
+C        = 'M' return PMV in GVAL.
+C        = 'E' return PMV (effective temperature) in GVAL.
 
       SUBROUTINE MOCMFT(IDAY,IZONE,IMRT,act)
 #include "building.h"
@@ -49,12 +36,11 @@ C if act = 'E' return days PMV (effective temperature) in GVAL.
 #include "cfd.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-C #include "espriou.h"
       
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
@@ -67,7 +53,7 @@ C #include "espriou.h"
 C Comfort parameters and hash table.
       common/cmftpar/WVEL,ACTL,CLO,iocut,iocuset
 
-C Pre calculated data (filtered).
+C Pre-calculated data (filtered).
       common/MMAFDAT/IFILT,RDFMAX(MCOM,3,MZRL),RDFMIN(MCOM,3,MZRL),
      &    RDFAVE(MCOM,3,MZRL),RDTFMAX(MCOM,3,MZRL),RDTFMIN(MCOM,3,MZRL)
 
@@ -84,14 +70,14 @@ C Pre calculated data (filtered).
       character outs*124,TSTR*24,ZN*12,hold*24
       character xfile*144,ITEMS*25,tg*1,delim*1,act*1
       character*12 ll1,ll2,ll3
-      logical ok,dok,concat,unixok
+      logical ok,concat,unixok
       integer IOT  ! for radio button
       integer NITMS,INO ! max items and current menu item
 
-C For help messages
+C For help messages.
       character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      character helptopic*24   ! unique string for topic
+      integer nbhelp           ! number of help lines
 
       COMMON/FILEP/IFIL
       COMMON/ICFNOD/ICFD,ICP
@@ -99,7 +85,7 @@ C For help messages
       real XC,YC,ZC
       integer IIX,IIY,IIZ
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
-      integer igraphiclib  ! external definition
+      integer igraphiclib      ! external definition
       logical XST
 
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
@@ -146,25 +132,22 @@ C Initialise comfort variables.
 C If initial settings and initial request ask parameters.
       if(act.eq.'I')then
         if(iocuset.eq.1)then
-          dok=.true.
           helptopic='res_alter_comfort_par'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok(' ','Use existing comfort parameters?',ok,dok,
+          call easkok(' ','Use existing comfort parameters?',ok,
      &      nbhelp)
           if(ok)return
         endif
 
 C Confirm parameters and then exit.
-        call edisp(iuout,' ')
-        call edisp(iuout,'Please confirm general comfort parameters.')
         helptopic='res_review_comfort_par'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkr(CLO,' ',' Clothing level ?',
+        call easkr(CLO,' ','Clothing level?',
      &    0.0,'W',3.0,'W',1.0,'clothing level',IER,nbhelp)
 
         helptopic='res_review_activity_par'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Activity level units (see help):',
+        CALL EASKAB(' ','Activity level units?',
      &    'MET units','W/m^2 (body surface area)',IAU,nbhelp)
         if(IAU.eq.1)then
 
@@ -172,37 +155,35 @@ C When using MET units, convert back to W/M^2 for calculations.
 C Assume default MET is equiv to 85W/m^2.
           ACTL = ACTL/58.2
           ACTLDEF = 85.0/58.2
-          call easkr(ACTL,' ',' Activity level (MET)?',0.859,
+          call easkr(ACTL,' ','Activity level (MET)?',0.859,
      &      'W',6.013,'W',ACTLDEF,'activity level MET',IER,nbhelp)
           ACTL = ACTL * 58.2
         elseif(IAU.eq.2)then
-          call easkr(ACTL,' ',' Activity level (W/m2)?',
-     &      50.0,'F',350.0,'F',85.0,'activity level W/m2',IER,nbhelp)
+          call easkr(ACTL,' ','Activity level (W/m^2)?',
+     &      50.0,'F',350.0,'F',85.0,'activity level W/m^2',IER,nbhelp)
         endif
 
         helptopic='res_comfort_air_velo'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkr(WVEL,' ',' Air velocity ?',
+        call easkr(WVEL,' ','Air velocity?',
      &    0.0,'W',5.0,'W',0.15,'air velocity',IER,nbhelp)
 
-C Set representative casual gain and then search all zones and build
-C up hash list of zone:time:occupancy.
-
-C << revise for additional casual gain types >>
+C Set representative casual gain then search all zones and build
+C hash list of zone:time:occupancy.
         write(ll1,'(a)') lodlabel(IZONE,1)
         write(ll2,'(a)') lodlabel(IZONE,2)
         write(ll3,'(a)') lodlabel(IZONE,3)
         helptopic='res_comfort_occupied'
         call gethelptext(helpinsub,helptopic,nbhelp)
  936    IOT=1
-        CALL EASKATOG('Which casual gain represents occupancy:',' ',
+        CALL EASKATOG(' ','Which casual gain represents occupancy?',
      &      'Always occupied',ll1,ll2,ll3,'time',' ',' ',IOT,nbhelp)
         if (IOT.gt.1.and.IOT.lt.5) then
           if (izver.lt.4) then
-            write(outs,'(2a)')'Occupancy filtering not ',
-     &       'available for legacy results libraries before version 4.'
+            write(outs,'(2a)')'Occupancy filtering not available for ',
+     &       'legacy results files before version 4.'
             call usrmsg(outs,
-     &   'Please regenerate results library or use time filtering.','W')
+     &   'Please regenerate results file or use time filtering.','W')
             goto 936
           else
             iocupf=1      
@@ -213,21 +194,21 @@ C << revise for additional casual gain types >>
         elseif(IOT.eq.5)then
           iocut=-1
           write(HOLD,'(a)') '  0  24  '
-          CALL EASKS(HOLD,' ',' Weekday occupancy period: ',
+          CALL EASKS(HOLD,' ','Weekday occupancy period?',
      &      24,' 0  24 ','wkd occup period',IER,nbhelp)
           K=0
           CALL EGETWI(HOLD,K,iwkdst,0,24,'W','iwkdst',IER)
           CALL EGETWI(HOLD,K,iwkdfn,iwkdst,24,'W','iwkdst',IER)
 
           write(HOLD,'(a)') '  0  24  '
-          CALL EASKS(HOLD,' ',' First weekend day occupancy period: ',
+          CALL EASKS(HOLD,' ','First weekend day occupancy period?',
      &     24,' 0  24 ','sat occup period',IER,nbhelp)
           K=0
           CALL EGETWI(HOLD,K,isatst,0,24,'W','isatst',IER)
           CALL EGETWI(HOLD,K,isatfn,isatst,24,'W','isatst',IER)
 
           write(HOLD,'(a)') '  0  24  '
-          CALL EASKS(HOLD,' ',' Second weekend day occupancy period: ',
+          CALL EASKS(HOLD,' ','Second weekend day occupancy period?',
      &     24,' 0  24 ','sat occup period',IER,nbhelp)
           K=0
           CALL EGETWI(HOLD,K,isunst,0,24,'W','isunst',IER)
@@ -237,7 +218,8 @@ C << revise for additional casual gain types >>
         IFILT=iocut
 
         if (IER.ne.0) then
-          call edisp(iuout,' Error setting up comfort parameters.')
+          call edisp(iuout,' ')
+          call edisp(iuout,'Error setting up comfort parameters!')
         endif
         return
       endif
@@ -254,8 +236,8 @@ C Begin with high level menu if in verbose mode.
       if(act.eq.'D'.or.act.eq.'E'.or.act.eq.'M') goto 78
     4 INO=-4
       IER=0
-      WRITE(ITEMS(1),'(A,A)')      'a Zone: ',zname(IZONE)
-      WRITE(ITEMS(2),'(A,2I3)')    'b Day & month :',IDCO,IMCO
+      WRITE(ITEMS(1),'(A,A)')      'a zone: ',zname(IZONE)
+      WRITE(ITEMS(2),'(A,2I3)')    'b day & month :',IDCO,IMCO
       IF(OP(1).lt.-0.5)THEN
         ITEMS(3)=                  'c MRT >> default        '
       ELSEIF(OP(1).gt.-0.5)THEN
@@ -263,20 +245,20 @@ C Begin with high level menu if in verbose mode.
       ENDIF
       ITEMS(4)   =                 '  _____________________ '
       WRITE(ITEMS(5),'(A,F5.2)')   'd CLO value     : ',CLO
-      WRITE(ITEMS(6),'(A,F5.1)')   'e Activity level: ',ACTL
-      WRITE(ITEMS(7),'(A,F5.1)')   'f Air velocity  : ',WVEL
+      WRITE(ITEMS(6),'(A,F5.1)')   'e activity level: ',ACTL
+      WRITE(ITEMS(7),'(A,F5.1)')   'f air velocity  : ',WVEL
       if(iocut.eq.0)then
-        ITEMS(8) =                 'g Occupancy: always     '
+        ITEMS(8) =                 'g occupancy: always     '
       elseif(iocut.eq.-1)then      
-        ITEMS(8) =                 'g Occupancy: time based '
+        ITEMS(8) =                 'g occupancy: time based '
       else
-        WRITE(ITEMS(8),'(A,I1)')   'g Occup = casual type: ',iocut
+        WRITE(ITEMS(8),'(A,I1)')   'g occupancy: ',iocut
       endif
       ITEMS(9)  =                  '  _____________________ '
-      ITEMS(10) =                  '1 Assess average comfort'
-      ITEMS(11) =                  '2 Assess local comfort  '
-      ITEMS(13)  =                 '? Help                  '
-      ITEMS(14)  =                 '- Exit                  '
+      ITEMS(10) =                  '1 assess average comfort'
+      ITEMS(11) =                  '2 assess local comfort  '
+      ITEMS(13)  =                 '? help                  '
+      ITEMS(14)  =                 '- exit this menu        '
     3 NITMS=14
       if(ixopen.eq.1)then
         ITEMS(12)='> Output >> file  '
@@ -320,7 +302,7 @@ C Find the day to analyse.
         helptopic='res_comfort_day'
         call gethelptext(helpinsub,helptopic,nbhelp)
         write(TSTR,'(3X,I3,I4)',IOSTAT=IOS,ERR=1)IDCO,IMCO
-    8   CALL EASKS(TSTR,' ',' Day and month numbers ? ',
+    8   CALL EASKS(TSTR,' ','Day and month?',
      &      24,'1 1 ','day & month no',IER,1)
         K=0
         CALL EGETWI(TSTR,K,IDCO,1,31,'W','day',IER)
@@ -330,11 +312,13 @@ C Find the day to analyse.
         IF(IDCO.LT.1.OR.IDCO.GT.ID(IMCO))GOTO 8
         CALL EDAY(IDCO,IMCO,IDAY)
         IF(IDAY.LT.ISDS)THEN
-          call edisp(iuout,' Before simulation try again... ')
+          call edisp(iuout,' ')
+          call edisp(iuout,'Before simulation, try again!')
           goto 8
         ENDIF
         IF(IDAY.GT.ISDF)then
-          call edisp(iuout,' After simulation try again... ')
+          call edisp(iuout,' ')
+          call edisp(iuout,'After simulation, try again!')
           goto 8
         ENDIF
       elseif(ino.eq.3)then
@@ -345,21 +329,21 @@ C Find the day to analyse.
 C Clothing level.
         helptopic='res_clo_review'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkr(CLO,' ',' Clothing level ?',
+        call easkr(CLO,' ','Clothing level?',
      &    0.0,'W',3.0,'W',1.0,'clothing level',IER,nbhelp)
       elseif(ino.eq.6)then
 
 C Activity level, may be entered in MET units or in W/m^2.
         helptopic='res_MET_review'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Activity level units:',
+        CALL EASKAB(' ','Activity level units?',
      &    'MET units','W/m^2 (body surface area)',IAU,nbhelp)
         if(IAU.eq.1)then
-          call easkr(ACTL,' ',' Activity level ?',
+          call easkr(ACTL,' ','Activity level?',
      &      0.859,'W',6.013,'W',50.0,'activity level MET',IER,nbhelp)
           ACTL = ACTL * 58.2
         elseif(IAU.eq.2)then
-          call easkr(ACTL,' ',' Activity level ?',
+          call easkr(ACTL,' ','Activity level?',
      &      50.0,'F',350.0,'F',85.0,'activity level W/m2',IER,nbhelp)
         endif
       elseif(ino.eq.7)then
@@ -367,13 +351,11 @@ C Activity level, may be entered in MET units or in W/m^2.
 C Air speed.
         helptopic='res_comfort_air_velo'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkr(WVEL,' ',' Default air velocity ?',
+        call easkr(WVEL,' ','Default air velocity?',
      &    0.0,'W',5.0,'W',0.15,'air velocity',IER,nbhelp)
       elseif(ino.eq.8)then
 
 C Casual gain type.  Ask user which constitutes occupancy.
-
-C << revise for additional casual gain types >>
         call edisp(iuout,' ')
         write(ll1,'(a)') lodlabel(IZONE,1)
         write(ll2,'(a)') lodlabel(IZONE,2)
@@ -381,14 +363,14 @@ C << revise for additional casual gain types >>
         helptopic='res_comfort_occupied'
         call gethelptext(helpinsub,helptopic,nbhelp)
  937    IOT=1
-        CALL EASKATOG('Which casual gain represents occupancy:',' ',
+        CALL EASKATOG(' ','Which casual gain represents occupancy?',
      &      'Always occupied',ll1,ll2,ll3,'time',' ',' ',IOT,nbhelp)
         if (IOT.gt.1.and.IOT.lt.5) then
           if (izver.lt.4) then
-            write(outs,'(2a)')'Occupancy filtering not ',
-     &       'available for legacy results libraries before version 4.'
+            write(outs,'(2a)')'Occupancy filtering not available',
+     &       'for legacy results files before version 4.'
             call usrmsg(outs,
-     &   'Please regenerate results library or use time filtering.','W')
+     &   'Please regenerate results file or use time filtering.','W')
             goto 937
           else      
             iocut=IOT-1
@@ -398,21 +380,21 @@ C << revise for additional casual gain types >>
         elseif(IOT.eq.5)then
           iocut=-1
           write(HOLD,'(a)') '  0  24  '
-          CALL EASKS(HOLD,' ',' Weekday occupancy period: ',
+          CALL EASKS(HOLD,' ','Weekday occupancy period?',
      &      24,' 0  24 ','wkd occup period',IER,nbhelp)
           K=0
           CALL EGETWI(HOLD,K,iwkdst,0,24,'W','iwkdst',IER)
           CALL EGETWI(HOLD,K,iwkdfn,iwkdst,24,'W','iwkdst',IER)
 
           write(HOLD,'(a)') '  0  24  '
-          CALL EASKS(HOLD,' ',' First weekend day occupancy period: ',
+          CALL EASKS(HOLD,' ','First weekend day occupancy period?',
      &     24,' 0  24 ','sat occup period',IER,nbhelp)
           K=0
           CALL EGETWI(HOLD,K,isatst,0,24,'W','isatst',IER)
           CALL EGETWI(HOLD,K,isatfn,isatst,24,'W','isatst',IER)
 
           write(HOLD,'(a)') '  0  24  '
-          CALL EASKS(HOLD,' ',' Second weekend day occupancy period: ',
+          CALL EASKS(HOLD,' ','Second weekend day occupancy period?',
      &     24,' 0  24 ','sat occup period',IER,nbhelp)
           K=0
           CALL EGETWI(HOLD,K,isunst,0,24,'W','isunst',IER)
@@ -425,10 +407,9 @@ C << revise for additional casual gain types >>
       elseif(ino.eq.11)then
 
 C Start espvwf session.
-        dok=.false.
         helptopic='res_comfort_local_vwf'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' ','Proceed with local vwf analysis?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Proceed with view factor analysis?',OK,nbhelp)
         IF(OK)then
 
 C Get logical name of terminal type, expand problem name
@@ -468,45 +449,44 @@ C If output to file alter the edisp unit number.
       endif
 
       if(act.eq.'V')then
-        call edisp(itru,'  ')
+        call edisp(itru,' ')
         call edisp(itru,
-     &   ' Note: PMV is Fanger predicted mean vote. PMV* is predicted')
+     &   'PMV is Predicted Mean Vote. PMV* is PMV based on ')
         call edisp(itru,
-     &   '       mean vote based on ET rather then TO.')
-        call edisp(itru,'  ')
+     &   'effective rather than operative temperature.')
         write(outs,'(A,A,A,I3,A,I3)',IOSTAT=IOS,ERR=1)
-     &    ' Comfort assessment for ',
-     &    zname(IZONE)(1:lnzname(IZONE)),' on  Day',IDCO,
+     &    'Comfort assessment for ',
+     &    zname(IZONE)(1:lnzname(IZONE)),' on day',IDCO,
      &    ' of month',IMCO
-        call edisp(itru,outs)
         call edisp(itru,' ')
+        call edisp(itru,outs)
         write(outs,172,IOSTAT=IOS,ERR=1)ACTL,CLO,WVEL
-  172   FORMAT(' Activity level ',F6.2,', Clothing level',F6.2,
+  172   FORMAT('Activity level',F6.2,', Clothing level',F6.2,
      &         ', Default air speed',F6.2)
-        call edisp(itru,outs)
-
-        call edisp(itru,' Default mean radiant temperature')
         call edisp(itru,' ')
+        call edisp(itru,outs)
+        call edisp(itru,' Default mean radiant temperature')
         write(outs,103)
   103   FORMAT('Time   t-air   t-mrt  rel.h   SET   PMV*   PMV   PPD',
      &         '   Comfort assessment')
+        call edisp(itru,' ')
         call edisp(itru,outs)
         write(outs,1103)
  1103   FORMAT('(hrs) (deg.C) (deg.C)  (%)  (deg.C) (-)    (-)   (%)',
      &         '      based on PMV')
-        call edisp(itru,outs)
         call edisp(itru,' ')
+        call edisp(itru,outs)
       endif
 
       ok=.false.
       if (IMRT.ne.0) then
+
 C Put sensor MRT in GVAL.
         ISET=ISIM
         call SENMRT(IDAY,IZONE,IMRT,ISET,0)
 
 C If there is a CFD domain for this zone, use air velocity and
 C temperature from the grid point closest to the MRT sensor location.
-c        write(6,*)'IFCFD(IZONE)',IFCFD(IZONE)
         if (IFCFD(IZONE).gt.0) then
 
           call OPCFD('c',ok,IER)
@@ -522,8 +502,10 @@ C initialise CFD - building domain transformation matrices.
           endif
           CALL INIT_CFDTRANS(IER)
           if (IER.ne.0) then
-            call edisp(iuout,' Problem reading CFD axis vertices')
+            call edisp(iuout,' ')
+            call edisp(iuout,'Problem reading CFD axis vertices!')
           else
+
 C Find CFD point closest to MRT sensor.              
             CALL GRIDGEO
             PI = 4.0 * ATAN(1.0)
@@ -536,7 +518,8 @@ C Find CFD point closest to MRT sensor.
      &                      ZOC(IMRT)+DZC(IMRT)/2,XC,YC,ZC,IER)
             CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
             if (IER.ne.0) then
-              call edisp(iuout,' Problem finding CFD point')
+              call edisp(Iuout,',')
+              call edisp(iuout,' Problem finding CFD point!')
             else
               IXCEL(IZONE)=IIX-1
               IYCEL(IZONE)=IIY-1
@@ -549,9 +532,10 @@ c     &      ' CFD results at location of MRT sensor ',IMRT,
 c     &      ' in zone ',IZONE,' will be used for PMV calculations.'
 c          call edisp(iuout,outs)
           goto 925
- 924      write(outs,'(a,a,i1,a,i2,a)')' Error setting up CFD results',
+ 924      write(outs,'(a,a,i1,a,i2,a)')'Error setting up CFD results',
      &      ' for PMV calculations at MRT sensor ',IMRT,' in zone ',
      &      IZONE,', CFD will not be used.'
+          call edisp(iuout,' ')
           call edisp(iuout,outs)
         endif
       endif
@@ -573,14 +557,13 @@ C Get the current MRT in the zone.
         WWVEL=WVEL
         if (IMRT.ne.0) then
           TMRT=GVAL(JTS)
-c          write(6,*)' using MRT'
 
           if (ok) then
 
 C Check if there are CFD results available for this time step.
             CALL GETIFRM(IDAY,JTS,IFRAME,IER)
 
-C Set up directives for GOCFDGET - retrieve velocity and temperature.
+C Set up directives for GOCFDGET and retrieve velocity and temperature.
             CALL MOFLOWSU() ! clear commons
             NMFGET=2
             IMFGETNO(1,1)=18
@@ -605,20 +588,14 @@ C Current time.
  185    call DATIME(JTS,TIME)
         RHX=RH/100.
 
-C Comment WK out since it is in input file for 2 node model.
-C       WK=0.
-
 C This is the main calculation routine. It is passed the
-C current air temperature (TAIR), the MRT (TMRT), and the
-C users values for wind velocity (WVEL) and clothing value (CLO).
+C current air temperature (TAIR), the mean radiant temperature (TMRT)
+C and the user's values for wind velocity (WVEL) and clothing level (CLO).
 C It returns an index of comfort (ICMFRT) and three variants
-C of comfort.
-C The LET* comfort routines implemented by Cor Pernot, FAGO-TNO.
-c        write(6,*)'TAIR,TMRT,WWVEL,RHX,ACTL,CLO,',
-c     &             TAIR,TMRT,WWVEL,RHX,ACTL,CLO
+C of comfort (from the LET* comfort routines implemented by Cor Pernot,
+C FAGO-TNO.
         CALL LETDRIVR(TAIR,TMRT,WWVEL,RHX,ACTL,CLO,
      &                SET,ICMFRT,PME,PMV,XPPD)
-c        write(6,*)'PMV',PMV
 
 C If occupancy is assumed to be equivalent to a non-zero value
 C of one of the casual gain types test here.
@@ -626,11 +603,7 @@ C of one of the casual gain types test here.
         call getocup(izone,iday,JTS,ioc,ier)
         if(ioc.eq.0)ICMFRT=10
 
-C Debug.
-C        write(6,*)'icmfrt,izone,iday,ih,ioc',icmfrt,izone,iday,ih,ioc
-
 C Verbal category only printed if activity level is sedentary.
-C << is there a way to equate category if non-sedintary? >>
         IF(ACTL.GE.100.)ICMFRT=11
         if(act.eq.'V')then
           write(outs,106,IOSTAT=IOS,ERR=1)TIME,TAIR,TMRT,RH,SET,PME,
@@ -647,12 +620,11 @@ C << is there a way to equate category if non-sedintary? >>
         endif
    40 CONTINUE
 
-C Finished with that, seewhat user wants to do next.
       if(act.eq.'V')then
         helptopic='res_comfort_next_day'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKAB(' ','Comfort:',
-     &    'Continue with next day','Return to menu',IWW,nbhelp)
+        CALL EASKAB(' ','Options:',
+     &    'continue with next day','return to menu',IWW,nbhelp)
         if(IWW.eq.1)then
 
 C Check to see of next day is acceptable, recover casual gains
@@ -664,7 +636,6 @@ C (to test for occupancy in the next pass).
           endif
           CALL EDAY(IDCO,IMCO,IDAY)
           IF(IDAY.GT.ISDF)then
-            call edisp(iuout,' After simulation ... ')
             IDAY=ISDS
             CALL EDAYR(IDAY,IDCO,IMCO)
             goto 4
@@ -685,15 +656,15 @@ C (to test for occupancy in the next pass).
    1  call isunix(unixok)
       if(IOS.eq.2)then
         if(unixok)write(iuout,*)
-     &    'MOCMFT: no permission to write string.'
+     &    'MOCMFT: no permission to write string!'
       else
         if(unixok)write(iuout,*)
-     &    'MOCMFT: internal string handling error.'
+     &    'MOCMFT: internal string handling error!'
       endif
       END
 
-C ******** getocup
-C Looks up occupancy patterns and returns yes or no (1 or 0) in ioc for
+C ********** getocup
+C Look up occupancy patterns and returns yes or no (1 or 0) in ioc for
 C a given zone/day/time step.
 
       subroutine getocup(izone,iday,istep,ioc,ier)
@@ -704,7 +675,7 @@ C a given zone/day/time step.
       common/recver/izver,ipver,iever
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       common/c1/ncomp,ncon
@@ -714,12 +685,12 @@ C a given zone/day/time step.
       character outs*124
       logical found,close15,close16,close17
       real QCASR,QCASC,QCASL  ! total radiant/convective/latent
-      real FRAC ! controlled fraction.
-      real perocupc,perocupr,perocupl ! average occupant to write out
+      real FRAC               ! controlled fraction.
+      real perocupc,perocupr,perocupl    ! average occupant to write out
       real perlightc,perlightr,perlightl ! average lighting to write out
       real perequipc,perequipr,perequipl ! average equipment to write out
       real otherc,otherr,otherl ! average other (future expansion) to write out
-      integer theonectld  ! if non-zero the casual gain type that is controlled.
+      integer theonectld        ! if non-zero the casual gain type that is controlled.
 
       real ftime
 
@@ -745,7 +716,6 @@ C If assumption of occupied all hours then return 1.
 C Filtered by user-defined times stored in common "timfltr".
       elseif(iocut.eq.-1)then
         ftime=istep/NTS
-c        write(6,*)istep,ftime
         CALL EDAYR(iday,IDAYN,IMTHN)
         CALL EWEEKD(IDAYN,IMTHN,IYEAR,IDWK)
         if(IDWK.eq.6)then
@@ -766,18 +736,15 @@ c        write(6,*)istep,ftime
         endif
 
 C Filtered by occupancy, associated with one casual gain type.
-C NOTE: this functionality is not available for results libraries of
-C version below 4.
+C NOTE: this functionality is unavailable for results files below
+C version 4.
       else
         if(izver.ge.4)then
           call getallcas(IDAY,IZONE,ISET,ISTEP,QCASR,QCASC,QCASL,FRAC,
      &      perocupc,perlightc,perequipc,otherc,perocupr,perlightr,
      &      perequipr,otherr,perocupl,perlightl,perequipl,otherl,
      &      theonectld)
-c          write(6,*)QCASR,QCASC,QCASL,FRAC,
-c     &      perocupc,perlightc,perequipc,otherc,perocupr,perlightr,
-c     &      perequipr,otherr,perocupl,perlightl,perequipl,otherl,
-c     &      theonectld
+
           ioc=0
           if(iocut.eq.1)then
             call eclose(perocupc,0.0,0.1,close15)
@@ -797,10 +764,11 @@ c     &      theonectld
           if(.not.close17) ioc=1
         else
           write(outs,'(2a)')"getocup: occupancy filtering not ",
-     &      "available for legacy results libraries before version 4."
+     &      "available for results libraries before version 4."
+          call edisp(iuout,' ')
           call edisp(iuout,outs)
           write(outs,'(2a)')
-     &      "Please regenerate results library or use time filtering. ",
+     &      "Please regenerate results file or use time filtering.",
      &      "Assuming zone is occupied."
           call edisp(iuout,outs)
           ioc=1
@@ -811,40 +779,42 @@ c     &      theonectld
       return
       end
 
-C ************************ LOCOMF ************************
-C LOCOMF: calculate local discomfort.
+C ********** LOCOMF
+C Calculates local discomfort.
 
       SUBROUTINE LOCOMF(IDAY,IZONE,ICP,IMP,ISET)
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/GET2/XDUM(MTS),XDUM1(MTS),GVAL(MTS)
 
       DIMENSION TPVAL(MTS)
 
-C Firstly recover the temperature values. 
+C Recover temperature values. 
       if (ICP.eq.4) then
 
 C Need dT between CFD cells. set to zero and warn user.
+        call edisp(iuout,' ')
         call edisp(iuout,
-     &    ' Missing information on local air T, setting dT to zero.')
-C        CALL GZQM(IDAY,IZONE,ISET)
+     &    'Missing information on local air temperature,')
+        call edisp(iuout,'setting dT to zero.')
       elseif (ICP.eq.5) then
 
-C Only need floor surface T.
+C Only need floor surface temperature.
         CALL GTMS(IDAY,IZONE,IMP,ISET)
       endif
 
-C Store in a temporary array 
+C Store in a temporary array.
       N=24*NTS
       DO 20 I=1,N
         TPVAL(I)=GVAL(I)
   20  continue
 
-C Call the routine to get the latent loading.
+C Get the latent loading.
       CALL GZLL(IDAY,IZONE,ISET)       
 
-C Output the sum of the two variables. 
+C Output the sum of the two parameters. 
       DO 30 I=1,N
         GVAL(I)=GVAL(I)+TPVAL(I)
   30  continue
@@ -852,32 +822,27 @@ C Output the sum of the two variables.
       RETURN
       END
 
-C ************************ DISCOMF ************************
-C DISCOMF: Local thermal discomfort and Indoor air quality assessment 
-C according to Standard prENV 1752. Also general thermal comfort is 
+C ********** DISCOMF
+C Local thermal discomfort and indoor air quality assessment 
+C according to Standard prENV 1752. General thermal comfort is 
 C treated according to Standards prENV 1752 and ISO EN 7730. 
-C PPD is the output of the subroutine [in %]. The input is the 
-C XX-value which is case dependent. 
-C If iflag is returned as -1 then outside bounds of algorithm.
+C PPD is the output in %. The input is the XX-value, which is
+C case dependent. If iflag is returned as -1 then we are outside
+C the bounds of the algorithm.
 
 C 2017: Updated to use equations from BS EN ISO 7730:2005.
-C       Previous equations left commented, and metrics with no
-C       equivalent in BS EN ISO 7730:2005 noted as such.
-C       Note that draught is handled by a seperate subroutine as
-C       it requires more than one input to calculate.
+C Previous equations left commented, and metrics with no
+C equivalent in BS EN ISO 7730:2005 noted as such.
+C Note that draught is handled by a seperate subroutine as
+C it requires more than one input to calculate.
+
       SUBROUTINE DISCOMF(iflag,XX,PPD)
 
-C At the time of testing lets know what input parameter we have: 
-
-C Debug.
-C    write(6,*)'flag, XX=',iflag,XX 
-
-C Assume nobody is dissatisfied.
+C Initially assume no dissatisfaction.
       PPD=0.0 
 
 C Local thermal discomfort due to vertical air temperature difference 
-C between head (@1.1m) and feet(@0.1m). 
-C Input (XX): Temperature difference in [K] or [C]. 
+C between head (@1.1m) and feet(@0.1m). Input XX) is temperature difference. 
       if(iflag.eq.1) then 
 c        if (XX.lt.1.0.or.XX.gt.8.0) then
 c          iflag=-1
@@ -893,7 +858,7 @@ c        endif
         endif
 
 C Local thermal discomfort due to warm or cool floors.   
-C Input (XX): Floor temperature in [C]. 
+C Input XX is floor temperature. 
       elseif(iflag.eq.2) then 
 c        if (XX.lt.5.0.or.XX.gt.40.0) then
 c          iflag=-1
@@ -903,7 +868,7 @@ c        endif
         PPD=100-94*EXP(-1.387+0.118*XX-0.0025*XX**2)
 
 C Local thermal discomfort due to radiant temperature asymmetry - warm ceiling.   
-C Input (XX): Radiant temperature assymetry in [K] or [C].
+C Input XX is radiant temperature assymetry.
       elseif(iflag.eq.3) then 
         XX=abs(XX)
 c        if (XX.gt.25.0) then
@@ -920,7 +885,7 @@ c        endif
         endif
 
 C Local thermal discomfort due to radiant temperature asymmetry - warm wall.   
-C Input (XX): Radiant temperature assymetry in [K] or [C].
+C Input XX is radiant temperature assymetry.
       elseif(iflag.eq.4) then 
         XX=abs(XX)
 c        if (XX.gt.30.0) then
@@ -937,7 +902,7 @@ c        endif
         endif
 
 C Local thermal discomfort due to radiant temperature asymmetry - cool ceiling.   
-C Input (XX): Radiant temperature assymetry in [K] or [C].
+C Input XX is radiant temperature assymetry.
       elseif(iflag.eq.5) then 
         XX=abs(XX)
 c        if (XX.gt.16.0) then
@@ -954,7 +919,7 @@ c        endif
         endif
 
 C Local thermal discomfort due to radiant temperature asymmetry - cool wall.   
-C Input (XX): Radiant temperature assymetry in [K] or [C].
+C Input XX is radiant temperature assymetry.
       elseif(iflag.eq.6) then 
         XX=abs(XX)
 c        if (XX.gt.16.0) then
@@ -971,34 +936,30 @@ c        endif
         endif
 
 C Dissatisfied due to ventilation rate. 
-C Input (XX): Ventilation rate given in [L/(s*standard person)] 
+C Input XX is ventilation rate given (l/s) 
       elseif(iflag.eq.7) then 
         if(XX.ge.0.32) then
-          PPD=395.0*exp(-1.83*XX**0.25) 
+          PPD=395.0*exp(-1.83*XX**0.25) ! No equivalent in BS EN ISO 7730:2005
         else
           PPD=100.0
         endif
 C No equivalent in BS EN ISO 7730:2005
 
 C Dissatisfied due to CO2 above outdoors. 
-C Input: CO2 concentration as calculated by conc.F in [kg/kg].
-C The CO2 value needed to interpolate the graph in the standard 
-C is in [ppm_volume]. 
-C The question: Actually why a thermal comfort standard should 
-C use standard SI units ? 
+C Input CO2 concentration as calculated by conc.F (kg/kg).
+C The CO2 value needed to interpolate the graph in the standard
+C is in ppmv
       elseif(iflag.eq.8) then 
 
-C First convert kg/kg to mg/m3 using density at 20 [C]: 
+C Convert kg/kg to mg/m^3 using density at 20C: 
         XX=XX*1.12*1000000.0 
 
-C Now convert mg/m3 to ppm_volume: 
+C Now convert mg/m^3 to ppmv. 
         XX=XX*24.45/44.0  
-        PPD=395.0*exp(-15.15*XX**(-0.25)) 
-C No equivalent in BS EN ISO 7730:2005
+        PPD=395.0*exp(-15.15*XX**(-0.25)) ! No equivalent in BS EN ISO 7730:2005
 
-C Dissatisfied calculated from PMV (Predicted Mean Vote). Needed for general 
-C Thermal comfort assessment. 
-C Input: The predicted mean vote ranging [-3 -- +3]. 
+C Dissatisfied calculated from PMV.
+C Input is the PMV range [-3 -- +3]. 
       elseif(iflag.eq.9) then 
         PPD=100.0-95.0*exp(XX*XX*((-0.03353*XX*XX)-0.2179)) 
       endif
@@ -1010,32 +971,30 @@ C Check for a reasonable result.
       return
       end 
 
-C ************************ DRAUGHT ************************
-C DRAUGHT: Local thermal discomfort due to draught from 
-C BS EN ISO 7730:2005
-C Useful only if k-epsilon turbulence model active from which 
-C the turbulence intensity is calculated.
-C Uses similar conventions to DISCOMF above.
-      SUBROUTINE DRAUGHT(IDAY,ITS,IZONE,IMRT,iflag,PPD,IER)
+C ********** DRAUGHT
+C Local thermal discomfort due to draught (from BS EN ISO 7730:2005).
+C Useful only if k-epsilon turbulence model is active from which 
+C the turbulence intensity is available.
 
+      SUBROUTINE DRAUGHT(IDAY,ITS,IZONE,IMRT,iflag,PPD,IER)
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "cfd.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      COMMON/FILEP/IFIL
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      common/FILEP/IFIL
       common/rpath/path
       character path*72,LCMDFL*144,ltmpc*144,LTMP*72,lpath*72,outs*128
 
-      COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
+      common/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
      1            Wf(ntcelx,ntcely,ntcelz),
      2            P(ntcelx,ntcely,ntcelz),PP(ntcelx,ntcely,ntcelz),
      3            TEf(ntcelx,ntcely,ntcelz),EDf(ntcelx,ntcely,ntcelz)
-      COMMON/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
+      common/TEMPf/Tf(ntcelx,ntcely,ntcelz),GAMH(ntcelx,ntcely,ntcelz),
      1             RESORT,NSWPT,URFT,FSDTT,PRANDL,PFUN
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
-      COMMON/cfddoms/NCDOM,ICFDZ(MNZ)
+      common/cfddoms/NCDOM,ICFDZ(MNZ)
 
       real PI,R,SA,CA,DX,DY,HI(3),XC,YC,ZC
       integer IHI(3)
@@ -1048,7 +1007,7 @@ C Read CFD header data and set common block data.
       path=lpath
 
 C If old CFD results version, read CFD file to get axis vertices to
-C initialise CFD - building domain transformation matrices.
+C initialise CFD to building domain transformation matrices.
       if (ICFDSV.eq.1.or.ICFDSV.eq.2) then
         CALL RCFDVRTS(IZONE,IER)
       endif
@@ -1105,10 +1064,10 @@ c      Tenergy=TEf(IHI(1),IHI(2),IHI(3))
       endif
 
 c      Tu=sqrt((2.0/3.0)*Tenergy)/(Cvel+1.0e-30)*100.0
-c What is this???                ^^^^^^^^^^^^^^^
+c                                  ^^^^^^^^^^^^
+c                                  What is this?
 c      Tu=sqrt((2.0/3.0)*Tenergy)*100.0
-C For the time being, use value of Tu specified in standard if Tenergy
-C is not available.
+C Use value of Tu specified in standard.
       Tu=40.0
       if (Tu.lt.10.0.or.Tu.gt.60.0) then
         iflag=-1
@@ -1128,15 +1087,14 @@ C Check for a reasonable result.
 
       end
 
-C ************************ OFFSETTEMP ************************
-C OFFSETTEMP: Calculates the air speed required to offset 
-C increased temperature according to Standard ANSI/ASHRAE 55-1992. 
-C Applied only for summer conditions only. Here Cadd is the output 
-C which is the additional air speed in [m/s] required to 
-C offset the increased temperature. Max allowed to be 0.8 [m/s]. 
-C Input: Temperature rise in [K] or [C]. This is the temperature 
-C rise, (max [3 K] allowed !) above the allowed effective 
-C temperature of 26 [C]. 
+C **********  OFFSETTEMP
+C Calculate the air speed required to offsetincreased temperature
+C according to ANSI/ASHRAE 55-1992. Applied only for summer conditions.
+C Here Cadd is the output, which is the additional air speed required to 
+C offset the increased temperature. Maximum allowed is 0.8 m/s. 
+C Input: Temperature rise (maximum 3C) above an allowed effective 
+C temperature of 26C.
+
       SUBROUTINE OFFSETTEMP(Trise,Cadd)
 
       Cadd=-0.3252+0.5337*exp(0.2006*Trise**1.4) 
@@ -1144,30 +1102,30 @@ C temperature of 26 [C].
       return
       end
 
-C ************************ ASHRAEZONE ************************
-C ASHRAEZONE: Comfort range checked by ET* index according to 
-C ANSI/ASHRAE 55-1992 Standard. Returns the effective 
-C temperature ET* (variable ETst) and a logical 'inside',
-C which governs whether we are or not in the comfort zone.  
-C Needs as input to specify wheter we are in summer or in 
-C winter regime (logical 'summer'), 
-C Tair and the relative humidity, RH in [%].  
+C ********** ASHRAEZONE
+C Comfort range checked by ET* index according to 
+C ANSI/ASHRAE 55-1992. Returns the effective temperature
+C ET* and a logical 'inside', which governs
+C whether we are or are not within the comfort zone.  
+C Needs input specifying wheter we are in summer or 
+C winter (logical 'summer'), Tair and relative humidity.  
+
       SUBROUTINE ASHRAEZONE(Tair,RH,summer,ETst,inside)
 
       LOGICAL summer,inside 
 
-C First define the saturation pressure Psat for the given temperature Tair. 
+C Define the saturation pressure, Psat, for the given temperature Tair. 
       TSAT=Tair 
       PSAT=611.0*exp(-1.91275E-04+7.258E-02*TSAT-2.939E-04 
      &       *TSAT**2+9.841E-07*TSAT**3-1.92E-09*TSAT**4) 
 
-C Calculate the ambient water vapour pressure pa in [Pa].
+C Calculate the ambient water vapour pressure pa (Pa).
       pa=PSAT*RH/100.0 
 
 C Calculate the ET* temperature.  
       ETst=0.492*Tair+0.0019*pa+6.47 
 
-C Check the comfort range for summer and winther.
+C Check the comfort range for summer and winter.
       inside=.false. 
       if(summer) then 
         if(ETst.gt.23.0.and.ETst.lt.26.0) inside=.true. 
@@ -1178,18 +1136,18 @@ C Check the comfort range for summer and winther.
       return
       end 
 
-C ****** RCFDVRTS
-C RCFDVRTS reads a dfd file and assigns common variables:
-C iorg - origin vertex
-C ixend - x axis end vertex
-C iyend - y axis end vertex
-C izend - z axis end vertex
-      SUBROUTINE RCFDVRTS(IZONE,IER)
+C ********** RCFDVRTS
+C Reads a dfd file and assigns common variables:
+C   iorg  - origin vertex
+C   ixend - x axis end vertex
+C   iyend - y axis end vertex
+C   izend - z axis end vertex
 
+      SUBROUTINE RCFDVRTS(IZONE,IER)
 #include "building.h"
 #include "cfd.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)      
       CHARACTER LCFD*72
@@ -1205,14 +1163,16 @@ C izend - z axis end vertex
       CALL ERPFREE(IUNIT,IER)
       CALL EFOPSEQ(IUNIT,LCFD(IZONE),0,IER)
       if (IER.ne.0) then
-        call edisp(iuout,' RCFDVRTS: cannot open file')
+        call edisp(iuout,' ')
+        call edisp(iuout,'RCFDVRTS: cannot open file!')
         return
       endif
       
       do while (.true.)
         CALL STRIPC(IUNIT,OUTSTR,0,ND,0,'DFD line',IER)
         if (IER.ne.0) then
-          call edisp(iuout,' RCFDVRTS: error reading line')
+          call edisp(iuout,' ')
+          call edisp(iuout,'RCFDVRTS: error reading line!')
           exit
         endif
         K=0
@@ -1220,16 +1180,12 @@ C izend - z axis end vertex
         if (WORD(1:5).eq.'*vrts') then
           CALL EGETWI(OUTSTR,K,itmp,0,0,'-','origin vert',IER)
           IORG(ICFD)=itmp
-c          write(6,*)'IORG(ICFD)',IORG(ICFD)
           CALL EGETWI(OUTSTR,K,itmp,0,0,'-','x end vert',IER)
           ixend(ICFD)=itmp
-c          write(6,*)'ixend(ICFD)',ixend(ICFD)
           CALL EGETWI(OUTSTR,K,itmp,0,0,'-','y end vert',IER)
           iyend(ICFD)=itmp
-c          write(6,*)'iyend(ICFD)',iyend(ICFD)
           CALL EGETWI(OUTSTR,K,itmp,0,0,'-','z end vert',IER)
           izend(ICFD)=itmp
-c          write(6,*)'izend(ICFD)',izend(ICFD)
           exit
         endif
       enddo
@@ -1237,20 +1193,18 @@ c          write(6,*)'izend(ICFD)',izend(ICFD)
       return
       end
 
-C ****** VERTdT
-C VERTdT finds the vertical air temperature difference between the top
-C and bottom of an MRT sensor. To do this it needs CFD results in the
-C same zone as the MRT sensor. Gets results for 1 day and puts them in
-C GVAL.
+C ********** VERTdT
+C Finds the vertical air temperature difference between the top
+C and bottom of an MRT sensor. Uses CFD results for the same zone
+C as the MRT sensor. Gets results for 1 day and puts these in GVAL.
 
       SUBROUTINE VERTdT(IDAY,IZONE,IMRT,IER)
-
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "cfd.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/rpath/path
       character path*72,LCMDFL*144,ltmpc*144,LTMP*72,lpath*72,outs*128
@@ -1269,14 +1223,14 @@ C Read CFD header data and set common block data.
       call RCFDLIBH(IZONE,IER)
 
 C If old CFD results version, read CFD file to get axis vertices to
-C initialise CFD - building domain transformation matrices.
+C initialise CFD to building domain transformation matrices.
       if (ICFDSV.eq.1.or.ICFDSV.eq.2) then
         CALL RCFDVRTS(IZONE,IER)
       endif
       CALL INIT_CFDTRANS(IER)
 
-C Get coordinates in the center of top face of MRT sensor.
-C dT between this point and floor level at this position.
+C Get coordinates in the center of top face of MRT sensor asnd determine
+C dT between this point and floor level.
       IUF=IFIL+1
       LMRT=LVIEW(IZONE)
       call ERMRT(0,IUOUT,IUF,LMRT,IZONE,IER)
@@ -1297,7 +1251,8 @@ C dT between this point and floor level at this position.
 
       if (IER.ne.0) then
         write(outs,'(a)')
-     &'VERTdT: Error finding head/foot vertical temperature difference.'
+     &'VERTdT: Error finding head/foot vertical temperature difference!'
+        call edisp(iuout,' ')
         call edisp(iuout,outs)
         goto 999
       endif
@@ -1307,7 +1262,8 @@ C dT between this point and floor level at this position.
         write(outs,'(2a,i2,a,i2,a)')'VERTdT: The same CFD grid point',
      &    ' is closest to the top and bottom surfaces of MRT sensor ',
      &    IMRT,' in zone ',IZONE,'.'
-        CALL edisp(iuout,outs)
+        call edisp(iuout,' ')
+        call edisp(iuout,outs)
         write(outs,'(2a)')          '        Either make the MRT',
      &    ' sensor bigger, or make the CFD grid finer.'
         CALL edisp(iuout,outs)
@@ -1327,16 +1283,13 @@ C Check if there are CFD results available for this time step.
   
         CALL RDCFDAT(IFRAME)
 
-C Get CFD air temperature at point closest to MRT sensor upper face
+C Get CFD air temperature at point closest to MRT sensor upper face.
         THI=Tf(IHI(1),IHI(2),IHI(3))
-C Get CFD air temperature at point closest to MRT sensor lower face
+
+C Get CFD air temperature at point closest to MRT sensor lower face.
         TLO=Tf(ILO(1),ILO(2),ILO(3))
         GVAL(JTS)=abs(THI-TLO)
-c        write(6,*)'THI,TLO,GVAL(JTS)',THI,TLO,GVAL(JTS)
-c        write(6,*)'HI(1),HI(2),HI(3)',HI(1),HI(2),HI(3)
-c        write(6,*)'IHI(1),IHI(2),IHI(3)',IHI(1),IHI(2),IHI(3)
-c        write(6,*)'LO(1),LO(2),LO(3)',LO(1),LO(2),LO(3)
-c        write(6,*)'ILO(1),ILO(2),ILO(3)',ILO(1),ILO(2),ILO(3)
+
         cycle      
  185    GVAL(JTS)=-1.
       enddo

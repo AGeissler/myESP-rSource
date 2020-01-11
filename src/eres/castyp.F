@@ -1,8 +1,4 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001-2013.
-
-C ESP-r is free software.  You can redistribute it and/or
+C ESP-r is free software. You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
 C (version 2 or later).
@@ -13,53 +9,43 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-C This file castype.f contains the following routines:
+C This file contains the following routines:
 
 C ZCASC:  returns one day's timestep values of all convective casual gains via VAL3.
 C ZCASR:  returns one day's timestep values of all (surface) rad casual gains via VAL3.
 C CASRT:  returns one day's timstep values of all zone rad casual gains 
 C ZCASCF: returns one day's unaveraged values of convective casual gains via VAL3. 
 
-C ******************** ZCASC ********************
-
-C ZCASC reconstructs one day's values of each of 
-C the uncontrolled and controlled convective casual gains for a zone.
-C To save space VAL3(15,I) to VAL3(22,I) are used for temporary storage.
-C Casual gain data is read directly from the data fields.
-C The parameter IDAY is 
-C VAL3(15,?) holds uncontrolled casual slot 1.
-C VAL3(16,?) holds uncontrolled casual slot 2.
-C VAL3(17,?) holds uncontrolled casual slot 3.
-C VAL3(18,?) holds controlled casual slot 4.
-C VAL3(19,?) holds controlled casual type 1.
-C VAL3(20,?) holds controlled casual type 2.
-C VAL3(21,?) holds controlled casual type 3.
-C VAL3(22,?) holds controlled casual type 4.
+C ************ ZCASC
+C Reconstructs one day's values of each of the uncontrolled and controlled
+C convective casual gains for a zone. To save space VAL3(15,I) to VAL3(22,I)
+C are used for temporary storage.
+C    VAL3(15,?) holds uncontrolled casual slot 1.
+C    VAL3(16,?) holds uncontrolled casual slot 2.
+C    VAL3(17,?) holds uncontrolled casual slot 3.
+C    VAL3(18,?) holds controlled casual slot 4.
+C    VAL3(19,?) holds controlled casual type 1.
+C    VAL3(20,?) holds controlled casual type 2.
+C    VAL3(21,?) holds controlled casual type 3.
+C    VAL3(22,?) holds controlled casual type 4.
 
       SUBROUTINE ZCASC(IZONE,IDAY)
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
 
-C      COMMON/OUTIN/IUOUT,IUIN
       common/recver/izver,ipver,iever
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
 
-C      character outs*124
       logical found
       real QCASR,QCASC,QCASL  ! total radiant/convective/latent
-      real FRAC ! controlled fraction.
-      real perocupc,perocupr,perocupl ! average occupant to write out
+      real FRAC               ! controlled fraction.
+      real perocupc,perocupr,perocupl    ! average occupant to write out
       real perlightc,perlightr,perlightl ! average lighting to write out
       real perequipc,perequipr,perequipl ! average equipment to write out
       real otherc,otherr,otherl ! average other (future expansion) to write out
-      integer theonectld  ! if non-zero the casual gain type that is controlled.
+      integer theonectld        ! if non-zero the casual gain type that is controlled.
 
 C Set chosen result set.
       ISET=ISIM
@@ -159,22 +145,18 @@ C been applied.
 
 C ******************** ZCASR ********************
 
-C ZCASR reconstructs one day's values of each of the 
-C uncontrolled and controlled radiant casual gains for a 
-C surface in a zone.
-C To save space VAL3(15,I) to VAL3(22,I) are used for 
-C temporary storage. 
-C To account for area and emissivity weighting compute `emarea`
-C based on data previously read in from the construction file.
-
-C VAL3(15,?) holds uncontrolled casual slot 1.
-C VAL3(16,?) holds uncontrolled casual slot 2.
-C VAL3(17,?) holds uncontrolled casual slot 3.
-C VAL3(18,?) holds uncontrolled casual slot 4.
-C VAL3(19,?) holds controlled casual type 1.
-C VAL3(20,?) holds controlled casual type 2.
-C VAL3(21,?) holds controlled casual type 3.
-C VAL3(22,?) holds controlled casual type 4.
+C Reconstructs one day's values of each of the uncontrolled and controlled
+C radiant casual gains for a surface in a zone. To save space VAL3(15,I) to VAL3(22,I)
+C are used for temporary storage. To account for area and emissivity weighting,
+C compute `emarea` based on data previously read from the zone construction file.
+C    VAL3(15,?) holds uncontrolled casual slot 1.
+C    VAL3(16,?) holds uncontrolled casual slot 2.
+C    VAL3(17,?) holds uncontrolled casual slot 3.
+C    VAL3(18,?) holds uncontrolled casual slot 4.
+C    VAL3(19,?) holds controlled casual type 1.
+C    VAL3(20,?) holds controlled casual type 2.
+C    VAL3(21,?) holds controlled casual type 3.
+C    VAL3(22,?) holds controlled casual type 4.
 
       SUBROUTINE ZCASR(IZONE,ISFN,IDAY)
 #include "building.h"
@@ -182,29 +164,26 @@ C VAL3(22,?) holds controlled casual type 4.
 #include "net_flow.h"
 #include "tdf2.h"
 
-C      COMMON/OUTIN/IUOUT,IUIN
       common/recver/izver,ipver,iever
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
-      COMMON/RECV5/sna(MCOM,MS)
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
       COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
 
-C      character outs*124
       logical found
-      real QCASR,QCASC,QCASL  ! total radiant/convective/latent
-      real FRAC ! controlled fraction.
-      real perocupc,perocupr,perocupl ! average occupant to write out
+      real QCASR,QCASC,QCASL     ! total radiant/convective/latent
+      real FRAC                  ! controlled fraction.
+      real perocupc,perocupr,perocupl    ! average occupant to write out
       real perlightc,perlightr,perlightl ! average lighting to write out
       real perequipc,perequipr,perequipl ! average equipment to write out
       real perotherc,perotherr,perotherl ! average other (future expansion) to write out
-      integer theonectld  ! if non-zero the casual gain type that is controlled.
+      integer theonectld         ! if non-zero the casual gain type that is controlled.
 
       IEND=24*NTS
 
 C Set chosen result set.
       ISET=ISIM
 
-C Radiant casual gains are area AND emissivity weighted.
+C Radiant casual gains are area and emissivity weighted.
       emarea=0.0
       do 80 kk=1,NZSUR(izone)
         emarea=emarea+sna(izone,kk)*EMISI(kk)
@@ -243,7 +222,7 @@ C Assume that the original description was from a zone operation file.
      &      perequipr,perotherr,perocupl,perlightl,perequipl,perotherl,
      &      theonectld)
 
-C Depending on whether there is a controlled casual gain fill the
+C Depending on whether there is a controlled casual gain, fill the
 C 15-19 slots with what was recovered from getallcas because
 C the explicit data already takes into account that control has
 C been applied.
@@ -303,19 +282,18 @@ C been applied.
 
 C ******************** CASRT ********************
 
-C CASRT reconstructs one day's values of each type of 
+C Reconstructs one day's values of each type of 
 C uncontrolled and controlled radiant casual gains for a zone.
 C To save space VAL3(15,I) to VAL3(22,I) are used for 
 C temporary storage.
-
-C VAL3(15,?) holds uncontrolled casual slot 1.
-C VAL3(16,?) holds uncontrolled casual slot 2.
-C VAL3(17,?) holds uncontrolled casual slot 3.
-C VAL3(18,?) holds controlled casual slot 4.
-C VAL3(19,?) holds controlled casual type 1.
-C VAL3(20,?) holds controlled casual type 2.
-C VAL3(21,?) holds controlled casual type 3.
-C VAL3(22,?) holds controlled casual type 4.
+C    VAL3(15,?) holds uncontrolled casual slot 1.
+C    VAL3(16,?) holds uncontrolled casual slot 2.
+C    VAL3(17,?) holds uncontrolled casual slot 3.
+C    VAL3(18,?) holds controlled casual slot 4.
+C    VAL3(19,?) holds controlled casual type 1.
+C    VAL3(20,?) holds controlled casual type 2.
+C    VAL3(21,?) holds controlled casual type 3.
+C    VAL3(22,?) holds controlled casual type 4.
 
       SUBROUTINE CASRT(IZONE,IDAY)
 #include "building.h"
@@ -326,15 +304,14 @@ C VAL3(22,?) holds controlled casual type 4.
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
 
-C      character outs*124
       logical found
-      real QCASR,QCASC,QCASL  ! total radiant/convective/latent
-      real FRAC ! controlled fraction.
+      real QCASR,QCASC,QCASL    ! total radiant/convective/latent
+      real FRAC                 ! controlled fraction.
       real perocupc,perocupr,perocupl ! average occupant to write out
       real perlightc,perlightr,perlightl ! average lighting to write out
       real perequipc,perequipr,perequipl ! average equipment to write out
       real perotherc,perotherr,perotherl ! average other (future expansion) to write out
-      integer theonectld  ! if non-zero the casual gain type that is controlled.
+      integer theonectld        ! if non-zero the casual gain type that is controlled.
 
       IEND=24*NTS
 
@@ -354,7 +331,7 @@ C If izver >= 4 the read the data directly.
      &       perequipr,perotherr,perocupl,perlightl,perequipl,perotherl,
      &       theonectld)
 
-C For gains from casual there is no option for control and theonectld
+C For gains from casual there is no option for control and the onectld
 C should be zero.
             VAL3(15,I)=perocupr
             VAL3(16,I)=perlightr
@@ -432,8 +409,8 @@ C been applied.
 
       END
 
-C ******************** ZCASCF ********************
-C ZCASCF reconstructs one day's unaveraged values of each of 
+C ************ ZCASCF
+C Reconstructs one day's unaveraged values of each of 
 C the uncontrolled and controlled convective casual gains for a zone.
 C To save space VAL3(15,I) to VAL3(22,I) are used for temporary storage.
 C The method does not shift/average data from the operations file.
@@ -441,27 +418,24 @@ C The parameter IDAY is the day of the week (1-7).
 C The parameter IJDAY is the julian day of the year (for the case
 C of checking occupancy on a specific day). If IJDAY is zero then
 C do not bother.
-
-C VAL3(15,?) holds uncontrolled casual slot 1.
-C VAL3(16,?) holds uncontrolled casual slot 2.
-C VAL3(17,?) holds uncontrolled casual slot 3.
-C VAL3(18,?) holds uncontrolled casual slot 4.
-C VAL3(19,?) holds controlled casual type 1.
-C VAL3(20,?) holds controlled casual type 2.
-C VAL3(21,?) holds controlled casual type 3.
-C VAL3(22,?) holds controlled casual type 4.
+C    VAL3(15,?) holds uncontrolled casual slot 1.
+C    VAL3(16,?) holds uncontrolled casual slot 2.
+C    VAL3(17,?) holds uncontrolled casual slot 3.
+C    VAL3(18,?) holds uncontrolled casual slot 4.
+C    VAL3(19,?) holds controlled casual type 1.
+C    VAL3(20,?) holds controlled casual type 2.
+C    VAL3(21,?) holds controlled casual type 3.
+C    VAL3(22,?) holds controlled casual type 4.
 
       SUBROUTINE ZCASCF(IZONE,IDAY,IJDAY)
 #include "building.h"
 #include "net_flow.h"
 #include "tdf2.h"
 
-C      COMMON/OUTIN/IUOUT,IUIN
       common/recver/izver,ipver,iever
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
 
-C      character outs*124
       logical found
       real QCASR,QCASC,QCASL  ! total radiant/convective/latent
       real FRAC ! controlled fraction.
@@ -479,9 +453,9 @@ C Set chosen result set.
 C If izver >= 4 the read the casual gain data directly.
       if(izver.ge.4)then
         found = .false.
-        if(ICASUAL(izone).ne.0)found = .true.  ! if single casual item
+        if(ICASUAL(izone).ne.0)found = .true.   ! if single casual item
         if(ICASUAL3(izone).ne.0.and.IJDAY.ne.0)found = .true.  ! if separate casual item
-        if(IACTIV(izone).ne.0.and.IJDAY.ne.0)found = .true.   ! if UK activity item
+        if(IACTIV(izone).ne.0.and.IJDAY.ne.0)found = .true.    ! if UK activity item
         if(IACTIV(izone).ne.0)found = .true.
         if(found)then
           DO 141, I=1,IEND

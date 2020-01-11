@@ -38,7 +38,7 @@ C icnpick is the icon to edit.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/pophelp/h(60)
       character h*72 
@@ -83,7 +83,7 @@ C associated with a flow node.
      &  inodetoicon(MNCNN),icomptoicon(MNCNN)
       logical icnisnode
 
-      LOGICAL close,isexavail,OK,dok
+      LOGICAL close,isexavail,OK
 
 C Logical flags set depending on the type of flow node.
       logical closect,closewt,closeft,closekt,CLOSEBT
@@ -332,9 +332,8 @@ C Check for duplicate names ....
 
 C Ask user if they want to replace the current icon with a
 C different one.
-        dok=.false.
-        CALL ASKOK('Select a different node or component',
-     &    'for the current one at this position?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Select a different node or component?',
+     &       OK,nbhelp)
         if(OK)then
           call ICONREPLACE(icn)
 
@@ -371,16 +370,10 @@ C Display text associated with this icon.
 C One of the list. Determine if it is a label (icatie is zero), data
 C that cannot be edited by the user (icatie is zero) or actual data.
 
-C Debug.
-C        write(6,*) 'icatie ',icatie(icout1)
-
         if(icatie(icout1).eq.0)then
           goto 705
         endif
         ifocus = icatie(icout1)
-
-C Debug.
-C        write(6,*) 'ifocus is ',ifocus,icout1
 
         ll=lnblnk(ATRMENU(ICN,ifocus))
         write(outs,'(4a)') 'The current value of ',
@@ -413,13 +406,6 @@ C returned as -1 then no selection made.
 C If flow network (INWKTYP = 2) and the component is internal unknown
 C pressure (ATRICN(icn,1,1) is zero) and the fluid type is air
 C (ATRICN(icn,2,1) = 1) then import summary atrributes.
-
-C Debug.
-                write(6,*) 'external data search for ',exttag,ifocus
-                write(6,*) 'data 1:',ATRICN(icn,1,1),ATRICN(icn,2,1),
-     &                ATRICN(icn,3,1),ATRICN(icn,4,1),ATRICN(icn,5,1)
-                write(6,*) 'aval:',AVAL
-                write(6,*) 'aval:',SVAL
 
 C << more code to go here.... >>
               endif
@@ -462,11 +448,6 @@ C If flow network (INWKTYP = 2) and the component is internal unknown
 C pressure (ATRICN(icn,1,1) is zero) and the fluid type is air
 C (ATRICN(icn,2,1) = 1) then import summary atrributes. Use read
 C to convert string array ATRICN to number for checking.
-
-C Debug.
-C                write(6,*) 'external data search for ',exttag,ifocus
-C                write(6,*) 'data 1:',ATRICN(icn,1,1),ATRICN(icn,2,1),
-C     &                ATRICN(icn,3,1),ATRICN(icn,4,1),ATRICN(icn,5,1)
 
                 read(ATRICN(icn,1,1),*,iostat=ios,ERR=99) VALCT  ! flow node or component type
                 read(ATRICN(icn,2,1),*,iostat=ios,ERR=99) VALFT  ! fluid type
@@ -604,11 +585,6 @@ C << consider adding logic similar to that ~440
 C Similar logic to treatment of real data from exernal sources. E.g.
 C if location implies a change in other dependencies.
 
-C Debug.
-                 write(6,*) 'text ext data search for ',exttag,ifocus
-                 write(6,*) 'data 1:',ATRICN(icn,1,1),ATRICN(icn,2,1),
-     &               ATRICN(icn,3,1),ATRICN(icn,4,1),ATRICN(icn,5,1)
-
                  read(ATRICN(icn,1,1),*,iostat=ios,ERR=99) VALCT  ! flow node or component type
                  read(ATRICN(icn,2,1),*,iostat=ios,ERR=99) VALFT  ! fluid type
                  read(ATRICN(icn,4,1),*,iostat=ios,ERR=99) VALV   ! typically its volume
@@ -689,13 +665,13 @@ C updintunknflow update attributes of internal unkn press flow node
       integer lnblnk  ! function definition
 
 C Icon commons from gnetwk.h     
-      common/outin/iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C User up to 6 real valus from external subroutine.
       dimension AVAL(6),SVAL(6)
       character outs*124,SVAL*12
       character VNPSTR*12,stra*12,strb*12
-      logical closev,closex,closey,closez,ok,dok
+      logical closev,closex,closey,closez,ok
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -730,10 +706,9 @@ C location,text,external,*Zones,manager,user,linked zone name
       if(.NOT.CLOSEV)then
         call relstr(AVAL(1),stra,ilena,iflag)
         call relstr(VALV,strb,ilenb,iflag)
-        write(outs,'(4a)') 'The zone volume ',stra(1:ilena),
-     &    ' does not match current ',strb(1:ilenb)
-        dok=.true.
-        CALL ASKOK(outs,'Update volume?',OK,dok,nbhelp)
+        write(outs,'(5a)') 'The zone volume ',stra(1:ilena),
+     &    ' does not match current ',strb(1:ilenb),'!'
+        CALL EASKOK(outs,'Update volume?',OK,nbhelp)
         if(OK)then
           call relstr(AVAL(1),vnpstr,ilena,iflag)
           WRITE(ATRICN(ICN,4,1),'(a)') vnpstr
@@ -742,10 +717,9 @@ C location,text,external,*Zones,manager,user,linked zone name
       if(.NOT.CLOSEZ)then
         call relstr(AVAL(4),stra,ilena,iflag)
         call relstr(XYZICON(ICN,3),strb,ilenb,iflag)
-        write(outs,'(4a)') 'The zone height ',stra(1:ilena),
-     &    ' does not match current ',strb(1:ilenb)
-        dok=.true.
-        CALL ASKOK(outs,'Update height?',OK,dok,nbhelp)
+        write(outs,'(5a)') 'The zone height ',stra(1:ilena),
+     &    ' does not match current ',strb(1:ilenb),'!'
+        CALL EASKOK(outs,'Update height?',OK,nbhelp)
         if(OK)then
 
 C For this icon the hieght is in the attribute category `location` which
@@ -760,18 +734,14 @@ C is the second attribute category.
       else
         call relstr(AVAL(2),stra,ilena,iflag)
         call relstr(AVAL(3),strb,ilenb,iflag)
-        write(outs,'(5a,2F8.2)')'The zone COG X Y ',stra(1:ilena),' & ',
+        write(outs,'(5a,2F8.2,a)')'The zone COG X Y ',
+     &    stra(1:ilena),' & ',
      &    strb(1:ilenb),' do not match current X Y ',
-     &    XYZICON(ICN,1),XYZICON(ICN,2)
-        dok=.true.
-        CALL ASKOK(outs,'Update position?',OK,dok,nbhelp)
+     &    XYZICON(ICN,1),XYZICON(ICN,2),'!'
+        CALL EASKOK(outs,'Update position?',OK,nbhelp)
         if(OK)then
 
 C Store old icon position, find DELTAs between positions.
-
-C Debug.
-C          write(6,*) 'for icon ',icn,'current xyz ',XYZICON(ICN,1),
-C     &      XYZICON(ICN,2),XYZICON(ICN,3)
 
           OLDPOSX=XYZICON(ICN,1)
           OLDPOSY=XYZICON(ICN,2)
@@ -786,25 +756,13 @@ C     &      XYZICON(ICN,2),XYZICON(ICN,3)
           DELTAY=XYZICON(ICN,2)-OLDPOSY
           DELTAZ=XYZICON(ICN,3)-OLDPOSZ
 
-C Debug.
-C          write(6,*) 'for icon ',icn,'new xyz ',XYZICON(ICN,1),
-C     &      XYZICON(ICN,2),XYZICON(ICN,3),DELTAX,DELTAY,DELTAZ
-
 C Update the icon vertices.
-
-C Debug.
-C          write(6,*) 'for icon ',icn,'old vert 1 ',VCICON(ICN,1,1),
-C     &      VCICON(ICN,1,2),VCICON(ICN,1,3)
 
           DO 10 I=1,NIVC(ICN) 
             VCICON(ICN,I,1)=VCICON(ICN,I,1)+DELTAX
             VCICON(ICN,I,2)=VCICON(ICN,I,2)+DELTAY
             VCICON(ICN,I,3)=VCICON(ICN,I,3)+DELTAZ
   10      CONTINUE
-
-C Debug.
-C          write(6,*) 'for icon ',icn,'new vert 1 ',VCICON(ICN,1,1),
-C     &      VCICON(ICN,1,2),VCICON(ICN,1,3)
 
           DO 11 I=1,NCONP(ICN)
             CONCP(ICN,I,1)=CONCP(ICN,I,1)+DELTAX
@@ -834,13 +792,13 @@ C coordinates updating icon data.
       integer lnblnk  ! function definition
 
 C Icon commons from gnetwk.h     
-      common/outin/iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C User up to 6 real valus from external subroutine.
       dimension AVAL(6),SVAL(6)
       character outs*124,SVAL*12
       character VNPSTR*12,stra*12,strb*12
-      logical closev,closep,closez,ok,dok
+      logical closev,closep,closez,ok
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -875,10 +833,9 @@ C location,text,external,*Zones,manager,user,linked zone name
       if(.NOT.CLOSEV)then
         call relstr(AVAL(1),stra,ilena,iflag)
         call relstr(VALV,strb,ilenb,iflag)
-        write(outs,'(4a)') 'The volume ',stra(1:ilena),
-     &    ' does not match current ',strb(1:ilenb)
-        dok=.true.
-        CALL ASKOK(outs,'Update volume?',OK,dok,nbhelp)
+        write(outs,'(5a)') 'The volume ',stra(1:ilena),
+     &    ' does not match current ',strb(1:ilenb),'!'
+        CALL EASKOK(outs,'Update volume?',OK,nbhelp)
         if(OK)then
           call relstr(AVAL(1),vnpstr,ilena,iflag)
           WRITE(ATRICN(ICN,5,1),'(a)') vnpstr
@@ -887,10 +844,9 @@ C location,text,external,*Zones,manager,user,linked zone name
       if(.NOT.CLOSEZ)then
         call relstr(AVAL(4),stra,ilena,iflag)
         call relstr(XYZICON(ICN,3),strb,ilenb,iflag)
-        write(outs,'(4a)') 'The height ',stra(1:ilena),
-     &    ' does not match current ',strb(1:ilenb)
-        dok=.true.
-        CALL ASKOK(outs,'Update height?',OK,dok,nbhelp)
+        write(outs,'(5a)') 'The height ',stra(1:ilena),
+     &    ' does not match current ',strb(1:ilenb),'!'
+        CALL EASKOK(outs,'Update height?',OK,nbhelp)
         if(OK)then
 
 C For this icon the height is in the attribute category `location` which
@@ -921,7 +877,7 @@ C from the arrays of reals and strings passed in.
       integer lnblnk  ! function definition
 
 C Icon commons from gnetwk.h     
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/NWKFLW/icontoflow(MNCNN),icnisnode(MNCNN),
      &  inodetoicon(MNCNN),icomptoicon(MNCNN)
@@ -931,7 +887,7 @@ C User up to 6 real valus from external subroutine.
       dimension AVAL(6),SVAL(6)
       character outs*124,outsd*124,SVAL*12
       character VNPSTR*12,exttag*12
-      logical ok,dok,close
+      logical ok,close
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -959,9 +915,6 @@ C  location,text,external,*Surfaces,glazing,user,linked surface name
 
 C AVAL(1) is pressure coef seta.
 
-C Debug.
-C        write(6,*) 'Wind pressure component PC.'
-
         call relstr(AVAL(1),vnpstr,ilena,iflag)
         WRITE(ATRICN(ICN,3,1),'(a)') vnpstr
         return
@@ -970,9 +923,6 @@ C        write(6,*) 'Wind pressure component PC.'
 C Map the returned data as follows:
 C AVAL(1) is area, AVAL(2) is azi, AVAL(3) is elev, AVAL(4) is Z(m).
 C SVAL(1) is zone name SVAL(2) is surface name.
-
-C Debug.
-C        write(6,*) 'Wind pressure component AZ.'
 
 C Inform user about azimuth.
         write(outs,'(3a,f7.2)') 'Azimuth (was) ',ATRICN(ICN,4,1),
@@ -1046,11 +996,6 @@ C Check if the location zone name is the same as the zone name.
           WRITE(ATRICN(ICN,7,1),'(a)')SVAL(2)
         endif
 
-C Debug.
-C        write(6,*) 'data 1:',ATRICN(icn,1,1),
-C     &    ATRICN(icn,2,1),ATRICN(icn,3,1),
-C     &    ATRICN(icn,4,1),ATRICN(icn,5,1),ATRICN(icn,6,1)
-
       endif
       return
       end
@@ -1065,7 +1010,7 @@ C from the arrays of reals and strings passed in.
       integer lnblnk  ! function definition
 
 C Icon commons from gnetwk.h     
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/NWKFLW/icontoflow(MNCNN),icnisnode(MNCNN),
      &  inodetoicon(MNCNN),icomptoicon(MNCNN)
@@ -1075,7 +1020,7 @@ C User up to 6 real valus from external subroutine.
       dimension AVAL(6),SVAL(6)
       character outs*124,outsd*124,SVAL*12
       character VNPSTR*12,exttag*12
-      logical ok,dok,close
+      logical ok,close
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1104,9 +1049,6 @@ C  location,text,external,*Surfaces,glazing,user,linked surface name
 C Map the returned data as follows:
 C AVAL(1) is area, AVAL(2) is azi, AVAL(3) is elev, AVAL(4) is Z(m).
 C SVAL(1) is zone name SVAL(2) is surface name.
-
-C Debug.
-C        write(6,*) 'Bounday fixed pressure component.'
 
 C Inform user about height.
         write(outs,'(3a,f7.3)') 'Height (was) ',ATRICN(ICN,5,1),
@@ -1164,21 +1106,15 @@ C Check if the location zone name is the same as the zone name.
         helptopic='network_mismatch_detect'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(SVAL(1)(1:12).ne.ATRICN(ICN,6,1)(1:12))then
-          write(outs,'(4a)')'Associated zone name ',
+          write(outs,'(5a)')'Associated zone name ',
      &      SVAL(1)(1:lnblnk(SVAL(1))),
-     &      ' does not match current atrribute ',ATRICN(ICN,6,1)
-          dok=.true.
-          CALL ASKOK(outs,'Update zone & surface names?',OK,dok,nbhelp)
+     &      ' does not match current atrribute ',ATRICN(ICN,6,1),'!'
+          CALL EASKOK(outs,'Update zone & surface names?',OK,nbhelp)
           if(OK)then
             WRITE(ATRICN(ICN,6,1),'(a)')SVAL(1)
             WRITE(ATRICN(ICN,7,1),'(a)')SVAL(2)
           endif
         endif
-
-C Debug.
-C        write(6,*) 'data 3:',ATRICN(icn,1,1),
-C     &    ATRICN(icn,2,1),ATRICN(icn,3,1),
-C     &    ATRICN(icn,4,1),ATRICN(icn,5,1),ATRICN(icn,6,1)
 
       endif
       return
@@ -1197,7 +1133,7 @@ C      SUBROUTINE NETCNNDATR(IER,IX,IY)
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Icon commons from gnetwk.h
 C Selected entity (component and connection) common
@@ -1344,9 +1280,6 @@ C for each iecdate, but do not include the key in lines which
 C act as labels.
       latrindex=0
 
-C Debug.
-C      write(6,*) 'ilen ',ilen
-
       DO 707 L=1,ILEN
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
           M=M+1
@@ -1363,8 +1296,8 @@ C menu entry M to 0 to signal to ignore.
             latrindex=1
           else
 
-C Subsetuent attribute, if atrtag matches lasttag then we have an
-C attribute to include in the menu otherwise beging a new category
+C If atrtag matches lasttag then we have an
+C attribute to include in the menu otherwise begin a new category
 C count.
             if(lasttag.eq.ddtagatr(J,latrindex,1))then
 
@@ -1550,7 +1483,7 @@ C presented by category). This is not yet called from network.F.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY 
       common/pophelp/h(60)
       character h*72 
@@ -1608,7 +1541,7 @@ C WORDSS array of string tokens from each NWICHNIS.
       CHARACTER*32 WORDSS(12)
       character ICDNAM*12,category*12,icmenu*36
 
-      LOGICAL MATCH,close,isexavail,ok,dok
+      LOGICAL MATCH,close,isexavail,ok
       logical closect,closewt,closeft,closev,closex,closey,closez
       integer NECDATA,ICOUT1,NECDATAs,ICOUT2 ! max items and current menu item
 
@@ -1979,12 +1912,11 @@ C                        write(6,*) 'Internal unknown pressure comp.'
                           call gethelptext(helpinsub,helptopic,nbhelp)
                           call relstr(AVAL(1),stra,ilena,iflag)
                           call relstr(VALV,strb,ilenb,iflag)
-                          write(outs,'(4a)') 'The zone volume ',
+                          write(outs,'(5a)') 'The zone volume ',
      &                      stra(1:ilena),' does not match current ',
-     &                      strb(1:ilenb)
-                          dok=.true.
-                          CALL ASKOK(outs,'Update volume?',
-     &                      OK,dok,nbhelp)
+     &                      strb(1:ilenb),'!'
+                          CALL EASKOK(outs,'Update volume?',
+     &                      OK,nbhelp)
                           if(OK)then
                             call relstr(AVAL(1),vnpstr,ilena,iflag)
                             WRITE(DATCATIE(1,4,1),'(a)') vnpstr
@@ -1997,11 +1929,10 @@ C                        write(6,*) 'Internal unknown pressure comp.'
                           call gethelptext(helpinsub,helptopic,nbhelp)
                           call relstr(AVAL(4),stra,ilena,iflag)
                           call relstr(XYZICON(ICN,3),strb,ilenb,iflag)
-                          write(outs,'(4a)') 'The zone height ',
+                          write(outs,'(5a)') 'The zone height ',
      &                      stra(1:ilena),' does not match current ',
-     &                      strb(1:ilenb)
-                          dok=.true.
-                          CALL ASKOK(outs,'Update it?',OK,dok,nbhelp)
+     &                      strb(1:ilenb),'!'
+                          CALL EASKOK(outs,'Update it?',OK,nbhelp)
                           if(OK)then
 
 C For this icon the hieght is in the attribute category `location` which
@@ -2020,19 +1951,16 @@ C is the second attribute category.
                           call gethelptext(helpinsub,helptopic,nbhelp)
                           call relstr(AVAL(2),stra,ilena,iflag)
                           call relstr(AVAL(3),strb,ilenb,iflag)
-                          write(outs,'(5a,2F8.2)') 'The zone COG X Y ',
+                          write(outs,'(5a,2F8.2,a)')
+     &                      'The zone COG X Y ',
      &                      stra(1:ilena),' & ',strb(1:ilenb),
      &                      ' do not match current X Y ',
-     &                      XYZICON(ICN,1),XYZICON(ICN,2)
-                          dok=.true.
-                          CALL ASKOK(outs,'Update them?',OK,dok,nbhelp)
+     &                      XYZICON(ICN,1),XYZICON(ICN,2),'!'
+                          CALL EASKOK(outs,'Update them?',OK,nbhelp)
                           if(OK)then
 
 C Store old icon position, find DELTAs between positions.
 
-C Debug.
-C       write(6,*) 'for icon ',icn,'current xyz ',XYZICON(ICN,1),
-C     &   XYZICON(ICN,2),XYZICON(ICN,3)
 
                             OLDPOSX=XYZICON(ICN,1)
                             OLDPOSY=XYZICON(ICN,2)
@@ -2047,23 +1975,12 @@ C     &   XYZICON(ICN,2),XYZICON(ICN,3)
                             DELTAY=XYZICON(ICN,2)-OLDPOSY
                             DELTAZ=XYZICON(ICN,3)-OLDPOSZ
 
-C Debug.
-C       write(6,*) 'for icon ',icn,'new xyz ',XYZICON(ICN,1),
-C     &   XYZICON(ICN,2),XYZICON(ICN,3),DELTAX,DELTAY,DELTAZ
-
 C Update the icon vertices.
-C       write(6,*) 'for icon ',icn,'old vert 1 ',VCICON(ICN,1,1),
-C     &   VCICON(ICN,1,2),VCICON(ICN,1,3)
-
                             DO 10 I=1,NIVC(ICN) 
                               VCICON(ICN,I,1)=VCICON(ICN,I,1)+DELTAX
                               VCICON(ICN,I,2)=VCICON(ICN,I,2)+DELTAY
                               VCICON(ICN,I,3)=VCICON(ICN,I,3)+DELTAZ
   10                        CONTINUE
-
-C Debug.
-C       write(6,*) 'for icon ',icn,'new vert 1 ',VCICON(ICN,1,1),
-C     &   VCICON(ICN,1,2),VCICON(ICN,1,3)
 
                             DO 11 I=1,NCONP(ICN)
                               CONCP(ICN,I,1)=CONCP(ICN,I,1)+DELTAX
@@ -2099,9 +2016,6 @@ C  location,text,external,*Surfaces,glazing,user,linked surface name
                         if(exttag(1:10).eq.'*Pressures')then
 C AVAL(1) is pressure coef seta.
 
-C Debug.
-C                          write(6,*) 'Wind pressure component PC.'
-
                           call relstr(AVAL(1),vnpstr,ilena,iflag)
                           WRITE(DATCATIE(1,3,1),'(a)') vnpstr
                           WRITE(ATRICN(ICN,ICATIE(1,3),1),'(a)') vnpstr
@@ -2110,9 +2024,6 @@ C                          write(6,*) 'Wind pressure component PC.'
 
 C AVAL(1) is area, AVAL(2) is azi, AVAL(3) is elev, AVAL(4) is Z(m).
 C SVAL(1) is zone name SVAL(2) is surface name.
-
-C Debug.
-C                          write(6,*) 'Wind pressure component AZ.'
 
                           call relstr(AVAL(2),vnpstr,ilena,iflag)
                           WRITE(DATCATIE(1,4,1),'(a)') vnpstr
@@ -2250,7 +2161,7 @@ C spearates the editing of each category of atrribute.
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Icon commons via gnetwk.h
 C Selected entity (component and connection) common
@@ -2740,7 +2651,7 @@ C Parameter
       integer icurrent  ! index of current icon
 
 C Icon commons are in gnetwk.h       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/NWKTYP/INWKTYP,vergnf
       integer INWKTYP

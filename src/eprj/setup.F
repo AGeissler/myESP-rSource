@@ -1,7 +1,3 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
-
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
@@ -13,11 +9,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C file setup.F includes facilities for display of dates, time
 C and viewpoints. MODSIT is set to true if default wireframe
 C viewpoint is changed.
@@ -25,15 +16,13 @@ C viewpoint is changed.
       SUBROUTINE SETUP(MODSIT,ITRC,IER)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0 and G2.
 #include "geometry.h"
 #include "prj3dv.h"
 #include "espriou.h"
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       common/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       common/texted/tedlbl,teditor
@@ -47,15 +36,15 @@ C Radiance processor cores.
       common/radcor/radcores
 
 C Tollerance for surface matching.
-      real ANGCC  ! angle between surfaces tolerance
-      real CACC   ! tolerance between vertices
-      real DACC   ! angle tolerance along line
-      real COGCC  ! tolerance between surface COG
-      real SNACC  ! tolerance between surface areas
+      real ANGCC   ! angle between surfaces tolerance
+      real CACC    ! tolerance between vertices
+      real DACC    ! angle tolerance along line
+      real COGCC   ! tolerance between surface COG
+      real SNACC   ! tolerance between surface areas
       integer IACC ! number of matching corners outside dist tolerance
       common/matching/ANGCC,CACC,DACC,COGCC,SNACC,IACC
 
-      logical OK,DOK,MODSIT,browse,defview,unixok
+      logical OK,MODSIT,browse,defview,unixok
       logical closea,closeb,closec,closed,concat
       dimension ITEMS1(16)
       character LFIL*96,longtfile*144,llitem*144,longtfiledos*144
@@ -68,9 +57,9 @@ C Tollerance for surface matching.
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp         ! number of help lines found
 
-      helpinsub='SETUP'  ! set for subroutine
+      helpinsub='SETUP'      ! set for subroutine
       
 C Set initial states to false and clear text buffers.
       MODSIT=.false.
@@ -94,63 +83,61 @@ C Check default view point.
 
       INO1=-4
       if(defview)then
-        ITEMS1(1)='a wireframe view: default                     '
+        ITEMS1(1)='a view parameters: default'
       else
-        ITEMS1(1)='a wireframe view: user defined                '
+        ITEMS1(1)='a view paramters: user defined'
       endif
       IF(IFDAY.EQ.0)THEN
-        ITEMS1(2)='b display format for date: DOY 10            '
+        ITEMS1(2)='b date format: DOY 10'
       ELSEIF(IFDAY.EQ.1)THEN
-        ITEMS1(2)='b display format for date: 10 Jan            '
+        ITEMS1(2)='b date format: 10 Jan'
       ELSEIF(IFDAY.EQ.2)THEN
-        ITEMS1(2)='b display format for date: Fri 10 Jan        '
+        ITEMS1(2)='b date format: Fri 10 Jan'
       ENDIF
 
 C Display of time of day.
       IF(IFTIME.EQ.0)THEN
-        ITEMS1(3)='c display format for time: 10h30             '
+        ITEMS1(3)='c time format: 10h30'
       ELSEIF(IFTIME.EQ.1)THEN
-        ITEMS1(3)='c display format for time: 10.50             '
+        ITEMS1(3)='c time format: 10.50'
       ELSEIF(IFTIME.EQ.2)THEN
-        ITEMS1(3)='c display format for time: 0.416 (day frac.)'
+        ITEMS1(3)='c time format: 0.416 (day frac.)'
       ENDIF
 
-      ITEMS1(4)  ='e list an ASCII file                          '
-      ITEMS1(5)  ='f edit an ASCII file                          '
-      ITEMS1(6)  ='g edit ESP-r defaults for files               '
-      ITEMS1(7)  ='h edit ESP-r 3rd party applications           '
-      ITEMS1(8)  ='i edit ESP-r climatelist entries              '
-      ITEMS1(9)  ='j edit ESP-r exemplars entries                '
+      ITEMS1(4)  ='e list file'
+      ITEMS1(5)  ='f edit file'
+      ITEMS1(6)  ='g edit ESP-r defaults files'
+      ITEMS1(7)  ='h edit ESP-r 3rd party applications'
+      ITEMS1(8)  ='i edit ESP-r climatelist entries'
+      ITEMS1(9)  ='j edit ESP-r exemplars entries'
       IF(ITRC.EQ.0)THEN
-        ITEMS1(10)='k feedback: silent                           '
+        ITEMS1(10)='k feedback: silent'
       ELSEIF(ITRC.EQ.1)THEN
-        ITEMS1(10)='k feedback: summary                          '
+        ITEMS1(10)='k feedback: summary'
       ELSEIF(ITRC.EQ.2)THEN
-        ITEMS1(10)='k feedback: detailed                         '
+        ITEMS1(10)='k feedback: detailed'
       ENDIF
       if(igupgrade.eq.0)then
-        ITEMS1(11)='l upgrade files: no change                   '
+        ITEMS1(11)='l update file format: no'
       elseif(igupgrade.eq.1)then
-        ITEMS1(11)='l upgrade files: save current format         '
+        ITEMS1(11)='l upgrade file format: to latest'
       endif
-      ITEMS1(12)  ='r cores available to Radiance                '
-      ITEMS1(13)  ='s surface match tolerance                    '
-      ITEMS1(14)  ='* test button                                '
-      ITEMS1(15)  ='? help                                       '
-      ITEMS1(16)  ='- exit this menu                             '
+      ITEMS1(12)  ='r cores available to Radiance'
+      ITEMS1(13)  ='s surface match tolerance'
+      ITEMS1(14)  ='? help                                       '
+      ITEMS1(15)  ='- exit this menu                             '
 
-C Help text for menu.
-      helptopic='setup_date_format'
-      call gethelptext(helpinsub,helptopic,nbhelp)
-      NITMS=16
+      NITMS=15
       CALL EMENU('Tool preferences',ITEMS1,NITMS,INO1)
 
       IF(INO1.EQ.1)THEN
 
 C Wire frame view point.
         if(browse)goto 33
-        CALL EASKABCD('Initial view position.','options:',
-     &      'default','current','edit','continue',IW,nbhelp)
+        helptopic='view_point'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKABCD(' ','View parameters:',
+     &      'default','current','edit','cancel',IW,nbhelp)
         if(IW.EQ.1)then
 
 C Set eye point at standard place and viewed point at cog.
@@ -173,7 +160,7 @@ C Set initial view to match current viewing positions.
         
 C Edit initial view (and set initvt = 1).
  143      WRITE(HOLD32,'(1x,3f8.2)')EYEM(1),EYEM(2),EYEM(3)
-          CALL EASKS(HOLD32,' ','Eye point X, Y & Z (m)?',
+          CALL EASKS(HOLD32,' ','Eye point X, Y, Z (m)?',
      &     32,' -100.0 -100.0 100.0 ','eye point coord',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD32,K,EYEMI(1),-999.,999.,'W','Xcord',IER)
@@ -181,7 +168,7 @@ C Edit initial view (and set initvt = 1).
           CALL EGETWR(HOLD32,K,EYEMI(3),0.,999.,'W','eye Zcord',IER)
           if(ier.ne.0)goto 143
  141      WRITE(HOLD32,'(1x,3f8.2)')VIEWM(1),VIEWM(2),VIEWM(3)
-          CALL EASKS(HOLD32,' ','Viewpoint X, Y & Z (m)?',
+          CALL EASKS(HOLD32,' ','Viewpoint X, Y, Z (m)?',
      &     32,' 2.0 2.0 1.0 ','viewpoint coord',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD32,K,VIEWMI(1),-999.,999.,'W','Xcord',IER)
@@ -189,29 +176,28 @@ C Edit initial view (and set initvt = 1).
           CALL EGETWR(HOLD32,K,VIEWMI(3),0.,999.,'W','v Zcord',IER)
           if(ier.ne.0)goto 141
           ANGI=ANG
-          CALL EASKR(ANGI,' ',' Angle of view?',
+          CALL EASKR(ANGI,' ','Angle of view (1-120)?',
      &             1.0,'W',120.0,'W',40.,'angle ofview',IER,2)
           initvt=1
           MODSIT=.true.
         endif
 
-      ELSEIF(INO1.EQ.2)THEN
-
 C Allow user to toggle between 'Fri 10 Jan'/'10 Jan'/'DOY 124' format.
+      ELSEIF(INO1.EQ.2)THEN
         IFDAY=IFDAY+1
         IF(IFDAY.GT.2)IFDAY=0
 
-      ELSEIF(INO1.EQ.3)THEN
-
 C Allow user to toggle between '10h00'/'10.00'/'0.41666' format. Only
 C allow decimal day representation if day format is DOY.
+      ELSEIF(INO1.EQ.3)THEN
         IFTIME=IFTIME+1
         IF(IFDAY.EQ.0.AND.IFTIME.GT.2)IFTIME=0
         IF(IFDAY.GE.1.AND.IFTIME.GT.1)IFTIME=0
 
-      ELSEIF(INO1.EQ.4)THEN
-
 C List ASCII file. Use file browser if in GTK mode.
+      ELSEIF(INO1.EQ.4)THEN
+        helptopic='list_file'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         longtfile=' '    ! reset return string
   6     CALL EASKXORGTKF(LFIL,' ','ASCII file name?',
      &    'xxx.rep',longtfile,'ASCII file',IER,nbhelp)
@@ -221,19 +207,17 @@ C List ASCII file. Use file browser if in GTK mode.
         IUNIT=IFIL+1
         CALL LISTAS(IUNIT,longtfile,IER)
         IF(IER.LT.0)THEN
-          dok=.false.
-          helptopic='setup_list_ascii_error'
+          helptopic='list_ascii_error'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK('Problem opening file.',
-     &               'Try again?',OK,dok,nbhelp)
+          CALL EASKOK('Problem opening file!',
+     &               'Retry?',OK,nbhelp)
           IF(OK)GOTO 6
         ENDIF
 
+C Edit an ASCII file. Use file browser if in GTK mode.
+C If vi used then spawn a new window.
       ELSEIF(INO1.EQ.5)THEN
-
-C Allow user to edit a file. Use file browser if in GTK mode.
-C If vi being used then spawn a new window.
-        helptopic='setup_edit_ascii'
+        helptopic='edit_ascii'
         call gethelptext(helpinsub,helptopic,nbhelp)
         llitem=' '    ! reset return string
         CALL EASKXORGTKF(LFIL,' ','ASCII file name?',
@@ -259,11 +243,10 @@ C then check for spaces in name and change / to \.
      &    longtfile(1:lnblnk(longtfile)),' &'
         call runit(doit,tmode)
         
+C Edit the `defaults` file.
       ELSEIF(INO1.EQ.6)THEN
-
-C Edit the `defaults' file.
         call isunix(unixok)
-        helptopic='setup_edit_defaults'
+        helptopic='edit_default'
         call gethelptext(helpinsub,helptopic,nbhelp)
         llitem=' '    ! reset return string
         CALL EASKXORGTKF(defdbfl,' ','ESP-r defaults file?',
@@ -288,11 +271,10 @@ C then check for spaces in name and change / to \.
      &    longtfile(1:lnblnk(longtfile)),' &'
         call runit(doit,tmode)
 
+C Edit `.esprc`.
       ELSEIF(INO1.EQ.7)THEN
-
-C Edit the file `.esprc'.
         call isunix(unixok)
-        helptopic='setup_edit_esprc'
+        helptopic='edit_esprc'
         call gethelptext(helpinsub,helptopic,nbhelp)
         llitem=' '    ! reset return string
         CALL EASKXORGTKF(esprc,' ','ESP-r .esprc file?',
@@ -317,14 +299,13 @@ C then check for spaces in name and change / to \.
      &    longtfile(1:lnblnk(longtfile)),' &'
         call runit(doit,tmode)
 
+C Edit the `climatelist` file.
       ELSEIF(INO1.EQ.8)THEN
-
-C Edit the  file `climatelist'.
         call isunix(unixok)
-        helptopic='setup_edit_climatelist'
+        helptopic='edit_climatelist'
         call gethelptext(helpinsub,helptopic,nbhelp)
         llitem=' '    ! reset return string
-        CALL EASKXORGTKF(cdblfil,' ','ESP-r climatelist file?',
+        CALL EASKXORGTKF(cdblfil,' ','Climatelist file?',
      &    'climatelist',llitem,'climatelist file',IER,
      &    nbhelp)
         if(ier.eq.-3)then
@@ -347,11 +328,10 @@ C then check for spaces in name and change / to \.
      &    longtfile(1:lnblnk(longtfile)),' &'
         call runit(doit,tmode)
         
-      ELSEIF(INO1.EQ.9)THEN
-
 C Edit the installed file `exemplars'.
+      ELSEIF(INO1.EQ.9)THEN
         call isunix(unixok)
-        helptopic='setup_edit_exemplars'
+        helptopic='edit_exemplars'
         call gethelptext(helpinsub,helptopic,nbhelp)
         llitem=' '    ! reset return string
         CALL EASKXORGTKF(exemfl,' ','ESP-r exemplars file?',
@@ -376,44 +356,38 @@ C then check for spaces in name and change / to \.
      &    longtfile(1:lnblnk(longtfile)),' &'
         call runit(doit,tmode)
 
-      ELSEIF(INO1.EQ.10)THEN
-
 C Toggle trace/feedback level.
+      ELSEIF(INO1.EQ.10)THEN
         ITRC=ITRC+1
         IF(ITRC.GT.2)ITRC=0
 
+C Toggle file format upgrade options.
       ELSEIF(INO1.EQ.11)THEN
-
-C Toggle file format upgrade opinion.
         igupgrade=igupgrade+1
         IF(igupgrade.GT.1)ITRC=0
         if(igupgrade.eq.1)then
-          helptopic='setup_date_format'
-          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKAB(' ','Upgrade options:',
-     &      'scan/update all zones','cancel',IUW,nbhelp)
+     &      'scan/update all zones','cancel',IUW,0)
           if(iuw.eq.1)then
             call mupdate(ier)
             igupgrade=0
           endif
         endif
 
-      ELSEIF(INO1.EQ.12)THEN
-
 C Set number of processor cores available to Radiance.
+      ELSEIF(INO1.EQ.12)THEN
         iradcores=radcores
         CALL EASKI(iradcores,' ',
-     &    'Processor cores available for Radiance?',
-     &       1,'F',4,'W',ITCNST,'rad cores',IERI,nbhelp)
+     &    'Processor cores available to Radiance?',
+     &       1,'F',4,'W',ITCNST,'rad cores',IERI,0)
         if(ieri.eq.-3)then
           continue
         else
           radcores=iradcores
         endif 
         
-      ELSEIF(INO1.EQ.13)THEN
-
 C Set tolerances for surface matching.
+      ELSEIF(INO1.EQ.13)THEN
         helptopic='surface_corner_detect'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKR(CACC,' ','Tolerance (m) between vertices?',
@@ -435,49 +409,12 @@ C Set tolerances for surface matching.
 
       ELSEIF(INO1.EQ.14)THEN
 
-C Test button for ESP-r meta file read testing.
-
-C Add a choice point here - one to carry on with the current model,
-C one to start a fresh model, one to just list the details of the
-C silent file.
-C        helptopic='setup_date_format'
-C        call gethelptext(helpinsub,helptopic,nbhelp)
-C        CALL EASKABCD(' ','META file options:',
-C     &    'retrieve description','process META data','XX','continue',
-C     &    IW,nbhelp)
-
-C Allow user to edit a file. Use file browser if in GTK mode.
-C If vi then spawn a new window.
-C        LFIL=' '
-C        longtfile=' '    ! reset return string
-C        CALL EASKXORGTKF(LFIL,' ','ESP-r meta file name?',
-C     &    'xxx.txt',longtfile,'esp-r meta file',IER,nbhelp)
-C        IUNIT=IFIL+1
-C        if(IW.EQ.1)then
-C          call silentread(iunit,longtfile,'?',ureturn,ier)
-C          call edisp(iuout,ureturn)
-C          call edisp(iuout,modeltitle)
-C          call edisp248(iuout,modeldocblock,80)
-C        elseif(IW.eq.2)then
-C          call silentread(iunit,longtfile,'-',ureturn,ier)
-C          call edisp(iuout,ureturn)
-C          call edisp(iuout,modeltitle)
-C          call edisp248(iuout,modeldocblock,80)
-C          return
-C        elseif(IW.eq.3)then
-C          continue
-C        elseif(IW.eq.4)then
-C          continue
-C        endif
-        
-      ELSEIF(INO1.EQ.15)THEN
-
-C User asked for help.
+C Help text for menu.
         helptopic='setup_date_format'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('general preferences',nbhelp,'-',0,0,IER)
         
-      ELSEIF(INO1.EQ.16)THEN
+      ELSEIF(INO1.EQ.15)THEN
         RETURN
       else
         goto 33
@@ -495,7 +432,7 @@ C the application exists. Only works for Linux & OSX.
       subroutine isinstalled(name,status)
       integer lnblnk  ! function definition
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Parameters.
       character name*32
@@ -524,8 +461,9 @@ C Use version of 'runit' that returns an error status and acts
 C on it. If 'which' did not find anything the return will be non-zero.
         call runitv(doit,tmode,is)
         if(is.gt.0.and.is.le.126)then
-          write(outs,*) 'did not find ',hold32a(1:lnblnk(hold32a)),' ',
+          write(outs,*) 'Cannot find ',hold32a(1:lnblnk(hold32a)),' ',
      &      name(1:lnblnk(name))
+          call edisp(iuout,' ')
           call edisp(iuout,outs)
           status=.false.
           CALL ERPFREE(IUNIT,ISTAT)
@@ -544,13 +482,11 @@ C on it. If 'which' did not find anything the return will be non-zero.
           CALL ERPFREE(IUNIT,ISTAT)
           length=lnblnk(hold32a)
           if(length.gt.1)then
-            write(outs,*) 'found ',hold32a(1:lnblnk(hold32a)),' ',
-     &        name(1:lnblnk(name))
-            call edisp(iuout,outs)
             status=.true.
           else
-            write(outs,*) 'did not find ',hold32a(1:lnblnk(hold32a)),
+            write(outs,*) 'Cannot find ',hold32a(1:lnblnk(hold32a)),
      &        ' ',name(1:lnblnk(name))
+            call edisp(iuout,' ')
             call edisp(iuout,outs)
             status=.false.
           endif

@@ -38,7 +38,7 @@ C results. Available at present:
 #include "building.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       common/pophelp/h(60)
       COMMON/DEFLT/IDEFLT
@@ -731,7 +731,7 @@ C act='p' iget parameters already set.
       SUBROUTINE MOSMSD(act,VMX,VMN,VAVE,VTOT,DIVMX,DIVMN,DISTMX,DISTMN)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -1267,7 +1267,7 @@ C standard.
       SUBROUTINE MOSMSDCEN(act)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -1465,7 +1465,7 @@ C act='p' iget parameters already set.
       SUBROUTINE MOSQHR(act,iabove,tval)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       common/pophelp/h(60)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -1822,7 +1822,7 @@ C Also called by recovert if act = 'p' << needs checking >>
      &  tlce,tzlctime)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       common/pophelp/h(60)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -2024,7 +2024,7 @@ C within current zone set.
 
 #include "building.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/FILEP/IFIL
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -2039,7 +2039,8 @@ C within current zone set.
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
       COMMON/C2/LSNAM,NCCODE(MCOM),LPROJ(MCOM),LGEOM(MCOM),
      &          LSHAD(MCOM),LTHRM(MCOM),INDUTL(MCOM),LUTIL(MCOM)
-      COMMON/G5/SNAME(MCOM,MS),SOTF(MS),SMLCN(MS),SVFC(MS),SOTHER(MS)
+      COMMON/G5/SNAME(MCOM,MS),SOTF(MCOM,MS),SMLCN(MCOM,MS),SVFC(MS),
+     &  SOTHER(MS)
       COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
       COMMON/INDICS/IVF(MCOM),ISI(MCOM),IHC(MCOM),
      &              ITW(MCOM),ICGC(MCOM),IOBS(MCOM)

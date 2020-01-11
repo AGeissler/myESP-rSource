@@ -6,11 +6,14 @@ C If the parameter of the C function change the matching subroutine
 C in this source file should be adapted to match.
 
 C  sizeint     :- passess window size & position
+C  win3dwwc    :- writes win3d attributes to file.
 C  win3d       :- opens a viewing box taking into account menu
 C                 width and dialogue box.
 C  win3dclr    :- clear viewing box.
 C  winfnt(n)   :- changes the font (4 different sizes 0,1,2,3)
 C  opensetup   :- place environment button on screen.
+C  viewtextwwc :- displays a line of text within the viewing
+C                 box with size and location parameters
 C  viewtext    :- displays a line of text within the viewing
 C                 box with size and location parameters
 C  feedbox     :- open feedback background box
@@ -138,7 +141,21 @@ C      end
       return
       end
 
+      subroutine textatxywwc(ix,iy,buff,act,ixcolid)
+      character*(*) buff
+      character act*1
+      write(6,*) buff
+      return
+      end
+
       subroutine textatxy(ix,iy,buff,act,ixcolid)
+      character*(*) buff
+      character act*1
+      write(6,*) buff
+      return
+      end
+
+      subroutine textsizeatxywwc(ix,iy,buff,isize,act,ixcolid)
       character*(*) buff
       character act*1
       write(6,*) buff
@@ -161,6 +178,11 @@ C      end
       return
       end
 
+      subroutine win3dwwc(menu_c,icl,icr,ict,icb,ivl,ivr,ivt,ivb,igw,
+     &  igh)
+      return
+      end
+
       subroutine win3d(menu_c,icl,icr,ict,icb,ivl,ivr,ivt,ivb,igw,igh)
       return
       end
@@ -173,6 +195,12 @@ C      end
       character*(*) msg
       return
       end
+
+      subroutine viewtextwwc(msg,linep,iside,isize)
+      character*(*) msg
+      return
+      end
+
 
       subroutine etlabel(msg,x,y,ipos,isize)
       character*(*) msg
@@ -200,6 +228,10 @@ C      end
       end
 
       subroutine pauses(is)
+      return
+      end
+
+      subroutine esymbolwwc(ix,iy,isym,isize)
       return
       end
 
@@ -361,6 +393,10 @@ C      write(6,*) opta
       return
       end
 
+      subroutine elinewwc(ix,iy,ioperation)
+      return
+      end
+
       subroutine eline(ix,iy,ioperation)
       return
       end
@@ -401,7 +437,19 @@ C      write(6,*) opta
       return
       end
 
+      subroutine edlinewwc(ixy,iy1,ix2,iy2,ipdis)
+      return
+      end
+
+      subroutine edwlinewwc(ixy,iy1,ix2,iy2)
+      return
+      end
+
       subroutine edwline(ixy,iy1,ix2,iy2)
+      return
+      end
+
+      subroutine eswlinewwc(ixy,iy1,ix2,iy2)
       return
       end
 
@@ -410,6 +458,10 @@ C      write(6,*) opta
       end
 
       subroutine edash(ixy,iy1,ix2,iy2,ipdis)
+      return
+      end
+
+      subroutine echainwwc(ixy,iy1,ix2,iy2,ipdis)
       return
       end
 

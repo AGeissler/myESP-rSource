@@ -27,7 +27,7 @@ C ********************* SETUP *****************************************
 C SETUP provides the menus and control logic for the res preference menu.
       SUBROUTINE SETUP(ITRU,IER)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       common/recov01/pifltog,lpifl

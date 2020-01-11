@@ -45,15 +45,11 @@ C -1 if jump to prior zone, otherwise zero.
 #include "model.h"
 #include "site.h"
 #include "prj3dv.h"
-
-C geometry.h provides commons G0/G1/G2/G4/G5/G7/prec2/prec17/precz/c20/GS5.
 #include "geometry.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LPRFDB,IPRODB (for event profile database)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 #include "material.h"
-C #include "predefined.h"
+#include "schedule.h"
+
 
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
@@ -65,7 +61,7 @@ C Passed parameters
       integer ier    ! returned error state zero is ok
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/SFIG/NSIGFIG
       integer ifs,itfs,imfs
@@ -99,14 +95,16 @@ C Water filled zones.
       LOGICAL znotair
 
 C Hc coefficients
-      COMMON/HCFP/IHCFP,ST(MP),EN(MP),HCI(MP,MS),HCE(MP,MS),
-     &            ICTL(MP),IHCI(MP,MS),IHCE(MP,MS),CVdata(MP,MS,8)
-      common/HCFPHI/hcfpdescr(MP)
+      COMMON/HCFP/IHCDT,IHCFP(MDTY),ST(MDTY,MBP),EN(MDTY,MBP),
+     &            HCI(MDTY,MBP,MS),HCE(MDTY,MBP,MS),ICTL(MDTY,MBP),
+     &            IHCI(MDTY,MBP,MS),IHCE(MDTY,MBP,MS),
+     &            CVdata(MDTY,MBP,MS,8)
+      common/HCFPHI/hcfpdescr(MDTY,MBP)
       character hcfpdescr*72
 
       LOGICAL context
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
-      LOGICAL DOK,OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      LOGICAL OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       DIMENSION IVALS(MS),ITEMS(31),ITEMSS(MS),IVALSS(MS),jvn1(MV)
       DIMENSION SALT(10),trnalt(21),IVLST(MTV)
@@ -116,7 +114,7 @@ C Hc coefficients
       CHARACTER ITEMS*33,ITEMSS*32,trnalt*33,outs*124
       character T64*64,D64*64
       CHARACTER LAPROB*72
-      character SN*12,act*1
+      character SN*12,act*1,msg*48
       character SIGSTR*12,fs*1,t16a*16,t16b*16,t16c*16,msgv*42
       character TOSMLCN*32  ! to remember other side mlc name
       character TOOPT*32    ! to remember other side optics
@@ -275,7 +273,6 @@ C which include solar obstructions. << needs to be tested >>
         endif
       endif
 
-
     3 INO=-4
       IER=0
 
@@ -322,8 +319,6 @@ C Loop through each surface detecting base and surface area information.
         ioc=IZSTOCN(icomp,i)
         if(ioc.lt.1) goto 41  ! is model corrupt skip surf
 
-C Debug
-C        write(6,*) 'ssmlcindex ',ioc,ssmlcindex(ioc)
         if(SOTHER(icomp,I,1)(1:4).eq.'UNKN')attribok=.false.
         if(SMLCN(icomp,I)(1:4).eq.'UNKN')attribok=.false.
 
@@ -346,14 +341,14 @@ C non-`FURNI` surfaces.
             endif
           ENDDO
           if (FOUND) then            
-            ZBASEA(ICOMP)=ZBASEA(ICOMP)+SSNA(ioc)
+            ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(icomp,i)
           else
             if(SVFC(ICOMP,I).eq.'FLOR'.and.
      &         .not.SUSE(icomp,i,1)(1:5).eq.'FURNI')then
               lastlist=lastlist+1
               if(lastlist.le.MBL)then
                 IBASES(ICOMP,lastlist)=I
-                ZBASEA(ICOMP)=ZBASEA(ICOMP)+SSNA(ioc)
+                ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(icomp,i)
               else
                 write(outs,'(a,I2,a)')
      &   'Warning: number of floor surfaces detected exceeds maximum (',
@@ -367,13 +362,13 @@ C non-`FURNI` surfaces.
 C Detect surface area information.
         if(SOTF(icomp,I)(1:4).NE.'OPAQ'.AND.
      &    SOTF(icomp,I)(1:3).NE.'CFC')then
-          TRN=TRN+SSNA(ioc)
+          TRN=TRN+SNA(icomp,i)
         elseif(SOTF(icomp,I)(1:4).EQ.'CFC ')then
-          CFC=CFC+SSNA(ioc)
+          CFC=CFC+SNA(icomp,i)
         elseif(SOTF(icomp,I)(1:4).EQ.'CFC2')then
-          CFC=CFC+SSNA(ioc)
+          CFC=CFC+SNA(icomp,I)
         else
-          OPQ=OPQ+SSNA(ioc)
+          OPQ=OPQ+SNA(icomp,I)
         endif
    41 CONTINUE
 
@@ -422,9 +417,10 @@ C Report on any duplicate surface names.
         endif
 
 C Report on possible construction issues between zones.
-C Use ssmlcindex to get MLC index for this surface.
-        if(showother.and.icoth.ne.0.and.ssmlcindex(ioc).ne.0)then
-          ii=ssmlcindex(ioc)
+C Use smlcindex to get MLC index for this surface.
+        if(showother.and.icoth.ne.0.and.
+     &     smlcindex(icomp,is).ne.0)then
+          ii=smlcindex(icomp,is)
           updoth=.false.
           lnssmlc=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
           if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
@@ -495,7 +491,7 @@ C A difference was discovered, report this.
 C Assign new MLC name to the icoth surface as well as SOTF with the
 C optical properties returned from material.h commons.
             SMLCN(IC2(ioc),IC2(ioc))=TOSMLCN
-            if(iissmlci.ne.0) ssmlcindex(icoth)=iissmlci ! update
+            if(iissmlci.ne.0) smlcindex(IC2(ioc),IC2(ioc))=iissmlci ! update
 
             write(SOTF(IC2(ioc),IE2(ioc)),'(a)') TOOPT
             call eclose(gversion(IC2(ioc)),1.1,0.01,newgeo)
@@ -692,9 +688,9 @@ C Menu for zone geometry.
 
       IF(INO.EQ.ITEMC+25)THEN
         if(MODGEO)then
-          DOK=.false.
-          CALL ASKOK('Save changes to zone composition and',
-     &         'surface attributes?',OK,DOK,nbhelp)
+          CALL EASKOK(' ',
+     &      'Save changes to zone composition and surface attributes?',
+     &      OK,nbhelp)
           LTMP=LGEOM(ICOMP)
 
 C Test for saving current or new format geometry file.
@@ -733,6 +729,9 @@ C Report on model contiguity changes.
       ELSEIF(INO.EQ.1)THEN
 
 C Zone name, make sure it has no illegal characters.
+        write(msg,'(2a)') 'The current zone name is ',zname(ICOMP)
+        call edisp(iuout,' ')
+        call edisp(iuout,msg)
         T14=' '
         D14='new_zone'
         CALL EASKS(T14,'Descriptive name for zone?','(<12 characters)',
@@ -783,9 +782,8 @@ C Zone description
         if(.NOT.bound)then
 
 C Offer attempt to correct unbound edges.
-          DOK=.false.
-          CALL ASKOK(' ','Attempt to correct unbounded edges?',
-     &      OK,DOK,nbhelp)
+          CALL EASKOK(' ','Correct unbounded edges?',
+     &      OK,nbhelp)
           if(OK)then
             call ckvert(1,icomp,bound,iub,inv,'r',ier)
             MODGEO=.TRUE.
@@ -864,7 +862,7 @@ C the user selected.
           do 211 i=1,inpick
             iss = ivals(i)
             IBASES(ICOMP,i)=iss
-            ZBASEA(ICOMP)=ZBASEA(ICOMP)+SSNA(izstocn(icomp,iss))
+            ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(icomp,iss)
  211      continue
           IUZBASEA(icomp)=2
           write(outs,'(a,f9.3,a)') 
@@ -885,8 +883,7 @@ C any flow network node associated with this zone.
         call tstamp('>','PRJ: enter zone vertices')
         CALL EDVERT(iuout,ICOMP,MODGEO,IER)
         if(MODGEO)then
-          DOK=.true.
-          CALL ASKOK(' ','Save vertex changes?',OK,DOK,nbhelp)
+          CALL EASKOK(' ','Save vertex changes?',OK,nbhelp)
           LTMP=LGEOM(ICOMP)
           if(OK)then
             call eclose(gversion(icomp),1.1,0.01,newgeo)
@@ -1137,13 +1134,12 @@ C Reset all line widths to normal and redraw (if last surface in list).
 C User selected the UNKNOWN MLC, reset variables.
               WRITE(SMLCN(icomp,ISS),'(A)') 'UNKNOWN'
               SOTF(ICOMP,ISS)='OPAQUE'
-              ssmlcindex(ioc)=0
+              smlcindex(icomp,iss)=0
             elseif(IRT.eq.2.and.ISEL.GT.0)then
 
 C Associate mlc with each selected surface.
               WRITE(SMLCN(icomp,ISS),'(A)') mlcname(ISEL)
-              ssmlcindex(ioc)=ISEL       ! update array
-              ssthick(ioc)=THKMLC(isel)  ! update the thermophysical thickness
+              smlcindex(icomp,iss)=ISEL       ! update array
 
 C Find the optical name.
               IF(mlctype(ISEL)(1:4).EQ.'OPAQ')then
@@ -1174,8 +1170,9 @@ C the name does not match or is UNKN get user to confirm change.
 C This logic should also included in subroutine serchrpl. So the
 C global search and replace acts the same way.
               write(SN,'(a12)')SNAME(ICOMP,ISS)
-              if(showother.and.icoth.ne.0.and.ssmlcindex(ioc).ne.0)then
-                ii=ssmlcindex(ioc)
+              if(showother.and.icoth.ne.0.and.
+     &           smlcindex(ICOMP,iss).ne.0)then
+                ii=smlcindex(icomp,iss)
                 updoth=.false.
                 lnssmlc=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
                 if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
@@ -1241,8 +1238,9 @@ C used for a partition (and db does not have a linked MLC - inform the user.
 
 C Assign new MLC name to the icoth surface.
                   SMLCN(IC2(ioc),IE2(ioc))=TOSMLCN
-                  if(iissmlci.ne.0) ssmlcindex(icoth)=iissmlci ! update
-                  ssthick(icoth)=THKMLC(isel)  ! update thickness
+                  if(iissmlci.ne.0)then
+                    smlcindex(IC2(ioc),IE2(ioc))=iissmlci ! update
+                  endif
                   write(SOTF(IC2(ioc),IE2(ioc)),'(a)') TOOPT
                   call eclose(gversion(IC2(ioc)),1.1,0.01,newgeo)
                   if(.NOT.newgeo)then
@@ -1492,10 +1490,10 @@ C Produce help text for the menu.
 
 C Invert edge ordering of all surfaces in the zone. First warn
 C user and allow exit.
-C Reverse the ordering, redraw image and return.
-          DOK=.false.
-          CALL ASKOK('Invert the edge ordering of all surfaces in',
-     &      'the zone (flip the surface normal)?',OK,DOK,nbhelp)
+C Reverse the ordering, redraw image and return..
+          CALL EASKOK(' ',
+     &       'Reverse the vertex ordering of zone surfaces?',
+     &        OK,nbhelp)
           if(OK)then
             do ins=1,NSUR
               do iyy = 1,NVER(ins)
@@ -1601,6 +1599,14 @@ C zone need to be dealt with.
                 goforit=.true.
               endif
             enddo
+
+C Also reflect change in zone COG.
+            i=ICAAS(icomp)
+            HNOD(i,1)=ZCOG(icomp,1); HNOD(i,2)=ZCOG(icomp,2)
+            HNOD(i,3)=ZCOG(icomp,3)
+            write(outs,'(3a,3f7.3)') 'Updating ',NDNAM(i),' @',
+     &        HNOD(i,1),HNOD(i,2),HNOD(i,3)
+            call edisp(iuout,outs)
             if(goforit)then
               call updatebothflownetworks(ier)
             endif
@@ -1655,9 +1661,8 @@ C Test the error return from ermrt call.
             endif
 
             if (NCUB(ICOMP).gt.0) then
-              dok=.true.
-              call askok('Apply this rotation to MRT sensors',
-     &                   'associated with this zone? ',OK,dok,nbhelp)
+              call easkok(' ','Apply rotation to zone MRT sensors',
+     &                   OK,nbhelp)
               if (OK) then
 
 C Depending on which point of rotation for the zone the
@@ -1689,9 +1694,8 @@ C in the zone geometry file.
 C Rotate any obstructions associated with this zone. First do
 C this for obs in separate file.
           if(IOBS(icomp).eq.1)then
-            dok=.true.
-            call askok('Apply this rotation to obstructions',
-     &                 'associated with this zone? ',ok,dok,nbhelp)
+            call easkok(' ','Apply rotation to zone obstructions?',
+     &                 ok,nbhelp)
             if(ok)then
               call edisp(iuout,' Obstruction data prior to transform.')
               itru=iuout
@@ -1701,8 +1705,20 @@ C this for obs in separate file.
               do 86 ij=1,nbobs(icomp)
                 XXX=XOB(icomp,ij)-X1; YYY=YOB(icomp,ij)-Y1
                 XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
-                XOB(icomp,ij)=XR+X1; YOB(icomp,ij)=YR+Y1
-                BANGOB(icomp,ij,1)=BANGOB(icomp,ij,1)+VAL
+                if(BLOCKTYP(icomp,ij)(1:4).eq.'obs '.or.
+     &             BLOCKTYP(icomp,ij)(1:4).eq.'obs3')then
+                  XOB(icomp,ij)=XR+X1; YOB(icomp,ij)=YR+Y1
+                  BANGOB(icomp,ij,1)=BANGOB(icomp,ij,1)+VAL
+                else
+                  do ibe=1,8
+                    XXX=XBP(icomp,ij,ibe)-X1
+                    YYY=YBP(icomp,ij,ibe)-Y1
+                    XR=XXX*CA+YYY*SA
+                    YR=YYY*CA-XXX*SA
+                    XBP(icomp,ij,ibe)=XR+X1
+                    YBP(icomp,ij,ibe)=YR+Y1
+                  enddo
+                endif
   86          continue
               CALL MKGOMST(IFIL+2,ZOBS(ICOMP),ICOMP,IER)
             endif
@@ -1712,18 +1728,15 @@ C The zone geometry has just been written with transformed verticies
 C so now apply the transform to the obstructions (only) as well.
 C as transform general polygon obstructions.
             call eclose(gversion(icomp),1.1,0.01,newgeo)
-            dok=.true.
-            call askok('Apply this rotation to obstructions',
-     &                 'associated with this zone? ',ok,dok,nbhelp)
+            call easkok(' ','Apply rotation to zone obstructions?',
+     &                 ok,nbhelp)
             if(ok.and.newgeo)then
               call edisp(iuout,' Obstruction data prior to transform.')
               PI = 4.0 * ATAN(1.0)
               A=-VAL*PI/180.0; CA=COS(A); SA=SIN(A)
               do 87 ij=1,nbobs(icomp)
-                XXX=XOB(icomp,ij)-X1
-                YYY=YOB(icomp,ij)-Y1
-                XR=XXX*CA+YYY*SA
-                YR=YYY*CA-XXX*SA
+                XXX=XOB(icomp,ij)-X1; YYY=YOB(icomp,ij)-Y1
+                XR=XXX*CA+YYY*SA; YR=YYY*CA-XXX*SA
                 if(BLOCKTYP(icomp,ij)(1:4).eq.'obs '.or.
      &             BLOCKTYP(icomp,ij)(1:4).eq.'obs3')then
                   XOB(icomp,ij)=XR+X1
@@ -1756,9 +1769,8 @@ C Ask the user what the transform for each axis should be.
             CALL EGETWR(HOLD,K,VALY,-99.,99.,'W','Y tr',IER)
             CALL EGETWR(HOLD,K,VALZ,-99.,99.,'W','Z tr',IER)
             if(ier.ne.0)goto 43
-            DOK=.true.
-            call askok(' ','Apply this transform to zone surfaces?',
-     &        ok,dok,nbhelp)
+            call easkok(' ','Apply transform to zone surfaces?',
+     &           ok,nbhelp)
             if(.NOT.ok) goto 3
           elseif(INOR.eq.8)then
 
@@ -1773,10 +1785,9 @@ C between the two X and two Y and two Z. This uses G1 commons.
               x1=x(ivcs); y1=y(ivcs); z1=z(ivcs)     ! get position of initial vertex.
               x2=x(ivcf); y2=y(ivcf); z2=z(ivcf)     ! get position of initial vertex.
               VALX=x2-x1; VALY=y2-y1; VALZ=z2-z1
-              write(msgv,'(a,3F8.4,a)') 'The transform is ',
-     &          VALX,VALY,VALZ,' Is this ok?'
-              DOK=.true.
-              call askok(' ',msgv,ok,dok,nbhelp)
+              write(msgv,'(a,3F8.4)') 'Transform is ',
+     &          VALX,VALY,VALZ
+              call easkok(msgv,'Is this OK?',ok,nbhelp)
               if(.NOT.ok) goto 77
             else
               goto 77
@@ -1835,10 +1846,9 @@ C Load and scan G1 for vertes in other zone and allow user to select one.
 C Re-establish the initial zone geometry.
               call georead(IFIL+1,LGEOM(icomp),icomp,0,iuout,IER)
               VALX=x2-x1; VALY=y2-y1; VALZ=z2-z1
-              write(msgv,'(a,3F8.4,a)') 'The transform is ',
-     &          VALX,VALY,VALZ,' Is this ok?'
-              DOK=.true.
-              call askok(' ',msgv,ok,dok,nbhelp)
+              write(msgv,'(a,3F8.4)') 'Transform is ',
+     &          VALX,VALY,VALZ
+              call easkok(msgv,'Is this ok?',ok,nbhelp)
               if(.NOT.ok) goto 77
             else
 
@@ -1917,9 +1927,8 @@ C Test the error return from ermrt call.
               write(6,*) 'zone surface mrt surfs mismatch'
             endif
             if (NCUB(ICOMP).gt.0) then
-              dok=.true.
-              call askok('Apply this transform to MRT sensors',
-     &                   'associated with this zone? ',ok,dok,nbhelp)
+              call easkok(' ','Apply transform to zone MRT sensors?',
+     &                   ok,nbhelp)
               if (OK) then
                 do ij=1,NCUB(ICOMP)
                   XOC(ij)=XOC(ij)+VALX
@@ -1945,11 +1954,10 @@ C in the zone geometry file if it is a current version.
 
 C Transform any obstructions associated with this zone.
           if(iobs(icomp).eq.1)then
-            dok=.true.
-            call askok('Apply this transform to obstructions',
-     &                 'associated with this zone? ',ok,dok,nbhelp)
+            call easkok(' ','Apply transform to zone obstructions?',
+     &                 ok,nbhelp)
             if(ok)then
-              call edisp(iuout,' Obstruction data prior to transform.')
+              call edisp(iuout,'Obstruction data prior to transform.')
               CALL EGOMST(IFIL+2,ICOMP,ZOBS(ICOMP),0,ITRC,iuout,IER)
               do ij=1,nbobs(icomp)
                 if(BLOCKTYP(icomp,ij)(1:4).eq.'obs '.or.
@@ -1972,15 +1980,23 @@ C Transform any obstructions associated with this zone.
 C The zone geometry has just been written with transformed verticies
 C so now apply the transform to the obstructions (only).
             call eclose(gversion(icomp),1.1,0.01,newgeo)
-            dok=.true.
-            call askok('Apply this transform to obstructions',
-     &                 'associated with this zone? ',ok,dok,nbhelp)
+            call easkok(' ','Apply transform to zone obstructions?',
+     &                 ok,nbhelp)
             if(ok.and.newgeo)then
-              call edisp(iuout,' Obstruction data prior to transform.')
+              call edisp(iuout,'Obstruction data prior to transform.')
               do ij=1,nbobs(icomp)
-                XOB(icomp,ij)=XOB(icomp,ij)+VALX
-                YOB(icomp,ij)=YOB(icomp,ij)+VALY
-                ZOB(icomp,ij)=ZOB(icomp,ij)+VALZ
+                if(BLOCKTYP(icomp,ij)(1:4).eq.'obs '.or.
+     &             BLOCKTYP(icomp,ij)(1:4).eq.'obs3')then
+                  XOB(icomp,ij)=XOB(icomp,ij)+VALX
+                  YOB(icomp,ij)=YOB(icomp,ij)+VALY
+                  ZOB(icomp,ij)=ZOB(icomp,ij)+VALZ
+                else
+                  do ibe=1,8
+                    XBP(icomp,ij,ibe)=XBP(icomp,ij,ibe)+VALX
+                    YBP(icomp,ij,ibe)=YBP(icomp,ij,ibe)+VALY
+                    ZBP(icomp,ij,ibe)=ZBP(icomp,ij,ibe)+VALZ
+                  enddo
+                endif
               enddo
               call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,iuout,3,IER)
             endif
@@ -2001,8 +2017,7 @@ C Mirror along Y axis, either positive or negative.
             call tstamp('>','PRJ: do zone mirror')
             CALL EASKR(VALM,' ','Mirror point on Y-axis?',
      &           -50.0,'W',50.0,'W',0.0,'y mirror',IER,nbhelp)
-            dok=.true.
-            call askok(' ','Apply mirror transform?',ok,dok,nbhelp)
+            call easkok(' ','Apply mirror transform?',ok,nbhelp)
             if(ok)then
               do iwmv=1,NTV
                 if(INOR.eq.11)then
@@ -2022,8 +2037,7 @@ C Mirror along X axis, either positive or negative.
             call tstamp('>','PRJ: do zone mirror')
             CALL EASKR(VALM,' ','Mirror point on X-axis?',
      &           -50.0,'W',50.0,'W',0.0,'y mirror',IER,nbhelp)
-            dok=.true.
-            call askok(' ','Apply mirror transform?',ok,dok,nbhelp)
+            call easkok(' ','Apply mirror transform?',ok,nbhelp)
             if(ok)then
               do iwmv=1,NTV
                 if(INOR.eq.13)then
@@ -2121,9 +2135,9 @@ C Test the error return from ermrt call.
               write(6,*) 'zone surface mrt surfs mismatch'
             endif
             if (NCUB(ICOMP).gt.0) then
-              dok=.true.
-              call askok('Apply scaling to MRT sensor origins',
-     &                   'associated with this zone? ',ok,dok,nbhelp)
+              call easkok(' ',
+     &           'Apply scaling to zone MRT sensor origins?',
+     &            ok,nbhelp)
               if (OK) then
                 do ij=1,NCUB(ICOMP)
                   XOC(ij)=XOC(ij)*VALX
@@ -2146,9 +2160,9 @@ C Test the error return from ermrt call.
 
 C Transform any obstructions associated with this zone.
           if(iobs(icomp).eq.1)then
-            dok=.true.
-            call askok('Apply this scaling to obstruction origins',
-     &                 'associated with this zone? ',ok,dok,nbhelp)
+            call easkok(' ',
+     &        'Apply scaling to zone obstruction origins?',
+     &                 ok,nbhelp)
             if(ok)then
               call edisp(iuout,' Obstruction data prior to transform.')
               CALL EGOMST(IFIL+2,ICOMP,ZOBS(ICOMP),0,ITRC,iuout,IER)
@@ -2164,9 +2178,8 @@ C Transform any obstructions associated with this zone.
 C The zone geometry has just been written with transformed verticies
 C so now apply scaling to obstruction origins (only).
             call eclose(gversion(icomp),1.1,0.01,newgeo)
-            dok=.true.
-            call askok('Apply scaling to obstruction origins',
-     &                 'associated with this zone? ',ok,dok,nbhelp)
+            call easkok(' ','Apply scaling to obstruction origins?',
+     &                 ok,nbhelp)
             if(ok.and.newgeo)then
               call edisp(iuout,' Obstruction data prior to transform.')
               do ij=1,nbobs(icomp)
@@ -2341,9 +2354,8 @@ C Toggle between air filled and water filled. Update zone hc
 C file to reflect this change or create a zone hc file for water
 C filled state.
         if(znotair(ICOMP))then
-          DOK=.false.
-          CALL ASKOK(' ',
-     &      'Switch from water filled to air filled?',OK,DOK,nbhelp)
+          CALL EASKOK(' ',
+     &      'Switch from water to air filled zone?',OK,nbhelp)
           if(OK)then
             znotair(ICOMP)=.false.
 
@@ -2356,16 +2368,17 @@ C out the file.
                 if(ier.eq.0)then
 
 C Fill with default for inside face.
-                  DO I = 1,IHCFP
-                    ICTL(I) = 1
-                    hcfpdescr(I) = 'Default convection coefficients'
+                  IHCDT=1; IHCFP(1)=1; ST(1,1)=0.0;EN(1,1)=24.0
+                  DO I = 1,IHCFP(1)
+                    ICTL(1,I) = 1
+                    hcfpdescr(1,I) = 'Default convection coefficients'
                     do J = 1,NZSUR(icomp)
-                      HCI(I,J) = -1.0
-                      HCE(I,J) = -1.0
-                      IHCI(I,J) = -1
-                      IHCE(I,J) = -1
+                      HCI(1,I,J) = -1.0
+                      HCE(1,I,J) = -1.0
+                      IHCI(1,I,J) = -1
+                      IHCE(1,I,J) = -1
                       do jj=1,8
-                        CVdata(I,J,jj) = 0.
+                        CVdata(1,I,J,jj) = 0.
                       enddo  ! of jj
                     enddo    ! of j
                   enddo      ! of i
@@ -2390,9 +2403,8 @@ C Fill with default for inside face.
             endif
           endif
         else
-          DOK=.false.
-          CALL ASKOK(' ',
-     &      'Switch from air filled to water filled?',OK,DOK,nbhelp)
+          CALL EASKOK(' ',
+     &      'Switch from air to water filled zone?',OK,nbhelp)
           if(OK)then
             znotair(ICOMP)=.true.
 
@@ -2405,18 +2417,19 @@ C out the file.
                 if(ier.eq.0)then
 
 C Fill with high hc for inside face.
-                  DO I = 1,IHCFP
-                    ICTL(I) = 1
-                    hcfpdescr(I)= 'Water filled convection coefficients'
-                    do J = 1,NZSUR(icomp)
-                      HCI(I,J) = 999.0
-                      HCE(I,J) = -1.0
-                      IHCI(I,J) = -1
-                      IHCE(I,J) = -1
-                      do jj=1,8
-                        CVdata(I,J,jj) = 0.
-                      enddo  ! of jj
-                    enddo    ! of j
+                  IHCDT=1; IHCFP(1)=1; ST(1,1)=0.0;EN(1,1)=24.0
+                  DO I = 1,IHCFP(1)
+                   ICTL(1,I) = 1
+                   hcfpdescr(1,I)='Water filled convection coefficients'
+                   do J = 1,NZSUR(icomp)
+                     HCI(1,I,J) = 999.0
+                     HCE(1,I,J) = -1.0
+                     IHCI(1,I,J) = -1
+                     IHCE(1,I,J) = -1
+                     do jj=1,8
+                       CVdata(1,I,J,jj) = 0.
+                     enddo  ! of jj
+                   enddo    ! of j
                   enddo      ! of i
                   CALL EMKHTC(LHCCO(ICOMP),ICOMP,IFIL+2,ITRU,IER)
                   call usrmsg('Updated zone hc file with water hc',
@@ -2437,7 +2450,7 @@ C Fill with high hc for inside face.
 
 C Create a hc file for this zone.
               IHC(ICOMP)=1
-              IHCFP=1
+              IHCFP(1)=1
               if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
                 WRITE(HFILE,'(2A)')zname(ICOMP)(1:lnzname(ICOMP)),'.htc'
               else
@@ -2450,16 +2463,16 @@ C Create a hc file for this zone.
               call edisp(iuout,HFILE)
 
 C Fill with high hc for inside face.
-              DO I = 1,IHCFP
-                ICTL(I) = 1
-                hcfpdescr(I)= 'Water filled convection coefficients'
+              DO I = 1,IHCFP(1)
+                ICTL(1,I) = 1
+                hcfpdescr(1,I)= 'Water filled convection coefficients'
                 do J = 1,NZSUR(icomp)
-                  HCI(I,J) = 999.0
-                  HCE(I,J) = -1.0
-                  IHCI(I,J) = -1
-                  IHCE(I,J) = -1
+                  HCI(1,I,J) = 999.0
+                  HCE(1,I,J) = -1.0
+                  IHCI(1,I,J) = -1
+                  IHCE(1,I,J) = -1
                   do jj=1,8
-                    CVdata(I,J,jj) = 0.
+                    CVdata(1,I,J,jj) = 0.
                   enddo  ! of jj
                 enddo    ! of j
               enddo      ! of i
@@ -2583,29 +2596,29 @@ C Recover the ISO 6946 U values as in prjqa.F.
                continue
              endif
   511      continue
-           exposed = exposed + SSNA(icc)
+           exposed = exposed + SNA(icomp,is)
            if(SOTF(icomp,is)(1:4).eq.'OPAQ')then
              if(SVFC(icomp,is)(1:4).eq.'VERT')then
 
 C For vertical walls assume horizontal hc coef.
-               areawall = areawall + SSNA(icc)
-               uavwall = uavwall + (SSNA(icc) * UVH)
-               vexposed = vexposed + SSNA(icc)
+               areawall = areawall + SNA(icomp,is)
+               uavwall = uavwall + (SNA(icomp,is) * UVH)
+               vexposed = vexposed + SNA(icomp,is)
              elseif(SVFC(icomp,is)(1:4).eq.'SLOP')then
 
 C For sloped surfaces.
-               areaslproof = areaslproof + SSNA(icc)
-               uavslproof = uavslproof + (SSNA(icc) * UVU)
+               areaslproof = areaslproof + SNA(icomp,is)
+               uavslproof = uavslproof + (SNA(icomp,is) * UVU)
              elseif(SVFC(icomp,is)(1:4).eq.'CEIL')then
 
 C For ceilings.
-               areafltroof = areafltroof + SSNA(icc)
-               uavfltroof = uavfltroof + (SSNA(icc) * UVU)
+               areafltroof = areafltroof + SNA(icomp,is)
+               uavfltroof = uavfltroof + (SNA(icomp,i) * UVU)
              else
 
 C For floors.
-               areawall = areawall + SSNA(icc)
-               uavwall = uavwall + (SSNA(icc) * UVD)
+               areawall = areawall + SNA(icomp,is)
+               uavwall = uavwall + (SNA(icomp,is) * UVD)
              endif
 
 C At this point CFC and CFC2 are treated with opaque surfaces.
@@ -2616,18 +2629,18 @@ C At this point CFC and CFC2 are treated with opaque surfaces.
      &          SVFC(icomp,is)(1:4).eq.'SLOP')then
 
 C Consider glazing on ceiling or sloped to be a skylight.
-               areaskylt = areaskylt + SSNA(icc)
-               uavgsky = uavgsky + (SSNA(icc) * UVU) 
+               areaskylt = areaskylt + SNA(icomp,is)
+               uavgsky = uavgsky + (SNA(icomp,is) * UVU) 
              elseif(SVFC(icomp,is)(1:4).eq.'VERT')then
 
 C Consider glazing on walls to be a part of facade.
-               areatran = areatran + SSNA(icc)
-               uavgtran = uavgtran + (SSNA(icc) * UVH)
-               vexposed = vexposed + SSNA(icc)
+               areatran = areatran + SNA(icomp,is)
+               uavgtran = uavgtran + (SNA(icomp,is) * UVH)
+               vexposed = vexposed + SNA(icomp,is)
              else
-               areatran = areatran + SSNA(icc)
-               uavgtran = uavgtran + (SSNA(icc) * UVH)
-               vexposed = vexposed + SSNA(icc)
+               areatran = areatran + SNA(icomp,is)
+               uavgtran = uavgtran + (SNA(icomp,is) * UVH)
+               vexposed = vexposed + SNA(icomp,is)
              endif
            else
              continue
@@ -2640,16 +2653,6 @@ C Consider glazing on walls to be a part of facade.
           call edisp(iuout,
      &   'connections list. A topology update may be required.')
         endif
-
-C Debug...
-C        write(iuout,*) 'in zone ',icomp,' area wall = ',areawall
-C        write(iuout,*) 'area flat roof = ',areafltroof
-C        write(iuout,*) 'area sloped roof = ',areaslproof
-C        write(iuout,*) 'area skylights = ',areaskylt
-C        write(iuout,*) 'area windows = ',areatran
-C        write(iuout,*) 'floor area = ',ZBASEA(icomp)
-C        write(iuout,*) 'exposed = ',exposed
-C        write(iuout,*) 'vert exposed = ',vexposed
 
         if(exposed.gt.0.1)then
 
@@ -2745,9 +2748,8 @@ C Check if user wishes to see construction details as well.
           XST=.FALSE.
           call FINDFIL(LTHRM(ICOMP),XST)
           if(XST)then
-            dok=.false.
-            call askok(' ','Also view thermo-physical details?',
-     &               ok,dok,nbhelp)
+            call easkok(' ','View thermophysical properties?',
+     &               ok,nbhelp)
             if(ok)then
               CALL ECONST(LTHRM(ICOMP),IFIL+2,ICOMP,0,IUOUT,IER)
               CALL CONINF(ICOMP,0,iuout)
@@ -2796,9 +2798,9 @@ C Toggle trace level.
 C Jump to previous zone after processing any remaining tasks.
         ianother=-1
         if(MODGEO)then
-          DOK=.false.
-          CALL ASKOK('Save changes to zone composition and',
-     &      'surface attributes? (legacy and new format)',OK,DOK,nbhelp)
+          CALL EASKOK(' ',
+     &     'Save changes to zone composition and surface attributes?',
+     &      OK,nbhelp)
           LTMP=LGEOM(ICOMP)
 
 C Test for saving current or new format geometry file.
@@ -2832,9 +2834,9 @@ C Report on model contiguity changes.
 C Jump to next zone after processing any remaining tasks.
         ianother=1
         if(MODGEO)then
-          DOK=.false.
-          CALL ASKOK('Save changes to zone composition and',
-     &      'surface attributes? (legacy and new format)',OK,DOK,nbhelp)
+          CALL EASKOK(' ',
+     &     'Save changes to zone composition and surface attributes?',
+     &     OK,nbhelp)
           LTMP=LGEOM(ICOMP)
 
 C Test for saving current or new format geometry file.
@@ -2889,7 +2891,7 @@ C Get common blocks g0/g2/g4/g6/precz from geometry.h
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       integer IZSTOCN
@@ -3212,8 +3214,6 @@ C IVA array of selections is returned.
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
 
       DIMENSION STMP(MS),IVA(MS),IVALS(MS)
       character STMP*46,act*1,msg1*32,msg2*32
@@ -3413,7 +3413,7 @@ C Pased parameters
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
@@ -3431,15 +3431,16 @@ C Pased parameters
       LOGICAL nameok,showother
       logical modmlc  ! for selecting MLC
 
-      logical dupedges,XST,OK,DOK,updoth
+      logical dupedges,XST,OK,updoth
       logical newgeo  ! to use for testing if new/old geometry file.
       logical goforit  ! create a default flow component
 
       DIMENSION SALT(14),IVAL(MCOM)  ! ,bl(144)
       DIMENSION COG1(3),COG2(3),COG3(3)
-      DIMENSION CG(3),EP(3)  ! for warp checks
+      DIMENSION CG(3)  ! for warp checks
       DIMENSION VN(3),ipoints(6,2)
-      integer icontinue  ! to control while loop
+      dimension sperim(MS)  ! perimeter for each surface in zone
+      integer icontinue     ! to control while loop
       CHARACTER*33 ISD(28)
       CHARACTER DESCRC*25,outs*124
       CHARACTER SALT*33,SN*12,SN2*12,T14*14
@@ -3448,7 +3449,6 @@ C Pased parameters
       character TOSMLCN*32  ! to remember other side mlc name
       character TOOPT*32    ! to remember other side optics
       character TOUSE1*12,TOUSE2*12  ! to remember other side use
-      integer lnu1,lnu2
 
 C Strings for surface attributes to pass to insrec.
       character rsname*12,rsotf*32,rsmlcn*32,rsuse1*12,rsuse2*12
@@ -3481,13 +3481,13 @@ C For help messages
       if(nifgrey.gt.4)then
         greyok=.true.
       endif
-      issize=4; izsize=5  ! for surfaces and zone name
+      issize=4  ! for surfaces
 
 C Display a selection of surfaces available in the zone. If surface
 C faces another zone, get the other surface connection index.
       IS=ISS; icoth=0; ii=0
-      lnu1=0; lnu2=0 ! lengths for SUSE
       found_association=.false.
+      updatenetwork=.false.
       ioc=IZSTOCN(icomp,iss)
       if(ICT(ioc).eq.3)then
         showother=.true.
@@ -3561,6 +3561,7 @@ C      write(6,*) 'zsurfprm',icomp,is,dupedges,perim
      &    'This surface probably wraps around another surface.')
       endif
 
+      call getperimeter(icomp,sperim)  ! recover perimeters
    13 WRITE(ISD(1),'(A,A)')    'a surface name    : ',SNAME(icomp,iss)
       if(SOTF(icomp,iss)(1:4).eq.'OPAQ'.or.
      &   SOTF(icomp,iss)(1:4).eq.'TRAN'.or.
@@ -3573,13 +3574,18 @@ C      write(6,*) 'zsurfprm',icomp,is,dupedges,perim
      &    SOTF(icomp,iss)(1:12)
       endif
       WRITE(ISD(3),'(A,A4)')   'c surface location: ',SVFC(icomp,iss)
-      WRITE(ISD(4),'(A,f8.3)') '  surface area m^2:',SSNA(ioc)
-      WRITE(ISD(5),'(A,2f7.2)')'  azim & elevation:',SSPAZI(ioc),
-     &  SSPELV(ioc)
-      WRITE(ISD(6),'(A,f8.3)') '  perimeter length:',ssperim(ioc)
+      WRITE(ISD(4),'(A,f8.3)') '  surface area m^2:',SNA(icomp,iss)
+      WRITE(ISD(5),'(A,2f7.2)')'  azim & elevation:',SPAZI(icomp,iss),
+     &  SPELV(icomp,iss)
+      WRITE(ISD(6),'(A,f8.3)') '  perimeter length:',sperim(iss)
       if(newgeo)then
-        WRITE(ISD(7),'(A,F6.3)') '  thermophysical thickness ',
-     &    ssthick(ioc)
+        isel=smlcindex(icomp,iss)
+        if(isel.gt.0)then
+          WRITE(ISD(7),'(A,F6.3)') '  thermophysical thickness ',
+     &      THKMLC(isel) 
+        else
+          WRITE(ISD(7),'(A)')      '  thermophysical thickness N/A'
+        endif
       else
         WRITE(ISD(7),'(A,F7.4)') 'd surface indentation:',Y0S(IS)
       endif
@@ -3650,12 +3656,11 @@ C surface use has not been set suggest this to the user.
             call edisp(iuout,
      & 'network file but the surface USE does not reflect this.')
 
-C Ask user if they want to set the USE...
-            DOK=.false.
-            CALL ASKOK('Assign a USE attribute for this surface?',
-     &        ' ',OK,DOK,nbhelp)
+C Ask user if they want to set surface USE.
+            CALL EASKOK(' ','Assign a USE attribute to this surface?',
+     &              OK,nbhelp)
             if(OK)then
-              iz=icomp; isur=is; icon=ioc
+              iz=icomp; isur=iss; icon=ioc
               TOUSE1=SUSE(icomp,iss,1)  ! record prior to edit
               TOUSE2=SUSE(icomp,iss,2)
               call edituse(iz,isur,icon,guesstype)
@@ -3708,8 +3713,6 @@ C offer to add such a default entity to the flow network.
 
 C Update the association and also reset the position of that
 C component based on the standard USE rules.
-C << TODO if a boundary also update the position of the
-C << bounding node?? 
                     CMPASSOC(ICOMPN,1)=ZNAME(ICOMP)
                     write(SN,'(a12)') SNAME(ICOMP,ISS)
                     CMPASSOC(ICOMPN,2)=SN
@@ -3795,7 +3798,7 @@ C << report inside and outside hc regime here >>
           endif
         endif
 
-C << report other faces inside and outside hc regime here >>
+C << Report other faces inside and outside hc regime here. >>
 
         ISD(23)=      '  ____________________________ '
         ISD(24)=      '+ add glazing/door/opening     '
@@ -3879,10 +3882,10 @@ C If in graphic mode draw the points on top of standard drawing.
 C Highlight the arrow of the focus surface. Set size of text.
         write(stemp,'(A)')SNAME(ICOMP,IS)
         if(itsnr.eq.0)then
-          CG(1)=SSURCOG(ic,1); CG(2)=SSURCOG(ic,2)
-          CG(3)=SSURCOG(ic,3)
-          VN(1)=SSURVN(ic,1); VN(2)=SSURVN(ic,2)
-          VN(3)=SSURVN(ic,3)
+          CG(1)=SURCOG(icomp,is,1); CG(2)=SURCOG(icomp,is,2)
+          CG(3)=SURCOG(icomp,is,3)
+          VN(1)=SURVN(icomp,is,1); VN(2)=SURVN(icomp,is,2)
+          VN(3)=SURVN(icomp,is,3)
           CALL VECTRN(VN,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iixc,iiyc)
@@ -3907,8 +3910,8 @@ C Offset the surface name depending on orientation.
           call forceflush()
           CALL winfnt(IMFS)  ! set back to menu font
         else
-          CG(1)=SSURCOG(ic,1); CG(2)=SSURCOG(ic,2)
-          CG(3)=SSURCOG(ic,3)
+          CG(1)=SURCOG(icomp,is,1); CG(2)=SURCOG(icomp,is,2)
+          CG(3)=SURCOG(icomp,is,3)
           CALL VECTRN(CG,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iixc,iiyc)
@@ -4158,16 +4161,21 @@ C that reporting mechanism.
 C << TODO - test if date of zone construction file is older than the
 C << geometry file and if so do not use CONINF.
 
-C Use ssmlcindex to get MLC index for surface.
+C Use smlcindex to get MLC index for surface.
           if(LTHRM(ICOMP)(1:7).eq.'UNKNOWN'.or.
      &       LTHRM(ICOMP)(1:2).eq.'  ')then
-            if(ssmlcindex(ioc).ne.0)then
+            if(smlcindex(icomp,is).ne.0)then
               write(outs,'(3a)') 'View thermo-physical properties of ',
      &          SN(1:lnblnk(SN)),'?'
-              dok=.false.
-              call askok(' ',outs,ok,dok,nbhelp)
+              call easkok(' ',outs,ok,nbhelp)
               if(ok)then
-                call ETMLDB(1,iuout,ioc,imerr)        
+                lnssmlc=lnblnk(SMLCN(icomp,is))
+                do ii=1,nmlc
+                  if(SMLCN(icomp,is)(1:lnssmlc).eq.
+     &               mlcname(ii)(1:lnmlcname(ii)))then
+                    call ETMLDB(1,iuout,ii,imerr)
+                  endif
+                enddo      
               endif
             endif
           else
@@ -4178,8 +4186,7 @@ C A non-blank, possibly known construction.
             if(XST)then
               write(outs,'(3a)') 'View thermo-physical properties of ',
      &          SN(1:lnblnk(SN)),'?'
-              dok=.false.
-              call askok(' ',outs,ok,dok,nbhelp)
+              call easkok(' ',outs,ok,nbhelp)
               if(ok)then
                 CALL ECONST(LTHRM(ICOMP),IFIL+2,ICOMP,0,IUOUT,IER)
 
@@ -4189,12 +4196,11 @@ C << properties and the optical name.
               endif
             endif
           endif
-          write(outs,'(3a)') 'Modify thermo-physical data of ',
+          write(outs,'(3a)') 'Modify thermo-physical properties of ',
      &      SN(1:lnblnk(SN)),'?'
-          dok=.false.
           helptopic='surface_non_symetric'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok(' ',outs,ok,dok,nbhelp)
+          call easkok(' ',outs,ok,nbhelp)
         else
           ok=.true.
         endif
@@ -4210,8 +4216,7 @@ C << properties and the optical name.
           CALL EPMENRC
           IF(ISEL.GT.0)then
             WRITE(SMLCN(ICOMP,IS),'(A)') mlcname(ISEL)
-            ssmlcindex(ioc)=isel   ! update the array
-            ssthick(ioc)=THKMLC(isel)  ! update the thermophysical thickness
+            smlcindex(icomp,is)=isel   ! update the array
 
 C Find the optical name.
             IF(mlctype(ISEL)(1:4).EQ.'OPAQ')then
@@ -4232,10 +4237,11 @@ C an equivalent construction. If the current construction is
 C symmetric then expect to find the same construction name and if
 C the name does not match or is UNKN get user to confirm change.
 
-C Use ssmlcindex to get MLC index for this surface and material.h
+C Use smlcindex to get MLC index for this surface and material.h
 C commons to get information on the other partition.
-            if(showother.and.icoth.ne.0.and.ssmlcindex(ioc).ne.0)then
-              ii=ssmlcindex(ioc)
+            if(showother.and.icoth.ne.0.and.
+     &        smlcindex(icomp,is).ne.0)then
+              ii=smlcindex(icomp,is)
               updoth=.false.
               if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
                 lnssmlc=lnblnk(SMLCN(IC2(ioc),IE2(ioc)))
@@ -4274,11 +4280,11 @@ C used for a partition (and db does not have a linked MLC - inform the user.
      &            'layers or revise the common constructions.')
                 if(SMLCN(IC2(ioc),IE2(ioc))(1:4).eq.'UNKN')then
                   TOSMLCN= mlcname(ii)  ! replace UNKNOWN
-                  iissmlci=ssmlcindex(ioc)
+                  iissmlci=smlcindex(icomp,iss)
                   updoth=.true.
                 else
                   TOSMLCN= SMLCN(IC2(ioc),IE2(ioc))
-                  iissmlci=ssmlcindex(icoth)  ! leave it alone
+                  iissmlci=smlcindex(IC2(ioc),IE2(ioc))  ! leave it alone
                   updoth=.false.
                 endif
               else
@@ -4325,7 +4331,9 @@ C zone.
 C Assign new MLC name to the icoth surface as well as SOTF with the
 C optical properties and MLC index from material.h commons.
                 SMLCN(IC2(ioc),IE2(ioc))=TOSMLCN
-                if(iissmlci.ne.0) ssmlcindex(icoth)=iissmlci  ! update
+                if(iissmlci.ne.0)then
+                  smlcindex(IC2(ioc),IE2(ioc))=iissmlci  ! update
+                endif
                 write(SOTF(IC2(ioc),IE2(ioc)),'(a)') TOOPT
 
 C Logic to decide whether to update other zone geometry format.
@@ -4355,7 +4363,7 @@ C User selected UNKNOWN MLC so update arrays.
 C            ioc=IZSTOCN(ICOMP,is)
             WRITE(SMLCN(ICOMP,IS),'(A)') 'UNKNOWN'
             SOTF(ICOMP,IS)='OPAQUE'
-            ssmlcindex(ioc)=0
+            smlcindex(icomp,is)=0
             MODGEO=.TRUE.
 
           endif
@@ -4392,70 +4400,16 @@ C can update other zone (as it done with SMLCN).
         if(newgeo)then
           guesstype='any_type'
           ic=IZSTOCN(ICOMP,iss)  ! the current connection
-          iz=icomp; isur=is; icon=ic
+          iz=icomp; isur=iss; icon=ic
           TOUSE1=SUSE(ICOMP,iss,1)  ! record prior to edit
           TOUSE2=SUSE(ICOMP,iss,2)
-          call edituse(iz,isur,icon,guesstype)
+          call edituse(iz,isur,icon,guesstype) ! with other side update
           if(TOUSE1(1:12).eq.SUSE(ICOMP,iss,1)(1:12).and.
      &       TOUSE2(1:12).eq.SUSE(ICOMP,iss,2)(1:12))then
             continue  ! no change
           else
 
 C Place related symbol on the wireframe if in graphic mode.
-
-C Backup the current zones data before reading in the other zone.
-            if(showother.and.icoth.gt.0)then
-              ic=IZSTOCN(ICOMP,iss)  ! the current connection
-              TOUSE1=SUSE(ICOMP,iss,1)  ! remember new attribute
-              TOUSE2=SUSE(ICOMP,iss,2)
-              CALL ESCZONE(ICOMP)
-              lnu1=lnblnk(TOUSE1); lnu2=lnblnk(TOUSE2)
-              write(SN,'(a12)') SNAME(ICOMP,IS)
-              write(outs,'(6a)') 
-     &          'Updating `other side` use of ',
-     &          SN(1:lnblnk(SN)),' to ',TOUSE1(1:lnu1),
-     &          ':',TOUSE2(1:lnu2)
-              call edisp(iuout,outs)
-              call eclose(gversion(IC2(ioc)),1.1,0.01,newgeo)
-              call georead(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),0,
-     &          iuout,IER)
-
-C Apply USE to other side but make an exception for GRILL. If
-C it is INLET or EXTRACT set it to CLOSED on the other side. If it
-C is CLOSED on this side it might be an INLET or EXTRACT on the
-C other side so if that is the case do not change it.
-              if(TOUSE1(1:5).eq.'GRILL'.and.TOUSE2(1:5).eq.'INLET')then
-                SUSE(IC2(ioc),IE2(ioc),1)=TOUSE1  ! apply to other zone
-                SUSE(IC2(ioc),IE2(ioc),2)='CLOSED'
-              elseif(TOUSE1(1:5).eq.'GRILL'.and.
-     &                TOUSE2(1:7).eq.'EXTRACT')then
-                SUSE(IC2(ioc),IE2(ioc),1)=TOUSE1  ! apply to other zone
-                SUSE(IC2(ioc),IE2(ioc),2)='CLOSED'
-              elseif(TOUSE1(1:5).eq.'GRILL'.and.
-     &                TOUSE2(1:7).eq.'CLOSED')then
-                if(SUSE(IC2(ioc),IE2(ioc),1)(1:5).eq.'GRILL')then
-                  continue  ! don't overwrite the other side
-                else
-                  SUSE(IC2(ioc),IE2(ioc),1)=TOUSE1  ! apply to other zone
-                  SUSE(IC2(ioc),IE2(ioc),2)=TOUSE2
-                endif 
-              else
-                SUSE(IC2(ioc),IE2(ioc),1)=TOUSE1  ! apply to other zone
-                SUSE(IC2(ioc),IE2(ioc),2)=TOUSE2
-              endif
-              call geowrite(IFIL+2,LGEOM(IC2(ioc)),IC2(ioc),iuout,3,IER)
-              IF(IER.NE.0)CALL USRMSG(
-     &          'Problem updating other surface attribute... ',
-     &          '(could not write other geometry file).','W')
-
-C Read current zone data back in to commons. But the backed up data
-C might not include the new USE so just to be sure reset
-C USE with SUSE so it will show up in the menu when it is re-freshed.
-              CALL ERCZONE(ICOMP)
-              SUSE(ICOMP,IS,1)=TOUSE1; SUSE(ICOMP,IS,2)=TOUSE2
-              call usrmsg(' Updating other side...done.',' ','-')
-            endif
-
 C Cases to ignore.
             goforit=.true.; updatenetwork=.false.
             ic=IZSTOCN(ICOMP,iss)  ! the current connection
@@ -4573,7 +4527,7 @@ C Passed parameters:
       logical modgeo,showother,updoth
       integer ier          ! non-zero is an error
  
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       integer ncomp,ncon
@@ -4596,7 +4550,6 @@ C Tollerance for surface matching.
       integer IACC ! number of matching corners outside dist tolerance
       common/matching/ANGCC,CACC,DACC,COGCC,SNACC,IACC
 
-      logical OK,DOK
       logical newgeo  ! to use for testing if new/old geometry file.
       logical origisfloor,origisceiling ! close to horizontal
       logical testisfloor,testisceiling
@@ -4611,7 +4564,6 @@ C Tollerance for surface matching.
       character TOSMLCN*32  ! to remember other side mlc name
       integer ico
 
-      integer INODA ! max items and current menu item
       logical closecog,closea,closee,closeaz   ! to check for nearby surfaces
       logical closeenough,closecog1m
       integer lnsa,lnsb          ! lengths for surface names
@@ -4755,8 +4707,8 @@ C Sort out the other face attributes (within this zone).
 
 C Also check the other side construction and see if it matches. If
 C current surface MLC index is known get isymindex for the other side
-          if(ssmlcindex(ic).gt.0) then
-            ii=ssmlcindex(ic)
+          if(smlcindex(icomp,is).gt.0) then
+            ii=smlcindex(icomp,is)
             if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
               lnssmlc=lnblnk(SMLCN(iz,iso))
               if(SMLCN(iz,iso)(1:lnssmlc).eq.
@@ -4803,7 +4755,7 @@ C used for a partition if db does not have a linked MLC - inform the user.
 C Update the attributes of the other surface in the zone so it will
 C be saved along with the changes in the initial surface.
           SMLCN(iz,iso)=TOSMLCN
-          if(iissmlci.ne.0) ssmlcindex(ico)=iissmlci  ! update if known
+          if(iissmlci.ne.0) smlcindex(iz,iso)=iissmlci  ! update if known
           SOTHER(iz,iso,1)='ANOTHER'
           write(SOTHER(iz,iso,2),'(i2.2)') IC2(ico)
           write(SOTHER(iz,iso,3),'(i3.3)') IE2(ico)
@@ -4829,26 +4781,26 @@ C General image option flags.
 C Remember the COG of the current surface and then compare it with
 C the cog of the surfaces in the other zone as well as their areas.
 C Report if within 1m and 0.5m2 area difference.
-          cog(1)=ssurcog(ic,1)
-          cog(2)=ssurcog(ic,2)
-          cog(3)=ssurcog(ic,3)
+          cog(1)=surcog(icomp,is,1)
+          cog(2)=surcog(icomp,is,2)
+          cog(3)=surcog(icomp,is,3)
           do 77 ij=1,nzsur(iz)
             closecog=.false.
             iocog=IZSTOCN(iz,ij)
-            cogo(1)=ssurcog(iocog,1)
-            cogo(2)=ssurcog(iocog,2)
-            cogo(3)=ssurcog(iocog,3)
+            cogo(1)=surcog(iz,ij,1)
+            cogo(2)=surcog(iz,ij,2)
+            cogo(3)=surcog(iz,ij,3)
             call eclose3(cog(1),cog(2),cog(3),cogo(1),cogo(2),
      &        cogo(3),COGCC,closecog)
             if(closecog)then
-              CALL ECLOSE(SSNA(iocog),ssna(ic),SNACC,closea)
+              CALL ECLOSE(SNA(iz,ij),sna(icomp,is),SNACC,closea)
               if(closea)then
                 lnsa=lnblnk(sname(iz,ij)); lnsb=lnblnk(sname(icomp,is))
                 write(outs,'(5a,f6.2,3a,f6.2)') 'Surface ',
      &            sname(iz,ij)(1:lnsa),' in ',
      &            zname(iz)(1:lnzname(iz)),
-     &            ' with area ',SSNA(iocog),' might match ',
-     &            sname(icomp,is)(1:lnsb),' with area ',ssna(ic)
+     &            ' with area ',SNA(iz,ij),' might match ',
+     &            sname(icomp,is)(1:lnsb),' with area ',sna(icomp,is)
                 call edisp(iuout,outs)
               endif
             endif
@@ -4882,9 +4834,8 @@ C Write ANOTHER followed by the indices of zone and surface.
 C If applicable find other surface, return its connection number and
 C point it to the current surface.
             updoth=.false.
-            dok=.true.
-            CALL ASKOK(' ','Update other surface side?',
-     &        updoth,dok,nbhelp)
+            CALL EASKOK(' ','Update other surface?',
+     &        updoth,nbhelp)
             if(updoth)then
               CALL SURADJ(IZ,ISO,IE,TMP,IZC,ISC,ICO,DESCRC)
               IC1(ICO)=IZ; IE1(ICO)=ISO; ICT(ICO)=3
@@ -4900,8 +4851,8 @@ C of this surface (i.e. if we went from unknown to a partition).
 
 C Also check the other side construction and see if it matches. If
 C current surface MLC index is known get isymindex for the other side
-              if(ssmlcindex(ic).gt.0) then
-                ii=ssmlcindex(ic)
+              if(smlcindex(iz,iso).gt.0) then
+                ii=smlcindex(iz,iso)
                 if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
                   lnssmlc=lnblnk(SMLCN(IZ,ISO))
                   if(SMLCN(IZ,ISO)(1:lnssmlc).eq.
@@ -5082,7 +5033,6 @@ C action do not instanciate the data.
           ICT(IC)=6
           showother=.false.
         elseif(ieri.eq.-3)then
-          INODA=-4   ! should pass back
           return
         endif
         updoth=.false.
@@ -5115,19 +5065,21 @@ C << even if all other parameters are close enough. What we
 C << want is to allow, say one failure.
 C << logic for that in edtopol.F ~line 1500. >>
         updoth=.false.
-        cog(1)=ssurcog(ic,1); cog(2)=ssurcog(ic,2)
-        cog(3)=ssurcog(ic,3)
+        cog(1)=surcog(IC1(ic),IE1(ic),1)
+        cog(2)=surcog(IC1(ic),IE1(ic),2)
+        cog(3)=surcog(IC1(ic),IE1(ic),3)
         ifound=0; ifoundc=0
         lnsb=lnblnk(sname(IC1(ic),IE1(ic)))
         write(outs,'(3a,f9.3,a,f7.2,a,f7.2,a)') 'For surface ',
      &    sname(IC1(ic),IE1(ic))(1:lnsb),
-     &    ' (area=',ssna(ic),' azimuth=',
-     &    sspazi(ic),' elevation=',sspelv(ic),'):'
+     &    ' (area=',sna(IC1(ic),IE1(ic)),' azimuth=',
+     &    spazi(IC1(ic),IE1(ic)),' elevation=',spelv(IC1(ic),IE1(ic)),
+     &    '):'
         call edisp(iuout,outs)
 
 C Remember if surface elevation is ~floor -90 or ceiling 90.
-        call eclose(SSPELV(ic),-90.0,1.0,origisfloor)
-        call eclose(SSPELV(ic),90.0,1.0,origisceiling)
+        call eclose(SPELV(IC1(ic),IE1(ic)),-90.0,1.0,origisfloor)
+        call eclose(SPELV(IC1(ic),IE1(ic)),90.0,1.0,origisceiling)
 
 C Loop through all surfaces in the model looking for matches
 C using a tight logic.
@@ -5136,14 +5088,15 @@ C using a tight logic.
           closea=.false.; closee=.false.
           closeaz=.false.; closeenough=.false.
           if(ic1(ij).ne.icomp)then  ! if in another zone
-            cogo(1)=ssurcog(ij,1); cogo(2)=ssurcog(ij,2)
-            cogo(3)=ssurcog(ij,3)
+            cogo(1)=surcog(IC1(ij),IE1(ij),1)
+            cogo(2)=surcog(IC1(ij),IE1(ij),2)
+            cogo(3)=surcog(IC1(ij),IE1(ij),3)
 
 C Tighter tollerances for small surfaces.
-            if(ssna(ic).lt.1.0)then
+            if(sna(IC1(ic),IE1(ic)).lt.1.0)then
               call eclose3(cog(1),cog(2),cog(3),cogo(1),cogo(2),
      &          cogo(3),0.2,closecog)
-            elseif(ssna(ic).gt.10.0)then
+            elseif(sna(IC1(ic),IE1(ic)).gt.10.0)then
               call eclose3(cog(1),cog(2),cog(3),cogo(1),cogo(2),
      &          cogo(3),0.6,closecog)
             else
@@ -5153,21 +5106,24 @@ C Tighter tollerances for small surfaces.
             vdist= crowxyz(cog(1),cog(2),cog(3),cogo(1),cogo(2),
      &        cogo(3))
           endif
-          if(ssna(ic).lt.1.0)then
-            CALL ECLOSE(SSNA(ij),ssna(ic),0.1,closea)
-          elseif(ssna(ic).gt.10.0)then
-            CALL ECLOSE(SSNA(ij),ssna(ic),0.5,closea)
+          if(sna(IC1(ic),IE1(ic)).lt.1.0)then
+            CALL ECLOSE(SNA(IC1(ij),IE1(ij)),sna(IC1(ic),IE1(ic)),0.1,
+     &        closea)
+          elseif(sna(IC1(ic),IE1(ic)).gt.10.0)then
+            CALL ECLOSE(SNA(IC1(ij),IE1(ij)),sna(IC1(ic),IE1(ic)),0.5,
+     &        closea)
           else
-            CALL ECLOSE(SSNA(ij),ssna(ic),0.3,closea)
+            CALL ECLOSE(SNA(IC1(ij),IE1(ij)),sna(IC1(ic),IE1(ic)),0.3,
+     &        closea)
           endif
 
 C Also check angle between surfaces are within ANGCC degrees orientation
 C for surfaces which are not horizontal.
           lnsa=lnblnk(sname(IC1(ij),IE1(ij)))
-          call eclose(SSPELV(ij),-90.0,1.0,testisfloor)
-          call eclose(SSPELV(ij),90.0,1.0,testisceiling)
-          SELV=SSPELV(ic)+SSPELV(ij)
-          DAZI=SSPAZI(ic)-SSPAZI(ij)
+          call eclose(SPELV(IC1(ij),IE1(ij)),-90.0,1.0,testisfloor)
+          call eclose(SPELV(IC1(ij),IE1(ij)),90.0,1.0,testisceiling)
+          SELV=SPELV(IC1(ic),IE1(ic))+SPELV(IC1(ij),IE1(ij))
+          DAZI=SPAZI(IC1(ic),IE1(ic))-SPAZI(IC1(ij),IE1(ij))
           DAZI=ABS(DAZI)
           call eclose(DAZI,180.0,ANGCC,closeaz)
           call eclose(SELV,0.0,ANGCC,closee)
@@ -5196,8 +5152,9 @@ C If horizontal relax the azimuth test.
      &        sname(IC1(ij),IE1(ij))(1:lnsa),' in ',
      &        zname(ic1(ij))(1:lnzname(ic1(ij))),
      &        ' conn index ',ij,
-     &        ' area=',SSNA(ij),' azim=',sspazi(ij),
-     &        ' elev=',sspelv(ij),' @ dist ',vdist,
+     &        ' area=',SNA(IC1(ij),IE1(ij)),' azim=',
+     &        spazi(IC1(ij),IE1(ij)),
+     &        ' elev=',spelv(IC1(ij),IE1(ij)),' @ dist ',vdist,
      &        ' match?'
             call edisp(iuout,outs)
             ifound=ifound+1   ! increment number neighbors found
@@ -5212,14 +5169,15 @@ C If nothing found try again with looser tollerances.
             closecog=.false.; closea=.false.; closee=.false.
             closeaz=.false.; closeenough=.false.
             if(ic1(ij).ne.icomp)then  ! if in another zone
-              cogo(1)=ssurcog(ij,1); cogo(2)=ssurcog(ij,2)
-              cogo(3)=ssurcog(ij,3)
+              cogo(1)=surcog(IC1(ij),IE1(ij),1)
+              cogo(2)=surcog(IC1(ij),IE1(ij),2)
+              cogo(3)=surcog(IC1(ij),IE1(ij),3)
 
 C Tighter tollerances for small surfaces.
-              if(ssna(ic).lt.1.0)then
+              if(sna(IC1(ic),IE1(ic)).lt.1.0)then
                 call eclose3(cog(1),cog(2),cog(3),cogo(1),cogo(2),
      &            cogo(3),0.3,closecog)
-              elseif(ssna(ic).gt.10.0)then
+              elseif(sna(IC1(ic),IE1(ic)).gt.10.0)then
                 call eclose3(cog(1),cog(2),cog(3),cogo(1),cogo(2),
      &            cogo(3),0.9,closecog)
               else
@@ -5230,21 +5188,24 @@ C Tighter tollerances for small surfaces.
      &          cogo(3))
             endif
 
-            if(ssna(ic).lt.1.0)then
-              CALL ECLOSE(SSNA(ij),ssna(ic),0.1,closea)
-            elseif(ssna(ic).gt.10.0)then
-              CALL ECLOSE(SSNA(ij),ssna(ic),0.5,closea)
+            if(sna(IC1(ic),IE1(ic)).lt.1.0)then
+              CALL ECLOSE(SNA(IC1(ij),IE1(ij)),sna(IC1(ic),IE1(ic)),
+     &          0.1,closea)
+            elseif(sna(IC1(ic),IE1(ic)).gt.10.0)then
+              CALL ECLOSE(SNA(IC1(ij),IE1(ij)),sna(IC1(ic),IE1(ic)),
+     &          0.5,closea)
             else
-              CALL ECLOSE(SSNA(ij),ssna(ic),0.3,closea)
+              CALL ECLOSE(SNA(IC1(ij),IE1(ij)),sna(IC1(ic),IE1(ic)),
+     &          0.3,closea)
             endif
 
 C Also check angle between surfaces are within ANGCC degrees orientation
 C for surfaces which are not horizontal.
             lnsa=lnblnk(sname(IC1(ij),IE1(ij)))
-            call eclose(SSPELV(ij),-90.0,1.0,testisfloor)
-            call eclose(SSPELV(ij),90.0,1.0,testisceiling)
-            SELV=SSPELV(ic)+SSPELV(ij)
-            DAZI=SSPAZI(ic)-SSPAZI(ij)
+            call eclose(SPELV(IC1(ij),IE1(ij)),-90.0,1.0,testisfloor)
+            call eclose(SPELV(IC1(ij),IE1(ij)),90.0,1.0,testisceiling)
+            SELV=SPELV(IC1(ic),IE1(ic))+SPELV(IC1(ij),IE1(ij))
+            DAZI=SPAZI(IC1(ic),IE1(ic))-SPAZI(IC1(ij),IE1(ij))
             DAZI=ABS(DAZI)
             call eclose(DAZI,180.0,3.0,closeaz)
             call eclose(SELV,0.0,3.0,closee)
@@ -5273,8 +5234,9 @@ C If horizontal relax the azimuth test.
      &          sname(IC1(ij),IE1(ij))(1:lnsa),' in ',
      &          zname(ic1(ij))(1:lnzname(ic1(ij))),
      &          ' conn index ',ij,
-     &          ' area=',SSNA(ij),' azim=',sspazi(ij),
-     &          ' elev=',sspelv(ij),' @ dist ',vdist,
+     &          ' area=',SNA(IC1(ij),IE1(ij)),' azim=',
+     &          spazi(IC1(ij),IE1(ij)),
+     &          ' elev=',spelv(IC1(ij),IE1(ij)),' @ dist ',vdist,
      &          ' match?'
               call edisp(iuout,outs)
               ifound=ifound+1   ! increment number neighbors found
@@ -5317,7 +5279,7 @@ C If horizontal relax the azimuth test.
 C Update information needed to display information on the other side
 C of this surface (i.e. if we went from unknown to a partition).
               icoth=ICO
-              ii=ssmlcindex(ic)
+              ii=smlcindex(icomp,is)
 
 C Also check the other side construction and see if it matches. If
 C current surface MLC index is known get isymindex for the other side.
@@ -5352,12 +5314,12 @@ C << TO HERE >>
                   call edisp(iuout,
      &  'Please check attributes and/or revise common constructions.')
                   TOSMLCN= SMLCN(IC1(icoth),IE1(icoth))
-                  iissmlci=ssmlcindex(icoth)  ! leave it alone
+                  iissmlci=smlcindex(ic1(icoth),ie1(icoth))  ! leave it alone
                 else
 
 C We have a non-symmetric MLC which does point to a reversed version
 C so check to see if the name of the other MLC matches mlcsymetric.
-                  ii=ssmlcindex(ic)
+                  ii=smlcindex(icomp,is)
                   lnsmlc=lnblnk(SMLCN(IC1(icoth),IE1(icoth)))
                   if(SMLCN(IC1(icoth),IE1(icoth))(1:4).eq.'UNKN')then
                     TOSMLCN= mlcsymetric(ii)
@@ -5423,7 +5385,7 @@ C other zone) and write out that zones geometry.
 
 C Assign new MLC name and connexion info to the icoth surface.
           SMLCN(IC2(IC),IE2(IC))=TOSMLCN
-          if(iissmlci.ne.0) ssmlcindex(icoth)=iissmlci  ! update if known
+          if(iissmlci.ne.0) smlcindex(IC2(IC),IE2(IC))=iissmlci  ! update if known
           SOTHER(IC1(icoth),IE1(icoth),1)='ANOTHER'
           write(SOTHER(IC1(icoth),IE1(icoth),2),'(i2.2)') IC2(icoth)
           write(SOTHER(IC1(icoth),IE1(icoth),3),'(i3.3)') IE2(icoth)
@@ -5460,18 +5422,20 @@ C     subset of choices can be presented.
 #include "model.h"
 #include "geometry.h"
 #include "sbem.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       CHARACTER outs*124
+      character TOUSE1*12,TOUSE2*12  ! to remember other side use
 
       character guesstype*24  ! for context of surface addition
       dimension iuseopt(32)
       character*32 useopt(25)
       character*72 ltmp
+      character SN*12
       integer IRT  ! for radio button
-      logical changed,dok,ok,newgeo ! to detect change
-      logical showother
+      logical changed,ok,newgeo ! to detect change
+      logical showother,updoth
       dimension IVALS(10)
 
 C For help messages
@@ -5483,7 +5447,8 @@ C For help messages
 
 C Set local working variables.
       is=isur; ic=icon
-      changed=.false.
+      write(SN,'(a12)') SNAME(IZ,IS)
+      changed=.false.; updoth=.false.
       if(ICT(icon).eq.3)then
         showother=.true.
       else
@@ -5548,6 +5513,7 @@ C Setup array of menu strings.
         IOS=iuseopt(1)
         if(IOS.eq.0) return
         changed=.true.
+        if(showother)updoth=.true.
         if(IOS.eq.1)then
           iuopt=1  ! DOOR NORMAL
         elseif(IOS.eq.2)then
@@ -5622,6 +5588,7 @@ C Setup array of menu strings.
         IOS=iuseopt(1)
         if(IOS.eq.0) return
         changed=.true.
+        if(showother)updoth=.true.
         if(IOS.eq.1)then
           iuopt=2  ! DOOR PERSONEL
         elseif(IOS.eq.2)then
@@ -5667,6 +5634,7 @@ C Setup array of menu strings.
         IOS=iuseopt(1)
         if(IOS.eq.0) return
         changed=.true.
+        if(showother)updoth=.true.
 
         if(IOS.eq.1)then
           iuopt=5  ! FICTitious
@@ -5711,6 +5679,7 @@ C Setup array of menu strings.
         IOS=iuseopt(1)
         if(IOS.eq.0) return
         changed=.true.
+        if(showother)updoth=.true.
 
         if(IOS.eq.1)then
           iuopt=1  ! DOOR NORMAL
@@ -5759,6 +5728,7 @@ C Setup array of menu strings.
         IOS=iuseopt(1)
         if(IOS.eq.0) return
         changed=.true.
+        if(showother)updoth=.true.
 
         if(IOS.eq.1)then
           iuopt=1  ! DOOR NORMAL
@@ -5798,6 +5768,7 @@ C Setup array of menu strings.
         IOS=iuseopt(1)
         if(IOS.eq.0) return
         changed=.true.
+        if(showother)updoth=.true.
 
         if(IOS.eq.1)then
           iuopt=5  ! FICTitious
@@ -5821,22 +5792,28 @@ C Common editing of variants - doors:
 C If a partition then update the other surface use attribute.
       if(iuopt.eq.1)then
         SUSE(iz,IS,1)='DOOR'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='DOOR'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='DOOR'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
       elseif(iuopt.eq.2)then
         SUSE(iz,IS,1)='P-DOOR'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='P-DOOR'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='P-DOOR'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
       elseif(iuopt.eq.3)then
         SUSE(iz,IS,1)='H-DOOR'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='H-DOOR'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='H-DOOR'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
       elseif(iuopt.eq.4)then
         SUSE(iz,IS,1)='V-DOOR'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='V-DOOR'
-      endif
-
-C Do not need second tag if generating notional model
-      if(guesstype(1:8).eq.'notional')then
-        SUSE(iz,IS,2)='-'
-        goto 55
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='V-DOOR'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
       endif
       if(iuopt.eq.1.or.iuopt.eq.2.or.iuopt.eq.3.or.iuopt.eq.4)then
         helptopic='door_use_open_closed'
@@ -5847,24 +5824,40 @@ C Do not need second tag if generating notional model
      &    'cancel',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.2)then
           SUSE(iz,IS,2)='UNDERCUT'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='UNDERCUT'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='UNDERCUT'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.3)then
           SUSE(iz,IS,2)='OPEN'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='OPEN'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='OPEN'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.4)then
           SUSE(iz,IS,2)='BIDIR'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='BIDIR'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='BIDIR'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.5)then
           continue
         endif
       endif
- 55   if(iuopt.eq.5)then
+
 C If a partition then update the other surface use attributes.
+      if(iuopt.eq.5)then
         SUSE(iz,IS,1)='FICT'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='FICT'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='FICT'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
 
         helptopic='fict_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -5874,16 +5867,28 @@ C If a partition then update the other surface use attributes.
      &    'cancel',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.2)then
           SUSE(iz,IS,2)='CRACK'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='CRACK'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='CRACK'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.3)then
           SUSE(iz,IS,2)='OPEN'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='OPEN'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='OPEN'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.4)then
           SUSE(iz,IS,2)='BIDIR'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='BIDIR'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='BIDIR'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.5)then
           continue
         endif
@@ -5899,16 +5904,20 @@ C If a partition then update the other surface use attributes.
 
       if(iuopt.eq.8)then
         SUSE(iz,IS,1)='F-FRAME'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='F-FRAME'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='F-FRAME'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
       elseif(iuopt.eq.9)then
         SUSE(iz,IS,1)='FRAME'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='FRAME'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='FRAME'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
       endif
-      if(guesstype(1:8).eq.'notional')then
-        SUSE(iz,IS,2)='-'
-        goto 57
-      endif
+
       if(iuopt.eq.8.or.iuopt.eq.9)then
+
 C If a partition then update the other surface use attributes.
         helptopic='frame_use_open_closed'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -5918,19 +5927,28 @@ C If a partition then update the other surface use attributes.
      &    ' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.2)then
           SUSE(iz,IS,2)='CRACK'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='CRACK'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='CRACK'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.3)then
           SUSE(iz,IS,2)='VENT'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='VENT'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='VENT'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.4)then
           continue
         endif
       endif
 
-  57  if(iuopt.eq.10)then
+      if(iuopt.eq.10)then
         SUSE(iz,IS,1)='FURNI'
         SUSE(iz,IS,2)='- '
       elseif(iuopt.eq.11)then
@@ -5938,7 +5956,10 @@ C If a partition then update the other surface use attributes.
         SUSE(iz,IS,2)='- '
       elseif(iuopt.eq.12)then
         SUSE(iz,IS,1)='GRILL'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='GRILL'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='GRILL'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
         helptopic='grill_use'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
@@ -5947,22 +5968,40 @@ C If a partition then update the other surface use attributes.
      &    'natural air flow','duct','cancel',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.2)then
           SUSE(iz,IS,2)='CRACK'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='CRACK'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='CRACK'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.3)then
           SUSE(iz,IS,2)='INLET'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='INLET'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='INLET'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.4)then
-          SUSE(iz,IS,2)='EXTRACT'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='EXTRACT'
+          SUSE(iz,IS,2)='EXTRACT'  ! Other side would be closed
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.5)then
           SUSE(iz,IS,2)='OPEN'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='OPEN'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='OPEN'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.6)then
           SUSE(iz,IS,2)='DUCT'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='DUCT'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='DUCT'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.7)then
           continue
         endif
@@ -5971,9 +6010,15 @@ C If a partition then update the other surface use attributes.
 
 C If a partition then update the other surface use attributes.
         SUSE(iz,IS,1)='PARTN'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='PARTN'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='PARTN'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
         SUSE(iz,IS,2)='- '
-        if(showother) SUSE(IC2(icon),IE2(icon),2)='- '
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),2)='- '
+          TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+        endif
       elseif(iuopt.eq.14)then
         SUSE(iz,IS,1)='ROOF'
         SUSE(iz,IS,2)='PITCHED'
@@ -5994,16 +6039,28 @@ C If a partition then update the other surface use attributes.
 C If a partition then update the other surface use attributes.
       if(iuopt.eq.19)then
         SUSE(iz,IS,1)='C-WINDOW'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='C-WINDOW'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='C-WINDOW'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
       elseif(iuopt.eq.20)then
         SUSE(iz,IS,1)='D-WINDOW'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='D-WINDOW'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='D-WINDOW'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
       elseif(iuopt.eq.21)then
         SUSE(iz,IS,1)='S-WINDOW'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='S-WINDOW'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='S-WINDOW'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
       elseif(iuopt.eq.22)then
         SUSE(iz,IS,1)='WINDOW'
-        if(showother) SUSE(IC2(icon),IE2(icon),1)='WINDOW'
+        if(showother)then
+          SUSE(IC2(icon),IE2(icon),1)='WINDOW'
+          TOUSE1=SUSE(IC2(icon),IE2(icon),1)
+        endif
       elseif(iuopt.eq.23)then
         SUSE(iz,IS,1)='FIXTURE'
         SUSE(iz,IS,2)='- '
@@ -6033,11 +6090,6 @@ C the user and set 2nd parameter to '-'.
         SUSE(iz,IS,1)='-'
       endif
 
-C Do not need second tag if generating notional model
-      if(guesstype(1:8).eq.'notional')then
-        SUSE(iz,IS,2)='-'
-        goto 56
-      endif
       if(iuopt.eq.19.or.iuopt.eq.20.or.iuopt.eq.21.or.iuopt.eq.22)then
 C If a partition then update the other surface use attributes.
         helptopic='window_use_open_closed'
@@ -6048,36 +6100,105 @@ C If a partition then update the other surface use attributes.
      &    'cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.2)then
           SUSE(iz,IS,2)='CRACK'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='CRACK'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='CRACK'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.3)then
           SUSE(iz,IS,2)='OPEN'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='OPEN'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='OPEN'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.4)then
           SUSE(iz,IS,2)='SASH'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='SASH'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='SASH'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.5)then
           SUSE(iz,IS,2)='BIDIR'
-          if(showother) SUSE(IC2(icon),IE2(icon),2)='BIDIR'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='BIDIR'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
         elseif(IRT.eq.6)then
           continue
         endif
       endif
-56    if(iuopt.eq.25)then
+      if(iuopt.eq.25)then
         SUSE(iz,IS,1)='- '
         SUSE(iz,IS,2)='- '
       endif
 
-C If changed then save the zone geometry.
+C If changed then save the zone geometry. If a partition save
+C both zones.
       if(changed)then
-        DOK=.false.
-        CALL ASKOK('  ','Save changes to surface attributes?',
-     &    OK,DOK,nbhelp)
+        CALL EASKOK(' ','Save changes to surface attributes?',
+     &    OK,nbhelp)
+        if(showother.and.updoth.and.ok)then
+          CALL ESCZONE(IZ)
+          write(outs,'(6a)') 
+     &      'Updating `other side` USE of ',
+     &      SN(1:lnblnk(SN)),' to ',TOUSE1,' & ',TOUSE2
+          call edisp(iuout,outs)
+          call eclose(gversion(IC2(icon)),1.1,0.01,newgeo)
+          if(newgeo)then
+            call georead(IFIL+2,LGEOM(IC2(icon)),IC2(icon),0,
+     &        iuout,IER)
+          else
+            call egomin(IFIL+2,LGEOM(IC2(icon)),IC2(icon),0,0,
+     &        iuout,IER)
+          endif
+
+C Apply USE to other side but make an exception for GRILL. If
+C it is INLET or EXTRACT set it to CLOSED on the other side. If it
+C is CLOSED on this side it might be an INLET or EXTRACT on the
+C other side so if that is the case do not change it.
+          if(TOUSE1(1:5).eq.'GRILL'.and.TOUSE2(1:5).eq.'INLET')then
+            SUSE(IC2(icon),IE2(icon),1)=TOUSE1  ! apply to other zone
+            SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+          elseif(TOUSE1(1:5).eq.'GRILL'.and.
+     &           TOUSE2(1:7).eq.'EXTRACT')then
+            SUSE(IC2(icon),IE2(icon),1)=TOUSE1  ! apply to other zone
+            SUSE(IC2(icon),IE2(icon),2)='CLOSED'
+          elseif(TOUSE1(1:5).eq.'GRILL'.and.
+     &           TOUSE2(1:7).eq.'CLOSED')then
+            if(SUSE(IC2(icon),IE2(icon),1)(1:5).eq.'GRILL')then
+              continue  ! don't overwrite the other side
+            else
+              SUSE(IC2(icon),IE2(icon),1)=TOUSE1  ! apply to other zone
+              SUSE(IC2(icon),IE2(icon),2)=TOUSE2
+            endif 
+          else
+            SUSE(IC2(icon),IE2(icon),1)=TOUSE1  ! apply to other zone
+            SUSE(IC2(icon),IE2(icon),2)=TOUSE2
+          endif
+          call eclose(gversion(IC2(icon)),1.1,0.01,newgeo)
+          if(.NOT.newgeo)then
+            gversion(IC2(icon)) =1.1
+            newgeo = .true.
+          endif
+          call geowrite(IFIL+2,LGEOM(IC2(icon)),IC2(icon),
+     &      iuout,3,IER)
+          IF(IER.NE.0)CALL USRMSG(
+     &      'Problem updating other surface attribute... ',
+     &      '(could not write other geometry file).','W')
+
+C Read current zone data back in to commons.
+          CALL ERCZONE(IZ)
+          call usrmsg(' Updating other side...done.',' ','-')
+          updoth=.false.
+        endif
         LTMP=LGEOM(IZ)
 
-C Test for saving current or new format geometry file.
+C Update the current zone attributes.
         IF(OK)then
           call eclose(gversion(iz),1.1,0.01,newgeo)
           if(.NOT.newgeo)then
@@ -6106,7 +6227,7 @@ C Parameters
       character use1*12        ! general use type
       character use2*12        ! details of use
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       dimension iuseopt(32)
       character*32 useopt(25)
@@ -6452,15 +6573,13 @@ C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
 #include "geometry.h"
 #include "prj3dv.h"
 #include "epara.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/FILEP/IFIL
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      LOGICAL MODGEO,ok,dok,match,matchver
+      LOGICAL MODGEO,ok,match,matchver
 
 C Tollerance for surface matching.
       real ANGCC  ! angle between surfaces tolerance
@@ -6969,10 +7088,9 @@ C number of vertices associated with this surface) shifting
 C JVN indices up one until at the current edge (jivjj) and then
 C inserting the new vertex index.
                     if(NVER(jivj)+1.le.MV)then
-                      dok=.true.
-                      call askok(' ',
+                      call easkok(' ',
      &                  'Insert this (close to edge) vertex?',
-     &                  ok,dok,nbhelp)
+     &                  ok,nbhelp)
                     else
                       ok=.false.
                     endif
@@ -7108,8 +7226,7 @@ C Use ratio calculation to make an aligned point vdislsp along the line.
             call edisp(itru,outs)
 
             if(MMOD.eq.8)call wiresymbol(x3,y3,z3,2,24)
-            dok=.true.
-            call askok('  ','Is this aligned vertex ok?',ok,dok,nbhelp)
+            call easkok(' ','Aligned vertex OK?',ok,nbhelp)
             if(ok)then
 
 C Update the coordinates in common blocks and return.
@@ -7209,7 +7326,7 @@ C     &      'find closest to a vertex','cancel',INVT,nbhelp)
      &        -99.,'F',99.,'F',0.0,'test Z',IER,nbhelp)
             call linesatz(icomp,'Z',VALT)
 
-C test for picking up a close vertex.
+C Test for a close vertex.
             HOLD=' 0.0  0.0  0.0'
             CALL EASKS(HOLD,'test point',' ',36,' 0. 0. 0. ','vtx co',
      &        IER,nbhelp)
@@ -7258,8 +7375,7 @@ C Use ratio calculation.
 
 C Show the new point on the current wireframe.
             if(MMOD.eq.8)call wiresymbol(x3,y3,z3,2,24)
-            dok=.true.
-            call askok('  ','Apply this move?',OK,dok,nbhelp)
+            call easkok(' ','Apply this move?',OK,nbhelp)
             if(OK)then
               x(IWHICH1)=x3; y(IWHICH1)=y3; z(IWHICH1)=z3
               szcoords(ICOMP,IWHICH1,1)=x3; szcoords(ICOMP,IWHICH1,2)=y3
@@ -7331,8 +7447,7 @@ C Show this point on the current wireframe.
             call wiresymbol(x3,y3,z3,2,24)
             call forceflush()
           endif
-          dok=.true.
-          call askok('  ','Apply this change?',OK,dok,nbhelp)
+          call easkok(' ','Apply this change?',OK,nbhelp)
           if(OK)then
             NTV=NTV+1; NZTV(icomp)=NTV; MODGEO=.true.
             x(NTV)=x3; y(NTV)=y3; z(NTV)=z3
@@ -7436,9 +7551,8 @@ C number of vertices associated with this surface) shifting
 C JVN indices up one until at the current edge (ivjj) and then
 C inserting the new vertex index.
                     if(NVER(ivj)+1.le.MV)then
-                      dok=.true.
-                      call askok(' ','Insert this vertex?',
-     &                  ok,dok,nbhelp)
+                      call easkok(' ','Insert this vertex?',
+     &                  ok,nbhelp)
                     else
                       ok=.false.
                     endif
@@ -7475,9 +7589,8 @@ C Surface (ivj) vertex list has been updated. Go on to next surface.
 
 C See if another one is required.
               if(ino.eq.1)then
-                dok=.false.
-                call askok(' ','Another vertex along the line? ',
-     &            ok,dok,nbhelp)
+                call easkok(' ','Another vertex along the line?',
+     &            ok,nbhelp)
                 if(ok)then
                   anotherone=.true.
                   goto 243
@@ -7485,9 +7598,8 @@ C See if another one is required.
                   anotherone=.false.
                 endif
               elseif(ino.eq.3)then
-                dok=.false.
-                call askok(' ','Another vertex from this origin?',
-     &            ok,dok,nbehlp)
+                call easkok(' ','Another vertex from this origin?',
+     &            ok,nbehlp)
                 if(ok)then
                   anotherone=.true.
                   goto 243
@@ -7495,10 +7607,9 @@ C See if another one is required.
                   anotherone=.false.
                 endif
               elseif(ino.eq.5)then
-                dok=.false.
-                call askok(' ',
+                call easkok(' ',
      &            'Another intersection of line and plane?',
-     &            ok,dok,nbehlp)
+     &            ok,nbehlp)
                 if(ok)then
                   anotherone=.true.
                   goto 243
@@ -7761,8 +7872,7 @@ C iwhich1 and replace the reference iwhich2.
                 if(JVN(ivj,ivjj).eq.iwhich1)then  ! check for match
                   write(outs,'(3a,i3,a)') 'In ',sname(icomp,ivj),
      &              ' found vertex ',iwhich1,' in its edge list.'
-                  dok=.true.
-                  call askok(outs,'Ok to substitute?',ok,dok,nbhelp)
+                  call easkok(outs,'OK to substitute?',ok,nbhelp)
                   if(ok)then
                     JVN(ivj,ivjj)=iwhich2
                     if(newgeo)then
@@ -7925,7 +8035,7 @@ C Parameters
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -7949,7 +8059,7 @@ C Tollerance for surface matching.
       COMMON/GFONT/IFS,ITFS,IMFS
       DIMENSION  COG1(3),COG2(3),COG3(3)
 
-      LOGICAL OK,bound,DOK,nameok
+      LOGICAL OK,bound,nameok
       logical newgeo  ! to use for testing if new/old geometry file.
       integer ifoc    ! local variable for current surface index
       integer iwhich  ! for the worst off point (warped surface check)
@@ -8481,13 +8591,12 @@ C Suggest a set of coordinates which will be in the plane by
 C Calling reverse transform with zzz as 1.0
                 ZZZ=1.0
                 CALL ORTTRN(X1,Y1,ZZZ,RMAT,XXS,YYS,ZZS,IERR)
-                WRITE(outs,'(a,3F9.5)') ' Suggested coords are',
+                WRITE(outs,'(a,3F9.5)') 'Suggested coords are',
      &            XXS,YYS,ZZS
                 CALL EDISP(iuout,outs)
 
 C Ask user if they want to update the vertex with the new values.
-                DOK=.true.
-                CALL ASKOK(outs,'Update the vertex?',OK,DOK,nbhelp)
+                CALL EASKOK(outs,'Update vertex?',OK,nbhelp)
                 if(OK)then
                   X(JVN(is,loop))=XXS
                   Y(JVN(is,loop))=YYS
@@ -8545,10 +8654,8 @@ C Show these points as small circles...
 
 C Then draw the revised and if acceptable then used transformed
 C points within the zone in place of the originals....
-        DOK=.true.
-        CALL ASKOK('Apply the transformed points to the',
-     &             'surface (and any attached surfaces)?',
-     &             OK,DOK,nbhelp)
+        CALL EASKOK(' ','Apply transformed points to the surface',
+     &             OK,nbhelp)
         if(OK)then
           MODIFYVIEW=.TRUE.
           DO J = 1,N
@@ -8571,17 +8678,17 @@ C Multisurface selection.
         CALL EPMENSV
         CALL EASKMSUR(ICOMP,INPICK,ISLIST,
      &    'Select surface(s) to delete.',' ',IER)
-C        write(6,*) INPICK,(ISLIST(J),J=1,10)
         CALL EPMENRC
         if(inpick.gt.0)then
           KFLAG = -1
           call SORTI(ISLIST,ITEMP,MS,KFLAG)
-C          write(6,*) INPICK,(ISLIST(J),J=1,10)
           do loop=1,inpick
             iopt=0    ! offer editing box with mouse click.
             itrcl=0
             IS=ISLIST(loop)
-            CALL ADDSUR(itrcl,ICOMP,IS,'D','V',iopt,IER)
+            CALL ADDSUR(itrcl,ICOMP,IS,'D','V',iopt,IER)  ! Delete surface
+            call zinfo(icomp,zoa,zvol,'q')                ! Re-derive values
+            call zgupdate(0,icomp,ier)
             CALL EMKCFG('-',IER)
             call eclose(gversion(icomp),1.1,0.01,newgeo)
             if(.NOT.newgeo)then
@@ -8655,7 +8762,9 @@ C the mouse click option.
           call tstamp('>','PRJ: insert surface via vertex')
           iopt=1     ! offer mouse click directly
           iadds=0; itrcl=0
-          CALL ADDSUR(ITRCL,ICOMP,iadds,'A','V',iopt,IER)
+          CALL ADDSUR(ITRCL,ICOMP,iadds,'A','V',iopt,IER) ! Add surface
+          call zinfo(icomp,zoa,zvol,'q')                  ! Re-derive values
+          call zgupdate(0,icomp,ier)
         elseif(IRT.eq.3)then
           CALL EPMENSV
           call tstamp('>','PRJ: insert surface into another')
@@ -8678,7 +8787,9 @@ C << ?? make use of rsname etc in interactive use?? >>
           call tstamp('>','PRJ: copy local surfaces')
           iopt=2      ! offer copy of local surfaces
           iadds=0; itrcl=0
-          CALL ADDSUR(ITRCL,ICOMP,iadds,'C','V',iopt,IER)
+          CALL ADDSUR(ITRCL,ICOMP,iadds,'C','V',iopt,IER) ! Copy surface
+          call zinfo(icomp,zoa,zvol,'q')                  ! Re-derive values
+          call zgupdate(0,icomp,ier)
         elseif(IRT.eq.5)then
 
 C Echo the current tolerances and ask if small features.
@@ -8696,7 +8807,9 @@ C Echo the current tolerances and ask if small features.
           call tstamp('>','PRJ: copy another zone surfaces')
           iopt=1      ! offer mouse click directly ??
           iadds=0; itrcl=0
-          CALL ADDSUR(ITRCL,ICOMP,iadds,'C','V',iopt,IER)
+          CALL ADDSUR(ITRCL,ICOMP,iadds,'C','V',iopt,IER) ! Copy surface
+          call zinfo(icomp,zoa,zvol,'q')                  ! Re-derive values
+          call zgupdate(0,icomp,ier)
         elseif(IRT.eq.6.or.IRT.eq.9)then
 
 C Get vertical rectangular surface orgin.
@@ -8708,8 +8821,8 @@ C Get vertical rectangular surface orgin.
           call tstamp('>','PRJ: add vertical surface')
 
 C Offer similar choices to setting up obstructions (see edobs.F)
-          call easkabcd(' ','Origin choices:','edit origin',
-     &      'use zone vertex','@ angle&dist from vertex','continue',
+          call easkabcd(' ','Origin choices:','edit',
+     &      'use zone vertex','angle & distance from vertex','cancel',
      &      ibopt,nbhelp)
           if(ibopt.eq.1)then
             HOLDS= ' 0.000  0.000  0.000   '
@@ -8719,7 +8832,7 @@ C User current zone G1 common block to present list of points.
             inpick=1
             CALL EPMENSV
             call EPKVERT(INPICK,IVLST,'Vertices for origin',
-     &        'Select a vertex to define the origin...',' ',nbhelp,ier)
+     &        'Select a vertex to define the origin.',' ',nbhelp,ier)
             CALL EPMENRC
             if(inpick.eq.1)then
               iwhich1=IVLST(1)
@@ -8799,8 +8912,8 @@ C Get horizontal rectangular surface orgin.
           call tstamp('>','PRJ: add horizontal surface')
 
 C Offer similar choices to setting up obstructions (see edobs.F)
-          call easkabcd(' ','Origin choices:','edit origin',
-     &      'use zone vertex','@ angle&dist from vertex','continue',
+          call easkabcd(' ','Origin choices:','edit',
+     &      'use zone vertex','angle & distance from vertex','cancel',
      &      ibopt,nbhelp)
           if(ibopt.eq.1)then
             HOLDS= ' 0.000  0.000  0.000   '
@@ -9023,7 +9136,7 @@ C ask them about its use and composition.
           SPARENT(ICOMP,NSUR)='-'
           SUSE(ICOMP,NSUR,1)='-'
           SUSE(ICOMP,NSUR,2)='-'
-          icon=ICONT
+C          icon=ICONT
 
 C Add surface to the connection list (icont) assuming an unknown boundary. 
           call addedsurf(icomp,icont,1,ier)
@@ -9187,9 +9300,7 @@ C Parameters
       integer iCountWords
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
  
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
@@ -9275,10 +9386,10 @@ C Draw vertex symbol and index in red.
 C Highlight the arrow of the focus surface.
         write(stemp,'(A)')SNAME(ICOMP,IFOC)
         if(itsnr.eq.0)then
-          CG(1)=SSURCOG(ic,1); CG(2)=SSURCOG(ic,2)
-          CG(3)=SSURCOG(ic,3)
-          VN(1)=SSURVN(ic,1); VN(2)=SSURVN(ic,2)
-          VN(3)=SSURVN(ic,3)
+          CG(1)=SURCOG(icomp,isurf,1); CG(2)=SURCOG(icomp,isurf,2)
+          CG(3)=SURCOG(icomp,isurf,3)
+          VN(1)=SURVN(icomp,isurf,1); VN(2)=SURVN(icomp,isurf,2)
+          VN(3)=SURVN(icomp,isurf,3)
           CALL VECTRN(VN,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iixc,iiyc)
@@ -9304,8 +9415,8 @@ C Offset the surface name depending on orientation.
           call forceflush()
           CALL winfnt(IMFS)
         else
-          CG(1)=SSURCOG(ic,1); CG(2)=SSURCOG(ic,2)
-          CG(3)=SSURCOG(ic,3)
+          CG(1)=SURCOG(icomp,isurf,1); CG(2)=SURCOG(icomp,isurf,2)
+          CG(3)=SURCOG(icomp,isurf,3)
           CALL VECTRN(CG,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iixc,iiyc)
@@ -9482,7 +9593,7 @@ C Parameters passed.
       integer ier     ! error state zero ok, one problem
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -9711,8 +9822,6 @@ C the perimiter of the polygon with global commons.
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       logical dupedges
 
       perim=0.0
@@ -9802,7 +9911,6 @@ C ZDESC (64 char) - zone notes from geometry.h.
       common/dllerr/dllsubr,dllmesg
 
       DIMENSION XX(MS),YY(MS),IVA(MS)
-      DIMENSION SNA(MS),PAZI(MS),PELV(MS)
 
 C For each possible default window and default door the relevant data.
       DIMENSION VALX(MS),VALZ(MS),VALW(MS),VALH(MS)
@@ -10254,7 +10362,8 @@ C Estimate base area.
 C If base area has not yet been calculated, do this now and
 C get surface areas via call to zinfo.
       if(checkbase)then
-        call zinfo(sna,zoa,pazi,pelv,zvol,'q')
+        call zgupdate(0,icomp,ier)
+        call zinfo(icomp,zoa,zvol,'q')
         vol(icomp)=zvol
         zonetotsurfacearea(icomp)=zoa
         do 43 ijj=1,NSUR
@@ -10268,7 +10377,7 @@ C USE is something other than FURNI.
               lastlist=lastlist+1
               if(lastlist.le.6)then
                 IBASES(ICOMP,lastlist)=ijj
-                ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(ijj)
+                ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(icomp,ijj)
               endif
             endif
           endif
@@ -10320,7 +10429,7 @@ C the connections list, then remind user to double check topology.
      &      'surface attributes or use topology tool.','W')
           ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
         endif
-        ssmlcindex(iccc)=ssmlcindex(icc)
+        smlcindex(ic1(iccc),ie1(iccc))=smlcindex(icomp,icc)
         isznver(icomp,icc)=NVER(icc)
         DO KV=1,isznver(icomp,icc)
           iszjvn(icomp,icc,KV)=JVN(icc,KV)
@@ -10489,7 +10598,7 @@ C #include "material.h"
 C derived.h are derived areas and U values for zones and the model
 #include "derived.h"
  
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       integer IZSTOCN
@@ -11241,8 +11350,8 @@ C been made.
 
       integer IZSTOCN  ! for each zone:surface a pointer to connection index.
       COMMON/C24/IZSTOCN(MCOM,MS)
-      integer IUOUT,IUIN
-      COMMON/OUTIN/IUOUT,IUIN
+      integer IUOUT,IUIN,IEOUT
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       logical MODGEO
       character msg*42
@@ -11256,12 +11365,12 @@ C USE attribute is furniture then do not include in base surface count.
           write(msg,'(a,2i4)') 'No connection for zone surf',icomp,i
           call edisp(iuout,msg)
         else
-          if(SSPELV(ioc).GE.-1.5.AND.SSPELV(ioc).LE.1.5)then
+          if(SPELV(icomp,i).GE.-1.5.AND.SPELV(icomp,i).LE.1.5)then
             if(SVFC(icomp,i).NE.'VERT')then
               MODGEO=.TRUE.
               SVFC(icomp,i)='VERT'
             endif
-          elseif(SSPELV(ioc).GE.88.5.AND.SSPELV(ioc).LE.91.5)then
+          elseif(SPELV(icomp,i).GE.88.5.AND.SPELV(icomp,i).LE.91.5)then
             if(SVFC(icomp,i).NE.'CEIL')then
               SVFC(icomp,i)='CEIL'
               MODGEO=.TRUE.
@@ -11271,7 +11380,8 @@ C USE attribute is furniture then do not include in base surface count.
                 izsceil(icomp)=I   ! identify as a ceiling
               endif
             endif
-          elseif(SSPELV(ioc).GE.-91.5.AND.SSPELV(ioc).LE.-88.5)then
+          elseif(SPELV(icomp,i).GE.-91.5.AND.
+     &           SPELV(icomp,i).LE.-88.5)then
             if(SVFC(icomp,i).NE.'FLOR')then
               SVFC(icomp,i)='FLOR'
               MODGEO=.TRUE.
@@ -11309,7 +11419,7 @@ C Passed parameters
       dimension CX(10),CY(10),CZ(10)
       integer IER    ! IER=0 OK, IER=1 problem.
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION VERT(35)
       CHARACTER VERT*34,KEY*1,head*28
       character outs*124
@@ -11434,7 +11544,7 @@ C an axis X Y or Z and test value (atest). Store them in jvnatz.
       integer icomp  ! the zone
       character axis*1
       real atest
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Tollerance for surface matching.
       real ANGCC  ! angle between surfaces tolerance
@@ -11515,7 +11625,7 @@ C edges.
       integer icomp  ! the zone
       real px,py,pz,rx,ry,rz
       integer ok
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer jvnatz  ! jvn instanciated only for zlevel
       integer vertatz ! vertex index close to zlevel (zero ignore)

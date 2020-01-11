@@ -52,12 +52,10 @@ C ********************************************************************
 #include "esprdbfile.h"
 #include "material.h"
 #include "CFC_common.h"
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/FILEP/IFIL
       integer ifil
-      common/pophelp/h(60)
-      character h*72
       COMMON/C24/IZSTOCN(MCOM,MS) !array which holds the connection index
       integer izstocn
 
@@ -65,7 +63,7 @@ C ********************************************************************
       integer ne,nairg,ipairg
       real rairg
 
-      integer IER,IS,icomp,icn1,ncfccount,igap,ie, imlc
+      integer IER,IS,icomp,ncfccount,igap,ie, imlc
       integer nmaxtypes,ntypes,icfctp,isame,iss,ncfctypes,i,icount
       integer ij,it,icompare1,icompare2,icn2,ibk,iwa,nmax,itrunc,ipos
       integer IFU,ival,itype,istat,loutlen,ln_outs,ln_zonepth
@@ -81,6 +79,13 @@ C ********************************************************************
 
       LOGICAL legacy_CFC_xst, CFC2_xst
       integer iShdLayers
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='makeCFCfile'     ! set for subroutine
       
       vb_xst = .false.
       drp_xst = .false.
@@ -93,20 +98,14 @@ C ********************************************************************
       IER=0
       IFU=IFIL+2
 
+      helptopic='CFC_creation_overview'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
 C Ask user to update CFC file or continue
       write(outs,'(a,a)') 'CFC model file is ',
      &                      lcfcin(icomp)
-      h(1)=' For instructions on importing *.GSL files'
-      h(2)=' see "Appendix F: CFC User Reference" from'
-      h(3)=' http://uwspace.uwaterloo.ca'
-      h(4)=' /bitstream/10012/4164/1/Lomanowski_Bartosz.pdf'
-      h(5)=''
-      h(6)=' If GSL files have already been imported, select'
-      h(7)=' continue.'
-      h(8)=' To download the Glazing Shading Layer Editor go to'
-      h(9)=' the ESRU website downloads section.'
       CALL EASKAB(outs,'Options:',
-     &     'Update CFC file','continue',IWA,9)
+     &     'Update CFC file','cancel',IWA,nbhelp)
 
 C Update CFC file selected
       IF(IWA.EQ.1)THEN
@@ -114,8 +113,7 @@ C Update CFC file selected
 C 1. scan G6 common and check that CFCs are VERT and EXTERIOR
       ncfccount=0
       DO 10 IS=1,NZSUR(icomp)
-        icn1=izstocn(icomp,is)
-        imlc = ssmlcindex(icn1)
+        imlc = smlcindex(icomp,is)
         IF(SOTF(icomp,is)(1:3).eq.'CFC')then
             if(SVFC(icomp,is)(1:4).eq.'VERT'.and.
      &         SOTHER(icomp,is,1)(1:5).eq.'EXTER')then
@@ -235,36 +233,24 @@ C nmaxtypes holds default max # of CFC types
 
 C ask user to provide alternate number of CFC types
 C (cannot exceed # of CFCs in zone)
- 11   H(1)=' The minimum number of CFC types required is given as'
-      H(2)=' default. If, for instance, two surfaces use the same'
-      H(3)=' CFC definition but different slat angle settings'
-      H(4)=' then two different CFC types can be defined here.'
-      CALL EASKI(ncfctypes,' ','Number of CFC types?',
+ 11   CALL EASKI(ncfctypes,' ','Number of CFC types?',
      &    nmaxtypes,'F',ncfccount,'F',nmaxtypes,
-     &    'no of CFC types',IER,4)
+     &    'no of CFC types',IER,nbhelp)
       if(IER.EQ.-3)GOTO 99
       im_ncfc(icomp)=ncfctypes
 
 C go through CFC constructions and ask user to assign type for each one,
       ncfccount=0
       DO 40 IS=1,NZSUR(icomp)
-        icn1=izstocn(icomp,is)
         itype=0
         IF(SOTF(icomp,is)(1:3).eq.'CFC')then
 
           if(ncfccount.lt.nmaxtypes)ncfccount=ncfccount+1
 
-          H(1)= 'Assign CFC type to surface. '
-          H(2)=''
-          H(3)=' For an example of usage see'
-          H(4)=' "Appendix F: CFC User Reference" from'
-          H(5)=' http://uwspace.uwaterloo.ca'
-          H(6)=' /bitstream/10012/4164/1/Lomanowski_Bartosz.pdf'
-
           write(outs,'(4A)')'Surface: ',SNAME(icomp,is),
      &      'Constr: ',SMLCN(icomp,is)
           CALL EASKI(itype,'CFC type for: ',outs,1,'F',
-     &    ncfctypes,'F',ncfccount,'CFC type',IER,1)
+     &    ncfctypes,'F',ncfccount,'CFC type',IER,nbhelp)
           if(IER.EQ.-3)GOTO 99
           im_cfcfl(icomp,is)=itype
         ELSE
@@ -294,7 +280,6 @@ C check mismatch between CFC type and construction (two different CFC
 C constructions cannot have the same CFC type)
       if(ncfccount.ge.1)then
       DO 70 is=1, NZSUR(icomp)
-        icn1=izstocn(icomp,is)
         icompare1=im_cfcfl(icomp,is)
         if(icompare1.gt.0)then
          do 80 iss=1,NZSUR(icomp)
@@ -352,19 +337,11 @@ C if this cfc type has already been processed, skip to next surface
         endif
 
 C get location and GSLedit file name for each CFC type
-
-        H(1)=' Provide the path and file name of the *.GSL file  '
-        H(2)=' that corresponds to this CFC type.'
-        H(3)=''
-        H(4)=' For an example of usage see'
-        H(5)=' "Appendix F: CFC User Reference" from'
-        H(6)=' http://uwspace.uwaterloo.ca'
-        H(7)=' /bitstream/10012/4164/1/Lomanowski_Bartosz.pdf'
-
         ltmp=GSLfiles(icomp,icfctp)
         write(outs,'(a,i4)')
      &      'GSLedit file name and path for CFC type: ',icfctp
-        CALL EASKS(ltmp,outs,' ',72,ltmp,'GSLedit file name',IER,7)
+        CALL EASKS(ltmp,outs,' ',72,ltmp,'GSLedit file name',IER,
+     &    nbhelp)
         IF(IER.EQ.-3)GOTO 99
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
           GSLfiles(icomp,icfctp)=ltmp
@@ -387,19 +364,8 @@ C import GSLedit data and store in cfc commons
           CALL EDISP(IUOUT,outs)
   
         else
-          h(1)=' Generate *.GSL file using GSLedit and copy file'
-          h(2)=' to desired location within the Model folders.'
-          h(3)=' Make sure path is correct.'
-          h(4)=''
-          h(5)=' For an example of usage see'
-          h(6)=' "Appendix F: CFC User Reference" from'
-          h(7)=' http://uwspace.uwaterloo.ca'
-          h(8)=' /bitstream/10012/4164/1/Lomanowski_Bartosz.pdf'
-
-
-
           CALL EASKAB('File not found! ','Options:',
-     &       'try again','cancel',IWA,8)
+     &       'try again','cancel',IWA,nbhelp)
           if(IWA.eq.1)goto 12
           if(IWA.eq.2)GOTO 99
         endif
@@ -424,8 +390,7 @@ C.......import CFC layer properties from the CFClayers db.
             is = is + 1
           end do
 C.........Now get construction layer details for surface 'is'
-          icn1 = izstocn(icomp,is)   
-          imlc = ssmlcindex(icn1)
+          imlc = smlcindex(icomp,is)
           im_ncfc_el(icomp,icfctp) = ne(is)
           DO IL = 1, ne(is)
             cfcarrayindex = ITMCFCDB(imlc,IL)
@@ -1151,10 +1116,8 @@ C ********************************************************************
       subroutine importGSLedit(IUF,GSLfile,icomp,icfctp,isur,IER)
 #include "building.h"
 #include "CFC_common.h"
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout,iuin
-      common/pophelp/h(60)
-      character h*72
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
       integer ne,nairg,ipairg
       real rairg
@@ -1172,6 +1135,13 @@ C ********************************************************************
 
       logical vb_xst,drp_xst,rld_xst,bug_xst
 
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='importGSLedit'     ! set for subroutine
+
       vb_xst = .false. ! slat-type blind
       drp_xst = .false. ! pleated drape
       rld_xst = .false. ! roller blind
@@ -1188,6 +1158,9 @@ C ********************************************************************
       IF(IER.NE.0)THEN
         GOTO 98
       ENDIF
+
+      helptopic='slat_angle_convention'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C establish no. of non-gas gap layers in cfc type 
       nelts_nogas=ne(isur)-nairg(isur)
@@ -1292,35 +1265,20 @@ C      endif
 C Ask user to specify slat orientation (HORZ, VERT) and initial slat
 C angle for venetian blinds, or calculate fullness ratio for draperies. 
       if(vb_xst)then
-          h(1)=' Vertical or Horizontal Slats: '
-          h(2)=' '
-          h(3)=' For slat angle sign convention, see Figure F.12 in:'
-          h(4)=' "Appendix F: CFC User Reference" from'
-          h(5)=' http://uwspace.uwaterloo.ca'
-          h(6)=' /bitstream/10012/4164/1/Lomanowski_Bartosz.pdf'
-          
-          write(outs,'(a,i2)')
+           write(outs,'(a,i2)')
      &      'Specify blind slat orientation for cfc type: ',icfctp
           ln_outs=lnblnk(outs)
           CALL EASKAB(outs(1:ln_outs),' ',
-     &            'Vertical','Horizontal',IWA,6)
+     &            'Vertical','Horizontal',IWA,nbhelp)
           if(IWA.eq.1)cim_VorH(icomp,icfctp)='VERT'
           if(IWA.eq.2)cim_VorH(icomp,icfctp)='HORZ'
 
-          h(1)=' Initial Slat angle:'
-          h(2)=' This is a constant if there is not slat control'
-          h(3)=''
-          h(4)=' For slat angle sign convention, see Figure F.12 in:'
-          h(5)=' "Appendix F: CFC User Reference" from'
-          h(6)=' http://uwspace.uwaterloo.ca'
-          h(7)=' /bitstream/10012/4164/1/Lomanowski_Bartosz.pdf'
-          
           write(outs,'(a,i2)')
      &      'Specify intial blind slat angle for cfc type: ',icfctp
           rphi=0.0
           ln_outs=lnblnk(outs)
           CALL EASKR(rphi,' ',outs(1:ln_outs),-89.999,'F',
-     &               89.999,'F',0.0,'slat angle',IER,7)
+     &               89.999,'F',0.0,'slat angle',IER,nbhelp)
           rim_vb_phi(icomp,icfctp)=rphi
       endif
 
@@ -1330,11 +1288,11 @@ C angle for venetian blinds, or calculate fullness ratio for draperies.
         rdrp_s=0.0
     
           CALL EASKR(rdrp_w,'Specify drape width (mm): ',' ',0.0000,'F',
-     & 500.00,'F',0.0,'drape width',IER,7)
+     & 500.00,'F',0.0,'drape width',IER,nbhelp)
           rim_drp_w(icomp,icfctp)=rdrp_w   
         
           CALL EASKR(rdrp_s, 'Specify pleat spacing (mm): ',' ',0.0000,
-     &      'F',500.00,'F',0.0,'drape spacing',IER,7)     
+     &      'F',500.00,'F',0.0,'drape spacing',IER,nbhelp)     
           rim_drp_s(icomp,icfctp)=rdrp_s
     
 !          rim_drp_Fr(icomp,icfctp) = 1 + rim_drp_w(icomp,icfctp)/
@@ -1670,8 +1628,7 @@ c GSLedit import Error messages.
 
 C If in quiet mode: the file should exist => error if we are here.
    98 IF(IER.EQ.-1)THEN
-        H(1)=' CFCs must contain more than one layer.'
-        CALL PHELPD('file error',2,'-',0,0,IER)
+        CALL PHELPD('file error',nbhelp,'-',0,0,IER)
       ELSE
         CALL EDISP(IUOUT,' GSLedit import error ')
       ENDIF
@@ -1697,8 +1654,8 @@ C ********************************************************************
 #include "geometry.h"
 #include "espriou.h"
 #include "CFC_common.h"
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/C24/IZSTOCN(MCOM,MS)
       integer izstocn
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
@@ -1716,6 +1673,7 @@ C ********************************************************************
 
       real val
       logical vb_xst, drp_xst, rld_xst, bug_xst
+
       val=0.
       vb_xst = .false. ! slat-type shade
       drp_xst = .false. ! pleated drape
@@ -2275,20 +2233,27 @@ C `h` heat transfer (comvective) methods, `-` zone names only.
       integer izstocn
 
       COMMON/FILEP/IFIL
-      common/pophelp/h(60)
 
       LOGICAL XST
       CHARACTER title*72
       
       DIMENSION VERT(35)
       CHARACTER VERT*27,KEY*1
-      character h*72
       
       character OUTSTR*124
       integer IUA, NS, K, M, L, i, j, icn
       integer MVERT,IVERT ! max items and current menu item
 
       DIMENSION IVA(MS)
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='askCFCtype'     ! set for subroutine
+      helptopic='CFC_type_select'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       
       IUA=IFIL+1
       
@@ -2377,9 +2342,6 @@ C If a long list include page facility text and info on portion seen.
 C Number of actual items displayed
         MVERT=M+MCTL
         
-C Help message for this menu.
-        H(1)='Select CFC type to apply shading schedule/control.'
-
 C Display the menu.
         write(title,'(2a)')'Select CFC type in ',
      &  zname(icomp)(1:lnblnk(zname(icomp)))
@@ -2389,7 +2351,7 @@ C Get user selection
         if (IVERT.EQ.MVERT) then
           return
         elseif (IVERT.EQ.(MVERT-1)) then
-          CALL PHELPD('Choose CFC type',1,'-',0,0,IER)
+          CALL PHELPD('Choose CFC type',nbhelp,'-',0,0,IER)
         elseif (IVERT.GT.MHEAD.AND.IVERT.LT.(ILEN+1)) then
           icfctype=IVERT
           goto 1000
@@ -2403,12 +2365,7 @@ C Redisplay menu.
 
       ELSE
       
-        H(1)='*.cfc file not found'
-        H(2)=''
-        H(3)='CFC input data must first be imported before'
-        H(4)='editing the shading schedule can commence.'
-       
-        CALL PHELPD('CFC file not found',4,'-',0,0,IER)      
+        CALL PHELPD('CFC file not found',nbhelp,'-',0,0,IER)      
         
       ENDIF
  

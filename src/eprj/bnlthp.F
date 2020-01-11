@@ -82,7 +82,7 @@ C geometry.h provides commons G0/G1/G2/G5/precz.
 
       COMMON/FILEP/IFIL
       COMMON/HELP/IHELPM
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -98,7 +98,7 @@ C geometry.h provides commons G0/G1/G2/G5/precz.
       LOGICAL INTHPS,INTHPZ
 
       DIMENSION IVAL2(4),IVAL3(MCOM),IVAL4(MS),IVAL5(ME)
-      LOGICAL OK,DOK,SAVEOK,XST
+      LOGICAL OK,SAVEOK,XST
 
       CHARACTER ITEM(16)*35,ITEM2(4)*25
       CHARACTER*20 ITEM3(MCOM),ITEM4(MS),ITEM5(ME)
@@ -371,15 +371,13 @@ C Return to simulator. Before that check thermal configuration legality.
         ICHCK=0
         CALL THERMC(ICHCK)
         IF(ICHCK.NE.0)THEN
-          dok=.false.
-          CALL ASKOK(' WARNING messages were detected',
-     &               ' Are you sure you want to exit ? ',OK,dok,nbhelp)
+          CALL EASKOK('Warning messages issued!',
+     &                'Confirm exit? ',OK,nbhelp)
           IF(.NOT.OK)GOTO 10
         ENDIF
         IF(SAVEOK)THEN
-          dok=.true.
-          CALL ASKOK('Detected unsaved changes in model. The model',
-     &    'configuration should be saved. Do this?',OK,dok,nbhelp)
+          CALL EASKOK('Unsaved changes detected!',
+     &      'Write system configuration file?',OK,nbhelp)
           IF(OK)CALL EMKCFG('-',IER)
         ENDIF
         CALL USRMSG(' ',' ','-')
@@ -401,7 +399,7 @@ C ****************************************************************
 
       COMMON/FILEP/IFIL
       COMMON/HELP/IHELPM
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/VTHP12/NTHEQ(MTHF),BTHDT(MTHF,MTHEQ,MDATA)
       CHARACTER ITEM(24)*42,TEXT*40,OUTSTR*124,TEXT1*95,TEXT2*95
       CHARACTER*72 TITLE,THFIL,EQNTXT,EQNMSG
@@ -693,7 +691,7 @@ C *****************************  THERMC  ******************************
       SUBROUTINE THERMC(ICHCK)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/VTHP11/NTHF,IBTHAL(MTHF,3)
       COMMON/VTHP12/NTHEQ(MTHF),BTHDT(MTHF,MTHEQ,MDATA)
       
@@ -945,7 +943,7 @@ C *********************************************************************
       SUBROUTINE THCHKS(I1,J1,I2,IZ,IS,IL,IER)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/VTHP12/NTHEQ(MTHF),BTHDT(MTHF,MTHEQ,MDATA)
 
       CHARACTER TEXT*115
@@ -980,7 +978,7 @@ C *********************************************************************
       SUBROUTINE THCHKF(IF,IER)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/VTHP12/NTHEQ(MTHF),BTHDT(MTHF,MTHEQ,MDATA)
 
       CHARACTER TEXT*115

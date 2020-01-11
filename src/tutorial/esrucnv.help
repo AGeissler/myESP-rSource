@@ -19,7 +19,7 @@
 '     zone construction file select the [Save] '
 '     option in the following menu. '
 *enditem
-        CALL PHELPD('unknowns atrib in constr',11,'-',0,0,IER)
+
 *item EDCON pre_zone_constructions
 'The zone construction file defines the thermophysical'
 'properties of the zone and is required in order to run a'
@@ -46,15 +46,12 @@
 'transparent you will be asked to confirm this file name.'
 '  '
 *enditem
-        CALL EASKS(LTMP,' Zone construction file? ',' ',
-        CALL EASKABC(outs,'Options:',
-        CALL PHELPD('file error',2,'-',0,0,IER)
-        CALL EASKAB(outs,'Options:','respecify',
+
 *item EDCON confirm_surf_opaque
 'The opaque/transparent attribute of the surface is not'
 'OPAQUE. If it is opaque then select [ok].'
 *enditem
-          CALL ASKOK(outs,'Confirm surface is opaque?',OK,DOK,2)
+
 *item EDCON complex_fen_options
 'Complex Fenestration Construction (CFC)'
 'A CFC allows for a more accurate treatment of glazing systems'
@@ -83,8 +80,7 @@
 'supply the name of the *.cfc file which will store the CFC'
 'input data for this zone.'
 *enditem
-        CALL EASKS(ltmp,'CFC file name?',
-        CALL PHELPD('CFC instructions',19,'-',0,0,IER)
+
 *item EDCON zone_constructions_menu
 'The surface attributes within the zone geometry file,'
 'in conjunction with the Constructions db, allow the'
@@ -137,13 +133,13 @@
 'optical property control logic so care is required to ensure'
 'that they operate together.'
 *enditem
-       CALL PHELPD('zone geom file section',54,'-',0,0,IER)
+
 *item EDCON attribute_recent_change
 'The Project Manager thinks that there have been recent changes'
 'to either surface attributes or constructions that have not'
 'been saved. To be safe agree to saving these changes.'
 *enditem
-          CALL ASKOK('Save changes in surface attributes or',
+
 *item EDCON zone_linear_cond
 'The linear conductivity facility currently requires that you'
 'use an external text editor to add information to the zone'
@@ -158,14 +154,14 @@
 'A non-linear property facility is also available from the'
 'above menu.'
 *enditem
-        CALL PHELPD('linear properties',11,'-',0,0,IER)
+
 *item EDCON constr_write_error
 'Check that you have permission to update the zone files and'
 'that you have sufficient disk space. If you are running on OSX'
 'or Linux or Cygwin there may be messages written to the command'
 'window.'
 *enditem
-          CALL ASKOK(
+
 *subroutine EDSCON
 *item EDSCON surface_constr_atrib
 'This is a display of the surface attributes which may be edited.'
@@ -210,14 +206,7 @@
 'If a layer is identified as an air gap all you can do is to'
 'alter its resistance -.e.g. 0.18 m^2K/W for a cavity wall'
 *enditem
-        CALL PHELPD('surface details',12,'-',0,0,IER)
-        CALL EASKABCD('Select a type for the surface.',' Surface type',
-        CALL EASKR(EMISI(ISUR),' ','Inside emissivity  ?',
-        CALL EASKR(EMISE(ISUR),' ','Outside emissivity ?',
-        CALL EASKR(ABSI(ISUR),' ',' Inside absorptivity ? ',
-        CALL EASKR(ABSE(ISUR),' ',' Outside absorptivity? ',
-        CALL EASKS(HOLD,
-        CALL EASKR(VAL,' ',' Air gap resistance ? ',
+
 *subroutine MKTWIN
 *item MKTWIN tmc_file_not_found
 'The zone TMC (tramsparent multilayer construction data file does not'
@@ -225,7 +214,7 @@
 '  '
 'Please create / rereference this file individually.'
 *enditem
-        CALL PHELPD('file error',2,'-',0,0,IER)
+
 *subroutine EDTWIN
 *item EDTWIN constr_attribute_checks
 'Surfaces have several attributes which are ment to work together'
@@ -246,9 +235,7 @@
 'will be given the option to try it again or to clear the'
 'control definition.'
 *enditem
-        CALL EASKAB(outs,' do you want to:','switch to opaque',
-        CALL EASKABC(outs,' Do you want to: ',
-        CALL ASKOK('Try again to define the optical control?',
+
 *item EDTWIN detect_existing_opt_ctl'
 'If there is a surface attribute that indicates that an existing'
 'optical control. You have the following options:'
@@ -273,11 +260,7 @@
 '  '
 ' * one user defined internal Daylight Coefficient sensor is used.'
 *enditem
-        CALL EASKABC(outs,' ','remove this optical control',
-        CALL ASKOK(OUTS,'optical control?',OK,dok,2)
-        CALL EASKI(N1,' ','Number of control periods?',
-        CALL EASKAB(' ','Transparent surfaces controlled by:',
-        CALL EASKI(N2,' ','Surface for common sensor location?',
+
 *item EDTWIN optical_control_summary
 'Surfaces composed of transparent constructions will have optical'
 'properties defined from either the Optical Properties db or'
@@ -323,20 +306,7 @@
 'will be given the option to try it again or to clear the'
 'control definition.'
 *enditem
-          CALL EASKR(VAL,outs,' Begin at hour: ',
-          CALL EASKR(VAL,outs,' End at hour  : ',
-          call EASKATOG('Controlled on:','(currently time)',
-          call EASKATOG('Controlled on:','(currently radiation)',
-          call EASKATOG('Controlled on:','(currently ambient temp.)',
-          call EASKATOG('Controlled on:','(currently zone temp.)',
-          call EASKATOG('Controlled on:','(currently daylight coef)',
-          call EASKATOG('Controlled on:','(currently Lightswitch)',
-          call EASKATOG('Controlled on:','(currently undefined)',
-          CALL EASKR(VAL,' ','Radiation set point?',
-          CALL EASKR(VAL,' ','Ambient temp. set point?',
-          CALL EASKR(VAL,' ','Zone temp. set point',
-          CALL EASKR(VAL,' ','Lux set point',
-          CALL EASKR(VAL,' ','Lightswitch lux set point?',
+
 *subroutine EOPTKS
 *item EOPTKS manual_optical_editing
 'The simulation of radiation transmission through glazing is angular'
@@ -370,11 +340,7 @@
 'If you cancel you will be taken back to the start of the editing'
 'sequence. '
 *enditem
-      CALL EASKAB(' Get optical properties from: ',' ',
-      CALL EASKS(HOLD,' Direct trans @ 0 40 55 70 80 degrees: ',
-      CALL EASKR(VTRN,' ',' Visible transmittance: ',
-      CALL EASKI(NTLT,' ',
-      CALL EASKS(HOLD,outs,'  ',
+
 *subroutine ELISTMAT
 *item ELISTMAT cat_list_materials
 'The classifications shown in the display include up to'
@@ -389,10 +355,7 @@
 'or exported to a text file.'
 '  '
 *enditem
-        CALL PHELPD('materials menu',3,'-',0,0,IER)
-        CALL EPICKS(INPIC,ICLSSEL,' ',' Which classes to list:',
-        CALL EASKABC(' Reporting to:',' ',
-        CALL EASKS(t32,' Classification name (<32 char)?',' ',
+
 *item ELISTMAT materials_db_overview
 'The information in this display is based on data from a'
 'materials database. Databases of this this type are referenced'
@@ -432,14 +395,7 @@
 'Recent changes to the materials database are held'
 'in memory and might be lost if not saved to file.'
 *enditem
-          CALL ASKOK('Changes have been made in database. ',
-          CALL EASKS(t32,' ',' Classification name (<32 char)?',
-          CALL EASKS248(t248,'Category notes:',' ',
-          CALL PHELPD('materials database',17,'-',0,0,IER)
-          CALL EASKABCD(' ','Options: ','Delete existing material',
-          CALL EASKR(PER1,' ','First material % in the layer: ',
-          CALL EASKR(PER2,' ','Second material % in the layer: ',
-          CALL ASKOK(outs,'as your selection ?',OK,dok,1)
+
 *subroutine EDONEMAT
 *item EDONEMAT material_db_edit_one
 'This display shows the attributes of this material. The attributes'
@@ -486,22 +442,7 @@
 'Recent changes to materials are held in memory and if you exit'
 'without saving the edited data will be discarded. '
 *enditem
-        CALL ASKOK(' ','Accept changes in material (see help)?',
-        CALL EASKS(tnam,' ',' Description of material? ',
-        CALL EASKS248(tdoc,' ',' Documentation for material? ',
-        CALL EASKR(DBCON,' ',' Conductivity (W/(m deg.C): ',
-        CALL EASKR(DBDEN,' ',' Density (kg/m**3): ',
-        CALL EASKR(DBSHT,' ',' Specific heat (J/(kg deg.C): ',
-        CALL EASKR(EOUT,' ',' Surface emissivity : ',
-        CALL EASKR(EOUT,' ',' Outside face emissivity : ',
-        CALL EASKR(EIN,' ',' Surface emissivity : ',
-        CALL EASKR(EIN,' ',' Inside face emissivity : ',
-        CALL EASKR(AOUT,' ',' Surface absorptance: ',
-        CALL EASKR(AOUT,' ',' Outside face absorptance: ',
-        CALL EASKR(AIN,' ',' Surface absorptance : ',
-        CALL EASKR(AIN,' ',' Inside face absorptance: ',
-        CALL EASKR(dbdrv,' ','Vapour resistvity (MNs g^-1m^-1): ',
-        CALL EASKR(THICK,' ',' Default thickness (mm) : ',
+
 *item EDONEMAT material_db_edit_type
 'Legacy opaque was imported from an older materials database'
 'and only contains essential data. Future materials database'
@@ -528,16 +469,7 @@
 '    <<more text to be added...>>'
 '  '
 *enditem
-        CALL EASKATOG('Material options:',message,
-        CALL EASKR(IRTRAN,' ','Longwave transmittance (-): ',
-        CALL EASKR(SOLDRTRN,' ','Solar direct transmittance (-): ',
-        CALL EASKR(soldrotrfl,' ',
-        CALL EASKR(soldrinrfl,' ',
-        CALL EASKR(vistran,' ','Visible trans (-): ',
-        CALL EASKR(visotrfl,' ',
-        CALL EASKR(visinrfl,' ',
-        CALL EASKR(visinrfl,' ',
-        CALL PHELPD('material attributes',9,'-',0,0,IER)
+]
 *subroutine pregist
 *item pregist cfg_overview
 'The model configuration file holds the definition of the building,'
@@ -563,7 +495,7 @@
 ' dbs (model specific databases)'
 ' bsm (BASESIMP files)'
 *enditem
-        CALL EASKSCMD(LCFTMP,' ','Model root name?',
+
 *item pregist cfg_overwrite_warning
 'If you overwrite the existing configuration file its contents'
 'will be lost unless you have backed up your data.'
@@ -571,13 +503,13 @@
 'If you want to create a new model variant say no and enter'
 'a different file name.'
 *enditem
-          call askok('There is an existing configuration with',
+
 *item pregist cfg_model_descriptor
 'A model has an associated descriptor (<72 characters, which is'
 'used later as an identifier, e.g. Low energy building with'
 'optimum start/stop plant control.'
 *enditem
-      CALL EASKS(ltmp,' ','Model description?',
+
 *item pregist cfg_model_log_file
 'The project log file holds a description of the project and the'
 'analysis intentions. It is located in the [cgf] folder. Keep it'
@@ -589,9 +521,7 @@
 'Note: if the log file was found but could not be scanned and'
 'opened it might be that it has unprintable characters in it.'
 *enditem
-      CALL EASKS(ltmp,' ','Project log file?',
-      CALL ASKOK('Problem detected with log file!',
-      CALL ASKOK(' ','Edit log file?',OK,dok,8)
+
 *item pregist cfg_model_images
 'A model can usefully include references to images depicting'
 'different model aspects such as geometry, flow networks,'
@@ -605,9 +535,7 @@
 'You can either identify such images now or add them later via'
 'the [model context->images] menu item.'
 *enditem
-      CALL ASKOK(' ','Associate images now?',OKI,dok,7)
-      CALL EASKS248(tcname,' ','Image notes:',
-      CALL ASKOK(' ',' Another image?',OK,dok,1)
+
 *item pregist cfg_latitude_longitude
 'Site latitude in degrees, where North is +ve, e.g. 55.9'
 'for Glasgow.  In the southern hemisphere use negative'
@@ -618,8 +546,7 @@
 'from the local time reference meridian, East is +ve, e.g.'
 '-4.1 for Glasgow (relative to the Greenwich Meridian).'
 *enditem
-        CALL EASKR(SLAT,' ','Site latitude?',
-        CALL EASKR(SLON,' ','Longitude difference from meridian?',
+
 *item pregist cfg_model_year
 'The assessment year is required for event scheduling.(e.g.'
 'to determine which day of the week is 1 January. You can'
@@ -628,7 +555,7 @@
 'The cancel option will accept the year associated with'
 'the climate file used in a simultion.'
 *enditem
-        CALL EASKI(IYEART,' ','Assessment year?',
+
 *item pregist cfg_model_other
 'Other site information, such as ground reflectivity and'
 'wind exposure, have been automatically set to default'
@@ -640,5 +567,4 @@
 'seasonal controls or operational regimes) that you want to'
 'define, do this BEFORE working with any controls or schedules.'
 *enditem
-        CALL PHELPD('new site',9,'-',0,0,IER)
 

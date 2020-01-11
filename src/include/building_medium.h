@@ -23,6 +23,7 @@ C Type declarations.
       integer MMAT,MIPVM,MIPVA,MSPS,MDTY,MGTY,MGPER
       integer MCNDV,MCNDC,MPICK,MVAR,MIMG
       integer MCFC,MSPMRES,MBL,MSPMSPLM,MVOBJ,MVOBJE
+      integer NTCELX,NTCELY,NTCELZ,MCEL1D,MNREG
 
 C Geometry.
       PARAMETER (MCOM=82)      !- Zones.
@@ -42,7 +43,7 @@ C Construction.
       PARAMETER (ME=16)        !- Elements/construction. - 8 to 16 to support CFCs (B Lomanowski)
       PARAMETER (MN=50)        !- Nodes/construction.    - 35 to 50 to support CFCs (B Lomanowski)
       PARAMETER (MGP=8)        !- Air gaps/construction. - 3 to 8 to support CFCs (B Lomanowski)
-      PARAMETER (MMLC=200)     !- Multilayered constructions in model.
+      PARAMETER (MMLC=250)     !- Multilayered constructions in model.
       PARAMETER (MHCV=MN+ME)   !- Control volumes per construction.
 
 C Glazing.
@@ -57,7 +58,7 @@ C Shading/insolation.
       PARAMETER (MOX=120)      !- Grid lines in x-direction.
       PARAMETER (MOZ=120)      !- Grid lines in z-direction.
       PARAMETER (MISUR=10)     !- Surfaces insolated from one source.
-      PARAMETER (MBP=8)        !- TMC blind control periods.
+      PARAMETER (MBP=7)        !- TMC blind control periods.
       PARAMETER (MVOBJ=50)     !- Visual objects
       PARAMETER (MVOBJE=14)    !- Visual entities per object.
 
@@ -119,14 +120,15 @@ C Results analysis.
       PARAMETER (MSPS=30)       !- Simulation parameter sets.
       PARAMETER (MNFA=4)        !- Factorial analyses.
 C      PARAMETER (MNRS=2**MNFA)  !- Result sets (set to 100 for sensitivity analysis).
-      PARAMETER (MNRS=100)      !- Result sets (set to 100 for sensitivity analysis).
+      PARAMETER (MNRS=200)      !- Result sets (set to 100 for sensitivity analysis).
       PARAMETER (MIPVA=MSPS)    !- IPV assessments.
       PARAMETER (MIPVM=12)      !- IPV metrics.
       PARAMETER (MZS=120)       !- Number of items to report in res (biggest of MCOM or MS).
       PARAMETER (MZRL=MS+12)    !- Fields in a zone results library record. It should
-                                !  be largest of (36 for file names or MCON+12 for zones
-                                !  if MCOM>MS or MS+12 if MS>MCOM or MGP * 5). For building_medium.h
+                                !  be largest of (40 for file names or MCOM for zones
+                                !  if MCOM>MS or MS+12 if MS>MCOM or MGP*5). For building_medium.h
                                 !  use MS+12. See reslib.F for logic.
+
 C Mathematical model.
       PARAMETER (MEQ=MS+1)      !- Equations.
       PARAMETER (MTR=MS+4)      !- Equation terms.
@@ -159,6 +161,13 @@ C Multi-gridding.
       PARAMETER (MGXYZ=15)      !- x, y and z intervals for ground.
       PARAMETER (MBTYP=10)      !- Boundary types for ground.
       PARAMETER (MNM=50)        !- Moisture nodes.
+
+C CFD gridding.
+      PARAMETER (NTCELX=42)    !- Maximum number of cells in x direction
+      PARAMETER (NTCELY=42)    !- Maximum number of cells in y direction
+      PARAMETER (NTCELZ=42)    !- Maximum number of cells in z direction
+      PARAMETER (MCEL1D=42)    !- Maximum number between ntcelx, ntcely and ntcelz
+      PARAMETER (MNREG=21)     !- Maximum number of gridding regions per axis
 
 C Structured-gridding.
       PARAMETER (MROW=12)       !- Rows.
