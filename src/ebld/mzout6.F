@@ -41,7 +41,7 @@ C ----------------------------------------------------------------
       
       integer lnblnk  ! function definition
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL   
       COMMON/SAVE0/TVMEM(MCOM,4,2),ZTU(MCOM),ZTL(MCOM),ZPH(MCOM),
      &   ZPC(MCOM),TZPH(MCOM),TZPC(MCOM),TZPHM(MCOM,12),TZPCM(MCOM,12)
@@ -714,8 +714,8 @@ C contributions from renewable energy resources
 #include "geometry.h"
 #include "sbem.h"      
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       INTEGER NCOMP,NCON
       COMMON/C1/NCOMP,NCON

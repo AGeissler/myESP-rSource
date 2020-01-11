@@ -42,9 +42,10 @@ C Age of Air" is a "passive scalar" quantity, it does not affect
 C the velocity field and should be calculated after convergence 
 C for all other variables is achieved. 
       SUBROUTINE CALCLMA(ITIMST)
+#include "building.h"
 #include "cfd.h"
 
-      common/outin/IUOUT,IUIN
+      common/outin/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
@@ -102,7 +103,7 @@ C Common blocks for blockages and small supply openings
 
       DIMENSION CRES(4),CMON(4)
 
-      LOGICAL OK,DOK,LINVOL
+      LOGICAL OK,LINVOL
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -396,12 +397,11 @@ C        write(6,*) 'Residual and max resid ',RESORL,SRMAX(ICFD)
       if (RESORL.lt.SRMAX(ICFD).and.NITER.gt.20) goto 99
  9999 continue
 
-C Check max iters.
-      dok=.true.
+C Check maximum iterations.
       helptopic='dfs_convergence_accept'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('Maximum iterations reached,','accept solution?',
-     &   OK,dok,nbhelp)
+      CALL EASKOK('Maximum iterations reached!','Accept solution?',
+     &   OK,nbhelp)
       if (.not.OK) goto 999
 
   99  RETURN
@@ -413,6 +413,7 @@ C Age of Air" variable. There is no difference between laminar or turbulent
 C cases - at solid walls the BC's are always of the zero-gradient type. 
 
       SUBROUTINE BNDARLMA(AVELMA,SUMFLU)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
@@ -754,6 +755,7 @@ C face for blockages.
 C Zero-gradient type of BC's are applied 
 C
       SUBROUTINE BLKBNDL(IBLK)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP

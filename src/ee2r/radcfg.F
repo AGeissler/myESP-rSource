@@ -50,7 +50,7 @@ C << the issue of which folder it is in.
       
       character tfile*96  ! the radiance configuration file
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       common/rpath/path
 
@@ -875,7 +875,7 @@ C if MODE is not - then sensor points file name confirmation required.
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
       
@@ -888,7 +888,7 @@ C if MODE is not - then sensor points file name confirmation required.
       character outs*124,tfile*72
       character ITEM(MV)*15, t12*12, MODE*1
       character ldfg*72   ! local file name
-      logical dok,keep
+      logical keep
 
       dimension IVALS(MCOM), PEQN(4), ITEMV(MV)
 
@@ -1051,11 +1051,10 @@ C Display grid on the zone... (if in graphic mode)
       endif
 
 C Ask user if focus should remain on this zone or whole model
-      dok=.false.
       helptopic='df_stay_focused'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('Keep graphic feedback focused on this zone?',
-     &  '(see help)',KEEP,dok,nbhelp)
+      CALL EASKOK(' ','Keep graphic feedback focused on this zone?',
+     &  KEEP,nbhelp)
       if(KEEP)then
         continue
       else
@@ -1087,7 +1086,7 @@ C the daylight factor (act = d|D) or lux (act = l|L).
 C Parameters
       character act*1  ! action
 
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
@@ -1218,7 +1217,7 @@ C for use with a 'Coupling' scene purpose.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/CGCIN2N/NCGTC(MCOM,MDTY),NLITZ(MCOM),IDFST(MCOM,MLCOM),
@@ -1398,7 +1397,7 @@ C gain control file.
 #include "model.h"
 #include "e2r_common.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/CGCIN2N/NCGTC(MCOM,MDTY),NLITZ(MCOM),IDFST(MCOM,MLCOM),

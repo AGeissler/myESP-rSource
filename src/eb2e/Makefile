@@ -15,11 +15,12 @@ CETCdir = $(SRCdir)/cetc
 PROG = b2e$(EXE)
 default: $(PROG)
 
-.SUFFIXES: .o .F
+.SUFFIXES: .o .F .f90
 .F.o:
 	$(MFC) $(FFLAGS) -c $<
-
-%.o : %.f90
+.f90.o:
+	$(MFC) $(FFLAGS) -c $<
+.o :
 	$(MCC) $(FFLAGS) -c $<
 
 MODULE_OBJECTS = aim2_module.o startup.o
@@ -52,7 +53,7 @@ c2fdum.F:
 	ln -s $(COMdir)/c2fdum.F .
 ctlwrt.F:
 	rm -f ctlwrt.F
-	ln -s $(PRJdir)/ctlwrt.F .
+	ln -s $(COMdir)/ctlwrt.F .
 ctread.F:
 	rm -f ctread.F
 	ln -s $(COMdir)/ctread.F .

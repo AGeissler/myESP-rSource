@@ -30,7 +30,7 @@ C the climatelist file exceeds this the array name should be revised.
 
 C ********* rdblist
 C Scan list of weather databases and present selection to user.
-      subroutine rdblist(idblfil,clmdb,actreturn,ier)
+      subroutine rdblist(idblfil,clmdb,parent,actreturn,ier)
 #include "epara.h"
 #include "esprdbfile.h"
 #include "espriou.h"
@@ -48,22 +48,31 @@ C seasons.h provides typper and typsea
 C Parameters
       integer idblfil ! file unit for list of known
       character clmdb*144
-      character actreturn*1
+      character parent*1     ! parent calling application 'p' or 'c'
+      character actreturn*1  ! 's' do not start clm 'u' start clm
       integer ier
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/warncounter/iecount
       COMMON/FILEP/IFIL
       common/pophelp/h(60)
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
-      character clmlnam*32,clmlaid*72,clmldbfile*144,clmlavail*10
+      character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
 
       dimension name(124), mitem(35)
-      character name*32,mitem*34,OUTSTR*124,WORD*20
-      character group*32,key*1,look*32,tlook*32
+      character name*42,mitem*42,OUTSTR*124,WORD*20
+      character group*32,key*1,look*42,tlook*42
       character llclmdb*144,h*72
       integer NCO,ICO ! max items and current menu item
       integer ISTRW
+
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found (will be non-zero
+                         ! because default message will be created
+      helpinsub='rdblist'
 
 C Set default early winter, spring, summer, autumn, late winter periods.
       CALL EDAY(9,1,ia1wins)
@@ -147,7 +156,7 @@ C current menu line index. Build up text strings for the menu.
         IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
           M=M+1
           CALL EMKEY(L,KEY,IER)
-          WRITE(mitem(M),'(a1,1x,a28)')KEY,name(L)(1:28)
+          WRITE(mitem(M),'(a1,1x,a)')KEY,name(L)(1:40)
         ENDIF
    10 CONTINUE
 
@@ -163,49 +172,42 @@ C If a long list include page facility text.
       ENDIF
       write(mitem(1),'(2x,a30)') group(1:30)
       mitem(2)  =  '  __________________________  '
-      mitem(M+2)=  '< user defined weather db     '
-      mitem(M+3)=  '* new weather db (all zeros)  '
+      mitem(M+2)=  '< other weather file          '
+      mitem(M+3)=  '* empty weather file          '
       mitem(M+4)=  '? help                        '
       mitem(M+5)=  '- exit                        '
 
-      CALL EMENU('  Weather sets',mitem,NCO,ICO)
+      CALL EMENU('Available weather files',mitem,NCO,ICO)
+
+C Exit menu.
       IF(ICO.EQ.NCO)THEN
         CALL ERPFREE(idblfil,ISTAT)
         return
+
       ELSEIF(ICO.LE.MHEAD)THEN
         ICO= -1
         goto 42
+
+C Menu help.
       ELSEIF(ICO.EQ.(NCO-1))THEN
+        helptopic='climatelist'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL PHELPD('climatelist',nbhelp,'-',0,0,IER)
 
-C Help @ db file level.
-        h(1)='Several weather databases are available for browsing.'
-        h(2)='To find out more about one of them simply select and'
-        h(3)='additional information will be presented.  If you'
-        h(4)='wish to choose one, use the choose option.'
-        h(5)=' '
-        h(6)=' NOTE: administrators should update this file to match'
-        h(7)='   the databases, paths and documentation for their'
-        h(8)='   group.  Use a `tab` between the tag and the string.'
-        h(9)='      '
-        h(10)='For a sample of the file use `show me more`, '
-        CALL PHELPD('clm list',10,'clm_dblist  ',0,0,IER)
+C New file.
       ELSEIF(ICO.EQ.(NCO-2))THEN
-
-C New db.
         clmdb='USER_DEFINED'
         llclmdb='USER_DEFINED'
         CALL ERPFREE(idblfil,ISTAT)
         return
-      ELSEIF(ICO.EQ.(NCO-3))THEN
 
-C User supplied (which assumes default periods). Use file browser
-C with the GTK version.
+C User supplied file. Use file browser with the GTK version.
+      ELSEIF(ICO.EQ.(NCO-3))THEN
         clmdb=' '
         llclmdb=' '
-        h(1)='This weather db is assumed to be in ESP-r format.'
-        h(2)='Note: selecting a file that is not in the official'
-        h(3)='list (climate/climatelist) will not contain the meta-'
-        h(4)='data about the length of seasons or typical weeks. '
+        h(1)='Enter a standard ESP-r weather file name as, for'
+        h(2)='example, located in /opt/esp-r/climate or another'
+        h(3)='folder of your choice.'
  289    llt=lnblnk(llclmdb)
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
         if(iglib.eq.1.or.iglib.eq.3)then
@@ -221,8 +223,8 @@ C with the GTK version.
         else
           ISTRW=96
         endif
-        CALL EASKF(llclmdb,' Weather file (esp-r binary format)?',
-     &    ' ',ISTRW,DCLIM,'weather file name',IER,4)
+        CALL EASKF(llclmdb,' ','Weather file name?',
+     &    ISTRW,DCLIM,'weather file name',IER,3)
         IF(llclmdb(1:2).EQ.'  ')GOTO 289
 
 C Cast back to clmdb.
@@ -259,8 +261,8 @@ C Present information on a weather db.
 C Parse this item of the climatelist file.
 C Use an actreturn 's' that says do not start clm module and
 C actreturn 'u' to start clm module.
-            write(clmlnam,'(a)') tlook(1:32)  ! remember menu entry 
-            call itemclimatelist(idblfil,'r',actreturn,clmdb,ier)
+            write(clmlnam,'(a)') tlook(1:42)  ! remember menu entry 
+            call itemclimatelist(idblfil,'r',parent,actreturn,clmdb,ier)
             if(actreturn.eq.'e')then
               goto 92
             elseif(actreturn.eq.'i')then
@@ -274,10 +276,16 @@ C actreturn 'u' to start clm module.
               CALL ERPFREE(idblfil,ISTAT)
               return
             elseif(actreturn.eq.'f')then
-              CALL ERPFREE(idblfil,ISTAT)
-              call usrmsg('Climate list failed during scan.',
-     &          'Exiting from project manager','W')
+              if(parent.eq.'p')then
+                CALL ERPFREE(idblfil,ISTAT)
+                write(ieout,'(a)') 'Climate list failed during scan.'
+              elseif(parent.eq.'c')then
+                CALL ERPFREE(idblfil,ISTAT)
+                write(ieout,'(a)') 'Climate list failed during scan.'
+              endif
               call pauses(3)   ! pause for 3 seconds then abort program.
+              iecount=iecount+1
+              close(ieout)
               CALL EPAGEND
               STOP
             endif
@@ -298,23 +306,23 @@ C actreturn 'u' to start clm module.
       end
 
 C ********* matchcdb
-C Scan list of weather databases for name and return database.
+C Scan list of weather files for name and return database.
       subroutine matchcdb(idblfil,alias,clmdb,ier)
 #include "espriou.h"
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
-      character clmlnam*32,clmlaid*72,clmldbfile*144,clmlavail*10
+      character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
 
       dimension name(124)
-      character name*32,OUTSTR*124,WORD*20
-      character group*32,tlook*32,outs*124,louts*248
+      character name*42,OUTSTR*124,WORD*20
+      character group*32,tlook*42,outs*124,louts*248
       character clmdb*144,avail*10,alias*32
 
-C Open the list of weather databases.
+C Open the list of weather files.
       CALL EFOPSEQ(idblfil,cdblfil,1,IER)
       if(ier.ne.0)return
       write(currentfile,'(a)') cdblfil(1:lnblnk(cdblfil))
@@ -322,7 +330,8 @@ C Open the list of weather databases.
 C Read the header and see if '*CLIMATE_LIST' is a string.
       CALL STRIPC(idblfil,OUTSTR,0,ND,0,'header',IER)
       if(outstr(1:13).ne.'*CLIMATE_LIST')then
-        call edisp(iuout,' Not a list of weather databases... ')
+        call edisp(iuout,' ')
+        call edisp(iuout,' Not a list of weather files!')
         ier=1
         return
       endif
@@ -362,7 +371,7 @@ C Get info for db matching the alias.
         tlook = ' '
         call egetrm(outstr,K,tlook,'W','name',IER)
         if(tlook(1:lnblnk(tlook)).eq.alias(1:lnblnk(alias)))then
-          write(clmlnam,'(a)') tlook(1:32)  ! remember menu entry 
+          write(clmlnam,'(a)') tlook(1:42)  ! remember menu entry 
 
   4       CALL STRIPC(idblfil,OUTSTR,0,ND,0,'item line',IER)
           if(ier.ne.0)goto 92
@@ -372,21 +381,21 @@ C Get info for db matching the alias.
             goto 92
           elseif(WORD(1:5).eq.'*dbfl')then
             call egetrm(outstr,K,clmdb,'W','db file',IER)
-            write(louts,'(a,a)') ' Climate database: ',
+            write(louts,'(a,a)') ' Weather file: ',
      &        clmdb(1:lnblnk(clmdb))
             call edisp248(iuout,louts,100)
             goto 4
           elseif(WORD(1:5).eq.'*aide')then
             call egetrm(outstr,K,clmlaid,'W','brief description',IER)
-            write(outs,'(a,a)') ' Description  : ',clmlaid
+            write(outs,'(a,a)') ' Description: ',clmlaid
             call edisp(iuout,outs)
             goto 4
           elseif(WORD(1:6).eq.'*avail')then
             call egetrm(outstr,K,avail,'W','db avail',IER)
             if(avail(1:7).eq.'OFFLINE')then
               call usrmsg(
-     & 'The selected climate file is not `ONLINE` and so you will have',
-     & 'to ask your systems administrator to bring it on line. ','W')
+     &        'Weather file not online; ask your ESP-r',
+     &        'administrator to change its status.','W')
               clmdb='UNKNOWN'
               return
             elseif(avail(1:6).eq.'ONLINE')then
@@ -416,27 +425,27 @@ C Get info for db matching the alias.
       end
 
 C ********* scancdblist
-C Scan climatelist file of for documentation and typical periods
+C Scan climatelist file for documentation and typical periods
 C which might match the current database. Should be called if
 C the climate file was not selected via scan of climatelist.
-      subroutine scancdblist(idblfil,clmdb,ok,ier)
+      subroutine scancdblist(idblfil,clmdb,parent,ok,ier)
 #include "espriou.h"
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
-      character clmlnam*32,clmlaid*72,clmldbfile*144,clmlavail*10
+      character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
 
       character*(*) clmdb
       character OUTSTR*124,WORD*20,outs*124
       character tlook*72
-      character actreturn*1
+      character actreturn*1,parent*1
       logical ok
       logical unixok
 
-C Open the list of weather databases.
+C Open the list of weather files.
       ok=.false.
       CALL EFOPSEQ(idblfil,cdblfil,1,IER)
 
@@ -453,11 +462,12 @@ C If fail during file opening.
 C Read the header and see if '*CLIMATE_LIST' is a string.
       CALL STRIPC(idblfil,OUTSTR,0,ND,0,'header',IER)
       if(outstr(1:13).ne.'*CLIMATE_LIST')then
-        call edisp(iuout,' Not a list of weather databases... ')
+        call edisp(iuout,' Not a list of weather files!')
         ier=1
         ok=.false.
         return
       endif
+     
       write(currentfile,'(a)') cdblfil(1:lnblnk(cdblfil))
 
 C Get info for db matching the alias.
@@ -478,12 +488,13 @@ C Get info for db matching the alias.
         if(tlook(1:lnblnk(tlook)).eq.clmdb(1:lnblnk(clmdb)))then
 
 C Parse this item of the climatelist file.
-          write(outs,'(a,a)') ' Description  : ',clmlaid
+          write(outs,'(a,a)') ' Description : ',clmlaid
           call edisp(iuout,outs)
-          write(outs,'(a,a)') ' Menu entry  : ',clmlnam
+          write(outs,'(a,a)') ' Menu entry : ',
+     &      clmlnam(1:lnblnk(clmlnam))
           call edisp(iuout,outs)
 
-          call itemclimatelist(idblfil,'s',actreturn,clmdb,ier)
+          call itemclimatelist(idblfil,'s',parent,actreturn,clmdb,ier)
           if(actreturn.eq.'e')then
             if(ier.eq.0) ok = .true.
             goto 92
@@ -504,7 +515,7 @@ C Parse this item of the climatelist file.
 
       end
 
-C ******* itemclimatelist(idbfil,act,actreturn,clmdb,ier)
+C ******* itemclimatelist(idbfil,act,parent,actreturn,clmdb,ier)
 C Parse and extract information about one entry in climatelist file.
 C It is assumed that the climatelist file is already open on idbfil.
 C Act - if 's' then itemclimatelist has been called from scancdblist
@@ -518,7 +529,7 @@ C  if 'u' then jump to 'useit' part of calling subroutine
 C  if 's' then jump to 'selectedit' part of the calling subroutine
 C         (does not start the clm module)
 C  if 'e' then found 'end' so close unit number (92)
-      subroutine itemclimatelist(idblfil,act,actreturn,clmdb,ier)
+      subroutine itemclimatelist(idblfil,act,parent,actreturn,clmdb,ier)
 
 C Manual inclusion of a parameter from building.h
       integer MSPS,MIPVA
@@ -531,30 +542,30 @@ C seasons.h provides typper and typsea
       integer lnblnk  ! function definition
       integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+C Parameters passed.
+      character act*1,parent*1,actreturn*1,clmdb*144
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
 
 C Strings associated with one climatelist item.
-C clmlnam (char*32) is the selection list string
+C clmlnam (char*42) is the selection list string
 C clmlaid is aide (char*72) memoire for list item
 C clmldbfile (char*144) is the weather file (with path info)
 C clmlavail (char*10) is either ONLINE or OFFLINE
 C clmlhelp (char*72) is array of help strings
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
-      character clmlnam*32,clmlaid*72,clmldbfile*144,clmlavail*10
+      character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
 
 C Numbers associated with one climatelist item.
       common/clmlnum/nbclmlhelp
 
       character OUTSTR*124,WORD*20,louts*248
-      character sethead*72,outs*124
-      character clmdb*144,h*72,pstring*40,act*1,actreturn*1
+      character outs*124
+      character h*72,pstring*40
 
   4   CALL STRIPC(idblfil,OUTSTR,0,ND,0,'item line',IER)
-
-C Debug.
-C      write(6,*) outstr(1:lnblnk(outstr))
 
       if(ier.ne.0)then
         actreturn='e'
@@ -570,7 +581,7 @@ C      write(6,*) outstr(1:lnblnk(outstr))
           goto 4
         elseif(act.eq.'r')then
           call egetrm(outstr,K,clmdb,'W','db file',IER)
-          write(louts,'(a,a)') ' Weather database: ',
+          write(louts,'(a,a)') ' File location: ',
      &      clmdb(1:lnblnk(clmdb))
           call edisp248(iuout,louts,100)
           write(clmldbfile,'(a)') clmdb(1:lnblnk(clmdb))
@@ -578,13 +589,13 @@ C      write(6,*) outstr(1:lnblnk(outstr))
         endif
       elseif(WORD(1:5).eq.'*aide')then
         call egetrm(outstr,K,clmlaid,'W','brief description',IER)
-        write(outs,'(a,a)') ' Description  : ',clmlaid
+        write(outs,'(a,a)') ' Description: ',clmlaid
+        call edisp(iuout,' ')
         call edisp(iuout,outs)
-        if(act.eq.'r')sethead = clmlaid
         goto 4
       elseif(WORD(1:5).eq.'*name')then
         call egetrm(outstr,K,clmlnam,'W','menu entry',IER)
-        write(outs,'(a,a)') ' Menu entry  : ',clmlnam
+        write(outs,'(a,a)')' Menu entry  : ',clmlnam(1:lnblnk(clmlnam))
         call edisp(iuout,outs)
         goto 4
       elseif(WORD(1:6).eq.'*avail')then
@@ -596,7 +607,7 @@ C      write(6,*) outstr(1:lnblnk(outstr))
         goto 4
       elseif(WORD(1:9).eq.'*winter_t')then
 
-C Instanciate typper common block variables ia1wins,ia1winf,ia2wins,ia2winf 
+C Instantiate typper common block variables ia1wins,ia1winf,ia2wins,ia2winf 
         call egetrm(outstr,K,pstring,'W','winter typ',IER)
         ni = iCountWords(pstring)
         if(ni.eq.4)then
@@ -636,7 +647,7 @@ C Has start and end day of both winters.
         goto 4
       elseif(WORD(1:9).eq.'*spring_t')then
 
-C Instanciate typper common block variables ia1sprs,ia1sprf,ia2sprs,ia2sprf 
+C Instantiate typper common block variables ia1sprs,ia1sprf,ia2sprs,ia2sprf .
         call egetrm(outstr,K,pstring,'W','spring typ',IER)
         ni = iCountWords(pstring)
         if(ni.eq.4)then
@@ -676,7 +687,7 @@ C Has start and end day and typical day of spring and autumn.
         goto 4
       elseif(WORD(1:9).eq.'*summer_t')then
 
-C Instanciate typper common block variables iasums & iasumf
+C Instantiate common block variables iasums & iasumf.
         call egetrm(outstr,K,pstring,'W','summer typ',IER)
         ni = iCountWords(pstring)
         K=0
@@ -690,7 +701,7 @@ C Instanciate typper common block variables iasums & iasumf
       elseif(WORD(1:9).eq.'*winter_s')then
 
 C Read winter season - two periods e.g. nov-dec & jan-feb
-C common block typsea is1wins,is1winf,is2wins,is2winf
+C common block typsea is1wins,is1winf,is2wins,is2winf.
         call egetrm(outstr,K,pstring,'W','winter sea',IER)
         ni = iCountWords(pstring)
         K=0
@@ -764,63 +775,83 @@ C Read and store the comments into the HELP array for later display.
         goto 4
       elseif(WORD(1:5).eq.'*item')then
 
-C Debug.
-C      write(6,*)iawins,iawinf,iasprs,iasprf,iasums,iasumf
-C      write(6,*)is1wins,is1winf,is2wins,is2winf,is1sprs,is1sprf,
-C     &              is2sprs,is2sprf,is1sums,is1sumf
-
 C Reached the end of the item, check if it is to be chosen. Reset
 C the first line of the scanned documentation/help to compensate
-C for the line used in ASKOK.
+C for the line used in EASKOK.
         if(act.eq.'r')then
-          h(1)='The documentation could include useful tips!'
+          h(1)='Make a selection!'
           lasth = MIN0(nbclmlhelp,60)
           do 1546 iasth=1,lasth
             call edisp(iuout,clmlhelp(iasth))
  1546     continue
           if(clmlavail(1:7).eq.'OFFLINE')then
-            call usrmsg(
+            if(parent(1:1).eq.'c')then
+              call usrmsg(
      & 'The selected weather file is not `ONLINE` and so you will have',
      & 'to ask your systems administrator to bring it on line. ','W')
-            CALL EASKAB(sethead,' ','Exit clm','Select another ? ',IW,1)
-            if(IW.eq.2)then
-              clmdb='UNKNOWN'
-              actreturn='m'
-              return
-            elseif(IW.eq.1)then
-              clmdb='UNKNOWN'
-              actreturn='f'
-              return
+              CALL EASKAB(' ','Options:','Exit clm',
+     &          'Select another from list',IW,1)
+              if(IW.eq.2)then
+                clmdb='UNKNOWN'
+                actreturn='m'
+                return
+              elseif(IW.eq.1)then
+                clmdb='UNKNOWN'
+                actreturn='f'
+                return
+              endif
+            elseif(parent(1:1).eq.'p')then
+              call usrmsg(
+     & 'The selected weather file is not `ONLINE` and so you will have',
+     & 'to ask your systems administrator to bring it on line. ','W')
+              CALL EASKAB(' ','Options:','continue with other tasks',
+     &          'Select another from list',IW,1)
+              if(IW.eq.2)then
+                clmdb='UNKNOWN'
+                actreturn='m'
+                return
+              elseif(IW.eq.1)then
+                clmdb='UNKNOWN'
+                actreturn='f'
+                return
+              endif
             endif
           elseif(clmlavail(1:6).eq.'ONLINE')then
-            CALL EASKABC(sethead,' ','Use it (view in clm)','Use it',
-     &        'Select another ? ',IW,1)
-            if(IW.eq.3)then
-              clmdb='UNKNOWN'
-              actreturn='m'
-              return
-            elseif(IW.eq.2)then
-              CALL ERPFREE(idblfil,ISTAT)
-              actreturn='s'   ! use it without clm
-              return
-            elseif(IW.eq.1)then
-              CALL ERPFREE(idblfil,ISTAT)
-              actreturn='u'   ! use it via clm
-              return
+            if(parent(1:1).eq.'c')then
+              CALL EASKAB(' ','Options:','use it','reselect',IW,1)
+              if(IW.eq.2)then
+                clmdb='UNKNOWN'
+                actreturn='m'
+                return
+              elseif(IW.eq.1)then
+                CALL ERPFREE(idblfil,ISTAT)
+                actreturn='u'   ! use it via clm
+                return
+              endif
+            elseif(parent(1:1).eq.'p')then
+              if(IW.eq.2)then
+                clmdb='UNKNOWN'
+                actreturn='m'
+                return
+              elseif(IW.eq.1)then
+                CALL ERPFREE(idblfil,ISTAT)
+                actreturn='s'   ! 
+                return
+              endif
             endif
           endif
         elseif(act.eq.'s')then
           if(clmlavail(1:7).eq.'OFFLINE')then
             call usrmsg(
-     & 'The selected weather file is not `ONLINE` and so you will have',
-     & 'to ask your systems administrator to bring it on line. ','W')
+     &      'Weather file not online; ask your ESP-r',
+     &      'administrator to change its status.','W')
             clmdb='UNKNOWN'
             actreturn='m'
             return
           elseif(clmlavail(1:6).eq.'ONLINE')then
-            call edisp(iuout,
-     &        'found matching seasons & asessment periods for')
-            call edisp248(iuout,clmdb,100)
+C            call edisp(iuout,
+C     &        'found matching seasons & asessment periods for')
+C            call edisp248(iuout,clmdb,100)
             actreturn='e'
             return
           endif

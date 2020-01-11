@@ -31,10 +31,10 @@ C Pass it both the DFD file and the timestep performance file.
 C As  cfdv -file room.dfd -actfile cfd3dascii_0??? -range T T
       program dfv
       USE START_UP
-#include "cfd.h"
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "cfd.h"
 #include "esprdbfile.h"
 #include "material.h"
 #include "espriou.h"
@@ -42,7 +42,7 @@ C As  cfdv -file room.dfd -actfile cfd3dascii_0??? -range T T
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/MFTRA/IMFTU
       COMMON/SHOUT/ICOUT
@@ -61,6 +61,10 @@ C As  cfdv -file room.dfd -actfile cfd3dascii_0??? -range T T
 
 C Path to problem.
       common/rpath/path
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
 
 C Defaults.
       COMMON/DEFLT3/DFCFD,DECMPDBFL,DICONDBFL
@@ -160,6 +164,10 @@ C Commons from mocfd.F (RDCFDAT)
       integer ISIMDAY ! Julian day within the cfd3dasci file
       real SIMTIMEF   ! time associated with the cfd3dasci file
       COMMON/DFVtime/ISIMDAY,SIMTIMEF
+      
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
 
       CHARACTER*24 ITEM(11)
       CHARACTER inf*144,LCFD*72,POLNAM*12
@@ -173,9 +181,10 @@ C Commons from mocfd.F (RDCFDAT)
       character*72 DECMPDBFL,DICONDBFL
       character LCFDV*72
       character t24*24
+      character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character pagestitle*68 ! for banner title via epages call
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT
       LOGICAL IZEROT,IZanKE,IMITZ
@@ -265,8 +274,9 @@ C File units.
       IFL=IFIL+1
       ICFLIB=IFIL+2
       ICFMON=IFIL+3
-      matver=0.0   ! initial assumption of binary materials database
+      matver=0.0     ! initial assumption of binary materials database
       ifs=1; itfs=1; imfs=1
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Temporary cfd file unit.
       ICFTMP=IFIL+4
@@ -365,10 +375,12 @@ C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
 C and dialog.
         IMFS=5
         IFS=5
-#ifdef OSX
-        IFS=4  ! use a smaller dialog font
-#endif
         ITFS=4
+#ifdef OSX
+        IMFS=4
+        IFS=4  ! use a smaller fonts
+        ITFS=4
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
@@ -378,7 +390,7 @@ C and dialog.
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r CFD Viewer ',
+      write(pagestitle,'(2a)') 'CFD viewer of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
       lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
@@ -432,6 +444,23 @@ C Make temporary use of file unit IFL.
 
 C Use askabout to instanciate the initial help messages (2nd parameter is one).
       call askabout('dfv ',1)
+
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+931          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for cfdv'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Help text for results sub-menu.
       helptopic='dfv_results_menu'
@@ -608,6 +637,8 @@ C From this point need to draw as in MOCFD->VISMAK->FTV-MAKS3D
       call EASKABC('  ','Option:','Exit application',
      &  'read another timestep','view an I slice',IBR,nbhelp)
       if(IBR.eq.1)then
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       elseif(IBR.eq.2)then
@@ -704,7 +735,7 @@ C with simulation day and timestep returned via ISIMDAY SIMTIMEF
 C espriou.h provides currentfile.
 #include "espriou.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       
       integer ncomp,ncon
@@ -1078,7 +1109,7 @@ C parcnv parse command line paramters for dfv.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer iargc,m
       integer termtype
@@ -1163,7 +1194,9 @@ C ********************* MAKS3DF *********************
 C MAKS3DF - draw flows in 3d on screen using scaling factors of 
 C first view.
       SUBROUTINE MAKS3DFISLICE(IFRAME,ISLICE)
+#include "building.h"
 #include "cfd.h"
+
       integer IFRAME,ISLICE
 
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -1342,6 +1375,7 @@ C ********************* MAKS3DF *********************
 C MAKS3DF - draw flows in 3d on screen using scaling factors of 
 C first view.
       SUBROUTINE MAKS3DF(IFRAME)
+#include "building.h"
 #include "cfd.h"
 
       integer menuchw,igl,igr,igt,igb,igw,igwh

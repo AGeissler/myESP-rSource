@@ -53,7 +53,7 @@ C << are no longer any so-called default windows and doors.
       subroutine mzwdar(icomp)
 #include "building.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
 
       integer ncomp,ncon
@@ -95,6 +95,7 @@ C MTXCTL controls the zone heat matrix solving process according to the
 C sensor location of the associated control function.
 C *********************************************************************
       SUBROUTINE MTXCTL(ICOMP)
+
 #include "building.h"
 #include "control.h"
 
@@ -165,7 +166,8 @@ c      end
       if(ibsn(ii,1).le.0)nn=1
       if(ibsn(ii,1).gt.0.and.ibsn(ii,2).gt.0.and.ibsn(ii,3).eq.0)nn=2
       if(ibsn(ii,1).gt.0.and.ibsn(ii,2).gt.0.and.ibsn(ii,3).gt.0)nn=3
-      if(ibsn(ii,1).eq.-2.and.ibsn(ii,2).eq.icomp)nn=4
+      if(ibsn(ii,1).eq.-2.and.(ibsn(ii,2).eq.icomp.or.
+     &   ibsn(ii,2).eq.0))nn=4
       goto (11,12,13,14),nn
 
 C Control is on air point or external air temperature (or no control
@@ -366,6 +368,7 @@ C mzsad1 where the next-to-surface coefficient can be eliminated
 C from the corresponding surface equation.
 
       subroutine mzcnf1(icomp,iconst)
+
 #include "building.h"
 #include "control.h"
 
@@ -492,6 +495,7 @@ C  node coefficient can be eliminated from the corresponding surface
 C  equation and the control node coefficient introduced if appropriate.
 
       subroutine mzcnf2(icomp,iconst)
+
 #include "building.h"
 #include "control.h"
 
@@ -751,11 +755,12 @@ C                            coefficients and coefficient 1
 C                            is zero.
 
       subroutine mzsad1(icomp,iconst)
+
 #include "building.h"
 #include "control.h"
 
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
       common/tc/itc,icnt
 
@@ -875,7 +880,7 @@ C                           and coefficient 4 is introduced.
 #include "control.h"
 
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
       common/tc/itc,icnt
       integer icascf
@@ -1245,6 +1250,7 @@ C The last equation is solved in 'mzpst1' and the back
 C substitution completed.
 
       subroutine mzcms2(icomp)
+
 #include "building.h"
 #include "control.h"
 
@@ -1456,6 +1462,7 @@ C N3 relates to the present term
 C N5 relates to the control term
 
       subroutine mzcms3(icomp)
+
 #include "building.h"
 #include "control.h"
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
@@ -1711,8 +1718,8 @@ C intra-nodal temperatures.
 
       subroutine mzcnb1(icomp,iconst)
 #include "building.h"
+#include "geometry.h"
 
-      common/prec1/sna(mcom,ms)
       common/conadj/wa(ms,mn,6)
 
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
@@ -1741,9 +1748,9 @@ C temperatures.
       subroutine mzcnb2(icomp,iconst)
       
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
       
-      common/prec1/sna(mcom,ms)
       common/conadj/wa(ms,mn,6)
 
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
@@ -1802,16 +1809,17 @@ C terms of the control function information previously
 C defined.
 
       subroutine mzpst1(b1,b2,b3,icomp,qf)
-      include "building.h"
-      include "control.h"
-      include "blc25_open_windows.h"
+
+#include "building.h"
+#include "geometry.h"
+#include "control.h"
+#include "blc25_open_windows.h"
 
       common/tc/itc,icnt
 
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
-      common/prec1/sna(mcom,ms)
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
       common/btime/btimep,btimef
 
@@ -1840,7 +1848,7 @@ C defined.
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
 
       character outs*144
-      logical OK,dok,global,glbrwd
+      logical OK,global,glbrwd
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1900,11 +1908,11 @@ C Error!
      &  ' is being referenced outside its dates of validity.'
       call edisp(iuout,outs)
       icflg1(icf)=1
-      dok=.true.
       helptopic='option_to_free_float'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('Continue with no control if this condition occurs?',
-     &           '(see help)',OK,dok,nbhelp)
+      CALL EASKOK(' ',
+     &  'Continue with no control if this condition occurs?',
+     &  OK,nbhelp)
       IF(.NOT.OK)then
         call epwait
         STOP
@@ -1938,11 +1946,11 @@ C Error!
       write(outs,'(a,i3,a)') ' Control loop',icf,
      &  ' is being referenced outside its dates of validity.'
       call edisp(iuout,outs)
-      dok=.true.
       helptopic='option_to_free_float'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('Continue with no control if this condition occurs?',
-     &           '(see help)',OK,dok,nbhelp)
+      CALL EASKOK(' ',
+     &  'Continue with no control if this condition occurs?',
+     &  OK,nbhelp)
       icflg2(icf)=1
       IF(.NOT.OK)then
         call epwait
@@ -2034,8 +2042,10 @@ C Assign t and q values.
       if(ian1.eq.0)ian1=icomp
       ian2=iban(icf,2)
       ian3=iban(icf,3)
+      ian2_iz = ian2
+      if (ian1.eq.-2.and.ian2_iz.eq.0)ian2_iz=icomp
       if((ian1.eq.-3.and.ian2.eq.0).or.ian1.eq.-1.or.
-     &(ian1.eq.-2.and.ian2.ne.icomp).or.
+     &(ian1.eq.-2.and.ian2_iz.ne.icomp).or.
      &(ian1.gt.0.and.ian1.ne.icomp))goto 14
       if(ian1.eq.-3.and.ian2.eq.0)qfa(icomp)=qfut
       if(ian2.eq.0.and.ian1.eq.icomp)qfa(icomp)=qfut
@@ -2044,8 +2054,8 @@ C Assign t and q values.
       if(ian1.eq.icomp.and.ian2.gt.0.and.ian3.gt.0)qfc(icomp)=qfut*
      &sna(icomp,ian2)
 
-C Mixed injection - 
-      if(ian1.eq.-2.and.ian2.eq.icomp)then
+C Mixed injection. 
+      if(ian1.eq.-2.and.ian2_iz.eq.icomp)then
         qpltf(icomp)=qfut
         qf=qfut*conv(icomp)
         if(isn1.eq.-2)qf=0.
@@ -2091,6 +2101,7 @@ C be re-established to include the radiant and convective
 C input.
 
       subroutine mzback(q)
+
 #include "building.h"
 #include "control.h"
 
@@ -2234,7 +2245,7 @@ C *********************************************************************
 #include "building.h"
 #include "net_flow.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
 
       integer ncomp,ncon

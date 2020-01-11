@@ -48,7 +48,7 @@ C espriou.h provides currentfile.
       integer lnblnk  ! function definition
 
 C Graphics and ESP-r default commons
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/POPHELP/H(60)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
@@ -114,9 +114,8 @@ C Open the file with user defined or existing filename
         IF(LFIL(1:3).NE.'   '.AND.LFIL(1:3).NE.'UNK') THEN
           LAPROB=LFIL
         ELSE
-          dok=.true.
-          h(1)='You gave a blank file name or UNKNOWN for the name. '
-          CALL ASKOK('Filename blank - try again?',' ',OK,dok,1)
+          h(1)='Blank file name or UNKNOWN entered.'
+          CALL EASKOK('Filename blank!','Retry?',OK,1)
           IF(OK)THEN
             GOTO 2
           ELSE
@@ -144,10 +143,10 @@ C Open the network graphics file.
           WRITE(OUTS,'(3A)')
      &  'File ',LFIL(1:LNBLNK(LFIL)),' is a new network description.'
           dok=.true.
-          h(1)='The file does not already exist and will be assumed to'
-          h(2)='be for a new network unless you say no. '
-          CALL ASKOK(OUTS,'Define a new network using this name?',
-     &      OK,dok,2)     
+          h(1)='File does not exist and will be assumed created'
+          h(2)='for a new network unless you say no.'
+          CALL EASKOK(OUTS,'Define a new network using this name?',
+     &      OK,2)     
           IF(OK) THEN
             RETURN
           ELSE
@@ -161,11 +160,9 @@ C Open the network graphics file.
       ELSEIF(IER.NE.0.AND.IER.NE.-301) THEN
         WRITE(OUTS,'(3A)')
      &    ' Problem opening ',LFIL(1:LNBLNK(LFIL)),'.'
-        dok=.true.
-        h(1)='The file was expected to exist, but was not found or'
-        h(2)='could not be read. Double check the name before trying'
-        h(3)='again.  '
-        CALL ASKOK(OUTS,'Try again?',OK,dok,3)
+        h(1)='The file was expected to exist but was not found or'
+        h(2)='could not be read.  '
+        CALL EASKOK(OUTS,'Retry?',OK,3)
         IF(OK) THEN
           GOTO 2
         ELSE
@@ -793,7 +790,7 @@ C Include position of nodes and components.
       integer lnblnk  ! function definition
 
 C Graphics and ESP-r default commons
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Icon commons via gnetwk.h
 C Global attributes commons (associated with igatrdom(),dgtagatr(),
@@ -1225,9 +1222,9 @@ C << disable this until we sort out what is happening.
 C      if(modify)then
 C        dok=.true.
 C        h(1)='text to be added'
-C        call askok(
+C        call easkok(
 C     &    'Heights of icons should reflect node and component',
-C     &    'height attributes. Update graphic network file?',ok,dok,0)
+C     &    'height attributes. Update graphic network file?',ok,0)
 C        if(ok)then
 C          IM=1
 C          CALL NETWRITE(IM)
@@ -1276,7 +1273,7 @@ C << consider deprediating the min and max from the attributes >>
       integer lnblnk  ! function definition
 
 C Graphics and ESP-r default commons
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       CHARACTER LAPROB*72

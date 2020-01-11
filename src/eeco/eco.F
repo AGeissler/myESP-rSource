@@ -59,7 +59,7 @@ C default file names for databases
       integer igraphiclib  ! external definition
 
 C Commons for I/O Channel, mode type and fonts.
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -138,6 +138,14 @@ C Name of current application
       common/APPNAME/cAppName
       character cAppName*12
 
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
       integer legmat  ! local variable for legacy index.
       integer matarrayindex ! the indes within matdatarray
       logical closemat1,closemat2
@@ -154,10 +162,12 @@ C Name of current application
       CHARACTER path*72,L144*144
       CHARACTER NAM*72
 C      CHARACTER tab*1
-      character fs*1, TxtReport*24,dstmp*24
+      character fs*1, TxtReport*24
       CHARACTER TxtZone*31,TxtCompo*22,TxtMat*22, TxtLCA*28
       CHARACTER UnitEner*5, UnitMass*4, UnitImp*8, Oldunit*8
       CHARACTER xfile*144,tg*1,delim*1,MODE*4
+      character dstmp*24,uname*24,tfile*72
+
 
       INTEGER IWHICH
       LOGICAL close
@@ -209,10 +219,11 @@ C      tab = CHAR(9)
       IFS=1
       ITFS=1
       NSIGFIG=3
-      matver=0.0   ! initial assumption of binary materials database
+      matver=0.0     ! initial assumption of binary materials database
       itrc=2
       ILoss = 0
       IRep= 1
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Configuration file on IFIL+5.
 C Primitives on IFIL+13, mlc on IFIL+14, optics on IFIL +15.
@@ -399,9 +410,9 @@ C Setup and pass in parameters to win3d.
         nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
         call startbuffer()
-       ENDIF
+      ENDIF
 
-       CALL ESPrVersion("summary",cAppName,IUOUT)
+      CALL ESPrVersion("summary",cAppName,IUOUT)
 
 C Find the user's home folder then get users custom settings.
       call usrhome(upath)
@@ -415,6 +426,23 @@ C Find the user's home folder then get users custom settings.
 C Scan the defaults file silently for default configuration.
 C Make temporary use of file unit IFIL+1.
       call escdef(IFIL+1,'s',IER)
+
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+932          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for eco'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Take `c' command line file name, convert to fortran string LCMDFL.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
@@ -573,7 +601,8 @@ C Present the main menu.
       IF(INO.EQ.NITEMS)THEN 
 
 c End program.
-        call usrmsg(' Closing Eco desktop...',' ','P')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
 

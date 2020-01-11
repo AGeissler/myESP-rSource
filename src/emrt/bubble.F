@@ -23,7 +23,7 @@ C Bubble projects through bubble from each grid cell.
       SUBROUTINE  BUBBLE
 
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C PEQN  -  plane equation of surface
 C PCG   -  centroid of surface
@@ -426,7 +426,7 @@ c 'patar' and re-calculate the number of patches per ring.
 
 
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON /BUBXYZ1/ NPATCH, NBUB
       COMMON /BUBXYZ2/ XBB(11000), YBB(11000), ZBB(11000)
       COMMON /FORMF/ FF(MSM,MSM), FFS

@@ -43,7 +43,7 @@ C *********************************************************************
       integer iCountWords
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
       COMMON/GRND06/ITPGND(MGXYZ,MGXYZ,MGXYZ)
       COMMON/GRND100/GRND3D
@@ -51,7 +51,7 @@ C *********************************************************************
       COMMON/GRND108/LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
       CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDNDD,LGDTAQ
 
-      LOGICAL OK,DOK,SAVEOK,XST,chdb
+      LOGICAL OK,SAVEOK,XST,chdb
       DIMENSION LDRU(5)
 
       CHARACTER*72 LMTS,MSG,VALUES
@@ -248,8 +248,8 @@ C Create a material rectangle.
 
 C Ask if user wishes to browse through materials to find suitable
 C reference. Use elistmat to select via materials array.
-        CALL ASKOK('Browse the materials db for a new material',
-     &    '(NO exits the process)?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Browse the materials database?',
+     &           OK,nbhelp)
         iwhich = 0
         IF(OK)then
           CALL ELISTMAT(iwhich,chdb,'-',matarrayindex,IER)
@@ -357,12 +357,10 @@ C Help.
 
 C Return to the main multi-gridding menu.
         IF(SAVEOK)THEN
-          dok=.true.
           helptopic='write_data_reminder'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(' ',
-     &      'configuration should be updated. Ok to do this?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Update system configuration file?',
+     &            OK,nbhelp)
           IF(OK)CALL EMKCFG('-',IER)
         ENDIF
         RETURN
@@ -379,7 +377,7 @@ C *********************************************************************
 #include "prj3dv.h"
       integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
       COMMON/GRND10/NBOUND,IBOUND(MBTYP,3),IBSRF(6,MGXYZ,MGXYZ)
 
@@ -681,7 +679,7 @@ C *********************************************************************
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
       COMMON/GRND06/ITPGND(MGXYZ,MGXYZ,MGXYZ)
       COMMON/GRND108/LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
@@ -944,7 +942,7 @@ C *********************************************************************
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
       COMMON/GRND06/ITPGND(MGXYZ,MGXYZ,MGXYZ)
       COMMON/GR3D80/NNDS,NCNV,IR,ND1
@@ -1182,7 +1180,7 @@ C *********************************************************************
 #include "building.h"
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
       COMMON/GRND06/ITPGND(MGXYZ,MGXYZ,MGXYZ)
       COMMON/GRND10/NBOUND,IBOUND(MBTYP,3),IBSRF(6,MGXYZ,MGXYZ)
@@ -1270,7 +1268,7 @@ C *********************************************************************
 #include "building.h"
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
       COMMON/GRND06/ITPGND(MGXYZ,MGXYZ,MGXYZ)
       COMMON/GRND10/NBOUND,IBOUND(MBTYP,3),IBSRF(6,MGXYZ,MGXYZ)
@@ -1429,6 +1427,7 @@ C *********************************************************************
       COMMON/GFONT/IFS,ITFS,IMFS
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
       COMMON/GRND06/ITPGND(MGXYZ,MGXYZ,MGXYZ)
@@ -1468,28 +1467,56 @@ C Setup and pass in parameters to win3d.
      &   XADD,YADD)
       CALL LINESCALE(iigl,XADD,SCA,iigb,YADD,SCA)
       CALL U2PIXEL(XMX2,YMX2,iix,iiy)
-      CALL ELINE(iix,iiy,1)
-      CALL ECIRC(iix,iiy,3,1)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,1)
+      else
+        CALL ELINEWWC(iix,iiy,1)
+      endif
+      if(mmod.eq.8) CALL ECIRC(iix,iiy,3,1)
       CALL U2PIXEL(XMX2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
-      CALL ECIRC(iix,iiy,3,1)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
+      if(mmod.eq.8) CALL ECIRC(iix,iiy,3,1)
       CALL U2PIXEL(XMN2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
-      CALL ECIRC(iix,iiy,3,1)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
+      if(mmod.eq.8) CALL ECIRC(iix,iiy,3,1)
       CALL U2PIXEL(XMN2,YMX2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
-      CALL ECIRC(iix,iiy,3,1)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
+      if(mmod.eq.8) CALL ECIRC(iix,iiy,3,1)
       CALL U2PIXEL(XMX2,YMX2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
       DO 10 I=1,NDXG-1
         CALL U2PIXEL(FLOAT(I),YMN2,iix1,iiy1)
         CALL U2PIXEL(FLOAT(I),YMX2,iix2,iiy2)
-        CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        if(mmod.eq.8)then
+          CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        else
+          CALL EDLINEWWC(iix1,iiy1,iix2,iiy2,4)
+        endif
    10 CONTINUE
       DO 20 J=1,NDYG-1
         CALL U2PIXEL(XMN2,FLOAT(J),iix1,iiy1)
         CALL U2PIXEL(XMX2,FLOAT(J),iix2,iiy2)
-        CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        if(mmod.eq.8)then
+          CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        else
+          CALL EDLINEWWC(iix1,iiy1,iix2,iiy2,4)
+        endif
    20 CONTINUE
       XCF=-0.5
       ipos=0
@@ -1504,10 +1531,12 @@ C Setup and pass in parameters to win3d.
           CALL ETLABEL(LABELS,XCF,YCF,ipos,isize)
    40   CONTINUE
    30 CONTINUE
-      iside=1
-      isize=1
-      ifont=2
-      call viewtext('Construction Details',iside,isize,ifont)
+      iside=1; isize=1; ifont=2
+      if(mmod.eq.8)then
+        call viewtext('Construction Details',iside,isize,ifont)
+      else
+        call viewtextwwc('Construction Details',iside,isize,ifont)
+      endif
       ipos=4
       isize=itfs
       XLAB=XMN2-XYMX/20.
@@ -1522,7 +1551,7 @@ C Setup and pass in parameters to win3d.
       XLAB=XMN2-XYMX/20.
       YLAB=YMX2+XYMX/20.
       CALL ETLABEL('4',XLAB,YLAB,ipos,isize)
-      call forceflush()
+      if(mmod.eq.8) call forceflush()
       RETURN
       END
 
@@ -1536,6 +1565,7 @@ C *********************************************************************
       COMMON/GFONT/IFS,ITFS,IMFS
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/GRND05/NDXG,NDYG,NDZG,DXG(MGXYZ),DYG(MGXYZ),DZG(MGXYZ)
       COMMON/GRND07/VERTX(6,4)
@@ -1586,28 +1616,56 @@ C Setup and pass in parameters to win3d.
      &   XADD,YADD)
       CALL LINESCALE(iigl,XADD,SCA,iigb,YADD,SCA)
       CALL U2PIXEL(XMN2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,1)
-      CALL ECIRC(iix,iiy,3,1)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,1)
+      else
+        CALL ELINEWWC(iix,iiy,1)
+      endif
+      if(mmod.eq.8) CALL ECIRC(iix,iiy,3,1)
       CALL U2PIXEL(XMX2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
-      CALL ECIRC(iix,iiy,3,1)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
+      if(mmod.eq.8) CALL ECIRC(iix,iiy,3,1)
       CALL U2PIXEL(XMX2,YMX2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
-      CALL ECIRC(iix,iiy,3,1)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
+      if(mmod.eq.8) CALL ECIRC(iix,iiy,3,1)
       CALL U2PIXEL(XMN2,YMX2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
-      CALL ECIRC(iix,iiy,3,1)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
+      if(mmod.eq.8) CALL ECIRC(iix,iiy,3,1)
       CALL U2PIXEL(XMN2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
       DO 10 I=1,NUMX-1
         CALL U2PIXEL(FLOAT(I),YMN2,iix1,iiy1)
         CALL U2PIXEL(FLOAT(I),YMX2,iix2,iiy2)
-        CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        if(mmod.eq.8)then
+          CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        else
+          CALL EDLINEWWC(iix1,iiy1,iix2,iiy2,4)
+        endif
    10 CONTINUE
       DO 20 J=1,NUMY-1
         CALL U2PIXEL(XMN2,FLOAT(J),iix1,iiy1)
         CALL U2PIXEL(XMX2,FLOAT(J),iix2,iiy2)
-        CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        if(mmod.eq.8)then
+          CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        else
+          CALL EDLINEWWC(iix1,iiy1,iix2,iiy2,4)
+        endif
    20 CONTINUE
       XCF=-0.5
       ipos=0
@@ -1673,10 +1731,12 @@ C Setup and pass in parameters to win3d.
           CALL ETLABEL(LABELS,XCF,YCF,ipos,isize)
    80   CONTINUE
       ENDIF
-      iside=1
-      isize=1
-      ifont=2
-      call viewtext('Boundary Surface Details',iside,isize,ifont)
+      iside=1; isize=1; ifont=2
+      if(mmod.eq.8)then
+        call viewtext('Boundary Surface Details',iside,isize,ifont)
+      else
+        call viewtextwwc('Boundary Surface Details',iside,isize,ifont)
+      endif
       XLAB=XMN2-XYMX/20.
       YLAB=YMN2-XYMX/20.
       ipos=2

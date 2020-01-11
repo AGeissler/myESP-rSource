@@ -43,7 +43,7 @@ C     VOL() - volume used for calculating change rate in case IDIM=3
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/DISPL/IDAYF,IDAYL,IFDAY,IFTIME
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
@@ -361,7 +361,7 @@ C ICLIM,LCLIM (for climate file)
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
@@ -385,7 +385,7 @@ C 248 character buffer suppors ~15 columns of data.
       character louts*248
       character NIS*12,NIE*12,WORD*20,FORMHD*29,FORMCL*29
       DIMENSION  COLCNT(MCOLT),ICOLIX(MCOLT,2)
-      logical OK,dok
+      logical OK
       integer NITMS,INO ! max items and current menu item
       integer lnb       ! width of output line
 
@@ -469,10 +469,9 @@ C Display format for date is Fri 10 Jan.
         WRITE(outs,'(2A)')' Current output   : ',PERST2
         call edisp(iuout,outs)
 
-        dok=.false.
         helptopic='mfs_table_period_change'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(PERST3,' Different output period? ',OK,dok,nbhelp)
+        CALL EASKOK(PERST3,'Different output period? ',OK,nbhelp)
         if(OK)then
           CALL EASKPER('Output period:',IDAYF,IDAYL,IFDAY,IER)
           IF(IER.NE.0) GOTO 60

@@ -70,7 +70,7 @@ C *********************************************************************
 #include "prj3dv.h"
       integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/PREC8/SLAT,SLON
 
@@ -272,6 +272,7 @@ C *********************************************************************
 
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      common/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/GR3D01/INDXS(MS),THKS(MS),DCOSS(MS,3,3)
       COMMON/GR3D02/XVRT(MS,MVS),ZVRT(MS,MVS)
@@ -301,6 +302,7 @@ C Define the  MAX & MIN surface coordinates.
 C Clear the vieweing box, draw its border and return the offsets
 C which define it.  The win3d parameters match those in FACDRW
 C and SITPLN.
+      if(mmod.ne.8) return
       call startbuffer()
 
 C Setup and pass in parameters to win3d.
@@ -677,7 +679,7 @@ C *********************************************************************
       SUBROUTINE HRZGRD(IS,XVALU,ZVALU)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/GR3D02/XVRT(MS,MVS),ZVRT(MS,MVS)
       COMMON/GR3D03/NLINB(MS),NLIND(MS),NLINA(MS)
@@ -761,7 +763,7 @@ C *********************************************************************
       SUBROUTINE VRTGRD(IS,XVALU,ZVALU)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/GR3D02/XVRT(MS,MVS),ZVRT(MS,MVS)
       COMMON/GR3D03/NLINB(MS),NLIND(MS),NLINA(MS)
@@ -942,7 +944,7 @@ C *********************************************************************
 #include "prj3dv.h"
       integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC8/SLAT,SLON
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -1180,6 +1182,7 @@ C *********************************************************************
 #include "geometry.h"
 #include "prj3dv.h"
 
+      common/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/GR3D21/NUMEDG,INDXE(MEZ),DCOSE(MEZ,3,3)
@@ -1202,6 +1205,7 @@ C *********************************************************************
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
 
+      if(mmod.ne.8)return
       IVRT1=IVXEDG(IEG,1)
       IVRT2=IVXEDG(IEG,2)
       IS1=ISFEDG(IEG,1)
@@ -1346,7 +1350,7 @@ C *********************************************************************
 #include "prj3dv.h"
       integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -1358,7 +1362,7 @@ C *********************************************************************
       COMMON/GR3D27/NDZE(MEZ),DZE(MEZ,MZE)
       COMMON/GR3D28/ITPEDG(MEZ,MZE,MZE,MZE)
 
-      LOGICAL OK,DOK,chdb
+      LOGICAL OK,chdb
 
       DIMENSION ITEM(14),IUDLR(5)
 
@@ -1515,8 +1519,8 @@ C Create a material rectangle.
 
 C Ask if user wishes to browse through materials to find suitable
 C reference. Use elistmat to select via materials array.
-        CALL ASKOK('Browse the materials db for a new material',
-     &    '(NO exits the process)?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Browse the materials database',
+     &           OK,nbhelp)
         IF(OK)then
           iwhich = 0
           CALL ELISTMAT(iwhich,chdb,'-',matarrayindex,IER)
@@ -1619,6 +1623,7 @@ C *********************************************************************
       COMMON/C24/IZSTOCN(MCOM,MS)
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/GR3D24/ISFEDG(MEZ,2),IVXEDG(MEZ,2)
       COMMON/GR3D25/NDXE(MEZ),DXE(MEZ,MZE)
@@ -1639,6 +1644,8 @@ C *********************************************************************
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
+
+      if(mmod.ne.8)return
 
 C Define the two surfaces.
       IS1=ISFEDG(IEG,1)
@@ -1663,25 +1670,53 @@ C Setup and pass in parameters to win3d.
      &               XADD,YADD)
       CALL LINESCALE(iigl,XADD,SCA,iigb,YADD,SCA)
       CALL U2PIXEL(XMN2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,1)
-      CALL ECIRC(iix,iiy,3,1)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,1)
+      else
+        CALL ELINEWWC(iix,iiy,1)
+      endif
+      if(mmod.eq.8) CALL ECIRC(iix,iiy,3,1)
       CALL U2PIXEL(XMX2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
       CALL U2PIXEL(XMX2,YMX2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
       CALL U2PIXEL(XMN2,YMX2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
       CALL U2PIXEL(XMN2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
       DO 10 I=1,NDXE(IEG)-1
         CALL U2PIXEL(FLOAT(I),YMN2,iix1,iiy1)
         CALL U2PIXEL(FLOAT(I),YMX2,iix2,iiy2)
-        CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        if(mmod.eq.8)then
+          CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        else
+          CALL EDLINEWWC(iix1,iiy1,iix2,iiy2,4)
+        endif
    10 CONTINUE
       DO 20 J=1,NDYE(IEG)-1
         CALL U2PIXEL(XMN2,FLOAT(J),iix1,iiy1)
         CALL U2PIXEL(XMX2,FLOAT(J),iix2,iiy2)
-        CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        if(mmod.eq.8)then
+          CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        else
+          CALL EDLINEWWC(iix1,iiy1,iix2,iiy2,4)
+        endif
    20 CONTINUE
       XCF=-0.5
       DO 30 I=1,NDXE(IEG)
@@ -1953,7 +1988,7 @@ C *********************************************************************
       integer iCountWords
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/PREC8/SLAT,SLON
@@ -2205,6 +2240,7 @@ C *********************************************************************
 
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      common/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/GR3D31/NUMCRN,INDXC(MCZ),DCOSC(MCZ,3,3)
       COMMON/GR3D34/ISFCRN(MCZ,3),IVXCRN(MCZ)
@@ -2226,6 +2262,7 @@ C *********************************************************************
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
 
+      if(mmod.ne.8) return
       IVRX=IVXCRN(ICR)
 
       XCRN(1)=X(IVRX)
@@ -2364,7 +2401,7 @@ C *********************************************************************
 #include "prj3dv.h"
       integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -2376,7 +2413,7 @@ C *********************************************************************
       COMMON/GR3D37/NDZC(MEZ),DZCV(MEZ,MZE)
       COMMON/GR3D38/ITPCRN(MCZ,MZE,MZE,MZE)
 
-      LOGICAL OK,DOK,chdb
+      LOGICAL OK,chdb
 
       DIMENSION ITEM(15),IUDLR(5)
 
@@ -2536,8 +2573,8 @@ C Create a material rectangle.
 
 C Ask if user wishes to browse through materials to find suitable
 C reference. Use elistmat to select via materials array.
-        CALL ASKOK('Browse the materials db for a new material',
-     &    '(NO exits the process)?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Browse the materials database',
+     &            OK,nbhelp)
         IF(OK)then
           iwhich = 0
           CALL ELISTMAT(iwhich,chdb,'-',matarrayindex,IER)
@@ -2686,25 +2723,53 @@ C Setup and pass in parameters to win3d.
      &               XADD,YADD)
       CALL LINESCALE(iigl,XADD,SCA,iigb,YADD,SCA)
       CALL U2PIXEL(XMN2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,1)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,1)
+      else
+        CALL ELINEWWC(iix,iiy,1)
+      endif
       CALL ECIRC(iix,iiy,3,1)
       CALL U2PIXEL(XMX2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
       CALL U2PIXEL(XMX2,YMX2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
       CALL U2PIXEL(XMN2,YMX2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
       CALL U2PIXEL(XMN2,YMN2,iix,iiy)
-      CALL ELINE(iix,iiy,0)
+      if(mmod.eq.8)then
+        CALL ELINE(iix,iiy,0)
+      else
+        CALL ELINEWWC(iix,iiy,0)
+      endif
       DO 10 I=1,NDXC(ICR)-1
         CALL U2PIXEL(FLOAT(I),YMN2,iix1,iiy1)
         CALL U2PIXEL(FLOAT(I),YMX2,iix2,iiy2)
-        CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        if(mmod.eq.8)then
+          CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        else
+          CALL EDLINEWWC(iix1,iiy1,iix2,iiy2,4)
+        endif
    10 CONTINUE
       DO 20 J=1,NDYC(ICR)-1
         CALL U2PIXEL(XMN2,FLOAT(J),iix1,iiy1)
         CALL U2PIXEL(XMX2,FLOAT(J),iix2,iiy2)
-        CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        if(mmod.eq.8)then
+          CALL EDLINE(iix1,iiy1,iix2,iiy2,4)
+        else
+          CALL EDLINEWWC(iix1,iiy1,iix2,iiy2,4)
+        endif
    20 CONTINUE
       XCF=-0.5
       ipos=0

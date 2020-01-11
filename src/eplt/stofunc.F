@@ -19,11 +19,11 @@ C DisPos  - force distribution to be > 0
 
       implicit none
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      Integer iuout,iuin,ieout
       
       Real MeanVal,StdDev,Incr,ActVal,ValMin,ValMax,Thresh,Cprob,
      &PI,ProbT,Ninc, Rand_No, Prob1, Prob2,LNMeanVal,LNStdDev
-      Integer iuout,iuin
       Logical Lcalc,DisPos
 
       Character outs*124

@@ -64,7 +64,7 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -447,7 +447,7 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -578,7 +578,7 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -725,7 +725,7 @@ C     CDATA: 1 Volume flow rate  (m^3/s)
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -1187,7 +1187,7 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -1496,8 +1496,9 @@ C     CDATA: none
       SUBROUTINE CMP58C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -1738,7 +1739,7 @@ C Detect duct interior surface condition: DRY or WET; formulae from
 C ASHRAE Handbook:Fundamental for 0 to 70 & -60 to 0 deg.C respectively
 
         if (ga1.le.0.) go to 10
-        Pw=101325.*Ga1/(0.62198+Ga1)
+        Pw=PATMOS*100.0*Ga1/(0.62198+Ga1)
         Td=-35.957-1.8726*LOG(Pw)+1.1689*(LOG(Pw)**2)
 
         IF(Td.LE.0.0) THEN
@@ -1870,7 +1871,7 @@ C     CDATA: 1 Electric power input  (W)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -2248,7 +2249,7 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -2438,7 +2439,7 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -2625,7 +2626,7 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -2819,7 +2820,7 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 

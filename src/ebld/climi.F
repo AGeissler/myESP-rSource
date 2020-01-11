@@ -125,7 +125,12 @@ C time step.
       SUBROUTINE MZCLMPT(ITYP)
 #include "building.h"
 #include "net_flow.h"
+#include "site.h"
+#include "climate.h"
 #include "tdf2.h"
+C <GRM>
+#include "gremlin.h"
+C </GRM>
 
       common/trc/itrc
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -145,7 +150,6 @@ C time step.
      &             DFLP,DFLF,HFLP,HFLF
       COMMON/CLMPHG/HEXTPP,HEXTFP,GEXTPP,GEXTFP,TWBPP,TWBFP
       COMMON/WBULBO/IOPT
-      COMMON/ATPRES/PATMOS
 
       COMMON/PCTSTP/NTSTPP
       COMMON/PCTINC/IPTS
@@ -173,10 +177,26 @@ C iSlr_half_hr_flg =0 = hour-centred; 1 = half-hour centred.
       DIMENSION X1B(6),X2B(6),X1P(6),X2P(6)
       DIMENSION VAL(MBITS+2)
 
-C IOPT=2 ie screen wet bulb temerature required
-C PATMOS set here as a tempory measure.
+C IOPT=2 ie screen wet bulb temperature required.
       IOPT=2
-      PATMOS=1013.25
+
+C Use atmospheric pressure from climate database if available.
+C If not, use the value based on altitude.
+C PATMOS is in mbar; cmival(10,i) and atmpres are in Pa.
+      IF(CMXST(10)) THEN
+        IF(IHRF.gt.1) THEN
+          atmpres=REAL(CMIVAL(10,IHRF))
+        ELSE
+          atmpres=REAL(CMIVAL(10,25))
+        ENDIF
+        PATMOS=atmpres/100.0
+      ELSE
+        PATMOS=atmpres/100.0
+      ENDIF
+
+C Calculate external air density (function of atmospheric pressure, air temperature and RH).           
+      extairden=AIR_DENSITY(PATMOS,REAL(ITMP(IHRF))/10.,
+     &                      REAL(IHUM(IHRF)))
 
       IF(ITYP.EQ.2)goto 1
 
@@ -189,7 +209,7 @@ C future time-row values of previous time-step.
       HP=FLOAT(IHUM(1))
       if ( iSlr_half_hr_flg .eq. 0 ) then
 
-C Solar radiation data from weather file is hour-centered.
+C Solar radiation data from weather file is hour-centred.
          QFP=FLOAT(IDIF(1))
          QDP=FLOAT(IDNR(1))
       else
@@ -348,7 +368,7 @@ C If last timestep of the day get first profile for the next day.
         ENDIF
       ENDIF
 
-C Relative humidity. If to be superceeded by data from the
+C Relative humidity. If to be superseded by data from the
 C temporal database then establish values to interpolate from.
       IF(IRELHUM.ne.0)THEN
         itdi=IRELHUM
@@ -394,7 +414,6 @@ C Reset ratio for solar radiation.
           ratios=ratios-1.0
         endif
       endif
-
 
 C No interpolation if ICLMFL = 1.
        IF(ICLMFL.EQ.1)THEN
@@ -493,6 +512,23 @@ C Assign flow climate variables.
       DFLF=DFP
       HFLP=HPP
       HFLF=HFP
+
+C <GRM>
+      if (NMCF.gt.0) then
+        do imcf=1,NMCF
+
+C Gremlin mischief type 2: outside dry bulb temperature + 10 deg. C
+          if (MCFTYP(imcf).eq.2) then
+            TF=TF+10.0
+
+C Gremlin mischief type 3: outside dry bulb temperature - 10 deg. C
+          elseif (MCFTYP(imcf).eq.3) then
+            TF=TF-10.0
+
+          endif
+        enddo
+      endif
+C </GRM>
 
       RETURN
       END

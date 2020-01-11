@@ -92,8 +92,8 @@ C Passed arguements
 C----------------------------------------------------------------------
 C     ESP-r variables
 C----------------------------------------------------------------------
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout ! channels for writing messages to screen
 
 C.....flag indicating startup period spans new year
       common/sus/issny
@@ -1892,8 +1892,8 @@ C------------------------------------------------------------------------
 C     ESP-r commons
 C------------------------------------------------------------------------
 C.....I/O
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout    ! channels for writing messages to screen
 
 C----------------------------------------------------------------------
 C     Local varaiables
@@ -2032,8 +2032,8 @@ C.....Time
 
 
 C.....I/O
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout       ! channels for writing messages to screen
 
 C----------------------------------------------------------------------
 C     Local variables
@@ -2273,8 +2273,8 @@ C.....Simulator status
       logical spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
      &  startupok
 C.....I/O
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout    ! channels for writing messages to screen
 
 C----------------------------------------------------------------------
 C     Local variables
@@ -2491,8 +2491,8 @@ C.....Simulator status
       logical spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
      &  startupok
 C.....I/O
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout      ! channels for writing messages to screen
 
       bError = .false.
 

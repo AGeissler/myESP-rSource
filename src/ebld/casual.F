@@ -48,6 +48,7 @@ C QLAT   - latent load for present (1) and future (2) time step.
       subroutine mzcasi(icomp)
       USE TCC, ONLY:COSIM, COSIM_DATA
 #include "building.h"
+#include "site.h"
 #include "model.h"
 #include "geometry.h"
 #include "schedule.h"
@@ -66,7 +67,7 @@ C QLAT   - latent load for present (1) and future (2) time step.
       common/tc/itc,icnt
       common/trc/itrc
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
@@ -214,7 +215,6 @@ C<< For dynamic people.
       COMMON/ocflux2/headflux2,trunkflux2,larmflux2,rarmflux2,llegflux2,
      &        rlegflux2,H2Oexp2,H2Oswt2,Qoccsens2,Qocclat2,
      &        Tsko_av2, Tco_av2, Tsk_av2
-      COMMON/ATPRES/PATMOS
       common/FVALG/GFA(MCOM)
       COMMON/PVALG/GPA(MCOM)
       COMMON/MOIST53/Ppair(MCOM),Fpair(MCOM),Spair(MCOM)
@@ -322,8 +322,13 @@ C.....Named constants for timerows
       integer imonth_iter !looping variable for months 1 - 12
       integer idayn  
       logical closer
-      logical OK,DOK
+      logical OK
       logical bInStartup  ! logical function returning true if in startup period
+
+C <SPR>
+      common/occup/isocc(MCOM)
+      logical isocc
+C </SPR>
 
 C Trace output ?
       traceok = .true.
@@ -504,6 +509,17 @@ C << any need for ICGUnit?  Probably always is W. >>
         ctlperlightl(icomp,2)=VAL(ISD+5)
         ctlperequipl(icomp,2)=VAL(ISD+8)
         ctlperotherl(icomp,2)=0.0
+
+C <SPR>
+C Set occupancy flag.
+        isocc(ICOMP)=.false.
+        if ((ctlperocupc(icomp,2)+
+     &       ctlperocupr(icomp,2)+
+     &       ctlperocupl(icomp,2)).gt.0.) then
+          isocc(ICOMP)=.true.
+        endif
+C </SPR>
+
         if(traceok)then
           write(outs,*)'separate casual gains from temporal db=',
      &        VAL(ISD),VAL(ISD+1),VAL(ISD+2),VAL(ISD+3),VAL(ISD+4),
@@ -843,9 +859,8 @@ C ventilation values in the zone).
             CALL DAYCLK(IDYP,BTIMEF,iuout)
             write(outs,'(4a)') 'For ',zname(icomp),
      &        ' rescan operation file: ',LPROJ(icomp)(1:36)
-            DOK=.false.
             nbhelp=2
-            CALL ASKOK(OUTS,'Confirm?',OK,DOK,nbhelp)
+            CALL EASKOK(OUTS,'Confirm?',OK,nbhelp)
             if(ok)then
               iunit=ifil+1
               iitrc=1
@@ -863,9 +878,7 @@ C              write(6,*) 'called eroper & mzcasg for ',icomp,btimef
          ! are presently not supported. However, if they were to be implemented, 
          ! code similar to below would have to be added to moistr.F, subsys.F and 
          ! drylink.F in the esrubld directory, AND NOT IN THIS FILE!!!
-
-         ! TODO: implement latent gains as described in the note above. 
-
+ 
          ! Initialize base load variables
          Total_BL_Convective_gain        = 0. ! (W) 
          Total_BL_Radiative_gain         = 0. ! (W)
@@ -1150,6 +1163,19 @@ C by value from FMU.
 c              write(287,*)'CGCTL(ICOMP,2,IGN),ICOMP,IGN',
 c     &          CGCTL(ICOMP,2,IGN),ICOMP,IGN
 C </FMI>
+
+C <SPR>
+C Set occupancy flag.
+              if (IGN.eq.1) then
+                isocc(ICOMP)=.false.
+                if ((CGSENC(ICOMP,IDAY,IGN,IPER)+
+     &               CGSENR(ICOMP,IDAY,IGN,IPER)+
+     &               CGLAT(ICOMP,IDAY,IGN,IPER))*
+     &              CGCTL(ICOMP,2,IGN).gt.0.) then
+                  isocc(ICOMP)=.true.
+                endif
+              endif
+C </SPR>
 
               QCASC(2)=QCASC(2)+CGSENC(ICOMP,IDAY,IGN,IPER)*
      &                 CGCTL(ICOMP,2,IGN)
@@ -1478,7 +1504,7 @@ C geometry.h provides commons G0/G1/G2/precz.
       common/filep/ifil
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
 C      COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
@@ -2131,12 +2157,10 @@ C gain control.
 
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2/precz.
 #include "geometry.h"
 
       common/filep/ifil
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
@@ -2161,7 +2185,6 @@ C Daylight factor data (see dayfac.f).
      & AZIJL(MCOM,MGT),SUMDF(MCOM,MLCOM,MDF),NUDWIN(MCOM)
 
       COMMON/ADJC2/DIRT(MCOM,MS),DIFT(MCOM,MS),AIRT(MCOM,MS)
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       COMMON/D7/T1,T2,P1,P2
 
 C TMC data
@@ -2223,7 +2246,7 @@ C vertical unobstructed illum otherwise use horizontal illum.
 
 C Establish solar data.
             CALL MZSINT(ICOMP,QDIR,QDIF)
-            CALL VRTILM(PAZI(ICOMP,J),QDIR,QDIF,SRADDO,SKYDIF)
+            CALL VRTILM(SPAZI(ICOMP,J),QDIR,QDIF,SRADDO,SKYDIF)
             zelum(N)=SRADDO*suneff+SKYDIF*skyeff
             if(IFT.EQ.1)then
               write(outs,105)N,CGY(ICOMP,N,1),J,esun,esky,zelum(N),
@@ -2655,6 +2678,8 @@ C Open transfer file.
                 write(outs,7) zname(icomp),N
     7           format(' Zone ',A,'light zone',I1,' time var illum err')
                 call edisp(iuout,outs)
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 CALL EPWAIT
                 CALL EPAGEND
                 stop
@@ -2666,6 +2691,8 @@ C Loop through till 'OUTCMD' string found.
                 write(outs,17) zname(icomp),N
    17           format(' Zone ',A,'light zone',I1,'trns file read err')
                 call edisp(iuout,outs)
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 CALL EPWAIT
                 CALL EPAGEND
                 stop
@@ -2680,6 +2707,8 @@ C Now read sensor data.
                  write(outs,'(2a)')' Fatal error: Radiance simulation',
      &              ' produced no data.'
                   call edisp(iuout,outs)
+                  close(ieout)
+                  CALL ERPFREE(ieout,ISTAT)
                   CALL EPWAIT
                   CALL EPAGEND
                   stop
@@ -2751,7 +2780,7 @@ C Continue only if this surface is vertical, is TMC, has 4 vertices
 C and is connected to either the exterior or another real zone.  
 C Keep track of total windows in zone with nt. Exclude skylights.
             IF(ITMCFL(ICOMP,J).GT.0)THEN
-              call eclose(PELV(ICOMP,J),0.00,0.70,close)
+              call eclose(SPELV(ICOMP,J),0.00,0.70,close)
               IF(close)THEN
                 IF((NVER(J).NE.4).and.(IDFST(ICOMP,N).ne.2))then
                   WRITE(ITU,843) zname(icomp),J
@@ -2863,10 +2892,10 @@ C degrees (clockwise from north) equivalent to SAZI by subtracting
 C from the azimuth angle of the surface in question and keeping in the
 C range of 0 to 360 degrees.
                     CALL ANGS(NA,XPL,YPL,ZPL,WIDTH,HIGH,XP,YP,ZP)
-                    PP1=PAZI(ICOMP,J)-(P1*TODEG)
+                    PP1=SPAZI(ICOMP,J)-(P1*TODEG)
                     IF(PP1.LT.0.)PP1=360.+PP1
                     IF(PP1.GE.360.)PP1=PP1-360.
-                    PP2=PAZI(ICOMP,J)-(P2*TODEG)
+                    PP2=SPAZI(ICOMP,J)-(P2*TODEG)
                     IF(PP2.LT.0.)PP2=360.+PP2
                     IF(PP2.GE.360.)PP2=PP2-360.
                     TT1=T1*TODEG
@@ -2874,7 +2903,7 @@ C range of 0 to 360 degrees.
 
 C Calculate Ev vertical unobstructed illumination @ plane of
 C glazing and get current visible transmission of glazing.
-                    CALL VRTILM(PAZI(ICOMP,J),QDIR,QDIF,SRADDO,SKYDIF)
+                    CALL VRTILM(SPAZI(ICOMP,J),QDIR,QDIF,SRADDO,SKYDIF)
                     Ev=SRADDO*suneff+SKYDIF*skyeff
                     IF((PP1.LT.SAZI).AND.(PP2.GT.SAZI).AND.
      &                (TT1.LT.SALT).AND.(TT2.GT.SALT))THEN

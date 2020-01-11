@@ -33,6 +33,7 @@ C  The format is the same as PHOENICS output files which can be read by
 C  PHOTON (PHOENICS graphic analyser)
 
       SUBROUTINE PRNPHI(TITLE,ifl)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
@@ -115,6 +116,7 @@ C     & C31 C32 C33 C34 C35')
 C ********************* REAOLD *********************
 C REAOLD - Read variable fields in the previous time-step.
       subroutine REAOLD(ifl)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/VARp/Up(ntcelx,ntcely,ntcelz),Vp(ntcelx,ntcely,ntcelz),
@@ -187,6 +189,7 @@ C REAOLD - Read variable fields in the previous time-step.
 C ********************* PRNNEW *********************
 C PRNNEW - Write variable fields in the present time-step.
       subroutine PRNNEW(ifl)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
@@ -234,6 +237,7 @@ C ******** tecplotend - output of tecplot-readable text files
 Cag@241106
 C Change call to call with parameter "IFRAME" which is the time step!
       subroutine tecplotend(IFRAME)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/FILEP/IFIL
@@ -313,9 +317,9 @@ C for details of the program ParaView.
 C
 C Call with parameter "IFRAME" which is the time step!
       subroutine paraviewend(IFRAME)
-#include "cfd.h"
 #include "building.h"
 #include "geometry.h"
+#include "cfd.h"
 
       COMMON/FILEP/IFIL
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
@@ -484,9 +488,9 @@ C *   paraviewbc - output of paraview-readable files showing boundary
 C     conditions.
 C
       subroutine paraviewbc
-#include "cfd.h"
 #include "building.h"
 #include "geometry.h"
+#include "cfd.h"
 
       COMMON/FILEP/IFIL
       COMMON/LOCAGE/AGEf(ntcelx,ntcely,ntcelz) 

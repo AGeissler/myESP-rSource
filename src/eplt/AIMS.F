@@ -136,8 +136,8 @@ C Ian: 2004-05-31 (end).
 C     INPUT Argument IPCOMP
       INTEGER IPCOMP
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -507,8 +507,8 @@ C Passed Arguments
       INTEGER IPCOMP
       INTEGER ISTATS
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -1353,8 +1353,8 @@ C ------------------------------------------------------------------------------
       COMMON/PCTIME/TIMSEC
       REAL TIMSEC
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C---------------------------------------------------------------------------------
 C Declare local variables.

@@ -105,7 +105,7 @@ C Set up the node description string (12 chars)
      &      KEY,NDNAM(L),FTYPN(NDFLD(L)),NODTYP,HNOD(L,3),SUPNOD(L,1),
      &      SUPNOD(L,2)
           else
-            WRITE(VERT(M),'(A,1X,A,1X,A,1X,A,3F5.1,F5.1,F8.1)')
+            WRITE(VERT(M),'(A,1X,A,1X,A,1X,A,3F5.1,F5.1,F6.1)')
      &      KEY,NDNAM(L),FTYPN(NDFLD(L)),NODTYP,HNOD(L,1),HNOD(L,2),
      &      HNOD(L,3),SUPNOD(L,1),SUPNOD(L,2)
           endif
@@ -163,8 +163,8 @@ C Allow a node to be added deleted or copied.
      &      'Copy','Continue',IOPT,nbhelp)
           IF(IOPT.EQ.1)THEN
             IF(NNOD+1.LE.MNOD)THEN
-              CALL MFNDES('A',99)
-              ILEN=NNOD; MHEAD=1; MCTL=4 ! reset after return
+              CALL MFNDES('A',99)        ! Add node.
+              ILEN=NNOD; MHEAD=1; MCTL=4 ! Reset after return.
               IPACT=CREATE
               CALL EKPAGE(IPACT)
               IS=-1
@@ -180,8 +180,8 @@ C Allow a node to be added deleted or copied.
             CALL KEYIND(MVERT,IDVERT,IFOC,IO)
             ID=IFOC
             call usrmsg(' ',' ','-')
-            CALL MFNDES('D',ID)
-            ILEN=NNOD; MHEAD=1; MCTL=4 ! reset after return
+            CALL MFNDES('D',ID)        ! Delete node.
+            ILEN=NNOD; MHEAD=1; MCTL=4 ! Reset after return.
             IPACT=CREATE
             CALL EKPAGE(IPACT)
             GOTO 92
@@ -191,8 +191,8 @@ C Allow a node to be added deleted or copied.
             CALL KEYIND(MVERT,IDVERT,IFOC,IO)
             ID=IFOC
             call usrmsg(' ',' ','-')
-            CALL MFNDES('C',ID)
-            ILEN=NNOD; MHEAD=1; MCTL=4 ! reset after return
+            CALL MFNDES('C',ID)        ! Copy node.
+            ILEN=NNOD; MHEAD=1; MCTL=4 ! Reset after return.
             IPACT=CREATE
             CALL EKPAGE(IPACT)
             GOTO 92
@@ -215,9 +215,8 @@ C If there are enough items allow paging control via EKPAGE.
         SELECT=.TRUE.
         IS=IFOC
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-C Edit this node. 
-          CALL MFNDES('E',IS)
-          ILEN=NNOD; MHEAD=1; MCTL=4 ! reset after return
+          CALL MFNDES('E',IS)        ! Edit this node.
+          ILEN=NNOD; MHEAD=1; MCTL=4 ! Reset after return.
           IPACT=CREATE
           CALL EKPAGE(IPACT)
           GOTO 92

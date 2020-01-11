@@ -67,8 +67,6 @@ C ARF    - future time adjacent incident radiation & casual etc.
       COMMON/C1/NCOMP,NCON
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
-      COMMON/PREC1/SNA(MCOM,MS)
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),AE(MCOM,MS)
@@ -200,7 +198,8 @@ C Units below seems to be W/m^2.
             IF(IBAN(IC,1).EQ.ICOMP.AND.IBAN(IC,2).EQ.I.AND.
      &         IBAN(IC,3).EQ.0)then
               qpltri(I)=(QPS(ICOMP)+QFS(ICOMP))*.5
-            ELSEIF(IBAN(IC,1).EQ.-2.AND.IBAN(IC,2).EQ.ICOMP)then
+            ELSEIF(IBAN(IC,1).EQ.ICOMP.AND.
+     &        (IBAN(IC,2).EQ.ICOMP.OR.IBAN(IC,2).EQ.0))then
               qpltri(I)=(QPLTP(ICOMP)+QPLTF(ICOMP))*0.5*
      &                  (1.-CONV(ICOMP))*ei(icomp,I)/emarea(icomp)
             ENDIF
@@ -422,8 +421,8 @@ C Plant radiant energy at other face same as inside face.
 
 C If floor, then add the sw rad. of the other face of the ceiling
 C If ceiling, then add the sw rad. of the other face of the floor
-              if(PELV(icomp,i).GE.88.5.AND.
-     &           PELV(icomp,i).LE.91.5)then
+              if(SPELV(icomp,i).GE.88.5.AND.
+     &           SPELV(icomp,i).LE.91.5)then
 
 C Current surface is a ceiling so assign qswsum = of a typical floor.
 C But if izsfloor is zero then assume surface 6 of the zone is a floor.
@@ -432,8 +431,8 @@ C But if izsfloor is zero then assume surface 6 of the zone is a floor.
                 else
                   qswsum(I)=QSLIF(ICOMP,6)
                 endif
-              elseif(PELV(icomp,i).GE.-91.5.AND.
-     &               PELV(icomp,i).LE.-88.5)then
+              elseif(SPELV(icomp,i).GE.-91.5.AND.
+     &               SPELV(icomp,i).LE.-88.5)then
 
 C Current surface is a floor so assign qswsum = of a typical ceiling.
 C But if izsceil is zero then assume surface 5 of the zone is a ceiling.

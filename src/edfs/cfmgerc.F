@@ -25,9 +25,10 @@ C  CFMNGE - Invoke CFD routine and print output files. (version for cfd module)
 C ********************* CFMNGE *********************
 C CFMNGE - Invoke CFD routine and print output files. (version for cfd module)
       SUBROUTINE CFMNGE(ICOMP,IND)
+#include "building.h"
 #include "cfd.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB

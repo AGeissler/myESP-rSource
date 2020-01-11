@@ -39,6 +39,7 @@ C  Types of boundary conditions used {IVTYPE(IV,ICFD)=}:
 C  VOLUME HEAT SOURCE = 20
 C
       SUBROUTINE BNDART
+#include "building.h"
 #include "cfd.h"
 
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
@@ -2177,6 +2178,7 @@ C              SU(I,J,K+1)=GREAT*EDf(I,J,K)
 C ********************* BNDARTT *********************
 C BNDARTT - Impose thermal boundary conditions for turbulent flow.
       SUBROUTINE BNDARTT
+#include "building.h"
 #include "cfd.h"
 
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
@@ -3440,6 +3442,7 @@ C  MODVMIT  - V-momentum boundary conditions - MIT 0-eqn model.
 C  MODWMIT  - W-momentum boundary conditions - MIT 0-eqn model.
 
       SUBROUTINE BNDMIT
+#include "building.h"
 #include "cfd.h"
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
      &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
@@ -4142,6 +4145,7 @@ C Ref: Ian Beausoleil-Morrison PhD thesis section 5.3.1
 
       subroutine CalcYuanWallFlux(I,J,K,Area,ydist,Isurf,Lwall)
       implicit none
+#include "building.h"
 #include "cfd.h"
       
       COMMON/FLUPRf/URFVIS,VISCOS,PRANDT,SH,

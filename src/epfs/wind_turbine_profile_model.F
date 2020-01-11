@@ -214,7 +214,7 @@ C-------------------------------------------------------------------------------
 
       COMMON/FILEP/IFIL
       COMMON/ER/IER
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C---------------------------------------------------------------------------------
 C Declarations for common block variables.
@@ -239,7 +239,7 @@ C-------------------------------------------------------------------------------
       CHARACTER OUTS*124
 
       CHARACTER OUTSTR*124,word*124
-      INTEGER IUNIT,IFIL,k,IER,ND,ival,i,ISTAT,IUOUT, IUIN
+      INTEGER IUNIT,IFIL,k,IER,ND,ival,i,ISTAT,IUOUT,IUIN,IEOUT
       REAL val
 
       INTEGER iDatapoints
@@ -461,7 +461,7 @@ C-------------------------------------------------------------------------------
 
       COMMON/FILEP/IFIL
       COMMON/ER/IER
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C---------------------------------------------------------------------------------
 C Declarations for common block variables.
@@ -485,7 +485,7 @@ C-------------------------------------------------------------------------------
       LOGICAL   XST,dll
 
       CHARACTER OUTSTR*124,word*124
-      INTEGER IUNIT,IFIL,k,IER,ND,ival,i,ISTAT,IUOUT, IUIN
+      INTEGER IUNIT,IFIL,k,IER,ND,ival,i,ISTAT,IUOUT,IUIN,IEOUT
       REAL val
 
       INTEGER iDatapoints

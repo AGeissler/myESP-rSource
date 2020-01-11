@@ -30,10 +30,11 @@ C ******************** M3BCTL
 C The main 3D building control function executive.
 
       SUBROUTINE M3BCTL
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ICF,IDTYP,IPER,IICOMP
       real BB1,BB2,BB3,TNP,QFUT,TFUT
@@ -111,6 +112,8 @@ C New control laws should be inserted here.
       call edisp(iuout,outs)
       call edisp(iuout,' this release but has been referenced: ')
       call edisp(iuout,' this is a fatal error.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -128,10 +131,11 @@ C CF3VAR determines the sensed condition associated
 C with the sensor defined for the control function.
 
       SUBROUTINE CF3VAR(TCTL)
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ICF,IDTYP,IPER,IICOMP
       real BB1,BB2,BB3,TNP,QFUT,TFUT
@@ -158,6 +162,8 @@ C Sensor measures plant node state-space variable.
 C Which is obviously not allowed in case of bld.
          call edisp(iuout,
      &   'CF3VAR: simulator does not support sensing plant node state.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -179,10 +185,11 @@ C ******************** B3CL01
 C An ideal controller.
 
       SUBROUTINE B3CL01
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ICF,IDTYP,IPER,IICOMP
       real BB1,BB2,BB3,TNP,QFUT,TFUT
@@ -242,6 +249,8 @@ C Is this capacity available ?
       IF(IBAN(ICF,1).EQ.-2)STOP 'error (01) in B3CL01'
       RETURN
    99 call edisp(iuout,' B3CL01: data incomplete.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP

@@ -26,6 +26,8 @@ C ******************** MZNASP ********************
 C MZNASP assigns starting values to the plant nodal
 C state variables.
       SUBROUTINE MZNASP
+
+#include "building.h"
 #include "plant.h"
 #include "control.h"
       COMMON/C13PS/NPMCOE,NPNOD,NPMTYP

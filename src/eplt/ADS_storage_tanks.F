@@ -140,65 +140,32 @@ C ------------------------------------------------------------------------------
 #include "SOFC.h"
 #include "cogen_tanks.h"
 
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
-      COMMON/OUTIN/
-     & IUOUT,
-     & IUIN
-      INTEGER IUOUT
-      INTEGER IUIN
+      COMMON/TC/ITC,ICNT
+      INTEGER ITC,ICNT
 
-      COMMON/TC/
-     & ITC,
-     & ICNT
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+      INTEGER ITCF,ITRACE,IZNTRC,ITU
 
-      INTEGER ITC
-      INTEGER ICNT
-
-      COMMON/TRACE/
-     & ITCF,
-     & ITRACE(MTRACE),
-     & IZNTRC(MCOM),
-     & ITU
-
-      INTEGER ITCF
-      INTEGER ITRACE
-      INTEGER IZNTRC
-      INTEGER ITU
-
-
-      COMMON/C9/
-     & NPCOMP,
-     & NCI(MPCOM),
-     & CDATA(MPCOM,MMISCD)
-
-      INTEGER NPCOMP
-      INTEGER NCI
+      COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
+      INTEGER NPCOMP,NCI
       REAL CDATA
 
-      COMMON/PDBDT/
-     & ADATA(MPCOM,MADATA),
-     & BDATA(MPCOM,MBDATA)
+      COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
+      REAL ADATA,BDATA
 
-      REAL ADATA
-      REAL BDATA
-
-      COMMON/PCOND/
-     & CONVAR(MPCON,MCONVR),
-     & ICONTP(MPCON),
+      COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
      & ICONDX(MPCOM,MNODEC,MPCONC)
 
       REAL CONVAR
-      INTEGER ICONTP
-      INTEGER ICONDX
+      INTEGER ICONTP,ICONDX
 
-      COMMON/C12PS/
-     & NPCDAT(MPCOM,9),
-     & IPOFS1(MCOEFG),
+      COMMON/C12PS/NPCDAT(MPCOM,9),IPOFS1(MCOEFG),
      & IPOFS2(MCOEFG,MPVAR)
 
-      INTEGER NPCDAT
-      INTEGER IPOFS1
-      INTEGER IPOFS2
+      INTEGER NPCDAT,IPOFS1,IPOFS2
 
 C---------------------------------------------------------------------------------
 C Declare local variables.
@@ -593,32 +560,14 @@ C ------------------------------------------------------------------------------
 #include "SOFC.h"
 #include "cogen_tanks.h"
 
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
-      COMMON/OUTIN/
-     & IUOUT,
-     & IUIN
+      COMMON/TC/ITC,ICNT
+      INTEGER ITC,ICNT
 
-      INTEGER IUOUT
-      INTEGER IUIN
-
-      COMMON/TC/
-     & ITC,
-     & ICNT
-
-      INTEGER ITC
-      INTEGER ICNT
-
-
-      COMMON/TRACE/
-     & ITCF,
-     & ITRACE(MTRACE),
-     & IZNTRC(MCOM),
-     & ITU
-
-      INTEGER ITCF
-      INTEGER ITRACE
-      INTEGER IZNTRC
-      INTEGER ITU
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+      INTEGER ITCF,ITRACE,IZNTRC,ITU
 
       COMMON/SIMTIM/
      & IHRP,
@@ -1736,32 +1685,14 @@ C ------------------------------------------------------------------------------
 #include "SOFC.h"
 #include "cogen_tanks.h"
 
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
-      COMMON/OUTIN/
-     & IUOUT,
-     & IUIN
+      COMMON/TC/ITC,ICNT
+      INTEGER ITC,ICNT
 
-      INTEGER IUOUT
-      INTEGER IUIN
-
-      COMMON/TC/
-     & ITC,
-     & ICNT
-
-      INTEGER ITC
-      INTEGER ICNT
-
-
-      COMMON/TRACE/
-     & ITCF,
-     & ITRACE(MTRACE),
-     & IZNTRC(MCOM),
-     & ITU
-
-      INTEGER  ITCF
-      INTEGER ITRACE
-      INTEGER IZNTRC
-      INTEGER ITU
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+      INTEGER ITCF,ITRACE,IZNTRC,ITU
 
       COMMON/C9/
      & NPCOMP,
@@ -2063,32 +1994,14 @@ C ------------------------------------------------------------------------------
 #include "SOFC.h"
 #include "cogen_tanks.h"
 
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
-      COMMON/OUTIN/
-     & IUOUT,
-     & IUIN
+      COMMON/TC/ITC,ICNT
+      INTEGER ITC,ICNT
 
-      INTEGER IUOUT
-      INTEGER IUIN
-
-      COMMON/TC/
-     & ITC,
-     & ICNT
-
-      INTEGER ITC
-      INTEGER ICNT
-
-
-      COMMON/TRACE/
-     & ITCF,
-     & ITRACE(MTRACE),
-     & IZNTRC(MCOM),
-     & ITU
-
-      INTEGER  ITCF
-      INTEGER ITRACE
-      INTEGER IZNTRC
-      INTEGER ITU
+      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
+      INTEGER ITCF,ITRACE,IZNTRC,ITU
 
       COMMON/SIMTIM/
      & IHRP,
@@ -2744,7 +2657,7 @@ C
 #include "plant.h"
 #include "building.h"
 C
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 C
@@ -2826,7 +2739,7 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -3023,7 +2936,7 @@ C
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -3120,7 +3033,7 @@ C     CDATA: 1 Volume flow rate (m^3/s)
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -3189,6 +3102,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' Press_WCH_pump_coeff_gen: error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP

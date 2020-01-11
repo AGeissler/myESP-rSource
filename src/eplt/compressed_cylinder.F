@@ -354,11 +354,11 @@ C.....Common containing plant componet mass diversion ratios
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer iTc,iCnt
-      integer iUout,iUin
+      integer iUout,iUin,ieout
       integer iTcf,iTrace,iZntrc,iTu
 
 C----------------------------------------------------------------------
@@ -1419,11 +1419,11 @@ C     ESP-r commons for inputs/outputs
 C----------------------------------------------------------------------
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer iTc,iCnt
-      integer iUout,iUin
+      integer iUout,iUin,ieout
       integer iTcf,iTrace,iZntrc,iTu
 
 C----------------------------------------------------------------------

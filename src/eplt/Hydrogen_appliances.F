@@ -86,8 +86,8 @@ C-------------------------------------------------------------------------------
 C     ESP-r variables
 C-------------------------------------------------------------------------------
 C.....I/O channes
-      integer iuout,iuin
-      common/outin/iuout,iuin
+      integer iuout,iuin,ieout
+      common/OUTIN/IUOUT,IUIN,IEOUT
 C.....Plant component parameters
       real adata(mpcom,madata),bdata(mpcom,mbdata)
       common/pdbdt/adata,bdata
@@ -357,8 +357,8 @@ C-------------------------------------------------------------------------------
       COMMON/FILEP/IFIL                 ! Base ESP-r file unit number
       INTEGER IFIL
 
-      COMMON/OUTIN/IUOUT,IUIN           ! Number for default output and input screens
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT           ! Number for default output and input screens
+      INTEGER IUOUT,IUIN,IEOUT
 
 C-------------------------------------------------------------------------------
 C     Local variables and common blocks

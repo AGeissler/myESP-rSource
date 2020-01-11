@@ -38,7 +38,7 @@ C Boston, MA 02111-1307 USA.
       common/mdbase/mdbnam
       character mdbnam*144
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/SHOUT/ICOUT
       common/FILEP/IFIL
       common/SPAD/MMOD,LIMIT,LIMTTY
@@ -54,22 +54,30 @@ C Path to problem and command line file (if any).
       common/rpath/path
       common/rcmd/LCMDFL
 
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
 C Defaults.
       character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
       common/DEFLT2/DFCFG,DFCTL,DEFRLB,DAFRES,DAPROB,DPNF
 
 C Name of current application
       common/APPNAME/cAppName
-      
       character cAppName*12
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
 
       character*29 ITEM(10)
       character LCMDFL*144,inf*144,mldnam*48
       character path*72
       character species*64, grow*1, head*29,fs*1
+      character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character pagestitle*68 ! for banner title via epages call
 
       logical unixok
 
@@ -97,6 +105,7 @@ C Initialize global common data.
       IMFS=1
       iopmld=0
       call parpsf(MODL,iappw,iappx,iappy,inf)
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -151,6 +160,11 @@ C and dialog.
         IMFS=5
         IFS=4
         ITFS=4
+#ifdef OSX
+        IMFS=4
+        IFS=4  ! use a smaller fonts
+        ITFS=4
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
@@ -160,7 +174,7 @@ C and dialog.
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Mould Analysis ',
+      write(pagestitle,'(2a)') 'Mould analysis of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -206,6 +220,23 @@ C messages to stderr in case of rule script program control.
       IF(MMOD.EQ.-6) ICOUT=0
 
       CALL ESPrVersion("summary",cAppName,IUOUT)
+
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+932          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for mld'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Initialise the ststistical results
       imstat=0
@@ -253,6 +284,8 @@ C Help via the askabout facility in esru_ask.F The zero requests display
         call askabout('mld ',0)
         goto 2
       elseif(ino.eq.8) then
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       else
@@ -293,6 +326,18 @@ C calls in esru_lib.F
       end
 
       subroutine chgelev(icelev,ifrlk)
+      return
+      end
+
+      subroutine chgpan(ix,iy)
+      return
+      end
+
+      subroutine chgzoom(imode)
+      return
+      end
+
+      subroutine optview
       return
       end
 

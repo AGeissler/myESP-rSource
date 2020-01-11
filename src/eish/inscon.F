@@ -53,7 +53,7 @@ C                 shading analysis
 C   itmc & isc:   toggles for each surface, if 1 then surface is an
 C                 insolation source. The latter is held
 C                 in common.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -68,7 +68,7 @@ C                 in common.
       dimension month(12),iavdec(12)
       character paction*16
       character month*3,outs*124,tbase*72,act*1
-      logical ok,dok,xst
+      logical ok,xst
       logical newgeo  ! Used to test for new/old geometry file.
       integer nboftmc ! equivalent of ntmc returned from findtmc
       integer ier
@@ -125,9 +125,8 @@ C from the zone geometry file.
                call edisp(iuout,'No insolation sources - skipping!')
                return
             else
-               dok=.true.
-               call askok('No surfaces specified!','Re-specify?',
-     &           ok,dok,nbhelp)
+               call easkok('No surfaces specified!','Re-specify?',
+     &           ok,nbhelp)
      
 C Use a 2nd call to findtmc to allow the user to select different surfaces.
                if(ok)goto 4
@@ -232,7 +231,7 @@ C                 in common.
 C   itmc & isc:   toggles for each surface, if 1 then surface is an
 C                 insolation source. The latter is held
 C                 in common.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
       integer izstocn
       common/c24/izstocn(mcom,ms)
@@ -695,10 +694,10 @@ C and the intersection point. And update igins if nearer. Remember
 C the points of intersection for display after all mesh points have
 C been processed.
                 icc=izstocn(icomp,intsur)
-                EQN(1)=ssureqn(icc,1)
-                EQN(2)=ssureqn(icc,2)
-                EQN(3)=ssureqn(icc,3)
-                EQN(4)=ssureqn(icc,4)
+                EQN(1)=sureqn(icomp,intsur,1)
+                EQN(2)=sureqn(icomp,intsur,2)
+                EQN(3)=sureqn(icomp,intsur,3)
+                EQN(4)=sureqn(icomp,intsur,4)
                 CALL VECPLN(x3op(m,n),y3op(m,n),z3op(m,n),
      &            XXuv,YYuv,ZZuv,EQN, x3,y3,z3, IERR)
 
@@ -846,7 +845,7 @@ C Parameters passed:
       integer izone  ! the current zone
       integer isur   ! ??
       integer ihr    ! current hour
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       common/tshd/ioshd(mox,moz)
       common/sunhr/isunhr
@@ -956,22 +955,22 @@ C  Cosine of the angle of incidence and surface-solar azimuth angle.
       do i=1,nzsur(icomp)
         icc=izstocn(icomp,i)
         if(salt1.gt.0.0)then
-          psazi=abs(sspazi(icc)-sazi1)
+          psazi=abs(spazi(icomp,i)-sazi1)
           x1=cos(salt1*r)
-          x2=sin((90.-sspelv(icc))*r)
+          x2=sin((90.-spelv(icomp,i))*r)
           x3=cos(psazi*r)
           x4=sin(salt1*r)
-          x5=cos((90.-sspelv(icc))*r)
+          x5=cos((90.-spelv(icomp,i))*r)
           caie(i)=x1*x2*x3+x4*x5
-          paz=sspazi(icc)+180.0
-          if(sspazi(icc).gt.180.0)paz=sspazi(icc)-180.0
+          paz=spazi(icomp,i)+180.0
+          if(spazi(icomp,i).gt.180.0)paz=spazi(icomp,i)-180.0
           psazi=abs(paz-sazi1)
           x3=cos(psazi*r)
           x1=cos(salt1*r)
-          x2=sin((90.+sspelv(icc))*r)
+          x2=sin((90.+spelv(icomp,i))*r)
           x3=cos(psazi*r)
           x4=sin(salt1*r)
-          x5=cos((90.+sspelv(icc))*r)
+          x5=cos((90.+spelv(icomp,i))*r)
           caii(i)=x1*x2*x3+x4*x5
         else
           caii(i)=0.0
@@ -994,7 +993,7 @@ C Trace output, check also that user has asked for detailed trace.
           call zsid(icomp,i,ZSDES,ZSDESC,ZSDESS)
           lnzsn=lnblnk(ZSDES)
           write(outs,'(a,f6.4,6x,f6.4,7x,f5.1,6x,f5.1)')
-     &      ZSDES(1:lnzsn),caii(i),caie(i),sspazi(icc),sspelv(icc)
+     &     ZSDES(1:lnzsn),caii(i),caie(i),spazi(icomp,i),spelv(icomp,i)
           call edisp(icout,outs)
    50   continue
       endif
@@ -1013,7 +1012,7 @@ C at hour jj.
       common/tc/itc,icnt
       common/inswin/igins(mox,moz)
       common/pinsol/ins(ms),pins(ms),pinw(ms),pcshad
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       integer izstocn
       common/c24/izstocn(mcom,ms)
 
@@ -1336,18 +1335,20 @@ C Parameters
       real dx,dz    ! grid location
       real xxw,yyw,zzw  ! transformed coordinate
       real xxx,yyy,zzzz ! for use in last orttrn
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
       dimension xx(mtv),yy(mtv),zz(mtv)
       dimension tmat(4,4),rmat(4,4)
       dimension vp(3),ep(3)
 
 C Recover eye point and view point for eyemat.
-      vp(1)=SSURCOG(icc,1)
-      vp(2)=SSURCOG(icc,2)
-      vp(3)=SSURCOG(icc,3)
-      ep(1)=SSURVN(icc,1)
-      ep(2)=SSURVN(icc,2)
-      ep(3)=SSURVN(icc,3)
+      iz=ic1(icc); is=IE1(icc)
+      vp(1)=SURCOG(iz,is,1)
+      vp(2)=SURCOG(iz,is,2)
+      vp(3)=SURCOG(iz,is,3)
+      ep(1)=SURVN(iz,is,1)
+      ep(2)=SURVN(iz,is,2)
+      ep(3)=SURVN(iz,is,3)
 
       call eyemat(ep,vp,1.0,tmat,rmat)
 

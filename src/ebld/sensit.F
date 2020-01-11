@@ -44,7 +44,7 @@ C simulations to be run.
 C Common blocks UA4 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/UA5/IMET,ISIM,NRSIM
@@ -321,7 +321,7 @@ C Monte-Carlo SA.
 #include "building.h"
 C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -2026,12 +2026,10 @@ C UAZ01 edits zone air volume in memory or surface area.
       SUBROUTINE UAZ01(IZONE,IACT,DIR)
 #include "building.h"
 #include "geometry.h"
-C Common blocks UA2 UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
       common/prec12/ei(mcom,ms),ee(mcom,ms),ai(mcom,ms),ae(mcom,ms)

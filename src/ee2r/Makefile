@@ -15,11 +15,12 @@ CETCdir = $(SRCdir)/cetc
 PROG = e2r$(EXE)
 default: $(PROG)
 
-.SUFFIXES: .o .F
+.SUFFIXES: .o .F .f90
 .F.o:
 	$(MFC) $(FFLAGS) -c $<
-
-%.o : %.f90
+.f90.o:
+	$(MFC) $(FFLAGS) -c $<
+.o :
 	$(MCC) $(FFLAGS) -c $<
 
 MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o CFC_Module.o

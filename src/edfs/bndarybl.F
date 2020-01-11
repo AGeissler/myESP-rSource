@@ -27,6 +27,7 @@ C the equations being set up/ solved.
 C ********************* BLKBNDU *********************
 C BLKBNDU - set boundary conditions for U velocity for blockages.
       SUBROUTINE BLKBNDU(IBLK)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -147,6 +148,7 @@ C Blockage on High face of adjacent cell.
 C ********************* BLKBNDV *********************
 C BLKBNDV - set boundary conditions for V velocity for blockages.
       SUBROUTINE BLKBNDV(IBLK)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -267,6 +269,7 @@ C Blockage on High face of adjacent cell.
 C ********************* BLKBNDW *********************
 C BLKBNDW - set boundary conditions for W velocity for blockages.
       SUBROUTINE BLKBNDW(IBLK)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -386,6 +389,7 @@ C ********************* BLKBNDKE *********************
 C BLKBNDKE - set boundary conditions for turbulent kinetic 
 C   energy for blockages.
       SUBROUTINE BLKBNDKE(IBLK)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -556,6 +560,7 @@ C ********************* BLKBNDED *********************
 C BLKBNDED - set boundary conditions for the dissipation of turbulent kinetic 
 C   energy due to solid face for blockages.
       SUBROUTINE BLKBNDED(IBLK)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -675,6 +680,7 @@ C   due to solid face for blockages.
 C   VOLHeat is the heat flux in [W/m2], for the  whole blockage, 
 C   prescribed by the user.
       SUBROUTINE BLKBNDT(IBLK)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -1035,6 +1041,7 @@ C ********************* TRBSRCU *********************
 C TRBSRCU: stress/velocity at next-to-wall point for solid BC's, U-vel dir.
 
       FUNCTION TRBSRCU(I,J,K,Dface)
+#include "building.h"
 #include "cfd.h"
       
       COMMON/INTERP/SIFE(ntcelx),SIFW(ntcelx),SIFN(ntcely),SIFS(ntcely),
@@ -1075,6 +1082,7 @@ C ********************* TRBSRCV *********************
 C TRBSRCV: stress/velocity at next-to-wall point for solid BC's, V-vel dir.
 
       FUNCTION TRBSRCV(I,J,K,Dface)
+#include "building.h"
 #include "cfd.h"
       
       COMMON/INTERP/SIFE(ntcelx),SIFW(ntcelx),SIFN(ntcely),SIFS(ntcely),
@@ -1115,6 +1123,7 @@ C ********************* TRBSRCW *********************
 C TRBSRCW: stress/velocity at next-to-wall point for solid BC's, W-vel dir.
 
       FUNCTION TRBSRCW(I,J,K,Dface)
+#include "building.h"
 #include "cfd.h"
       
       COMMON/INTERP/SIFE(ntcelx),SIFW(ntcelx),SIFN(ntcely),SIFS(ntcely),
@@ -1156,6 +1165,7 @@ C ********************* YUANBC *********************
 C YUANBCW: boundary conditions on solid wall for Yuan wall functions.
 
       FUNCTION YUANBC(I,J,K,Dface)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/FLUPRf/URFVIS,VISCOS,PRANDT,SH,

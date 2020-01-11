@@ -26,7 +26,7 @@ C USER-SPECIFIED PERIOD.
 #include "climate.h"
 #include "epara.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/MXMNC/YMAX(MCM),YMIN(MCM),TMAX,TMIN,DT
       COMMON/RADTYP/IDNGH
@@ -129,7 +129,7 @@ C Display graphing options.
         mxmn=.true.
       ELSEIF(INO.gt.MHEAD.and.INO.le.(NITMS-MCTL))THEN
 
-C Select a climate metric.
+C Select a weather metric.
         CALL KEYIND(NITMS,INO,imenu,IO)
         IP=menumetric(imenu)
         IPICK(IP)=1
@@ -162,9 +162,6 @@ C others go on the right.
           if (IPICK(6).eq.1) onright=onright+1
           if (IPICK(7).eq.1) onright=onright+1
           if (IPICK(8).eq.1 .or. IPICK(9).eq.1) onright=onright+1
-
-C Debug.
-C          write(6,*) ' number of right axis is ',onright
 
 C Take into account which axis needs to be drawn as in esrures/tgraph.F.
           lastbuttonfont=IFS
@@ -435,7 +432,11 @@ C the top of the graph.
               call textatxy(iix,iiz,'Winter','z',iicol)
             endif
             iiz=igt-5; isym=8
-            call esymbol(iix,iiz,isym,1)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiz,isym,1)
+            else
+              call esymbolwwc(iix,iiz,isym,1)
+            endif
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -453,7 +454,11 @@ C the top of the graph.
               call textatxy(iix,iiz,'Spring','z',iicol)
             endif
             iiz=igt-5; isym=3
-            call esymbol(iix,iiz,isym,0)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiz,isym,0)
+            else
+              call esymbolwwc(iix,iiz,isym,0)
+            endif
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -471,8 +476,12 @@ C the top of the graph.
               call textatxy(iix,iiz,'Summer','z',iicol)
             endif
             iiz=igt-5; isym=8
-C            call esymbol(iix,iiz,32,0)
-            call esymbol(iix,iiz,isym,0)
+            if(mmod.eq.8)then
+C             call esymbol(iix,iiz,32,0)
+              call esymbol(iix,iiz,isym,0)
+            else
+              call esymbolwwc(iix,iiz,isym,0)
+            endif
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -490,7 +499,11 @@ C            call esymbol(iix,iiz,32,0)
               call textatxy(iix,iiz,'Autumn','z',iicol)
             endif
             iiz=igt-5; isym=3
-            call esymbol(iix,iiz,isym,0)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiz,isym,0)
+            else
+              call esymbolwwc(iix,iiz,isym,0)
+            endif
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -508,7 +521,11 @@ C            call esymbol(iix,iiz,32,0)
               call textatxy(iix,iiz,'Winter','z',iicol)
             endif
             iiz=igt-5; isym=17
-            call esymbol(iix,iiz,isym,0)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiz,isym,0)
+            else
+              call esymbolwwc(iix,iiz,isym,0)
+            endif
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -525,7 +542,11 @@ C Typical week in each season.
             endif
             call u2pixel(TIME,0.0,iix,iiy)
             iiz=igt; isym=8
-            call esymbol(iix,iiz,isym,1)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiz,isym,1)
+            else
+              call esymbolwwc(iix,iiz,isym,1)
+            endif
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -539,7 +560,11 @@ C Typical week in each season.
             endif
             call u2pixel(TIME,0.0,iix,iiy)
             iiz=igt; isym=8
-            call esymbol(iix,iiz,isym,1)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiz,isym,1)
+            else
+              call esymbolwwc(iix,iiz,isym,1)
+            endif
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -553,7 +578,11 @@ C Typical week in each season.
             endif
             call u2pixel(TIME,0.0,iix,iiy)
             iiz=igt; isym=8
-            call esymbol(iix,iiz,isym,1)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiz,isym,1)
+            else
+              call esymbolwwc(iix,iiz,isym,1)
+            endif
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -567,7 +596,11 @@ C Typical week in each season.
             endif
             call u2pixel(TIME,0.0,iix,iiy)
             iiz=igt; isym=8
-            call esymbol(iix,iiz,isym,1)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiz,isym,1)
+            else
+              call esymbolwwc(iix,iiz,isym,1)
+            endif
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -581,7 +614,11 @@ C Typical week in each season.
             endif
             call u2pixel(TIME,0.0,iix,iiy)
             iiz=igt; isym=8
-            call esymbol(iix,iiz,isym,1)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiz,isym,1)
+            else
+              call esymbolwwc(iix,iiz,isym,1)
+            endif
             if(IFS.ne.IMFS)call winfnt(IMFS)
             if(colok)then
               iicol=0
@@ -594,7 +631,7 @@ C Typical week in each season.
         iicol=0
         call winscl('-',iicol)
       endif
-      call forceflush()
+      if(mmod.eq.8) call forceflush()
 
       RETURN
       END
@@ -610,6 +647,7 @@ C acthor (1 char) '-' standard, 'd' day, 'w' week.
       COMMON/CGSC/XSC,YSC(MCM),Xadd,Yadd(MCM)
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -732,16 +770,24 @@ C Temperature axis, takes first position on left.
             call textsizeatxy(iix,iiz,'deg.C',isize,'z',iicol)
           endif
           iiw2=igt-40; iiw3=iiw1+35
-          call eswline(iiw1,iiw2,iiw3,iiw2)
+          if(mmod.eq.8)then
+            call eswline(iiw1,iiw2,iiw3,iiw2)
+          else
+            call eswlinewwc(iiw1,iiw2,iiw3,iiw2)
+          endif
           iix=iiw1+15; iiz=iiw2
           isym=MARK(I)
-          call esymbol(iix,iiz,isym,1)
+          if(mmod.eq.8)then
+            call esymbol(iix,iiz,isym,1)
+          else
+            call esymbolwwc(iix,iiz,isym,1)
+          endif
           call winfnt(lastbuttonfont)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
 
 C Solar radiation axis, first position on right.
         elseif(I.eq.2)then
@@ -762,13 +808,17 @@ C Solar radiation axis, first position on right.
           call edash(iiw1,iiw2,iiw3,iiw2,5)
           iix=iiw1+15; iiz=iiw2
           isym=MARK(I)
-          call esymbol(iix,iiz,isym,1)
+          if(mmod.eq.8)then
+            call esymbol(iix,iiz,isym,1)
+          else
+            call esymbolwwc(iix,iiz,isym,1)
+          endif
           call winfnt(lastbuttonfont)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
 
 C Wind speed axis, after temperature on left.
         elseif(I.eq.5)then
@@ -798,13 +848,17 @@ C Wind speed axis, after temperature on left.
           call echain(iiw1,iiw2,iiw3,iiw2,5)
           iix=iiw1+15; iiz=iiw2
           isym=MARK(I)
-          call esymbol(iix,iiz,isym,1)
+          if(mmod.eq.8)then
+            call esymbol(iix,iiz,isym,1)
+          else
+            call esymbolwwc(iix,iiz,isym,1)
+          endif
           call winfnt(lastbuttonfont)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
 
 C Wind direction axis, after solar on right.          
         elseif(I.eq.6)then
@@ -826,13 +880,17 @@ C Wind direction axis, after solar on right.
           call echain(iiw1,iiw2,iiw3,iiw2,5)
           iix=iiw1+15; iiz=iiw2
           isym=MARK(I)
-          call esymbol(iix,iiz,isym,1)
+          if(mmod.eq.8)then
+            call esymbol(iix,iiz,isym,1)
+          else
+            call esymbolwwc(iix,iiz,isym,1)
+          endif
           call winfnt(lastbuttonfont)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
 
 C RH axis, after solar and wind direction on right.
         elseif(I.eq.7)then
@@ -850,16 +908,24 @@ C RH axis, after solar and wind direction on right.
           lastbuttonfont=IFS
           call textsizeatxy(iix,iiz,'RH %',isize,'z',iicol)
           iiw2=igt-40; iiw3=iiw1+35
-          call edline(iiw1,iiw2,iiw3,iiw2,5)
+          if(mmod.eq.8)then
+            call edline(iiw1,iiw2,iiw3,iiw2,5)
+          else
+            call edlinewwc(iiw1,iiw2,iiw3,iiw2,5)
+          endif
           iix=iiw1+15; iiz=iiw2
           isym=MARK(I)
-          call esymbol(iix,iiz,isym,1)
+          if(mmod.eq.8)then
+            call esymbol(iix,iiz,isym,1)
+          else
+            call esymbolwwc(iix,iiz,isym,1)
+          endif
           call winfnt(lastbuttonfont)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
 
 C Cloud cover axis, last position on right.
         elseif (I.eq.8) then
@@ -875,16 +941,24 @@ C Cloud cover axis, last position on right.
           lastbuttonfont=IFS
           call textsizeatxy(iix,iiz,'Cloud',isize,'z',iicol)
           iiw2=igt-40; iiw3=iiw1+35
-          call eswline(iiw1,iiw2,iiw3,iiw2)
+          if(mmod.eq.8)then
+            call eswline(iiw1,iiw2,iiw3,iiw2)
+          else
+            call eswlinewwc(iiw1,iiw2,iiw3,iiw2)
+          endif
           iix=iiw1+15; iiz=iiw2
           isym=MARK(I)
-          call esymbol(iix,iiz,isym,1)
+          if(mmod.eq.8)then
+            call esymbol(iix,iiz,isym,1)
+          else
+            call esymbolwwc(iix,iiz,isym,1)
+          endif
           call winfnt(lastbuttonfont)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
 
 C Pressure axis, last position on left.
         elseif (I.eq.10) then
@@ -910,16 +984,24 @@ C Pressure axis, last position on left.
             call wstxpt(iix,iiz,'Pa')
           endif
           iiw2=igt-40; iiw3=iiw1+35
-          call edline(iiw1,iiw2,iiw3,iiw2,5)
+          if(mmod.eq.8)then
+            call edline(iiw1,iiw2,iiw3,iiw2,5)
+          else
+            call edlinewwc(iiw1,iiw2,iiw3,iiw2,5)
+          endif
           iix=iiw1+15; iiz=iiw2
           isym=MARK(I)
-          call esymbol(iix,iiz,isym,1)
+          if(mmod.eq.8)then
+            call esymbol(iix,iiz,isym,1)
+          else
+            call esymbolwwc(iix,iiz,isym,1)
+          endif
           call winfnt(lastbuttonfont)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
         endif
   50  CONTINUE
       call usrmsg(' ',' ','-') ! force redraw of the dialog box

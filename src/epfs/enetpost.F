@@ -537,7 +537,7 @@ C case and 'A' is appended.
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/SUS/ISSNY
 

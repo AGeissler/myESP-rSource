@@ -55,7 +55,7 @@ C *********************************************************************
       LOGICAL BLDG3D,ZONE3D
       COMMON/GR3D108/L3DCVS(MCOM),L3DCNC(MCOM),L3DNDC(MCOM),L3DTAQ(MCOM)
 
-      LOGICAL ZONOK,OK,DOK,XST,SAVEOK
+      LOGICAL ZONOK,OK,XST,SAVEOK
 
       CHARACTER ITEM(15)*26,SZN*15
       CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ
@@ -204,12 +204,9 @@ C Check if there are un-acceptable 3D gridding directives.
         CALL CHCK3D(IWRNG,IERRR)
         IF(IERRR.LE.0)THEN
           IF(IWRNG.GT.0)THEN
-            dok=.false.
             helptopic='grd_3d_conduc_warn'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL ASKOK(' Warning messages were given',
-     &        ' Are you sure you want to continue (see help)?',
-     &        OK,dok,nbhelp)
+            CALL EASKOK('Warnings issued!','Continue?',OK,nbhelp)
             IF(OK)THEN
 
 C Define the intersection points for all types of lines in surfaces.
@@ -231,7 +228,7 @@ C in the zone.
           ENDIF
         ELSE
           CALL USRMSG(
-     &   ' Fatal errors were detected while checking 3D configuration.',
+     &   ' Fatal errors detected while checking 3D configuration.',
      &   ' The 3D files will not be generated.','W')
         ENDIF
       ELSEIF(INO.EQ.9)THEN
@@ -265,8 +262,8 @@ C Delete the associated 3D file.
 
 C Project manager handles the utility files.
           call usrmsg(
-     &      'Update these changes in the project manager zone com-',
-     &      'position menu (the supplemental files).','W')
+     &      'Update these changes in the project manager',
+     &      'zone composition menu.','W')
         ELSE
           CALL USRMSG(' ',' 3D files do not exist','W')
         ENDIF
@@ -292,13 +289,10 @@ C Help.
 
 C Return to the main multi-gridding menu.
         IF(SAVEOK)THEN
-          dok=.true.
           helptopic='save_recent_changes'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(
-     &      'The system configuration should be updated for changes.',
-     &      '(if no other module is using it). Do this?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Update system configuration file?',
+     &             OK,nbhelp)
           IF(OK)CALL EMKCFG('-',IER)
         ENDIF
         RETURN
@@ -551,7 +545,7 @@ C *********************************************************************
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -685,7 +679,7 @@ C *********************************************************************
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -814,7 +808,7 @@ C *********************************************************************
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -978,7 +972,7 @@ C *********************************************************************
 C geometry.h provides commons G0/G1 and G2.
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       
       integer ncomp,ncon

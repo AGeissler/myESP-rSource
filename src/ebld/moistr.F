@@ -55,7 +55,7 @@ C *********************************************************************
       SUBROUTINE MZMSTR(ICOMP)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       COMMON/VTHP30/ILTHPS,ILTHPZ(MCOM)
       COMMON/VTHP31/INTHPS,INTHPZ(MCOM)
@@ -174,7 +174,6 @@ C *********************************************************************
       COMMON/MOIST12/GAMm,RGAMm
       COMMON/MOIST13/RLXln,RRLXln,RLXlnF,RRLXlnF,RLXlnT,RRLXlnT
       COMMON/MOIST14/DTfalse,TRMfls,TRMflsp1
-      COMMON/MOIST16/PATMpa
       COMMON/MOIST17/RHmax
 
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
@@ -192,7 +191,6 @@ C *********************************************************************
       RITRMF=0.001 ! (Ff-Fn) FACTOR < RITRMF ? => O.K. (both for zone air and layers!)
 
       RHmax=0.99
-      PATMpa=101325.0
       RETURN
       END
 
@@ -201,15 +199,15 @@ C INITMZ initiates the zone moisture variables.
 C *********************************************************************
       SUBROUTINE INITMZ(ICOMP)
 #include "building.h"
+#include "site.h"
 #include "moist.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)
       COMMON/MOIST05/IPERM(MCOM,MS,ME),PERM(MCOM,MS,ME,3)
       COMMON/MOIST07/ITVAPD(MCOM,MS,ME),TVAPD(MCOM,MS,ME)
-      COMMON/MOIST16/PATMpa
       COMMON/MOIST22/APp(MCOM,MS),APf(MCOM,MS)
       COMMON/MOIST31/CPsair(MCOM),RHOsair(MCOM),Usair(MCOM)
       COMMON/MOIST25/BETAif(MCOM,MS),BETAof(MCOM,MS)
@@ -231,7 +229,7 @@ C *********************************************************************
       Pfair(ICOMP)=Pinit
       Ffair(ICOMP)=0.0
       Sfair(ICOMP)=0.0
-      Xair=X03(TC,RH,PATMpa)
+      Xair=X03(TC,RH,atmpres)
       Usair(ICOMP)=Xair
       CPsair(ICOMP)=CPmst01(TC,Xair)
       RHOsair(ICOMP)=RHOdry01(TC)
@@ -318,7 +316,7 @@ C **********************************************************************
       SUBROUTINE MZMTMP(ICOMP)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PVALC/TPC(MCOM,MS,MN),QPC(MCOM)
@@ -764,12 +762,13 @@ C MZMCFF calculates the future moisture parameters.
 C *********************************************************************
       SUBROUTINE MZMCFF(ICOMP)
 #include "building.h"
+#include "site.h"
+#include "geometry.h"
 #include "moist.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
      &HCOF(MCOM,MS)
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/ADJC/IE(MCOM,MS),ATP(MCOM,MS),ATF(MCOM,MS),ARP(MCOM,MS),
@@ -781,7 +780,6 @@ C *********************************************************************
       COMMON/MOIST05/IPERM(MCOM,MS,ME),PERM(MCOM,MS,ME,3)
       COMMON/MOIST06/ISORP(MCOM,MS,ME),SORP(MCOM,MS,ME,3)
       COMMON/MOIST07/ITVAPD(MCOM,MS,ME),TVAPD(MCOM,MS,ME)
-      COMMON/MOIST16/PATMpa
       COMMON/MOIST17/RHmax
       COMMON/MOIST21/CPpair,CPfair,RHOpair,RHOfair,Upair,Ufair
       COMMON/MOIST22/APp(MCOM,MS),APf(MCOM,MS)
@@ -814,7 +812,7 @@ C Calculate the future time vapour ratio for zone air.
         write(outs,*) 'Psat01(TCfair) returning zero',TCfair
         call edisp(iuout,outs)
       endif
-      Ufair=X03(TCfair,RH,PATMpa)
+      Ufair=X03(TCfair,RH,atmpres)
       Usair(ICOMP)=Ufair
 
 C Calculate the future time density for dry zone air.
@@ -830,7 +828,7 @@ C Calculate the moisture capacity for the zone air.
       Pvf=Pfair(ICOMP)
       TCp=TPA(ICOMP)
       TCf=TFA(ICOMP)
-      XIpfair=XIair01(Pvp,Pvf,TCp,TCf,PATMpa)
+      XIpfair=XIair01(Pvp,Pvf,TCp,TCf,atmpres)
 
 C Estimate the future time convective mass transfer coefficients.
       NC=NCONST(ICOMP)
@@ -850,7 +848,7 @@ C       External construction surface.
      &      ', surface ',I,' returning zero ',TCf
           call edisp(iuout,outs)
         endif
-        AUfair=X03(TCf,RH,PATMpa)
+        AUfair=X03(TCf,RH,atmpres)
         ACPfair=CPmst01(TCf,AUfair)
         BETAof(ICOMP,I)=BETA01(ALPHA,ACPfair,TCf)
    20 CONTINUE
@@ -1020,9 +1018,8 @@ C *********************************************************************
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/CLIMHG/HEXTP,HEXTF,GEXTP,GEXTF
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/VTHP14/THRMLI(MCOM,MS,ME,7)
@@ -1296,7 +1293,7 @@ C *********************************************************************
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       CHARACTER*72 MSG
 
@@ -1406,7 +1403,7 @@ C *********************************************************************
       COMMON/MOIST54/Pfair(MCOM),Ffair(MCOM),Sfair(MCOM)
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
  
       LOGICAL CONVP
@@ -1460,7 +1457,7 @@ C *********************************************************************
       COMMON/MOIST54/Pfair(MCOM),Ffair(MCOM),Sfair(MCOM)
       COMMON/MOIST62/Pn(MS,MNM),Fn(MS,MNM),Sn
       COMMON/MOIST64/Pnair,Fnair,Snair
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
  
       LOGICAL CONVF
@@ -1575,7 +1572,7 @@ C **********************************************************************
       SUBROUTINE CHKMST(IER)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -1717,16 +1714,11 @@ C *********************************************************************
       use h3kmodule
       implicit none
 #include "building.h"
-C geometry.h for zname.
 #include "geometry.h"
 #include "moist.h"
 
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       integer       IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-
-C.....Surface area data
-      common/prec1/sna(mcom,ms)
-      real sna                 ! Area of a surface
 
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)

@@ -46,9 +46,9 @@ C imode = 3 the user is interested in curve fitting.
       integer lnblnk  ! function definition
 
       PARAMETER (MT=24,MD=365,MAAS=9)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
-C PCLMVAL holds climate data, similarly to CMRVAL, but for multiple days.
+C PCLMVAL holds weather data, similarly to CMRVAL, but for multiple days.
 C PLAST holds previous values of current focus.
       COMMON/PCLIM/PCLMVAL(MCM,MD,MT),PLAST(MD,MT)
       COMMON/FILEP/IFIL
@@ -64,10 +64,10 @@ C PLAST holds previous values of current focus.
       COMMON/PERPER/PERST2
 
       CHARACTER*27 ITEM(30)
-      character PRML*48,PRM*24,CLMLOC*30,PERST2*44,str*60,KEY*1
+      character PRML*48,PRM*24,CLMLOC*42,PERST2*44,str*60,KEY*1
       character outs*124
       DIMENSION ICK(MCM),WVAL(24),NANG(MAAS),WRDF(MAAS)
-      logical OK,dok,FOUND
+      logical OK,FOUND
       integer NITEMS,INO  ! max items and current menu item
       integer menumetric(MCM)
 
@@ -191,10 +191,7 @@ C When exiting, return to the whole year period.
         ELSE
           helptopic='reminder_on_saving'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          dok=.false.
-          CALL ASKOK('Changes have not yet been saved to file. Save',
-     &      'data (to the current file) before exiting ?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Save data before exiting?',OK,nbhelp)
           if(.NOT.OK)then
             ID1=1
             IM1=1
@@ -231,15 +228,15 @@ C as well as writing out the tail of the file.
             WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLAT,CFLONG
           else
             IREC=366
-            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)CFYEAR
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFYEAR
             IREC=IREC+1
-            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &        CFLOC,CFLAT,CFLONG
             IREC=IREC+1
-            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &        (CMCOL(i),i=1,CFMCM)
             IREC=IREC+1
-            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)CFVER
+            WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFVER
           endif
 
           ISAVE=1
@@ -263,7 +260,7 @@ C as well as writing out the tail of the file.
         goto 1
       ELSEIF(INO.gt.MHEAD.and.INO.le.(NITMS-MCTL))THEN
 
-C Select a climate metric.
+C Select a weather metric.
         CALL KEYIND(NITMS,INO,imenu,IO)
         IP=menumetric(imenu)
 
@@ -402,22 +399,22 @@ C segments MAAS)
           IF(INO.EQ.9)THEN
             helptopic='interdependant_rh_temp'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKI(NSEG,' How many angular segments to divide into?'
-     &      ,'(see help)',1,'F',MAAS,'F',3,'constant dir',IER,nbhelp)
+            CALL EASKI(NSEG,' ',
+     &           'Number of angular segments required?',
+     &           1,'F',MAAS,'F',3,'constant dir',IER,nbhelp)
             IANGS=0
             DO 7485 ISEG=1,NSEG
               IF(ISEG.EQ.NSEG)GOTO 5155
-              WRITE(STR,'(A,I2)')'Finishing angle for segment no. ',ISEG
-              CALL EASKI(IANGF,STR,'(see help)',
+              WRITE(STR,'(A,I2)')'Finishing angle for segment ',ISEG
+              CALL EASKI(IANGF,' ',STR,
      &          1,'F',360,'F',360,'constant dir',IER,nbhelp)
               GOTO 5156
  5155         IANGS=IANGF
               IANGF=360
  5156         NANG(ISEG)=IANGF
-              WRITE(STR,'(A,I3,A,I3)')
-     &        'What is the wind speed reduction factor ',IANGS,' to '
-     &        ,IANGF
-              CALL EASKR(REDF,STR,'i.e. fraction of original speed?',
+              WRITE(STR,'(A,I3,A,I3,A)')
+     &        'Wind speed reduction factor ',IANGS,' to ',IANGF,'.'
+              CALL EASKR(REDF,' ',STR,
      &          0.,'-',0.,'-',1.,'wind break speed reduction',
      &          IER,nbhelp)
               IANGS=IANGF
@@ -454,11 +451,9 @@ C Draw variables.
       elseif(ino.eq.NITMS-3)then
         DO 20 I=1,4
           IF(ICK(I).NE.1)THEN
-            dok=.true.
             helptopic='specify_more_variables'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL ASKOK(' Do you want to make any more changes before',
-     &        ' saving the weather data?',OK,dok,nbhelp)
+            CALL EASKOK(' ','More changes?',OK,nbhelp)
             IF(OK)THEN
               goto 11
             else
@@ -486,16 +481,16 @@ C Update weather binary file for each altered day as well as the tail.
                 WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLAT,CFLONG
               else
                 IREC=366
-                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &            CFYEAR
                 IREC=IREC+1
-                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &            CFLOC,CFLAT,CFLONG
                 IREC=IREC+1
-                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &            (CMCOL(j),j=1,CFMCM)
                 IREC=IREC+1
-                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+                WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &            CFVER
               endif
 
@@ -530,7 +525,7 @@ C polynomial function
 #include "climate.h"
 
       PARAMETER (MT=24,MD=365)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PCLIM/PCLMVAL(MCM,MD,MT),PLAST(MD,MT)
       DIMENSION A(10)
       character COEFFS*72,STR*72,outs*124
@@ -557,35 +552,35 @@ C Setup limits for weather parameters
       call gethelptext(helpinsub,helptopic,nbhelp)
       COEFFS=' '
       ILC=1
-      CALL EASKATOG('Change original weather value','(see help)'
-     & ,'set to constant','change by constant','fraction of original'
-     &    ,'polynomial transform ','continue',' ',' ',ILC,nbhelp)
+      CALL EASKATOG(' ','Weather parameter:',
+     &    'set to constant','change by constant','fraction of original',
+     &    'polynomial transform','cancel',' ',' ',ILC,nbhelp)
       IF(ILC.EQ.5)RETURN
       K=0
       IF(ILC.EQ.1)THEN
         NORD=0
-        CALL EASKS(COEFFS,'What is the constant value','(see help)',
-     &   5,' ','constant weather parameter',IER,nbhelp)
+        CALL EASKS(COEFFS,' ','What is the constant value',
+     &    5,' ','constant weather parameter',IER,nbhelp)
         CALL EGETWR(COEFFS,K,A(1),CLMIN,CLMAX,'-','coefficients',IER)
         IF(IER.NE.0)GOTO 999
       ELSEIF(ILC.EQ.2)THEN
         NORD=1
-        CALL EASKS(COEFFS,'Change by what constant value','(see help)',
+        CALL EASKS(COEFFS,' ','Change by what constant value?',
      &   5,' ','constant weather parameter',IER,nbhelp)
         CALL EGETWR(COEFFS,K,A(2),CLMIN,CLMAX,'-','coefficients',IER)
         IF(IER.NE.0)GOTO 999
         A(1)=1.
       ELSEIF(ILC.EQ.3)THEN
         NORD=1
-        CALL EASKS(COEFFS,'Change by what fraction','(see help)',
+        CALL EASKS(COEFFS,' ','Change by what fraction',
      &   5,' ','constant weather parameter',IER,nbhelp)
         CALL EGETWR(COEFFS,K,A(1),CLMIN,CLMAX,'-','coefficients',IER)
         IF(IER.NE.0)GOTO 999
         A(2)=0.
       ELSEIF(ILC.EQ.4)THEN
         if(NORD.eq.0) NORD=1
-        CALL EASKI(NORD,' What is the order of polynomial?','(see help)'
-     &    ,0,'W',3,'W',0,'constant dir',IER,nbhelp)
+        CALL EASKI(NORD,' ','Polynomial order?',
+     &    0,'W',3,'W',0,'constant dir',IER,nbhelp)
         IF(IER.NE.0)GOTO 999
         helptopic='polynomial_coef'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -653,7 +648,7 @@ C seleting the PERIOD facility from menu PDRAW.
 
       PARAMETER (MD=365,MT=24)
 
-C PCLMVAL is current climate values, PLAST is previous value of current focus.
+C PCLMVAL is current weather values, PLAST is previous value of current focus.
       COMMON/PCLIM/PCLMVAL(MCM,MD,MT),PLAST(MD,MT)
       COMMON/CLIM1/CLMV(7,MD,MT),ICMAX,ICMAX2,ICMIN
 
@@ -735,7 +730,7 @@ C values of atmospheric turbidity and precipitable water content.
       DIMENSION SOLALT(24),SOLAZI(24)
       DIMENSION B(4,3)
       character outs*124
-      logical ok,dok
+      logical ok
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -751,24 +746,23 @@ C For help messages
       RLATIT=0.
       helptopic='north_is_positive'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKR(RLATIT,'Latitude (North +ve: South -ve)',
-     &  'for the site under analysis ? ',
-     &    -90.,'F',90.,'-',32.,'latitude',IER,nbhelp)
+      CALL EASKR(RLATIT,' ','Latitude (North +ve, South -ve)?',
+     &      -90.,'F',90.,'-',32.,'latitude',IER,nbhelp)
 
       RLONGT=0.
-      CALL EASKR(RLONGT,'Longitude (East +ve: West -ve)',
-     &  'for the site under analysis ? ',
-     &    -180.,'F',180.,'-',0.,'longitude',IER,nbhelp)
+      CALL EASKR(RLONGT,'Longitude difference from reference meridian',
+     &  '(East +ve, West -ve)?',
+     &    -180.,'F',180.,'-',0.,'longitude diff',IER,nbhelp)
 
       HTSITE=0.
-      CALL EASKR(HTSITE,
-     &  'What is the elevation of the site above',' sea level (M)?',
+      CALL EASKR(HTSITE,' ',
+     &  'Elevation of  site above sea level (m)?',
      &    0.,'-',0.,'-',10.,'elevation',IER,nbhelp)
 
       helptopic='recommended_turbidity'
       call gethelptext(helpinsub,helptopic,nbhelp)
       ATTURB=0.0
-      CALL EASKR(ATTURB,'Value of atmospheric turbidity?','(see help)',
+      CALL EASKR(ATTURB,' ','Atmospheric turbidity?',
      &    0.,'F',1.,'W',0.19,'turbidity',IER,nbhelp)
 
       IDX=0
@@ -788,17 +782,16 @@ C Estimate the precipitable water content.
      &       -0.128*C3DR+0.579*S3DR
 
       WRITE(outs,8)PRECWC
-    8 FORMAT(' The mean precipitable daily water content is',F6.2,
+    8 FORMAT(' Average precipitable daily water content is',F6.2,
      &' (mm)')
-      dok=.true.
       helptopic='review_derived_value'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(outs,'Is this value satisfactory?',OK,dok,nbhelp)
+      CALL EASKOK(outs,'Value OK?',OK,nbhelp)
       if(ok)goto 32
       helptopic='precip_water_content'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKR(PRECWC,' Average precipitable water content',
-     &  ' for the period under analysis ? ',
+      CALL EASKR(PRECWC,' ',
+     &   'Average precipitable water content?',
      &    0.,'-',0.,'-',0.,'prec water',IER,nbhelp)
       GOTO 19
    32 PRECWC=-1.0
@@ -940,7 +933,7 @@ C Parameters:
       integer iday    ! the current day of the month
       integer ihr     ! the current hour of the day
       integer IGLOBH  ! global horizontal value (in w/m2)
-      real LONGITUDE  ! the weather site longitude (west: positive)
+      real LONGITUDE  ! the weather site longitude difference (west: positive)
       real DIFFGRNWCH ! local time difference from Greenwich. Assumes
                       ! that west is positive (e.g. use -2 for Greece)
       real DRAD       ! diffuse value to be returned Muneer or Maxwell (in w/m2)

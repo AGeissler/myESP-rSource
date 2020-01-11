@@ -186,7 +186,7 @@ C routine is essentially a copy of trnsf2 used for shading.
 
       subroutine trnsf2i(ihr)
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tracech/icout
       common/tc/itc,icnt
       common/trnsf/a(5),b(3),c(5),xor,yor,zor

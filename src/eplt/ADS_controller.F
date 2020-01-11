@@ -50,9 +50,10 @@ C-----------------------------------------------------------------------------
 C ESP-r COMMONs
 C-----------------------------------------------------------------------------
 
-       COMMON/OUTIN/IUOUT,IUIN
+       common/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
        INTEGER ITCF            !-building-side time increment

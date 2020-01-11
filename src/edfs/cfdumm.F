@@ -29,7 +29,7 @@ C calculated by Mass Flow Network model.
 
       SUBROUTINE MFBNDR(intl)
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       character OUTS*124
 
       WRITE(OUTS,'(2a)')'MFBNDR: mass flow network calculation is not',

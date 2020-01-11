@@ -55,7 +55,7 @@ C         1 - silent
       
       integer lnblnk  ! function definition
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/moupk/ispp(mould),a(4,mould),mldnam(mould)
 
       common/mstats/imstat,ifloat(mould),ifloatp(mould),imdur1(mould)
@@ -268,7 +268,7 @@ C ****************** mycograph *****************************
 #include "mould.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       common/moupk/ispp(mould),a(4,mould),mldnam(mould)
       common/ppoint/npoint,ixt(24),iyr(24),tpt(24),rpt(24)
@@ -423,7 +423,6 @@ C Draw on mould growth curves curves.
 C Draw on the selected points.
       do 99 ipt=1,npoint
         iix=ixt(ipt); iiy=iyr(ipt)
-C        call ecirc(ixt(ipt),iyr(ipt),3,1) 
         call ecirc(iix,iiy,3,1) 
   99  continue
       call forceflush()
@@ -521,7 +520,7 @@ C subroutine curvedraw
       subroutine curvedraw(imld)
 #include "mould.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/grphlim/xmin,xmax,ymin,ymax
       common/moupk/ispp(mould),a(4,mould),mldnam(mould)
       common/mdbase/mdbnam

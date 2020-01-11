@@ -62,10 +62,11 @@ C ******************** MZCONV ********************
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
       common/CORIND/ICORI(MCOM,MS),ICORE(MCOM,MS)
-      COMMON/HCFIX2/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &              HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
-      common/HCTL/iCTLTP(MCOM,MBP),IcIuse(MCOM,MS,MBP),
-     &            IcEuse(MCOM,MS,MBP),icnvKY(MCOM,MS,MBP),
+      COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
+     &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
+     &       HCFVE(MCOM,MDTY,MS,MBP)
+      common/HCTL/iCTLTP(MCOM,MDTY,MBP),IcIuse(MCOM,MDTY,MS,MBP),
+     &            IcEuse(MCOM,MDTY,MS,MBP),icnvKY(MCOM,MDTY,MS,MBP),
      &            CVdat(MS*MBP,8)
       COMMON/PREC1I/APRAT(MCOM,MS),HEIGHT(MCOM,MS)
       common/ts4/itsitr(msch),itrpas
@@ -75,6 +76,8 @@ C Indicies of simulation toggles for inside and outside hc coef.
       common/hcthry/ihct,icorexhct
 
       COMMON/calcdCFD/mICORcfd(MCOM),mHCcfd(MCOM)
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
       character outs*124,LCFD*72
 
@@ -169,14 +172,19 @@ C Consider next mlc in zone.
 C Override the calculated values if user has specified a convection file
 C with fixed coefficients (ie. `type 1' control over convection calculations
 C or type 4 CEN specified hc).
-C-------Does a convection file exist?
-        IF( IHC(ICOMP).EQ.1 ) THEN
+        IF( IHC(ICOMP).EQ.1 ) THEN  ! Does a convection file exist?
+          if(NCHDT(ICOMP).eq.1.or.NCHDT(ICOMP).eq.0)then
+            L=1               ! all day types the same.
+          else
+            L=icalender(idyp) ! follow model day types
+          endif
+
 C---------Has the user specified fixed coefficients in the convection file
 C---------for any of the defined periods? 
           Ltype1 = 0
-          DO 22 k=1,NHCFP(ICOMP)
-            if( iCTLTP(ICOMP,k).eq.1 ) Ltype1=1
-            if( iCTLTP(ICOMP,k).eq.4 ) Ltype1=4
+          DO 22 k=1,NHCFP(ICOMP,1)
+            if( iCTLTP(ICOMP,L,k).eq.1 ) Ltype1=1
+            if( iCTLTP(ICOMP,L,k).eq.4 ) Ltype1=4
    22     CONTINUE
           IF(Ltype1.eq.1) CALL HTOVER(ICOMP)
           IF(Ltype1.eq.4) CALL HTOVERCEN(ICOMP)
@@ -244,23 +252,34 @@ C specified in the .htc file.
 
 #include "building.h"
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/HCFIX2/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &              HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
+     &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
+     &       HCFVE(MCOM,MDTY,MS,MBP)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
      &              HCOF(MCOM,MS)
-      common/HCTL/iCTLTP(MCOM,MBP),IcIuse(MCOM,MS,MBP),
-     &            IcEuse(MCOM,MS,MBP),icnvKY(MCOM,MS,MBP),
+      common/HCTL/iCTLTP(MCOM,MDTY,MBP),IcIuse(MCOM,MDTY,MS,MBP),
+     &            IcEuse(MCOM,MDTY,MS,MBP),icnvKY(MCOM,MDTY,MS,MBP),
      &            CVdat(MS*MBP,8)
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
 C Check whether we are within one of the time intervals with type 1 control.
       TIME=BTIMEF
-      NP=NHCFP(ICOMP)
+
+C Check which day type is applicable.
+      if(NCHDT(ICOMP).eq.1.or.NCHDT(ICOMP).eq.0)then
+        L=1               ! all day types the same.
+      else
+        L=icalender(idyp) ! follow model day types
+      endif
+      NP=NHCFP(ICOMP,L)
       DO 30 I=1,NP
         IP=I
-        IF( TIME.LE.HCFPFT(ICOMP,I) .AND. TIME.GT.HCFPST(ICOMP,I) )then
-          if( iCTLTP(ICOMP,I).eq.1 ) goto 32
+        IF(TIME.LE.HCFPFT(ICOMP,L,I).AND.TIME.GT.HCFPST(ICOMP,L,I))then
+          if( iCTLTP(ICOMP,L,I).eq.1 ) goto 32
         ENDIF
    30 CONTINUE
       return
@@ -269,32 +288,32 @@ C Check whether we are within one of the time intervals with type 1 control.
       DO 40 ISUR=1,NC
 
 C Reset internal surface coefficents.
-        IF(HCFVI(ICOMP,ISUR,IP).GE.0.0)THEN
+        IF(HCFVI(ICOMP,L,ISUR,IP).GE.0.0)THEN
 
 C +ve, replace by given coefficient.
-          HCIF(ICOMP,ISUR)=HCFVI(ICOMP,ISUR,IP)
+          HCIF(ICOMP,ISUR)=HCFVI(ICOMP,L,ISUR,IP)
 
 C -1, do not adjust.
-        ELSEIF(ABS(HCFVI(ICOMP,ISUR,IP)+1.).LT.0.00001)then
+        ELSEIF(ABS(HCFVI(ICOMP,L,ISUR,IP)+1.).LT.0.00001)then
           goto 321
 
 C =-99, add 5.7 to calculated value.
-        ELSEIF(ABS(HCFVI(ICOMP,ISUR,IP)+99.).LT.0.00001)then
+        ELSEIF(ABS(HCFVI(ICOMP,L,ISUR,IP)+99.).LT.0.00001)then
           HCIF(ICOMP,ISUR)=HCIF(ICOMP,ISUR)+5.7
         ENDIF
 
 C Reset "outside" surface coefficents.
-  321   IF(HCFVE(ICOMP,ISUR,IP).GE.0.0)THEN
+  321   IF(HCFVE(ICOMP,L,ISUR,IP).GE.0.0)THEN
 
 C +ve, replace by given coefficient.
-          HCOF(ICOMP,ISUR)=HCFVE(ICOMP,ISUR,IP)
+          HCOF(ICOMP,ISUR)=HCFVE(ICOMP,L,ISUR,IP)
 
 C -1, do not adjust.
-        ELSEIF(ABS(HCFVE(ICOMP,ISUR,IP)+1.).LT.0.00001)then
+        ELSEIF(ABS(HCFVE(ICOMP,L,ISUR,IP)+1.).LT.0.00001)then
           goto 40
 
 C =-99, add 5.7 to calculated value.
-        ELSEIF(ABS(HCFVE(ICOMP,ISUR,IP)+99.).LT.0.00001)then
+        ELSEIF(ABS(HCFVE(ICOMP,L,ISUR,IP)+99.).LT.0.00001)then
           HCOF(ICOMP,ISUR)=HCOF(ICOMP,ISUR)+5.7
         ENDIF
 
@@ -319,17 +338,17 @@ C but the file can hold alternative values.
       COMMON/TC/ITC,ICNT
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-      COMMON/HCFIX2/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &              HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
+      COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
+     &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
+     &       HCFVE(MCOM,MDTY,MS,MBP)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/ADJC/IE(MCOM,MS),ATP(MCOM,MS),ATF(MCOM,MS),ARP(MCOM,MS),
      &            ARF(MCOM,MS)
       COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
      &              HCOF(MCOM,MS)
-      common/HCTL/iCTLTP(MCOM,MBP),IcIuse(MCOM,MS,MBP),
-     &            IcEuse(MCOM,MS,MBP),icnvKY(MCOM,MS,MBP),
+      common/HCTL/iCTLTP(MCOM,MDTY,MBP),IcIuse(MCOM,MDTY,MS,MBP),
+     &            IcEuse(MCOM,MDTY,MS,MBP),icnvKY(MCOM,MDTY,MS,MBP),
      &            CVdat(MS*MBP,8)
 
 C Commons to support CEN upwards or downwards heat flow hc coef.
@@ -343,20 +362,29 @@ C       jj=3-5 floor upwd_inside, downwd_inside, external
 C       jj=6-8 ceiling upwd_inside, downwd_inside, external
 C       jj=9-11 sloped upwd_inside, downwd_inside, external
 C       jj=12-14 wall inside, partition, external
-      COMMON/HCCEN2/CENLOC(MCOM,MBP,14)
+      COMMON/HCCEN2/CENLOC(MCOM,MDTY,MBP,14)
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
 C Logical variables for close to floor, ceiling, wall, other for CEN tests.
       logical isfloor,isceiling,iswall,isother
       logical dotrace
       character outs*124
 
+C Check which day type is applicable.
+      if(NCHDT(ICOMP).eq.1.or.NCHDT(ICOMP).eq.0)then
+        L=1               ! all day types the same.
+      else
+        L=icalender(idyp) ! follow model day types
+      endif
+
 C Check whether we are within one of the time intervals with type 4 control.
       TIME=BTIMEF
-      NP=NHCFP(ICOMP)
+      NP=NHCFP(ICOMP,L)
       DO 30 I=1,NP
         IP=I
-        IF( TIME.LE.HCFPFT(ICOMP,I) .AND. TIME.GT.HCFPST(ICOMP,I) )then
-          if( iCTLTP(ICOMP,I).eq.4 ) goto 32
+        IF(TIME.LE.HCFPFT(ICOMP,L,I).AND.TIME.GT.HCFPST(ICOMP,L,I))then
+          if( iCTLTP(ICOMP,L,I).eq.4 ) goto 32
         ENDIF
    30 CONTINUE
       return
@@ -375,11 +403,11 @@ C be superceeded by user specifications.
  9999 continue
 
 C Check the direction of heat flow for the typical floor surface.
-      ifloor = nint(CENLOC(ICOMP,IP,1))
+      ifloor = nint(CENLOC(ICOMP,L,IP,1))
       DTF=TFS(ICOMP,ifloor)-TFA(ICOMP)
 
 C Check the direction of heat flow for the typical ceiling surface.
-      iceil= nint(CENLOC(ICOMP,IP,2))
+      iceil= nint(CENLOC(ICOMP,L,IP,2))
       DTC=TFS(ICOMP,iceil)-TFA(ICOMP)
       if(dotrace)then
         write(outs,'(a,i3,a,F7.3,a,i3,a,F7.3)') 
@@ -402,14 +430,14 @@ C sloped surface within 30deg of a ceiling is counted as a ceiling.
         isceiling=.false.
         iswall=.false.
         isother=.false.
-        if(PELV(icomp,isur).GE.60.0.AND.
-     &     PELV(icomp,isur).LE.90.0)then
+        if(SPELV(icomp,isur).GE.60.0.AND.
+     &     SPELV(icomp,isur).LE.90.0)then
           isceiling=.true.
-        elseif(PELV(icomp,isur).GE.-90.0.AND.
-     &         PELV(icomp,isur).LE.-60.0)then
+        elseif(SPELV(icomp,isur).GE.-90.0.AND.
+     &         SPELV(icomp,isur).LE.-60.0)then
           isfloor=.true.
-        elseif(PELV(icomp,isur).GE.-30.0.AND.
-     &         PELV(icomp,isur).LE.30.0) then
+        elseif(SPELV(icomp,isur).GE.-30.0.AND.
+     &         SPELV(icomp,isur).LE.30.0) then
           iswall=.true.
         else
           isother=.true.
@@ -427,42 +455,42 @@ C Get the Delta T for the current surface.
 C For CEN if a floor check and the floor surface temperature
 C is warmer than the air temperature in the zone (DT>zero is upwards heat flow)
           if(DT.gt.0.0)then
-            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,IP,3)
+            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,3)
           else
-            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,IP,4)
+            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,4)
           endif
         elseif(isceiling)then
 
 C In case a ceiling then DT > zero is downwards flow.
           if(DT.gt.0.0)then
-            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,IP,7)
+            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,7)
           else
-            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,IP,6)
+            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,6)
           endif
         elseif(iswall)then
 
 C Typical wall is hc 2.5 for inside coefficient..
-          HCIF(ICOMP,ISUR)=CENLOC(ICOMP,IP,12)
+          HCIF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,12)
         elseif(isother)then
 
 C In case sloped then DT > zero is downwards flow.
           if(DT.gt.0.0)then
-            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,IP,10)
+            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,10)
           else
-            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,IP,9)
+            HCIF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,9)
           endif
         endif
 
 C Reset "outside" surface coefficents depending on the topology.
   321   if( IE(ICOMP,ISUR).eq.0 )then
           if(isfloor)then
-            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,5)
+            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,5)
           elseif(isceiling)then
-            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,8)
+            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,8)
           elseif(iswall)then
-            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,14)
+            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,14)
           elseif(isother)then
-            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,11)
+            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,11)
           endif
         else
 
@@ -472,30 +500,30 @@ C Does not face the outside so follow the CEN rules.
 C The other side of a floor is assumed to have the same flow direction
 C as the typical ceiling in the room so use DTC for this. DTC > zero is downwards flow
             if(DTC.gt.0.0)then
-              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,7)
+              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,7)
             else
-              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,6)
+              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,6)
             endif
           elseif(isceiling)then
 
 C The other side of a ceiling is assumed to have the same flow direction
 C as the typical floor in the room so use DTF for this. DTF>zero is upwards heat flow
             if(DTF.gt.0.0)then
-              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,3)
+              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,3)
             else
-              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,4)
+              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,4)
             endif
           elseif(isother)then
 
 C The other side of a surface which is not classed as a floor or ceiling or
 C a wall is treated as a ceiling.
             if(DTF.gt.0.0)then
-              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,3)
+              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,3)
             else
-              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,4)
+              HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,4)
             endif
           elseif(iswall)then
-            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,IP,13)
+            HCOF(ICOMP,ISUR)=CENLOC(ICOMP,L,IP,13)
           endif
         endif
         if(dotrace)then
@@ -610,12 +638,16 @@ C the ICOR value reset and returned as a different value.
 
 #include "building.h"
 #include "model.h"
-      COMMON/HCFIX2/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &              HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
-      common/HCTL/iCTLTP(MCOM,MBP),IcIuse(MCOM,MS,MBP),
-     &            IcEuse(MCOM,MS,MBP),icnvKY(MCOM,MS,MBP),
+      COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
+     &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
+     &       HCFVE(MCOM,MDTY,MS,MBP)
+      common/HCTL/iCTLTP(MCOM,MDTY,MBP),IcIuse(MCOM,MDTY,MS,MBP),
+     &            IcEuse(MCOM,MDTY,MS,MBP),icnvKY(MCOM,MDTY,MS,MBP),
      &            CVdat(MS*MBP,8)
       COMMON/BTIME/BTIMEP,BTIMEF
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
 C `Type 2' control allows the user to specify the correlation to use for each
 C surface (only applicable for surfaces interior to the building).  This
@@ -629,21 +661,30 @@ C can be used for other surfaces.
 C Has the the user has specified a convection (.htc) file for this zone?
       IF( IHC(ICOMP).EQ.1 ) THEN
 
+C Check which day type is applicable.
+        if(NCHDT(ICOMP).eq.1)then
+          L=1               ! all day types the same.
+        else
+          L=icalender(idyp) ! follow model day types
+        endif
+
 C Check each control period for `type 2' control.
-        DO 22 k=1,NHCFP(ICOMP)
-          if( iCTLTP(ICOMP,k).eq.2 )then
+        DO 22 k=1,NHCFP(ICOMP,L)
+          if( iCTLTP(ICOMP,L,k).eq.2 )then
 
 C Are we within the time interval for `type 2'?
-            if( BTIMEF.le.HCFPFT(ICOMP,k) .and.
-     &          BTIMEF.gt.HCFPST(ICOMP,k)) then
+            if( BTIMEF.le.HCFPFT(ICOMP,L,k) .and.
+     &          BTIMEF.gt.HCFPST(ICOMP,L,k)) then
 
 C Use the correlation specified by the user.  If `-1', then do not override
 C the choice made based on surface orientation, direction of heat flow, and
 C simulation toggle.
               if(inRout.eq.1)then
-                if(IcIuse(ICOMP,ISUR,k).ne.-1) ICOR=IcIuse(ICOMP,ISUR,k)
+                if(IcIuse(ICOMP,L,ISUR,k).ne.-1) 
+     &            ICOR=IcIuse(ICOMP,L,ISUR,k)
               else
-                if(IcEuse(ICOMP,ISUR,k).ne.-1) ICOR=IcEuse(ICOMP,ISUR,k)
+                if(IcEuse(ICOMP,L,ISUR,k).ne.-1)
+     &            ICOR=IcEuse(ICOMP,L,ISUR,k)
               endif
             endif
           endif
@@ -662,16 +703,20 @@ C surface when `type 3' control over convection calculations is imposed.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
-      COMMON/HCFIX2/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &              HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
-      common/HCTL/iCTLTP(MCOM,MBP),IcIuse(MCOM,MS,MBP),
-     &            IcEuse(MCOM,MS,MBP),icnvKY(MCOM,MS,MBP),
+      COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
+     &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
+     &       HCFVE(MCOM,MDTY,MS,MBP)
+      common/HCTL/iCTLTP(MCOM,MDTY,MBP),IcIuse(MCOM,MDTY,MS,MBP),
+     &            IcEuse(MCOM,MDTY,MS,MBP),icnvKY(MCOM,MDTY,MS,MBP),
      &            CVdat(MS*MBP,8)
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/Fisher/Vdot(MCOM),SAT(MCOM),ADJREF(MCOM,MS),DELTAR(MCOM)
       COMMON/adaptHC/HCctl5
+      common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
+      INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
       logical ONOFF
 
@@ -685,19 +730,26 @@ C control can be used for some surfaces while the standard selection (based on
 C simulation toggle, surface orientation, and direction of heat flow)
 C can be used for other surfaces.
 
+C Check which day type is applicable.
+      if(NCHDT(ICOMP).eq.1)then
+        L=1               ! all day types the same.
+      else
+        L=icalender(idyp) ! follow model day types
+      endif
+
 C Firstly, determine whether adaptive control is to be applied...
 C ...Has the the user has specified a convection (.htc) file for this zone?
       IF( IHC(ICOMP).EQ.1 ) THEN
 C ...Check each control period for `type 3' control.
-        DO 24 k=1,NHCFP(ICOMP)
-          IF( iCTLTP(ICOMP,k).eq.3 )THEN
+        DO 24 k=1,NHCFP(ICOMP,L)
+          IF( iCTLTP(ICOMP,L,k).eq.3 )THEN
 C ...Are we within the time interval for `type 3'?
-            IF( BTIMEF.le.HCFPFT(ICOMP,k) .and.
-     &                                  BTIMEF.gt.HCFPST(ICOMP,k)) THEN
+            IF( BTIMEF.le.HCFPFT(ICOMP,L,k) .and.
+     &          BTIMEF.gt.HCFPST(ICOMP,L,k)) THEN
 
 C Adaptive control will be applied. Get index for zone, surface, and time
 C interval; use data for `inside' or `outside' surface.
-              II = icnvKY(ICOMP,ISUR,k)
+              II = icnvKY(ICOMP,L,ISUR,k)
               if(inRout.eq.1)jj=1
               if(inRout.eq.2)jj=5
 
@@ -1017,12 +1069,12 @@ C by user and based on surface orientation. Returns ICOR.
 
       SUBROUTINE SELFORC(ICOMP,ISUR,inRout,iapp,TS,TA,ICOR)
 #include "building.h"
+#include "geometry.h"
 
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       COMMON/HCcomb/iAandH,iassist
 
 C Get orientation of surface.
-      ANGLE = PELV(ICOMP,ISUR)
+      ANGLE = SPELV(ICOMP,ISUR)
       if(inRout.eq.2) ANGLE = -1.*ANGLE
 
 C Select correlation for approach specified by user:
@@ -1174,7 +1226,8 @@ C Sum to get total plant injection/extraction.
 
 C ******************** QZONE ********************
 C QZONE returns Qznload, the convective heat injected (+) or extracted (-)
-C to/from the zone by the air-handling system.
+C to/from the zone by the air-handling system taking into account any
+C infiltration to the zone via scheduled or mass flows.
 
       SUBROUTINE QZONE(ICOMP,TA,Qtotal,iOAflg,Qznload)
 #include "building.h"

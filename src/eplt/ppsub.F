@@ -37,6 +37,8 @@ C Subroutine to determine the saturated moisture content for temp range
 C 0 to 200 deg C; SOURCE: ASHRAE HANDBOOK (FUNDAMENTAL)
 
       SUBROUTINE SATMOIST(Ts,Gs)
+#include "building.h"
+#include "site.h"
 
       T=Ts+273.15
 
@@ -49,7 +51,7 @@ C 0 to 200 deg C; SOURCE: ASHRAE HANDBOOK (FUNDAMENTAL)
 
       F=C8/T+C9+C10*T+C11*(T**2)+C12*(T**3)+C13*LOG(T)
       Pws=EXP(F)
-      Gs=0.62198*Pws/(101325.-Pws)
+      Gs=0.62198*Pws/(PATMOS*100.0-Pws)
 
       RETURN
       END
@@ -60,11 +62,13 @@ C Detect interior surface conditions: DRY or WET; formulae from
 C ASHRAE Handbook:Fundamental for 0 to 70 & -60 to 0 deg.C respectively
 
       Subroutine SURFWET(Ga,Ts,CdP,Surf)
+#include "building.h"
+#include "site.h"
       logical close
 
        If (Ga.le.0.) go to 10
 
-       Pw=101325.*Ga/(0.62198+Ga)
+       Pw=PATMOS*100.0*Ga/(0.62198+Ga)
        Td=-35.957-1.8726*LOG(Pw)+1.1689*(LOG(Pw)**2)
 
        IF(Td.LE.0.0) THEN

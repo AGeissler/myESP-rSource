@@ -37,7 +37,7 @@ C FMI_INIT initialises the FMI and all required FMUs.
 #include "building.h"
 #include "FMI.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/rpath/path
       character path*72
 
@@ -333,7 +333,7 @@ C            must be updated to handle these variables.
 #include "geometry.h"
 #include "tdf2.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Arrays for passing FMU input/output information to/from C function.
 C This assumes there will be no more than 1 of each input/output type

@@ -28,7 +28,7 @@ C pattern in RDBSIM
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Commom for the optimim start/stop simulation. 
       COMMON/OPPSIM/NOPSSPT,OPSSPT(MCOM),NOPSSTIM,OPSSTIM(MCOM),

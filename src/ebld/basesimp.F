@@ -41,7 +41,7 @@ c common block for ground temperature profiles.
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/bsmtdef/iBSIMP(MCOM),LBSIMP(MCOM)
       COMMON/BSdata/bsHEIG(MCOM),bsDEPT(MCOM),bsLENG(MCOM),bsWIDT(MCOM),
@@ -446,7 +446,7 @@ C BSFCCTL     Controls calculation of BASESIMP heat loss factors.
       SUBROUTINE BSFCCTL
 #include "building.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)

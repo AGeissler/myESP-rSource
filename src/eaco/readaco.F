@@ -61,7 +61,7 @@ C IW(Integer) : 1 = read BCF silently (=2 if not)
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/EVGENL/BCFOK
       COMMON/MetNam/ACOName,CalName(4),LabFreq(MNbAbs)
       COMMON/IFileACO/IACO
@@ -265,7 +265,7 @@ C IW(Integer) : 1 = read ACO silently (=2 if not)
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/EVGENL/BCFOK
       COMMON/MetNam/ACOName,CalName(4),LabFreq(MNbAbs)
       COMMON/IFileACO/IACO
@@ -472,7 +472,7 @@ C XPubFur (Char)          : Public or Furniture name to find
 
 #include "acoustic.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/AbsCHAR/PubType(MaxPub),FurType(MaxFur),FurCat(MaxFur)
 
@@ -525,7 +525,7 @@ C
 C Label (String)  :  
       SUBROUTINE ErrArgAco(Itype,Label,MShould,MIs)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER Label*184,outs*174
 
 C Check consistancy

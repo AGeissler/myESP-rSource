@@ -439,7 +439,7 @@ C *********************************************************************
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/GR3D06/INDXSS(MSSZ),INDXSE(MSEZ),INDXEE(MEEZ),INDXEC(MECZ)
       COMMON/GR3D24/ISFEDG(MEZ,2),IVXEDG(MEZ,2)
@@ -589,7 +589,7 @@ C *********************************************************************
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/GR3D06/INDXSS(MSSZ),INDXSE(MSEZ),INDXEE(MEEZ),INDXEC(MECZ)
       COMMON/GR3D24/ISFEDG(MEZ,2),IVXEDG(MEZ,2)
@@ -788,7 +788,7 @@ C *********************************************************************
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/GR3D06/INDXSS(MSSZ),INDXSE(MSEZ),INDXEE(MEEZ),INDXEC(MECZ)
       COMMON/GR3D34/ISFCRN(MCZ,3),IVXCRN(MCZ)
@@ -933,7 +933,7 @@ C *********************************************************************
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/GR3D06/INDXSS(MSSZ),INDXSE(MSEZ),INDXEE(MEEZ),INDXEC(MECZ)
       COMMON/GR3D34/ISFCRN(MCZ,3),IVXCRN(MCZ)

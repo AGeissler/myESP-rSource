@@ -27,7 +27,7 @@ C Common G1M is used to hold expanded surface list (MSM=MS+6) data.
       SUBROUTINE  FILEIN(ITRC,ITRU,IER)
 
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/G1M/XM(MTV),YM(MTV),ZM(MTV),NSURM,JVNM(MSM,MV),
      &           NVERM(MSM),NTVM
       COMMON /PLNEC/ PEQN(4,MSM), PCG(3,MSM), BOX(3,2,MSM),

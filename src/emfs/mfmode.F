@@ -27,12 +27,12 @@ C     ICHNG=4  toggle the trace facility
 
       SUBROUTINE MFMODE(ICHNG)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFCALC/IPSMOD,MSLVTP
       COMMON/MFLITR/MAXITF,FERREL,FERMFL,PMAX,STEFFR,MFTRAC,ITER,IOK
 
       character outs*124
-      logical OK,dok
+      logical OK
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -84,10 +84,9 @@ C Show and possibly reset iteration control parameters
       call edisp(iuout,' ')
 
 C Test if user wishes to reset any of these values.
-      dok=.false.
       helptopic='mfs_reset_parameters'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' ','Reset any of these parameters?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Reset parameters?',OK,nbhelp)
       IF(.not.OK)GOTO 100
 
 C Reset MAXITF

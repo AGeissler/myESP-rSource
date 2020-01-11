@@ -58,7 +58,7 @@ C    temperatures, PCNTMF, if defined to exist
 #include "building.h"
 #include "site.h"
  
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
  

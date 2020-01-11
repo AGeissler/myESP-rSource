@@ -43,12 +43,10 @@ C IC = zone number (if in dfs set to 1)
 #include "cfd.h"
 #include "prj3dv.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/MFTRA/IMFTU
       COMMON/SHOUT/ICOUT
-      integer menuchw,igl,igr,igt,igb,igw,igwh
-      COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/ICFNOD/ICFD,ICP
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
@@ -67,14 +65,6 @@ C IC = zone number (if in dfs set to 1)
 
       logical GRMODE
       integer NITMS,INO  ! max items and current menu item
-
-#ifdef OSI
-      integer iigl,iigr,iigt,iigb,iigw,iigwh
-      integer iiw1,iiw2,iiw3,iiw4,iimenu
-#else
-      integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
-      integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
-#endif
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -99,15 +89,6 @@ C messages to stderr in case of rule script program control.
 
 C Reset the display bounds for grid display.
       IF(MMOD.EQ.8)THEN
-        call startbuffer()
-
-C Setup and pass in parameters to win3d.
-        iiw1=6; iiw2=6; iiw3=2; iiw4=4; iimenu=menuchw
-        iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
-        CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
-     &    iigl,iigr,iigt,iigb,iigw,iigwh)
-        igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
-        igw=int(iigw); igwh=int(iigwh)
         GRMODE=.true.
 
 C Set wire-frame display options so that we see only surfaces,
@@ -332,10 +313,12 @@ C title     - title of plot
 C xax       - text for horiz axis.
       SUBROUTINE VGRID1D(xoff,yoff,TOTDIS,CTDIS,NRG,IAX,ICFD,NCEL,REG,
      &                   plaw,TITLE,xax)
+#include "building.h"
 #include "cfd.h"
 
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      common/SPAD/MMOD,LIMIT,LIMTTY
 
       character title*30,xax*10
 
@@ -355,6 +338,8 @@ C xax       - text for horiz axis.
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1
 #endif
+
+      if(mmod.ne.8) return
 
 C x-z plane grid.
       call startbuffer()
@@ -443,10 +428,12 @@ C nx,ny     - number of grid cell points
 C title     - title of plot
 C xax,yax   - text for horiz and vert axis.
       SUBROUTINE VGRID2D(xoff,yoff,xgrd,ygrd,nx,ny,title,xax,yax)
+#include "building.h"
 #include "cfd.h"
 
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
+      common/SPAD/MMOD,LIMIT,LIMTTY
 
       character title*30,xax*10,yax*1
 
@@ -464,6 +451,8 @@ C xax,yax   - text for horiz and vert axis.
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
 #endif
+
+      if(mmod.ne.8) return
 
 C x-z plane grid.
       call startbuffer()
@@ -565,8 +554,6 @@ C Only used if iz<0
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
 
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
@@ -737,7 +724,11 @@ C Draw dotted or solid line.
                 endif
 
 C Draw the dotted line after casting to local variable.
-                call edline(iixs,iiys,iix,iiy,5)
+                if(mmod.eq.8)then
+                  call edline(iixs,iiys,iix,iiy,5)
+                else
+                  call edlinewwc(iixs,iiys,iix,iiy,5)
+                endif
                 if(greyok)then
                   iicol=0
                   call winscl('-',iicol)
@@ -816,7 +807,11 @@ C Draw line to end point.
                   iicol=nifgrey-3
                   call winscl('i',iicol)
                 endif
-                call edline(iixs,iiys,iix,iiy,4)
+                if(mmod.eq.8)then
+                  call edline(iixs,iiys,iix,iiy,4)
+                else
+                  call edlinewwc(iixs,iiys,iix,iiy,4)
+                endif
                 if(greyok)then
                   iicol=0
                   call winscl('-',iicol)
@@ -898,7 +893,11 @@ C Draw line to end point.
                   iicol=nifgrey-3
                   call winscl('i',iicol)
                 endif
-                call edline(iixs,iiys,iix,iiy,4)
+                if(mmod.eq.8)then
+                  call edline(iixs,iiys,iix,iiy,4)
+                else
+                  call edlinewwc(iixs,iiys,iix,iiy,4)
+                endif
                 if(greyok)then
                   iicol=0
                   call winscl('-',iicol)
@@ -920,7 +919,6 @@ C cread3dv.F to draw the surfaces of the zone in bold lines.
 
 C Continue on with any surfaces in the zone.
   205   DO 1000 I=1,NZSUR(iz)
-          icc=IZSTOCN(iz,I)
 
 C Copy polygon for Surface I into structure A for compatibility with
 C viewer format 'holes' in surfaces.
@@ -958,7 +956,7 @@ C If ISTAT = -1 : straddles frustrum
           ENDIF
 
 C Debug.
-C          write(6,*)'icc nap nbp nb',icc,nap,nbp,nb,
+C          write(6,*)'nap nbp nb',nap,nbp,nb,
 C     &      ISTOK,AX(1),AY(1),AZ(1),AX(2),AY(2),AZ(2)
 
 C Count the edges in case enhanced edge drawing required.
@@ -978,12 +976,24 @@ C Count the edges in case enhanced edge drawing required.
             call u2pixel(AAX,AAY,iix,iiy)
             if (izin.lt.0) then
               if (I.eq.isurhlt) then
-                call edwline(iixlast,iiylast,iix,iiy)
+                if(mmod.eq.8)then
+                  call edwline(iixlast,iiylast,iix,iiy)
+                else
+                  call edwlinewwc(iixlast,iiylast,iix,iiy)
+                endif
               else
-                call eswline(iixlast,iiylast,iix,iiy)
+                if(mmod.eq.8)then
+                  call eswline(iixlast,iiylast,iix,iiy)
+                else
+                  call eswlinewwc(iixlast,iiylast,iix,iiy)
+                endif
               endif
             else
-              call edwline(iixlast,iiylast,iix,iiy)
+              if(mmod.eq.8)then
+                call edwline(iixlast,iiylast,iix,iiy)
+              else
+                call edwlinewwc(iixlast,iiylast,iix,iiy)
+              endif
             endif
             call forceflush()
 
@@ -999,12 +1009,24 @@ C Complete the polygon.
             call u2pixel(AAX,AAY,iix,iiy)
             if (izin.lt.0) then
               if (I.eq.isurhlt) then
-                call edwline(iixlast,iiylast,iix,iiy)
+                if(mmod.eq.8)then
+                  call edwline(iixlast,iiylast,iix,iiy)
+                else
+                  call edwlinewwc(iixlast,iiylast,iix,iiy)
+                endif
               else
-                call eswline(iixlast,iiylast,iix,iiy)
+                if(mmod.eq.8)then
+                  call eswline(iixlast,iiylast,iix,iiy)
+                else
+                  call eswline(iixlast,iiylast,iix,iiy)
+                endif
               endif
             else
-              call edwline(iixlast,iiylast,iix,iiy)
+              if(mmod.eq.8)then
+                call edwline(iixlast,iiylast,iix,iiy)
+              else
+                call edwlinewwc(iixlast,iiylast,iix,iiy)
+              endif
             endif
             call forceflush()
   300     CONTINUE
@@ -1020,7 +1042,7 @@ C ********************* VSB3D *********************
 C VSB3D - draws the solid boundaries - highlighting the chosen one.
       SUBROUTINE VSB3D(ISBHL)
 #include "building.h"
-C #include "geometry.h"
+#include "geometry.h"
 #include "cfd.h"
 #include "prj3dv.h"
       
@@ -1086,10 +1108,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1100,10 +1130,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1114,10 +1152,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1128,10 +1174,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1172,10 +1226,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1186,10 +1248,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1200,10 +1270,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1214,10 +1292,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1254,10 +1340,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1268,10 +1362,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1282,10 +1384,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1296,10 +1406,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XPP,YPP,ZPP,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Isbn.eq.ISBHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Isbn.eq.ISBHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Isbn.eq.ISBHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1407,10 +1525,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1421,10 +1547,18 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
           call forceflush()
 
@@ -1435,12 +1569,20 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
+            call forceflush()
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
-          call forceflush()
 
           iixs=iix
           iiys=iiy
@@ -1449,12 +1591,20 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
+            call forceflush()
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
-          call forceflush()
 
 C Label in center of boundary.
           CALL CFDTRANS(1,XU(MNOD),
@@ -1490,12 +1640,20 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
+            call forceflush()
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
-          call forceflush()
 
           iixs=iix
           iiys=iiy
@@ -1504,12 +1662,20 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
+            call forceflush()
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
-          call forceflush()
 
           iixs=iix
           iiys=iiy
@@ -1518,12 +1684,20 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
+            call forceflush()
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
-          call forceflush()
 
           iixs=iix
           iiys=iiy
@@ -1532,12 +1706,20 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
+            call forceflush()
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
-          call forceflush()
 
 C Label in center of boundary.
           CALL CFDTRANS(1,
@@ -1572,12 +1754,20 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
+            call forceflush()
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
-          call forceflush()
 
           iixs=iix
           iiys=iiy
@@ -1586,12 +1776,20 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
+            call forceflush()
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
-          call forceflush()
 
           iixs=iix
           iiys=iiy
@@ -1600,12 +1798,20 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
+            call forceflush()
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
-          call forceflush()
 
           iixs=iix
           iiys=iiy
@@ -1614,12 +1820,20 @@ C Transform local coords to screen coords and draw box around boundary.
           CALL ORTTRN(XX,YY,ZZ,TEMAT,X0,Y0,Z0,IERR)
           CALL ORTTRN(X0,Y0,Z0,ETSMAT,X1,Y1,Z1,IERR)
           call u2pixel(X1,Y1,iix,iiy)
-          if (Iaop.eq.IOPENHL) then
-            call edwline(iixs,iiys,iix,iiy)
+          if(mmod.eq.8)then
+            if (Iaop.eq.IOPENHL) then
+              call edwline(iixs,iiys,iix,iiy)
+            else
+              call eswline(iixs,iiys,iix,iiy)
+            endif
+            call forceflush()
           else
-            call eswline(iixs,iiys,iix,iiy)
+            if (Iaop.eq.IOPENHL) then
+              call edwlinewwc(iixs,iiys,iix,iiy)
+            else
+              call eswlinewwc(iixs,iiys,iix,iiy)
+            endif
           endif
-          call forceflush()
 
 C Label in center of boundary.
           CALL CFDTRANS(1,
@@ -1650,7 +1864,7 @@ C VSBL3D - draws blockages - highlighting the chosen one.
 C << currently only draws in the 3D view not individual sections >>
       SUBROUTINE VSBL3D(ISBL)
 #include "building.h"
-C #include "geometry.h"
+#include "geometry.h"
 #include "cfd.h"
 #include "prj3dv.h"
       
@@ -2055,7 +2269,7 @@ C orthogonal matrix, hence the inverse equals the transpose.
 #include "geometry.h"
 #include "cfd.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/GRDVRTS/iorg(MNZ),ixend(MNZ),iyend(MNZ),izend(MNZ),
      &  izende(MNZ)
       COMMON/ICFNOD/ICFD,ICP
@@ -2127,7 +2341,7 @@ C not associated with a building zone.
 
       SUBROUTINE INIT_CFDTRANS_NOGEOM(IER)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/CFD2GEOM/Ox,Oy,Oz,Uxu,Uxv,Uxw,Uyu,Uyv,Uyw,Uzu,Uzv,Uzw
       real Ox,Oy,Oz,Uxu,Uxv,Uxw,Uyu,Uyv,Uyw,Uzu,Uzv,Uzw
 
@@ -2156,7 +2370,7 @@ C this subroutine.
       integer MODE
       real Xin,Yin,Zin,Xout,Yout,Zout      
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/CFD2GEOM/Ox,Oy,Oz,Uxu,Uxv,Uxw,Uyu,Uyv,Uyw,Uzu,Uzv,Uzw
       real Ox,Oy,Oz,Uxu,Uxv,Uxw,Uyu,Uyv,Uyw,Uzu,Uzv,Uzw
 
@@ -2512,8 +2726,8 @@ C Projection on high face.
 C CFDVIEW is essentially the equivalent of ADJVIEW in common3dv.F
 C for CFD visualisation.
 
-#include "cfd.h"
 #include "building.h"
+#include "cfd.h"
 #include "prj3dv.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -2542,7 +2756,6 @@ C INITD is a 6 character integer string composed of ICFD and ICP, each
 C spanning 3 characters and padded with 0s.
       write(tmpstr,'(2I3.3)')ICFD,ICP
       if (INITD.ne.tmpstr) then
-        write(6,*)'initialising'
         CALL INICNT
         CALL GRID(IER)
         CALL NEW2OLD
@@ -2557,8 +2770,6 @@ C spanning 3 characters and padded with 0s.
         endif
         write(INITD,'(2I3.3)')ICFD,ICP
       endif
-
-c      write(6,*)HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO
 
 C Draw grid.
 C ISHGEO = 1: Draw zone geometry in bold lines.

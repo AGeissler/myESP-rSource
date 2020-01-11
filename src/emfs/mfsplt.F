@@ -36,7 +36,7 @@ C  mass flow rate >= 0)
 #include "net_flow.h"
 #include "plant.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -113,10 +113,11 @@ C Finds the sensed value SVCTL from ICFP-th defined plant control loop
 C based on most recent results
 
       SUBROUTINE MFCNTL(SVCTL)
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 

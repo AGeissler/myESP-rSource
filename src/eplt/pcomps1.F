@@ -36,7 +36,7 @@ C node 4 represents leaving water    (ISV=20)
       SUBROUTINE CMP53S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -109,7 +109,7 @@ C node 1 represents leaving water/steam    (ISV=20)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -177,7 +177,7 @@ C node 1 represents leaving moist air  (ISV=21)
       SUBROUTINE CMP55S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -248,7 +248,7 @@ C node 5 represents leaving air                         (ISV=21)
       SUBROUTINE CMP56S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -327,7 +327,7 @@ C node 4 represents leaving water      (ISV=20)
       SUBROUTINE CMP57S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -399,7 +399,7 @@ C node 4 represents leaving air        (ISV=21)
       SUBROUTINE CMP58S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -468,7 +468,7 @@ C node 4 represents air in contact with casing  (ISV=21)
       SUBROUTINE CMP60S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -543,7 +543,7 @@ C node 1 represents mixed fluid   (ISV=20)
       SUBROUTINE CMP64S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -612,7 +612,7 @@ C   node 3 represents fluid at inlet  (ISV=20)
       SUBROUTINE CMP65S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -682,7 +682,7 @@ C   node 3 represents air at inlet  (ISV=21)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -750,7 +750,7 @@ C   node 1 represents fluid at outlet  (ISV=21)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -814,7 +814,7 @@ C corresponding coefficient generator routine.
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -887,7 +887,7 @@ C
 #include "plant.h"
 #include "building.h"
 C
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 C
@@ -953,7 +953,7 @@ C
 #include "plant.h"
 #include "building.h"
 C
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 C
@@ -1024,7 +1024,7 @@ C node 4 represents return leaving water      (ISV=20)
       SUBROUTINE CMP136S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -1091,7 +1091,7 @@ C corresponding coefficient generator routine
       SUBROUTINE CMP137S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -1151,7 +1151,7 @@ C corresponding coefficient generator routine
       SUBROUTINE CMP138S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -1215,7 +1215,7 @@ C solver.
 #include "plant.h"
 #include "building.h"
 C
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 C
@@ -1273,7 +1273,7 @@ C solver.
 #include "plant.h"
 #include "building.h"
 C
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 C
@@ -1331,7 +1331,7 @@ C corresponding coefficient generator routine
       SUBROUTINE CMP141S(IPCOMP)
 #include "plant.h"
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -1395,7 +1395,7 @@ C solver.
 #include "plant.h"
 #include "building.h"
 C
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 C

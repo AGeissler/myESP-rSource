@@ -109,7 +109,7 @@ C ITRPAS       : Counts number of iterations performed so far.
       COMMON/TS6/idysv,ihrsv,irwcou,tsclaw,rewnd,nsncv1,nsncv2,pasone
 
       COMMON/TSCIO/ITSCPV,ITSCFN
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
      
       logical tsclaw,rewnd,pasone
@@ -801,7 +801,7 @@ C COEFF1 modifies the coefficients of arrays C and QC by the ratio of N1/M1
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
 
       integer ncomp,ncon

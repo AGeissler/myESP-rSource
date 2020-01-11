@@ -42,7 +42,7 @@ c ******************** CMP30C ********************
 
       integer lnblnk  ! function definition
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
@@ -211,8 +211,9 @@ C            2 condensate flow rate (kg/s)
       subroutine cmp43c(ipcomp,cout,istats)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
@@ -505,7 +506,6 @@ c 2nd phase mass balance coefficients
 C Check whether air temperature is below dew point TDEW, if so
 C this component extracts water vapour from moist air stream
 C First establish TDEW; assume present moisture content
-         patmos=1013.25
          TDEW=DEWPT(CONVAR(ICON1,3)/AMAX1(SMALL,CONVAR(ICON1,2)),PATMOS)
 
 C Now establish coefficients, first for Tair >= Tdew; as this
@@ -579,7 +579,7 @@ C       being tested.
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -867,7 +867,7 @@ C           18 Azimuth of surface or tracking axis (degrees)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -918,6 +918,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP70C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1233,7 +1235,7 @@ C ************************************************
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -2054,7 +2056,7 @@ c    CDATA : None.
 #include "plant.h"
 #include "building.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
@@ -2160,7 +2162,7 @@ C            2 Hot fluid temperature (C)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -2454,7 +2456,7 @@ C ************************************************
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -2909,7 +2911,7 @@ C
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -3171,7 +3173,7 @@ C     CDATA: 1  Loading for CHP unit (%)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
@@ -3222,6 +3224,8 @@ C Check control data
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP99C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP

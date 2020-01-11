@@ -114,8 +114,8 @@ C ********************************************************************
 #include "building.h"
 #include "CFC_common.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
 
 C need thickness of glass layers for Fresnel calcs
       COMMON/VTHP14/THRMLI(MCOM,MS,ME,7)

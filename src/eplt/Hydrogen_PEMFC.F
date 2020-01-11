@@ -125,11 +125,11 @@ C----------------------------------------------------------------------
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer itc,icnt
-      integer iuout,iuin
+      integer iuout,iuin,ieout
       integer itcf,itrace,izntrc,itu
 
 C.....Network & control data
@@ -1976,11 +1976,11 @@ C.....Passed arguements
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer itc,icnt
-      integer iuout,iuin
+      integer iuout,iuin,ieout
       integer itcf,itrace,izntrc,itu
 
       logical bClose_a  ! result of close-to-zero comparisons

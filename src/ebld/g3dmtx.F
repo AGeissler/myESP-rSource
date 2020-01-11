@@ -98,7 +98,7 @@ C *********************************************************************
       SUBROUTINE MZ3SU1(ICOMP)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -430,11 +430,12 @@ C MZ3SU2 completes the setting-up of the time-dependent coefficients for
 C 3D zones.
 C *********************************************************************
       SUBROUTINE MZ3SU2(ICOMP,SUMA1,SUMA2,SUMA3)
+
 #include "building.h"
 #include "geometry.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
 
@@ -516,7 +517,8 @@ C If air node is plant interaction point set coefficient.
       IF(NCF.GT.0.AND.IC.GT.0.AND.
      &  ((IBAN(IC,1).EQ.ICOMP.AND.IBAN(IC,2).EQ.0).OR.
      &  (IBAN(IC,1).EQ.0.AND.IBAN(IC,2).EQ.0).OR.
-     &  (IBAN(IC,1).EQ.-2.AND.IBAN(IC,2).EQ.ICOMP)))THEN
+     &  (IBAN(IC,1).EQ.-2.AND.
+     &  (IBAN(IC,2).EQ.ICOMP.OR.IBAN(IC,2).EQ.0))))THEN
         PLANT=-GAM
         CALL CFFVLU(IAIR,IPLT,CFV,IPRV,LCTN)
         CALL UPDZMX(IAIR,IPLT,PLANT,IPRV,LCTN)
@@ -536,6 +538,8 @@ C Present term.
       
     5 call edisp(iuout,
      & 'error reading ND1 VOLM DNHC IS  or IL in control volumes file')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP ' error detected in the control volumes file.'
@@ -548,7 +552,7 @@ C *********************************************************************
       SUBROUTINE MZ3SU3
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GR3D110/ICVS,ICNC,INDC,INDD,ITAQ,ITLW,ILWV,ITF3
       COMMON/GR3D131/IAIR,IPLT,IPRT,IAVL,NZMCF
       COMMON/GR3D132/T3F(MNOD3)
@@ -581,6 +585,8 @@ C Present term.
 
     5 call edisp(iuout,
      &  'error reading nd1 volm or dnhc in the control volumes file')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP ' error detected in the control volumes file.'
@@ -734,10 +740,11 @@ C *************************    FORW3D    ******************************
 C FORW3D performs the forward reduction process for the zone matrix.
 C *********************************************************************
       SUBROUTINE FORW3D(ICOMP,ISNSR,B1,B2,B3)
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer icascf
       COMMON/CCTL/ICASCF(MCOM)
       COMMON/GR3D130/IFST(MNOD3),W3(MCFF3),NCLMN(MCFF3),NXT(MCFF3),SML3
@@ -887,10 +894,11 @@ C CONT3D solves the equation (b1*t+b2*q=b3)in  terms of the associated
 C control function.
 C *********************************************************************
       SUBROUTINE CONT3D(ICOMP,ISNSR,B1,B2,B3)
+
 #include "building.h"
 #include "control.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
       common/btime/btimep,btimef
@@ -910,7 +918,7 @@ C *********************************************************************
       common/setuq/qpltp(mcom),qpltf(mcom),conv(mcom)
 
       character outs*124
-      logical OK,dok
+      logical OK
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -965,11 +973,10 @@ C Error!
      &   ' is being referenced outside its dates of validity.'
         call edisp(iuout,outs)
         icflg1(icf)=1
-        dok=.true.
         helptopic='option_to_free_float'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Continue with no control if this condition occurs?',
-     &             '(see help)',OK,dok,nbhelp)
+        CALL EASKOK('Continue with no control where',
+     &              'this condition occurs?',OK,nbhelp)
         IF(.NOT.OK)then
           call epwait
           STOP
@@ -993,11 +1000,10 @@ C Error!
         write(outs,'(a,i3,a)') ' Control loop',icf,
      &   ' is being referenced outside its dates of validity.'
         call edisp(iuout,outs)
-        dok=.true.
         helptopic='option_to_free_float'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Continue with no control if this condition occurs?',
-     &             '(see help)',OK,dok,nbhelp)
+        CALL EASKOK('Continue with no control',
+     &              'where this condition occurs?',OK,nbhelp)
         icflg2(icf)=1
         IF(.NOT.OK)then
           call epwait
@@ -1055,6 +1061,7 @@ C **************************    SVQTMP    *****************************
 C SVQTMP saves the solution given by CONT3D in the temperature file.
 C *********************************************************************
       SUBROUTINE SVQTMP(ICOMP,ISNSR,TNP,QNP)
+
 #include "building.h"
 #include "control.h"
 
@@ -1069,9 +1076,10 @@ C *********************************************************************
       IF(ICOMP.GT.0)THEN
         IC=ICASCF(ICOMP)
         IF(NCF.NE.0.AND.IC.NE.0.AND.
-     &  ((IBAN(IC,1).EQ.ICOMP.AND.IBAN(IC,2).EQ.0).OR.
-     &  (IBAN(IC,1).EQ.0.AND.IBAN(IC,2).EQ.0).OR.
-     &  (IBAN(IC,1).EQ.-2.AND.IBAN(IC,2).EQ.ICOMP)))THEN
+     &    ((IBAN(IC,1).EQ.ICOMP.AND.IBAN(IC,2).EQ.0).OR.
+     &    (IBAN(IC,1).EQ.0.AND.IBAN(IC,2).EQ.0).OR.
+     &    (IBAN(IC,1).EQ.-2.AND.
+     &    (IBAN(IC,2).EQ.ICOMP.OR.IBAN(IC,2).EQ.0))))THEN
           QFA(ICOMP)=QNP
         ENDIF
       ENDIF
@@ -1143,8 +1151,8 @@ C FILL1D fills the 1D temperature and energy variables.
 C *********************************************************************
       SUBROUTINE FILL1D(ICOMP)
 #include "building.h"
+#include "geometry.h"
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
 

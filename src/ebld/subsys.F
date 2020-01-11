@@ -57,7 +57,6 @@ C    SBC       = Stefan-Boltzmann constant.
       COMMON/TC/ITC,ICNT
 
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON /PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &              NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),
@@ -261,7 +260,7 @@ C  difference between the external ambient and surface temperatures.
       integer lnblnk  ! function definition
 
       common/trc/itrc
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/BTIME/BTIMEP,BTIMEF
@@ -275,7 +274,6 @@ C  difference between the external ambient and surface temperatures.
 
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
 
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),AE(MCOM,MS)
@@ -420,7 +418,7 @@ C surface's hemispherical envelope.
         B1(ICOMP,I)=0.0
         C1(ICOMP,I)=0.0
         goto 20
-    2   TILT=90.0-PELV(ICOMP,I)
+    2   TILT=90.0-SPELV(ICOMP,I)
         IF(TILT.GT.180.0)TILT=180.0
         IF(TILT.LT.0.0)TILT=0.0
 
@@ -560,9 +558,6 @@ C Evaluate the quantity of cloud cover.
     6 CLOUD1=CLOUDC
    12 CONTINUE
 
-C Atmospheric pressure (fixed, but should depend on site elevation).
-      PATM=965.0
-
 C Check if measured cloud cover and atmospheric pressure data is available in climate database.
       IF(CMXST(8))THEN
         IF(IHRF.gt.1)THEN
@@ -578,13 +573,6 @@ C Check if measured cloud cover and atmospheric pressure data is available in cl
           CCOPAQUE=REAL(CMIVAL(9,25))/10.  !first hour of next day
         ENDIF
       ENDIF   
-      IF(CMXST(10))THEN
-        IF(IHRF.gt.1)THEN
-          PATM=REAL(CMIVAL(10,IHRF))/100.  !convert from Pa to mbar
-        ELSE
-          PATM=REAL(CMIVAL(10,25))/100.  !first hour of next day
-        ENDIF
-      ENDIF
       
 C Compute the dew point temperature TDP.
       PSAT=6.1078*EXP(17.08085*TF/(234.175+TF))
@@ -607,7 +595,7 @@ C Clear sky condition:
         PI = 4.0 * ATAN(1.0)
         TIM=2.0*PI*real(IHRF)/24.0
         E0=0.711+0.56*(TDP/100.0)+0.73*((TDP/100.0)**2)+
-     &   0.013*COS(TIM)+(12.0E-05)*(PATM-1000.)
+     &   0.013*COS(TIM)+(12.0E-05)*(PATMOS-1000.)
 
 C Cloudy condition: assume cloud base is at 3km.
         CBH=3.0
@@ -807,23 +795,23 @@ c are non-vertical.
           IF(IE(K,L).NE.0)goto 40
           TAVE=TAVE+TFC(K,L,1)
           IAVE=IAVE+1
-          IF(PELV(K,L).GE.-30.0.AND.PELV(K,L).LE.30.0)goto 41
+          IF(SPELV(K,L).GE.-30.0.AND.SPELV(K,L).LE.30.0)goto 41
           TROOF=TROOF+TFC(K,L,1)
           IROOF=IROOF+1
           goto 40
-   41     IF(PAZI(K,L).GE.45.0.AND.PAZI(K,L).LT.135.0)THEN
+   41     IF(SPAZI(K,L).GE.45.0.AND.SPAZI(K,L).LT.135.0)THEN
             TEAST=TEAST+TFC(K,L,1)
             IEAST=IEAST+1
           ENDIF
-          IF(PAZI(K,L).GE.135.0.AND.PAZI(K,L).LT.225.0)THEN
+          IF(SPAZI(K,L).GE.135.0.AND.SPAZI(K,L).LT.225.0)THEN
             TSOUTH=TSOUTH+TFC(K,L,1)
             ISOUTH=ISOUTH+1
           ENDIF
-          IF(PAZI(K,L).GE.225.0.AND.PAZI(K,L).LT.315.0)THEN
+          IF(SPAZI(K,L).GE.225.0.AND.SPAZI(K,L).LT.315.0)THEN
             TWEST=TWEST+TFC(K,L,1)
             IWEST=IWEST+1
           ENDIF
-          IF(PAZI(K,L).GE.315.0.OR.PAZI(K,L).LT.45.0)THEN
+          IF(SPAZI(K,L).GE.315.0.OR.SPAZI(K,L).LT.45.0)THEN
             TNORTH=TNORTH+TFC(K,L,1)
             INORTH=INORTH+1
           ENDIF
@@ -851,11 +839,11 @@ C vertical surface.
       DO 60 I=1,NC
 
       IF(IE(ICOMP,I).NE.0)goto 60
-      ELV=ABS(PELV(ICOMP,I))
+      ELV=ABS(SPELV(ICOMP,I))
       IF(ELV.LE.30.0)goto 16
       TBLD(I)=TBROOF
       goto 60
-   16 AZI=PAZI(ICOMP,I)+180.0
+   16 AZI=SPAZI(ICOMP,I)+180.0
       IF(AZI.GT.360.0)AZI=AZI-360.0
 
 c Establish zone surface which has an azimuth 180.0 different from
@@ -917,8 +905,8 @@ C Sky component (original equation of Berdahl and Martin).
      &            (TFC(ICOMP,I,1)+ZEROK-TSKY)*(-1.0)
 
 C Angle of surface inclination
-C      RNEIGS(ICOMP,I)=90.0-PELV(ICOMP,I)
-        RNEIG=90.0-PELV(ICOMP,I)
+C      RNEIGS(ICOMP,I)=90.0-SPELV(ICOMP,I)
+        RNEIG=90.0-SPELV(ICOMP,I)
 
 C Ground component.
 C The following special case is used if the bottom of the
@@ -997,6 +985,8 @@ C Correlation based on CIBSE Guide A: hr = 4 . SBC . Ts^3
 C Error messages.
  1001 call edisp(iuout,
      & ' MZELWE: external view factors do not sum to unity. (stopping)')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -1092,7 +1082,7 @@ C Cloudy sky temperature as JC Book.
       NC=NCONST(ICOMP)
       DO 9996 I=1,NC
         TBUILD=TBLD(I)-ZEROK
-        RNEIG=90.0-PELV(ICOMP,I)
+        RNEIG=90.0-SPELV(ICOMP,I)
 C Debug.
         DT=((TP+TF)/2.0)-TFC(ICOMP,I,1)
         IF(DT.GE.0.0.AND.DT.LT.0.01)DT=0.01
@@ -2149,12 +2139,13 @@ C a moisture balance at the air point.
 
       SUBROUTINE MZVAPC(ICOMP,ZRH,CNDS)
 #include "building.h"
+#include "site.h"
 #include "geometry.h"
 
 #include "hvac_parameters.h"
 #include "hvac_common.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/TC/ITC,ICNT
 
@@ -2175,7 +2166,6 @@ C a moisture balance at the air point.
      &VCLP(MCOM),VCLF(MCOM),VCMP(MCOM),VCMF(MCOM),VCLGP(MCOM),
      &VCLGF(MCOM)
       COMMON/VAPC2/ZMDAP(MCOM),ZMDAF(MCOM)
-      COMMON/ATPRES/PATMOS
 
       COMMON/MBINFO/ZMBI(MCOM,4)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)

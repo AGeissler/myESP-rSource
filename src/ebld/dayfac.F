@@ -54,8 +54,6 @@ C Initiate calc. of daylight factor(s) for standard CIE overcast sky.
 
       COMMON/D7/T1,T2,P1,P2
 
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
 
@@ -139,7 +137,7 @@ C Trace heading.
 C Continue only if this surface is vertical, is TMC, has 4 vertices
 C and is connected to either the exterior or another real zone.  Keep track
 C of total windows in zone with nt. Exclude skylights.
-            call eclose(PELV(ICOMP,J),0.00,0.5,close)
+            call eclose(SPELV(ICOMP,J),0.00,0.5,close)
             IF(close.AND.(ITMCFL(ICOMP,J).GT.0))THEN
               IF (NVER(J).NE.4)THEN
                 WRITE(ITU,811) zname(icomp),J
@@ -240,10 +238,10 @@ C the surface with the window (from the inside). Convert azimuth to
 C degrees (clockwise from north) equivalent to SAZI by subtracting
 C from the azimuth angle of the surface in question and keeping in the
 C range of 0 to 360 degrees.
-                  PP1=PAZI(ICOMP,J)-(P1*TODEG)
+                  PP1=SPAZI(ICOMP,J)-(P1*TODEG)
                   IF(PP1.LT.0.)PP1=360.+PP1
                   IF(PP1.GE.360.)PP1=PP1-360.
-                  PP2=PAZI(ICOMP,J)-(P2*TODEG)
+                  PP2=SPAZI(ICOMP,J)-(P2*TODEG)
                   IF(PP2.LT.0.)PP2=360.+PP2
                   IF(PP2.GE.360.)PP2=PP2-360.
                   TT1=T1*TODEG
@@ -387,7 +385,6 @@ C TMC data
       COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
 
-      DIMENSION SNA(MS),PAZI(MS),PELV(MS)
       logical close
 
 C Loop through zone verticies and find out ZMIN and ZMAX.
@@ -414,52 +411,55 @@ C available and method should check for transp MLC.
       W=WIDTH*HIGH
 
 C Get information about areas of all surfaces opaque and TMC:
-      call ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+      call ZINFO(ICOMP,ZOA,ZVOL,'q')
 
       DO 10 I=1,NSUR
-      call eclose(PAZI(I),PAZI(J),0.5,close)
+      call eclose(SPAZI(ICOMP,I),SPAZI(ICOMP,J),0.5,close)
       IF(.NOT.close)THEN
-        ZAREA=ZAREA+SNA(I)
+        ZAREA=ZAREA+SNA(ICOMP,I)
         ITVTR=ITMCFL(ICOMP,I)
         IF(SOTF(ICOMP,I)(1:4).EQ.'OPAQ'.OR.
      &     SOTF(ICOMP,I)(1:4).EQ.'CFC ')THEN
-          AVREF=AVREF+SNA(I)*(1.-AI(ICOMP,I))
+          AVREF=AVREF+SNA(ICOMP,I)*(1.-AI(ICOMP,I))
         ELSE
-          AVREF=AVREF+SNA(I)*(1.-(TVTR(ICOMP,ITVTR)+AI(ICOMP,I)))
+          AVREF=AVREF+SNA(ICOMP,I)*
+     &          (1.-(TVTR(ICOMP,ITVTR)+AI(ICOMP,I)))
         ENDIF
 
         IF(SVFC(ICOMP,I).EQ.'CEIL')THEN
           IF(SOTF(ICOMP,I)(1:4).EQ.'OPAQ'.OR.
      &       SOTF(ICOMP,I)(1:4).EQ.'CFC ')THEN
-            RCW=RCW+(1.-AI(ICOMP,I))*SNA(I)
-            AU=AU+SNA(I)
+            RCW=RCW+(1.-AI(ICOMP,I))*SNA(ICOMP,I)
+            AU=AU+SNA(ICOMP,I)
           ELSE
-            RCW=RCW+(1.-(TVTR(ICOMP,ITVTR)+AI(ICOMP,I)))*SNA(I)                 
-            AU=AU+SNA(I)
+            RCW=RCW+(1.-(TVTR(ICOMP,ITVTR)+AI(ICOMP,I)))*SNA(ICOMP,I)                 
+            AU=AU+SNA(ICOMP,I)
           ENDIF
 
         ELSEIF(SVFC(ICOMP,I)(1:4).EQ.'FLOR')THEN
           IF(SOTF(ICOMP,I)(1:4).EQ.'OPAQ'.OR.
      &       SOTF(ICOMP,I)(1:4).EQ.'CFC ')THEN
-            RFW=RFW+(1.-AI(ICOMP,I))*SNA(I)
-            AL=AL+SNA(I)
+            RFW=RFW+(1.-AI(ICOMP,I))*SNA(ICOMP,I)
+            AL=AL+SNA(ICOMP,I)
           ELSE
-            RFW=RFW+(1.-(TVTR(ICOMP,ITVTR)+AI(ICOMP,I)))*SNA(I)                 
-            AL=AL+SNA(I)
+            RFW=RFW+(1.-(TVTR(ICOMP,ITVTR)+AI(ICOMP,I)))*SNA(ICOMP,I)                 
+            AL=AL+SNA(ICOMP,I)
           ENDIF
 
         ELSE
           IF(SOTF(ICOMP,I)(1:4).EQ.'OPAQ'.OR.
      &      SOTF(ICOMP,I)(1:4).EQ.'CFC ')THEN
-            RCW=RCW+(1.-AI(ICOMP,I))*SNA(I)*HU/RDZ
-            RFW=RFW+(1.-AI(ICOMP,I))*SNA(I)*HL/RDZ
-            AU=AU+SNA(I)*HU/RDZ
-            AL=AL+SNA(I)*HL/RDZ
+            RCW=RCW+(1.-AI(ICOMP,I))*SNA(ICOMP,I)*HU/RDZ
+            RFW=RFW+(1.-AI(ICOMP,I))*SNA(ICOMP,I)*HL/RDZ
+            AU=AU+SNA(ICOMP,I)*HU/RDZ
+            AL=AL+SNA(ICOMP,I)*HL/RDZ
           ELSE
-            RCW=RCW+(1.-(TVTR(ICOMP,ITVTR)+AI(ICOMP,I)))*SNA(I)*HU/RDZ
-            RFW=RFW+(1.-(TVTR(ICOMP,ITVTR)+AI(ICOMP,I)))*SNA(I)*HL/RDZ
-            AU=AU+SNA(I)*HU/RDZ
-            AL=AL+SNA(I)*HL/RDZ
+            RCW=RCW+(1.-(TVTR(ICOMP,ITVTR)+AI(ICOMP,I)))*
+     &          SNA(ICOMP,I)*HU/RDZ
+            RFW=RFW+(1.-(TVTR(ICOMP,ITVTR)+AI(ICOMP,I)))*
+     &          SNA(ICOMP,I)*HL/RDZ
+            AU=AU+SNA(ICOMP,I)*HU/RDZ
+            AL=AL+SNA(ICOMP,I)*HL/RDZ
           ENDIF
         ENDIF
       ENDIF      

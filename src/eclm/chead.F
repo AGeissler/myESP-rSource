@@ -24,7 +24,7 @@ C of lines to include in the text portion of the display.
       SUBROUTINE CHEAD(LINES)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/appw/iappw,iappx,iappy
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/CLMDT1/CLMLOC
@@ -35,8 +35,8 @@ C of lines to include in the text portion of the display.
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
-      CHARACTER*108 ETEXT,GTEXT
-      CHARACTER*30 CLMLOC
+      CHARACTER*112 ETEXT,GTEXT
+      CHARACTER*42 CLMLOC
       character PERST1*14,PERST2*44,PERST3*44
       character minu*1,second*1,longdms*14,latdms*14
 
@@ -140,11 +140,16 @@ C Get latitude in degrees minutes and seconds.
       endif
       GTEXT=ETEXT
       if(MMOD.gt.0)then
-        iside=1
-        isize=0
-        ifont=1
-        call viewtext(gtext,iside,isize,ifont)
+        iside=1; isize=0; ifont=1
+        if(mmod.eq.8)then
+          call viewtext(gtext,iside,isize,ifont)
+        else
+          call viewtextwwc(gtext,iside,isize,ifont)
+        endif
+        call edisp(iuout,' ')
+        call edisp(iuout,ETEXT)
       else
+        call edisp(iuout,' ')
         call edisp(iuout,GTEXT)
       endif
 
@@ -154,10 +159,12 @@ C Get latitude in degrees minutes and seconds.
       write(ETEXT,'(1X,A44)')PERST2
       GTEXT=ETEXT
       if(MMOD.gt.0)then
-        iside=2
-        isize=0
-        ifont=1
-        call viewtext(gtext,iside,isize,ifont)
+        iside=2; isize=0; ifont=1
+        if(mmod.eq.8)then
+          call viewtext(gtext,iside,isize,ifont)
+        else
+          call viewtextwwc(gtext,iside,isize,ifont)
+        endif
       else
         call edisp(iuout,GTEXT)
       endif
@@ -169,7 +176,7 @@ C Display heading for weather graph.
       SUBROUTINE GHEAD(imenuch,onleft,onright)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/appw/iappw,iappx,iappy
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/CLMDT1/CLMLOC
@@ -180,8 +187,8 @@ C Display heading for weather graph.
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
-      CHARACTER*96 ETEXT,GTEXT
-      CHARACTER*30 CLMLOC
+      CHARACTER*106 ETEXT,GTEXT
+      CHARACTER*42 CLMLOC
       character PERST1*14,PERST2*44,PERST3*44
       character minu*1,second*1,longdms*12,latdms*12
       integer onleft  ! number of left axis
@@ -231,6 +238,8 @@ C Display heading for weather graph.
           continue
         endif
       ENDIF
+
+C Make up title for graph.
       ACLAT=ABS(CLAT)
       ACLONG=ABS(CLONG)
 
@@ -285,13 +294,18 @@ C Get latitude in degrees minutes and seconds.
  101    FORMAT(' Weather:',1X,A,':',
      &    F6.2,' (',a,')N ',F6.2,' (',a,')E :',I5)
       endif
-      GTEXT=ETEXT
+      write(GTEXT,'(a)') ETEXT
       if(MMOD.gt.0)then
-        iside=1
-        isize=0
-        ifont=1
-        call viewtext(gtext,iside,isize,ifont)
+        iside=1; isize=0; ifont=1
+        if(mmod.eq.8)then
+          call viewtext(gtext,iside,isize,ifont)
+        else
+          call viewtextwwc(gtext,iside,isize,ifont)
+        endif
+        call edisp(iuout,' ')
+        call edisp(iuout,ETEXT)
       else
+        call edisp(iuout,' ')
         call edisp(iuout,GTEXT)
       endif
 
@@ -301,10 +315,12 @@ C Get latitude in degrees minutes and seconds.
       write(ETEXT,'(1X,A44)')PERST2
       GTEXT=ETEXT
       if(MMOD.gt.0)then
-        iside=2
-        isize=0
-        ifont=1
-        call viewtext(gtext,iside,isize,ifont)
+        iside=2; isize=0; ifont=1
+        if(mmod.eq.8)then
+          call viewtext(gtext,iside,isize,ifont)
+        else
+          call viewtextwwc(gtext,iside,isize,ifont)
+        endif
       else
         call edisp(iuout,GTEXT)
       endif

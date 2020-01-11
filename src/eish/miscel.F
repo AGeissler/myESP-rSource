@@ -113,7 +113,7 @@ C Parameters
       common/tracech/icout
       common/tc/itc,icnt
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Mesh for surface as points in 3D.
       common/grid3/ogrida(ms)
@@ -188,7 +188,7 @@ C Sky vault discretisation.
 
 C Get the current connection and number of surfaces in zone.
       icc=izstocn(izone,its)
-      gsa=ssna(icc)
+      gsa=sna(izone,its)
       tol=0.001 ! for surfaces along a cardinal axis will have one
 
 C If trace is on and verbose set tok, if not so verbose set ok.
@@ -738,10 +738,10 @@ C        itothits=0  ! reset counter for nb of grid hits for surface
           endif
           if(sother(izone,loop,1)(1:8).eq.'EXTERIOR')then
              
-            EQN(1)=ssureqn(icc,1)
-            EQN(2)=ssureqn(icc,2)
-            EQN(3)=ssureqn(icc,3)
-            EQN(4)=ssureqn(icc,4)
+            EQN(1)=sureqn(izone,loop,1)
+            EQN(2)=sureqn(izone,loop,2)
+            EQN(3)=sureqn(izone,loop,3)
+            EQN(4)=sureqn(izone,loop,4)
 
             do 201 m=1,nox(izone)
               do 211 n=1,noz(izone)
@@ -900,7 +900,7 @@ C obstructio blocks and places in common block SHDGB1.
 C Parameters
       integer izone   ! focus zone
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
 
@@ -1523,7 +1523,7 @@ C 0 = Julian day, 1 or 2 = day of month.
 
       subroutine askday(ifday,imo,ido,ijday,ier)
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
       dimension id(12)
 
@@ -1842,9 +1842,9 @@ C Get the current connection and number of surfaces in zone.
 C Check the surface normal and figure out which is the largest.
       biggest=0.0
       drop='-'
-      if(abs(ssureqn(icc,1)).gt.biggest) drop='X'
-      if(abs(ssureqn(icc,2)).gt.biggest) drop='Y'
-      if(abs(ssureqn(icc,3)).gt.biggest) drop='Z'
+      if(abs(sureqn(icomp,is,1)).gt.biggest) drop='X'
+      if(abs(sureqn(icomp,is,2)).gt.biggest) drop='Y'
+      if(abs(sureqn(icomp,is,3)).gt.biggest) drop='Z'
 
 C Determine if point xx,zz is within surface 'is'. And setup
 C the local arrays.
@@ -2171,14 +2171,15 @@ C Clear array.
       enddo    ! of loop
       do loop=1,nzsur(icomp)    ! for each surface in zone
 
-C We know the surface equation (ssureqn) and we know that
-C ssurvn is a unit vector away from the surface cog. Capture
+C We know the surface equation (sureqn) and we know that
+C survn is a unit vector away from the surface cog. Capture
 C whether the dot product of the surface against the point
-C at ssurvn (val) is positive or negative.
+C at survn (val) is positive or negative.
         icc=izstocn(icomp,loop)
-        val=(ssureqn(icc,1)*ssurvn(icc,1))+
-     &      (ssureqn(icc,2)*ssurvn(icc,2))+
-     &      (ssureqn(icc,3)*ssurvn(icc,3))-ssureqn(icc,4)
+        val=(sureqn(icomp,loop,1)*survn(icomp,loop,1))+
+     &      (sureqn(icomp,loop,2)*survn(icomp,loop,2))+
+     &      (sureqn(icomp,loop,3)*survn(icomp,loop,3))-
+     &       sureqn(icomp,loop,4)
         if(val.gt.0.0)then
           positive=.true.
         else
@@ -2191,13 +2192,13 @@ C and upper right) yield positive or negative (or a mix).
         do loop2=1,ncomp
           do loop3=1,nzsur(loop2)
             icco=izstocn(loop2,loop3)
-            valll=(ssureqn(icc,1)*surbb(icco,1,1))+
-     &      (ssureqn(icc,2)*surbb(icco,1,2))+
-     &      (ssureqn(icc,3)*surbb(icco,1,3))-ssureqn(icc,4)
+            valll=(sureqn(icomp,loop,1)*surbb(icco,1,1))+
+     &      (sureqn(icomp,loop,2)*surbb(icco,1,2))+
+     &      (sureqn(icomp,loop,3)*surbb(icco,1,3))-sureqn(icomp,loop,4)
 
-            valur=(ssureqn(icc,1)*surbb(icco,2,1))+
-     &      (ssureqn(icc,2)*surbb(icco,2,2))+
-     &      (ssureqn(icc,3)*surbb(icco,2,3))-ssureqn(icc,4)
+            valur=(sureqn(icomp,loop,1)*surbb(icco,2,1))+
+     &      (sureqn(icomp,loop,2)*surbb(icco,2,2))+
+     &      (sureqn(icomp,loop,3)*surbb(icco,2,3))-sureqn(icomp,loop,4)
 
 C If both are same sign then in front.
             if(positive)then
@@ -2265,13 +2266,14 @@ C Clear array.
       enddo    ! of loop
       do loop=1,nzsur(icomp)    ! for each surface in zone
 
-C We know the surface equation (ssureqn) and we know that
-C ssurvn is a unit vector away from the surface cog. So capture
+C We know the surface equation (sureqn) and we know that
+C survn is a unit vector away from the surface cog. So capture
 C whether val is positive or negative.
         icc=izstocn(icomp,loop)
-        val=(ssureqn(icc,1)*ssurvn(icc,1))+
-     &      (ssureqn(icc,2)*ssurvn(icc,2))+
-     &      (ssureqn(icc,3)*ssurvn(icc,3))-ssureqn(icc,4)
+        val=(sureqn(icomp,loop,1)*survn(icomp,loop,1))+
+     &      (sureqn(icomp,loop,2)*survn(icomp,loop,2))+
+     &      (sureqn(icomp,loop,3)*survn(icomp,loop,3))-
+     &       sureqn(icomp,loop,4)
         if(val.gt.0.0)then
           positive=.true.
         else
@@ -2283,13 +2285,13 @@ C its bounding box corners (lower left and upper right yield
 C positive or negative.
         if(nbobs(icomp).gt.0)then
           do loop2=1,nbobs(icomp)
-            valll=(ssureqn(icc,1)*BBO(loop2,1,1))+
-     &      (ssureqn(icc,2)*BBO(loop2,1,2))+
-     &      (ssureqn(icc,3)*BBO(loop2,1,3))-ssureqn(icc,4)
+            valll=(sureqn(icomp,loop,1)*BBO(loop2,1,1))+
+     &      (sureqn(icomp,loop,2)*BBO(loop2,1,2))+
+     &      (sureqn(icomp,loop,3)*BBO(loop2,1,3))-sureqn(icomp,loop,4)
 
-            valur=(ssureqn(icc,1)*BBO(loop2,2,1))+
-     &      (ssureqn(icc,2)*BBO(loop2,2,2))+
-     &      (ssureqn(icc,3)*BBO(loop2,2,3))-ssureqn(icc,4)
+            valur=(sureqn(icomp,loop,1)*BBO(loop2,2,1))+
+     &      (sureqn(icomp,loop,2)*BBO(loop2,2,2))+
+     &      (sureqn(icomp,loop,3)*BBO(loop2,2,3))-sureqn(icomp,loop,4)
 
 C If both are same sign then in front.
             if(positive)then
@@ -2357,22 +2359,22 @@ C  Cosine of the angle of incidence and surface-solar azimuth angle.
       do i=1,nzsur(icomp)
         icc=izstocn(icomp,i)
         if(salt.gt.0.0)then
-          psazi=abs(sspazi(icc)-sazi)
+          psazi=abs(spazi(icomp,i)-sazi)
           x1=cos(salt*r)
-          x2=sin((90.-sspelv(icc))*r)
+          x2=sin((90.-spelv(icomp,i))*r)
           x3=cos(psazi*r)
           x4=sin(salt*r)
-          x5=cos((90.-sspelv(icc))*r)
+          x5=cos((90.-spelv(icomp,i))*r)
           caie(i)=x1*x2*x3+x4*x5
-          paz=sspazi(icc)+180.0
-          if(sspazi(icc).gt.180.0)paz=sspazi(icc)-180.0
+          paz=spazi(icomp,i)+180.0
+          if(spazi(icomp,i).gt.180.0)paz=spazi(icomp,i)-180.0
           psazi=abs(paz-sazi)
           x3=cos(psazi*r)
           x1=cos(salt*r)
-          x2=sin((90.+sspelv(icc))*r)
+          x2=sin((90.+spelv(icomp,i))*r)
           x3=cos(psazi*r)
           x4=sin(salt*r)
-          x5=cos((90.+sspelv(icc))*r)
+          x5=cos((90.+spelv(icomp,i))*r)
           caii(i)=x1*x2*x3+x4*x5
         else
           caii(i)=0.0
@@ -2395,7 +2397,7 @@ C Trace output, check also that user has asked for detailed trace.
           call zsid(icomp,i,ZSDES,ZSDESC,ZSDESS)
           lnzsn=lnblnk(ZSDES)
           write(outs,'(a,f6.4,6x,f6.4,7x,f5.1,6x,f5.1)')
-     &      ZSDES(1:lnzsn),caii(i),caie(i),sspazi(icc),sspelv(icc)
+     &     ZSDES(1:lnzsn),caii(i),caie(i),spazi(icomp,i),spelv(icomp,i)
           call edisp(icout,outs)
    50   continue
       endif

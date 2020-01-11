@@ -59,7 +59,7 @@ C ********************* MFBNDR *********************
 
       COMMON/ICFNOD/ICFD,ICP
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       COMMON/PVALA/TPA(MCOM),QPA(MCOM)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       common/SSOinit/areaSSO
@@ -332,9 +332,10 @@ C cfd-mfs iterations are done.
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "cfd.h"
+
       COMMON/ICFNOD/ICFD,ICP
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
      
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
      &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),

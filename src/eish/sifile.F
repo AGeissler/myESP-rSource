@@ -80,7 +80,7 @@ C  ifstat = 5  error writing record 4 of file
       
       integer lnblnk  ! function definition
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
 
       common/ract/paction
@@ -216,7 +216,7 @@ C once per day-month.
 #include "building.h"
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       common/data1/ical,idifc,init
       integer mon,isc,iyd
@@ -225,7 +225,7 @@ C once per day-month.
 
       dimension isadd(12),ishd(12)
       character outs*124
-      logical ok,dok
+      logical ok
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -289,9 +289,8 @@ C Shading data already exists for this month.
       helptopic='data_already_exists'
       call gethelptext(helpinsub,helptopic,nbhelp)
       write(outs,'(a,i2,a)') 'Shading data already saved for month ',
-     &                        mon,'.' 
-      dok=.true.
-      call askok(outs,'OK to overwrite?',ok,dok,nbhelp)
+     &                        mon,'!' 
+      call easkok(outs,'OK to overwrite?',ok,nbhelp)
       if(.not.ok)return
 
 C For each zone surface (whether included in the shading calculation
@@ -342,7 +341,7 @@ C once per day-month.
 #include "building.h"
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/data1/ical,idifc,init
       integer mon,isc,iyd
       common/contr/mon,isc(ms),iyd
@@ -355,7 +354,7 @@ C once per day-month.
       dimension pso(ms,24),psof(ms,24),insstx(24),pinsstx(24)
       dimension isadd(12),ishd(12),ioffs(ms),ntmc(ms),month(12)
       character outs*124,paction*16,month*3
-      logical ok,dok,close
+      logical ok,close
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -456,12 +455,11 @@ C Possibly update saved data index.
          ishd(mon)=ishd(mon)+2
          if(multi.eq.1)new=1
       elseif(ishdt.eq.2.or.ishdt.eq.3)then
-         dok=.true.
          helptopic='data_already_exists'
          call gethelptext(helpinsub,helptopic,nbhelp)
          write(outs,'(3a)')
-     &       'Insolation data already saved for month ',month(mon),'.' 
-         call askok(outs,'OK to overwrite/append?',ok,dok,nbhelp)
+     &       'Insolation data already saved for month ',month(mon),'!' 
+         call easkok(outs,'OK to overwrite/ append?',ok,nbhelp)
          if(.not.ok)return
       endif
 

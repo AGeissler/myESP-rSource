@@ -39,7 +39,7 @@ C Writes the model geometry to the zone transitional shading file.
 C geometry.h provides commons G0, G2, GS5, GS6.
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       integer mon,isc,iyd
       common/contr/mon,isc(ms),iyd
@@ -70,7 +70,7 @@ C to the zone transitional shading file.
 #include "building.h"
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       common/g1t/xft(mv),zft(mv)
       common/find/irecl
@@ -115,7 +115,7 @@ C and computes the overall direct and diffuse shading factors.
 #include "building.h"
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tracech/icout
       common/filep/ifil
       common/grid3/ogrida(ms)
@@ -233,7 +233,7 @@ C Next line only reached after all sky patches have been processed.
   40  continue
 
 C Recover gross surface area, gsa.
-      gsa=ssna(icc)
+      gsa=sna(icomp,is)
 
       if(mode.eq.'dir')pso(is,ihour)=gssa/gsa
       if(mode.eq.'dif')then
@@ -340,7 +340,7 @@ C shading file as previously written by tfile1 and tfile12.
 C geometry.h provides commons G0,G2,GS5,GS6,GS7,GS8.
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       integer mon,isc,iyd
       common/contr/mon,isc(ms),iyd

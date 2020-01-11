@@ -33,7 +33,7 @@ C Display Zones list and wait for INIPIC item selected
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       
       integer ncomp,ncon
@@ -170,20 +170,16 @@ C ZoneDisp - displays zone based information and allows....
       SUBROUTINE ZoneDisp(icomp)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2/G4/prec2/precz/prec17.
 #include "geometry.h"
-
-C viewing common blocks
 #include "prj3dv.h"
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/gzonpik/izgfoc,nzg,nznog(mcom)
 
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
-      COMMON/SDATA/SNA(MS),GSA(MS),GWA(MS),PAZI(MS),PELV(MS)
+      COMMON/SDATA/GSA(MS),GWA(MS)
 
       CHARACTER outs*124
 
@@ -204,7 +200,7 @@ C Read geometry file for chosen zone.
       CALL redraw(IER)
 
 C Recover zone data (read only, no display).
-      CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+      CALL ZINFO(icomp,ZOA,ZVOL,'q')
       Vol(icomp)= ZVOL
       CALL ECLOSE(ZBASEA(ICOMP),0.0,0.001,zbzero)
       OPQ=0.
@@ -213,9 +209,9 @@ C Recover zone data (read only, no display).
         icon=IZSTOCN(icomp,i)
         if(SOTF(icomp,i)(1:4).NE.'OPAQ'.AND.
      &     SOTF(icomp,i)(1:4).NE.'CFC ')then
-          TRN=TRN+SNA(I)
+          TRN=TRN+SNA(icomp,I)
         else
-          OPQ=OPQ+SNA(I)
+          OPQ=OPQ+SNA(icomp,I)
         endif
    41 CONTINUE
 
@@ -254,7 +250,7 @@ C HeightCo (Real) : Height [m] of the constructions, for LCA calculation.
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       COMMON/ERRHAND/IDerr
       COMMON/CompPik/IComfoc,NComPik,LstComp(MMLC)
@@ -362,12 +358,12 @@ C          1 = textual feedback or 2 = File
 #include "acoustic.h"
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
-      COMMON/SDATA/SNA(MS),GSA(MS),GWA(MS),PAZI(MS),PELV(MS)
+      COMMON/SDATA/GSA(MS),GWA(MS)
 
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MetNam/ACOName,CalName(4),LabFreq(MNbAbs)
       COMMON/AbsoCoef/SysAbsCo(MMLC,MNbAbs),PubAbsCo(MaxPub,MNbAbs),
      &                FurAbsCo(MaxPub,MNbAbs),AirAbs(MNbAbs)
@@ -566,11 +562,11 @@ C for each surface in the zone according to the frequency band
                  call edisp(Ichanel,outs)
               endif
               call georead(ITMP,LGEOM(nZnog(J)),nZnog(J),0,iuout,IER)
-              CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+              CALL ZINFO(nZnog(J),ZOA,ZVOL,'q')
             DO 400 I = 1,NSUR
               icon=IZSTOCN(nZnog(J),I)
               In = MLCIndex(SMLCN(nZnog(J),I))
-              IF (SNA(I) .GT. 0.) THEN
+              IF (SNA(nZnog(J),I) .GT. 0.) THEN
                 if (IOctave .EQ. 1) then
                   WRITE(outs,311) SNAME(nZnog(J),I), SMLCN(nZnog(J),I),
      &                           (SysAbsCo(In,IY),IY=2,17,3)
@@ -578,7 +574,7 @@ C for each surface in the zone according to the frequency band
                   call edisp(Ichanel,outs)
                 elseif (IOctave .EQ. 2) then
                   IF (ICompact.EQ.1) THEN
-                    WRITE(outs,321) SNAME(nZnog(J),I),SNA(I), 
+                    WRITE(outs,321) SNAME(nZnog(J),I),SNA(nZnog(J),I), 
      &                 SMLCN(nZnog(J),I),(SysAbsCo(In,IY),IY=3,15,3)
  321                FORMAT(1X,A,3x,F5.1,3x,a, 6(4x, F4.2))
                     call edisp(Ichanel,outs)
@@ -749,18 +745,18 @@ C Display equivalent surface for MATERIAL
                 call edisp(Ichanel,'-----')
               endif
               call georead(ITMP,LGEOM(nZnog(k)),nZnog(k),0,iuout,IER)
-              CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+              CALL ZINFO(nZnog(k),ZOA,ZVOL,'q')
               call SurfEquiCalc(nznog(k), M, IAirAb)
             DO 200 I = 1,NSUR
               icon=IZSTOCN(nZnog(k),I)
               ISys = MLCIndex(SMLCN(nZnog(k),I))
-              IF (SNA(I) .GT. 0.) THEN
+              IF (SNA(nZnog(k),I) .GT. 0.) THEN
                 if (IOctave .EQ. 1) then
-                  WRITE(outs,111)SNAME(nZnog(k),I),SNA(I),
+                  WRITE(outs,111)SNAME(nZnog(k),I),SNA(nZnog(k),I),
      &              SMLCN(nZnog(k),I),(SurfEquM(I,IY),IY=2,17,3)
  111              FORMAT(1X,A,1x, F7.1, 1x, A, 2x, 6(2x, F6.1))
                   call edisp(Ichanel,outs)
-                  IF (ABS(SNA(I)-SNAeff(I)).GT.0.001) THEN
+                  IF (ABS(SNA(nZnog(k),I)-SNAeff(I)).GT.0.001) THEN
                     DO 997 J = 1,MaxFur
                       if (CovSurf(J).EQ.SNAME(nZnog(k),I)) then
                         WRITE(outs,116) '*',-XNbFur(J),FurType(J),
@@ -772,7 +768,7 @@ C Display equivalent surface for MATERIAL
                   ENDIF
                 elseif (IOctave .EQ. 2) then
                   IF (ICompact.EQ.1) THEN
-                    WRITE(outs,206)SNAME(nZnog(k),I),SNA(I),
+                    WRITE(outs,206)SNAME(nZnog(k),I),SNA(nZnog(k),I),
      &                SMLCN(nZnog(k),I),(SurfEquM(I,IY),IY=3,15,3)
  206                FORMAT(1X,A,3x, F7.1, 3x, A, 6(2x, F6.1))
                     call edisp(Ichanel,outs)
@@ -783,7 +779,7 @@ C Display equivalent surface for MATERIAL
  209                FORMAT(37x,6(2x, F6.1))
                     call edisp(Ichanel,outs)
                     call edisp(Ichanel,' ')
-                    if (ABS(SNA(I)-SNAeff(I)).GT.0.001) then
+                    if (ABS(SNA(nZnog(k),I)-SNAeff(I)).GT.0.001) then
 C If furniture infront of surface
                       DO 999 J = 1,MaxFur
                         if (CovSurf(J).EQ.SNAME(nZnog(k),I)) then
@@ -805,12 +801,12 @@ C If furniture infront of surface
  999                  CONTINUE
                     endif
                   ELSE
-                    WRITE(extraouts,214) SNAME(nZnog(k),I),SNA(I),
-     &                         (SurfEquM(I,IY),IY=1,17)
+                    WRITE(extraouts,214) SNAME(nZnog(k),I),
+     &                SNA(nZnog(k),I),(SurfEquM(I,IY),IY=1,17)
  214                FORMAT(1X,A12,1x,F7.1,1x,17(F6.1))
                     call edisp(Ichanel,extraouts)
 
-                    if (ABS(SNA(I)-SNAeff(I)).GT.0.001) then
+                    if (ABS(SNA(nZnog(k),I)-SNAeff(I)).GT.0.001) then
 C If furniture infront of surface
                       DO 998 J = 1,MaxFur
                        if (CovSurf(J).NE.SNAME(nZnog(k),I)) then
@@ -999,7 +995,7 @@ C Display equivalent surface for Air absorption
 C Should any way compute the equivalent area
             DO 691 k =1,NZG 
               call georead(ITMP,LGEOM(nZnog(k)),nZnog(k),0,iuout,IER)
-              CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+              CALL ZINFO(nZnog(k),ZOA,ZVOL,'q')
               call SurfEquiCalc(nznog(k), M, IAirAb)
  691        CONTINUE
           ENDIF
@@ -1137,9 +1133,7 @@ C Scale and draw monitoring plot.
 C Print title. IPS is used to keep track of number of title lines.
         IPS=1
         write(title,'(20x,2a)')'Reverberation time for space: ',TxtZone
-        iside=IPS
-        isize=0
-        ifont=0
+        iside=IPS; isize=0; ifont=0
         CALL viewtext(title,iside,isize,ifont)
       ENDIF
 
@@ -1147,17 +1141,13 @@ C Write the label concerning the calculation mode used
       IF (MAll.LT.4) THEN
         IPS=IPS+1
         write(title,'(1x,2a)') 'Method: ',CalName(MethodCalc)(1:11)
-        iside=IPS
-        isize=0
-        ifont=0
+        iside=IPS; isize=0; ifont=0
         CALL viewtext(title,iside,isize,ifont)
       ENDIF
       IF ((MAll.EQ.4).AND.(MethodCalc.EQ.1)) THEN
         IPS=IPS+1
         write(title,'(1x,a)') 'Method: All'
-        iside=IPS
-        isize=0
-        ifont=0
+        iside=IPS; isize=0; ifont=0
         CALL viewtext(title,iside,isize,ifont)
       ENDIF
 
@@ -1187,9 +1177,7 @@ C Label curves
         IPS=IPS+1
         write(title,'(40x,3(a,8x))')'Sabine (x)','Eyring (+)',
      &                              'Millington (.)'
-        iside=IPS
-        isize=0
-        ifont=0
+        iside=IPS; isize=0; ifont=0
         CALL viewtext(title,iside,isize,ifont)
       ENDIF
 

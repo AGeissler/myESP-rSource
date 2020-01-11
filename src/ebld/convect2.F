@@ -918,12 +918,13 @@ C the same correlation as vertical surfaces.
       SUBROUTINE HTCEXT(ICOR,HC,ICOMP,ISUR)
 
 #include "building.h"
+#include "geometry.h"
+
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/TC/ITC,ICNT
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       COMMON/BTIME/BTIMEP,BTIMEF
 
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
 
@@ -959,14 +960,14 @@ C The orientation of the surface and the wind direction relative to
 C the surface determine which correlation to use.
 
 C Predominantly horizontal surface.
-        IF(PELV(ICOMP,ISUR).LT.-45. .OR. PELV(ICOMP,ISUR).GT.45.) THEN
+        IF(SPELV(ICOMP,ISUR).LT.-45. .OR. SPELV(ICOMP,ISUR).GT.45.)THEN
           V=VF
           HC=2.8+3.0*V
         ELSE
 
 C Predominantly vertical surface.
 C Determine wind direction relative to surface.
-          WSA=ABS(PAZI(ICOMP,ISUR)-DF)
+          WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
           IF(WSA.GT.180.0)WSA=360.0-WSA
 
 C Determine direction of wind relative to surface, then apply correlation.
@@ -1001,7 +1002,7 @@ C DT is temperature difference between outside surface and ambient temperature.
         DT = TFC(icomp,isur,1) - TF
 
 C Determine wind direction relative to surface. 
-        WSA=ABS(PAZI(ICOMP,ISUR)-DF)
+        WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
         if(WSA.le.90.0)then
 
@@ -1024,7 +1025,7 @@ C Assume leeward side.
 
 C Use Aya Hagishima's correlations which were derived from a 4-storey building attached to
 C a 2-storey building in Japan in 2000.
-        IF(PELV(ICOMP,ISUR).LT.-45. .OR. PELV(ICOMP,ISUR).GT.45.) THEN
+        IF(SPELV(ICOMP,ISUR).LT.-45. .OR.SPELV(ICOMP,ISUR).GT.45.) THEN
 
 C Predominantly horizontal surface.
           VR=VF
@@ -1045,7 +1046,7 @@ C Predominantly vertical surface.
 
 C Use Ya Liu correlations derived from roof wind speed for low-rised buildings surrounded by shelterbelt trees
 C Determine wind direction relative to surface. 
-        WSA=ABS(PAZI(ICOMP,ISUR)-DF)
+        WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
         if(WSA.le.90.0)then
 
@@ -1067,7 +1068,7 @@ C Assume leeward side.
 
 C Use Ya Liu correlations derived from wall wind speed for low-rised buildings surrounded by shelterbelt trees
 C Determine wind direction relative to surface. 
-        WSA=ABS(PAZI(ICOMP,ISUR)-DF)
+        WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
         if(WSA.le.90.0)then
 
@@ -1090,7 +1091,7 @@ C Assume leeward side.
 C Use Ya Liu correlations derived from local weather station wind speed for low-rised buildings
 C surrounded by shelterbelt trees
 C Determine wind direction relative to surface. 
-        WSA=ABS(PAZI(ICOMP,ISUR)-DF)
+        WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
         if(WSA.le.90.0)then
 
@@ -1111,7 +1112,7 @@ C Assume leeward side.
 C Use Loveday correlations derived from roof wind speed for high-rised buildings
 C in urban environmental conditions.
 C Determine wind direction relative to surface.
-        WSA=ABS(PAZI(ICOMP,ISUR)-DF)
+        WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
         if(WSA.le.90.0)then
 
@@ -1134,7 +1135,7 @@ C Assume leeward side.
 C Use Loveday correlations derived from wall wind speed for high-rised buildings
 C in urban environmental conditions.
 C Determine wind direction relative to surface. 
-        WSA=ABS(PAZI(ICOMP,ISUR)-DF)
+        WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.0)WSA=360.0-WSA
         if(WSA.le.90.0)then
 
@@ -1205,7 +1206,7 @@ C V is wind speed.
 
 C Use ASHRAE Task Group equations
 C Determine wind direction relative to surface 
-        WSA=ABS(PAZI(ICOMP,ISUR)-DF)
+        WSA=ABS(SPAZI(ICOMP,ISUR)-DF)
         IF(WSA.GT.180.)WSA=360.0-WSA
         if(WSA.le.90.0)then
 
@@ -1274,12 +1275,13 @@ C and the user-specified simulation toggle.
       SUBROUTINE SELCOR1(ICOMP,ISUR,inRout,TA,TS,ICOR)
 
 #include "building.h"
+#include "geometry.h"
+
       COMMON/HCTHRY/IHCT,icorexhct
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
 
 C Determine orientation of surface.  ANGLE=0 for walls and other vertical
 C surfaces; ANGLE=-90 for floors; and ANGLE=+90 for ceilings.
-      ANGLE = PELV(ICOMP,ISUR)
+      ANGLE = SPELV(ICOMP,ISUR)
       if(inRout.eq.2)then
 
 C This ensures that, for example, the `ceiling' of a zone is recognized as

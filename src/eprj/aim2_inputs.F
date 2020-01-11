@@ -81,8 +81,8 @@ C Declare local variables
       INTEGER :: i                          !loop index
       INTEGER :: allocate_status            !returns 0 for sucessful allocation
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
       iairtight_type=airtight_type
       iblower_door_input_option=blower_door_input_option
@@ -201,8 +201,8 @@ C ******************************************************************************
 C Declare local variables
       INTEGER :: deallocatestatus
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
       IF (ALLOCATED(iAIM2_zone_infil)) THEN
         DEALLOCATE(iAIM2_zone_infil, STAT=deallocatestatus)
@@ -332,8 +332,8 @@ C Declare local variables
       CHARACTER ::  DisplayString*248       !data selection display string
       LOGICAL :: OK                         !yes/no flag for saving changes
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -481,8 +481,7 @@ C any further changes
 C Check to see if any of the paramets have changed before exiting
           IF (CheckForChanges()) THEN
 C Check if the user wants to save the changes made
-            CALL ASKOK(' Do you wish to save your changes?',' ',OK,
-     &                .TRUE.,nbhelp)
+            CALL EASKOK(' ','Save changes?',OK,nbhelp)
             IF (OK) CALL SAVE_AIM2
           END IF
           EXIT
@@ -590,8 +589,8 @@ C Declare local variables
       INTEGER :: NITEMS                         !number of items
       INTEGER :: INO                            !selection
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -679,8 +678,8 @@ C Declare local variables
       INTEGER :: INO                            !selection
       REAL :: Temp                              !temporary variable
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 C Function definition
       LOGICAL :: REQUAL                         !used to compare real variables
@@ -842,8 +841,8 @@ C Declare local variables
       INTEGER :: INO                        !selection
       REAL :: Temp                          !temporary variable
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 c Function declaration
       LOGICAL :: REQUAL                    !used to compare real variables
@@ -926,8 +925,8 @@ C Declare local variables
       INTEGER :: INO                            !menu selection
       REAL :: Temp                              !temporary variable
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 C Function declaration
       LOGICAL :: REQUAL                         !used to compare real variables
@@ -1028,8 +1027,8 @@ C Declare local variables
       INTEGER :: NITEMS                                      !number of items
       INTEGER :: PreviousSelection                           !previous menu selction
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1142,8 +1141,8 @@ C Declare local variables
       INTEGER :: NITEMS                                      !number of items
       INTEGER :: PreviousSelection                           !previous menu selction
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1246,8 +1245,8 @@ C Declare local variables
       INTEGER :: NITEMS                             !number of items
       LOGICAL :: OK                                 !yes/no flag for reverting basement, crawlspace & attic selections
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL :: CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK ,CFCDBOK !CFGOK flag for wether cfg file has been loaded in
       COMMON/C1/NCOMP,NCON
@@ -1346,8 +1345,7 @@ C Zone number of basement
         CASE (3)
           Zone = AIM2_basement_zone
           IF (Zone.NE.0) THEN
-            CALL ASKOK('Do you wish to revert to having no basement?',
-     &                ' ',OK,.TRUE.,nbhelp)
+            CALL EASKOK(' ','Revert to no basement?',OK,nbhelp)
             IF (OK) AIM2_basement_zone = 0
           END IF
           IF (.NOT.OK) THEN
@@ -1375,8 +1373,7 @@ C Zone number of Crawl Space
         CASE (4)
           Zone = AIM2_CrawlSpace_zone
           IF (Zone.NE.0) THEN
-           CALL ASKOK('Do you wish to revert to having no crawlspace?',
-     &                ' ',OK,.TRUE.,nbhelp)
+           CALL EASKOK(' ','Revert to no crawlspace?',OK,nbhelp)
             IF (OK) AIM2_CrawlSpace_zone = 0
           END IF
           IF (.NOT.OK) THEN
@@ -1401,8 +1398,7 @@ C Zone number of attic.
         CASE (5)
           Zone = AIM2_attic_zone
           IF (Zone.NE.0) THEN
-            CALL ASKOK('Do you wish to revert to having no attic?',
-     &                ' ',OK,.TRUE.,nbhelp)
+            CALL EASKOK(' ','Revert to no attic?',OK,nbhelp)
             IF (OK) AIM2_attic_zone = 0
           END IF
           IF (.NOT.OK) THEN
@@ -1466,8 +1462,8 @@ C Declare local variables
       INTEGER :: i                       !loop counter
       INTEGER :: TestCase                !temporary select case variable
       INTEGER :: padlength               !used to pad out a variable length string
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT, IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
       COMMON/USER/BROWSE
       LOGICAL BROWSE
       COMMON/rpath/path

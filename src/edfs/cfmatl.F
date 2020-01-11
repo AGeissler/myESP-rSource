@@ -28,9 +28,10 @@ C PRNMAT - Write the field values of variables in ASCII format.
 C  The file can be read into MATLAB, resulting in automatically
 C  appearing graphs comprising the results of the simulation.
       SUBROUTINE PRNMAT(ifl)
+#include "building.h"
 #include "cfd.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),
@@ -373,6 +374,7 @@ C Start generation of graphs K-level.
 C ********************* STRFUN *********************
 C STRFUN - Evaluates the stream funtion of a given flow.
       SUBROUTINE STRFUN(OPC,I) 
+#include "building.h"
 #include "cfd.h"
 
       COMMON/FLUPRf/URFVIS,VISCOS,PRANDT,SH,
@@ -383,7 +385,7 @@ C STRFUN - Evaluates the stream funtion of a given flow.
      2            P(ntcelx,ntcely,ntcelz),PP(ntcelx,ntcely,ntcelz),
      3            TEf(ntcelx,ntcely,ntcelz),EDf(ntcelx,ntcely,ntcelz)
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),

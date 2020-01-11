@@ -20,7 +20,7 @@ C Boston, MA 02111-1307 USA.
 
 C 'CLMMMM' COMPUTES THE MAXIMUM, MINIMUM AND MEAN VALUES OF THE CHOSEN
 C CLIMATIC PARAMETER:
-C   IP = climate metric index, see climate.h
+C   IP = weather metric index, see climate.h
 C  FOR THE SPECIFIED PERIOD.   THE TIME OF OCCURRENCE OF
 C THE MAXIMUM AND MINIMUM VALUES IS ALSO GIVEN - IF THESE VALUES
 C OCCUR ON MORE THAN ONE OCCASION THEN THE TIME OF THE FIRST OCCURRENCE
@@ -279,7 +279,7 @@ C PERIOD ACCORDINGLY.
  
       character DESCR*7,DESCR1*10,DESCRX*7,DESCR1X*10
       character DESCRW*7,DESCRW1*10,outs*124
-      logical ok,dok
+      logical ok
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -394,10 +394,9 @@ C DAY AND MONTH NUMBER FORMAT.
 
 C Pause if a long list.
         if((idf-IDS).gt.100.and.ix.gt.150)then
-          dok=.true.
           helptopic='pause_to_study_listing'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok('continue listing?',' ',OK,dok,nbhelp)
+          call easkok(' ','Continue listing?',OK,nbhelp)
           ix=1
         endif
 

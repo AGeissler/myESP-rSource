@@ -158,13 +158,13 @@ C (equivalent to subroutine in esruish/miscel.F)
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/G1T/XFT(MV),ZFT(MV)
       COMMON/GRID11/XOP(MOX,MOZ),ZOP(MOX,MOZ)
       COMMON/GRID3/OGRIDA(MS)
       CHARACTER outs*124
-      logical OK,dok
+      logical OK
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -209,11 +209,10 @@ C each grid square.
 
 C Trace if verbose level.
     1 IF(ITC.LE.1)goto 9985
-      dok=.false.
       helptopic='view_mesh_cord'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' ',' View details of MESH coordinates?',
-     &  OK,dok,nbhelp)
+      CALL EASKOK(' ','View mesh coordinates?',
+     &          OK,nbhelp)
       IF(.NOT.OK)goto 9985
 
       WRITE(outs,9986)IS
@@ -240,6 +239,7 @@ C FACDRW draws the elevation of the surface.
 #include "building.h"
 #include "geometry.h"
 
+      common/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/CONTR/MON,ISC(MS),IYD
       COMMON/G1T/XFT(MV),ZFT(MV)
       integer IZSTOCN
@@ -265,6 +265,7 @@ C FACDRW draws the elevation of the surface.
      &            'Sep','Oct','Nov','Dec'/
 
 C Display header information.
+      if(mmod.ne.8) return
       call startbuffer()
 
 C Setup and pass in parameters to win3d.

@@ -105,11 +105,11 @@ C----------------------------------------------------------------------
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer itc,icnt
-      integer iuout,iuin
+      integer iuout,iuin,ieout
       integer itcf,itrace,izntrc,itu
 
 
@@ -1658,11 +1658,11 @@ C.....Plant component configuration data - read from input file
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer iTc,iCnt
-      integer iUout,iUin
+      integer iUout,iUin,ieout
       integer iTcf,iTrace,iZntrc,iTu
 
       character*128 cContext, cMsg

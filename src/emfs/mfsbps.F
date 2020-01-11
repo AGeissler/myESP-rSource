@@ -78,7 +78,7 @@ C     -set known pressure nodes.
 C esprdbfile.h supplies the following:
 C LAPRES,IAPRES (for wind pressure databases)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/ER1/IER1
 

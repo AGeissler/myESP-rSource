@@ -81,7 +81,7 @@ C
 #include "power.h"
 
       COMMON/C6/INDCFG
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C The electrical simulation parameters. 
       COMMON/ENETSIMP/ENETMAXI,ENETSLVT,ENETVCVG,ENETACVG,ENETVLIM,
@@ -200,7 +200,7 @@ C ******************************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
 C Electrical library details - the number of records per timestep and the number 
@@ -211,7 +211,7 @@ C of records used to store hybrid and power only data.
 C Type casting (all variables and arrays cast explicitly)
       INTEGER NTSREC,NHREC,NPREC
 
-      INTEGER IUOUT,IUIN,IFIL,IELFIL,IELIBHL,IELIBW,
+      INTEGER IUOUT,IUIN,IEOUT,IFIL,IELFIL,IELIBHL,IELIBW,
      &IELSTREC
      
 C Get the results library file number and record width from the include file. 
@@ -255,6 +255,8 @@ C Write out the results header
       RETURN
 
   999 WRITE(IUOUT,*)' ENETLIBH ERROR: problem writing header.'
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPWAIT
       CALL EPAGEND
       STOP 
@@ -325,7 +327,7 @@ C
 #include "power.h"
 
 C Trace
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -615,6 +617,8 @@ C Error message
      &,'ecting component '
      &,ICCN
       CALL EDISP(itu,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPWAIT
       call epagend
       STOP
@@ -673,7 +677,7 @@ C Trace
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C The calculated component impedances
       COMMON/ECONZVAL/NCONZ(MCONECOM),CONZ(MCONECOM,MZARRY)
@@ -756,6 +760,8 @@ C 1-phase, d.c. or balanced.
               CALL EDISP(IUOUT,'type and the connection phase type ') 
               WRITE(OUTS,'(A,I3)') 'in connection ',ICON
               CALL EDISP(IUOUT,OUTS)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPWAIT
               call epagend
               STOP
@@ -769,6 +775,8 @@ C 2-phase
               CALL EDISP(IUOUT,'type and the connection phase type ') 
               WRITE(OUTS,'(A,I3)') 'in connection ',ICON
               CALL EDISP(IUOUT,OUTS)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPWAIT
               call epagend
               STOP
@@ -782,6 +790,8 @@ C 3-phase
               CALL EDISP(IUOUT,'type and the connection phase type ') 
               WRITE(OUTS,'(A,I3)') 'in connection ',ICON
               CALL EDISP(IUOUT,OUTS)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPWAIT
               call epagend
               STOP
@@ -804,6 +814,8 @@ C if so divide by the start node base value.
                 WRITE(OUTS,'(A,I3)')' and end nodes in connection.',
      &          ICON
                 CALL EDISP(IUOUT,OUTS)
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 CALL EPWAIT
                 call epagend
                 STOP            
@@ -830,6 +842,8 @@ C 1-phase, d.c. or balanced.
               CALL EDISP(IUOUT,'type and the connection phase type. ') 
               WRITE(OUTS,'(A,I3)') 'in connection ',ICON
               CALL EDISP(IUOUT,OUTS)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPWAIT
               call epagend
               STOP
@@ -842,6 +856,8 @@ C 2-phase
               CALL EDISP(IUOUT,'type and the connection phase type. ') 
               WRITE(OUTS,'(A,I3)') 'in connection ',ICON
               CALL EDISP(IUOUT,OUTS)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPWAIT
               call epagend
               STOP
@@ -854,6 +870,8 @@ C 3-phase
               CALL EDISP(IUOUT,'type and the connection phase type. ') 
               WRITE(OUTS,'(A,I3)') 'in connection ',ICON
               CALL EDISP(IUOUT,OUTS)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPWAIT
               call epagend
               STOP
@@ -875,6 +893,8 @@ C if so divide by the start node base value.
                 CALL EDISP(IUOUT,'is less than the LV base value ') 
                 WRITE(OUTS,'(A,I3)')'in connection',ICON
                 CALL EDISP(IUOUT,OUTS) 
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 CALL EPWAIT
                 call epagend
                 STOP            
@@ -906,6 +926,8 @@ C 1-phase, d.c. or balanced.
               CALL EDISP(IUOUT,'type and the connection phase type ') 
               WRITE(OUTS,'(A,I3)') 'in connection ',ICON
               CALL EDISP(IUOUT,OUTS)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPWAIT
               call epagend
               STOP
@@ -918,6 +940,8 @@ C 2-phase
               CALL EDISP(IUOUT,'type and the connection phase type ') 
               WRITE(OUTS,'(A,I3)') 'in connection ',ICON
               CALL EDISP(IUOUT,OUTS)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPWAIT
               call epagend
               STOP
@@ -930,6 +954,8 @@ C 3-phase
               CALL EDISP(IUOUT,'type and the connection phase type ') 
               WRITE(OUTS,'(A,I3)') 'in connection ',ICON
               CALL EDISP(IUOUT,OUTS)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPWAIT
               call epagend
               STOP
@@ -951,6 +977,8 @@ C if so divide by the start node base value.
                 WRITE(OUTS,'(A,I3)')'start and end nodes in connection',
      &          ICON
                 CALL EDISP(IUOUT,OUTS)
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 call epwait
                 call epagend
                 STOP            
@@ -1332,7 +1360,7 @@ C ******************************************************************************
       COMMON/ENETSIMP/ENETMAXI,ENETSLVT,ENETVCVG,ENETACVG,ENETVLIM,
      &ENODCVGF(MENOD),CVGCHK
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/POPHELP/H(60)
 
       INTEGER ENETMAXI,ENETSLVT,ENODCVGF

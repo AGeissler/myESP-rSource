@@ -37,7 +37,7 @@ C            for this component.
 #include "plantdb.h"
 #include "pdb_data.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       COMMON/ERRS/ISTAT,IREC
       EQUIVALENCE (ERRFLG, ISTAT)
@@ -45,7 +45,7 @@ C            for this component.
       dimension ivals(MAXPC)
       character buffer*120,ltmp*80
       character zitem(11)*20
-      LOGICAL OK,dok
+      LOGICAL OK
       integer nitems,ino ! max items and current menu item
       integer iuchan     ! for listing details
 
@@ -155,11 +155,10 @@ C Edit component model nodal description.
 
 C Case for single component.
          if(ictype.eq.0) then
-            dok=.false.
             helptopic='pdb_matrix_change_ok'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL ASKOK(' Change position of ',
-     &      ' non-zero matrix coefficients?',OK,dok,nbhelp)
+            CALL EASKOK(' ',
+     &      'Change position of non-zero coefficients?',OK,nbhelp)
             IF(.NOT.OK)GOTO 330
 
 C Edit position of non-zero matrix coefficiensts.
@@ -192,11 +191,10 @@ C Display non-zero matrix coefficients.
             ichang=1
 
 C Edit external connectivity of node(s).
-  330       dok=.false.
-            helptopic='matrix_change_connect'
+  330       helptopic='matrix_change_connect'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL ASKOK(' Change external connectivity',
-     &      ' of node(s)?',OK,dok,nbhelp)
+            CALL EASKOK(' ',
+     &          'Change external nodal connectivity?',OK,nbhelp)
             IF(.NOT.OK)GOTO 350
             call edisp(iuout,' ')
             write(buffer,'(a,i5)') ' Number of nodes:', nnode
@@ -221,11 +219,10 @@ C Edit external connectivity of node(s).
             ichang=1
 
 C Edit state variable index of node(s).
-  350       dok=.false.
-            helptopic='pdb_matrix_var_index'
+  350       helptopic='pdb_matrix_var_index'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL ASKOK(' Change state variable index ',
-     &      ' of node(s)?',OK,dok,nbhelp)
+            CALL EASKOK(' ',
+     &               'Change nodal state variable index?',OK,nbhelp)
             IF(.NOT.OK)GOTO 368
             call edisp(iuout,' ')
             write(buffer,'(a,i5)') ' Number of nodes:', nnode
@@ -256,10 +253,9 @@ C Case for meta component.
          elseif(ictype.eq.1) then
 
 C Edit components code numbers.
-            dok=.false.
             helptopic='pdb_meta_component_index'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL ASKOK(' ',' Change components code? ',OK,dok,nbhelp)
+            CALL EASKOK(' ','Change component code? ',OK,nbhelp)
             IF(.NOT.OK)GOTO 390
             call edisp(iuout,' ')
             write(buffer,'(a,i5)') ' Number of components:',mncomp
@@ -283,11 +279,10 @@ C Edit components code numbers.
             ichang=1
 
 C Edit components inter-connections.
-  390       dok=.false.
-            helptopic='pdb_meta_connect_change'
+  390       helptopic='pdb_meta_connect_change'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL ASKOK(' Do you wish to change components ',
-     &      ' inter-connections?',OK,dok,nbhelp)
+            CALL EASKOK(' ',
+     &             'Change component inter-connections?',OK,nbhelp)
 C << to here >>
             IF(.NOT.OK)GOTO 421
             call edisp(iuout,' ')
@@ -347,15 +342,14 @@ C Edit miscellaneous data and data description.
      &           '    Cdata items   : ',I3)
          call edisp(iuout,' ')
 
-C Edit ADATA variables.
+C Edit ADATA parameters.
          if(nadata.gt.0) then
-           dok=.false.
            helptopic='ADATA_changes_editing'
            call gethelptext(helpinsub,helptopic,nbhelp)
-           CALL ASKOK(' ','Do you wish to edit ADATA?',OK,dok,nbhelp)
+           CALL EASKOK(' ','Edit ADATA parameters?',OK,nbhelp)
            IF(.NOT.OK)GOTO 530
            call edisp(iuout,' ')
-           call edisp(iuout,' ADATA variables:')
+           call edisp(iuout,' ADATA parameters:')
            do 520 i=1,nadata
              write(buffer,515) i,dtdesc(i)
              call edisp(iuout,buffer)
@@ -369,28 +363,27 @@ C Edit ADATA variables.
              goto 1160
            endif
            item=0
-           CALL EASKI(item,' ',' Which item to change? ',
+           CALL EASKI(item,' ','Parameter to change? ',
      &        1,'F',nadata,'F',1,' ADATA item?',IER,nbhelp)
            if(ier.ne.0)goto 1150
- 1160      CALL EASKS(dtdesc(item),' ',' Item description? ',
+ 1160      CALL EASKS(dtdesc(item),' ','Parameter description? ',
      &             68,' ',' Item description?',IER,nbhelp)
            if(ier.ne.0)goto 1160
- 1170      CALL EASKR(datams(item),' ',' Item value? ',0.,'-',
+ 1170      CALL EASKR(datams(item),' ','Parameter value? ',0.,'-',
      &        0.,'-',0.,' item value?',IER,nbhelp)
            if(ier.ne.0)goto 1170
            ichang=1 
   530      continue
          endif
 
-C Edit BDATA variables.
+C Edit BDATA parameters.
          if(nbdata.gt.0) then
-           dok=.false.
            helptopic='BDATA_changes_editing'
            call gethelptext(helpinsub,helptopic,nbhelp)
-           CALL ASKOK(' ','Do you wish to edit BDATA?',OK,dok,nbhelp)
+           CALL EASKOK(' ','Edit BDATA parameters?',OK,nbhelp)
            IF(.NOT.OK)GOTO 560
            call edisp(iuout,' ')
-           call edisp(iuout,' BDATA variables:')
+           call edisp(iuout,' BDATA parameters:')
            do 550 j=1,nbdata
              i=j+nadata
              write(buffer,545) j,dtdesc(i)
@@ -406,29 +399,28 @@ C Edit BDATA variables.
              goto 1190
            endif
            item=0
-           CALL EASKI(item,' ',' Which item to change? ',
+           CALL EASKI(item,' ','Parameter to change?',
      &         1,'F',nbdata,'F',1,' BDATA item?',IER,nbhelp)
            if(ier.ne.0)goto 1180
            item=item+nadata
- 1190      CALL EASKS(dtdesc(item),' ',' Item description? ',
+ 1190      CALL EASKS(dtdesc(item),' ','Parameter description?',
      &             68,' ',' Item description?',IER,nbhelp)
            if(ier.ne.0)goto 1190
- 1200      CALL EASKR(datams(item),' ',' Item value? ',0.,'-',
+ 1200      CALL EASKR(datams(item),' ','Parameter value?',0.,'-',
      &        0.,'-',0.,' item value?',IER,nbhelp)
            if(ier.ne.0)goto 1200
            ichang=1 
   560      continue
          endif
 
-C Edit CDATA variables (description only).
+C Edit CDATA description only.
          if(ncdata.gt.0) then
-           dok=.false.
            helptopic='CDATA_changes_editing'
            call gethelptext(helpinsub,helptopic,nbhelp)
-           CALL ASKOK(' ','Edit CDATA description?',OK,dok,nbhelp)
+           CALL EASKOK(' ','Edit CDATA description?',OK,nbhelp)
            IF(.NOT.OK)GOTO 590
            call edisp(iuout,' ')
-           call edisp(iuout,' CDATA variables:')
+           call edisp(iuout,' CDATA description:')
            do 580 j=1,ncdata
              i=j+nadata+nbdata
              write(buffer,575) j,dtdesc(i)
@@ -440,11 +432,11 @@ C Edit CDATA variables (description only).
              item=item+nadata+nbdata
              goto 1220
            endif
-           CALL EASKI(item,' ',' Which item to change? ',
+           CALL EASKI(item,' ','Parameter to change?',
      &        1,'F',ncdata,'F',1,' CDATA item?',IER,nbhelp)
            if(ier.ne.0)goto 1210
            item=item+nadata+nbdata
- 1220      CALL EASKS(dtdesc(item),' ',' Item description? ',
+ 1220      CALL EASKS(dtdesc(item),' ','Parameter description?',
      &             68,' ',' Item description?',IER,nbhelp)
            if(ier.ne.0)goto 1220
            ichang=1 
@@ -456,10 +448,9 @@ C Edit CDATA variables (description only).
 C Save changes if OK.
         if(ichang.eq.1.or.ival.ne.0) then
           call pcwrt(iuout)
-          dok=.true.
           helptopic='pdb_DATA_changes_pause'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(' ',' Is this OK? ',OK,dok,nbhelp)
+          CALL EASKOK(' ','Is this OK?',OK,nbhelp)
           IF(.NOT.OK)GOTO 20
           call pcput(indxpc)
           return
@@ -481,10 +472,9 @@ C Help for menu.
          
 C Exit. Warn user if changes were made.
         if(ichang.eq.1) then
-          dok=.false.
           helptopic='pdb_DATA_changes_pause'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok(' ','Really discard changes?',ok,dok,nbhelp)
+          call easkok(' ','Discard changes?',ok,nbhelp)
           if(.not.ok) goto 20
         endif
         return

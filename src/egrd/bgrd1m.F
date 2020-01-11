@@ -43,7 +43,7 @@ C geometry.h provides commons G0/G2/g6/c20/precz.
 
       COMMON/FILEP/IFIL
       COMMON/HELP/IHELPM
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       
@@ -56,7 +56,7 @@ C geometry.h provides commons G0/G2/g6/c20/precz.
       COMMON/MOIST02/LMOIST(MCOM)
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)
 
-      LOGICAL OK,DOK,SAVEOK
+      LOGICAL OK,SAVEOK
       LOGICAL ZONOK,XST
       CHARACTER ITEM(13)*34,ITEMC(MS)*20,FLTYP*25
       CHARACTER*12 ZONENM
@@ -272,10 +272,7 @@ C Display the help statements.
 
 C Return to the main simulator menu.
         IF(SAVEOK)THEN
-          dok=.true.
-          CALL ASKOK(' ',
-     &    'configuration should be updated. Ok to do this?',OK,
-     &    dok,nbhelp)
+          CALL EASKOK(' ','Update system confguration file?',OK,nbhelp)
           IF(OK)CALL EMKCFG('-',IER)
         ENDIF
         RETURN
@@ -293,7 +290,7 @@ C *********************************************************************
       integer iCountWords
 
       COMMON/HELP/IHELPM
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       integer IZSTOCN
@@ -481,7 +478,7 @@ C *********************************************************************
       SUBROUTINE LISTMD(ICOMP)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)

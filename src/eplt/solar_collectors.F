@@ -51,8 +51,8 @@ C---- Arguments
 
 C---- Common blocks
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -1072,8 +1072,8 @@ C=======================================================================
       LOGICAL close0,close50,close90
 
 C---- ESP-r common holding output console unit number
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C---- Check whether volume fraction is 0, 50, or 90%
       call eclose(GLYCOL_VOL_FRACTION,0.,1.,close0)
@@ -1354,7 +1354,7 @@ C     and mixture temperature
 C     Note: Only glycol fractions of 0 and 50% are currently supported
 C
 C References:
-C Calculated from first principles, beta = -(1/Rho)·(dRho/dT) where Rho
+C Calculated from first principles, beta = -(1/Rho)(dRho/dT) where Rho
 C is the density and T the temperature. See Incropera and DeWitt,
 C Fundamentals of Heat and Mass Transfer, 3rd edition, John Wiley & Sons,
 C 1990, eq. 9.4.
@@ -1372,12 +1372,12 @@ C=======================================================================
       REAL DELTATEMP
       PARAMETER (DELTATEMP=1.)       ! Parameter for numerical derivation
 
-      REAL VTEMP                     ! Temperature constrained between 0 and 100 °C
+      REAL VTEMP                     ! Temperature constrained between 0 and 100 C
       REAL TEMPINF                   ! Lower bound for numerical derivation
       REAL TEMPSUP                   ! Upper bound for numerical derivation
 
 C     Define lower and upper values for numerical derivation
-C     The values are constrained between 0. and 100 °C
+C     The values are constrained between 0. and 100 C
 
       VTEMP   = MIN(MAX(TEMP, 0.), 100.)
       TEMPINF = MAX(VTEMP-DELTATEMP,0.)

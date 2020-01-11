@@ -1068,8 +1068,8 @@ C ------------------------------------------------------------------------------
       COMMON/C1/NCOMP,NCON
       INTEGER NCOMP,NCON
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 C Declarations for variables passed in calling statement.
       REAL AIM2_total
@@ -1180,8 +1180,8 @@ C ------------------------------------------------------------------------------
       IMPLICIT NONE
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       REAL QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF, HP, HF
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 C Type declarations for variables passed in calling statement.
       REAL ZONE_infil_cond
@@ -1239,8 +1239,8 @@ C ------------------------------------------------------------------------------
 C Declarations for local variables.
       REAL attic_ach
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 C If user has specified that one of the zones in the model is an attic, then
 C set the infiltration rate for the attic. IF an attic has not been specified,

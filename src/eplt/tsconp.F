@@ -74,13 +74,13 @@ c               ptsdat(?,9): 2nd component number...etc.  }
       subroutine ptscin
 #include "plant.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/c9/npcomp,nci(mpcom),cdata(mpcom,mmiscd)
       common/tsconp/iptsc,nptscp,ptsdat(24,20)
 
       character outs*124
       logical ok,close0,close1,close2,close3,close31,close32,close33
-      logical close34,dok
+      logical close34
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -236,9 +236,8 @@ c Case for 2nd phase mass flow rate or all.
           endif
                
 c Now find which component(s) state variables to be tested.
-          dok=.false.
-          CALL ASKOK('Do you wish to test state variable(s) of each',
-     &        ' component? ',OK,dok,nbhelp)
+          CALL EASKOK(' ','Test component state variable(s)',
+     &             OK,nbhelp)
           if(.NOT.ok)goto 74
 
 C Case for all components in network considered.

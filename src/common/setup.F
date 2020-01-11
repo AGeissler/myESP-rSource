@@ -23,7 +23,7 @@ C file setup.F includes facilities for display of dates, time and files.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       common/FILEP/IFIL
       common/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -31,7 +31,7 @@ C file setup.F includes facilities for display of dates, time and files.
       integer menuchw,igl,igr,igt,igb,igw,igwh
       common/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
-      logical OK,DOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,concat,CFCDBOK
+      logical OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,concat,CFCDBOK
       dimension ITEMS1(18)
       character LFIL*72,SFILE*72,H*72,tfile*72,longtfile*144
       character OUTSTR*124,ITEMS1*47,doit*248,tedlbl*20,teditor*20
@@ -109,11 +109,10 @@ C List out an ASCII file.
         IUNIT=IFIL+1
         CALL LISTAS(IUNIT,LFIL,IER)
         IF(IER.LT.0)THEN
-          dok=.false.
-          h(1)='Either the file did not exist or included characters'
-          h(2)='which would not print. '
-          CALL ASKOK(' Problem detected while trying to open',
-     &               ' ASCII file. Try again?',OK,dok,2)
+          h(1)='Either the file does not exist or the name'
+          h(2)='includes non-printing characters.'
+          CALL EASKOK('Problem opening ASCII file!',
+     &               'Retry?',OK,2)
           IF(OK)GOTO 6
         ENDIF
       ELSEIF(INO1.EQ.7)THEN

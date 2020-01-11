@@ -7,6 +7,7 @@ C Indentation and tabs corrected 18 July 2016.
 C************Dynamic occupant subroutine**********************************
       Subroutine DynamicOcc(ICOMP,METAo,CLOTHO)
 #include "building.h"
+#include "site.h"
 #include "model.h"
 #include "geometry.h"
 #include "schedule.h"
@@ -23,9 +24,7 @@ C************Dynamic occupant subroutine**********************************
       common/MOIST53/Ppair(MCOM),Pfair(MCOM),Spair(MCOM)
       COMMON/PVALA/TPA(MCOM),QPA(MCOM)
       REAL TPA,TAIR,H2Oexp,HRexp,Mresp
-      COMMON/ATPRES/PATMOS
       REAL TMRT,TOP,Tamb
-      real PATMOS ! Ambient pressure 
       integer ICOMP
       REAL  Tcr(2),Tsk(2)
       REAL  Cp_blood   ! Blood specific heat (J/Kg oC)

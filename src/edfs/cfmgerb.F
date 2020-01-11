@@ -29,11 +29,11 @@ C readcfd3dascii - read ascii information from one timestep.
 C ********************* CFMNGE *********************
 C CFMNGE - Manages CFD calcs and results output when BSim and CFD are conflated.
       SUBROUTINE CFMNGE(ICOMP,IND)
-#include "cfd.h"
 #include "building.h"
 #include "geometry.h"
+#include "cfd.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
       integer IZSTOCN
@@ -345,11 +345,11 @@ C ********************* SURFCONF *********************
 C SURFCONF - Calls CFMNGE each time step there is surface conflation.
 
       SUBROUTINE SURFCONF(ICOMP)
-#include "cfd.h"
 #include "building.h"
 #include "schedule.h"
+#include "cfd.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       COMMON/BTIME/BTIMEP,BTIMEF
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
@@ -619,7 +619,7 @@ C with simulation day and timestep returned via ISIMDAY SIMTIMEF
 C espriou.h provides currentfile.
 #include "espriou.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       
       integer ncomp,ncon
@@ -847,10 +847,10 @@ C Errors for loutstr reads.
 C ********************* cfdlibhead *********************
 C cfdlibhead - write header information to cfd results library.
       subroutine cfdlibhead
-#include "cfd.h"
 #include "building.h"
+#include "cfd.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       real CFTIMS,CFTIMF    ! start and finish times for CFD assessment
@@ -1011,9 +1011,10 @@ C cfdlibdom - write domain information to cfd results library for each
 C CFD domain.
 
       subroutine cfdlibdom(ICOMP)
+#include "building.h"
 #include "cfd.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       common/EQTION/CALLU(MNZ),CALLV(MNZ),CALLW(MNZ),CALLT(MNZ),
@@ -1205,7 +1206,7 @@ C cfdlib - write data to cfd results library.
 #include "building.h"
 #include "cfd.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
       COMMON/ICFNOD/ICFD,ICP

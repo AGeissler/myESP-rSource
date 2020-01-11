@@ -33,7 +33,7 @@ C               Z coordinate.
 #include "building.h"
 C Common block MRTC via geometry.h
 #include "geometry.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON /FORMF/ FF(MSM,MSM), FFS
       common /cube3/surarea(6)
       common/tmrt2/temp(MS),tempmrt

@@ -44,7 +44,7 @@ C MLCIndex (Integer) : MLC index in the BCF file corresponding to XMLC
       FUNCTION MLCIndex(XMLC)
 
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/EIAhigh/NbComp,NbMat,IMatID(MMLC,ME),ImatDbID(0:MMAT-1),
      &               LCIATag
       COMMON/DesMLC/MatName(MMAT),MatDesc(MMAT),MatCat(MMAT),
@@ -90,7 +90,7 @@ C FrO: relaxation frequency of Oxygen [Hz]
 
       FUNCTION FactorM(RH,TairC,IFreq)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*72 outs
 
       IF (IFreq .EQ. 0) THEN
@@ -145,7 +145,7 @@ C CovSurf   : Name of a surface behind a furniture (Extracted from ACA file)
 #include "geometry.h"
 #include "acoustic.h"
 
-      COMMON/SDATA/SNA(MS),GSA(MS),GWA(MS),PAZI(MS),PELV(MS)
+      COMMON/SDATA/GSA(MS),GWA(MS)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/AbsoCoef/SysAbsCo(MMLC,MNbAbs),PubAbsCo(MaxPub,MNbAbs),
@@ -185,7 +185,7 @@ C Find if a surface is hiden by a furniture.
 C If so the effecif surface area (SNAeff) corespond to 
 C Surface area (SNA) - Furniture area (XnbFur)
       DO 20 I=1,MS
-        SNAeff(I) = SNA(I)
+        SNAeff(I) = SNA(Izone,I)
  20   Continue
 
       DO 50 IFur = 1,MaxFur

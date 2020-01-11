@@ -93,7 +93,7 @@ C             b1           b3    convection heat transfer terms.
 #include "building.h"
 #include "cfd.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/zoneqn/e(meq,mtr)
       common/fvals/tfs(mcom,ms),qfs(mcom)
       common/prec9/nconst(mcom),nelts(mcom,ms),ngaps(mcom,ms),
@@ -158,9 +158,9 @@ C  Surface temperatures are recalculate at each CFD iteration
 C  based on convection heat transfer.
       Subroutine CFMZBK
 #include "building.h"
+#include "geometry.h"
 #include "cfd.h"
 
-      COMMON/PREC1/SNA(MCOM,MS)
       common/prec9/nconst(mcom),nelts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp) 
       common/fvals/tfs(mcom,ms),qfs(mcom)

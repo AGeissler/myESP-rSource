@@ -103,9 +103,10 @@ C ESP-r COMMONs
       integer nsincp          ! number of plant side time increments
       integer nsncpr          ! number of ??
 
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C      INTEGER iuout            !- write unit number
 C      INTEGER iuin             !- read unit number
+C      INTEGER ieout            !- error unit number
 
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       real    tfa            !- air node temperature, future time-row
@@ -634,9 +635,10 @@ C *********************************************************************
 #include "BATTERY.h"
 
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 
 C PARAMETERS FROM SIGNATURE
@@ -656,6 +658,7 @@ C-------------------------------------------------------------------------
       real dummy,residual,fstr_Ni,f_Ni,pAge
 
       integer iteration,maxIter
+      integer istat
 
       DEBUG=.false.
 
@@ -708,6 +711,8 @@ C           Surely not enough life left in battery (bad input parameters)
      &          'data for Lion battery (initial SOH too close to ',
      &          'battery life expectance).'
             WRITE(IUOUT,*) '  => Check battery parameters #3 and #82!'
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epagend ! page and close window if open.
             STOP
           endif
@@ -718,6 +723,8 @@ C           Surely not enough life left in battery (bad input parameters)
      &          'data for Lion battery (initial age too close to ',
      &          'nominal calendaric battery life expectance).'
             WRITE(IUOUT,*) '  => Check battery parameters #83 and #88!'
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epagend ! page and close window if open.
             STOP
           endif
@@ -759,6 +766,8 @@ C             Check resulting parameter a_cyc_0 (rudimentary check!)
      &               'age data for Lion battery.'
                 WRITE(IUOUT,*)
      &               '  => Check battery parameters #82, #83 and #88!'
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 call epagend ! page and close window if open.
                 STOP
               endif
@@ -852,6 +861,8 @@ C           very low initial cycle numbers ...).
           ELSE
             WRITE(IUOUT,*)'FATAL: Parameter 94 not set, set to 1 for ',
      &                    'Popp or 2 for Guenther cycling method'
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epagend ! page and close window if open.
             STOP
           ENDIF
@@ -1068,9 +1079,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C Common holding NSINC (no of building time step increments) for debugging only
        COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -1167,9 +1179,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       real batTempInit
@@ -1237,9 +1250,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTempInit,DODInit,batI
@@ -1340,9 +1354,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       real batTempInit  ! Temperature from last time step
@@ -1538,9 +1553,10 @@ C *********************************************************************
 #include "power.h"
 #include "BATTERY.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTempInit,DODInit,dtTStep,batCur
@@ -1661,9 +1677,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- write unit number
 
 C PARAMETERS FROM SIGNATURE
       real batTempInit  ! Temperature from last time step
@@ -2162,9 +2179,10 @@ C *********************************************************************
      &                            batMode,dtTStep,pAvail,pLoad,zoneT)
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTIni,batTFin,DODIni,dtTStep,pAvail,pLoad,zoneT
@@ -2290,9 +2308,10 @@ c *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTIni,zoneT,DODIni,dtTStep,maxC,maxP,pLoad,
@@ -2491,9 +2510,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTIni,zoneT,DODIni,dtTStep,maxC,maxP,pLoad,pBat,pHeaters,
@@ -2721,9 +2741,10 @@ C     THIS FUNCTION MAY BE REPLACED BY THE MaxCurrent FUNCTION LATER
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTemp,DODInit,dtTStep
@@ -2872,9 +2893,10 @@ C *********************************************************************
 #include "power.h"
 #include "BATTERY.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL dtTStep,batCurFin,batTempInit,DODEnd
@@ -3068,9 +3090,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C Common holding NSINC (no of building time step increments) for debugging only
        COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -3251,9 +3274,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTemp,batDOD,batI
@@ -3510,9 +3534,10 @@ c *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTIni,zoneT,DODIni,dtTStep,maxC,maxP,pLoad,pBat,pHeaters,
@@ -3635,9 +3660,10 @@ C *********************************************************************
 #include "power.h"
 #include "BATTERY.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batCur
@@ -3723,9 +3749,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTempVar
@@ -3831,9 +3858,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batCur
@@ -3939,9 +3967,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C Common holding NSINC (no of building time step increments) for debugging only
        COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -4054,9 +4083,10 @@ C *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batDODVar, batCur
@@ -4163,9 +4193,10 @@ c *********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C PARAMETERS FROM SIGNATURE
       REAL batTempVar
@@ -4300,9 +4331,10 @@ c *************************************************************************
       COMMON/PCTIME/TIMSEC
       REAL    TIMSEC            !-length of time increment (seconds per timestep)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout             !- write unit number
       INTEGER iuin              !- read unit number
+      INTEGER ieout             !- error unit number
 
 C ESP-r COMMONs
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
@@ -4575,9 +4607,10 @@ c *********************************************************************
 Cx ... activate BATTERY.h again? Would very much shorten the signature ...
 CC #include "BATTERY.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
 C ESP-r COMMONs
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS

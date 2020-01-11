@@ -299,8 +299,8 @@ C ******************** UAT01a ********************
 C UAT01a alters control data during simulation.
 C DIR is embedded within 
       SUBROUTINE UAT01a(IACT,IDAY,IHOUR)
+
 #include "building.h"
-C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 #include "control.h"
 

@@ -40,7 +40,7 @@ C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer itc,icout  ! trace verbosity and output channel
       common/trace/itc,icout
@@ -56,6 +56,10 @@ C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 C Defaults.
       character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
       COMMON/DEFLT2/DFCFG,DFCTL,DEFRLB,DAFRES,DAPROB,DPNF
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
 
 C Path to model cfg file.
       common/rpath/path
@@ -88,6 +92,10 @@ C Radiance processor cores.
       
 C Name of current application
       common/APPNAME/cAppName
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
       
       character cAppName*12      
 
@@ -96,22 +104,23 @@ C Name of current application
       character LCMDFL*144,L144*144
       character tfile*96
       character path*72
-      character journcmd*20,jfile*72,uname*24,fs*1,cjfile*72
+      character journcmd*20,jfile*72,fs*1,cjfile*72
       character OUTSTR*124
       character ltmp96*96,dtmp72*72,ltmp*72,dtmp96*96
       character pf*72,gf*72,df*72,VALT*28
       character brw*4   ! to signal whether browsing model
       character smode*1 ! simscene mode 'i' interactive '-' silent
+      character dstmp*24,uname*24,tfile2*72
 
       character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character pagestitle*68 ! for banner title via epages call
 
       DIMENSION ITEM(24)
       DIMENSION IVALV(20),VALT(20),IPVALV(20)  ! for selecting view from list
 
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL XST,unixok,there
-      LOGICAL ok,dok
+      LOGICAL ok
       logical browse  ! is true if parameter passed as yes
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
@@ -143,10 +152,11 @@ C Initialize global common data.
       IUOUT = 6
       IFIL = 10
       NSIGFIG=3
-      radcores=1   ! assume one processor core
-      itc=0        ! set silent
-      icout=iuout  ! to text feedback
-      matver=0.0   ! initial assumption of binary materials database
+      radcores=1     ! assume one processor core
+      itc=0          ! set silent
+      icout=iuout    ! to text feedback
+      matver=0.0     ! initial assumption of binary materials database
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Assume configuration file is from IFIL+8, any leakage description
 C is fom IFIL+9 and ASCII viewing and geometry file reading on IFILE+1. 
@@ -327,6 +337,11 @@ C and dialog.
         IMFS=5
         IFS=4
         ITFS=4
+#ifdef OSX
+        IMFS=4
+        IFS=4  ! use a smaller fonts
+        ITFS=4
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
@@ -336,7 +351,7 @@ C and dialog.
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'Radiance desktop ',
+      write(pagestitle,'(2a)') 'Radiance desktop of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -370,6 +385,12 @@ C Setup and pass in parameters to win3d.
         
 C Set reasonable defaults for text mode.
         igw=538; igwh=335; igl=29; igb=369
+        iiw1=2; iiw2=2; iiw3=2; iiw4=3; iimenu=menuchw
+        iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+        CALL win3dwwc(iimenu,iiw1,iiw2,iiw3,iiw4,
+     &    iigl,iigr,iigt,iigb,iigw,iigwh)
+        igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
+        igw=int(iigw); igwh=int(iigwh)
       ENDIF
 
 C Echo version number.
@@ -425,6 +446,23 @@ C All subsequent tstamp messages will be appended to root journal.
      &    uname(1:lnblnk(uname))
         call tstamp('>',outs)
       endif
+
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile2=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile2,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile2,iefile)
+
+C Open the session file.
+      ieout=ifil+932          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for e2r'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Scan the defaults file for default configuration.
 C Make temporary use of file unit IFIL+1.
@@ -704,6 +742,8 @@ C Assume that the rcf file (LRADCF is in model cfg folder. Just
 C exit after which prj will attempt to re-scan rcf file for
 C changes.
         call tstamp('>','Finish visual analysis')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       elseif(INO.EQ.NITEMS-1)then
@@ -852,10 +892,9 @@ C Depending on value of SCENEPURP.
             CALL DFGRIDLBL('g')
           endif
           call ERPFREE(ITA1,ISTAT)
-          dok=.false.
           helptopic='confirm_grid_point_edit'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK('Edit grid points?','  ',OK,dok,nbhelp)
+          CALL EASKOK(' ','Edit grid points?',OK,nbhelp)
           izone=0
           if(OK)call setdfgrid('-',izone,ier)
         elseif (SCENEPURP(ISCENE)(1:8).eq.'Coupling') then
@@ -1173,7 +1212,7 @@ C MODLSU read in supplied configuration file and set up paths.
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
 C Path to model.
@@ -1323,7 +1362,7 @@ C lfile contains path as well as file name.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/texted/tedlbl,teditor
       character tedlbl*20,teditor*20,tmode*8
       character lfile*72,opt*1,doit*124
@@ -1361,7 +1400,7 @@ C inqu_tmc: Check if tmc control active.
 #include "model.h"
 #include "e2r_common.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       integer ncomp,ncon

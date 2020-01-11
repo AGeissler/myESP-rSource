@@ -24,7 +24,7 @@ C of the user-specified time-dependant variable.
 
       PARAMETER (MF=100)
 
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/appw/iappw,iappx,iappy
@@ -39,7 +39,7 @@ C      COMMON/OUTIN/IUOUT,IUIN
 
       dimension IVALS(3),FDC(3)
       character FDC*20,outs*124
-      logical graph_ok,ok,dok
+      logical graph_ok,ok
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
 #ifdef OSI
@@ -84,10 +84,9 @@ C Call MODFRQ to set up bin sizes and fill bins with data.
 
 C Set tabular output.
         if(graph_ok)then
-          dok=.true.
           helptopic='clm_numb_below_graph'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok(' ','Add table below existing graph?',ok,dok,
+          call easkok(' ','Add table below existing graph?',ok,
      &      nbhelp)
           if(.NOT.ok)CALL CHEAD(30)
         else
@@ -150,9 +149,7 @@ C Setup and pass in parameters to win3d.
         endif
 
         CALL CHEAD(11)
-        iside=3
-        isize=0
-        ifont=1
+        iside=3; isize=0; ifont=1
         call viewtext(' Frequency analysis',iside,isize,ifont)
 
 C Draw histogram.
@@ -177,14 +174,14 @@ C falls inside each bin.
 
       COMMON/FREQS/NBINS,XBIN1,XBINN,DXBIN,IFREQ,IHITS,IMISS,INBIN(MF)
       COMMON/FREQS1/ICBIN(MF),ITOTAL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/DAYSF/KDS,KDF
 
       COMMON/IFDFLG/IFLAGF
 
       character CHA*20
-      logical ok,dok
+      logical ok
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -211,8 +208,7 @@ C Reset the number of bins, the maximum hits in one bin etc.
       CALL EASKS(CHA,' ',' Bin width [d] ? ',20,
      &    '1','bin width',IER,5)
       IF(CHA(1:1).EQ.'d'.OR.CHA(1:1).EQ.'D')then
-        dok=.true.
-        call askok('  ','Default bins?',OK,dok,5)
+        call easkok('  ','Default bins?',OK,5)
         if(ok)then
           goto 300
         else
@@ -224,8 +220,7 @@ C Reset the number of bins, the maximum hits in one bin etc.
 
  110  helptopic='clm_frq_distr_bins'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      dok=.true.
-      call  askok('  ','Default bins?',OK,dok,5)
+      call  easkok('  ','Default bins?',OK,5)
       if(ok)then
         goto 300
       else
@@ -245,10 +240,9 @@ C Get bin sizes from user.
      &  XBIN1,'F',0.,'-',0.,'max bin parameter',IER,nbhelp)
 
       DXBIN = (XBINN-XBIN1) / NBINS
-  210 dok=.false.
-      helptopic='clm_frq_max_hit'
+  210 helptopic='clm_frq_max_hit'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      call askok('  ','Fix maximum height of bins?',OK,dok,nbhelp)
+      call easkok('  ','Fix maximum bi height?',OK,nbhelp)
       if(ok)then
         helptopic='clm_frq_max_hight'
         call gethelptext(helpinsub,helptopic,nbhelp)

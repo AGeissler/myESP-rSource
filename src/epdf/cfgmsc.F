@@ -32,7 +32,7 @@ C file.
 C esprdbfile.h supplies the following:
 C LPCDB/IPCDB (for plant template database)
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Plant network description.
       COMMON/C8/LPNAM

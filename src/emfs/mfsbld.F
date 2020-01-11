@@ -45,7 +45,7 @@ C     XRHS   - right hand side vector of matrix equation: PCOF . XNOD = XRHS
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/TC/ITC,ICNT
 

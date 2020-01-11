@@ -170,7 +170,7 @@ C Eqns 7-20.
 
 C ******************** HUMRAT
 C HUMRAT: Calculates humidity ratio kg/kg.
-C Equation C1.3 IHVE(1975). Values of FS from fundemental data
+C Equation C1.3 IHVE(1975). Values of FS from fundamental data
 C for B.S. engineers.
 C NB FS depends on atmospheric pressure - see W P Jones page 34,
 C table 2.1 and ASHRAE handbook of fundamentals 1981 page 5.4, table 2.
@@ -188,7 +188,7 @@ C table 2.1 and ASHRAE handbook of fundamentals 1981 page 5.4, table 2.
 
 C ******************** HUMRT1
 C HUMRT1: Calculates humidity ratio kg/kg.
-C Equation C1.3 IHVE(1975). Values of FS from fundemental data
+C Equation C1.3 IHVE(1975). Values of FS from fundamental data
 C for B.S. engineers.
 C NB FS depends on atmospheric pressure - see W P Jones page 34,
 C table 2.1 and ASHRAE handbook of fundamentals 1981 page 5.4, table 2.
@@ -534,6 +534,34 @@ C the ideal gas correlation.
       AIRDEN=A1*A2/(A3+T)
       RETURN
       END
+
+C ********************* AIR_DENSITY *********************
+C AIR_DENSITY - moist air density as a function of atmospheric pressure(mbar), temperature and RH.
+      FUNCTION AIR_DENSITY(PATMOS,TD,RH)
+
+C Humidity ratio of outdoor air.
+      HUM_RATIO_OA = HUMR(TD,RH,PATMOS)
+
+c Partial pressure of dry air.
+      PAR_PRES_AIR = (0.6219 * PATMOS*100.) / (HUM_RATIO_OA + 0.6219)
+
+c Density of air.
+      AIR_DENSITY_DRY = PAR_PRES_AIR / (287. * (TD + 273.15))
+      AIR_DENSITY = AIR_DENSITY_DRY * (1.0 + HUM_RATIO_OA)
+      RETURN
+      END
+
+C ********************* PRESSURE_ALT *********************
+C PRESSURE_ALT - determine atmospheric pressure (Pa) for a given site altitude
+C Copy of subroutine in cetc/ashp_cooling.F.
+      REAL FUNCTION PRESSURE_ALT(altitude)
+      IMPLICIT NONE
+      REAL altitude
+
+      PRESSURE_ALT = 101325. *(1. - 2.25577e-5 * altitude)**5.2559
+
+      return
+      end
 
 C ********************* AIRBET *********************
 C AIRBET - thermal expansion coefficient of the air as a function of 

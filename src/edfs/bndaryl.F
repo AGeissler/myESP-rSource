@@ -30,6 +30,7 @@ C  MODWL  - W direction boundary conditions - laminar.
 C  MODTL  - temperature boundary conditions - laminar.
 
       SUBROUTINE BNDARL
+#include "building.h"
 #include "cfd.h"
 
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),

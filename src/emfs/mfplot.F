@@ -44,7 +44,7 @@ C     VOL() -  volume used for calculating change rate in case IDIM=3
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -74,7 +74,7 @@ C Currently only one node plotted.
       character PERST1*14,PERST2*44,PERST3*44
       character LAPROB*72
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      logical OK,DOK
+      logical OK
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer NITMS,INO ! max items and current menu item
@@ -186,10 +186,9 @@ C Display format for date is Fri 10 Jan.
         WRITE(outs,'(A,A)')' Current output   : ',PERST2
         call edisp(iuout,outs)
 
-        dok=.false.
         helptopic='mfs_graph_period_change'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(PERST3,' Different output period?',OK,dok,nbhelp)
+        CALL EASKOK(PERST3,'Different output period?',OK,nbhelp)
         if(OK)then
           CALL EASKPER('Output period:',IDAYF,IDAYL,IFDAY,IER)
           IF(IER.NE.0) GOTO 60
@@ -282,6 +281,16 @@ C Setup and pass in parameters to win3d.
           CALL opengdisp(iimenu,ild,ilf,igdw,igdh)
         endif
         CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
+     &    iigl,iigr,iigt,iigb,iigw,iigwh)
+        igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
+        igw=int(iigw); igwh=int(iigwh)
+      else
+        LIMTTY=10
+        LIMIT =10
+        iiw1=12; iiw2=8; iiw3=7; iiw4=3; iimenu=menuchw
+        iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+        ilf=2; ild=LIMTTY
+        CALL win3dwwc(iimenu,iiw1,iiw2,iiw3,iiw4,
      &    iigl,iigr,iigt,iigb,iigw,iigwh)
         igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
         igw=int(iigw); igwh=int(iigwh)
@@ -391,28 +400,47 @@ C Assign flows; leaving flow is plotted +ve.
      &       I2,' month ',I2,' (',I4,')',A1)
 10602 FORMAT(2X,'Node ',A12,' with all connections, day ',
      &       I2,' month ',I2,' (',I4,')',A1)
-      iside=1
-      isize=0
-      ifont=1
-      call viewtext(etext,iside,isize,ifont)
+      iside=1; isize=0; ifont=1
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       WRITE(ETEXT,10603) IODL,IOML,IRY,nterm
 10603 FORMAT(42X,'to day ',I2,' of month ',I2,' (',I4,')',A1)
       iside=2
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
 C Draw a pairs of labels and line types at top of the graph.
       WRITE(temp,'(4A)')'Node ',NDNAM(NDONUM),' leaving',nterm
       iid1=igl+60; iid2=igt-20; iicol=0
-      call textatxy(iid1,iid2,temp,'-',iicol)
+      if(mmod.eq.8)then
+        call textatxy(iid1,iid2,temp,'-',iicol)
+      else
+        call textatxywwc(iid1,iid2,temp,'-',iicol)
+      endif
 
       iix=igl+20; iiy=igt-25; iix1=igl+50; iiy1=igt-25
-      call eswline(iix,iiy,iix1,iiy1)
-      WRITE(temp,'(4A)')'Node ',NDNAM(NDONUM),' entering',nterm
-      iid1=igl+60; iid2=igt-40; iicol=0
-      call textatxy(iid1,iid2,temp,'-',iicol)
-      iix=igl+20; iiy=igt-45; iix1=igl+50; iiy1=igt-45
-      call edwline(iix,iiy,iix1,iiy1)
+      if(mmod.eq.8)then
+        call eswline(iix,iiy,iix1,iiy1)
+        WRITE(temp,'(4A)')'Node ',NDNAM(NDONUM),' entering',nterm
+        iid1=igl+60; iid2=igt-40; iicol=0
+        call textatxy(iid1,iid2,temp,'-',iicol)
+        iix=igl+20; iiy=igt-45; iix1=igl+50; iiy1=igt-45
+        call edwline(iix,iiy,iix1,iiy1)
+      else
+        call eswlinewwc(iix,iiy,iix1,iiy1)
+        WRITE(temp,'(4A)')'Node ',NDNAM(NDONUM),' entering',nterm
+        iid1=igl+60; iid2=igt-40; iicol=0
+        call textatxywwc(iid1,iid2,temp,'-',iicol)
+        iix=igl+20; iiy=igt-45; iix1=igl+50; iiy1=igt-45
+        call edwlinewwc(iix,iiy,iix1,iiy1)
+      endif
 
 C Scale and draw axes.
       XMIN=0.
@@ -440,9 +468,14 @@ C Plot line for FLWSUT, move to first postion draw it.
       x1=STPX+.5*STPX; y1=FLWSUT(1)
       call u2pixel(x1,y1,ix1,iy1)
       iix1=ix1; iiy1=iy1
-      call eswline(iix,iiy,iix1,iiy1)
-      iylast=iy; iiylast=iiy
-      call forceflush()
+      if(mmod.eq.8)then
+        call eswline(iix,iiy,iix1,iiy1)
+        iylast=iy; iiylast=iiy
+        call forceflush()
+      else
+        call eswlinewwc(iix,iiy,iix1,iiy1)
+        iylast=iy; iiylast=iiy
+      endif
 
 C Loop through each of the succeeding points in a stair-step pattern.
 C Continue from the last flow value to the current and then horizontal
@@ -452,13 +485,22 @@ C for the current value to the end of the timestep.
         x0=TI-.5*STPX; y0=FLWSUT(I)
         call u2pixel(x0,y0,ix,iy)
         iix=ix; iiy=iy
-        call eswline(iix,iiylast,iix,iiy)
-        x1=TI+.5*STPX; y1=FLWSUT(I)
-        call u2pixel(x1,y1,ix1,iy1)
-        iix1=ix1; iiy1=iy1
-        call eswline(iix,iiy,iix1,iiy1)
-        iylast=iy; iiylast=iiy
-        call forceflush()
+        if(mmod.eq.8)then
+          call eswline(iix,iiylast,iix,iiy)
+          x1=TI+.5*STPX; y1=FLWSUT(I)
+          call u2pixel(x1,y1,ix1,iy1)
+          iix1=ix1; iiy1=iy1
+          call eswline(iix,iiy,iix1,iiy1)
+          iylast=iy; iiylast=iiy
+          call forceflush()
+        else
+          call eswlinewwc(iix,iiylast,iix,iiy)
+          x1=TI+.5*STPX; y1=FLWSUT(I)
+          call u2pixel(x1,y1,ix1,iy1)
+          iix1=ix1; iiy1=iy1
+          call eswlinewwc(iix,iiy,iix1,iiy1)
+          iylast=iy; iiylast=iiy
+        endif
    62 CONTINUE
 
 C Plot double thick line for FLWSIN, move to first postion draw it.
@@ -468,9 +510,14 @@ C Plot double thick line for FLWSIN, move to first postion draw it.
       x1=STPX+.5; y1=FLWSIN(1)
       call u2pixel(x1,y1,ix1,iy)
       iix1=ix1; iiy=iy
-      call edwline(ijx,iiy,iix1,iiy)
-      iylast=iy;iiylast=iiy
-      call forceflush()
+      if(mmod.eq.8)then
+        call edwline(ijx,iiy,iix1,iiy)
+        iylast=iy;iiylast=iiy
+        call forceflush()
+      else
+        call edwlinewwc(ijx,iiy,iix1,iiy)
+        iylast=iy;iiylast=iiy
+      endif
 
 C Loop through each of the succeeding points in a stair-step pattern.
 C Continue from the last flow value to the current and then horizontal
@@ -480,13 +527,22 @@ C for the current value to the end of the timestep.
         x0=TI-.5*STPX; y0=FLWSIN(I)
         call u2pixel(x0,y0,ix,iy)
         ijx=ix; iiy=iy
-        call edwline(ijx,iiylast,ijx,iiy)
-        x1=TI+.5*STPX; y1=FLWSIN(I)
-        call u2pixel(x1,y1,ix1,iy)
-        iix1=ix1; iiy=iy
-        call edwline(ijx,iiy,iix1,iiy)
-        iylast=iy;iiylast=iiy
-        call forceflush()
+        if(mmod.eq.8)then
+          call edwline(ijx,iiylast,ijx,iiy)
+          x1=TI+.5*STPX; y1=FLWSIN(I)
+          call u2pixel(x1,y1,ix1,iy)
+          iix1=ix1; iiy=iy
+          call edwline(ijx,iiy,iix1,iiy)
+          iylast=iy;iiylast=iiy
+          call forceflush()
+        else
+          call edwlinewwc(ijx,iiylast,ijx,iiy)
+          x1=TI+.5*STPX; y1=FLWSIN(I)
+          call u2pixel(x1,y1,ix1,iy)
+          iix1=ix1; iiy=iy
+          call edwlinewwc(ijx,iiy,iix1,iiy)
+          iylast=iy;iiylast=iiy
+        endif
    64 CONTINUE
 
 C Return to menu.

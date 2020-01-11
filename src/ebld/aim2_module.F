@@ -606,8 +606,8 @@ C espriou.h provides currentfile.
 
       integer lnblnk
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/FILEP/IFIL
       INTEGER IFIL
@@ -1203,8 +1203,8 @@ C ------------------------------------------------------------------------------
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
 
 C Declarations for local variables.
@@ -1468,8 +1468,8 @@ C ------------------------------------------------------------------------------
 
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Type declarations for local variables.
       REAL part1, part2, part3, ELA_const1, ELA_const2
@@ -1606,8 +1606,8 @@ C ------------------------------------------------------------------------------
 #include "hvac_parameters.h"
 #include "hvac_common.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Type declarations for local variables.
       INTEGER H2K_furnace_fuel,H2K_furnace_type
@@ -1777,8 +1777,8 @@ C ------------------------------------------------------------------------------
 
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Named constants for case statement. These are the five choices offered
 C in the H2K interface.
@@ -1878,8 +1878,8 @@ C ------------------------------------------------------------------------------
 
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Type declarations for local variables.
       REAL Zmet, Zsite
@@ -2084,11 +2084,11 @@ C parameters and version number of the file.
         airtight='unspecified airtightness'
       endif
 
-      call edisp(itru,'  ')
+      call edisp(itru,' ')
       outs248 = ' '
       write(outs248,'(3a,f3.1,3a)')
      &  'Alberta Infil Method defined in ',
-     &  LAIM2(1:lnblnk(LAIM2)),' version ',fAIM2VersionNumber,
+     &  LAIM2(1:lnblnk(LAIM2)),' Version ',fAIM2VersionNumber,
      &  ' based on ',airtight(1:lnblnk(airtight)),'.'
       call edisp248(itru,outs248,90)
 
@@ -2381,8 +2381,8 @@ C *********************************************************************
 C Declare local variables
       INTEGER :: deallocatestatus
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
       IF (ALLOCATED(AIM2_infil_to_zones)) THEN
 C Debig AIM2      

@@ -27,7 +27,7 @@ C files and converts them to a plant network file.
 
       common /pcddsc/ pcdesc(maxpc), npref(mpcom)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
      &           IPC2(MPCON),IPN2(MPCON),PCONDR(MPCON),PCONSD(MPCON,2)
@@ -37,7 +37,7 @@ C files and converts them to a plant network file.
       COMMON/CONET/IPCOMPA,IPCOMPB
       common/pophelp/h(60)
       DIMENSION ival(mpcom)
-      LOGICAL OK,dok
+      LOGICAL OK
 
       CHARACTER H*72,TYPE*15,MRK*7,txt1*40
       CHARACTER*25 NDATA1,NDATA2,CNAME1,CNAME2,DUMNAM1,DUMNAM2,DUMNAM3
@@ -59,10 +59,9 @@ C Read the components data from file.
      &  'con file',IER,1)
       CALL EFOPSEQ(ICNUNIT,icnf,1,IER)
       IF(IER.LT.0) THEN
-        dok=.false.
         h(1)='The file name given was not found. Check the '
         h(2)='file name and folder. '
-        CALL ASKOK('File does not exist','try again ? ',ok,dok,2) 
+        CALL EASKOK('File does not exist!','Retry?',ok,2) 
         IF(OK) THEN  
           GOTO 11
         ELSE
@@ -120,14 +119,13 @@ C prompt user to enter its value.
         nmisc=npi(IPCOMP)
 
         if(nmisc.gt.0) then
-          write(txt1,'(2a)') ' For component: ',pcname(ipcomp)
+          write(txt1,'(2a)') 'For component: ',pcname(ipcomp)
 
 C If component has miscellaneous data,
 C ask user if he wishes to modify any parameters.
-          dok=.false.
-          h(1)='Chance to edit component parameters. '
-          CALL ASKOK( txt1,
-     &      'Do you want to change component parameters?',OK,dok,1)
+          h(1)='Option to edit component parameters.'
+          CALL EASKOK(txt1,
+     &         'Change component parameters?',OK,1)
           if(.not.OK) goto 20
 
 C Display miscellaneous data items and let user pick one.
@@ -164,10 +162,9 @@ C Read the connections data from file.
      &IER,1)
       CALL EFOPSEQ(ICONUNIT,conf,1,IER)
       IF(IER.LT.0) THEN
-        dok=.true.
         h(1)='the file name given was not found. This is a chance'
         h(2)='to check and revise the file name. '
-        CALL ASKOK('File does not exist','try again ? ',ok,dok,2) 
+        CALL EASKOK('File does not exist!','Retry?',ok,2) 
         IF(OK) THEN  
           GOTO 12
         ELSE
@@ -192,9 +189,9 @@ C Read the connections data from file.
   40    CONTINUE
 
 C  Fill in the missing data for the connection
-        write(outs,'(a,i3)') 'Please supply some additional information'
+        write(outs,'(a,i3)') 'Please supply additional information'
         call edisp(iuout,outs)
-        write(outs,'(a,i3)') 'for plant network connection No. ',j
+        write(outs,'(a,i3)') 'for plant network connection ',j
         call edisp(iuout,outs)
         call edisp(iuout,' ')
         call edisp(iuout,'Current data: ')    

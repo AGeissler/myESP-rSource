@@ -44,7 +44,7 @@ C geometry.h provides commons G0 and G2.
       integer lnblnk  ! function definition
 
       common/filep/ifil
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
       integer mon,isc,iyd
       common/contr/mon,isc(ms),iyd
@@ -57,7 +57,7 @@ C geometry.h provides commons G0 and G2.
       character tbase*72,outs*124
       character*3 month(12)
       character act*1,paction*16
-      logical ok,dok
+      logical ok
       logical newgeo  ! Used to test for new/old geometry file.
       integer ier
 
@@ -97,10 +97,9 @@ C from the zone geometry file.
      &        'No shading directives in zone geometry file-skippimg!')
               return
             else
-               dok=.true.
-               call askok(
-     &           'No shading directives in zone geometry file.',
-     &           'Re-specify?',ok,dok,nbhelp)
+               call easkok(
+     &           'No shading directives in zone geometry file!',
+     &           'Re-specify?',ok,nbhelp)
                if(ok)goto 35
                call edisp(iuout,'Shading computation abandoned!')
                return
@@ -193,7 +192,7 @@ c   icont  - >0 if shaded surfaces were found
 #include "building.h"
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       integer izstocn
       common/c24/izstocn(mcom,ms)
 
@@ -936,7 +935,7 @@ C             (y2-y1)
       subroutine intersect(ip1,ip2,xi,zi)
 
       common/tracech/icout
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/transform/xt(4),yt(4),zt(4)
       common/shad2/ishd,npoint,xs(5),zs(5)
 
@@ -1003,7 +1002,7 @@ C establish if it is within the target surface and shadow polygon.
       common/grid11/xop(mox,moz),zop(mox,moz)
       common/shad3/ioshd(mox,moz),foshd(mox,moz),gssa,ipexcl
       common/shad4/oshd(mox,moz),ihit(mox,moz)
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
       if(ishd.eq.0)return
 

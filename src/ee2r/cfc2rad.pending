@@ -310,8 +310,8 @@ C Commons
       integer ifil
       COMMON/FILEP/IFIL
 
-      COMMON/OUTIN/IUOUT,IUIN
-      integer IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer IUOUT,IUIN,IEOUT
 
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)

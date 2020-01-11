@@ -29,6 +29,7 @@ C UK NCM method.
       SUBROUTINE RegOveheat(icomp)
       IMPLICIT NONE
 #include "building.h"
+#include "geometry.h"
 #include "net_flow.h"
 #include "tdf2.h"
 
@@ -39,10 +40,8 @@ C Need TFUT from this
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,
      &QFUT,TFUT
 
-      COMMON/OUTIN/IUOUT,IUIN
-      integer IUOUT,IUIN
-      COMMON/PREC1/SNA(MCOM,MS)
-      real sna
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
       integer NCONST,NELTS,NGAPS,NPGAP

@@ -117,7 +117,8 @@ C
 C Source / Sink model commons
       COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
       COMMON/CONTM9/SSSTR(MSPMNO,MCONTM)
       COMMON/CONTM2/CNCAJAM(MPRODI),ZMCPAM(MPRODI)
 
@@ -200,8 +201,12 @@ C First get any explicitly defined source type boundary conditions
             DO 699 ISPMNO=1,NSPMNO
               IF(SRCE(IV,ICTM,ICFD)(1:12).EQ.
      &        SSNAME(SSLINK1(ISPMNO,ICTM))(1:12))THEN
-                IF(SSLINK2(ISPMNO,ICFDNOD(ICFD)).NE.0)THEN
-                  SRCSTR(IV,ICFD)=SSSTR(ISPMNO,ICTM)
+                IF(NSSNO(ICFDNOD(ICFD)).GT.0)THEN
+                  DO ISSNO=1,NSSNO(ICFDNOD(ICFD))
+                    IF(SSLINK2(ISSNO,ICFDNOD(ICFD)).EQ.ISPMNO)THEN
+                      SRCSTR(IV,ICFD)=SSSTR(ISPMNO,ICTM)
+                    ENDIF
+                  ENDDO
                 ENDIF
               ENDIF
  699        CONTINUE
@@ -549,6 +554,7 @@ C laminar or turbulent cases - at solid walls the BC's are
 C always of the zero-gradient type. 
 
       SUBROUTINE BNDARCON(ICTMNO)                                                      
+#include "building.h"
 #include "cfd.h"
 
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
@@ -1086,6 +1092,7 @@ C humidity due to solid face for blockages.
 C Zero-gradient type of BC's are applied 
 C
       SUBROUTINE BLKBNDC(IBLK)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP

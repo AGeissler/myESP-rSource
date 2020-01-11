@@ -42,7 +42,7 @@ C       calculations
 C
 C - store_plt_gain: Interface allowing storage of a
 C       heat gain from a plant component a zone air
-C       point, surface or layer 
+C       point, surface or node 
 C
 C - fZone_convective_gain: Interface allowing retrival of convective
 C       gains from plant components to specified zone
@@ -56,9 +56,9 @@ C
 C - fSurface_convective_gain: Interface allowing retrevial of radiant
 C       gains from plant components to specified surface
 C
-C - fLayer_embedded_gain: interface allowing retrevial of embedded
+C - fNode_embedded_gain: interface allowing retrevial of embedded
 C       (conductive) gains from plant components to a specified
-C       construction layer.
+C       construction node.
 C
 C======================================================================
 C
@@ -75,7 +75,7 @@ C
 C   iAction: flag indicating which action should be performed
 C            ( store / recover / calculate )
 C
-C   iIndex1/2/3: index of zone/surface/layer or plant compomnent
+C   iIndex1/2/3: index of zone/surface/node or plant compomnent
 C           data is associated with
 C
 C   fGain_Conductive: Value of conductive (embedded) gain (input/output)
@@ -108,8 +108,8 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C.....Input/output
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout    ! channels for writing messages to screen
 
 C.....Simulation type
       common/c6/indcfg
@@ -175,12 +175,12 @@ C.....Gain inventories
       real fSurf_Gains ( MCom, MS, 2,2) ! Gains from plt components onto
                                        !    at surface interface (includes
                                        !    conv/rad components)
-      real fLayer_Gains ( MPCom, MS, MN,2) ! Gains from plt components into
-                                       !    layers within surfaces.
+      real fNode_Gains ( MPCom, MS, MN,2) ! Gains from plt components into
+                                       !    nodes within surfaces.
                                        !    (conductive gains only!)
 
                                        
-      save fPltComp_Gains, fZone_Gains, fSurf_Gains, fLayer_Gains
+      save fPltComp_Gains, fZone_Gains, fSurf_Gains, fNode_Gains
       
 
       
@@ -199,8 +199,7 @@ C.....Status flags
       save bFatal_Error
       
 C.....Counters      
-      integer iZone, iSurface, iLayer, iComponent, iContainment
-      integer iLoop_Layer, iNode, iStart_node, iEnd_node
+      integer iZone, iSurface, iNode, iComponent, iContainment
 
 C.....Character buffer
       character*124 cMsg
@@ -258,9 +257,9 @@ C.................Surface gains
      &                   = 0.0
 
                   do iNode = 1, nndc( iZone, iSurface)
-C....................layer gains (embedded - conductive only)
-                     fLayer_Gains(iZone,iSurface,iNode, iPresent ) = 0.0
-                     fLayer_Gains(iZone,iSurface,iNode, iFuture  ) = 0.0
+C....................node gains (embedded - conductive only)
+                     fNode_Gains(iZone,iSurface,iNode, iPresent ) = 0.0
+                     fNode_Gains(iZone,iSurface,iNode, iFuture  ) = 0.0
 
                   enddo
 
@@ -270,7 +269,7 @@ C....................layer gains (embedded - conductive only)
 
             
 C-------------------------------------------------------------------------
-C           Loop through containments, and validate zone/surface/layer
+C           Loop through containments, and validate zone/surface/node
 C           indicies. Set common bSupported flags to allow interfaces
 C           to warn user when specified gain is not supported by defined
 C           containments.
@@ -282,16 +281,16 @@ C..............Get plant component index
 C..............Check containment type
                iContainment_Type = iNdCp(iContainment)            
                if ( iContainment_Type .eq. iBld_Containment ) then
-C.................Get corresponding zone/surface/layer data
+C.................Get corresponding zone/surface/node data
                   iZone    = int ( CntDat(iContainment,1) )
                   iSurface = int ( CntDat(iContainment,2) )
-                  iLayer   = int ( CntDat(iContainment,3) )
+                  iNode    = int ( CntDat(iContainment,3) )
 
-C.................Check if zones/surfaces/layers have been defined
+C.................Check if zones/surfaces/nodes have been defined
 C.................and are valid
                   if ( iZone    .ne. 0 .and.
      &                 iSurface .eq. 0 .and.
-     &                 iLayer   .eq. 0       ) then
+     &                 iNode    .eq. 0       ) then
 C....................Zone air point containment.
                      if ( iZone .lt. 1 .or. iZone .gt. nComp ) then
                         bFatal_Error = .true.
@@ -304,7 +303,7 @@ C....................Zone air point containment.
 
                   elseif ( iZone    .ne. 0 .and.
      &                     iSurface .ne. 0 .and.
-     &                     iLayer   .eq. 0       ) then
+     &                     iNode    .eq. 0       ) then
 C....................Surface containment
                      if (      iZone    .lt. 1
      &                    .or. iZone    .gt. ncomp 
@@ -320,14 +319,14 @@ C....................Surface containment
                      
                   elseif ( iZone    .ne. 0 .and.
      &                     iSurface .ne. 0 .and.
-     &                     iLayer   .ne. 0       ) then
-C....................Layer containment 
+     &                     iNode    .ne. 0       ) then
+C....................Node containment 
                      if (      iZone    .lt. 1
      &                    .or. iZone    .gt. ncomp 
      &                    .or. iSurface .lt. 1
      &                    .or. iSurface .gt. nConst(iZone)
-     &                    .or. iLayer   .lt. 1
-     &                    .or. iLayer   .gt. nELts(iZone,iSurface)
+     &                    .or. iNode    .lt. 1
+     &                    .or. iNode    .gt. nndc(iZone,iSurface)
      &                   ) then
                         bFatal_Error = .true.
                      else
@@ -339,7 +338,7 @@ C....................Layer containment
                      endif
 
                   else
-C....................Zone/surface/layer data incorrectly defined
+C....................Zone/surface/node data incorrectly defined
                      bFatal_Error = .true.
                   endif 
 
@@ -349,12 +348,12 @@ C....................Warn user
      &                 'Plant containment #', iContainment,
      &                 ': Zone #', iZone,
      &                 ' Surface #', iSurface,
-     &                 ' Layer #', iLayer, ' are invalid.'
+     &                 ' Node #', iNode, ' are invalid.'
      
                   endif             
 
                else
-C.................Containment does not correspond to a zone/surface/layer.
+C.................Containment does not correspond to a zone/surface/node.
 C.................do nothing
                endif 
             
@@ -395,10 +394,10 @@ C..............Surface gains
                fSurf_Gains(iZone, iSurface, iRadiant,    iFuture ) = 0.0
 
                do iNode = 1, nndc(iZone, iSurface)
-C.................layer gains (embedded - conductive only)
-                  fLayer_Gains(iZone,iSurface,iNode, iPresent )
-     &               = fLayer_Gains(iZone,iSurface,iNode, iFuture )
-                  fLayer_Gains(iZone,iSurface,iNode, iFuture ) = 0.0
+C.................Node gains (embedded - conductive only)
+                  fNode_Gains(iZone,iSurface,iNode, iPresent )
+     &               = fNode_Gains(iZone,iSurface,iNode, iFuture )
+                  fNode_Gains(iZone,iSurface,iNode, iFuture ) = 0.0
 
                enddo
 
@@ -446,17 +445,17 @@ C...........Get plant component index
             
             if ( iContainment_Type .eq. iBld_Containment ) then
 C..............Containment corresponds to building space.
-C..............Get corresponding zone/surface/layer data
+C..............Get corresponding zone/surface/node data
                iZone    = int ( CntDat(iContainment,1) )
                iSurface = int ( CntDat(iContainment,2) )
-               iLayer   = int ( CntDat(iContainment,3) )
+               iNode   = int ( CntDat(iContainment,3) )
 C..............Determine if containment describes
-C..............Zone/surface/layer. Append value to sum for current
-C..............containment.Assume that zone/surface/layer numbers
+C..............Zone/surface/node. Append value to sum for current
+C..............containment.Assume that zone/surface/node numbers
 C..............have been error trapped above.
                if ( iZone    .ne. 0 .and.
      &              iSurface .eq. 0 .and.
-     &              iLayer   .eq. 0       ) then
+     &              iNode    .eq. 0       ) then
 C.................Zone air point containment.
                   fZone_Gains(iZone,iConvective,iFuture) =
      &               fZone_Gains(iZone,iConvective,iFuture)
@@ -467,8 +466,8 @@ C.................Zone air point containment.
 
                elseif ( iZone    .ne. 0 .and.
      &                  iSurface .ne. 0 .and.
-     &                  iLayer   .eq. 0       ) then
-C..................Surface containment
+     &                  iNode    .eq. 0       ) then
+C..................Surface containment.
                    fSurf_Gains(iZone,iSurface,iConvective ,iFuture) =
      &                fSurf_Gains(iZone,iSurface,iConvective ,iFuture) 
      &              + fPltComp_Gains( iComponent, iConvective )
@@ -478,72 +477,16 @@ C..................Surface containment
 
                elseif ( iZone    .ne. 0 .and.
      &                  iSurface .ne. 0 .and.
-     &                  iLayer   .ne. 0       ) then
-C.................Layer containment. Note: heat is not injected
-C.................into layers, but rather into an arbitrary # of
-C.................nodes within the layers. We need to determine
-C.................which nodes are relevant, and the fraction
-C.................of heat that is injected into each node. 
-
-C.................Fraction of total gain injectected in to each
-C.................inter-construction node:
-                  if ( nndl ( iZone, iSurface, iLayer) .lt. 3 ) then
-C....................There's only one inter-construction node                     
-                     fNode_injection_fraction = 1.0
-                  else
-C....................Assume heat injection is uniform into all
-C....................inter-construction nodes                  
-                     fNode_injection_fraction = 1.0 /
-     &                  float ( nndl ( iZone, iSurface, iLayer) - 1)
-                  endif 
-
-C----------------------------------------------------------------------
-C                 Identify the first interconstruction node in the
-C                 current layer. 
-C----------------------------------------------------------------------                  
-                  iStart_node = 1
-                  if ( iLayer .gt. 1 ) then
-                     do iLoop_Layer = 1, iLayer -1
-
-                        iStart_node = iStart_node +
-     &                                nndl(iZone,iSurface,iLoop_Layer)
-
-                     enddo
-
-                  endif 
-
-C.................Start node now decribes boundary of current layer.                  
-C.................Increment start node for first inter-consturction node
-                  iStart_node = iStart_node + 1
-
-C----------------------------------------------------------------------
-C                 Determine last interconstruction node.
-C----------------------------------------------------------------------
-                  if ( nndl(iZone,iSurface,iLayer) .lt. 3 ) then
-C....................There's only 1 interconstruction node
-                     iEnd_node = iStart_node
-                  else                                        
-                     iEnd_node = iStart_node
-     &                           + nndl(iZone, iSurface, iLayer) - 1
-                  endif 
-
-C--------------------------------------------------------------------
-C                 Loop through interconstruction nodes, and append
-C                 heat injection.
-C--------------------------------------------------------------------                                    
-                  do iNode = iStart_node, iEnd_node
-
-                    fLayer_Gains(iZone,iSurface,iNode,iFuture) =
-     &                 fLayer_Gains(iZone,iSurface,iNode,iFuture)
+     &                  iNode    .ne. 0       ) then
+C.................Node containment. 
+                    fNode_Gains(iZone,iSurface,iNode,iFuture) =
+     &                 fNode_Gains(iZone,iSurface,iNode,iFuture)
      &                 + fPltComp_Gains( iComponent, iConductive )
-     &                 * fNode_injection_fraction
 
-                  enddo
-     
                endif
 
             else
-C..............Containment does not have an associated zone/surface/layers
+C..............Containment does not have an associated zone/surface/node
 C..............do nothing.
             endif
 
@@ -573,8 +516,8 @@ C...........Gain on a surface
          elseif ( iZone    .gt. 0 .and.
      &            iSurface .gt. 0 .and.
      &            iNode    .gt. 0       ) then
-C...........Gain is embedded within a layer. Conductive only!
-            fGain_Value = fLayer_Gains(iZone,iSurface,iNode,iTimeRow)
+C...........Gain is embedded within a node. Conductive only!
+            fGain_Value = fNode_Gains(iZone,iSurface,iNode,iTimeRow)
 
          else
 C...........Containment index incorrectly assigned.
@@ -751,8 +694,8 @@ C----------------------------------------------------------------------
 C     Commons 
 C----------------------------------------------------------------------
 C.....Inlet/outlet 
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout      ! channels for writing messages to screen
 
 
       common / plt_zone_coupling /
@@ -920,8 +863,8 @@ C----------------------------------------------------------------------
 C     Local variables 
 C----------------------------------------------------------------------
 C.....Dummy arguments
-      integer iSurface, iLayer
-      parameter (iSurface = 0, iLayer=0)
+      integer iSurface, iNode
+      parameter (iSurface = 0, iNode=0)
       real fGain_Value
 
 C.....Context buffer
@@ -955,7 +898,7 @@ C     Recover gain from inventory
 C-------------------------------------------------------------------
       call plt_zone_gain_inventory(
      &                iRetrive,
-     &                iZone, iSurface, iLayer,
+     &                iZone, iSurface, iNode,
      &                fGain_Value,
      &                iConvective,
      &                iTimeRow,
@@ -996,8 +939,8 @@ C----------------------------------------------------------------------
 C     Local variables 
 C----------------------------------------------------------------------
 C.....Dummy arguments
-      integer iSurface, iLayer
-      parameter (iSurface = 0, iLayer=0)
+      integer iSurface, iNode
+      parameter (iSurface = 0, iNode=0)
       real fGain_Value
 
 C.....Context buffer
@@ -1031,7 +974,7 @@ C     Recover gain from inventory
 C-------------------------------------------------------------------
       call plt_zone_gain_inventory(
      &                iRetrive,
-     &                iZone, iSurface, iLayer,
+     &                iZone, iSurface, iNode,
      &                fGain_Value,
      &                iRadiant,
      &                iTimeRow,
@@ -1076,8 +1019,8 @@ C----------------------------------------------------------------------
 C     Local variables 
 C----------------------------------------------------------------------
 C.....Dummy arguments
-      integer iLayer
-      parameter (iLayer=0)
+      integer iNode
+      parameter (iNode=0)
       real fGain_Value
 
 C.....Context buffer
@@ -1110,7 +1053,7 @@ C     Recover gain from inventory
 C-------------------------------------------------------------------
       call plt_zone_gain_inventory(
      &                iRetrive,
-     &                iZone, iSurface, iLayer,
+     &                iZone, iSurface, iNode,
      &                fGain_Value,
      &                iRadiant,
      &                iTimeRow,
@@ -1134,12 +1077,12 @@ C INPUTS:
 C
 C   iZone: Zone index
 C   iSurface: Surface index
-C   inODE: Layer index
+C   iNode: Node index
 C
 C
 C OUTPUTS:
 C
-C   fLayer_embedded_gain: embedded gain for specified layer (W)
+C   fNode_embedded_gain: embedded gain for specified node (W)
 C
 C----------------------------------------------------------------------
       real function fNode_embedded_gain ( iZone,
@@ -1207,7 +1150,7 @@ C
 C ABSTRACT:
 C
 C This is a dummy plant component that does nothing more than impose
-C a heat gain into its containing zone/surface/construction layer.
+C a heat gain into its containing zone/surface/construction node.
 C
 C Inputs:
 C

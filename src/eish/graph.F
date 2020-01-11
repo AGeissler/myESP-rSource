@@ -39,7 +39,7 @@ C to superimpose any direct shading.
 C Parameter
       integer icomp  ! the focus zone
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       common/spad/mmod,limit,limtty
       common/g1t/xft(mv),zft(mv)
@@ -51,7 +51,7 @@ C Parameter
 
       character outs*124
       dimension ioshd(mox,moz),iva(ms)
-      logical ok,dok
+      logical ok
       integer icc,is,nv   ! local variables for connextion and vertices
       integer ih ! hour counter
       
@@ -194,13 +194,11 @@ C Partial direct shading.
             call shddrw(icomp,is,2,ioshd)
          endif
 
-         dok=.true.
-         call askok(' ','Next hour?',ok,dok,nbhelp)
+         call easkok(' ','Next hour?',ok,nbhelp)
          if(.not.ok)goto 1
    20 continue
 
-    1 dok=.true.
-      call askok(' ','Consider another surface?',ok,dok,nbhelp)
+    1 call easkok(' ','Consider another surface?',ok,nbhelp)
       if(.not.ok)return
       goto 2
 
@@ -225,6 +223,7 @@ C Draws the elevation of the target surface.
       common/c24/izstocn(mcom,ms)
       integer menuchw,igl,igr,igt,igb,igw,igwh
       common/viewpx/menuchw,igl,igr,igt,igb,igw,igwh
+      common/SPAD/MMOD,LIMIT,LIMTTY
 
       dimension month(12)
       character*72 etext*72,month*3
@@ -243,6 +242,8 @@ C Draws the elevation of the target surface.
       data month/'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug',
      &            'Sep','Oct','Nov','Dec'/
 
+      if(mmod.ne.8) return
+
 C Display header information. Calculate graphic boundaries.
       iiw1=7; iiw2=4; iiw3=3; iiw4=3; iimenu=menuchw
       iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
@@ -255,9 +256,7 @@ C Display header information. Calculate graphic boundaries.
       write(etext,1)month(mon),ihour,isur,sname(icomp,isur)
     1 format('Direct shading: ',a3,', @ ',i2,':00, Surface ',i3,
      &       ' (',a,').')
-      iside=1
-      isize=1
-      ifont=2
+      iside=1; isize=1; ifont=2
       call viewtext(etext,iside,isize,ifont)
 
 C Draw horizontal axis and move to start point.
@@ -297,6 +296,7 @@ C Parameters
       integer ioshd  ! array of points
       dimension ioshd(mox,moz)
 
+      common/SPAD/MMOD,LIMIT,LIMTTY
       common/grid11/xop(mox,moz),zop(mox,moz)
       real xxop,zzop  ! to pass to point1
 
@@ -305,7 +305,7 @@ C Parameters
 #else
       integer*8 iix,iiy,iid1,iid2
 #endif
-
+      if(mmod.ne.8) return
       do 10 i=1,nox(izone)
          do 20 j=1,noz(izone)
 
@@ -393,6 +393,8 @@ C Draws a Mercator sun path diagram.
       data month/'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug',
      &           'Sep','Oct','Nov','Dec'/
 
+      if(mmod.ne.8) return
+      
 C Clear the viewing box, draw its border and return the offsets
 C that define it. Call to axiscale works better if
 C local integer variables are used.
@@ -429,9 +431,7 @@ C Draw vertical axes on left and right.
 
 C Output a heading for the view.
       call edayr(ijday,ido,imo)
-      iside=2
-      isize=1
-      ifont=ifs
+      iside=2; isize=1; ifont=ifs
       call viewtext('Mercator Sun Plot',iside,isize,ifont)
       write(etext,'(i2,1x,a3,a,f6.1,a,f5.1)')ido,month(imo),
      &                ' at Latitude',slat,', Longitude',slon
@@ -497,7 +497,7 @@ C Parameters
       common/tracech/icout
       common/tc/itc,icnt
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Mesh for surface as points in 3D.
       common/grid3/ogrida(ms)
@@ -568,7 +568,7 @@ C Get the current connection and number of surfaces in zone.
   43  mode='dir'  ! direct shading in this view
       icc=izstocn(izone,its)
       iccf=izstocn(izone,its)
-      gsa=ssna(iccf)
+      gsa=sna(izone,its)
       tol=0.001 ! for surfaces along a cardinal axis will have one
 
 C If trace is on and verbose set tok, if not so verbose set ok.
@@ -639,9 +639,7 @@ C Heading on graph.
       write(etext,'(3a,f6.2,3a,f7.2,a,f7.2)')'Direct shading: ',
      &  month(imon),' @ ',vtime,' ',sname(izone,its),' azim',sazi1,
      &  ' elev',salt1
-      iside=1
-      isize=1
-      ifont=2
+      iside=1; isize=1; ifont=2
       call viewtext(etext,iside,isize,ifont)
 
 C For current solar azimuth and altitude get unit vector and then
@@ -864,10 +862,10 @@ C For each surface do initial filtering.
         endif
         if(sother(izone,loop,1)(1:8).eq.'EXTERIOR')then
              
-          EQN(1)=ssureqn(icc,1)
-          EQN(2)=ssureqn(icc,2)
-          EQN(3)=ssureqn(icc,3)
-          EQN(4)=ssureqn(icc,4)
+          EQN(1)=sureqn(izone,loop,1)
+          EQN(2)=sureqn(izone,loop,2)
+          EQN(3)=sureqn(izone,loop,3)
+          EQN(4)=sureqn(izone,loop,4)
 
           do 200 m=1,nox(izone)
             do 210 n=1,noz(izone)

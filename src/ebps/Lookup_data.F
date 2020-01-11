@@ -94,8 +94,8 @@ C Passed arguments
 
 C ESP-r variables
 
-       common/outin/iuout,iuin
-       integer iuout, iuin      ! channels for writing messages to screen
+       common/outin/iuout,iuin,ieout
+       integer iuout,iuin,ieout      ! channels for writing messages to screen
 
 C Local variables
 
@@ -656,8 +656,8 @@ C External functions.
 
 C ESP-r commons
 
-       common/outin/iuout,iuin
-       integer iuout, iuin      ! channels for writing messages to screen
+       common/outin/iuout,iuin,ieout
+       integer iuout,iuin,ieout ! channels for writing messages to screen
 
 C Local variables
 
@@ -766,8 +766,8 @@ C External functions.
 
 C ESP-r variables
 
-      common/outin/iuout,iuin
-      integer iuout, iuin     ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout ! channels for writing messages to screen
 
 C Simulator status variables
       common/spfl/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
@@ -1046,8 +1046,8 @@ C Passed arguments
 
 C ESP-r variables
 
-      common/outin/iuout,iuin
-      integer iuout, iuin     ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout   ! channels for writing messages to screen
 
 C Local variables
 
@@ -1106,8 +1106,8 @@ C External functions.
 
 C ESP-r variables
 
-       common/outin/iuout,iuin
-       integer iuout, iuin     ! channels for writing messages to screen
+       common/outin/iuout,iuin,ieout
+       integer iuout,iuin,ieout   ! channels for writing messages to screen
 
 C Simulator status 
        common/spfl/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,

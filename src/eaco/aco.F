@@ -62,7 +62,7 @@ C prj3dv.h provides common blocks drwmat clip and image
       integer lnblnk  ! function definition
 
 C Commons for I/O Channel, mode type and fonts.
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOD/MODEL
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -118,10 +118,18 @@ C 3D visualisation mode.
       
 C Significant figure reporting limit (NSIGFIG).
       common/SFIG/NSIGFIG
+
 C Name of current application
       common/APPNAME/cAppName
-      
       character cAppName*12
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR      
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
 
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,ACOOK,CFCDBOK
       LOGICAL XST,BCFOK,unixok
@@ -136,11 +144,12 @@ C Name of current application
       CHARACTER fs*1,outsd*124
       CHARACTER TxtZone*72,CLMRF*72,TTmp*72
       CHARACTER CalcName*12,DESCR*7,DESCR1*10 
-      CHARACTER tg*1,delim*1,xfile*144,dstmp*24,LabFreq*4
+      CHARACTER tg*1,delim*1,xfile*144,LabFreq*4
       CHARACTER PubType*12,FurType*12,FurCat*4,CovSurf*12
+      character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character pagestitle*68 ! for banner title via epages call
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
 #ifdef OSI
@@ -178,7 +187,8 @@ C Initial assumptions (summary reporting).
       ITFS=1
       itrc=0
       NSIGFIG=3
-      matver=0.0   ! initial assumption of binary materials database
+      matver=0.0     ! initial assumption of binary materials database
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Configuration file on IFIL+5.
 C Primitives on IFIL+13, mlc on IFIL+14, optics on IFIL +15.
@@ -329,7 +339,8 @@ C and dialog.
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Acoustic ',cVnum(1:lnblnk(cVnum))
+      write(pagestitle,'(2a)') 'Acoustic module of ESP-r ',
+     &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
@@ -383,6 +394,23 @@ C Find the user's home folder then get users custom settings.
 C Scan the defaults file for default configuration.
 C Make temporary use of file unit IFIL+1.
       call escdef(IFIL+1,'s',IER)
+
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+932          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for aco'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Take `c' command line file name, convert to fortran string LCMDFL.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
@@ -576,7 +604,8 @@ C Present the main menu.
       IF(INO.EQ.NITEMS)THEN
 
 c End program Aco.
-        call usrmsg(' Closing Aco desktop...',' ','P')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       elseif(INO.EQ.NITEMS-1)THEN
@@ -647,13 +676,12 @@ C Air properties
      &       IER,nbhelp)
          ELSE
 
-C Read the result file and determin the most and less air absorption 
-C coefficient m
+C Read the result file and determine the most and less air absorption 
+C coefficient m.
            helptopic='air_file_for_temps'
            call gethelptext(helpinsub,helptopic,nbhelp)
            TTmp=CLMRF
-           CALL EASKS(TTmp,'Indoor climate file? ',
-     &       '(see help for format)',72, ' ',
+           CALL EASKS(TTmp,' ','Indoor climate file?',72,' ',
      &       'indoor climate file name',IER,nbhelp)
            CLMRF=TTmp
            if(CLMRF(1:2).EQ.'  ') then
@@ -662,7 +690,7 @@ C coefficient m
 C If file exists, then open the file
              CALL EFOPSEQ(ICLMRF,CLMRF,1,IER)
              IF (IER.LT.0) then
-               WRITE (outs,'(2a)')'Error while opening file: ',
+               WRITE (outs,'(2a)')'Error opening file!',
      &           CLMRF(:lnblnk(CLMRF))
                CALL EDISP(iuout,Outs)
                IER=1
@@ -697,7 +725,7 @@ C Find the maximum absorption factor.
                    TTMax=CTair
                    RHMax=CHR
                  ENDIF
-C Find the maximum absorption factor
+C Find the maximum absorption factor.
                  IF (CurM.LT.FMin) THEN
                    FMin=CurM
                    TMin=CTair
@@ -709,7 +737,7 @@ C Find the maximum absorption factor
                endif
              ENDIF
 
-             CALL EDISP(iuout,'The maximum air absorption is :')
+             CALL EDISP(iuout,'The maximum air absorption is:')
              WRITE (outs,'(4(a, 5x))')'Time step','Temp. [C]',
      &         ' RH [%]', 'M [m-1]'
              CALL EDISP(iuout,Outs)
@@ -722,7 +750,7 @@ C Find the maximum absorption factor
      &         THR,TMin,RHMin,FMin 
              CALL EDISP(iuout,outs)
  
-C Ask for which air condition the RT calculation should be perfromed
+C Ask for which air condition the RT calculation should be perfromed.
              helptopic='air_calc_high_or_low'
              call gethelptext(helpinsub,helptopic,nbhelp)
              CALL EASKAB(' Do you want to calculate the RT with :',' ',
@@ -739,8 +767,7 @@ C Ask for which air condition the RT calculation should be perfromed
         ENDIF
       elseif (INO.EQ.19) THEN
   
-C Export results to file
-C First open the file, then write in and finally close the file
+C Export results to file.
         helptopic='export_aco_predictions'
         call gethelptext(helpinsub,helptopic,nbhelp)
         itu = ixunit
@@ -765,7 +792,7 @@ C Select/change ESP-r configuration file.
         helptopic='model_cfg_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         TTmp=LCFGF
-  289   CALL EASKS(TTmp,'Model configuration file name? ',' ',72,DFCFG,
+  289   CALL EASKS(TTmp,'System configuration file name? ',' ',72,DFCFG,
      &    'config file name',IER,nbhelp)
         LCFGF=TTmp
         IF(LCFGF(1:2).EQ.'  ')GOTO 289
@@ -777,22 +804,22 @@ C Select/change BCF file.
         helptopic='model_bcf_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
   288   IF (BCFOK) THEN
-          call easkabc('A BCF of the current problem is loaded.',
-     &      'Do you want: ','use it','load another','continue',
+          call easkabc('A buiding construction file is loaded!',
+     &      'Options:','use it','load another','continue',
      &      Iw,nbhelp)
           if(iw.eq.3)then
             goto 10
           elseif(iw.eq.2)then
             TTmp=BCFName
-            CALL EASKS(TTmp,'New building constructions file ?',
-     &        ' ',72, DBCFNAM,'BCF file name',IER,nbhelp)
+            CALL EASKS(TTmp,' ','Building constructions file?',
+     &        72, DBCFNAM,'BCF file name',IER,nbhelp)
             BCFName=TTmp
             IF(BCFName(1:2).EQ.'  ')GOTO 288
           endif
         ELSE
           if (CFGOK) then
             TTmp=BCFName
-            CALL EASKS(TTmp,'Building constructions file?',' ',72,
+            CALL EASKS(TTmp,' ','Building constructions file?',72,
      &      DBCFNAM,'BCF file name',IER,nbhelp)
             BCFName=TTmp
             IF(BCFName(1:2).EQ.'  ')GOTO 288
@@ -833,22 +860,22 @@ C Attempt to read Aco (occupants and furniture file).
         call gethelptext(helpinsub,helptopic,nbhelp)
 
   290   IF (ACOOK) THEN
-          call easkabc('A ACO file is loaded.','Do you want:',
-     &      'to use it','load another','continue',Iw,nbhelp)
+          call easkabc('ACO file is loaded.','Options:',
+     &      'use it','load another','continue',Iw,nbhelp)
           if(iw.eq.3)then
             goto 10
           elseif(iw.eq.2)then
             TTmp=AcoName
-            CALL EASKS(TTmp,'New ACO (Occupnats/Furniture) file ?',
-     &        ' ',72, DACONam,'ACO file name',IER,nbhelp)
+            CALL EASKS(TTmp,' ','New ACO (Occupnats/Furniture) file ?',
+     &        72, DACONam,'ACO file name',IER,nbhelp)
             AcoName=TTmp
             IF(ACOName(1:2).EQ.'  ') GOTO 10
           endif
         ELSE
           if (CFGOK) then
             TTmp=AcoName
-            CALL EASKS(TTmp,' ACO (Occupnats/Furniture) file?',
-     &        ' ',72,DACONam,'ACO file name',IER,nbhelp)
+            CALL EASKS(TTmp,' ','ACO (Occupnats/Furniture) file?',
+     &        72,DACONam,'ACO file name',IER,nbhelp)
             ACOName=TTmp
             IF(ACOName.EQ.' ')GOTO 290
           else
@@ -901,8 +928,8 @@ C Display Zones list if project loaded and wait for INIPIC item selected.
      &            zname(NZNOG(ixd)),'?'
                 helptopic='display_details_dialog'
                 call gethelptext(helpinsub,helptopic,nbhelp)
-                CALL EASKABC(outs,'  ',' Yes ',' No ',
-     &            ' No for all ',Irep,nbhelp)
+                CALL EASKABC(' ',outs,'Yes','No',
+     &            'No for all',Irep,nbhelp)
                 if(Irep.eq.1)CALL ZoneDisp(ic)
               endif
               write(outs,'(3a)')' Zone ',zname(NZNOG(ixd)),

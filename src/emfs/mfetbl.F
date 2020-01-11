@@ -38,7 +38,7 @@ C ICLIM,LCLIM (for climate file)
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
@@ -56,7 +56,7 @@ C ICLIM,LCLIM (for climate file)
       character PERST1*14,PERST2*44,PERST3*44
       character outs*124,OUTSTR*124,outs248*248
       character WORD*20,NR*12,NT*12
-      logical OK,DOK,intg
+      logical OK,intg
       integer NITMS,INO ! max items and current menu item
 
 C For help messages
@@ -128,19 +128,17 @@ C Display format for date is Fri 10 Jan.
         WRITE(outs,'(A,A)')' Current output   : ',PERST2
         call edisp(iuout,outs)
 
-        dok=.false.
         helptopic='mfs_display_period'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(PERST3,'Different output period?',OK,dok,nbhelp)
+        CALL EASKOK(PERST3,'Different output period?',OK,nbhelp)
         if(OK)then
           CALL EASKPER('Output period:',IDAYF,IDAYL,IFDAY,IER)
           IF(IER.NE.0) GOTO 60
         endif
         if(NTSPH.gt.1)then
-          dok=.false.
           helptopic='mfs_data_integration'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(PERST3,'Integrate over each hour?',OK,dok,nbhelp)
+          CALL EASKOK(PERST3,'Integrate over each hour?',OK,nbhelp)
           if(OK)then
             intg=.true.
             NOUT=NTSPH

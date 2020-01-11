@@ -27,6 +27,7 @@ C C ********************* MAKS2D *********************
 C MAKS2D - draw 2d slices on screen.  IFRAME is the timestep
 C offset from the beginning of the display period.
       SUBROUTINE MAKS2D(ISUR,ilayer,name,IFRAME)
+#include "building.h"
 #include "cfd.h"
 
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -178,15 +179,8 @@ C Write a title for the plot.
      & 'Velocity vector plot for ',name(1:lnblnk(name)),' During',
      & IDs,MTHNAM(IMs),', hr ',CFTOS,' to',IDf,MTHNAM(IMf),', hr ',
      & CFTOF,' @',NOW
-      iside=1
-      isize=0
-      ifont=1
+      iside=1; isize=0; ifont=1
       call viewtext(PDESCR,iside,isize,ifont)
-C      write (souts,'(a,a)') ' Velocity vector plot for view ',name
-C      iside=2
-C      isize=0
-C      ifont=1
-C      call viewtext(souts,iside,isize,ifont)
 
 C Draw a scale. First find distance between two points (iby and iysl)
 C this represents 'sll' meters per second (initially 0.1).  If the 
@@ -254,6 +248,7 @@ C ********************* MAKS3D *********************
 C MAKS3D - draw flows in 3d on screen using scaling factors of 
 C first view.
       SUBROUTINE MAKS3D(IFRAME)
+#include "building.h"
 #include "cfd.h"
 
       integer menuchw,igl,igr,igt,igb,igw,igwh

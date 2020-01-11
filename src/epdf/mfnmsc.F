@@ -32,7 +32,7 @@ C    mode = 2  : Writes mass flow network description to a file.
 #include "net_flow_data.h"
 #include "plant.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FFN/IFLWN,ICFFS(MPCON)
       character LAPROB*72
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
@@ -266,9 +266,9 @@ C LAPRES,IAPRES (for window pressure databases)
       COMMON/FFN/IFLWN,ICFFS(MPCON)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
-      LOGICAL OK,dok
+      LOGICAL OK
       character LAPROB*72
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       character H*72,lltmp*144,ltmp*72
@@ -285,11 +285,10 @@ C LAPRES,IAPRES (for window pressure databases)
       ok=.true.
       CALL FPOPEN (mfunit,ISTAT,4,3,laprob)
       IF (ISTAT .EQ. 0) THEN
-         dok=.true.
          h(1)='The flow file will be overwritten unless you '
          h(2)='say no and nominate a different file name. '
-         CALL ASKOK(' Network file EXISTS.',
-     &     'Do you want to overwrite it?',OK,dok,2)
+         CALL EASKOK('Network file exists!',
+     &               'Overwrite?',OK,2)
       endif
       IF(.not.ok) goto 220
       h(1)='This file is assumed to exist. '

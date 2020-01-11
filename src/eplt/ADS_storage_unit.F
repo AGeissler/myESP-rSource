@@ -136,9 +136,10 @@ C-------------------------------------------------------------------------------
 C ESP-r COMMONs
 C------------------------------------------------------------------------------------
 
-       COMMON/OUTIN/IUOUT,IUIN
+       common/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        COMMON/TC/ITC,ICNT
        INTEGER ITC             !-trace output index
@@ -510,9 +511,10 @@ C-------------------------------------------------------------------------------
 C ESP-r COMMONs
 C------------------------------------------------------------------------------------
 
-       COMMON/OUTIN/IUOUT,IUIN
+       common/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        COMMON/TC/ITC,ICNT
        INTEGER ITC             !-trace output index
@@ -2091,9 +2093,10 @@ C-------------------------------------------------------------------------------
        FUNCTION ADS_mass_ratio(Pressure,Temp,Wo,D,n)
        IMPLICIT NONE
 
-       COMMON/OUTIN/IUOUT,IUIN
+       common/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        REAL    ADS_mass_ratio
        REAL    Pressure       !-kPa
@@ -2436,9 +2439,10 @@ C*******************************************************************************
       SUBROUTINE TCheck(Wo, D, n, X, P,T1,T2,SUCCESS)
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER IUOUT           !-write unit number
       INTEGER IUIN            !-read unit number
+      INTEGER IEOUT           !-error unit number
 
 
       REAL Wo, D, n       !- adsorbent/adsorbate characteristics, needed to determine X
@@ -2500,9 +2504,10 @@ C-------------------------------------------------------------------------------
       FUNCTION TSOLVE(Wo,D,n,X,P,T1,T2,ACC)
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER IUOUT           !-write unit number
       INTEGER IUIN            !-read unit number
+      INTEGER IEOUT           !-error unit number
 
       REAL TSOLVE
       REAL Wo,D,n
@@ -2618,9 +2623,10 @@ C-------------------------------------------------------------------------------
       FUNCTION PSOLVE(Wo,D,n,X,T,P1,P2,ACC)
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER IUOUT           !-write unit number
       INTEGER IUIN            !-read unit number
+      INTEGER IEOUT           !-error unit number
 
 C for debugging
        COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS

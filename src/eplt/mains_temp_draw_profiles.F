@@ -87,10 +87,10 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C-----Trace/error unit reporting numbers
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ITC,ICNT
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
@@ -356,10 +356,10 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C-----Trace/error unit reporting numbers
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ITC,ICNT
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
@@ -482,10 +482,10 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C-----Trace/error unit reporting numbers
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ITC,ICNT
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
@@ -615,10 +615,10 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C-----Trace/error unit reporting numbers
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ITC,ICNT
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 

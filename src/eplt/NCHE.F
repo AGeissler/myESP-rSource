@@ -113,12 +113,12 @@ C-------------------------------------------------------------------------------
 
 C.....Trace & reporting data
       COMMON/tc/itc,icnt
-      COMMON/outin/iuout,iuin
+      COMMON/outin/iuout,iuin,ieout
       COMMON/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
 C.....Trace/error reporting unit numbers
       INTEGER itc,icnt
-      INTEGER iuout,iuin
+      INTEGER iuout,iuin,ieout
       INTEGER itcf,itrace,izntrc,itu
 
 C.....Network & control data

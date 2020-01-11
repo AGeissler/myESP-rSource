@@ -79,7 +79,8 @@ C ******************************************************************************
      &             iverb,sps,data1,data2,data3)
       IMPLICIT NONE
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
+      integer :: IUOUT,IUIN,IEOUT
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/APPNAME/cAppName
 C Timeout information
       COMMON/TIMEOUT/sTimeout,iTimeoutFlag
@@ -105,7 +106,7 @@ C Variable declaration
       character(8)   :: mode
       character(24)  :: appn
       character(348) :: outs !If this is only 248 clm crashes on install if pathnames are long
-      integer :: m, i, IOS, IUOUT,IUIN, iXavail, pos
+      integer :: m, i, IOS, iXavail, pos
       integer :: iTimeoutFlag
       integer :: err
       logical :: unixok
@@ -176,14 +177,17 @@ C into binary, and set default terminal type as necessary
           if(i.gt.m)EXIT Parseloop
           if(argument(1:5).eq.'-help')then
             call parpsfh(appn)
+            close(ieout)
             stop
           elseif(argument(1:8) .eq. '-version' ) then
 C Display version information and then quit
             CALL ESPrVersion("summary",cAppName,IUOUT)
+            close(ieout)
             stop
           elseif( argument(1:10) .eq. '-buildinfo' ) then
 C Display detailed build information and then quit
             CALL ESPrVersion("details",cAppName,IUOUT)
+            close(ieout)
             stop
 C Enable h3k-specific customizations that may disrupt general esp-r functionality
 C (disabled by default!)            
@@ -619,8 +623,6 @@ C Errors.
 C************************************************************************************
       END MODULE PARSE_COMMAND_LINE
 C************************************************************************************
-C************************************************************************************
-C************************************************************************************
 
 
 C Subroutines used by all modules for setting up environemt and
@@ -660,9 +662,7 @@ C parcnv parse command line paramters for ecnv.
 C FINDAPP: given a file name (string) see if it contains one of the
 C          esp-r modules
 c***********************************************************************************
-c***********************************************************************************
-c***********************************************************************************
-c***********************************************************************************
+
       MODULE START_UP
       
       USE PARSE_COMMAND_LINE
@@ -904,13 +904,11 @@ C Local variables for GetCommandLineArguments.
      &   iverb,sps,data1,data2,data3)
       end subroutine partf
 
-
-C***********************************************************************************************************************
 C ********* partfa (equivalent to partf with an action parameter)
 C partfa allows terminal, file and action arguments
 C  to be passed to the program from the invocation line.  
 C  Logic allows for the -file token to be optional.
-C***********************************************************************************
+
       subroutine partfa(termtype,inf,act)
       
       IMPLICIT NONE
@@ -936,11 +934,10 @@ C Local variables for GetCommandLineArguments.
       end subroutine partfa
 
 
-C*************************************************************************************
 C ********* parse2r 
 C parse2r allows terminal, size, config file, scene purpose and actions arguments
 C  to be passed to e2r from the invocation line.  
-C*************************************************************************************
+
       subroutine parse2r(termtype,iappw,iappx,iappy,inf,zone,aim,act,
      &  actf,browse)
       
@@ -968,11 +965,9 @@ C Local variables for GetCommandLineArguments.
       end subroutine parse2r
 
 
-C*************************************************************************************
 C ********* parsim
 C parsim: allows terminal, size, config file, simulation parameter file arguments
 C  to be passed to the program from the invocation line.  
-C*************************************************************************************
 
       subroutine parsim(iverb,termtype,iappw,iappx,iappy,inf,browse,
      &  sps,aut,actf)
@@ -1001,11 +996,9 @@ C Local variables for GetCommandLineArguments.
       end subroutine parsim
 
 
-C*************************************************************************************
 C ********* parsfact
 C parsfact allows terminal, size, file and actions arguments
 C  to be passed to the program from the invocation line.  
-C*************************************************************************************
 
       subroutine parsfact(termtype,iappw,iappx,iappy,inf,act,actf)
       
@@ -1037,8 +1030,7 @@ C*******************************************************************************
 
       END MODULE START_UP
 C*******************************************************************************************
-C*******************************************************************************************
-C*******************************************************************************************
+
 
 C ******* FINDAPP
 C FINDAPP given a file name (string) see if it contains one of the esp-r module names.
@@ -1084,6 +1076,7 @@ C If islash > 0 then root and file name
 
       RETURN
       END
+
 C ******************** scesprc 
 C scesprc scans the ESP-r dot file which should be located in the
 C users home folder or in the esp-r distribution.  If not found
@@ -1100,7 +1093,7 @@ C Use espriou.h for climatelist file name and defdbfl.
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C External text editor.
       common/texted/tedlbl,teditor
@@ -1136,6 +1129,7 @@ C Report generator: label and executable.
 
 C Save journal. journoo = ON or OFF
       common/journopt/journio,iuj,journcmd,jfile
+      character journcmd*20,jfile*72
 
 C Graphic capture, window dump & text print: label, command.
       common/gprint/gprlbl,gprcmd
@@ -1161,7 +1155,6 @@ C Where validation tests are kept.
       character figlbl*20,figexe*48
       character grflbl*20,grfexe*48
       character foldlbl*20,foldexe*48
-      character journcmd*20,jfile*72
 
 C Altdot is an alternative location for the esprc file in
 C the installation folder.
@@ -1239,7 +1232,7 @@ C Set defaults and exemplars depending on whether Unix or NT.
         write(defdbfl,'(2a)') instpath(1:ln),'/default'
         vldlbl='Validation standards'
         write(vldfl,'(2a)') instpath(1:ln),'/validation/stds_list'
-        cdblbl='Standard climates'
+        cdblbl='Standard weather'
         write(cdblfil,'(2a)') instpath(1:ln),'/climate/climatelist'
         write(altdot,'(2a)') instpath(1:ln),'/esprc'
         write(standarddbpath,'(2a)') instpath(1:ln),'/databases'
@@ -1254,16 +1247,12 @@ C Set defaults and exemplars depending on whether Unix or NT.
         write(defdbfl,'(2a)') instpath(1:ln),'/default'
         vldlbl='Validation tests'
         write(vldfl,'(2a)') instpath(1:ln),'/validation/stds_list'
-        cdblbl='Standard climates'
+        cdblbl='Standard weather'
         write(cdblfil,'(2a)') instpath(1:ln),'/climate/climatelist'
         write(altdot,'(2a)') instpath(1:ln),'/esprc'
         write(standarddbpath,'(2a)') instpath(1:ln),'/databases'
         write(standardclmpath,'(2a)') instpath(1:ln),'/climate'
       endif
-
-C Debug.
-C      write(6,*) 'standard databases are at ',
-C     &  standarddbpath(1:lnblnk(standarddbpath))
 
 C If running in dll mode skip reading .esprc file.
       if(dll)then
@@ -1273,10 +1262,6 @@ C If running in dll mode skip reading .esprc file.
 C Open the esprc file, return if not found.
       IER=0
       CALL ERPFREE(IFDEF,ISTAT)
-
-C Debug.
-C      write(6,*) 'lfdef is ',lfdef
-
       call FPOPEN(IFDEF,ISTAT,1,0,LFDEF)
       IF(ISTAT.LT.0)THEN
         CALL ERPFREE(IFDEF,ISTAT)
@@ -1456,14 +1441,14 @@ C Close file before exiting.
       END
 
 C ******************** ESCDEF
-C ESCDEF scans the ESP-r defaults definition file and returns
+C Scans the ESP-r defaults definition file and returns
 C the default file and database names via common block.
 C It uses espinstalldir.h which was created by the Install
 C script with the current esp-r install directory held
-C in a string instpath.
+C in a string instpath. It also scans default constructions
+C to be offered for code complience purposes or for use
+C defined uses.
 
-C ESCDEF also scans default constructions to be offered
-C for code complience purposes or for use defined uses.
       SUBROUTINE ESCDEF(IFDEF,act,IER)
 #include "esprdbfile.h"
 C Use espriou.h for climatelist file name and defdbfl.
@@ -1472,7 +1457,7 @@ C Use espriou.h for climatelist file name and defdbfl.
       integer lnblnk  ! function definition
       character act*1 ! s for silent - for normal
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Defaults.
       character*96 DFCFG,DFCTL,DEFRLB,DAPROB,DAFRES,DPNF
@@ -1524,6 +1509,8 @@ C file or failure reading it).
 
 C << make a pass sorting out these default file names >>
       call isunix(unixok)
+
+C UNIX file system (dinstpath = '/opt/esp-r').
       if(unixok)then
         write(dinstpath,'(a)') instpath(1:lnblnk(instpath))
         write(di,'(a)') instpath(1:lnblnk(instpath))
@@ -1542,15 +1529,14 @@ C << make a pass sorting out these default file names >>
         write(DAFRES,'(2a)') di(1:min(ln,51)),'/databases/test.mfr'
         write(DCLIM,'(2a)') di(1:min(ln,51)),'/climate/clm67'
         write(DAPRES,'(2a)') di(1:min(ln,51)),'/databases/pressc.db1'
-        write(DFCON,'(2a)') di(1:min(ln,51)),
-     &    '/databases/material.db3.a'
-        write(DFMUL,'(2a)') di(1:min(ln,51)),'/databases/multicon.db3'
-        write(DOPTDB,'(2a)') di(1:min(ln,51)),'/databases/optics.db2'
+        write(DFCON,'(2a)') di(1:min(ln,51)),'/databases/material.db'
+        write(DFMUL,'(2a)') di(1:min(ln,51)),'/databases/multicon.db'
+        write(DOPTDB,'(2a)') di(1:min(ln,51)),'/databases/optics.db'
         write(DPRFDB,'(2a)') di(1:min(ln,51)),
      &    '/databases/profiles.db2.a'
         write(DPCDB,'(2a)') di(1:min(ln,51)),'/databases/plantc.db1'
-        write(DECMPDBFL,'(2a)') di(1:min(ln,51)),'/databases/elcomp.db1'
-        write(DMCMPDBFL,'(2a)') di(1:min(ln,51)),'/databases/mscomp.db1'
+        write(DECMPDBFL,'(2a)')di(1:min(ln,51)),'/databases/elcomp.db1'
+        write(DMCMPDBFL,'(2a)')di(1:min(ln,51)),'/databases/mscomp.db1'
         write(DICONDBFL,'(2a)') di(1:min(ln,51)),'/databases/icons.db1'
         write(dmdbnam,'(2a)') di(1:min(ln,51)),'/databases/mould.db1'
         write(DSBEM,'(2a)') di(1:min(ln,51)),'/databases/SBEM.db1'
@@ -1558,8 +1544,9 @@ C << make a pass sorting out these default file names >>
      &    '/databases/cfclayers.db1.a'
         write(DPREDEF,'(2a)') di(1:min(ln,51)),
      &    '/databases/predefined.db1'
+
+C Windows OS (dinstpath = 'c:/esru/esp-r')
       else
-C        dinstpath = 'c:/esru/esp-r'
         write(dinstpath,'(a)') instpath(1:lnblnk(instpath))
         write(di,'(a)') instpath(1:lnblnk(instpath))
         ln=lnblnk(di)
@@ -1577,15 +1564,14 @@ C        dinstpath = 'c:/esru/esp-r'
         write(DAFRES,'(2a)') di(1:min(ln,51)),'/databases/test.mfr'
         write(DCLIM,'(2a)') di(1:min(ln,51)),'/climate/clm67'
         write(DAPRES,'(2a)') di(1:min(ln,51)),'/databases/pressc.db1'
-        write(DFCON,'(2a)') di(1:min(ln,51)),
-     &    '/databases/material.db3.a'
-        write(DFMUL,'(2a)') di(1:min(ln,51)),'/databases/multicon.db3'
-        write(DOPTDB,'(2a)') di(1:min(ln,51)),'/databases/optics.db2'
+        write(DFCON,'(2a)') di(1:min(ln,51)),'/databases/material.db'
+        write(DFMUL,'(2a)') di(1:min(ln,51)),'/databases/multicon.db'
+        write(DOPTDB,'(2a)') di(1:min(ln,51)),'/databases/optics.db'
         write(DPRFDB,'(2a)') di(1:min(ln,51)),
      &    '/databases/profiles.db2.a'
         write(DPCDB,'(2a)') di(1:min(ln,51)),'/databases/plantc.db1'
-        write(DECMPDBFL,'(2a)') di(1:min(ln,51)),'/databases/elcomp.db1'
-        write(DMCMPDBFL,'(2a)') di(1:min(ln,51)),'/databases/mscomp.db1'
+        write(DECMPDBFL,'(2a)')di(1:min(ln,51)),'/databases/elcomp.db1'
+        write(DMCMPDBFL,'(2a)')di(1:min(ln,51)),'/databases/mscomp.db1'
         write(DICONDBFL,'(2a)') di(1:min(ln,51)),'/databases/icons.db1'
         write(dmdbnam,'(2a)') di(1:min(ln,51)),'/databases/mould.db1'
         write(DSBEM,'(2a)') di(1:min(ln,51)),'/databases/SBEM.db1'
@@ -1632,7 +1618,7 @@ C Read '*ESP-r Defaults' tag.
         RETURN
       endif
 
-C If '*ESP-r Defaults' found then read db until '*end' found.
+C If '*ESP-r Defaults' found then read db names until '*end' found.
   44  continue
       CALL STRIPC(IFDEF,OUTSTR,0,ND,1,'def names',IER)
       K=0
@@ -1668,6 +1654,8 @@ C If '*ESP-r Defaults' found then read db until '*end' found.
         CALL EGETRM(OUTSTR,K,DCLIM,'W','def climate db',IER)
       elseif(WORD(1:4).eq.'*pdb')then
         CALL EGETRM(OUTSTR,K,DPCDB,'W','def plant comp db',IER)
+      elseif(WORD(1:4).eq.'*pre')then
+        CALL EGETRM(OUTSTR,K,DPREDEF,'W','def predefined db',IER)
       elseif(WORD(1:5).eq.'*ecdb')then
         CALL EGETRM(OUTSTR,K,DECMPDBFL,'W','def elec comp db',IER)
       elseif(WORD(1:5).eq.'*mcdb')then
@@ -1757,18 +1745,19 @@ C If '*ESP-r Defaults' found then read db until '*end' found.
         elseif(WORD(1:18).eq.'*end_constructions')then
           goto 44
         else
-          goto 46   ! nothing matches this try another line.
+          goto 46   ! nothing matches, try another line.
         endif
       elseif(WORD(1:4).eq.'*end')then
         goto 45
       else
-        call usrmsg(' Unknown default in... ',outstr,'W')
+        call usrmsg(' Unknown default in ... ',outstr,'W')
         goto 44
       endif
 
       if(ier.ne.0)then
         write(outs248,'(3a)') 'Problem detected in ',
-     &    defdbfl(:lnblnk(defdbfl)),' while reading...'
+     &    defdbfl(:lnblnk(defdbfl)),' while reading file ...'
+        call edisp(iuout,' ')
         CALL EDISP248(IUOUT,outs248,100)
         CALL EDISP(IUOUT,outstr)
         goto 45
@@ -1785,9 +1774,10 @@ C Close defaults file before exiting.
 
 
 C ****** parpsfh
-C parpsfh: Help message for several of the command line parsers.
+C Help message for several of the command line parsers.
+
       subroutine parpsfh(appn)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character appn*24
 
       if(appn(1:3).eq.'bld'.or.appn(1:3).eq.'bps')then
@@ -1959,11 +1949,9 @@ C parpsfh: Help message for several of the command line parsers.
       return
       end
 
-            
-C-----------------------------------------------------------------------
-C     Function bH3KExtentionsActive: Returns value of 
-C     h3k_extentions flag 
-C-----------------------------------------------------------------------
+C ****** Function bH3KExtentionsActive
+C Returns value of h3k_extentions flag 
+
       logical function bH3KExtentionsActive()
       implicit none 
       

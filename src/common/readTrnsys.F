@@ -50,8 +50,8 @@ C coefficient positions IPOFS1 and IPOFS2 for that trnsys component.
 #include "trnsys.h"
 #include "espriou.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/FILEP/IFIL
       INTEGER IFIL
@@ -416,8 +416,8 @@ C data input file
 #include "trnsys.h"
 #include "espriou.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       INTEGER NPCOMP,NCI
@@ -721,12 +721,13 @@ C data input file
       SUBROUTINE readTrnsysInput(IPCOMP, IUNIT, nnode)
       IMPLICIT NONE
 
+#include "building.h"
 #include "plant.h"
 #include "trnsys.h"
 #include "espriou.h"
 #include "control.h"
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       INTEGER NPCOMP,NCI
@@ -999,8 +1000,8 @@ C from the wrapper's data input file
 #include "trnsys.h"
 #include "espriou.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Common for TRNSYS general information
 C     MTRNCOM: Maximum number of TRNSYS components in a plant network
@@ -1108,8 +1109,8 @@ C from the wrapper's data input file
 #include "trnsys.h"
 #include "espriou.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Common for TRNSYS general information
 C     MTRNCOM: Maximum number of TRNSYS components in a plant network
@@ -1314,8 +1315,8 @@ C from the wrapper's data input file
 #include "trnsys.h"
 #include "espriou.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
       REAL QDATA,PCAOUT
@@ -1450,8 +1451,8 @@ C component from its data input file
       IMPLICIT NONE
 #include "plant.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/FILEP/IFIL
       INTEGER IFIL

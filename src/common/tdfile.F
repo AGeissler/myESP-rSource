@@ -59,18 +59,19 @@ C            commons.
 C  Check whether it is an ascii file or a binary file. Depending on
 C which create the scratch or ascii version.
       subroutine supplyandcheck(tfile,act,ier)
+
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "tdf2.h"
-C Related to TDF ITEMS file.
 #include "control.h"      
+#include "plant.h"
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TRC/ITRC
       
       integer ncomp,ncon
@@ -227,7 +228,7 @@ C << note that isetptt should be dimensioned MCF >>
                   if(ij.eq.itd3)then
                     if(DBTASK(ITD1)(1:6).eq.'SETPTT')then
 
-C Search instances in temporal file to find match(s).
+C Search instances in temporal file to find match(es).
                       DO itd4=1,NDATA
                         IF(TAG(itd4)(1:lnblnk(TAG(itd4))).EQ.
      &                    DBTAG(itd1)(1:lnblnk(DBTAG(itd1))))THEN
@@ -257,7 +258,47 @@ C Search instances in temporal file to find match(s).
                     endif
                   endif
   80            continue
-              endif          
+              endif 
+
+C Supply water temperature for pcomp2.F
+              iplcomp=0
+              if(DBZN(itd1)(1:9).eq.'plantCom_')then
+                read(DBZN(itd1)(10:12),*,iostat=ios,err=2)iplcomp
+                do 180 itd3=1,mpcom
+                  if(iplcomp.eq.itd3)then
+                    if(DBTASK(ITD1)(1:7).eq.'SUPPLWT')then 
+
+C Search instances in temporal file to find match(es).
+                      DO itd4=1,NDATA
+                        IF(TAG(itd4)(1:lnblnk(TAG(itd4))).EQ.
+     &                    DBTAG(itd1)(1:lnblnk(DBTAG(itd1))))THEN
+                          ISUPPLWT(itd3)=itd4
+                        ENDIF
+                      ENDDO
+                    endif
+                  endif
+  180           continue                                          
+              endif                       
+
+C Volume flow rate for pcloop.F (PCL08).
+              iplcomp=0
+              if(DBZN(itd1)(1:12).eq.'plantVFRCom_')then
+                read(DBZN(itd1)(13:15),*,iostat=ios,err=2)iplcomp
+                do 190 itd3=1,mpcom
+                  if(iplcomp.eq.itd3)then
+                    if(DBTASK(ITD1)(1:7).eq.'PUMPVFR')then 
+
+C Search instances in temporal file to find match(es).
+                      DO itd4=1,NDATA
+                        IF(TAG(itd4)(1:lnblnk(TAG(itd4))).EQ.
+     &                    DBTAG(itd1)(1:lnblnk(DBTAG(itd1))))THEN
+                          IPUMPVFR(itd3)=itd4
+                        ENDIF
+                      ENDDO
+                    endif
+                  endif
+  190           continue                                          
+              endif  
   78        continue
 
 C Debug...
@@ -537,7 +578,7 @@ C will be read in. If version 3 then only a limited header is expected.
 #include "net_flow.h"
 #include "tdf2.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Pointer to start of each item header in TDF file.
       COMMON/HDAT/IHREC(MIT)
@@ -1101,7 +1142,7 @@ C espriou.h provides current file.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TDFOPEN/OPTDF
       COMMON/HDAT/IHREC(MIT)
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
@@ -1481,14 +1522,10 @@ C     &  ' ndata',ndata
         NWPR= ITWPR-1
       endif
 
-C Debug.
-C      write(6,*) 'b nwpr=',nwpr,' nuwpr=',nuwpr,' itwpr=',itwpr,
-C     &  ' ndata',ndata
-
       ier=0
       call EFOPRAN(iutdf,LTDF,ITWPR,3,IER)
-      WRITE(OUTS,'(A,A)')' Opened new ',LTDF(1:lnblnk(LTDF))       
-      CALL EDISP(IUOUT,OUTS)
+C      WRITE(OUTS,'(A,A)')' Opened new ',LTDF(1:lnblnk(LTDF))       
+C      CALL EDISP(IUOUT,OUTS)
       OPTDF=.TRUE.
         
 C Update the scratch file. If ndata has been lost, reset from nitdf.
@@ -1523,7 +1560,7 @@ C trace level, IER=0 OK, IER=1 problem.
 #include "net_flow.h"
 #include "tdf2.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Single timestep of TABULAR data and temporary storage TABT.
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
@@ -1567,7 +1604,7 @@ C trace level, IER=0 OK, IER=1 problem.
 #include "net_flow.h"
 #include "tdf2.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Single timestep of TABULAR data and temporary storage TABUPREV.
       COMMON/TDATPREV/TABUPREV(MTABC)
@@ -1611,7 +1648,7 @@ C ITREC is the record to be written.  ITRC is the trace level.
 #include "net_flow.h"
 #include "tdf2.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
       CHARACTER msgl2*48
 
@@ -1649,7 +1686,7 @@ C to alter the number of columns check the value of iadcols.
 #include "net_flow.h"
 #include "tdf2.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/TDFADDC/iadcols,deftabu(9)
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
 C      CHARACTER delim*1,msgl2*48,louts*1000,outs*124

@@ -42,6 +42,7 @@ C coded is 60 g/h. A source term is specified in the CV where a person
 C is breathing.  
 C 
       SUBROUTINE CALCHUM  
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -358,9 +359,10 @@ C laminar or turbulent cases - at solid walls the BC's are
 C always of the zero-gradient type. 
 
       SUBROUTINE BNDARHUM                                                      
+#include "building.h"
 #include "cfd.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
      &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
      &             JOPENf(MCFND,MNZ),KOPENi(MCFND,MNZ),
@@ -803,6 +805,7 @@ C face for blockages.
 C Zero-gradient type of BC's are applied 
 C
       SUBROUTINE BLKBNDH(IBLK)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP

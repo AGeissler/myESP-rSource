@@ -39,7 +39,7 @@ C a zone transitional shading file.
       integer icomp   ! focus zone
       logical allsurf ! if true then do not ask user confirmation
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       common/filech/ixopen,ixunit,ixpunit
       common/prec8/slat,slon
@@ -52,7 +52,7 @@ C a zone transitional shading file.
 
       dimension month(12),iavdec(12)
       character outs*124,month*3,sn*12
-      logical ok,dok
+      logical ok
  
       integer iexcludediff_flag
       common/excludediff/iexcludediff_flag
@@ -208,8 +208,7 @@ C Determine if results are available for another surface?
         if(allsurf)then
           continue
         else
-          dok=.true.
-          call askok(' ','Consider next surface?',ok,dok,0)
+          call easkok(' ','Consider next surface?',ok,0)
           if(.not.ok)return
         endif
    10 continue
@@ -231,7 +230,7 @@ C surface shading for each hour based on common block data.
       
       integer lnblnk  ! function definition
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filech/ixopen,ixunit,ixpunit
       common/prec8/slat,slon
       integer mon,isc,iyd
@@ -242,7 +241,7 @@ C surface shading for each hour based on common block data.
 
       dimension month(12),iavdec(12)
       character outs*124,month*3,sn*12
-      logical ok,dok
+      logical ok
  
       integer iexcludediff_flag
       common/excludediff/iexcludediff_flag
@@ -349,8 +348,7 @@ C Determine if results are available for another surface?
            if(isc(j).ne.0)mores=1
    30   continue
         if(mores.eq.0)return
-        dok=.true.
-        call askok(' ','Consider next surface?',ok,dok,0)
+        call easkok(' ','Consider next surface?',ok,0)
         if(.not.ok)return
    10 continue
 
@@ -369,7 +367,7 @@ C parameter act (1 char) is 's' for silent mode and 'i' for interacitve
       character act*1
       logical allsurf ! if true then do not ask user confirmation
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filech/ixopen,ixunit,ixpunit
       common/prec8/slat,slon
       integer mon,isc,iyd
@@ -382,7 +380,7 @@ C parameter act (1 char) is 's' for silent mode and 'i' for interacitve
 
       character month*3,outs*124,sn*12
       dimension month(12),iavdec(12)
-      logical close,ok,dok
+      logical close,ok
 
       data iavdec/17,15,16,15,15,11,17,16,16,16,15,11/
       data month/'Jan','Feb','Mar','Apr','May','Jun','Jul',
@@ -500,14 +498,13 @@ C mode then list all surfaces.
           if(ntmc(j).ne.0)mores=1
    40   continue
         if(mores.eq.0)return
-        dok=.true.
         if(act.eq.'s')then
           ok=.true.
         else
           if(allsurf)then
             ok=.true.
           else
-            call askok(' ','Consider next source surface?',ok,dok,0)
+            call easkok(' ','Consider next source surface?',ok,0)
           endif
         endif
         if(.not.ok)return

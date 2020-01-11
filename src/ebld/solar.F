@@ -45,7 +45,7 @@ C on internal and external surfaces.
       include "building.h"
       include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
@@ -122,6 +122,8 @@ C any flux  absorptions within the contiguous TMC.
             call edisp(iuout,outs)
             call edisp(iuout,
      &         ' but is not! The simulation will be stopped.')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP
@@ -184,9 +186,7 @@ C and future time rows. Units: W/m^2
       include "CFC_common.h"
       include "net_flow.h"
       include "tdf2.h"
-C <FMI>
       include "FMI.h"
-C </FMI>
 
 C ADD NEW PARAMETER STATEMENT
 C MSTMC is number of different bidirectional datasets, limited
@@ -199,14 +199,13 @@ C At present this assumes 5deg bi-directional data from -90 to +90
 C in elevation and azimuth.
       PARAMETER (MSTMC=20,MSGAL=40,MANH=37,MANV=37)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/BTIME/BTIMEP,BTIMEF
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),AE(MCOM,MS)
@@ -2712,7 +2711,7 @@ C value and added to the direct normal value.
 
       SUBROUTINE MZSINT(ICOMP,QD,QF)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DNORGH/IRTYPE
       COMMON/BTIME/BTIMEP,BTIMEF
 
@@ -2771,6 +2770,8 @@ C FATAL ERROR: direct normal > solar constant & altitude > 13deg
       write(outs,'(a,F6.1,a,F6.1)')' and global horizontal is ',QDF,
      &  ' and diffuse is ',QFF
       call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -2785,11 +2786,10 @@ C the bidirectional case.
       SUBROUTINE MZSCAI(ICOMP,II,CAI,ANGI,IND1,IND2,PSAZI2,
      &           PSELV2,IANGBI1,IANGBI2)
 #include "building.h"
+#include "geometry.h"
 
 C Next line and the related common block were existing here but not used anywhere
 C      PARAMETER (MSTMC=20,MSGAL=40,MANH=37,MANV=37)
-
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
 
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
 
@@ -2809,7 +2809,7 @@ C     &  TMVISUAL(MSTMC,MSGAL)
       R=PI/180.
 
 C Surface-solar azimuth angle for this external construction.
-      PSAZI=ABS(PAZI(ICOMP,II)-SAZI)
+      PSAZI=ABS(SPAZI(ICOMP,II)-SAZI)
 
 C Calculate angles for bi-directional information
 C PSAZI2 is the solar minus surface normal azimuths.
@@ -2819,16 +2819,16 @@ C PSELV2 is the solar minus surface normal elevations.
 C Example: for a vertical surface, sun vertically above
 C is +90deg, horizontal sun is 0deg, with -ve values
 C for the ground reflections.
-      PSAZI2=SAZI-PAZI(ICOMP,II)
-      PSELV2=SALT-PELV(ICOMP,II)
+      PSAZI2=SAZI-SPAZI(ICOMP,II)
+      PSELV2=SALT-SPELV(ICOMP,II)
 
 C Angle of incidence and its cosine.
-C      CAI=COS(SALT*R)*SIN((90.-PELV(ICOMP,II))*R)*
-C     &COS(PSAZI*R)+SIN(SALT*R)*COS((90.-PELV(ICOMP,II))*R)
+C      CAI=COS(SALT*R)*SIN((90.-SPELV(ICOMP,II))*R)*
+C     &COS(PSAZI*R)+SIN(SALT*R)*COS((90.-SPELV(ICOMP,II))*R)
 
 C Angle of incidence and its cosine (Iain Macdonald Feb 2006).
-      CAI=COS(SALT*R)*SIN((90.-PELV(ICOMP,II))*R)*COS(PSAZI*R)+
-     &    SIN(SALT*R)*COS((90.-PELV(ICOMP,II))*R)
+      CAI=COS(SALT*R)*SIN((90.-SPELV(ICOMP,II))*R)*COS(PSAZI*R)+
+     &    SIN(SALT*R)*COS((90.-SPELV(ICOMP,II))*R)
       IF(CAI.LT.0.)CAI=0.
       ANGI=ACOS(CAI)/R
 C Establish angle of incidence index (IND1) for
@@ -2879,11 +2879,10 @@ C "simple_solar_coll_coeff_gen".
 
       SUBROUTINE MZSRAD(ICOMP,II,QD,QF,CAI,SRADDO,SRADF,SKYDIF,GRDDIF)
 #include "building.h"
-
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
+#include "geometry.h"
 
 C Slope of surface
-      BETA=90.0-PELV(ICOMP,II)
+      BETA=90.0-SPELV(ICOMP,II)
 
 C Call subroutine to determine direct and diffuse solar
 C radiation
@@ -2932,11 +2931,15 @@ C  and ground reflected components.
       SUBROUTINE MZSRAD0(SLOPE,QD,QF,CAI,SRADDO,SRADF,SKYDIF,GRDDIF)
 #include "building.h"
 #include "site.h"
+#include "net_flow.h"
+#include "tdf2.h"
 
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       COMMON/SKYFLG/ISKYFL
       COMMON/DNORGH/IRTYPE
+      common/btime/btimep,btimef
+      common/trc/itrc
 
 C Start Perez definitions (1990 have suffix 2):
       DIMENSION  EPSINT(8),EPSINT2(8),
@@ -2944,6 +2947,8 @@ C Start Perez definitions (1990 have suffix 2):
      &           F21ACC(8),F22ACC(8),F23ACC(8),
      &           F11ACC2(8),F12ACC2(8),F13ACC2(8),
      &           F21ACC2(8),F22ACC2(8),F23ACC2(8)
+
+      DIMENSION VAL(MBITS+2)
 
 C Coefficients (Perez 1987):
       DATA EPSINT/1.056,1.253,1.586,2.134,3.230,5.980,10.080,999999./
@@ -3450,22 +3455,22 @@ C IANS=1 ; self-shading occurs
 
       SUBROUTINE MZSFSH(ICOMP,IS,IANS)
 #include "building.h"
+#include "geometry.h"
 
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
 
       PI = 4.0 * ATAN(1.0)
       R=PI/180.
 
 C Determine the surface-solar azimuth angle.
-      PSAZI=ABS(PAZI(ICOMP,IS)-SAZI)
+      PSAZI=ABS(SPAZI(ICOMP,IS)-SAZI)
 
 C Cosine of angle of incidence.
       X1=COS(SALT*R)
-      X2=SIN((90.-PELV(ICOMP,IS))*R)
+      X2=SIN((90.-SPELV(ICOMP,IS))*R)
       X3=COS(PSAZI*R)
       X4=SIN(SALT*R)
-      X5=COS((90.-PELV(ICOMP,IS))*R)
+      X5=COS((90.-SPELV(ICOMP,IS))*R)
       CAI=X1*X2*X3+X4*X5
 
 C Surface is self-shaded if CAI is less than or
@@ -3554,7 +3559,7 @@ c         receiving internal surfaces.
 #include "CFC_common.h"
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -3579,7 +3584,7 @@ C Shading file record width found in mzshin.
       CHARACTER*72 LS
       DIMENSION ISS(12),ISADD(12)
       character outs*124
-      logical OK,dok
+      logical OK
       integer ier
 
 C For help messages
@@ -3700,14 +3705,15 @@ c applied to zone with which error is associated.
         call edisp(iuout,outs)
 
     3   call edisp(iuout,' ')
-        dok=.true.
         helptopic='ignore_shading_warning'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' Continue the simulation and assume zero ',
-     &    ' shading with default plane insolation?',OK,dok,nbhelp)
+        CALL EASKOK('Continue the simulation and assume zero',
+     &    'shading with default plane insolation?',OK,nbhelp)
         IF(OK)goto  9
 
 c Terminate simulation.
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
 
@@ -3757,6 +3763,8 @@ C Building side time step parameters
 
       INTEGER ITC,ICNT
       COMMON/TC/ITC,ICNT
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
 
       INTEGER ITCF,ITRACE,IZNTRC,ITU
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
@@ -3777,6 +3785,7 @@ C Local variables
                         ! for each hour of the year
       REAL SNDEP        ! snow depth read from binary file
       REAL SREFP        ! updated ground reflectivity for the time step
+      integer istat
 
 C Saved variables for last snow albedo calculation
       INTEGER IDYLS     ! last day for which snow albedo calculated
@@ -3897,6 +3906,8 @@ C-----------------------------------------------------------------------
 
  9000 CONTINUE
       call tstamp('>','SIM: Error reading binary snow depth file')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
 
@@ -3929,12 +3940,14 @@ C ESP-r Commons
 #include "site.h"
 C site.h has common C5
 
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       INTEGER IFIL      ! Unit number used for processing input/output files
       COMMON/FILEP/IFIL
 
 C Local variables
       CHARACTER OUTS*124
-      LOGICAL FOUND,OK,DOK,FEXIST
+      LOGICAL FOUND,OK,FEXIST
       REAL SNDEP        ! snow depth (cm)
       INTEGER ICOUNT    ! number of data items into snow depth file
       INTEGER IER       ! flag indicating if snow depth file was read successfully
@@ -3958,19 +3971,18 @@ C ERROR IF CANNOT BE FOUND
       CALL FINDFIL(SNFNAM,FOUND)
       IF (.NOT.FOUND) THEN
         DO WHILE(.NOT.FOUND)
-          dok=.true.
           WRITE(OUTS,'(A,A)') 'Could not find snow depth file: ',SNFNAM
           helptopic='snow_depth_file'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(OUTS,
-     &      ' Respecify? (simulator will exit if [no]!)',
-     &      OK,DOK,nbhelp)
+          CALL EASKOK(OUTS,'Respecify?',OK,nbhelp)
           IF (OK) THEN
             CALL EASKS(SNFNAM,'Enter name of snow depth file',
      &        ' ',72,' ','Snow depth file',IER,nbhelp)
             CALL FINDFIL(SNFNAM,FOUND)
           ELSEIF(.NOT.OK) THEN
             call tstamp('>','SIM: snow depth file cannot be found')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epagend
             STOP
           ENDIF
@@ -3988,6 +4000,8 @@ C Open snow depth ASCII file.
       CALL EFOPSEQ(IFILSN,SNFNAM,1,IER)
       IF (IER.NE.0) THEN
         call tstamp('>','SIM: snow depth file cannot be found')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epagend
         STOP
       ENDIF
@@ -4011,6 +4025,8 @@ C Loop on data from ascii file and read data and write into binary form.
       IF (ICOUNT<8760) THEN
         call tstamp('>',
      &   'SIM: snow depth file has fewer than 8760 values')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epagend
         STOP
       ENDIF
@@ -4022,6 +4038,8 @@ C Close ASCII file and return.
 C Error processing.
   950 CONTINUE
       call tstamp('>','SIM: Error processing snow depth file')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
 
@@ -4134,6 +4152,7 @@ C only controls related to bidirectional data. In the future, all
 C existing and new controls should be added here.
 
       SUBROUTINE MZSCTL(ICOMP,ISURFNumber,SRADDO,SRADF,ISET)
+
 #include "building.h"
 #include "geometry.h"
 #include "net_flow.h"
@@ -4142,7 +4161,7 @@ C existing and new controls should be added here.
 #include "esprdbfile.h"
 #include "material.h"
       PARAMETER (MSTMC=20,MSGAL=40,MANH=37,MANV=37)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/BTIME/BTIMEP,BTIMEF
@@ -4254,6 +4273,8 @@ C If NDAYT=0 set data to all day types.
           call edisp(iuout,outs)
           call edisp(iuout,
      &         ' CONTRL: cannot locate appropriate day type')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP
@@ -4263,6 +4284,8 @@ C Check number of periods in each day and the start and finish times
           NDAYP=NOCDP(IOFP,IDTYP)
           IF(NDAYP.EQ.0)then
             call edisp(iuout,' CONTRL: no day-periods defined')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP
@@ -4629,6 +4652,7 @@ C ******************** MZOCTL
 C The main optical control function executive.
 
       SUBROUTINE MZOCTL(icomp)
+
 #include "building.h"
 #include "control.h"
 
@@ -4685,6 +4709,7 @@ C ******************** OCL01
 C Set optical controls defined in (ahem?) constructions files on or off
 C This is done by setting the flag IBCMDT=1 or 0
       SUBROUTINE OCL01(icomp)
+
 #include "building.h"
 #include "control.h"
 

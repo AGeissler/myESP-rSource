@@ -36,11 +36,11 @@ C characteristics of the chosen climatic collection.
 #include "epara.h"
 
       COMMON/RADTYP/IDNGH
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*26 ITEM(30)
       character outs*124
-      logical ok,dok
+      logical ok
       integer NITMS,INO  ! max items and current menu item
       integer nbdays,nbhours  ! summation of days hours within range
       logical close
@@ -115,7 +115,7 @@ C Number of actual items displayed.
         CALL CLMDAY(IER)
       elseif (INO.gt.MHEAD.and.INO.le.(NITMS-MCTL)) then
 
-C Select a climate metric.
+C Select a weather metric.
         CALL KEYIND(NITMS,INO,imenu,IO)
         IP=menumetric(imenu)
       elseif (INO.eq.(NITMS-12)) then
@@ -134,7 +134,7 @@ C MAXIMUM, MINIMUM AND MEAN VALUES.
         endif
         helptopic='dd_day_week_month'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' Degree day reporting: ',' ','daily','weekly',
+        CALL EASKABC(' ','Degree-day report:','daily','weekly',
      &    'monthly',iddc,nbhelp)
         if(iddc.eq.1)then
           CALL CLMMMM(IP,'d')
@@ -174,9 +174,9 @@ C Make sure that upper is above lower.
 C Degree days.
         helptopic='dd_day_week_month'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKATOG('Degree day or hour reporting:',' ',
-     &    'DD daily','DD weekly','DD monthly','DD seasonal',
-     &    'DH daily','DH monthly','continue',iddc,nbhelp)
+        CALL EASKATOG(' ','Degree-day (hour) reporting options:',
+     &    'daily D-D','weekly D-D','monthly D-D','seasonal D-D',
+     &    'daily D-H','monthly D-H','cancel',iddc,nbhelp)
         if(iddc.eq.1)then
           CALL CLMDEG('d')
         elseif(iddc.eq.2)then
@@ -211,12 +211,11 @@ C CSI equation calculation.
       elseif(ino.eq.NITMS-3)then
 
 C Look for DD and Radiation typical week.
-        dok=.true.
-        helptopic='best_fit_pause'
+        helptopic='typical weeks'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call askok('Do you want to record the best-fit weeks (for',
+        call easkok('Do you want to record the best-fit weeks (for',
      &    'use in climatelist typical assessment periods)?',
-     &    ok,dok,nbhelp)
+     &    ok,nbhelp)
         if(ok)then
           call DDRADSUM('?')
 
@@ -226,7 +225,7 @@ C << But where are the best-fit weeks reported? >>
           call DDRADSUM('-')
         endif
       elseif(ino.eq.nitms-1)then
-        helptopic='typical_week_overview'
+        helptopic='synoptic_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('weather synopsis',nbhelp,'-',0,0,IER)
       elseif(ino.eq.nitms)then
@@ -245,7 +244,7 @@ C  terms of a dimensionless number - the CSI.
       SUBROUTINE CSIEQN
 #include "climate.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/appw/iappw,iappx,iappy
@@ -257,7 +256,7 @@ C  terms of a dimensionless number - the CSI.
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/CLMDT1/CLMLOC
-      CHARACTER CLMLOC*30,outs*124
+      CHARACTER CLMLOC*42,outs*124
 
       DIMENSION CSIT(12),CSIRD(12),CSIRF(12),CSIW(12),CSI(12)
       DIMENSION AA(30),BB(30),CC(30),DD(30),EA(30),EB(30),EC(30),ED(30)
@@ -464,8 +463,8 @@ C     IF(J.GT.4.AND.J.LT.9)goto 3
       goto 10
 
    11 call edisp(itru,' Climatic Severity Index for :')
-      WRITE(outs,4)CLMLOC,CLAT,CLONG,IYEAR
-    4 FORMAT(1X,A30,F7.2,'N',F7.2,'W',' :',I5)
+      WRITE(outs,4)CLMLOC(1:lnblnk(CLMLOC)),CLAT,CLONG,IYEAR
+    4 FORMAT(1X,A,1X,F7.2,'N',F7.2,'W',' :',I5)
       call eddisp(itru,outs)
       WRITE(outs,'(A,A)')' House Type  ',CSIM(IHOUSE+2)
       call edisp(itru,' ')
@@ -517,9 +516,8 @@ C     IF(I.GT.4.AND.I.LT.9)goto 30
       END
 
 
-C  CLMAV COMPUTES THE DAILY PROFILES(HOUR BY HOUR)OVER THE
-C  SPECIFIED PERIOD OF THE MIN,MAX MEAN,ST.DEV. ETC. FOR THE CHOSEN
-C IP is climate metric index, as defined in climate.h.
+C  CLMAV computes the MIN, MAX, MEAN, ST.DEV. values for the selected
+C  profile. IP is the weather metric as defined in climate.h.
 
       SUBROUTINE CLMAV(IP)
 #include "climate.h"
@@ -783,13 +781,13 @@ C GET REFERENCED LO & HI DAYS FOR PERIOD
       END
 
 C ********* CLMDEG *******
-C CLMDEG computes degree days or equivalent for the given period.
+C CLMDEG computes degree-days or equivalent for the given period.
 C Display is per day.
       SUBROUTINE CLMDEG(act)
 #include "climate.h"
 
 C Passed parameter
-      character act*1  ! d for degree day h for degree hour reporting
+      character act*1  ! d for degree-day h for degree hour reporting
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTPCH/ICOUT
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
@@ -809,10 +807,10 @@ C For help messages
       helptopic='dd_base_temperature'
       call gethelptext(helpinsub,helptopic,nbhelp)
       BT=17.
-      CALL EASKR(BT,' ',' Base temperature ? ',
+      CALL EASKR(BT,' ','Base temperature?',
      &  -10.,'W',40.,'W',17.0,'DD base temp',IER,nbhelp)
 
-C Set logical for degree day reporting.
+C Set logical for degree-day reporting.
       if(act.eq.'d'.or.act.eq.'D'.or.act.eq.'-')then
         ddok=.true.
       else
@@ -834,9 +832,9 @@ C If output to file alter the edisp unit number.
       HRM=0.
 
       if(ddok)then
-        WRITE(outs,'(a,F6.1,a)')' Degree day analysis at',BT,' Deg C'
+        WRITE(outs,'(a,F6.1,a)')' Degree-day analysis at',BT,' Deg C'
       else
-        WRITE(outs,'(a,F6.1,a)')' Degree hour analysis at',BT,' Deg C'
+        WRITE(outs,'(a,F6.1,a)')' Degree-hour analysis at',BT,' Deg C'
       endif
       call edisp(itru,outs)
       if(ddok)then
@@ -913,9 +911,9 @@ C AV DEGDAYS PER DAY OVER MONTH
 
       CALL CHEAD(30)
       if(ddok)then
-        WRITE(outs,'(a,F6.1,a)')' Degree day analysis at',BT,' Deg C'
+        WRITE(outs,'(a,F6.1,a)')' Degree-day analysis at',BT,' Deg C'
       else
-        WRITE(outs,'(a,F6.1,a)')' Degree hour analysis at',BT,' Deg C'
+        WRITE(outs,'(a,F6.1,a)')' Degree-hour analysis at',BT,' Deg C'
       endif
       call edisp(itru,outs)
       if(ddok)then
@@ -1013,13 +1011,13 @@ C AV DEGDAYS PER DAY OVER PERIOD
       END
 
 C ********* SYNOPDEG *******
-C SYNOPDEG computes monthly heating and cooling DEGREE DAYS 
+C SYNOPDEG computes monthly heating and cooling DEGREE-DAYS 
 C for the given period.
       SUBROUTINE SYNOPDEG(act)
 #include "climate.h"
 
 C Passed parameter
-      character act*1  ! d for degree day h for degree hour reporting
+      character act*1  ! d for degree-day h for degree-hour reporting
       COMMON/OUTPCH/ICOUT
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/DAYSF/KDS,KDF
@@ -1038,13 +1036,13 @@ C For help messages
       helptopic='dd_base_temperatures'
       call gethelptext(helpinsub,helptopic,nbhelp)
       HBT=17.
-      CALL EASKR(HBT,' ',' Heating base temperature ? ',
+      CALL EASKR(HBT,' ','Heating base temperature?',
      &  -10.,'W',40.,'W',17.0,'DD heating base temp',IER,nbhelp)
       CBT=21.
-      CALL EASKR(CBT,' ',' Cooling base temperature ? ',
+      CALL EASKR(CBT,' ','Cooling base temperature?',
      &  -10.,'W',40.,'W',21.0,'DD cooling base temp',IER,nbhelp)
 
-C Set logical for degree day reporting.
+C Set logical for degree-day reporting.
       if(act.eq.'d'.or.act.eq.'D'.or.act.eq.'-')then
         ddok=.true.
       else
@@ -1055,7 +1053,7 @@ C If output to file alter the edisp unit number.
       itru = icout
       if(ixopen.eq.1)then
         itru = ixunit
-        call usrmsg(' Output being directed to file...',' ','-')
+        call usrmsg(' Output being directed to file ...',' ','-')
       endif
       CALL CHEAD(30)
       MTH1=IM1
@@ -1066,11 +1064,11 @@ C If output to file alter the edisp unit number.
 
       if(ddok)then
         WRITE(outs,'(a,F6.1,a,F6.1,a)')
-     &    ' Degree day analysis: heating base at',HBT,' & cooling',
+     &    ' Degree-day analysis: heating base at',HBT,' & cooling',
      &    CBT,' Deg C'
       else
         WRITE(outs,'(a,F6.1,a,F6.1,a)')
-     &    ' Degree hour analysis: heating base at',HBT,' & cooling',
+     &    ' Degree-hour analysis: heating base at',HBT,' & cooling',
      &    CBT,' Deg C'
       endif
       call edisp(itru,outs)
@@ -1560,10 +1558,9 @@ C AV DEGDAYS per day over week
 
 C Pause if a long list.
         if((idf-IDS).gt.120.and.ix.gt.120)then
-          dok=.true.
           helptopic='dd_reporting_pause'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok(' continue listing?',' ',OK,dok,nbhelp)
+          call easkok(' ','Continue listing?',OK,nbhelp)
           ix=1
           WRITE(outs,'(a)')
      &  ' Week    (starting)       Heat dd           Cool dd'
@@ -1643,7 +1640,7 @@ C AV DEGDAYS PER DAY OVER PERIOD
       RETURN
       END
 
-C TO GET ONE DAY OF ONE CLIMATE PARAMETER
+C GET ONE DAY OF ONE WEATHER PARAMETER.
       SUBROUTINE CLMGT1(IDD,IP,XJ)
 #include "climate.h"
 

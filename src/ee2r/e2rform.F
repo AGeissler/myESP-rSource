@@ -32,7 +32,7 @@ C ******* Sky calculations. *******
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       character item*30,DESCRH*5,DESCRD*5,DESCR*7,DESCR1*10
@@ -42,7 +42,7 @@ C ******* Sky calculations. *******
 
       DIMENSION ITEM(14)
 
-      logical OK,DOK,XST
+      logical OK,XST
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -200,11 +200,10 @@ c Explains sky & time menu.
         if(skydone)then
           return
         else
-          dok=.false.
           helptopic='sky_file_not_generated'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(' Sky file has not yet been generated...',
-     &      ' Is it ok to exit ?',OK,dok,nbhelp)
+          CALL EASKOK('Sky file not yet generated!',
+     &      'OK to exit?',OK,nbhelp)
           IF(OK)return
           goto 10
         endif
@@ -224,7 +223,7 @@ C wrtsky calls radiance and writes sky info to file.
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       character skycmd*124,doit*124,tfile*72
@@ -261,7 +260,7 @@ C ACT = 's' silent, ACT = 'i' interactive.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       
@@ -269,7 +268,7 @@ C ACT = 's' silent, ACT = 'i' interactive.
       COMMON/C1/NCOMP,NCON
       COMMON/GTFIL/GTGEOM
 
-      LOGICAL OK,DOK,XST,fict
+      LOGICAL OK,XST,fict
 
       DIMENSION ITEM(17)
       character*72 tfile
@@ -449,11 +448,10 @@ C Explains composition/geometry menu.
         if(outdone)then
           return
         else
-          dok=.false.
           helptopic='e2r_outside_not_created'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(' Descriptions not yet been generated...',
-     &      ' Is it ok to exit ?',OK,dok,nbhelp)
+          CALL EASKOK('Descriptions not yet generated!',
+     &      'OK to exit?',OK,nbhelp)
           IF(OK)return
           goto 10
         endif
@@ -479,7 +477,7 @@ C If ACT='i' then interactive, ACT='s' for silent.
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       
       integer ncomp,ncon
@@ -524,7 +522,7 @@ C << and probably also for obs3 ? >>
       integer nobs  ! number of obstructions
       integer nvis  ! number of visual entities
 
-      LOGICAL OK,DOK,fict,extern,XST,similar
+      LOGICAL OK,fict,extern,XST,similar
       logical havediffusesources,founddiffuse
 
 C For help messages
@@ -575,9 +573,8 @@ C to treat as 'mkillum'.
 
 C Ask for alternative glazing file.
         if (NABS.gt.0) then
-          dok=.true.
-          call ASKOK('Blind shutter control is active.',
-     &      'Create model with blinds closed as well?',OK,dok,nbhelp)
+          call EASKOK('Blind shutter control active.',
+     &      'Create model with blinds closed as well?',OK,nbhelp)
           if (OK) then
             NBSRIF(ISCENE)=NABS
  12         ltmp72=aglzfil
@@ -1125,10 +1122,9 @@ C Aternative glazing descriptions file.
 C Confirm inclusion of obstructions.
         if(nbobs(newfoc).ge.1)then
           if(ACT.eq.'i')then
-            write(outs,'(3a)') ' Include ',ZN(1:lnblnk(ZN)),
-     &                         ' obstructions ? '
-            dok=.true.
-            CALL ASKOK(' ',outs,OK,dok,nbhelp)
+            write(outs,'(3a)') 'Include ',ZN(1:lnblnk(ZN)),
+     &                         ' obstructions?'
+            CALL EASKOK(' ',outs,OK,nbhelp)
           else
             OK=.TRUE.
           endif
@@ -1226,10 +1222,9 @@ C Write the coordinates for face isf.
 C Confirm inclusion of visual object.
         if(nbvis(newfoc).ge.1)then
           if(ACT.eq.'i')then
-            write(outs,'(3a)') ' Include ',ZN(1:lnblnk(ZN)),
-     &                         ' visual entities ? '
-            dok=.true.
-            CALL ASKOK(' ',outs,OK,dok,nbhelp)
+            write(outs,'(3a)') 'Include ',ZN(1:lnblnk(ZN)),
+     &                         ' visual entities?'
+            CALL EASKOK(' ',outs,OK,nbhelp)
           else
             OK=.TRUE.
           endif
@@ -1759,7 +1754,7 @@ C Passed parameters.
       integer ier
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       
       integer ncomp,ncon
@@ -1859,9 +1854,9 @@ C Loop through the known IES entities to find a match.
 
 C The transform (assuming the IES data is centred at the
 C site origin) is to the surface centre of gravity.
-                  trnsx=ssurcog(icn,1)
-                  trnsy=ssurcog(icn,2)
-                  trnsz=ssurcog(icn,3)-0.01   ! bit lower in case embedded in bounding surface
+                  trnsx=surcog(newfoc,isf,1)
+                  trnsy=surcog(newfoc,isf,2)
+                  trnsz=surcog(newfoc,isf,3)-0.01   ! bit lower in case embedded in bounding surface
 
 C The rotation of the IES data is assumed to be a match
 C of its longer dimension axis (X or Y) and the longest

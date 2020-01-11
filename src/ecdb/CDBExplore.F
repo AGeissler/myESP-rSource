@@ -53,7 +53,7 @@ C IML - maximum level that can be viewed.
 
       INTEGER ID
 
-      LOGICAL EDITABLE,EDITABLE2,OK,DOK
+      LOGICAL EDITABLE,EDITABLE2,OK
 
       IF(NBDOMAIN.gt.0)THEN 
         ILEN=NBDOMAIN
@@ -152,8 +152,7 @@ C Catch menu events that may be influenced by the variable menu structure.
 
 C Delete a domain, first display access warning
         OK=.FALSE.
-        dok=.true.
-        CALL ASKOK(' ',' Continue ?',OK,dok,7)
+        CALL EASKOK(' ','Continue?',OK,7)
         IF(.NOT.OK) then
           goto 210
         else
@@ -192,7 +191,7 @@ C ***********************************************************************
       CHARACTER ICITEM*34, KEY*1
       INTEGER ID,IC,ID_S
 
-      LOGICAL EDITABLE,EDITABLE2,OK,DOK
+      LOGICAL EDITABLE,EDITABLE2,OK
 
       ID_S=ID
       IF(NBCAT(ID).gt.0)THEN 
@@ -293,8 +292,7 @@ C Catch menu events that may be influenced by the variable menu structure.
 
 C Delete a domain, first display access warning
         OK=.FALSE.
-        dok=.true.
-        CALL ASKOK(' ',' Continue ?',OK,dok,7)
+        CALL EASKOK(' ',' Continue?',OK,7)
         IF(.NOT.OK) then
           goto 210
         else
@@ -333,7 +331,7 @@ C ***********************************************************************
 
       INTEGER ID,IC,IT,ID_S,IC_S,IER
 
-      LOGICAL EDITABLE,EDITABLE2,OK,DOK
+      LOGICAL EDITABLE,EDITABLE2,OK
 
       ID_S=ID
       IC_S=IC
@@ -434,8 +432,7 @@ C Catch menu events that may be influenced by the variable menu structure.
 
 C Delete a domain, first display access warning
         OK=.FALSE.
-        dok=.true.
-        CALL ASKOK(' ',' Continue ?',OK,dok,7)
+        CALL EASKOK(' ','Continue?',OK,7)
         IF(.NOT.OK) then
           goto 210
         else
@@ -475,7 +472,7 @@ C ***********************************************************************
 
       INTEGER ID,IC,IT,ID_S,IC_S,IT_S,IER
 
-      LOGICAL EDITABLE,EDITABLE2,STATIC,OK,DOK,MATCH
+      LOGICAL EDITABLE,EDITABLE2,STATIC,OK,MATCH
 
       MATCH=.FALSE.
 
@@ -613,8 +610,7 @@ C Describe components and menu structure.
 
 C Delete a domain, first display access warning
         OK=.FALSE.
-        dok=.true.
-        CALL ASKOK(' ',' Continue ?',OK,dok,7)
+        CALL EASKOK(' ','Continue?',OK,7)
         IF(.NOT.OK) then
           goto 210
         else
@@ -654,7 +650,7 @@ C ***********************************************************************
 
       INTEGER ICMP_S,IER,IP,IMOUT,NICITEM
 
-      LOGICAL EDIT1,STATIC,OK,DOK,STAT
+      LOGICAL EDIT1,STATIC,OK,STAT
 c      LOGICAL EDITABLE2
 C Identify the number of data categories
       ICMP_S=ICMP
@@ -806,8 +802,7 @@ C Describe components and menu structure.
 
 C Parameter management first display access warning
         OK=.FALSE.
-        dok=.true.
-        CALL ASKOK(' ',' Continue ?',OK,dok,7)
+        CALL EASKOK(' ','Continue?',OK,7)
         IF(.NOT.OK) then
           goto 210
         else
