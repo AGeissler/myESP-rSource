@@ -353,7 +353,7 @@ C then check for spaces in name and change / to \.
         tmode='graph'
         if(teditor(1:2).eq.'vi')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' &'
+     &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
 
 C Toggle trace/feedback level.
@@ -470,7 +470,7 @@ C on it. If 'which' did not find anything the return will be non-zero.
           return
         endif
         doit='ls -l /tmp/foundit'          
-        call runit(doit,tmode)
+cx        call runit(doit,tmode)
         INQUIRE (FILE=hold32(1:ltf),EXIST=XST)
         IF (XST) THEN
           OPEN (IUNIT,FILE=hold32(1:ltf),ACCESS='SEQUENTIAL',
