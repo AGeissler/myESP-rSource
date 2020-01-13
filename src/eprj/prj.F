@@ -581,7 +581,7 @@ C update document.
         found_curl=.false.; hold32='curl'
         call isinstalled(hold32,found_curl)
         if(found_curl)then
-          write(doit,'(3a)') 'curl http://www.esru.strath.ac.uk/',
+          write(doit,'(3a)') 'curl -fs http://www.esru.strath.ac.uk/',
      &      'Downloads/ESP-r/update_notes.txt -o ',
      &      '/tmp/update_notes.txt'
           call runit(doit,'-')
