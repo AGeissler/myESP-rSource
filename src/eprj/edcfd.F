@@ -64,7 +64,7 @@ C #include "esprdbfile.h"
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/DEFLT3/DFCFD,DECMPDBFL,DICONDBFL
       common/cfdfil/LCFD(MCOM),IFCFD(MCOM)
@@ -82,7 +82,7 @@ C 3D visualisation mode.
       COMMON/MODVIS/IVISMOD
 
       logical origin,xgrid,ygrid,zgrid,zegrid,ortho
-      logical OK,dok,XST,CFDsave
+      logical OK,XST,CFDsave
 
       character OUTSTR*124,WORD*124,ETEXT*82
       CHARACTER ITEM(12)*34
@@ -283,10 +283,8 @@ C Wrong pick.
 C Conflation options.
         helptopic='cfd_conflation_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        dok=.true.
-        call ASKOK(
-     &      'Do you want to couple CFD with other simulation domains?',
-     &                                               ' ',OK,dok,nbhelp)
+        call EASKOK(' ',
+     &      'Couple CFD and other simulation domains?',OK,nbhelp)
         if(OK)then
           IFCFD(izone)=4
           helptopic='cfd_conflation_active'
@@ -332,9 +330,8 @@ C Help.
 
 C Exit CFD editing menu.
         if(.not.CFDsave)then
-          dok=.false.
-          CALL ASKOK('Data not yet saved to CFD input file.',
-     &               'Are you sure you want to exit? ',OK,dok,nbhelp)
+          CALL EASKOK('Data not yet saved.',
+     &                'Confirm exit?',OK,nbhelp)
           IF(.NOT.OK)GOTO 10
         endif
         return
@@ -343,7 +340,8 @@ C Exit CFD editing menu.
 
 C Error handling
     1 CALL USRMSG('Problem with CFD input file line:',OUTSTR,'W')
-      call edisp(iuout,' Plese check your CFD input file.')
+      call edisp(iuout,' ')
+      call edisp(iuout,'Please check your CFD input file.')
       return
 
       end
@@ -362,7 +360,7 @@ C IER=0 indicates no error.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       common/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       common/gzonpik/izgfoc,nzg,nznog(mcom)
@@ -1155,6 +1153,7 @@ C CFDSVAR: controls the editing of CFD solution variables.
 C IER=0 indicates no error.
 
       SUBROUTINE CFDSVAR(IER)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -1173,7 +1172,7 @@ C Solution methods.
       character ITEM(11+MCTM)*40, POLNAM*12
       LOGICAL CALLU,CALLV,CALLW,CALLT,CALLC,KEMDL,BUOY,BOUSSI
       LOGICAL ZEROT,ZandKE,MITzero
-      LOGICAL CALPOL,CALLMA,OK,dok
+      LOGICAL CALPOL,CALLMA,OK
       integer NITMS,INO ! max items and current menu item
 
 C For help messages
@@ -1306,9 +1305,9 @@ C Mean age of air.
       elseif(INO.EQ.8+NCTM(ICFD))then
 
 C Reset defaults.
-        dok=.false.
-        call askok('Resetting solution parameters to default values.',
-     &             'Are you sure? (see help)',OK,dok,nbhelp)
+        call easkok(' ',
+     &    'Reset solution parameters to default values?',
+     &    OK,nbhelp)
         if (OK) call CFDDEFLT
       elseif(INO.eq.7+NCTM(ICFD))then
 
@@ -1331,10 +1330,9 @@ C ************************ CFDEDAT ************************
 C CFDEDAT: controls the editing of CFD equations.
 
       SUBROUTINE CFDEDAT
-C #include "building.h"
+#include "building.h"
 #include "cfd.h"
 
-C      common/OUTIN/IUOUT,IUIN
       COMMON/ICFNOD/ICFD,ICP
       common/grdmax/NTCX,NTCY,NTCZ
 
@@ -1517,14 +1515,14 @@ C Ask for initial value of velocity in X direction.
 
 C Ask for relaxation factor 1 for velocity in X direction.
         VAL=URFCU(ICFD)
-        CALL EASKR(VAL,'Relaxation factor 1 (see help) for',
+        CALL EASKR(VAL,'Relaxation factor 1 for',
      &   'X velocity?',0.0,'F',1.5,'W',0.5,'U relax 1',IER,nbhelp)
         if (IER.eq.0) URFCU(ICFD)=VAL
       elseif(INO.EQ.4)then
 
 C Ask for relaxation factor 2 for velocity in X direction.
         VAL=URFCU2(ICFD)
-        CALL EASKR(VAL,'Relaxation factor 2 (see help) for',
+        CALL EASKR(VAL,'Relaxation factor 2 for',
      &   'X velocity?',0.0,'F',1.5,'W',0.05,'U relax 2',IER,nbhelp)
         if (IER.eq.0) URFCU2(ICFD)=VAL
       elseif(INO.EQ.6)then
@@ -1538,14 +1536,14 @@ C Ask for initial value of velocity in Y direction.
 
 C Ask for relaxation factor 1 for velocity in Y direction.
         VAL=URFCV(ICFD)
-        CALL EASKR(VAL,'Relaxation factor 1 (see help) for',
+        CALL EASKR(VAL,'Relaxation factor 1 for',
      &   'Y velocity?',0.0,'F',1.5,'W',0.5,'V relax 1',IER,nbhelp)
         if (IER.eq.0) URFCV(ICFD)=VAL
       elseif(INO.EQ.8)then
 
 C Ask for relaxation factor 2 for velocity in Y direction.
         VAL=URFCV2(ICFD)
-        CALL EASKR(VAL,'Relaxation factor 2 (see help) for',
+        CALL EASKR(VAL,'Relaxation factor 2 for',
      &   'Y velocity?',0.0,'F',1.5,'W',0.05,'V relax 2',IER,nbhelp)
         if (IER.eq.0) URFCV2(ICFD)=VAL
       elseif(INO.eq.10)then
@@ -1559,14 +1557,14 @@ C Ask for initial value of velocity in Z direction.
 
 C Ask for relaxation factor 1 for velocity in Z direction.
         VAL=URFCW(ICFD)
-        CALL EASKR(VAL,'Relaxation factor 1 (see help) for',
+        CALL EASKR(VAL,'Relaxation factor 1 for',
      &   'Z velocity?',0.0,'F',1.5,'W',0.5,'W relax 1',IER,nbhelp)
         if (IER.eq.0) URFCW(ICFD)=VAL
       elseif(INO.EQ.12)then
 
 C Ask for relaxation factor 2 for velocity in Z direction.
         VAL=URFCW2(ICFD)
-        CALL EASKR(VAL,'Relaxation factor 2 (see help) for',
+        CALL EASKR(VAL,'Relaxation factor 2 for',
      &   'Z velocity?',0.0,'F',1.5,'W',0.05,'W relax 2',IER,nbhelp)
         if (IER.eq.0) URFCW2(ICFD)=VAL
       elseif(INO.eq.14)then      
@@ -1588,14 +1586,14 @@ C Ask for initial value of temperature.
 
 C Ask for relaxation factor 1 for temperature.
         VAL=URFCT(ICFD)
-        CALL EASKR(VAL,'Relaxation factor 1 (see help) for',
+        CALL EASKR(VAL,'Relaxation factor 1 for',
      &   'temperature?',0.0,'F',1.5,'W',1.0,'T relax 1',IER,nbhelp)
         if (IER.eq.0) URFCT(ICFD)=VAL
       elseif(INO.EQ.17)then
 
 C Ask for relaxation factor 2 for temperature.
         VAL=URFCT2(ICFD)
-        CALL EASKR(VAL,'Relaxation factor 2 (see help) for',
+        CALL EASKR(VAL,'Relaxation factor 2 for',
      &   'temperature?',0.0,'F',1.5,'W',0.25,'T relax 2',IER,nbhelp)
         if (IER.eq.0) URFCT2(ICFD)=VAL
       elseif(INO.eq.19)then   
@@ -1632,11 +1630,11 @@ C Edit turbulence data according to current method.
 
 C Ask for relaxation factor 1 for k and epsilon.
           VAL=URFCK(ICFD)
-          CALL EASKR(VAL,'Relaxation factor 1 (see help) for',
+          CALL EASKR(VAL,'Relaxation factor 1 for',
      & 'turbulent energy?',0.0,'F',1.5,'W',1.0,'TE relax 1',IER,nbhelp)
           if (IER.eq.0) URFCK(ICFD)=VAL
           VAL=URFCE(ICFD)
-          CALL EASKR(VAL,'Relaxation factor 1 (see help) for',
+          CALL EASKR(VAL,'Relaxation factor 1 for',
      &      'energy dissipation?',0.0,'F',1.5,'W',1.0,'ED relax 1',IER,
      &                                                          nbhelp)
           if (IER.eq.0) URFCE(ICFD)=VAL
@@ -1655,12 +1653,12 @@ C Edit turbulence data according to current method.
 
 C Ask for relaxation factor 2 for k and epsilon.
           VAL=URFCK2(ICFD)
-          CALL EASKR(VAL,'Relaxation factor 2 (see help) for',
+          CALL EASKR(VAL,'Relaxation factor 2 for',
      &       'turbulent energy?',0.0,'F',1.5,'W',0.05,'TE relax 2',IER,
      &                                                          nbhelp)
           if (IER.eq.0) URFCK2(ICFD)=VAL
           VAL=URFCE2(ICFD)
-          CALL EASKR(VAL,'Relaxation factor 2 (see help) for',
+          CALL EASKR(VAL,'Relaxation factor 2 for',
      &     'energy dissipation?',0.0,'F',1.5,'W',0.05,'ED relax 2',IER,
      &                                                          nbhelp)
           if (IER.eq.0) URFCE2(ICFD)=VAL
@@ -1747,10 +1745,10 @@ C CFDEDATC is a continuation of CFDEDAT, controlling editing
 C of CFD contaminant equations.
 
       SUBROUTINE CFDEDATC
-C #include "building.h"
+#include "building.h"
 #include "cfd.h"
 
-C      common/OUTIN/IUOUT,IUIN
+C      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ICFNOD/ICFD,ICP
 
 C Equations solved.
@@ -1825,9 +1823,7 @@ C Display menu.
 C Process INO to get ICTM and option 1, 2 or 3.
       ICTM=(INO+2)/3
       IND=INO-(ICTM-1)*3
-C Debug
-C      write(6,*)'ICTM: ',ICTM
-C      write(6,*)'IND: ',IND
+
 C Create temporary strings.
       write(tstr,'(2a)')POLNAM(ICTM,ICFD)(1:lnblnk(POLNAM(ICTM,ICFD))),
      &                                                              '?'
@@ -1857,14 +1853,14 @@ C Toggle contaminant equation.
 
 C Ask for relaxation factor 1.
         VAL=URFCC(ICFD,ICTM)
-        CALL EASKR(VAL,'Relaxation factor 1 (see help) for',
+        CALL EASKR(VAL,'Relaxation factor 1 for',
      &                       tstr,0.0,'F',1.5,'W',1.0,tstr1,IER,nbhelp)
         if (IER.eq.0) URFCC(ICFD,ICTM)=VAL
       ELSEIF(IND.eq.3)THEN
 
 C Ask for relaxation factor 2.
         VAL=URFCC2(ICFD,ICTM)
-        CALL EASKR(VAL,'Relaxation factor 2 (see help) for',
+        CALL EASKR(VAL,'Relaxation factor 2 for',
      &                      tstr,0.0,'F',1.5,'W',0.25,tstr2,IER,nbhelp)
         if (IER.eq.0) URFCC2(ICFD,ICTM)=VAL
       ENDIF
@@ -1885,7 +1881,7 @@ C IER=0 indicates no error.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/ICFNOD/ICFD,ICP
-      COMMON/OUTIN/IUOUT,IUIN   
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT   
       common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
@@ -2330,7 +2326,7 @@ C IER=2: cells already contain a blockage or source (silent) < currently unused 
       character nam*12,confsurf*12
       real pol(npol),dat1,dat2,dat3,dat4,dat5
 
-      COMMON/OUTIN/IUOUT,IUIN      
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT    
       COMMON/ICFNOD/ICFD,ICP
       common/KEYVOLS/NVOL(MNZ),IVOLF(MNVLS,MNZ),IVCELLS(MNVLS,MNZ,2),
      &               JVCELLS(MNVLS,MNZ,2),KVCELLS(MNVLS,MNZ,2)
@@ -2579,7 +2575,7 @@ C IER=0 indicates no error.
       integer imode
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN      
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT     
       common/GRDVRTS/iorg(MNZ),ixend(MNZ),iyend(MNZ),izend(MNZ),
      &  izende(MNZ)
       COMMON/ICFNOD/ICFD,ICP
@@ -2597,7 +2593,7 @@ C IER=0 indicates no error.
       COMMON/C24/IZSTOCN(MCOM,MS)
 
       character outs*124,t6*6
-      logical ok,dok
+      logical ok
       logical doafnasc
       real vmax,wmin,wmax,r1,r2
 
@@ -2620,36 +2616,33 @@ C If there are already some defined, ask user if they want to clear
 C existing boundary conditions.
       if (NVOL(ICFD).gt.0) then
         if (imode.eq.0) then
-          outs='Do you want to clear all existing boundary conditions?'
-          dok=.true.
-          ok=dok
+          outs='Clear existing boundary conditions?'
+          ok=.true.
           helptopic='cfdbc_infer_delete_exist'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(outs,' ',ok,dok,nbhelp)
+          CALL EASKOK(' ',outs,ok,nbhelp)
           if (ok) then
             do I=1,NVOL(ICFD)              
               if (IVTYPE(I,ICFD).lt.20) call DELCFDBC(I)
             enddo
           endif
         elseif (imode.eq.1) then
-          outs='Do you want to clear all edge boundary conditions?'
-          dok=.true.
-          ok=dok
+          outs='Clear edge boundary conditions?'
+          ok=.true.
           helptopic='cfdbc_infer_delete_exist'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(outs,' ',ok,dok,nbhelp)
+          CALL EASKOK(' ',outs,ok,nbhelp)
           if (ok) then
             do I=1,NVOL(ICFD)
               if (IVTYPE(I,ICFD).lt.20) call DELCFDBC(I)
             enddo
           endif
         elseif (imode.eq.2) then
-          outs='Do you want to clear all internal boundary conditions?'
-          dok=.true.
-          ok=dok
+          outs='Clear internal boundary conditions?'
+          ok=.true.
           helptopic='cfdbc_infer_delete_exist'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(outs,' ',ok,dok,nbhelp)
+          CALL EASKOK(' ',outs,ok,nbhelp)
           if (ok) then
             do I=1,NVOL(ICFD)
               if (IVTYPE(I,ICFD).ge.20) call DELCFDBC(I)
@@ -2669,7 +2662,7 @@ C Make sure CFD - geometry transforms have been initialised.
       endif
       if (IER.ne.0) then
         write(outs,'(2a)')
-     &    'Error initialising coordinate transforms. ',
+     &    'Error initialising coordinate transforms.',
      &    'Check gridding.'
         CALL EDISP(IUOUT,outs)
         goto 999
@@ -2677,18 +2670,18 @@ C Make sure CFD - geometry transforms have been initialised.
 
 C Grab the X, Y, and Z coordinates of the domain extremes (in CFD axes)
       umin=0.0; vmin=0.0; wmin=0.0
-      CALL CFDTRANS(2,VCOORD(ICP,ixend(ICFD),1),
-     &                VCOORD(ICP,ixend(ICFD),2),
-     &                VCOORD(ICP,ixend(ICFD),3),umax,r1,r2,IER)
-      CALL CFDTRANS(2,VCOORD(ICP,iyend(ICFD),1),
-     &                VCOORD(ICP,iyend(ICFD),2),
-     &                VCOORD(ICP,iyend(ICFD),3),r1,vmax,r2,IER)
-      CALL CFDTRANS(2,VCOORD(ICP,izend(ICFD),1),
-     &                VCOORD(ICP,izend(ICFD),2),
-     &                VCOORD(ICP,izend(ICFD),3),r1,r2,wmax,IER)
+      CALL CFDTRANS(2,szcoords(ICP,ixend(ICFD),1),
+     &                szcoords(ICP,ixend(ICFD),2),
+     &                szcoords(ICP,ixend(ICFD),3),umax,r1,r2,IER)
+      CALL CFDTRANS(2,szcoords(ICP,iyend(ICFD),1),
+     &                szcoords(ICP,iyend(ICFD),2),
+     &                szcoords(ICP,iyend(ICFD),3),r1,vmax,r2,IER)
+      CALL CFDTRANS(2,szcoords(ICP,izend(ICFD),1),
+     &                szcoords(ICP,izend(ICFD),2),
+     &                szcoords(ICP,izend(ICFD),3),r1,r2,wmax,IER)
       if (IER.ne.0) then
         write(outs,'(2a)')
-     &    'Error transforming coordinates for domain axes. ',
+     &    'Error transforming coordinates for domain axes.',
      &    'Check gridding.'
         CALL EDISP(IUOUT,outs)
         goto 999
@@ -2699,7 +2692,8 @@ C BCs.
       if (imode.eq.1) then
         if (NZSUR(ICP).gt.0) then
           write(outs,'(a)')
-     &      '*** Scanning surfaces for solid and opening BCs ***'
+     &      'Scanning surfaces for solid and opening BCs.'
+          CALL EDISP(IUOUT,' ')
           CALL EDISP(IUOUT,outs)
 
           ok=.true.
@@ -2791,7 +2785,7 @@ C ISTAT = 2: Entity(s) skipped, but no error.
 
       integer ivo,istat
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ICFNOD/ICFD,ICP      
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
@@ -3395,7 +3389,7 @@ C it's probably a surface detail - ignore it.
               ive=VOBJILIST(ICP,ivo,i)
               jve=VOBJILIST(ICP,ivo,j)
               t12=VISNAME(ICP,ive)
-              tt12=VISNAME(IVP,jve)
+              tt12=VISNAME(ICP,jve)
               write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a)')' Entity ',ive,
      &          t12(1:lnblnk(t12)),' is a surface detail of entity ',
      &          jve,tt12(1:lnblnk(tt12)),', skipping.'
@@ -3551,7 +3545,7 @@ C If we get to here, something has gone wrong.
           ive=VOBJILIST(ICP,ivo,i)
           jve=VOBJILIST(ICP,ivo,j)
           t12=VISNAME(ICP,ive)
-          tt12=VISNAME(IVP,jve)
+          tt12=VISNAME(ICP,jve)
           write(outs,'(a,i3.3,1x,2a,i3.3,1x,2a)')
      &      ' Error while scanning for intersection of entities ',ive,
      &      t12(1:lnblnk(t12)),' and ',jve,tt12(1:lnblnk(tt12)),'.'
@@ -4219,10 +4213,11 @@ C doafnasc is currently unused, pending further development.
 #include "cfd.h"
 
       integer isur,ifac,ibctyp,isumin,isumax,isvmin,isvmax,iswmin,iswmax
+      integer icldcnn,icldzn,icldsur  ! indices for connections zone surface
       real umax,vmax,wmax,umin,vmin,wmin
       logical doafnasc
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ICFNOD/ICFD,ICP
       COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
      &              INITD
@@ -4264,7 +4259,7 @@ C For help messages
       ISTAT=0
       dum=(/0/)
       show=.true.
-      icnn=IZSTOCN(ICP,isur)
+      icnn=IZSTOCN(ICP,isur)  ! connection for the parent surface
 
 C Check if this surface is a child. Unless it is also a parent, it will
 C be created by the invocation of this subroutine for its parent.
@@ -4278,7 +4273,7 @@ C be created by the invocation of this subroutine for its parent.
         dothisur=.true.
       endif
 
-      snam=SSNAME(ICNN) ! surface name
+      snam=SNAME(ICP,isur) ! surface name
 
 C Establish surface extents, and if not already known determine what
 C face the surface lies on if any (south, west, low, etc).
@@ -4295,10 +4290,10 @@ C              domain coords (real).
       svmin=vmax; svmax=vmin
       swmin=wmax; swmax=wmin
       IER=0
-      do I=1,NZNVER(ICNN)
-        IVRT=NZJVN(ICNN,I)
-        CALL CFDTRANS(2,VCOORD(ICP,IVRT,1),VCOORD(ICP,IVRT,2),
-     &    VCOORD(ICP,IVRT,3),u,v,w,IER)
+      do I=1,isznver(ICP,isur)
+        IVRT=iszjvn(ICP,isur,I)
+        CALL CFDTRANS(2,szcoords(ICP,IVRT,1),szcoords(ICP,IVRT,2),
+     &    szcoords(ICP,IVRT,3),u,v,w,IER)
         if (IER.ne.0) then
           write(outs,'(2a,i3.3,1x,2a)')'Error transforming ',
      &      'coordinates for surface ',ISUR,snam(1:lnblnk(snam)),
@@ -4416,7 +4411,7 @@ C in the plane of the boundary face with the surface extents.
 C We ensure it is oriented correctly by checking that at least 4 of the
 C vertices share both coordinates in the plane of the boundary face with
 C the surface extents.
-      if (NZNVER(icnn).gt.4) then
+      if (isznver(ICP,isur).gt.4) then
 
 C First, check if this surface is a parent. If it is, we first need to
 C establish that the child is rectangular - wait until later.
@@ -4425,10 +4420,10 @@ C establish that the child is rectangular - wait until later.
 
         else
           icorners=0
-          do I=1,NZNVER(ICNN)
-            IVRT=NZJVN(ICNN,I)
-            CALL CFDTRANS(2,VCOORD(ICP,IVRT,1),VCOORD(ICP,IVRT,2),
-     &        VCOORD(ICP,IVRT,3),u,v,w,IER)
+          do I=1,isznver(ICP,isur)
+            IVRT=iszjvn(ICP,isur,I)
+            CALL CFDTRANS(2,szcoords(ICP,IVRT,1),szcoords(ICP,IVRT,2),
+     &        szcoords(ICP,IVRT,3),u,v,w,IER)
             if (ifac.eq.1 .or. ifac.eq.2) then
               call ECLOSE(v,svmin,0.01,ok)
               if (.not.ok) call ECLOSE(v,svmax,0.01,ok)
@@ -4470,7 +4465,7 @@ C establish that the child is rectangular - wait until later.
 
 C If the surface has less than 4 vertices, it definitely isn't
 C rectanglar.
-      elseif (NZNVER(icnn).lt.4) then
+      elseif (isznver(ICP,isur).lt.4) then
         ISTAT=2
         CALL EDISP(IUOUT,
      &    ' This surface is not rectangular, skipping.')
@@ -4480,10 +4475,10 @@ C If it has only 4 vertices, ensure that each one shares both
 C coordinates in the plane of the boundary face with the surface
 C extents.
       else
-        do I=1,NZNVER(ICNN)
-          IVRT=NZJVN(ICNN,I)
-          CALL CFDTRANS(2,VCOORD(ICP,IVRT,1),VCOORD(ICP,IVRT,2),
-     &      VCOORD(ICP,IVRT,3),u,v,w,IER)
+        do I=1,isznver(ICP,isur)
+          IVRT=iszjvn(ICP,isur,I)
+          CALL CFDTRANS(2,szcoords(ICP,IVRT,1),szcoords(ICP,IVRT,2),
+     &      szcoords(ICP,IVRT,3),u,v,w,IER)
           if (ifac.eq.1 .or. ifac.eq.2) then
             call ECLOSE(v,svmin,0.01,ok)
             if (.not.ok) call ECLOSE(v,svmax,0.01,ok)
@@ -4540,12 +4535,12 @@ C is designed to be as consistent as possible with flow network
 C autogeneration (scan_flow_use in mfprb3.F). If the usage flags in
 C geometry files are updated, this code shouild be updated accordingly.
       ibctyp=0
-      t12=SSUSE(icnn,1)
+      t12=SUSE(ICP,isur,1)
       if (t12(1:4).eq.'WALL') then
         ibctyp=1
 
       elseif (t12(1:4).eq.'DOOR' .or. t12(3:6).eq.'DOOR') then
-        t12=SSUSE(ICNN,2)
+        t12=SUSE(ICP,isur,2)
         if (t12(1:6).eq.'CLOSED') then
           ibctyp=1
         elseif (t12(1:8).eq.'UNDERCUT') then
@@ -4559,7 +4554,7 @@ C geometry files are updated, this code shouild be updated accordingly.
         endif
 
       elseif (t12(1:5).eq.'FRAME' .or. t12(3:7).eq.'FRAME') then
-        t12=SSUSE(ICNN,2)
+        t12=SUSE(ICP,isur,2)
         if (t12(1:6).eq.'CLOSED') then
           ibctyp=1
         elseif (t12(1:5).eq.'CRACK') then
@@ -4571,7 +4566,7 @@ C geometry files are updated, this code shouild be updated accordingly.
         endif        
 
       elseif (t12(1:6).eq.'WINDOW' .or. t12(3:8).eq.'WINDOW') then
-        t12=SSUSE(ICNN,2)
+        t12=SUSE(ICP,isur,2)
         if (t12(1:6).eq.'CLOSED') then
           ibctyp=1
         elseif (t12(1:5).eq.'CRACK') then
@@ -4592,7 +4587,7 @@ C geometry files are updated, this code shouild be updated accordingly.
         endif
 
       elseif (t12(1:5).eq.'GRILL') then
-        t12=SSUSE(ICNN,2)
+        t12=SUSE(ICP,isur,2)
         if (t12(1:6).eq.'CLOSED') then
           ibctyp=1
         elseif (t12(1:5).eq.'CRACK') then
@@ -4611,7 +4606,7 @@ C geometry files are updated, this code shouild be updated accordingly.
         ibctyp=1
 
       elseif (t12(1:4).eq.'FICT') then
-        t12=SSUSE(ICNN,2)
+        t12=SUSE(ICP,isur,2)
         if (t12(1:6).eq.'CLOSED') then
           ibctyp=1
         elseif (t12(1:5).eq.'CRACK') then
@@ -4755,12 +4750,12 @@ C Now, check for children.
       if (NBCHILD(icnn).gt.0) then
         write(outs,'(a)')' Child surfaces detected.'
         CALL EDISP(IUOUT,outs)
-        icldtotca=0
-        ncldverts=0
+        icldtotca=0; icldverts=0; ncldverts=0
         do icld=1,NBCHILD(icnn)
-          icldcnn=ICHILD(icnn,icld)
-          icldsur=IE1(icldcnn)
-          t12=SSNAME(icldcnn)
+          icldcnn=ICHILD(icnn,icld)  ! establish child connection
+          icldzn=IC1(icldcnn)        ! and zone
+          icldsur=IE1(icldcnn)       ! and surface
+          t12=SNAME(icldzn,icldsur)
           write(outs,'(a,i3.3,1x,2a)')' Processing child surface ',
      &      icldsur,t12(1:lnblnk(t12)),' ...'
           CALL EDISP(IUOUT,outs)
@@ -4824,8 +4819,8 @@ C by all children.
 
 C Assemble an array of vertices in child surfaces, for checking
 C rectangularity.
-          do i=1,NZNVER(icldcnn)
-            ivrt=NZJVN(icldcnn,i)            
+          do i=1,isznver(icldzn,icldsur)
+            ivrt=isznver(icldzn,icldsur)           
             ncldverts=ncldverts+1
             icldverts(ncldverts)=ivrt
           enddo
@@ -4838,8 +4833,8 @@ C with more than 4 vertices, with the exception that any vertex that is
 C in one of the children must be ommited from the check.
         if (.not.isrect) then
           icorners=0
-          do i=1,NZNVER(icnn)
-            ivrt=NZJVN(icnn,i)
+          do i=1,isznver(ICP,isur)   ! parent surface
+            ivrt=iszjvn(ICP,isur,i)
             ok=.false.
             do j=1,ncldverts
               if (ivrt.eq.icldverts(j)) then
@@ -4848,8 +4843,8 @@ C in one of the children must be ommited from the check.
               endif
             enddo
             if (ok) CYCLE
-            CALL CFDTRANS(2,VCOORD(ICP,IVRT,1),VCOORD(ICP,IVRT,2),
-     &        VCOORD(ICP,IVRT,3),u,v,w,IER)
+            CALL CFDTRANS(2,szcoords(ICP,IVRT,1),szcoords(ICP,IVRT,2),
+     &        szcoords(ICP,IVRT,3),u,v,w,IER)
             if (ifac.eq.1 .or. ifac.eq.2) then
               call ECLOSE(v,svmin,0.0001,ok)
               if (.not.ok) call ECLOSE(v,svmax,0.01,ok)
@@ -4970,9 +4965,9 @@ C created in the invocation of GENEDGBC for that surface).
               IR=2
               helptopic='cfdbc_parentframing'
               call gethelptext(helpinsub,helptopic,nbhelp)
-   61         CALL EASKABC(
-     &         'Do you want to represent parent surface with solid BCs?'
-     &         ,'(see help for details)','yes','no','preview',IR,nbhelp)
+   61         CALL EASKABC(' ',
+     &         'Represent parent surface with solid BCs?',
+     &         'yes','no','preview',IR,nbhelp)
               ok=.false.
               if (IR.eq.1) then
                 lumped=.false.
@@ -5006,7 +5001,7 @@ C Create the boundary conditions that would be created for the parent.
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',ISUR
                   call MKCFDBC(.false.,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                   icreated=icreated+1
 
                 endif
@@ -5023,7 +5018,7 @@ C Create the boundary conditions that would be created for the parent.
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',ISUR
                   call MKCFDBC(.false.,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                   icreated=icreated+1
                 endif
                 if (isclose(3).eq.2) then
@@ -5057,7 +5052,7 @@ C Create the boundary conditions that would be created for the parent.
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',ISUR
                   call MKCFDBC(.false.,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                   icreated=icreated+1
                 endif
                 if (isclose(4).eq.2) then
@@ -5091,7 +5086,7 @@ C Create the boundary conditions that would be created for the parent.
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',ISUR
                   call MKCFDBC(.false.,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                   icreated=icreated+1
                 endif
 
@@ -5200,7 +5195,8 @@ C Preview child BC with parent BC(s).
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',icldsur
                 call MKCFDBC(.false.,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(IC1(icldcnn),IE1(icldcnn)),dum,1,
+     &            20.0,0.0,0.0,0.0,0.0,IER)
                 ISHSB=NSB(ICFD); ISHAO=0; ISHBLK=0; ISHGEO=-9999
                 call redraw(IER)
                 call continuebox(
@@ -5227,7 +5223,8 @@ C Preview child BC without parent BC(s).
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',icldsur
                 call MKCFDBC(.false.,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(IC1(icldcnn),IE1(icldcnn)),dum,1,
+     &            20.0,0.0,0.0,0.0,0.0,IER)
                 ISHSB=NSB(ICFD); ISHAO=0; ISHBLK=0; ISHGEO=-9999
                 call redraw(IER)
                 call EASKAB(
@@ -5281,7 +5278,8 @@ C              to top edge as we can get
 Create child(ren) BCs.
         do icld=1,NBCHILD(icnn)
           if (.not.dochild(icld)) CYCLE
-          icldcnn=ICHILD(icnn,icld)
+          icldcnn=ICHILD(icnn,icld)  ! establish child connection
+          icldzn=IC1(icldcnn)        ! and zone
           icldsur=IE1(icldcnn)
           iibctyp=icldbctyp(icld)
 
@@ -5290,7 +5288,8 @@ C its own invocation of this function; do not create BCs for it.
           if (NBCHILD(icldcnn).gt.0) CYCLE
 
           write(outs,'(a,i3.3,2a)')' Creating BC(s) for surface ',
-     &      icldsur,SSNAME(icldcnn)(1:lnblnk(SSNAME(icldcnn))),' ...'
+     &    icldsur,
+     &    SNAME(icldzn,icldsur)(1:lnblnk(SNAME(icldzn,icldsur))),' ...'
           ISHSB=0; ISHAO=0; ISHBLK=0; IFACES=1; ISHGEO=-icldsur
           call redraw(IER)
           call pausems(500)
@@ -5334,7 +5333,8 @@ C Single solid BC for the whole surface.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'sld',NSB(ICFD)+1,'_s',icldsur
             call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &        SNAME(icldzn,icldsur),dum,1,
+     &        20.0,0.0,0.0,0.0,0.0,IER)
 
 C Single opening BC for the whole surface.
           elseif (iibctyp.eq.2) then
@@ -5354,7 +5354,8 @@ C Single opening BC for the whole surface.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',icldsur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icldcnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(icldzn,icldsur),dum,1,
+     &        20.0,0.0,0.01,0.0,0.0,IER)
 
 C Opening BC for bottom row of cells, solid BC for the rest.
           elseif (iibctyp.eq.3) then
@@ -5374,7 +5375,8 @@ C Opening BC for bottom row of cells, solid BC for the rest.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',icldsur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icldcnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(icldzn,icldsur),dum,1,
+     &        20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there any more of the surface for a solid BC?
             if (icldext(icld,4)-1.gt.icldext(icld,3)) then
@@ -5394,7 +5396,8 @@ C Is there any more of the surface for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.0,0.0,0.0,IER)
 
             endif
 
@@ -5421,7 +5424,8 @@ C Find middle row.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',icldsur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icldcnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(icldzn,icldsur),dum,1,
+     &        20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there any more of the surface below for a solid BC?
             if (icldext(icld,3).lt.imidrow) then
@@ -5441,7 +5445,8 @@ C Is there any more of the surface below for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Is there any more of the surface above for a solid BC?
@@ -5462,7 +5467,8 @@ C Is there any more of the surface above for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Opening BC for 25% of height, at bottom edge, solid BC for the rest.
@@ -5489,7 +5495,8 @@ C Find 25% of height, rounded, at least 1 row.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',icldsur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icldcnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(icldzn,icldsur),dum,1,
+     &        20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there any more of the surface for a solid BC?
             if ((icldext(icld,4)-1).gt.(icldext(icld,3)+iqtr)) then
@@ -5509,7 +5516,8 @@ C Is there any more of the surface for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Opening BC for 25% of width, at vertical centre line, solid BCs for
@@ -5547,7 +5555,8 @@ C line.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',icldsur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icldcnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(icldzn,icldsur),dum,1,
+     &        20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there any more of the surface to the left for a solid BC?
             if ((icldext(icld,1)).lt.imidqtrmin) then
@@ -5567,7 +5576,8 @@ C Is there any more of the surface to the left for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Is there any more of the surface to the right for a solid BC?
@@ -5588,7 +5598,8 @@ C Is there any more of the surface to the right for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Opening BCs for 12.5% of height, at top and bottom edges, solid BC for
@@ -5633,7 +5644,8 @@ C Opening at bottom edge.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',icldsur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icldcnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(icldzn,icldsur),dum,1,
+     &        20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there room for the top opening?
             if (ok) then
@@ -5654,7 +5666,8 @@ C Is there room for the top opening?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'opn',NOPEN(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.01,0.0,0.0,IER)
             else
               itop=icldext(icld,4)-1
             endif
@@ -5677,7 +5690,8 @@ C Is there any more of the surface for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Opening BC for 75% of height and width, at bottom edge, solid BCs for
@@ -5724,7 +5738,8 @@ C Opening BC.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',icldsur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icldcnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(icldzn,icldsur),dum,1,
+     &        20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there room left at the top?
             if (ibtm3qtrhgtmax.lt.(icldext(icld,4)-1)) then
@@ -5744,7 +5759,8 @@ C Is there room left at the top?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.0,0.0,0.0,IER)
               ok=.true.
             else
               ok=.false.
@@ -5773,7 +5789,8 @@ C Is there room at the left?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Is there room at the right?
@@ -5799,7 +5816,8 @@ C Is there room at the right?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',icldsur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icldcnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icldzn,icldsur),dum,1,
+     &          20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C 9 and 10 are for frames.
@@ -5814,8 +5832,8 @@ C Create parent surface BC.
         if (dothisur .and. .not.lumped) then
 
           write(outs,'(a,i3.3,2a)')' Creating BC(s) for surface ',
-     &      isur,SSNAME(icnn)(1:lnblnk(SSNAME(icnn))),' ...'
-          ISHSB=0; ISHAO=0; ISHBLK=0; ISHSRC=0; IFACES=1; ISHGEO=-isur
+     &      isur,SNAME(icp,isur)(1:lnblnk(SNAME(icp,isur))),' ...'
+          ISHSB=0; ISHAO=0; ISHBLK=0; IFACES=1; ISHGEO=-isur
           call redraw(IER)
           call pausems(500)
           ISHGEO=-9999
@@ -5842,7 +5860,7 @@ C Is there space on the top?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               itop=iparext(4)-1-irows
             else
               itop=iparext(4)-1
@@ -5867,7 +5885,7 @@ C Is there space on the bottom?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               ibot=iparext(3)+irows
             else
               ibot=iparext(3)
@@ -5892,7 +5910,7 @@ C Is there space on the left?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Is there space on the right?
@@ -5914,7 +5932,7 @@ C Is there space on the right?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Parent is not compatible with ibctyp=2 to 8.
@@ -5950,7 +5968,7 @@ C Is there space on the top?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'opn',NOPEN(ICFD)+1,'_s',isur
               call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &          SNAME(icp,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
               ok=.true.
 
 C Any space left over that needs filling with a solid bc?
@@ -5971,7 +5989,7 @@ C Any space left over that needs filling with a solid bc?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',isur
                 call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               endif
 
               itop=iparext(4)-1-irows
@@ -5999,7 +6017,7 @@ C Is there space on the bottom?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',isur
                 call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               else
                 if (ifac.eq.1 .or. ifac.eq.2) then
                   i1=isumin;         i2=isumax-1
@@ -6017,7 +6035,7 @@ C Is there space on the bottom?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'opn',NOPEN(ICFD)+1,'_s',isur
                 call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
                 ok=.true.
 
 C Any space left over that needs filling with a solid bc?
@@ -6038,7 +6056,7 @@ C Any space left over that needs filling with a solid bc?
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
               endif
               ibot=iparext(3)+irows
@@ -6066,7 +6084,7 @@ C Is there space on the left?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',isur
                 call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               else
                 if (ifac.eq.1 .or. ifac.eq.2) then
                   i1=isumin;         i2=isumax-1
@@ -6084,7 +6102,7 @@ C Is there space on the left?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'opn',NOPEN(ICFD)+1,'_s',isur
                 call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
 
 C Any space left over that needs filling with a solid bc?
                 if (icols.gt.1) then
@@ -6104,7 +6122,7 @@ C Any space left over that needs filling with a solid bc?
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
               endif
             endif
@@ -6129,7 +6147,7 @@ C Is there space on the right?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',isur
                 call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               else
                 if (ifac.eq.1 .or. ifac.eq.2) then
                   i1=isumin;       i2=isumax-1
@@ -6147,7 +6165,7 @@ C Is there space on the right?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'opn',NOPEN(ICFD)+1,'_s',isur
                 call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
 
 C Any space left over that needs filling with a solid bc?
                 if (icols.gt.1) then
@@ -6167,7 +6185,7 @@ C Any space left over that needs filling with a solid bc?
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
               endif
             endif
@@ -6216,7 +6234,7 @@ C Find cells to put the trickle vent in the middle.
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'opn',NOPEN(ICFD)+1,'_s',isur
               call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &          SNAME(icp,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
               ok=.true.
 
               if (iparext(1).lt.iwdtmin) then
@@ -6236,7 +6254,7 @@ C Find cells to put the trickle vent in the middle.
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',isur
                 call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               endif
 
               if ((iparext(2)-1).gt.iwdtmax) then
@@ -6256,7 +6274,7 @@ C Find cells to put the trickle vent in the middle.
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',isur
                 call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               endif
 
 C Any space left over that needs filling with a solid bc?
@@ -6277,7 +6295,7 @@ C Any space left over that needs filling with a solid bc?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',isur
                 call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               endif
 
               itop=iparext(4)-1-irows
@@ -6305,7 +6323,7 @@ C Is there space on the bottom?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',isur
                 call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               else
 
 C Find cells to put the trickle vent in the middle.
@@ -6334,7 +6352,7 @@ C Find cells to put the trickle vent in the middle.
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'opn',NOPEN(ICFD)+1,'_s',isur
                 call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
                 ok=.true.
 
                 if (iparext(1).lt.iwdtmin) then
@@ -6354,7 +6372,7 @@ C Find cells to put the trickle vent in the middle.
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
 
                 if ((iparext(2)-1).gt.iwdtmax) then
@@ -6374,7 +6392,7 @@ C Find cells to put the trickle vent in the middle.
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
 
 C Any space left over that needs filling with a solid bc?
@@ -6395,7 +6413,7 @@ C Any space left over that needs filling with a solid bc?
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
               endif
               ibot=iparext(3)+irows
@@ -6425,7 +6443,7 @@ C Is there space on the left?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',isur
                 call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               else
 
 C Find cells to put the trickle vent in the middle.
@@ -6454,7 +6472,7 @@ C Find cells to put the trickle vent in the middle.
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'opn',NOPEN(ICFD)+1,'_s',isur
                 call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
                 ok=.true.
 
                 if (ibot.lt.iwdtmin) then
@@ -6474,7 +6492,7 @@ C Find cells to put the trickle vent in the middle.
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
 
                 if (itop.gt.iwdtmax) then
@@ -6494,7 +6512,7 @@ C Find cells to put the trickle vent in the middle.
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
 
 C Any space left over that needs filling with a solid bc?
@@ -6515,7 +6533,8 @@ C Any space left over that needs filling with a solid bc?
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,
+     &              20.0,0.0,0.0,0.0,0.0,IER)
                 endif
               endif
             endif
@@ -6540,7 +6559,7 @@ C Is there space on the right?
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'sld',NSB(ICFD)+1,'_s',isur
                 call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               else
 
 C Find cells to put the trickle vent in the middle.
@@ -6569,7 +6588,7 @@ C Find cells to put the trickle vent in the middle.
                 write (t12,'(2a,i3.3,a,i3.3)')
      &            facstr,'opn',NOPEN(ICFD)+1,'_s',isur
                 call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &            SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &            SNAME(icp,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
                 ok=.true.
 
                 if (ibot.lt.iwdtmin) then
@@ -6589,7 +6608,7 @@ C Find cells to put the trickle vent in the middle.
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
 
                 if (itop.gt.iwdtmax) then
@@ -6609,7 +6628,7 @@ C Find cells to put the trickle vent in the middle.
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
 
 C Any space left over that needs filling with a solid bc?
@@ -6630,7 +6649,7 @@ C Any space left over that needs filling with a solid bc?
                   write (t12,'(2a,i3.3,a,i3.3)')
      &              facstr,'sld',NSB(ICFD)+1,'_s',isur
                   call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &              SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &              SNAME(icp,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
                 endif
               endif
             endif
@@ -6642,7 +6661,9 @@ C This surface is not a parent; create BC(s).
         if (dothisur) then
 
           write(outs,'(a,i3.3,2a)')' Creating BC(s) for surface ',
-     &      isur,SSNAME(icnn)(1:lnblnk(SSNAME(icnn))),' ...'
+     &      isur,
+     &      SNAME(ICP,isur)(1:lnblnk(SNAME(ICP,isur))),
+     &      ' ...'
           ISHSB=0; ISHAO=0; ISHBLK=0; ISHSRC=0; IFACES=1; ISHGEO=-isur
           call redraw(IER)
           call pausems(500)
@@ -6671,7 +6692,7 @@ C Single solid BC for the whole surface.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'sld',NSB(ICFD)+1,'_s',isur
             call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &        SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
 
 C Single opening BC for the whole surface.
           elseif (ibctyp.eq.2) then
@@ -6691,7 +6712,7 @@ C Single opening BC for the whole surface.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',isur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(ICP,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
 
 C Opening BC for bottom row of cells, solid BC for the rest.
           elseif (ibctyp.eq.3) then
@@ -6711,7 +6732,7 @@ C Opening BC for bottom row of cells, solid BC for the rest.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',isur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(ICP,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there any more of the surface for a solid BC?
             if (iparext(4)-1.gt.iparext(3)) then
@@ -6731,7 +6752,7 @@ C Is there any more of the surface for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
 
             endif
 
@@ -6758,7 +6779,7 @@ C Find middle row.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',isur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(ICP,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there any more of the surface below for a solid BC?
             if (iparext(3).lt.imidrow) then
@@ -6778,7 +6799,7 @@ C Is there any more of the surface below for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Is there any more of the surface above for a solid BC?
@@ -6799,7 +6820,7 @@ C Is there any more of the surface above for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Opening BC for 25% of height, at bottom edge, solid BC for the rest.
@@ -6826,7 +6847,7 @@ C Find 25% of height, rounded, at least 1 row.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',isur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(ICP,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there any more of the surface for a solid BC?
             if ((iparext(4)-1).gt.(iparext(3)+iqtr)) then
@@ -6846,7 +6867,7 @@ C Is there any more of the surface for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Opening BC for 25% of width, at vertical centre line, solid BCs for
@@ -6884,7 +6905,7 @@ C line.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',isur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(ICP,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there any more of the surface to the left for a solid BC?
             if ((iparext(1)).lt.imidqtrmin) then
@@ -6904,7 +6925,7 @@ C Is there any more of the surface to the left for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Is there any more of the surface to the right for a solid BC?
@@ -6925,7 +6946,7 @@ C Is there any more of the surface to the right for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Opening BCs for 12.5% of height, at top and bottom edges, solid BC for
@@ -6970,7 +6991,7 @@ C Opening at bottom edge.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',isur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(ICP,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there room for the top opening?
             if (ok) then
@@ -6991,7 +7012,7 @@ C Is there room for the top opening?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'opn',NOPEN(ICFD)+1,'_s',isur
               call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
             else
               itop=iparext(4)-1
             endif
@@ -7014,7 +7035,7 @@ C Is there any more of the surface for a solid BC?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Opening BC for 75% of height and width, at bottom edge, solid BCs for
@@ -7061,7 +7082,7 @@ C Opening BC.
             write (t12,'(2a,i3.3,a,i3.3)')
      &        facstr,'opn',NOPEN(ICFD)+1,'_s',isur
             call MKCFDBC(show,11,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &        SSNAME(icnn),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
+     &        SNAME(ICP,isur),dum,1,20.0,0.0,0.01,0.0,0.0,IER)
 
 C Is there room left at the top?
             if (ibtm3qtrhgtmax.lt.(iparext(4)-1)) then
@@ -7081,7 +7102,7 @@ C Is there room left at the top?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
               ok=.true.
               itophgt=(k2-k1+1)
             else
@@ -7111,7 +7132,7 @@ C Is there room at the left?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C Is there room at the right?
@@ -7137,7 +7158,7 @@ C Is there room at the right?
               write (t12,'(2a,i3.3,a,i3.3)')
      &          facstr,'sld',NSB(ICFD)+1,'_s',isur
               call MKCFDBC(show,4,ifac,i1,i2,j1,j2,k1,k2,t12,
-     &          SSNAME(icnn),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
+     &          SNAME(ICP,isur),dum,1,20.0,0.0,0.0,0.0,0.0,IER)
             endif
 
 C 9 and 10 are for frames.
@@ -7160,7 +7181,7 @@ C EDAIRO controls the editing of CFD air flow opening boundary variables.
 C IER=0 indicates no error.
 
       SUBROUTINE EDAIRO(IAO,IER)
-C#include "building.h"
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -7329,9 +7350,9 @@ C Display menu.
 
 C Choose an opening type.
         IWO=1
-        CALL EASKATOG('Opening types: (see help)',' ','pressure',
+        CALL EASKATOG('Opening types:',' ','pressure',
      &    'velocity','zero gradient','from flow network',
-     &    'cancel','  ','  ',IWO,nbhelp)
+     &    'cancel',' ',' ',IWO,nbhelp)
         IF(IWO.EQ.4)THEN
           ICFMFS(ICFD)=1
           CALL MFCONF(ICFD)
@@ -7476,7 +7497,7 @@ C #include "model.h"
 #include "cfd.h"
 C #include "prj3dv.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/ICFNOD/ICFD,ICP
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
@@ -7786,15 +7807,14 @@ C IER=0 indicates no error.
       COMMON/CTDFAF/ICTDFAF(MNZ),SRCE(MNVLS,MCTM,MNZ),ICCSRC(MNZ)
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
       common/cfdconf/ICFBLD(MNZ),ICFMFS(MNZ)
       COMMON/CFDMFS1/ICFDNOD(MNZ),ICFDCNN(MNVLS,MNZ)
       COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHSRC,ISHGEO,
      &              INITD
       logical HAS_GEOM
       character INITD*6
-      common/pophelp/h(60)   ! needed for dynamic popup
-      character H*72
 
       character ITMSS(14+MCTM)*60,ITUM(MCTM+1)*50,WORD*50
       character ltmp*26,t12*12,d12*12,t20*20,FACE*7,HOLD*32,WORD1*12
@@ -7802,7 +7822,7 @@ C IER=0 indicates no error.
       CHARACTER CNAM*12,CNAME*3,NNAME*3,ITMSS1(14+MCTM)*60
       CHARACTER*60 ITMSS2(14+MCTM)*60,ITMSS3(14+MCTM)*60
       character outs*124
-      LOGICAL CALPOL,CALLMA,OK,DOK
+      LOGICAL CALPOL,CALLMA,OK
       INTEGER SPMTYP,SSLINK1,SSLINK2
       integer NITMS,INO,NITMSS1,IIO,NITMSS2,IXO,NITUM,INUO,NITMSS3 ! max items and current menu item
 
@@ -7979,9 +7999,8 @@ C Set coupling with contaminants network on/off
 
 
 C Take contaminant definitions from contaminant flow network
-          DOK=.TRUE.
-          CALL ASKOK('Link CFD with contaminant network (see help) ?',
-     &      ' ',OK,dok,nbhelp)
+          CALL EASKOK(' ','Link CFD and contaminant network?',
+     &          OK,nbhelp)
           IF(.NOT.OK)GOTO 144
           IF(ICFMFS(ICFD).NE.1)THEN
             CALL PHELPD(' ',nbhelp,'-',0,0,IER)
@@ -8084,7 +8103,7 @@ C Ask for information to calculate Schmidt number
             helptopic='cfd_contam_distribution'
             call gethelptext(helpinsub,helptopic,nbhelp)
             CALL EASKABC(
-     &        'How to specify turbulent Schmidt #(see help)?',
+     &        'How to specify turbulent Schmidt No.?',
      &        POLNAM(ICTM,ICFD),'parameters','manual','default',
      &        ISCHM,nbhelp)
             IF(ISCHM.EQ.1)THEN
@@ -8113,13 +8132,12 @@ C Ask for information to calculate Schmidt number
  789      CONTINUE
           helptopic='cfd_contam_sinks'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          DOK=.TRUE.
-          CALL ASKOK('Link contaminant network source/sink with this',
-     &      'CFD source type boundary condition now ?',OK,dok,nbhelp)
+          CALL EASKOK('Link contaminant network source/sink with this',
+     &      'CFD source type boundary condition?',OK,nbhelp)
           IF(OK)THEN
             DO 3040 ICTM=1,NCTM(ICFD)
               IX=2
-              ITMSS2(1)= ' Source / sink name:'
+              ITMSS2(1)= ' Source/ sink name:'
               DO 3050 ISPMNO=1,NSPMNO
                 IF(SSLINK1(ISPMNO,ICTM).NE.0)THEN
                   WRITE(ITMSS2(IX),'(A,1X,A)')CHAR(96+IX-1),
@@ -8209,7 +8227,7 @@ C operations file here with some regard for standalone running of dfs
       elseif (INO.eq.13+NCTM(ICFD)) then
         helptopic='cfd_contam_sinks'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Add/Delete contaminant source',' ','add',
+        CALL EASKABC(' ','Contaminant source:','add',
      &      'delete','cancel',IOWL,nbhelp)
         IF(IOWL.EQ.1)THEN
 
@@ -8235,14 +8253,14 @@ C inform them and do not allow it.
      &      ' ',0.,'W',10.,'W',1.,'src strenght',IER,nbhelp)
             VOLPOL(NCTM(ICFD),ISB,ICFD)=VAL
             CALPOL(NCTM(ICFD),ICFD)=.TRUE.
-            CALL ASKOK(' ','Is this contaminant water',OK,dok,0)
+            CALL EASKOK(' ','Is this contaminant water vapour?',OK,0)
             IF(OK)JHUMINDX(ICFD)=ICTM
 
 C Ask for information to calculate Schmidt number
             helptopic='cfd_contam_schmidt_no'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKABC('How to specify turbulent Schmidt #(see help)?'
-     &       ,' ','parameters','manual','default',ISCHM,nbhelp)
+            CALL EASKABC(' ','How to specify turbulent Schmidt No.:',
+     &       'calculation','constant','default',ISCHM,nbhelp)
             IF(ISCHM.EQ.1)THEN
               ISCHMT(ICTM,ICFD)=1
               CALL EASKS(HOLD,'enter mol mass(g/mol),crit vol(cm^3/mol)'
@@ -8257,7 +8275,7 @@ C Ask for information to calculate Schmidt number
               TBOIL(ICTM,ICFD)=VL3; TCRIT(ICTM,ICFD)=VL4
             ELSEIF(ISCHM.EQ.2)THEN
               ISCHMT(ICTM,ICFD)=0
-              call EASKR(VAL,'What is Turbulent Schmidt Number ',
+              call EASKR(VAL,'What is Turbulent Schmidt Number?',
      &           ' ',0.1,'W',2.5,'W',1.,'schmidt #',IER,nbhelp)
               SCHMT(ICTM,ICFD)=VAL
             ELSEIF(ISCHM.EQ.3)THEN
@@ -8325,17 +8343,17 @@ C Edit contaminants
           call gethelptext(helpinsub,helptopic,nbhelp)
           SRCNAM=POLNAM(ICTM,ICFD)
           d12='Contaminant'
-          call EASKS(SRCNAM,'Contaminant name? ','  ',12,d12,
+          call EASKS(SRCNAM,'Contaminant name?','  ',12,d12,
      &    'cntmnt name',IER,nbhelp)
           POLNAM(ICTM,ICFD)=SRCNAM
         ENDIF
         
         VAL=VOLPOL(ICTM,ISB,ICFD)
-        call EASKR(VAL,'What is source strength (kg/s) ',
+        call EASKR(VAL,'Source strength (kg/s)?',
      &    ' ',0.,'W',10.,'W',1.,'src strenght',IER,nbhelp)
         VOLPOL(ICTM,ISB,ICFD)=VAL
-        CALL ASKOK(' ','Is this contaminant water(humidity)',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(' ','Is this contaminant water vapour?',
+     &    OK,nbhelp)
         IF(OK)THEN
           JHUMINDX(ICFD)=ICTM
         ELSE
@@ -8345,7 +8363,7 @@ C Edit contaminants
 C Ask for information to calculate Schmidt number
         helptopic='cfd_contam_schmidt_no'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('How to specify turbulent Schmidt # (see help) ?'
+        CALL EASKABC('How to specify turbulent Schmidt No.?'
      &     ,' ','parameters','manual','default',ISCHM,nbhelp)
         IF(ISCHM.EQ.1)THEN
           ISCHMT(ICTM,ICFD)=1
@@ -8373,12 +8391,11 @@ C Now get source sink information from contaminants network
         IF(ICTDFAF(ICFD).EQ.1)THEN
           helptopic='cfd_link_contam_sink'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          DOK=.FALSE.
-          CALL ASKOK('Link contaminant network source/sink with this',
-     &      'CFD source type boundary condition now ?',OK,dok,nbhelp)
+          CALL EASKOK('Link contaminant network source/sink with this',
+     &      'CFD source type boundary condition?',OK,nbhelp)
           IF(OK)THEN
             IX=2
-            ITMSS3(1)= ' Source / sink name:'
+            ITMSS3(1)= ' Source/ sink name:'
             DO 2050 ISPMNO=1,NSPMNO
               IF(SSLINK1(ISPMNO,ICTM).NE.0)THEN
                 WRITE(ITMSS3(IX),'(A,1X,A)')CHAR(96+IX-1),
@@ -8440,10 +8457,7 @@ C Return.
         goto 5
 
 C Prevent user from entering contaminants.
-  756 write(H(1),'(a)')'Currently contaminants only work correctly in'
-      write(H(2),'(a)')'CFD domain 1. This limitation will probably be'
-      write(H(3),'(a)')'addressed in a future release of ESP-r.'
-      CALL PHELPD('Contaminants',3,'-',0,0,IER)
+  756 CALL PHELPD('Contaminants',nbhelp,'-',0,0,IER)
       goto 144
       end
 
@@ -8453,6 +8467,7 @@ C EDBLK controls the editing of CFD blockages to flow
 C IER=0 indicates no error.
 
       SUBROUTINE EDBLK(ISB,IER)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -8634,6 +8649,7 @@ C ************************** HANDSHK **************************
 C HANDSHK controls the editing of the handshaking mechanism.
 
       SUBROUTINE HANDSHK(IHST,IER)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -8705,11 +8721,11 @@ C ************************** PIKCELS **************************
 C PIKCELS controls the editing of the cells defining a boundary region.
 
       SUBROUTINE PIKCELS(Ii,If,Ji,Jf,Ki,Kf,IFACE,IER)
-
+#include "building.h"
 #include "cfd.h"
       integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/grdmax/NTCX,NTCY,NTCZ
 
 C XP YP ZP are the centre of the cells.
@@ -9014,8 +9030,8 @@ C Check for incompatable face/ cell definition
       end
 
 C ************* TOPBOT 
-C TOPBOT: Define upper and lower curvilinear x-section for use in
-C gridding generation.
+C TOPBOT: Define upper and lower curvilinear x-section for use
+C in grid generation.
       SUBROUTINE TOPBOT(ICOMP,IER)
 #include "building.h"
 #include "geometry.h"
@@ -9023,7 +9039,7 @@ C gridding generation.
       integer iCountWords
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
 C Curvilinear boundary vertex numbers.
@@ -9198,7 +9214,7 @@ C and cell distribution for each region.
 #include "epara.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFTRA/IMFTU
       COMMON/SHOUT/ICOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -9208,7 +9224,7 @@ C and cell distribution for each region.
       dimension NCEL(MNREG,MNZ),plaw(MNREG,MNZ)
       dimension NRG(4,MNZ),REG(MNREG,MNZ)
 
-      logical OK,DOK,GRMODE
+      logical OK,GRMODE
 
       character ITEM(MNREG+5)*44,KEY*1,HOLD*24,outs*124,TITLE*30
 
@@ -9438,8 +9454,7 @@ C If more that one cell then ask if distribution is symmetrical.
           if (iier.eq.0) REG(IFOC,ICFD)=ci
           call EGETWR(HOLD,K,ci,-99.0,99.0,'F','pwr law coef',IIER)
           if (iier.eq.0) plaw(IFOC,ICFD)=ci
-          dok=.true.
-          CALL ASKOK(' ',' Symmetrical gridding?',OK,dok,nbhelp)
+          CALL EASKOK(' ','Symmetrical gridding?',OK,nbhelp)
           if (OK) NCEL(IFOC,ICFD) = -1*NCEL(IFOC,ICFD)
         else
           plaw(IFOC,ICFD)=1.0
@@ -9508,8 +9523,7 @@ C set default size and power law.
                 CALL EASKR(VAL,'  ','Power-law coefficient?',
      &              -4.0,'W',4.0,'W',1.0,'power coeff',IER,nbhelp)
                 plaw(IFOC,ICFD)=VAL
-                dok=.true.
-                CALL ASKOK('  ','Symmetrical gridding?',OK,dok,nbhelp)
+                CALL EASKOK(' ','Symmetrical gridding?',OK,nbhelp)
                 if(OK) NCEL(IFOC,ICFD) = -1*NCEL(IFOC,ICFD)
               else
                 plaw(IFOC,ICFD)=1.0
@@ -9518,7 +9532,7 @@ C set default size and power law.
           endif
         elseif (IRO.eq.2) then
           IDEL=NRG(IAX,ICFD)
-          CALL EASKI(IDEL,' ','Which region to delete ? ',
+          CALL EASKI(IDEL,' ','Region to delete?',
      &      0,'F',NRG(IAX,ICFD),'F',1,'del reg',IERI,nbhelp)
           if(ieri.eq.-3) goto 5
 

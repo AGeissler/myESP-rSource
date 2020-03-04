@@ -32,21 +32,14 @@ C ver (real) should be 7.2 8.0 8.5 8.8 9.0
 #include "building.h"
 #include "model.h"
 #include "site.h"
-
-C geometry.h provides commons G0/G1/G2/G4/G5/G7/G9/prec2/prec17/precz/GS5/GS6.
 #include "geometry.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure database)
-C LOPTDB,IOPTDB (for optical database)
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
-C ICLIM,LCLIM (for climate file)
 #include "material.h"
 #include "schedule.h"
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       
@@ -104,7 +97,7 @@ C Extended simulation parameters for each set.
 
       character GDESCR*36
       CHARACTER NAM*72,outs*124
-      character CLMLOC*30
+      character CLMLOC*42
       character ctldoc*248,LCTLF*72
       character ZSDES*28,ZSDESC*20,ZSDESS*16,mlc_name*32
       character dstmp*24
@@ -170,7 +163,7 @@ C << need to revise OPT to be 32 char >>
       logical found,close,close1,foundmlc
       logical closea,closeb,closec,closed,closee,closef
       logical haveobs,haveish,havehc,haveusrgrnd,havestdgrnd,XST
-      logical loadonday,ok,dok
+      logical loadonday,ok
       logical newgeo  ! to use for testing if new/old geometry file
       logical findchildvert  ! to remember child vertices
       logical treatasmass    ! if true treat surface as internal mass
@@ -180,7 +173,7 @@ C << need to revise OPT to be 32 char >>
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp         ! number of help lines found
 
 C Viewfactor to ground.
       dimension PROPG(8)
@@ -349,11 +342,9 @@ C blocks, otherwise set to `MinimalShadowing`.
         endif
       endif
 
-C Confirm use of CTF
-      dok=.false.
+C Confirm use of CTF.
       nbhelp=1  ! need to work up some help messages
-      call askok('Do you want to use ConductionTransferFunction',
-     &  '(a no forces ConductionFiniteDifference)?',usectf,dok,nbhelp)
+      call easkok(' ','Use ConductionTransferFunction?',usectf,nbhelp)
 
 C Interpret warmup days. Use simulation parameter set value or calculate
 C via call to scntcnst. If newer idf also write out minimum warmup.
@@ -1548,9 +1539,6 @@ C Further logic required if there is more than one radiant/convective split.
         WRITE(ioout,'(3a)',iostat=ios,err=5) indent,
      &    sim,'   !- End-Use Category'
 
-
-C --------------------------------------
-
 C Write out the initial portion of people compact schedule.
   12    continue
         WRITE(ioout,'(a)',iostat=ios,err=7) ' '
@@ -1823,21 +1811,21 @@ C fail this test so explicitly identify them and set.
 C If surfaced marked as a FRAME and it is a child of another
 C surface and it has a child surface then treat the frame
 C surface as a true child.
-          if((SSUSE(icc,1)(1:5).eq.'FRAME'.or.
-     &       SSUSE(icc,1)(1:7).eq.'F-FRAME').and.
+          if((SUSE(mz,is,1)(1:5).eq.'FRAME'.or.
+     &       SUSE(mz,is,1)(1:7).eq.'F-FRAME').and.
      &       nbchild(icc).gt.0.and.iparent(icc).gt.0)then
-            write(6,'(3a,i2,a,2i3)') ' Frame surface ',SSNAME(icc),
+            write(6,'(3a,i2,a,2i3)') ' Frame surface ',SNAME(mz,is),
      &        ' nb children ',nbchild(icc),
      &        ' cnn is ',ichild(icc,1),iparent(icc)
             truechild(icc)=.true.  ! treat FRAME as true child
-            write(6,*) SSNAME(icc),' truechild is ',truechild(icc)
+            write(6,*) SNAME(mz,is),' truechild is ',truechild(icc)
             goto 166  ! jump for next cycle of the loop
           endif
 
 C See if this surface happens to be a child in the strict sense.
 C A non-zero iedgshr is the connection index of other surface.
           mentioned=0
-          do 778 iprr=1,NZNVER(icc)   ! loop to see only parent mentioned
+          do 778 iprr=1,isznver(mz,is)  ! loop to see only parent mentioned
             if(iedgshr(icc,iprr).eq.0)then
               truechild(icc)=.false.  ! an edge to non-parallel surface
             endif
@@ -1851,16 +1839,17 @@ C A non-zero iedgshr is the connection index of other surface.
  778      continue
 
 C Debug.
-          write(6,*) SSNAME(icc),' truechild is ',truechild(icc)
+          write(6,*) SNAME(mz,is),' truechild is ',truechild(icc)
  166    continue
 
         DO 64 IS=1,NSUR
           icc=izstocn(mz,is)
+C          ichil=ichild(icc,1)
 
 C Info about children of this surface.
 C Debug.
 C          write(6,'(3a,i2,a,i3,a,i2,a,i3)')  ' for surface named ',
-C     &      SSNAME(icc),' nb children ',nbchild(icc),
+C     &      SNAME(mz,is),' nb children ',nbchild(icc),
 C     &      ' cnn is ',ichild(icc,1),' nb gc ',nbgchild(icc),
 C     &      ' cnn is ',igchild(icc,1)
           if(ichild(icc,1).gt.0) then
@@ -1921,8 +1910,8 @@ C then make up the list of vertices to exclude now.
           if(findchildvert)then
             iccc=ichild(icc,1) ! connection for child
             do iprr=1,MV   ! loop to identify child verts
-              if(iprr.le.NZNVER(iccc))then
-                jvn1(iprr)=NZJVN(iccc,iprr)
+              if(iprr.le.isznver(IC1(iccc),IE1(iccc)))then
+                jvn1(iprr)=isznver(IC1(iccc),IE1(iccc))
               else
                 jvn1(iprr)=0
               endif
@@ -1933,19 +1922,19 @@ C then make up the list of vertices to exclude now.
 C For the special case of a FRAME which is a child of another
 C surface and which has a child we only want to exclude the
 C vertices linked to the child of the frame.
-            if((SSUSE(icc,1)(1:5).eq.'FRAME'.or.
-     &         SSUSE(icc,1)(1:7).eq.'F-FRAME').and.
+            if((SUSE(mz,is,1)(1:5).eq.'FRAME'.or.
+     &         SUSE(mz,is,1)(1:7).eq.'F-FRAME').and.
      &         nbchild(icc).gt.0.and.iparent(icc).gt.0)then
 C Debug
 C             write(6,*)'working on frame',icc,iccc      
-              do iedg=1,NZNVER(icc)        ! loop this surface edges
+              do iedg=1,isznver(mz,is)        ! loop this surface edges
                 foundone=0  ! reset
                 if(iedgshr(icc,iedg).eq.iparent(icc))then
 C                  write(6,*) 'is parent v',JVN(IS,iedg)
                   continue
                 else
 C This is an edge not shared with frame parent so include in list.
-                  do ichildloop=1,NZNVER(iccc) ! loop child surface edges
+                  do ichildloop=1,isznver(IC1(iccc),IE1(iccc)) ! loop child surface edges
                     if(jvn1(ichildloop).eq.jvn(is,iedg))then
                       foundone=jvn1(ichildloop)    ! found shared vertex
                     endif
@@ -1954,7 +1943,7 @@ C This is an edge not shared with frame parent so include in list.
                 if(iedg.gt.1)then               ! also check for duplicate vertex
                   do iduploop=1,iedg-1
                     if(JVN(IS,iedg).eq.JVN(IS,iduploop))then
-                      foundone=JVN(IS,iduploop)   ! found duplicate vertex
+                      foundone=JVN(IS,iduploop) ! found duplicate vertex
                     endif
                   enddo
                 endif
@@ -1968,17 +1957,17 @@ C This is an edge not shared with frame parent so include in list.
             else
 
 C Otherwise identify verts in child that are shared with this surface.
-              do 748 iedg=1,NZNVER(icc)          ! loop this surface edges
+              do 748 iedg=1,isznver(mz,is)      ! loop this surface edges
                 foundone=0  ! reset
-                do ichildloop=1,NZNVER(iccc) ! loop child surface edges
+                do ichildloop=1,isznver(IC1(iccc),IE1(iccc)) ! loop child surface edges
                   if(jvn1(ichildloop).eq.jvn(is,iedg))then
-                    foundone=jvn1(ichildloop)    ! found shared vertex
+                    foundone=jvn1(ichildloop)   ! found shared vertex
                   endif
                 enddo
                 if(iedg.gt.1)then               ! also check for duplicate vertex
                   do iduploop=1,iedg-1
                     if(JVN(IS,iedg).eq.JVN(IS,iduploop))then
-                      foundone=JVN(IS,iduploop)   ! found duplicate vertex
+                      foundone=JVN(IS,iduploop) ! found duplicate vertex
                     endif
                   enddo
                 endif
@@ -1995,7 +1984,7 @@ C                  write(6,*) 'keeping v',JVN(IS,iedg),iedgcnt
 
 C Debug.
           do iedg=1,iedgcnt
-            write(6,*) mz,is,SSNAME(icc),iedg,COORD(iedg,1),
+            write(6,*) mz,is,SNAME(mz,is),iedg,COORD(iedg,1),
      &        COORD(iedg,2),COORD(iedg,3)
           enddo
 
@@ -2040,13 +2029,13 @@ C If a surface is transparent, it must have a non-blank parent
 C and it must be a true child surface, if not ask the user.
 C Does not really know what to do with CFC and CFC2 so treats
 C as opaque.
-          if(SSOTF(icc)(1:4).NE.'OPAQ'.and.
-     &       SSOTF(icc)(1:4).NE.'CFC '.and.
-     &       SSOTF(icc)(1:4).NE.'CFC2')then
+          if(SOTF(mz,is)(1:4).NE.'OPAQ'.and.
+     &       SOTF(mz,is)(1:4).NE.'CFC '.and.
+     &       SOTF(mz,is)(1:4).NE.'CFC2')then
             if(truechild(icc))then
               continue    ! surface is a true child so process
             else
-              SSPARENT(icc)=' '
+              SPARENT(mz,is)=' '
               write(outs,'(3a)') 'Skipping surface ',
      &          ZSDES(1:lnblnk(ZSDES)),
      &          ' is transparent and is NOT in a child location.'
@@ -2057,27 +2046,25 @@ C as opaque.
             endif
 
 C If ESP-r thinks there is no parent confirm with user.
-            if(SSPARENT(icc)(1:2).eq.'  '.or.
-     &         SSPARENT(icc)(1:2).eq.'- ')then
+            if(SPARENT(mz,is)(1:2).eq.'  '.or.
+     &         SPARENT(mz,is)(1:2).eq.'- ')then
               call zsid(mz,is,ZSDES,ZSDESC,ZSDESS)
               write(outs,'(3a)')'Surface ',ZSDES(1:lnblnk(ZSDES)),
      &          ' is transparent without parent surface.'
               call edisp(iuout,outs)
-              dok=.false.
               izz=ic1(icc)
-              write(outs,'(5a)') 'Does ',ssname(icc),
+              write(outs,'(5a)') 'Does ',sname(mz,is),
      &          ' have a parent surface in ',zname(izz),'?'
-              call askok(outs,
-     &          ' (saying no skips this subsurface)',ok,dok,nbhelp)
+              call easkok(' ',outs,ok,nbhelp)
               if(ok)then
                 write(outs,'(5a)') 'Specify parent surface for ',
-     &            ssname(icc),' in ',zname(izz),'.'
+     &            sname(mz,is),' in ',zname(izz),'.'
                 call easksur(izz,iss,'-',outs,' ',ier)
                 ibinval=izstocn(izz,iss)
                 if(ibinval.ne.0)then
-                  SSPARENT(icc)=ssname(ibinval)
+                  SPARENT(mz,is)=sname(IC1(ibinval),IE1(ibinval))
                 else
-                  SSPARENT(icc)=' '
+                  SPARENT(mz,is)=' '
                   write(outs,'(3a)') 'Skipping surface ',
      &              ZSDES(1:lnblnk(ZSDES)),
      &              ' which is transparent WITHOUT a parent.'
@@ -2087,7 +2074,7 @@ C If ESP-r thinks there is no parent confirm with user.
                   goto 60  ! jump to next surface
                 endif
               else
-                SSPARENT(icc)=' '
+                SPARENT(mz,is)=' '
                 write(outs,'(3a)') 'Skipping surface ',
      &            ZSDES(1:lnblnk(ZSDES)),
      &            ' which is transparent WITHOUT a parent.'
@@ -2109,9 +2096,9 @@ C so treats with opaque.
 C  << this logic to be updated >>
           WRITE(ioout,'(a)') ' '
 
-          if(SSOTF(icc)(1:4).NE.'OPAQ'.AND.
-     &       SSOTF(icc)(1:4).NE.'CFC '.AND.
-     &       SSOTF(icc)(1:4).NE.'CFC2')then
+          if(SOTF(mz,is)(1:4).NE.'OPAQ'.AND.
+     &       SOTF(mz,is)(1:4).NE.'CFC '.AND.
+     &       SOTF(mz,is)(1:4).NE.'CFC2')then
 
 C A transparent surface.
             WRITE(ioout,'(2a)',iostat=ios,err=6) 
@@ -2125,14 +2112,14 @@ C Opaque surface.
             elseif(ICT(icc).eq.1)then
 
 C If similar check if there is an opposing surface.
-              if(SSVFC(icc)(1:4).eq.'CEIL')then
+              if(SVFC(mz,is)(1:4).eq.'CEIL')then
                 if(izsfloor(mz).ne.0)then
                   iccsimilar=izstocn(mz,izsfloor(mz)) ! get connection for floor
                   treatasmass=.false.  ! we have an opposing surface to use
                 else
                   treatasmass=.true.  ! treat as internal mass
                 endif
-              elseif(SSVFC(icc)(1:4).eq.'FLOR')then
+              elseif(SVFC(mz,is)(1:4).eq.'FLOR')then
                 if(izsceil(mz).ne.0)then
                   iccsimilar=izstocn(mz,izsceil(mz)) ! get connection for ceiling
                   treatasmass=.false.  ! we have an opposing surface to use
@@ -2157,15 +2144,15 @@ C Logic not yet in place to find an opossing partition so point it to the ceilin
             else
 
 C Opaque surface without or with a parent and might not be a true child.
-              if(SSPARENT(icc)(1:2).eq.'  '.or.
-     &           SSPARENT(icc)(1:2).eq.'- ')then
+              if(SPARENT(mz,is)(1:2).eq.'  '.or.
+     &           SPARENT(mz,is)(1:2).eq.'- ')then
                 WRITE(ioout,'(2a)',iostat=ios,err=6) 
      &            '  BuildingSurface:Detailed',com
               else
 
 C Check for case of a FRAME it should be a BuildingSurface.
-                if((SSUSE(icc,1)(1:5).eq.'FRAME'.or.
-     &              SSUSE(icc,1)(1:7).eq.'F-FRAME').and.
+                if((SUSE(mz,is,1)(1:5).eq.'FRAME'.or.
+     &              SUSE(mz,is,1)(1:7).eq.'F-FRAME').and.
      &              nbchild(icc).gt.0.and.iparent(icc).gt.0)then
                   WRITE(ioout,'(3a)',iostat=ios,err=6) 
      &              '  BuildingSurface:Detailed',com,
@@ -2190,33 +2177,33 @@ C Generate a string for use with view factor to the ground.
 C Also include viewfactor to ground value depending on orientation
 C and site exposure. An index of 8 signals user defined values.
           if(siteexposureindex.ne.8)then
-            if(SSVFC(icc)(1:4).eq.'VERT')then
+            if(SVFC(mz,is)(1:4).eq.'VERT')then
               WRITE(sitestring,'(a,f5.3,2a)',iostat=ios,err=6) '    ',
      &          PROPG(siteexposureindex),com,
      &          '   !- View Factor to Ground'
-            elseif(SSVFC(icc)(1:4).eq.'CEIL')then
+            elseif(SVFC(mz,is)(1:4).eq.'CEIL')then
               WRITE(sitestring,'(4a)',iostat=ios,err=6) indent,'0.0',
      &          com,'   !- View Factor to Ground'
-            elseif(SSVFC(icc)(1:4).eq.'SLOP'.or.
-     &             SSVFC(icc)(1:4).eq.'UNKN')then
+            elseif(SVFC(mz,is)(1:4).eq.'SLOP'.or.
+     &             SVFC(mz,is)(1:4).eq.'UNKN')then
               WRITE(sitestring,'(4a)',iostat=ios,err=6) indent,'0.0',
      &          com,'   !- View Factor to Ground'
-            elseif(SSVFC(icc)(1:4).eq.'FLOR')then
+            elseif(SVFC(mz,is)(1:4).eq.'FLOR')then
               WRITE(sitestring,'(4a)',iostat=ios,err=6) indent,'1.0',
      &          com,'   !- View Factor to Ground'
             endif
           else
-            if(SSVFC(icc)(1:4).eq.'VERT')then
+            if(SVFC(mz,is)(1:4).eq.'VERT')then
               WRITE(sitestring,'(a,f5.3,2a)',iostat=ios,err=6) indent,
      &         groundview,com,'   !- View Factor to Ground'
-            elseif(SSVFC(icc)(1:4).eq.'CEIL')then
+            elseif(SVFC(mz,is)(1:4).eq.'CEIL')then
               WRITE(sitestring,'(4a)',iostat=ios,err=6) indent,'0.0',
      &          com,'   !- View Factor to Ground'
-            elseif(SSVFC(icc)(1:4).eq.'SLOP'.or.
-     &             SSVFC(icc)(1:4).eq.'UNKN')then
+            elseif(SVFC(mz,is)(1:4).eq.'SLOP'.or.
+     &             SVFC(mz,is)(1:4).eq.'UNKN')then
               WRITE(sitestring,'(4a)',iostat=ios,err=6) indent,'0.0',
      &          com,'   !- View Factor to Ground'
-            elseif(SSVFC(icc)(1:4).eq.'FLOR')then
+            elseif(SVFC(mz,is)(1:4).eq.'FLOR')then
               WRITE(sitestring,'(4a)',iostat=ios,err=6) indent,'1.0',
      &          com,'   !- View Factor to Ground'
             endif
@@ -2228,30 +2215,30 @@ C CFC and CFC2 as opaque surfaces.
           WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
      &      ZSDES(1:lnblnk(ZSDES)),com,'   !- Name'
 
-          if(SSOTF(icc)(1:4).NE.'OPAQ'.AND.
-     &       SSOTF(icc)(1:4).NE.'CFC '.AND.
-     &       SSOTF(icc)(1:4).NE.'CFC2')then
+          if(SOTF(mz,is)(1:4).NE.'OPAQ'.AND.
+     &       SOTF(mz,is)(1:4).NE.'CFC '.AND.
+     &       SOTF(mz,is)(1:4).NE.'CFC2')then
 
 C We have a transparent surface.
             WRITE(ioout,'(4a)',iostat=ios,err=6) indent,'Window',com,
      &        '   !- Surface Type!'
             WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
-     &        SSMLCN(icc)(1:lnblnk(SSMLCN(icc))),com,
+     &        SMLCN(mz,is)(1:lnblnk(SMLCN(mz,is))),com,
      &        '   !- Construction Name'
 
 C If this surface has a grandparent then its parent (the frame) will
 C have been skipped so use the name of the grand parent rather than
 C the name of the ESP-r parent surface.
             if(igparent(icc).gt.0)then
-              lsn0=lnblnk(SSNAME(igparent(icc)))
+              lsn0=lnblnk(SNAME(IC1(igparent(icc)),IE1(igparent(icc))))
               lzn0=lnzname(mz)
               WRITE(ZSDES,'(a,a1,a)',iostat=ios,err=6) 
-     &          SSPARENT(icc)(1:lsn0),':',zname(mz)(1:lzn0)
+     &          SPARENT(mz,is)(1:lsn0),':',zname(mz)(1:lzn0)
             else
-              lsn0=lnblnk(SSPARENT(icc))
+              lsn0=lnblnk(SPARENT(mz,is))
               lzn0=lnzname(mz)
               WRITE(ZSDES,'(a,a1,a)',iostat=ios,err=6) 
-     &          SSPARENT(icc)(1:lsn0),':',zname(mz)(1:lzn0)
+     &          SPARENT(mz,is)(1:lsn0),':',zname(mz)(1:lzn0)
             endif
             WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
      &        ZSDES(1:lnblnk(ZSDES)),com,'   !- Building Surface Name'
@@ -2290,13 +2277,13 @@ C abstract or an explicit surface.
 
 C CEN or a Dynamic Similar connection that does not have an opposite.
               WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
-     &          SSMLCN(icc)(1:lnblnk(SSMLCN(icc))),com,
+     &          SMLCN(mz,is)(1:lnblnk(SMLCN(mz,is))),com,
      &          '   !- Construction Name'
               WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
      &          zname(mz)(1:lnzname(mz)),
      &          com,'   !- Zone Name'
               WRITE(ioout,'(a,f8.4,2a)',iostat=ios,err=6) indent,
-     &          SSNA(icc),sim,'   !-  Surface Area {m2}'
+     &          SNA(mz,is),sim,'   !-  Surface Area {m2}'
               goto 60   ! jump to next surface
             else
 
@@ -2304,14 +2291,14 @@ C Check if parent surface name is a blank or just a dash. Which says
 C that this surface has no parent (ESP-r geometric rules as well
 C as E+ rules).
               processasfen=.false.
-              if(SSPARENT(icc)(1:2).eq.'  '.or.
-     &           SSPARENT(icc)(1:2).eq.'- ')then
+              if(SPARENT(mz,is)(1:2).eq.'  '.or.
+     &           SPARENT(mz,is)(1:2).eq.'- ')then
                 processasfen=.false.
               else
               
 C Check for case of a FRAME.
-                if((SSUSE(icc,1)(1:5).eq.'FRAME'.or.
-     &              SSUSE(icc,1)(1:7).eq.'F-FRAME').and.
+                if((SUSE(mz,is,1)(1:5).eq.'FRAME'.or.
+     &              SUSE(mz,is,1)(1:7).eq.'F-FRAME').and.
      &              nbchild(icc).gt.0.and.iparent(icc).gt.0)then
                   processasfen=.false.
                 else
@@ -2329,11 +2316,11 @@ C say this surface is a true child.
               if(.NOT.processasfen)then
 
 C Depending on the surface orientation write out Wall Roof Floor tag.
-                if(SSVFC(icc)(1:4).eq.'VERT')then
+                if(SVFC(mz,is)(1:4).eq.'VERT')then
                   WRITE(ioout,'(4a)',iostat=ios,err=6) indent,'Wall',
      &              com,'   !- Surface Type'
-                elseif(SSVFC(icc)(1:4).eq.'SLOP'.or.
-     &                 SSVFC(icc)(1:4).eq.'UNKN')then
+                elseif(SVFC(mz,is)(1:4).eq.'SLOP'.or.
+     &                 SVFC(mz,is)(1:4).eq.'UNKN')then
                   if(ICT(icc).eq.0.or.ICT(icc).eq.4.or.
      &               ICT(icc).eq.6)then
                     WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
@@ -2342,7 +2329,7 @@ C Depending on the surface orientation write out Wall Roof Floor tag.
                     WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
      &                'Wall',com,'   !- Surface Type'
                   endif
-                elseif(SSVFC(icc)(1:4).eq.'CEIL')then
+                elseif(SVFC(mz,is)(1:4).eq.'CEIL')then
                   if(ICT(icc).eq.0.or.ICT(icc).eq.4.or.
      &               ICT(icc).eq.6)then
                     WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
@@ -2351,13 +2338,13 @@ C Depending on the surface orientation write out Wall Roof Floor tag.
                     WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
      &                'Ceiling',com,'   !- Surface Type'
                   endif
-                elseif(SSVFC(icc)(1:4).eq.'FLOR')then
+                elseif(SVFC(mz,is)(1:4).eq.'FLOR')then
                   WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
      &              'Floor',com,'   !- Surface Type'
                 endif
 
                 WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
-     &            SSMLCN(icc)(1:lnblnk(SSMLCN(icc))),com,
+     &            SMLCN(mz,is)(1:lnblnk(SMLCN(mz,is))),com,
      &            '   !- Construction Name'
                 WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
      &            zname(mz)(1:lnzname(mz)),
@@ -2396,8 +2383,8 @@ C << each MLC. This might save some searching...
                     WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
      &                'Surface',com,'   !-  Outside Boundary (similar)'
                     if(iccsimilar.ne.0)then
-                      if(SSMLCN(icc)(1:8).eq.
-     &                   SSMLCN(iccsimilar)(1:8))then
+                      if(SMLCN(mz,is)(1:8).eq.
+     &                  SMLCN(IC1(iccsimilar),IE1(iccsimilar))(1:8))then
                         call zsid(ic1(iccsimilar),ie1(iccsimilar),ZSDES,
      &                    ZSDESC,ZSDESS)
                         WRITE(ioout,'(4a)',iostat=ios,err=6) '    ',
@@ -2488,12 +2475,12 @@ C This surface should be processed as fenistration.
                 WRITE(ioout,'(4a)',iostat=ios,err=6) indent,'Door',
      &            com,'   !- Surface Type!'
                 WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
-     &            SSMLCN(icc)(1:lnblnk(SSMLCN(icc))),com,
+     &            SMLCN(mz,is)(1:lnblnk(SMLCN(mz,is))),com,
      &            '   !- Construction Name'
-                lsn0=lnblnk(SSPARENT(icc))
+                lsn0=lnblnk(SPARENT(mz,is))
                 lzn0=lnzname(mz)
                 WRITE(ZSDES,'(a,a1,a)',iostat=ios,err=6) 
-     &            SSPARENT(icc)(1:lsn0),':',zname(mz)(1:lzn0)
+     &            SPARENT(mz,is)(1:lsn0),':',zname(mz)(1:lzn0)
                 WRITE(ioout,'(4a)',iostat=ios,err=6) indent,
      &            ZSDES(1:lnblnk(ZSDES)),com,
      &            '   !- Building Surface Name'

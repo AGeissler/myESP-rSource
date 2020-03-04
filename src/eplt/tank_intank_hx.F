@@ -136,10 +136,10 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C-----Trace/error unit reporting numbers
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ITC,ICNT
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
@@ -171,7 +171,7 @@ C-----Plant iteration data
                                 ! at start of iteration
 
 C-----Simulation time steps
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       INTEGER ihrp
       INTEGER ihrf
       INTEGER idyp
@@ -179,7 +179,7 @@ C-----Simulation time steps
       INTEGER idwp
       INTEGER idwf
       INTEGER nsinc             ! time step number
-      INTEGER its
+      INTEGER its,idynow
 
 C-----Common for implicit/explcit handling of plant equations
       COMMON/PCEQU/IMPEXP,RATIMP
@@ -1082,10 +1082,10 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C-----Trace/error unit reporting numbers
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ITC,ICNT
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 

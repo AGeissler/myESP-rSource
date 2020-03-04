@@ -1,7 +1,3 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001.
-
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
@@ -13,22 +9,16 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
+C This file contains the following routines.
+C    MOSCAS: Selection/control for surface causal energy breakdown.
+C    MOSCS1: Display breakdown by plant status.
+C    MOSCS2: Display breakdown as gain/loss list.
+C    MOSSUM: Collect/sum surface causal data.
+C    MOSRGT: Get surface data from results library.
 
-C This file contains the following routines:
+C ********** MOSCAS
 
-C  MOSCAS  Selection/control for surface causal energy breakdown.
-C  MOSCS1  Display breakdown by plant status.
-C  MOSCS2  Display breakdown as normal gain/loss.
-C  MOSSUM  Collect/sum surface causal data.
-C  MOSRGT  Get surface data from results lib.
-
-C ******************** MOSCAS ********************
-C MOSCAS process breakdown data for surfaces.
-C CALLS: MOSCS1 MOSCS2    CALLED BY: MOENER
+C Selection/control for surface causal energy breakdown.
 
       SUBROUTINE MOSCAS(IZONE,ISFN,IANZSE)
 #include "building.h"
@@ -38,7 +28,7 @@ C CALLS: MOSCS1 MOSCS2    CALLED BY: MOENER
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/FILEP/IFIL
 
@@ -47,8 +37,6 @@ C CALLS: MOSCS1 MOSCS2    CALLED BY: MOENER
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       common/recver/izver,ipver,iever
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
-
-      COMMON/RECV5/SNA(MCOM,MS)
 
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
       COMMON/SNAP/SNAPSH
@@ -62,7 +50,7 @@ C Read in the zone geometry data.
       IUNIT=IFIL+1
       call georead(IUNIT,LGEOM(IZONE),IZONE,0,IUOUT,IER)
 
-C Read (silently) construction file to get surface emissivities.
+C Read construction file to get surface emissivities.
       CALL ECONST(LTHRM(IZONE),IUNIT,IZONE,0,IUOUT,IER)
       IF(IER.NE.0)RETURN
 
@@ -72,12 +60,12 @@ C Determine which surface is of interest.
 C Determine the 'other' zone and connection information
 C and then if the surface is transparent or opaque.
       CALL SURADJ(IZONE,ISFN,IE,T,IZC,ISC,ICN,CSTR)
-      IF(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &   SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+      IF(SOTF(IZONE,ISFN)(1:4).EQ.'OPAQ'.OR.
+     &   SOTF(IZONE,ISFN)(1:4).EQ.'UNKN')THEN
         TSTR='opaque MLC'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC ')THEN
+      ELSEIF(SOTF(IZONE,ISFN)(1:4).EQ.'CFC ')THEN
         TSTR='CFC const.'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC2')THEN
+      ELSEIF(SOTF(IZONE,ISFN)(1:4).EQ.'CFC2')THEN
         TSTR='CFC const.'
       ELSE
         TSTR='trnsp. MLC'
@@ -91,12 +79,12 @@ C Reset ouput channel if redirecting.
 
 C Output general header information for load or energy use.
 C Get surface and zone name.
-      SN=SSNAME(ICN)
+      SN=SNAME(IZONE,ISFN)
       ZN=zname(IZONE)
       if(SNAPSH)then
         call edisp(itru,' ')
         write(outs,44)SN(1:lnblnk(SN)),ISFN,ZN(1:lnblnk(ZN)),IZONE
-   44   FORMAT(' Causal load breakdown (Watts) for ',A,' (',I3,')',
+   44   FORMAT('Causal load breakdown (W) for ',A,' (',I3,')',
      &         ' in ',A,' (',I3,') ')
         call edisp(itru,outs)
         WRITE(outs,43)TSTR,SNA(IZONE,ISFN),CSTR
@@ -104,16 +92,16 @@ C Get surface and zone name.
 
         CALL STDATE(IYEAR,IODS,DDX,DDX1)
         CALL ESTIME(NTS,IDAVER,IOH1*NTS,DHX,DESCRD,TIMER)
-        write(outs,'(A,A10,A,A5)') ' Time: ',DDX1,'@',DHX
+        write(outs,'(A,A10,A,A5)') 'Time: ',DDX1,'@',DHX
         call edisp(itru,outs)
       else
         call edisp(itru,' ')
         WRITE(outs,42)SN(1:lnblnk(SN)),ISFN,ZN(1:lnblnk(ZN)),IZONE
-   42   FORMAT(' Causal energy breakdown (Whrs) for ',A,' (',I3,')',
+   42   FORMAT('Causal energy breakdown (Whrs) for ',A,' (',I3,')',
      &         ' in ',A,' (',I3,') ')
         CALL EDISP(itru,outs)
         WRITE(outs,43)TSTR,SNA(IZONE,ISFN),CSTR
-   43   FORMAT(' Surface is ',A10,', area=',F6.2,'m^2 & connects to',
+   43   FORMAT('Surface is ',A10,', area=',F6.2,'m^2 & connects to',
      &    A25)
         CALL EDISP(itru,outs)
       endif
@@ -128,14 +116,14 @@ C Print breakdown headings: plant status or gains/loss.
       RETURN
       END
 
-C ******************** MOSCS1 ********************
+C ********** MOSCS1
 
-C MOSCS1 provides I/O for heating/cooling breakdown for surfaces.
+C Display breakdown by plant status.
 
       SUBROUTINE MOSCS1(IZONE,ISFN,IANZSE,IE,IZC)
-
 #include "building.h"
 #include "schedule.h"
+
       COMMON/OUTPCH/ICOUT
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
@@ -150,7 +138,7 @@ C Initial labels using user defined labels if available.
       LABELS(1) =' Conductive flux        '
       LABELS(2) =' Convective flux        '
       LABELS(3) =' Longwave rad inside    '
-      LABELS(4) =' Longwave rad buildings '
+      LABELS(4) =' Longwave rad surround  '
       LABELS(5) =' Longwave rad sky       '
       LABELS(6) =' Longwave rad ground    '
       LABELS(7) =' Shortwave radiation    '
@@ -162,14 +150,14 @@ C Initial labels using user defined labels if available.
       else
         write(LABELS(11),'(a)')  ' Casual --'
       endif
-      LABELS(12)=' Controled casual gn    '
+      LABELS(12)=' Controlled casual gn   '
       LABELS(13)=' Heat stored            '
       LABELS(14)=' Plant                  '
       LABELS(15)=' Totals                 '
       TITLE1(1)='|Cond flx'
       TITLE1(2)='|Conv flx'
       TITLE1(3)='|LW rad  '
-      TITLE1(4)='|LW >bldg'
+      TITLE1(4)='|LW >surr'
       TITLE1(5)='|LW >sky '
       TITLE1(6)='|LW >grnd'
       TITLE1(7)='|SW rad  '
@@ -190,7 +178,7 @@ C Redirect output if required.
 
 C Print breakdown headings: plant status.
       CALL EDISP(itru,' ')
-      WRITE(outs,'(A,I3)')' Facing Zone ',IZONE
+      WRITE(outs,'(A,I3)')'Facing Zone ',IZONE
       CALL EDISP(itru,outs)
       WRITE(outs,'(17X,A)')
      & 'Heating period        Cooling period          OFF period'
@@ -242,7 +230,7 @@ C Totals: use VAL2(I,22): I=1-6: gain/loss for heating ,cooling, off.
       RETURN
       END
 
-C ******************** MOSCS2 ********************
+C ********** MOSCS2
 
 C MOSCS2 provides I/O for gain/loss breakdown for surfaces.
 C CALLS: MOSSUM MOFADJ    CALLED BY: MOSCAS
@@ -504,21 +492,18 @@ C relates to GAINS and LOSSES.
 
       END
 
-C ******************** MOSRGT ********************
+C ********** MOSRGT
 
-C MOSRGT recovers from the results library information
-C for surface flux breakdown for any requested zone and day.
-C This will require quite a bit of work; try to include some
-C of the surface convection, conduction, storage calcs here.
-C Includes code to read the explicit radiant gains by
-C type.
+C Display breakdown by plant status. Recovers from the
+C results library information for surface flux breakdown
+C for any requested zone and day.
+
       SUBROUTINE MOSRGT(IZONE,ISFN,IDAY,IE)
 #include "building.h"
 #include "geometry.h"
 #include "control.h"
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
-      COMMON/RECV5/SNA(MCOM,MS)
       COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
       common/recver/izver,ipver,iever
 
@@ -683,7 +668,8 @@ C no radiant plant component.
           DO 35 I=ISTART,IEND
             VAL1(11,I)=VAL1(20,I)
    35     CONTINUE
-        ELSEIF(IBAN(ICF,1).EQ.-2.AND.IBAN(ICF,2).EQ.IZONE)then
+        ELSEIF(IBAN(ICF,1).EQ.-2.AND.
+     &      (IBAN(ICF,2).EQ.IZONE.OR.IBAN(ICF,2).EQ.0))then
           DO 36 I=ISTART,IEND
             VAL1(11,I)=(sna(izone,ISFN)*(EMISI(ISFN)/emarea))*
      &                  VAL1(20,I)*(1.-(FLOAT(IBAN(ICF,3))*0.01))

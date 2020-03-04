@@ -51,8 +51,8 @@ C---- Arguments
 
 C---- Common blocks
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -277,8 +277,8 @@ C---- ESP-r Common blocks
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
      &           IPC2(MPCON),IPN2(MPCON),PCONDR(MPCON),PCONSD(MPCON,2)
@@ -458,8 +458,8 @@ C---- ESP-r Common blocks
       REAL PCTF,PCRF,PUAF,PCQF,PCNTMF,PCTP,PCRP,PUAP
       REAL PCQP,PCNTMP
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
@@ -686,7 +686,7 @@ C     Copyright:  CETC 2007
 C-----------------------------------------------------------------------
 C     ABSTRACT:
 C     This function calculates the conductivity of water in the range
-C     0 to 140 蚓
+C     0 to 140 C
 C
 C     REFERENCE
 C
@@ -695,7 +695,7 @@ C     Incropera & DeWitt, Fundamentals of Heat and Mass Transfer, 3rd ed.
 C     p. A22.
 C
 C     INPUT
-C     T         REAL           temperature, 蚓
+C     T         REAL           temperature, C
 C
 C     OUTPUT
 C     KWATER    REAL           thermal conductivity of water, W/m/K
@@ -1811,10 +1811,10 @@ C---- Local variables
       REAL    THX          ! average temperature of segment of HX
       REAL    THX_tol      ! tolerance on calculation of temperature of segment of HX
 C     Thermophysical properties fluid inside HX
-      REAL    mu           ! dynamic viscosity [Pa新 or kg/m/s]
+      REAL    mu           ! dynamic viscosity [Pa.s or N.s/m^2]
       REAL    Cp           ! specific heat [J/kg/K]
       REAL    k            ! thermal conductivity [W/m/K]
-      REAL    mu_wall_i    ! dynamic viscosity at inside wall temperature [N新/m or kg/s]
+      REAL    mu_wall_i    ! dynamic viscosity at inside wall temperature [N.s/m^2 or kg/m.s]
       REAL    Cp_wall_i    ! specific heat at inside wall temperature [J/kg/K]
       REAL    k_wall_i     ! thermal conductivity at inside wall temperature [W/m/K]
 C     Non-dimensional numbers of fluid inside HX
@@ -1837,12 +1837,12 @@ C     Heat transfer coefficients between HX fluid and tank fluid
       LOGICAL CLOSEA       ! Auxiliary variable
 
 C     Thermophysical properties of tank fluid
-      REAL    mu_s         ! dynamic viscosity [Pa新 or kg/m/s]
+      REAL    mu_s         ! dynamic viscosity [Pa.s or kg/m.s]
       REAL    Cp_s         ! specific heat [J/g/K]
       REAL    beta_s       ! coefficient of volumetric thermal expansion [1/K]
       REAL    k_s          ! thermal conductivity [W/m/K]
       REAL    rho_s        ! density [kg/m3]
-      REAL    mu_wall_s    ! dynamic viscosity at outside wall temperature [Pa新/m or kg/m/s]
+      REAL    mu_wall_s    ! dynamic viscosity at outside wall temperature [Pa.s/m or kg/m.s]
       REAL    Cp_wall_s    ! specific heat at outside wall temperature [J/kg/K]
       REAL    k_wall_s     ! thermal conductivity at inside wall temperature [W/m/K]
       REAL    Pr_s         ! Prandtl number []
@@ -1871,7 +1871,7 @@ C---- Functions
 
       INTEGER Bound                ! Bound a number by two others
       REAL glycol_water_density    ! Function for density of glycol-water mixture [kg/m3]
-      REAL glycol_water_viscosity  ! Function for dynamic viscosity of glycol-water mixture [Pa新]
+      REAL glycol_water_viscosity  ! Function for dynamic viscosity of glycol-water mixture [Pa.s]
       REAL glycol_water_cond       ! Function for thermal conductivity of glycol [W/m/K]
       REAL glycol_water_cp         ! Function for specific heat or glycol-water [J/kg/K]
       REAL glycol_water_thermexp   ! Function for coefficient of thermal expansion of glycol-water [1/K]
@@ -2034,7 +2034,7 @@ C----     Thermophysical properties of tank liquid for that node
 
 C----     Natural convection
 C         The length scale to use for Ra is the distance that a fluid particle travels
-C         in the boundary layer on the body, or PI嵯/2. See Liu, 2003
+C         in the boundary layer on the body, or PI.D/2. See Liu, 2003
           Daux = PI*DoutHX/2
           DeltaT = abs(Ts-Twall_o)
           Ra = abs(9.81*beta_s*Daux**3.*DeltaT

@@ -63,7 +63,7 @@ C Arrays contain hourly climate data for each day of the year.
 
       integer iyear,idngh
       real clat, clong
-      character*30 clmloc
+      character*42 clmloc
 
       integer iSeasonStartDay(iMaxSeasons)   ! start day for each season defined in the year
       integer iSeasonEndDay(iMaxSeasons)     ! end day for each season defined in the year

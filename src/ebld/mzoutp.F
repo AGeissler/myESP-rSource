@@ -34,7 +34,7 @@ C tzph,tzpc are zone heating/cooling use over time.
 #include "esprdbfile.h"
 #include "sbem.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/FILEP/IFIL
       COMMON/SAVE0/TVMEM(MCOM,4,2),ZTU(MCOM),ZTL(MCOM),ZPH(MCOM),
@@ -53,7 +53,7 @@ C tzph,tzpc are zone heating/cooling use over time.
       character tab*1
       DIMENSION MTHNAM(12)
       CHARACTER DS*7,DS1*10,DE*7,DE1*10,MTHNAM*3
-      logical OK,dok
+      logical OK
       integer iactvalue !temporary integer for holding activity numbers (UK NCM) to
                         !use in DHW calculations
       DIMENSION MJ_DHW_ann_energy(MCOM),kWh_DHW_ann_energy(MCOM)
@@ -292,9 +292,8 @@ C Close output file after writing and exit.
         RETURN
       endif
 
-      dok=.true.
-      CALL ASKOK(' ','Write save option 0 data to file?',
-     &  OK,dok,nbhelp)
+      CALL EASKOK(' ','Write save option 0 data to file?',
+     &  OK,nbhelp)
       IF(.NOT.OK) return
    14 IWU=IFIL+1
       LTMP=RFILE  ! start with zone results library file name

@@ -71,8 +71,8 @@ C ICLIM,LCLIM (for climate file)
 
       common/FILEP/IFIL
       INTEGER :: ifil
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
       common/pophelp/h(60)
       
       integer ncomp,ncon
@@ -187,12 +187,12 @@ C Assume: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7
       INTEGER :: idwe1,idwe2
 
 C Strings associated with one climatelist item.
-C clmlnam (char*32) is the selection list string
+C clmlnam (char*42) is the selection list string
 C clmlaid is aide (char*72) memoire for list item
 C clmldbfile (char*144) is the climate file (with path info)
 C clmlavail (char*10) is either ONLINE or OFFLINE
 C clmlhelp (char*72) is array of help strings
-      character clmlnam*32,clmlaid*72,clmldbfile*144,clmlavail*10
+      character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
 
@@ -200,7 +200,6 @@ C Numbers associated with one climatelist item.
       common/clmlnum/nbclmlhelp
       INTEGER :: nbclmlhelp
 
-C Anchor data in model.h.
       common/ACTDOM/CFDOK
       logical CFDOK
 
@@ -370,7 +369,7 @@ C Control for writing out multi-climate sim presets
       
       INTEGER :: ier,i,ia,iav,icc,icd,id1,id2,id3,id4,im1,im2,im3,im4
       INTEGER :: ij,img,ios,iss,iuf,iw,j,l,lcfgl,lcfgr,lct,lctn,loutlen
-      INTEGER :: loutln,ncn
+      INTEGER :: loutln,ncn,lnzglbl
       
       IUF=IFIL+1
       IER=0
@@ -789,6 +788,10 @@ C Solar radiation (half hour data) flag.
      &    iSlr_half_hr_flg,'  # solar timing half-hour centred'
       endif
 
+C Write site altitude.
+      WRITE(IFCFG,'(A,F6.1)',IOSTAT=IOS,ERR=2) 
+     &  '*sitealt ',sitealt
+
 C Twb_out=Twb_in flag for direct evaporative cooling.
       do 888 ii = 1,ncomp      
         if(iflgevapC(ii).eq.1)then
@@ -932,7 +935,7 @@ C Changing orientation enabled if present
          WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2) '*roaming ',LROAM
       ENDIF
 
-C Write uncertainty analysis library file if known.
+C Write uncertainty analysis file if known.
       if(lnblnk(LUALF).eq.0)then
         continue
       elseif(LUALF(1:7).eq.'UNKNOWN')then
@@ -1013,14 +1016,6 @@ C and used by various facilities.
         call stdate(iyear,iasumf,descr,descrfn)
         write(IFCFG,'(a,4i3,4a)')'*summer_t',id1,im1,id2,im2,
      &    ' # typical summer ',descrst,'--',descrfn
-        write(IFCFG,'(a)')'*help_start'
-        if(nbclmlhelp.eq.0)then
-          write(IFCFG,'(a)')' Supporting text has yet to be entered.'
-        else
-          do 442 ij=1,nbclmlhelp
-            write(IFCFG,'(a)') clmlhelp(ij)(1:lnblnk(clmlhelp(ij)))
- 442      continue
-        endif
         write(IFCFG,'(a)')'*season_end'
       endif
 
@@ -1322,29 +1317,19 @@ C Annual ipv report (if description included within cfg or external file).
         endif
       endif
 
-C Building and client address tokens (as in UK national calculation method).
+C Building and client address tokens.
       WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
      &  '# Name and address of building'
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-NAME ',
      &  pjname(1:lnblnk(pjname))
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-ADDRESS ',
      &  baddress(1:lnblnk(baddress))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-CITY ',
-     &  bcity(1:lnblnk(bcity))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-POSTCODE ',
-     &  buildingPC(1:lnblnk(buildingPC))
       WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
      &  '# Contact information for building owner'
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-NAME ',
      &  ownername(1:lnblnk(ownername))
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-ADDRESS ',
      &  owneraddr(1:lnblnk(owneraddr))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-CITY ',
-     &  ownercity(1:lnblnk(ownercity))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-POSTCODE ',
-     &  ownerPC(1:lnblnk(ownerPC))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-TELEPHONE ',
-     &  ownertel(1:lnblnk(ownertel))
 
 C Write out contact details of simulation team.
       WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
@@ -1353,13 +1338,6 @@ C Write out contact details of simulation team.
      &  certifname(1:lnblnk(certifname))
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-ADDRESS ',
      &  certaddress(1:lnblnk(certaddress))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-CITY ',
-     &  certcity(1:lnblnk(certcity))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-POSTCODE ',
-     &  certPC(1:lnblnk(certPC))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-TELEPHONE ',
-     &  certTel(1:lnblnk(certTel))
-
 
 C Write project log file related to this model.
       WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '* PROJ LOG'
@@ -1530,7 +1508,7 @@ C Re-build zone:surface to connection hash array.
         IZSTOCN(IC1(icc),IE1(icc))=icc
  43   continue
 
-C If there is more than one anchor concept write them out.
+C If there is at least one anchor concept write them out.
       if(NALOC.gt.0)then
         WRITE(IFCFG,'(A,i2)',IOSTAT=IOS,ERR=3) '*Anchor ',NALOC
         do 44 ia=1,NALOC
@@ -1549,6 +1527,28 @@ C Write packed string of the items associated with each anchor.
             ipos=itrunc+1
           end do
  44     continue
+        WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=3) '*End'
+      endif
+
+C If there are any groups of zones defined write them out.
+      if(nzgroup.gt.0)then
+        WRITE(IFCFG,'(A,i2)',IOSTAT=IOS,ERR=3) '*Group ',nzgroup
+        do ia=1,nzgroup
+          lnzglbl=lnblnk(zglbl(ia))
+          WRITE(IFCFG,'(2A,i3)',IOSTAT=IOS,ERR=3) zglbl(ia)(1:lnzglbl),
+     &      ', ',izgnumber(ia)
+          do L=1,izgnumber(ia)
+            iav(l)=izglist(ia,l)
+          enddo
+          itrunc=1
+          ipos=1
+          do while (itrunc.ne.0)
+            call ailist(ipos,izgnumber(ia),iav,40,'S',outs,loutlen,
+     &        itrunc)
+            write(IFCFG,'(1x,a)',IOSTAT=ios,ERR=3) outs(1:loutlen)
+            ipos=itrunc+1
+          end do
+        enddo
         WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=3) '*End'
       endif
 
@@ -1695,7 +1695,7 @@ C Trap out of range IC1 and IE1 variables.
         RETURN
       endif
 
-      SST1=SSNAME(ICON)
+      SST1=SNAME(IC1(icon),IE1(icon))
       lsn1=lnblnk(SST1)
       ZST1=ZNAME(IC1(ICON))
       lzn1=lnblnk(ZST1)
@@ -1723,7 +1723,7 @@ C Trap out of range IC1 and IE1 variables.
       ELSEIF(ICT(ICON).EQ.3.AND.ICF.GT.0)THEN
         ICM=IZSTOCN(IC2(ICON),IE2(ICON))
         if(ICM.gt.0)then
-          SST2=SSNAME(ICM)
+          SST2=SNAME(IC2(ICON),IE2(ICON))
           lsn2=lnblnk(SST2)
           ZST2=zname(IC2(ICON))
           lzn2=lnblnk(ZST2)
@@ -1782,7 +1782,7 @@ C Parameters
       logical prob  ! true if there is a problem
       integer iprob ! number of mis-matches detected
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON

@@ -49,7 +49,7 @@ C Write IPV report based on description held in common.
       COMMON/FILEP/IFIL
       COMMON/OUTPCH/ICOUT
       common/outpvrb/ioutvrb
-      common/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -122,11 +122,11 @@ C Pre calculated data (filtered).
       character xfile*144,tg*1,delim*1,ITEM*18,lipvdatf*72
       character SUFFIX*8,paction*16
       CHARACTER ltmp*72,LJTIME*8
-      CHARACTER CLMLOC*30
+      CHARACTER CLMLOC*42
       character descr*7,descrst*10,descrfn*10,dstmp*24,sq*1
       character ipvaction*3  ! to signal external IPV file
 
-      logical XST,OK,DOK,pvok,usermode,within,dmdsok
+      logical XST,OK,pvok,usermode,within,dmdsok
       integer IWM  ! for radio button
       integer NITMS,INO ! max items and current menu item
 
@@ -388,12 +388,10 @@ C Toggle averaging.
         if(NOUT.eq.1)then
           IAV=0
         else
-          dok=.true.
           helptopic='res_IPV_report_average'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok(' ',
-     &      'Average results over each output interval?',ok,dok,
-     &      nbhelp)
+          call easkok(' ',
+     &      'Average results over output intervals?',ok,nbhelp)
           if(ok)then
             IAV=1
           else
@@ -465,8 +463,8 @@ C If IPV report format has not been set ask the user (i.e. zero value).
       if(ipvform.eq.0)then
         helptopic='IPV_report_text_comma'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Format output for:',' ','Text','comma separated',
-     &    'java',ipvform,nbhelp)
+        CALL EASKAB('Format output for:',' ','Text','comma separated',
+     &    ipvform,nbhelp)
       endif
 
 C If text output the set tab to a space and delimeter to -.
@@ -490,15 +488,6 @@ C If the first or only season then write out a heading.
           else
             call edisp(itru,'defined_within_cfg_file')
           endif
-        elseif(ipvform.eq.3)then
-          if(icfgv.lt.4)then
-            WRITE(outs,'(3A)',IOSTAT=IOS,ERR=1) '*IPV_REPORT',tab,
-     &        lipvdatf(1:lnblnk(lipvdatf))
-          else
-            WRITE(outs,'(3A)',IOSTAT=IOS,ERR=1) '*IPV_REPORT',tab,
-     &        'defined_within_cfg_file'
-          endif
-          call edisp(itru,outs)
         endif
         call edisp(itru,' ')
 
@@ -509,14 +498,6 @@ C If the first or only season then write out a heading.
         call dstamp(dstmp)
         write(outs,'(3a)') '*date',tab,dstmp
         call edisp(itru,outs)
-
-C If java then include fields for `project contact` and `site location`
-        if(ipvform.eq.3)then
-          write(outs,'(3a)') '*contact',tab,'See synopsis'
-          call edisp(itru,outs)
-          write(outs,'(3a)') '*location',tab,'See synopsis'
-          call edisp(itru,outs)
-        endif
 
 C Open the climate file and get its location name.
 C << take into account location >>
@@ -1471,29 +1452,15 @@ C Compute current time (as in ZONTAB). Suggestion from L. Prazeres that
 C cooling should be presented as absolute value.
             call DATIME(J,ATIME)
             if (IHFLAG.eq.0) then 
-              if(ipvform.eq.3)then
-                call SJTIME(J,LJTIME)
-                write(outs,'(4a,6F12.1)') sq,ljtime,sq,' ',edput(1,j),
-     &            abs(edput(2,j)),edput(3,j),edput(4,j),edput(5,j),
-     &            edput(6,j)
-              else
-                call STIME(J,LTIME)
-                write(outs,'(2a,6F12.1)') ltime,' ',edput(1,j),
-     &            abs(edput(2,j)),edput(3,j),edput(4,j),edput(5,j),
-     &            edput(6,j)
-              endif
+              call STIME(J,LTIME)
+              write(outs,'(2a,6F12.1)') ltime,' ',edput(1,j),
+     &          abs(edput(2,j)),edput(3,j),edput(4,j),edput(5,j),
+     &          edput(6,j)
             else
-              if(ipvform.eq.3)then
-                call SJTIME(J,LJTIME)
-                write(outs,'(4a,6F12.1)') sq,ljtime,sq,' ',edput(1,j),
-     &            abs(edput(2,j)),edput(3,j),edput(4,j),edput(5,j),
-     &            edput(6,j)
-              else
-                RDOTY=REAL(IDAY)+(ATIME/24.)
-                write(outs,'(F12.6,6F12.1)')RDOTY,edput(1,j),
-     &            abs(edput(2,j)),edput(3,j),edput(4,j),edput(5,j),
-     &            edput(6,j)
-              endif
+              RDOTY=REAL(IDAY)+(ATIME/24.)
+              write(outs,'(F12.6,6F12.1)')RDOTY,edput(1,j),
+     &          abs(edput(2,j)),edput(3,j),edput(4,j),edput(5,j),
+     &          edput(6,j)
             endif
             call eddisp(itru,outs)
    90     continue
@@ -1576,58 +1543,28 @@ C Depending on the ihflag write as julian decimal or 10h30 format.
             ihr=ihr+1
             if(pvok)then
               if(IHFLAG.eq.0)then 
-                if(ipvform.eq.3)then
-                  call SJTIME(J,LJTIME)
-C                 ipvhr=ipvhr+1
-                  write(outs,'(4a,7F12.3)')sq,ljtime,sq,' ',
-     &            edput(2,j),edput(3,j),edput(4,j),edput(5,j),
-     &            edput(6,j),edput(7,j),pvdayhr(ipvhr)/pvfla
-                else
-                  call STIME(J,LTIME)
-C                 ipvhr=ipvhr+1
-                  write(outs,'(2a,7F12.3)') ltime,' ',
-     &            edput(2,j),edput(3,j),edput(4,j),edput(5,j),
-     &            edput(6,j),edput(7,j),pvdayhr(ipvhr)/pvfla
-                endif
+                call STIME(J,LTIME)
+C               ipvhr=ipvhr+1
+                write(outs,'(2a,7F12.3)') ltime,' ',
+     &          edput(2,j),edput(3,j),edput(4,j),edput(5,j),
+     &          edput(6,j),edput(7,j),pvdayhr(ipvhr)/pvfla
               else
-                if(ipvform.eq.3)then
-                  call SJTIME(J,LJTIME)
-C                 ipvhr=ipvhr+1
-                  write(outs,'(4a,7F12.3)')sq,ljtime,sq,' ',
+                RDOTY=REAL(IDAY)+(ATIME/24.)
+                write(outs,'(F12.6,7F12.3)') RDOTY,
      &            edput(2,j),edput(3,j),edput(4,j),edput(5,j),
      &            edput(6,j),edput(7,j),pvdayhr(ipvhr)/pvfla
-                else
-                  RDOTY=REAL(IDAY)+(ATIME/24.)
-                  write(outs,'(F12.6,7F12.3)') RDOTY,
-     &            edput(2,j),edput(3,j),edput(4,j),edput(5,j),
-     &            edput(6,j),edput(7,j),pvdayhr(ipvhr)/pvfla
-                endif
               endif
             else
               if(IHFLAG.eq.0)then 
-                if(ipvform.eq.3)then
-                  call SJTIME(J,LJTIME)
-                  write(outs,'(4a,6F12.3)')sq,ljtime,sq,' ',
-     &              edput(2,j),edput(3,j),edput(4,j),edput(5,j),
-     &              edput(6,j),edput(7,j)
-                else
-                  call STIME(J,LTIME)
-                  write(outs,'(2a,6F12.3)') ltime,' ',
-     &              edput(2,j),edput(3,j),edput(4,j),edput(5,j),
-     &              edput(6,j),edput(7,j)
-                endif
+                call STIME(J,LTIME)
+                write(outs,'(2a,6F12.3)') ltime,' ',
+     &            edput(2,j),edput(3,j),edput(4,j),edput(5,j),
+     &            edput(6,j),edput(7,j)
               else
-                if(ipvform.eq.3)then
-                  call SJTIME(J,LJTIME)
-                  write(outs,'(4a,6F12.3)')sq,ljtime,sq,' ',
-     &              edput(2,j),edput(3,j),edput(4,j),edput(5,j),
-     &              edput(6,j),edput(7,j)
-                else
-                  RDOTY=REAL(IDAY)+(ATIME/24.)
-                  write(outs,'(F12.6,6F12.3)') RDOTY,
-     &              edput(2,j),edput(3,j),edput(4,j),edput(5,j),
-     &              edput(6,j),edput(7,j)
-                endif
+                RDOTY=REAL(IDAY)+(ATIME/24.)
+                write(outs,'(F12.6,6F12.3)') RDOTY,
+     &            edput(2,j),edput(3,j),edput(4,j),edput(5,j),
+     &            edput(6,j),edput(7,j)
               endif
             endif
             call eddisp(itru,outs)
@@ -1807,10 +1744,10 @@ C Set hour format flag to julian decimal for following reports.
                   SLABEL(I)='Guth comfort index,-'; LNSLABEL(I)=20
                   TABLABEL(I)='Guth comfort index'; LNTABLABEL(I)=18
                 endif
-                lnz=lnzname(izmg(ig,i))
-                write (GLABEL(I),'(a,a)')ZNAME(izmg(ig,i))(1:lnz),
-     &            SUFFIX
-                lnglabel(I)=lnblnk(glabel(i))  ! remember width
+C                lnz=lnzname(izmg(ig,i))
+C                write (GLABEL(I),'(a,a)')ZNAME(izmg(ig,i))(1:lnz),
+C     &            SUFFIX
+C                lnglabel(I)=lnblnk(glabel(i))  ! remember width
   350         CONTINUE
 
               write(outs,'(3a)') '*title',tab,SLABEL(1)(1:LNSLABEL(1))
@@ -1829,12 +1766,8 @@ C Use longer outs string for longer list. Match the format to MCOM.
               call edisp(itru,outs1kd)
               call edisp(itru,'*data ')
 
-C If java format IPV report then use alternative tabular listing.
-              if(ipvform.eq.3)then
-                call zontab('m')
-              else
-                call zontab('p')
-              endif
+C If IPV report then use alternative tabular listing.
+              call zontab('p')
               call edisp(itru,'*end_report')
               call edisp(itru,' ')
 
@@ -1850,11 +1783,9 @@ C Restore hour format flag.
 
 C Write the hourly aggregate demands for whole period if requested.
  477  if(.NOT.autook)then
-        dok=.false.
         helptopic='res_IPV_hourly_patterns'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call askok('Include hourly listing (for assessment period) of',
-     &    'aggregate delivered energy (by type)?',ok,dok,nbhelp)
+        call easkok(' ','List delivered energy by type?',ok,nbhelp)
       else
         if(iaggr.eq.0)then
           ok=.false.
@@ -1937,7 +1868,7 @@ C Write IPV report based on description held in common.
 
       COMMON/FILEP/IFIL
       COMMON/OUTPCH/ICOUT
-C      common/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/exporttg/xfile,tg,delim
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
 
@@ -2009,8 +1940,8 @@ C If IPV report format has not been set ask the user.
       if(ipvform.eq.0)then
         helptopic='res_IPV_annual_delim'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC('Format output for:',' ','Text','comma separated',
-     &    'java',ipvform,nbhelp)
+        CALL EASKAB(' ','Format output options:','text',
+     &     'comma separated',ipvform,nbhelp)
       endif
 
 C Set tab based on format of report.
@@ -2527,59 +2458,23 @@ C Write the distribution of resultant temperature in each bin for each season.
         write(outsn,'(5i7)') (NHW(ikk,l),l=1,nipvassmt)
         call SDELIM(outsn,outsd,'C',IW)
         if(ikk.eq.1)then
-          if(ipvform.eq.3)then
-            write(outs,'(5a)') sq,'<16',sq,tab,outsd(1:lnblnk(outsd))
-          else
-            write(outs,'(3a)') '<16',tab,outsd(1:lnblnk(outsd))
-          endif
+          write(outs,'(3a)') '<16',tab,outsd(1:lnblnk(outsd))
         elseif(ikk.eq.2)then
-          if(ipvform.eq.3)then
-            write(outs,'(5a)') sq,'16-18',sq,tab,outsd(1:lnblnk(outsd))
-          else
-            write(outs,'(3a)') '16-18',tab,outsd(1:lnblnk(outsd))
-          endif
+          write(outs,'(3a)') '16-18',tab,outsd(1:lnblnk(outsd))
         elseif(ikk.eq.3)then
-          if(ipvform.eq.3)then
-            write(outs,'(5a)') sq,'18-20',sq,tab,outsd(1:lnblnk(outsd))
-          else
-            write(outs,'(3a)') '18-20',tab,outsd(1:lnblnk(outsd))
-          endif
+          write(outs,'(3a)') '18-20',tab,outsd(1:lnblnk(outsd))
         elseif(ikk.eq.4)then
-          if(ipvform.eq.3)then
-            write(outs,'(5a)') sq,'20-22',sq,tab,outsd(1:lnblnk(outsd))
-          else
-            write(outs,'(3a)') '20-22',tab,outsd(1:lnblnk(outsd))
-          endif
+          write(outs,'(3a)') '20-22',tab,outsd(1:lnblnk(outsd))
         elseif(ikk.eq.5)then
-          if(ipvform.eq.3)then
-            write(outs,'(5a)') sq,'22-24',sq,tab,outsd(1:lnblnk(outsd))
-          else
-            write(outs,'(3a)') '22-24',tab,outsd(1:lnblnk(outsd))
-          endif
+          write(outs,'(3a)') '22-24',tab,outsd(1:lnblnk(outsd))
         elseif(ikk.eq.6)then
-          if(ipvform.eq.3)then
-            write(outs,'(5a)') sq,'24-26',sq,tab,outsd(1:lnblnk(outsd))
-          else
-            write(outs,'(3a)') '24-26',tab,outsd(1:lnblnk(outsd))
-          endif
+          write(outs,'(3a)') '24-26',tab,outsd(1:lnblnk(outsd))
         elseif(ikk.eq.7)then
-          if(ipvform.eq.3)then
-            write(outs,'(5a)') sq,'26-28',sq,tab,outsd(1:lnblnk(outsd))
-          else
-            write(outs,'(3a)') '26-28',tab,outsd(1:lnblnk(outsd))
-          endif
+          write(outs,'(3a)') '26-28',tab,outsd(1:lnblnk(outsd))
         elseif(ikk.eq.8)then
-          if(ipvform.eq.3)then
-            write(outs,'(5a)') sq,'28-30',sq,tab,outsd(1:lnblnk(outsd))
-          else
-            write(outs,'(3a)') '28-30',tab,outsd(1:lnblnk(outsd))
-          endif
+          write(outs,'(3a)') '28-30',tab,outsd(1:lnblnk(outsd))
         elseif(ikk.eq.9)then
-          if(ipvform.eq.3)then
-            write(outs,'(5a)') sq,'>30',sq,tab,outsd(1:lnblnk(outsd))
-          else
-            write(outs,'(3a)') '>30',tab,outsd(1:lnblnk(outsd))
-          endif
+          write(outs,'(3a)') '>30',tab,outsd(1:lnblnk(outsd))
         endif
         call edisp(itru,outs)
  198  continue
@@ -2614,7 +2509,7 @@ C espriou.h provides currentfile.
       integer lnblnk  ! function definition
 
 C Uncomment next line if debugging required.
-C      common/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C IPV description via ipvdata.h.
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
@@ -2781,7 +2676,7 @@ C << at some point include additional arrays for pumps and lifts >>
       integer lnblnk  ! function definition
 
 C Uncomment the next line if debugging required.
-C      common/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
      &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
       character sblres*72,sflres*72,splres*72,smstres*72,
@@ -2947,7 +2842,7 @@ C << at some point include additional arrays for pumps and lifts >>
       integer lnblnk  ! function definition
 
 C Uncomment the next line if debugging required.
-C      common/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
      &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
       character sblres*72,sflres*72,splres*72,smstres*72,
@@ -3099,7 +2994,7 @@ C Note if Java IPV because different logic required.
       integer lnblnk  ! function definition
 
 C Uncomment the next line if debugging required.
-C      common/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/spflres/sblres(MSPS),sflres(MSPS),splres(MSPS),
      &  smstres(MSPS),selres(MSPS),scfdres(MSPS),sipvres
       character sblres*72,sflres*72,splres*72,smstres*72,
@@ -3160,11 +3055,7 @@ C Scan 9 lines for comfort info and then read 2nd or 3rd item in bin info.
             do 44 i=1,9
               CALL STRIPC(ifu,OUTSTR,99,ND,1,'bin data',IER)
               K=0
-              if(ipvform.eq.3)then
-                continue
-              else
-                CALL EGETWI(OUTSTR,K,ib,0,0,'-','bin no',IER)
-              endif
+              CALL EGETWI(OUTSTR,K,ib,0,0,'-','bin no',IER)
               CALL EGETW(OUTSTR,K,WORD,'W','range',IFLAG)
               CALL EGETWI(OUTSTR,K,NH(i,ik),0,0,'-','cmft bin',IER)
   44        continue
@@ -3184,7 +3075,7 @@ C Hourly aggregate energy demand per unit time.
 #include "ipvdata.h"
 
 C Uncomment the next line if debugging required.
-C      common/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ZONPIK/NZ,NZNO(MCOM)
       COMMON/BLM2/dmdfla(MGTY)
 
@@ -3441,7 +3332,7 @@ C Recover pv electrical output in terms of an hourly integration
 C of all nodes (W).
       subroutine aggregpv(iseas,pvok,pvmax,totpv,iier)
 #include "building.h"
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C      COMMON/FILEP/IFIL
 C      COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
 
@@ -3457,7 +3348,7 @@ C      character outs*124
       character spflnam*72
 C      character sblres*72,sflres*72,splres*72,smstres*72,sipvres*72
 C      character selres*72
-      logical OK,DOK,pvok
+      logical OK,pvok
 C      logical XST
 
 C For help messages
@@ -3480,11 +3371,10 @@ C for output file.
         iier=0
         return
       endif
-      dok=.true.
       helptopic='res_special_materials'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      call askok('Is there a special materials output file',
-     &           'associated with this simulation?',OK,dok,nbhelp)
+      call easkok('Is a special materials output file',
+     &           'associated with this simulation?',OK,nbhelp)
       if(.NOT.OK)then
         pvok=.false.
         iier=0
@@ -3546,7 +3436,7 @@ C file. tg is a character T text or X tabular info being saved.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/rpath/path
 
 C Simulator parameters. autook signals silent operation.
@@ -3725,7 +3615,7 @@ C bemsrep: Write IPV report based on description held in common.
       subroutine bemsrep(actf,bact,iier)
 #include "building.h"
 
-C      common/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C nrepro number of groups of entities of interest for BEMS.
 C resgrp(i) types of variables (i.e. 1=temps, 2=fluxes, 3=power etc.)
@@ -3748,7 +3638,7 @@ C a line with *assessment followed by an index that matches
 C the index parameter. When found it returns having set
 C the logical atassment to .true.
       subroutine jumpassmt(ifu,index,atassment)
-      common/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character outstr*124
       logical atassment
@@ -3798,7 +3688,7 @@ C report line has been found.
       
       integer lnblnk  ! function definition
 
-C      common/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character outstr*124,word1*20,word2*20,word3*20,third*20,name*12
       logical atreports,okname,oktype

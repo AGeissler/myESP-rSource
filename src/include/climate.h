@@ -44,7 +44,7 @@ C NMCM   - Number of values in MCMALL (also the current climate database
 C          version number)
 C MCMALL - Values of MCM from all previous versions
 
-C >>NOTE - Whenever the value of MCM is increased in the public release,
+C NOTE - Whenever the value of MCM is increased in the public release,
 C the array MCMALL must be appended with the new value and NMCM must be
 C incremented by 1. This maintains back-compatibility for old climate
 C databases. The idea is that the ith element in MCMALL is the correct
@@ -65,16 +65,16 @@ C CFMIN  - Minimum values (in climate file units)
      &(/6,10/)
 
       CHARACTER*6,PARAMETER :: CMNAMA(MCM)=
-     &(/'DBTEMP',
-     &  'DFHSOL',
-     &  'DRNSOL',
-     &  'GLHSOL',
-     &  'WNDSPD',
-     &  'WNDDIR',
-     &  'RELHUM',
-     &  'TOTCLD',
-     &  'OPQCLD',
-     &  'ATMPRS'/)
+     &(/'DBTemp',
+     &  'DFHSol',
+     &  'DRNSol',
+     &  'GLHSol',
+     &  'WndSpd',
+     &  'WndDir',
+     &  'RelHum',
+     &  'TotCld',
+     &  'OpqCld',
+     &  'AtmPrs'/)
 
       CHARACTER*24,PARAMETER :: CMNAMF(MCM)=
      &(/'dry bulb temperature    ',
@@ -89,25 +89,25 @@ C CFMIN  - Minimum values (in climate file units)
      &  'atmospheric pressure    '/)
 
       CHARACTER*6,PARAMETER :: CMUNIT(MCM)=
-     &(/'deg C ',
+     &(/'C     ',
      &  'W/m^2 ',
      &  'W/m^2 ',
      &  'W/m^2 ',
      &  'm/s   ',
-     &  'deg CW',
+     &  'deg   ',
      &  '%     ',
      &  'tenths',
      &  'tenths',
      &  'Pa    '/)
 
       CHARACTER*24,PARAMETER :: CFUNIT(MCM)=
-     &(/'tenths deg C            ',
-     &  'W/m**2                  ',
-     &  'W/m**2                  ',
-     &  'W/m**2                  ',
+     &(/'tenths C                ',
+     &  'W/m^2                   ',
+     &  'W/m^2                   ',
+     &  'W/m^2                   ',
      &  'tenths m/s              ',
      &  'deg clockwise from north',
-     &  'percent                 ',
+     &  '%                       ',
      &  'tenths of sky covered   ',
      &  'tenths of sky covered   ',
      &  'Pa                      '/)
@@ -160,7 +160,7 @@ C CMDAYR - The day of data currently in CMRVAL, to prevent reading the same data
       COMMON/CLMFIL/CFVER,CFYEAR,CFLAT,CFLONG,CFMCM,CFLOC
       integer CFVER,CFYEAR,CFMCM
       real CFLAT,CFLONG
-      character CFLOC*30
+      character CFLOC*42
 
       COMMON/CLMMET/MNCM,NCM,CMCOL(MCM),CMXST(MCM)
       integer MNCM,NCM,CMCOL
@@ -171,7 +171,7 @@ C CMDAYR - The day of data currently in CMRVAL, to prevent reading the same data
       real CMRVAL
 
 
-C >>Note - subroutines are defined in commonclm.F, marked with tag <CLMNEW2OLD>,
+C Note - subroutines are defined in commonclm.F, marked with tag <CLMNEW2OLD>,
 C to map these commons to existing old data structures. 
 C The old data structures should be depreciated in favour of this header.
 C This is a work in progress.

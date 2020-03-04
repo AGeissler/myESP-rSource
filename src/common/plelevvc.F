@@ -28,7 +28,7 @@ C P gives a plan.  Inpic is the number of zones, ivals is a
 C array of selected zones to include.
 
 C This version does not scan geometry or obstruction files and
-C instead uses the VCOORD coordinates.
+C instead uses the szcoords coordinates.
 
       SUBROUTINE PLELEV(direc)
 #include "building.h"
@@ -118,12 +118,12 @@ C Establish the maximum and minimum vertix values for the model.
       do 11 mz=1,newpic
         newfoc=nznog(mz)
         do 10 i=1,nztv(newfoc)
-          xmn=amin1(xmn,VCOORD(newfoc,i,1))
-          ymn=amin1(ymn,VCOORD(newfoc,i,2))
-          zmn=amin1(zmn,VCOORD(newfoc,i,3))
-          xmx=amax1(xmx,VCOORD(newfoc,i,1))
-          ymx=amax1(ymx,VCOORD(newfoc,i,2))
-          zmx=amax1(zmx,VCOORD(newfoc,i,3))
+          xmn=amin1(xmn,szcoords(newfoc,i,1))
+          ymn=amin1(ymn,szcoords(newfoc,i,2))
+          zmn=amin1(zmn,szcoords(newfoc,i,3))
+          xmx=amax1(xmx,szcoords(newfoc,i,1))
+          ymx=amax1(ymx,szcoords(newfoc,i,2))
+          zmx=amax1(zmx,szcoords(newfoc,i,3))
    10   continue
 
 C Convert obstruction block geometry to (/gb1/) and
@@ -202,17 +202,29 @@ C vertex and give the zone name.
           call u2pixel(ZCOG(newfoc,1),ZCOG(newfoc,2),iix,iiy)
           iupdown=0
           isym=0
-          call etplot(ZCOG(newfoc,1),ZCOG(newfoc,2),iupdown,isym)
+          if(MMOD.EQ.8)then
+            call etplot(ZCOG(newfoc,1),ZCOG(newfoc,2),iupdown,isym)
+          else
+            call etplotwwc(ZCOG(newfoc,1),ZCOG(newfoc,2),iupdown,isym)
+          endif
         elseif(direc.eq.'S')then
           call u2pixel(ZCOG(newfoc,1),ZCOG(newfoc,3),iix,iiy)
           iupdown=0
           isym=0
-          call etplot(ZCOG(newfoc,1),ZCOG(newfoc,3),iupdown,isym)
+          if(MMOD.EQ.8)then
+            call etplot(ZCOG(newfoc,1),ZCOG(newfoc,3),iupdown,isym)
+          else
+            call etplotwwc(ZCOG(newfoc,1),ZCOG(newfoc,3),iupdown,isym)
+          endif
         elseif(direc.eq.'E')then
           call u2pixel(ZCOG(newfoc,2),ZCOG(newfoc,3),iix,iiy)
           iupdown=0
           isym=0
-          call etplot(ZCOG(newfoc,2),ZCOG(newfoc,3),iupdown,isym)
+          if(MMOD.EQ.8)then
+            call etplot(ZCOG(newfoc,2),ZCOG(newfoc,3),iupdown,isym)
+          else
+            call etplotwwc(ZCOG(newfoc,2),ZCOG(newfoc,3),iupdown,isym)
+          endif
         endif
         iicol=0
         IF(lnzname(newfoc).GT.1)THEN
@@ -233,16 +245,31 @@ C Move to first vertex of zone.
         iupdown=0
         isym=0
         if(direc.eq.'P')then
-          call etplot(VCOORD(newfoc,1,1),VCOORD(newfoc,1,2),
-     &      iupdown,isym)
+          if(MMOD.EQ.8)then
+            call etplot(szcoords(newfoc,1,1),szcoords(newfoc,1,2),
+     &        iupdown,isym)
+          else
+            call etplotwwc(szcoords(newfoc,1,1),szcoords(newfoc,1,2),
+     &        iupdown,isym)
+          endif
         elseif(direc.eq.'S')then
-          call etplot(VCOORD(newfoc,1,1),VCOORD(newfoc,1,3),
-     &      iupdown,isym)
+          if(MMOD.EQ.8)then
+            call etplot(szcoords(newfoc,1,1),szcoords(newfoc,1,3),
+     &        iupdown,isym)
+          else
+            call etplotwwc(szcoords(newfoc,1,1),szcoords(newfoc,1,3),
+     &        iupdown,isym)
+          endif
         elseif(direc.eq.'E')then
-          call etplot(VCOORD(newfoc,1,2),VCOORD(newfoc,1,3),
-     &      iupdown,isym)
+          if(MMOD.EQ.8)then
+            call etplot(szcoords(newfoc,1,2),szcoords(newfoc,1,3),
+     &        iupdown,isym)
+          else
+            call etplotwwc(szcoords(newfoc,1,2),szcoords(newfoc,1,3),
+     &        iupdown,isym)
+          endif
         endif
-        call forceflush()
+        if(mmod.EQ.8) call forceflush()
 
 C For each surface in the zone plot its initial vertex followed
 C by each of the edge points.
@@ -251,19 +278,34 @@ C by each of the edge points.
           isym=0
           icc=IZSTOCN(newfoc,i)
           if(icc.gt.0)then
-            j=NZJVN(icc,1)
+            j=iszjvn(newfoc,i,1)
             if(j.gt.0)then
               if(direc.eq.'P')then
-                call etplot(VCOORD(newfoc,j,1),VCOORD(newfoc,j,2),
-     &            iupdown,isym)
+                if(MMOD.EQ.8)then
+                  call etplot(szcoords(newfoc,j,1),szcoords(newfoc,j,2),
+     &              iupdown,isym)
+                else
+                  call etplotwwc(szcoords(newfoc,j,1),
+     &              szcoords(newfoc,j,2),iupdown,isym)
+                endif
               elseif(direc.eq.'S')then
-                call etplot(VCOORD(newfoc,j,1),VCOORD(newfoc,j,3),
-     &            iupdown,isym)
+                if(MMOD.EQ.8)then
+                  call etplot(szcoords(newfoc,j,1),szcoords(newfoc,j,3),
+     &              iupdown,isym)
+                else
+                  call etplotwwc(szcoords(newfoc,j,1),
+     &              szcoords(newfoc,j,3),iupdown,isym)
+                endif
               elseif(direc.eq.'E')then
-                call etplot(VCOORD(newfoc,j,2),VCOORD(newfoc,j,3),
-     &            iupdown,isym)
+                if(MMOD.EQ.8)then
+                  call etplot(szcoords(newfoc,j,2),szcoords(newfoc,j,3),
+     &              iupdown,isym)
+                else
+                  call etplotwwc(szcoords(newfoc,j,2),
+     &              szcoords(newfoc,j,3),iupdown,isym)
+                endif
               endif
-              call forceflush()
+              if(mmod.EQ.8) call forceflush()
             else
               call usrmsg('Model may be unstable. Tried to draw an',
      &          'unknown surface edge.','P')
@@ -273,23 +315,38 @@ C by each of the edge points.
      &        'unknown surface.','P')
           endif
 
-          k=NZNVER(icc)
+          k=isznver(newfoc,i)
           do 50 l=2,k
             iupdown=-302
             isym=0
-            m=NZJVN(icc,l)
+            m=iszjvn(newfoc,i,l)
             if(m.gt.0)then
               if(direc.eq.'P')then
-                call etplot(VCOORD(newfoc,m,1),VCOORD(newfoc,m,2),
-     &            iupdown,isym)
+                if(MMOD.EQ.8)then
+                  call etplot(szcoords(newfoc,m,1),szcoords(newfoc,m,2),
+     &              iupdown,isym)
+                else
+                  call etplotwwc(szcoords(newfoc,m,1),
+     &              szcoords(newfoc,m,2),iupdown,isym)
+                endif
               elseif(direc.eq.'S')then
-                call etplot(VCOORD(newfoc,m,1),VCOORD(newfoc,m,3),
-     &            iupdown,isym)
+                if(MMOD.EQ.8)then
+                  call etplot(szcoords(newfoc,m,1),szcoords(newfoc,m,3),
+     &              iupdown,isym)
+                else
+                  call etplotwwc(szcoords(newfoc,m,1),
+     &              szcoords(newfoc,m,3),iupdown,isym)
+                endif
               elseif(direc.eq.'E')then
-                call etplot(VCOORD(newfoc,m,2),VCOORD(newfoc,m,3),
-     &            iupdown,isym)
+                if(MMOD.EQ.8)then
+                  call etplot(szcoords(newfoc,m,2),szcoords(newfoc,m,3),
+     &              iupdown,isym)
+                else
+                  call etplotwwc(szcoords(newfoc,m,2),
+     &              szcoords(newfoc,m,3),iupdown,isym)
+                endif
               endif
-              call forceflush()
+              if(mmod.EQ.8) call forceflush()
             endif
    50     continue
 
@@ -298,19 +355,34 @@ C Back to the initial point of the surface.
           isym=0
           if(j.gt.0)then
             if(direc.eq.'P')then
-              call etplot(VCOORD(newfoc,j,1),VCOORD(newfoc,j,2),
-     &          iupdown,isym)
+              if(MMOD.EQ.8)then
+                call etplot(szcoords(newfoc,j,1),szcoords(newfoc,j,2),
+     &            iupdown,isym)
+              else
+                call etplotwwc(szcoords(newfoc,j,1),
+     &            szcoords(newfoc,j,2),iupdown,isym)
+              endif
             elseif(direc.eq.'S')then
-              call etplot(VCOORD(newfoc,j,1),VCOORD(newfoc,j,3),
-     &          iupdown,isym)
+              if(MMOD.EQ.8)then
+                call etplot(szcoords(newfoc,j,1),szcoords(newfoc,j,3),
+     &            iupdown,isym)
+              else
+                call etplotwwc(szcoords(newfoc,j,1),
+     &            szcoords(newfoc,j,3),iupdown,isym)
+              endif
             elseif(direc.eq.'E')then
-              call etplot(VCOORD(newfoc,j,2),VCOORD(newfoc,j,3),
-     &          iupdown,isym)
+              if(MMOD.EQ.8)then
+                call etplot(szcoords(newfoc,j,2),szcoords(newfoc,j,3),
+     &            iupdown,isym)
+              else
+                call etplotwwc(szcoords(newfoc,j,2),
+     &            szcoords(newfoc,j,3),iupdown,isym)
+              endif
             endif
-            call forceflush()
+            if(mmod.EQ.8) call forceflush()
           endif
    40   continue
-        call forceflush()
+        if(mmod.EQ.8) call forceflush()
 
 C Now draw each obstruction block by first converting to GB1
 C common block via CNVBLK.
@@ -333,23 +405,41 @@ C common block via CNVBLK.
             J=JVNB(I,1)
             iupdown=0
             isym=0
-            if(direc.eq.'P')call etplot(XB(J),YB(J),iupdown,isym)
-            if(direc.eq.'S')call etplot(XB(J),ZB(J),iupdown,isym)
-            if(direc.eq.'E')call etplot(YB(J),ZB(J),iupdown,isym)
+            if(MMOD.EQ.8)then
+              if(direc.eq.'P')call etplot(XB(J),YB(J),iupdown,isym)
+              if(direc.eq.'S')call etplot(XB(J),ZB(J),iupdown,isym)
+              if(direc.eq.'E')call etplot(YB(J),ZB(J),iupdown,isym)
+            else
+              if(direc.eq.'P')call etplotwwc(XB(J),YB(J),iupdown,isym)
+              if(direc.eq.'S')call etplotwwc(XB(J),ZB(J),iupdown,isym)
+              if(direc.eq.'E')call etplotwwc(YB(J),ZB(J),iupdown,isym)
+            endif
             K=4          ! for each edge of block surface
             DO 424 L=2,K
               M=JVNB(I,L)
               iupdown=1
               isym=0
-              if(direc.eq.'P')call etplot(XB(M),YB(M),iupdown,isym)
-              if(direc.eq.'S')call etplot(XB(M),ZB(M),iupdown,isym)
-              if(direc.eq.'E')call etplot(YB(M),ZB(M),iupdown,isym)
+              if(MMOD.EQ.8)then
+                if(direc.eq.'P')call etplot(XB(M),YB(M),iupdown,isym)
+                if(direc.eq.'S')call etplot(XB(M),ZB(M),iupdown,isym)
+                if(direc.eq.'E')call etplot(YB(M),ZB(M),iupdown,isym)
+              else
+                if(direc.eq.'P')call etplotwwc(XB(M),YB(M),iupdown,isym)
+                if(direc.eq.'S')call etplotwwc(XB(M),ZB(M),iupdown,isym)
+                if(direc.eq.'E')call etplotwwc(YB(M),ZB(M),iupdown,isym)
+              endif
   424       CONTINUE
             iupdown=1
             isym=0
-            if(direc.eq.'P')call etplot(XB(J),YB(J),iupdown,isym)
-            if(direc.eq.'S')call etplot(XB(J),ZB(J),iupdown,isym)
-            if(direc.eq.'E')call etplot(YB(J),ZB(J),iupdown,isym)
+            if(MMOD.EQ.8)then
+              if(direc.eq.'P')call etplot(XB(J),YB(J),iupdown,isym)
+              if(direc.eq.'S')call etplot(XB(J),ZB(J),iupdown,isym)
+              if(direc.eq.'E')call etplot(YB(J),ZB(J),iupdown,isym)
+            else
+              if(direc.eq.'P')call etplotwwc(XB(J),YB(J),iupdown,isym)
+              if(direc.eq.'S')call etplotwwc(XB(J),ZB(J),iupdown,isym)
+              if(direc.eq.'E')call etplotwwc(YB(J),ZB(J),iupdown,isym)
+            endif
   422     CONTINUE
           if(direc.eq.'P')call u2pixel(XB(J),YB(J),iix,iiy)
           if(direc.eq.'S')call u2pixel(XB(J),ZB(J),iix,iiy)
@@ -357,11 +447,15 @@ C common block via CNVBLK.
           WRITE(blabel,423)IB
   423     FORMAT('B',I2)
           iid1=iix+4; iid2=iiy-4;
-          call textatxy(iid1,iid2,blabel,'-',iicol)
-          call forceflush()
+          if(MMOD.EQ.8)then
+            call textatxy(iid1,iid2,blabel,'-',iicol)
+            call forceflush()
+          else
+            call textatxywwc(iid1,iid2,blabel,'-',iicol)
+          endif
   420   CONTINUE
   54  continue
-      call forceflush()
+      if(mmod.EQ.8) call forceflush()
 
 C If there is a ground, ITDSP is flagged and plan view draw it.
       IF(ITDSP.EQ.5.and.NGT.gt.0)then
@@ -370,15 +464,27 @@ C If there is a ground, ITDSP is flagged and plan view draw it.
             J=JGVN(I,1)
             iupdown=0
             isym=0
-            call etplot(XGT(J),YGT(J),iupdown,isym)
+            if(MMOD.EQ.8)then
+              call etplot(XGT(J),YGT(J),iupdown,isym)
+            else
+              call etplotwwc(XGT(J),YGT(J),iupdown,isym)
+            endif
             K=NGVER(I)
             iupdown=-203
             isym=0
             DO 501 L=2,K
               M=JGVN(I,L)
-              call etplot(XGT(M),YGT(M),iupdown,isym)
+              if(MMOD.EQ.8)then
+                call etplot(XGT(M),YGT(M),iupdown,isym)
+              else
+                call etplotwwc(XGT(M),YGT(M),iupdown,isym)
+              endif
   501       CONTINUE
-            call etplot(XGT(J),YGT(J),iupdown,isym)
+            if(MMOD.EQ.8)then
+              call etplot(XGT(J),YGT(J),iupdown,isym)
+            else
+              call etplotwwc(XGT(J),YGT(J),iupdown,isym)
+            endif
   401     CONTINUE
         endif
       endif

@@ -41,7 +41,7 @@ C geometry.h provides commons G0/G1/G2/precz/GS5/GS6.
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
@@ -155,17 +155,29 @@ C Check for a zone obstructions file.
           call u2pixel(ZCOG(newfoc,1),ZCOG(newfoc,2),iix,iiy)
           iupdown=0
           isym=0
-          call etplot(ZCOG(newfoc,1),ZCOG(newfoc,2),iupdown,isym)
+          if(MMOD.eq.8)then
+            call etplot(ZCOG(newfoc,1),ZCOG(newfoc,2),iupdown,isym)
+          else
+            call etplotwwc(ZCOG(newfoc,1),ZCOG(newfoc,2),iupdown,isym)
+          endif
         elseif(direc.eq.'S')then
           call u2pixel(ZCOG(newfoc,1),ZCOG(newfoc,3),iix,iiy)
           iupdown=0
           isym=0
-          call etplot(ZCOG(newfoc,1),ZCOG(newfoc,3),iupdown,isym)
+          if(MMOD.eq.8)then
+            call etplot(ZCOG(newfoc,1),ZCOG(newfoc,3),iupdown,isym)
+          else
+            call etplotwwc(ZCOG(newfoc,1),ZCOG(newfoc,3),iupdown,isym)
+          endif
         elseif(direc.eq.'E')then
           call u2pixel(ZCOG(newfoc,2),ZCOG(newfoc,3),iix,iiy)
           iupdown=0
           isym=0
-          call etplot(ZCOG(newfoc,2),ZCOG(newfoc,3),iupdown,isym)
+          if(MMOD.eq.8)then
+            call etplot(ZCOG(newfoc,2),ZCOG(newfoc,3),iupdown,isym)
+          else
+            call etplotwwc(ZCOG(newfoc,2),ZCOG(newfoc,3),iupdown,isym)
+          endif
         endif
         iicol=0
         IF(lnzname(newfoc).GT.1)THEN
@@ -183,26 +195,44 @@ C Check for a zone obstructions file.
           J=JVN(I,1)
           iupdown=0
           isym=0
-          if(direc.eq.'P')call etplot(X(J),Y(J),iupdown,isym)
-          if(direc.eq.'S')call etplot(X(J),Z(J),iupdown,isym)
-          if(direc.eq.'E')call etplot(Y(J),Z(J),iupdown,isym)
+          if(MMOD.eq.8)then
+            if(direc.eq.'P')call etplot(X(J),Y(J),iupdown,isym)
+            if(direc.eq.'S')call etplot(X(J),Z(J),iupdown,isym)
+            if(direc.eq.'E')call etplot(Y(J),Z(J),iupdown,isym)
+          else
+            if(direc.eq.'P')call etplotwwc(X(J),Y(J),iupdown,isym)
+            if(direc.eq.'S')call etplotwwc(X(J),Z(J),iupdown,isym)
+            if(direc.eq.'E')call etplotwwc(Y(J),Z(J),iupdown,isym)
+          endif
 
           K=NVER(I)
           DO 50 L=2,K
             M=JVN(I,L)
             iupdown=-302
             isym=0
-            if(direc.eq.'P')call etplot(X(M),Y(M),iupdown,isym)
-            if(direc.eq.'S')call etplot(X(M),Z(M),iupdown,isym)
-            if(direc.eq.'E')call etplot(Y(M),Z(M),iupdown,isym)
+            if(MMOD.eq.8)then
+              if(direc.eq.'P')call etplot(X(M),Y(M),iupdown,isym)
+              if(direc.eq.'S')call etplot(X(M),Z(M),iupdown,isym)
+              if(direc.eq.'E')call etplot(Y(M),Z(M),iupdown,isym)
+            else
+              if(direc.eq.'P')call etplotwwc(X(M),Y(M),iupdown,isym)
+              if(direc.eq.'S')call etplotwwc(X(M),Z(M),iupdown,isym)
+              if(direc.eq.'E')call etplotwwc(Y(M),Z(M),iupdown,isym)
+            endif
    50     CONTINUE
           iupdown=-302
           isym=0
-          if(direc.eq.'P')call etplot(X(J),Y(J),iupdown,isym)
-          if(direc.eq.'S')call etplot(X(J),Z(J),iupdown,isym)
-          if(direc.eq.'E')call etplot(Y(J),Z(J),iupdown,isym)
+          if(MMOD.eq.8)then
+            if(direc.eq.'P')call etplot(X(J),Y(J),iupdown,isym)
+            if(direc.eq.'S')call etplot(X(J),Z(J),iupdown,isym)
+            if(direc.eq.'E')call etplot(Y(J),Z(J),iupdown,isym)
+          else
+            if(direc.eq.'P')call etplotwwc(X(J),Y(J),iupdown,isym)
+            if(direc.eq.'S')call etplotwwc(X(J),Z(J),iupdown,isym)
+            if(direc.eq.'E')call etplotwwc(Y(J),Z(J),iupdown,isym)
+          endif
   400   CONTINUE
-        call forceflush()
+        if(mmod.eq.8) call forceflush()
 
 C Now draw each obstruction block by first converting to GB1
 C common block via CNVBLK.
@@ -215,23 +245,41 @@ C common block via CNVBLK.
             J=JVNB(I,1)
             iupdown=0
             isym=0
-            if(direc.eq.'P')call etplot(XB(J),YB(J),iupdown,isym)
-            if(direc.eq.'S')call etplot(XB(J),ZB(J),iupdown,isym)
-            if(direc.eq.'E')call etplot(YB(J),ZB(J),iupdown,isym)
+            if(MMOD.eq.8)then
+              if(direc.eq.'P')call etplot(XB(J),YB(J),iupdown,isym)
+              if(direc.eq.'S')call etplot(XB(J),ZB(J),iupdown,isym)
+              if(direc.eq.'E')call etplot(YB(J),ZB(J),iupdown,isym)
+            else
+              if(direc.eq.'P')call etplotwwc(XB(J),YB(J),iupdown,isym)
+              if(direc.eq.'S')call etplotwwc(XB(J),ZB(J),iupdown,isym)
+              if(direc.eq.'E')call etplotwwc(YB(J),ZB(J),iupdown,isym)
+            endif
             K=4          ! for each edge of block surface
             DO 424 L=2,K
               M=JVNB(I,L)
               iupdown=1
               isym=0
-              if(direc.eq.'P')call etplot(XB(M),YB(M),iupdown,isym)
-              if(direc.eq.'S')call etplot(XB(M),ZB(M),iupdown,isym)
-              if(direc.eq.'E')call etplot(YB(M),ZB(M),iupdown,isym)
+              if(MMOD.eq.8)then
+                if(direc.eq.'P')call etplot(XB(M),YB(M),iupdown,isym)
+                if(direc.eq.'S')call etplot(XB(M),ZB(M),iupdown,isym)
+                if(direc.eq.'E')call etplot(YB(M),ZB(M),iupdown,isym)
+              else
+                if(direc.eq.'P')call etplotwwc(XB(M),YB(M),iupdown,isym)
+                if(direc.eq.'S')call etplotwwc(XB(M),ZB(M),iupdown,isym)
+                if(direc.eq.'E')call etplotwwc(YB(M),ZB(M),iupdown,isym)
+              endif
   424       CONTINUE
             iupdown=1
             isym=0
-            if(direc.eq.'P')call etplot(XB(J),YB(J),iupdown,isym)
-            if(direc.eq.'S')call etplot(XB(J),ZB(J),iupdown,isym)
-            if(direc.eq.'E')call etplot(YB(J),ZB(J),iupdown,isym)
+            if(MMOD.eq.8)then
+              if(direc.eq.'P')call etplot(XB(J),YB(J),iupdown,isym)
+              if(direc.eq.'S')call etplot(XB(J),ZB(J),iupdown,isym)
+              if(direc.eq.'E')call etplot(YB(J),ZB(J),iupdown,isym)
+            else
+              if(direc.eq.'P')call etplotwwc(XB(J),YB(J),iupdown,isym)
+              if(direc.eq.'S')call etplotwwc(XB(J),ZB(J),iupdown,isym)
+              if(direc.eq.'E')call etplotwwc(YB(J),ZB(J),iupdown,isym)
+            endif
   422     CONTINUE
           if(direc.eq.'P')call u2pixel(XB(J),YB(J),iix,iiy)
           if(direc.eq.'S')call u2pixel(XB(J),ZB(J),iix,iiy)
@@ -242,7 +290,7 @@ C common block via CNVBLK.
           call textatxy(iid1,iid2,blabel,'-',iicol)
   420   CONTINUE
   54  continue
-      call forceflush()
+      if(mmod.eq.8) call forceflush()
 
 C If there is a ground, ITDSP is flagged and plan view draw it.
       IF(ITDSP.EQ.5.and.NGT.gt.0)then
@@ -251,15 +299,27 @@ C If there is a ground, ITDSP is flagged and plan view draw it.
             J=JGVN(I,1)
             iupdown=0
             isym=0
-            call etplot(XGT(J),YGT(J),iupdown,isym)
+            if(MMOD.eq.8)then
+              call etplot(XGT(J),YGT(J),iupdown,isym)
+            else
+              call etplotwwc(XGT(J),YGT(J),iupdown,isym)
+            endif
             K=NGVER(I)
             iupdown=-203
             isym=0
             DO 501 L=2,K
               M=JGVN(I,L)
-              call etplot(X(M),Y(M),iupdown,isym)
+              if(MMOD.eq.8)then
+                call etplot(X(M),Y(M),iupdown,isym)
+              else
+                call etplotwwc(X(M),Y(M),iupdown,isym)
+              endif
   501       CONTINUE
-            call etplot(X(J),Y(J),iupdown,isym)
+            if(MMOD.eq.8)then
+              call etplot(X(J),Y(J),iupdown,isym)
+            else
+              call etplotwwc(X(J),Y(J),iupdown,isym)
+            endif
   401     CONTINUE
         endif
       endif
@@ -278,8 +338,12 @@ C Print labels and return to default font.
       endif
       iiy= igt-10
       iix = igl; iicol=0
-      call textatxy(iix,iiy,sstr,'-',iicol)
-      call forceflush()
+      if(MMOD.eq.8)
+        call textatxy(iix,iiy,sstr,'-',iicol)
+        call forceflush()
+      else
+        call textatxywwc(iix,iiy,sstr,'-',iicol)
+      endif
 
 C If izgfoc is not zero and nzg is one and there is an obstructions
 C file then reload current zone geometry file before returning.

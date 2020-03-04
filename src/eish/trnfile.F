@@ -39,7 +39,7 @@ C Writes the model geometry to the zone transitional shading file.
 C geometry.h provides commons G0, G2, GS5, GS6.
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       integer mon,isc,iyd
       common/contr/mon,isc(ms),iyd
@@ -70,7 +70,7 @@ C to the zone transitional shading file.
 #include "building.h"
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       common/g1t/xft(mv),zft(mv)
       common/find/irecl
@@ -93,7 +93,7 @@ C Recover and update irecs for surface `is`.
       irecs(is)=irecl
       write(iunit,rec=irec,iostat=istat,err=1000)(irecs(i),i=1,nzs)
       irec=irecs(is)
-      nv=nznver(icc)
+      nv=isznver(icomp,is)
       write(iunit,rec=irec,iostat=istat,err=1000)(xft(i),i=1,nv)
       irec=irec+1
       write(iunit,rec=irec,iostat=istat,err=1000)(zft(i),i=1,nv)
@@ -115,7 +115,7 @@ C and computes the overall direct and diffuse shading factors.
 #include "building.h"
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tracech/icout
       common/filep/ifil
       common/grid3/ogrida(ms)
@@ -233,7 +233,7 @@ C Next line only reached after all sky patches have been processed.
   40  continue
 
 C Recover gross surface area, gsa.
-      gsa=ssna(icc)
+      gsa=sna(icomp,is)
 
       if(mode.eq.'dir')pso(is,ihour)=gssa/gsa
       if(mode.eq.'dif')then
@@ -255,25 +255,25 @@ C sky portion.
 C Check for inappropriate shading values.
       if(mode.eq.'dir'.and.pso(is,ihour).gt.1.0)then
          write(outs,'(3a,f5.3,a,i2,a)') 'Direct shading factor for ',
-     &        ssname(icn),' is ',pso(is,ihour),' @ ',ihour,
+     &        sname(icomp,is),' is ',pso(is,ihour),' @ ',ihour,
      &        'hrs - saved as 1.0.'
          call edisp248(iuout,outs,124)
          pso(is,ihour)=1.0
       elseif(mode.eq.'dir'.and.pso(is,ihour).lt.0.0)then
          write(outs,'(3a,f5.3,a,i2,a)') 'Direct shading factor for ',
-     &        ssname(icn),' is ',pso(is,ihour),' @ ',ihour,
+     &        sname(icomp,is),' is ',pso(is,ihour),' @ ',ihour,
      &        'hrs - saved as 0.0.'
          call edisp248(iuout,outs,124)
          pso(is,ihour)=0.0
       elseif(mode.eq.'dif'.and.psof(is,ihour).gt.1.0)then
         write(outs,'(3a,f5.3,a,i2,a)') 'Diffuse shading factor for ',
-     &        ssname(icn),' is ',psof(is,ihour),' @ ',ihour,
+     &        sname(icomp,is),' is ',psof(is,ihour),' @ ',ihour,
      &        'hrs - saved as 1.0.'
         call edisp248(iuout,outs,124)
         psof(is,ihour)=1.0
       elseif(mode.eq.'dif'.and.psof(is,ihour).lt.0.0)then
         write(outs,'(3a,f5.3,a,i2,a)') 'Diffuse shading factor for ',
-     &        ssname(icn),' is ',psof(is,ihour),' @ ',ihour,
+     &        sname(icomp,is),' is ',psof(is,ihour),' @ ',ihour,
      &        'hrs - saved as 0.0.'
         call edisp248(iuout,outs,124)
         psof(is,ihour)=0.0
@@ -340,7 +340,7 @@ C shading file as previously written by tfile1 and tfile12.
 C geometry.h provides commons G0,G2,GS5,GS6,GS7,GS8.
 #include "geometry.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       integer mon,isc,iyd
       common/contr/mon,isc(ms),iyd

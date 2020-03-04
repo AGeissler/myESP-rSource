@@ -42,6 +42,7 @@ C POLY - creates a polygon for each flow vector.  The flow vectors are defined
 C  by start and end points in cartesian co-ordinates.  It is necessary
 C  to represent these by polygons to perform the point containment tests.
       SUBROUTINE POLY(i,j,k)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/arpoly/XS(7),ZS(7),bXmin,bXmax,bZmin,bZmax
@@ -1109,6 +1110,7 @@ C It is based on esruish's TRNSF2 routine, but the sun angle
 C calculations have been removed and the transformed co-ordinates
 C are returned to the calling routine.
       SUBROUTINE TRNSF2
+#include "building.h"
 #include "cfd.h"
 
       COMMON/TRNSF/A(5),B(5),C(3),XOR,YOR,ZOR

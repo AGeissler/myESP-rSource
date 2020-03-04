@@ -28,16 +28,15 @@ C ***************** READUAL *********************
 C READUAL reads the data fron an existing UA library.
 
       subroutine READUAL(IUALF)
+
 #include "building.h"
-C Common blocks UA1 UA2 UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 #include "control.h"
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
       COMMON/UA2T/NTLOC(MNIL),NTG(MNIL,4)
@@ -407,7 +406,7 @@ C Common blocks UA1 UA2 UA3 UA4 within uncertainty.h
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/UA2T/NTLOC(MNIL),NTG(MNIL,4)
       COMMON/UA31/MATNAM(MNCNG,2)
@@ -640,7 +639,7 @@ C Common blocks UA1 UA2 UA3 UA4 within uncertainty.h
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/UA31/MATNAM(MNCNG,2)
 
@@ -665,7 +664,7 @@ C Find version of materials database.
       endif
 
       call edisp (iuout,'  ')
-      write(outs,'(2a)')'Uncertainty analysis library: ',LUALF(1:40)
+      write(outs,'(2a)')'Uncertainty analysis file: ',LUALF(1:40)
       call edisp (iuout,outs)
 
       if (ISEC.eq.0.or.ISEC.eq.1) then

@@ -36,6 +36,7 @@ C ******** ADDCNTL
 C Add or delete a building/plant/flow/optical/complex fenestration
 C control.
       SUBROUTINE ADDCNTL(icfoc,ACT)
+
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
@@ -44,7 +45,7 @@ C Parameters
       integer icfoc   ! control domain to work with 
       character ACT*1 ! action to take - D or A or C
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/fctl4/iasocc(MCF,mcmp),nfsup(MCF)
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER nbdaytype,nbcaldays,icalender,IDOV,IBDY,IEDY,IFDY
@@ -1009,6 +1010,7 @@ C Copy an existing control loop.
 C ******** ADDCTLD
 C Add or delete a building/plant/flow/global/optical control day type.
       SUBROUTINE ADDCTLD(icfoc,II,IDT,ACT)
+
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
@@ -1062,8 +1064,8 @@ C Acquire help messages.
 
 C If interactive ask what to do, otherwise take passed directives.
       if(ACT(1:2).eq.'--')then
-        CALL EASKABCD('Options: ',' ','delete day type',
-     &    'add day type','copy existing day type','continue',
+        CALL EASKABCD(' ','Options:','delete day type',
+     &    'add day type','copy existing day type','cancel',
      &    IW,nbhelp)
       elseif(ACT(1:2).eq.'SD'.or.ACT(1:2).eq.'sd')then
         IW=1
@@ -1457,6 +1459,7 @@ C ******** ADDCTLDP
 C Add or delete a building/plant/flow/global/optical/complex fen
 C control period.
       SUBROUTINE ADDCTLDP(icfoc,II,ID,act)
+
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
@@ -1625,6 +1628,7 @@ C ******** LSTCNTL
 C List a building/plant/flow/global/optical control.  If II = 0 then
 C list out the zone/loop associations. 
       SUBROUTINE LSTCNTL(itru,icfoc,II)
+
 #include "building.h"
 #include "geometry.h"
 #include "net_flow.h"
@@ -1775,6 +1779,7 @@ C        endif
 C ****** stfctl
 C Copies from control commons to working array.
       subroutine stfctl(icfoc,i,j,k)
+
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
@@ -1851,6 +1856,7 @@ C Copies from control commons to working array.
 C ****** extrctl
 C Copies from working array to control commons.
       subroutine extrctl(icfoc,i,j,k)
+
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"

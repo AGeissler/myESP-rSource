@@ -42,11 +42,11 @@ C     CDATA: 1 Duty (W) (+ve = cooling load, -ve = heating load)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
 
@@ -230,11 +230,11 @@ C            5 Spare
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -277,6 +277,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP135C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -336,7 +338,7 @@ C    Reset if boiler temperature close to low limit
 
 C Reset input power in case maximum temperature exceeded
          IF(CSVF(INOD3,1).GE.ADATA(IPCOMP,11))then
-	   CSGNL=CSGNL*((ADATA(IPCOMP,11)-CONVAR(ICON1,1))
+            CSGNL=CSGNL*((ADATA(IPCOMP,11)-CONVAR(ICON1,1))
      &          /(CSVF(INOD3,1)-CONVAR(ICON1,1)))
          END IF
 C Then calculate heat input into the water Q
@@ -367,22 +369,22 @@ C Calculate current component time-constant TC
 C Identify required variables
          Rmf0=PCONDR(ICON1)*CONVAR(ICON1,2) ! Inlet flow
          Tf0P=PCTP(ICON1) ! Inlet fluid temperature (previous timestep)
-	 Tf1P=CSVP(INOD2,1) ! Fluid volume temperature (previous ts)
+         Tf1P=CSVP(INOD2,1) ! Fluid volume temperature (previous ts)
          Tf2P=CSVP(INOD3,1) ! Fluid leaving temperature (previous ts)
          Tf0=CONVAR(ICON1,1) ! Inlet fluid temperature (current ts)
-	 Tf1=CSVI(INOD2,1) ! Fluid volume temperature (current ts)
+         Tf1=CSVI(INOD2,1) ! Fluid volume temperature (current ts)
          Tf2=CSVI(INOD3,1) ! Fluid leaving temperature (current ts)
-	 TeP=PCDATP(IPCOMP,4) ! Environment temperature (previous ts)
+         TeP=PCDATP(IPCOMP,4) ! Environment temperature (previous ts)
          Te=PCNTMF(IPCOMP) ! Environment temperature (current ts)
-	 TsP=CSVP(INOD1,1) ! Boiler shell temperature (previous ts)
+         TsP=CSVP(INOD1,1) ! Boiler shell temperature (previous ts)
          Ts=CSVI(INOD1,1) ! Boiler shell temperature (current ts)
          Rmf1=CSVF(INOD2,2) ! Fluid leaving water volume flow (current ts)
          Rmf2=CSVF(INOD3,2) ! Fluid leaving boiler flow (current ts)
          Cpf0=SHTFLD(3,Tf0) ! Inlet fluid heat capacity (current ts)
          Cpf1=SHTFLD(3,Tf1) ! Fluid volume heat capacity (current ts)
          Cpf2=SHTFLD(3,Tf2) ! Fluid leaving heat capacity (current ts)
-	 QP=PCQP(INOD2) ! Heat input (previous ts)
-	 Ue=0.01 ! External air flow
+         QP=PCQP(INOD2) ! Heat input (previous ts)
+         Ue=0.01 ! External air flow
 C Flow*heat capacities for fluid nodes
          Cf0P=PCDATP(IPCOMP,1)
          Cf1P=PCDATP(IPCOMP,2)
@@ -393,7 +395,7 @@ C Flow*heat capacities for fluid nodes
 
 C Outside convective heat transfer coefficient
          Na=1                 ! set as water
-	 ID=ADATA(IPCOMP,3)   ! and internal diameter
+         ID=ADATA(IPCOMP,3)   ! and internal diameter
          Call CVCOEFF2(Na,Te,Ts,Ue,ID,ho)
 C Inside conduction heat transfer coefficient (no flow assumed)
 C Equivalent cylinder with ends ignored assumed
@@ -401,20 +403,20 @@ C Cylinder length equivalent to cylinder area without ends
          RL=(4.*ADATA(IPCOMP,16))/(3.14159*ID**2)+(ID/2)
          KC=(2.*3.14159*0.598*RL)/(1./(sqrt(0.5)))
 
-	 D2=ID-2.*ADATA(IPCOMP,4)
-	 D1=D2-2.*ADATA(IPCOMP,5)
+         D2=ID-2.*ADATA(IPCOMP,4)
+         D1=D2-2.*ADATA(IPCOMP,5)
          D0=D1-2.*ADATA(IPCOMP,6)
-	 CTC=ADATA(IPCOMP,12)
-	 TCI=ADATA(IPCOMP,13)
-	 TTC=ADATA(IPCOMP,14)
+         CTC=ADATA(IPCOMP,12)
+         TCI=ADATA(IPCOMP,13)
+         TTC=ADATA(IPCOMP,14)
 
-	 Rp=(log(D1/D0)/(2.*3.14159*TTC*RL))+(log(D2/D1)/
+         Rp=(log(D1/D0)/(2.*3.14159*TTC*RL))+(log(D2/D1)/
      &     (2.*3.14159*TCI*RL))+(log(ID/D2)/(2.*3.14159*CTC*RL))  
-	 Ai=(3.14159*D0*RL)+(2.*3.14159*(D0/2.)**2.)
-	 Ao=(3.14159*ID*RL)+(2.*3.14159*(ID/2.)**2.)
+         Ai=(3.14159*D0*RL)+(2.*3.14159*(D0/2.)**2.)
+         Ao=(3.14159*ID*RL)+(2.*3.14159*(ID/2.)**2.)
 C Modify heat transfer coefficients by adding shell thermal resistances (50% to each)
-	 KC=(1./((1./KC)+(Rp/2.)))
-	 HC=(1./((1./(ho*Ao))+(Rp/2.)))	
+         KC=(1./((1./KC)+(Rp/2.)))
+         HC=(1./((1./(ho*Ao))+(Rp/2.)))	
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          IF(IMPEXP.EQ.1) THEN
@@ -434,20 +436,20 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
 
 C Establish matrix equation self-coupling coefficients,
          COUT(1)=(CM/TIMSEC)+(ALPHA*HC)+(ALPHA*KC)
-	 COUT(2)=-1.*ALPHA*KC
-	 COUT(3)=-1.*ALPHA*KC
-	 COUT(4)=(CW/TIMSEC)+(ALPHA*KC)
-	 COUT(5)=ALPHA*Cf2
-	 COUT(6)=-1.
-	 COUT(7)=1.
-	 COUT(8)=-1*ALPHA*Cf0
+         COUT(2)=-1.*ALPHA*KC
+         COUT(3)=-1.*ALPHA*KC
+         COUT(4)=(CW/TIMSEC)+(ALPHA*KC)
+         COUT(5)=ALPHA*Cf2
+         COUT(6)=-1.
+         COUT(7)=1.
+         COUT(8)=-1*ALPHA*Cf0
 
-	 COUT(9)=(CM*TsP/TIMSEC)+(ALPHA*HC*Te)+(1.-ALPHA)
+         COUT(9)=(CM*TsP/TIMSEC)+(ALPHA*HC*Te)+(1.-ALPHA)
      &     *(HC*(TeP-TsP))+(1.-ALPHA)*(KC*(Tf1P-TsP))
-	 COUT(10)=(CW*Tf1P/TIMSEC)+(ALPHA*Q)+
+         COUT(10)=(CW*Tf1P/TIMSEC)+(ALPHA*Q)+
      &     (1.-ALPHA)*KC*(TsP-Tf1P)+(1.-ALPHA)*Cf0P*Tf0P-
      &     (1.-ALPHA)*Cf2P*Tf2P+(1.-ALPHA)*QP
-	 COUT(11)=0.
+         COUT(11)=0.
 
 C Store "environment" variables future values
          PCTF(ICON1)=CONVAR(ICON1,1) ! Inlet fluid temperature
@@ -479,8 +481,8 @@ C 1st phase mass (ie. water) balance coefficients
          COUT(7)=1.
          COUT(8)=-1.
          COUT(9)=0.
-	 COUT(10)=0.
-	 COUT(11)=0.
+         COUT(10)=0.
+         COUT(11)=0.
 
 C 2nd phase mass (ie. "vapour") balance coefficients
       ELSE IF(ISTATS.EQ.3) THEN
@@ -493,8 +495,8 @@ C 2nd phase mass (ie. "vapour") balance coefficients
          COUT(7)=1.
          COUT(8)=-1.
          COUT(9)=0.
-	 COUT(10)=0.
-	 COUT(11)=0.
+         COUT(10)=0.
+         COUT(11)=0.
       END IF
 
 C Trace output
@@ -549,7 +551,7 @@ C            3 Outside Diameter (m)
 C            4 Pipe Separation (m)
 C            5 Fluid Pipe Outside Diameter (m)
 C            6 Fluid Pipe Thickness (m)
-C	     7 Fluid Pipe Thermal Conductivity (W/mK)
+C            7 Fluid Pipe Thermal Conductivity (W/mK)
 C            8 Insulation Thermal Conductivity (W/mK)
 C            9 Ground Thermal Conductivity (W/mK)
 C           10 Insulation Unit Mass (kg/m)
@@ -564,11 +566,11 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -669,9 +671,9 @@ C Restore PCDATP values
 
         TeP=PCNTMP(IPCOMP)
 C Identify the specified ADATA and CDATA
-	RL=ADATA(IPCOMP,1) ! Pipe Length
-	PD=ADATA(IPCOMP,2) ! Pipe Depth
-	OD=ADATA(IPCOMP,3) ! Pipe Outside Dia.
+        RL=ADATA(IPCOMP,1) ! Pipe Length
+        PD=ADATA(IPCOMP,2) ! Pipe Depth
+        OD=ADATA(IPCOMP,3) ! Pipe Outside Dia.
         PS=ADATA(IPCOMP,4) ! Pipe Separation
         CD=ADATA(IPCOMP,5) ! Carrier Pipe Dia.
         CT=ADATA(IPCOMP,6) ! Carrier Pipe Thickness
@@ -680,11 +682,11 @@ C Identify the specified ADATA and CDATA
         GTC=ADATA(IPCOMP,9) ! Ground Thermal Cond.
         RMp1=ADATA(IPCOMP,10)*RL ! Ins. Mass per unit length*RL
         RMp2=ADATA(IPCOMP,11)*RL ! Pipe Mass per unit length*RL
-	Cs1=ADATA(IPCOMP,12) ! Ins. Heat Capacity
+        Cs1=ADATA(IPCOMP,12) ! Ins. Heat Capacity
         Cs2=ADATA(IPCOMP,13) ! Pipe Heat Capacity
 
-	Di=CD-2*CT ! Carrier Pipe ID 	
-	RTp2=log(CD/Di)/(2*3.14159*CTC) ! Pipe
+        Di=CD-2*CT ! Carrier Pipe ID 	
+        RTp2=log(CD/Di)/(2*3.14159*CTC) ! Pipe
         Ao=OD*3.14159*RL
         Ai=CD*3.14159*RL
 
@@ -703,19 +705,19 @@ C first flow velocity
         Uf=Rmf0/(RHOFLD(3,Tf0)*3.14159*(Di**2)/4.)
 
 C then inside convective heat transfer coefficient
-	call eclose(Uf,0.00,0.001,closebp)        
-	if (.not.closebp) then ! Convection (flowing) case
-	  Nw=3
+        call eclose(Uf,0.00,0.001,closebp)        
+        if (.not.closebp) then ! Convection (flowing) case
+          Nw=3
           Call CVCOEFF1(Nw,Tf3,Uf,Di,hi)
           hi=1./(1./hi+RTp2/2.)
           Csf=hi*Ai
-	else ! Conduction (no-flow) case
+        else ! Conduction (no-flow) case
           Csf=(2.*3.14159*0.598*RL)/(1./(sqrt(0.5)))
 C       Modify hA(Csw) by adding pipe thermal resistance
           Csf=1./((1./Csf)+(RTp2/(2.*Ai)))
         endif
 
-C then determine heat transfer coefficients for ground and adjacent pipe 
+C Determine heat transfer coefficients for ground and adjacent pipe 
 C with heat transfer coefficients (from Bohm(2000)) 
         Rg=(1./(4.*3.14159*GTC))*log((4.*PD)/Di) ! Ground
         RTp1=log(OD/CD)/(2*3.14159*OTC) ! Insulation
@@ -723,7 +725,7 @@ C with heat transfer coefficients (from Bohm(2000))
         U1=RL*((Rg+(RTp1/2.))/((Rg+(RTp1/2.))**2.-Rm**2.))
         U2=RL*(Rm/((Rg+(RTp1/2.))**2.-Rm**2.))
 
-C then modify heat transfer coefficients by re-arranging input data
+C Modify heat transfer coefficients by re-arranging input data
         C12=(2*RL)/(RTp1+RTp2)
         Cf0=Rmf0*Cpf0
         Cf3=Rmf3*Cpf3
@@ -783,7 +785,7 @@ C Determine matrix coefficients
       
       if(ISTATS.GT.1) then
         COUT(1)=2.*A(11,1)
-	COUT(12)=0.
+        COUT(12)=0.
       else
       	COUT(1)=-((RMp1*Cs1)/Timsec)-(ALPHA*(U1+C12))	
       	COUT(12)=-(((RMp1*Cs1)/Timsec)*Tp1P)-(ALPHA*(U1-U2)*Te)
@@ -876,11 +878,12 @@ C No input data required. Fully explicit model (ALPHA=1).
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
@@ -895,10 +898,10 @@ C No input data required. Fully explicit model (ALPHA=1).
      
       INTEGER IPCOMP
 
-      integer iuout,itc,ITCF,ITRACE,ITU,NSINC,ISTATS,ICNT,ICONTP
+      integer itc,ITCF,ITRACE,ITU,NSINC,ISTATS,ICNT,ICONTP,idynow
       integer ICONDX,ICON1,ICON2,INOD1,NPCDAT,NAPDAT,NITMS,I
       integer IDWF,IDWP,IDYF,IDYP,IHRF,IHRP,IPC1,IPC2,IPCT,IPN1,IPN2
-      integer IPOFS1,IPOFS2,ITS,IUIN,IX1,IZNTRC,NPCON,NPCOMP,NCI
+      integer IPOFS1,IPOFS2,ITS,IX1,IZNTRC,NPCON,NPCOMP,NCI
 
       real CDATA 
       real F1,F2,FT,CONVAR,PCONDR
@@ -930,17 +933,17 @@ C Generate coefficients for the energy balance equation
       IF(ISTATS.EQ.1) THEN
 
 C Massless model therefore no significant heat transfer assumed
-	 if(FT.GT.0)then
-	   COUT(1)=1.
-	   COUT(2)=-F1/FT
-	   COUT(3)=-F2/FT
-	   COUT(4)=0.
-	 else
-	   COUT(1)=1.
-	   COUT(2)=0.
-	   COUT(3)=0.
-	   COUT(4)=CSVP(INOD1,1)
-	 endif
+        if(FT.GT.0)then
+          COUT(1)=1.
+          COUT(2)=-F1/FT
+          COUT(3)=-F2/FT
+          COUT(4)=0.
+        else
+          COUT(1)=1.
+          COUT(2)=0.
+          COUT(3)=0.
+          COUT(4)=CSVP(INOD1,1)
+        endif
          
 C 1st phase mass (ie. dry air) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
@@ -1005,11 +1008,12 @@ C is massless and has no heat loss calculated.
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PCVAL/CSVF(MPNODE,MPVAR),CSVP(MPNODE,MPVAR)
 
@@ -1027,8 +1031,8 @@ C is massless and has no heat loss calculated.
      
       INTEGER IMPEXP,IPCOMP,FN1,FN2,FC1,FC2
 
-      integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
-     &  IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
+      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
+     &  IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS,idynow
       integer ICONDX,ICON1,ICON2,INOD1,INOD2,INOD3,NPCON,NPCDAT,
      &  NAPDAT,NITMS,I,IX1,IPOFS1,IPOFS2,IPC1,IPCT,IPC2,IPN2,IPN1
 
@@ -1101,7 +1105,7 @@ C Right-hand side
 C 1st phase mass (ie. dry air) balance coefficients
         ELSE IF(ISTATS.EQ.2) THEN
           COUT(1)=1.
- 	  COUT(2)=V_POS
+          COUT(2)=V_POS
           COUT(3)=-1.
           COUT(4)=(1.-V_POS)
           COUT(5)=0.
@@ -1115,7 +1119,7 @@ C 1st phase mass (ie. dry air) balance coefficients
 C 2nd phase mass (ie. vapour) balance coefficients.
         ELSE IF(ISTATS.EQ.3) THEN
           COUT(1)=1.
- 	  COUT(2)=V_POS
+          COUT(2)=V_POS
           COUT(3)=-1.
           COUT(4)=(1.-V_POS)
           COUT(5)=0.
@@ -1220,7 +1224,7 @@ C Required input data (in plant configuration file)
 C     ADATA: 1 Outlet 1 RFF Node (see note below for fixed RFF outlet)
 C            2 Outlet 2 RFF Node
 C            3 Inlet RFF Node
-C	     4 Relative Flow Factor (RFF) (if ADATA#1 is 99)
+C            4 Relative Flow Factor (RFF) (if ADATA#1 is 99)
 C
 C Note: For cases where the diverter supplies an 'Outlet 1' node with a 
 C fixed RFF value, for example, a thermostat controlled zone demand node
@@ -1234,11 +1238,12 @@ C fixed RFF value input in ADATA#4. See exemplar xxx for details.
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCTIME/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -1264,8 +1269,8 @@ C fixed RFF value input in ADATA#4. See exemplar xxx for details.
      
       INTEGER IMPEXP,IPCOMP,O1N,O2N,EN,RESID
 
-      integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
-     &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
+      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
+     &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS,idynow
       integer ICONDX,ICON1,INOD1,INOD2,INOD3,IPN1,IPN2,IPC1,IPC2,NPCON,
      &IPCT,NPCDAT,NAPDAT,NCI,IPOFS1,IPOFS2,IX1,NITMS,I
 
@@ -1305,14 +1310,14 @@ C Check the specified valve position
           P_FRAC=NODE(O1N)/NODE(EN)
         ELSE
           P_FRAC=1. ! Force to 1 under no flow conditions to avoid NaNs
-	END IF
+        END IF
       ELSE
-	NODE(EN)=(RF+NODE(O2N))
-	IF(NODE(EN).GT.0)THEN
+        NODE(EN)=(RF+NODE(O2N))
+        IF(NODE(EN).GT.0)THEN
           P_FRAC=RF/NODE(EN)
         ELSE
           P_FRAC=1. ! Force to 1 under no flow conditions to avoid NaNs
-	END IF
+        END IF
       ENDIF
 
 C Generate coefficients for the energy balance equation
@@ -1403,11 +1408,12 @@ C     CDATA: 1 Relative Flow Factor (RFF) (-)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCTIME/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -1433,8 +1439,8 @@ C     CDATA: 1 Relative Flow Factor (RFF) (-)
      
       INTEGER IMPEXP,IPCOMP,ILN,OLN,RESID
 
-      integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
-     &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
+      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
+     &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS,idynow
       integer ICONDX,ICON1,INOD1,INOD2,INOD3,IPN1,IPN2,IPC1,IPC2,NPCON,
      &IPCT,NPCDAT,NAPDAT,NCI,IPOFS1,IPOFS2,IX1,NITMS,I
 
@@ -1573,11 +1579,12 @@ C     CDATA: 1 Valve position (frac)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
@@ -1593,8 +1600,8 @@ C     CDATA: 1 Valve position (frac)
      
       INTEGER IPCOMP
 
-      integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
-     &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
+      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
+     &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS,idynow
       integer ICONDX,ICON1,INOD1,INOD2,INOD3,IPN1,IPN2,IPC1,IPC2,
      &NPCON,IPCT,NPCDAT,NAPDAT,NCI,IPOFS1,IPOFS2,IX1,NITMS,I
 
@@ -1635,39 +1642,39 @@ C Generate coefficients for the energy balance equation
       IF(ISTATS.EQ.1) THEN
 
 C Massless model therefore no significant heat transfer assumed
-	 COUT(1)=1.
-	 COUT(2)=-1.
-	 COUT(3)=1.
-	 COUT(4)=-1.
-	 COUT(5)=1.
-	 COUT(6)=-1.
-	 COUT(7)=0.
-	 COUT(8)=0.
-	 COUT(9)=0.
-         
+        COUT(1)=1.
+        COUT(2)=-1.
+        COUT(3)=1.
+        COUT(4)=-1.
+        COUT(5)=1.
+        COUT(6)=-1.
+        COUT(7)=0.
+        COUT(8)=0.
+        COUT(9)=0.
+        
 C 1st phase mass (ie. dry air) balance coefficients
       ELSE IF(ISTATS.EQ.2) THEN
-	 COUT(1)=1.
-	 COUT(2)=-V_POS
-	 COUT(3)=1.
-	 COUT(4)=V_POS-1.
-	 COUT(5)=1.
-	 COUT(6)=-1.
-	 COUT(7)=0.
-	 COUT(8)=0.
-	 COUT(9)=0.
+        COUT(1)=1.
+        COUT(2)=-V_POS
+        COUT(3)=1.
+        COUT(4)=V_POS-1.
+        COUT(5)=1.
+        COUT(6)=-1.
+        COUT(7)=0.
+        COUT(8)=0.
+        COUT(9)=0.
 
 C 2nd phase mass (ie. vapour) balance coefficients.
       ELSE IF(ISTATS.EQ.3) THEN
-	 COUT(1)=1.
-	 COUT(2)=-V_POS
-	 COUT(3)=1.
-	 COUT(4)=V_POS-1.
-	 COUT(5)=1.
-	 COUT(6)=-1.
-	 COUT(7)=0.
-	 COUT(8)=0.
-	 COUT(9)=0.
+        COUT(1)=1.
+        COUT(2)=-V_POS
+        COUT(3)=1.
+        COUT(4)=V_POS-1.
+        COUT(5)=1.
+        COUT(6)=-1.
+        COUT(7)=0.
+        COUT(8)=0.
+        COUT(9)=0.
       END IF
 
 C Establish additional output variables
@@ -1709,7 +1716,7 @@ C     ADATA: 1 Flow component 1
 C            2 Component 1 outlet flow node
 C            3 Flow component 2
 C            4 Component 2 outlet flow node
-C	     5 Flow component 3
+C            5 Flow component 3
 C            6 Component 3 outlet flow node
 C            7 Type
 C
@@ -1723,11 +1730,12 @@ C overall system flows
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCTIME/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -1752,8 +1760,8 @@ C overall system flows
      
       INTEGER IMPEXP,IPCOMP,FN1,FN2,FN3,FC1,FC2,FC3,CN1,CN2,CN3,TYP
 
-      integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
-     &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
+      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
+     &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS,idynow
       integer ICONDX,ICON1,INOD1,INOD2,INOD3,IPN1,IPN2,IPC1,IPC2,NPCON,
      &IPCT,NPCDAT,NAPDAT,NCI,IPOFS1,IPOFS2,IX1,NITMS,I
 

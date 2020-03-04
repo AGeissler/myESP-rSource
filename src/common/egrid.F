@@ -33,7 +33,7 @@ C *********************************************************************
       SUBROUTINE READ1D(FLGRID,IIN,IOUT,ITRC,IER)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       
@@ -110,7 +110,7 @@ C *********************************************************************
       SUBROUTINE SAVE1D(FLGRID,IIN,IOUT,ITRC,IER)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       
@@ -118,15 +118,15 @@ C *********************************************************************
       COMMON/C1/NCOMP,NCON
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
       COMMON/GR1D03/BCNV,ILUMP(MCOM,MS)
-      COMMON/Vld20/Vldtng
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
 
       CHARACTER FLGRID*72
-      logical Vldtng
 
       IER=0
 
 C Open existing ASCII construction data file as unit IIN.
-      if(Vldtng)then
+      if(AUTOVR)then
         CALL EFOPSEQ(IIN,FLGRID,3,IER)
       else
         CALL EFOPSEQ(IIN,FLGRID,4,IER)
@@ -153,7 +153,7 @@ C *********************************************************************
       SUBROUTINE NDCONS(ICOMP,I)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC15/RGAPS(MCOM,MS,MGP)

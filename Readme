@@ -1,27 +1,19 @@
-===========================================================
-
-                         ESP-r
-
-   An integrated building performance simulation program
+ESP-r: An integrated building performance simulation program.
 
 
 1. ACKNOWLEDGMENTS
 
-ESP-r is developed by an international consortium as listed
-at http://www.esru.strath.ac.uk/ and distributed by the
-Energy Systems Research Unit at the University of Strathclyde.
-Enquiries about the system should be sent to esru@strath.ac.uk.
-
+ESP-r is developed by an international consortium as listed at
+www.esru.strath.ac.uk/Downloads/ESP-r/Contributors/list.html.
 System development and application is supported by a community
-mailing list. To subscribe, please register at
-http://lists.strath.ac.uk/mailman/listinfo/esp-r.
+mailing list. To subscribe, please follow the instructions at
+www.esru.strath.ac.uk/Programs/user_club.htm.
 
 2. LICENSE
 
 ESP-r is free software made available in the hope that it will
 be useful but WITHOUT ANY WARRANTY; without even the implied
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
-
 It can be redistributed under the terms of the GNU General Public
 License as published by the Free Software Foundation (version 2
 or later) and available as part of the ESP-r distribution.
@@ -29,8 +21,8 @@ or later) and available as part of the ESP-r distribution.
 3. OBTAINING ESP-r.
 
 The system source files and, separately, a pre-compiled installation
-(for Ubuntu 18.04 LTS) are available as downloads from the applications
-page at http//www.esru.strath.ac.uk.
+(for Ubuntu 18.04 LTS) are available as downloads from the applications page at
+www.esru.strath.ac.uk/research/energysystemsresearchunit/applications/esp-r.
 
 Prior to an installation from source code, you should ensure
 that a writable directory /opt/esp-r exists (possibly by creating
@@ -42,13 +34,8 @@ that you own.
 ESP-r has been successfully installed on Linux, Cygwin, MSYS2
 and MAC OS X systems using different compiler and graphics
 library combinations. The native (and preferred) environment
-is Linux. Taking the example of a Ubuntu 18.04 LTS computer
-the following packages will be required for the 'tool-chain'
-and application dependencies needed to build and run ESP-r.
-
-sudo apt-get install build-essential gcc g++ gfortran gdb libtool
-sudo apt-get install libx11-dev imagemagick xfonts-100dpi
-sudo apt-get install nedit nano xfig transfig xterm csh
+is Linux. Instructions for configuring Ubuntu 18.04 LTS for
+ESP-r are available at the above download page.
 
 5. OPTIONAL FEATURES
 
@@ -84,7 +71,7 @@ directory and compiler family:
   $ sudo ./Install -d <installation path> --gcc4
 
 ESP-r is able to work cooperatively with third party support tools,
-most notably gtool for 3D geometry definition Radiance for lighting
+most notably gtool for 3D geometry definition and Radiance for lighting
 simulation.
 
 7. POST INSTALLATION CONFIGURATION
@@ -97,16 +84,16 @@ Run ESP-r by issuing the command 'ESP-r' in a terminal window.
 8. DOCUMENTATION
 
 Publications describing the theory and operation of ESP-r are
-available on the publications page at the above web site, while
+available on the publications page at the above Web site, while
 other resources (such as coding standards and learning materials)
 are available from the downloads page.
 
 9. VALIDATION
 
 ESP-r has participated in a large number of validation projects
-and includes the ability (activated via the 'validation' option
-in prj) to automatically perform the IEA BESTEST/ASHRAE 140
-and CEN validation tests.
+and includes the ability (activated via the 'self check' option
+in the Project Manager) to automatically perform analytic and
+ASHRAE 140 BESTEST tests.
 
 10. QUALITY ASSURANCE AND RELEASE TESTING
 
@@ -130,5 +117,5 @@ wish to make the modified version available to a third party,
 you must pass the changes to the central repository. To
 help with the quality assurance of updates, please register
 your intention to change the source with the ESP-r archivist,
-who will work with you to prevent problems arrising from simultaneous
+who will work with you to prevent problems arising from simultaneous
 code changes.

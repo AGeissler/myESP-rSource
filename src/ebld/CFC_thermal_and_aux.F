@@ -86,13 +86,13 @@ C ********************************************************************
      &             NPGAP(MCOM,MS,MGP)
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),AE(MCOM,MS)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/ts4/itsitr(msch),itrpas
 
       integer nconst,nelts,ngaps,npgap
       integer nnds,nndz,nndc,nndl
       real ei,ee,ai,ae
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
       integer itsitr,itrpas
 
 C Local variables to hold solar optical and longwave properties 
@@ -469,6 +469,7 @@ C ********************************************************************
       subroutine qlwCFC(icomp,isurf)
       IMPLICIT NONE
 #include "building.h"
+#include "geometry.h"
 #include "CFC_common.h"
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
@@ -477,8 +478,6 @@ C ********************************************************************
       real TFC,QFC
       COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
       real TFS,QFS
-      COMMON/PREC1/SNA(MCOM,MS)
-      real sna
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),AE(MCOM,MS)
       real ei,ee,ai,ae
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
@@ -1396,12 +1395,13 @@ C ********************************************************************
       subroutine cfc_convection(icomp)
       IMPLICIT NONE
 #include "building.h"
+#include "geometry.h"
 #include "CFC_common.h"
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
 
-C      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-C      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+C      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+C      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
@@ -1423,15 +1423,10 @@ c      real TFS,QFS
       real atp,atf,arp,arf
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       real tfa,qfa
-      COMMON/PREC1/SNA(MCOM,MS)
-      real sna
       common/CORIND/ICORI(MCOM,MS),ICORE(MCOM,MS)
       integer icori,icore
       COMMON/PREC1I/APRAT(MCOM,MS),HEIGHT(MCOM,MS)
       real aprat,height
-
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-      real PAZI,PELV
 
       integer nc,nn,ne,i,j,icomp,isur,icfctp,inode,nnod,itypenext
       integer itype,layertype,nd_blnd,nd_cav,nd_glass, IER
@@ -1596,7 +1591,7 @@ C.................If shade is retracted determine gap thickness between glass la
                     L=THRMLI(icomp,isur,i+1,4)+THRMLI(icomp,isur,i+3,4)
                   endif
 
-                  CALL ConvVertCav(PELV(icomp,isur),L,TA,TB,
+                  CALL ConvVertCav(SPELV(icomp,isur),L,TA,TB,
      &            rmlr_mass(icomp,icfctp,i+1),
      &            cond_A(icomp,icfctp,i+1),cond_B(icomp,icfctp,i+1),
      &            visc_A(icomp,icfctp,i+1),visc_B(icomp,icfctp,i+1),
@@ -1616,7 +1611,7 @@ C.................air gap on the other side of the (retracted) shade.
                   L=lthk
                   !hc=0.
 
-                  CALL ConvVertCav(PELV(icomp,isur),L,TA,TB,
+                  CALL ConvVertCav(SPELV(icomp,isur),L,TA,TB,
      &            rmlr_mass(icomp,icfctp,i+1),
      &            cond_A(icomp,icfctp,i+1),cond_B(icomp,icfctp,i+1),
      &            visc_A(icomp,icfctp,i+1),visc_B(icomp,icfctp,i+1),
@@ -1649,7 +1644,7 @@ C.................air gap on the other side of the (retracted) shade.
                   endif
 
                   !hc=0.
-                  CALL ConvVertCav(PELV(icomp,isur),L,TA,TB,
+                  CALL ConvVertCav(SPELV(icomp,isur),L,TA,TB,
      &            rmlr_mass(icomp,icfctp,i+1),
      &            cond_A(icomp,icfctp,i+1),cond_B(icomp,icfctp,i+1),
      &            visc_A(icomp,icfctp,i+1),visc_B(icomp,icfctp,i+1),
@@ -1889,6 +1884,7 @@ cx      subroutine ConvVertCav(L,TA,TB,mlr_mass,condA,condB,
 cx     &                          viscA,viscB,spchtA,spchtB,hc)
       IMPLICIT NONE
 #include "building.h"
+#include "site.h"
 #include "CFC_common.h"
 C provides i_hcond
 C gas molar mass, A and B gas property coefficients
@@ -1912,8 +1908,7 @@ C This is a crude idealized treatment.
       endif
 
       g=9.806402                       !gravity [m/s2]
-cx << use climate pressure if available ... ?! >>
-      P=101325.                        !abs pressure [Pa]
+      P=atmpres                        !abs pressure [Pa]
       R=8.314472                       !universal gas constant [J/mol.K]
       PI = 4.0 * ATAN(1.0)
       rad=PI/180.                      ! conversion grad -> rad
@@ -1970,7 +1965,7 @@ C           Nu = A*Ra**(n)
             Nu=1.0
             if (Ra.gt.0.) Nu=A*exp(n*log(Ra)) ! x**y
 C
-C           'ang' is PELV(icomp,isurf) and defined as
+C           'ang' is SPELV(icomp,isurf) and defined as
 C           0∞   for vertical surfaces
 C          90∞   for horizontal surfaces facing upward ('ceiling') and
 C         -90∞   for horizontal surfaces facing downward ('floor')
@@ -2415,7 +2410,7 @@ C                             --profile_angle --
 C
 C Calculates horizontal and vertical profile angle based on sun's
 C position (sazi = solar azimuth, salt = solar altitude) relative 
-C to CFC surface position (pazi = surface azimuth).
+C to CFC surface position (spazi = surface azimuth).
 C
 C Returns: proang [degrees]
 C
@@ -2430,15 +2425,12 @@ C ********************************************************************
       IMPLICIT NONE
 
 #include "building.h"
-C geometry.h for zname.
 #include "geometry.h"
 #include "CFC_common.h"
 
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       real sazi,salt
       integer isunup
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-      real pazi,pelv
 
       integer icomp,isurf,icfctp
       real pi,r,omega_v,omega_h,pang_ih,pang_vh
@@ -2450,33 +2442,33 @@ C.....DECLARATIONS for H3Kreporting object
       r=pi/180.
 
 C.....Vertical profile angle
-      omega_v = ATAN(TAN(SALT*r)/COS(SAZI*r-PAZI(icomp,isurf)*r))/r
+      omega_v = ATAN(TAN(SALT*r)/COS(SAZI*r-SPAZI(icomp,isurf)*r))/r
 
-C     Correct for blind assembly tilt angle PELV if not vertical
+C     Correct for blind assembly tilt angle SPELV if not vertical
 C     (A. Geissler, 2011)
-C     In ESP-r, PELV is defined as:
-C         0∞   for vertical surfaces (accept +- 5∞ as vertical, here)
-C        90∞   for horizontal surfaces facing upward ('ceiling') and
-C       -90∞   for horizontal surfaces facing downward ('floor')
-      if (abs(PELV(icomp,isurf)).gt.5.) then
+C     SPELV is defined as:
+C         0deg   for vertical surfaces (accept +- 5deg as vertical, here)
+C        90deg   for horizontal surfaces facing upward ('ceiling') and
+C       -90deg   for horizontal surfaces facing downward ('floor')
+      if (abs(SPELV(icomp,isurf)).gt.5.) then
 C       In ref. C. Chantrasrisalai, PhD Thesis 2007, Oklahoma State
 C       University, page 61 eqn. 4-1b the blind assembly tilt
 C       angle (Sig) is defined as
-C           0∞   for blind assembly facing upward,
-C          90∞   for blind assembly vertical and
-C         180∞   for blind assembly facing the ground.
+C           0deg   for blind assembly facing upward,
+C          90deg   for blind assembly vertical and
+C         180deg   for blind assembly facing the ground.
 C       Eqn. 4-1b for the ESP-r angle reference system becomes
-        omega_v=omega_v - PELV(icomp,isurf)
+        omega_v=omega_v - SPELV(icomp,isurf)
       endif
 
 C.....Horizontal profile angle
-      omega_h = SAZI-PAZI(ICOMP,ISURF)
+      omega_h = SAZI-SPAZI(ICOMP,ISURF)
 
-C     Correct for blind assembly tilt angle PELV if not vertical
+C     Correct for blind assembly tilt angle SPELV if not vertical
 C     (A. Geissler, 2011)
-      if (abs(PELV(icomp,isurf)).gt.5.) then
-        pang_vh=ATAN(TAN(SALT*r)/COS(SAZI*r-PAZI(icomp,isurf)*r))/r
-        pang_ih=pang_vh-PELV(icomp,isurf)
+      if (abs(SPELV(icomp,isurf)).gt.5.) then
+        pang_vh=ATAN(TAN(SALT*r)/COS(SAZI*r-SPAZI(icomp,isurf)*r))/r
+        pang_ih=pang_vh-SPELV(icomp,isurf)
 C       Eqn. 4-1d:
         omega_h=atan(cos(pang_vh)*tan(omega_h)/cos(pang_ih))
       endif
@@ -2504,13 +2496,13 @@ cx      endif ! use_surfacenames
 
 c      call AddToReport(
 c     &         rvCFCazimuth%identifier,
-c     &         SAZI-PAZI(ICOMP,ISURF),
+c     &         SAZI-SPAZI(ICOMP,ISURF),
 c     &         cZone_Chars,
 c     &         cSurf_Chars)
 
 c      call AddToReport(
 c     &         rvCFCelevation%identifier,
-c     &         SALT-PELV(ICOMP,ISURF),
+c     &         SALT-SPELV(ICOMP,ISURF),
 c     &         cZone_Chars,
 c     &         cSurf_Chars)
 
@@ -2662,14 +2654,15 @@ C ********************************************************************
       subroutine CFCoutput(icomp)
       IMPLICIT NONE
 #include "building.h"
+#include "geometry.h"
 #include "CFC_common.h"
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
       integer nconst,nelts,ngaps,npgap
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
       integer nnds,nndz,nndc,nndl
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       real sazi,salt
       integer isunup
@@ -2677,8 +2670,6 @@ C ********************************************************************
       real qfp,qff,tp,tf,qdp,qdf,vp,vf,dp,df,hp,hf
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       real tfa,qfa
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-      real pazi,pelv
       COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
      &              HCOF(MCOM,MS)
       real hcip,hcif,hcop,hcof
@@ -2729,7 +2720,7 @@ C**************** Ambient, Solar and CFC descriptors *****************
                write(97,9991)
      & '        CFC SURFACE |  PAZI  |  ANGI  |  PROANG  | HCIF |',
      &       '  HCOF |VBLAYR|   W     |   S   |   PHI   | ORIENT |'
-               write(97,9992)i,pazi(icomp,i),fInc_angle(i),
+               write(97,9992)i,spazi(icomp,i),fInc_angle(i),
      &            proang_s(icomp,icfctp,i),
      &           hcif(icomp,i),hcof(icomp,i),ivblayr,vb_w(icomp,icfctp),
      &           vb_s(icomp,icfctp),vb_phiNew(icomp,icfctp),
@@ -2742,7 +2733,7 @@ C**************** Ambient, Solar and CFC descriptors *****************
                write(97,9991)
      &         '    CFC SURFACE |  PAZI  | OMEGA_V | OMEGA_H |', 
      &         'HCIF | HCOF | DRPLYR |    W    |    S    |'
-               write(97,9992)i,pazi(icomp,i),
+               write(97,9992)i,spazi(icomp,i),
      &         omega_v_s(icomp,icfctp,i),omega_h_s(icomp,icfctp,i),
      &         hcif(icomp,i),hcof(icomp,i),idrplayr,
      &         drp_w(icomp,icfctp), drp_s(icomp,icfctp)
@@ -2755,7 +2746,7 @@ C**************** Ambient, Solar and CFC descriptors *****************
      &         '   CFC SURFACE |  PAZI  | ANGI |',
      &         'HCIF  |  HCOF  |RLDLYR|'
      
-               write(97,8881)i,pazi(icomp,i),fInc_angle(i),
+               write(97,8881)i,spazi(icomp,i),fInc_angle(i),
      &          hcif(icomp,i),hcof(icomp,i),irldlayr,irldlayr
        
              elseif(icfcltp(icomp,icfctp,j).eq.iInsectScreen) then
@@ -2766,7 +2757,7 @@ C**************** Ambient, Solar and CFC descriptors *****************
      &         '   CFC SURFACE |  PAZI  | ANGI |',
      &         'HCIF  |  HCOF  |BUGLYR|'
      
-               write(97,8881)i,pazi(icomp,i),fInc_angle(i),
+               write(97,8881)i,spazi(icomp,i),fInc_angle(i),
      &          hcif(icomp,i),hcof(icomp,i),ibuglayr
        
             endif
@@ -2833,7 +2824,7 @@ C**************** CFC Convection/LW exchange*************************
      & '       CFC SURFACE |  PAZI  |  ANGI  |  PROANG  | HCIF   | ',
      & 'HCOF  |VBLAYR|   W   |   S    |   PHI   | ORIENT |'
 
-        write(98,9997)i,pazi(icomp,i),fInc_angle(i),
+        write(98,9997)i,spazi(icomp,i),fInc_angle(i),
      & proang_s(icomp,icfctp,i),
      &hcif(icomp,i),hcof(icomp,i),ivblayr,vb_w(icomp,icfctp),
      &vb_s(icomp,icfctp),vb_phiNew(icomp,icfctp),vb_VorH(icomp,icfctp)
@@ -2846,7 +2837,7 @@ C**************** CFC Convection/LW exchange*************************
      &'     CFC SURFACE |  PAZI  | OMEGA_V | OMEGA_H |',
      &'HCIF  |  HCOF  | DRPLYR |    W    |    S    |'
        
-        write(98,9997)i,pazi(icomp,i),
+        write(98,9997)i,spazi(icomp,i),
      & omega_v_s(icomp,icfctp,i),omega_h_s(icomp,icfctp,i),
      & hcif(icomp,i),hcof(icomp,i),idrplayr,
      & drp_w(icomp,icfctp), drp_s(icomp,icfctp)
@@ -2976,7 +2967,7 @@ C************************ Solar Processing **************************
      &' IRadD |IsShd? |TranBB | TranD | Refl  |',
      &'VBLAYR|   W   |   S   |   PHI   | ORIENT |'
 
-          write(99,1002)i,pazi(icomp,i),fInc_angle(i),
+          write(99,1002)i,spazi(icomp,i),fInc_angle(i),
      & proang_s(icomp,icfctp,i),
      & RadIncDirS(icomp,i),RadIncDifS(icomp,i),
      & issur_self_shd(icomp,i),transBB_S(icomp,i),transD_S(icomp,i),
@@ -2991,7 +2982,7 @@ C************************ Solar Processing **************************
      &'   CFC SURFACE |  PAZI  | OMEGA_V | OMEGA_H | IRadB |',
      &' IRadD |IsShd? |TranBB | TranD | Refl  |',
      &'DRPLAYR|   W   |   S   |'
-          write(99,1002)i,pazi(icomp,i),omega_v_s(icomp,icfctp,i),
+          write(99,1002)i,spazi(icomp,i),omega_v_s(icomp,icfctp,i),
      & omega_h_s(icomp,icfctp,i),
      & RadIncDirS(icomp,i),RadIncDifS(icomp,i),
      & issur_self_shd(icomp,i),transBB_S(icomp,i),transD_S(icomp,i),
@@ -3005,7 +2996,7 @@ C************************ Solar Processing **************************
           write(99,8884)
      &'    CFC SURFACE |  PAZI  | ANGI | IRadB | IRadD | IsShd?  ',
      &'|TranBB | TranD | Refl  |  N/A  |RLDLAYR|'
-          write(99,8885)i,pazi(icomp,i),fInc_angle(i),
+          write(99,8885)i,spazi(icomp,i),fInc_angle(i),
      & RadIncDirS(icomp,i),RadIncDifS(icomp,i),
      & issur_self_shd(icomp,i),transBB_S(icomp,i),transD_S(icomp,i),
      & refl_S(icomp,i),irldlayr,irldlayr
@@ -3017,7 +3008,7 @@ C************************ Solar Processing **************************
           write(99,8884)
      &'    CFC SURFACE |  PAZI  | ANGI | IRadB | IRadD | IsShd?',
      &'|TranBB | TranD | Refl  |  N/A  |BUGLAYR|'
-          write(99,8885)i,pazi(icomp,i),fInc_angle(i),
+          write(99,8885)i,spazi(icomp,i),fInc_angle(i),
      & RadIncDirS(icomp,i),RadIncDifS(icomp,i),
      & issur_self_shd(icomp,i),transBB_S(icomp,i),transD_S(icomp,i),
      & refl_S(icomp,i),ibuglayr,ibuglayr
@@ -3067,14 +3058,15 @@ C ********************************************************************
       subroutine CFC_control()
       use h3kmodule
       IMPLICIT NONE
+
 #include "building.h"
 #include "geometry.h"
 #include "control.h"
 #include "CFC_common.h"
 #include "net_flow.h"
 #include "tdf2.h"
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
 
       common/c1/ncomp,ncon
       integer ncomp,ncon
@@ -3091,8 +3083,8 @@ C ********************************************************************
       
       COMMON/BTIME/BTIMEP,BTIMEF
       real btimep,btimef
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
@@ -3154,6 +3146,7 @@ C      real slat_angleX
       character msgout*124
       character*12 cZone_Chars
       character*2  cCFC_Chars
+      integer istat
 
       DIMENSION VAL(MBITS+2)
 
@@ -3231,6 +3224,8 @@ C If NDAYT=0 set data to all calendar day types.
           call edisp(iuout,outs)
           call edisp(iuout,
      &         ' CFCCNTR: cannot locate appropriate day type')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           CALL EPAGEND
           STOP
@@ -3250,6 +3245,8 @@ C Check number of periods in each day and the start and finish times
    22     CONTINUE
           call edisp(iuout,
      &         ' CFCCNTR: cannot locate appropriate day-period')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           CALL EPAGEND
           STOP
@@ -3335,6 +3332,8 @@ C            Error ... !!
                return
              else
                call edisp(iuout,outs)
+               close(ieout)
+               CALL ERPFREE(ieout,ISTAT)
                call epwait
                call epagend
                STOP
@@ -3416,10 +3415,10 @@ C Check that ext. rad sensor is on external surface.
 C=============== CUT OFF =====================================
                 if (iact1.eq.4) then
 C                 Calculate cut-off angle
-C                 Blind assembly tilt angle PELV(icomp,isurf) is defined as
-C                   0∞   for vertical surfaces
-C                  90∞   for horizontal surfaces facing upward ('ceiling') and
-C                 -90∞   for horizontal surfaces facing downward ('floor')
+C                 Blind assembly tilt angle SPELV(icomp,isurf) is defined as
+C                   0deg   for vertical surfaces
+C                  90deg   for horizontal surfaces facing upward ('ceiling') and
+C                 -90deg   for horizontal surfaces facing downward ('floor')
 C                 determin if horizontal or vertical and calc cut-off angle
                   if (vb_VorH(iact2,iact3)(1:4).eq.'HORZ') then
                     call profile_angle(isen2,isen3,iact3,
@@ -3428,7 +3427,7 @@ C                 determin if horizontal or vertical and calc cut-off angle
      &                 asin( vb_s(iact2,iact3)/vb_w(iact2,iact3)
      &                       *cos(solar_elev*R) )/R - solar_elev
 cx     &                       *cos(pselv*R) )/R - pselv
-C                                                pselv = salt - pelv!
+C                                                pselv = salt - spelv!
 C                   Allow control to horizontal, not negativ (??)
 C                   blind restrictions should be part of the blind description in .cfc IMO !!
                     if (cutoff.lt.0.0) cutoff=0.0
@@ -3440,7 +3439,7 @@ C *** this needs checking (neg inc angles!) ****
                     cutoff=     
      &                 asin( vb_s(iact2,iact3)/vb_w(iact2,iact3)
      &                       *cos(psazi*R) )/R - psazi
-C                                                psazi = sazi - pazi!
+C                                                psazi = sazi - spazi!
                   endif
                 endif ! iact1 .eq. 4, aka. "cut-off angle"
 C=============== END CUT OFF ==================================
@@ -3664,10 +3663,10 @@ C ********************************************************************
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       real SAZI, SALT
       integer ISUNUP
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout,iuin
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/SHAD2/ISHD(MCOM),IGCS(MCOM,MS),PO(MCOM,MS,MT),
      & POF(MCOM,MS,MT),IGCI(MCOM,MS),insst(mcom,mgt,mt,misur),
      & pinsst(mcom,mgt,mt,misur)
@@ -3829,8 +3828,8 @@ C ********************************************************************
       integer nconst,nelts,ngaps,npgap
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
       integer nnds,nndz,nndc,nndl
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       real sazi,salt
       integer isunup
@@ -3842,8 +3841,6 @@ C ********************************************************************
       real tfa,qfa
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
       real TFC,QFC
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-      real pazi,pelv
       COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
      &              HCOF(MCOM,MS)
       real hcip,hcif,hcop,hcof
@@ -4042,7 +4039,7 @@ C                   << calc for (l*2)-1, (l*2)+1 >>
                     RGap2nom = 4.0*SBOLTZ*Tm**3
                     RGap2nom = RGap2nom/EmisFac
                     GapWidth=THRMLI(icomp,i,l,4) ! gap width
-                    CALL ConvVertCav(PELV(icomp,i),GapWidth,TA,TB,
+                    CALL ConvVertCav(SPELV(icomp,i),GapWidth,TA,TB,
      &                    rmlr_mass(icomp,icfctp,l),
      &                    cond_A(icomp,icfctp,l),cond_B(icomp,icfctp,l),
      &                    visc_A(icomp,icfctp,l),visc_B(icomp,icfctp,l),
@@ -4063,7 +4060,7 @@ C                   << calc for ((l-2)*2)-1, ((l-2)*2)+1 >>
                     RGap1nom = RGap1nom/EmisFac
 
                     GapWidth=THRMLI(icomp,i,(l-2),4) ! gap width
-                    CALL ConvVertCav(PELV(icomp,i),GapWidth,TA,TB,
+                    CALL ConvVertCav(SPELV(icomp,i),GapWidth,TA,TB,
      &                    rmlr_mass(icomp,icfctp,(l-2)),
      &                    cond_A(icomp,icfctp,(l-2)),
      &                    cond_B(icomp,icfctp,(l-2)),
@@ -4106,7 +4103,7 @@ C                   h_r = (4 sig Tm^3)/(1/e1 + 1/e2 - 1) ; Tm = (T1 + T2)/2
                     RGap1nom = RGap1nom/EmisFac
 C Calculate convective gap resistance for ISO DT (code from lines 1836 ff.)
                     GapWidth=THRMLI(icomp,i,l,4) ! gap width
-                    CALL ConvVertCav(PELV(icomp,i),GapWidth,TA,TB,
+                    CALL ConvVertCav(SPELV(icomp,i),GapWidth,TA,TB,
      &                    rmlr_mass(icomp,icfctp,l),
      &                    cond_A(icomp,icfctp,l),cond_B(icomp,icfctp,l),
      &                    visc_A(icomp,icfctp,l),visc_B(icomp,icfctp,l),

@@ -12,6 +12,7 @@
      expose_event    - handles exposure of drawable area
 
      winclr	   - clears whole application to white
+     win3dwwc()    - finds pixel offsets within graphics window
      win3d()       - finds pixel offsets within graphics window
      startbuffer_() clear view/3d display box.
      forceflush_() force graphic buffer to flush
@@ -2331,6 +2332,21 @@ void winclr_()
 */
   return;
 }
+
+/* **************  Open a 3D viewing box attributes to file *************** */
+void win3dwwc_(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gwht)
+ long int	*menu_char,*gw,*gwht;
+ long int	*cl,*cr,*ct,*cb;
+ long int	*vl,*vr,*vt,*vb;
+{
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*win3d\n");
+   fprintf(wwc,"%ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld\n",
+		*menu_char,*cl,*cr,*ct,*cb,*vl,*vr,*vt,*vb,*gw,*gwht);
+ }
+ return;
+} /* win3dwwc_ */
 
 /* **************  Open a 3D viewing box *************** */
 /*

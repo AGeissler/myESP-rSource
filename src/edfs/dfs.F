@@ -28,10 +28,10 @@ C Passed iappw, iappx, iappy as pixel width of application, left and top offsets
 C if these are 0 then use default values.
       program dfs
       USE START_UP
-#include "cfd.h"
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
+#include "cfd.h"
 #include "esprdbfile.h"
 #include "material.h"
 #include "espriou.h"
@@ -39,7 +39,7 @@ C if these are 0 then use default values.
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/MFTRA/IMFTU
       COMMON/SHOUT/ICOUT
@@ -98,6 +98,10 @@ C Name of current application
       common/APPNAME/cAppName
       character cAppName*12
 
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
 C For number of openings NOPEN
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
      &             IOPENf(MCFND,MNZ),JOPENi(MCFND,MNZ),
@@ -108,12 +112,16 @@ C For number of openings NOPEN
      &             IWOPEN(MCFND,MNZ),ICFDCN(MCFND,MNZ),
      &             ICNACT(MCFND,MNZ),IVOLNOP(MCFND,MNZ)
 
-C Saved state of the visualisation
+C Saved state of the visualisation.
       COMMON/MODVIS/IVISMOD
-      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,ISHGEO,
-     &              INITD
+      COMMON/CFDVIS/HAS_GEOM,ISHSB,ISHAO,IFACES,ISHBLK,
+     &              ISHSRC,ISHGEO,INITD
       logical HAS_GEOM
       character INITD*6
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
 
       CHARACTER*24 ITEM(11)
       CHARACTER inf*144,LCFD*72,DFCFD*72,Lflpar*72
@@ -123,15 +131,17 @@ C Saved state of the visualisation
       integer islice,jslice,kslice
       CHARACTER*72 LVEC,LBIT,t72,vecfil
       character*72 DECMPDBFL,DICONDBFL
+      character dstmp*24,uname*24,tfile*72
+      character hold32*32     ! for helper applications
 
       character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character pagestitle*68 ! for banner title via epages call
 
       LOGICAL INCALU,INCALV,INCALW,INCALK,INCALD,INCALT
       LOGICAL IZEROT,IZanKE,IMITZ
       logical photon,matlab,textout,flwvis,xslice,yslice,zslice
       LOGICAL XST,LAST,concat,INPOK,unixok
-      LOGICAL SIMOK,OK,dok,GGDH
+      LOGICAL SIMOK,OK,GGDH
       LOGICAL areaSSO
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
@@ -170,7 +180,7 @@ C Clear 'conflated only' commons.
 C Set defaults.
       GGDH=.false.
 
-C defaults for visualisation
+C Defaults for visualisation.
       ISHSB=1
       ISHAO=1
       IFACES=1
@@ -217,13 +227,14 @@ C File units.
       IUIN=5
       ICOUT=0
       IFIL=10
-      LIMTTY=9
-      LIMIT =9
+      LIMTTY=30
+      LIMIT =30
       NSIGFIG=3
       IFL=IFIL+1
       ICFLIB=IFIL+2
       ICFMON=IFIL+3
-      matver=0.0   ! initial assumption of binary materials database
+      matver=0.0     ! initial assumption of binary materials database
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Temporary cfd file unit.
       ICFTMP=IFIL+4
@@ -315,20 +326,25 @@ C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
 C and dialog.
         IMFS=5
         IFS=5
-#ifdef OSX
-        IFS=4  ! use a smaller dialog font
-#endif
         ITFS=4
+#ifdef OSX
+        IMFS=4
+        IFS=4   ! use a smaller fonts
+        ITFS=4
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=16
-        LIMIT =16
+        IMFS=5  ! Text mode set LIMTTY larger for paging menus.
+        IFS=5
+        ITFS=4
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r CFD Simulator ',
+      write(pagestitle,'(2a)') 'CFD simulator of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -388,6 +404,32 @@ C Find the user's home folder then get user's custom settings.
 C Scan the defaults file for default configuration.
 C Make temporary use of file unit IFL.
       call escdef(IFL,'-',IER)
+
+C Confirm if there an an xterm available.
+      call isunix(unixok)
+      if(unixok)then
+        found_xterm=.false.; hold32='xterm'
+        call isinstalled(hold32,found_xterm)
+      else
+        found_xterm=.false.  ! not (yet) in Windows
+      endif
+
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+931          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for dfs'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Take `c' command line file name, convert to fortran string LCFD
 C and place as initial configuration file.
@@ -665,7 +707,7 @@ C Help text for results sub-menu.
         CALL EMENU(' results',ITEM,NITMS,INO1)
         IF(INO1.EQ.1)THEN
 
-C The following will drive xten to view the ASCII output file.
+C The following will drive nano to view the ASCII output file.
 C This should be make more generic later, by using the text
 C editor preference specified in the `dot' file.
 C Execute xten.
@@ -683,9 +725,14 @@ C to include the path and create a string to drive xten.
             doit = '  '
             call terminalmode(childterminal,tmode)
             call addpath(RESFL,longtfile,concat)
-            write(doit,'(3a)') 'xten ',longtfile(:lnblnk(longtfile)),
+            write(doit,'(3a)') 'nano ',longtfile(:lnblnk(longtfile)),
      &        ' & '
-            call runit(doit,tmode)
+            if(tmode(1:7).eq.'graphic')then ! tmode for runit is different from
+                                            ! tmode ESP-r command line argument
+              call runit(doit,'text')       ! use 'text' to request terminal
+            else
+              call runit(doit,tmode)
+            endif
             GOTO 10
           ENDIF
         ELSEIF(INO1.EQ.2)THEN
@@ -703,7 +750,12 @@ C to include the path and create a string to drive PHOTON.
      &      longtfile(:lnblnk(longtfile)),' & '
           INQUIRE (FILE='runpho',EXIST=XST)
           IF(XST)THEN
-            call runit(doit,tmode)
+            if(tmode(1:7).eq.'graphic')then ! tmode for runit is different from
+                                            ! tmode ESP-r command line argument
+              call runit(doit,'text')       ! use 'text' to request terminal
+            else
+              call runit(doit,tmode)
+            endif
           ELSE
             helptopic='dfs_results_menu'
             call gethelptext(helpinsub,helptopic,nbhelp)
@@ -770,7 +822,12 @@ C Execute MATLAB with startup.m file (the MATLAB default).
           IF(XST)THEN
 
 C Graphs are defined in cfmatl.F.
-            call runit(doit,tmode)
+            if(tmode(1:7).eq.'graphic')then ! tmode for runit is different from
+                                            ! tmode ESP-r command line argument
+              call runit(doit,'-')          ! use '-' to request execute_command_line
+            else
+              call runit(doit,tmode)
+            endif
             if (incalu.and.incalv.and.incalw)goto 70
           ELSE
             CALL PHELPD('MATLAB analysis',nbhelp,'-',0,0,IER)
@@ -877,11 +934,9 @@ C Help via the askabout facility in esru_ask.F The zero requests display
 
 C Finish simulation.
 C Should the results files be removed ?
-        dok=.true.
         helptopic='dfs_ask_to_keep_results'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' ','Delete results file before exiting?',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(' ','Delete results file?',OK,nbhelp)
         if (OK) then
           CALL EFDELET(ICFLIB,ISTAT)
           CALL EFDELET(ICFMON(ICFD),ISTAT)
@@ -891,9 +946,7 @@ C Should the results files be removed ?
         endif
 
 C Should the cfd temporary file be removed ?
-        dok=.true.
-        CALL ASKOK(' ','Delete temporary file before exiting?',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(' ','Delete temporary file?',OK,nbhelp)
         if (OK) then
           CALL EFDELET(ICFTMP,ISTAT)
         else
@@ -901,6 +954,8 @@ C Should the cfd temporary file be removed ?
         endif
 
 C Exit from ESRUcfd.
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       ENDIF
@@ -939,4 +994,5 @@ C Dummy subroutine needed to compile (called from library code).
       SUBROUTINE GRAAPH(IDRW1,IDRW2)
       return
       end
+
 

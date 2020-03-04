@@ -47,7 +47,7 @@ C file formats.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -562,7 +562,7 @@ c 'INSERT' command.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       real elevlast,thicklast
       integer polylinflag
@@ -800,7 +800,7 @@ C xsca,ysc,zsc are the scaling factors, rot is the rotation angle.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ioin,ioout,ioblk
       common/io/ioin,ioout,ioblk
 
@@ -990,7 +990,7 @@ C Note: all the insert files are assumed to be in local folder.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ioin,ioout,ioblk
       common/io/ioin,ioout,ioblk
@@ -1211,7 +1211,7 @@ C  the name is added.
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character outs*124
 
@@ -1284,7 +1284,7 @@ C done from command line.
 #include "dxfdata.h"
       parameter (MAXPNT = 100)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -1565,7 +1565,7 @@ C itrc indicator so that debug can be done from command line.
 #include "dxfdata.h"
       parameter (MAXPNT = 100)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer polylinflag
 
       integer ioin,ioout,ioblk

@@ -36,10 +36,10 @@ C INIT3D creates the files required in 3D simulation.
 C *********************************************************************
       SUBROUTINE INIT3D
 #include "building.h"
+#include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       
@@ -61,7 +61,7 @@ C *********************************************************************
       COMMON/GRND108/LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
       CHARACTER*72 LGDCVS,LGDCNC,LGDNDC,LGDTAQ,LGDNDD
 
-      LOGICAL OK,dok
+      LOGICAL OK
 
       CHARACTER*72 L3DCVS,L3DCNC,L3DNDC,L3DTAQ,L3DNDD,L3DTLW,L3DLWV
       CHARACTER MSG*82,L3DTMP*72,FLTYP*25,LTMP*72,path*72
@@ -95,10 +95,9 @@ C Skip the 1D zones.
         IF(PATH.EQ.'./'.OR.PATH.EQ.' ')THEN
           WRITE(MSG,'(2A,I3,A)')'Do you want the associated 3D files ',
      &                         'for zone (',ICOMP,') to be re-ordered?'
-          dok=.true.
           helptopic='re-order_3d_files'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(' ',MSG,OK,dok,nbhelp)
+          CALL EASKOK(' ',MSG,OK,nbhelp)
           IF(OK)CALL FLORDR(ICOMP)
         ENDIF
         CALL USRMSG(' ',
@@ -113,6 +112,8 @@ C Create the nodes distribution file.
         CALL EFOPRAN(INDD,L3DNDD(ICOMP),4,4,IER)
         IF(IER.LT.0)then
           call edisp(iuout,'Error openning nodes distribution file.')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP
@@ -133,6 +134,8 @@ C End of file reached.
           NNODT(ICOMP)=MAXNOD+1
           IF(MAXNOD.GT.MNOD3)then
             call edisp(iuout,'Maximum number of nodes exceeded.')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP
@@ -170,6 +173,8 @@ C Read next record in the control volumes file.
         CALL EFOPRAN(ITLW,L3DTLW(ICOMP),5,4,IER)
         IF(IER.LT.0)then
           call edisp(iuout,'Error while openning total longwave file.')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP 
@@ -230,6 +235,8 @@ C Connection with a 1D node in zone (ITP-100) surface (IP1) node (IP2).
         ELSEIF(ITP.GT.100.AND.ITP.LE.(100+NCOMP))THEN
         ELSE
           call edisp(iuout,'Un-acceptable connection detected.')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP 
@@ -250,6 +257,8 @@ C Create the total longwave file from the 3D temporary file.
                 ARAMN=AR2
               ELSEIF(ND2.EQ.MNODE)THEN
                 call edisp(iuout,'Two interier nodes with same number.')
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 call epwait
                 call epagend
                 STOP 
@@ -393,43 +402,60 @@ C Open the temperature and energy file and check the number of records.
     5 WRITE(MSG,'(A,I6)')
      & 'Error reading ND1 VOLM1 DMM IS1 or IL1 at record ',IC
       CALL USRMSG(MSG,' in the control volumes file.','W')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
 
     6 WRITE(MSG,'(A,I6)')'Error occured at record number ',IC
       CALL USRMSG(MSG,' in the control volumes file.','W')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
     7 WRITE(MSG,'(A,I6)')
      &  'Error reading ND1 DMM ARA DMM ITP IP1 or IP2 at record ',IC
       CALL USRMSG(MSG,' in the connections file.','W')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
     8 WRITE(MSG,'(A,I6)')
      & 'Error reading ND1 IS1 IL1 or VOLM1 at record ',IR
       CALL USRMSG(MSG,
      &  ' in the nodes distribution file.','W')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
     9 WRITE(MSG,'(A,2I6)')
      & 'Error reading IP2 ND1 ARA or IS2 ND2 AR2 at record ',I2,INS
       CALL USRMSG(MSG,' in the NODES file.','W')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
    11 WRITE(MSG,'(A,2I6)')
      & 'Error reading IP2 ND1 ARA or IS2 ND2 AR2 at record ',IRC1,IRC2
       CALL USRMSG(MSG,
      &  ' in the longwave file (1).','W')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
    12 WRITE(MSG,'(A,I6)')' Error occured at record number ',NTND2(ICOMP)
       CALL USRMSG(MSG,' in the longwave file (2).','W')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
       
    15 WRITE(MSG,'(A,I6)')
      & 'Error reading DMM or DMM at record ',NNODT
       CALL USRMSG(MSG,' in the temperature and heat file.','W')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
+      call epagend
       STOP ' Error occured in the temperature and heat file.'
       END
 
@@ -441,7 +467,7 @@ C *********************************************************************
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GR3D108/L3DCVS(MCOM),L3DCNC(MCOM),L3DNDC(MCOM),L3DTAQ(MCOM)
       COMMON/GR3D110/ICVS,ICNC,INDC,INDD,ITAQ,ITLW,ILWV,ITF3
       COMMON/GR3D130/IFST(MNOD3),W3(MCFF3),NCLMN(MCFF3),NXT(MCFF3),SML3
@@ -791,13 +817,13 @@ C MZ3CFG is similar to MZCFGG but for 3D zone models.
 C *********************************************************************
       SUBROUTINE MZ3CFG(ICOMP)
 #include "building.h"
+#include "geometry.h"
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &              NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),
      &              AE(MCOM,MS)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/V2/CFB(MCOM,MST,MST)
       COMMON/GR3D110/ICVS,ICNC,INDC,INDD,ITAQ,ITLW,ILWV,ITF3
       COMMON/GR3D111/NTND1(MCOM),NTND2(MCOM),N1ND1(MCOM,MS)
@@ -895,8 +921,8 @@ C GETF12 returns the view factor for 3D surface node from 1D view factor.
 C *********************************************************************
       FUNCTION GETF12(ICOMP,IS1,IS2,AREA2)
 #include "building.h"
+#include "geometry.h"
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/V2/CFB(MCOM,MST,MST)
 
       GETF12=CFB(ICOMP,IS1,IS2)*AREA2/SNA(ICOMP,IS2)

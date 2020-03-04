@@ -46,9 +46,8 @@ c zonetotsurfacearea - total surface area in the zone (held in geometry.h)
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC1I/APRAT(MCOM,MS),HEIGHT(MCOM,MS)
 
 c The information contained in the following common block represents
@@ -126,7 +125,7 @@ c VOL    - zone bounded volume
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/NORMV/XSUM(MS),YSUM(MS),ZSUM(MS)
 
       V=0.
@@ -164,9 +163,9 @@ c measured vertically in degrees.
 
 c Common block variables are:
 
-c PAZI    - plane azimuth angle
+c SPAZI    - plane azimuth angle
 
-c PELV    - plane elevation angle
+c SPELV    - plane elevation angle
 
 c CHARDM  - plane characteristic dimension for use
 c           in res to compute surface
@@ -178,7 +177,6 @@ c           convection coefficients.
 
       COMMON/NORMV/XSUM(MS),YSUM(MS),ZSUM(MS)
 
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       COMMON/TRANSO/LTROR,PAZIO(MCOM,MS)
       COMMON/PREC1I/APRAT(MCOM,MS),HEIGHT(MCOM,MS)
       COMMON/PREC3I/CHARDM(MCOM,MS)
@@ -187,29 +185,29 @@ c           convection coefficients.
       PI = 4.0 * ATAN(1.0)
       R=PI/180.
       DO 10 I=1,NSUR
-        PAZI(ICOMP,I)=90.0
-        IF(XSUM(I).LT.0.0)PAZI(ICOMP,I)=-90.0
+        SPAZI(ICOMP,I)=90.0
+        IF(XSUM(I).LT.0.0)SPAZI(ICOMP,I)=-90.0
         call eclose(XSUM(I),0.0,0.0001,close)
-        IF(close)PAZI(ICOMP,I)=0.0
-        PELV(ICOMP,I)=90.0
-        IF(ZSUM(I).LT.0.0)PELV(ICOMP,I)=-90.0
+        IF(close)SPAZI(ICOMP,I)=0.0
+        SPELV(ICOMP,I)=90.0
+        IF(ZSUM(I).LT.0.0)SPELV(ICOMP,I)=-90.0
         call eclose(ZSUM(I),0.0,0.0001,close)
-        IF(close)PELV(ICOMP,I)=0.0
+        IF(close)SPELV(ICOMP,I)=0.0
         call eclose(YSUM(I),0.0,0.0001,close)
         if(close)goto 1
         AZI=ATAN2(XSUM(I),YSUM(I))
-        PAZI(ICOMP,I)=AZI/R
+        SPAZI(ICOMP,I)=AZI/R
     1   SRX2Y2=SQRT(XSUM(I)*XSUM(I)+YSUM(I)*YSUM(I))
-        IF(PAZI(ICOMP,I).LT.0.)PAZI(ICOMP,I)=PAZI(ICOMP,I)+360.
+        IF(SPAZI(ICOMP,I).LT.0.)SPAZI(ICOMP,I)=SPAZI(ICOMP,I)+360.
         call eclose(SRX2Y2,0.00,0.001,close)
         IF(close)goto 2
         ELV=ATAN2(ZSUM(I),SRX2Y2)
-        PELV(ICOMP,I)=ELV/R
+        SPELV(ICOMP,I)=ELV/R
     2   CONTINUE
         CHARDM(ICOMP,I)=APRAT(ICOMP,I)
-        IF(PELV(ICOMP,I).LE.45..AND.PELV(ICOMP,I).GE.
+        IF(SPELV(ICOMP,I).LE.45..AND.SPELV(ICOMP,I).GE.
      &  -45.)CHARDM(ICOMP,I)=HEIGHT(ICOMP,I)
-        PAZIO(ICOMP,I)=PAZI(ICOMP,I)
+        PAZIO(ICOMP,I)=SPAZI(ICOMP,I)
    10 CONTINUE
 
       RETURN
@@ -232,8 +230,6 @@ c unavailable.
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
       COMMON/V2/CFB(MCOM,MST,MST)
-
-      COMMON/PREC1/SNA(MCOM,MS)
 
       character outs*124
 
@@ -397,7 +393,6 @@ C CGCTL - gain control fraction (zone, present/future, gain type)
       SUBROUTINE MZCASG(ICOMP)
 #include "building.h"
 #include "plant.h"
-C geometry.h provides commons G0/G1/G2/G4/prec2/prec17/precz.
 #include "geometry.h"
 #include "schedule.h"
 #include "power.h"
@@ -407,7 +402,7 @@ C geometry.h provides commons G0/G1/G2/G4/prec2/prec17/precz.
       common/trc/itrc
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Commons for electrical data
       COMMON/ELECFLG/IELF(MCOM)
@@ -418,7 +413,6 @@ C Commons for electrical data
       REAL TMRT,TMIX,TOP
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,
      &QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/CASGFA/FLOORA(MCOM)
 
 C Derived casual gain and electrical data.

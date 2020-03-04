@@ -91,4 +91,4 @@ C 7. Zone_occupancy     ! number of occupants
 
       INTEGER, PARAMETER :: FMIOAorZ(MFMIOREFS)=(/1,1,1,1,1,1,1/)
 
-      INTEGER, PARAMETER :: FMIONSUP(MFMIOREFS)=(/0,0,1,0,0,0,0/)
+      INTEGER, PARAMETER :: FMIONSUP(MFMIOREFS)=(/0,0,1,0,1,0,0/)

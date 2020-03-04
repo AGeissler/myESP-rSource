@@ -32,8 +32,9 @@ C MOTABL produces tabular output for a 24 hour period.
 #include "model.h"
 #include "prj3dv.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -217,7 +218,11 @@ C Read 3D flow network, report contents and draw the network.
           CALL EMF3DREAD(IUM,'S',IER)
           call edisp(iuout,' ')
           CALL MFLIST(iuout)
-          call MFWFDRAW('r')  ! Draw flow network.
+          if(NNOD.gt.50.or.NCMP.gt.50)then
+            call MFWFDRAW('r',0,0)  ! Draw flow network without names if complex
+          else
+            call MFWFDRAW('r',1,1)  ! Draw flow network with names
+          endif 
           CALL ERPFREE(IUM,ISTAT)
           call pauses(2)
         endif
@@ -713,48 +718,25 @@ C Display data. Create both data strings for this timestep.
           outs248='  '
           outs800='  '
           if (IHFLAG.eq.0) then 
-            if(ipvform.eq.3)then
-              call SJTIME(J,LJTIME)
-              write (outs248,'(3a)') sq,LJTIME,sq
-              write (outs800,'(3a)') sq,LJTIME,sq
-              K=11
-            else
-              call STIME(J,LTIME)
-              write (outs248,'(a5)') LTIME
-              write (outs800,'(a5)') LTIME
-              K=6
-            endif
+            call STIME(J,LTIME)
+            write (outs248,'(a5)') LTIME
+            write (outs800,'(a5)') LTIME
+            K=6
           elseif (IHFLAG.eq.1) then
-            if(ipvform.eq.3)then
-              call SJTIME(J,LJTIME)
-              write (outs248,'(3a)') sq,LJTIME,sq
-              write (outs800,'(3a)') sq,LJTIME,sq
-              K=11
-            else
-              RDOTY=REAL(IDAY)+(ATIME/24.)
-              write (outs248,'(f11.6)') RDOTY
-              write (outs800,'(f11.6)') RDOTY
-              K=11
-            endif
+            RDOTY=REAL(IDAY)+(ATIME/24.)
+            write (outs248,'(f11.6)') RDOTY
+            write (outs800,'(f11.6)') RDOTY
+            K=11
           elseif (IHFLAG.eq.2) then
 
 C Write in format that spreadsheets understand as time.
             call edayr(IDAY,ID,IM)
-            if(ipvform.eq.3)then
-              call SJTIME(J,LJTIME)
-              write (outs248,'(a,i4,a,i2.2,a,i2.2,3a)') 
-     &          sq,IYEAR,'-',IM,'-',ID,' ',LJTIME,sq
-              write (outs800,'(a,i4,a,i2.2,a,i2.2,3a)') 
-     &          sq,IYEAR,'-',IM,'-',ID,' ',LJTIME,sq
-              K=22
-            else
-              call SJTIME(J,LJTIME)
-              write (outs248,'(i4,a,i2.2,a,i2.2,2a)') 
-     &          IYEAR,'-',IM,'-',ID,' ',LJTIME
-              write (outs800,'(i4,a,i2.2,a,i2.2,2a)') 
-     &          IYEAR,'-',IM,'-',ID,' ',LJTIME
-              K=20
-            endif
+            call SJTIME(J,LJTIME)
+            write (outs248,'(i4,a,i2.2,a,i2.2,2a)') 
+     &        IYEAR,'-',IM,'-',ID,' ',LJTIME
+            write (outs800,'(i4,a,i2.2,a,i2.2,2a)') 
+     &        IYEAR,'-',IM,'-',ID,' ',LJTIME
+            K=20
           endif
 
 C First write data to the 248 char string buffer.
@@ -1241,13 +1223,13 @@ C in terms of surface so negate it to have contribution to air node.
               CALL FLTIAV(JD,CQ,CQOUT,NEL)
               DO 61 ISTP=ISTART,IEND
                 IF(IE.EQ.0)THEN
-                  if(SSOTF(ICN)(1:4).EQ.'OPAQ')then
+                  if(SOTF(IZN,ISN)(1:4).EQ.'OPAQ')then
                     VAL(3)=VAL(3)+CQOUT(ISTP)*(-1.0)
                   else
                     VAL(1)=VAL(1)+CQOUT(ISTP)*(-1.0)
                   endif
                 ELSE
-                  if(SSOTF(ICN)(1:4).EQ.'OPAQ')then
+                  if(SOTF(IZN,ISN)(1:4).EQ.'OPAQ')then
                     VAL(4)=VAL(4)+CQOUT(ISTP)*(-1.0)
                   else
                     VAL(2)=VAL(2)+CQOUT(ISTP)*(-1.0)
@@ -1531,7 +1513,7 @@ C CALLS: GZTMS.
       SUBROUTINE CZMRT(IDAY,IZONE,ISET)
 #include "building.h"
 #include "geometry.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/GET2/XDUM(MTS),XDUM1(MTS),GVAL(MTS)
 
@@ -1566,7 +1548,7 @@ C CALLS:  GZTMS.
       SUBROUTINE CZRESL(IDAY,IZONE,ISET)
 #include "building.h"
 #include "geometry.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/GET2/XDUM(MTS),XDUM1(MTS),GVAL(MTS)
       DIMENSION ZTMS(MS),YDUM(MS),TSO(MS)

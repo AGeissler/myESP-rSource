@@ -71,8 +71,8 @@ C Parameters passed into subroutine:
 
       common/FILEP/IFIL
       INTEGER :: ifil
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
 
 C Markdown flag.
       logical markdown
@@ -231,7 +231,7 @@ C bridgelen was calculated in subroutine suredgeadj
 
 C Remember if each zone is fully attributed.
       logical attribok(MCOM)
-      logical allattribok,changedit,ok,dok,concat,unixok,showother
+      logical allattribok,changedit,ok,concat,unixok,showother
       dimension areamlc(MCOM)
       real areamlc
       character items*33
@@ -239,7 +239,7 @@ C Remember if each zone is fully attributed.
 
       character*72 LTMP
       character*72 GTGEOM
-      character GTNAME*15,CLMLOC*30,lipvdatf*72
+      character GTNAME*15,CLMLOC*42,lipvdatf*72
       character lco*72,lcot*72
       character longtfile*144,longtfiledos*144
       character DESCRC*25
@@ -285,6 +285,8 @@ C in the current model. A -1 means not applicable
       integer itrunc     ! to signal truncation
       integer ipos       ! position indicator when calling arlist
       dimension ZDA(20)  ! array of depths for ground temperature calculation
+      real sperim(MS)    ! perimeter of each polygon
+
       real ZD,ZDA       ! depth for ground temp calc
       real grper        ! % length of ground perimeter in a zone
       real xtranper,xskyper,xwallper,xslproofper,xflatroofper,xgrper ! % of project floor area for each
@@ -620,7 +622,7 @@ C << need to sort out changing to main project folder >>
         else
           write(doit,'(2a)') foldexe(1:lnblnk(foldexe)),' & '
           call usrmsg('Beginning folder view via',doit,'-')
-          tmode='graph'
+          tmode='-'
           call runit(doit,tmode)
         endif
       elseif(ino.eq.2)then
@@ -667,9 +669,8 @@ C If user request jump back and re-display the menu.
 
 C Ask user whether file is in ../doc and if so use fdroot if GTK.
           if(iglib.eq.2)then
-            dok=.true.
-            CALL ASKOK('Is this file in the model ../doc folder?',
-     &        ' ',OK,dok,3)
+            CALL EASKOK(' ','Is this file in the model doc folder?',
+     &        OK,3)
             if(OK)then
               call fdroot(lltmp,lpath,fname)
               write(lmodellog,'(3a)') docpth(1:lnblnk(docpth)),fs,
@@ -689,23 +690,20 @@ C when the model was initially created.
           if(XST)then
             CALL LISTAS(IUNIT,lmodellog,IER)
             IF(IER.ne.0)THEN
-              dok=.true.
-              CALL ASKOK('Problem detected while trying to preview',
-     &                   'the log file. Try again?',OK,dok,nbhelp)
+              CALL EASKOK('Problem reading log file!',
+     &                   'Retry?',OK,nbhelp)
               IF(OK)GOTO 54
             ENDIF
           else
-            dok=.true.
-            CALL ASKOK('Problem detected while trying to open',
-     &                 'log file. Try again?',OK,dok,nbhelp)
+            CALL EASKOK('Problem opening log file!',
+     &                 'Retry?',OK,nbhelp)
             IF(OK)GOTO 54
           endif
 
 C Allow user to edit the job notes file. Append to path if
 C necessary.  If vi then spawn a new window to do the editing.
-          dok=.true.
-          CALL ASKOK(' ','Edit this file (with standard text editor?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Edit file?',
+     &      OK,nbhelp)
           IF(OK)then
             if(unixok)then
               call addpath(lmodellog,longtfile,concat)
@@ -718,12 +716,12 @@ C and change any / to \.
               longtfile=' '
               longtfile=longtfiledos
             endif
-            tmode='graph'
+            tmode='-'
             if(teditor(1:2).eq.'  ')then
               call usrmsg(
      &      'The external word processor has not be defined. See your',
      &      'administrator about updating the esprc definition.','W')
-            elseif(teditor(1:2).eq.'vi')then
+            elseif(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')then
               tmode='text'
             endif
             write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
@@ -743,7 +741,7 @@ C Execute graphing tool.
           call tstamp('>','PRJ: start graphing tool')
           write(doit,'(2a)')grfexe(1:lnblnk(grfexe)),' & '
           call usrmsg('Beginning graphing tool via',doit,'-')
-          call runit(doit,'graph')
+          call runit(doit,'text')
         endif
       elseif(ino.eq.4)then
 
@@ -756,7 +754,7 @@ C Execute figure tool.
           call tstamp('>','PRJ: start xfig')
           write(doit,'(2a)')figexe(1:lnblnk(figexe)),' & '
           call usrmsg('Beginning figure tool via',doit,'-')
-          call runit(doit,'graph')
+          call runit(doit,'text')
         endif
       elseif(ino.eq.5)then
 
@@ -769,7 +767,7 @@ C Execute image viewer (get tool via prior scan of default file).
           call tstamp('>','PRJ: start xv')
           write(doit,'(2a)')fmtexe(1)(1:lnblnk(fmtexe(1))),' & '
           call usrmsg('Beginning image tool via',doit,'-')
-          call runit(doit,'graph')
+          call runit(doit,'text')
         endif
       elseif(ino.eq.8)then
         siteinfo=siteinfo+1
@@ -929,8 +927,10 @@ C For each surface in current zone check for match to attributes.
             do 11 i=1,nzsur(ivals(iz))
               icc=izstocn(ivals(iz),i)
               apply=.true.
-              if(ins1.eq.1.and.SSOTF(icc)(1:4).ne.'OPAQ')apply=.false.
-              if(ins1.eq.2.and.SSOTF(icc)(1:4).ne.'TRAN')apply=.false.
+              if(ins1.eq.1.and.SOTF(ivals(iz),i)(1:4).ne.'OPAQ')
+     &          apply=.false.
+              if(ins1.eq.2.and.SOTF(ivals(iz),i)(1:4).ne.'TRAN')
+     &          apply=.false.
 
 C Determine the match in the system topology. Note last parameter of the
 C call suradj is a character string.
@@ -954,16 +954,17 @@ C call suradj is a character string.
 C Orientation check.
 C 'vertical','sloped','horizontal up','horizontal down',
 C 'any horizontal','any orien.','cancel'.
-              if(ins3.eq.1.and.SSVFC(icc)(1:4).ne.'VERT')then
+              if(ins3.eq.1.and.SVFC(ivals(iz),i)(1:4).ne.'VERT')then
                 apply=.false.
-              elseif(ins3.eq.2.and.SSVFC(icc)(1:4).ne.'SLOP')then
+              elseif(ins3.eq.2.and.SVFC(ivals(iz),i)(1:4).ne.'SLOP')then
                 apply=.false.
-              elseif(ins3.eq.3.and.SSVFC(icc)(1:4).ne.'CEIL')then
+              elseif(ins3.eq.3.and.SVFC(ivals(iz),i)(1:4).ne.'CEIL')then
                 apply=.false.
-              elseif(ins3.eq.4.and.SSVFC(icc)(1:4).ne.'FLOR')then
+              elseif(ins3.eq.4.and.SVFC(ivals(iz),i)(1:4).ne.'FLOR')then
                 apply=.false.
-              elseif((ins3.eq.5.and.SSVFC(icc)(1:4).eq.'FLOR').or.
-     &               (ins3.eq.5.and.SSVFC(icc)(1:4).eq.'CEIL'))then
+              elseif(
+     &          (ins3.eq.5.and.SVFC(ivals(iz),i)(1:4).eq.'FLOR').or.
+     &          (ins3.eq.5.and.SVFC(ivals(iz),i)(1:4).eq.'CEIL'))then
                 continue
               elseif(ins3.eq.6)then
                 continue
@@ -971,27 +972,27 @@ C 'any horizontal','any orien.','cancel'.
               if(ins4.eq.1)then
                 continue
               elseif(ins4.eq.2)then
-                if(SSMLCN(icc)(1:4).ne.'UNKN')apply=.false.
+                if(SMLCN(IVALS(IZ),I)(1:4).ne.'UNKN')apply=.false.
               elseif(ins4.eq.3)then
-                if(SSMLCN(icc)(1:4).eq.'UNKN')apply=.false.
-                lnsmlcn=lnblnk(SSMLCN(icc))
-                if(SSMLCN(icc)(1:lnsmlcn).ne.
+                if(SMLCN(IVALS(IZ),I)(1:4).eq.'UNKN')apply=.false.
+                lnsmlcn=lnblnk(SMLCN(IVALS(IZ),I))
+                if(SMLCN(IVALS(IZ),I)(1:lnsmlcn).ne.
      &             mlcname(ISEL)(1:lnmlcname(ISEL)))then
                   apply=.false.
                 endif
               endif
               
               if(apply)then
-                write(sn,'(a)') SSNAME(icc)
-                lsn10=MIN0(lnblnk(sn),10)
-                lzn10=MIN0(lnblnk(zn),10)
-                write(head,'(3a)') zn(1:lzn10),':',sn(1:lsn10)
+                write(sn,'(a)') SNAME(IVALS(IZ),I)
+C                lsn10=MIN0(lnblnk(sn),10)
+C                lzn10=MIN0(lnblnk(zn),10)
                 WRITE(outs,'(a,1X,F7.2,F6.1,F6.1,1X,A,
-     &            1X,A,1X,A,1X,A)') head,SSNA(icc),SSPAZI(icc),
-     &            SSPELV(icc),SSOTF(icc),SSVFC(icc),SSMLCN(icc),
-     &            SSOTHER(icc,1)
+     &            1X,A,1X,A,1X,A)') sn,SNA(IVALS(IZ),I),
+     &            SPAZI(IVALS(IZ),I),SPELV(IVALS(IZ),I),
+     &            SOTF(IVALS(IZ),I),SVFC(IVALS(IZ),I),
+     &            SMLCN(IVALS(IZ),I),SOTHER(IVALS(IZ),I,1)
                 call edisp(itu,outs)
-                totalarea = totalarea + SSNA(icc)
+                totalarea = totalarea + SNA(IVALS(IZ),I)
               endif
  11         continue
           endif
@@ -1057,9 +1058,8 @@ C If user request jump back and re-display the menu.
 
 C Ask user whether file is in ../doc and if so use fdroot if GTK.
           if(iglib.eq.2)then
-            dok=.true.
-            CALL ASKOK('Is this file in the model ../doc folder?',
-     &        ' ',OK,dok,3)
+            CALL EASKOK(' ','Is file in the model doc folder?',
+     &        OK,3)
             if(OK)then
               call fdroot(lltmp,lpath,fname)
               write(lmodelqa,'(3a)') docpth(1:lnblnk(docpth)),fs,
@@ -1135,8 +1135,8 @@ C then check for spaces in name and change / to \.
           longtfile=' '
           longtfile=longtfiledos
         endif
-        tmode='graph'
-        if(teditor(1:2).eq.'vi')tmode='text'
+        tmode='-'
+        if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
      &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
@@ -1267,7 +1267,6 @@ C Re-read sbem db and then the descriptive file.
 
 C Check if any of the address fields are known.
             if(certifname(1:15).eq.'not yet defined'.and.
-     &         certTel(1:15).eq.'not yet defined'.and.
      &         certaddress(1:15).eq.'not yet defined')then
               continue  ! nothing to write
             else
@@ -1277,29 +1276,17 @@ C Check if any of the address fields are known.
                 write(outs,'(2a)')'Simulationist name         ',
      &            certifname 
                 call edisp(itu,outs)     
-                write(outs,'(2a)')'Simulationist telephone    ',certTel 
-                call edisp(itu,outs)     
                 write(outs,'(2a)')'Simulationist address      ',
      &            certaddress   
                 call edisp(itu,outs)   
-                write(outs,'(2a)')'Simulationist city         ',certcity  
-                call edisp(itu,outs)    
-                write(outs,'(2a)')'Simulationist postcode     ',certPC  
-                call edisp(itu,outs)
                 call edisp(itu,
      &          '------------------------   ---------------')
               else
                 call edisp(itu,' ')
                 write(outs,'(2a)')'Simulationist name: ',certifname 
                 call edisp(itu,outs)     
-                write(outs,'(2a)')'Simulationist telephone: ',certTel 
-                call edisp(itu,outs)     
                 write(outs,'(2a)')'Simulationist address: ',certaddress   
                 call edisp(itu,outs)   
-                write(outs,'(2a)')'Simulationist city: ',certcity  
-                call edisp(itu,outs)    
-                write(outs,'(2a)')'Simulationist postcode: ',certPC  
-                call edisp(itu,outs)
               endif
             endif
             call edisp(itu,'  ')          
@@ -1320,38 +1307,20 @@ C Check if any of the address fields are known.
           else
             write(outs,'(2a)')'Project name: ',pjname(1:lnblnk(pjname))
             call edisp(itu,outs)
-            if(baddress(1:15).eq.'not yet defined'.and.
-     &         bcity(1:15).eq.'not yet defined'.and.
-     &         buildingPC(1:15).eq.'not yet defined')then
+            if(baddress(1:15).eq.'not yet defined')then
               continue  ! nothing to write
             else
               write(outs,'(2a)')'Building address: ',baddress
               call edisp(itu,outs)
-              write(outs,'(2a)')'Building city: ',bcity(1:lnblnk(bcity)) 
-              call edisp(itu,outs)
-              write(outs,'(2a)')'Building Postcode: ',buildingPC  
-              call edisp(itu,outs)    
               write(outs,'(2a)')'Building owner name: ',ownername
-              call edisp(itu,outs)   
-              write(outs,'(2a)')'Building owner telephone: ',ownertel
               call edisp(itu,outs)   
               write(outs,'(2a)')'Building owner address: ',owneraddr 
               call edisp(itu,outs) 
-              write(outs,'(2a)')'Building owner city: ',ownercity 
-              call edisp(itu,outs) 
-              write(outs,'(2a)')'Building owner Postcode: ',ownerPC
-              call edisp(itu,outs)     
               call edisp(itu,' ')
               write(outs,'(2a)')'Simulationist name: ',certifname 
               call edisp(itu,outs)     
-              write(outs,'(2a)')'Simulationist telephone: ',certTel 
-              call edisp(itu,outs)     
               write(outs,'(2a)')'Simulationist address: ',certaddress   
               call edisp(itu,outs)   
-              write(outs,'(2a)')'Simulationist city: ',certcity  
-              call edisp(itu,outs)    
-              write(outs,'(2a)')'Simulationist postcode: ',certPC  
-              call edisp(itu,outs)
             endif
           endif          
         endif
@@ -1431,15 +1400,17 @@ cx          NRGRDT = 4
             itrunc=1
             ipos=1
             do while (itrunc.ne.0)
-              call arlist(ipos,12,eGrdTp,12,'S',outs,loutln,itrunc)
+              call arlist(ipos,12,eGrdTp,12,'S',outs2,loutln,itrunc)
               if(markdown)then
-                WRITE(outs2,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',
-     &            outs(1:lnblnk(outs))
-                call edispxtr(itu,outs2)
+                WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',outs2
+                call edispxtr(itu,outs248)
+cx     &          'Calculated ground temp at 0.5m depth  ')
+cx                call edisp2tr(itu,outs2)
               else
-                WRITE(outs2,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',
-     &            outs(1:lnblnk(outs))
-                call edisp(itu,outs2)
+                WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',outs2
+                call edispxtr(itu,outs248)
+cx                call edisp(itu,'Calculated ground temp at 0.5m depth')
+cx                call edisp(itu,outs2)
               endif
               ipos=itrunc+1
             end do
@@ -1694,7 +1665,7 @@ C the climate file and attempt to print out IPV contents.
      &              LCLIM(1:llt)
                 endif
                 IUF=IFIL+2
-                call scancdblist(IUF,llclmdb,ok,iercl)
+                call scancdblist(IUF,llclmdb,'p',ok,iercl)
                 if(iercl.eq.0)then
                   call listipvdat(itu,'a',ier)
                 else
@@ -2018,8 +1989,7 @@ C Obtain transparent surface index (>0) related to PV module location.
 
             WRITE(LOUTS,1111)ispm,spmlabel(ispm),zname(ispmloc(ispm,1)),
      &        sname(ispmloc(ispm,1),ispmloc(ispm,2)),
-     &        SSMLCN(izstocn(ivals(ispmloc(ispm,1)),
-     &               ispmloc(ispm,2)))(1:20),
+     &        SMLCN(ispmloc(ispm,1),ispmloc(ispm,2))(1:20),
      &        ispmloc(ispm,3),
      &        (merge('Trn','Opq',iTMCidx.gt.0)),nnodat(ispm),
      &        miscinf(1:lnblnk(miscinf))
@@ -2291,14 +2261,16 @@ C Jump if no zones.
           attribok(IVALS(IZ))=.true.
           DO 41 I=1,NZSUR(ivals(iz))
             icc=izstocn(ivals(iz),i)
-            if(SSOTHER(icc,1)(1:4).eq.'UNKN')attribok(IVALS(IZ))=.false.
+            if(SOTHER(ivals(iz),i,1)(1:4).eq.'UNKN')
+     &         attribok(IVALS(IZ))=.false.
 
 C At this point CFC and CFC2 are not counted
-            if(SSMLCN(icc)(1:4).eq.'UNKN')attribok(IVALS(IZ))=.false.
-            if(SSOTF(icc)(1:4).NE.'OPAQ') then
-              TRN=TRN+SSNA(icc)
+            if(SMLCN(ivals(iz),i)(1:4).eq.'UNKN')
+     &        attribok(IVALS(IZ))=.false.
+            if(SOTF(ivals(iz),i)(1:4).NE.'OPAQ') then
+              TRN=TRN+SNA(ivals(iz),i)
             else
-              OPQ=OPQ+SSNA(icc)
+              OPQ=OPQ+SNA(ivals(iz),i)
             endif
    41     CONTINUE
           if(attribok(IVALS(IZ)))then
@@ -2397,7 +2369,7 @@ C Jump if no zones or no zone info requested.
 
 C Check for duplicate surface names in this zone. Report is
 C duplicates are found.
-          write(SN,'(a12)')SSNAME(icc)
+          write(SN,'(a12)')SNAME(izz,ij)
           call snamdup(SN,izz,ij,nameok)
           if(nameok)then
             continue
@@ -2809,9 +2781,12 @@ C Put odd vertex in right column.
             call edisp(itu,
      &' Number of vertices followed by list, name & perimeter length')
           endif
+
+          call getperimeter(izz,sperim)  ! find perimeter of surfaces
+
           DO I = 1,NZSUR(izz)
-            icc=izstocn(izz,i)        ! find connection
-            lsna=lnblnk(SSNAME(icc))  ! get length of surf name
+            icc=izstocn(izz,i)           ! find connection
+            lsna=lnblnk(SNAME(izz,i))    ! get length of surf name
             if(markdown)then
               write(louts,'(124I4)') (JVN(I,J),J=1,NVER(I))
             else
@@ -2824,11 +2799,11 @@ C Put odd vertex in right column.
               if(lnlist.lt.32)lnlist=32
               if(lnlist.gt.32)lnlist=32
               write(louts600,'(i4,4a,f8.3)') NVER(I),' ',
-     &        loutsd(1:lnlist),'   ',SSNAME(icc),SSPERIM(icc)
+     &        loutsd(1:lnlist),'   ',SNAME(izz,i),SPERIM(i)
             else
               write(louts600,'(3a,f8.3,a)') 
-     &        loutsd(1:lnblnk(loutsd)),'   ',SSNAME(icc)(1:lsna),
-     &        SSPERIM(icc),'m perimeter'
+     &        loutsd(1:lnblnk(loutsd)),'   ',SNAME(izz,i)(1:lsna),
+     &        SPERIM(i),'m perimeter'
             endif
             call edisp248(itu,louts600,100)
           enddo  ! of I
@@ -2839,7 +2814,7 @@ C ibridgeshr(connection,edge) is non-zero add to howmanytbedges array.
           if(nbrdg(izz).gt.0)then
             do 971 I = 1,NZSUR(izz)
               icc=izstocn(izz,i)        ! find connection
-              lsna=lnblnk(SSNAME(icc))  ! get length of surf name
+              lsna=lnblnk(SNAME(izz,i))  ! get length of surf name
               do j=1,16
                 howmanytbedges(j)=0
               enddo  ! of j
@@ -2855,7 +2830,7 @@ C ibridgeshr(connection,edge) is non-zero add to howmanytbedges array.
 C If at least one thermal bridge for surface report it. Keep writing
 C into outs248 for each non-zero bridges.
               if(haveedgebrdge)then
-                write(outs248,'(2a)') SSNAME(icc)(1:lsna),' bridges: '
+                write(outs248,'(2a)') SNAME(izz,i)(1:lsna),' bridges: '
                 lk=lnblnk(outs248)+2
                 do k=1,16
                   if(howmanytbedges(k).gt.0)then
@@ -3066,53 +3041,62 @@ C Check for mismatch in surface attributes and boundary conditions.
         bndrysxc=.true.
         DO 1243 IS=1,NZSUR(IVALS(IZ))
           icc=IZSTOCN(IVALS(IZ),is)
-          write(SN,'(a12)')SSNAME(icc)
+          write(SN,'(a12)')SNAME(IVALS(IZ),is)
           lnsn=lnblnk(SN)
-          if(ICT(icc).eq.0.and.SSOTHER(icc,1)(1:5).ne.'EXTER')then
+          if(ICT(icc).eq.0.and.SOTHER(IVALS(IZ),is,1)(1:5).ne.
+     &      'EXTER')then
             bndrysxc=.false.
             write(boundmsg,'(2a)') 'Expecting EXTER for ',SN(1:lnsn)
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.1.and.SSOTHER(icc,1)(1:5).ne.'SIMIL')then
+          if(ICT(icc).eq.1.and.SOTHER(IVALS(IZ),is,1)(1:5).ne.
+     &      'SIMIL')then
             bndrysxc=.false.
             write(boundmsg,'(2a)') 'Expecting SIMILAR for ',SN(1:lnsn)
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.2.and.SSOTHER(icc,1)(1:5).ne.'CONST')then
+          if(ICT(icc).eq.2.and.SOTHER(IVALS(IZ),is,1)(1:5).ne.
+     &      'CONST')then
             bndrysxc=.false.
             write(boundmsg,'(2a)') 'Expecting CONST for ',SN(1:lnsn)
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'CONST')then
+          if(ICT(icc).eq.3.and.SOTHER(IVALS(IZ),is,1)(1:5).eq.
+     &      'CONST')then
             bndrysxc=.false.
             write(boundmsg,'(2a)') 'Expecting OTHER for ',SN(1:lnsn)
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'SIMIL')then
+          if(ICT(icc).eq.3.and.SOTHER(IVALS(IZ),is,1)(1:5).eq.
+     &      'SIMIL')then
             bndrysxc=.false.
             write(boundmsg,'(3a)') 'Expecting OTHER for ',SN(1:lnsn),
      &        ' got SIMIL.'
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'EXTER')then
+          if(ICT(icc).eq.3.and.SOTHER(IVALS(IZ),is,1)(1:5).eq.
+     &      'EXTER')then
             bndrysxc=.false.
             write(boundmsg,'(3a)') 'Expecting OTHER for ',SN(1:lnsn),
      &        ' got EXTER.'
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.3.and.SSOTHER(icc,1)(1:5).eq.'GROUN')then
+          if(ICT(icc).eq.3.and.SOTHER(IVALS(IZ),is,1)(1:5).eq.
+     &      'GROUN')then
             bndrysxc=.false.
             write(boundmsg,'(3a)') 'Expecting OTHER for ',SN(1:lnsn),
      &        ' got GROUND.'
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.4.and.SSOTHER(icc,1)(1:5).ne.'GROUN')then
+          if(ICT(icc).eq.4.and.SOTHER(IVALS(IZ),is,1)(1:5).ne.
+     &      'GROUN')then
             bndrysxc=.false.
             write(boundmsg,'(3a)') 'Expecting GROUND for ',SN(1:lnsn),
      &        ' got something else.'
             call edisp(itu,boundmsg)
           endif
-          if(ICT(icc).eq.5.and.SSOTHER(icc,1)(1:5).ne.'ADIAB')then
+          if(ICT(icc).eq.5.and.SOTHER(IVALS(IZ),is,1)(1:5).ne.
+     &      'ADIAB')then
             bndrysxc=.false.
             write(boundmsg,'(3a)') 'Expecting ADIAB for ',SN(1:lnsn),
      &        ' got something else.'
@@ -3126,24 +3110,26 @@ C While looping check that constructions of partitions are matching.
           else
             showother=.false.
           endif
-          write(SN,'(a12)')SSNAME(icc)
-          if(showother.and.icoth.ne.0.and.ssmlcindex(icc).ne.0)then
-            ii=ssmlcindex(icc)
+          write(SN,'(a12)')SNAME(IVALS(IZ),is)
+          if(showother.and.icoth.ne.0.and.
+     &       smlcindex(IVALS(IZ),is).ne.0)then
+            ii=smlcindex(IVALS(IZ),is)
             if(mlcsymetric(ii)(1:9).EQ.'SYMMETRIC')then
               continue
             elseif(mlcsymetric(ii).EQ.'NONSYMMETRIC')then
 
 C If the current construction is nonsymmetric then it should not be
 C used for a partition (and db does not have a linked MLC - inform the user.
-              lnsmlcn=lnblnk(SSMLCN(icc))
+              lnsmlcn=lnblnk(SMLCN(IVALS(IZ),is))
               write(outs,'(5a)') 'Surface ',SN(1:lnblnk(SN)),
      &          ' has a nonsymmetric construction ',
-     &          SSMLCN(icc)(1:lnsmlcn),'.'
+     &          SMLCN(IVALS(IZ),is)(1:lnsmlcn),'.'
               call edisp(itu,outs)
-              lnsmlcn=lnblnk(SSMLCN(icoth))
+              lnsmlcn=lnblnk(SMLCN(IC2(icc),IE2(icc)))
               write(outs,'(5a)') 'It faces ',
-     &          SSNAME(icoth),' which is composed of ',
-     &          SSMLCN(icoth)(1:lnsmlcn),' (which may not match).'
+     &          SNAME(IC2(icc),IE2(icc)),' which is composed of ',
+     &          SMLCN(IC2(icc),IE2(icc))(1:lnsmlcn),
+     &          ' (which may not match).'
               call edisp(itu,outs)
             else
               continue
@@ -3456,7 +3442,7 @@ C not browsing.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       
       integer ncomp,ncon
@@ -3486,7 +3472,7 @@ C Images.
       CHARACTER CTLDOC*248,LCTLF*72
       character ZN*12
       character ipvaction*3  ! to instruct it to read from external IPV file
-      logical ok,dok,XST,anyish,unixok
+      logical ok,XST,anyish,unixok
       logical newgeo  ! to use for testing if new/old geometry file.
       logical allnew  ! if true then all zones are v1.1 or newer.
       logical forceupgrade  ! if any other zone is version 1.1
@@ -3578,7 +3564,7 @@ C for this to happen.
             write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
      &        LCLIM(1:llt)
           endif
-          call scancdblist(IUF,llclmdb,ok,iercl)
+          call scancdblist(IUF,llclmdb,'p',ok,iercl)
           if(iercl.eq.0)then
             ihaveseason=1
             allnew=.false.
@@ -3604,12 +3590,11 @@ C igupgrade was set to 2 in preferences also force an upgrade.
       endif
 
       if(forceupgrade)then
-        dok=.true.
         helptopic='model_upgrade_older'
         call gethelptext(helpinsub,helptopic,nbhelp)
 
-        call askok('The current model uses an out-of-date format for',
-     &    'some geometry or obstruction files. Update this?',ok,dok,
+        call easkok('Model uses an out-of-date format for some files!',
+     &    'Update to latest format?',ok,
      &     nbhelp)
         if(ok)then
 
@@ -3633,10 +3618,10 @@ C see if there are shading and obstruction files.
 
 C At this point CFC and CFC2 surfaces are not included as
 C insolation sources (?).
-                    if(SSOTHER(ioc,1)(1:5).eq.'EXTER'.and.
-     &                 SSOTF(ioc)(1:4).ne.'OPAQ'.and.
-     &                 SSOTF(ioc)(1:4).ne.'CFC '.and.
-     &                 SSOTF(ioc)(1:4).ne.'CFC2')then
+                    if(SOTHER(iz,i,1)(1:5).eq.'EXTER'.and.
+     &                 SOTF(iz,i)(1:4).ne.'OPAQ'.and.
+     &                 SOTF(iz,i)(1:4).ne.'CFC '.and.
+     &                 SOTF(iz,i)(1:4).ne.'CFC2')then
                       nsurfinso(iz)=nsurfinso(iz)+1
                       isurfinso(iz,nsurfinso(iz))=I
                     endif
@@ -3652,14 +3637,14 @@ C insolation sources (?).
 
 C At this point CFC and CFC2 surfaces are not included as
 C insolation sources (?).
-                    if(SSOTHER(ioc,1)(1:5).eq.'EXTER'.and.
-     &                 SSOTF(ioc)(1:4).ne.'OPAQ'.and.
-     &                 SSOTF(ioc)(1:4).ne.'CFC '.and.
-     &                 SSOTF(ioc)(1:4).ne.'CFC2')then
+                    if(SOTHER(iz,i,1)(1:5).eq.'EXTER'.and.
+     &                 SOTF(iz,i)(1:4).ne.'OPAQ'.and.
+     &                 SOTF(iz,i)(1:4).ne.'CFC '.and.
+     &                 SOTF(iz,i)(1:4).ne.'CFC2')then
                       nsurfinso(iz)=nsurfinso(iz)+1
                       isurfinso(iz,nsurfinso(iz))=I
                     endif
-                    if(SSOTHER(ioc,1)(1:5).eq.'EXTER')then
+                    if(SOTHER(iz,i,1)(1:5).eq.'EXTER')then
                       nsurfcalc(iz)=nsurfcalc(iz)+1
                       lstsfcalc(iz,nsurfcalc(iz))=I
                     endif
@@ -3705,10 +3690,10 @@ C Otherwise assume all applicable for shading and insolation.
 
 C At this point CFC and CFC2 surfaces are not included as
 C insolation sources (?).
-                  if(SSOTHER(ioc,1)(1:5).eq.'EXTER'.and.
-     &               SSOTF(ioc)(1:4).ne.'OPAQ'.and.
-     &               SSOTF(ioc)(1:4).ne.'CFC '.and.
-     &               SSOTF(ioc)(1:4).ne.'CFC2')then
+                  if(SOTHER(iz,i,1)(1:5).eq.'EXTER'.and.
+     &               SOTF(iz,i)(1:4).ne.'OPAQ'.and.
+     &               SOTF(iz,i)(1:4).ne.'CFC '.and.
+     &               SOTF(iz,i)(1:4).ne.'CFC2')then
                     nsurfinso(iz)=nsurfinso(iz)+1
                     isurfinso(iz,nsurfinso(iz))=I
                   endif
@@ -3723,14 +3708,14 @@ C insolation sources (?).
 
 C At this point CFC and CFC2 surfaces are not included as
 C insolation sources (?).
-                  if(SSOTHER(ioc,1)(1:5).eq.'EXTER'.and.
-     &               SSOTF(ioc)(1:4).ne.'OPAQ'.and.
-     &               SSOTF(ioc)(1:4).ne.'CFC '.and.
-     &               SSOTF(ioc)(1:4).ne.'CFC2')then
+                  if(SOTHER(iz,i,1)(1:5).eq.'EXTER'.and.
+     &               SOTF(iz,i)(1:4).ne.'OPAQ'.and.
+     &               SOTF(iz,i)(1:4).ne.'CFC '.and.
+     &               SOTF(iz,i)(1:4).ne.'CFC2')then
                     nsurfinso(iz)=nsurfinso(iz)+1
                     isurfinso(iz,nsurfinso(iz))=I
                   endif
-                  if(SSOTHER(ioc,1)(1:5).eq.'EXTER')then
+                  if(SOTHER(iz,i,1)(1:5).eq.'EXTER')then
                     nsurfcalc(iz)=nsurfcalc(iz)+1
                     lstsfcalc(iz,nsurfcalc(iz))=I
                   endif
@@ -3763,12 +3748,11 @@ C << to be done >>
 C Check for the version of the zone operations file and if it is
 C an older format write to a newer format.
       if(forceoper)then
-        dok=.true.
         helptopic='model_upgrade_older'
         call gethelptext(helpinsub,helptopic,nbhelp)
 
-        call askok('The current model uses an out-of-date format for',
-     &    'some zone operation files. Update this?',ok,dok,
+        call easkok('Model uses an out-of-date format for some files!',
+     &    'Update to latest format?',ok,
      &     nbhelp)
         if(ok)then
           call edisp(iuout,
@@ -3841,11 +3825,9 @@ C Save the file, sorting the periods if necessary.
 C Ask if zone construction files should also be refreshed. Note
 C EDCON does nothing if files do not exist.
       QUIET=.FALSE.
-      dok=.true.
       helptopic='model_upgrade_older'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      call askok('Also refresh zone construction files from common',
-     &  'materials and construction attributes?',QUIET,dok,nbhelp)
+      call easkok(' ','Refresh zone construction files?',QUIET,nbhelp)
       if(QUIET)then
         DO IZ=1,NCOMP
           CALL EDCON(ITRC,ITRU,IZ,QUIET,IER)
@@ -3872,7 +3854,7 @@ C file and then include seasonal tokens in the model.
             write(llclmdb,'(3a)') standardclmpath(1:lndbp),fs,
      &        LCLIM(1:llt)
           endif
-          call scancdblist(IUF,llclmdb,ok,iercl)
+          call scancdblist(IUF,llclmdb,'p',ok,iercl)
           if(iercl.eq.0)then
             ihaveseason=1
             CALL EMKCFG('-',IER)
@@ -3899,11 +3881,10 @@ C and if there is a control file scan it and write it back out again.
 
 C Check to see if version of configuration file requires updating.
       if(icfgv.lt.4)then
-        dok=.true.
         helptopic='model_upgrade_v3'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call askok('The current model uses an out-of-date format for',
-     &    'the configuration file. Update this?',ok,dok,nbhelp)
+        call easkok('Configuration file has out-of-date format!',
+     &     'Update to latest format?',ok,nbhelp)
         if(ok)then
 
 C Check if IPV file known and fill common blocks before writing out to
@@ -3980,8 +3961,8 @@ C If there are no shading files, don't bother trying to update.
       if(anyish)then
         helptopic='shading_upgrade'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABC(' Update of shading options:',' ',
-     &    'recalculate (silent)','recalculate (interactive)','continue',
+        CALL EASKABC(' ','Shading update options:',
+     &    'recalculate (silent)','recalculate (interactive)','cancel',
      &     IRT,nbhelp)
       else
         IRT=3
@@ -4046,6 +4027,8 @@ C Parameters passed in
 C bridgelen was calculated in subroutine suredgeadj
       real bridgelen ! Length of potential thermal bridges in each zone.
       common/gbridge/bridgelen(MCOM,10)
+
+      real mlcthick
 
       integer IUF   ! file unit
       character*72 LTMP
@@ -4123,94 +4106,84 @@ C Check the U value for each surface.
             UVU = 0.0
             UVD = 0.0
 
-C << possible place to use ssmlcindex >>
-
-            do 511 ii=1,nmlc
-              lnssmlc=lnblnk(SSMLCN(icc))
-              if(SSMLCN(icc)(1:lnssmlc).eq.
-     &           mlcname(ii)(1:lnmlcname(ii)))then
+C Use smlcindex to find current MLC and its thickness and recover U values.
+            isel=smlcindex(izz,ij)     ! identify the MLC index
+            if(isel.gt.0)then
+              mlcthick=THKMLC(isel)    ! current surface thickness
+              call etmldbu(0,itu,isel,UVH,UVU,UVD,UVI,UVG)
+            else
+              continue
+            endif
 
 C Recover the ISO 6946 U values for horizontal, upwards and downwards
 C flow as well as internal partition (horizontal 0.13 both sides).
 C Note: ISO 6946 advises use of horizontal hc value for surfaces where
 C heat flow direction is unknown. This assumption is used in
 C the U and UA reporting below.
-                call etmldbu(0,itu,ii,UVH,UVU,UVD,UVI,UVG)
-
-C Debug.
-C                write(6,*) mlcname(ii)(1:lnmlcname(ii)),'ii UVH UVU UVD UVI UVG',
-C     &            ii,UVH,UVU,UVD,UVI,UVG
-
-              else
-                continue
-              endif
-  511       continue
 
             if(IE.eq.0)then
 
 C For surfaces connected to the outside.
-              exposed(IZZ) = exposed(IZZ) + SSNA(icc)
-              xexposed = xexposed + SSNA(icc)
-              if(SSOTF(icc)(1:4).eq.'OPAQ')then
-                if(SSVFC(icc)(1:4).eq.'VERT')then
+              exposed(IZZ) = exposed(IZZ) + SNA(izz,ij)
+              xexposed = xexposed + SNA(izz,ij)
+              if(SOTF(izz,ij)(1:4).eq.'OPAQ')then
+                if(SVFC(izz,ij)(1:4).eq.'VERT')then
 
 C For vertical walls assume horizontal hc coef.
-                  areawall(IZZ) = areawall(IZZ) + SSNA(icc)
-                  uavwall(IZZ) = uavwall(IZZ) + (SSNA(icc) * UVH)
-                  vexposed(IZZ) = vexposed(IZZ) + SSNA(icc)
-                  xvexposed = xvexposed + SSNA(icc)
-                  xareawall = xareawall + SSNA(icc)
-                  xuavwall = xuavwall + (SSNA(icc) * UVH)
-                  if(ssthick(icc).gt.xvthk) xvthk = ssthick(icc) ! keep track of thickest
-                elseif(SSVFC(icc)(1:4).eq.'SLOP')then
+                  areawall(IZZ) = areawall(IZZ) + SNA(izz,ij)
+                  uavwall(IZZ) = uavwall(IZZ) + (SNA(izz,ij)*UVH)
+                  vexposed(IZZ) = vexposed(IZZ) + SNA(izz,ij)
+                  xvexposed = xvexposed + SNA(izz,ij)
+                  xareawall = xareawall + SNA(izz,ij)
+                  xuavwall = xuavwall + (SNA(izz,ij) * UVH)
+                  if(mlcthick.gt.xvthk) xvthk = mlcthick ! keep track of thickest
+                elseif(SVFC(izz,ij)(1:4).eq.'SLOP')then
 
 C For sloped surfaces assume upward hc coef.
-                  areaslproof(IZZ) = areaslproof(IZZ) + SSNA(icc)
-                  uavslproof(IZZ) = uavslproof(IZZ) + (SSNA(icc) * UVU)
-                  xareaslproof = xareaslproof + SSNA(icc)
-                  xuavslproof = xuavslproof + (SSNA(icc) * UVU)
-                elseif(SSVFC(icc)(1:4).eq.'CEIL')then
+                  areaslproof(IZZ) = areaslproof(IZZ) + SNA(izz,ij)
+                  uavslproof(IZZ) = uavslproof(IZZ) + (SNA(izz,ij)*UVU)
+                  xareaslproof = xareaslproof + SNA(izz,ij)
+                  xuavslproof = xuavslproof + (SNA(izz,ij)*UVU)
+                elseif(SVFC(izz,ij)(1:4).eq.'CEIL')then
 
 C For ceilings assume upward hc coef.
-                  areafltroof(IZZ) = areafltroof(IZZ) + SSNA(icc)
-                  uavfltroof(IZZ) = uavfltroof(IZZ) + (SSNA(icc) * UVU)
-                  xareafltroof = xareafltroof + SSNA(icc)
-                  xuavfltroof = xuavfltroof + (SSNA(icc) * UVU)
+                  areafltroof(IZZ) = areafltroof(IZZ) + SNA(izz,ij)
+                  uavfltroof(IZZ) = uavfltroof(IZZ) + (SNA(izz,ij)*UVU)
+                  xareafltroof = xareafltroof + SNA(izz,ij)
+                  xuavfltroof = xuavfltroof + (SNA(izz,ij) * UVU)
                 else
 
 C For floors facing outside assume downward hc coef.
-                  areawall(IZZ) = areawall(IZZ) + SSNA(icc)
-                  uavwall(IZZ) = uavwall(IZZ) + (SSNA(icc) * UVD)
-                  xareawall = xareawall + SSNA(icc)
-                  xuavwall = xuavwall + (SSNA(icc) * UVD)
+                  areawall(IZZ) = areawall(IZZ) + SNA(izz,ij)
+                  uavwall(IZZ) = uavwall(IZZ) + (SNA(izz,ij)*UVD)
+                  xareawall = xareawall + SNA(izz,ij)
+                  xuavwall = xuavwall + (SNA(izz,ij) * UVD)
                 endif
-              elseif(SSOTF(icc)(1:4).ne.'OPAQ') then !.and.
-cx     &               SSOTF(icc)(1:4).ne.'CFC '.and.
-cx     &               SSOTF(icc)(1:4).ne.'CFC2')then
-                if(SSVFC(icc)(1:4).eq.'CEIL'.or.
-     &             SSVFC(icc)(1:4).eq.'SLOP')then
+              elseif(SOTF(izz,ij)(1:4).ne.'OPAQ') then !.and.
+                if(SVFC(izz,ij)(1:4).eq.'CEIL'.or.
+     &             SVFC(izz,ij)(1:4).eq.'SLOP')then
 
 C Consider glazing on ceiling or sloped to be a skylight.
-                  areaskylt(IZZ) = areaskylt(IZZ) + SSNA(icc)
-                  uavgsky(IZZ) = uavgsky(IZZ) + (SSNA(icc) * UVU) 
-                  xareaskylt = xareaskylt + SSNA(icc)
-                  xuavgsky = xuavgsky + (SSNA(icc) * UVU)
-                elseif(SSVFC(icc)(1:4).eq.'VERT')then
+                  areaskylt(IZZ) = areaskylt(IZZ) + SNA(izz,ij)
+                  uavgsky(IZZ) = uavgsky(IZZ) + (SNA(izz,ij)*UVU) 
+                  xareaskylt = xareaskylt + SNA(izz,ij)
+                  xuavgsky = xuavgsky + (SNA(izz,ij) * UVU)
+                elseif(SVFC(izz,ij)(1:4).eq.'VERT')then
 
 C Consider glazing on walls to be a part of facade.
-                  areatran(IZZ) = areatran(IZZ) + SSNA(icc)
-                  uavgtran(IZZ) = uavgtran(IZZ) + (SSNA(icc) * UVH)
-                  vexposed(IZZ) = vexposed(IZZ) + SSNA(icc)
-                  xvexposed = xvexposed + SSNA(icc)
-                  xareatran = xareatran + SSNA(icc)
-                  xuavgtran = xuavgtran + (SSNA(icc) * UVH)
+                  areatran(IZZ) = areatran(IZZ) + SNA(izz,ij)
+                  uavgtran(IZZ) = uavgtran(IZZ) + (SNA(izz,ij)*UVH)
+                  vexposed(IZZ) = vexposed(IZZ) + SNA(izz,ij)
+                  xvexposed = xvexposed + SNA(izz,ij)
+                  xareatran = xareatran + SNA(izz,ij)
+                  xuavgtran = xuavgtran + (SNA(izz,ij) * UVH)
                 else
-                  areatran(IZZ) = areatran(IZZ) + SSNA(icc)
-                  uavgtran(IZZ) = uavgtran(IZZ) + (SSNA(icc) * UVD)
-                  vexposed(IZZ) = vexposed(IZZ) + SSNA(icc)
-                  xvexposed = xvexposed + SSNA(icc)
-                  xareatran = xareatran + SSNA(icc)
-                  xuavgtran = xuavgtran + (SSNA(icc) * UVD)
+                  areatran(IZZ) = areatran(IZZ) + SNA(izz,ij)
+                  uavgtran(IZZ) = uavgtran(IZZ) + (SNA(izz,ij)*UVD)
+                  vexposed(IZZ) = vexposed(IZZ) + SNA(izz,ij)
+                  xvexposed = xvexposed + SNA(izz,ij)
+                  xareatran = xareatran + SNA(izz,ij)
+                  xuavgtran = xuavgtran + (SNA(izz,ij) * UVD)
                 endif
               else
                 continue
@@ -4218,21 +4191,21 @@ C Consider glazing on walls to be a part of facade.
             elseif(IE.eq.3)then
 
 C Internal partitions floors ceilings.
-              if(SSOTF(icc)(1:4).eq.'OPAQ')then
-                areaintopaq(IZZ) = areaintopaq(IZZ)+SSNA(icc)
-              elseif(SSOTF(icc)(1:4).ne.'OPAQ'.and.
-     &               SSOTF(icc)(1:4).ne.'CFC '.and.
-     &               SSOTF(icc)(1:4).ne.'CFC2')then
-                areainttran(IZZ) = areainttran(IZZ)+SSNA(icc)
+              if(SOTF(izz,ij)(1:4).eq.'OPAQ')then
+                areaintopaq(IZZ) = areaintopaq(IZZ)+SNA(izz,ij)
+              elseif(SOTF(izz,ij)(1:4).ne.'OPAQ'.and.
+     &               SOTF(izz,ij)(1:4).ne.'CFC '.and.
+     &               SOTF(izz,ij)(1:4).ne.'CFC2')then
+                areainttran(IZZ) = areainttran(IZZ)+SNA(izz,ij)
               endif
             elseif(IE.eq.4)then
 
 C For surfaces connected to the ground.
-              xtoground = xtoground + SSNA(icc)   ! increment area to ground
-              areaground(IZZ) = areaground(IZZ) + SSNA(icc) ! increment area to ground
-              xuavground = xuavground + (SSNA(icc) * UVG)
-              uavground(IZZ) = uavground(IZZ) + (SSNA(icc) * UVG)
-              if(ssthick(icc).gt.xfndthkg) xfndthkg = ssthick(icc)
+              xtoground = xtoground + SNA(izz,ij)   ! increment area to ground
+              areaground(IZZ) = areaground(IZZ) + SNA(izz,ij) ! increment area to ground
+              xuavground = xuavground + (SNA(izz,ij) * UVG)
+              uavground(IZZ) = uavground(IZZ) + (SNA(izz,ij) * UVG)
+              if(mlcthick.gt.xfndthkg) xfndthkg = mlcthick
             else
               continue
             endif

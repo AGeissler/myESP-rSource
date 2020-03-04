@@ -53,14 +53,15 @@ C by invoking appropriate control routine (PCL??) for each active plant
 C control loop to establish CDATA for current time-step
 C
       SUBROUTINE CONTRL(iterp)
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/Pctime/TIMSEC
       COMMON/CTLACTN/RINTGRL(MCF,2),DERIV(MCF)
@@ -118,6 +119,8 @@ C confirm valid period is consistent with IDAY (legacy)
         WRITE(outs,'(9x,a,I4)') 'no valid day type for year-day ',IDAY
         call edisp(iuout,outs)
         call edisp(iuout,' PLTCTRL: cannot locate appropriate day type')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -130,6 +133,8 @@ C Check number of periods in each day and the start and finish times
      &     ' PLTCTRL: plant control loop ',ICFP,', day type ',IDTYPP
           call edisp(iuout,outs)
           call edisp(iuout,' PLTCTRL: no day-periods defined')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP
@@ -157,6 +162,8 @@ C integral and derivative action variables to zero.
       endif
    22 CONTINUE
       call edisp(iuout,' CONTRL: cannot locate appropriate day-period')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -244,6 +251,8 @@ C New controllers inserted here!
       ELSE
         call edisp(iuout,
      &    ' CONTRL: invalid plant control law has been referenced')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -266,15 +275,17 @@ C actuated plant component (IPCMP), and number of this plant
 C component type's control variable (IPCVR)
 
       SUBROUTINE CLVAR(SVCTL,IPCMP,IPCVR)
+
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/CLIMIP/QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
 
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
@@ -307,6 +318,8 @@ C Locate the actuated plant component and node therein
          call edisp(iuout,outs)
          call edisp(iuout,
      &    ' CLVAR: not yet active actuator location referenced')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -337,6 +350,8 @@ C only IPS1=-1,-5, or -6 sensor allows a signal other than temperature
      &             .AND.ICLCTP.NE.41.AND.ICLCTP.NE.14))then
          call edisp(iuout,
      &    ' CLVAR: invalid sensor for plant loop controller type ')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -383,6 +398,8 @@ C                                   ISV=21   indicates moist air
               call edisp(iuout,outs)
               call edisp(iuout,
      &          ' CLVAR: invalid SSV for plant controller type ')
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epwait
               call epagend
               STOP
@@ -394,6 +411,8 @@ C Controller type 4, 5, 14 or 20: senses 1th phase mass flow rate (kg/s)
             IF(ISV(IPS2,IPS3).LT.10)then
               call edisp(iuout,
      &          ' CLVAR: invalid SSV for plant controller type ')
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epwait
               call epagend
               STOP
@@ -406,6 +425,8 @@ C Controller type 6, 7, 15 or 21: senses 2nd phase mass flow rate (kg/s)
             IF(ISV(IPS2,IPS3).LT.21)then
               call edisp(iuout,
      &          ' CLVAR: invalid SSV for plant controller type ')
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epwait
               call epagend
               STOP
@@ -420,7 +441,6 @@ C Controller type 8, 9, 16 or 22: senses some additional plant output
 C Controller type 10, 11, 17 or 23: senses relative humidity (%).
          ELSE IF(ICLCTP.EQ.10.OR.ICLCTP.EQ.11.OR.ICLCTP.EQ.17.or.
      &           iclctp.eq.23) THEN
-            PATMOS=1013.25
             call eclose(CSVF(IN,2),0.00,0.01,close)
             if(close)then
               SVCTL=0.0   ! trap for zero denominator
@@ -433,6 +453,8 @@ C Multisensor loop controller - do nothing here
             CONTINUE
          ELSE
             call edisp(iuout,' CLVAR: invalid plant controller type ')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP
@@ -475,6 +497,8 @@ C Sensor measures outside condition.
             call edisp(iuout,outs)
             call edisp(iuout,
      &          ' CLVAR: plant control sensor not yet active ')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP
@@ -492,6 +516,8 @@ C Sensor values are provided by a function generator.
 
       ELSE
          call edisp(iuout,' CLVAR: illegal plant-side sensor rfrncd ')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -526,15 +552,17 @@ C correspondence with prevailing controller type; and
 C determines sensed condition SVCTLM(?,?).
 
       SUBROUTINE CLMVAR
+
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/CLIMIP/QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
 
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
@@ -571,6 +599,8 @@ C only IPMS1=-1 sensor allows a signal other than temperature
            call edisp(iuout,
      &      ' CLMVAR: invalid auxl`y sensor for plant loop controller 
      &     type ')
+           close(ieout)
+           CALL ERPFREE(ieout,ISTAT)
            call epwait
            call epagend
           STOP
@@ -618,6 +648,8 @@ C                                   ISV=21   indicates moist air
                 call edisp(iuout,outs)
                 call edisp(iuout,
      &            ' CLMVAR: invalid SSV for plant controller type ')
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 call epwait
                 call epagend
                 STOP
@@ -629,6 +661,8 @@ C Controller type 4, 5, 14 or 20: senses 1th phase mass flow rate (kg/s)
               IF(ISV(IPMS2,IPMS3).LT.10)then
                 call edisp(iuout,
      &            ' CLMVAR: invalid SSV for plant controller type ')
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 call epwait
                 call epagend
                 STOP
@@ -641,6 +675,8 @@ C Controller type 6, 7, 15 or 21: senses 2nd phase mass flow rate (kg/s)
               IF(ISV(IPMS2,IPMS3).LT.21)then
                 call edisp(iuout,
      &            ' CLMVAR: invalid SSV for plant controller type ')
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 call epwait
                 call epagend
                 STOP
@@ -655,12 +691,13 @@ C Controller type 8, 9, 16 or 22: senses some additional plant output
 C Controller type 10, 11, 17 or 23: senses relative humidity (%).
            ELSE IF(ICLCTP.EQ.10.OR.ICLCTP.EQ.11.OR.ICLCTP.EQ.17.or.
      &             iclctp.eq.23) THEN
-              PATMOS=1013.25
               SVCTLM(ICFP,J)=
      &                    PCRH2(CSVF(IN,1),CSVF(IN,3)/CSVF(IN,2),PATMOS)
 
            ELSE
               call edisp(iuout,' CLMVAR: invalid plant controller type')
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epwait
               call epagend
               STOP
@@ -694,6 +731,8 @@ C Sensor measures outside condition.
               call edisp(iuout,outs)
               call edisp(iuout,
      &            ' CLMVAR: plant control sensor not yet active ')
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epwait
               call epagend
               STOP
@@ -709,6 +748,8 @@ C Sensor values are provided by a function generator.
       ELSE IF(IPMS1.EQ.-6) THEN
            call edisp(iuout,' CLMVAR: -6 type AUXILIARY sensor
      &          not available with this version.')
+           close(ieout)
+           CALL ERPFREE(ieout,ISTAT)
            call epwait
            call epagend
            STOP
@@ -716,9 +757,11 @@ C Sensor values are provided by a function generator.
         ELSE
            call edisp(iuout,' CLMVAR: illegal plant-side auxiliary
      &          sensor referenced ')
-            call epwait
-            call epagend
-            STOP
+           close(ieout)
+           CALL ERPFREE(ieout,ISTAT)
+           call epwait
+           call epagend
+           STOP
         END IF
 10    CONTINUE
 
@@ -741,6 +784,7 @@ C auxiliary sensor function in the case of
 C multi-sensor control.
 
       SUBROUTINE CLAXSN(IAUXFN,SVCTLX)
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
@@ -748,7 +792,7 @@ C multi-sensor control.
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
 
@@ -812,9 +856,9 @@ C ******************** PCBDAT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTCTR/NSINCP,NSNCPR
        
       COMMON/FILEP/IFIL
@@ -886,11 +930,12 @@ C ******************** CLFNGR ********************
 C CLFNGR is a (user-defined) function generator.
 
       SUBROUTINE CLFNGR(IFNCT,SVCTL)
+
 #include "building.h"
 #include "control.h"
 
       COMMON/PTIME/PTIMEP,PTIMEF
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
@@ -1158,12 +1203,13 @@ C CLVARN imposes non-ideal sensor characteristics on
 C the sensed variable returned from CFVAR routine.
 
       SUBROUTINE CLVARN(SVCT,SVCTLN)
+
 #include "building.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
       COMMON/Pctime/TIMSEC
 
@@ -1257,13 +1303,14 @@ C CTLROP imposes non-ideal actuator characteristics on
 C the controller output sent from the calling routine.
 
       SUBROUTINE CTLROP
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
 
       common/senact/realsn(MNONID,3,7),realac(MNONID,5,7),svctlp,
@@ -1393,6 +1440,7 @@ C ******************** CLACDL ********************
 C CLACDL handles actuator delay.
 
       SUBROUTINE CLACDL(IPCMPD,IPCVRD,CDLAY1,CDLAY2,ILOOPN,LAG)
+
 #include "building.h"
 #include "plant.h"
 #include "control.h"
@@ -1400,7 +1448,7 @@ C CLACDL handles actuator delay.
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PSTCTR/NSINCP,NSNCPR 
 
@@ -1472,6 +1520,7 @@ C ******************** CLSNDL ********************
 C CLSNDL handles sensor delay.
 
       SUBROUTINE CLSNDL(LAG,SV1,SV2,ILOOP)
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
@@ -1479,7 +1528,7 @@ C CLSNDL handles sensor delay.
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PSTCTR/NSINCP,NSNCPR 
 
@@ -1542,6 +1591,7 @@ C PCL00 forces a plant control loop actuator to the OFF state
 C by setting all plant component control variables to zero
 
       SUBROUTINE PCL00
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
@@ -1549,7 +1599,7 @@ C by setting all plant component control variables to zero
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
@@ -1606,15 +1656,16 @@ C    or type 10: senses relative humidity
 
 
       SUBROUTINE PCL01(iterp)
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
 
       COMMON/PSTCTR/NSINCP,NSNCPR   
@@ -1662,6 +1713,8 @@ C Fatal error tests
      &   ICLCTP.NE.40)then
          call edisp(iuout,
      &    ' PCL01: fatal error on controller type control law ')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1671,6 +1724,8 @@ C Fatal error tests
      &   INT(PMISCD(ICFP,IDTYPP,IPERP,2)).LT.-5.OR.
      &   INT(PMISCD(ICFP,IDTYPP,IPERP,2)).EQ.0)then
          call edisp(iuout,' PCL01: fatal error on PID algorithm type.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1681,6 +1736,8 @@ C Fatal error tests
      &   INT(PMISCD(ICFP,IDTYPP,IPERP,1)).LT.7)then
          call edisp(iuout,
      &     ' PCL01: fatal error on number of control data items.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1692,6 +1749,8 @@ C Fatal error tests
      &   INT(PMISCD(ICFP,IDTYPP,IPERP,1)).NE.14)then
          call edisp(iuout,
      &     ' PCL01: fatal error on number of control data items.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1703,6 +1762,8 @@ C Fatal error tests
      &   INT(PMISCD(ICFP,IDTYPP,IPERP,1)).NE.15)then
          call edisp(iuout,
      &     ' PCL01: fatal error on number of control data items.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1809,6 +1870,8 @@ C Test for 'realistic' values
 
       IF(SGU.LT.SGL)then
          call edisp(iuout,' PCL01: fatal error on signal set point(s).')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2106,15 +2169,16 @@ C                 or type  9: senses additional plant output
 C                 or type 11: senses relative humidity.
 
       SUBROUTINE PCL02(iterp)
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
 
       COMMON/PSTCTR/NSINCP,NSNCPR   
@@ -2158,6 +2222,8 @@ C Fatal error tests
      &   ICLCTP.NE.40)then
         call edisp(iuout,
      &     ' PCL02: fatal error on controller type control law ')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -2167,6 +2233,8 @@ C Fatal error tests
      &   INT(PMISCD(ICFP,IDTYPP,IPERP,2)).LT.-5.OR.
      &   INT(PMISCD(ICFP,IDTYPP,IPERP,2)).EQ.0)then
         call edisp(iuout,' PCL02: fatal error on PID algorithm type ')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -2177,6 +2245,8 @@ C Fatal error tests
      &   INT(PMISCD(ICFP,IDTYPP,IPERP,1)).LT.7)then
         call edisp(iuout,
      &    ' PCL02: fatal error on number of control data items ')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -2188,6 +2258,8 @@ C Fatal error tests
      &   INT(PMISCD(ICFP,IDTYPP,IPERP,1)).NE.14)then
          call edisp(iuout,
      &     ' PCL02: fatal error on number of control data items.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2199,6 +2271,8 @@ C Fatal error tests
      &   INT(PMISCD(ICFP,IDTYPP,IPERP,1)).NE.15)then
          call edisp(iuout,
      &     ' PCL02: fatal error on number of control data items.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2292,6 +2366,8 @@ C Test for 'realistic' values
       IF(SGU.LT.SGL)then
         call edisp(iuout,
      &    ' PCL02: fatal error on signal set point(s) ')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -2547,15 +2623,16 @@ C                   or type 16: senses additional plant output
 C                   or type 17: senses relative humidity
 
       SUBROUTINE PCL03
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
 
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
@@ -2576,6 +2653,8 @@ C Fatal error tests
       IF(INT(PMISCD(ICFP,IDTYPP,IPERP,1)).NE.5)then
         call edisp(iuout,
      &    ' PCL03: fatal error on number of control data items.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -2586,6 +2665,8 @@ C Fatal error tests
      &   ICLCTP.NE.40)then
          call edisp(iuout,
      &     ' PCL03: fatal error on controller type control law.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2675,15 +2756,16 @@ C This controller is suitable for plant controllers acting on flux
 C or on a variable expecting some numerical value
 
       SUBROUTINE PCL04
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
 
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
@@ -2704,6 +2786,8 @@ C Fatal error tests
       IF(INT(PMISCD(ICFP,IDTYPP,IPERP,1)).NE.6)then
         call edisp(iuout,
      &    ' PCL04: fatal error on number of control data items')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -2716,6 +2800,8 @@ C Fatal error tests
      &   ICLCTP.NE.16.AND.ICLCTP.NE.17.AND.ICLCTP.NE.40)then
          call edisp(iuout,
      &     ' PCL04: fatal error on controller type control law.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2793,15 +2879,16 @@ C                   or type 23: senses relative humidity
 C                   or type 40: senses numerical value.
 
       subroutine pcl05
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/ptime/ptimep,ptimef
 
       common/pclsol/icfp,idtypp,iperp
@@ -2836,6 +2923,8 @@ c Fatal error tests
       if(int(pmiscd(icfp,idtypp,iperp,1)).ne.6)then
         call edisp(iuout,
      &    ' pcl05: fatal error on number of control data items.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -2846,6 +2935,8 @@ c Fatal error tests
      &  iclctp.ne.40)then
          call edisp(iuout,
      &     ' pcl05: fatal error on controller type control law.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2887,6 +2978,8 @@ c is zero, calculate sum of mass diversion ratios.
 c Test for 'realistic' values.
       if(sgu.lt.sgl)then
          call edisp(iuout, ' pcl05: fatal error on signal set point.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2951,6 +3044,7 @@ C this controller is exactly equal to the
 C controller's input sensor value.
 
       SUBROUTINE PCL06
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
@@ -2958,7 +3052,7 @@ C controller's input sensor value.
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
@@ -3007,15 +3101,16 @@ C OFF state by setting all plant component control variables
 C to zero.
 
       SUBROUTINE PCL07
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PSTCTR/NSINCP,NSNCPR
 
@@ -3045,6 +3140,8 @@ C Fatal error test.
       IF(INT(PMISCD(ICFP,IDTYPP,IPERP,1)).NE.3)THEN
          CALL EDISP(iuout,
      &    ' PCL07: fatal error -> no. of misc. data items')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          CALL EPWAIT
          CALL EPAGEND
          STOP
@@ -3121,16 +3218,20 @@ C ******************** PCL08 ********************
 C PCL08 is a `Two-Position` controller.
 
       SUBROUTINE PCL08
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
+#include "net_flow.h"
+#include "tdf2.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
+      COMMON/BTIME/BTIMEP,BTIMEF
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
@@ -3157,6 +3258,7 @@ c tmdr(?,2) indicates that (?,1) must be calculated
 c           only once.
       dimension tmdr(MCF,2)
 c      logical closea
+      dimension VAL(MBITS+2)
 
 c Save contents of array 'tmdr'
       save tmdr
@@ -3183,6 +3285,8 @@ C Fatal error test.
       IF(INT(PMISCD(ICFP,IDTYPP,IPERP,1)).LT.5)THEN
          CALL EDISP(iuout,
      &    ' PCL08: fatal error -> no. of misc. data items')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          CALL EPWAIT
          CALL EPAGEND
          STOP
@@ -3224,6 +3328,21 @@ C Important Note: the constraint SPTON < SPTOFF must be satisfied!
 
 C Establish the sensed condition and the `actuated' component.
       CALL CLVAR(SVCTL,IPCMP,IPCVR)
+
+C If volume flow rate is to be read from a temporal file then set it here.
+      IF(IPUMPVFR(IPCMP).gt.0)THEN
+        itdi=IPUMPVFR(IPCMP)
+        IFOC=itdi
+        CALL RCTDFB(0,btimef,VAL,ISD,IFOC,IER)
+
+C Converting l/h to m3^/s, but first ensure a minimum of 3 l/h (0.83*10^-6 m3/s)
+        IF(VAL(ISD).LT.3.0)THEN
+          VAL(ISD)=3.0
+        ENDIF
+        OUTHI=(VAL(ISD)/3600.)/1000.
+        OUTLO=(VAL(ISD)/3600.)/1000. !Low and high are equal when importing from tdf   
+      ENDIF
+
       IF(IMODE.EQ.1)THEN
         IF(SVCTL.LT.SPTON)THEN
            CDATA(IPCMP,IPCVR)=OUTHI
@@ -3305,15 +3424,16 @@ C ******************** PCL09 ********************
 C PCL09 is a multi-sensor `Two-Position` controller.
 
       SUBROUTINE PCL09
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
@@ -3335,6 +3455,8 @@ C Fatal error test.
      &INT(PMISCD(ICFP,IDTYPP,IPERP,1)).GT.18)THEN
          CALL EDISP(iuout,
      &    ' PCL09: fatal error -> no. of misc. data items')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          CALL EPWAIT
          CALL EPAGEND
          STOP
@@ -3433,15 +3555,16 @@ C ******************** PCL10 ********************
 C PCL10 is a `Zero Energy Band' controller.
 
       SUBROUTINE PCL10
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
 
@@ -3461,6 +3584,8 @@ C Fatal error tests
       IF(INT(PMISCD(ICFP,IDTYPP,IPERP,1)).NE.8)then
         call edisp(iuout,
      &    ' PCL10: fatal error on number of control data items.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -3545,6 +3670,7 @@ C number based on logical (AND, OR) relationships of other control loops
 
       SUBROUTINE PCL14
       IMPLICIT NONE
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
@@ -3553,14 +3679,14 @@ C Set MMLCL = Maximum number of loops to be sensed
       INTEGER MMLCL
       PARAMETER(MMLCL=20)
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
       REAL PTIMEP,PTIMEF
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
@@ -3581,11 +3707,14 @@ C Set MMLCL = Maximum number of loops to be sensed
       logical ctrld(MMLCL)
       REAL CTLPS,ORT,SVCTL
       INTEGER NCT,ICT,NTSOR,IPCVR,IPCMP,IDATNO,IMASTER,ICTL,LOGIC,ICTLR
+      INTEGER ISTAT
            
 C Fatal error test.
       IF(INT(PMISCD(ICFP,IDTYPP,IPERP,1)).LT.5)THEN
          CALL EDISP(iuout,
      &    ' PCL14: fatal error -> too few misc. data items')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          CALL EPWAIT
          CALL EPAGEND
          STOP
@@ -3717,20 +3846,21 @@ C Proportional Integral Room Controller
 
       SUBROUTINE PCL15
       IMPLICIT NONE
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
       COMMON/PCVAL/CSVF(MPNODE,MPVAR),CSVP(MPNODE,MPVAR)
       REAL CSVF,CSVP
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
       REAL PTIMEP,PTIMEF
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
@@ -3768,6 +3898,7 @@ C Proportional Integral Room Controller
       integer tstepsOn(MCF) 
       logical startOfLoop(mcf)
       integer icon1,icon2
+      integer istat
 
       icon1=int(pmiscd(icfp,idtypp,iperp,12))
       icon2=int(pmiscd(icfp,idtypp,iperp,13))
@@ -3777,6 +3908,8 @@ C Fatal error test.
       IF(INT(PMISCD(ICFP,IDTYPP,IPERP,1)).LT.6)THEN
          CALL EDISP(iuout,
      &    ' PCL15: fatal error -> too few misc. data items')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          CALL EPWAIT
          CALL EPAGEND
          STOP
@@ -3921,12 +4054,13 @@ C Outside temperature compensation controller
 
       SUBROUTINE PCL16
       IMPLICIT NONE
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -3940,8 +4074,8 @@ C Outside temperature compensation controller
       COMMON/CLIMIP/QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
       REAL QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PTIME/PTIMEP,PTIMEF
       REAL PTIMEP,PTIMEF
@@ -3974,6 +4108,7 @@ C Outside temperature compensation controller
       INTEGER NPCON,IPC1,IPN1,IPCT,IPC2,IPN2
       REAL PCONDR,PCONSD
       integer icon1,icon2
+      integer istat
 
       icon1=int(pmiscd(icfp,idtypp,iperp,12))
       icon2=int(pmiscd(icfp,idtypp,iperp,13))
@@ -3986,6 +4121,8 @@ C Fatal error test.
       IF(INT(PMISCD(ICFP,IDTYPP,IPERP,1)).LT.8)THEN
          CALL EDISP(iuout,
      &    ' PCL16: fatal error -> too few misc. data items')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          CALL EPWAIT
          CALL EPAGEND
          STOP
@@ -4065,6 +4202,7 @@ C              up to setpoint
 
       SUBROUTINE PCL17
       IMPLICIT NONE
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
@@ -4073,14 +4211,14 @@ C Set MMLCL = Maximum number of loops to be sensed
       INTEGER MMLCL
       PARAMETER(MMLCL=4)
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
       REAL PTIMEP,PTIMEF
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
@@ -4105,12 +4243,15 @@ C Set MMLCL = Maximum number of loops to be sensed
       REAL timeToTemp,finishTime,timeDelay,startTime,Delay,ctrlOnTime,
      & ctrlOffTime
       LOGICAL ctrlOffFound
+      integer istat
       
            
 C Fatal error test.
       IF(INT(PMISCD(ICFP,IDTYPP,IPERP,1)).LT.3)THEN
         CALL EDISP(iuout,
      &    ' PCL17: fatal error -> too few misc. data items')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPWAIT
         CALL EPAGEND
         STOP
@@ -4263,6 +4404,7 @@ C              period startTime and finishTime
 
       SUBROUTINE PCL18
       IMPLICIT NONE
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
@@ -4271,14 +4413,14 @@ C Set MMLCL = Maximum number of loops to be sensed
       INTEGER MMLCL
       PARAMETER(MMLCL=4)
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
       REAL PTIMEP,PTIMEF
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
@@ -4304,6 +4446,7 @@ C Set MMLCL = Maximum number of loops to be sensed
       REAL timeToTemp,finishTime,startTime,timeDelay,
      & ctrlOffTime,revisedSetPt,previousTemp,savedTimeDelay
       LOGICAL closer
+      integer istat
       
 C Init...
       if(nsinc.eq.1)then
@@ -4321,6 +4464,8 @@ C Fatal error test.
       IF(INT(PMISCD(ICFP,IDTYPP,IPERP,1)).LT.3)THEN
         CALL EDISP(iuout,
      &    ' PCL18: fatal error -> too few misc. data items')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPWAIT
         CALL EPAGEND
         STOP
@@ -4507,11 +4652,12 @@ C " ....... esp-r/training/plant/AHU'
       SUBROUTINE PSYSPT(ire,mdflag,imx,isupdc,iretdc,zntpsp,znrhsp,stpt)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
 
       COMMON/CLIMIP/QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
@@ -4519,8 +4665,6 @@ C " ....... esp-r/training/plant/AHU'
       logical closea
       
       PARAMETER (SMALL=1.0E-15)
-
-      PATMOS=1013.25
 
 C Trace output.
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -4536,7 +4680,7 @@ C Establish return enthalpy.
       ETHRTC=ENTHP2(CSVF(iretdc,1),CSVF(iretdc,3)/CSVF(iretdc,2))
 
 C Establish zone conditions.
-      wstpt=HUMR(zntpsp,znrhsp,1013.25)
+      wstpt=HUMR(zntpsp,znrhsp,patmos)
       ETHSPT=ENTHP2(zntpsp,wstpt)
 
 C Establish current supply and return conditions.

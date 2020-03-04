@@ -31,7 +31,7 @@ C rectangular window caused by overhang and/or side fins.
       subroutine winshd
 #include "building.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filech/ixopen,ixunit,ixpunit
       common/prec8/slat,slon
       common/sangl1/sazi1,salt1
@@ -40,7 +40,7 @@ C rectangular window caused by overhang and/or side fins.
 
       dimension shdx(20),mdays(12),month(12)
       character outs*124,month*3
-      logical ok,dok
+      logical ok
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -77,8 +77,7 @@ C Overhang data.
       shdx(6)=0.0
       shdx(7)=0.0
 
-      dok=.false.
-      call askok(' ','Is there an overhang?',ok,dok,nbhelp)
+      call easkok(' ','Is there an overhang?',ok,nbhelp)
       if(.not.ok)goto 108
 
       shdx(3)=0.25
@@ -109,8 +108,7 @@ C Overhang data.
       shdx(10)=0.0
       shdx(11)=0.0
 
-      dok=.false.
-      call askok(' ','Is there a left-side fin?',ok,dok,nbhelp)
+      call easkok(' ','Is there a left-side fin?',ok,nbhelp)
       if(.not.ok)goto 103
 
       shdx(8)=0.1
@@ -136,8 +134,7 @@ C Overhang data.
       shdx(14)=0.0
       shdx(15)=0.0
 
-      dok=.false.
-      call askok(' ','Is there a right-side fin?',ok,dok,nbhelp)
+      call easkok(' ','Is there a right-side fin?',ok,nbhelp)
       if(.not.ok)goto 71
 
       shdx(12)=0.1

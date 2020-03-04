@@ -51,8 +51,12 @@ C results library as well.
 #include "net_flow.h"
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
       COMMON/FILEP/IFIL
+      INTEGER :: ifil
+      common/trc/itrc
+      INTEGER :: itrc
 
       integer ncomp,ncon
       common/c1/ncomp,ncon
@@ -105,7 +109,7 @@ C      character path*72
       character LAPROB*72
       dimension iflg(MCOM)
 
-      logical OK,dok,remote,browse
+      logical OK,remote,browse
 C      logical unixok
       logical CFDOK,concat
       integer nsim  ! number of simulations
@@ -185,8 +189,8 @@ C the user will be asked to confirm the results file name (and path)
       ENDIF
 
 C Note: the initial assumption of the record width of the zone results 
-C file is based on nzrl equal to MZRL (defined in building.h as MCOM+12
-C if MCOM>MS or MS+12 if MS>MCOM and with a minimum width of 40 to 
+C file is based on nzrl equal to MZRL (defined in building.h as MCOM
+C if MCOM>MS or MS+12 if MS>MCOM (and with a minimum width of 40 to 
 C allow for file names to be held and air gap data to be written). 
 C Some records are written with values for all current zones, some 
 C are for all surfaces in the zone plus up to 12 other values. One set
@@ -196,18 +200,18 @@ C of records in MZLS1 is 5*MGP width which is currently 40.
       DO 150 I = 1,NCOMP
         if(NZSUR(I).gt.iswid) iswid=NZSUR(I)
  150  continue
-      if(ncomp.gt.iminwid)iminwid=ncomp
-      if(iswid+12.gt.iminwid)iminwid=iswid+12
+      if(ncomp.gt.iminwid)iminwid=ncomp        ! if lots of simple zones
+      if(iswid+12.gt.iminwid)iminwid=iswid+12  ! if surfaces dominate
 
 C Debug.
-C      write(6,*)'nzrl iswid ncomp iswid+12 minwid ',nzrl,iswid,ncomp,
-C     &  iswid+12,iminwid
+C      write(6,*)'nzrl iswid ncomp iswid+12 minwid MZRL NCOMP ',
+C     &  nzrl,iswid,ncomp,iswid+12,iminwid,MZRL,NCOMP
       if(iminwid.ne.nzrl)then
         write(outs,*)'Resetting results file record width to ',iminwid
         if(endless.or.issilient)then
           continue
         else
-          call edisp(iuout,outs)
+          if(itrc.gt.1)call edisp(iuout,outs)
         endif
         nzrl=iminwid
         call pauses(1)   ! pause
@@ -226,6 +230,8 @@ C If remote path then use EFOPRAN otherwise FPRAND.
             write(outs,*)'MZLIBF Fatal error: unable to open',
      &        rfile(1:lnblnk(rfile)),' record width ',nzrl
             call edisp(iuout,outs)
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call pauses(3)   ! pause for 3 seconds then abort program.
             call epagend
             stop
@@ -267,14 +273,12 @@ C Autook not set so ask for confirmation.
         helptopic='deal_with_prev_results'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(NSIM.EQ.1)then
-          dok=.true.
-          CALL ASKOK(' Library contains one result set.',
-     &               ' Preserve (see help)?',OK,dok,nbhelp)
+          CALL EASKOK('Library contains 1 result set.',
+     &                'Preserve?',OK,nbhelp)
         elseif(NSIM.gt.1)then
-          write(outs,'(A,I3,A)')' Library contains',NSIM,
-     &                           ' result sets.'
-          dok=.true.
-          CALL ASKOK(outs,' Preserve (see help)?',OK,dok,nbhelp)
+          write(outs,'(A,I3,A)')'Library contains',NSIM,
+     &                          'result sets.'
+          CALL EASKOK(outs,'Preserve?',OK,nbhelp)
         elseif(NSIM.eq.0)then
           goto 8
         endif
@@ -283,11 +287,10 @@ C Autook not set so ask for confirmation.
       IF(OK)then
 
 C User wants to preserve data. Determine if design data has been changed.
-        dok=.false.
         helptopic='preserve_data_change'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' Is the current model different in any way from',
-     &  ' the model of the stored results (see help)?',OK,dok,nbhelp)
+        CALL EASKOK('Is the current model different from',
+     &  'the model of the stored results?',OK,nbhelp)
         if(.NOT.OK) goto 121
         GOTO 1
       else
@@ -298,8 +301,8 @@ c Delete all simulations by setting NSIM=0.
 
 C izver is the version flag for building results. Set at 4 since
 C Feb 2008. Earlier (depreciated) versions did not include explicit
-C casual gains and required re-scanning of zone operation files.
-        izver=4
+C casual gains and required re-scanning of zone operation file.
+        izver=5
         WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)NSIM,nzrl,izver,IMET
       endif
 
@@ -353,6 +356,8 @@ C file path name use FPOPEN.
               write(outs,*)'MZLIBF Fatal error: unable to open',
      &          LAFRES(1:lnblnk(LAFRES)),' record width ',NMRL
               call edisp(iuout,outs)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call pauses(3)   ! pause for 3 seconds then abort program.
               call epagend
               stop
@@ -420,6 +425,8 @@ C If remote path then use EFOPRAN otherwise FPRAND.
             write(outs,*)'MZLIBF Fatal error: unable to open',
      &        pfile(1:lnblnk(pfile)),' record width ',nprl
             call edisp(iuout,outs)
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call pauses(3)   ! pause for 3 seconds then abort program.
             call epagend
             stop
@@ -445,13 +452,11 @@ c Response according to number of existing results sets.
       IF ( autook ) then
          OK = .FALSE.
       elseIF(NSIM.EQ.1)then
-        dok=.true.
-        CALL ASKOK(' Library contains one result set.',
-     &             ' Preserve (see help)?',OK,dok,nbhelp)
+        CALL EASKOK('Library contains one result set.',
+     &              'Preserve?',OK,nbhelp)
       elseif(NSIM.gt.1)then
-        write(outs,'(A,I3,A)')' Library contains',NSIM,' result sets.'
-        dok=.true.
-        CALL ASKOK(outs,' Preserve (see help)?',OK,dok,nbhelp)
+        write(outs,'(A,I3,A)')'Library contains',NSIM,' result sets.'
+        CALL EASKOK(outs,'Preserve?',OK,nbhelp)
       elseif(NSIM.eq.0)then
         goto 108
       endif
@@ -459,11 +464,10 @@ c Response according to number of existing results sets.
       IF(OK)then
 
 c Determine if design data has been changed.
-        dok=.false.
         helptopic='preserve_data_change'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Is the current model different in any way from',
-     &  'the model of the stored results (see help)?',OK,dok,nbhelp)
+        CALL EASKOK('Is the current model different from',
+     &  'the model of the stored results?',OK,nbhelp)
         if(.NOT.OK)goto 17
         GOTO 100
       else
@@ -518,6 +522,8 @@ C file path name use FPOPEN.
               write(outs,*)'MZLIBF Fatal error: unable to open',
      &          MSTRFILE(1:lnblnk(MSTRFILE))
               call edisp(iuout,outs)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call pauses(3)   ! pause for 3 seconds then abort program.
               call epagend
               stop
@@ -586,6 +592,8 @@ C file path name use FPRAND.
               write(outs,*)'MZLIBF Fatal error: unable to open',
      &          ERESLIB(1:lnblnk(ERESLIB)),' record width ',IELIBW
               call edisp(iuout,outs)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call pauses(3)   ! pause for 3 seconds then abort program.
               call epagend
               stop
@@ -638,6 +646,8 @@ C file path name use FPOPEN.
           CALL FPRAND(ICFLIB,ISTAT,MCEL1D,3,CFRESF)
           if(ISTAT.lt.0)then
             if(autook) then
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epagend
               stop
             else
@@ -686,7 +696,7 @@ C        as 2 if in some other location.
       
       integer lnblnk  ! function definition
 
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character topic*2,LFILE*72
       character ltmp*72,ltpath*72,filen*72
       logical unixok,remote
@@ -799,7 +809,7 @@ c ******************** MZDEL
 c MZDEL DELETES THE LAST RESULT-SET SAVED IN THE SOLUTION FILE.
 
       SUBROUTINE MZDEL(IB,IP,ISIMLB,ISIMLP)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/reclen/nzrl,nprl,nerl
       common/recver/izver,ipver,iever
@@ -869,7 +879,7 @@ c 'SIMUL' MENU IMMEDIATELY AFTER ANY SIMULATION IS COMPLETE RESULTS
 c IN THE OVERWRITING OF THESE RESULTS.
 
       SUBROUTINE MZSAVE(ISIMN1,ISIMN2)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer indcfg
       COMMON/C6/INDCFG
@@ -909,12 +919,12 @@ C record of the plant results file.
 
  1000 IF(IUNIT.EQ.(IFIL+19))goto 1001
       write(outs,1)IREC
-    1 format(' MZSAVE: error in building results file (record',I4,').')
+    1 format(' MZSAVE: error in building results file (record',I5,').')
       call edisp(iuout,outs)
       goto 2
 
  1001 write(outs,4)IREC
-    4 format(' MZSAVE: error in plant results file (record',I4,').')
+    4 format(' MZSAVE: error in plant results file (record',I5,').')
       call edisp(iuout,outs)
       goto 2
       END

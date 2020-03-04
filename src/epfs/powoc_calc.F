@@ -58,8 +58,8 @@ C ------------------------------------------------------------------------------
 #include "building.h"
 #include "plant.h"
 #include "power.h"
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
 
 C---------------------------------------------------------------------------------
 C Declarations for variables passed in calling statement.
@@ -271,11 +271,11 @@ C Local variables
 
 C Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
       integer itc,icnt
-      integer iuout,iuin
+      integer iuout,iuin,ieout
       integer itcf,itrace,izntrc,itu
 
 C Common holding simulation type (building, building+plant, or plant-only simulation)
@@ -285,7 +285,7 @@ C Common holding simulation type (building, building+plant, or plant-only simula
 C---------------------------------------------------------------------------------
 C Commons holding simulation time-clock variables.
 C---------------------------------------------------------------------------------
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/btime/btimep,btimef
       common/ptime/ptimep,ptimef
 
@@ -304,7 +304,7 @@ C-------------------------------------------------------------------------------
 C Declarations for common block variables.
 C---------------------------------------------------------------------------------
 
-      INTEGER      IHRP, IHRF, IDYP, IDYF, IDWP, IDWF, NSINC, ITS
+      INTEGER      IHRP, IHRF, IDYP, IDYF, IDWP, IDWF, NSINC,ITS,idynow
       REAL         btimep, btimef, ptimep, ptimef
       CHARACTER    LFClds*72
       INTEGER      iFClds
@@ -605,12 +605,13 @@ C ------------------------------------------------------------------------------
 
       integer lnblnk
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout
 
 C---------------------------------------------------------------------------------
 C Commons holding simulation time-clock variables.
 C---------------------------------------------------------------------------------
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/btime/btimep,btimef
       common/ptime/ptimep,ptimef
 
@@ -636,8 +637,7 @@ C-------------------------------------------------------------------------------
 C Declarations for common block variables.
 C---------------------------------------------------------------------------------
       REAL         house_load
-      INTEGER      IHRP, IHRF, IDYP, IDYF, IDWP, IDWF, NSINC, ITS,
-     & IUOUT,IUIN
+      INTEGER      IHRP, IHRF, IDYP, IDYF, IDWP, IDWF, NSINC, ITS,idynow
       REAL         btimep, btimef, ptimep, ptimef
       CHARACTER    LFClds*72
       INTEGER      iFClds
@@ -986,12 +986,12 @@ C ------------------------------------------------------------------------------
 
       integer lnblnk
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C---------------------------------------------------------------------------------
 C Commons holding simulation time-clock variables.
 C---------------------------------------------------------------------------------
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/btime/btimep,btimef
       common/ptime/ptimep,ptimef
 
@@ -1025,8 +1025,8 @@ C-------------------------------------------------------------------------------
 C---------------------------------------------------------------------------------
 C Declarations for common block variables.
 C---------------------------------------------------------------------------------
-      INTEGER      IHRP, IHRF, IDYP, IDYF, IDWP, IDWF, NSINC, ITS,
-     & IUOUT,IUIN
+      INTEGER      IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      integer      IUOUT,IUIN,IEOUT
       REAL         btimep, btimef, ptimep, ptimef
       CHARACTER    LWndSupp*72
       INTEGER      iWndSupp
@@ -1132,9 +1132,10 @@ C-------------------------------------------------------------------------------
 C ESP-r COMMONs
 C----------------------------------------------------------------------------------------------------
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER iuout          !- write unit number
       INTEGER iuin           !- read unit number
+      INTEGER ieout          !- error unit number
 
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       integer itcf           !- building side increment to end trace output
@@ -1536,8 +1537,8 @@ C-------------------------------------------------------------------------------
 C Trace & reporting data
 C---------------------------------------------------------------------------------
 
-      common/outin/iuout,iuin
-      integer iuout,iuin
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout
 
 C---------------------------------------------------------------------------------
 C Common holding # of plant components

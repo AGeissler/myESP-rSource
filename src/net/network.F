@@ -124,6 +124,7 @@ C This is the main network management routine.
       USE START_UP
 #include "gnetwk.h"
 #include "building.h"
+#include "model.h"
 #include "espriou.h"
 #include "esprdbfile.h"
 #include "epara.h"
@@ -131,7 +132,7 @@ C This is the main network management routine.
       integer lnblnk  ! function definition
 
 C Graphics and ESP-r default commons
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/FILEP/IFIL
       COMMON/MOD/MODEL
@@ -143,6 +144,10 @@ C Graphics and ESP-r default commons
       common/appw/iappw,iappx,iappy
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       COMMON/FUNIT/IUCFG,IUPDB
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
 
 C To signal to MFWRIT that globals are available.
       logical haveglobal
@@ -218,20 +223,21 @@ C Variables passed back as parameters in call to scanicondb.
 
 C WORDSS array of string tokens from each NWICHNIS.
       CHARACTER*32 WORDSS(12)
+      character dstmp*24,uname*24,tfile*72
 
       CHARACTER*72 LTMP,DFILE
       CHARACTER exttag*12
       CHARACTER*34 ITEM(27)
       CHARACTER INF*144,PATH*72
       CHARACTER FS*1,STR*72,outs*124,outstr*124
-      LOGICAL UNIXOK,OK,DOK,CLOSEM,CLOSEX,isexavail,XST
+      LOGICAL UNIXOK,OK,CLOSEM,CLOSEX,isexavail,XST
       dimension IVAL(MNWKTYP)
       character dtagatr*12,dmenuatr*32,datrib*12
       character dgtagatr*12,dgmenuatr*32,dgatrib*12
       character ddgtagatr*12,ddgmenuatr*32,ddgatrib*12
 
       character cVnum*36      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character pagestitle*68 ! for banner title via epages call
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer NITEMS,INO ! max items and current menu item
@@ -345,7 +351,7 @@ C courier font.
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Network Tool ',
+      write(pagestitle,'(2a)') 'Network tool of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -359,6 +365,24 @@ C messages to stderr in case of rule script program control.
       else
         ICOUT=IUOUT
       endif
+
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call usrhome(upath)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+932          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for network'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Open the text display box equal to LIMTTY if MMOD = 8.
       IF(MMOD.EQ.8)THEN
@@ -581,7 +605,6 @@ C Get details of icon and then get its attributes (if any).
      &        tagatr,atrib,menuatr,iconphrase,IER)
             write(NWICNME(ICN),'(a)') 
      &        iconphrase(1:lnblnk(iconphrase))
-C Debug       write(6,*) icn,ICDNAM,' ',iconphrase
           endif
  30     CONTINUE
       ENDIF
@@ -728,6 +751,8 @@ C Switch network graphics off and quit.
         if(isexavail)then
           CALL ERPFREE(iuex,ISTAT)
         endif
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
 
@@ -772,9 +797,8 @@ C Option to read another icon file name. << hardcoded >>
         ICONFIL=IFIL+1
         CALL EFOPSEQ(ICONFIL,ICONDBFL,1,IER)
         IF(IER.NE.0) THEN
-          dok=.false.
-          CALL ASKOK('ERROR - could not find the icon database.',
-     &      'Try again?',OK,dok,8)
+          CALL EASKOK('Problem locating icons database!',
+     &      'Retry?',OK,8)
           IF(.NOT.OK) THEN 
             IER=1
             CALL ERPFREE(ICONFIL,ISTAT)
@@ -1142,7 +1166,7 @@ C Export. << not yet enabled >>.
 
       ELSEIF(INO.EQ.1)THEN
 
-C Read in a network, clear exiting network definitions and refreshing
+C Read in a network, clear existing network definitions and refreshing
 C the screen.  << ?? do we need without fill common blocks ?? >>
         helptopic='convert_to_text_network'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -1152,9 +1176,8 @@ C the screen.  << ?? do we need without fill common blocks ?? >>
           goto 5
         endif
         OK=.FALSE.
-        dok=.false.
-        CALL ASKOK('Reading in a network will clear the current one',
-     &    'are you sure you want to do this?',OK,dok,nbhelp)
+        CALL EASKOK('Reading network file will clear current one!',
+     &    'OK to proceed?',OK,nbhelp)
         IF(.NOT.OK) GOTO 5
         CALL NWKINIT
         if(iglib.eq.1.or.iglib.eq.2)then
@@ -1444,7 +1467,7 @@ C << rather overwrite an existing icons data.
       integer lnblnk  ! function definition
 
 C Icon commons are in gnetwk.h       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/NWKGRD/GRMAX(3),GRSPC(3),GRLYRH(MLYRS)
       COMMON/NWKVEW/SCALF,VIEWCEN(3),VIEWLIM(6),IVIEW
@@ -1503,7 +1526,7 @@ C WORDSS array of string tokens from each NWICHNIS.
       CHARACTER*32 WORDSS(12)
       real cgx,cgy
 
-      LOGICAL CLOSEX,CLOSEY,OK,DOK,MREPT,found
+      LOGICAL CLOSEX,CLOSEY,OK,MREPT,found
       integer NICITEM,IMOUT,NICITEM2,IMOUT2 ! max items and current menu item
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
 
@@ -2149,9 +2172,7 @@ C Loop clearing current selections setting isel()=.false.
             if(itog.eq.0)then
               CALL EPMENSV
               call ASKRNOD('Select node to delete:','-',ISD,IER)
-C Debug
-              write(6,*) 'node to delete ',isd,icontoflow(isd),
-     &          inodetoicon(isd)
+
               CALL EPMENRC
               I=inodetoicon(isd)
               ISEL(I)=.TRUE.
@@ -2161,9 +2182,7 @@ C Debug
               CALL EPMENSV
               call ASKRCMP('Select component to delete:','-',ICMP,IER)
               CALL EPMENRC
-C Debug
-              write(6,*)'comp to delete',icmp,icontoflow(icmp),
-     &          icomptoicon(icmp)
+
               I=icomptoicon(icmp)
               ISEL(I)=.TRUE.
               name=NWICNM(I)
@@ -2199,12 +2218,11 @@ C isel()=.true. to the one within 0.3m.
           CALL NETWDRW
 
 C Confirm that this is the icon to be deleted.
-          write(outs,'(3a)') 'Delete the icon ',name(1:lnblnk(name)),
+          write(outs,'(3a)') 'Delete icon ',name(1:lnblnk(name)),
      &      ' and associated connections?'
-          dok=.false.
           helptopic='pause_to_consider'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(outs,' ',OK,dok,nbelp)
+          CALL EASKOK(' ',outs,OK,nbelp)
         ELSE
           OK=.TRUE.
         ENDIF
@@ -2247,9 +2265,7 @@ C Loop clearing current selections setting isel()=.false.
           if(itog.eq.0)then
             CALL EPMENSV
             call ASKRNOD('Select node to edit:','-',ISD,IER)
-C Debug
-            write(6,*) 'node to edit ',isd,icontoflow(isd),
-     &        inodetoicon(isd)
+
             CALL EPMENRC
             ICN=inodetoicon(isd)
             ISEL(ICN)=.TRUE.
@@ -2259,9 +2275,7 @@ C Debug
             CALL EPMENSV
             call ASKRCMP('Select component to edit:','-',ICMP,IER)
             CALL EPMENRC
-C Debug
-            write(6,*)'comp to edit',icmp,icontoflow(icmp),
-     &        icomptoicon(icmp)
+
             ICN=icomptoicon(icmp)
             ISEL(ICN)=.TRUE.
             icnpick=icn
@@ -2346,9 +2360,7 @@ C Loop clearing current selections setting isel()=.false.
           if(itog.eq.0)then
             CALL EPMENSV
             call ASKRNOD('Select node to list:','-',ISD,IER)
-C Debug
-            write(6,*) 'node to list ',isd,icontoflow(isd),
-     &        inodetoicon(isd)
+
             CALL EPMENRC
             ICN=inodetoicon(isd)
             ISEL(ICN)=.TRUE.
@@ -2357,9 +2369,7 @@ C Debug
             CALL EPMENSV
             call ASKRCMP('Select component to list:','-',ICMP,IER)
             CALL EPMENRC
-C Debug
-            write(6,*)'comp to list',icmp,icontoflow(icmp),
-     &        icomptoicon(icmp)
+
             ICN=icomptoicon(icmp)
             ISEL(ICN)=.TRUE.
 
@@ -2461,7 +2471,7 @@ C associated with a flow node.
       character hold*32
       real cgx,cgy
 
-      LOGICAL ISEL,CSEL,OK,DOK,CLOSEX,CLOSEY
+      LOGICAL ISEL,CSEL,OK,CLOSEX,CLOSEY
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
 
 #ifdef OSI
@@ -2510,16 +2520,13 @@ C the two nodes and the component via MCONAD.
             CALL NETTOFLW(ier) ! update commons
             CALL EPMENSV
             call ASKRNOD('Select first node:','-',IS,IER)
-C Debug     write(6,*) 'start node',is,icontoflow(is),inodetoicon(is)
             CALL EPMENRC
             CALL EPMENSV
             call ASKRNOD('Select second node:','-',IE,IER)
-C Debug     write(6,*) 'end node ',ie,icontoflow(ie),inodetoicon(ie)
             CALL EPMENRC
             CALL EPMENSV
             call ASKRCMP('Via component:','-',ICMP,IER)
             CALL EPMENRC
-C Debug     write(6,*)'comp ',icmp,icontoflow(icmp),icomptoicon(icmp)
             call MCONAD(inodetoicon(is),icomptoicon(icmp))
             call MCONAD(icomptoicon(icmp),inodetoicon(ie))
           endif
@@ -2530,16 +2537,13 @@ C the two nodes and the component rather than GCONAD use MCONAD.
           CALL NETTOFLW(ier) ! update commons
           CALL EPMENSV
           call ASKRNOD('Select first node:','-',IS,IER)
-C Debug   write(6,*) 'start node',is,icontoflow(is),inodetoicon(is)
           CALL EPMENRC
           CALL EPMENSV
           call ASKRNOD('Select second node:','-',IE,IER)
-C Debug   write(6,*) 'end node ',ie,icontoflow(ie),inodetoicon(ie)
           CALL EPMENRC
           CALL EPMENSV
           call ASKRCMP('Via component:','-',ICMP,IER)
           CALL EPMENRC
-C Debug   write(6,*)'component ',icmp,icontoflow(icmp),icomptoicon(icmp)
           call MCONAD(inodetoicon(is),icomptoicon(icmp))
           call MCONAD(icomptoicon(icmp),inodetoicon(ie))
         endif
@@ -2590,11 +2594,10 @@ C << why 0.5m here and 0.2m below? >>
 C Delete all selected connections.
         IF(IMODE.NE.1) THEN
           CALL NETWDRW
-          dok=.true.
           helptopic='pause_to_consider'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK('Delete selected connection?',' ',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Delete selected connection?',
+     &      OK,nbhelp)
         ELSE
           OK=.TRUE.
         ENDIF
@@ -2765,11 +2768,6 @@ C to convert string array ATRICN to number for checking.
       CLOSE310=.false.; CLOSE410=.false.;CLOSE420=.false.
       CLOSE460=.false.
       OFFLA=0.4
-
-C Debug.
-C      write(6,*) 'external data search for ',exttag,ifocus
-C      write(6,*) 'data 1:',ATRICN(icn,1,1),ATRICN(icn,2,1),
-C     &  ATRICN(icn,3,1),ATRICN(icn,4,1),ATRICN(icn,5,1)
 
       read(ATRICN(icn,1,1),*,iostat=ios,ERR=99) VALCT  ! flow node or component type
       read(ATRICN(icn,2,1),*,iostat=ios,ERR=99) VALFT  ! fluid type
@@ -3033,8 +3031,6 @@ C            ICPP(ICN,I,1)=CPP(1,KKK)
 C            ICPP(ICN,I,2)=CPP(2,KKK)
 C            ICPP(ICN,I,3)=CPP(3,KKK)
 
-C Debug.     WRITE(6,*),CPP(1,III),III
-
         else
 
 C Otherwise draw a square. << patch to make square invisable >>
@@ -3251,8 +3247,6 @@ C logic is in edgeo.F near line 5522.
               call winscl('z',iicol)
             endif
 
-C Debug     write(6,*) iix1,iiy1,iix2,iiy2,is,ir,ir1,iang1,iang2,iicol
-
 C Draw unfilled or filled arc. If icon highlighted draw 2nd arc with
 C radius one pixel larger in grey.
             if(IVARC(ICN,I,7).eq.0)then
@@ -3374,8 +3368,6 @@ C If domain is primitive part draw a circle and setup ICPP array.
 C            ICPP(ICN,I,1)=CPP(1,KKK)
 C            ICPP(ICN,I,2)=CPP(2,KKK)
 C            ICPP(ICN,I,3)=CPP(3,KKK)
-
-C Debug.     WRITE(6,*),CPP(1,III),III
 
           else
 
@@ -3530,8 +3522,6 @@ C Use whle loop to traverse nconwp list.
         iloop=iloop+1  ! increment iloop until = NCONWP then jump out
         if(iloop.eq.NCONWP(ICON)) icontinue=0
 
-C Debug  write(6,*) 'at ',iloop,icon,NCONWP(ICON)
-
 C Get the pixels for the initial points
         CLOSE=.FALSE.
         IF(IVIEW.EQ.1)THEN
@@ -3548,7 +3538,7 @@ C          CALL ECLOSE(CNWNP(ICON,iloop,3),VIEWCEN(3),0.01,CLOSE)
           CALL ECLOSE(CNWNP(ICON,iloop,1),VIEWCEN(1),0.01,CLOSE)
         ENDIF
 
-C record the pixel values of the way point.
+C Record the pixel values of the way point.
         call u2pixel(MP(1),MP(2),iix,iiy)
 
         IF(IIX.GE.IGL.AND.IIX.LE.IGR.AND.IIY.GE.IGT.AND.
@@ -3598,7 +3588,6 @@ C If the start of the connection was outwith screen limits then move to the
 C intersection and draw the connection.
           CP(1)=MP(1); CP(2)=MP(2)
           CALL CINTSCT(CP,PP,MIN1,MAX1,MIN2,MAX2,XI,YI,FOUND)
-C Debug   write(6,*) 'at a ',cp,pp,xi,yi,found
           call u2pixel(xi,yi,iiax,iiay)
 
 C Draw a square around the connection intermediate point.
@@ -3649,8 +3638,6 @@ C previous point.
 C << Needs an else case for if found is false. >>
           CP(1)=MP(1); CP(2)=MP(2)
           CALL CINTSCT(CP,PP,MIN1,MAX1,MIN2,MAX2,XI,YI,FOUND)
-
-C Debug   write(6,*) 'at b ',cp,pp,xi,yi,found
           call u2pixel(xi,yi,iiax,iiay)
           if(found)then
             if(csel(icon))then 
@@ -3957,7 +3944,7 @@ C any of the simulation parameters have been touched.
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/NWKTYP/INWKTYP,vergnf
       integer INWKTYP
       real vergnf
@@ -4306,7 +4293,7 @@ C are returned. If ier=-1 then summary file was not available.
       integer lnblnk  ! function definition
       integer icn     ! index of current icon
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/MFLDOC/DEPRE(MPRD)
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
 
@@ -4332,7 +4319,7 @@ C znamecon is the zone name associated with inside face a conneciton
       CHARACTER PSITM(35)*60
       character snamecon*12,znamecon*12,outs*124,tl*18,tc*18,tt*18
       character zn*12,hold*32
-      LOGICAL OK,DOK,isexavail
+      LOGICAL OK,isexavail
       integer IRT  ! for radio button
       integer NITMS,IVERT,IDUM ! max items and current menu item and placeholder
       real xa,xh  ! for editing attributes
@@ -4597,12 +4584,11 @@ C Let user select a pc set.
           ENDIF
 
 C Ask whether choice is OK.
-          dok=.true.
           helptopic='external_overview'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          write(t72,'(a,a)')'Use ',zn(ifoc)
-          CALL ASKOK(t72,'attributes with this component?',
-     &      OK,dok,nbhelp)
+          write(t72,'(3a)')'Use ',zn(ifoc),
+     &               'attributes with this component?'
+          CALL EASKOK(' ',t72,OK,nbhelp)
           IF(.NOT.OK)GOTO 71
           AVAL(1)=zv(ifoc); AVAL(2)=zx(ifoc); AVAL(3)=zy(ifoc)
           AVAL(4)=zz(ifoc); SVAL(1)=zn(ifoc)
@@ -4707,7 +4693,7 @@ C Now display the menu.
           helptopic='external_overview'
           call gethelptext(helpinsub,helptopic,nbhelp)
           call USRMSG('Select a surface from the model and its area',
-     &'and orientation can be used. (see help) ','-') 
+     &      'and orientation can be used. (see help) ','-') 
           CALL EMENU('Available surfaces in model:',PSITM,NITMS,IVERT)
           IF(IVERT.EQ.NITMS)THEN
 
@@ -4798,7 +4784,7 @@ C unit iuex.
       subroutine listexttag(exttag,ier)
 #include "building.h"
 CC#include "geometry.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Summary of external data.
       common/exsum/isexavail,iuex
@@ -4880,7 +4866,7 @@ C catie_int decodes min max current & default integer values
 C from datacatie array.
       subroutine catie_int(datcatie,iast,isl,ivmin,ivmax,ival,ivald,ier)
 # include "gnetwk.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
 C DATCATIE: attribute editing array for the current category to match
 C the calling subroutine.
@@ -4905,7 +4891,7 @@ C catie_r decodes min max current & default real values
 C from datacatie array.
       subroutine catie_r(datcatie,iast,isl,vmin,vmax,val,vald,ier)
 # include "gnetwk.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
 C DATCATIE: attribute editing array for the current category to match
 C the calling subroutine.
@@ -4943,6 +4929,18 @@ C CHGELEV is called from C code in esp-r.c or esru_x.c with an increment or
 C decrement to the viewing elevation (icelev). This is a dummy. 
       subroutine chgelev(icelev,ifrlk)
       integer icelev
+      return
+      end
+
+      subroutine chgpan(ix,iy)
+      return
+      end
+
+      subroutine chgzoom(imode)
+      return
+      end
+
+      subroutine optview
       return
       end
 

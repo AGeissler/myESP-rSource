@@ -33,7 +33,7 @@ C blocks PCBLKA and PCBLKB.
 #include "plantdb.h"
 #include "pdb_data.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       character buffer*120, ltmp*80, text*20
       CHARACTER*24 TUNIX
@@ -769,7 +769,7 @@ C if act is 'g' write generic item.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ERRS/ISTAT,IREC
       EQUIVALENCE (ERRFLG, ISTAT)
 
@@ -832,8 +832,7 @@ C Setup a tab character and fill tustr with dashes.
       NSIGFIG=4
 
 C If header needs to be written
-C plant templates on IFIL+14, igendbf(12)=IFIL+14 so use
-C array index 12.
+C plant templates on IFIL+14, Use array index 12.
       idbh=12
       ifa=IUFIL+1
       if(act.eq.'h')then

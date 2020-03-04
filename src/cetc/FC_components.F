@@ -143,8 +143,8 @@ C ------------------------------------------------------------------------------
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER  IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER  ITC,ICNT
@@ -638,8 +638,8 @@ C ------------------------------------------------------------------------------
 #include "SOFC.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER  IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER  ITC,ICNT
@@ -647,8 +647,8 @@ C ------------------------------------------------------------------------------
       COMMON/TRACE/ITCF,ITRACE,IZNTRC,ITU
       INTEGER ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER  IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER  IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/BTIME/BTIMEP,BTIMEF
       REAL  BTIMEP,BTIMEF
@@ -1733,8 +1733,8 @@ C ------------------------------------------------------------------------------
       INTEGER iFClds
       CHARACTER LFClds*72
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER  IUOUT,IUIN,IEOUT
 
 C---------------------------------------------------------------------------------
 C Declare local variables.
@@ -2003,8 +2003,8 @@ c     &                               q_HVAC_elec)
 C-------------------------------------------------------------------------------
 C     ESP-r commons
 C-------------------------------------------------------------------------------
-      COMMON/OUTIN/IUOUT,IUIN           ! Number for default output and input screens
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT           ! Number for default output and input screens
+      INTEGER  IUOUT,IUIN,IEOUT
 
       COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
       REAL    ADATA                     !-array containing component data
@@ -2315,8 +2315,8 @@ C-------------------------------------------------------------------------------
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER  IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER  ITC,ICNT
@@ -2336,8 +2336,8 @@ C-------------------------------------------------------------------------------
       COMMON/PCTSTP/NTSTPP
       INTEGER  NTSTPP
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER  IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER  IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 
 C---------------------------------------------------------------------------------

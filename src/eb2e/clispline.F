@@ -34,7 +34,7 @@ C dataout is the array of data after the fit has been done.
 
 # include "b2e.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       real datain(mbrow),datout(mbrow)
       integer howmany
       character act*1

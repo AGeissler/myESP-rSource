@@ -78,7 +78,7 @@ C     -set known pressure nodes.
 C esprdbfile.h supplies the following:
 C LAPRES,IAPRES (for wind pressure databases)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/ER1/IER1
 
@@ -270,7 +270,7 @@ C STIME  - used to transfer the simulation time to mfs.
 
 C Present (P) and future (F) time-row time and other time-related data.
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
 

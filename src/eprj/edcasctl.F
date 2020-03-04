@@ -35,7 +35,7 @@ C geometry.h provides commons G0/G1/G2/G5/c20/precz.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
@@ -365,8 +365,9 @@ C treats CFC and CFC2 with opaque surfaces.
         m=m+1   
         write(ITEM(m),'(A)') '  Source surface & DF(s) per photocell:'
         do 44 ii = 1,NSUR
-          if(SOTF(II)(1:4).NE.'OPAQ'.AND.SOTF(II)(1:4).NE.'CFC '.AND.
-     &       SOTF(II)(1:4).NE.'CFC2')THEN
+          if(SOTF(icomp,II)(1:4).NE.'OPAQ'.AND.
+     &       SOTF(icomp,II)(1:4).NE.'CFC '.AND.
+     &       SOTF(icomp,II)(1:4).NE.'CFC2')THEN
             m=m+1
             CALL EMKEY(m,KEY,IER)
             write(sn,'(a)') sname(icomp,II)
@@ -481,8 +482,8 @@ C Now invoke e2r to do the work.
           call usrmsg('About to start Radiance in order to generate',
      &      'descriptive files for coupled casual gain control.','W')
           call EASKAB(
-     &    'Radiance is being used to asses light levels:',' ',
-     &    'Create & edit Radiance model','Continue',IW,nbhelp)
+     &    ' ','Radiance is being used to assess light levels:',
+     &    'Create & edit Radiance model','Cancel',IW,nbhelp)
           if (IW.eq.1) then
             write(doitl,'(3a,i3,a)')'e2r -file ',LCFGF(1:lnblnk(LCFGF)),
      &        ' -purpose Coupling -zone ',ICOMP,' -act Create'
@@ -492,8 +493,8 @@ C Now invoke e2r to do the work.
         endif
         if (ldcoef) then
  8888     call EASKAB(
-     &    'If Radiance is being used for daylight coefficients:',' ',
-     &    'Create Radiance model and calcute','Continue',IW,nbhelp)
+     &    ' ','If Radiance is being used for daylight coefficients:',
+     &    'Create Radiance model and calculate','Cancel',IW,nbhelp)
           if (IW.eq.1) then
             write(doitl,'(3a,i3,2a)')'e2r -file ',
      &        LCFGF(1:lnblnk(LCFGF)),' -purpose Day_coef -zone ',
@@ -886,8 +887,9 @@ C Loop through all surfaces and find out number of TMCs: It
 C does not (yet) count CFC and CFC2 as transparent.
           ICOUNT=0
           do i = 1, NSUR
-            if(SOTF(I)(1:4).NE.'OPAQ'.AND.SOTF(I)(1:4).NE.'CFC '.AND.
-     &         SOTF(I)(1:4).NE.'CFC2')THEN
+            if(SOTF(ICOMP,I)(1:4).NE.'OPAQ'.AND.
+     &         SOTF(ICOMP,I)(1:4).NE.'CFC '.AND.
+     &         SOTF(ICOMP,I)(1:4).NE.'CFC2')THEN
               ICOUNT=ICOUNT+1              
             endif
           enddo   ! of I

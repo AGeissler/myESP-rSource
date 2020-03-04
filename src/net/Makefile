@@ -13,10 +13,12 @@ CETCdir = $(SRCdir)/cetc
 PROG = enet$(EXE)
 default: $(PROG)
 
-.SUFFIXES: .o .F .c
+.SUFFIXES: .o .F .f90
 .F.o:
 	$(MFC) $(FFLAGS) -c $<
-%.o : %.f90
+.f90.o:
+	$(MFC) $(FFLAGS) -c $<
+.o :
 	$(MCC) $(FFLAGS) -c $<
 
 MODULE_OBJECTS = startup.o CFC_Module.o

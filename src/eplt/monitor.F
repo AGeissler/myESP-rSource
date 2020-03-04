@@ -45,7 +45,7 @@ c ymax   : Expected maximum value of variable along the y axis.
       subroutine minput
 #include "plant.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/c9/npcomp,nci(mpcom),cdata(mpcom,mmiscd)
       common/c12ps/npcdat(mpcom,9),ipofs1(mcoefg),ipofs2(mcoefg,mpvar)
       common/c13ps/npmcoe,npnod,npmtyp
@@ -151,7 +151,7 @@ c after the start-up period.
 C Parameters for eline calls.
       integer LNMVAB, LNDRAB, LNMVRL, LNDRRL
       parameter (LNMVAB=1, LNDRAB=0, LNMVRL=3, LNDRRL=2)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       common/pctstp/ntstpp
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
@@ -219,17 +219,17 @@ C Check if can draw in colour.
       if(nzonec.ge.mnpc)colok=.true.
 
 C Open the text display box equal to LIMTTY if MMOD = 8.
-      IF(MMOD.EQ.8)THEN
-        CALL startbuffer()
-      ENDIF
+      if(mmod.eq.8)call startbuffer()
 
 c Display header information.
       write(etext,'(3a)') ' Variations of ',statev(mstate),
      &  ' state variable with time'
-      iside=1
-      isize=1
-      ifont=1
-      call viewtext(etext,iside,isize,ifont)
+      iside=1; isize=1; ifont=1
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
 C Generate view period string.
       CALL EDAY(ISD1,ISM1,IODS)
@@ -239,7 +239,11 @@ C Generate view period string.
       write(etext,'(7a,i4)') 'Period',tab,DS1,' to ',DE1,' Year',tab,
      &  IYEAR
       iside=2
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
 C Find minimum and maximum values for x-axis based on the simulation
 C period.
@@ -318,31 +322,37 @@ c and 'N' stands for node in this component.
           call textatxy(iix,iiy,clabel,'z',iicol)
           if(colok)then
             iicol=0
-            call winscl('-',iicol)
+            if(mmod.EQ.8) call winscl('-',iicol)
           endif
 
 c else start plotting.
         else
           if(colok)then
             iicol=i
-            call winscl('z',iicol)
+            if(mmod.EQ.8) call winscl('z',iicol)
           endif
           ti=float(icount)/float(instpp)
           ncoord(i,2,1)=igl+int((ti+xadd)*xsc)
           ncoord(i,2,2)=igb-int((value+yadd)*ysc)
           iix1=ncoord(i,1,1); iiy1=ncoord(i,1,2)
-          call eline (iix1,iiy1, lnmvab)
-C          call eline (ncoord(i,1,1),ncoord(i,1,2), lnmvab)
+          if(mmod.EQ.8)then
+            call eline (iix1,iiy1, lnmvab)
+          else
+            call elinewwc (iix1,iiy1, lnmvab)
+          endif
           iix1=ncoord(i,2,1); iiy1=ncoord(i,2,2)
-          call eline (iix1,iiy1, lndrab)
-C          call eline (ncoord(i,2,1),ncoord(i,2,2), lndrab)
+          if(mmod.EQ.8)then
+            call eline (iix1,iiy1, lndrab)
+          else
+            call elinewwc (iix1,iiy1, lndrab)
+          endif
           ncoord(i,1,1)=ncoord(i,2,1)
           ncoord(i,1,2)=ncoord(i,2,2)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
           endif
-          call forceflush
+          if(mmod.EQ.8) call forceflush
         endif
    10 continue
 

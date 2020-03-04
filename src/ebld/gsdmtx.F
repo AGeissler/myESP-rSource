@@ -44,8 +44,8 @@ C INITST initializes the structured gridding variables.
 C *********************************************************************
       SUBROUTINE INITST
 #include "building.h"
+#include "geometry.h"
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/GR3D130/IFST(MNOD3),W3(MCFF3),NCLMN(MCFF3),NXT(MCFF3),SML3
@@ -530,7 +530,6 @@ C *********************************************************************
       COMMON/BCL9/IHPZON,IHPCON,IHPNDO,QNOPF,QHPSV
       COMMON/CONCOE/HCIP(MCOM,MS),HCIF(MCOM,MS),HCOP(MCOM,MS),
      &HCOF(MCOM,MS)
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),AE(MCOM,MS)
@@ -1294,7 +1293,7 @@ C *********************************************************************
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),
      &              AE(MCOM,MS)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/V2/CFB(MCOM,MST,MST)
       COMMON/GR3D132/T3F(MNOD3)
       COMMON/GRSD113/IST3F(MSNOD),AST3F(MSNOD),I1ST3F(MS),NTSNOD
@@ -1404,9 +1403,10 @@ C *************************    SVITS1    ******************************
 C SVITS1 solves the structured mesh zone matrix iterratively.
 C *********************************************************************
       SUBROUTINE SVITS1(IComp)
+
 #include "building.h"
 #include "control.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer icascf
       COMMON/CCTL/ICASCF(MCOM)
 
@@ -1498,10 +1498,11 @@ C SVITS2 solves the structured mesh zone matrix based on default 1D
 C        gridding iterratively.
 C *********************************************************************
       SUBROUTINE SVITS2(IComp)
+
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer icascf
       COMMON/CCTL/ICASCF(MCOM)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
@@ -1549,7 +1550,12 @@ C Check if the air node is a plant interaction point.
         QFA(IComp)=T3F(IPLT)
       ENDIF
 
-C Perform the iterartion.
+C Special case of mixed actuator in current zone
+      IF(IC.GT.0.AND.(IBAN(IC,1).EQ.-2.AND.IBAN(IC,2).EQ.0))THEN
+        QFA(IComp)=T3F(IPLT)
+      ENDIF
+
+C Perform the iteration.
       DO 10 ITR=1,MSItrn
 
 C Set convergence parameters.
@@ -1682,7 +1688,7 @@ C *********************************************************************
       subroutine TEMPSD (icomp)
 #include "building.h"
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/GR3D132/T3F(MNOD3)
       COMMON/GRSD41/RefWidth,NRow,NCol,NLay
       COMMON/GRSD100/IndxSt

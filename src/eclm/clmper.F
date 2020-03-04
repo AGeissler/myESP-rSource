@@ -18,10 +18,9 @@ C License along with ESP-r. If not, write to the Free
 C Software Foundation, Inc., 59 Temple Place, Suite 330,
 C Boston, MA 02111-1307 USA.
 
-C CLMDAY: defines a restricted period during a day for analysis
-C         puropses. 
+C CLMDAY: Definition of a period within a day for parameter analysis. 
 C ONEDAY: Provides interface to specification of one day.
-C SELPER: Menu for period selection - user defined, monthly, typical etc.
+C SELPER: Definition of the period for parameter recovery and anaylsis.
 C CLMPER: Provides interface to specification of a period of days.
 C editemclimatelist - edit/create an item for climatelist file.
 C mkitemclimatelist - write an item for climatelist file.
@@ -44,14 +43,14 @@ C For help messages
       helptopic='period_at_least'
       call gethelptext(helpinsub,helptopic,nbhelp)
       write(HOLD,'(I6,I4)') KDS,KDF
- 10   CALL EASKS(HOLD,' ',' Start and end hour: ',
+ 10   CALL EASKS(HOLD,' ','Start and end hour in day?',
      &     24,' 1  24 ','start and end hour',IER,1)
       K=0
       CALL EGETWI(HOLD,K,KDS,1,23,'F','start',IER)
       CALL EGETWI(HOLD,K,KDF,KDS,24,'F','end',IER)
       if(ier.ne.0)then
-        call usrmsg(' Problem getting the time',
-     &              ' Please try again...','W')
+        call usrmsg(' Problem getting the time!',
+     &              ' Please try again.','W')
         goto 10
       endif
 
@@ -59,8 +58,8 @@ C For help messages
       END
 
 C ************* ONEDAY
-C ONEDAY: Provides interface to specification of one day. It
-C returns ID based on the current settings of IFDAY. 
+C Interface for specification of one day. Returns ID
+C based on the current settings of IFDAY. 
       SUBROUTINE ONEDAY(IFDAY,IDAY,ID,IM,IER)
       CHARACTER hold*24
 
@@ -74,13 +73,13 @@ C For help messages
       helptopic='period_within_calendar'
       call gethelptext(helpinsub,helptopic,nbhelp)
   281 IF(IFDAY.EQ.0)THEN
-        CALL EASKI(IDAY,' ',' d-o-y ? ',
+        CALL EASKI(IDAY,' ','Julian day number?',
      &             1,'F',365,'F',1,'start day',IER,nbhelp)
         CALL EDAYR(IDAY,ID,IM)
       ELSE
         CALL EDAYR(IDAY,ID,IM)
         write(HOLD,'(I6,I4)') ID,IM
- 283    CALL EASKS(HOLD,' ',' Day-of-month & month: ',
+ 283    CALL EASKS(HOLD,' ','Day & month number?',
      &     24,' 1  1 ','doy, month',IER,nbhelp)
         K=0
         CALL EGETWI(HOLD,K,ID,1,31,'F','day of month',IER)
@@ -97,8 +96,7 @@ C Check range, then convert to IDS.
       END
 
 C ************* SELPER
-C SELPER: Menu for period selection - user defined, monthly, typical
-C week or season (scanned from climatelist file).
+C Definition of the period for parameter recovery and anaylsis.
       subroutine selper(ier)
 
 C Manual inclusion of a parameter from building.h
@@ -109,7 +107,7 @@ C Manual inclusion of a parameter from building.h
 #include "seasons.h"
 C seasons.h provides typper and typsea
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
@@ -142,42 +140,41 @@ C Assume whole day requested.
       pmenu(11)='k October               '
       pmenu(12)='l November              '
       pmenu(13)='m December              '
-      pmenu(13)='n December              '
       pmenu(14)='  _____________________ '
 
 C Adjust display if in southern hemisphere.
       if(CLAT.lt.0.0)then
-        pmenu(15)='o Typical summer week   '
-        pmenu(16)='p Typical autumn week   '
-        pmenu(17)='q Typical winter week   '
-        pmenu(18)='r Typical spring week   '
-        pmenu(19)='s Typical summer week   '
+        pmenu(15)='n Typical summer week   '
+        pmenu(16)='o Typical autumn week   '
+        pmenu(17)='p Typical winter week   '
+        pmenu(18)='q Typical spring week   '
+        pmenu(19)='r Typical summer week   '
         pmenu(20)='  _____________________ '
-        pmenu(21)='t Summer (1st) season   '
-        pmenu(22)='u Autumn season         '
-        pmenu(23)='v Winter season         '
-        pmenu(24)='w Spring season         '
-        pmenu(25)='x Summer (2nd) season   '
+        pmenu(21)='s Summer (1st) season   '
+        pmenu(22)='t Autumn season         '
+        pmenu(23)='u Winter season         '
+        pmenu(24)='v Spring season         '
+        pmenu(25)='w Summer (2nd) season   '
       else
-        pmenu(15)='o Typical winter week   '
-        pmenu(16)='p Typical spring week   '
-        pmenu(17)='q Typical summer week   '
-        pmenu(18)='r Typical autumn week   '
-        pmenu(19)='s Typical winter week   '
+        pmenu(15)='n Typical winter week   '
+        pmenu(16)='o Typical spring week   '
+        pmenu(17)='p Typical summer week   '
+        pmenu(18)='q Typical autumn week   '
+        pmenu(19)='r Typical winter week   '
         pmenu(20)='  _____________________ '
-        pmenu(21)='t Winter (1st) season   '
-        pmenu(22)='u Spring season         '
-        pmenu(23)='v Summer season         '
-        pmenu(24)='w Autumn season         '
-        pmenu(25)='x Winter (2nd) season   '
+        pmenu(21)='s Winter (1st) season   '
+        pmenu(22)='t Spring season         '
+        pmenu(23)='u Summer season         '
+        pmenu(24)='v Autumn season         '
+        pmenu(25)='w Winter (2nd) season   '
       endif
-      pmenu(26)='y Whole year            '
+      pmenu(26)='x Whole year            '
       pmenu(27)='  _____________________ '
       pmenu(28)='? Help                  '
       pmenu(29)='- Exit                  '
       NITEM=29
       INO=-3
-   4  CALL EMENU('  Periods',pmenu,NITEM,INO)
+   4  CALL EMENU('Set period',pmenu,NITEM,INO)
       if(INO.EQ.1)then
         call clmper(IFDAY,ier)
         return
@@ -277,8 +274,6 @@ C Convert periods into julian before returning.
       NTSPH=1
       CALL EPERSTR(IYEAR,IIDS,IT1,IIDF,IT2,NTSPH,
      &             IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
-      call edisp(iuout,'The period selected is... ')
-      call edisp(iuout,PERST2)
       return
       end
 
@@ -305,7 +300,7 @@ C For help messages
 
   281 IF(IFDAY.EQ.0)THEN
         write(HOLD,'(I6,I4)') IDS,IT1
-        CALL EASKS(HOLD,' ',' Start Day-of-year & time: ',
+        CALL EASKS(HOLD,' ','Start year day & time?',
      &     24,' 1  1 ','start doy and time',IER,nbhelp)
         K=0
         CALL EGETWI(HOLD,K,IDS,1,365,'F','start day of year',IER)
@@ -314,7 +309,7 @@ C For help messages
         CALL EDAYR(IDS,ID1,IM1)
 
         write(HOLD,'(I6,I4)') IDF,IT2
-        CALL EASKS(HOLD,' ',' End Day-of-year & time: ',
+        CALL EASKS(HOLD,' ','End year day & time?',
      &     24,' 364  24 ','end doy and time',IER,nbhelp)
         K=0
         CALL EGETWI(HOLD,K,IDF,1,365,'F','start day of year',IER)
@@ -324,8 +319,7 @@ C For help messages
       ELSE
         CALL EDAYR(IDS,ID1,IM1)
         write(HOLD,'(I6,I4,I4)') ID1,IM1,IT1
-        H(6)='Example:  6th March at 9h00 am is given as 6 3 9 '
- 283    CALL EASKS(HOLD,' ',' Start Day-of-month, month & time: ',
+ 283    CALL EASKS(HOLD,' ','Start day, month & time?',
      &     24,' 1  1  7.0 ','doy, month time',IER,nbhelp)
         K=0
         CALL EGETWI(HOLD,K,ID1,1,31,'F','start day of month',IER)
@@ -338,7 +332,7 @@ C For help messages
 
         CALL EDAYR(IDF,ID2,IM2)
         write(HOLD,'(I6,I4,I4)') ID2,IM2,IT2
- 284    CALL EASKS(HOLD,' ',' End Day-of-month, month & time: ',
+ 284    CALL EASKS(HOLD,' ','End day, month & time?',
      &     24,' 31  12  24 ','end doy, month time',IER,nbhelp)
         K=0
         CALL EGETWI(HOLD,K,ID2,1,31,'F','end day of month',IER)
@@ -375,7 +369,7 @@ C seasons.h provides typper and typsea
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -387,7 +381,7 @@ C      common/appw/iappw,iappx,iappy
       COMMON/CLMDT1/CLMLOC
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
-      character clmlnam*32,clmlaid*72,clmldbfile*144,clmlavail*10
+      character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
       common/clmlnum/nbclmlhelp
@@ -402,14 +396,14 @@ C ITM is main item editing menu.
       character descrstp*10
       character DFILE*72,outs*124,louts*248
       character DESCRX*7,DESCR1X*10,DESCR1*10,hold*40
-      CHARACTER CLMLOC*30,t32*32,d32*32,t72*72,d72*72
+      CHARACTER CLMLOC*42,t42*42,d42*42,t72*72,d72*72
       character llasci*144,llitem*144,longtfile*144,longtfiledos*144
       character tedlbl*20,teditor*20,tmode*8,doit*248
       logical unixok,xst,concat,mxmn
       logical havedrawn   ! if the user has asked to draw graph
       logical altered     ! if user changes period.
       integer llt   ! length of string buffer
-      DIMENSION IPICK(6)
+      DIMENSION IPICK(MCM)
       integer onleft  ! number of left axis
       integer onright ! number of right axis
       integer nitms,INO  ! max items and current menu item
@@ -441,6 +435,7 @@ C Check if Unix-based or DOS based.
       call isunix(unixok)
       havedrawn = .false.
       altered = .false.
+      labelfont=4  ! small proportional font
 
 C Graphic analysis. Enlarge graphics area slightly and reset graphic
 C display period to the whole year. Also if possible drop one size
@@ -478,7 +473,7 @@ C        endif
 
 C If clmlnam and clmlaid are not set fill them with default information.
       if(clmlnam(1:15).eq.'not yet entered')then
-        write(clmlnam,'(2a)') CLMLOC(1:lnblnk(CLMLOC)),'  '
+        write(clmlnam,'(a)') CLMLOC(1:lnblnk(CLMLOC))
       endif
       if(clmlaid(1:15).eq.'not yet entered')then
         write(clmlaid,'(2a)') CLMLOC(1:lnblnk(CLMLOC)),
@@ -551,9 +546,13 @@ C If clmlnam and clmlaid are not set fill them with default information.
 C If use already aksed for graph and date has change draw again.
       if(MMOD.EQ.8)then
         if(altered.and.havedrawn)then
-          IPICK(1)=0; IPICK(2)=1; IPICK(3)=0
-          IPICK(4)=0; IPICK(5)=0; IPICK(6)=0
-          onleft=1
+  
+C Clear the selection list and setup IPICK for dbT.
+          DO imet=1,MCM
+            IPICK(imet)=0
+          ENDDO
+          IPICK(1)=1        ! DB T
+          onleft=1          ! Axis for DB T
           onright=0
           if(IFS.ne.IMFS)call winfnt(IMFS)
 
@@ -569,10 +568,6 @@ C Setup and pass in parameters to win3d.
           if(IFS.ne.IMFS)call winfnt(IFS)
           call startbuffer()
 
-C Debug.
-C          write(6,*)'xx igl igr igt igb igw igwh',
-C     &      igl,igr,igt,igb,igw,igwh
-
           mxmn=.TRUE.
           CALL CLMDRW(IPICK,mxmn,onleft,onright,'s')
           havedrawn = .true.
@@ -583,7 +578,7 @@ C Context help
       helptopic='climate_list_facility'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-      CALL EMENU('Weather list item',ITM,nitms,INO)
+      CALL EMENU('Weather file summary',ITM,nitms,INO)
       if(INO.EQ.nitms)then
 
 C Reset the graphic context prior to leaving.
@@ -615,12 +610,14 @@ C Setup and pass in parameters to win3d.
 C String for the selection menu.
         helptopic='climate_list_menu_txt'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        t32=clmlnam
-        if(t32(1:15).eq.'not yet entered')write(t32,'(2a)') CLMLOC,'  '
-        write(d32,'(2a)') CLMLOC,'  '
-        CALL EASKS(t32,'Text for the selection list menu',' ',32,
-     &    d32,'clmlist name',IER,1)
-        if(t32(1:2).ne.'  ')clmlnam=t32
+        t42=clmlnam
+        if(t42(1:15).eq.'not yet entered')then
+          write(t42,'(a)') CLMLOC(1:lnblnk(CLMLOC))
+        endif
+        write(d42,'(a)') CLMLOC(1:lnblnk(CLMLOC))
+        CALL EASKS(t42,'Text for the selection list menu',' ',42,
+     &    d42,'clmlist name',IER,1)
+        if(t42(1:2).ne.'  ')clmlnam=t42
       elseif(INO.eq.2)then
 
 C Aide memorie for the menu.
@@ -642,9 +639,6 @@ C Installed location of weather file. If GTK then use file browser.
         helptopic='climate_list_loc'
         call gethelptext(helpinsub,helptopic,nbhelp)
         write(llasci,'(a)') lclim(1:lnblnk(lclim))
-
-C Debug.
-C        write(6,*) llasci
 
   290   llt=lnblnk(llasci)
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
@@ -682,7 +676,7 @@ C Toggle for available
 
         helptopic='climate_item_offline'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabc('Choices:',' ','online','offline','continue',IW,
+        call easkabc(' ','Options:','online','offline','cancel',IW,
      &    nbhelp)
         if(iw.eq.1) clmlavail = 'ONLINE'
         if(iw.eq.2) clmlavail = 'OFFLINE'
@@ -1071,8 +1065,8 @@ C Scan weather data for best-fit weeks.
 C Documentations text option.
         helptopic='climate_list_doc'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabcd('Documentation options:',' ','List','Initialise',
-     &    'Edit','Continue',idw,nbhelp)
+        call easkabcd(' ','Documentation options:','list','initialise',
+     &    'edit','cancel',idw,nbhelp)
         if(idw.eq.1)then
           if(nbclmlhelp.ge.0)then
             call edisp(iuout,' ')
@@ -1288,12 +1282,12 @@ C and change any / to \.
             longtfile=' '
             longtfile=longtfiledos
           endif
-          tmode='graph'
+          tmode='-'
           if(teditor(1:2).eq.'  ')then
             call usrmsg(
      &    'The external word processor has not be defined. See your',
      &    'administrator about updating the esprc definition.','W')
-          elseif(teditor(1:2).eq.'vi')then
+          elseif(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')then
             tmode='text'
           endif
           write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
@@ -1349,12 +1343,12 @@ C and change any / to \.
           longtfile=' '
           longtfile=longtfiledos
         endif
-        tmode='graph'
+        tmode='-'
         if(teditor(1:2).eq.'  ')then
           call usrmsg(
      &    'The external word processor has not be defined. See your',
      &    'administrator about updating the esprc definition.','W')
-        elseif(teditor(1:2).eq.'vi')then
+        elseif(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')then
           tmode='text'
         endif
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
@@ -1368,22 +1362,30 @@ C Control graphics.
 C Pre-define the period and the line type to draw and which
 C axis are required and then directly call CLMDRW
         if(MMOD.EQ.8)then
-          IPICK(1)=0; IPICK(2)=1; IPICK(3)=0
-          IPICK(4)=0; IPICK(5)=0; IPICK(6)=0
-          onleft=1
-          onright=0
-          if(IFS.ne.IMFS)call winfnt(IMFS)
 
-C Setup and pass in parameters to win3d.
-          iiw1=6; iiw2=12; iiw3=6; iiw4=3; iimenu=menuchw
+C Clear the selection list.
+          DO I=1,MCM
+            IPICK(I)=0
+          ENDDO
+          IPICK(1)=1        ! DB T
+          onleft=1          ! Axis for DB T
+          onright=0
+
+C Setup and pass in parameters to win3d. Use same pattern as in
+C CLMGRF lines ~167 to maintain alignment but reset menuchw=41
+C so graph is not obsured by the menu.
+          menuchw = 41
+          lastbuttonfont=IFS
+          call winfnt(labelfont)
+          iiw1=1; iiw2=4; iiw3=6; iiw4=3; iimenu=menuchw
           iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
           CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &      iigl,iigr,iigt,iigb,iigw,iigwh)
           igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
           igw=int(iigw); igwh=int(iigwh)
-          if(IFS.ne.IMFS)call winfnt(IFS)
           call opencpw
           call opensetup
+          call winfnt(lastbuttonfont)
           call startbuffer()
 
 C Debug.
@@ -1424,7 +1426,7 @@ C seasons.h provides typper and typsea
       
       integer lnblnk  ! function definition
 
-      character clmlnam*32,clmlaid*72,clmldbfile*144,clmlavail*10
+      character clmlnam*42,clmlaid*72,clmldbfile*144,clmlavail*10
       character clmlhelp*72
       common/clmltext/clmlnam,clmlaid,clmldbfile,clmlavail,clmlhelp(60)
       common/clmlnum/nbclmlhelp
@@ -1432,7 +1434,7 @@ C seasons.h provides typper and typsea
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
       character tab*1
-      CHARACTER CLMLOC*30
+      CHARACTER CLMLOC*42
       character descr*7,descrst*10,descrfn*10  ! for season dates
       character descrst1*10,descrfn1*10        ! for 2nd season dates
 

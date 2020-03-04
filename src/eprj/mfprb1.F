@@ -22,6 +22,7 @@ C ################# MFPRB1
 C This file contains the following subroutines:
 C   MFPROB: Main controller of the mass flow network.
 C   MFNDES: Editing facility for nodes
+C   MFNDMENU: Edit individual attributes of nodes
 C   MFCDES: Editing facility for components
 C   MFLDES: Editing facility for connections
 C   MFWRED: Editing facility for flow reduction
@@ -51,7 +52,7 @@ C LPRFDB,IPRODB (for event profile database)
       integer lnblnk  ! function definition
       INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
@@ -90,10 +91,11 @@ C      COMMON/MFLITR/MAXITF,FERREL,FERMFL,PMAX,STEFFR,MFTRAC,ITER,IOK
       CHARACTER*33 ITEM1(24)
       CHARACTER LTMP*72,outs*124,outstr*124
       character fs*1
-      LOGICAL OK,dok,found,XST,clkok,unixok
+      LOGICAL OK,found,XST,clkok,unixok
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       integer NITMS1,INO ! max items and current menu item
       logical xzero,yzero  ! is X & Y at origin
+      logical nowind
       integer ISTRW
 
 C For help messages
@@ -303,11 +305,9 @@ C Check boundary node supplementary data items.
  9      CONTINUE
 
 C List contents of file if required.
-        dok=.true.
         helptopic='flow_network_synopsis'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Display a synopsis of the flow network?',' ',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(' ','Summary of flow network?',OK,nbhelp)
         IF(OK) CALL MFLIST(iuout)
       else
 
@@ -377,9 +377,7 @@ C give warnings to the user.
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('create oper net',nbhelp,'-',0,0,IER)
 
-          dok=.true.
-          CALL ASKOK('Do you want to auto-generate flow nodes?',
-     &      'from zone operation file data (see help)',OK,dok,nbhelp)
+          CALL EASKOK(' ','Auto-generate flow nodes?',OK,nbhelp)
           IF(OK)THEN
             CALL MFNAUTO('Z',IER)
             call edisp(iuout,
@@ -434,8 +432,14 @@ C Display model status.
       ITEM1(15)   ='  __________________________ '
 
 C Other definition functions.
-      write(ITEM1(16),
-     &'(a,F4.2,a)')' Wind reduction factor (',wred,')'
+      nowind=.false.
+      call eclose(wred,0.0,0.001,nowind)
+      if(nowind)then
+        write(ITEM1(16),'(a)')' Wind reduction factor (no wind)'
+      else
+        write(ITEM1(16),'(a,F4.2,a)')
+     &  ' Wind reduction factor (',wred,')'
+      endif
       ITEM1(17)   ='f Set wind reduction         '
 
 C << place to add in simulation preferences >>
@@ -508,9 +512,7 @@ C description. At the moment only nodes are generated.
         IF(NNOD.EQ.0)THEN
           helptopic='flow_auto_generate'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          dok=.true.
-          CALL ASKOK('Do you want to auto-generate flow nodes?',
-     &      '(see help)',OK,dok,nbhelp)
+          CALL EASKOK(' ','Auto-generate flow nodes?',OK,nbhelp)
           IF(OK)THEN
             CALL MFNAUTO('N',IER)
           ENDIF
@@ -526,11 +528,9 @@ C Display a list of currently defined connections.
 C At the begining detect if there are any conenctions, if not allow the
 C user to select "auto-detect" - nifty!
         IF(NCNN.EQ.0)THEN
-          dok=.false.
           helptopic='flow_auto_generate'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK('Auto-generate flow connections?','(see help)',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Auto-generate flow connections?',OK,nbhelp)
           IF(OK) THEN
             CALL MFNAUTO('L',IER)
           ENDIF
@@ -618,12 +618,9 @@ C Write legacy file but then ask user if they want to write
 C a 3D file which they can return to an add more position info.
           CALL MFWRIT(IUM)
           CALL ERPFREE(IUM,ISTAT)
-          dok=.true.
           helptopic='flow_network_file_name'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK('Do you want to also save to a 3D file?',
-     &      '(which you can later add position info to)',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Save a 3D network file?',OK,nbhelp)
           IF(OK)THEN
             if(unixok)then
               if(netpth(1:2).eq.'  '.or.netpth(1:2).eq.'./')then
@@ -773,21 +770,11 @@ C Update both flow networks.
         CALL PHELPD('network data summary',nbhelp,'-',0,0,IER)
       ELSEIF(INO.EQ.24)THEN
 
-C Ask if changes need to be saved
-        dok=.true.
+C Ask if changes need to be saved and if the files exist overwrite.
         helptopic='flow_network_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Do you want to save any changes?',' ',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(' ','Save changes?',OK,nbhelp)
         IF(OK)THEN
-          ltmp=LAPROB
-   81     CALL EASKS(ltmp,'Fluid flow network file?',
-     &      ' ',72,' ','mass flow file',IER,nbhelp)
-          if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
-            LAPROB=LTMP
-          else
-            goto 81
-          endif
 
 C Save both 3D and legacy flow network files.
           call updatebothflownetworks(ier)
@@ -809,7 +796,7 @@ C Save both 3D and legacy flow network files.
      &        'No linkages set between the mass flow nodes and the',
      &        'thermal zones. Link now?','Yes','No',
      &        IW,nbhelp)
-              if(IW.eq.1)goto 10
+            if(IW.eq.1)goto 10
           endif
         endif
 
@@ -841,19 +828,16 @@ C MOD - 'A' - Add
 C       'D' - Delete
 C       'E' - Edit
 C       'C' - Copy
-C << if IAIRN=3 could we use mfnodeposition ?? >> 
+C << if IAIRN=3 could we use mfnodeposition ?? >>
+ 
       SUBROUTINE MFNDES(MOD,INOD)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "model.h"
 #include "geometry.h"
-#include "epara.h"
-#include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LAPRES,IAPRES (for window pressure databases)
 #include "prj3dv.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
       
@@ -862,58 +846,84 @@ C LAPRES,IAPRES (for window pressure databases)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/MFLOWIT/fndegc,imix 
-      common/MFLDOC/DEPRE(MPRD)
-      COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
-      CHARACTER outs*124,prt*60,DEPRE*40
+      CHARACTER outs*124,prt*60
       CHARACTER NODID*12,T12*12
-      CHARACTER LAPROB*72,t72*72,t144*144
-      CHARACTER PCITM(35)*42,KEY*1,MOD*1,HOLD*36
+      CHARACTER LAPROB*72
+      CHARACTER MOD*1
       CHARACTER MSG*48
-      LOGICAL OK,dok
-      integer IVV  ! for radio button
-      integer NITMS,IVERT ! max items and current menu item
-      logical changed
+      CHARACTER name*12,zn*12,sn*12
+      character altcol*1
+      character col*1
+      real xc,yc,zc,xw,yw,zw
+      LOGICAL OK
+      logical inview
+      integer IVV   ! for radio button
+      logical changed,found
 
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
-      helpinsub='MFNDES'  ! set for subroutine
+      helpinsub='FLOWNODES'  ! set for subroutine
 
       CALL USRMSG(' ','Input/edit node data: ','-')
       changed=.false.
-      ifoc=0; VALHX=0.0; VALHY=0.0; VALHZ=0.0
+      VALHX=0.0; VALHY=0.0; VALHZ=0.0; ZVOL=0.0
+      iz=0; iso=0;
 
       IFNOD=INOD
+
 C Add/Edit a node to the network. 
       IF(MOD.EQ.'A'.OR.MOD.EQ.'E')THEN
         IF(MOD.EQ.'A')THEN
           IFNOD=NNOD+1
         ELSE
           IFNOD=INOD
+          if(IAIRN.lt.3)then
+            continue
+          else
+
+C Draw the associated zone and components and connections.
+            call draw_node_assoc(IFNOD)
+          endif        ! of 3D flow network
         ENDIF
 
-        helptopic='flow_node_names'
+C If user agrees to editing present a menu otherwise begin sequential
+C set of dialogs to attribute a new flow node. 
+        helptopic='flow_attribution'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IF(MOD.EQ.'A')THEN
           NODID='new_node'
         ELSE
+          call easkok(' ','Edit attributes of this node?',OK,nbhelp)
+          if(.NOT.OK) return
           NODID=NDNAM(IFNOD)
+          call MFNDMENU(IFNOD)  ! edit individual attributes
+          if(MMOD.eq.8.and.IAIRN.eq.3)then ! Refresh the network overly after user changes.
+            call startbuffer
+            MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
+            ITSNM=1; ITVNO=1; izgfoc=0
+            ITORG=1; ITGRD=1; ITBND=1 ! do not show origin or grid
+            CALL redraw(IER)
+            call MFWFDRAW('r')
+          endif
+          return
         ENDIF
+
+        helptopic='flow_node_names'
+        call gethelptext(helpinsub,helptopic,nbhelp)
    11   T12=NODID
         CALL EASKS(T12,' ',' Node name (<= 12 characters): ',12,
      &' ','node name',IER,nbhelp)
         call st2name(T12,NODID)
         DO 16 IN=1,NNOD
           IF(NODID(1:12).EQ.NDNAM(IN)(1:12).AND.IN.NE.IFNOD)THEN
-            dok=.true.
-            call askok('This a duplicate name...','Try again?',
-     &        OK,dok,nbhelp)
+            call easkok('Duplicate name!','Retry?',OK,nbhelp)
             IF(.NOT.OK)RETURN
             goto 11
           endif
@@ -957,9 +967,9 @@ C Node type
         helptopic='node_type_summary'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IVV=1
-        CALL EASKATOG(prt,' ',
-     &  'internal:unknown','internal:known','boundary:known',
-     &  'boundary:wind induced','continue',' ',' ',IVV,nbhelp)
+        CALL EASKATOG(' ',prt,
+     &  'internal, unknown','internal, known','boundary, known',
+     &  'boundary, wind induced','cancel',' ',' ',IVV,nbhelp)
         IF(IVV.EQ.5) RETURN
         NDTYP(IFNOD)=IVV-1
         IF(NDTYP(IFNOD).EQ.3.AND.NDFLD(IFNOD).NE.1)THEN
@@ -970,12 +980,11 @@ C Node type
 
 C Get associated zone volume and height if type 0 or 1.
         IF(NDTYP(IFNOD).EQ.0.or.NDTYP(IFNOD).EQ.1.AND.NCOMP.gt.0)THEN
-          dok=.true.
           helptopic='node_type_summary'
           call gethelptext(helpinsub,helptopic,nbhelp)
           write(MSG,'(3a)') 'Is ',NDNAM(IFNOD),
      &      ' associated with a zone?'
-          CALL ASKOK(MSG,'(see help)',OK,dok,nbhelp)
+          CALL EASKOK(' ',MSG,OK,nbhelp)
           IF(OK)THEN
 
 C Redraw the bluiding in the graphic screen.
@@ -1012,83 +1021,19 @@ C (Re)Set all surfaces to standard line width.
               VALHX=ZCOG(IC,1); VALHY=ZCOG(IC,2); VALHZ=ZCOG(IC,3)
               ZVOL=VOL(IC)
             endif
+            HNOD(IFNOD,1)=VALHX; HNOD(IFNOD,2)=VALHY  ! remember position
+            HNOD(IFNOD,3)=VALHZ
           else
             ZVOL=SUPNOD(IFNOD,2)
           endif
-        ELSE
-          ZVOL=0.0; VALHX=0.0; VALHY=0.0; VALHZ=0.0
-        ENDIF
 
-C Node supplementary data; zero these data items first.
-        DO 35 I=1,MNDS
-          SUPNOD(IFNOD,I)=0.
-   35   CONTINUE
-      
-C Depending on the node type:
-        IF(NDTYP(IFNOD).EQ.0)THEN
-
-C NDTYP=0; internal node, unknown pressure.
-  22      CALL EASKR(ZVOL,' ',' Node volume (m^3) ? ',
-     &         0.0,'F',0.,'-',1.0,'node volume',IER,nbhelp)
-          if(IER.ne.0)goto 22
-          SUPNOD(IFNOD,2)=ZVOL
-          changed=.true.
-        ELSEIF(NDTYP(IFNOD).EQ.1)THEN
-
-C NDTYP=1; internal node, known pressure.
-   23     VAL=SUPNOD(IFNOD,1)
-          CALL EASKR(VAL,' ',' Node pressure (Pa) ? ',
-     &       0.0,'-',0.0,'-',1.0,'node pressure',IER,nbhelp)
-          SUPNOD(IFNOD,1)=VAL
-          CALL EASKR(ZVOL,' ',' Node volume (m^3) ? ',
-     &       0.0,'F',0.,'-',1.0,'node volume',IER,nbhelp)
-          if(IER.ne.0)goto 23
-          SUPNOD(IFNOD,2)=ZVOL
-          changed=.true.
-
-C          write(hold,'(f10.4,f9.3,f8.3,a)') HNOD(IFNOD,1),
-C     &      HNOD(IFNOD,2),HNOD(IFNOD,3),'   '
-C 343      CALL EASKS(HOLD,'Position in space?',
-C     &      ' ',36,' 1.0  0.0  0.0 ','position',IER,nbhelp)
-C          K=0
-C          CALL EGETWR(HOLD,K,VALHX,-999.9,999.9,'W','X',IER)
-C          CALL EGETWR(HOLD,K,VALHY,-99.9,999.9,'W','Y',IER)
-C          CALL EGETWR(HOLD,K,VALHZ,-99.9,999.0,'W','Z',IER)
-C          if(ier.ne.0)goto 343
-C          HNOD(IFNOD,1)=VALHX; HNOD(IFNOD,2)=VALHY
-C          HNOD(IFNOD,3)=VALHZ
-  
-        ELSEIF(NDTYP(IFNOD).EQ.2)THEN
-
-C NDTYP=2; boundary node, known pressure and temperature flag.
-          VAL=SUPNOD(IFNOD,1)
-   60     CALL EASKR(VAL,' ',' Node pressure (Pa) ? ',
-     &       0.0,'-',0.0,'-',1.0,'node pressure',IER,nbhelp)
-          SUPNOD(IFNOD,1)=VAL
-          CALL EASKAB(' ','temperature flag indicating: ',
-     &    'temperature is a constant',
-     &    'use outside air temperature',IW,nbhelp)
-          IF(IER.NE.0)GOTO 60
-          SUPNOD(IFNOD,2)=FLOAT(IW-1)
-
-          write(hold,'(f10.4,f9.3,f8.3,a)') HNOD(IFNOD,1),
-     &      HNOD(IFNOD,2),HNOD(IFNOD,3),'   '
- 344      CALL EASKS(HOLD,'Position in space?',
-     &      ' ',36,' 1.0  0.0  0.0 ','position',IER,nbhelp)
-          K=0
-          CALL EGETWR(HOLD,K,VALHX,-999.9,999.9,'W','X',IER)
-          CALL EGETWR(HOLD,K,VALHY,-99.9,999.9,'W','Y',IER)
-          CALL EGETWR(HOLD,K,VALHZ,-99.9,999.0,'W','Z',IER)
-          if(ier.ne.0)goto 344
-          HNOD(IFNOD,1)=VALHX; HNOD(IFNOD,2)=VALHY
-          HNOD(IFNOD,3)=VALHZ
-          changed=.true.
-
-        ELSEIF(NDTYP(IFNOD).EQ.3)THEN
-
-C NDTYP=3; boundary node, wind induced pressure.
-C Includes initial position logic.
-C Allow the user to determine the surface associated with this node. 
+C NDTYP=3; boundary node, wind induced pressure. Select zone and surface.
+C If NDTYP=2; boundary node, fixed pressure. Option to select zone and surface.
+        ELSEIF(NDTYP(IFNOD).EQ.3.or.NDTYP(IFNOD).EQ.2)THEN
+          IF(NDTYP(IFNOD).EQ.2)THEN
+            call easkok(' ','Place fixed boundary node near a surface?',
+     &        OK,nbhelp)
+          ENDIF
           IZ=-1
           helptopic='node_type_summary'
           call gethelptext(helpinsub,helptopic,nbhelp)
@@ -1101,17 +1046,16 @@ C Redraw the building in the graphic screen.
           ITGRD=1; GRDIS=0.0; ITPPSW=0
           nzg=NCOMP
           if(nzg.gt.0)then
-            DO 45 I=1,nzg
+            DO I=1,nzg
               nznog(I)=I
-  45        CONTINUE
+            ENDDO
 
 C (Re)Set all surfaces to standard line width.
             CALL INLNST(1)
             izgfoc=0
             CALL redraw(IER)
           endif
-          WRITE(OUTS,'(A)') 
-     &'Select the zone containing the surface. '
+          WRITE(OUTS,'(A)') 'Select the zone containing the surface.'
           CALL ASKZONE(IZ,0,OUTS,'Select zone','-','wpn locate',
      &      32,IER)
           IF(IZ.NE.0)then
@@ -1126,28 +1070,31 @@ C General image option flags.
           MODIFYVIEW=.TRUE.
           MODBND=.TRUE.
           CALL INLNST(1)
-          ITZNM=0; ITSNM=0; ITORG=1; ITSNR=1; ITGRD=1; ITVNO=1
+          ITZNM=0; ITSNM=0; ITORG=1; ITBND=1; ITSNR=1; ITGRD=1; ITVNO=1
           nzg=1; nznog(1)=IZ; izgfoc=IZ
           CALL redraw(IER)
 
           ISO=1
-          WRITE(OUTS,'(A)')
-     &'Select the surface subjected to the wind pressure:'
+          IF(NDTYP(IFNOD).EQ.2)THEN
+            WRITE(OUTS,'(A)')
+     &      'Select the surface near the fixed pressure node:'
+          ELSE
+            WRITE(OUTS,'(A)')
+     &      'Select the surface subjected to the wind pressure:'
+          ENDIF
           CALL EPMENSV
           CALL EASKSUR(IZ,ISO,'-',OUTS,' ',IER)
           CALL EPMENRC
 
 C Remember which zone and surface.
-          icc=izstocn(iz,iso)
-          CMPASSOC(IFNOD,1)=ZNAME(IZ); CMPASSOC(IFNOD,2)=SSNAME(icc)
+          CMPASSOC(IFNOD,1)=ZNAME(IZ); CMPASSOC(IFNOD,2)=SNAME(iz,iso)
           changed=.true.
 
- 
-C Use SSURCOG as the average height of this surface.
+C Use SURCOG as the average height of this surface.
 C Figure out the delta for the boundary node would be if
 C 0.9m along normal vector.
           PI = 4.0 * ATAN(1.0); RAD = PI/180.0;
-          V1=0.9; AZ=sspazi(icc); EL=sspelv(icc)
+          V1=0.9; AZ=spazi(iz,iso); EL=spelv(iz,iso)
           RYAZI = AZ*RAD; RSALT = EL*RAD
           z3 = V1*SIN(RSALT)
           XYDIS = V1*COS(RSALT)
@@ -1158,182 +1105,40 @@ C 0.9m along normal vector.
           ENDIF
 
 C Offset node 0.9m from the user selected surface.
-          VALHX=x3+SSURCOG(icc,1);VALHY=y3+SSURCOG(icc,2)
-          ZAVE=z3+SSURCOG(icc,3)
+          VALHX=x3+SURCOG(iz,iso,1);VALHY=y3+SURCOG(iz,iso,2)
+          ZAVE=z3+SURCOG(iz,iso,3)
           VALHZ=ZAVE
-          
-C Create a menu showing the available database items. 
-C Allow user to select one. Begin by reading current database
-C (signal by passing a blank string to erprcdb).
-          t144='  '
-          CALL ERPRCDB(t144,0,3,IER)
-          if (ier.ne.0) THEN
-            CALL EDISP(IUOUT,
-     &        'Error opening pressure coefficients database.')
-            RETURN
-          endif
-
-C Setup multi-page menu. 
-          MHEAD=2; MCTL=4; ILEN=NPRE; IPACT=CREATE
-          CALL EKPAGE(IPACT)
-
-C Initial menu entry setup.
- 70       IER=0
-          ILEN=NPRE
-          IVERT=-3
-
-C Loop through the items until the page to be displayed. M is the 
-C current menu line index. Build up text strings for the menu. 
-          PCITM(1)=' W:H  |  Exposure  |  Pitch (roof)'
-          PCITM(2)='  (W:H = width to height ratio)   '
-          M=MHEAD
-          DO 201 IM=1,NPRE
-            IF(IM.GE.IST.AND.(IM.LE.(IST+MIFULL)))THEN
-              M=M+1
-              CALL EMKEY(M,KEY,IER)   
-              WRITE(PCITM(M),'(A1,1X,A)')KEY,DEPRE(IM)
-            ENDIF
-  201     CONTINUE
-
-C Number of actual items displayed.
-          NITMS=M+MCTL
-
-C If a long list include page facility text.      
-          IF(IPFLG.EQ.0)THEN
-            PCITM(M+1)='  ________________________  '
-          ELSE
-            WRITE(PCITM(M+1),15)IPM,MPM 
- 15       FORMAT   ('0 ---Page: ',I2,' of ',I2,' ---')
-          ENDIF
-          PCITM(M+2)=' '
-          PCITM(M+3)='? help                   '
-          PCITM(M+4)='- exit this menu         '
-          IVERT=-1
-
-C Help text for this menu.
-          helptopic='overview_pressure_db'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-  
-C Now display the menu.
-          call USRMSG('Select the pressure coefficient set which',
-     &'best matches this surface. (see help) ','-') 
-          CALL EMENU('Pressure Coefficient Sets:',PCITM,NITMS,IVERT)
-          IF(IVERT.EQ.NITMS)THEN
-            CALL USRMSG(
-     &      'You must select one pressure coefficient set!',' ','W')
-            GOTO 70
-          ELSEIF(IVERT.EQ.NITMS-1)THEN
-            helptopic='overview_pressure_db'
-            call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL PHELPD('databases overview',nbhelp,'-',0,0,IER)
-            GOTO 70
-          ELSEIF(IVERT.EQ.NITMS-3)THEN
-
-C If there are enough items allow paging control via EKPAGE.
-            IF(IPFLG.EQ.1)THEN
-              IPACT=EDIT
-              CALL EKPAGE(IPACT)
-            ENDIF
-            GOTO 70
-          ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(NITMS-MCTL+1))THEN
-
-C Let user select a pc set.
-            CALL KEYIND(NITMS,IVERT,IFOC,IO)
-            SUPNOD(IFNOD,1)=IFOC
-          ELSE
-            IVERT=-1
-            GOTO 70
-          ENDIF
-
-C Ask whether choice is OK.
-          write(t72,'(a,a)')'Use ',DEPRE(IFOC)
-          dok=.true.
-          CALL ASKOK(t72,'as the pressure coefficient set?',
-     &      OK,dok,nbhelp)
-          IF(.NOT.OK)GOTO 70
-
-C Input angle external node.
-          helptopic='boundary_angle_height'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-
-C Ask the user to select the external surface associated with the node.
-C and extract the azimuth info (via SSPAZI). 
-          IF(IZ.EQ.0) THEN
-            VAL=SUPNOD(IFNOD,2)
-          ELSE
-            icc=izstocn(iz,iso)
-            VAL=SSPAZI(icc)
-          ENDIF
-          CALL EASKR(VAL,' ',
-     &       'Surface azimuth angle (degrees clockwise from north): ',
-     &        0.0,'F',359.0,'F',1.0,'surf azimuth angle',IER,nbhelp)
-          IF(IER.NE.0)GOTO 70
-          SUPNOD(IFNOD,2)=VAL
-          changed=.true.
+          HNOD(IFNOD,1)=VALHX; HNOD(IFNOD,2)=VALHY
+          HNOD(IFNOD,3)=VALHZ
+        ELSE
+          ZVOL=0.0; VALHX=0.0; VALHY=0.0; VALHZ=0.0
         ENDIF
 
-C Node position in space.
-C << update to use setup.F logic >>
-        helptopic='boundary_angle_height'
-        call gethelptext(helpinsub,helptopic,nbhelp)
-        write(hold,'(f10.4,f9.3,f8.3,a)') VALHX,VALHY,VALHZ,'   '
- 342    CALL EASKS(HOLD,'Position in space?',
-     &    ' ',36,' 1.0  0.0  0.0 ','position',IER,nbhelp)
-        K=0
-        CALL EGETWR(HOLD,K,VALHX,-999.9,999.9,'W','X',IER)
-        CALL EGETWR(HOLD,K,VALHY,-99.9,999.9,'W','Y',IER)
-        CALL EGETWR(HOLD,K,VALHZ,-99.9,999.0,'W','Z',IER)
-        if(ier.ne.0)goto 342
-        HNOD(IFNOD,1)=VALHX; HNOD(IFNOD,2)=VALHY
-        HNOD(IFNOD,3)=VALHZ
+C Node supplementary data; zero these data items first.
+        DO 35 I=1,MNDS
+          SUPNOD(IFNOD,I)=0.
+   35   CONTINUE
 
-C Node temperature (zero out NDTYP=2 & Tflag=1 and NDTYP=3 nodes)
-C If the volume of the internal node is not zero then ask
-C user for temperature.
+C Set default/initial values and then invoke the menu for the user to fill in.
+        IF(NDTYP(IFNOD).EQ.0)THEN
+          SUPNOD(IFNOD,2)=ZVOL
+        ELSEIF(NDTYP(IFNOD).EQ.1)THEN
+          SUPNOD(IFNOD,1)=1.0  ! place holder
+          SUPNOD(IFNOD,2)=ZVOL
+        ELSEIF(NDTYP(IFNOD).EQ.2)THEN
+          SUPNOD(IFNOD,1)=1.0  ! place holder
+          SUPNOD(IFNOD,2)=0.0  ! constant
+        ELSEIF(NDTYP(IFNOD).EQ.3)THEN
+          SUPNOD(IFNOD,1)=1    ! placeholder wind pressure set
+          SUPNOD(IFNOD,2)=SPAZI(iz,iso)  ! azimuth
+        ENDIF
         ITND(IFNOD)=0
-        TNOD(IFNOD)=0.0
-        IF(NDTYP(IFNOD).NE.3.AND.
-     &    (NDTYP(IFNOD).NE.2.AND.SUPNOD(IFNOD,2).gt.0.001)) THEN
-          helptopic='initail_node_temp'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB('Node temperature: ','(see help)',
-     &    'Set initial or constant value',
-     &    'Set to temperature of another flow node',IW,nbhelp)
-          IT=IW-1
-          IF(IT.EQ.0) THEN
-             ITND(IFNOD)=0
-             if(TNOD(IFNOD).lt.0.001)then
-               VAL=fndegc
-             else
-               VAL=TNOD(IFNOD)
-            endif
-            CALL EASKR(VAL,' ','Node temperature (C) ? ',
-     &        -100.0,'F',1000.0,'F',fndegc,'Node temperature',IER,
-     &        nbhelp)
-             TNOD(IFNOD)=VAL
-             changed=.true.
-          ELSE
+        TNOD(IFNOD)=fndegc
 
-C Pick associated node.
-C Calls cut-down version of ASKNOD (ASKRNOD) to prevent problems with 
-C recursion.
-            CALL EPMENSV
-            call ASKRNOD('  associated node','-',I,IER)
-            CALL EPMENRC
-            ITND(IFNOD)=I
-            write(outs,*)'Current node volume is ',SUPNOD(IFNOD,2)
-            call edisp(iuout,outs)
-            write(outs,*)'Associated node volume is ',SUPNOD(I,2)
-            call edisp(iuout,outs)
-            dok=.true.
-            helptopic='flow_node_volume'
-            call gethelptext(helpinsub,helptopic,nbhelp)
-            call askok('Use volume of associated node?',' ',
-     &        OK,dok,nbhelp)
-            if(ok)SUPNOD(IFNOD,2)=SUPNOD(I,2)
-          END IF
-          call usrmsg(' ',' ','-')
-        ENDIF
+        call edisp(iuout,' ')
+        call edisp(iuout,'Please fill in the remaining attributes.')
+        call MFNDMENU(IFNOD)  ! edit individual attributes
+
         IF(MOD.EQ.'A') NNOD=NNOD+1
 
 C Refresh the network overly now that NNOD has been updated.
@@ -1461,6 +1266,628 @@ C If a change was made save this to file.
       RETURN 
       END
 
+C ************************ MFNDMENU
+C Menu to edit flow node attributes.
+
+      SUBROUTINE MFNDMENU(INOD)
+#include "building.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+#include "model.h"
+#include "geometry.h"
+#include "epara.h"
+#include "prj3dv.h"
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      COMMON/FILEP/IFIL
+
+      integer ncomp,ncon
+      COMMON/C1/NCOMP,NCON
+      COMMON/MFLOWIT/fndegc,imix 
+      common/MFLDOC/DEPRE(MPRD)
+      COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
+      COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
+      INTEGER :: iairn,icaas
+      COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
+
+      CHARACTER outs*124,prt*60,DEPRE*40
+      CHARACTER NODID*12,T12*12
+      CHARACTER LAPROB*72,t72*72,t144*144
+      CHARACTER PCITM(35)*42,KEY*1,hold*36
+      CHARACTER ITEM(12)*32
+      CHARACTER MSG*48
+      LOGICAL OK
+      integer IVV  ! for radio button
+      integer NITMS,IVERT ! max items and current menu item
+      integer iz,iso,izuser,isouser  ! for selected zone and surface
+      logical changed,found
+
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found
+
+      helpinsub='FLOWNODES'  ! set for subroutine
+
+      changed=.false.
+      ifoc=0;
+      iz=0; iso=0; izuser=0; isouser=0  ! clear zone and surface for boundary node.
+      IFNOD=INOD
+
+      NODID=NDNAM(IFNOD)
+      
+  10  write(ITEM(1),'(2a)') 'a name: ',NDNAM(IFNOD)
+      if(NDFLD(IFNOD).eq.1)then
+        write(ITEM(2),'(a)') 'b fluid: air'
+      elseif(NDFLD(IFNOD).eq.2)then
+        write(ITEM(2),'(a)') 'b fluid: water'
+      else
+        write(ITEM(2),'(a)') 'b fluid: unknown'
+      endif
+      if(NDTYP(IFNOD).eq.0)then        
+        prt='internal & unknown'
+      elseif(NDTYP(IFNOD).eq.1)then
+        prt='internal & known'
+      elseif(NDTYP(IFNOD).eq.2)then
+        prt='boundary & known'
+      elseif(NDTYP(IFNOD).eq.3)then
+        prt='boundary & wind induced'
+      endif
+      write(ITEM(3),'(2a)') 'c type: ',prt(1:lnblnk(prt))
+      write(ITEM(4),'(A,3F7.1)')'d XYZ: ',HNOD(IFNOD,1),
+     &    HNOD(IFNOD,2),HNOD(IFNOD,3)
+
+C Zone volume and height if type 0 or 1.
+      IF(NDTYP(IFNOD).EQ.0.or.NDTYP(IFNOD).EQ.1.AND.NCOMP.gt.0)THEN
+        found=.false.
+        DO loop=1,NCOMP
+          if(ICAAS(loop).gt.0)then
+            i=ICAAS(loop)
+            if(NDNAM(i).eq.NDNAM(IFNOD))then
+              write(ITEM(5),'(2A)') 'e associated zone: ',
+     &          zname(loop)(1:lnzname(loop))
+              found=.true.
+              exit   ! no need to loop any more
+            endif
+          endif
+        enddo  ! of loop
+        if(.NOT.found)then
+          write(ITEM(5),'(A)') 'e not associated with zone'
+        endif
+      ELSE
+        ZVOL=0.0; VALHX=0.0; VALHY=0.0; VALHZ=0.0
+      ENDIF
+      M=7   ! assumed length of menu
+
+      IF(NDTYP(IFNOD).EQ.0)THEN
+        write(ITEM(6),'(A,F8.2)')  'f volume: ',SUPNOD(IFNOD,2)
+        if(ITND(IFNOD).eq.0)then
+          write(ITEM(7),'(A,F5.1)')'g constant temperature',TNOD(IFNOD)
+        else
+          write(ITEM(7),'(A)')     'g ambient temperature'
+        endif
+        M=7
+        write(ITEM(8),'(A)')      '  '
+        write(ITEM(9),'(A)')      '  '
+      ELSEIF(NDTYP(IFNOD).EQ.1)THEN
+        write(ITEM(6),'(A,F8.2)') 'f pressure: ',SUPNOD(IFNOD,1)
+        write(ITEM(7),'(A,F8.2)') 'g volume: ',SUPNOD(IFNOD,2)
+        M=7
+        write(ITEM(8),'(A)')      '  '
+        write(ITEM(9),'(A)')      '  '
+      ELSEIF(NDTYP(IFNOD).EQ.2)THEN
+        write(ITEM(5),'(A)')  '  '
+        write(ITEM(6),'(A,F8.2)') 'f pressure: ',SUPNOD(IFNOD,1)
+        iw=NINT(SUPNOD(IFNOD,2))
+        if(iw.eq.0)write(ITEM(7),'(A,F5.1)') 'g constant temperature',
+     &    TNOD(IFNOD)
+        if(iw.eq.1)write(ITEM(7),'(A)') 'g ambient temperature'
+        M=7
+        write(ITEM(8),'(A)')     '  '
+        write(ITEM(9),'(A)')     '  '
+      ELSEIF(NDTYP(IFNOD).EQ.3)THEN
+        write(ITEM(5),'(2A)')    'f associated zone: ',CMPASSOC(IFNOD,1)
+        write(ITEM(6),'(2A)')    '  associated surf: ',CMPASSOC(IFNOD,2)
+        write(ITEM(7),'(A)')     '  '
+        write(ITEM(8),'(A,i2)')  'h wind pressure set: ',
+     &    nint(SUPNOD(IFNOD,1))
+        write(ITEM(9),'(A,f6.1)')'i azimuth: ',SUPNOD(IFNOD,2)
+        M=9
+      ENDIF
+      ITEM(M+1)   ='  __________________________ '
+      ITEM(M+2)    ='? help                      '
+      ITEM(M+3)    ='- exit menu                 '
+      NITMS=M+3
+
+      CALL EMENU('Node attributes',ITEM,NITMS,INO)
+
+C Node name.
+      IF(INO.EQ.1)THEN
+   11   T12=NODID
+        CALL EASKS(T12,' ',' Node name (<= 12 characters): ',12,
+     &' ','node name',IER,nbhelp)
+        call st2name(T12,NODID)
+        DO 16 IN=1,NNOD
+          IF(NODID(1:12).EQ.NDNAM(IN)(1:12).AND.IN.NE.IFNOD)THEN
+            call easkok('Duplicate name!','Retry?',OK,nbhelp)
+            IF(.NOT.OK)RETURN
+            goto 11
+          endif
+  16    CONTINUE
+        write(NDNAM(IFNOD),'(a)') NODID(1:12)
+        changed=.true.
+        goto 10
+
+C Node fluid.
+      ELSEIF(INO.EQ.2)THEN
+        write(outs,'(3a)') 'Fluid through node ',NDNAM(IFNOD),':'
+        helptopic='node_fluid_type'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        if(imix.eq.1)then
+          NDFLD(IFNOD)=1
+        elseif(imix.eq.2)then
+          NDFLD(IFNOD)=2
+        else
+          if(NDFLD(IFNOD).eq.1)then
+            CALL EASKAB(outs,'(currently air)','air','water',
+     &        IW,nbhelp)
+          elseif(NDFLD(IFNOD).eq.2)then
+            CALL EASKAB(outs,'(currently water)','air','water',
+     &        IW,nbhelp)
+          else
+            CALL EASKAB(outs,'(currently undefined)','air','water',
+     &        IW,nbhelp)
+          endif
+          NDFLD(IFNOD)=IW
+        endif
+        changed=.true.
+        goto 10
+
+C Node type.
+      ELSEIF(INO.EQ.3)THEN
+        helptopic='node_type_summary'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        IVV=1
+        last=NDTYP(IFNOD)
+        CALL EASKATOG(' ',prt,
+     &  'internal, unknown','internal, known','boundary, known',
+     &  'boundary, wind induced','cancel',' ',' ',IVV,nbhelp)
+        IF(IVV.EQ.5) RETURN
+        NDTYP(IFNOD)=IVV-1
+        IF(NDTYP(IFNOD).EQ.3.AND.NDFLD(IFNOD).NE.1)THEN
+          CALL USRMSG(' ',' Fluid type must be air','-')
+          call usrmsg(' ',' ','-')
+        ENDIF
+
+C When swopping node type some of the attributes will need to be reset.
+C Also clear some of the menu items.
+       if(last.eq.2.and.NDTYP(IFNOD).eq.3)then
+         call edisp(iuout,' ')
+         call edisp(iuout,
+     &     'The wind pressure set will need to be checked.')
+         write(ITEM(6),'(A)')  '  '
+         write(ITEM(7),'(A)')  '  '
+         write(ITEM(8),'(A)')  '  '
+       elseif(last.eq.3.and.NDTYP(IFNOD).eq.2)then
+         call edisp(iuout,' ')
+         call edisp(iuout,
+     &     'The wind pressure set will need to be checked.')
+         write(ITEM(6),'(A)')  '  '
+         write(ITEM(7),'(A)')  '  '
+         write(ITEM(8),'(A)')  '  '
+       endif
+       if(last.eq.0.and.NDTYP(IFNOD).eq.1)then
+         call edisp(iuout,' ')
+         call edisp(iuout,
+     &     'The pressure will need to be checked.')
+         write(ITEM(6),'(A)')  '  '
+         write(ITEM(7),'(A)')  '  '
+         write(ITEM(8),'(A)')  '  '
+       elseif(last.eq.1.and.NDTYP(IFNOD).eq.0)then
+         call edisp(iuout,' ')
+         call edisp(iuout,
+     &     'The node temperature will need to be checked.')
+         write(ITEM(6),'(A)')  '  '
+         write(ITEM(7),'(A)')  '  '
+         write(ITEM(8),'(A)')  '  '
+       endif
+       goto 10
+
+C Position in space.
+      ELSEIF(INO.EQ.4)THEN
+        helptopic='flow_node_position'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        VALHX=HNOD(IFNOD,1); VALHY=HNOD(IFNOD,2)
+        VALHZ=HNOD(IFNOD,3)
+        write(hold,'(f10.4,f9.3,f8.3,a)') VALHX,VALHY,VALHZ,'   '
+ 342    CALL EASKS(HOLD,' ','Position in space?',
+     &    36,' 1.0  0.0  0.0 ','position',IER,nbhelp)
+        K=0
+        CALL EGETWR(HOLD,K,VALHX,-999.9,999.9,'W','X',IER)
+        CALL EGETWR(HOLD,K,VALHY,-99.9,999.9,'W','Y',IER)
+        CALL EGETWR(HOLD,K,VALHZ,-99.9,999.0,'W','Z',IER)
+        if(ier.ne.0)goto 342
+        HNOD(IFNOD,1)=VALHX; HNOD(IFNOD,2)=VALHY
+        HNOD(IFNOD,3)=VALHZ
+
+C Select associated zone if type 0 or 1. If boundary select zone & surface.
+      ELSEIF(INO.EQ.5)THEN
+        IF(NDTYP(IFNOD).EQ.0.or.NDTYP(IFNOD).EQ.1.AND.NCOMP.gt.0)THEN
+          helptopic='node_type_summary'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          write(MSG,'(3a)') 'Is ',NDNAM(IFNOD),
+     &      ' associated with a zone?'
+          CALL EASKOK(' ',MSG,OK,nbhelp)
+          IF(OK)THEN
+
+C Redraw the bluiding in the graphic screen.
+            MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
+            ITDSP=1; ITBND=1; ITEPT=0; ITZNM=0
+            ITSNM=1; ITVNO=1; ITORG=0; ITSNR=1
+            ITGRD=1; GRDIS=0.0; ITPPSW=0
+            nzg=NCOMP
+            if(nzg.gt.0)then
+              DO 44 I=1,nzg
+                nznog(I)=I
+  44          CONTINUE
+
+C (Re)Set all surfaces to standard line width.
+              CALL INLNST(1)
+              izgfoc=0
+              CALL redraw(IER)
+            endif
+
+            write(outs,'(a,a)')'Which zone is associated with ',
+     &        NDNAM(IFNOD)
+            IC=-1; IZ=-1
+            CALL ASKZONE(IC,0,OUTS,'Select zone:','-','mfn locate',
+     &        32,IER)
+            call usrmsg(' ',' ','-')
+            if(IC.EQ.0.OR.IC.EQ.-1)then
+              ZVOL=SUPNOD(IFNOD,2)
+              VALHX=HNOD(IFNOD,1); VALHY=HNOD(IFNOD,2)
+              VALHZ=HNOD(IFNOD,3)
+            else
+              ICAAS(IC)=IFNOD
+              VALHX=ZCOG(IC,1); VALHY=ZCOG(IC,2); VALHZ=ZCOG(IC,3)
+              ZVOL=VOL(IC)
+              SUPNOD(IFNOD,2)=ZVOL
+            endif
+            HNOD(IFNOD,1)=VALHX; HNOD(IFNOD,2)=VALHY
+            HNOD(IFNOD,3)=VALHZ
+          else
+            ZVOL=SUPNOD(IFNOD,2)
+          endif
+
+C NDTYP=3; boundary node, wind induced pressure. Select zone and surface.
+        ELSEIF(NDTYP(IFNOD).EQ.3)THEN
+          IZ=-1
+          helptopic='node_type_summary'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL PHELPD('wind-pressure surface',nbhelp,'-',0,0,IER)
+
+C Redraw the building in the graphic screen.
+          MODIFYVIEW=.TRUE.; MODBND=.TRUE.; MODLEN=.TRUE.
+          ITDSP=1; ITBND=1; ITEPT=0; ITZNM=0
+          ITSNM=1; ITVNO=1; ITORG=0; ITSNR=1
+          ITGRD=1; GRDIS=0.0; ITPPSW=0
+          nzg=NCOMP
+          if(nzg.gt.0)then
+            DO I=1,nzg
+              nznog(I)=I
+            ENDDO
+
+C (Re)Set all surfaces to standard line width.
+            CALL INLNST(1)
+            izgfoc=0
+            CALL redraw(IER)
+          endif
+          WRITE(OUTS,'(A)') 'Select the zone containing the surface.'
+          CALL ASKZONE(IZ,0,OUTS,'Select zone','-','wpn locate',
+     &      32,IER)
+          IF(IZ.NE.0)then
+            VALHX=ZCOG(IZ,1); VALHY=ZCOG(IZ,2)
+            VALHZ=ZCOG(IZ,3)
+          ENDIF
+          call usrmsg(' ',' ','-')
+          if(IZ.eq.0) goto 10
+
+C General image option flags.
+          call georead(IFIL+1,LGEOM(IZ),IZ,0,ITRU,IER)
+          MODIFYVIEW=.TRUE.
+          MODBND=.TRUE.
+          CALL INLNST(1)
+          ITZNM=0; ITSNM=0; ITORG=1; ITBND=1; ITSNR=1; ITGRD=1; ITVNO=1
+          nzg=1; nznog(1)=IZ; izgfoc=IZ
+          CALL redraw(IER)
+
+          ISO=1
+          WRITE(OUTS,'(A)')
+     &      'Select the surface subjected to the wind pressure:'
+          CALL EPMENSV
+          CALL EASKSUR(IZ,ISO,'-',OUTS,' ',IER)
+          CALL EPMENRC
+
+C Remember which zone and surface.
+          CMPASSOC(IFNOD,1)=ZNAME(IZ); CMPASSOC(IFNOD,2)=SNAME(iz,iso)
+          changed=.true.
+
+C Use SURCOG as the average height of this surface.
+C Figure out the delta for the boundary node would be if
+C 0.9m along normal vector.
+          PI = 4.0 * ATAN(1.0); RAD = PI/180.0;
+          V1=0.9; AZ=spazi(iz,iso); EL=spelv(iz,iso)
+          RYAZI = AZ*RAD; RSALT = EL*RAD
+          z3 = V1*SIN(RSALT)
+          XYDIS = V1*COS(RSALT)
+          IF (XYDIS .LT. 1E-6)THEN
+            x3 = 0.0; y3 = 0.0
+          ELSE
+            x3 = XYDIS*SIN(RYAZI); y3 = XYDIS*COS(RYAZI)
+          ENDIF
+
+C Offset node 0.9m from the user selected surface.
+          VALHX=x3+SURCOG(iz,iso,1);VALHY=y3+SURCOG(iz,iso,2)
+          ZAVE=z3+SURCOG(iz,iso,3)
+          VALHZ=ZAVE
+          HNOD(IFNOD,1)=VALHX; HNOD(IFNOD,2)=VALHY
+          HNOD(IFNOD,3)=VALHZ
+        ELSE
+          ZVOL=0.0; VALHX=0.0; VALHY=0.0; VALHZ=0.0
+        ENDIF
+        goto 10
+
+C Node volume or pressure depending on type.
+      ELSEIF(INO.EQ.6)THEN
+        IF(NDTYP(IFNOD).EQ.0)then  
+          helptopic='flow_node_volume'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          ZVOL=SUPNOD(IFNOD,2)    
+          CALL EASKR(ZVOL,' ','Node volume (m^3) ? ',
+     &         0.0,'F',0.,'-',1.0,'node volume',IER,nbhelp)
+          if(IER.ne.0)goto 10
+          SUPNOD(IFNOD,2)=ZVOL
+          changed=.true.
+        ELSEIF(NDTYP(IFNOD).EQ.1)THEN
+          helptopic='flow_node_pressure'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          VAL=SUPNOD(IFNOD,1)
+          CALL EASKR(VAL,' ','Node pressure (Pa) ?',
+     &       0.0,'-',0.0,'-',1.0,'node pressure',IER,nbhelp)
+          SUPNOD(IFNOD,1)=VAL
+          changed=.true.
+        ELSEIF(NDTYP(IFNOD).EQ.2)THEN
+          helptopic='flow_node_pressure'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          VAL=SUPNOD(IFNOD,1)
+          CALL EASKR(VAL,' ','Node pressure (Pa) ?',
+     &       0.0,'-',0.0,'-',1.0,'node pressure',IER,nbhelp)
+          SUPNOD(IFNOD,1)=VAL
+          changed=.true.
+        ELSEIF(NDTYP(IFNOD).EQ.3)THEN
+          continue
+        ENDIF
+
+C Node volume or temperature (zero out NDTYP=2 & Tflag=1 and NDTYP=3 nodes)
+C If the volume of the internal node is not zero ask for temperature.
+      ELSEIF(INO.EQ.7)THEN
+        ITND(IFNOD)=0
+        TNOD(IFNOD)=0.0
+        IF(NDTYP(IFNOD).EQ.1)THEN
+          helptopic='flow_node_volume'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKR(ZVOL,' ','Node volume (m^3) ? ',
+     &         0.0,'F',0.,'-',1.0,'node volume',IER,nbhelp)
+          if(IER.ne.0)goto 10
+          SUPNOD(IFNOD,2)=ZVOL
+          changed=.true.
+        ELSEIF(NDTYP(IFNOD).EQ.2)THEN
+          helptopic='initail_node_temp'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKAB(' ','temperature flag indicating: ',
+     &    'temperature is a constant',
+     &    'use outside air temperature',IW,nbhelp)
+          SUPNOD(IFNOD,2)=FLOAT(IW-1)
+          if(IW.eq.1)then
+            CALL EASKR(VAL,' ','Node temperature (C)?',
+     &        -100.0,'F',1000.0,'F',fndegc,'Node temperature',IER,
+     &        nbhelp)
+            TNOD(IFNOD)=VAL
+          endif
+        ELSEIF(NDTYP(IFNOD).NE.3.AND.
+     &    (NDTYP(IFNOD).NE.2.AND.SUPNOD(IFNOD,2).gt.0.001)) THEN
+          helptopic='initail_node_temp'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKAB('Node temperature: ','(see help)',
+     &    'Set initial or constant value',
+     &    'Set to temperature of another flow node',IW,nbhelp)
+          IT=IW-1
+          IF(IT.EQ.0) THEN
+             ITND(IFNOD)=0
+             if(TNOD(IFNOD).lt.0.001)then
+               VAL=fndegc
+             else
+               VAL=TNOD(IFNOD)
+            endif
+            CALL EASKR(VAL,' ','Node temperature (C) ? ',
+     &        -100.0,'F',1000.0,'F',fndegc,'Node temperature',IER,
+     &        nbhelp)
+             TNOD(IFNOD)=VAL
+             changed=.true.
+          ELSE
+
+C Pick associated node via cut-down version of ASKNOD (ASKRNOD) to
+C prevent problems with recursion.
+            CALL EPMENSV
+            call ASKRNOD('  associated node','-',I,IER)
+            CALL EPMENRC
+            ITND(IFNOD)=I
+            write(outs,*)'Current node volume is ',SUPNOD(IFNOD,2)
+            call edisp(iuout,outs)
+            write(outs,*)'Associated node volume is ',SUPNOD(I,2)
+            call edisp(iuout,outs)
+            helptopic='flow_node_volume'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            call easkok(' ','Use associated node volume?',OK,nbhelp)
+            if(ok)SUPNOD(IFNOD,2)=SUPNOD(I,2)
+          ENDIF
+        ENDIF
+        call usrmsg(' ',' ','-')
+        goto 10
+
+C Create a menu showing the available database items. 
+C Allow user to select one. Begin by reading current database
+C (signal by passing a blank string to erprcdb).
+      ELSEIF(INO.EQ.8)THEN
+        IF(NDTYP(IFNOD).EQ.3)THEN
+          t144='  '
+          CALL ERPRCDB(t144,0,3,IER)
+          if (ier.ne.0) THEN
+            CALL EDISP(IUOUT,
+     &        'Error opening pressure coefficients database.')
+            RETURN
+          endif
+
+C Setup multi-page menu. 
+          MHEAD=2; MCTL=4; ILEN=NPRE; IPACT=CREATE
+          CALL EKPAGE(IPACT)
+
+C Initial menu entry setup.
+ 70       IER=0
+          ILEN=NPRE
+          IVERT=-3
+
+C Loop through the items until the page to be displayed. M is the 
+C current menu line index. Build up text strings for the menu. 
+          PCITM(1)=' W:H  |  Exposure  |  Pitch (roof)'
+          PCITM(2)='  (W:H = width to height ratio)   '
+          M=MHEAD
+          DO 201 IM=1,NPRE
+            IF(IM.GE.IST.AND.(IM.LE.(IST+MIFULL)))THEN
+              M=M+1
+              CALL EMKEY(M,KEY,IER)   
+              WRITE(PCITM(M),'(A1,1X,A)')KEY,DEPRE(IM)
+            ENDIF
+  201     CONTINUE
+
+C Number of actual items displayed.
+          NITMS=M+MCTL
+
+C If a long list include page facility text.      
+          IF(IPFLG.EQ.0)THEN
+            PCITM(M+1)='  ________________________  '
+          ELSE
+            WRITE(PCITM(M+1),15)IPM,MPM 
+ 15         FORMAT   ('0 ---Page: ',I2,' of ',I2,' ---')
+          ENDIF
+          PCITM(M+2)=' '
+          PCITM(M+3)='? help                   '
+          PCITM(M+4)='- exit this menu         '
+          IVERT=-1
+
+C Help text for this menu.
+          helptopic='overview_pressure_db'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+  
+C Now display the menu.
+          call USRMSG('Select the pressure coefficient set which',
+     &'best matches this surface. (see help) ','-') 
+          CALL EMENU('Pressure Coefficient Sets:',PCITM,NITMS,IVERT)
+          IF(IVERT.EQ.NITMS)THEN
+            CALL USRMSG(
+     &      'You must select one pressure coefficient set!',' ','W')
+            GOTO 70
+          ELSEIF(IVERT.EQ.NITMS-1)THEN
+            helptopic='overview_pressure_db'
+            call gethelptext(helpinsub,helptopic,nbhelp)
+            CALL PHELPD('databases overview',nbhelp,'-',0,0,IER)
+            GOTO 70
+          ELSEIF(IVERT.EQ.NITMS-3)THEN
+
+C If there are enough items allow paging control via EKPAGE.
+            IF(IPFLG.EQ.1)THEN
+              IPACT=EDIT
+              CALL EKPAGE(IPACT)
+            ENDIF
+            GOTO 70
+          ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(NITMS-MCTL+1))THEN
+
+C Let user select a pc set.
+            CALL KEYIND(NITMS,IVERT,IFOC,IO)
+            SUPNOD(IFNOD,1)=IFOC
+          ELSE
+            IVERT=-1
+            GOTO 70
+          ENDIF
+
+C Ask whether choice is OK.
+          helptopic='overview_pressure_db'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          lnd=lnblnk(DEPRE(IFOC))
+          write(t72,'(3a)')
+     &      'Use ',DEPRE(IFOC)(1:lnd),' pressure coefficients?'
+          CALL EASKOK(' ',t72,OK,nbhelp)
+          IF(.NOT.OK)GOTO 70
+
+C Input angle external node.
+          helptopic='boundary_angle_height'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+
+C Ask the user to select the external surface associated with the node.
+C and extract the azimuth info (via SPAZI). 
+          IF(IZUSER.EQ.0) THEN
+            VAL=SUPNOD(IFNOD,2)
+          ELSE
+            VAL=SPAZI(izuser,isouser)
+          ENDIF
+          CALL EASKR(VAL,' ',
+     &       'Surface azimuth angle (degrees clockwise from north): ',
+     &        0.0,'F',359.0,'F',1.0,'surf azimuth angle',IER,nbhelp)
+          IF(IER.NE.0)GOTO 70
+          SUPNOD(IFNOD,2)=VAL
+          changed=.true.
+        ENDIF
+        goto 10
+      ELSEIF(INO.EQ.9)THEN
+        IF(NDTYP(IFNOD).EQ.0)THEN
+          continue
+        ELSEIF(NDTYP(IFNOD).EQ.1)THEN
+          continue
+        ELSEIF(NDTYP(IFNOD).EQ.2)THEN
+          continue
+        ELSEIF(NDTYP(IFNOD).EQ.3)THEN
+
+C Ask the user to select the external surface associated with the node.
+C and extract the azimuth info (via SPAZI). 
+          IF(IZUSER.EQ.0) THEN
+            VAL=SUPNOD(IFNOD,2)
+          ELSE
+            VAL=SPAZI(izuser,isouser)
+          ENDIF
+          helptopic='boundary_angle_height'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKR(VAL,' ',
+     &       'Surface azimuth angle (degrees clockwise from north): ',
+     &        0.0,'F',359.0,'F',1.0,'surf azimuth angle',IER,nbhelp)
+          SUPNOD(IFNOD,2)=VAL
+          changed=.true.
+        ENDIF
+        goto 10
+      ELSEIF(INO.EQ.M+1)THEN
+        goto 10
+      ELSEIF(INO.EQ.M+2)THEN
+        helptopic='flow_node_menu'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL PHELPD('flow nodes',nbhelp,'-',0,0,IER)
+        goto 10
+      ELSEIF(INO.EQ.M+3)THEN
+        if(changed)then
+          call edisp(iuout,' ')
+          call edisp(iuout,'Remember to save the flow network!')
+        endif
+        return
+      ENDIF
+      end  ! of MFNDMENU
+
 C ************************ MFCDES 
 C Fluid flow model description: input or edit component data
 C Called with four different modes.
@@ -1474,14 +1901,14 @@ C       'C' - Copy
 #include "net_flow_data.h"
 #include "prj3dv.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       CHARACTER LAPROB*72
       dimension clist(MCMV),IVALC(MCMV)
-      CHARACTER outs*124,clist*68,prompt*32,T12*12
-      CHARACTER CMPID*12,MOD*1,name*12
-      LOGICAL OK,dok,iswater
+      CHARACTER outs*124,clist*68,prompt*32,T12*12,msg*72
+      CHARACTER CMPID*12,MOD*1,name*12,twochar*2
+      LOGICAL OK,iswater
       logical changed
 
 C For help messages
@@ -1502,56 +1929,36 @@ C For help messages
           CMPID=CMNAM(IFCMP)
           if(IAIRN.eq.3.and.MMOD.eq.8)then
 
-C Highlight the component being edited.
-            call startbuffer
-            call MFWFDRAW('g')  ! draw all in grey first
-            call pausems(50)
-            VALHX=HCMP(ICMP,1,1); VALHY=HCMP(ICMP,1,2)
-            VALHZ=HCMP(ICMP,1,3)
-            name=CMNAM(ICMP)
-            call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
-            if(ITPCMP(ICMP).eq.120)then
-              call symbol_flow_cmp(name,'cr','r',valhx,valhy,valhz) ! highlight
-              call pausems(50)
-            elseif(ITPCMP(ICMP).gt.0.and.ITPCMP(ICMP).le.35)then
-              if(.NOT.iswater)then
-                call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
-              else
-                call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight 
-              endif
-              call pausems(50)
-            elseif(ITPCMP(ICMP).eq.40.or.ITPCMP(ICMP).eq.110)then
-              if(.NOT.iswater)then
-                call symbol_flow_cmp(name,'or','r',valhx,valhy,valhz) ! highlight 
-              else
-                call symbol_flow_cmp(name,'or','b',valhx,valhy,valhz) ! highlight 
-              endif
-              call pausems(50)
-            elseif(ITPCMP(ICMP).eq.50.or.ITPCMP(ICMP).eq.210)then
-              if(.NOT.iswater)then
-                call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
-              else
-                call symbol_flow_cmp(name,'cd','b',valhx,valhy,valhz) ! highlight 
-              endif
-              call pausems(50)
-            elseif(ITPCMP(ICMP).eq.130)then
-              call symbol_flow_cmp(name,'bi','r',valhx,valhy,valhz) ! highlight 
-              call pausems(50)
-            elseif(ITPCMP(ICMP).ge.220.or.ITPCMP(ICMP).le.250)then
-              call symbol_flow_cmp(name,'cd','r',valhx,valhy,valhz) ! highlight 
-              call pausems(50)
-            elseif(ITPCMP(ICMP).ge.310)then
-              if(.NOT.iswater)then
-                call symbol_flow_cmp(name,'bx','r',valhx,valhy,valhz) ! highlight 
-              else
-                call symbol_flow_cmp(name,'bx','b',valhx,valhy,valhz) ! highlight 
-              endif
-              call pausems(50)
+            VALHX=HCMP(IFCMP,1,1); VALHY=HCMP(IFCMP,1,2)    ! component position
+            VALHZ=HCMP(IFCMP,1,3)
+            name=CMNAM(IFCMP)
+            call ECLOSE(SUPCMP(IFCMP,1),2.0,0.0001,iswater) ! is it water or air
+
+C Highlight the component being edited and associated zone(s).
+            DO ICON=NCNN,1,-1
+              IF(ITPCON(ICON).EQ.IFCMP)THEN
+                call draw_connect_assoc(ICON)
+              ENDIF
+            ENDDO
+
+C Highlight component.
+            call get_component_code(IFCMP,twochar)
+            if(.NOT.iswater)then
+              call symbol_flow_cmp(name,twochar,'r',valhx,valhy,valhz) ! highlight 
+            else
+              call symbol_flow_cmp(name,twochar,'b',valhx,valhy,valhz) ! highlight 
             endif
+            call pausems(50)
           endif
         ENDIF
         helptopic='flow_network_comp_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
+
+C Proceed?
+        write(msg,'(3a)') 'Edit component ',CMPID(1:lnblnk(CMPID)),'?  '
+        call easkok(' ',msg,OK,nbhelp)
+        if(.NOT.OK)return
+
  4      T12=CMPID
         CALL EASKS(T12,' ',' Component name (<= 12 characters):',
      &    12,' ','comp name',IER,nbhelp)
@@ -1585,10 +1992,9 @@ C Make up a list of component types.
    45   CONTINUE 
 
         IF(MOD.EQ.'E')THEN
-          write(prompt,'(a,i4)') 'Current component type is: ',
-     &      ITPCMP(IFCMP)
-          dok=.true.
-          CALL ASKOK(prompt,'Accept this?',OK,dok,nbhelp)
+          write(prompt,'(a,i4,a)') 'Current component type is ',
+     &      ITPCMP(IFCMP),'.'
+          CALL EASKOK(prompt,'Accept this?',OK,nbhelp)
           if(OK)goto 42
         ELSE
           write(prompt,'(a)') 'Current component type is: NONE'
@@ -1802,14 +2208,14 @@ C       'C' - Copy
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       CHARACTER LAPROB*72
 
-      CHARACTER outs*124
+      CHARACTER outs*124,msg*72
       CHARACTER MOD*1
-      LOGICAL OK,dok,DMFCON
+      LOGICAL OK,DMFCON
       logical changed
 
 C For help messages
@@ -1826,23 +2232,39 @@ C For help messages
           IFCN=NCNN+1
         ELSEIF(MOD.EQ.'E')THEN
           IFCN=ICON
+          if(IAIRN.lt.3)then
+            continue
+          else
+
+C If 3D and graphic mode draw the zones associated with the
+C connection if they are internal known/unknown as well as 
+c adjacent connections (in grey) and highlight the current connection.
+            if(MMOD.eq.8) call draw_connect_assoc(IFCN)
+          endif
         ENDIF
 
 C Allow start & end nodes to be edited, checked for uniqueness,
 C matching fluid types and return data. 
   19    IF(MOD.EQ.'E')THEN
+          call edisp(iuout,' ')
           WRITE(OUTS,'(A,A12,A)')
-     &    'First (+ve) node: (currently ',NDNAM(NODPS(IFCN)),')'
+     &    'Connection (+ve) node: (currently ',NDNAM(NODPS(IFCN)),')'
           call edisp(iuout,outs)
           WRITE(OUTS,'(A,A12,A)')
-     &    'Second (-ve) node: (currently ',NDNAM(NODNE(IFCN)),')'
+     &    'Connection (-ve) node: (currently ',NDNAM(NODNE(IFCN)),')'
           call edisp(iuout,outs)
           WRITE(OUTS,'(3A,f7.3)')
-     &    '  Linking component: (currently ',CMNAM(ITPCON(IFCN)),
+     &    'Linking component: (currently ',CMNAM(ITPCON(IFCN)),
      &    ') @ ',HCMP(ITPCON(IFCN),1,3)
           call edisp(iuout,outs)
-          call askok('Accept currently associated nodes?',
-     &      ':',OK,dok,nbhelp)
+
+          write(msg,'(7a)') 'Edit connection ',NDNAM(NODPS(IFCN)),'->',
+     &      NDNAM(NODNE(IFCN)),' via ',CMNAM(ITPCON(IFCN)),'? '
+          call easkok(' ',msg,OK,nbhelp)
+          if(.NOT.OK)return
+    
+          call easkok(' ','Accept currently associated nodes? ',
+     &         OK,nbhelp)
           IF(OK)then
             INODPS=NODPS(IFCN)
             INODNE=NODNE(IFCN)
@@ -1872,20 +2294,18 @@ C Generate prompt for positive node.
         CALL EPMENRC
         IF(IE.EQ.0) RETURN
         if(IS.EQ.IE)then
-          dok=.true.
           helptopic='flow_connect_to_self'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok('You cannot connect a node to itself...',
-     &      'try again?',OK,dok,nbhelp)
+          call easkok('Node cannot connect to itself!',
+     &      'Retry?',OK,nbhelp)
           IF(.NOT.OK) RETURN
           goto 19
         endif
         if(NDFLD(IS).NE.NDFLD(IE))then
-          dok=.true.
           helptopic='flow_fluid_not_match'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok('Fluid types to not match...','try again?',
-     &      OK,dok,nbhelp)
+          call easkok('Fluid type mismatch!','Retry?',
+     &          OK,nbhelp)
           IF(.NOT.OK) RETURN
           goto 19
         endif
@@ -1903,13 +2323,11 @@ C See if duplicate connection already exists.
 C Confirm if a new connection is to be added.
             IF(MOD.EQ.'A'.AND.ICNN.NE.IFCN)THEN
               IF(.NOT.DMFCON)THEN
-                dok=.true.
                 helptopic='flow_additional_con'
                 call gethelptext(helpinsub,helptopic,nbhelp)
-                CALL ASKOK
-     &            ('A connection already exists between these ',
-     &            ' two nodes - do you want to add another? ',
-     &            OK,dok,nbhelp)
+                CALL EASKOK
+     &            ('Connection already exists between these nodes!',
+     &             'Add another? ',OK,nbhelp)
                 IF(.NOT.OK) RETURN  
                   DMFCON=.TRUE. 
                 ENDIF
@@ -1919,12 +2337,10 @@ C Look for a component type 220, 230, 240 or 250.
                 ICMPTP=ITPCMP(ICMP)
                 IF(ICMPTP.EQ.220.OR.ICMPTP.EQ.230.OR.
      &             ICMPTP.EQ.240.OR.ICMPTP.EQ.250) THEN
-                  dok=.true.
                   helptopic='flow_not_allowed_con'
                   call gethelptext(helpinsub,helptopic,nbhelp)
-                  CALL ASKOK(
-     &'You cannot have a duplicate connection between nodes for',
-     &'types 220, 230, 240 and 250. Try again?',OK,dok,nbhelp)  
+                  CALL EASKOK('Duplicate connection for comp. types',
+     &            '220, 230, 240 & 250 not allowed! Retry?',OK,nbhelp)  
                 IF(.NOT.OK)THEN
                   RETURN
                 ELSE
@@ -2004,6 +2420,11 @@ C Legacy file, do not report on component height.
 C Checks for component validity ...
 C Also check that a flow merge/split component is not being used in a
 C duplicate connection.
+        if(ICMP.eq.0)then
+          WRITE(OUTS,'(A)') 'No component selected! Returning.'
+          call edisp(iuout,outs)
+          return
+        endif
         ICMPTP=ITPCMP(ICMP)
         DMFCON=.FALSE.
         IF(ICMPTP.EQ.220.OR.ICMPTP.EQ.230.OR.
@@ -2017,12 +2438,10 @@ C duplicate connection.
             ENDIF
  88       CONTINUE
           IF(DMFCON)THEN
-            dok=.true.
             helptopic='flow_not_allowed_con'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL ASKOK(
-     &    'You cannot use types 220, 230, 240 and 250 twice between',
-     &    'the same two nodes. Try again?',OK,dok,nbhelp)  
+            CALL EASKOK('Component types 220, 230, 240 and 250 cannot',
+     &       'be used twice between the same nodes! Retry?',OK,nbhelp)  
             IF(.NOT.OK)THEN
               RETURN
             ELSE
@@ -2128,6 +2547,12 @@ C Refresh the network overly now that NCNN has been updated.
         endif
         
       ELSEIF(MOD.EQ.'D')THEN
+        IFCN=ICON
+        if(MMOD.eq.8.and.IAIRN.eq.3)then
+          call draw_connect_assoc(IFCN)
+        endif
+        call easkok(' ','Delete this connection? ',OK,nbhelp)
+        if(.NOT.OK)return
 
 C Delete a connection
         IFCN=ICON
@@ -2157,6 +2582,11 @@ C Refresh the network overly.
 C Copy a connection   
       ELSEIF(MOD.EQ.'C')THEN
         IFCN=ICON
+        if(MMOD.eq.8.and.IAIRN.eq.3)then 
+          call draw_connect_assoc(IFCN)
+        endif
+        call easkok(' ','Copy this connection? ',OK,nbhelp)
+        if(.NOT.OK)return
         ICMP=ITPCON(IFCN)
         ICMPTP=ITPCMP(ICMP)
         IF(ICMPTP.EQ.220.OR.ICMPTP.EQ.230.OR.
@@ -2199,16 +2629,14 @@ C Fluid flow model file: edit or input wind speed reduction factor
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/MFLCLM/DRYB,QDIF,QDNR,IRVH,WDIR,WSPD,WRED
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
       CHARACTER outs*124
-      LOGICAL OK,dok
+      LOGICAL OK
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2223,10 +2651,8 @@ C Warn if current wind reduction factor is zero
       IF(WRED.LE.0.0)CALL usrmsg(' The current wind reduction factor ',
      &  ' effectively suggests zero wind pressure !!','W')
       WRITE(outs,1010) WRED
- 1010 FORMAT(' Wind speed reduction factor [current value = ',F6.3,'];',
-     &       ' edit this ?')
-      dok=.true.
-      CALL ASKOK(outs,' edit this (see help)?',OK,dok,nbhelp)
+ 1010 FORMAT('Current wind speed reduction factor = ',F6.3,'.')
+      CALL EASKOK(outs,'Edit?',OK,nbhelp)
       IF(.NOT.OK)RETURN
 
 C Calculation model ?
@@ -2261,7 +2687,7 @@ C Allow the user to select the roof of the building
 C General image option flags.
 C << might want to save current values for later recovery >>
       ITDSP=1; ITBND=1; ITEPT=0; ITZNM=0; ITSNM=0
-      ITVNO=1; ITORG=1; ITSNR=1
+      ITVNO=1; ITORG=1; ITBND=1;ITSNR=1
       ITGRD=1; GRDIS=0.0; ITPPSW=0
 
       MODIFYVIEW=.TRUE.
@@ -2281,10 +2707,9 @@ C << might want to save current values for later recovery >>
       CALL EASKSUR(ISZONE,ISO,'-',OUTS,' ',IER)
       CALL EPMENRC
 
-C Use SSURCOG as the average height of this surface
+C Use SURCOG as the average height of this surface
       ZAVE=0.0
-      icc=izstocn(iszone,iso)
-      ZAVE=SSURCOG(icc,3)
+      ZAVE=SURCOG(iszone,iso,3)
       ROOFH=ZAVE
 
 C Roof height ?
@@ -2303,9 +2728,8 @@ C 'powerlaw' wind profile.
         if(ier.ne.0)goto 90
         WRED=CF1*ROOFH**CF2
         WRITE(outs,1011) WRED
- 1011   FORMAT(' Wind speed reduction factor [new value = ',F6.3,'];')
-        dok=.true.
-        CALL ASKOK(outs,' Is this OK ?',OK,dok,nbhelp)
+ 1011   FORMAT('Wind speed reduction factor = ',F6.3,'.')
+        CALL EASKOK(outs,'Is this OK?',OK,nbhelp)
         IF(OK)RETURN
         GOTO 11
       ELSEIF(ICALC.EQ.2)THEN
@@ -2328,9 +2752,8 @@ C Us,l/Us,m = (z0,l/z0,m)**0.1 (acc. dictaat Wisse 1990)
         WRED=(CF1/CF4)**0.1 * ALOG((ROOFH-CF2)/CF1)/
      &                        ALOG((CF3  -CF5)/CF4)
         WRITE(outs,1012) WRED
- 1012   FORMAT(' Wind speed reduction factor [new value = ',F6.3,'];')
-        dok=.true.
-        CALL ASKOK(outs,' is this OK ?',OK,dok,nbhelp)
+ 1012   FORMAT('Wind speed reduction factor = ',F6.3,'.')
+        CALL EASKOK(outs,'Is this OK?',OK,nbhelp)
         IF(OK)RETURN
         GOTO 11
       ELSEIF(ICALC.EQ.3)THEN
@@ -2351,9 +2774,8 @@ C LBL model wind profile.
 
         WRED=CF1*(ROOFH/10.)**CF2/(CF4*(CF3/10.)**CF5)
         WRITE(outs,1013) WRED
- 1013   FORMAT(' Wind speed reduction factor [new value = ',F6.3,'];')
-        dok=.true.
-        CALL ASKOK(outs,' is this OK ?',OK,dok,nbhelp)
+ 1013   FORMAT('Wind speed reduction factor = ',F6.3,'.')
+        CALL EASKOK(outs,'Is this OK?',OK,nbhelp)
         IF(OK)RETURN
         GOTO 11
       ENDIF
@@ -2377,10 +2799,11 @@ C            be a new network
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "prj3dv.h"
+
       INTEGER, PARAMETER :: MNWKTYP=6  ! from gnetwk.h
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       

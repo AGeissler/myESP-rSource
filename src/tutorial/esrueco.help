@@ -7,28 +7,24 @@
 '  '
 'And you can report on absolute units or realative units /m2.'
 *enditem
-        CALL easkabcd('Define the results unit.',
-        CALL easkabc('Define the ENERGY unit.',
-        CALL easkabc('Define the MASS unit.',
-        CALL easkabc('Define the results format',
+
 *item eco eco_export_current
 'Export current result in an ASCII file according '
 'to the format in the textual feedback. '
 *enditem
+
 *item eco eco_model_file
 'The problem configuration file holds the definition '
 'of the building/ plant to be simulated, including the'
 'names of all of the files required.'
 *enditem
-            CALL EASKF(L144,' Problem name? ',' ',96,DFCFG,
+
 *item eco eco_BCF_options
 'The building composites file (BCF) holds the current'
 'description and data of each multilayer construction.'
 'This file is currently being revised.'
 *enditem
-          call easkabc('A BCF of the current problem is loaded.',
-          CALL EASKS(BCFName,'New building composites file?',' ',72,
-          CALL EASKS(BCFName,'Building composites file?',' ',72,
+
 *item eco eco_assessing_impacts
 'Assessing the environmental impacts.'
 '----------------------------------- '
@@ -57,27 +53,26 @@
 ' When the required information have been define, an EIA'
 ' can be performed by clicking on [1 EIA calculation ...]'
 *enditem
-        CALL EASKABC('Approaches to scope of LCA calculations:',' ',
+
 *item eco eco_select_manually
 'If you want to select manually the surfaces to '
 'include in the calculation, select Yes.'
 ' Otherwise, it include automatically all the '
 'surfaces of the project. '
 *enditem
-             CALL EASKAB(' Do you want to select manually the surfaces',
+
 *item eco eco_no_zone_selected
 'As no zone has been selected, the calculation will'
 'be done for the corresponding dimensions:'
 '  The width in [m] of the composite to analyse.'
 '  The height in [m] of the composite to analyse.'
 *enditem
-        CALL EASKS(Hold,' Environmental impacts of a composite :',
-        CALL EASKABC('Your selection is `0` i.e. air. Options:',
+
 *item eco eco_no_zone_selected
 'As no zone has been selected, the calculation will'
 'be done for the corresponding material mass [kg].'
 *enditem
-        CALL EASKS(HOLD,' Environmental impacts of a single material :',
+
 *subroutine ELISTCMOD
 *item ELISTCMOD eco_material_classes
 'The classifications shown in the display include up to'
@@ -92,10 +87,7 @@
 'If you want to add a new category you will be asked for a'
 'description of up to 32 characters.'
 *enditem
-        CALL PHELPD('materials menu',3,'-',0,0,IER)
-        CALL EPICKS(INPIC,ICLSSEL,' ',' Which classes to list:',
-        CALL EASKABC(' Reporting to:',' ',
-        CALL EASKS(t32,' Classification name (<32 char)?',' ',
+
 *item ELISTCMOD eco_material_prop
 'The information in this display is based on data from'
 'a materials database.  Databases of this'
@@ -119,31 +111,26 @@
 'it a name up to 32 characters.  You will also be asked to'
 'supply a descriptive block of text up to 248 characters.'
 *enditem
-          CALL ASKOK('Changes have been made in db to save these ',
-          CALL EASKS(t32,' ',' Classification name (<32 char)?',
-          CALL EASKS248(t248,'Category notes:',' ',
-          CALL PHELPD('materials database',13,'-',0,0,IER)
-          CALL EASKABC(' ','Options: ',' Delete existing material',
-          CALL ASKOK(outs,'as your selection ?',OK,dok,1)
+
 *subroutine Zoneslist
 *item Zoneslist eco_pick_zones
 ' Pick one, several or All zones for inclusion '
 ' from the list provided. '
 ' You may choose them in any order. '
 *enditem
-        CALL EPICKS(INPIC,IVALZ,' ',' Which zones to include: ',
+
 *subroutine ZoneDisp
 *item ZoneDisp eco_surface_attribures
 'The surface attributes of the zone geometry file,'
 *enditem
-        CALL PHELPD('zone geom file section',1,'-',0,0,IER)
+
 *subroutine CompoList
 *item CompoList eco_select_from_list
 'Pick one, several or All constructions for inclusion in a'
 'the output from the list provided. '
 'You may choose them in any order. '
 *enditem
-      CALL EPICKS(INPIC,IVALZ,' ',' Which composites to include:',
+
 *subroutine LCAcalc
 *item LCAcalc eco_LCA_calculations
 'Selection of the LCA results'
@@ -162,8 +149,7 @@
 '3) Whole cycle: In this case, the results correspond to '
 '   the impacts from cradle to grave.'
 *enditem
-        CALL EASKABCD(' ', 'Do you want to add in output file :',
-        CALL EASKABCD(' ', 'Do you want to analyse:',
+
 *item LCAcalc eco_LCA_elementary
 'ELEMENTARY LCA PHASE'
 ' '
@@ -206,7 +192,7 @@
 '    waste.'
 ' 13 Recycled waste : Mass of recycled waste '
 *enditem
-          CALL PHELPD('ELEMENTARY LCA PHASE menu',41,'-',0,0,IER)
+
 *subroutine LCADet
 *item LCADet eco_LCA_results
 'Selection of the LCA results'
@@ -225,8 +211,7 @@
 '3) Whole cycle: In this case, the results correspond to '
 '   the impacts from cradle to grave.'
 *enditem
-        CALL EASKABCD(' ', 'Do you want to add in output file :',
-        CALL EASKABCD(' ', 'Do you want to analyse:',
+
 *item LCADet eco_res_elementary
 'ELEMENTARY LCA PHASE'
 ' '
@@ -269,10 +254,3 @@
 '    waste.'
 ' 13 Recycled waste : Mass of recycled waste '
 *enditem
-          CALL PHELPD('ELEMENTARY LCA PHASE menu',41,'-',0,0,IER)
-        CALL EASKABCD('LCA impacts:',' Which major stage ? ',
-*subroutine SCNBCF
-*item SCNBCF
-*enditem
-      CALL EASKAB(' When reading in the BCF file, do you',
-*subroutine ErrArg

@@ -1,7 +1,3 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001-2009.
-
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation 
@@ -13,36 +9,33 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C The file commonclm.f is a collection of subroutines associated
-C with climate data that are used by multiple applications.
+C with weather data that are used by multiple applications.
 
-C CLMGET    Fetch a days (real) data from climate database into common block for use.
+C CLMGET    Fetch a days (real) data from weather file into common block for use.
 C AZALT     Calculate the solar azimuth and elevation angles at each hour
 C           of the day for any site.
-C clmddscan Scan a climate file and determine the degree days.
-C CLMCHKMET Check that we have at least the required 6 climate metrics.
-C CLMRDBMD  Read metadata at the end of a binary climate database.
-C CLMMDN2O  Map climate metadata commons in climate.h to old commons for all modules.
-C CLMRDBD   Read a days (integer) data from a climate database.
-C CLMDN2O   Map climate data commons in climate.h to old commons in bps.
-C CLMOPB    Open a climate database.
+C clmddscan Scan a weather file and determine the degree days.
+C CLMCHKMET Check that we have at least the required 6 weather parameters.
+C CLMRDBMD  Read metadata at the end of weather file.
+C CLMMDN2O  Map weather metadata commons in climate.h to old commons for all modules.
+C CLMRDBD   Read a days (integer) data from a weather file.
+C CLMDN2O   Map weather data commons in climate.h to old commons in bps.
+C CLMOPB    Open a weather file.
+C CLMARR    Arrange weather parameter column order.
 
-C ---------- CLMGET
-C Recover one day's data from climate file into common block for use.
-C Assume we've already read header data.
+C ********** CLMGET **********
+C Recover one day's data from weather file.
+C Assumes that the header data has already been read.
       SUBROUTINE CLMGET(IDAY)
-      implicit none
 #include "climate.h"
 
       integer iday  ! passed in julian day of the year
-      integer ifil,iuout,iuin,idngh,ier
+      integer ifil,idngh,ier
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/RADTYP/IDNGH
 
       integer j,k,IDAYP1
@@ -70,7 +63,6 @@ C Data now in CMIVAL. Convert this to actual values and put into CMVAL.
 
   999 RETURN
 
-C Error messages.
   666 call edisp(iuout,
      &  ' Error encountered; substituting zeros for data.')
       do j=1,24
@@ -82,20 +74,18 @@ C Error messages.
       goto 999
       END
 
-C ************ AZALT
-C AZALT Calculate the solar azimuth and elevation angles at each hour
-C of the day for any site for either local mean time or apparent time.
+C ************ AZALT ************
+C Calculates the solar azimuth and altitude angles at each hour
+C of the day for local time.
 
-C RLONGT = Longitudinal difference east = positive, west = negative of
-C          the reference time zone e.g. Britain reference is Greenwich
-C          zero degrees longitude.
-C RLATIT = Latitude of the site north = positive, south = negative degrees.
+C RLONGT = Longitudinal difference, East is positive, West is negative
+C          of the reference meridian, e.g. Greenwich (0 deg) for the UK.
+C RLATIT = Latitude, North is positive, South is negative.
       SUBROUTINE AZALT(IYD,ITS,RLONGT,RLATIT,SOLALT,SOLAZI)
       implicit none
       
       real esind,ecosd  ! function definitions
 
-C Parameters:
       integer IYD  ! julian day of the year
       integer ITS  ! time system 1 = local mean time, 2 = local apparent time
       real RLONGT,RLATIT,SOLALT,SOLAZI
@@ -103,13 +93,15 @@ C Parameters:
       
       integer INIT
       real GLAT,GLON
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/UAZALT/INIT,GLAT,GLON
       character h*72
       common/pophelp/h(60)
 
-C Local definitions:
-      logical OK,dok,close
-      integer IHR
+C Local definitions.
+      logical OK,close
+      integer IHR,ISTAT
       real PI,DECLIN,SDDECL,CDDECL,CDTIME,TIME,TIMCOE,ABSTMC,ASDTIM
       real ALT,SDLAT,CDLAT,AZMUTH
       real A,B,EQTIME,X,Y
@@ -124,17 +116,17 @@ C CHECK LATITUDE AND LONGITUDE.
       IF(RLATIT.GT.90.0.OR.RLATIT.LT.-90.0)goto 14
       IF(RLONGT.GT.15.0.OR.RLONGT.LT.-15.0)goto 14
  
-C THE SIN AND COS OF THE LATITUDE ARE EVALUATED.
+C SIN AND COS OF LATITUDE.
    15 SDLAT=ESIND(RLATIT)
       CDLAT=ECOSD(RLATIT)
 
-C CALCULATION OF THE EQUATION OF TIME.
+C EQUATION OF TIME.
       IF(ITS.EQ.2)goto 11
       A=1.978*IYD-160.22
       B=0.989*IYD-80.11
       EQTIME=0.1645*ESIND(A)-0.1255*ECOSD(B)-0.025*ESIND(B)
 
-C CALCULATION OF THE DECLINATION.
+C SOLAR DECLINATION.
    11 A=280.1+0.9863*FLOAT(IYD)
       DECLIN=23.45*ESIND(A)
       SDDECL=ESIND(DECLIN)
@@ -154,7 +146,7 @@ C CORRECTION WILL THEREFORE BE REQUIRED.
 C      SDTIME=ESIND(TIMCOE)
       ASDTIM=ESIND(ABSTMC)
 
-C CALCULATION OF THE SOLAR ALTITUDE.
+C SOLAR ALTITUDE.
       ALT=SDLAT*SDDECL+CDLAT*CDDECL*CDTIME
       SOLALT(IHR)=ASIN(ALT)*180.0/PI
 
@@ -191,13 +183,14 @@ C in north or south hemispheres.
    10 CONTINUE
       RETURN
 
-   14 dok=.true.
-      h(1)='There are some limits that should not be exceeded.'
-      h(2)='If you say no the the program will STOP. '
-      CALL ASKOK('Lat was outwith +-90.0 or Long difference more than',
-     &  '+- 15 deg. Continue with default Lat/Long?',OK,dok,2)
+   14 h(1)='There are some limits that should not be exceeded.'
+      h(2)='If you say no, the program will STOP. '
+      CALL EASKOK('Lat. +/- 89.9 deg. or Long. diff. +/- 14.9 deg.',
+     &  'Continue with default values?',OK,2)
       if(.NOT.OK)then
         call pauses(3)   ! pause for 3 seconds then abort program.
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       endif
@@ -207,7 +200,7 @@ C in north or south hemispheres.
       goto 15
       END
 
-C ********* clmddscan
+C ********** clmddscan **********
 C clmddscan scans a climate file and determines the degree days based
 C on common block data in seasons.h.  This code was previously found
 C in subroutine clmper.F:ddradsum.
@@ -228,7 +221,7 @@ C seasons.h provides typper and typsea
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
@@ -258,7 +251,7 @@ C  hddratio is the season / assessment ratio for heating
       dimension cddratio(MIPVA)
       dimension hddratio(MIPVA)
 
-      logical ok,dok
+      logical ok
 
 C Clear initial values and parameters for whole period.
       DNM=0.
@@ -401,27 +394,27 @@ C UPDATE WHOLE PERIOD
 C Loop through each week in each season and check against the
 C calculated average data.
 C Loop through each seasonal period.
-      h(1)='Typical weeks are found by scanning the climate data'
+      h(1)='Typical weeks are found by scanning the weather data'
       h(2)='for a week in each season which has the least deviation'
-      h(3)='in heating degree days (DD), cooling degree days, and'
+      h(3)='in heating degree-days (DD), cooling degree-days, and'
       h(4)='solar radiation. '
       h(5)=' '
       h(6)='It reports the parameters it uses to determine the'
       h(7)='best fit as well as several ratios between the best'
       h(8)='week and the season (ratio of julian days, ratio of'
-      h(9)='heating degree days and ratio of cooling degree days'
+      h(9)='heating degree-days and ratio of cooling degree-days'
       h(10)='all of which are parameters required for generating'
       h(11)='an integrated performance view (IPV).'
-      call easkab('Options:',' ','search for typical weeks',
+      call easkab(' ','Options:','search for typical weeks',
      &  'continue',iok,11)
       if(iok.eq.2)return
 
 C Allow user to define weightings.
-      H(1)='Weightings for heating degree days, cooling degree days'
+      H(1)='Weightings for heating degree-days, cooling degree-days'
       H(2)='and solar radiation can be given. The default is equal'
-      H(3)='weightings for each.'
+      H(3)='weighting.'
       write(hold,'(3f6.3)') hddw,cddw,radw
- 143  CALL EASKS(HOLD,'Weightings for HDD CDD Solar:',' ',32,
+ 143  CALL EASKS(HOLD,' ','Weightings for HDD, CDD & solar:',32,
      &  ' 1.0 1.0 1.0 ','weightings for hdd cdd solar',IER,3)
       K=0
       CALL EGETWR(HOLD,K,hddw,0.0,1.0,'W','hdd weight',IER)
@@ -495,17 +488,17 @@ C For each day read climate data, set parameters and analyse.
             IF(TT.GT.hddbaset)then
             else
 
-C T below heating BASE,SAVE DEG-HRS IN DNJ
+C Temperature below heating BASE,SAVE DEG-HRS IN DNJ.
               DNJ=DNJ+(hddbaset-TT)
             endif
             IF(TT.GT.cddbaset)then
 
-C T above cooling BASE ,SAVE DEG-HRS IN UPJC
+C Teperature above cooling BASE ,SAVE DEG-HRS IN UPJC.
               UPJC=UPJC+(TT-cddbaset)
             endif
    21     CONTINUE
 
-C Convert day to D,M
+C Convert day to D,M.
           II=I
           CALL EDAYR(II,IDD,IMM)
           CALL EWEEKD(IDD,IMM,icuryear,IDWK)
@@ -568,21 +561,21 @@ C Update whole period.
           UPMC=0.
           HRMC=0.
 
-C CONVERT TO DEG-DAYS PER DAY
+C Convert to degree-days per day.
   41      CONTINUE
           XDN=DNJ/24
           XUPC=UPJC/24
 
-C UPDATE PARAMETERS FOR THIS week
+C Update parameters for this week
           DNM=DNM+DNJ
           HRM=HRM+DAYL
           UPMC=UPMC+UPJC
           HRMC=HRMC+DAYL
 
-C AND GO TO NEXT DAY
+C Go to next day.
    11   CONTINUE
 
-C NOW LAST week, compute parameters for last week
+C Compute parameters for last week.
         XHR=24.0/HRM
         XHRC=24.0/HRMC
         XDN=DNM/24
@@ -597,7 +590,7 @@ C NOW LAST week, compute parameters for last week
         call edisp(itru,outs)
         if(itru.ne.iuout)call edisp(iuout,outs)
 
-C Deal with radition here for last week of season.
+C Deal with radiation here for last week of season.
         if(seahddwk(k).gt.0.001)then
           PARM1=ABS(XDN-seahddwk(k))/seahddwk(k)
         else
@@ -658,10 +651,9 @@ C there is no divide by zero.
      &      hddratio(k),' & cool DD:',cddratio(k)
           call edisp(iuout,outs)
           if(act.eq.'?')then
-            dok=.true.
-            h(1)='Unless you have better information, say yes. '
-            call askok('Use best-fit week for the 1st winter season',
-     &       'typical assessment period in the climatelist?',ok,dok,1)
+            h(1)='Unless you have better information, say yes.'
+            call easkok('Use best-fit week for the 1st winter season',
+     &       'typical assessment period in the climatelist?',ok,1)
             if(ok)then
               ia1wins = iwkbstrt(k)
               ia1winf = iwkbstrt(k)+6
@@ -681,10 +673,9 @@ C Debug...
      &      hddratio(k),' & cool DD:',cddratio(k)
           call edisp(iuout,outs)
           if(act.eq.'?')then
-            dok=.true.
             h(1)='Unless you have better information, say yes. '
-            call askok('Use best-fit week for the spring season',
-     &       'typical assessment period in the climatelist?',ok,dok,1)
+            call easkok('Use best-fit week for the spring season',
+     &       'typical assessment period in the climatelist?',ok,1)
             if(ok)then
               ia1sprs = iwkbstrt(k)
               ia1sprf = iwkbstrt(k)+6
@@ -703,10 +694,9 @@ C Debug...
      &      hddratio(k),' & cool DD:',cddratio(k)
           call edisp(iuout,outs)
           if(act.eq.'?')then
-            dok=.true.
-            h(1)='Unless you have better information, say yes. '
-            call askok('Use best-fit week for the summer season',
-     &       'typical assessment period in the climatelist?',ok,dok,1)
+            h(1)='Unless you have better information, say yes.'
+            call easkok('Use best-fit week for the summer season',
+     &       'typical assessment period in the climatelist?',ok,1)
             if(ok)then
               iasums = iwkbstrt(k)
               iasumf = iwkbstrt(k)+6
@@ -725,10 +715,9 @@ C Debug...
      &      hddratio(k),' & cool DD:',cddratio(k)
           call edisp(iuout,outs)
           if(act.eq.'?')then
-            dok=.true.
             h(1)='Unless you have better information, say yes. '
-            call askok('Use best-fit week for the autumn season',
-     &       'typical assessment period in the climatelist?',ok,dok,1)
+            call easkok('Use best-fit week for the autumn season',
+     &       'typical assessment period in the climatelist?',ok,1)
             if(ok)then
               ia2sprs = iwkbstrt(k)
               ia2sprf = iwkbstrt(k)+6
@@ -747,10 +736,9 @@ C Debug...
      &      hddratio(k),' & cool DD:',cddratio(k)
           call edisp(iuout,outs)
           if(act.eq.'?')then
-            dok=.true.
             h(1)='Unless you have better information, say yes. '
-            call askok('Use best-fit week for the 2nd winter season',
-     &       'typical assessment period in the climatelist?',ok,dok,1)
+            call easkok('Use best-fit week for the 2nd winter season',
+     &       'typical assessment period in the climatelist?',ok,1)
             if(ok)then
               ia2wins = iwkbstrt(k)
               ia2winf = iwkbstrt(k)+6
@@ -778,15 +766,15 @@ C day ratio.
         dmsmlpw(k)=dayratio
         dmfan(k)=dayratio
         dmdhw(k)=dayratio
-        h(1)='You might wish to record this information before going'
-        h(2)='to the next season.'
+        h(1)='You might wish to record this information before'
+        h(2)='proceeding to the next season.'
         if(act.eq.'?')then
           continue
         else
           if(k.eq.5)then  ! jump out on the final standard season
             iok=1
           else
-            call easkab('Options:',' ','look at next season','continue',
+            call easkab('Options:',' ','next season','continue',
      &        iok,2)
           endif
           if(iok.eq.2)return
@@ -797,9 +785,9 @@ C day ratio.
       return
       end
 
-C ---------------- CLMCHKMET -------------------
-C CLMCHKMET checks that we have at least the required 6 metrics in a v2+
-C climate file. IER=0 if yes, 1 if no.
+C ********** CLMCHKMET **********
+C CLMCHKMET checks that we have at least the required 6 metrics in a V2
+C weather file. IER=0 if yes, 1 if no.
       SUBROUTINE CLMCHKMET(IER)
 #include "climate.h"
 
@@ -815,11 +803,11 @@ C climate file. IER=0 if yes, 1 if no.
       RETURN
       END
 
-C ---------------- CLMRDBMD -------------------
-C CLMRDBMD reads metadata at the end of a binary climate database
+C ********** CLMRDBMD **********
+C Reads metadata at the end of a binary climate database
 C and sets values of commons CLMFIL and CLMMET in climate.h.
-C It is assumed that the file is already open and we already know the
-C version (CFVER in climate.h).
+C It is assumed that the file is already open and the
+C version is known (CFVER in climate.h).
       SUBROUTINE CLMRDBMD(IER)
 #include "esprdbfile.h"
 #include "climate.h"
@@ -829,17 +817,13 @@ C version (CFVER in climate.h).
 
       dimension ISCM(MCM)
 
-c      write(6,*)'CFVER ',CFVER ! debug
       if (CFVER.eq.1) then
         IREC=366
         READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)CFYEAR,ICDNGH
-c        write(6,*)'CFYEAR,ICDNGH ',CFYEAR,ICDNGH ! debug
         IREC=IREC+1
         READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)CFLOC
-c        write(6,*)'CFLOC ',CFLOC ! debug
         IREC=IREC+1
         READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)CFLAT,CFLONG
-c        write(6,*)'CFLAT,CFLONG ',CFLAT,CFLONG ! debug
 
         NCM=6
         CMXST(1:2)=(/.true.,.true./)
@@ -861,13 +845,10 @@ c        write(6,*)'CFLAT,CFLONG ',CFLAT,CFLONG ! debug
       elseif (CFVER.gt.1) then
         IREC=366
         READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)CFYEAR
-c        write(6,*)'CFYEAR ',CFYEAR ! debug
         IREC=IREC+1
         READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)CFLOC,CFLAT,CFLONG
-c        write(6,*)'CFLOC,CFLAT,CFLONG ',CFLOC,CFLAT,CFLONG ! debug
         IREC=IREC+1
         READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)(CMCOL(i),i=1,CFMCM)
-c        write(6,*)'CMCOL ',CMCOL ! debug
         NCM=0
         do i=1,CFMCM
           if (CMCOL(i).ge.1) then
@@ -899,12 +880,9 @@ c        write(6,*)'CMCOL ',CMCOL ! debug
 
       END
 
-C ---------------- CLMMDN2O -------------------
-C <CLMNEW2OLD>
-C CLMMDN2O maps values of new climate commons in climate.h to old
-C commons, for metadata from a binary climate database.
-
-C This should work for all modules.
+C ********** CLMMDN2O **********
+C Maps values of new weather commons in climate.h to old
+C commons, for metadata from a binary weather file.
 
       SUBROUTINE CLMMDN2O
 
@@ -917,7 +895,7 @@ C in BPS.
 C in CLM.
       COMMON/RADTYP/IDNGH
       COMMON/CLMDT1/CLMLOC
-      CHARACTER CLMLOC*30
+      CHARACTER CLMLOC*42
 
 C in both.
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
@@ -941,17 +919,17 @@ C in both.
       RETURN
       END
 
-C ---------------- CLMRDBD -------------------
-C CLMRDBD reads IDAYPs weather data from a binary climate database, 
-C plus the first time step of IDAYFs weather data, and puts values into
-C common CMIVAL.
+C ********** CLMRDBD **********
+C Reads IDAYP's weather data from a binary weather file, plus
+C the first time step of IDAYF's weather data, and puts values
+C into common CMIVAL.
 
       SUBROUTINE CLMRDBD(IDAYP,IDAYF,IER)
 
 #include "climate.h"
 #include "esprdbfile.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character outs*124
       integer CFIVAL(MCM,25)
@@ -960,17 +938,15 @@ C Check if we are trying to read the same data we already have.
       if (IDAYP.eq.CMDAYR) goto 999
 
 C Read data.
-c      write(6,*)'CFMCM ',CFMCM ! debug
       IREC=IDAYP
-      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=666)
+      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)
      &  ((CFIVAL(i,j),i=1,CFMCM),j=1,24)
       IREC=IDAYF
-      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=666)
+      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=666)
      &  (CFIVAL(i,25),i=1,CFMCM)
 
 
 C Assign values to CMIVAL and range check.
-c      write(6,*)'CMIVAL' ! debug
       do j=1,25
         do i=1,MCM
           icol=CMCOL(i)
@@ -994,10 +970,6 @@ c      write(6,*)'CMIVAL' ! debug
             CMIVAL(i,j)=ival
           endif
         enddo
-
-C Debug.
-c        write(6,*)'CMIVAL'
-c        write(6,*)(CMIVAL(i,j),i=1,MCM)
       enddo
 
 C Set the day of data we now have in commons.
@@ -1006,17 +978,13 @@ C Set the day of data we now have in commons.
   999 RETURN
 
   666 IER=1
-c      WRITE(6,*)outs ! debug
       goto 999
 
       END
 
-C ---------------- CLMDN2O -------------------
-C <CLMNEW2OLD>
-C CLMDN2O maps values of new climate commons in climate.h to old
-C commons, for data from a binary climate database.
-
-C This should work for all modules.
+C ********** CLMDN2O **********
+C Maps values of new weather commons in climate.h to old
+C commons, for data from a binary weather file.
 
       SUBROUTINE CLMDN2O
 
@@ -1054,25 +1022,21 @@ C in BPS.
       RETURN
       END
 
-C ---------------- CLMOPB -------------------
-C CLMOPB attempts to open an existing binary climate database. You need
-C to know the record width before you open the database. Version 1
-C climate databases have a fixed record width of 144
-C (24 hours * 6 metrics). This subroutine was written in 2018, when
-C version 2 climate databases were introduced; these have a record width
-C of 24 hours * MCM (in climate.h) metrics. This subroutine maintains
-C back-compatibility using a list of all possible values for MCM,
-C including previous versions (MCMALL in climate.h).
-
-C This subroutine also sets the version of the climate database (CFVER
-C in climate.h).
+C ********** CLMOPB **********
+C Attempts to open a binary weather file. Version 1 files have a
+C fixed record width of 144 (24 hours * 6 parameters). Version 2
+C weather files have a record width of 24 hours * MCM parameters 
+C (defined in climate.h). This subroutine maintains back-compatibility
+C using a list of all possible values for MCM, including previous
+C versions (MCMALL in climate.h). The version of the waether file
+C is also set (CFVER in climate.h).
 
 C IEXIST is passed to EFOPRAN (in esru_lib.F):
-C   0 - should exist, no message but error -301 if not.
-C   1 - should exist, message & error -301 if not.
-C   2 - should not exist, error 300 & message if exists.
-C   3 - if exists use otherwise create.
-C   4 - if exists ask user before overwriting otherwise create.
+C   0 - should exist, no message but error -301 if not,
+C   1 - should exist, message & error -301 if not,
+C   2 - should not exist, error 300 & message if exists,
+C   3 - if exists use otherwise create,
+C   4 - if exists ask user before overwriting, otherwise create.
 
       SUBROUTINE CLMOPB(IEXIST,IER)
 
@@ -1080,7 +1044,7 @@ C   4 - if exists ask user before overwriting otherwise create.
 #include "esprdbfile.h"
 #include "espriou.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       logical fok,unixok
       character fs*1,llclmdb*144,outs*124
@@ -1130,7 +1094,7 @@ C Try to open the file.
 C Check if we can read the 4th line of metadata. IOSTAT codes are
 C implementation-dependant, so we just test for any error.
       IREC=369
-      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=6661)itmp
+      READ(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=6661)itmp
       CFVER=itmp
       CFMCM=MCM
       IER=0
@@ -1172,9 +1136,41 @@ C 3rd.
 
  999  RETURN
 
- 666  write(outs,'(2a)')' Error opening climate database ',
+ 666  write(outs,'(2a)')'Error opening weather file ',
      &  LCLIM(1:lnblnk(LCLIM))
       call edisp(IUOUT,outs)
       goto 999
 
       END
+
+C ********** CLMARR **********
+C Arranges the column order of weather parameters, aiming for as
+C close to the parameter order (defined in climate.h) as possible.
+C Returns a boolean hasarr signalling if rearrangement was needed,
+C and the new column numbers in cmcolarr (this will be the same
+C as CMCOL if hasarr=.false.)
+
+      SUBROUTINE CLMARR(hasarr,cmcolarr)
+
+#include "climate.h"
+
+      logical hasarr
+      integer cmcolarr(MCM)
+
+      hasarr=.false.
+
+      icol=0
+      do imet=1,MCM
+        if (CMXST(imet)) then
+          icol=icol+1
+          if (CMCOL(imet).ne.icol) then
+            if (.not.hasarr) hasarr=.true.
+          endif
+          cmcolarr(imet)=icol
+        else
+          cmcolarr(imet)=0
+        endif
+      enddo
+
+      return
+      end

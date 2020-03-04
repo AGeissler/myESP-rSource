@@ -141,15 +141,16 @@ C Glasgow, UK.
 
       subroutine spmcmp1(icomp,ispmnod)
 #include "building.h"
+#include "geometry.h"
 #include "plant.h"
 #include "power.h"
 
 C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
      &         strspm(mspmnod,mspmres),unitspm(mspmnod,mspmres),
      &         txtspm(mspmnod,mspmres)
@@ -162,7 +163,6 @@ C except where explicitly redefined.
       common/coe32/qsoli(ms,2),qsole(ms,2)
       common/coe32j/qtmca(ms,mn,2)
       common/pvpnl/tpnl,qpnl,pvpwr
-      common/prec1/sna(mcom,ms)
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       common/adjc/ie(mcom,ms),atp(mcom,ms),atf(mcom,ms),
      &            arp(mcom,ms),arf(mcom,ms)
@@ -451,6 +451,7 @@ C    1 - nominal panel efficiency (%).
 
       subroutine spmcmp2(icomp,ispmnod)
 #include "building.h"
+#include "geometry.h"
 #include "plant.h"
 #include "power.h"
 
@@ -458,7 +459,7 @@ C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
      &         strspm(mspmnod,mspmres),unitspm(mspmnod,mspmres),
      &         txtspm(mspmnod,mspmres)
@@ -473,7 +474,6 @@ C except where explicitly redefined.
       common/pvpnl/tpnl,qpnl,pvpwr
       common/adjc/ie(mcom,ms),atp(mcom,ms),atf(mcom,ms),
      &arp(mcom,ms),arf(mcom,ms)
-      common/prec1/sna(mcom,ms)
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       common/solext/exrad(ms),exdir(ms),exdif(ms),exshad(ms),
      &                                                    exshadf(ms)
@@ -606,11 +606,11 @@ C   15 - default turbulence intensity (-)
 
 C N.B. All parameters comply with the Fortran implicit naming
 C convention except where explicitly redefined.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/filep/ifil
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
      &         strspm(mspmnod,mspmres),unitspm(mspmnod,mspmres),
@@ -936,13 +936,14 @@ C The model has been subjected to rudimentary verification.
 
       subroutine spmcmp4(icomp,ispmnod)
 #include "building.h"
+#include "geometry.h"
 
 C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
      &         strspm(mspmnod,mspmres),unitspm(mspmnod,mspmres),
      &         txtspm(mspmnod,mspmres)
@@ -958,7 +959,6 @@ C except where explicitly redefined.
       common/coe32/qsoli(ms,2),qsole(ms,2)
       common/coe32j/qtmca(ms,mn,2)
       common/pvpnl/tpnl,qpnl,pvpwr
-      common/prec1/sna(mcom,ms)
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
 
       real mu
@@ -1206,6 +1206,7 @@ C   17 - 21 - optional reference absorption at PV cell layer
       implicit none
 
 #include "building.h"
+#include "geometry.h"
 #include "plant.h"
 #include "power.h"
 
@@ -1214,9 +1215,10 @@ C   17 - 21 - optional reference absorption at PV cell layer
       integer lnblnk    !- implicit function returning length of a string
 
 C I/O.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       integer iuout     !- write unit number
       integer iuin      !- read unit number
+      integer ieout     !- error unit number
 
 C Special materials.
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
@@ -1254,7 +1256,7 @@ C Special materials.
       integer izntrc  !- zone trace index
       integer itu     !- trace output unit number
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp    !- hour number of present time step
       integer ihrf    !- hour number of future time step
       integer idyp    !- day number of present time step
@@ -1263,7 +1265,7 @@ C Special materials.
       integer idwf    !- day of the week of future day
       integer nsinc   !- number of building side time increments
                       !  since start of simulation
-      integer its     !- current building time-step within current hour
+      integer its,idynow !- current building time-step within current hour
 
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
       real    tfc   !- construction node temperature at future time-row
@@ -1283,9 +1285,6 @@ C Special materials.
 
       common/pvpnl/tpnl,qpnl,pvpwr
       real    tpnl,qpnl,pvpwr
-
-      common/prec1/sna(mcom,ms)
-      real    sna      !- surface area
 
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       integer isd1     !- start day number
@@ -1977,7 +1976,7 @@ C N.B. All parameters comply with the Fortran implicit naming
 C convention except where explicitly redefined.
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
      &         strspm(mspmnod,mspmres),unitspm(mspmnod,mspmres),
@@ -2224,10 +2223,10 @@ C    4 - associated layer number in TMC.
 
 C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/spmfxst/ispmxist,spflnam
       common/spmatl/nspmnod,ispmloc(mspmnod,3),ispmtyp(mspmnod,2),
      &              nnodat(mspmnod),spmdat(mspmnod,mspmdat)
@@ -2405,12 +2404,14 @@ C       Cp = specific heat capacity of air (J/kgK).
 
       subroutine spmcmp52(icomp,ispmnod)
 #include "building.h"
+#include "site.h"
+#include "geometry.h"
 
 C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/spmfxst/ispmxist,spflnam
       common/spmatl/nspmnod,ispmloc(mspmnod,3),ispmtyp(mspmnod,2),
      &              nnodat(mspmnod),spmdat(mspmnod,mspmdat)
@@ -2420,13 +2421,11 @@ C except where explicitly redefined.
      &         txtspm(mspmnod,mspmres)
       common/zonspmf/zspmf1(mcom),zspmf2(mcom)
       common/evapsur/vapsur(mcom)
-      common/prec1/sna(mcom,ms)
       common/fvala/tfa(mcom),qfa(mcom)
       common/fvals/tfs(mcom,ms),qfs(mcom)
       common/concoe/hcip(mcom,ms),hcif(mcom,ms),hcop(mcom,ms),
      &              hcof(mcom,ms)
       common/fvalg/gfa(mcom)
-      common/atpres/patmos
 
 C Generic nodal flux common allowing a positive or negative flux
 C to be applied to a node; genflxp is updated in mzls5.
@@ -2536,13 +2535,14 @@ C    7 - latent heat coefficient, shtliqb (J/kg.degC).
 
       subroutine spmcmp53(icomp,ispmnod)
 #include "building.h"
+#include "geometry.h"
 
 C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
       common/fvals/tfs(mcom,ms),qfs(mcom)
       common/zonspmf/zspmf1(mcom),zspmf2(mcom)
@@ -2552,7 +2552,6 @@ C thrmli(icomp,isurf,ielem,2) = density
 C thrmli(icomp,isurf,ielem,3) = specific heat
 C thrmli(icomp,isurf,ielem,4) = thickness
       common/vthp14/thrmli(mcom,ms,me,7)
-      common/prec1/sna(mcom,ms)
       common/prec9/nconst(mcom),nelts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp)
       common/prec13/c(mcom,ms,mn,2),qc(mcom,ms,mn)
@@ -3153,19 +3152,18 @@ C are defined in file databases/mscomp.db1.
 
       subroutine spmcmp54(icomp,ispmnod)
 #include "building.h"
+#include "geometry.h"
 
 C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/zonspmf/zspmf1(mcom),zspmf2(mcom)
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
       common/fvals/tfs(mcom,ms),qfs(mcom)
       common/vthp14/thrmli(mcom,ms,me,7)
-      COMMON/PREC1/SNA(MCOM,MS)
-      real    sna            !- surface area (m2)
       common/prec9/nconst(mcom),nelts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp)
       common/prec13/c(mcom,ms,mn,2),qc(mcom,ms,mn)
@@ -3545,10 +3543,10 @@ C are defined in file databases/mscomp.db1
 
 C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/zonspmf/zspmf1(mcom),zspmf2(mcom)
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
       common/fvals/tfs(mcom,ms),qfs(mcom)
@@ -3949,10 +3947,10 @@ C for these. Penalty in run-time.
 
 C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pvalc/tpc(mcom,ms,mn),qpc(mcom)
       common/pvals/tps(mcom,ms),qps(mcom)
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
@@ -4445,8 +4443,8 @@ C by factor T^f).
       real T1,T2
       integer isp,k
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
@@ -4598,11 +4596,11 @@ C is offset by 0.5 ( shcsol + shcliq). C
       integer k
       real T
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER  IUOUT,IUIN,IEOUT
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
@@ -4671,8 +4669,8 @@ C Parameters.
       integer Debug   !- output of 'case' as defined below
 
 C Time common.
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
@@ -4912,13 +4910,6 @@ C Set new k.
          endif
       endif ! heating / cooling check
 
-C DEBUG
-cx      if (isp.eq.1) then
-cx      WRITE(98,'(a,i6,a,i2,a,i1,a,f8.4,a,f8.4,a,f10.4)')
-cx     & ' *** nsinc: ',nsinc,', storeThisTS(',isp,',',k,',',TnS,',',
-cx     &                                        TnS1,') = ',storeThisTS
-cx      endif
-
       return
       end
 
@@ -4931,7 +4922,6 @@ C facilities. Created by Achim Geissler, June 17 2008.
       implicit none
 
 #include "building.h"
-C for zname, sname
 #include "geometry.h"
 
 C Parameters.
@@ -5139,13 +5129,14 @@ C            tmelt              tsoli
 
       subroutine spmcmp57(icomp,ispmnod)
 #include "building.h"
+#include "geometry.h"
 
 C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pvalc/tpc(mcom,ms,mn),qpc(mcom)
       common/pvals/tps(mcom,ms),qps(mcom)
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
@@ -5157,7 +5148,6 @@ C thrmli(icomp,isurf,ielem,2) = density
 C thrmli(icomp,isurf,ielem,3) = specific heat
 C thrmli(icomp,isurf,ielem,4) = thickness
       common/vthp14/thrmli(mcom,ms,me,7)
-      common/prec1/sna(mcom,ms)
       common/prec9/nconst(mcom),nelts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp)
       common/prec13/c(mcom,ms,mn,2),qc(mcom,ms,mn)
@@ -5487,7 +5477,6 @@ C Trace output.
   999 return
       end
 
-C ***********************************************************************
 C ******************************* ReadDSCDataFile ***********************
 C Created by: Achim Geissler
 C Initial Creation Date: March 31, 2017
@@ -5523,8 +5512,8 @@ C-------------------------------------------------------------------------------
       COMMON/FILEP/IFIL
       INTEGER  IFIL
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER  IUOUT,IUIN,IEOUT
 
 C----------------
 C SPM commons
@@ -5745,8 +5734,8 @@ C (adopted from Numerical Recipes in FORTRAN 77)
 C------------------------------------------------------------------------
 C ESP-r commons
 C------------------------------------------------------------------------
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER  IUOUT,IUIN,IEOUT
 
 cx      INTEGER, PARAMETER :: DP = KIND(1.0D0)
       INTEGER:: n
@@ -5806,8 +5795,8 @@ C Subroutine parameters
 C------------------------------------------------------------------------
 C ESP-r commons
 C------------------------------------------------------------------------
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER  IUOUT,IUIN,IEOUT
 
 C DSC data / spline function data
       common/pcmspline/temp1d(mspmnod,MSPMSPLM),
@@ -5938,8 +5927,8 @@ C Subroutine parameters
 C------------------------------------------------------------------------
 C ESP-r commons
 C------------------------------------------------------------------------
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER  IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER  IUOUT,IUIN,IEOUT
 
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,

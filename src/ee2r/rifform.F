@@ -26,7 +26,7 @@ C ******* Setup of image quality and calculation options.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer itc,icout  ! trace verbosity and output channel
       common/trace/itc,icout
@@ -46,7 +46,7 @@ C Radiance processor cores.
 
       DIMENSION ITEM(24),IVALV(20),VALT(20)
 
-      logical OK,dok
+      logical OK
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -200,11 +200,10 @@ C Image X pixel size.
         CALL EGETWI(HOLD,K,ipicx,100,1024,'W','width',IER)
         if(ier.ne.0)goto 45
       elseif(INO.EQ.13)then
-        dok=.false.
         helptopic='e2r_penumbras_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' Include penumbras in image (soft shadows) ?',
-     &    ' (Yes requires longer calculations)?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Include penumbras in image for soft shadows?',
+     &            OK,nbhelp)
         if(OK)then
           penumb='True'
         else
@@ -223,15 +222,15 @@ C    the diameter of the disk...>>
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(intext.eq.0)then
           ltmp60 = rzoncmd
-          CALL EASKS(ltmp60,' Initial assumptions about general view',
-     &      ' and a bounding box: (see help) ',
+          CALL EASKS(ltmp60,'Initial assumptions about general view',
+     &      'and a bounding box:',
      &      60,' Ext -100. 100. -100. 100. 0. 100.','zone cmd',
      &      IER,nbhelp)
           rzoncmd = ltmp60
         elseif(intext.eq.1)then
           ltmp60 = rzoncmd
-          CALL EASKS(ltmp60,' Initial assumptions about general view',
-     &      ' and a bounding box: (see help) ',
+          CALL EASKS(ltmp60,'Initial assumptions about general view',
+     &      'and a bounding box:',
      &      60,' Int -10. 10. -10. 10. 0. 10.','zone cmd',
      &      IER,nbhelp)
           rzoncmd = ltmp60
@@ -242,7 +241,7 @@ C Specify Ambient file name.
         helptopic='e2r_ambient_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ltmp = rambfil
-        CALL EASKS(ltmp,' Abient light temporary file name ?',' ',
+        CALL EASKS(ltmp,' ','Ambient light temporary file name?',
      &    72,'NONE','ambient file name',IER,nbhelp)
         if(ltmp.ne.' ') rambfil = ltmp
 
@@ -252,7 +251,7 @@ C Specify Options optnfil file name.
         helptopic='e2r_options_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ltmp = optnfil
-        CALL EASKS(ltmp,' Calculation options file name ?',' ',
+        CALL EASKS(ltmp,' ','Calculation options file name?',
      &    72,'NONE','options file name',IER,nbhelp)
         if(ltmp.ne.' ') optnfil = ltmp
 
@@ -280,8 +279,8 @@ C        call LISTAS(ITA2,RIFNAME(ISCENE),IER)
       elseif(INO.EQ.21)then
         helptopic='e2r_manual_edit_rif'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' Options: ',' ','Browse current `rif` file',
-     &    'Manually edit file','Re-read file','ignore ?',IW,nbhelp)
+        CALL EASKABCD(' ','Options:','browse current rif file',
+     &    'manually edit file','re-read file','ignore',IW,nbhelp)
         if(IW.eq.1)then
 
 C Prepend local path.
@@ -295,8 +294,7 @@ C Prepend local path.
           lnrif=lnblnk(RIFNAME(ISCENE))
           write(ltmp,'(2a)') runpath(1:lnrp),RIFNAME(ISCENE)(1:lnrif)
           call vifile(ITA2,ltmp,'e',ier)
-          dok=.true.
-          CALL ASKOK(' ',' Re-read after editing?',OK,dok,nbhelp)
+          CALL EASKOK(' ','Re-read after editing?',OK,nbhelp)
           if(OK)call RRIF(ita2,ita3,RIFNAME(ISCENE),'s',ier)
         elseif(IW.eq.3)then
           call RRIF(ita2,ita3,RIFNAME(ISCENE),'s',ier)
@@ -311,7 +309,7 @@ C the test run.
           write(valt(iv),'(a,1x,a)') rvewsh(iv),vewcmds(iv)(1:20)
   333   continue
         IX=1
-        CALL EPICKS(IX,IVALV,' ',' View for test: ',
+        CALL EPICKS(IX,IVALV,' ','View for test:',
      &    32,indxvew,VALT,'View for test',IER,nbhelp)
         if(IX.ne.0)then
           ipckvew=IVALV(1)

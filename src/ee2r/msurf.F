@@ -36,7 +36,7 @@ C IRECT: -1 not rectangular; 0 error; 1 rectangular.
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 c  prod       inproduct of vectors (0 if perpendicular,
 c             1 if parallel, -1 if anti-parallel)
@@ -113,7 +113,7 @@ C             surf = x(S,T) + y(S,T) + z(S,T)
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION SVALS(3), TVALS(3), vec1(3), vec2(3), tform(3)
 

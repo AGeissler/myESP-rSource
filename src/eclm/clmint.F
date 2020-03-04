@@ -35,7 +35,7 @@ C component data is given for both isotropic and anisotropic skies.
       DIMENSION ALT(24),AZI(24)
       character PERST1*14,PERST2*44,PERST3*44
       character outs*124
-      logical ok,dok
+      logical ok
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -56,27 +56,26 @@ C For help messages
 C Default cloud cover for use during sun down periods.
       CLOUDC=0.5
 
-C Confirm the period to transfer.
-      NTSPH=1
-      CALL EPERSTR(IYEAR,IDS,IT1,IDF,IT2,NTSPH,
-     &             IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
-      dok=.true.
-      helptopic='clm_just_in_case'
-      call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' Is the analysis period (see below) correct?',
-     &  PERST3,OK,dok,nbhelp)
-      IF(.NOT.OK)THEN
-        CALL selper(ier)
-      ENDIF
+CC Confirm the period to transfer.
+C      NTSPH=1
+C      CALL EPERSTR(IYEAR,IDS,IT1,IDF,IT2,NTSPH,
+C     &             IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
+C      helptopic='clm_just_in_case'
+C      call gethelptext(helpinsub,helptopic,nbhelp)
+C      CALL EASKOK(PERST3,'Analysis period OK?',
+C     &         OK,nbhelp)
+C      IF(.NOT.OK)THEN
+C        CALL selper(ier)
+C      ENDIF
 
 C If output to file alter the edisp unit number.
       itru = icout
       if(ixopen.eq.1)then
         itru = ixunit
-        call usrmsg(' Output being directed to file...',' ','-')
+        call usrmsg(' Output being directed to file ...',' ','-')
       endif
 
-C NOW READ VALUES OF THE CLIMATIC PARAMETERS FOR THIS DAY.
+C NOW READ VALUES OF THE WEATHER PARAMETERS FOR THIS DAY.
       DO 10 I=IDS,IDF
       IDAY=I
       CALL CLMGET(IDAY)
@@ -232,10 +231,9 @@ C Isotropic case.
       call eddisp(itru,outs)
 
 C CONSIDER ANOTHER PERIOD ?
-      dok=.true.
       helptopic='clm_another_say_no'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' ','Continue with another period?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Continue with another period?',OK,nbhelp)
       IF(OK)GOTO 6
       RETURN
  
@@ -245,9 +243,9 @@ C********** CSITEH
 C   SUBROUTINE TO PRINT WEATHER HEADING
 
       SUBROUTINE CSITEH
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
-      CHARACTER*30 CLMLOC
+      CHARACTER*42 CLMLOC
       COMMON/CLMDT1/CLMLOC
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -266,20 +264,20 @@ C If output to file alter the edisp unit number.
       IF(CLONG.GE.0.0.AND.CLAT.LT.0.0)IK=3
       IF(CLONG.LT.0.0.AND.CLAT.LT.0.0)IK=4
       if(IK.EQ.1)then
-        WRITE(outs,101)CLMLOC,ACLAT,CLONG,IYEAR
- 101    FORMAT(' Weather analysis:',1X,A30,':',F7.2,'N',F7.2,'E :',I5)
+        WRITE(outs,101)CLMLOC(1:lnblnk(CLMLOC)),ACLAT,CLONG,IYEAR
+ 101    FORMAT(' Weather analysis:',1X,A,':',F7.2,'N',F7.2,'E :',I5)
         call edisp(itru,outs)
       elseif(IK.EQ.2)then
-        WRITE(outs,102)CLMLOC,ACLAT,CLONG,IYEAR
- 102    FORMAT(' Weather analysis:',1X,A30,':',F7.2,'N',F7.2,'W :',I5)
+        WRITE(outs,102)CLMLOC(1:lnblnk(CLMLOC)),ACLAT,CLONG,IYEAR
+ 102    FORMAT(' Weather analysis:',1X,A,':',F7.2,'N',F7.2,'W :',I5)
         call edisp(itru,outs)
       elseif(IK.EQ.3)then
-        WRITE(outs,103)CLMLOC,ACLAT,CLONG,IYEAR
- 103    FORMAT(' Weather analysis:',1X,A30,':',F7.2,'S',F7.2,'E :',I5)
+        WRITE(outs,103)CLMLOC(1:lnblnk(CLMLOC)),ACLAT,CLONG,IYEAR
+ 103    FORMAT(' Weather analysis:',1X,A,':',F7.2,'S',F7.2,'E :',I5)
         call edisp(itru,outs)
       elseif(IK.EQ.4)then
-        WRITE(outs,104)CLMLOC,ACLAT,CLONG,IYEAR
- 104    FORMAT(' Weather analysis:',1X,A30,':',F7.2,'S',F7.2,'W :',I5)
+        WRITE(outs,104)CLMLOC(1:lnblnk(CLMLOC)),ACLAT,CLONG,IYEAR
+ 104    FORMAT(' Weather analysis:',1X,A,':',F7.2,'S',F7.2,'W :',I5)
         call edisp(itru,outs)
       endif
       RETURN

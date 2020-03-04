@@ -29,7 +29,7 @@ C  LSTCNTLD: List one day type of a building/plant/flow/global/optical/
 C           complex fenestration control.
 C  Ezctlc:  Checks all building control functions, plant loops, and
 C           mass flow control functions for validity.
-C  decodesensor: ...
+C  decodesensor: takes the 4 indices that define a sensor & decodes
 C  tscdta:  Sets TSC6 variables in the case of TSC6 called from a
 C           control function (as opposed to set from menu).
 C  FZDATA:  reads fuzzy logic data from configuration control file.
@@ -157,8 +157,8 @@ C                                on/off state and slat angle values.
 C iban    - Defines the actuator node associated with any zone control
 C           function.
 C           iban(?,1)>0  is as ibsn(?,1)>0
-C           iban(?,2)=-1 is as ibsn(?,1)=-1
-C           iban(?,3)=-2 is as ibsn(?,1)=-2
+C           iban(?,1)=-1 is as ibsn(?,1)=-1
+C           iban(?,1)=-2 is as ibsn(?,1)=-2
 C           For special case of ibsn(?,1)=-99:
 C              iban(?,1)=surface pointer for first construction.
 C              iban(?,2)=surface pointer for second construction or zero.
@@ -325,11 +325,10 @@ C          flow control function.
 #include "net_flow_data.h"
 #include "control.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Markdown flag.
       logical markdown
@@ -361,8 +360,11 @@ C Error subroutine and error details for dll mode.
       character dllsubr*12,dllmesg*124,outs*124,t40*40
       character LOUTSTR*248
       logical close,pbyfil,bfngn,pcfngn,global,glbrwd,dll
+      logical needtowrite    ! set true if dummy daytype added
 
       logical first_run_done
+      integer idaytype        ! incremented for each new *day entry.
+      integer idaytypef       ! incremented for each new *day entry.
 
 C Initialization flag for distributed generation controller.
       common/DgCont/first_run_done
@@ -374,6 +376,7 @@ C Initialization flag for adsorption storage unit controller.
       bfngn=.false.     
       pcfngn=.false.
       pbyfil=.false.
+      needtowrite=.false.
       nnidsn=0
       nnidac=0
 
@@ -636,11 +639,51 @@ C Reporting:
         ENDIF
 
         nn=nbcdt(ii)  ! a zero says use all day types
+        idaytype=0    ! reset counter
         if(nn.eq.0)nn=NBDAYTYPE
         do 20 j=1,nn
-          jj=j
-          CALL STRIPC(IUNIT,OUTSTR,2,ND,1,'validity',IER)
+          jj=j        ! jj is the day type
+          CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'validity',IER)
           IF(IER.NE.0)GOTO 99
+
+C If nbcdt = 0 in the control file, and there are more day types
+C in the configuration file than in the control file, then create
+C one or more day type placeholders each comprise one free-floating
+C period.
+          HDG=OUTSTR(1:5)
+          if(HDG.eq.'* CON'.or.HDG.eq.'* Con'.or.HDG.eq.'* con')then
+            if(nbcdt(ii).ne.0)then
+              continue
+            elseif(jj.lt.NBDAYTYPE)then
+              jj=NBDAYTYPE
+              IBCDV(II,JJ,1)=1; IBCDV(II,JJ,2)=365
+              NBCDP(II,JJ)=1; IBCTYP(II,JJ,1)=0; IBCLAW(II,JJ,1)=2
+              TBCPS(II,JJ,1)=0.0; BMISCD(II,JJ,1,1)=0
+              backspace(iunit)   ! unread the current line of the file
+              needtowrite=.true.
+              goto 10            ! try for the next control loop
+            endif
+          endif
+
+C If this is the last control loop and the scanned line is the list
+C of zone/node links then there would be more than 2 items on the
+C line and more likely NCOMP items.
+          if(ii.eq.NCF)then
+            if(ND.eq.2.and.NCOMP.ne.2)then
+              continue   ! probably dates of validity
+            elseif(ND.eq.2.and.NCOMP.eq.2)then
+              continue   ! might be dates of validity
+            else
+              if(jj.lt.NBDAYTYPE) jj=NBDAYTYPE
+              IBCDV(II,JJ,1)=1; IBCDV(II,JJ,2)=365
+              NBCDP(II,JJ)=1; IBCTYP(II,JJ,1)=0; IBCLAW(II,JJ,1)=2
+              TBCPS(II,JJ,1)=0.0; BMISCD(II,JJ,1,1)=0
+              backspace(iunit)   ! unread the current line of the file
+              needtowrite=.true.
+              goto 10            ! try for the next control loop   
+            endif
+          endif
+ 
           KG=0
           CALL EGETWI(OUTSTR,KG,IBCDV(II,JJ,1),1,365,'F',
      &              'control activation start day number',IER)
@@ -650,6 +693,7 @@ C Reporting:
             CALL USRMSG(' ',' Start & End dates reversed.','W')
             GOTO 2000
           ENDIF
+          idaytype=idaytype+1
 
           CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'periods',IER)
           KG=0
@@ -1112,6 +1156,12 @@ C Reporting: Get a string describing the current sensor based on common.
 C Range checking.
         if((ifan(ii,1).gt.-3).or.(ifan(ii,1).lt.-4)) goto 1005
         if(ifan(ii,2).lt.0)goto 1063
+        if(ifan(ii,2).eq.0)then
+          write(outs,'(a,i3,a)') 'No type associated with flow control',
+     &      ii,'. Check the file and correct.'
+          call edisp(iuout,outs)
+          goto 99
+        endif
 
         IF(ifan(ii,1).eq.-4.AND.(ITPCMP(ifan(II,2)).EQ.220.OR.
      &    ITPCMP(ifan(II,2)).EQ.230.OR.ITPCMP(ifan(II,2)).EQ.240.OR.
@@ -1148,11 +1198,60 @@ C Reporting:
         ENDIF
 
         nn=nfcdt(ii)  ! a zero says use all day types
+        idaytypef=0    ! reset counter
         if(nn.eq.0)nn=nbdaytype
         do 71 j=1,nn
           jj=j
           CALL STRIPC(IUNIT,OUTSTR,2,ND,1,'validity',IER)
-          IF(IER.NE.0)GOTO 99
+          IF(IER.NE.0)then
+
+C We reached the end of the file without getting all the
+C day types defined in the model cfg file. So copy the
+C prior days data into a new one.
+            if(jj.lt.NBDAYTYPE) jj=NBDAYTYPE
+            ifcdv(ii,jj,1)=ifcdv(ii,jj-1,1)
+            ifcdv(ii,jj,2)=ifcdv(ii,jj-1,2)
+            nfcdp(ii,jj)=nfcdp(ii,jj-1)
+            ll=nfcdp(ii,jj)
+            do k=1,ll
+              ifctyp(ii,jj,k)=ifctyp(ii,jj-1,k)
+              ifclaw(ii,jj,k)=ifclaw(ii,jj-1,k)
+              tfcps(ii,jj,k) =tfcps(ii,jj-1,k)
+              fmiscd(ii,jj,k,1)=fmiscd(ii,jj-1,k,1)
+              nitems=int(fmiscd(ii,jj,k,1))
+              do ij=2,nitems+1
+                fmiscd(ii,jj,k,ij)=fmiscd(ii,jj-1,k,ij)
+              enddo
+            enddo
+            backspace(iunit)   ! unread the current line of the file
+            needtowrite=.true.
+            goto 70
+          endif
+
+C If ??? = 0 in the control file, and there are more day types
+C in the configuration file than in the control file, then duplicate
+C the last day type.
+          HDG=OUTSTR(1:5)
+          if(HDG.eq.'* CON'.or.HDG.eq.'* Con'.or.HDG.eq.'* con')then
+            if(jj.lt.NBDAYTYPE) jj=NBDAYTYPE
+            ifcdv(ii,jj,1)=ifcdv(ii,jj-1,1)
+            ifcdv(ii,jj,2)=ifcdv(ii,jj-1,2)
+            nfcdp(ii,jj)=nfcdp(ii,jj-1)
+            ll=nfcdp(ii,jj)
+            do k=1,ll
+              ifctyp(ii,jj,k)=ifctyp(ii,jj-1,k)
+              ifclaw(ii,jj,k)=ifclaw(ii,jj-1,k)
+              tfcps(ii,jj,k) =tfcps(ii,jj-1,k)
+              fmiscd(ii,jj,k,1)=fmiscd(ii,jj-1,k,1)
+              nitems=int(fmiscd(ii,jj,k,1))
+              do ij=2,nitems+1
+                fmiscd(ii,jj,k,ij)=fmiscd(ii,jj-1,k,ij)
+              enddo
+            enddo
+            backspace(iunit)   ! unread the current line of the file
+            needtowrite=.true.
+            goto 70
+          endif
           KG=0
           CALL EGETWI(OUTSTR,KG,ifcdv(ii,jj,1),1,365,'F',
      &              'control activation start day number',IER)
@@ -1162,6 +1261,7 @@ C Reporting:
             CALL USRMSG(' ',' Start & End dates reversed.','W')
             GOTO 2000
           ENDIF
+          idaytypef=idaytypef+1
 
           CALL STRIPC(IUNIT,OUTSTR,1,ND,1,'periods',IER)
           KG=0
@@ -2116,6 +2216,14 @@ C      CALL USRMSG(OUTS,OUTSTR,'W')
 C Close file before exiting.
    9  CALL ERPFREE(IUNIT,ISTAT)
 
+C If needtowrite has been set write out the control file.
+      if(needtowrite)then
+        call edisp(iuout,' ')
+        call edisp(iuout,
+     &    'Added placeholder day types to zone or flow controls.')
+        call CTLWRT(IUNIT,IER)
+      endif
+
 C Re-initialise control file for fuzzy data.
 7     CALL EFOPSEQ(IUNIT,LCTLF,1,IER)
       IF(IER.LT.0)THEN
@@ -2329,9 +2437,6 @@ C control file sensors, actuator, control types, control laws.
       
       integer lnblnk  ! function definition
 
-C      COMMON/OUTIN/IUOUT,IUIN
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       common/pcnam/pcname(mpcom)
 
       CHARACTER SSTR*96,SSTRB*48
@@ -2367,8 +2472,7 @@ C Actuator.
         IF(IBAN(II,1).GT.0)THEN
           write(zn,'(a)') zname(IBAN(II,1))
           if(IBAN(II,2).gt.0)then
-            icc=IZSTOCN(IBAN(II,1),IBAN(II,2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(IBAN(II,1),IBAN(II,2))
           else
             sn='-'
           endif
@@ -2390,11 +2494,11 @@ C Actuator.
         ELSEIF(IBAN(II,1).EQ.-2)THEN
           if(IBAN(II,2).gt.0)then
             write(zn,'(a)') zname(IBAN(II,2))
-            WRITE(SSTR,'(3a)')'mixed convective/radiant flux in ',
-     &        zn(1:lnblnk(zn)),'.'
+            WRITE(SSTR,'(a,i3,3a)')'mixed convective',IBAN(II,3),
+     &        '% /radiant flux in ',zn(1:lnblnk(zn)),'.'
           else
-            WRITE(SSTR,'(2a)')'mixed convective/radiant flux in ',
-     &        'the current zone.'
+            WRITE(SSTR,'(a,i3,a)')'mixed convective',IBAN(II,3),
+     &        '% /radiant flux in the current zone.'
           endif
         ENDIF
         IF(IBSN(II,1).EQ.-99)THEN
@@ -2722,7 +2826,7 @@ C an esp-r control file control laws for zone/plant/flow/electrical.
       
       integer lnblnk  ! function definition
 
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER SSTR*96,SSTRB*48,SSTR1*96,SSTRB1*48
 
@@ -3348,7 +3452,7 @@ C << there will not be sufficient room in the text buffer for 2nd
 C << and 3rd aux sensors so these need to be written to subsequent
 C << lines of the report.
 
- 79      continue
+ 79       continue
           call SDELIM(lmsg,message,'S',IW)
 C          call edisp248(6,message,80)
         ELSEIF(IBCLAW(II,JJ,KK).EQ.20)then
@@ -4180,12 +4284,15 @@ C << adapt report for case of thermophysical property substitution >>
       
       integer lnblnk  ! function definition
 
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       common/pcnam/pcname(mpcom)
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
 
       integer icfoc
+
+C icsn(1) > 0 is focused on a specific zone, 0 is any zone, -2 mixed
+C icsn(2) for mixed the zone index
+C icsn(3) convective fraction
+C icsn(4) usually zero
       dimension icsn(5)
       character sstr*96,sstrb*48
       CHARACTER ZN*12,NNAM*14,DESC*20
@@ -4200,8 +4307,7 @@ C Ideal Sensor.
         IF(icsn(1).GT.0)THEN
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
-            icc=IZSTOCN(icsn(1),icsn(2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(1),icsn(2))
           else
             sn='-'
           endif
@@ -4227,15 +4333,15 @@ C Ideal Sensor.
         ELSEIF(icsn(1).EQ.-2)THEN
           if(icsn(2).gt.0)then
             write(zn,'(a)') zname(icsn(2))
-            WRITE(SSTR,'(3a)')'senses a mix of db T and MRT in ',
-     &        zn(1:lnblnk(zn)),'.'
-            WRITE(SSTRB,'(3a)')'senses mix db T & MRT in ',
-     &        zn(1:lnblnk(zn)),'.'
+            WRITE(SSTR,'(a,i3,3a)')'senses mix of dry bulb',icsn(3),
+     &        '% & MRT in ',zn(1:lnblnk(zn)),'.'
+            WRITE(SSTRB,'(a,i3,3a)')'senses mix dbT',icsn(3),
+     &        '% & MRT in ',zn(1:lnblnk(zn)),'.'
           else
-            WRITE(SSTR,'(2a)')'senses a mix of db T and MRT in ',
-     &        'the current zone.'
-            WRITE(SSTRB,'(2a)')'senses mix db T & MRT in ',
-     &        'the current zone.'
+            WRITE(SSTR,'(a,i3,a)')'senses a mix of dry bulb',icsn(3),
+     &        '% and MRT in the current zone.'
+            WRITE(SSTRB,'(a,i3,a)')'senses mix db T ',icsn(3),
+     &        '% & MRT in the current zone.'
           endif
         ELSEIF(icsn(1).EQ.-3)THEN
           IF(icsn(2).EQ.0)THEN
@@ -4282,8 +4388,7 @@ C Plant Sensor.
         IF(icsn(1).GT.0)THEN
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
-            icc=IZSTOCN(icsn(1),icsn(2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(1),icsn(2))
           else
             sn='-'
           endif
@@ -4365,8 +4470,7 @@ C Flow Sensor.
         IF(icsn(1).GT.0)THEN
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
-            icc=IZSTOCN(icsn(1),icsn(2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(1),icsn(2))
           else
             sn='-'
           endif
@@ -4469,8 +4573,7 @@ C Optical Sensor.
         IF(icsn(1).GT.0)THEN
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
-            icc=IZSTOCN(icsn(1),icsn(2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(1),icsn(2))
           else
             sn='-'
           endif
@@ -4553,8 +4656,7 @@ C Ideal Sensor.
         IF(icsn(1).GT.0)THEN
           write(zn,'(a)') zname(icsn(1))
           if(icsn(2).gt.0)then
-            icc=IZSTOCN(icsn(1),icsn(2))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(1),icsn(2))
           else
             sn='-'
           endif
@@ -4609,8 +4711,7 @@ C Ideal Sensor.
         ELSEIF(icsn(1).EQ.-4)THEN
           write(zn,'(a)') zname(icsn(2))
           if(icsn(3).gt.0)then
-            icc=IZSTOCN(icsn(2),icsn(3))
-            write(sn,'(a)') SSNAME(icc)
+            write(sn,'(a)') SNAME(icsn(2),icsn(3))
           else
             sn='-'
           endif
@@ -4652,7 +4753,7 @@ C control loops for legality.
 #include "control.h"
 #include "blc25_open_windows.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       integer icascf
       common/cctl/icascf(mcom)
       integer ncomp,ncon
@@ -4964,7 +5065,7 @@ C tscon.F).
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TS/ITSFLG,NTSCPD,ITSSCH(MSCH,5),itsmus
       COMMON/TS6/idysv,ihrsv,irwcou,tsclaw,rewnd,nsncv1,nsncv2,pasone
       
@@ -5034,6 +5135,8 @@ C               endif
       call edisp(iuout,'TSCDTA: Fatal error - time rewind')
       call edisp(iuout,'control specified more than once in')
       call edisp(iuout,'System Control file!')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call pauses(3)   ! pause for 3 seconds then abort program.
       call epagend
       stop
@@ -5048,7 +5151,7 @@ C section in the control file or had a problem reading the data.
 #include "building.h"
 #include "control.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FZCTL1/FZM(MFP,3,5,10),ERRSAV(MFP),QSAV(MFP),
      &ACUT(3,5),FZCTIP(5,5),FZCTOP(5),COA(5)
       COMMON/FZCTL2/NFZF(MFP,3),FZT(MFP,3),NONZRO

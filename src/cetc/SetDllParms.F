@@ -60,7 +60,7 @@ C----------------------------------------------------
 #include "building.h"
 #include "model.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/shout/icout
       common/BPSDLL/ iLogFile, cBpsVersion, cPrjPath, cPrjName, 
      &           cCfgPath, cCfgFile, cLogFile, lBpsDebug

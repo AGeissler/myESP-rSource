@@ -18,11 +18,12 @@ INCLdir = $(SRCdir)/include
 PROG = prj$(EXE)
 default: $(PROG)
 
-.SUFFIXES: .o .F
+.SUFFIXES: .o .F .f90
 .F.o:
-	$(MFC) $(FFLAGS) $(BUILD_OPTIONS) -c $<
-
-%.o : %.f90
+	$(MFC) $(FFLAGS) -c $<
+.f90.o:
+	$(MFC) $(FFLAGS) -c $<
+.o :
 	$(MCC) $(FFLAGS) -c $<
 
 MODULE_OBJECTS = h3kmodule.o startup.o aim2_module.o aim2_inputs.o CFC_Module.o
@@ -123,6 +124,9 @@ commonclm.F:
 ctlexp.F:
 	rm -f ctlexp.F
 	ln -s $(COMdir)/ctlexp.F .
+ctlwrt.F:
+	rm -f ctlwrt.F
+	ln -s $(COMdir)/ctlwrt.F .
 ctprob.F:
 	rm -f ctprob.F
 	ln -s $(COMdir)/ctprob.F .
@@ -300,7 +304,7 @@ clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(ALL_FMI_OBJECTS) $(MODULES) \
 	anlytc.F aim2_module.F arrow.F ascii_mat.F basesimp.F bscoeff.F bscoeff_extended.F \
 	bsimsel.F c2fdum.F cfdat.F cfdrw.F cfgmsc.F \
-	cfgrid.F cgd.F common3dv.F commonclm.F ctlexp.F ctprob.F ctread.F DG_controller_menu.F \
+	cfgrid.F cgd.F common3dv.F commonclm.F ctlexp.F ctlwrt.F ctprob.F ctread.F DG_controller_menu.F \
 	CDBPlugins.F CDBCommon.F CDBExplore.F \
 	exlgrad.F dossupport.F e3dviews.F ecasctl.F econstr.F econtrol.F \
 	edatabase.F egeometry.F egrid.F egtgeom.F emfnetw.F emkcfg.F enetmisc.F enetrewr.F \

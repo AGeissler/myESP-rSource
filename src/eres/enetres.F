@@ -38,7 +38,7 @@ C ******************************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
       COMMON/ELRFIL/ELRFLNAM
@@ -59,7 +59,7 @@ C Electrical network results library details.
 
       CHARACTER LTMP*144,ELRFLNAM*144,DFILE*144,ITEM*25,MMODE*1,
      &EFILEABS*144
-      LOGICAL OK,dok,XST
+      LOGICAL OK,XST
       integer NITMS,INO ! max items and current menu item
       integer ISTRW
 
@@ -103,11 +103,10 @@ C Set the record length and file number
 C Open the electrical simulation results file
          CALL EFOPRAN(IELFIL,ELRFLNAM,IELIBW,1,IER)
          IF(IER.LT.0) then
-          dok=.false.
           helptopic='res_electrical_res_lib'
           call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' Error opening the electrical library.',
-     &    'Do you want to try again ?',OK,dok,nbhelp)
+        CALL EASKOK('Error opening electrical results library!',
+     &        'Retry?',OK,nbhelp)
           IF(OK)THEN
             GOTO 1
           ELSE
@@ -115,20 +114,19 @@ C Open the electrical simulation results file
           ENDIF
         ENDIF
       ELSE
-        CALL ASKOK(' Cannot find this file.',
-     &    'Do you want to try again ?',OK,dok,nbhelp)
+        CALL EASKOK('Cannot locate file!',
+     &    'Retry?',OK,nbhelp)
         IF(.NOT.OK)RETURN
         GOTO 1
       ENDIF
 
-C Compare the file with library header, warn if inconsistent
+C Compare the file with library header, warn if inconsistent.
       CALL ENETRCHK(IER)
       IF(IER.LT.0)THEN
-        dok=.false.
         helptopic='res_electrical_lib_warn'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Continue with electrical results analysis?',' ',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(' ','Continue with electrical results analysis?',
+     &         OK,nbhelp)
         IF(.NOT.OK) RETURN
       ENDIF
 
@@ -242,7 +240,7 @@ C error if this data is found to be inconsistent.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Electrical network results library details.
       COMMON/ENELIBRC/IELFIL,IELIBHL,IELIBW,IELSTREC,NETS,NTSREC,NHREC,
@@ -410,7 +408,7 @@ C **********************************************************************
 #include "plant.h"
 #include "power.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Export parameters. 
       COMMON/EXPORTI/IXOPEN,IXUNIT,IXPUNIT
@@ -1777,7 +1775,7 @@ C ******************************************************************************
 #include "power.h"
 
 C Electrical network results library details.
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ENELIBRC/IELFIL,IELIBHL,IELIBW,IELSTREC,NETS,NTSREC,NHREC,
      &NPREC
 

@@ -35,7 +35,7 @@ C ********************* RINTERA ****************************************
       integer lnblnk  ! function definition
 
 C Open the file passed via the command line for b2e - usually "b2e_inter"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
 C Files for the simulation
@@ -66,6 +66,8 @@ C Open the named file using a temporary file unit
         WRITE(OUTS248,'(3A)')
      &  'ERROR: Problem opening ',INTER(1:LNBLNK(INTER)),'.'
         call edisp248(iuout,OUTS248,80)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -222,6 +224,8 @@ C and other simulation related data.
               WRITE(OUTS,*)'b2e ERROR opening the cfg file',
      &MODELCFG(1:LNBLNK(MODELCFG))
               CALL EDISP(IUOUT,OUTS)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epwait
               call epagend
               STOP
@@ -238,6 +242,8 @@ C Report
           WRITE(OUTS248,'(3A)') 'ERROR: Problem with ',
      &      INTER(1:LNBLNK(INTER)),', not a known data tag.'
           call edisp248(iuout,OUTS248,80)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP 
@@ -248,6 +254,8 @@ C Report
      &    INTER(1:LNBLNK(INTER)),
      &    ', this is not a bems -> esp-r interaction file.'
           call edisp248(iuout,OUTS248,80)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP 
@@ -257,6 +265,8 @@ C Report
       WRITE(OUTS248,'(A,A)')
      &  'ERROR: Problem with ',INTER(1:LNBLNK(INTER))
       call edisp248(iuout,OUTS248,80)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP 
@@ -282,7 +292,7 @@ C BHSTR - an array holding a descriptive string for each column of data.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/RBEMDAT/SIMTSTP,NLINE,NCOLS,CURTM,BVAR(MBROW,MBCOL),
@@ -332,6 +342,8 @@ C Open the named file using a temporary file unit.
         WRITE(OUTS,'(A,A,A)')
      &  'ERROR: Problem opening ',BFILE(1:LNBLNK(BFILE)),'.'
         call edisp(iuout,OUTS)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         ierror=1
@@ -365,6 +377,8 @@ C Check the first string is the time.
      &    'ERROR: Problem with ',BFILE(1:LNBLNK(BFILE)),
      &    ' first column is not a time column.'
           call edisp(iuout,OUTS)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP
@@ -388,6 +402,8 @@ C Check the calculated time
      &    'ERROR: Problem with ',BFILE(1:LNBLNK(BFILE)),
      &    ' calculated timestep is close to zero'
           call edisp(iuout,OUTS)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP
@@ -396,6 +412,8 @@ C Check the calculated time
      &    'ERROR: Problem with ',BFILE(1:LNBLNK(BFILE)),
      &    ' calculated timestep is > 1 hour.'
           call edisp(iuout,OUTS)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP
@@ -438,6 +456,8 @@ C Check that last part of the file is not 2 duplicate lines.
      &  'ERROR: Problem with ',BFILE(1:LNBLNK(BFILE)),
      &', not a known file type.'
         call edisp(iuout,OUTS)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP  
@@ -532,7 +552,7 @@ C*end_data
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/B2EI/MODELCFG,BFILE,TDFUD,RSFIL,BREPT
@@ -565,6 +585,8 @@ C Open the named file using a temporary file unit
           WRITE(OUTS,'(A,A,A)')
      &    'ERROR: Problem opening ',BFILE(1:LNBLNK(BFILE)),'.'
           call edisp(iuout,OUTS)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP
@@ -623,7 +645,7 @@ C This subroutine decodes the header strings from labview
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/RBEMDAT/SIMTSTP,NLINE,NCOLS,CURTM,BVAR(MBROW,MBCOL),
      &SENMAP(MBCOL)
 
@@ -742,7 +764,7 @@ C << has been moved into the project manager.
 C      integer lnblnk  ! function definition
 
 C Commons
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/B2EI/MODELCFG,BFILE,TDFUD,RSFIL,BREPT
@@ -774,6 +796,8 @@ C Following logic taken from tdf.F
         CALL USRMSG('Updating file...done.',msgl2,'P')
       ELSE
         CALL EDISP(IUOUT,'b2e ERROR: not a known tdf update mode')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -795,7 +819,7 @@ C ITRC is the trace level, IER=0 OK, IER=1 problem.
 #include "net_flow.h"
 #include "tdf2.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
       logical FOUND,CLOSE,CLOSET,foundit
 
@@ -972,7 +996,7 @@ C Common blocks
 #include "building.h"
 #include "b2e.h"
 
-      COMMON/OUTIN/IUIN,IUOUT
+      COMMON/OUTIN/IUIN,IUOUT,IEOUT
 
       COMMON/RBEMSTR/BHSTR(MBCOL)
 
@@ -1085,7 +1109,7 @@ C simulation pattern selects suitable data to return to the bems system
       integer lnblnk  ! function definition
 
 C Commons
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/FILEP/IFIL
 
@@ -1231,13 +1255,14 @@ C the BEMS update file. Control law start times and dates of validity.
 
       SUBROUTINE CTLUPDATE(ISIM,MODE)
 
-# include "b2e.h"
-# include "building.h"
-# include "control.h"
+#include "b2e.h"
+#include "building.h"
+#include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN  
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT  
       COMMON/FILEP/IFIL
-      COMMON/Vld20/Vldtng
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
 
 C Commom for the optimim start/stop simulation. 
       COMMON/OPPSIM/NOPSSPT,OPSSPT(MCOM),NOPSSTIM,OPSSTIM(MCOM),
@@ -1270,9 +1295,10 @@ C Control law mapping
       INTEGER SENMAP
       CHARACTER*4 MODE, MSIM
 
-C Set validation logical true so user not prompted when control file updated.
-      logical Vldtng, today,tclose
-      Vldtng=.true.
+      logical today,tclose
+
+C Set auto-overwrite so user not prompted when control file updated.
+      AUTOVR=.true.
 
 C Firstly read the control file
       ICTLF=IFIL+1 
@@ -1281,6 +1307,8 @@ C Firstly read the control file
       CALL EZCTLR(ICTLF,0,IUOUT,IER)
       IF(IER.NE.0) THEN
         CALL EDISP(IUOUT,'b2e ERROR reading control file')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -1491,6 +1519,8 @@ C Write out the control file.
       CALL EDISP(IUOUT,'b2e updating the control file ...')
 
       CALL CTLWRT(ICTLF,IER)
+
+      AUTOVR=.false.
 
       RETURN 
       END

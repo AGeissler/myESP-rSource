@@ -20,17 +20,16 @@ C Boston, MA 02111-1307 USA.
 
       SUBROUTINE DRYLINK(icomp,qganp1,qganf1,qganp2,qganf2,wganp,wganf)
 #include "building.h"
-
+#include "site.h"
       PARAMETER (HF = 6.1, DIFFCO = 1.7E-10)
 
       DOUBLE PRECISION H2OF,H2OS,XMCS,XMCF,XMASTP,XMASRP,QWVTP,QWVRP
       DOUBLE PRECISION MTX, Y, X
       DOUBLE PRECISION AN, APP, AP, AM, AM1
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       COMMON/PREC7/ITCNST
-      COMMON/ATPRES/PATMOS
       COMMON/WBULBO/IOPT
       COMMON/FVALG/GFA(MCOM)
       COMMON/PVALG/GPA(MCOM)
@@ -162,7 +161,7 @@ C     condition before entering the stack.
 C     XEMC (ratio), TPFA (deg. C), GPFA(Kg/Kg)
 C     **************************************************************
 
-      XEMC(MZI) = EMC(TPFA,GPFA)
+      XEMC(MZI) = EMC(TPFA,GPFA,PATMOS)
 
 C Set the present value of moisture content
       IF (NSINC .EQ. JJ) THEN
@@ -368,7 +367,7 @@ C********************************************************************
       DOUBLE PRECISION AN, APP, AP, AM, AM1
       INTEGER FLAG
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/DRYTIM1/AN, APP, AP, AM, AM1, JJ
       COMMON/DRYTIM2/MTX(4,5),X(4),Y(2,8),DELTAT,CONINI,TWPFA,MZI,KJ      
@@ -494,7 +493,7 @@ C********************************************************************
 
       DOUBLE PRECISION MTX, Y, X, XMCS
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       COMMON/DRYTIM2/MTX(4,5),X(4),Y(2,8),DELTAT,CONINI,TWPFA,MZI,KJ 
 
@@ -573,9 +572,8 @@ C      Determine the Equilibrium Moisture Content (EMC) of timber
 C      under the climatic conditions in the dryer.
 C     ***************************************************************
 
-       FUNCTION EMC(TDB,GA)       
+       FUNCTION EMC(TDB,GA,PATMOS)       
        DOUBLE PRECISION A1,A2,A3,EMC1,EMC2
-       COMMON/ATPRES/PATMOS
  
        TDBF = 1.8*TDB + 32.0
        RH=PCRH2(TDB,GA,PATMOS)

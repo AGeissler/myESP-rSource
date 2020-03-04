@@ -62,6 +62,7 @@ C computer", Klimaatbeheersing, vol. 13, no. 8, pp. 269-274
 
       FUNCTION SHTFLD(IFLD,TEMP)
 
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/WRNOFF/IWMOFF
 
@@ -95,6 +96,8 @@ C computer", Klimaatbeheersing, vol. 13, no. 8, pp. 269-274
         SHTFLD=4244.-(22.65*SQRT(VTEMP))+(1.95*VTEMP)
       ELSE
          call edisp(icout,' SHTFLD: unsupported fluid type.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -112,6 +115,7 @@ C For the time being this function relies on DENSIT in MFUTIL of ESRUmfs
 
       FUNCTION RHOFLD(IFLD,TEMP)
 
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/WRNOFF/IWMOFF
 
@@ -121,6 +125,8 @@ C For the time being this function relies on DENSIT in MFUTIL of ESRUmfs
          RHOFLD=DENSIT(2,TEMP)
       ELSE
          call edisp(icout,' RHOFLD: unsupported fluid type.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -266,11 +272,11 @@ C     CDATA: none
 #include "building.h"
 #include "plant.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -428,12 +434,13 @@ C For the steam humidifier a conmstant effectiveness of 99% is assumed.
       SUBROUTINE CMP02C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -458,7 +465,6 @@ C For the steam humidifier a conmstant effectiveness of 99% is assumed.
 
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
 
-      COMMON/ATPRES/PATMOS
       COMMON/WBULBO/IOPT
 
       PARAMETER (SMALL=1.0E-15)
@@ -477,6 +483,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP02C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -708,11 +716,11 @@ C     CDATA: 1 Volume flow rate (m^3/s)
 #include "net_flow_data.h"
 #include "OffsiteUtilitiesPublic.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -761,6 +769,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP03C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -942,12 +952,13 @@ C            1 Water vapour rate extracted from moist air (kg/s)
       SUBROUTINE CMP04C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -970,7 +981,6 @@ C            1 Water vapour rate extracted from moist air (kg/s)
      &             ICONDX(MPCOM,MNODEC,MPCONC)
       COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
 
-      COMMON/ATPRES/PATMOS
       COMMON/WBULBO/IOPT
 
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
@@ -995,6 +1005,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP04C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1180,11 +1192,11 @@ C     CDATA: 1 Heating duty (W)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -1225,6 +1237,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP05C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1363,13 +1377,14 @@ C     CDATA: none
       SUBROUTINE CMP06C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -1388,8 +1403,6 @@ C     CDATA: none
      &             PCNTMP(MPCOM)
       COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
      &             ICONDX(MPCOM,MNODEC,MPCONC)
-
-      COMMON/ATPRES/PATMOS
 
       PARAMETER (SMALL=1.0E-15)
       REAL      COUT(MPCOE)
@@ -1550,11 +1563,11 @@ c     cdata: mass flow fraction entering damper.
 #include "plant.h"
 #include "building.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pctime/timsec
       common/pctc/tc(mpcom)
 
@@ -1720,11 +1733,11 @@ c     cdata: mass flow fraction entering damper.
 #include "plant.h"
 #include "building.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pctime/timsec
       common/pctc/tc(mpcom)
 
@@ -1915,12 +1928,13 @@ C            1 Water vapour rate extracted from moist air (kg/s)
       SUBROUTINE CMP09C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -1944,7 +1958,6 @@ C            1 Water vapour rate extracted from moist air (kg/s)
       COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
 
-      COMMON/ATPRES/PATMOS
       COMMON/WBULBO/IOPT
 
       DIMENSION XIN(6),PAR(6),OUT(10),INFO(10)
@@ -1965,6 +1978,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP09C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2003,8 +2018,7 @@ C For TRNSYS type32 component, setup interface parameters.
 C Set up input parameters.
             xin(1)=convar(icon1,1)
 
-C Screen wet bulb temperature rerquired (iopt=2).
-            patmos=1013.25
+C Screen wet bulb temperature required (iopt=2).
             iopt=2
             gh=convar(icon1,3)/convar(icon1,2)
             if(gh.gt.0.2) gh=0.01
@@ -2185,13 +2199,14 @@ C            1 Water vapour rate extracted from moist air (kg/s)
       SUBROUTINE CMP10C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -2214,7 +2229,6 @@ C            1 Water vapour rate extracted from moist air (kg/s)
      &             ICONDX(MPCOM,MNODEC,MPCONC)
       COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
 
-      COMMON/ATPRES/PATMOS
       COMMON/WBULBO/IOPT
 
       PARAMETER (SMALL=1.0E-15)
@@ -2233,6 +2247,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP10C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2458,12 +2474,12 @@ C     CDATA: 1 Water flow rate (kg/s)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -2501,6 +2517,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP11C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2684,13 +2702,14 @@ C     CDATA: none
       SUBROUTINE CMP12C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -2712,7 +2731,6 @@ C     CDATA: none
       COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
      &             ICONDX(MPCOM,MNODEC,MPCONC)
 
-      COMMON/ATPRES/PATMOS
       COMMON/WRNOFF/IWMOFF
 
       PARAMETER (SMALL=1.0E-15)
@@ -2957,13 +2975,14 @@ C     CDATA: none
       SUBROUTINE CMP13C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -2985,7 +3004,6 @@ C     CDATA: none
       COMMON/PCOND/CONVAR(MPCON,MCONVR),ICONTP(MPCON),
      &             ICONDX(MPCOM,MNODEC,MPCONC)
 
-      COMMON/ATPRES/PATMOS
       COMMON/WRNOFF/IWMOFF
 
       PARAMETER (SMALL=1.0E-15)
@@ -3232,12 +3250,13 @@ C
       SUBROUTINE CMP14C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
@@ -3261,7 +3280,6 @@ C
       COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
       COMMON/CTWRIT/TWEXF
-      COMMON/ATPRES/PATMOS
 
       PARAMETER (SMALL=1.0E-20)
       REAL      COUT(MPCOE),NTUr,NTUa,KG 
@@ -3531,11 +3549,11 @@ C     CDATA: 1 Mass flow rate (kg/s)
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -3585,6 +3603,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP15C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -3769,13 +3789,14 @@ C            3 Water/solid inter-node thermal conductance (W/K)
       SUBROUTINE CMP40C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -3798,7 +3819,6 @@ C            3 Water/solid inter-node thermal conductance (W/K)
      &             ICONDX(MPCOM,MNODEC,MPCONC)
       COMMON/PCDAT/PCDATF(MPCOM,MPCDAT),PCDATP(MPCOM,MPCDAT)
 
-      COMMON/ATPRES/PATMOS
       COMMON/WBULBO/IOPT
 
       PARAMETER (SMALL=1.0E-15)
@@ -4130,12 +4150,12 @@ C            2 Water/solid inter-node thermal conductance (W/K)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -4424,6 +4444,8 @@ C   q     : Heat extracted from air (W)
 C   cmfr  : Condensate mass flow rate (kg/s)
 
       subroutine ccoilq(at,af,ra,rm,rw,tai,wit,amfr,wmfr,gi,q,cmfr)
+#include "building.h"
+#include "site.h"
 
 C Remember effectivness and specific heat ratio.
       logical closea
@@ -4504,7 +4526,6 @@ C Determine Hsat of air.
       HSAT=(HAO-BPF*HAI)/(1.0-BPF)
 
 C Determine GSAT and TSAT.
-      patmos=1013.25
       TSAT=TSATH0(HSAT/1000.0,PATMOS)
       GSAT=HUMRAT(TSAT,TSAT,PATMOS,1)
       IF(GSAT.GT.GI)GSAT=GI
@@ -4565,9 +4586,10 @@ C exit temp.
 C Calculate the temperature step and enthalpy step for Simpson's
 C calculation.
       SUBROUTINE NTUCT(TWSU,TWEXI,HEX,HSU,NTUR)
+#include "building.h"
+#include "site.h"
           REAL NTUr 
           DIMENSION COEFF(8)          
-          PATMOS=1013.25
           SMALL=1.0E-20
 
           TSTEP=(TWSU-TWEXI)/8.0

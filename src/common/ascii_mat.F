@@ -114,15 +114,13 @@ C Parameters
       character LASCI*144  ! ascii file name
       integer IER         ! error return where zero is ok, 
                           ! ier=-1 file not found, ier=-2 no classes
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/texted/tedlbl,teditor
       character tedlbl*20,teditor*20
 
 C Name of current application - only invoke editing if prj.
       character cAppName*12
       common/APPNAME/cAppName
-      character h*72
-      common/pophelp/h(60)
 
       character tmode*8
       CHARACTER DOIT*300
@@ -133,7 +131,16 @@ C Name of current application - only invoke editing if prj.
       dimension namelist(600)
       integer loop,ih  ! loop indices
       integer iln,iln2 ! length of name strings
-      logical dupfound,concat,unixok,ok,dok
+      logical dupfound,concat,unixok,ok
+
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found
+
+      helpinsub='rlegacymat'  ! set for subroutine
+      helptopic='legacymat_scan'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Open the ASCII file for reading. Reset ier state prior to efopseq.
       ier=0
@@ -378,17 +385,9 @@ C the option of editing the materials files.
       endif
       if(dupfound)then
         if(ipathmat.eq.0.or.ipathmat.eq.1)then
-          dok=.false.
-          h(1)='Each material should have a unique name. Duplicates'
-          h(2)='were found and should be rectified as soon as possible'
-          h(3)='to prevent confusion in the model. After editing the '
-          h(4)='materials file you should exit prj and re-open the '
-          h(5)='model. '
-          nbhelp=5
-          CALL ASKOK(
-     &      'Edit materials file to address duplicate material names?',
-     &      '(be sure to save file and re-open the model)',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ',
+     &      'Edit materials file to address duplicate names?',
+     &      OK,nbhelp)
           if(OK)then
             lltmp=LASCI  ! file name to edit
 
@@ -403,8 +402,8 @@ C then check for spaces in name and change / to \.
               longtfile=' '
               longtfile=longtfiledos
             endif
-            tmode='graph'
-            if(teditor(1:2).eq.'vi')tmode='text'
+            tmode='-'
+         if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
             write(doit,'(a,2x,a)') teditor(1:lnblnk(teditor)),
      &        longtfile(1:lnblnk(longtfile))
             call runit(doit,tmode)
@@ -583,7 +582,7 @@ C Parameters
       integer IER         ! error return where zero is ok and -2 signals
                           ! that the expected header was not found
                           ! ier=-1 file not found, ier=-2 no classes
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/texted/tedlbl,teditor
       character tedlbl*20,teditor*20
 
@@ -603,7 +602,7 @@ C Name of current application - only invoke editing if prj.
       dimension namelist(600)
       integer loop,ih  ! loop indices
       integer iln,iln2 ! length of name strings
-      logical dupfound,concat,unixok,ok,dok
+      logical dupfound,concat,unixok,ok
       integer iCFCtype, ival
 
 C Open the ASCII file for reading.
@@ -852,11 +851,9 @@ C the option of editing the materials files.
       endif
       if(dupfound)then
         if(ipathmat.eq.0.or.ipathmat.eq.1)then
-          dok=.false.
-          CALL ASKOK(
-     &      'Edit materials file to address duplicate material names?',
-     &      '(be sure to save file and re-open the model)',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ',
+     &      'Edit materials file to address duplicate names?',
+     &      OK,nbhelp)
           if(OK)then
             lltmp=LASCI  ! file name to edit
 
@@ -871,8 +868,8 @@ C then check for spaces in name and change / to \.
               longtfile=' '
               longtfile=longtfiledos
             endif
-            tmode='graph'
-            if(teditor(1:2).eq.'vi')tmode='text'
+            tmode='-'
+         if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
             write(doit,'(a,2x,a)') teditor(1:lnblnk(teditor)),
      &        longtfile(1:lnblnk(longtfile))
             call runit(doit,tmode)
@@ -1206,7 +1203,7 @@ C will be returned as zero.
 C Parameters
       integer ier
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -1322,7 +1319,7 @@ C will be returned as zero.
 C Parameters
       integer ier
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -1379,7 +1376,7 @@ C Parameters
       integer IER         ! error return where zero is ok and -2 signals
                           ! that the expected header was not found
                           ! ier=-1 file not found, ier=-2 no classes
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/texted/tedlbl,teditor
       character tedlbl*20,teditor*20
 
@@ -1399,15 +1396,15 @@ C Name of current application - only invoke editing if prj.
       integer loop,ih  ! loop indices
       integer iln,iln2 ! length of name strings
       integer index    ! for cfcatindex
-      logical dupfound,concat,unixok,ok,dok
+      logical dupfound,concat,unixok,ok
       integer iCFCtype, ival
 
 C Determine number of classes and items in the database
       CALL EFOPSEQ(IFA,LASCI,1,IER)
       IF(IER.NE.0)RETURN
       write(currentfile,'(a)') LASCI(1:lnblnk(LASCI))
-       MGIT_CFC = 0   ! reset the total number of items.
-      MGCL_CFC = 0 ! reset the total number of classes.
+      MGIT_CFC = 0   ! reset the total number of items.
+      MGCL_CFC = 0   ! reset the total number of classes.
       DO
         CALL LSTRIPC(IFA,LOUTSTR,0,ND,1,'header lines',IER)
         IF(IER.NE.0)RETURN
@@ -1467,14 +1464,14 @@ C and the next line is number of classes...
         IF(IER.NE.0)RETURN
         K=0
         CALL EGETWI(LOUTSTR,K,cfccats,1,MGCL_CFC,
-     &               'W','nb of classes',IER)
+     &    'W','nb of classes',IER)
         goto 41
       elseif(WORD(1:6).eq.'*Class'.or.WORD(1:6).eq.'*class')then
 
 C Get class index, nb of items and class name. Then read the next line
 C as documentation for the class. Untill the next *class line the
 C class index IC is used for subsequent items.
-        CALL EGETWI(LOUTSTR,K,IC,0,MGCL_CFC,'F','class',IER)
+        CALL EGETWI(LOUTSTR,K,IC,0,MGCL_CFC+1,'F','class',IER)
         CALL EGETWI(LOUTSTR,K,NE,0,19,'-','no items',IER)
         cfccatitems(IC)=NE
         CALL EGETRM(LOUTSTR,K,NDESC,'-','description',IER)
@@ -1519,7 +1516,7 @@ C Record the name and then check and see if it is a duplicate.
         write(cfcname(cfcdbitems),'(a)') WORD32(1:lnblnk(WORD32))
         CALL EGETWI(LOUTSTR,K,index,1,MGIT_CFC,'F','item index',IER)
         cfcitmindex(cfcdbitems)=int(index,2)
-        CALL EGETWI(LOUTSTR,K,index,1,MGCL_CFC,'F','category index',IER)
+        CALL EGETWI(LOUTSTR,K,index,1,MGCL_CFC+1,'F','class index',IER)
         cfccatindex(cfcdbitems)=int(index,2)
         CALL EGETRM(LOUTSTR,K,WORD248,'-','item doc',IER)
         write(cfcdoc(cfcdbitems),'(a)') WORD248(1:lnblnk(WORD248))
@@ -1772,11 +1769,9 @@ C the option of editing the CFC layers files.
       endif
       if(dupfound)then
         if(ipathcfc.eq.0.or.ipathcfc.eq.1)then
-          dok=.false.
-          CALL ASKOK(
+          CALL EASKOK(' ',
      &      'Edit CFC layers file to address duplicate names?',
-     &      '(be sure to save file and re-open the model)',
-     &      OK,dok,nbhelp)
+     &      OK,nbhelp)
           if(OK)then
             lltmp=LASCI  ! file name to edit
 
@@ -1791,8 +1786,8 @@ C then check for spaces in name and change / to \.
               longtfile=' '
               longtfile=longtfiledos
             endif
-            tmode='graph'
-            if(teditor(1:2).eq.'vi')tmode='text'
+            tmode='-'
+         if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
             write(doit,'(a,2x,a)') teditor(1:lnblnk(teditor)),
      &        longtfile(1:lnblnk(longtfile))
             call runit(doit,tmode)

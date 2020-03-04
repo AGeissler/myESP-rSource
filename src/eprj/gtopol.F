@@ -36,7 +36,7 @@ C ****** GTOPOL
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/grndpl/NGT,NGTV,XGT(MGTV),YGT(MGTV),ZGT(MGTV),JGVN(MGRT,8),
      &  NGVER(MGRT),IVEDGE(MGRT)
@@ -47,14 +47,13 @@ C ****** GTOPOL
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      common/C6/INDCFG
       
       CHARACTER*33 ITEMS(12)
       character*45 VERTS(MGRT)
       dimension ivals(MGRT)
       CHARACTER GMLCN*32,GSNAME*6,GTNAME*15,GTGEOM*72
       CHARACTER outs*124,ltmp*72,t15*15,ETEXT*82
-      logical XST,grmod,ok,dok,modmlc
+      logical XST,grmod,ok,modmlc
       integer nitms,INO ! max items and current menu item
 
 #ifdef OSI
@@ -181,9 +180,7 @@ C If ground needs drawing or updating do it here.
         call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
      &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
         WRITE(ETEXT,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
-        iside=1
-        isize=1
-        ifont=1
+        iside=1; isize=1; ifont=1
         call viewtext(etext,iside,isize,ifont)
         CALL INLNSTG(3)
         call EGRNDR(IER)
@@ -296,9 +293,9 @@ C Check and see if a few vertices have had edge definitions.
 C Set to draw only ground and then after figuring out triangles 
 C swop back to previous.
           if(NGT.gt.1)then
-            dok=.true.
-            call askok('Existing surfaces will be removed prior to',
-     &        'auto triangulate. Is this ok?',ok,dok,nbhelp)
+            call easkok(
+     & 'Existing surfaces will be removed prior to auto triangulate!',
+     &       'Is this OK?',ok,nbhelp)
           else
             ok=.true.
           endif
@@ -395,7 +392,7 @@ C IER=0 OK, IER=1 problem.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
       COMMON/GTFIL/GTGEOM
@@ -404,7 +401,7 @@ C IER=0 OK, IER=1 problem.
       COMMON/GT5/GSNAME(MGRT),GMLCN(MGRT)
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/RAY6G/LINSTYG(MGRT)
-      LOGICAL MODGEO,ok,dok,match,matchver
+      LOGICAL MODGEO,ok,match,matchver
 
       DIMENSION VERT(35),IVLST(MGTV),ITEMP(MGTV),COG1(3),COG2(3),COG3(3)
       CHARACTER VERT*35,KEY*1,HOLD*32,GTGEOM*72
@@ -652,11 +649,9 @@ C number of vertices associated with this surface) shifting
 C JGVN indices up one until at the current edge (ivjj) and then
 C inserting the new vertex index.
                       if(NGVER(ivj)+1.le.8)then
-                        dok=.true.
                         helptopic='ground_coord_very_close'
                         call gethelptext(helpinsub,helptopic,nbhelp)
-                        call askok('Insert this vertex?','(see help)',
-     &                    ok,dok,nbhelp)
+                        call easkok(' ','Insert vertex?',ok,nbhelp)
                       else
                         ok=.false.
                       endif
@@ -681,10 +676,9 @@ C Surface (ivj) vertex list has been updated. Go on to next surface.
   246           continue
               endif
             endif
-            dok=.false.
             call forceflush()
-            call askok('Another vertex along the line? ',' ',
-     &        ok,dok,nbhelp)
+            call easkok(' ','Another vertex along the line?',
+     &           ok,nbhelp)
             if(ok)goto 72
           else
             goto 3
@@ -795,9 +789,8 @@ C Show the new point on the current wireframe.
                 call EGRNDR(IER)
               endif
             endif
-            dok=.false.
-            call askok('Another vertex from this origin?',' ',
-     &        ok,dok,nbhelp)
+            call easkok(' ','Another vertex from this origin?',
+     &        ok,nbhelp)
             if(ok)goto 73
           endif
           MODIFYVIEW=.true.
@@ -921,8 +914,7 @@ C Use ratio calculation to make an aligned point vdislsp along the line.
               call ecirc(iix,iiy,3,1)
               call forceflush()
             endif
-            dok=.true.
-            call askok('Is this aligned vertex ok?',' ',ok,dok,nbhelp)
+            call easkok(' ','Is this aligned vertex OK?',ok,nbhelp)
             if(ok)then
               XGT(IWHICH3)=x3
               YGT(IWHICH3)=y3
@@ -958,11 +950,9 @@ C number of vertices associated with this surface) shifting
 C JGVN indices up one until at the current edge (ivjj) and then
 C inserting the new vertex index.
                     if(NGVER(ivj)+1.le.8)then
-                      dok=.true.
                       helptopic='ground_coord_very_close'
                       call gethelptext(helpinsub,helptopic,nbhelp)
-                      call askok('Insert this vertex?','(see help)',
-     &                  ok,dok,nbhelp)
+                      call easkok(' ','Insert vertex?',ok,nbhelp)
                     else
                       ok=.false.
                     endif
@@ -1077,8 +1067,7 @@ C Show the new point on the current wireframe.
               call ecirc(iix,iiy,3,1)
               call forceflush()
             endif
-            dok=.true.
-            call askok('Apply this move?',' ',OK,dok,nbhelp)
+            call easkok(' ','Apply this move?',OK,nbhelp)
             if(OK)then
               xgt(IWHICH1)=x3
               ygt(IWHICH1)=y3
@@ -1319,7 +1308,7 @@ C IER=0 OK, IER=1 problem.
 #include "epara.h"
 #include "prj3dv.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/grndpl/NGT,NGTV,XGT(MGTV),YGT(MGTV),ZGT(MGTV),JGVN(MGRT,8),
      &  NGVER(MGRT),IVEDGE(MGRT)
       DIMENSION  item(36)
@@ -1522,12 +1511,12 @@ C added at the end of the list.
       SUBROUTINE ADDGVERT(NUM,ACTION,IER)
 #include "building.h"
 #include "prj3dv.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/grndpl/NGT,NGTV,XGT(MGTV),YGT(MGTV),ZGT(MGTV),JGVN(MGRT,8),
      &  NGVER(MGRT),IVEDGE(MGRT)
       COMMON/GT5/GSNAME(MGRT),GMLCN(MGRT)
       LOGICAL check,found,closex,closey,closez
-      logical ok,dok,matchver
+      logical ok,matchver
 
       DIMENSION ISASSO(MS),X1(MV),Y1(MV),Z1(MV)
       CHARACTER OUTSTR*124,ACTION*1,HOLD*32,outs*124
@@ -1674,9 +1663,8 @@ C number of vertices associated with this surface) shifting
 C JGVN indices up one until at the current edge (ivjj) and then
 C inserting the new vertex index.
                     if(NGVER(ivj)+1.le.8)then
-                      dok=.true.
-                      call askok('Insert this vertex?','(see help)',
-     &                  ok,dok,nbhelp)
+                      call easkok(' ','Insert this vertex?',
+     &                  ok,nbhelp)
                     else
                       ok=.false.
                     endif
@@ -1776,9 +1764,8 @@ C number of vertices associated with this surface) shifting
 C JGVN indices up one until at the current edge (ivjj) and then
 C inserting the new vertex index.
                   if(NGVER(ivj)+1.le.8)then
-                    dok=.true.
-                    call askok('Insert this vertex?','(see help)',
-     &                ok,dok,nbhelp)
+                    call easkok(' ','Insert this vertex?',
+     &                ok,nbhelp)
                   else
                     ok=.false.
                   endif
@@ -1985,7 +1972,7 @@ C Method checks for minimally linked vertices.
       integer iCountWords
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/grndpl/NGT,NGTV,XGT(MGTV),YGT(MGTV),ZGT(MGTV),JGVN(MGRT,8),
      &  NGVER(MGRT),IVEDGE(MGRT)
       COMMON/GT5/GSNAME(MGRT),GMLCN(MGRT)
@@ -2233,9 +2220,8 @@ C number of vertices associated with this surface) shifting
 C JGVN indices up one until at the current edge (ivjj) and then
 C inserting the new vertex index.
                     if(NGVER(ivj)+1.le.8)then
-                      dok=.true.
-                      call askok(' ','Insert this vertex?',
-     &                            ok,dok,nbhelp)
+                      call easkok(' ','Insert vertex?',
+     &                            ok,nbhelp)
                     else
                       ok=.false.
                     endif
@@ -2247,10 +2233,6 @@ C inserting the new vertex index.
                       JGVN(ivj,IXV)=JGVN(ivj,IXV-1)
                       IF(IXV.GT.ivjj+1)GOTO 148
                       JGVN(ivj,ivjj+1)=iwhich3
-
-C Debug.
-C                      write(6,'(a,30i4)') 'now jgvn is ',
-C     &                  (JGVN(ivj,ii),ii=1,NGVER(ivj))
 
 C Surface (ivj) vertex list has been updated. Go on to next surface.
                       goto 246 
@@ -2389,7 +2371,7 @@ C IER=1 problem.
       integer iCountWords
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/grndpl/NGT,NGTV,XGT(MGTV),YGT(MGTV),ZGT(MGTV),JGVN(MGRT,8),
      &  NGVER(MGRT),IVEDGE(MGRT)
@@ -2405,7 +2387,7 @@ C IER=1 problem.
       DIMENSION  BX(MPL),BY(MPL),BZ(MPL),IBNXT(MPL)
       DIMENSION  SBBOX(3,2)
 
-      LOGICAL OK,DOK
+      LOGICAL OK
 
       DIMENSION VERT(36)
       DIMENSION  XX(8),YY(8),ZZ(8),XT(8),YT(8),ZT(8),jvn1(8)
@@ -2655,10 +2637,9 @@ C Show these points as small circles...
 
 C Then draw the revised and if acceptable then used transformed
 C points within the zone in place of the originals....
-        DOK=.true.
-        CALL ASKOK('Is it ok to apply the transformed points  ',
-     &             'to the surface (and attached surfaces) ?',
-     &             OK,DOK,nbhelp)
+        CALL EASKOK(' ',
+     &    'Apply transformed points to the surface?',
+     &             OK,nbhelp)
         if(OK)then
           MODIFYVIEW=.TRUE.
           DO 155 J = 1,N
@@ -3132,9 +3113,7 @@ C ****** Routine to update-draw ground during triangulation.
       izgfoc=0
       CALL redraw(IER)
       WRITE(outs,'(A,i3,A,i3)')' Verts: ',IVV,' surfs ',NGTG
-      iside=1
-      isize=0
-      ifont=1
+      iside=1; isize=0; ifont=1
       call viewtext(outs,iside,isize,ifont)
       iside=2
       call viewtext(msg,iside,isize,ifont)
@@ -3215,7 +3194,7 @@ C output: triangle list
 #include "prj3dv.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/grndpl/NGT,NGTV,XGT(MGTV),YGT(MGTV),ZGT(MGTV),JGVN(MGRT,8),
      &  NGVER(MGRT),IVEDGE(MGRT)
       COMMON/GT5/GSNAME(MGRT),GMLCN(MGRT)
@@ -3229,7 +3208,7 @@ C output: triangle list
       DIMENSION PTA(2), ITSEL(90), ITCHK(90)
       CHARACTER GMLCN*32,GSNAME*6,msg*32,outs*124
       LOGICAL LVERT(MGTV), INPOLY
-      logical OK,dok
+      logical OK
 
 #ifdef OSI
       integer igwid,igheight  ! for use with axiscale
@@ -3330,10 +3309,9 @@ C Clear current viewing box.
         call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
 
         OK=.FALSE.
-        dok=.false.
         helptopic='ground_include_indices'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' ','Draw vertices?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Draw vertices?',OK,nbhelp)
         IF(OK)then
           ix=NGTV
           call UGRNDR(ix,0,'initial',IER)
@@ -3475,11 +3453,9 @@ C Finally check to see if all the vertices have been used.
         IF (.NOT.LVERT(I)) THEN
           write(outs,*)' Vertex number is unused ',I
           call edisp(iuout,outs)
-          dok=.true.
           helptopic='ground_alt_logic_triang'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok('Try again to find this vertex?',' ',
-     &      ok,dok,nbhelp)
+          call easkok(' ','Retry?',ok,nbhelp)
           if(ok)goto 150
         ELSE
           write(outs,*)' Vertices number has been used ',I
@@ -3517,7 +3493,7 @@ C in IVSEL().
       SUBROUTINE MKTRI(CENTER,NVERT,VLIST,CCR,CENT)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/grndpl/NGT,NGTV,XGT(MGTV),YGT(MGTV),ZGT(MGTV),JGVN(MGRT,8),
      &  NGVER(MGRT),IVEDGE(MGRT)
 

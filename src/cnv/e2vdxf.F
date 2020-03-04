@@ -27,13 +27,14 @@ C lindir: finds the angles associate with a line in space.
       subroutine e2vdxf(incobs)
 #include "building.h"
 #include "model.h"
+#include "CFC_common.h"
 
 C geometry.h provides commons G0/G1/G2/G5/precz/GS5.
 #include "geometry.h"
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       integer ncomp,ncon
@@ -144,6 +145,8 @@ C Free the viewer file and reread the geometry file.
    4    continue
 
         CALL ERPFREE(ioout,ISTAT)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call edisp(iuout,' End of conversion.')
         CALL EPAGEND
         STOP
@@ -248,7 +251,7 @@ C If an obstruction for zone then make it the next layer.
         endif
 
 C If there are transparent surfaces put them in another layer << .. >>
-        if(ITW(mz).EQ.1)then
+        if((ITW(mz).EQ.1).or.(icfc(mz).EQ.1))then
           write(ioout,'(a)')'LAYER'
           write(ioout,'(a)')'  2'
           write(ioout,'(a4,a)') 'TRN_',ZN(1:lnblnk(ZN))
@@ -462,7 +465,7 @@ C blocks use 3DPOLY for all surfaces in the model.
 C          if(iv.eq.3.or.iv.eq.4)then
 C            WRITE(ioout,'(A)')'3DFACE'
 C            WRITE(ioout,'(A)')'  8'
-C            if(SOTF(isf).eq.'TRAN')then
+C            if(SOTF(mz,isf).eq.'TRAN')then
 C              WRITE(ioout,'(A4,a)') 'TRN_',ZN(:lnblnk(ZN))
 C            else
 C              WRITE(ioout,'(A)') ZN(:lnblnk(ZN))
@@ -495,7 +498,9 @@ C          else
 C Write as a 3DPOLY with VERTEX.
             WRITE(ioout,'(A)')'POLYLINE'
             WRITE(ioout,'(A)')'  8'
-            if(SOTF(isf).eq.'TRAN')then
+            if((SOTF(mz,isf).eq.'TRAN').or.
+     &         (SOTF(mz,isf).eq.'CFC ').or.
+     &         (SOTF(mz,isf).eq.'CFC2'))then
               WRITE(ioout,'(A4,a)') 'TRN_',ZN(1:lnblnk(ZN))
             else
               WRITE(ioout,'(A)') ZN(1:lnblnk(ZN))
@@ -536,6 +541,8 @@ C Close the dxf file.
       write(ioout,'(a)')'  0'
       write(ioout,'(a3)')'EOF'
       CALL ERPFREE(ioout,ISTAT)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
 
       call edisp(iuout,' End of conversion.')
       CALL EPAGEND
@@ -552,7 +559,7 @@ C THF (THINGS) file for use in MicroGDS.
 #include "model.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       integer ncomp,ncon
@@ -603,7 +610,7 @@ C Write surface information to the THF file.
           WRITE(ioout,'(a)')'0 '
           WRITE(ioout,'(I2)')NSUR
           DO 50 J=1,NSUR
-            WRITE(ioout,'(a,a8)')'1 ',SMLCN(J)(1:8)
+            WRITE(ioout,'(a,a8)')'1 ',SMLCN(newfoc,J)(1:8)
             WRITE(ioout,'(I3,1X,124I4)')NVER(J),(JVN(J,K),K=1,NVER(J))
    50     continue
 

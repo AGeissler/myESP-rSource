@@ -57,7 +57,7 @@ C Supports position - needs testing.
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -150,7 +150,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -192,7 +192,7 @@ C Supports position - needs testing.
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C      COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -204,7 +204,7 @@ C      COMMON/MFLOWIT/fndegc,imix
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -244,9 +244,9 @@ C offer option to update with default surface flow attribute position.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &    'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -283,7 +283,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -328,7 +328,7 @@ C
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -341,7 +341,7 @@ C
       real cx,cy,cz
       integer loop
       logical iswater
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -380,9 +380,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &      'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -441,7 +441,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -486,7 +486,7 @@ C Supports position - needs testing.
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -499,7 +499,7 @@ C Supports position - needs testing.
       real cx,cy,cz
       integer loop
       logical iswater
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -538,9 +538,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &      'Update component position to reflect surface attributes?',
+     &           OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -591,7 +591,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -636,7 +636,7 @@ C Supports position - needs testing.
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -649,7 +649,7 @@ C Supports position - needs testing.
       real cx,cy,cz
       integer loop
       logical iswater
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -688,9 +688,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &      'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -742,7 +742,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -787,7 +787,7 @@ C quadratic law volume flow resistance component (dP = a.m/ro+b.(m/ro)^2)
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -800,7 +800,7 @@ C quadratic law volume flow resistance component (dP = a.m/ro+b.(m/ro)^2)
       real cx,cy,cz
       integer loop
       logical iswater
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -839,9 +839,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &      'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -893,7 +893,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -937,7 +937,7 @@ C quadratic law mass flow resistance component (dP = a.m + b.m^2)
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -950,7 +950,7 @@ C quadratic law mass flow resistance component (dP = a.m + b.m^2)
       real cx,cy,cz
       integer loop
       logical iswater
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -989,9 +989,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &     'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -1043,7 +1043,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1087,7 +1087,7 @@ C constant volume flow rate component (m = rho . a)
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -1096,7 +1096,7 @@ C constant volume flow rate component (m = rho . a)
       COMMON/C24/IZSTOCN(MCOM,MS)
 
       CHARACTER H*72,prompt*72,hold*32,outs*124,name*12,MSG*18
-      logical ok,dok
+      logical ok
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
@@ -1139,9 +1139,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &     'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -1208,8 +1208,7 @@ C Derive from litres/second/person and nb of people.
         VAL= (val2/1000.0) * val3
         write(prompt,'(3a,F8.5,a)') 'The flow through ',CMNAM(ICMP),
      &  ' (m^3/s) is now ',VAL,'.'
-        dok=.true.
-        call askok(prompt,'Is this ok?',OK,dok,nbhelp)
+        call easkok(prompt,'Is this ok?',OK,nbhelp)
         if (.NOT.OK) goto 42
         SUPCMP(ICMP,2)=VAL
       elseif(iw.eq.3)then
@@ -1226,8 +1225,7 @@ C Convert any existing value to m3/hr
         if(val2.gt.0.0) VAL = (val2/3600.0)
         write(prompt,'(3a,F8.5,a)') 'The flow through ',CMNAM(ICMP),
      &  ' (m^3/s) is now ',VAL,'.'
-        dok=.true.
-        call askok(prompt,'Is this ok?',OK,dok,nbhelp)
+        call easkok(prompt,'Is this ok?',OK,nbhelp)
         if (.NOT.OK) goto 42
         SUPCMP(ICMP,2)=VAL
       elseif(iw.eq.4)then
@@ -1247,8 +1245,7 @@ C Based on ach against the volume of a particular node.
         VAL = (SUPNOD(IV,2) * VAL2)/3600.0
         write(prompt,'(3a,F8.5,a)') 'The flow through ',CMNAM(ICMP),
      &  ' (m^3/s) is now ',VAL,'.'
-        dok=.true.
-        call askok(prompt,'Is this ok?',OK,dok,nbhelp)
+        call easkok(prompt,'Is this ok?',OK,nbhelp)
         if (.NOT.OK) goto 42
         SUPCMP(ICMP,2)=VAL
       elseif(iw.eq.5)then
@@ -1265,7 +1262,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1309,7 +1306,7 @@ C constant mass flow rate component (m = a)
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -1322,7 +1319,7 @@ C constant mass flow rate component (m = a)
       real cx,cy,cz
       integer loop
       logical iswater
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1361,9 +1358,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &     'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -1411,7 +1408,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1455,7 +1452,7 @@ C common orifice flow component (m = rho Cd A (2/rho dP)**.5)
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -1468,7 +1465,7 @@ C common orifice flow component (m = rho Cd A (2/rho dP)**.5)
       real cx,cy,cz
       integer loop
       logical iswater
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1507,9 +1504,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &      'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -1560,7 +1557,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1605,7 +1602,7 @@ C Supports positioin - needs testing.
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -1618,7 +1615,7 @@ C Supports positioin - needs testing.
       real cx,cy,cz
       integer loop
       logical iswater
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1657,9 +1654,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &     'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -1710,7 +1707,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1755,7 +1752,7 @@ C Support position.
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       CHARACTER LAPROB*72
@@ -1767,7 +1764,7 @@ C Support position.
       real cx,cy,cz
       integer loop
       logical iswater
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1806,9 +1803,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &     'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -1845,7 +1842,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -1889,7 +1886,7 @@ C specific air flow crack component. Supports position.
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       CHARACTER LAPROB*72
@@ -1898,7 +1895,7 @@ C specific air flow crack component. Supports position.
 
       CHARACTER hold*32,outs*124,name*12
       real VALHX,VALHY,VALHZ
-      logical ok,dok,isrelated
+      logical ok,isrelated
       integer loop
 
 C For help messages
@@ -1937,9 +1934,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &     'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -1975,7 +1972,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -2006,8 +2003,7 @@ C Refresh the network overly.
 
 C Ask if crack length should be updated.
         if(ier.eq.0)then
-          dok=.false.
-          CALL ASKOK('Update crack width & length?',' ',OK,dok,nbhelp)
+          CALL EASKOK(' ','Update crack width & length?',OK,nbhelp)
           if(OK)then
             write(hold,'(2f12.5)')SUPCMP(ICMP,2)*1000.0,SUPCMP(ICMP,3)
  143        CALL EASKS(hold,'Crack width(mm) and length(m)?',
@@ -2036,7 +2032,7 @@ C Supports position - needs testing.
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
       CHARACTER LAPROB*72
@@ -2047,7 +2043,7 @@ C Supports position - needs testing.
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
       integer loop
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2085,9 +2081,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &     'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -2130,7 +2126,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -2182,7 +2178,7 @@ C Supports position - needs testing.
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -2196,7 +2192,7 @@ C Supports position - needs testing.
       real cx,cy,cz
       integer loop
       logical iswater
-      logical dok,ok,isrelated
+      logical ok,isrelated
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2236,9 +2232,9 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
           if(iaz.gt.0.and.ias.gt.0.and.tdis.gt.1.0)then
             call isuseflowrelated(iaz,ias,isrelated)
             if(isrelated)then
-              dok=.false.
-              call askok('Update component position to reflect surface',
-     &          'flow attributes?',OK,dok,nbhelp)
+              call easkok(' ',
+     &      'Update component position to reflect surface attributes?',
+     &          OK,nbhelp)
               if(ok)then
                 call update_cmp_pos(iaz,ias,icmp)
               endif
@@ -2319,7 +2315,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -2386,8 +2382,9 @@ C Supports position - needs testing.
 #include "geometry.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -2480,7 +2477,7 @@ C Position in space if IAIRN=3.
           HCMP(ICMP,1,3)=cz
           if(ierm.eq.0.and.izn.gt.0.and.iso.gt.0)then
             loop=izstocn(izn,iso) ! update associated zone & surface
-            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SSNAME(loop)
+            CMPASSOC(ICMP,1)=ZNAME(IZN); CMPASSOC(ICMP,2)=SNAME(izn,iso)
           endif
 
 C Look for any connections which use this component and update
@@ -2533,10 +2530,10 @@ C     SUPCMP(ICMP,13) - Ccp coefficient a5 (-)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER outs*124
-      logical OK,dok,close
+      logical OK,close
       logical iswater
 
 C For help messages
@@ -2547,13 +2544,12 @@ C For help messages
       helpinsub='MF220I'  ! set for subroutine
 
 C Synopsis of flow component.
-      WRITE(outs,'(1X,A60)') LTPCMP(ICMP)
-      call edisp(iuout,outs)
+      WRITE(outs,'(a,A60,a)') 'Summary of flow component ',
+     &     LTPCMP(ICMP),'?'
       helptopic='flow_cmp_220'
       call gethelptext(helpinsub,helptopic,nbhelp)
       call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
-      dok=.true.
-      CALL ASKOK(outs,'Synopsis of this component type?',OK,dok,nbhelp)
+      CALL EASKOK(' ',outs,OK,nbhelp)
 
       if(OK) CALL PHELPD('comp 220',nbhelp,'-',0,0,IER)
 
@@ -2619,9 +2615,9 @@ C     SUPCMP(ICMP,13) - Ccp coefficient a5 (-)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
-      logical OK,dok,close
+      logical OK,close
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2632,12 +2628,11 @@ C For help messages
 
 C Show short description of flow component.
       IER=0
-      dok=.true.
-      WRITE(outs,'(a)') LTPCMP(ICMP)
-      call edisp(iuout,outs)
+      WRITE(outs,'(a,a,a)') 'Summary of flow component',
+     &       LTPCMP(ICMP),'?'
       helptopic='flow_cmp_230'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(outs,'Synopsis of this component type?',OK,dok,nbhelp)
+      CALL EASKOK(' ',outs,OK,nbhelp)
 
       if(OK) CALL PHELPD('comp 230',nbhelp,'-',0,0,IER)
 
@@ -2703,9 +2698,9 @@ C     SUPCMP(ICMP,17) - Ccp coefficient a9 (-)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
-      logical OK,dok,close
+      logical OK,close
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2718,12 +2713,12 @@ C Set/check number of supplementary data items.
       IER=0
 
 C Show short description of flow component.
-      dok=.true.
-      WRITE(outs,'(a)') LTPCMP(ICMP)
+      WRITE(outs,'(a,a,a)') 'Summary of flow component ',
+     &    LTPCMP(ICMP),'?'
       call edisp(iuout,outs)
       helptopic='flow_cmp_240'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(outs,'Synopsis of this component type?',OK,dok,nbhelp)
+      CALL EASKOK(' ',outs,OK,nbhelp)
 
       if(OK) CALL PHELPD('comp 240',nbhelp,'-',0,0,IER)
 
@@ -2790,9 +2785,9 @@ C     SUPCMP(ICMP,17) - Ccp coefficient a9 (-)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
-      logical OK,dok,close
+      logical OK,close
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2804,12 +2799,12 @@ C For help messages
       IER=0
 
 C Show short description of flow component.
-      dok=.true.
-      WRITE(outs,'(a)') LTPCMP(ICMP)
+      WRITE(outs,'(a,a,a)')'Summary of flow component ',
+     &     LTPCMP(ICMP),'?'
       call edisp(iuout,outs)
       helptopic='flow_cmp_250'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(outs,'Synopsis of this component type?',OK,dok,nbhelp)
+      CALL EASKOK(' ',outs,OK,nbhelp)
 
       if(OK) CALL PHELPD('comp 250',nbhelp,'-',0,0,IER)
 
@@ -2871,7 +2866,7 @@ C << Position not yet done >>
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
 
 C Maxp is max number of points on performance curve and ideg is one
@@ -2880,7 +2875,7 @@ C more than degree of curve (maxp>=ideg)
       parameter (ideg=4)
 
       character outs*124,hold*48,prompt*48,MSG*18
-      logical OK,dok,closea,closeb,closec,SINGUL
+      logical OK,closea,closeb,closec,SINGUL
       doubleprecision xval(maxp),yval(maxp),RIHAS(IDEG)
       logical iswater
 
@@ -2998,8 +2993,7 @@ C Display coordinates chosen and ask for confirmation
      &      '(',XVAL(K),',',YVAL(K),')'
           CALL EDISP(IUOUT,hold)
  477    CONTINUE
-        dok=.true.
-        CALL ASKOK(' ',' Accept values?  ',OK,dok,nbhelp)
+        CALL EASKOK(' ','Accept values?',OK,nbhelp)
         IF(.NOT.OK) GOTO 88
 
 C Do least squares curve fit
@@ -3018,8 +3012,7 @@ C Display coefficients and ask for confirmation
         CALL EDISP(IUOUT,' The following function will be used 
      &    for dpressure:')
         CALL EDISP(IUOUT,outs)
-        dok=.true.
-        CALL ASKOK(' ',' Accept this?  ',OK,dok,nbhelp)
+        CALL EASKOK(' ','Accept?',OK,nbhelp)
         IF(.NOT.OK) GOTO 71
 
 C Fill common blocks
@@ -3040,7 +3033,7 @@ C general flow corrector (ie. valve or damper)
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       CHARACTER prompt*48,outs*124,MSG*18
       logical iswater
@@ -3137,7 +3130,7 @@ C See synopsis for SUPCMP data.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       CHARACTER hold*48,prompt*48,outs*124,MSG*18
       logical iswater
@@ -3212,7 +3205,7 @@ C fixed flow rates controller. See synopsis for SUPCMP data.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       CHARACTER hold*32,prompt*48,outs*124,MSG*18
       logical iswater
@@ -3272,7 +3265,7 @@ C fixed flow rates controller. See synopsis for SUPCMP data.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLOWIT/fndegc,imix 
       CHARACTER prompt*48,outs*124,MSG*18
       logical iswater

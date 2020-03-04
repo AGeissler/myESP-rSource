@@ -83,11 +83,11 @@ C
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -131,6 +131,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP20C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -279,11 +281,11 @@ C            1 Inter-node fluid heat capacity rate (W/K)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -643,11 +645,11 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -850,11 +852,11 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -1034,11 +1036,11 @@ C     CDATA: 1 Volume flow rate (m^3/s)
 #include "net_flow_data.h"
 #include "OffsiteUtilitiesPublic.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -1094,6 +1096,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP24C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1323,11 +1327,11 @@ C            2 Inter-node fluid heat capacity rate (W/K)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -1369,6 +1373,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP25C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1584,13 +1590,16 @@ C            1 Inter-node fluid heat capacity rate (W/K)
       SUBROUTINE CMP26C(IPCOMP,COUT,ISTATS)
 #include "plant.h"
 #include "building.h"
+#include "net_flow.h"
+#include "tdf2.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
+      COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
 
@@ -1616,6 +1625,7 @@ C            1 Inter-node fluid heat capacity rate (W/K)
       INTEGER napdat
 
       DIMENSION XIN(5),PAR(18),OUT(11),INFO(10)
+      DIMENSION VAL(MBITS+2)
 
       PARAMETER (SMALL=1.0E-20)
       REAL      COUT(MPCOE)
@@ -1634,6 +1644,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP26C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -1655,6 +1667,18 @@ C Set up interface parameters and variables for TRNSYS type
          XIN(2)=WMFR
          XIN(3)=PCNTMF(IPCOMP)
          XIN(4)=CDATA(IPCOMP,1)
+
+C If supply water temperature is to be read from a temporal file then set it here. 
+         IF(ISUPPLWT(IPCOMP).gt.0)THEN
+           itdi=ISUPPLWT(IPCOMP)
+           IFOC=itdi
+           CALL RCTDFB(0,btimef,VAL,ISD,IFOC,IER)
+           CDATA(IPCOMP,1)=VAL(ISD)
+
+C Remove low supply temp if there are instances in temporal file (reset to 5.0).
+           IF(CDATA(IPCOMP,1).lt.5.0)CDATA(IPCOMP,1)=5.0
+         ENDIF
+
          XIN(5)=CDATA(IPCOMP,2)
          DO 10 I=1,13
             PAR(I)=BDATA(IPCOMP,I)
@@ -1672,10 +1696,18 @@ C so mark node 1 temperature for iteration
 C Then calculate net heat input Q
          Q=WMFR*CPWT*(OUT(1)-CSVF(INOD1,1))
 
+C For the case of using measured supply temperatures for the boiler (e.g as in IEA Annex 71), where
+C boiler performance is irrelevant, set the output to the required measured temperature.
+         IF(ISUPPLWT(IPCOMP).gt.0)THEN
+           out(1)=CDATA(IPCOMP,1)
+           Q=WMFR*CPWT*(OUT(1)-CSVF(INOD1,1))
+         ENDIF
+
 C Establish heat capacity of component mass CM (J/K) and
 C fluid heat capacity rate(s) C (W/K), ie. SUM(mass flow * specific heat)
          CM=ADATA(IPCOMP,1)*ADATA(IPCOMP,2)/2.
          C1=PCONDR(ICON1)*CONVAR(ICON1,2)*SHTFLD(3,CONVAR(ICON1,1))
+
 C Inter-node fluid heat capacity rate (W/K)
          PCDATF(IPCOMP,1)=WMFR*CPWT
 
@@ -1823,11 +1855,11 @@ C            2 Total radiator heat emission (W)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -2134,11 +2166,11 @@ C     PCDATF(IPCOMP,1): Supplied electrical energy (W).
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -2333,10 +2365,10 @@ c     cdata: mass flow fraction entering damper.
 #include "plant.h"
 #include "building.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pctime/timsec
       common/pctc/tc(mpcom)
 
@@ -2498,11 +2530,11 @@ C            4 Coil external heat transfer coefficient (W/m^2k)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -2544,6 +2576,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP31C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2749,11 +2783,11 @@ C
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -3114,11 +3148,11 @@ C
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -3394,12 +3428,13 @@ C     CDATA: 1 ON/OFF signal
 C
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCTIME/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -3617,7 +3652,7 @@ C Calculate the inlet and outlet enthalpy streams to the condensing region
            Ho=Hi-(Qx/MFCP)
 
 C Calculate the outlet temp assuming RH=100%
-           Tox=TSATH0(Ho/1000.,1013.25)
+           Tox=TSATH0(Ho/1000.,patmos)
 
 C Calculate the sensible heat transfer in the condensing region
            Qs=MFCP*CPG*(TDEW-Tox)
@@ -3806,11 +3841,11 @@ C            1 Inter-node fluid heat capacity rate (W/K)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -4052,11 +4087,11 @@ C
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -4344,11 +4379,11 @@ C
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -4393,6 +4428,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP37C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -4535,11 +4572,11 @@ C     CDATA: none
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -4733,11 +4770,11 @@ C     CDATA: 1 Mass flow rate (kg/s)
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -4786,6 +4823,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP39C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -4965,17 +5004,18 @@ C            2 Inter-node fluid heat capacity rate (W/K)
 
       SUBROUTINE CMP42C(IPCOMP,COUT,ISTATS)
       IMPLICIT NONE
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       REAL TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
@@ -5034,6 +5074,7 @@ C Does not match size of LOCAL1 in CMP46C!
       character outs*124
       INTEGER ICON1,INOD1,INOD2,IONOFF,ICOMBI,ICCOMP,ICOMBIMOD,ICCN1,
      & IPC,NTSBO,IX1,I,NITMS,IPCON,ISTATS,IPCOMP
+      integer istat
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -5051,6 +5092,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP42C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -5402,14 +5445,14 @@ C            1 Inter-node fluid heat capacity rate (W/K)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       REAL TIMSEC
       COMMON/PCTC/TC(MPCOM)
@@ -5706,13 +5749,14 @@ C water outlet temperature and ambient temperature compensation can be applied [
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
       COMMON/ITERINDEX/ITERNU !plant iteration number
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -5777,7 +5821,7 @@ C Electrical details for specified plant components
       INTEGER lnblnk
       REAL SHTFLD
 
-      INTEGER IUOUT,IUIN,ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,
+      INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,idynow,
      &IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,IMPEXP
       INTEGER NPCDAT,IPOFS1,IPOFS2,ICON1,INOD1,napdat,
      &IPCOMP,ISTATS,I,ICONDX,ICONTP,IX1,NCI,NITMS,NPCOMP
@@ -6283,13 +6327,14 @@ C NTSBO       = total no. of timesteps boiler is to be off due to lockout
 
       SUBROUTINE CMP46C(IPCOMP,COUT,ISTATS)
       IMPLICIT NONE
+
 #include "plant.h"
 #include "building.h"
 #include "control.h"
 #include "chemical_properties.h"
 
-      INTEGER IUOUT,IUIN
-      COMMON/OUTIN/IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -6297,8 +6342,8 @@ C NTSBO       = total no. of timesteps boiler is to be off due to lockout
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/Pctime/TIMSEC
       REAL TIMSEC
@@ -6399,6 +6444,7 @@ C NTSBO       = total no. of timesteps boiler is to be off due to lockout
       real fEval_element_mols_in_mixture
       real maxFanFlowrate,airden
       logical bInStartup
+      integer istat
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -6412,6 +6458,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP46C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -6928,6 +6976,9 @@ C temperature (T_ret) and part load (F_rate)
 c      implicit none
 #include "plant.h"
 #include "chemical_properties.h"
+#include "building.h"
+#include "site.h"
+
       COMMON/PDBDT/ADATA(MPCOM,MADATA),BDATA(MPCOM,MBDATA)
       REAL ADATA,BDATA
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
@@ -6938,8 +6989,8 @@ c      implicit none
      &massWaterCond
       INTEGER IPCMP
       INTEGER iFuel
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       logical closer
 
 C Init
@@ -6956,7 +7007,6 @@ C Calculate full load %CO2 and dTFlue
       dTFlue= a5 + a6*fRate + a7*fRate**2 + a8*fRate**3
       tempFlue=T_ret+dTFlue
       tempAmb=TF
-      p_atmosp = PT01(tempAmb,0.) ! at altitude = 0
       L_H2O = EVAP01(tempFlue)
 
 C Determine excess air factor (it is worked out as a ratio and does not
@@ -6983,10 +7033,10 @@ C Get %CO2 but adjusted for water vapour as well
       perCO2Adj=100.*perCO2/(fnH2O*perCO2/fnCO2+100.)
 
 C Calculate partial pressure of water vapour after combustion
-      partPressWater=(fnH2O/fnCO2)*(perCO2Adj/100.)*p_atmosp
+      partPressWater=(fnH2O/fnCO2)*(perCO2Adj/100.)*atmpres
 
 C Calculate density of water vapour
-      densityWaterVap=p_atmosp/(R_H2O*(tempAmb+273.16))
+      densityWaterVap=atmpres/(R_H2O*(tempAmb+273.16))
 
 C Calculate mass of water condensed from differnce in partial pressures
       massWaterCond=(fnH2O/100.)*densityWaterVap*
@@ -7060,13 +7110,14 @@ C water outlet temperature and ambient temperature compensation can be applied [
 #include "building.h"
 #include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
       COMMON/ITERINDEX/ITERNU !plant iteration number
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -7160,7 +7211,7 @@ C Electrical details for specified plant components
       INTEGER lnblnk
       REAL SHTFLD
 
-      INTEGER IUOUT,IUIN,ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,
+      INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,idynow,
      &IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,IMPEXP
 
       INTEGER NPCDAT,IPOFS1,IPOFS2,ICON1,INOD1,napdat,
@@ -7782,13 +7833,14 @@ C water outlet temperature and ground source temperature compensation can be app
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
       COMMON/ITERINDEX/ITERNU !plant iteration number
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -7877,7 +7929,7 @@ C Electrical details for specified plant components
       INTEGER lnblnk
       REAL SHTFLD
 
-      INTEGER IUOUT,IUIN,ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,
+      INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,idynow,
      &IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,IMPEXP
 
       INTEGER NPCDAT,IPOFS1,IPOFS2,ICON1,INOD1,napdat,
@@ -8000,16 +8052,18 @@ C Calculate the return water temperature set point if temperature compensation i
             ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
             ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
 
-C Case where Tamb > Temp compensation saturation point
+C Case where Tamb > Temp compensation end point
           ELSEIF(Tamb.GE.TempCompE)THEN
             ReturnSP=((TempCompE-TempCompS)*TempCompc0)+NomRetT
             ReturnSPL=ReturnSP-0.5*(NomRetTDeadB)
             ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
           ENDIF
 
+          IF(ReturnSPH.GT.TinMax) ReturnSPH=TinMax
+
           IF(ReturnSP.GT.TinMax)THEN
             ReturnSP=TinMax
-            ReturnSPH=ReturnSP
+cx            ReturnSPH=ReturnSP
           ENDIF
         ENDIF
       endif ! space heat rq'd
@@ -8017,19 +8071,19 @@ C Case where Tamb > Temp compensation saturation point
 cx ISTAT.eq.1 was here, previously (171124)
 
 C Get ground source temperature
-        Tgrnd=convar(icon2,1)
+      Tgrnd=convar(icon2,1)
 
 C Determine whether machine should be on or off based on return water temperature.
-        ReturnT=CONVAR(ICON1,1)
+      ReturnT=CONVAR(ICON1,1)
 
 C Check if device switched off last TS
-        IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
-          bSwitched=.true.
-        ENDIF
+      IF ((DeviceONOFFp.eq.1).and.(DeviceONOFF.eq.0)) THEN
+        bSwitched=.true.
+      ENDIF
 
-        DeviceONOFFp=DeviceONOFF
+      DeviceONOFFp=DeviceONOFF
 
-        IF(CallforHeat)THEN
+      IF(CallforHeat)THEN
 
 C Check to see if the device is in the dead band.
         IF(ReturnT.GE.ReturnSPL.AND.ReturnT.LE.ReturnSPH)THEN
@@ -8040,17 +8094,17 @@ C Check to see if the device is in the dead band.
 
 C Evaluate the device status.
         IF(ReturnT.GT.ReturnSPH)THEN
-            DeviceONOFF=0
-          ELSEIF(ReturnT.LT.ReturnSPL)THEN
-            DeviceONOFF=1
-          ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
-            DeviceONOFF=1
-          ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
-            DeviceONOFF=0
-          ENDIF
-        ELSE
           DeviceONOFF=0
-        ENDIF ! call for heat
+        ELSEIF(ReturnT.LT.ReturnSPL)THEN
+          DeviceONOFF=1
+        ELSEIF(DeviceONOFFp.EQ.1.AND.InDeadB)THEN
+          DeviceONOFF=1
+        ELSEIF(DeviceONOFFp.EQ.0.AND.InDeadB)THEN
+          DeviceONOFF=0
+        ENDIF
+      ELSE
+        DeviceONOFF=0
+      ENDIF ! call for heat
 
 C Finally, check if device is in lockout time, i.e. last "off" was
 C less than lockouttime ago ... ((code from CMP42C(), line 5102 ff.))
@@ -8109,7 +8163,9 @@ C Calculate the COP based on the user-specified method.
           ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
             TL=Tgrnd
             TH=ReturnT
-            COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
+            COP=min(COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.),
+     &               COPa0+(COPa1*(ToutMax-TL))
+     &                               +(COPa2*(ToutMax-TL)**2.))
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
           ELSE
@@ -8442,11 +8498,12 @@ C            2 Surface temperature of coupled wall in 1 (C)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -8615,11 +8672,11 @@ C            3 Surface temperature of mount wall in 1 (C)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -8784,11 +8841,11 @@ C            2 Surface temperature of coupled wall in 1 (C)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -8959,11 +9016,12 @@ C node 3 m_3 = (1-a) x m_1
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCTIME/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -8988,7 +9046,7 @@ C node 3 m_3 = (1-a) x m_1
      
       INTEGER IMPEXP,IPCOMP
 
-      integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
+      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,idynow,
      &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
       integer ICONDX,ICON1,INOD1,INOD2,INOD3,IPN1,IPN2,IPC1,IPC2,NPCON,
      &IPCT,NPCDAT,NAPDAT,NCI,IPOFS1,IPOFS2,IX1,NITMS,I
@@ -9227,11 +9285,12 @@ C
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCTIME/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -9256,7 +9315,7 @@ C
 
       INTEGER IMPEXP,IPCOMP
 
-      integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
+      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,idynow,
      &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
       integer ICONDX,ICON1,INOD1,INOD2,INOD3,IPN1,IPN2,IPC1,IPC2,NPCON,
      &IPCT,NPCDAT,NAPDAT,NCI,IPOFS1,IPOFS2,IX1,NITMS,I
@@ -9523,11 +9582,12 @@ C ----------------------------------------------------------------------
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
 
@@ -9576,8 +9636,8 @@ C Commons for DWHStochastic calculation.
       logical DHWsubmin,DHWCalc,Weekend,indraw,DisPos
 
 
-      integer iuout,iuin,itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,IDYP,
-     &IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,NCI,I,IHol,ITERNU,
+      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,IDYP,
+     &IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,NCI,I,IHol,ITERNU,idynow,
      &NPCDAT,IPOFS1,IPOFS2,ICONTP,ICONDX,NDMonth,igttype,ICON1
 
       integer IPCOMP,IX1,NAPDAT
@@ -9602,6 +9662,7 @@ C Commons for DWHStochastic calculation.
 
       real DOY,NomDrawDay,NomDraw,xHol,xWE,DrawPerS,PerDur,
      &ElapseDrawDur,DrawVstd,CurDrawDur,DenS,Rand_No
+      integer istat
 
 
       PI=22./7.
@@ -9617,6 +9678,8 @@ C Check control data for relevant balance type
      &                  IPCOMP,' : ',CDATA(IPCOMP,1)
          call edisp(iuout,outs)
          call edisp(iuout,' CMP79C: unresolvable error.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -9972,11 +10035,11 @@ C            2 water temperature (C)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
@@ -10076,11 +10139,11 @@ c     cdata: 1 Heat gain load (W)
 #include "plant.h"
 #include "building.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pctime/timsec
       common/pctc/tc(mpcom)
 

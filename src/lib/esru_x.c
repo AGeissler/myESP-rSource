@@ -20,12 +20,18 @@ intialisation and graphics, using ww. The routines are :-
 	feedbox		:- setup feedback display box
 	winfnt(n)	:- changes the font (various sizes 0...7)
 	wstxpt(x,y,buff,len):-outputs a string beginning at pixel x and y.
+	textatxywwc(x,y,buff,act,n,len):-outputs to file a coloured string beginning at pixel x&y.
 	textatxy(x,y,buff,act,n,len):-outputs a coloured string beginning at pixel x&y.
 	textsizeatxy(x,y,buff,size,act,n,len):-outputs a sized coloured string beginning at pixel x&y.
+	win3dwwc(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gh)
+                        :- opens a viewing box taking into account menu
+                           width and dialogue box.
 	win3d(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gh)
                         :- opens a viewing box taking into account menu
                            width and dialogue box.
 	win3dclr_()     :- clear viewing box.
+	viewtextwwc_(msg,line,side,size,len)
+                        :- writes viewtext attributes to file.
 	viewtext_(msg,line,side,size,len)
                         :- displays a line of text within the viewing
                            box with size and location parameters
@@ -48,20 +54,30 @@ intialisation and graphics, using ww. The routines are :-
 	egdisp_(msg,iw,line,len)
                         :- writes text in the scrolling text display area.
 	egdispclr_()    :- clears scrolling text display at EPAGEW.
+	elinewwc_(x,y,operation)
+                        :- writes eline attributes to file.
 	eline_(x,y,operation)
                         :- draws or moves a line @ pixel location x y.
 	edline_(x1,y1,x2,y2,ipdis)
                         :- draws a dotted line from x1 y1 to x2 y2.
 	edash_(x1,y1,x2,y2,ipdis)
                         :- draws a dashed line from x1 y1 to x2 y2.
+	echainwwc_(x1,y1,x2,y2,ipdis)
+                        :- writes echain attributes to file.
 	echain_(x1,y1,x2,y2,ipdis)
                         :- draws a chained line from x1 y1 to x2 y2.
+	edwlinewwc_(x1,y1,x2,y2)
+                        :- writes edwline attributes to file.
 	edwline_(x1,y1,x2,y2)
                         :- draws a double width line from x1 y1 to x2 y2.
+	eswlinewwc_(x1,y1,x2,y2)
+                        :- writes eswline attributes to file.
 	eswline_(x1,y1,x2,y2)
                         :- draws a single width line from x1 y1 to x2 y2.
 	ecirc_(x,y,rad,operation)
                         :- draws a filled or open circle @ location x y.
+	esymbolwwc_(x,y,sym,size)
+                        :- writes esymbol attributes to file.
 	esymbol_(x,y,sym,size)
                         :- draws one of 32 symbols at location x y.
 	updhelp_(items,nitmsptr,iw,len_items)
@@ -135,108 +151,18 @@ intialisation and graphics, using ww. The routines are :-
 #include <X11/keysym.h>
 /* #include "editpop.xbm" */
 
+/* shift this inside only the required functions 
+#ifdef MINGW
+#include <windows.h>
+#define sleep(s) Sleep(s * 1000)
+#endif  */
+
 #define XV_FDTYPE (fd_set *)
 
 #define gray25_width 8
 #define gray25_height 8
 static unsigned char gray25_bits[] = {
    0x88, 0x22, 0x88, 0x22, 0x88, 0x22, 0x88, 0x22};
-
-#define logo_width 158
-#define logo_height 55
-static unsigned char logo_bits[] = {
-   0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x03,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x06, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0xc0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x04,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x0c, 0xe0, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x60, 0x0c, 0xe0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x0c,
-   0xb0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x0c, 0xb0, 0x01, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x30, 0x0c, 0xb0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0e, 0x30, 0x0c,
-   0x10, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x30, 0x0c, 0x18, 0x03, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x1b, 0x30, 0x0c, 0x18, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1b, 0x30, 0x0c,
-   0x18, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x33, 0x30, 0x18, 0x18, 0x03, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x33, 0x30, 0x18, 0x18, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33, 0x30, 0x18,
-   0x18, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x33, 0x30, 0x18, 0x18, 0x06, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x33, 0x30, 0x18, 0x18, 0x06, 0x00, 0xfc, 0xff, 0x03, 0xfe, 0x03,
-   0xfc, 0xff, 0x01, 0x1f, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x33, 0x30, 0x18,
-   0x18, 0x06, 0x03, 0xfc, 0xff, 0x03, 0xff, 0x0f, 0xfc, 0xff, 0x03, 0x1f,
-   0xe0, 0x03, 0x00, 0x00, 0x00, 0x33, 0x30, 0x18, 0x18, 0x06, 0x03, 0xfc,
-   0xff, 0xc3, 0xff, 0x1f, 0xfc, 0xff, 0x07, 0x1f, 0xe0, 0x03, 0x00, 0x00,
-   0x00, 0x33, 0x30, 0x18, 0x18, 0x86, 0x07, 0xfc, 0xff, 0xc3, 0xff, 0x3f,
-   0xfc, 0xff, 0x0f, 0x1f, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x31, 0x30, 0x18,
-   0x18, 0x86, 0x0f, 0x7c, 0x00, 0xe0, 0x03, 0x3f, 0x7c, 0xc0, 0x0f, 0x1f,
-   0xe0, 0x03, 0x00, 0x00, 0x80, 0x31, 0x30, 0x18, 0x18, 0x86, 0x0d, 0x7c,
-   0x00, 0xe0, 0x01, 0x3e, 0x7c, 0x80, 0x0f, 0x1f, 0xe0, 0x03, 0x00, 0x00,
-   0x80, 0x31, 0x30, 0x18, 0x18, 0x86, 0x0d, 0x7c, 0x00, 0xe0, 0x01, 0x3c,
-   0x7c, 0x80, 0x0f, 0x1f, 0xe0, 0x03, 0x00, 0x00, 0x80, 0x31, 0x30, 0x18,
-   0x18, 0x86, 0x0d, 0x7c, 0x00, 0xe0, 0x03, 0x00, 0x7c, 0x80, 0x0f, 0x1f,
-   0xe0, 0x03, 0x00, 0x00, 0x80, 0x31, 0x30, 0x18, 0x18, 0x86, 0x19, 0x7c,
-   0x00, 0xe0, 0x1f, 0x00, 0x7c, 0xc0, 0x0f, 0x1f, 0xe0, 0x03, 0x00, 0x00,
-   0x80, 0x31, 0x18, 0x18, 0x18, 0x86, 0xf9, 0xff, 0xff, 0xff, 0xff, 0xff,
-   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x3f, 0x80, 0x31, 0x18, 0x18,
-   0x18, 0xc6, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-   0xff, 0xff, 0xff, 0x3f, 0x8c, 0x31, 0x18, 0x18, 0x18, 0xc6, 0x00, 0xfc,
-   0xff, 0x03, 0xff, 0x3f, 0xfc, 0xff, 0x01, 0x1f, 0xe0, 0x03, 0x00, 0x1e,
-   0x8c, 0x31, 0x18, 0x18, 0x18, 0xc6, 0x00, 0xfc, 0xff, 0x03, 0xf8, 0x3f,
-   0xfc, 0xff, 0x03, 0x1f, 0xe0, 0x03, 0x00, 0x07, 0x98, 0x31, 0x18, 0x18,
-   0x18, 0xc6, 0x00, 0x7c, 0x00, 0x00, 0x00, 0x7f, 0x7c, 0xc0, 0x07, 0x1f,
-   0xe0, 0x03, 0xc0, 0x01, 0xf0, 0x31, 0x18, 0x18, 0x18, 0xc6, 0x00, 0x7c,
-   0x00, 0x00, 0x00, 0x7c, 0x7c, 0xc0, 0x07, 0x1f, 0xe0, 0x03, 0x70, 0x00,
-   0xe0, 0x30, 0x18, 0x10, 0x18, 0xc6, 0x00, 0x7c, 0x00, 0xe0, 0x01, 0x78,
-   0x7c, 0x80, 0x07, 0x1f, 0xe0, 0x03, 0x1c, 0x00, 0x40, 0x30, 0x18, 0x30,
-   0x18, 0xc6, 0x00, 0x7c, 0x00, 0xe0, 0x03, 0x78, 0x7c, 0x80, 0x07, 0x1f,
-   0xe0, 0x03, 0x0f, 0x00, 0x00, 0x30, 0x18, 0x30, 0x18, 0xc6, 0x00, 0x7c,
-   0x00, 0xe0, 0x0f, 0x7c, 0x7c, 0x80, 0x0f, 0x7f, 0xf0, 0x03, 0x00, 0x00,
-   0x00, 0x30, 0x18, 0x30, 0x18, 0xc6, 0x00, 0xfc, 0xff, 0xc7, 0xff, 0x3f,
-   0x7c, 0x80, 0x0f, 0xfe, 0xff, 0x01, 0x00, 0x00, 0x00, 0x30, 0x18, 0x30,
-   0x18, 0xc6, 0x00, 0xfc, 0xff, 0xc7, 0xff, 0x3f, 0x7c, 0x80, 0x0f, 0xfe,
-   0xff, 0x00, 0x00, 0x00, 0x00, 0x30, 0x18, 0x30, 0x18, 0xc6, 0x00, 0xfc,
-   0xff, 0x87, 0xff, 0x0f, 0x7c, 0x80, 0x0f, 0xfc, 0x7f, 0x00, 0x00, 0x00,
-   0x00, 0x30, 0x18, 0x30, 0x18, 0xc6, 0x00, 0xfc, 0xff, 0x07, 0xfe, 0x07,
-   0x7c, 0x80, 0x1f, 0xf0, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x20, 0x18, 0x30,
-   0x18, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x18, 0x30, 0x18, 0x6c, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x60, 0x18, 0x30, 0x18, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x18, 0x30,
-   0x0c, 0x3c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x0c, 0x30, 0x0c, 0x18, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x40, 0x0c, 0x30, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x0c, 0x30,
-   0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x0c, 0x30, 0x0c, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0xc0, 0x04, 0x30, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x07, 0x30,
-   0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x03, 0x60, 0x0c, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x60, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60,
-   0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x03, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 /* external definitions in the Fortran code */
 extern gnwkquery_();
@@ -245,6 +171,9 @@ extern profgrdump_();
 extern cpwpk_();
 extern chgazi_();     /* in esrucom/common3dv.F */
 extern chgelev_();    /* in esrucom/common3dv.F */
+extern chgpan_();     /* in esrucom/common3dv.F */
+extern optview_();    /* in esrucom/common3dv.F */
+extern chgzoom_();    /* in esrucom/common3dv.F */
 extern chgeye_();     /* in esrucom/common3dv.F */
 extern chgsun_();     /* in esrucom/common3dv.F */
 extern chgzonpik_();  /* in esrucom/common3dv.F */
@@ -258,7 +187,6 @@ extern nwkupdtpos_();
 extern icntfm_();
 extern cfgpk_();
 extern updview_();
-extern sleep();
 extern aux_menu();
 
 /* global data types */
@@ -466,7 +394,7 @@ static char font_0[80],font_1[80],font_2[80],font_3[80],font_4[80],font_5[80],fo
 /* info about root Xwindow */
 static int xrt_width, xrt_height;  /* same as xsh.width and xsh.height */
 static char *bgstr,  *whitestr, *blackstr; /* init default colors */
-static char *zscalestr[] = { /* 100 colour names from rgb.txt to represent zone colours */
+static char* zscalestr[100] = { /* 100 colour names from rgb.txt to represent zone colours */
     "red","MidnightBlue","peru","ForestGreen","khaki","grey14","turquoise","magenta","gold4","firebrick",
     "DarkCyan","khaki3","grey25","RoyalBlue","tomato","grey34","OliveDrab","PaleGreen","orange","grey40",
     "coral2","tan4","SeaGreen","grey60","maroon4","gold3","grey46","PowderBlue","sienna","azure4","grey20","burlywood2",
@@ -477,18 +405,18 @@ static char *zscalestr[] = { /* 100 colour names from rgb.txt to represent zone 
     "coral2","tan4","SeaGreen","grey60","maroon4","gold3","grey46","PowderBlue","sienna","azure4","grey20","burlywood2",
     "grey50","khaki2","NavyBlue","sienna3","DarkGreen","gold","magenta3","grey80","turquoise2","gold1","tomato3",
     "grey70","orange3","grey37","maroon1","grey19","tan2","green3" };
-static char *cscalestr[] = { /* colour scale RGB HEX values (to represent 49 steps of temperature) */
+static char* cscalestr[49] = { /* colour scale RGB HEX values (to represent 49 steps of temperature) */
   "#FF0000","#FF1500","#FF2B00","#FF4000","#FF5500","#FF6A00","#FF8000","#FF9500","#FFAA00","#FFBF00",
   "#FFD500","#FFEA00","#FFFF00","#EAFF00","#D5FF00","#BFFF00","#AAFF00","#95FF00","#80FF00","#6AFF00",
   "#55FF00","#40FF00","#2AFF00","#15FF00","#00FF00","#00FF15","#00FF2B","#00FF40","#00FF55","#00FF6A",
   "#00FF80","#00FF95","#00FFAA","#00FFBF","#00FFD4","#00FFEA","#00FFFF","#00EAFF","#00D4FF","#00BFFF",
   "#00AAFF","#00AAFF","#00AAFF","#006AFF","#0055FF","#0040FF","#002BFF","#0015FF","#0000FF" };
 /* strings to set interface greys 5 standards and 5 alternatives if allocation fails. */
-static char *gintstr[] = {
+static char* gintstr[13] = {
   "grey96","grey94","grey92","grey86","grey64","grey50",
   "grey95","grey93","grey91","grey85","grey63","grey49","grey43" };
 /* 86 strings to set greay scale for zones if zscalestr allocation fails. */
-static char *gscalestr[] = {
+static char* gscalestr[86] = {
   "grey97","grey96","grey95","grey94","grey93","grey92","grey91","grey90",
   "grey89","grey88","grey87","grey86","grey85","grey84","grey83","grey82","grey81","grey80",
   "grey79","grey78","grey77","grey76","grey75","grey74","grey73","grey72","grey71","grey70",
@@ -516,6 +444,7 @@ int clnblnk(msg)
   sl = (int) strlen(msg);
   n = sl;
   found = 0;
+  lm = 0;
   while(n > 0 && found==0 ) {
     n--;
     if ( msg[n] != ' ') found = 1;
@@ -536,11 +465,11 @@ long int *size;           /* pixel size for base window  */
 long int *ulx,*uly;       /* pixel upper left corner of base window  */
 {
   if ( *size >= 100 ) {
-    START_HEIGHT = *size;
-    START_WIDTH = *size*TEKX/TEKY;
+    START_HEIGHT = (int) *size;
+    START_WIDTH = (int) *size*TEKX/TEKY;
   }
-  if ( *ulx >= 1 )   START_ULX = *ulx;
-  if ( *uly >= 1 )   START_ULY = *uly;
+  if ( *ulx >= 1 )   START_ULX = (int) *ulx;
+  if ( *uly >= 1 )   START_ULY = (int) *uly;
   return;
 }
 
@@ -549,10 +478,10 @@ void sizehwxy_(sizeh,sizew,ulx,uly)
 long int *sizeh,*sizew;   /* pixel height & width for base window  */
 long int *ulx,*uly;       /* pixel upper left corner of base window  */
 {
-  if ( *sizeh >= 100 ) START_HEIGHT = *sizeh;
-  if ( *sizew >= 100 ) START_WIDTH = *sizew;
-  if ( *ulx >= 1 )   START_ULX = *ulx;
-  if ( *uly >= 1 )   START_ULY = *uly;
+  if ( *sizeh >= 100 ) START_HEIGHT = (int) *sizeh;
+  if ( *sizew >= 100 ) START_WIDTH = (int) *sizew;
+  if ( *ulx >= 1 )   START_ULX = (int) *ulx;
+  if ( *uly >= 1 )   START_ULY = (int) *uly;
   return;
 }
 
@@ -617,7 +546,7 @@ t0=(char *) getenv("EFONT_0");
 if ((t0 == NULL) || (t0  == "") || (strncmp(t0,"    ",4) == 0)) {
   strncpy(font_0,"Ubuntu Mono,Monospace-8:medium",30);
 #ifdef OSX
-  strncpy(font_0,"DejaVu Sans Mono-8:medium",25);
+  strncpy(font_0,"DejaVu Sans Mono-7:medium",25);
 #endif
 } else {
   strcpy(font_0,getenv("EFONT_0"));
@@ -629,7 +558,7 @@ if((fst_0 =  XftFontOpenName(theDisp,0,font_0)) == NULL) {
 if (((t0=(char *) getenv("EFONT_1"))== NULL) || ((t0=(char *) getenv("EFONT_1"))== "")) {
   strncpy(font_1,"Ubuntu Mono,Monospace-9:medium",30);
 #ifdef OSX
-  strncpy(font_1,"DejaVu Sans Mono-9:medium",25);
+  strncpy(font_1,"DejaVu Sans Mono-8:medium",25);
 #endif
 } else {
   strcpy(font_1,getenv("EFONT_1"));
@@ -641,7 +570,7 @@ if((fst_1 = XftFontOpenName(theDisp,0,font_1)) == NULL) {
 if (((t0=(char *) getenv("EFONT_2"))== NULL) || ((t0=(char *) getenv("EFONT_2"))== "")) {
   strncpy(font_2,"Ubuntu Mono,Monospace-10:medium",31);
 #ifdef OSX
-  strncpy(font_1,"DejaVu Sans Mono-10:medium",26);
+  strncpy(font_1,"DejaVu Sans Mono-9:medium",25);
 #endif
 } else {
   strcpy(font_2,getenv("EFONT_2"));
@@ -653,7 +582,7 @@ if((fst_2 = XftFontOpenName(theDisp,0,font_2)) == NULL) {
 if (((t0=(char *) getenv("EFONT_3"))== NULL) || ((t0=(char *) getenv("EFONT_3"))== "")) {
   strncpy(font_3,"Ubuntu Mono,Monospace-11:medium",31);
 #ifdef OSX
-  strncpy(font_3,"DejaVu Sans Mono-11:medium",26);
+  strncpy(font_3,"DejaVu Sans Mono-10:medium",26);
 #endif
 } else {
   strcpy(font_3,getenv("EFONT_3"));
@@ -759,7 +688,7 @@ if (best == -1) {   /* look for a DirectColor, pref 24-bit */
 if (vinfo) XFree((char *) vinfo);
 
 /* create cursors as in xv */
-  arrow_cursor = XCreateFontCursor(theDisp,(u_int) curstype);
+  arrow_cursor = XCreateFontCursor(theDisp,(unsigned int) curstype);
   cross_cursor = XCreateFontCursor(theDisp,XC_crosshair);
   zoom_cursor  = XCreateFontCursor(theDisp,XC_pencil); /* XC_center_ptr */
   wait_cursor = XCreateFontCursor(theDisp,XC_watch);
@@ -937,8 +866,8 @@ xsh.y = START_ULY;
   winclr_(); /* clear the root window */
 
   pause_len = 1000;  /* inital pause loop length */
-  ter = *term;        /* remember initial terminal type */
-  child_ter = *term;  /* set initial child process initial terminal type */
+  ter = (int) *term;        /* remember initial terminal type */
+  child_ter = (int) *term;  /* set initial child process initial terminal type */
 
 /* initial clear of help display list */
   for ( i = 0; i < HELP_LIST_LEN-1; i++ ) {
@@ -1321,7 +1250,7 @@ char *name;
 long int *lix, *liy, *itime;
 int len;
 {
- Pixmap exbit,logobit,underit; /* bitmap from logo_bits data, pixmap of logo, area under */
+ Pixmap exbit,logobit,underit; /* bitmap from data, pixmap of logo, area under */
  long int iupx,iupy;
  box gmenubx;
  int ilen,x_hot,y_hot,result,persist;
@@ -1329,13 +1258,14 @@ int len;
  char name2[80];
  FILE *bf;
 
- iupx = *lix; iupy = *liy; persist = *itime;
+ iupx = *lix; iupy = *liy; persist = (int) *itime;
 /*
  * Terminate at fortran length, find actual string length and then reterminate.
  */
   f_to_c_l(name,&len,&ilen); strncpy(name2,name,(unsigned int)ilen); name2[ilen]='\0';
   if ((bf = fopen(name2,"r"))==NULL) {
     fprintf(stderr,"could not open bitmap file %s\n",name2);
+    fclose(bf);
     return;
   }
 /* Fill bitmap exbit from data file, make pixmap for under area and to hold transformed exbit data (logobit) */
@@ -1352,9 +1282,9 @@ int len;
    if ((iupy - (int) iheight) <= 0) {
      gmenubx.b_top = 10; gmenubx.b_bottom= 10 + (int) iheight;
    } else {
-     gmenubx.b_top = iupy - (int) iheight; gmenubx.b_bottom= iupy;
+     gmenubx.b_top = (int) iupy - (int) iheight; gmenubx.b_bottom= (int) iupy;
    }
-   gmenubx.b_left  = iupx;  gmenubx.b_right = iupx + iwidth;
+   gmenubx.b_left  = (int) iupx;  gmenubx.b_right = (int) iupx + iwidth;
 /* Save area of gmenubx to underit then copy logbit to gmenubx area and flush display */
    box_to_pix((Pixmap)win,gmenubx,(Pixmap)underit,(int) iwidth,(int) iheight);
    XFlush(theDisp); /* force drawing  */
@@ -1392,7 +1322,7 @@ long int *lreqx, *lreqy, *lreqwidth, *lreqheight, *lix, *liy;
 long int *boxulx, *boxuly, *boxlrx, *boxlry;
 int len;
 {
- Pixmap exbit,logobit,underit; /* bitmap from logo_bits data, pixmap of logo, area under */
+ Pixmap exbit,logobit,underit; /* bitmap from data, pixmap of logo, area under */
  long int ilreqx,ilreqy,ilreqwidth,ilreqheight;
  long int iupx,iupy;
  box gmenubx;
@@ -1408,6 +1338,7 @@ int len;
   f_to_c_l(name,&len,&ilen); strncpy(name2,name,(unsigned int)ilen); name2[ilen]='\0';
   if ((bf = fopen(name2,"r"))==NULL) {
     fprintf(stderr,"could not open bitmap file %s\n",name2);
+    fclose(bf);
     return;
   }
 /* Fill bitmap exbit from data file, make pixmap for under area and to hold transformed exbit data (logobit) */
@@ -1432,13 +1363,13 @@ int len;
  else if (result == BitmapSuccess) {
    underit = XCreatePixmap(theDisp,win,(unsigned int)ilreqwidth,(unsigned int)ilreqheight,dispDEEP);
    logobit = XCreatePixmap(theDisp,win,(unsigned int)ilreqwidth,(unsigned int)ilreqheight,dispDEEP);
-   XCopyPlane(theDisp,(Pixmap)exbit,(Pixmap)logobit,theGC,ilreqx,ilreqy,(unsigned int)ilreqwidth,(unsigned int)ilreqheight,0,0,(unsigned long) 1);
+   XCopyPlane(theDisp,(Pixmap)exbit,(Pixmap)logobit,theGC,(int)ilreqx,(int)ilreqy,(unsigned int)ilreqwidth,(unsigned int)ilreqheight,0,0,(unsigned long) 1);
    if ((iupy - (int) ilreqheight) <= 0) {
      gmenubx.b_top = 15; gmenubx.b_bottom= 15 + (int) ilreqheight;
    } else {
-     gmenubx.b_top = iupy - (int) ilreqheight; gmenubx.b_bottom= iupy;
+     gmenubx.b_top = (int) iupy - (int) ilreqheight; gmenubx.b_bottom= (int) iupy;
    }
-   gmenubx.b_left  = iupx;  gmenubx.b_right = iupx + ilreqwidth;
+   gmenubx.b_left  = (int) iupx;  gmenubx.b_right = (int) iupx + ilreqwidth;
 
 /* Save area of gmenubx to underit then copy logbit to gmenubx area and flush display */
    box_to_pix((Pixmap)win,gmenubx,(Pixmap)underit,(int) ilreqwidth,(int) ilreqheight);
@@ -1453,6 +1384,7 @@ int len;
   *boxulx=gmenubx.b_left; *boxuly=gmenubx.b_top;
   *boxlrx=gmenubx.b_left + ilreqwidth; *boxlry=gmenubx.b_top +ilreqheight;
  }
+ fclose(bf);
  return;
 }
 
@@ -1490,6 +1422,7 @@ int len;
   f_to_c_l(name,&len,&ilen); strncpy(name2,name,(unsigned int)ilen); name2[ilen]='\0';
   if ((bf = fopen(name2,"r"))==NULL) {
     fprintf(stderr,"could not open bitmap file %s\n",name2);
+    fclose(bf);
     return;
   }
 /* Fill bitmap exbit from data file, and if the result is ok find the positions it would take. */
@@ -1511,9 +1444,9 @@ int len;
    if ((iupy - (int) ilreqheight) <= 0) {
      gmenubx.b_top = 15; gmenubx.b_bottom= 15 + (int) ilreqheight;
    } else {
-     gmenubx.b_top = iupy - (int) ilreqheight; gmenubx.b_bottom= iupy;
+     gmenubx.b_top = (int) iupy - (int) ilreqheight; gmenubx.b_bottom= (int) iupy;
    }
-   gmenubx.b_left  = iupx;  gmenubx.b_right = iupx + ilreqwidth;
+   gmenubx.b_left  = (int) iupx;  gmenubx.b_right = (int) iupx + ilreqwidth;
 
    XFreePixmap(theDisp, exbit);
 
@@ -1521,48 +1454,28 @@ int len;
   *boxulx=gmenubx.b_left; *boxuly=gmenubx.b_top;
   *boxlrx=gmenubx.b_left + ilreqwidth; *boxlry=gmenubx.b_top +ilreqheight;
  }
+ fclose(bf);
  return;
 }
 
-/* ********* Displays the ESRU logo. */
-void showlogo_(itime,lix,liy)
-long int *itime,*lix, *liy; /* persistance, position from lower left of the 3dviewing image area */
+/* ********* Write a string beginning at pixel x and y to file. ******* */
+void wstxptwwc_(x,y,buff,len)
+long int *x, *y;       /* x y is the position of the string */
+char *buff;
+int  len;        /* len is length passed from fortran */
 {
- Pixmap exbit,logobit,underit; /* bitmap from logo_bits data, pixmap of logo, area under */
- long int iupx,iupy;
- int persist;
- box gmenubx;
+ int ilen;
+ f_to_c_l(buff,&len,&ilen);
 
-/* Fill bitmap exbit from data, make pixmap for under area and to hold transformed exbit data (logobit) */
-/* Use XCopyPlane to transform exbit to logobit (seems to be required) */
- exbit = XCreateBitmapFromData(theDisp,win,(char *)logo_bits,(unsigned int)logo_width,(unsigned int)logo_height);
- underit = XCreatePixmap(theDisp,win,(unsigned int)logo_width,(unsigned int)logo_height,dispDEEP);
- logobit = XCreatePixmap(theDisp,win,(unsigned int)logo_width,(unsigned int)logo_height,dispDEEP);
- XSetForeground(theDisp,theGC,black);
- XSetBackground(theDisp,theGC,white);
- XCopyPlane(theDisp,(Pixmap)exbit,(Pixmap)logobit,theGC,0,0,(unsigned int)logo_width,(unsigned int)logo_height,0,0,
-   (unsigned long) 1);
- iupx = *lix; iupy = *liy; persist = *itime;
- gmenubx.b_top   = iupy - (logo_height); gmenubx.b_bottom= iupy;
- gmenubx.b_left  = iupx;  gmenubx.b_right = iupx + logo_width;
-/* Save area of gmenubx to underit then copy logbit to gmenubx area and flush display */
- box_to_pix((Pixmap)win,gmenubx,(Pixmap)underit,(int)logo_width,(int)logo_height);
- XFlush(theDisp);
- XCopyArea(theDisp,(Pixmap)logobit,(Pixmap)win,theGC,0,0,(unsigned int)logo_width,(unsigned int)logo_height,
-   gmenubx.b_left,gmenubx.b_top);
- XFlush(theDisp);
- if(persist >= 10) {
-   Timer(persist);
-/* Copy saved underit back to gmenubx area, force drawing and then clear the bitmaps */
-   XCopyArea(theDisp,(Pixmap)underit,(Pixmap)win,theGC,0,0,(unsigned int)logo_width,(unsigned int)logo_height,
-     gmenubx.b_left,gmenubx.b_top);
-   XFlush(theDisp);
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*wstxpt\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
  }
- XFreePixmap(theDisp, underit);
- XFreePixmap(theDisp, exbit);
- XFreePixmap(theDisp, logobit);
  return;
 }
+
 
 /* ********* Write a string beginning at pixel x and y. ******* */
 void wstxpt_(x,y,buff,len)
@@ -1571,8 +1484,8 @@ long int *x, *y;       /* x y is the position of the string */
 int  len;        /* len is length passed from fortran */
 {
  XftDraw *draw;
- int ix = *x;
- int iy = *y;
+ int ix = (int) *x;
+ int iy = (int) *y;
  int ilen;
  f_to_c_l(buff,&len,&ilen);
 
@@ -1581,6 +1494,23 @@ int  len;        /* len is length passed from fortran */
  XftDrawString8(draw, &xft_color,fst,ix,iy,(XftChar8 *) buff,ilen);
  XftDrawDestroy(draw);
 
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*wstxpt\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
+/* ********* textatxywwc_() write a string at pixel x y to file. ******* */
+void textatxywwc_(x,y,buff,act,n,len)
+long int *x, *y;  /* x y is the position of the string */
+char *buff;
+char *act;        /* single character passed for colour set */
+long int *n;      /* colour index within the set */
+int  len;         /* len is length passed from fortran */
+{
 /* If echo send parameters to wwc file */
  if ( wwc_ok == 1) {
    fprintf(wwc,"*wstxpt\n");
@@ -1602,11 +1532,11 @@ int  len;         /* len is length passed from fortran */
  XftColor xft_current;
  unsigned long colid;	/* local X color id */
  long int xcolid;
- int ix = *x;
- int iy = *y;
+ int ix = (int) *x;
+ int iy = (int) *y;
  int ilen;
  int ic;
- ic = *n;
+ ic = (int) *n;
 
  f_to_c_l(buff,&len,&ilen);
  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
@@ -1658,6 +1588,28 @@ int  len;         /* len is length passed from fortran */
  return;
 }
 
+/* ********* textsizeatxywwc_() write to file version. ******* */
+/* NOTE: different parameter list from X version */
+void textsizeatxywwc_(x,y,buff,size,act,n,len)
+long int *x, *y; /* x y is the position of the string */
+char *buff;
+long int *size;  /* font size indicator (see below) */
+char *act;       /* single character passed for colour set */
+long int *n;     /* colour index within the set */
+int  len;        /* len is length passed from fortran */
+{
+ int ilen;
+ f_to_c_l(buff,&len,&ilen);
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*wstxpt\n");
+   fprintf(wwc,"%ld %ld\n",*x,*y);
+   fprintf(wwc,"%s\n",buff);
+ }
+ return;
+}
+
 /* ********* textsizeatxy_() write a string at pixel x y in size colour act & n. ******* */
 /* NOTE: different parameter list from X version */
 void textsizeatxy_(x,y,buff,size,act,n,len)
@@ -1674,11 +1626,11 @@ int  len;        /* len is length passed from fortran */
  long int the_font;
  unsigned long colid;	/* local X color id */
  long int xcolid;
- int ix = *x;
- int iy = *y;
+ int ix = (int) *x;
+ int iy = (int) *y;
  int ilen;
  int ic;
- ic = *n;
+ ic = (int) *n;
  fsize = *size;
  if(fsize == 0) the_font=4;
  if(fsize == 1) the_font=4;
@@ -1830,6 +1782,7 @@ void charsusingfnt_(n,cw,nlines)
  int vfw,lt;
  int tf_height; /* tf_height is local font height in pixels */
  int tf_width;  /* tf_width is local font width in pixels */
+ tfst = fst_0;  /* initial assumption */
   if( *n == 0 ) {
     t0=(char *) getenv("EFONT_0");
     if ((t0 == NULL) || (t0  == "") || (strncmp(t0,"    ",4) == 0)) {
@@ -1858,6 +1811,7 @@ void charsusingfnt_(n,cw,nlines)
   lt = strlen(test);
   XftTextExtents8(theDisp,tfst,test,lt,&info);
   vfw = (info.xOff/lt);
+  tf_width = 1;
   if ( vfw > 1 ) tf_width = vfw;
   *nlines = (int) ((disp.b_bottom - disp.b_top) / (tf_height+1));
   *cw = ((disp.b_right - disp.b_left) / tf_width)-2;
@@ -1934,8 +1888,8 @@ void feedbox_(menu_char,d_lines,gw,gh)
   Bool exp = 1;
 
   saved_font = current_font;
-  menu_offset = *menu_char;    /* remember feedbox right character offset  */
-  fbb_b_lines = *d_lines;     /* remember feedbox bottom character margine */
+  menu_offset = (int) *menu_char;    /* remember feedbox right character offset  */
+  fbb_b_lines = (int) *d_lines;     /* remember feedbox bottom character margine */
   fbb.b_top   = 2;
   winfnt_(&butn_fnt); /* small font (used for continue text).  */
   label_ht = f_height+4;
@@ -1951,10 +1905,10 @@ void feedbox_(menu_char,d_lines,gw,gh)
   if (d_lines == 0){
     fbb.b_bottom= xrt_height - 5;
   } else {
-     fbb.b_bottom= xrt_height - ((f_height+4) * (*d_lines)) - 5;
+     fbb.b_bottom= (int) xrt_height - ((f_height+4) * (*d_lines)) - 5;
   }
   fbb.b_left  = 2;
-  fbb.b_right = xrt_width - (mf_width * (*menu_char)) -8;
+  fbb.b_right = (int) xrt_width - (mf_width * (*menu_char)) -8;
   hight = (unsigned int)(fbb.b_bottom-fbb.b_top);
   wid = (unsigned int)(fbb.b_right-fbb.b_left);
 
@@ -2040,6 +1994,22 @@ this enables the size of the scroll bar to be set*/
   return;
 }
 
+
+/* **************  Open a 3D viewing box attributes to file *************** */
+void win3dwwc_(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gwht)
+ long int	*menu_char,*gw,*gwht;
+ long int	*cl,*cr,*ct,*cb;
+ long int	*vl,*vr,*vt,*vb;
+{
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*win3d\n");
+   fprintf(wwc,"%ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld\n",
+		*menu_char,*cl,*cr,*ct,*cb,*vl,*vr,*vt,*vb,*gw,*gwht);
+ }
+ return;
+} /* win3dwwc_ */
+
 /* **************  Open a 3D viewing box *************** */
 /*
  Passed the character width of the main control menu (menu_char),
@@ -2061,8 +2031,8 @@ void win3d_(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gwht)
 
  saved_font = current_font;
  dbx1_avail = 1;        /* tell world that graphic box exists */
- c3dcl = *cl; c3dcr = *cr;   /* remember character offsets    */
- c3dct = *ct; c3dcb = *cb;
+ c3dcl = (int) *cl; c3dcr = (int) *cr;   /* remember character offsets    */
+ c3dct = (int) *ct; c3dcb = (int) *cb;
 /*
  In case the text display window has been opened set this display
  slightly above it. Remember that the text display font may be smaller
@@ -2080,7 +2050,7 @@ void win3d_(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gwht)
    dbx1.b_bottom= xrt_height - ((f_height+4) * (dialogue_lines +1)) - 5;  /* !!!! 35 */
  }
  dbx1.b_left  = 8;
- dbx1.b_right = xrt_width - (mf_width * (*menu_char)) -16;
+ dbx1.b_right = (int) xrt_width - (mf_width * (*menu_char)) -16;
  xbox(dbx1,fg,white,BMCLEAR |BMEDGES);        /* draw outer box with edges  */
 
  viewbx.b_top = dbx1.b_top + (f_height * (*ct));
@@ -2118,6 +2088,27 @@ void win3dclr_()
   if(network_gpc) scrollvh();
   return;
 }
+
+/* **************  Display text to file *************** */
+/*
+ Write viewtext attribures to file.
+*/
+void viewtextwwc_(msg,linep,side,size,len)
+  char  *msg;              /* character string  */
+  long int *linep, *side, *size;     /* position indicators */
+  int len;                 /* length from f77   */
+{
+  int t_len;
+
+  f_to_c_l(msg,&len,&t_len); if ( t_len < len ) msg[t_len] = '\0';
+
+  if ( wwc_ok == 1) { /* If echo send parameters to wwc file */
+    fprintf(wwc,"*viewtext\n");
+    fprintf(wwc,"%ld %ld %ld\n",*linep,*side,*size);
+    fprintf(wwc,"%s\n",msg);
+  }
+  return;
+} /* viewtextwwc  */
 
 /* **************  Display text in viewing box *************** */
 /*
@@ -2207,6 +2198,33 @@ void findviewtext_(charposp,linep,size,irx,iry)
   return;
 } /* viewtext  */
 
+
+/* **************  Display teklib tlabel to file ******* */
+/*
+ Write etlabel attributes to file.
+*/
+void etlabelwwc_(msg,x,y,ipos,size,len)
+  char  *msg;       /* character string  */
+  int len;          /* length from f77   */
+  long int *size;   /* font size */
+  long int *ipos;   /* 0=centred, 1=right, 2=centred top,
+                       3=left,4=centered bottom.
+                    */
+  float *x,*y;      /* position in user units */
+{
+  int t_len;
+
+  f_to_c_l(msg,&len,&t_len); if ( t_len < len ) msg[t_len] = '\0';
+
+  if ( wwc_ok == 1) { /* If echo send parameters to wwc file */
+    fprintf(wwc,"*etlabel\n");
+    fprintf(wwc,"%f %f %ld %ld\n",*x,*y,*ipos,*size);
+    fprintf(wwc,"%s\n",msg);
+  }
+  return;
+} /* etlabelwwc */
+
+
 /* **************  Display text as in old teklib tlabel ******* */
 /*
  Given a string 'msg' and a reference position x,y in user units
@@ -2281,9 +2299,11 @@ void forceflush_()
 }
 
 /* ************* pause_for_milliseconds ********* */
-void Timer(msec)   /* from xvmisc.c */
- int  msec;
+void Timer(msec) int msec;
 {
+#ifdef MINGW
+#include <windows.h>
+#endif 
   long usec;
   struct timeval time;
 
@@ -2292,7 +2312,11 @@ void Timer(msec)   /* from xvmisc.c */
 
   time.tv_sec = usec / 1000000L;
   time.tv_usec = usec % 1000000L;
+#ifdef MINGW
+/*  Sleep((unsigned int) msec ); */
+#else
   select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time);
+#endif
   return;
 }
 
@@ -2300,17 +2324,24 @@ void Timer(msec)   /* from xvmisc.c */
 void pausems_(msec)   /* from xvmisc.c */
  long int  *msec;
 {
+#ifdef MINGW
+#include <windows.h>
+#endif 
   int msecond;
   long usec;
   struct timeval time;
 
-  msecond = *msec;
+  msecond = (int) *msec;
   if (msecond <= 0) return;
   usec = (long) msecond * 1000;
 
   time.tv_sec = usec / 1000000L;
   time.tv_usec = usec % 1000000L;
+#ifdef MINGW
+/*  Sleep((unsigned int) msecond ); */
+#else
   select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time);
+#endif
   return;
 }
 
@@ -2318,9 +2349,16 @@ void pausems_(msec)   /* from xvmisc.c */
 void pauses_(is)
   long int *is;
 {
+#ifdef MINGW
+#include <windows.h>
+#endif 
   int i;
-  i = *is;
+  i = (int) *is;
+#ifdef MINGW
+/*  Sleep((unsigned int) msecond * 1000); */
+#else
   sleep((unsigned int) i );
+#endif
   return;
 }
 
@@ -2336,20 +2374,36 @@ void drawswl(xa,ya,xb,yb)
   return;
 }
 
+
+/* *************** ESRU symbol drawing routine to file *************** */
+/*
+ Write esymbol attributes to file.
+*/
+void esymbolwwc_(long int* x,long int* y,long int* sym,long int* size)
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*esymbol\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x,*y,*sym,*size);
+  }
+  return;
+}
+
+
 /* *************** ESRU symbol drawing routine. *************** */
 /*
  esymbol is passed a pixel coord, a symbol index, and a size.
  currently there are 38 symbols.
 */
-void esymbol_(x,y,sym,size)
-  long int *x, *y, *sym, *size;
+void esymbol_(long int* x,long int* y,long int* sym,long int* size)
 {
   int isym,isize,ix,iy,width;
   XPoint p[12];
-  isym = *sym;
-  isize = *size;
-  ix = *x;
-  iy = *y;
+  isym = (int) *sym;
+  isize = (int) *size;
+  ix = (int) *x;
+  iy = (int) *y;
   width = 1;
 
 /* If echo send parameters to wwc file */
@@ -2813,7 +2867,7 @@ int *ino;
   Bool exp = 1;
   int	no_valid_event,config_altered;
   unsigned int start_height,start_width;
-  int popup_font = 5;  /* one up from smallest proportional font */
+  long int popup_font = 5;  /* one up from smallest proportional font */
 
   ilen = 0; iwth = 0;
   for(num=0;listptr[num]!=NULLPTR(char);num++){
@@ -2831,7 +2885,7 @@ int *ino;
   XGetWindowAttributes(theDisp,win,&wa);
   start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width; config_altered = 0;
 
-  xb = *impx;  yb = *impy;
+  xb = (int) *impx;  yb = (int) *impy;
   lt1 = (int) strlen(titleptr);  /* width of title */
   changed_font = 0;
   saved_font = use_font = current_font; /* save existing font  */
@@ -3469,7 +3523,7 @@ void openaskbox_(msg1,msg2,asklen,len1,len2)
   long int saved_font;
   int vfw,vfwm1,vfwm2;
 
-  ask_len = *asklen;
+  ask_len = (int) *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
@@ -3558,7 +3612,7 @@ void openaskaltbox_(msg1,msg2,alt,asklen,len1,len2,len3)
   long int saved_font;
   int vfw,vfwm1,vfwm2,vfwm3;
 
-  ask_len = *asklen;
+  ask_len = (int) *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
@@ -3755,7 +3809,7 @@ void openask2altbox_(msg1,msg2,alt,alt2,asklen,len1,len2,len3,len4)
   long int saved_font;
   int vfw,vfwm1,vfwm2,vfwm3,vfwm4;
 
-  ask_len = *asklen;
+  ask_len = (int) *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
@@ -3967,10 +4021,10 @@ void updhelp_(items,nitmsptr,iw,len_items)
   int  len_items;           /* length of help string from f77    */
 {
   int	i,j,k;
-  int	nitms = *nitmsptr;
+  int	nitms = (int) *nitmsptr;
   char 	*item_local = items;	/* working copy of intput string */
 
-  help_width = *iw;	/* remember width of current help text */
+  help_width = (int) *iw;	/* remember width of current help text */
   help_lines = nitms;	/* remember number of help lines */
   if(help_lines == 0)return;	/* don't bother if no help */
 
@@ -4023,7 +4077,7 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
   static int blen = 0;
   unsigned int start_height,start_width;
   int vfw;
-  int help_font = 5;  /* one up from smallest proportional font */
+  long int help_font = 5;  /* one up from smallest proportional font */
 
   ilen = help_lines;
   if(ilen == 0)return;	/* don't bother if no help */
@@ -4032,15 +4086,15 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
   XGetWindowAttributes(theDisp,win,&wa);
   start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width; config_altered = 0;
 
-  xb = *impx;  yb = *impy; pflg = *ipflg; showmoreflg = *ishowmoreflg;
+  xb = (int) *impx;  yb = (int) *impy; pflg = (int) *ipflg; showmoreflg = (int) *ishowmoreflg;
   changed_font = 0;
 
 /* Help messages can always be in proportional font. Save existing and reset if necessary */
   saved_font = use_font = current_font;
   if ( use_font != help_font ) { winfnt_(&help_font); use_font = help_font; changed_font = 1; }
   
+  h_height = (20*(f_height+1))+20;  /* include a bit of extra space  */
   if(ilen <= 20) h_height = (ilen*(f_height+1))+20;  /* include a bit of extra space  */
-  if(ilen > 20)  h_height = (20*(f_height+1))+20;  /* include a bit of extra space  */
   h_width = (help_width*f_width)+25;	  /* box slightly wider than longest line */
 
 /* Use XftTextExtents8 to loop through the help strings and
@@ -5581,7 +5635,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
   lprompt = abox_left - vfwm2;       /* lower prompt left */
   tprompt = abox_left - vfwm1;       /* top prompt left */
   if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
-//  tprompt = msgbx.b_right - vfwm1; /* top prompt left */
+//  tprompt = msgbx.b_right - vfwm1;  top prompt left
 
 // Define local drawable for Xft font.
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
@@ -5834,7 +5888,7 @@ void drscrollbar()
 void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
  long int *menu_char,*displ_l,*dialogue_l,*gdw,*gdh;
 {
- int lines = *displ_l; /* page length */
+ int lines = (int) *displ_l; /* page length */
  long int saved_font;       /* nominal font used within rest of application.  */
  int udh;		/* updown height */
  long int xt,yt,xb,yb; /* centre for up/down symbols  */
@@ -5876,7 +5930,7 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
  if ((disp.b_bottom -((f_height+1) * lines)) <= 50) {
      disp.b_top = 50;
      *displ_l = (int) ((disp.b_bottom - disp.b_top) / (f_height+1));
-     disp_lines = *displ_l;        /* update no of available lines */
+     disp_lines = (int) *displ_l;        /* update no of available lines */
  } else {
      disp.b_top  = disp.b_bottom -((f_height+1) * lines) - 10;
  }
@@ -6043,7 +6097,7 @@ void egdisp_(msg,line,len)
 void espad_(llimit,llimtty,lline)
   long int *llimit,*llimtty,*lline;   /* same as spad common block */
 {
-  tfb_limit = *llimit; tfb_limtty = *llimtty; tfb_line = *lline;
+  tfb_limit = (int) *llimit; tfb_limtty = (int) *llimtty; tfb_line = (int) *lline;
   return;
 }
 /* NEXT 2 FUNCTIONS COMMENTED OUT */
@@ -6097,7 +6151,7 @@ void drawpoint(xa,ya)
   XDrawPoint(theDisp,win,theGC,xa,ya);
 }
 
-/* ******  Routine to trak mouse in view box. ********** */
+/* ******  Routine to track mouse in view box. ********** */
 void trackview_(ichar,irx,iry)
  long int *ichar,*irx,*iry;	/* character returned, mouse position	*/
 {
@@ -6136,14 +6190,14 @@ void trackview_(ichar,irx,iry)
         }
         break;
       case ButtonPress:
-       *irx = x = event.xbutton.x;  *iry = y = event.xbutton.y;
-       *ichar = (long int)event.xbutton.button;
-       if (xboxinside(viewbx,x,y)){
+        *irx = x = event.xbutton.x;  *iry = y = event.xbutton.y;
+        *ichar = (long int)event.xbutton.button;
+        if (xboxinside(viewbx,x,y)){
           no_valid_event = FALSE;
           drawpoint(x,y);
           drawpoint(x+5,y+5);
           break;
-       }
+        }
       case KeyPress:	/* (XKeyEvent)&ev */
         blen = XLookupString((XKeyEvent*)&event,buf,80,&ks,(XComposeStatus *) NULL);
         if(blen > 0) {
@@ -6162,6 +6216,217 @@ void trackview_(ichar,irx,iry)
   return;
 }
 
+/* ******  Routine to allow mouse control in view box without menu. ********** */
+/* assumes azi_avail is 1 (i.e. view control buttons are active) */
+void controlview_()
+{
+  XEvent event;
+  XWindowAttributes wa;
+  KeySym     ks;
+  static char buf[80];
+  int	no_valid_event;
+  int	x,y,butid;
+  int x_old,y_old,ifrlk,idx,idy;
+  static int blen = 0;
+  unsigned int start_height,start_width;
+  long int saved_font;
+  int bottom,left;
+
+/* remember position and size of the whole module (so as to detect changes) */
+  XGetWindowAttributes(theDisp,win,&wa);
+  start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width;
+
+  no_valid_event = TRUE;
+  while ( no_valid_event) {
+    XNextEvent(theDisp, &event);
+    switch (event.type) {
+      case VisibilityNotify:
+/* debug fprintf(stderr,"trackview: vis event %d\n",event.xvisibility.state); */
+        if(event.xvisibility.state == 0 ) {
+          refreshenv_();
+        }
+        break;
+      case ConfigureNotify: /* user resized window, clear and then restore dialogue. */
+        XGetWindowAttributes(theDisp,win,&wa);
+        if(start_height == (unsigned int)wa.height && start_width == (unsigned int)wa.width) {	/* no need to update window */
+          no_valid_event = TRUE;
+        }
+        if(start_height != (unsigned int)wa.height || start_width != (unsigned int)wa.width) {	/* window resized so force update */
+/* debug  fprintf(stderr,"trackview detected configure event\n"); */
+          refreshenv_();
+        }
+        break;
+      case ButtonPress:
+        x = event.xbutton.x;  y = event.xbutton.y;
+        butid = (int)event.xbutton.button;
+        if (xboxinside(viewbx,x,y)){
+
+  /* inside graphics display */
+  /* act depending on which button was pressed */
+
+  /* left mouse click */
+  /* if view controls are present, enable freelook until mouse is released */
+          if (butid==1) {
+            if (azi_avail >=1) {
+              x_old=x;
+              y_old=y;
+              no_valid_event = TRUE;
+              while (no_valid_event) {
+                XNextEvent(theDisp,&event);
+                switch (event.type) {
+                  case MotionNotify: /* while mouse is moving track position  */
+                    x = event.xmotion.x; y = event.xmotion.y;
+                    idx=x-x_old; idy=y-y_old;
+                    ifrlk=1;
+                    if (abs(idx)>10) {
+                      chgazi_(&idx,&ifrlk);
+                      x_old=x;
+                    }
+                    if (abs(idy)>10) {
+                      chgelev_(&idy,&ifrlk);
+                      y_old=y;
+                    }
+                    break;
+                  case ButtonRelease:   /* button released so jump out of loop  */
+                    idx=0;
+                    ifrlk=0;
+                    chgazi_(&idx,&ifrlk);
+                    no_valid_event = FALSE;
+                    break;
+                  default:
+                    no_valid_event = TRUE;
+                    break;
+                }
+              }
+            }
+
+  /* right mouse click */
+  /* if view controls are present, enable pan until mouse is released */
+          } else if (butid==3) {
+            if (azi_avail >=1) {
+              x_old=x;
+              y_old=y;
+              no_valid_event = TRUE;
+              while (no_valid_event) {
+                XNextEvent(theDisp,&event);
+                switch (event.type) {
+                  case MotionNotify: /* while mouse is moving track position  */
+                    x = event.xmotion.x; y = event.xmotion.y;
+                    idx=x-x_old; idy=y-y_old;
+                    if (abs(idx)>10 || abs(idy)>10) {
+                      chgpan_(&idx,&idy);
+                      x_old=x; y_old=y;
+                    }
+                    break;
+                  case ButtonRelease:   /* button released so jump out of loop  */
+                    idx=0; idy=0;
+                    chgpan_(&idx,&idy);
+                    no_valid_event = FALSE;
+                    break;
+                  default:
+                    no_valid_event = TRUE;
+                    break;
+                }
+              }
+            }
+
+  /* middle mouse click */
+  /* if view controls are present, return to optimum view bounds */
+          } else if (butid==2) {
+            if (azi_avail>=1) {
+              optview_();
+              no_valid_event = TRUE;
+              while (no_valid_event) {
+                XNextEvent(theDisp,&event);
+                switch (event.type) {
+                  case ButtonRelease:   /* button released so jump out of loop  */
+                    no_valid_event = FALSE;
+                    break;
+                  default:
+                    no_valid_event = TRUE;
+                    break;
+                }
+              }
+            }
+
+  /* mouse wheel up/down */
+  /* if view controls are present, zoom in/out */
+          } else if (butid==4 || butid==5) {
+            if (azi_avail>=1) {
+              idx=butid-3;
+              chgzoom_(&idx);
+              no_valid_event = TRUE;
+              while (no_valid_event) {
+                XNextEvent(theDisp,&event);
+                switch (event.type) {
+                  case ButtonRelease:   /* button released so jump out of loop  */
+                    no_valid_event = FALSE;
+                    break;
+                  default:
+                    no_valid_event = TRUE;
+                    break;
+                }
+              }
+            }
+          }
+        }
+        no_valid_event = TRUE;
+        break;
+
+      case KeyPress:	/* (XKeyEvent)&ev */
+        blen = XLookupString((XKeyEvent*)&event,buf,80,&ks,(XComposeStatus *) NULL);
+
+/* Space bar tells us to exit this loop and return */
+        if(ks==XK_space) {
+          no_valid_event = FALSE;
+
+/* Arrow keys activate rotation buttons as normal */
+        } else if (ks==XK_Left || ks==XK_KP_Left) { /* left arrow pressed */
+          no_valid_event = TRUE;
+          saved_font = current_font; bottom = disp.b_top; left = aziminus_left;
+          dosymbox(aziminus,2,&saved_font,&box_fnt,&bottom,&left,"aziminus",'!');
+        } else if (ks==XK_Right || ks==XK_KP_Right) { /* right arrow pressed */
+          no_valid_event = TRUE;
+          saved_font = current_font; bottom = disp.b_top; left = aziplus_left;
+          dosymbox(aziplus,2,&saved_font,&box_fnt,&bottom,&left,"aziplus",'!');
+        } else if (ks==XK_Up || ks==XK_KP_Up) { /* up arrow pressed */
+          no_valid_event = TRUE;
+          saved_font = current_font; bottom = disp.b_top; left = elevplus_left;
+          dosymbox(elevplus,2,&saved_font,&box_fnt,&bottom,&left,"elevplus",'!');
+        } else if (ks==XK_Down || ks==XK_KP_Down) { /* down arrow pressed */
+          no_valid_event = TRUE;
+          saved_font = current_font; bottom = disp.b_top; left = elevminus_left;
+          dosymbox(elevminus,2,&saved_font,&box_fnt,&bottom,&left,"elevminus",'!');
+        }
+        break;
+    }
+  }
+  if(XPending(theDisp) > 0) {
+    while ( XPending(theDisp) > 0) {
+      XNextEvent (theDisp,&event);	/* flush events */
+    }
+  }
+  return;
+}
+
+
+/* *************** ESRU line drawing routine to file. *************** */
+/*
+ Write eline attributes to file.
+*/
+void elinewwc_(x,y,operation)
+  long int *x, *y, *operation;
+{
+
+/* If echo send parameters to wwc file */
+   if ( wwc_ok == 1) {
+     fprintf(wwc,"*eline\n");
+     fprintf(wwc,"%ld %ld %ld\n",*x,*y,*operation);
+   }
+   return;
+}
+
+
 /* *************** ESRU line drawing routine. *************** */
 /*
  co-ords, operation flag equiv to fwwutil parameters:
@@ -6170,8 +6435,7 @@ void trackview_(ichar,irx,iry)
 	3=move to relitive pixel coord,
 	2=draw line to relitive pixel coord.
 */
-void eline_(x,y,operation)
-  long int *x, *y, *operation;
+void eline_(long int* x,long int* y,long int* operation)
 {
   int x1,y1,op;
 
@@ -6180,9 +6444,9 @@ void eline_(x,y,operation)
      fprintf(wwc,"*eline\n");
      fprintf(wwc,"%ld %ld %ld\n",*x,*y,*operation);
    }
-   x1 = *x;
-   y1 = *y;
-   op = *operation;
+   x1 = (int) *x;
+   y1 = (int) *y;
+   op = (int) *operation;
 
    if      (op == 0) {    /* LNDRAWABS */
      XDrawLine(theDisp,win,theGC,xold,yold,x1,y1);
@@ -6203,9 +6467,7 @@ void eline_(x,y,operation)
  Based on scaling data passed to linescale this returns the pixel
  co-ords for a particular sets of user data.
 */
-void u2pixel_(ux,uy,ix,iy)
-  float *ux, *uy;
-  long int *ix, *iy;
+void u2pixel_(float* ux,float* uy,long int* ix,long int* iy)
 {
   float x,y;
   x = *ux;
@@ -6224,9 +6486,7 @@ void u2pixel_(ux,uy,ix,iy)
  Based on scaling data passed to linescale this returns the grid
  co-ords for a particular set of input pixcel co-ords.
 */
-void pixel2u_(ux,uy,gx,gy)
-  long int *ux, *uy;
-  float *gx, *gy;
+void pixel2u_(long int* ux,long int* uy,float* gx,float* gy)
 {
   long int x,y;
   x = *ux;
@@ -6244,7 +6504,6 @@ void pixel2u_(ux,uy,gx,gy)
 /* *************** General line plotting to wwc file. *************** */
 /*
  As below, but outputs lines to wwc file without drawing them.
-
 */
  void etplotwwc_(ux,uy,updown,sym)
    float *ux, *uy;
@@ -6259,7 +6518,6 @@ void pixel2u_(ux,uy,gx,gy)
      fprintf(wwc,"*etplot\n");
      fprintf(wwc,"%f %f %ld %ld\n",*ux,*uy,*updown,*sym);
     }
-
     return;
   }
 
@@ -6292,8 +6550,8 @@ void etplot_(ux,uy,updown,sym)
 
   x = *ux;
   y = *uy;
-  isymbol = *sym;
-  iupd = *updown;
+  isymbol = (int) *sym;
+  iupd = (int) *updown;
 
   x=(x + x_add) * x_scale;
   y=(y + y_add) * y_scale;
@@ -6373,6 +6631,22 @@ void etplot_(ux,uy,updown,sym)
   return;
 }
 
+/* *************** Dotted line drawing to file. *************** */
+/*
+ Write edline attributes to file.
+*/
+void edlinewwc_(x1,y1,x2,y2,ipdis)
+  long int *x1, *y1, *x2, *y2, *ipdis;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edline\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
+  }
+  return;
+}
+
 /* *************** Dotted line drawing routine. *************** */
 /*
  This function is passed both sets of pixel co-ords.
@@ -6380,8 +6654,7 @@ void etplot_(ux,uy,updown,sym)
  are 2 for a dense dotted line, 3 for a sparce one, values over 4 are
  probably not useful.
 */
-void edline_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void edline_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
   int ir,itrat,ix,iy,ldis,ldash;
   float xd,yd,r1,r2,xx1,xx2,yy1,yy2,xx3,yy3;
@@ -6393,7 +6666,7 @@ void edline_(x1,y1,x2,y2,ipdis)
     fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
   }
 
-  ldash = *ipdis;
+  ldash = (int) *ipdis;
   ix = (int) *x1;         /* first point in case of short line */
   iy = (int) *y1;
   xx1 = (float) *x1;  xx2 = (float) *x2;  /* use floats for calcs */
@@ -6436,6 +6709,22 @@ void drawdwl(xa,ya,xb,yb)
   return;
 }
 
+/* *************** ESRU double width line to file. *************** */
+/*
+ Writes edwine attributest to file.
+*/
+void edwlinewwc_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edwline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
+  return;
+}
+
 /* *************** ESRU double width line drawing routine. *************** */
 /*
  Draws a two pixel wide line between two pixel coordinates.
@@ -6457,6 +6746,21 @@ void edwline_(x1,y1,x2,y2)
   jx = (int) *x2;  jy = (int) *y2;
   XSetLineAttributes(theDisp,theGC,(unsigned int)width,LineSolid,CapNotLast,JoinMiter);
   XDrawLine(theDisp,win,theGC,ix,iy,jx,jy);
+  return;
+}
+
+
+/* *************** ESRU single width line to file. *************** */
+/*
+ Writes eswline attributes to file.
+*/
+void eswlinewwc_(x1,y1,x2,y2)
+  long int *x1, *y1, *x2, *y2;
+{
+  if ( wwc_ok == 1 && wwc_macro != 1) {	/* If echo send parameters to wwc file */
+    fprintf(wwc,"*eswline\n");
+    fprintf(wwc,"%ld %ld %ld %ld\n",*x1,*y1,*x2,*y2);
+  }
   return;
 }
 
@@ -6489,6 +6793,20 @@ void drawvwl(xa,ya,xb,yb,width)
   XDrawLine(theDisp,win,theGC,xa,ya,xb,yb);
 }
 
+
+/* *************** ESRU dashed line drawing to file. *************** */
+
+void edashwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*edash\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
+  }
+  return;
+}
+
 /* *************** ESRU dashed line drawing routine. *************** */
 /*
  Edash draws a dashed line based on start and end point pixel co-ords.
@@ -6501,8 +6819,7 @@ void drawvwl(xa,ya,xb,yb,width)
  dash_on and dash_rem are cleared if edash call is made with ipdis = 0.
 
 */
-void edash_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void edash_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
   int ir1,ir2,ix1,iy1,ix2,iy2;
   int ix,iy,ixl,iyl,ix3,iy3,ldash,lrem,ldis;
@@ -6596,6 +6913,22 @@ void edash_(x1,y1,x2,y2,ipdis)
   return;
 }
 
+
+/* *************** ESRU chained line drawing routine. *************** */
+/*
+ Echainwwc writes chained line instructions to file.
+*/
+void echainwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
+{
+
+/* If echo send parameters to wwc file */
+  if ( wwc_ok == 1 && wwc_macro != 1) {
+    fprintf(wwc,"*echain\n");
+    fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
+  }
+  return;
+}
+
 /* *************** ESRU chained line drawing routine. *************** */
 /*
  Echain is passed start and end point pixel co-ords.
@@ -6608,8 +6941,7 @@ void edash_(x1,y1,x2,y2,ipdis)
  dash_on and dash_rem are cleared if edash call is made with ipdis = 0.
 
 */
-void echain_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void echain_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
   int ir1,ir2,ix1,iy1,ix2,iy2;
   int ix,iy,ixl,iyl,ix3,iy3,ldash,lrem,ldis;
@@ -6761,7 +7093,7 @@ void erectan_(x,y,dx,dy,dt)
 
 /* convert into pixels and move to origin*/
   u2pixel_(&xo,&yo,&lix,&liy);
-  ix=lix; iy=liy;
+  ix=(int) lix; iy=(int) liy;
 
 /* find transforms (converting degrees into radians) */
   ri = 3.14159/180.0;
@@ -6774,17 +7106,17 @@ void erectan_(x,y,dx,dy,dt)
 
   x1=xo+xc; y1=yo+xs;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix1=lix; iy1=liy;
+  ix1=(int) lix; iy1=(int) liy;
   XDrawLine(theDisp,win,theGC,ix,iy,ix1,iy1);
 
   x1=x1-ys; y1=y1+yc;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix2=lix; iy2=liy;
+  ix2=(int) lix; iy2=(int) liy;
   XDrawLine(theDisp,win,theGC,ix1,iy1,ix2,iy2);
 
   x1=x1-xc; y1=y1-xs;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix3=lix; iy3=liy;
+  ix3=(int) lix; iy3=(int) liy;
   XDrawLine(theDisp,win,theGC,ix2,iy2,ix3,iy3);
   XDrawLine(theDisp,win,theGC,ix3,iy3,ix,iy);  /* back to origin  */
   return;
@@ -6812,11 +7144,11 @@ void egrbox_(x,y,dx,dy,gp)
 
 /* convert into pixels and move to origin*/
   u2pixel_(&xo,&yo,&lix,&liy);
-  ix=lix; iy=liy;
+  ix=(int) lix; iy=(int) liy;
 
   x1 = xo + dx1; y1 = yo + dy1;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix1=lix; iy1=liy;
+  ix1=(int) lix; iy1=(int) liy;
 
   gbox.b_bottom = iy; gbox.b_top = iy1;
   if((gbox.b_bottom-gbox.b_top)<=2)return; /* if no height return */
@@ -6861,7 +7193,7 @@ void etriang_(x,y,dx,dy,dt)
 
 /* convert into pixels and move to origin*/
   u2pixel_(&xo,&yo,&lix,&liy);
-  ix=lix; iy=liy;
+  ix=(int) lix; iy=(int) liy;
 
 /* find transforms (converting degrees into radians) */
   ri = 3.14159/180.0;
@@ -6874,12 +7206,12 @@ void etriang_(x,y,dx,dy,dt)
 
   x1=xo+xc;  y1=yo+xs;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix1=lix; iy1=liy;
+  ix1=(int) lix; iy1=(int) liy;
   XDrawLine(theDisp,win,theGC,ix,iy,ix1,iy1);
 
   x1=x1-ys;  y1=y1+yc;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix2=lix; iy2=liy;
+  ix2=(int) lix; iy2=(int)liy;
   XDrawLine(theDisp,win,theGC,ix1,iy1,ix2,iy2);
   XDrawLine(theDisp,win,theGC,ix2,iy2,ix,iy);  /* back to origin  */
   return;
@@ -7048,6 +7380,10 @@ void axiscale_(long int* gw,long int* gh,float* xmn,float* xmx,float* ymn,
    axgw=(float)*gw; axgh=(float)*gh;
    axxmn=(float)*xmn; axxmx=(float)*xmx;
    axymn=(float)*ymn; axymx=(float)*ymx;
+   axyadd=0.0;
+   axxadd=0.0;
+   axysc=0.0;
+   axxsc=0.0;
 
 /* Derive factors for horizontal axis. */
     if (axxmn < 0.0 && axxmx >= 0.0) {
@@ -7116,10 +7452,10 @@ void linescale_(long int* loff,float* ladd,float* lscale,long int* boff,float* b
 	float* bscale)
  {
 /* static variables defined @ beginning of wwlib.c */
-   x_off = *loff;
+   x_off = (int) *loff;
    x_add = *ladd;
    x_scale = *lscale;
-   y_off = *boff;
+   y_off = (int) *boff;
    y_add = *badd;
    y_scale = *bscale;
 
@@ -7141,8 +7477,9 @@ void linescale_(long int* loff,float* ladd,float* lscale,long int* boff,float* b
  returned.
 */
 void labelstr(n,val,WticC,sstr)
- long int *n, *WticC;
+ long int *n;
  float *val;
+ long int *WticC;
  char sstr[10];
 {
   int idum, n1, ticc;
@@ -7168,6 +7505,30 @@ void labelstr(n,val,WticC,sstr)
 } /* labelstr */
 
 
+/* ************** VRTAXISDDWWC *********************** */
+/*
+ Write to file vertical axis attributes.
+*/
+
+void vrtaxisddwwc_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen)
+{
+ int ilen;
+ char msg2[80];
+
+ f_to_c_l(msg,&mlen,&ilen); strncpy(msg2,msg,(unsigned int)ilen); msg2[ilen] = '\0';
+
+/* If echo send parameters to wwc file */
+ if ( wwc_ok == 1) {
+    fprintf(wwc,"*vrtaxis\n");
+    fprintf(wwc,"%f %f %ld %ld %ld %f %f %ld %ld\n",
+		*ymn,*ymx,*offl,*offb,*offt,*yadd,*sca,*mode,*side);
+    fprintf(wwc,"%s\n",msg2);
+ }
+ return;
+} /* vrtaxisddwwc */
+
+
 /* ************** VRTAXISDD *********************** */
 /*
  Construct and draw a vertical axis via where: YMN,YMX are the data
@@ -7182,12 +7543,8 @@ void labelstr(n,val,WticC,sstr)
        fixed value.
 */
 
-void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
-
- float *ymn, *ymx,  *yadd, *sca, *dddy;
- long int  *offl,*offb, *offt, *mode, *nny, *side;
- int  mlen;
- char  *msg;
+void vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen)
 {
 /*
  Local variables: WticL is the maximum character width of a tic label,
@@ -7244,7 +7601,7 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
 */
  yticv = *ymn;
  rintvl = (*ymx - *ymn) / ddy + 1.0;
- nintvl = rintvl;
+ nintvl = (int) rintvl;
  if (mde == 1) {
    resid = *ymn - (int) *ymn;
    if(*ymn < 0. && resid != 0.) {
@@ -7333,6 +7690,28 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
 } /* vrtaxsdd_ */
 
 
+/* ************** HORAXSddwwc *********************** */
+/*
+ Write horizontal axis attributes to file.
+*/
+
+void horaxisddwwc_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen)
+{
+ int ilen;
+ char msg2[80];
+
+ f_to_c_l(msg,&mlen,&ilen); strncpy(msg2,msg,(unsigned int)ilen); msg2[ilen] = '\0';
+ if ( wwc_ok == 1) {
+   fprintf(wwc,"*horaxis\n");
+   fprintf(wwc,"%f %f %ld %ld %ld %f %f %ld\n",
+                *xmn,*xmx,*offl,*offr,*offb,*xadd,*sca,*mode);
+   fprintf(wwc,"%s\n",msg2);
+ }
+ return;
+} /* horaxisddwwc_ */
+
+
 /* ************** HORAXSdd *********************** */
 /*
  Construct and draw a horizontal axis where: XMN,XMX are the data
@@ -7343,12 +7722,8 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
  of decimal places to use.
 */
 
-void horaxisdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
-
- float *xmn, *xmx, *sca, *xadd, *dddx;
- long int   *offl,*offr,*offb, *mode, *nnx;
- int   mlen;
- char  *msg;
+void horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen)
 {
 /*
  Local variables:
@@ -7481,13 +7856,9 @@ void horaxisdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
       case of ind = 2 or 4 (otherwise ignored)
 */
 
-void horaxishdwdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,
-     ind,idiv,isjday,msg,mlen)
-
- float *xmn, *xmx, *sca, *xadd, *dddx;
- long int  *offl,*offr,*offb, *mode, *nnx, *ind, *idiv, *isjday;
- int   mlen;
- char  *msg;
+void horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx,long int *ind,
+	long int *idiv,long int *isjday,char* msg,int mlen)
 {
 /*
  Local variables:
@@ -8661,9 +9032,9 @@ point*/
         doitbox(setup,"fonts  ",7,9,&saved_font,&box_fnt,&bottom,&left,"setup",'!');
       } else if (cpw_avail >=1 && xboxinside(cpw,x,y)) {
 
-/* selected license */
+/* selected licence */
         saved_font = current_font; bottom = b_cpw; left = l_cpw;
-        doitbox(cpw,"license",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'!');
+        doitbox(cpw,"licence",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'!');
       } else if (cfg_boxs == 0 && xboxinside(cfgz,x,y)) {
 
 /* Check buttons inside graphics feedback.  If in button then do required
@@ -8794,40 +9165,118 @@ point*/
       } else if (xboxinside(viewbx,x,y)){
 
 /* inside graphics display */
+/* act depending on which button was pressed */
+
+/* left mouse click */
 /* if view controls are present, enable freelook until mouse is released */
-        if (azi_avail >=1) {
-          x_old=x;
-          y_old=y;
-          no_valid_event = TRUE;
-          while ( no_valid_event) {
-            XNextEvent(theDisp,event);
-            switch (event->type) {
-              case MotionNotify: /* while mouse is moving track position  */
-                x = event->xmotion.x; y = event->xmotion.y;
-                idx=x-x_old; idy=y-y_old;
-                ifrlk=1;
-                if (abs(idx)>10) {
+        if (butid==1) {
+          if (azi_avail >=1) {
+            x_old=x;
+            y_old=y;
+            no_valid_event = TRUE;
+            while (no_valid_event) {
+              XNextEvent(theDisp,event);
+              switch (event->type) {
+                case MotionNotify: /* while mouse is moving track position  */
+                  x = event->xmotion.x; y = event->xmotion.y;
+                  idx=x-x_old; idy=y-y_old;
+                  ifrlk=1;
+                  if (abs(idx)>10) {
+                    chgazi_(&idx,&ifrlk);
+                    x_old=x;
+                  }
+                  if (abs(idy)>10) {
+                    chgelev_(&idy,&ifrlk);
+                    y_old=y;
+                  }
+                  break;
+                case ButtonRelease:   /* button released so jump out of loop  */
+                  idx=0;
+                  ifrlk=0;
                   chgazi_(&idx,&ifrlk);
-                  x_old=x;
-                }
-                if (abs(idy)>10) {
-                  chgelev_(&idy,&ifrlk);
-                  y_old=y;
-                }
-                break;
-              case ButtonRelease:   /* button released so jump out of loop  */
-                idx=0;
-                ifrlk=0;
-                chgazi_(&idx,&ifrlk);
-                no_valid_event = FALSE;
-                break;
-              default:
-                no_valid_event = TRUE;
-                break;
+                  no_valid_event = FALSE;
+                  break;
+                default:
+                  no_valid_event = TRUE;
+                  break;
+              }
             }
           }
+          but_rlse=5;
+
+/* right mouse click */
+/* if view controls are present, enable pan until mouse is released */
+        } else if (butid==3) {
+          if (azi_avail >=1) {
+            x_old=x;
+            y_old=y;
+            no_valid_event = TRUE;
+            while (no_valid_event) {
+              XNextEvent(theDisp,event);
+              switch (event->type) {
+                case MotionNotify: /* while mouse is moving track position  */
+                  x = event->xmotion.x; y = event->xmotion.y;
+                  idx=x-x_old; idy=y-y_old;
+                  if (abs(idx)>10 || abs(idy)>10) {
+                    chgpan_(&idx,&idy);
+                    x_old=x; y_old=y;
+                  }
+                  break;
+                case ButtonRelease:   /* button released so jump out of loop  */
+                  idx=0; idy=0;
+                  chgpan_(&idx,&idy);
+                  no_valid_event = FALSE;
+                  break;
+                default:
+                  no_valid_event = TRUE;
+                  break;
+              }
+            }
+          }
+          but_rlse=5;
+
+/* middle mouse click */
+/* if view controls are present, return to optimum view bounds */
+        } else if (butid==2) {
+          if (azi_avail>=1) {
+            optview_();
+            no_valid_event = TRUE;
+            while (no_valid_event) {
+              XNextEvent(theDisp,event);
+              switch (event->type) {
+                case ButtonRelease:   /* button released so jump out of loop  */
+                  no_valid_event = FALSE;
+                  break;
+                default:
+                  no_valid_event = TRUE;
+                  break;
+              }
+            }
+          }
+          but_rlse=5;
+
+/* mouse wheel up/down */
+/* if view controls are present, zoom in/out */
+        } else if (butid==4 || butid==5) {
+          if (azi_avail>=1) {
+            idx=butid-3;
+            chgzoom_(&idx);
+            no_valid_event = TRUE;
+            while (no_valid_event) {
+              XNextEvent(theDisp,event);
+              switch (event->type) {
+                case ButtonRelease:   /* button released so jump out of loop  */
+                  no_valid_event = FALSE;
+                  break;
+                default:
+                  no_valid_event = TRUE;
+                  break;
+              }
+            }
+          }
+          but_rlse=5;
         }
-        but_rlse=5;
+
       }
     XftDrawDestroy(draw);
     return (but_rlse);
@@ -8907,7 +9356,7 @@ void refreshenv_()
    return;
 } /* refreshenv */
 
-/* ******  Place license button on screen ********** */
+/* ******  Place licence button on screen ********** */
 /* Place towards the right side of window and just above the base. */
 void opencpw_()
 {
@@ -8918,11 +9367,11 @@ void opencpw_()
  saved_font = current_font; cpwfont=4;
  if (saved_font != butn_fnt) winfnt_(&butn_fnt);
  label_ht = f_height+4;
- cpw_avail = 1;             /* tell the world that license is available */
+ cpw_avail = 1;             /* tell the world that licence is available */
  if (dialogue_lines != 0) { b_cpw = msgbx.b_top -6; } else { b_cpw = xrt_height -16; }
  l_cpw= xrt_width - ((f_width * 10) + 3);
  bottom = b_cpw; left = l_cpw;
- doitbox(cpw,"license",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'-');
+ doitbox(cpw,"licence",7,9,&saved_font,&box_fnt,&bottom,&left,"copyright",'-');
  return;
 } /* opencpw */
 
@@ -9053,9 +9502,9 @@ void updwire_(avail)
     saved_font = current_font;
     bottom = disp.b_top; left = wire_left;
     doitbox(wire,"image control",13,15,&saved_font,&box_fnt,&bottom,&left,"wire",'-');
-    wire_avail = *avail;         /* tell the world it is available */
+    wire_avail = (int) *avail;         /* tell the world it is available */
   } else {
-    wire_avail = *avail;         /* tell the world it is available */
+    wire_avail = (int) *avail;         /* tell the world it is available */
   }
   return;
 } /* updwire_ */
@@ -9074,9 +9523,9 @@ void updcapt_(avail)
     doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"capture",'-');
     bottom = fbb.b_bottom; left = captext_left;
     doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"captext",'-');
-    capture_avail = *avail;         /* tell the world it is available */
+    capture_avail = (int) *avail;         /* tell the world it is available */
   } else {
-    capture_avail = *avail;         /* tell the world it is available */
+    capture_avail = (int) *avail;         /* tell the world it is available */
   }
   return;
 } /* updcapt_ */
@@ -9121,9 +9570,9 @@ void updazi_(avail)
     doitbox(elev,"elevation",9,11,&saved_font,&box_fnt,&bottom,&left,"elev",'-');
 
     if (saved_font != butn_fnt) winfnt_(&saved_font);  /* restore std font */
-    azi_avail = *avail;         /* tell the world it is available */
+    azi_avail = (int) *avail;         /* tell the world it is available */
   } else {
-    azi_avail = *avail;         /* tell the world it is available */
+    azi_avail = (int) *avail;         /* tell the world it is available */
   }
 
   return;
@@ -9267,7 +9716,7 @@ void ipset(flag) int flag;{
 void nwkgflg_(ngf)
 long int *ngf;
 {
-network_gpc=*ngf;
+network_gpc= (int) *ngf;
 }
 /********* Switch between network drawing modes *********/
 void nwksmod_(sel,con,dat)
@@ -9275,9 +9724,9 @@ long int *sel;
 long int *con;
 long int *dat;
 {
-nselect=*sel;	/* if 1 then user can select/unselect icons */
-nconnect=*con;
-ndata=*dat;
+nselect= (int) *sel;	/* if 1 then user can select/unselect icons */
+nconnect=(int) *con;
+ndata= (int) *dat;
 }
 
 /* *************** ESRU fortan callable proforma for checkboxs and editing. *************** */
@@ -9342,13 +9791,13 @@ int lensstr,lentitle,lenlist;	/* fortrant passed lengths */
 
 /* local working string arrays */
 char *locsstr = sstr;
-int locnstr = *nstr;
+int locnstr = (int) *nstr;
 char *loctitle = title;
 char *loclist = list;
-int ilen = *nlist;
+int ilen = (int) *nlist;
 char *loclisttypes = listtypes;
 int iwhich;	/* local indicator of what has been selected */
-int iwth = *impcwth;	/* character width of proforma */
+int iwth = (int) *impcwth;	/* character width of proforma */
 
   if(ilen == 0){	/* don't bother if no list */
     if(XPending(theDisp) > 0) {
@@ -9356,7 +9805,7 @@ int iwth = *impcwth;	/* character width of proforma */
     }
     return;
   }
-  help_lines = *nhelp; /* set number of help lines setup for this display */
+  help_lines = (int) *nhelp; /* set number of help lines setup for this display */
 
   /* loop through text to display pass fortran array of strings into static
      display_list using same logic as updmenu_ */
@@ -9391,7 +9840,7 @@ int iwth = *impcwth;	/* character width of proforma */
   *ino = -1;	/* initial setting of parameter and local return index */
   iwhich = -1;
 
-  xb = *impx;  yb = *impy;
+  xb = (int) *impx;  yb = (int) *impy;
   lt1 = (int) strlen(loctitle);  /* width of title */
   changed_font = 0;
   saved_font = current_font; /* save existing font  */

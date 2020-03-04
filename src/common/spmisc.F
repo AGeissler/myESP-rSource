@@ -32,7 +32,7 @@ C spmflg   - flag indicating whether special materials are active (0 or 1).
       subroutine SPMINIT
 
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
 
 C Special materials file flag.
@@ -208,7 +208,7 @@ C defined.
 
       integer lnblnk
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
 
       common/spmatl/nspmnod,ispmloc(mspmnod,3),ispmtyp(mspmnod,2),
@@ -239,7 +239,7 @@ C DSC data / spline function data
 
       character outs*124,deflnam*72,spflnam*72,h*72
       character spmlabel*16,lfil*72
-      logical ok,dok
+      logical ok
 
       integer linecount
 
@@ -248,17 +248,16 @@ C Set the number of special material data items per line
 
 C Determine whether a special materials file is to be created
       if(ispmxist.eq.1) then
-        dok=.true.
         h(1)='Special materials information has been'
         h(2)='defined but recent changes not yet saved!'
-        call askok(' ','Update special materials file?',ok,dok,2)
+        call easkok(' ','Update special materials file?',ok,2)
         if(.not.ok) return
       endif
       deflnam='data.spm'
       lfil=spflnam
       h(1)='This file contains information about special materials'
       h(2)='associated with a problem.'
- 4    call easks(lfil,' ',' Special materials filename?',72,
+ 4    call easks(lfil,' ','Special materials filename?',72,
      &  deflnam,' SPM filename',IER,2)
       if(lfil.ne.' ')spflnam=lfil
       if(IER.GT.0) return

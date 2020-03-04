@@ -27,7 +27,7 @@ C face3d are triangles or quads which are general surfaces in autocad.
 #include "geometry.h"
 #include "dxfdata.h"
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -169,7 +169,7 @@ C << upper 3-4 corners >>
 #include "geometry.h"
 #include "dxfdata.h"
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -273,7 +273,7 @@ C otherwise if it is 2D it might be useful for click-on-bitmap.
 #include "geometry.h"
 #include "dxfdata.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -489,7 +489,7 @@ C autocad and skip over it.
       subroutine gentext(itrc)
 #include "dxfdata.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/matrix/ amat(3,3), xnorm, ynorm, znorm
       character tstr*80
@@ -520,7 +520,7 @@ C ****** genarc
 #include "geometry.h"
 #include "dxfdata.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON

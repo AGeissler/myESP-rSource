@@ -33,8 +33,8 @@ c ---
 c --- 27-08-2014: Patrice Pinel: iComp not used in this subroutine
 c     Integer iComp
 
-      COMMON/OUTIN/IUOUT,IUIN
-      Integer iuout,iuin  ! used for warning output
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      Integer iuout,iuin,ieout  ! used for warning output
 
       Integer iFun
 c --- 27-08-2014: Patrice Pinel: Mass flow rate of air now calculated directly (CVSmDotAir) in CVSCommonInitialisation()
@@ -122,8 +122,8 @@ c ---
        COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
        REAL QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 c
 c     Implicit None
       INTEGER J
@@ -897,8 +897,8 @@ c ---
       Implicit None
       Character String*(*)
 c
-      Integer IUOUT, IUIN
-      Common /OUTIN/ IUOUT, IUIN
+      Integer IUOUT,IUIN,IEOUT
+      Common /OUTIN/IUOUT,IUIN,IEOUT
 c ---
       Call edisp ( IUOUT, String )
 c
@@ -926,9 +926,9 @@ c  None. Sums up Monthly HRV energy in H3KSTORE_DATA module
 #include "h3kstore_common.h"
 #include "Ventilation_Data.h"
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER IDAYN,iMonth
       LOGICAL bInStartup           !Function to see if still in start up mode.
 
@@ -971,8 +971,8 @@ c ********** Declaration
 #include "Ventilation_Data.h"
 
       ! Access variables for warning output
-      Integer iuout,iuin 
-      COMMON/OUTIN/IUOUT,IUIN
+      Integer iuout,iuin ,ieout
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       ! Local variables
       Real  PHPVLTT     ! Pre-heat power during VVLT test (W)
@@ -1131,8 +1131,8 @@ c **********************************************************************
 
 c ********** Declaration
       ! Access variables for warning output
-      Integer iuout,iuin  
-      COMMON/OUTIN/IUOUT,IUIN
+      Integer iuout,iuin,ieout  
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       ! Arguments/Inputs
       Real T_amb                            ! Temperature (deg-C) of ambient air

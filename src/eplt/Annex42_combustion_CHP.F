@@ -294,8 +294,8 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C.....I/O
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout ! channels for writing messages to screen
 
 C.....Common containing plant componet mass diversion ratios
       common/c10/npcon,ipc1(mpcon),ipn1(mpcon),ipct(mpcon),ipc2(mpcon),
@@ -806,7 +806,7 @@ C.....Time
       integer ntstpp            ! number of plant timesteps / building timestep
 
 C.....Simulation timestep
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp              ! not used in current context
       integer ihrf              ! not used in current context
       integer idyp              ! present day #
@@ -814,7 +814,7 @@ C.....Simulation timestep
       integer idwp              ! not used in current context
       integer idwf              ! not used in current context
       integer nsinc             ! time step number
-      integer its               ! not used in current context
+      integer its,idynow        ! not used in current context
 
 C----------------------------------------------------------------------
 C     Local variables
@@ -2618,11 +2618,11 @@ C.....Array containing fuel composition
 
 C.....Trace & reporting data
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 C.....Trace/error reporting unit numbers
       integer itc,icnt
-      integer iuout,iuin
+      integer iuout,iuin,ieout
       integer itcf,itrace,izntrc,itu
 
       logical bNums_are_close_a  ! result of close-to-zero comparisons
@@ -3090,10 +3090,10 @@ C----------------------------------------------------------------------
 
 C.....Trace/error reporting unit numbers
       common/tc/itc,icnt
-      common/outin/iuout,iuin
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
       integer itc,icnt
-      integer iuout,iuin
+      integer iuout,iuin,ieout
       integer itcf,itrace,izntrc,itu
 
 C----------------------------------------------------------------------

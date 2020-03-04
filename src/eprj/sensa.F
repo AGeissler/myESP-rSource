@@ -69,7 +69,7 @@ C Common blocks UA2 UA3 UA4 within uncertainty.h
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/rpath/path
      
@@ -91,7 +91,7 @@ C For help messages
       helptopic='uncert_overview_a'
       call gethelptext(helpinsub,helptopic,nbhelp)
       
-C Ask for an uncertainty library name and check to see if it exists.
+C Ask for an uncertainty definition name and check to see if it exists.
  4    IW=0
       if(path.ne.'./'.and.path.ne.' ')then
         write(outs,'(A,A)') ' The current path is: ',path
@@ -435,7 +435,7 @@ C DEFUAL create a set of default uncertainties
 C Common blocks UA3 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       IERR=0
       IER=0
@@ -485,7 +485,7 @@ C ICDEF  If equal to zero then add a new definition, else edit.
 C Common blocks UA1 UA3 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character t24*24
       CHARACTER ITEM(17)*32, outs*124
@@ -664,7 +664,7 @@ C   specification and 2 if there was a cancel issued during editing.
 C Common blocks UA1 UA2 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       integer ncomp,ncon
@@ -785,7 +785,8 @@ C Scan all connections looking for this MLC.
           write (outs,'(2a)') 'scanning for ',mlcname(ISEL)
           call edisp(iuout,outs)
           do icc = 1, NCON
-            if(ssmlcindex(icc).eq.ISEL)then
+            izz=IC1(icc); izs=IE1(icc)
+            if(smlcindex(izz,izs).eq.ISEL)then
 
 C If this zone referenced by IC1(icc) not yet registered add it.
 C First the case of nothing known.
@@ -837,7 +838,8 @@ C Scan all connections looking for this material.
 
 C Which MLC is used? And does it have a layer with the material
 C we are looking for?
-            ifoc=ssmlcindex(icc)
+            izz=IC1(icc); izs=IE1(icc)
+            ifoc=smlcindex(izz,izs)
             foundmat=.false.   ! do we know about this
             do ilay=1,LAYERS(ifoc)  ! for each layer
               if(IPRMAT(ifoc,ilay).eq.matarrayindex)then
@@ -1060,7 +1062,7 @@ C are applicable.
             INPIC=NZSUR(IZONE)
             do I=1,INPIC
               icn1=izstocn(izone,i)
-              STMP(I)=SSNAME(icn1)
+              STMP(I)=SNAME(izone,i)
               NSNOG(icurrent,IZ,I)=0
             enddo
             call edisp(iuout,'Surface selection ')
@@ -1172,7 +1174,7 @@ C ITEM   If equal to zero then add a new definition, else edit.
 C Common blocks UA1 UA2 UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION IVALC(MNCNG),IVALL(MNIL)
 
@@ -1251,7 +1253,7 @@ C any duplicates.
 #include "esprdbfile.h"
 #include "material.h"
 
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -1340,8 +1342,8 @@ C Function definition
       
       common/FILEP/IFIL
       INTEGER :: ifil
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
      
 C TDF related.
       COMMON/TDFFLG0/DBTAG(MIT),DBTASK(MIT),DBZN(MIT),DBSN(MIT)
@@ -1410,7 +1412,7 @@ C Remember how many calibro runs were requested.
       integer ihowmanycalibroruns
       common/howmany/ihowmanycalibroruns
       
-      logical DOK,OK
+      logical OK
       logical unixok,LIBXST
       logical anymeasured
       logical usingcalversion
@@ -1458,16 +1460,17 @@ C in the model. If there is list its directives.
       IUALF=IFIL
       INQUIRE (FILE=LUALF,EXIST=LIBXST)
       if(.NOT.LIBXST)then
+        call edisp(iuout,' ')
         call edisp(iuout,
-     &    'Currently no uncertainties are associated with')
+     &    'There are no uncertainties associated')
         call edisp(iuout,
-     &    'The modedl. Please define some.')
+     &    'with the model. Please define some.')
         return
       endif
 
       call edisp(iuout,'  ')
       write(outs,'(A,A)')
-     &   ' Reading contents of existing UA definitions file : ',LUALF
+     &   'Reading contents of existing UA definitions file: ',LUALF
       call edisp(iuout,outs)
       call READUAL(IUALF)
       call LISTUAL(0,0)
@@ -1478,14 +1481,14 @@ C data included.
         call edisp(iuout,' ')
         call edisp(iuout,'No temporal data has been defined.')
         call edisp(iuout,
-     &    'Please use prj facility for temporal definitions.')
+     &    'Please use facility for temporal definitions.')
         return
       endif
       if(ITEMSTD.eq.0)then
         call edisp(iuout,
      &    'Calibration requires directives for uncertainty.')
         call edisp(iuout,
-     &    'Please use prj facility to define uncertainties.')
+     &    'Please use facility to define uncertainties.')
         return
       endif
 
@@ -1570,8 +1573,8 @@ C anymeasured not found so there are no observations.
         call edisp(iuout,
      &    'Existing temporal data types cannot be calibrated')
         call edisp(iuout,
-     &    'against. Please add observed zone temperatures or')
-        call edisp(iuout,'humidity or heating or cooling.')
+     &    'against. Please add observed zone temperatures,')
+        call edisp(iuout,'humidity, heating or cooling.')
         return
       endif
 
@@ -1612,18 +1615,18 @@ C And if matarrayindex is zero then resetn dbcon dbden dbsht
             endif
           endif
           call edisp (iuout,'  ')
-          write(outs,'(a,i4,4a)')'Distribution :',loop,'; ',LCNG(loop),
+          write(outs,'(a,i4,4a)')'Distribution:',loop,'; ',LCNG(loop),
      &      ' requires a variant of material ',NAM(1:lnblnk(NAM))
           call edisp (iuout,outs)
           domlc=.true.; dogeo=.true.
         elseif(IDTYPU(loop).eq.2) then  ! if MLC focus
-          write(outs,'(a,i4,4a)')'Distribution :',loop,'; ',LCNG(loop),
+          write(outs,'(a,i4,4a)')'Distribution:',loop,'; ',LCNG(loop),
      &      ' requires a variant of MLC ',MATNAM(loop,1)
           call edisp (iuout,outs)
           domlc=.true.; dogeo=.true.
         elseif(IDTYPU(loop).eq.4) then  ! if operation focus
           if (IDATR(loop,1).eq.0) then
-            write(outs,'(a,i4,3a)')'Distribution :',loop,'; ',
+            write(outs,'(a,i4,3a)')'Distribution:',loop,'; ',
      &        LCNG(loop),' requires a variant of infil/vent schedule'
             call edisp (iuout,outs)
           else
@@ -1634,13 +1637,13 @@ C And if matarrayindex is zero then resetn dbcon dbden dbsht
           doopr=.true.
         elseif(IDTYPU(loop).eq.6) then  ! if optical focus
           if (IDATR(loop,1).eq.1) then
-            write(outs,'(a,i4,3a)')'Distribution :',loop,'; ',
+            write(outs,'(a,i4,3a)')'Distribution:',loop,'; ',
      &        LCNG(loop),' requires a variant of zone tmc file'
             call edisp (iuout,outs)
           endif
           doblnd=.true.
         elseif(IDTYPU(loop).eq.1001) then  ! if ideal control focus
-          write(outs,'(a,i4,3a)')'Distribution :',loop,'; ',LCNG(loop),
+          write(outs,'(a,i4,3a)')'Distribution:',loop,'; ',LCNG(loop),
      &      ' requires a variant control file.'
           call edisp (iuout,outs)
           doctl=.true.
@@ -1734,8 +1737,7 @@ C Having loaded the _cal.cfg file ask the user what to do next.
         elseif(ioption.eq.3)then
 
 C Switch focus to the calibration variant and jump to 43.
-          CALL ASKOK('Would you like to preview suggestions?',
-     &      ' ',preview,DOK,nbhelp)
+          CALL EASKOK(' ','Preview suggestions?',preview,nbhelp)
           call edisp(iuout,'Using calibration variant of the model')
           write(OLDLCFGF,'(a)') LCFGF(1:lnblnk(LCFGF))
           write(LCFGF,'(a)') NNAME(1:lnblnk(NNAME))
@@ -1840,11 +1842,9 @@ C toggles for tasks.
       call edisp(iuout,'A variant of the model has been created')
   42  call edisp(iuout,
      &  'The next task is to undertake calibration runs...')
-      DOK=.true.
       helptopic='calibration_overview'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('Would you like to proceed with calibration?',
-     &  ' ',OK,DOK,nbhelp)
+      CALL EASKOK(' ','Proceed with calibration?',OK,nbhelp)
       if(.NOT.OK) return
 
 C Check if there are simulation parameter sets, if so user should
@@ -1891,9 +1891,7 @@ C Pass back islocal for use in runlocalorserver.
 
 C Ask if run should be in forground or background.
       if(islocal.eq.1)then
-        CALL ASKOK(
-     &  'Run Calibro in foreground (i.r. Project Manager',
-     &  'pauses until calibrino completes)?',foreground,DOK,nbhelp)
+        CALL EASKOK(' ','Run Calibro in foreground',foreground,nbhelp)
       else
         foreground=.false.
       endif
@@ -1927,11 +1925,7 @@ C of the file calibro_done.
      &  'Once you have json file(s) defining suggested changes to')
   43  call edisp(iuout,
      &  'calibrate the model choose one of the following optionsd...')
-C      CALL EASKABCD(
-C     &  'After sending the csv files to calibro you will be given',
-C     &  'one or more json files:','preview suggestions',
-C     &  'scan & act on suggestions','delay scanning',
-C     &  'cancel & reload original model',isauto,nbhelp)
+
       CALL EASKATOG(
      &  'After sending the csv files to calibro you will be given',
      &  'one or more json files:','preview suggestions',
@@ -2139,6 +2133,8 @@ C Re-establish the base case model and return.
 
 C Clear allocatable arrays
             CALL DeallocateAllArrays
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             CALL EPAGEND
             STOP
           endif
@@ -2171,6 +2167,8 @@ C Re-establish the base case model and return.
 
 C Clear allocatable arrays
             CALL DeallocateAllArrays
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             CALL EPAGEND
             STOP
           endif
@@ -2203,8 +2201,8 @@ C Function definition
 C Passed parameter
       logical anymeasured
       
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
       
       INTEGER :: ncomp,ncon
       common/C1/NCOMP,NCON
@@ -2487,8 +2485,8 @@ C Function definition
       
       common/FILEP/IFIL
       INTEGER :: ifil
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
      
 C TDF related.
       COMMON/TDFFLG0/DBTAG(MIT),DBTASK(MIT),DBZN(MIT),DBSN(MIT)
@@ -2714,8 +2712,8 @@ C FMI.h provides FMU connection flag.
 C Function definition
       INTEGER :: lnblnk
       
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
       
       INTEGER :: ncomp,ncon
       common/C1/NCOMP,NCON
@@ -3020,8 +3018,8 @@ C Function definition
       
       common/FILEP/IFIL
       INTEGER :: ifil
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
       
       INTEGER :: indcfg
       common/C6/INDCFG
@@ -3597,8 +3595,8 @@ C Function definition
       
       common/FILEP/IFIL
       INTEGER :: ifil
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
 
 C      common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
 C      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
@@ -4140,8 +4138,8 @@ C Function definition
 
       integer islocal  ! 1=local 2=server
       
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
 
 C      common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
 C      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
@@ -4387,8 +4385,8 @@ C Function definition
       common/FILEP/IFIL
       INTEGER :: ifil
       
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
       
       logical unixok,LIBXST
       character loutstr*248
@@ -4569,8 +4567,8 @@ C Function definition
       
       common/FILEP/IFIL
       INTEGER :: ifil
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
 
       integer nbcalibrorun
       integer nbofzonetj  ! number of zone-actions
@@ -4834,8 +4832,8 @@ C FMI.h provides FMU connection flag.
 C Function definition
       INTEGER :: lnblnk
       
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
 
       integer nbcalibrorun
       integer nbofzonetj  ! number of zone-actions
@@ -5035,8 +5033,9 @@ C applysuggestion applies the 'estimate' based on the implied topic.
 C Common blocks UA1 UA2 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON      
@@ -5045,6 +5044,10 @@ C Common blocks UA1 UA2 within uncertainty.h
       character MATNAM*32
       integer nbpastmlc,pastmlc,nbpastmat,pastmat
       COMMON/UA33/nbpastmlc,nbpastmat,pastmlc(10),pastmat(10)
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
 
 C Parameters
       logical preview  ! are we looking or doing?
@@ -5055,6 +5058,11 @@ C Parameters
 
       logical QUIET
       character outs*148
+
+C If in script mode, do not ask to overwrite files.
+      if (MMOD.eq.-6) then
+        AUTOVR=.true.
+      endif
 
 C Identify what to do.
       if (IDTYPU(itis).eq.1) then  ! if materials focus
@@ -5154,6 +5162,11 @@ C if user scanniong a single .json file or if using averages.
         endif
       endif
 
+C Reset AUTOVR to ask before overwriting files.
+      if (MMOD.eq.-6) then
+        AUTOVR=.false.
+      endif
+
       return
       end  ! of applysuggestion
       
@@ -5167,7 +5180,7 @@ C no message if ACT='-'. Expects a json line similar to:
 C   "calibration": "cellular",
       SUBROUTINE EGETJSNTAGPHR(STRING,K,JTAG,PHRASE,ACT,MSG,ier)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) JTAG,PHRASE, STRING, MSG
       CHARACTER ACT*1,A*1,loutstr*248,outs*124
@@ -5307,7 +5320,7 @@ C no message if ACT='-'. Expects a json line similar to:
 C   "ESTIMATE": 0.0345,
       SUBROUTINE EGETJSNTAGR(STRING,K,JTAG,RV,RMN,RMX,RACT,MSG,ier)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) JTAG,STRING, MSG
       CHARACTER RACT*1,A*1,loutstr*248,outs*124
@@ -5541,7 +5554,7 @@ C example if char is a dot it splits spandrel_ins_thick.all_insul_fram
 C into spandrel_ins_thick and all_insul_fram
       SUBROUTINE splitstratchar(STRING,CH,FIRST,SECOND,ier)
 C#include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) STRING,FIRST,SECOND
       CHARACTER CH*1
@@ -5637,8 +5650,8 @@ C Parameters
       real DIR
       character ACT*1      
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -5792,11 +5805,8 @@ C Common blocks UA2 UA3 UA4 within uncertainty.h
       include "uncertainty.h"
       common/FILEP/IFIL
       INTEGER :: ifil
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
-      COMMON/Vld20/Vldtng
-      logical Vldtng   ! set false to allow quiet update of zone operation file.
-
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
@@ -5933,15 +5943,12 @@ C Write zone operations file. If older than 21 upgrade.
             else
               call edisp(iuout,'Updating zone operation file...')
               if(ip3ver(IZONE).lt.21) ip3ver(IZONE)=21
-              Vldtng=.false.
               CALL EMKOPER(IUO,LPROJ(IZONE),IZONE,IER)
-              Vldtng=.true.
             endif
           else
 
 C Edit casual gains.
 C Check that we have the right element(period).
-            write (6,*) 'Editing casual gains'
             ICF=IDATR(ICC,3)
             ICD=IDATR(ICC,4)  ! day type
             ICP=IDATR(ICC,5)  ! period in day
@@ -6151,9 +6158,7 @@ C Write zone operations file.
             else
               call edisp(iuout,'Updating zone operation file...')
               if(ip3ver(IZONE).lt.21) ip3ver(IZONE)=21
-              Vldtng=.false.
               CALL EMKOPER(IUO,LPROJ(IZONE),IZONE,IER)
-              Vldtng=.true.
             endif
           endif  ! of editing casual gains
         endif    ! of matching zone
@@ -6231,8 +6236,8 @@ C Parameters
       real DIR
       character ACT*1 
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
       common/FILEP/IFIL
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
@@ -6559,8 +6564,7 @@ C the _cal material. And write out the zone geometry file.
            if(act.eq.'p'.or.act.eq.'P')then
              continue
            else
-             write(SMLCN(IS),'(a)') mlcname(NMLC)
-             write(SSMLCN(ioc),'(a)') mlcname(NMLC)
+             write(SMLCN(IZ,IS),'(a)') mlcname(NMLC)
              call geowrite(IFIL+1,LGEOM(IZ),IZ,iuout,3,IER)
            endif
  20      continue  ! of associated surfaces
@@ -6596,7 +6600,7 @@ C Set number of matching layers to zero.
 C Find correct MLC. Check if the legacy material index matches
 C the passed value. C Find matching MLC.
       ioc=IZSTOCN(izone,isurf)
-      call matchmlcdesc(SSMLCN(ioc),i)
+      call matchmlcdesc(SMLCN(izone,isurf),i)
       IMLC=i
       do 20 J=1,LAYERS(IMLC)
         if (IPR(IMLC,J).eq.IPRIM) then
@@ -6610,8 +6614,8 @@ C the passed value. C Find matching MLC.
 
 C UCTLAT01 Identifies control data should be changed for calibration.
       SUBROUTINE UCTLAT01(IACT,DIR,ACT)
+
 #include "building.h"
-C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
 #include "control.h"
 
@@ -6621,7 +6625,7 @@ C Parameters
       character ACT*1 
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/UATD/UACLIM(6,4),UACTL(7,6),UAMCSA(MNACT)
       COMMON/UA2T/NTLOC(MNIL),NTG(MNIL,4)
@@ -6888,8 +6892,8 @@ C UA1 in uncertainty.h
 C Function definition
       INTEGER :: lnblnk
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
 
       character PHRASE*42
       integer itact,itis,itwhere ! index of action,distribution,location
@@ -6957,8 +6961,8 @@ C      write(6,*) 'splitcalinputhead ',itact,itis,itwhere,nbzone,izlist
 C ************ makescriptexecutable
 C makescriptexecutable is passed a file name and applies a+x to it.
       subroutine makescriptexecutable(filename)
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: iuout,iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: iuout,iuin,ieout
 
       integer lnblnk  ! function definition
 

@@ -35,7 +35,7 @@ C FMI_ED controls the definition and editing of FMI links.
 #include "espriou.h"
 
       common/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION ITEMS(14)
       character ITEMS*56
@@ -428,8 +428,8 @@ C user if it does not.
           if (.not.xst) then
             helptopic='FMU_file_not_found'
             CALL gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB(' Cannot find this file!','Options:',
-     &        'respectify','continue',itmp,nbhelp)
+            CALL EASKAB('Cannot find file!','Options:',
+     &        'respectify','cancel',itmp,nbhelp)
             if (itmp.eq.1) goto 6
           endif
           if (saved) saved=.false.
@@ -500,7 +500,7 @@ C creates directives for data to be passed from ESP-r to the FMU.
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       COMMON/C1/NCOMP,NCON
       INTEGER NCOMP,NCON
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION ITEMS(50)
       CHARACTER ITEMS*56
@@ -940,7 +940,7 @@ C       loops as well as zones.
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       COMMON/C1/NCOMP,NCON
       INTEGER NCOMP,NCON
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION ITEMS(50)
       CHARACTER ITEMS*56

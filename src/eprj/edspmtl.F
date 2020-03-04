@@ -36,7 +36,7 @@ C IER=0 OK, IER=1 problem.
 #include "epara.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/filep/ifil
 
       common/spmfxst/ispmxist,spflnam 
@@ -52,7 +52,7 @@ C IER=0 OK, IER=1 problem.
 
       CHARACTER deflnam*72,lfil*72
       CHARACTER*2 MODE,MOD
-      LOGICAL ISPOPEN, XST,NEW,OK,OKK,DOK
+      LOGICAL ISPOPEN, XST,NEW,OK,OKK
       integer MVERT,IVERT,ID ! max items and current menu item
 
 C For help messages
@@ -76,15 +76,12 @@ C Remind the user what we know prior to asking them to confirm.
       if(.not.ispopen)then
         helptopic='special_file_and_data'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        dok=.false.
-        CALL ASKOK('Does a special components file exist?',' ',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(' ','Does a special components file exist?',
+     &       OK,nbhelp)
         IF(OK)THEN
           CONTINUE
         ELSE
-          dok=.false.
-          CALL ASKOK('Would you like to create a new special',
-     &      'components file?',OKK,dok,nbhelp)
+          CALL EASKOK(' ','Create a new special',OKK,nbhelp)
           IF(OKK)THEN
             CONTINUE
           ELSE
@@ -142,11 +139,9 @@ C Display active material components (ispmtyp above 50).
         DO 10 L=1,ILEN
           IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
             IF(ISPMTYP(L,1).GT.50)THEN
-C              WRITE(*,*) 'type ', ISPMTYP(L,1) 
               M=M+1
               NSPMTYP1=NSPMTYP1+1
               ITKEY(NSPMTYP1)=L
-C              WRITE(*,*) NSPMTYP1,ITKEY(NSPMTYP1)
               CALL EMKEY(L,KEY,IER)
               WRITE(VERT(M),14)KEY,L,spmlabel(L),ispmloc(L,1),
      &        ispmloc(L,2),ispmloc(L,3)
@@ -162,12 +157,10 @@ C Display embedded renewable components (ispmtyp less than 50).
       IF(MODE.EQ.'EG'.OR.MODE.EQ.'LG')THEN
         DO 9 L=1,ILEN
           IF(L.GE.IST.AND.(L.LE.(IST+MIFULL)))THEN
-            IF(ISPMTYP(L,1).LE.50)THEN  
-c              WRITE(*,*) 'type ', ISPMTYP(L,1)         
+            IF(ISPMTYP(L,1).LE.50)THEN           
               M=M+1
               NSPMTYP2=NSPMTYP2+1
               ITKEY(NSPMTYP2)=L
-c              WRITE(*,*) NSPMTYP2,ITKEY(NSPMTYP2)
               CALL EMKEY(L,KEY,IER)
               WRITE(VERT(M),13)KEY,L,spmlabel(L),ispmloc(L,1),
      &          ispmloc(L,2),ispmloc(L,3)
@@ -247,7 +240,6 @@ C Delete the chosen special component.
           CALL EMENU(' Delete which component',VERT,MVERT,ID)
           CALL KEYIND(MVERT,ID,IFOC,IO)
           ISPD=ITKEY(IFOC)
-c          write(*,*) 'selected ',IFOC, 'deleting ',ISPD
           IF(ISPD.LT.NSPMNOD) THEN
             DO 20 ISPDEL=ISPD,NSPMNOD-1
               ISPMTYP(ISPDEL,1)=ISPMTYP(ISPDEL+1,1)
@@ -299,8 +291,7 @@ C If there are enough items allow paging control via EKPAGE.
           IF(MODE.EQ.'EM'.OR.MODE.EQ.'EG')THEN
             MOD=MODE
             NEW=.FALSE.
-            dok=.true.
-            CALL ASKOK('Edit this component?',' ',OK,dok,nbhelp)
+            CALL EASKOK(' ','Edit component?',OK,nbhelp)
             IF(OK)THEN
               CALL KEYIND(MVERT,IVERT,IFOC,IO)
               ISPE=ITKEY(IFOC)
@@ -347,7 +338,7 @@ C Data items.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
 
       common/spmatl/nspmnod,ispmloc(mspmnod,3),ispmtyp(mspmnod,2),
@@ -369,7 +360,6 @@ C Special materials file flag
 
 C << rewrite logic to use G7 commons instead of these local variables. >>
 
-      DIMENSION SNA(MS),PAZI(MS),PELV(MS)
       DIMENSION PNAM(ME),item(ME+10),spitem(40),spitem2(40),
      &dadesc(40), SPMISC(MPWDAT),SPVAR(MPWDAT),SPSTR(90),SSTR(90)
 C Note: spdesc is passed to subroutine MCDBSCAN in leu of sstr;
@@ -377,7 +367,7 @@ C therefore spdesc must have the same dimensions as dummy arguement
 C sstr in spdesc.
       dimension spdesc(90)
 
-      logical ok,dok, SPREPT
+      logical ok,SPREPT
       LOGICAL CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       integer header,footer
       character outs*124,spmlabel*16,item*32,spitem*32
@@ -627,7 +617,7 @@ c      ISO=ispmloc(IVAL,2)
 
 C << rewrite logic to use G7 common rather than call zinfo >>
 
-      CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+      CALL ZINFO(IZ,ZOA,ZVOL,'q')
 
 C General image option flags.
       ITDSP=1; ITBND=1; ITEPT=0; ITZNM=0
@@ -656,8 +646,8 @@ C General image option flags.
      &    'component. ',IER)
       ENDIF
       CALL EPMENRC
-      if(SOTF(ISO)(1:4).eq.'OPAQ'.or.SOTF(ISO)(1:4).eq.'CFC '.or.
-     &   SOTF(ISO)(1:4).eq.'CFC2')then
+      if(SOTF(IZ,ISO)(1:4).eq.'OPAQ'.or.SOTF(IZ,ISO)(1:4).eq.'CFC '.or.
+     &   SOTF(IZ,ISO)(1:4).eq.'CFC2')then
         ISPMF=1
       else
         ISPMF=0
@@ -681,9 +671,9 @@ c      IVAL=IFOC
       CALL redraw(IER)
       MODIFYVIEW=.TRUE.
       MODBND=.TRUE.
-C      if(SOTF(ISO)(1:4).eq.'OPAQ'.or.SOTF(ISO)(1:4).eq.'CFC '.or.
-C     &   SOTF(ISO)(1:4).eq.'CFC2')then
-      if(SOTF(ISO)(1:4).eq.'OPAQ')then
+C      if(SOTF(IZ,ISO)(1:4).eq.'OPAQ'.or.SOTF(IZ,ISO)(1:4).eq.'CFC '.or.
+C     &   SOTF(IZ,ISO)(1:4).eq.'CFC2')then
+      if(SOTF(IZ,ISO)(1:4).eq.'OPAQ')then
         ISPMF=1
       else
         ISPMF=0
@@ -786,11 +776,10 @@ C            SUPNOD(IFNOD,1)=IFOC
           GOTO 71
         ENDIF
 
-C Ask whether choice is OK.
-        dok=.true.
-        write(t72,'(a,a)')'Use ',DEPRE(IFOC)
-        CALL ASKOK(t72,'as the pressure coefficient set?',
-     &    OK,dok,nbhelp)
+C Is choice OK.
+        write(t72,'(a,a,a)')
+     &    'Use ',DEPRE(IFOC),' as the pressure coefficient set?'
+        CALL EASKOK(' ',t72,OK,nbhelp)
         IF(.NOT.OK)GOTO 71
 
 C Input angle external node.
@@ -800,7 +789,7 @@ C and extract the azimuth info.
         IF(IZ.EQ.0) THEN
           VAL=SPMDAT(ISPMN,4)
         ELSE
-          VAL=PAZI(ISO)
+          VAL=SPAZI(IZ,ISO)
         ENDIF
         CALL EASKR(VAL,' ',
      &     'Surface azimuth angle (degrees clockwise from north): ',
@@ -816,7 +805,7 @@ C For ducted wind turbine - select the position of the DWT outlet
         call usrmsg(' ',' ','-')
         if(IZ.eq.0) return
         call georead(IFIL+1,LGEOM(IZ),IZ,1,iuout,IER)
-        CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+        CALL ZINFO(IZ,ZOA,ZVOL,'q')
 
 C General image option flags.
         ITDSP=1; ITBND=1; ITEPT=0; ITZNM=0; ITSNM=0
@@ -947,10 +936,9 @@ C            SUPNOD(IFNOD,1)=IFOC
         ENDIF
 
 C Ask whether choice is OK.
-        dok=.true.
-        write(t72,'(a,a)')'Use ',DEPRE(IFOC)
-        CALL ASKOK(t72,'as the pressure coefficient set?',
-     &    OK,dok,nbhelp)
+        write(t72,'(a,a)')
+     &    'Use ',DEPRE(IFOC),' as the pressure coefficient set?'
+        CALL EASKOK(' ',t72,OK,nbhelp)
         IF(.NOT.OK)GOTO 70   
 
 C Ask the user to select the external surface associated with the node.
@@ -958,7 +946,7 @@ C and extract the azimuth info.
         IF(IZ.EQ.0)THEN
           VAL=SPMDAT(ISPMN,4)
         ELSE
-          VAL=PAZI(ISO)
+          VAL=SPAZI(IZ,ISO)
         ENDIF
         CALL EASKR(VAL,' ',
      &    'Surface azimuth angle (degrees clockwise from north): ',
@@ -977,8 +965,8 @@ C Free standing turbine does not need this information.
 C Check composite name of surface with composite name in MLC common.
         imatch=0
         do 5 i=1,nmlc
-          lnssmlc=lnblnk(SMLCN(iso))
-          if(SMLCN(iso)(1:lnssmlc).eq.
+          lnssmlc=lnblnk(SMLCN(IZ,iso))
+          if(SMLCN(IZ,iso)(1:lnssmlc).eq.
      &       mlcname(i)(1:lnmlcname(i))) then
             imatch=i          
           endif
@@ -1056,9 +1044,9 @@ C Check if the node has an existing special component.
             do 20  k=1,nspmnod
               if(iso.eq.ispmloc(k,2).and.iz.eq.ispmloc(k,1).and.nodloc
      &              .eq.ispmloc(k,3).and.k.ne.ispmn) then
-                dok=.false.
-                call askok(' An existing special component exists at',
-     &            ' this node. Do you want add another?',OK,dok,nbhelp)
+                call easkok(
+     &            'A special component is associated with this node!',
+     &            'Add another?',OK,nbhelp)
                 if(.not.ok) then
                   ino=-4
                   goto 7

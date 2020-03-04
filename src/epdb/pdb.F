@@ -49,19 +49,27 @@ C Path to problem and command line file (if any).
       common/rcmd/LCMDFL
       common/appw/iappw,iappx,iappy
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      common/warncounter/iecount
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       common/FILEP/IFIL
       COMMON/ERRS/ISTAT,IREC
       EQUIVALENCE (ERRFLG, ISTAT)
 
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
 C Name of current application
       common/APPNAME/cAppName
-      
       character cAppName*12
 
-      logical     unixok,OK,DOK,XST
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
+
+      logical     unixok,OK,XST
       CHARACTER ZITEM(10)*30 
       CHARACTER PZDESC*25,LTMP*72,cdesc*80
       character inf*144,L144*144,paction*16,pact*16
@@ -69,9 +77,10 @@ C Name of current application
       character outs*124,outs248*248
       character path*72,fs*1
       character tab*1
-      character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*68 ! for banner title via epages call
-      character buffer*124    ! for listing summary of components
+      character cVnum*38       ! returned from ESPrVersionNum
+      character pagestitle*112 ! for banner title via epages call
+      character buffer*124     ! for listing summary of components
+      character dstmp*24,uname*24,tfile*72
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ier
@@ -108,6 +117,7 @@ C If left & top offsets are 0 then use defaults.
       imod=0
       ltmp=' '
       ITFS=1
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Parse the command line which might include instructions to carry
 C out an ascii->bin or bin->ascii conversion.
@@ -169,16 +179,24 @@ C and dialog.
         IMFS=5
         IFS=4
         ITFS=4
+#ifdef OSX
+        IMFS=4
+        IFS=4  ! use a smaller fonts
+        ITFS=4
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=16
-        LIMIT =16
+        IMFS=5
+        IFS=4
+        ITFS=4
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Plant component manager ',
+      write(pagestitle,'(2a)') 'Plant component manager of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -218,6 +236,24 @@ C Find the user's home folder then get users custom settings.
       endif
       call scesprc(esprc,IFIL+1,0,IIER)
 
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+931          ! set to unused index 942
+      iecount=0               ! clear count of errors
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for pdb'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
+
 C Scan the defaults file for default configuration.
 C Make temporary use of file unit IFIL+1.  Note: escdef must come
 C after scan of .esprc file.
@@ -254,9 +290,16 @@ C Convert ascii file to binary (LCMDFL) and exit.
           IUFIL = IFIL+1
           CALL FPOPEN (IUFIL,ISTAT,1,1,pascif)
           IF (ISTAT .EQ. -3)then
+
+C Unable to open so advise, add to error log and stop.
             call usrmsg(
      &        'Plant component import file could not be opend',
      &        'so exiting without doing anything.','W')
+            call edisp(ieout,
+     &        'Plant component import file could not be opend.')
+            iecount=iecount+1  ! retain the log file
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             CALL EPAGEND
             STOP
           endif
@@ -268,13 +311,19 @@ C Create empty binary file. Use fdroot to set LTMP.
           CALL PCUPDT (0)
           imod=1
 
-C Read components data from file
+C Read components data from file. If unable to open advise user,
+C add to error log and stop.
           READ (IUFIL,2) PZDESC
     2     FORMAT (A25,/)
           IF(PZDESC(1:25).NE.' PLANT COMPONENT DATABASE') THEN
             call usrmsg(
      &        'Import file does not appear to be a plant templates',
      &        'ascii file so exiting without doing anything.','W')
+            call edisp(ieout,
+     &        'Import file does not appear to be a plant template.')
+            iecount=iecount+1  ! retain the log file
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             CALL EPAGEND
             STOP
           endif
@@ -297,6 +346,11 @@ C Read components data from file
      &      pascif(1:lnblnk(pascif)),tab,LCMDFL(1:lnblnk(LCMDFL))
           call edisp248(iuout,outs248,90)
           call pausems(1000)  ! so users can see completion message
+          close(ieout)
+          if(iecount.eq.0)then     ! if there were no warnings delete
+            open(ieout,file=iefile,status='UNKNOWN')
+            call efdelet(ieout,istat)
+          endif
           CALL EPAGEND
           STOP
         elseif(paction(1:8).eq.'bin2asci')then
@@ -316,6 +370,11 @@ C Existing file, so check header. IRECLN is from plantdb.h file.
               call usrmsg(
      &          'Plant component templates file could not be opend',
      &          'so exiting without doing anything.','W')
+              call edisp(ieout,
+     &          'Plant component templates file could not be opend.')
+              iecount=iecount+1  ! retain the log file
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
               STOP
             endif
@@ -326,6 +385,11 @@ C Existing file, so check header. IRECLN is from plantdb.h file.
               call usrmsg(
      &          'File is not a plant component templates file,',
      &          'so exiting without doing anything.','W')
+              call edisp(ieout,
+     &          'File is not a plant component templates file.')
+              iecount=iecount+1  ! retain the log file
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
               STOP
             endif
@@ -336,6 +400,11 @@ C Check library is not empty.
             IF (NPC .EQ. 0) THEN
               call usrmsg('No components in file so ascii file cannot',
      &                    'be created. Exiting with no action.','W')
+              call edisp(ieout,
+     &          'No components so ascii file cannot be created.')
+              iecount=iecount+1  ! retain the log file
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
               STOP
             ENDIF
@@ -357,6 +426,11 @@ C Set file unit for export and open it for writing.
               call usrmsg(
      &          'Unable to open ASCII export file so exiting without',
      &          'doing anything.','W')
+              call edisp(ieout,
+     &          'Unable to open ASCII export file so exiting.')
+              iecount=iecount+1  ! retain the log file
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
               STOP
             endif
@@ -380,6 +454,14 @@ C Output unordered.
             call usrmsg(
      &        'Unable to find plant file so exiting without',
      &        'doing any conversion.','W')
+              call edisp(ieout,
+     &          'Unable to find plant file so exiting')
+              iecount=iecount+1  ! retain the log file
+          endif
+          close(ieout)
+          if(iecount.eq.0)then     ! if there were no warnings delete
+            open(ieout,file=iefile,status='UNKNOWN')
+            call efdelet(ieout,istat)
           endif
           CALL EPAGEND
           STOP
@@ -522,8 +604,7 @@ C Use askabout to instanciate the initial help messages (2nd parameter is one).
 C Display warning message.
         helptopic='pdb_modification_warning'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        dok=.true.
-        CALL ASKOK(' ',' Continue ?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Continue?',OK,nbhelp)
         IF(.NOT.OK) then
           goto 210
         else
@@ -533,8 +614,12 @@ C Display warning message.
       if(INO.EQ.10)then
 
 C Exit from program.
-        call usrmsg(' Closing plant component management...',' ','P')
         call erpfree(ifil,istat)
+        close(ieout)
+        if(iecount.eq.0)then     ! if there were no warnings delete
+          open(ieout,file=iefile,status='UNKNOWN')
+          call efdelet(ieout,istat)
+        endif
         CALL EPAGEND
         STOP
       elseif(INO .EQ. 9)then
@@ -572,12 +657,14 @@ C and it the identity index of the component.
       GOTO 210
 
 C Error handling.
-  1   dok=.true.
-      helptopic='pdb_confusion_warning'
+  1   helptopic='pdb_confusion_warning'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      write(outs,'(a)') 'Error in pdb main component scan. '
-      CALL ASKOK(outs,' Exit from ESRUpdb ?',OK,dok,2)
+      write(outs,'(a)') 'Components database scan error!'
+      iecount=iecount+1  ! retain the log file
+      CALL EASKOK(outs,'Exit application?',OK,2)
       if(ok)then
+        close(ieout)   ! retain the error log file.
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         stop
       endif
@@ -604,15 +691,15 @@ C 'ix'          : returns number of selections made.
 
       DIMENSION comp(MAXPC), ival(inpc)
       CHARACTER comp*80,cdesc*80,outs*124
-      logical ok,dok
+      logical ok
 
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found (will be non-zero
-                         ! because default message will be created
+      integer nbhelp         ! number of help lines found (will be non-zero
+                             ! because default message will be created
 
-      helpinsub='list'  ! set for MAIN
+      helpinsub='list'       ! set for MAIN
 
 C Write description of each component in string array.
       DO 10 L=1,inpc
@@ -635,12 +722,13 @@ C Now display the menu.
 
       return
 
-  1   dok=.true.
-      helptopic='pdb_could_not_scan'
+  1   helptopic='pdb_could_not_scan'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      write(outs,'(a)') 'Error in pdb list component scan. '
-      CALL ASKOK(outs,' Exit from ESRUpdb ?',OK,dok,2)
+      write(outs,'(a)') 'Components database scan error!'
+      CALL EASKOK(outs,'Exit application?',OK,2)
       if(OK)then
+        close(ieout)    ! retain the error log file
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         stop
       else
@@ -672,6 +760,18 @@ C Dummy routines from common3dv.F
       end
 
       subroutine chgelev(icelev,ifrlk)
+      return
+      end
+
+      subroutine chgpan(ix,iy)
+      return
+      end
+
+      subroutine chgzoom(imode)
+      return
+      end
+
+      subroutine optview
       return
       end
 

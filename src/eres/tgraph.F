@@ -39,8 +39,10 @@ C user's manual.
 #include "model.h"
 #include "geometry.h"
 #include "prj3dv.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -221,7 +223,11 @@ C Read 3D flow network, report contents and draw the network.
           CALL EMF3DREAD(IUM,'S',IER)
           call edisp(iuout,' ')
           CALL MFLIST(iuout)
-          call MFWFDRAW('r')  ! Draw flow network.
+          if(NNOD.gt.50.or.NCMP.gt.50)then
+            call MFWFDRAW('r',0,0)  ! Draw flow network without names if complex
+          else
+            call MFWFDRAW('r',1,1)  ! Draw flow network with names
+          endif 
           CALL ERPFREE(IUM,ISTAT)
           call pauses(1)
         endif
@@ -265,6 +271,7 @@ C act='p' iget parameters already set.
 
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
+      COMMON/ZONPIK/NZ,NZNO(MCOM)
 
       character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
@@ -277,15 +284,18 @@ C act='p' iget parameters already set.
       common/grextras/graftitle,grlbl(10),ngrlbl,lblpx(10),lblpy(10)
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
-      logical HAVEIT   ! to signal data access via GETSTATS
+      logical HAVEIT            ! to signal data access via GETSTATS
 
-      integer ireportunit ! zero is default one is W two is kW three Joules
+      integer ireportunit       ! zero is default one is W two is kW three Joules
       common/repunit/ireportunit
-
+      real Yold,TIMEold         ! type for passing to C
       dimension Yold(MZS), TIMEold(MZS)
       dimension YSC(5), Yadd(5), igx(5), ilr(5)
+      integer lbthusfar,lbdelta ! how many labels have been drawn
+      integer lbypos(MS)        ! position of y of labels
+      logical lbclose           ! are we going to obscure a label
       character prompt*124
-      character ALABEL(6)*12,t20*24,act*1
+      character ALABEL(6)*12,t20*24,t36*36,act*1
       character graftitle*64,grlbl*24,t24*24
 
       integer YAXSET,ADDLIN,horaxisdiv
@@ -347,6 +357,12 @@ C First clear current selections.
         itru = icout
       endif
       if (MENUTYPE.eq.-1) return
+
+      lbthusfar=0   ! reset drawn labels
+      lbdelta=0
+      do loop=1,MS
+        lbypos(loop)=0
+      enddo
 
 C TSTART and TFINISH - start and finish times in hours from 0000 on the 
 C first day of output.
@@ -446,14 +462,17 @@ C  igx(3) is the `Int W/m^2' vertical axis
 C  igx(4) is the `Miscel vertical axis if placed in the centre.
 C  igx(5) does not have a label and is not part of the do 100 loop.
 C Set local values of vertical axis offset (in pixels) from right
-C end of horiz (in pixels) axis.
-      oneonright=115   ! was 110
-      twoonrighta=115   ! was 85 & 110
-      twoonrightb=175  ! was 135
-      threerighta=115   ! was 80 & 110
-      threerightb=175  ! was 135
+C end of horiz (in pixels) axis to make up for the fact that glr
+C is being shifted to the left as more axis are added. If iiw2 values
+C near line ~960 change then the values below might need tweaking.
+      oneonright=165   ! was 115  but with longer labels need more space
+      twoonrighta=165   ! was 115
+      twoonrightb=220  ! was 175
+      threerighta=165   ! was 115
+      threerightb=220  ! was 175
 
 C moghed uses similar YAXSET logic to know how many right axis to draw.
+C It works with current YASSET values.
       call MOGHED
       igx(1)=igl
       igx(2)=igr+threerightb
@@ -740,8 +759,13 @@ C If plotting colours for different zones then recall which
 C zone we are dealing with.  If zone not set then use black.
             if(colok)then
               if(IGETNO(IX,2).gt.0)then
-                iicol=IGETNO(IX,2)
-                call winscl('z',iicol)
+                if(NZ.eq.1)then   ! only 1 zone so colour by surface
+                  iicol=IGETNO(IX,3)
+                  call winscl('z',iicol)
+                else              ! multiple zones so colour by zone
+                  iicol=IGETNO(IX,2)
+                  call winscl('z',iicol)
+                endif
               else
                 iicol=0
                 call winscl('-',iicol)
@@ -770,15 +794,120 @@ C Finally label lines, matching zone line colour if used.
         Iax=IGETNO(I,8)
         call linescale(iigl,Xadd,TSC,iigb,Yadd(Iax),YSC(Iax))
         t20=GLABEL(I)
+        t36=TABLABEL(I)
         if(colok)then
           if(IGETNO(I,2).gt.0)then
-            iicol=IGETNO(I,2)
-            call winscl('z',iicol)
+            if(NZ.eq.1)then   ! only 1 zone so colour by surface
+              iicol=IGETNO(I,3)
+              call winscl('z',iicol)
+            else              ! multiple zones so colour by zone
+              iicol=IGETNO(I,2)
+              call winscl('z',iicol)
+            endif
           endif
         endif
         call u2pixel(TIMEold(I),Yold(I),iid1,iid2)
+
+C Is this close to a previous label position? Try up to six
+C variant positions to see if an un-obstructed Y can be found.
+        if(lbthusfar.eq.0)then
+          lbthusfar=1
+          lbypos(lbthusfar)=iid2
+        else
+          lbclose=.false.
+          do loop=1,lbthusfar
+            lbdelta=abs(lbypos(loop)-iid2)
+            if(lbdelta.lt.6) lbclose=.true.
+          enddo
+          if(lbclose)then        ! will obstruct try 7 pixels higher
+            lbclose=.false.
+            do loop=1,lbthusfar
+              lbdelta=abs(lbypos(loop)-(iid2-7))
+              if(lbdelta.lt.6) lbclose=.true.
+            enddo
+            if(.NOT.lbclose)then ! that will work so reset iid2
+              iid2=iid2-6
+              lbthusfar=lbthusfar+1
+              lbypos(lbthusfar)=iid2
+            else                 ! will obstruct try 14 pixels higher
+              lbclose=.false.
+              do loop=1,lbthusfar
+                lbdelta=abs(lbypos(loop)-(iid2-14))
+                if(lbdelta.lt.6) lbclose=.true.
+              enddo
+              if(.NOT.lbclose)then ! that will work so reset iid2
+                iid2=iid2-14
+                lbthusfar=lbthusfar+1
+                lbypos(lbthusfar)=iid2
+              else                 ! will obstruct try 21 pixels higher
+                lbclose=.false.
+                do loop=1,lbthusfar
+                  lbdelta=abs(lbypos(loop)-(iid2-21))
+                  if(lbdelta.lt.6) lbclose=.true.
+                enddo
+                if(.NOT.lbclose)then ! that will work so reset iid2
+                  iid2=iid2-21
+                  lbthusfar=lbthusfar+1
+                  lbypos(lbthusfar)=iid2
+                else                 ! will obstruct try 28 pixels higher
+                  lbclose=.false.
+                  do loop=1,lbthusfar
+                    lbdelta=abs(lbypos(loop)-(iid2-28))
+                    if(lbdelta.lt.6) lbclose=.true.
+                  enddo
+                  if(.NOT.lbclose)then ! that will work so reset iid2
+                    iid2=iid2-28
+                    lbthusfar=lbthusfar+1
+                    lbypos(lbthusfar)=iid2
+                  else               ! will obstruct try 7 pixels lower
+                    lbclose=.false.
+                    do loop=1,lbthusfar
+                      lbdelta=abs(lbypos(loop)-(iid2+7))
+                      if(lbdelta.lt.6) lbclose=.true.
+                    enddo
+                    if(.NOT.lbclose)then ! that will work so reset iid2
+                      iid2=iid2+6
+                      lbthusfar=lbthusfar+1
+                      lbypos(lbthusfar)=iid2
+                    else                 ! will obstruct try 14 pixels lower
+                      lbclose=.false.
+                      do loop=1,lbthusfar
+                        lbdelta=abs(lbypos(loop)-(iid2+14))
+                        if(lbdelta.lt.6) lbclose=.true.
+                      enddo
+                      if(.NOT.lbclose)then ! that will work so reset iid2
+                        iid2=iid2+14
+                        lbthusfar=lbthusfar+1
+                        lbypos(lbthusfar)=iid2
+                      else                 ! will obstruct try 21 pixels lower 
+                        lbclose=.false.
+                        do loop=1,lbthusfar
+                          lbdelta=abs(lbypos(loop)-(iid2+21))
+                          if(lbdelta.lt.6) lbclose=.true.
+                        enddo
+                        if(.NOT.lbclose)then ! that will work so reset iid2
+                          iid2=iid2+21
+                          lbthusfar=lbthusfar+1
+                          lbypos(lbthusfar)=iid2
+                        else                 ! give up
+                          lbthusfar=lbthusfar+1
+                          lbypos(lbthusfar)=iid2
+                          continue  ! give up shifting
+                        endif
+                      endif
+                    endif
+                  endif
+                endif
+              endif
+            endif
+          else                   ! no obstruction remember and proceed
+            lbthusfar=lbthusfar+1
+            lbypos(lbthusfar)=iid2
+          endif
+        endif
         ibsize=0
-        call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
+C        call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
+        call textsizeatxy(iid1,iid2,t36,ibsize,'z',iicol)
         if(colok)then
           iicol=0
           call winscl('-',iicol)
@@ -810,7 +939,7 @@ C to graphical result display.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -835,7 +964,7 @@ C To extend logic to maximize plotting area.
 
       CHARACTER ETEXT*124, RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
-      CHARACTER PDESCR*60,SDESCR*44,outsd*96,outsd1*124
+      CHARACTER PDESCR*60,SDESCR*44,outsd*124,outsd1*126
       character graftitle*64,grlbl*24,t64*64
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
@@ -914,24 +1043,28 @@ C Set button font width so that space around graph is correct.
           if(onleft.eq.0)then
 
 C Setup and pass in parameters to win3d.
-            iiw1=3; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=3; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=34; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=9; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=9; iiw2=34; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           endif
         elseif(onright.eq.1)then
           if(onleft.eq.0)then
-            iiw1=3; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=3; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=42; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=9; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=9; iiw2=42; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -941,12 +1074,14 @@ C Setup and pass in parameters to win3d.
 C Set the right termination of the horizontal axis to 43 char in so that
 C there is room for two axis on the right.
           if(onleft.eq.0)then
-            iiw1=3; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=3; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=53; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=9; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=9; iiw2=53; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -969,12 +1104,20 @@ C Cast values back depending on machine type.
      &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       endif
       iside=1; isize=0; ifont=1
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       WRITE(ETEXT,'(3A)')PDESCR(1:lnblnk(PDESCR)),' ',
      &  SDESCR(11:lnblnk(SDESCR))
       iside=2
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       if(nzonec.ge.NZ)then
         call colznlist(3,1,ierr)
@@ -983,7 +1126,11 @@ C Cast values back depending on machine type.
         if(ierr.ne.1)then
           write(outsd1,'(1x,a)')outsd
           iside=3
-          call viewtext(outsd1,iside,isize,ifont)
+          if(mmod.eq.8)then
+            call viewtext(outsd1,iside,isize,ifont)
+          else
+            call viewtextwwc(outsd1,iside,isize,ifont)
+          endif
         endif
       endif
 
@@ -1027,10 +1174,10 @@ C ****************************************************
 
               SUBROUTINE MOCOPT
               
-      COMMON/OUTIN/IUOUT,IUIN              
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT              
       COMMON/CGHOPT/ERPLOT,TRPLOT,SPPLOT,NCTLGH,ICTLGH,ISP,ITHR
       COMMON/CTLDAT/SPH,SPC,TRH,TRC,ICF,IDTYP,IPER,IBLW,PLTCTL,ILOOP
-      LOGICAL ERPLOT,TRPLOT,SPPLOT,ITHR,ISP,PLTCTL,OK,dok
+      LOGICAL ERPLOT,TRPLOT,SPPLOT,ITHR,ISP,PLTCTL,OK
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -1045,19 +1192,15 @@ C      write(6,*) ' Entering MOCOPT'
       CALL EDISP(IUOUT,' ') 
       helptopic='res_control_point_t'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      dok=.false.
-      CALL ASKOK(' ','Plot control error?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Plot control error?',OK,nbhelp)
       IF(OK)ERPLOT=.TRUE.
-      dok=.false.
-      CALL ASKOK(' ','Plot control set-point?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Plot control set-point?',OK,nbhelp)
       IF(OK)SPPLOT=.TRUE. 
-      dok=.false.
-      CALL ASKOK(' ','Plot throttling range?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Plot throttling range?',OK,nbhelp)
       IF(OK)TRPLOT=.TRUE.
-      dok=.true.
-      CALL ASKOK(' ','Plot plant loop(s)? ',OK,dok,nbhelp)
+      CALL EASKOK(' ','Plot plant loop(s)?',OK,nbhelp)
       IF(OK)THEN
-10      CALL EASKI(iloop,' ','Which plant control loop? ',
+10      CALL EASKI(iloop,' ','Which plant control loop?',
      &    1,'F',20,'F',1,'plant loop',IER,nbhelp)
         IF(IER.NE.0)goto 10
       ENDIF
@@ -1102,9 +1245,6 @@ C ****************************************************
 
       LOGICAL ERPLOT,TRPLOT,SPPLOT,ITHR,ISP,PLTCTL
       
-C Debug.
-C      write(6,*) ' Entering MOCDAT'
-
 C If routine called by mogdrw, time may be greater than 24.0;
       TIME=TME
       IF(TIME.GT.24.0)TIME=(TIME-(IDAY-IODS)*24.0)      

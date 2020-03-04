@@ -38,7 +38,7 @@ C izgfoc greater than zero represents the zone which is currently being edited.
 C Passed parameter.
       integer ier
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
@@ -67,7 +67,6 @@ C If altered then do a bound check on the current zone and update display.
 
 C If viewpoint or bounds different then initialise viewing paramters.
         IF(MODLEN)THEN
-          HANG=ANG/2.0
           DIS = (VIEWM(1)-EYEM(1))**2 + (VIEWM(2)-EYEM(2))**2 +
      &          (VIEWM(3)-EYEM(3))**2
           IF(DIS.GE.SMALL)THEN
@@ -111,7 +110,7 @@ C Passed parameter.
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -121,9 +120,8 @@ C      COMMON/OUTIN/IUOUT,IUIN
       COMMON/C24/IZSTOCN(MCOM,MS)
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
 
-C VCOORD : X,Y & Z coordinates in model (via geometry.h).
-C NZNVER : number of vertices associated with each connection (via geometry.h).
-C NZJVN : topology of vertices associated with each connection (via geometry.h).
+C szcoords : X,Y & Z coordinates in model (via geometry.h).
+C iszjvn : topology of vertices (via geometry.h).
 
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL  ISTOK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -174,7 +172,7 @@ C Clear current viewing box and re-establish image bounds.
       CALL startbuffer()
 
 C Setup and pass in parameters to win3d.
-      iiw1=4; iiw2=1; iiw3=1; iiw4=3; iimenu=menuchw
+      iiw1=4; iiw2=1; iiw3=0; iiw4=1; iimenu=menuchw
       iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
       CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &  iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -184,7 +182,7 @@ C Setup and pass in parameters to win3d.
       igheight=igwh
 
 C Determine scaling ratios for the drawing and axis.  If static
-C assume 1000 -1000 etc, if optimum then use SXMX,SYMX + 10% etc.
+C assume 1000 -1000 etc, if optimum then use SXMX,SYMX + 2% etc.
 
 C << why different assumption for static?? >>
 
@@ -269,9 +267,9 @@ C If there are no surfaces yet defined then draw the vertices with
 C label and loop back to the next body.
       IF(NZSUR(nznog(IZ)).EQ.0.AND.NZTV(nznog(IZ)).GT.1)THEN
         DO 202 IV=1,NZTV(nznog(IZ))
-          COG1(1)=VCOORD(nznog(IZ),IV,1)
-          COG1(2)=VCOORD(nznog(IZ),IV,2)
-          COG1(3)=VCOORD(nznog(IZ),IV,3)
+          COG1(1)=szcoords(nznog(IZ),IV,1)
+          COG1(2)=szcoords(nznog(IZ),IV,2)
+          COG1(3)=szcoords(nznog(IZ),IV,3)
           CALL VECTRN(COG1,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iix,iiy)
@@ -289,17 +287,18 @@ C each surface and its vertex list and see how many hits.
           IHIT=0
           DO 8792 IS=1,NZSUR(nznog(IZ))
             icc=IZSTOCN(nznog(IZ),IS)
-            DO 8794 IV=1,NZNVER(icc)
-              IF(IZV.EQ.NZJVN(icc,IV))IHIT=IHIT+1
+            DO 8794 IV=1,isznver(nznog(IZ),IS)
+C              IF(IZV.EQ.(icc,IV))IHIT=IHIT+1
+              IF(IZV.EQ.iszjvn(nznog(IZ),IS,IV))IHIT=IHIT+1
  8794       CONTINUE
  8792     CONTINUE
 
 C If less than 2 hits draw the vertex as an open circle, if no hits
 C draw it as a solid circle.
           IF(IHIT.LT.2)THEN
-            COG1(1)=VCOORD(nznog(IZ),IZV,1)
-            COG1(2)=VCOORD(nznog(IZ),IZV,2)
-            COG1(3)=VCOORD(nznog(IZ),IZV,3)
+            COG1(1)=szcoords(nznog(IZ),IZV,1)
+            COG1(2)=szcoords(nznog(IZ),IZV,2)
+            COG1(3)=szcoords(nznog(IZ),IZV,3)
             CALL VECTRN(COG1,TEMAT,COG2,IER)
             CALL VECTRN(COG2,ETSMAT,COG3,IER)
             call u2pixel(COG3(1),COG3(2),iix,iiy)
@@ -313,15 +312,15 @@ C draw it as a solid circle.
 C If less than 2 hits then draw a legend for the meaning
 C of the vertex symbols.
             CALL winfnt(issize)
-            iid1=igl+20; iid2=igb+25;
+            iid1=igl+10; iid2=igb+5;
             CALL ecirc(iid1,iid2,3,1)
             write(temp,'(A)')'Unlinked vertex'
-            iid1=igl+30; iid2=igb+30;
+            iid1=igl+20; iid2=igb+10;
             call textatxy(iid1,iid2,temp,'-',iicol)
-            iid1=igl+140; iid2=igb+25;
+            iid1=igl+130; iid2=igb+5;
             CALL ecirc(iid1,iid2,3,0)
             write(temp20,'(A)')'Single-linked vertex'
-            iid1=igl+150; iid2=igb+30;
+            iid1=igl+140; iid2=igb+10;
             call textatxy(iid1,iid2,temp20,'-',iicol)
             CALL winfnt(IMFS)
           ENDIF
@@ -351,16 +350,17 @@ C NAP   = Number of vertex points on surface
 C IANXT = Index of 'next' point
 C IAPNT = Pointer to first vertex of polygon
         IAPNT = 1
-        NAP = NZNVER(icc)
-        DO 1100 J = 1,NZNVER(icc)
-          K = NZJVN(icc,J)
-          AX(J) = VCOORD(nznog(IZ),K,1)
-          AY(J) = VCOORD(nznog(IZ),K,2)
-          AZ(J) = VCOORD(nznog(IZ),K,3)
+        NAP = isznver(nznog(IZ),I)
+        DO 1100 J = 1,isznver(nznog(IZ),I)
+C          K = (icc,J)
+          K = iszjvn(nznog(IZ),I,J)
+          AX(J) = szcoords(nznog(IZ),K,1)
+          AY(J) = szcoords(nznog(IZ),K,2)
+          AZ(J) = szcoords(nznog(IZ),K,3)
           IANXT(J) = J + 1
  1100   CONTINUE
 
-        IANXT(NZNVER(icc)) = IAPNT
+        IANXT(isznver(nznog(IZ),I)) = IAPNT
 
 C-----------------------------------------------------------------------
 C Transform surface polygon to EYE co-ordinates
@@ -400,25 +400,25 @@ C << Note: later change MLCN to 32 char >>
         if(ITHLS.eq.1.and.ITHLZ.gt.0)then
           WRITE(MLCN,'(A)') mlcname(ITHLZ)
           lnssmlc=lnblnk(MLCN)
-          if(MLCN(1:lnssmlc).eq.SSMLCN(ICC)(1:lnssmlc))then
+          if(MLCN(1:lnssmlc).eq.SMLCN(nznog(IZ),I)(1:lnssmlc))then
             IPEN= -305
           else
             IPEN= 1
           endif
         elseif(ITHLS.eq.2)then
-          if(ITHLZ.eq.1.and.SSOTF(ICC)(1:4).eq.'OPAQ')then
+          if(ITHLZ.eq.1.and.SOTF(nznog(IZ),I)(1:4).eq.'OPAQ')then
             IPEN= -305
           else
             IPEN= 1
           endif
-          if(ITHLZ.eq.2.and.SSOTF(ICC)(1:4).ne.'OPAQ')then
+          if(ITHLZ.eq.2.and.SOTF(nznog(IZ),I)(1:4).ne.'OPAQ')then
             IPEN= -305
           else
             IPEN= 1
           endif
         elseif(ITHLS.eq.3)then
-          if(SSMLCN(ICC)(1:4).eq.'UNKN'.or.
-     &       SSOTHER(ICC,1)(1:4).eq.'UNKN')then
+          if(SMLCN(nznog(IZ),I)(1:4).eq.'UNKN'.or.
+     &       SOTHER(nznog(IZ),I,1)(1:4).eq.'UNKN')then
             IPEN= -305
           else
             IPEN= 1
@@ -443,8 +443,12 @@ C If vertex are to be labeled do it in the smallest font, also place
 C a 2pixel square dot at the vertex so if it is embedded in a line
 C it can be seen. Then move cursor to vertex and remember position.
           IF(ITVNO.EQ.0.AND.NAP.EQ.NBP)THEN
-            IV=NZJVN(icc,IP)
-            call esymbol(iix,iiy,8,1)
+            IV=iszjvn(nznog(IZ),I,IP)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiy,8,1)
+            else
+              call esymbolwwc(iix,iiy,8,1)
+            endif
             CALL VERTLBL(iix,iiy,IV,ier)
           ENDIF
           iixlast=iix   ! cast for edline call
@@ -466,7 +470,11 @@ C            write(6,*) 'nap nbp nbedgdup iedge j',nap,nbp,nbedgdup(icc),
 C     &        iedge,j
 
             if(NAP.ne.NBP)then
-              call eswline(iixlast,iiylast,iix,iiy)
+              if(mmod.eq.8)then
+                call eswline(iixlast,iiylast,iix,iiy)
+              else
+                call eswlinewwc(iixlast,iiylast,iix,iiy)
+              endif
             else
 
 C If there will be diagonal lines drawn (duplicate edges) check if the
@@ -478,7 +486,11 @@ C with the co-planer.
                   found=.false.
                 else
                   LD=4
-                  call edline(iixlast,iiylast,iix,iiy,LD)
+                  if(mmod.eq.8)then
+                    call edline(iixlast,iiylast,iix,iiy,LD)
+                  else
+                    call edlinewwc(iixlast,iiylast,iix,iiy,LD)
+                  endif
                   found=.true.
                 endif
               endif
@@ -487,23 +499,41 @@ C If this edge is shared with a co-planer surface with the same construction
 C and greys can be done reset forground to 50% grey otherwise draw black,
 C unless duplicate line has already been drawn.
               if(imatshr(icc,iedge).eq.0)then
-                if(.NOT.found)call eswline(iixlast,iiylast,iix,iiy)
+                if(.NOT.found)then
+                  if(mmod.eq.8)then
+                    call eswline(iixlast,iiylast,iix,iiy)
+                  else
+                    call eswlinewwc(iixlast,iiylast,iix,iiy)
+                  endif
+                endif
               else
                 if(greyok)then
                   iicol=nifgrey-3
-                  call winscl('i',iicol)
+                  if(mmod.eq.8) call winscl('i',iicol)
                 endif
-                call eswline(iixlast,iiylast,iix,iiy)
+                if(mmod.eq.8)then
+                  call eswline(iixlast,iiylast,iix,iiy)
+                else
+                  call eswlinewwc(iixlast,iiylast,iix,iiy)
+                endif
                 if(greyok)then
                   iicol=0
-                  call winscl('-',iicol)
+                  if(mmod.eq.8) call winscl('-',iicol)
                 endif
               endif
             endif
           elseif(IPEN.eq.-305)then
-            call edwline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           endif
           iixc=iixc+iix
           iiyc=iiyc+iiy
@@ -512,8 +542,12 @@ C unless duplicate line has already been drawn.
 C If vertex are to be labeled do it in the smallest font and
 C move cursor back to vertex and remember position.
           IF(ITVNO.EQ.0.AND.NAP.EQ.NBP)THEN
-            IV=NZJVN(icc,IP1)
-            call esymbol(iix,iiy,8,1)
+            IV=iszjvn(nznog(IZ),I,IP1)
+            if(mmod.eq.8)then
+              call esymbol(iix,iiy,8,1)
+            else
+              call esymbolwwc(iix,iiy,8,1)
+            endif
             CALL VERTLBL(iix,iiy,IV,ier)
             iixlast=iix   ! cast for edline call
             iiylast=iiy
@@ -534,7 +568,11 @@ C Complete the polygon.
 C Normal (not highlighted) edge being drawn, if NAP = NBP then check
 C common/G8 for hints as to alternate greys or dots.
             if(NAP.ne.NBP)then
-              call eswline(iixlast,iiylast,iix,iiy)
+              if(mmod.eq.8)then
+                call eswline(iixlast,iiylast,iix,iiy)
+              else
+                call eswlinewwc(iixlast,iiylast,iix,iiy)
+              endif
             else
 
 C If there will be diagonal lines drawn (duplicate edges) check if the
@@ -546,7 +584,11 @@ C with the co-planer.
                   found=.false.
                 else
                   LD=4
-                  call edline(iixlast,iiylast,iix,iiy,LD)
+                  if(mmod.eq.8)then
+                    call edline(iixlast,iiylast,iix,iiy,LD)
+                  else
+                    call edlinewwc(iixlast,iiylast,iix,iiy,LD)
+                  endif
                   found=.true.
                 endif
               endif
@@ -555,23 +597,41 @@ C If this edge is shared with a co-planer surface with the same construction
 C and greys can be done reset forground to 50% grey otherwise draw black,
 C unless duplicate line has already been drawn.
               if(imatshr(icc,iedge).eq.0)then
-                if(.NOT.found)call eswline(iixlast,iiylast,iix,iiy)
+                if(.NOT.found)then
+                  if(mmod.eq.8)then
+                    call eswline(iixlast,iiylast,iix,iiy)
+                  else
+                    call eswlinewwc(iixlast,iiylast,iix,iiy)
+                  endif
+                endif
               else
                 if(greyok)then
                   iicol=nifgrey-3
-                  call winscl('i',iicol)
+                  if(mmod.eq.8) call winscl('i',iicol)
                 endif
-                call eswline(iixlast,iiylast,iix,iiy)
+                if(mmod.eq.8)then
+                  call eswline(iixlast,iiylast,iix,iiy)
+                else
+                  call eswlinewwc(iixlast,iiylast,iix,iiy)
+                endif
                 if(greyok)then
                   iicol=0
-                  call winscl('-',iicol)
+                  if(mmod.eq.8) call winscl('-',iicol)
                 endif
               endif
             endif
           elseif(IPEN.eq.-305)then
-            call edwline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           endif
           iixc=iixc+iix
           iiyc=iiyc+iiy
@@ -588,26 +648,26 @@ C Patch for cfg is to only label highlighted surfaces.
           IF(iixc.GT.0.AND.iiyc.GT.0.AND.(NAP.EQ.NBP))THEN
             if(icc.ne.0)then
               if(LINSTY(icc).eq.2)then
-                CG(1)=SSURCOG(icc,1)
-                CG(2)=SSURCOG(icc,2)
-                CG(3)=SSURCOG(icc,3)
-                VN(1)=SSURVN(icc,1)
-                VN(2)=SSURVN(icc,2)
-                VN(3)=SSURVN(icc,3)
+                CG(1)=SURCOG(nznog(IZ),I,1)
+                CG(2)=SURCOG(nznog(IZ),I,2)
+                CG(3)=SURCOG(nznog(IZ),I,3)
+                VN(1)=SURVN(nznog(IZ),I,1)
+                VN(2)=SURVN(nznog(IZ),I,2)
+                VN(3)=SURVN(nznog(IZ),I,3)
                 CALL VECTRN(VN,TEMAT,COG2,IER)
                 CALL VECTRN(COG2,ETSMAT,COG3,IER)
                 call u2pixel(COG3(1),COG3(2),iixc,iiyc)
-                write(stemp,'(A)')SSNAME(IC)
+                write(stemp,'(A)')SNAME(nznog(IZ),I)
                 call arrow(CG,VN,0.3,0.1,ipoints,'a',2)
 
                 CALL winfnt(issize)
 
 C Offset the surface name depending on orientation.
-                IF(SSVFC(icc).EQ.'VERT')THEN
+                IF(SVFC(nznog(IZ),I).EQ.'VERT')THEN
                   iixc=iixc+5
-                ELSEIF(SSVFC(icc).EQ.'CEIL')THEN
+                ELSEIF(SVFC(nznog(IZ),I).EQ.'CEIL')THEN
                   iixc=iixc+5
-                ELSEIF(SSVFC(icc).EQ.'FLOR')THEN
+                ELSEIF(SVFC(nznog(IZ),I).EQ.'FLOR')THEN
                   iixc=iixc+5
                 ELSE
                   iixc=iixc+5

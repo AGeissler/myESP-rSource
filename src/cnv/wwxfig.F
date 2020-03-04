@@ -25,7 +25,7 @@ C**** convert from ww commands to xfig description.
 
       integer ioin,ioout,ioblk
       common/io/ioin,ioout,ioblk
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       common/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       character filname1*72,OUTSTR*124,slash*1
@@ -159,7 +159,7 @@ C a current sequence. Write out existing arrays and begin a new one.
           ietsym(iet)=isym
         endif
         goto 43
-      elseif(outstr(1:7).eq.'*edline')then
+      elseif(outstr(1:7).eq.'*edline')then  ! dotted line
         if(iet.gt.1)then
           call outet(iet,ietx,iety,ietud,ietsym)
           iet=0
@@ -173,7 +173,7 @@ C a current sequence. Write out existing arrays and begin a new one.
         CALL EGETWI(outstr,K,iy2,0,1000,'-','edline iy2',IER)
         CALL EGETWI(outstr,K,ipd,0,1000,'-','edline ipd',IER)
         dl=float(ipd)
-        write(ioout,'(a,f6.3,a)')'2 1 1 1 -1 7 0 0 -1',dl,
+        write(ioout,'(a,f6.3,a)')'2 1 2 1 -1 7 0 0 -1',dl,
      &        ' 0 0 -1 0 0 2'
         write(ioout,'(4i6)')ix1*16,iy1*16,ix2*16,iy2*16
         goto 43
@@ -296,7 +296,7 @@ C if -301 > iud > -400 then thick.
 
       integer ioin,ioout,ioblk
       common/io/ioin,ioout,ioblk
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       common/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       dimension  ietx(1440),iety(1440),ietud(1440),ietsym(1440)

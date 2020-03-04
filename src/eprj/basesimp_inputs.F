@@ -37,7 +37,8 @@ C Declare calling parameters
       INTEGER LNBLNK   ! function definition
       
       COMMON/bsmtdef/iBSIMP(MCOM),LBSIMP(MCOM)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER iuout,iuin,ieout
 
 C COMMONS FOR BASEREAD
       COMMON/BSdata/bsHEIG(MCOM),bsDEPT(MCOM),bsLENG(MCOM),bsWIDT(MCOM),
@@ -52,7 +53,7 @@ C      CHARACTER :: delimiter
       CHARACTER*72 sfile,snpfile,LBSIMP
 
       INTEGER iBSIMP ! iBSIMP flag to talk to cfg
-      INTEGER x,iier,iuout,iuin,iwhich,nfile
+      INTEGER x,iier,iwhich,nfile
       integer iln  ! length of file
       integer iuo  ! file unit for writing bsm file
       integer ios  ! file write status

@@ -127,7 +127,7 @@ C Variable from H2 storage model
 
 
 C for debugging
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER IHRP            !-hour of present time-step
       INTEGER IHRF            !-hour of future time-step
       INTEGER IDYP            !-year day number of present day
@@ -136,12 +136,13 @@ C for debugging
       INTEGER IDWF            !-day of the week of future day
       INTEGER NSINC           !-number of building-side time increments
                               !-since start of simulation
-      INTEGER ITS             !-current building time-step within
+      INTEGER ITS,idynow      !-current building time-step within
                               !-current hour
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER IUOUT           !-write unit number
       INTEGER IUIN            !-read unit number
+      INTEGER IEOUT           !-error unit number
 
       real  check
 C end debugging
@@ -725,9 +726,10 @@ C-------------------------------------------------------------------------------
 C-----------------------------------------------------------------------------------------
 C COMMON declarations
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       integer   iuout           !- write unit number
       integer   iuin            !- read unit number
+      integer   ieout           !- error unit number
 
       common/filep/ifil
       integer   ifil            !- basic file unit number

@@ -30,11 +30,11 @@ C is read from the system control strategy file.
 
       subroutine mzcstr(ier)
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       common/cctlnm/ctldoc,lctlf
 
-      LOGICAL OK,dok
+      LOGICAL OK
 
       character LCTLF*72,DFILE*72,LTMP*72,ctldoc*248
 
@@ -45,11 +45,9 @@ C For help messages
                          ! because default message will be created
       helpinsub='mzcstr' ! set for subroutine
 
-      dok=.false.
       helptopic='confirm_flow_control'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' Does a mass flow control strategy exist for',
-     &  ' the current problem? ',OK,dok,nbhelp)
+      CALL EASKOK(' ','Mass flow control?',OK,nbhelp)
 
       IF(.NOT.OK)THEN
         CALL EZCTLI
@@ -78,11 +76,10 @@ C Read in the control file (close before returning from EZCTLR).
       ITRC=1
       CALL EZCTLR(IUNIT,ITRC,IUOUT,IER)
       IF(IER.NE.0)THEN
-        dok=.false.
         helptopic='error_in_flow_control'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' ','Problem detected in control file...try again?',
-     &    OK,dok,nbhelp)
+        CALL EASKOK('Problem in control file!','Retry?',
+     &       OK,nbhelp)
         IF(OK)THEN
           GOTO 47
         ELSE

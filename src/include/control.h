@@ -1,15 +1,16 @@
 C control.h
 
-C Include file which defines/describes control specific PARAMETERs and COMMONs.
-C Re-compile all control-related modules if this file is altered. If MDTY or
-C MCOM are changed in building.h then MCDT and MCF should be updated.
+C Defines/describes control specific PARAMETERs and COMMONs.
+C Re-compile all control-related modules if this file is altered. If MDTY
+C is changed in building.h then MCDT should be updated.
+C Inclusion of this file must follow building.h in the source.
 
       INTEGER MNONID !Maximum number of non-ideal sensor/actuator loops
       PARAMETER (MNONID=2)
       INTEGER MCDT ! Max. day types (should match MDTY in building.h)
       PARAMETER (MCDT=15)
-      INTEGER MCF ! Max. control loops (allow one per zone MCOM in building.h)
-      PARAMETER (MCF=82)
+      INTEGER MCF  ! Max. control loops (based on MCOM in building.h)
+      PARAMETER (MCF=MCOM)
       INTEGER MCDP ! Max. periods per day
       PARAMETER (MCDP=24)
       INTEGER MISCC ! Max. miscellaneous data items

@@ -45,7 +45,7 @@ C on internal and external surfaces.
       include "building.h"
       include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
@@ -122,6 +122,8 @@ C any flux  absorptions within the contiguous TMC.
             call edisp(iuout,outs)
             call edisp(iuout,
      &         ' but is not! The simulation will be stopped.')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP
@@ -184,29 +186,25 @@ C and future time rows. Units: W/m^2
       include "CFC_common.h"
       include "net_flow.h"
       include "tdf2.h"
-C <FMI>
       include "FMI.h"
-C </FMI>
 
-C ADD NEW PARAMETER STATEMENT
-C MSTMC is number of different bidirectional datasets, limited
-C to 20 for the present.
-C MSGAL is number of optical sets per optics db item. At present
-C set to 1: later increase to 2 for an alternative set that can be switched.
-C MANH and MANV are the number of angles at which optical data is
-C held for horizontal/vertical grid data.
-C At present this assumes 5deg bi-directional data from -90 to +90
-C in elevation and azimuth.
+C MSTMC: number of bidirectional datasets, limited to 20.
+C MSGAL: number of optical sets per optics db item. Set to 1 (later
+C        to be increased to 2 to allow for an alternative set that
+C        can be switched.
+C MANH and MANV: number of angles at which optical data is held for 
+C                horizontal and vertical grid data respectively.
+C                This assumes 5 degree bi-directional data from -90 to +90
+C                in elevation and azimuth.
       PARAMETER (MSTMC=20,MSGAL=40,MANH=37,MANV=37)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/BTIME/BTIMEP,BTIMEF
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),AE(MCOM,MS)
@@ -221,7 +219,7 @@ C in elevation and azimuth.
       COMMON/TMCB3/NBCTT(MCOM,MBP,MTMC),BACTPT(MCOM,MBP,MTMC)
       COMMON/TMCB4/IBOFOT(MCOM,MS),NBPONT(MCOM,MS),ECRAT(MCOM,MS)
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
 
@@ -253,7 +251,7 @@ C at the next time-step.
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
       COMMON/VERSOL/ipkzon(mzs),ipksf(mzs),ivsolfil,vsol,VTSOL,vsnam
 
-C Daylight coeff specific common block data definition:
+C Daylight coefficient data.
       COMMON/DCOEF/NDCFP,NDCFS(MDCFP),DCOEF(MDCFP,MDCFS,MDCFV),
      & IDCFID(MCOM,MLCOM,MDF)
 
@@ -269,17 +267,14 @@ C future for next timestep.
      &  q2cfcp(MCOM)
       common/ts4/itsitr(msch),itrpas
 
-
-C SHOCC: new common ...
-C iblnd - SHOCC blinds corresponding to ESP-r TMCs:
-C      0, no; else, a f77 index [1,~] to access
-C      SHOCC zone blind data structure
+C iblnd: SHOCC blinds corresponding to ESP-r TMCs:
+C        0, no; else, a f77 index [1,~] to access
+C        SHOCC zone blind data structure
       common/shocc/iblnd(mcom,ms)
 
-C Common for thermophysical property substitution.
+C Thermophysical property substitution.
       common/BSCTL/ITPREP(MCOM,MTMC),ICZN,IMDB(3),IGLZ(3)
 
-C ADD IN NEW COMMON BLOCKS *****************************
 C NSTMCFL flag for each model surface (connection). A non-zero
 C   number indicates bi-directional information is available.
 C   Limited to 0 or 1 at present.
@@ -312,7 +307,6 @@ C data is available. Check on this flag***********
 C IFLAGBI is set to 1 if the model contains bidirectional component; otherwise 0.
 C Change IFLAGBI to be an array of ITMC - probably don't need IFLAGBI
 C INTVALBI is the interval for the bidirectional data - 5deg at present.
-C
       COMMON/BIDIR/IFLAGBI,INTVALBI,NSTMCFL(MCON)
 
       COMMON/OPTDAT/NSGALFL(MSTMC),NGNTL(MSTMC),
@@ -366,7 +360,7 @@ C COMMONS FOR CFC type CONSTRUCTIONS
       DIMENSION PSAZI2(MS),PSELV2(MS),IANGBI1(MS),IANGBI2(MS)
       dimension inssur(misur),pinsur(misur)
 
-C Daylight coeff specific
+C Daylight coefficient specific.
       dimension alt(8)
 
 C tdtrace is the direct transmission at the current timestep for each surface.
@@ -377,10 +371,10 @@ C tfftrace is the diffuse transmission at the current timestep for each surface.
       dimension AbsSolDir(me),AbsSolDifSky(me),AbsSolDifGrd(me)
       dimension EXDIFSKY(ms),EXDIFGRD(ms)
 
-C Definitions for daylight coefficient patch altitude:
+C Definitions for daylight coefficient patch altitudes.
       data alt/6.,18.,30.,42.,54.,66.,78.,90./
 
-C Bidirectional data - explicit definitions:
+C Bidirectional data - explicit definitions.
       COMMON/BITYPE/IBIDATATYPE
       integer IBIDATATYPE !this will probably have to be kept in a common block
                           !It will specify what type of data to read
@@ -411,19 +405,14 @@ C rows respectively.
       real zfldK,zfldD,zfldC,zfldA,zSWAp,zSWAf
       logical znotair
 
-C.....DECLARATIONS for H3Kreporting object
+C Declarations for H3Kreporting object
       CHARACTER*12   cZone_Chars, cSurf_Chars
 
       ZAREA=zonetotsurfacearea(ICOMP)
 
-C Debug.
-C      write(6,*) 'solar ',btimef
-
-C ---------------- INITIALIZE ----------------
-C                  ----------
-C Now zero working variables and set present time-row
+C Zeroise working variables and set present time-row
 C results variables to previous time-step future time-row
-C values, skip if iterating (and past first iteration).
+C values; skip if iterating (and past first iteration).
       if (ITRPAS.eq.0) then
         q1adjz(1)=q1adjf(icomp)
         q1outs(1)=q1outf(icomp)
@@ -498,7 +487,7 @@ C time-row.
 C Initialise zone fluid absorption to zero if not air.
       zSWAf(icomp)=0.0
 
-C Initialise internal surface reflection, QIREF to zero.
+C Initialise internal surface reflection to zero.
       QIREF=0.0
 
 C Initialise QD and QF.
@@ -528,15 +517,12 @@ C Read in vertical solar from external file if set
 C in simulation toggles. Only read for first zone.
       if(VTSOL.and.icomp.eq.1) read(ivsolfil,*) vsol
 
-C ----------------- CALCULATE EXTERNAL INCIDENT SOLAR
-C                   ---------------------------------
-C Commence computation of the future time-row values:
+C EXTERNAL INCIDENT SOLAR
+C Commence computation of the future time-row values.
 C first determine the solar angles at this time.
       IF(ICOMP.EQ.1)CALL MZSANG
 
-C---------------IF SUN NOT UP
-C               -------------
-C Set solar gain to zero for all nodes and jump to end of routine.
+C If Sun not up, set solar gain to zero for all nodes and jump to end of routine.
       if (ISUNUP.EQ.0) then
         DO 120 I=1,NC
           QSOLI(I,2)=0.
@@ -569,7 +555,7 @@ C surface radiation value held in variable ARF.
         ELSE
 
 C Is surface facing away from the sun so that it can only
-C receive diffuse component. IANS=1; yes, self-shaded.
+C receive diffuse component. IANS=1: yes, self-shaded.
           IANS(ISRF)=0
           CALL MZSFSH(ICOMP,ISRF,IANS(ISRF))
 
@@ -606,6 +592,7 @@ C and diffuse (SRADF) on surface ISRF.
 
 C Surface is self-shaded; no direct radiation.
           IF(IANS(ISRF).EQ.1)SRADDO(ISRF)=0.
+
 C Replace calculated values by measured values from file for selected
 C surfaces. Use the ratio of direct/diffuse as calculated to divide
 C the measured values into direct and diffuse components.
@@ -651,7 +638,7 @@ C Temporal (TDF) vertical solar radiation data.
             CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
             if(val(isd).gt.sradf(ISRF))then
 
-C Sum direct and diffuse components
+C Sum direct and diffuse components.
               sumDirDiff=sradf(ISRF)+sraddo(ISRF)
               call eclose(sumDirDiff,0.00,0.00001,closea)
               if (closea) then
@@ -668,8 +655,7 @@ C Sum direct and diffuse components
         ENDIF
    3  CONTINUE
 
-C----------------TMC & WINDOW BLIND/SHUTTERS-------------------------
-C                ---------------------------
+C TMC & WINDOW BLIND/SHUTTERS
 C Now we have the external radiation on each surface.
       DO 4 I=1,NC
         IF(ISHD(ICOMP).EQ.0.OR.ISHD(ICOMP).EQ.2)THEN
@@ -680,9 +666,8 @@ C Now we have the external radiation on each surface.
           POFF=POF(ICOMP,I,IHRF)
         ENDIF
 
-C----------------------BLIND CONTROL - EXTERNAL SURFACES
-C                      ---------------------------------
-C If external TMC, determine whether blind/shutter active.
+C BLIND CONTROL - EXTERNAL SURFACES
+C If external TMC, determine whether blind/shutter is active.
         ITMC=ITMCFL(ICOMP,I)
         IBOFOT(ICOMP,I)=0
         ECRAT(ICOMP,I)=1.0
@@ -692,7 +677,7 @@ C****************************************************
 C If bidirectional, no control possible for the moment.
 C****************************************************
 
-C Test here if blind/shutter control is on for this TMC.
+C Test here if blind/shutter control is activated for this TMC.
         IF(ITMC.GT.0)then
           if(IBCMT(ICOMP,ITMC).EQ.1)THEN
 
@@ -715,9 +700,6 @@ C Sensing time to swtich to alternative properties.
                   IBOFOT(ICOMP,I)=1
                   ECRAT(ICOMP,I)=0.0
                   NBPONT(ICOMP,I)=K
-C Debug.
-C                  write(6,*) 'blind control ',icomp,i,IBOFOT(ICOMP,I),
-C     &               ECRAT(ICOMP,I),NBPONT(ICOMP,I)
                 ELSEIF(NBCTT(ICOMP,K,ITMC).EQ.1) THEN
 
 C External air temperature activation.
@@ -762,38 +744,38 @@ C calculate and set to zero:
                     ELLUM = 0.
                   else
 
-C Direct normal and diffuse horizontal illuminance:
+C Direct normal and diffuse horizontal illuminance.
                     call LUMEFF(QDIF,QDIR,SALT,IDYP,skyeff,suneff)
                     esky=QDIF*skyeff
                     esun=QDIR*suneff
 
-C Calculate reference horizontal illuminance:
+C Calculate reference horizontal illuminance.
                     call REFILL(QDIF,QDIR,SALT,SAZI,IDYP,refell)
 
 C Define starting angle for test of sky element comprising sun:
                     ang0=4.0*PI
 
-C Loop through all 145 sky patchs and calculate delta illuminance:
+C Loop through all 145 sky patchs and calculate delta illuminance.
                     sill = 0.0
                     do 333 npatch = 1, 145
                       dill=0.0
 
-C Calculate sky patch reference luminance:
+C Calculate sky patch reference luminance.
                       call PATLUM(QDIF,QDIR,SALT,SAZI,IDYP,npatch,plv,
      &                  ang)
 
 C Find sky element with minimum angle between sun position and element.
 C This identifies number of sky element for calculation of direct
-C illuminance contribution:
+C illuminance contribution.
                       if(ang.lt.ang0)then
                         nelem = npatch
                         ang0 = ang
                       endif
 
-C Calculate luminance (cd/m^2) for given sky patch:
+C Calculate luminance (cd/m^2) for given sky patch.
                       plum=plv*esky/refell
 
-C If inconsistency (i.e. error) in irradiance data - plum < 0 set it to 0:
+C If inconsistency (i.e. error) in irradiance data - plum < 0 set it to 0.
                       if(plum.le.0.0)then
                         if((npatch.ge.1).and.(npatch.le.30))then
                           nzone = 1
@@ -814,19 +796,19 @@ C If inconsistency (i.e. error) in irradiance data - plum < 0 set it to 0:
                         endif
 
 C Use aproximate solution assuming uniform sky luminance distribution
-C to estimate sky patch luminance:
+C to estimate sky patch luminance.
                         plum = esky/(2.0*PI*sin(alt(nzone)*rad))
                         neglum = .true.
                       else
                         neglum = .false.
                       endif
 
-C Calculate delta illuminance at sensor from given sky patch:
+C Calculate delta illuminance at sensor from given sky patch.
                       dill=DCOEF(NDCP,1,npatch)*plum*(2.0*PI/145.0)
                       sill = sill + dill
 333                 continue
 
-C Give warning about calculated negative luminance:
+C Give warning about calculated negative luminance.
                     if(neglum)then
                       write (outs,'(a)')
      &     ' Sky patch luminance < = 0. Using uniform sky aproximation'
@@ -837,7 +819,7 @@ C Give warning about calculated negative luminance:
                     endif
 
 C Check if any direct sun - if yes then calculate its contribution
-C into sensor illuminance:
+C into sensor illuminance.
                     call eclose(QDIR,0.00,0.01,closea)
                     if(closea)then
                       dircon=0.0
@@ -850,7 +832,7 @@ C into sensor illuminance:
 C Calculate necessary visible transmittance to maintain lux set point.
 C This works only for simple cases i.e. sensor illuminance proportional
 C to the visible transmittance of TMC - case with only one TMC type in
-C thermal zone:
+C thermal zone.
                   CALL eclose(ELLUM,0.00,0.01,closea)
                   IF(closea)then
                     TVT = TVTR(ICOMP,ITMC)
@@ -864,7 +846,7 @@ C thermal zone:
                   ENDIF
 
 C Calculate linear property change ratio for varying other
-C properties i.e. transmittance, absorptance and reflectance:
+C properties i.e. transmittance, absorptance and reflectance.
                   ECRAT(ICOMP,I) = (TVT - TVTR2(ICOMP,ITMC,K))/
      &                      (TVTR(ICOMP,ITMC)-TVTR2(ICOMP,ITMC,K))
                 ELSEIF(NBCTT(ICOMP,K,ITMC).EQ.4
@@ -925,7 +907,6 @@ C If blinds control is active, set IBOFOT to control value from FMU if
 C this is the associated zone. It is assumed that control is set up such
 C that IBOFOT=1 (use alternative properties) corresponds to active
 C blinds, and hence the FMU control value is synonymous with IBOFOT.
-C TODO - maybe try and handle non-binary blind states?
                 if (FMUDOCTL(ICOMP,6)) then
                   call eclose(FMUCTL(ICOMP,6),0.0,0.001,bCloseToZero)
                   if (bCloseToZero) then
@@ -952,13 +933,6 @@ C so call bcl99 to update thermophysical props of controlled windows.
       DO 66 I=1,NC
         ITMC=ITMCFL(ICOMP,I)
         if(ITMC.GT.0)then
-
-C Debug.
-C        write(6,'(a,7i4)') 
-C     &    'Blind state: icomp i ibofot nbpont itmc itprep ibcmt',
-C     &    ICOMP,I,IBOFOT(ICOMP,I),NBPONT(ICOMP,I),ITMC,
-C     &    ITPREP(ICOMP,ITMC),IBCMT(ICOMP,ITMC)
-
           if(ITPREP(ICOMP,ITMC).gt.0)then
             if(IBCMT(ICOMP,ITMC).EQ.1) then
 
@@ -982,8 +956,7 @@ C << use? and what about the case of ITPREP being zero >>
                   write (33,*)
      &               'Too many controlled windows! Ignoring surface ',I
                 endif
-C                write(6,*) 'ask for alt optics',ICALL,IWC,IMDB(IWC),
-C     &            IGLZ(IWC)
+
               endif
             endif
           endif
@@ -991,9 +964,7 @@ C     &            IGLZ(IWC)
  66   continue
       if (ICALL.gt.0) call BCL99(ICALL)
 
-C ---------------CALCULATE QSOLE FOR OPAQUE SURFACES
-C                -----------------------------------
-C QSOLE: external surface solar radiation absorbed by opaque surfaces.
+C Determine QSOLE, the solar radiation absorbed by opaque external surfaces.
       DO 6 I=1,NC
         IF(ITMCFL(ICOMP,I).GE.1) THEN
 
@@ -1015,7 +986,8 @@ C Not external construction.
           EXDIR(I)=SRADDO(I)*(1.-EXSHAD(I))
           EXDIF(I)=SRADF(I)*(1.-EXSHADF(I))
           EXRAD(I)=EXDIR(I)+EXDIF(I)
-C This code ensures that EXDIR and EXDIF are zero if EXRAD is zero.
+
+C Ensure that EXDIR and EXDIF are zero if EXRAD is zero.
           call eclose(EXRAD(I), 0.0,0.001,bCloseToZero)
           if ( bCloseToZero ) then
              EXDIR(I) = 0.
@@ -1028,11 +1000,11 @@ cx ag@20181019 insert h3k output here
 C         Not an external construction, no output, here.
 
         else
-C.........Switch for zone name output here
+C Switch for zone name output here
           if (ReportBoolConfig("use_zonenames")) then
             write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
           else
-C...........Pad zone index to 'XX'
+C Pad zone index to 'XX'
             if ( icomp .gt. 9 ) then
               write (cZone_Chars,'(A,I2)') 'zone_',icomp
             else
@@ -1040,12 +1012,12 @@ C...........Pad zone index to 'XX'
             endif
           endif ! use_zonenames
 
-C.........Switch for surface name output here
+C Switch for surface name output here
           if (ReportBoolConfig ("use_surfacenames")) then
             write (cSurf_Chars,'(A)')
      &         sname(icomp,I)(1:lnsname(icomp,I))
           else
-C...........Pad surface index to 'XX'
+C Pad surface index to 'XX'
             if ( I .gt. 9 ) then
               write (cSurf_Chars,'(A,I2)') 'surface_',I
             else
@@ -1106,9 +1078,7 @@ C...........Pad surface index to 'XX'
 
    6  CONTINUE
 
-C ----------------CALCULATE QTMCA FOR TMC
-C                 -----------------------
-C QTMCA: external surface solar radiation absorbed by TMC's
+C Calculate QTMCA, the external surface solar radiation absorbed by TMC's.
       DO 7 I=1,NC
 
 C Set a local flag if bidirectional data available for this surface.
@@ -1121,10 +1091,10 @@ C Set a local flag if bidirectional data available for this surface.
             KP=NBPONT(ICOMP,I)
             INODE=1
 
-C Bidirectional case
+C Bi-directional case
             if(IBIDIR.NE.0)then
 
-C Call subroutine for controls here
+C Impose control.
               call mzsctl(ICOMP,I,SRADDO(I),SRADF(I),IBISET_timestep)
 
 C Here it checks if during the control a dataset has been specified
@@ -1232,7 +1202,7 @@ C X_tr_interp should be the same as XD that is used in the TMC loop afterwards.
                   CALL MZWINP2(XX1,XX2,XX3,XX4,IANGBI1(I),IANGBI2(I),
      &                    PSAZI2(I),PSELV2(I),XREFLECT_interp)
                 ENDIF
-C End of interpolation for bidirectional data
+C End of interpolation for bi-directional data
 
 C Get effective total absorptance from the interpolation of the solar
 C transmittance according to a method defined by Fraunhofer.
@@ -1293,12 +1263,7 @@ C Trap also the zeros in case of corrupted data
      &            TRINTERNAL(IBIDIR,IBISET_timestep)))/Rs_glazing
                 endif
 
-C Debug.
-C              write(6,*) Rs_glazing,'  ',qi_bidirectional
-C              write(6,*) a_inner_layer,'  ', a_outer_layer
-C End Debug
-
-C End of Bidirectional case
+C End of Bi-directional case
               endif
 
             ENDIF
@@ -1313,7 +1278,7 @@ C If IBOFOT()=1, then blind/shutter is ON - alternative values set.
 C If IBOFOT()=2, then linear interpolation is ON - alternative values set.
 C First, deal with direct radiation.
 C**************************
-C Again, control not dealt with at present for bidirectional case.
+C Control not possible at present for bi-directional case.
 C************************
               IF(IANS(I).EQ.0)THEN
                 IF(IBOFOT(ICOMP,I).EQ.2)THEN
@@ -1327,7 +1292,7 @@ C************************
                    XX1=TMCA(ICOMP,ITMC,J,IND1(I))
                   ELSE
 
-C Bidirectional data available.
+C Bi-directional data available.
                     IF(IBIDATATYPE.EQ.1)THEN
 C XX1 is the absorptance for those available array elements that
 C are less than the actual solar azimuth and elevation angles.
@@ -1350,7 +1315,7 @@ C are less than the actual solar azimuth and elevation angles.
                     XX2=TMCA(ICOMP,ITMC,J,IND2(I))
                   ELSE
 
-C Bidirectional case - TYPE 1 DATA  (absorptances are available)
+C Bi-directional case - TYPE 1 DATA  (absorptances are available)
 C Note: if angle is +90, set XX2=XX1 etc.
                     IF(IBIDATATYPE.EQ.1)THEN
                       IF(IND1(I).eq.MANH)then
@@ -1384,7 +1349,7 @@ C Self-shaded.
                 XX4=0.0
               ENDIF
 
-C Now deal with diffuse absorbed radiation- not required for bidirectional
+C Now deal with diffuse absorbed radiation- not required for bi-directional
 C data as the diffuse transmittance is specified.
               IF(IBIDIR.EQ.0)THEN
                 IF(IBOFOT(ICOMP,I).EQ.2)THEN
@@ -1490,9 +1455,6 @@ C Ensures that EXDIR and EXDIF are zero if EXRAD is zero.
         endif
     7 CONTINUE
 
-
-C -----------------------TMC
-C                        ---
 C Process transmission through transparent multi-layered
 C constructions, but only if surface is of type 0 or 3.
 C NB Actual transmissions need not be computed for a type 3
@@ -1505,10 +1467,10 @@ C Set a local flag if bidirectional data available for this surface.
 
         icfctp=icfcfl(icomp,i)              !CFC type
 
-C Bidirectional case
+C Bi-directional case
         if(IBIDIR.NE.0)then
 
-C Call subroutine for controls here
+C Impose control.
           call mzsctl(ICOMP,I,SRADDO(I),SRADF(I),IBISET_timestep)
 
 C Here it checks if during the control a dataset has been specified
@@ -1535,7 +1497,7 @@ C control.
             endif
           endif
 
-C End of bidirectional case
+C End of bi-directional case
         endif
 
         ITMC=ITMCFL(ICOMP,I)
@@ -1544,9 +1506,6 @@ C End of bidirectional case
 
          if(ITMC.gt.0)then
 
-
-C ---------------PROCESS FOR EXTERNAL TMC
-C                ------------------------
 C Transparent multi-layered construction: only direct transmittance
 C required for direct (XX?) and diffuse (YY?) beams.
 C IANS=0 implies NOT self-shaded, i.e. there is direct radiation.
@@ -1565,7 +1524,7 @@ C If IBOFOT()=2, then linear interpolation is ON - alternative values set.
                  IF(IBIDIR.EQ.0) THEN
                    XX1=TMCT(ICOMP,ITMC,IND1(I))
                  ELSE
-C Bidirectional case for transmission - see similar treatment for absorption above.
+C Bi-directional case for transmission - see similar treatment for absorption above.
 C XX? is the direct-direct component; YY? is the direct-diffuse component
                    XX1=TMTSOD(IBIDIR,IBISET_timestep,IND1(I),IND2(I))
                    YY1=TMTSOB(IBIDIR,IBISET_timestep,IND1(I),IND2(I))
@@ -1584,7 +1543,7 @@ C XX? is the direct-direct component; YY? is the direct-diffuse component
                 ELSEIF(IBIDIR.EQ.0)THEN
                   XX2=TMCT(ICOMP,ITMC,IND2(I))
                 ELSE
-C Bidirectional case.
+C Bi-directional case.
                   IF(IND1(I).eq.MANH)then
                     XX2=XX1
                     YY2=YY1
@@ -1624,7 +1583,7 @@ C Self-shaded.
               YY3=0.0
               YY4=0.0
             ENDIF
-C Now for diffuse transmitted radiation - not required for bidirectional
+C Now for diffuse transmitted radiation - not required for bi-directional
 C data as the diffuse transmittance is specified.
             IF(IBIDIR.EQ.0)THEN
               IF(IBOFOT(ICOMP,I).EQ.2)THEN
@@ -1651,7 +1610,7 @@ C Call MZWINP to interpolate between two values.
               CALL MZWINP(YY1,1.,YY2,ZERO,2,51.0,XF,DUMMY)
             ELSE
 
-C Call MZWINP2 to interpolate in two dimensions for bidirectional data.
+C Call MZWINP2 to interpolate in two dimensions for bi-directional data.
               CALL MZWINP2(XX1,XX2,XX3,XX4,IANGBI1(I),IANGBI2(I),
      &                       PSAZI2(I),PSELV2(I),XD)
               IF(IBIDATATYPE.EQ.1)THEN
@@ -1686,7 +1645,7 @@ C Calculate diffuse transmission.
             ENDIF
             tfftrace(i)=tff
 
-C For bidirectional data, add in the direct-diffuse component to the
+C For bi-directional data, add in the direct-diffuse component to the
 C diffuse transmission.
             if(IBIDIR.NE.0)then
               TFF=TFF+SRADDO(I)*(1.-POO)*SNA(ICOMP,I)*DTOD
@@ -1702,8 +1661,7 @@ C Calculate direct transmission.
 
           ENDIF
 
-C-----------------PROCESS FOR TYPE 3 SURFACE TMC
-C                 ------------------------------
+C TYPE 3 SURFACE TMC
 C Set TD, TFF for a type 3 surface (internal surface with adjacent zone).
           IF(IE(ICOMP,I).GT.0) THEN
             TD=DIRT(ICOMP,I)*SNA(ICOMP,I)
@@ -1719,7 +1677,7 @@ C Set TD, TFF for a type 3 surface (internal surface with adjacent zone).
             AIRT(ICOMP,I)=0.0
           ENDIF
 
-C PROCESS FOR EXTERNAL CFC
+C EXTERNAL CFC.
          elseif(icfctp.gt.0)then
 
           if(IE(icomp,i).eq.0)then  !only external CFCs supported
@@ -1729,7 +1687,7 @@ C PROCESS FOR EXTERNAL CFC
             tmpIDF=0.0  !interior diffuse source
             tmpIBM=0.0  !interior beam source
 
-C Get shading data if it exists
+C Get shading data if it exists.
             IF(ISHD(ICOMP).EQ.0.OR.ISHD(ICOMP).EQ.2)THEN
               POO=0.
               POFF=0.
@@ -1738,17 +1696,17 @@ C Get shading data if it exists
               POFF=POF(ICOMP,I,IHRF)
             ENDIF
 
-C Apply shading factor to external incident radiation
+C Apply shading factor to external incident radiation.
             EXDIR(I)    = SRADDO(I)*(1.-POO)
             EXDIF(I)    = SRADF(I)*(1.-POFF)
             EXDIFSKY(I) = SKYDIF(I)*(1.-POFF)
             EXDIFGRD(I) = GRDDIF(I)*(1.-POFF)
 
-C...........Switch for zone name output here
+C Switch for zone name output here
 c            if (ReportBoolConfig("use_zonenames")) then
 c              write (cZone_Chars,'(A)') zname(icomp)(1:lnzname(icomp))
 c            else
-C.............Pad zone index to 'XX'
+C Pad zone index to 'XX'
 c              if ( icomp .gt. 9 ) then
 c                write (cZone_Chars,'(A,I2)') 'zone_',icomp
 c              else
@@ -1760,12 +1718,12 @@ C << the following would ideally require that surface name lengths
 C    are stored in a common like zone name lengths ... filled in
 C    georead() (egeometry.F line 1750 ff.)/ egomin() (egeometry.F line 594)? >>
 
-C...........Switch for surface name output here
+C Switch for surface name output here.
 c            if (ReportBoolConfig ("use_surfacenames")) then
 c              write (cSurf_Chars,'(A)')
 c      &          sname(iZone,iSurface)(1:lnsname(icomp,isurf))
 c            else
-C.............Pad surface index to 'XX'
+C Pad surface index to 'XX'.
 c              if ( iSurface .gt. 9 ) then
 c                write (cSurf_Chars,'(A,I2)') 'surface_',isurf
 c              else
@@ -1787,41 +1745,41 @@ c     &         cSurf_Chars)
 
             IF(ians(i).eq.0)then  !surface is not self shaded
 
-C............Determine profile angle
+C Determine profile angle.
              call profile_angle(icomp,i,icfctp,omega_v,omega_h)
 
              omega_v_s(icomp,icfctp,i)=omega_v  !save hori and vert profile angles for CFC output
              omega_h_s(icomp,icfctp,i)=omega_h
 
-C............Determine beam-beam, beam-diffuse and diffuse-diffuse solar properties for
-C............each CFC layer. Glazing layers have incidence angle dependence. Slat-blind
-C............layers have profile angle dependency
+C Determine beam-beam, beam-diffuse and diffuse-diffuse solar properties for
+C each CFC layer. Glazing layers have incidence angle dependence. Slat-blind
+C layers have profile angle dependency.
              call cfc_eff_opt_prop(icomp,i,icfctp,angi(i),
      &             omega_v,omega_h)
 
-C............Check whether sky and ground diffuse calc. is requested
+C Check whether sky and ground diffuse calc. is requested.
              if(i_ground_sky_diff_calc.eq.1)then
 
-C..............Calculate CFC system solar BEAM transmitted
+C Calculate CFC system solar BEAM transmitted.
                call solar_multilayer(0,icomp,i,icfctp,
      &                               EXDIR(I),tmpIDF,
      &         tmpIBM,tmpIDF,TRANSBB_SYS,TRANSD_SYS_BD,dummy,AbsSolDir)
 
-C..............Calculate CFC system solar SKY diffuse transmitted
+C Calculate CFC system solar SKY diffuse transmitted.
                call solar_multilayer(i_sky,icomp,i,icfctp,
      &                               tmpIBM,EXDIFSKY(I),
      &          tmpIBM,tmpIDF,dummy,TRANSD_SYS_SKY,dummy,AbsSolDifSky)
 
-C..............Calculate CFC system solar GROUND diffuse transmitted
+C Calculate CFC system solar GROUND diffuse transmitted.
                call solar_multilayer(i_ground,icomp,i,icfctp,
      &                               tmpIBM,EXDIFGRD(I),
      &           tmpIBM,tmpIDF,dummy,TRANSD_SYS_GRD,dummy,AbsSolDifGrd)
 
-C..............Sum up diffuse transmitted contributions (sky + ground)
+C Sum up diffuse transmitted contributions (sky + ground).
                TRANSD_SYS = TRANSD_SYS_BD +
      &                      TRANSD_SYS_SKY + TRANSD_SYS_GRD 
 
-C..............Sum up solar absorbed contributions (direct + sky diff + ground diff)
+C Sum up solar absorbed contributions (direct + sky diff + ground diff).
                do jj=1,ncfc_el(icomp,icfctp)
                     AbsSol(jj)=AbsSolDir(jj) + 
      &                         AbsSolDifSky(jj) +
@@ -1830,8 +1788,8 @@ C..............Sum up solar absorbed contributions (direct + sky diff + ground d
 
              else
 
-C..............Calculate CFC system solar beam transmitted, diffuse transmitted, total reflected
-C..............and absorbed fluxes in each CFC layer.
+C Calculate CFC system solar beam transmitted, diffuse transmitted, total reflected
+C and absorbed fluxes in each CFC layer.
                call solar_multilayer(0,icomp,i,icfctp,EXDIR(I),EXDIF(I),
      &           tmpIBM,tmpIDF,TRANSBB_SYS,TRANSD_SYS,REFL_SYS,AbsSol)
              endif
@@ -1849,29 +1807,29 @@ C each CFC layer. Incidence and profile angles set to 0 since self-shaded.
              call cfc_eff_opt_prop(icomp,i,icfctp,temp1,temp2,
      &         temp3)
 
-C............Check whether sky and ground diffuse calc. is requested
+C Check whether sky and ground diffuse calc. is requested.
              if(i_ground_sky_diff_calc.eq.1)then
 
-C..............Calculate CFC system solar BEAM transmitted
+C Calculate CFC system solar BEAM transmitted.
                call solar_multilayer(0,icomp,i,icfctp,
      &                               EXDIR(I),tmpIDF,
      &         tmpIBM,tmpIDF,TRANSBB_SYS,TRANSD_SYS_BD,dummy,AbsSolDir)
 
-C..............Calculate CFC system solar SKY diffuse transmitted
+C Calculate CFC system solar SKY diffuse transmitted.
                call solar_multilayer(i_sky,icomp,i,icfctp,
      &                               tmpIBM,EXDIFSKY(I),
      &          tmpIBM,tmpIDF,dummy,TRANSD_SYS_SKY,dummy,AbsSolDifSky)
 
-C..............Calculate CFC system solar GROUND diffuse transmitted
+C Calculate CFC system solar GROUND diffuse transmitted.
                call solar_multilayer(i_ground,icomp,i,icfctp,
      &                               tmpIBM,EXDIFGRD(I),
      &           tmpIBM,tmpIDF,dummy,TRANSD_SYS_GRD,dummy,AbsSolDifGrd)
 
-C..............Sum up diffuse transmitted contributions (sky + ground)
+C Sum up diffuse transmitted contributions (sky + ground).
                TRANSD_SYS = TRANSD_SYS_BD +
      &                      TRANSD_SYS_SKY + TRANSD_SYS_GRD 
 
-C..............Sum up solar absorbed contributions (direct + sky diff + ground diff)
+C Sum up solar absorbed contributions (direct + sky diff + ground diff).
                do jjj=1,ncfc_el(icomp,icfctp)
                     AbsSol(jjj)=AbsSolDir(jjj) + 
      &                         AbsSolDifSky(jjj) +
@@ -2525,7 +2483,7 @@ c Britain).
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/PREC8/SLAT,SLON
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
@@ -2712,11 +2670,11 @@ C value and added to the direct normal value.
 
       SUBROUTINE MZSINT(ICOMP,QD,QF)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DNORGH/IRTYPE
       COMMON/BTIME/BTIMEP,BTIMEF
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       character outs*124
@@ -2771,6 +2729,8 @@ C FATAL ERROR: direct normal > solar constant & altitude > 13deg
       write(outs,'(a,F6.1,a,F6.1)')' and global horizontal is ',QDF,
      &  ' and diffuse is ',QFF
       call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -2785,11 +2745,10 @@ C the bidirectional case.
       SUBROUTINE MZSCAI(ICOMP,II,CAI,ANGI,IND1,IND2,PSAZI2,
      &           PSELV2,IANGBI1,IANGBI2)
 #include "building.h"
+#include "geometry.h"
 
 C Next line and the related common block were existing here but not used anywhere
 C      PARAMETER (MSTMC=20,MSGAL=40,MANH=37,MANV=37)
-
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
 
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
 
@@ -2809,7 +2768,7 @@ C     &  TMVISUAL(MSTMC,MSGAL)
       R=PI/180.
 
 C Surface-solar azimuth angle for this external construction.
-      PSAZI=ABS(PAZI(ICOMP,II)-SAZI)
+      PSAZI=ABS(SPAZI(ICOMP,II)-SAZI)
 
 C Calculate angles for bi-directional information
 C PSAZI2 is the solar minus surface normal azimuths.
@@ -2819,16 +2778,16 @@ C PSELV2 is the solar minus surface normal elevations.
 C Example: for a vertical surface, sun vertically above
 C is +90deg, horizontal sun is 0deg, with -ve values
 C for the ground reflections.
-      PSAZI2=SAZI-PAZI(ICOMP,II)
-      PSELV2=SALT-PELV(ICOMP,II)
+      PSAZI2=SAZI-SPAZI(ICOMP,II)
+      PSELV2=SALT-SPELV(ICOMP,II)
 
 C Angle of incidence and its cosine.
-C      CAI=COS(SALT*R)*SIN((90.-PELV(ICOMP,II))*R)*
-C     &COS(PSAZI*R)+SIN(SALT*R)*COS((90.-PELV(ICOMP,II))*R)
+C      CAI=COS(SALT*R)*SIN((90.-SPELV(ICOMP,II))*R)*
+C     &COS(PSAZI*R)+SIN(SALT*R)*COS((90.-SPELV(ICOMP,II))*R)
 
 C Angle of incidence and its cosine (Iain Macdonald Feb 2006).
-      CAI=COS(SALT*R)*SIN((90.-PELV(ICOMP,II))*R)*COS(PSAZI*R)+
-     &    SIN(SALT*R)*COS((90.-PELV(ICOMP,II))*R)
+      CAI=COS(SALT*R)*SIN((90.-SPELV(ICOMP,II))*R)*COS(PSAZI*R)+
+     &    SIN(SALT*R)*COS((90.-SPELV(ICOMP,II))*R)
       IF(CAI.LT.0.)CAI=0.
       ANGI=ACOS(CAI)/R
 C Establish angle of incidence index (IND1) for
@@ -2879,11 +2838,10 @@ C "simple_solar_coll_coeff_gen".
 
       SUBROUTINE MZSRAD(ICOMP,II,QD,QF,CAI,SRADDO,SRADF,SKYDIF,GRDDIF)
 #include "building.h"
-
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
+#include "geometry.h"
 
 C Slope of surface
-      BETA=90.0-PELV(ICOMP,II)
+      BETA=90.0-SPELV(ICOMP,II)
 
 C Call subroutine to determine direct and diffuse solar
 C radiation
@@ -2932,11 +2890,15 @@ C  and ground reflected components.
       SUBROUTINE MZSRAD0(SLOPE,QD,QF,CAI,SRADDO,SRADF,SKYDIF,GRDDIF)
 #include "building.h"
 #include "site.h"
+#include "net_flow.h"
+#include "tdf2.h"
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       COMMON/SKYFLG/ISKYFL
       COMMON/DNORGH/IRTYPE
+      common/btime/btimep,btimef
+      common/trc/itrc
 
 C Start Perez definitions (1990 have suffix 2):
       DIMENSION  EPSINT(8),EPSINT2(8),
@@ -2944,6 +2906,8 @@ C Start Perez definitions (1990 have suffix 2):
      &           F21ACC(8),F22ACC(8),F23ACC(8),
      &           F11ACC2(8),F12ACC2(8),F13ACC2(8),
      &           F21ACC2(8),F22ACC2(8),F23ACC2(8)
+
+      DIMENSION VAL(MBITS+2)
 
 C Coefficients (Perez 1987):
       DATA EPSINT/1.056,1.253,1.586,2.134,3.230,5.980,10.080,999999./
@@ -2972,6 +2936,15 @@ C Useful constants
       PI = 4.0 * ATAN(1.0)
       R = PI / 180.
 
+C If ground reflectance (albedo) is to be read from a temporal file then 
+C set it here.
+      IF(IGRNDRFL.gt.0)THEN
+        itdi=IGRNDRFL
+        IFOC=itdi
+        CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
+        groundrefl=VAL(ISD)
+      ENDIF
+        
 C Sky diffuse radiation is model dependent (Perez 1990 is the default).
       IF(ISKYFL.EQ.-1)THEN
 
@@ -3441,22 +3414,22 @@ C IANS=1 ; self-shading occurs
 
       SUBROUTINE MZSFSH(ICOMP,IS,IANS)
 #include "building.h"
+#include "geometry.h"
 
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
 
       PI = 4.0 * ATAN(1.0)
       R=PI/180.
 
 C Determine the surface-solar azimuth angle.
-      PSAZI=ABS(PAZI(ICOMP,IS)-SAZI)
+      PSAZI=ABS(SPAZI(ICOMP,IS)-SAZI)
 
 C Cosine of angle of incidence.
       X1=COS(SALT*R)
-      X2=SIN((90.-PELV(ICOMP,IS))*R)
+      X2=SIN((90.-SPELV(ICOMP,IS))*R)
       X3=COS(PSAZI*R)
       X4=SIN(SALT*R)
-      X5=COS((90.-PELV(ICOMP,IS))*R)
+      X5=COS((90.-SPELV(ICOMP,IS))*R)
       CAI=X1*X2*X3+X4*X5
 
 C Surface is self-shaded if CAI is less than or
@@ -3545,7 +3518,7 @@ c         receiving internal surfaces.
 #include "CFC_common.h"
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -3570,7 +3543,7 @@ C Shading file record width found in mzshin.
       CHARACTER*72 LS
       DIMENSION ISS(12),ISADD(12)
       character outs*124
-      logical OK,dok
+      logical OK
       integer ier
 
 C For help messages
@@ -3691,14 +3664,15 @@ c applied to zone with which error is associated.
         call edisp(iuout,outs)
 
     3   call edisp(iuout,' ')
-        dok=.true.
         helptopic='ignore_shading_warning'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' Continue the simulation and assume zero ',
-     &    ' shading with default plane insolation?',OK,dok,nbhelp)
+        CALL EASKOK('Continue the simulation and assume zero',
+     &    'shading with default plane insolation?',OK,nbhelp)
         IF(OK)goto  9
 
 c Terminate simulation.
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
 
@@ -3743,11 +3717,13 @@ C site.h has common C5
       COMMON/BTIME/BTIMEP,BTIMEF
 
 C Building side time step parameters
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       INTEGER ITC,ICNT
       COMMON/TC/ITC,ICNT
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
 
       INTEGER ITCF,ITRACE,IZNTRC,ITU
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
@@ -3768,6 +3744,7 @@ C Local variables
                         ! for each hour of the year
       REAL SNDEP        ! snow depth read from binary file
       REAL SREFP        ! updated ground reflectivity for the time step
+      integer istat
 
 C Saved variables for last snow albedo calculation
       INTEGER IDYLS     ! last day for which snow albedo calculated
@@ -3888,6 +3865,8 @@ C-----------------------------------------------------------------------
 
  9000 CONTINUE
       call tstamp('>','SIM: Error reading binary snow depth file')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
 
@@ -3920,12 +3899,14 @@ C ESP-r Commons
 #include "site.h"
 C site.h has common C5
 
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       INTEGER IFIL      ! Unit number used for processing input/output files
       COMMON/FILEP/IFIL
 
 C Local variables
       CHARACTER OUTS*124
-      LOGICAL FOUND,OK,DOK,FEXIST
+      LOGICAL FOUND,OK,FEXIST
       REAL SNDEP        ! snow depth (cm)
       INTEGER ICOUNT    ! number of data items into snow depth file
       INTEGER IER       ! flag indicating if snow depth file was read successfully
@@ -3949,19 +3930,18 @@ C ERROR IF CANNOT BE FOUND
       CALL FINDFIL(SNFNAM,FOUND)
       IF (.NOT.FOUND) THEN
         DO WHILE(.NOT.FOUND)
-          dok=.true.
           WRITE(OUTS,'(A,A)') 'Could not find snow depth file: ',SNFNAM
           helptopic='snow_depth_file'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(OUTS,
-     &      ' Respecify? (simulator will exit if [no]!)',
-     &      OK,DOK,nbhelp)
+          CALL EASKOK(OUTS,'Respecify?',OK,nbhelp)
           IF (OK) THEN
             CALL EASKS(SNFNAM,'Enter name of snow depth file',
      &        ' ',72,' ','Snow depth file',IER,nbhelp)
             CALL FINDFIL(SNFNAM,FOUND)
           ELSEIF(.NOT.OK) THEN
             call tstamp('>','SIM: snow depth file cannot be found')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epagend
             STOP
           ENDIF
@@ -3979,6 +3959,8 @@ C Open snow depth ASCII file.
       CALL EFOPSEQ(IFILSN,SNFNAM,1,IER)
       IF (IER.NE.0) THEN
         call tstamp('>','SIM: snow depth file cannot be found')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epagend
         STOP
       ENDIF
@@ -4002,6 +3984,8 @@ C Loop on data from ascii file and read data and write into binary form.
       IF (ICOUNT<8760) THEN
         call tstamp('>',
      &   'SIM: snow depth file has fewer than 8760 values')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epagend
         STOP
       ENDIF
@@ -4013,6 +3997,8 @@ C Close ASCII file and return.
 C Error processing.
   950 CONTINUE
       call tstamp('>','SIM: Error processing snow depth file')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
 
@@ -4125,6 +4111,7 @@ C only controls related to bidirectional data. In the future, all
 C existing and new controls should be added here.
 
       SUBROUTINE MZSCTL(ICOMP,ISURFNumber,SRADDO,SRADF,ISET)
+
 #include "building.h"
 #include "geometry.h"
 #include "net_flow.h"
@@ -4133,7 +4120,7 @@ C existing and new controls should be added here.
 #include "esprdbfile.h"
 #include "material.h"
       PARAMETER (MSTMC=20,MSGAL=40,MANH=37,MANV=37)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/BTIME/BTIMEP,BTIMEF
@@ -4157,7 +4144,7 @@ C existing and new controls should be added here.
       integer ICF,IDTYP,IPER,IICOMP
       real BB1,BB2,BB3,TNP,QFUT,TFUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
 
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
@@ -4245,6 +4232,8 @@ C If NDAYT=0 set data to all day types.
           call edisp(iuout,outs)
           call edisp(iuout,
      &         ' CONTRL: cannot locate appropriate day type')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP
@@ -4254,6 +4243,8 @@ C Check number of periods in each day and the start and finish times
           NDAYP=NOCDP(IOFP,IDTYP)
           IF(NDAYP.EQ.0)then
             call edisp(iuout,' CONTRL: no day-periods defined')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP
@@ -4275,12 +4266,12 @@ C **** IMPORTANT: TAKE ONLY THE 1ST 12 CHARS FROM "DESC" ****
 
 C Debug.
 C        write(6,*) 'desc', mlcname(ictl_constrdbindex_number)
-C        write(6,*) 'ssmlcn', SSMLCN(izstocn(icomp,ISURFNumber))
+C        write(6,*) 'smlcn', SMLCN(icomp,ISURFNumber)
 
               write(ctl_constrdb_name,'(a)')
      &             mlcname(ictl_constrdbindex_number)
               write(name_constr_ofStudy,'(a)')
-     &             SSMLCN(izstocn(icomp,ISURFNumber))
+     &             SMLCN(icomp,ISURFNumber)
 
 C controls start here
 C<<< Consider changing ioan(1,1) in the future to ioan(iol,1)>>>>
@@ -4620,11 +4611,12 @@ C ******************** MZOCTL
 C The main optical control function executive.
 
       SUBROUTINE MZOCTL(icomp)
+
 #include "building.h"
 #include "control.h"
 
       COMMON/OPTCTL/ICFO,IDTYPO,IPERO
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       common/btime/btimep,btimef
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
@@ -4676,6 +4668,7 @@ C ******************** OCL01
 C Set optical controls defined in (ahem?) constructions files on or off
 C This is done by setting the flag IBCMDT=1 or 0
       SUBROUTINE OCL01(icomp)
+
 #include "building.h"
 #include "control.h"
 

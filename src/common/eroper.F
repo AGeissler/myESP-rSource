@@ -147,7 +147,12 @@ C espriou.h provides currentfile.
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       CHARACTER CALENAME*32,CALENTAG*12,CALENDAYNAME*32
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/warncounter/iecount
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -209,16 +214,18 @@ C Error subroutine and error details for dll mode.
       character dllsubr*12,dllmesg*124,WORD*20,loutstr*248
       character dstmp*24
       logical havehi,dll
-      integer idaytype  ! incremented for each new *day entry.
+      integer idaytype        ! incremented for each new *day entry.
       integer ijk,ireader
-      integer lsn  ! length of currentfile
+      integer lsn             ! length of currentfile
       real reader
-      integer irange,icur  ! for looping    
+      integer irange,icur     ! for looping
+      integer implieddaytype  ! counter for implied day types    
       
       ijk=0
       ireader=0
       reader=0.0
       iH3K_Base_Loads(icomp) = 0
+      implieddaytype = 0
 
 C Check if running in dll mode.
       call isadll(dll)
@@ -420,15 +427,43 @@ C << put in a loop for each day type >>
           TAH(ICOMP)=0.
         endif
 
-C Air change information.
+C Air change information. For each of the globally defined
+C day types read flow data. If we get to *casual before we
+C have reached nbdaytype then fill in place-holders.
   202   DO 400 IDTY=1,NBDAYTYPE
           CALL STRIPC(IUO,OUTSTR,0,ND,1,'flow periods',IER)
+          if(OUTSTR(1:7).eq.'*Casual'.or.OUTSTR(1:7).eq.'*casual')then
+            if(implieddaytype.lt.NBDAYTYPE)then
+              i=NBDAYTYPE
+              NAC(I)=1; IACS(I,1)=0; IACF(I,1)=24
+              ACI(I,1)=0.0; ACV(I,1)=0.0; IPT(I,1)=0; TA(I,1)=0.0
+              backspace(iuo)   ! unread the current line of the file
+              goto 400
+            endif
+          endif
           K=0
           CALL EGETWI(OUTSTR,K,ireader,0,MA,'W','periods',IER)
           NAC(IDTY)=IREADER
+          implieddaytype=implieddaytype+1  ! increment
           IF(NAC(IDTY).EQ.0)goto 400
           DO 10 I=1,NAC(IDTY)
-            CALL STRIPC(IUO,OUTSTR,0,ND,1,'Period flow details',IER)
+            CALL STRIPC(IUO,OUTSTR,99,ND,1,'Period flow details',IER)
+
+C If there are six items on the line then we have flow period data.
+C However if there are more than 6 it is a casual gain. Logic is
+C not robust for dealing with older files so warm user to update
+C to a newer format first.
+            if(ND.gt.6)then
+              call edisp(iuout,' ')
+              call edisp(iuout,
+     &        'This older format operation file has fewer day types')
+              call edisp(iuout,
+     &        'Than are included in the model. It should be updated')
+              call edisp(iuout,'first.')
+              ier=1
+              CALL ERPFREE(IUO,ISTAT)
+              return
+            endif
             K=0
             CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','w flow start',IER)
             IACS(IDTY,I)=IREADER
@@ -601,16 +636,61 @@ C << later check that the period data points to a known slot?
       endif
 
 C Casual gains for different day types.
-      DO 600 IDTY=1,NBDAYTYPE
+      implieddaytype = 0
+ 72   DO 600 IDTY=1,NBDAYTYPE
         CALL STRIPC(IUO,OUTSTR,0,ND,1,'gain periods for day type',IER)
+        if(IER.ne.0)then
+
+C We reached the end of the file before the global number of day types
+C has been scanned. Fill in the place holder values. These will be
+C included the next time the file is written.
+          i=NBDAYTYPE
+          NCAS(I)=3
+          ICGS(I,1)=0; ICGF(I,1)=24; ICGUnit(I,1)=0
+          CMGS(I,1)=0.0; CMGL(I,1)=0.0
+          RADC(I,1)=0.6; CONC(I,1)=0.4  ! CIBSE Guide A 6.3
+          ICGT(I,1)=1
+          ICGS(I,2)=0; ICGF(I,2)=24; ICGUnit(I,2)=0
+          CMGS(I,2)=0.0; CMGL(I,2)=0.0
+          RADC(I,2)=0.3; CONC(I,2)=0.7  ! CIBSE Table A 6.5
+          ICGT(I,2)=2 
+          ICGS(I,3)=0; ICGF(I,3)=24; ICGUnit(I,3)=0
+          CMGS(I,3)=0.0; CMGL(I,3)=0.0
+          RADC(I,3)=0.4; CONC(I,3)=0.6
+          ICGT(I,3)=3
+          ier=0      ! reset error state
+          goto 600   ! jump to post-processing`
+        endif
         K=0
         CALL EGETWI(OUTSTR,K,IREADER,0,MC,'W','gain periods',IER)
         NCAS(IDTY)=IREADER
+        implieddaytype=implieddaytype+1  ! increment
         nGain_types(ICOMP, IDTY) = IREADER     ! used for HOT3000 base loads 
         IF(NCAS(IDTY).EQ.0)goto 600
         DO 40 I=1,NCAS(IDTY)
           CALL STRIPC(IUO,OUTSTR,99,ND,1,'Period gain detail',IER)
-          K=0
+
+C If there were 3 items on the line it could be 'Occupt Lights Equipt'
+C and if there is only 1 item on the line it is number of periods.
+          if(ND.eq.1.or.ND.eq.3)then
+            ii=NBDAYTYPE
+            NCAS(II)=3
+            ICGS(II,1)=0; ICGF(II,1)=24; ICGUnit(II,1)=0
+            CMGS(II,1)=0.0; CMGL(II,1)=0.0
+            RADC(II,1)=0.6; CONC(II,1)=0.4  ! CIBSE Guide A 6.3
+            ICGT(II,1)=1
+            ICGS(II,2)=0; ICGF(II,2)=24; ICGUnit(II,2)=0
+            CMGS(II,2)=0.0; CMGL(II,2)=0.0
+            RADC(II,2)=0.3; CONC(II,2)=0.7  ! CIBSE Table A 6.5
+            ICGT(II,2)=2 
+            ICGS(II,3)=0; ICGF(II,3)=24; ICGUnit(II,3)=0
+            CMGS(II,3)=0.0; CMGL(II,3)=0.0
+            RADC(II,3)=0.4; CONC(II,3)=0.6
+            ICGT(II,3)=3
+            backspace(iuo)   ! unread the current line of the file
+            goto 40
+          endif
+
 
 C If dynamicpeople then read into a different common block.
 C If there are 7, 9 11, 12 or ? items on the line then the first item will be
@@ -619,6 +699,7 @@ C of ip3ver. For ip3ver <21 a positive ICGT implies the unit is Watts.
 C If negative the unit is m2/p for occupants and W/m2 otherwise. 
 C Ip3ver 21+ will already have scanned *type lines. and the lodslot
 C value will be the same as iabs(ICGT).
+          K=0
           if(ND.eq.7.or.ND.eq.9.or.ND.eq.11.or.ND.eq.12)then
             CALL EGETWI(OUTSTR,K,IREADER,-3,7,'W',
      &        'overloaded gain type',IER)
@@ -676,7 +757,15 @@ C     &      ICGUnit(IDTY,I)
               write(outs,'(a,I3, a)') 
      &         ' Error: Operations file for zone ',
      &         icomp, ' expects BC data file which does not exist.'
-              call edisp(iuout,outs)
+              call edisp(ieout,outs)
+              iecount=iecount+1
+
+C If open, close the session log.
+              close(ieout)
+              if(iecount.eq.0)then     ! if there were no warnings delete
+                open(ieout,file=iefile,status='UNKNOWN')
+                call efdelet(ieout,istat)
+              endif
               stop 'Fatal Error'
             endif
 
@@ -813,9 +902,6 @@ C reading the period lines.
         if(irange.lt.3) irange=3
       endif
 
-C Debug.
-C      write(6,*) 'casual gain read range is ',irange
-
       if(ip3ver(icomp).lt.21)then
         CALL STRIPC(IUO,OUTSTR,99,ND,1,'gain labels',IERV)
         IF(IERV.ne.0) THEN
@@ -866,7 +952,6 @@ C File included a 5th label and we assume that this is this reserved use.
 C Gain reporting if requested.
       if(ITRC.GE.1)call CASINF(ICOMP,ITRU)
 
-     
 C Now free project data file.
       CALL ERPFREE(IUO,ISTAT)
       RETURN
@@ -1003,7 +1088,7 @@ C espriou.h provides currentfile.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
@@ -1080,11 +1165,11 @@ C used in the current model.
       if(actflatfile(1:1).eq.'W')then
 C Compose help message
         H(1) ='After importing schedules from another file please'
-        H(2) ='carefully review the contents of the updated zone '
-        H(3) ='operation file. The import and/or conversion may have'
-        H(4) ='been incomplete or the units confused. '
+        H(2) ='review the contents of the updated zone operation file.'
+        H(3) ='The import and/ or conversion may have been incomplete'
+        H(4) ='or the units confused. '
         CALL PHELPD('Warning',4,'-',0,0,IER)
-        call askok(' ','Import data?',OK,dok,3)
+        call easkok(' ','Import data?',OK,4)
       elseif(actflatfile(1:1).eq.'-')then
         ok=.true.
       endif
@@ -1576,7 +1661,7 @@ C espriou.h provides currentfile.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/POPHELP/H(60)
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
@@ -1645,7 +1730,7 @@ C Compose help message
       call edisp(iuout,
      &  'Review the contents listed to see if it matches. You will')
       call edisp(iuout,'be asked for the day types in the file.')
-      call askok(' ','Continue with the import?',OK,dok,7)
+      call easkok(' ','Continue with import?',OK,7)
       if(.not.ok)return
       CALL EASKI(ndty,'Number of calendar day types (see help)',
      &      'Confirm:',0,'F',mdty,'F',4,'day types',IER,5) 
@@ -1677,7 +1762,7 @@ C Parameters
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       CHARACTER CALENAME*32,CALENTAG*12,CALENDAYNAME*32
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Electrical data flag and elctrical data.
       common/elecflg/ielf(mcom)
@@ -1685,17 +1770,17 @@ C Electrical data flag and elctrical data.
      &BVOLT(MDTY,MC),IPHAS(MDTY,MC)
       INTEGER NEL,IPF,IPHAS
       REAL PF,PWR,BVOLT
-      COMMON/Vld20/Vldtng
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
 
       character dstmp*24
-      logical Vldtng
       integer irange,icur  ! for looping
       
       IER=0
 
 C Open any existing file by this name (ask user for confirmation to
 C over-write) or create a new file.
-      if(Vldtng)then
+      if(AUTOVR)then
         CALL EFOPSEQ(IUO,OPFIL,3,IER)
         write(currentfile,'(a)') OPFIL(1:lnblnk(OPFIL))
       else
@@ -2403,7 +2488,7 @@ C loadcount() & load24() in common blocks loadcnt & loadall
 C Parameters
       integer icomp  ! index of the zone to scan
 
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
 
@@ -2715,7 +2800,7 @@ C overlaps. Passed the zone index.
 #include "geometry.h"
 #include "schedule.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,idty,idt
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
@@ -3156,7 +3241,7 @@ C not extensive, but should catch most issues.
 #include "building.h"
 #include "schedule.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C How many of each gain type is there each zone/gaintype/daytype.
       common/loadcnt/loadcount(mcom,MGTY,MDTY),
@@ -3253,7 +3338,7 @@ C UPDOPR  Updates all operations data when day types are incremented.
 #include "model.h"
 #include "schedule.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       
       integer ncomp,ncon

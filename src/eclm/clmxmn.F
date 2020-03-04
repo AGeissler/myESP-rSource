@@ -25,7 +25,7 @@ C For a list of climatic parameters see climate.h.
       SUBROUTINE CLMXMN
 #include "climate.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
 
       COMMON/MXMNC/YMAX(MCM),YMIN(MCM),TMAX,TMIN,DT

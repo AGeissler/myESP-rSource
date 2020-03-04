@@ -202,7 +202,8 @@ C and dllmesg tells the details of the error.
       character*72 cBpsVersion, cPrjPath, cPrjName, cCfgPath,
      &           cCfgFile, cLogFile
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
+      common/warncounter/iecount
       common/shout/icout
       common/filep/ifil
       common/tc/itc,icnt
@@ -214,7 +215,7 @@ C and dllmesg tells the details of the error.
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/CLMDT1/CLMLOC
-      CHARACTER CLMLOC*30
+      CHARACTER CLMLOC*42
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -323,6 +324,10 @@ C Name of current application
       common/APPNAME/cAppName
       character cAppName*12
 
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
 C Flag for enabling h3k customizations 
 
       common/H3KCustom/bEnableH3kExtensions
@@ -353,16 +358,21 @@ C      logical gopher  ! not references
       character llclmdb*144
       character browsing*4
       character bresfil*72
-      character journcmd*20,jfile*72,uname*24,cjfile*72,OUTSTR*124
+      character journcmd*20,jfile*72,cjfile*72,OUTSTR*124
       character dllsubr*12,dllmesg*124
       character t16*16,outs248*248
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
+      character dstmp*24,uname*24,tfile*72
 
       character mca*12        ! to force Monte Carlo assessments
       integer nbsets          ! how many sets to run
       COMMON/UAMET/IUNCMET,nbsets
       COMMON/UA5/IMET,ISIM,NRSIM
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
 
 C Flags for multi-year simulation menus
       logical bOptOut, bDone, bMY_clm_err, bExists, bCreate
@@ -489,7 +499,8 @@ C Some initial values, which may be changed later:
       iwmoff=1
       ihelpm=0
       NSIGFIG=3
-      matver=0.0   ! initial assumption of binary materials database
+      matver=0.0     ! initial assumption of binary materials database
+      AUTOVR=.false. ! by default, ask to overwrite files
 
       cAppName = 'bps'
       helpinapp='bps'  ! set once for the application
@@ -505,16 +516,12 @@ C all console write is rerouted to the log file
         call SetDllParms(MODL,iappw,iappx,iappy,inf,sps,aut,actf)
         browsing='no'
       else
-C        call parsim(iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
-C     &    actf)
-C        write(6,*)iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
-C     &    actf
 
 C Get command line parameters from local subroutine parbps.
         call parbps(iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
      &    actf,mca,nbsets)
-        write(6,*)iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
-     &    actf,mca,nbsets
+C        write(6,*)iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
+C     &    actf,mca,nbsets
         itrc=iverb    ! set trace after call to parsim
         if(mca(1:3).eq.'MCA')then
           IUNCMET=3
@@ -639,13 +646,16 @@ C and dialog.
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=20
-        LIMIT =20
+        IMFS=4   ! Text mode set LIMTTY larger for paging menus.
+        IFS=4
+        ITFS=4
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Integrated Simulator ',
+      write(pagestitle,'(2a)') 'Integrated Simulator of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -683,21 +693,24 @@ C Setup and pass in parameters to win3d.
           igw=int(iigw); igwh=int(iigwh)
         endif
         call setzscale()
-        mdispl=0
-        nifgrey=0
-        ncset=0
-        ngset=0
-        nzonec=0
+        mdispl=0; nifgrey=0
+        ncset=0; ngset=0; nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
         call startbuffer()
       ELSE
 
 C Set reasonable defaults for text mode.
-        igw=330; igwh=195; igl=107; igb=263
+        igw=431; igwh=187; igl=92; igb=273
+        iiw1=15; iiw2=15; iiw3=6; iiw4=3; iimenu=menuchw
+        iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+        CALL win3dwwc(iimenu,iiw1,iiw2,iiw3,iiw4,
+     &    iigl,iigr,iigt,iigb,iigw,iigwh)
+        igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
+        igw=int(iigw); igwh=int(iigwh)
       ENDIF
       CALL EDISP(IUOUT,' ')
 
-C Write version (but only title if silent ro endless).
+C Write version (but only title if silent or endless).
       if(aut(1:6).eq.'silent')then
         CALL ESPrVersion("silent",cAppName,IUOUT)
       elseif(aut(1:7).eq.'endless')then
@@ -748,6 +761,24 @@ C Make temporary use of file unit IFIL+1.  Note: escdef must come
 C after scan of .esprc file. Do it silently.
  902  call escdef(IFIL+1,'s',IER)
 
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+932          ! set to unused index 942
+      iecount=0               ! clear count of errors
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for bps'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
+
 C Take command line file name as initial configuration file.
       if(inf(1:2).ne.'  '.and.inf(1:4).ne.'UNKN')then
         LCMDFL=inf
@@ -777,6 +808,7 @@ C has been set at 4 and signals explicit inclusion of separate
 C conv/rad/latent gain fields for each casual gain type.
       nzrl = MZRL
       izver = 4
+      izver = 5  ! use more of record width
 
 C Record length of plant results file.
 C Parameter 'nprecl' as defined in 'plant.h'.
@@ -821,14 +853,9 @@ C info in after reading the .cfg file.
           if(sps(1:2).ne.'  '.and.sps(1:4).ne.'UNKN')then
             write(spsname,'(a30)')sps(1:30)
             if(aut(1:6).eq.'silent')then
-C Debug.
-C              write(*,*)'Silent-running mode.'
               autook=.true.; issilient=.true.
-              call edisp(iuout,'Silent-running mode.')
               call tstamp('>','bps: Silent-running mode')
             elseif(aut(1:7).eq.'endless')then
-C Debug.
-C              write(*,*)'Endless-running mode.'
               autook=.true.
               endless=.true.
               call edisp(iuout,'Endless-running mode.')
@@ -858,10 +885,13 @@ C Increment input flag if no input data errors detected.
             INPOK=.TRUE.
           ELSE
             if ( autook ) then
-              call edisp(iuout, ' ')
+              call edisp(iuout,' ')
               call edisp(iuout,
      &              'Fatal error: Model was not scanned correctly')
-              call pauses(3)   ! pause for 2 seconds then abort program.
+              iecount=iecount+1  ! retain the log file
+              call pauses(3)     ! pause for 2 seconds then abort program.
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epagend
               stop
             endif
@@ -873,8 +903,8 @@ C Increment input flag if no input data errors detected.
             endif
             helptopic='model_cfg_scan_warning'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            call easkabc('While scanning model a problem was found.',
-     &        'Options: ','read again','use it','abort',IW,nbhelp)
+            call easkabc('Problem scanning model!',
+     &        'Options:','read again','use it','abort',IW,nbhelp)
             if(iw.eq.1)then
               INPOK=.FALSE.
             elseif(iw.eq.2)then
@@ -891,6 +921,9 @@ C Increment input flag if no input data errors detected.
               else
                 call usrmsg('IER1 flag set while scanning the model.',
      &            ' ','W')
+                iecount=iecount+1  ! retain the log file
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 call pauses(2)   ! pause for 2 seconds then abort program.
                 CALL EPAGEND
                 STOP
@@ -938,62 +971,60 @@ C Initialize the structured gridding variables.
       ENDIF
 
 C Set up initial menu.
-   20 ITEM(1)    ='a Input model description    '
-      ITEM(2)    ='b Assign climate file        '
+   20 ITEM(1)    ='a define model               '
+      ITEM(2)    ='b assign weather file        '
       ITEM(3)    ='  _________________________  '
-      ITEM(4)    ='c Initiate simulation        '
+      ITEM(4)    ='c initiate simulation        '
       ITEM(5)    ='  _________________________  '
-      ITEM(6)    ='t Invoke trace facilities    '
+      ITEM(6)    ='t trace facilities           '
       if ( bMY_sim_enabled ) then
-         ITEM(7) ='y Multi-year sim >> ON       '
+         ITEM(7) ='y multi-year sim >> ON       '
       else
-         ITEM(7) ='y Multi-year sim >> OFF      '
+         ITEM(7) ='y multi-year sim >> OFF      '
       endif
       IF(IWMOFF.EQ.1)THEN
-        ITEM(8)  ='w Warnings >> OFF            '
+        ITEM(8)  ='w warnings >> OFF            '
       ELSEIF(IWMOFF.EQ.0)THEN
-        ITEM(8)  ='w Warnings >> ON             '
+        ITEM(8)  ='w warnings >> ON             '
       ENDIF
       IF(ITRC.EQ.0)THEN
-        ITEM(9)  ='r Reporting >> silent        '
+        ITEM(9)  ='r reporting >> silent        '
       ELSEIF(ITRC.EQ.1)THEN
-        ITEM(9)  ='r Reporting >> summary       '
+        ITEM(9)  ='r reporting >> summary       '
       ELSEIF(ITRC.EQ.2)THEN
-        ITEM(9)  ='r Reporting >> detailed      '
+        ITEM(9)  ='r reporting >> detailed      '
       ENDIF
       ITEM(10)   ='  _______________________    '
       if ( isReportingInstalled() ) then
-         ITEM(11)='s Configure H3K Reports      '
+         ITEM(11)='s configure H3K Reports      '
       else
          ITEM(11)='s H3K Reports unavailable    '
       endif
       ITEM(12)   ='  _________________________  '
-      ITEM(13)   ='? Help                       '
-      ITEM(14)   ='- Quit                       '
+      ITEM(13)   ='? help                       '
+      ITEM(14)   ='- exit Integrated Simulator  '
       nitms=14
 
 C And menu is to be displayed.
       ino=-3
    30 CALL USRMSG(' ',' ','-')
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('bps ',1)
 
 C Do not display the menu if in autook mode as defined in the
 C simulator parameter file.
-C NOTE: if the menu is changed then the values assigned to ino
-C       will have to be updated.
       if(autook) then
         if(exitok) then
           ino=NITMS
         else
-          ino=4
+          ino=4   ! sensitive to menu layout
         endif
       else
         CALL EMENU('Integrated simulator',ITEM,NITMS,INO)
       endif
 
-C Enter configuration file
+C Enter configuration file.
       IF(INO.EQ.1)THEN
         call tstamp('>','bps: enter read model')
         CALL MZINPT(IREP,ier)
@@ -1013,7 +1044,7 @@ C have been detected.
           INPOK=.FALSE.
         ENDIF
 
-C initialize the thermal and gridding variables variables.
+C Initialize the thermal and gridding variables.
         IF(INPOK.AND.INTHPS)THEN
           CALL THZERO
           CALL THERMR(LNLTHP,IUNIT,ITRC,IER)
@@ -1033,7 +1064,7 @@ C node distribution.
         ENDIF
         IF(INPOK)CALL INITMS
 
-C Initialize the structured gridding variables.
+C Initialise the structured gridding variables.
         IF(IndxSt.GT.0)THEN
           CALL READST(IndxSt,ITRC,IER)
           IF(IER.EQ.0)CALL INITST
@@ -1069,10 +1100,11 @@ C a climate file by reading records 366 and 367.
         else
           ISTRW=96
         endif
-        CALL EASKF(llclmdb,'Weather file:',
-     &    ' ',ISTRW,DCLIM,'weather file name',IER,nbhelp)
+        CALL EASKF(llclmdb,' ','Weather file?',
+     &    ISTRW,DCLIM,'weather file name',IER,nbhelp)
         IF(llclmdb(1:2).EQ.'  ')GOTO 291
         IER=0
+        ipathclim=1
 
 C Cast expanded weather file name back to LCLIM.
         llt=lnblnk(llclmdb)
@@ -1083,8 +1115,8 @@ C Cast expanded weather file name back to LCLIM.
         call CLMOPB(0,IER)
         IF(ier.eq.0)THEN
           CALL CLMRDBMD(IER)
-          WRITE(OUTS,1000)CLMLOC,ICYEAR
- 1000     FORMAT(' Climate data: ',A30,':',I5)
+          WRITE(OUTS,1000)CLMLOC(1:lnblnk(CLMLOC)),ICYEAR
+ 1000     FORMAT(' Climate data: ',A,':',I5)
           if(endless.or.issilient)then
             continue
           else
@@ -1097,10 +1129,8 @@ C Cast expanded weather file name back to LCLIM.
             helptopic='old_ask_for_year'
             call gethelptext(helpinsub,helptopic,nbhelp)
             IYEAR=ICYEAR
-            CALL EASKI(IYEAR,
-     &        'Year for the simulation? (The configuration does not',
-     &        'specify one and the climate db year is shown) ',
-     &          1900,'W',2000,'@',ICYEAR,'year from clim',IER,nbhelp)
+            CALL EASKI(IYEAR,' ','Simulation year?',
+     &          1900,'W',3000,'@',ICYEAR,'year from clim',IER,nbhelp)
           endif
 C Set flag: climate data ok
           bSY_climate_defined = .true.
@@ -1108,11 +1138,10 @@ C Set flag: climate data ok
         ELSE
           bSY_climate_defined = .false.
 
-          dok = .false.
           helptopic='not_have_errors_clm'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(' Problem encountered reading climate db,,',
-     &               ' try again? (no exits simulator)',OK,dok,nbhelp)
+          CALL EASKOK('Problem reading weather file!',
+     &                'Retry',OK,nbhelp)
           IF(OK)THEN
             goto 20
           ELSE
@@ -1217,17 +1246,16 @@ C is not yet specified.
           bMY_sim_enabled = .true.
           if ( .not. bMY_climates_defined )
      &      CALL USRMSG (' ',
-     &        ' Multi-year climate database must be defined','W')
+     &        ' Multi-year weather database must be defined','W')
 
         endif
       elseif(ino.eq.(NITMS-6))then
 
 C Warning messages switch.
-        dok=.true.
         helptopic='supress_warnings'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Warning messages required?','(see help)',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(' ','Warning messages required?',
+     &    OK,nbhelp)
         IF(OK)THEN
           IWMOFF=0
           IF(MMOD.NE.-6) ICOUT=99
@@ -1250,13 +1278,12 @@ C Configure H3K reports.
         endif
       elseif(ino.eq.(NITMS-1))then
 
-C Help via the askabout facility in esru_ask.F The zero requests display
+C Help via the askabout facility in esru_ask.F The zero requests display.
         ihelpm=1
         call askabout('bps ',0)
         if(ino.eq.1)then
-          dok=.true.
-          CALL ASKOK(' ','Subsequent help messages required?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Help messages required?',
+     &      OK,nbhelp)
           IF(OK)THEN
             IHELPM=1
           ELSE
@@ -1269,15 +1296,17 @@ C Clean up and exit.
 C Delete any temporal scratch file if temporal data associated with
 C the model.
 
-C Debug write out unmet hours.
         if(endless.or.issilient)then
           continue
         else
-          write(6,'(a)') 
-     &      'Unmet hours for each zone at end of simulation.'
-          do I=1,NCOMP
-            write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
-          enddo
+
+C Debug write out unmet hours. Future action is to enable
+C unmet hours logic to reside in res.
+C          write(6,'(a)') 
+C     &      'Unmet hours for each zone at end of simulation.'
+C          do I=1,NCOMP
+C            write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
+C          enddo
         endif
         if(ITDFLG.ne.0)then
           CALL ERPFREE(IUTDF,ISTAT)
@@ -1318,6 +1347,11 @@ C Close moisture result library.
         if( dll ) return
 
 C Clear allocatable arrays
+        close(ieout)
+        if(iecount.eq.0)then     ! if there were no warnings delete
+          open(ieout,file=iefile,status='UNKNOWN')
+          call efdelet(ieout,istat)
+        endif
         CALL DeallocateAllArrays
         call epagend
         return
@@ -1335,16 +1369,18 @@ C Error.
   103 if(autook) then
         ok=.false.
       else
-        dok=.false.
         helptopic='not_have_errors_clm'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' Problem in climate file, try again? ',
-     &             ' (no exits program) ',OK,dok,nbhelp)
+        CALL EASKOK('Problem with weather file!',
+     &       'Retry?',OK,nbhelp)
       endif
       IF(OK)THEN
         goto 20
       ELSE
         CALL ERPFREE(ICLIM,ISTAT)
+        iecount=iecount+1  ! retain the log file
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         if( dll ) return
         call epagend
         STOP
@@ -1374,7 +1410,7 @@ C Declare  calling parameter types
       character(12), intent(inout) :: mca  ! is 'mca' or 'bc' or '-'
       integer, intent(inout)  ::  nbsets   ! number of sets to run
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C Timeout information
       COMMON/TIMEOUT/sTimeout,iTimeoutFlag
       integer :: iTimeoutFlag
@@ -1396,6 +1432,7 @@ C Get number of arguments and command name.
       termtype = 8      ! assume graphic mode unless otherwise instructed
       mode = 'graphic'
       aut  = 'default'
+      browse = '    '
       m = iargc()
       i = 0
       call getarg(i,prog)
@@ -1404,7 +1441,7 @@ C Get number of arguments and command name.
 
 C If one parameter.
       if(m.eq.0)then
-        stop
+        goto 42
       elseif(m.ge.1)then
   41    i= i+1
         if(i.gt.m)goto 42
@@ -1480,21 +1517,20 @@ C If one parameter.
           iTimeoutFlag = 1
         endif
         goto 41
-
-  42    continue
-  
-        if ( iverb == 2 ) then
-          write(outs,'(6a)') 'Starting ',appn(1:lnblnk(appn)),
-     &      ' in mode ',mode(1:lnblnk(mode)),' with file ',
-     &      inf(1:lnblnk(inf))
-          if(unixok)call edisp248(iuout,outs,90)
-          outs=' '
-          write(outs,'(7a)') 'and parameters ',sps(1:lnblnk(sps)),
-     &      ' in ',aut,' mode and ',browse,' browsing.'
-          if(unixok)call edisp248(iuout,outs,90)
-        endif
-        return
       endif
+  42  continue
+  
+      if ( iverb == 2 ) then
+        write(outs,'(6a)') 'Starting ',appn(1:lnblnk(appn)),
+     &    ' in mode ',mode(1:lnblnk(mode)),' with file ',
+     &    inf(1:lnblnk(inf))
+        if(unixok)call edisp248(iuout,outs,90)
+        outs=' '
+        write(outs,'(7a)') 'and parameters ',sps(1:lnblnk(sps)),
+     &    ' in ',aut,' mode and ',browse,' browsing.'
+        if(unixok)call edisp248(iuout,outs,90)
+      endif
+      return
 
 C Errors.
    2  call isunix(unixok)
@@ -1533,6 +1569,18 @@ C calls in esru_lib.F
       end
 
       subroutine chgelev(icelev,ifrlk)
+      return
+      end
+
+      subroutine chgpan(ix,iy)
+      return
+      end
+
+      subroutine chgzoom(imode)
+      return
+      end
+
+      subroutine optview
       return
       end
 

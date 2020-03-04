@@ -4,7 +4,7 @@
 'of the building/ plant to be simulated, including the'
 'names of all of the files required.'
 *enditem
-            CALL EASKF(L144,' Model configuration file?',' ',96,dtmp72,
+
 *item e2r confirm_monitor_type
 'Radiance was initially written when monchrome, greyscale and colour'
 'monitors were common and it was necessary to confirm the users'
@@ -12,7 +12,7 @@
 'is used to force ximage to produce a dithered monochrome image if'
 'there is insufficient colour depth.'
 *enditem
-          CALL EASKABC('Please confirm your monitor type:',' ',
+
 *item e2r scene_config_file_name
 'A scene configuration file is required by ESP-r to aid'
 'maintenance of the visualisation process. This file contains'
@@ -21,7 +21,7 @@
 'scene descriptions and is typically located in the model cfg'
 'folder.'
 *enditem
-            CALL EASKS(ltmp72,
+
 *item e2r e2r_additional_overview
 'The e2r module is designed to reduce direct user interactions'
 'with the command line syntax of Radiance. Experts will, of'
@@ -52,13 +52,13 @@
 'and there are many resources on the web which can give you clues'
 'about leveraging the facilities of e2r.'
 *enditem
-            CALL ASKOK('Do you wish to keep the Radiance scene files?',
+
 *item e2r model_config_file_name
 'The model configuration file holds the definition '
 'of the building/ plant to be simulated, including the'
 'names of all of the files required.'
 *enditem
-            CALL EASKF(L144,' Model configuration file?',' ',96,dtmp72,
+
 *item e2r furniture_file_name
 'In order not to disturb files generated from a thermal'
 'description it is sometimes useful to place miscel '
@@ -67,12 +67,11 @@
 'You are given the option to browse the miscel (furniture and'
 'fittings file or to open it up in a text editor.'
 *enditem
-        CALL EASKS(ltmp,' Miscel (furniture & fittings file ?',
-        CALL EASKABC(' Miscel (furniture & fittings description:',' ',
+
 *item e2r confirm_grid_point_edit
 'If you want to alter the grid points say yes.'
 *enditem
-          CALL ASKOK('Edit grid points?','  ',OK,dok,1)
+
 *item e2r octree_force_update
 'The octree is a intermediate step between the '
 'Radiance input files and the rendered image. '
@@ -85,15 +84,13 @@
 'question about whether gridding should be altered or which'
 'user defined view to use.'
 *enditem
-          CALL EASKABC(' The octree exists, do you want to',' ',
-          CALL EPICKS(IX,IVALV,' ',' Select a view: ',
-          CALL EPICKS(IX,IVALV,' ',' Select a view point: ',
+
 *subroutine SKYFORM
 *item SKYFORM sky_def_local_file
 ' Supply a local file name (i.e. without a path).'
 ' This file holds the sky definition.'
 *enditem
-      CALL EASKS(ltmp72,' Sky distribution file name ?',' ',72,
+
 *item SKYFORM sky_distribution_menu
 'This menu defines the sky distribution function for a'
 'Radiance scene.'
@@ -131,27 +128,24 @@
 '* Display sky info: display the contents of the'
 '  sky description file in the text window.'
 *enditem
-       CALL EASKR(sitelat,' ',' Site Latitude ? ',
-       CALL EASKR(sitelongdif,' ',
-       CALL EASKI(iryear,' ',' Year ? ',
-       CALL EASKR(rgrfl,' ',' Ground reflectance? ',
+
 *item SKYFORM sky_not_CIE_menu
 'You have requested a daylight factor calculation but the'
 'sky type is not a CIE standard overcast sky. DF are not often'
 'calculated with a different sky type.'
 *enditem
-          CALL EASKAB(' The sky is not a CIE standard overcast sky.',
+
 *item SKYFORM sky_description_browse
 'Browsing lists the file contents in the text feedback'
 'area, editing spawns an editor with the file name.'
 *enditem
-        CALL EASKABC(' Sky description:',' ',
+
 *item SKYFORM sky_file_not_generated
 'Recent work has not yet been used to generated a sky'
 'file for use by radiance. If you exit without creating'
 'the sky file the model will be incomplete. '
 *enditem
-          CALL ASKOK(' Sky file has not yet been generated...',
+
 *subroutine e2rform
 *item e2rform e2r_outside_comp
 'This menu defines the composition of the Radiance'
@@ -203,19 +197,13 @@
 '   text editor.'
 '  '
 *enditem
-        CALL EASKR(ftr,
-        CALL EASKS(gtgeom,' Ground topology/geometry file name ? ',
-        CALL EASKABC(' Glazing description:',' ',
-        CALL EASKABC(' Opaque materials:',' ',
-        CALL EASKABC(' Outside opaque description:',' ',
-        CALL EASKABC(' Inside opaque description:',' ',
-        CALL PHELPD('outside menu',30,'e2r_files   ',0,0,IER)
+
 *item e2rform e2r_outside_not_created
 'The Radiance outside surfaces description file'
 'has not yet been generated. You might lose information'
 'if you exit before the file is generated. '
 *enditem
-          CALL ASKOK(' Descriptions not yet been generated...',
+
 *subroutine mkriofil
 *item mkriofil writing_transpar_stuff
 'Based on the attributes of ESP-r surfaces and the optical properties'
@@ -242,13 +230,7 @@
 'You will have the option to confirm inclusion of solar obstructions'
 'if they are included in your model.'
 *enditem
-        CALL EASKS(ltmp72,' Glazing file name ?',' ',
-        call ASKOK('Blind shutter control is active.',
-        CALL EASKS(ltmp72,' Alternative glazing file name ?',' ',
-        CALL EASKS(ltmp72,' Opaque materials file name ?',' ',
-        CALL EASKS(ltmp72,' Inside compositon file name ?','  ',
-        CALL EASKS(ltmp72,' Outside description file name ?','  ',
-        CALL ASKOK(' ',outs,OK,dok,3)
+
 *item mkriofil precalculate_indirect_i
 'Large sources of indirect illumination should have their'
 'distributions pre-calculated as this optimises the rendering process.'
@@ -256,8 +238,7 @@
 '  via the Radiance utility mkillum.). You may be asked whether'
 'large surfaces should be subdivided within mkillum.'
 *enditem
-        call EASKAB(outs,'Pre-calculate indirect illumination',
-        call EASKAB(outs,'Create ','one surface (default)',
+
 *subroutine VCONE
 *subroutine VEWFORM
 *item VEWFORM view_form_creation
@@ -334,12 +315,7 @@
 'In plan view you can change the viewing parameters,'
 'the elevations are primarily for checking. '
 *enditem
-        CALL EPICKS(INPIC,IVALS,
-        CALL EASKABCD(' View choices: ',' ','plan',
-        CALL EASKABC(' Specify via: ',' ','editing',
-        CALL ASKOK(outs,' Is this view ok?',OK,dok,1)
-        CALL EASKABC(' Specify via: ',' ','editing',
-        CALL ASKOK(outs,' Is this ok ?',OK,dok,1)
+
 *item VEWFORM eyepoint_editing
 'The eyepoint is in metres in the coordinate system '
 'of the site. '
@@ -351,48 +327,42 @@
 'screen and use view commands to set the view position'
 'as well as the -vo (near trim) and -va (aft trim) distances.'
 *enditem
-          CALL EASKS(HOLD,' Eye point  X  Y  Z (in metres): ',
+
 *item VEWFORM reflect_rad_view_in_per
 'The wireframe view can be updated to approximate'
 'the radiance view (does not work well for internal'
 'views). '
 *enditem
-            CALL ASKOK(' ','Reflect this in perspective view?',OK,dok,3)
+
 *item VEWFORM edit_or_accept_current
 'Editing is manual editing of the value. If it is ok then use the'
 'accept current.'
 '  '
 'You will be given an option to pause and confirm the view.'
 *enditem
-          CALL EASKABC(' Specify via: ',' ','editing',
-            CALL ASKOK(outs,' Is this view ok?',OK,dok,1)
+
 *item VEWFORM view_azimuth_edit
 'The view azimuth 0= looking north, 90 =looking east.'
 *enditem
-          CALL EASKR(azimuth,' ',' View azimuth (deg) ? ',
-          CALL EASKR(elevtn,' ',' View elevation (deg) ? ',
+
 *item VEWFORM view_angle_edit
 'The view angle is normally 60 deg.  The range'
 'is 20. < x < 179.'
 *enditem
-        CALL EASKR(angh,outs,' View angle (deg) ? ',
+
 *item VEWFORM e2r_east_axis
 'Adjust axis min and max to allow more distant view.'
 *enditem
-          CALL EASKS(HOLD,' East axis minimum and maximum: ',
-          CALL EASKS(HOLD,' South axis minimum and maximum: ',
-          CALL EASKS(HOLD,' East axis minimum and maximum: ',
+
 *item VEWFORM e2r_north_axis
 'Adjust axis min and max to allow more distant view.'
 *enditem
-          CALL EASKS(HOLD,' North axis minimum and maximum: ',
-          CALL EASKS(HOLD,' Up axis minimum and maximum: ',
-          CALL EASKS(HOLD,' Up axis minimum and maximum: ',
+
 *item VEWFORM e2r_remind_to_save
 'Recent changes in the view parameters might be lost'
 'if you exit without saving the data. '
 *enditem
-          CALL ASKOK('View information has not been saved',
+
 *subroutine whichrif
 *item whichrif scene_selection_list
 'A scene will be selected from those available'
@@ -400,7 +370,7 @@
 '  '
 'The < command selects by index rather than a-z.'
 *enditem
-        CALL PHELPD('scene section',3,'-',0,0,IER)
+
 *item whichrif scene_manage_list
 'As with other entities a standard set of add/delete'
 'and copy functions is provided. '
@@ -413,8 +383,7 @@
 'definition section to update or add detail to the model.'
 '  '
 *enditem
-          CALL EASKATOG(' ','Action: ','add scene','delete scene',
-          CALL EASKABC(' ','Create scene:','silently',
+
 *subroutine newscene
 *item newscene purpose_of_rif_scene
 'The purpose of the scene is used when creating the '
@@ -448,16 +417,15 @@
 '   calculated coefficients from surfaces in the model to patches'
 '   in the sky.'
 *enditem
-        call MENUATOL('Select a default scene.',' Default scene',
-        call MENUATOL('Select a scene purpose.',' Scene purpose',
-*item newscene pick_zone_for_int_view
+
+item newscene pick_zone_for_int_view
 'Pick a zone as the focus zone for the Radiance internal'
 'image calculations. This is needed whether regardless of'
 'how many zones are in the model. Picking a specific zone'
 'does not prevent you from viewing the contents of other'
 'zones in the model.'
 *enditem
-          CALL EPICKS(INPIC,IVALS,' ',' Pick a focus zone: ',
+
 *item newscene e2r_new_scene_name
 'Many Radiance models may be created for a given ESP-r '
 'thermal model. Each of these Radiance models is called'
@@ -472,9 +440,7 @@
 'There is also an opportunity to provide a descriptive phrase'
 'to identify the scenes contents.'
 *enditem
-        CALL EASKS(tname,'Scene name? ',' ',28,dname,'scene name',IER,5)
-        CALL EASKS(tname,'Scene root name?',' ',28,dname,'root name',
-        CALL EASKS(tname72,' Description ? ',' ',72,
+
 *subroutine ADDSCENE
 *item ADDSCENE create_scene_interactive
 'Radiance desktop creates allows the creation of separate'
@@ -484,16 +450,13 @@
 'Once you have created a scene you can return to the'
 'definition section to update or add detail to the model.'
 *enditem
-      CALL EASKABC('This is a new visualisation.',
+
 *subroutine setdfgrid
 *item setdfgrid select_zone_for_df
 'Pick a zone as the focus zone for the Radiance'
 'daylight factor calculations.'
 *enditem
-        CALL EPICKS(INPIC,IVALS,
-*item setdfgrid
-*enditem
-      call EASKSUR(ifocz,IS,'-',
+
 *item setdfgrid distance_to_df_grid
 'The grid points on the chosen surface can be '
 'transformed along the surface normal to give points in'
@@ -508,9 +471,7 @@
 'indicies. The grid will be formed in rows parallel '
 'to that selected edge.'
 *enditem
-      CALL EASKR(WPDIST,' Distance of grid from surface ? ',' ',0.001,
-      call EASKAB('Transform grid to: ',' ','Inside','Outside',IW,2)
-      CALL EPICKS(INPIC,ITEMV,
+
 *item setdfgrid df_grid_density
 ' A bounding box is created for the selected surface.'
 ' The grid is specified by intersection points of lines'
@@ -529,9 +490,8 @@
 'name of a file which will hold the grid points created.'
 'Give the name of this file without a path.'
 *enditem
- 25   CALL EASKS(t12,'Grid density? (First item is number of grid',
- 55     CALL EASKS(LDFGRID,'Daylight factor grid points file name?',
-*subroutine autorad
+ 
+ *subroutine autorad
 *item autorad e2r_proceed_with_sim
 'You can start the visual simulation at this point by'
 'answering yes. If you say no you can start the simulation'
@@ -544,14 +504,14 @@
 'of the view is horizontal. There are several steps to the glare'
 'process so watch the process in the command window.'
 *enditem
-      call ASKOK('Scene description is now complete.',
+
 *subroutine settime
 *item settime standard_times_of_day
 'Pick a season/ time for the sky. This is a quick way to get an'
 'image which has the sun in typical locations in the sky (morning'
 'afternoon and winter and summer).'
 *enditem
-      CALL EASKABCD('A scene is created for a specific day and time.',
+
 *subroutine genimage
 *item genimage single_time_or_sequence
 'Rendering can be for one instant in time or at intervals'
@@ -582,7 +542,7 @@
 '   convert -brightness-contrast 20x-20 -loop 0 *.jpg animated.gif'
 'to increase brighness by 20% and decrease contrast by 20%.'
 *enditem
-        CALL EASKAB(' ',' Image(s):','single time instance',
+
 *item genimage render_to_screen_or_file
 'Rendering can only be directed to screen on colour'
 'monitors.  You can adjust the visualisation '
@@ -591,10 +551,7 @@
 '  '
 'If running on Windows you should choose file option.'
 *enditem
-            CALL EASKAB(' ','Image rendering to:','screen','file',
-*item genimage
-*enditem
-          CALL ASKTIM(2,1,IAMO,IADO,iardoy,ATIMEST,ITST,IER)
+
 *item genimage end_time_of_animation
 'The end of the animation is assumed to be on the same'
 'day and must be less than 24.0'
@@ -624,17 +581,14 @@
 '   convert -brightness-contrast 20x-20 -loop 0 *.jpg animated.gif'
 'to increase brighness by 20% and decrease contrast by 20%.'
 *enditem
-          CALL EASKR(ATIMEFN,' ',' End time of the animation? ',
-          CALL EASKATOG('Interval between views:',' ','one min',
-          CALL EASKATOG('Image frame size (pixels):',' ','240',
+
 *item genimage overwrite_existing_pic
 'The image processing tends to [hang] when trying to'
 'overwrite an existing image. Choose a different root'
 'name for the image(s) if you can.'
 '  '
 *enditem
-            CALL EASKABC(outs,'Do you want to: ','overwrite',
-            CALL EASKS(ltmp,
+
 *subroutine getfalse
 *item getfalse e2r_falsecolour
 'False colour images with lux contours can be defined. You'
@@ -643,6 +597,7 @@
 ' '
 'You may need to experiment to find appropriate parameters.'
 *enditem
+
 *subroutine getdf
 *item getdf e2r_df_convergence
 'The calculations will strart with one ambient bounce and'
@@ -654,19 +609,18 @@
 'rtrace calculations are hung. You may have to kill that'
 'process. '
 *enditem
-      CALL EASKR(CONV,'Daylight factor convergence criteria',
+
 *item getdf e2r_df_confusion
 'Sometimes Radiance gets confused. This is one place'
 'where starting again can correct this. '
 *enditem
-        CALL EASKAB('The rendering parameters would appear to be set',
+
 *item getdf e2r_df_file_overwrite
 'Daylight factors can be written to a file. If this file already'
 'exists you have a chance to save the past by giving a'
 'slightly different file name for the calculatons.'
 *enditem
-        CALL EASKAB(outs,'Do you want to: ','overwrite',
- 1221   CALL EASKS(ltmp,
+
 *subroutine getlux
 *item getdf e2r_lux_convergence
 'The calculations will strart with one ambient bounce and'
@@ -678,20 +632,18 @@
 'rtrace calculations are hung. You may have to kill that'
 'process. '
 *enditem
-      CALL EASKR(CONV,'Daylight factor convergence criteria',
+
 *item getdf e2r_lux_confusion
 'Sometimes Radiance gets confused. This is one place'
 'where starting again can correct this. '
 *enditem
-        CALL EASKAB('The rendering parameters would appear to be set',
+
 *item getdf e2r_lux_file_overwrite
 'Illuminance can be written to a file. If this file already'
 'exists you have a chance to save the past by giving a'
 'slightly different file name for the calculatons.'
 *enditem
-        CALL EASKAB(outs,'Do you want to: ','overwrite',
- 1221   CALL EASKS(ltmp,
-*subroutine RADPAR
+
 *subroutine RIFFORM
 *item RIFFORM e2r_scene_files_menu
 'This menu selects the scene description files to'
@@ -729,32 +681,26 @@
 'Another file holds miscel items (furniture, fittings, objects)'
 'not included in a thermal simulation.'
 *enditem
-        CALL PHELPD('octree menu',12,'-',0,0,IER)
-        CALL EASKS(ltmp,' Sky file name ?',' ',
-        CALL EASKS(ltmp,' Glazing compositon file name ?',' ',
-        CALL EASKS(ltmp,' Opaque materials file name ?',' ',
-        CALL EASKS(ltmp,' Outside opaque compositon file name ?',' ',
-        CALL EASKS(ltmp,' Inside opaque composition file name ? ','  ',
-        CALL EASKS(ltmp,
+
 *item RIFFORM image_quality_options
 'Image quality sets a number of command parameters'
 'and influences the processing time.  Most of the time'
 'a low quality image will suffice (and there are opts '
 'which can get close to medium quality). '
 *enditem
-        CALL EASKABC(' Image quality: ',' ','Low (default)',
+
 *item RIFFORM e2r_detail_level_options
 'Detail level: Use low for zones with few surfaces (ie'
 'as in a thermal problem), use Medium if furnature and'
 'objects, use High if lots of detail and textures. '
 *enditem
-        CALL EASKABC(' Detail level: ',' ','Low (sparse geometry)',
+
 *item RIFFORM e2r_light_var_options
 'Light level variability: Use Low for zones which are '
 'uniformally lit by lighting fixtures, Medium if there'
 'is diffuse skylight and High if direct sunlight. '
 *enditem
-        CALL EASKABC(' Variability of light level: ',' ',
+
 *item RIFFORM e2r_light_system_options
 'A direct (artificial) lighting system is one where '
 'reflections from surfaces are unimportant.'
@@ -764,47 +710,46 @@
 'assume direct daylight unless your model contains'
 'lightshelfs, an atrium or similar devices.'
 *enditem
-        CALL EASKABC(' Lighting system: ',' ','Direct (artificial)',
+
 *item RIFFORM e2r_pixel_size_options
 'Set overall image width in pixels (smaller numbers '
 'process more quickly). The height and thus image'
 'pixel aspect are automatically set from the view'
 'data (-vh and -vv options).'
 *enditem
-        CALL EASKS(HOLD,' Image width in pixels: ',
+
 *item RIFFORM e2r_penumbras_options
 'Penumbras (soft shadows) in image is processor intensive'
 'and some users prefer this. '
 *enditem
-        CALL ASKOK(' Include penumbras in image (soft shadows) ?',
+
 *item RIFFORM track_progress_options
 'Computations can take a moment to several hours - so '
 'a % completion report is available. '
 *enditem
-        CALL EASKI(itrack,' ',' Track progress every [x] minutes ? ',
+
 *item RIFFORM e2r_viewpoint_options
 'Initial/simple view points are built up based on a  '
 'bounding box defined by minimimum & maximum X Y Z  '
 'coordinates.  If view has been set to inside or  '
 'outside this is also indicated in the string.  '
 *enditem
-          CALL EASKS(ltmp60,' Initial assumptions about general view',
-          CALL EASKS(ltmp60,' Initial assumptions about general view',
+
 *item RIFFORM e2r_ambient_file_name
 'This holds temporary information on ambient light'
 'when a number of viewpoints are to be generated of '
 'the same scene.  NOT desirable othewise. '
 *enditem
-        CALL EASKS(ltmp,' Abient light temporary file name ?',' ',
+
 *item RIFFORM e2r_options_file_name
 'This holds additional calculation option commands'
 'in a file. '
 *enditem
-        CALL EASKS(ltmp,' Calculation options file name ?',' ',
+
 *item RIFFORM e2r_pic_root_name
 'This is the root name for pictures created with [rad]'
 *enditem
-        CALL EASKS(ltmp,' Picture root file name ?',' ',
+
 *item RIFFORM e2r_RIF_file_name
 'A RIF (Raidance Input File) specifies the composition'
 'of the problem for Radiance as well as parameters for'
@@ -813,17 +758,14 @@
 'If the file given exists it will be read in, if not '
 'a new one will be created with typical defaults. '
 *enditem
-        CALL EASKS(ltmp,' Radiance RIF file ?',
+
 *item RIFFORM e2r_manual_edit_rif
 'The manual edit function allows for [experts] to work'
 'their magic on the current contents. After editing'
 'the re-read file function should be used.'
 *enditem
-        CALL EASKABCD(' Options: ',' ','Browse current [rif] file',
-          CALL ASKOK(' ',' Re-read after editing?',OK,dok,3)
+
 *item RIFFORM e2r_view_name_for_test
 'Please select one view to associate with the [rad]'
 'test. If no view selected the default used.'
 *enditem
-        CALL EPICKS(IX,IVALV,' ',' View for test: ',
-*subroutine rifset

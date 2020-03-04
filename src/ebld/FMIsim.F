@@ -37,7 +37,7 @@ C FMI_INIT initialises the FMI and all required FMUs.
 #include "building.h"
 #include "FMI.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/rpath/path
       character path*72
 
@@ -333,7 +333,7 @@ C            must be updated to handle these variables.
 #include "geometry.h"
 #include "tdf2.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Arrays for passing FMU input/output information to/from C function.
 C This assumes there will be no more than 1 of each input/output type
@@ -350,7 +350,7 @@ C For ambient temperature:
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
 C For lights power:
       common/btime/btimep,btimef
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
       common/CASGNS/NCGPER(MCOM,MDTY,MGTY),TCGS(MCOM,MDTY,MGTY,MGPER),

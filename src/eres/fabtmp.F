@@ -38,7 +38,7 @@ C the results database.
 #include "model.h"
 C #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
@@ -130,7 +130,7 @@ C esprdbfile.h supplies the following:
 C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C IPRZ is materials array for each layer.
       common/T8/IPRZ(MS,ME)
@@ -168,16 +168,16 @@ C the construction was not found.
 
 C Find matching MLC. Gather materials array index for each 
 C layer of each surface in the zone. IPRZ is used elsewhere.
-        call matchmlcdesc(SSMLCN(ICN),ic)
+        call matchmlcdesc(SMLCN(ICOMP,ISUR),ic)
 
         ICKNE=LAYERS(IC)
         DO 23 IL=1,LAYERS(IC)
           IPRZ(ISUR,IL)=IPRMAT(IC,IL)
    23   CONTINUE
         if(ICKNE.eq.0)then
-          lml=lnblnk(SSMLCN(ICN))
+          lml=lnblnk(SMLCN(ICOMP,ISUR))
           write(outs,'(5A)') ' The construction ',
-     &      SSMLCN(ICN)(1:lml),' of ',SSNAME(ICN),
+     &      SMLCN(ICOMP,ISUR)(1:lml),' of ',SNAME(ICOMP,ISUR),
      &      ' was not found in the mlc db...'
           call edisp(iuout,outs)
           call edisp(iuout,' ')
@@ -391,14 +391,13 @@ C If act = i then initial display, if act = s then single step display.
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
-      COMMON/RECV5/SNA(MCOM,MS)
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
       COMMON/SETNAM/RSNAME(MNRS)
       COMMON/SIMPKA/NSIM
@@ -454,9 +453,7 @@ C Setup and pass in parameters to win3d.
      &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       endif
       if(MMOD.EQ.8)then
-        iside=1
-        isize=0
-        ifont=1
+        iside=1; isize=0; ifont=1
         call viewtext(etext,iside,isize,ifont)
       else
         call edisp(iuout,ETEXT)
@@ -466,24 +463,20 @@ C Setup and pass in parameters to win3d.
      &   SDESCR(11:lnblnk(SDESCR))
       GTEXT=ETEXT
       if(MMOD.EQ.8)then
-        iside=2
-        isize=0
-        ifont=1
+        iside=2; isize=0; ifont=1
         call viewtext(gtext,iside,isize,ifont)
       else
         call edisp(iuout,ETEXT)
       endif
 
       CALL SURADJ(ICOMP,ISUR,IE,T,IZC,ISC,ICN,CSTR)
-      SN=SSNAME(ICN)
+      SN=SNAME(ICOMP,ISUR)
       ZN=zname(ICOMP)
       WRITE(ETEXT,'(6A)')' Temperature profiles within ',
      &   SN(1:lnblnk(SN)),' of ',ZN(1:lnblnk(ZN)),' facing ',
      &   CSTR(1:lnblnk(CSTR))
       if(MMOD.EQ.8)then
-        iside=3
-        isize=0
-        ifont=1
+        iside=3; isize=0; ifont=1
         call viewtext(etext,iside,isize,ifont)
       else
         call edisp(iuout,ETEXT)
@@ -491,26 +484,24 @@ C Setup and pass in parameters to win3d.
 
 C Determine if the surface is transparent or opaque. At this point
 C CFC and CFC2 are still classed with opaque.
-      IF(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &   SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+      IF(SOTF(ICOMP,ISUR)(1:4).EQ.'OPAQ'.OR.
+     &   SOTF(ICOMP,ISUR)(1:4).EQ.'UNKN')THEN
          TSTR='opaque'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC ')THEN
+      ELSEIF(SOTF(ICOMP,ISUR)(1:4).EQ.'CFC ')THEN
          TSTR='CFC'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC2')THEN
+      ELSEIF(SOTF(ICOMP,ISUR)(1:4).EQ.'CFC2')THEN
          TSTR='CFC2'
       ELSE
          TSTR='trnsp.'
       ENDIF
 
 C Print info on surface.
-      lml=lnblnk(SSMLCN(ICN))
+      lml=lnblnk(SMLCN(ICOMP,ISUR))
       WRITE(ETEXT,'(5a,f6.2,a)')' It is ',TSTR,', composed of ',
-     &  SSMLCN(ICN)(1:lml),', with area ',SNA(ICOMP,ISUR),' m2.'
+     &  SMLCN(ICOMP,ISUR)(1:lml),', with area ',SNA(ICOMP,ISUR),' m2.'
       GTEXT=ETEXT
       if(MMOD.EQ.8)then
-        iside=4
-        isize=0
-        ifont=1
+        iside=4; isize=0; ifont=1
         call viewtext(etext,iside,isize,ifont)
       else
         call edisp(iuout,ETEXT)
@@ -657,9 +648,7 @@ C each timestep. Pause 200msec at each timestep.
             call STIME(j,TDESCR)
             call STDATE(IYEAR,ID,DS,DS1)
             WRITE(ETEXT,'(4A)')' Time ',DS1,' at ',TDESCR
-            iside=5
-            isize=0
-            ifont=1
+            iside=5; isize=0; ifont=1
             call viewtext(etext,iside,isize,ifont)
 
 C If possible reset the foreground colour to white and redraw the line.
@@ -705,9 +694,7 @@ C Re-Draw construction section.
             call STIME(j,TDESCR)
             call STDATE(IYEAR,ID,DS,DS1)
             WRITE(ETEXT,'(4A)')' Time ',DS1,' at ',TDESCR
-            iside=5
-            isize=0
-            ifont=1
+            iside=5; isize=0; ifont=1
             call viewtext(etext,iside,isize,ifont)
             call forceflush
             if(ispeed.eq.1)then

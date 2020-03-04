@@ -26,7 +26,7 @@ C MFREADH reads header for fluid flow simulation binary results file.
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/LIBOK/IBLIB,IFLIB,ICLIB,IELIB,IPLIB
 
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)

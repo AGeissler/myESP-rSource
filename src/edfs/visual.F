@@ -41,7 +41,7 @@ C VISOUT - define the parameters for the visualization of results.
       integer lnblnk  ! function definition
       integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
 
@@ -449,7 +449,7 @@ C  imgtyp = 5 : ParaView data file.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/VISSET/imgqua,NOX,NOZ,tscal,hLscal,hWscal,vLscal
       common/flvimg/imgtyp,IMOPTS
       common/flvnam/LBITrt(MCOM,6)
@@ -460,7 +460,7 @@ C  imgtyp = 5 : ParaView data file.
 
       character LBITrt*12,outs*124,TLBIT*16,TLBIT2*16
       character name*12,t12*12,LBIT*72,LVEC*72
-      logical dok,GENVEW
+      logical GENVEW
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -502,17 +502,15 @@ C For each view generate image.
         if (imgtyp.eq.0.and.Nview(ICOMP).gt.1) then
           write (outs,'(3a,i1,a)') 'View image ',
      &        LBITrt(ICOMP,IM)(1:lnblnk(LBITrt(ICOMP,IM))),' (',IM,') ?'
-          dok=.true.
-          call ASKOK('  ',outs,GENVEW,dok,nbhelp)
+          call EASKOK('  ',outs,GENVEW,nbhelp)
         elseif (imgtyp.eq.3 .and. Nview(ICOMP).gt.1) then
           write (outs,'(a,f5.2,a,a,a,i1,a)') 
      &      'Use vector length scale factor (',
      &       VLSCvw(ICOMP,IM),') from view ',
      &       LBITrt(ICOMP,IM)(1:lnblnk(LBITrt(ICOMP,IM))),' (',IM,') ?'
-          dok=.true.
-          call ASKOK(
+          call EASKOK(
      &    'The 3d image uses the scale factors from the listed views.',
-     &     outs,GENVEW,dok,nbhelp)
+     &     outs,GENVEW,nbhelp)
         endif
 
 C Generate name of image depending on type and allow 3 digits for
@@ -713,6 +711,7 @@ C ********************* GENVEC *********************
 C GENVEC - Calculates velocity vectors at `P' grid points and prints 
 C  results in format for use in the flow visualization routines.
       SUBROUTINE GENVEC(vecfil)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/FILEP/IFIL
@@ -836,6 +835,7 @@ C ********************* GETVECLIB *********************
 C GETVECLIB - Calculates velocity vectors at `P' grid points and prints 
 C  results in format for use in the flow visualization routines.
       SUBROUTINE GETVECLIB(vecfil)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
@@ -937,6 +937,7 @@ C Remember to close file.
 C ********************* GETVEC *********************
 C GETVEC - reads in the flow vector file produced by dfs.
       SUBROUTINE GETVEC(vecfil)
+#include "building.h"
 #include "cfd.h"
 
       common/FILEP/IFIL
@@ -1009,6 +1010,7 @@ C        directions. The number of pixels depends on the resolution specified by
 C        the user and the geometry of the zone.
 
       SUBROUTINE SETRES(ISUR)
+#include "building.h"
 #include "cfd.h"
 #include "flowvis.h"
 
@@ -1089,8 +1091,8 @@ C       contains specifications on bitmap images to generate during the progress
 C       of bps-dfs conflated simulations.
 
       SUBROUTINE rdFVP(ICOMP,ier)
-#include "cfd.h"
 #include "building.h"
+#include "cfd.h"
 
       common/FILEP/IFIL
 

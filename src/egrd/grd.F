@@ -47,7 +47,7 @@ C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
@@ -79,10 +79,16 @@ C Significant figure reporting limit (NSIGFIG).
      
 C Name of current application
       common/APPNAME/cAppName
-      
-      character cAppName*12      
-      
- 
+      character cAppName*12
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
       LOGICAL XST,GRDOK
 
       DIMENSION ITEM(11)
@@ -90,6 +96,7 @@ C Name of current application
       CHARACTER OUTSTR*124,ITEM*24,path*72,inf*144,LCMDFL*144
       character outs248*248,L144*144
       character inz*16,inzone*16,outs*124,MODE*4
+      character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
@@ -124,17 +131,17 @@ C Initialize global common data.
       IUOUT=6
       IUIN=5
       IFIL=11
-      LIMTTY=8
-      LIMIT =8
+      LIMTTY=30
+      LIMIT =30
       IFS=1
       ITFS=0
       IMFS=1
-      LIMTTY=20
       NSIGFIG=3
-      matver=0.0   ! initial assumption of binary materials database
+      matver=0.0     ! initial assumption of binary materials database
       path='./'
       IDRW1=0
       call parsfz(MODL,iappw,iappx,iappy,inf,inz)
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Assume configuration file is from IFIL+5, any leakage description
 C is fom IFIL+6, revised config file on IFIL+3, updated geometry on
@@ -216,20 +223,25 @@ C Fonts 4-7 are proportional and 0-3 are fixed width. Use proportional for menus
 C and dialog.
         IMFS=5
         IFS=5
-#ifdef OSX
-        IFS=4  ! use a smaller dialog font
-#endif
         ITFS=4
+#ifdef OSX
+        IMFS=4
+        IFS=4  ! use a smaller fonts
+        ITFS=4
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=16
-        LIMIT =16
+        IMFS=5
+        IFS=5
+        ITFS=4
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Construction Gridding ',
+      write(pagestitle,'(2a)') 'Construction gridding of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -267,6 +279,24 @@ C Setup and pass in parameters to win3d.
       ENDIF
 
       CALL ESPrVersion("summary",cAppName,IUOUT)
+
+C Create and open a session log file based on user name, PID etc.
+C      uname=' '; tfile=' '
+      uname=' '; tfile='grd.log'
+      call usrname(uname)
+      call esppid(ipid)
+C        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+C     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+931          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for grd'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Find the user's home folder then get users custom settings.
       call usrhome(upath)
@@ -504,8 +534,9 @@ C Help via the askabout facility in esru_ask.F The zero requests display
       ELSEIF(INO.EQ.MITEM)THEN
 
 C Exit program.
-        call usrmsg(' Closing building gridding...',' ','P')
         IF(MATDBOK)CALL ERPFREE(IFMAT,ISTAT)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       ENDIF
@@ -525,7 +556,7 @@ C *********************************************************************
 #include "material.h"
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON

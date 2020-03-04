@@ -33,8 +33,7 @@ C This output mode allows the various causal relationships
 C to be displayed and so visually investigated.   
 C act='p' iget parameters already set.
 
-C <CFD>
-C We also hijack this subroutine for CFD metric reporting, as many of
+C Also use this subroutine for CFD metric reporting, as many of
 C the metrics are similar and this prevents duplication of effort. It
 C also means that mass flow and CFD graphing can theoretically be
 C combined (currently mass flow and building graphing cannot).
@@ -42,7 +41,6 @@ C In the future, could consider breaking down the fuctionality of this
 C subroutine into it's component parts, perhaps allowing homogenisation
 C with the graphing code for the building domain?
 C act='c' we are looking at CFD instead of mass flow.
-C </CFD>
 
       SUBROUTINE MFOUTP(act)
 #include "building.h"
@@ -54,7 +52,7 @@ C </CFD>
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -99,12 +97,23 @@ C Occupancy filter info.
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
 
-      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
-      COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
-      integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
-      COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
-     &                 LNGLMFLABEL(MFRS)
+      character SMFLABEL*32,GLMFLABEL*32
+      COMMON/MFLABEL/SMFLABEL(MFRS),GLMFLABEL(MFRS)
+      integer  LNSMFLABEL,LNGLMFLABEL ! length of label strings
+      COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGLMFLABEL(MFRS)
       COMMON/MFGET/FLOWVALS(MFRS),MFRECVR(MCNN+2+MCONTM)
+
+      integer iuchoice  ! user selection from menuatol
+      integer nlistnode ! how many nodes were selected
+      integer listnode  ! list of node indices
+      integer nlistconn ! how many connections selected
+      integer listconn  ! list of connection indices
+      integer nlistcmp  ! how many components selected
+      integer listcmp   ! list of component indices
+      real fxmin,fxmax,fymin,fymax,fzmin,fzmax
+      common/lists3d/iuchoice,nlistnode,listnode(MNOD),
+     &  nlistconn,listconn(MCNN),nlistcmp,listcmp(MCMP),
+     &  fxmin,fxmax,fymin,fymax,fzmin,fzmax
 
 C Simulator parameters.
       COMMON/SPFL/spfileok,perok,cfdperok,tstepok,saveok,autook,exitok,
@@ -116,16 +125,17 @@ C Simulator parameters.
       COMMON/FREQS1/ICBIN(MF),IRCBIN(MF),ITOTAL
       integer net3ddelay  ! delay between timesteps in 3D network
       common/delay3d/net3ddelay
-
+      real Yold,TIMEold     ! type for passing to C
       dimension Yold(MZS), TIMEold(MZS)
-      character TLABEL*60,trange*20,tranged*20,t28*28,dg*1
+      character TLABEL*60,trange*20,tranged*20,dg*1
+      character t24*24,t32*32
       character outs*124,outs248*248
       character outs800*800,outs800d*800  ! really long string buffers
-      character ALABEL(6)*12,t20*24,act*1
+      character ALABEL(6)*12,act*1
       CHARACTER PDESCR*60,SDESCR*44,DESCR*7,DESCR1*10
       character lltmpc*144
       CHARACTER DESCRH*5,DESCRD*5,NT*14,XT*14
-      character graftitle*64,grlbl*24,t24*24,LTIME*5
+      character graftitle*64,grlbl*24,LTIME*5
       character LAPROB*72,RSNAME*40
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       character RFILEABS*144,PFILEABS*144,MSTRFILEABS*144,LAFRESABS*144
@@ -139,34 +149,34 @@ C Simulator parameters.
       integer iglib
       integer lnb,lsn1
       integer k,k4,ke,ke4  ! used for string positions
-      integer lke,lket28        ! length of label and packed label
+      integer lke,lket32   ! length of label and packed label
       integer POS,NEG,CMPIS
       real xc,yc,zc
-      character word*12   ! for 3D value plotting.
+      character word*12    ! for 3D value plotting.
       integer ISTRW
 
-      logical colok,ok,dok,CFDOK
+      logical colok,ok,CFDOK,CLOSE
 #ifdef OSI
-      integer igx,iigx  ! see array above
+      integer igwid,igheight  ! for use with axiscale
+      integer igx             ! see array above
       integer iupdown,isym    ! passed to etplot
       integer iid1,iid2,iicol,ibsize
-      integer iigl,iigr,iigt,iigb,iigw,iigwh
+      integer iigl,iigb
       integer iside,isize,ifont     ! passed to viewtext
 #else
-      integer*8 igx,iigx  ! see array above
+      integer*8 igwid,igheight  ! for use with axiscale
+      integer*8 igx             ! see array above
       integer*8 iupdown,isym    ! passed to etplot
       integer*8 iid1,iid2,iicol,ibsize
-      integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
+      integer*8 iigl,iigb
       integer*8 iside,isize,ifont     ! passed to viewtext
 #endif
 
-C <CFD>
       COMMON/cfdsmper/ICDYS,ICDYF,CFTS,CFTF
       COMMON/cfdotper/ICDYOS,ICDYOF,CFTOS,CFTOF
       common/CFDFL/LCFDFL
       character LCFDFL*72
       COMMON/ICFNOD/ICFD,ICP
-C </CFD>
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -176,9 +186,8 @@ C For help messages
       helpinsub='MFOUTP'  ! set for cfiles
 
 C Cast values for linescale.
-      iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
+      iigl=igl;iigb=igb
 
-C<CFD>
 C Are we looking at CFD?
       if (act.eq.'c') then
         CFDOK=.true.
@@ -189,7 +198,6 @@ C Are we looking at CFD?
 C If we're looking at CFD, skip opening mass flow library.
 C CFD library should already be open.
       if (CFDOK) goto 671
-C </CFD>
 
 C If the network flow file has not yet been opened request information.
       if(iflib.eq.1)then
@@ -280,10 +288,16 @@ C If output to file alter the edisp unit number.
         endif
         call edisp(iuout,outs)
       elseif(ixopen.eq.0)then
-        if(MMOD.eq.8)then
-          if(iairn.eq.3)then
-            call startbuffer
-            call MFWFDRAW('r')  ! Draw 3D flow network.
+        if(act.ne.'c')then
+          if(MMOD.eq.8)then
+            if(iairn.eq.3)then
+              call startbuffer
+              if(NNOD.gt.50.or.NCMP.gt.50)then
+                call MFWFDRAW('r',0,0)  ! Draw 3D flow network without labels
+              else
+                call MFWFDRAW('r',1,1)  ! Draw 3D flow network with labels
+              endif
+            endif
           endif
         endif
       endif
@@ -292,7 +306,6 @@ C Call the menu of choices (this also sets some default options).
 C First clear current selections.
       call MOFLOWSU
 
-C <CFD>
 C Set default period to when CFD is available
       if (CFDOK) CALL CFDPER(1)
 
@@ -305,11 +318,9 @@ C allow combined reporting.
       else
         call MFMENU(idone)
       endif
-c 1    call MFMENU
 
 C User exited without selecting anything to display.
       if (idone.eq.1) return
-C </CFD>
 
       if(ixopen.eq.1)then
         itru = ixunit
@@ -335,18 +346,13 @@ C Ask for set point value.
       endif
 
 C Set up recovery commons.
-
-C <CFD>
       if (.not.CFDOK) then
         call GOMFGETSU
       endif
-c      call GOMFGETSU
-C </CFD>
 
 C TSTART and TFINSH - start and finish times in hours from 0000 on the 
 C first day of output.
 
-C <CFD>
       if (CFDOK) then
         TSTART=CFTOS
         TFINSH=float((ICDYOF-ICDYOS)*24)+CFTOF
@@ -358,9 +364,6 @@ C <CFD>
         IIODS=IODS
         IIODF=IODF
       endif
-c      TSTART=FLOAT(IOH1)
-c      TFINSH=FLOAT(((IODF)*24+IOH2)-(IODS)*24)
-C </CFD>
 
 C Generate a descriptive string for the time period to be displayed
 C and the simulation and output timesteps.
@@ -416,7 +419,11 @@ C For timestep listings generate initial lines.
           if(lnb.lt.124)then
             call edisp(itru,outs248(1:lnb))
           else
-            call edisp248(itru,outs248,124)
+            if(MMOD.eq.8)then
+              call edisp248(itru,outs248,124)
+            else
+              call edisp(itru,outs248)
+            endif
           endif
         endif
       elseif (MENUTYPE.eq.15) then
@@ -439,17 +446,15 @@ C Set histogram bounds.
       XMAX=-1.E+10
       XMIN=1.E+10
 
-C First recover bounds of selected data.
+C First recover bounds of selected data over the period.
       do 97 IDAY=IIODS,IIODF
         IHRD=(IDAY-IODS)*24
         JJ=0
-        do 98 IHR=1,24
-          do 99 ITS=1,NTS
+        do 98 IHR=1,24       ! for each hour
+          do 99 ITS=1,NTS    ! and each timestep
             JJ=JJ+1
             IDAYR=IDAY-ISDS+1
-
-C <CFD>
-            if (CFDOK) then
+            if (CFDOK) then  ! CFD predictions
               CALL GETIFRM(IDAY,JJ,IFRAME,IER)
               if (IER.ne.0) then
                 IER=0
@@ -458,12 +463,10 @@ C <CFD>
                 call GOCFDGET(IFRAME,IDAYR,IHR,ITS,IER)
                 if (IER.ne.0) RETURN
               endif
-            else
+            else             ! mass flow predictions
               call GOMFGET(IDAYR,IHR,ITS)
             endif 
-c            call GOMFGET(IDAYR,IHR,ITS)
 
-C </CFD>
             do 40 IX=1,NMFGET
 
 C Calculate summary stats (part 1)
@@ -534,10 +537,9 @@ C If in pif mode use default bin setup.
         if (act(1:1).eq.'p'.and.autook)then
           ok=.TRUE.
         else
-          dok=.true.
           helptopic='res_flow_freq_custom'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok('  ','Use default bin set-up?',OK,dok,nbhelp)
+          call easkok(' ','Use default bins?',OK,nbhelp)
         endif
         if(ok)then
 
@@ -631,13 +633,62 @@ C Write graph head and set up axis positions and draw.
         call AXISDRW(TSTART,TFINSH,ALABEL,'-')
 
 C Cast values for linescale.
-        iigl=igl;iigr=igr;iigt=igt;iigb=igb;iigw=igw;iigwh=igwh
+        iigl=igl;iigb=igb
       elseif (MENUTYPE.eq.15) then
 
-C 3D overlay draw just the nodes and components.
+C 3D overlay draw just the nodes and components (omitt names if complex)
+C and setup bounds. Setup viewing parameters as done in subroutine adjview.
         if(iairn.eq.3)then
+          EYEM(1)=-100.; EYEM(2)=-100.; EYEM(3)=100.
+          call eclose(XMN,0.0,0.001,CLOSE)
+          if(XMN.LT.0..AND.XMX.GE.0.0)then
+            VIEWM(1)=XMN+((XMX+ABS(XMN))/2.0)
+          elseif(XMN.LT.0.0.AND.XMX.LE.0.)then
+            VIEWM(1)=XMN+((ABS(XMN)-ABS(XMX))/2.0)
+          elseif(XMN.GT.0.0.AND.XMX.GT.0.0)then
+            VIEWM(1)=XMX-((XMX-XMN)/2.0)
+          elseif(CLOSE.AND.XMX.GT.0.0)then
+            VIEWM(1)=XMX/2.0
+          endif
+          call eclose(YMN,0.0,0.001,CLOSE)
+          if(YMN.LT.0..AND.YMX.GE.0.0)then
+            VIEWM(2)=YMN+((YMX+ABS(YMN))/2.0)
+          elseif(YMN.LT.0.0.AND.YMX.LE.0.)then
+            VIEWM(2)=YMN+((ABS(YMN)-ABS(YMX))/2.0)
+          elseif(YMN.GT.0.0.AND.YMX.GT.0.0)then
+            VIEWM(2)=YMX-((YMX-YMN)/2.0)
+          elseif(CLOSE.AND.YMX.GT.0.0)then
+            VIEWM(2)=YMX/2.0
+          endif
+          call eclose(ZMN,0.0,0.001,CLOSE)
+          if(ZMN.LT.0.0.AND.ZMX.GE.0.0)then
+            VIEWM(3)=ZMN+((ZMX+ABS(ZMN))/2.0)
+          elseif(ZMN.LT.0.0.AND.ZMX.LE.0.0)then
+            VIEWM(3)=ZMN+((ABS(ZMN)-ABS(ZMX))/2.0)
+          elseif(ZMN.GT.0.0.AND.ZMX.GT.0.0)then
+            VIEWM(3)=ZMX-((ZMX-ZMN)/2.0)
+          elseif(CLOSE.AND.ZMX.GT.0.0)then
+            VIEWM(3)=ZMX/2.0
+          endif
+          ANG=40.
+          HITH=1.0
+          YON=1300.0
+          ITBND=1    ! optimal bounds
+          XMN=fxmin; YMN=fymin; ZMN=fzmin
+          XMX=fxmax; YMX=fymax; ZMX=fzmax
+          CALL LENS(IER)
+
           call startbuffer
-          call MFWFDRAWNC('g')  ! Draw flow nodes & components in grey.
+          igwid=igw
+          igheight=igwh
+          call axiscale(igwid,igheight,-1000.,1000.,-1000.,1000.,
+     &      xxsc,yysc,xsca,XXadd,YYadd)
+          call linescale(iigl,XXadd,xsca,iigb,YYadd,xsca)
+          if(NNOD.gt.50.or.NCMP.gt.50)then
+            call MFWFDRAWNC('g',0,0)  ! Draw flow nodes & components in grey.
+          else
+            call MFWFDRAWNC('g',1,1)  ! Draw flow nodes & components in grey.
+          endif
         endif
       endif
 
@@ -702,18 +753,18 @@ C don't do this if printing to file.
 C For those dumping to a spreadsheet file write out labels on a single line.
           do 20 IL=1,NMFGET
             lke=LNGLMFLABEL(IL)  ! longer lable length
-            call SDELIM(GLMFLABEL(IL),t28,'N',IW)
-            lket28=lnblnk(t28)   ! length of packed label
+            call SDELIM(GLMFLABEL(IL),t32,'N',IW)
+            lket32=lnblnk(t32)   ! length of packed label
             if(ILFLAG.eq.0)then
               KE=K+11   ! short label
               KE4=K4+11   ! short label
             elseif(ILFLAG.ge.1)then
               KE=K+lke+1       ! set new end to reflect label
-              KE4=K4+lket28+1  ! set new end to reflect packed label
+              KE4=K4+lket32+1  ! set new end to reflect packed label
             endif
             if(KE.le.248)then
               if(ILFLAG.eq.0)then
-                write (outs248(K:KE),'(a,a)') '|',GMFLABEL(IL)(1:10)
+                write (outs248(K:KE),'(a,a)') '|',GLMFLABEL(IL)(1:10)
                 K=K+11
               elseif(ILFLAG.ge.1)then
 
@@ -745,16 +796,16 @@ C packed string.
             if(KE4.le.800)then
               if (ixopen.eq.1) then
                 if(ILFLAG.eq.0)then
-                  if(lket28.gt.10)then
-                    write(outs800(K4:KE4),'(2a)') ' ',t28(1:10)
+                  if(lket32.gt.10)then
+                    write(outs800(K4:KE4),'(2a)') ' ',t32(1:10)
                     K4=K4+11        ! next start point
                   else
-                    write(outs800(K4:KE4),'(2a)') ' ',t28(1:lket28)
-                    K4=K4+lket28+1  ! next start point
+                    write(outs800(K4:KE4),'(2a)') ' ',t32(1:lket32)
+                    K4=K4+lket32+1  ! next start point
                   endif
                 elseif(ILFLAG.ge.1)then
-                  write(outs800(K4:KE4),'(2a)') ' ',t28(1:lket28)
-                  K4=K4+lket28+1    ! next start point
+                  write(outs800(K4:KE4),'(2a)') ' ',t32(1:lket32)
+                  K4=K4+lket32+1    ! next start point
                 endif
               endif
             endif
@@ -762,16 +813,21 @@ C packed string.
 
 C Print titles on first day and only on subsequent ones if day
 C demarcations are omitted.
-          lnb=lnblnk(outs248)+1   ! ensure we do not warp line
+          lnb=lnblnk(outs248)+1       ! ensure we do not warp line
           if (IDAY.eq.IODS)then
             if(ixopen.eq.1)then
-              lnb=lnblnk(outs800)   ! write directly to file
+              lnb=lnblnk(outs800)     ! write directly to file
               write(itru,'(A)',iostat=ios,err=1)outs800(1:lnb)
             else
+              lnb=lnblnk(outs248)+1   ! ensure we do not warp line
               if(lnb.lt.124)then
                 call edisp(itru,outs248(1:lnb))
               else
-                call edisp248(itru,outs248,144)  ! as wide as possible
+                if(MMOD.eq.8)then
+                  call edisp248(itru,outs248,144)  ! as wide as possible
+                else
+                  call edisp(itru,outs248(1:lnb))
+                endif
               endif
             endif
           else
@@ -779,10 +835,15 @@ C demarcations are omitted.
               lnb=lnblnk(outs800)   ! write directly to file
               write(itru,'(A)',iostat=ios,err=1)outs800(1:lnb)
             elseif (IDHFLG.eq.1.and.ixopen.eq.0)then
+              lnb=lnblnk(outs248)+1   ! ensure we do not warp line
               if(lnb.lt.124)then
                 call edisp(itru,outs248(1:lnb))
               else
-                call edisp248(itru,outs248,144)  ! as wide as possible
+                if(MMOD.eq.8)then
+                  call edisp248(itru,outs248,144)  ! as wide as possible
+                else
+                  call edisp(itru,outs248(1:lnb))
+                endif
               endif
             else
               continue
@@ -803,17 +864,90 @@ C writing to a file and using short labels.
               outs248='     '
             endif
             K=6
-            do 225 IL=1,NMFGET
+            do IL=1,NMFGET
               KE=K+11
               if(KE.le.248)then
-                write (outs248(K:KE),'(a,a)') '|',GMFLABEL(IL)(11:20)
+                write (outs248(K:KE),'(a,a)') '|',GLMFLABEL(IL)(11:20)
                 K=K+11
               endif
- 225        continue
+            enddo
             if (IDAY.eq.IODS)then
-              if(irows.eq.2) call edisp(itru,outs248) ! 2nd row requested
+              if(irows.eq.2)then
+                lnb=lnblnk(outs248)+1   ! ensure we do not warp line
+                if(lnb.lt.124)then
+                  call edisp(itru,outs248(1:lnb))
+                else
+                  if(MMOD.eq.8)then
+                    call edisp248(itru,outs248,144)  ! as wide as possible
+                  else
+                    call edisp(itru,outs248(1:lnb))
+                  endif
+                endif
+              endif
             else
-              if (IDHFLG.eq.1.and.irows.eq.2) call edisp(itru,outs248)
+              if (IDHFLG.eq.1.and.irows.eq.2)then
+                lnb=lnblnk(outs248)+1   ! ensure we do not warp line
+                if(lnb.lt.124)then
+                  call edisp(itru,outs248(1:lnb))
+                else
+                  if(MMOD.eq.8)then
+                    call edisp248(itru,outs248,144)  ! as wide as possible
+                  else
+                    call edisp(itru,outs248(1:lnb))
+                  endif
+                endif
+              endif
+            endif
+          endif
+
+
+C If multi-line labels then write out the 3rd line. Do not bother if
+C writing to a file and using short labels.
+          if(ILFLAG.eq.0)then
+            if (IDHFLG.eq.1) then
+              outs248='#    '
+            else
+              outs248='     '
+            endif
+            if (IHFLAG.eq.1.and.ixopen.eq.1) then
+              outs248='#    '
+            else
+              outs248='     '
+            endif
+            K=6
+            do IL=1,NMFGET
+              KE=K+11
+              if(KE.le.248)then
+                write (outs248(K:KE),'(a,a)') '|',GLMFLABEL(IL)(21:30)
+                K=K+11
+              endif
+            enddo
+            if (IDAY.eq.IODS)then
+              lnb=lnblnk(outs248)+1   ! ensure we do not warp line
+              if(irows.eq.2)then
+                if(lnb.lt.124)then
+                  call edisp(itru,outs248(1:lnb))
+                else
+                  if(MMOD.eq.8)then
+                    call edisp248(itru,outs248,144)  ! as wide as possible
+                  else
+                    call edisp(itru,outs248(1:lnb))
+                  endif
+                endif
+              endif
+            else
+              lnb=lnblnk(outs248)+1   ! ensure we do not warp line
+              if (IDHFLG.eq.1.and.irows.eq.2)then
+                if(lnb.lt.124)then
+                  call edisp(itru,outs248(1:lnb))
+                else
+                  if(MMOD.eq.8)then
+                    call edisp248(itru,outs248,144)  ! as wide as possible
+                  else
+                    call edisp(itru,outs248(1:lnb))
+                  endif
+                endif
+              endif
             endif
           endif
 
@@ -841,8 +975,6 @@ C is equivalent to the J counter in table.F
           do 10 ITS=1,NTS
             JJ=JJ+1
             IDAYR=IDAY-ISDS+1
-
-C <CFD>
             if (CFDOK) then
               CALL GETIFRM(IDAY,JJ,IFRAME,IER)
               if (IER.ne.0) then
@@ -854,8 +986,6 @@ C <CFD>
             else
               call GOMFGET(IDAYR,IHR,ITS)
             endif 
-c            call GOMFGET(IDAYR,IHR,ITS)
-C </CFD>
 
 C Compute current time:
 C IHRD - number of days since start of plotting period in hours.
@@ -974,6 +1104,16 @@ C than that of the number of colours re-use an earlier colour.
                         iicol=ICM
                         call winscl('z',iicol)
                         call forceflush()
+                      elseif(IMFGETNO(IX,2).le.0)then
+
+C For volume flow to/from ambient IMFGETNO(IX,2) is -1 and
+C for air changes it is zero so use the IX index for colour.
+                        ICM=IX
+                        if(ICM.gt.nzonec) ICM=ICM-nzonec
+                        if(ICM.gt.nzonec) ICM=ICM-nzonec
+                        iicol=ICM
+                        call winscl('z',iicol)
+                        call forceflush()
                       endif
                     endif
 
@@ -1087,8 +1227,10 @@ C connection number. If plotting mass flows use 5 decimal places.
                     iside=2; isize=1; ifont=1
                     if(IMFGETNO(IX,8).eq.0)then
                       write(msg,'(a)') "Conn flow rate (m^3/s)"
-                    else
+                    elseif(IMFGETNO(IX,8).eq.1)then
                       write(msg,'(a)') "Conn flow rate (l/s)"
+                    elseif(IMFGETNO(IX,8).eq.2)then
+                      write(msg,'(a)') "Conn flow rate (m^3/h)"
                     endif
                     call viewtext(msg,iside,isize,ifont)
                   elseif(IMFGETNO(IX,1).eq.6)then
@@ -1096,6 +1238,11 @@ C connection number. If plotting mass flows use 5 decimal places.
                     write(msg,'(a)') "Conn fluid velocity (m/s)"
                     call viewtext(msg,iside,isize,ifont)
                   endif
+
+C If flow via specific connections is the focus the icn will be correct.
+C If flow is at specific nodes we need to locate the connections associated
+C with the node << NOT YET DONE >>.
+
                   icn=IMFGETNO(IX,2)
                   if(icn.ne.0)then
                     POS=NODPS(ICN); NEG=NODNE(ICN)
@@ -1103,14 +1250,46 @@ C connection number. If plotting mass flows use 5 decimal places.
                     xc=HCMP(CMPIS,1,1); yc=HCMP(CMPIS,1,2)
                     zc=HCMP(CMPIS,1,3)
                     if(IMFGETNO(IX,8).eq.0)then
-                      write(word,'(f10.5)')FLOWVALS(IX)
-                    else
-                      write(word,'(f10.4)')FLOWVALS(IX)
+                      if(abs(FLOWVALS(IX)).gt.1)then
+                        write(word,'(f10.2)')FLOWVALS(IX)
+                      elseif(abs(FLOWVALS(IX)).gt.0.1)then
+                        write(word,'(f10.3)')FLOWVALS(IX)
+                      elseif(abs(FLOWVALS(IX)).gt.0.01)then
+                        write(word,'(f10.3)')FLOWVALS(IX)
+                      elseif(abs(FLOWVALS(IX)).gt.0.001)then
+                        write(word,'(f10.4)')FLOWVALS(IX)
+                      else
+                        write(word,'(f10.5)')FLOWVALS(IX)
+                      endif
+                    elseif(IMFGETNO(IX,8).eq.1)then
+                      if(abs(FLOWVALS(IX)).gt.1)then
+                        write(word,'(f10.1)')FLOWVALS(IX)
+                      elseif(abs(FLOWVALS(IX)).gt.0.1)then
+                        write(word,'(f10.2)')FLOWVALS(IX)
+                      elseif(abs(FLOWVALS(IX)).gt.0.01)then
+                        write(word,'(f10.3)')FLOWVALS(IX)
+                      elseif(abs(FLOWVALS(IX)).gt.0.001)then
+                        write(word,'(f10.3)')FLOWVALS(IX)
+                      else
+                        write(word,'(f10.4)')FLOWVALS(IX)
+                      endif
+                    elseif(IMFGETNO(IX,8).eq.2)then
+                      if(abs(FLOWVALS(IX)).gt.1.)then
+                        write(word,'(f10.2)')FLOWVALS(IX)
+                      elseif(abs(FLOWVALS(IX)).gt.0.1)then
+                        write(word,'(f10.2)')FLOWVALS(IX)
+                      elseif(abs(FLOWVALS(IX)).gt.0.01)then
+                        write(word,'(f10.3)')FLOWVALS(IX)
+                      elseif(abs(FLOWVALS(IX)).gt.0.001)then
+                        write(word,'(f10.4)')FLOWVALS(IX)
+                      else
+                        write(word,'(f10.4)')FLOWVALS(IX)
+                      endif
                     endif
-                    call draw_flow_value(word,HNOD(POS,1),HNOD(POS,2),
-     &                HNOD(POS,3),xc,yc,zc)
-                    call draw_flow_value(word,xc,yc,zc,
-     &                HNOD(NEG,1),HNOD(NEG,2),HNOD(NEG,3))
+                    xn=HNOD(POS,1); yn=HNOD(POS,2); zn=HNOD(POS,3)
+                    call draw_flow_value(word,xn,yn,zn,xc,yc,zc)
+                    xn=HNOD(NEG,1); yn=HNOD(NEG,2); zn=HNOD(NEG,3)
+                    call draw_flow_value(word,xc,yc,zc,xn,yn,zn)
                     if(net3ddelay.eq.1)then
                       call pausems(100) ! slow it down a bit
                     else
@@ -1144,7 +1323,11 @@ C Writing to screen so use shorter file buffer.
                   if(lnb.lt.124)then
                     call EDDISP(itru,outs248(1:lnb))
                   else
-                    call eddisp248(itru,outs248,124)
+                    if(MMOD.eq.8)then
+                      call eddisp248(itru,outs248,124)
+                    else
+                      call eddisp(itru,outs248)
+                    endif
                   endif
                 endif
               elseif (MENUTYPE.eq.15) then
@@ -1160,8 +1343,61 @@ C Pause just before continuing. Redraw the background nodes & components.
                   else
                     call pausems(250) ! pause quarter sec
                   endif
+
+C Setup viewing parameters as done in subroutine adjview
+C and bounds as in BNDOBJ.
+                  EYEM(1)=-100.; EYEM(2)=-100.; EYEM(3)=100.
+                  call eclose(XMN,0.0,0.001,CLOSE)
+                  if(XMN.LT.0..AND.XMX.GE.0.0)then
+                    VIEWM(1)=XMN+((XMX+ABS(XMN))/2.0)
+                  elseif(XMN.LT.0.0.AND.XMX.LE.0.)then
+                    VIEWM(1)=XMN+((ABS(XMN)-ABS(XMX))/2.0)
+                  elseif(XMN.GT.0.0.AND.XMX.GT.0.0)then
+                    VIEWM(1)=XMX-((XMX-XMN)/2.0)
+                  elseif(CLOSE.AND.XMX.GT.0.0)then
+                    VIEWM(1)=XMX/2.0
+                  endif
+                  call eclose(YMN,0.0,0.001,CLOSE)
+                  if(YMN.LT.0..AND.YMX.GE.0.0)then
+                    VIEWM(2)=YMN+((YMX+ABS(YMN))/2.0)
+                  elseif(YMN.LT.0.0.AND.YMX.LE.0.)then
+                    VIEWM(2)=YMN+((ABS(YMN)-ABS(YMX))/2.0)
+                  elseif(YMN.GT.0.0.AND.YMX.GT.0.0)then
+                    VIEWM(2)=YMX-((YMX-YMN)/2.0)
+                  elseif(CLOSE.AND.YMX.GT.0.0)then
+                    VIEWM(2)=YMX/2.0
+                  endif
+                  call eclose(ZMN,0.0,0.001,CLOSE)
+                  if(ZMN.LT.0.0.AND.ZMX.GE.0.0)then
+                    VIEWM(3)=ZMN+((ZMX+ABS(ZMN))/2.0)
+                  elseif(ZMN.LT.0.0.AND.ZMX.LE.0.0)then
+                    VIEWM(3)=ZMN+((ABS(ZMN)-ABS(ZMX))/2.0)
+                  elseif(ZMN.GT.0.0.AND.ZMX.GT.0.0)then
+                    VIEWM(3)=ZMX-((ZMX-ZMN)/2.0)
+                  elseif(CLOSE.AND.ZMX.GT.0.0)then
+                    VIEWM(3)=ZMX/2.0
+                  endif
+                  ANG=40.
+                  HITH=1.0
+                  YON=1300.0
+                  ITBND=1    ! optimal bounds
+                  XMN=fxmin; YMN=fymin; ZMN=fzmin
+                  XMX=fxmax; YMX=fymax; ZMX=fzmax
+                  CALL LENS(IER)
+
                   call startbuffer
-                  call MFWFDRAWNC('g')  ! Draw flow nodes & components in grey.
+                  igwid=igw
+                  igheight=igwh
+                  call axiscale(igwid,igheight,-1000.,1000.,-1000.,
+     &              1000.,xxsc,yysc,xsca,XXadd,YYadd)
+                  call linescale(iigl,XXadd,xsca,iigb,YYadd,xsca)
+
+C If there are few active nodes and components consider including names.
+                  if(NNOD.gt.50.or.NCMP.gt.50)then
+                    call MFWFDRAWNC('g',0,0)  ! Draw flow nodes & components in grey.
+                  else
+                    call MFWFDRAWNC('g',1,1)  ! Draw flow nodes & components in grey.
+                  endif
                 endif
               endif
             endif
@@ -1296,18 +1532,26 @@ C Finally label lines, matching zone line colour if used.
         do 200 I=1,NMFGET
           Iax=IMFGETNO(I,7)
           call linescale(iigl,Xadd,TSC,iigb,Yadd(Iax),YSC(Iax))
-          t20=GMFLABEL(I)
+          t32=GLMFLABEL(I)
           if(colok)then
             if(IMFGETNO(I,2).gt.0)then
               ICM=IMFGETNO(I,2)
               if(ICM.gt.nzonec) ICM=IMFGETNO(I,2)-nzonec
               if(ICM.gt.nzonec) ICM=IMFGETNO(I,2)-nzonec
               iicol=ICM
+            elseif(IMFGETNO(I,2).le.0)then
+
+C For volume flow to/from ambient IMFGETNO(IX,2) is -1 and
+C for air changes it is zero so use the IX index for colour.
+              ICM=I
+              if(ICM.gt.nzonec) ICM=ICM-nzonec
+              if(ICM.gt.nzonec) ICM=ICM-nzonec
+              iicol=ICM
             endif
           endif
           call u2pixel(TIMEold(I),Yold(I),iid1,iid2)
           ibsize=0
-          call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
+          call textsizeatxy(iid1,iid2,t32,ibsize,'z',iicol)
           if(colok)then
             iicol=0
             call winscl('-',iicol)
@@ -1329,12 +1573,12 @@ C If there are optional user defined labels draw them.
 
 C Display stats.
         write (outs,'(a,a)') 
-     &    '                           Maximum                Minimum',
-     &    '              Mean   Standard'
+     &'                                       Maximum                ',
+     &'Minimum              Mean   Standard'
         call eddisp(itru,outs)
         write (outs,'(a,a)') 
-     &    '                       value    occurrence    value    ',
-     &    'occurrence     value  deviation'
+     &'                                   value    occurrence    value',
+     &'    occurrence     value  deviation'
         call eddisp(itru,outs)
         do 210 I=1,NMFGET
 
@@ -1352,8 +1596,8 @@ C Flow data in m^3/s or kg/s deserves 3 decimal places.
           call STDATE(IYEAR,MINDOY,DESCR,DESCR1)
           call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
           write (NT,'(a,a,a)')DESCR(1:6),'@',DESCRH
-          t20=GMFLABEL(I)
-          write (outs,'(a,1x,2(f7.3,2x,a12,2x),1x,2(f7.3,3x))') t20,
+          t32=GLMFLABEL(I)
+          write (outs,'(a,1x,2(f7.3,2x,a12,2x),1x,2(f7.3,3x))') t32,
      &      FMAX(I),XT,FMIN(I),NT,FAVE(I),FSTD(I)
           call eddisp(itru,outs)
  210    continue
@@ -1368,12 +1612,12 @@ C Display stats + hrs above.
         call edisp(itru,outs)
         call edisp(itru,'  ')
         write (outs,'(a,a)') 
-     &    '                          Maximum               Minimum',
-     &    '              Mean    Hours'
+     &'                                       Maximum               ',
+     &'Minimum              Mean    Hours'
         call eddisp(itru,outs)
         write (outs,'(a,a)')
-     &    '                      value    occurrence   value    ',
-     &    'occurrence      value   above'
+     &'                                   value    occurrence   value',
+     &'    occurrence      value   above'
         call eddisp(itru,outs)
         do 220 I=1,NMFGET
 
@@ -1391,8 +1635,8 @@ C Create string description for time of minimum occurrance.
           call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
           write (NT,'(a,a,a)')DESCR(1:6),'@',DESCRH
           AYAB=float(IQHRS(I))*float(NOUT)/float(NTS)
-          t20=GMFLABEL(I)
-          write (outs,'(a,1x,2(f7.3,2x,a12,1x),2f9.3)') t20,
+          t32=GLMFLABEL(I)
+          write (outs,'(a,1x,2(f7.3,2x,a12,1x),2f9.3)') t32,
      &      FMAX(I),XT,FMIN(I),NT,FAVE(I),AYAB
           call eddisp(itru,outs)
 
@@ -1411,12 +1655,12 @@ C Display stats + hrs below.
         call edisp(itru,outs)
         call edisp(itru,'  ')
         write (outs,'(a,a)') 
-     &    '                          Maximum               Minimum',
-     &    '              Mean    Hours'
+     &'                                       Maximum               ',
+     &'Minimum              Mean    Hours'
         call eddisp(itru,outs)
         write (outs,'(a,a)') 
-     &    '                      value    occurrence   value    ',
-     &    'occurrence      value   below'
+     &'                                   value    occurrence   value',
+     &'    occurrence      value   below'
         call eddisp(itru,outs)
         do 230 I=1,NMFGET
 
@@ -1434,8 +1678,8 @@ C Create string description for time of minimum occurrance.
           call EDTIME(TMINHR,DESCRH,DESCRD,TIMER)
           write (NT,'(a,a,a)')DESCR(1:6),'@',DESCRH
           AYAB=float(IQHRS(I))*float(NOUT)/float(NTS)
-          t20=GMFLABEL(I)
-          write (outs,'(a,1x,2(f7.3,2x,a12,1x),2f9.3)') t20,
+          t32=GLMFLABEL(I)
+          write (outs,'(a,1x,2(f7.3,2x,a12,1x),2f9.3)') t32,
      &      FMAX(I),XT,FMIN(I),NT,FAVE(I),AYAB
           call eddisp(itru,outs)
 
@@ -1524,7 +1768,7 @@ C (absolute value of INODE).
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION IPK(MCNN),ICPK(MCNN),ICID(MCNN)
 
@@ -1648,7 +1892,7 @@ C pixel references for calls to viewtext.
       IF(MMOD.EQ.8)THEN
 
 C Setup and pass in parameters to win3d.
-        iiw1=9; iiw2=32; iiw3=4; iiw4=3; iimenu=menuchw
+        iiw1=9; iiw2=42; iiw3=4; iiw4=3; iimenu=menuchw
         iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
         ilf=2; ild=LIMTTY
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.

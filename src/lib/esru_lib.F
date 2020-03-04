@@ -1,7 +1,3 @@
-C This file is part of the ESP-r system.
-C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow, Scotland, 2001.
-
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
 C License as published by the Free Software Foundation
@@ -13,10 +9,7 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
+
 
 C The file esru_ib.f is a collection of low-level ESP-r fortran
 C libraries that are applicable to all versions of ESP-r (that is,
@@ -208,7 +201,7 @@ C  WIREPK:  Called from 'C' upon a wireframe control button pick.
 C  EPROMPT: Does nothing, for compatibility only.
 C  ISEOF:   Checks for an EOF from a READ statement.
 
-C ************** st2name
+C ********** st2name
 C st2name takes `string' swap blanks & wildcards to _ : return as `name'.
       SUBROUTINE st2name(string,name)
       CHARACTER*(*) string,name
@@ -281,7 +274,49 @@ C          write(6,'(a,I4)')string(I:I),ichar(string(I:I))
       return
       end
 
-C ************** st2file
+C ********** hashname
+C Takes an entity name (inname), a desired length and returns shortened name
+C via removing - _ or spaces if required.
+      subroutine hashname(lenin,lendesire,inname,outname,ier)
+      integer lendesire,lenin          ! requested length & input length
+      character (len=lenin) :: inname  ! entity name (of lenin size)
+      character (len=lendesire) :: outname ! shortened name (of lendesire size)
+      integer ier                      ! error is non-zero
+      character phrase*124             ! working string
+
+      illstr = max(1,lnblnk(inname))   ! get length to loop over
+      phrase = '  '                    ! clear phrase
+      if(lnblnk(inname).le.lendesire)then
+        write(outname(1:lendesire),'(a)') inname(1:lendesire) ! no need to shorten
+        ier=0
+      else
+        K=0
+        DO I=1,illstr
+          if(inname(I:I).NE.' '.OR.K.GE.1)then
+            if(K.gt.lendesire)goto 100
+            if(inname(I:I).eq.' '.or.inname(I:I).eq.'-'.or.
+     &         inname(I:I).eq.'_')then
+              continue   ! strip out blank or - or _
+            else
+              K=K+1
+              phrase(K:K)=inname(I:I)
+            endif
+          endif
+        ENDDO
+  100   continue
+        if(lnblnk(phrase).gt.lendesire)then
+          ier=1; LN=lendesire                ! signal truncation
+        else
+          ier=0; LN=lnblnk(phrase)
+        endif
+        write(outname,'(a)') phrase(1:LN)    ! truncate phrase if needed
+      endif
+C Debug.
+C      write(6,*) lendesire,inname,lenin,outname,ier
+      return
+      end      ! of hashname
+
+C ********** st2file
 C st2file: Given `string' strip blanks & wildcards and return as `name'.
 C Useful to check file names.
       SUBROUTINE st2file(string,name)
@@ -350,7 +385,7 @@ C        write(6,'(a,I4)')string(I:I),ichar(string(I:I))
       return
       end
 
-C ************** backslashit
+C ********** backslashit
 C backslashit: Given `string' swap / to \ : return as `name'.
       SUBROUTINE backslashit(string,name)
       CHARACTER*(*) string,name
@@ -370,10 +405,6 @@ C between words and dtop copying if end of name reached.
       K=0
       DO 99 I=1,illstr
         IF(string(I:I).NE.' '.OR.K.GE.1)THEN
-
-C Debug.
-C          write(6,'(a,I4)')string(I:I),ichar(string(I:I))
-
           if(ichar(string(I:I)).lt.32)goto 100
           if(I.gt.ilname)goto 100
           K=K+1
@@ -391,7 +422,7 @@ C          write(6,'(a,I4)')string(I:I),ichar(string(I:I))
       return
       end
 
-C ********** iprevblnk(string,ipos)
+C ********** iprevblnk
 C prevblnk: given a string, return position of blank just before ipos.
       function iprevblnk(string,ipos)
       character*(*) string
@@ -457,7 +488,7 @@ C If the current position is 1 do not bother with position zero.
       endif
       end
 
-C ********** inextblnk(string,ipos)
+C ********** inextblnk
 C inextblnk: given a string, return position of blank just after ipos
 C (or the end of the string if that happens first).
       function inextblnk(string,ipos)
@@ -513,7 +544,7 @@ C left is also a blank carry on stepping leftwards, otherwise return.
       endif
       end
 
-C ************* icutstr(string,ipos,icut)
+C ********** icutstr
 C icutstr: given a string, cuts icut characters from position ipos
 C and shifts latter portion of the string down icut chars. Returns
 C zero if no error.
@@ -598,7 +629,7 @@ C   2  file is expected not to exist; error if it does
 C   3  file used if it exists; zero length file created if not
 
 
-C ****************** FPOPEN
+C ********** FPOPEN
 C FPOPEN Opens the file with standard parameter conventions for
 C IUN, ISTAT, MODE, and IXIST;  FNARG is the file name.
         SUBROUTINE FPOPEN(IUN,ISTAT,MODE,IXIST,FNARG)
@@ -636,7 +667,6 @@ C File does not exist, set error and return.
           RETURN
         ENDIF
 
-
 C Check mode:   mode 1-4,5-8 is sequential access
         IF ((MODE.LT.0).OR.(MODE.GT.10)) THEN
 
@@ -654,7 +684,7 @@ C ASCII RECORDS,4 CHAR PER WORD,RECL IN CHARS
               ENDIF
             ELSE
 
-C***BINARY UNFORMATTED D.A. FILE
+C BINARY UNFORMATTED D.A. FILE
 C ON VAX/VMS  RECL=  -MODE WORDS PER RECORD
 C ON UNIX     RECL=  -MODE*4  BYTES PER RECORD
 
@@ -669,7 +699,7 @@ C ON UNIX     RECL=  -MODE*4  BYTES PER RECORD
             ENDIF
         ELSE
 
-c Sequential access.
+c Sequential access file.
 C***V3.4  ADD READONLY FOR MODE=1 OR 5 FOR VAX SYSTEMS
 C  THIS SHOULD BE REMOVED IF YOUR SYSTEM DOESNT SUPPORT 'READONLY'
          IF(MODE.EQ.1)THEN
@@ -719,7 +749,7 @@ C***3.5
       RETURN
       END
 
-C ******************* FPRAND
+C ********** FPRAND
 C FPRAND Opens a random access file with name FNARG.
 C  LENG determines the record length and type as follows:-
 C       <0      -( LENG ) characters per record, ASCII records.
@@ -753,7 +783,7 @@ C Open file.
         END
 
 
-c ******************** ERPFREE
+c ********** ERPFREE
 C ERPFREE is used to close any file.
 C IUN (integer) is the file unit number
 C ISTAT (integer) is its status 0=OK, 1=if IUN was zero.
@@ -770,7 +800,7 @@ C ISTAT (integer) is its status 0=OK, 1=if IUN was zero.
       RETURN
       END
 
-c ******************** EFDELET
+c ********** EFDELET
 C EFDELET: Delete file IUN and return ISTAT for compatibility.
 C IUN (integer) is the file unit number
 C ISTAT (integer) is its status 0=OK, 1=if IUN was zero.
@@ -787,7 +817,7 @@ C ISTAT (integer) is its status 0=OK, 1=if IUN was zero.
       RETURN
       END
 
-C ******************** EASKAB
+C ********** EASKAB
 C EASKAB Generic choice facility returning 1 or 2 according to which
 C of the choices has been chosen.
 C MSG1 and MSG2 are prompts (upto 124 char) to be printed.
@@ -810,9 +840,9 @@ C options available, (these should not be too long).
       RETURN
       END
 
-C ******************** EASKABC
+C ********** EASKABC
 C EASKABC Generic choice facility returning 1, 2 or 3 according to which
-C of the choices has been chosen. See EASKATOG for parameter documentation.
+C option is selected. See EASKATOG for parameter documentation.
       SUBROUTINE EASKABC(MSG1,MSG2,AOPT,BOPT,COPT,IWHICH,NHELP)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -830,9 +860,9 @@ C of the choices has been chosen. See EASKATOG for parameter documentation.
       RETURN
       END
 
-C ******************** EASKABCD
+C ********** EASKABCD
 C EASKABCD Generic choice facility returning 1, 2, 3 or 4 according to which
-C of the choices has been chosen. See EASKATOG for parameter documentation.
+C option is selected. See EASKATOG for parameter documentation.
       SUBROUTINE EASKABCD(MSG1,MSG2,AOPT,BOPT,COPT,DOPT,IWHICH,NHELP)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
@@ -849,7 +879,7 @@ C of the choices has been chosen. See EASKATOG for parameter documentation.
       RETURN
       END
 
-C ******************** EASKXORGTKF
+C ********** EASKXORGTKF
 C EASKXORGTKF Generic file edit/browse for X11 or GTK using easkf calls.
       SUBROUTINE EASKXORGTKF(FILEN,PROMP1,PROMP2,DFILE,RETFILE,ERMSG,
      &  IER,NHELP)
@@ -865,7 +895,7 @@ C Parameters
       integer ier           ! zero is ok, -3 is cancel
       integer NHELP         ! number of help lines
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER outs248*248
       character llitem*144     ! local string buffer
@@ -949,19 +979,14 @@ C If ier is zero then set RFILE to llitem.
       END
 
 
-C ******************** bSPEqual ******************
+C ********** bSPEqual
 C bSPEqual determines if two SP numbers are within machine round-off error.
 C
 C The floating point computations in this function are
 C based on the following paper:
 C
 C Goldberg, David (1991). "What Every Computer Scientest Should Know
-C   About Floating Point Arithmetic", Computing Surveys, March.
-C
-C   (Available at:
-C      http://www.physics.ohio-state.edu/~dws/grouplinks/floating_point_math.pdf
-C    as of 8-8-2007)
-C
+C About Floating Point Arithmetic", Computing Surveys, March.
 
       logical function bSPEqual(fFloat1, fFloat2)
       implicit none
@@ -999,14 +1024,11 @@ C Round-off error
       logical bClose
 
 C Components for float:
-
       integer iFloatBasis
       integer iFloatPrecision
       save iFloatBasis
       save iFloatPrecision
       
-!       print*, "bSPEqual: comparing ", fFloat1, " and ", fFloat2
-!
       call eclose ( fFloat1, fFloat2, 1.0E-03, bClose )
       if ( .not. bclose ) then
         bSPEqual = .false.
@@ -1018,7 +1040,6 @@ C Establish the minimum exponent distinguisable on the system
 
 C Initialize base and precision parameters according to
 C IEEE 754.
-
         iFloatBasis = 2
         
         select case  ( bit_size( iExp1 ) )
@@ -1057,8 +1078,6 @@ C Perhaps a better error message could go here?
         bInitialized = .true.
 
       endif
-      
-!       print*, "iMin_exp:", iMin_exp, "iFloatPrecision:",iFloatPrecision
 
 C Establish signs for arguments, and convert to absolute avalues.
 
@@ -1087,26 +1106,14 @@ C Determine the exponent of the first arguement.
 
         fSig1 = fFloat1 / 2.0 ** float ( iExp1 )
 
-!         print*, "  - iExp1:", iExp1, "fSig1:", fSig1, iExpLB, iExpUB,
-!      &          iMin_exp
-
         if ( fSig1 * real ( iSign1 ) .lt. 1.0 ) then
-
           iExpLB = iExp1
-        
         elseif ( fSig1 * real ( iSign1 ) .ge. 2.0 ) then
-
           iExpUB = iExp1
-
         else
-
           bExpFound = .true.
-
         endif 
-      
       enddo
-
-!       print*, "Exponent of arg 1:", iExp1
 
 C Determine the exponent of second arguement.
       bExpFound = .false. 
@@ -1115,41 +1122,22 @@ C Determine the exponent of second arguement.
 
       do while ( .not. bExpFound )
 
-
         iExp2 = int( float ( iExpLB + iExpUB ) / 2.0 )
 
         fSig2 = fFloat2 / 2.0 ** float ( iExp2 )
 
-!         print*, "  - iExp2:", iExp2, "fSi2:", fSig2, iExpLB, iExpUB,
-!      &          iMin_exp
-
         if ( fSig2 * real ( iSign2 ) .lt. 1.0 ) then
-
           iExpLB = iExp2
-        
         elseif ( fSig2 * real ( iSign2 ) .ge. 2.0 ) then
-
           iExpUB = iExp2
-
         else
-
           bExpFound = .true.
-
         endif 
-      
       enddo
 
-!       print*, "Exponent of arg 2:", iExp2
-
-
-C Now compute potential round-off error.
-C
-C Error is:
-C
+C Compute potential round-off error:
 C     ( ( basis / 2 ) * basis ^ ( - precision ) ) * basis ^ exponent 
-C
 C (See Goldberg 1991).
-
       fRoundoffError =
      &    (   ( real ( iFloatBasis ) / 2.0 )
      &      * real ( iFloatBasis ) ** real ( -1 * iFloatPrecision )
@@ -1159,25 +1147,17 @@ C (See Goldberg 1991).
 C Finally, compare difference between arguements with potential
 C round-off error. Report numbers as equal if round-off error
 C exceeds difference.
-
       if ( ABS ( fFloat1 - fFloat2 ) .lt. fRoundoffError ) then
-
         bSPEqual = .true.
-
       else
-
         bSPEqual = .false.
-
       endif 
-
-!       print*, "Round-off error:", fRoundoffError, abs(fFloat1 - fFloat2)
-!       print*, "bSPEqual result:", bSPEqual
 
       return
       end
 
 
-C ******************** DAYCLK
+C ********** DAYCLK
 C DAYCLK will print the day, month, day no. and time based on the day
 C of the year IYD (integer) and clock time in hours TIME (real) on the
 C output channel ITU (integer).
@@ -1216,13 +1196,12 @@ C output channel ITU (integer).
       RETURN
       END
 
-C ******* FDROOT
+C ********** FDROOT
 C FDROOT: Given a file name (fstring) see if it contains a (path) and a (filen).
 C Note: mingw compilers require fstring to be declaired length (not *(*).
       SUBROUTINE fdroot(fstring,path,filen)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*(*) path,filen,fstring
-C      character fstring*72
       character fs*1
       logical unixok
       integer ilbfstr  ! last actual char in fstring
@@ -1276,7 +1255,6 @@ C Arrived at the first character. There have been no file separators
 C so filen is fstring (truncated if necessary) and the path becomes
 C the equivalent of where-i-am-now.
         if(ipos.eq.1)then
-C          call edisp(iuout,'No folder separator found.')
           if(ilstr.ge.ilenfilen)then
             filen = ' '
             write(filen,'(a)',IOSTAT=IOS,ERR=1)fstring(1:ilenfilen)
@@ -1307,7 +1285,7 @@ C          call edisp(iuout,'No folder separator found.')
       end
       
 
-C ******************** EFOPSEQ
+C ********** EFOPSEQ
 C EFOPSEQ: Open a sequential ASCII file (SFILE) and return appropriate
 C messages and error status (IEXIST).
 C IUN is the file unit number, SFILE is the file name.
@@ -1322,10 +1300,10 @@ C If the path is other than `./' but is not `/usr/esru' then
 C concatenate path with sfile.
 
       SUBROUTINE EFOPSEQ(IUN,SFILE,IEXIST,IER)
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
 
-      LOGICAL XST,OK,concat,DOK
+      LOGICAL XST,OK,concat
       CHARACTER*(*) SFILE
       character outs*144
       CHARACTER LFIL*72,h*72
@@ -1333,10 +1311,6 @@ C      COMMON/OUTIN/IUOUT,IUIN
 
       LFIL=' '
       longtfile=' '
-
-C Debug.
-C      WRITE(outs,'(2A)')' EFOPSEQ: ',SFILE(1:lnblnk(SFILE))
-C      call edisp(iuout,outs)
 
 C Add path to file if required then get length of file name.
       XST=.false.
@@ -1404,14 +1378,12 @@ C overwritten with a file by the same name.
         IF(XST)THEN
           OPEN(IUN,FILE=longtfile,ACCESS='SEQUENTIAL',
      &            STATUS='OLD',IOSTAT=ISTAT)
-          DOK=.true.
-          H(1)='The displayed file exists. Please confirm if you '
-          H(2)='want to overwrite it. A no allows you to rename.'
-          H(3)='You might want to rename the current file, if '
-          H(4)='for example you made a mistake and want to '
-          H(5)='create a temporary file name.'
-          NHELP=5
-          CALL ASKOK(longtfile,'Overwrite this file?',OK,DOK,NHELP)
+          H(1)='Click YES to overwrite file with updated data. '
+          H(2)=' '
+          H(3)='Click NO to return to file name input. '
+          H(4)=' '
+          NHELP=4
+          CALL EASKOK(longtfile,'Overwrite file?',OK,NHELP)
           IF(OK)THEN
             CALL EFDELET(IUN,ISTAT)
             OPEN(IUN,FILE=longtfile,ACCESS='SEQUENTIAL',
@@ -1420,21 +1392,17 @@ C overwritten with a file by the same name.
 
 C Close the initial file before asking the user for new file.
   83        CALL ERPFREE(IUN,ISTAT)
-            H(1)='Give the file name relative to the configuration file'
-            H(2)='location.'
-            H(3)='If you choose to remember the new file name, it will'
-            H(4)='be included in the model. If, for example you made a '
-            H(5)='mistake and enter a temporary file name, this will'
-            H(6)='not affect your model. '
+            H(1)='Enter new file name and click OK. '
+            H(2)=' '
             write(LFIL,'(a)')SFILE(1:lnblnk(SFILE))
-            CALL EASKS(LFIL,'Revised file name?',' ',72,' ',
-     &        'revised file name',IER,6)
+            CALL EASKS(LFIL,' ','Revised file name?',72,' ',
+     &        'revised file name',IER,2)
             IF(LFIL(1:2).eq.'  ')goto 83
             call addpath(LFIL,longtfile,concat)
-            DOK=.true.
-            NHELP=6
-            CALL ASKOK(' ',' Remember the new file name?',
-     &        OK,DOK,NHELP)
+            H(1)='Click YES to use updated file name. '
+            H(2)=' '
+            NHELP=2
+            CALL EASKOK(' ','Preserve this revised file name?',OK,NHELP)
             if(OK)SFILE=LFIL
             goto 10
           ENDIF
@@ -1459,7 +1427,7 @@ C negative values.
       RETURN
       END
 
-C ******************** EFOPRAN
+C ********** EFOPRAN
 C EFOPRAN: Open a random access file (SFILE) and return appropriate
 C messages and error status (IEXIST).
 C IUN is the file unit number, SFILE is the file name, IRW is
@@ -1478,18 +1446,13 @@ C If the path is other than `./' but is not `/usr/esru' then
 C concatenate path with sfile.
 
       SUBROUTINE EFOPRAN(IUN,SFILE,IRW,IEXIST,IER)
-C      COMMON/OUTIN/IUOUT,IUIN
+
       common/pophelp/h(60)
 
-      LOGICAL XST,OK,concat,DOK
+      LOGICAL XST,OK,concat
       CHARACTER*(*) SFILE
-C      character outs*144
       CHARACTER LFIL*72,h*72
       character longtfile*144
-
-C Debug.
-C      WRITE(outs,'(A,A)')' EFOPRAN: ',SFILE(1:lnblnk(SFILE))
-C      call edisp(iuout,outs)
 
       LFIL=' '
       longtfile=' '
@@ -1559,14 +1522,11 @@ C overwritten with a file by the same name.
         IF(XST)THEN
           OPEN(IUN,FILE=longtfile(1:ltf),ACCESS='DIRECT',
      &        RECL=IRW*4,FORM='UNFORMATTED',STATUS='OLD',IOSTAT=ISTAT)
-          DOK=.true.
-          H(1)='The displayed file exists. Please confirm if you '
-          H(2)='want to overwrite it. A no allows you to rename.'
-          H(3)='You might want to rename the current file, if '
-          H(4)='for example you made a mistake and want to '
-          H(5)='create a temporary file name.'
-          NHELP=5
-          CALL ASKOK(longtfile,'Overwrite this file? ',OK,DOK,NHELP)
+          H(1)='The displayed file exists. Confirm if you want'
+          H(2)='to overwrite it. Otherwise, say `no` and enter'
+          H(3)='another file name.'
+          NHELP=3
+          CALL EASKOK(longtfile,'Overwrite this file?',OK,NHELP)
           IF(OK)THEN
             CALL EFDELET(IUN,ISTAT)
             OPEN(IUN,FILE=longtfile(1:ltf),ACCESS='DIRECT',
@@ -1576,14 +1536,10 @@ C overwritten with a file by the same name.
 C Close the initial file before asking the user for new file.
 C Pass back through with alternative file name.
   83        CALL ERPFREE(IUN,ISTAT)
-            H(1)='Give the file name relative to the configuration file'
-            H(2)='location.'
-            H(3)='If you choose to remember the new file name, it will'
-            H(4)='be included in the model. If, for example you made a '
-            H(5)='mistake and enter a temporary file name, this will'
-            H(6)='not affect your model. '
+            H(1)='Specify the file relative to the location of the'
+            H(2)='model configuration file'
             write(LFIL,'(a)')SFILE(1:lnblnk(SFILE))
-            CALL EASKS(LFIL,' File name?',' ',72,' ','file name',IER,6)
+            CALL EASKS(LFIL,' ','File name?',72,' ','file name',IER,2)
             if(LFIL(1:2).eq.'  ')goto 83
             call addpath(LFIL,longtfile,concat)
             goto 10
@@ -1593,7 +1549,6 @@ C Pass back through with alternative file name.
      &        RECL=IRW*4,FORM='UNFORMATTED',STATUS='NEW',IOSTAT=ISTAT)
         ENDIF
       ELSE
-C        CALL USRMSG(' ','Unknown existence flag passed!','W')
         IER=1
         RETURN
       ENDIF
@@ -1607,7 +1562,7 @@ C If problem in opening then report difficulty.
       RETURN
       END
 
-C ******************** FINDFIL
+C ********** FINDFIL
 C FINDFIL: Check for existance of a file SFILE (with path) & return XST.
 C If the path is other than `./' but is not `/usr/esru' then
 C concatenate path with sfile before looking.  If file name is
@@ -1632,7 +1587,7 @@ C Does the file exist?
       RETURN
       END
 
-C ******************** addpath
+C ********** addpath
 C ADDPATH: Return file name appended onto the path and logical concat.
 C IUOUT is the message channel, SFILE is the file name.
 C If the path does not begin with '/' or '?:' then
@@ -1654,9 +1609,9 @@ C Declare local variables
       CHARACTER(72) :: path
       CHARACTER(12) :: tp, tp1
       CHARACTER(124):: outs
-      INTEGER :: LN,LNS,I,LT,ios,iuin,iuout,pos
+      INTEGER :: LN,LNS,I,LT,ios,iuin,iuout,ieout,pos
 C Common blocks
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/rpath/path
       
 C Define path and file name lengths and check operating system.
@@ -1761,14 +1716,14 @@ C Limit feedback text length to fit within outs text buffer.
       return
       end
 
-C ********************* GETTOKENS
+C ********** GETTOKENS
 C GETTOKENS checks a character string (A), returning the number of data
 C items (IW) separated by a file separator and an array of tokens/words
 C (up to 12 32character words returned) that were in the string.
 C Useful for parsing file paths.  Note to keep from
 C overwriting the string passed, deal with a copy.
       SUBROUTINE GETTOKENS(A,IW,WORDS)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*(*) A
       CHARACTER*32 WORDS(12)
       CHARACTER B*248,C*1,fs*1,outs*248
@@ -1852,7 +1807,7 @@ C assign WORDS.
 
       END
 
-C ************ c2fstr
+C ********** c2fstr
 C c2fstr: converts c function returned string to fortran format.
 C Strip off the last character (end of line mark) as well as any
 C leading blanks from string returned.
@@ -1869,10 +1824,6 @@ C Dos.
       K=0
       DO 99 I=1,LEN(cstr)
         IF(cstr(I:I).NE.' '.OR.K.GE.1)THEN
-
-C Debug.
-C         WRITE(6,'(a,I4)')cstr(I:I),ichar(cstr(I:I))
-
           if(ichar(cstr(I:I)).lt.32)goto 100
           K=K+1
           if(K.gt.LEN(fstr))goto 100
@@ -1880,13 +1831,10 @@ C         WRITE(6,'(a,I4)')cstr(I:I),ichar(cstr(I:I))
         ENDIF
  99   CONTINUE
  100  return
-
-C   1  write(6,*) 'c2fstr: error writing: ',cstr
-C      return
       end
 
 
-C ******* terminalmode
+C ********** terminalmode
 C terminalmode: given an index `mode` return a terminal text string.
 C this would be called based on the fortran setting of mode in prj.
       SUBROUTINE terminalmode(mode,tmode)
@@ -1908,7 +1856,7 @@ C this would be called based on the fortran setting of mode in prj.
       RETURN
       END
 
-C ***************** EKPAGE
+C ********** EKPAGE
 C EKPAGE maps key characters, pages & array indexs in long display lists.
 C No menu should have more than 26 data selections (plus heading and
 C control lines) so that key characters (a-z) for arrays will not be
@@ -1975,17 +1923,18 @@ C If lots of pages track the 1st and last page otherwise ask user.
           elseif (IPM.eq.MPM) then
             IX=2
           else
-            H(1)='In order to manage long lists of selections or data'
-            H(2)='a number of viewports may be necessary.'
-            CALL EASKATOG(' ',' Menu-page options:','first page',
-     &        'previous','next','goto page','last page','  ','  ',IW,2)
+            H(1)='To manage long selection lists, several pages'
+            H(2)='may be offered here.'
+            CALL EASKATOG(' ','Options:','first page',
+     &        'previous','next','go to','last page',' ',' ',IW,2)
             if(IW.eq.5)then
               IGTP=MPM   ! set it to last page
               IX=3
             elseif(IW.EQ.4)then
-              H(1)='If page greater than length then last page assumed.'
-              CALL EASKI(IGTP,' ',' Which page ? ',1,'F',1,'-',1,
-     &          'menu page',IER,1)
+              H(1)='If the specified page is greater than the total'
+              H(2)='available then the last page is assumed.'
+              CALL EASKI(IGTP,' ','Which page?',1,'F',1,'-',1,
+     &          'menu page',IER,2)
               IX=3
             elseif(IW.EQ.3)then
               IX=5
@@ -2007,7 +1956,7 @@ C fit in the main section of the menu (MIFULL) and limit this to 26
 C so that the automaticly supplied key character remains within the
 C range a-z.  If more items that allowed set tag for paging.
         IF(MMOD.LT.8)THEN
-          MFULL=LIMTTY-2
+          MFULL=LIMTTY
         ELSEIF(MMOD.EQ.8)THEN
           MFULL=30
         ENDIF
@@ -2066,7 +2015,7 @@ C number on the starting item of the current menu unless the last page.
       RETURN
       END
 
-C ******************* KEYIND
+C ********** KEYIND
 C KEYIND decodes the index INO and returns the array index IA of the item
 C displayed and whether INO is within the list.
 C MENUL (integer) is the length of the menu.
@@ -2087,7 +2036,7 @@ C Assume blank returned key, 0 array index, outwith list.
       RETURN
       END
 
-C ********************** EPMENSV
+C ********** EPMENSV
 C EPMENSV pushes the current state of common block PMENU into common block
 C PMENUSV.  Up to 5 levels are maintained.
 C This is useful if a second menu is about to be called and
@@ -2095,9 +2044,10 @@ C knowledge of the first is required.  See also EPMENRC which pops the
 C information back into common PMENU.
       SUBROUTINE EPMENSV
 #include "epara.h"
+
       COMMON/PMENUSV/MHEAD1(10),MCTL1(10),MIFUL1(10),MFUL1(10),IST1(10),
      &               ILEN1(10),IPM1(10),MPM1(10),IPFLG1(10),MILEV
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER outs*124
       MILEV=MILEV+1
       if(MILEV.gt.10)then
@@ -2134,20 +2084,17 @@ C Debug.
 
       END
 
-C *********************** EPMENRC
+C ********** EPMENRC
 C EPMENRC recovers menu definitions (common block PMENU) from common
 C block PMENUSV.
 C This is useful if returning from a second menu.  See also EPMENSV.
       SUBROUTINE EPMENRC
 #include "epara.h"
+
       COMMON/PMENUSV/MHEAD1(10),MCTL1(10),MIFUL1(10),MFUL1(10),IST1(10),
      &               ILEN1(10),IPM1(10),MPM1(10),IPFLG1(10),MILEV
       MILEV=MILEV-1
       if(MILEV.le.0)then
-
-C Debug.
-C        write(6,*) 'Number of nested levels is',MILEV
-
         MILEV=0
       endif
       MHEAD=MHEAD1(1)
@@ -2175,9 +2122,11 @@ C        write(6,*) 'Number of nested levels is',MILEV
 
       END
 
-C+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C ********** EPAGE
+C Clear screen without waiting.
+
       SUBROUTINE EPAGE
-C EPAGE: Screen control: page without waiting.
+
       IPAGE=1
       IWAIT=0
       IEND=0
@@ -2185,9 +2134,11 @@ C EPAGE: Screen control: page without waiting.
       RETURN
       END
 
-C+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C ********** EPAGEW
+C Wait before clearing screen.
+
       SUBROUTINE EPAGEW
-C EPAGEW: Screen control: Wait before paging.
+
       IPAGE=1
       IWAIT=1
       IEND=0
@@ -2195,9 +2146,11 @@ C EPAGEW: Screen control: Wait before paging.
       RETURN
       END
 
-C+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C ********** EPWAIT
+C Wait but do not clear screen.
+
       SUBROUTINE EPWAIT
-C EPWAIT: Screen control: Wait without paging.
+
       IPAGE=0
       IWAIT=1
       IEND=0
@@ -2205,9 +2158,11 @@ C EPWAIT: Screen control: Wait without paging.
       RETURN
       END
 
-C+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C ********** EPAGEND
+C Clear screen then close window if open.
+
       SUBROUTINE EPAGEND
-C EPAGEND: Screen control: Page then close window if open.
+
       IPAGE=1
       IWAIT=0
       IEND=1
@@ -2216,13 +2171,14 @@ C EPAGEND: Screen control: Page then close window if open.
       END
       
 
-C ******* ang3vtx
+C ********** ang3vtx
 C ang3vtx: recover angle between three vertex (i.e. between two lines).
 C Angel between lines: finds angle A between two lines'
 C given 3 vertex as in:    * 1
 C                           a \
 C                     3 *------* 2
       SUBROUTINE ang3vtx(x1,y1,z1,x2,y2,z2,x3,y3,z3,ang)
+
       dimension vd21(3),vd32(3)
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
@@ -2255,7 +2211,7 @@ C Get dot product.
       return
       end
 
-C ********************** CLOSE3D **********************
+C ********** CLOSE3D
 C CLOSE3D - calc min dist between two lines in 3D return dist and
 C closest points.
 C PA,VA define line A (point and vector), SA is parametric variable at closest point
@@ -2344,7 +2300,7 @@ C Calc distance between them.
       return
       end
 
-C ******************** CROW
+C ********** CROW
 C CROW: Function returning the distance 'as the crow flies'
 C between the two points P and Q in X Y Z space.
       FUNCTION CROW(P,Q)
@@ -2356,7 +2312,7 @@ C between the two points P and Q in X Y Z space.
       RETURN
       END
 
-C ******************** CROWXYZ
+C ********** CROWXYZ
 C CROWXYZ: Function returning the distance 'as the crow flies'
 C between the two X Y Z points.
       FUNCTION CROWXYZ(PX,PY,PZ,QX,QY,QZ)
@@ -2366,7 +2322,7 @@ C between the two X Y Z points.
       RETURN
       END
 
-C ******************** UVXYZ
+C ********** UVXYZ
 C UVXYZ: Subroutine returning Unit vector from two points along a
 C line expressed as X Y Z points.
       subroutine UVXYZ(PX,PY,PZ,QX,QY,QZ,UX,UY,UZ)
@@ -2382,7 +2338,7 @@ C line expressed as X Y Z points.
       RETURN
       END
 
-C ******************** UVAB
+C ********** UVAB
 C UVAB: Subroutine returning Unit normal vector U of vector A.
 C ierr (integer) = -1 if vector is very short.
       subroutine UVAB(A,U,ierr)
@@ -2401,8 +2357,9 @@ C ierr (integer) = -1 if vector is very short.
       RETURN
       END
 
-C ******************** PLNDANG(AEQN,BEQN,DANG)
-C PLNDANG: Finds dihedral angel between two planes given their equations.
+C ********** PLNDANG
+C Finds dihedral angle between two planes given their equations.
+
       subroutine plndang(aeqn,beqn,dang)
       dimension aeqn(4),beqn(4)
       PI = 4.0 * ATAN(1.0)
@@ -2412,20 +2369,22 @@ C PLNDANG: Finds dihedral angel between two planes given their equations.
       return
       end
 
-C ******************** PLNDIS(EQN,X,Y,Z,DIST)
-C PLNDIS finds distance DIST from a point (x,y,z) to a plane (eq EQN).
+C ********** PLNDIS
+C Finds distance DIST from a point (x,y,z) to a plane (eq EQN).
 C If DIST=0 then one the plane, if DIST > 0 then point on the side
 C of the normal vector, if DIST < 0 then on the opposite side.
       subroutine PLNDIS(EQN,X,Y,Z,DIST)
+
       DIMENSION EQN(4)
       DIST =   EQN(1)*X + EQN(2)*Y + EQN(3)*Z - EQN(4)
       RETURN
       END
 
-C ******************** AVER
-C AVER returns the centre of gravity CG for an array
+C ********** AVER
+C Returns the centre of gravity CG for an array
 C of vertex points PNT with NP points in it.
       SUBROUTINE AVER(MNV,NP,PNT,CG)
+
       DIMENSION PNT(MNV,3),CG(3)
 
       DO 20 J=1,3
@@ -2439,10 +2398,11 @@ C of vertex points PNT with NP points in it.
       RETURN
       END
 
-C ******************** CROSS
-C CROSS performs a cross-product of two vectors A(X,Y,Z) and B(X,Y,Z),
+C ********** CROSS
+C Performs a cross-product of two vectors A(X,Y,Z) and B(X,Y,Z),
 C and returns the result in C(X,Y,Z).
       SUBROUTINE CROSS(A,B,C)
+
       DIMENSION A(3),B(3),C(3)
       C(1)=0.0
       C(2)=0.0
@@ -2450,11 +2410,12 @@ C and returns the result in C(X,Y,Z).
       C(1)=A(2)*B(3)-A(3)*B(2)
       C(2)=A(3)*B(1)-A(1)*B(3)
       C(3)=A(1)*B(2)-A(2)*B(1)
+ 
       RETURN
       END
 
-C ******************** CROSS2
-C CROSS2 performs a cross-product of two vectors AX,AY,AZ and BX,BY,BZ,
+C ********** CROSS2
+C Performs a cross-product of two vectors AX,AY,AZ and BX,BY,BZ,
 C and returns the result in CX,CY,CZ.
       subroutine cross2(ax,ay,az, bx,by,bz, cx,cy,cz)
       cx = ay*bz - az*by
@@ -2463,16 +2424,16 @@ C and returns the result in CX,CY,CZ.
       return
       end
 
-C ******************** DOT3(a,b,product)
-C DOT3: Return dot product of two vectors a & b.
+C ********** DOT3
+C Return dot product of two vectors a & b.
       subroutine dot3(a,b,product)
       dimension a(3),b(3)
       product=a(1)*b(1)+a(2)*b(2)+a(3)*b(3)
       return
       end
 
-C ******************** ZEROS
-C ZEROS Clear a 4x4 array prior to doing viewing transforms.
+C ********** ZEROS
+C Clear a 4x4 array prior to doing viewing transforms.
       SUBROUTINE ZEROS(A)
       DIMENSION A(4,4)
       A(1,1)=0.0
@@ -2498,8 +2459,8 @@ C ZEROS Clear a 4x4 array prior to doing viewing transforms.
       RETURN
       END
       
-C ******************** REQUAL
-C REQUAL allows two real numbers R1 & R2 to be checked for closeness
+C ********** REQUAL
+C Allows two real numbers R1 & R2 to be checked for closeness
 C to a given tolerance TOL and returns .TRUE. or .FALSE.
       LOGICAL FUNCTION REQUAL(R1,R2,TOLERANCE)
 
@@ -2512,10 +2473,11 @@ C Declare calling parameters
       RETURN
       END
 
-C ******************** ECLOSE
-C ECLOSE allows two real numbers R1 & R2 to be checked for closeness
+C ********** ECLOSE
+C Allows two real numbers R1 & R2 to be checked for closeness
 C to a given tolerance TOL and returns CLOSE = .TRUE. or .FALSE.
       SUBROUTINE ECLOSE(R1,R2,TOL,CLOSE)
+
       LOGICAL CLOSE
 
       IF(ABS(R1-R2).LT.TOL)THEN
@@ -2527,10 +2489,11 @@ C to a given tolerance TOL and returns CLOSE = .TRUE. or .FALSE.
       RETURN
       END
 
-C ******************** ECLOSE3
-C ECLOSE3 allows two real vectors R1 & R2  & R3 to be checked for closeness
+C ********** ECLOSE3
+C Allows two real vectors R1 & R2  & R3 to be checked for closeness
 C to a given tolerance TOL with X1 X2 & X3 and returns CLOSE = .TRUE. or .FALSE.
       SUBROUTINE ECLOSE3(R1,R2,R3,X1,X2,X3,TOL,CLOSE)
+
       LOGICAL CLOSE,CLOSEA,CLOSEB,CLOSEC
       real R1,R2,R3  ! the vector to test
       real X1,X2,X3  ! the vector to compare against
@@ -2548,35 +2511,41 @@ C to a given tolerance TOL with X1 X2 & X3 and returns CLOSE = .TRUE. or .FALSE.
       RETURN
       END
 
-C ******************** ESIND
+C ********** ESIND
+C Returns SIN of angle where angle is in degrees.
       FUNCTION ESIND (DEG)
-C ESIND: Returns SIN of angle where angle is given in degrees.
+
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
       ESIND = SIN (RAD*DEG)
+
       RETURN
       END
 
-C ******************** ECOSD
+C ********** ECOSD
+C Returns COS of angle where angle is in degrees.
       FUNCTION ECOSD (DEG)
-C ECOSD: Returns COS of angle where angle is given in degrees.
+
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
       ECOSD = COS (RAD*DEG)
+
       RETURN
       END
 
-C ******************** ETAND
+C ********** ETAND
+C Returns TAN of angle where angle is in degrees.
       FUNCTION ETAND (DEG)
-C ETAND: Returns TAN of angle where angle is given in degrees.
+
       PI = 4.0 * ATAN(1.0)
       RAD = PI/180.
       ETAND = TAN (RAD*DEG)
+
       RETURN
       END
 
-C ******************** IFAX
-C IFAX is an integer function returning the integer part of it's
+C ********** IFAX
+C An integer function returning the integer part of it's
 C argument truncated towards negative infinity as follows:
 C     V        IFAX(V)
 C    1.0        1
@@ -2588,18 +2557,21 @@ C    -.9       -1
 C   -1         -1
 C   -1.1       -2
       FUNCTION IFAX(V)
+
         IFAX = INT(V)
         IF (V.LT.0) IFAX=IFAX-1
+
       RETURN
       END
 
-C ******************** EAZALT
+C ********** EAZALT
 C EAZALT computes the solar azimuth and altitude angles at the current
 C time (REAL). The 'ISUNUP' variable determines whether the sun
 C is up (=1) or down (=0). The solar angles are computed relative
 C to local mean time (e.g. Greenwich is the reference time zone for
 C the UK).
       SUBROUTINE EAZALTS(TIMEH,ID,SLAT,SLON,ISUNUP,SAZI1,SALT1)
+
       implicit none
       
       real esind,ecosd  ! function definitions
@@ -2621,18 +2593,18 @@ C Local
       DAY=FLOAT(ID) ! cast julian day to local
       HOUR=TIMEH    ! cast passed time to hour fraction
 
-c Calculate equation of time.
+c Equation of time.
       A=1.978*DAY-160.22
       B=0.989*DAY-80.11
       EQT=0.1645*ESIND(A)-0.1255*ECOSD(B)-0.025*ESIND(B)
 
-c Compute declination.
+c Declination.
       A=280.1+0.9863*DAY
       DEC=23.45*ESIND(A)
       SDEC=SIN(DEC*R)
       CDEC=COS(DEC*R)
 
-c Compute solar altitude. If SALT < 0.1 degree assume sun not yet up.
+c Solar altitude. If SALT < 0.1 assume sun not yet up.
       TIME=HOUR+(EQT+SLON/15.0)
       TIMCOE=15.0*(12.0-TIME)
       CDTIME=COS(TIMCOE*R)
@@ -2683,9 +2655,9 @@ C This is one place where gfortran 4.3 complains.
       RETURN
       END
 
-C---- AGNXYZ -----------------------------------------------------
-C AGNXYZ: Given the solar azimuth and elevation return viewing coords
-C         at a distance of 1000 metres from origin. ???
+C ********** AGNXYZ
+C Given the solar azimuth and altitude, returns viewing coords
+C at a far distance from the site origin.
       SUBROUTINE ANGXYZ(YAZI,SALT,X,Y,Z)
 
       DATA SUNDIS /1000./
@@ -2711,11 +2683,12 @@ C         at a distance of 1000 metres from origin. ???
 
       END
 
-C ****************** ORTTRN
+C ********** ORTTRN
 C ORTTRN multiplies a point (XM,YM,ZM) by the transform matrix
 C TMAT to return the point XO,YO,Z0.  If the points are to close
 C together then IER=-1.
       SUBROUTINE ORTTRN(XM,YM,ZM,TMAT,XO,YO,ZO,IERR)
+
       DIMENSION TMAT(4,4)
 
       IERR = 0
@@ -2737,7 +2710,7 @@ C together then IER=-1.
       RETURN
       END
 
-C ******************* VECTRN
+C ********** VECTRN
 C VECTRN transforms a vector VECIN by the 4x4 (homogeneious) matrix TMAT
 C and returns the vector VECOUT.  If IERR is < 0 then a fatal error.
       SUBROUTINE VECTRN(VECIN,TMAT,VECOUT,IERR)
@@ -2770,12 +2743,13 @@ C and returns the vector VECOUT.  If IERR is < 0 then a fatal error.
 
       END
 
-C ********************* VECPLN
+C ********** VECPLN
 C VECPLN returns the point of intersection X,Y,Z between a line defined
 C by X1,Y1,Z1 & X2,Y2,Z2 and a plane defined in PEQN.
 C IERR is -1 if denominator is close to zero or negative.
 C IERR is 0 if no problem found.
       SUBROUTINE  VECPLN(X1,Y1,Z1,X2,Y2,Z2,PEQN,X,Y,Z,IERR)
+
       DIMENSION  PEQN(4)
 
       IERR=0
@@ -2806,7 +2780,7 @@ C IERR is 0 if no problem found.
       RETURN
       END
 
-C ******************** HMATMUL
+C ********** HMATMUL
 C HMATMUL multiplies the homogenous (4x4) matrices A by B returning C.
 C Matrix A is premultiplied and matrix B is postmultiplied.
       SUBROUTINE HMATMUL(A,B,C)
@@ -2823,7 +2797,7 @@ C Matrix A is premultiplied and matrix B is postmultiplied.
       RETURN
       END
 
-C ******************** HREVMAT
+C ********** HREVMAT
 C HREVMAT takes the homogenous perspective transformation PER and
 C returns it's inverse REP making use of CROUT.
       SUBROUTINE HREVMAT(PER,REP,IERR)
@@ -2848,14 +2822,13 @@ C IERR > 0, if ok, IERR=-1 if matrix singular.
 
       END
 
-C ******************** CROUT
+C ********** CROUT
 C CROUT inverts a nonsymetric square matrix A (order N), returning
 C the matrix B and IERR =-1 if matrix is singular.
 C WS is a workspace vector of dimension N, IA is the
 C first dimension of A and IB is the second dimension.
 C based on crout factorization based on code from
-C Alan Bridges and Wilkinson and Reinsch 'Linear Algebra'
-C Springer Verlag, 1971, PP 93-110
+C Wilkinson and Reinsch 'Linear Algebra', Springer Verlag, 1971, PP 93-110
 
 C The decomposition of A=LU, where L
 C is a lower triangular matrix, and U is a unit
@@ -2869,10 +2842,11 @@ C the rounding errors, is singular (or almost singular).
 C Makes use of subroutine DPACC to accumulate
 C sums of inner products.
       SUBROUTINE CROUT(A,N,WS,B,IA,IB,IER)
-      common/OUTIN/IUOUT,IUIN
 
       DOUBLE PRECISION D1
       DIMENSION A(IA,N),B(IB,N),WS(N)
+
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Machine dependent rounding error, such that 1.0+EPS > 1.0
       EPS=2.0E-10
@@ -2926,8 +2900,9 @@ C Machine dependent rounding error, such that 1.0+EPS > 1.0
         D1=D1*DBLE(A(K,K))
         IF(X.LT.(8.0*EPS))THEN
           IER=-1
-          call edisp(iuout,' CROUT: matrix is singular ')
-          call edisp(iuout,'        and cannot be inverted.')
+          call edisp(iuout,' ')
+          call edisp(iuout,'CROUT: matrix is singular')
+          call edisp(iuout,'       and cannot be inverted.')
           RETURN
         ENDIF
 
@@ -2993,7 +2968,7 @@ C Machine dependent rounding error, such that 1.0+EPS > 1.0
       RETURN
       END
 
-C ******************** DPACC
+C ********** DPACC
 C DPACC provides double precision accumulation of inner products for
 C CROUT in the form SUM(+,-)SUM(+,-)AB.
 C A is the vector on left, I & J numerical identifiers of first two
@@ -3040,10 +3015,10 @@ C   IF IND=4 SUM=-AB-X = -(AB+X)
       RETURN
       END
 
-C ****************** EYEMAT
-C EYEMAT provides transform eyepoint - viewpoint....
+C *********** EYEMAT
+C EYEMAT provides transform eyepoint - viewpoint.
       SUBROUTINE EYEMAT(EP,VP,SCALE,TMAT,RMAT)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION  EP(3),VP(3),TMAT(4,4),RMAT(4,4)
       character outs*124
@@ -3068,9 +3043,10 @@ C EYEMAT provides transform eyepoint - viewpoint....
       SINPHI = 1.0
       COSPHI = 0.0
       write(outs,*) ' EP is ',EP,' VP is ',VP
+      call edisp(iuout,' ')
       call edisp(iuout,outs)
       call edisp(iuout,'Eye point & viewed point too close together')
-      call edisp(iuout,'so a view || to the Z axis is assumed.')
+      call edisp(iuout,'so a view || to the Z-axis is assumed.')
       GOTO 130
 
   110 DENOM = SQRT(EPRIME**2+VPRIME**2)
@@ -3122,14 +3098,15 @@ C EYEMAT provides transform eyepoint - viewpoint....
       RETURN
       END
 
-C ***************** INTSTR
+C ********** INTSTR
 C INTSTR converts an integer into a string (10 char long) with no
 C leading blanks. ISWD is the length of the resulting string.
       SUBROUTINE INTSTR(INTIN,FSTR,ISWD,IFLAG)
-      common/OUTIN/IUOUT,IUIN
 
       CHARACTER*10 CSTR, FSTR
       character outs*124
+      common/OUTIN/IUOUT,IUIN,IEOUT
+
       IFLAG=0
       ISWD=0
       fstr = ' '
@@ -3155,16 +3132,16 @@ C Internal write to STR.
 
       END
 
-C *********************** RELSTR
+C ********** RELSTR
 C RELSTR converts a real into a string (12 char) with no leading
 C blanks. ISWD is the actual length of the resulting string. Takes
 C the magnitude of the number into account.
       SUBROUTINE RELSTR(RELIN,FSTR,ISWD,IFLAG)
-      common/OUTIN/IUOUT,IUIN
 
       CHARACTER*12 CSTR, FSTR
       character outs*124
       logical close
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       IFLAG=0
       ISWD=0
@@ -3211,21 +3188,22 @@ C real value.
       endif
       call edisp(iuout,outs)
       IFLAG=1
-      RETURN
 
+      RETURN
       END
 
 
-C *********************** REL16STR
+C ********** REL16STR
 C REL16STR converts a real into a string (16 char) with no leading
 C blanks. ISWD is the actual length of the resulting string. Takes
 C the magnitude of the number into account.
       SUBROUTINE REL16STR(RELIN,FSTR,ISWD,IFLAG)
-      common/OUTIN/IUOUT,IUIN
 
       CHARACTER*16 CSTR, FSTR
       character outs*124
       logical close
+
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       IFLAG=0
       ISWD=0
@@ -3281,16 +3259,17 @@ C real value.
       END
 
 
-C *********************** REL12STR
+C ********** REL12STR
 C REL12STR converts a real into a string (12 char) with no leading
 C blanks. ISWD is the actual length of the resulting string. Takes
 C the magnitude of the number into account.
       SUBROUTINE REL12STR(RELIN,FSTR,ISWD,IFLAG)
-      common/OUTIN/IUOUT,IUIN
 
       CHARACTER*12 CSTR, FSTR
       character outs*124
       logical close
+
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       IFLAG=0
       ISWD=0
@@ -3341,20 +3320,21 @@ C real value.
       endif
       call edisp(iuout,outs)
       IFLAG=1
-      RETURN
 
+      RETURN
       END
 
-C *********************** RELESTR
+C ********** RELESTR
 C REL16STR converts a real into a string (16 char) with no leading
 C blanks. ISWD is the actual length of the resulting string. Takes
 C the magnitude of the number into account.
       SUBROUTINE RELESTR(RELIN,FSTR,ISWD,IFLAG)
-      common/OUTIN/IUOUT,IUIN
 
       CHARACTER*16 CSTR, FSTR
       character outs*124
       logical close
+
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       IFLAG=0
       ISWD=0
@@ -3406,14 +3386,15 @@ C real value.
       END
 
 
-C *********************** EXPSTR
+C ********** EXPSTR
 C EXPSTR converts a exponential into a string (10 char) with no leading
 C blanks. ISWD is the actual length of the resulting string.
       SUBROUTINE EXPSTR(RELIN,FSTR,ISWD,IFLAG)
-      common/OUTIN/IUOUT,IUIN
 
       CHARACTER*10 CSTR, FSTR
       character outs*124
+
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       ISWD=0
       fstr = ' '
@@ -3439,7 +3420,7 @@ C Internal write to STR.
 
       END
 
-C ******************** ARLIST ********************
+C ********** ARLIST
 C ARLIST takes the first (inst to inrl) items of a real array (rlist)
 C of array size (inrs) and builds a packed string (pckstr)
 C and returns pckstr and the actual character width (length). If itrunc
@@ -3447,12 +3428,10 @@ C is zero then all items written, else the index of the last item
 C which was written. Delm is delimeter between items.
 
       SUBROUTINE ARLIST(inst,inrl,rlist,inrs,delm,pckstr,length,itrunc)
-C      COMMON/OUTIN/IUOUT,IUIN
+
       dimension rlist(inrs)
       character*(*) pckstr
       CHARACTER item*16,delm*1
-
-C      character outs*124  ! for debug statement
 
       itrunc=0
       LS=LEN(pckstr)
@@ -3504,15 +3483,10 @@ C The full array could not be packed into the string so return
 C the position this happened so calling code can deal with it.
    1  continue
 
-C Debug.
-C      write(outs,*) 'ARLIST: truncation writing array at item: ',
-C     &  itrunc,' & pos ',length
-C      call edisp(iuout,outs)
-
       return
       END
 
-C ******************** ARLIST2 ********************
+C ********** ARLIST2
 C ARLIST2 takes the first (inst to inrl) items of a real array (rlist)
 C of array size (inrs) and builds a packed string (pckstr) with 12 char
 C string representations of the values and returns
@@ -3521,12 +3495,10 @@ C is zero then all items written, else the index of the last item
 C which was written. Delm is delimeter between items.
 
       SUBROUTINE ARLIST2(inst,inrl,rlist,inrs,delm,pckstr,length,itrunc)
-C      COMMON/OUTIN/IUOUT,IUIN
+
       dimension rlist(inrs)
       character*(*) pckstr
       CHARACTER item*12,delm*1  ! Note 12 character
-
-C      character outs*124  ! for debug statement
 
       itrunc=0
       LS=LEN(pckstr)
@@ -3578,16 +3550,11 @@ C The full array could not be packed into the string so return
 C the position this happened so calling code can deal with it.
    1  continue
 
-C Debug.
-C      write(outs,*) 'ARLIST2: truncation writing array at item: ',
-C     &  itrunc,' & pos ',length
-C      call edisp(iuout,outs)
-
       return
       END
 
 
-C ******************** AELIST ********************
+C ********** AELIST
 C AELIST takes the first (inst to inrl) items of a real array (rlist)
 C of array size (inrs) and builds a packed string (pckstr)
 C and returns pckstr and the actual character width (length). If itrunc
@@ -3597,12 +3564,10 @@ C This subroutine is same as ARLIST but the final string written out is
 C shorter
 
       SUBROUTINE AELIST(inst,inrl,rlist,inrs,delm,pckstr,length,itrunc)
-C      COMMON/OUTIN/IUOUT,IUIN
+
       dimension rlist(inrs)
       character*(*) pckstr
       CHARACTER item*16,delm*1
-
-C      character outs*124  ! for debug statement
 
       itrunc=0
       LS=LEN(pckstr)
@@ -3654,15 +3619,10 @@ C The full array could not be packed into the string so return
 C the position this happened so calling code can deal with it.
    1  continue
 
-C Debug.
-C      write(outs,*) 'ARLIST: truncation writing array at item: ',
-C     &  itrunc,' & pos ',length
-C      call edisp(iuout,outs)
-
       return
       END
 
-C ******************** AILIST ********************
+C ********** AILIST
 C AILIST takes the range (inst to inil) items of an integer array (ilist)
 C of array size (inisz) and builds a packed string (pckstr) and
 C returns pckstr and written character width (length). If itrunc
@@ -3670,12 +3630,10 @@ C is zero then all items written, else the index of the last item
 C which was written. Delm is delimeter between items.
 
       SUBROUTINE AILIST(inst,inil,ilist,inisz,delm,pckstr,length,itrunc)
-C      COMMON/OUTIN/IUOUT,IUIN
+
       dimension ilist(inisz)
       character*(*) pckstr
       CHARACTER item*10,delm*1
-
-C      character outs*124  ! for debug statement
 
       itrunc=0
       LS=LEN(pckstr)
@@ -3727,15 +3685,10 @@ C The full array could not be packed into the string so return
 C the position this happened so calling code can deal with it.
    1  continue
 
-C Debug.
-C      write(outs,*) 'AILIST: truncation writing array at item: ',
-C     &  itrunc,' & pos ',length
-C      call edisp(iuout,outs)
-
       return
       END
 
-C ******************** ASLIST ********************
+C ********** ASLIST
 C ASLIST takes the range (inst to inil) items of an string array (list)
 C of array size (inisz) and builds a packed string (pckstr) and
 C returns pckstr and written character width (length). If itrunc
@@ -3744,12 +3697,10 @@ C which was written. Delm is delimeter between items. It is assumed
 C that each string array item is less than 32 characters wide.
 
       SUBROUTINE ASLIST(inst,inil,list,inisz,delm,pckstr,length,itrunc)
-C      COMMON/OUTIN/IUOUT,IUIN
+
       dimension list(inisz)
       character*(*) pckstr,list
       CHARACTER item*32,delm*1
-
-C      character outs*124  ! for debug statement
 
       itrunc=0
       LS=LEN(pckstr)
@@ -3801,15 +3752,10 @@ C The full array could not be packed into the string so return
 C the position this happened so calling code can deal with it.
    1  continue
 
-C Debug.
-C      write(outs,*) 'ASLIST: truncation writing array at item: ',
-C     &  itrunc,' & pos ',length
-C      call edisp(iuout,outs)
-
       return
       END
 
-C ******************** ASLIST2 ********************
+C ********** ASLIST2
 C ASLIST2 takes the range (inst to inil) items of an string array (list)
 C of 2_dimensional array size (inisz,inisz2) and builds a packed string
 C (pckstr) of the row (inirw) and
@@ -3821,12 +3767,9 @@ C that each string array item is less than 24 characters wide.
       SUBROUTINE ASLIST2(inst,inil,list,inisz,inisz2,inirw,
      &delm,pckstr,length,itrunc)
 
-C      COMMON/OUTIN/IUOUT,IUIN
       dimension list(inisz,inisz2)
       character*(*) pckstr,list
       CHARACTER item*24,delm*1
-
-C      character outs*124  ! for debug statement
 
       itrunc=0
       LS=LEN(pckstr)
@@ -3878,15 +3821,10 @@ C The full array could not be packed into the string so return
 C the position this happened so calling code can deal with it.
    1  continue
 
-C Debug.
-C      write(outs,*) 'ASLIST2: truncation writing array at item: ',
-C     &  itrunc,' & pos ',length
-C      call edisp(iuout,outs)
-
       return
       END
 
-C ******************** ASFLIST ********************
+C ********** ASFLIST
 C ASFLIST takes the range (inst to inil) items of an string array (list)
 C of array size (inisz) and builds a packed string (pckstr) and
 C returns pckstr and written character width (length). If itrunc
@@ -3895,11 +3833,10 @@ C which was written. Delm is delimeter between items. It is assumed
 C that each string array item is less than 48 characters wide.
 
       SUBROUTINE ASFLIST(inst,inil,list,inisz,delm,pckstr,length,itrunc)
-C      COMMON/OUTIN/IUOUT,IUIN
+
       dimension list(inisz)
       character*(*) pckstr,list
       CHARACTER item*48,delm*1
-C      character outs*124
 
       itrunc=0
       LS=LEN(pckstr)
@@ -3949,14 +3886,10 @@ C single character then ixl is ix.
 
    1  continue
 
-C Debug.
-C      write(outs,*) 'ASFLIST: truncation writing array at item: ',
-C     &  itrunc,' & pos ',length
-C      call edisp(iuout,outs)
       return
       END
 
-C ******************** STRIPC
+C ********** STRIPC
 C STRIPC strips comments from a ASCII file string and returns the data.
 C It assumes that if a string begins with a '#' then the whole line is
 C a comment an the next line is read.  If a ' #' is discovered within
@@ -3970,12 +3903,12 @@ C   IEXP = 99 check number of items and return in ITEMS
 
       SUBROUTINE STRIPC(INPCH,OUTSTR,IEXP,ITEMS,IR,MSG,IER)
 #include "espriou.h"
-      integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*124 tmp,STRING,OUTSTR
       character loutstr*248,outs*124
       CHARACTER*(*) MSG
+      integer iCountWords
       logical unixok
 
 C Read a line of the file, strip off any trailing blanks, if the first
@@ -4063,7 +3996,7 @@ C Find out the number of separate words/string groupings.
 
       END
 
-C ******************** LSTRIPC
+C ********** LSTRIPC
 C LSTRIPC strips comments from a ASCII file (long) string and returns the data.
 C It assumes that if a string begins with a '#' then the whole line is
 C a comment an the next line is read.  If a ' #' is discovered within
@@ -4077,13 +4010,13 @@ C   IEXP = 99 check number of items and return in ITEMS
 
       SUBROUTINE LSTRIPC(INPCH,OUTSTR,IEXP,ITEMS,IR,MSG,IER)
 #include "espriou.h"
-      integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*248 OUTSTR,STRING,TMP
       CHARACTER loutstr*248,outs*124
       CHARACTER*(*) MSG
       logical unixok
+      integer iCountWords
 
 C Read a line of the file, strip off any trailing blanks, if the first
 C character is a # then read the next line from the file.
@@ -4167,11 +4100,11 @@ C Find out the number of separate words/string groupings.
         call edisp(iuout,outs)
         call edisp(iuout,outstr(1:72))
       endif
-      return
 
+      return
       END
 
-C ******************** STRIPC400
+C ********** STRIPC400
 C STRIPC400 strips comments from a ASCII file (400 char long) string and returns the data.
 C It assumes that if a string begins with a '#' then the whole line is
 C a comment an the next line is read.  If a ' #' is discovered within
@@ -4185,14 +4118,14 @@ C   IEXP = 99 check number of items and return in ITEMS
 
       SUBROUTINE STRIPC400(INPCH,OUTSTR,IEXP,ITEMS,IR,MSG,IER)
 #include "espriou.h"
-      integer iCountWords
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*400 OUTSTR,STRING,TMP
       CHARACTER loutstr*248,outs*124
       character truncstr*248   ! truncate outsr for reporting.
       CHARACTER*(*) MSG
       logical unixok
+      integer iCountWords
 
 C Read a line of the file, strip off any trailing blanks, if the first
 C character is a # then read the next line from the file.
@@ -4278,12 +4211,12 @@ C Find out the number of separate words/string groupings.
         call edisp(iuout,outs)
         call edisp(iuout,outstr(1:72))
       endif
-      return
 
+      return
       END
 
 
-C ******************** STRIPC1K
+C ********** STRIPC1K
 C STRIPC1K strips comments from a ASCII file (1000 char long) string and returns the data.
 C It assumes that if a string begins with a '#' then the whole line is
 C a comment an the next line is read.  If a ' #' is discovered within
@@ -4298,14 +4231,13 @@ C   IEXP = 99 check number of items and return in ITEMS
       SUBROUTINE STRIPC1K(INPCH,OUTSTR,IEXP,ITEMS,IR,MSG,IER)
 #include "espriou.h"
 
-      integer iCountWords
-
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*1000 OUTSTR,STRING,TMP
       CHARACTER loutstr*248,outs*124
       character truncstr*248   ! truncate outsr for reporting.
       CHARACTER*(*) MSG
       logical unixok
+      integer iCountWords
 
 C Read a line of the file, strip off any trailing blanks, if the first
 C character is a # then read the next line from the file.
@@ -4395,11 +4327,11 @@ C Find out the number of separate words/string groupings.
         call edisp(iuout,outs)
         call edisp(iuout,outstr(1:72))
       endif
-      return
 
+      return
       END
 
-C ******************** STRIPC2500
+C ********** STRIPC2500
 C STRIPC2500 strips comments from a ASCII file (2500 char long) string and returns the data.
 C It assumes that if a string begins with a '#' then the whole line is
 C a comment an the next line is read.  If a ' #' is discovered within
@@ -4414,14 +4346,13 @@ C   IEXP = 99 check number of items and return in ITEMS
       SUBROUTINE STRIPC2500(INPCH,OUTSTR,IEXP,ITEMS,IR,MSG,IER)
 #include "espriou.h"
 
-      integer iCountWords
-
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*2500 OUTSTR,STRING,TMP
       CHARACTER loutstr*248,outs*124
       character truncstr*248   ! truncate outsr for reporting.
       CHARACTER*(*) MSG
       logical unixok
+      integer iCountWords
 
 C Read a line of the file, strip off any trailing blanks, if the first
 C character is a # then read the next line from the file.
@@ -4512,15 +4443,16 @@ C Find out the number of separate words/string groupings.
         call edisp(iuout,outs)
         call edisp(iuout,outstr(1:72))
       endif
-      return
 
+      return
       END
 
 
-C ******************* CHARCH
+C ********** CHARCH
 C CHARCH: Older routine to check a string for a number of data items.
 C This is an older version of CHITMS, however it modifies the string A.
       SUBROUTINE CHARCH(A,ND,IERR)
+
       CHARACTER*72 A
 
 C Number of commas required.
@@ -4560,7 +4492,7 @@ C Jump if required number of commas found.
       RETURN
       END
 
-C ******************** NOYES
+C ********** NOYES
 C NOYES is an INTEGER FUNCTION which is used to read the answer to a
 C question.  A line is read from the user, and the value of the
 C function is as follows:-
@@ -4568,6 +4500,7 @@ C   1 The answer was '1', ' Y', or '  YES'
 C   0 The answer was '0', ' N', or '  NO'
 C  -1 otherwise.
       FUNCTION NOYES(J)
+
       PARAMETER ( IUIN=5 )
       CHARACTER IA*3
 
@@ -4587,24 +4520,26 @@ C  -1 otherwise.
       ENDIF
       END
 
-c ******************** IFIRST
+c ********** IFIRST
 C IFIRST: Returns the ASCII value for the first character in
 C a string ISTR.
       FUNCTION IFIRST(ISTR)
+
       CHARACTER*1 JSTR
       CHARACTER*(*) ISTR
       JSTR=ISTR(1:1)
       IFIRST=ICHAR(JSTR)
+
       RETURN
       END
 
 
-C ************* EASKPER
+C ********** EASKPER
 C EASKPER: Provides legacy interface to the more general eAskPerGen below.
       SUBROUTINE eAskPer(PROMP1,IBDOY,IEDOY,IFDAY,IER)
+
       CHARACTER*(*) PROMP1
       integer ibdoy,iedoy,ifday,iBYr,iEYr,ier
-
       logical bMY_enabled
       parameter ( bMY_enabled = .false. )
 
@@ -4619,10 +4554,11 @@ C returned. They're not referenced when multiyear simulations are disabled
       end
 
 
-C ************* EAskPerYear
+C ********** EAskPerYear
 C EASKPER: Provides multi-year capable interface to the more general
 C eAskPerGen below.
       SUBROUTINE eAskPerYear(PROMP1,ibdoy,iedoy,iBYr,iEYr,ifday,ier)
+
       CHARACTER*(*) PROMP1
       integer ibdoy,iedoy,iBYr,iEYr,ifday,ier
 
@@ -4637,23 +4573,24 @@ C initial values of iBYr iEYr are not need for single-year simulation
       end
 
 
-C ************* eAskPerGen
+C ********** eAskPerGen
 C eAskPerGen: Provides interface to specification of a multiyear period of days. It
 C returns IBDOY and IEDOY based on the current settings of IFDAY.
 C iBYr,iEYr are the begining year and ending year of the period.
 C Promp1 gives the context of the request for a period.
       SUBROUTINE eAskPerGen(PROMP1,ibdoy,iedoy,iBYr,iEYr,ifday,
      &                      bMY_enabled,IER)
+
       integer ibdoy,iedoy,iBYr,iEYr,ifday,ier
       common/pophelp/h(60)
       CHARACTER*(*) PROMP1
       CHARACTER h*72
       character HOLD*16
 
-C Error flag
+C Error flag.
       logical bDateOK
 
-C Flag indicating if multi-year simulations are in use
+C Flag indicating if multi-year simulations are in use.
       logical bMY_enabled
 
       IER=0
@@ -4666,7 +4603,7 @@ C Initialize success flag, and character buffer index.
         bDateOK = .true.
         k=0
 
-C IFDAY describes how the date will be formatted:
+C IFDAY describes how the date will be formatted.
 C   IFDAY = 0 -> DDD (1->365)
 C   IFDAY = 1 -> DD MM (1->31,1->12)
 
@@ -4677,9 +4614,9 @@ C Day of year to be provided
 C Single year version
             H(1)='Period  must be within a calendar year.'
 
-C Get start & end day
+C Get start & end day.
             write(HOLD,'(I4,I4)')ibdoy,iedoy
-            CALL EASKS(HOLD,PROMP1,' Start and end day of year?',16,
+            CALL EASKS(HOLD,PROMP1,'Start and end day year day?',16,
      &      ' 1  1 ','start & end day of year',IER,1)
 
             CALL EGETWI(HOLD,K,ibdoy,1,365,'F','start doy',IER)
@@ -4688,15 +4625,15 @@ C Get start & end day
             CALL EGETWI(HOLD,K,iedoy,1,365,'F','end doy',IER)
             if ( ier .ne. 0 ) bDateOK = .false.
 
-
           else
-C Multi-year version
+
+C Multi-year version.
             H(1)='Provide day-of-year and year for start'
             H(2)='and end dates.'
 
-C Get start day and year
+C Get start day and year.
             write(HOLD,'(I4,I5)') ibdoy,iBYr
-            CALL EASKS(HOLD,PROMP1,' Start day and year?',16,
+            CALL EASKS(HOLD,PROMP1,'Start day and year?',16,
      &      ' 1  2000 ','start day and year',IER,2)
 
             CALL EGETWI(HOLD,K,ibdoy,1,365,'F','start doy',IER)
@@ -4705,12 +4642,12 @@ C Get start day and year
             CALL EGETWI(HOLD,K,iBYr,1900,2100,'F','start year',IER)
             if  ( ier .ne. 0 ) BDateok = .false.
 
-C Reset string index K
+C Reset string index K.
             K=0
 
-C Get end day and year
+C Get end day and year.
             write(HOLD,'(I4,I5)') iedoy,iEYr
-            CALL EASKS(HOLD,PROMP1,' End day and year?',16,
+            CALL EASKS(HOLD,PROMP1,'End day and year?',16,
      &      ' 365 2007 ','end day and year',IER,2)
 
             CALL EGETWI(HOLD,K,iedoy,1,365,'F','end doy',IER)
@@ -4724,36 +4661,35 @@ C Get end day and year
         ELSEIF ( ifday .eq. 1 .or. ifday .eq. 2 ) THEN
 
 C Day & month or day, month & year to be provided
-C Start date: Convert to dd mm format:
-
+C Start date - convert to dd mm format.
           CALL EDAYR(ibdoy,IBD,IBM)
 
           if ( .not. bMY_enabled ) then
-C Get day & month
+
+C Get day & month.
             write(HOLD,'(I2,A,I2)') IBD,' ',IBM
             H(1)='Period must be within a calendar year.'
             H(2)='( `1 1` to `31 12` )'
-            CALL EASKS(HOLD,PROMP1,' Start day & month (DD MM)?',
+            CALL EASKS(HOLD,PROMP1,'Start day & month (DD MM)?',
      &        16,' 1  1 ','start day and month',ier,2)
 
           else
-C Get day, month & year
-C Append year to string
+
+C Get day, month & year. Append year to string.
             write (HOLD, '(I2,A,I2,A,I4)') IBD,' ',IBM,' ',iBYr
 
-            H(1)='Specify simulation start day, month and year'
-            H(2)='in `DD MM YYYY` format. Note: Leap years are'
-            H(3)='not presently supported.'
+            H(1)='Specify simulation start day, month and year.'
+            H(2)='Leap years are not supported.'
             CALL EASKS(HOLD,PROMP1,
-     &        ' Start day, month & year (DD MM YYYY)?',
-     &        16,' 1 1 2007','start day, month and year',IER,3)
+     &        'Start day, month & year (DD MM YYYY)?',
+     &        16,' 1 1 2007','start day, month and year',IER,2)
           endif
 
 C Error handling.
           if ( ier .ne. 0 ) bDateOK = .false.
 
 
-C Convert stings to integers and flag errors
+C Convert stings to integers and flag errors..
           K=0
           CALL EGETWI(HOLD,K,IBD,1,31,'F','start dom',ier)
           if ( ier .ne. 0 ) bDateOK = .false.
@@ -4761,7 +4697,7 @@ C Convert stings to integers and flag errors
           CALL EGETWI(HOLD,K,IBM,1,12,'F','start month',ier)
           if ( ier .ne. 0 ) bDateOK = .false.
 
-C Convert year string, if necessary
+C Convert year string, if necessary.
           if ( bMY_enabled ) then
 
             CALL EGETWI ( HOLD, K, iBYr, 1900, 2100, 'F',
@@ -4861,7 +4797,7 @@ C For multi-year simulations, convert iedoy:
       RETURN
       END
 
-c ******************** EDAY
+c ************* EDAY
 C EDAY Returns year day number IYDN when passed the day of the month
 C IDAYN and the month number IMTHN. 1st Jan= 1, 31st Dec=365, no leap
 C years considered.
@@ -4876,7 +4812,7 @@ C years considered.
       RETURN
       END
 
-C *********************** EDAYR
+C ************** EDAYR
 C 'EDAYR' returns the day and month numbers from the day-of-year where:
 C day-of-year 1 = 1st January and day-of-year 365 = 31st December.
 C NO LEAP YEARS ARE CONSIDERED!
@@ -4906,12 +4842,12 @@ C Determine the day of the month.
       ENDIF
       END
 
-C ********************** EWEEKD
+C ************** EWEEKD
 C 'EWEEKD' returns the day of the week (IDAY) given the day of month, month
 C and year (ND,NM,NY) as integers.
 C MON=1, TUE=2, WED=3, THU=4, FRI=5, SAT=6 AND SUN=7.
       SUBROUTINE EWEEKD(ND,NM,NY,IDAY)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION MMTH(12),MYR(5)
       character outs*124
       DATA MMTH/1,4,4,0,2,5,0,3,6,1,4,6/
@@ -4945,12 +4881,12 @@ C MON=1, TUE=2, WED=3, THU=4, FRI=5, SAT=6 AND SUN=7.
       RETURN
       END
 
-C ********************* EDAYCH
+C ************** EDAYCH
 C EDAYCH will check for errors in the users specification of the day and
 C month under consideration.
 C IERR set to 1 if ID or IM are outwith the allowable range.
       SUBROUTINE EDAYCH(ID,IM,IERR)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION MNTH(12)
       DATA MNTH/31,28,31,30,31,30,31,31,30,31,30,31/
       IERR=0
@@ -4965,7 +4901,7 @@ C IERR set to 1 if ID or IM are outwith the allowable range.
       RETURN
       END
 
-C ********************* DATTIM
+C ************* DATTIM
 C DATTIM returns UNIX time via a string in the form : 16 Sep 73 14:23.
       SUBROUTINE DATTIM(DT)
       CHARACTER*(*) DT
@@ -4978,11 +4914,11 @@ C DATTIM returns UNIX time via a string in the form : 16 Sep 73 14:23.
       RETURN
       END
 
-C ******************** STDATE
+C ************* STDATE
 C STDATE takes the day of year and returns two descriptive strings.
 C DESCR takes the form '12-Jan' and DESCR1 takes the form 'Fri-12-Jan'.
       SUBROUTINE STDATE(IYEAR,IDOY,DESCR,DESCR1)
-C      common/OUTIN/IUOUT,IUIN
+C      common/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION MTHNAM(12),DAYNAM(7)
 
       CHARACTER MTHNAM*3,DAYNAM*3,DESCR*7,DESCR1*10
@@ -5019,7 +4955,7 @@ C of range idwk and imthn to prevent string array crashes.
  1    call usrmsg('STDATE: problem writing date strings.',' ','W')
       END
 
-C ******************** ESTIME
+C *************** ESTIME
 C ESTIME takes an integer timestep and returns two string descriptions:
 C DESCRH in the form '12h28' and DESCRD which takes the form of 12.46,
 C As well as the time as a fraction of a day TIMER.
@@ -5047,7 +4983,7 @@ C 1=no averaging. NTS is the number of timesteps per hour.
 
       END
 
-C ******************** EDTIME
+C *************** EDTIME
 C EDTIME takes an real time and returns two string descriptions:
 C DESCRH in the form '12h28' and DESCRD which takes the form of 12.46,
 C As well as the time as a fraction of a day TIMER.
@@ -5085,7 +5021,7 @@ C IER=0 OK, IER=1 problem.
 C BTIM and PETIM are in terms of decimal fractions of a day.
       SUBROUTINE EPERSTR(IYEAR,IBDOY,IBTIM,IEDOY,IETIM,NTSPH,
      &           IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER T1H*5, T1D*5, T2H*5, T2D*5
       CHARACTER PERST1*14,PERST2*44,PERST3*44,DS*7,DS1*10,DE*7,DE1*10
       character outs*124
@@ -5153,7 +5089,7 @@ C Generate view period string based on IBDOY,IEDOY,BTIM,ETIM
 
       END
 
-C ***************** EGETW
+C ************** EGETW
 C EGETW gets first WORD after position K from the STRING of
 C characters. Words are separated by blanks, commas, |, or tab: WORD,WORD,WORD
 C or WORD WORD WORD or WORD, WORD, WORD  are all valid.  Provides a warning
@@ -5167,7 +5103,7 @@ C     LW     - maximum length of WORD
       SUBROUTINE EGETW(STRING,K,WORD,ACT,MSG,IER)
 #include "espriou.h"
 C espriou.h provides currentfile.
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) WORD, STRING, MSG
       CHARACTER ACT*1,A*1,loutstr*248,outs*124
@@ -5251,14 +5187,14 @@ C Copy WORD from STRING, character by character until separator found.
 
       END
 
-C ***************** EGETP
+C ************* EGETP
 C EGETP gets first PHRASE after position K from the STRING of
 C characters. Phrases are separated by tabs or commas. Provides a warning
 C message if ACT='W', a failure message if ACT='F' and does
 C no message if ACT='-'.
       SUBROUTINE EGETP(STRING,K,PHRASE,ACT,MSG,ier)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) PHRASE, STRING, MSG
       CHARACTER ACT*1,A*1,loutstr*248,outs*124
@@ -5343,7 +5279,7 @@ C comma is found.
 
       END
 
-C ***************** EGETDQ
+C ************* EGETDQ
 C EGETDQ gets first quoted PHRASE after position K from the STRING of
 C characters. Phrases can contain spaces and commas but not tabs.
 C Provides a warning message if ACT='W', a failure message if ACT='F' and
@@ -5352,7 +5288,7 @@ C Note it uses an internal string buffer which assumes that the
 C phrase is less than 248 characters long.
       SUBROUTINE EGETDQ(STRING,K,PHRASE,ACT,MSG,ier)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) PHRASE, STRING, MSG
       CHARACTER ACT*1,A*1,B*1,loutstr*124,outs*124
@@ -5470,7 +5406,7 @@ C cut out the intial quote when writing phrase.
 
       END
 
-C ***************** EGETWI
+C ************* EGETWI
 C EGETWI gets first word after position K from the STRING of
 C characters and converts it into an integer IV, tests it against
 C the minimum MN and the maximum MX and provides a warning
@@ -5480,7 +5416,7 @@ C commas, or tab: WORD,WORD,WORD or WORD WORD WORD or WORD, WORD, WORD
 C are all valid.
       SUBROUTINE EGETWI(STRING,K,IV,MN,MX,ACT,MSG,IER)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) STRING, MSG
       CHARACTER ACT*1,STR1*10,STR2*10,WORD*20,loutstr*248,outs*124
@@ -5610,7 +5546,7 @@ C Check IV against minimum and respond based on ACT.
 
       END
 
-C **************** EGETWR
+C ************ EGETWR
 C EGETWR gets first word after position K from the STRING of
 C characters and converts it into a real number RV, tests it against
 C the minimum RMN and the maximum RMX and provides a warning
@@ -5620,7 +5556,7 @@ C commas, or tab: WORD,WORD,WORD or WORD WORD WORD or WORD, WORD, WORD
 C are all valid.
       SUBROUTINE EGETWR(STRING,K,RV,RMN,RMX,RACT,MSG,IER)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C LOUTSTR is for messages to the user and should be long enough
 c to prevent truncation of messge contents.
@@ -5753,7 +5689,7 @@ C Check RV against minimum and respond based on RACT.
 
       END
 
-C **************** EGETWRA
+C ************ EGETWRA
 C EGETWRA recovers (IRVA) reals of real array (RVA) from an ASCII file
 C (unit IAF) reading as many lines as necessary to recover the data.
 C IER=2 if EOF is reached before INUM items have been parsed. IER=1 if
@@ -5765,7 +5701,7 @@ C commas, or tab: WORD,WORD,WORD or WORD WORD WORD or WORD, WORD, WORD
 C are all valid.  Will deal with input lines upto 1K wide.
 C Note: all reads are able to accept commented files.
       SUBROUTINE EGETWRA(IAF,RVA,IRVA,RMN,RMX,RACT,MSG,IER)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION RVA(*)
       CHARACTER*(*) MSG
       CHARACTER OUTS*248,MSG1*124,RACT*1,lkouts*1000
@@ -5808,7 +5744,7 @@ C          CALL LSTRIPC(IAF,OUTS,0,ND,0,MSG,IER)
 
   100 RETURN
 
-   99 CALL EDISP(iuout,' array size zero, skipping read.')
+   99 CALL EDISP(iuout,'EGETWRA array size zero, skipping read.')
       GOTO 100
 
  1001 LNM=max(1,lnblnk(MSG))
@@ -5835,7 +5771,7 @@ C          CALL LSTRIPC(IAF,OUTS,0,ND,0,MSG,IER)
 
       END
 
-C *************** EGETWIA
+C *********** EGETWIA
 C EGETWIA recovers (IRVA) integers of integer array (IVA) from an
 C ASCII file (unit IAF) reading as many lines as necessary to
 C recover the data.
@@ -5848,7 +5784,7 @@ C commas, or tab: WORD,WORD,WORD or WORD WORD WORD or WORD, WORD, WORD
 C are all valid.  Will deal with input lines upto 1K wide.
 C Note: all reads are able to accept commented files.
       SUBROUTINE EGETWIA(IAF,IVA,IRVA,IRMN,IRMX,IACT,MSG,IER)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION IVA(*)
       CHARACTER*(*) MSG
       CHARACTER OUTS*248,MSG1*124,IACT*1,out*124,lkouts*1000
@@ -5891,7 +5827,7 @@ C          CALL LSTRIPC(IAF,OUTS,0,ND,0,MSG,IER)
 
   100 RETURN
 
-   99 CALL EDISP(iuout,' array size zero, skipping read.')
+   99 CALL EDISP(iuout,'EGETWIA: array size zero, skipping read.')
       GOTO 100
 
  1001 LNM=max(1,lnblnk(MSG))
@@ -5933,7 +5869,7 @@ C commas, or tab: WORD,WORD,WORD or WORD WORD WORD or WORD, WORD, WORD
 C are all valid.  Will deal with input lines upto 1K wide.
 C Note: all reads are able to accept commented files.
       SUBROUTINE EGETWIA1K(IAF,IVA,IRVA,IRMN,IRMX,IACT,MSG,IER)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION IVA(*)
       CHARACTER*(*) MSG
       CHARACTER OUTS*248,MSG1*124,IACT*1,out*124,lkouts*1000
@@ -5976,7 +5912,7 @@ C          CALL LSTRIPC(IAF,OUTS,0,ND,0,MSG,IER)
 
   100 RETURN
 
-   99 CALL EDISP(iuout,' array size zero, skipping read.')
+   99 CALL EDISP(iuout,'EGETWIA1K: array size zero, skipping read.')
       GOTO 100
 
  1001 LNM=max(1,lnblnk(MSG))
@@ -6019,7 +5955,7 @@ C commas, or tab: WORD,WORD,WORD or WORD WORD WORD or WORD, WORD, WORD
 C are all valid.
 C Note: all reads are able to accept commented files.
       SUBROUTINE EGETAGWIA(TSTR,K,IAF,IRVA,IVA,IRMN,IRMX,IACT,MSG,IER)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION IVA(*)
       CHARACTER*(*) TSTR,MSG
       CHARACTER OUTS*248,IACT*1,MSG1*124,out*124
@@ -6066,7 +6002,7 @@ C word, otherwise read another line from the file.
 
   100 RETURN
 
-   99 CALL EDISP(iuout,' array size zero, skipping read.')
+   99 CALL EDISP(iuout,'EGETAGWIA: array size zero, skipping read.')
       GOTO 100
 
  1001 LNM=max(1,lnblnk(MSG))
@@ -6108,7 +6044,7 @@ C commas, or tab: WORD,WORD,WORD or WORD WORD WORD or WORD, WORD, WORD
 C are all valid.
 C Note: all reads are able to accept commented files.
       SUBROUTINE EGETAGWRA(TSTR,K,IAF,IRVA,RVA,RMN,RMX,RACT,MSG,IER)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION RVA(*)
       CHARACTER*(*) TSTR,MSG
       CHARACTER OUTS*248,RACT*1,MSG1*124,out*124
@@ -6156,7 +6092,7 @@ C word, otherwise read another line from the file.
 
   100 RETURN
 
-   99 CALL EDISP(iuout,' array size zero, skipping read.')
+   99 CALL EDISP(iuout,'EGETAGWRA: array size zero, skipping read.')
       GOTO 100
 
  1001 LNM=max(1,lnblnk(MSG))
@@ -6198,7 +6134,7 @@ C commas, or tab: WORD,WORD,WORD or WORD WORD WORD or WORD, WORD, WORD
 C are all valid.
 C Note: all reads are able to accept commented files.
       SUBROUTINE EGETAGWRA1K(TSTR,K,IAF,IRVA,RVA,RMN,RMX,RACT,MSG,IER)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       DIMENSION RVA(*)
       CHARACTER*(*) TSTR,MSG
       CHARACTER OUTS*1000,RACT*1,MSG1*124,out*124,out2*248
@@ -6246,7 +6182,7 @@ C word, otherwise read another line from the file.
 
   100 RETURN
 
-   99 CALL EDISP(iuout,' array size zero, skipping read.')
+   99 CALL EDISP(iuout,'EGETAGWRA1K: array size zero, skipping read.')
       GOTO 100
 
  1001 LNM=max(1,lnblnk(MSG))
@@ -6296,7 +6232,7 @@ C Phrases may be separated by spaces commas, or tab: word,word,word or
 C word, word, word, or word<tab>word<tab>word are all valid.
 C Note: all reads are able to accept commented files.
       SUBROUTINE EGETAGWSA(TSTR,K,IAF,ISVA,SVA,inisz,SACT,MSG,IER)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       dimension SVA(inisz)
       CHARACTER*(*) SVA
       CHARACTER*(*) TSTR,MSG
@@ -6345,7 +6281,7 @@ C word, otherwise read another line from the file.
 
   100 RETURN
 
-   99 CALL EDISP(iuout,' array size zero, skipping read.')
+   99 CALL EDISP(iuout,'EGETAGWSA array size zero, skipping read.')
       GOTO 100
 
  1001 LNM=max(1,lnblnk(MSG))
@@ -6393,7 +6329,7 @@ C Phrases may be separated by commas, or tab: phrase,phrase,phrase or
 C phrase, phrase, phrase, or phrase<tab>phrase<tab>phrase are all valid.
 C Note: all reads are able to accept commented files.
       SUBROUTINE EGETAGWPA(TSTR,K,IAF,ISVA,SVA,inisz,SACT,MSG,IER)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       dimension SVA(inisz)
       CHARACTER*(*) SVA
       CHARACTER*(*) TSTR,MSG
@@ -6442,7 +6378,7 @@ C word, otherwise read another line from the file.
 
   100 RETURN
 
-   99 CALL EDISP(iuout,' array size zero, skipping read.')
+   99 CALL EDISP(iuout,'EGETAGWPA: array size zero, skipping read.')
       GOTO 100
 
  1001 LNM=max(1,lnblnk(MSG))
@@ -6475,7 +6411,7 @@ C EGETRM returns the remainder of a text string TSTR after position k
 C in RSTR where RSTR has no leading blanks.
       SUBROUTINE EGETRM(TSTR,K,RSTR,ACT,MSG,IER)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) TSTR,RSTR,MSG
       character ACT*1,A*1,loutstr*248
@@ -6569,7 +6505,7 @@ C message if ACT='W', a failure message if ACT='F' and does
 C no message if ACT='-'.
       SUBROUTINE EGETXMLTAG(STRING,K,PHRASE,ACT,MSG,ier)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) PHRASE, STRING, MSG
       CHARACTER ACT*1,A*1,loutstr*248,outs*124
@@ -6683,7 +6619,7 @@ C     LW     - maximum length of WORD
       SUBROUTINE EGETWXML(STRING,K,WORD,ACT,MSG,IER)
 #include "espriou.h"
 C espriou.h provides currentfile.
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) WORD, STRING, MSG
       CHARACTER ACT*1,A*1,loutstr*248,outs*124
@@ -6780,7 +6716,7 @@ C commas, <, or tab: WORD,WORD,WORD or WORD WORD WORD or WORD, WORD, WORD
 C are all valid.
       SUBROUTINE EGETWIXML(STRING,K,IV,MN,MX,ACT,MSG,IER)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) STRING, MSG
       CHARACTER ACT*1,STR1*10,STR2*10,WORD*20,loutstr*248,outs*124
@@ -6923,7 +6859,7 @@ C commas, <, or tab: WORD,WORD,WORD or WORD WORD WORD or WORD, WORD, WORD
 C are all valid.
       SUBROUTINE EGETWRXML(STRING,K,RV,RMN,RMX,RACT,MSG,IER)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C LOUTSTR is for messages to the user and should be long enough
 c to prevent truncation of messge contents.
@@ -7069,7 +7005,7 @@ C phrase is less than 248 characters long.
 C It is dealing with this pattern IDType="WMO"
       SUBROUTINE EGETEQDQXML(STRING,K,TAG,PHRASE,ACT,MSG,ier)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) TAG, PHRASE, STRING, MSG
       CHARACTER ACT*1,A*1,loutstr*124,outs*124
@@ -7192,7 +7128,7 @@ C EGETRMXML returns the remainder of a text string TSTR after position k
 C in RSTR until a '<' is noticed.
       SUBROUTINE EGETRMXML(TSTR,K,RSTR,ACT,MSG,IER)
 #include "espriou.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*(*) TSTR,RSTR,MSG
       character ACT*1,A*1,loutstr*248
@@ -7300,7 +7236,7 @@ C [Unix or Linux or Cygwin gets true].
 C ************* usrhome
 C usrhome: Find users home directory.
       subroutine usrhome(upath)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,iEOUT
       character*(*) upath
       character homedrive*24,homepath*48,outs*124
       logical unixok
@@ -7345,7 +7281,7 @@ C Find if Unix or NT.
 C ************* usrdir
 C usrdir: Find current folder.
       subroutine usrdir(upwd)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       character*(*) upwd
       character local*124   ! getcwd needs a fixed char array
       integer i,jlen,kblnk
@@ -7464,7 +7400,7 @@ C tstamp: generates a timestamped message.
 C act (char*1) = '-' Current time, = 'm' Message plus time
 C  = '>' append message to journal
       subroutine tstamp(act,msg)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/journopt/journio,iuj,journcmd,jfile
 
       character*(*) msg
@@ -7538,7 +7474,7 @@ C ****** dstamp
 C dstamp: Get date stamp in the form: Fri Jan 23 09:34:31 1998.
 C Used to isolate code from system details.
       subroutine dstamp(date_str)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       integer time
       integer lnblnk
@@ -7573,7 +7509,7 @@ C comparedate is passed two date strings (generated by call to dstamp).
 C act is requested action '?' is ??
 C dif is positive if datea is more current than dateb.
       subroutine comparedate(datea,dateb,act,idif)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       character datea*24,dateb*24,act*1,datetest*24
       character word*24
 
@@ -7723,13 +7659,15 @@ C working then try switching bweteen these options.
 
 C *** UNIX ONLY ***
 C tg: '-' call the command as-is.
-C     'text' call the command in an xterm.
+C     'text' or 'script' call the command in an xterm.
 C     'silent' suppress stdout (redirect to /dev/null).
 C     '[file_name]' redirect stdout to "[file_name].out" and
 C                   redirect stderr to "[file_name].err"
 C                   maximum 8 characters
       subroutine runit(cmd,tg)
-      common/OUTIN/IUOUT,IUIN
+#include "building.h"
+#include "model.h"
+      common/OUTIN/IUOUT,IUIN,IEOUT
       character*(*) cmd,tg
       character tmp*1200,ltmp*1200,tmode*8,message*248
       character dq*1
@@ -7745,36 +7683,39 @@ C Find if Unix or NT.
         LN=max(1,lnblnk(tg))
         LN=min0(LN,8)
         write (tmode,'(a)') tg(1:LN)
-        if(tmode(1:4).eq.'text')then
+        if(tmode(1:4).eq.'text'.or.tmode(1:6).eq.'script')then  ! need a terminal to run in
           LN=max(1,lnblnk(cmd))
-          write(tmp,'(a,a)') 'xterm -e ',cmd(1:LN)
+          if(found_xterm)then         ! if there is an xterm on computer
+            write(tmp,'(a,a)') 'xterm -e ',cmd(1:LN)
+          else                        ! use fallback
+            call execute_command_line (cmd, exitstat=i)
+          endif
 C          i = system(tmp)
          call execute_command_line (tmp, exitstat=i)
-        elseif(tmode(1:6).eq.'silent')then
+        elseif(tmode(1:6).eq.'silent')then  ! diverts chatter to /dev/null
           LN=max(1,lnblnk(cmd))
           write(tmp,'(a,a)') cmd(1:LN),' > /dev/null'
 C          i = system(tmp)
          call execute_command_line (tmp, exitstat=i)
-        elseif(tmode(1:1).eq.'-')then
+        elseif(tmode(1:1).eq.'-')then  ! just make the system call
 C          i = system(cmd)
           call execute_command_line (cmd, exitstat=i)
         else          
-          LN2=max(1,lnblnk(cmd))
+          LN2=max(1,lnblnk(cmd))       ! record command to a file
           write(tmp,'(6a)') cmd(1:LN2),' >',tmode(1:LN),'.out 2>',
      &      tmode(1:LN),'.err'
 C          i = system(tmp)
          call execute_command_line (tmp, exitstat=i)
         endif
         if(i.gt.0.and.i.le.126)then
-C         call edisp(iuout,' task terminated with an error condition')
           LN=max(1,lnblnk(cmd))
           write(tmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
-          call edisp248(iuout,tmp,100)
+          call edisp(ieout,'requested task returned an error state.')
+          call edisp248(ieout,tmp,100)
         elseif(i.eq.127)then
-          call edisp(iuout,' task requested was unknown.')
           LN=max(1,lnblnk(cmd))
           write(tmp,'(a,i3,2a)') 'status ',i,' ',cmd(1:LN)
-          call edisp248(iuout,tmp,100)
+          call edisp248(ieout,tmp,100)
         endif
         return
       else
@@ -7835,7 +7776,7 @@ C works well on MSYS and Linux while execute_command_line is
 C a gfortran facility which works on MSYS2. If runit is not 
 C working then try switching bweteen these options.
       subroutine runitv(cmd,tg,i)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       character*(*) cmd,tg
       integer i
       character tmp*1200,ltmp*1200,tmode*8,message*248
@@ -7915,6 +7856,84 @@ C        call cissue(cmd,ifail)
         return
       endif
       end
+
+C *********** isinstalled
+C Returns status=.TRUE. if application 'name' found.
+C Test if application [name] is in the user's path by
+C issuing a 'which' command and piping the result to a
+C temporary file, which is then read. If there are
+C characters in the file /tmp/foundit then we assume
+C the application exists. Only works for Linux & OSX.
+      subroutine isinstalled(name,status)
+      integer lnblnk  ! function definition
+      common/FILEP/IFIL
+      common/OUTIN/IUOUT,IUIN,IEOUT
+
+C Parameters.
+      character name*32
+      logical status
+
+C Local variables.
+      logical unixok,XST
+      character doit*124,hold32*32,hold32a*32,outs*124
+      character tmode*8
+      integer iunit,ltf,length
+      integer is   ! status
+
+      doit=' '; status=.false.
+
+C Check if Unix-based or DOS based.
+      call isunix(unixok)
+      if(unixok)then
+        IUNIT=IFIL+1
+        IF(IUNIT.NE.0)CALL ERPFREE(IUNIT,ISTAT)
+        tmode='-'
+        hold32='/tmp/foundit'; ltf=lnblnk(hold32); length=0
+        write(doit,'(3a)')'which ',name(1:lnblnk(name)),
+     &    ' >/tmp/foundit'
+
+C Use version of 'runit' that returns an error status and acts
+C on it. If 'which' did not find anything the return will be non-zero.
+        call runitv(doit,tmode,is)
+        if(is.gt.0.and.is.le.126)then
+          write(outs,*) 'Cannot find ',hold32a(1:lnblnk(hold32a)),' ',
+     &      name(1:lnblnk(name))
+          call edisp(iuout,' ')
+          call edisp(iuout,outs)
+          status=.false.
+          CALL ERPFREE(IUNIT,ISTAT)
+          return
+        endif
+        doit='ls -l /tmp/foundit'          
+        call runit(doit,tmode)
+        INQUIRE (FILE=hold32(1:ltf),EXIST=XST)
+        IF (XST) THEN
+          OPEN (IUNIT,FILE=hold32(1:ltf),ACCESS='SEQUENTIAL',
+     &          STATUS='OLD',IOSTAT=ISTAT)
+          CALL ERPFREE(IUNIT,ISTAT)  ! flush the buffer
+          OPEN (IUNIT,FILE=hold32(1:ltf),ACCESS='SEQUENTIAL',
+     &          STATUS='OLD',IOSTAT=ISTAT)
+          READ(IUNIT,'(a)',IOSTAT=IOS)hold32a
+          CALL ERPFREE(IUNIT,ISTAT)
+          length=lnblnk(hold32a)
+          if(length.gt.1)then
+            status=.true.
+          else
+            write(outs,*) 'Cannot find ',hold32a(1:lnblnk(hold32a)),
+     &        ' ',name(1:lnblnk(name))
+            call edisp(iuout,' ')
+            call edisp(iuout,outs)
+            status=.false.
+          endif
+          CALL EFDELET(IUNIT,ISTAT) ! clean up the temporary file
+          return
+        else
+          call usrmsg('Problem trying to open ',hold32,'W')
+          status=.false.
+          return
+        endif
+      endif
+      end  ! of isinstalled
 
 C ***************** iEGetArrW
 C iEGetArrW reads all of the words in a 248 character string, and populates a character
@@ -8259,7 +8278,7 @@ C the display and input of periods - 0 = julian day, 1 or 2 = day of
 C month.
       SUBROUTINE ASKTIM(IFDAY,NTS,IMO,IDO,IJDAY,TIME,IT,IER)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
 
       character H*72,HOLD*24
@@ -8327,7 +8346,7 @@ c A temporary measure.
 C ********* LISTAS
 C LISTAS: General read of an ascii file.
       SUBROUTINE LISTAS(iunit,LFIL,IER)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character*(*) LFIL
       character outstr*124
       logical XST
@@ -8503,14 +8522,17 @@ C in a format depending on the terminal type. If it will not
 C fit on one line, subsequent lines are used and breaks are
 C set based on nearest width to iwid.
       SUBROUTINE EDISP248(ITRU,MSG,iwid)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER*(*) MSG
       CHARACTER outs*144    ! the text buffer for printing one line
+      character mstr*72
       integer lenmsg,lenalts  ! length of the passed msg
 
 C If width for word-warp is not reasonable, return.
       if(iwid.lt.24.or.iwid.gt.144)then
-        call edisp(iuout,'edisp248 width is overly short or long')
+        write(mstr,'(a,i3,a)') 'edisp248 word warp width ',iwid,
+     &    ' is overly short or long.' 
+        call edisp(iuout,mstr)
         return
       endif
 
@@ -8741,7 +8763,7 @@ C each modules code somewhere.  If not needed then provide a dummy.
 
 C izgfoc is the graphic focus zone, nzg is the number of zones selected
 C and nznog array of selected zone indices.
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       if(inpk.ne.nzg)then
         call edisp(iuout,'Mismatch between inpk and nzg.')
@@ -8903,8 +8925,8 @@ C-----------------------------------------------------------------------
 C----------------------------------------------------------------------
 C     ESP-r variables
 C----------------------------------------------------------------------
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen      
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout      ! channels for writing messages to screen      
       integer lnblnk
 C----------------------------------------------------------------------
 C     Local variables 
@@ -8967,8 +8989,8 @@ C-----------------------------------------------------------------------
 C----------------------------------------------------------------------
 C     ESP-r variables
 C----------------------------------------------------------------------
-      common/outin/iuout,iuin
-      integer iUout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iUout,iuin,ieout      ! channels for writing messages to screen
       integer lnblnk
 C----------------------------------------------------------------------
 C     Local variables 
@@ -9012,9 +9034,7 @@ C set of variables that define which compiler has been used.
 
       LOGICAL FUNCTION ISEOF(ISTAT)
 
-      if ( ISTAT.LT.0     ! EOF
-     &.or. ISTAT.EQ.5002) ! non-existing record number
-     &then
+      if ( ISTAT.LT.0 .or. ISTAT.EQ.5002) then    ! EOF or non-existing record number
         ISEOF=.TRUE.
       else
         ISEOF=.FALSE.

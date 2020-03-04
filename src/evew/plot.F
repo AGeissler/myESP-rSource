@@ -254,7 +254,7 @@ C PLTFIL generates a pic file for use in forms package.
 
       COMMON /FIL/ IFUSE, IFO
       COMMON/NNAAMM/ NAMDS,NAMPIC
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character FNAME*72,NAMDS*30,NAMPIC*40
       logical XST
 

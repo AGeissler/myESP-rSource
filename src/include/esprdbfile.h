@@ -13,22 +13,6 @@ C MGIT - (integer) number of items in a generic database
       parameter (MGCL=36)
       parameter (MGIT=600)
 
-C Array of generic database file names (72 char).
-      common/gendbf/gendbfn(MGDB)
-      character gendbfn*72
-
-C Array of default generic database file names (72 char).
-      common/dgendbf/dgendbfn(MGDB)
-      character dgendbfn*72
-
-C Array of file unit numbers for generic databases.
-      common/gendbfi/igendbf(MGDB)
-      integer igendbf
-
-C Array of logicals indicating generic database scanned ok.
-      common/gendb0/gendbok(MGDB)
-      logical gendbok
-
 C Standard path to corporate common files (based on Install data)
       common/stddbpath/standarddbpath
       character standarddbpath*72
@@ -100,14 +84,14 @@ C Active components database MCMPDBFL (144 char).
       CHARACTER MCMPDBFL*144
       COMMON/MCMPDBNAM/MCMPDBFL
 
-C Default file names for common data files:
-C DCLIM - default climate, DAPRES - default pressure coefficients (144 char)
-C DFCON - default materials (144 char), DFMUL - default constructions (144 char)
-C DOPTDB - default optics (144 char), DPRFDB - default events (144 char)
-C DPCDB - default plant components (144 char), DSBEM - default UK SBEM (144 char)
+C Default file names for common data files (all 144 char):
+C DCLIM - default climate, DAPRES - default pressure coefficients
+C DFCON - default materials, DFMUL - default constructions
+C DOPTDB - default optics, DPRFDB - default events
+C DPCDB - default plant components, DSBEM - default UK SBEM
 C DMCMPDBFL - default active components (144 char),
 C dmdbnam - default mould ispleths
-C DCFCDB - default CFClayers (144 char), DPREDEF - default predefined objects
+C DCFCDB - default CFClayers, DPREDEF - default predefined objects
       COMMON/DEFLT1/DCLIM,DAPRES,DFCON,DFMUL,DOPTDB,DPRFDB,DPCDB,DSBEM,
      &  DMCMPDBFL,dmdbnam,DCFCDB,DPREDEF
       character DFMUL*144

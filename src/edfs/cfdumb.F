@@ -29,7 +29,7 @@ C solid boundaries.
 
       SUBROUTINE BS2CFDSB
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       character OUTS*124
 
       WRITE(OUTS,'(2a)')'BS2CFDSB: building thermal calculation is not',
@@ -45,7 +45,7 @@ C back substitution based on CFD wall functions.
 
       SUBROUTINE CFMZBK
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       character OUTS*124
 
       WRITE(OUTS,'(2a)')'CFMZBK: building thermal calculation is not',
@@ -61,7 +61,7 @@ C the surface convection.
 
       SUBROUTINE TREFBC(L,TREF)
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       character OUTS*124
 
       WRITE(OUTS,'(2a)')'TREFBC: building thermal calculation is not',

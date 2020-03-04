@@ -18,7 +18,7 @@ C and says 'viewer bye-bye', and does a stop.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY 
       COMMON/NNAAMM/NAMDS,NAMPIC
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
 
@@ -139,7 +139,8 @@ C Main MENU.
         INO=-1
         GOTO 21
       elseif(ino.eq.23)then
-        CALL usrmsg('Closing viewing facility...',' ','P')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       elseif(ino.eq.22)then
@@ -694,12 +695,12 @@ C----------------------------------------------------
 C SET LAYERS
   80  CONTINUE
 C SET ALL ALYERS OFF
-      DO 85 II=0,MLAY
+      DO 85 II=0,MLAYR
       LAYER(II)=0
   85  CONTINUE
 C GET NEW LIST OF LAYERS ON
       call edisp(iuout,' Select ALL layers to be ON> ')
-      CALL SELECT(IUIN,0,MLAY,LAYER,1)
+      CALL SELECT(IUIN,0,MLAYR,LAYER,1)
       go to 21
 C----------------------------------------------------
   999 END

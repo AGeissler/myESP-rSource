@@ -9,8 +9,7 @@
 'A no will set this file name to UNKNOWN. And then it'
 'will be very difficult to do any work.'
 *enditem
-        CALL EASKS(ltmp,'icon database filename ?',
-        CALL ASKOK('could not find the icon database.','Try again?',
+
 *subroutine NETICONDATR
 *item NETICONDATR component_data_edit
 'This menu displays data which can be edited for'
@@ -30,14 +29,7 @@
 'To zoom in and out edit the scale (in the menu) or use button2'
 'within the graphic area and select the option.'
 *enditem
-        CALL PHELPD('Data categories',7,'-',0,0,IER)
-        CALL EASKS(NWICNM(ICN),'Give a (unique) name',
-        CALL EASKI(IVAL,ATRMENU(ICN,ifocus),' ',IVMIN,'W',
-        CALL EASKR(VAL,ATRMENU(ICN,ifocus),' ',VMIN,'W',
-        CALL EASKR(VAL,ATRMENU(ICN,ifocus),' ',VMIN,'W',
-        CALL EASKS(VSTR,ATRMENU(ICN,ifocus),'(confirm)',12,
-        CALL EASKS(VSTR,ATRMENU(ICN,ifocus),' ',12,
-        CALL EASKS(VSTR,ATRMENU(ICN,ifocus),' ',12,
+
 *subroutine updintunknflow
 *item updintunknflow network_mismatch_detect
 'As the model is updated in terms of its form or the'
@@ -48,10 +40,7 @@
 '  '
 'If you say yes the zone attributes will be used. '
 *enditem
-        CALL ASKOK(outs,'Update volume?',OK,dok,6)
-        CALL ASKOK(outs,'Update height?',OK,dok,6)
-        CALL ASKOK(outs,'Update position?',OK,dok,6)
-        CALL ASKOK(outs,'Update name?',OK,dok,6)
+
 *subroutine updwindflow
 *item updwindflow network_mismatch_detect
 'As the model is updated in terms of its form or the'
@@ -62,7 +51,7 @@
 '  '
 'If you say yes the zone attributes will be used. '
 *enditem
-          CALL ASKOK(outs,'Update name?',OK,dok,6)
+
 *subroutine NETCNNDATR
 *item NETCNNDATR connection_attributes
 'This menu displays the connection attribute which'
@@ -78,10 +67,7 @@
 'To move a way-mark use button1 to highlight the way-mark'
 'and then use button3 to move it.'
 *enditem
-        CALL PHELPD('Connection attributes',4,'-',0,0,IER)
-        CALL EASKI(IVAL,t32,' ',IVMIN,'W',
-        CALL EASKR(VAL,t32,' ',VMIN,'W',
-        CALL EASKS(VSTR,t32,' ',12,'nothing',
+
 *subroutine NETIDATR
 *item NETIDATR component_cat_edits
 'This menu displays the categoties of data which'
@@ -97,10 +83,7 @@
 'or exit to the previous menu.'
 'The data you can change follows the standard item pattern.'
 *enditem
-            CALL PHELPD('Data categories',7,'-',0,0,IER)
-            CALL EASKS(NWICNM(ICN),'Give a (unique) name',
-            CALL PHELPD('Data values',3,'-',0,0,IER)
-            CALL EASKI(IVAL,CATIES(IAST,ISL),' ',IVMIN,'W',
+
 *item NETIDATR network_mismatch_detect
 'As the model is updated in terms of its form or the'
 'network is adjusted a mismatch was detected between'
@@ -109,11 +92,7 @@
 'zone or its position. '
 'If you say yes the zone attributes will be used. '
 *enditem
-                          CALL ASKOK(outs,'Update volume?',OK,dok,6)
-                          CALL ASKOK(outs,'Update it?',OK,dok,6)
-                          CALL ASKOK(outs,'Update them?',OK,dok,6)
-                          CALL ASKOK(outs,'Update name?',OK,dok,6)
-                          CALL ASKOK(outs,'Update name?',OK,dok,6)
+
 *subroutine NETCDATR
 *item NETCDATR connection_attributes
 'This menu displays the categoties of data which'
@@ -124,11 +103,7 @@
 'Once you select a category you are presented with items which can'
 'be selected and their attributes edited.
 *enditem
-            CALL PHELPD('Data categories',4,'-',0,0,IER)
-            CALL PHELPD('Data values',3,'-',0,0,IER)
-            CALL EASKI(IVAL,t32,' ',IVMIN,'W',
-            CALL EASKR(VAL,t32,' ',VMIN,'W',
-            CALL EASKS(VSTR,t32,' ',12,'nothing',
+
 *subroutine NETWSNAP
 *item NETWORK net_summary_file
 'This summary file is written by the project manager'
@@ -136,7 +111,7 @@
 'context of the model (where zones and surfaces are'
 'located.'
 *enditem
-        CALL EASKS(LTMP,' Model summary file? ',' ',72,
+
 *item NETWORK have_new_connection
 'Recently a new connection was added to the network.'
 'Before doing anything else you should define its '
@@ -146,7 +121,7 @@
 'To move a way-mark use button1 to highlight the way-mark'
 'and then use button3 to move it.'
 *enditem
-        call askok('Edit this connections attributes?',
+
 *item NETWORK net_overview
 'The graphic network module produces graphic descriptions'
 'of networks related to simulation. It accesses a database'
@@ -204,11 +179,7 @@
 'you click and drag within the bar then the graph is moved.'
 'A -5m is the maximum negative axis value.'
 *enditem
-        CALL PHELPD('network main',44,'-',0,0,IER)
-        CALL EASKS(NWKDSC,
-        CALL EPICKS(IPCK,IVAL,'Select a network type',' ',12,MNWKTYP,
-  2     CALL EASKS(ltmp,'icon database filename ?',
-          CALL ASKOK('ERROR - could not find the icon database.',
+
 *item NETWORK grid_spacing
 'The graphical display can be scaled by defining the spacing of'
 'the grid. You have optioins to alter the XY spacing as well as'
@@ -221,10 +192,7 @@
 'so avoid it for now. And the scroll bars on the bottom and'
 'left do not work well if in negative X or Y.'
 *enditem
-        CALL EASKR(GRSPC(1),'XY spacing?',OUTS,0.125,'F',GRMAX(1),'F',
-        CALL EASKR(GRSPC(3),'Z spacing?',OUTS,0.125,'F',GRMAX(3),'F',
-        CALL EASKR(SCALF,'zoom setting?',OUTS,VIEWMN,'F',VIEWMZ,'F',
-        CALL EASKR(ROTA,'Icon rotation angle?',' ',0.0,'-',
+
 *item NETWORK convert_to_text_network
 'The icon based network file can be used by the simulator if'
 'all the components are fully attributed and the connection heights'
@@ -246,23 +214,19 @@
 'keep any recent changes, say no and save the file before'
 'using the test option.'
 *enditem
-        CALL ASKOK('Do you want to save the nodes & components',
-        CALL EASKS(LTMP,' Fluid flow network file ? ',
-        call easkabc('Options:',' ','standard network file read',
-        CALL ASKOK('Reading in a network will clear the current one',
-*subroutine NETWDRW
+
 *subroutine NETWMIC
 *item NETWMIC unique_name_required
 'Requires components to have a unique name, which contains'
 'no blank spaces.'
 *enditem
-          CALL EASKS(NWICNM(NNICN),'Give a (unique) name',
+
 *item NETWMIC icon_categories
 'The menu options relate to different categories'
 'of icons which may be selected for use with the'
 'current domain in the network tool.'
 *enditem
-          CALL PHELPD('Icon Category',3,'-',0,0,IER)
+
 *item NETWMIC icon_cat_components
 'Select a component from the list, which will '
 'then be drawn into the network. '
@@ -271,21 +235,22 @@
 'any more information associated with the '
 'component; this appears in the text window.'
 *enditem
-            CALL PHELPD('Component',6,'-',0,0,IER)
+
 *item NETWMIC pause_to_consider
 'Pause in case you decide not to delete connections.'
 *enditem
-          CALL ASKOK(outs,' ',OK,dok,1)
+
 *subroutine NETWMCO
 *item NETWMCO pause_to_consider
 'Pause, in case you made a selection error. '
 *enditem
-          CALL ASKOK('Delete selected connection?',' ',OK,dok,1)
+
 *item NETWMCO position_manual
 'As an alternative to mouse click identification you'
 'can type in an X Y Z coordinate near )~0.25m) the entity.'
 ' '
 *enditem
+
 *item NETWMCO check_mouse_menu
 'For defining mass flow connections you can also use menu'
 'selections from lists of nodes and components to create'
@@ -294,6 +259,7 @@
 'want connection with multiple way points use the mouse-click'
 'method.'
 *enditem
+
 *subroutine NETGDATR
 *item NETGDATR net_global_data
 'This menu displays the categoties of global data which'
@@ -322,7 +288,7 @@
 '  '
 'Please select an item or  exit to the previous menu.'
 *enditem
-        CALL PHELPD('Data categories',4,'-',0,0,IER)
+
 *item NETGDATR net_category_attrib
 'This list displays the attributes for this category.'
 'Click on the data item to edit its attributes.'
@@ -331,10 +297,7 @@
 '  '
 'Some items also have text attributes to edit.'
 *enditem
-          CALL PHELPD('Data values',3,'-',0,0,IER)
-          CALL EASKI(IVAL,t32,' ',IVMIN,'W',
-          CALL EASKR(VAL,t32,' ',VMIN,'W',
-          CALL EASKS(VSTR,t32,' ',12,'nothing',
+
 *subroutine selrelexttag
 *item selrelexttag net_pressure_coef
 'To enable the calculation of wind-induced surface'
@@ -355,13 +318,13 @@
 'which is most appropriate for the location of the '
 'external node.'
 *enditem
-            CALL PHELPD('databases overview',16,'-',0,0,IER)
+
 *item selrelexttag external_overview
 'Each thermal zone has attributes such as name,'
 'volume and a centre of gravity which can be used'
 'by a flow network component.'
 *enditem
-            CALL PHELPD('external overview',3,'-',0,0,IER)
+
 *item selrelexttag
 'The zone attributes are volume and location (centre)'
 'and these can be taken from the model rather than '
@@ -372,8 +335,7 @@
 'by a flow network component. You can use the attributes'
 'and adjust values by overiding the initial values.'
 *enditem
-          CALL ASKOK(t72,'attributes with this component?',OK,dok,3)
-          CALL PHELPD('external overview',3,'-',0,0,IER)
+
 *item selrelexttag place_at_lowest_point
 'The options listed would place the component at the'
 'lowest point of the surface, the COG or the top point'
@@ -381,6 +343,3 @@
 '  '
 'Note that the component height is in model coordinates.'
 *enditem
-          call easkatog(outs,'options:',tl,tc,tt,'other','continue',
-          CALL EASKR(xh,'Component height (m):',' ',-9.0,'W',99.0,'W',
-*subroutine listexttag

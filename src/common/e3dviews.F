@@ -46,7 +46,7 @@ C     LENS - initialise viewing parameters
 C prj3dv.h provides common blocks drwmat clip and image
 
 C Viewing transformation matrices TEMAT is:
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Local variables
       real T1MAT,T2MAT,R1MAT
@@ -152,6 +152,8 @@ C Now compute ETSMAT eye to screen matrix
       ETSMAT(4,4) = HITH*T
 
       CALL HMATMUL(TEMAT,ETSMAT,TSMAT)
+
+      CALL HREVMAT(TSMAT,STMMAT,IERR)
 
 C Define test point TPCLIP and equations CLIPLN to the 6 clipping
 C planes in eye space.
@@ -694,6 +696,7 @@ C and the vertex number.
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+      common/SPAD/MMOD,LIMIT,LIMTTY
       CHARACTER VTEXT*4,VT*4
       integer lastbuttonfont
       logical colok
@@ -713,7 +716,7 @@ C Check if can draw in colour and if so set black.
       isize=0
       if(colok)then
         iicol=0
-        call winscl('-',iicol)
+        if(mmod.eq.8) call winscl('-',iicol)
       endif
 
 C If vertices are to be labeled do it in the smallest font.
@@ -727,11 +730,15 @@ C If vertices are to be labeled do it in the smallest font.
       VTEXT=VT
       iix1=iix+1; iiy1=iiy-1;
       lastbuttonfont=IFS
-      call textsizeatxy(iix1,iiy1,VTEXT,isize,'-',iicol)
-      IF(IFS.ne.lastbuttonfont)CALL winfnt(lastbuttonfont)
-      call forceflush()
-      iicol=0
-      call winscl('-',iicol)
+      if(mmod.eq.8)then
+        call textsizeatxy(iix1,iiy1,VTEXT,isize,'-',iicol)
+        IF(IFS.ne.lastbuttonfont)CALL winfnt(lastbuttonfont)
+        call forceflush()
+        iicol=0
+        call winscl('-',iicol)
+      else
+        call textsizeatxywwc(iix1,iiy1,VTEXT,isize,'-',iicol)
+      endif
 
       RETURN
       END
@@ -744,6 +751,7 @@ C and the vertex number.
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+      common/SPAD/MMOD,LIMIT,LIMTTY
       CHARACTER VTEXT*4,VT*4
       integer lastbuttonfont
       logical colok
@@ -763,7 +771,7 @@ C Check if can draw in colour and if so set to red.
       isize=0
       if(colok)then
         iicol=0
-        call winscl('z',iicol)
+        if(mmod.eq.8) call winscl('z',iicol)
       endif
 
 C If vertices are to be labeled do it in the smallest font.
@@ -777,11 +785,15 @@ C If vertices are to be labeled do it in the smallest font.
       VTEXT=VT
       iix1=iix+1; iiy1=iiy-1;
       lastbuttonfont=IFS
-      call textsizeatxy(iix1,iiy1,VTEXT,isize,'z',iicol)
-      IF(IFS.ne.lastbuttonfont)CALL winfnt(lastbuttonfont)
-      call forceflush()
-      iicol=0
-      call winscl('-',iicol)
+      if(mmod.eq.8)then
+        call textsizeatxy(iix1,iiy1,VTEXT,isize,'z',iicol)
+        IF(IFS.ne.lastbuttonfont)CALL winfnt(lastbuttonfont)
+        call forceflush()
+        iicol=0
+        call winscl('-',iicol)
+      else
+        call textsizeatxy(iix1,iiy1,VTEXT,isize,'z',iicol)
+      endif
 
       RETURN
       END
@@ -905,8 +917,8 @@ C Find maximum 2D x coordinate.
 C Find maximum 2D y coordinate.
       SYMX=AMAX1(Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8,SYMX)
 
-      SXMN=SXMN*1.1; SXMX=SXMX*1.1
-      SYMN=SYMN*1.1; SYMX=SYMX*1.1
+      SXMN=SXMN*1.02; SXMX=SXMX*1.02  ! add 2% buffer
+      SYMN=SYMN*1.02; SYMX=SYMX*1.02
 
       RETURN
       END
@@ -950,9 +962,6 @@ C Find maximum 2D x coordinate.
 
 C Find maximum 2D y coordinate.
       SYMX=AMAX1(Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8,SYMX)
-
-      SXMN=SXMN; SXMX=SXMX
-      SYMN=SYMN; SYMX=SYMX
 
 C find angle between extremes and eye point.
       call ang3vtx(SXMN,SYMN,ZVAL,0.,0.,0.,SXMX,SYMX,1000.,eang)
@@ -1064,8 +1073,8 @@ C Use the GB1 common block and CNVBLK or CNVBLK3A to find bounds.
                 call CNVBLKP(ivz,IB) ! convert obsp type.
               endif
 
-              do I=1,8    ! for each vertex in block
-                if(ITBND.NE.0)then
+              if(ITBND.NE.0)then
+                do I=1,8    ! for each vertex in block
 
 C Update the overall model bounds to include any obstructions.
                   XMN=AMIN1(XMN,XB(I))
@@ -1074,8 +1083,8 @@ C Update the overall model bounds to include any obstructions.
                   XMX=AMAX1(XMX,XB(I))
                   YMX=AMAX1(YMX,YB(I))
                   ZMX=AMAX1(ZMX,ZB(I))
-                endif
-              enddo  ! of I
+                enddo  ! of I
+              endif
             enddo    ! of ib
           endif  ! of nbobs
         endif    ! of ITDISP
@@ -1094,8 +1103,8 @@ C Check visual entities.
             elseif(VISTYP(ivz,IB)(1:4).eq.'visp')then
               call CNVVISP(ivz,IB) ! convert visp type.
             endif
-            do I=1,8    ! for each vertex in block
-              if(ITBND.NE.0)then
+            if(ITBND.NE.0)then
+              do I=1,8    ! for each vertex in block
 
 C Update the overall model bounds to include any obstructions.
                 XMN=AMIN1(XMN,XB(I))
@@ -1104,8 +1113,8 @@ C Update the overall model bounds to include any obstructions.
                 XMX=AMAX1(XMX,XB(I))
                 YMX=AMAX1(YMX,YB(I))
                 ZMX=AMAX1(ZMX,ZB(I))
-              endif
-            enddo  ! of I
+              enddo  ! of I
+            endif
           enddo    ! of ib
         endif
         
@@ -1118,22 +1127,22 @@ C If in single zone mode recover common data from memory.
 C Zone centre of gravity and update overall model bounds.
 C (No centre of gravity required if this is the site origin).
       IF(IZ.GE.1)THEN
-        DO I=1,nztv(IVZ)
-          IF(ITBND.NE.0)THEN
-            ZXMN(IVZ)=AMIN1(ZXMN(IVZ),VCOORD(IVZ,I,1))
-            ZYMN(IVZ)=AMIN1(ZYMN(IVZ),VCOORD(IVZ,I,2))
-            ZZMN(IVZ)=AMIN1(ZZMN(IVZ),VCOORD(IVZ,I,3))
-            ZXMX(IVZ)=AMAX1(ZXMX(IVZ),VCOORD(IVZ,I,1))
-            ZYMX(IVZ)=AMAX1(ZYMX(IVZ),VCOORD(IVZ,I,2))
-            ZZMX(IVZ)=AMAX1(ZZMX(IVZ),VCOORD(IVZ,I,3))
-            XMN=AMIN1(XMN,VCOORD(IVZ,I,1))
-            YMN=AMIN1(YMN,VCOORD(IVZ,I,2))
-            ZMN=AMIN1(ZMN,VCOORD(IVZ,I,3))
-            XMX=AMAX1(XMX,VCOORD(IVZ,I,1))
-            YMX=AMAX1(YMX,VCOORD(IVZ,I,2))
-            ZMX=AMAX1(ZMX,VCOORD(IVZ,I,3))
-          ENDIF
-        ENDDO  ! of I
+        IF(ITBND.NE.0)THEN
+          DO I=1,nztv(IVZ)
+            ZXMN(IVZ)=AMIN1(ZXMN(IVZ),szcoords(IVZ,I,1))
+            ZYMN(IVZ)=AMIN1(ZYMN(IVZ),szcoords(IVZ,I,2))
+            ZZMN(IVZ)=AMIN1(ZZMN(IVZ),szcoords(IVZ,I,3))
+            ZXMX(IVZ)=AMAX1(ZXMX(IVZ),szcoords(IVZ,I,1))
+            ZYMX(IVZ)=AMAX1(ZYMX(IVZ),szcoords(IVZ,I,2))
+            ZZMX(IVZ)=AMAX1(ZZMX(IVZ),szcoords(IVZ,I,3))
+            XMN=AMIN1(XMN,szcoords(IVZ,I,1))
+            YMN=AMIN1(YMN,szcoords(IVZ,I,2))
+            ZMN=AMIN1(ZMN,szcoords(IVZ,I,3))
+            XMX=AMAX1(XMX,szcoords(IVZ,I,1))
+            YMX=AMAX1(YMX,szcoords(IVZ,I,2))
+            ZMX=AMAX1(ZMX,szcoords(IVZ,I,3))
+          ENDDO  ! of I
+        ENDIF
 
 C Set flag to denote that the zone bounds have been calculated.
         IVZ=nznog(IZ)
@@ -1178,18 +1187,18 @@ C Loop back for another body and reset ISTOK so origin omitted.
       GOTO 100
 
 C If site grid then include one extra metre in the bounds if
-C a large site, otherwise include GRDIS to bounds.
+C a large site, otherwise include half GRDIS to bounds.
   200 IF(ITGRD.EQ.0)THEN
         if(GRDIS.gt.2.0)then
-          XMN=XMN-1.0; XMX=XMX+1.0; YMN=YMN-1.0; YMX=YMX+1.0
+          XMN=XMN-0.5; XMX=XMX+0.5; YMN=YMN-0.5; YMX=YMX+0.5
         else
-          XMN=XMN-GRDIS; XMX=XMX+GRDIS
-          YMN=YMN-GRDIS; YMX=YMX+GRDIS
+          XMN=XMN-(GRDIS*0.5); XMX=XMX+(GRDIS*0.5)
+          YMN=YMN-(GRDIS*0.5); YMX=YMX+(GRDIS*0.5)
         endif
       ENDIF
 
 C All bodies checked so calculate model centre within bounding box.
-C If we are deling with a static view ITBND=0 then do not
+C If we are dealing with a static view ITBND=0 then do not
 C update VIEWM.
       if(ITBND.eq.0)then
         continue

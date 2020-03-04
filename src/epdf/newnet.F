@@ -81,7 +81,7 @@ C Electrical details for specified plant components
 
 C Flag for plant ---> fluid link
       COMMON/PFLNK/IPFLNK
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       common/funit/iucfg, iupdb
       common/mfnchl/mfunit
@@ -108,13 +108,20 @@ C Common controlling format of plant network file
       CHARACTER H*72,outs*124,ltmp*72,pcname*15, lctlf*72,ctldoc*248
       CHARACTER ICDIR*72, DOIT*248,mode*1,pcdesc*80
       character*68 mscdsc, cvrdsc,hfpdsc
-      LOGICAL OK,dok,XST
+      LOGICAL OK,XST
       integer NITMS,INO ! max items and current menu item
+	  
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
 
 C And finally the DATA statement after all the other definitions.
       logical bInitialized
       data bInitialized / .false. /
       save bInitialized
+	  
+      helpinsub='newnet'     ! set for subroutine
 
 C Initialize bPLN_format_long variable, if necessary. bPLN_format_long
 C controls the format of the plant network file --- default to
@@ -129,11 +136,10 @@ C setting will persist for the current prj session.
 
 C If file already exists then enter edit mode.  
       if(MODE.eq.'G'.and.iedit.eq.1) then 
-        dok=.true.
         h(1)='This portion of the interface is under development. '
         h(2)='Using menu driven interface instead of graphics. '
-        call askok('You cannot edit in graphical mode...switching to',
-     &    'default menu driven mode. Continue? ' ,OK,dok,2)
+        call easkok('Editing disabled in graphical mode!',
+     &    'Switch to menu mode?',OK,2)
         if(.not.ok) return                
         MODE='-'
       endif   
@@ -149,16 +155,15 @@ C If file already exists then enter edit mode.
 C Read in the configuration file.   
  210  CALL EFOPSEQ(IFPNF,LPNF,IOP,IER)
       if(IER.GT.0) then
-        call edisp(iuout,' Error opening the configuration file.')
+        call edisp(iuout,'Error opening configuration file.')
         return
       endif
 
       IF(IUPDB.EQ.0) IUPDB=IFPNF+1
       if(iedit.eq.1) then
-        dok=.true.
-        h(1)='In case you want to review the plant network. '
-        CALL ASKOK(' Display a synopsis of the plant network?',' ',
-     &    OK,dok,1)
+        helptopic='plant_config_syn'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKOK(' ','synopsis of plant network?',OK,nbhelp)
         IF(OK)THEN
           call pltcfg(IFPNF,iupdb,iuout,1) 
         ELSE
@@ -260,12 +265,12 @@ C If newnet is called with mode 'G' skip menu definition.
 C Change or re-read problem.
       if (ino.eq.1) then 
         ltmp=LPNF
- 301    CALL EASKS(ltmp,' Plant network definition file?',
+ 301    CALL EASKS(ltmp,'Plant network definition file?',
      &    ' ',72,DPNF,'plant network file',IER,4)
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
           LPNF=ltmp
         else
-          call usrmsg('Please re-enter the file name. ',' ','W')
+          call usrmsg('Re-enter file name.',' ','W')
           goto 301
         endif
 
@@ -280,11 +285,11 @@ C Change or re-read problem.
       elseif(ino.eq.3) then
 
 C Change project title for problem.
-        h(1)='The project title should be used to give a concise '
-        h(2)='description of the plant system being modelled.     '
+        helptopic='plant_title'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         ltmp=lpnam
-        CALL EASKS(ltmp,' Project title? ',' ',72,'no title given ',
-     &    'lpnam',IER,2)
+        CALL EASKS(ltmp,'Project title?',' ',72,'no title given ',
+     &    'lpnam',IER,nbhelp)
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
           lpnam=ltmp
         endif
@@ -307,7 +312,7 @@ C in network.
 C Define connections.
         if(npcomp.lt.2) then
           CALL USRMSG(' ',
-     &     'NOTE: you must first define two or more components. ','-')
+     &     'You must first define two or more components.','-')
             goto 12
         else
           call ASKPCON(' Connections','M',IS,IER)
@@ -363,9 +368,8 @@ C << a graphic network file (as is done in esystem.F)
           CALL EMFREAD(IUF,IER)
           IF(IER.NE.0)THEN
             CALL EDISP(IUOUT,' ')
-            CALL EDISP(IUOUT,'ERROR: Problem reading fluid flow file!')
-            CALL EDISP(IUOUT,'Check that one is defined for this model')
-            CALL EDISP(IUOUT,' ')
+            CALL EDISP(IUOUT,'Problem reading fluid flow file!')
+            CALL EDISP(IUOUT,'Check that one is defined')
             GOTO 10
           ENDIF
 
@@ -396,12 +400,10 @@ C List the current fluid flow connections
             IF(IC.GT.0) THEN
               icffs(ilink)=IC
             ELSE
-              dok=.true.
-              h(1)='You have not selected a flow connection. One is'
-              h(2)='required. If you say no then data will be lost.'
-              h(3)='If you say yes you get a 2nd chance. '
-              CALL ASKOK('No connection chosen, try again ?',
-     &          '(see help)',OK,dok,3)
+              h(1)='You have not selected a flow connection. If'
+              h(2)='you select no then data will be lost.'
+              CALL EASKOK('No connection selected!',
+     &                    'Retry?',OK,2)
               IF(OK) THEN
                 GOTO 206
               ELSE
@@ -414,14 +416,11 @@ C List the current fluid flow connections
          if(npcon.gt.0) then
            h(1)='Automatic mass flow network generation '
            h(2)='while functional is still at an early  '
-           h(3)='stage of development. Hence for the safety'
-           h(4)='of the novice user, flow network generation'
-           h(5)='is password protected.'
-           dok=.false.
-           CALL ASKOK('Auto generate the flow network?','(see help)',
-     &       OK,dok,5)
+           h(3)='stage of development. Hence the facility'
+           h(4)='is password protected.'
+           CALL EASKOK(' ','Auto generate flow network?',OK,4)
            IF(.not.ok) goto 215
-           call easki(ians,' ','Password: ',0,'-',0,'-',0,
+           call easki(ians,' ','Password?',0,'-',0,'-',0,
      &       'Password',IER,5)
            if(ians.ne.101) goto 215
            mfunit=10
@@ -437,12 +436,10 @@ C List the current fluid flow connections
 
 C Link building to plant
         CALL ASKBPLINK(' Linkages ','M',ILNK,IER)
-        dok=.true.
-        h(1)='To save any changes in building plant linkage you must'
-        h(2)='update the control file.'
-        CALL ASKOK(
-     &    'Update control file to reflect changes in building-plant',
-     &    'links?',OK,dok,2)
+        h(1)='To save changes to the building/plant linkage'
+        h(2)='you must update the control file.'
+        CALL EASKOK(' ',
+     &          'Update control file to reflect changes?',OK,2)
         ICTLF=IFIL+1
         IF(OK) THEN 
           CALL CTLWRT(ICTLF,IER)
@@ -452,8 +449,9 @@ C Link building to plant
             CLOSE(ICTLF)
           ELSE
             CALL EDISP(IUOUT,' ')
-            CALL EDISP(IUOUT,'ERROR: control file not updated properly') 
-            CALL EDISP(IUOUT,'check that a control file is referenced') 
+            CALL EDISP(IUOUT,
+     &                  'ERROR: control file not updated properly.') 
+            CALL EDISP(IUOUT,'Check that a control file is referenced')
             CALL EDISP(IUOUT,'in the configuration file.') 
           ENDIF
         ENDIF
@@ -472,27 +470,9 @@ C Overwrite the existing plant configuration file
         iexit=0
         goto 57
       elseif(ino.eq.nitms-1) then
-        h(1) ='This is the network definition option of pdf.  Using'
-        h(2) ='this option you can define the constituent parts'
-        h(3) ='assosciated with an ESP-r plant network.'
-        h(4) =' '
-        h(5) ='When defining a the components of the network you are'
-        h(6) ='presented with a list of available components from the'
-        h(7) ='selected plant components database. Pick as many'
-        h(8) ='components as are required then exit via the -Exit'
-        h(9) ='option.'
-        h(10)=' '
-        h(11)='Connections are the linkages between plant components'
-        h(12)='and are defined in terms of the RECEIVING node then'
-        h(13)='the SENDING node (in the direction of fluid flow). '
-        h(14)=' '
-        h(15)='The mass diversion ratio is the fraction of mass flow'
-        h(16)='sent from the SENDING node which reaches the'
-        h(17)='RECEIVING node(0 - 1.0).'
-        h(18)=' '
-        h(19)='The containment specifies the destination of the'
-        h(20)='component parasitic loss and may remain unspecified.'
-        call phelpd('pdf network def',20,'-',0,0,ier)  
+        helptopic='plant_config_menu'
+        call gethelptext(helpinsub,helptopic,nbhelp)		
+        call phelpd('pdf network def',nbhelp,'-',0,0,ier)  
       elseif(ino.eq.nitms) then
         IF(MODE.EQ.'G') THEN
           H(1)=' Folder where icons live (absolute path).'
@@ -504,10 +484,9 @@ C Overwrite the existing plant configuration file
           MODE='-'
           goto 10
         ENDIF
-        dok=.true.
-        h(1)='Recent changes may be lost if they are not saved '
-        h(2)='to file. '
-        CALL ASKOK(' ','Do you want to save any changes?',OK,dok,2)
+        helptopic='plant_config_save'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL EASKOK(' ','Save changes?',OK,nbhelp)
         iexit=0
         IF(.not.ok) then
           return
@@ -524,10 +503,11 @@ C Overwrite the existing plant configuration file
 C Deal with saving the file.
  57   continue
       if(npcomp.gt.0) then
-        h(1)='This will be created or overwite current configuration. '
+        helptopic='plant_update_save'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         ltmp=LPNF
-        CALL EASKS(ltmp,' Updated plant network file name? 
-     &     ',' ', 72,' ',' file name',IER,1)
+        CALL EASKS(ltmp,'Updated plant network file name? 
+     &     ',' ', 72,' ',' file name',IER,nbhelp)
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
           LPNF=ltmp
         else
@@ -568,7 +548,7 @@ C   tadata(?,2..n) - value of each parameter.
 #include "plant.h"
 #include "gencompDB.h"
 #include "gencompDB_common.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/C9plus/UCdbNam(MPCOM),CdbCat(MPCOM),CDBDesc(MPCOM)
 
@@ -586,6 +566,13 @@ C Common for new format component database
       character*68 mscdsc, cvrdsc
       character pcname*15,txt*68,H*72,pcdesc*80,str*15,outs*124,
      &UCDBNam*16, CdbCat*32, CDBDesc*72
+	 
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+	  
+      helpinsub='pcdefn'      ! set for subroutine
 
 C Now display the menu.
       str=' '
@@ -605,17 +592,18 @@ C Initialise component entry in dbase.
 C Record component entry in new format database. 
      
 C Read component name for current problem.
-        h(1)='You can designate a meaningful name for the'
-        h(2)='selected component. This name will be used in the  '
-        h(3)='current problem. The name must not exceed 15 characters.'
-        h(4)='N.B no two component names should be the same! '
-        CALL EASKS(str,' Component name in problem (No spaces) ? ',
-     &  '(15 characters max)',15,' ',' component name',IER,4)
+        helptopic='plant_comp_nme'
+        call gethelptext(helpinsub,helptopic,nbhelp)    
+        CALL EASKS(str,' Component name? ',
+     &  '(15 characters max, no spaces)',15,' ',' component name',
+     &  IER,nbhelp)
         pcname(npcomp)=str(1:15)
 
 C Call subroutine to read data associated with selected
 C component from plant data base.
         call rcdata(npcomp,1)
+        helptopic='plant_ctl_var'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(nci(npcomp).gt.0) then
 
 C If component has any control variable(s),
@@ -623,16 +611,8 @@ C prompt user to enter its value.
           do 101 jj=1, nci(npcomp)
             txt=cvrdsc(jj)
             value=0.0
-          h(1)='A control variable may be subjected to control action.'
-          h(2)='For example, in a heating coil model, the heat'
-          h(3)='injected to the air may be an elected control variable.'
-          h(4)='If no control loop is defined, a realistic value must'
-          h(5)='be assigned to this variabel otherwise its value is '
-          h(6)='determined on the basis of some sensed condition and'
-          h(7)='the active control law.'
-          h(8)=' '
-            CALL EASKR(value,' ',txt,0.,'-',0.,'-',0.,
-     &        ' item value?',IER,8)
+            CALL EASKR(value,'Component controlled variable',txt,0.,
+     &        '-',0.,'-',0.,' item value?',IER,nbhelp)
             cdata(npcomp,jj)=value
   101     continue
         endif
@@ -650,10 +630,10 @@ C ask user if he wishes to modify any parameters.
   909     continue
           call edisp(iuout,' ')
           dok=.false.
-          h(1)='The current component has additional parameters '
-          h(2)='which can be altered. '
-          CALL ASKOK(' ',
-     &      'Do you want to change component parameters?',OK,dok,2)
+          helptopic='plant_add_par'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKOK(' ',
+     &      'Do you want to change component parameters?',OK,nbhelp)
           if(.not.OK) return
 
 C Display miscellaneous data items and let user pick one.
@@ -661,12 +641,14 @@ C Display miscellaneous data items and let user pick one.
           if(itm.ne.0.and.ival(1).ne.0) then
 
 C Read new value for selected item(s) then redisplay.
+             helptopic='plant_entry'
+             call gethelptext(helpinsub,helptopic,nbhelp)
              do 106 iij = 1,itm
                txt=mscdsc(ival(iij))
                dvalue=tadata(npcomp,ival(iij))
                value=dvalue
                call easkr(value,' ',txt,0.,'-',0.,'-',dvalue,
-     &           ' item value?',IER,0)
+     &           ' item value?',IER,nbhelp)
                tadata(npcomp,ival(iij))=value
   106        continue
              write(outs,'(2a)') 'Updated data for ',pcname(npcomp)
@@ -719,22 +701,30 @@ C   idcon(?) - assigns a connection id number
       dimension ival(mpcom), contyp(5)    
       character contyp*45,head*19,emod*1,outs*124,str*72,pcname*15
       integer num
+	  
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+	  
+      helpinsub='condef'      ! set for subroutine
+	  
       num=0
       
       str=' '
 
 C Let user select receiving component and node in that component.
       IF(EMOD.NE.'G') THEN
-        head='Receiving compt:'
+        head='RECEIVING compt:'
         call usrmsg(' ',' ','-')
         IF(IPC1(IPCON).NE.0)THEN
-          write(str,'(3A)') '( currently ',PCNAME(IPC1(IPCON)),' )'
+          write(str,'(3A)') '(Currently ',PCNAME(IPC1(IPCON)),')'
         ELSE
-          write(str,'(A)') '( currently UNDEFINED )'  
+          write(str,'(A)') '(Currently UNDEFINED)'  
         ENDIF 
         call usrmsg('Select RECEIVING component for this connection:',
      &str,'-')
-        CALL ASKPCMP(head,'-',IPCOMP,IER)
+        CALL ASKPCMP(head,'C',IPCOMP,IER)
         call usrmsg(' ',' ','-')
       ELSE 
          IPCOMP=IPCOMPA
@@ -756,36 +746,20 @@ C If no receiving component selected return.
 
 C Fill array with existing connection types.
       isvt=isv(ipc1t,ipn1t)
-      contyp(1)='identical temperature + humidity ratio.(N/A)'
       if(isvt.eq.1.or.isvt.eq.11.or.isvt.eq.21)then
-        contyp(2)='From known temperature + humidity ratio.    '
+        contyp(1)='From known temperature + humidity ratio.    '
       else
-        contyp(2)='From known temperature                      '
+        contyp(1)='From known temperature                      '
       endif
-      contyp(3)='From another component.                     '
-      contyp(4)='From a building zone air.                   '
-      contyp(5)='From ambient air.                           '
+      contyp(2)='From another component.                     '
+      contyp(3)='From a building zone air.                   '
+      contyp(4)='From ambient air.                           '
 
 C Let user select a connection type.
   107 itm=1
-      nctype=5
-      h(1) ='The user can connect the RECEIVING component from '
-      h(2) ='one of several different elements:              '
-      h(3) =' '
-      h(4) =' a - Not available yet.  '
-      h(5) =' '
-      h(6) =' b - Known temperature and humidity ratio; the user '
-      h(7) ='     supplies the temperature and humidity ratio of the'
-      h(8) ='     fluid flowing to this component.                  '
-      h(9) =' '
-      h(10)=' c - Another component; the user selects the plant    '
-      h(11)='     component SENDING to the RECEIVING component.    '  
-      h(12)=' '
-      h(13)=' d - Building zone; the selects the building zone which'
-      h(14)='     SENDS fluid to the RECEIVING component.           '
-      h(15)=' '
-      h(16)=' e - Ambient air; the component RECEIVES fluid from '
-      h(17)='     outside.                                       '
+      nctype=4
+      helptopic='plant_conn_type'
+      call gethelptext(helpinsub,helptopic,nbhelp)                                      '
       IF(IPCT(IPCON).NE.0)THEN
         write(str,'(3A)') '( currently ',CONTYP(IPCT(IPCON)),' )'
       ELSE
@@ -795,7 +769,7 @@ C Let user select a connection type.
      &'Select the entity SENDING fluid to this component.',str,'-')
       call epicks(itm,ival,'What is this component connected to? ',
      &    '(see help)',45,nctype,contyp,
-     &    ' Connection types',ier,17)
+     &    ' Connection types',ier,nbhelp)
       call usrmsg('  ',' ','-')
       if(ier.ne.0) goto 107
       if(itm.eq.0) return
@@ -803,41 +777,29 @@ C Let user select a connection type.
 
 C Case for connection type 2.
 C Known temperature and humidity ratio.
-      if(ipctt.eq.2) then
+      if(ipctt.eq.1) then
         IF(EMOD.NE.'G') THEN 
           value=20.0
           dvalue=value
+          helptopic='data_entry'
+          call gethelptext(helpinsub,helptopic,nbhelp)  
           CALL EASKR(value,' ',
      &   'Enter temperature value (C)',0.,'-',0.,'-',dvalue,
-     &   ' temperature ?',IER,0)
+     &   ' temperature ?',IER,nbhelp)
           supdt1=value
           value=0.001
           dvalue=value
           if(isvt.eq.1.or.isvt.eq.11.or.isvt.eq.21)then
             CALL EASKR(value,' ',
      &   'Enter humidity ratio value (kg v/kg a)',0.,'-',dvalue,
-     &   '-',dvalue,' humidity ratio?',IER,0)
+     &   '-',dvalue,' humidity ratio?',IER,nbhelp)
            supdt2=value
          else
            supdt2=0.000
          endif
-         h(1)='This component receives air from a known temperature+'
-         h(2)='humidity ratio but the inlet flow rate is unknown.'
-         h(3)='You have two choices:  '
-         h(4)=' '
-         h(5)='a) select the component in the network which '
-         h(6)='supplies this component.                     '
-         h(7)=' ' 
-         h(8)='b) OR, if no component supplies flow to this one '
-         h(9)='i.e. this the 1st component in an open loop system,'
-         h(10)='then select ANY driving component (fan) in the '
-         h(11)='network and modify the connection mass diversion '
-         h(12)='ratio (MDR) such that the fan flow*MDR equals the '
-         h(13)='flow you want. The flow rate will then be used as '
-         h(14)='the inlet flow rate to this component.'
-         h(15)='The connections to the driving component are '
-         h(16)='NOT affected. '
-         CALL PHELPD('supply component',16,'-',0,0,IER)
+         helptopic='plant_known_link'
+         call gethelptext(helpinsub,helptopic,nbhelp) 
+         CALL PHELPD('supply component',nbhelp,'-',0,0,IER)
          IF(IPC2(IPCON).NE.0)THEN
            write(str,'(3A)') '( currently ',PCNAME(IPC2(IPCON)),' )'
          ELSE
@@ -845,7 +807,7 @@ C Known temperature and humidity ratio.
          endif 
          CALL USRMSG('Select a component:  ',str,'-')
          head='DRIVING compt:'
-         CALL ASKPCMP(head,'-',IPCOMP,IER)
+         CALL ASKPCMP(head,'K',IPCOMP,IER)
          CALL USRMSG(' ',' ','-')
         ELSE 
            IPCOMP=IPCOMPB
@@ -864,16 +826,16 @@ C Known temperature and humidity ratio.
         endif
 
 C Case for connection to another component. 
-      elseif(ipctt.eq.3)then
+      elseif(ipctt.eq.2)then
         IF(EMOD.NE.'G')THEN
           IF(IPC2(IPCON).NE.0)THEN
-            write(str,'(3A)') '( currently ',PCNAME(IPC2(IPCON)),' )'
+            write(str,'(3A)') '(Currently ',PCNAME(IPC2(IPCON)),')'
           ELSE
-            write(str,'(A)') '( currently UNDEFINED )'  
+            write(str,'(A)') '(Currently UNDEFINED)'  
           endif
           call usrmsg('Select the SENDING component:',str,'-')
           head='SENDING compt:'
-          CALL ASKPCMP(head,'-',IPCOMP,IER)
+          CALL ASKPCMP(head,'C',IPCOMP,IER)
           call usrmsg(' ',' ','-')
         ELSE 
           IPCOMP=IPCOMPB
@@ -892,7 +854,7 @@ C Case for connection to another component.
         endif
 
 C Case for connection to building zone.
-      elseif(ipctt.eq.4) then
+      elseif(ipctt.eq.3) then
         IF(EMOD.NE.'G') THEN
           value=1.0
           dvalue=value
@@ -905,20 +867,14 @@ C Display  a list of the available zones ....
           call usrmsg(' ',' ','-')
           supdt1=IZ
 
-          h(1)='This component receives air from the specified zone'
-          h(2)='and is therefore in the return part of the plant   '
-          h(3)='system. Please identify the component which supplies '
-          h(4)='air to the zone. '
-          CALL PHELPD('supply component',4,'-',0,0,IER) 
-          CALL PHELPD('ambient air ',15,'-',0,0,IER) 
           IF(IPC2(IPCON).NE.0)THEN
-            write(str,'(3A)') '(currently ',PCNAME(IPC2(IPCON)),')'
+            write(str,'(3A)') '(Currently ',PCNAME(IPC2(IPCON)),')'
           ELSE
-            write(str,'(A)') '(currently UNDEFINED)'  
+            write(str,'(A)') '(Currently UNDEFINED)'  
           endif
           call usrmsg('Select the SUPPLY component:',str,'-')
           head='SUPPLY compt:'
-          CALL ASKPCMP(head,'-',IPCOMP,IER)
+          CALL ASKPCMP(head,'Z',IPCOMP,IER)
           call usrmsg(' ',' ','-')
         ELSE 
           IPCOMP=IPCOMPB
@@ -937,32 +893,16 @@ C Display  a list of the available zones ....
         endif                
 
 C Case for connection to ambient air.
-      elseif(ipctt.eq.5) then
-        IF(EMOD.NE.'G') THEN
-          h(1)='This component receives air from outside, however'
-          h(2)='the inlet flow rate is unknown. You have two choices'
-          h(3)='in how to supply this information:  '
-          h(4)='  '
-          h(5)='a) select the component which vents air to outside '
-          h(6)='if its flow rate is the same as this one.'
-          h(7)=' ' 
-          h(8)='b) OR, if the vent and supply component flow rates  '
-          h(9)='differ then select ANY driving component (fan) in the'
-          h(10)='plant network and modify the mass diversion ratio '
-          h(11)='(MDR) such that the fan flow*MDR equals the flow '
-          h(12)='you want. The flow rate will then be used as'
-          h(13)='the inlet flow rate to this component. The '
-          h(14)='connections to the driving component are NOT '
-          h(15)='affected.'
-          CALL PHELPD('ambient air ',15,'-',0,0,IER) 
+      elseif(ipctt.eq.4) then
+        IF(EMOD.NE.'G') THEN 
           IF(IPC2(IPCON).NE.0)THEN
-            write(str,'(3A)') '(currently ',PCNAME(IPC2(IPCON)),')'
+            write(str,'(3A)') '(Currently ',PCNAME(IPC2(IPCON)),')'
           ELSE
-            write(str,'(A)') '(currently UNDEFINED)'  
+            write(str,'(A)') '(Currently UNDEFINED)'  
           endif
           CALL USRMSG('Select a component: ',str,'-')
           head='DRIVING compt:'
-          CALL ASKPCMP(head,'-',IPCOMP,IER)
+          CALL ASKPCMP(head,'A',IPCOMP,IER)
           call usrmsg(' ',' ','-')
         ELSE 
           IPCOMP=IPCOMPB
@@ -989,24 +929,11 @@ C Ask user for a mass diversion ratio for
 C this connection.
       value=1.0
       dvalue=value
-      H(1)='The mass diversion ratio is the amount of fluid coming '
-      H(2)='from the SENDING component that reaches the RECEIVING  '
-      H(3)='component. This can be used to specify leakage e.g. if ' 
-      H(4)='2% of the air is lost between the sending and receiving'
-      H(5)='component, then the diversion ratio is 0.98.           '
-      H(6)=' '
-      H(7)='Alternatively the mass diversion ratio can be used to  '
-      H(8)='specify flow splitting e.g. if a fan supplies four     '
-      H(9)='identical ducts, then the mass diversion ratio will    '
-      H(10)='be 0.25 between each duct and the fan.                '
-      H(11)=' '
-      H(12)='NB, the flow rates calculated using mass diversion  '
-      H(13)='are NOT used if the plant network is linked to a flow '
-      H(14)='network - the flows calculated by the flow network    '
-      H(15)='take precidence.                                      '
-      CALL EASKR(value,'Mass diversion ratio for this connection(-)',
+      helptopic='plant_mdr'
+      call gethelptext(helpinsub,helptopic,nbhelp)  
+      CALL EASKR(value,'Mass diversion ratio for this connection',
      &    '(see help)',0.,'-',
-     &    0.,'-',dvalue,' mass diversion ?',IER,15)
+     &    0.,'-',dvalue,' mass diversion ?',IER,nbhelp)
       pcondrt=value
 
 C Now assign connection data to appropriate variables.
@@ -1057,7 +984,7 @@ C   cntdat(?,1..3) - supplementary data for containment ?.
 #include "geometry.h"
 #include "prj3dv.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common /pcdat/ nnodes(mpcom), isv(mpcom,mnodec), 
      &               ndcon(mpcom,mnodec)    
       COMMON/C11/NCONT,IPCC(MPCOM),INDCP(MPCOM),CNTDAT(MPCOM,3)
@@ -1066,16 +993,22 @@ C   cntdat(?,1..3) - supplementary data for containment ?.
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/FILEP/IFIL
 
-      dimension ival(mpcom), cnttyp(6)
+      dimension ival(mpcom), cnttyp(5)
       character cnttyp*45,  head*19, emod*1, outs*124, h*72
+  
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+	  
+      helpinsub='cntdef'      ! set for subroutine
 
 C Fill array with existing containment types.
-      cnttyp(1)='Ambient air temperature.             '
-      cnttyp(2)='A plant component temperature.       '
-      cnttyp(3)='Fixed temperature.                   '
-      cnttyp(4)='Zone (air/surface/const) temperature.'
-      cnttyp(5)='Temporal data file (future)          '
-      cnttyp(6)='Ground temperature                   '
+      cnttyp(1)='Ambient air temperature.              '
+      cnttyp(2)='A plant component temperature.        '
+      cnttyp(3)='Fixed temperature.                    '
+      cnttyp(4)='Zone (air/surface/const.) temperature.'
+      cnttyp(5)='Ground temperature                    '
 
  9    if(emod.eq.'E') then
 	ipcomp=icont
@@ -1085,7 +1018,7 @@ C Let user select a component.
       	call usrmsg(
      &'Which component does this containment apply to?',' ','-')
       	head=' Select component:'
-      	CALL ASKPCMP(head,'-',IPCOMP,IER)
+      	CALL ASKPCMP(head,'C',IPCOMP,IER)
       	call usrmsg(' ',' ','-')
       endif
 
@@ -1116,10 +1049,12 @@ C containment specified.
 
 C Let user select containment type.
   107    itm=1
-         ncontyp=6
+         ncontyp=5
+         helptopic='plant_cont_type'
+         call gethelptext(helpinsub,helptopic,nbhelp)  
          call epicks(itm,ival,' ',
      &    ' Select containment type: ',45,ncontyp,cnttyp,
-     &    ' Containments types',ier,0)
+     &    ' Containments types',ier,nbhelp)
          if(ier.ne.0) goto 107
          if(itm.eq.0) return
          indctt=ival(1)-1
@@ -1129,9 +1064,11 @@ C ambient air temperature + specified (de)increment.
          if(indctt.eq.0) then
            value=0.0
            dvalue=value
+           helptopic='plant_cont_off'
+           call gethelptext(helpinsub,helptopic,nbhelp) 
            CALL EASKR(value,' ',
      &      'Enter increment or deincrement value (C):',0.,'-',
-     &      0.,'-',dvalue,' (de)increment ?',IER,0)
+     &      0.,'-',dvalue,' (de)increment ?',IER,nbhelp)
            cntdt1=value
            cntdt2=0.0
            cntdt3=0.0
@@ -1141,7 +1078,7 @@ C node - including the self containment case if cntdt1=0 - plus
 C specified (de)increment cntdt3.
          elseif(indctt.eq.1) then
            head='Select a component:'
-           CALL ASKPCMP(head,'-',IPCOMP,IER)
+           CALL ASKPCMP(head,'C',IPCOMP,IER)
            if (ipcomp.eq.0) return
            cntdt1=ipcomp
            if(nnodes(ipcomp).eq.1) then
@@ -1153,17 +1090,21 @@ C specified (de)increment cntdt3.
            endif
            value=0.0
            dvalue=value
+           helptopic='plant_cont_off'
+           call gethelptext(helpinsub,helptopic,nbhelp) 
            CALL EASKR(value,' ',
      &        'Enter increment or deincrement value (C):',0.,'-',
-     &        0.,'-',dvalue,' (de)increment ?',IER,0)
+     &        0.,'-',dvalue,' (de)increment ?',IER,nbhelp)
            cntdt3=value
 
 C Type 2 containment: specified temperature cntdt1.
          elseif(indctt.eq.2) then
            value=20.0
            dvalue=value
+           helptopic='plant_cont_fix'
+           call gethelptext(helpinsub,helptopic,nbhelp) 
            CALL EASKR(value,' ','Enter fixed temperature value (C):',
-     &        0.,'-',0.,'-',dvalue,' temperature ?',IER,0)
+     &        0.,'-',0.,'-',dvalue,' temperature ?',IER,nbhelp)
            cntdt1=value
            cntdt2=0.0
            cntdt3=0.0
@@ -1176,19 +1117,11 @@ C and construction node cntdt3 counted from outside.
            CALL ASKZONE(IZ,0,OUTS,'Select zone','-','plnt conn',34,IER)
            if(IZ.eq.0) RETURN
            cntdt1=float(IZ)
-           h(1)='You have several options you can select from:'
-           h(2)=' '
-           h(3)='Zone air point - the component losses/gains heat'
-           h(4)='to the zone environmental point. '
-           h(5)=' '
-           h(6)='At a Surface the component losses/gains heat'
-           h(7)='to the selected surface. '
-           h(8)=' '
-           h(9)='At a Surface the component losses/gains heat'
-           h(10)='to a node with a surface construction. '
-           CALL EASKABCD('Select the location in the zone ',
-     &' ','At the air point','At a surface','Within a surface',
-     &'Continue',ICLOC,10)
+           helptopic='plant_cont_loc'
+           call gethelptext(helpinsub,helptopic,nbhelp) 
+           CALL EASKABCD('Select the location in the zone: ',
+     &' ','Air','Surface','Construction Layer',
+     &'Continue',ICLOC,nbhelp)
             IF(ICLOC.EQ.1)THEN
               cntdt2=0.0
               cntdt3=0.0
@@ -1356,22 +1289,25 @@ C askpar selects parameters of component (ipc) to edit.
       character mscdsc*68, cvrdsc*68,pcname*15,txt*28
       CHARACTER h*72, parlst(madata)*70
       dimension ival(mpcom)
+	  
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+	  
+      helpinsub='askpar'      ! set for subroutine
 
 C Display miscellaneous data items.
   105 nitm=npi(ipc)
-      h(1)='All components in the data base have default data assigned'
-      h(2)='to their parameters. The value of these parameters may be'
-      h(3)='changed when for example using a duct with a different'
-      h(4)='length. Select the parameters you wish to change and enter'
-      h(5)='the new values. '
-      h(6)=' '
+      helptopic='plant_edit_par'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       do 909 jj=1,npi(ipc)
          write(parlst(jj),'(a50,a3,g12.5)')
      &          mscdsc(jj),' : ',tadata(ipc,jj)
   909 continue
       write(txt,'(2a)') 'Plant comp : ',pcname(ipc)
       call epicks(nitm,ival,' ',
-     &  ' Which item(s) to change: ',70,npi(ipc),parlst,txt,ier,6)
+     &  ' Which item(s) to change: ',70,npi(ipc),parlst,txt,ier,nbhelp)
       if(ier.ne.0) goto 105
       return
       end
@@ -1382,7 +1318,7 @@ C fpr the component (ipc).
       subroutine askmfpar(ipc)
 
 #include "plant.h"
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/pophelp/h(60)
       common /pcdat/ nnodes(mpcom), isv(mpcom,mnodec), 
      &               ndcon(mpcom,mnodec)
@@ -1395,6 +1331,13 @@ C fpr the component (ipc).
       CHARACTER ltpcmf*60, mfdatstr*40,pcname*15
       character txt*27,H*72, list*60, head*44
       integer nlist,ino ! max items and current menu item
+	  
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+	  
+      helpinsub='askmfpar'      ! set for subroutine
       
       nconns=0
       do 110 inod=1, nnodes(ipc)
@@ -1424,7 +1367,7 @@ C Build a menu to allow editing of each node in turn.
  120  continue
       k=k-1
  121  list(k+1)=' ---------------------------------'
-      list(k+2)='+ Next node                       '
+      list(k+2)='+ Next connection                 '
       list(k+3)='? Help                            '
       list(k+4)='- Exit                            '
       nlist=k+4
@@ -1432,12 +1375,14 @@ C Build a menu to allow editing of each node in turn.
       write(head,'(a,i2)') txt, icon
  130  call emenu(head,list,nlist,ino)
       if(ino.ge.1.and.ino.le.k) then 
+        helptopic='flow_entry'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         if(ino.eq.1.and.isdcmf(icon).eq.0) goto 130
         deflt=supcmf(icon,ino)
         if(imfed(icon,ino).eq.1) deflt=tmpmfdat(icon,ino)
         write(txt,'(a)')mfdatstr(icon,ino)(1:27)
         call easkr(value,' ',txt,0.,'-',0.,'-',deflt,' item value ?',
-     &    IER,0)
+     &    IER,nbhelp)
        tmpmfdat(icon,ino)=value
        imfed(icon,ino)=1
        goto 115
@@ -1449,10 +1394,9 @@ C Build a menu to allow editing of each node in turn.
         endif
         goto 115
       elseif(ino.eq.k+3) then
-        h(1)='This facility allows you to edit the data for the'
-        h(2)='mass flow component(s) mapped onto the current'
-        h(3)='plant components.'
-        call phelpd('pdf network flow node list',3,'-',0,0,IER)
+        helptopic='plant_edit_mfpar'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        call phelpd('pdf network flow node list',nbhelp,'-',0,0,IER)
         goto 130
       elseif(ino.eq.k+4) then 
         return
@@ -1473,6 +1417,13 @@ C stype: Displays general system types for user selection.
       dimension ival(mpcom)
       character*32 simtyp(4)
       CHARACTER H*72
+	  
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+	  
+      helpinsub='stype'      ! set for subroutine
 
 C Fill array for simulation type.
       simtyp(1)=' Mechanical ventilation system'
@@ -1482,43 +1433,13 @@ C Fill array for simulation type.
 
 C Let user select the system type required.
    70 IX=1
-      h(1) ='ESP-r allows the modelling of all types of plant system.'
-      h(2) ='Selecting one of the system types in the menu allows the'
-      h(3) ='simulation to be optimised around the system being      '
-      h(4) ='modelled. Selecting a system type automatically sets the '
-      h(5) ='type of plant simulation to be conducted: '
-      h(6) =' '
-      h(7) ='Mechanical ventilation system - energy, air and moisture  '
-      h(8) ='flows are simulated (energy and two phase flow). In this  '
-      h(9) ='system type the ventilation components are modelled       '
-      h(10)='explicitly but the boiler system is modelled in a more    '
-      h(11)='abstract fashion i.e. using flux-based heating and        '
-      h(12)='cooling coil models. The main working fluid is air.       '
-      h(13)=' '
-      h(14)='Water-based heating system - this system type option is   '
-      h(15)='useful for modelling wet central heating systems and solar'
-      h(16)='heating systems in which the working fluid is low         '
-      h(17)='temperature hot water, so energy and water flows are      '
-      h(18)='simulated (energy and one phase flow).                    '
-      h(19)=' '
-      h(20)='Electric heating system - in this system type the         '
-      h(21)='modelling of water flows and air flows is unimportant,    '
-      h(22)='heat is regarded as a flux delivered to the heated space. '
-      h(23)='Flows are therefore NOT modelled (energy-only simulation).'
-      h(24)=' '
-      h(25)='General HVAC system - this system type is useful for      '
-      h(26)='very detailed models of plant systems i.e. where boiler   '
-      h(27)='and air conditioning systems need to be modelled in detail'
-      h(28)='and where both hot water and air are the working fluids,  '
-      h(29)='e.g. an air heating system with the heating coil supplied '
-      h(30)='by modular boilers. Energy, air, water vapour and hot     '  
-      h(31)='water flows are all simulated in this type of model       ' 
-      h(32)='(energy and two phase flow).                              '
+      helptopic='plant_mod_type'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       nsimtp=4
       is=1
       CALL EPICKS(IS,IVAL,
      &   ' Select system type:','(see help) ',32,nsimtp,simtyp,
-     &   'system type ',IER,32)
+     &   'system type ',IER,nbhelp)
       IX=-1
       if(IVAL(1).eq.1) then
         IX=3
@@ -1561,6 +1482,13 @@ C Temporary arrays to hold 'grouped components.
       CHARACTER H*72, item*28, head*28
       integer nitms,ino ! max items and current menu item
       Logical editable
+	  
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+	  
+      helpinsub='showpc'      ! set for subroutine
 
       if (icdbf.gt.0)then
         IX=0
@@ -1616,10 +1544,8 @@ C Fill the subarrays with relevant component descriptions.
   10  continue
 
 C Top level menu displaying component categories.
-  2   h(1)='This menu shows the broad categories of component '
-      h(2)='held in the ESP-r plant components database. Click'
-      h(3)='on the desired categories and select the components '
-      h(4)='required for the plant network. '
+  2   helptopic='plant_comp_cat'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       ino=-1
       nitms=8
       head='Component type'
@@ -1635,7 +1561,7 @@ C Top level menu displaying component categories.
       call emenu(head,item,nitms,ino)
 
       if(ino.eq.7) then
-        call phelpd('class help',4,'-',0,0,IER)
+        call phelpd('class help',nbhelp,'-',0,0,IER)
         goto 2
       elseif(ino.ge.1.and.ino.le.5) then
         if(ino.eq.1) then
@@ -1666,15 +1592,13 @@ C Top level menu displaying component categories.
         endif
 
         IX=1
-        h(1)='This list contains names of all components'
-        h(2)='available in the plant component data base.'
-        h(3)='Select from this list the components required'
-        h(4)='for the problem considered.'
-        h(5)=' '
+        helptopic='plant_comp_sel'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+
         CALL EPICKS(IX,IVAL,
      &    ' Please select a component from the list provided: ',
      &     ' (Exit) terminates selection.',70,ncmp,tmpdesc,
-     &     'Components list',IER,5)
+     &     'Components list',IER,nbhelp)
 
         if(ival(1).eq.0)then
           call edisp(iuout,'nothing selected...')
@@ -1752,7 +1676,7 @@ C Electrical details for specified plant components
       common/elpcp/NPEL,PFP(mpcom),IPFP(mpcom),PWRP(mpcom),
      &BVOLTP(mpcom),IPHP(mpcom) 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       COMMON/PCNAM/PCNAME(MPCOM)
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
@@ -1763,6 +1687,13 @@ C Electrical details for specified plant components
       CHARACTER H*72,VERT*62,KEY*1,MOD*1
       LOGICAL SELECT
       integer MVERT,IVERT,IDVERT ! max items and current menu item
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+	  
+      helpinsub='ecmplst'      ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number 
@@ -1854,11 +1785,9 @@ C If no selection has been made before exit then return with 0.
         IF(.NOT.SELECT)IS=0
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
-        H(1)='The list shows the list of plant components with'
-        H(2)='electrical details in the current plant network.'
-        H(3)='You can add or delete electrical data or select'
-        H(4)='an entry to edit it.'
-        CALL PHELPD('node connection selection',4,'-',0,0,IER)  
+        helptopic='plant_elec_act'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        CALL PHELPD('node connection selection',nphelp,'-',0,0,IER) 
         GOTO 92
 
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
@@ -2152,7 +2081,7 @@ C The routine presents a list of surface layers.
 #include "esprdbfile.h"
 #include "material.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
 
       integer matarrayindex ! the indes within matdatarray
@@ -2163,6 +2092,13 @@ C The routine presents a list of surface layers.
       character item*32
       CHARACTER NAM*72,PNAM*20,H*72
       integer nitms,ino ! max items and current menu item
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+	  
+      helpinsub='contlyr'     ! set for subroutine
 
 C Establish if material data arrays have been filled. If not return
 C with ier=1.
@@ -2178,7 +2114,7 @@ C with ier=1.
 
 C Check composite name of surface with composite name in MLC common.
       imatch=0
-      call matchmlcdesc(SMLCN(is),imatch)
+      call matchmlcdesc(SMLCN(IZ,is),imatch)
       if(imatch.eq.0) then
          call edisp(iuout,'Error: probably no MLC defined!')
          return
@@ -2225,14 +2161,16 @@ C Ask for the nodal location
 C Firstly calculate the default
         nodloc=2*(ino-header)
         nodlocd=nodloc
-        h(1)='The value given is the node in the centre of the layer.'
+        helptopic='cont_layer_node'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         call easki(nodloc,' Position component at which node ?','  ',
-     &nodloc-1,'W',nodloc+1,'W',nodlocd,'cnt node',IER,1)
+     &nodloc-1,'W',nodloc+1,'W',nodlocd,'cnt node',IER,nbhelp)
         IND=nodloc  
         RETURN 
       elseif(ino.eq.ndisp+footer-1) then
-        h(1)='Choose a layer at which to situate the component'
-        call phelpd('containment',1,'-',0,0,IER)
+        helptopic='cont_layer_loc'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+        call phelpd('containment',nbhelp,'-',0,0,IER)
         ino=-1
         goto 7
       elseif (ino.eq.ndisp+footer) then
@@ -2264,7 +2202,7 @@ C IPCLINKT  - the linkage type
 #include "building.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN  
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT  
       COMMON/FILEP/IFIL
 
 C Common for the building plant lin
@@ -2328,6 +2266,7 @@ C ASKBPLINK presents a list of plant component linkages returning the index IS.
 C If MOD = 'M' then include option to add an item then the appropriate
 C interaction is begun.
       SUBROUTINE ASKBPLINK(head,MOD,IS,IER)
+
 #include "epara.h"
 #include "building.h"
 #include "geometry.h"
@@ -2343,7 +2282,7 @@ C Common for the building plant link
 
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character H*72
       common/pophelp/h(60)
       COMMON/PCNAM/PCNAME(MPCOM)
@@ -2566,7 +2505,7 @@ C Common for the building plant lin
 
       COMMON/POPHELP/H(60)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/FILEP/IFIL
@@ -2600,8 +2539,8 @@ C has no existing control function.
               h(1)='This zone has an exisiting control function which'
               h(2)='needs to be deleted before the link to plant can '
               h(3)='be made. '
-              CALL ASKOK('Delete existing zone control function?',
-     &          '(see help)',OK,dok,3)
+              CALL EASKOK(' ','Delete existing zone control function?',
+     &          OK,3)
               IF(OK) THEN
                 DO 692 IDV=ICF,ncf-1
                  ibsn(IDV,1)=ibsn(IDV+1,1)

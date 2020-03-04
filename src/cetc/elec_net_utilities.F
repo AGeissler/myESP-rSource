@@ -146,8 +146,8 @@ C provides pba, vrb and lion
 C---------------------------------------------------------------------
 C     Common for writing data 
 C---------------------------------------------------------------------
-      common/outin/iuout,iuin
-      integer iuout, iuin
+      common/outin/iuout,iuin,ieout
+      integer iuout, iuin,ieout
 C---------------------------------------------------------------------
 C     Storage common blocks used for plant->electrical network 
 C     coupling (W). Used to transport network solution back to explicit 

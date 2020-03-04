@@ -104,7 +104,11 @@ C Path to problem and command line file (if any).
       common/rcmd/LCMDFL
       common/appw/iappw,iappx,iappy
 
-      common/OUTIN/IUOUT,IUIN
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GFONT/IFS,ITFS,IMFS
       common/FILEP/IFIL
       COMMON/ERRS/ISTAT,IREC
@@ -112,12 +116,16 @@ C Path to problem and command line file (if any).
 
 C Name of current application
       common/APPNAME/cAppName
-      character cVnum*38      ! returned from ESPrVersionNum
-      
       character cAppName*12
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
+
+      character cVnum*38      ! returned from ESPrVersionNum      
       character pagestitle*62 ! for banner title via epages call
 
-      logical   unixok,OK,DOK,XST,EDITS,CDBOPEN
+      logical   unixok,OK,XST,EDITS,CDBOPEN
       CHARACTER ZITEM(14)*28 
       CHARACTER LTMP*72,h*72,inf*144,L144*144
       character cdbfile*144,lcmdfl*144,outs248*248
@@ -141,6 +149,7 @@ C If left & top offsets are 0 then use defaults.
       ITFS=1
       CDBOPEN=.FALSE.
       call parpsf(MODL,iappw,iappx,iappy,inf)
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -189,6 +198,11 @@ C and dialog.
         IMFS=5
         IFS=4
         ITFS=4
+#ifdef OSX
+        IMFS=4
+        IFS=4  ! use a smaller fonts
+        ITFS=4
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
@@ -196,7 +210,7 @@ C and dialog.
         LIMIT =16
       ENDIF
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Component db Manager ',
+      write(pagestitle,'(2a)') 'Component db manager of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
       lntitle=lnblnk(pagestitle)
       CALL EPAGES(MMOD,IUIN,IUOUT,iappwi,iapphi,iappx,iappy,menuchw,
@@ -298,14 +312,12 @@ C Read the full database into memory.
         
         IF(IER.NE.0) THEN
           CDBOPEN=.FALSE.
-          dok=.false.
           h(1)='The components database file is typically held in'
           h(2)='/usr/esru/esp-r/databases/components.db1'
           h(3)=' '
           h(4)='Check that this folder exists in your ESP-r '
           h(5)='installation.'
-          CALL ASKOK('cdb: Warning problem reading this database file.',
-     &    'please check it is a valid database. Try Again?',OK,dok,5)
+          CALL EASKOK('Problem reading file!','Retry?',OK,5)
           if(OK) THEN
             GOTO 100
           endif
@@ -316,15 +328,13 @@ C Read the full database into memory.
 
 C File doesn't exist.
         CDBOPEN=.FALSE.
-        dok=.true.
         OK=.false.
         h(1)='The components database file is typically held in'
         h(2)='/usr/esru/esp-r/databases/components.db1'
         h(3)=' '
         h(4)='Please check that this file or the file '
         h(5)='you have specified actually exist.'
-        CALL ASKOK('This file was not found.',
-     &  'Try Again?',OK,dok,5)
+        CALL EASKOK('File not found!.','Retry?',OK,5)
         IF(OK) GOTO 100
       ENDIF
 
@@ -361,8 +371,9 @@ c      call askabout('pdb ',1)
       IF(INO.EQ.NITEMS)then
 
 C Exit from program.
-        call usrmsg(' Closing component dbase management...',' ','P')
         call erpfree(ifil,istat)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       elseif(INO .EQ. NITEMS-1)then
@@ -424,6 +435,18 @@ C Dummy routines from common3dv.F
       end
 
       subroutine chgelev(icelev,ifrlk)
+      return
+      end
+
+      subroutine chgpan(ix,iy)
+      return
+      end
+
+      subroutine chgzoom(imode)
+      return
+      end
+
+      subroutine optview
       return
       end
 

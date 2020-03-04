@@ -170,7 +170,7 @@ C 5-balanced
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER PHOUTS*124
       
@@ -236,7 +236,7 @@ C Presents a list of electrical nodes to the user and returns the selected node 
 
 C Commons
       COMMON/POPHELP/H(60)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Type casting (all varaiables and arrays cast explicitly)
       DIMENSION VERT(35),IPK(MENOD)
@@ -354,7 +354,7 @@ C component number.
 
 C Commons
       COMMON/POPHELP/H(60)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Type casting (all variables and arrays cast explicitly)
       DIMENSION VERT(35),IPK(MHYCOM)
@@ -475,7 +475,7 @@ C component number.
 
 C Commons
       COMMON/POPHELP/H(60)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION VERT(35),IPK(MPOWCOM)
 
@@ -596,11 +596,11 @@ C component number.
 
 C Commons
       COMMON/POPHELP/H(60)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer IUOUT,IUIN,IEOUT
 
       DIMENSION VERT(35),IPK(MCONECOM)
 
-      integer IUOUT,IUIN
 
 C Characters
       CHARACTER*1 KEY
@@ -719,7 +719,7 @@ C connection number.
 
 C Commons
       COMMON/POPHELP/H(60)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Type casting (all varaiables and arrays cast explicitly)
       DIMENSION VERT(35),IPK(MECON)

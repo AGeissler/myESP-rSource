@@ -42,15 +42,13 @@ C via clicking on a bitmap.
       subroutine clickonbitmap(icomp,ier)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2/G4/G5/G7/prec17/precz/c20/GS5/GS6.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -148,7 +146,7 @@ C Signal first entry to subroutine with justentered as true, once
 C an object has been saved the set justentered to false.
       logical justentered
       logical firsteclick  ! so base coords only checked once.
-      LOGICAL OKC,XST,dok,ok
+      LOGICAL OKC,XST,ok
       integer IWM,IWMG  ! for radio buttons
       integer MITEM,INO ! max items and current menu item
       integer NW  ! number of walls (points along floor plan)
@@ -511,9 +509,8 @@ C On exit, check save data depending on input mode.
         if(inpmode.eq.6)then
 
 C Save any ground topology.
-          dok=.false.
-          call askok('Have you saved the ground topology?',' ',ok,
-     &      dok,nbhelp)
+          call easkok('Have you saved the ground topology?',' ',ok,
+     &      nbhelp)
           if(ok)then
             return
           else
@@ -558,8 +555,8 @@ C Save any ground topology.
       elseif(INO.EQ.MITEM-3)then
 
 C Offer to start another object.
-        call easkab('Options for adding objects (see help):',' ',
-     &    'start clicking on points','continue',iwclear,nbhelp)
+        call easkab(' ','Options for adding objects:',
+     &    'clicking on points','cancel',iwclear,nbhelp)
         if(iwclear.eq.2)then
           goto 142
         endif
@@ -586,7 +583,7 @@ C Clear and start new zone or ground topology or obstruction.
           else
             ltmp=gtgeom
           endif
- 56       CALL EASKS(ltmp,' Ground topology/geometry file name ? ',
+ 56       CALL EASKS(ltmp,'Ground topology/geometry file name ? ',
      &      ' ',72,'grnd.geo','ground geom file',IER,nbhelp)
           if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
             gtgeom=ltmp
@@ -637,7 +634,7 @@ C collected points as a zone.
           call tstamp('>','PRJ: new zone')
  42       ZN=' '
           CALL EASKS(ZN,'What do you want to call this new zone ',
-     &      ' ( <12 char, no blanks) ?',12,'new_zone','zone name',
+     &      ' (<12 char, no blanks)?',12,'new_zone','zone name',
      &      IER,nbhelp)
           IF(ZN.eq.' '.or.ier.ne.0)goto 42
 
@@ -723,7 +720,7 @@ C Load an X11 bitmap file (user required to convert to the format).
         helptopic='x11_bitmap_options'
         call gethelptext(helpinsub,helptopic,nbhelp)
         idno=7
-        call MENUATOL('Bitmap options: (see help)',' ',
+        call MENUATOL('Bitmap options:',' ',
      &    'a small blank bitmap','b small with ticks for gridding',
      &    'c medium blank bitmap','d medium with ticks for gridding',
      &    'e large blank bitmap','f large with ticks for gridding',
@@ -781,12 +778,12 @@ C              write(6,*) fname
             else
 
 C User did not select a file. Take them back to the question.
-              call usrmsg('You did not select any existing file.',
+              call usrmsg('You did not select an existing file.',
      &          'Please select or cancel.','W')
               goto 142 ! ask for choice again
             endif
           else
-            call usrmsg('You did not select any existing file.',
+            call usrmsg('You did not select an existing file.',
      &       'Please select or cancel.','W')
             goto 142 ! ask for choice again
           endif
@@ -972,21 +969,17 @@ C Refresh current bitmap and overlayed information.
 
 C Origin within the bitmap.
         if(xbmorigin)then
-          dok=.false.
-          CALL ASKOK(' ',' Redefine origin on the bitmap? ',OK,
-     &      dok,nbhelp)
+          CALL EASKOK(' ','Redefine bitmap origin?',OK,nbhelp)
           if(OK) xbmorigin = .false.
         endif
         if(.NOT.xbmorigin)then
           call edisp(iuout,' ')
-          call usrmsg('Select origin via cursor (click left button)',
+          call usrmsg('Select origin via cursor',
      &      ' ','-')
           iicol=0
           call winscl('z',iicol)
           CALL trackview(iik,iixo,iiyo)
 
-C Debug
-C          write(6,*) 'origin track click',iik,iixo,iiyo
           iid1=int(iixo); iid2=int(iiyo);
           ixo=int(iixo); iyo=int(iiyo);
           call esymbol(iid1,iid2,24,1)
@@ -1005,14 +998,12 @@ C          write(6,*) 'origin track click',iik,iixo,iiyo
 
 C North.
         if(xbmnorth)then
-          dok=.false.
-          CALL ASKOK(' ','Redefine north on the bitmap? ',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Redefine bitmap North?',OK,nbhelp)
           if(OK) xbmnorth = .false.
         endif
         if(.NOT.xbmnorth)then
           call edisp(iuout,' ')
-          call usrmsg('Select two points defining north axis... ',
+          call usrmsg('Select two points defining the North axis.',
      &      ' ','-')
           iicol=0
           call winscl('z',iicol)
@@ -1039,15 +1030,13 @@ C North.
 
 C Scaling of a known line. Ask for two points and distance.
         if(xbmscale)then
-          dok=.false.
-          CALL ASKOK(' ','Redefine scale on the bitmap?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Redefine bitmap scale?',OK,nbhelp)
           if(OK) xbmscale = .false.
         endif
         if(.NOT.xbmscale)then
           call edisp(iuout,' ')
-          call usrmsg('Define the bitmap scale by selecting ',
-     &      'two points along a known line... ','-')
+          call usrmsg('Select two points along a known line.',
+     &      ' ','-')
           iicol=0
           call winscl('z',iicol)
 
@@ -1059,7 +1048,7 @@ C Get the pixel locations iixs1,iiys1 and iixs2,iiys2
           call winscl('-',iicol)
           call usrmsg(' ',' ','-')
           disn=1.0
-          CALL EASKR(disn,' ','Distance (metres) between points?',
+          CALL EASKR(disn,' ','Distance (m) between points?',
      &      0.0001,'W',0.,'-',0.1,'dist',IER,nbhelp)
           vdis= crowxyz(float(iixs1),float(iiys1),0.0,float(iixs2),
      &      float(iiys2),0.0)
@@ -1137,8 +1126,7 @@ C Gridding options. Check if user wants a grid.
           goto 142
         endif
         if(xbmgrid)then
-          dok=.false.
-          CALL ASKOK(' ','Redefine grid on the bitmap?',OK,dok,nbhelp)
+          CALL EASKOK(' ','Redefine bitmap grid?',OK,nbhelp)
           if(OK) xbmgrid = .false.
         endif
         if(.NOT.xbmgrid)then
@@ -1179,15 +1167,15 @@ C Gridding options. Check if user wants a grid.
 
 C Snap-to options. Check if user wants snap-to grid.
         if(.NOT.xbmorigin)then
-          call usrmsg('Please define origin first...',' ','W')
+          call usrmsg('Please define origin first ...',' ','W')
           goto 142
         endif
         if(.NOT.xbmscale)then
-          call usrmsg('Please define scaling factors first...',' ','W')
+          call usrmsg('Please define scaling factors first ...',' ','W')
           goto 142
         endif
         if(.NOT.xbmgrid)then
-          call usrmsg('Please define gridding first...',' ','W')
+          call usrmsg('Please define gridding first ...',' ','W')
           goto 142
         endif
         if(xbmsnap)then
@@ -1200,12 +1188,12 @@ C Snap-to options. Check if user wants snap-to grid.
 
 C Toggle the input mode. Ask user if they want to do this.
         if(.NOT.xbmorigin)then
-          call usrmsg('Please define origin first...',' ','W')
+          call usrmsg('Please define origin first ...',' ','W')
           inpmode = 8
           goto 142
         endif
         if(.NOT.xbmscale)then
-          call usrmsg('Please define scaling factors first...',' ','W')
+          call usrmsg('Please define scaling factors first ...',' ','W')
           inpmode = 8
           goto 142
         endif
@@ -1247,11 +1235,9 @@ C main menu.
             justentered=.true.  ! no need to show add-another
           endif
           if(nipwhis.gt.0)then
-            dok=.false.
-            CALL ASKOK(
-     &        'Clear history of floor plans before defining new',
-     &        'vertices? (previous zones will not show on bitmap)',
-     &        OK,dok,nbhelp)
+            CALL EASKOK(' ',
+     &        'Clear floor plan history before defining new vertices?',
+     &        OK,nbhelp)
               if(OK)nipwhis=0
           endif
 
@@ -1373,13 +1359,10 @@ C Window sill & head height.
 
 C First check to see if there is a non-blank ZN.
         if(ZN(1:2).eq.'  ')then
-          dok=.false.
           helptopic='click_option_mistake'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          call askok(
-     &      'No zone name found. Are you sure you want to proceed?',
-     &      '(you might not have picked `add another` first)',
-     &      ok,dok,nbhelp)
+          call easkok('No zone name found!','Proceed?',
+     &      ok,nbhelp)
           if(.NOT.ok) goto 142
         endif
 
@@ -1747,26 +1730,17 @@ C zone geometry file can be created.
               JVN(1,1)=1; JVN(1,2)=2; JVN(1,3)=3
               NZTV(icomp)=NTV
               SNAME(ICOMP,1)='first'
-              SOTF(1)='OPAQUE'; SMLCN(1)='UNKN'; SVFC(1)='FLOR'
-              SOTHER(1,1)='UNKNOWN'; SOTHER(1,2)='0'; SOTHER(1,3)='0'
-              SUSE(1,1)='-'; SUSE(1,2)='-'; SPARENT(1)='-'
+              SOTF(ICOMP,1)='OPAQUE'; SMLCN(ICOMP,1)='UNKN'
+              SVFC(ICOMP,1)='FLOR'; SOTHER(ICOMP,1,1)='UNKNOWN'
+              SOTHER(ICOMP,1,2)='0'; SOTHER(ICOMP,1,3)='0'
+              SUSE(ICOMP,1,1)='-'; SUSE(ICOMP,1,2)='-'
+              SPARENT(ICOMP,1)='-'
 
 C Update the connection list for an initial surface.
               ICCC=NCON
               ICCC=ICCC+1
               IC1(ICCC)=ICOMP; IE1(ICCC)=1; ICT(ICCC)=0
               IC2(ICCC)=0; IE2(ICCC)=0
-              SSNAME(iccc)=SNAME(ICOMP,1)
-              SSOTF(iccc)=SOTF(1)
-              SSMLCN(iccc)=SMLCN(1)
-              ssmlcindex(iccc)=0  ! no matching MLC
-              SSVFC(iccc)=SVFC(1)
-              SSOTHER(iccc,1)=SOTHER(1,1)
-              SSOTHER(iccc,2)=SOTHER(1,2)
-              SSOTHER(iccc,3)=SOTHER(1,3)
-              SSUSE(iccc,1)=SUSE(1,1)
-              SSUSE(iccc,2)=SUSE(1,2)
-              SSPARENT(iccc)=SPARENT(1)
               IZSTOCN(icomp,1)=iccc
               NCON=ICCC
 
@@ -1796,16 +1770,15 @@ C Update the G7 common blocks and then assign ZBASEA.
               IUZBASEA(icomp)=0
               IBASES(ICOMP,1)=NSUR
               IZBASELIST(ICOMP)=1
-              ibcs=IZSTOCN(icomp,NSUR)
-              ZBASEA(icomp)= SSNA(ibcs)
+              ZBASEA(icomp)= SNA(icomp,NSUR)
 
 C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
 C the zone can be calculated.
               DO 41 J=1,NZTV(ICOMP)
-                VCOORD(ICOMP,J,1)=X(J)
-                VCOORD(ICOMP,J,2)=Y(J)
-                VCOORD(ICOMP,J,3)=Z(J)
+                szcoords(ICOMP,J,1)=X(J)
+                szcoords(ICOMP,J,2)=Y(J)
+                szcoords(ICOMP,J,3)=Z(J)
    41         CONTINUE
  
 C Save this to file before passing into the geometry editing facility.
@@ -1953,10 +1926,10 @@ C window though.
 
 C Offer user options after an [e] click.
             call easkatog(
-     &      'Options (if adding both door & windows do doors first):',
-     &        ' ','door jambs','glazing jambs','furniture origins',
-     &        'obstructions','continue',' ',' ',izdoor,nbhelp)
-
+     &      'If adding both door & windows do doors first.',
+     &        'Options:','door jambs','glazing jambs',
+     &        'furniture origin','obstructions','cancel',' ',' ',
+     &        izdoor,nbhelp)
             if(izdoor.eq.1)then
               dodoor=.true.; nbofdoorpts=0
               lastwalllist=NW  ! remember last extrusion corner
@@ -1990,8 +1963,8 @@ C Offer user options after an [e] click.
      &          other,lastwalllist,xbmsnap,GRSPC,ier)
 
 C Offer to start another object.
-              call easkab('Options:',' ',
-     &          'add obstructions','continue',iopt,nbhelp)
+              call easkab(' ','Options:',
+     &          'add obstructions','cancel',iopt,nbhelp)
               if(iopt.eq.2)then
                 goto 247  ! process
               elseif(iopt.eq.1)then
@@ -2713,17 +2686,6 @@ C Update the connection list.
             DO 432 ICC=1,NSUR
               ICCC=ICCC+1; IC1(ICCC)=ICOMP; IE1(ICCC)=ICC
               ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
-              SSNAME(iccc)=SNAME(icomp,icc)
-              SSOTF(iccc)=SOTF(icc)
-              SSMLCN(iccc)=SMLCN(icc)
-              ssmlcindex(iccc)=0  ! no matching MLC
-              SSVFC(iccc)=SVFC(icc)
-              SSOTHER(iccc,1)=SOTHER(icc,1)
-              SSOTHER(iccc,2)=SOTHER(icc,2)
-              SSOTHER(iccc,3)=SOTHER(icc,3)
-              SSUSE(iccc,1)=SUSE(icc,1)
-              SSUSE(iccc,2)=SUSE(icc,2)
-              SSPARENT(iccc)=SPARENT(icc)
               IZSTOCN(icomp,icc)=iccc
   432       CONTINUE
             NCON=ICCC
@@ -2755,16 +2717,15 @@ C Update the G7 common blocks and then assign ZBASEA.
             IUZBASEA(icomp)=0
             IBASES(ICOMP,1)=NSUR
             IZBASELIST(ICOMP)=1
-            ibcs=IZSTOCN(icomp,NSUR)
-            ZBASEA(icomp)= SSNA(ibcs)
+            ZBASEA(icomp)= SNA(icomp,NSUR)
 
 C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
 C the zone can be calculated.
             DO J=1,NZTV(ICOMP)
-              VCOORD(ICOMP,J,1)=X(J)
-              VCOORD(ICOMP,J,2)=Y(J)
-              VCOORD(ICOMP,J,3)=Z(J)
+              szcoords(ICOMP,J,1)=X(J)
+              szcoords(ICOMP,J,2)=Y(J)
+              szcoords(ICOMP,J,3)=Z(J)
             ENDDO
  
 C Save this to file before passing into the geometry editing facility.
@@ -3505,7 +3466,7 @@ C Other is the grid distance if user supplied (iwmg=7).
      &  inpm,iwmg,factor,viewlim,nw,ixtn1,ixtn2,iytn1,iytn2,
      &  ixo,iyo,completed,other,lastwalllist)
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer INVERT  ! number of coordinates in list
       real px,py,pz   ! user coordinates from clicks
@@ -3855,7 +3816,7 @@ C inpm is the input mode.
       subroutine ctlbmpan(iwm,fname,ixoffset,iyoffset,ibmwidth,ibmhight,
      &  iwidth,ihight,inpm,nw,ixtn1,ixtn2,iytn1,iytn2,ixo,iyo)
 #include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
 
@@ -4015,7 +3976,7 @@ C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
 #include "geometry.h"
 #include "prj3dv.h"
       COMMON/FILEP/IFIL
-      LOGICAL ok,dok,matchver
+      LOGICAL ok,matchver
       character act*1
 
 C Tollerance for surface matching.
@@ -4064,24 +4025,23 @@ C Similar logic to ADDVERT. Consider found if within CACC.
      &        dist,') to existing vertex',ixx,' @',
      &        X(ixx),Y(ixx),Z(ixx)
             call edisp(itru,outs)
-            dok=.true.
-            call askok('Copied point close to existing vertex.',
-     &        'Skip copying it?',found,dok,nbhelp)
+            call easkok('Copied point close to existing vertex.',
+     &        'Skip?',found,nbhelp)
             goto 145
           endif
         enddo  ! of ixx
 
 C If an existing vertex is close then skip to next, otherwise
-C add a new vertex to the end of the zone list and update vcoord.
+C add a new vertex to the end of the zone list and update szcoords.
   145   if(found)then
           continue
         else
           NTV=NTV+1
           NZTV(icomp)=NTV
           X(NTV)=XQ; Y(NTV)=YQ; Z(NTV)=ZQ
-          VCOORD(ICOMP,ntv,1)=XQ
-          VCOORD(ICOMP,ntv,2)=YQ
-          VCOORD(ICOMP,ntv,3)=ZQ
+          szcoords(ICOMP,ntv,1)=XQ
+          szcoords(ICOMP,ntv,2)=YQ
+          szcoords(ICOMP,ntv,3)=ZQ
           XMN=AMIN1(XMN,X(NTV))
           YMN=AMIN1(YMN,Y(NTV))
           ZMN=AMIN1(ZMN,Z(NTV))
@@ -4133,12 +4093,10 @@ C inserting the new vertex index.
                   if(offset.le.CACC)then
                     ok=.true.
                   else
-                    dok=.true.
                     helptopic='vertex_near_edge'
                     call gethelptext(helpinsub,helptopic,nbhelp)
-                    call askok(
-     &                'Insert this vertex into the adjacent surface?',
-     &                '(see help)',ok,dok,nbhelp)
+                    call easkok(' ',
+     &               'Insert vertex into adjacent surface?',ok,nbhelp)
                   endif
                 else
                   ok=.false.
@@ -4183,8 +4141,8 @@ C IER=0 OK, IER=1 problem.
       integer ier
 
       COMMON/FILEP/IFIL
-      LOGICAL ok,dok,matchver
-      COMMON/OUTIN/IUOUT,IUIN
+      LOGICAL ok,matchver
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Tollerance for surface matching.
       real ANGCC  ! angle between surfaces tolerance
@@ -4216,9 +4174,9 @@ C anything in the zone. This code does the merge and save.
       NTV=NTV+1
       NZTV(icomp)=NTV
       X(NTV)=QX; Y(NTV)=QY; Z(NTV)=QZ
-      VCOORD(ICOMP,ntv,1)=QX
-      VCOORD(ICOMP,ntv,2)=QY
-      VCOORD(ICOMP,ntv,3)=QZ
+      szcoords(ICOMP,ntv,1)=QX
+      szcoords(ICOMP,ntv,2)=QY
+      szcoords(ICOMP,ntv,3)=QZ
       XMN=AMIN1(XMN,X(NTV))
       YMN=AMIN1(YMN,Y(NTV))
       ZMN=AMIN1(ZMN,Z(NTV))
@@ -4264,12 +4222,10 @@ C inserting the new vertex index.
               if(offset.le.CACC)then
                 ok=.true.
               else
-                dok=.true.
                 helptopic='vertex_close_edge'
                 call gethelptext(helpinsub,helptopic,nbhelp)
-                call askok(
-     &            'Insert this vertex into the adjacent surface?',
-     &            '(see help)',ok,dok,nbhelp)
+                call easkok(' ',
+     &            'Insert vertex into adjacent surface?',ok,nbhelp)
               endif
             else
               ok=.false.
@@ -4312,11 +4268,11 @@ C #include "geometry.h"
       real px,py,pz,rx,ry,rz
       integer ok
       integer iv1,iv2 ! the position in the XX array which matched
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character outs*248
       integer loop2
-      logical match,tok,dok
+      logical match,tok
       real toll
 
       toll=0.06  ! 60mm tollerance
@@ -4374,14 +4330,12 @@ C clickobstructions *******************
      &  lastwalllist,xbmsnap,GRSPC,NBFREL,ier)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2/G4/G5/G7/prec17/precz/c20/GS5/GS6.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       logical xbmnorth,xbmorigin  ! logical toggles for north origin
       logical xbmgrid,xbmscale    ! logical toggles for gridding and scale set
@@ -4403,7 +4357,7 @@ C Pixel (upper left and lower right corners) of where the bitmap is draw.
       dimension GRSPC(3)
       logical clx0,cly0,clx1,cly1,clxm1,clym1
       logical modmlc  ! for selecting MLC
-      LOGICAL dok,ok
+      LOGICAL ok
       character outs*124,S12*12,temp6*6,fname*96,msg*72
       integer nbo
       real Z6,Z7    ! obs base elevation and height
@@ -4721,10 +4675,7 @@ C      write(6,*) iyy3,iyy2,iyy1,ioffy,iyy1+ioffy
       call forceflush()
       helptopic='clickon_obstructions'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      dok=.true.
-      CALL ASKOK(' ',
-     &  'Is the block position ok (so we can continue)?',
-     &  OK,dok,nbhelp)
+      CALL EASKOK(' ','Block position OK?',OK,nbhelp)
       if(.NOT.ok)then
         INVERT=INVERT-3
         completed=.false.
@@ -4801,11 +4752,9 @@ C clickfurn *******************
      &  lastwalllist,xbmsnap,GRSPC,ier)
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2/G4/G5/G7/prec17/precz/c20/GS5/GS6.
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C XYZ for up to 40 furniture points.
       integer nboffurnpts
@@ -4833,7 +4782,7 @@ C Pixel (upper left and lower right corners) of where the bitmap is draw.
 
       dimension viewlim(6)
       dimension GRSPC(3)
-      LOGICAL dok,ok
+      LOGICAL ok
       character outs*124,temp6*6,fname*96,msg*72
       real Z8    ! origin elevation
 
@@ -4983,10 +4932,7 @@ C Remember the furniture origin so it can be drawn on refreshes.
       call forceflush()
       helptopic='clickon_furn'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      dok=.true.
-      CALL ASKOK(' ',
-     &  'Is the furniture position ok (so we can continue)?',
-     &  OK,dok,nbhelp)
+      CALL EASKOK(' ','Furniture position OK?',OK,nbhelp)
       if(.NOT.ok)then
         INVERT=INVERT-1
         completed=.false.

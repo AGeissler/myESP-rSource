@@ -30,6 +30,7 @@ C MOZCAS process breakdown data for zones.
 C CALLS: MOZSUM   CALLED BY: MOSTAT
 
       SUBROUTINE MOZCAS(IZONE,IANZSE,NIT)
+
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
@@ -38,7 +39,7 @@ C CALLS: MOZSUM   CALLED BY: MOSTAT
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/FILEP/IFIL
 
@@ -196,7 +197,8 @@ C Determine the plant type for this zone.
       NIT=-1
       IF(IBAN(ICF,1).EQ.IZONE.AND.IBAN(ICF,2).EQ.0)NIT=1
       IF(IBAN(ICF,1).EQ.0)NIT=1
-      IF(IBAN(ICF,1).EQ.-2.AND.IBAN(ICF,2).EQ.IZONE)NIT=2  ! mixed Rad & Conv.
+      IF(IBAN(ICF,1).EQ.-2.AND.
+     &(IBAN(ICF,2).EQ.IZONE.OR.IBAN(ICF,2).EQ.0))NIT=2  ! mixed radiant & convective
    11 CONTINUE
 
 C Perform ZONE sums and averages.
@@ -309,7 +311,7 @@ C CALLS: MOEGET    CALLED BY: MOZCAS
 #include "model.h"
 #include "schedule.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/recver/izver,ipver,iever
       COMMON/GET1/VAL1(MZS,MTS),VAL2(MZS,MTS),VAL3(MZRL,MTS)
@@ -480,15 +482,15 @@ C use the exact values from the results library.
           CALL CSCONV(IDAY,IZONE,ISN,CQ)
           DO 61 ISTP=ISTART,IEND
             IF(IE.GE.1)THEN
-              IF(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &           SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+              IF(SOTF(IZONE,ISN)(1:4).EQ.'OPAQ'.OR.
+     &           SOTF(IZONE,ISN)(1:4).EQ.'UNKN')THEN
                 VAL1(14,ISTP)=VAL1(14,ISTP)+CQ(ISTP)*(-1.0)
               ELSE
                 VAL1(16,ISTP)=VAL1(16,ISTP)+CQ(ISTP)*(-1.0)
               ENDIF
             ELSEIF(IE.EQ.0)THEN
-              IF(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &           SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+              IF(SOTF(IZONE,ISN)(1:4).EQ.'OPAQ'.OR.
+     &           SOTF(IZONE,ISN)(1:4).EQ.'UNKN')THEN
                 VAL1(13,ISTP)=VAL1(13,ISTP)+CQ(ISTP)*(-1.0)
               ELSE
                 VAL1(15,ISTP)=VAL1(15,ISTP)+CQ(ISTP)*(-1.0)

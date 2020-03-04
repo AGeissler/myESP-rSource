@@ -27,18 +27,35 @@ C Default solar distribution and shading directives.
       common/g4/ndp(MCOM),idpn(MCOM,3)
 
 C Surface attributes for the current zone.
-      character SNAME*12   ! surface name attribute
-      character SOTF*32    ! see SSOTF below
-      character SVFC*4     ! see SSVFC below
-      character SMLCN*32   ! see SSMLCN below
-      character SOTHER*24  ! see SSOTHER below
-      character SUSE*12    ! see SSUSE below
-      character SPARENT*12 ! see SSPARENT below
-      COMMON/G5/SNAME(MCOM,MS),SOTF(MS),SMLCN(MS),SVFC(MS),SOTHER(MS,3),
-     &          SUSE(MS,2),SPARENT(MS)
+      character SNAME*12   ! surface name
+      character SOTF*32    ! OPAQUE or optical property name
+      character SVFC*4     ! indicates whether the surface is to be counted
+                           ! as a FLOR (face up), VERT (wall), CEIL (face down),
+                           ! SLOP (not vertical) or UNKN (not yet defined) 
+      character SMLCN*32   ! surface construction name (in MLC database)
+      character SOTHER*24  ! three surface attributes for `other` side:
+        ! SOTHER(,,1) = UNKNOWN indicates that no attribute has been set
+        !               and for this case SOTHER(,,2) and SOTHER(,,3) are '0'
+        ! SOTHER(,,1) = EXTERIOR means SOTHER(,,2) & SOTHER(,,3) are '0'
+        ! SOTHER(,,1) = ADIABATIC means SOTHER(,,2) & SOTHER(,,3) are '0'
+        ! SOTHER(,,1) = SIMILAR means that SOTHER(,,2) & SOTHER(,,3) are as IC2 & IE2
+        ! SOTHER(,,1) = BASESIMP means that SOTHER(,,2) & SOTHER(,,3) are as IC2 & IE2
+        ! SOTHER(,,1) = GROUND means that SOTHER(,,2) & SOTHER(,,3) are as IC2 & IE2
+        ! SOTHER(,,1) = ANOTHER then SOTHER(,,2) is zone index & SOTHER(,,3) is
+        !               the surface index in that zone (e.g. as IC2 and IE2).
+      character SUSE*12    ! two attributes of the usage of the surface
+      character SPARENT*12 ! the name of the parent surface or '-'
+      COMMON/G5/SNAME(MCOM,MS),SOTF(MCOM,MS),SMLCN(MCOM,MS),
+     &          SVFC(MCOM,MS),SOTHER(MCOM,MS,3),SUSE(MCOM,MS,2),
+     &          SPARENT(MCOM,MS)
 
       integer lnsname,lnsotf ! length of sname and sotf strings
-      common/G5LN/lnsname(MCOM,MS),lnsotf(MS)
+      common/G5LN/lnsname(MCOM,MS),lnsotf(MCOM,MS)
+
+C Althought smlcn(mcom,ms) holds the name of the construction, also knowing the
+C matching index in the database can save search time.
+      integer smlcindex  ! for each surface points to MLC db item or zero
+      common/precmlc/smlcindex(MCOM,MS)
 
 C Surface polygon information for the current zone.
       real X,Y,Z   ! coordinate in space (m)
@@ -50,70 +67,63 @@ C Surface polygon information for the current zone.
                    ! should be the same as NZTV
       COMMON/G1/X(MTV),Y(MTV),Z(MTV),NSUR,JVN(MS,MV),NVER(MS),NTV
 
-C NZSUR (integer) is the number of surfaces in each zone.
-C NZTV (integer) is the number of vertices in each zone.
-C nbwalls (integer) how many vertical walls (e.g. 4 for a box, 3+ for extrude).
-C   For box and extrude the top surface is assumed to be index nbwalls+1 and
-C   the base surface is assumed to be index nbwalls+2. For poly type zones
-C   nbwalls is the initial number of surfaces prior to addition of META
-C   objects.
-C zorigin (real * 3) XYZ of the origin in the case of shape=box. For shape=extrude
-C   the 1st value is Z point of base, 2nd is the ceiling Z value, 3rd not used.
-C   And for shape=poly this is ignored.
-C zsize (real * 3) initial length/width/height of box shaped zones (not used for
-C   any other zone shapes).
-      integer nzsur,nztv,nbwalls
-      real zorigin,zsize
+C Arrays of various types which hold data in (zone,surface) size primarily
+C for use with META files.
+      integer nzsur    ! The number of surfaces in each zone.
+      integer nztv     ! The number of vertices in each zone.
+      integer nbwalls  ! How many vertical walls (e.g. 4 for a box, 3+ for extrude).
+                       ! For box and extrude the top surface is index nbwalls+1 and
+                       ! the base surface is index nbwalls+2. For poly type zones
+                       ! nbwalls is the initial number of surfaces prior to addition
+                       ! of META objects.
+      real zorigin     ! XYZ of the origin in the case of shape=box. For shape=extrude
+                       ! the 1st value is Z point of base, 2nd is the ceiling Z value, 
+                       ! 3rd not used. And for shape=poly this is ignored.
+      real zsize       ! Initial length/width/height of box shaped zones (not used for   
+                       ! any other zone shapes).
       common/c20/nzsur(MCOM),nztv(MCOM),nbwalls(MCOM),zorigin(MCOM,3),
      &  zsize(MCOM,3)
 
-C Arrays of various types which hold data in (zone,surface) size primarily
-C for use with META files.
       integer zboundarytype  ! equivalent to ICT/IC2/IE2 in common c3
       common/metac3/zboundarytype(MCOM,MS,3)
 
-      integer znbmass  ! number of META paired mass rectangles in room
-                       ! Note these pairs of surfaces are not included in the *surface list
-      real zdatamass   ! origin, size, orientations of META mass objects (4 per zone).
+      integer znbmass    ! Number of META paired mass rectangles in room.
+                         ! Note these pairs of surfaces are not included in the *surface list.
+      real zdatamass     ! Origin, size, orientations of META mass objects (4 per zone).
       common/metahas/znbmass(MCOM),zdatamass(MCOM,4,7)
-
 
 C Stings associated with internal mass. 1=surface name, 2=construction, 3=optics
       character ztextmass*32
       common/metathas/ztextmass(MCOM,4,3)
 
-C ZBASEA is the floor area of the zone, IBASES is a list of surfaces
-C which make up the floor, IUZBASEA signals that the user selected
-C specific surfaces (two), has edited the floor area (one) or it was
-C calculated based on FLOR orientations (zero). IZBASELIST is the
-C number of items in the list. 
-      real zbasea
-      integer ibases,iuzbasea,izbaselist
+      real zbasea        ! the floor area of the zone
+      integer ibases     ! list of surfaces which make up the floor
+      integer iuzbasea   ! signals that the user selected specific surfaces (2),
+                         ! has edited the floor area (one) or it was calculated
+                         ! based on FLOR orientations (zero).
+      integer izbaselist ! the number of items in the ibases list. 
       common/prec17/zbasea(MCOM),ibases(MCOM,MBL),iuzbasea(MCOM),
      &  izbaselist(MCOM)
 
-C nbedgshr(MCON) number of surfaces (same orient) which share an edge:
-C   if only one then it must be parent, if two then it might be the
-C   case of a door so determine which is primary.
-C iedgshr(MCON,MV) for each edge, the connection of surface (similarly
-C   oriented) sharing an edge. Used to detect parent/child. Zero denotes
-C   this does not apply.
-C imatshr(MCON,MV) for each edge, the connection of surface (similarly
-C   oriented) which has the same material. Zero denotes this does not
-C   apply. Used to enhance wire frame drawings of discretised zones (e.g.
-C   where a surface such as a floor has been subdivided)
 C ibridgeshr(MCON,MV) is:
-C   zero is not a thermal bridge, one is roof-wall,
-C   two is wall-ground floor, three is wall-wall (convex corner)
-C   four is wall-wall (concave corner), five is wall-floor (not ground),
-C   six is lintel above window or door, seven is Sill below window
-C   eight is jamb at window or door
       integer nbedgdup  ! number of duplicate edges in surface edge list
       integer iedgdup   ! for each edge, the connection and edge duplicated
       integer nbedgshr  ! number of adjacent surfaces sharing an edge
-      integer iedgshr   ! for each edge, the adjacent surface
-      integer imatshr   ! for each edge, the adjacent MLC index
-      integer ibridgeshr ! for each edge likely type of thermal bridge
+                        ! if 1 then it must be parent, if 2 then it might be a
+                        ! door so determine which is primary.
+      integer iedgshr   ! for each edge, the adjacent surface connection index
+                        ! (similarly oriented) sharing the edge. Used to detect
+                        ! parent/child. Zero denotes this does not apply.
+      integer imatshr   ! for each edge, the adjacent surface MLC index. Zero
+                        ! denotes this does not apply. Used to enhance wire frame
+                        ! drawings of highly discretised zones.
+      integer ibridgeshr ! for each edge likely type of thermal bridge:
+         ! 0 is not a thermal bridge, 1 is roof-wall,
+         ! 2 is wall-ground floor, 3 is wall-wall (convex corner)
+         ! 4 is wall-wall (concave corner), 5 is wall-floor (not ground),
+         ! 6 is lintel above window or door, 7 is Sill below window
+         ! 8 is jamb at window or door
+      
       common/G8/nbedgdup(MCON),iedgdup(MCON,MV),nbedgshr(MCON),
      &          iedgshr(MCON,MV),imatshr(MCON,MV),ibridgeshr(MCON,MV)
 
@@ -128,22 +138,13 @@ C G9 holds information on children of a surface and its parent.
       common/G9/nbchild(MCON),nbgchild(MCON),ichild(MCON,MCHILD),
      &          igchild(MCON,MCHILD),iparent(MCON),igparent(MCON)
 
-C Global coordinates for whole model (connection based).
-      real VCOORD    ! X,Y & Z coordinates of vertices in all zones.
-      integer NZNVER ! number of vertices associated with each connection.
-      integer NZJVN  ! topology of vertices associated with each connection.
-      COMMON/ZNDATA/VCOORD(MCOM,MTV,3),NZNVER(MCON),NZJVN(MCON,MV)
-
 C Global coordinates for whole model (zone & surface based). These are used
 C to accumulate information prior to the generation of the connection list.
-      integer isznver    ! nb of edges per surface in poly shaped zone
-                         ! equivalent to nznver and nver
-      integer iszjvn     ! indices of coords making up edges of each surface
-                         ! equivalent to NZJVN and jvn
-      real szcoords      ! coordinates associated with each zone, equivalent
-                         ! to X Y Z and VCOORD for shape=box ignore,
-                         ! for shape=extrude the 1st value is X and 2nd is Y
-                         ! For shape=poly the Z is also used.
+      integer isznver   ! nb of edges per surface in poly shaped zone
+                        ! equivalent to nver
+      integer iszjvn    ! indices of coords making up edges of each surface
+                        ! equivalent to jvn
+      real szcoords     ! X Y Z coordinates associated with each zone.
       common/metageo/isznver(MCOM,MS),iszjvn(MCOM,MS,MV),
      &               szcoords(MCOM,MTV,3)
 
@@ -168,11 +169,11 @@ C Obstruction block commons (whole model)
       integer NOX,NOZ      ! gridding X and Z resolution of surfaces for shading
       common/GS6/NOX(MCOM),NOZ(MCOM)
 
-      integer nbobs     ! number of zone obstructions
-      real XOB,YOB,ZOB  ! coordinates of each block origin.
+      integer nbobs        ! number of zone obstructions
+      real XOB,YOB,ZOB     ! coordinates of each block origin.
       real DXOB,DYOB,DZOB  ! width depth and height of each block
-      real BANGOB       ! three rotation angles of block
-      real OPOB         ! opacity of obstruction 0.0 is transparent 1.0 is opaque
+      real BANGOB          ! three rotation angles of block
+      real OPOB            ! opacity of obstruction 0.0 is transparent 1.0 is opaque
       common/GS7/nbobs(MCOM),XOB(MCOM,MB),YOB(MCOM,MB),ZOB(MCOM,MB),
      &  DXOB(MCOM,MB),DYOB(MCOM,MB),DZOB(MCOM,MB),BANGOB(MCOM,MB,3),
      &  OPOB(MCOM,MB)
@@ -198,11 +199,11 @@ C LNBLOCKNAME,LNBLOCKMAT - length of strings.
       common/GS8LN/LNBLOCKNAME(MCOM,MB),LNBLOCKMAT(MCOM,MB)
 
 C Visual entities to pass to Radiance and for model decoration.
-      integer nbvis     ! number of visual entitie in a zone
-      real XOV,YOV,ZOV  ! coordinates of each visual origin.
+      integer nbvis        ! number of visual entitie in a zone
+      real XOV,YOV,ZOV     ! coordinates of each visual origin.
       real DXOV,DYOV,DZOV  ! width depth and height of each visual block
-      real BANGOV       ! three rotation angles of a visual block
-      real OPOV         ! opacity of visual 0.0 is transparent 1.0 is opaque
+      real BANGOV          ! three rotation angles of a visual block
+      real OPOV            ! opacity of visual 0.0 is transparent 1.0 is opaque
       common/GSVB/nbvis(MCOM),XOV(MCOM,MB),YOV(MCOM,MB),ZOV(MCOM,MB),
      &  DXOV(MCOM,MB),DYOV(MCOM,MB),DZOV(MCOM,MB),BANGOV(MCOM,MB,3),
      &  OPOV(MCOM,MB)
@@ -254,52 +255,15 @@ C MRT sensors for the model.
      &  ZOC(MCUB),DXC(MCUB),DYC(MCUB),
      &  DZC(MCUB),CANG(MCUB),IVFOK(MCUB),CUBN(MCUB)
 
-
-C The following section hold arrays associated with each zone connection
-C in the model. These data structures are typically used when the model
-C composition is fixed (surfaces are not being added or subtracted) and
-C all surfaces in the model need to be accessed.
-
-C Surface attributes:
-      character SSNAME*12  ! surface name attribute (see also SNAME)
-      character SSOTF*32   ! indicates OPAQUE or optical property name (see SOFT).
-      character SSVFC*4    ! indicates whether the surface is to be counted
-                           ! as a FLOR (face up), VERT (wall), CEIL (face down),
-                           ! SLOP (not vertical) or UNKN (not yet defined) 
-                           ! (see also SVFC). 
-      character SSMLCN*32  ! surface construction attribute currently only
-                           ! only the first 12 char are used. (see also SMLCN)
-      character SSOTHER*24 ! three surface attributes for `other` side as below 
-
-C SSOTHER(i,1) = UNKNOWN indicatesthat no attribute has been set and
-C                for this case SSOTHER(i,2) and SSOTHER(i,3) are '0'
-C SSOTHER(i,1) = EXTERIOR means SSOTHER(i,2) and SSOTHER(i,3) are '0'
-C SSOTHER(i,1) = ADIABATIC means SSOTHER(i,2) and SSOTHER(i,3) are '0'
-C SSOTHER(i,1) = SIMILAR means that SSOTHER(i,2) and SSOTHER(i,3) are as IC2 & IE2
-C SSOTHER(i,1) = BASESIMP means that SSOTHER(i,2) and SSOTHER(i,3) are as IC2 & IE2
-C SSOTHER(i,1) = GROUND means that SSOTHER(i,2) and SSOTHER(i,3) are as IC2 & IE2
-C SSOTHER(i,1) = ANOTHER then SSOTHER(2) is zone index and SSOTHER(i,3) is
-C                the surface index in that zone (e.g. as IC2 and IE2).
-
-      character SSUSE*12     ! two attributes of the usage of the surface
-
-C See GEOREAD in egeometry.F for a description of possible values. Not found in older geometry files.
-
-      character SSPARENT*12 ! the name of the parent surface or '-'
-      COMMON/G6/SSNAME(MCON),SSOTF(MCON),SSMLCN(MCON),SSVFC(MCON),
-     &          SSOTHER(MCON,3),SSPARENT(MCON),SSUSE(MCON,2)
-
-      real ssna    ! surface area of each polygon
-      real sspazi  ! plane azimuth angle (degrees 0=north, 90=west)
-      real sspelv  ! plane elevation angle (degrees 0=wall, 90=ceiling -90=floor
-      real ssperim ! perimeter of each surface (m).
-      real ssureqn ! equation of each polygon A*X + B*Y + C*Z = D
-      real ssurcog ! vertex weighted COG of polygon,
-      real ssurvn  ! unit normal vector from COG of polygon.
-      real ssthick ! thickness of surface (m) based on MLC and zero if no MLC
-      common/g7/ssna(MCON),sspazi(MCON),sspelv(MCON),ssperim(MCON),
-     &          ssureqn(MCON,4),ssurcog(MCON,3),ssurvn(MCON,3),
-     &          ssthick(MCON)
+C Derived attributes of surfaces.
+      real sna     ! surface area of each polygon
+      real spazi   ! plane azimuth angle (degrees 0=north, 90=west)
+      real spelv   ! plane elevation angle (degrees 0=wall, 90=ceiling -90=floor
+      real sureqn  ! equation of each polygon A*X + B*Y + C*Z = D
+      real surcog  ! vertex weighted COG of polygon,
+      real survn  ! unit normal vector from COG of polygon.
+      common/derived/sna(MCOM,MS),spazi(MCOM,MS),spelv(MCOM,MS),
+     &  sureqn(MCOM,MS,4),surcog(MCOM,MS,3),survn(MCOM,MS,3)
 
 C izsfloor is the index (within the zone) of a floor surface in each zone
 C  (zero if no surface is close to horizontal facing up).
@@ -307,9 +271,4 @@ C izsceil is the index (within the zone) of a ceiling surface in each zone
 C  (zero if no surface is close to horizontal facing down).
       integer izsfloor,izsceil
       COMMON/PREC16/izsfloor(MCOM),izsceil(MCOM)
-
-C Althought ssmlcn(mcon) holds the name of the construction, also knowing the
-C matching index in the database can save search time.
-      integer ssmlcindex  ! for each connection points to MLC db item or zero
-      common/precmlc/ssmlcindex(MCON)
 

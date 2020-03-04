@@ -120,7 +120,7 @@ C    CFF -> a2
 C   EXPT -> a3
 C *********************************************************************
       FUNCTION XI01(iMM,RH,Uh,CFF,EXPT)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
       DOUBLE PRECISION XI01
       SMALL=1.0E-15
@@ -137,6 +137,8 @@ C       Otto model
       endif
       IF(XI01.LT.DBLE(SMALL))then
         call edisp(iuout,'XI01: (705) very small moisture capacity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -148,7 +150,7 @@ C *********************************************************************
 C XI02  moisture capacity (kg/kg)
 C *********************************************************************
       FUNCTION XI02(iMM,RH,Uh,CFF,EXPT,DNSTY)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
       DOUBLE PRECISION XI01, XI02
       SMALL=1.0E-15
@@ -163,6 +165,8 @@ C       We have an air layer, set average value ...
       XI02=XI01(iMM,RH,Uh,CFF,EXPT)/DBLE(DNSTY)
       IF(XI02.LT.DBLE(SMALL))then
         call edisp(iuout,'XI02: (706) very small moisture capacity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -174,7 +178,7 @@ C *********************************************************************
 C XI03  moisture capacity (kg/m3).  The numerical equivalent for XI01.
 C *********************************************************************
       FUNCTION XI03(iMM,RHp,RHf,Uh,CFF,EXPT)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
       DOUBLE PRECISION XI01, XI03
       SMALL=1.0E-15
@@ -192,6 +196,8 @@ C *********************************************************************
       ENDIF
       IF(XI03.LT.DBLE(SMALL))then
         call edisp(iuout,'XI03: very small moisture capacity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -209,7 +215,7 @@ C TCp      present time temperature (C)
 C TCf      future time temperature (C)
 C *********************************************************************
       FUNCTION XIair01(Pvp,Pvf,TCp,TCf,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
       character outs*124
       SMALL=1.0E-15
@@ -253,7 +259,7 @@ C with respect to relative humidity at fixed temperature and total
 C pressure.
 C *********************************************************************
       FUNCTION XIair02(Pv,TC,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
       SMALL=1.0E-15
 
@@ -266,6 +272,8 @@ C *********************************************************************
       XIair02=RATIO*Ps*Pt/(Pt-Ps*RH)**2 ! Unit [-]? Should be kg/m3 !!?
       IF(XIair02.LT.DBLE(SMALL))then
         call edisp(iuout,'XIair02: very small moisture capacity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -277,7 +285,7 @@ C *********************************************************************
 C XIair03 equivalent to XIair02 but based on numerical approach.
 C *********************************************************************
       FUNCTION XIair03(Pv,TC,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
       SMALL=1.0E-15
 
@@ -302,6 +310,8 @@ C *********************************************************************
       XIair03=(X2-X1)/(RH2-RH1)
       IF(XIair03.LT.DBLE(SMALL))then
         call edisp(iuout,'XIair03: very small moisture capacity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -320,11 +330,13 @@ C CFF   coefficient used to calculate u=f(RH) and xi
 C EXPT  exponent used to calculate u=f(RH) and xi
 C *********************************************************************
       FUNCTION PHI01(U,Uh,CFF,EXPT)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       PHI01=EXP(CFF-CFF*(U/Uh)**(-EXPT))
       IF(PHI01.LT.0.0)then
         call edisp(iuout,'PHI01: negative relative humidity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -338,7 +350,7 @@ C pressure, and temperature (Heating, Ventilating, and Air Conditioning
 C by McQuiston and Parker).
 C *********************************************************************
       FUNCTION PHI02(TC,X,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       Ra=287.06
       Rv=461.5
@@ -348,6 +360,8 @@ C *********************************************************************
       PHI02=X*Pa*Rv/(Ps*Ra)
       IF(PHI02.LT.0.0)then
         call edisp(iuout,'PHI02: negative relative humidity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -366,7 +380,7 @@ C DCP=CPlqd-CPvap
 C TC       temperature (C)
 C *********************************************************************
       FUNCTION EVAP01(TC)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
 
       EVAPr=2.5008E6
@@ -401,7 +415,7 @@ C   VPRMc -> a4
 C   a1 = a3 = 0.
 C *********************************************************************
       FUNCTION DELT01(iMM,RH,VPRMa,VPRMb,VPRMc)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
       character outs*124
       real my
@@ -445,7 +459,7 @@ C C       constant
 C RH      relative humidity (-)
 C *********************************************************************
       FUNCTION DELT03(RH,VRF0,VRF100,b)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
       SMALL=1.0E-15
 
@@ -453,6 +467,8 @@ C *********************************************************************
       DELT03=1.875e-10/(VRF0-(VRF0-VRF100)*RH**b)
       IF(DELT03.LT.SMALL)then
         call edisp(iuout,'DELT03: very small vapour permeability.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -465,11 +481,13 @@ C CPair01 calculates the specific heat capacity of dry air (J/kg K)
 C as a function of temperature (C) (Marieke 1994, Ham 1984)
 C *********************************************************************
       FUNCTION CPair01(TC)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CPair01=1006.0+TC/200.0+TC*TC/7.5E3
       IF(CPair01.LT.0.0)then
         call edisp(iuout,'CPair01: negative specific heat capacity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -482,11 +500,13 @@ C CPvpr01 calculates the specific heat capacity of water vapour (J/kg K)
 C as a function of temperature (C) (Marieke 1994, Ham 1984)
 C *********************************************************************
       FUNCTION CPvpr01(TC)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CPvpr01=1858.4+0.10875*TC+3.083E-4*TC*TC
       IF(CPvpr01.LT.0.0)then
         call edisp(iuout,'CPvpr01: negative specific heat capacity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -500,11 +520,13 @@ C as a function of temperature (C) and moisture content (kg/kg dry air)
 C (Marieke 1994, Ham 1984).
 C *********************************************************************
       FUNCTION CPmst01(TC,X)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CPmst01=CPair01(TC)+X*CPvpr01(TC)
       IF(CPmst01.LT.0.0)then
         call edisp(iuout,'CPvpr01: negative specific heat capacity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -520,12 +542,14 @@ C TC    temperature (C)
 C Pdry  pressure (Pa)
 C *********************************************************************
       FUNCTION RHOdry01(TC)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       SMALL=1.0E-15
 
       RHOdry01=DENSIT(1,TC)
       IF(RHOdry01.LT.SMALL)then
         call edisp(iuout,'RHOdry01: very small density.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -535,7 +559,7 @@ C *********************************************************************
 
 C *********************************************************************
       FUNCTION RHOdry02(TC,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       SMALL=1.0E-15
 
       Ra=287.06
@@ -543,6 +567,8 @@ C *********************************************************************
       RHOdry02=Pt/(TK*Ra)
       IF(RHOdry02.LT.SMALL)then
         call edisp(iuout,'RHOdry02: very small density.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -554,7 +580,7 @@ C Psat01 calculates the saturation vapour pressure (Pa) as a function of
 C temperature (C) (Marieke 1994, IEA 1991, vol 1, page 4.8)
 C *********************************************************************
       FUNCTION Psat01(TC)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       SMALL=1.0E-15
 
       IF(TC.GT.-30.0.AND.TC.LT.0.0)THEN
@@ -572,6 +598,8 @@ C *********************************************************************
       ENDIF
       IF(Psat01.LT.SMALL)then
         call edisp(iuout,'Psat01: small saturation vapour pressure.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -584,13 +612,15 @@ C Pvpr01 calculates the vapour pressure (Pa) knowing the total pressure
 C (Pa) and vapour ratio (kg/kg) (Marieke 1994).
 C *********************************************************************
       FUNCTION Pvpr01(X,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       Ra=287.06
       Rv=461.5
       Pvpr01=X*Pt/((Ra/Rv)+X)
       IF(Pvpr01.LT.0.0)then
         call edisp(iuout,'Pvpr01: negative vapour pressure.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -603,13 +633,15 @@ C Pvpr02 calculates the vapour pressure (Pa) knowing the temperature
 C (C) and relative humidity (-) (Marieke 1994).
 C *********************************************************************
       FUNCTION Pvpr02(TC,RH)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
 
       IF(RH.GT.RHmax)RH=RHmax
       Pvpr02=RH*Psat01(TC)
       IF(Pvpr02.LT.0.0)then
         call edisp(iuout,'Pvpr02: negative vapour pressure.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -625,7 +657,7 @@ C Ra   gas constant for dry air     (J/kgK)
 C Rv   gas constant for water vapour (J/kgK)
 C *********************************************************************
       FUNCTION RHOmst01(TC,Pv,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       SMALL=1.0E-15
 
       Ra=287.06
@@ -634,6 +666,8 @@ C *********************************************************************
       RHOmst01=(Pt-Pv)/(Ra*TK)+Pv/(Rv*TK)
       IF(RHOmst01.LT.SMALL)then
         call edisp(iuout,'RHOmst01: very small density.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -647,13 +681,15 @@ C temperature (C), vapour pressure (Pa) and total pressure (Pa)
 C (Marieke 1994)
 C *********************************************************************
       FUNCTION RHOmst02(TC,X,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       SMALL=1.0E-15
 
       Pvpr=Pvpr01(X,Pt)
       RHOmst02=RHOmst01(TC,Pvpr,Pt)
       IF(RHOmst02.LT.SMALL)then
         call edisp(iuout,'RHOmst02: very small density.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -667,7 +703,7 @@ C temperature (C)and relative humidity (-) (Marieke 1994)
 C *********************************************************************
       FUNCTION RHOmst03(TC,RH,Pt)
       COMMON/MOIST17/RHmax
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       SMALL=1.0E-15
 
       IF(RH.GT.RHmax)RH=RHmax
@@ -675,6 +711,8 @@ C *********************************************************************
       RHOmst03=RHOmst01(TC,Pvpr,Pt)
       IF(RHOmst03.LT.SMALL)then
         call edisp(iuout,'RHOmst03: very small density.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -688,9 +726,13 @@ C and temperature T ( C) (Marieke 1994, Ham 1984)
 C G     acceleration due to gravity = 9.81 (m/s^2)
 C Pstnd standard total (atmospheric) pressure altitude (Pa)
 C Rav   gas constant for moist air (average) (J/kgK)
+
+C Function superseded: use information in common block ALTPRESDEN in 
+C site.h to use pressure from climate database if available, or calculated
+C from altitude if not.
 C **********************************************************************
       FUNCTION Pt01(TC,H)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       Pstnd=101325
       G=9.81
@@ -699,6 +741,8 @@ C **********************************************************************
       Pt01=Pstnd*EXP(-G*H/(Rav*TK))
       IF(Pt01.LT.0.0)then
         call edisp(iuout,'Pt01: negative total pressure.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -714,7 +758,7 @@ C Rv   gas constant for water vapour (J/kgK)
 C Pt   total pressure  ( Pa )
 C **********************************************************************
       FUNCTION X01(Pv,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       Ra=287.06
       Rv=461.5
@@ -722,6 +766,8 @@ C **********************************************************************
       X01=Pv*Ra/(Pa*Rv)
       IF(X01.LT.0.0)then
         call edisp(iuout,'X01: negative vapour ratio.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -739,7 +785,7 @@ C TC   temperature ( C )
 C (Heating, Ventilating, and Air Conditioning by McQuiston and Parker).
 C **********************************************************************
       FUNCTION X02(TC,RH,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
 
       IF(RH.GT.RHmax)RH=RHmax
@@ -748,6 +794,8 @@ C **********************************************************************
       X02=X01(Pv,Pt)
       IF(X02.LT.0.0)then
         call edisp(iuout,'X02: negative vapour ratio.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -760,7 +808,7 @@ C X03 calculates the vapour ratio (kg vapour/kg dry air) using vapour
 C pressure (Pa).
 C **********************************************************************
       FUNCTION X03(TC,RH,Pt)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
 
       IF(RH.GT.RHmax)RH=RHmax
@@ -769,6 +817,8 @@ C **********************************************************************
       X03=HUMRT1(TC,RH100,PATMOS,0)
       IF(X03.LT.0.0)then
         call edisp(iuout,'X03: negative vapour ratio.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -783,11 +833,13 @@ C CPair specific heat capacity of dry air (J/kg K)
 C CPvpr specific heat capacity of water vapour (J/kg K)
 C *********************************************************************
       FUNCTION ENTHP01(TC,X)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       ENTHP01=CPair01(TC)*TC+CPvpr01(TC)*X*TC+X*EVAP01(TC)
       IF(ENTHP01.LT.0.0)then
         call edisp(iuout,'ENTHP01: negative enthalpy.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -800,13 +852,15 @@ C RH01 calculates the relative humidity using vapour pressure ( Pa ) and
 C saturation vapour pressure (Pa) (Marieke 1994).
 C *********************************************************************
       FUNCTION RH01(Pv,Ps)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MOIST17/RHmax
 
       RH01=Pv/Ps
       IF(RH01.GT.RHmax)RH01=RHmax
       IF(RH01.LT.0.0)then
         call edisp(iuout,'RH01:  relative humidity.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP

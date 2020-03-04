@@ -61,7 +61,7 @@ C HOT3000: Fuel cell.
 
       integer lnblnk  ! function definition
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
       common/tc/itc,icnt
@@ -80,7 +80,7 @@ C HOT3000: Fuel cell.
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       common/shad1/iml
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       common/clim/idif(mt),itmp(mt),idnr(mt),ivel(mt),idir(mt),
      &            ihum(mt),idiff,itmpf,idnrf,ivelf,idirf,ihumf
@@ -219,7 +219,6 @@ C ZBASEA    - area of base (m^2)
 C IBASES    - surfaces (up to MBL) associated with base area. If all 0 then
 C             base area has been supplied by the user.
 C Common block G5 documented in geometry.h
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
       COMMON/TRANSO/LTROR,PAZIO(MCOM,MS)
 
 C SHOCC: iblnd - SHOCC blinds corresponding to ESP-r TMCs:
@@ -313,6 +312,10 @@ C Path to model
       common/rpath/path
       character path*72
 
+C <SPR>
+      integer spr_problem
+C </SPR>
+      
 C SUN F90 has spotty support for cpu_time intrinsic
 #ifdef F90
 #else
@@ -461,6 +464,16 @@ C Ensure all control commons are initialised to "off".
         call FMI_CLEARCTL()
       endif
 C </FMI>
+
+C <SPR>
+C Initialise sprites.
+      CALL SPRINIT
+C </SPR>
+
+C <GRM>
+C Initialise gremlins.
+      CALL GRMINIT
+C </GRM>
 
 C Initialize HVAC variables
       call ZERO_HVAC_VAR
@@ -1022,10 +1035,17 @@ C Continue simulation on an hour-by-hour basis.
 C For type 6 time-step controller, loop until saved hour.
           if(irew.and.j.lt.ihrsv)goto 20
 
-C Set present and future hours.
+C Set present and future hours. If incrementing at midnight set
+C idynow to present day plus one so that the 0h00-1h00 period gets
+C the correct day.
           ihrp=j
           ihrf=j+1
-          if(ihrf.eq.25)ihrf=1
+          idynow=idyp         ! idynow is normally the same as idyp
+          if(ihrf.eq.25)then
+            ihrf=1
+            idynow=idyp+1     ! crossed midnight so increment
+            if(idynow.eq.366) idynow=1
+          endif
 
 C Check for uncertainty associated with control data. The
 C UACTL array will be zero during the base case run but will
@@ -1168,6 +1188,11 @@ C Set the future time-row hour value.
             if(nsinc.eq.1)btimep=1.0
             btimef=float(ihrp)+float(its)/float(ntstep)
 
+C <GRM>
+C Check on gremlins.
+            if (.not.bInStartup()) CALL GRMCTL(ier)
+C </GRM>
+
 C New day events in SHOCC occur when btimef first exceeds 24.0 ...
             if(btimef.gt.24.0)then
               if(ishday.eq.0)then
@@ -1290,12 +1315,11 @@ C Do this by resetting IFCFD variable this is then checked below.
                     endif
                   endif
 
-C 1st clause: Present day is within defined range.
-                  IF((IDYP.GE.ICFDYS.AND.IDYP.LE.ICFDYF).or.
-
+C 1st clause:    Present day is within defined range.
 C OR 2nd clause: Future time is the first time step of CFD start day,
 C                AND present time is still the previous day.
 C                May need results for this time step.
+                  IF((IDYP.GE.ICFDYS.AND.IDYP.LE.ICFDYF).or.
      &    (IDYP.eq.(ICFDYS-1).and.CFTIMS.eq.1.0.and.btimef.eq.1.0))THEN
 
                     if (btimef.le.1.0) then
@@ -1304,9 +1328,8 @@ C                May need results for this time step.
                       rtmp=btimef
                     endif
 
-                    IF(rtmp.GE.CFTIMS.and.abs(IFCFD(ICP)).eq.0)
-
 C Ensure IFCFD is negative, means SURFCONF will write out results.
+                    IF(rtmp.GE.CFTIMS.and.abs(IFCFD(ICP)).eq.0)
      &                IFCFD(ICP)=-abs(ICFAUX(ICP))
 
                     IF(IDYP.eq.ICFDYF.and.rtmp.GT.CFTIMF)THEN
@@ -1454,9 +1477,9 @@ C Calculate roaming day of year.
                     CONTINUE
                   ELSEIF(S_TIME.GE.RTIME)THEN
                     DO 131 ISurf=1,MS
-                      PAZI(ICOMP,ISurf)=PAZIO(ICOMP,ISurf)+LORNT(IPDR)
-                      IF(PAZI(ICOMP,ISurf).GT.360.)
-     &                PAZI(ICOMP,ISurf)=PAZI(ICOMP,ISurf)-360.
+                      SPAZI(ICOMP,ISurf)=PAZIO(ICOMP,ISurf)+LORNT(IPDR)
+                      IF(SPAZI(ICOMP,ISurf).GT.360.)
+     &                SPAZI(ICOMP,ISurf)=SPAZI(ICOMP,ISurf)-360.
                       LTROR=LORNT(IPDR)
  131                CONTINUE
                   ENDIF
@@ -1651,6 +1674,9 @@ C Initialise control parameters as required by plant pid controllers.
 C Establish number of seconds per plant time step.
             timsec=3600.0/(float(ntstep)*float(ntstpp))
 
+C Re-zero zone<->plant casual gain coupling arrays
+            call plt_zone_gain_zero()
+
 C Plant multiple time-steps within each building-side time-step.
 C Solve multiple time-steps in plant and electrical domains to catch up to building domain.
             do 100 L=1,ntstpp
@@ -1669,9 +1695,6 @@ C Increment plant time-step counter.
 
 C Assign climate variable values.
               call mzclmpt(2)
-
-C Re-zero zone<->plant casual gain coupling arrays
-              call plt_zone_gain_zero()
 
 C Reset flag to indicate whether iteration is required between the plant and
 C electrical domains in order to converge the solution. `plant_elec_converged'
@@ -1874,6 +1897,11 @@ C << NOTE: dummy call REP_UPDATE only has 3 parameters >>
      &                              iQuick_run)
 !            call REP_UPDATE(nsinc,btimep,myday, iStartupFlag) ! <- store logged data
 
+C <SPR>
+C Query sprites.
+            if (.not.bInStartup()) CALL SPRCTL(spr_problem,ier)
+C </SPR>
+
    30     continue
 
 C debug (begin)
@@ -1965,7 +1993,7 @@ C Unix variant.
      &      ectime(ietim)
 C NT variant.
 C         write(outs,'(I4,A)') iperc,'% complete; '
-          if(endless.or.issilient)then
+          if(endless)then
             continue
           else
             call edisp(iuout,outs)
@@ -1988,6 +2016,11 @@ C GSHP system is defined.
        endif
 
        endif seasonal_run_test
+
+C <SPR>
+C If there is a problem, stop the simulation here.
+        if (spr_problem.eq.1) call SPRSTOP(iday)
+C </SPR>
 
 C Day loop now complete.
    10 continue
@@ -2045,7 +2078,7 @@ C write out simulation runtime - useful for investating the impact
 C of modifications on simulation times.
       CALL cpu_time(sec_b)
       write(outs,'(A,F9.1,A)')
-     &     'Simulation cpu runtime: ',sec_b-sec_a,' seconds'
+     &     'Simulation cpu runtime ',sec_b-sec_a,' s.'
       CALL EDISP(IOUTS,' ')
       CALL EDISP(IUOUT,outs)
 #endif
@@ -2077,12 +2110,12 @@ C the impact of modifications on simulation times.
       if ( isReportingInstalled() ) then
          CALL cpu_time(sec_c)
          write(outs,'(A,F7.2,A)')
-     &        'XML postprocessor cpu runtime: ',sec_c-sec_b,' seconds'
+     &        'XML postprocessor cpu runtime ',sec_c-sec_b,' s.'
          if(endless.or.issilient)then
            continue
          else
+           CALL EDISP(IOUTS,' ')           
            CALL EDISP(IUOUT,outs)
-           CALL EDISP(IOUTS,' ')
          endif
       endif
 #endif

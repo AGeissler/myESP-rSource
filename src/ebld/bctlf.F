@@ -33,6 +33,7 @@ C subsequent simulation.   Each control function and loop
 C is read from the system control strategy file.
 
       subroutine mzcstr(ier)
+
 #include "building.h"
 #include "net_flow.h"
 #include "espriou.h"
@@ -40,7 +41,7 @@ C is read from the system control strategy file.
       
       integer lnblnk  ! function definition
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
 
       common/cctlnm/ctldoc,lctlf
@@ -64,7 +65,7 @@ C is read from the system control strategy file.
       character DPBND*72
       character BPF*72
       character ctldoc*248,outs*124
-      logical OK,dok,pbyfil,bfngn,pcfngn,ffngn
+      logical OK,pbyfil,bfngn,pcfngn,ffngn
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -84,19 +85,17 @@ C use the control file specified in the cfg file.
         endif
       else
         if(LCTLF(1:7).eq.'UNKNOWN') then
-          dok=.false.
           helptopic='no_control_found'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(
+          CALL EASKOK(
      &    ' Does a building/plant/mass flow control strategy exist for',
-     &    ' the current model?',OK,dok,nbhelp)
+     &    ' the current model?',OK,nbhelp)
         else
-          dok=.true.
           helptopic='control_was_found'
           call gethelptext(helpinsub,helptopic,nbhelp)
           write(outs,'(2a)')' Use ',LCTLF(1:lnblnk(LCTLF))
-          CALL ASKOK(outs,' with the current model? ',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(outs,' with the current model? ',
+     &      OK,nbhelp)
           if(OK)then
 
 C Do initial setup of ier, ncf and if running silently then turn off trace
@@ -128,19 +127,21 @@ C or if interactive then only set trace if the first simulation.
   47  if((.not.autook).AND.(ISIM.le.1)) then
         DFILE=' '
         LTMP=LCTLF
-        CALL EASKS(LTMP,' System control file: ',
-     &     ' ',72,DFILE,'control file name',IER,nbhelp)
+
+C Test of not confirming the control file name.
+C        CALL EASKS(LTMP,' System control file: ',
+C     &     ' ',72,DFILE,'control file name',IER,nbhelp)
         IF(LTMP.NE.' ')THEN
 
-C Assign the control file name, reset ier and ncf and only
-C report contents for first simulation if running multiple simulations.
+C Assign the control file name, reset ier and ncf and avoid
+C report contents.
           LCTLF=LTMP
           ier=0
           ncf=0
           if (ISIM.gt.1) then
             ITRC=0
           else
-            ITRC=1
+            ITRC=0
           endif
         ELSE
           CALL EZCTLI
@@ -158,10 +159,19 @@ C In silent mode or subsequent simulation of a set.
 C Read in the control file (close before returning from EZCTLR).
   42  CALL EZCTLR(IUNIT,ITRC,IUOUT,IER)
       IF(IER.NE.0)THEN
-        dok=.false.
-        CALL ASKOK(' Problem detected reading controls...try again?',
-     &    '(see help)',OK,dok,nbhelp)
+        CALL EASKOK('Problem reading control file!','Retry?',
+     &    OK,nbhelp)
         IF(OK)THEN
+
+C If there was a problem ask user to confirm control file and
+C then try and load again.
+          DFILE=' '
+          LTMP=LCTLF
+          CALL EASKS(LTMP,' System control file: ',
+     &      ' ',72,DFILE,'control file name',IER,nbhelp)
+          LCTLF=LTMP
+          ier=0
+          ncf=0
           GOTO 47
         ELSE
           RETURN
@@ -195,8 +205,8 @@ C User input of boundary file location
           helptopic='timestep_boundary_file'
           call gethelptext(helpinsub,helptopic,nbhelp)
           dpbnd='pby.asc '
-          CALL EASKS(lbnd,' Timestep boundary data file (plant-side):',
-     &     ' ',72,dpbnd,'plant boundary file',IER,nbhelp)
+          CALL EASKS(lbnd,' ','Plant boundary data file?',
+     &        72,dpbnd,'plant boundary file',IER,nbhelp)
           iunit=ifil+9
           CALL EFOPSEQ(IUNIT,lbnd,1,IER)
           rewind(iunit)
@@ -213,10 +223,11 @@ C data items required for the building-side type -6
 C `Function Generator` sensor .
 
       SUBROUTINE BFGRSD
+
 #include "building.h"
 #include "control.h"
       
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
       common/bfngr/cfgsd(MCF,6),ibsnv(mcf,3),bfngn
 
@@ -337,10 +348,11 @@ C PFGRSD is used to obtain the supplementary data items required for
 C the plant-side type -6 `Function Generator` sensor.
 
       SUBROUTINE PFGRSD
+
 #include "building.h"
 #include "control.h"
       
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       
       common/pcfngr/clfgsd(MCF,6),pcfngn,IDAYPD
 
@@ -461,11 +473,12 @@ C FFGRSD is used to assign the supplementary data items required for
 C  mass flow sensor type -6 `Function Generator` sensor.
 
       SUBROUTINE FFGRSD
+
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
       
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       
       common/ffngr/cfgsf(MCF,6),ifsnv(MCF,3),ffngn
 

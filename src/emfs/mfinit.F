@@ -38,7 +38,7 @@ C default file names for databases
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
 
@@ -54,7 +54,7 @@ C Defaults.
       character LAPROB*72
       character rfile*72,PFILE*72,MSTRFILE*72,LAFRES*72
       CHARACTER OUTSTR*124,outs248*248
-      logical XST,OK,DOK
+      logical XST,OK
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ier
@@ -218,11 +218,10 @@ C Assign results file; make sure this is not the problem file.
       RETURN
 
 C File error trap.
-  999 dok=.false.
-      helptopic='mfs_file_error_trap'
+  999 helptopic='mfs_file_error_trap'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('Error reading weather data!','Continue?',
-     &           OK,dok,nbhelp)
+      CALL EASKOK('Error reading weather data!','Continue?',
+     &           OK,nbhelp)
       IF(OK)THEN
         goto 40
       ELSE 

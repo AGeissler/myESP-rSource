@@ -31,6 +31,7 @@ C ************************** GRID **************************
 C GRID: Controling routine for all gridding.
 C IER is returned as one if east/west grids do not match.
       SUBROUTINE GRID(ier)
+#include "building.h"
 #include "cfd.h"
 
 C Passed parameter
@@ -131,6 +132,7 @@ C DIST - linear dimension of grid cells.
 C ICELL - position within cell (??)
 C NDIM - parameter for array size of DIST
       SUBROUTINE GRIDIST(IR,IC,PLAW,NCEL,REG,DIST,ICELL,NDIM)
+#include "building.h"
 #include "cfd.h"
       integer IR,IC,NCEL,ICELL,NDIM
       real PLAW,REG,DIST
@@ -202,6 +204,7 @@ C ************************** GRIDGEO **************************
 C GRIDGEO: Calculate geometrical properties and interpolation factors.
 
       SUBROUTINE GRIDGEO
+#include "building.h"
 #include "cfd.h"
 
       COMMON/CONST/GREAT,small,GRAV
@@ -570,7 +573,7 @@ C boundaries)
 #include "building.h"
 #include "cfd.h"      
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2
       COMMON/GEOM/XP(ntcelx),YP(ntcely),ZP(ntcelz),
      1            DXEP(ntcelx),DXPW(ntcelx),DYNP(ntcely),DYPS(ntcely),

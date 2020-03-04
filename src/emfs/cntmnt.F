@@ -42,7 +42,7 @@ C AFLOWM   = Airmass flow matrix with reaction rate coefficients ((K))
       COMMON/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       COMMON/CONTM/CNTMFIL,CNTMDESC,NTSTEPC
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
@@ -406,7 +406,7 @@ C RCMGL  = Rate of contaminant mass gained/lost from each source/sink
 #include "FMI.h"
 
 C Simulation time commons
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 C Operations file commons
       common/CASGNS/NCGPER(MCOM,MDTY,MGTY),TCGS(MCOM,MDTY,MGTY,MGPER),
@@ -424,7 +424,8 @@ C Mass flow and Contaminant commons
       COMMON/CONTM2/CNCAJAM(MPRODI),ZMCPAM(MPRODI)
       COMMON/CONTM4/GERATAM(MPRODI),RECCOAM(MPRODI)
       COMMON/CONTM5/SPMSUP(MSPMNO,MCSD),SSLINK2(MSPMNO,MNOD),
-     &SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,SSLINK1(MSPMNO,MCONTM)
+     &      NSSNO(MNOD),SPMTYP(MSPMNO),SSNAME(MSPMNO),NSPMNO,
+     &      SSLINK1(MSPMNO,MCONTM)
       COMMON/CONTM7/PRECON(MPRODI)
       COMMON/CONTM9/SSSTR(MSPMNO,MCONTM)
 

@@ -152,7 +152,7 @@ C LPCDB/IPCDB (for plant template database)
       integer lnblnk  ! function definition
 
       COMMON/ER1/IER1
-      COMMON/outin/iuout,iuin
+      COMMON/outin/iuout,iuin,ieout
 
       COMMON/C6/INDCFG
       COMMON/C8/LPNAM

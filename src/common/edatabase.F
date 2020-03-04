@@ -55,7 +55,7 @@ C espriou.h provides currentfile.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -684,7 +684,7 @@ C espriou.h provides currentfile.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -1369,8 +1369,8 @@ C Parameters
       character NAM*72      ! passed string from MLC
       integer matarrayindex ! returned index in materials array
 
-      integer iuout,iuin
-      COMMON/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer lnam,ltnam    ! length of material name
       integer ipos,i2pos,iepos ! position start, 2 char along, end
@@ -1522,8 +1522,8 @@ C Parameters
       character NAM*72      ! passed stringeddbmlcon from MLC
       integer cfcarrayindex ! returned index in materials array
 
-      integer iuout,iuin
-      COMMON/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer lnam,ltnam    ! length of material name
       integer ipos,i2pos,iepos ! position start, 2 char along, end
@@ -2076,7 +2076,7 @@ C << NOTE this code needs further debugging.
           endif
           Rsi=0.12
           Rso=0.06
-          call ADMIT(ITRU,IFOC,Rsi,Rso)
+          if(ITRC.gt.2)call ADMIT(ITRU,IFOC,Rsi,Rso)
         endif
       endif
 
@@ -2217,7 +2217,7 @@ C IER=0 OK, IER=1 problem.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -2527,6 +2527,9 @@ C Parameters
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
+
       integer lnam    ! length of material name
       integer lfordoc ! length available for material documentation
       integer izero   ! transitional trick for air gap
@@ -2589,13 +2592,19 @@ C Check version of CFC database.
       endif
 
 C The ASCII file will be overwritten if it exists.
+C If AUTOVR, then don't ask user to confirm this.
+      if (AUTOVR) then
+        imd=3
+      else
+        imd=4
+      endif
       if(ipathmul.eq.0.or.ipathmul.eq.1)then
-        CALL EFOPSEQ(IFMUL,LFMUL,4,IER)
+        CALL EFOPSEQ(IFMUL,LFMUL,imd,IER)
       elseif(ipathmul.eq.2)then
         lndbp=lnblnk(standarddbpath)
         write(lworking,'(3a)') standarddbpath(1:lndbp),fs,
      &    LFMUL(1:lnblnk(LFMUL))
-        CALL EFOPSEQ(IFMUL,lworking,4,IER)
+        CALL EFOPSEQ(IFMUL,lworking,imd,IER)
       endif
 
 C Get and set date stamp for the MLC arrays (since legacy file does not
@@ -2703,7 +2712,7 @@ C Parameters
       character GDESCR*36 ! description of the matching type
       integer IER   ! zero is ok, one if file could not be opened
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Markdown flag.
       logical markdown
@@ -3046,7 +3055,7 @@ C closemat1 or closemat2 will be set.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       logical XST,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK

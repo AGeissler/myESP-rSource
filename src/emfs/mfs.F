@@ -62,7 +62,7 @@ C     MMOD   - determines the device type attached to the current job.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFTRA/IMFTU
       COMMON/SHOUT/ICOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
@@ -103,17 +103,25 @@ C Once per hour storage of results, averaged over that hour.
       common/rdcmfs/irdcm,sFLWTIM,sDRYB,sWDIR,sWSPD,sITER,sIOK,
      &              sTNOD(MNOD)
 
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
 C Name of current application
       common/APPNAME/cAppName
-      
       character cAppName*12
 
-      LOGICAL LAST,OK,DOK,unixok,there,ACTCNN
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
+
+      LOGICAL LAST,OK,unixok,there,ACTCNN
       CHARACTER*24 ITEM(18)
       CHARACTER OUTSTR*124,inf*144,outs*124
       character path*72
       character tg*1,delim*1,xfile*144
-      character journcmd*20,jfile*72,uname*24,fs*1,cjfile*72
+      character journcmd*20,jfile*72,fs*1,cjfile*72
+      character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
@@ -149,12 +157,13 @@ C Initialize global common data.
       IFS=1
       ITFS=1
       IMFS=1
-      LIMTTY=8
-      LIMIT =8
+      LIMTTY=30
+      LIMIT =30
       IDAYF=0
       IDAYL=0
       IAPRES=11
-      LAPROB = '  '  ! clear name of flow network
+      LAPROB = '  '   ! clear name of flow network
+      AUTOVR=.false.  ! by default, ask to overwrite files
 
       cAppName = 'mfs'
 
@@ -273,13 +282,16 @@ C and dialog.
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=16
-        LIMIT =16
+        IMFS=5 ! Text mode set LIMTTY larger for paging menus.
+        IFS=5
+        ITFS=4
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Network Flow Simulator ',
+      write(pagestitle,'(2a)') 'Network flow simulator of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -357,6 +369,23 @@ C All subsequent tstamp messages will be appended to root journal.
         call tstamp('>',outs)
       endif
 
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=942          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=904)
+      write(ieout,'(a)')'Session log for mfs'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  904 continue
+
 C Scan the defaults file for default pressure and weather.
 C Make temporary use of file unit IUA.
  902  call escdef(IUA,'s',IER)
@@ -422,9 +451,9 @@ C Use askabout to instanciate the initial help messages (2nd parameter is one).
 C Finish mfs.
 C Close fluid flow problem description file
         CALL ERPFREE(IFPRB,ISTAT)
-
-        call usrmsg(' Closing mass flow analysis...',' ','P')
         call tstamp('>','Finish network flow analysis')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       elseif(INO.EQ.NITMS-1)then
@@ -529,10 +558,9 @@ C Alter trace flag
       ELSEIF(INO.EQ.10)THEN
 
 C Enable/disable non-fatal warning message printing.
-        dok=.false.
         helptopic='mfs_review_warnings'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(OUTSTR,' Print warning messages?',OK,dok,nbhelp)
+        CALL EASKOK(OUTSTR,'Print warning messages?',OK,nbhelp)
         IF(OK)THEN
           ICOUT=IUOUT
         ELSE
@@ -661,7 +689,7 @@ C ICLIM,LCLIM (for climate file)
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFTRA/IMFTU
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
@@ -784,7 +812,7 @@ C ********************* SETUP
 C SETUP provides the menu's and control logic for the mfs SETUP menu.
       SUBROUTINE SETUP(itrc,ITRU,IER)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/DISPL/IDAYF,IDAYL,IFDAY,IFTIME
       DIMENSION SETUPM(5)
       CHARACTER SETUPM*36
@@ -885,6 +913,18 @@ C calls in esru_lib.F
       end
 
       subroutine chgelev(icelev,ifrlk)
+      return
+      end
+
+      subroutine chgpan(ix,iy)
+      return
+      end
+
+      subroutine chgzoom(imode)
+      return
+      end
+
+      subroutine optview
       return
       end
 

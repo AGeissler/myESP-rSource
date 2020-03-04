@@ -246,8 +246,8 @@ c     None. Sums up Monthly versions of energy Variables above..
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER IDAYN,iMonth
       INTEGER isystem        !System Number
       REAL    fheat_energy   !Sytstem Energy Joules
@@ -316,8 +316,8 @@ C      USE Ventilation_Data
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER IDAYN,iMonth
       REAL    fHeating_load  !Sytstem Energy Joules
       REAL    fCooling_load  !System Cooling energy in Joules.
@@ -384,9 +384,9 @@ c
 #include "h3kstore_common.h"
       character outs*124
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER IDAYN,imonth
       REAL AIM2_total,fcurrent_air_change
       LOGICAL bInStartUp
@@ -521,9 +521,9 @@ c     and stores it in sum_plr_capacity_bin(isystem,ipercent)
 #include "h3kstore_common.h"
 c     Common for the number of time steps per hour
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER IODS,IODF
       REAL frac_hour,PLR,upper,lower,fhours,iPLR
       INTEGER isystem,iPercent
@@ -601,7 +601,7 @@ c     Copyright 2000: NRCan Buildings Group
 
 C     These commons are required for
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       REAL fQInternalSources, !Internal Sources
      &     fQInternalLosses,    !Internal Losses
@@ -618,7 +618,7 @@ C     These commons are required for
 
       INTEGER iZoneNumber
       INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP,IMTHN,IDAYN
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its, IODS,IODF
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow,IODS,IODF
 
 
 
@@ -692,8 +692,8 @@ C     ndbph is number of data blocks/hr for monitor function.
       INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
 
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PVALC/TPC,QPC
       REAL TPC(MCOM,MS,MN),QPC(MCOM)
@@ -790,9 +790,10 @@ C - Alex, Feb 24, 2004.
 
 
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
         INTEGER IUOUT
         INTEGER IUIN
+        INTEGER IEOUT
 
 C     Once per hour storage of results, averaged over that hour.
       common/rdcgen/irdact
@@ -1188,14 +1189,14 @@ c     ********************************************************************
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
 c#include "SOFC.h"
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       common/ptime/ptimep,ptimef
       COMMON/PCTSTP/NTSTPP
 c     Variable to see if plant matrix values have converged and the ptimestep has incremented
       COMMON/pltcon/bPltCon, LastTSTP
       REAL      LastTSTP
-      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER   ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       INTEGER   IDAYN,IMTHN
       INTEGER   NTSTPP
@@ -1411,8 +1412,8 @@ c     ********************************************************************
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER   iZONE,IDAYN,iMonth
       REAL   fZone_temp
       LOGICAL bInStartup
@@ -1486,8 +1487,8 @@ c                                for the previous timestep, in W
       INTEGER ISDF
       INTEGER NTSTEP
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 c Variable to see if plant matrix values have converged and the ptimestep has incremented
       COMMON/pltcon/bPltCon, LastTSTP
        REAL     LastTSTP
@@ -1637,7 +1638,7 @@ c     ********************************************************************
 #include "h3kstore_common.h"
 #include "SOFC.h"
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       common/ptime/ptimep,ptimef
       COMMON/PCTSTP/NTSTPP
@@ -1645,7 +1646,7 @@ c     Variable to see if plant matrix values have converged and the ptimestep ha
       COMMON/pltcon/bPltCon, LastTSTP
       REAL      LastTSTP
 
-      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER   ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       INTEGER   IDAYN,IMTHN
       INTEGER   NTSTPP
@@ -1720,12 +1721,12 @@ c     ********************************************************************
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
 #include "SOFC.h"
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       common/ptime/ptimep,ptimef
       COMMON/PCTSTP/NTSTPP
 
-      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER   ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       INTEGER   IDAYN,IMTHN
       INTEGER   NTSTPP
@@ -1916,8 +1917,8 @@ c Copyright 2000: NRCan Buildings Group
       INTEGER ISDF
       INTEGER NTSTEP
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 c Variable to see if plant matrix values have converged and the ptimestep has incremented
       COMMON/pltcon/bPltCon, LastTSTP

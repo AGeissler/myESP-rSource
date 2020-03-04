@@ -25,12 +25,14 @@ C act = 'z' for zone air status, act = 'p' for plant
 C component status, act = 'u' for user supplied points.
       SUBROUTINE PSYCHART(act)
 
+#include "building.h"
+#include "site.h"
 #include "plant.h"
       
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/PPERS/IPSD1,IPSM1,IPSD2,IPSM2,IPSDS,IPSDF,NPTS,ipsav
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
@@ -54,7 +56,7 @@ C component status, act = 'u' for user supplied points.
       CHARACTER HOLD*24,act*1,pcname*15,pcnam1*15,head*124
       CHARACTER DESCRH*5,outs*124,DESCR*7,DESCR1*10
       CHARACTER ETEXT*124,PDESCR*60,SDESCR*44
-      logical ok,dok,ask,unixok
+      logical ok,ask,unixok
       integer NITMS,INO ! max items and current menu item
       
 #ifdef OSI
@@ -71,7 +73,6 @@ C For help messages
       helpinsub='PSYCHART'  ! set for subroutine
 
       SMALL=1E-20
-      PATMOS=1013.25
 
 C Depending on domain, set inclusion of point labels.
       if(act.eq.'f')then
@@ -179,8 +180,7 @@ C zone nodes << to be done >>
           goto 2
         elseif(act.eq.'u')then
           if(IUP.ne.0)then
-            dok=.true.
-            call askok('Re-plot previous points?',' ',ok,dok,nbhelp)
+            call easkok(' ','Re-plot previous points?',ok,nbhelp)
             if(ok)then
               ask=.false.
             else
@@ -328,9 +328,7 @@ C Make up a string describing this time.
 C Refresh the graph, add timestep title and then plot the data.
         call psychartbackground(Xmin,Xmax,Ymin,Ymax,enthmax,
      &  enthminx,enthminy,enthmaxy)
-        iside=1
-        isize=0
-        ifont=1
+        iside=1; isize=0; ifont=1
         call viewtext(outs,iside,isize,ifont)
         if(act.eq.'u')then
           if(iup.gt.1)then
@@ -459,18 +457,13 @@ C        write(6,*) 'start and finish for ',TSTART,TFINSH,ctime
             ENDIF
           endif
 
-C Debug.
-C          write(6,*) ' *200 ii ctime iday time ',ii,ctime,iday,time
-
           write(outs,'(a,i4,4a)') 'The timestep (',ii,') is ',
      &      descrh,' on ',DESCR1
 
 C Refresh the graph, add timestep title and then plot the data.
           call psychartbackground(Xmin,Xmax,Ymin,Ymax,enthmax,
      &      enthminx,enthminy,enthmaxy)
-          iside=1
-          isize=0
-          ifont=1
+          iside=1; isize=0; ifont=1
           call viewtext(etext,iside,isize,ifont)
           iside=2
           call viewtext(outs,iside,isize,ifont)
@@ -560,7 +553,7 @@ C IPCOMP: zero is ext dbT, > zero is component index, < zero is zone.
 
 #include "plant.h"
 C#include "building.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
      &           IPC2(MPCON),IPN2(MPCON),PCONDR(MPCON),PCONSD(MPCON,2)
@@ -698,21 +691,22 @@ C on the graph. If so draw a line between them.
       RETURN
       END 
 
-C ********************** ASKPSYCMP
-C ASKPCMP presents a list of plant components returning the index IS.
-C If MOD = 'M' then include option to add an item then the appropriate
-C interaction is begun.
-      SUBROUTINE ASKPSYCMP(head,IS,NEL,IER)
+C ********** ASKPSYCMP
+C Presents a list of plant components returning the index IS.
+C If MOD = 'M' then include option to add an item.
 
+      SUBROUTINE ASKPSYCMP(head,IS,NEL,IER)
 #include "epara.h"
 #include "plant.h"
 #include "building.h"
+#include "site.h"
+
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/PPERS/IPSD1,IPSM1,IPSD2,IPSM2,IPSDS,IPSDF,NPTS,ipsav
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/GET2/XDUM(MTS),XDUM1(MTS),GVAL(MTS)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSY3/PCNAM1(MPCOM)
       COMMON/PSY2/IPSYTS,ICPLOT
       COMMON/ZONPIK/NZ,NZNO(MCOM)
@@ -724,14 +718,12 @@ C interaction is begun.
       LOGICAL SELECT
       integer MSVERT,ISVERT ! max items and current menu item
 
-C For help messages
+C For help messages.
       character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      character helptopic*24   ! string (unique) for topic
+      integer nbhelp           ! number of help lines found
 
       helpinsub='ASKPSYCMP'  ! set for subroutine
-
-      PATMOS=1013.25
 
 C Initialise node menu variables based on window size. 
 C ISVERT is the menu position, MSVERT the current number 
@@ -884,8 +876,10 @@ C enthminy enthalpy y axis minimum
 C enthmaxy enthalpy y axis maximum
       subroutine psychartbackground(Xmin,Xmax,Ymin,Ymax,enthmax,
      &  enthminx,enthminy,enthmaxy)
+#include "building.h"
+#include "site.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -911,8 +905,6 @@ C enthmaxy enthalpy y axis maximum
       integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
-      PATMOS=1013.25
-
 C Check if can draw in colour and with a range of colours.
 C Colours used are nb 15 = grey40, nb 17 =grey60.
       colok=.false.
@@ -921,7 +913,6 @@ C Colours used are nb 15 = grey40, nb 17 =grey60.
       if(ncset.gt.24)cscaleok=.true.
       
       IF(MMOD.EQ.8)THEN
-
 
 C Setup and pass in parameters to win3d.
         iiw1=15; iiw2=15; iiw3=5; iiw4=5; iimenu=menuchw

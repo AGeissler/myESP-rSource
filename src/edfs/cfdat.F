@@ -1389,7 +1389,7 @@ C IGETCN - Identify mass flow connection. (used for coupling purpose)
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER WORD*72,WORD1*72,WORD2*72,NODLE*12,NODRI*12,CMPNM*12
       CHARACTER OUTSTR*124
@@ -1424,7 +1424,7 @@ C          (used for coupling purpose)
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER WORD*72,NODE*12,OUTSTR*124
 
@@ -1467,9 +1467,9 @@ C   from common block variable icp.
 
       do 10 IS=1,nzsur(icp)
         icon=IZSTOCN(icp,is)
-        lnssn=lnblnk(SSNAME(icon))
+        lnssn=lnblnk(SNAME(icp,is))
         lnsurf=lnblnk(SURF)
-        IF(SSNAME(icon)(1:lnssn).EQ.SURF(1:lnsurf))then
+        IF(SNAME(icp,is)(1:lnssn).EQ.SURF(1:lnsurf))then
           IDSURF=IS
           GOTO 99
         ENDIF
@@ -1482,6 +1482,7 @@ C   from common block variable icp.
 C ********************* INICNT *********************
 C INICNT - Initialize some constant parameters.
       SUBROUTINE INICNT
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -2034,9 +2035,9 @@ C  geometry model.  By so doing, it fills the `G1' common block.
 C  The geometry is given in the site co-ordinate system,
 C  with the origin at the lower southwest corner of the CFD domain.
       SUBROUTINE SETGEO
-#include "cfd.h"
 #include "building.h"
 #include "geometry.h"
+#include "cfd.h"
 #include "prj3dv.h"
 
       COMMON/ALL/NI,NJ,NK,NIM1,NJM1,NKM1,NIM2,NJM2,NKM2

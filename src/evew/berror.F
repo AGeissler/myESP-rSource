@@ -1,7 +1,7 @@
       SUBROUTINE BERROR(IE,IB)
 
 #include "viewer.h2"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs *124
 
       NE = 0
@@ -80,6 +80,8 @@ C----------------------------------------------------------
 601   FORMAT('bodies:',i5,' points:',i5,' surfaces:',i5,' edges:',i5)
       call edisp(iuout,' ERROR(S) IN FILE - VIEWER abandoned at')
       call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPAGEND
       STOP
       END

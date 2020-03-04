@@ -35,7 +35,7 @@ C selected zones
 #include "model.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       integer ncomp,ncon
@@ -99,7 +99,7 @@ C Check that there are MRT sensors.
         return
       endif
 
-C Display menu of anchor points allow only one selection.
+C Display menu of MRT sensors allow only one selection.
       helptopic='res_MRT_pick_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
       write(outs,'(a)')'Which MRT sensors to use?'
@@ -112,7 +112,7 @@ C Display menu of anchor points allow only one selection.
 C Check for selections.
       if (NTSEN.gt.0) then
 
-C Copy anchor links to call parameters for passing back.
+C Copy associated zones/surfaces to call parameters for passing back.
         do 801 I=1,NTSEN
           IZLST(I)=ILZNO(IV(I))
           ISLST(I)=ILSNO(IV(I))

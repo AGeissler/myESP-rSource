@@ -38,7 +38,7 @@ C creates a grey-scale VRML 2.0 world.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       
       integer ncomp,ncon
@@ -63,7 +63,7 @@ C creates a grey-scale VRML 2.0 world.
       character GDESCR*36
       character OPT*12  ! to pass optical properties
       character ZSN*28,q*1
-      DIMENSION SNA(MS),PAZI(MS),PELV(MS),ZSN(MS)
+      DIMENSION ZSN(MS)
       character outs*124,outsd*124,louts*496,loutsd*496,hc*1
       logical XST,numb
       integer llbm    ! length of block material
@@ -180,7 +180,7 @@ C Read in the zone geometry.
         WRITE(outs,'(a,a)')' Scanning : ',LGEOM(newfoc)
         CALL edisp(iuout,outs)
         call georead(ITA1,LGEOM(newfoc),newfoc,1,IUOUT,IER)
-        CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+        CALL ZINFO(newfoc,ZOA,ZVOL,'q')
         vol(newfoc)=zvol
         zonetotsurfacearea(newfoc)=zoa
         WRITE(ioout,'(a)')' '
@@ -189,7 +189,7 @@ C Read in the zone geometry.
 
 C Work out the colours for each of the surfaces in this zone by 
 C finding MLC match.
-          call matchmlcdesc(SMLCN(j),im)
+          call matchmlcdesc(SMLCN(newfoc,j),im)
 
 C For the inside and outside layer get surface properties.
           matarrayindex=IPRMAT(IM,1)   ! which array index
@@ -221,8 +221,9 @@ C Write entry for this surface in the HTML file.
   194 FORMAT('    | m^2   |deg |deg | name       |type|loc|',
      &       ' name         |other side ')
  894      FORMAT(I3,F9.3,F5.0,F5.0,1X,A12,1X,A4,1X,A4,1X,A12,2X,A13)
-          WRITE(ioblk,894)J,SNA(j),PAZI(j),PELV(j),
-     &        SNAME(newfoc,j),SOTF(j),SVFC(j),SMLCN(j),SOTHER(j,1)
+          WRITE(ioblk,894)J,SNA(newfoc,j),SPAZI(newfoc,j),
+     &      SPELV(newfoc,j),SNAME(newfoc,j),SOTF(newfoc,j),
+     &      SVFC(newfoc,j),SMLCN(newfoc,j),SOTHER(newfoc,j,1)
           write(ioblk,'(a)')  '</PRE>'
           write(ioblk,'(a)')  ' '
 

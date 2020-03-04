@@ -49,10 +49,7 @@ C LPRFDB,IPRODB (for event profile database)
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
-
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
@@ -341,8 +338,7 @@ C wall.
      &    'be build around (a vertical transparent surface).',IER)
         CALL EPMENRC
         if(IRS.ne.0)then
-          icc=izstocn(ICOMP,IRS)
-          write(blkroot,'(a)')SSNAME(icc)(1:8)
+          write(blkroot,'(a)')SNAME(ICOMP,IRS)(1:8)
           CALL EASKS(blkroot,' Root name for related obstructions?',
      &      ' ',8,'revl  ','reveal root name',IER,nbhelp)
 
@@ -371,8 +367,8 @@ C << TODO mat and EREVEAL need to be updated to 32 char >>
           else
             mat='NONE'
           endif
-          AZI=SSPAZI(icc)
-          ELV=SSPELV(icc)
+          AZI=SPAZI(ICOMP,IRS)
+          ELV=SPELV(ICOMP,IRS)
           call EREVEAL(ICOMP,IRS,AZI,ELV,RTK,OWID,blkroot,mat,IER)
           MODIFYVIEW=.TRUE.
           call warnmod(ICOMP,'ob+')
@@ -382,12 +378,12 @@ C << TODO mat and EREVEAL need to be updated to 32 char >>
       ELSEIF(IVERT.EQ.(MVERT-5))THEN
 
 C Rotate an obstruction.
-        CALL EASKABC(' Choices:',' ','rotate','transform',
-     &     'continue',IBOPT,nbhelp)
+        CALL EASKABC(' ','Options:','rotate','transform',
+     &     'cancel',IBOPT,nbhelp)
         if(IBOPT.eq.1)then
           CALL EPMENSV
           INPIC=nbobs(icomp)
-          CALL EPICKS(INPIC,IVALB,' ',' Which obstructions to rotate:',
+          CALL EPICKS(INPIC,IVALB,' ','Which obstructions to rotate:',
      &      30,nbobs(icomp),PICK,' block list',IER,nbhelp)
           CALL EPMENRC
           CALL EASKR(ANGR,' ','Rotation (degrees, anticlockwise +ve)?',
@@ -395,8 +391,8 @@ C Rotate an obstruction.
           if(ANGR.LT.-.01.OR.ANGR.GT..01)then
 
 C Rotation choices.
-            CALL EASKAB(' Rotate about the:',' ',
-     &        'site origin','user specified point',IW,nbhelp)
+            CALL EASKAB(' ','Rotate about',
+     &        'site origin','specified point',IW,nbhelp)
             if(IW.eq.1)then
               X1 = 0.
               Y1 = 0.
@@ -475,8 +471,8 @@ C time for copy use zeros, otherwise re-present the previous values.
 
 C +- Obstruction.
         IW=1
-        CALL EASKATOG('Modify obstruction list:',' ',
-     &    'add','delete','copy','continue',' ',' ',' ',IW,nbhelp)
+        CALL EASKATOG(' ','Modify obstruction list:',
+     &    'add','delete','copy','cancel',' ',' ',' ',IW,nbhelp)
         IF(IW.EQ.2)THEN
 
 C Build up text strings for the delete menu. 
@@ -502,11 +498,11 @@ C To delete the last obstruction, dereference the file and exit.
                   ZOBS(ICOMP)=' '
                   IOBS(ICOMP)=0
                   call usrmsg(
-     &              ' updating model to remove final obstruction...',
+     &              ' updating model to remove final obs. ...',
      &              ' ','-')
                   CALL EMKCFG('-',IER)
                   call usrmsg(
-     &            ' updating model to remove final obstruction...done.',
+     &            ' updating model to remove final obs. ...done.',
      &            ' ','P')
                   return
                 endif
@@ -753,7 +749,7 @@ C geometry.h provides commons G0/G2/precz/GS5/GS6.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER LTMP*72,OFILE*72
       character sfile*72,snpfile*72,fs*1
@@ -927,13 +923,13 @@ C newgeo is true adapt the help message and the dialog text.
         if(iglib.eq.2)then
           if(newgeo)then
             ISTRW=72
-            CALL EASKSCMD(LTMP,'Legacy obstructions import (see help):',
-     &        ' ','browse',clkok,ISTRW,OFILE,'obstruction file',
+            CALL EASKSCMD(LTMP,' ','Legacy obstructions import:',
+     &        'browse',clkok,ISTRW,OFILE,'obstruction file',
      &        ISER,nbhelp)
           else
             ISTRW=72
-            CALL EASKSCMD(LTMP,'Zone obstructions file (see help):',
-     &        ' ','browse',clkok,ISTRW,OFILE,'obstruction file',
+            CALL EASKSCMD(LTMP,' ','Zone obstructions file?',
+     &        'browse',clkok,ISTRW,OFILE,'obstruction file',
      &        ISER,nbhelp)
           endif
           if(clkok)iclkok=2   ! notice browse button
@@ -944,12 +940,12 @@ C newgeo is true adapt the help message and the dialog text.
           endif
         else
           if(newgeo)then
-           CALL EASKS2CMD(LTMP,'Legacy obstructions import (see help):',
-     &       ' ','cancel','browse',iclkok,72,OFILE,'obstruction file',
+           CALL EASKS2CMD(LTMP,' ','Legacy obstructions import:',
+     &       'cancel','browse',iclkok,72,OFILE,'obstruction file',
      &       ISER,nbhelp)
           else
-           CALL EASKS2CMD(LTMP,'Zone obstructions file (see help):',
-     &       ' ','cancel','browse',iclkok,72,OFILE,'obstruction file',
+           CALL EASKS2CMD(LTMP,' ','Zone obstructions file:',
+     &       'cancel','browse',iclkok,72,OFILE,'obstruction file',
      &       ISER,nbhelp)
           endif
           if(iclkok.eq.1)then    ! notice X11 cancel option
@@ -961,14 +957,14 @@ C newgeo is true adapt the help message and the dialog text.
 C Obstruction file name is non-blank.
         if(newgeo)then
           LTMP=ZOBS(ICOMP)
-          CALL EASKS2CMD(LTMP,
-     &      'Legacy obstructions file import (see help):',' ',
+          CALL EASKS2CMD(LTMP,' ',
+     &      'Legacy obstructions file import:',
      &      'dereference','browse',iclkok,72,OFILE,'obstruction file',
      &      ISER,nbhelp)
         else
           LTMP=ZOBS(ICOMP)
-          CALL EASKS2CMD(LTMP,'Obstructions file (see help):',
-     &      ' ','dereference','browse',iclkok,72,OFILE,'obstr file',
+          CALL EASKS2CMD(LTMP,' ','Obstructions file:',
+     &      'dereference','browse',iclkok,72,OFILE,'obstr file',
      &      ISER,nbhelp)
         endif
         if(iser.eq.-3) return  ! notice cancel button
@@ -996,9 +992,9 @@ C User asked to browse within the model for other obstruction files.
      &        snpfile(1:lnblnk(snpfile))
           else
             LTMP=OFILE
-            CALL EASKS(LTMP,
-     &        ' Obstructions file name: (because browse was blank) ',
-     &        ' ',72,OFILE,'obstructions file',ISER,nbhelp)
+            CALL EASKS(LTMP,' ',
+     &        'Obstructions file name: (because browse was blank) ',
+     &        72,OFILE,'obstructions file',ISER,nbhelp)
             if(iser.eq.-3)then  ! notice cancel button
               ZOBS(ICOMP)=' '
               IOBS(ICOMP)=0
@@ -1007,9 +1003,9 @@ C User asked to browse within the model for other obstruction files.
           endif
         else
           LTMP=OFILE
-          CALL EASKS(LTMP,
-     &      ' Obstructions file name: (because browse was blank)',
-     &      ' ',72,OFILE,'obstructions file',ISER,nbhelp)
+          CALL EASKS(LTMP,' ',
+     &      'Obstructions file name: (because browse was blank)',
+     &      72,OFILE,'obstructions file',ISER,nbhelp)
           if(iser.eq.-3) then  ! notice cancel button
             ZOBS(ICOMP)=' '
             IOBS(ICOMP)=0
@@ -1082,7 +1078,7 @@ C Parameters
       integer ianother ! +1 jump next -1 jump previous otherwise zero
       integer IER    ! zero is ok
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
@@ -1093,7 +1089,7 @@ C Parameters
       logical close   ! to see if non-zero block elevation.
       logical havesaved  ! to signal zone file written
       logical modmlc  ! to pick MLC
-      logical ok,dok
+      logical ok
       integer llbm    ! length for material
       real top        ! for the highest point of the block
       integer NITMS,IVERT ! max items and current menu item
@@ -1300,8 +1296,8 @@ C One set of interface actions if type 'obs' or 'obs3'.
           ianother=0  ! signal no jump to previous or next
           RETURN
         elseif(IVERT.EQ.1)then
-  42      CALL EASKABCD('Choices:',' ','edit origin','use zone vertex',
-     &      '@ angle&dist from vertex','continue',IBOPT,nbhelp)
+  42      CALL EASKABCD(' ','Options:','edit origin','use zone vertex',
+     &      'angle & distance from vertex','cancel',IBOPT,nbhelp)
           if(IBOPT.eq.1)then
             HOLD=' '
             WRITE(HOLD,'(1x,3f9.4)')XOB(ICOMP,IB),YOB(ICOMP,IB),
@@ -1416,7 +1412,7 @@ C If newer geometry file offer a 2nd axis of rotation.
             goto 92
           endif
  45       VX=BANGOB(ICOMP,IB,2)
-          CALL EASKR(VX,MSG,' Block rotation around X axis (see help)?',
+          CALL EASKR(VX,MSG,'Block rotation around X axis?',
      &       -180.0,'W',180.0,'W',0.0,'block around X rotation',IER,
      &       nbhelp)
           if(ier.ne.0)goto 45
@@ -1465,7 +1461,7 @@ C Note: this logic only picks up the first 12 char of construction.
           ENDIF
         ELSEIF(IVERT.EQ.8)THEN
  46       VX=OPOB(ICOMP,IB)
-          CALL EASKR(VX,MSG,' Block opacity (see help)? ',
+          CALL EASKR(VX,MSG,'Block opacity?',
      &       0.0,'W',1.0,'W',1.0,'block opacity',IER,nbhelp)
           if(ier.ne.0)goto 46
           OPOB(icomp,IB)=VX
@@ -1532,7 +1528,7 @@ C Interface options if a general polygon obstruction.
           WRITE(HOLD,'(1x,3f8.3)')XBP(ICOMP,IB,1),YBP(ICOMP,IB,1),
      &      ZBP(ICOMP,IB,1)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' lower front left: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','lower front left',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,0.001,99.9,'W','obs v1 X',IER)
@@ -1547,7 +1543,7 @@ C Interface options if a general polygon obstruction.
           WRITE(HOLD,'(1x,3f8.3)')XBP(ICOMP,IB,2),YBP(ICOMP,IB,2),
      &      ZBP(ICOMP,IB,2)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' lower front right: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','lower front right',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v2 X',IER)
@@ -1562,7 +1558,7 @@ C Interface options if a general polygon obstruction.
           WRITE(HOLD,'(1x,3f8.3)')XBP(ICOMP,IB,3),YBP(ICOMP,IB,3),
      &      ZBP(ICOMP,IB,3)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' lower back right: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','lower back right',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v3 X',IER)
@@ -1577,7 +1573,7 @@ C Interface options if a general polygon obstruction.
           WRITE(HOLD,'(1x,3f8.3)')XBP(ICOMP,IB,4),YBP(ICOMP,IB,4),
      &      ZBP(ICOMP,IB,4)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' lower back left: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','lower back left',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v4 X',IER)
@@ -1592,7 +1588,7 @@ C Interface options if a general polygon obstruction.
           WRITE(HOLD,'(1x,3f8.3)')XBP(ICOMP,IB,5),YBP(ICOMP,IB,5),
      &      ZBP(ICOMP,IB,5)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' upper front left: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','upper front left',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v5 X',IER)
@@ -1607,7 +1603,7 @@ C Interface options if a general polygon obstruction.
           WRITE(HOLD,'(1x,3f8.3)')XBP(ICOMP,IB,6),YBP(ICOMP,IB,6),
      &      ZBP(ICOMP,IB,6)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' upper front right: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','upper front right',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v6 X',IER)
@@ -1622,7 +1618,7 @@ C Interface options if a general polygon obstruction.
           WRITE(HOLD,'(1x,3f8.3)')XBP(ICOMP,IB,7),YBP(ICOMP,IB,7),
      &      ZBP(ICOMP,IB,7)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' upper back right: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','upper back right',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v7 X',IER)
@@ -1638,7 +1634,7 @@ C Interface options if a general polygon obstruction.
           WRITE(HOLD,'(1x,3f8.3)')XBP(ICOMP,IB,8),YBP(ICOMP,IB,8),
      &      ZBP(ICOMP,IB,8)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' upper back left: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','upper back left',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v8 X',IER)
@@ -1685,7 +1681,7 @@ C Note: this logic only picks up the first 12 char of construction.
           ENDIF
         ELSEIF(IVERT.EQ.13)THEN
  446      VX=OPOB(ICOMP,IB)
-          CALL EASKR(VX,MSG,' Block opacity (see help)? ',
+          CALL EASKR(VX,MSG,'Block opacity?',
      &       0.0,'W',1.0,'W',1.0,'block opacity',IER,nbhelp)
           if(ier.ne.0)goto 446
           OPOB(icomp,IB)=VX
@@ -1711,9 +1707,8 @@ C Transforms of polygon obstructions.
           CALL EGETWR(HOLD,K,VALY,-99.,99.,'W','Y tr',IER)
           CALL EGETWR(HOLD,K,VALZ,-99.,99.,'W','Z tr',IER)
           if(ier.ne.0)goto 439
-          DOK=.true.
-          call askok(' ','Apply this transform to the obstruction?',
-     &      ok,dok,nbhelp)
+          call easkok(' ','Apply transform to obstruction?',
+     &      ok,nbhelp)
           if(.NOT.ok) goto 92
           if(iobs(icomp).eq.1)then
             call edisp(iuout,' Obstruction data prior to transform.')
@@ -1805,7 +1800,7 @@ C Parameters
       character mat*12  ! first 12 characters of obstruction construction
       integer IER     ! if zero ok
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DIMENSION  XX(MV),YY(MV),ZZ(MV),XXW(4),YYW(4),ZZW(4)
       DIMENSION  TMAT(4,4),RMAT(4,4),VP(3),EP(3),EQN(4)
@@ -2047,7 +2042,7 @@ C LPRFDB,IPRODB (for event profile database)
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
@@ -2344,8 +2339,8 @@ C Rotate an visual.
         if(focusobj)then
           continue
         else
-          CALL EASKABC(' Choices:',' ','rotate','transform',
-     &      'continue',IBOPT,nbhelp)
+          CALL EASKABC(' ','Options:','rotate','transform',
+     &      'cancel',IBOPT,nbhelp)
           if(IBOPT.eq.1)then
             CALL EPMENSV
             INPIC=nbvis(icomp)
@@ -2432,8 +2427,8 @@ C time for copy use zeros, otherwise re-present the previous values.
 C Manage the list.
         if(focusobj)then
           IW=1
-          CALL EASKATOG('Modify compound objects list:',' ',
-     &      'add','delete','copy','continue',' ',' ',' ',IW,nbhelp)
+          CALL EASKATOG(' ','Modify compound objects list:',
+     &      'add','delete','copy','cancel',' ',' ',' ',IW,nbhelp)
           IF(IW.EQ.1)THEN
 
 C Add a compound object. Ask for a name, description. Check that
@@ -2670,8 +2665,8 @@ C Present editing facilitiy for this copied compound object.
 
 C +- Visual.
           IW=1
-          CALL EASKATOG('Modify visuals list:',' ',
-     &      'add','delete','copy','continue',' ',' ',' ',IW,nbhelp)
+          CALL EASKATOG(' ','Modify visuals list:',
+     &      'add','delete','copy','cancel',' ',' ',' ',IW,nbhelp)
           IF(IW.EQ.2)THEN
 
 C Build up text strings for the delete menu. Constrain how many can be
@@ -2925,7 +2920,7 @@ C Parameters
       integer ianother ! +1 jump next -1 jump previous otherwise zero
       integer IER    ! zero is ok
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 
@@ -3120,8 +3115,8 @@ C One set of interface actions if type 'vis' or 'vis3'.
           ianother=0  ! signal no jump to previous or next
           RETURN
         elseif(IVERT.EQ.1)then
-  42      CALL EASKABCD('Choices:',' ','edit origin','use zone vertex',
-     &      '@ angle&dist from vertex','continue',IBOPT,nbhelp)
+  42      CALL EASKABCD(' ','Options:','edit origin','use zone vertex',
+     &      'angle & distance from vertex','cancel',IBOPT,nbhelp)
           if(IBOPT.eq.1)then
             HOLD=' '
             WRITE(HOLD,'(1x,3f9.4)')XOV(ICOMP,IB),YOV(ICOMP,IB),
@@ -3226,7 +3221,7 @@ C via epkvert.
 
  45       VX=BANGOV(ICOMP,IB,2)
           CALL EASKR(VX,MSG,
-     &       ' Visual rotation around X axis (see help)?',
+     &       'Visual rotation around X axis?',
      &       -180.0,'W',180.0,'W',0.0,'visual Y rotation',IER,nbhelp)
           if(ier.ne.0)goto 45
           BANGOV(ICOMP,IB,2)=VX
@@ -3273,7 +3268,7 @@ C Note: this logic only picks up the first 12 char of construction.
           ENDIF
         ELSEIF(IVERT.EQ.8)THEN
  46       VX=OPOB(ICOMP,IB)
-          CALL EASKR(VX,MSG,' Visual entity opacity (see help)? ',
+          CALL EASKR(VX,MSG,'Visual entity opacity?',
      &       0.0,'W',1.0,'W',1.0,'visual opacity',IER,nbhelp)
           if(ier.ne.0)goto 46
           OPOV(icomp,IB)=VX
@@ -3339,7 +3334,7 @@ C Interface options if a general polygon visual.
           WRITE(HOLD,'(1x,3f8.3)')XVP(ICOMP,IB,1),YVP(ICOMP,IB,1),
      &      ZVP(ICOMP,IB,1)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' lower front left: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,'X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','lower front left',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,0.001,99.9,'W','obs v1 X',IER)
@@ -3353,7 +3348,7 @@ C Interface options if a general polygon visual.
           WRITE(HOLD,'(1x,3f8.3)')XVP(ICOMP,IB,2),YVP(ICOMP,IB,2),
      &      ZVP(ICOMP,IB,2)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' lower front right: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,'X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','lower front right',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v2 X',IER)
@@ -3367,7 +3362,7 @@ C Interface options if a general polygon visual.
           WRITE(HOLD,'(1x,3f8.3)')XVP(ICOMP,IB,3),YVP(ICOMP,IB,3),
      &      ZVP(ICOMP,IB,3)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' lower back right: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,'X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','lower back right',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v3 X',IER)
@@ -3381,7 +3376,7 @@ C Interface options if a general polygon visual.
           WRITE(HOLD,'(1x,3f8.3)')XVP(ICOMP,IB,4),YVP(ICOMP,IB,4),
      &      ZVP(ICOMP,IB,4)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' lower back left: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,'X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','lower back left',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v4 X',IER)
@@ -3395,7 +3390,7 @@ C Interface options if a general polygon visual.
           WRITE(HOLD,'(1x,3f8.3)')XVP(ICOMP,IB,5),YVP(ICOMP,IB,5),
      &      ZVP(ICOMP,IB,5)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' upper front left: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,'X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','upper front left',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v5 X',IER)
@@ -3409,7 +3404,7 @@ C Interface options if a general polygon visual.
           WRITE(HOLD,'(1x,3f8.3)')XVP(ICOMP,IB,6),YVP(ICOMP,IB,6),
      &      ZVP(ICOMP,IB,6)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' upper front right: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,'X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','upper front right',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v6 X',IER)
@@ -3423,7 +3418,7 @@ C Interface options if a general polygon visual.
           WRITE(HOLD,'(1x,3f8.3)')XVP(ICOMP,IB,7),YVP(ICOMP,IB,7),
      &      ZVP(ICOMP,IB,7)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' upper back right: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,'X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','upper back right',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v7 X',IER)
@@ -3437,7 +3432,7 @@ C Interface options if a general polygon visual.
           WRITE(HOLD,'(1x,3f8.3)')XVP(ICOMP,IB,8),YVP(ICOMP,IB,8),
      &      ZVP(ICOMP,IB,8)
           WRITE(MSG,'(a,I3,a)')'For block ',IB,' upper back left: '
-          CALL EASKS(HOLD,MSG,' X(m) Y(m) Z(m) (see help)',
+          CALL EASKS(HOLD,MSG,'X(m) Y(m) Z(m)?',
      &      32,' 1.0 1.0 1.0  ','upper back left',IER,nbhelp)
           K=0
           CALL EGETWR(HOLD,K,VX,-99.9,99.9,'W','obs v8 X',IER)
@@ -3483,7 +3478,7 @@ C Note: this logic only picks up the first 12 char of construction.
           ENDIF
         ELSEIF(IVERT.EQ.13)THEN
  446      VX=OPOV(ICOMP,IB)
-          CALL EASKR(VX,MSG,' Visual entity opacity (see help)? ',
+          CALL EASKR(VX,MSG,'Visual entity opacity? ',
      &       0.0,'W',1.0,'W',1.0,'visual opacity',IER,nbhelp)
           if(ier.ne.0)goto 446
           OPOV(icomp,IB)=VX
@@ -3528,7 +3523,7 @@ C Parameters
       integer IOBJ   ! compound object number
       integer IER    ! zero is ok
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GB1/XB(12),YB(12),ZB(12),JVNB(6,4)
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
 

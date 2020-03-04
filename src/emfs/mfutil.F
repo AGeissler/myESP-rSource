@@ -47,7 +47,7 @@ C             connections between nodes I and J
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -194,7 +194,7 @@ C     IFLD   - fluid type (1=air, 2=water)
 C     TEMP   - fluid temperature (C)
 
       FUNCTION DENSIT(IFLD,TEMP)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character outs*124
 
@@ -315,7 +315,7 @@ C     IER    - 0 they do match; 1 they don't match
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*20 WORD
       CHARACTER*12  CHRIN(3)
@@ -405,7 +405,7 @@ C This enables output of results from previous runs
 
       SUBROUTINE MFDAYS(IFRES,NNOD,NCNN,IFYD,ILYD,IER)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*22 FORM
 
@@ -455,7 +455,7 @@ C Fast skip to first record of simulation day IDAYF in file IFRES
 
       SUBROUTINE MFSKIP(IFRES,NNOD,NCNN,IFYD,IDAYF,IER)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*10 FORM
 
@@ -498,7 +498,7 @@ C     TIME         - time of last read simulation result set
 
       SUBROUTINE MFTSPH(IFRES,NNOD,NCNN,NTSPH,IER)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*19 FORM
 
@@ -668,7 +668,7 @@ C Psat01 calculates the saturation vapour pressure (Pa) as a function of
 C temperature ( C ) (Marieke 1994, IEA 1991, vol 1, page 4.8)
 C *********************************************************************
       FUNCTION Psat01m(TC)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
       SMALL=1.0E-15
 
@@ -691,6 +691,8 @@ C *********************************************************************
      &   TC,' C, forcing STOP!'
         call edisp(iuout,outs)
 cx        call edisp(iuout,'Psat01: small saturation vapour pressure.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP

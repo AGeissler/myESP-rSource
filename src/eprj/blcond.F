@@ -43,7 +43,7 @@ C ********************************************************************
 #include "geometry.h"
 
       COMMON/HELP/IHELPM
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
@@ -52,7 +52,7 @@ C ********************************************************************
       CHARACTER ITEM(9)*29,DPNDC*20
       CHARACTER TEXT*50,MSGSET*70
       integer NITEM,INO ! max items and current menu item
-      LOGICAL OK,DOK
+      LOGICAL OK
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -174,7 +174,7 @@ C List the thermal conductivity of the layers.
               DPNDC='Constant        '
             ENDIF 
             WRITE(MSGSET,'(1X,2A,I2,2A)')
-     &          SSNAME(ioc),' ----- ',J,' ---------- ',DPNDC
+     &          SNAME(icomp,i),' ----- ',J,' ---------- ',DPNDC
             CALL EDISP(IUOUT,MSGSET)
    30     CONTINUE
    20   CONTINUE
@@ -189,9 +189,8 @@ C Exit.  Check the legality of the thermal configuration statements.
         KERR=0
         CALL KCHECK(ICOMP,KERR)
         IF(KERR.NE.0)THEN
-          DOK=.false.
-          CALL ASKOK(' WARNING messages were detected',
-     &               ' Are you sure you want to exit?',OK,DOK,nbhelp)
+          CALL EASKOK('Warning messages detected!',
+     &                'Exit application?',OK,nbhelp)
           IF(.NOT.OK)GOTO 10
         ENDIF
         RETURN
@@ -210,7 +209,7 @@ C *******************************************************************
       SUBROUTINE DFNMNU(TEXT,INO)
 
       COMMON/HELP/IHELPM
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER*25 ITEM(6)
       CHARACTER TEXT*50
@@ -258,7 +257,7 @@ C ****************************************************************
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
       COMMON/VTHP02/IVKON(MCOM,MS,ME) 
       CHARACTER OUTS*124
@@ -316,7 +315,7 @@ C ******************************************************************
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       DIMENSION IVALS(MS)
@@ -333,7 +332,7 @@ C For help messages
 
       DO 10 I=1,NZSUR(icomp)
         ioc=IZSTOCN(icomp,i)
-        WRITE(ITEM(I),'(A)')SSNAME(ioc)
+        WRITE(ITEM(I),'(A)')SNAME(icomp,i)
    10 CONTINUE
       call edisp(iuout,'Select surfaces for which the conductivity is')
       call edisp(iuout,TEXT)
@@ -352,7 +351,7 @@ C ****************************************************************
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
       COMMON/VTHP02/IVKON(MCOM,MS,ME) 
       DIMENSION IVALS(MS)
@@ -406,7 +405,7 @@ C ****************************************************************
       SUBROUTINE KLAYER(ICOMP,INDX,TEXT)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
       COMMON/VTHP02/IVKON(MCOM,MS,ME) 
       DIMENSION IVALS(MS),IVALL(ME)
@@ -446,7 +445,7 @@ C *******************************************************************
       SUBROUTINE LAYRMN(I,TEXT,INPICK,IVALL)
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/T1/NE(MS),NAIRG(MS),IPAIRG(MS,MGP),RAIRG(MS,MGP)
       DIMENSION IVALL(ME)
       CHARACTER*20 ITEM(ME)
@@ -500,11 +499,11 @@ C *********************************************************************
       integer lnsn
 
       ioc=IZSTOCN(icomp,icnst)
-      lnsn=lnblnk(ssname(ioc))
+      lnsn=lnblnk(sname(icomp,icnst))
 
       WRITE(NAMELYR,'(5A,I2,A)') ' WARNING The layer ( ',
      &  zname(ICOMP)(1:lnzname(ICOMP)),', ',
-     &  SSNAME(ioc)(1:lnsn),', ',ILYR,') is already defined.'
+     &  SNAME(icomp,icnst)(1:lnsn),', ',ILYR,') is already defined.'
       RETURN
       END
 
@@ -513,23 +512,22 @@ C TRMMSG controls the appearance of the termination message.
 C *********************************************************************
       SUBROUTINE TRMMSG(ICNTM)
 
-      COMMON/OUTIN/IUOUT,IUIN
-      LOGICAL OK,dok
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      LOGICAL OK
       integer icntmt  ! local variable for editing
       character msg*72
 
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp         ! number of help lines found
 
-      helpinsub='TRMMSG'  ! set for subroutine
+      helpinsub='TRMMSG'     ! set for subroutine
 
-      dok=.true.
       helptopic='surf_cond_warning'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('There might be a problem...',
-     &           'Terminate last command?',OK,dok,nbhelp)
+      CALL EASKOK('Possible problem!',
+     &            'Terminate last command?',OK,nbhelp)
       IF(OK)THEN
         ICNTM=-1
       ELSE
@@ -537,7 +535,7 @@ C For help messages
         call edisp(iuout,msg)
         icntmt=ICNTM
         CALL EASKI(ICNTMT,'After how many re_defining warning messages',
-     &    'do you want the TERMINATION  message to appear ?',
+     &    'do you want the termination  message to appear?',
      &    1,'F',20,'W',3,'termination message?',IERI,nbhelp)
         if(ieri.eq.-3)then
           return
@@ -557,7 +555,7 @@ C *******************************************************************
       SUBROUTINE KCHKMN(KCHK,INDX,INDX2)
 
       CHARACTER*80 MSG1,MSG2
-      LOGICAL     OK,dok
+      LOGICAL OK
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -567,18 +565,17 @@ C For help messages
       helpinsub='KCHKMN'  ! set for subroutine
 
       IF(KCHK.EQ.1)THEN
-        MSG2='Temperature dependent,... do you want to CHANGE it?'
+        MSG2='temperature dependent ... change?'
       ELSEIF(KCHK.EQ.2)THEN
-        MSG2='Moisture Content dependent,... do you want to CHANGE it?'
+        MSG2='moisture dependent ... change?'
       ELSE
-        WRITE(MSG2,'(2A)')'Temp. & Moisture ', 
-     &         ' dependent,...  do you want to CHANGE it?'
+        WRITE(MSG2,'(2A)')'temperature & moisture', 
+     &         ' dependent ... change?'
       ENDIF
-      MSG1='The conductivity of this layer is ALREADY defined to be'
-      dok=.false.
+      MSG1='Layer conductivity defined as'
       helptopic='message_for_surf_cond'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(MSG1,MSG2,OK,dok,nbhelp)
+      CALL EASKOK(MSG1,MSG2,OK,nbhelp)
       IF(OK)THEN
         INDX2=INDX
       ELSE
@@ -595,7 +592,7 @@ C *********************************************************************
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON

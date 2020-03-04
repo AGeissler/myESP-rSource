@@ -386,7 +386,7 @@ C Called from the C-side
 C Parameters
       integer ix,iy,ixr,iyr,ib
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/NWKTYP/INWKTYP,vergnf   
       
@@ -742,7 +742,7 @@ C MCONAD lets the user define a network connection via menu.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/NWKTYP/INWKTYP,vergnf   
       

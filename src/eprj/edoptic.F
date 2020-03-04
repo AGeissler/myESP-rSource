@@ -46,7 +46,7 @@ C LPRFDB,IPRODB (for event profile database)
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/GPICK/GS(MGOPT),nopt
       common/user/browse
@@ -61,7 +61,7 @@ C LPRFDB,IPRODB (for event profile database)
       character outs248*248
       character lworking*144,fs*1
 
-      logical moddb,browse,OK,DOK,edt
+      logical moddb,browse,OK,edt
       integer lndbp   ! for length of standard database path
       integer IOW     ! for radio button
       logical unixok  ! to check for database path file separators
@@ -164,8 +164,8 @@ C Produce help text for the menu and the import facilities.
       ELSEIF(INO.EQ.NITMS-2)THEN
 
 C List database.
-        CALL EASKABC(' Reporting to:',' ',
-     &      'text feedback','file','continue',irpt,nbhelp)
+        CALL EASKABC(' ','Reporting to:',
+     &      'screen','file','cancel',irpt,nbhelp)
         if(irpt.eq.1)then
           itu = iuout
         elseif(irpt.eq.2)then
@@ -335,8 +335,7 @@ C and then delete the original optical file.
           CALL EPMENRC
           IFOC=IGSET(1)
           if(ifoc.ne.0)then
-            dok=.false.
-            CALL ASKOK(' ',' Are you sure?',OK,dok,nbhelp)
+            CALL EASKOK(' ','Are you sure?',OK,nbhelp)
             IF(.NOT.OK)GOTO 2
             call OPT2TMP(ier)
             WRITE(DSOPT,'(A)')GS(IFOC)(1:12)
@@ -690,9 +689,7 @@ C Stuff into static variables for later access and draw axis.
         WRITE(ETEXT,'(4a)') 'Type: ',GTYPE(1:lnblnk(GTYPE)),
      &    ' descripion: ',GDESCR(1:34)
         GTEXT=ETEXT
-        iside=1
-        isize=0
-        ifont=1
+        iside=1; isize=0; ifont=1
         call viewtext(gtext,iside,isize,ifont)
 
 C Draw visible as a circle.
@@ -702,62 +699,113 @@ C Draw visible as a circle.
         CALL ecirc(iid1,iid2,3,1)
         write(temp,'(A)')' Visible trn'
         iid1=igr+25; iid2=igt; iicol=0
-        call textatxy(iid1,iid2,temp,'-',iicol)
+        if(mmod.eq.8)then
+          call textatxy(iid1,iid2,temp,'-',iicol)
+        else
+          call textatxywwc(iid1,iid2,temp,'-',iicol)
+        endif
 
 C Draw direct transmission.
         iid1=igr; iid2=igt+15; iid3=igr+20; iid4=igt+15;
-        call edwline(iid1,iid2,iid3,iid4)
+        if(mmod.eq.8)then
+          call edwline(iid1,iid2,iid3,iid4)
+        else
+          call edwlinewwc(iid1,iid2,iid3,iid4)
+        endif
         write(temp,'(A)')' Direct trn'
         iid1=igr+25; iid2=igt+15;
-        call textatxy(iid1,iid2,temp,'-',iicol)
+        if(mmod.eq.8)then
+          call textatxy(iid1,iid2,temp,'-',iicol)
+        else
+          call textatxywwc(iid1,iid2,temp,'-',iicol)
+        endif
         call u2pixel(0.0,DGED(1),iix1,iiy1)
         call u2pixel(40.0,DGED(2),iix2,iiy2)
         call u2pixel(55.0,DGED(3),iix3,iiy3)
         call u2pixel(70.0,DGED(4),iix4,iiy4)
         call u2pixel(80.0,DGED(5),iix5,iiy5)
-        call edwline(iix1,iiy1,iix2,iiy2)
-        call edwline(iix2,iiy2,iix3,iiy3)
-        call edwline(iix3,iiy3,iix4,iiy4)
-        call edwline(iix4,iiy4,iix5,iiy5)
+        if(mmod.eq.8)then
+          call edwline(iix1,iiy1,iix2,iiy2)
+          call edwline(iix2,iiy2,iix3,iiy3)
+          call edwline(iix3,iiy3,iix4,iiy4)
+          call edwline(iix4,iiy4,iix5,iiy5)
+        else
+          call edwlinewwc(iix1,iiy1,iix2,iiy2)
+          call edwlinewwc(iix2,iiy2,iix3,iiy3)
+          call edwlinewwc(iix3,iiy3,iix4,iiy4)
+          call edwlinewwc(iix4,iiy4,iix5,iiy5)
+        endif
 
 C Draw reflection.
         iid1=igr; iid2=igt+30; iid3=igr+20; iid4=igt+30;
-        call eswline(iid1,iid2,iid3,iid4)
+        if(mmod.eq.8)then
+          call eswline(iid1,iid2,iid3,iid4)
+        else
+          call eswlinewwc(iid1,iid2,iid3,iid4)
+        endif
         write(temp,'(A)')' Reflection'
         iid1=igr+25; iid2=igt+30;
-        call textatxy(iid1,iid2,temp,'-',iicol)
+        if(mmod.eq.8)then
+          call textatxy(iid1,iid2,temp,'-',iicol)
+        else
+          call textatxywwc(iid1,iid2,temp,'-',iicol)
+        endif
         call u2pixel(0.0,sr(1),iix1,iiy1)
         call u2pixel(40.0,sr(2),iix2,iiy2)
         call u2pixel(55.0,sr(3),iix3,iiy3)
         call u2pixel(70.0,sr(4),iix4,iiy4)
         call u2pixel(80.0,sr(5),iix5,iiy5)
-        call eswline(iix1,iiy1,iix2,iiy2)
-        call eswline(iix2,iiy2,iix3,iiy3)
-        call eswline(iix3,iiy3,iix4,iiy4)
-        call eswline(iix4,iiy4,iix5,iiy5)
+        if(mmod.eq.8)then
+          call eswline(iix1,iiy1,iix2,iiy2)
+          call eswline(iix2,iiy2,iix3,iiy3)
+          call eswline(iix3,iiy3,iix4,iiy4)
+          call eswline(iix4,iiy4,iix5,iiy5)
+        else
+          call eswlinewwc(iix1,iiy1,iix2,iiy2)
+          call eswlinewwc(iix2,iiy2,iix3,iiy3)
+          call eswlinewwc(iix3,iiy3,iix4,iiy4)
+          call eswlinewwc(iix4,iiy4,iix5,iiy5)
+        endif
 
 C Draw absorption for each layer.
         iigr=igr
         iigt4=igt+45
         iigr2=igr+20
-        call edline(iigr,iigt4,iigr2,iigt4,3)
+        if(mmod.eq.8)then
+          call edline(iigr,iigt4,iigr2,iigt4,3)
+        else
+          call edlinewwc(iigr,iigt4,iigr2,iigt4,3)
+        endif
         write(temp,'(A)')' Absorb'
         iid1=igr+25; iid2=igt+45;
-        call textatxy(iid1,iid2,temp,'-',iicol)
+        if(mmod.eq.8)then
+          call textatxy(iid1,iid2,temp,'-',iicol)
+        else
+          call textatxywwc(iid1,iid2,temp,'-',iicol)
+        endif
         DO 46 IL=1,NTLED
           call u2pixel(0.0,ABED(IL,1),iix1,iiy1)
           call u2pixel(40.0,ABED(IL,2),iix2,iiy2)
           call u2pixel(55.0,ABED(IL,3),iix3,iiy3)
           call u2pixel(70.0,ABED(IL,4),iix4,iiy4)
           call u2pixel(80.0,ABED(IL,5),iix5,iiy5)
-          call edline(iix1,iiy1,iix2,iiy2,3)
-          call edline(iix2,iiy2,iix3,iiy3,3)
-          call esymbol(iix2,iiy2,IL+3,1)
-          call edline(iix3,iiy3,iix4,iiy4,3)
-          call edline(iix4,iiy4,iix5,iiy5,3)
-          call esymbol(iix3,iiy3,IL+3,1)
+          if(mmod.eq.8)then
+            call edline(iix1,iiy1,iix2,iiy2,3)
+            call edline(iix2,iiy2,iix3,iiy3,3)
+            call esymbol(iix2,iiy2,IL+3,1)
+            call edline(iix3,iiy3,iix4,iiy4,3)
+            call edline(iix4,iiy4,iix5,iiy5,3)
+            call esymbol(iix3,iiy3,IL+3,1)
+          else
+            call edlinewwc(iix1,iiy1,iix2,iiy2,3)
+            call edlinewwc(iix2,iiy2,iix3,iiy3,3)
+            call esymbolwwc(iix2,iiy2,IL+3,1)
+            call edlinewwc(iix3,iiy3,iix4,iiy4,3)
+            call edlinewwc(iix4,iiy4,iix5,iiy5,3)
+            call esymbolwwc(iix3,iiy3,IL+3,1)
+          endif
   46    CONTINUE
-        call forceflush()
+        if(mmod.eq.8) call forceflush()
       endif
 
 C Help text for this menu.
@@ -1050,7 +1098,7 @@ C IMPOPT reads in an optical report from Window 5.1 or 5.2 or 6.x
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GOPTED/DGED(5),HGED(5),UVALED,VTRNED,NTLED,ABED(ME,5),
      &  RFED(ME),SRFED,SABED
 
@@ -1344,7 +1392,7 @@ C Passed parameters
       character GDESCR*36  ! description from WIS
       integer ier   ! zero is ok
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GOPTED/DGED(5),HGED(5),UVALED,VTRNED,NTLED,ABED(ME,5),
      &  RFED(ME),SRFED,SABED
 
@@ -1825,7 +1873,7 @@ C      integer lnblnk  ! function definition
 
       PARAMETER (MSTMC=20)
 C      PARAMETER (MSGAL=40,MANH=37,MANV=37)
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       
       integer ncomp,ncon
@@ -1842,7 +1890,7 @@ C   Limited to 0 or 1 at present.
       DIMENSION VERT(35)
       character VERT*58,CXITM*48,key*1,lfil*72
       character bidirfile*72,DFILE*72,bidirname*12
-C      logical ok,dok
+C      logical ok
 C      character outs*124
       integer MVERT,IVERT ! max items and current menu item
 
@@ -1991,20 +2039,19 @@ C Open and scan the file.
 C Enquire about connection identified by KEYIND.
         CALL KEYIND(MVERT,IVERT,IFOCC,IO)
 
-C Display information about the anchors associated with connection.
+C Display information about bidirectionals associated with connection.
         call CONXMENU(ifocc,CXITM)
         if(NSTMCFL(ifocc).eq.0)then
           NSTMCFL(ifocc)=1
-C          dok=.false.
-C          CALL ASKOK(
+C          CALL EASKOK(' ',
 C     &      'Use bi-directional attributes with this surface?',
-C     &      '(only apply to transparent surfaces)',OK,dok,nbhelp)
+C     &      OK,nbhelp)
 C          if(OK)then
 C            if(IFLAGBI.eq.1)then
 C              NSTMCFL(ifocc)=1
 C            else
 C              nl=1
-C              CALL EASKI(nl,' ',' Which bi-directional type?',
+C              CALL EASKI(nl,' ','Which bi-directional type?',
 C     &          0,'F',MSTMC,'F',1,'bi opt types',IERI,nbhelp)
 C              if(ieri.eq.-3)then
 C                continue
@@ -2019,10 +2066,9 @@ C          endif
 C          write(outs,'(a,a,i2)') CXITM(1:lnblnk(CXITM)),
 C     &      ' is associated with bi-type',NSTMCFL(ifocc)
 C          call edisp(iuout,outs)
-C          dok=.false.
-C          CALL ASKOK(
+C          CALL EASKOK(' ',
 C     &      'Dereference this bi-directional attribute?',
-C     &      '(for this surface only)',OK,dok,nbhelp)
+C     &      OK,nbhelp)
 C          if(OK)NSTMCFL(ifocc)=0
         endif
         goto 3
@@ -2048,7 +2094,7 @@ C espriou.h provides current file.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       
       logical unixok
@@ -2253,9 +2299,9 @@ C Ask about dimensions of the IES entry
 C Gow many output steps to create and for each give a percentage
 C (suggest 100 75 50 25 1)
       IWS=2
-      call EASKATOG('Control options:',' ',
-     &  'always ON','ON-OFF','Stepped 100:50:20:1',
-     &  'Stepped 100:75:50:25:1','cancel',' ',' ',IWS,nbhelp)
+      call EASKATOG(' ','Control options:',
+     &  'always ON','ON-OFF','stepped 100:50:20:1',
+     &  'stepped 100:75:50:25:1','cancel',' ',' ',IWS,nbhelp)
 
 C Update the common blocks:
       nbofies=nbofies+1
@@ -2323,8 +2369,7 @@ C       call usemodelradfile('ies',lltmp,istat)
       
 C SETUPDIFFUSE: Define/manage lampcolor diffuse light source
 C types (a set named light types are written to the radiance 
-C model files) for passing to Radiance. It makes use of the
-C surface anchor list facility to hold users selections.
+C model files) for passing to Radiance.
       subroutine setupdiffuse()
 #include "building.h"
 #include "model.h"
@@ -2336,10 +2381,10 @@ C espriou.h provides current file.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       
-      logical unixok,ok,dok
+      logical unixok,ok
       character outs*124,fs*1
       character lltmp*144,loutstr*248
       character t12*12,t32*32,t2*2,hold*32,doitl*256
@@ -2446,9 +2491,9 @@ C Ask about dimensions of the IES entry
 C Gow many output steps to create and for each give a percentage
 C (suggest 100 75 50 25 1)
       IWS=2
-      call EASKATOG('Control options:',' ',
-     &  'always ON','ON-OFF','Stepped 100:50:20:1',
-     &  'Stepped 100:75:50:25:1','cancel',' ',' ',IWS,nbhelp)
+      call EASKATOG(' ','Control options:',
+     &  'always ON','ON-OFF','stepped 100:50:20:1',
+     &  'stepped 100:75:50:25:1','cancel',' ',' ',IWS,nbhelp)
 
 C Update the common blocks:
       nbofies=nbofies+1
@@ -2498,7 +2543,7 @@ C the current common file type and is returned via lltmp.
 #include "building.h"
 #include "model.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       
       integer lnblnk  ! function definition
       

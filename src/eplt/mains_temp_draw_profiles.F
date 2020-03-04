@@ -87,10 +87,10 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C-----Trace/error unit reporting numbers
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ITC,ICNT
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
@@ -100,8 +100,8 @@ C-----Common for component data
       REAL BDATA
 
 C-----Common for present and future simulation time steps
-      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C.....ESP-r Commons
       common/pcnam/pcname(mpcom)        ! Plant component names
@@ -356,10 +356,10 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C-----Trace/error unit reporting numbers
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ITC,ICNT
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
@@ -482,10 +482,10 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C-----Trace/error unit reporting numbers
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ITC,ICNT
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
@@ -615,10 +615,10 @@ C----------------------------------------------------------------------
 C     ESP-r commons
 C----------------------------------------------------------------------
 C-----Trace/error unit reporting numbers
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      INTEGER IUOUT,IUIN
+      INTEGER IUOUT,IUIN,IEOUT
       INTEGER ITC,ICNT
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
@@ -628,8 +628,8 @@ C-----Common for component data
       REAL BDATA
 
 C-----Common for present and future simulation time steps
-      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C-----Present and future plant side simulation time steps
       COMMON/PTIME/PTIMEP,PTIMEF

@@ -40,12 +40,18 @@ C a building.
 #include "prj3dv.h"
       common/CPCALC/icpcon,ble,bwi,bhi,blox,bloy,bloz,orient,irt,ra,
      &              sbh,pad,wvpe
-      common/pophelp/h(60)
       dimension ITEMS(15)
-      character items*36,h*72,hold*32
+      character items*36,hold*32
       integer nitms,INO ! max items and current menu item
 
       logical moddb,close
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='cpcdat'     ! set for subroutine
 
 C If values are zero then set defaults.
       call eclose(ble,0.0,0.001,CLOSE)
@@ -89,24 +95,8 @@ C Display menue.
       nitms=14
 
 C Help text for this menu.
-  47  h(1)='The data is needed by CPCALC to calculate the pressure'
-      h(2)='distribution around a building.  '
-      h(3)=' '
-      h(4)='Building width,depth and hight are the OVERALL '
-      h(5)='dimensions if the building. Roof type can be a flat'
-      h(6)='roof (type 0), a single sloped roof (type 1) or'
-      h(7)='a double sloped roof (type 2).'
-      h(8)='The surrounding buildings hight and plan area density '
-      h(9)='are related to the average hight and the layout'
-      h(10)='pattern of the buildings surrounding the building' 
-      h(11)='under examination.'
-      h(12)='The wind velocity profile defines the terrain'
-      h(13)='roughness.'
-      h(14)=' '
-      h(15)='Detailed information about the points on the facade '
-      h(16)='where pressure coefficients are calculated should be '
-      h(17)='defined in the pressure coefficients database of the'
-      h(18)='database maintenence facility. '
+  47  helptopic='cpc_overview'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
       CALL EMENU('CPCALC data',ITEMS,nitms,INO)
       if(moddb)then
@@ -121,54 +111,38 @@ C Update configuration file before exiting.
       elseif(INO.EQ.nitms-1)then
 
 C Produce help text for the menu.
-        CALL PHELPD('prim convers',18,'-',0,0,IER)
+        CALL PHELPD('prim convers',nbhelp,'-',0,0,IER)
 
       elseif(ino.eq.2)then
 
 C Building lenght.
         def=ble
-        h(1)='The width (with no rotation) is along the x-axis.'
-        h(2)='Note that for a tilted roof this is the facade'
-        h(3)='with the roof ridge!'
         CALL EASKR(ble,' ','Overall building width:',
-     &       0.0,'F',0.0,'-',def,'CPCALC-ble',IER,3)
+     &       0.0,'F',0.0,'-',def,'CPCALC-ble',IER,nbhelp)
         moddb=.true.
         icpcon=1
       elseif(ino.eq.3)then
 
 C Building width.
         def=bwi
-        h(1)='The depth (with no rotation) is along the y-axis.'
-        h(2)='Note that for a tilted roof this is the facade'
-        h(3)='with the gable!'
         CALL EASKR(bwi,' ','Overall building depth:',
-     &       0.0,'F',0.0,'-',def,'CPCALC-bwi',IER,1)
+     &       0.0,'F',0.0,'-',def,'CPCALC-bwi',IER,nbhelp)
         moddb=.true.
         icpcon=1
       elseif(ino.eq.4)then
 
 C Building hight.
         def=bhi
-        h(1)='Give the OVERALL hight of the building.'
-        h(2)='Note that for a building with a tilted roof the hight '
-        h(3)='of the building is defined from the bottom of the'
-        h(4)='building to the bottom of the roof (eaves).'
         CALL EASKR(bhi,' ','Overall building hight:',
-     &       0.0,'F',0.0,'-',def,'CPCALC-bhi',IER,4)
+     &       0.0,'F',0.0,'-',def,'CPCALC-bhi',IER,nbhelp)
         moddb=.true.
         icpcon=1
       elseif(ino.eq.5)then
 
 C Origin
-        h(1)='This is the origin of the CPCALC domain that is used by'
-        h(2)='CPCALC to calculate the pressure coefficients.'
-        h(3)='It will define its south-westerly corner.'
-        h(4)='With the definition of the orientation the box'
-        h(5)='gets positioned at the exact place.'
-        h(6)='(this is in the same coordinate system as the zones)'
         write(hold,'(3F7.2)') blox,bloy,bloz
         CALL EASKS(HOLD,'Origin of CPCALC domain (X Y Z metres):',
-     &      ' ',32,' 0. 0. 0.','origin XYZ',IER,6)
+     &      ' ',32,' 0. 0. 0.','origin XYZ',IER,nbhelp)
         K=0
         CALL EGETWR(HOLD,K,blox,-999.,999.,'W','X org',IER)
         CALL EGETWR(HOLD,K,bloy,-999.,999.,'W','Y org',IER)
@@ -178,37 +152,17 @@ C Origin
 
 C  Orientation
         def=0.
-        h(1)= 'The orientation of the CPCALC domain is given in  '
-        h(2)= 'a clockwise direction (i.e. 0 rotation is length  '
-        h(3)= 'along X axis). The rotation point is x (see below).'
-        h(4)= 'Rotation can be in between 0 and 180 degree.      '
-        h(5)= '                                                  '
-        h(6)= '   *****************                              '
-        h(7)= '   *               *      NORTH                   '
-        h(8)= '   *               *        ^                     '
-        h(9)= '   *  <-length->   *        |                     '
-        h(10)='   x****************        |                     '
-
         CALL EASKR(orient,' ','Orientation of the building:',
-     &      0.0,'F',180.0,'F',def,'CPCALC-orient',IER,10)
+     &      0.0,'F',180.0,'F',def,'CPCALC-orient',IER,nbhep)
         moddb=.true.
         icpcon=1
       elseif(ino.eq.7)then
 
 C Roof type
-        h(1)='Choose one roof type. '
-        h(2)='The double slope roof is also known as a gable roof.'
-        h(3)='Note that for a building with a tilted roof the facade'
-        h(4)='along the length dimension (x-axis if no rotation) is '
-        h(5)='the one with the roof ridge!'
-        h(6)= '        ridge                                     '
-        h(7)= '   **.............**                              '
-        h(8)= '   *      or       *      NORTH                   '
-        h(9)= '   * ...ridge..... *        ^                     '
-        h(10)='   *  <-length->   *        |                     '
-        h(11)='   x****************        |                     '
+        helptopic='cpc_roof_type'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABC('Choose one roof type: ',' ','flat roof',
-     &  'single slope roof','double slope roof',IWHICH,11)
+     &  'single slope roof','double slope roof',IWHICH,nbhelp)
         if (IWHICH.EQ.1)then
           irt=0
           ra=0.0
@@ -217,11 +171,8 @@ C Roof type
         IF (IWHICH.EQ.3) irt=2
         IF (IWHICH.EQ.2.or.IWHICH.eq.3)then
           def=10.
-          h(1)='The roof tilt angle is measured from the horizontal'
-          h(2)='plane containing the reference flat roof.' 
-          h(3)='The roof tilt angle has to be in between 0 - 50 degree'
           CALL EASKR(ra,' ','Roof tilt angle:',
-     &        0.0,'F',50.0,'F',def,'CPCALC-ra',IER,3)
+     &        0.0,'F',50.0,'F',def,'CPCALC-ra',IER,nbhelp)
         endif
         moddb=.true.
         icpcon=1
@@ -230,11 +181,10 @@ C Roof type
 C  Roof tilt angle.
         IF(irt.NE.0) THEN
           def=10.
-          h(1)='The roof tilt angle is measured from the horizontal'
-          h(2)='plane containing the reference flat roof.' 
-          h(3)='The roof tilt angle has to be in between 0 - 50 degree'
+          helptopic='cpc_roof_type'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           CALL EASKR(ra,' ','Roof tilt angle:',
-     &        0.0,'F',50.0,'F',def,'CPCALC-ra',IER,3)
+     &        0.0,'F',50.0,'F',def,'CPCALC-ra',IER,nbhelp)
           moddb=.true.
           icpcon=1
         ENDIF
@@ -242,11 +192,10 @@ C  Roof tilt angle.
 
 C Surrounding buildings height.
         def=5.
-        h(1)='The surrounding buildings hight is related to the '
-        h(2)='average hight of the buildings surrounding the model'
-        h(3)='zones under examination.'
+        helptopic='cpc_roof_type'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKR(sbh,' ','Surrounding buildings hight:',
-     &       0.0,'F',0.0,'-',def,'CPCALC-sbh',IER,3)
+     &       0.0,'F',0.0,'-',def,'CPCALC-sbh',IER,nbhelp)
         moddb=.true.
         icpcon=1
 
@@ -254,72 +203,21 @@ C << Change formula R and give hight for examples to calculate R >>
       elseif(ino.eq.10)then
 
 C Plan area density.
+        helptopic='cpc_plan_density'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         def=8.0
-        h(1)='The plan area density (PAD) is related to the layout'
-        h(2)='pattern of the buildings surrounding the building under'
-        h(3)='examination:'
-        h(4)=' '
-        h(5)='PAD=(Building Area/Total Area)*100'
-        h(6)='[where total area is the overall site area (m^2) and '
-        h(7)=' building area is the ground contact area of buildings'
-        h(8)=' (m^2) within the overall site].'
-        h(9)=' '
-        h(10)='The extension of the radius to be considered can be'
-        h(11)='calculated with the radius formula R:'
-        h(12)=' '
-        h(13)='R=(7.67-PAD)/2.7*building height'
-        h(14)=' '
-        h(15)='Wind tunnel test data shows that the radius of the'
-        h(16)='built area surrounding the building, and affecting the'
-        h(17)='wind pressure distribution on its envelop, is inversely'
-        h(18)='proportional to the plan area density. This is why a'
-        h(19)='greater PAD lead to a greater radius to be considered:'
-        h(20)='A PAD of 12 results in a considered radius of 240'
-        h(21)='and a PAD of 40 results in a considered radius of 135.' 
-        h(22)=' '
-        h(23)='If the area surrounding the buildings does not have an'
-        h(24)='homogeneous density - as often happens - homogeneous'
-        h(25)='sectors should be defined according to the average'
-        h(26)='density of their building blocks. The PAD value to '
-        h(27)='insert in the program is the average value of all' 
-        h(28)='sectors.'
-        h(29)=' '
-        h(30)='This help message was extracted from the CPCALC user'
-        h(31)='menual.'
-        h(32)=' '
         CALL EASKR(pad,'Plan area density: ','(see help)',
-     &       0.0,'F',50.0,'F',def,'CPCALC-pad',IER,32)
+     &       0.0,'F',50.0,'F',def,'CPCALC-pad',IER,nbhelp)
         moddb=.true.
         icpcon=1
       elseif(ino.eq.11)then
 
 C Wind velocity profile.
         def=0.28
-        h(1)='The wind velocity profile defines the terrain roughness.'
-        h(2)=' ' 
-        h(3)='The following list shows reference values taken from'
-        h(4)='the CPCALC user menue:'
-        h(5)=' ' 
-        h(6)='Level surface, surface of water basin, grass land:' 
-        h(7)='-> 0.10'
-        h(8)='Flat open country few, very small and scattered'
-        h(9)='obstructions:' 
-        h(10)='-> 0.14'
-        h(11)='Rolling or level surfaces broken by numerious'
-        h(12)='obstructions such as trees or small houses:'
-        h(13)='-> 0.22'
-        h(14)='Heterogeneous surface with obstacles larger than'
-        h(15)='one story:'
-        h(16)='-> 0.28'
-        h(17)='Low density suburban areas:'
-        h(18)='-> 0.34'
-        h(19)='Medium-high density urban areas:'
-        h(20)='-> 0.40'
-        h(21)='Very high density inner city areas:'
-        h(22)='-> 0.45'
-        h(23)=' ' 
+        helptopic='cpc_velocity_profile'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKR(wvpe,' ',' Wind velocity profile:',
-     &       0.0,'F',1.0,'F',def,'CPCALC-wvpe',IER,23)
+     &       0.0,'F',1.0,'F',def,'CPCALC-wvpe',IER,nbhelp)
         moddb=.true.
         icpcon=1
       else
@@ -340,26 +238,23 @@ C should calculate pressure coefficients.
 #include "geometry.h"
 #include "net_flow.h"
 #include "prj3dv.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/cpcaco/nuco,naco(MPCP),xcoab(MPCP),ycoab(MPCP),
      &              zcoab(MPCP),azim(MPCP),TYPE(MPCP),elev(MPCP)
-      common/pophelp/h(60)
       common/FILEP/IFIL
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       common/CPCALC2/FICOCP
 
-      LOGICAL OK,dok
+      LOGICAL OK
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       DIMENSION VERT(35),COMPS(MPCP),IVAL(MPCP)
-      CHARACTER VERT*75,KEY*1,H*72,DESCRC*25
+      CHARACTER VERT*75,KEY*1,DESCRC*25
       CHARACTER hold2*40,naco*40,COMPS*72
       CHARACTER*4 type
       character*72 LTMP,FICOCP
@@ -377,6 +272,13 @@ C should calculate pressure coefficients.
 #else
       integer*8 iix,iiy
 #endif
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='EDCPFAC'     ! set for subroutine
 
 C Initialise facade coordinates menu size variables based on window size. 
 C IVERT is the menu position, MVERT the current number of menu lines.
@@ -426,14 +328,8 @@ C If a long list include page facility text.
       IVERT=-1
 
 C Help text for the menu.
-      h(1)='Here you can define the coordinates for which'
-      h(2)='CPCALC is going to calculate the pressure'
-      h(3)='coefficients.'
-      h(4)='"Add coordinates" allows a manual input of the '
-      h(5)='coordinates, "generate coordinates" will search the '
-      h(6)='model for windows and suggest a position.'
-      h(7)='Delete coordinates allows to remove allready defined'
-      h(8)='coordinates.'
+      helptopic='cpc_coords'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Now display the menu.
       if(mmod.eq.8)then
@@ -453,7 +349,7 @@ C Leave subroutine.
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
 
 C Produce help text for the vertex menu. 
-        CALL PHELPD('input cpcalc coordinates',8,'-',0,0,IER)
+        CALL PHELPD('input cpcalc coordinates',nbhelp,'-',0,0,IER)
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
 
 C Save coordinates.
@@ -479,7 +375,7 @@ C Save coordinates.
 
 C Open coordinate file.
         CALL EASKS(LTMP,' Facade coordinates file ? ',
-     &    ' ',72,' ','read facade coordinates file',IER,5)
+     &    ' ',72,' ','read facade coordinates file',IER,nbhelp)
         call usrmsg(' ',' ','-')
         IF(LTMP(1:2).NE.'  ')FICOCP=LTMP
         CALL ERPFREE(IUM,ISTAT)
@@ -524,7 +420,6 @@ C Update the number of known coordinates.
       ELSEIF(IVERT.EQ.(MVERT-4))THEN
 
 C Delete coordinates.
-        H(1)='You can delete one coordinate set'
         CALL EPMENSV
         DO 66 IWW=1,NUCO
           WRITE(COMPS(IWW),31)naco(IWW),xcoab(IWW),ycoab(IWW),zcoab(IWW)
@@ -532,16 +427,13 @@ C Delete coordinates.
   66    CONTINUE
         IX=1
         CALL EPICKS(IX,IVAL,'Delete which one?',' ',
-     &  72,NUCO,COMPS,'coordinate sets',IER,1)
+     &  72,NUCO,COMPS,'coordinate sets',IER,nbhelp)
         CALL EPMENRC
         IF(IX.EQ.0)RETURN
         IWHICH=IVAL(1)
 
 C Confirm choice
-        dok=.false.
-        h(1)='Chance to not delete this cooordinate set. '
-        h(2)='(in case you picked the wrong set) '
-        CALL ASKOK(' ',' Are you sure? ',OK,dok,2)
+        CALL EASKOK(' ','Are you sure?',OK,1)
         IF(.NOT.OK)GOTO 3
 
 C Create new numbering for pressure coefficient set
@@ -562,11 +454,8 @@ C Reduce number of pressure coefficient sets.
       ELSEIF(IVERT.EQ.(MVERT-5))THEN
 
 C Add/generate coordinates. 
-        h(1)='You can eiter provide the coordinates by manual input'
-        h(2)='or search the model for windows.'
-        h(3)='Windows are transparent external surfaces.'
         CALL EASKAB('Options: ',' ','manual input',
-     &              'search for windows',iacc,3)
+     &              'search for windows',iacc,nbhelp)
         IF(IACC.EQ.1) THEN
 
 C Manual input of cordinates. 
@@ -591,7 +480,6 @@ C Manual input of cordinates.
  256      CALL EASKSUR(IC,ISO,'-','with respect to which external ',
      &               'surface do you want to define coordinates? ',IER)
           call ZSID(IC,ISO,ZSDES,ZSDESC,ZSDESS) 
-          icc=izstocn(IC,ISO)   ! connection for this surface.
  
 C Set all surfaces to standard line width and surface being 
 C selected to a thick line.
@@ -608,20 +496,16 @@ C selected to a thick line.
           CALL redraw(IER)
 
 C Ask for x offset.
+          helptopic='cpc_offsets'
+          call gethelptext(helpinsub,helptopic,nbhelp)
           DX1=1.0
-          H(1)='The X offset is the horizontal distance from the '
-          H(2)='lower left corner of the surface (looking from'
-          H(3)='the outside) to the considered point.'
           CALL EASKR(DX1,' ',' X offset: ? ',
-     &       0.1,'-',99.9,'-',1.0,'X offset',IER,3)
+     &       0.1,'-',99.9,'-',1.0,'X offset',IER,nbhelp)
 
 C Ask for z offset.
           DZ1=1.0
-          H(1)='The Z offset is the vertical distance from the '
-          H(2)='lower left corner of the surface (looking from'
-          H(3)='the outside) to the considered point.'
           CALL EASKR(DZ1,' ',' Z offset: ? ',
-     &         0.1,'-',99.9,'-',1.0,'Z offset',IER,3)
+     &         0.1,'-',99.9,'-',1.0,'Z offset',IER,nbhelp)
 
 C Make up XX,YY,ZZ to the transform routine.
           N = NVER(ISO)
@@ -660,35 +544,27 @@ C Transform all points in surface and find lower left corner.
           CALL ecirc(iix,iiy,3,1)
           call forceflush()
           write(t28,'(3(a,F6.2))')'x=',XXDP,', y=',YYDP,', z=',ZZDP
-          dok=.true.
-          h(1)='Chance to not use this cooordinate set.'
-          h(2)='(in case the location is incorrect) '
-          CALL ASKOK(t28,'Use this coordinate?',OK,dok,2)
+          CALL EASKOK(t28,'Use this coordinate?',OK,nbhelp)
           if(OK)then
 
 C If yes than save coordinates ...
  350        write(HOLD2,'(a,a20,a)')'coord of ',ZSDESC,'...'
             nuco=nuco+1
-          H(1)='Give a name for the cordinates. This names will then'
-          H(2)='later also be used for the definition in the pressure'
-          H(3)='coefficient database.'
             CALL EASKS(HOLD2,'Name cpcalc cordinates',
-     &        ' ',40,' ','cpcalc co-name',IER,3)
+     &        ' ',40,' ','cpcalc co-name',IER,nbhelp)
             IF(IER.NE.0)GOTO 350 
             naco(nuco)=HOLD2
             xcoab(nuco)=XXDP
             ycoab(nuco)=YYDP
             zcoab(nuco)=ZZDP
-            azim(nuco)=SSPAZI(icc)
+            azim(nuco)=SPAZI(IC,ISO)
             if (azim(nuco).gt.359.9) azim(nuco)=0.0
-            type(nuco)=SSVFC(icc)
-            elev(nuco)=SSPELV(icc)
+            type(nuco)=SVFC(IC,ISO)
+            elev(nuco)=SPELV(IC,ISO)
           endif
 
 C Ask whether user wants to define another point.
-          dok=.true.
-          h(1)='Respond with ok if you want another cooordinate set.'
-          CALL ASKOK(' ','Define another point for this zone?',OK,dok,1)
+          CALL EASKOK(' ','Define another point?',OK,nbhelp)
           if(OK) goto 256
         ELSEIF(IACC.EQ.2) THEN
           
@@ -699,9 +575,8 @@ C Open geometry file for surface property check.
 
 C  Check whether zone has external transparent surface(s)
             do 42 IZW=1,NZSUR(izu)
-              icc=izstocn(izu,izw)
-              if(SSOTF(icc)(1:4).eq.'TRAN'.and.
-     &           SSOTHER(icc,1)(1:8).eq.'EXTERIOR') then
+              if(SOTF(izu,izw)(1:4).eq.'TRAN'.and.
+     &           SOTHER(izu,izw,1)(1:8).eq.'EXTERIOR') then
 
 C  If so then display zone and centre point of the 
 C  transparent surface of the zone 
@@ -753,10 +628,7 @@ C Draw the point.
 
 C Confirm whether user wants to use the coordinates 
                 write(t28,'(3(a,F6.2))')'x=',xpc,', y=',ypc,', z=',zpc
-                dok=.true.
-                h(1)='Chance to not use this cooordinate set.'
-                h(2)='(in case the location is incorrect) '
-                CALL ASKOK(t28,'Use this coordinate?',OK,dok,2)
+                CALL EASKOK(t28,'Use this coordinate?',OK,nbhelp)
                 if(OK)then
 
 C If yes save cordinates. 
@@ -765,20 +637,17 @@ C If yes save cordinates.
                   write(HOLD2,'(a,a20,a)')'coord of ',ZSDESC,'...'
                   
                   nuco=nuco+1
-                  H(1)='Give a name for the cordinates. This names'
-                  H(2)='will then later also be used for the defi-'
-                  H(3)='nition in the pressure coefficient database.'
                   CALL EASKS(HOLD2,'Name cpcalc cordinates',
-     &                 ' ',40,' ','cpcalc co-name',IER,3)
+     &                 ' ',40,' ','cpcalc co-name',IER,nbhelp)
                   IF(IER.NE.0)GOTO 360 
                   naco(nuco)=HOLD2
                   xcoab(nuco)=xpc
                   ycoab(nuco)=ypc
                   zcoab(nuco)=zpc
-                  azim(nuco)=SSPAZI(icc)
+                  azim(nuco)=SPAZI(izu,izw)
                   if (azim(nuco).gt.359.9) azim(nuco)=0.0
-                  type(nuco)=SSVFC(icc)
-                  elev(nuco)=SSPELV(icc)
+                  type(nuco)=SVFC(izu,izw)
+                  elev(nuco)=SPELV(izu,izw)
                 endif
               endif               
  42         continue
@@ -799,11 +668,10 @@ C and calculate the pressure coeffcients
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
-      common/pophelp/h(60)
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
       common/CPCALC/icpcon,ble,bwi,bhi,blox,bloy,bloz,orient,irt,ra,
@@ -811,7 +679,7 @@ C and calculate the pressure coeffcients
       common/cpcaco/nuco,naco(MPCP),xcoab(MPCP),ycoab(MPCP),
      &              zcoab(MPCP),azim(MPCP),TYPE(MPCP),elev(MPCP)
 
-      CHARACTER naco*40,type*4,H*72,msga*124,msgb*124,tmode*8
+      CHARACTER naco*40,type*4,msga*124,msgb*124,tmode*8
       character t144*144
       CHARACTER LAPROB*72,LTMP*72,LLTMP*144,outs248*248
       character doit*248
@@ -819,9 +687,16 @@ C and calculate the pressure coeffcients
       dimension Xdom(10),Ydom(10),Zdom(10),azdom(4)
       dimension XX(MV),YY(MV),ZZ(MV),VP(3),EQN(4)
       dimension xl(MPCP),zl(MPCP),ior(MPCP),isut(5),inum(5)
-      logical ok,dok
+      logical ok
       integer iglib  ! are we running X11 or GTK
       integer ISTRW
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='CPCACAL'     ! set for subroutine
 
 C Parameters to see whether for a surface a coordinate set has been 
 C defined
@@ -836,35 +711,21 @@ C required by CPCALC to calculate the pressure coefficients.
 C Ask for the maximum tolerance between the the absolut cordinates and
 C the block surfaces.
       def=0.1
-      h(1)='ESP-r will check whether the coordinates that '
-      h(2)='have been defines as locations to calculate the '
-      h(3)='pressure coefficients are close to one of the surfaces '    
-      h(4)='of the CPCALC domain.'  
-      h(5)='Here you can give a tolerance that will be applied'
-      h(6)='for this check.'
+      helptopic='cpc_cal_checks'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       CALL EASKR(ditol,'maximum tolerance between the absolut', 
      &  'cordinates and the block surfaces:',0.01,'F',1.0,'F',
-     &   def,'CPCALC-ditol',IER,6)
+     &   def,'CPCALC-ditol',IER,nbhelp)
 
 C Ask for the tolerance between the azimuth of the suface from which
 C the coordinates have been derived and the azimuth of the CPCALC 
 C domain.      
       def=5.0
       aztol=5.0
-      h(1)='ESP-r will project the coordinates that have been'
-      h(2)='defines as locations to calculate the pressure'
-      h(3)='coefficients on the surface of the CPCALC domain' 
-      h(4)='with similar orentation and  elevation (projection '
-      h(5)='direction normal to the surface of the CPCALC domain).'
-      h(6)='As a control meachanism it compares the orentation of'
-      h(7)='the zone surface from which these coordinates had been'
-      h(8)='derived with the orentation of the surface of the'
-      h(9)='CPCALC domain. Here you can define the maximum'
-      h(10)='difference between these two values.'
       CALL EASKR(aztol,
      &  'Maximum tolerance between the orientation angle (degrees)', 
      &  'of zone surface and the surface of the CPCALC domain:',
-     &  0.01,'F',5.0,'F',def,'CPCALC-aztol',IER,10)
+     &  0.01,'F',5.0,'F',def,'CPCALC-aztol',IER,nbhelp)
 
 C For a tilted roof: Ask for the maximum tolerance between the tilt of  
 C the surface from which the coordinates have been derived and the  
@@ -872,20 +733,10 @@ C roof tilt of the CPCALC domain.
       IF (irt.eq.1.or.irt.eq.2) THEN 
         def=5.0
         eltol=5.0
-        h(1)='ESP-r will project the coordinates that have been'
-        h(2)='defines as locations to calculate the pressure'
-        h(3)='coefficients on the surface of the CPCALC domain' 
-        h(4)='with similar orentation and  elevation (projection '
-        h(5)='direction normal to the surface of the CPCALC domain).'
-        h(6)='As a control meachanism it compares the elevation of'
-        h(7)='the zone surface from which these coordinates had been'
-        h(8)='derived with the elevation of the tilted roof of the'
-        h(9)='CPCALC domain. Here you can define the maximum'
-        h(10)='difference between these two values.'
         CALL EASKR(eltol,
      &    'Maximum tolerance between the tilt angle of zone ', 
      &    'surface and roof tilt of the CPCALC domain:',
-     &    0.01,'F',5.0,'F',def,'CPCALC-eltol',IER,10)
+     &    0.01,'F',5.0,'F',def,'CPCALC-eltol',IER,nbhelp)
       ENDIF
 
 C Determine the coordinates of the box defining the cpcalc domain.
@@ -1286,18 +1137,10 @@ C Run CPCALC.
       call runit(doit,tmode)
 
 C Save data to file.
-      dok=.true.
-      h(1)='You can either append the data to the currently used '
-      h(2)='database or you can save it as a new database.'
-      h(3)='If you are using the default pressure coefficent'
-      h(4)='database ESP-r will suggest a file in your directory'
-      h(5)='to save the data since you do not have writing'
-      h(6)='permission to the default one. This file will then'
-      h(7)='include the default pc-sets but also the ones you'
-      h(8)='created.'
-      CALL ASKOK(
-     &  'Check the data in c2e.cpdb. Do you want to save the new',
-     &  'pressure coefficients? (see help)',OK,dok,8)
+      helptopic='cpc_append_data'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+      CALL EASKOK(' ',
+     &  'Save the new pressure coefficients?',OK,nbhelp)
       if(OK)then
         CALL EASKAB('How do you want to save the data?',' ',
      &    'new pres coef database',
@@ -1309,9 +1152,6 @@ C Read in pc from file c2e.cpdb rather than the standard pressure db.
           CALL ERPRCDB(t144,0,3,IER)
           if (ier.ne.0) return
 
-          H(1)='To which file do you want to write the pressure data?'
-          H(2)=' '
-          H(3)=' '
  777      write(outs248,'(2a)') 'The current source file is:',
      &      LAPRES(1:lnblnk(LAPRES))
           call edisp248(iuout,outs248,100)
@@ -1332,12 +1172,11 @@ C Read in pc from file c2e.cpdb rather than the standard pressure db.
             ISTRW=96
           endif
           CALL EASKF(lltmp,' ','Pressure coefficients database?',
-     &      ISTRW,DAPRES,'pressure coef database',IER,3)
+     &      ISTRW,DAPRES,'pressure coef database',IER,nbhelp)
 
 C Write data to new file. 
 C 777      LAPRES=' '
 C          LLTMP=LAPRES
-C          H(1)='To which file do you want to write the data?'
 C          CALL EASKS(LTMP,' Pressure coefficients database?',
 C     &         ' ',72,DAPRES,'pressure coefficients database',IER,1)
 
@@ -1424,25 +1263,31 @@ C IER=0 OK, IER=1 problem.
 #include "esprdbfile.h"
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       common/MFLDOC/DEPRE(MPRD)
-      common/pophelp/h(60)
       common/CPCALC/icpcon,ble,bwi,bhi,blox,bloy,bloz,orient,irt,ra,
      &              sbh,pad,wvpe
 
       DIMENSION IVAL(MPRD),COMPS(MPRD)
       CHARACTER PCITM(35)*42
-      character DEPRE*40,KEY*1,outwin*72,H*72,COMPS*40
+      character DEPRE*40,KEY*1,outwin*72,COMPS*40
       character*72 ITEMS(14)
       character LAPROB*72
       character lworking*144,fs*1
-      LOGICAL OK,dok,moddb
+      LOGICAL OK,moddb
       integer lndbp   ! for length of standard database path
       integer lnwkg   ! for length of working file name
       integer iw      ! for radio button
       logical unixok  ! to check for database path file separators
       integer NITMS,IVERT,INOO ! max items and current menu item
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='EDPCDB'     ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -1502,37 +1347,8 @@ C Adapt save dialog if a common data file.
       IVERT=-1
 
 C Help text for the menu.
-      H(1)='To enable the calculation of wind-induced surface'
-      H(2)='pressures (as required by ESP-r`s fluid flow'
-      H(3)='simulators), this database of angle dependent'
-      H(4)='pressure coefficients is provided.'
-      H(5)=' '
-      H(6)='Wind pressure coefficients are pressure coefficients'
-      H(7)='for surfaces in typical positions and within several'
-      H(8)='different exposure categories. '
-      H(9)=' '
-      H(10)='The first 27 data sets in the standard pressure coef'
-      H(11)='database are from the Air Infiltration and Ventilation'
-      H(12)='Centre Handbook called <Air Infiltration Calculation'
-      H(13)='Techniques - An Applications Guide>. The 27 data sets'
-      H(14)='are only applicable for buildings up to 3 storeys and'
-      H(15)='come with the usual warnings about usage of the data.'
-      H(16)=' '
-      H(17)='Each data set is described with the following terms: '
-      H(18)=' a) facade or roof at different roof pitch angles'
-      H(19)=' b) the ratio of the building length to width and'
-      H(20)='    for a non square building there will be a long and'
-      H(21)='    a short wall to select'
-      H(22)=' c) site shielding as follows:'
-      H(23)='   exposed - open countryside with no obstructions'
-      H(24)='   simi-exposed - rural with some obstructions'
-      H(25)='   sheltered - urban, surrounded on all sides by'
-      H(26)='     obstructions of similar size.'
-      H(27)=' '
-      H(28)='Here you can change the data of an existing pressure'
-      H(29)='coefficient set (by clicking on it), add/delete/copy'
-      H(30)='a set, list the file contents of the existing pc-file'
-      H(31)='or update changes you have made.'
+      helptopic='wind_induced_flow'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Now display the menu.
       if(mmod.eq.8)then
@@ -1544,12 +1360,9 @@ C Now display the menu.
 
 C Check for changes/ask user to save.
         if(moddb)then
-          dok=.true.
-          h(1)='Recent changes to the coefficients might be lost if'
-          h(2)='you do not save it to the database. '
-          CALL ASKOK(' ',
-     &      'Update the pressure coef. database for recent changes?',
-     &      OK,dok,2)
+          CALL EASKOK(' ',
+     &      'Save changes to the pressure coefficints databases?',
+     &      OK,nbhelp)
           if(OK)then
 
 C << ipathapres >>
@@ -1561,7 +1374,7 @@ C << ipathapres >>
       ELSEIF(IVERT.EQ.(NITMS-1))THEN
 
 C The block with the help messages.
-        CALL PHELPD('pc help menue',31,'-',0,0,IER)
+        CALL PHELPD('pc help menue',nbhelp,'-',0,0,IER)
       ELSEIF(IVERT.EQ.(NITMS-2)) THEN
 
 C Update pressure coefficient database. 
@@ -1596,11 +1409,10 @@ C List pressure coefficients.
       ELSEIF(IVERT.EQ.(NITMS-4))THEN
 
 C The next section is to add/delete/copy a set.
-        H(1)='The continue option allows you to cancel choice. '
         iw=1
-        call easkatog('Modify sets:',' ','add (manually)',
-     &    'add (via caluclation)','delete','copy','continue',' ',' ',
-     &    iw,1)
+        call easkatog(' ','Modify sets:','add (manually)',
+     &    'add (via calculation)','delete','copy','cancel',' ',' ',
+     &    iw,nbhelp)
         if(IW.EQ.1)then
          
 C Add set. 
@@ -1632,13 +1444,8 @@ C Calcualte a set.
           nitms=14
 
 C Help text for this menu.
-          h(1)='Parameter a to j are general building parameters'
-          h(2)='required by CPCALC and are defined in the model'
-          h(3)='context.'
-          h(4)='In "facade coordinates" the user can define for which'
-          h(5)='coordinates he wants to calculate pressure'
-          h(6)='coefficients.'
-          h(7)='"Calculate pressure coefficients" runs CPCALC.'
+          helptopic='cpc_parmater_j'
+          call gethelptext(helpinsub,helptopic,nbhelp)
 
           CALL EMENU('CPCALC data',ITEMS,nitms,INOO)
           if(inoo.ge.1.and.inoo.lt.9) then
@@ -1653,7 +1460,7 @@ C Exit the interface.
           elseif(INOO.EQ.nitms-1) then
 
 C Produce help text. 
-            CALL PHELPD('cpcalc in mfs',7,'-',0,0,IER)
+            CALL PHELPD('cpcalc in mfs',nbhelp,'-',0,0,IER)
           elseif(INOO.EQ.10) then
 
 C Define facade coordinates. 
@@ -1670,8 +1477,6 @@ C  Calculate pressure coefficients.
         elseif(IW.EQ.3)then
 
 C Delete set. 
-          H(1)='You can delete one pressure coefficient set'
-
 C Push the current state of menu before delete list.
           CALL EPMENSV
           DO 66 IWW=1,NPRE
@@ -1679,15 +1484,13 @@ C Push the current state of menu before delete list.
   66      CONTINUE
           IX=1
           CALL EPICKS(IX,IVAL,'Delete which one?',' ',
-     &     40,NPRE,COMPS,'constructions',IER,1)
+     &     40,NPRE,COMPS,'constructions',IER,nbhelp)
           CALL EPMENRC
           IF(IX.EQ.0)RETURN
           IWHICH=IVAL(1)
 
 C Confirm choice
-          dok=.false.
-          h(1)='Chance to abort deletion of pressure coef set.'
-          CALL ASKOK(' ',' Are you sure? ',OK,dok,1)
+          CALL EASKOK(' ','Are you sure?',OK,nbhelp)
           IF(.NOT.OK)GOTO 3
           moddb =.true.
 
@@ -1712,7 +1515,7 @@ C Copy set.
   661     CONTINUE
           IX=1
           CALL EPICKS(IX,IVAL,'Copy which one?',' ',
-     &     36,NPRE,COMPS,'constructions',IER,1)
+     &     36,NPRE,COMPS,'constructions',IER,nbhelp)
           CALL EPMENRC
           IF(IX.EQ.0)RETURN
           IWHICH=IVAL(1)
@@ -1752,21 +1555,29 @@ C set or the values of the pressure coefficients.
       integer iCountWords
 
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/MFLDOC/DEPRE(MPRD)
-      common/pophelp/h(60)
-      character DEPRE*40,outs*72,hold*72,H*72
+      character DEPRE*40,outs*72,hold*72
       character hold2*40
       logical moddb
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='EDPCST'     ! set for subroutine
 
       IER=0
       moddb =.false.
 
+      helptopic='cpc_set_manage'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+
 C Change name of pressure cofficent set
  350  HOLD2=DEPRE(IFOC)
-      H(1)='Give a name for the pressure coefficient set'
       CALL EASKS(HOLD2,'Name of pressure coefficient set',
-     &    ' ',40,' ','pc name',IER,1)
+     &    ' ',40,' ','pc name',IER,nbhelp)
       IF(IER.NE.0)GOTO 350
       DEPRE(IFOC)=HOLD2
 
@@ -1774,21 +1585,10 @@ C Present vertex coords for editing then parse data from HOLD
 C First eight pressure coeficients ...
   35  HOLD=' '
       WRITE(HOLD,'(1x,8f7.3)')(FPRE(J,IFOC),J=1,8)
-      H(1) ='The values for the pressure coefficients should be '
-      H(2) ='between -1.5 and 1.5.'
-      H(3) ='The first pressure coefficient is defined as NORMAL'
-      H(4) ='to the surface (see drawing) and the following'
-      H(5) ='coefficients are defined at steps of 22.5 degree'
-      H(6) ='in a clockwise direction.'
-      H(7) ='   _____ '
-      H(8) ='        |' 
-      H(9) ='        |'     
-      H(10)='        |  <----'
-      H(11)='        | The first pressure coefficient is defined'
-      H(12)='   _____| as NORMAL to the surface'
       write(outs,'(a,a)')'PC 1 to 8 - ',DEPRE(IFOC)
       CALL EASKS(HOLD,outs,' ',72,
-     &    ' 0.5 0.4 0.3 0.1 -0.1 -0.3 -0.4 -0.5 ','pc input',IER,12)
+     &  ' 0.5 0.4 0.3 0.1 -0.1 -0.3 -0.4 -0.5 ','pc input',IER,
+     &  nbhelp)
       IF(IER.NE.0)GOTO 35
 
 C Check whether number of returned number is 8, if so extract data.
@@ -1807,7 +1607,8 @@ C Second eight pressure coeficients ...
       WRITE(HOLD,'(1x,8f7.3)')(FPRE(J,IFOC),J=9,16) 
       write(outs,'(a,a)')'PC 9 to 16 - ',DEPRE(IFOC)
       CALL EASKS(HOLD,outs,' ',72,
-     &    ' -0.5 -0.4 -0.3 -0.1 0.1 0.3 0.4 0.5 ','pc input',IER,12)
+     &    ' -0.5 -0.4 -0.3 -0.1 0.1 0.3 0.4 0.5 ','pc input',IER,
+     &    nbhelp)
       IF(IER.NE.0)GOTO 351
 
 C Check whether number of returned numbers is 8, if so, extract data.
@@ -1833,7 +1634,7 @@ C that the data that is read in should be appended to an existing file.
 #include "building.h"
 #include "net_flow.h"
 #include "esprdbfile.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       COMMON/MFLWPR/NPRE,FPRE(MPOS,MPRD)
       common/MFLDOC/DEPRE(MPRD)
@@ -1864,9 +1665,6 @@ C prepended.
           lndbp=lnblnk(standarddbpath)
           write(lworking,'(3a)') standarddbpath(1:lndbp),fs,
      &      lapres(1:lnblnk(lapres))
-
-C Debug.
-C          write(6,*) 'working pressure coef ',lworking
 
           CALL EFOPSEQ(IUM,lworking,1,IER)
         endif

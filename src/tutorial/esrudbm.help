@@ -1,5 +1,4 @@
 *help_text dbm
-*subroutine bcfwrite
 *subroutine edselcat
 *item edselcat dbm_cat_of_acoustic
 'This menu allows to browse/select the category of'
@@ -7,17 +6,20 @@
 'corresponding acoustic absorption coefficients,'
 'which is used for room acoustic calculation.'
 *enditem
+
 *item edselcat dbm_cat_of_colour
 'This menu allows to browse/select a colour category,'
 'in order to display the corresponding colorymertry'
 'information used for lighting calculation.'
 *enditem
+
 *item edselcat dbm_cat_of_LCIA
 'This menu allows to browse/select the environmental'
 'impacts of a phase during the building life span.'
 'These impacts are used for the Life Cycle Impact'
 'assessment (LCIA) of the project construction.'
 *enditem
+
 *item edselcat dbm_cat_of_LCIATrn
 'This menu allows to browse/select a category of'
 'transport, in order to display the corresponding'
@@ -25,15 +27,12 @@
 'the Life Cycle Impact assessment (LCIA) of the '
 'project construction. '
 *enditem
-          CALL PHELPD('Category menu',4,'-',0,0,IER)
-          CALL PHELPD('Category menu',3,'-',0,0,IER)
-          CALL PHELPD('Category menu',4,'-',0,0,IER)
-          CALL PHELPD('Category menu',5,'-',0,0,IER)
+
 *item edselcat dbm_cat_aide
 'An aide memoire for this instance of the database'
 '(separate from the database documentation).'
 *enditem
-          CALL EASKS(t72,'Aide memoire',' ',72,'This instance... ',
+
 *item edselcat dbm_cat_doc
 'Documentation of the database is encouraged. You '
 'can enter information on units used in the database'
@@ -43,12 +42,7 @@
 '  a    meters/sec    wind velocity from logger'
 '  b    degrees       wind direction 0=north'
 *enditem
-          CALL ASKOK(' ','Edit units ?',primod,dprimod,7)
-          CALL EASKS(t12,outs,' ',12,'none ','UN',IER,7)
-          CALL EASKS(t72,outs,' ',72,'none ','UN',IER,7)
-          CALL ASKOK(' ','Add another unit idbh',ok,dok,7)
-          CALL EASKS(t12,outs,' ',12,'none ','UN',IER,7)
-          CALL EASKS(t72,outs,' ',72,'none ','UN',IER,7)
+
 *item edselcat dbm_sources_doc
 'Documentation of the database is encouraged. You '
 'can enter information on sources used in the database'
@@ -56,20 +50,14 @@
 ' '
 '  a    AIVC document 13.5 table 3'
 *enditem
-          CALL ASKOK(' ','Edit sources ?',primod,dprimod,5)
-              CALL EASKS248(t248,outs,': ',72,': ','srcnote',IER,5)
-              CALL ASKOK(' ','Add another source',ok,dok,2)
-                CALL EASKS248(t248,outs,': ',72,': ','srcnote',IER,2)
+
 *item edselcat dbm_db_documentation
 'Documentation of the database is encouraged. You '
 'can enter one or several lines of text.'
 'Retain the [: ] in the first two columns as it is '
 'used within the db and not seen by the user.'
 *enditem
-          CALL ASKOK(' ','Edit database documentation?',primod,
-          CALL EASKS248(t248,outs,' ',72,': ','dd',IER,4)
-          CALL ASKOK(' ','Add another line ?',ok,dok,4)
-          CALL EASKS248(t248,outs,' ',72,': ','dd',IER,4)
+
 *item edselcat dbm_category_list
 'You may select one or more classes to list. '
 '  '
@@ -83,9 +71,7 @@
 '  comma separator (for excel)'
 '  tab separator (for excel)'
 *enditem
-        CALL EPICKS(INPIC,ICATSEL,' ',' Which categories to list:',
-        CALL EASKABC(' Reporting to:',' ',
-        CALL EASKATOG('Delimeter to use between columns of data:',' ',
+
 *item edselcat mod_category_list
 'You may remove an empty category (i.e. which has no more'
 'than one item in it) or you may add a category at the end'
@@ -93,8 +79,7 @@
 '  '
 'If you ask to delete you must then select the category to delete.'
 *enditem
-        CALL EASKABC('Category options: ',' ',
-        CALL EPICKS(INPIC,ICATSEL,' ',' Which category to delete?',
+
 *subroutine edselitem
 *item edselitem dbm_category_list
 'This menu lists all the items stored for the category'
@@ -122,14 +107,7 @@
 '   An item can be moved into another category. It will'
 '   retain its current identifier. ''  '
 *enditem
-        CALL PHELPD('category list',4,'-',0,0,IER)
-        CALL EASKS(t32,' ',' Category descriptive phrase ? ',
-        CALL EASKS(t12,' ',' Category identity (unique string) ? ',
-        CALL ASKOK(' ','Edit category documentation ?',primod,
-        CALL EASKATOG('Options for items: ',' ','delete','add','copy',
-	CALL EPICKS(IX,IVALC,' ',outs,
-        CALL EPICKS(IX,IVALC,' ',outs,
-*subroutine intdbdoc
+
 *subroutine edcatdoc
 *item edcatdoc dbm_category_doc_edit
 'Documentation of categories is encouraged. You can'
@@ -137,16 +115,14 @@
 'Retain the [: ] in the first two columns as it is '
 'used within the db and will not be seen by the user.'
 *enditem
-        CALL EASKS248(t248,outs,' ',72,': ','cd',IER,4)
-        CALL ASKOK(' ','Add another line ?',ok,dok,4)
-        CALL EASKS248(t248,outs,' ',72,': ','cd',IER,4)
+
 *subroutine newgcat
 *item newgcat dbm_category_acoustic
 'An acoustic category can hold items related to individual'
 'materials or to constructions (composites of several  '
 'layers). '
 *enditem
-        call easkab('Acoustic category options: ',' ',
+
 *item newgcat dbm_category_enveff
 'An environmental effects category can be one of the'
 'following types:  '
@@ -161,7 +137,7 @@
 ' Incineration processes  '
 ' Dump processes  '
 *enditem
-        CALL EPICKS(INPIC,icatlst,' ',
+
 *subroutine edprof
 *item edprof dbm_edit_eventdb
 'Editing of event profile database entities... '
@@ -175,10 +151,7 @@
 '  at the end of the list or insert a period within the '
 '  list (you will be asked to select a point of insertion).'
 *enditem
-        CALL PHELPD('item edit help',3,'-',0,0,IER)
-        CALL EASKABCD(' Period options: ',' ',' delete ',
-        CALL ASKOK(outs,' Are you sure?',OK,dok,1)
-  42    CALL EASKS(hold,outs,' ',60,' 1.0 0.0 0.0 0.0   ',
+
 *subroutine edenvci
 *item edenvci dbm_trn_asmb_impacts
 'Editing of construction effect entities, which includes '
@@ -221,8 +194,7 @@
 ' Options lm: up to 2 maintenance impacts can be defined. Start with'
 '   option l and use m if necessary.'
 *enditem
-        CALL PHELPD('construction effect edit help',21,'-',0,0,IER)
-        CALL EASKS(hold,'Transport distance (km) and breakage rate:',
+
 *subroutine edenvi
 *item edenvi dbm_rec_dump_impacts
 'Editing of recycling/inceneration/dump process entities.'
@@ -240,10 +212,7 @@
 ' Options hijk: these are the environmental emissions associated'
 '   with the current process.'
 *enditem
-        CALL PHELPD('dump item edit help',7,'-',0,0,IER)
-        CALL EASKR(dtrbs(1),' ',' 1st transport distance (km):',
-        CALL EASKR(dtrbs(2),' ',' 2nd transport distance (km):',
-        CALL EASKR(dtrbs(3),' ',' 3rd transport distance (km):',
+
 *subroutine edenvf
 *item edenvf dbm_material_life
 'Editing of material effects database entities. '
@@ -274,13 +243,7 @@
 ' Options nopq: these are the environmental emissions associated'
 '    with the material fabrication.'
 *enditem
-        CALL PHELPD('material effects item edit help',3,'-',0,0,IER)
-        CALL EASKR(fablif,' ',' Material life (y):',
-        CALL EASKR(brkias,' ',' Breakage during assembly:',
-        CALL EASKS(hold,'Transport distance (km) and breakage rate:',
-        CALL EASKR(rr,' ',' Recycling rate:',
-        CALL EASKR(ri,' ',' Incineration rate:',
-        CALL EASKR(rd,' ',' Dump rate:',
+
 *subroutine edenvp
 *item edenvp dbm_site_assembly
 'Editing of site assembly category items. '
@@ -335,10 +298,7 @@
 ' Options fghi: these are the environmental emissions associated'
 '    with the process.'
 *enditem
-        CALL PHELPD('assembly on prj item edit help',6,'-',0,0,IER)
-        CALL PHELPD('constr maint item edit help',3,'-',0,0,IER)
-        CALL PHELPD('constr assembly item edit help',3,'-',0,0,IER)
-        CALL EASKR(brkias,' ',' Breakage rate: (0.0-1.0)',
+
 *subroutine epopenv
 *subroutine ERSYSG
 *item ERSYSG sys_file_unknown_tag
@@ -349,13 +309,13 @@
 'Depending on the error, it might be possible to read'
 'the rest of the file - exercise caution! '
 *enditem
-        CALL ASKOK('  ','Continue reading configuration?',OK,dok,6)
+
 *item ERSYSG sys_file_truncation
 'The section of the configuration file that defines'
 'links between zones and flow network nodes gave a '
 'problem. The file might be corrupted or truncated. '
 *enditem
-            call askok('There appears to be a problem with flow node-',
+
 *subroutine mkagdb
 *item mkagdb option_to_upgrade
 'Chance to update to a newer format file. '
@@ -367,7 +327,7 @@
 'database for selection purposes. Use item [3] to'
 'look at the database documentation.'
 *enditem
-        CALL PHELPD('category list',3,'-',0,0,IER)
+
 *subroutine selitem
 *item selitem dbm_category_contents
 'The category contents are shown in this menu for'
@@ -377,13 +337,7 @@
 'When you select an item you will be asked to confirm'
 'your selection.'
 *enditem
-        CALL PHELPD('category list',3,'-',0,0,IER)
-        call askok(' ',' Use this item?',OK,dok,1)
-        call askok(' ',' Use this item?',OK,dok,1)
-        call askok(' ',' Use this item?',OK,dok,1)
-        call askok(' ',' Use this item?',OK,dok,1)
-        call askok(' ',' Use this item?',OK,dok,1)
-        call askok(' ',' Use this item?',OK,dok,1)
+
 *subroutine eitcommon
 *item eitcommon dbm_edit_common_abcd
 'All database items have a set of common atrributes:'
@@ -397,9 +351,7 @@
 'Documentation of database entries is encouraged.'
 'You can enter up to 248 characters of text.'
 *enditem
-          CALL EASKS(t12,' ',' Identity string:  ',
-          CALL EASKS(t32,' ',
-          CALL EASKS248(t248,outs,': ',72,': ','id',IER,2)
+
 *subroutine edimpact
 *item edimpact dbm_GWP_AP_PS_NRE
 'Environmental impacts are defined via several measures:'
@@ -412,7 +364,7 @@
 '  emissions (kgeqNOX/kg).'
 'Utilisation of Non Renewable Energy (NRE) (MJ/kg). '
 *enditem
-      CALL EASKS(hold,
+
 *subroutine edmat
 *item edmat dbm_material_edits
 'Editing of material database entities... '
@@ -436,17 +388,7 @@
 '  '
 '  Plus 2 miscel data items'
 *enditem
-        CALL PHELPD('material item edit help',3,'-',0,0,IER)
-        CALL EASKR(DBCON,' ',' Conductivity : ',
-        CALL EASKR(DBDEN,' ',' Density  : ',
-        CALL EASKR(DBSHT,' ',' Specific heat : ',
-        CALL EASKR(E,' ',' Surface emissivity : ',
-        CALL EASKR(A,' ',' Surface absorptance : ',
-        CALL EASKR(DRV,' ',' Diffusion resistance : ',
-        CALL EASKR(spec,' ',' Specularity : ',
-        CALL EASKR(rough,' ',' Roughness (visible) : ',
-        CALL EASKR(misc1,' ',' Miscel data (1st) : ',
-        CALL EASKR(misc2,' ',' Miscel data (2nd) : ',
+
 *subroutine edacous
 *item edacous dbm_acoustic_edit
 'Editing of room acoustic database entities'
@@ -473,15 +415,7 @@
 'Acoustic coefficients are associated with either a '
 'single material layer or with a whole composite. '
 *enditem
-          CALL EASKABC(' Acoustic coef related to:',' ',
-          CALL EASKS(hold,'Coefficients @ frequencies 100 125 160 200:',
-          CALL EASKS(hold,
-          CALL EASKS(hold,
-          CALL EASKS(hold,
-          CALL EASKS(hold,'Coefficients for frequencies 3150, 4000: ',
-*item edacous
-*enditem
-        CALL PHELPD('Room acoustic item edit help',15,'-',0,0,IER)
+
 *subroutine edcolour
 *item edcolour
 'Editing of material database entities... '
@@ -499,9 +433,7 @@
 '   r*0.256 + g*0.67 + b*0.0645 '
 '   which you can override via direct editing. '
 *enditem
-        CALL PHELPD('material item edit help',3,'-',0,0,IER)
-  42    CALL EASKS(hold,' Red green blue (0-255): ',
-        CALL EASKR(greyrefl,' Grey reflectance (usually derived from',
+
 *subroutine edtransp
 *item edtransp
 'Editing of transport database entities... '
@@ -514,11 +446,11 @@
 '    with this transport.'
 '  '
 *enditem
-        CALL PHELPD('transport item edit help',3,'-',0,0,IER)
+
 *subroutine impmlc
 *item impmlc
 *enditem
-  29  CALL EASKS(LTMP,
+
 *subroutine parsemlcdesc
 *item dbm dbm_main_cfg_file
 'The system configuration file holds the definition of'
@@ -527,52 +459,50 @@
 'matches an existing file it will be read in and the'
 'data will be available for editing.'
 *enditem
-          CALL EASKF(LTMP,' Model name ? ',' ',96,DFILE,
+
 *item dbm dbm_detect_changes
 'ESP-r detected recent changes which may not have been'
 'saved to the configuration file. Just to be sure you '
 'should answer yes. '
 *enditem
-          CALL ASKOK(
+
 *item dbm option_to_view_docs
 'You can access a description of the db manager or the'
 'documentation associated with the current database. '
 *enditem
-        CALL EASKABC(' Options:',' ','dbm module help',
+
 *item dbm dbm_password_request
 'A password is required for modification of databases'
 *enditem
-          CALL EASKS(pass,' password ',' ',12,'0000',
+
 *item dbm dbm_create_new_db
 'To create a new database, you are asked for the type of'
 'data and a base name for the database (both an ascii &'
 'a binary version will be created).'
 *enditem
-        CALL EASKS(tfile,outs,' ',72,'xx_db','root file name',IER,3)
+
 *item dbm BCF_file_name_list
 'You are asked to provide a name of a BCF file which holds the'
 'properties of all of the constructions used in the model or a'
 'subset of constructions that you nominate.'
 *enditem
-        CALL EASKS(tfile,' BCF file name ? ',' ',72,
-        CALL EPICKS(INPIC,icnsel,' ',
+
 *subroutine pkavailgbd
 *item pkavailgbd dbm_select_available_db
 'You may select one of the databases to focus on.'
 *enditem
-      CALL EPICKS(INPIC,idbsel,' ',' Which database:',
+
 *subroutine dealwithgdb
 *item dealwithgdb deal_with_binary
 'This will be the binary version of the database.'
 *enditem
-  40        CALL EASKS(LBGENDB,' Generic (destination) binary name ? ',
+
 *item dealwithgdb deal_with_older_format
 'An older format database detected. This will'
 'be converted into generic asci and binary format.'
 'Please supply a root name for the new files.'
 *enditem
-  49        CALL EASKS(tfile,'Root name of converted database?',
- 149        CALL EASKS(tfile,'Root name of converted database?',
+
 *subroutine imgdisp
 *item imgdisp dbm_image_display
 'Images can be associated with a model for various'
@@ -586,7 +516,7 @@
 'a model. '
 'Images of type GIF and XBM and TIFF are supported.'
 *enditem
-          CALL PHELPW(nbhelp,IHW,IER)
+
 *subroutine modifygdb
 *item modifygdb dbm_confirm_db_name
 'You are asked to confirm the name of the selected database.'
@@ -624,16 +554,7 @@
 '  '
 '  plant - holds templates for plant components.'
 *enditem
-        CALL EASKS(tfile,' Constructions db file name ? ',' ',72,
-        CALL EASKS(tfile,' Material db file name ? ',' ',72,
-        CALL EASKS(tfile,' Acoustic db file name ? ',' ',72,
-        CALL EASKS(tfile,' Colour db file name ? ',' ',72,
-        CALL EASKS(tfile,' Micotoxin db file name ? ',' ',72,
-        CALL EASKS(tfile,' Environmental impacts db file name ? ',' ',
-        CALL EASKS(tfile,' Transport db file name ? ',' ',
-        CALL EASKS(tfile,' Pressure db file name ? ',' ',72,
-        CALL EASKS(tfile,' Event profiles db file name ? ',' ',72,
-        CALL EASKS(tfile,' Plant component db file name ? ',' ',72,
+
 *item modifygdb dbm_db_management
 'The following options can be selected:'
 ' '
@@ -651,15 +572,15 @@
 '  database will be made and you will be offered a '
 '  chance to rename it.'
 *enditem
-        call MENUATOL(outs,'Database options:',
+
 *item modifygdb deal_with_local_copy
 'This is the name of the local copy of the database.'
 *enditem
- 549    CALL EASKS(tfile,'Name of local database?',
+
 *item modifygdb deal_with_text_version
 'This must be the text version of a generic database.'
 *enditem
-        CALL EASKS(LEXP,' Export ascii name ? ',' ',72,
+
 *subroutine edmlc
 *item edmlc dbm_constr_entries
 'Editing of constructions database entities...'
@@ -698,16 +619,7 @@
 '0.0001 metres and 0.500 metres. Exercise care with'
 'layers less than 1mm.)
 *enditem
-        CALL PHELPD('constructions item edit help',3,'-',0,0,IER)
-        CALL EASKABCD(' Layer options: ',' ',' Delete ',
-        CALL ASKOK(outs,' Are you sure? ',OK,dok,1)
-        CALL ASKOK(outs,'Change this?',modit,dmodit,2)
-        CALL ASKOK(outs,'Change this?',modit,dmodit,2)
-        CALL ASKOK(outs,'Change this?',modit,dmodit,2)
-        CALL ASKOK(outs,'Change this?',modit,dmodit,2)
-        CALL ASKOK(outs,'Change this?',modit,dmodit,2)
-        CALL EASKATOG('Options:',' ','thermal solid','thermal gas',
-            CALL EASKR(VAL,' ',' Layer thickness (metres): ',
+
 *item edmlc dbm_air_gap_assumpt
 'A set of default assumptions on the R value of'
 'an air gap is requested, in case the '
@@ -715,14 +627,8 @@
 'This information allows for the automatic'
 'creation of zone construction files.'
 *enditem
-            CALL EASKR(VAL,outs,
-            CALL EASKR(VAL,outs,
-            CALL EASKR(VAL,outs,
+
 *item edmlc dbm_optic_is_different
 'An inconsistency was found in the database. '
 'The acoustic or colour or optical attributes are different. '
 *enditem
-              call askok(outs,' ',ok,dok,2)
-              call askok(outs,' ',ok,dok,2)
-              call askok(outs,' ',ok,dok,2)
-              call askok(outs,' ',ok,dok,2)

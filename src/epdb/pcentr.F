@@ -31,7 +31,7 @@ C 'PCPUT' is called to add it to the datatbase.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       character lcmdfl*144
       common/rcmd/LCMDFL
@@ -41,7 +41,7 @@ C 'PCPUT' is called to add it to the datatbase.
       character PZDESC*25 
       character ltmpg*144,buffer*90
       character lltmp*144,L144*144
-      LOGICAL OK,dok
+      LOGICAL OK
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -125,10 +125,9 @@ C Read component data from user.
 
 C Check if user accepts data.
         CALL PCWRT (IUOUT)
-        dok=.true.
         helptopic='pdb_input_review_pause'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' ',' Is this OK? ',OK,dok,nbhelp)
+        CALL EASKOK(' ','Is this OK?',OK,nbhelp)
         IF(OK)GOTO 330
 
 C Changes required, so call 'PCEDIT'.

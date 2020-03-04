@@ -111,9 +111,11 @@ void    curviews_(float* EVX,float* EVY,float* EVZ,float* VX,float* VY,float* VZ
 void    pushgzonpik_(long int* jizgfoc,long int* jnzg);
 void    pushnznog_(long int* jnznog,long int* jnznogv);
 void	curmodule_(char* fcmodule,int len_fcmodule);
+void	wstxptwwc_(long int* x,long int* y,char* buff,int len);
 void	wstxpt_(long int* x,long int* y,char* buff,int len);
-/* void	textatxy_(long int* x,long int* y,char* buff,long int* xcolid,int len); */
+void	textatxywwc_(long int* x,long int* y,char* buff,char* act,long int* n,int len);
 void	textatxy_(long int* x,long int* y,char* buff,char* act,long int* n,int len);
+void	textsizeatxywwc_(long int* x,long int* y,char* buff,long int* size,char* act,long int* n,int len);
 void	textsizeatxy_(long int* x,long int* y,char* buff,long int* size,char* act,long int* n,int len);
 void	textpixwidth_(char* buff,long int* pixelwidth,int len);
 void	winfnt_(long int* n);
@@ -121,18 +123,23 @@ void	charsusingfnt_(long int* n, long int* cw, long int* nlines);
 void	xbox(box b, unsigned long fgc, unsigned long bgc, int flags);
 int	xboxinside(box b,int x,int y);
 void	feedbox_(long int* menu_char,long int* d_lines,long int* gw,long int* gh);
+void	win3dwwc_(long int* menu_char,long int* cl,long int* cr,long int* ct,long int* cb,
+	long int* vl,long int* vr,long int* vt,long int* vb,long int* gw,long int* gh);
 void	win3d_(long int* menu_char,long int* cl,long int* cr,long int* ct,long int* cb,
 	long int* vl,long int* vr,long int* vt,long int* vb,long int* gw,long int* gh);
 void	win3dclr_();
+void	viewtextwwc_(char* msg,long int* linep,long int* side,long int* size,int len);
 void	viewtext_(char* msg,long int* linep,long int* side,long int* size,int len);
 void	findviewtext_(long int* charposp,long int* linep,long int* size,long int* irx,
 	long int* iry);
+void	etlabelwwc_(char* msg,float* x,float* y,long int* ipos,long int* size,int len);
 void	etlabel_(char* msg,float* x,float* y,long int* ipos,long int* size,int len);
 void	forceflush_();
 void	Timer(int msec);
 void	pausems_(long int* msec);
 void	pauses_(long int* is);
 void	drawswl(int xa,int ya,int xb,int yb);
+void	esymbolwwc_(long int* x,long int* y,long int* sym,long int* size);
 void	esymbol_(long int* x,long int* y,long int* sym,long int* size);
 void	qbox_(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act);
 void	dbox(char* msg,int msglen,int asklen,int* b_bottom,int* b_left,char act);
@@ -174,16 +181,22 @@ void	egdisp_(char* msg,long int* line,int len);
 void	espad_(long int* llimit,long int* llimtty,long int* lline);
 void	egdispclr_();
 void	trackview_(long int* ichar,long int* irx,long int* iry);
+void	elinewwc_(long int* x,long int* y,long int* operation);
 void	eline_(long int* x,long int* y,long int* operation);
 void	u2pixel_(float* ux,float* uy,long int* ix,long int* iy);
 void	etplotwwc_(float* ux,float* uy,long int* updown,long int* sym);
 void 	etplot_(float* ux,float* uy,long int* updown,long int* sym);
+void	edlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void	edline_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void	drawdwl(int xa,int ya,int xb,int yb);
+void	edwlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
 void	edwline_(long int* x1,long int* y1,long int* x2,long int* y2);
+void 	eswlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
 void 	eswline_(long int* x1,long int* y1,long int* x2,long int* y2);
 void	drawvwl(int xa,int ya,int xb,int yb,int width);
+void	edashwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void	edash_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
+void	echainwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void	echain_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void	drawddash(int xa,int ya,int xb,int yb,int width);
 void	drawoodash(int xa,int ya,int xb,int yb,int width);
@@ -201,12 +214,16 @@ void	axiscale_(long int* gw,long int* gh,float* xmn,float* xmx,float* ymn,
 void	linescale_(long int* loff,float* ladd,float* lscale,long int* boff,float* badd,
 	float* bscale);
 void	labelstr(long int* n,float* val,long int* WticC,char* sstr);
-void	vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
-	float* yadd,float* sca,long int* mode,float *ddx, long int *nx,long int* side,char* msg,int mlen);
-void 	horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
-        float *xadd,float *sca,long int *mode,float *ddx, long int *nx, char* msg,int mlen);
+void	vrtaxisddwwc_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen);
+void    vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen);
+void	horaxisddwwc_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+	float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen);
+void	horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+	float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen);
 void	horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
-        float *xadd,float *sca,long int *mode,float *ddx, long int *nx,long int *ind,
+	float *xadd,float *sca,long int *mode,float *dddx, long int *nnx,long int *ind,
 	long int *idiv,long int *isjday,char* msg,int mlen);
 void	updmenu_(char* items,char* itypes,long int* nitmsptr,long int* iw,int len_items);
 void	evwmenu_(char* titleptr,long int* impx,long int* impy,long int* iwth,long int* irpx,

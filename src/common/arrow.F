@@ -31,7 +31,7 @@ C IDRAW=0 don't draw; =1 shaft single line thickness; =2 shaft double line thick
 #include "building.h"
 #include "prj3dv.h"
 
-C      COMMON/OUTIN/IUOUT,IUIN
+C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       real P,Q,SNORM,PLANE,CORNER
       DIMENSION P(3),Q(3),SNORM(3),A(3),PLANE(4),CORNER(4,3)
       real VE,VECC,COG1,COG2,COG3

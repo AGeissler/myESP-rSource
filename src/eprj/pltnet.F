@@ -41,16 +41,22 @@ C LAPRES,IAPRES (for window pressure database)
 C LOPTDB,IOPTDB (for optical database)
 C LPCDB/IPCDB (for plant template database)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
-      common/pophelp/h(60)
 
 C Plant network.
       common/C23/IFPNF,LPNF
 
       CHARACTER*32 ITEM(7)
-      character H*72,mode*1,LPNF*72
+      character mode*1,LPNF*72
       integer NITMS,INO ! max items and current menu item
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='epltnet'     ! set for subroutine
 
 C Use next unit up from plant network file for the plant database.
       ifpnf=IFIL+1
@@ -68,38 +74,16 @@ C Let the user pick a menu item.
       NITMS=7
 
 C Help text for this menu.
-  12  h(1) ='This facility is used to define or edit a plant '
-      h(2) ='network. The items in the main menu have the following'
-      h(3) =' functions:'
-      h(4)=' '
-      h(5) =' (1) Allows you to define a new plant network.'
-      h(6) ='     Before you proceed with the network '
-      h(7) ='     definition, you will be asked to specify'
-      h(8) ='     the network file name.'
-      h(9)=' '
-      h(10)=' (2) Allows you to modify an existing plant '
-      h(11)='     network. You will be asked to specify'
-      h(12)='     the network file name.'
-      h(13)=' '
-      h(14)=' (?) Displays this message.'
-      h(15)=' (-) Exits to project description.'
+  12  helptopic='plant_net_menu'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Uncomment following line of code when graphical interface becomes
 C available, The line setting INO=3 should also be deleted then
 C      CALL EMENU(' Plant Network',ITEM,NITMS,INO)
       INO=3
       IF(INO.EQ.2)THEN
-        h(1)='Graphical network definition is currently  '
-        h(2)='functional but is still at an early  '
-        h(3)='stage of development. Hence for the safety'
-        h(4)='of the novice user graphical network '
-        h(5)='definition is password protected.'
-        h(6)=' '
-        h(7)='If you do not know the password select cancel'
-        h(8)='and you will be given a change to try again with '
-        h(9)='the text/menu based interface.'
         call easki(ians,' ','Password: ',0,'-',0,'-',0,'Password',
-     &    IERI,9)
+     &    IERI,nbhelp)
         if(ieri.eq.-3) goto 10
         if(ians.ne.101) goto 10
 
@@ -134,34 +118,27 @@ C edcomp supports editing of network plant components.
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD) 
       COMMON/PCPAR/NPI(MPCOM), TADATA(MPCOM,MADATA) 
       common /datdsc/ mscdsc(madata), cvrdsc(mconvr)
-      COMMON/OUTIN/IUOUT,IUIN
-      common/pophelp/h(60)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pcnam/pcname(mpcom)
       common/hfpar/hfpdsc(mpcom,madata)
       dimension ival(mpcom)      
      
-      character pcname*15,H*72,txt*72,hfpdsc*68,t15*15,outs*124
+      character pcname*15,txt*72,hfpdsc*68,t15*15,outs*124
       character*68 mscdsc, cvrdsc
 
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='edcomp'     ! set for subroutine
+
 C Ask the user what they want to edit
-      h(1)='Each plant component has numerous parameters '
-      h(2)='associated with it. These are grouped into two sets:    '
-      h(3)=' '
-      h(4)='heat flow parameters - these are associated with the heat'
-      h(5)='transfers in the plant component.'
-      h(6)=' '
-      h(7)='fluid flow parameters - these are associated with pressure'
-      h(8)='driven fluid flow in the component and are necessary ONLY'
-      h(9)='if a fluid flow connection(s) is/are mapped to the plant '
-      h(11)='component. Each RECIEVING connection to the plant '
-      h(12)='component requires a set of fluid flow parameters, e.g.'
-      h(13)='the mixing box, with two incoming connetions, requires'
-      h(14)='two fluid flow parameter sets. '
-      h(15)=' '
-      h(16)='All parameters can be edited by the user to suit their'
-      h(17)='particular component.'
-      CALL EASKABC('What do you want to edit? ',' ',
-     &'Name and component data','Optional flow data','continue',IOPT,17)
+      helptopic='plant_comp_attributes'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+      CALL EASKABC(' ','Edit options:',
+     & 'name and component data','optional flow data','cancel',IOPT,
+     & nbhelp)
 
 C Wrong pick.
       IF(IOPT.EQ.3) RETURN
@@ -173,14 +150,12 @@ C Open plant component data base to initialise plant components
 C entry pointer.
 
 C Change component name
-  210   h(1)='You can designate a meaningful name for the selected'
-        h(2)='component. This name will be used in the current '
-        h(3)='problem. The name must not exceed 15 characters.'
-        h(4)=' '
-        t15=pcname(ipcomp)
+  210   t15=pcname(ipcomp)
+        helptopic='plant_comp_name'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKS(t15,
-     &     ' Component name in problem ( <=15 characters) ? ',' ',
-     &     15,' ',' component name',IER,4)
+     &     ' Component name (<=15 characters)? ',' ',
+     &     15,' ',' component name',IER,nbhelp)
         if(t15(1:2).ne.'  '.and.t15(1:4).ne.'UNKN')then
           pcname(ipcomp)=t15
         else
@@ -188,28 +163,21 @@ C Change component name
         endif
         if(ier.ne.0) goto 210
 
-      call rcdata(ipcomp,2)
-      if(nci(ipcomp).gt.0) then
+        call rcdata(ipcomp,2)
+        if(nci(ipcomp).gt.0) then
 C If component has any control variable(s),
 C prompt user to enter its value.
-
-        do 101 jj=1, nci(ipcomp)
-          txt=cvrdsc(jj)
-          value=0.0
-          h(1)='A control variable may be subjected to control action.'
-          h(2)='For example, in a heating coil model, the heat'
-          h(3)='injected to the air may be an elected control variable.'
-          h(4)='If no control loop is defined, a realistic value must'
-          h(5)='be assigned to this variabel otherwise its value is '
-          h(6)='determined on the basis of some sensed condition and'
-          h(7)='the active control law.'
-          h(8)=' '
-          value=cdata(ipcomp,jj)
-          CALL EASKR(value,' ',txt,0.,'-',0.,'-',0.,
-     &      ' item value?',IER,9)
-          cdata(ipcomp,jj)=value
-  101   continue
-      endif
+          helptopic='plant_ctl_variable'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          do 101 jj=1, nci(ipcomp)
+            txt=cvrdsc(jj)
+            value=0.0
+            value=cdata(ipcomp,jj)
+            CALL EASKR(value,' ',txt,0.,'-',0.,'-',0.,
+     &        ' item value?',IER,nbhelp)
+            cdata(ipcomp,jj)=value
+  101     continue
+        endif
 
 C Read components data from database.
         do 23 ipc=1,npcomp
@@ -229,7 +197,7 @@ C Read new value for selected item(s).
             dvalue=tadata(ipcomp,ival(iij))
             value=dvalue
             call easkr(value,' ',txt,0.,'-',0.,'-',dvalue,
-     &        ' item value?',IER,0)
+     &        ' item value?',IER,nbhelp)
              tadata(ipcomp,ival(iij))=value
   106     continue
           write(outs,'(2a)') 'Updated data for ',pcname(ipcomp)
@@ -325,7 +293,7 @@ C IPCC(i) - index of plant component for containment i
       COMMON/C11/NCONT,IPCC(MPCOM),INDCP(MPCOM),CNTDAT(MPCOM,3)
       common/mfng/nodnam(mpcom), fcmp(mpcom)
       common /pcddsc/ pcdesc(maxpc), npref(mpcom)
-      COMMON/OUTIN/IUOUT,IUIN      
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT  
       common/pcnam/pcname(mpcom)  
       character pcname*15,pcdesc*80,message*72
       
@@ -489,8 +457,7 @@ c#include "gencompDB_common.h"
       COMMON/C9plus/UCdbNam(MPCOM),CdbCat(MPCOM),CDBDesc(MPCOM)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
-      common/pophelp/h(60)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PCNAM/PCNAME(MPCOM)
       common /pcddsc/ pcdesc(maxpc), npref(mpcom)
       common/pcsort/icode(maxpc)
@@ -505,9 +472,16 @@ C Common for new format component database
       integer icdbf
 
       character*(*) head
-      CHARACTER H*72,cVERT*48,KEY*1,MOD*1,ctype*16,desc*16
-      LOGICAL SELECT,OK,dok
+      CHARACTER cVERT*48,KEY*1,MOD*1,ctype*16,desc*16
+      LOGICAL SELECT,OK
       integer MVERT,IVERT,IDVERT ! max items and current menu item
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='ASKPCMP'     ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number 
@@ -585,7 +559,7 @@ C If a long list include page facility text.
 
 C If MOD has been passed as a M then add an item at the end.
       IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-        cVERT(M+2)='+ Add/Delete/Copy '
+        cVERT(M+2)='+ Add/Delete       '
         cVERT(M+3)=' '
       ELSE
         cVERT(M+2)='                   '
@@ -601,13 +575,22 @@ C If MOD has been passed as a M then add an item at the end.
       cVERT(M+6)  ='- Exit             '
 
 C Help text for this menu.
-      H(1)='The list shows the (currently) available components '
-      H(2)='defined in the plant network which is being edited. '
-      H(3)='Components can be added to the list only in the '
-      H(4)='component editing menu. Deletion is allowed'
-      H(5)='only during the editing phase, when an individual  '
-      H(6)='component is chosen from the displayed list. '
-      H(7)='Choose a component from the list or "Exit".'
+      if(MOD.EQ.'C')then  
+        helptopic='plant_cmp_lst'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+      elseif(MOD.EQ.'Z')then
+        helptopic='plant_zone_link'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+      elseif(MOD.EQ.'A')then
+        helptopic='plant_air_link'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+      elseif(MOD.EQ.'K')then
+        helptopic='plant_known_link'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+      else
+        helptopic='plant_cmp_list'
+        call gethelptext(helpinsub,helptopic,nbhelp)
+      endif
 
 C Display the menu.
       CALL EMENU(head,cVERT,MVERT,IVERT)
@@ -620,18 +603,15 @@ C If no selection has been made before exit then return with 0.
       IF(.NOT.SELECT)IS=0
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
-        CALL PHELPD('node connection selection',7,'-',0,0,IER)
+        CALL PHELPD('node connection selection',nbhelp,'-',0,0,IER)
         GOTO 3
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
 
 C Script directed input if not in graphic mode.
         if(MMOD.EQ.8)goto 3
         IV=1
-        h(1)='Supply the index of the plant component. '
-        h(2)=' '
-        h(3)='A cancel continues without a component. '
   96    CALL EASKI(IV,' ',' Index of component ? ',
-     &         1,'F',NPCOMP,'F',1,'script comp',IERI,3)
+     &         1,'F',NPCOMP,'F',1,'script comp',IERI,nbhelp)
         if(ieri.eq.-1)then
           is=0
           return
@@ -646,36 +626,38 @@ C Script directed input if not in graphic mode.
 C Allow a component to be added, checked for uniqueness and returned.
 C Code to allow deletion commented out until support code in place.
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-            IOPT=-1
-            CALL EASKABCD('Choose an option or continue ',' ','Add',
-     &'Delete','Copy','Continue',IOPT,0)
-            IF(IOPT.EQ.1) THEN
-              if(NPCOMP+1.LE.MPCOM)then
+          IOPT=-1
+          helptopic='plant_cmp_add'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKABC(' ','Options:','Add',
+     &         'Delete','Return',IOPT,nbhelp)
+          IF(IOPT.EQ.1) THEN
+            if(NPCOMP+1.LE.MPCOM)then
 C Needs to be if checked
-                CALL PCDEFN
-                ILEN=NPCOMP
-                IPACT=CREATE
-                CALL EKPAGE(IPACT)
-                GOTO 3
-              else
-                call usrmsg(' ',' Component list full!','W') 
-                IS=0
-                GOTO 3
-              endif
-            ELSEIF(IOPT.EQ.2) THEN
-               call usrmsg('Delete which component ? ',' ','-') 
-               CALL EMENU(head,cVERT,MVERT,IDVERT)
-               CALL KEYIND(MVERT,IDVERT,IFOC,IO)
-               call usrmsg(' ',' ','-') 
-               IS=IFOC
-               IF(IS.GT.0.AND.IS.LE.NPCOMP) CALL DELCOMP(IS)
-               ILEN=NPCOMP
-               IPACT=CREATE
-               CALL EKPAGE(IPACT)
-            ELSE
-               CALL EDISP(IUOUT,
+              CALL PCDEFN
+              ILEN=NPCOMP
+              IPACT=CREATE
+              CALL EKPAGE(IPACT)
+              GOTO 3
+            else
+              call usrmsg(' ',' Component list full!','W') 
+              IS=0
+              GOTO 3
+            endif
+          ELSEIF(IOPT.EQ.2) THEN
+             call usrmsg('Delete which component ? ',' ','-') 
+             CALL EMENU(head,cVERT,MVERT,IDVERT)
+             CALL KEYIND(MVERT,IDVERT,IFOC,IO)
+             call usrmsg(' ',' ','-') 
+             IS=IFOC
+             IF(IS.GT.0.AND.IS.LE.NPCOMP) CALL DELCOMP(IS)
+             ILEN=NPCOMP
+             IPACT=CREATE
+             CALL EKPAGE(IPACT)
+          ELSE
+             CALL EDISP(IUOUT,
      &'Sorry, copying components is not available.')
-            ENDIF
+          ENDIF
         ELSE
           IVERT=-1
           goto 3
@@ -694,10 +676,7 @@ C Decode from the potential long list to the comp no via KEYIND.
         SELECT=.TRUE.
         IS=IFOC
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-          dok=.true.
-          h(1)='If this is the item you want to edit say ok. If not'
-          h(2)='say no and try again. '
-          CALL ASKOK('Edit this item?',' ',OK,dok,2)
+          CALL EASKOK(' ','Edit item?',OK,nbhep)
           IF(OK) CALL EDCOMP(IS)
           ILEN=NPCOMP
           IPACT=CREATE
@@ -731,8 +710,7 @@ C interaction is begun.
      &           IPC2(MPCON),IPN2(MPCON),PCONDR(MPCON),PCONSD(MPCON,2)
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD) 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
-      common/pophelp/h(60)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PCNAM/PCNAME(MPCOM)
       common /pcdat/ nnodes(mpcom), isv(mpcom,mnodec), 
      &               ndcon(mpcom,mnodec)
@@ -740,9 +718,16 @@ C interaction is begun.
       CHARACTER PCNAME*15,CSTR*9
       character*(*) head
       character sendstr*20,sendnd*12,recvnd*12 
-      CHARACTER H*72,VERT*88,KEY*1,MOD*1
-      LOGICAL SELECT,OK,dok
+      CHARACTER VERT*88,KEY*1,MOD*1
+      LOGICAL SELECT,OK
       integer MVERT,IVERT,IDVERT ! max items and current menu item
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='ASKPCON'     ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number 
@@ -761,10 +746,10 @@ C Initial menu entry setup.
       IVERT=-3
 
 C Fill connectio type strings
-      CSTR(1)='N/A      '
-      CSTR(2)='fixed val'
-      CSTR(3)='to compt '  
-      CSTR(4)='zone/amb '  
+      CSTR(1)='fixed val'
+      CSTR(2)='to compt '  
+      CSTR(3)='zone/amb '  
+      CSTR(4)='amb air  '
     
 C Write the first menu item
       WRITE(VERT(1)(1:64),'(A)')
@@ -778,7 +763,7 @@ C current menu line index. Build up text strings for the menu.
           M=M+1
           CALL EMKEY(L,KEY,IER)
           ISVT=isv(IPC1(L),IPN1(L))
-          IF(IPCT(L).EQ.3) THEN
+          IF(IPCT(L).EQ.2) THEN
           WRITE(SENDSTR,'(A15)')PCNAME(IPC2(L))
             if(isvt.eq.0.or.isvt.eq.10.or.isvt.eq.20) then
               WRITE(SENDND,'(A,I2)')'water node',IPN2(L)
@@ -788,7 +773,7 @@ C current menu line index. Build up text strings for the menu.
               WRITE(SENDND,'(A,I2)')'solid node',IPN2(L)
             endif            
 
-          ELSEIF(IPCT(L).EQ.2) THEN 
+          ELSEIF(IPCT(L).EQ.1) THEN 
             if(isvt.eq.0.or.isvt.eq.10.or.isvt.eq.20) then
               WRITE(SENDND,'(A,I2)')'water node',IPN2(L)
               WRITE(SENDSTR,'(A)')  'fixed temp' 
@@ -799,7 +784,7 @@ C current menu line index. Build up text strings for the menu.
               WRITE(SENDND,'(A,I2)')'solid node',IPN2(L)
               WRITE(SENDSTR,'(A)')  'fixed temp' 
             endif            
-          ELSEIF(IPCT(L).EQ.4) THEN
+          ELSEIF(IPCT(L).EQ.3) THEN
             IF(PCONSD(L,1).GT.0.) THEN
               ICZ=NINT(PCONSD(L,1))
               WRITE(SENDSTR,'(A)')ZNAME(ICZ)(1:12)
@@ -836,7 +821,7 @@ C If a long list include page facility text.
 
 C If MOD has been passed as a M then add an item at the end.
       IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-        VERT(M+2)='+ add/delete/copy '
+        VERT(M+2)='+ add/delete       '
         VERT(M+3)=' '
       ELSE
         VERT(M+2)='                   '
@@ -852,13 +837,8 @@ C If MOD has been passed as a M then add an item at the end.
       VERT(M+6)  ='- Exit             '
 
 C Help text for this menu.
-      H(1)='The list shows the (currently) available connections'
-      H(2)='defined in the plant network being edited/defined.'
-      H(3)='Connections can be added to the list only in the '
-      H(4)='connection editing menu. Connections deletion '
-      H(5)='is allowed only during the editing phase, when an '
-      H(6)='individual connection is chosen from the displayed'  
-      H(7)='list. Choose a connection from the list or "Exit".'
+      helptopic='component_connections'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Display the menu.
       CALL EMENU(head,VERT,MVERT,IVERT)
@@ -871,7 +851,7 @@ C If no selection has been made before exit then return with 0.
       IF(.NOT.SELECT)IS=0
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
-        CALL PHELPD('node connection selection',7,'-',0,0,IER)  
+        CALL PHELPD('node connection selection',nbhelp,'-',0,0,IER)  
         GOTO 3
 
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
@@ -879,11 +859,8 @@ C If no selection has been made before exit then return with 0.
 C Script directed input if not in graphic mode.
         if(MMOD.EQ.8)goto 3
         IV=1
-        h(1)='Supply the index of the plant component. '
-        h(2)=' '
-        h(3)='A cancel continues without a component. '
   96    CALL EASKI(IV,' ',' Index of component ? ',
-     &         1,'F',NPCOMP,'F',1,'script comp',IERI,3)
+     &         1,'F',NPCOMP,'F',1,'script comp',IERI,nbhelp)
         if(ieri.eq.-1)then
           is=0
           return
@@ -898,8 +875,10 @@ C Script directed input if not in graphic mode.
 C Allow a component to be added, checked for uniqueness and returned.
 C Code to allow deletion commented out until support code in place.
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-        CALL EASKABCD('Select option or continue',' ','Add ','Delete',
-     &'Copy','Continue',IOPT,0)
+          helptopic='plant_conn_add'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKABC(' ','Options:','add ','delete',
+     &         'return',IOPT,nbhelp)
           IF(IOPT.EQ.1) THEN
             if(NPCON+1.LE.MPCON)then 
               CALL CONDEF('-',MPCON)
@@ -924,11 +903,6 @@ C Code to allow deletion commented out until support code in place.
             IPACT=CREATE
             CALL EKPAGE(IPACT)
             GOTO 3
-          ELSEIF(IOPT.EQ.3)THEN
-            CALL EDISP(IUOUT,
-     &' Sorry copying of connections is not available.')
-          ELSEIF(IOPT.EQ.4)THEN
-            GOTO 3
           ELSE
             GOTO 3
           ENDIF
@@ -945,15 +919,14 @@ C If there are enough items allow paging control via EKPAGE.
         ENDIF
       ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
 
-C Decode from the potential long list to the comp no via KEYIND.
+C Decode from the potential long list to the comp. no. via KEYIND.
         CALL KEYIND(MVERT,IVERT,IFOC,IO)
         SELECT=.TRUE.
         IS=IFOC
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-          dok=.true.
-          h(1)=' '
-          h(2)=' '
-          CALL ASKOK('Edit this connection?',' ',OK,dok,2)     
+          helptopic='plant_conn_ed'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKOK(' ','Edit connection?',OK,nbhelp)     
 
 C Edit the selected connection.
           IF(OK) CALL CONDEF('E',IS)
@@ -985,15 +958,21 @@ C interaction is begun.
 #include "geometry.h"
       COMMON/C11/NCONT,IPCC(MPCOM),INDCP(MPCOM),CNTDAT(MPCOM,3)  
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
-      common/pophelp/h(60)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PCNAM/PCNAME(MPCOM)
       DIMENSION VERT(35)
       CHARACTER PCNAME*15
       character*(*) head
-      CHARACTER H*72,VERT*44,KEY*1,MOD*1,CNTSTR*20
-      LOGICAL SELECT,OK,dok
+      CHARACTER VERT*44,KEY*1,MOD*1,CNTSTR*20
+      LOGICAL SELECT,OK
       integer MVERT,IVERT ! max items and current menu item
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='ASKCONT'     ! set for subroutine
 
 C Initialise node menu variables based on window size. 
 C IVERT is the menu position, MVERT the current number 
@@ -1050,7 +1029,7 @@ C If a long list include page facility text.
 
 C If MOD has been passed as a M then add an item at the end.
       IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-        VERT(M+2)='+ Add/Delete/Copy   '
+        VERT(M+2)='+ Add (see help for delete) '
         VERT(M+3)=' '
       ELSE
         VERT(M+2)='                   '
@@ -1066,13 +1045,8 @@ C If MOD has been passed as a M then add an item at the end.
       VERT(M+6)  ='- Exit             '
 
 C Help text for this menu.
-      H(1)='The list shows the  available containments defined'
-      H(2)='in the current plant network being edited/defined. '
-      H(3)='Containments can be added to the list only during '
-      H(4)='editing. Containment deletion is allowed only during'
-      H(5)='the editing phase, when an individual containment  '
-      H(6)='is chosen from the displayed list. '
-      H(7)='Choose a containment from the list or "Exit". '
+      helptopic='list_plant_containments'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Display the menu.
       CALL EMENU(head,VERT,MVERT,IVERT)
@@ -1085,7 +1059,7 @@ C If no selection has been made before exit then return with 0.
       IF(.NOT.SELECT)IS=0
         RETURN
       ELSEIF(IVERT.EQ.(MVERT-1))THEN
-        CALL PHELPD('node connection selection',6,'-',0,0,IER)  
+        CALL PHELPD('node connection selection',nbhelp,'-',0,0,IER)  
         GOTO 92
 
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
@@ -1093,11 +1067,8 @@ C If no selection has been made before exit then return with 0.
 C Script directed input if not in graphic mode.
         if(MMOD.EQ.8)goto 3
         IV=1
-        h(1)='Supply the index of the plant component. '
-        h(2)=' '
-        h(3)='A cancel continues without a component. '
   96    CALL EASKI(IV,' ',' Index of component ? ',
-     &         1,'F',NCONT,'F',1,'script comp',IERI,3)
+     &         1,'F',NCONT,'F',1,'script comp',IERI,nbhelp)
         if(ieri.eq.-1)then
           is=0
           return
@@ -1112,8 +1083,10 @@ C Script directed input if not in graphic mode.
 C Allow a component to be added, checked for uniqueness and returned.
 C Code to allow deletion commented out until support code in place.
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-          CALL EASKABCD('Containment options:',' ','Add ','Delete',
-     &      'Copy','Continue',IOPT,0)
+          helptopic='plant_cont_add'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKAB(' ','Containment options:','add ',
+     &      'return',IOPT,nbhelp)
           IF(IOPT.EQ.1) THEN
             if(NCONT+1.LE.MPCOM)then
               CALL CNTDEF('-',MPCOM)
@@ -1127,13 +1100,6 @@ C Code to allow deletion commented out until support code in place.
               IS=0
               RETURN
             endif
-          ELSEIF(IOPT.EQ.2) THEN
-            call usrmsg(
-     & 'Containments are deleted via the component list so return',
-     & 'to that menu to delete a component and containment together.',
-     & '-')
-          ELSE
-            CALL EDISP(IUOUT,'Copying of containments is not available')
           ENDIF 
           GOTO 92             
         ELSE
@@ -1154,10 +1120,9 @@ C Decode from the potential long list to the comp no via KEYIND.
         SELECT=.TRUE.
         IS=IFOC
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
-          dok=.true.
-          h(1)=' '
-          h(2)=' '
-          CALL ASKOK('Edit this containiment',' ',OK,dok,2)
+          helptopic='plant_cont_ed'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL EASKOK(' ','Edit containment',OK,nbhelp)
           IF(OK) CALL CNTDEF('E',IS)
           ILEN=NCONT
           IPACT=CREATE
@@ -1196,7 +1161,7 @@ C LPCDB/IPCDB (for plant template database)
       COMMON/C11/NCONT,IPCC(MPCOM),INDCP(MPCOM),CNTDAT(MPCOM,3)
 
       common /pcddsc/ pcdesc(maxpc), npref(mpcom)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PCNAM/PCNAME(MPCOM)
 
       character OUTS*72,OUTSTR*124,outs248*248
@@ -1281,17 +1246,16 @@ C **CDB affected
       PARAMETER (MHEADR = 25)
 
       COMMON /dbdat/ NPCDB, ITMLOC(MAXPC,2)
-      COMMON/OUTIN/IUOUT,IUIN
-      common/pophelp/h(60)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Common for screen control.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
 C Common for new format component database
       COMMON/NCDBFORM/ICDBF      
-      LOGICAL OK,dok,unixok
+      LOGICAL OK,unixok
       CHARACTER*25 PZDESC
-      character h*72,buffer*72,ltmp*72,fs*1
+      character buffer*72,ltmp*72,fs*1
       integer lndbp   ! for length of standard database path
       character lltmp*144  ! to re-create plant database file name with path
       CHARACTER scantype*8
@@ -1300,6 +1264,13 @@ c      character domain_s*16,category_s*16
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer icdbf   !0 if old format, 1 if new format.
       integer ISTRW
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='opnpdb'     ! set for subroutine
 
 C Assume old format initially
       icdbf=0
@@ -1318,13 +1289,8 @@ C Initialize plant component database file.
 C The X11 version will be returning only the name of the
 C file, while the GTK version will be returning the
 C name with the full path.
-  100 h(1)='The plant/components database file holds the'
-      h(2)='description of available components. If the name'
-      h(3)='given matches an existing file, it will be read in'
-      h(4)='and the components data will be available for'
-      h(5)='listing and editing. If there is no such file then'
-      h(6)='a new one will be created to hold data for new'
-      h(7)='components.'
+  100 helptopic='plant_database'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Deal with local or standard db location when making up the selection string.
       lndbp=lnblnk(standarddbpath)
@@ -1350,7 +1316,7 @@ C Deal with local or standard db location when making up the selection string.
         ISTRW=96
       endif
       CALL EASKF(lltmp,'Plant component database file name? ',' ',
-     &  ISTRW,DPCDB,' Database name ',IER,7)
+     &  ISTRW,DPCDB,' Database name ',IER,nbhelp)
       
 C Figure out local or standard database folder.
       call findwhichdbpath('pdb',lltmp,ier)
@@ -1378,13 +1344,8 @@ C Attempt to open the file as a new format cdb (ASCII) file.
             scantype='open'
             CALL CDBScanDataBase(ipcdb,lltmp,scantype,IERcdb)
             IF(IERcdb.gt.0) THEN
-              dok=.false.
-              ok=.false.
-              h(1)='An error occurred wheb opening the plant/components'
-              h(2)='template database. Check that the file exists and'
-              h(3)='has not been corrupted. '
-              CALL ASKOK('Error occurred on opening file',
-     &              ' Try again? ',OK,dok,3)
+              CALL EASKOK('Error opening file!',
+     &                    'Retry?',OK,nbhelp)
               if(ok) goto 100
             ELSE
 
@@ -1396,12 +1357,8 @@ C Set the components database flag to active.
 
 C File doesn't exist.
             ok=.false.
-            dok=.false.
-            h(1)='An error occurred when opening the plant/components'
-            h(2)='template database. Check that the file exists and'
-            h(3)='that the name you supplied is correct. '
-            CALL ASKOK(' Plant database file does not exist.',
-     &                 ' Try again? ',OK,dok,3)
+            CALL EASKOK('Plant database file not found!',
+     &                  'Retry?',OK,nbhelp)
             CALL USRMSG(' ',' ','-')
             if(ok) goto 100
          endif
@@ -1416,12 +1373,8 @@ C Attempt to open the file as a new format cdb (ASCII) file.
             CALL CDBScanDataBase(ipcdb,lltmp,scantype,IERcdb)
             IF(IERcdb.gt.0) THEN
               ok=.false.
-              dok=.true.
-              h(1)='The file exists, but is either not a plant db file'
-              h(2)='or has been corrupted. This might happen if the '
-              h(3)='file was generated by different type of computer.'
-              CALL ASKOK(' Not a plant data base file.',
-     &                 ' Try another file? ',OK,dok,3)
+              CALL EASKOK('Not a plant database!',
+     &                    'Try another file?',OK,nbhelp)
               CALL USRMSG(' ',' ','-')
               if(ok) goto 100
             ELSE
@@ -1482,7 +1435,7 @@ C **CDB affected
       common /datdsc/ mscdsc(madata), cvrdsc(mconvr)
       common/trnsys/ittype(mpcom), loctrs(mpcom), idbct(mpcom), ntypes
       common /pcddsc/ pcdesc(maxpc), npref(mpcom)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Common for new format component database
       COMMON/NCDBFORM/ICDBF
@@ -1667,7 +1620,7 @@ C **CDB affected
       COMMON /dbdat/ NPCDB, ITMLOC(MAXPC,2)
       common /pcddsc/ pcdesc(maxpc), npref(mpcom)
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Common for new format component database
       COMMON/NCDBFORM/ICDBF
@@ -1697,7 +1650,7 @@ C in database.
 #include "esprdbfile.h"
 
       COMMON /dbdat/ NPCDB, ITMLOC(MAXPC,2)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common /pcddsc/ pcdesc(maxpc), npref(mpcom)
       common/pcsort/icode(maxpc)
 
@@ -1742,7 +1695,7 @@ C **CDB affected
      &              supcmf(mpcon,17), ltpcmf(mpcon), isdimf(mpcon)
       common/mfddsc/mfdatstr(mpcon,17)
       common /pcddsc/ pcdesc(maxpc), npref(mpcom)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       CHARACTER  ltpcmf*60,mfdatstr*40,tmpstr*68,pcdesc*80,zcdate*16 
 

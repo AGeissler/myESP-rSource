@@ -150,7 +150,7 @@ C               3 = as 2 + network matrix solving information
 C     ITER   - iteration counter
 C     IOK    - flag indicating successful iteration process
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLCLM/DRYB,QDIF,QDNR,IRVH,WDIR,WSPD,WRED
 
 C To signal that simulation preferences (globals in graphic
@@ -343,7 +343,9 @@ C Check component data, beginning with possible duplication.
       I=0
    32 I=I+1
       IF(I.GT.1.AND.CMNAM(I).EQ.CMNAM(ICMP))then
-        call edisp(iuout,' Duplicate component!')
+        write(outs,'(a,i4,2a,i4,a)') 'Duplicate components! ',
+     &    I,CMNAM(I),' & ',ICMP,CMNAM(ICMP)
+        call edisp(iuout,outs)
         GOTO 999
       endif
       IF(I.LT.ICMP-1) GOTO 32
@@ -546,7 +548,7 @@ C espriou.h provides currentfile.
 C Network flow commons are as follows:
 C as defined in net_flow_data.h)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/POPHELP/H(60)
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       character LAPROB*72
@@ -573,7 +575,7 @@ C alter preferences. Typically filled with standard values.
       CHARACTER OUTSTR*124,WORD*20,NODID*12,NDID*12,CMPID*12,OUTS*124
       CHARACTER LFIL*72,H*72,WORD2*24,ectime*24
       CHARACTER*72 DFILE
-      LOGICAL CONT,OK,dok
+      LOGICAL CONT,OK
 
 C 'Reset' error indicator and clear node & component names
 C and attributes.
@@ -611,9 +613,8 @@ C Open the file with user defined or existing filename
         IF(LFIL(1:3).NE.'   '.AND.LFIL(1:3).NE.'UNK') THEN
           LAPROB=LFIL
         ELSE
-          dok=.true.
-          h(1)='You gave a blank file name or UNKNOWN for the name. '
-          CALL ASKOK('Filename blank - try again?',' ',OK,dok,1)
+          h(1)='Blank file name or UNKNOWN entered.'
+          CALL EASKOK('Illegal filename!','Retry?',OK,1)
           IF(OK)THEN
             GOTO 2
           ELSE
@@ -640,11 +641,10 @@ C Open the 3D flow network file.
         IF(MODE.NE.'S') THEN
           WRITE(OUTS,'(3A)')
      &  'File ',LFIL(1:LNBLNK(LFIL)),' is a new network description.'
-          dok=.true.
-          h(1)='The file does not already exist and will be assumed to'
-          h(2)='be for a new network unless you say no. '
-          CALL ASKOK(OUTS,'Define a new network using this name?',
-     &      OK,dok,2)     
+
+          h(1)='The file does not exist and will be used for'
+          h(2)='a new network.'
+          CALL EASKOK(OUTS,'Proceed?',OK,2)     
           IF(OK) THEN
             RETURN
           ELSE
@@ -657,12 +657,11 @@ C Open the 3D flow network file.
         ENDIF
       ELSEIF(IER.NE.0.AND.IER.NE.-301) THEN
         WRITE(OUTS,'(3A)')
-     &    ' Problem opening ',LFIL(1:LNBLNK(LFIL)),'.'
-        dok=.true.
+     &    ' Problem opening ',LFIL(1:LNBLNK(LFIL)),'!'
+
         h(1)='The file was expected to exist, but was not found or'
-        h(2)='could not be read. Double check the name before trying'
-        h(3)='again.  '
-        CALL ASKOK(OUTS,'Try again?',OK,dok,3)
+        h(2)='could not be read. Check the name before retrying.'
+        CALL EASKOK(OUTS,'Retry?',OK,2)
         IF(OK) THEN
           GOTO 2
         ELSE
@@ -1047,7 +1046,7 @@ C data items.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
       logical close1,close2,close3
 
@@ -1472,7 +1471,7 @@ C MFERR Error trap routine.
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character*(*) MSG
       character outs*124
 
@@ -1860,7 +1859,7 @@ C***** Error checking.
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       IF(ISDCMP(ICMP)-1.EQ.NEWDI)THEN
         IF(ABS(SUPCMP(ICMP,NEWDI+1)).LT.0.00001)
@@ -1884,7 +1883,7 @@ C return 0 index with the message ermsg if in verbose mode (ivbs=1).
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character*(*),MSG,NAME
       character NODE*12,outs*124
@@ -1916,7 +1915,7 @@ C with the message msg if in verbose mode (ivbs=1).
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character*(*),MSG,NDPOS,NDNEG
       character NODLE*12,NODRI*12,CMPNM*12,outs*124,CMPID*12
@@ -1952,7 +1951,7 @@ C msg if in verbose mode (ivbs=1).
 #include "building.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character*(*),MSG,NAME
       character CMPNM*12,outs*124
@@ -2189,7 +2188,7 @@ C Component data
         WRITE(IFPRB,'(a)',IOSTAT=IOS,ERR=999)
      &    '# tag name assoc zone & surface type C+ L+'
         WRITE(IFPRB,'(a)',IOSTAT=IOS,ERR=999)
-     &    'start&end positions  description'
+     &    '# start&end positions  description'
         WRITE(IFPRB,'(a)',IOSTAT=IOS,ERR=999) '# data'
 
         DO ICMP=1,NCMP
@@ -2414,7 +2413,7 @@ C Update both the 3D attribute and legacy versions of flow network.
           lnnwknam=lnblnk(NWKNAM)
           write(LEGNWKNAM,'(2a)')NWKNAM(1:lnnwknam-6),'.afn'
           CALL ERPFREE(IUM,ISTAT)
-          CALL EFOPSEQ(IUM,LEGNWKNAM,4,IER)
+          CALL EFOPSEQ(IUM,LEGNWKNAM,3,IER)
           IAIRN=1  ! set so legacy format is written
           CALL MFWRIT(IUM)
           CALL ERPFREE(IUM,ISTAT)
@@ -2438,7 +2437,7 @@ C Passed parameters:
       integer izone,isurf  ! zone and surface to check against
       integer inode,icmp   ! if non-zero the index of the node & component
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -2453,7 +2452,6 @@ C Passed parameters:
 
       inode=0; icmp=0
       ioc=IZSTOCN(izone,isurf)
-
       if(IAIRN.ge.1.and.ICAAS(izone).ne.0)then ! Is there a flow network?
         if(IAIRN.eq.3)then                     ! Is it 3D?
           do loop=1,NNOD
@@ -2467,13 +2465,13 @@ C has an associated boundary node? Echo node information.
             if(NODASSOC(loop,1)(1:lnnoda1).eq.
      &         zname(izone)(1:lnz).and.
      &         NODASSOC(loop,2)(1:lnnoda2).eq.
-     &         SSNAME(ioc)(1:lnblnk(SSNAME(ioc))))then
+     &         SNAME(izone,isurf)(1:lnblnk(SNAME(izone,isurf))))then
               if(NDTYP(loop).eq.0) msg=' internal unknown pressure'
               if(NDTYP(loop).eq.1) msg=' internal known pressure'
               if(NDTYP(loop).eq.2) msg=' boundary node known pres'
               if(NDTYP(loop).eq.3) msg=' wind boundary node'
               write(outs,'(4a,3f7.3,a)') 
-     &          SSNAME(ioc)(1:lnblnk(SSNAME(ioc))),
+     &          SNAME(izone,isurf)(1:lnblnk(SNAME(izone,isurf))),
      &          ' is associated with flow node ',NDNAM(loop),
      &          ' @ ',HNOD(loop,1),HNOD(loop,2),HNOD(loop,3),
      &          msg(1:lnblnk(msg))
@@ -2492,10 +2490,10 @@ C Then echo the component information.
             if(CMPASSOC(loop,1)(1:lncmp1).eq.
      &         zname(izone)(1:lnz).and.
      &         CMPASSOC(loop,2)(1:lncmp2).eq.
-     &         SSNAME(ioc)(1:lnblnk(SSNAME(ioc))))then
+     &         SNAME(izone,isurf)(1:lnblnk(SNAME(izone,isurf))))then
               write(msg,'(2a)') ' ',LTPCMP(loop)(1:28)
               write(outs,'(4a,3f7.3,a)') 
-     &          SSNAME(ioc)(1:lnblnk(SSNAME(ioc))),
+     &          SNAME(izone,isurf)(1:lnblnk(SNAME(izone,isurf))),
      &          ' is associated with flow cmp ',CMNAM(loop),
      &          ' @ ',HCMP(loop,1,1),HCMP(loop,1,2),
      &          HCMP(loop,1,3),msg(1:lnblnk(msg))

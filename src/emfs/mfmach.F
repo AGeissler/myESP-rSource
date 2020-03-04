@@ -104,6 +104,7 @@ C     RESRMX - maximum relative residual (relative to SAFLW for NDWREL)
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "tdf2.h"
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/trc/itrc
       COMMON/MFTRA/IMFTU
 
@@ -279,6 +280,8 @@ C and partial derivative dFlow/d(dPressure)
             CALL MF460C(ICNN,DP,DFDDP)
           ELSE
             call edisp(IMFTU,' MFSOLV: unresolvable error !')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP 
@@ -455,6 +458,8 @@ C Now solve {PRC} from matrix equation {PJMTX} {PRC} = {RHS}
    64    CONTINUE
       ELSE
         call edisp(IMFTU,' MFSOLV: unresolvable error !')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP 
@@ -1403,6 +1408,7 @@ C     TNEG                  - absolute temperature -ve side (K)
 
       SUBROUTINE MF130C(ICNN,DELP,DERIV)
 #include "building.h"
+#include "site.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 
@@ -1451,7 +1457,7 @@ C          write(6,*) 'door width reset to ',WDTH,ctlpos(icnn)
       CDIS=SUPCMP(ICMP,5)
 
       RGAS=287.035
-      PATM=REAL(PRES(IDPS))+101325.
+      PATM=REAL(PRES(IDPS))+atmpres
       TPOS=TNOD(IDPS)+273.15
       TNEG=TNOD(IDNE)+273.15
 
@@ -2196,7 +2202,7 @@ C     RHO                   - fluid density (kg/m^3)
 #include "net_flow.h"
 #include "net_flow_data.h"
       COMMON/SHOUT/ICOUT
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
       COMMON/MFLCTL/IRY,IRM,IRD,IRH,FLWTIM,IHOUR,IYD,IFYD,ILYD,IPROG
@@ -2279,6 +2285,8 @@ C                    to m,max if DELP > dP @ m,max
          MFL=FMAX
       ELSE
         call edisp(iuout,' MF310C: error on root bracketing !')
+         close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP 
@@ -2393,7 +2401,7 @@ C     HH100           - relative valve position H/H100 (-)
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
      &              RESID(MNOD),SAFLW(MNOD)
       COMMON/mfctl/ctlpos(MCNN)
@@ -2687,7 +2695,7 @@ C This routine is used in combination with LUBKSB to solve linear
 C equations or invert a matrix.
 
       SUBROUTINE LUDCMP(A,N,NP,INDX,D)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       DOUBLE PRECISION A(NP,NP)
       DIMENSION        INDX(N)
@@ -2841,7 +2849,7 @@ C (the same trace file as used for other issues).
       COMMON/MFLCLM/DRYB,QDIF,QDNR,IRVH,WDIR,WSPD,WRED
       COMMON/MFLCTL/IRY,IRM,IRD,IRH,FLWTIM,IHOUR,IYD,IFYD,ILYD,IPROG
       COMMON/MFLITR/MAXITF,FERREL,FERMFL,PMAX,STEFFR,MFTRAC,ITER,IOK
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       COMMON/PCTSTP/NTSTPP
       COMMON/PCTINC/IPTS
@@ -2990,7 +2998,7 @@ C MFOUTP writes header for fluid flow simulation binary results file.
 #include "net_flow.h"
 #include "net_flow_data.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/MFLRES2/IMFREC
       COMMON/MFLRESV/FLRESVER
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
@@ -3066,7 +3074,7 @@ C MFOUTP writes fluid flow simulation results to binary results file.
 #include "net_flow_data.h"
 
       common/c6/indcfg
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/MFLW11/PSTACK(MCNN),HDP(MCNN),HDV(MCNN),HFL(MCNN)
       COMMON/MFLRES/FLW1(MCNN),FLW2(MCNN),PRES(MNOD),
@@ -3074,7 +3082,7 @@ C MFOUTP writes fluid flow simulation results to binary results file.
       COMMON/MFLRES2/IMFREC
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
       COMMON/CONTM8/CCONC(MNOD,MCONTM)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       COMMON/PCTSTP/NTSTPP
       COMMON/PCTINC/IPTS
@@ -3113,13 +3121,13 @@ C Node date: Pressure, Temperature.
       if(irdact.eq.0) then
         IMFREC=IMFREC+1
         write (IFRES,REC=IMFREC,IOSTAT=ISTAT,ERR=1000) 
-     &                                         (real(PRES(I)),I=1,NNOD)
+     &    (real(PRES(I)),I=1,NNOD)
 
 C debug ascii output matching binary file data.
 C        if(dotrace)write (106,*) IMFREC,(real(PRES(I)),I=1,NNOD)
         IMFREC=IMFREC+1
         write (IFRES,REC=IMFREC,IOSTAT=ISTAT,ERR=1000) 
-     &                                         (real(TNOD(I)),I=1,NNOD)
+     &    (real(TNOD(I)),I=1,NNOD)
 C debug ascii output matching binary file data.
 C        if(dotrace)write (106,*) IMFREC,(real(TNOD(I)),I=1,NNOD)
       else
@@ -3130,10 +3138,10 @@ C        if(dotrace)write (106,*) IMFREC,(real(TNOD(I)),I=1,NNOD)
         if(irdnow.eq.1) then
           IMFREC=IMFREC+1
           write (IFRES,REC=IMFREC,IOSTAT=ISTAT,ERR=1000) 
-     &                            (real(sPRES(I))/real(irdcm),I=1,NNOD)
+     &      (real(sPRES(I))/real(irdcm),I=1,NNOD)
           IMFREC=IMFREC+1
           write (IFRES,REC=IMFREC,IOSTAT=ISTAT,ERR=1000) 
-     &                            (real(sTNOD(I))/real(irdcm),I=1,NNOD)
+     &      (real(sTNOD(I))/real(irdcm),I=1,NNOD)
           do 110 INOD=1,NNOD
             sTNOD(INOD)=0.
             sPRES(INOD)=0.
@@ -3146,10 +3154,7 @@ C write out contaminant data if contaminant simulation was invoked
         DO 300 ICONTM=1,NCONTM
           IMFREC=IMFREC+1
           write (IFRES,REC=IMFREC,IOSTAT=ISTAT,ERR=1000)
-     &                            (real(CCONC(I,ICONTM)*1000),I=1,NNOD)
-
-C Debug.
-C          write(6,*) imfrec,(CCONC(I,ICONTM),I=1,nnod),nsinc
+     &      (real(CCONC(I,ICONTM)*1000),I=1,NNOD)
 
  300    CONTINUE
       ENDIF
@@ -3160,8 +3165,8 @@ C pressure difference across connection, stack pressure and mass flows
         do 200 IC=1,NCNN
           IMFREC=IMFREC+1
           write (IFRES,REC=IMFREC,IOSTAT=ISTAT,ERR=1000) 
-     &              real(PSTACK(IC)),real(FLW1(IC)),real(FLW2(IC)),
-     &                   ' misc data e.g. control state'
+     &      real(PSTACK(IC)),real(FLW1(IC)),real(FLW2(IC)),
+     &      ' misc data e.g. control state'
 
 C debug asci output matching binary data.
 C          if(dotrace)then
@@ -3178,9 +3183,9 @@ C          endif
           do 220 IC=1,NCNN
             IMFREC=IMFREC+1
             write (IFRES,REC=IMFREC,IOSTAT=ISTAT,ERR=1000) 
-     &                real(sPSTACK(IC))/real(irdcm),
-     &          real(sFLW1(IC))/real(irdcm),real(sFLW2(IC))/real(irdcm),
-     &                 ' misc data e.g. control state'
+     &        real(sPSTACK(IC))/real(irdcm),
+     &        real(sFLW1(IC))/real(irdcm),real(sFLW2(IC))/real(irdcm),
+     &        ' misc data e.g. control state'
  220      continue
           do 230 IC=1,NCNN
             sPSTACK(IC)=0.

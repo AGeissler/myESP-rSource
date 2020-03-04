@@ -70,7 +70,7 @@ C -------------------------------HVACGIN-------------------------------
       COMMON/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       LOGICAL        CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK    ! file flags
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/rpath/path
       
       CHARACTER path*72                !path
@@ -98,7 +98,6 @@ C -------------------------------HVACGIN-------------------------------
       INTEGER edit_unit_number         ! returned from HVAC_MAIN_SUMMARY as the system number user chooses to edit, 0 if none
       INTEGER IER                      ! error reporting
       LOGICAL OK                       ! logical for OK box
-      LOGICAL DOK                      ! default logical for OK box
       LOGICAL XST                      ! existing file check
       LOGICAL browse                   ! browse mode check
       LOGICAL unixok                   ! unix check
@@ -208,8 +207,8 @@ C or browse through existing files
           else
           helptopic='zone_hvac_file'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKS2CMD(def_hvacfile,'HVAC file? (see help)',
-     &      ' ','dereference','browse',ichoice,72,' ','HVAC file',
+          CALL EASKS2CMD(def_hvacfile,' ','HVAC file?',
+     &      'dereference','browse',ichoice,72,' ','HVAC file',
      &      IER,nbhelp)
      
 C If user wishes to dereference the current hvac file, reset the hvac
@@ -641,7 +640,7 @@ C Help message
 C Present list to user.     
       hvac_selections = 1   ! user can only make one selection
       CALL EPICKS(hvac_selections,hvac_choice,
-     &   'Select Idealized HVAC System Type','(See Help for Help) ',
+     &   ' ','Select Idealized HVAC System Type',
      &   26,hvac_systems,hvac_sys_typ,'HVAC System Type:',IER,nbhelp)
       
       if(hvac_selections.eq.0)then
@@ -777,7 +776,7 @@ C Fuel Type
           fueltyp(5) = 'Wood'
       
           CALL EPICKS(ipck, chosen_fuel, ' ','Select fuel type:',30,
-     &      nfueltyp,fueltyp,'Fuel types - see help for options',
+     &      nfueltyp,fueltyp,'Fuel types',
      &      ier,nbhelp)
           if(ipck.eq.0)then !nothing selected
             exit=.true.
@@ -834,7 +833,7 @@ C Select the number of zones the system is linked to
       ival = num_sys_zones(i)
       CALL EPICKS(ival, sys_zone_number, ' ',
      &            'Select zones being supplied:',30, ncomp, zoneopt,
-     &            'Zones - see help for options',ier,nbhelp)   
+     &            'Zones',ier,nbhelp)   
       if(ival.eq.0)then !nothing selected
         exit=.true.
         CALL USRMSG(' ',' ','-') ! Clear Screen
@@ -917,7 +916,7 @@ C of loop - can be added later when fractions matter
         helptopic='zone_sys_fan_cap'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKR(fan_power(i), ' ', 'Fan power (W)', -1.,'F',1.E4,'F',
-     &    100.0, 'Invalid input, please see help file',ier,nbhelp)
+     &    100.0, 'Invalid input',ier,nbhelp)
         if(ier.eq.-3)then
           exit=.true.
           CALL USRMSG(' ',' ','-') ! Clear Screen
@@ -935,7 +934,7 @@ C of loop - can be added later when fractions matter
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKR(draft_fan_power(i), ' ', 'Draft fan power (W)', -1.,
      &             'F',200.,'F', 75.0,
-     &             'Invalid input, please see help file',ier,nbhelp)
+     &             'Invalid inpute',ier,nbhelp)
         if(ier.eq.-3)then
           exit=.true.
           CALL USRMSG(' ',' ','-') ! Clear Screen
@@ -1070,7 +1069,7 @@ C Select the number of zones the system is linked to
       ival = num_sys_zones(i) 
       CALL EPICKS(ival, sys_zone_number, ' ',
      &            'Select zones being supplied:',30, ncomp, zoneopt,
-     &            'Zones - see help for options',ier,nbhelp)
+     &            'Zones',ier,nbhelp)
       if(ival.ne.num_sys_zones(i)) then !nothing selected or not enough
         exit=.true.
         CALL USRMSG(' ',' ','-') ! Clear Screen
@@ -1148,7 +1147,7 @@ C of loop - can be added later when fractions matter
       if(ifan_operation(i).ne.1)then
       
         CALL EASKR(fan_power(i), ' ', 'Fan power (W)',-1.,'F',1.E4,'F',
-     &        100.0,'Invalid input, please see help file',ier, nbhelp)
+     &        100.0,'Invalid input',ier, nbhelp)
         if(ier.eq.-3)then
           exit=.true.
           CALL USRMSG(' ',' ','-') ! Clear Screen
@@ -1281,7 +1280,7 @@ C Select the number of zones the system is linked to
       
       ival = num_sys_zones(i)       
       CALL EPICKS(ival,sys_zone_number,'','Select zones being supplied',
-     &         30, ncomp, zoneopt,'Zones - see help for options',
+     &         30, ncomp, zoneopt,'Zones',
      &         ier,nbhelp)
       if(ival.ne.num_sys_zones(i))then
         exit=.true.
@@ -1449,7 +1448,7 @@ C set circulation mode  fan power during rating test
         CALL EASKR(fan_power_r(i),' ',
      &             'circulation fan power during rating test',
      &             -1., 'F', 1.E4,'F',100.,
-     &             'Invalid input, please see help file',ier,
+     &             'Invalid input',ier,
      &             nbhelp)
         if(ier.eq.-3)then
           exit=.true.
@@ -1621,7 +1620,7 @@ C Select the number of zones the system is linked to
       ival = num_sys_zones(i) 
       CALL EPICKS(ival, sys_zone_number, ' ',
      &            'Select zones being supplied:',30,ncomp,zoneopt,
-     &            'Zones - see help for options',ier,nbhelp)
+     &            'Zones',ier,nbhelp)
       if(ival.eq.0) then !nothing selected
         exit=.true.
         CALL USRMSG(' ',' ','-') ! Clear Screen
@@ -1779,7 +1778,7 @@ C set circulation mode  fan power during rating test
         CALL EASKR(fan_power_r(i),' ',
      &             'circulation fan power during rating test',
      &             -1.,'F',1.E4,'F',100.,
-     &             'Invalid input, please see help file',ier,nbhelp)
+     &             'Invalid input',ier,nbhelp)
         if(ier.eq.-3)then
           exit=.true.
           CALL USRMSG(' ',' ','-') ! Clear Screen
@@ -1893,9 +1892,9 @@ C Economizer control type
         helptopic='zone_hvac_hp_economizer'
         call gethelptext(helpinsub,helptopic,nbhelp)
        
-        CALL EASKI(ieconomizer_control(i), 'Economizer Control Type ',
-     &             'See help for details',1,'F',4,'F',1,
-     &             'Economizer Type',ier,nbhelp)
+        CALL EASKI(ieconomizer_control(i), ' ',
+     &       'Economizer control type?',1,'F',4,'F',1,
+     &       'Economizer type',ier,nbhelp)
         if(ier.eq.-3)then
           exit=.true.
           CALL USRMSG(' ',' ','-') ! Clear Screen
@@ -2167,7 +2166,7 @@ C ---------------------------------------------------------------------
       LOGICAL add,save_flag                       ! logical returned to main HVAGIN as true if user chooses to save or add
       LOGICAL editflag                            ! logical returned from HVAC_SYS_SUMMARY as true if user chooses to edit a system
       LOGICAL exit_flag                           ! logical returned to main HVAGIN as true if user chooses to exit
-      LOGICAL ok,dok
+      LOGICAL ok
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -2236,8 +2235,7 @@ C If one of the systems is chosen, call the system summary routine
      &                 system_number,ihvac_type(system_number),editflag)
         elseif(ipck.eq.10)then
           exit_flag=.true.
-          CALL ASKOK('You will lose new info. if file hasnt been saved', 
-     &          'Save file?', ok, dok, -1)
+          CALL EASKOK(' ','Save file?', ok, -1)
           if(ok) then
             save_flag = .true.
             exit

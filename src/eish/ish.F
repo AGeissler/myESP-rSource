@@ -96,7 +96,8 @@ C espriou.h provides currentfile, defdbfl exemfl.
       
       integer lnblnk  ! function definition
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
+      common/warncounter/iecount
       common/tracech/icout
       common/filech/ixopen,ixunit,ixpunit
       common/filep/ifil
@@ -148,6 +149,14 @@ C Significant figure reporting limit.
 C Name of current application.
       common/appname/cAppName
 
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
+
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
       dimension month(12),items(25),isadd(12),ishd(12),iavdec(12)
       character*72 lname,tbase
       character items*26,cAppName*12
@@ -156,16 +165,17 @@ C Name of current application.
       character path*72,outstr*124
       character inz*16,inzone*16,zn*12,pact*16,paction*16
       character ascif*96,pascif*96
-      character journcmd*20,jfile*72,uname*24,fs*1,cjfile*72
+      character journcmd*20,jfile*72,fs*1,cjfile*72
       character xfile*144,tg*1,delim*1,mode*4
       character exportfile*96 ! for ascii shading file
+      character dstmp*24,uname*24,tfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
 
       logical silent,unixok,there,context,existing
       logical xst,freshshading
-      logical ok,dok,cfgok,mldbok,matdbok,ctlok,optkok,CFCDBOK
+      logical ok,cfgok,mldbok,matdbok,ctlok,optkok,CFCDBOK
       logical user_recalc  ! user requested recalculation
       logical loaded_existing  ! to signal working with existing shd file
       logical changed_existing  ! to signal existing shd file updated
@@ -210,11 +220,12 @@ C Initialize global common data.
       helpinsub='ish'  ! set for MAIN
       iuout=6
       iuin=5
-      limtty=24
-      limit =24
+      limtty=30
+      limit =30
       nsigfig=3
-      matver=0.0   ! Initial assumption of binary materials database.
+      matver=0.0     ! initial assumption of binary materials database
       ISFSUM=0
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C iunit  - zone transitional shading file
 C ifilsi - zone shading & insolation db
@@ -320,16 +331,24 @@ C and dialog.
         IMFS=5
         IFS=4
         ITFS=1
+#ifdef OSX
+        IMFS=4
+        IFS=4   ! use a smaller fonts
+        ITFS=0
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       else
-         limtty=16
-         limit =16
+        IMFS=5  ! Text mode set LIMTTY larger for paging menus.
+        IFS=4
+        ITFS=1
+        limtty=30
+        limit =30
       endif
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r Shading & Insolation ',
+      write(pagestitle,'(2a)') 'Shading & insolation of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -355,19 +374,41 @@ C Open the text display box equal to limtty if mmod = 8.
           call updazi(iiazi)
         endif
         call setzscale()
-        mdispl=0
-        nifgrey=0
-        ncset=0
-        ngset=0
-        nzonec=0
+        mdispl=0; nifgrey=0
+        ncset=0; ngset=0; nzonec=0
         call foundcolour(mdispl,nifgrey,ncset,ngset,nzonec)
         call startbuffer()
       else
 
 C Set reasonable defaults for text mode.
-        igw=503; igwh=256; igl=29; igb=277
+        igw=545; igwh=284; igl=27; igb=305  ! -s 100 0 0
+        iiw1=2; iiw2=1; iiw3=1; iiw4=3; iimenu=menuchw
+        iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+        CALL win3dwwc(iimenu,iiw1,iiw2,iiw3,iiw4,
+     &    iigl,iigr,iigt,iigb,iigw,iigwh)
+        igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
+        igw=int(iigw); igwh=int(iigwh)
       endif
       if(mmod.ne.-6)icout=iuout
+
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrhome(upath)
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i6,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+931          ! set to unused index 942
+      iecount=0               ! clear count of errors
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for ish'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Because ish can be started up in several modes delay echo
 C of the version & scan of the esprc file until after the
@@ -397,9 +438,16 @@ C and then call the ascii export facility and exit.
            silent=.true.
          elseif(paction(1:8).eq.'asci2bin'.or.
      &          paction(1:9).eq.'ascii2bin')then
-           write(ascif,'(a)') pascif(1:lnblnk(pascif))
+            write(ascif,'(a)') pascif(1:lnblnk(pascif))
+
+C Missing file name for conversion. Warn user, add message to error log
+C and exit ish.
             if(ascif(1:4).eq.'UNKN')then
-              call edisp(iuout,'ish: the action file is unknown!')
+              call edisp(iuout,'ish: the ascii file name is unknown!')
+              call edisp(ieout,'ish: the ascii file name is unknown!')
+              iecount=iecount+1  ! retain the log file
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call pauses(1)
               call epagend
               stop
@@ -408,8 +456,15 @@ C and then call the ascii export facility and exit.
          elseif(paction(1:8).eq.'bin2asci'.or.
      &          paction(1:9).eq.'bin2ascii')then
            write(ascif,'(a)') pascif(1:lnblnk(pascif))
+
+C Missing file name for conversion. Warn user, add message to error log
+C and exit ish.
             if(ascif(1:4).eq.'UNKN')then
-              call edisp(iuout,'ish: the action file is unknown!')
+              call edisp(iuout,'ish: the ASCII file name is unknown!')
+              call edisp(ieout,'ish: the ASCII file name is unknown!')
+              iecount=iecount+1  ! retain the log file
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call pauses(1)
               call epagend
               stop
@@ -542,6 +597,10 @@ C to also fill data structures for obstructions.
             call ersys_mmode(lcfgf,ifcfg,iairp,mode,0,ier,silent)
             if(ier.eq.3)then
               call usrmsg('Model is too complex - exiting ish',' ','W')
+              call edisp(ieout,'Model is too complex - exiting ish')
+              iecount=iecount+1       ! increment count of warnings/errors
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epagend
               stop
             endif
@@ -606,6 +665,11 @@ C A new binary file was created from an existing ascii so
 C the requested useupdate_silent task has been completed.
                  loaded_existing=.true.
                  if(paction(1:16).eq.'useupdate_silent')then
+                   close(ieout)
+                   if(iecount.eq.0)then     ! if there were no warnings delete
+                     open(ieout,file=iefile,status='UNKNOWN')
+                     call efdelet(ieout,istat)
+                   endif
                    call epagend
                    stop
                  endif
@@ -626,8 +690,11 @@ C file for the current zone. If it exists then proceed as in
 C asci2bin.
       if(silent.and.paction(1:16).eq.'useupdate_silent')then
         if(zn(1:4).eq.'UNKN')then
-          call edisp(iuout,'A zone is required to convert file.')
+          call edisp(iuout,'A zone name is required to convert file.')
+          call edisp(ieout,'A zone name is required to convert file.')
           ier = 1
+          close(ieout)   ! free but keep the error log file
+          CALL ERPFREE(ieout,ISTAT)
           call epagend
           stop 
         else
@@ -653,8 +720,11 @@ C asci2bin.
                   freshshading=.true.  ! a new shading file & calc
                   continue
                 else
-                  call edisp(iuout,'problem setting up new file.')
+                call edisp(iuout,'problem setting up new shading file.')
+                call edisp(ieout,'problem setting up new shading file.')
                   ier = 1
+                  close(ieout)  ! keep the error log file
+                  CALL ERPFREE(ieout,ISTAT)
                   call epagend
                   stop 
                 endif
@@ -664,6 +734,11 @@ C asci2bin.
 
 C There are no files to cleanup so just convert and exit.
                 call sifimport(icomp,ascif,ier)
+                close(ieout)
+                if(iecount.eq.0)then     ! if there were no warnings delete
+                  open(ieout,file=iefile,status='UNKNOWN')
+                  call efdelet(ieout,istat)
+                endif
                 call epagend
                 stop     
               endif
@@ -683,8 +758,12 @@ C Passed an ascii file and expect a binary file to be created. If
 C an existing db is found, removed it and open a new one before
 C starting conversion.
          if(zn(1:4).eq.'UNKN')then
-           call edisp(iuout,'A zone is required to convert file.')
+           call edisp(iuout,'A zone name is required to convert file.')
+           call edisp(ieout,'A zone name is required to convert file.')
+           iecount=iecount+1       ! increment count of warnings/errors
            ier = 1
+           close(ieout)   ! retain the error log file
+           CALL ERPFREE(ieout,ISTAT)
            call epagend
            stop 
          else
@@ -703,10 +782,14 @@ C starting conversion.
                if(istat.eq.0)then
                  continue
                elseif(istat.eq.1)then
-                 freshshading=.true.  ! a new shading file & calc
+                 freshshading=.true.     ! a new shading file & calc
                else
-                 call edisp(iuout,'problem setting up new file.')
+                call edisp(iuout,'problem setting up new shading file.')
+                call edisp(ieout,'problem setting up new shading file.')
+                 iecount=iecount+1       ! increment count of warnings/errors
                  ier = 1
+                 close(ieout)            ! retain the error log file
+                 CALL ERPFREE(ieout,ISTAT)
                  call epagend
                  stop 
                endif
@@ -716,6 +799,11 @@ C starting conversion.
 
 C There are no files to cleanup so just convert and exit.
                call sifimport(icomp,ascif,ier)
+               close(ieout)
+               if(iecount.eq.0)then     ! if there were no warnings delete
+                 open(ieout,file=iefile,status='UNKNOWN')
+                 call efdelet(ieout,istat)
+               endif
                call epagend
                stop     
              endif
@@ -728,8 +816,12 @@ C There are no files to cleanup so just convert and exit.
 C Assumes that the binary file is scanned and the common blocks are
 C filled prior to calling sifexp.
          if(zn(1:4).eq.'UNKN')then
-           call edisp(iuout,'A zone is required to convert file.')
+           call edisp(iuout,'A zone name is required to convert file.')
+           call edisp(ieout,'A zone name is required to convert file.')
+           iecount=iecount+1       ! increment count of warnings/errors
            ier = 1
+           close(ieout)    ! retain the error log file
+           CALL ERPFREE(ieout,ISTAT)
            call epagend
            stop 
          else
@@ -741,6 +833,11 @@ C any existing ascii file will be overwritten.
      &       ascif(1:lnblnk(ascif))
            call edisp(iuout,outs)
            call sifexp(icomp,ascif,ier)
+           close(ieout)
+           if(iecount.eq.0)then     ! if there were no warnings delete
+             open(ieout,file=iefile,status='UNKNOWN')
+             call efdelet(ieout,istat)
+           endif
            call pauses(1)
            call epagend
            stop 
@@ -876,6 +973,11 @@ C Allow user to quit manually for a recalculate directive but
 C auto exit for update_silent.
          if(paction(1:13).eq.'update_silent'.or.
      &      paction(1:16).eq.'useupdate_silent')then
+           close(ieout)
+           if(iecount.eq.0)then     ! if there were no warnings delete
+             open(ieout,file=iefile,status='UNKNOWN')
+             call efdelet(ieout,istat)
+           endif
            call epagend
            stop
          endif
@@ -983,6 +1085,10 @@ C GTK version will be returning the name with the full path.
             call ersys_mmode(lcfgf,ifcfg,iairp,mode,0,ier,silent)
             if(ier.eq.3)then
               call usrmsg('Model is to complex - exiting ish',' ','W')
+              call edisp(ieout,'Model is to complex - exiting ish')
+              iecount=iecount+1       ! increment count of warnings/errors
+              close(ieout)            ! retain the error log file
+              CALL ERPFREE(ieout,ISTAT)
               call epagend
               stop
             endif
@@ -1088,10 +1194,12 @@ C Generate a heading for the view.
                write(etext,'(a,i2,1x,a3,a,a5,a,f6.1,a,f5.1)')
      &            'View @ ',ido,month(imo),', ',descrh,
      &            ' Sun position - azimuth ',sazi,', altitude ',salt
-               iside=1
-               isize=1
-               ifont=ifs
-               call viewtext(etext,iside,isize,ifont)
+               iside=1; isize=1; ifont=ifs
+               if(mmod.eq.8)then
+                 call viewtext(etext,iside,isize,ifont)
+               else
+                 call viewtextwwc(etext,iside,isize,ifont)
+              endif
                call easkab(' ','View:','next hour','exit',iw,nbhelp)
                if(iw.eq.1)then
                   stime=stime+((60.0/float(nts))/60.0)
@@ -1213,10 +1321,10 @@ C Switch to fixed font for text feedback.
             mon=mons
 
 C If output to file auto yes for user questions about months.
-            allsurf=.false.; allmonths=.false.; dok=.true.
+            allsurf=.false.; allmonths=.false.
             if(ixopen.eq.1)then
-              call askok(' ','Report all months?',allmonths,dok,0)
-              call askok(' ','Report all surfaces?',allsurf,dok,0)
+              call easkok(' ','Report all months?',allmonths,0)
+              call easkok(' ','Report all surfaces?',allsurf,0)
             endif
   202       if(allmonths)then
               continue
@@ -1415,10 +1523,10 @@ C Switch to fixed font for text feedback.
 
 C If output to file auto yes for user questions about months
 C as well as surfaces.
-            allsurf=.false.; allmonths=.false.; dok=.true.
+            allsurf=.false.; allmonths=.false.
             if(ixopen.eq.1)then
-              call askok(' ','Report all months?',allmonths,dok,0)
-              call askok(' ','Report all surfaces?',allsurf,dok,0)
+              call easkok(' ','Report all months?',allmonths,0)
+              call easkok(' ','Report all surfaces?',allsurf,0)
             endif
   204       if(allmonths)then
               continue
@@ -1582,11 +1690,10 @@ C then offer to save or delete.
          if(multic.eq.0)then
             call efdelet(iunit,istat)
          elseif(multic.eq.2)then
-            dok=.true.
             helptopic='request_to_delete_trans'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            call askok(' ','Delete zone transitional shading file(s)?',
-     &        ok,dok,nbhelp)
+            call easkok(' ','Delete zone transitional shading file(s)?',
+     &        ok,nbhelp)
             irecw=ms+5
             if(ok)then
                do 55 ix=1,ncomp
@@ -1641,6 +1748,11 @@ C changed it then we do not need to write it out.
             call tstamp('>','Finished shading & insolation analysis.')
             close(iuj)
          endif
+         close(ieout)
+         if(iecount.eq.0)then     ! if there were no warnings delete
+           open(ieout,file=iefile,status='UNKNOWN')
+           call efdelet(ieout,istat)
+         endif
          call epagend
          stop
 
@@ -1681,8 +1793,12 @@ C  ifstat = 8  new file filled via import of ascii file
       integer lnblnk  ! function definition
 
       common/spad/mmod,limit,limtty
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
+      common/warncounter/iecount
       common/filep/ifil
+
+      character iefile*72
+      common/logs/iefile
 
       common/gzonpik/izgfoc,nzg,nznog(mcom)
       common/ract/paction
@@ -1732,6 +1848,11 @@ C If silent then only print this if running in graphic mode.
      &                  'cancel','compute insolation only',iw,nbhlep)
             if(iw.EQ.1)then
                ifstat=6
+               close(ieout)
+               if(iecount.eq.0)then     ! if there were no warnings delete
+                 open(ieout,file=iefile,status='UNKNOWN')
+                 call efdelet(ieout,istat)
+               endif
                call epagend
                stop
             endif
@@ -1795,6 +1916,11 @@ C or if the user requested a file conversion.
      &               'is now terminating.','-')
          ifstat=2
          call pauses(1)
+         close(ieout)
+         if(iecount.eq.0)then     ! if there were no warnings delete
+           open(ieout,file=iefile,status='UNKNOWN')
+           call efdelet(ieout,istat)
+         endif
          call epagend
          stop
       endif
@@ -1850,7 +1976,7 @@ C << update this to match changes in lfmat >>
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       common/ract/paction
       character paction*16

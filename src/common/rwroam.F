@@ -38,8 +38,8 @@ C espriou.h provides currentfile.
       
       integer lnblnk  ! function definition
 
-      integer iuout,iuin
-      COMMON/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       CHARACTER OUTSTR*124,outs*124
       INTEGER IDEBUG,IER,ILOC,IUF,IDEL,IPDR,IFIL,ND,K,ISTAT

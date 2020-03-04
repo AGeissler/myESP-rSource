@@ -31,7 +31,7 @@ C espriou.h provides current file.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character OUTSTR*148,WORD*20,rviewf*72,outs*148
       character LOUTSTR*248
@@ -131,7 +131,7 @@ C espriou.h provides current file.
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character OUTSTR*124,WORD*20,outs*124,CMDL*124,skopt*3
       character tfile*72
@@ -316,7 +316,7 @@ C IERR=1 if a scene file is missing.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -691,7 +691,7 @@ C terminating character (or later the contents).
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character cmdname*72,OUTSTR*124,tfile*72
 

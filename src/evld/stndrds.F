@@ -27,12 +27,12 @@ C ********* STNDRDS
 C STNDRDS - Scan the validation models file, parse information and offer the user
 C selection of or information about one or more of these.
 C iexfil is the file unit number.
-C exfil is the validation models file name 
+C exfil is the validation models file name. 
       subroutine STNDRDS
 #include "espriou.h"
 C espriou.h provides currentfile.
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       common/FILEP/IFIL
       common/vldlst/vldlbl,vldfl
@@ -41,7 +41,7 @@ C espriou.h provides currentfile.
 C name is array of string holding *name from the file.
 C inl2ngr is a pointer from the menu item back to the group index.
 C group is array of strings selname(i)='UNKNOWN'holding *groups in the file.
-C gitem is menu string array for high level group selection
+C gitem is menu string array for high level group selection.
 C gh() is array of help entries.
 
       dimension group(15),gitem(20)
@@ -92,7 +92,7 @@ C Open the validation models file.
         return
       endif
       
-C Read the header and see if '*VALIDATION'
+C Read the header and see if '*VALIDATION'.
       CALL STRIPC(iexfil,outstr,0,ND,0,'validation header',IER)
       if(outstr(1:11).ne.'*VALIDATION')then
         call edisp(iuout,' Not a validation models file!')
@@ -101,7 +101,7 @@ C Read the header and see if '*VALIDATION'
       endif
  
 C ngr is the number of groups found in the file (max 15).
-C ing is index of menu string to be written to. this is separate from
+C ing is index of menu string to be written to. This is separate from
 C     inl so that labels do not count in the generation of KEY characters.
 C inl is the total number of groups and labels to display.
       ngr=0
@@ -150,18 +150,13 @@ C use vwmenu or emenu depeding on graphic or text display.
       gitem(inl+2)=  '* all available models  '
       gitem(inl+3)=  '  _____________________ '
       gitem(inl+4)=  '? help                  '
-      gitem(inl+5)=  '- exit validation tests '
+      gitem(inl+5)=  '- exit this menu        '
       NCOG=inl+5
 
 C Help @ validation list file level.
-      h(1)='These validation sets are available for use in testing'
-      h(2)=' '
-      h(3)='If you select one of the groups, you will be presented'
-      h(4)='with its members. For ASHRAE 140 use you should select '
-      h(5)='all of the members of the group. '
-      h(6)=' '
-      h(7)='If you wish to select a subset of a group then click on'
-      h(8)='the tests of interest. '
+      h(1)='These BESTEST sets support ESP-r self-testing and'
+      h(2)='support an evaluation of the impact of the changes'
+      h(3)='inherent in any new release.'
       IW=0
       do 141 ij=1,NCOG
         IW=max(lnblnk(gitem(ij)),IW)
@@ -172,10 +167,10 @@ C If in graphics mode use a variable width menu.
         impx=0
         impy=0
         iwe=iw
-        CALL VWMENU('Validation Sets',gitem,NCOG,impx,impy,iwe,
+        CALL VWMENU('BESTEST sets',gitem,NCOG,impx,impy,iwe,
      &     irpx,irpy,ICOG)
       else
-        CALL EMENU('Validation Sets',gitem,NCOG,ICOG)
+        CALL EMENU('BESTEST sets',gitem,NCOG,ICOG)
       endif
       
 C Deal with the user selection.
@@ -187,16 +182,14 @@ C Exit.  Close file and return to calling menu.
       ELSEIF(ICOG.EQ.(NCOG-1))THEN
 
 C Display help messages.
-        CALL PHELPD('validation list menu',8,'-',0,0,IER)
+        CALL PHELPD('validation list menu',3,'-',0,0,IER)
       ELSEIF(ICOG.EQ.(NCOG-3))THEN
 
 C Automatically run all of the available models.
-        h(1)=' Results can be either dispayed or saved in'
-        h(2)=' a text file.'
-        h(3)=' Cancel to quit analysis.'
+        h(1)=' Results can be displayed or saved to file.'
         irpt=1
-        CALL EASKATOG(' Reporting to:',' ','file',
-     &     'screen','cancel',' ',' ',' ',' ',irpt,3)
+        CALL EASKATOG(' ','Reporting to:','file',
+     &     'screen','cancel',' ',' ',' ',' ',irpt,1)
         if(irpt.ne.3)then
           do 200 IGRP=1,NGR
             TGROUP=group(IGRP)
@@ -224,7 +217,7 @@ C Redisplay menu.
 
 
 C *********************************************************************
-C RUNSTD: read model details from the specified file and group and run it
+C RUNSTD: Read model details from the specified file and group and run it.
 C *********************************************************************
 C LVFILE - name of the file containing model details
 C LGROUP - name of group
@@ -234,7 +227,7 @@ C IRPT - report to file (=1) or screen (=2) or unknown (=0, will ask)
       SUBROUTINE RUNSTD(LVFILE,LGROUP,IFLG,IRPT)
 #include "building.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       common/FILEP/IFIL
       COMMON/exporttg/xfile,tg,delim
@@ -242,11 +235,11 @@ C IRPT - report to file (=1) or screen (=2) or unknown (=0, will ask)
       
       
 C nrecdata - for each test number of metrics to recover
-C recdata - for each recovery option: minimum and maximum range and previous values
-C simdata - for each recovery option current simulation result
-C recdesc - for each recovery option descriptive string, data description and 
-C   third slot for description used by res (read from dat file and used in 
-C   reporting here.
+C recdata  - for each recovery option: minimum and maximum range and previous values
+C simdata  - for each recovery option current simulation result
+C recdesc  - for each recovery option descriptive string, data description and 
+C            third slot for description used by res (read from dat file and used
+C            in reporting here.
 C irecdata - zone and surface number for results recovery (=0 if all)
       parameter (MNVCASE=40,MNVOPT=3,MNVRES=40)
       common/vldstd1/nrecdata(MNVCASE),irecdata(MNVCASE,MNVRES,2)
@@ -271,11 +264,8 @@ C irecdata - zone and surface number for results recovery (=0 if all)
       character xfile*144,tg*1,delim*1,t12*12
       character chkresult*8
       
-      logical XST,ok,dok,CLOSE,unixok
+      logical XST,ok,CLOSE,unixok
       integer irpt  ! for radio button
-      
-C Debug.
-C      write(6,*) 'Debug: call pars:',LVFILE,LGROUP,iflg,irpt
 
       call isunix(unixok)
 
@@ -369,7 +359,7 @@ C Loop through definition of metrics to be recovered.
              recdata(inm,IR,1)=xv
              call egetwr(outstr,K,xv,0.,0.,'-','max bound',IER)
              recdata(inm,IR,2)=xv
-             call egetw(outstr,K,t24,'W','desciption',IER)
+             call egetw(outstr,K,t24,'W','description',IER)
              recdesc(inm,IR,1)=t24
              call egetw(outstr,K,t24,'W','data label',IER)
              recdesc(inm,IR,2)=t24
@@ -411,12 +401,9 @@ C First close file.
         return
       endif
       
-C Allow model selection if IFLG=0 otherwise all models in group will be 
+C Allow model selection if IFLG=0, otherwise all models in group will be 
 C processed.
       INPIC=INM 
-
-C Debug.
-C      write(6,*) 'Debug: iflg: ',IFLG
 
       if (IFLG.eq.0) then
         H(1)='Select one or more tests from this group.  The selection'
@@ -429,8 +416,6 @@ C      write(6,*) 'Debug: iflg: ',IFLG
 C Check models have been selected.
       if (INPIC.eq.0) then
 
-C Debug.
-C        write(6,*) 'Debug: no tests were selected. '
         return
       endif
 
@@ -448,7 +433,7 @@ C Process selected models.
  999  continue
 
       if (IRPT.eq.0) then
-        h(1)=' Results can be either dispayed or saved in'
+        h(1)=' Results can be either displayed or saved in'
         h(2)=' a text file.'
         h(3)=' Cancel to quit analysis.'
         irpt=1
@@ -463,14 +448,6 @@ C Process selected models.
           write(xfile,'(a)')'Stand_tests.txt'
         endif
         call ctlexp(xfile,ixopen,ixloc,ixunit,'T','exported_res',IER)
-        XST=.false.
-        call findfil(xfile,XST)
-        if(XST)then
-          dok=.false.
-          h(1)='Chance to change file name or location. '
-          CALL ASKOK('File already exists.','Change name?',OK,dok,1)
-          if (OK) goto 9
-        endif
         
 C Set irpt to -1 so that if running multiple groups this question will 
 C not be asked again.
@@ -485,7 +462,7 @@ C The models selected are now processed. bps (simulations) start for each
 C one of them. It reads the models configuration name and the name of the 
 C simulation settings from the text file.
       do 200 ipick=1,INPIC
-      
+
 C If user selected models then selection will be held in itemval array,
 C otherwise run all models.
         if (IFLG.eq.0) then
@@ -510,7 +487,7 @@ C This will write out the titles for the results.
           call tstamp('>','PRJ: beginning results analysis')
 
 C After the bps (simulation), the results recovery starts.
-C It reads the models recovery file name from the text file  
+C It reads the models recovery file name from the text file.  
           write(doit,'(2a)') 'res -mode text -file ',
      &        recitem(imod,iopt)(1:lnblnk(recitem(imod,iopt)))
           call usrmsg(outs,doit,'-')
@@ -520,7 +497,7 @@ C Now process results.
           call dotdatrecover(pathitem(imod,iopt),imod,iopt)
           
 C Remove result and disp file.  First extract results file name from results 
-C command (its the first word in the string recitem).
+C command (it's the first word in the string recitem).
           k=0
           call egetw(recitem(imod,iopt),K,t72,'W','results file',IER)
           write(doit,'(4a)') 'rm -f ',t72(1:lnblnk(t72)),' ',
@@ -528,7 +505,7 @@ C command (its the first word in the string recitem).
           call runit(doit,'-')
  210    continue
  
-C Compare model variants (if any) and print results. <<  >>
+C Compare model variants (if any) and print results.
 C If one model print results.
 C If two models then print model 2 - model 1 results.
 C If three models then print model (2-1)/(3-1) results.
@@ -563,9 +540,6 @@ C lengths.
           elseif (ncfgitem(imod).eq.2) then
             xd=simdata(imod,2,ichk)-simdata(imod,1,ichk)
           elseif (ncfgitem(imod).eq.3) then
-
-C Debug.
-C            write(6,*) 'Results:',(simdata(imod,ii,ichk),ii=1,3)
 
             xda=simdata(imod,2,ichk)-simdata(imod,1,ichk)
             xdb=simdata(imod,3,ichk)-simdata(imod,1,ichk)
@@ -640,7 +614,7 @@ C imod is the current case.
 
       subroutine dotdatrecover(dispfl,imod,iopt)
 #include "espriou.h"
-      common/OUTIXSTN/IUOUT,IUIN
+      common/OUTIXSTN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
 
       parameter (MNVCASE=40,MNVOPT=3,MNVRES=40)
@@ -659,6 +633,7 @@ C imod is the current case.
 C Open the recovered results file (*.dat) and read in results data.
       idispfl=IFIL+1
       XST=.false.
+      IER=0
       if(dispfl(1:2).ne.'  '.and.dispfl(1:4).ne.'UNKN')then     
         INQUIRE (FILE=dispfl,EXIST=XST)
         if(XST)then
@@ -682,7 +657,7 @@ C Open the recovered results file (*.dat) and read in results data.
 C File opened successfully now scan contents.
       write (currentfile,'(a)') dispfl(1:lnblnk(dispfl))
  63   CALL STRIPC(idispfl,outstr,0,ND,0,'table id',IER)
- 
+
 C If something wrong or end of file return.
       if (IER.ne.0) return
       K=0
@@ -694,9 +669,6 @@ C Do nothing until *output tag reached.
 C The next word on this line should match one of the required metrics 
 C in the recdesc variable.
       CALL EGETW(outstr,K,word,'-','output description',IER)
-
-C Debug.
-C      write(6,*) 'Reading table: ',word
 
 C Loop through the recdesc strings and find the id of the metric in 
 C the current output table (imet).  Note there may be one or more 
@@ -710,9 +682,6 @@ C as an array of nmet natches.
           nmet=nmet+1
           imet(nmet)=i
 
-C Debug.
-C          write(6,*) 'Match: ',nmet,i,recdesc(imod,i,1)
-
         endif
  10   continue
 
@@ -724,9 +693,6 @@ C Now read data for this entry.
       if (IER.ne.0) return
       K=0
       CALL EGETW(outstr,K,word,'-','report type tag',IER)
-
-C Debug.
-C      write(6,*) 'Reading report type: ',word
       
 C For a stats report read data.
       if(word(1:6).eq.'*stats')then
@@ -748,40 +714,21 @@ C result metric required, i.e. all nmet of them.  Read the line first.
  101      CALL EGETW(outstr,K,word,'-','title',IER)
           ln=lnblnk(word)
           id=id+1
-
-C Debug.
-C          write(6,*) 'Reading column ',id,': ',word(1:ln)
           
-C Loop through all nemt here.
+C Loop through all nmet here.
           do 120 im=1,nmet
-
-C Debug.
-C            write(6,*) 'Match? ',im,imet(im),recdesc(imod,imet(im),2)
 
             if (word(1:ln).eq.recdesc(imod,imet(im),2)(1:ln))then
               icol(im)=id
-
-C Debug.
-C              write(6,*) 'Column match',id
 
             endif
  120      continue
           if (id.lt.ND) goto 101
 
-C Debug.
-C          do 122 im=1,nmet
-C            write(6,*) 'Identified col ',ICOL(im),' for ',
-C     &        recdesc(imod,imet(im),2),' recovery.'
-C 122      continue
-
         elseif (word(1:5).eq.'*data') then
 
 C Scan following lines for one relating to zone irecdata(imod,imet,1), then
 C read the data in the column identified above (ICOL).
-
-C Debug.
-C          write(6,*) 'data line: ',outstr(1:lnblnk(outstr))
-
           iv=0
           call EGETWI(outstr,K,iv,0,0,'-','iget number',IER)
           call EGETWI(outstr,K,izone,0,0,'-','zone number',IER)
@@ -789,10 +736,6 @@ C          write(6,*) 'data line: ',outstr(1:lnblnk(outstr))
           
 C Loop through all nmet possibilities.
           do 130 im=1,nmet
-
-C Debug.
-C            write(6,*) 'data zone: ',izone,irecdata(imod,imet(im),1)
-C            write(6,*) 'data surf: ',isurf,irecdata(imod,imet(im),2)
           
 C If zone and surface (=0 surface not important) match the requested 
 C ones (in irecdata) then read the correct columns data.
@@ -801,9 +744,6 @@ C ones (in irecdata) then read the correct columns data.
               CALL STRIPC(idispfl,outstr,0,ND,0,'stats:data',IER)
               if (IER.ne.0) return
               K=0
-
-C Debug.
-C              write(6,*) 'result line: ',outstr(1:lnblnk(outstr))
 
               do 133 ic=1,icol(im)
                 CALL EGETW(outstr,K,word,'-','data',IER)
@@ -816,16 +756,10 @@ C Save results description string for use in reporting.
               K=0
               call EGETWR(word,K,xv,0.,0.,'-','result',IER)
 
-C Debug.
-C              write(6,*) 'value: ',xv,' from column ',icol(im)
-
               simdata(imod,iopt,imet(im))=xv
             endif
  130      continue
         elseif (word(1:10).eq.'*end_stats') then
-
-C Debug.
-C          write(6,*) 'END of stats table '
 
 C End of stats report move onto next output table.
           goto 63
@@ -847,30 +781,20 @@ C Check which column holds data.
 C Scan following lines for one relating to zone irecdata(imod,imet,1), then
 C read the data in the column identified above (ICOL).
 
-C Debug.
-C          write(6,*) 'col line: ',outstr(1:lnblnk(outstr))
-
           iv=0
           call EGETWI(outstr,K,ic,0,0,'-','col number',IER)
           if (ND.gt.3) then
-            call EGETWI(outstr,K,iv,0,0,'-','iget nuber',IER)
+            call EGETWI(outstr,K,iv,0,0,'-','iget number',IER)
             call EGETWI(outstr,K,izone,0,0,'-','zone number',IER)
             call EGETWI(outstr,K,isurf,0,0,'-','zone number',IER)
 
 C Loop through all nmet possibilities.
             do 230 ichk=1,nrecdata(imod)
 
-C Debug.
-C            write(6,*) 'data zone: ',izone,irecdata(imod,ichk,1)
-C            write(6,*) 'data surf: ',isurf,irecdata(imod,ichk,2)
-
 C If zone and surface (=0 surface not important) match the requested 
 C ones (in irecdata) then save column number.
               if (izone.eq.irecdata(imod,ichk,1).and.
      &            isurf.eq.irecdata(imod,ichk,2)) then
-
-C Debug.
-C                write(6,*) 'col: ',ic,' for ',izone,isurf,' ichk ',ir
 
                 icol(ichk)=ic
               endif
@@ -882,9 +806,6 @@ C Read data line for each time.
  250      CALL STRIPC(idispfl,outstr,99,ND,0,'table data',IER)
           if (IER.ne.0) return
           if (outstr(1:10).eq.'*end_table') then
-
-C Debug.
-C            write(6,*) 'END of table '
 
 C End of stats report move onto next output table.
             goto 63
@@ -905,13 +826,7 @@ C Convert key word into a real number.
               CALL EGETWR(outstr,K,xv,0.,0.,'-','result value',IER)
                 
 C If within 5 minutes and column matches then accept match.
-
-C Debug.
-C              write(6,*) 'col:',ic,' xv:',xv
               if (abs(cv-time).lt.0.005.and.ic.eq.icol(ichk)) then
-
-C Debug.
-C                write(6,*) 'value: ',xv,' from column ',icol(ichk),cv
 
                 simdata(imod,iopt,ichk)=xv
                 write (recdesc(imod,ichk,3),'(f9.4)') cv
@@ -922,9 +837,6 @@ C                write(6,*) 'value: ',xv,' from column ',icol(ichk),cv
 C Read next line from table.
           goto 250
         elseif (word(1:10).eq.'*end_table') then
-
-C Debug.
-C          write(6,*) 'end of table '
 
 C End of stats report move onto next output table.
           goto 63

@@ -35,8 +35,6 @@ C an extrusion. IER=0 OK.
       SUBROUTINE SCRZONE(ICOMP,IER)
 #include "building.h"
 #include "model.h"
-
-C Use geometry for common g0/g1/g2/g4/g5/g6/g7/prec16/precz/c20.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "prj3dv.h"
@@ -45,7 +43,7 @@ C Use geometry for common g0/g1/g2/g4/g5/g6/g7/prec16/precz/c20.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -62,7 +60,7 @@ C Use geometry for common g0/g1/g2/g4/g5/g6/g7/prec16/precz/c20.
       character MODE*4,fs*1
       CHARACTER OUTSTR*124,ZN*12,outs*124
       character ctldoc*248,LCTLF*72,zd*64,DFILE*72,CFILE*72,OFILE*72
-      LOGICAL OK,dok,browse,OKC,XST,unixok
+      LOGICAL OK,browse,OKC,XST,unixok
       logical newgeo  ! to use for testing if new/old geometry file.
       real DX1,DY1,DZ1  ! to avoid name clash with geometry.h
       real XO1,YO1,ZO1
@@ -229,8 +227,7 @@ C User begins with an extruded shape.
    45   CONTINUE
 
 C Allow user to have a 2nd chance to input the vertices.
-        dok=.true.
-        CALL ASKOK(' ','Accept base vertices?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Accept base vertices?',OK,nbhelp)
         if(.NOT.ok)then
           ishape=2
           goto 144
@@ -268,15 +265,6 @@ C Update the connection list and hash.
           ICCC=ICCC+1
           IC1(ICCC)=ICOMP; IE1(ICCC)=ICC; ICT(ICCC)=-1   ! mark as unknown at this time.
           IC2(ICCC)=0; IE2(ICCC)=0
-          SSNAME(iccc)=SNAME(icomp,icc)
-          SSOTF(iccc)=SOTF(icc)
-          SSMLCN(iccc)=SMLCN(icc)
-          SSVFC(iccc)=SVFC(icc)
-          SSOTHER(iccc,1)=SOTHER(icc,1)
-          SSOTHER(iccc,2)=SOTHER(icc,2)
-          SSOTHER(iccc,3)=SOTHER(icc,3)
-          SSUSE(iccc,1)=SUSE(icc,1); SSUSE(iccc,2)=SUSE(icc,2)
-          SSPARENT(iccc)=SPARENT(icc)
           IZSTOCN(icomp,icc)=iccc
    32   CONTINUE
         NCON=ICCC
@@ -306,9 +294,12 @@ C User will begin with a minimal GEN body.
         JVN(1,1)=1; JVN(1,2)=2; JVN(1,3)=3; JVN(1,4)=4
         NZTV(icomp)=NTV
         SNAME(ICOMP,1)='first'
-        SOTF(1)='OPAQUE'; SMLCN(1)='UNKN'; SVFC(1)='FLOR'
-        SOTHER(1,1)='UNKNOWN'; SOTHER(1,2)='0'; SOTHER(1,3)='0'
-        SUSE(1,1)='-'; SUSE(1,2)='-'; SPARENT(1)='-'
+        SOTF(ICOMP,1)='OPAQUE'; SMLCN(ICOMP,1)='UNKN' 
+        SVFC(ICOMP,1)='FLOR'
+        SOTHER(ICOMP,1,1)='UNKNOWN'; SOTHER(ICOMP,1,2)='0'
+        SOTHER(ICOMP,1,3)='0'
+        SUSE(ICOMP,1,1)='-'; SUSE(ICOMP,1,2)='-' 
+        SPARENT(ICOMP,1)='-'
         IUZBASEA(icomp)=0; IBASES(ICOMP,1)=1
 
 C Update the connection list and hash for initial surface.
@@ -316,16 +307,6 @@ C Update the connection list and hash for initial surface.
         ICCC=ICCC+1
         IC1(ICCC)=ICOMP; IE1(ICCC)=1; ICT(ICCC)=-1  ! mark as unknown
         IC2(ICCC)=0; IE2(ICCC)=0
-        SSNAME(iccc)=SNAME(ICOMP,1)
-        SSOTF(iccc)=SOTF(1)
-        SSMLCN(iccc)=SMLCN(1)
-        SSVFC(iccc)=SVFC(1)
-        SSOTHER(iccc,1)=SOTHER(1,1)
-        SSOTHER(iccc,2)=SOTHER(1,2)
-        SSOTHER(iccc,3)=SOTHER(1,3)
-        SSUSE(iccc,1)=SUSE(1,1)
-        SSUSE(iccc,2)=SUSE(1,2)
-        SSPARENT(iccc)=SPARENT(1)
         IZSTOCN(icomp,1)=iccc
         NCON=ICCC
         MODBND=.TRUE.; MODIFYVIEW=.TRUE.; MODLEN=.TRUE.
@@ -382,32 +363,29 @@ C Update the G7 common blocks and then assign ZBASEA.
 C Find co-planer surfaces and edges of similar materials.
       call suredgeadj(itrc,'-',icomp,ier)
       if(ishape.eq.1)then
-        ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-        ZBASEA(icomp)= SSNA(ibcs)
+        ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
       elseif(ishape.eq.2)then
-        ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-        ZBASEA(icomp)= SSNA(ibcs)
+        ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
       elseif(ishape.eq.3)then
-        ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-        ZBASEA(icomp)= SSNA(ibcs)
+        ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
       endif
 
 C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
-C the zone can be calculated. Also instanciate nznver and nzjvn
+C the zone can be calculated. Also instanciate iszjvn
 C for the new zone (as is done in subroutine zdata).
       DO 40 J=1,NZTV(ICOMP)
-        VCOORD(ICOMP,J,1)=X(J)
-        VCOORD(ICOMP,J,2)=Y(J)
-        VCOORD(ICOMP,J,3)=Z(J)
+        szcoords(ICOMP,J,1)=X(J)
+        szcoords(ICOMP,J,2)=Y(J)
+        szcoords(ICOMP,J,3)=Z(J)
    40 CONTINUE
       DO 50 J=1,nzsur(ICOMP)
         icc=IZSTOCN(icomp,j)
         if(icc.ne.0)then
-          NZNVER(icc)=NVER(J)
-          N = NVER(J)
+          isznver(icomp,j)=NVER(J)
+          N = isznver(icomp,j)
           DO 60 K=1,N
-            NZJVN(icc,K)=JVN(J,K)
+            iszjvn(icomp,j,K)=JVN(J,K)
    60     CONTINUE
         endif
    50 continue
@@ -423,11 +401,11 @@ C Save this to file before passing into the geometry editing facility.
         call emkgeo(IFIL+2,LGEOM(ICOMP),ICOMP,3,IER)
       endif
       IF(IER.EQ.1)THEN
-        dok=.true.
+
         helptopic='zone_initial_write'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Problem creating geometry file.','Try again?',
-     &              OK,dok,nbhelp)
+        CALL EASKOK('Problem creating geometry file!','Retry?',
+     &              OK,nbhelp)
         IF(OK)GOTO 42
       ENDIF
 
@@ -471,7 +449,7 @@ C NEWZONE controls the creation of a new zone. IER=0 OK.
       integer ier     ! non-zero return is error
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -487,7 +465,7 @@ C NEWZONE controls the creation of a new zone. IER=0 OK.
       CHARACTER DFILE*72,CFILE*72,OFILE*72
       character sfile*72,snpfile*72,fs*1,outs*124
 
-      LOGICAL OK,DOK,XST,OKC,unixok
+      LOGICAL OK,XST,OKC,unixok
       logical newgeo  ! to use for testing if new/old geometry file.
       logical altered ! to signal change in boundary conditions of added existing zone.
 
@@ -580,9 +558,8 @@ C Existing ESP-r geom file.
         IF(LTMP(1:2).EQ.'  ')GOTO 293
         call FINDFIL(LTMP,XST)
         IF(.NOT.XST)THEN
-          dok=.true.
-          CALL ASKOK(' ','Geometry file not found, try again?',OK,
-     &      dok,nbhelp)
+          CALL EASKOK(' ','Geometry file not found! Retry?',
+     &         OK,nbhelp)
           if(OK)then
             GOTO 293 ! as for choice again
           else
@@ -596,10 +573,7 @@ C Scan geometry file and update control and connections.
 C Try reading in the geometry to fill in the data below.
         call georead(IFIL+1,LGEOM(IC),IC,1,iuout,IER)
         IF(IER.NE.0)THEN
-          dok=.true.
-          CALL ASKOK(OUTSTR,
-     &      'Problem scanning geometry file...try again?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(OUTSTR,'Read problem, retry?',OK,nbhelp)
           if(OK)then
             GOTO 293
           else
@@ -619,15 +593,32 @@ C Read in control file if defined.
           IF(XST) CALL EZCTLR(ICTLF,ITRC,IUOUT,IER)
         endif
 
-C Update the connection list and then the model configuration.
+C Update the zone and surface arrays as well as the
+C connection list and then the model configuration.
         NCOMP=NCOMP+1
         NZSUR(NCOMP)=NSUR
         NZTV(NCOMP)=NTV
         NCCODE(NCOMP)=NCOMP
         iZBFLG(NCOMP)=0
+        do J=1,NZSUR(NCOMP)
+          isznver(ncomp,J)=NVER(J)
+          N = isznver(ncomp,J)
+          do K=1,N
+            iszjvn(ncomp,j,K)=JVN(J,K)
+          enddo
+        enddo
+
+C Update the global coordinates for this new zones surfaces so that
+C the subsequent wireframe image can be drawn and the bounds of
+C the zone can be calculated.
+        do J=1,NZTV(NCOMP)
+          szcoords(NCOMP,J,1)=X(J)
+          szcoords(NCOMP,J,2)=Y(J)
+          szcoords(NCOMP,J,3)=Z(J)
+        enddo
         if(OKC)then
           icascf(NCOMP)=0
-          call CTLWRT(ICTLF,IER)
+          call CTLWRT(ICTLF,IER)  ! update the control file
         endif
         ICCC=NCON   ! connection number of the newest surface
 
@@ -638,42 +629,42 @@ C the connections list, then remind user to double check topology.
           ICCC=ICCC+1
           IC1(ICCC)=IC
           IE1(ICCC)=ICC
-          if(SOTHER(icc,1)(1:8).eq.'EXTERIOR')then
+          if(SOTHER(NCOMP,icc,1)(1:8).eq.'EXTERIOR')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' is a EXTERIOR connection which will be used.'
             call edisp(iuout,outs)
             ICT(ICCC)=0; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:7).eq.'SIMILAR')then
+          elseif(SOTHER(NCOMP,icc,1)(1:7).eq.'SIMILAR')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' is a SIMILAR connection which will be used.'
             call edisp(iuout,outs)
             ICT(ICCC)=1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:9).eq.'ADIABATIC')then
+          elseif(SOTHER(NCOMP,icc,1)(1:9).eq.'ADIABATIC')then
             ICT(ICCC)=5; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:8).eq.'CONSTANT')then
+          elseif(SOTHER(NCOMP,icc,1)(1:8).eq.'CONSTANT')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &    ' was a CONSTANT connection. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(icc,1)='UNKNOWN'
+            SOTHER(NCOMP,icc,1)='UNKNOWN'
             ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:6).eq.'GROUND')then
+          elseif(SOTHER(NCOMP,icc,1)(1:6).eq.'GROUND')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &      ' was a GROUND connection. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(icc,1)='UNKNOWN'
+            SOTHER(NCOMP,icc,1)='UNKNOWN'
             ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:7).eq.'UNKNOWN')then
+          elseif(SOTHER(NCOMP,icc,1)(1:7).eq.'UNKNOWN')then
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &    ' has an undefined boundary. Confirm its surface attributes.'
             call edisp(iuout,outs)
             ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
-          elseif(SOTHER(icc,1)(1:7).eq.'ANOTHER')then
+          elseif(SOTHER(NCOMP,icc,1)(1:7).eq.'ANOTHER')then
 
 C Existing partitions in an imported zone are reset to UNKNOWN.
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' was a partition. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(icc,1)='UNKNOWN'
+            SOTHER(NCOMP,icc,1)='UNKNOWN'
             ICT(ICCC)=-1; IC2(ICCC)=0; IE2(ICCC)=0
             altered = .true.   ! will need to write out geometry
           else
@@ -682,7 +673,7 @@ C Existing partitions in an imported zone are reset to UNKNOWN.
             write(outs,'(3a)') 'Note: ',SNAME(NCOMP,icc),
      &        ' might be a partition. Confirm its surface attributes.'
             call edisp(iuout,outs)
-            SOTHER(icc,1)='UNKNOWN'
+            SOTHER(NCOMP,icc,1)='UNKNOWN'
             ICT(ICCC)=-1
             IC2(ICCC)=0
             IE2(ICCC)=0
@@ -690,38 +681,21 @@ C Existing partitions in an imported zone are reset to UNKNOWN.
           endif
   
 C Update the connection based data structures.
-          SSNAME(iccc)=SNAME(NCOMP,icc)
-          SSOTF(iccc)=SOTF(icc)
-          SSMLCN(iccc)=SMLCN(icc)
-          SSVFC(iccc)=SVFC(icc)
-          SSOTHER(iccc,1)=SOTHER(icc,1)
-          SSOTHER(iccc,2)=SOTHER(icc,2)
-          SSOTHER(iccc,3)=SOTHER(icc,3)
-          SSUSE(iccc,1)=SUSE(icc,1)
-          SSUSE(iccc,2)=SUSE(icc,2)
-          SSPARENT(iccc)=SPARENT(icc)
           IZSTOCN(ncomp,icc)=iccc
 
 C Find the index of the MLC which matches this surface.
-          ssmlcindex(iccc)=0  ! assume no matching MLC          
+          smlcindex(ncomp,icc)=0  ! assume no matching MLC          
           do 5 ii=1,nmlc
-            lnssmlc=lnblnk(SSMLCN(iccc))
-            if(SSMLCN(iccc)(1:lnssmlc).eq.
+            lnssmlc=lnblnk(SMLCN(NCOMP,icc))
+            if(SMLCN(NCOMP,icc)(1:lnssmlc).eq.
      &         mlcname(ii)(1:lnmlcname(ii)))then
-              ssmlcindex(iccc)=ii   ! remember MLC index     
+              smlcindex(ncomp,icc)=ii   ! remember MLC index     
             endif
   5       continue
   132   CONTINUE
         NCON=ICCC
-
-C Update the global coordinates for this new zones surfaces so that
-C the subsequent wireframe image can be drawn and the bounds of
-C the zone can be calculated.
-        DO 40 J=1,NZTV(NCOMP)
-          VCOORD(NCOMP,J,1)=X(J)
-          VCOORD(NCOMP,J,2)=Y(J)
-          VCOORD(NCOMP,J,3)=Z(J)
-   40   CONTINUE
+        call zgupdate(0,ncomp,ier)     ! update data structures
+        call zinfo(ncomp,zoa,zvol,'q')
 
 C If any of the boundary conditions were altered then write out
 C the geometry file.
@@ -748,11 +722,9 @@ C with this new zone.
           WRITE(DFILE,'(3A,A4)') zonepth(1:lnblnk(zonepth)),'/',
      &      zname(IC)(1:lnzname(IC)),'.opr'
         endif
-        dok=.false.
         helptopic='zone_also_schedules'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' ','Also use an existing operation file?',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(' ','Use an existing operation file?',OK,nbhelp)
         if(OK)then
           if(LPROJ(IC)(1:4).eq.'UNKN'.or.LPROJ(IC)(1:2).eq.'  ')then
 
@@ -789,9 +761,7 @@ C                write(6,*) ltmp
           IF(LTMP(1:2).EQ.'  ')GOTO 295
           call FINDFIL(LTMP,XST)
           IF(.NOT.XST)THEN
-            dok=.true.
-            CALL ASKOK(' ','Operations file not found, try again?',
-     &        OK,dok,nbhelp)
+            CALL EASKOK('Operations file not found!','Retry?',OK,nbhelp)
             IF(OK)GOTO 295
           endif
           LPROJ(IC)=LTMP
@@ -799,11 +769,10 @@ C                write(6,*) ltmp
           LPROJ(IC)='UNKNOWN'
         endif
 
-        dok=.false.
         helptopic='zone_also_constructions'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' ','Also use an existing constructions file? ',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(' ','Also use an existing constructions file?',
+     &        OK,nbhelp)
         if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
           WRITE(DFILE,'(A,A4)')zname(IC)(1:lnzname(IC)),'.con'
         else
@@ -846,9 +815,8 @@ C                write(6,*) ltmp
           IF(LTMP(1:2).EQ.'  ')GOTO 297
           call FINDFIL(LTMP,XST)
           IF(.NOT.XST)THEN
-            dok=.true.
-            CALL ASKOK(' ','Constructions file not found, try again?',
-     &        OK,dok,nbhelp)
+            CALL EASKOK('Constructions file not found!','Retry?',
+     &        OK,nbhelp)
             IF(OK)GOTO 297
           endif
           LTHRM(IC)=LTMP
@@ -896,18 +864,15 @@ C Existing zip geom file.
         IF(LTMP(1:2).EQ.'  ')GOTO 293
         call FINDFIL(LTMP,XST)
         IF(.NOT.XST)THEN
-          dok=.true.
-          CALL ASKOK('Zip file not found!','Try again?',OK,
-     &      dok,nbhelp)
+          CALL EASKOK('Zip file not found!','Retry?',OK,nbhelp)
           IF(OK)GOTO 396
         ENDIF
 
 C Scan zip file and update control and connections.
         CALL EZIPIN(IFIL+1,ltmp,IC,1,ITRC,iuout,IER)
         IF(IER.NE.0)THEN
-          dok=.true.
-          CALL ASKOK('Problem scanning CAD file!',
-     &               'Try again?',OK,dok,nbhelp)
+          CALL EASKOK('Problem reading CAD file!',
+     &               'retry?',OK,nbhelp)
           IF(OK)GOTO 396
         ENDIF
 
@@ -1061,7 +1026,9 @@ C Present message about what to do next.
 
 C ************* DELZONE
 C DELZONE systematicly removes a thermal zone.
+
       SUBROUTINE DELZONE(ITRC,IWHICH,IER)
+
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
@@ -1070,7 +1037,6 @@ C DELZONE systematicly removes a thermal zone.
 #include "esprdbfile.h"
 #include "espriou.h"
 #include "CFC_common.h"
-C espriou.h provides currentfile.
 #include "control.h"
 #include "schedule.h"
 #include "prj3dv.h"
@@ -1078,7 +1044,7 @@ C espriou.h provides currentfile.
       integer lnblnk  ! function definition
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -1098,7 +1064,7 @@ C espriou.h provides currentfile.
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
 
-      LOGICAL DOK,OK,XST,changed,OKC,OKM,modopr,browse
+      LOGICAL OK,XST,changed,OKC,OKM,modopr,browse
       logical newgeo  ! to use for testing if new/old geometry file.
 
       CHARACTER LAPROB*72
@@ -1126,8 +1092,7 @@ C General warning.
       helptopic='zone_delete_warning'
       call gethelptext(helpinsub,helptopic,nbhelp)
       write(outs,'(3a)')' Continue with deletion of ',zname(IW),'?'
-      dok=.false.
-      CALL ASKOK(outs,'(see help)',OK,dok,nbhelp)
+      CALL EASKOK(' ',outs,OK,nbhelp)
       if(.NOT.OK)return
 
 C Read in mass flow network if defined and see if there is a node which
@@ -1187,11 +1152,9 @@ C If a node is linked to zone to be deleted then check with user.
               write(outs,'(3A)')zname(IW)(1:lnzname(IW)),
      &          ' is linked to ventilation network node: ',
      &          NDNAM(ICAAS(IW))
-              DOK=.true.
               helptopic='zone_delete_net_node'
               call gethelptext(helpinsub,helptopic,nbhelp)
-              CALL ASKOK(outs,'Remove this link? (see help)',
-     &          OK,DOK,nbhelp)
+              CALL EASKOK(outs,'Remove ?',OK,nbhelp)
               if(OK)then
                 ICAAS(IW)=0
               endif
@@ -1211,18 +1174,15 @@ C Read in control file if defined. Use IW2 index from this point.
       helptopic='zone_delete_control'
       call gethelptext(helpinsub,helptopic,nbhelp)
       if(LCTLF(1:2).eq.'  '.or.LCTLF(1:4).eq.'UNKN')then
-        DOK=.false.
-        CALL ASKOK(' System zone-based controls should also be',
-     &   ' updated. Is one associated with the model ?',
-     &   OKC,DOK,nbhelp)
+        CALL EASKOK('Zone controls should be updated.',
+     &   'Is one associated with the model?',OKC,nbhelp)
       else
-        DOK=.true.
-        CALL ASKOK(' System zone-based controls should also be',
-     &    ' updated. Do this ?',OKC,DOK,nbhelp)
+        CALL EASKOK('Zone control should be updated.',
+     &    'Do this?',OKC,nbhelp)
       endif
       if(OKC)then
         ltmp=LCTLF
-        CALL EASKS(ltmp,' Control file ? ',
+        CALL EASKS(ltmp,'Control file?',
      &   ' ',72,'std.ctl','Control file',IER,nbhelp)
         if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
           lctlf=ltmp
@@ -1240,9 +1200,7 @@ C the user and ask if it should be deleted.
                   call LSTCNTL(iuout,0,ik)
                   write(outs,'(a,i2,a,a)') 'Control loop ',ik,
      &              ' is specific to ',zname(IW2)
-                  DOK=.true.
-                  CALL ASKOK(outs,' Remove this control loop?',
-     &              OK,DOK,nbhelp)
+                  CALL EASKOK(outs,'Remove?',OK,nbhelp)
                   if(ok)then
 
 C User requests deletion of control loop. Do this and then decrement all
@@ -1287,9 +1245,7 @@ C the user and ask if it should be deleted.
                   call LSTCNTL(itru,2,ik)
                   write(outs,'(a,i2,a,a)') 'Ventilation control loop ',
      &              ik,' is specific to ',zname(IW2)
-                  DOK=.true.
-                  CALL ASKOK(outs,' Remove this control loop?',
-     &              OK,DOK,nbhelp)
+                  CALL EASKOK(outs,' Remove?',OK,nbhelp)
                   if(ok)then
                     icfoc=2
                     call ADDCNTL(icfoc,'D')
@@ -1330,9 +1286,8 @@ C the user and ask if it should be deleted.
                   call LSTCNTL(iuout,6,ik)
                   write(outs,'(a,i2,a,a)') 'Control loop ',ik,
      &              ' is specific to ',zname(IW2)
-                  DOK=.true.
-                  CALL ASKOK(outs,' Remove this control loop?',
-     &              OK,DOK,nbhelp)
+
+                  CALL EASKOK(outs,'Remove?',OK,nbhelp)
                   if(ok)then
 
 C User requests deletion of control loop. Do this and then decrement all
@@ -1400,12 +1355,9 @@ C If the surface connection type is 3 and it (ic2) points back to IW2
 C then reset sother and ict and ie2 and ic2.
             if(ICT(ioc).EQ.3)then
               if(IC2(ioc).eq.IW2)then
-                SOTHER(ISX,1)='UNKNOWN'
-                SOTHER(ISX,2)='0'
-                SOTHER(ISX,3)='0'
-                SSOTHER(ioc,1)='UNKNOWN'
-                SSOTHER(ioc,2)='0'
-                SSOTHER(ioc,3)='0'
+                SOTHER(IX,ISX,1)='UNKNOWN'
+                SOTHER(IX,ISX,2)='0'
+                SOTHER(IX,ISX,3)='0'
                 ICT(ioc)=-1
                 IE2(ioc)=0
                 IC2(ioc)=0
@@ -1541,12 +1493,10 @@ C Ask if user wishes to remove all files related to the zone.
 C << place to take into account where prj was invoked and the
 C << path to the model cfg folder.
 
-      dok=.false.
       helptopic='zone_delete_files'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' In addition to de-referencing this zone do you',
-     &  ' also wish to delete the descriptive files ?',
-     &  OK,dok,nbhelp)
+      CALL EASKOK(' ','Delete corresponding tdescriptive files?',
+     &        OK,nbhelp)
       if(OK)then
         IUO=IFIL+1
         CALL ERPFREE(IUO,ISTAT)
@@ -1858,12 +1808,12 @@ C Passed parameters
       character act*1 ! i is initialise r is report on leaving
       logical silent  ! if true then use silent recalc
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character h*72
       common/pophelp/h(60)
       common/pmchange/comold,tmcold,vwfold,ishold,cfcold
 
-      logical comold,tmcold,vwfold,ishold,ok,dok,QUIET
+      logical comold,tmcold,vwfold,ishold,ok,QUIET
       logical unixok,cfcold
 
 C For help messages
@@ -1927,11 +1877,10 @@ C Check if Unix-based or DOS based.
         if(silent)then
           IRT=1
         else
-          DOK=.true.
           helptopic='change_for_shading'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC(' ','Reflect zone change in shading options:',
-     &   'recalculate (silent)','recalculate (interactive)','continue',
+          CALL EASKABC('Reflect zone change in shading?','Options:',
+     &   'recalculate (silent)','recalculate (interactive)','cancel',
      &    IRT,nbhelp)
         endif
         if(IRT.eq.1.or.IRT.eq.2)then
@@ -1953,13 +1902,11 @@ C If existing db out of date the perform recalculation.
         if(silent)then
           ok= .true.
         else
-          DOK=.true.
           helptopic='change_for_constructions'
           call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(
-     &    'Update the zone construction and/ or TMC and/ or ',
-     &    'CFC files to reflect the changes that you have made?',
-     &     OK,DOK,nbhelp)
+        CALL EASKOK(' ',
+     &    'Update zone construction, TMC and/or CFC files?',
+     &    OK,nbhelp)
         endif
         if(OK)then
           QUIET=.true.
@@ -1988,7 +1935,7 @@ C     = 'sua'  silent useupdate_silent mode
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
       

@@ -36,7 +36,7 @@ C geometry.h provides commons G0/G1/G2/c20/precz.
       integer lnblnk  ! function definition
       integer igraphiclib  ! external definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -67,6 +67,10 @@ C Path to model.
       character runpath*72  ! path for working files
       common/expath/runpath
 
+C Session log file (for errors etc.)
+      character iefile*72
+      common/logs/iefile
+
       integer lnrp  ! length of runpath
       common/expathl/lnrp
 
@@ -93,8 +97,11 @@ C Significant figure reporting limit (NSIGFIG).
       
 C Name of current application
       common/APPNAME/cAppName
-      
-      character cAppName*12      
+      character cAppName*12  
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR    
       
       LOGICAL     CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
@@ -109,12 +116,13 @@ C Name of current application
       CHARACTER DFILE*72,inf*144,LCMDFL*144
       CHARACTER VFILE*72,ZN*12,LTMP*72,L144*144,LTMPFL*72
       character path*72
-      character journcmd*20,jfile*72,uname*24
+      character journcmd*20,jfile*72
       character inz*16,inzone*16,fs*1,cjfile*72
 
       character cVnum*38      ! returned from ESPrVersionNum
-      character pagestitle*62 ! for banner title via epages call
+      character pagestitle*68 ! for banner title via epages call
       character ppath*72,filen*72
+      character dstmp*24,uname*24,tfile*72
 
       integer iglib   ! if 1 then X11, if 2 then GTK, if 3 then text only.
       integer ISTRW
@@ -184,11 +192,12 @@ C Initialize global common data.
       helpinsub='mrt'  ! set for MAIN
       IUIN=5
       IUOUT=6
-      LIMTTY=24
-      LIMIT =24
+      LIMTTY=30
+      LIMIT =30
       IFIL = 10
       NSIGFIG=3
-      matver=0.0   ! initial assumption of binary materials database
+      matver=0.0     ! initial assumption of binary materials database
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Assume configuration file is from IFIL+5, any leakage description
 C is fom IFIL+6, updated polygons on IFILE+7 and
@@ -278,16 +287,21 @@ C and dialog.
         IMFS=5
         IFS=4
         ITFS=1
+#ifdef OSX
+        IMFS=4
+        IFS=4     ! use a smaller dialog font
+        ITFS=0
+#endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=16
-        LIMIT =16
+        LIMTTY=30 ! Text mode set LIMTTY larger for paging menus.
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.
       call ESPrVersionNum(cVnum)
-      write(pagestitle,'(2a)') 'ESP-r View Factors ',
+      write(pagestitle,'(2a)') 'View factors of ESP-r ',
      &  cVnum(1:lnblnk(cVnum))
 
       lntitle=lnblnk(pagestitle)
@@ -332,6 +346,12 @@ C     &    mdispl,nifgrey,ncset,ngset,nzonec
         
 C Set reasonable defaults for text mode.
         igw=434; igwh=223; igl=41; igb=257
+        iiw1=4; iiw2=2; iiw3=2; iiw4=3; iimenu=menuchw
+        iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw; iigwh=igwh
+        CALL win3dwwc(iimenu,iiw1,iiw2,iiw3,iiw4,
+     &    iigl,iigr,iigt,iigb,iigw,iigwh)
+        igl=int(iigl); igr=int(iigr); igt=int(iigt); igb=int(iigb)
+        igw=int(iigw); igwh=int(iigwh)
       ENDIF
       CALL ESPrVersion("summary",cAppName,IUOUT)
 
@@ -384,6 +404,23 @@ C All subsequent tstamp messages will be appended to root journal.
      &    uname(1:lnblnk(uname))
         call tstamp('>',outs)
       endif
+
+C Create and open a session log file based on user name, PID etc.
+      uname=' '; tfile=' '
+      call usrname(uname)
+      call esppid(ipid)
+        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+     &    uname(1:lnblnk(uname)),ipid,'.log'
+      call st2file(tfile,iefile)
+
+C Open the session file.
+      ieout=ifil+932          ! set to unused index 942
+      open(ieout,file=iefile,status='UNKNOWN',err=903)
+      write(ieout,'(a)')'Session log for mrt'
+      call dstamp(dstmp) ! get curret time
+      write(ieout,'(2a)')'Date,',dstmp
+      write(ieout,'(2a)')'User,',uname(1:lnblnk(uname))
+  903 continue
 
 C Scan the defaults file silently for default configuration.
       call escdef(IUF,'s',IER)
@@ -491,6 +528,8 @@ C new scratch file.
               call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
               if(ISTAT.lt.0)then
                 call edisp(iuout,' Error opening mrt.trace file;')
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 CALL EPAGEND
                 STOP
               endif
@@ -511,6 +550,8 @@ C     &            cfgroot(1:lnblnk(cfgroot)),'.mrt'
               call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
               if(ISTAT.lt.0)then
                 call edisp(iuout,' Error opening mrt.trace file;')
+                close(ieout)
+                CALL ERPFREE(ieout,ISTAT)
                 CALL EPAGEND
                 STOP
               endif
@@ -643,6 +684,8 @@ C     &        cfgroot(1:lnblnk(cfgroot)),'.mrt'
             call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
             if(ISTAT.lt.0)then
               call edisp(iuout,' Error opening mrt.trace file;')
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
               STOP
             endif
@@ -663,6 +706,8 @@ C     &        cfgroot(1:lnblnk(cfgroot)),'.mrt'
             call FPRAND(IFPOL,ISTAT,80,3,LTMPFL)
             if(ISTAT.lt.0)then
               call edisp(iuout,' Error opening mrt.trace file;')
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               CALL EPAGEND
               STOP
             endif
@@ -807,7 +852,6 @@ C Help via the askabout facility in esru_ask.F The zero requests display
       ELSEIF(INO.EQ.17)THEN
 
 c End program, free and delete the scratch file.
-        call usrmsg(' Closing viewfactor and MRT program...',' ','P')
         call tstamp('>','Finish viewfactor module')
         INQUIRE (FILE=LTMPFL(1:lnblnk(LTMPFL)),EXIST=XST)
         if(XST)then
@@ -815,6 +859,8 @@ c End program, free and delete the scratch file.
           call FPRAND(IFPOL,ISTAT,80,1,LTMPFL)
           CALL EFDELET(IFPOL,ISTAT)
         endif
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         CALL EPAGEND
         STOP
       ELSE
@@ -936,7 +982,7 @@ C Calculate viewfactors for a zone.
 #include "geometry.h"
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/MRT2/GEOLOAD,MRTLOAD
       COMMON/G1M/XM(MTV),YM(MTV),ZM(MTV),NSURM,JVNM(MSM,MV),
@@ -954,7 +1000,7 @@ C outfile is the geometry file name for the zone with cube added.
       real drow,rowsum(MS+1)
       integer wrongrow
       character outs*124
-      logical OK,DOK,GEOLOAD,MRTLOAD
+      logical OK,GEOLOAD,MRTLOAD
       dimension iivis(MSM)
 
 C For help messages
@@ -1370,11 +1416,9 @@ C If summation is not close to unity then report.
         endif
       endif
 C Save view factor file.
-      dok=.true.
       helptopic='user_review_of_calcs'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' Ok to save these viewfactors?',' ',OK,dok,
-     &  nbhelp)
+      CALL EASKOK(' ','Save viewfactors?',OK,nbhelp)
       if(OK)then
         CALL EMKMRT(LVIEW(icomp),LGEOM(ICOMP),NZSUR(ICOMP),IUF,
      &    ICOMP,'v',IER)
@@ -1445,7 +1489,7 @@ C Parameters passed.
       integer ier     ! error state zero ok, one problem
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       DIMENSION  item(36)
       real COG1,COG2,COG3  ! position to check against

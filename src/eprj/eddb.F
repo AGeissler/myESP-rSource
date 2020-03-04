@@ -60,7 +60,7 @@ C default file names for standard files
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -70,7 +70,7 @@ C default file names for standard files
 
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
-      logical OK,DOK,XST,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
+      logical OK,XST,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical moddb,browse,modcon,QUIET
       logical haveconstr
       integer ihd  ! for radio button
@@ -126,6 +126,8 @@ C yet defined.
         call findwhichdbpath('clm',lworking,ier)
         lworking=LCFCDB
         call findwhichdbpath('cfc',lworking,ier)
+        lworking=lpredef
+        call findwhichdbpath('pre',lworking,ier)
       endif
  
     3 INO=-4
@@ -138,12 +140,12 @@ C yet defined.
       endif
       
       lndbp=lnblnk(standarddbpath)
-      WRITE(ITEMS(1),'(A)')'  Folder paths: '
+      WRITE(ITEMS(1),'(A)')'  Folder paths:'
       if(lndbp.lt.52)then
-        WRITE(ITEMS(2),'(2A)')'   Standard dbs <std> = ',
+        WRITE(ITEMS(2),'(2A)')'  <std> = ',
      &    standarddbpath(1:lndbp)
       else
-        WRITE(ITEMS(2),'(2A)')'   Standard dbs <std> = ',
+        WRITE(ITEMS(2),'(2A)')'  <std> = ',
      &    standarddbpath(1:52)
       endif
       if(cfgroot(1:2).ne.'  '.and.cfgroot(1:4).ne.'UNKN')then
@@ -151,143 +153,143 @@ C yet defined.
         lndbpth=lnblnk(dbspth)
         if(lnpth+lndbpth.lt.55)then
           WRITE(ITEMS(3),'(3A)')
-     &      '   Model <mod> = ',path(1:lnpth),dbspth(1:lndbpth)
+     &      '  <mod> = ',path(1:lnpth),dbspth(1:lndbpth)
         else
           if(lnpth.lt.50)then
             WRITE(ITEMS(3),'(3A)')
-     &        '   Model <mod> = ',path(1:lnpth),dbspth(1:5)
+     &        '  <mod> = ',path(1:lnpth),dbspth(1:5)
           else
             WRITE(ITEMS(3),'(2A)')
-     &        '   Model <mod> = ',path(1:lnpth)
+     &        '  <mod> = ',path(1:lnpth)
           endif
         endif
       else
         WRITE(ITEMS(3),'(A)')
-     &    '   Model <mod> = no model yet defined'
+     &    '  <mod> = no active model'
       endif
       ITEMS(4) ='  _______________________________ '
       if(ipathclim.eq.0)then
-        WRITE(ITEMS(5),'(2A)')'a annual weather        : ',
+        WRITE(ITEMS(5),'(2A)')'a annual weather: ',
      &    LCLIM(1:43)
       elseif(ipathclim.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(5),'(2A)')'a annual weather        : <mod>',
+        WRITE(ITEMS(5),'(2A)')'a annual weather: <mod>',
      &    LCLIM(lndbpth:38)
       elseif(ipathclim.eq.2)then
-        WRITE(ITEMS(5),'(2A)')'a annual weather        : <std>',
+        WRITE(ITEMS(5),'(2A)')'a annual weather: <std>',
      &    LCLIM(1:38)
       endif
 
-      WRITE(ITEMS(6),'(2A)')  'b multi-year weather    : ',cTemp(1:43)
+      WRITE(ITEMS(6),'(2A)')  'b multi-year weather: ',cTemp(1:43)
       if(ipathmat.eq.0)then
-        WRITE(ITEMS(7),'(2A)')'c material properties   : ',
+        WRITE(ITEMS(7),'(2A)')'c material properties: ',
      &    LFMAT(1:43)
       elseif(ipathmat.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(7),'(2A)')'c material properties   : <mod>',
+        WRITE(ITEMS(7),'(2A)')'c material properties: <mod>',
      &    LFMAT(lndbpth:38)
       elseif(ipathmat.eq.2)then
-        WRITE(ITEMS(7),'(2A)')'c material properties   : <std>',
+        WRITE(ITEMS(7),'(2A)')'c material properties: <std>',
      &    LFMAT(1:38)
       endif
       if(ipathoptdb.eq.0)then
-        WRITE(ITEMS(8),'(2A)')'d optical properties    : ',
+        WRITE(ITEMS(8),'(2A)')'d optical properties: ',
      &    LOPTDB(1:43)
       elseif(ipathoptdb.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(8),'(2A)')'d optical properties    : <mod>',
+        WRITE(ITEMS(8),'(2A)')'d optical properties: <mod>',
      &    LOPTDB(lndbpth:38)
       elseif(ipathoptdb.eq.2)then
-        WRITE(ITEMS(8),'(2A)')'d optical properties    : <std>',
+        WRITE(ITEMS(8),'(2A)')'d optical properties: <std>',
      &    LOPTDB(1:38)
       endif
 
       if(ipathmul.eq.0)then
-        WRITE(ITEMS(9),'(2A)')'e constructions         : ',
+        WRITE(ITEMS(9),'(2A)')'e constructions: ',
      &    LFMUL(1:43)
       elseif(ipathmul.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(9),'(2A)')'e constructions         : <mod>',
+        WRITE(ITEMS(9),'(2A)')'e constructions: <mod>',
      &    LFMUL(lndbpth:38)
       elseif(ipathmul.eq.2)then
-        WRITE(ITEMS(9),'(2A)')'e constructions         : <std>',
+        WRITE(ITEMS(9),'(2A)')'e constructions: <std>',
      &    LFMUL(1:38)
       endif
       if(ipathmsc.eq.0)then
-        WRITE(ITEMS(10),'(2A)')'f active components     : ',
+        WRITE(ITEMS(10),'(2A)')'f active components: ',
      &    MCMPDBFL(1:43)
       elseif(ipathmsc.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(10),'(2A)')'f active components     : <mod>',
+        WRITE(ITEMS(10),'(2A)')'f active components: <mod>',
      &    MCMPDBFL(lndbpth:38)
       elseif(ipathmsc.eq.2)then
-        WRITE(ITEMS(10),'(2A)')'f active components     : <std>',
+        WRITE(ITEMS(10),'(2A)')'f active components: <std>',
      &    MCMPDBFL(1:38)
       endif
       if(ipathprodb.eq.0)then
-        WRITE(ITEMS(11),'(2A)')'g event profiles        : ',
+        WRITE(ITEMS(11),'(2A)')'g event profiles: ',
      &    LPRFDB(1:43)
       elseif(ipathprodb.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(11),'(2A)')'g event profiles        : <mod>',
+        WRITE(ITEMS(11),'(2A)')'g event profiles: <mod>',
      &    LPRFDB(lndbpth:38)
       elseif(ipathprodb.eq.2)then
-        WRITE(ITEMS(11),'(2A)')'g event profiles        : <std>',
+        WRITE(ITEMS(11),'(2A)')'g event profiles: <std>',
      &    LPRFDB(1:38)
       endif
       if(ipathapres.eq.0)then
-        WRITE(ITEMS(12),'(2A)')'h pressure coefficients : ',
+        WRITE(ITEMS(12),'(2A)')'h pressure coefficients: ',
      &    LAPRES(1:43)
       elseif(ipathapres.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(12),'(2A)')'h pressure coefficients : <mod>',
+        WRITE(ITEMS(12),'(2A)')'h pressure coefficients: <mod>',
      &    LAPRES(lndbpth:38)
       elseif(ipathapres.eq.2)then
         WRITE(ITEMS(12),'(2A)')'h pressure coefficients : <std>',
      &    LAPRES(1:38)
       endif
       if(ipathpcdb.eq.0)then
-        WRITE(ITEMS(13),'(2A)')'i plant components      : ',
+        WRITE(ITEMS(13),'(2A)')'i plant components: ',
      &    LPCDB(1:43)
       elseif(ipathpcdb.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(13),'(2A)')'i plant components      : <mod>',
+        WRITE(ITEMS(13),'(2A)')'i plant components: <mod>',
      &    LPCDB(lndbpth:38)
       elseif(ipathpcdb.eq.2)then
-        WRITE(ITEMS(13),'(2A)')'i plant components      : <std>',
+        WRITE(ITEMS(13),'(2A)')'i plant components: <std>',
      &    LPCDB(1:38)
       endif
       if(ipathmould.eq.0)then
-        WRITE(ITEMS(14),'(2A)')'j mould isopleths       : ',
+        WRITE(ITEMS(14),'(2A)')'j mould isopleths: ',
      &    lfmould(1:43)
       elseif(ipathmould.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(14),'(2A)')'j mould isopleths       : <mod>',
+        WRITE(ITEMS(14),'(2A)')'j mould isopleths: <mod>',
      &    lfmould(lndbpth:38)
       elseif(ipathmould.eq.2)then
-        WRITE(ITEMS(14),'(2A)')'j mould isopleths       : <std>',
+        WRITE(ITEMS(14),'(2A)')'j mould isopleths: <std>',
      &    lfmould(1:38)
       endif
       if(ipathcfc.eq.0)then
-        WRITE(ITEMS(15),'(2A)')'k CFC layers            : ',
+        WRITE(ITEMS(15),'(2A)')'k CFC layers: ',
      &    LCFCDB(1:43)
       elseif(ipathcfc.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(15),'(2A)')'k CFC layers            : <mod>',
+        WRITE(ITEMS(15),'(2A)')'k CFC layers: <mod>',
      &    LCFCDB(lndbpth:38)
       elseif(ipathcfc.eq.2)then
-        WRITE(ITEMS(15),'(2A)')'k CFC layers            : <std>',
+        WRITE(ITEMS(15),'(2A)')'k CFC layers: <std>',
      &    LCFCDB(1:38)
       endif
       if(ipathpredef.eq.0)then
-        WRITE(ITEMS(16),'(2A)')'l predefined objects    : ',
+        WRITE(ITEMS(16),'(2A)')'l predefined objects: ',
      &    LPREDEF(1:43)
       elseif(ipathpredef.eq.1)then
         lndbpth=lnblnk(dbspth)+2
-        WRITE(ITEMS(16),'(2A)')'l predefined objects    : <mod>',
+        WRITE(ITEMS(16),'(2A)')'l predefined objects: <mod>',
      &    LPREDEF(lndbpth:38)
       elseif(ipathpredef.eq.2)then
-        WRITE(ITEMS(16),'(2A)')'l predefined objects    : <std>',
+        WRITE(ITEMS(16),'(2A)')'l predefined objects: <std>',
      &    LPREDEF(1:38)
       endif
 
@@ -329,7 +331,7 @@ C No model yet so reset to the default names and exit.
           write(LOPTDB,'(a)') DOPTDB(1:lnblnk(DOPTDB))
           write(LPRFDB,'(a)') DPRFDB(1:lnblnk(DPRFDB))
           write(LPCDB,'(a)')  DPCDB(1:lnblnk(DPCDB))
-          write(LSBEM,'(a)')  DSBEM(1:lnblnk(DSBEM))  ! assign default SBEM db
+          write(LSBEM,'(a)')  DSBEM(1:lnblnk(DSBEM))
           write(MCMPDBFL,'(a)') DMCMPDBFL(1:lnblnk(DMCMPDBFL))
           write(lfmould,'(a)') dmdbnam(1:lnblnk(dmdbnam))
           write(LCFCDB,'(a)') DCFCDB(1:lnblnk(DCFCDB))
@@ -338,13 +340,11 @@ C No model yet so reset to the default names and exit.
         endif
 
 C If a model has been loaded and there are possible changes ask
-C user for confirmation.
+C for confirmation.
         if(cfgok.and.moddb)then
-          dok=.true.
-          CALL ASKOK(
-     &      'A possible change in file names has been detected.',
-     &      'Update the model to match?',
-     &      OK,DOK,nbhelp)
+          CALL EASKOK(
+     &      'Possible change in file names detected!',
+     &      'Update model to match?',OK,nbhelp)
           if(.NOT.OK)return
           CALL EMKCFG('-',IER)
         endif
@@ -365,10 +365,9 @@ C See if there are existing zone construction files.
             if(.NOT.haveconstr)then
               ok=.false.
             else
-              dok=.true.
-              CALL ASKOK(
-     &         'Rebuild existing zone construction files',
-     &         'to reflect database changes?',OK,dok,nbhelp)
+              CALL EASKOK(' ',
+     &         'Update zone constructions files to reflect changes?',
+     &             OK,nbhelp)
             endif
           endif
           if(.NOT.OK)return
@@ -384,178 +383,145 @@ C See if there are existing zone construction files.
         endif
         RETURN
 
+C Single year weather db.
       elseif(INO.EQ.5)then
-
-C Weather file.
         call eddbclm(moddb,'      ',-1)
 
+C Multi-year weather db (works only with save level 5).
       ELSEIF(INO.eq.6)THEN
-
-C Multi-year weather file - works only in conjunction with save level 5.
          call usrmsg('The use of multi-year assessments is',
-     &               'limited to results save level 5.','W')
+     &               'restricted to results save level 5.','W')
          call MY_clm_db_menu()
 
+C Material properties db.
       ELSEIF(INO.EQ.7)THEN
-
-C Manage materials db and if a model loaded then warn user 
-C if db name or contents have changed.
-        call eddbmaterial(moddb,modcon,'    ')
+        call eddbmaterial(moddb,modcon)
         if(cfgroot(1:2).ne.'  '.and.cfgroot(1:4).ne.'UNKN')then
           if(moddb)then
-            call usrmsg(
-     &      'The file name might have changed. Suggest',
-     &      'using the `save model` option to record this.','W')
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'The file details may have changed!')
+            call edisp(iuout,
+     &      'Perhaps use the `save model` option to record this.')
           endif
           if(modcon)then
-            call usrmsg(
-     &      'The file details might have changed. In a moment',
-     &      'you will be offered the option to update zone files.','W')
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'The file name or details have changed!')
+            call edisp(iuout,
+     &      'Suggest updating zone files when the option is offered.')            
           endif
         endif
 
+C Optical properties db.
       ELSEIF(INO.EQ.8)THEN
-
-C Optical properties.
-        call eddbopt(moddb,'    ')
+        call eddbopt(moddb)
         if(cfgroot(1:2).ne.'  '.and.cfgroot(1:4).ne.'UNKN')then
           if(moddb)then
-            call edisp(iuout,
-     &      'The file name or details have changed. If you')
-            call edisp(iuout,
-     &      'want to keep it use the `save model` option.')
             call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'The file name or details have changed!')
+            call edisp(iuout,
+     &      'Perhaps use the `save model` option to record this.')
           endif
         endif
 
+C Constructions db.
       ELSEIF(INO.EQ.9)THEN
-
-C Deal with constructions.
-        call eddbmlcon(moddb,modcon,'    ')
+        call eddbmlcon(moddb,modcon)
         if(cfgroot(1:2).ne.'  '.and.cfgroot(1:4).ne.'UNKN')then
           if(modcon)then
-            call usrmsg(
-     &      'The file details might have changed. In a moment',
-     &      'you will be offered the option to update zone files.','W')
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'The file name or details have changed!')
+            call edisp(iuout,
+     &      'Suggest updating zone files when the option is offered.') 
           endif
         endif
 
+C Active components db.
       ELSEIF(INO.EQ.10)THEN
+        call EDDBMSC(moddb)
 
-C Manage common active components file.
-        call EDDBMSC(moddb,'    ')
-
+C Event profiles db.
       ELSEIF(INO.EQ.11)THEN
-
-C Event profiles.
-        call eddbprofile(moddb,'    ')
+        call eddbprofile(moddb)
         if(cfgroot(1:2).ne.'  '.and.cfgroot(1:4).ne.'UNKN')then
           if(moddb)then
-            call edisp(iuout,
-     &      'The file name or details have changed. If you')
-            call edisp(iuout,
-     &      'want to keep it use the `save model` option.')
             call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'The file name or details have changed!')
+            call edisp(iuout,
+     &      'Perhaps use the `save model` option to record this.')
           endif
         endif
-        
+
+C Pressure coefficients db.
       ELSEIF(INO.EQ.12)THEN
+        call eddbpres(moddb)
 
-C Pressure distribution db.
-        call eddbpres(moddb,'    ')
-
+C Plant components db.
       ELSEIF(INO.EQ.13)THEN
-
-C Plant templates.
-        call eddbpcdb(moddb,'    ')
+        call eddbpcdb(moddb)
         if(cfgroot(1:2).ne.'  '.and.cfgroot(1:4).ne.'UNKN')then
           if(moddb)then
-            call edisp(iuout,
-     &      'The file name or details have changed. If you')
-            call edisp(iuout,
-     &      'want to keep it use the `save model` option.')
             call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'The file name or details have changed!')
+            call edisp(iuout,
+     &      'Perhaps use the `save model` option to record this.')
           endif
         endif
 
+C Mould isopleths db.
       ELSEIF(INO.EQ.14)THEN
+        call EDDBMOULD(moddb)
 
-C Mould isopleths.
-        call EDDBMOULD(moddb,'    ')
-
+C CFC layers db.
       ELSEIF(INO.EQ.15)THEN
-
-C Manage CFC layers db and if a model loaded then warn user 
-C if db name or contents have changed.
-        call eddbcfc(moddb,modcon,'    ')
+        call eddbcfc(moddb,modcon)
         if(cfgroot(1:2).ne.'  '.and.cfgroot(1:4).ne.'UNKN')then
           if(moddb)then
-            call usrmsg(
-     &      'The file name might have changed. Suggest',
-     &      'using the `save model` option to record this.','W')
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'The file name might have changed.')
+            call edisp(iuout,
+     &      'Perhaps use the `save model` option to record this.')
           endif
           if(modcon)then
-            call usrmsg(
-     &      'The file details might have changed. In a moment',
-     &      'you will be offered the option to update zone files.','W')
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'The file details might have changed.')
+            call edisp(iuout,
+     &      'Suggest updating zone files when the option is offered.')
           endif
         endif
 
+C Predefined objects db.
       ELSEIF(INO.EQ.16)THEN
-
-C Manage predefined obj db and if a model loaded then warn user 
-C if db name or contents have changed.
         call eddbpredef(moddb,modcon)
         if(cfgroot(1:2).ne.'  '.and.cfgroot(1:4).ne.'UNKN')then
           if(moddb)then
-            call usrmsg(
-     &      'The file name might have changed. Suggest',
-     &      'using the `save model` option to record this.','W')
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'The file name might have changed.')
+            call edisp(iuout,
+     &      'Perhaps use the `save model` option to record this.')
           endif
           if(modcon)then
-            call usrmsg(
-     &      'The file details might have changed. In a moment',
-     &      'you will be offered the option to update zone files.','W')
+            call edisp(iuout,' ')
+            call edisp(iuout,
+     &      'The file details might have changed.')
+            call edisp(iuout,
+     &      'Suggest updating zone files when the option is offered.')
           endif
         endif
 
-      ELSEIF(INO.EQ.18)THEN
-
 C Menu help text.
+      ELSEIF(INO.EQ.18)THEN
         helptopic='database_mgt_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
         call phelpd('databases overview',nbhelp,'-',0,0,IER)
-        ihd=1
-        call easkatog(' ','Help options:','overview','climate',
-     &   'materials','constructions','optics','plant','cancel',ihd,1)
-        if(ihd.eq.1)then
-          helptopic='database_mgt_overview'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL PHELPD('databases overview',nbhelp,'-',0,0,IER)
-        elseif(ihd.eq.2)then
-          helptopic='database_clm_overview'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL PHELPD('climate overview',nbhelp,'clm_dbitems ',0,0,IER)
-        elseif(ihd.eq.3)then
-          helptopic='database_mat_overview'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL PHELPD('materials db overview',nbhelp,'materials_db',
-     &      0,0,IER)
-        elseif(ihd.eq.4)then
-          helptopic='database_mlc_overview'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL PHELPD('constr db overview',nbhelp,'mlc_database',
-     &      0,0,IER)
-        elseif(ihd.eq.5)then
-          helptopic='database_optic_overview'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL PHELPD('optics overview',nbhelp,'optical_db',0,0,IER)
-        elseif(ihd.eq.6)then
-          helptopic='database_plant_overview'
-          call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL PHELPD('plant db overview',nbhelp,'plant_db_fld',
-     &      0,0,IER)
-        endif
 
       ELSE
         INO=-4
@@ -568,16 +534,15 @@ C Menu help text.
       END
 
 C ********** opendb
-C NOTE: if this code change - be sure to update the copy of this
-C subroutine embedded within esruish/ish.F and esrueco/ecoesp.F
+C NB: if this code changes be sure to update the copy of this
+C subroutine embedded within eish/ish.F and eeco/eco.F
 
-C Open materials, constructions and optical properties. In the 
-C case of materials, first assume it is a binary file, check its
-C contents and if a problem then scan new ascii format.
-C Uf that does not work try the older ascii materials file to
-C fill the materials data arrays.
-C If sucessful the material common blocks will be filled and
-C closemat1 or closemat2 will be set.
+C Open materials, constructions and optical properties files. In 
+C the case of materials, first assume it is a binary file, check
+C its contents and if a problem occurs assume it is in the neer
+C ascii format. If this does not work try the older ascii file
+C format. If sucessful, the material common blocks will be filled
+C ad closemat1 or closemat2 will be set.
 
       subroutine opendb(ier)
 #include "building.h"
@@ -587,7 +552,7 @@ C closemat1 or closemat2 will be set.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
       logical XST,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
@@ -599,7 +564,7 @@ C closemat1 or closemat2 will be set.
       integer lndbp   ! for length of standard database path
       logical unixok
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -641,14 +606,14 @@ C Read multilayer db information into common depending on its location.
           write(outs248,'(3a)') 
      &    ' Problems with materials used by Constructions db',
      &     LFMAT(1:lnblnk(LFMAT)),'!'
-          call edisp248(iuout,outs248,100)
           call edisp(iuout,' ')
+          call edisp248(iuout,outs248,100)
           MLDBOK=.FALSE.
-        ELSEIF(IER.eq.2)then
 
-C There were lots of undefined materials so likely the Materials
-C binary file is for the wrong machine type. Guess the name of
-C the ascii version and if it exists, offer to convert it or use it.
+C There are many undefined materials so likely the binary Materials
+C file is for the wrong machine type. Guess the name of the ascii version
+C and, if it exists, offer to convert and/ or use it.
+        ELSEIF(IER.eq.2)then
           IAF=IFIL+1
           LASCI=' '
           if(ipathmat.eq.0.or.ipathmat.eq.1)then
@@ -659,18 +624,18 @@ C the ascii version and if it exists, offer to convert it or use it.
      &        LFMAT(1:lnblnk(LFMAT)),'.a'
           endif
 
-C Label 155 is a jump back point for the case of users supplying a name.
+C Label 155 is a jump back point for the case of a user supplied name.
   155     CALL EFOPSEQ(IAF,LASCI,1,IER)
           if(ier.eq.0)then
 
 C If the ascii version exists there is no need to convert it just
-C scan it into common blocks.
+C scan it.
             call rascimat(IAF,LASCI,IER)  ! try current ascii format
             if(ier.eq.-2)then
               ier=0
               call rlegacymat(IAF,LASCI,ier)  ! try older ascii format
               if(ier.ne.0)then
-                call usrmsg('No readable Materials were found or',
+                call usrmsg('No readable Materials were found',
      &                      'or the file was corrupt.','W')
                 MATDBOK=.FALSE.
               else
@@ -679,10 +644,10 @@ C scan it into common blocks.
                 if(closemat1.or.closemat2)then
 
 C Materials data in place, set this as the new file name and then
-C try and re-scan the Constructions.
+C try and re-scan the constructions file.
                   call usrmsg(
      &              'An ASCII Materials db was found and used.',
-     &              'Re-scanning constructions...','P')
+     &              'Re-scanning constructions ...','P')
                   MATDBOK=.TRUE.
                   write(LFMAT,'(a)') LASCI(1:lnblnk(LASCI))
                   CALL ERPFREE(IFMUL,ISTAT)
@@ -695,12 +660,12 @@ C Search again for lworking.
                       MLDBOK=.TRUE.
                       call usrmsg(
      &                  'An ASCII Materials db was found and used.',
-     &                  'Re-scanning constructions...done.','-')
+     &                  'Re-scanning constructions ...done.','-')
                     else
                       MLDBOK=.FALSE.
                       call usrmsg(
      &                  'An ASCII Materials db was found and used.',
-     &                  'Re-scanning constructions...failed.','W')
+     &                  'Re-scanning constructions ...failed.','W')
                     endif
                   endif
                 else
@@ -716,7 +681,7 @@ C Materials data in place, set this as the new file name and then
 C try and re-scan the constructions.
               call usrmsg(
      &          'An ASCII Materials db was found and used.',
-     &          'Re-scanning constructions...','P')
+     &          'Re-scanning constructions ...','P')
               MATDBOK=.TRUE.
               write(LFMAT,'(a)') LASCI(1:lnblnk(LASCI))
               CALL ERPFREE(IFMUL,ISTAT)
@@ -729,7 +694,7 @@ C Search again for lworking.
                   MLDBOK=.TRUE.
                   call usrmsg(
      &              'An ASCII Materials db was found and used.',
-     &              'Re-scanning constructions...done.','-')
+     &              'Re-scanning constructions ...done.','-')
                 else
                   MLDBOK=.FALSE.
                   call usrmsg(
@@ -749,10 +714,10 @@ C Ask user for ascii Materials file to convert.
           endif
         elseif(IER.eq.3)then
           write(outs248,'(3a)') 
-     &    ' Not enough constructions found in Constructions db',
+     &    ' Not enough constructions found in Constructions db.',
      &     lworking(1:lnblnk(lworking)),'!'
-          call edisp248(iuout,outs248,100)
           call edisp(iuout,' ')
+          call edisp248(iuout,outs248,100)
           MLDBOK=.FALSE.
         ELSEIF(IER.eq.4)THEN
           CALL ERMLDB2(0,iuout,IER)
@@ -769,8 +734,8 @@ C Scan was ok so set mldbok to true.
 C Could not find Constructions db at this time, report to user.
         write(outs248,'(3a)') 'Constructions db ',
      &     LFMUL(1:lnblnk(LFMUL)),' not found!'
-        call edisp248(iuout,outs248,100)
         call edisp(iuout,' ')
+        call edisp248(iuout,outs248,100)
         MLDBOK=.FALSE.
       endif
 
@@ -798,14 +763,12 @@ C a blank string to erprcdb).
       end
 
 
-C ********** EDDBMATERIAL
-C Eddbmaterial Changes the materials current cfg file references.
-C moddb is from version manager
+C ****** EDDBMATERIAL
+C Changes the materials current cfg file references.
+C moddb is from version manager.
 C modcon signals change in constructions.
-C APP is 4 character file name modifier (from version facility)
-C     if blank then no file name change implied.
 
-      SUBROUTINE EDDBMATERIAL(moddb,modcon,APP)
+      SUBROUTINE EDDBMATERIAL(moddb,modcon)
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
@@ -814,10 +777,7 @@ C     if blank then no file name change implied.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
-
-C      common/rpath/path
-C      character path*72
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Default ESP-r distribution path.
       common/deflt4/dinstpath
@@ -836,9 +796,7 @@ C Default ESP-r distribution path.
       character lworking*144
       character dirpath*72
 
-      CHARACTER APP*4
-C      CHARACTER outs248*248
-      LOGICAL OK,XST,DOK,concat
+      LOGICAL OK,XST,concat
       character dinstpath*60
 
 C Local strings for user selections dependent on graphic library.
@@ -881,10 +839,6 @@ C Take into account the current value of ipathmat.
      &    LFMAT(1:lnblnk(LFMAT))
       endif
 
-C Debug.
-C      write(outs248,*) 'Current materials ',lprev(1:lnblnk(lprev))
-C      call edisp248(iuout,outs248,100)
-
 C Setup lltmp to hold the full path to the file for use in dialog.
   60  continue
       if(ipathmat.eq.0.or.ipathmat.eq.1)then
@@ -913,7 +867,7 @@ C Make up options depending on where the file is.
 C If db does not exist locally offer limited choices.
         idno=2
         isw=0
-        call MENUATOL('  ','Material properties',
+        call MENUATOL(' ','Material properties',
      &    ' ','b select file from list',
      &    'c select from model ../dbs',
      &    'd copy default file to model',
@@ -928,7 +882,7 @@ C If db does not exist locally offer limited choices.
 C If standard file then offer the following choices (incl /):
         idno=1
         isw=0
-        call MENUATOL('  ','Material properties <std>',
+        call MENUATOL(' ','Material properties <std>',
      &    'a browse/edit','b select file from list',
      &    'c select from model ../dbs',
      &    'd copy default file to model',
@@ -943,7 +897,7 @@ C If standard file then offer the following choices (incl /):
 C If standard file then offer the following choices (without /):
         idno=1
         isw=0
-        call MENUATOL('  ','Material properties <std>',
+        call MENUATOL(' ','Material properties <std>',
      &    'a browse/edit','b select file from list',
      &    'c select from model ../dbs',
      &    'd copy default file to model',
@@ -959,7 +913,7 @@ C If db exists locally toggle whether the user is asked to copy the
 C default file or the current database.
         idno=1
         isw=0
-        call MENUATOL('  ','Material properties <mod>',
+        call MENUATOL(' ','Material properties <mod>',
      &    'a browse/edit','b select file from list',
      &    'c select from model ../dbs',
      &    'd copy default file to model',
@@ -970,17 +924,6 @@ C default file or the current database.
         if(isw.eq.4)copydef=.true.
         if(isw.eq.5)copydef=.false.
       endif
-
-C << Layout of prior menu. NOTE: when menu order changes the script
-C << bin/materials_db_conv needs to be updated to support the Install
-C << process.
-C        call MENUATOL('  ','Material properties <mod>',
-C     &    'a browse/edit','b select file from list',
-C     &    'c create new materials','d copy standard materials',
-C     &    'e legacy binary >> ascii convert','f ascii >> binary convert',
-C     &    opte,optf,optg,' ',' ',' ',isw,idno,nbhelp)
-C        if(isw.eq.4)copydef=.true.
-C        if(isw.eq.9)copydef=.false.
 
 C Act on the user's choice. If no choice return to calling menu.
       if(isw.eq.0)then
@@ -994,7 +937,7 @@ C check to see if it is local or standard or absolute path.
           goto 44  ! process the file
         else
           call edisp(iuout,
-     &    'No file to browse/edit. Please use another option.')
+     &    'No file to browse/ edit. Please select another option.')
           LFMAT=lprev
           goto 60
         endif
@@ -1194,9 +1137,7 @@ C expects to be passed the expanded file name.
      &      LFMAT(1:lnblnk(LFMAT))
         endif
         CALL mkascimat(IAF,LLTMPFL,IER)
-
-        dok=.true.
-        CALL ASKOK(' ','Browse or edit new file?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Browse or edit new file?',OK,nbhelp)
         if(OK)then
           moddb=.true.
           goto 44  ! process the file
@@ -1353,10 +1294,6 @@ C Test the selected or copied file. If a problem loop back
 C otherwise edit its contents.
    44 continue
 
-C Debug.
-C      write(outs248,'(2a)') 'Accessing materials db: ',
-C     &  LFMAT(1:lnblnk(LFMAT))
-C      call edisp248(iuout,outs248,100)
       ier=0
 
 C Scan the binary file data into materials commons and if this was
@@ -1451,11 +1388,9 @@ C ********** EDDBCFC
 C Eddbcfc Changes the CFC layers db current cfg file references.
 C moddb is from version manager
 C modcon signals change in constructions.
-C APP is 4 character file name modifier (from version facility)
-C     if blank then no file name change implied.
 C Unused variables commented out.
 
-      SUBROUTINE EDDBCFC(moddb,modcon,APP)
+      SUBROUTINE EDDBCFC(moddb,modcon)
       use CFC_Module, Only: cfcver
 #include "building.h"
 #include "model.h"
@@ -1465,7 +1400,7 @@ C Unused variables commented out.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C      character path*72
 C      common/rpath/path
@@ -1477,7 +1412,7 @@ C Default ESP-r distribution path.
 
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
       logical moddb,modcon,copydef,chgdb
-C      logical clkok,closemat2,DOK,OK
+C      logical clkok,closemat2,OK
       logical closecfc1,closecfc2
 
 C      character LTMP*92,LLTMPFL*144
@@ -1487,7 +1422,6 @@ C      character LTMP*92,LLTMPFL*144
       character longtfile*144
       character dirpath*72
 
-      CHARACTER APP*4
 C      CHARACTER outs248*248
       LOGICAL XST,concat
       character dinstpath*60
@@ -1531,10 +1465,6 @@ C Take into account the current value of ipathmat.
         write(lprev,'(3a)') standarddbpath(1:lndbp),fs,
      &    LCFCDB(1:lnblnk(LCFCDB))
       endif
-
-C Debug.
-C      write(outs248,*) 'Current materials ',lprev(1:lnblnk(lprev))
-C      call edisp248(iuout,outs248,100)
 
 C Setup lltmp to hold the full path to the file for use in dialog.
   60  continue
@@ -1828,9 +1758,7 @@ C the materials.
 !      &      LFMAT(1:lnblnk(LFMAT))
 !         endif
 !         CALL mkascimat(IAF,LLTMPFL,IER)
-! 
-!         dok=.true.
-!         CALL ASKOK(' ','Browse or edit new file?',OK,dok,nbhelp)
+!         CALL EASKOK(' ','Browse or edit new file?',OK,nbhelp)
 !         if(OK)then
 !           moddb=.true.
 !           goto 44
@@ -1945,10 +1873,8 @@ C      return
 C ********** EDDBPCDB
 C EDDBPCDB Changes the plant template current cfg file references.
 C moddb is from version manager
-C APP is 4 character file name modifier (from version facility)
-C     if blank then no file name change implied.
 
-      SUBROUTINE EDDBPCDB(moddb,APP)
+      SUBROUTINE EDDBPCDB(moddb)
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
@@ -1956,7 +1882,7 @@ C     if blank then no file name change implied.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/appw/iappw,iappx,iappy
       integer iappw,iappx,iappy
       integer childterminal  ! picks up mmod from starting of prj
@@ -1968,9 +1894,9 @@ C     if blank then no file name change implied.
       character LTMP*72,lltmp*144,lprev*144,lltmp2*144
       character longtfile*144,longtafile*144,longtmp*144
       CHARACTER DOIT*300,fs*1
-      CHARACTER OUTS*124,APP*4
+      CHARACTER OUTS*124
 C      CHARACTER outs248*248
-      LOGICAL CLKOK,OK,COPYDEF,MODDB,XST,DOK,concat
+      LOGICAL CLKOK,OK,COPYDEF,MODDB,XST,concat
       character dinstpath*60,path*72,tmode*8
       character dirpath*72
       integer iappwpc ! application %
@@ -2014,10 +1940,6 @@ C Take into account the current value of whichdbpath.
         write(lprev,'(3a)') standarddbpath(1:lndbp),fs,
      &    lpcdb(1:lnblnk(lpcdb))
       endif
-
-C Debug.
-C      write(outs248,*) 'Current plant ',lprev(1:lnblnk(lprev))
-C      call edisp248(iuout,outs248,100)
 
   60  continue
       if(ipathpcdb.eq.0.or.ipathpcdb.eq.1)then
@@ -2199,9 +2121,8 @@ C use the editing facility.
         else
           write(outs,'(2a)') LPCDB(1:100),' created.'
         endif
-        dok=.true.
-        CALL ASKOK(outs,'Browse or edit new file?',
-     &    OK,dok,nbhelp)
+        CALL EASKOK(outs,'Browse or edit new file?',
+     &          OK,nbhelp)
         if(OK)then
           moddb=.true.
           goto 44
@@ -2271,8 +2192,6 @@ C Setup the command line for pdb.
      &    longtfile(1:lnblnk(longtfile)),' -act bin2asci ',
      &    longtafile(1:lnblnk(longtafile))
 
-C Debug.
-C        write(6,*) doit
         call runit(doit,tmode)
 
         call edisp(iuout,'  ')
@@ -2330,8 +2249,6 @@ C Setup the command line for pdb.
      &    longtfile(1:lnblnk(longtfile)),' -act asci2bin ',
      &    longtafile(1:lnblnk(longtafile))
 
-C Debug.
-C        write(6,*) doit
         call runit(doit,tmode)
 
         call edisp(iuout,'  ')
@@ -2445,7 +2362,7 @@ C modcon signals change in objects.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C Default ESP-r distribution path.
       common/deflt4/dinstpath
@@ -2508,10 +2425,6 @@ C Take into account the current value of ipathmat.
         write(lprev,'(3a)') standarddbpath(1:lndbp),fs,
      &    LPREDEF(1:lnblnk(LPREDEF))
       endif
-
-C Debug.
-      write(outs248,*) 'Current predef ',lprev(1:lnblnk(lprev))
-      call edisp248(iuout,outs248,100)
 
 C Setup lltmp to hold the full path to the file for use in dialog.
   60  continue
@@ -2647,8 +2560,8 @@ C assume that only new geometry files are scanned.
             call GEO2OBJ(IUNIT,lltmp,ITRU,IER)
 
 C Ask to see details or write details.
-            call easkabc('Choices:',' ','list & view contents',
-     &        'write to ASCII file','continue',ibopt,nbhelp)
+            call easkabc(' ','Options:','list & view contents',
+     &        'write to file','cancel',ibopt,nbhelp)
             if(ibopt.eq.1)then
               call edisp(iuout,'Work in progress...')
               lltmp=' '
@@ -2792,13 +2705,11 @@ C      return
       end
 
 C ********** EDDBPROFILE
-C EDDBPROFILE Changes the events profiles current cfg file references.
+C Changes the events profiles current cfg file references.
 C This version uses call to subroutine casfmk. 
 C moddb is from version manager
-C APP is 4 character file name modifier (from version facility)
-C     if blank then no file name change implied.
-C
-      SUBROUTINE EDDBPROFILE(moddb,APP)
+
+      SUBROUTINE EDDBPROFILE(moddb)
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
@@ -2815,7 +2726,7 @@ C << introduce concept of types of profiles
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 C      common/rpath/path
 C      character path*72
       common/deflt4/dinstpath
@@ -2823,10 +2734,10 @@ C      character path*72
       CHARACTER LTMP*72,lltmp*144,lprev*144
       character LLASCI*144
       character longtfile*144
-      CHARACTER fs*1,APP*4
+      CHARACTER fs*1
       CHARACTER OUTS*124
       CHARACTER OUTS248*248
-      LOGICAL CLKOK,OK,COPYDEF,MODDB,XST,DOK,concat
+      LOGICAL CLKOK,OK,COPYDEF,MODDB,XST,concat
       character dinstpath*60,dirpath*72
 
 C Local strings for user selections dependent on graphic library.
@@ -2864,10 +2775,6 @@ C Remember the initial file name in case user choice fails.
         write(lprev,'(3a)') standarddbpath(1:lndbp),fs,
      &    LPRFDB(1:lnblnk(LPRFDB))
       endif
-
-C Debug.
-      write(outs248,*) 'Current profiles ',lprev(1:lnblnk(lprev))
-      call edisp248(iuout,outs248,100)
 
   60  continue
 
@@ -3055,8 +2962,7 @@ C use the editing facility.
           write(outs,'(3a)') 'Event profiles ',LPRFDB(1:100),
      &     '... created.'
         endif
-        dok=.true.
-        CALL ASKOK(outs,'Browse or edit file?',OK,dok,nbhelp)
+        CALL EASKOK(outs,'Browse or edit file?',OK,nbhelp)
         if(OK)then
           moddb=.true.
           goto 44
@@ -3121,10 +3027,6 @@ C the previous file name and loop back, otherwise edit the
 C data.
    44 continue
 
-C Debug.
-C      write(outs248,'(2a)') 'Accessing event profile: ',
-C     &  LPRFDB(1:lnblnk(LPRFDB))
-C      call edisp248(iuout,outs248,100)
       IER=0
 
 C Scan ASCII file (with full path) to fill common blocks.
@@ -3159,13 +3061,11 @@ C Call casfmk for the editing/browsing interface.
 C ********** EDDBMLCON
 C EDDBMLCON Changes the constructions current cfg file references.
 C moddb is from version manager
-C APP is 4 character file name modifier (from version facility)
-C     if blank then no file name change implied.
 
 C If we are pointing to a file in the common folder then we should
 C warn the user when attempting to update that file.
 
-      SUBROUTINE EDDBMLCON(moddb,modcon,APP)
+      SUBROUTINE EDDBMLCON(moddb,modcon)
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
@@ -3174,7 +3074,7 @@ C warn the user when attempting to update that file.
       
       integer lnblnk  ! function definition
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 C      common/rpath/path
 C      character path*72
 
@@ -3182,8 +3082,6 @@ C Default esp-r distribution path.
       common/deflt4/dinstpath
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       integer ifil
       COMMON/FILEP/IFIL
 
@@ -3194,9 +3092,9 @@ C Default esp-r distribution path.
 
       CHARACTER LTMP*72,lltmp*144,lprev*144
       character longtfile*144
-      CHARACTER fs*1,APP*4
+      CHARACTER fs*1
       CHARACTER outs248*248
-      LOGICAL OK,XST,DOK
+      LOGICAL OK,XST
       character dinstpath*60,dirpath*72
 
 C Local strings for user selections dependent on graphic library.
@@ -3205,7 +3103,7 @@ C Local strings for user selections dependent on graphic library.
       logical unixok  ! to check for path file separators
       logical allowbrowse ! future option
       integer iglib  ! for detecting GTK or X11
-      integer icomp,icn1,ii,i  ! for use in updataing ssmlcindex
+      integer icomp,ii,i  ! for use in updataing smlcindex
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -3239,10 +3137,6 @@ C Take into account the current value of whichdbpath.
         write(lprev,'(3a)') standarddbpath(1:lndbp),fs,
      &    lfmul(1:lnblnk(lfmul))
       endif
-
-C Debug.
-C      write(outs248,*) 'Current MLC ',lprev(1:lnblnk(lprev))
-C      call edisp248(iuout,outs248,100)
 
   60  continue
       if(ipathmul.eq.0.or.ipathmul.eq.1)then
@@ -3429,8 +3323,7 @@ C << TODO for the case of ERMLDB2 >>
         MLDBOK=.TRUE.
 
 C Scan the new file and use the editing facility.
-        dok=.true.
-        CALL ASKOK('  ','Browse or edit new file?',OK,dok,nbhelp)
+        CALL EASKOK('  ','Browse or edit new file?',OK,nbhelp)
         if(OK)then
           goto 44  ! process the file
         endif
@@ -3490,11 +3383,6 @@ C Test the selected or copied file. If a problem loop back
 C otherwise edit the contents.
    44 continue
 
-C Debug.
-      write(outs248,'(2a)') 'Accessing MLC db: ',
-     &  LFMUL(1:lnblnk(LFMUL))
-      call edisp248(iuout,outs248,100)
-
       ier=0
       call tstamp('>','PRJ: enter MLC db')
       CALL ERMLDB(0,IUOUT,IER)
@@ -3537,13 +3425,12 @@ C construction files.
 
 C Find the index of the MLC which matches each surface.
         DO 9994 I=1,NZSUR(icomp)
-          icn1=izstocn(icomp,i)
-          ssmlcindex(icn1)=0  ! assume no matching MLC
-          lnsmlc=lnblnk(SSMLCN(icn1))         
+          smlcindex(icomp,i)=0  ! assume no matching MLC
+          lnsmlc=lnblnk(SMLCN(icomp,i))         
           do 5 ii=1,nmlc
-            if(SSMLCN(icn1)(1:lnsmlc).eq.
+            if(SMLCN(icomp,i)(1:lnsmlc).eq.
      &         mlcname(ii)(1:lnmlcname(ii)))then
-              ssmlcindex(icn1)=ii   ! remember MLC index  
+              smlcindex(icomp,i)=ii   ! remember MLC index  
             endif
   5       continue
  9994   continue
@@ -3571,14 +3458,12 @@ C Enter database in management mode.
 C ********** EDDBOPT
 C EDDBOPT Changes the optical properties current cfg file references.
 C moddb is from version manager
-C APP is 4 character file name modifier (from version facility)
-C     if blank then no file name change implied.
 C This facility offers browsing for GTK version.
-      SUBROUTINE EDDBOPT(moddb,APP)
+      SUBROUTINE EDDBOPT(moddb)
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 C      common/rpath/path
 C      character path*72
       common/deflt4/dinstpath
@@ -3588,10 +3473,10 @@ C      character path*72
 
       CHARACTER LTMP*72,lltmp*144,lprev*144
       character longtfile*144
-      CHARACTER fs*1,APP*4
+      CHARACTER fs*1
 C      CHARACTER outs248*248
       character GTYPE*12,GDESCR*36,SOPT*12
-      LOGICAL CLKOK,OK,COPYDEF,MODDB,XST,DOK
+      LOGICAL CLKOK,OK,COPYDEF,MODDB,XST
       logical CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,concat,CFCDBOK
       character dinstpath*60,dirpath*72
 
@@ -3632,10 +3517,6 @@ C Take into account the current value of whichdbpath.
         write(lprev,'(3a)') standarddbpath(1:lndbp),fs,
      &    loptdb(1:lnblnk(loptdb))
       endif
-
-C Debug.
-C      write(outs248,*) 'Current optics ',lprev(1:lnblnk(lprev))
-C      call edisp248(iuout,outs248,100)
 
   60  continue
       if(ipathoptdb.eq.0.or.ipathoptdb.eq.1)then
@@ -3813,9 +3694,8 @@ C Set the value of ipathoptdb to signal local file.
         OPTKOK=.TRUE.
 
 C Scan the new file and use the editing facility.
-        dok=.true.
-        CALL ASKOK('  ','Browse or edit new file?',
-     &    OK,dok,nbhelp)
+        CALL EASKOK('  ','Browse or edit new file?',
+     &    OK,nbhelp)
         if(OK)then
           goto 44
         endif
@@ -3877,11 +3757,6 @@ C Test the selected or copied file. If a problem loop back
 C otherwise edit the contents.
    44 continue
 
-C Debug.
-C      write(outs248,'(2a)') 'Accessing optics db: ',
-C     &  LOPTDB(1:lnblnk(LOPTDB))
-C      call edisp248(iuout,outs248,100)
-
       SOPT='ALL'
       ier=0
       call tstamp('>','PRJ: enter optical db')
@@ -3904,11 +3779,9 @@ C      call edisp248(iuout,outs248,100)
 C ********** EDDBPRES
 C EDDBPRES Changes the wind pressure coefficients current cfg file references.
 C moddb is from version manager
-C APP is 4 character file name modifier (from version facility)
-C     if blank then no file name change implied.
 C This facility offers browsing for GTK version and list select
 C for all interfaces.
-      SUBROUTINE EDDBPRES(moddb,APP)
+      SUBROUTINE EDDBPRES(moddb)
 #include "building.h"
 #include "model.h"
 #include "net_flow.h"
@@ -3917,7 +3790,7 @@ C for all interfaces.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 C      common/rpath/path
 C      character path*72
       common/deflt4/dinstpath
@@ -3928,10 +3801,10 @@ C      character path*72
 
       CHARACTER LTMP*72,lltmp*144,lprev*144
       character longtfile*144
-      CHARACTER fs*1,APP*4
+      CHARACTER fs*1
 C      CHARACTER outs248*248
 
-      LOGICAL CLKOK,OK,COPYDEF,MODDB,XST,DOK,concat
+      LOGICAL CLKOK,OK,COPYDEF,MODDB,XST,concat
       character dinstpath*60,dirpath*72
       character OUTSTR*124      ! string buffer for data read
       character t144*144        ! for passing to erprcdb
@@ -3974,10 +3847,6 @@ C Take into account the current value of whichdbpath.
         write(lprev,'(3a)') standarddbpath(1:lndbp),fs,
      &    lapres(1:lnblnk(lapres))
       endif
-
-C Debug.
-C      write(outs248,*) 'Current presure coef ',lprev(1:lnblnk(lprev))
-C      call edisp248(iuout,outs248,100)
 
   60  continue
       if(ipathapres.eq.0.or.ipathapres.eq.1)then
@@ -4146,9 +4015,8 @@ C Update the current file and re-scan it and then open editing facilty.
         CALL EDPCDB(IER) 
 
 C Scan the new file and use the editing facility.
-        dok=.true.
-        CALL ASKOK('  ','Browse or edit new file?',
-     &    OK,dok,nbhelp)
+        CALL EASKOK('  ','Browse or edit new file?',
+     &        OK,nbhelp)
         if(OK)then
           goto 44
         endif
@@ -4211,11 +4079,6 @@ C Test the selected or copied file. If a problem loop back
 C otherwise edit the contents.
    44 continue
 
-C Debug.
-C      write(outs248,'(2a)') 'Accessing presure coef db: ',
-C     &  lapres(1:lnblnk(lapres))
-C      call edisp248(iuout,outs248,100)
-
       moddb=.true.
       if(ipathapres.eq.0.or.ipathapres.eq.1)then
         CALL EFOPSEQ(IAPRES,lapres,1,IER)
@@ -4254,13 +4117,12 @@ C enter editing facilitiy.
       end
 
 C ********** EDDBCLM
-C EDDBCLM Changes the weather file referenced by the cfg file.
+C Changes the weather file referenced by the cfg file.
 C moddb is
 C APP is 4 character file name modifier (from version facility)
 C     if blank then no file name change implied.
 C ISHD is -1 if no change in shading file names are required, otherwise
 C     use the APP characters.
-C from version manager
       SUBROUTINE EDDBCLM(moddb,APP,ISHD)
 #include "building.h"
 #include "model.h"
@@ -4273,7 +4135,7 @@ C espriou.h provides currentfile.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
       
@@ -4297,9 +4159,9 @@ C Calendar.
       character longtfile*144,longtafile*144
       character message*48,message2*72,longtmp*144
       CHARACTER DOIT*248,ldoit*300
-      CHARACTER fs*1,TMODE*8,CLMLOC*30,LCOPY*144
+      CHARACTER fs*1,TMODE*8,CLMLOC*42,LCOPY*144
       CHARACTER OUTS*124,APP*6,ext*4,llclmdb*144
-      LOGICAL OK,concat,COPYDEF,MODDB,XST,DOK,UNIXOK
+      LOGICAL OK,concat,COPYDEF,MODDB,XST,UNIXOK
       character dinstpath*60,path*72
       character dirpath*72
       character actreturn*1  ! users preference
@@ -4361,9 +4223,9 @@ C Depending on where the weather file is located offer different options.
         idno=2
         isw=0
         call MENUATOL('  ','Weather',
-     &    ' ','b select another from list',
+     &    ' ','b select another',
      &    'c select from model ../dbs',
-     &    'd create new weather','e copy standard weather',
+     &    'd create new','e copy standard weather',
      &    ' ',' ',' ',' ',' ',' ',' ',isw,idno,nbhelp)
         copydef=.true.
       elseif(llclmdb(1:ldirpath).eq.dirpath(1:ldirpath))then
@@ -4372,10 +4234,10 @@ C If corporate weather then offer the following choices:
         idno=1
         isw=0
         call MENUATOL('  ','Weather <std>',
-     &    'a browse/ edit','b select another from list',
+     &    'a analysis tool','b select another',
      &    'c select from model ../dbs',
-     &    'd create new weather file','e copy it to model',
-     &    'f export (to ascii file)','g import (from ascii file)',
+     &    'd create new','e copy to model',
+     &    'f export','g import',
      &    'h import EPW file',' ',' ',' ',' ',
      &    isw,idno,nbhelp)
         copydef=.false.
@@ -4385,10 +4247,10 @@ C If db exists locally offer the following choices:
         idno=1
         isw=0
         call MENUATOL('  ','Weather <mod>',
-     &    'a browse/ edit','b select another from list',
+     &    'a analysis tool','b select another',
      &    'c select from model ../dbs',
-     &    'd create new weather file','e copy standard weather',
-     &    'f export (to ascii file)','g  import (from ascii file)',
+     &    'd create new','e copy standard weather',
+     &    'f export','g  import',
      &    'h import EPW file',' ',' ',' ',' ',
      &    isw,idno,nbhelp)
         copydef=.true.
@@ -4411,8 +4273,8 @@ C If file exists read it and enter editing facility.
             goto 552
           endif
         else
-          call usrmsg('Sorry there is no file to browse/ edit.',
-     &                'Please use one of the other options.','W')
+          call usrmsg('No file defined.',
+     &                'Please select another option.','W')
           goto 552
         endif
         CALL ERPFREE(ICLIM,ISTAT)
@@ -4453,7 +4315,7 @@ C use a file dialog (X11) or browser (GTK) to go looking for it.
         iuf=IFIL+1
         INQUIRE (FILE=cdblfil,EXIST=XST)
         if(XST)then
-          call rdblist(IUF,longtfile,actreturn,ier)
+          call rdblist(IUF,longtfile,'p',actreturn,ier)
           if(ier.eq.0)then
             if(longtfile(1:12).eq.'USER_DEFINED')then
 
@@ -4516,7 +4378,7 @@ C weather file locations.
           endif
         else
           call usrmsg('No weather to browse/edit.',
-     &                'Please use one of the other options.','W')
+     &                'Please select another option.','W')
           goto 552
         endif
 
@@ -4536,7 +4398,7 @@ C If file exists scan the file and use the editing facility.
             goto 44
           else
             call usrmsg('No weather to browse/edit.',
-     &                  'Please use one of the other options.','W')
+     &                  'Please select another options.','W')
             goto 552
           endif
         else
@@ -4595,23 +4457,22 @@ C Transfer this to the binary file.
 
 C Insert metadata at end of file and close.
         IREC=366
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)IYEAR
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1001)IYEAR
         IREC=IREC+1
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1001)
      &    CLMLOC,CLAT,CLONG
         IREC=IREC+1
         CMCOL(1:4)=(/1,2,3,0/)
         do k=5,MCM
           CMCOL(k)=k-1
         enddo
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1001)
      &    (CMCOL(i),i=1,MCM)
         IREC=IREC+1
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1001)NMCM
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1001)NMCM
         CALL ERPFREE(ICLIM,ISTAT)
 
-        dok=.true.
-        CALL ASKOK(' ','Browse/edit new weather data?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Browse or edit new weather file?',OK,nbhelp)
         IF(OK)then
 
 C Assign weather file name based on longtmp location via findwhichdbpath.
@@ -4705,8 +4566,8 @@ C Assign weather file name to pass to the clm application.
             llclmdb=LCLIM
           endif
           moddb=.true.
-          CALL ASKOK(' ','Browse/edit copied climate data?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Browse or edit copied weather data?',
+     &            OK,nbhelp)
           if(ok)then
             goto 44
           endif
@@ -4752,9 +4613,6 @@ C to asking clm to do the conversion.
         endif
         call addpath(LLASCI,longtafile,concat)
 
-C Debug.
-C        write(6,*) 'llasci ',LLASCI(1:lnblnk(LLASCI))
-C        write(6,*) 'longtafile ',longtafile(1:lnblnk(longtafile))
         call tstamp('>','PRJ: start clm for conversion')
         doit = ' '
         write(doit,'(4a)') 'clm -mode text -file ',
@@ -4911,53 +4769,25 @@ C Check if weather site and model site differ greatly.
       if(closelat.and.closelong)then
         continue
       else
+        call edisp(iuout,' ')
         call edisp(iuout,
-     &    'Noticed more than 2 degrees of difference from the current')
-        call edisp(iuout,
-     &    'model site and the location information in weather file.')
-        write(outs,'(A,F6.2,A)')
-     &    'The weather file latitude is ',clat,' & its longitude or '
-        call edisp(iuout,outs)
-        write(outs,'(A,F6.2,A)')
-     &    'its longitude difference from time meridian is',clong,
-     &    ' degrees (which ever is applicable).'
-        call edisp(iuout,outs)
-        write(outs,'(a,F6.2,a,F6.2,a)') ' The model uses latitude ',
-     &    sitelat,' and longitude difference from time meridian',
-     &    sitelongdif,'degrees.'
-        call edisp(iuout,outs)
-C        dok=.false.
-C        CALL ASKOK(outs,message2,OK,DOK,3)
-C        if(OK)then
-C          sitelat=CLAT
-C          slat=sitelat  ! sitelat is in common C4 in site.h slat is common C8
-C          sitelongdif=CLONG
-C          slon=sitelongdif  ! sitelongdif is in common C4 in site.h slon is common C8
-C          WRITE(OUTS,'(A,F6.2,A,F6.2,A)')'A latitude of ',sitelat,
-C     &     ' and longitude diff from time meridian of ',sitelongdif,
-C     &     ' is now associated with the model.'
-C          CALL EDISP(IUOUT,OUTS)
-C          CALL EDISP(IUOUT,' ')
-C        endif
+     &    'Advisory: The project site and weather data correspond')
+        call edisp(iuout,'to different locations!')
       ENDIF
 
-C Update year.  This is similar logic as is used in esystem.F ~line 1569
+C Update year.
       if(icyear.eq.iyear)then
         continue
-      else 
-        dok=.false.
-        WRITE(OUTS,'(A,I4,a,I4,a)')'The climate year is ',ICYEAR,
-     &    '. and the model year is ',IYEAR,'.'      
-        CALL ASKOK(OUTS,
-     &    'Use climate year in your model? (see help)',OK,DOK,nbhelp)
+      else
+        WRITE(OUTS,'(A,I4,a,I4,a)') 'The model year is ',IYEAR,     
+     &      ' while the weather file year is ',ICYEAR,'.'
+        CALL EASKOK(OUTS,
+     &    'Use weather year?',OK,nbhelp)
         IF(OK)THEN
           IYEAR=ICYEAR
-          WRITE(OUTS,'(I4,A)')IYEAR,' will be used as simulation year.'
-          CALL EDISP(IUOUT,OUTS)
-          CALL EDISP(IUOUT,' ')
           if(nbdaytype.eq.0)then
 
-C If no day types found instanciate initial day types. 
+C If no day types found instantiate initial day types. 
             call calenmanage('i',ier)
           elseif(nbdaytype.ge.3)then
 
@@ -5030,8 +4860,6 @@ C weather file exists.
         doit = ' '
         call terminalmode(childterminal,tmode)
 
-C Debug.
-        write(6,*) childterminal,' ',tmode,ipathclim
         if(ipathclim.eq.0.or.ipathclim.eq.1)then
           call addpath(llclmdb,longtfile,concat)
         elseif(ipathclim.eq.2)then
@@ -5055,9 +4883,8 @@ C Debug.
 C If this was a freshly created weather file check if user wants to
 C checks its site data against the model.
         if(usercreatednew)then
-          dok=.false.
-          CALL ASKOK(' ','Check new site data against model?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Check new site data against model?',
+     &      OK,nbhelp)
           if(OK)then
             usercreatednew=.false.
             continue
@@ -5068,8 +4895,8 @@ C checks its site data against the model.
         endif
         goto 43   ! check if site location or year has changed
       else
-         call usrmsg('Problem encountered with Climate db!',
-     &               'Please check db location and content.','W')
+         call usrmsg('Problem encountered with weather fil!',
+     &               'Please check location and content.','W')
          goto 552
       endif
 
@@ -5097,13 +4924,11 @@ C checks its site data against the model.
 C ********** EDDBMSC
 C EDDBMSC Changes the active components current cfg file references.
 C moddb is from version manager
-C APP is 4 character file name modifier (from version facility)
-C     if blank then no file name change implied.
 C This facility offers browsing for GTK version and follows the pattern
 C of the other db file management facilties except that there is no
 C working option for creating a new file and editing of the contents
 C is via a text editor.
-      SUBROUTINE EDDBMSC(moddb,APP)
+      SUBROUTINE EDDBMSC(moddb)
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
@@ -5111,7 +4936,7 @@ C is via a text editor.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       common/texted/tedlbl,teditor
       character tedlbl*20,teditor*20
@@ -5122,9 +4947,9 @@ C      character path*72
 
       CHARACTER lltmp*144,lprev*144
       character longtfile*144,longtfiledos*144
-      CHARACTER DOIT*300,fs*1,APP*4
+      CHARACTER DOIT*300,fs*1
 C      CHARACTER outs248*248
-      LOGICAL OK,COPYDEF,MODDB,XST,DOK,concat
+      LOGICAL OK,COPYDEF,MODDB,XST,concat
       character dinstpath*60,dirpath*72
       character tmode*8
 
@@ -5165,11 +4990,6 @@ C Take into account the current value of whichdbpath.
         write(lprev,'(3a)') standarddbpath(1:lndbp),fs,
      &    MCMPDBFL(1:lnblnk(MCMPDBFL))
       endif
-
-C Debug.
-C      write(outs248,*) 'Current misc components ',
-C     &   MCMPDBFL(1:lnblnk(MCMPDBFL))
-C      call edisp248(iuout,outs248,100)
 
   60  continue
       if(ipathmsc.eq.0.or.ipathmsc.eq.1)then
@@ -5360,11 +5180,6 @@ C Test the selected or copied file. If a problem loop back
 C otherwise edit the contents.
    44 continue
 
-C Debug.
-C      write(outs248,'(2a)') 'Accessing miscellaneous comp db: ',
-C     &  MCMPDBFL(1:lnblnk(MCMPDBFL))
-C      call edisp248(iuout,outs248,100)
-
       if(ipathmsc.eq.0.or.ipathmsc.eq.1)then
         lltmp=MCMPDBFL  ! use as is
       elseif(ipathmsc.eq.2)then
@@ -5393,9 +5208,8 @@ C If this is ok to use then set moddb true but do not try
 C and overwrite the file name so that no additional mangling
 C happens to the path.  This assumes that the user has not
 C altered the file name when saving via the editor.
-      dok=.false.
-      CALL ASKOK('  ','Use this edited file (see help)?',
-     &  OK,dok,nbhelp)
+      CALL EASKOK(' ','Use this edited file?',
+     &         OK,nbhelp)
       if(OK)then
         moddb=.true.   ! set so user is asked to update cfg file
       else
@@ -5409,13 +5223,11 @@ C altered the file name when saving via the editor.
 C ********** EDDBMOULD
 C EDDBMOULD Changes the mould isopleths current cfg file references.
 C moddb is from version manager
-C APP is 4 character file name modifier (from version facility)
-C     if blank then no file name change implied.
 C This facility offers browsing for GTK version and follows the pattern
 C of the other db file management facilties except that there is no
 C working option for creating a new file and editing of the data
 C is via a text editor.
-      SUBROUTINE EDDBMOULD(moddb,APP)
+      SUBROUTINE EDDBMOULD(moddb)
 #include "building.h"
 #include "model.h"
 #include "esprdbfile.h"
@@ -5423,7 +5235,7 @@ C is via a text editor.
       integer lnblnk  ! function definition
 
       common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/appw/iappw,iappx,iappy
       integer iappw,iappx,iappy
       integer childterminal  ! picks up mmod from starting of prj
@@ -5431,16 +5243,13 @@ C is via a text editor.
 
       common/texted/tedlbl,teditor
       character tedlbl*20,teditor*20
-
-C      common/rpath/path
-C      character path*72
       common/deflt4/dinstpath
 
       CHARACTER lltmp*144,lprev*144
       character longtfile*144,longtfiledos*144
-      CHARACTER DOIT*300,fs*1,APP*4
+      CHARACTER DOIT*300,fs*1
       CHARACTER outs248*248
-      LOGICAL OK,COPYDEF,MODDB,XST,DOK,concat
+      LOGICAL OK,COPYDEF,MODDB,XST,concat
       character dinstpath*60,dirpath*72
       character tmode*8
       integer iappwpc ! application %
@@ -5481,11 +5290,6 @@ C Take into account the current value of whichdbpath.
      &    lfmould(1:lnblnk(lfmould))
       endif
 
-C Debug.
-      write(outs248,*) 'Current mould isopleths ',
-     &   lfmould(1:lnblnk(lfmould))
-      call edisp248(iuout,outs248,100)
-
   60  continue
       if(ipathmould.eq.0.or.ipathmould.eq.1)then
         lltmp=lfmould  ! use as is
@@ -5516,7 +5320,7 @@ C Make up options depending on where the current file lives.
 C If db does not exist locally offer limited choices.
         idno=2
         isw=0
-        call MENUATOL('  ','Mould isopleths',
+        call MENUATOL(' ','Mould isopleths',
      &    ' ','b select file from list',
      &    'c select from model ../dbs',
      &    'd copy default file to model',
@@ -5530,7 +5334,7 @@ C If db does not exist locally offer limited choices.
 C If standard file then offer the following choices (incl /):
         idno=1
         isw=0
-        call MENUATOL('  ','Mould isopleths',
+        call MENUATOL(' ','Mould isopleths',
      &    'a browse/edit','b select file from list',
      &    'c select from model ../dbs',
      &    'd copy default file to model',
@@ -5544,7 +5348,7 @@ C If standard file then offer the following choices (incl /):
 C If standard file then offer the following choices (without /):
         idno=1
         isw=0
-        call MENUATOL('  ','Mould isopleths <std>',
+        call MENUATOL(' ','Mould isopleths <std>',
      &    'a browse/edit','b select file from list',
      &    'c select from model ../dbs',
      &    'd copy default file to model',
@@ -5559,7 +5363,7 @@ C If db exists locally toggle whether the user is asked to copy the
 C default file or the current file.
         idno=1
         isw=0
-        call MENUATOL('  ','Mould isopleths <mod>',
+        call MENUATOL(' ','Mould isopleths <mod>',
      &    'a browse/edit db','b select file from list',
      &    'c select from model ../dbs',
      &    'd copy default file to model',
@@ -5591,7 +5395,7 @@ C check to see if it is local or standard or absolute path.
           goto 44
         else
           call edisp(iuout,
-     &    'No file to browse/edit. Please use another option.')
+     &    'No file to browse/ edit. Please use another option.')
           lfmould=lprev
           goto 60
         endif
@@ -5694,11 +5498,6 @@ C Test the selected or copied file. If a problem loop back
 C otherwise edit the contents.
    44 continue
 
-C Debug.
-      write(outs248,'(2a)') 'Accessing mould isopleths: ',
-     &  lfmould(1:lnblnk(lfmould))
-      call edisp248(iuout,outs248,100)
-
       if(ipathmould.eq.0.or.ipathmould.eq.1)then
         lltmp=lfmould  ! use as is
       elseif(ipathmould.eq.2)then
@@ -5727,9 +5526,8 @@ C If this is ok to use then set moddb true but do not try
 C and overwrite the file name so that no additional mangling
 C happens to the path.  This assumes that the user has not
 C altered the file name when saving via the editor.
-      dok=.false.
-      CALL ASKOK('  ','Use this edited file (see help)?',
-     &  OK,dok,nbhelp)
+      CALL EASKOK(' ','Use this edited file?',
+     &       OK,nbhelp)
       if(OK)then
         moddb=.true.   ! set so user is asked to update cfg file
       else
@@ -5759,7 +5557,7 @@ C code is general rather than specific (for later consolidation).
 #include "model.h"
 #include "esprdbfile.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
       common/rpath/path
       
@@ -5965,8 +5763,7 @@ C Use the standard ESP-r folder browse facility.
               lndbp=lnblnk(standarddbpath)
               write(lltmp,'(3a)') standarddbpath(1:lndbp),fs,
      &          snpfile(1:lnblnk(snpfile))
-C Debug.
-              if(unixok) write(6,*) lltmp
+
             else
 
 C User did not select a file. Take them back to the question.
@@ -6195,7 +5992,7 @@ C the current common file type and is returned via lltmp.
 #include "model.h"
 #include "esprdbfile.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       
       integer lnblnk  ! function definition
       
@@ -6349,8 +6146,6 @@ C Use the standard ESP-r folder browse facility.
           write(fname,'(3a)')dbspth(1:lnblnk(dbspth)),fs,
      &      snpfile(1:lnblnk(snpfile))
 
-C Debug.
-C          if(unixok) write(6,*) fname
           write(lltmp,'(a)') fname(1:lnblnk(fname))
 
         else
@@ -6426,7 +6221,7 @@ C the current common file type and is returned via lltmp.
 #include "model.h"
 #include "esprdbfile.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       
       integer lnblnk  ! function definition
       
@@ -6588,12 +6383,6 @@ C Use the standard ESP-r folder browse facility.
         call browsefilelist('b','dbm','fil',sfile,snpfile,nfile,iier)
         if(snpfile(1:2).ne.'  ')then
           lndbp=lnblnk(standarddbpath)
-C          write(fname,'(3a)')standarddbpath(1:lndbp),fs,
-C     &      snpfile(1:lnblnk(snpfile))
-
-C Debug.
-C          if(unixok) write(6,*) 'snpfile ',snpfile
-C          if(unixok) write(6,*) 'fname ',fname
           write(lltmp,'(a)') snpfile(1:lnblnk(snpfile))
 
         else

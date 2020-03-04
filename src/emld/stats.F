@@ -34,7 +34,7 @@ C *************************************************************
 
 #include "mould.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/mglook/GROT(MLOOK,MOULD),GRORH(MLOOK,MOULD)
       common/mglook2/GROW(MLOOK,MOULD)

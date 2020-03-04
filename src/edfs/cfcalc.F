@@ -36,10 +36,10 @@ C             certain cells.
 C ********************* CFCALC *********************
 C CFCALC - CFD solution manager.
       SUBROUTINE CFCALC(ITIMST,TSTEP,IMFSAC,IBLACT,CONVER)
-#include "cfd.h"
 #include "building.h"
+#include "cfd.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
@@ -121,7 +121,7 @@ C integer INSSO() point to the volume which defines the small supply shape
      &        CGSENC(MCOM,MDTY,MGTY,MGPER),CGSENR(MCOM,MDTY,MGTY,MGPER),
      &        CGLAT(MCOM,MDTY,MGTY,MGPER),CGCTL(MCOM,2,MGTY)
       common/wkdtyp/idwe1,idwe2,wkd1,wkd2
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       CHARACTER LRES(4)*24,LMON(4)*24,POLNAM*12
@@ -256,10 +256,6 @@ C Recover definitions for current day type and timeF.
         ID=IDWP
       endif
       if (btimef.gt.24.) then
-
-C Debug.
-C        write(6,*) 'btimef.gt.24'
-
         btimef=btimef-24.
         ID=IDWF
       endif
@@ -759,6 +755,7 @@ C Format statements.
 C ********************* INIT *********************
 C INIT - Initialize simulation variables.
       SUBROUTINE INIT
+#include "building.h"
 #include "cfd.h"
 
       COMMON/INITIA/UINIT(MNZ),VINIT(MNZ),WINIT(MNZ),PINIT(MNZ),
@@ -869,6 +866,7 @@ C            temperature according to the massflowrate
 C            and sets it uniform to the whole CFD domain 
 
       SUBROUTINE UNIFORMT
+#include "building.h"
 #include "cfd.h"
 
       COMMON/INITIA/UINIT(MNZ),VINIT(MNZ),WINIT(MNZ),PINIT(MNZ),
@@ -926,8 +924,9 @@ C ********************* PROPS *********************
 C PROPS - Calculate fluid properties which are dependent on the solution.
 C ICALL stops the initisation of blockage data until after the first iteration.
       SUBROUTINE PROPS(ICALL)
-
+#include "building.h"
 #include "cfd.h"
+
       COMMON/ICFNOD/ICFD,ICP
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),
      1            Wf(ntcelx,ntcely,ntcelz),
@@ -1080,6 +1079,7 @@ C CALCU - Calculate coefficients of the matrix of the momentum
 C  conservation equation on x direction and solve the matrix to 
 C  obtain velocity component in X direction.
       SUBROUTINE CALCU
+#include "building.h"
 #include "cfd.h"
       
       COMMON/ICFNOD/ICFD,ICP
@@ -1423,7 +1423,6 @@ c                AP(I+1,J,K)=GREAT
  2002   continue
       endif
 
-C
 C Example of calculation of momentum-sources /see also 
 C the correspondent v and w equations/. 
 C << Keep currently this example as comments and make later 
@@ -1474,6 +1473,7 @@ C CALCV - Calculate coefficients. of the matrix of the momentum
 C  conservation equation on y direction and solve the matrix 
 C  to obtain velocity component in y direction.
       SUBROUTINE CALCV
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -1816,7 +1816,7 @@ c                AP(I,J+1,K)=GREAT
 C
  2002   continue
       endif
-C
+
 C Example of calculation of v-momentum-sources /see u-momentum also/ 
 C << Keep current comments >>
 C vdesir - the desired v-velocity to be achieved (user-supplied), [m/s].  
@@ -1859,6 +1859,7 @@ C CALCW - Calculate coefficients. of the matrix of the momentum
 C  conservation equation on z direction and solve the matrix 
 C  to obtain velocity component in z direction.
       SUBROUTINE CALCW 
+#include "building.h"
 #include "cfd.h"
 
       COMMON/PCOR/RESORM,NSWPP,URFP,FSDTP,IPREF,JPREF,KPREF
@@ -2281,6 +2282,7 @@ C ********************* CALCP *********************
 C CALCP - Calculate coefficients of the matrix of the mass conservation 
 C  equation and solve the matrix to obtain pressure corrections.
       SUBROUTINE CALCP
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -2620,6 +2622,7 @@ C CALCT - Calculate the coefficients of the matrix of the energy
 C  equation and solve the matrix to obtain temperatures.
 C
       SUBROUTINE CALCT
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -2877,6 +2880,7 @@ C ********************* CALCTE *********************
 C CALCTE - Calculate coefficients. of the matrix of the turbulent 
 C  energy equation and solve the matrix.
       SUBROUTINE CALCTE
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -3221,6 +3225,7 @@ C ********************* CALCED *********************
 C CALCED - Calculate coefficients. of the matrix of the energy 
 C  dissipation equation and solve the matrix.
       SUBROUTINE CALCED
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -3492,6 +3497,7 @@ C Solution of difference equation.
 C ********************* INDBND *********************
 C INDBND - Initialize some boundary conditions.
       SUBROUTINE INDBND
+#include "building.h"
 #include "cfd.h"
 
       COMMON/NDMAP/NOPEN(MNZ),MFNODE(MCFND,MNZ),IOPENi(MCFND,MNZ),
@@ -3610,6 +3616,7 @@ C variable VOLArea is used to store the ratio of real to actual
 C opening area.  If no area is specified then VOLArea is set to 1.0
 
       SUBROUTINE DEFINESSO 
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -3692,6 +3699,7 @@ C again during the same simulation (as will happen in conflated runs).
 C ********************* INOUT *********************
 C INOUT - Set up all inlet and outlet conditions.
       SUBROUTINE INOUT
+#include "building.h"
 #include "cfd.h"
 
       COMMON/BNDCND/FLWIN,XMONIN
@@ -3981,6 +3989,7 @@ C RECRES - Modify residuals for all scalar variables if pressure is
 C fixed in a cell.
 
       FUNCTION RECRES(RESRM)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/ICFNOD/ICFD,ICP
@@ -4018,6 +4027,7 @@ C ********************* VELDERIV *********************
 C VELDERIV - Calculate the velocity derivitives for use in turbulence equations.
 
       subroutine VELDERIV(I,J,K,DUDY,DUDZ,DVDX,DVDZ,DWDX,DWDY)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),

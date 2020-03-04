@@ -40,8 +40,8 @@ C day and VAL(2...) are timestep fields.
 #include "sbem.h"
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      COMMON/OUTIN/IUOUT,IUIN
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
       COMMON/TDATPREV/TABUPREV(MTABC)
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
@@ -244,8 +244,8 @@ C day and VAL(2...) are timestep fields.
 #include "sbem.h"
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      COMMON/OUTIN/IUOUT,IUIN
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
       COMMON/TDATPREV/TABUPREV(MTABC)
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh

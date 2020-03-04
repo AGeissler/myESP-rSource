@@ -108,6 +108,14 @@ C Anchor - named and typed concept with associated list of surfaces.
       integer lstanchr  ! connection index for each anchor link
       common/anchorb/IALOC(20),lstanchr(20,99)
 
+C Zonegroup - named and typed groups of zones
+      integer nzgroup      ! number of zone groups
+      character zglbl*16   ! user name for the group
+      common/zgroupa/nzgroup,zglbl(20)
+      integer izgnumber    ! number of associated zones in each group
+      integer izglist      ! zone index for each associated zone
+      common/zgroupb/izgnumber(20),izglist(20,40)
+
 C IES files to associate with entities passed to Radiance. Up to
 C 10 can be associated with a model. The iesname is the root on to which
 C variants for control will be created e.g. root arran_led -> arran_led100
@@ -124,3 +132,10 @@ C arran_led075 arran_led050 etc. are managed.
       integer iespercents   ! number steps of on percentages
       real iessteps         ! percentage for each step
       common/ieson/iespercents(10),iessteps(10,5)
+
+C Helper applications.
+      logical found_curl    ! able to download update_notes.txt
+      logical found_ximage  ! Radiance found
+      logical found_xfig    ! xfig is available
+      logical found_xterm   ! xterm is available
+      common/helperapps/found_curl,found_ximage,found_xfig,found_xterm

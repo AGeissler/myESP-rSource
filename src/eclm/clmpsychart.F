@@ -25,7 +25,7 @@ C esrures/psychart.F - revised to for plotting weather data.
 #include "climate.h"
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -38,22 +38,22 @@ C esrures/psychart.F - revised to for plotting weather data.
       integer ipixhist
       common/pixhist/ipixhist(8760,2)
      
-      CHARACTER*26 ITEM(7)
-      CHARACTER puts*12,etext*72,gtext*72
-      CHARACTER*30 CLMLOC
+      CHARACTER*26 ITEM(8)
+      CHARACTER puts*12,etext*82,gtext*82
+      CHARACTER*42 CLMLOC
       character PERST1*14,PERST2*40,PERST3*40
-      logical close,colok,cscaleok,ok,dok
+      logical close,colok,cscaleok,ok
       integer NITMS,INO  ! max items and current menu item
 
 #ifdef OSI
       integer iside,isize,ifont     ! passed to viewtext
-      integer iicol
+      integer iicol,isym
       integer iigl,iigr,iigt,iigb,iigw,iigwh
       integer iiw1,iiw2,iiw3,iiw4,iimenu
       integer iix,iiy
 #else
       integer*8 iside,isize,ifont     ! passed to viewtext
-      integer*8 iicol
+      integer*8 iicol,isym
       integer*8 iigl,iigr,iigt,iigb,iigw,iigwh
       integer*8 iiw1,iiw2,iiw3,iiw4,iimenu
       integer*8 iix,iiy
@@ -66,6 +66,7 @@ C For help messages
 
       helpinsub='PSYCHART'  ! set for cfiles
 
+C Default atmospheric pressure corresponding to sea level.
       PATMOS=1013.25
 
 C Clear remembered point position (so user might click on).
@@ -73,6 +74,8 @@ C Clear remembered point position (so user might click on).
         ipixhist(i,1)=1
         ipixhist(i,2)=1
   96  continue
+
+      if(mmod.ne.8)return
 
 C Check if can draw in colour and with a range of colours.
 C Colours used are nb 15 = grey40, nb 17 =grey60.
@@ -84,8 +87,10 @@ C Colours used are nb 15 = grey40, nb 17 =grey60.
 C Scale the axes of the chart (initial values) - look at range
 C of ambient temperature from current weather period.
       CALL CLMXMN
-      Xmin=YMIN(2)
-      Xmax=YMAX(2)
+C      Xmin=YMIN(2)
+C      Xmax=YMAX(2)
+      Xmin=0.0
+      Xmax=30.0
       Ytmin=0.0
       Ytmax=16.0
       enthmax=(enthp2(Xmax,Ytmax/1000.)) 
@@ -93,68 +98,58 @@ C of ambient temperature from current weather period.
       enthminy= (enthp2(Xmin,Ytmin/1000.)) 
       enthmaxy= (enthp2(Xmin,Ytmax/1000.)) 
 
-C Debug.
-C      write(6,*)'x x ',xmin,xmax,enthmax,enthminx,enthminy,enthmaxy
-
  10   call psychartbackground(Xmin,Xmax,Ytmin,Ytmax,enthmax,
-     &  enthminx,enthminy,enthmaxy)
+     &  enthminx,enthminy,enthmaxy,patmos)
 
       ACLAT=ABS(CLAT)
       ACLONG=ABS(CLONG)
       IF(CLONG.LT.0.0.AND.CLAT.GE.0.0)then
-        WRITE(ETEXT,102)CLMLOC,ACLAT,CLONG,IYEAR
- 102    FORMAT(' Weather analysis:',1X,A30,':',F6.2,'N',F6.2,'W :',I5)
+        WRITE(ETEXT,102)CLMLOC(1:lnblnk(CLMLOC)),ACLAT,CLONG,IYEAR
+ 102    FORMAT(' Weather analysis:',1X,A,':',F6.2,'N',F6.2,'W :',I5)
       elseif(CLONG.GE.0.0.AND.CLAT.LT.0.0)then
-        WRITE(ETEXT,103)CLMLOC,ACLAT,CLONG,IYEAR
- 103    FORMAT(' Weather analysis:',1X,A30,':',F6.2,'S',F6.2,'E :',I5)
+        WRITE(ETEXT,103)CLMLOC(1:lnblnk(CLMLOC)),ACLAT,CLONG,IYEAR
+ 103    FORMAT(' Weather analysis:',1X,A,':',F6.2,'S',F6.2,'E :',I5)
       elseif(CLONG.LT.0.0.AND.CLAT.LT.0.0)then
-        WRITE(ETEXT,104)CLMLOC,ACLAT,CLONG,IYEAR
- 104    FORMAT(' Weather analysis:',1X,A30,':',F6.2,'S',F6.2,'W :',I5)
+        WRITE(ETEXT,104)CLMLOC(1:lnblnk(CLMLOC)),ACLAT,CLONG,IYEAR
+ 104    FORMAT(' Weather analysis:',1X,A,':',F6.2,'S',F6.2,'W :',I5)
       else
-        WRITE(ETEXT,101)CLMLOC,ACLAT,CLONG,IYEAR
- 101    FORMAT(' Weather analysis:',1X,A30,':',F6.2,'N',F6.2,'E :',I5)
+        WRITE(ETEXT,101)CLMLOC(1:lnblnk(CLMLOC)),ACLAT,CLONG,IYEAR
+ 101    FORMAT(' Weather analysis:',1X,A,':',F6.2,'N',F6.2,'E :',I5)
       endif
       GTEXT=ETEXT
-      iside=1
-      isize=0
-      ifont=1
+      iside=1; isize=0; ifont=1
       call viewtext(gtext,iside,isize,ifont)
 
       NTSPH=1
-      CALL PERSTR(IYEAR,IDS,IT1,IDF,IT2,NTSPH,
+      CALL EPERSTR(IYEAR,IDS,IT1,IDF,IT2,NTSPH,
      &             IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
       write(etext,'(2A)') ' P',PERST3(2:40)
       GTEXT=ETEXT
-      iside=2
-      isize=0
-      ifont=1
+      iside=2; isize=0; ifont=1
       call viewtext(gtext,iside,isize,ifont)
 
 C Setup menu text.
-      ITEM(1) ='1 select plot data     '
-      ITEM(2) ='2 change scales        '
-      ITEM(3) ='3 re-draw chart        '
-      ITEM(4) ='  ____________________ '
-      ITEM(5) ='                       '
-      ITEM(6) ='? help                 '
-      ITEM(7) ='- exit                 '
+      ITEM(1) ='1 data display '
+      ITEM(2) ='2 chart scale '
+      ITEM(3) ='3 clear chart  '
+      ITEM(4) ='4 specify altitude'
+      ITEM(5) ='  ____________ '
+      ITEM(6) ='               '
+      ITEM(7) ='? help         '
+      ITEM(8) ='- exit         '
 
 C Display menu.
- 2    NITMS=7
+ 2    NITMS=8
       INO=-2
 
-C Instanciate h() strings for the menu.
-      helptopic='psychrometric_overview'
-      call gethelptext(helpinsub,helptopic,nbhelp)
-
- 5    CALL EMENU('Ambient conditions',ITEM,NITMS,INO)
+ 5    CALL EMENU('Psychrometric chart',ITEM,NITMS,INO)
       IF(INO.EQ.1)THEN
 
 C Ask whether user supplied points or from system components.
-        helptopic='psychrometric_useful'
+        helptopic='psychrometric_data'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabcd('Options:',' ','display data',
-     &    'colour by temperature','colour by RH','continue',iwhich,2)
+        call easkabcd(' ','Options:','display data',
+     &    'colour by temperature','colour by RH','cancel',iwhich,2)
 
         if(iwhich.eq.4)goto 2
 
@@ -165,7 +160,7 @@ C the plotting. rhrange is the RH range, trange is the dbT range.
         trange=YMAX(2)-YMIN(2)
         DO 31 J=IDS,IDF
 
-C Read values of the weather for this day.
+C Read weather data for this day.
           ID=J
           CALL CLMGET(ID)
           KS=1
@@ -216,13 +211,11 @@ C If within temperature range, plot it.
             if(X.ge.Xmin.and.X.le.Xmax)then
               call u2pixel(X,GS,iix,iiy)
 
-C Debug.
-C              write(6,*) ihrplt,colmult,icolindex,iix,iiy,CMRVAL(1,K),CMRVAL(7,K)
-
               ipixhist(ihrplt,1)= int(iix)
               ipixhist(ihrplt,2)= int(iiy)
 C              call esymbol(iix,iiy,32,1)
-              call esymbol(iix,iiy,8,0)
+              isym=8
+              call esymbol(iix,iiy,isym,0)
             endif
  41       continue
  31     continue
@@ -231,7 +224,7 @@ C              call esymbol(iix,iiy,32,1)
         call forceflush()
       ELSEIF(INO.EQ.2)THEN
 
-C Change the scales on the axis and re-calculated enthalph for the chart.
+C Change the scales on the axis and re-calculated enthalpy for the chart.
         helptopic='psychrometric_min_max'
         call gethelptext(helpinsub,helptopic,nbhelp)
         val=YMIN(2)
@@ -251,11 +244,10 @@ C Change the scales on the axis and re-calculated enthalph for the chart.
         enthminx= (enthp2(Xmin,Ytmax/1000.))    
         enthminy= (enthp2(Xmin,Ytmin/1000.)) 
         enthmaxy= (enthp2(Xmin,Ytmax/1000.))
-        dok=.true.
         helptopic='psychrometric_redraw'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call askok('Redraw the chart to apply changes?',' ',
-     &    ok,dok,nbhelp)
+        call easkok(' ','Redraw chart to apply changes?',
+     &    ok,nbhelp)
         if(ok)then
           goto 10
         else
@@ -268,11 +260,24 @@ C Change the scales on the axis and re-calculated enthalph for the chart.
         enthminy= (enthp2(Xmin,Ytmin/1000.)) 
         enthmaxy= (enthp2(Xmin,Ytmax/1000.)) 
         GOTO 10       
-      ELSEIF(INO.EQ.6)THEN
+      ELSEIF(INO.EQ.4)THEN
+        call easkr(val,'altitude of climate location','for chart ',
+     &    -100.0,'F',3000.0,'-',0.0,'altitude',IER,nbhelp)
+
+C Find atmospheric pressure in mbar for given altitude.
+        PATMOS = PRESSURE_ALT(val)/100.0
+        call easkok(' ','Redraw chart to apply changes?',
+     &    ok,nbhelp)
+        if(ok)then
+          goto 10
+        else
+          GOTO 2
+        endif
+      ELSEIF(INO.EQ.7)THEN
         helptopic='psychrometric_overview'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('Psychrometric chart',nbhelp,'-',0,0,IER)
-      ELSEIF(INO.EQ.7)THEN
+      ELSEIF(INO.EQ.8)THEN
 
 C Reset original screen size values on exit.
         iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
@@ -312,9 +317,9 @@ C enthminx enthalpy x axis minimum
 C enthminy enthalpy y axis minimum
 C enthmaxy enthalpy y axis maximum
       subroutine psychartbackground(Xmin,Xmax,Ymin,Ymax,enthmax,
-     &  enthminx,enthminy,enthmaxy)
+     &  enthminx,enthminy,enthmaxy,patmos)
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
@@ -340,7 +345,6 @@ C enthmaxy enthalpy y axis maximum
       integer*8 ilf,igfw,igfh,ild,igdw,igdh
 #endif
 
-      PATMOS=1013.25
       IF(MMOD.ne.8) return
 
 C Check if can draw in colour and with a range of colours.

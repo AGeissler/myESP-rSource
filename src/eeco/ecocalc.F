@@ -162,7 +162,7 @@ C NM (Integer): dummy variable : Material ID related to Ist Composite and the Jt
 #include "esprdbfile.h"
 #include "material.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/EIAScnPt/FabPt(MMAT),TrPt(MMAT,MNbTrans),
      &                RecyPt(MMAT),ReTrPt(MMAT,MNbTrans),

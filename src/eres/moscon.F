@@ -44,18 +44,17 @@ C JREC = current results database record position.
 C Inside and 'outside' surfaces are handled differently.
 
 #include "building.h"
-CC#include "geometry.h"
+#include "geometry.h"
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/RECV3/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
-      COMMON/RECV5/SNA(MCOM,MS)
       COMMON/RECV9/CHARDM(MCOM,MS)
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-      COMMON/RECV12/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &              HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
+      COMMON/RECV12/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
+     &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
+     &       HCFVE(MCOM,MDTY,MS,MBP)
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/HCTHRY/IHCT,ICOREXHCT
 
@@ -70,11 +69,12 @@ CC#include "geometry.h"
       IUNIT=IFIL
       IFIX=0
       TIMEC=FLOAT(IT)/(FLOAT(NTS)*24.0)
-      NPER=NHCFP(IC)
+      NPER=NHCFP(IC,1)
       IF(NPER.EQ.0)goto  52
       DO 20 I=1,NPER
       II=I
-      IF(TIMEC.LT.HCFPFT(IC,II).AND.TIMEC.GE.HCFPFT(IC,II))goto 53
+      IF(TIMEC.LT.HCFPFT(IC,1,II).AND.
+     &   TIMEC.GE.HCFPFT(IC,1,II))goto 53
    20 CONTINUE
       goto 52
    53 IFIX=II
@@ -170,8 +170,10 @@ C Surface is (predominately) horizontal facing up.
     3 IF(T1.GE.T2)goto 6
       goto 4
    51 IF(IFIX.EQ.0)goto 5
-      IF(IEX.EQ.1.AND.HCFVI(IC,KK,IFIX).GE.0.0)HC=HCFVI(IC,KK,IFIX)
-      IF(IEX.EQ.2.AND.HCFVE(IC,KK,IFIX).GE.0.0)HC=HCFVE(IC,KK,IFIX)
+      IF(IEX.EQ.1.AND.HCFVI(IC,1,KK,IFIX).GE.0.0)
+     &  HC=HCFVI(IC,1,KK,IFIX)
+      IF(IEX.EQ.2.AND.HCFVE(IC,1,KK,IFIX).GE.0.0)
+     &  HC=HCFVE(IC,1,KK,IFIX)
       goto 5
 
 C Determine the 'other' zone and connection information.
@@ -223,7 +225,7 @@ C Surface 'shaded' from wind.
 C Updated to match subsys.f.
    14 HC=2.8+3.0*V
       IF(IFIX.EQ.0)goto 96
-      HC=HCFVE(IC,KK,IFIX)
+      HC=HCFVE(IC,1,KK,IFIX)
 
 C Corrected to use proper air and surface temperatures for the case
 C of surfaces with a real 'outside' face.
@@ -274,16 +276,15 @@ C HC   = heat transfer coef.
 C Inside and 'outside' surfaces are handled differently.
 
 #include "building.h"
-CC#include "geometry.h"
-      COMMON/OUTIN/IUOUT,IUIN
+#include "geometry.h"
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/RECV3/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
-      COMMON/RECV5/SNA(MCOM,MS)
       COMMON/RECV9/CHARDM(MCOM,MS)
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-      COMMON/RECV12/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &              HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
+      COMMON/RECV12/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
+     &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
+     &       HCFVE(MCOM,MDTY,MS,MBP)
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       common/hcthry/ihct,icorexhct
 
@@ -297,11 +298,12 @@ CC#include "geometry.h"
       IFIX=0
 
       TIMEC=FLOAT(IT)/(FLOAT(NTS)*24.0)
-      NPER=NHCFP(IZ)
+      NPER=NHCFP(IZ,1)
       IF(NPER.EQ.0)goto  52
       DO 20 I=1,NPER
         II=I
-        IF(TIMEC.LT.HCFPFT(IZ,II).AND.TIMEC.GE.HCFPFT(IZ,II))goto 53
+        IF(TIMEC.LT.HCFPFT(IZ,1,II).AND.
+     &     TIMEC.GE.HCFPFT(IZ,1,II))goto 53
    20 CONTINUE
       goto 52
    53 IFIX=II
@@ -399,8 +401,10 @@ C Surface is (predominately) horizontal facing up.
     3 IF(T1.GE.T2)goto 6
       goto 4
    51 IF(IFIX.EQ.0)goto 5
-      IF(IEX.EQ.1.AND.HCFVI(IZ,IS,IFIX).GE.0.0)HC(IS)=HCFVI(IZ,IS,IFIX)
-      IF(IEX.EQ.2.AND.HCFVE(IZ,IS,IFIX).GE.0.0)HC(IS)=HCFVE(IZ,IS,IFIX)
+      IF(IEX.EQ.1.AND.HCFVI(IZ,1,IS,IFIX).GE.0.0)
+     &  HC(IS)=HCFVI(IZ,1,IS,IFIX)
+      IF(IEX.EQ.2.AND.HCFVE(IZ,1,IS,IFIX).GE.0.0)
+     &  HC(IS)=HCFVE(IZ,1,IS,IFIX)
       goto 5
 
 C Determine the 'other' zone and connection information.
@@ -440,7 +444,7 @@ C Surface 'shaded' from wind.
 C Updated to match subsys.f.
    14 HC(IS)=2.8+3.0*V
       IF(IFIX.EQ.0)goto 96
-      HC(IS)=HCFVE(IZ,IS,IFIX)
+      HC(IS)=HCFVE(IZ,1,IS,IFIX)
 
 C Corrected to use proper air and surface temperatures for the case
 C of surfaces with a real 'outside' face.

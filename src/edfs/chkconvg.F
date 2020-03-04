@@ -27,7 +27,7 @@ C CHECK -Checks if CFD convergence has been reached.
 #include "building.h"
 #include "cfd.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
 C      COMMON/FDTRFC/FLSDTU(MNZ),FLSDTV(MNZ),FLSDTW(MNZ),FLSDTP(MNZ),
 C     &              FLSDTT(MNZ),FLSDTK(MNZ),FLSDTE(MNZ)
@@ -67,7 +67,7 @@ C     &             NSSWPT(MNZ),NSSWPK(MNZ),NSSWPE(MNZ)
       
       CHARACTER word*124,outs*124,LCFD*72
 
-      LOGICAL OK,DOK,CALLU,CALLV,CALLW,CALLT,KEMDL,CONVER,BUOY,CALLC
+      LOGICAL OK,CALLU,CALLV,CALLW,CALLT,KEMDL,CONVER,BUOY,CALLC
       LOGICAL ZEROT,ZandKE,MITzero,BOUSSI
 
 C For help messages
@@ -154,30 +154,26 @@ c        endif
         CALL EDISP(IUOUT,word)
       ENDIF
 
-      dok=.true.
       helptopic='dfs_convergence_accept'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('Do you accept it as converged solution?',' ',
-     &  OK,dok,nbhelp)
+      CALL EASKOK(' ','Accept as a converged solution?',
+     &            OK,nbhelp)
       IF(OK)THEN
         CONVER=.TRUE.
         return
       ENDIF
 
-      dok=.false.
-      CALL ASKOK('Would you like to increase the',
-     &           'maximum number of iterations? ',OK,dok,nbhelp)
+      CALL EASKOK(' ',
+     &           'Increase maximum number of iterations?',OK,nbhelp)
       IF(OK)THEN
         IVAL=MAXIT
         CALL EASKI(IVAL,' ','New maximum number of iterations (-) ?',
      &    MAXIT,'F',10000,'F',MAXIT,'Max number of iterations',
      &    IER,nbhelp)
         MAXIT=IVAL
-        dok=.true.
         helptopic='under_relaxation_factor'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK('Would you like to change linear ',
-     &             'under-relaxation factors?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Change under-relaxation factors?',OK,nbhelp)
         IF(OK)THEN
           CALL EDISP(IUOUT,' ')
           CALL EDISP(IUOUT,' Current linear under-relaxation factors:')
@@ -286,9 +282,8 @@ C            URFCD(ICFD)=VAL
           ENDIF
         ENDIF
 
-        dok=.false.
-        CALL ASKOK('Would you like to change fictitious ',
-     &             'time-step relaxation factors?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Change time-step relaxation factors?',
+     &           OK,nbhelp)
         IF(OK)THEN
           CALL EDISP(IUOUT,' ')
           write (outs,'(a,a)') 'Current fictitious time-step ',
@@ -365,9 +360,7 @@ C            FLSDTE(ICFD)=VAL
         ENDIF
       ENDIF
 
-      dok=.false.
-      CALL ASKOK('Would you like to change the number',
-     &           'of sweeps?',OK,dok,nbhelp)
+      CALL EASKOK(' ','Change the number of sweeps?',OK,nbhelp)
       IF(OK)THEN
         CALL EDISP(IUOUT,' ')
         CALL EDISP(IUOUT,' Current number of sweeps:')

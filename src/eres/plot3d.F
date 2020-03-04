@@ -40,7 +40,7 @@ C user-specified variable.
 #include "building.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -629,7 +629,7 @@ C Parameters passed
       logical zlist      ! if true indicate zone name
       integer ier        ! return -1 if overly complex.
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
@@ -718,11 +718,19 @@ C Generate strings for the library, the period and then the
 C focus zone and data range.
       WRITE(ETEXT,'(1X,A44,A,A20)')SDESCR,' Lib:',RFILE(1:20)
       iside=1; isize=0; ifont=1
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       WRITE(ETEXT,'(1x,A60)')PDESCR
       iside=2
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
       ETEXT=' '
       if(zlist)then
@@ -733,7 +741,11 @@ C focus zone and data range.
      &  XXMIN,' to ',XXMAX
       endif
       iside=4
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
 C Scaling happens here...
       igwid=igw
@@ -749,8 +761,12 @@ C Read the E9S7P3 display file on LU1 and extract the context.
 
       NAME=TITLE(1:40)
       iside=6; isize=1; ifont=2
-      call viewtext(name,iside,isize,ifont)
-      call forceflush()
+      if(mmod.eq.8)then
+        call viewtext(name,iside,isize,ifont)
+        call forceflush()
+      else
+        call viewtextwwc(name,iside,isize,ifont)
+      endif
 
 C Make sure all rotations are positive.
       ROTNX=ABS(ROTNXX)
@@ -853,11 +869,13 @@ C Display rotation parameters & yscale and zscale.
 59    WRITE(detail,'(A,F5.1,A,F5.1,A,F7.3,A,F7.3)')
      &   ' Rotation about X=',ROTNXX,', about Y=',ROTNYY,
      &   '  Yscale=',YSCALE,' Zscale=',ZSCALE
-      iside=3
-      isize=0
-      ifont=1
-      call viewtext(detail,iside,isize,ifont)
-      call forceflush()
+      iside=3; isize=0; ifont=1
+      if(mmod.eq.8)then
+        call viewtext(detail,iside,isize,ifont)
+        call forceflush()
+      else
+        call viewtextwwc(detail,iside,isize,ifont)
+      endif
 
 C Set up the plotting direction to produce the proper mask.
 C Set vertices to be plotted by the frame routine into the

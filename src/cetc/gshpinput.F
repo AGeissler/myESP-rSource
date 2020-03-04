@@ -70,14 +70,14 @@ C Use module for GSHP data
 #include "gshp_common.h"
        COMMON/FILEP/IFIL
        COMMON/ER/IER
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        common/gshpinfo/igshp
        common/gshpfile/gshpfile
 
 C Declaration of local variables
        INTEGER igshp
        INTEGER IUNIT_load,IUNIT,IFIL,K,IER,ND,i,ISTAT
-       INTEGER IUOUT,IUIN
+       INTEGER IUOUT,IUIN,IEOUT
        INTEGER ival
        REAL val
 
@@ -230,7 +230,7 @@ C Use inputs specific to vertical configuration
        REAL val
        INTEGER igshp
        INTEGER ival, IUNIT, ISTAT, IER, ND, K, i
-       INTEGER IUOUT, IUIN
+       INTEGER IUOUT, IUIN,IEOUT
        INTEGER FixPara         
 
        character gshpfile*72
@@ -402,7 +402,7 @@ C Use inputs specific to configuration
 #include "gshp_hs_common.h"
 
 
-       COMMON /OUTIN/ IUOUT, IUIN
+       COMMON /OUTIN/IUOUT,IUIN,IEOUT
 
        common/gshpinfo/igshp
        common/gshpfile/gshpfile
@@ -410,7 +410,7 @@ C Use inputs specific to configuration
        REAL val
        INTEGER igshp
        INTEGER ival, IUNIT, ISTAT, IER, ND, K, i
-       INTEGER IUOUT, IUIN
+       INTEGER IUOUT, IUIN,IEOUT
 
 
        character gshpfile*72
@@ -498,7 +498,7 @@ C Initiates reading of global variables (common for all)
 #include "gshp_common.h"
 C Use inputs specific to vertical configuration
 #include "gshp_hs_common.h"
-       COMMON /OUTIN/ IUOUT, IUIN
+       COMMON /OUTIN/IUOUT,IUIN,IEOUT
 
        common/gshpinfo/igshp
        common/gshpfile/gshpfile
@@ -506,7 +506,7 @@ C Use inputs specific to vertical configuration
        REAL val
        INTEGER igshp
        INTEGER ival, IUNIT, ISTAT, IER, ND, K, i
-       INTEGER IUOUT, IUIN
+       INTEGER IUOUT, IUIN,IEOUT
 
        character gshpfile*72
        character OUTSTR*124,word*124
@@ -598,14 +598,14 @@ C Initiates reading of global variables (common for all)
 #include "gshp_common.h"
 C Use inputs specific to vertical configuration
 #include "gshp_sl_common.h"
-       COMMON /OUTIN/ IUOUT, IUIN
+       COMMON /OUTIN/IUOUT,IUIN,IEOUT
        common/gshpinfo/igshp
        common/gshpfile/gshpfile
        
        REAL val
        INTEGER igshp
        INTEGER ival, IUNIT, ISTAT, IER, ND, K, i
-       INTEGER IUOUT, IUIN
+       INTEGER IUOUT, IUIN,IEOUT
 
        character gshpfile*72
        character OUTSTR*124,word*124
@@ -706,7 +706,7 @@ C Initiates reading of global variables (common for all)
 #include "gshp_common.h"
 #include "ground_temp_mains_common.h"
 
-       COMMON /OUTIN/ IUOUT, IUIN
+       COMMON /OUTIN/ IUOUT,IUIN,IEOUT
        common/gshpinfo/igshp
        common/gshpfile/gshpfile
        
@@ -714,7 +714,7 @@ C Initiates reading of global variables (common for all)
        REAL val
        INTEGER igshp
        INTEGER ival, IUNIT, ISTAT, IER, ND, K, i
-       INTEGER IUOUT, IUIN      
+       INTEGER IUOUT, IUIN,IEOUT      
        REAL fGSHPVersionNumber   ! Version number of GSHP file
        
        

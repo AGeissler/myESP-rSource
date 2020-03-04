@@ -24,7 +24,7 @@ C Boston, MA 02111-1307 USA.
 #include "net_flow.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FCLSOL/ICFP,IDTYPP,IPERP
       COMMON/mfctl/ctlpos(MCNN)
       COMMON/MFLCTL/IRY,IRM,IRD,IRH,FLWTIM,IHOUR,IYD,IFYD,ILYD,IPROG
@@ -68,6 +68,8 @@ C If NDAYT=0 set data to all calendar day types.
         call edisp(iuout,outs)
         call edisp(iuout,
      &       ' MFCNTR: cannot locate appropriate day type')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         CALL EPAGEND
         STOP
@@ -87,6 +89,8 @@ C Check number of periods in each day and the start and finish times
           IF(FLWTIM.GT.TPS.AND.FLWTIM.LE.TPF) GOTO 30
    22   CONTINUE
         call edisp(iuout,'MFCNTR: cannot locate appropriate day-period')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         CALL EPAGEND
         STOP
@@ -123,6 +127,8 @@ C New controllers inserted here!
      &      IFCLAW(ICFP,IDTYPP,IPERP),' has been referenced ',
      &      ICFP,IDTYPP,IPERP
           call edisp(iuout,outs)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           CALL EPAGEND
           STOP
@@ -138,13 +144,15 @@ C CFFVAR locates the sensor, checks if the sensor corresponds with
 C prevailing controller type, determines sensed condition (SVCTL).
 
       SUBROUTINE CFFVAR(SVCTL,icnn)
+
 #include "plant.h"
 #include "building.h"
+#include "site.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/CLIMIF/QFLWP,QFLWF,TFLWP,TFLWF,QDFLP,QDFLF,VFLP,VFLF,
      &             DFLP,DFLF,HFLP,HFLF
       COMMON/FCLSOL/ICFP,IDTYPP,IPERP
@@ -165,10 +173,6 @@ C prevailing controller type, determines sensed condition (SVCTL).
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
       common/FVALG/GFA(MCOM)
 
-C Atmospheric pressure
-      COMMON/ATPRES/PATMOS
-      real PATMOS
-
       DOUBLE PRECISION FLW1,FLW2,PRES,RESID,SAFLW
       character outs*124
 
@@ -183,6 +187,8 @@ C Locate the actuated flow connection
         call edisp(iuout,outs)
         call edisp(iuout,
      &    ' CFFVAR: invalid actuator location referenced')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         CALL EPAGEND
         STOP
@@ -198,6 +204,8 @@ C Match mass flow controller type.
      &      ' CFFVAR: invalid mass flow sensed external condition ',
      &      ICLCTP,' day type ',IDTYPP,' period ',IPERP
           call edisp(iuout,outs)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           CALL EPAGEND
           STOP
@@ -212,6 +220,8 @@ C Match mass flow controller type.
           WRITE(outs,*) ' CFFVAR: invalid mass flow cntrl type ',
      &      ICLCTP,' day type ',IDTYPP,' period ',IPERP
           call edisp(iuout,outs)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           CALL EPAGEND
           STOP
@@ -251,6 +261,8 @@ C                                   ISV=21   indicates moist air
             call edisp(iuout,outs)
             call edisp(iuout,
      &           ' CFFVAR: invalid SSV for mass flow controller type ')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             CALL EPAGEND
             STOP
@@ -262,6 +274,8 @@ C Controller type 5: senses 1th phase mass flow rate (kg/s)
             call edisp(iuout,
      &         ' CFFVAR: invalid SSV for mass flow controller type')
             call epwait
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             CALL EPAGEND
             STOP
           endif
@@ -272,6 +286,8 @@ C Controller type 7: senses 2nd phase mass flow rate (kg/s)
           IF(ISV(IFS2,IFS3).LT.21)then
             call edisp(iuout,
      &         ' CFFVAR: invalid SSV for mass flow controller type')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             CALL EPAGEND
             STOP
@@ -284,11 +300,12 @@ C Controller type 9: senses some additional plant output
 
 C Controller type 11 senses relative humidity (%).
         ELSE IF(ICLCTP.EQ.11) THEN
-cx          PATMOS=1013.25
           SVCTL=PCRH2(CSVF(IN,1),CSVF(IN,3)/CSVF(IN,2),PATMOS)
         ELSE
           call edisp(iuout,
      &        ' CFFVAR: invalid mass flow controller type')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           CALL EPAGEND
           STOP
@@ -319,6 +336,8 @@ C Sensor measures outside condition; Note sol-air temperature not yet available.
           call edisp(iuout,outs)
           call edisp(iuout,
      &      ' CFFVAR: mass flow control sensor not yet active')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           CALL EPAGEND
           STOP
@@ -341,7 +360,8 @@ C Controller type 5 senses mass flow at a connection.
 C Controller type 17 senses relative humidity of zone node.
 C ((possibly only usable when moisture modelling is active ...))
           elseif(ICLCTP.EQ.17)then
-            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS))
+C            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS))
+            SVCTL=PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)
 
 C Controller type 24 senses temperature difference between nodes.
           elseif(ICLCTP.EQ.24)then
@@ -371,15 +391,17 @@ C Controller type 30 senses vapour pressure difference between zone
 C and ambient nodes. ISF1=-4, IFAN(ICFP,1)=-3
 C ((possibly only usable when moisture modelling is active ...))
           elseif(ICLCTP.EQ.30)then
-            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)/100.
-     &                                      *Psat01m(TFA(IFS2))
-     &                                    -HFLF/100.*Psat01m(TFLWF))
+C            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)/100.
+C     &                                      *Psat01m(TFA(IFS2))
+C     &                                    -HFLF/100.*Psat01m(TFLWF))
+            SVCTL=PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)/100.
+     &            *Psat01m(TFA(IFS2))-HFLF/100.*Psat01m(TFLWF)
 
 C Controller type 31 senses difference between zone and ambient nodes
 C relative humidity (in %). ISF1=-4, IFAN(ICFP,1)=-3
 C ((possibly only usable when moisture modelling is active ...))
           elseif(ICLCTP.EQ.31)then
-            SVCTL=sngl(PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)-HFLF)
+            SVCTL=PCRH2(TFA(IFS2),GFA(IFS2),PATMOS)-HFLF
 
 C Controller type 41 senses contaminant concentration at node
           elseif(ICLCTP.EQ.41)then
@@ -389,6 +411,8 @@ C Controller type 41 senses contaminant concentration at node
             call edisp(iuout,outs)
             call edisp(iuout,
      &        ' CFFVAR: invalid SSV for mass flow controller type')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             CALL EPAGEND
             STOP
@@ -443,6 +467,8 @@ C would cause an array error to check so warn user.
               call edisp(iuout,outs)
               call edisp(iuout,
      &         ' CFFVAR: invalid SSV for mass flow controller type')
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epwait
               CALL EPAGEND
               STOP
@@ -452,6 +478,8 @@ C would cause an array error to check so warn user.
       else
         call edisp(iuout,
      &    ' CFFVAR: illegal mass flow-side sensor referenced')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         CALL EPAGEND
         STOP
@@ -637,6 +665,7 @@ C            write(6,*) icnn,signal,ctlpos(icnn)
 
 C ***** POSITN
       FUNCTION POSITN(SIGNAL)
+
 #include "building.h"
 #include "net_flow.h"
 #include "control.h"
@@ -711,7 +740,7 @@ C logical AND/OR as specified in the sensor definition
 #include "net_flow_data.h"
 #include "control.h"
  
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/MFCTL/CTLPOS(MCNN)
       common/FCLSOL/ICFP,IDTYPP,IPERP
       common/fcl0305/TSETPO
@@ -777,6 +806,8 @@ C Only one type of flow condition can be sensed (yet) i.e. temperature.
      &      'Multi-sensor not optimised for control law')
             WRITE(ERRMSG,'(A,I4,A)')'number ',ICFP,'; use another law'
             CALL EDISP(IUOUT,ERRMSG)
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             CALL EPAGEND
             STOP
@@ -879,7 +910,7 @@ C climate file commons
 
       integer ncomp,ncon
       common/c1/ncomp,ncon
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       common/MFCTL/CTLPOS(MCNN)
       common/FCLSOL/ICFP,IDTYPP,IPERP
@@ -887,7 +918,7 @@ C climate file commons
 C Time and weather data.
 C Commented common blocks to be uncommented and checked for relevance 
 C when version 2 of the law will be published
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/CLIMIF/QFLWP,QFLWF,TFLWP,TFLWF,QDFLP,QDFLF,VFLP,VFLF,
      &             DFLP,DFLF,HFLP,HFLF
 
@@ -1183,7 +1214,7 @@ C 1.0 is nominal rate or area, 1.5 would be 1.5 x nominal etc.).
 #include "net_flow_data.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/mfctl/ctlpos(MCNN)
       COMMON/FCLSOL/ICFP,IDTYPP,IPERP
       COMMON/BTIME/BTIMEP,BTIMEF

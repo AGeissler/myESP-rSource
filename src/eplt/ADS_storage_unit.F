@@ -136,9 +136,10 @@ C-------------------------------------------------------------------------------
 C ESP-r COMMONs
 C------------------------------------------------------------------------------------
 
-       COMMON/OUTIN/IUOUT,IUIN
+       common/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        COMMON/TC/ITC,ICNT
        INTEGER ITC             !-trace output index
@@ -510,9 +511,10 @@ C-------------------------------------------------------------------------------
 C ESP-r COMMONs
 C------------------------------------------------------------------------------------
 
-       COMMON/OUTIN/IUOUT,IUIN
+       common/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        COMMON/TC/ITC,ICNT
        INTEGER ITC             !-trace output index
@@ -525,7 +527,7 @@ C-------------------------------------------------------------------------------
        INTEGER IZNTRC          !-zone trace index
        INTEGER ITU             !-trace output unit number
 
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
        INTEGER IHRP            !-hour of present time-step
        INTEGER IHRF            !-hour of future time-step
        INTEGER IDYP            !-year day number of present day
@@ -534,7 +536,7 @@ C-------------------------------------------------------------------------------
        INTEGER IDWF            !-day of the week of future day
        INTEGER NSINC           !-number of building-side time increments
                                !-since start of simulation
-       INTEGER ITS             !-current building time-step within
+       INTEGER ITS,idynow      !-current building time-step within
                                !-current hour
 
        COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,ITRCLP,
@@ -2091,9 +2093,10 @@ C-------------------------------------------------------------------------------
        FUNCTION ADS_mass_ratio(Pressure,Temp,Wo,D,n)
        IMPLICIT NONE
 
-       COMMON/OUTIN/IUOUT,IUIN
+       common/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        REAL    ADS_mass_ratio
        REAL    Pressure       !-kPa
@@ -2436,9 +2439,10 @@ C*******************************************************************************
       SUBROUTINE TCheck(Wo, D, n, X, P,T1,T2,SUCCESS)
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER IUOUT           !-write unit number
       INTEGER IUIN            !-read unit number
+      INTEGER IEOUT           !-error unit number
 
 
       REAL Wo, D, n       !- adsorbent/adsorbate characteristics, needed to determine X
@@ -2500,9 +2504,10 @@ C-------------------------------------------------------------------------------
       FUNCTION TSOLVE(Wo,D,n,X,P,T1,T2,ACC)
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER IUOUT           !-write unit number
       INTEGER IUIN            !-read unit number
+      INTEGER IEOUT           !-error unit number
 
       REAL TSOLVE
       REAL Wo,D,n
@@ -2618,12 +2623,13 @@ C-------------------------------------------------------------------------------
       FUNCTION PSOLVE(Wo,D,n,X,T,P1,P2,ACC)
       IMPLICIT NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER IUOUT           !-write unit number
       INTEGER IUIN            !-read unit number
+      INTEGER IEOUT           !-error unit number
 
 C for debugging
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
        INTEGER IHRP            !-hour of present time-step
        INTEGER IHRF            !-hour of future time-step
        INTEGER IDYP            !-year day number of present day
@@ -2632,7 +2638,7 @@ C for debugging
        INTEGER IDWF            !-day of the week of future day
        INTEGER NSINC           !-number of building-side time increments
                                !-since start of simulation
-       INTEGER ITS             !-current building time-step within
+       INTEGER ITS,idynow      !-current building time-step within
                                !-current hour
 C end debugging
 

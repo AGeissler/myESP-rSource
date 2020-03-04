@@ -27,6 +27,7 @@ C       arr-the array, arrtit - its title up to 10 characters
 
 C ********* scan3di
        subroutine scan3di(arr,arrtit,IEX)
+#include "building.h"
 #include "cfd.h"
       
       integer lnblnk  ! function definition
@@ -68,6 +69,7 @@ C ********* scan3di
       end
 
       subroutine scanall 
+#include "building.h"
 #include "cfd.h"
 
       COMMON/COEF/AP(ntcelx,ntcely,ntcelz),AE(ntcelx,ntcely,ntcelz),
@@ -93,7 +95,8 @@ C ********* scan3di
 c*********************************************************************
 C      subroutine tecplotend_old
 c*********************************************************************
-C #include "cfd.h"
+#include "building.h"
+#include "cfd.h"
 
 C      COMMON/FILEP/IFIL
 C      COMMON/VARf/Uf(ntcelx,ntcely,ntcelz),Vf(ntcelx,ntcely,ntcelz),

@@ -51,7 +51,7 @@ C then it represents the zone which is currently being edited.
 C Passed parameters.
       integer ier
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       common/initv/initvt,EYEMI(3),VIEWMI(3),ANGI
@@ -87,17 +87,14 @@ C Passed parameters.
 
       SMALL=0.01
 
-C If not in graphic mode return.
-      if(MMOD.lt.8)return
-
 C Tell wireframe control the current number of selected zones.
 C If only drawing a ground topology set updwire manually.
       if(itdsp.eq.6)then
         numberofzones=1
-        call updwire(numberofzones)  ! pass local integer
+        if(mmod.eq.8)call updwire(numberofzones)  ! pass local integer
       else
         numberofzones=nzg
-        call updwire(numberofzones)  ! pass local integer
+        if(mmod.eq.8)call updwire(numberofzones)  ! pass local integer
       endif
 
 C Also tell wireframe control about the current views. If the
@@ -158,17 +155,21 @@ C Draw the selected bodies.
         CALL DRAWESP(IER)
 
 C Show domain buttons.
-        call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
+        if(mmod.eq.8)then
+          call cfgtogg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
      &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
-        call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
+          call opencfg(icfg_type,icfgz,icfgn,icfgc,icfgdfn,
      &                             iicfgz,iicfgn,iicfgc,iicfgdfn)
+        endif
 
 C Remind user of which model even when looking at one zone.
         WRITE(ETEXT,'(2A)')'Model: ',modeltitle(1:lnblnk(modeltitle))
-        iside=1
-        isize=1
-        ifont=1
-        call viewtext(etext,iside,isize,ifont)
+        iside=1; isize=1; ifont=1
+        if(mmod.eq.8)then
+          call viewtext(etext,iside,isize,ifont)
+        else
+C          call viewtextwwc(etext,iside,isize,ifont)
+        endif
 
 C Recover information begin edited and reset modifyview flag.
         if(izgfoc.NE.0)CALL ERCZONE(izgfoc)
@@ -296,6 +297,97 @@ C If we are in a freelook, turn off grid, site origin and names.
       return
       end
 
+C ********* chgpan
+C CHGPAN is called from C code in esp-r.c or esru_x.c with x and y
+C increments to the viewed point. This effectivley implements mouse
+C panning. If not needed then provide a dummy. 
+      subroutine chgpan(ix,iy)
+#include "building.h"
+#include "prj3dv.h"
+
+C Passed paremter.
+      integer ix,iy
+      real vec(3)
+
+C Convert viewed point to screen coordinates.
+      CALL VECTRN(VIEWM,TSMAT,vec,IER)
+
+C Scale movement increments by view angle.
+      idx=-ix*10
+      idy=iy*10
+
+C Subtract pan increments.
+      vec(1)=vec(1)+idx
+      vec(2)=vec(2)+idy
+
+C Convert back to model coordinates and save.
+      CALL VECTRN(vec,STMMAT,VIEWM,IER)
+
+C Make sure view bounds are static, and grid and origin are off.
+      if (ITBND.ne.0) ITBND=0 
+      if (ITORG.ne.1) ITORG=1 
+      if (ITGRD.ne.1) ITGRD=1
+      if (ITZNM.ne.1) ITZNM=1
+      if (ITSNM.ne.1) ITSNM=1
+
+      MODIFYVIEW=.TRUE.
+      MODLEN=.TRUE.
+      call redraw(IER)
+
+      return
+      end
+
+C ********* chgzoom
+C CHGZOOM is called from C code in esp-r.c or esru_x.c with 1 or 2.
+C 1 means zoom out, 2 means zoom in. Do this by adjusting view angle.
+      subroutine chgzoom(imode)
+#include "building.h"
+#include "prj3dv.h"
+
+C Passed paremter.
+      integer imode
+
+C Increment view angle by 5 percent.
+      if (imode.eq.1) then
+        ANG=ANG-ANG*0.05
+      elseif (imode.eq.2) then
+        ANG=ANG+ANG*0.05
+      endif
+      
+C Make sure view bounds are static.
+      if (ITBND.ne.0) ITBND=0  
+      if (ITORG.ne.1) ITORG=1 
+      if (ITGRD.ne.1) ITGRD=1
+      if (ITZNM.ne.1) ITZNM=1
+      if (ITSNM.ne.1) ITSNM=1
+
+      MODIFYVIEW=.TRUE.
+      MODLEN=.TRUE.
+      call redraw(IER)
+
+      return
+      end
+
+C ********* optview
+C OPTVIEW is called from C code in esp-r.c or esru_x.c. It sets optimum
+C view bounds.
+      subroutine optview
+#include "building.h"
+#include "prj3dv.h"
+
+C Activate optimum view bounds, as well as origin and grid.
+      if (ITBND.ne.1) ITBND=1    
+      if (ITORG.ne.0) ITORG=0 
+      if (ITGRD.ne.0) ITGRD=0
+
+      MODIFYVIEW=.TRUE.
+      MODLEN=.TRUE.
+      MODBND=.TRUE.
+      call redraw(IER)
+
+      return
+      end
+
 C ********* chgeye
 C CHGEYE is called from C code in esru_x.c with current contents of the ray2_ and
 C image_ c structures.  Integers are specially treated based on ifdef.
@@ -403,10 +495,11 @@ C step to next hour. If isunhour two then present an animation.
 C Passed paramter.
       integer isunhour
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC8/SLAT,SLON
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
 C Local variables
       character outs*124,ETEXT*60,DESCRH*5,DESCRD*5
@@ -463,10 +556,12 @@ C Generate a heading for the view.
           WRITE(ETEXT,'(A,I2,1X,A3,A,A5,A,F6.1,A,F5.1)')
      &      ' View: ',IDO,MTHNAM(IMO),' @',DESCRH,
      &      '  azim:',SAZI,' elev:',SALT
-          ivt2=2
-          ivt3=1
-          ivt4=IFS
-          CALL viewtext(ETEXT,ivt2,ivt3,ivt4)
+          ivt2=2; ivt3=1; ivt4=IFS
+          if(mmod.eq.8)then
+            call viewtext(ETEXT,ivt2,ivt3,ivt4)
+          else
+            call viewtextwwc(ETEXT,ivt2,ivt3,ivt4)
+          endif
 
 C Ask user what they want to do next.
           CALL EASKABCD(' View choices: ',' ','previous hour',
@@ -512,11 +607,13 @@ C Generate a heading for the view.
           WRITE(ETEXT,'(A,I2,1X,A3,A,A5,A,F6.1,A,F5.1)')
      &      ' View: ',IDO,MTHNAM(IMO),' @',DESCRH,
      &      '  azim:',SAZI,' elev:',SALT
-          ivt2=2
-          ivt3=1
-          ivt4=IFS
-          CALL viewtext(ETEXT,ivt2,ivt3,ivt4)
-          call pauses(1)   ! pause before returning
+          ivt2=2; ivt3=1; ivt4=IFS
+          if(mmod.eq.8)then
+            call viewtext(ETEXT,ivt2,ivt3,ivt4)
+            call pauses(1)   ! pause before returning
+          else
+            call viewtextwwc(ETEXT,ivt2,ivt3,ivt4)
+          endif
           ITSNM=0
           return
         else
@@ -552,10 +649,15 @@ C Generate a heading for the view.
           ivt2=2
           ivt3=1
           ivt4=IFS
-          CALL viewtext(ETEXT,ivt2,ivt3,ivt4)
-          STIME=STIME+((60.0/FLOAT(NTS))/60.0)
-          call forceflush()
-          call pauses(1)
+          if(mmod.eq.8)then
+            CALL viewtext(ETEXT,ivt2,ivt3,ivt4)
+            STIME=STIME+((60.0/FLOAT(NTS))/60.0)
+            call forceflush()
+            call pauses(1)
+          else
+            CALL viewtextwwc(ETEXT,ivt2,ivt3,ivt4)
+            STIME=STIME+((60.0/FLOAT(NTS))/60.0)
+          endif
           goto 70
         else
           if(STIME.LT.11.0)then
@@ -704,7 +806,7 @@ C geometry.h provides commons G0, G2, GS5, GS6.
 C Passed parameters.
       integer ifoc,ier
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
@@ -730,9 +832,6 @@ C Local arrays.
       integer*8 iix,iiy,iixlast,iiylast
       integer*8 iicol,ibsize       ! passed to textsizeatxy
 #endif     
-
-C If not in graphic mode return.
-      if(MMOD.lt.8)return
 
 C If libraries and monitor support greyscale remember this.
       greyok=.false.
@@ -792,11 +891,16 @@ C Transform the location into eyepoint and then screen coords.
           CALL VECTRN(COG1,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iix,iiy)
-          btemp='        '
-          write(btemp,'(a)') BLOCKNAME(IFOC,IB)
-          call textsizeatxy(iix,iiy,btemp,ibsize,'-',iicol)
-          iicol=0
-          call winscl('-',iicol)
+          btemp='           '
+          write(btemp,'(a)') 
+     &      BLOCKNAME(IFOC,IB)(1:lnblnk(BLOCKNAME(IFOC,IB)))
+          if(mmod.eq.8)then
+            call textsizeatxy(iix,iiy,btemp,ibsize,'-',iicol)
+            iicol=0
+            call winscl('-',iicol)
+          else
+            call textsizeatxywwc(iix,iiy,btemp,ibsize,'-',iicol)
+          endif
         ENDIF
 
 C If editing an obstruction, highlight it.
@@ -862,14 +966,24 @@ C If IP1 is ever negative then jump to a later point.
  351      CONTINUE
           CALL ORTTRN(BX(IP1),BY(IP1),BZ(IP1),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
-          if(IPEN.eq.1)then
-            call eswline(iixlast,iiylast,iix,iiy)
-          elseif(IPEN.eq.-305)then
-            call edwline(iixlast,iiylast,iix,iiy)
+          if(mmod.eq.8)then
+            if(IPEN.eq.1)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            elseif(IPEN.eq.-305)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call eswline(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(IPEN.eq.1)then
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            elseif(IPEN.eq.-305)then
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
 
 C Repeat until next point is the first, remember position and skip
 C past -1 values of IBNXT, save IP1 as IPT for testing.
@@ -884,14 +998,24 @@ C past -1 values of IBNXT, save IP1 as IPT for testing.
 C Complete the polygon.
           CALL ORTTRN(BX(IP),BY(IP),BZ(IP),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
-          if(IPEN.eq.1)then
-            call eswline(iixlast,iiylast,iix,iiy)
-          elseif(IPEN.eq.-305)then
-            call edwline(iixlast,iiylast,iix,iiy)
+          if(mmod.eq.8)then
+            if(IPEN.eq.1)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            elseif(IPEN.eq.-305)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call eswline(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(IPEN.eq.1)then
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            elseif(IPEN.eq.-305)then
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
  1000   CONTINUE
   301 CONTINUE
 
@@ -917,7 +1041,7 @@ C geometry.h provides commons G0, G2, GS5, GS6.
 C Passed parameters.
       integer ifoc,ier
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer ifs,itfs,imfs
@@ -945,15 +1069,12 @@ C Local arrays.
       integer*8 iix,iiy,iixlast,iiylast,iicol,ibsize 
 #endif     
 
-C If not in graphic mode return.
-      if(MMOD.lt.8)return
-
 C If libraries and monitor support greyscale then reset forground
 C to 50% grey when drawing visual entities.
       greyok=.false.
       if(nifgrey.gt.4)then
         iicol=nifgrey-3
-        call winscl('i',iicol)
+        if(mmod.eq.8) call winscl('i',iicol)
         greyok=.true.
       endif
 
@@ -1031,9 +1152,14 @@ C Transform the location into eyepoint and then screen coords.
           CALL VECTRN(COG1,TEMAT,COG2,IER)
           CALL VECTRN(COG2,ETSMAT,COG3,IER)
           call u2pixel(COG3(1),COG3(2),iix,iiy)
-          btemp='        '
-          write(btemp,'(a)') VISNAME(IFOC,IB)
-          call textsizeatxy(iix,iiy,btemp,ibsize,'-',iicol)
+          btemp='           '
+          write(btemp,'(a)') 
+     &      VISNAME(IFOC,IB)(1:lnblnk(VISNAME(IFOC,IB)))
+          if(mmod.eq.8)then
+            call textsizeatxy(iix,iiy,btemp,ibsize,'-',iicol)
+          else
+            call textsizeatxywwc(iix,iiy,btemp,ibsize,'-',iicol)
+          endif
         ENDIF
 
 C If editing an visual entity, highlight it. ITVIS would have been
@@ -1102,14 +1228,24 @@ C If IP1 is ever negative then jump to a later point.
           CALL ORTTRN(BX(IP1),BY(IP1),BZ(IP1),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
 
-          if(IPEN.eq.1)then
-            call eswline(iixlast,iiylast,iix,iiy)
-          elseif(IPEN.eq.-305)then
-            call edwline(iixlast,iiylast,iix,iiy)
+          if(mmod.eq.8)then
+            if(IPEN.eq.1)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            elseif(IPEN.eq.-305)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call eswline(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(IPEN.eq.1)then
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            elseif(IPEN.eq.-305)then
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
 
 C Repeat until next point is the first, remember position and skip
 C past -1 values of IBNXT, save IP1 as IPT for testing.
@@ -1125,23 +1261,33 @@ C Complete the polygon.
           CALL ORTTRN(BX(IP),BY(IP),BZ(IP),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
 
-          if(IPEN.eq.1)then
-            call eswline(iixlast,iiylast,iix,iiy)
-          elseif(IPEN.eq.-305)then
-            call edwline(iixlast,iiylast,iix,iiy)
+          if(mmod.eq.8)then
+            if(IPEN.eq.1)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            elseif(IPEN.eq.-305)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call eswline(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(IPEN.eq.1)then
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            elseif(IPEN.eq.-305)then
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
  1000   CONTINUE
   301 CONTINUE
 
 C Reset color before returning.
       if(greyok)then
         iicol=0
-        call winscl('-',iicol)
+        if(mmod.eq.8) call winscl('-',iicol)
       endif
-      call forceflush()
+      if(mmod.eq.8) call forceflush()
 
       RETURN
       END
@@ -1217,9 +1363,13 @@ C Transform the location into eyepoint and then screen coords.
         call u2pixel(COG3(1),COG3(2),iix,iiy)
         write(temp,'(A)')CUBN(IB)
         iid2=iiy+8
-        call textsizeatxy(iix,iiy,temp,ibsize,'-',iicol)
+        if(mmod.eq.8)then
+          call textsizeatxy(iix,iiy,temp,ibsize,'-',iicol)
+        else
+          call textsizeatxywwc(iix,iiy,temp,ibsize,'-',iicol)
+        endif
         iicol=0
-        call winscl('-',iicol)
+        if(mmod.eq.8) call winscl('-',iicol)
 
 C Continue on with surfaces in the sensor.
 C Copy polygon for sensor surface I into structure AX AY AZ
@@ -1286,11 +1436,19 @@ C If IP1 is ever negative then jump to a later point.
           CALL ORTTRN(BX(IP1),BY(IP1),BZ(IP1),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
           if (isfront) then
-            call edwline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
 
 C Repeat until next point is the first, remember position and skip
 C past any -1 values of IBNXT, save IP1 as IPT for testing.
@@ -1306,11 +1464,19 @@ C Complete the polygon.
           CALL ORTTRN(BX(IP),BY(IP),BZ(IP),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
           if (isfront) then
-            call edwline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           endif
-          call forceflush()
+          if(mmod.eq.8) call forceflush()
  1000   CONTINUE
   301 CONTINUE
 
@@ -1383,9 +1549,13 @@ C Transform the location into eyepoint and then screen coords.
       call u2pixel(COG3(1),COG3(2),iix,iiy)
       write(temp,'(A)')bbname
       iid2=iiy+8
-      call textsizeatxy(iix,iiy,temp,ibsize,'-',iicol)
+      if(mmod.eq.8)then
+        call textsizeatxy(iix,iiy,temp,ibsize,'-',iicol)
+      else
+        call textsizeatxywwc(iix,iiy,temp,ibsize,'-',iicol)
+      endif
       iicol=0
-      call winscl('-',iicol)
+      if(mmod.eq.8) call winscl('-',iicol)
 
 C Continue on with surfaces in the sensor.
 C Copy polygon for sensor surface I into structure AX AY AZ
@@ -1442,8 +1612,12 @@ C If IP1 is ever negative then jump to a later point.
  351    CONTINUE
         CALL ORTTRN(BX(IP1),BY(IP1),BZ(IP1),ETSMAT,AAX,AAY,AAZ,IERR)
         call u2pixel(AAX,AAY,iix,iiy)
-        call eswline(iixlast,iiylast,iix,iiy)
-        call forceflush()
+        if(mmod.eq.8)then
+          call eswline(iixlast,iiylast,iix,iiy)
+          call forceflush()
+        else
+          call eswlinewwc(iixlast,iiylast,iix,iiy)
+        endif
 
 C Repeat until next point is the first, remember position and skip
 C past any -1 values of IBNXT, save IP1 as IPT for testing.
@@ -1458,8 +1632,12 @@ C past any -1 values of IBNXT, save IP1 as IPT for testing.
 C Complete the polygon.
         CALL ORTTRN(BX(IP),BY(IP),BZ(IP),ETSMAT,AAX,AAY,AAZ,IERR)
         call u2pixel(AAX,AAY,iix,iiy)
-        call eswline(iixlast,iiylast,iix,iiy)
-        call forceflush()
+        if(mmod.eq.8)then
+          call eswline(iixlast,iiylast,iix,iiy)
+          call forceflush()
+        else
+          call eswlinewwc(iixlast,iiylast,iix,iiy)
+        endif
  1000 CONTINUE
 
       RETURN
@@ -1646,13 +1824,29 @@ C Draw succeeding points until last vertex.
           CALL  ORTTRN(BX(IP1),BY(IP1),BZ(IP1),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
           if(linstyg(igs).eq.3)then
-            call edline(iixlast,iiylast,iix,iiy,2)
+            if(mmod.eq.8)then
+              call edline(iixlast,iiylast,iix,iiy,2)
+            else
+              call edlinewwc(iixlast,iiylast,iix,iiy,2)
+            endif
           elseif(linstyg(igs).eq.2)then
-            call edwline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           elseif(linstyg(igs).eq.1)then
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call edline(iixlast,iiylast,iix,iiy,LD)
+            if(mmod.eq.8)then
+              call edline(iixlast,iiylast,iix,iiy,LD)
+            else
+              call edlinewwc(iixlast,iiylast,iix,iiy,LD)
+            endif
           endif
           iixc=iixc+iix
           iiyc=iiyc+iiy
@@ -1666,15 +1860,31 @@ C Complete ground surface.
           CALL  ORTTRN(BX(IP),BY(IP),BZ(IP),ETSMAT,AAX,AAY,AAZ,IERR)
           call u2pixel(AAX,AAY,iix,iiy)
           if(linstyg(igs).eq.3)then
-            call edline(iixlast,iiylast,iix,iiy,2)
+            if(mmod.eq.8)then
+              call edline(iixlast,iiylast,iix,iiy,2)
+            else
+              call edlinewwc(iixlast,iiylast,iix,iiy,2)
+            endif
           elseif(linstyg(igs).eq.2)then
-            call edwline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call edwline(iixlast,iiylast,iix,iiy)
+            else
+              call edwlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           elseif(linstyg(igs).eq.1)then
-            call eswline(iixlast,iiylast,iix,iiy)
+            if(mmod.eq.8)then
+              call eswline(iixlast,iiylast,iix,iiy)
+            else
+              call eswlinewwc(iixlast,iiylast,iix,iiy)
+            endif
           else
-            call edline(iixlast,iiylast,iix,iiy,LD)
+            if(mmod.eq.8)then
+              call edline(iixlast,iiylast,iix,iiy,LD)
+              call forceflush()
+            else
+              call edlinewwc(iixlast,iiylast,iix,iiy,LD)
+            endif
           endif
-          call forceflush()
 
 C If ground surface names are to be displayed place near the centre of polygon.
 C If the surface is not drawn (iixc=0 & iyc=0) do not label it.  For clarity drop to
@@ -1682,19 +1892,23 @@ C the next smaller font for the surface name and then restore font
 C to normal size.
           IF(ITSNM.EQ.0)THEN
             IF(iixc.GT.0.AND.iiyc.GT.0.AND.(NAP.EQ.NBP))THEN
-              CALL winfnt(issize)
+              if(mmod.eq.8) CALL winfnt(issize)
               write(stemp,'(A)')GSNAME(igs)
               iixc=iixc/NBP
               iiyc=iiyc/NBP
               iid2=iiyc+3
               iicol=0
-              call textatxy(iixc,iid2,stemp,'-',iicol)
-              CALL winfnt(IMFS)
+              if(mmod.eq.8)then
+                call textatxy(iixc,iid2,stemp,'-',iicol)
+                CALL winfnt(IMFS)
+              else
+                call textatxywwc(iixc,iid2,stemp,'-',iicol)
+              endif
             endif
           endif
   302   CONTINUE
   43  continue
-      call forceflush()
+      if(mmod.eq.8) call forceflush()
 
       return
       end
@@ -1728,8 +1942,6 @@ C Local variables to pass to edline.
 #else
       integer*8 iix,iiy,iix1,iiy1,iicol
 #endif       
-C If not in graphic mode return.
-      if(MMOD.lt.8)return
 
       IER=0
 
@@ -1738,7 +1950,7 @@ C to 50% grey when drawing dots.
       greyok=.false.
       if(nifgrey.gt.4)then
         iicol=nifgrey-3
-        call winscl('i',iicol)
+        if(mmod.eq.8) call winscl('i',iicol)
         greyok=.true.
       endif
 
@@ -1748,7 +1960,7 @@ C If GRIDD is zero compute default grid spacing.
 C Use diagonal distance across the site.
       CALL ECLOSE(GRIDD,0.0,0.01,close)
       IF(close)THEN
-        XD=(XMX-XMN)**2 + (YMX-YMN)**2
+        XD=(XMX-XMN)**2 + (YMX-YMN)**2  ! get diagonal
         DD=SQRT(XD)
         IF((DD.LE.5.))THEN
           GRIDD=0.5
@@ -1802,14 +2014,18 @@ C the length of the line is more than one pixel.
         if(iix.eq.iix1.and.iiy.eq.iiy1)then
           continue
         else
-          call edline(iix,iiy,iix1,iiy1,LD)
+          if(mmod.eq.8)then
+            call edline(iix,iiy,iix1,iiy1,LD)
+          else
+            call edlinewwc(iix,iiy,iix1,iiy1,LD)
+          endif
         endif
 
 C Move to next grid position.
         XINC=XINC+GRIDD
         GOTO 100
       ENDIF
-      call forceflush()
+      if(mmod.eq.8) call forceflush()
 
 C Loop up in other direction.
 C Make sure that the gridding will pass over the 0.0 point.
@@ -1845,7 +2061,11 @@ C Draw the dotted line after casting to local variable.
         if(iix.eq.iix1.and.iiy.eq.iiy1)then
           continue
         else
-          call edline(iix,iiy,iix1,iiy1,LD)
+          if(mmod.eq.8)then
+            call edline(iix,iiy,iix1,iiy1,LD)
+          else
+            call edlinewwc(iix,iiy,iix1,iiy1,LD)
+          endif
         endif
 
 C Move to next grid position.
@@ -1854,9 +2074,9 @@ C Move to next grid position.
       ENDIF
       if(greyok)then
         iicol=0
-        call winscl('-',iicol)
+        if(mmod.eq.8) call winscl('-',iicol)
       endif
-      call forceflush()
+      if(mmod.eq.8) call forceflush()
 
       RETURN
       END
@@ -1874,7 +2094,7 @@ C Passed parameters.
       integer IUO,IER
       logical CFGOK
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
       COMMON/FILEP/IFIL
       
@@ -1884,7 +2104,7 @@ C Passed parameters.
       common/grndpl/NGT,NGTV,XGT(MGTV),YGT(MGTV),ZGT(MGTV),JGVN(MGRT,8),
      &  NGVER(MGRT),IVEDGE(MGRT)
       COMMON/GT5/GSNAME(MGRT),GMLCN(MGRT)
-      LOGICAL OK,dok
+      LOGICAL OK
 
 C Use JGVNT for ground surfaces and JVNZ to hold inverted order for zone.
       DIMENSION IVALS(MCOM),JGVNT(MGRT,8),JVNZ(MS,MV)
@@ -1930,12 +2150,11 @@ C << task to be done >>
         IF(IVALS(IZ).GT.0)THEN
           call georead(IUF,LGEOM(IVALS(IZ)),IVALS(IZ),1,iuout,IER)
           IF(IER.NE.0)THEN
-            dok=.false.
             h(1)='While scanning the model`s zone geometry a problem'
             h(2)='was encountered. Perhaps a recent change corrupted'
             h(3)='the model? '
-            CALL ASKOK(' ',
-     &        'Problem while scanning geometry...try again?',OK,dok,3)
+            CALL EASKOK('Problem while scanning geometry.',
+     &                 'Retry?',OK,3)
             if(ok)goto 106
             goto 83
           ENDIF
@@ -2022,11 +2241,10 @@ C Write obstructions to output file.
 C If there is a ground description ask if to be included and then
 C add at the bottom of the file.
       if(NGTV.gt.0)then
-        dok=.true.
         h(1)='The model includes a descrition of the surface of the'
         h(2)='ground at the site. If you say yes it will be included'
         h(3)='in the view. '
-        CALL ASKOK(' ','Include the ground topography?',OK,dok,3)
+        CALL EASKOK(' ','Include ground topography?',OK,3)
         if(OK)then
 
 C Write surface information to the viewer file. First invert edges.
@@ -2082,6 +2300,7 @@ C Parameters
                       ! 8 is 2x3 block 32 is 2x2 block
                       ! 33 is 4x4 block
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
       real COG1,COG2,COG3
       dimension COG1(3),COG2(3),COG3(3)
@@ -2106,17 +2325,29 @@ C Parameters
 
       call u2pixel(COG3(1),COG3(2),iix,iiy)  ! convert to screen coords
       iicol=icolour                    ! set user color
-      if(greyok)call winscl('z',iicol)
-      if(isymbol.eq.32)then
-        call esymbol(iix,iiy,8,0)  ! draw 2x2 dot
-      elseif(isymbol.eq.33)then
-        call esymbol(iix,iiy,8,2)  ! draw 4x4 dot
+      if(mmod.eq.8)then
+        if(greyok)call winscl('z',iicol)
+        if(isymbol.eq.32)then
+          call esymbol(iix,iiy,8,0)  ! draw 2x2 dot
+        elseif(isymbol.eq.33)then
+          call esymbol(iix,iiy,8,2)  ! draw 4x4 dot
+        else
+          call esymbol(iix,iiy,isymbol,1)  ! draw the symbol
+        endif
       else
-        call esymbol(iix,iiy,isymbol,1)  ! draw the symbol
+        if(isymbol.eq.32)then
+          call esymbolwwc(iix,iiy,8,0)  ! draw 2x2 dot
+        elseif(isymbol.eq.33)then
+          call esymbolwwc(iix,iiy,8,2)  ! draw 4x4 dot
+        else
+          call esymbolwwc(iix,iiy,isymbol,1)  ! draw the symbol
+        endif
       endif
       iicol=0                          ! return to black
-      if(greyok)call winscl('-',iicol)
-      call forceflush()                ! ensure it is drawn
+      if(mmod.eq.8)then
+        if(greyok)call winscl('-',iicol)
+        call forceflush()  ! ensure it is drawn
+      endif
       return
       end
 
@@ -2133,10 +2364,15 @@ C 3 = 3-D gridding (grd module)
       subroutine redraw(IER)
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
+      COMMON/C6/INDCFG
       COMMON/MODVIS/IVISMOD
 
 C Check we're in graphic mode, just in case.
-      if (MMOD.ne.8) goto 999
+C      if (MMOD.ne.8) goto 999
+
+C Check we have a model to display.
+      if ((IVISMOD.eq.1.or.IVISMOD.eq.3).and.
+     &  (indcfg.ne.1.and.indcfg.ne.3)) goto 999
 
       if (IVISMOD.eq.-1) then
         call startbuffer()

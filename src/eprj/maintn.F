@@ -39,7 +39,7 @@ C IER=0 OK, IER=1 problem.
 #include "model.h"
 #include "net_flow.h"
 #include "tdf2.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TDFGH2/GTYPES(MTI),GMENUS(MTI)
       COMMON/TDFG1/GAIDE,GHELP(MHEL),GDHDRT(3),GMH
       common/TDFADDC/iadcols,deftabu(9)
@@ -187,9 +187,6 @@ C Reset iadcols after updating nuwpr for the above actions.
       call TDFAIMPT(ITRC,ltdfa,iutdfa,'i',IER)
       call usrmsg(' ','Updating the scratch file...done.','P')
 
-C << Is updating NEXTRC required? >>
-C      NEXTRC=LASTHD+1
-
       RETURN
 
       END
@@ -202,7 +199,7 @@ C IFOC, the item array index at the point where the action is to take place.
 #include "model.h"
 #include "net_flow.h"
 #include "tdf2.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TDAT/TABU(MTABC),TABT(MTABC),TABUMN(MTABC),TABUMX(MTABC)
 
 C To delete a tabular item: compact the columns from IFOC+1 to NITDF
@@ -253,9 +250,6 @@ C zero the old tab column location.
    6    CONTINUE
   15  CONTINUE
       NEXTCL=NEXTCL+1
-
-C Decrement the counter to the last record used by the header.
-      NEXTRC=NEXTRC-IDECRFLD
       
       CALL EDISP(IUOUT,' ')
       IF(IFOC.LT.NITDF.AND.NITDF.GT.1)THEN

@@ -28,7 +28,7 @@ C espriou.h provides current file.
 #include "espriou.h"
 #include "moist.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)
@@ -90,6 +90,10 @@ C       Rewind legacy file for read and set model to LEGACY
       endif
 
 C Read the moisture node distribution information.
+C MNDL number of nodes per layer for each zone, construction. 
+C MNDL a multiple of the number of nodes in the conduction calculation (i.e. multiple of 3).
+C MNDC number of nodes per construction.
+C MNDZ total number of nodes of all constructions in a zone.
       MNDS=MNDS-MNDZ(ICOMP)
       MNDZ(ICOMP)=0
       NC=NCONST(ICOMP)
@@ -110,6 +114,18 @@ C Read the moisture node distribution information.
       MNDS=MNDS+MNDZ(ICOMP)
 
 C Read the data for water vapour permeability for each layer.
+C IPERM - index of the permeability data (for each zone, component, layer).
+C iperm,ISORP and ITVAPD define the formula to be used to estimate
+C hygo-thermal properties. The following exemplar models set these
+C indices to 1.
+C        ./models/training/constr/adapt/zones/liv_room.mst
+C        ./models/training/burdie/zone/bed_3.mst-ii
+C        ./models/training/burdie/zone/bed_3.mst
+C        ./models/training/wsf/zones/theZone_legacy.mst
+C        ./models/training/wsf/zones/theZone_Otto.mst
+
+C PERM contains 3 values describing the vapour permeability, as
+C      zone,component,layer,data(1:3).
       DO 30 I=1,NC
         NE=NELTS(ICOMP,I)
       DO 30 IL=1,NE
@@ -132,6 +148,10 @@ C Read the data for water vapour permeability for each layer.
    30 CONTINUE
 
 C Read the data for moisture capacity for each layer.
+C ISORP - holds the index of each entry.
+C SORP - contains the sorption isotherm data.
+C SORP - contains 3 values describing the moisture capacity, as
+C        zone,component,layer,data(1:3)
       DO 50 I=1,NC
         NE=NELTS(ICOMP,I)
       DO 50 IL=1,NE
@@ -154,6 +174,16 @@ C Read the data for moisture capacity for each layer.
    50 CONTINUE
 
 C Read thermal vapor diffusion coefficient for each layer.
+C ITVAPD - holds the index. 
+C TVAPD - holds this single value.
+C All current exemplar models set the value to 0 since thermal vapout diffusion is not
+C an accepted process.
+C        ./models/training/constr/adapt/zones/liv_room.mst
+C        ./models/training/burdie/zone/bed_3.mst-ii
+C        ./models/training/burdie/zone/bed_3.mst
+C        ./models/training/wsf/zones/theZone_legacy.mst
+C        ./models/training/wsf/zones/theZone_Otto.mst
+
       DO 70 I=1,NC
         NE=NELTS(ICOMP,I)
       DO 70 IL=1,NE
@@ -235,7 +265,7 @@ C *********************************************************************
 #include "building.h"
 #include "moist.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/MOIST03/MNDS,MNDZ(MCOM),MNDC(MCOM,MS),MNDL(MCOM,MS,ME)

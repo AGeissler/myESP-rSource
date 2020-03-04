@@ -35,7 +35,7 @@ C *********************************** B2E ******************************
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -56,8 +56,11 @@ C Significant figure reporting limit (NSIGFIG).
 
 C Name of current application
       common/APPNAME/cAppName
-      
       character cAppName*12
+
+C Ask to overwrite flag.
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR      
 
       CHARACTER INTER*144,INF*144
       character path*72,outs248*248
@@ -99,6 +102,7 @@ C Initial assumptions.
       KDF=24
       IUTDF=IFIL+7
       NSIGFIG=3
+      AUTOVR=.false. ! by default, ask to overwrite files
 
 C Get command line parameters.
       call parpsf(MODL,iappw,iappx,iappy,inf)
@@ -218,6 +222,8 @@ C Scan the defaults file for default configuration.
 C Take command line file name to LCMDF and use as initial climate file.
       if(inf(1:2).eq.'  '.or.inf(1:4).eq.'UNKN')then
         call edisp(iuout,'Error: no input file specified')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -239,7 +245,7 @@ C B2ECON
 
       SUBROUTINE B2ECON(INTER)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character INTER*144
  
@@ -297,6 +303,18 @@ C Dummy routines from common3dv.F
       end
 
       subroutine chgelev(icelev,ifrlk)
+      return
+      end
+
+      subroutine chgpan(ix,iy)
+      return
+      end
+
+      subroutine chgzoom(imode)
+      return
+      end
+
+      subroutine optview
       return
       end
 

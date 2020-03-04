@@ -30,7 +30,7 @@ C weather file.
 #include "esprdbfile.h"
 #include "climate.h"
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/RADTYP/IDNGH
       common/appw/iappw,iappx,iappy
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -41,10 +41,10 @@ C weather file.
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       DIMENSION IPICK(MCM)
       DIMENSION item(31),holdd(24)
-      CHARACTER*30 CLMLOC
+      CHARACTER*42 CLMLOC
       CHARACTER outs*124,item*32,hold*10,key*1
       character head*16
-      logical ok,dok,altered,mxmn
+      logical ok,altered,mxmn
       integer onleft  ! number of left axis
       integer onright ! number of right axis
       integer mitem,INO  ! max items and current menu item
@@ -129,7 +129,7 @@ C Restore saved period to commons.
         IT1=iit1; IT2=iit2; IDS=iids; IDF=iidf
       endif
 
-      write(item(1),'(2a)') '  ',clmloc
+      write(item(1),'(2a)') '  ',clmloc(1:30)
       ln=lnblnk(CMNAMF(icurmet))
       write(item(2),'(2a)')'1 ',CMNAMF(icurmet)(1:ln)
       write(item(3),'(2a)')'  hr    ',CMUNIT(icurmet)
@@ -138,7 +138,7 @@ C Restore saved period to commons.
         CALL EMKEY(I,KEY,IER)
         write (item(i+3),'(a1,i3,f10.1)')key,i,CMRVAL(icurmet,I)
   40  continue
-      item(28)= ' _______________________________________'
+      item(28)= ' _____________________________ '
       item(29)= '> update database'
       item(30)= '? help'
       item(31)= '- exit'
@@ -151,10 +151,9 @@ C Restore saved period to commons.
 
 C Check if user wishes to edit another day.
         if(altered)then
-          dok=.true.
           helptopic='ok_to_update'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(' ','Update database?',OK,dok,nbhelp)
+          CALL EASKOK(' ','Update database?',OK,nbhelp)
           if(OK)then
             call CLMPUT(IDAY)
             if (CFVER.eq.1) then
@@ -167,25 +166,24 @@ C Check if user wishes to edit another day.
               WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLAT,CFLONG
             else
               IREC=366
-              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &          CFYEAR
               IREC=IREC+1
-              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &          CFLOC,CFLAT,CFLONG
               IREC=IREC+1
-              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &          (CMCOL(i),i=1,CFMCM)
               IREC=IREC+1
-              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+              WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &          CFVER
             endif
           endif
           altered=.false.
         endif
-        dok=.false.
         helptopic='one_day_at_a_time'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' ','Continue with another period?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Continue with another period?',OK,nbhelp)
         IF(OK)GOTO 31
 
 C Reset to the normal graphics area before exiting.
@@ -236,25 +234,24 @@ C Transfer all climatic data to file.
           WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLAT,CFLONG
         else
           IREC=366
-          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &       CFYEAR
           IREC=IREC+1
-          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &       CFLOC,CFLAT,CFLONG
           IREC=IREC+1
-          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &       (CMCOL(i),i=1,CFMCM)
           IREC=IREC+1
-          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+          WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &       CFVER
         endif
         altered=.false.
 
 C Check if user wishes to edit another day.
-        dok=.false.
         helptopic='one_day_at_a_time'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL ASKOK(' ','Continue with another period?',OK,dok,nbhelp)
+        CALL EASKOK(' ','Continue with another period?',OK,nbhelp)
         IF(OK)GOTO 31
       elseif(INO.gt.3.and.INO.lt.29)then
         ifoc=ino-3
@@ -280,7 +277,7 @@ C Check if user wishes to edit another day.
 
 C Change focus metric.
       elseif (ino.eq.2) then
-        call edisp(iuout,'Available climate metrics:')
+        call edisp(iuout,'Available weather metrics:')
         do imet=1,MCM
           if (CMXST(imet)) then
             write(outs,'(i2.2,1x,a)')imet,CMNAMF(imet)
@@ -327,7 +324,7 @@ C SITEDIT edits site related data in a weather file.
       COMMON/CLMDT1/CLMLOC
       COMMON/CLMSET/ICYEAR,ICDNGH,CLAT,CLONG
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
-      CHARACTER CLMLOC*30,T30*30,outs*124
+      CHARACTER CLMLOC*42,T30*42,outs*124
 
 C For help messages
       character helpinsub*24,helptopic*24
@@ -338,7 +335,7 @@ C For help messages
 C Ask for the year (2007 convenintly has monday on 1 Jan).
       helptopic='what_is_the_year'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKI(IYEAR,' ',' What is the year ? ',
+      CALL EASKI(IYEAR,' ','Year',
      &         1900,'F',2051,'W',2019,'year',IER,nbhelp)
       CFYEAR=IYEAR
 
@@ -346,22 +343,22 @@ C Determine the weather data location.
       T30=CFLOC
       helptopic='what_is_descr'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKS(T30,'Weather site name (up to 30 char)','Confirm:',
-     &  30,'North_Pole','weather site. ',IER,nbhelp)
+      CALL EASKS(T30,' ','Weather station name',
+     &  42,'North_Pole','weather site. ',IER,nbhelp)
       if(T30(1:2).ne.'  ') CFLOC=T30
 
       helptopic='what_is_latitude'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKR(CFLAT,' ','Weather site latitude:',
+      CALL EASKR(CFLAT,' ','Station latitude?',
      &  -89.9,'W',89.9,'W',30.0,'weather latitude',IER,nbhelp)
 
       helptopic='what_is_long_diff'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL EASKR(CFLONG,'Weather site either longitude or longitude',
-     &  'difference from local time meridian +east:',
+      CALL EASKR(CFLONG,' ',
+     &  'Station longitude difference?',
      &  -14.9,'W',14.9,'W',0.0,'weather long diff',IER,nbhelp)
 
-C Transfer climate metadata to file.
+C Transfer weather metadata to file.
       if (CFVER.eq.1) then
         IREC=366
         IADN=IDNGH
@@ -372,16 +369,16 @@ C Transfer climate metadata to file.
         WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)CFLAT,CFLONG
       else
         IREC=366
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &     CFYEAR
         IREC=IREC+1
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &     CFLOC,CFLAT,CFLONG
         IREC=IREC+1
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &     (CMCOL(i),i=1,CFMCM)
         IREC=IREC+1
-        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,IOMSG=outs,ERR=1000)
+        WRITE(ICLIM,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &     CFVER
       endif
 

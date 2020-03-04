@@ -65,11 +65,9 @@ C file unit for the demands file. IER=0 is OK.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/FILEP/IFIL
-      common/pophelp/h(60)
-
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
 C Floor area (optionally) associated with each demand type in an IPV.
@@ -88,13 +86,21 @@ C Flags noting whether casual gain periods are currently sorted.
 
       DIMENSION ITEM(13)
       CHARACTER tcname*248
-      CHARACTER ITEM*36,H*72,LTMP*72,GFILE*72
+      CHARACTER ITEM*36,LTMP*72,GFILE*72
       character hold*60
       character calename*32,calentag*12,calendayname*32
-      LOGICAL OK,DOK,XST,MODOPR
+      LOGICAL OK,XST,MODOPR
       integer NITEMS,INO ! max items and current menu item
       integer ISTRW
+      
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found
 
+      helpinsub='PRJDMDS'  ! set for subroutine
+
+C
 C GFILE is the default file name for project gains file.
       if(ctlpth(1:2).eq.'  '.or.ctlpth(1:2).eq.'./')then
         WRITE(GFILE,'(A,A5)') cfgroot(1:lnblnk(cfgroot)),'.dmds'
@@ -117,16 +123,11 @@ C << this is where a number of new patterns of calendard could
 C << be implemented. Try for an initial default of wk sat sun holiday.
 
       if(nbdaytype.eq.0)then
-        h(1)='Each model has a master calendar which indicates the'
-        h(2)='day type for each Julian day (initially based on the'
-        h(3)='year & a basic Weekday Saturday Sunday Holiday scheme.'
-        h(4)=' '
-        h(5)='No calendar has been defined so if you want the basic '
-        h(6)='Weekday Saturday Sunday scheme it will be created. If '
-        h(7)='you want to setup a more specific calendar then you '
-        h(8)='should do that first. '
+        helptopic='no_calender_defined'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABC('Calendar options','(see help) :',
-     &    'accept basic calendar','setup custom calendar','abort',IW,8)
+     &    'accept basic calendar','setup custom calendar','abort',
+     &    IW,nbhelp)
         if(IW.eq.1)then
           call calenmanage('i',ier)
           call edisp(iuout,'A reminder of current day types...')
@@ -196,12 +197,11 @@ C Set the default dispersed demand type labels
 
 C Read file for editing or listing. If there is no file then begin with
 C default data.
-      H(1)='A dispersed demands file contains project level info'
-      H(2)='on fans, pumps, lifts, DHW demands which may '
-      H(3)='be applied to an integrated performance view. '
+      helptopic='dispersed_demands_file'
+      call gethelptext(helpinsub,helptopic,nbhelp)
       ltmp=BDMDS
       CALL EASKS(ltmp,'Dispersed demands file name',
-     &  'Confirm:',72,GFILE,'proj demands file',IER,3)
+     &  'Confirm:',72,GFILE,'proj demands file',IER,nbhelp)
       if(ltmp(1:2).ne.'  '.and.ltmp(1:4).ne.'UNKN')then
         BDMDS=ltmp
       endif
@@ -266,38 +266,8 @@ C No file was located. As the user what to do.
       NITEMS=13
 
 C Help text for this menu.
-      H(1) ='Dispersed demands are casual gains which are not'
-      H(2) ='associated with a specific zone in the model.'
-      H(3) ='Examples are fans and lifts and their electrical'
-      H(4) ='requirements are often taken into account in '
-      H(5) ='reports on building energy use. '
-      H(6) =' '
-      H(7) ='This facility allows you to define schedules for'
-      H(8) ='seven types of dispersed gains either as W/m2 '
-      H(9) ='or in absolute W. '
-      H(10)=' '
-      H(11)='If the calendar of the model (see Model context)'
-      H(12)='includes the standard Weekday Saturday Sunday day '
-      H(13)='types then you may work at that resolution. If you'
-      H(14)='have also defined holidays then dispersed gains can '
-      H(15)='also be assigned for these day types as well. '
-      H(16)=' '
-      H(17)=' '
-      H(18)='The data requirements are summarized below :- '
-      H(19)=' 1) Description '
-      H(20)=' 2) For each calendar day type e.g. Weekday, Saturday,'
-      H(21)='    Sunday, holiday (etc.) demands data:'
-      H(22)='       Start and finish hours for each period'
-      H(23)='       Demand type:'
-      H(24)='         type 1: usually other demands'
-      H(25)='         type 2: usually lighting demands'
-      H(26)='         type 3: usually small power demands'
-      H(27)='         type 4: usually fan demands'
-      H(28)='         type 5: usually pump demands'
-      H(29)='         type 6: usually lift demands'
-      H(30)='         type 7: usually DHW demands'
-      H(31)='       Sensible and Latent magnitudes'
-      H(32)='       Radiant and Convective portions'
+      helptopic='dispersed_demands'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
       INO=-2
 30    CALL EMENU('Project demands',ITEM,NITEMS,INO)
@@ -331,31 +301,20 @@ C << deals with.
      &      'Sunday demands might be unsorted or not span whole day.')
         endif
         if(.NOT.sorted)then
-          dok=.true.
-          h(1)='The dispersed demand periods should cover the entire'
-          h(2)='day (no gaps or overlaps). You should correct periods'
-          h(3)='this prior to leaving this facility. If you say no then'
-          h(4)='the dispersed demands might be mis-interpreted. '
-          CALL askok(
-     &      ' Periods might not cover entire day or have gaps. Do you',
-     &      ' want to edit the periods at this time?',OK,dok,4)
+
+          CALL easkok(
+     &      'Periods might not cover entire day or have gaps.',
+     &      'Edit periods?',OK,nbhelp)
           IF(OK) goto 20
         endif
 
 C If the file changed then warn the user about lost data.
         if(MODOPR)then
-          dok=.true.
-          h(1)='Recent changes might be lost if you do not save the'
-          h(2)='data. '
-          CALL askok(' Before exiting do you wish to save any',
-     &      ' changes that you might have made ?',OK,dok,2)
+          CALL easkok(' ','Save changes?',OK,nbhelp)
           IF(.not.OK) return
           LTMP=bdmds
-   91     H(1)='A dispersed demands file contains project level info'
-          H(2)='on fans, pumps, lifts, DHW demands which may '
-          H(3)='be applied to an integrated performance view. '
-          CALL EASKS(LTMP,' Project demands file name: ',
-     &      ' ',72,GFILE,'proj demands file',IER,3)
+   91     CALL EASKS(LTMP,' Project demands file name: ',
+     &      ' ',72,GFILE,'proj demands file',IER,nbhelp)
           IF(LTMP(1:2).NE.'  ')THEN
             bdmds=LTMP
             CALL EMKBDMD(IUO,bdmds,IER)
@@ -367,12 +326,10 @@ C If the file changed then warn the user about lost data.
       ELSEIF(INO.EQ.1)THEN
 
 C Edit loads description.
-        H(1)='Dispersed demands schedules have notes' 
-        H(2)='(<248 char) which will be included in reports.'
         tcname=dmdsdesc
         ISTRW=72
         CALL EASKS248(tcname,' Dispersed demands notes: ',' ',
-     &    ISTRW,'base_case','dispersed demands notes',IER,2)
+     &    ISTRW,'base_case','dispersed demands notes',IER,nbhelp)
         if(tcname(1:2).ne.'  ')dmdsdesc=tcname
         MODOPR=.true.
       ELSEIF(INO.EQ.2)THEN
@@ -386,13 +343,12 @@ C << to be done... >>
         WRITE(hold,'(7f8.1,a)')dmdfla(1),dmdfla(2),dmdfla(3),dmdfla(4),
      &    dmdfla(5),dmdfla(6),dmdfla(7),'  '
         call edisp(iuout,hold)
-        h(1)='Base area associated with each demand type. '
-        h(2)='This will be used to support IPV creation for period '
-        h(3)='data which is Watts per m^2. '
+        helptopic='optional_base_area'
+        call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKS(hold,
      &    'Area (m^2) for other lights sm power fans pumps lifts DHW',
      &    ' : ',60,' 1.0 1.0 1.0 1.0 1.0 1.0 1.0 ','dmd floor area',
-     &    IER,3)
+     &    IER,nbhelp)
         K=0
         CALL EGETWR(hold,K,dmdfla(1),0.,99999.,'F','occup fla',IER)
         CALL EGETWR(hold,K,dmdfla(2),0.,99999.,'F','light fla',IER)
@@ -457,11 +413,8 @@ C Save common block information to file.
           LTMP=bdmds
         endif
 
-   9    H(1)='Dispersed demands file contains building level info'
-        H(2)='on fans, pumps, lifts, DHW casual gains which may '
-        H(3)='be applied to an integrated performance view. '
-        CALL EASKS(LTMP,' Dispersed demands file name: ',
-     &    ' ',72,GFILE,'demands file',IER,3)
+   9    CALL EASKS(LTMP,' Dispersed demands file name: ',
+     &    ' ',72,GFILE,'demands file',IER,nbhelp)
         IF(LTMP(1:2).NE.'  ')THEN
           bdmds=LTMP
         ELSE
@@ -470,12 +423,11 @@ C Save common block information to file.
 
 C If older version check with user about upgrade.
         if(idmdver.eq.0)then
-          dok=.true.
-          h(1)='Older file format does not include a date stamp.'
-          h(2)='If you say ok then a newer format will be used. '
-          CALL askok(
-     &      ' Older format (without date stamp) detected. Do you wish',
-     &      ' to save changes with current format ?',OK,dok,2)
+          helptopic='demand_older_file'
+          call gethelptext(helpinsub,helptopic,nbhelp)
+          CALL easkok(
+     &      'Older file format detected!',
+     &      'Save changes with current format?',OK,nbhelp)
           if(ok) idmdver=1
         endif
 
@@ -484,13 +436,7 @@ C and save the system configuration file.
         if(cfgok)then
    11     CALL EMKBDMD(IUO,bdmds,IER)
           IF(IER.LT.0)THEN
-            dok=.true.
-            h(1)='A problem was encountered while trying to save the'
-            h(2)='demands to file. Check that you have permission to'
-            h(3)='update the file and that you have sufficient disk '
-            h(4)='space. '
-            CALL ASKOK(' ',
-     &      'Problem encountered saving data...Try again?',OK,dok,4)
+            CALL EASKOK('Problem saving data!','Retry?',OK,nbhelp)
             IF(OK)THEN
               GOTO 11
             ELSE
@@ -533,9 +479,8 @@ C IWSS is the calendar day type passed from the calling code.
 #include "ipvdata.h"
 #include "schedule.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      common/pophelp/h(60)
 
 C Calendar commons.
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
@@ -546,13 +491,20 @@ C Local editing arrays.
       dimension IEBCGS(MC),IEBCGF(MC),CEBMGS(MC),CEBMGL(MC),BERADC(MC)
       dimension IEBCGT(MC),BECONC(MC)
       dimension vert(35),X(5)
-      CHARACTER vert*50,head*28,H*72,outs*124,KEY*1,hold*40
+      CHARACTER vert*50,head*28,outs*124,KEY*1,hold*40
 
 C blodlabel(1)='Other',(2)='Lights',(3)='SmPowr',(4)='Fans',(5)='Pumps',(6)='Lifts',(7)='DHW'     
       character*12 ll1,ll2,ll3,ll4,ll5,ll6,ll7
       character calename*32,calentag*12,calendayname*32
       integer IEBCGTS,IWM  ! for radio buttons
       integer MVERT,IVERT ! max items and current menu item
+      
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found
+
+      helpinsub='EDBCAS'  ! set for subroutine
 
 C Labels for loads.
       write(ll1,'(a)') blodlabel(1)
@@ -658,29 +610,8 @@ C If a long list include page facility text.
       VERT(M+6)  ='- exit this menu              '
 
 C Help text for this menu.
-      H(1)='Casual gains are defined via one or more periods, to form'
-      H(2)='a profile over the day for each of the day types defined'
-      H(3)='in the model calendar. '
-      H(4)=' '
-      H(5)='The casual gains in this menu represent dispersed gains '
-      H(6)='which are not associated with any particular thermal zone'
-      H(7)='but which apply to the whole building. Examples are lifts'
-      H(8)='or central HVAC fans. They are not considered in the zone'
-      H(9)='thermophysical solution but are reported in the results'
-      H(10)='analysis tool as part of the Integrated Performance View'
-      H(11)='and as [dispersed demands] in graphs / timestep listings'
-      H(12)='and monthly reports. '
-      H(13)=' '
-      H(14)='The radiant and convective split is not directly used '
-      H(15)='in the reporting, only the total sensible magnitude. '
-      H(16)=' '
-      H(17)='Please note that neither the order in which periods'
-      H(18)='are described nor their position in the display is'
-      H(19)='important.  '
-      H(20)=' '
-      H(21)='You can define gains as absolute W or in terms of W/m2'
-      H(22)='with a user defined area for each type.'
-      H(23)='  '
+      helptopic='dispersed_casual_ov'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Now display the menu.
       CALL EMENU(' Project dispersed demands',VERT,MVERT,IVERT)
@@ -698,14 +629,11 @@ C Now display the menu.
         CALL SBCASL(IN,IWSS,IER)
         goto 780
       ELSEIF(IVERT.EQ.(MVERT-3))THEN
-        h(1)='You can apply a scaling factor to all entries of a '
-        h(2)='particular casual gain type (useful for parametric '
-        h(3)='studies on profiles which have been imported).'
 
 C << probably need to change to a menu selection >>
         IEBCGTS=1
         CALL EASKATOG('Apply scaling factor to which dispersed type?',
-     &     ' : ',ll1,ll2,ll3,ll4,ll5,ll6,ll7,IEBCGTS,3)
+     &     ' : ',ll1,ll2,ll3,ll4,ll5,ll6,ll7,IEBCGTS,nbhelp)
         VAL=1.0
         CALL EASKR(VAL,' ',' Factor to be applied (0.1 to 5.0) ',
      &       0.1,'F',5.0,'F',1.0,'scaling factor',IER,3)
@@ -806,8 +734,7 @@ C Remind user of current values.
 
         WRITE(OUTS,'(A,I2)') ' Start and finish hours for period ',I
         WRITE(hold,'(2i8)')iebcgs(i),iebcgf(i)
-        h(1)='Period during which demand applies. '
-        CALL EASKS(hold,outs,' : ',40,' 0 24 ','st-fn hr',IER,1)
+        CALL EASKS(hold,outs,' : ',40,' 0 24 ','st-fn hr',IER,nbhelp)
         K=0
         CALL EGETWI(hold,K,iv1,0,24,'F','period start',IER)
         CALL EGETWI(hold,K,iv,iv1,24,'F','period end',IER)
@@ -816,11 +743,9 @@ C Remind user of current values.
 
 C Establish the nature of the casual gain.
 C << remind user of the current type. convert choice to menu >>
-        H(1)='The type of demand can be one of those listed in the '
-        H(2)='selections. '
         IWM=1
         CALL EASKATOG('Which dispersed type?',
-     &     ' : ',ll1,ll2,ll3,ll4,ll5,ll6,ll7,IWM,2)
+     &     ' : ',ll1,ll2,ll3,ll4,ll5,ll6,ll7,IWM,nbhelp)
 
 C Depending on type set relevant included in the IPV idmdinc value.
         idmdinc(IWM)=1
@@ -831,13 +756,9 @@ C Depending on type set relevant included in the IPV idmdinc value.
         if(IW.eq.2)IEBCGT(I)=-1*IWM
  100    WRITE(HOLD,'(2f9.1,2f8.2,a)')CEBMGS(I),CEBMGL(I),BERADC(I),
      &    BECONC(I),'  '
-        H(1)='Sensible and latent demands are specified in '
-        h(2)='Watts or W/m^2 as per your earlier choice. '
-        h(3)='Also supply the radiant and convective fraction for'
-        h(4)='the sensible load (should sum to ~1.00) '
         CALL EASKS(HOLD,
      &    ' Sensible & latent loads, radiant & convective fraction:',
-     &    ' ',40,' 1000   0  0.5  0.5  ','casual gn info',IER,4)
+     &    ' ',40,' 1000   0  0.5  0.5  ','casual gn info',IER,nbhelp)
         K=0
         CALL EGETWR(HOLD,K,PS,0.,999999.,'F','sensible',IER)
         CALL EGETWR(HOLD,K,PL,0.,999999.,'F','latent',IER)
@@ -888,8 +809,6 @@ C patterns.
 
 #include "building.h"
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LPRFDB,IPRODB (for event profile database)
 #include "ipvdata.h"
 #include "profile.h"
 #include "schedule.h"
@@ -900,8 +819,7 @@ C << as multiple casual gain types
 C << also consider that periods can be defined as reals for later
 C << use in the demands file timings
 
-      COMMON/OUTIN/IUOUT,IUIN
-      common/pophelp/h(60)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Calendar commons.
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
@@ -913,13 +831,20 @@ C Profile database commons via profile.h.
 
       DIMENSION  DESC(MGIT),IPRVAL(MGIT)
       CHARACTER*40 DESC
-      CHARACTER H*72,hold*40
+      CHARACTER hold*40
       character*12 ll1,ll2,ll3,ll4,ll5,ll6,ll7
       character calename*32,calentag*12,calendayname*32
       character lltmp*144
       character fs*1   ! file separator
       logical unixok  ! to check for database path file separators
       integer ICGTL   ! for radio button
+      
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found
+
+      helpinsub='SBCASL'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -928,6 +853,9 @@ C Set folder separator (fs) to \ or / as required.
       else
         fs = char(92)
       endif
+
+      helptopic='dispersed_types'
+      call gethelptext(helpinsub,helptopic,nbhelp)
 
 C Labels for loads.
       write(ll1,'(a)') blodlabel(1)
@@ -975,25 +903,17 @@ C Copy the string list of event profiles to local string variable.
    50 CONTINUE
 
 C Present a list of profiles to select from.
-      H(1)='Any one of the profiles may be selected.'
       IX=1
       CALL EPICKS(IX,IPRVAL,' ',' Profiles in database: ',
-     &         40,NPDBITEMS,DESC,'event database profiles',IER,1)
+     &  40,NPDBITEMS,DESC,'event database profiles',IER,nbhelp)
       IF(IX.EQ.0)RETURN
 
       INDEX=IPRVAL(1)
 
 C Identify nature of demands
-      H(1)='Dispersed demands can be be designated to be one of'
-      H(2)='seven user-defined types so that for example '
-      H(3)='pump demands can be separately tracked from that of '
-      H(4)='other equipment.  Values from 1 to 7 are accepted'
-      H(5)='and can have any meaning that the user chooses however'
-      H(6)='it is traditional to allign the meaning with the'
-      H(7)='initial labels provided in the interface.'
       ICGTL=1
       CALL EASKATOG(' ','Type of casual gain: ',ll1,ll2,ll3,ll4,ll5,
-     &  ll6,ll7,ICGTL,7)
+     &  ll6,ll7,ICGTL,nbhelp)
 
 C Depending on type set relevant idmdinc value.
       idmdinc(ICGTL)=1
@@ -1002,15 +922,9 @@ C Depending on type set relevant idmdinc value.
       if(IW.eq.2)ICGTL=-1*ICGTL
 
  100  WRITE(HOLD,'(2f9.0,2f8.2,a)')PS,PL,RAD,CON,'  '
-      H(1)='In order to expand the profile into energy values the'
-      H(2)='sensible and latent load in Watts equivalent to 100% is'
-      h(3)=' required. '
-      h(4)=' '
-      h(5)='Also supply the radiant and convective fraction for the'
-      h(6)='sensible load (these normally should sum to 1.00) '
       CALL EASKS(HOLD,
      &  ' 100% sensible & latent loads, radiant & convective fraction:',
-     &        ' ',40,' 1000   0  0.5  0.5  ','profile info',IER,3)
+     &  ' ',40,' 1000   0  0.5  0.5  ','profile info',IER,nbhelp)
       K=0
       CALL EGETWR(HOLD,K,PS,0.,999999.,'F','sensible 100%',IER)
       CALL EGETWR(HOLD,K,PL,0.,999999.,'F','latent 100%',IER)
@@ -1059,7 +973,7 @@ C espriou.h provides currentfile.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/BLM2/dmdfla(MGTY)
 
@@ -1284,7 +1198,7 @@ C ITRC unit number for user output, IER=0 OK IER=1 problem.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/BLM2/dmdfla(MGTY)
 
@@ -1456,7 +1370,7 @@ C   ier - set to 1 if there was a problem.
 #include "building.h"
 #include "schedule.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer dmdloadnonzero   ! now many non-zero demand gain types
       integer dmdloadm2nonzero ! now many m2 demand gain types
@@ -1567,7 +1481,7 @@ C << the whole day is covered.
 #include "building.h"
 #include "schedule.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Calendar commons.
       common/calena/calename,calentag(MDTY),calendayname(MDTY)

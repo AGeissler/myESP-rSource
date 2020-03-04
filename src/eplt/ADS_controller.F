@@ -50,9 +50,10 @@ C-----------------------------------------------------------------------------
 C ESP-r COMMONs
 C-----------------------------------------------------------------------------
 
-       COMMON/OUTIN/IUOUT,IUIN
+       common/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
        INTEGER ITCF            !-building-side time increment
@@ -66,7 +67,7 @@ C-----------------------------------------------------------------------------
        INTEGER NCI             !-number of possible control variables for component
        REAL    CDATA           !-array containing control data values
 
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
        INTEGER IHRP            !-hour of present time-step
        INTEGER IHRF            !-hour of future time-step
        INTEGER IDYP            !-year day number of present day
@@ -75,7 +76,7 @@ C-----------------------------------------------------------------------------
        INTEGER IDWF            !-day of the week of future day
        INTEGER NSINC           !-number of building-side time increments
                                !-since start of simulation
-       INTEGER ITS             !-current building time-step within
+       INTEGER ITS,idynow      !-current building time-step within
                                !-current hour
 
        COMMON/PCLSOL/ICFP,IDTYPP,IPERP

@@ -4,17 +4,17 @@ C Strathclyde, Glasgow, Scotland, 2001-7.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
-C License as published by the Free Software Foundation 
+C Licence as published by the Free Software Foundation 
 C (version 2 or later).
 
 C ESP-r is distributed in the hope that it will be useful
 C but WITHOUT ANY WARRANTY; without even the implied
 C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-C PURPOSE. See the GNU General Public License for more
+C PURPOSE. See the GNU General Public Licence for more
 C details.
 
 C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
+C Licence along with ESP-r. If not, write to the Free
 C Software Foundation, Inc., 59 Temple Place, Suite 330,
 C Boston, MA 02111-1307 USA.
 
@@ -37,23 +37,11 @@ C First copy any existing help into dh array.
         dh(i)=h(i)
    50 continue
 
-      H(1)='This module is part of the ESP-r system. Copyright'
-      H(2)='resides with the member organisations of the ESP-r'
-      H(3)='development consortium as listed at:'
-      H(4)='http://www.esru.strath.ac.uk/Programs/ESP-r_central.htm.'
-      H(5)=' '
-      H(6)='ESP-r is free software. You can redistribute it and/or'
-      H(7)='modify it under the terms of the GNU General Public'
-      H(8)='License as published by the Free Software Foundation'
-      H(9)='(version 2 or later).'
-      H(10)=' '
-      H(11)='ESP-r is distributed in the hope that it will be useful'
-      H(12)='but WITHOUT ANY WARRANTY; without even the implied'
-      H(13)='warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR'
-      H(14)='PURPOSE. See the GNU General Public License for more'
-      H(15)='details (available from Free Software Foundation, Inc.,'
-      H(16)='59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.'
-      CALL PHELPD('ESP-r copyright notice',16,'-',0,0,IER)
+      H(1)='ESP-r is distributed as free software under the terms of'
+      H(2)='the GNU General Public License as published by the Free'
+      H(3)='Software Foundation (Version 2 or later), Details available'
+      H(4)='at https://opensource.org/licenses/gpl-license.'
+      CALL PHELPD('ESP-r license',4,'-',0,0,IER)
 
 C Recover previous help via dh array.
       do 51 i=1,60
@@ -78,278 +66,111 @@ C module (char *4) identifies the ESP-r module.
 C First copy any existing help into dh array.
       if(initonly.eq.0)then
 
-C Debug.
-C        write(6,*) 'the module is ',module,' request to display'
-
         do 50 i=1,60
           dh(i)=h(i)
    50   continue
       else
 
-C Debug.
-C        write(6,*) 'the module is ',module,' request to initialise only'
-
       endif
 
       if(module(1:3).eq.'aco')then
-        H(1)='Aco supports an appraisal of the acoustic reverberation'
-        H(2)='time of a zone. Please follow this procedure to perform'
-        H(3)='this appraisal.'
-        H(4)=' '
-        H(5)=' 1) Load an ESP-r model.'
-        H(6)=' 2) From the main menu select item `b BCF` and enter the'
-        H(7)='    corrsponding BCF file (extension: bcf). This file'
-        H(8)='    holds the acoustic coefficients for each'
-        H(9)='    construction defined in your project.'
-        H(10)=' 3) Select the zone(s) for analysis using option `d`.'
-        H(11)=' 4) Start the simulation via option `k`.'
-        H(12)=' '
-        H(13)='It is possible to modify the calculation method by'
-        H(14)='selecting `j calculation method >>` and then'
-        H(15)='re-initiating the calculation (step 4)). Several'
-        H(16)='options are available as follows.'
-        H(17)=' `e frequency band` - switch from 1 to 1/3 octave band.'
-        H(18)=' `f display >>` - switch between numeric formats.'
-        H(19)=' `g output` - definition of the output data to display:'
-        H(20)='     a) reverberation time only;'
-        H(21)='     b) as a) plus equivalent surface area;'
-        H(22)='     c) as b) plus the absorption coefficient for each'
-        H(23)='        surface.'
-        H(24)=' `h air absorption >>` - included or not; although'
-        H(25)='     normally included, excluding it allows the effect'
-        H(26)='     of the air absorption to be studied.'
-        H(27)=' `i air properties` - allows definition of a constant'
-        H(28)='     air temperature and humidity or the imposition'
-        H(29)='     os a file of time varying values passed from an'
-        H(30)='     ESP-r thermal simulation.'
+        H(1)='This module supports an appraisal of the acoustic'
+        H(2)='reverberation time within a zone.'
         if(initonly.eq.0)then
-          CALL PHELPD('aco opening',30,'-',0,0,IER)
+          CALL PHELPD('aco opening',2,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'b2e')then
-        H(1)='B2e manages the process of updating measured data'
-        H(2)='when running ESP-r in BEMS mode.'
+        H(1)='This module manages the process of updating measured'
+        H(2)='data when running ESP-r in BEMS emulation mode.'
         if(initonly.eq.0)then
           CALL PHELPD('b2e opening',2,'-',0,0,IER)
         endif
-      elseif(module(1:3).eq.'bld')then
-        H(1)='Bld is a constrained version of ESP-r`s integrated'
-        H(2)='simulation engine, bps, which supports building thermal'
-        H(3)='and network flow but not plant, electrical power,'
-        H(4)='moisture and CFD domain modelling.'
-        if(initonly.eq.0)then
-          CALL PHELPD('bld opening',4,'-',0,0,IER)
-        endif
       elseif(module(1:3).eq.'bps')then
-        H(1)='This module undertakes the integrated simulation of'
-        H(2)='models comprising building, plant and control elements.'
+        H(1)='This module subjects a model to an integrated simulation'
+        H(2)='depending on the available domain information relating'
+        H(3)='to the building(s), plant and/or control elements.'
         if(initonly.eq.0)then
-          CALL PHELPD('bps opening',2,'-',0,0,IER)
+          CALL PHELPD('bps opening',3,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'cfg')then
-  2     H(1)='This productivity aid is designed to assist the user'
-        H(2)='to complete the definition of a problems topology via'
-        H(3)='checking the match of surfaces to each other. '
-        H(4)=' '
-        H(5)='If a probable match is found then it will be presented'
-        H(6)='for confirmation otherwise the user can specify one.'
-        H(7)='of the standard boundary condition types (exterior,'
-        H(8)='ground, adiabetic, etc.). '
-        H(9)=' '
-        H(10)='cfg may be useful in three cases: '
-        H(11)=' 1) early in the problem definition to enhance the'
-        H(12)='    clarity of the model.'
-        H(13)=' '
-        H(14)=' 2) prior to simulations, and when inconsistencies'
-        H(15)='    have been detected in the model.'
-        H(16)=' '
-        H(17)=' 3) for browsing (systematically) through a problem'
-        H(18)='    description.'
-        H(19)=' '
-        H(20)='Program control moves essentially from top to bottom'
-        H(21)='of the control menu.  The tolerance settings may be '
-        H(22)='used to allow for minor differences between zone'
-        H(23)='descriptions and vertex placement. '
+        H(1)='This module checks the building topology by matching'
+        H(2)='zone surfaces. Where a probable match is found, it is'
+        H(3)='presented for user confirmation or association with a'
+        H(4)='standard boundary condition (external, ground, adiabetic'
+        H(5)='etc.). The test tolerance may be set to accommodate'
+        H(6)='minor differences between zone descriptions.'
         if(initonly.eq.0)then
-          CALL PHELPD('cfg opening',23,'-',0,0,IER)
+          CALL PHELPD('cfg opening',6,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'cdb')then
-        H(1)='Welcome to the ESP-r components mananger.'
-        H(2)=' '
-        h(3)='This is a utility for icon-based flow/plant component'
-        h(4)='management. These components are organised in domain'
-        H(5)='cateories: plant, fluid flow and electrical.'
+        H(1)='This module manages icons relating to flow, plant'
+        H(2)='and electrical components as used in graphical'
+        H(3)='network definition.'
         if(initonly.eq.0)then
-          CALL PHELPD('cdb opening',7,'-',0,0,IER)
+          CALL PHELPD('cdb opening',3,'-',0,0,IER)
         endif
-      elseif(module(1:3).eq.'clm')then
-        H(1)='Clm provides browsing, editing and analysis facilities'
-        H(2)='for weather data. Begin by specifying a weather file'
-        H(3)='or import data to a new file.'
-        H(4)=' '
-        H(5)='The `manage climatelist` option is used to define'
-        H(6)='information on available weather files, including'
-        H(7)='seasonal periods and typical assessment periods. This'
-        H(8)='information is contained in file `climatelist, which is'
-        H(9)='typically located in /opt/esp-r/climate. You can nominate'
-        H(10)='a different location by editing the *db_climates entry'
-        H(11)='in global file /opt/esp-r/esprc or local file .esprc'
-        H(12)='located in your home folder.'
-        H(13)=' '
-        H(14)='It is possible to export/import data from a (binary)'
-        H(15)='weather file to its ascii equivalent,one line per hour'
-        H(16)='in the following format.'
-        H(17)='Column 1. Diffuse horizontal irradiance (W/m^2)'
-        H(18)='       2. External dry bulb temperature (Tenths C)'
-        H(19)='       3. Direct normal irradiance (W/m^2)'
-        H(20)='       4. Wind speed (tenths m/S)'
-        H(21)='       5. Wind direction (degrees from N)'
-        H(22)='       6. Relative humidity (%)'
-        H(23)=' '
-        H(24)='The header row holds site information.'
-        if(initonly.eq.0)then
-          CALL PHELPD('clm opening',24,'clm_dbitems ',0,0,IER)
-        endif
+C      elseif(module(1:3).eq.'clm')then
+C Help moved to esruclm.help
+C        if(initonly.eq.0)then
+C          CALL PHELPD('clm opening',24,'clm_dbitems ',0,0,IER)
+C        endif
       elseif(module(1:3).eq.'dbm')then
-        H(1)='The database mananger provides information on the'
-        H(2)=' databases used by various ESP-r modules'
+        H(1)='This module provides information on the various'
+        H(2)='databases used by ESP-r modules.'
         if(initonly.eq.0)then
           CALL PHELPD('dbm opening',2,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'dfs')then
-        H(1)='The domain flow solver supports separate solution'
-        H(2)='of CFD domains (i.e. no thermal zone conflation).'
+        H(1)='This module allows an independent solution of a '
+        H(2)='CFD domains (i.e. with no thermal zone conflation).'
         if(initonly.eq.0)then
           CALL PHELPD('dfs opening',2,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'dfv')then
-        H(1)='The domain flow viewer can be called to view results'
-        H(2)='as an assessment progresses.'
+        H(1)='This module allows CFD flow results to be viewed as'
+        H(2)='a simulation progresses.'
         if(initonly.eq.0)then
           CALL PHELPD('dfv opening',2,'-',0,0,IER)
         endif
       elseif(module(1:4).eq.'ecnv')then
-        h(1)='This module controls file conversions, e.g. from'
-        h(2)='an ESP-r geometry to DXF.'
+        h(1)='This module controls various data conversions, e.g. from'
+        h(2)='an ESP-r geometry format to DXF.'
         if(initonly.eq.0)then
           CALL PHELPD('ecnv opening',2,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'e2r')then
-        H(1)='This application converts an ESP-r model definition'
-        H(2)='into a form which can be interpreted by the lighting'
-        H(3)='analysis package RADIANCE.  It does so by creating'
-        H(4)='descriptive files and executing RADIANCE modules as'
-        H(5)='required. It has been tested with Radiance 3R9 and'
-        H(6)='4R1.'
-        H(7)=' '
-        H(8)='Although e2r acts as a [desktop], driving RADIANCE for'
-        H(9)='several common tasks, the user should have some'
-        H(10)='knowledge of RADIANCE to go beyond simple tasks.'
-        H(11)='There are times when the descriptive files may need '
-        H(12)='to be modified - to add textures, vary surface '
-        H(13)='colours etc. This requires a TEXT EDITOR (make backups'
-        H(14)='of your files). '
-        H(15)=' '
-        H(16)='In the main menu the current scene is shown, you can'
-        H(17)='add additional named scenes for specific purposes.'
-        H(18)=' '
-        H(19)='A Radiance scene is constructed in several sections:'
-        H(20)='  '
-        H(21)='* Sky type, location & date. Allows the selection of'
-        H(22)='  one sky condition, date and location for use with'
-        H(23)='  this scene. To analyse the same model under another'
-        H(24)='  sky copy this scene and recreate the new sky file.'
-        H(25)='  '
-        H(26)='* Zone & outside composition. Creates a Radiance  '
-        H(27)='  description of the ESP-r model, inc. obstruction'
-        H(28)='  blocks and a ground topology if defined.'
-        H(29)='  '
-        H(30)='* Other (furniture & fittings):  This facility'
-        H(31)='  allows manual editing of Radiance files only.'
-        H(32)='  '
-        H(33)='* Set views:  Depending on the portion of the ESP-r'
-        H(34)='  problem you have included, you can setup views'
-        H(35)='  (eye position, viewing direction & angle)'
-        H(36)='  which can be passed as initial viewing data to'
-        H(37)='  the interactive or static image creation modules.'
-        H(38)='  Multiple viewpoints can be associated with a scene.'
-        H(39)='  '
-        H(40)='Radiance visualisation/ calculation options available:'
-        H(41)= '  '
-        H(42)= '* Scene parameter options'
-        H(43)= ' Check the parameter settings (and perhaps edit them)'
-        H(44)= ' before starting the calculation.'
-        H(45)= '  '
-        H(46)= '* Render the scene'
-        H(47)= ' Radiance is started, using the parameter settings'
-        H(48)= ' defined, to generate all the information required'
-        H(49)= ' to satisfy the scene purpose.'
-        H(50)= '  '
-        H(51)= '* Visualisation results'
-        H(52)= ' View the results of the Radiance calculations.'
-        H(53)= '  '
-        H(54)='Note: you must have the radiance executables folder'
-        H(55)='in your path.'
+        H(1)='This module converts an ESP-r model definition into'
+        H(2)='a form that can be interpreted by the RADIANCE lighting'
+        H(3)='simulation package. It then executes RADIANCE as required'
+        H(4)='by the ESP-r integrated simulation that is underway.'
         if(initonly.eq.0)then
-          CALL PHELPD('e2r opening',55,'-',0,0,IER)
+          CALL PHELPD('e2r opening',4,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'eco')then
-        H(1)='This application support an ecobalance analsyis'
-        H(2)='of the current model. It is currently under development.'
-        H(3)='Contact Stephane.Citherlet@epfl.ch for details. '
+        H(1)='This module support a life cycle analysis of the'
+        H(2)='of the current model.'
         if(initonly.eq.0)then
-          CALL PHELPD('eco opening',3,'-',0,0,IER)
+          CALL PHELPD('eco opening',2,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'grd')then
-        H(1)='    This is the main controller for 1D and'
-        H(2)='multi-D building construction and ground gridding.'
-        H(3)=' '
-        H(4)='In order to activate this menu the problem should'
-        H(5)='be defined first. The available options are:'
+        H(1)='This module supports the definition of multi-dimensional'
+        H(2)='grids for building constructions and the ground.'
         if(initonly.eq.0)then
-          CALL PHELPD('grd opening',5,'-',0,0,IER)
+          CALL PHELPD('grd opening',2,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'ish')then
-        H(1) ='The shading and insolation module (ish) provides'
-        H(2) ='facilities to calculate shading patterns on exterior'
-        H(3) ='surfaces and the insolation distribution across the'
-        H(4) ='inside surfaces of a zone.'
-        H(5) =' '
-        H(6) ='It consults the model configuration file for zone'
-        H(7) ='geometry and shading obstructions and generates a'
-        H(8) ='file of temporal shading and insolation data to be'
-        H(9) ='used in simulations. The program may be invoked in'
-        H(10)='interactive or silent recalculation modes.'
-        H(11)=' '
-        H(12)='The site plan view is useful in order to check that'
-        H(13)='obstruction blocks are correctly positioned, while'
-        H(14)='views from the sun provide an experiential way to'
-        H(15)='assess shading patterns.'
-        H(16)=' '
-        H(17)='A shading analysis deals with external obstructions'
-        h(18)='and surfaces, while an insolation analysis deals with'
-        H(19)='the distribution of sunlight penetrating windows. Note'
-        H(20)='that the insolation results will be affected by window'
-        H(21)='shading is this has been previously determined.'
-        H(22)=' '
-        H(23)='While the ASHRAE window shading algorithm is offered,'
-        H(24)='its results are not automatically saved to the Zone'
-        H(25)='Shading &Insolation db; this may be achieved via the'
-        H(26)='import facility.'
-        H(27)=' '
-        H(28)='The edit/import/export facility allows the shading'
-        H(29)='and insolation factors as held in a Zone Shading &'
-        H(30)='Insolation db to be edited manually or imported from'
-        H(31)='and exported to an ascii file.'
+        H(1) ='This module pre-calculates the shading of external'
+        H(2) ='surfaces and the insolation of internal surfaces for'
+        H(3) ='a typical day in each month and passes these data to'
+        H(4) ='the ESP-r Integrated Simulator.'
         if(initonly.eq.0)then
-          CALL PHELPD('ish opening',31,'-',0,0,IER)
+          CALL PHELPD('ish opening',4,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'mfs')then
-        H(1) ='This module is a stand-alone solver for network flow'
-        H(2) ='problems.  It requires a network flow description'
-        H(3) ='as well as weather and pressure distribution'
-        H(4) ='databases.    '
+        H(1)='This module is a standalone solver for network flow'
+        H(2)='problems (i.e. with no building/ plant conflation).'
         if(initonly.eq.0)then
-          CALL PHELPD('mfs opening',4,'-',0,0,IER)
+          CALL PHELPD('mfs opening',2,'-',0,0,IER)
         endif
       elseif(module(1:3).eq.'mld')then
         h(1)='This is the main menu for mould growth results'
@@ -438,59 +259,11 @@ C        write(6,*) 'the module is ',module,' request to initialise only'
         if(initonly.eq.0)then
           CALL PHELPD('plt opening',22,'-',0,0,IER)
         endif
-      elseif(module(1:3).eq.'prj')then
-        H(1) ='This module provides model management facilities. You'
-        H(2) ='might typically begin by checking the system databases'
-        H(3)='to ensure that the contents meet your requirements. If'
-        H(4)='not, you will need to create databases as required.'
-        H(5)='Thereafter you might proceed by commencing a new project'
-        H(6)='or, if you are new to ESP-r, by loading an example model'
-        H(7)='to study its composition.'
-        H(8)=' '
-        H(9)='The menu options are as follows.'
-        H(10)=' '
-        H(11)=' `database maintenance` - to browse and edit a range of'
-        H(12)='     databases that underpin the model.'
-        H(13)=' `validation testing` - to initiate standard tests to'
-        H(14)='     ensure that the current version of ESP-r is valid.'
-        H(15)=' `open existing` - access an existing model, perhaps'
-        H(16)='     one of the on-line exemplar models.'
-        H(17)=' `create new` - create a model from scratch.'
-        H(18)=' `import CAD file` - import of geometry from a CAD file'
-        H(19)=' `export current model` - export of model to format'
-        H(20)=' `   required by several 3rd party modelling systems.'
-        H(21)=' `archive current model` - archive model (if owned by'
-        H(22)='     user.'
-        H(23)=' `folders & files` - lists the location and content of'
-        H(24)='     the file set associated with the current model.'
-        H(25)=' `save model` - writes out all changes held in memory'
-        H(26)='     to the current model files.'
-        H(27)=' `save model as` - writes out all changes held in'
-        H(28)='     memory new, user specified model files.'
-        H(29)=' `feedback` - a toggle that controls the verbosity'
-        H(30)='     level of user messages.'
-        H(31)='  `preferences` - this function is not yet available.'
-        H(32)=' '
-        H(33)='After a model is created or an existing one loaded, the'
-        H(34)='options in the `Current model` section have the'
-        H(35)='following meaning.'
-        H(36)=' '
-        H(37)=' `cfg` - the name of the current system configuration'
-        H(38)='     file.'
-        H(39)=' `path` - the path to the folder where the cfg file'
-        H(40)=' `   is located.'
-        H(42)=' `root` - the root name of the model from which the'
-        H(43)='     name of principal model files is derived.'
-        H(44)=' `title` - the model description.'
-        H(45)=' `variants` - a facility to create new models as'
-        H(46)='     variants of the current model (perhaps in support'
-        H(47)='     of design options appraisal).'
-        H(48)=' `browse/edit/simulate` - access to options that allow'
-        H(49)='     the model to be browsed, edited (but only if'
-        H(50)='     owned) or simulated.'
-        if(initonly.eq.0)then
-          CALL PHELPD('prj opening',50,'-',0,0,IER)
-        endif
+C      elseif(module(1:3).eq.'prj')then
+C        H(1)=' '
+C        if(initonly.eq.0)then
+C          CALL PHELPD('prj opening',50,'-',0,0,IER)
+C        endif
       elseif(module(1:3).eq.'pro')then
         H(1)= '     ESP-r Standard Profiles Database '
         H(2)= '   ================================ '
@@ -658,8 +431,8 @@ C Commons.
       COMMON/FILEP/IFIL
       character h*72
       common/pophelp/h(60)
-      integer iuout,iuin
-      COMMON/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Local variables.
       logical unixok
@@ -701,48 +474,68 @@ C Get to work.
       folder(4)='UNKNOWN'
       if(app(1:3).eq.'aco')then
         folder='esruaco'
+        folder(2)='common'
       elseif(app(1:3).eq.'cdb')then
         folder(1)='esrucdb'
+        folder(2)='common'
       elseif(app(1:3).eq.'clm')then
         folder(1)='esruclm'
+        folder(2)='common'
       elseif(app(1:3).eq.'bps')then
         folder(1)='esrubps'
+        folder(2)='common'
       elseif(app(1:3).eq.'dbm')then
         folder(1)='esrudbm'
+        folder(2)='common'
       elseif(app(1:3).eq.'dfs')then
         folder(1)='esrudfs'
+        folder(2)='common'
       elseif(app(1:3).eq.'dfv')then
         folder(1)='esrudfs'
+        folder(2)='common'
       elseif(app(1:3).eq.'e2r')then
         folder(1)='esrue2r'
+        folder(2)='common'
       elseif(app(1:3).eq.'eco')then
         folder(1)='esrueco'
+        folder(2)='common'
       elseif(app(1:4).eq.'ecnv')then
         folder(1)='esrucnv'
+        folder(2)='common'
       elseif(app(1:3).eq.'grd')then
         folder(1)='esrugrd'
+        folder(2)='common'
       elseif(app(1:3).eq.'ish')then
         folder(1)='esruish'
+        folder(2)='common'
       elseif(app(1:3).eq.'mfs')then
         folder(1)='esrumfs'
+        folder(2)='common'
       elseif(app(1:3).eq.'mld')then
         folder(1)='esrumld'
+        folder(2)='common'
       elseif(app(1:3).eq.'mrt')then
         folder(1)='esrumrt'
+        folder(2)='common'
       elseif(app(1:3).eq.'net')then
         folder(1)='esrunet'
+        folder(2)='common'
       elseif(app(1:3).eq.'pdb')then
         folder(1)='esrupdb'
+        folder(2)='common'
       elseif(app(1:3).eq.'prj')then
         folder(1)='esruprj'
         folder(2)='esrumfs'
         folder(3)='esrudfs'
+        folder(4)='common'
       elseif(app(1:3).eq.'res')then
         folder(1)='esrures'
         folder(2)='esrumfs'
         folder(3)='esrubps'
+        folder(4)='common'
       elseif(app(1:3).eq.'vew')then
         folder(1)='esruvew'
+        folder(2)='common'
       endif
       lnf(1)=lnblnk(folder(1))   ! length of folder name
       lnf(2)=lnblnk(folder(2))   ! length of folder name
@@ -945,7 +738,7 @@ C            call edisp(iuout,'3rd alt folder was UNKNOWN')
         elseif(trywhich.eq.4)then
           continue
         endif
-        h(1)='No contextual help text was found for the topic'
+        h(1)='No help found for this topic!'
         write(h(2),'(5a)') topic(1:lnt),' in ',sub(1:lns),
      &    ' of application ',app(1:lna)
         nbhelp=2
@@ -971,8 +764,8 @@ C Parameters.
 C Commons.
       character h*72
       common/pophelp/h(60)
-      integer iuout,iuin
-      COMMON/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Local variables.
       integer ln           ! length of error message
@@ -1025,8 +818,8 @@ C Parameters.
 C Commons.
       character h*72
       common/pophelp/h(60)
-      integer iuout,iuin
-      COMMON/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Local variables.
       integer ln           ! length of error message
@@ -1077,8 +870,8 @@ C Parameters.
 C Commons.
       character h*72
       common/pophelp/h(60)
-      integer iuout,iuin
-      COMMON/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Local variables.
       integer ln           ! length of error message

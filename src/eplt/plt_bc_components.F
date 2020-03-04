@@ -58,8 +58,8 @@ C----------------------------------------------------------------------
 C     ESP-r commons 
 C----------------------------------------------------------------------
 C.....I/O
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout ! channels for writing messages to screen
 
 C.....More control parameters 
       common/pclsol/icfp,idtypp,iperp
@@ -202,8 +202,8 @@ C----------------------------------------------------------------------
 C     ESP-r Commons
 C----------------------------------------------------------------------
 C.....I/O
-      common/outin/iuout,iuin
-      integer iuout, iuin      ! channels for writing messages to screen
+      common/outin/iuout,iuin,ieout
+      integer iuout,iuin,ieout  ! channels for writing messages to screen
       
 C.....Network & control data
       common/c9/npcomp,nci,cdata

@@ -32,6 +32,7 @@ C  Solve the linear system of equations sweeping forward in y and z
 C  directions.
 C
       SUBROUTINE LISOLV1(ISTART,JSTART,KSTART,NI,NJ,NK,PHI,NSWP)
+#include "building.h"
 #include "cfd.h"
       DIMENSION PHI(ntcelx,ntcely,ntcelz),A(mcel1d),B(mcel1d),C(mcel1d),
      &          D(mcel1d)
@@ -117,7 +118,9 @@ C     Solve the linear system of equations sweeping forward and backward in
 C     x and z directions.
 C
       SUBROUTINE LISOLV2(ISTART,JSTART,KSTART,IEND,JEND,KEND,PHI,NSWP)
+#include "building.h"
 #include "cfd.h"
+
       DIMENSION PHI(ntcelx,ntcely,ntcelz),A(mcel1d),B(mcel1d),C(mcel1d),
      &          D(mcel1d)
       COMMON/COEF/AP(ntcelx,ntcely,ntcelz),AE(ntcelx,ntcely,ntcelz),
@@ -204,10 +207,11 @@ C-----OBTAIN NEW PHI'S
 C**** LISOLV3 ****
 C     Solve the linear system of equations sweeping forward and backward in 
 C     x, y and z directions.
-C
+
       SUBROUTINE LISOLV3(ISTART,JSTART,KSTART,IEND,JEND,KEND,PHI,NSWP)
-C
+#include "building.h"
 #include "cfd.h"
+
       COMMON/COEF/AP(ntcelx,ntcely,ntcelz),AE(ntcelx,ntcely,ntcelz),
      1            AW(ntcelx,ntcely,ntcelz),AN(ntcelx,ntcely,ntcelz),
      2            AS(ntcelx,ntcely,ntcelz),AH(ntcelx,ntcely,ntcelz),
@@ -400,6 +404,7 @@ C The  discretization coefs. are in 3D arrays
 C  AW, AE, AS, AN, AL, AH, AP, SU
 
       SUBROUTINE PRPMATR(ISTART,IEND,JSTART,JEND,KSTART,KEND,A,Y,F,PHI)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/COEF/AP(ntcelx,ntcely,ntcelz),AE(ntcelx,ntcely,ntcelz),
@@ -523,6 +528,7 @@ C LISOLV4: Linear solver for calling biconjugate gradient method.  Sets
 C up arrays for prosessing in solver routine NBAND7.
 
       SUBROUTINE LISOLV4(ISTART,JSTART,KSTART,IEND,JEND,KEND,PHI,NITMXN)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/NB7/IDEFAULT,I1L,I1R,I2L,I2R,I3L,I3R,IFREE
@@ -584,6 +590,7 @@ C ********************** NBAND7 **********************
 C NBAND7: Solver applying biconjugate gradient method.
 C SINGLE PRECISION VERSION
       SUBROUTINE NBAND7(N,M,L,A,Y,F,EPSR,EPSA,epsnit,nit,IREPTN,NITMXN)
+#include "building.h"
 #include "cfd.h"
 
       COMMON/NB7/IDEFAULT,I1L,I1R,I2L,I2R,I3L,I3R,IFREE

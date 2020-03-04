@@ -2,7 +2,7 @@ C----------------------------------------------------
       SUBROUTINE  EXT(NFILE,INUSE,ISCLOC,TEXT,LOOK)
 #include "viewer.h2"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character text*25
       LOGICAL LOOK
@@ -142,6 +142,8 @@ C   PROCEED WITH WHAT WE HAVE,IGNORE REST OF FILE
 
 999   CONTINUE
       WRITE(IUOUT,904)  NB
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPAGEND
       STOP
 

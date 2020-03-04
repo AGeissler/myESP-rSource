@@ -30,7 +30,7 @@ C espriou.h provides current file.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/grphlim/xmin,xmax,ymin,ymax       
       COMMON/GOTDAT/NDP,DAT1(MTS),DAT2(MTS),DAT3(MTS)

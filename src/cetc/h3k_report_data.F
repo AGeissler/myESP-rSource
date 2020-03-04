@@ -75,6 +75,8 @@ C*******************************************************************************
       include "h3k_report_data.h"
       include "qrun.h"
       include "CFC_common.h"
+      include "esprdbfile.h"
+      include "material.h"
 
 C.....Passed variable
       integer iZone            ! Zone number
@@ -83,6 +85,9 @@ C.....Common variables
       common/c1/ncomp,ncon
       integer ncomp          ! number of zones
       integer ncon           ! number of connections
+
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
+      integer IC1,IE1,ICT,IC2,IE2
 
       common/prec9/nConst(mcom),nELts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp)
@@ -289,10 +294,6 @@ C.....Flags for temperature-dependence of MLC themal properties
       common/vthp32/ivthps,ivthpz(mcom)
       logical ivthps, ivthpz
 
-C.....Surface area data
-      common/prec1/sna(mcom,ms)
-      real sna                 ! Area of a surface
-
       common/cctl/icascf(mcom)  ! Zone control type
       integer icascf
 
@@ -319,12 +320,11 @@ C.....Sky temperature and cloud cover; ground temperature,
      &TSKY,CLOUDC,CLOUD1,CLOUD2,CLOUD3,TBAVE,TBROOF,TBNRTH,
      &TBSUTH,TBEAST,TBWEST
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER :: IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER :: IUOUT,IUIN,IEOUT
 
-C.....Surface azimuth (deg from north) and elevation angles (walls: 0 deg, ceilings: 90 deg, floors: -90 deg)
-      COMMON/PREC3/PAZI(MCOM,MS),PELV(MCOM,MS)
-      real PAZI, PELV     
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
 
 C----------------------------------------------------------------------
 C     Variables for insulation layer search criteria
@@ -350,16 +350,23 @@ C.....Local variables
       INTEGER i_ZnCtl           ! Zone control flag
 
 
-      INTEGER iSurface, iNode,iViewSurface  ! Counters
+      INTEGER iSurface, iNode,iViewSurface,ic,lnsmlcn,ii,lnssmlc  ! Counters
+      INTEGER lm,imlc,iz,iSur
 
-      real SBC                              ! Stephan-Boltzmann constant
-      parameter ( SBC=56.7E-9 )
+      logical found
+
+      real SBC,tareamlc
+      parameter ( SBC=56.7E-9 )  ! Stephan-Boltzmann constant
 
 C.....DECLARATIONS for H3Kreporting object
       CHARACTER*12 cZone_Chars   ! zname(MCOM)
       Character*12 cSurf_Chars   ! sname(MCOM,MS)
       character*2  cNode_Chars
       character*2  cLayer_Chars
+      character*32 sDummy
+      character*32 sMaterialName
+      character*32 sConstructionName
+      character*64 sConMat_Chars
       character*50 cValue         ! Option value
 
       CHARACTER*128 ZONE_LABEL
@@ -370,6 +377,10 @@ C.....DECLARATIONS for H3Kreporting object
       logical lFirstPass   !first pass indicator
       save lFirstPass
       data lFirstPass/.true./
+
+      logical lOutputGeomdat   ! do only once
+      save lOutputGeomdat
+      data lOutputGeomdat/.true./
 
 C lnblnk is a function returning the index of last non-blank character in a string.
       INTEGER LNBLNK
@@ -891,8 +902,8 @@ C.........construction and compute the heat loss at that layer.
 C............For floors, take the outermost layer for heat loss estimation.
 C............For walls and ceiling, take the innermost layer for heat loss
 C............estimation. 
-C............Elevation angle (PELV) of floor surfaces is -90
-             call eclose(PELV(iZone,iSurface),-90.0,small,close)  
+C............Elevation angle (SPELV) of floor surfaces is -90
+             call eclose(SPELV(iZone,iSurface),-90.0,small,close)  
 
              IF ( close )THEN    ! surface is a floor
 
@@ -2345,41 +2356,143 @@ C............->Report data
 
 C.......======================================================
 C.......Geometry data for embedded energy postprocessing
-C.......Do only, if output is set to true in input.xml
-        call GetReportConfig ("output_geomdat",cValue)
-        if ( cValue(1:4) == 'true' ) then
+C.......Only necessary once, as this data does not change on time-step basis,
+C       usually.
+        if (lOutputGeomdat) then
+c          if (iZone.eq.ncomp) lOutputGeomdat=.false.
+C.........Do only, if output is set to true in input.xml
+          call GetReportConfig ("output_geomdat",cValue)
+          if ( cValue(1:4) == 'true' ) then
 
-C.........Surface area in m2
-          Call AddToReport(rvSurfaceArea%Identifier,
-     &      sna(iZone,iSurface),
-     &      cZone_Chars,
-     &      cSurf_Chars)
-
-          layer_output: do iLayer = 1, nELts(iZone, iSurface)
-
-            if ( iLayer .gt. 9 ) then
-              write(cLayer_Chars, '(I2)')  iLayer
-            else
-              write(cLayer_Chars, '(A,I1)') '0', iLayer
-            endif
-
-C...........Layer material density in kg/m3
-            Call AddToReport(rvSurfLayDens%Identifier,
-     &        THRMLI(iZone,iSurface,iLayer,2),
+C.......  ..Surface area in m2
+            Call AddToReport(rvSurfaceArea%Identifier,
+     &        sna(iZone,iSurface),
      &        cZone_Chars,
-     &        cSurf_Chars,
-     &        cLayer_Chars)
+     &        cSurf_Chars)
 
-C...........Layer thickness in m
-            Call AddToReport(rvSurfLayThick%Identifier,
-     &        THRMLI(iZone,iSurface,iLayer,4),
-     &        cZone_Chars,
-     &        cSurf_Chars,
-     &        cLayer_Chars)
+            layer_output: do iLayer = 1, nELts(iZone, iSurface)
 
-          enddo layer_output
+              ic=izstocn(iZone,iSurface) ! connection index in model
+              lnssmlc=lnblnk(SMLCN(iZone,iSurface)) ! construction name string length
+C             smlcindex(izone,isurface)             ! construction index in data base
+C material.h:      character matname*32     ! name for material
+C material.h:      character mlcname*32     ! name of MLC legacy items only use first 12 char
+C material.h:      IPRMAT(MMLC,ME)          ! Index to material for each layer
 
-        endif  ! <- end output_geomdat
+              if ( iLayer .gt. 9 ) then
+                write(cLayer_Chars, '(I2)')  iLayer
+              else
+                write(cLayer_Chars, '(A,I1)') '0', iLayer
+              endif
+
+C Logic from edcon.F, line 171 ff.
+              do ii=1,nmlc
+                if(SMLCN(iZone,iSurface)(1:lnssmlc).eq.
+     &             mlcname(ii)(1:lnmlcname(ii)))then
+                  smlcindex(izone,isurface)=ii   ! remember MLC index
+                endif
+              enddo
+
+              lnsmlcn=lnblnk(matname(IPRMAT(smlcindex(izone,isurface),
+     &                       iLayer)))
+
+C.............Build constrname:matname string
+              call st2name(
+     &          matname(IPRMAT(smlcindex(izone,isurface),
+     &          iLayer))(1:lnsmlcn),sDummy)
+
+              if (sDummy(1:1).ne." ") then
+                write (sMaterialName,'(A)') sDummy(1:lnsmlcn)
+              else
+                write (sMaterialName,'(A)') "air"
+              endif
+
+              call st2name(
+     &           mlcname(smlcindex(izone,isurface))(
+     &           1:lnmlcname(smlcindex(izone,isurface))),
+     &           sConstructionName)
+
+              write (sConMat_Chars,'(A,A,A,A,A)')
+     &          sConstructionName(1:lnmlcname(
+     &          smlcindex(izone,isurface))),':',
+     &          cLayer_Chars,':',sMaterialName(1:lnsmlcn)
+
+C DEBUG
+cx       write(*,*)'ic=',ic,', lnsmlcn=',lnsmlcn,
+cx     &           ', ssmlc(ic)=',SMLCN(iZone,iSurface),
+cx     &           ', mlcname(ic)=',mlcname(ic),
+cx     &           ', smlcindex(izone,isurface)=',smlcindex(izone,isurface),
+cx     &           ', IPRMAT=',IPRMAT(smlcindex(izone,isurface),iLayer),
+cx     &           ', matname(IPRMAT)=',
+cx     &                  matname(IPRMAT(smlcindex(izone,isurface),iLayer)),
+cx     &           ', sLC=',sLayer_Chars,'.'
+
+C.......  ....Layer material density in kg/m3
+              Call AddToReport(rvSurfLayDens%Identifier,
+     &          THRMLI(iZone,iSurface,iLayer,2),
+     &          cZone_Chars,
+     &          cSurf_Chars,
+     &          sConMat_Chars)
+
+C.......  ....Layer thickness in m
+              Call AddToReport(rvSurfLayThick%Identifier,
+     &          THRMLI(iZone,iSurface,iLayer,4),
+     &          cZone_Chars,
+     &          cSurf_Chars,
+     &          sConMat_Chars)
+
+            enddo layer_output
+
+C If last zone, add up all surface areas for each MLC (use logic from
+C mlcrefs(), edcondb.F, lines 6911 ff., called from prjqa, e.g. line 3384)
+            if (iZone.eq.ncomp) then
+
+              do imlc=1,nmlc
+                found=.false.
+                lm=lnmlcname(imlc)
+                tareamlc=0.0
+
+C Loop through zones and check each surface mlc attribute
+C for a match against mlcname.
+                do 42 iz=1,ncomp
+                  do 43 iSur=1,NZSUR(iz)
+                    ic=IZSTOCN(iz,iSur)
+                    if(SMLCN(iz,iSur)(1:lnblnk(SMLCN(iz,iSur))).eq.
+     &                                  mlcname(imlc)(1:lm))then
+                      found=.true.
+C Debug
+cc      write(6,*)'... found ',mlcname(imlc)(1:lm)
+
+C Depending on the connection type, add the full or half area of surface.
+                      if(ICT(ic).eq.0.or.ICT(ic).eq.1.or.
+     &                                        ICT(ic).eq.2)then
+                        tareamlc=tareamlc+SNA(iz,iSur)
+                      elseif(ICT(ic).eq.4.or.ICT(ic).eq.5.or.
+     &                                        ICT(ic).eq.3)then
+                        tareamlc=tareamlc+SNA(iz,iSur)
+                      else
+                        tareamlc=tareamlc+(SNA(iz,iSur)*0.5)
+                      endif
+                    endif
+  43              continue
+  42            continue
+
+C Debug
+cc      if (found) then
+cc        write(6,*)'... calculated ',mlcname(imlc)(1:lm),'=',tareamlc
+cc      endif
+
+C...............MLC total surface area in m2
+                if (found) then
+                  Call AddToReport(rvMLCArea%Identifier,
+     &              tareamlc,
+     &              mlcname(imlc)(1:lm))
+                endif
+              enddo  ! of imlc
+C ** end add up MLC areas
+            endif  ! <- end if last zone
+          endif  ! <- end output_geomdat
+        endif ! <- end check for "first encounter"
 
       enddo ! <- end iSurface 1,N of iZone
 
@@ -3027,8 +3140,8 @@ C**********************************************************************
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN                 ! trace output unit numbers
-      integer iuout, iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT                 ! trace output unit numbers
+      integer iuout, iuin,ieout
 
 C.....ESP-r commons
 C NPCON,      # of connections in plant network

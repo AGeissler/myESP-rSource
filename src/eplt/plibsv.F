@@ -57,7 +57,7 @@ C esprdbfile.h supplies the following:
 C LPCDB/IPCDB (for plant template database)
 C ICLIM,LCLIM (for climate file)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/LIBRCP/IRCPLP
@@ -226,7 +226,7 @@ C block associated with the current simulation save set.
       SUBROUTINE MZPLS2
 #include "plant.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
@@ -336,12 +336,12 @@ C  nodes)
 #include "plant.h"
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/FILEP/IFIL
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTSTP/NTSTPP
@@ -575,7 +575,7 @@ C the appropriate record (2-31) of the plant results library
 
       SUBROUTINE MZPLS4
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/LIBRCP/IRCPLP

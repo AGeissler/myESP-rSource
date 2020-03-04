@@ -184,9 +184,9 @@ c----56--1---------2---------3---------4---------5---------6---------7---------8
 #include "dhw_common.h"
 #include "ground_temp_mains_common.h"
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
-      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its           
+      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow         
       REAL   fNormalizedDailyWaterDraw 
       REAL   fLitresforNumOccupants    
       logical CLOSE
@@ -1448,10 +1448,10 @@ c----56--1---------2---------3---------4---------5---------6---------7---------8
 #include "dhw_common.h"
 #include "ground_temp_mains_common.h"
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       common/sus/issny
-      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER   ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       INTEGER   ISSNY
       INTEGER   iTankNumber
@@ -1550,12 +1550,12 @@ C ------------------------------------------------------------------------------
 #include "dhw_common.h"
 #include "ground_temp_mains_common.h"
 #include "espriou.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
 C Declarations for local variables and variables passed in common blocks.
       character outs*124,OUTSTR*124
-      integer IUOUT,IUIN,IFIL,IUNIT,ISTAT,IER,ND,k,ival
+      integer IUOUT,IUIN,IEOUT,IFIL,IUNIT,ISTAT,IER,ND,k,ival
       real val
       INTEGER  iTankNumber
       logical error_flag, close, close2, close3
@@ -1996,10 +1996,10 @@ c----56--1---------2---------3---------4---------5---------6---------7---------8
 #include "ground_temp_mains_common.h"
 
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       INTEGER   IODS,IODF,ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
         CHARACTER*128  outs
       CALL EDAY(ISD1,ISM1,IODS)
       CALL EDAY(ISD2,ISM2,IODF)

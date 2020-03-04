@@ -109,7 +109,7 @@ C Common Blocks
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/POPHELP/H(60)
 
@@ -131,7 +131,7 @@ C   where i is the power-only component index.
 C Type casting (all varaiables and arrays cast explicitly)
       INTEGER iplant_calcV_LOC,iPV_calcV_LOC
 
-      INTEGER IUOUT,IUIN,IFIL,IEUNIT,IVAL,I,J,IPHV,K,
+      INTEGER IUOUT,IUIN,IEOUT,IFIL,IEUNIT,IVAL,I,J,IPHV,K,
      &INODE,IHYB,IPWC,IPCDS,ICNC,ICON,ILOCT,IPHN,IDLC,INC
       integer IER,ND,IVPC,IPH
 
@@ -144,7 +144,7 @@ C Characters
       character LFIL*72,DEFLNAM*72,H*72
       character OUTS248*248,OUTSTR*124,OUTS*124
 
-      LOGICAL OK,DOK,CONT
+      LOGICAL OK,CONT
 
       DIMENSION RVHY(MHYDAT),RVPC(MPWDAT),RVCC(MCCDAT)
       DIMENSION IVPC(3)          !- array used to read PCU sending node and receiving node
@@ -216,11 +216,10 @@ C Open the electrical network file.
       CALL EFOPSEQ(IEUNIT,ENTFLNAM,1,IER)
       IF(IER.EQ.-301) THEN
         IF(MODE.NE.'S') THEN
-          dok=.true.
-          h(1)='Chance to correct error in file name. '
+          h(1)='Chance to correct error in file name.'
           WRITE(OUTS,'(3A)')
      &  'File ',LFIL(1:LNBLNK(LFIL)),' is as new network description.'
-          CALL ASKOK(OUTS,'Create a new electrical network?',OK,dok,1)
+          CALL EASKOK(OUTS,'Proceed?',OK,1)
           IF(OK) THEN
             RETURN
           ELSE
@@ -232,11 +231,11 @@ C Open the electrical network file.
           RETURN
         ENDIF
       ELSEIF(IER.NE.0.AND.IER.NE.-301) THEN
-        dok=.true.
+
         h(1)='Chance to correct for error in file name or location.'
         WRITE(OUTS,'(3A)')
-     &  ' Problem opening ',LFIL(1:LNBLNK(LFIL)),'.'
-        CALL ASKOK(OUTS,' Try again ?',OK,dok,1)
+     &  'Problem opening ',LFIL(1:LNBLNK(LFIL)),'.'
+        CALL EASKOK(OUTS,'Retry?',OK,1)
         IF(OK) THEN
           GOTO 2
         ELSE
@@ -1074,7 +1073,7 @@ C *********************************************************************
 
 C Common Blocks
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/POPHELP/H(60)
 
@@ -1092,7 +1091,7 @@ C unit (a power-only component model)
 C Type casting (all varaiables and arrays cast explicitly)
       INTEGER iplant_calcV_LOC,iPV_calcV_LOC
 
-      INTEGER IUOUT,IUIN,IFIL,IEUNIT,I,J,K,
+      INTEGER IUOUT,IUIN,IEOUT,IFIL,IEUNIT,I,J,K,
      &INODE,IHYB,IPWC,ICNC,ICON,IPHN,IDLC,INC
      
       real fENFVersionNum            !-version number of electrical network file

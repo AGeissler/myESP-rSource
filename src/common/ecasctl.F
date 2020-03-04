@@ -78,7 +78,7 @@ C Parameters
       integer icomp   ! focus zone
       integer ier     ! returned error state
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
@@ -536,10 +536,8 @@ C ACT - 's' do not ask the user for confirmation of file write.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
 
@@ -668,10 +666,9 @@ C List only the classic TMC surfaces (not CFC or CFC2).
           WRITE(IUNIT,'(I3,A)',IOSTAT=ios,ERR=1) NUDWIN(ICOMP),
      &     ' # No of TMC(s) in zone ' 
           DO 112 IL=1,NZSUR(ICOMP)
-            icc=IZSTOCN(icomp,il)
-            IF(SSOTF(icc)(1:4).NE.'OPAQ'.AND.
-     &         SSOTF(icc)(1:4).NE.'CFC '.AND.
-     &         SSOTF(icc)(1:4).NE.'CFC2')THEN
+            IF(SOTF(icomp,il)(1:4).NE.'OPAQ'.AND.
+     &         SOTF(icomp,il)(1:4).NE.'CFC '.AND.
+     &         SOTF(icomp,il)(1:4).NE.'CFC2')THEN
               DO 114 L=1,NDF(ICOMP,N) 
                 WRITE(IUNIT,'(I3,F7.4,A)',IOSTAT=ios,ERR=1)IL,
      &               DFDAT(ICOMP,N,IL,L),' # TMC number & coresp DF '

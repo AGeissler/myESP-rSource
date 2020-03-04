@@ -369,7 +369,7 @@ C number and the format indicator.
         CALL EGETW(OUTSTR,K,WORD,'W','*IPV tag',IFLAG)
         if(ND.gt.2)then
           CALL EGETWI(OUTSTR,K,ipvversion,0,4,'W','version index',IER)
-          CALL EGETWI(OUTSTR,K,ipvform,0,4,'W','ipv rep format',IER)
+          CALL EGETWI(OUTSTR,K,ipvform,0,2,'W','ipv rep format',IER)
           if(ND.gt.3)then
             CALL EGETW(OUTSTR,K,ipvsimu,'W','*IPV assessment',IFLAG)
           endif

@@ -55,7 +55,7 @@ C seasons.h provides typper and typsea
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
 
 C Where ESP-r was installed (as recorded when it was compiled).
@@ -234,7 +234,7 @@ C list. If not instanciate season and typical start and end dates.
           INQUIRE (FILE=cdblfil,EXIST=XST)
           if(XST)then
             IUF=IFIL+2
-            call scancdblist(IUF,llclmdb,ok,ier)
+            call scancdblist(IUF,llclmdb,'p',ok,ier)
             if(ok)then
               continue
             else
@@ -418,7 +418,7 @@ C Parameters
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -429,18 +429,15 @@ C Parameters
       common/cctlnm/ctldoc,lctlf
       integer icascf
       common/cctl/icascf(mcom)
-
-C Where ESP-r was installed (as recorded when it was compiled).
       common/deflt4/dinstpath
-      character dinstpath*60
-
-      COMMON/Vld20/Vldtng
-      logical Vldtng
+      character dinstpath*60 ! instal folder as recorded when ESP-r was compiled
+      COMMON/OVRWT/AUTOVR
+      logical AUTOVR
       common/SLNTFULL/ifullysilent
       integer ifullysilent !flag to drive the silent model creation without
                            !questions about the operation files data
 
-C hasname (string array) the surface name for each surface (so fillsur does not wipe)
+C hasname (string array) the surface name for each surface (so filsur does not wipe)
       character hasname*12
       dimension hasname(MS)  ! name to use for each surface
       DIMENSION XX(MS),YY(MS)
@@ -462,7 +459,6 @@ C Strings for surface attributes to pass to insrec.
       character rsname*12,rsotf*32,rsmlcn*32,rsuse1*12,rsuse2*12
       character rsparent*12
       integer newsurf   ! index of surface when adding door/glazing
-      integer ibcs      ! connection associated with base surface
       real angr         ! for rotation
 
 C If browsing then user cannot create a new zone.
@@ -652,18 +648,18 @@ C Update the connection list.
 
 C Instanciate the surface constructions.
         write(sname(icomp,icc),'(a)') hasname(icc)
-        write(smlcn(icc),'(a)') hasconstr(icc)
+        write(smlcn(icomp,icc),'(a)') hasconstr(icc)
 
 C Loop thru all of the known constructions to find the matching construction.
-C Also set ssmlcindex for this surface.
+C Also set smlcindex for this surface.
         imatch=0
-        ssmlcindex(iccc)=0  ! assume no matching MLC          
+        smlcindex(icomp,icc)=0  ! assume no matching MLC          
         do 5 ii=1,nmlc
-          lnssmlc=lnblnk(SMLCN(icc))
-          if(SMLCN(icc)(1:lnssmlc).eq.
+          lnssmlc=lnblnk(SMLCN(icomp,icc))
+          if(SMLCN(icomp,icc)(1:lnssmlc).eq.
      &       mlcname(ii)(1:lnmlcname(ii)))then
             imatch=ii
-            ssmlcindex(iccc)=ii   ! remember MLC index     
+            smlcindex(icomp,icc)=ii   ! remember MLC index     
           endif
   5     continue
 
@@ -671,7 +667,7 @@ C Also set ssmlcindex for this surface.
 
 C Take the optics from the META file. If there are unknown constructions
 C mark anunknownmlc so construction files are not created.
-          write(SOTF(icc),'(a)') hasoptic(icc)
+          write(SOTF(icomp,icc),'(a)') hasoptic(icc)
           if(hasoptic(icc)(1:4).EQ.'OPAQ')then
             continue
           else
@@ -690,57 +686,47 @@ C If we do not have a match it might be because we are referencing a local
 C database (which does not yet exist because it has not been copied from
 C the original model. In this case << ? >>
             call edisp(iuout,'Warning: no matching MLC defined!')
-            SOTF(icc)='UNKNOWN'
+            SOTF(icomp,icc)='UNKNOWN'
             anunknownmlc=.true.   ! mark that one MLC is unknown
           else
             if(mlctype(imatch)(1:4).EQ.'OPAQ')then
-              SOTF(icc)='OPAQUE'
+              SOTF(icomp,icc)='OPAQUE'
             else
-              WRITE(SOTF(icc),'(A)') mlcoptical(imatch)(1:12)
+              WRITE(SOTF(icomp,icc),'(A)') mlcoptical(imatch)(1:12)
               willneedtmc=.true.
             endif
           endif
         endif
-        SPARENT(icc)='-'
-        SUSE(icc,1)='-'
-        SUSE(icc,2)='-'
+        SPARENT(icomp,icc)='-'
+        SUSE(icomp,icc,1)='-'
+        SUSE(icomp,icc,2)='-'
 
-C Use zboundarytype to instanciate sother & ssother << to be done >>
+C Use zboundarytype to instanciate sother.
         IF(zboundarytype(icomp,icc,1).EQ.0)THEN
-          SOTHER(icc,1)='EXTERIOR'
+          SOTHER(icomp,icc,1)='EXTERIOR'
         ELSEIF(zboundarytype(icomp,icc,1).EQ.1)THEN
-          SOTHER(icc,1)='SIMILAR'
+          SOTHER(icomp,icc,1)='SIMILAR'
         ELSEIF(zboundarytype(icomp,icc,1).EQ.2)THEN
-          SOTHER(icc,1)='CONSTANT'
+          SOTHER(icomp,icc,1)='CONSTANT'
         ELSEIF(zboundarytype(icomp,icc,1).EQ.3)THEN
-          SOTHER(icc,1)='ANOTHER'
+          SOTHER(icomp,icc,1)='ANOTHER'
         ELSEIF(zboundarytype(icomp,icc,1).EQ.4)THEN
-          SOTHER(icc,1)='GROUND'
+          SOTHER(icomp,icc,1)='GROUND'
         ELSEIF(zboundarytype(icomp,icc,1).EQ.5)THEN
-          SOTHER(icc,1)='ADIABATIC'
+          SOTHER(icomp,icc,1)='ADIABATIC'
         ELSEIF(zboundarytype(icomp,icc,1).EQ.6)THEN
-          SOTHER(icc,1)='BASESIMP'
+          SOTHER(icomp,icc,1)='BASESIMP'
         ELSEIF(zboundarytype(icomp,icc,1).EQ.7)THEN
-          SOTHER(icc,1)='IDENT_CEN'
+          SOTHER(icomp,icc,1)='IDENT_CEN'
         ELSE
 
 C Reset to represent UNKNOWN
-          SOTHER(icc,1)='UNKNOWN'
+          SOTHER(icomp,icc,1)='UNKNOWN'
         ENDIF
-        write(SOTHER(icc,2),'(i2.2)') zboundarytype(icomp,icc,2)
-        write(SOTHER(icc,3),'(i3.3)') zboundarytype(icomp,icc,3)
+        write(SOTHER(icomp,icc,2),'(i2.2)') zboundarytype(icomp,icc,2)
+        write(SOTHER(icomp,icc,3),'(i3.3)') zboundarytype(icomp,icc,3)
 
 C Set connection based variables.
-        SSNAME(iccc)=SNAME(icomp,icc)
-        SSOTF(iccc)=SOTF(icc)
-        SSMLCN(iccc)=SMLCN(icc)
-        SSVFC(iccc)=SVFC(icc)
-        SSOTHER(iccc,1)=SOTHER(icc,1)
-        SSOTHER(iccc,2)=SOTHER(icc,2)
-        SSOTHER(iccc,3)=SOTHER(icc,3)
-        SSUSE(iccc,1)=SUSE(icc,1)
-        SSUSE(iccc,2)=SUSE(icc,2)
-        SSPARENT(iccc)=SPARENT(icc)
         IZSTOCN(icomp,icc)=iccc
    32 CONTINUE
       NCON=ICCC
@@ -756,19 +742,16 @@ C Set connection based variables.
 C Update the G7 common blocks and then if assign ZBASEA.
       call zgupdate(0,ICOMP,ier)
       if(ishape.eq.1)then
-        ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-        ZBASEA(icomp)= SSNA(ibcs)
+        ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
       elseif(ishape.eq.2)then
-        ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-        ZBASEA(icomp)= SSNA(ibcs)
+        ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
       elseif(ishape.eq.3)then
 
 C For poly shape loop to find the floor in order to set up the floor area
         do 222 iSurface=1,NSUR
-          if(SVFC(iSurface).eq.'FLOR')then
+          if(SVFC(icomp,iSurface).eq.'FLOR')then
             IBASES(ICOMP,1)=iSurface
-            ibcs=IZSTOCN(icomp,IBASES(ICOMP,1))
-            ZBASEA(icomp)= SSNA(ibcs)
+            ZBASEA(icomp)= SNA(icomp,IBASES(ICOMP,1))
           endif
  222    continue
       endif
@@ -931,7 +914,7 @@ C Set to current zone operation file format.
         isource=0
         ifullysilent=1
         idest=icomp
-        Vldtng=.true.
+        AUTOVR=.true.
         call COPYAIRFL(isource,idest,afact,iflow,vflow,sfile,
      &    itrc,'s',ier)
 
@@ -946,6 +929,7 @@ C Just in case sort the data.
         call PROCESSOLDCAS(ICOMP,0,iuout)
         IUO=IFIL+2
         CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
+        AUTOVR=.false.
       endif
 
 C Update configuration file to know about the construction files.
@@ -978,21 +962,20 @@ C and act on the information within the file.
        integer MSZ   ! number of META zones array sizes, edit to
                      ! match MCOM in building.h
        PARAMETER (MSZ=82)
+
 #include "building.h"
 #include "model.h"
 #include "site.h"
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "espriou.h"
-C espriou.h provides currentfile.
 #include "control.h"
 #include "seasons.h"
-C seasons.h required prior to ipvdata.h
 #include "ipvdata.h"
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -2349,29 +2332,25 @@ C the file with minimum interaction.
       integer MSZ   ! number of META zones array sizes, edit to
                     ! match MCOM in building.h
       PARAMETER (MSZ=82)
+
 #include "building.h"
 #include "model.h"
 #include "site.h"
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "espriou.h"
-C#include "control.h"
-C espriou.h provides currentfile.
 #include "seasons.h"
-C seasons.h provides typper and typsea
 #include "ipvdata.h"
 
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
 C Obstruction blocks via geometry.h.
-C common zndata (VCOORD,NZNVER,NZJVN) via geometry.h
-
       common/rpath/path
       character path*72    ! where path folders
       character odir*84    ! where current working folder
@@ -2914,8 +2893,8 @@ C Write out any pending rotate directives (usually only used by 3rd party).
 
           do 143 nsc=1,NZTV(nsz)
             write(outs,'(a,3F8.4)',IOSTAT=IOS,ERR=13)
-     &        '*cord ',VCOORD(nsz,nsc,1),VCOORD(nsz,nsc,2),
-     &        VCOORD(nsz,nsc,3)
+     &        '*cord ',szcoords(nsz,nsc,1),szcoords(nsz,nsc,2),
+     &        szcoords(nsz,nsc,3)
             call SDELIM(outs,outsd,'C',IW)
             write(ifilg,'(2a,i3)',IOSTAT=IOS,ERR=13)
      &        outsd(1:lnblnk(outsd)),'  # X Y Z for ',nsc
@@ -2941,18 +2920,18 @@ C << consider adding more attributes and putting each attribute
 C << on a separate line with a tag.
           do 144 isu=1,NZSUR(nsz)
             icc=IZSTOCN(nsz,isu)    ! get the connection
-            lnsn=lnblnk(SSNAME(icc))
-            lnsc=lnblnk(SSMLCN(icc))
-            lnso=lnblnk(SSOTF(icc))
+            lnsn=lnblnk(SNAME(nsz,isu))
+            lnsc=lnblnk(SMLCN(nsz,isu))
+            lnso=lnblnk(SOTF(nsz,isu))
 
             if(metaver.eq.1)then
               write(outs,'(5a,3I4)',IOSTAT=IOS,ERR=13)
-     &          '*surface ',SSNAME(icc)(1:lnsn),' ',
-     &          SSMLCN(icc)(1:lnsc),' ',ICT(icc),IC2(icc),IE2(icc)
+     &          '*surface ',SNAME(nsz,isu)(1:lnsn),' ',
+     &          SMLCN(nsz,isu)(1:lnsc),' ',ICT(icc),IC2(icc),IE2(icc)
             elseif(metaver.eq.2)then
               write(outs,'(7a,3I4)',IOSTAT=IOS,ERR=13)
-     &          '*surface ',SSNAME(icc)(1:lnsn),' ',
-     &          SSMLCN(icc)(1:lnsc),' ',SSOTF(icc)(1:lnso),' ',
+     &          '*surface ',SNAME(nsz,isu)(1:lnsn),' ',
+     &          SMLCN(nsz,isu)(1:lnsc),' ',SOTF(nsz,isu)(1:lnso),' ',
      &          ICT(icc),IC2(icc),IE2(icc)
             endif
             call SDELIM(outs,outsd,'C',IW)
@@ -2960,7 +2939,7 @@ C << on a separate line with a tag.
      &        outsd(1:lnblnk(outsd)),'  # surface attributes '
 
             write(louts,'(a,124I4)',IOSTAT=ios,ERR=13) '*list ',
-     &        NZNVER(icc),(NZJVN(icc,J),J=1,NZNVER(icc))
+     &        isznver(nsz,isu),(iszjvn(nsz,isu,J),J=1,isznver(nsz,isu))
             call SDELIM(louts,loutsd,'C',IW)
             write(ifilg,'(2a,i2)',IOSTAT=IOS,ERR=13)
      &        loutsd(1:lnblnk(outsd)),'  # ',isu

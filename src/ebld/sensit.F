@@ -44,7 +44,7 @@ C simulations to be run.
 C Common blocks UA4 within uncertainty.h
 #include "uncertainty.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       COMMON/UA5/IMET,ISIM,NRSIM
@@ -321,7 +321,7 @@ C Monte-Carlo SA.
 #include "building.h"
 C Common blocks UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -1113,11 +1113,11 @@ C Loop through all the surfaces in the current location ICL for the
 C target zone - search for MLC's with the same name as MATNAM(ICC).
         do 20 JJ=1,NSGU(ICL,II)
          IS=NSNOG(ICL,II,JJ)
-         if (SMLCN(IS)(1:12).eq.MATNAM(ICC,1)(1:12)) then
+         if (SMLCN(IZ,IS)(1:12).eq.MATNAM(ICC,1)(1:12)) then
 
 C This construction has uncertainties defined, but which MLC database 
 C entry is it? C Find matching MLC.
-          call matchmlcdesc(SMLCN(is),imlc)
+          call matchmlcdesc(SMLCN(IZ,is),imlc)
           do 30 IE=1,NE(IS)
 C           write (36,*) 'iprmat(imlc,ie): ',IPRMAT(IMLC,IE),imlc,ie
 C           write (36,*) 'IDATR(ICC,1): ',IDATR(ICC,1),icc
@@ -1268,10 +1268,10 @@ C is then we have to edit the matching surface in this zone ISURF.
           do 60 JJ=1,NSGU(ICL,II)
            IS=NSNOG(ICL,II,JJ)
            if (IS.eq.ISC) then
-            if (SMLCN(ISURF)(1:12).eq.MATNAM(ICC,1)(1:12))then
+            if (SMLCN(IZONE,ISURF)(1:12).eq.MATNAM(ICC,1)(1:12))then
 
 C Find matching MLC.
-             call matchmlcdesc(SMLCN(isurf),imlc)
+             call matchmlcdesc(SMLCN(IZONE,isurf),imlc)
              do 50 IE=1,NE(ISURF)
               write (36,*) 'iprmat(imlc,ie): ',IPRMAT(IMLC,IE),imlc,ie
               write (36,*) 'IDATR(ICC,1): ',IDATR(ICC,1),icc
@@ -1663,7 +1663,7 @@ C
                 write (36,*)'Period ',CALENTAG(ICD),ICP,
      &            ' From:',T1,' to ',CONC(ICD,ICP)
                 RADC(ICD,ICP)=1.0-CONC(ICD,ICP)  ! adjust RADC
-                call relstr(CONC(IDTY,ICP),strval,lna,ier)
+                call relstr(CONC(ICD,ICP),strval,lna,ier)
               endif
             elseif (IDATR(ICC,2).eq.5) then
               write (36,'(a,i3,a,i2,a)') 'Zone:',IZONE,' GC type:',IT,
@@ -2026,12 +2026,10 @@ C UAZ01 edits zone air volume in memory or surface area.
       SUBROUTINE UAZ01(IZONE,IACT,DIR)
 #include "building.h"
 #include "geometry.h"
-C Common blocks UA2 UA3 UA4 within uncertainty.h
 #include "uncertainty.h"
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
       common/prec12/ei(mcom,ms),ee(mcom,ms),ai(mcom,ms),ae(mcom,ms)
@@ -2315,7 +2313,7 @@ C Set number of matching layers to zero.
 
 C Find correct MLC. Check if the material array index matches
 C the passed value. C Find matching MLC.
-      call matchmlcdesc(SMLCN(isurf),i)
+      call matchmlcdesc(SMLCN(IZONE,isurf),i)
       if(i.eq.0) return  ! no match found
       do 20 J=1,LAYERS(I)
         if (IPRMAT(I,J).eq.IPRIM) then

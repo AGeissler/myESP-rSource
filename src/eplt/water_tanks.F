@@ -133,8 +133,8 @@ C ------------------------------------------------------------------------------
 #include "cogen_tanks.h"
 #include "chemical_properties.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -543,8 +543,8 @@ C ------------------------------------------------------------------------------
 #include "h3kstore_common.h"
 #include "OffsiteUtilitiesPublic.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -552,8 +552,8 @@ C ------------------------------------------------------------------------------
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
      & ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)
@@ -1438,8 +1438,8 @@ C ------------------------------------------------------------------------------
 #include "ground_temp_mains_common.h"
 #include "dhw_common.h"
 
-      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 
       COMMON/ptime/ptimep,ptimef
@@ -1448,8 +1448,8 @@ C ------------------------------------------------------------------------------
       COMMON/PCTIME/TIMSEC
       REAL TIMSEC
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 
 C---------------------------------------------------------------------------------
@@ -1616,8 +1616,8 @@ C ------------------------------------------------------------------------------
 #include "SOFC.h"
 #include "cogen_tanks.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -1895,8 +1895,8 @@ C ------------------------------------------------------------------------------
 #include "h3kstore_common.h"
 #include "OffsiteUtilitiesPublic.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -1904,8 +1904,8 @@ C ------------------------------------------------------------------------------
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER  ITCF,ITRACE,IZNTRC,ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,
      & itrclp,ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)
@@ -1956,7 +1956,7 @@ C ------------------------------------------------------------------------------
       COMMON/PCTIME/TIMSEC
       REAL TIMSEC
 
-C     Common for determining if the plant domain has converged
+C     Common for determining if the plant domain has converged.
       COMMON/pltcon/bpltcon,lastTStp
       LOGICAL bpltcon
       REAL lastTStp
@@ -2396,14 +2396,14 @@ C-------------------------------------------------------------------------------
       IF(ISTATS.eq.1) CALL H3KSTORE_FuelCell_Elec_Tank(
      &     q_element,           ! element power
      &     q_capture_future,    ! element -> water
-     &     T_node1_present,      ! tank temperature
+     &     T_node1_present,     ! tank temperature
      &     PCTP(con1a),         ! temp of water at 1st connection
      &     mdot_conn1a_present, ! flow rate of water at 1st con
      &     PCTP(con1b),         ! temp of water at 2nd connection
      &     mdot_conn1b_present, ! flow rate of water at 2nd con
      &     T_makeup_future,     ! temp of DHW make-up water
      &     DHW_draw_future,     ! flow rate of DHW draw
-     &     tank_UA_future,      !UA Tank
+     &     tank_UA_future,      ! UA Tank
      &     Troom_future,        ! Predicted Temp of Room.
      &     q_heatdump_future    ! rate of energy dumped
      &     )
@@ -2465,8 +2465,8 @@ C-------------------------------------------------------------------------------
 
 
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/PCVAL/CSVF(MPNODE,MPVAR),CSVP(MPNODE,MPVAR)
       REAL CSVF,CSVP
@@ -2550,8 +2550,8 @@ C-------------------------------------------------------------------------------
       LOGICAL bpltcon
       REAL lastTStp
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 
 C-------------------------------------------------------------------------------------------

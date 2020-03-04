@@ -40,7 +40,7 @@ C TDFUPD: updates TDF file from an exchange file.
 C The following parameters are defined as integers in epara.h:
 C CREATE,PREV,NEXT,EDIT,LIST,NONE
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -56,7 +56,7 @@ C Related to inport and export files.
 C Logical flags for file openings.
       COMMON/TDFOPEN/OPTDF
 
-      LOGICAL OPTDF,OK,dok
+      LOGICAL OPTDF,OK
       logical FOUND,XST,unixok,silent
 
       DIMENSION ITEM(31),ikeybk(31),itemsel(MIT),itemval(MIT)
@@ -377,9 +377,7 @@ C a scratch file). If it does not exist offer to create one.
 
 C File not found so offer option to create a minimal file.
             WRITE(OUTS,'(2X,A,A)') tfile(1:lnblnk(tfile)),' not found!'
-            dok=.true.
-            CALL ASKOK(outs,' Create a new scratch & asci file?',
-     &        OK,dok,nbhelp)
+            CALL EASKOK(outs,'Create a new file?',OK,nbhelp)
             IF(.NOT.OK) goto 3
             call isunix(unixok)
             if(unixok)then
@@ -420,8 +418,8 @@ C Write out an equivalent ascii file.
           endif
         endif
         if(NITDF.eq.0)then
-          CALL EASKAB(' Empty file. Options:',' ',
-     &     'setup initial data','continue',IRT,nbhelp)
+          CALL EASKAB('Empty file!','Options:',
+     &     'setup initial data','cancel',IRT,nbhelp)
           if(IRT.eq.1)then
            call glbset('init')
           endif
@@ -507,9 +505,9 @@ C Save TDF data. May have to move to the last record before exiting.
         helptopic='tdf_save_data'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRE=1
-        CALL EASKATOG(' File options:',' ','save ascii file',
-     &   'ascii temporal>binary','binary>ascii temporal',
-     &   'extract data','continue',' ',' ',IRE,nbhelp)
+        CALL EASKATOG(' ','File options: ','save ascii file',
+     &   'ascii > binary','binary > ascii',
+     &   'extract data','cancel',' ',' ',IRE,nbhelp)
         if(ire.eq.1)then
           CALL EWTDF(IER)
           CALL EDISP(IUOUT,' ')
@@ -828,7 +826,7 @@ C This facility supports the esp-r module b2e.
 #include "net_flow.h"
 #include "tdf2.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/HDAT/IHREC(MIT)
       LOGICAL CLOSE,found
 
@@ -1063,8 +1061,8 @@ C Menu control.
       IF(ISETUP.EQ.1)THEN
 
 C Define a standard import file name & format for use by other parts of TDF.
-        CALL EASKABC('Import options:',' ',
-     &    'UNKNOWN','ASCII column text','continue',IWM,nbhelp)
+        CALL EASKABC(' ','Import options:',
+     &    'UNKNOWN','ASCII column text','cancel',IWM,nbhelp)
         if(IWM.ge.3)goto 2
         ITIMP=IWM-1
 

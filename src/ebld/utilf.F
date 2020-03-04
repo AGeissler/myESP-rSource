@@ -19,311 +19,9 @@ C Software Foundation, Inc., 59 Temple Place, Suite 330,
 C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
-C    MZHCFV:  reads the convection-calculation control file.
 C    MZHCFV2: reads the convection-regime file (version 2)
 C    MZSHIN:  checks validity of a zone shading file
 C    MZVFIN:  reads geometric view factor between surface pairs from file
-
-C ******************** MZHCFV ********************
-
-C MZHCFV reads the convection regime file.
-
-      SUBROUTINE MZHCFV(ICOMP)
-#include "building.h"
-#include "geometry.h"
-#include "model.h"
-
-      COMMON/ER/IER
-      COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/OUTIN/IUOUT,IUIN
-      COMMON/FILEP/IFIL
-      COMMON/TC/ITC,ICNT
-
-      COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
-
-      COMMON/HCFIX2/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &              HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
-
-      common/HCTL/iCTLTP(MCOM,MBP),IcIuse(MCOM,MS,MBP),
-     &            IcEuse(MCOM,MS,MBP),icnvKY(MCOM,MS,MBP),
-     &            CVdat(MS*MBP,8)
-      COMMON/HCCEN2/CENLOC(MCOM,MBP,14)
-      COMMON/VERTC/IAORZ,CWIDTH,CHEIGHT
-
-      character outs*124,OUTSTR*124
-      logical OK,dok
-
-      DIMENSION HIV(MS),HEV(MS)
-
-C NHCFP(ICOMP) is the number of control time intervals.
-C Variables used for `type 1' fixed coefficients control:
-C    HCFVI(i,j,k): interior HTC for zone `i', surface `j', time interval `k'.
-C    HCFVE(i,j,k): exterior HTC for zone `i', surface `j', time interval `k'.
-C Variables used for `type 2' fixed correlations control:
-C    IcIuse(i,j,k): correlation-equation index for interior of zone `i',
-C                   surface `j', time interval `k'.
-C    IcEuse(i,j,k): correlation-equation index for exterior of zone `i',
-C                   surface `j', time interval `k'.
-C Variables used for `type 3' adaptive control:
-C    icnvKY(i,j,k): index for zone `i', surface `j', time interval `k'.
-C    II: counter used for the icnvKY() index array.
-C    CVdat(II,jj): data items (`jj') for index `II':
-C       jj=1:   control law for interior surface
-C       jj=2-4: data items associated with control law for interior
-C       jj=5:   control law for exterior surface
-C       jj=6-8: data items associated with control law for exterior
-C Variables used for `type 4' CEN coefficients control:
-C   CENLOC(i,k,jj) hc values for zone 'i', time interval 'k':
-C       jj=1 index of a floor surface
-C       jj=2 index of a ceiling surface
-C       jj=3-5 floor upwd_inside, downwd_inside, external
-C       jj=6-8 ceiling upwd_inside, downwd_inside, external
-C       jj=9-11 sloped upwd_inside, downwd_inside, external
-C       jj=12-14 wall inside, partition, external
-
-C For help messages
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
-
-      helpinsub='MZHCFV'  ! set for subroutine
-
-C Initialize data.
-      NHCFP(ICOMP)=0
-      II=0
-      IUNIT=IFIL+1
-
-C Check for old format.
-      CALL EFOPSEQ(IUNIT,LHCCO(ICOMP),1,IER)
-      IF(ier.eq.0)THEN
-C-------Does the 4th line contain a control `type' or HC data?
-        READ(IUNIT,'(//)',IOSTAT=ISTAT,ERR=1001)
-        CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc line 4',IER)
-        if(num.ne.1)then
-          call edisp(iuout,
-     &      ' HTC file in old format: file must be updated.')
-          CALL ERPFREE(IUNIT,ISTAT)
-          stop ' HTC file in old format: file must be updated.'
-        endif
-      ENDIF
-      CALL ERPFREE(IUNIT,ISTAT)
-
-C Open convection file.
-      CALL EFOPSEQ(IUNIT,LHCCO(ICOMP),1,IER)
-      IF(ier.ne.0)goto 1000
-
-C Read the number of control intervals.
-      READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1002)N
-      IF(N.LT.1.OR.N.GT.MBP)goto 1003
-      NHCFP(ICOMP)=N
-
-C Read the number of mlc's (sometimes referred to as `surfaces', but
-C there are actually two surfaces--interior and exterior--for each mlc).
-      READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1002)NS
-      IF(NSUR.NE.NS)goto 1007
-
-C Iterate through each time interval.
-      DO 10 I=1,N
-
-C Read start and end times of interval.
-        READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1002)ST,FT
-        IF(ST.LT.0.OR.ST.GT.24.)goto 1004
-        IF(FT.LT.0.OR.FT.GT.24.)goto 1005
-        IF(FT.LT.ST)goto 1006
-        HCFPST(ICOMP,I)=ST
-        HCFPFT(ICOMP,I)=FT
-
-C Read control `type' for interval.  This controls how the remaining
-C data is read in.
-        READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1002) Itype
-        if(Itype.lt.1 .or. Itype.gt.4) goto 1010
-        iCTLTP(ICOMP,I) = Itype
-
-        if(Itype.eq.1) then
-
-C User specifies coefficients for each surface.
-C Read in convection coefficients for interior and exterior surfaces.
-          READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1002)(HIV(J),J=1,NS)
-          READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1002)(HEV(J),J=1,NS)
-
-C Assign convection coefficients to arrays.  Ensure there will be
-C heat transfer at the exterior surface.
-          DO 20 J=1,NS
-            IF(ABS(HEV(J)).LT.0.00001.AND.EMISE(J).GT.0.0)goto 1009
-            HCFVI(ICOMP,J,I)=HIV(J)
-            HCFVE(ICOMP,J,I)=HEV(J)
-   20     CONTINUE
-        elseif(Itype.eq.2) then
-
-C User specifies the correlation to use for each surface.
-C Read in the correlation indices.
-          READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1002)
-     &         (IcIuse(ICOMP,J,I),J=1,NS)
-          READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1002)
-     &         (IcEuse(ICOMP,J,I),J=1,NS)
-
-        elseif(Itype.eq.3) then
-
-C User specifies `adaptive' control.
-C Read in control laws and associated data. One line of data for each mlc.
-          do 30 J=1,NS
-            II = II + 1
-            icnvKY(ICOMP,J,I) = II
-            READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1003)
-     &           (CVdat(II,jj),jj=1,8)
-   30     continue
-
-C Read IAORZ,CWIDTH and CHEIGHT of ventilated channels. Close
-C the file if this line was not found.
-          READ(IUNIT,*,IOSTAT=ISTAT,ERR=1002,END=2003)
-     &      IAORZ,CWIDTH,CHEIGHT
-
-        elseif(Itype.eq.4) then
-
-C CEN mode sets values for specific conditions.
-          CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen base top',IER)
-          if(OUTSTR(1:8).eq.'*basetop')then
-            K=8
-            CALL EGETWR(OUTSTR,K,V1,1.,100.,'W','htc cen base',IER)
-            CALL EGETWR(OUTSTR,K,V2,1.,100.,'W','htc cen top',IER)
-            CENLOC(icomp,i,1)=V1
-            CENLOC(icomp,i,2)=V2
-          else
-            goto 1011
-          endif
-          CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen floor',IER)
-          if(OUTSTR(1:6).eq.'*floor')then
-            K=6
-            CALL EGETWR(OUTSTR,K,V1,0.,30.,'F','htc cen upward',IER)
-            CALL EGETWR(OUTSTR,K,V2,0.,30.,'F','htc cen down',IER)
-            CALL EGETWR(OUTSTR,K,V3,0.,30.,'F','htc cen ext',IER)
-            CENLOC(icomp,i,3)=V1
-            CENLOC(icomp,i,4)=V2
-            CENLOC(icomp,i,5)=V3
-          else
-            goto 1011
-          endif
-          CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen ceiling',IER)
-          if(OUTSTR(1:8).eq.'*ceiling')then
-            K=8
-            CALL EGETWR(OUTSTR,K,V1,0.,30.,'F','htc cen upward',IER)
-            CALL EGETWR(OUTSTR,K,V2,0.,30.,'F','htc cen down',IER)
-            CALL EGETWR(OUTSTR,K,V3,0.,30.,'F','htc cen ext',IER)
-            CENLOC(icomp,i,6)=V1
-            CENLOC(icomp,i,7)=V2
-            CENLOC(icomp,i,8)=V3
-          else
-            goto 1012
-          endif
-          CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen slope',IER)
-          if(OUTSTR(1:6).eq.'*slope')then
-            K=6
-            CALL EGETWR(OUTSTR,K,V1,0.,30.,'F','htc cen upward',IER)
-            CALL EGETWR(OUTSTR,K,V2,0.,30.,'F','htc cen down',IER)
-            CALL EGETWR(OUTSTR,K,V3,0.,30.,'F','htc cen ext',IER)
-            CENLOC(icomp,i,9)=V1
-            CENLOC(icomp,i,10)=V2
-            CENLOC(icomp,i,11)=V3
-          else
-            goto 1013
-          endif
-          CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen wall',IER)
-          if(OUTSTR(1:5).eq.'*wall')then
-            K=5
-            CALL EGETWR(OUTSTR,K,V1,0.,30.,'F','htc cen inside',IER)
-            CALL EGETWR(OUTSTR,K,V2,0.,30.,'F','htc cen ptn',IER)
-            CALL EGETWR(OUTSTR,K,V3,0.,30.,'F','htc cen ext',IER)
-            CENLOC(icomp,i,12)=V1
-            CENLOC(icomp,i,13)=V2
-            CENLOC(icomp,i,14)=V3
-          else
-            goto 1014
-          endif
-        else
-
-C Invalid control type specified.
-          goto 1010
-        endif
-   10 CONTINUE
-
-C Free file.
- 2003 CALL ERPFREE(IUNIT,ISTAT)
-
-C Trace output ?
-    8 IF(ITC.EQ.1)goto 5
-      IF(ITRACE(6).EQ.1.AND.IZNTRC(ICOMP).EQ.1)goto  5
-      goto 6
- 1000 IER=1
-      write(outs,7)ICOMP
-    7 format(' Zone',I3,' convective coefficient file error.')
-      call edisp(iuout,outs)
-      CALL edisp(iuout,' run being terminated.')
-      goto 8
- 1001 CALL edisp(iuout,' Convective coef file read error.')
-      goto 1000
- 1002 CALL edisp(iuout,' End of convective coef file sensed.')
-      goto 1000
- 1003 CALL edisp(iuout,' Number of conv coef periods out of range.')
-      goto 1000
- 1004 CALL edisp(iuout,' Conv coef control start out of range.')
-      goto 1000
- 1005 CALL edisp(iuout,' Conv coef control finish out of range.')
-      goto 1000
- 1006 CALL edisp(iuout,' Conv coef cntrl cannot extend over midnight.')
-      goto 1000
- 1007 call edisp(iuout,' Number of surfaces do not match.')
-      goto 1000
- 1009 call edisp(iuout,' A zero surface convection coefficient')
-      call edisp(iuout,' corresponding to a finite surface emissivity')
-      call edisp(iuout,' defines a physically unrealistic model')
-      call edisp(iuout,' which might lead to numerical instability.')
-      call epwait
-      call epagend
-      STOP
- 1010 call edisp(iuout,' Invalid HTC control type specified')
-      goto 1000
- 1011 call edisp(iuout,' Expecting *floor in htc file.')
-      goto 1000
- 1012 call edisp(iuout,' Expecting *ceil in htc file.')
-      goto 1000
- 1013 call edisp(iuout,' Expecting *slope in htc file.')
-      goto 1000
- 1014 call edisp(iuout,' Expecting *wall in htc file.')
-      goto 1000
-
-C Trace output follows.
-    5 CONTINUE 
-      dok=.false.
-      helptopic='hc_coef_trace_dialog'
-      call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' ',' Convective coefficient file output?',
-     &  OK,dok,nbhelp)
-      IF(.NOT.OK)goto 6
-      write(outs,'(A,I4)')' Subroutine MZHCFV      Trace output',ICNT
-      call edisp(itu,outs)
-      write(outs,'(23x,A,I7)')'Zone',ICOMP
-      call edisp(itu,outs)
-      call edisp(itu,' ')
-      ICNT=ICNT+1
-      call edisp(itu,' Control Start Finish')
-      N=NHCFP(ICOMP)
-      DO 9994 I=1,N
-        write(outs,'(I6,2I7)')I,HCFPST(ICOMP,I),HCFPFT(ICOMP,I)
-        call edisp(itu,outs)
-        DO 9992 J=1,NS
-          write(outs,'(2F15.3)')HCFVI(ICOMP,J,I),HCFVE(ICOMP,J,I)
-          call edisp(itu,outs)
- 9992   CONTINUE
- 9994 CONTINUE
-    6 IF(IER.EQ.5)goto 9
-      RETURN
-
-C Fatal error trap.
-    9 call epwait
-      call epagend
-      STOP
-
-      END
 
 C ******************** MZHCFV2 ********************
 C MZHCFV2 reads the convection-regime file (version 2)
@@ -338,39 +36,40 @@ C MZHCFV2 reads the convection-regime file (version 2)
 
       COMMON/ER/IER
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/TC/ITC,ICNT
 
       COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
 
-      COMMON/HCFIX2/NHCFP(MCOM),HCFPST(MCOM,MBP),HCFPFT(MCOM,MBP),
-     &              HCFVI(MCOM,MS,MBP),HCFVE(MCOM,MS,MBP)
+      COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
+     &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
+     &       HCFVE(MCOM,MDTY,MS,MBP)
 
-      common/HCTL/iCTLTP(MCOM,MBP),IcIuse(MCOM,MS,MBP),
-     &            IcEuse(MCOM,MS,MBP),icnvKY(MCOM,MS,MBP),
+      common/HCTL/iCTLTP(MCOM,MDTY,MBP),IcIuse(MCOM,MDTY,MS,MBP),
+     &            IcEuse(MCOM,MDTY,MS,MBP),icnvKY(MCOM,MDTY,MS,MBP),
      &            CVdat(MS*MBP,8)
-      common/HCFPHI/hcfpdescr(MBP)
+      common/HCFPHI/hcfpdescr(MDTY,MBP)
       COMMON/VERTC/IAORZ,CWIDTH,CHEIGHT
-      COMMON/HCCEN2/CENLOC(MCOM,MBP,14)
+      COMMON/HCCEN2/CENLOC(MCOM,MDTY,MBP,14)
 
       character outs*124,OUTSTR*124,word*24
       character hcfpdescr*72
-      logical OK,dok,newer
+      logical OK,newer
 
       dimension HCIA(MS),HCEA(MS),IHCIA(MS),IHCEA(MS)
 
-C NHCFP(ICOMP) is the number of control time intervals.
+C NHCFP(ICOMP,MDTY) is the number of control time intervals.
 C Variables used for `type 1' control:
-C    HCFVI(i,j,k): interior HTC for zone `i', surface `j', time interval `k'.
-C    HCFVE(i,j,k): exterior HTC for zone `i', surface `j', time interval `k'.
+C    HCFVI(i,L,j,k): interior HTC for zone `i', surface `j', time interval `k'.
+C    HCFVE(i,L,j,k): exterior HTC for zone `i', surface `j', time interval `k'.
 C Variables used for `type 2' control:
-C    IcIuse(i,j,k): correlation-equation index for interior of zone `i',
+C    IcIuse(i,L,j,k): correlation-equation index for interior of zone `i',
 C                   surface `j', time interval `k'.
-C    IcEuse(i,j,k): correlation-equation index for exterior of zone `i',
+C    IcEuse(i,L,j,k): correlation-equation index for exterior of zone `i',
 C                   surface `j', time interval `k'.
 C Variables used for `type 3' control:
-C    icnvKY(i,j,k): index for zone `i', surface `j', time interval `k'.
+C    icnvKY(i,L,j,k): index for zone `i', surface `j', time interval `k'.
 C    II: counter used for the icnvKY() index array.
 C    CVdat(II,jj): data items (`jj') for index `II':
 C       jj=1:   control law for interior surface
@@ -378,7 +77,7 @@ C       jj=2-4: data items associated with control law for interior
 C       jj=5:   control law for exterior surface
 C       jj=6-8: data items associated with control law for exterior
 C Variables used for `type 4' control:
-C   CENLOC(i,k,jj) hc values for zone 'i', time interval 'k':
+C   CENLOC(i,L,k,jj) hc values for zone 'i', time interval 'k':
 C       jj=1 index of a floor surface
 C       jj=2 index of a ceiling surface
 C       jj=3-5 floor upwd_inside, downwd_inside, external
@@ -394,7 +93,7 @@ C For help messages
       helpinsub='MZHCFV2'  ! set for subroutine
 
 C Initialize data.
-      NHCFP(ICOMP)=0
+      NHCFP(ICOMP,1)=0
       II=0
       IUNIT=IFIL+1
 
@@ -411,6 +110,7 @@ C Or does the file start with '*HC_CTL'?
         if(num1.eq.1.and.num2.eq.1.and.num3.eq.2)then
           rewind(iunit,err=392)
           newer=.false.
+          NCHDT(ICOMP)=1  ! all days the same
         else
 
 C Rewind file check first line and if *HC_Ctl read 2nd line as datestamp.
@@ -420,6 +120,17 @@ C Rewind file check first line and if *HC_Ctl read 2nd line as datestamp.
      &       OUTSTR(1:7).eq.'*hc_ctl')then
             newer=.true.
             CALL STRIPC(iunit,OUTSTR,99,num1,1,'htc date',IER)
+            if(OUTSTR(1:5).eq.'*Date')then
+              CALL STRIPC(iunit,OUTSTR,99,num1,1,'Day types',IER)
+              if(OUTSTR(1:5).eq.'*Days')then
+                K=7
+                CALL EGETWI(OUTSTR,K,N,1,20,'F','nb day types',IER)
+                NCHDT(ICOMP)=n
+              else
+                NCHDT(ICOMP)=1    ! all days the same
+                backspace(iunit)  ! unread the current line of the file
+              endif
+            endif
           else
 
 C Not a recognised file << what error code to return? >>
@@ -429,158 +140,160 @@ C Not a recognised file << what error code to return? >>
         endif
       endif
 
-C Read the number of control intervals.
-      CALL STRIPC(iunit,OUTSTR,1,num1,1,'htc periods',IER)
-      K=0
-      CALL EGETWI(OUTSTR,K,N,1,MBP,'F','htc periods',IER)
-      if(ier.ne.0) goto 390
-      NHCFP(ICOMP)=N
+C For each day type, read the number of control intervals.
+      do L=1,NCHDT(ICOMP)
+        CALL STRIPC(iunit,OUTSTR,1,num1,1,'htc periods',IER)
+        K=0
+        CALL EGETWI(OUTSTR,K,N,1,MBP,'F','htc periods',IER)
+        if(ier.ne.0) goto 390
+        NHCFP(ICOMP,L)=N
 
 C Read the number of surfaces
-      CALL STRIPC(iunit,OUTSTR,1,num1,1,'htc surfaces',IER)
-      K=0
-      CALL EGETWI(OUTSTR,K,NS,1,NSUR,'W','htc surfaces',IER)
-      IF(NSUR.NE.NS)goto 1007
+        CALL STRIPC(iunit,OUTSTR,1,num1,1,'htc surfaces',IER)
+        K=0
+        CALL EGETWI(OUTSTR,K,NS,1,NSUR,'W','htc surfaces',IER)
+        IF(NSUR.NE.NS)goto 1007
 
 C Iterate through each time interval.
-      DO 10 I=1,N
+        DO 10 I=1,N
 
 C Read start and end times of interval.
-        CALL STRIPC(iunit,OUTSTR,2,num1,1,'htc start - end',IER)
-        K=0
-        CALL EGETWR(OUTSTR,K,ST,0.,24.,'F','htc start',IER)
-        CALL EGETWR(OUTSTR,K,FT,ST,24.,'F','htc end',IER)
-        if(ier.ne.0) goto 390
-        IF(FT.LT.ST)goto 1006
-        HCFPST(ICOMP,I)=ST
-        HCFPFT(ICOMP,I)=FT
+          CALL STRIPC(iunit,OUTSTR,2,num1,1,'htc start - end',IER)
+          K=0
+          CALL EGETWR(OUTSTR,K,ST,0.,24.,'F','htc start',IER)
+          CALL EGETWR(OUTSTR,K,FT,ST,24.,'F','htc end',IER)
+          if(ier.ne.0) goto 390
+          IF(FT.LT.ST)goto 1006
+          HCFPST(ICOMP,L,I)=ST
+          HCFPFT(ICOMP,L,I)=FT
 
 C Read control `type' for interval.  This controls how the remaining
 C data is read in.
-        CALL STRIPC(iunit,OUTSTR,1,num1,1,'htc ctl type',IER)
-        K=0
-        CALL EGETWI(OUTSTR,K,Itype,1,4,'F','htc ctl type',IER)
-        if(ier.ne.0) goto 390
-        iCTLTP(ICOMP,I) = Itype
+          CALL STRIPC(iunit,OUTSTR,1,num1,1,'htc ctl type',IER)
+          K=0
+          CALL EGETWI(OUTSTR,K,Itype,1,4,'F','htc ctl type',IER)
+          if(ier.ne.0) goto 390
+          iCTLTP(ICOMP,L,I) = Itype
 
 C If newer format then scan for hcfpdescr.
-        if(newer)then
-          CALL STRIPC(iunit,OUTSTR,99,num1,1,'htc ctl doc',IER)
-          K=0
-          CALL EGETW(OUTSTR,K,WORD,'W','*doc',IFLAG)
-          call egetrm(outstr,K,hcfpdescr(i),'W','hc doc',IER)
-        else
-          hcfpdescr(i)='Imported legacy file with no regime docs.'
-        endif
+          if(newer)then
+            CALL STRIPC(iunit,OUTSTR,99,num1,1,'htc ctl doc',IER)
+            K=0
+            CALL EGETW(OUTSTR,K,WORD,'W','*doc',IFLAG)
+            call egetrm(outstr,K,hcfpdescr(L,i),'W','hc doc',IER)
+          else
+            hcfpdescr(L,i)='Imported legacy file with no regime docs.'
+          endif
 
-        if(Itype.eq.1) then
+          if(Itype.eq.1) then
 
 C User has specified surface convection coefficients for inside and/or
 C surface outermost zone surfaces. Note that a value of -1 for any
 C surface indicates that no user prescription is active and that the
 C defualt value should be used (hence -1 is included in the following
 C range check).
-          CALL EGETWRA(iunit,HCIA,NS,-1.,999.,'W','ins face hc',IER)
-          CALL EGETWRA(iunit,HCEA,NS,-1.,999.,'W','other face hc',IER)
-          DO 114 KV=1,NS
-            IF(ABS(HCEA(KV)).LT.0.00001.AND.EMISE(KV).GT.0.0)goto 1009
-            HCFVI(ICOMP,KV,I)=HCIA(KV)
-            HCFVE(ICOMP,KV,I)=HCEA(KV)
-  114     CONTINUE
-        elseif(Itype.eq.2) then
+            CALL EGETWRA(iunit,HCIA,NS,-1.,999.,'W','ins face hc',IER)
+            CALL EGETWRA(iunit,HCEA,NS,-1.,999.,'W','other face hc',IER)
+            DO 114 KV=1,NS
+              IF(ABS(HCEA(KV)).LT.0.00001.AND.EMISE(KV).GT.0.0)goto 1009
+              HCFVI(ICOMP,L,KV,I)=HCIA(KV)
+              HCFVE(ICOMP,L,KV,I)=HCEA(KV)
+  114       CONTINUE
+          elseif(Itype.eq.2) then
 
 C User specifies the correlation to use for each surface.
 C Read in the correlation indices.
-          CALL EGETWIA(iunit,IHCIA,NS,-1,99,'W',
-     &      'inside face hc cor',IER)
-          CALL EGETWIA(iunit,IHCEA,NS,-1,99,'W',
-     &     'other face hc cor',IER)
-          DO 115 KV=1,NS
-            IcIuse(ICOMP,KV,I)=IHCIA(KV)
-            IcEuse(ICOMP,KV,I)=IHCEA(KV)
-  115     CONTINUE
-        elseif(Itype.eq.3) then
+            CALL EGETWIA(iunit,IHCIA,NS,-1,99,'W',
+     &        'inside face hc cor',IER)
+            CALL EGETWIA(iunit,IHCEA,NS,-1,99,'W',
+     &       'other face hc cor',IER)
+            DO 115 KV=1,NS
+              IcIuse(ICOMP,L,KV,I)=IHCIA(KV)
+              IcEuse(ICOMP,L,KV,I)=IHCEA(KV)
+  115       CONTINUE
+          elseif(Itype.eq.3) then
 
 C User specifies `adaptive' control.
 C Read in control laws and associated data. One line of data for each mlc.
-          do 30 J=1,NS
-            II = II + 1
-            icnvKY(ICOMP,J,I) = II
-            READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1003)
+            do 30 J=1,NS
+              II = II + 1
+              icnvKY(ICOMP,L,J,I) = II
+              READ(IUNIT,*,IOSTAT=ISTAT,ERR=1001,END=1003)
      &           (CVdat(II,jj),jj=1,8)
-   30     continue
+   30       continue
 
 C Read IAORZ,CWIDTH and CHEIGHT of ventilated channels. Close
 C the file if this line was not found.
-          READ(IUNIT,*,IOSTAT=ISTAT,ERR=1002,END=2003)
-     &      IAORZ,CWIDTH,CHEIGHT
-        elseif(Itype.eq.4) then
+            READ(IUNIT,*,IOSTAT=ISTAT,ERR=1002,END=2003)
+     &        IAORZ,CWIDTH,CHEIGHT
+          elseif(Itype.eq.4) then
 
 C CEN mode sets values for specific conditions.
-          CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen base top',IER)
-          if(OUTSTR(1:8).eq.'*basetop')then
-            K=8
-            CALL EGETWR(OUTSTR,K,V1,1.,100.,'W','htc cen base',IER)
-            CALL EGETWR(OUTSTR,K,V2,1.,100.,'W','htc cen top',IER)
-            CENLOC(icomp,i,1)=V1
-            CENLOC(icomp,i,2)=V2
+            CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen base top',IER)
+            if(OUTSTR(1:8).eq.'*basetop')then
+              K=8
+              CALL EGETWR(OUTSTR,K,V1,1.,100.,'W','htc cen base',IER)
+              CALL EGETWR(OUTSTR,K,V2,1.,100.,'W','htc cen top',IER)
+              CENLOC(icomp,L,i,1)=V1
+              CENLOC(icomp,L,i,2)=V2
+            else
+              goto 1011
+            endif
+            CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen floor',IER)
+            if(OUTSTR(1:6).eq.'*floor')then
+              K=6
+              CALL EGETWR(OUTSTR,K,V1,0.,20.,'F','htc cen upward',IER)
+              CALL EGETWR(OUTSTR,K,V2,0.,20.,'F','htc cen down',IER)
+              CALL EGETWR(OUTSTR,K,V3,0.,20.,'F','htc cen ext',IER)
+              CENLOC(icomp,L,i,3)=V1
+              CENLOC(icomp,L,i,4)=V2
+              CENLOC(icomp,L,i,5)=V3
+            else
+              goto 1011
+            endif
+            CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen ceiling',IER)
+            if(OUTSTR(1:8).eq.'*ceiling')then
+              K=8
+              CALL EGETWR(OUTSTR,K,V1,0.,20.,'F','htc cen upward',IER)
+              CALL EGETWR(OUTSTR,K,V2,0.,20.,'F','htc cen down',IER)
+              CALL EGETWR(OUTSTR,K,V3,0.,20.,'F','htc cen ext',IER)
+              CENLOC(icomp,L,i,6)=V1
+              CENLOC(icomp,L,i,7)=V2
+              CENLOC(icomp,L,i,8)=V3
+            else
+              goto 1012
+            endif
+            CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen slope',IER)
+            if(OUTSTR(1:6).eq.'*slope')then
+              K=6
+              CALL EGETWR(OUTSTR,K,V1,0.,20.,'F','htc cen upward',IER)
+              CALL EGETWR(OUTSTR,K,V2,0.,20.,'F','htc cen down',IER)
+              CALL EGETWR(OUTSTR,K,V3,0.,20.,'F','htc cen ext',IER)
+              CENLOC(icomp,L,i,9)=V1
+              CENLOC(icomp,L,i,10)=V2
+              CENLOC(icomp,L,i,11)=V3
+            else
+              goto 1013
+            endif
+            CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen wall',IER)
+            if(OUTSTR(1:5).eq.'*wall')then
+              K=5
+              CALL EGETWR(OUTSTR,K,V1,0.,20.,'F','htc cen inside',IER)
+              CALL EGETWR(OUTSTR,K,V2,0.,20.,'F','htc cen ptn',IER)
+              CALL EGETWR(OUTSTR,K,V3,0.,20.,'F','htc cen ext',IER)
+              CENLOC(icomp,L,i,12)=V1
+              CENLOC(icomp,L,i,13)=V2
+              CENLOC(icomp,L,i,14)=V3
+            else
+              goto 1014
+            endif
           else
-            goto 1011
-          endif
-          CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen floor',IER)
-          if(OUTSTR(1:6).eq.'*floor')then
-            K=6
-            CALL EGETWR(OUTSTR,K,V1,0.,20.,'F','htc cen upward',IER)
-            CALL EGETWR(OUTSTR,K,V2,0.,20.,'F','htc cen down',IER)
-            CALL EGETWR(OUTSTR,K,V3,0.,20.,'F','htc cen ext',IER)
-            CENLOC(icomp,i,3)=V1
-            CENLOC(icomp,i,4)=V2
-            CENLOC(icomp,i,5)=V3
-          else
-            goto 1011
-          endif
-          CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen ceiling',IER)
-          if(OUTSTR(1:8).eq.'*ceiling')then
-            K=8
-            CALL EGETWR(OUTSTR,K,V1,0.,20.,'F','htc cen upward',IER)
-            CALL EGETWR(OUTSTR,K,V2,0.,20.,'F','htc cen down',IER)
-            CALL EGETWR(OUTSTR,K,V3,0.,20.,'F','htc cen ext',IER)
-            CENLOC(icomp,i,6)=V1
-            CENLOC(icomp,i,7)=V2
-            CENLOC(icomp,i,8)=V3
-          else
-            goto 1012
-          endif
-          CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen slope',IER)
-          if(OUTSTR(1:6).eq.'*slope')then
-            K=6
-            CALL EGETWR(OUTSTR,K,V1,0.,20.,'F','htc cen upward',IER)
-            CALL EGETWR(OUTSTR,K,V2,0.,20.,'F','htc cen down',IER)
-            CALL EGETWR(OUTSTR,K,V3,0.,20.,'F','htc cen ext',IER)
-            CENLOC(icomp,i,9)=V1
-            CENLOC(icomp,i,10)=V2
-            CENLOC(icomp,i,11)=V3
-          else
-            goto 1013
-          endif
-          CALL STRIPC(IUNIT,OUTSTR,99,num,1,'htc cen wall',IER)
-          if(OUTSTR(1:5).eq.'*wall')then
-            K=5
-            CALL EGETWR(OUTSTR,K,V1,0.,20.,'F','htc cen inside',IER)
-            CALL EGETWR(OUTSTR,K,V2,0.,20.,'F','htc cen ptn',IER)
-            CALL EGETWR(OUTSTR,K,V3,0.,20.,'F','htc cen ext',IER)
-            CENLOC(icomp,i,12)=V1
-            CENLOC(icomp,i,13)=V2
-            CENLOC(icomp,i,14)=V3
-          else
-            goto 1014
-          endif
-        else
 
 C Invalid control type specified.
-          goto 1010
-        endif
-   10 CONTINUE
+            goto 1010
+          endif
+   10   CONTINUE
+      ENDDO  ! of NCHDT(ICOMP)
 
 C Free file.
  2003 CALL ERPFREE(IUNIT,ISTAT)
@@ -609,6 +322,8 @@ C Trace output ?
       call edisp(iuout,' corresponding to a finite surface emissivity')
       call edisp(iuout,' defines a physically unrealistic model')
       call edisp(iuout,' which might lead to numerical instability.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -626,22 +341,25 @@ C Trace output ?
 C Error messages.
   390 call edisp(iuout,' HC File read error.')
       CALL ERPFREE(IUF,ISTAT)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
   392 call edisp(iuout,' Unable to rewind HC File.')
       CALL ERPFREE(IUF,ISTAT)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
 
 C Trace output follows.
     5 CONTINUE
-      dok=.true.
       helptopic='hc_coef_trace_dialog'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK(' ',' Convective regime trace output?',
-     &  OK,dok,nbhelp)
+      CALL EASKOK(' ','Convective regime trace output?',
+     &  OK,nbhelp)
       IF(.NOT.OK)goto 6
       write(outs,'(A,I4,a,i3)')' Subroutine MZHCFV2  Trace output',
      &  ICNT,' for zone ',ICOMP
@@ -649,29 +367,30 @@ C Trace output follows.
       call edisp(itu,' ')
       ICNT=ICNT+1
       call edisp(itu,' Control Start Finish')
-      N=NHCFP(ICOMP)
+      L=1  ! only report first day type.
+      N=NHCFP(ICOMP,L)
       DO 9994 I=1,N
-        write(outs,'(1x,a)') hcfpdescr(i)
+        write(outs,'(1x,a)') hcfpdescr(L,i)
         call edisp(itu,outs)
         if(Itype.eq.1) then
-          write(outs,'(I6,2I7)')I,HCFPST(ICOMP,I),HCFPFT(ICOMP,I)
+          write(outs,'(I6,2I7)')I,HCFPST(ICOMP,L,I),HCFPFT(ICOMP,L,I)
           call edisp(itu,outs)
           DO 9992 J=1,NS
-            write(outs,'(2F15.3)')HCFVI(ICOMP,J,I),HCFVE(ICOMP,J,I)
+            write(outs,'(2F15.3)')HCFVI(ICOMP,L,J,I),HCFVE(ICOMP,L,J,I)
             call edisp(itu,outs)
  9992     CONTINUE
         elseif(Itype.eq.2) then
-          write(outs,'(I6,2I7)')I,HCFPST(ICOMP,I),HCFPFT(ICOMP,I)
+          write(outs,'(I6,2I7)')I,HCFPST(ICOMP,L,I),HCFPFT(ICOMP,L,I)
           call edisp(itu,outs)
           DO 9982 J=1,NS
-            write(outs,'(2I10)')IcIuse(ICOMP,J,I),IcEuse(ICOMP,J,I)
+            write(outs,'(2I10)')IcIuse(ICOMP,L,J,I),IcEuse(ICOMP,L,J,I)
             call edisp(itu,outs)
  9982     CONTINUE
         elseif(Itype.eq.3) then
-          write(outs,'(I6,2I7)')I,HCFPST(ICOMP,I),HCFPFT(ICOMP,I)
+          write(outs,'(I6,2I7)')I,HCFPST(ICOMP,L,I),HCFPFT(ICOMP,L,I)
           call edisp(itu,outs)
           DO 9972 J=1,NS
-            write(outs,'(i5)') icnvKY(ICOMP,J,I)
+            write(outs,'(i5)') icnvKY(ICOMP,L,J,I)
             call edisp(itu,outs)
  9972     CONTINUE
           call edisp(itu,'Per surface data for type 3')
@@ -685,7 +404,9 @@ C Trace output follows.
       RETURN
 
 C Fatal error trap.
-    9 call epwait
+    9 close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
+      call epwait
       call epagend
       STOP
 
@@ -740,7 +461,7 @@ C   commences with an offset of y=2*(2*misur).
       COMMON/FILEP/IFIL
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       common/rsolmax/maxrec(mcom)
 
@@ -749,7 +470,7 @@ C   commences with an offset of y=2*(2*misur).
 
       DIMENSION ISUM1(12),ISUM2(12),PS(24),
      &          IGC(MS),ISADD(12),ISHD(12)
-      logical OK,dok
+      logical OK
       integer ier
 
 C For help messages
@@ -801,6 +522,8 @@ C If this point reached there was no request for trace so
 C close the file.
       CALL ERPFREE(IUNIT,ISTAT)
       IF(IER.EQ.1)then
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -835,7 +558,6 @@ C Code to read the file is out of date and differes from the
 C logic within solar.F so diffuse shading and insolation data
 C is not presented. Direct shading is presented only.
     1 CONTINUE 
-      dok=.true.
       write(outs,'(A,I4)')' Subroutine MZSHIN     Trace output',ICNT
       call edisp(itu,outs)
       write(outs,'(23X,A,I7)')'Zone',ICOMP
@@ -938,6 +660,8 @@ c Output PI.
 
     2 CALL ERPFREE(IUNIT,ISTAT)
       IF(IER.EQ.1)then
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -968,7 +692,7 @@ c        or not.
 #include "model.h"
 
       COMMON/ER/IER
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/FILEP/IFIL
 
@@ -998,6 +722,8 @@ c Transfer VEWF array to CFB.
 c Free file.
     8 CALL ERPFREE(IUNIT,ISTAT)
       IF(IER.EQ.1)then
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP

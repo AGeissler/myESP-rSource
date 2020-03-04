@@ -27,7 +27,7 @@ C ITRU = unit number for user output, IER=0 OK, IER=1 problem.
 #include "model.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/FILEP/IFIL
 
@@ -223,7 +223,7 @@ C IER=0 OK, IER=1 problem.
 #include "building.h"
 #include "geometry.h"
 #include "epara.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/MRT2/GEOLOAD,MRTLOAD
       COMMON /SURPNT/ ISPNT(6,MSM), GAREA(MSM), EMISI(MS)
@@ -260,7 +260,7 @@ C Initial menu entry setup return if no file has been read in.
           M=M+1
           CALL EMKEY(L,KEY,IER)
           ICN=IZSTOCN(ICOMP,L)
-          WRITE(STMENU(M),14)KEY,L,SSNAME(ICN),EMISI(L),temp(L)
+          WRITE(STMENU(M),14)KEY,L,SNAME(ICOMP,L),EMISI(L),temp(L)
    14     FORMAT(A1,I3,1X,A12,F5.2,F7.2)
         ENDIF
    10 CONTINUE
@@ -330,7 +330,7 @@ C *********** CALMRT
       SUBROUTINE CALMRT(ITRC,ITRU,radtemp,ICOMP)
 #include "building.h"
 #include "geometry.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/G1M/XM(MTV),YM(MTV),ZM(MTV),NSURM,JVNM(MSM,MV),
      &           NVERM(MSM),NTVM
       COMMON /CELLS/ NCELL(MSM), NCPT(MSM), IGFACT

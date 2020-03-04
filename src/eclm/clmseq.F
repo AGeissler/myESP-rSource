@@ -21,7 +21,7 @@ C Boston, MA 02111-1307 USA.
 C CLMSEQ identifies days and hours within the user-specified period that
 C contain values with a range of values and reports the occurrances. The
 C weather data values to be scanned are passed via the IP parameter.
-C IP is equal to climate metric index as defined in climate.h
+C IP is equal to weather metric index as defined in climate.h
 
 C This facility allows 'cold' or 'hot' or 'nice' days to be located.
 
@@ -35,7 +35,7 @@ C Passed parameters:
       integer nbdays    ! returned number of days meeting criteria
       integer nbhours   ! returned number of hours meeting criteria
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW

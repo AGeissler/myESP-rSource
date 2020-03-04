@@ -31,22 +31,28 @@ C esprdbfile.h supplies the following:
 C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 #include "material.h"
 
-      common/pophelp/h(60)
-
       real DFLTRANGE     ! topic & attribute increments
       integer IDFLTR     ! 1=% 2=abs
       common/UADFLT/DFLTRANGE(6,6),IDFLTR(6,6)
       CHARACTER ITEM(30)*32
 
-      character H*72,KEY*1,outs*124,sym*2
+      character KEY*1,outs*124,sym*2
       character t32*32,d32*32
-      logical closemat1,closemat2,ok,dok
+      logical closemat1,closemat2,ok
       integer NCO,ICO ! max items and current menu item
+
+C For help messages.
+      character helpinsub*24  ! subroutine name
+      character helptopic*24  ! string (unique) for topic
+      integer nbhelp          ! number of help lines found
+
+      helpinsub='SDDFLT001'     ! set for subroutine
       
 C Set default uncertainties. 5% as %. If user asks.
-      dok=.true.
-      CALL ASKOK('Set initial standard uncertainty range defaults?  ',
-     & '(all to 5%)',OK,DOK,5)
+      helptopic='uncertainty_defaults'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+      CALL EASKOK(' ','Set initial uncertainty ranges to 5%?',
+     &            OK,nbhelp)
       if(ok)then
         do I=1,6
           do J=1,6
@@ -70,7 +76,7 @@ C Gather the names of the various classes and present this list.
      &  DFLTRANGE(3,2),sym
       if(IDFLTR(3,3).eq.1) sym=' %'
       if(IDFLTR(3,3).eq.2) sym=' a'
-      write(ITEM(4),'(a,f5.2,a)')'c diffuse horiz solar ',
+      write(ITEM(4),'(a,f5.2,a)')'c diffuse horiz. solar ',
      &  DFLTRANGE(3,3),sym
       if(IDFLTR(3,4).eq.1) sym=' %'
       if(IDFLTR(3,4).eq.2) sym=' a'
@@ -121,7 +127,7 @@ C Gather the names of the various classes and present this list.
      &  DFLTRANGE(5,2),sym
       if(IDFLTR(5,4).eq.1) sym=' %'
       if(IDFLTR(5,4).eq.2) sym=' a'
-      write(ITEM(19),'(a,f5.2,a)')'o heat & Cool set pt ',
+      write(ITEM(19),'(a,f5.2,a)')'o heat & cool set-pt ',
      &  DFLTRANGE(5,4),sym
       ITEM(20)=' Zones composition ...         '
       if(IDFLTR(6,1).eq.1) sym=' %'
@@ -139,11 +145,11 @@ C Gather the names of the various classes and present this list.
      &  DFLTRANGE(4,1),sym
       if(IDFLTR(4,2).eq.1) sym=' %'
       if(IDFLTR(4,2).eq.2) sym=' a'
-      write(ITEM(25),'(a,f5.2,a)')'s sensible & Latent W',
+      write(ITEM(25),'(a,f5.2,a)')'s sensible & latent W',
      &  DFLTRANGE(4,2),sym
       if(IDFLTR(4,4).eq.1) sym=' %'
       if(IDFLTR(4,4).eq.2) sym=' a'
-      write(ITEM(26),'(a,f5.2,a)')'t rad/conv split ',
+      write(ITEM(26),'(a,f5.2,a)')'t rad./conv. split ',
      &  DFLTRANGE(4,4),sym
       ITEM(27)='* clear all defaults (to 0.01%)'
       ITEM(28)='* initialise defaults          '
@@ -151,26 +157,12 @@ C Gather the names of the various classes and present this list.
       ITEM(30)='- Exit                         '
       NCO=30
 
-C Help text for this menu.
-      H(1)='Each of the uncertainty topics can have defaults for how'
-      H(2)='the range of uncertainties are treated. Users can define'
-      H(3)='these as either % of the current value of the attribute'
-      H(4)='or as a fixed value offset. At run time these definitions'
-      H(5)='of the range of uncertainty is multipled by a random '
-      H(6)='number (in the range of -2.0 to 2.0). '
-      H(7)='If you set new defaults for the topics you can use'
-      H(8)='them as you define new distributions (otherwise you'
-      H(9)='will have to nominate values for each one manually. '
-      H(10)=' '
-      H(11)='Intially 5% is assumed for each. If you clear the defaults'
-      H(12)='the value is reset to 0.01% (effectively no change). '
-
       CALL EMENU('Uncertainty ranges',ITEM,NCO,ICO)
 
       IF(ICO.EQ.NCO)THEN
         RETURN
       ELSEIF(ICO.EQ.(NCO-1))THEN
-        CALL PHELPD('uncertainty_range',12,'-',0,0,IER)
+        CALL PHELPD('uncertainty_range',nbhelp,'-',0,0,IER)
       ELSEIF(ICO.EQ.(NCO-2))THEN
       
 C Initialise default uncertainties. 5.0% and %.

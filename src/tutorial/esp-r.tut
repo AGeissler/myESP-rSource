@@ -1,7 +1,7 @@
 # General tutorial file for ESP-r; version of June 2007.
 
-*tut_clm_dbitems  climate databases contents
-Climate databases hold hourly weather data from 1h00 on 1 January
+*tut_clm_dbitems  weather databases contents
+Weather databases hold hourly weather data from 1h00 on 1 January
 to 24h00 on 31 December. For each hour the following data is held.
 
   Diffuse horizontal solar intensity (W/m^2)
@@ -14,13 +14,13 @@ to 24h00 on 31 December. For each hour the following data is held.
 Also included are the site latitude, longitude difference from the
 local reference Meridian), the site altitude and a site name.
 
-While a Climate db is held as a binary representation, this may be
+While a weather db is held as a binary representation, this may be
 converted to an ASCII file (and vice cera) to allow porting between
 dissimilar operating systems. The initial portion of an ASCII
 version is shown below.
 
 *CLIMATE
-# ascii climate file from clm67 binary db,
+# ascii weather file from clm67 binary db,
 # defined in: clm67.a
 # col 1: Diffuse solar on the horizontal (W/m^2)
 # col 2: External dry bulb temperature   (Tenths DEG.C)
@@ -28,7 +28,7 @@ version is shown below.
 # col 4: Prevailing wind speed           (Tenths m/s)
 # col 5: Wind direction     (clockwise deg from north)
 # col 6: Relative humidity               (Percent)
-ESP test climate                # site name
+ESP test weather                # site name
   1967   52.00    0.00   0      # year, latitude, long diff, rad flag
      1   365                   # period (julian days)
 * day  1 month  1
@@ -46,12 +46,12 @@ ESP test climate                # site name
      77     50    568     57    265     69
      83     55    151     59    275     69
 
-*tut_clm_dblist   climate databases list
-The following describes the form of a climate data listing.
+*tut_clm_dblist   weather databases list
+The following describes the form of a weather data listing.
 The file tags have the following meanings.
 
  *item - the beginning of a data item
- *name - name of climate for menu (<=32 characters)
+ *name - name of weather for menu (<=32 characters)
  *aide - a short description (<=72 characters)
  *dbfl - the absolute path of the db file
  *avail - ONLINE or OFFLINE
@@ -64,13 +64,13 @@ The file tags have the following meanings.
  *help_end - end of text to present
  *end - end of the file
 
-The following is the initial portion of a Climate db list.
+The following is the initial portion of a Weather db list.
 *CLIMATE_LIST
-*group  ESRU standard Climate dbs
+*group  ESRU standard Weather dbs
 # WARNING: Keep this file up to date with current directory structure!
 *item
-*name   Default Climate
-*aide   Climate data as distributed with ESP-r for testing purposes.
+*name   Default Weather
+*aide   Weather data as distributed with ESP-r for testing purposes.
 *dbfl   /usr/esru/esp-r/climate/clm67
 *winter 9  1  15  1
 *spring 6  3  12  3
@@ -129,12 +129,12 @@ a) Input descripton
    passed via the invocation command as in "bld -file
    problem.cfg".
 
-b) Assign climate file
-   Allows an alternative climate database from that included in
+b) Assign weather file
+   Allows an alternative weather database from that included in
    the system configuration to be used.
 
 c) Initiate simulation
-   Takes the current configuration and climate and proceeds to
+   Takes the current configuration and weather and proceeds to
    setup assessment parameters (e.g. period of simulation, level
    of detail to be recorded in the results library, calculation
    parameters).
@@ -160,12 +160,12 @@ a) Input descripton
    passed via the invocation command as in "bps -file
    problem.cfg".
 
-b) Assign climate file
-   Allows an alternative Climate database from that included in
+b) Assign weather file
+   Allows an alternative weather database from that included in
    the system configuration file to be used.
 
 c) Initiate simulation
-   Takes the current configuration and climate and proceeds to
+   Takes the current configuration and weather and proceeds to
    set up assessment parameters (e.g. period of simulation, level
    of detail to be recorded in the results library, calculation
    parameters etc.).
@@ -243,8 +243,8 @@ Network flow parameters
    convergence of complext networks. Details are available within
    the facility.
 
-Climate interpolation
-   For sub-hour building time steps, climate data is usually
+Weather interpolation
+   For sub-hour building time steps, weather data is usually
    interpolated. This interpolation may be disabled.
 
 Power flow
@@ -454,12 +454,11 @@ Materials db
    database data is held in common memory after scanning the
    ASCII common materials file. Database entities are acessed
    via name (so names need to be unique).  The standard versions
-   reside in ~esru/esp-r/databases/ with either *.materialdb
-   or material.db?.a forms.
+   reside in ~esp-r/databases/ with material.db forms.
 
    In the case of a project where measured thermophysical
    properties are available or bespoke materials are being used,
-   the user may copy the standard Materialsdatabase to
+   the user may copy the standard Materials database to
    the project, rename it and modify it as required.
 
 A portion of a Materials db follows.
@@ -467,7 +466,7 @@ A portion of a Materials db follows.
 *Materials 1.1
 *date,Thu Aug  8 10:16:03 2013
 # materials database defined in cellular.materialdb
-*doc,ESP-r Materials based on materials.db3.a
+*doc,ESP-r Materials based on materials.db
 18  # number of classifications
 #  
 # Materials have the following attributes:
@@ -550,23 +549,45 @@ Constructions db
 
    This database is held in ASCII format and an example listing
    follows.
-
-# composite construction db defined in ./multicon.db3
-# based on materials db ./material.db3.a
-   48     # no of composites 
-# layers  description   optics name   symmetry tag
-    4    extern_wall   OPAQ  OPAQUE        NONSYMMETRIC  
-# mat ref thickness (m) mat descr & air gap R
-    6    0.1000  Lt brown brick : Light brown brick
-  211    0.0750  glasswool : Glasswool (generic)
-    0    0.0500  air  0.170 0.170 0.170
-    2    0.1000  breeze block : Breeze block
-# layers  description   optics name   symmetry tag
-    3    insul_mtl_p   OPAQ  OPAQUE        NONSYMMETRIC  
-# mat ref thickness (m) mat descr & air gap R
-   46    0.0040  grey cotd alum : Grey coated aluminium
-  281    0.0800  glass fibre quilt : Glass Fibre Quilt
-   47    0.0040  wt cotd alum : White coated aluminium
+   
+*CONSTRUCTIONS,1.0 # multilayer constructions
+*Text
+As defined in multicon.db and based on
+materials db material.db and CFClayers db CFClayers.db1.a
+Tags are:
+- *Category ... *End_category markers for category
+- *Category  short name, menu entry, documentation
+- *item ... *end_item  markers for construction start & end
+- *item  short name (32 char), menu entry (32 char)
+- *itemdoc documentation (248 char)
+- *incat category short name
+- *type ... OPAQ/TRAN, optical name, SYMMETRIC/NONSYMMETRIC/linked mlc name
+- *layer layer data... mat ref, thickness,mat name: mat description
+- *Text ... *End_text  markers for database documentation
+*End_text
+*date,Tue May 22 14:29:55 2018
+*Category,walls,opaque facade constructions,opaque facades representing different ages and performance (mostly UK based)
+*Category,partitions,internal partitions,partitions between zones (some have matching mirror versions)
+*Category,doors,inside and outside doors,doors of different ages types and performance characteristics
+*Category,glazing,glazing (transparent construc),transparent constructions (using traditional TMC optical properties)
+*Category,frames,frames for doors & windows,frames of various types for use with windows and doors
+*Category,roofs,flat and sloped roofs,roof constructions representing different ages and performance - warm and cold roofs - sloped and flat
+*Category,ceil_floor,internal ceilings and floors,internal ceilings and floors (some with matched mirror constructions) derived from research and consulting projects
+*Category,ground,ground floors & crawl-spaces,layers of earth for under crawl spaces as well as floors in contact with the ground
+*Category,fittings,equipment cases furniture etc.,collection of cases for equipment as well as furnature or fittings (many referenced by predefined objects)
+*Category,legacy,legacy constructions & models,collection of legacy constructions used in training and validation models
+*Category,UK_code,constructions for UK compliance,collection of constructions taken from UK SBEM
+*Category,project specific,project specific constructions,Category (12) project specific constructions manually. No other documentation (yet).
+#
+*item,extern_wall,cavity insulated brick-block # tag name menu entry
+*itemdoc,typical UK insulated cavity brick-block wall with 50mm air gap & 75mm insulation (legacy construction used in some training models)
+*incat,legacy
+*type,OPAQ,OPAQUE,NONSYMMETRIC
+*layer,6,0.1000,Lt brown brick : Light brown brick (inorganic-porous)
+*layer,211,0.0750,glasswool : Glasswool (generic) (non-hygroscopic)
+*layer,0,0.0500,gap  0.170 0.170 0.170
+*layer,2,0.1000,breeze block : Breeze block (inorganic-porous)
+*end_item
   . . . .
 
 
@@ -844,7 +865,7 @@ following problem types are typical.
 
 Building only
    Allowing the appraisal of environmental conditions and energy
-   use under different climates, design assumptions and/or control
+   use under different weather, design assumptions and/or control
    systems.
 
 Building and plant

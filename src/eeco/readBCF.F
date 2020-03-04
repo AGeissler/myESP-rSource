@@ -13,7 +13,7 @@ C
 
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/EIAhigh/NbComp,NbMat,IMatID(MMLC,ME),ImatDbID(0:MMAT-1),
      &               LCIATag
       COMMON/DesMLC/MatNameco(MMAT),MatDesc(MMAT),MatCat(MMAT),
@@ -331,7 +331,7 @@ C ic Inetger: dummy variable use to skip "None" in list (transports, etc.)
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/EVGENS/BCFName,System,BCFVer
       COMMON/EVGENL/BCFOK
@@ -1496,7 +1496,7 @@ C For transport data : Itype = 3
  
       SUBROUTINE ErrArg(Itype,ID,Label,MShould,MIs,Block,OutStr)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       CHARACTER Label*24,OutStr*124,outs*174, Block*30, SBlock*30
 
       SBlock = ' '

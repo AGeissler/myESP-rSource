@@ -51,7 +51,7 @@ c               3: zone temperature and plant flux.
 #include "geometry.h"
 #include "monitor.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       
       integer ncomp,ncon
       common/c1/ncomp,ncon
@@ -164,7 +164,7 @@ C Parameters for eline calls.
       integer LNMVAB, LNDRAB, LNMVRL, LNDRRL
       parameter (LNMVAB=1, LNDRAB=0, LNMVRL=3, LNDRRL=2)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
       
@@ -174,7 +174,7 @@ C Parameters for eline calls.
      &               ibplot,irecpb(MDPH),mbstv
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/CLIM/IDIF(MT),ITMP(MT),IDNR(MT),IVEL(MT),
      &IDIR(MT),IHUM(MT),IDIFF,ITMPF,IDNRF,IVELF,IDIRF,
      &IHUMF
@@ -250,7 +250,11 @@ C to ensure last 24 hours is plotted.
 c Display header information.
       write(etext,'(2A)')'Project: ',modeltitle(1:lnblnk(modeltitle))
       iside=1; isize=1; ifont=1
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
 C Generate view period string.
       CALL EDAY(ISD1,ISM1,IODS)
@@ -260,7 +264,11 @@ C Generate view period string.
       write(etext,'(7a,i4)') 'Period',tab,DS1,' to ',DE1,' Year',tab,
      &  IYEAR
       iside=2; isize=1; ifont=1
-      call viewtext(etext,iside,isize,ifont)
+      if(mmod.eq.8)then
+        call viewtext(etext,iside,isize,ifont)
+      else
+        call viewtextwwc(etext,iside,isize,ifont)
+      endif
 
 C If Plant flux then divide by 1000.0
       if(mbstv.eq.2) then
@@ -293,33 +301,57 @@ c Draw a scale vertical axis.
      &  DY,NDEC,0,':')
       iicol=0
       if(mbstv.eq.1.or.mbstv.eq.3) then
-         iid1=igl-5; iid2=igt-17
-         call textatxy(iid1,iid2,'Temp','-',iicol)
-         iid1=igl-5; iid2=igt-5
-         call textatxy(iid1,iid2,'(C)','-',iicol)
+        if(mmod.eq.8)then
+          iid1=igl-5; iid2=igt-17
+          call textatxy(iid1,iid2,'Temp','-',iicol)
+          iid1=igl-5; iid2=igt-5
+          call textatxy(iid1,iid2,'(C)','-',iicol)
+        else
+          iid1=igl-5; iid2=igt-17
+          call textatxywwc(iid1,iid2,'Temp','-',iicol)
+          iid1=igl-5; iid2=igt-5
+          call textatxywwc(iid1,iid2,'(C)','-',iicol)
+        endif
       elseif(mbstv.eq.2) then
-         iid1=igl-5; iid2=igt-17
-         call textatxy(iid1,iid2,'Plant','-',iicol)
-         iid1=igl-5; iid2=igt-5
-         call textatxy(iid1,iid2,'(KW)','-',iicol)
-         yminb(1)=yminb(1)*1000.
-         ymaxb(1)=ymaxb(1)*1000.
+        if(mmod.eq.8)then
+          iid1=igl-5; iid2=igt-17
+          call textatxy(iid1,iid2,'Plant','-',iicol)
+          iid1=igl-5; iid2=igt-5
+          call textatxy(iid1,iid2,'(KW)','-',iicol)
+          yminb(1)=yminb(1)*1000.
+          ymaxb(1)=ymaxb(1)*1000.
+        else
+          iid1=igl-5; iid2=igt-17
+          call textatxywwc(iid1,iid2,'Plant','-',iicol)
+          iid1=igl-5; iid2=igt-5
+          call textatxywwc(iid1,iid2,'(KW)','-',iicol)
+          yminb(1)=yminb(1)*1000.
+          ymaxb(1)=ymaxb(1)*1000.
+        endif
       endif
 
       if(mbstv.eq.3) then
-         call dintervalf(yminb(2),ymaxb(2),DY,NDEC,1)
-         call vrtaxisdd(yminb(2),ymaxb(2),
-     &     iigr,iigb,iigt,yadd1,ysc1,1,DY,NDEC,1,':')
-         iid1=igr; iid2=igt-17
-         call textatxy(iid1,iid2,'Plant','-',iicol)
-         iid1=igr; iid2=igt-5
-         call textatxy(iid1,iid2,'(KW)','-',iicol)
-         yminb(2)=yminb(2)*1000.
-         ymaxb(2)=ymaxb(2)*1000.
-       endif
+        call dintervalf(yminb(2),ymaxb(2),DY,NDEC,1)
+        call vrtaxisdd(yminb(2),ymaxb(2),
+     &    iigr,iigb,iigt,yadd1,ysc1,1,DY,NDEC,1,':')
+        iid1=igr; iid2=igt-17
+        if(mmod.eq.8)then
+          call textatxy(iid1,iid2,'Plant','-',iicol)
+          iid1=igr; iid2=igt-5
+          call textatxy(iid1,iid2,'(KW)','-',iicol)
+          yminb(2)=yminb(2)*1000.
+          ymaxb(2)=ymaxb(2)*1000.
+        else
+          call textatxywwc(iid1,iid2,'Plant','-',iicol)
+          iid1=igr; iid2=igt-5
+          call textatxywwc(iid1,iid2,'(KW)','-',iicol)
+          yminb(2)=yminb(2)*1000.
+          ymaxb(2)=ymaxb(2)*1000.
+        endif
+      endif
 
 c initialise data items count 'icount'.
-      call forceflush()
+      if(mmod.eq.8) call forceflush()
       icount=0
       return
 
@@ -356,7 +388,11 @@ C with no symbols.
                call textatxy(iix,iiy,clabel,'-',iicol)
                iix5=iix+5
                iix35=iix+35
-               call edline(iix5,iiy,iix35,iiy,1)
+               if(mmod.eq.8)then
+                 call edline(iix5,iiy,iix35,iiy,1)
+               else
+                 call edlinewwc(iix5,iiy,iix35,iiy,1)
+               endif
 
 C Otherwise plot external temperature.
             else
@@ -365,7 +401,11 @@ C Otherwise plot external temperature.
                ncoord2(1,2,2)=igb-int((dbval+yadd)*ysc)
                iixp1=ncoord2(1,1,1); iiyp1=ncoord2(1,1,2);
                iixp2=ncoord2(1,2,1); iiyp2=ncoord2(1,2,2);
-               call eswline(iixp1,iiyp1,iixp2,iiyp2)
+               if(mmod.eq.8)then
+                 call eswline(iixp1,iiyp1,iixp2,iiyp2)
+               else
+                 call eswlinewwc(iixp1,iiyp1,iixp2,iiyp2)
+               endif
                call forceflush
                ncoord2(1,1,1)=ncoord2(1,2,1)
                ncoord2(1,1,2)=ncoord2(1,2,2)
@@ -400,7 +440,7 @@ c each curve as 'Z??' where 'Z' stands for zone.
                if(colok)then
                  if(mzone(i).gt.0)then
                    iicol=mzone(i)
-                   call winscl('z',iicol)
+                   if(mmod.eq.8) call winscl('z',iicol)
                  endif
                endif
                clabel='                    '
@@ -417,31 +457,51 @@ c each curve as 'Z??' where 'Z' stands for zone.
                   iiy2=iiy+2
                   iix5=iix+5
                   iix35=iix+35
-                  call edline(iix5,iiy2,iix35,iiy2,2)
+                  if(mmod.eq.8)then
+                    call edline(iix5,iiy2,iix35,iiy2,2)
+                  else
+                    call edlinewwc(iix5,iiy2,iix35,iiy2,2)
+                  endif
                   isr=i+mnzn
                   iixp1=iix+20; iiyp1=iiy+2;
-                  call esymbol(iixp1,iiyp1,isr,0)
+                  if(mmod.eq.8)then
+                    call esymbol(iixp1,iiyp1,isr,0)
+                  else
+                    call esymbolwwc(iixp1,iiyp1,isr,0)
+                  endif
                endif
                iiy= igt+iyofst+(i*18)
                iix= 25
-               call textatxy(iix,iiy,clabel,'z',iicol)
+               if(mmod.eq.8)then
+                 call textatxy(iix,iiy,clabel,'z',iicol)
+               else
+                 call textatxywwc(iix,iiy,clabel,'z',iicol)
+               endif
                iixp1=iix+5; iiyp1=iiy+2;
                iixp2=iix+35; iiyp2=iiy+2;
-               call eswline(iixp1,iiyp1,iixp2,iiyp2)
-               iixp1=iix+20; iiyp1=iiy+2;
-               call esymbol(iixp1,iiyp1,i,0)
-               if(colok)then
-                 iicol=0
-                 call winscl('-',iicol)
+               if(mmod.eq.8)then
+                 call eswline(iixp1,iiyp1,iixp2,iiyp2)
+               else
+                 call eswlinewwc(iixp1,iiyp1,iixp2,iiyp2)
                endif
-               call forceflush
+               iixp1=iix+20; iiyp1=iiy+2;
+               if(mmod.eq.8)then
+                 call esymbol(iixp1,iiyp1,i,0)
+                 if(colok)then
+                   iicol=0
+                   call winscl('-',iicol)
+                 endif
+                 call forceflush
+               else
+                 call esymbolwwc(iixp1,iiyp1,i,0)
+               endif
 
 c else start plotting.
             else
                if(colok)then
                  if(mzone(i).gt.0)then
                    iicol=mzone(i)
-                   call winscl('z',iicol)
+                   if(mmod.eq.8) call winscl('z',iicol)
                  endif
                endif
                ti=float(icount)/float(instep)
@@ -451,9 +511,20 @@ c else start plotting.
                iiy=ncoord(i,1,2)
                iix2=ncoord(i,2,1)
                iiy2=ncoord(i,2,2)
-               call eline (iix,iiy, lnmvab)
-               call eline (iix2,iiy2, lndrab)
-               if(j.eq.instep) call esymbol(iix2,iiy2,i,0)
+               if(mmod.eq.8)then
+                 call eline (iix,iiy, lnmvab)
+                 call eline (iix2,iiy2, lndrab)
+               else
+                 call elinewwc (iix,iiy, lnmvab)
+                 call elinewwc (iix2,iiy2, lndrab)
+               endif
+               if(j.eq.instep)then
+                 if(mmod.eq.8)then
+                   call esymbol(iix2,iiy2,i,0)
+                 else
+                   call esymbolwwc(iix2,iiy2,i,0)
+                 endif
+               endif
                ncoord(i,1,1)=ncoord(i,2,1)
                ncoord(i,1,2)=ncoord(i,2,2)
                if(mbstv.eq.3) then
@@ -463,17 +534,27 @@ c else start plotting.
                   iiy=ncoord1(i,1,2)
                   iix2=ncoord1(i,2,1)
                   iiy2=ncoord1(i,2,2)
-                  call edline (iix,iiy,iix2,iiy2,2)
+                  if(mmod.eq.8)then
+                    call edline (iix,iiy,iix2,iiy2,2)
+                  else
+                    call edlinewwc (iix,iiy,iix2,iiy2,2)
+                  endif
                   isr=i+mnzn
-                  if(j.eq.instep) call esymbol(iix2,iiy2,isr,0)
+                  if(j.eq.instep)then
+                    if(mmod.eq.8)then
+                      call esymbol(iix2,iiy2,isr,0)
+                    else
+                      call esymbolwwc(iix2,iiy2,isr,0)
+                    endif
+                  endif
                   ncoord1(i,1,1)=ncoord1(i,2,1)
                   ncoord1(i,1,2)=ncoord1(i,2,2)
                endif
                if(colok)then
                  iicol=0
-                 call winscl('-',iicol)
+                 if(mmod.eq.8) call winscl('-',iicol)
                endif
-               call forceflush
+               if(mmod.eq.8) call forceflush
             endif
    10    continue
          icount=icount+1

@@ -39,8 +39,8 @@ c Declarations for local variables and variables passed in common blocks.
       real val
       Integer LENGTH_OF_STRING
 c
-      Integer IUOUT, IUIN
-      Common /OUTIN/ IUOUT, IUIN
+      Integer IUOUT,IUIN,IEOUT
+      Common /OUTIN/IUOUT,IUIN,IEOUT
 c
       Integer IFIL
       Common /FILEP/ IFIL

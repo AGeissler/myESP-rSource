@@ -12,7 +12,7 @@ C----------------------------------------------------
       COMMON /FIL/ IFUSE, IFO
       COMMON/NNAAMM/ NAMDS,NAMPIC
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/MAPMAP/MAPEM,MAPR(255),MAPG(255),MAPB(255)
       COMMON/TRATRA/TRX(MNF),TRY(MNF),TRZ(MNF),
@@ -97,7 +97,7 @@ C----------------------------------------------------
       LIST = 1
       ISCLOC = 1
       ILAY = 0
-      DO 25 I = 0,MLAY
+      DO 25 I = 0,MLAYR
         LAYER(I) = 1
  25   CONTINUE
 
@@ -392,9 +392,9 @@ C SET CURRENT LAYER : DEFAULT SETTING IS ZERO
 C SET LAYERS ON OR OFF
 C   LA+ SETS THEM ON
 C   LA- SETS THEM OFF
- 333  CALL SELECT(INUSE,0,MLAY,LAYER,1)
+ 333  CALL SELECT(INUSE,0,MLAYR,LAYER,1)
       GOTO  14
- 336  CALL SELECT(INUSE,0,MLAY,LAYER,0)
+ 336  CALL SELECT(INUSE,0,MLAYR,LAYER,0)
       GOTO  14
 
 C----------------------------------------------------

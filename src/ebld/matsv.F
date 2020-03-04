@@ -53,7 +53,7 @@ C << are no longer any so-called default windows and doors.
       subroutine mzwdar(icomp)
 #include "building.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
 
       integer ncomp,ncon
@@ -95,10 +95,11 @@ C MTXCTL controls the zone heat matrix solving process according to the
 C sensor location of the associated control function.
 C *********************************************************************
       SUBROUTINE MTXCTL(ICOMP)
+
 #include "building.h"
 #include "control.h"
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       integer icascf
       common/cctl/icascf(mcom)
@@ -165,7 +166,8 @@ c      end
       if(ibsn(ii,1).le.0)nn=1
       if(ibsn(ii,1).gt.0.and.ibsn(ii,2).gt.0.and.ibsn(ii,3).eq.0)nn=2
       if(ibsn(ii,1).gt.0.and.ibsn(ii,2).gt.0.and.ibsn(ii,3).gt.0)nn=3
-      if(ibsn(ii,1).eq.-2.and.ibsn(ii,2).eq.icomp)nn=4
+      if(ibsn(ii,1).eq.-2.and.(ibsn(ii,2).eq.icomp.or.
+     &   ibsn(ii,2).eq.0))nn=4
       goto (11,12,13,14),nn
 
 C Control is on air point or external air temperature (or no control
@@ -366,13 +368,14 @@ C mzsad1 where the next-to-surface coefficient can be eliminated
 C from the corresponding surface equation.
 
       subroutine mzcnf1(icomp,iconst)
+
 #include "building.h"
 #include "control.h"
 
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       common/coneqn/w(ms,mnm,5)
@@ -438,7 +441,7 @@ C Trace output ?
       write(outs,'(A,I4)')' Subroutine mzcnf1   Trace output',icnt
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
       write(outs,'(A,F15.5)') ' a1 = ',a1
       call edisp(itu,' ')
@@ -492,13 +495,14 @@ C  node coefficient can be eliminated from the corresponding surface
 C  equation and the control node coefficient introduced if appropriate.
 
       subroutine mzcnf2(icomp,iconst)
+
 #include "building.h"
 #include "control.h"
 
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       common/coneqn/w(ms,mnm,5)
@@ -684,7 +688,7 @@ C  Trace output ?
       write(outs,'(A,I4)')' Subroutine MZCNF2    Trace output',ICNT
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
 C Output the `w' and `wa' matrices and a1,a2,a3,a4,b1,b2,
 C b3 and b4.
@@ -751,11 +755,12 @@ C                            coefficients and coefficient 1
 C                            is zero.
 
       subroutine mzsad1(icomp,iconst)
+
 #include "building.h"
 #include "control.h"
 
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
       common/tc/itc,icnt
 
@@ -765,7 +770,7 @@ C                            is zero.
       integer icascf
       common/cctl/icascf(mcom)
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       common/zoneqn/e(meq,mtr)
@@ -818,7 +823,7 @@ C Trace output ?
  9995 format(' Subroutine mzsad1     trace output',I4)
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
 C Output adjusted coefficients.
       write(outs,'(A,F20.3)')' e(iconst,iconst)=',e(iconst,iconst)
@@ -838,7 +843,7 @@ C Output adjusted coefficients.
     1 write(outs,2)nsinc
     2 format(' mzsad1: numerical error after',I6,' time-steps.')
       call edisp(iuout,outs)
-      write(outs,21)ihrp,idyp
+      write(outs,21)ihrp,idynow
    21 format(' (Hour',I3,' on year day',I4,').')
       call edisp(iuout,outs)
       write(outs,'(A,F20.6)')' e(iconst,n)  =',e(iconst,n)
@@ -875,7 +880,7 @@ C                           and coefficient 4 is introduced.
 #include "control.h"
 
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
       common/tc/itc,icnt
       integer icascf
@@ -884,7 +889,7 @@ C                           and coefficient 4 is introduced.
       common/prec9/nconst(mcom),nelts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp)
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       common/zoneqn/e(meq,mtr)
@@ -1002,7 +1007,7 @@ C Trace output ?
  9995 format(' Subroutine mzsad2     trace output',I4)
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
 C Output adjusted coefficients.
       write(outs,'(A,F20.3)')' e(iconst,iconst)=',e(iconst,iconst)
@@ -1025,7 +1030,7 @@ C Output adjusted coefficients.
     1 write(outs,2)nsinc
     2 format(' mzsad2: numerical error after',I6,' time-steps.')
       call edisp(iuout,outs)
-      write(outs,21)ihrp,idyp
+      write(outs,21)ihrp,idynow
    21 format(' (Hour',I3,' on year day',I4,').')
       call edisp(iuout,outs)
       write(outs,'(A,F20.6)')' e(iconst,n)  =',e(iconst,n)
@@ -1096,7 +1101,7 @@ C substitution is completed.
       common/prec9/nconst(mcom),nelts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp)
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       character outs*144
@@ -1142,7 +1147,7 @@ C Trace output 1 ?
       write(outs,'(A,I4)')' Subroutine mzcms1/1     Trace output',icnt
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
       call edisp(itu,' ')
       write(outs,'(A,F20.3)')' b1 = ',b1
@@ -1178,7 +1183,7 @@ C Trace output 2 ?
       write(outs,'(A,I4)')' Subroutine mzcms1/2     Trace output',icnt
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
 C Output computed temperatures.
       write(outs,9994)icomp
@@ -1245,6 +1250,7 @@ C The last equation is solved in 'mzpst1' and the back
 C substitution completed.
 
       subroutine mzcms2(icomp)
+
 #include "building.h"
 #include "control.h"
 
@@ -1252,7 +1258,7 @@ C substitution completed.
 
       common/tc/itc,icnt
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       common/zoneqn/e(meq,mtr)
@@ -1343,7 +1349,7 @@ C Trace output 1 ?
       write(outs,'(A,I4)') ' Subroutine Mzcms2/1   Trace output',icnt
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
       call edisp(itu,' ')
       write(outs,'(A,F20.3)')' b1 = ',b1
@@ -1384,7 +1390,7 @@ C Trace output 2 ?
       write(outs,'(A,I4)') ' Subroutine Mzcms2/2   Trace output',icnt
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
 C Output computed temperatures.
       write(outs,9994)icomp
@@ -1456,13 +1462,14 @@ C N3 relates to the present term
 C N5 relates to the control term
 
       subroutine mzcms3(icomp)
+
 #include "building.h"
 #include "control.h"
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
       common/tc/itc,icnt
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       common/zoneqn/e(meq,mtr)
@@ -1566,7 +1573,7 @@ C Trace output 2 ?
       write(outs,'(A,I4)') ' Subroutine Mzcms3/2   Trace output',icnt
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
 C Output computed temperatures.
       write(outs,9994)icomp
@@ -1640,7 +1647,7 @@ C substitution is completed by a call to 'mzback'.
       common/prec9/nconst(mcom),nelts(mcom,ms),ngaps(mcom,ms),
      &             npgap(mcom,ms,mgp)
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       character outs*144
@@ -1686,7 +1693,7 @@ C Trace output ?
       write(outs,'(A,I4)')' Subroutine Mzcms4     Trace output',icnt
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
       call edisp(itu,' ')
       write(outs,'(A,F20.3)')' b1 = ',b1
@@ -1711,8 +1718,8 @@ C intra-nodal temperatures.
 
       subroutine mzcnb1(icomp,iconst)
 #include "building.h"
+#include "geometry.h"
 
-      common/prec1/sna(mcom,ms)
       common/conadj/wa(ms,mn,6)
 
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
@@ -1741,9 +1748,9 @@ C temperatures.
       subroutine mzcnb2(icomp,iconst)
       
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
       
-      common/prec1/sna(mcom,ms)
       common/conadj/wa(ms,mn,6)
 
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
@@ -1802,17 +1809,18 @@ C terms of the control function information previously
 C defined.
 
       subroutine mzpst1(b1,b2,b3,icomp,qf)
-      include "building.h"
-      include "control.h"
-      include "blc25_open_windows.h"
+
+#include "building.h"
+#include "geometry.h"
+#include "control.h"
+#include "blc25_open_windows.h"
 
       common/tc/itc,icnt
 
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
 
-      common/prec1/sna(mcom,ms)
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       common/fvala/tfa(mcom),qfa(mcom)
@@ -1840,7 +1848,7 @@ C defined.
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
 
       character outs*144
-      logical OK,dok,global,glbrwd
+      logical OK,global,glbrwd
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1900,11 +1908,11 @@ C Error!
      &  ' is being referenced outside its dates of validity.'
       call edisp(iuout,outs)
       icflg1(icf)=1
-      dok=.true.
       helptopic='option_to_free_float'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('Continue with no control if this condition occurs?',
-     &           '(see help)',OK,dok,nbhelp)
+      CALL EASKOK(' ',
+     &  'Continue with no control if this condition occurs?',
+     &  OK,nbhelp)
       IF(.NOT.OK)then
         call epwait
         STOP
@@ -1918,19 +1926,20 @@ C Error!
       goto 9999
 
 C Commence control solution.
-    4 if(nin.le.-1.or.n.lt.1)idtyp=icalender(idyp)
-      if(btimef.gt.24.)then
-        btimef=btimef-24.
-        idtyp=icalender(idyp+1)
-        if(idyp.eq.365)idtyp=icalender(1)
+    4 if(nin.le.-1.or.n.lt.1)then
+        idtyp=icalender(idyp)
+        if(idynow.gt.idyp)then    ! Crossed midnight so update
+          idtyp=icalender(idynow) ! idtyp to reflect this.
+          if(idynow.eq.365)idtyp=icalender(1)
+        endif
       endif
       n=nbcdp(icf,idtyp)
       do 30 i=1,n
-      iper=i
-      if(i.eq.n)goto 9
-      if(btimef.le.tbcps(icf,idtyp,i+1))goto 11
-      goto 30
-    9 if(btimef.gt.tbcps(icf,idtyp,n))goto 11
+        iper=i
+        if(i.eq.n)goto 9
+        if(btimef.le.tbcps(icf,idtyp,i+1))goto 11
+        goto 30
+    9   if(btimef.gt.tbcps(icf,idtyp,n))goto 11
    30 continue
 
 C Error!
@@ -1938,11 +1947,11 @@ C Error!
       write(outs,'(a,i3,a)') ' Control loop',icf,
      &  ' is being referenced outside its dates of validity.'
       call edisp(iuout,outs)
-      dok=.true.
       helptopic='option_to_free_float'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      CALL ASKOK('Continue with no control if this condition occurs?',
-     &           '(see help)',OK,dok,nbhelp)
+      CALL EASKOK(' ',
+     &  'Continue with no control if this condition occurs?',
+     &  OK,nbhelp)
       icflg2(icf)=1
       IF(.NOT.OK)then
         call epwait
@@ -2034,8 +2043,10 @@ C Assign t and q values.
       if(ian1.eq.0)ian1=icomp
       ian2=iban(icf,2)
       ian3=iban(icf,3)
+      ian2_iz = ian2
+      if (ian1.eq.-2.and.ian2_iz.eq.0)ian2_iz=icomp
       if((ian1.eq.-3.and.ian2.eq.0).or.ian1.eq.-1.or.
-     &(ian1.eq.-2.and.ian2.ne.icomp).or.
+     &(ian1.eq.-2.and.ian2_iz.ne.icomp).or.
      &(ian1.gt.0.and.ian1.ne.icomp))goto 14
       if(ian1.eq.-3.and.ian2.eq.0)qfa(icomp)=qfut
       if(ian2.eq.0.and.ian1.eq.icomp)qfa(icomp)=qfut
@@ -2044,8 +2055,8 @@ C Assign t and q values.
       if(ian1.eq.icomp.and.ian2.gt.0.and.ian3.gt.0)qfc(icomp)=qfut*
      &sna(icomp,ian2)
 
-C Mixed injection - 
-      if(ian1.eq.-2.and.ian2.eq.icomp)then
+C Mixed injection. 
+      if(ian1.eq.-2.and.ian2_iz.eq.icomp)then
         qpltf(icomp)=qfut
         qf=qfut*conv(icomp)
         if(isn1.eq.-2)qf=0.
@@ -2057,7 +2068,7 @@ C Mixed injection -
       write(outs,'(A,I4)')' Subroutine Mzpst1     Trace Output ',icnt
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
       write(outs,9996)icomp,icf
  9996 format(' Component',I4,4X,' Control function',I4)
@@ -2091,6 +2102,7 @@ C be re-established to include the radiant and convective
 C input.
 
       subroutine mzback(q)
+
 #include "building.h"
 #include "control.h"
 
@@ -2108,7 +2120,7 @@ C input.
       common/prec13/c(mcom,ms,mn,2),qc(mcom,ms,mn)
       COMMON/PREC14/emarea(MCOM)
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
       integer ICF,IDTYP,IPER,IICOMP
       real BB1,BB2,BB3,TNP,QFUT,TFUT
@@ -2210,7 +2222,7 @@ C Trace output ?
       write(outs,'(A,I4)')' Subroutine mzback     Trace output',icnt
       call edisp(itu,outs)
       icnt=icnt+1
-      call dayclk(idyp,btimef,itu)
+      call dayclk(idynow,btimef,itu)
 
 C Output computed temperatures.
       write(outs,9994)icomp
@@ -2234,7 +2246,7 @@ C *********************************************************************
 #include "building.h"
 #include "net_flow.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
 
       integer ncomp,ncon
@@ -2243,7 +2255,7 @@ C *********************************************************************
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       common/shad1/iml
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       common/clim/idif(mt),itmp(mt),idnr(mt),ivel(mt),idir(mt),
      &            ihum(mt),idiff,itmpf,idnrf,ivelf,idirf,ihumf

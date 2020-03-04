@@ -31,7 +31,10 @@ C MODEWP computes the dew point temperature given dry bulb
 C temperature and % saturation.
 
       SUBROUTINE MODEWP(TAI,PSAT,DPT)
-      COMMON/OUTIN/IUOUT,IUIN
+#include "building.h"
+#include "site.h"
+
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character outs*124
       IF(TAI.LT.11.)then
         FS=-0.0000073*TAI+1.00444
@@ -63,9 +66,9 @@ C temperature and % saturation.
         call edisp(iuout,outs)
         PSAT=1.0
       endif
-      GSS=(0.62197*FS*PSS)/(1013.25-(FS*PSS))
+      GSS=(0.62197*FS*PSS)/(patmos-(FS*PSS))
       G=PSAT*GSS/100.
-      PS=(1013.25*G)/(FS*(0.62197+G))
+      PS=(patmos*G)/(FS*(0.62197+G))
       IF(TAI.LT.0.)then
         DPT=(2663.91/(10.5380997-ALOG10(PS)))-273.16
         RETURN
@@ -107,11 +110,9 @@ C surface temperature information. Note
 C << TA QM no longer used, but ordering not changed. >>
       SUBROUTINE MOMNRD(ICOMP,TA,TS,QM,NS,TMNRD)
 #include "building.h"
-CC#include "geometry.h"
+#include "geometry.h"
 
       DIMENSION TS(MS),QM(MS)
-
-      COMMON/RECV5/SNA(MCOM,MS)
 
 C Sum product of opaque surface temperatures and areas.
       ZPROD=0.
@@ -131,11 +132,9 @@ C surface temperature information.
 C << GEP, GIP, QM, TA not used >>
       SUBROUTINE MOMRTS(ICOMP,TA,TS,QM,NS,OP,GEP,GIP,TMRTS)
 #include "building.h"
-CC#include "geometry.h"
+#include "geometry.h"
 
       DIMENSION TS(MS),QM(MS),OP(MS)
-
-      COMMON/RECV5/SNA(MCOM,MS)
 
 C Sum product of surface temperatures and areas.
       ZPROD=0.
@@ -157,11 +156,9 @@ C surface temperature information.
 C << QM not used >>
       SUBROUTINE MORESL(ICOMP,TA,TS,QM,NS,TRESL)
 #include "building.h"
-CC#include "geometry.h"
+#include "geometry.h"
 
       DIMENSION TS(MS),QM(MS)
-
-      COMMON/RECV5/SNA(MCOM,MS)
 
 C Sum product of opaque surface temperatures and areas.
       ZPROD=0.
@@ -192,7 +189,7 @@ C        6: -Z (bottom) - +Z (top)
 #include "model.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
 
       common/MRTF/FFL(MCUB,6,MSM),VEWF(MS,MS)
@@ -311,7 +308,7 @@ C velocity will be used. Returns values via GVAL in common GET2.
 #include "geometry.h"
 #include "net_flow.h"
 #include "cfd.h"
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/GET2/XDUM(MTS),XDUM1(MTS),GVAL(MTS)
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)

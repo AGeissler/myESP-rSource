@@ -405,7 +405,9 @@ C Completes the setting-up of the time-dependent
 C coefficients.
 
       SUBROUTINE MZSETU(ICOMP)
+
 #include "building.h"
+#include "site.h"
 #include "geometry.h"
 #include "control.h"
 #include "CFC_common.h"
@@ -413,7 +415,6 @@ C coefficients.
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/TC/ITC,ICNT
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),AE(MCOM,MS)
@@ -421,7 +422,7 @@ C coefficients.
 
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
 
       COMMON/COE31/HRP(MS,MS),ZHRP(MS),HRF(MS,MS),ZHRF(MS)
@@ -476,7 +477,6 @@ C which the heat pipe connects.
       COMMON/GR1D04/GAM,RGAM
       COMMON/MOIST01/MSTROK,MSTRZN(MCOM)
       LOGICAL MSTROK,MSTRZN
-      COMMON/MOIST16/PATMpa
       COMMON/MOIST53/Ppair(MCOM),Fpair(MCOM),Spair(MCOM)
       COMMON/MOIST70/ACAP
       COMMON/MOIST81/TNC(MS,MN),QNcnst
@@ -900,7 +900,7 @@ C present term.
         CPv=CPvpr01(TC)
         CPl=SHTH2O(TC)*1000.0
         RHp=Ppair(ICOMP)/Psat01(TC)
-        Upair=X03(TC,RHp,PATMpa)
+        Upair=X03(TC,RHp,atmpres)
         RHOp=RHOdry01(TC)
         ACAPp=RHOp*VOL(ICOMP)*(CPa+CPv*Upair)+CPl*Fpair(ICOMP)
         ACAP=3600.0/(NTSTEP*ACAPp)
@@ -937,6 +937,13 @@ C If air node is plant interaction point set coefficient.
          E(N1,N2)=0.
       ELSE
          E(N1,N2)=-ACAP*GAM
+      ENDIF
+
+C Special case of mixed actuator in current zone
+      IF(NCF.EQ.0.OR.IC.EQ.0)then
+        E(N1,N2)=0.
+      ELSEIF(IBAN(IC,1).EQ.-2.AND.IBAN(IC,2).EQ.0)THEN
+        E(N1,N2)=-ACAP*GAM
       ENDIF
 
 C Get convective plant input.

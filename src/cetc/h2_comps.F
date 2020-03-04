@@ -66,9 +66,10 @@ C-------------------------------------------------------------------------------
 C ESP-r COMMONs
 C------------------------------------------------------------------------------------
 
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
        INTEGER NPCOMP          !-number of plant components
@@ -297,9 +298,10 @@ C-------------------------------------------------------------------------------
 C ESP-r COMMONs
 C------------------------------------------------------------------------------------
 
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        COMMON/TC/ITC,ICNT
        INTEGER ITC             !-trace output index
@@ -312,7 +314,7 @@ C-------------------------------------------------------------------------------
        INTEGER IZNTRC          !-zone trace index
        INTEGER ITU             !-trace output unit number
 
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
        INTEGER IHRP            !-hour of present time-step
        INTEGER IHRF            !-hour of future time-step
        INTEGER IDYP            !-year day number of present day
@@ -321,7 +323,7 @@ C-------------------------------------------------------------------------------
        INTEGER IDWF            !-day of the week of future day
        INTEGER NSINC           !-number of building-side time increments
                                !-since start of simulation
-       INTEGER ITS             !-current building time-step within
+       INTEGER ITS,idynow      !-current building time-step within
                                !-current hour
 
        COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,ITRCLP,
@@ -1536,9 +1538,10 @@ C-------------------------------------------------------------------------------
        FUNCTION H2OLiquidEnthalpy(fTemp)
        IMPLICIT NONE
 
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        REAL   fTemp    !- temperature (oC)
        REAL   fTemp_K  !- temperature (K)
@@ -1620,9 +1623,10 @@ C-------------------------------------------------------------------------------
        FUNCTION H2GasEnthalpy(fTemp)
        IMPLICIT NONE
 
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        REAL   fTemp    !- temperature (oC)
        REAL   fTemp_K  !- temperature (K)
@@ -1751,9 +1755,10 @@ C-------------------------------------------------------------------------------
        FUNCTION O2GasEnthalpy(fTemp)
        IMPLICIT NONE
 
-       COMMON/OUTIN/IUOUT,IUIN
+       COMMON/OUTIN/IUOUT,IUIN,IEOUT
        INTEGER IUOUT           !-write unit number
        INTEGER IUIN            !-read unit number
+       INTEGER IEOUT           !-error unit number
 
        REAL   fTemp    !- temperature (oC)
        REAL   fTemp_K  !- temperature (K)

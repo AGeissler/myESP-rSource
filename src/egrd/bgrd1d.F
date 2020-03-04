@@ -38,7 +38,7 @@ C *********************************************************************
 
       COMMON/FILEP/IFIL
       COMMON/HELP/IHELPM
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       
@@ -54,7 +54,7 @@ C *********************************************************************
       COMMON/GR1D06/IGR1D
       LOGICAL IGR1D
 
-      LOGICAL OK,DOK,SAVEOK,XST
+      LOGICAL OK,SAVEOK,XST
       CHARACTER ITEM(14)*31,ITEMZ(MCOM)*20,ITEMC(MS)*20,ITEML(ME)*20
       CHARACTER TEXT*40
       integer MITEM,INO ! max items and current menu item
@@ -132,7 +132,7 @@ C Show the constructions menu.
             IF(ILUMP(ICOMP,IS).GE.1)THEN
               ITEMC(IS)=' ** LUMPED **'
             ELSE
-              ITEMC(IS)=SSNAME(icn1)
+              ITEMC(IS)=SNAME(icomp,is)
             ENDIF
    60     CONTINUE
           CALL EPICKS(INPICK,IVALSC,' ',' ',20,NC,ITEMC,' ',
@@ -250,13 +250,11 @@ C Display the help statements.
 
 C Return to the main simulator menu.
         IF(SAVEOK)THEN
-          dok=.true.
           helptopic='save_recent_changes'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(
-     &      'The system configuration should be updated for changes.',
-     &      '(if no other module is using it). Do this?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ',
+     &      'Update the system configuration to capture changes?',
+     &      OK,nbhelp)
           IF(OK)CALL EMKCFG('-',IER)
         ENDIF
         RETURN
@@ -274,7 +272,7 @@ C *********************************************************************
 #include "building.h"
 
       COMMON/HELP/IHELPM
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC15/RGAPS(MCOM,MS,MGP)
@@ -448,7 +446,7 @@ C *********************************************************************
 
       COMMON/FILEP/IFIL
       COMMON/HELP/IHELPM
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC15/RGAPS(MCOM,MS,MGP)
@@ -468,7 +466,7 @@ C *********************************************************************
       DIMENSION IVALSZ(MCOM),IVALSC(MS),HCSRF(MCOM,MS,2)
       DIMENSION BIOTNO(MCOM,MS)
 
-      LOGICAL OK,dok
+      LOGICAL OK
 
       CHARACTER ITEM(15)*31,TEXT2*120,MSG1*50
       CHARACTER ITEMZ(MCOM)*20,ITEMC(MS+2)*28,HCFILE*72,OUTSTR*124
@@ -541,7 +539,7 @@ C Display the available constructions menu.
           ITEMC(2)='----------------------------'
           DO 70 IS=1,NC
             icn1=izstocn(icomp,is)
-            WRITE(ITEMC(IS+2),'(A,A,F7.1)')SSNAME(icn1),':',
+            WRITE(ITEMC(IS+2),'(A,A,F7.1)')SNAME(icomp,is),':',
      &              HCSRF(ICOMP,IS,IEXT)
    70     CONTINUE
           CALL EPICKS(INPICK,IVALSC,' ',' ',28,NC+2,ITEMC,' ',
@@ -588,11 +586,10 @@ C Read the (hc) values from a file.
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,HCFILE,1,IER)
         IF(IER.LT.0)THEN
-          dok=.false.
           helptopic='hc_distrib_not_found'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(' Problem detected while trying to open ',
-     &      ' (hc) distribution file... try again? ',OK,dok,nbhelp)
+          CALL EASKOK('Problem with convection coefficients file!',
+     &      'Retry?',OK,nbhelp)
           IF(OK)THEN
             GOTO 100
           ELSE
@@ -626,11 +623,10 @@ C Save the current (hc) values in a file.
         IUNIT=IFIL+1
         CALL EFOPSEQ(IUNIT,HCFILE,4,IER)
         IF(IER.LT.0)THEN 
-          dok=.false.
           helptopic='hc_distrib_not_found'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(' Problem detected while trying to open ',
-     &      ' (hc) distribution file... try again?',OK,dok,nbhelp)
+          CALL EASKOK('Problem with convection coefficient file!',
+     &         'Retry?',OK,nbhelp)
           IF(OK)THEN
             GOTO 150
           ELSE
@@ -811,7 +807,7 @@ C *********************************************************************
       SUBROUTINE LISTND
 #include "building.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON

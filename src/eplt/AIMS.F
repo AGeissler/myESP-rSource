@@ -136,8 +136,8 @@ C Ian: 2004-05-31 (end).
 C     INPUT Argument IPCOMP
       INTEGER IPCOMP
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -507,8 +507,8 @@ C Passed Arguments
       INTEGER IPCOMP
       INTEGER ISTATS
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
       
       COMMON/TC/ITC,ICNT
       INTEGER ITC,ICNT
@@ -527,8 +527,8 @@ C Passed Arguments
 
 
 
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-       INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+       INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       
        COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
@@ -1345,16 +1345,16 @@ C ------------------------------------------------------------------------------
 #include "cogen_tanks.h"
 #include "dhw_common.h"
       
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-       INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS 
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+       INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/ptime/ptimep,ptimef
       REAL ptimep, ptimef
 
       COMMON/PCTIME/TIMSEC
       REAL TIMSEC
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C---------------------------------------------------------------------------------
 C Declare local variables.

@@ -41,7 +41,7 @@ C of inter-fabric temperature and condensation conditions.
       SUBROUTINE MOFCON
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/exporttg/xfile,tg,delim
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
@@ -73,7 +73,7 @@ C Setup for menu.
       ITEM(9)='? help                 '
       ITEM(10)='- exit                 '
 
-C Instanciate help for this menu.
+C Instantiate help for this menu.
       helptopic='res_condensation_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -177,7 +177,7 @@ C to the fabric temperature or condensation information.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
@@ -186,7 +186,6 @@ C to the fabric temperature or condensation information.
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES
       COMMON/SETNAM/RSNAME(MNRS)
       COMMON/SIMPKA/NSIM
-      COMMON/RECV5/SNA(MCOM,MS)
       COMMON/VAP1/IDO,IMO,TIMO,IDAYO,ITIMO
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
@@ -209,7 +208,7 @@ C Generate a descriptive string for the time period to be displayed
 C and the simulation and output timesteps. Use opengdisp to get
 C pixel references for calls to viewtext.
       CALL SURADJ(ICOMP,ISUR,IE,T,IZC,ISC,ICN,CSTR)
-      SN=SSNAME(ICN)
+      SN=SNAME(ICOMP,ISUR)
       ZN=zname(ICOMP)
       CALL HDDATE(PDESCR)
       CALL HDSTEP(SDESCR)
@@ -235,9 +234,7 @@ C Setup and pass in parameters to win3d.
      &    ': ',RSNAME(ISIM)(1:lnblnk(RSNAME(ISIM)))
       endif
       if(MMOD.EQ.8)then
-        iside=1
-        isize=0
-        ifont=1
+        iside=1; isize=0; ifont=1
         call viewtext(etext,iside,isize,ifont)
       else
         call edisp(iuout,ETEXT)
@@ -247,9 +244,7 @@ C Setup and pass in parameters to win3d.
      &  SN(:lnblnk(SN)),' of ',ZN(:lnblnk(ZN)),' facing ',
      &  CSTR(1:lnblnk(CSTR))
       if(MMOD.EQ.8)then
-        iside=2
-        isize=0
-        ifont=1
+        iside=2; isize=0; ifont=1
         call viewtext(etext,iside,isize,ifont)
       else
         call edisp(iuout,ETEXT)
@@ -257,25 +252,23 @@ C Setup and pass in parameters to win3d.
 
 C Determine if the surface is transparent or opaque. At this point
 C CFC and CFC2 are still mostly treated as opaque.
-      IF(SSOTF(ICN)(1:4).EQ.'OPAQ'.OR.
-     &   SSOTF(ICN)(1:4).EQ.'UNKN')THEN
+      IF(SOTF(ICOMP,ISUR)(1:4).EQ.'OPAQ'.OR.
+     &   SOTF(ICOMP,ISUR)(1:4).EQ.'UNKN')THEN
          TSTR='opaque'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC ')THEN
+      ELSEIF(SOTF(ICOMP,ISUR)(1:4).EQ.'CFC ')THEN
          TSTR='CFC'
-      ELSEIF(SSOTF(ICN)(1:4).EQ.'CFC2')THEN
+      ELSEIF(SOTF(ICOMP,ISUR)(1:4).EQ.'CFC2')THEN
          TSTR='CFC2'
       ELSE
          TSTR='trnsp.'
       ENDIF
 
 C Display surface information.
-      lml=lnblnk(SSMLCN(ICN))
+      lml=lnblnk(SMLCN(ICOMP,ISUR))
       WRITE(ETEXT,'(5a,f6.2,a)')' It is ',TSTR,', composed of ',
-     &  SSMLCN(ICN)(1:lml),', with area ',SNA(ICOMP,ISUR),' m2.'
+     &  SMLCN(ICOMP,ISUR)(1:lml),', with area ',SNA(ICOMP,ISUR),' m2.'
       if(MMOD.EQ.8)then
-        iside=3
-        isize=0
-        ifont=1
+        iside=3; isize=0; ifont=1
         call viewtext(etext,iside,isize,ifont)
       else
         call edisp(iuout,ETEXT)
@@ -284,9 +277,7 @@ C Display surface information.
       call STDATE(IYEAR,IDAYO,DS,DS1)
       WRITE(ETEXT,'(3A,f6.2)')' Time ',DS1,' at ',TIMO
       if(MMOD.EQ.8)then
-        iside=4
-        isize=0
-        ifont=1
+        iside=4; isize=0; ifont=1
         call viewtext(etext,iside,isize,ifont)
       else
         call edisp(iuout,ETEXT)
@@ -303,11 +294,13 @@ C zone RH. If iverb=0 then report only summary, if iverb=1 report each
 C timestep.
       SUBROUTINE MOSURC(IZONE,izrh,iverb)
 #include "building.h"
+#include "site.h"
 #include "geometry.h"
 
       COMMON/OUTPCH/ICOUT
       common/exporttg/xfile,tg,delim
       COMMON/EXPORTI/ixopen,ixunit,ixpunit
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
 
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
@@ -327,7 +320,6 @@ C Find the number of hours represented by an output timestep. Use
       TFACT=FLOAT(NOUT)/FLOAT(NTS)
 
 C Set values as common block gets overwritten.
-      patmos=1013.25
       iopt=2
       N=24*NTS
 
@@ -406,7 +398,8 @@ C izctime is number of timesteps when some surface in zone has condensation.
       do 42 ij=1,NC
         CALL SURADJ(izone,ij,IE,T,IZC,ISC,ICN,CSTR)
         hrs=ihit(ij)*TFACT
-        WRITE(outs,'(1x,a,i5,f8.2)') ssname(icn),ihit(ij),hrs
+        WRITE(outs,'(1x,a,i5,f8.2)') sname(IC1(icn),IE1(icn)),
+     &    ihit(ij),hrs
         call edisp(itru,outs)
   42  continue
       hrs=izctime(IZONE)*TFACT
@@ -428,7 +421,7 @@ C multilayered construction at any user-specified time.
 C esprdbfile.h supplies the following:
 C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
       COMMON/PERO/IOD1,IOM1,IOH1,IOD2,IOM2,IOH2,IODS,IODF,NOUT,IAV
@@ -447,7 +440,7 @@ C VDIF is diffusion res, IPRZ is material array index for each layer.
       logical closemat1,closemat2
 
       character outs*124,NAM*72
-      logical ok,dok
+      logical ok
 
 C For help messages
       character helpinsub*24   ! subroutine name
@@ -532,10 +525,9 @@ C Display header, draw axis and then profiles.
       CALL MOIAXS(IZ,ISUR)
       CALL MOIDRW(IZ,ISUR)
 
-      dok=.false.
       helptopic='res_diffusion_consider'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      call askok(' ',' Consider another condition ? ',OK,dok,nbhelp)
+      call easkok(' ','Consider another condition?',OK,nbhelp)
       if(.NOT.ok)then
         RETURN
       endif
@@ -564,7 +556,7 @@ C and saturated vapour pressure gradients.
 #include "building.h"
 #include "site.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
@@ -586,9 +578,6 @@ C and saturated vapour pressure gradients.
 
 C Set chosen result set.
       ISET=ISIM
-
-C Set values as common block gets overwritten.
-      PATMOS=1013.25
 
 C Recover data from database.
 C Get zone rh:
@@ -882,7 +871,7 @@ C period.
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/OUTPCH/ICOUT
       COMMON/FILEP/IFIL
 
@@ -915,9 +904,6 @@ C IPRZ is materials array index for each layer.
 
 C Set chosen result set.
       ISET=ISIM
-
-C Set values as common block gets overwritten.
-      PATMOS=1013.25
 
 C If output to file alter the edisp unit number.
       IF(MMOD.NE.-6)ICOUT=IUOUT
@@ -972,7 +958,7 @@ C Check which version of materials database.
 C For each surface.
       do 20 ISUR=1,NZSUR(ICOMP)
         CALL SURADJ(ICOMP,ISUR,IE,T,IZC,ISC,ICN,CSTR)
-        SN=SSNAME(ICN)
+        SN=SNAME(IC1(icn),IE1(icn))
 
 C Determine diffusion resistance factor for each element
 C check if gap via materials array and compute layer thickness.

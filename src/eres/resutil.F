@@ -42,8 +42,9 @@ C MENUTYPE 9: Psychrometric chart
 #include "model.h"
 #include "prj3dv.h"
 #include "net_flow.h"
+#include "net_flow_data.h"
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
@@ -157,10 +158,8 @@ C Get bounds for image.
 C Determine scaling ratios for the drawing and axis.
 C Determine the 2D coords of the site extremes.
           CALL SITE2D(SXMX,SXMN,SYMX,SYMN,ier)
-C          write(6,*) SXMX,SXMN,SYMX,SYMN
           CALL axiscale(igwid,igheight,SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,
      &      Xadd,Yadd)
-C          write(6,*) SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,Xadd,Yadd
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
 
 C Read 3D flow network, report contents and draw the network.
@@ -170,7 +169,11 @@ C Read 3D flow network, report contents and draw the network.
           CALL EMF3DREAD(IUM,'S',IER)
           call edisp(iuout,' ')
           CALL MFLIST(iuout)
-          call MFWFDRAW('r')  ! Draw flow network.
+          if(NNOD.gt.50.or.NCMP.gt.50)then
+            call MFWFDRAW('r',0,0)  ! Draw flow network without names if complex
+          else
+            call MFWFDRAW('r',1,1)  ! Draw flow network with names
+          endif 
           CALL ERPFREE(IUM,ISTAT)
           call pauses(1)
         endif

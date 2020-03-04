@@ -80,7 +80,7 @@ C   labeltx(?,Max_dots)
 #include "gencompDB.h"
 #include "gencompDB_common.h"
       
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character*16 all_itemtag(Max_DB_Items)
       
@@ -94,7 +94,7 @@ C   labeltx(?,Max_dots)
 
       integer nbd,nbc,nbi,total_DB_items,i,j,k,ic,ND,IER,IERx,ISTAT
       integer itp,textl
-      integer iuout,iuin,natrib
+      integer iuout,iuin,ieout,natrib
       integer lnblnk,cdbunit,indxcolour,ival1,ival2,ival3,ival4
       INTEGER nbverts,nbedges,nbdots,nbarcs,nbatts,nblabels
 

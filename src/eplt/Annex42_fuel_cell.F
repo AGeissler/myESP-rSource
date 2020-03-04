@@ -78,8 +78,8 @@ C-------------------------------------------------------------------------------
 C Common blocks.
 C--------------------------------------------------------------------------------------------
 C Unit numbers for providing feedback to user during simulation.
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Trace output.
       COMMON/TC/ITC,ICNT
@@ -889,8 +889,8 @@ C-------------------------------------------------------------------------------
 C Common blocks.
 C--------------------------------------------------------------------------------------------
 C Unit numbers for providing feedback to user during simulation.
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
 C Connecting node data.
       COMMON/C10/NPCON,IPC1,IPN1,IPCT,IPC2,IPN2,PCONDR,PCONSD
@@ -913,8 +913,8 @@ C Additional res output from plant domain.
       INTEGER napdat
 
 C Simulation time step data.
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 C Plant component pointer.
       COMMON/C12PS/NPCDAT,IPOFS1,IPOFS2

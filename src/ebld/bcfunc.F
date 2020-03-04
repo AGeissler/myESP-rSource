@@ -43,7 +43,7 @@ C      BCL15:  optimum start control.
 C      BCL16:  optimum stop control.
 C      BCL17:  fuzzy logic PI/PD control.
 C      BCL18:  null control.
-C      bcl19:  multi-sensor basic control.
+C      BCL19:  multi-sensor basic control.
 C      BCL20:  evaporative source.
 C      BCL21:  master/slave control.
 C      BCL22:  VAV cooling with CAV heating.
@@ -71,19 +71,19 @@ C ******************** MZBCTL
 C The main building control function executive.
 
       SUBROUTINE MZBCTL(ier,icomp)
+
 #include "building.h"
 #include "control.h"
 #include "FMI.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       common/dllerr/dllsubr,dllmesg
 
       character dllsubr*12,dllmesg*124,outs*124
-      logical dll
-
-      logical bNested,CLOSERH
+      logical bNested,CLOSERH,dll
+      integer SENCON,ACTCON
 
 C Check if running in dll mode.
       call isadll(dll)
@@ -94,15 +94,35 @@ C negated then property substitution active within zone
 C associated with control function.
       IFUNC=ABS(IBCLAW(ICF,IDTYP,IPER))
 
+C Set sensed condition
+      SENCON=IBSN(ICF,1)
+      IF(SENCON.EQ.0) THEN
+        SENCON=IICOMP
+      ELSEIF(SENCON.EQ.-2.AND.
+     &(IBSN(ICF,2).EQ.0.OR.IBSN(ICF,2).EQ.IICOMP)) THEN
+        SENCON=IICOMP
+      ENDIF
+
+C Set actuation condition
+      ACTCON=IBAN(ICF,1)
+      IF(ACTCON.EQ.0) THEN
+        ACTCON=IICOMP
+      ELSEIF(ACTCON.EQ.-2.AND.
+     &(IBAN(ICF,2).EQ.0.OR.IBAN(ICF,2).EQ.IICOMP)) THEN
+        ACTCON=IICOMP
+      ENDIF
+
 C If actuator is not located in zone then no control is imposed
 C regardless of control function prevailing at this time.
 C (default to free-float)
-      IF(IBAN(ICF,1).EQ.-1.OR.(IBAN(ICF,1).EQ.-2.AND.IBAN(ICF,2).NE.
-     &IICOMP).OR.(IBAN(ICF,1).GT.0.AND.IBAN(ICF,1).NE.IICOMP)) IFUNC=2  
+      IF(SENCON.EQ.-1.OR.ACTCON.EQ.-1.OR.(SENCON.NE.ACTCON)) IFUNC=2  
 
-C For the special case of current zone, mixed node control only.
-      IF(IBSN(ICF,1).EQ.-2.AND.IBSN(ICF,2).EQ.IICOMP
-     &.AND.IBCLAW(ICF,IDTYP,IPER).NE.24) IFUNC=0
+C For the special case of mixed sensor in current zone
+      IF(IBSN(ICF,1).EQ.-2.AND.
+     &SENCON.EQ.IICOMP.AND.ACTCON.EQ.IICOMP.AND.
+     &IBCLAW(ICF,IDTYP,IPER).NE.24) THEN
+        IFUNC=0
+      ENDIF
 
 C <FMI>
 C Default to free float if control is not active according to FMU.
@@ -283,6 +303,8 @@ C New control laws should be inserted here.
           ier=2
           return
         else
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP
@@ -319,6 +341,8 @@ C Set ICALL to zero to signal nested control property substitution.
             return
           else
             call edisp(iuout,outs)
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             stop
@@ -356,11 +380,11 @@ C  IMRTS   - identifies which surfaces are used in the MRT calculation
 
       SUBROUTINE MZMIXT(ICMP,TMRT,TMIX)
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
 
@@ -454,7 +478,7 @@ C with the sensor defined for the control function.
 #include "tdf2.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/btime/btimep,btimef
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
@@ -521,6 +545,8 @@ C Which is obviously not allowed in case of bld.
           return
         else
           call edisp(iuout,outs)
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP
@@ -597,6 +623,8 @@ C Invalid controller type.
              return
            else
              call edisp(iuout,outs)
+             close(ieout)
+             CALL ERPFREE(ieout,ISTAT)
              call epwait
              call epagend
              STOP
@@ -615,6 +643,8 @@ C Which is currently not active in the case of bld.
            return
          else
            call edisp(iuout,outs)
+           close(ieout)
+           CALL ERPFREE(ieout,ISTAT)
            call epwait
            call epagend
            STOP
@@ -641,6 +671,8 @@ C     &       ' column ',isd,' value ',tctl,' for ctl loop ',icf
              return
            else
              call edisp(iuout,outs)
+             close(ieout)
+             CALL ERPFREE(ieout,ISTAT)
              call epwait
              call epagend
              STOP
@@ -669,6 +701,8 @@ C     &       ' column ',isd,' value ',tctl,' for ctl loop ',icf
         return
       else
         call edisp(iuout,outs)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -684,6 +718,7 @@ C Recover control point data.
 #include "tdf2.h"
 #include "control.h"      
 
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
@@ -724,6 +759,8 @@ C Which is obviously not allowed in case of bld.
             return
           else
             call edisp(iuout,outs)
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP
@@ -771,6 +808,8 @@ C Which is obviously not allowed in case of bld.
             return
           else
             call edisp(iuout,outs)
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             STOP
@@ -800,6 +839,8 @@ C     &       ' column ',isd,' value ',tctl,' for ctl loop ',icf
               return
             else
               call edisp(iuout,outs)
+              close(ieout)
+              CALL ERPFREE(ieout,ISTAT)
               call epwait
               call epagend
               STOP
@@ -836,19 +877,19 @@ C the present time row surface and air point temperatures.
 
       SUBROUTINE BCL00
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       logical bInStartup  ! <- function true if simulation is in startup
 
       COMMON/TC/ITC,ICNT
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       real UNMETHRS  ! for each zone counter for unmet hours.
       COMMON/UNMET/UNMETHRS(MCOM)
 
-      COMMON/PREC1/SNA(MCOM,MS)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       integer isd1,ism1,isd2,ism2,isds,isdf,ntstep
 
@@ -877,8 +918,7 @@ C Determine if trace is on.
       B2=BB2
       B3=BB3
       ISUR=0
-      IF(IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0)ISUR=
-     &IBAN(ICF,2)
+      IF(IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0)ISUR=IBAN(ICF,2)
       TFIN=TBCPS(ICF,IDTYP,IPER)
       IF(IPER.EQ.NBCDP(ICF,IDTYP))TFIN=24.
       CONV=FLOAT(IBSN(ICF,3))/100.
@@ -1145,6 +1185,8 @@ C  Determine target temperature.
    24 call edisp(iuout,' BCL00 error: iteration limit exceeded.')
       write(outs,'(A,F7.2,A,I4)')' Time ',BTIMEF,' Year Day ',IDYP
       call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -1152,6 +1194,8 @@ C  Determine target temperature.
      &  ' BCL00 error: +ve/-ve iteration limit exceeded.')
       write(outs,'(A,F7.2,A,I4)')' Time ',BTIMEF,' Year Day ',IDYP
       call edisp(iuout,outs)
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -1354,6 +1398,8 @@ C Total heating/cooling
       call edisp(iuout,outs)
       call edisp(iuout,
      &  ' exist but has been referenced.  This is a fatal error.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -1391,16 +1437,19 @@ C as an option.
       SUBROUTINE BCL01_extended(IER,IBehaviour)
       implicit none 
           
-      include "building.h"
-      include "hvac_parameters.h"
-      include "hvac_common.h"
-      include "control.h"
-      include "blc25_open_windows.h"
-      include "net_flow.h"
-      include "tdf2.h"
-C <FMI>
-      include "FMI.h"
-C </FMI>
+#include "building.h"
+#include "geometry.h"
+#include "site.h"
+#include "hvac_parameters.h"
+#include "hvac_common.h"
+#include "control.h"
+#include "blc25_open_windows.h"
+#include "net_flow.h"
+#include "tdf2.h"
+#include "FMI.h"
+#include "gremlin.h"
+
+      integer imcf
 
       logical bInStartup  ! <- function true if simulation is in startup
       integer IER ! Error flag
@@ -1424,12 +1473,12 @@ C Climate data
       real HP, HF
       
       
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer IHRP, IHRF   ! Present and future hour of day
       integer IDYP, IDYF   ! present and future day of year
       integer IDWP, IDWF   ! Present and future day of week
       integer NSINC        ! Simulation timestep
-      integer ITS          ! ?
+      integer ITS,idynow   ! ?
 
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       integer isd1,ism1,isd2,ism2,isds,isdf,ntstep
@@ -1437,8 +1486,8 @@ C Climate data
       COMMON/BTIME/BTIMEP,BTIMEF
       real BTimeP, BTimeF    ! Building present and future time of day
 
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout, iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
       
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       integer iCF, iDTyp, iPer
@@ -1449,9 +1498,6 @@ C Climate data
       
       real UNMETHRS  ! for each zone counter for unmet hours.
       COMMON/UNMET/UNMETHRS(MCOM)
-      
-      COMMON/PREC1/SNA(MCOM,MS)
-      real sna  ! Surface area (m2)
 
 C Common for relative humidity control (ideal) and dew point relative humidity
 C control.
@@ -1462,10 +1508,7 @@ C control.
       real RHHC
       real RHDC
       integer IRHCT
-      
-      COMMON/ATPRES/PATMOS
-      real PATMOS ! Ambient pressure 
-      
+           
       COMMON/FVALG/GFA(MCOM)
       real GFA    ! Zone humidity ratio 
       
@@ -1506,7 +1549,7 @@ C Heating and cooling setpoint (oC)
 C Local variables for control algorithm.
       real CSP ! Cooling set point (deg.C) 
       real HSP ! Heating set point (deg.C) 
-      real hrfrac
+      real hrfrac,rtmp
       
       integer iPlt ! Set IPLT to 1 for heating, 2 in case of cooling
 
@@ -1533,10 +1576,10 @@ C Humidity Calculations:
       logical atrace  ! is trace requested
       logical close   ! is requested Q close to the max
       
-C counter 
-      integer iSur, iter
+C Counters.
+      integer iSur, iter,istat
 
-C External functions 
+C External functions. 
       real PCRH2
       real DEWPT
 
@@ -1609,6 +1652,20 @@ C Set maximum heating capacity:
 C Set minimum heating capacity.
       QHN=BMISCD(ICF,IDTYP,IPER,3)
 
+C <GRM>
+      if (NMCF.gt.0) then
+        do imcf=1,NMCF
+
+C Gremlin mischief type 1: heating capacity = 0
+          if (MCFTYP(imcf).eq.1) then
+            QHM=0.
+            QHN=0.
+
+          endif
+        enddo
+      endif
+C </GRM>
+
 C Set maximum cooling capacity.
       if(cont_fun_cool_cap(IICOMP).gt.0.
      &  .and. 
@@ -1625,11 +1682,21 @@ C Set minimum cooling capacity.
       CSP=BMISCD(ICF,IDTYP,IPER,7)
 
 C <FMI>
-C If thermostat control is active, set heating and cooling setpoints to
-C the control value.
+C If thermostat control is active, set heating and/or cooling
+C setpoints to the control value.
       if (FMUDOCTL(iicomp,5)) then
-        HSP=FMUCTL(iicomp,5)
-        CSP=FMUCTL(iicomp,5)
+        if (NINT(FMUCTLSUP(iicomp,5,1)).eq.0) then
+          HSP=FMUCTL(iicomp,5)
+          CSP=FMUCTL(iicomp,5)
+        elseif (NINT(FMUCTLSUP(iicomp,5,1)).eq.1) then
+          HSP=FMUCTL(iicomp,5)
+        elseif (NINT(FMUCTLSUP(iicomp,5,1)).eq.2) then
+          CSP=FMUCTL(iicomp,5)
+        elseif (NINT(FMUCTLSUP(iicomp,5,1)).eq.3) then
+          rtmp=(CSP-HSP)/2.
+          HSP=FMUCTL(iicomp,5)-rtmp
+          CSP=FMUCTL(iicomp,5)+rtmp
+        endif        
       endif
 C </FMI>
 
@@ -1838,7 +1905,6 @@ C at (approx.) 100% RH.
       IF(int(CSP).EQ.-1000 .OR. int(HSP).EQ.-1000)THEN
         
 C Set point is the dew point temperature of the zone. 
-        PATMOS=1013.25
         HSP=DEWPT(GFA(IICOMP),PATMOS)
         CSP=DEWPT(GFA(IICOMP),PATMOS)
         IF(HSP.LT.0.0)HSP=0.0
@@ -2087,6 +2153,8 @@ C     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
         return
       else
         call edisp(iuout,outs)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -2103,7 +2171,7 @@ C A free-float controller.
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
 
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -2146,15 +2214,15 @@ C An exponential pre-heat (or cool) controller.
 
       SUBROUTINE BCL03
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/BTIME/BTIMEP,BTIMEF
       
@@ -2292,6 +2360,8 @@ C Trace output.
 
       RETURN
    99 call edisp(iuout,' BCL03: data incomplete.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -2302,15 +2372,15 @@ C A fixed heat injection/extraction controller.
 
       SUBROUTINE BCL04
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
       CHARACTER OUTS*124
 
 C Fatal error test.
@@ -2396,6 +2466,8 @@ C Trace output.
 
       RETURN
    99 call edisp(iuout,' BCL04: data incomplete.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -2408,15 +2480,15 @@ C suitable for use with controller types 0,35,36,37,38,39.
 
       SUBROUTINE BCL05
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
 
       COMMON/BLGPID/BPID(MCF,6),NSINCR
@@ -2692,31 +2764,45 @@ C Trace output.
       RETURN
 
 96    call edisp(iuout,'BCL05: fatal error Int Act Time must be > 1.s')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP  
 
 97    call edisp(iuout,'BCL05: fatal error on controller type.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
 981   call edisp(iuout,'BCL05: proportional should have 9 data items.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
 982   call edisp(iuout,'BCL05: prop + I should have 10 data items.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
 983   call edisp(iuout,'BCL05: prop + D should have 10 data items.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
 984   call edisp(iuout,'BCL05: prop +I+D should have 11 data items.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
 99    call edisp(iuout,'BCL05: BPID mode flag outwith 1 to 4 range.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -2747,15 +2833,16 @@ C QCMAX : maximum cooling flux allowed (W)
       SUBROUTINE BCL06(icomp)
 
 #include "building.h"
+#include "geometry.h"
 #include "plant.h"
 #include "control.h"
 
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/C12PS/NPCDAT(MPCOM,9),IPOFS1(MCOEFG),IPOFS2(MCOEFG,MPVAR)
       COMMON/C14PS/NDCON(MPCOM,MNODEC),ISV(MPCOM,MNODEC)
       COMMON/PCVAL/CSVF(MPNODE,MPVAR),CSVP(MPNODE,MPVAR)
@@ -2790,6 +2877,8 @@ C Fatal error tests
      &  INT(BMISCD(ICF,IDTYP,IPER,1)).NE.7)then
            call edisp(itu,
      &       ' BCL06: fatal error on number of control data items.')
+           close(ieout)
+           CALL ERPFREE(ieout,ISTAT)
            call epwait
            call epagend
            STOP
@@ -2800,6 +2889,8 @@ C Fatal error tests
      &   ICLCTP.NE.6.AND.ICLCTP.NE.8)then
          call edisp(itu,
      &     ' BCL06: fatal error on controller type control law.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP
@@ -2825,6 +2916,8 @@ C Set the embedded flag to zero after finding ipcmp.
         else
           call edisp(itu,
      &     ' BCL06: fatal error (zero index) of control data item.')
+          close(ieout)
+          CALL ERPFREE(ieout,ISTAT)
           call epwait
           call epagend
           STOP   
@@ -2836,6 +2929,8 @@ C Determine the number of supply and extracting components.
         IF(INT(BMISCD(ICF,IDTYP,IPER,1)).NE.5+2*(NCPL+NEXT)) THEN
          call edisp(itu,
      &     ' BCL06: fatal error on number of control data items.')
+         close(ieout)
+         CALL ERPFREE(ieout,ISTAT)
          call epwait
          call epagend
          STOP   
@@ -2896,6 +2991,8 @@ C      from the previous time step to calculate the resulting heat injection.
      &      MOD(ISV(IPCMP,IPNOD),10).NE.1)then
             call edisp(itu,
      &        'BCL06: fatal error on actuated node or fluid type.')
+            close(ieout)
+            CALL ERPFREE(ieout,ISTAT)
             call epwait
             call epagend
             stop
@@ -3066,6 +3163,8 @@ C Add/subtract heat from all components contained to a zone
         enddo
       ELSE
         call edisp(itu,' BCL06: fatal error on calculation type.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -3129,15 +3228,15 @@ C A multi-stage controller with hysteresis.
 
       SUBROUTINE BCL07
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/OUTIN/IUOUT,IUIN
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
 
 C Special common block for this controller. The variable
@@ -3349,6 +3448,8 @@ C Fatal errors.
       GOTO 998
    96 call edisp(iuout,' BCL07: dead-band cannot be less than zero.')
   998 call epwait
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epagend
       STOP
       END
@@ -3362,11 +3463,11 @@ C with limit constraints.
 #include "building.h"
 #include "control.h"
 
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/OUTIN/IUOUT,IUIN
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       COMMON/MBINFO/ZMBI(MCOM,4)
@@ -3461,6 +3562,8 @@ C Trace output.
 
       RETURN
    99 call edisp(iuout,' BCL08: data incomplete.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -3479,10 +3582,10 @@ C represents the heat pipe physics.
 
       SUBROUTINE BCL09
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
-      COMMON/PREC1/SNA(MCOM,MS)
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -3621,6 +3724,8 @@ c Convergence device.
       GOTO 1
 
    99 call edisp(iuout,' BCL09: data incomplete.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -3637,17 +3742,17 @@ C ON condition is reached.
 
       SUBROUTINE BCL10
 #include "building.h"
+#include "geometry.h"
 #include "hvac_parameters.h"
 #include "hvac_common.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
 
       COMMON/BCL10M/LASTH(MCOM),LASTC(MCOM)
       CHARACTER*3 LASTH,LASTC
@@ -3801,6 +3906,8 @@ C Trace output.
 
       RETURN
    99 call edisp(iuout,' BCL10: data incomplete.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -3817,15 +3924,15 @@ C It also is used to support temporal file setpoint sensing.
 
       SUBROUTINE BCL11
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/CMSVAR/NSEN(MCF),ISMOD(MCF),IBMSN(MCF,MSEN,4),
      &TAUXSN(MCF,MSEN)
      
@@ -3837,6 +3944,8 @@ C Fatal error tests:
       ICTYP=IBCTYP(ICF,IDTYP,IPER)
       IF(ICTYP.NE.0.AND.(ICTYP.LT.35.OR.ICTYP.GT.39))then
         call edisp(iuout,' BCL11: controller type error.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -3844,6 +3953,8 @@ C Fatal error tests:
 
       IF(INT(BMISCD(ICF,IDTYP,IPER,1)).GT.16)then
         call edisp(iuout,' BCL11: incorrect no. of misc data items.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -3948,12 +4059,16 @@ C << If using +4* logic, how does 12+ and 13+  fit? >>
 C Fatal error tests:      
       IF(ISM.LT.1.OR.ISM.GT.4)then
         call edisp(iuout,' BCL11: misc data - mode flag error.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
       endif
       IF(NSEN(ICF).GT.2)then
         call edisp(iuout,' BCL11: Incorrect number of auxy sensors.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -3961,6 +4076,8 @@ C Fatal error tests:
       IF(ISM.EQ.4.AND.INT(SNWTOT).NE.100)THEN
         call edisp(iuout,
      &   ' BCL11: sum of weighting factors does not equal 100.0.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -4084,15 +4201,15 @@ C It is suitable for use with a type 0 controller.
 
       SUBROUTINE BCL12
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
 
       COMMON/BCL10M/LASTH(MCOM),LASTC(MCOM)
       COMMON/CMSVAR/NSEN(MCF),ISMOD(MCF),IBMSN(MCF,MSEN,4),
@@ -4107,12 +4224,16 @@ C Fatal error tests:
       ICTYP=IBCTYP(ICF,IDTYP,IPER)
       IF(ICTYP.NE.0.AND.(ICTYP.LT.35.OR.ICTYP.GT.39))then
         call edisp(iuout,' BCL12: controller type error.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
       endif
       IF(INT(BMISCD(ICF,IDTYP,IPER,1)).GT.16)then
         call edisp(iuout,' BCL12: incorrect no. of misc data items.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -4166,12 +4287,16 @@ C SNWGHT(?) is the sensor weighting when ISM=4
 C Fatal error tests:
       IF(ISM.LT.1.OR.ISM.GT.4)then
         call edisp(iuout,' BCL12: misc data;sensor flag error.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
       endif
       IF(NSEN(ICF).GT.2)then
         call edisp(iuout,' BCL12: Incorrect number of auxy sensors.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -4179,6 +4304,8 @@ C Fatal error tests:
       IF(ISM.EQ.4.AND.INT(SNWTOT).NE.100)THEN
         call edisp(iuout,
      &    ' BCL12: sum of weighting factors does not equal 100.0.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -4282,17 +4409,17 @@ C Heating and cooling restrictions are allowed.
 
       SUBROUTINE BCL13
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PREC7/ITCNST      
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C Special common for BCL13; icounh and icounc are
 C heating cycle and cooling cycle period time-step counters.      
@@ -4304,6 +4431,8 @@ C Fatal error test:
       ICTYP=IBCTYP(ICF,IDTYP,IPER)
       IF(ICTYP.NE.0.AND.(ICTYP.LT.35.OR.ICTYP.GT.39))then
         call edisp(iuout,' BCL13: controller type error.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -4459,6 +4588,8 @@ C Trace output.
       
       RETURN
    99 call edisp(iuout,' BCL13: incorrect number of data items.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -4471,15 +4602,15 @@ C Heating and cooling restrictions are allowed.
 
       SUBROUTINE BCL14
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/OUTIN/IUOUT,IUIN    
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT    
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/FLTCTR/QHLAST,QCLAST
       COMMON/FLTCLR/LASTH(MCOM),LASTC(MCOM)
       CHARACTER*3 LASTH,LASTC
@@ -4490,6 +4621,8 @@ C Fatal error tests:
       ICTYP=IBCTYP(ICF,IDTYP,IPER)
       IF(ICTYP.NE.0.AND.(ICTYP.LT.35.OR.ICTYP.GT.39))then
         call edisp(iuout,' BCL14: controller type error.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -4666,6 +4799,8 @@ C Trace output.
       
       RETURN
    99 call edisp(iuout,' BCL14: incorrect number of data items.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -4678,15 +4813,15 @@ C Suitable for use with controller types 0,35,36,37,38,39.
 
       SUBROUTINE BCL15
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       COMMON/OPTRCTL/IRWIND,IRWLAS,IRWCNT,IRWCSV,IRWCHP,IRWCHN,IRWCHG,
@@ -4931,6 +5066,8 @@ C TRACE OUTPUT,
 
       return
    99 call edisp(iuout,' BCL15: DATA INCOMPLETE.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       stop
@@ -4942,14 +5079,14 @@ C Suitable for use with controller types 0,35,36,37,38,39.
 
       SUBROUTINE BCL16
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       COMMON/TS6/idysv,ihrsv,irwcou,tsclaw,rewnd,nsncv1,nsncv2,pasone
       COMMON/OPTRCTL/IRWIND,IRWLAS,IRWCNT,IRWCSV,IRWCHP,IRWCHN,IRWCHG,
@@ -5213,6 +5350,8 @@ C TRACE OUTPUT,
 
       return
    99 call edisp(iuout,' BCL16: DATA INCOMPLETE.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       stop
@@ -5224,15 +5363,15 @@ C Fuzzy Logic PI/PD Controller.
 
       SUBROUTINE BCL17
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/FZCTL1/FZM(MFP,3,5,10),ERRSAV(MFP),QSAV(MFP),
      &ACUT(3,5),FZCTIP(5,5),FZCTOP(5),COA(5)
       COMMON/FZCTL2/NFZF(MFP,3),FZT(MFP,3),NONZRO
@@ -5524,16 +5663,22 @@ C Trace output.
       RETURN
 
 97    CALL EDISP(iuout,' BCL17: Incorrect value for PI/PD flag.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPWAIT
       CALL EPAGEND
       STOP
 
 98    CALL EDISP(iuout,' BCL17: Incorrect value for defuzzn flag.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPWAIT
       CALL EPAGEND
       STOP
 
 99    CALL EDISP(iuout,' BCL17: incorrect no. of misc. data items.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       CALL EPWAIT
       CALL EPAGEND
       STOP
@@ -5547,14 +5692,14 @@ C is identically the same as the sensor input.
 
       SUBROUTINE BCL18
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
       
       character outs*124
 
@@ -5622,19 +5767,20 @@ C This control law is suitable for a type 0 controller.
 
       SUBROUTINE BCL19
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/CMSVAR/NSEN(MCF),ISMOD(MCF),IBMSN(MCF,MSEN,4),
      &TAUXSN(MCF,MSEN)
      
       character outs*124
+      character ctl_logic*124
 
       DIMENSION AUXHSP(MSEN),AUXCSP(MSEN)
       
@@ -5642,6 +5788,8 @@ C Fatal error tests:
       ICTYP=IBCTYP(ICF,IDTYP,IPER)
       IF(ICTYP.NE.0.AND.(ICTYP.LT.35.OR.ICTYP.GT.39))then
         call edisp(iuout,' BCL19: controller type error.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -5649,6 +5797,8 @@ C Fatal error tests:
 
       IF(INT(BMISCD(ICF,IDTYP,IPER,1)).GT.MISC)then
         call edisp(iuout,' BCL19: too many misc data items.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -5684,7 +5834,6 @@ C CSP = cooling set point temp. (deg.C)
       QCN=-BMISCD(ICF,IDTYP,IPER,5)
       HSP=BMISCD(ICF,IDTYP,IPER,6)
       CSP=BMISCD(ICF,IDTYP,IPER,7)
-      IF(TCTL.LE.CSP.AND.TCTL.GE.HSP)goto 1000
 
 C NSEN(ICF) = number of auxiliary sensors for control function.
       NSEN(ICF)=INT(BMISCD(ICF,IDTYP,IPER,8))
@@ -5692,6 +5841,8 @@ C NSEN(ICF) = number of auxiliary sensors for control function.
 C Fatal error test:      
       IF(NSEN(ICF).GT.MSEN)then
         call edisp(iuout,' BCL19: too many auxiliary sensors.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -5699,6 +5850,8 @@ C Fatal error test:
 
       IF(INT(BMISCD(ICF,IDTYP,IPER,1)).NE.(7+6*NSEN(ICF)))then
         call edisp(iuout,' BCL19: incorrect no of misc data items.')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -5732,13 +5885,31 @@ C heating or cooling is demanded.
  20   CONTINUE
 
 C Check whether neither heating nor cooling required.
-      IF(IHEATING.EQ.0.AND.ICOOLING.EQ.0)goto 1000
+      IF(IHEATING.EQ.0.AND.ICOOLING.EQ.0)then
+        ctl_logic='No heating or cooling required in auxiliary zones'//
+     &    ' -> do nothing.'
+        goto 1000
+      endif
+
+C Check whether we need to inject/subtract heat from the source zone when heating/cooling required in aux zone.
+      IF(TCTL.GE.HSP.AND.IHEATING.EQ.1)then
+        ctl_logic='Heating required in at least 1 auxiliary zone but'//
+     &  ' source is hotter than setpoint -> do nothing.'
+        goto 1000
+      endif
+      IF(TCTL.LE.CSP.AND.ICOOLING.EQ.1)then
+        ctl_logic='Cooling required in at least 1 auxiliary zone but'//
+     &  ' source is cooler than setpoint -> do nothing.'
+        goto 1000
+      endif
 
 C For the case of simultaneous heating and cooling
 C demand of auxiliary zones, do not control the
 C current zone, and issue a warning.
       IF(IHEATING.EQ.1.AND.ICOOLING.EQ.1)THEN
          CALL EDISP(IUOUT,' BCL19: simultaneous heating and cooling')
+         ctl_logic='Simultaneous heating and cooling required'//
+     &  ' among auxiliary zones -> do nothing.'
          goto 1000
       ENDIF
 
@@ -5750,6 +5921,8 @@ C within range, attempt to control this zone's temperature.
 C If heating required an aux zone and this zone is below its setpoint
 C then attempt to heat this zone to its heating setpoint.
       IF(IHEATING.EQ.1.and.TCTL.LT.HSP)then
+      ctl_logic='Heating required by an aux zone, source is below'//
+     &  ' heating setpoint -> heating source zone.'
         IPLT=1
         QMX=QHM
         QMN=QHN
@@ -5778,6 +5951,8 @@ C Is this capacity available ?
 C If auxiliary zones demand cooling and actuation zone is > cooling
 C set point then Temp. too high, cool to CSP.
       if(ICOOLING.EQ.1.and.TCTL.GT.CSP)then
+      ctl_logic='Cooling required by an aux zone, source is above'//
+     &  ' cooling setpoint -> cooling source zone.'
         Q=(BB3-BB1*CSP)/BB2
         IPLT=2
         QMX=QCM
@@ -5808,13 +5983,15 @@ C Is this available ?
 C Trace output.
  1000 IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(41).NE.0) THEN
-         write(outs,'(A,F10.3,A,2F10.3)')' Local sensed temp = ',TCTL,
-     &                                   ' Local setpoints = ',HSP,CSP
+         write(outs,'(A,F10.3,A,2F10.3)')' Source sensed temp = ',TCTL,
+     &                                   ' Source setpoints = ',HSP,CSP
          call edisp(itu,outs)
-         write(outs,'(A,F10.3)')' Aux sensed value = ',TAUXSN(ICF,1)
+         write(outs,'(A,F10.3)')' Aux #1 sensed value = ',TAUXSN(ICF,1)
          call edisp(itu,outs)
-         write(outs,'(A,I3,A,I3)') ' Aux heat yes/no = ',IHEATING,
-     &                             ' Aux cool yes/no = ',ICOOLING
+         write(outs,'(A,I3,A,I3)') ' Any aux heat yes/no = ',IHEATING,
+     &                             ' Any aux cool yes/no = ',ICOOLING
+         call edisp(itu,outs)
+         write(outs,'(A)') ctl_logic
          call edisp(itu,outs)
          write(outs,'(A,F10.3,A,F10.3)') ' Qfuture = ',QFUT,
      &                                   ' Tfuture = ',TFUT
@@ -5844,30 +6021,27 @@ C  where GS is zone moisture content x` and zone temperature TD
 C  x' is the maximum moisture content at the water surface temperature
 C  xi is the indoor moisture content
 C  x' is calculated using HUMRT1(TS,RH,PATMOS,IOPT) TS is the surface
-C     temperature and RH is set to 100. PATMOS=1013.25.
+C     temperature and RH is set to 100. 
 
 C The operational modes are defined by BMISCD(ICF,IDTYP,IPER,2)
 C if 0 for a wetted surface 1 for a swiming pool.
 
       SUBROUTINE BCL20
 #include "building.h"
+#include "site.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2.
 #include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
-      COMMON/ATPRES/PATMOS
 
 C In support of ZRH calculations.
       common/concoe/hcip(mcom,ms),hcif(mcom,ms),hcop(mcom,ms),
@@ -5991,7 +6165,7 @@ C Dump output
         write(6,*) ' t       ',IHRF,' (h)'
         write(6,*) ' Tair    ',TD,' (C)'
         write(6,*) ' g       ',gfa(icomp),' (kg/kg)'
-        write(6,*) ' evapo   ', Ev,' (kg) '
+        write(6,*) ' evapo   ',Ev,' (kg)'
         write(6,*) ' Qconv   ',Qconv,' (W)'
         write(6,*) ' Qrad    ',Qrad,' (W)'
         write(6,*) ' Qevap   ',Qevap,' (W)'
@@ -6017,6 +6191,8 @@ C Trace output.
       return
 
    99 call edisp(iuout,' BCL20: data incomplete, terminating!')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -6036,9 +6212,10 @@ C deliver proportionally).
       include "control.h"
       include "blc25_open_windows.h"
 
+      common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/SLAVE1/QHB(MCF),QCB(MCF),Qmst(MCF),
@@ -6122,6 +6299,8 @@ C which control law is the master control for that zone.
       elseif (IBSN(ICF,1).EQ.0) then
         call edisp(itu, 
      &   ' BCL21: Sensor must be placed in master zone')
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP      
@@ -6271,9 +6450,9 @@ C << the energy balance reported in esrures is off a bit >>
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       COMMON/MBINFO/ZMBI(MCOM,4)
@@ -6429,6 +6608,8 @@ C Trace output format depending on whether VAV or CAV active.
 
       RETURN
    99 call edisp(iuout,' BCL22: data incomplete.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -6448,10 +6629,10 @@ C IACTIV (ACTIVITY of space) and IHTCLSETP (only heating and cooling setpoints)
 #include "sbem.h"
 #include "geometry.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       common/dllerr/dllsubr,dllmesg
@@ -6678,6 +6859,8 @@ C Trace output format depending on whether VAV or CAV active.
         return
       else
         call edisp(iuout,outs)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -6700,11 +6883,11 @@ C climate file commons
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       common/dllerr/dllsubr,dllmesg
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
 
       DIMENSION ICLM(24,6)
@@ -6921,6 +7104,8 @@ C      write(6,*)trm,TOP,TCOMF,iheat,icool,QFUT,pw,rn
         return
       else
         call edisp(iuout,outs)
+        close(ieout)
+        CALL ERPFREE(ieout,ISTAT)
         call epwait
         call epagend
         STOP
@@ -7186,17 +7371,17 @@ C working fluid circulating in a building-connected network.
 
       SUBROUTINE BCL26
 #include "building.h"
+#include "geometry.h"
 #include "control.h"
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
 C      COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       COMMON/COE39S/CIF(MCOM),CVF(MCOM),X3(MCOM),CVM(MCOM)
-C      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/zfluid/znotair(mcom),zfldK,zfldD,zfldC,zfldA,
      &              zSWAp(mcom),zSWAf(mcom)
@@ -7498,6 +7683,8 @@ C Trace output.
 
       RETURN
    99 call edisp(iuout,' BCL26: data incomplete')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -7522,14 +7709,14 @@ C losing heat to the room i.e. standing losses).
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,itu
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/BTIME/BTIMEP,BTIMEF
       REAL BTIMEP,BTIMEF
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       real BB1,BB2,BB3,TNP,QFUT,TFUT
@@ -7539,7 +7726,7 @@ C losing heat to the room i.e. standing losses).
       real heatLoss
    
       character outs*124
-      INTEGER IER,IZ,IS,IN
+      INTEGER IER,IZ,IS,IN,ISTAT
       REAL T_heating_setpoint,T_max,T_min,heaterCapacity,fracHeatGain,
      &T_changeover_charging,T_changeover_notcharging,gradChargeActive1,
      &interceptChargeActive1,gradChargeActive2,interceptChargeActive2,
@@ -7687,6 +7874,8 @@ C Trace output.
 
       RETURN
    99 call edisp(iuout,' bcl27: data incomplete.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -7707,14 +7896,14 @@ C to the heater
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,itu
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/BTIME/BTIMEP,BTIMEF
       REAL BTIMEP,BTIMEF
 
-      COMMON/OUTIN/IUOUT,IUIN
-      INTEGER IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      INTEGER IUOUT,IUIN,IEOUT
 
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       real BB1,BB2,BB3,TNP,QFUT,TFUT
@@ -7724,6 +7913,7 @@ C to the heater
       real heatLoss
    
       character outs*124
+      integer istat
 
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
@@ -7751,6 +7941,8 @@ C Trace output.
 
       RETURN
    99 call edisp(iuout,' BCL28: data incomplete.')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP
@@ -7770,8 +7962,8 @@ C the air point of the actuated zone
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,itu
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/BTIME/BTIMEP,BTIMEF
       REAL BTIMEP,BTIMEF
@@ -7921,8 +8113,8 @@ c      integer itrc
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       real BB1,BB2,BB3,TNP,QFUT,TFUT
       integer ICF,IDTYP,IPER,IICOMP
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       
 C TPA(MCOM),           ! - present zone air point temperature (oC)
 C QPA(MCOM)            ! - zone air point heat injection (W)
@@ -8211,19 +8403,15 @@ C ICALL = 1 signals call from solar with no change in props.
 C ICALL = 2 signals call from solar with request for alternative props.
 
       subroutine bcl99(ICALL)
+
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0,G2 G5.
 #include "geometry.h"
-
 #include "esprdbfile.h"
-C esprdbfile.h supplies the following:
-C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
 #include "material.h"
 #include "control.h"
 
-      common/outin/iuout,iuin
+      common/outin/iuout,iuin,ieout
       common/filep/ifil
 
       COMMON/VTHP14/THRMLI(MCOM,MS,ME,7)
@@ -8237,7 +8425,6 @@ C LFMAT,IFMAT,LFMUL,IFMUL (for materials and constructions database)
       common/t1/ne(ms),nairg(ms),ipairg(ms,mgp),rairg(ms,mgp)
       common/t2/con(ms,me),den(ms,me),sht(ms,me),thk(ms,me)
 
-      COMMON/PREC1/SNA(MCOM,MS)
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
       common/prec12/ei(mcom,ms),ee(mcom,ms),ai(mcom,ms),ae(mcom,ms)
@@ -8428,11 +8615,11 @@ C air gap values depending on the surface orientation.
 C Keep track of the air gaps in the composite. 
               nairg(ii)=nairg(ii)+1
               ipairg(ii,nairg(ii))=i
-              if(svfc(ii).eq.'VERT')then
+              if(svfc(ICMP,ii).eq.'VERT')then
                 rairg(ii,nairg(ii))=drair(ic,i,1)
-              elseif(svfc(ii).eq.'FLOR')then
+              elseif(svfc(ICMP,ii).eq.'FLOR')then
                 rairg(ii,nairg(ii))=drair(ic,i,2)
-              elseif(svfc(ii).eq.'CEIL')then
+              elseif(svfc(ICMP,ii).eq.'CEIL')then
                 rairg(ii,nairg(ii))=drair(ic,i,3)
               endif
               RGAPS(ICMP,II,nairg(ii))=rairg(ii,nairg(ii))
@@ -8472,6 +8659,8 @@ C Modify if computational time-step is less than one hour.
 
       return
    99 call usrmsg(' ',' bcl99: data incomplete or in error.','W')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       stop
@@ -8487,19 +8676,19 @@ c and convective component. Some iteration takes place.
 
 #include "building.h"
 #include "control.h"
-      COMMON/OUTIN/IUOUT,IUIN
-      integer iuout, iuin
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+      integer iuout,iuin,ieout
 
       COMMON/TC/ITC,ICNT
       integer ITC, ICNT 
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       integer ITCF, ITRACE, IZNTRC, ITU ! I/O parameters for trace
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer IHRP, IHRF   ! Present and future hour of day
       integer IDYP, IDYF   ! present and future day of year
       integer IDWP, IDWF   ! Present and future day of week
       integer NSINC        ! Simulation timestep
-      integer ITS          ! ?
+      integer ITS,idynow   ! ?
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       integer iCF, iDTyp, iPer
       real BB1, BB2, BB3 
@@ -8537,6 +8726,8 @@ c Inform user of problems!
       call edisp(iuout,
      &  ' Actuator and sensor not available with this')
       call edisp(iuout,' release. Simulation terminated!')
+      close(ieout)
+      CALL ERPFREE(ieout,ISTAT)
       call epwait
       call epagend
       STOP

@@ -127,7 +127,7 @@ C ******* Default views formation.
       
       integer lnblnk  ! function definition
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       
       integer ncomp,ncon
@@ -142,7 +142,7 @@ C ******* Default views formation.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
 
-      LOGICAL XST,OK,DOK
+      LOGICAL XST,OK
       logical addview   ! mark we are working a new view
       logical do_redraw
       logical short     ! for shorter format
@@ -394,9 +394,8 @@ C This option only recommended for internal views.
           helptopic='ext_MRTview'
           call gethelptext(helpinsub,helptopic,nbhelp)
           write(outs,'(a)')
-     &      'This option is not recommended for external views.'
-          dok=.false.
-          call ASKOK(outs,'Do you wish to continue?',ok,dok,nbhelp)
+     &      'This option not recommended for external views!'
+          call EASKOK(outs,'Continue?',ok,nbhelp)
           if (.not.ok) goto 10
         endif
 
@@ -790,10 +789,9 @@ C the site origin we need to add in offsets.
             iupdown=0; isym=6
             call etplot(ex,ey,iupdown,isym)
             call forceflush()
-            WRITE(outs,'(a,f7.3,a,f7.3)')' The point is at x=',ex,
+            WRITE(outs,'(a,f7.3,a,f7.3)')'The point is at x=',ex,
      &                                   ' & y=',ey
-            dok=.true.
-            CALL ASKOK(outs,'Is this view ok?',OK,dok,nbhelp)
+            CALL EASKOK(outs,'View OK?',OK,nbhelp)
             IF(OK)then
               rvpx=ex; rvpy=ey
               vewdone=.false.; do_redraw =.true.
@@ -807,10 +805,9 @@ C the site origin we need to add in offsets.
           if(IEE.eq.3)then
             goto 10
           elseif(IEE.eq.2)then
-            write(outs,'(a,3F7.1)') 'The perspective eyepoint is ',
+            write(outs,'(a,3F7.1)') 'Perspective eyepoint is ',
      &        EYEM(1),EYEM(2),EYEM(3)
-            dok=.true.
-            CALL ASKOK(outs,'Is this ok ?',OK,dok,nbhelp)
+            CALL EASKOK(outs,'OK?',OK,nbhelp)
             if(OK)then
               rvpx=EYEM(1); rvpy=EYEM(2); rvpz=EYEM(3)
               call ln2az(EYEM(1),EYEM(2),EYEM(3),VIEWM(1),VIEWM(2),
@@ -845,11 +842,10 @@ C the site origin we need to add in offsets.
           call etplot(rvpx,rvpy,iupdown,isym)
           call forceflush()
           if(ITPPSW.eq.3)then
-            dok=.false.
             helptopic='reflect_rad_view_in_per'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL ASKOK(' ','Reflect this in perspective view?',
-     &        OK,dok,nbhelp)
+            CALL EASKOK(' ','Reflect this in perspective view?',
+     &        OK,nbhelp)
             if(OK)then
               EYEM(1)=rvpx; EYEM(2)=rvpy; EYEM(3)=rvpz
               call ln2az(EYEM(1),EYEM(2),EYEM(3),VIEWM(1),VIEWM(2),
@@ -858,7 +854,7 @@ C the site origin we need to add in offsets.
               vewdone=.false.; do_redraw =.true.
               MODLEN=.true.; MODIFYVIEW=.TRUE.
               call usrmsg('Altering the eyepoint may require using the',
-     &        'wireframe control to set the viewed point. ','W')
+     &        'wireframe control to set the focus point.','W')
             endif
           endif
         endif
@@ -881,8 +877,7 @@ C Update the viewing azimuth and elevation.
      &        VIEWM(3),az,el)
             write(outs,'(a,F7.1,a,F7.1)') 'The perspective azimuth is ',
      &        az,' and elevation is ',el
-            dok=.true.
-            CALL ASKOK(outs,' Is this view ok?',OK,dok,nbhelp)
+            CALL EASKOK(outs,'View OK?',OK,nbhelp)
             if(OK)then
               azimuth=az; elevtn=el
               call  AZ2UV(azimuth,elevtn,vdx,vdy,vdz)
@@ -926,11 +921,10 @@ C View angle horizontal and vertical.
         CALL EASKR(angv,outs,' View angle (vert deg) ? ',
      &    0.01,'W',180.,'W',60.,'view angle',IER,nbhelp)
         if(ITPPSW.eq.3)then
-          dok=.false.
           helptopic='reflect_rad_view_in_per'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK(' ','Reflect this in perspective view?',
-     &      OK,dok,nbhelp)
+          CALL EASKOK(' ','Reflect this in perspective view?',
+     &      OK,nbhelp)
           if(OK)then
             ITBND=0
             ANG=angh; HANG=ANG/2.0
@@ -1154,11 +1148,10 @@ C Exit.
         if(vewdone)then
           return
         else
-          dok=.false.
           helptopic='e2r_remind_to_save'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL ASKOK('View information has not been saved',
-     &      'Is it ok to exit?',OK,dok,nbhelp)
+          CALL EASKOK('View information not saved!',
+     &      'OK to exit?',OK,nbhelp)
           IF(OK)return
         endif
       endif

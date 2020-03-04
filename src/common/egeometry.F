@@ -110,7 +110,7 @@ C espriou.h provides current file.
       
       integer lnblnk  ! function definition
       integer ISN
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
 C Include ishdirc common in legacy file read so that some inference
 C can be made in case the data is saved to version 1.1 file.
@@ -142,7 +142,6 @@ C Error subroutine and error details for dll mode.
       common/dllerr/dllsubr,dllmesg
 
       DIMENSION XX(MS),YY(MS),IVA(MS)
-      DIMENSION SNA(MS),PAZI(MS),PELV(MS)
       
       CHARACTER LGEOMF*72,WORD*20,loutstr*248,lkoutstr*1000
       CHARACTER tmpvfc*4,tmpsot*32,tother*15
@@ -458,6 +457,7 @@ C          call lstripc(IUNIT,loutstr,99,ND,1,'vertex list',IER)
             K=0
             CALL EGETWI(lkoutstr,K,J,3,MV,'F','nb assoc vertices',IERV)
             NVER(I)=J
+            isznver(icomp,i)=J
 
 C Now proceed to read vertices on one or more lines.
             DO 12 KV=1,NVER(I)
@@ -635,7 +635,7 @@ C in any of the names and we can just use the space separation.
             CALL EGETW(LOUTSTR,K,WORD,'W','surface vfc',IER)
             write(tmpvfc,'(a)') WORD(1:lnblnk(WORD))        
             CALL EGETW(LOUTSTR,K,WORD,'W','surface construction',IER)
-            write(SMLCN(ISN),'(a)') WORD(1:lnblnk(WORD))
+            write(SMLCN(ICOMP,ISN),'(a)') WORD(1:lnblnk(WORD))
             CALL EGETW(LOUTSTR,K,WORD,'W','surface construction',IER)
             write(tother,'(a)') WORD(1:lnblnk(WORD))
   
@@ -662,7 +662,7 @@ C Interpret positional portion of the string.
             tmpvfc=loutstr(26:29)        
    
 C Interpret the construction name.
-            write(SMLCN(ISN),'(a)') loutstr(32:43)   
+            write(SMLCN(ICOMP,ISN),'(a)') loutstr(32:43)   
         
 C Recover "to-other' parameter:         
             write(tother,'(a)') loutstr(45:59)
@@ -706,7 +706,7 @@ C Interpret positional portion of the string.
             tmpvfc=cLnWords(4)(1:4)          
             
 C Interpret the construction name.
-            SMLCN(ISN) = cLnWords(5)(1:32)            
+            SMLCN(ICOMP,ISN) = cLnWords(5)(1:32)            
         
 C Recover "to-other' parameter:         
             tother = cLnWords(6)(1:15)
@@ -723,28 +723,16 @@ C The value of I and ISN should be the same. If not warn.
      &       'Disagreement between surface index and position in list.')
         endif
 
-C Process surface name. If using H3K format use cLnWords otherwise
-C instanciate ssname with SNAME.
-        if(havec24)then
-          icn=izstocn(icomp,isn)
-          if ( .not. bH3KExtentionsActive() ) then
-            ssname(icn) = SNAME(ICOMP,ISN)
-          else
-            ssname(icn) = cLnWords(2)(1:12)
-          endif
-        endif
+         icn=izstocn(icomp,isn)
 
 C Process positional attribute
         IF(tmpvfc.EQ.'VERT'.OR.tmpvfc.EQ.'SLOP')then
-          write(SVFC(ISN),'(a)') tmpvfc
-          if(havec24) write(SSVFC(icn),'(a)') tmpvfc
+          write(SVFC(ICOMP,ISN),'(a)') tmpvfc
         ELSEIF(tmpvfc(1:4).EQ.'CEIL')then
-          write(SVFC(ISN),'(a)') 'CEIL'
-          if(havec24) write(SSVFC(icn),'(a)') 'CEIL'
+          write(SVFC(ICOMP,ISN),'(a)') 'CEIL'
           izsceil(icomp)=ISN   ! identify as a ceiling
         ELSEIF(tmpvfc(1:4).EQ.'FLOR')then
-          write(SVFC(ISN),'(a)') 'FLOR'
-          if(havec24) write(SSVFC(icn),'(a)') 'FLOR'
+          write(SVFC(ICOMP,ISN),'(a)') 'FLOR'
           izsfloor(icomp)=ISN ! identify as a floor
         ENDIF
 
@@ -752,31 +740,20 @@ C Process positional attribute
 C Check if there is a matching MLC name for given construction and which one it is.
         ICF=-1
         if(NMLC.gt.0)then                
-          lstr=lnblnk(SMLCN(ISN))
+          lstr=lnblnk(SMLCN(icomp,ISN))
           DO 20 IC=1,NMLC
-           if(mlcname(ic)(1:lnmlcname(ic)).EQ.SMLCN(ISN)(1:lstr))ICF=IC
+           if(mlcname(ic)(1:lnmlcname(ic)).EQ.
+     &        SMLCN(icomp,ISN)(1:lstr))ICF=IC
   20      CONTINUE
         endif
         
-        if(havec24)then
-          write(SSMLCN(icn),'(a)') SMLCN(ISN)
-          if(ICF.gt.0)then
-            ssthick(icn)=THKMLC(icf)
-          endif
-        endif
-
-C << this block of code to be updated to use material.h commons >>
-
 C Now that we know the construction try and work out the optics.
         TMPSOT_Value: if(tmpsot(1:4).eq.'OPAQ')then
-          write(SOTF(ISN),'(a)') 'OPAQUE'  ! write OPAQUE
-          if(havec24) write(SSOTF(icn),'(a)') 'OPAQUE' 
+          write(SOTF(icomp,ISN),'(a)') 'OPAQUE'  ! write OPAQUE 
         elseif(tmpsot(1:4).eq.'CFC ')then
-          write(SOTF(ISN),'(a)') 'CFC '    !write CFC
-          if(havec24) write(SSOTF(icn),'(a)') 'CFC '
+          write(SOTF(icomp,ISN),'(a)') 'CFC '    !write CFC
         elseif(tmpsot(1:4).eq.'CFC2')then
-          write(SOTF(ISN),'(a)') 'CFC2'    !write CFC2
-          if(havec24) write(SSOTF(icn),'(a)') 'CFC2'
+          write(SOTF(icomp,ISN),'(a)') 'CFC2'    !write CFC2
         elseif(tmpsot(1:4).ne.'OPAQ'.and.tmpsot(1:3).ne.'CFC')then
 
 C We need to find the name of the optical set for the construction.
@@ -812,144 +789,97 @@ C  keyword.]
               
             endif ICF_GT_0
             
-            write(SOTF(ISN),'(a)') OPT
-            if(havec24) write(SSOTF(icn),'(a)') OPT
+            write(SOTF(icomp,ISN),'(a)') OPT
           else
-            write(SOTF(ISN),'(a)') 'TRAN'
-            if(havec24) write(SSOTF(icn),'(a)') 'TRAN'
+            write(SOTF(icomp,ISN),'(a)') 'TRAN'
           endif NMLC_GT_0
         endif TMPSOT_Value
 C Depending on what the 'other' column is file the SOTHER array.
 C Note when scanning an older file we will not yet know the
-C C3 based information and so sother(2) and sother(3) are placeholders.
+C C3 based information and so sother(,,2) and sother(,,3) are placeholders.
         
         if(tother(1:7).eq.'UNKNOWN')then
-          write(sother(isn,1),'(a)') 'UNKNOWN'
-          write(sother(isn,2),'(a)') '00'
-          write(sother(isn,3),'(a)') '000'
-          if(havec24)then
-            write(ssother(icn,1),'(a)') 'UNKNOWN'
-            write(ssother(icn,2),'(a)') '00'
-            write(ssother(icn,3),'(a)') '000'
-          endif
+          write(sother(icomp,isn,1),'(a)') 'UNKNOWN'
+          write(sother(icomp,isn,2),'(a)') '00'
+          write(sother(icomp,isn,3),'(a)') '000'
         elseif(tother(1:8).eq.'EXTERIOR')then
-          write(sother(isn,1),'(a)') 'EXTERIOR'
-          write(sother(isn,2),'(a)') '00'
-          write(sother(isn,3),'(a)') '000'
-          if(havec24)then
-            write(ssother(icn,1),'(a)') 'EXTERIOR'
-            write(ssother(icn,2),'(a)') '00'
-            write(ssother(icn,3),'(a)') '000'
-          endif
+          write(sother(icomp,isn,1),'(a)') 'EXTERIOR'
+          write(sother(icomp,isn,2),'(a)') '00'
+          write(sother(icomp,isn,3),'(a)') '000'
         elseif(tother(1:9).eq.'ADIABATIC')then
-          write(sother(isn,1),'(a)') 'ADIABATIC'
-          write(sother(isn,2),'(a)') '00'
-          write(sother(isn,3),'(a)') '000'
-          if(havec24)then
-            write(ssother(icn,1),'(a)') 'ADIABATIC'
-            write(ssother(icn,2),'(a)') '00'
-            write(ssother(icn,3),'(a)') '000'
-          endif
+          write(sother(icomp,isn,1),'(a)') 'ADIABATIC'
+          write(sother(icomp,isn,2),'(a)') '00'
+          write(sother(icomp,isn,3),'(a)') '000'
         elseif(tother(1:7).eq.'SIMILAR')then
 
 C In this case the 2nd and 3rd values are not held in a legacy geometry
 C file. And if this is not the first scan of the geometry file then
 C the C24 and C3 data structures will have data that can be used.
-          write(sother(isn,1),'(a)') 'SIMILAR'
-          write(sother(isn,2),'(a)') '-'   ! must be filled from C3
-          write(sother(isn,3),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,1),'(a)') 'SIMILAR'
+          write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,3),'(a)') '-'   ! must be filled from C3
           if(havec24)then
-            write(ssother(icn,1),'(a)') 'SIMILAR'
-            write(ssother(icn,2),'(i2.2)') IC2(icn)
-            write(ssother(icn,3),'(i3.3)') IE2(icn)
-            write(sother(isn,2),'(i2.2)') IC2(icn)
-            write(sother(isn,3),'(i3.3)') IE2(icn)
+            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
+            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
           endif
         elseif(tother(1:8).eq.'CONSTANT')then
 
 C In this case the 2nd and 3rd values are not held in a legacy geometry
 C file. And if this is not the first scan of the geometry file then
 C the C24 and C3 data structures will have data that can be used.
-          write(sother(isn,1),'(a)') 'CONSTANT'
-          write(sother(isn,2),'(a)') '-'   ! must be filled from C3
-          write(sother(isn,3),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,1),'(a)') 'CONSTANT'
+          write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,3),'(a)') '-'   ! must be filled from C3
           if(havec24)then
-            write(ssother(icn,1),'(a)') 'CONSTANT'
-            write(ssother(icn,2),'(i2.2)') IC2(icn)
-            write(ssother(icn,3),'(i3.3)') IE2(icn)
-            write(sother(isn,2),'(i2.2)') IC2(icn)
-            write(sother(isn,3),'(i3.3)') IE2(icn)
+            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
+            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
           endif
         elseif(tother(1:8).eq.'BASESIMP')then
-          write(sother(isn,1),'(a)') 'BASESIMP'
-          write(sother(isn,2),'(a)') '-'   ! must be filled from C3
-          write(sother(isn,3),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,1),'(a)') 'BASESIMP'
+          write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,3),'(a)') '-'   ! must be filled from C3
           if(havec24)then
-            write(ssother(icn,1),'(a)') 'BASESIMP'
-            write(ssother(icn,2),'(i2.2)') IC2(icn)
-            write(ssother(icn,3),'(i3.3)') IE2(icn)
-            write(sother(isn,2),'(i2.2)') IC2(icn)
-            write(sother(isn,3),'(i3.3)') IE2(icn)
+            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
+            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
           endif
         elseif(tother(1:6).eq.'GROUND')then
-          write(sother(isn,1),'(a)') 'GROUND'
-          write(sother(isn,2),'(a)') '-'   ! must be filled from C3
-          write(sother(isn,3),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,1),'(a)') 'GROUND'
+          write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,3),'(a)') '-'   ! must be filled from C3
           if(havec24)then
-            write(ssother(icn,1),'(a)') 'GROUND'
-            write(ssother(icn,2),'(i2.2)') IC2(icn)
-            write(ssother(icn,3),'(i3.3)') IE2(icn)
-            write(sother(isn,2),'(i2.2)') IC2(icn)
-            write(sother(isn,3),'(i3.3)') IE2(icn)
+            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
+            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
           endif
         elseif(tother(1:7).eq.'ANOTHER')then
-          write(sother(isn,1),'(a)') 'ANOTHER'
-          write(sother(isn,2),'(a)') '-'   ! must be filled from C3
-          write(sother(isn,3),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,1),'(a)') 'ANOTHER'
+          write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,3),'(a)') '-'   ! must be filled from C3
           if(havec24)then
-            write(ssother(icn,1),'(a)') 'ANOTHER'
-            write(ssother(icn,2),'(i2.2)') IC2(icn)
-            write(ssother(icn,3),'(i3.3)') IE2(icn)
-            write(sother(isn,2),'(i2.2)') IC2(icn)
-            write(sother(isn,3),'(i3.3)') IE2(icn)
+            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
+            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
           endif
         elseif(tother(1:9).eq.'IDENT_CEN')then
-          write(sother(isn,1),'(a)') 'IDENT_CEN'
-          write(sother(isn,2),'(a)') '00'
-          write(sother(isn,3),'(a)') '000'
-          if(havec24)then
-            write(ssother(icn,1),'(a)') 'IDENT_CEN'
-            write(ssother(icn,2),'(a)') '00'
-            write(ssother(icn,3),'(a)') '000'
-          endif
+          write(sother(icomp,isn,1),'(a)') 'IDENT_CEN'
+          write(sother(icomp,isn,2),'(a)') '00'
+          write(sother(icomp,isn,3),'(a)') '000'
         else
 
 C Assume partition so setup sother arrays with this in mind.
-          write(sother(isn,1),'(a)') 'ANOTHER'
-          write(sother(isn,2),'(a)') '-'   ! must be filled from C3
-          write(sother(isn,3),'(a)') tother(1:lnblnk(tother))
+          write(sother(icomp,isn,1),'(a)') 'ANOTHER'
+          write(sother(icomp,isn,2),'(a)') '-'   ! must be filled from C3
+          write(sother(icomp,isn,3),'(a)') tother(1:lnblnk(tother))
           if(havec24)then
-            write(ssother(icn,1),'(a)') 'ANOTHER'
-            write(ssother(icn,2),'(i2.2)') IC2(icn)
-            write(ssother(icn,3),'(i3.3)') IE2(icn)
-            write(sother(isn,2),'(i2.2)') IC2(icn)
-            write(sother(isn,3),'(i3.3)') IE2(icn)
+            write(sother(icomp,isn,2),'(i2.2)') IC2(icn)
+            write(sother(icomp,isn,3),'(i3.3)') IE2(icn)
           endif
         endif
 
 C Usage is unknown so write place holder.
-        write(suse(isn,1),'(a)') '-'
-        write(suse(isn,2),'(a)') '-'
-        if(havec24)then
-          write(ssuse(icn,1),'(a)') '-'
-          write(ssuse(icn,2),'(a)') '-'
-        endif
+        write(suse(icomp,isn,1),'(a)') '-'
+        write(suse(icomp,isn,2),'(a)') '-'
 
 C Child/parent unknown in legacy file so write place holder.
-        write(sparent(isn),'(a)') '-'
-        if(havec24)then
-          write(ssparent(icn),'(a)') '-'
-        endif
+        write(sparent(icomp,isn),'(a)') '-'
 
    42 CONTINUE
 
@@ -1038,9 +968,9 @@ C If base area has not yet been calculated, do this now and calculate
 C transparent area for surfaces connected to external boundary conditions.
 C Get surface areas via call to zinfo.
       if(ITRC.ne.0)then
-        call zinfo(sna,zoa,pazi,pelv,zvol,'-')
+        call zinfo(icomp,zoa,zvol,'-')
       else
-        call zinfo(sna,zoa,pazi,pelv,zvol,'q')
+        call zinfo(icomp,zoa,zvol,'q')
       endif
       vol(icomp)=zvol
       zonetotsurfacearea(icomp)=zoa
@@ -1048,8 +978,8 @@ C Get surface areas via call to zinfo.
       lastlist=0
       do 43 ijj=1,NZSUR(ICOMP)
         if(checkbase)then
-          if(SVFC(ijj)(1:4).eq.'FLOR')then
-            if(SUSE(ijj,1)(1:5).eq.'FURNI')then
+          if(SVFC(ICOMP,ijj)(1:4).eq.'FLOR')then
+            if(SUSE(ICOMP,ijj,1)(1:5).eq.'FURNI')then
               continue  ! ignore horizontal surfaces marked as furniture.
             else
 
@@ -1057,14 +987,15 @@ C If surface `flor` not included in the list add it.
               lastlist=lastlist+1
               if(lastlist.le.6)then
                 IBASES(ICOMP,lastlist)=ijj
-                ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(ijj)
+                ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(ICOMP,ijj)
               endif
             endif
           endif
         endif
-        if (SOTF(ijj)(1:4).ne.'OPAQ'.and.SOTF(ijj)(1:3).ne.'CFC'.and.
-     &      SOTHER(ijj,1)(1:8).eq.'EXTERIOR') then
-          ZTRANA(ICOMP)=ZTRANA(ICOMP)+SNA(ijj)
+        if (SOTF(ICOMP,ijj)(1:4).ne.'OPAQ'.and.
+     &      SOTF(ICOMP,ijj)(1:3).ne.'CFC'.and.
+     &      SOTHER(ICOMP,ijj,1)(1:8).eq.'EXTERIOR') then
+          ZTRANA(ICOMP)=ZTRANA(ICOMP)+SNA(ICOMP,ijj)
         endif
   43  continue
       if(checkbase)then
@@ -1243,10 +1174,10 @@ C if for some reason there are blanks remaining.
      &  '# no  name         type  posn  name         other side')
       DO 102 I=1,NZSUR(icomp)
         icc=izstocn(icomp,i)
-        IF(SSNAME(icc)(1:2).EQ.'  ')THEN
-          IF(I.LE.9)WRITE(SSNAME(icc),76)I
-          IF(I.GT.9)WRITE(SSNAME(icc),77)I
-          IF(I.GT.99)WRITE(SSNAME(icc),78)I
+        IF(SNAME(icomp,i)(1:2).EQ.'  ')THEN
+          IF(I.LE.9)WRITE(SNAME(icomp,i),76)I
+          IF(I.GT.9)WRITE(SNAME(icomp,i),77)I
+          IF(I.GT.99)WRITE(SNAME(icomp,i),78)I
    76     FORMAT('Surf-',I1)
    77     FORMAT('Surf-',I2)
    78     FORMAT('Surf-',I3)
@@ -1255,40 +1186,37 @@ C if for some reason there are blanks remaining.
 C This version of the geometry does not have a slot for the full
 C name of the optical property so if SOTF is not OPAQUE then
 C set it to TRAN within the legacy geometry file.
-        IF(SSOTF(icc)(1:2).EQ.'  ')then
-          SSOTF(icc)='OPAQUE'
-        ELSEIF(SSOTF(icc)(1:4).EQ.'OPAQ'.OR.
-     &         SSOTF(icc)(1:4).ne.'CFC '.and.
-     &         SSOTF(icc)(1:4).EQ.'CFC2')then
+        IF(SOTF(icomp,i)(1:2).EQ.'  ')then
+          SOTF(icomp,i)='OPAQUE'
+        ELSEIF(SOTF(icomp,i)(1:4).EQ.'OPAQ'.OR.
+     &         SOTF(icomp,i)(1:4).ne.'CFC '.and.
+     &         SOTF(icomp,i)(1:4).EQ.'CFC2')then
           continue
         ELSE
-          SSOTF(icc)='TRAN'
+          SOTF(icomp,i)='TRAN'
         endif
-        IF(SSVFC(icc)(1:2).EQ.'  ')SSVFC(icc)='UNKN'
-        IF(SSMLCN(icc)(1:2).EQ.'  ')SSMLCN(icc)='UNKN'
-        IF(SSPARENT(icc)(1:2).EQ.'  ')SSPARENT(icc)='-'
-        IF(SSUSE(icc,1)(1:2).EQ.'  ')SSUSE(icc,1)='-'
-        IF(SSUSE(icc,2)(1:2).EQ.'  ')SSUSE(icc,2)='-'
+        IF(SUSE(icomp,i,1)(1:2).EQ.'  ')SUSE(icomp,i,1)='-'
+        IF(SUSE(icomp,i,2)(1:2).EQ.'  ')SUSE(icomp,i,2)='-'
 
-C Based on the current contents of SOTHER(I,1) create a buffer SO
+C Based on the current contents of SOTHER(,,1) create a buffer SO
 C to write out.
-        IF(SSOTHER(icc,1)(1:2).EQ.'  ')then
+        IF(SOTHER(icomp,i,1)(1:2).EQ.'  ')then
           SO='UNKNOWN'
-        ELSEIF(SSOTHER(icc,1)(1:8).EQ.'EXTERIOR')then
+        ELSEIF(SOTHER(icomp,i,1)(1:8).EQ.'EXTERIOR')then
           SO='EXTERIOR'
-        ELSEIF(SSOTHER(icc,1)(1:9).EQ.'ADIABATIC')then
+        ELSEIF(SOTHER(icomp,i,1)(1:9).EQ.'ADIABATIC')then
           SO='ADIABATIC'
-        ELSEIF(SSOTHER(icc,1)(1:7).EQ.'SIMILAR')then
+        ELSEIF(SOTHER(icomp,i,1)(1:7).EQ.'SIMILAR')then
           SO='SIMILAR'
-        ELSEIF(SSOTHER(icc,1)(1:8).EQ.'CONSTANT')then
+        ELSEIF(SOTHER(icomp,i,1)(1:8).EQ.'CONSTANT')then
           SO='CONSTANT'
-        ELSEIF(SSOTHER(icc,1)(1:8).EQ.'BASESIMP')then
+        ELSEIF(SOTHER(icomp,i,1)(1:8).EQ.'BASESIMP')then
           SO='BASESIMP'
-        ELSEIF(SSOTHER(icc,1)(1:6).EQ.'GROUND')then
+        ELSEIF(SOTHER(icomp,i,1)(1:6).EQ.'GROUND')then
           SO='GROUND'
-        ELSEIF(SSOTHER(icc,1)(1:9).EQ.'IDENT_CEN')then
+        ELSEIF(SOTHER(icomp,i,1)(1:9).EQ.'IDENT_CEN')then
           SO='IDENT_CEN'
-        ELSEIF(SSOTHER(icc,1)(1:7).EQ.'ANOTHER')then
+        ELSEIF(SOTHER(icomp,i,1)(1:7).EQ.'ANOTHER')then
           SO='ANOTHER'
         ELSE
           if(IC2(icc).ne.0)then
@@ -1298,10 +1226,10 @@ C to write out.
           endif
         ENDIF
         msg='surface data line'
-        lnsmlcn=lnblnk(SSMLCN(icc))  ! set to at least 12 char
+        lnsmlcn=lnblnk(SMLCN(icomp,i))  ! set to at least 12 char
         if(lnsmlcn.lt.12)lnsmlcn=12
-        WRITE(IFILG,75,IOSTAT=ios,ERR=13)I,SSNAME(icc),
-     &    SSOTF(icc)(1:4),SSVFC(icc),SSMLCN(icc)(1:lnsmlcn),SO
+        WRITE(IFILG,75,IOSTAT=ios,ERR=13)I,SNAME(icomp,i),
+     &    SOTF(icomp,i)(1:4),SVFC(icomp,i),SMLCN(icomp,i)(1:lnsmlcn),SO
    75   FORMAT(I3,', ',A,2X,A,2X,A,2X,A,1X,A)
   102 CONTINUE
 
@@ -1388,8 +1316,8 @@ C Parameters
       integer ITRU   ! file unit for feedback
       integer IER    ! zero is ok
 
-      integer iuout,iuin
-      common/OUTIN/IUOUT,IUIN
+      integer iuout,iuin,ieout
+      common/OUTIN/IUOUT,IUIN,IEOUT
 
 C iaplic(zone,1) toggle for shading; iaplic(zone,2) toggle for insolation.
 C   toggle for assessment where:
@@ -1407,7 +1335,7 @@ C     SLOP (not vertical) for purposes of floor area and daylighting.
 C 
 C SMLCN (32 char) surface construction attribute and other G5 common block
 C variables are defined in geometry.h  Some additonal information on the
-C variables SSUSE and SUSE follow:
+C array SUSE follows.
 
 C    Surfaces which function as opaque portions of a facade are
 C    marked as `WALL`. If they are vertical they will be composed
@@ -1513,7 +1441,6 @@ C to hold such information in the zone geometry file. Common GS5/GS6
 C GS7/GS8 are defined in geometry.h
 
       DIMENSION IVA(MS)
-      DIMENSION SNA(MS),PAZI(MS),PELV(MS)
       CHARACTER LGEOMF*72,WORD*32
       CHARACTER tmpvfc*4,tother*15,tother1*15,tother2*15
       character ZN*12,phrase*64,outs*124,outs2*124
@@ -1807,6 +1734,7 @@ C Check that the number of surfaces is within complexity limits.
           if(NEDGE.le.MS)then
             CALL EGETWI(lkout,K,J,3,MV,'F','nb assoc vertices',IERV)
             NVER(NEDGE)=J
+            isznver(icomp,NEDGE)=J
 
 C Now proceed to read vertices on one or more lines.
             DO 12 KV=1,NVER(NEDGE)
@@ -1885,71 +1813,54 @@ C Surface name, allow for future spaces in name.
             write(SNAME(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
             lnsname(ICOMP,NS)=lnblnk(SNAME(ICOMP,NS)) ! update string length
             if(havec24)then
-              write(ssname(icn),'(a)') WORD(1:lnblnk(WORD))
+              write(sname(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
             endif
 
 C Surface position
             CALL EGETW(lkout,K,tmpvfc,'W','surface position',IER)
             IF(tmpvfc.EQ.'VERT'.OR.tmpvfc.EQ.'SLOP')then
-              write(SVFC(NS),'(a)') tmpvfc
-              if(havec24) write(SSVFC(icn),'(a)') tmpvfc
+              write(SVFC(ICOMP,NS),'(a)') tmpvfc
             ELSEIF(tmpvfc(1:4).EQ.'CEIL')then
-              write(SVFC(NS),'(a)') 'CEIL'
-              if(havec24) write(SSVFC(icn),'(a)') 'CEIL'
+              write(SVFC(ICOMP,NS),'(a)') 'CEIL'
               izsceil(icomp)=NS   ! identify as a ceiling
             ELSEIF(tmpvfc(1:4).EQ.'FLOR')then
-              write(SVFC(NS),'(a)') 'FLOR'
-              if(havec24) write(SSVFC(icn),'(a)') 'FLOR'
+              write(SVFC(ICOMP,NS),'(a)') 'FLOR'
               izsfloor(icomp)=NS  ! identify as a floor
             ENDIF
 
 C Parent name, allow for future spaces in parent name.
             CALL EGETP(lkout,K,WORD,'W','surface parent',IER)
-            write(sparent(NS),'(a)') WORD(1:lnblnk(WORD))
-            if(havec24) write(ssparent(icn),'(a)') WORD(1:lnblnk(WORD))
+            write(sparent(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
 
 C Surface usage - two tokens.
             CALL EGETW(lkout,K,WORD,'W','surface use 1',IER)
-            write(SUSE(NS,1),'(a)') WORD(1:lnblnk(WORD))
-            if(havec24) write(SSUSE(icn,1),'(a)') WORD(1:lnblnk(WORD))
+            write(SUSE(ICOMP,NS,1),'(a)') WORD(1:lnblnk(WORD))
             CALL EGETW(lkout,K,WORD,'W','surface use 2',IER)
-            write(SUSE(NS,2),'(a)') WORD(1:lnblnk(WORD))
-            if(havec24) write(SSUSE(icn,2),'(a)') WORD(1:lnblnk(WORD))
+            write(SUSE(ICOMP,NS,2),'(a)') WORD(1:lnblnk(WORD))
 
 C Surface construction name, allow for spaces.
             CALL EGETP(lkout,K,WORD,'W','surface construction',IER)
-            write(SMLCN(NS),'(a)') WORD(1:lnblnk(WORD))
+            write(SMLCN(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
 
 C Check if there is a matching MLC name find out which one it is.
 C Because many names may start similarly, check against actual widths.
             ICF=-1
             if(NMLC.gt.0)then                
-              lstrs=lnblnk(SMLCN(NS))  ! surface attribute length
+              lstrs=lnblnk(SMLCN(ICOMP,NS))  ! surface attribute length
               DO 20 IC=1,NMLC
                 if(mlcname(ic)(1:lnmlcname(ic)).EQ.
-     &             SMLCN(NS)(1:lstrs))ICF=IC
+     &             SMLCN(ICOMP,NS)(1:lstrs))ICF=IC
   20          CONTINUE
-            endif
-
-            if(havec24)then
-              write(SSMLCN(icn),'(a)') WORD(1:lnblnk(WORD))
-              if(ICF.gt.0)then
-                ssthick(icn)=THKMLC(icf)
-
-              endif
             endif
 
 C Surface optics set name or OPAQ/TRAN, allow for spaces.
             CALL EGETP(lkout,K,WORD,'W','surface optics',IER)
             if(WORD(1:4).eq.'OPAQ')then
-              write(SOTF(NS),'(a)') 'OPAQUE'  ! write OPAQUE
-              if(havec24) write(SSOTF(icn),'(a)') 'OPAQUE'
+              write(SOTF(ICOMP,NS),'(a)') 'OPAQUE'  ! write OPAQUE
             elseif(WORD(1:4).eq.'CFC ')then
-              write(SOTF(NS),'(a)') 'CFC '  ! write CFC
-              if(havec24) write(SSOTF(icn),'(a)') 'CFC '
+              write(SOTF(ICOMP,NS),'(a)') 'CFC '  ! write CFC
             elseif(WORD(1:4).eq.'CFC2')then
-              write(SOTF(NS),'(a)') 'CFC2'  ! write CFC2
-              if(havec24) write(SSOTF(icn),'(a)') 'CFC2'
+              write(SOTF(ICOMP,NS),'(a)') 'CFC2'  ! write CFC2
             elseif(WORD(1:4).ne.'OPAQ'.and.WORD(1:3).ne.'CFC')then
 
 C This token could be the name of the optical property. Find out if it
@@ -1986,16 +1897,14 @@ C with the construction (TRAN is an ok mis-match).
 
 C The matched optical property is saved to memory. The geometry file
 C would need to be written to record the matched property.
-                write(SOTF(NS),'(a)') OPT
-                if(havec24) write(SSOTF(icn),'(a)') OPT
+                write(SOTF(ICOMP,NS),'(a)') OPT
               else
 
 C During initial scan of configuration file the databases will
 C not yet have been scanned and so this block of code will be
 C active. Lets assume that this token really is the name of the
 C optical set.
-                write(SOTF(NS),'(a)') WORD(1:lnblnk(WORD))
-                if(havec24)write(SSOTF(icn),'(a)') WORD(1:lnblnk(WORD))
+                write(SOTF(ICOMP,NS),'(a)') WORD(1:lnblnk(WORD))
               endif
             endif
 
@@ -2004,97 +1913,47 @@ C Surface other side - three tokens.
             CALL EGETW(lkout,K,tother1,'W','surface other 2',IER)
             CALL EGETW(lkout,K,tother2,'W','surface other 3',IER)
             if(tother(1:7).eq.'UNKNOWN')then
-              write(sother(ns,1),'(a)') 'UNKNOWN'
-              write(sother(ns,2),'(a)') '00'
-              write(sother(ns,3),'(a)') '000'
-              if(havec24)then
-                write(ssother(icn,1),'(a)') 'UNKNOWN'
-                write(ssother(icn,2),'(a)') '00'
-                write(ssother(icn,3),'(a)') '000'
-              endif
+              write(sother(icomp,ns,1),'(a)') 'UNKNOWN'
+              write(sother(icomp,ns,2),'(a)') '00'
+              write(sother(icomp,ns,3),'(a)') '000'
             elseif(tother(1:8).eq.'EXTERIOR')then
-              write(sother(ns,1),'(a)') 'EXTERIOR'
-              write(sother(ns,2),'(a)') '00'
-              write(sother(ns,3),'(a)') '000'
-              if(havec24)then
-                write(ssother(icn,1),'(a)') 'EXTERIOR'
-                write(ssother(icn,2),'(a)') '00'
-                write(ssother(icn,3),'(a)') '000'
-              endif
+              write(sother(icomp,ns,1),'(a)') 'EXTERIOR'
+              write(sother(icomp,ns,2),'(a)') '00'
+              write(sother(icomp,ns,3),'(a)') '000'
             elseif(tother(1:9).eq.'ADIABATIC')then
-              write(sother(ns,1),'(a)') 'ADIABATIC'
-              write(sother(ns,2),'(a)') '00'
-              write(sother(ns,3),'(a)') '000'
-              if(havec24)then
-                write(ssother(icn,1),'(a)') 'ADIABATIC'
-                write(ssother(icn,2),'(a)') '00'
-                write(ssother(icn,3),'(a)') '000'
-              endif
+              write(sother(icomp,ns,1),'(a)') 'ADIABATIC'
+              write(sother(icomp,ns,2),'(a)') '00'
+              write(sother(icomp,ns,3),'(a)') '000'
             elseif(tother(1:7).eq.'SIMILAR')then
-              write(sother(ns,1),'(a)') 'SIMILAR'
-              write(sother(ns,2),'(a)') tother1
-              write(sother(ns,3),'(a)') tother2
-              if(havec24)then
-                write(ssother(icn,1),'(a)') 'SIMILAR'
-                write(ssother(icn,2),'(a)') tother1
-                write(ssother(icn,3),'(a)') tother2
-              endif
+              write(sother(icomp,ns,1),'(a)') 'SIMILAR'
+              write(sother(icomp,ns,2),'(a)') tother1
+              write(sother(icomp,ns,3),'(a)') tother2
             elseif(tother(1:8).eq.'CONSTANT')then
-              write(sother(ns,1),'(a)') 'CONSTANT'
-              write(sother(ns,2),'(a)') tother1
-              write(sother(ns,3),'(a)') tother2
-              if(havec24)then
-                write(ssother(icn,1),'(a)') 'CONSTANT'
-                write(ssother(icn,2),'(a)') tother1
-                write(ssother(icn,3),'(a)') tother2
-              endif
+              write(sother(icomp,ns,1),'(a)') 'CONSTANT'
+              write(sother(icomp,ns,2),'(a)') tother1
+              write(sother(icomp,ns,3),'(a)') tother2
             elseif(tother(1:8).eq.'BASESIMP')then
-              write(sother(ns,1),'(a)') 'BASESIMP'
-              write(sother(ns,2),'(a)') tother1
-              write(sother(ns,3),'(a)') tother2
-              if(havec24)then
-                write(ssother(icn,1),'(a)') 'BASESIMP'
-                write(ssother(icn,2),'(a)') tother1
-                write(ssother(icn,3),'(a)') tother2
-              endif
+              write(sother(icomp,ns,1),'(a)') 'BASESIMP'
+              write(sother(icomp,ns,2),'(a)') tother1
+              write(sother(icomp,ns,3),'(a)') tother2
             elseif(tother(1:6).eq.'GROUND')then
-              write(sother(ns,1),'(a)') 'GROUND'
-              write(sother(ns,2),'(a)') tother1
-              write(sother(ns,3),'(a)') tother2
-              if(havec24)then
-                write(ssother(icn,1),'(a)') 'GROUND'
-                write(ssother(icn,2),'(a)') tother1
-                write(ssother(icn,3),'(a)') tother2
-              endif
+              write(sother(icomp,ns,1),'(a)') 'GROUND'
+              write(sother(icomp,ns,2),'(a)') tother1
+              write(sother(icomp,ns,3),'(a)') tother2
             elseif(tother(1:9).eq.'IDENT_CEN')then
-              write(sother(ns,1),'(a)') 'IDENT_CEN'
-              write(sother(ns,2),'(a)') tother1
-              write(sother(ns,3),'(a)') tother2
-              if(havec24)then
-                write(ssother(icn,1),'(a)') 'IDENT_CEN'
-                write(ssother(icn,2),'(a)') tother1
-                write(ssother(icn,3),'(a)') tother2
-              endif
+              write(sother(icomp,ns,1),'(a)') 'IDENT_CEN'
+              write(sother(icomp,ns,2),'(a)') tother1
+              write(sother(icomp,ns,3),'(a)') tother2
             elseif(tother(1:7).eq.'ANOTHER')then
-              write(sother(ns,1),'(a)') 'ANOTHER'
-              write(sother(ns,2),'(a)') tother1
-              write(sother(ns,3),'(a)') tother2
-              if(havec24)then
-                write(ssother(icn,1),'(a)') 'ANOTHER'
-                write(ssother(icn,2),'(a)') tother1
-                write(ssother(icn,3),'(a)') tother2
-              endif
+              write(sother(icomp,ns,1),'(a)') 'ANOTHER'
+              write(sother(icomp,ns,2),'(a)') tother1
+              write(sother(icomp,ns,3),'(a)') tother2
             else
 
 C Assume partition so setup sother arrays with this in mind.
-              write(sother(ns,1),'(a)') 'ANOTHER'
-              write(sother(ns,2),'(a)') tother1
-              write(sother(ns,3),'(a)') tother2
-              if(havec24)then
-                write(ssother(icn,1),'(a)') 'ANOTHER'
-                write(ssother(icn,2),'(a)') tother1
-                write(ssother(icn,3),'(a)') tother2
-              endif
+              write(sother(icomp,ns,1),'(a)') 'ANOTHER'
+              write(sother(icomp,ns,2),'(a)') tother1
+              write(sother(icomp,ns,3),'(a)') tother2
             endif
           else
             call edisp(iuout,
@@ -2744,14 +2603,14 @@ C Now close geometry data file.
 C If base area has not yet been calculated, do this now and calculate 
 C transparent area for surfaces connected to external boundary.
 C Get surface areas via call to zinfo.
-      call zinfo(sna,zoa,pazi,pelv,zvol,'q')
+      call zinfo(icomp,zoa,zvol,'q')
       vol(ICOMP)=zvol
       zonetotsurfacearea(ICOMP)=zoa
       ZTRANA(ICOMP)=0.
       do 43 ijj=1,NSUR
         if(checkbase)then
-          if(SVFC(ijj)(1:4).eq.'FLOR')then
-            if(SUSE(ijj,1)(1:5).eq.'FURNI')then
+          if(SVFC(ICOMP,ijj)(1:4).eq.'FLOR')then
+            if(SUSE(ICOMP,ijj,1)(1:5).eq.'FURNI')then
               continue  ! ignore horizontal surfaces marked as furniture.
             else
 
@@ -2759,14 +2618,15 @@ C If surface `flor` not included in the list add it.
               lastlist=lastlist+1
               if(lastlist.le.10)then
                 IBASES(ICOMP,lastlist)=ijj
-                ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(ijj)
+                ZBASEA(ICOMP)=ZBASEA(ICOMP)+SNA(ICOMP,ijj)
               endif
             endif
           endif
         endif
-        if (SOTF(ijj)(1:4).ne.'OPAQ'.and.SOTF(ijj)(1:3).ne.'CFC'.and.
-     &      SOTHER(ijj,1)(1:8).eq.'EXTERIOR') then
-          ZTRANA(ICOMP)=ZTRANA(ICOMP)+SNA(ijj)
+        if (SOTF(ICOMP,ijj)(1:4).ne.'OPAQ'.and.
+     &      SOTF(ICOMP,ijj)(1:3).ne.'CFC'.and.
+     &      SOTHER(ICOMP,ijj,1)(1:8).eq.'EXTERIOR') then
+          ZTRANA(ICOMP)=ZTRANA(ICOMP)+SNA(ICOMP,ijj)
         endif
   43  continue
       if(checkbase)then
@@ -2884,7 +2744,7 @@ C Obstruction blocks common GS5/GS6 is found in geometry.h.
       integer  lspa           ! string length of sparent()
       integer lsna            ! string length of sname()
       integer lsot            ! string length of soft()
-      integer luse1,luse2     ! string length of ssuse()
+      integer luse1,luse2     ! string length of suse()
       logical newgeo  ! to use for testing if new/old geometry file.
       logical havebrdge ! to use for thermal bridge existance.
       logical hasobstr  !  true if IOBS() is set to 1 and NB > 0
@@ -2987,52 +2847,52 @@ C Surface list. Write as a packed list comma separated.
         call OTHERINFO(icomp,i,OTHSTR)
         icc=izstocn(icomp,i)
 
-C Based on the current contents of SOTHER(I,1) create a buffer SO
+C Based on the current contents of SOTHER(,,1) create a buffer SO
 C to write out.
         if(icc.gt.0)then
-          lso=lnblnk(SSOTHER(icc,1))
-          lso2=lnblnk(SSOTHER(icc,2))
-          lso3=lnblnk(SSOTHER(icc,3))
-          lsml=lnblnk(SSMLCN(icc))
-          lspa=lnblnk(SSPARENT(icc))
+          lso=lnblnk(SOTHER(icomp,i,1))
+          lso2=lnblnk(SOTHER(icomp,i,2))
+          lso3=lnblnk(SOTHER(icomp,i,3))
+          lsml=lnblnk(SMLCN(icomp,i))
+          lspa=lnblnk(SPARENT(icomp,i))
           if(lspa.gt.12) lspa=12
-          lsna=lnblnk(SSNAME(icc))
+          lsna=lnblnk(SNAME(icomp,i))
           lnsname=lsna   ! update surface name length common
-          lsot=lnblnk(SSOTF(icc))
+          lsot=lnblnk(SOTF(icomp,i))
           loth=lnblnk(OTHSTR)
-          luse1=lnblnk(SSUSE(icc,1))
-          luse2=lnblnk(SSUSE(icc,2))
+          luse1=lnblnk(SUSE(icomp,i,1))
+          luse2=lnblnk(SUSE(icomp,i,2))
 
 C Traps for possible blank strings if data structure corrupted.
-C SSMLCN might have spaces so write in several chunks and pack.
-          if(SSVFC(icc)(1:4).eq.'    ') SSVFC(icc)='UNKN'
-          if(SSOTF(icc)(1:4).eq.'    ') SSOTF(icc)='UNKN'
-          if(SSPARENT(icc)(1:2).eq.'  ') SSPARENT(icc)='-'
+C SMLCN might have spaces so write in several chunks and pack.
+          if(SVFC(icomp,i)(1:4).eq.'    ') SVFC(icomp,i)='UNKN'
+          if(SOTF(icomp,i)(1:4).eq.'    ') SOTF(icomp,i)='UNKN'
+          if(SPARENT(icomp,i)(1:2).eq.'  ') SPARENT(icomp,i)='-'
 
 C Debug
 C          WRITE(outs,'(a,10i3)',IOSTAT=ios,ERR=13) 'lengths ',lso,
 C     &      lso2,lso3,lsml,lspa,lsna,lsot,loth,luse1,luse2
 C          write(6,*) outs(1:lnblnk(outs))
 C          WRITE(outs,'(20a)',IOSTAT=ios,ERR=13) '*surf ',
-C     &      SSNAME(icc)(1:lsna),' ',SSVFC(icc),' ',
-C     &      SSPARENT(icc)(1:lspa),' ',SSUSE(icc,1)(1:luse1),' ',
-C     &      SSUSE(icc,2)(1:luse2),' ',SSMLCN(icc)(1:lsml),' ',
-C     &      SSOTF(icc)(1:lsot),' ',SSOTHER(icc,1)(1:lso),' ',
-C     &      SSOTHER(icc,2)(1:lso2),' ',SSOTHER(icc,3)(1:lso3)
+C     &      SNAME(icomp,i)(1:lsna),' ',SVFC(icomp,i),' ',
+C     &      SPARENT(icomp,i)(1:lspa),' ',SUSE(icomp,i,1)(1:luse1),' ',
+C     &      SUSE(icomp,i,2)(1:luse2),' ',SMLCN(icomp,i)(1:lsml),' ',
+C     &      SOTF(icomp,i)(1:lsot),' ',SOTHER(icomp,i,1)(1:lso),' ',
+C     &      SOTHER(icomp,i,2)(1:lso2),' ',SOTHER(icomp,i,3)(1:lso3)
 C          call SDELIM(outs,outsd,'C',IW)
 C          write(6,*) outsd(1:lnblnk(outsd))
 
           WRITE(left,'(10a)',IOSTAT=ios,ERR=13) '*surf ',
-     &      SSNAME(icc)(1:lsna),' ',SSVFC(icc),' ',
-     &      SSPARENT(icc)(1:lspa),' ',SSUSE(icc,1)(1:luse1),' ',
-     &      SSUSE(icc,2)(1:luse2)
-          call SDELIM(left,leftd,'C',IW)  ! pack tokens before SSMLCN
+     &      SNAME(icomp,i)(1:lsna),' ',SVFC(icomp,i),' ',
+     &      SPARENT(icomp,i)(1:lspa),' ',SUSE(icomp,i,1)(1:luse1),' ',
+     &      SUSE(icomp,i,2)(1:luse2)
+          call SDELIM(left,leftd,'C',IW)  ! pack tokens before SMLCN
           WRITE(right,'(7a)',IOSTAT=ios,ERR=13) 
-     &      SSOTF(icc)(1:lsot),' ',SSOTHER(icc,1)(1:lso),' ',
-     &      SSOTHER(icc,2)(1:lso2),' ',SSOTHER(icc,3)(1:lso3)
-          call SDELIM(right,rightd,'C',IW) ! pack tokens after SSMLCN
+     &      SOTF(icomp,i)(1:lsot),' ',SOTHER(icomp,i,1)(1:lso),' ',
+     &      SOTHER(icomp,i,2)(1:lso2),' ',SOTHER(icomp,i,3)(1:lso3)
+          call SDELIM(right,rightd,'C',IW) ! pack tokens after SMLCN
           write(ifilg,'(6a,i3,2a)',IOSTAT=IOS,ERR=13) 
-     &      leftd(1:lnblnk(leftd)),',',SSMLCN(icc)(1:lsml),',',
+     &      leftd(1:lnblnk(leftd)),',',SMLCN(icomp,i)(1:lsml),',',
      &      rightd(1:lnblnk(rightd)),'  # ',I,' ',OTHSTR(1:loth)
         else
 
@@ -4242,9 +4102,6 @@ C If context is .true. then give verbose description of the boundary.
 
       common/SFIG/NSIGFIG
 
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
-
 C Markdown flag.
       logical markdown
       common/markdownflag/markdown
@@ -4309,58 +4166,61 @@ C Write header based on current version number.
       endif
       if(.NOT.context)then
         DO 893 I=1,NZSUR(icomp)
-          ic=izstocn(icomp,i)
-          call SIGFIG(SSNA(ic),NSIGFIG,RNO,SIGSTR,LSTR)
-          lnsmlcn=lnblnk(SSMLCN(ic))
+          call SIGFIG(SNA(icomp,i),NSIGFIG,RNO,SIGSTR,LSTR)
+          lnsmlcn=lnblnk(SMLCN(icomp,i))
           if(lnsmlcn.lt.15) lnsmlcn=15  ! at least 15 char for MLC
           if(newgeo)then
             if(markdown)then
  895      FORMAT(I3,2X,A,F10.0,F11.0,6X,A,2X,A,5X,A,8X,A,4X,A,3X,A,2X,A)
               if(lnsmlcn.lt.19) lnsmlcn=19  ! at least 19 char for MLC
               if(lnsmlcn.gt.19) lnsmlcn=19  ! no more than 19 char for MLC
-              WRITE(OUTSTR2,895)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &         SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
-     &         SSUSE(ic,1)(1:8),SSUSE(ic,2)(1:8),SSMLCN(ic)(1:lnsmlcn),
-     &         SSOTHER(ic,1)(1:15)
+              WRITE(OUTSTR2,895)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &         SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
+     &         SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:8),
+     &         SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &         SOTHER(icomp,i,1)(1:15)
               call edisp(ITRU,OUTSTR2)
             else
  8951     FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A,2X,A)
               if(lnsmlcn.gt.18) lnsmlcn=18  ! no more than 18 char for MLC
-              WRITE(OUTSTR,8951)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &         SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
-     &         SSUSE(ic,1)(1:8),SSUSE(ic,2)(1:8),SSMLCN(ic)(1:lnsmlcn),
-     &         SSOTHER(ic,1)(1:15)
+              WRITE(OUTSTR,8951)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &         SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
+     &         SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:8),
+     &         SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &         SOTHER(icomp,i,1)(1:15)
               call edisp(ITRU,OUTSTR)
             endif
           else
  894        FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,2X,A)
-            WRITE(OUTSTR,894)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &        SSNAME(ic),SSOTF(ic)(1:6),SSVFC(ic),SSMLCN(ic)(1:lnsmlcn),
-     &        SSOTHER(ic,1)(1:13)
+            WRITE(OUTSTR,894)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &        SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:6),
+     &        SVFC(icomp,i),SMLCN(icomp,i)(1:lnsmlcn),
+     &        SOTHER(icomp,i,1)(1:13)
             call edisp(ITRU,OUTSTR)
           endif
  893    CONTINUE
       else
         DO 793 I=1,NZSUR(icomp)
-          ic=izstocn(icomp,i)
-          lnsmlcn=lnblnk(SSMLCN(ic))
+          lnsmlcn=lnblnk(SMLCN(icomp,i))
           if(lnsmlcn.lt.15) lnsmlcn=15  ! at least 15 char for MLC
           call OTHERINFO(icomp,i,OTHSTR)
-          call SIGFIG(SSNA(ic),NSIGFIG,RNO,SIGSTR,LSTR)
+          call SIGFIG(SNA(icomp,i),NSIGFIG,RNO,SIGSTR,LSTR)
           if(newgeo)then
             if(markdown)then
               if(lnsmlcn.lt.19) lnsmlcn=19  ! at least 19 char for MLC
               if(lnsmlcn.gt.19) lnsmlcn=19  ! no more than 19 char for MLC
-              WRITE(OUTSTR2,7951)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &         SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
-     &         SSUSE(ic,1)(1:9),SSUSE(ic,2)(1:9),SSMLCN(ic)(1:lnsmlcn),
+              WRITE(OUTSTR2,7951)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &         SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
+     &         SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:9),
+     &         SUSE(icomp,i,2)(1:9),SMLCN(icomp,i)(1:lnsmlcn),
      &         OTHSTR(4:lnblnk(OTHSTR))  ! skip the ||< characters
               call edisp(ITRU,OUTSTR2)
             else
               if(lnsmlcn.gt.18) lnsmlcn=18  ! no more than 18 char for MLC
-              WRITE(OUTSTR,795)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &         SSNAME(ic),SSOTF(ic)(1:8),SSVFC(ic)(1:4),
-     &         SSUSE(ic,1)(1:8),SSUSE(ic,2)(1:8),SSMLCN(ic)(1:lnsmlcn),
+              WRITE(OUTSTR,795)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &         SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
+     &         SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:8),
+     &         SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
      &         OTHSTR(1:lnblnk(OTHSTR))
               call edisp(ITRU,OUTSTR)
             endif
@@ -4368,9 +4228,9 @@ C Write header based on current version number.
  795      FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A)
           else
             if(lnsmlcn.gt.18) lnsmlcn=18  ! no more than 18 char for MLC
-            WRITE(OUTSTR,794)I,SIGSTR(1:7),SSPAZI(ic),SSPELV(ic),
-     &       SSNAME(ic),SSOTF(ic)(1:6),SSVFC(ic),SSMLCN(ic)(1:lnsmlcn),
-     &       OTHSTR
+            WRITE(OUTSTR,794)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &       SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:6),
+     &       SVFC(icomp,i),SMLCN(icomp,i)(1:lnsmlcn),OTHSTR
  794        FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A)
             call edisp(ITRU,OUTSTR)
           endif
@@ -4427,7 +4287,7 @@ C the connections file).
           ELSEIF(ICT(ICON).EQ.3)THEN
             icc=IZSTOCN(IC2(ICON),IE2(ICON))
             if(icc.gt.0)then
-              SST2=SSNAME(icc)
+              SST2=SNAME(IC2(ICON),IE2(ICON))
               ZST2=zname(IC2(ICON))
             else
               SST2='not_known'
@@ -4569,18 +4429,14 @@ C        call edisp2tr(itu,outstr)
 C ********************** ZINFO
 C 'ZINFO' takes data from the zone geometry commons G1,G2,G3 and returns
 C several derived values.
-      SUBROUTINE ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,act)
+      SUBROUTINE ZINFO(icomp,ZOA,ZVOL,act)
 #include "building.h"
 #include "geometry.h"
 #include "sbem.h"
 
 C Parameters
-      real SNA  ! returned area for each surface
-      dimension SNA(MS)
+      integer ICOMP
       real ZOA  ! returned total surface area associated with zone
-      real PAZI ! returned plane azimuth angle
-      real PELV ! returned plane elevation angle
-      dimension PAZI(MS),PELV(MS)
       real ZVOL ! returned zone bounded volume
       character act*1  ! q is quiet  - includes warnings
 
@@ -4618,11 +4474,11 @@ C Compute gross surface area
         ZAREA=0.5*SQRT(XS*XS+YS*YS+ZS*ZS)
 
 C Surface area is given by:
-        SNA(I)=ZAREA
+        SNA(ICOMP,I)=ZAREA
 
 C Check for -ve surface area: windows wrongly specified.
 C Suppress warning message if UK NCM notional model
-        IF(SNA(I).LT.0.00001.AND.INOTI.NE.1)THEN
+        IF(SNA(ICOMP,I).LT.0.00001.AND.INOTI.NE.1)THEN
           write(outs,'(a,i3,a)') ' Area of zone surf ',i,
      &      ' is less than 0.00001m^2!'
           CALL USRMSG(outs,
@@ -4631,7 +4487,7 @@ C Suppress warning message if UK NCM notional model
         ENDIF
 
 C And surface area summations by:
-        ZOA=ZOA+SNA(I)
+        ZOA=ZOA+SNA(ICOMP,I)
    10 CONTINUE
 
 C This section computes the volume of any polyhedral zone by computing
@@ -4657,28 +4513,28 @@ C facing normal for each plane in turn. The azimuth is the angle -
 C measured from north (Y-axis) in degrees - clockwise positive.
 C The elevation angle is the angle between the plane normal and the
 C horizontal measured vertically in degrees.
-        PAZI(K)=90.0
-        IF(XSUM(K).LT.0.0)PAZI(K)=-90.0
+        SPAZI(ICOMP,K)=90.0
+        IF(XSUM(K).LT.0.0)SPAZI(ICOMP,K)=-90.0
         CALL ECLOSE(XSUM(K),0.0,0.0001,CLOSE)
-        IF(CLOSE)PAZI(K)=0.0
-        PELV(K)=90.0
-        IF(ZSUM(K).LT.0.0)PELV(K)=-90.0
+        IF(CLOSE)SPAZI(ICOMP,K)=0.0
+        SPELV(ICOMP,K)=90.0
+        IF(ZSUM(K).LT.0.0)SPELV(ICOMP,K)=-90.0
         CALL ECLOSE(ZSUM(K),0.0,0.0001,CLOSE)
-        IF(CLOSE)PELV(K)=0.0
+        IF(CLOSE)SPELV(ICOMP,K)=0.0
         CALL ECLOSE(YSUM(K),0.0,0.0001,CLOSE)
         IF(CLOSE)goto 61
         AZI=ATAN2(XSUM(K),YSUM(K))
-        PAZI(K)=AZI/R
+        SPAZI(ICOMP,K)=AZI/R
    61   SRX2Y2=SQRT(XSUM(K)*XSUM(K)+YSUM(K)*YSUM(K))
-        IF(PAZI(K).LT.0.)PAZI(K)=PAZI(K)+360.
+        IF(SPAZI(ICOMP,K).LT.0.)SPAZI(ICOMP,K)=SPAZI(ICOMP,K)+360.
         CALL ECLOSE(SRX2Y2,0.0,0.0001,CLOSE)
         IF(CLOSE)goto 60
         ELV=ATAN2(ZSUM(K),SRX2Y2)
-        PELV(K)=ELV/R
+        SPELV(ICOMP,K)=ELV/R
 
 C << this could be a place to insert special logic for horizontal
 C << surfaces as done in pangs in esruish.
-C << note logic is slightly different for the pazi and pelv in
+C << note logic is slightly different for the spazi and spelv in
 C << pangs - it might be better?
 C << also - why not include surface tilt angle?
 
@@ -4697,14 +4553,10 @@ C Check for small volume.
 
 C ********************** ZGUPDATE
 C 'ZGUPDATE' takes the geometry commons G1 and updates G7 & PREC2
-C SSNA(MCON)    - surface area of each polygon (from geometry.h)
-C SSPAZI(MCON)  - plane azimuth angle (from geometry.h)
-C SSPELV(MCON)  - plane elevation angle (from geometry.h)
-C SSPERIM(MCON)  - perimeter of each surface (from geometry.h)
-C SUREQN(MCON,4)- equation of each polygon (from geometry.h)
-C SSURCOG(MCON,3) - vertex weighted COG of polygon (from geometry.h)
-C SSURVN(MCON,3)  - unit normal vector from COG of polygon.
-C VOL(MCOM)     - zone bounded volume
+C SUREQN(MCOM,MS,4)- equation of each polygon (from geometry.h)
+C SURCOG(MCOM,MS,3)- vertex weighted COG of polygon (from geometry.h)
+C SURVN(MCOM,MS,3) - unit normal vector from COG of polygon.
+C VOL(MCOM)        - zone bounded volume
       SUBROUTINE ZGUPDATE(itrc,icomp,ier)
 #include "building.h"
 #include "geometry.h"
@@ -4714,7 +4566,7 @@ C VOL(MCOM)     - zone bounded volume
 
 C << could it use ?? instead of G1? >>
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
       DIMENSION XSUM(MS),YSUM(MS),ZSUM(MS)
@@ -4753,7 +4605,6 @@ C Do reality checks on connection and number of edges.
           ier=4
           goto 10
         endif
-        SSPERIM(icc)=0.0
         XS=0.
         YS=0.
         ZS=0.
@@ -4784,36 +4635,14 @@ C Compute gross surface area
 C Compute surface area and check for negative or near zero area.
 C Suppress warning message if UK NCM notional model
         ZAREA=0.5*SQRT(XS*XS+YS*YS+ZS*ZS)
-        SSNA(icc)=ZAREA
-        IF(SSNA(icc).LT.0.00001.AND.INOTI.NE.1)THEN
+        SNA(icomp,i)=ZAREA
+        IF(SNA(icomp,i).LT.0.00001.AND.INOTI.NE.1)THEN
           write(outs,'(a,i3,a)') ' Area of surf connection ',icc,
      &      ' is less than 0.00001m^2!'
           CALL USRMSG(outs,
      &      'Other geometric properties may be incorrect.','W')
           ier=2
         ENDIF
-
-C Compute perimeter of the surface.
-        list=NVER(i)-1
-        do 42 ii=1,list
-          jj=JVN(i,ii)
-          kk=JVN(i,ii+1)
-          vdis=0.0
-          if(jj.gt.0.and.kk.gt.0)then
-            vdis= crowxyz(x(jj),y(jj),z(jj),x(kk),y(kk),z(kk))
-          endif
-          SSPERIM(icc)=SSPERIM(icc)+vdis
-  42    continue
-
-C Link back to start vertex.
-        jj=JVN(i,NVER(i))
-        kk=JVN(i,1)
-        vdis=0.0
-        if(jj.gt.0.and.kk.gt.0)then
-          vdis= crowxyz(x(jj),y(jj),z(jj),x(kk),y(kk),z(kk))
-        endif
-        SSPERIM(icc)=SSPERIM(icc)+vdis
-
 
 C Derive the equation of the polygon, if problems generating the
 C equation echo warnings.
@@ -4829,19 +4658,19 @@ C equation echo warnings.
         N = NVER(i)
         ierr=0
         call PLEQN(XX,YY,ZZ,N,CG,EQN,IERR)
-        lln=lnblnk(ssname(icc))
+        lln=lnblnk(sname(icomp,i))
         lnsname=lln  ! update surface name length common
         if(ierr.ne.0.and.itrc.gt.0)then
           if(ierr.eq.1)then
-            write(outs,'(5a)') ' Surface ',ssname(icc)(1:lln),
+            write(outs,'(5a)') ' Surface ',sname(icomp,i)(1:lln),
      &        ' in ',zname(icomp)(1:lnzname(icomp)),
      &        ' not enough points for plneqn.'
           elseif(ierr.eq.-1)then
-            write(outs,'(5a)') ' Surface ',ssname(icc)(1:lln),
+            write(outs,'(5a)') ' Surface ',sname(icomp,i)(1:lln),
      &        ' in ',zname(icomp)(1:lnzname(icomp)),
      &        ' issue with unit vector in plneqn.'
           else
-            write(outs,'(5a)') ' Surface ',ssname(icc)(1:lln),
+            write(outs,'(5a)') ' Surface ',sname(icomp,i)(1:lln),
      &        ' in ',zname(icomp)(1:lnzname(icomp)),
      &        ' issue in plneqn.'
           endif
@@ -4857,10 +4686,10 @@ C reported as a larger number.
      &      - EQN(4)
           if(distance.gt.ofby) ofby=distance
   64    continue
-        lln=lnblnk(ssname(icc))
+        lln=lnblnk(sname(icomp,i))
         lnsname=lln  ! update surface name length common
         if(ofby.gt.0.01.and.itrc.gt.0)then
-          write(outs,'(5a,F6.4,a)') ' Surface ',ssname(icc)(1:lln),
+          write(outs,'(5a,F6.4,a)') ' Surface ',sname(icomp,i)(1:lln),
      &      ' in ',zname(icomp)(1:lnzname(icomp)),
      &      ' is warped by ',ofby,
      &      'm. Please check via surface transforms.'
@@ -4868,16 +4697,17 @@ C reported as a larger number.
         endif
 
 C Update the G7 common block.
-        SSUREQN(icc,1)=EQN(1)
-        SSUREQN(icc,2)=EQN(2)
-        SSUREQN(icc,3)=EQN(3)
-        SSUREQN(icc,4)=EQN(4)
-        SSURCOG(icc,1)=CG(1)
-        SSURCOG(icc,2)=CG(2)
-        SSURCOG(icc,3)=CG(3)
-        SSURVN(icc,1)=CG(1)+EQN(1)
-        SSURVN(icc,2)=CG(2)+EQN(2)
-        SSURVN(icc,3)=CG(3)+EQN(3)
+        SUREQN(icomp,i,1)=EQN(1)
+        SUREQN(icomp,i,2)=EQN(2)
+        SUREQN(icomp,i,3)=EQN(3)
+        SUREQN(icomp,i,4)=EQN(4)
+
+        SURCOG(icomp,i,1)=CG(1)
+        SURCOG(icomp,i,2)=CG(2)
+        SURCOG(icomp,i,3)=CG(3)
+        SURVN(icomp,i,1)=CG(1)+EQN(1)
+        SURVN(icomp,i,2)=CG(2)+EQN(2)
+        SURVN(icomp,i,3)=CG(3)+EQN(3)
    10 CONTINUE
 
 C This section computes the volume of any polyhedral zone by computing
@@ -4905,53 +4735,53 @@ C facing normal for each plane in turn. The azimuth is the angle -
 C measured from north (Y-axis) in degrees - clockwise positive.
 C The elevation angle is the angle between the plane normal and the
 C horizontal measured vertically in degrees.
-        SSPAZI(icc)=90.0
-        IF(XSUM(K).LT.0.0) SSPAZI(icc)=-90.0
+        SPAZI(icomp,k)=90.0
+        IF(XSUM(K).LT.0.0) SPAZI(icomp,k)=-90.0
         CALL ECLOSE(XSUM(K),0.0,0.0001,CLOSE)
-        IF(CLOSE) SSPAZI(icc)=0.0
-        SSPELV(icc)=90.0
-        IF(ZSUM(K).LT.0.0) SSPELV(icc)=-90.0
+        IF(CLOSE) SPAZI(icomp,k)=0.0
+        SPELV(icomp,k)=90.0
+        IF(ZSUM(K).LT.0.0) SPELV(icomp,k)=-90.0
         CALL ECLOSE(ZSUM(K),0.0,0.0001,CLOSE)
-        IF(CLOSE) SSPELV(icc)=0.0
+        IF(CLOSE) SPELV(icomp,k)=0.0
         CALL ECLOSE(YSUM(K),0.0,0.0001,CLOSE)
         IF(CLOSE) goto 61
         AZI=ATAN2(XSUM(K),YSUM(K))
-        SSPAZI(icc)=AZI/R
+        SPAZI(icomp,k)=AZI/R
    61   SRX2Y2=SQRT(XSUM(K)*XSUM(K)+YSUM(K)*YSUM(K))
-        IF(SSPAZI(icc).LT.0.) SSPAZI(icc)=SSPAZI(icc)+360.
+        IF(SPAZI(icomp,k).LT.0.) SPAZI(icomp,k)=SPAZI(icomp,k)+360.
         CALL ECLOSE(SRX2Y2,0.0,0.0001,CLOSE)
         IF(CLOSE) goto 63
         ELV=ATAN2(ZSUM(K),SRX2Y2)
-        SSPELV(icc)=ELV/R
+        SPELV(icomp,k)=ELV/R
 
 C Check that the azimuth and elevation based on surface normal are
 C the same as computed above.
-   63   vdx=SSUREQN(icc,1)
-        vdy=SSUREQN(icc,2)
-        vdz=SSUREQN(icc,3)
+   63   vdx=SUREQN(icomp,k,1)
+        vdy=SUREQN(icomp,k,2)
+        vdz=SUREQN(icomp,k,3)
         call UV2AZ(vdx,vdy,vdz,uazim,uelev)
-        call eclose(uazim,SSPAZI(icc),0.001,closeaz)
-        call eclose(uelev,SSPELV(icc),0.001,closeel)
+        call eclose(uazim,SPAZI(icomp,k),0.001,closeaz)
+        call eclose(uelev,SPELV(icomp,k),0.001,closeel)
 
 C << this could be a place to insert special logic for horizontal
 C << surfaces as done in pangs in esruish.
-C << note logic is slightly different for the pazi and pelv in
+C << note logic is slightly different for the spazi and spelv in
 C << pangs - it might be better?
 C << also - why not include surface tilt angle?
 
         if(ITRC.gt.1)then 
-          write(outs,*) 'name azi elv m2 ',SSNAME(icc),SSPAZI(icc),
-     &      SSPELV(icc),SSNA(icc)
+          write(outs,*) 'name azi elv m2 ',SNAME(icomp,i),
+     &      SPAZI(icomp,i),SPELV(icomp,i),SNA(icomp,i)
           call edisp(iuout,outs)
           write(outs,*) 'Unit vector azi elv         ',uazim,uelev,
      &      closeaz,closeel
           call edisp(iuout,outs)
-          write(outs,*) 'SUREQN of icc ',icc,SSUREQN(icc,1),
-     &      SSUREQN(icc,2),SSUREQN(icc,3),SSUREQN(icc,4)
+          write(outs,*) 'SUREQN ',SUREQN(icomp,i,1),
+     &      SUREQN(icomp,i,2),SUREQN(icomp,i,3),SUREQN(icomp,i,4)
           call edisp(iuout,outs)
-          write(outs,*) 'SURCOG ',SSURCOG(icc,1),SSURCOG(icc,2),
-     &      SSURCOG(icc,3),' SURVN ',SSURVN(icc,1),SSURVN(icc,2),
-     &      SSURVN(icc,3)
+          write(outs,*) 'SURCOG ',SURCOG(icomp,i,1),SURCOG(icomp,i,2),
+     &      SURCOG(icomp,i,3),' SURVN ',SURVN(icomp,i,1),
+     &      SURVN(icomp,i,2),SURVN(icomp,i,3)
           call edisp(iuout,outs)
         endif
    62 CONTINUE
@@ -4968,6 +4798,48 @@ C Check for small volume.
 
       RETURN
       END
+
+C ********** getperimeter **********
+
+      subroutine getperimeter(icomp,sperim)
+#include "building.h"
+#include "geometry.h"
+
+      integer icomp        ! the current zone
+      real sperim(MS)      ! values to return
+      integer i,ii,jj,list ! for looping
+      real vdis            ! summation of edge length
+
+      do i=1,nzsur(icomp)
+      
+C Compute perimeter of the surface.
+        sperim(i)=0.0
+        list=isznver(icomp,i)-1
+        do ii=1,list
+          jj=iszjvn(icomp,i,ii)
+          kk=iszjvn(icomp,i,ii+1)
+          vdis=0.0
+          if(jj.gt.0.and.kk.gt.0)then
+            vdis= crowxyz(szcoords(icomp,jj,1),szcoords(icomp,jj,2),
+     &        szcoords(icomp,jj,3),szcoords(icomp,kk,1),
+     &        szcoords(icomp,kk,2),szcoords(icomp,kk,3))
+          endif
+          SPERIM(i)=SPERIM(i)+vdis
+  42    enddo
+
+C Link back to the start vertex.
+        jj=iszjvn(icomp,i,isznver(icomp,i))
+        kk=iszjvn(icomp,i,1)
+        vdis=0.0
+        if(jj.gt.0.and.kk.gt.0)then
+          vdis= crowxyz(szcoords(icomp,jj,1),szcoords(icomp,jj,2),
+     &      szcoords(icomp,jj,3),szcoords(icomp,kk,1),
+     &      szcoords(icomp,kk,2),szcoords(icomp,kk,3))
+        endif
+        SPERIM(i)=SPERIM(i)+vdis
+      enddo
+      return
+      end
 
 C*******************************************************************
 C SURLEHI Determines the overall length and height of a
@@ -5117,8 +4989,6 @@ C Uses a temporary transform into 2D to get this data.
       SUBROUTINE ZSURLEHI(IZ,IS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
 #include "building.h"
 #include "geometry.h"
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
 
       DIMENSION  XX(MV),YY(MV),ZZ(MV)
       DIMENSION  VP(3),EP(3),EQN(4)
@@ -5135,13 +5005,12 @@ C Set maximum values to zero.
 C Transform surface into into site coordinates in the
 C surface of the plane. Make up XX,YY,ZZ to pass across to the
 C transform routine.
-      icc=IZSTOCN(IZ,IS)
-      N = NZNVER(icc)
+      N = isznver(IZ,IS)
       DO 150 J = 1,N
-        if(NZJVN(icc,J).gt.0)then
-          XX(J) = VCOORD(iz,NZJVN(icc,j),1)
-          YY(J) = VCOORD(iz,NZJVN(icc,j),2)
-          ZZ(J) = VCOORD(iz,NZJVN(icc,j),3)
+        if(iszjvn(IZ,IS,J).gt.0)then
+          XX(J) = szcoords(iz,iszjvn(IZ,IS,j),1)
+          YY(J) = szcoords(iz,iszjvn(IZ,IS,j),2)
+          ZZ(J) = szcoords(iz,iszjvn(IZ,IS,j),3)
         else
           XX(J) = 0.0; YY(J) = 0.0; ZZ(J) = 0.0
         endif
@@ -5229,7 +5098,7 @@ C to XMAX and YMAX (upper right).
       ENDDO
 
 C Debug.
-C      write(6,'(a,3i4,a,6f7.2)') 'ZSURLEHI ',iz,is,icc,
+C      write(6,'(a,2i4,a,6f7.2)') 'ZSURLEHI ',iz,is,
 C     &  ' x & y &z',XMIN,XMAX,YMIN,YMAX,ZMAX,XYMAX
 C      write(6,'(a,4i4)') 'llpos lrpos urpos ulpos',
 C     &  llpos,lrpos,urpos,ulpos
@@ -5260,7 +5129,7 @@ C act is '-' derive geometric data or 'c' also determine parent
 #include "building.h"
 #include "geometry.h"
 
-      common/OUTIN/IUOUT,IUIN
+      common/OUTIN/IUOUT,IUIN,IEOUT
       common/pophelp/h(60)
 
       real bridgelen ! Length (m) of potential thermal bridges in each zone.
@@ -5274,7 +5143,7 @@ C act is '-' derive geometric data or 'c' also determine parent
       COMMON/C24/IZSTOCN(MCOM,MS)
 
       CHARACTER outs*124,act*1,h*72
-      logical closeazi,closeelv,foundone,ok,dok,same
+      logical closeazi,closeelv,foundone,ok,same
 
 C iwhich is local variable to sort most often referenced adjacent surf.
       dimension iwhich(MV),iwhichs(MV)
@@ -5290,9 +5159,7 @@ C      real distb ! currently not used
 
 C Do test call to surrel to see if it picks up any parent child
 C relationships. Use edge checking logic in surrel2.
-C          call surrel('-',izone,ier)
-C          call surrel('s',izone,ier)
-          call surrel2('s',izone,ier)
+          call SURREL2('s',izone,ier)
         endif
 
 C Zero the lengths of various thermal bridge type lengths.
@@ -5402,23 +5269,25 @@ C Tests for ibridgeshr (edges that might represent thermal bridges.
 C The first filter is that both surfaces are facing outside
                   if(ICT(icc).eq.0.and.ICT(icco).eq.0)then
 
-                    if(SSVFC(icc)(1:4).eq.'VERT'.and.(
-     &                 SSVFC(icco)(1:4).eq.'CEIL'.or.
-     &                 SSVFC(icco)(1:4).eq.'SLOP'))then
+                    if(SVFC(izone,isurf)(1:4).eq.'VERT'.and.(
+     &                 SVFC(izone,iosurf)(1:4).eq.'CEIL'.or.
+     &                 SVFC(izone,iosurf)(1:4).eq.'SLOP'))then
 
 C One is roof-wall so both surfaces must face the outside, first must
 C be roughly vertical and the other flat (up) or sloped.
                       ibridgeshr(icc,i)=1
                       bridgelen(izone,1)= bridgelen(izone,1)+edgelen
 
-                    elseif(SSVFC(icc)(1:4).eq.'VERT'.and.
-     &                     SSVFC(icco)(1:4).eq.'VERT')then
+                    elseif(SVFC(izone,isurf)(1:4).eq.'VERT'.and.
+     &                     SVFC(izone,iosurf)(1:4).eq.'VERT')then
 
 C Test if azimuth are within two degrees. For the special case of the
 C difference between the two being ~360deg call it closeazi
-                      call eclose(SSPAZI(icc),SSPAZI(icco),2.0,closeazi)
+                      call eclose(SPAZI(izone,isurf),
+     &                            SPAZI(izone,iosurf),2.0,closeazi)
                       if(.NOT.closeazi)then
-                        zazi = abs(SSPAZI(icc)-SSPAZI(icco))
+                        zazi = abs(SPAZI(izone,isurf)-
+     &                             SPAZI(izone,iosurf))
                         call eclose(zazi,360.0,2.0,closeazi)
                       endif
                       if(closeazi)then
@@ -5436,8 +5305,8 @@ C the outside and face the same direction and one must be the
 C parent and the edge must be roughly horizontal and above the
 C centre of the surface (and marked as a door or window)
                         if(closeuz)then
-                          if(Z(j).gt.SSURCOG(icc,3))then
-                            if(ssparent(icc)(1:2).eq.'-')then
+                          if(Z(j).gt.SURCOG(izone,isurf,3))then
+                            if(sparent(izone,isurf)(1:2).eq.'-')then
                               continue
                             else
                               ibridgeshr(icc,i)=6
@@ -5450,7 +5319,7 @@ C the outside and face the same direction and one must be the
 C parent and the edge must be roughly horizontal and below the
 C centre of the surface (and marked as a door or window)
                           else
-                            if(ssparent(icc)(1:2).eq.'-')then
+                            if(sparent(izone,isurf)(1:2).eq.'-')then
                               continue
                             else
                               ibridgeshr(icc,i)=7
@@ -5465,7 +5334,7 @@ C the outside and face the same direction and one must be the
 C parent and the edge must be roughly vertical (and marked as
 C a door or window)
                         if(closeux.and.closeuy)then
-                          if(ssparent(icc)(1:2).eq.'-')then
+                          if(sparent(izone,isurf)(1:2).eq.'-')then
                             continue
                           else
                             ibridgeshr(icc,i)=8  ! is vertical
@@ -5478,12 +5347,12 @@ C a door or window)
 C Determin concave or convex between the two surfaces based on the distance
 C between points on the two surfaces and points a slight distance
 C away from the two surraces.
-                        PA(1)=SSURCOG(icc,1)  ! point on plane
-                        PA(2)=SSURCOG(icc,2)
-                        PA(3)=SSURCOG(icc,3)
-                        VA(1)=SSURVN(icc,1)   ! point 1m away
-                        VA(2)=SSURVN(icc,2)
-                        VA(3)=SSURVN(icc,3)
+                        PA(1)=SURCOG(izone,isurf,1)  ! point on plane
+                        PA(2)=SURCOG(izone,isurf,2)
+                        PA(3)=SURCOG(izone,isurf,3)
+                        VA(1)=SURVN(izone,isurf,1)   ! point 1m away
+                        VA(2)=SURVN(izone,isurf,2)
+                        VA(3)=SURVN(izone,isurf,3)
 
 C Use ratio calculation to get point 100mm away.
                         r2 = 1.0 - 0.1
@@ -5492,12 +5361,12 @@ C Use ratio calculation to get point 100mm away.
                         vaa(2) = ((r2 * PA(2)) + (r1 * VA(2)))/1.0
                         vaa(3) = ((r2 * PA(3)) + (r1 * VA(3)))/1.0
 
-                        PB(1)=SSURCOG(icco,1)  ! point on plane
-                        PB(2)=SSURCOG(icco,2)
-                        PB(3)=SSURCOG(icco,3)
-                        VB(1)=SSURVN(icco,1)   ! point 1m away
-                        VB(2)=SSURVN(icco,2)
-                        VB(3)=SSURVN(icco,3)
+                        PB(1)=SURCOG(izone,iosurf,1)  ! point on plane
+                        PB(2)=SURCOG(izone,iosurf,2)
+                        PB(3)=SURCOG(izone,iosurf,3)
+                        VB(1)=SURVN(izone,iosurf,1)   ! point 1m away
+                        VB(2)=SURVN(izone,iosurf,2)
+                        VB(3)=SURVN(izone,iosurf,3)
                         vbb(1) = ((r2 * PB(1)) + (r1 * VB(1)))/1.0
                         vbb(2) = ((r2 * PB(2)) + (r1 * VB(2)))/1.0
                         vbb(3) = ((r2 * PB(3)) + (r1 * VB(3)))/1.0
@@ -5524,8 +5393,8 @@ C and the angle between the surface normals less than zero
                         endif
                       endif
 
-                    elseif(SSVFC(icc)(1:4).eq.'VERT'.and.
-     &                     SSVFC(icco)(1:4).eq.'FLOR')then
+                    elseif(SVFC(izone,isurf)(1:4).eq.'VERT'.and.
+     &                     SVFC(izone,iosurf)(1:4).eq.'FLOR')then
 
 C Five is wall-floor (not ground) so both surfaces must face the 
 C outside one roughly vertical and the other flat (down)
@@ -5538,8 +5407,8 @@ C outside one roughly vertical and the other flat (down)
 
 C Two is wall-ground floor so one surface must face outside and the
 C other must face the ground.
-                    if(SSVFC(icc)(1:4).eq.'FLOR'.and.
-     &                 SSVFC(icco)(1:4).eq.'VERT')then
+                    if(SVFC(izone,isurf)(1:4).eq.'FLOR'.and.
+     &                 SVFC(izone,iosurf)(1:4).eq.'VERT')then
                       ibridgeshr(icc,i)=2
                       bridgelen(izone,2)= bridgelen(izone,2)+
      &                  edgelen
@@ -5551,12 +5420,14 @@ C                  endif
 
 C Test if azimuth are within two degrees. For the special case of the
 C difference between the two being ~360deg call it closeazi
-                  call eclose(SSPAZI(icc),SSPAZI(icco),2.0,closeazi)
+                  call eclose(SPAZI(izone,isurf),
+     &                        SPAZI(izone,iosurf),2.0,closeazi)
                   if(.NOT.closeazi)then
-                    zazi = abs(SSPAZI(icc)-SSPAZI(icco))
+                    zazi = abs(SPAZI(izone,isurf)-SPAZI(izone,iosurf))
                     call eclose(zazi,360.0,2.0,closeazi)
                   endif
-                  call eclose(SSPELV(icc),SSPELV(icco),2.0,closeelv)
+                  call eclose(SPELV(izone,isurf),
+     &                        SPELV(izone,iosurf),2.0,closeelv)
                   if(closeazi.and.closeelv)then
 
 C Point the current edge to the connection of the other surface.
@@ -5564,8 +5435,8 @@ C Point the current edge to the connection of the other surface.
                     iwhich(i)=icco
 
 C Check if same material (but ignore UNKNOWN).
-                    if(SSMLCN(icc).eq.SSMLCN(icco))then
-                      if(SSMLCN(icc)(1:4).ne.'UNKN')then
+                    if(SMLCN(izone,isurf).eq.SMLCN(izone,iosurf))then
+                      if(SMLCN(izone,isurf)(1:4).ne.'UNKN')then
                         imatshr(icc,i)=icco
                       endif
                     endif
@@ -5588,7 +5459,7 @@ C increment nbedgshr once even if other surface shares several edges).
 
           if(itrc.gt.1)then
             write(outs,*) 'nbedgshr for ',
-     &        ssname(icc)(1:lnblnk(ssname(icc))),
+     &        sname(izone,isurf)(1:lnblnk(sname(izone,isurf))),
      &        ' is ',nbedgshr(icc)
             call edisp(iuout,outs)
           endif
@@ -5599,7 +5470,7 @@ C not find it ask the user what to do.
 C If there are duplicate surfaces in the zone then the other
 C surface might have exactly the same number of edges.
           if(act.eq.'c')then
-            if(SSPARENT(icc)(1:2).eq.'  ')then
+            if(SPARENT(izone,isurf)(1:2).eq.'  ')then
 
 C Parent attribute has not yet been defined so do some checking.
               if(nbedgshr(icc).eq.NVER(isurf).or.
@@ -5628,42 +5499,42 @@ C If all of iwhich is the same number (excluding zero) then use it.
                   endif
 
 C If current surface already marked and is the same as ibinval then do not
-C bother the user. If ibinval was set to zero then clear SSPARENT.
+C bother the user. If ibinval was set to zero then clear SPARENT.
                   if(ibinval.ne.0)then
-                    if(SSPARENT(icc).eq.ssname(ibinval))then
+                    if(SPARENT(izone,isurf).eq.
+     &                 sname(IC1(ibinval),IE1(ibinval)))then
                       ok=.true.
                     else
-                      write(outs,'(5a)') 'Is ',ssname(icc),
-     &                  ' a subsurface of ',ssname(ibinval),'?'
-                      dok=.true.
+                      write(outs,'(5a)') 'Is ',sname(izone,isurf),
+     &                  ' a subsurface of ',
+     &                  sname(IC1(ibinval),IE1(ibinval)),'?'
                     h(1)='The shape & edges of the two surfaces suggest'
-                    h(2)='that one is a subsurface. If not say no. '
-                      call askok(outs,' ',ok,dok,2)
+                    h(2)='that one is a subsurface.'
+                      call easkok(' ',outs,ok,2)
                     endif
                     if(ok)then
-                      SSPARENT(icc)=ssname(ibinval)
+                      SPARENT(izone,isurf)=
+     &                  sname(IC1(ibinval),IE1(ibinval))
                     endif
                   else
-                    dok=.false.
-                    h(1)='Is its parent surface in the current'
-                    h(2)='zone. If not say no. '
+                    h(1)='Is parent surface in the current zone.'
                     izz=ic1(icc)
-                    write(outs,'(5a)') 'Does ',ssname(icc),
+                    write(outs,'(5a)') 'Does ',sname(izz,isurf),
      &                ' have a parent surface in ',zname(izz),'?'
-                    call askok(outs,
-     &                ' (saying no sets parent to blank)',ok,dok,2)
+                    call easkok(' ',outs,ok,2)
                     if(ok)then
                       write(outs,'(5a)') 'Specify parent surface for ',
-     &                  ssname(icc),' in ',zname(izz),'.'
+     &                  sname(izz,isurf),' in ',zname(izz),'.'
                       call easksur(izz,iss,'-',outs,' ',ier)
                       ibinval=izstocn(izz,iss)
                       if(ibinval.ne.0)then
-                        SSPARENT(icc)=ssname(ibinval)  ! << also remember parent index>>
+                        SPARENT(izone,isurf)=
+     &                    sname(IC1(ibinval),IE1(ibinval))  ! also remember parent index
                       else
-                        SSPARENT(icc)=' '
+                        SPARENT(izone,isurf)=' '
                       endif
                     else
-                      SSPARENT(icc)=' '
+                      SPARENT(izone,isurf)=' '
                     endif
                   endif
                 endif
@@ -5719,6 +5590,7 @@ C be duplicates.
 
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
+      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -5738,7 +5610,7 @@ C Initialise various variables
       do 10 isur=1,NZSUR(ICOMP)
         icc=IZSTOCN(icomp,isur)
         if(icc.lt.1) goto 10  ! jump if corrupt connection list
-        ssparent(icc)='-'
+        sparent(icomp,isur)='-'
         do i=1,48          ! loop must match dimension statement
           idupv(isur,i)=0     ! clear duplicate vertex index
           iduplist(isur,i)=0  ! clear duplicate position
@@ -5835,15 +5707,16 @@ C If there are the same shared vertices check orientation as well.
 C Parent and child must have the same azimuth and elevation angles,
 C allow tolerance of 2deg and possible rotation of 360deg. 
 C<< Division mod 360 may be a more generic way for angle checking
-          call eclose(SSPAZI(icc),SSPAZI(JCC),2.0,closeazi)
+          call eclose(SPAZI(icomp,isur),SPAZI(icomp,jsur),2.0,closeazi)
           if(.NOT.closeazi)then
-            zazi = abs(SSPAZI(icc)-SSPAZI(JCC))
+            zazi = abs(SPAZI(icomp,isur)-SPAZI(icomp,jsur))
             call eclose(zazi,360.0,2.0,closeazi)
           endif
-          call eclose(SSPELV(icc),SSPELV(JCC),2.0,closeelv)
+          call eclose(SPELV(icomp,isur),
+     &                SPELV(icomp,jsur),2.0,closeelv)
           if(closeazi.and.closeelv)then
 
-            SSPARENT(JCC)=SSNAME(ICC)
+            SPARENT(icomp,jsur)=SNAME(icomp,isur)
 
 C Having found a child add it to the list of children of
 C the parent surface (current limit of 20 children).
@@ -5875,11 +5748,12 @@ C other surface (grandparent)
         DO 111 ICHLD=1,nTbchild(iCC)
           NCV=0
           icv=0 ; ido=0
-          CHILDRIN=SSNAME(ICHILD(ICC,ICHLD))
+          ichcon=ICHILD(ICC,ICHLD)
+          CHILDRIN=SNAME(IC1(ichcon),IE1(ichcon))
           DO 112 JSUR=1,NZSUR(ICOMP)
             jcc=izstocn(icomp,jsur)
             if(jcc.lt.1) goto 112  ! jump past if corrupt connection list
-            PARENTIN=SSNAME(JCC)
+            PARENTIN=SNAME(icomp,jsur)
             ISNL=LNBLNK(PARENTIN)
             ICHL=LNBLNK(CHILDRIN)
             IF(CHILDRIN(1:ICHL).EQ.PARENTIN(1:ISNL))THEN
@@ -5924,7 +5798,7 @@ C not contained in the child. Use these to work out parent of parent
               IF(NCV.GT.0.AND.NCV.LE.NCOMV)THEN
                 Jcc=IZSTOCN(icomp,Jsur)
                 if(nbchild(jCC).lt.23)then ! match with geometry.h
-                  SSPARENT(iCC)=SSNAME(jCC)
+                  SPARENT(icomp,isur)=SNAME(icomp,Jsur)
                   nbchild(jCC)=nbchild(jCC)+1
                   ichild(jCC,nbchild(jCC))=iCC
                 endif
@@ -5957,15 +5831,16 @@ C zone and relates it to another surface J in that zone. It scans
 C child surfaces with children to establish grandchild relationships.
 C Act = '-' standard verbose reporting.
 C Act = 's' for a less verbose reporting.
+C Act = 'u' update commons based on existing values of SPARENT 
+C           (e.g. read from geometry file), instead of scanning for
+C           parent-child relationships.
 
       SUBROUTINE SURREL2(ACT,ICOMP,IER)
 #include "building.h"
 #include "geometry.h"
 
-      integer iuout,iuin
-      common/OUTIN/IUOUT,IUIN
-      integer ncomp,ncon
-      COMMON/C1/NCOMP,NCON
+      integer iuout,iuin,ieout
+      common/OUTIN/IUOUT,IUIN,IEOUT
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -5973,20 +5848,10 @@ C Act = 's' for a less verbose reporting.
       DIMENSION itv2(MS*MS*MV) ! 2nd of every edge in every surface
       DIMENSION irelsur(MS*MV) ! which surface assoc with every edge
       DIMENSION ihits(MS,MS)   ! bin number of hits
-      DIMENSION icert(MS)      ! how certain of relationship
 
-      DIMENSION IDVN(MV),nTbchild(MCON)
-      DIMENSION ICOMVER(MS)  ! icomver is the number of vertices in common
-      dimension idupv(MS,48)    ! duplicate vertex indices
-      dimension iduplist(MS,48) ! position in list
       LOGICAL closeazi,closeelv
-      CHARACTER ACT*1,CHILDRIN*12,PARENTIN*12
+      CHARACTER ACT*1
       CHARACTER outs*496
-      integer isur   ! loop counter for parent surface loop
-      integer jsur   ! loop counter for child surface loop
-      integer iver   ! loop counter for parent surface vertices
-      integer jver   ! loop counter for child surface vertices
-      integer iiver,jjver,next
       integer llposa,lrposa,ulposa,urposa
       integer llposb,lrposb,ulposb,urposb
 
@@ -6011,9 +5876,12 @@ C Clear arrays.
         endif
       ENDDO
 
+C Skip finding edge pairs if we are just updating commons.
+      if (act(1:1).eq.'u') GOTO 145
+
 C Generate edge pairs in the zone. itv1 & itv2 are the vertices at the
 C start and end of each edge, its1 is the reference surface. 
-      ipair=0; inve=0; iub=0
+      ipair=0; iub=0
       DO IS=1,NZSUR(ICOMP)
         if(NVER(IS).eq.0)then
           continue   ! what about itv2 value for this?
@@ -6051,12 +5919,14 @@ C Parent and child must have the same azimuth and elevation angles,
 C allow tolerance of 2deg and possible rotation of 360deg. 
               icc=IZSTOCN(icomp,loop)  ! current surf connection
               jcc=IZSTOCN(icomp,loop2) ! comparison surf connection
-              call eclose(SSPAZI(icc),SSPAZI(JCC),2.0,closeazi)
+              call eclose(SPAZI(icomp,loop),
+     &                    SPAZI(icomp,loop2),2.0,closeazi)
               if(.NOT.closeazi)then
-                zazi = abs(SSPAZI(icc)-SSPAZI(JCC))
+                zazi = abs(SPAZI(icomp,loop)-SPAZI(icomp,loop2))
                 call eclose(zazi,360.0,2.0,closeazi)
               endif
-              call eclose(SSPELV(icc),SSPELV(JCC),2.0,closeelv)
+              call eclose(SPELV(icomp,loop),
+     &                    SPELV(icomp,loop2),2.0,closeelv)
               if(closeazi.and.closeelv)then
                 ihits(loop,loop2)=ihits(loop,loop2)+1  ! increment bucket
               endif
@@ -6070,12 +5940,14 @@ C Parent and child must have the same azimuth and elevation angles,
 C allow tolerance of 2deg and possible rotation of 360deg. 
               icc=IZSTOCN(icomp,loop)  ! current surf connection
               jcc=IZSTOCN(icomp,loop2)  ! possible child connection
-              call eclose(SSPAZI(icc),SSPAZI(JCC),2.0,closeazi)
+              call eclose(SPAZI(icomp,loop),
+     &                    SPAZI(icomp,loop2),2.0,closeazi)
               if(.NOT.closeazi)then
-                zazi = abs(SSPAZI(icc)-SSPAZI(JCC))
+                zazi = abs(SPAZI(icomp,loop)-SPAZI(icomp,loop2))
                 call eclose(zazi,360.0,2.0,closeazi)
               endif
-              call eclose(SSPELV(icc),SSPELV(JCC),2.0,closeelv)
+              call eclose(SPELV(icomp,loop),
+     &                    SPELV(icomp,loop2),2.0,closeelv)
               if(closeazi.and.closeelv)then
                 ihits(loop,loop2)=ihits(loop,loop2)+1  ! increment bucket
               endif
@@ -6083,10 +5955,18 @@ C allow tolerance of 2deg and possible rotation of 360deg.
           endif
         enddo
   144 continue
+  145 continue
 
 C The idea is that zero or small number of hits are unlikely to
 C signal a child relationship.
       DO loop=1,NZSUR(ICOMP)
+
+C Updating commons based on SPARENT.
+C Skip to next surface if this surface is not a child.
+        if (act(1:1).eq.'u') then
+          if (SPARENT(icomp,loop)(1:1).eq.'-') CYCLE
+        endif
+
         if(act(1:1).eq.'s')then
           continue
         else
@@ -6098,9 +5978,22 @@ C signal a child relationship.
           icc=IZSTOCN(icomp,loop)   ! current surf connection
           jcc=IZSTOCN(icomp,loop2)  ! comparison surf connection
           if(loop2.ne.loop)then
-            if(ihits(loop,loop2).eq.NVER(loop))then
+
+C Updating commons based on SPARENT.
+            if (act(1:1).eq.'u') then
+              l=lnblnk(SPARENT(icomp,loop))
+              if (SPARENT(icomp,loop)(1:l).eq.SNAME(icomp,loop2)(1:l))
+     &          then
+                nbchild(jcc)=nbchild(jcc)+1
+                ichild(jcc,nbchild(jcc))=icc
+                iparent(icc)=jcc
+                EXIT
+              endif
+              CYCLE
+            endif
 
 C Strict definition that surface loop is a child of surface loop2.
+            if(ihits(loop,loop2).eq.NVER(loop))then
               if(act(1:1).eq.'s')then
                 continue
               else
@@ -6111,13 +6004,12 @@ C Strict definition that surface loop is a child of surface loop2.
               if(nbchild(jcc).lt.24)then
                 nbchild(jcc)=nbchild(jcc)+1
                 ichild(jcc,nbchild(jcc))=icc ! remember this
-                SSPARENT(icc)=SSNAME(jcc)
-                SPARENT(loop)=SSNAME(jcc)
+                SPARENT(icomp,loop)=SNAME(icomp,loop2)
                 iparent(icc)=jcc   ! remember childs parent connection
               endif
-            elseif(ihits(loop,loop2).eq.(NVER(loop)-1))then
 
 C Looser definition e.g. at a door or glazing with shared edge.
+            elseif(ihits(loop,loop2).eq.(NVER(loop)-1))then
               if(act(1:1).eq.'s')then
                 continue
               else
@@ -6128,10 +6020,10 @@ C Looser definition e.g. at a door or glazing with shared edge.
               if(nbchild(jcc).lt.24)then
                 nbchild(jcc)=nbchild(jcc)+1
                 ichild(jcc,nbchild(jcc))=icc ! remember this
-                SSPARENT(icc)=SSNAME(jcc)
-                SPARENT(loop)=SSNAME(jcc)
+                SPARENT(icomp,loop)=SNAME(icomp,loop2)
                 iparent(icc)=jcc   ! remember childs parent connection
               endif
+
             else
               if((NVER(loop).ge.8).and.(ihits(loop,loop2).ge.4))then
 
@@ -6149,8 +6041,7 @@ C is probably a frame child. << TESTING >>
                   if(nbchild(jcc).lt.24)then
                     nbchild(jcc)=nbchild(jcc)+1
                     ichild(jcc,nbchild(jcc))=icc ! remember this
-                    SSPARENT(icc)=SSNAME(jcc)
-                    SPARENT(loop)=SSNAME(jcc)
+                    SPARENT(icomp,loop)=SNAME(icomp,loop2)
                     iparent(icc)=jcc   ! remember childs parent connection
                   endif
                 endif
@@ -6237,9 +6128,9 @@ C is initially read as well as prior to topology checks.
 
 C << what if we know that connetions are correct, could this be
 C << dones as part of the geometry file read?
-C VCOORD : X,Y & Z coordinates of each vertice in zone.
-C NZNVER : number of vertices associated with each connection.
-C NZJVN : topology of vertices associated with each connection.
+
+C szcoords : X,Y & Z coordinates of each vertice in zone.
+C iszjvn : topology of vertices.
 
 C << Could some of these common blocks be filled when scanning the
 C << zone geometry file if havec24 is true?
@@ -6253,15 +6144,15 @@ C << zone geometry file if havec24 is true?
       integer lnblnk  ! function definition
 
       common/pophelp/h(60)
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
 C Variables from geometry.h:
-C SSURCOG is centre of gravity of surface (vertex weighted).
-C SSUREQN is the surface equation A*X + B*Y + C*Z = D
-C SSURVN is point 1 unit vectpr off of surface COG along the normal.
+C SURCOG is centre of gravity of surface (vertex weighted).
+C SUREQN is the surface equation A*X + B*Y + C*Z = D
+C SURVN is point 1 unit vectpr off of surface COG along the normal.
 
       LOGICAL OK,dok
       CHARACTER h*72,outs*124
@@ -6280,10 +6171,9 @@ C using georead or egomin and pass across into the appropriate array.
         endif
         call georead(IFIL+1,LGEOM(ICOMP),ICOMP,1,iuout,ier)
         IF(IER.NE.0)THEN
-          dok=.true.
-          h(1)='When scanning the zone geometry file to build up'
-          h(2)='an overall list of surfaces a problem was encountered.'
-          CALL ASKOK(' ',' Problem found... try again? ',OK,dok,2)
+          h(1)='When scanning the zone geometry file to build up an'
+          h(2)='overall list of surfaces, a problem was encountered.'
+          CALL EASKOK('Problem found!','Retry? ',OK,2)
           IF(OK)goto 25
           goto 99
         ENDIF
@@ -6292,6 +6182,7 @@ C Find current zone geometric information and fill common G7 & PREC2
 C NOTE: this was done in ersys call so it might not be needed here.
         itrct=0
         call zgupdate(itrct,icomp,ier)
+        call zinfo(icomp,zoa,zvol,'q') ! Re-derive values
 
 C Find co-planer surfaces and edges of similar materials.
         call suredgeadj(itrc,'-',icomp,ier)
@@ -6300,30 +6191,31 @@ C ISFSUM is the total number of surfaces in the model. Nothing
 C seems to use this information (yet).
         ISFSUM=ISFSUM+ NZSUR(ICOMP)
         DO 40 J=1, NZTV(ICOMP)
-          VCOORD(ICOMP,J,1)=X(J)
-          VCOORD(ICOMP,J,2)=Y(J)
-          VCOORD(ICOMP,J,3)=Z(J)
+          szcoords(ICOMP,J,1)=X(J)
+          szcoords(ICOMP,J,2)=Y(J)
+          szcoords(ICOMP,J,3)=Z(J)
    40   CONTINUE
         DO 50 J=1, nzsur(ICOMP)
           icc=IZSTOCN(icomp,j)
           if(icc.ne.0)then
-            NZNVER(icc)=NVER(J)
-            N = NVER(J)
+            isznver(icomp,J)=NVER(J)
+            N = isznver(icomp,J)
             DO 60 K=1,N
-              NZJVN(icc,K)=JVN(J,K)
+              iszjvn(icomp,j,K)=JVN(J,K)
    60       CONTINUE
             if(ITRC.gt.1)then 
-              write(outs,*) 'name azi elv m2 ',SSNAME(icc),SSPAZI(icc),
-     &          SSPELV(icc),SSNA(icc)
+              write(outs,*) 'name azi elv m2 ',SNAME(icomp,j),
+     &          SPAZI(icomp,j),SPELV(icomp,j),SNA(icomp,j)
               call edisp(iuout,outs)
-              write(outs,*) 'SUREQN ',icc,SSUREQN(icc,1),SSUREQN(icc,2),
-     &          SSUREQN(icc,3),SSUREQN(icc,4)
+              write(outs,*) 'SUREQN ',icc,SUREQN(icomp,j,1),
+     &          SUREQN(icomp,j,2),
+     &          SUREQN(icomp,j,3),SUREQN(icomp,j,4)
               call edisp(iuout,outs)
-              write(outs,*) 'SURCOG ',SSURCOG(icc,1),SSURCOG(icc,2),
-     &          SSURCOG(icc,3)
+              write(outs,*) 'SURCOG ',SURCOG(icomp,j,1),
+     &          SURCOG(icomp,j,2),SURCOG(icomp,j,3)
               call edisp(iuout,outs)
-              write(outs,*) 'SURVN ',SSURVN(icc,1),SSURVN(icc,2),
-     &          SSURVN(icc,3)
+              write(outs,*) 'SURVN ',SURVN(icomp,j,1),
+     &          SURVN(icomp,j,2),SURVN(icomp,j,3)
               call edisp(iuout,outs)
             endif
           endif
@@ -6360,96 +6252,96 @@ C Parameters
       integer iSurfOrient, iSurfWall, iSurfCeiling, iSurfFloor
       parameter (iSurfWall=1, iSurfFloor=2, iSurfCeiling=3)
 
-      DIMENSION SNA(MS),PAZI(MS),PELV(MS)
-
 C Begin with default assumptions for each surface then overwrite
 C this if user supplied information exists.  Gather misc zone infor-
 C mation so make a probable guess at locations.
-      CALL ZINFO(SNA,ZOA,PAZI,PELV,ZVOL,'q')
+      CALL ZINFO(ICOMP,ZOA,ZVOL,'q')
       if(ISUR.eq.0)then
         DO 44 I=1,NSUR
-          SOTF(I)='OPAQUE'
-          SMLCN(I)='UNKNOWN'
+          SOTF(ICOMP,I)='OPAQUE'
+          SMLCN(ICOMP,I)='UNKNOWN'
 
 C Guess at location based on elevation of surface. Use same
 C logic as in subroutine updatesvfc.
-          SVFC(I)='UNKN'
-          if(PELV(I).GE.-1.5.AND.PELV(I).LE.1.5)then
-            SVFC(I)='VERT'
+          SVFC(ICOMP,I)='UNKN'
+          if(SPELV(ICOMP,I).GE.-1.5.AND.SPELV(ICOMP,I).LE.1.5)then
+            SVFC(ICOMP,I)='VERT'
             IF(I.LE.9)WRITE(SNAME(ICOMP,I),'(A5,I1)') 'Wall-',I
             IF(I.GT.9)WRITE(SNAME(ICOMP,I),'(A5,I2)') 'Wall-',I
             IF(I.GT.99)WRITE(SNAME(ICOMP,I),'(A5,I3)') 'Wall-',I
-          elseif(PELV(I).GE.88.5.AND.PELV(I).LE.91.5)then
-            SVFC(I)='CEIL'
+          elseif(SPELV(ICOMP,I).GE.88.5.AND.SPELV(ICOMP,I).LE.91.5)then
+            SVFC(ICOMP,I)='CEIL'
             IF(I.LE.9)WRITE(SNAME(ICOMP,I),'(A4,I1)') 'Top-',I
             IF(I.GT.9)WRITE(SNAME(ICOMP,I),'(A4,I2)') 'Top-',I
             IF(I.GT.99)WRITE(SNAME(ICOMP,I),'(A4,I3)') 'Top-',I
             izsceil(icomp)=I   ! identify as a ceiling
-          elseif(PELV(I).GE.-91.5.AND.PELV(I).LE.-88.5)then
-            SVFC(I)='FLOR'
+          elseif(SPELV(ICOMP,I).GE.-91.5.AND.
+     &           SPELV(ICOMP,I).LE.-88.5)then
+            SVFC(ICOMP,I)='FLOR'
             IF(I.LE.9)WRITE(SNAME(ICOMP,I),'(A5,I1)') 'Base-',I
             IF(I.GT.9)WRITE(SNAME(ICOMP,I),'(A5,I2)') 'Base-',I
             IF(I.GT.99)WRITE(SNAME(ICOMP,I),'(A5,I3)') 'Base-',I
             izsfloor(icomp)=I  ! identify as a floor
           else
-            SVFC(I)='SLOP'
+            SVFC(ICOMP,I)='SLOP'
             IF(I.LE.9)WRITE(SNAME(ICOMP,I),'(A5,I1)') 'Surf-',I
             IF(I.GT.9)WRITE(SNAME(ICOMP,I),'(A5,I2)') 'Surf-',I
             IF(I.GT.99)WRITE(SNAME(ICOMP,I),'(A5,I3)') 'Surf-',I
           endif
           lnsname(ICOMP,I)=lnblnk(SNAME(ICOMP,I)) ! update string length
-          SOTHER(I,1)='UNKNOWN'
-          SOTHER(I,2)='0'
-          SOTHER(I,3)='0'
-          SUSE(I,1)='-'
-          SUSE(I,2)='-'
-          SPARENT(I)='-'
+          SOTHER(ICOMP,I,1)='UNKNOWN'
+          SOTHER(ICOMP,I,2)='0'
+          SOTHER(ICOMP,I,3)='0'
+          SUSE(ICOMP,I,1)='-'
+          SUSE(ICOMP,I,2)='-'
+          SPARENT(ICOMP,I)='-'
 
 C Set flags for wall/celing/floor
-          if(PELV(I).GE.-0.02.AND.PELV(I).LE.30.0)then
+          if(SPELV(ICOMP,I).GE.-0.02.AND.SPELV(ICOMP,I).LE.30.0)then
             iSurfOrient(ICOMP,I) = iSurfWall
-          elseif(PELV(I).GT.30.0.AND.PELV(I).LE.90.02)then
+          elseif(SPELV(ICOMP,I).GT.30.0.AND.SPELV(ICOMP,I).LE.90.02)then
             iSurfOrient(ICOMP,I) = iSurfCeiling
-          elseif(PELV(I).GE.-90.02.AND.PELV(I).LE.-89.98)then
+          elseif(SPELV(ICOMP,I).GE.-90.02.AND.
+     &           SPELV(ICOMP,I).LE.-89.98)then
             iSurfOrient(ICOMP,I) = iSurfFloor
           endif
 
    44   CONTINUE
       elseif(ISUR.gt.0)then
         I=ISUR
-        SOTF(I)='OPAQUE'
-        SMLCN(I)='UNKNOWN'
-        SVFC(I)='UNKN'
-        if(PELV(I).GE.-1.5.AND.PELV(I).LE.1.5)then
-          SVFC(I)='VERT'
+        SOTF(ICOMP,I)='OPAQUE'
+        SMLCN(ICOMP,I)='UNKNOWN'
+        SVFC(ICOMP,I)='UNKN'
+        if(SPELV(ICOMP,I).GE.-1.5.AND.SPELV(ICOMP,I).LE.1.5)then
+          SVFC(ICOMP,I)='VERT'
           IF(I.LE.9)WRITE(SNAME(ICOMP,I),'(A5,I1)') 'Wall-',I
           IF(I.GT.9)WRITE(SNAME(ICOMP,I),'(A5,I2)') 'Wall-',I
           IF(I.GT.99)WRITE(SNAME(ICOMP,I),'(A5,I3)') 'Wall-',I
-        elseif(PELV(I).GE.88.5.AND.PELV(I).LE.91.5)then
-          SVFC(I)='CEIL'
+        elseif(SPELV(ICOMP,I).GE.88.5.AND.SPELV(ICOMP,I).LE.91.5)then
+          SVFC(ICOMP,I)='CEIL'
           IF(I.LE.9)WRITE(SNAME(ICOMP,I),'(A4,I1)') 'Top-',I
           IF(I.GT.9)WRITE(SNAME(ICOMP,I),'(A4,I2)') 'Top-',I
           IF(I.GT.99)WRITE(SNAME(ICOMP,I),'(A4,I3)') 'Top-',I
           izsceil(icomp)=I   ! identify as a ceiling
-        elseif(PELV(I).GE.-91.5.AND.PELV(I).LE.-88.5)then
-          SVFC(I)='FLOR'
+        elseif(SPELV(ICOMP,I).GE.-91.5.AND.SPELV(ICOMP,I).LE.-88.5)then
+          SVFC(ICOMP,I)='FLOR'
           IF(I.LE.9)WRITE(SNAME(ICOMP,I),'(A5,I1)') 'Base-',I
           IF(I.GT.9)WRITE(SNAME(ICOMP,I),'(A5,I2)') 'Base-',I
           IF(I.GT.99)WRITE(SNAME(ICOMP,I),'(A5,I3)') 'Base-',I
           izsfloor(icomp)=I  ! identify as a floor
         else
-          SVFC(I)='SLOP'
+          SVFC(ICOMP,I)='SLOP'
           IF(I.LE.9)WRITE(SNAME(ICOMP,I),'(A5,I1)') 'Surf-',I
           IF(I.GT.9)WRITE(SNAME(ICOMP,I),'(A5,I2)') 'Surf-',I
           IF(I.GT.99)WRITE(SNAME(ICOMP,I),'(A5,I3)') 'Surf-',I
         endif
         lnsname(ICOMP,I)=lnblnk(SNAME(ICOMP,I)) ! update string length
-        SOTHER(I,1)='UNKNOWN'
-        SOTHER(I,2)='0'
-        SOTHER(I,3)='0'
-        SUSE(I,1)='-'
-        SUSE(I,2)='-'
-        SPARENT(I)='-'
+        SOTHER(ICOMP,I,1)='UNKNOWN'
+        SOTHER(ICOMP,I,2)='0'
+        SOTHER(ICOMP,I,3)='0'
+        SUSE(ICOMP,I,1)='-'
+        SUSE(ICOMP,I,2)='-'
+        SPARENT(ICOMP,I)='-'
       endif
 
       RETURN
@@ -6472,8 +6364,6 @@ C << update documentation as well as reporting based on files >>
 #include "model.h"
 #include "geometry.h"
 
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       common/ishdirec/iaplic(MCOM,2),nsurfcalc(MCOM),lstsfcalc(MCOM,MS),
      &     nsurfinso(MCOM),isurfinso(MCOM,MS)
 
@@ -6497,15 +6387,12 @@ C the user has not requested a shading analysis.
         endif
       else
         IF(NDP(ICOMP).EQ.1)THEN
-          ICM=IZSTOCN(ICOMP,IDPN(ICOMP,1))
           WRITE(OUTSTR,'(3a)')' Solar insolation focused on surface ',
-     &    SSNAME(ICM),' (if shading not calculated).'
+     &    SNAME(ICOMP,IDPN(ICOMP,1)),' (if shading not calculated).'
           call edisp(ITRU,OUTSTR)
         ELSEIF(NDP(ICOMP).EQ.2.AND.IDPN(ICOMP,3).EQ.0)THEN
-          ICM1=IZSTOCN(ICOMP,IDPN(ICOMP,1))
-          ICM2=IZSTOCN(ICOMP,IDPN(ICOMP,2))
           WRITE(OUTSTR,'(5a)')' Solar insolation focused on ',
-     &    SSNAME(ICM1),' & ',SSNAME(ICM2),
+     &    SNAME(ICOMP,IDPN(ICOMP,1)),' & ',SNAME(ICOMP,IDPN(ICOMP,2)),
      &    ' (if shading not calculated).'
           call edisp(ITRU,OUTSTR)
         ELSEIF(NDP(ICOMP).EQ.3)THEN
@@ -6759,7 +6646,7 @@ C If 'is' is passed as 0 then check all, otherwise exclude surface is.
                                  ! which a connection does not yet exist so don't count it
         icn=izstocn(icomp,i)
         if(icn.ge.1)then
-          SN=SSNAME(icn)           ! assign local name for other surface
+          SN=SNAME(icomp,i)           ! assign local name for other surface
           if(string(1:lstr).eq.SN(1:lnblnk(SN)))then
             if(is.eq.0)then
               ok=.false.
@@ -6789,15 +6676,12 @@ C If 'is' is returned as 0 if no match.
       
       integer lnblnk  ! function definition
 
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       character string*12,SN*12
       
       lstr=lnblnk(string)
       is=0
       do 42 i=1,NZSUR(icomp)
-        icn=izstocn(icomp,i)
-        SN=SSNAME(icn)
+        SN=SNAME(icomp,i)
         if(string(1:lstr).eq.SN(1:lnblnk(SN)))then
           is=i
           return
@@ -6837,7 +6721,7 @@ C Find out overall length and build 1D array iva.
           ierr=1
         else
           iva(i)=lstsf(icomp,i)
-          lna=lnblnk(SSNAME(icc))
+          lna=lnblnk(SNAME(icomp,lstsf(icomp,i)))
           length=length+lna+1
         endif
   42  continue
@@ -6850,7 +6734,7 @@ C Write out a packed string (space separated) of each surface name.
         do 43 i=1,nbsur
           ico=izstocn(icomp,lstsf(icomp,i))
           if(ico.ne.0)then
-            sn=SSNAME(ico)
+            sn=SNAME(icomp,lstsf(icomp,i))
             lna=max(1,lnblnk(sn))
             if(lna.eq.1)then
               ixl=ix
@@ -6871,7 +6755,8 @@ C Write out a packed string (space separated) of each surface name.
         if(nbsur.eq.1)then
           ic1=izstocn(icomp,lstsf(icomp,1))
           if(ic1.ne.0)then
-            WRITE(SDESCR,'(A)',iostat=ios,err=1) SSNAME(ic1)
+            WRITE(SDESCR,'(A)',iostat=ios,err=1) 
+     &        SNAME(icomp,lstsf(icomp,1))
           else
             WRITE(SDESCR,'(A)',iostat=ios,err=1) 'unknown surf'
           endif

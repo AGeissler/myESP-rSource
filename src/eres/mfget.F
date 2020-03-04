@@ -63,14 +63,25 @@ C MOFLOWSU clears commons/ sets default values.
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
 
-      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
-      COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
-      integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
-      COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
-     &                 LNGLMFLABEL(MFRS)
+      character SMFLABEL*32,GLMFLABEL*32
+      COMMON/MFLABEL/SMFLABEL(MFRS),GLMFLABEL(MFRS)
+      integer  LNSMFLABEL,LNGLMFLABEL ! length of label strings
+      COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGLMFLABEL(MFRS)
 
       COMMON/GRAF1/YMAX(6),YMIN(6),YAXSET(6),ADDLIN,horaxisdiv
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
+
+      integer iuchoice  ! user selection from menuatol
+      integer nlistnode ! how many nodes were selected
+      integer listnode  ! list of node indices
+      integer nlistconn ! how many connections selected
+      integer listconn  ! list of connection indices
+      integer nlistcmp  ! how many components selected
+      integer listcmp   ! list of component indices
+      real fxmin,fxmax,fymin,fyma,fzmin,fzmax
+      common/lists3d/iuchoice,nlistnode,listnode(MNOD),
+     &  nlistconn,listconn(MCNN),nlistcmp,listcmp(MCMP),
+     &  fxmin,fxmax,fymin,fymax,fzmin,fzmax
 
 
       integer YAXSET,ADDLIN,horaxisdiv
@@ -90,22 +101,17 @@ C Set add profile label ADDLIN=0 i.e. no add
 C Reset to no choices and current result set.
       NMFGET=0
       do 10 I=1,MFRS
-        IMFGETNO(I,1)=0
-        IMFGETNO(I,2)=0
-        IMFGETNO(I,3)=0
-        IMFGETNO(I,4)=0
-        IMFGETNO(I,5)=0
-        IMFGETNO(I,6)=0
-        IMFGETNO(I,7)=0
-        IMFGETNO(I,8)=0
-        SMFLABEL(I)='  '
-        LNSMFLABEL(I)=0
-        GMFLABEL(I)='  '
-        LNGMFLABEL(I)=0
-        GLMFLABEL(I)='  '
-        LNGLMFLABEL(I)=0
+        IMFGETNO(I,1)=0; IMFGETNO(I,2)=0; IMFGETNO(I,3)=0
+        IMFGETNO(I,4)=0; IMFGETNO(I,5)=0; IMFGETNO(I,6)=0
+        IMFGETNO(I,7)=0; IMFGETNO(I,8)=0
+        SMFLABEL(I)='  '; LNSMFLABEL(I)=0
+        GLMFLABEL(I)='  '; LNGLMFLABEL(I)=0
  10   continue
-      ialstused=0
+      ialstused=0  ! Clear the associated nodes and components.
+      nlistnode=0
+      nlistconn=0
+      fxmin=1000.; fxmax=-1000.; fymin=1000.; fymax=-1000.
+      fzmin=1000.; fzmax=-1000.
 
       return
       end
@@ -124,7 +130,7 @@ C columns listed above.
       integer lnblnk  ! function definition
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
@@ -133,13 +139,24 @@ C columns listed above.
 
       common/recov01/pifltog,lpifl
 
+      integer iuchoice  ! user selection from menuatol
+      integer nlistnode ! how many nodes were selected
+      integer listnode  ! list of node indices
+      integer nlistconn ! how many connections selected
+      integer listconn  ! list of connection indices
+      integer nlistcmp  ! how many components selected
+      integer listcmp   ! list of component indices
+      real fxmin,fxmax,fymin,fyma,fzmin,fzmax
+      common/lists3d/iuchoice,nlistnode,listnode(MNOD),
+     &  nlistconn,listconn(MCNN),nlistcmp,listcmp(MCMP),
+     &  fxmin,fxmax,fymin,fymax,fzmin,fzmax
+
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
       COMMON/MFPK2/NMFLST,IMFLIST(MFCNLST,MFCNEL+1)
-      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
-      COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
-      integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
-      COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
-     &                 LNGLMFLABEL(MFRS)
+      character SMFLABEL*32,GLMFLABEL*32
+      COMMON/MFLABEL/SMFLABEL(MFRS),GLMFLABEL(MFRS)
+      integer  LNSMFLABEL,LNGLMFLABEL ! length of label strings
+      COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGLMFLABEL(MFRS)
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
       common/getmenu/menutype,igetind(65),igetflux(65)
 
@@ -172,17 +189,17 @@ C air flow reporting.
       CHARACTER PROMPT1*72,PROMPT2*72,CONTMNAM*12
       character graftitle*64,grlbl*24,t64*64,t24*24
       character ll1*12,ll2*12,ll3*12
-      character zn*12
+      character zn*12,msg*72
 
       DIMENSION ICPK(MCNN),INPK(MNOD),INPKT(MNOD),INPKT2(MNOD)
       DIMENSION ICtmPK(MCONTM)
 
       integer YAXSET,ADDLIN,horaxisdiv
-      integer lcname  ! length of contaminate string
       integer IOT,IWM  ! for radio buttons
       integer NITMS,INO ! max items and current menu item
 
-      logical CLIST,NLIST,CNLST,CRLST,OKL,dok,CTLST
+      logical CLIST,NLIST,CNLST,CRLST,OKL,CTLST
+      logical found
 #ifdef OSI
       integer iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #else
@@ -203,13 +220,16 @@ C  NLIST - node list
 C  CNLST - connection node list to restrict choice (e.g. all flows through node x)
 C  CRLST - reference node list for connection information (e.g. volume for ac/h)
 C  CTLST - contaminant list
- 1    CLIST=.FALSE.
-      NLIST=.FALSE.
-      CNLST=.FALSE.
-      CRLST=.FALSE.
-      CTLST=.FALSE.
+ 1    continue
+      CLIST=.FALSE.; NLIST=.FALSE.; CNLST=.FALSE.
+      CRLST=.FALSE.; CTLST=.FALSE.
+      fxmin=1000.; fxmax=-1000.; fymin=1000.; fymax=-1000.
+      fzmin=1000.; fzmax=-1000.
       IDH=1   ! assume no horizontal separator
       net3ddelay=2  ! assume 1 sec delay
+      igrl=0        ! initial assumption
+      itotal=0      ! initial assumption
+      inode=0       ! initial assumption
 
 C MNGET is the maximum number of metrics allowed to be chosen from the menu.
       if (MENUTYPE.eq.1) then
@@ -437,7 +457,6 @@ C each have a different line colour.
         IMFGETNO(NMFGET,6)=1
         IMFGETNO(NMFGET,7)=1
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Ambient db (C)'; LNGMFLABEL(NMFGET)=14
         GLMFLABEL(NMFGET)='Ambient dry bulb (C)'
         LNGLMFLABEL(NMFGET)=20
         if(IROC.eq.0)then
@@ -464,7 +483,6 @@ C Wind speed: IMFGET = 10
         IMFGETNO(NMFGET,6)=6
         IMFGETNO(NMFGET,7)=6
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Wind speed'; LNGMFLABEL(NMFGET)=10
         GLMFLABEL(NMFGET)='Wind speed'; LNGLMFLABEL(NMFGET)=10
         if(IROC.eq.0)then
           SMFLABEL(NMFGET)='Wind speed (m/s)'
@@ -490,7 +508,6 @@ C Wind direction: IMFGET = 11
         IMFGETNO(NMFGET,6)=4
         IMFGETNO(NMFGET,7)=4
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Wind direction'; LNGMFLABEL(NMFGET)=14
         GLMFLABEL(NMFGET)='Wind direction'; LNGLMFLABEL(NMFGET)=14
         if(IROC.eq.0)then
           SMFLABEL(NMFGET)='Wind direction (deg)'
@@ -516,7 +533,6 @@ C Ambient RH: IMFGET = 12
         IMFGETNO(NMFGET,6)=7
         IMFGETNO(NMFGET,7)=4
         IMFGETNO(NMFGET,8)=0
-        GMFLABEL(NMFGET)='Ambient RH'; LNGMFLABEL(NMFGET)=10
         GLMFLABEL(NMFGET)='Ambient relative humidity'
         LNGLMFLABEL(NMFGET)=25
         if(IROC.eq.0)then
@@ -654,11 +670,11 @@ C Volume flow rate: IMFGET = 4.
         IMFGETNO(NMFGET,7)=3
         IMFGETNO(NMFGET,8)=0
 
-C Ask m^3/s or l/s.
+C Ask m^3/s or l/s or m^3/h.
         ifunits=0
-        CALL EASKAB('Volume flow expresed as:',' ','m^3/s',
-     &      'litres/s',ifunits,nbhelp)
-        if(ifunits.eq.0)then
+        CALL EASKABC('Volume flow expresed as:',' ','m^3/s',
+     &      'litres/s','m^3/h',ifunits,nbhelp)
+        if(ifunits.eq.1)then
           IMFGETNO(NMFGET,8)=0
           SUFFIX=' m^3/s'
           if(IROC.eq.0)then
@@ -668,15 +684,35 @@ C Ask m^3/s or l/s.
             SMFLABEL(NMFGET)='Conn flow rate cng (m^3/s/hr)'
             LNSMFLABEL(NMFGET)=29
           endif
-        else
+        elseif(ifunits.eq.2)then
           IMFGETNO(NMFGET,8)=1
           SUFFIX=' l/s'
           if(IROC.eq.0)then
             SMFLABEL(NMFGET)='Conn flow rate (l/s)'
             LNSMFLABEL(NMFGET)=20
           elseif(IROC.eq.1)then
-            SMFLABEL(NMFGET)='Conn flow rate cng (l/s/hr)'
-            LNSMFLABEL(NMFGET)=27
+            SMFLABEL(NMFGET)='Conn flow rate cng (l/s/h)'
+            LNSMFLABEL(NMFGET)=26
+          endif
+        elseif(ifunits.eq.3)then
+          IMFGETNO(NMFGET,8)=2
+          SUFFIX=' m^3/h'
+          if(IROC.eq.0)then
+            SMFLABEL(NMFGET)='Conn flow rate (m^3/h)'
+            LNSMFLABEL(NMFGET)=22
+          elseif(IROC.eq.1)then
+            SMFLABEL(NMFGET)='Conn flow rate cng (m^3/h/h)'
+            LNSMFLABEL(NMFGET)=28
+          endif
+        else  ! if no choice made revert to m^3/s.
+          IMFGETNO(NMFGET,8)=0
+          SUFFIX=' m^3/s'
+          if(IROC.eq.0)then
+            SMFLABEL(NMFGET)='Conn flow rate (m^3/s)'
+            LNSMFLABEL(NMFGET)=22
+          elseif(IROC.eq.1)then
+            SMFLABEL(NMFGET)='Conn flow rate cng (m^3/s/hr)'
+            LNSMFLABEL(NMFGET)=29
           endif
         endif
         CNLST=.true.
@@ -771,9 +807,9 @@ C          SMFLABEL(NMFGET)='Conn energy (Whr)'
 C        elseif(IROC.eq.1)then
 C          SMFLABEL(NMFGET)='Conn energy cng (Whr/hr)'
 C        endif
-C << this facility under development) get code from mfetbl.F >>
+C << this facility is under development) get code from mfetbl.F >>
 C << ask for a reference node (probably outside), test node and >>
-C << a connection for this calculation. >>
+C << get a connection for this calculation. >>
       elseif(INO.EQ.20)then
 
 C Edit selections.
@@ -1101,9 +1137,8 @@ C Find out point where text should be drawn.
           t24=grlbl(igrl)
           iicol=0; ibsize=0
           call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
-          dok=.true.
-          CALL ASKOK('Include another user supplied label?',' ',
-     &      OKL,dok,nbhelp)
+          CALL EASKOK(' ','Include another user supplied label?',
+     &      OKL,nbhelp)
           if(OKL) goto 291
 
         elseif(MENUTYPE.eq.4) then
@@ -1142,7 +1177,6 @@ C Debug.
 C        do 999 I=1,NMFGET
 C          write(6,*) (IMFGETNO(I,K),K=1,8)
 C          write(6,*) SMFLABEL(I)
-C          write(6,*) GMFLABEL(I)
 C          write(6,*) GLMFLABEL(I)
 C          write(6,*) '  '
 C 999    continue
@@ -1190,6 +1224,18 @@ C Ask for relevent nodes. If CTLST is true then ask for containments.
         helptopic='res_mass_flow_nod_select'
         call gethelptext(helpinsub,helptopic,nbhelp)
         call ASKMFNOD(INOPT,NNPK,INPK,PROMPT1,PROMPT2,nbhelp)
+        nlistnode=NNPK
+        do i=1,nlistnode      ! make up list of nodes and update bounds
+          listnode(i)=INPK(i)
+          j=listnode(i)
+          xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+          if(fxmin.gt.xw) fxmin=xw
+          if(fxmax.le.xw) fxmax=xw
+          if(fymin.gt.yw) fymin=yw
+          if(fymax.le.yw) fymax=yw
+          if(fzmin.gt.zw) fzmin=zw
+          if(fzmax.le.zw) fzmax=zw
+        enddo
         IF(CTLST)THEN
           IF(NCONTM.GT.0)THEN
             NCPK=NCONTM
@@ -1228,9 +1274,6 @@ c imfgetno array.
                 IMFGETNO(NMFGET,7)=IMFGETNO(NMFGET-1,7)
                 IMFGETNO(NMFGET,8)=IMFGETNO(NMFGET-1,8)
               endif
-              write (GMFLABEL(NMFGET),'(2a)')
-     &          NDNAM(INPK(I))(1:lnname),SUFFIX
-              LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
               write (GLMFLABEL(NMFGET),'(2a)')
      &          NDNAM(INPK(I))(1:lnname),SUFFIX
               LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
@@ -1269,13 +1312,6 @@ C appropriate labels.
                     IMFGETNO(NMFGET,7)=IMFGETNO(NMFGET-1,7)
                     IMFGETNO(NMFGET,8)=IMFGETNO(NMFGET-1,8)
                   ENDIF
-
-C GMFLABEL is 24 char so truncate the text.
-                  lcname=MIN0(LNNAMEC,8)
-                  WRITE(GMFLABEL(NMFGET),'(4a)')
-     &              CONTMNAM(ICtmPK(J))(1:lcname),'@',
-     &              NDNAM(INPK(I))(1:10),SUFFIX(1:4)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   WRITE(GLMFLABEL(NMFGET),'(4a)')
      &              CONTMNAM(ICtmPK(J))(1:LNNAMEC),' at ',
      &              NDNAM(INPK(I))(1:lnname),SUFFIX(1:lnblnk(SUFFIX))
@@ -1305,13 +1341,6 @@ C GMFLABEL is 24 char so truncate the text.
                   IMFGETNO(NMFGET,6)=IMFGETNO(NMFGET-1,6)
                   IMFGETNO(NMFGET,7)=IMFGETNO(NMFGET-1,7)
                   IMFGETNO(NMFGET,8)=IMFGETNO(NMFGET-1,8)
-
-C GMFLABEL is 24 char so truncate the text.
-                  lcname=MIN0(LNNAMEC,8)
-                  WRITE(GMFLABEL(NMFGET),'(4a)')
-     &              CONTMNAM(ICtmPK(J))(1:lcname),'@',
-     &              NDNAM(INPK(I))(1:10),SUFFIX(1:4)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   WRITE(GLMFLABEL(NMFGET),'(4a)')
      &              CONTMNAM(ICtmPK(J))(1:LNNAMEC),' at ',
      &              NDNAM(INPK(I))(1:lnname),SUFFIX
@@ -1339,13 +1368,15 @@ C Ask if only flows associated with a single node.
           IDNO=1
           call MENUATOL('Select a flow option',' ',
      &   'a individual connections','b total of connections',
-     &   'c total entering node','d total from ambient',
+     &   'c total entering node','d total to/from ambient',
      &   'e inter-nodal flow ','f cancel ',' ',' ',' ',' ',' ',
      &   ' ',IDH,IDNO,nbhelp)
           if(IDH.eq.1)then
+            iuchoice=1  ! remember individual connections
             INODE=0
             itotal=0
           elseif(IDH.eq.2)then
+            iuchoice=2  ! remember total of connections
             NNPK=1
             PROMPT1=
      &       'Select the node which is associated with the connections'
@@ -1353,36 +1384,81 @@ C Ask if only flows associated with a single node.
             helptopic='res_mass_flow_nod_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call ASKMFNOD(INOPT,NNPK,INPK,PROMPT1,PROMPT2,nbhelp)
+            nlistnode=NNPK
+            do i=1,nlistnode      ! make up list of nodes and bounds.
+              listnode(i)=INPK(i)
+              j=listnode(i)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+            enddo
             INODE=INPK(1)
             itotal=0
           elseif(IDH.eq.3)then
 
 C Note: return INPKT and NNPKT for total entering.
+            iuchoice=3  ! remember total entering
             NNPKT=NNOD
             PROMPT1=
-     &       'Select the node(s) for which total flow(s) are reported.'
+     &       'Select node(s) for total entering:leaving flows.'
             PROMPT2=' '
             helptopic='res_mass_flow_nod_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call ASKMFNOD(INOPT,NNPKT,INPKT,PROMPT1,PROMPT2,nbhelp)
+            nlistnode=NNPKT
+            do i=1,nlistnode
+              listnode(i)=INPKT(i)
+              j=listnode(i)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+            enddo
             INODE=0
             itotal=1
           elseif(IDH.eq.4.or.idh.eq.5)then
             NNPKT=NNOD
-            IF(IDH.EQ.5)NNPKT=1
+            if(IDH.EQ.5)then
+              NNPKT=1
+              iuchoice=5  ! remember inter-nodal
+            elseif(IDH.eq.4)then
+              iuchoice=4  ! remember to-from ambient
+            endif
             PROMPT1='Select node for flow'
             PROMPT2=' '
             helptopic='res_mass_flow_nod_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call ASKMFNOD(INOPT,NNPKT,INPKT,PROMPT1,PROMPT2,nbhelp)
+            nlistnode=NNPKT
+            do i=1,nlistnode
+              listnode(i)=INPKT(i)
+              j=listnode(i)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+            enddo
             if(idh.eq.5)then
               NNPKT=NNOD
               PROMPT1='Select second node'
               call ASKMFNOD(INOPT2,NNPKT,INPKT2,PROMPT1,PROMPT2,nbhelp)
+              nlistnode=nlistnode+1         ! add the 2nd node
+              listnode(nlistnode)=INPKT2(1)
             endif
             INODE=0
             itotal=1
           elseif(IDH.eq.6)then
+            iuchoice=6  ! user aborted
             NMFGET=NMFGET-1
             goto 1
           endif
@@ -1406,6 +1482,18 @@ C ask for one.
             helptopic='res_mass_flow_nod_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call ASKMFNOD(INOPT,NNPK,INPK,PROMPT1,PROMPT2,nbhelp)
+            nlistnode=NNPK
+            do i=1,nlistnode
+              listnode(i)=INPK(i)
+              j=listnode(i)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+            enddo
             IMFGETNO(NMFGET,3)=INPK(1)
           else
             IMFGETNO(NMFGET,3)=INODE
@@ -1415,7 +1503,88 @@ C ask for one.
 
 C Ask for connections if required otherwise use value of NNPK from
 C nodes questions above. I.E. total flow entering was requested.
-        if(itotal.eq.0)call ASKMFCON(INODE,NNPK,ICPK)
+        if(itotal.eq.0)then
+          call ASKMFCON(INODE,NNPK,ICPK)
+          nlistconn=NNPK
+          do i=1,NNPK
+            listconn(i)=ICPK(i)
+            ipp=NODPS(ICPK(I))  ! positive node
+            inn=NODNE(ICPK(I))  ! negative node
+            if(nlistnode.eq.0)then
+              listnode(1)=ipp; listnode(2)=inn; nlistnode=2
+              j=listnode(1)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+              j=listnode(2)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+            else
+              found=.false.
+              do j=1,nlistnode
+                if(listnode(j).eq.ipp)then
+                  found=.true.   ! match found
+                endif
+              enddo
+              if(.NOT.found)then
+                nlistnode=nlistnode+1
+                listnode(nlistnode)=ipp
+                j=ipp
+                xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+                if(fxmin.gt.xw) fxmin=xw
+                if(fxmax.le.xw) fxmax=xw
+                if(fymin.gt.yw) fymin=yw
+                if(fymax.le.yw) fymax=yw
+                if(fzmin.gt.zw) fzmin=zw
+                if(fzmax.le.zw) fzmax=zw
+              endif
+              found=.false.
+              do j=1,nlistnode
+                if(listnode(j).eq.inn)then
+                  found=.true.   ! match found
+                endif
+              enddo
+              if(.NOT.found)then
+                nlistnode=nlistnode+1
+                listnode(nlistnode)=inn
+                j=inn
+                xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+                if(fxmin.gt.xw) fxmin=xw
+                if(fxmax.le.xw) fxmax=xw
+                if(fymin.gt.yw) fymin=yw
+                if(fymax.le.yw) fymax=yw
+                if(fzmin.gt.zw) fzmin=zw
+                if(fzmax.le.zw) fzmax=zw
+              endif
+              icmp=ITPCON(ICPK(I))  ! also remember associated components
+              if(nlistcmp.eq.0)then
+                nlistcmp=1; listcmp(1)=icmp
+              else
+                found=.false.
+                do j=1,nlistcmp
+                  if(listcmp(j).eq.icmp)then
+                    found=.true.
+                  endif
+                enddo
+                if(.NOT.found)then
+                  nlistcmp=nlistcmp+1
+                  listcmp(nlistcmp)=icmp
+                endif
+              endif
+            endif
+          enddo  ! of nlistconn
+        write(6,*) 'node list is',nlistnode,(listnode(I),I=1,nlistnode)     
+        write(6,*) 'cmp list is',nlistcmp,(listcmp(I),I=1,nlistcmp) 
+        endif
 
 C Debug.
 C        write(6,*) 'after itotal & nnpk ',itotal,nnpk,inpk
@@ -1438,9 +1607,6 @@ C labels for total entering.
                 lnname=MIN0(lnblnk(NDNAM(INODE)),10)
               endif
               llnname=lnblnk(NDNAM(INODE))
-              write(GMFLABEL(NMFGET),'(3a)') 'Tot ',
-     &          NDNAM(INODE)(1:lnname),SUFFIX(1:lsf)
-              LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
               write(GLMFLABEL(NMFGET),'(3a)') 'Total ',
      &          NDNAM(INODE)(1:llnname),SUFFIX(1:lsf)
               LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
@@ -1497,41 +1663,11 @@ C Tell user about the area of the component related to each connection.
                   llns=lnblnk(NDNAM(NODPS(ICPK(I))))
                   llne=lnblnk(NDNAM(NODNE(ICPK(I))))
                   if(lnblnk(SUFFIX).le.4)then
-                    if(llne.lt.9)then
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:9),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                    else
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:9),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
-                    endif
-                    if((llns+llne+lsf+2).le.24)then
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                    endif
-                    LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                     write(GLMFLABEL(NMFGET),'(4a)')
      &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
      &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                     LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
                   else
-                    if(llne.lt.8)then
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:8),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                    else
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:8),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
-                    endif
-                    if((llns+llne+lsf+2).le.24)then
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                    endif
-                    LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                     write(GLMFLABEL(NMFGET),'(4a)')
      &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
      &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
@@ -1545,11 +1681,12 @@ C flow and the extra entry would be the -ive flow).
                   icompindex=ITPCON(ICPK(I))
                   icomptype=ITPCMP(icompindex)
                   if(icomptype.eq.130) then
+                    write(msg,'(2a)') 'Bi-directional flow component ',
+     &                CMNAM(ITPCON(ICPK(I)))
                     helptopic='res_mass_bidirectional'
                     call gethelptext(helpinsub,helptopic,nbhelp)
-                    call EASKAB('Bi-directional flow component ',
-     &                   'reporting options:','net flow',
-     &                   'individual flows',II,nbhelp)
+                    call EASKAB(msg,'reporting options:','net flow',
+     &                              'individual flows',II,nbhelp)
 
 C If net flow do nothing (the existing definition is sufficient)
 C otherwise add the extra entry.
@@ -1573,79 +1710,19 @@ C otherwise add the extra entry.
                       llns=lnblnk(NDNAM(NODPS(ICPK(I))))
                       llne=lnblnk(NDNAM(NODNE(ICPK(I))))
                       if(lnblnk(SUFFIX).le.4)then
-                        if(llne.lt.9)then
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:9),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        else
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:9),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
-                        endif
-                        if((llns+llne+lsf+2).le.24)then
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        endif
-                        LNGMFLABEL(NMFGET-1)=lnblnk(GMFLABEL(NMFGET-1))
                         write(GLMFLABEL(NMFGET-1),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                       LNGLMFLABEL(NMFGET-1)=lnblnk(GLMFLABEL(NMFGET-1))
-                        if(llne.lt.9)then
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:9),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        else
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:9),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
-                        endif
-                        if((llns+llne+lsf+2).le.24)then
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        endif
-                        LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                         write(GLMFLABEL(NMFGET),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                         LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
                       else
-                        if(llne.lt.8)then
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:8),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        else
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:8),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
-                        endif
-                        if((llns+llne+lsf+2).le.24)then
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        endif
-                        LNGMFLABEL(NMFGET-1)=lnblnk(GMFLABEL(NMFGET-1))
                         write(GLMFLABEL(NMFGET-1),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                       LNGLMFLABEL(NMFGET-1)=lnblnk(GLMFLABEL(NMFGET-1))
-                        if(llne.lt.8)then
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:8),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        else
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:8),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
-                        endif
-                        if((llns+llne+lsf+2).le.24)then
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        endif
-                        LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                         write(GLMFLABEL(NMFGET),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
@@ -1709,41 +1786,11 @@ C In the case of flow velocity check for appropriate component and report area.
                   llns=lnblnk(NDNAM(NODPS(ICPK(I))))
                   llne=lnblnk(NDNAM(NODNE(ICPK(I))))
                   if(lnblnk(SUFFIX).le.4)then
-                    if(llne.lt.9)then
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:9),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                    else
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:9),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
-                    endif
-                    if((llns+llne+lsf+2).le.24)then
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                    endif
-                    LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
-                    write(GLMFLABEL(NMFGET),'(4a)')
+                   write(GLMFLABEL(NMFGET),'(4a)')
      &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
      &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                     LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
                   else
-                    if(llne.lt.8)then
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:8),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                    else
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:8),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
-                    endif
-                    if((llns+llne+lsf+2).le.24)then
-                      write(GMFLABEL(NMFGET),'(4a)')
-     &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
-     &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                    endif
-                    LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                     write(GLMFLABEL(NMFGET),'(4a)')
      &                NDNAM(NODPS(ICPK(I)))(1:llns),'=>',
      &                NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
@@ -1757,11 +1804,12 @@ C flow and the extra entry would be the -ive flow).
                   icompindex=ITPCON(ICPK(I))
                   icomptype=ITPCMP(icompindex)
                   if(icomptype.eq.130) then
+                    write(msg,'(2a)') 'Bi-directional flow component ',
+     &                CMNAM(ITPCON(ICPK(I)))
                     helptopic='res_mass_bidirectional'
                     call gethelptext(helpinsub,helptopic,nbhelp)
-                    call EASKAB('Bi-directional flow component ',
-     &                   'reporting options:','net flow',
-     &                   'individual flows',II,nbhelp)
+                    call EASKAB(msg,'reporting options:','net flow',
+     &                              'individual flows',II,nbhelp)
 
 C If net flow do nothing (the existing definition is sufficient)
 C otherwise add the extra entry.
@@ -1789,79 +1837,19 @@ C for the start and end nodes.
                       llns=lnblnk(NDNAM(NODPS(ICPK(I))))
                       llne=lnblnk(NDNAM(NODNE(ICPK(I))))
                       if(lnblnk(SUFFIX).le.4)then
-                        if(llne.lt.9)then
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:9),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        else
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:9),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
-                        endif
-                        if((llns+llne+lsf+2).le.24)then
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        endif
-                        LNGMFLABEL(NMFGET-1)=lnblnk(GMFLABEL(NMFGET-1))
                         write(GLMFLABEL(NMFGET-1),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                       LNGLMFLABEL(NMFGET-1)=lnblnk(GLMFLABEL(NMFGET-1))
-                        if(llne.lt.9)then
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:9),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        else
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:9),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:9),SUFFIX(1:lsf)
-                        endif
-                        if((llns+llne+lsf+2).le.24)then
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        endif
-                        LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
-                        write(GLMFLABEL(NMFGET),'(4a)')
+                       write(GLMFLABEL(NMFGET),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                         LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
                       else
-                        if(llne.lt.8)then
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:8),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        else
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:8),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
-                        endif
-                        if((llns+llne+lsf+2).le.24)then
-                          write(GMFLABEL(NMFGET-1),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        endif
-                        LNGMFLABEL(NMFGET-1)=lnblnk(GMFLABEL(NMFGET-1))
                         write(GLMFLABEL(NMFGET-1),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'->',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
                       LNGLMFLABEL(NMFGET-1)=lnblnk(GLMFLABEL(NMFGET-1))
-                        if(llne.lt.8)then
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:8),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        else
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:8),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:8),SUFFIX(1:lsf)
-                        endif
-                        if((llns+llne+lsf+2).le.24)then
-                          write(GMFLABEL(NMFGET),'(4a)')
-     &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
-     &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
-                        endif
-                        LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                         write(GLMFLABEL(NMFGET),'(4a)')
      &                    NDNAM(NODPS(ICPK(I)))(1:llns),'<-',
      &                    NDNAM(NODNE(ICPK(I)))(1:llne),SUFFIX(1:lsf)
@@ -1873,8 +1861,7 @@ C for the start and end nodes.
  20           continue
             elseif(idh.eq.3)then
 
-C Total flow into node.
-              do 21 I=1,NNPKT
+              do 21 I=1,NNPKT  ! Total flow into node from all connections.
                 if (I.eq.1) then
                   IMFGETNO(NMFGET,2)=0
                   IMFGETNO(NMFGET,3)=INPKT(I)
@@ -1885,9 +1872,6 @@ C Total flow into node.
                   else
                     lnname=MIN0(lnblnk(NDNAM(INPKT(I))),10)
                   endif
-                  write(GMFLABEL(NMFGET),'(3a)')'->',
-     &              NDNAM(INPKT(I))(1:lnname),SUFFIX(1:lsf)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   write(GLMFLABEL(NMFGET),'(3a)')'->',
      &              NDNAM(INPKT(I))(1:lln),SUFFIX(1:lsf)
                   LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
@@ -1914,9 +1898,6 @@ C the previous IMFGETNO for use with additional connections.
                   else
                     lnname=MIN0(lnblnk(NDNAM(INPKT(I))),10)
                   endif
-                  write(GMFLABEL(NMFGET),'(3a)')'->',
-     &              NDNAM(INPKT(I))(1:lnname),SUFFIX(1:lsf)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   write(GLMFLABEL(NMFGET),'(3a)')'->',
      &              NDNAM(INPKT(I))(1:lln),SUFFIX(1:lsf)
                   LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
@@ -1925,8 +1906,7 @@ C the previous IMFGETNO for use with additional connections.
  22           continue
             elseif(idh.eq.4)then
 
-C Total flow into node from ambient
-              do 201 I=1,NNPKT
+              do 201 I=1,NNPKT   ! Total flow to & froom node and ambient.
                 if (I.eq.1) then
                   IMFGETNO(NMFGET,2)=-1
                   IMFGETNO(NMFGET,3)=INPKT(I)
@@ -1937,19 +1917,13 @@ C Total flow into node from ambient
                   else
                     lnname=MIN0(lnblnk(NDNAM(INPKT(I))),9)
                   endif
-                  write(GMFLABEL(NMFGET),'(3a)')'amb->',
-     &              NDNAM(INPKT(I))(1:lnname),SUFFIX(1:lsf)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   write(GLMFLABEL(NMFGET),'(3a)')'ambient->',
      &              NDNAM(INPKT(I))(1:lln),SUFFIX(1:lsf)
                   LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
-                  NMFGET=NMFGET+1
-                  DO 211 NXT=1,7
+                  NMFGET=NMFGET+1  ! increment to next
+                  DO 211 NXT=1,8   ! copy remaining attributes
                     IMFGETNO(NMFGET,NXT)=IMFGETNO(NMFGET-1,NXT)
  211              CONTINUE
-                  write(GMFLABEL(NMFGET),'(3a)')'amb<-',
-     &              NDNAM(INPKT(I))(1:lnname),SUFFIX(1:lsf)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   write(GLMFLABEL(NMFGET),'(3a)')'ambient<-',
      &              NDNAM(INPKT(I))(1:lln),SUFFIX(1:lsf)
                   LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
@@ -1976,9 +1950,6 @@ C the previous IMFGETNO for use with additional connections.
                   else
                     lnname=MIN0(lnblnk(NDNAM(INPKT(I))),9)
                   endif
-                  write(GMFLABEL(NMFGET),'(3a)')'amb->',
-     &              NDNAM(INPKT(I))(1:lnname),SUFFIX(1:lsf)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   write(GLMFLABEL(NMFGET),'(3a)')'ambient->',
      &              NDNAM(INPKT(I))(1:lln),SUFFIX(1:lsf)
                   LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
@@ -1991,9 +1962,6 @@ C the previous IMFGETNO for use with additional connections.
                   IMFGETNO(NMFGET,6)=IMFGETNO(NMFGET-1,6)
                   IMFGETNO(NMFGET,7)=IMFGETNO(NMFGET-1,7)
                   IMFGETNO(NMFGET,8)=IMFGETNO(NMFGET-1,8)
-                  write(GMFLABEL(NMFGET),'(3a)')'amb<-',
-     &              NDNAM(INPKT(I))(1:lnname),SUFFIX(1:lsf)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   write(GLMFLABEL(NMFGET),'(3a)')'ambient<-',
      &              NDNAM(INPKT(I))(1:lln),SUFFIX(1:lsf)
                   LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
@@ -2002,37 +1970,26 @@ C the previous IMFGETNO for use with additional connections.
  202           continue
             elseif(idh.eq.5)then
 
-C Inter-nodal flow
-              do 251 I=1,NNPKT
+              do 251 I=1,NNPKT  ! Inter-nodal flow.
                 if (I.eq.1) then
                   IMFGETNO(NMFGET,2)=-2
                   IMFGETNO(NMFGET,3)=INPKT(I)
                   IMFGETNO(NMFGET,4)=-1*(INPKT2(I))
                   lln=lnblnk(NDNAM(INPKT(I)))
                   lln2=lnblnk(NDNAM(INPKT2(I)))
-                  if(lnblnk(SUFFIX).le.5)then
-                    lnname=MIN0(lnblnk(NDNAM(INPKT(I))),12)
-                    lnname2=MIN0(lnblnk(NDNAM(INPKT2(I))),12)
-                  else
+                  if(lnblnk(SUFFIX).lt.5)then
                     lnname=MIN0(lnblnk(NDNAM(INPKT(I))),10)
-                    lnname2=MIN0(lnblnk(NDNAM(INPKT2(I))),12)
+                  else
+                    lnname=MIN0(lnblnk(NDNAM(INPKT(I))),8)
                   endif
-                  write(GMFLABEL(NMFGET),'(4a)')
-     &              NDNAM(INPKT(I))(1:lnname),'->',
-     &              NDNAM(INPKT2(I))(1:lnname2),SUFFIX(1:lsf)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   write(GLMFLABEL(NMFGET),'(4a)')
      &              NDNAM(INPKT(I))(1:lln),'->',
      &              NDNAM(INPKT2(I))(1:lln2),SUFFIX(1:lsf)
                   LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
                   NMFGET=NMFGET+1
-                  DO 261 NXT=1,7
+                  DO 261 NXT=1,8
                     IMFGETNO(NMFGET,NXT)=IMFGETNO(NMFGET-1,NXT)
  261              CONTINUE
-                  write(GMFLABEL(NMFGET),'(4a)')
-     &              NDNAM(INPKT2(I))(1:lnname2),'->',
-     &              NDNAM(INPKT(I))(1:lnname),SUFFIX(1:lsf)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   write(GLMFLABEL(NMFGET),'(4a)')
      &              NDNAM(INPKT2(I))(1:lln2),'->',
      &              NDNAM(INPKT(I))(1:lln),SUFFIX(1:lsf)
@@ -2058,15 +2015,9 @@ C the previous IMFGETNO for use with additional connections.
                   lln2=lnblnk(NDNAM(INPKT2(I)))
                   if(lnblnk(SUFFIX).le.5)then
                     lnname=MIN0(lnblnk(NDNAM(INPKT(1))),12)
-                    lnname2=MIN0(lnblnk(NDNAM(INPKT2(I))),12)
                   else
                     lnname=MIN0(lnblnk(NDNAM(INPKT(1))),10)
-                    lnname2=MIN0(lnblnk(NDNAM(INPKT2(I))),12)
                   endif
-                  write(GMFLABEL(NMFGET),'(4a)')
-     &              NDNAM(INPKT(1))(1:lnname),'->',
-     &              NDNAM(INPKT2(I))(1:lnname2),SUFFIX(1:lsf)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   write(GLMFLABEL(NMFGET),'(4a)')
      &              NDNAM(INPKT(1))(1:lln),'->',
      &              NDNAM(INPKT2(I))(1:lln2),SUFFIX(1:lsf)
@@ -2080,10 +2031,6 @@ C the previous IMFGETNO for use with additional connections.
                   IMFGETNO(NMFGET,6)=IMFGETNO(NMFGET-1,6)
                   IMFGETNO(NMFGET,7)=IMFGETNO(NMFGET-1,7)
                   IMFGETNO(NMFGET,8)=IMFGETNO(NMFGET-1,8)
-                  write(GMFLABEL(NMFGET),'(4a)')
-     &              NDNAM(INPKT2(I))(1:lnname2),'->',
-     &              NDNAM(INPKT(1))(1:lnname),SUFFIX(1:lsf)
-                  LNGMFLABEL(NMFGET)=lnblnk(GMFLABEL(NMFGET))
                   write(GLMFLABEL(NMFGET),'(4a)')
      &              NDNAM(INPKT2(I))(1:lln2),'->',
      &              NDNAM(INPKT(1))(1:lln),SUFFIX(1:lsf)
@@ -2107,7 +2054,6 @@ C Debug.
 C        do 9999 I=1,NMFGET
 C          write(6,*) (IMFGETNO(I,K),K=1,8)
 C          write(6,*) SMFLABEL(I)
-C          write(6,*) GMFLABEL(I)
 C          write(6,*) GLMFLABEL(I)
 C          write(6,*) ' ------------------- '
 C 9999   continue
@@ -2186,7 +2132,7 @@ C to arrays IMFGETNO and MFRECVR.
 #include "net_flow_data.h"
 
       COMMON/FILEP/IFIL
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
@@ -2257,7 +2203,7 @@ C All connections, return total flow INTO the node.
             FLOWVALS(I)=FLOW1
           elseif(IMFGETNO(I,2).eq.-1) then
 
-C Return flow to and from ambient for this node
+C Return flow to and from ambient for this node.
             call MFSUMCON(I,1,FLOW1,FLOW2)
             FLOWVALS(I)=FLOW1
             FLOWVALS(I+1)=FLOW2
@@ -2273,8 +2219,8 @@ C Return inter-node flow for two nodes
 
         elseif (IMFGETNO(I,1).eq.4) then
 
-C Connection net volume flow rate (m^3/s) or (l/s) depending on
-C the value of IMFGETNO(I,8).
+C Connection net volume flow rate (m^3/s) or (l/s) or (m^3/h)
+C depending on the value of IMFGETNO(I,8).
           if (IMFGETNO(I,2).gt.0) then
 
 C Single connection. Depending on IMFGETNO(I,4) return +ive, -ive or net flow.
@@ -2284,32 +2230,40 @@ C Single connection. Depending on IMFGETNO(I,4) return +ive, -ive or net flow.
                 FLOWVALS(I)=VFLOW1
               elseif(IMFGETNO(I,8).eq.1)then
                 FLOWVALS(I)=VFLOW1*1000.0
+              elseif(IMFGETNO(I,8).eq.2)then
+                FLOWVALS(I)=VFLOW1*3600.
               endif
             elseif (IMFGETNO(I,4).lt.0) then
               if(IMFGETNO(I,8).eq.0)then
                 FLOWVALS(I)=VFLOW2
               elseif(IMFGETNO(I,8).eq.1)then
                 FLOWVALS(I)=VFLOW2*1000.0
+              elseif(IMFGETNO(I,8).eq.2)then
+                FLOWVALS(I)=VFLOW2*3600.
               endif
             else
-              if(IMFGETNO(I,8).eq.0)then
+              if(IMFGETNO(I,8).eq.0)then  ! Net flow.
                 FLOWVALS(I)=VFLOW1+VFLOW2
               elseif(IMFGETNO(I,8).eq.1)then
                 FLOWVALS(I)=(VFLOW1+VFLOW2)*1000.0
+              elseif(IMFGETNO(I,8).eq.2)then
+                FLOWVALS(I)=(VFLOW1+VFLOW2)*3600.
               endif
             endif
           elseif(IMFGETNO(I,2).eq.0)then
 
-C All connections, return total flow into node.
+C All connections, return total flow into node in m^3/s and convert if needed.
             call MFSUMCON(I,2,VFLOW1,VFLOW2)
             if(IMFGETNO(I,8).eq.0)then
               FLOWVALS(I)=VFLOW1
             elseif(IMFGETNO(I,8).eq.1)then
               FLOWVALS(I)=VFLOW1*1000.0
+            elseif(IMFGETNO(I,8).eq.2)then
+              FLOWVALS(I)=VFLOW1*3600.
             endif
           elseif(IMFGETNO(I,2).eq.-1) then
 
-C Return flow to and from ambient for this node
+C Return flow to and from ambient for this node.
             call MFSUMCON(I,2,VFLOW1,VFLOW2)
             if(IMFGETNO(I,8).eq.0)then
               FLOWVALS(I)=VFLOW1
@@ -2317,6 +2271,9 @@ C Return flow to and from ambient for this node
             elseif(IMFGETNO(I,8).eq.1)then
               FLOWVALS(I)=VFLOW1*1000.0
               FLOWVALS(I+1)=VFLOW2*1000.0
+            elseif(IMFGETNO(I,8).eq.2)then
+              FLOWVALS(I)=VFLOW1*3600.
+              FLOWVALS(I+1)=VFLOW2*3600.
             endif
             NEXT=1
           elseif(IMFGETNO(I,2).eq.-2) then
@@ -2329,6 +2286,9 @@ C Return inter-node flow for two nodes
             elseif(IMFGETNO(I,8).eq.1)then
               FLOWVALS(I)=VFLOW1*1000.0
               FLOWVALS(I+1)=VFLOW2*1000.0
+            elseif(IMFGETNO(I,8).eq.2)then
+              FLOWVALS(I)=VFLOW1*3600.
+              FLOWVALS(I+1)=VFLOW2*3600.
             endif
             NEXT=1
           endif
@@ -2671,7 +2631,7 @@ C or first node then a +ive flow is leaving the node and vice versa).
       elseif(ABS(IMFGETNO(IG,4)).eq.IMFGETNO(IG,3)
      &       .AND.IMFGETNO(IG,2).EQ.-1)THEN
 
-C All valid connections to node=-1*IMFGETNO(IG,4) to/from ambient
+C All valid connections to node=-1*IMFGETNO(IG,4) to/from ambient.
         NODE=abs(IMFGETNO(IG,4))
         do 301 ICNN=1,NCNN
           IDPS=NODPS(ICNN)
@@ -2777,7 +2737,7 @@ C MFCLIM: returns requested climate parameter for given timestep.
 #include "building.h"
 #include "climate.h"
 
-      COMMON/OUTIN/IUOUT,IUIN
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/SIMPIK/ISIM,ISTADD,ID1,IM1,ID2,IM2,ISDS,ISDF,NTS,ISAVE
 
@@ -2824,13 +2784,11 @@ C EDMFGOGET allows removal of output requests for flow networks.
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
 
 C smflabel char*32 is the topic of a flow item
-C gmflabel char*24 is short label for graphs/tables for flow item
 C glmflabel char*32 is longer label for flow item
-      character SMFLABEL*32,GMFLABEL*24,GLMFLABEL*32
-      COMMON/MFLABEL/SMFLABEL(MFRS),GMFLABEL(MFRS),GLMFLABEL(MFRS)
-      integer  LNSMFLABEL,LNGMFLABEL,LNGLMFLABEL ! length of label strings
-      COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGMFLABEL(MFRS),
-     &                 LNGLMFLABEL(MFRS)
+      character SMFLABEL*32,GLMFLABEL*32
+      COMMON/MFLABEL/SMFLABEL(MFRS),GLMFLABEL(MFRS)
+      integer  LNSMFLABEL,LNGLMFLABEL ! length of label strings
+      COMMON/LNMFLABEL/LNSMFLABEL(MFRS),LNGLMFLABEL(MFRS)
 
       character VERT(MZS+3)*36,KEY*1
       integer ORDER,OGET
@@ -2845,21 +2803,21 @@ C For help messages
       helpinsub='EDMFGOGET'  ! set for cfiles
 
 C Sort ORDER of IMFGETNO array for display purposes.
-      do 100 I=1,NMFGET
+      do I=1,NMFGET
         ORDER(I)=I
         OGET(I)=IMFGETNO(I,1)*10000 + IMFGETNO(I,2)*100 + IMFGETNO(I,3)
- 100  continue
+      enddo
       call SORTI(OGET,ORDER,NMFGET,2)
 
-C Set all values of incget to 1
-      do 5 I=1,NMFGET
+C Set all values of incget to 1 (i.e. all currently reported itmes).
+      do I=1,NMFGET
         INCGET(I)=1
- 5    continue
+      enddo
 
 C Initialise menu size variables based on window size.
 C IVERT is the menu position, MVERT the current number of menu lines.
       MHEAD=1
-      MCTL=3
+      MCTL=4
       ILEN=NMFGET
       IPACT=CREATE
       CALL EKPAGE(IPACT)
@@ -2898,8 +2856,9 @@ C If a long list include page facility text.
         WRITE(VERT(M+1),15)IPM,MPM
    15   FORMAT   ('0 page: ',I2,' of ',I2,' ---')
       ENDIF
-      VERT(M+2)  ='? help                     '
-      VERT(M+3)  ='- exit and activate changes'
+      VERT(M+2)  ='! clear all                '
+      VERT(M+3)  ='? help                     '
+      VERT(M+4)  ='- exit and activate changes'
 
 C Instanciate help strings for this menu.
       helptopic='menu_selection_editing'
@@ -2929,8 +2888,6 @@ C Remove inactive elements.
                 IMFGETNO(K,8)=IMFGETNO(K+1,8)
                 SMFLABEL(K)=SMFLABEL(K+1)
                 LNSMFLABEL(K)=LNSMFLABEL(K+1)
-                GMFLABEL(K)=GMFLABEL(K+1)
-                LNGMFLABEL(K)=LNGMFLABEL(K+1)
                 GLMFLABEL(K)=GLMFLABEL(K+1)
                 LNGLMFLABEL(K)=LNGLMFLABEL(K+1)
                 INCGET(K)=INCGET(K+1)
@@ -2945,8 +2902,6 @@ C Remove inactive elements.
                 IMFGETNO(K,8)=0
                 SMFLABEL(K)='  '
                 LNSMFLABEL(K)=0
-                GMFLABEL(K)='  '
-                LNGMFLABEL(K)=0
                 GLMFLABEL(K)='  '
                 LNGLMFLABEL(K)=0
                 INCGET(K)=1
@@ -2961,6 +2916,11 @@ C Remove inactive elements.
         helptopic='menu_selection_editing'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('metric selection',5,'-',0,0,IER)
+      ELSEIF(IVERT.EQ.(MVERT-2))THEN
+        do I=1,NMFGET  ! Set all values of incget to zero ad rest NMFGET.
+          INCGET(I)=0
+        enddo
+        NMFGET=0
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
 
 C If there are enough items allow paging control via EKPAGE.

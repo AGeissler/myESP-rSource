@@ -36,6 +36,7 @@ C CMON   - current monitoring values.
 C LRES   - labels for residuals.
 C LMON   - labels for monitoring values.
       SUBROUTINE PLOT(iplt,NPLT,ITM,NITER,RMX,NCRV,CRES,CMON,LRES,LMON)
+#include "building.h"
 #include "cfd.h"
 
       integer menuchw,igl,igr,igt,igb,igw,igwh
@@ -309,6 +310,7 @@ C Display time-step index and iteration index.
 C ********************* REPLOT *********************
 C REPLOT - scale plots for new number of maximum iterations.
       SUBROUTINE REPLOT(MOLD,MNEW,IPLOT)
+#include "building.h"
 #include "cfd.h"
 
 C Stores all MFRP residuals, maximum and minimum residuals and max X value.

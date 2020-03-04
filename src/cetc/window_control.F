@@ -47,9 +47,7 @@ C     5) Variables specified in COMMON/WindowControl/ (see descriptions below)
 
 
 c ***********************************************************************
-      
-      
-      
+
       LOGICAL FUNCTION AreWindowsOpen(iComp)
       IMPLICIT NONE
 #include "building.h"
@@ -142,141 +140,8 @@ C     Do nothing so as to maintain the window operating deadband
 
 C     Set AreWindowsOpen to return to the function call. 
       AreWindowsOpen = bWindowsAreOpen(iComp)
-
-C     Debug    
-C      call AreWindowsOpenDebug
       RETURN  
 
       END
-
-C*********************************************************************
-c     LOGICAL Subroutine  AreWindowsOpenDebug.
-C     
-c     Created by: Phylroy Lopez
-c     Initial Creation Date: Feb 12th 2004
-c     Copyright 2004: NRCan Buildings Group
-c     
-C     This function is used only for debugging. The Output can be modified to suit your needs.
-C     It writes to window.csv in the cwd. 
-C      
-C     *******************************************************************
-      SUBROUTINE AreWindowsOpenDebug
-      IMPLICIT NONE
-#include "building.h"
-C     Debug Common Blocks.
-      COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
-      REAL  QFP,QFF
-C     Present and future timestep.
-      REAL  TP,TF,QDP,QDF,VP
-C Wind velocity (m/s).
-      REAL  VF,DP,DF,HP,HF      
-
-      COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-
-
-
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER  IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-
-      INTEGER IDAYN
-      INTEGER IMONTH
-      INTEGER IWINDOWFLAG
-
-C Future values common block.
-
-      COMMON/FVALA/TFA(MCOM),QFA(MCOM)
-C     Zone Temp.
-      REAL  TFA,QFA
-
-C     Present Values.
-      COMMON/PVALA/TPA(MCOM),QPA(MCOM)
-C     Zone Temp
-      REAL  TPA,QPA
-
-
-
-C Common block for the window model.           
-      COMMON/WindowControl/
-     &     fWindowSetpoint,
-     &     fACSetPoint, 
-     &     bWindowControlFlag,
-     &     iWindowControlZone,
-     &     fDeltaTInttoExt,
-     &     fWindowLowSetpoint,
-     &     bWindowsAreOpen
-         
-
-C     Exterior Temperature at which and below the windows could open.  
-      REAL fWindowSetpoint
-
-C     The AC Temperature setpoint. 
-      REAL fACSetPoint
-
-C     The zone at which the temperature is controlled against.
-      INTEGER iWindowControlZone
-
-C     The flag which indicates the window feature is active.
-      LOGICAL bWindowControlFlag
-
-C     Common block variable to tell other routines that the windows are open. 
-C     (This saves processor time)
-      LOGICAL bWindowsAreOpen(MCOM) !Array to store the window position for each zone
-
-C     The DeltaT that is used to detemine if cooling can be used from the outside.
-C     Thus Windows could be open when DeltaT >= Zone Temp - ExteriorTemp
-      REAL  fDeltaTInttoExt
-
-C     The temperature at which and below that the windows remain closed.
-C     This prevents the zone becoming too cold. 
-      REAL fWindowLowSetpoint
-
-
-
-      
-C     Debug file for win.res. Note: using same unit number as hvac.res!!!
-      open(unit=202,file='window.csv',status='unknown')
-      
-C     get current timestep information
-      CALL EDAYR(idyp,IDAYN,imonth)
-      
-      if (bWindowsAreOpen(iWindowControlZone)) then 
-         iwindowflag = 1
-      else
-         iwindowflag = 0  
-      endif
-
-      write(202,101) 
-     &     iMonth , ',',
-     &     idyp,',',
-     &     ihrp,',',
-     &     iwindowflag,',',
-     &     iWindowControlZone,',',
-     &     (TPA(iWindowControlZone)+TFA(iWindowControlZone))
-     &     /2.0, ',',
-     &     TF,',',
-     &     fACSetpoint,',',
-     &     fWindowSetPoint,',',
-     &     fDeltaTInttoExt,',',
-     &     fWindowLowSetpoint,',',
-     &     VF
-          
- 101  format(i3,a3,
-     &     i4,a3,
-     &     i3,a3,
-     &     i3,a3,
-     &     i3,a1,
-     &     f6.3,a3,
-     &     f6.3,a3,
-     &     f6.3,a3,
-     &     f6.3,a3,
-     &     f6.3,a3,
-     &     f6.3,a3,
-     &     f6.3)
-
-
-
-      END
-
 
 
