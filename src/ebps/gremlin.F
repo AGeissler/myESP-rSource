@@ -30,7 +30,7 @@ C Main controller for gremlins.
 #include "gremlin.h"
       
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
@@ -291,7 +291,7 @@ C the mischief index, based on nsinc.
 
 #include "gremlin.h"
       
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
 
       get_mischief_duration=(nsinc-MCFSTS(imcf))/ntstep

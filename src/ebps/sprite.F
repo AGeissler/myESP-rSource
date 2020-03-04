@@ -34,7 +34,7 @@ C Main controller for sprites.
       integer problem,ier
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
 
