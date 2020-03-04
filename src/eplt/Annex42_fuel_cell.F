@@ -913,8 +913,8 @@ C Additional res output from plant domain.
       INTEGER napdat
 
 C Simulation time step data.
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 C Plant component pointer.
       COMMON/C12PS/NPCDAT,IPOFS1,IPOFS2

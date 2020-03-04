@@ -215,15 +215,15 @@ void	linescale_(long int* loff,float* ladd,float* lscale,long int* boff,float* b
 	float* bscale);
 void	labelstr(long int* n,float* val,long int* WticC,char* sstr);
 void	vrtaxisddwwc_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
-	float* yadd,float* sca,long int* mode,float *ddx, long int *nx,long int* side,char* msg,int mlen);
-void	vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
-	float* yadd,float* sca,long int* mode,float *ddx, long int *nx,long int* side,char* msg,int mlen);
-void 	horaxisddwwc_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
-        float *xadd,float *sca,long int *mode,float *ddx, long int *nx, char* msg,int mlen);
-void 	horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
-        float *xadd,float *sca,long int *mode,float *ddx, long int *nx, char* msg,int mlen);
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen);
+void    vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen);
+void	horaxisddwwc_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+	float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen);
+void	horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+	float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen);
 void	horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
-        float *xadd,float *sca,long int *mode,float *ddx, long int *nx,long int *ind,
+	float *xadd,float *sca,long int *mode,float *dddx, long int *nnx,long int *ind,
 	long int *idiv,long int *isjday,char* msg,int mlen);
 void	updmenu_(char* items,char* itypes,long int* nitmsptr,long int* iw,int len_items);
 void	evwmenu_(char* titleptr,long int* impx,long int* impy,long int* iwth,long int* irpx,

@@ -163,7 +163,9 @@ void  esymbol_(long int* x,long int* y,long int* sym,long int* size);
 void  drawpoint(int xa,int ya);
 void  elinewwc_(long int* x,long int* y,long int* operation);
 void  eline_(long int* x,long int* y,long int* operation);
+void  edlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  edline_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
+void  edashwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  edash_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis);
 void  eswlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2);
 void  eswline_(long int* x1,long int* y1,long int* x2,long int* y2);
@@ -191,11 +193,13 @@ void  earc_(long int* x,long int* y,long int* rad,long int* ang1,
         long int* ang2,long int* operation);
 void  etlabel_(char* msg,float* x,float* y,long int* ipos,long int* size,int len);
 void  vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
-	float* yadd,float* sca,long int* mode,float *ddx, long int *nx,long int* side,char* msg,int mlen);
+	float* yadd,float* sca,long int* mode,float *ddy, long int *nny,long int* side,char* msg,int mlen);
+void  horaxisddwwc_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen);
 void  horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
-        float *xadd,float *sca,long int *mode,float *ddx, long int *nx, char* msg,int mlen);
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen);
 void  horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
-        float *xadd,float *sca,long int *mode,float *ddx, long int *nx,long int *ind,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx,long int *ind,
 	long int *idiv,long int *isjday,char* msg,int mlen);
 void  labelstr(long int *n,float *val,long int *WticC,char* sstr);
 void  popupimage_(char *prom,char *docu,char *act,char *file,int lenprom,int lendocu,int lenact,int lenfile);

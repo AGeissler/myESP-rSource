@@ -190,9 +190,9 @@ c heat injections.
       REAL tpa,qpa,tfa,qfa
 
 c Common for the current and future hours of the simulation
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 c Common for simulation start and finish days
       common/simsdy/iss,isf

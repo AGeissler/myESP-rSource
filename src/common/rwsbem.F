@@ -792,52 +792,37 @@ C items held in the file will be scanned.
           CALL EGETRM(OUTSTR,K,baddress,'W','NCM baddress',IER)
           goto 42
         elseif(OUTSTR(1:13).eq.'Building city')then
-          K=15
-          CALL EGETRM(OUTSTR,K,bcity,'W','NCM bcity',IER)
           goto 42
         elseif(OUTSTR(1:17).eq.'Building Postcode')then
           K=19
-          CALL EGETRM(OUTSTR,K,buildingPC,'W','NCM buildingPC',IER)
           goto 42
         elseif(OUTSTR(1:19).eq.'Building owner name')then
           K=21
           CALL EGETRM(OUTSTR,K,ownername,'W','NCM ownername',IER)
           goto 42
         elseif(OUTSTR(1:24).eq.'Building owner telephone')then
-          K=26
-          CALL EGETRM(OUTSTR,K,ownertel,'W','NCM ownertel',IER)
           goto 42
         elseif(OUTSTR(1:22).eq.'Building owner address')then
           K=24
           CALL EGETRM(OUTSTR,K,owneraddr,'W','NCM owneraddr',IER)
           goto 42
         elseif(OUTSTR(1:19).eq.'Building owner city')then
-          K=21
-          CALL EGETRM(OUTSTR,K,ownercity,'W','NCM ownercity',IER)
           goto 42
         elseif(OUTSTR(1:23).eq.'Building owner Postcode')then
-          K=25
-          CALL EGETRM(OUTSTR,K,ownerPC,'W','NCM ownerPC',IER)
           goto 42
         elseif(OUTSTR(1:14).eq.'Certifier name')then
           K=16
           CALL EGETRM(OUTSTR,K,certifname,'W','NCM certifname',IER)
           goto 42
         elseif(OUTSTR(1:19).eq.'Certifier telephone')then
-          K=21
-          CALL EGETRM(OUTSTR,K,certTel,'W','NCM certTel',IER)
           goto 42
         elseif(OUTSTR(1:17).eq.'Certifier address')then
           K=19
           CALL EGETRM(OUTSTR,K,certaddress,'W','NCM certaddress',IER)
           goto 42
         elseif(OUTSTR(1:14).eq.'Certifier city')then
-          K=16
-          CALL EGETRM(OUTSTR,K,certcity,'W','NCM certcity',IER)
           goto 42
         elseif(OUTSTR(1:18).eq.'Certifier postcode')then
-          K=20
-          CALL EGETRM(OUTSTR,K,certPC,'W','NCM certPC',IER)
           goto 42
         elseif(OUTSTR(1:10).eq.'UPR number')then
 
@@ -1237,30 +1222,14 @@ C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Project name, ',
 C     &  pjname(1:lnblnk(pjname))
 C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building address, ',
 C     &  baddress(1:lnblnk(baddress))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building city, ',
-C     &  bcity(1:lnblnk(bcity)) 
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building Postcode, ',
-C     &  buildingPC(1:lnblnk(buildingPC))
 C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
 C     &  'Building owner name, ',ownername(1:lnblnk(ownername))
 C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-C     &  'Building owner telephone, ',ownertel(1:lnblnk(ownertel))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
 C     &  'Building owner address, ',owneraddr(1:lnblnk(owneraddr))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-C     &  'Building owner city, ',ownercity(1:lnblnk(ownercity))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-C     &  'Building owner Postcode, ',ownerPC(1:lnblnk(ownerPC))
 C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier name, ',
 C     &  certifname(1:lnblnk(certifname))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier telephone, ',
-C     &  certTel(1:lnblnk(certTel))
 C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
 C     &  'Certifier address, ',certaddress(1:lnblnk(certaddress))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier city, ',
-C     &  certcity(1:lnblnk(certcity))
-C      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier postcode, ',
-C     &  certPC(1:lnblnk(certPC))
 
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'UPR number, ',
      &  UPRN(1:lnblnk(UPRN))
@@ -1605,31 +1574,15 @@ C Write high level project specific detail
       WRITE(IUF,'(A)',IOSTAT=IOS,ERR=3)'*Site'
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building_address,',
      &  baddress(1:lnblnk(baddress))
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building_city,',
-     &  bcity(1:lnblnk(bcity)) 
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Building_Postcode,',
-     &  buildingPC(1:lnblnk(buildingPC))
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
      &  'Building_owner_name,',ownername(1:lnblnk(ownername))
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-     &  'Building_owner_telephone,',ownertel(1:lnblnk(ownertel))
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
      &  'Building_owner_address,',owneraddr(1:lnblnk(owneraddr))
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-     &  'Building_owner_city,',ownercity(1:lnblnk(ownercity))
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
-     &  'Building_owner_Postcode,',ownerPC(1:lnblnk(ownerPC))
       WRITE(IUF,'(A)',IOSTAT=IOS,ERR=3)'*Certifier'
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier_name,',
      &  certifname(1:lnblnk(certifname))
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier_telephone,',
-     &  certTel(1:lnblnk(certTel))
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)
      &  'Certifier_address,',certaddress(1:lnblnk(certaddress))
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier_city,',
-     &  certcity(1:lnblnk(certcity))
-      WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'Certifier_postcode,',
-     &  certPC(1:lnblnk(certPC))
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'UPR_number,',
      &  UPRN(1:lnblnk(UPRN))
    

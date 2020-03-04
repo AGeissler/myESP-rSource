@@ -203,7 +203,6 @@ C Returned parameters from silentread or silentxmlread.
       character cfgpath*144   ! full path to cfg folder for refocus
       character thecfgis*72   ! cfg file only
       character hold32*32     ! test whether curl is installed
-      logical found_curl
       character doit*248      ! to invoke curl command
       character theupdatefile*72,msg*96
       character update_ver*38,updatecomment*124
@@ -256,8 +255,8 @@ C Initialize variables and recover command line arguments.
       helpinsub='prj'  ! set for MAIN
       IUOUT=6
       IUIN=5
-      LIMTTY=24
-      LIMIT =24
+      LIMTTY=30
+      LIMIT =30
       IFIL=11
       iuj=IFIL+10   ! use for journal
 
@@ -428,14 +427,17 @@ C and dialog.
         ITFS=4
 #ifdef OSX
         IMFS=4
-        IFS=4  ! use a smaller fonts
+        IFS=4   ! use a smaller fonts
         ITFS=4
 #endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=16
-        LIMIT =16
+        IMFS=5  ! Text mode set LIMTTY larger for paging menus.
+        IFS=4
+        ITFS=4
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.
@@ -581,17 +583,18 @@ C update document.
         found_curl=.false.; hold32='curl'
         call isinstalled(hold32,found_curl)
         if(found_curl)then
-          write(doit,'(3a)') 'curl -fs http://www.esru.strath.ac.uk/',
+          write(doit,'(3a)') 'curl -f -s http://www.esru.strath.ac.uk/',
      &      'Downloads/ESP-r/update_notes.txt -o ',
      &      '/tmp/update_notes.txt'
           call runit(doit,'-')
           call pausems(200)
           write(theupdatefile,'(a)') '/tmp/update_notes.txt'
+          write(currentfile,'(a)')theupdatefile(1:lnblnk(theupdatefile))
           call FINDFIL(theupdatefile,XST)
           if(XST)then
             nbupdatecomments=0
             CALL EFOPSEQ(iuj,theupdatefile,1,IER)
-  942       CALL STRIPC(iuj,OUTSTR,99,ND,1,'notes',IER)
+  942       CALL STRIPC(iuj,OUTSTR,99,ND,1,'upgrade notes',IER)
             IF(IER.NE.0) goto 943
             if (OUTSTR(1:3).eq.'V13')then
               write(update_ver,'(a)') OUTSTR(1:lnblnk(OUTSTR))
@@ -633,6 +636,13 @@ C Curl not installed suggest this to the user?
         endif
       else
         found_curl=.false.  ! not (yet) in Windows
+      endif
+      call isunix(unixok)
+      if(unixok)then
+        found_xterm=.false.; hold32='xterm'
+        call isinstalled(hold32,found_xterm)
+      else
+        found_xterm=.false.  ! not (yet) in Windows
       endif
 
 
@@ -2042,8 +2052,12 @@ C an offset from the prj start position.
      &        brw,' -p ',spfdescr(isset)(1:lnblnk(spfdescr(isset))),aut,
      &        ' &'
           endif
-
-          call runit(doit,tmode)
+          if(tmode(1:7).eq.'graphic')then ! tmode for runit is different from
+                                          ! tmode ESP-r command line argument
+             call runit(doit,'-')         ! use '-' to request execute_command_line
+          else
+            call runit(doit,tmode)
+          endif
           return
         else
 
@@ -2102,8 +2116,11 @@ C an offset from the prj start position.
      &        ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
      &        brw,' &'
           endif
-
-          call runit(doit,tmode)
+          if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
+             call runit(doit,'-')
+          else
+            call runit(doit,tmode)
+          endif
           return
         endif
 
@@ -2133,7 +2150,11 @@ C an offset from the prj start position.
           else
             write(doit,'(3a)') 'mfs -mode ',tmode,' -s 0 0 0 &'
           endif
-          call runit(doit,tmode)
+          if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
+             call runit(doit,'-')
+          else
+            call runit(doit,tmode)
+          endif
 
 C Execute dfs.
         ELSEIF(IW.EQ.2)THEN
@@ -2155,7 +2176,11 @@ C an offset from the prj start position.
           else
             write(doit,'(3a)') 'dfs -mode ',tmode,' -s 0 0 0 &'
           endif
-          call runit(doit,tmode)
+          if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line 
+             call runit(doit,'-')
+          else
+            call runit(doit,tmode)
+          endif
         ENDIF
 
 C Visual simulation. Starts e2r with configuration file. Set up appropriate
@@ -2195,7 +2220,11 @@ C and change any / to \.
           write(doit,'(6a)') 'e2r -mode ',tmode,
      &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),brw,' &'
         endif
-        call runit(doit,tmode)
+        if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
+           call runit(doit,'-')
+        else
+          call runit(doit,tmode)
+        endif
 
 C IPV for the actual number of simulations required.
       elseif(INO.EQ.MITEM-5)then
@@ -2932,7 +2961,11 @@ C an offset from prj start position.
           if(isauto.eq.2)then
             call runit(doit,'-')
           else
-            call runit(doit,tmode)
+            if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
+              call runit(doit,'-')
+            else
+              call runit(doit,tmode)
+            endif
           endif
   667   continue
 
@@ -3025,7 +3058,11 @@ C Logic to react when browsing a model.
             if(isauto.eq.2)then
               call runit(doit,'-')
             else
-              call runit(doit,tmode)
+              if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
+                call runit(doit,'-')
+              else
+                call runit(doit,tmode)
+              endif
             endif
             write(outs,'(3a)') '* IPV extract ',
      &        runtag(ij)(7:lnblnk(runtag(ij))),' is complete.'
@@ -3067,7 +3104,11 @@ C Having done the assessments re-open and append summary.
           if(isauto.eq.2)then
             call runit(doit,'-')
           else
-            call runit(doit,tmode)
+            if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
+             call runit(doit,'-')
+            else
+              call runit(doit,tmode)
+            endif
           endif
         endif
 
@@ -4240,7 +4281,7 @@ C If recent version then display image documentation as well.
                   write(dolist,'(a,2x,a,a)')
      &            fmtexe(imgv)(1:lnblnk(fmtexe(imgv))),
      &            ilist(1:lnblnk(ilist)),' &'
-                  call runit(dolist,'graph')
+                  call runit(dolist,'text')
                   iton=1
                 endif
               endif

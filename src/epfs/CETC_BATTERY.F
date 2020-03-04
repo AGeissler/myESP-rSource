@@ -81,7 +81,7 @@ C External functions.
       integer lnblnk
 
 C ESP-r COMMONs
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       INTEGER IHRP            !-hour of present time-step
       INTEGER IHRF            !-hour of future time-step
       INTEGER IDYP            !-year day number of present day
@@ -90,7 +90,7 @@ C ESP-r COMMONs
       INTEGER IDWF            !-day of the week of future day
       INTEGER NSINC           !-number of building-side time increments
                               !-since start of simulation
-      INTEGER ITS             !-current building time-step within
+      INTEGER ITS,idynow      !-current building time-step within
                               !-current hour
 
       COMMON/PCTIME/TIMSEC
@@ -1085,7 +1085,7 @@ C *********************************************************************
       INTEGER ieout          !- error unit number
 
 C Common holding NSINC (no of building time step increments) for debugging only
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
        INTEGER IHRP            !-hour of present time-step
        INTEGER IHRF            !-hour of future time-step
        INTEGER IDYP            !-year day number of present day
@@ -1094,7 +1094,7 @@ C Common holding NSINC (no of building time step increments) for debugging only
        INTEGER IDWF            !-day of the week of future day
        INTEGER NSINC           !-number of building-side time increments
                                !-since start of simulation
-       INTEGER ITS             !-current building time-step within
+       INTEGER ITS,idynow      !-current building time-step within
                                !-current hour
 
 C PARAMETERS FROM SIGNATURE
@@ -3096,7 +3096,7 @@ C *********************************************************************
       INTEGER ieout          !- error unit number
 
 C Common holding NSINC (no of building time step increments) for debugging only
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
        INTEGER IHRP            !-hour of present time-step
        INTEGER IHRF            !-hour of future time-step
        INTEGER IDYP            !-year day number of present day
@@ -3105,7 +3105,7 @@ C Common holding NSINC (no of building time step increments) for debugging only
        INTEGER IDWF            !-day of the week of future day
        INTEGER NSINC           !-number of building-side time increments
                                !-since start of simulation
-       INTEGER ITS             !-current building time-step within
+       INTEGER ITS,idynow      !-current building time-step within
                                !-current hour
 
 C PARAMETERS FROM SIGNATURE
@@ -3973,7 +3973,7 @@ C *********************************************************************
       INTEGER ieout          !- error unit number
 
 C Common holding NSINC (no of building time step increments) for debugging only
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
        INTEGER IHRP            !-hour of present time-step
        INTEGER IHRF            !-hour of future time-step
        INTEGER IDYP            !-year day number of present day
@@ -3982,7 +3982,7 @@ C Common holding NSINC (no of building time step increments) for debugging only
        INTEGER IDWF            !-day of the week of future day
        INTEGER NSINC           !-number of building-side time increments
                                !-since start of simulation
-       INTEGER ITS             !-current building time-step within
+       INTEGER ITS,idynow      !-current building time-step within
                                !-current hour
 
 C PARAMETERS FROM SIGNATURE
@@ -4337,7 +4337,7 @@ c *************************************************************************
       INTEGER ieout             !- error unit number
 
 C ESP-r COMMONs
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       INTEGER IHRP            !-hour of present time-step
       INTEGER IHRF            !-hour of future time-step
       INTEGER IDYP            !-year day number of present day
@@ -4346,7 +4346,7 @@ C ESP-r COMMONs
       INTEGER IDWF            !-day of the week of future day
       INTEGER NSINC           !-number of building-side time increments
                               !-since start of simulation
-      INTEGER ITS             !-current building time-step within
+      INTEGER ITS,idynow      !-current building time-step within
                               !-current hour
 
       common/pstctr/nsincp,nsncpr
@@ -4613,7 +4613,7 @@ CC #include "BATTERY.h"
       INTEGER ieout          !- error unit number
 
 C ESP-r COMMONs
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       INTEGER IHRP            !-hour of present time-step
       INTEGER IHRF            !-hour of future time-step
       INTEGER IDYP            !-year day number of present day
@@ -4622,7 +4622,7 @@ C ESP-r COMMONs
       INTEGER IDWF            !-day of the week of future day
       INTEGER NSINC           !-number of building-side time increments
                               !-since start of simulation
-      INTEGER ITS             !-current building time-step within
+      INTEGER ITS,idynow      !-current building time-step within
                               !-current hour
 
       common/pstctr/nsincp,nsncpr

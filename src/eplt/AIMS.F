@@ -527,8 +527,8 @@ C Passed Arguments
 
 
 
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-       INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+       INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       
        COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
@@ -1345,8 +1345,8 @@ C ------------------------------------------------------------------------------
 #include "cogen_tanks.h"
 #include "dhw_common.h"
       
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-       INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS 
+       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+       INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/ptime/ptimep,ptimef
       REAL ptimep, ptimef
 

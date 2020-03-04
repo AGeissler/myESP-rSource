@@ -1663,7 +1663,7 @@ C
                 write (36,*)'Period ',CALENTAG(ICD),ICP,
      &            ' From:',T1,' to ',CONC(ICD,ICP)
                 RADC(ICD,ICP)=1.0-CONC(ICD,ICP)  ! adjust RADC
-                call relstr(CONC(IDTY,ICP),strval,lna,ier)
+                call relstr(CONC(ICD,ICP),strval,lna,ier)
               endif
             elseif (IDATR(ICC,2).eq.5) then
               write (36,'(a,i3,a,i2,a)') 'Zone:',IZONE,' GC type:',IT,

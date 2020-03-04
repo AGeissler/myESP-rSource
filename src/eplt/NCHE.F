@@ -579,7 +579,7 @@ C.....Common storing status of plant initialization
       LOGICAL bInitialized(mpcom)
 
 C.....Simulation timestep
-      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER ihrp              ! not used in current context
       INTEGER ihrf              ! not used in current context
       INTEGER idyp              ! not used - present day #
@@ -587,7 +587,7 @@ C.....Simulation timestep
       INTEGER idwp              ! not used in current context
       INTEGER idwf              ! not used in current context
       INTEGER nsinc             ! time step number
-      INTEGER its               ! not used in current context
+      INTEGER its,idynow        ! not used in current context
 
 C.....Time
       COMMON/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
@@ -1181,7 +1181,7 @@ C.....Trace/error reporting unit numbers
       INTEGER itc,icnt
       INTEGER itcf,itrace,izntrc,itu
 C.....Simulation timestep
-      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER ihrp              ! not used in current context
       INTEGER ihrf              ! not used in current context
       INTEGER idyp              ! not used - present day #
@@ -1189,7 +1189,7 @@ C.....Simulation timestep
       INTEGER idwp              ! not used in current context
       INTEGER idwf              ! not used in current context
       INTEGER nsinc             ! time step number
-      INTEGER its               ! not used in current context
+      INTEGER its,idynow        ! not used in current context
 C.....Functions
       REAL fHX_get_stratified_tank_avg_temp
 C Constants 

@@ -918,7 +918,7 @@ C climate file commons
 C Time and weather data.
 C Commented common blocks to be uncommented and checked for relevance 
 C when version 2 of the law will be published
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/CLIMIF/QFLWP,QFLWF,TFLWP,TFLWF,QDFLP,QDFLF,VFLP,VFLF,
      &             DFLP,DFLF,HFLP,HFLF
 

@@ -214,8 +214,8 @@ C      tab = CHAR(9)
       IUOUT = 6
       ixunit = 7
       xfile = ' ' 
-      LIMTTY=24
-      LIMIT =24
+      LIMTTY=30
+      LIMIT =30
       IFS=1
       ITFS=1
       NSIGFIG=3
@@ -365,8 +365,11 @@ C and dialog.
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=16
-        LIMIT =16
+        IMFS=5
+        IFS=5
+        ITFS=4
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.

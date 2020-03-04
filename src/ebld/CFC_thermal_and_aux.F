@@ -86,13 +86,13 @@ C ********************************************************************
      &             NPGAP(MCOM,MS,MGP)
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),AE(MCOM,MS)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/ts4/itsitr(msch),itrpas
 
       integer nconst,nelts,ngaps,npgap
       integer nnds,nndz,nndc,nndl
       real ei,ee,ai,ae
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
       integer itsitr,itrpas
 
 C Local variables to hold solar optical and longwave properties 
@@ -1400,8 +1400,8 @@ C ********************************************************************
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
 
-C      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-C      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+C      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+C      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &NPGAP(MCOM,MS,MGP)
@@ -2661,8 +2661,8 @@ C ********************************************************************
       integer nconst,nelts,ngaps,npgap
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
       integer nnds,nndz,nndc,nndl
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       real sazi,salt
       integer isunup
@@ -3083,8 +3083,8 @@ C ********************************************************************
       
       COMMON/BTIME/BTIMEP,BTIMEF
       real btimep,btimef
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
@@ -3663,8 +3663,8 @@ C ********************************************************************
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       real SAZI, SALT
       integer ISUNUP
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
       COMMON/SHAD2/ISHD(MCOM),IGCS(MCOM,MS),PO(MCOM,MS,MT),
@@ -3828,8 +3828,8 @@ C ********************************************************************
       integer nconst,nelts,ngaps,npgap
       COMMON/GR1D01/NNDS,NNDZ(MCOM),NNDC(MCOM,MS),NNDL(MCOM,MS,ME)
       integer nnds,nndz,nndc,nndl
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       real sazi,salt
       integer isunup

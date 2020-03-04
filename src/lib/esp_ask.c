@@ -496,6 +496,7 @@ void askdialog248_(char *q1, char *reply,long int *ier, int lenq1, int lenrep)
    gint menu_pix_wd;
    int no_valid_event;
    int lnq1,lnrep;	/* for non-blank length */
+   gint lnblankstr;     /* for the blank string */
    long int ibx,iby,more;	/* set default position of help */
    long int ipflg,iuresp;	/* response from pop-up help */
 
@@ -505,7 +506,9 @@ void askdialog248_(char *q1, char *reply,long int *ier, int lenq1, int lenrep)
    to be edited. It starts reply_local with a the actual text size which
    seems to help the word warp to work properly.
 */
+   lnblankstr=lenrep-1;
    f_to_c_l(reply,&lenrep,&lnrep);  /* find actual length of the string to be edited. */
+   reply_local = g_strndup(reply, (gsize) lnblankstr);	/* start with the text highlighted */
 
    if (lnrep <= 2 ) {
      strcpy ( reply_local, "  "); /* if starting with blank do this to help warp */

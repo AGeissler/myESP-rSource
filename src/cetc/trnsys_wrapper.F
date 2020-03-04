@@ -502,8 +502,8 @@ C 3. its right-hand coefficients are from trnsys output (or input).
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON /pcddsc/ pcdesc(maxpc), npref(mpcom)
       CHARACTER pcdesc*80

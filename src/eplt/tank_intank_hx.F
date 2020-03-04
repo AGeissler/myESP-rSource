@@ -171,7 +171,7 @@ C-----Plant iteration data
                                 ! at start of iteration
 
 C-----Simulation time steps
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       INTEGER ihrp
       INTEGER ihrf
       INTEGER idyp
@@ -179,7 +179,7 @@ C-----Simulation time steps
       INTEGER idwp
       INTEGER idwf
       INTEGER nsinc             ! time step number
-      INTEGER its
+      INTEGER its,idynow
 
 C-----Common for implicit/explcit handling of plant equations
       COMMON/PCEQU/IMPEXP,RATIMP

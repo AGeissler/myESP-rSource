@@ -10,7 +10,9 @@
 */
    
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -20,14 +22,15 @@
 #include "esp-r.h"
 #include <commons.h>
 
+#define XV_FDTYPE (fd_set *)
 
 /* circa Dec. 2005, MinGW apparently no longer offers 'sleep'.
    Alias to MS windows Sleep, which takes milliseconds 
-   instead of seconds */
+   instead of seconds
 #ifdef MINGW
 #include <windows.h>
-#define sleep(s) Sleep(s*1000)
-#endif 
+#define sleep(s) Sleep(s * 1000)
+#endif  */
 
 extern FILE *wwc;
 extern gint f_height;
@@ -149,7 +152,11 @@ void Timer(msec)   /* from xvmisc.c */
     
   time.tv_sec = usec / 1000000L;
   time.tv_usec = usec % 1000000L;
-/* find PC equivalent... select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time); */
+#ifdef MINGW
+/*  Sleep((unsigned int) msec ); */
+#else
+  select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time);
+#endif
   return;
 }
 
@@ -167,7 +174,11 @@ void pausems_(msec)   /* from xvmisc.c */
     
   time.tv_sec = usec / 1000000L;
   time.tv_usec = usec % 1000000L;
-/* find PC equivalent... select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time); */
+#ifdef MINGW
+/*  Sleep((unsigned int) msecond ); */
+#else
+  select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time);
+#endif
   return;
 }
 
@@ -177,7 +188,11 @@ void pauses_(is)
 {
   int i;
   i = (int) *is;
+#ifdef MINGW
+/*  Sleep((unsigned int) msecond *1000); */
+#else
   sleep((unsigned int) i );
+#endif
   return;
 }
 

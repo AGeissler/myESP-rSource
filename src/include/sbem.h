@@ -189,18 +189,10 @@ C Strings
       CHARACTER*3  APCHK        ! Compliance of air permeabilty to be checked (yes/no)
       CHARACTER*20 PJNAME       ! Project name
       CHARACTER*64 BADDRESS     ! Building address
-      CHARACTER*64 BCITY        ! Building in which city?
       CHARACTER*64 OWNERNAME    ! Owner name
-      CHARACTER*64 OWNERTEL     ! Owner telephone number
-      CHARACTER*64 BUILDINGPC   ! Building post code
       CHARACTER*64 OWNERADDR    ! Owner address
-      CHARACTER*64 OWNERCITY    ! Owner in which city?
-      CHARACTER*64 OWNERPC      ! Owner post code
       CHARACTER*64 CERTIFNAME   ! Certifier name
-      CHARACTER*64 CERTTEL      ! Certifier telephone number
       CHARACTER*64 CERTADDRESS  ! Certifier address
-      CHARACTER*64 CERTCITY     ! Certifier in which city?
-      CHARACTER*64 CERTPC       ! Certifier post code
       CHARACTER*24 RENNAME      ! Names of renewable energy systems
       CHARACTER*64 UPRN         ! Unique Property Reference Number
       CHARACTER*64 Accr_Scheme  ! Accreditation Scheme of the energy 
@@ -221,9 +213,8 @@ C Strings
       CHARACTER*64 pjLevComplexity !Specifies the level of complexity of the project
                                    !4 choices: 'Undefined','Level 3','Level 4' and 'Level 5'   
       COMMON/SBEM05/DHWNAME(MNS),HVACNAME(MNS),LASBEM,SBREF,APCHK,
-     & PJNAME,BADDRESS,BCITY,OWNERNAME,OWNERTEL,BUILDINGPC,OWNERADDR,
-     & OWNERCITY,OWNERPC,CERTIFNAME,CERTTEL,CERTADDRESS,CERTCITY,
-     & CERTPC,RENNAME(MREN),UPRN,Accr_Scheme,assessRegNumber,
+     & PJNAME,BADDRESS,OWNERNAME,OWNERADDR,CERTIFNAME,CERTADDRESS,
+     & RENNAME(MREN),UPRN,Accr_Scheme,assessRegNumber,
      & empl_Trading_name,addr_empl_Trading,party_disclosure,
      & qualifications_assessor,insurer_Company,policyNumberInsurance,
      & pjLevComplexity 

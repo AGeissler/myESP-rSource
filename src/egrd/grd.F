@@ -131,12 +131,11 @@ C Initialize global common data.
       IUOUT=6
       IUIN=5
       IFIL=11
-      LIMTTY=8
-      LIMIT =8
+      LIMTTY=30
+      LIMIT =30
       IFS=1
       ITFS=0
       IMFS=1
-      LIMTTY=20
       NSIGFIG=3
       matver=0.0     ! initial assumption of binary materials database
       path='./'
@@ -233,8 +232,11 @@ C and dialog.
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=16
-        LIMIT =16
+        IMFS=5
+        IFS=5
+        ITFS=4
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.

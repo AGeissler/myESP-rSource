@@ -110,6 +110,7 @@ C Ask to overwrite flag.
       character blank*2   ! string for edisp of blank line
       character dstmp*24,uname*24,tfile*72
       character ltpath*72,filen*72
+      character hold32*32     ! for helper applications
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*62 ! for banner title via epages call
@@ -151,8 +152,8 @@ C Initial assumptions. Pass module name to C code structure.
       ITRC=1
       IUOUT=6
       IUIN=5
-      LIMTTY=24
-      LIMIT =24
+      LIMTTY=30
+      LIMIT =30
       IFIL=10
       iuj=IFIL+10
       IFDAY=2
@@ -266,14 +267,17 @@ C and dialog.
         ITFS=5
 #ifdef OSX
         IMFS=4
-        IFS=4  ! use a smaller dialog font
+        IFS=4   ! use a smaller dialog font
         ITFS=4
 #endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=16
-        LIMIT =16
+        IMFS=5  ! Text mode set LIMTTY larger for paging menus.
+        IFS=5
+        ITFS=5
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.
@@ -373,6 +377,16 @@ C All subsequent tstamp messages will be appended to root journal.
       endif
   902 continue
 
+C Confirm if there an an xterm available.
+      call isunix(unixok)
+      if(unixok)then
+        found_xterm=.false.; hold32='xterm'
+        call isinstalled(hold32,found_xterm)
+      else
+        found_xterm=.false.  ! not (yet) in Windows
+      endif
+
+
 C Create and open a session log file based on user name, PID etc.
       uname=' '; tfile=' '
       call usrname(uname)
@@ -425,12 +439,8 @@ C with this conversion.
      &     paction(1:9).eq.'ascii2bin')then
           silent=.true.
           pascif=ascif
-
-C Read in the supplied weather file name (LCMDFL).
-          CALL CFILIN(silent)
-
-C Import weather data from ASCII file.
-          NTSPH=1
+          CALL CFILIN(silent)  ! Create empty weather file.
+          NTSPH=1              ! Import weather data from ASCII file.
           CALL EPERSTR(IYEAR,IDS,IT1,IDF,IT2,NTSPH,
      &            IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
           IUNIT=IFIL+1
@@ -452,11 +462,8 @@ C Close the session log.
           silent=.true.
           pascif=ascif
 
-C Read in the supplied weather file (LCMDFL).
-          CALL CFILIN(silent)
-
-C Write out this data to an asci file.
-          NTSPH=1
+          CALL CFILIN(silent)   ! Read in the supplied weather file (LCMDFL).
+          NTSPH=1               ! Write data to an ascii file.
           CALL EPERSTR(IYEAR,IDS,IT1,IDF,IT2,NTSPH,
      &             IFDAY,IFTIME,PERST1,PERST2,PERST3,IER)
           IAF=IFIL+1
@@ -465,9 +472,8 @@ C Write out this data to an asci file.
           write(outs248,'(5a)')'Climate_conversion',tab,
      &      LCMDFL(1:lnblnk(LCMDFL)),tab,pascif(1:lnblnk(pascif))
 
-C Close the session log.
-          close(ieout)
-          if(iecount.eq.0)then     ! if there were no warnings delete
+          close(ieout)          ! Close the session log.
+          if(iecount.eq.0)then  ! if there were no warnings delete
             open(ieout,file=iefile,status='UNKNOWN')
             call efdelet(ieout,istat)
           endif
@@ -478,21 +484,16 @@ C Close the session log.
           paction='INTERACTIVE'
           silent=.true.
           pascif=ascif
-
-C Read in the weather file (LCMDFL)
-          CALL CFILIN(silent)
-
-C Import weather data from EPW file.
-          NTSPH=1
+          CALL CFILIN(silent)  ! Create empty weather file.
+          NTSPH=1              ! Import weather data from EPW file.
           IUNIT=IFIL+1
           CALL EPWTOBCLM(pascif,IUNIT,IER)
           call tstamp('>','Finished weather module conversion EPW2BIN')
           write(outs248,'(5a)')'Climate_conversion',tab,
      &      pascif(1:lnblnk(pascif)),tab,LCMDFL(1:lnblnk(LCMDFL))
 
-C Close the session log.
-          close(ieout)
-          if(iecount.eq.0)then     ! if there were no warnings delete
+          close(ieout)         ! Close the session log.
+          if(iecount.eq.0)then ! if there were no warnings delete
             open(ieout,file=iefile,status='UNKNOWN')
             call efdelet(ieout,istat)
           endif
@@ -878,6 +879,9 @@ C name with the full path.
 C Cast back to 96 char name.
         llt=MIN0(lnblnk(llasci),96)
         write(LASCI,'(a)') LLASCI(1:llt)
+
+        silent=.true.
+        CALL CFILIN(silent) ! Read the supplied weather file (LCMDFL). 
  
 C Confirm the period to transfer.
         NTSPH=1

@@ -100,8 +100,8 @@ C-----Common for component data
       REAL BDATA
 
 C-----Common for present and future simulation time steps
-      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C.....ESP-r Commons
       common/pcnam/pcname(mpcom)        ! Plant component names
@@ -628,8 +628,8 @@ C-----Common for component data
       REAL BDATA
 
 C-----Common for present and future simulation time steps
-      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C-----Present and future plant side simulation time steps
       COMMON/PTIME/PTIMEP,PTIMEF

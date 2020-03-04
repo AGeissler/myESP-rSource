@@ -687,18 +687,10 @@ C Clear the linear thermal bridges variables
 C Clear sbem string arrays (from sbem.h).
       pjname=' not yet defined'
       baddress=' not yet defined'
-      bcity=' not yet defined'
-      buildingPC =' not yet defined'
       ownername=' not yet defined'
-      ownertel=' not yet defined'
       owneraddr=' not yet defined'
-      ownercity=' not yet defined'
-      ownerPC=' not yet defined'
       certifname=' not yet defined'
-      certTel=' not yet defined'
       certaddress=' not yet defined'
-      certcity=' not yet defined'
-      certPC=' not yet defined'
       UPRN='000000000000'
       Accr_Scheme=' not yet defined'
       assessRegNumber='ABCD123456'
@@ -4705,7 +4697,7 @@ C << not required for this. >>
       RETURN
       END
 
-C ******************** ZNARLIST ********************
+C ************* ZNARLIST
 C ZNARLIST takes number of items (inlist) in the array (list)
 C of size (insize) and builds a descriptive string (zdescr)
 C of character length (length) to be used in reports.

@@ -314,7 +314,7 @@ C-------------------------------------------------------------------------------
        INTEGER IZNTRC          !-zone trace index
        INTEGER ITU             !-trace output unit number
 
-       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
        INTEGER IHRP            !-hour of present time-step
        INTEGER IHRF            !-hour of future time-step
        INTEGER IDYP            !-year day number of present day
@@ -323,7 +323,7 @@ C-------------------------------------------------------------------------------
        INTEGER IDWF            !-day of the week of future day
        INTEGER NSINC           !-number of building-side time increments
                                !-since start of simulation
-       INTEGER ITS             !-current building time-step within
+       INTEGER ITS,idynow      !-current building time-step within
                                !-current hour
 
        COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,ITRCLP,

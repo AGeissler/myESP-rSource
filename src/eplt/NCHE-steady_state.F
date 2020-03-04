@@ -164,7 +164,7 @@ C.....Common storing status of plant initialization
       LOGICAL bInitialized(mpcom)
 
 C.....Simulation timestep
-      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER ihrp              ! not used in current context
       INTEGER ihrf              ! not used in current context
       INTEGER idyp              ! not used - present day #
@@ -172,7 +172,7 @@ C.....Simulation timestep
       INTEGER idwp              ! not used in current context
       INTEGER idwf              ! not used in current context
       INTEGER nsinc             ! time step number
-      INTEGER its               ! not used in current context
+      INTEGER its,idynow        ! not used in current context
 
 C      common/pltcon/bPltCon,LastTSTP
 C      logical bPltCon           ! Boolean indicating whether plant domain has converged.
@@ -925,7 +925,7 @@ C.....Trace/error reporting unit numbers
       INTEGER itc,icnt
       INTEGER itcf,itrace,izntrc,itu
 C.....Simulation timestep
-      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER ihrp              ! not used in current context
       INTEGER ihrf              ! not used in current context
       INTEGER idyp              ! not used - present day #
@@ -933,7 +933,7 @@ C.....Simulation timestep
       INTEGER idwp              ! not used in current context
       INTEGER idwf              ! not used in current context
       INTEGER nsinc             ! time step number
-      INTEGER its               ! not used in current context
+      INTEGER its,idynow        ! not used in current context
 
 C Constants
       g = 9.81               ! acceleration due gravity (m/s^2)

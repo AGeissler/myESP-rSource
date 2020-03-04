@@ -183,17 +183,14 @@ c Variables passed in call
 
 c Common for the number of time steps per hour
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-
       INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
 
 c Common for the current and future hours of the simulation
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-
-       INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 c Common for the weather data
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
-
       REAL QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
 
       common/outin/iuout,iuin,ieout
@@ -2562,8 +2559,8 @@ c **********************************************************************
 
       IMPLICIT NONE
 C Common for the current and future hours of the simulation
-c      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-c      INTEGER ihrp, ihrf, idyp, idyf, idwp, idwf, nsinc, its
+c      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+c      INTEGER ihrp, ihrf, idyp, idyf, idwp, idwf, nsinc, its,idynow
 c Variables passed in call
       REAL ss_cooling_cap,ss_capacity,EWT,shr,flow_rate,
      &     tdb2,w2,den1,bf,patm2,w4,GCEP_EWT,twb2,wet_bulb_unity_shr,

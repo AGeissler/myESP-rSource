@@ -42,7 +42,7 @@ C CFMNGE - Manages CFD calcs and results output when BSim and CFD are conflated.
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
       COMMON/cfcall/icfcal(MNZ)
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/ICFCHN/ICFMON(MNZ),ICFTMP,ICFLIB
@@ -350,7 +350,7 @@ C SURFCONF - Calls CFMNGE each time step there is surface conflation.
 #include "cfd.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       common/ndcfd/ncfdnd,icfdnd(MNZ),NCONF
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)

@@ -3081,9 +3081,6 @@ C IVERT is the menu position, MVERT the current number of menu lines.
   31  MHEAD=3
       MCTL=4
 
-C Debug
-      write(6,*) 'nzgroup mhead mctl ',nzgroup,mhead,mctl
-
 C Initial menu entry setup.
    92 IER=0
       IVERT=-3

@@ -393,7 +393,7 @@ c
       COMMON/tempvp/tvp1(40),tvp2(5,MPNODE),tvp3(2,MPNODE,MPVAR),
      &              tvp4(mpcom,mpcdat)
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/LIBRCP/IRCPLP
 
       integer ratiop

@@ -37,7 +37,7 @@ C Session log file (for errors etc.)
 
       character outs*124,inf*144,path*72,LCMDFL*144,fs*1
       character outs248*248
-      character dstmp*24,uname*24,tfile*72
+      character dstmp*24,uname*24,tfile*96
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
@@ -193,7 +193,7 @@ C Create and open a session log file based on user name, PID etc.
       uname=' '; tfile=' '
       call usrname(uname)
       call esppid(ipid)
-        write(tfile,'(a,a1,a,a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
+        write(tfile,'(4a,i7,a)')upath(1:lnblnk(upath)),fs,'.',
      &    uname(1:lnblnk(uname)),ipid,'.log'
       call st2file(tfile,iefile)
 

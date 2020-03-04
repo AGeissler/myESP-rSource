@@ -803,7 +803,7 @@ C            in calculating heat transfer to BASESIMP foundation.
 
       COMMON/PVALA/TPA(MCOM),QPA(MCOM)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       common/simsdy/iss,isf
 
@@ -909,7 +909,7 @@ C            BASESIMP foundation for the current time step.
       COMMON/BSHLF/Sag(MCON),Sbgavg(MCON),Sbgvar(MCON),Bphase(MCON)
       COMMON/BSwth/bsTGavg(MCOM),bsTGamp(MCOM),bsTGps(MCOM)
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C Local variables for basesimp ground temperature parameters
       REAL basesimp_grd_temp_amp    ! Ground temperature amplitude

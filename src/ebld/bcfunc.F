@@ -889,7 +889,7 @@ C the present time row surface and air point temperatures.
       real UNMETHRS  ! for each zone counter for unmet hours.
       COMMON/UNMET/UNMETHRS(MCOM)
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       integer isd1,ism1,isd2,ism2,isds,isdf,ntstep
 
@@ -918,8 +918,7 @@ C Determine if trace is on.
       B2=BB2
       B3=BB3
       ISUR=0
-      IF(IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0)ISUR=
-     &IBAN(ICF,2)
+      IF(IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0)ISUR=IBAN(ICF,2)
       TFIN=TBCPS(ICF,IDTYP,IPER)
       IF(IPER.EQ.NBCDP(ICF,IDTYP))TFIN=24.
       CONV=FLOAT(IBSN(ICF,3))/100.
@@ -1474,12 +1473,12 @@ C Climate data
       real HP, HF
       
       
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer IHRP, IHRF   ! Present and future hour of day
       integer IDYP, IDYF   ! present and future day of year
       integer IDWP, IDWF   ! Present and future day of week
       integer NSINC        ! Simulation timestep
-      integer ITS          ! ?
+      integer ITS,idynow   ! ?
 
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       integer isd1,ism1,isd2,ism2,isds,isdf,ntstep
@@ -2172,7 +2171,7 @@ C A free-float controller.
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
 
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -2220,7 +2219,7 @@ C An exponential pre-heat (or cool) controller.
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -2378,7 +2377,7 @@ C A fixed heat injection/extraction controller.
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -2489,7 +2488,7 @@ C suitable for use with controller types 0,35,36,37,38,39.
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
 
       COMMON/BLGPID/BPID(MCF,6),NSINCR
@@ -2842,7 +2841,7 @@ C QCMAX : maximum cooling flux allowed (W)
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/C12PS/NPCDAT(MPCOM,9),IPOFS1(MCOEFG),IPOFS2(MCOEFG,MPVAR)
       COMMON/C14PS/NDCON(MPCOM,MNODEC),ISV(MPCOM,MNODEC)
@@ -3237,7 +3236,7 @@ C A multi-stage controller with hysteresis.
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
 
 C Special common block for this controller. The variable
@@ -3467,7 +3466,7 @@ C with limit constraints.
       common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
@@ -3750,7 +3749,7 @@ C ON condition is reached.
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -3931,7 +3930,7 @@ C It also is used to support temporal file setpoint sensing.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/CMSVAR/NSEN(MCF),ISMOD(MCF),IBMSN(MCF,MSEN,4),
@@ -4208,7 +4207,7 @@ C It is suitable for use with a type 0 controller.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
 
@@ -4420,7 +4419,7 @@ C Heating and cooling restrictions are allowed.
       COMMON/PREC7/ITCNST      
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C Special common for BCL13; icounh and icounc are
 C heating cycle and cooling cycle period time-step counters.      
@@ -4608,7 +4607,7 @@ C Heating and cooling restrictions are allowed.
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/OUTIN/IUOUT,IUIN,IEOUT    
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -4822,7 +4821,7 @@ C Suitable for use with controller types 0,35,36,37,38,39.
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       COMMON/OPTRCTL/IRWIND,IRWLAS,IRWCNT,IRWCSV,IRWCHP,IRWCHN,IRWCHG,
@@ -5087,7 +5086,7 @@ C Suitable for use with controller types 0,35,36,37,38,39.
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       COMMON/TS6/idysv,ihrsv,irwcou,tsclaw,rewnd,nsncv1,nsncv2,pasone
       COMMON/OPTRCTL/IRWIND,IRWLAS,IRWCNT,IRWCSV,IRWCHP,IRWCHN,IRWCHG,
@@ -5369,7 +5368,7 @@ C Fuzzy Logic PI/PD Controller.
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -5698,7 +5697,7 @@ C is identically the same as the sensor input.
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       
@@ -5774,7 +5773,7 @@ C This control law is suitable for a type 0 controller.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/CMSVAR/NSEN(MCF),ISMOD(MCF),IBMSN(MCF,MSEN,4),
@@ -6036,7 +6035,7 @@ C if 0 for a wetted surface 1 for a swiming pool.
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -6216,7 +6215,7 @@ C deliver proportionally).
       common/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       COMMON/SLAVE1/QHB(MCF),QCB(MCF),Qmst(MCF),
@@ -6451,7 +6450,7 @@ C << the energy balance reported in esrures is off a bit >>
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -6633,7 +6632,7 @@ C IACTIV (ACTIVITY of space) and IHTCLSETP (only heating and cooling setpoints)
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       common/dllerr/dllsubr,dllmesg
@@ -6694,8 +6693,7 @@ C of the type of space conditioning system. This is done later on
       IHLZP=IHLZ(IiCOMP)  ! set up pointer
       NEAR=.TRUE.
       if(ihlzp.ne.0) CALL ECLOSE(CGEF(IHLZP),0.0,0.001,NEAR)
-cx << ?? this should somehow not be the default !!!
-cx      IF(NEAR)QCM=0.0
+      IF(NEAR)QCM=0.0
 
 C Read setpoints from tdf here (CSP and HSP)
 C "COLUMNSETP" is an integer specifying the column within the
@@ -6885,7 +6883,7 @@ C climate file commons
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       common/dllerr/dllsubr,dllmesg
 
@@ -7378,7 +7376,7 @@ C working fluid circulating in a building-connected network.
 
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
@@ -7711,8 +7709,8 @@ C losing heat to the room i.e. standing losses).
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,itu
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/BTIME/BTIMEP,BTIMEF
       REAL BTIMEP,BTIMEF
@@ -7898,8 +7896,8 @@ C to the heater
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,itu
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/BTIME/BTIMEP,BTIMEF
       REAL BTIMEP,BTIMEF
@@ -7964,8 +7962,8 @@ C the air point of the actuated zone
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,itu
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/BTIME/BTIMEP,BTIMEF
       REAL BTIMEP,BTIMEF
@@ -8115,8 +8113,8 @@ c      integer itrc
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       real BB1,BB2,BB3,TNP,QFUT,TFUT
       integer ICF,IDTYP,IPER,IICOMP
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       
 C TPA(MCOM),           ! - present zone air point temperature (oC)
 C QPA(MCOM)            ! - zone air point heat injection (W)
@@ -8685,12 +8683,12 @@ c and convective component. Some iteration takes place.
       integer ITC, ICNT 
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       integer ITCF, ITRACE, IZNTRC, ITU ! I/O parameters for trace
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer IHRP, IHRF   ! Present and future hour of day
       integer IDYP, IDYF   ! present and future day of year
       integer IDWP, IDWF   ! Present and future day of week
       integer NSINC        ! Simulation timestep
-      integer ITS          ! ?
+      integer ITS,idynow   ! ?
       COMMON/PSTSOL/ICF,IDTYP,IPER,BB1,BB2,BB3,IICOMP,TNP,QFUT,TFUT
       integer iCF, iDTyp, iPer
       real BB1, BB2, BB3 

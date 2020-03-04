@@ -747,9 +747,7 @@ C Check if the model is sufficiently attributed for NCM purposes.
 
 C Ask about building, owner and certifier detail. Note that
 C the initial call to clrprb will have cleared pjname, baddress,
-C bcity, buildingPC, ownername, ownertel, owneraddr, ownercity
-C and ownerPC. It will also clear certifname, certTel, certaddress
-C and certPC.
+C ownername, owneraddr, certifname, certaddress.
         IBSS=1
         IRGG=1
         ISTG=1
@@ -1878,40 +1876,17 @@ C Depending on the topic generate a string and display.
         write(outs,'(2a)')'Building address: ',
      &    baddress(1:lnblnk(baddress))
         call edisp(itu,outs)
-        write(outs,'(2a)')'Building city: ',bcity(1:lnblnk(bcity))
-        call edisp(itu,outs)
-        write(outs,'(2a)')'Building Postcode: ',
-     &    buildingPC(1:lnblnk(buildingPC))
-        call edisp(itu,outs)
         write(outs,'(2a)')'Building owner name: ',
      &    ownername(1:lnblnk(ownername))
-        call edisp(itu,outs)
-        write(outs,'(2a)')'Building owner telephone: ',
-     &    ownertel(1:lnblnk(ownertel))
         call edisp(itu,outs)
         write(outs,'(2a)')'Building owner address: ',
      &    owneraddr(1:lnblnk(owneraddr))
         call edisp(itu,outs)
-        write(outs,'(2a)')'Building owner city: ',
-     &    ownercity(1:lnblnk(ownercity))
-        call edisp(itu,outs)
-        write(outs,'(2a)')'Building owner Postcode: ',
-     &    ownerPC(1:lnblnk(ownerPC))
-        call edisp(itu,outs)
         write(outs,'(2a)')'Certifier name: ',
      &    certifname(1:lnblnk(certifname))
         call edisp(itu,outs)
-        write(outs,'(2a)')'Certifier telephone: ',
-     &    certTel(1:lnblnk(certTel))
-        call edisp(itu,outs)
         write(outs,'(2a)')'Certifier address: ',
      &    certaddress(1:lnblnk(certaddress))
-        call edisp(itu,outs)
-        write(outs,'(2a)')'Certifier city: ',
-     &    certcity(1:lnblnk(certcity))
-        call edisp(itu,outs)
-        write(outs,'(2a)')'Certifier postcode: ',
-     &    certPC(1:lnblnk(certPC))
         call edisp(itu,outs)
       elseif(act.eq.'a'.or.act.eq.'e')then
         call edisp(itu,
@@ -2594,45 +2569,22 @@ C Enter building, owner and verifier information
       write(outs,'(2a)')'Building address: ',
      &  baddress(1:lnblnk(baddress))
       call edisp(iuout,outs)
-      write(outs,'(2a)')'Building city: ',bcity(1:lnblnk(bcity)) 
-      call edisp(iuout,outs)
-      write(outs,'(2a)')'Building Postcode: ',
-     &  buildingPC(1:lnblnk(buildingPC))   
-      call edisp(iuout,outs)
       call edisp(iuout,' ')          
       call edisp(iuout,'Details of client/owner...')
       write(outs,'(2a)')'Building owner name: ',
      &  ownername(1:lnblnk(ownername))
       call edisp(iuout,outs)   
-      write(outs,'(2a)')'Building owner telephone: ',
-     &  ownertel(1:lnblnk(ownertel))
-      call edisp(iuout,outs)   
       write(outs,'(2a)')'Building owner address: ',
      &  owneraddr(1:lnblnk(owneraddr)) 
       call edisp(iuout,outs) 
-      write(outs,'(2a)')'Building owner city: ',
-     &  ownercity(1:lnblnk(ownercity)) 
-      call edisp(iuout,outs) 
-      write(outs,'(2a)')'Building owner Postcode: ',
-     &  ownerPC(1:lnblnk(ownerPC))
-      call edisp(iuout,outs)     
       call edisp(iuout,' ')          
       call edisp(iuout,'Details of simulationist...')
       write(outs,'(2a)')'Simulationist name: ',
      &  certifname(1:lnblnk(certifname)) 
       call edisp(iuout,outs)     
-      write(outs,'(2a)')'Simulationist telephone: ',
-     &  certTel(1:lnblnk(certTel))  
-      call edisp(iuout,outs)     
       write(outs,'(2a)')'Simulationist address: ',
      &  certaddress(1:lnblnk(certaddress))    
       call edisp(iuout,outs)   
-      write(outs,'(2a)')'Simulationist city: ',
-     &  certcity(1:lnblnk(certcity))   
-      call edisp(iuout,outs)    
-      write(outs,'(2a)')'Simulationist postcode: ',
-     &  certPC(1:lnblnk(certPC))   
-      call edisp(iuout,outs)          
     
   15  CALL EDISP(IUOUT,
      &  'Enter/Confirm building, owner and certifier details')
@@ -2641,30 +2593,30 @@ C Enter building, owner and verifier information
       write(ITEMS(2),'(2A)') '  ',pjname(1:20)
       ITEMS(3)  = 'b Building address: '
       write(ITEMS(4),'(2A)') '  ',baddress(1:48)
-      ITEMS(5)  = 'c Building city: '
-      write(ITEMS(6),'(2A)') '  ',bcity(1:48)
-      ITEMS(7)  = 'd Building Postcode: '
-      write(ITEMS(8),'(2A)') '  ',buildingPC(1:48)
+      ITEMS(5)  = 'c  '
+      write(ITEMS(6),'(A)') '  '
+      ITEMS(7)  = 'd  '
+      write(ITEMS(8),'(A)') '  '
       ITEMS(9)  = 'e Building owner name: '
       write(ITEMS(10),'(2A)') '  ',ownername(1:48)
-      ITEMS(11) = 'f Building owner telephone: '
-      write(ITEMS(12),'(2A)') '  ',ownertel(1:48)
+      ITEMS(11) = 'f  '
+      write(ITEMS(12),'(A)') '  '
       ITEMS(13) = 'g Building owner address: '
       write(ITEMS(14),'(2A)') '  ',owneraddr(1:48)
-      ITEMS(15) = 'h Building owner city: '
-      write(ITEMS(16),'(2A)') '  ',ownercity(1:48)
-      ITEMS(17) = 'i Building owner Postcode: '
-      write(ITEMS(18),'(2A)') '  ',ownerPC(1:48)
+      ITEMS(15) = 'h  '
+      write(ITEMS(16),'(A)') '  '
+      ITEMS(17) = 'i '
+      write(ITEMS(18),'(A)') '  '
       ITEMS(19) = 'j Certifier name: '
       write(ITEMS(20),'(2A)') '  ',certifname(1:48)
-      ITEMS(21) = 'k Certifier telephone: '
-      write(ITEMS(22),'(2A)') '  ',certTel(1:48)
+      ITEMS(21) = 'k  '
+      write(ITEMS(22),'(A)') '  '
       ITEMS(23) = 'l Certifier address: '
       write(ITEMS(24),'(2A)') '  ',certaddress(1:48)
-      ITEMS(25) = 'm Certifier city: '
-      write(ITEMS(26),'(2A)') '  ',certcity(1:48)
-      ITEMS(27) = 'n Certifier postcode: '
-      write(ITEMS(28),'(2A)') '  ',certPC(1:48)
+      ITEMS(25) = 'm  '
+      write(ITEMS(26),'(A)') '  '
+      ITEMS(27) = 'n  '
+      write(ITEMS(28),'(A)') '  '
       ITEMS(29) = '# Enter all details            '
       ITEMS(30) = '  _____________________________'
       ITEMS(31) = '* list project details         '
@@ -2706,22 +2658,11 @@ C Building address. Echo after edit.
       ELSEIF(INO.EQ.5)THEN
 
 C Building city name. Echo after edit.
-        D64='No site selected.'
-        CALL EASKS(bcity,'building city?','(<64 characters)',
-     &    64,D64,'city building',IER,nbhelp)
-        call tstamp('>','PRJ: edited project city')
-        write(outs,'(2a)')'Building city: ',bcity(1:lnblnk(bcity))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.7)THEN
 
 C Building post code. Echo after edit.
-        D64='No site selected.'
-        CALL EASKS(buildingPC,'building post code?',
-     &    '(<64 characters)',64,D64,'building PC',IER,nbhelp)
-        call tstamp('>','PRJ: edited project post code')
-        write(outs,'(2a)')'Building Postcode: ',
-     &    buildingPC(1:lnblnk(buildingPC))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.9)THEN
 
 C Building owner name. Echo after edit.
@@ -2735,13 +2676,7 @@ C Building owner name. Echo after edit.
       ELSEIF(INO.EQ.11)THEN
 
 C Building owner phone number.
-        D64='Owner phone withheld'
-        CALL EASKS(ownertel,'Phone of owner?','(<64 characters)',
-     &    64,D64,'owner tel',IER,nbhelp)
-        call tstamp('>','PRJ: edited project owner phone')
-        write(outs,'(2a)')'Building owner telephone: ',
-     &    ownertel(1:lnblnk(ownertel))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.13)THEN
 
 C Building owner address.
@@ -2755,23 +2690,11 @@ C Building owner address.
       ELSEIF(INO.EQ.15)THEN
 
 C Building owner city.
-        D64='Owner city withheld.'
-        CALL EASKS(ownercity,'City of owner?','(<64 characters)',
-     &    64,D64,'owner city',IER,nbhelp)
-        call tstamp('>','PRJ: edited project owner city')
-        write(outs,'(2a)')'Building owner city: ',
-     &    ownercity(1:lnblnk(ownercity))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.17)THEN
 
 C Building owner postcode.
-        D64='Owner postcode withheld.'
-        CALL EASKS(ownerPC,'Post code for owner?','(<64 characters)',
-     &    64,D64,'owner post code',IER,nbhelp)
-        call tstamp('>','PRJ: edited project owner postcode')
-        write(outs,'(2a)')'Building owner Postcode: ',
-     &    ownerPC(1:lnblnk(ownerPC))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.19)THEN
 
 C Building certifier name.
@@ -2785,13 +2708,7 @@ C Building certifier name.
       ELSEIF(INO.EQ.21)THEN
 
 C Building certifier phone number.
-        D64='Certifier phone number withheld.'
-        CALL EASKS(certTel,'Phone of certifier?','(<64 characters)',
-     &    64,D64,'certifier tel',IER,nbhelp)
-        call tstamp('>','PRJ: edited project certifier phone')
-        write(outs,'(2a)')'Certifier telephone: ',
-     &    certTel(1:lnblnk(certTel))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.23)THEN
 
 C Building certifier address.
@@ -2805,23 +2722,11 @@ C Building certifier address.
       ELSEIF(INO.EQ.25)THEN
 
 C Building certifier city.
-        D64='Certifier city withheld.'
-        CALL EASKS(certcity,'City of certifier?','(<64 characters)',
-     &    64,D64,'certifier city',IER,nbhelp)
-        call tstamp('>','PRJ: edited project certifier city')
-        write(outs,'(2a)')'Certifier city: ',
-     &    certcity(1:lnblnk(certcity))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.27)THEN
 
 C Building certifier postcode.
-        D64='Certifier postcode withheld.'
-        CALL EASKS(certPC,'Post code of certifier?',
-     &    '(<64 characters)',64,D64,'certifier Post code',IER,nbhelp)
-        call tstamp('>','PRJ: edited project cert post code')
-        write(outs,'(2a)')'Certifier postcode: ',
-     &    certPC(1:lnblnk(certPC))
-        call edisp(iuout,outs)
+        continue
       ELSEIF(INO.EQ.29)THEN
 
 C Enter all information
@@ -2831,42 +2736,18 @@ C Enter all information
         D64='No site selected.'
         CALL EASKS(baddress,'building address?','(<64 characters)',
      &    64,D64,'build address',IER,nbhelp)
-        D64='No site selected.'
-        CALL EASKS(bcity,'building city?','(<64 characters)',
-     &    64,D64,'city building',IER,nbhelp)
-        D64='No site selected.'
-        CALL EASKS(buildingPC,'building post code?',
-     &    '(<64 characters)',64,D64,'building PC',IER,nbhelp)
         D64='Owner name withheld'
         CALL EASKS(ownername,'Name of owner?','(<64 characters)',
      &    64,D64,'owner name',IER,nbhelp)
-        D64='Owner phone withheld'
-        CALL EASKS(ownertel,'Telephone of owner?','(<64 characters)',
-     &    64,D64,'owner tel',IER,nbhelp)
         D64='Owner address withheld.'
         CALL EASKS(owneraddr,'Address of owner?','(<64 characters)',
      &    64,D64,'owner address',IER,nbhelp)
-        D64='Owner city withheld.'
-        CALL EASKS(ownercity,'City of owner?','(<64 characters)',
-     &    64,D64,'owner city',IER,nbhelp)
-        D64='Owner postcode withheld.'
-        CALL EASKS(ownerPC,'Post code for owner?','(<64 characters)',
-     &    64,D64,'owner post code',IER,nbhelp)
         D64='Certifier name withheld.'
         CALL EASKS(certifname,'Name of certifier?',
      &    '(<64 characters)',64,D64,'certifier name',IER,nbhelp)
-        D64='Certifier phone number withheld.'
-        CALL EASKS(certTel,'Phone of certifier?','(<64 characters)',
-     &    64,D64,'certifier tel',IER,nbhelp)
         D64='Certifier address withheld.'
         CALL EASKS(certaddress,'Address of certifier?',
      &    '(<64 characters)',64,D64,'certifier address',IER,nbhelp)
-        D64='Certifier city withheld.'
-        CALL EASKS(certcity,'City of certifier ?','(<64 characters)',
-     &    64,D64,'certifier city',IER,nbhelp)
-        D64='Certifier postcode withheld.'
-        CALL EASKS(certPC,'Post code of certifier?',
-     &    '(<64 characters)',64,D64,'certifier Post code',IER,nbhelp)
         call lstncm('p',iuout)
       ELSEIF(INO.EQ.31)THEN
 
@@ -10166,30 +10047,14 @@ C Building, owner, certifier detail...
      &  TMPSTR2(1:LNBLNK(TMPSTR2))
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  B-ADDRESS          = ',
      &  '"',BADDRESS(1:lnblnk(BADDRESS)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  B-CITY             = ',
-     &  '"',BCITY(1:lnblnk(BCITY)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  B-POSTCODE         = ',
-     &  '"',BUILDINGPC(1:lnblnk(BUILDINGPC)),'"'
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  O-NAME             = ',
      &  '"',ownername(1:lnblnk(ownername)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  O-TELEPHONE        = ',
-     &  '"',ownertel(1:lnblnk(ownertel)),'"'
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  O-ADDRESS          = ',
      &  '"',owneraddr(1:lnblnk(owneraddr)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  O-CITY             = ',
-     &  '"',ownercity(1:lnblnk(ownercity)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  O-POSTCODE         = ',
-     &  '"',ownerPC(1:lnblnk(ownerPC)),'"'
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  C-NAME             = ',
      &  '"',certifname(1:lnblnk(certifname)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  C-TELEPHONE        = ',
-     &  '"',certTel(1:lnblnk(certTel)),'"'
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  C-ADDRESS          = ',
      &  '"',certaddress(1:lnblnk(certaddress)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  C-CITY             = ',
-     &  '"',certcity(1:lnblnk(certcity)),'"'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)'  C-POSTCODE         = ',
-     &  '"',certPC(1:lnblnk(certPC)),'"'
 
 C Calculation engine and interface detail...
       WRITE(IUF,'(2A)',IOSTAT=IOS,ERR=3)'  CENGINE            = ',
@@ -11364,18 +11229,6 @@ C Specifies one line of the building address
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' B-ADDRESS-0         = ',
      &  '"',BADDRESS(1:lnblnk(BADDRESS)),' "'
 
-C Specifies a fourth additional line of the building address
-C We will skip ADDRESS-1,2,3 here and we will assume that City is
-C is described in this line (this is fully acceptable by EPCgen program)
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' B-ADDRESS-4         = ',
-     &  '"',BCITY(1:lnblnk(BCITY)),' "'
-
-C Specifies a fifth additional line of the building address
-C We will assume here that post-code is described in this line
-C (this is fully acceptable by EPCgen program)
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' B-ADDRESS-5         = ',
-     &  '"',BUILDINGPC(1:lnblnk(BUILDINGPC)),' "'
-
 C << B-LOC-DESCRIPTION may be an additional output in the future >>
 
 C Specifies the total floor area of the building in m^2
@@ -11384,24 +11237,12 @@ C Specifies the total floor area of the building in m^2
 
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' O-NAME              = ',
      &  '"',ownername(1:lnblnk(ownername)),' "'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' O-TELEPHONE         = ',
-     &  '"',ownertel(1:lnblnk(ownertel)),' "'
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' O-ADDRESS           = ',
      &  '"',owneraddr(1:lnblnk(owneraddr)),' "'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' O-CITY              = ',
-     &  '"',ownercity(1:lnblnk(ownercity)),' "'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' O-POSTCODE          = ',
-     &  '"',ownerPC(1:lnblnk(ownerPC)),' "'
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' C-NAME              = ',
      &  '"',certifname(1:lnblnk(certifname)),' "'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' C-TELEPHONE         = ',
-     &  '"',certTel(1:lnblnk(certTel)),' "'
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' C-ADDRESS           = ',
      &  '"',certaddress(1:lnblnk(certaddress)),' "'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' C-CITY              = ',
-     &  '"',certcity(1:lnblnk(certcity)),' "'
-      WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' C-POSTCODE          = ',
-     &  '"',certPC(1:lnblnk(certPC)),' "'
 
 C Accreditation Scheme (E,W and NI only)
       WRITE(IUF,'(4A)',IOSTAT=IOS,ERR=3)' C-ACCRED-SCHEME     = ',
@@ -16337,8 +16178,6 @@ C Set folder separator (fs) to \ or / as required.
       endif
 
       iclim=IFIL
-
-      call edisp(iuout,'Generating ground temperatures.')
 
       call CLMOPB(0,IER)
       IF(ier.ne.0)return

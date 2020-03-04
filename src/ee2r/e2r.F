@@ -111,6 +111,7 @@ C Ask to overwrite flag.
       character brw*4   ! to signal whether browsing model
       character smode*1 ! simscene mode 'i' interactive '-' silent
       character dstmp*24,uname*24,tfile2*72
+      character hold32*32     ! for helper applications
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
@@ -345,8 +346,11 @@ C and dialog.
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=16
-        LIMIT =16
+        IMFS=5
+        IFS=4
+        ITFS=4
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.
@@ -445,6 +449,15 @@ C All subsequent tstamp messages will be appended to root journal.
         write(outs,'(a,a)')'Journal (visual analysis) for:',
      &    uname(1:lnblnk(uname))
         call tstamp('>',outs)
+      endif
+
+C Confirm if there an an xterm available.
+      call isunix(unixok)
+      if(unixok)then
+        found_xterm=.false.; hold32='xterm'
+        call isinstalled(hold32,found_xterm)
+      else
+        found_xterm=.false.  ! not (yet) in Windows
       endif
 
 C Create and open a session log file based on user name, PID etc.

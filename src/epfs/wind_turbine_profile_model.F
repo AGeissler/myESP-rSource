@@ -73,7 +73,7 @@ C *********************************************************************
 C---------------------------------------------------------------------------------
 C Commons holding simulation time-clock variables.
 C---------------------------------------------------------------------------------
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/btime/btimep,btimef
       common/ptime/ptimep,ptimef
 
@@ -104,7 +104,7 @@ C-------------------------------------------------------------------------------
 C---------------------------------------------------------------------------------
 C Declarations for common block variables.
 C---------------------------------------------------------------------------------
-      INTEGER      IHRP, IHRF, IDYP, IDYF, IDWP, IDWF, NSINC, ITS
+      INTEGER      IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       REAL         btimep, btimef, ptimep, ptimef
       CHARACTER    LWndSupp*72
       INTEGER      iWndSupp
@@ -186,7 +186,7 @@ C External functions.
 C---------------------------------------------------------------------------------
 C Commons holding simulation time-clock variables.
 C---------------------------------------------------------------------------------
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/btime/btimep,btimef
       common/ptime/ptimep,ptimef
 
@@ -219,7 +219,7 @@ C-------------------------------------------------------------------------------
 C---------------------------------------------------------------------------------
 C Declarations for common block variables.
 C---------------------------------------------------------------------------------
-      INTEGER      IHRP, IHRF, IDYP, IDYF, IDWP, IDWF, NSINC, ITS
+      INTEGER      IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       REAL         btimep, btimef, ptimep, ptimef
       CHARACTER    LWndSupp*72
       INTEGER      iWndSupp
@@ -433,7 +433,7 @@ C *********************************************************************
 C---------------------------------------------------------------------------------
 C Commons holding simulation time-clock variables.
 C---------------------------------------------------------------------------------
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       common/btime/btimep,btimef
       common/ptime/ptimep,ptimef
 
@@ -466,7 +466,7 @@ C-------------------------------------------------------------------------------
 C---------------------------------------------------------------------------------
 C Declarations for common block variables.
 C---------------------------------------------------------------------------------
-      INTEGER      IHRP, IHRF, IDYP, IDYF, IDWP, IDWF, NSINC, ITS
+      INTEGER      IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       REAL         btimep, btimef, ptimep, ptimef
       CHARACTER    LWndSupp*72
       INTEGER      iWndSupp

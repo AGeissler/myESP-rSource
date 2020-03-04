@@ -1712,13 +1712,10 @@ C Read and store the comments into the HELP array for later display.
           if(OUTSTR(1:11).eq.'*season_end')then
             continue
           else
-            nbclmlhelp=nbclmlhelp+1
-            lastcc = MIN0(lnblnk(OUTSTR),72)
-            if(nbclmlhelp.lt.60)then
-              write(clmlhelp(nbclmlhelp),'(a)')OUTSTR(1:lastcc)
-            endif
             goto 445
           endif
+        elseif(WORD(1:11).eq.'*season_end')then
+          continue
         endif
 
       elseif(WORD(1:5).eq.'*year')then
@@ -2439,10 +2436,8 @@ C Next tokens relate to building address.
         CALL EGETRM(LOUTSTR,K,baddress,'W','building address',IER)
         goto 44
       elseif(WORD(1:7).eq.'*B-CITY')then
-        CALL EGETRM(LOUTSTR,K,bcity,'W','building city',IER)
         goto 44
       elseif(WORD(1:11).eq.'*B-POSTCODE')then
-        CALL EGETRM(LOUTSTR,K,buildingPC,'W','building post code',IER)
         goto 44
       elseif(WORD(1:7).eq.'*O-NAME')then
 
@@ -2453,13 +2448,10 @@ C Next tokens relate to owner/client address.
         CALL EGETRM(LOUTSTR,K,owneraddr,'W','owner address',IER)
         goto 44
       elseif(WORD(1:7).eq.'*O-CITY')then
-        CALL EGETRM(LOUTSTR,K,ownercity,'W','owner city',IER)
         goto 44
       elseif(WORD(1:11).eq.'*O-POSTCODE')then
-        CALL EGETRM(LOUTSTR,K,ownerPC,'W','owner post code',IER)
         goto 44
       elseif(WORD(1:12).eq.'*O-TELEPHONE')then
-        CALL EGETRM(LOUTSTR,K,ownertel,'W','owner phone',IER)
         goto 44
 
 C Next tokens relate to simulationist address.
@@ -2467,16 +2459,13 @@ C Next tokens relate to simulationist address.
         CALL EGETRM(LOUTSTR,K,certifname,'W','simu staff name',IER)
         goto 44
       elseif(WORD(1:12).eq.'*C-TELEPHONE')then
-        CALL EGETRM(LOUTSTR,K,certTel,'W','simu staff phone',IER)
         goto 44
       elseif(WORD(1:10).eq.'*C-ADDRESS')then
         CALL EGETRM(LOUTSTR,K,certaddress,'W','simu staff address',IER)
         goto 44
       elseif(WORD(1:7).eq.'*C-CITY')then
-        CALL EGETRM(LOUTSTR,K,certcity,'W','simu staff city',IER)
         goto 44
       elseif(WORD(1:11).eq.'*C-POSTCODE')then
-        CALL EGETRM(LOUTSTR,K,certPC,'W','simu staff post code',IER)
         goto 44
 
       elseif(loutstr(1:10).eq.'* PROJ LOG')then

@@ -111,10 +111,6 @@ C      character*(*) name
 C      return
 C      end
 
-C      subroutine showlogo(itime,lix,liy)
-C      return
-C      end
-
 C      subroutine wwcopen(name)
 C      character*(*) name
 C      return

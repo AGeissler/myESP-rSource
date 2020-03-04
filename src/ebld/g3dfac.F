@@ -823,7 +823,7 @@ C *********************************************************************
      &              NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),
      &              AE(MCOM,MS)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/V2/CFB(MCOM,MST,MST)
       COMMON/GR3D110/ICVS,ICNC,INDC,INDD,ITAQ,ITLW,ILWV,ITF3
       COMMON/GR3D111/NTND1(MCOM),NTND2(MCOM),N1ND1(MCOM,MS)

@@ -2363,7 +2363,7 @@ C string to remind the user.
 
           I8=int(cm(8))
           CALL EASKI(I8,' ','Number of aux. sensors?',
-     &      0,'F',MSEN,'F',3,'no. of aux sensors',IERI,nbhelp)
+     &      0,'F',MSEN,'F',4,'no. of aux sensors',IERI,nbhelp)
           if(ieri.eq.-3) goto 92
           cm(1)=7.+6.*I8
           cm(8)=float(I8)

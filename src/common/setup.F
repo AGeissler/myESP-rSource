@@ -124,8 +124,8 @@ C If vi then spawn a new window to do the editing in.
         CALL EASKS(LFIL,' ASCII file to edit ? ',
      &    ' ',72,' ','ASCII file',IER,2)
         call addpath(LFIL,longtfile,concat)
-        tmode='graph'
-        if(teditor(1:2).eq.'vi')tmode='text'
+        tmode='-'
+        if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
      &    longtfile(1:lnblnk(longtfile)),' &'
         call runit(doit,tmode)

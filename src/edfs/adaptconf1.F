@@ -55,7 +55,7 @@ C ADAPCONF - Main controlling routine for `adaptive conflation controller'.
       COMMON/ACCrec/IACC(MNZ)
       COMMON/cfdfil/LCFD(MCOM),IFCFD(MCOM)
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       CHARACTER*72 LCFD
 

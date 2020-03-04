@@ -61,6 +61,7 @@ C Passed in parameters.
 
       common/FILEP/IFIL
       common/OUTIN/IUOUT,IUIN,IEOUT
+      common/SPAD/MMOD,LIMIT,LIMTTY
       
       integer ncomp,ncon
       common/C1/NCOMP,NCON
@@ -954,14 +955,18 @@ C recognised as *std items and then written out in *std format.
         endif
 
 C Refocus prj on the model cfg folder and re-load the model cfg file
-C as is done in cadio.F
-        call pausems(1000)
-        call refocus(cfgpath,thecfgis,iret)
-        if(iret.eq.0)then
+C as is done in cadio.F.  If running in script mode do not refocus.
+        if(MMOD.eq.-6)then
           continue
-        elseif(iret.eq.-2)then
-          call edisp(iuout,
-     &    'Features using Radiance calls may not work as expected.')
+        else
+          call pausems(1000)
+          call refocus(cfgpath,thecfgis,iret)
+          if(iret.eq.0)then
+            continue
+          elseif(iret.eq.-2)then
+            call edisp(iuout,
+     &      'Features using Radiance calls may not work as expected.')
+          endif
         endif
       endif
       return

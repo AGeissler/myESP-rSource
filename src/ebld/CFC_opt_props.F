@@ -121,8 +121,8 @@ C need thickness of glass layers for Fresnel calcs
       COMMON/VTHP14/THRMLI(MCOM,MS,ME,7)
       real thrmli
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       common/CFCsolarS/RadIncDirS(mcom,ms),RadIncDifS(mcom,ms),
      &      RadIncDifSky(mcom,ms),RadIncDifGrd(mcom,ms),

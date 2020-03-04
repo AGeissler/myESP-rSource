@@ -1674,7 +1674,7 @@ C.....Electrical power use of plant 'hybrid' components
       real bvoltp(mpcom)        ! opertional voltage of component
       integer iphp(mpcom)       ! phase component is connected to -> dummy variable
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp              ! not used in current context
       integer ihrf              ! not used in current context
       integer idyp              ! present day #
@@ -1682,7 +1682,7 @@ C.....Electrical power use of plant 'hybrid' components
       integer idwp              ! not used in current context
       integer idwf              ! not used in current context
       integer nsinc             ! time step number
-      integer its               ! not used in current context
+      integer its,idynow        ! not used in current context
 
 C.....Trace & reporting data
       common/tc/itc,icnt
@@ -2482,7 +2482,7 @@ C-------------------------------------------------------------------------------
      &     ipofs2(mcoefg,mpvar) ! matrix coefficient location (cols)
       integer npcdat, ipofs1, ipofs2
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp              ! not used in current context
       integer ihrf              ! not used in current context
       integer idyp              ! not used in current context
@@ -2490,7 +2490,7 @@ C-------------------------------------------------------------------------------
       integer idwp              ! not used in current context
       integer idwf              ! not used in current context
       integer nsinc             ! time-step number
-      integer its               ! not used in current context
+      integer its,idynow        ! not used in current context
 
 C.....Temporary common used to transport data to H2 storage tank model.
 C.....(to be replaced by a control?)

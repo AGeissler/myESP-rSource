@@ -1744,10 +1744,10 @@ C Set hour format flag to julian decimal for following reports.
                   SLABEL(I)='Guth comfort index,-'; LNSLABEL(I)=20
                   TABLABEL(I)='Guth comfort index'; LNTABLABEL(I)=18
                 endif
-                lnz=lnzname(izmg(ig,i))
-                write (GLABEL(I),'(a,a)')ZNAME(izmg(ig,i))(1:lnz),
-     &            SUFFIX
-                lnglabel(I)=lnblnk(glabel(i))  ! remember width
+C                lnz=lnzname(izmg(ig,i))
+C                write (GLABEL(I),'(a,a)')ZNAME(izmg(ig,i))(1:lnz),
+C     &            SUFFIX
+C                lnglabel(I)=lnblnk(glabel(i))  ! remember width
   350         CONTINUE
 
               write(outs,'(3a)') '*title',tab,SLABEL(1)(1:LNSLABEL(1))

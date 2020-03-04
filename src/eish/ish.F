@@ -220,8 +220,8 @@ C Initialize global common data.
       helpinsub='ish'  ! set for MAIN
       iuout=6
       iuin=5
-      limtty=24
-      limit =24
+      limtty=30
+      limit =30
       nsigfig=3
       matver=0.0     ! initial assumption of binary materials database
       ISFSUM=0
@@ -333,14 +333,17 @@ C and dialog.
         ITFS=1
 #ifdef OSX
         IMFS=4
-        IFS=4  ! use a smaller fonts
+        IFS=4   ! use a smaller fonts
         ITFS=0
 #endif
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       else
-         limtty=16
-         limit =16
+        IMFS=5  ! Text mode set LIMTTY larger for paging menus.
+        IFS=4
+        ITFS=1
+        limtty=30
+        limit =30
       endif
 
 C Find the current ESP-r version number and add it to application title.

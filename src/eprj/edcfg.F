@@ -933,8 +933,8 @@ C Build flow network from zone and surface attributes.
             call MFPROB(IER)  ! and now browse/edit the network
             goto 3   ! jump back
           endif
-        ELSEIF(IW.EQ.5)THEN airflowtype
-          GOTO 3
+        ELSEIF(IW.EQ.6)THEN airflowtype
+          GOTO 3     ! user cancelled
         END IF airflowtype
 
 C If LAPROB not known or a new file requested set up graphics network flow file based
@@ -1415,7 +1415,11 @@ C an offset from the prj start position.
           call edisp(iuout,doit)
         endif
         call usrmsg('Starting assessment recovery via',doit,'-')
-        call runit(doit,tmode)
+        if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
+          call runit(doit,'-')
+        else
+          call runit(doit,tmode)
+        endif
 
       ELSEIF(INO.EQ.25)THEN
 
@@ -2909,8 +2913,8 @@ C Act on surface attributes if there are any.
               if(ICT(icc).eq.3)then
                 CYCLE  ! skip internals
               endif
-              if(SUSE(ncomp,isur,2)(1:6).eq.'CLOSED')then
-                CYCLE  ! skip closed flow entities
+              if(ICT(icc).eq.-1)then
+                CYCLE  ! skip UNKNOWN
               endif
 
 C Cases to ignore.
@@ -3700,7 +3704,11 @@ C Confirm file names.
      &        ' -zone ',ZN(1:lnblnk(ZN)),' &'
           endif
           call usrmsg('starting gridding display via',doit,'-')
-          call runit(doit,tmode)
+          if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
+            call runit(doit,'-')
+          else
+            call runit(doit,tmode)
+          endif
         endif
 
       elseif(INO.EQ.19)THEN
@@ -4644,7 +4652,6 @@ C Parameters.
       character path*72
       common/rpath/path
       logical concat,OK,browse,XST,deref,unixok,modcfg
-      logical found_ximage ! to test application existance
       character hold32*32
       character dradcf*72,OUTSTR*124,outs*124,outs248*248
       character dvfil*72,ltmp*72
@@ -4750,7 +4757,12 @@ C string to drive VIEWER.
      &        ' -s 0 0 0 -file ',lltmp(1:lnblnk(lltmp)),' &'
           endif
           call usrmsg('starting hidden line viewer via',doit,'-')
-          call runit(doit,tmode)
+          if(tmode(1:7).eq.'graphic')then ! tmode for runit is different from
+                                          ! tmode ESP-r command line argument
+             call runit(doit,'-')         ! use '-' to request execute_command_line
+          else
+            call runit(doit,tmode)
+          endif
         endif
         return
 
@@ -4868,7 +4880,12 @@ C an offset from prj start position.
      &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),brw,' &'
         endif
         call usrmsg('starting Radiance desktop via',doit,'-')
-        call runit(doit,tmode)
+        if(tmode(1:7).eq.'graphic')then ! tmode for runit is different from
+                                        ! tmode ESP-r command line argument
+          call runit(doit,'-')          ! use '-' to request execute_command_line
+        else
+          call runit(doit,tmode)
+        endif
         helptopic='click_when_done'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('e2r finished menu',nbhelp,'-',0,0,IER)

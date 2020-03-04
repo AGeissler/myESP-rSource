@@ -151,108 +151,18 @@ intialisation and graphics, using ww. The routines are :-
 #include <X11/keysym.h>
 /* #include "editpop.xbm" */
 
+/* shift this inside only the required functions 
+#ifdef MINGW
+#include <windows.h>
+#define sleep(s) Sleep(s * 1000)
+#endif  */
+
 #define XV_FDTYPE (fd_set *)
 
 #define gray25_width 8
 #define gray25_height 8
 static unsigned char gray25_bits[] = {
    0x88, 0x22, 0x88, 0x22, 0x88, 0x22, 0x88, 0x22};
-
-#define logo_width 158
-#define logo_height 55
-static unsigned char logo_bits[] = {
-   0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x03,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x06, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0xc0, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x04,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x0c, 0xe0, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x60, 0x0c, 0xe0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x0c,
-   0xb0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x0c, 0xb0, 0x01, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x30, 0x0c, 0xb0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0e, 0x30, 0x0c,
-   0x10, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x30, 0x0c, 0x18, 0x03, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x1b, 0x30, 0x0c, 0x18, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1b, 0x30, 0x0c,
-   0x18, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x33, 0x30, 0x18, 0x18, 0x03, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x33, 0x30, 0x18, 0x18, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33, 0x30, 0x18,
-   0x18, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x33, 0x30, 0x18, 0x18, 0x06, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x33, 0x30, 0x18, 0x18, 0x06, 0x00, 0xfc, 0xff, 0x03, 0xfe, 0x03,
-   0xfc, 0xff, 0x01, 0x1f, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x33, 0x30, 0x18,
-   0x18, 0x06, 0x03, 0xfc, 0xff, 0x03, 0xff, 0x0f, 0xfc, 0xff, 0x03, 0x1f,
-   0xe0, 0x03, 0x00, 0x00, 0x00, 0x33, 0x30, 0x18, 0x18, 0x06, 0x03, 0xfc,
-   0xff, 0xc3, 0xff, 0x1f, 0xfc, 0xff, 0x07, 0x1f, 0xe0, 0x03, 0x00, 0x00,
-   0x00, 0x33, 0x30, 0x18, 0x18, 0x86, 0x07, 0xfc, 0xff, 0xc3, 0xff, 0x3f,
-   0xfc, 0xff, 0x0f, 0x1f, 0xe0, 0x03, 0x00, 0x00, 0x00, 0x31, 0x30, 0x18,
-   0x18, 0x86, 0x0f, 0x7c, 0x00, 0xe0, 0x03, 0x3f, 0x7c, 0xc0, 0x0f, 0x1f,
-   0xe0, 0x03, 0x00, 0x00, 0x80, 0x31, 0x30, 0x18, 0x18, 0x86, 0x0d, 0x7c,
-   0x00, 0xe0, 0x01, 0x3e, 0x7c, 0x80, 0x0f, 0x1f, 0xe0, 0x03, 0x00, 0x00,
-   0x80, 0x31, 0x30, 0x18, 0x18, 0x86, 0x0d, 0x7c, 0x00, 0xe0, 0x01, 0x3c,
-   0x7c, 0x80, 0x0f, 0x1f, 0xe0, 0x03, 0x00, 0x00, 0x80, 0x31, 0x30, 0x18,
-   0x18, 0x86, 0x0d, 0x7c, 0x00, 0xe0, 0x03, 0x00, 0x7c, 0x80, 0x0f, 0x1f,
-   0xe0, 0x03, 0x00, 0x00, 0x80, 0x31, 0x30, 0x18, 0x18, 0x86, 0x19, 0x7c,
-   0x00, 0xe0, 0x1f, 0x00, 0x7c, 0xc0, 0x0f, 0x1f, 0xe0, 0x03, 0x00, 0x00,
-   0x80, 0x31, 0x18, 0x18, 0x18, 0x86, 0xf9, 0xff, 0xff, 0xff, 0xff, 0xff,
-   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x3f, 0x80, 0x31, 0x18, 0x18,
-   0x18, 0xc6, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-   0xff, 0xff, 0xff, 0x3f, 0x8c, 0x31, 0x18, 0x18, 0x18, 0xc6, 0x00, 0xfc,
-   0xff, 0x03, 0xff, 0x3f, 0xfc, 0xff, 0x01, 0x1f, 0xe0, 0x03, 0x00, 0x1e,
-   0x8c, 0x31, 0x18, 0x18, 0x18, 0xc6, 0x00, 0xfc, 0xff, 0x03, 0xf8, 0x3f,
-   0xfc, 0xff, 0x03, 0x1f, 0xe0, 0x03, 0x00, 0x07, 0x98, 0x31, 0x18, 0x18,
-   0x18, 0xc6, 0x00, 0x7c, 0x00, 0x00, 0x00, 0x7f, 0x7c, 0xc0, 0x07, 0x1f,
-   0xe0, 0x03, 0xc0, 0x01, 0xf0, 0x31, 0x18, 0x18, 0x18, 0xc6, 0x00, 0x7c,
-   0x00, 0x00, 0x00, 0x7c, 0x7c, 0xc0, 0x07, 0x1f, 0xe0, 0x03, 0x70, 0x00,
-   0xe0, 0x30, 0x18, 0x10, 0x18, 0xc6, 0x00, 0x7c, 0x00, 0xe0, 0x01, 0x78,
-   0x7c, 0x80, 0x07, 0x1f, 0xe0, 0x03, 0x1c, 0x00, 0x40, 0x30, 0x18, 0x30,
-   0x18, 0xc6, 0x00, 0x7c, 0x00, 0xe0, 0x03, 0x78, 0x7c, 0x80, 0x07, 0x1f,
-   0xe0, 0x03, 0x0f, 0x00, 0x00, 0x30, 0x18, 0x30, 0x18, 0xc6, 0x00, 0x7c,
-   0x00, 0xe0, 0x0f, 0x7c, 0x7c, 0x80, 0x0f, 0x7f, 0xf0, 0x03, 0x00, 0x00,
-   0x00, 0x30, 0x18, 0x30, 0x18, 0xc6, 0x00, 0xfc, 0xff, 0xc7, 0xff, 0x3f,
-   0x7c, 0x80, 0x0f, 0xfe, 0xff, 0x01, 0x00, 0x00, 0x00, 0x30, 0x18, 0x30,
-   0x18, 0xc6, 0x00, 0xfc, 0xff, 0xc7, 0xff, 0x3f, 0x7c, 0x80, 0x0f, 0xfe,
-   0xff, 0x00, 0x00, 0x00, 0x00, 0x30, 0x18, 0x30, 0x18, 0xc6, 0x00, 0xfc,
-   0xff, 0x87, 0xff, 0x0f, 0x7c, 0x80, 0x0f, 0xfc, 0x7f, 0x00, 0x00, 0x00,
-   0x00, 0x30, 0x18, 0x30, 0x18, 0xc6, 0x00, 0xfc, 0xff, 0x07, 0xfe, 0x07,
-   0x7c, 0x80, 0x1f, 0xf0, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x20, 0x18, 0x30,
-   0x18, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x18, 0x30, 0x18, 0x6c, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x60, 0x18, 0x30, 0x18, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x18, 0x30,
-   0x0c, 0x3c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x0c, 0x30, 0x0c, 0x18, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x40, 0x0c, 0x30, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x0c, 0x30,
-   0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x0c, 0x30, 0x0c, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0xc0, 0x04, 0x30, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x07, 0x30,
-   0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x03, 0x60, 0x0c, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x60, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60,
-   0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x03, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 /* external definitions in the Fortran code */
 extern gnwkquery_();
@@ -277,7 +187,6 @@ extern nwkupdtpos_();
 extern icntfm_();
 extern cfgpk_();
 extern updview_();
-extern sleep();
 extern aux_menu();
 
 /* global data types */
@@ -485,7 +394,7 @@ static char font_0[80],font_1[80],font_2[80],font_3[80],font_4[80],font_5[80],fo
 /* info about root Xwindow */
 static int xrt_width, xrt_height;  /* same as xsh.width and xsh.height */
 static char *bgstr,  *whitestr, *blackstr; /* init default colors */
-static char *zscalestr[] = { /* 100 colour names from rgb.txt to represent zone colours */
+static char* zscalestr[100] = { /* 100 colour names from rgb.txt to represent zone colours */
     "red","MidnightBlue","peru","ForestGreen","khaki","grey14","turquoise","magenta","gold4","firebrick",
     "DarkCyan","khaki3","grey25","RoyalBlue","tomato","grey34","OliveDrab","PaleGreen","orange","grey40",
     "coral2","tan4","SeaGreen","grey60","maroon4","gold3","grey46","PowderBlue","sienna","azure4","grey20","burlywood2",
@@ -496,18 +405,18 @@ static char *zscalestr[] = { /* 100 colour names from rgb.txt to represent zone 
     "coral2","tan4","SeaGreen","grey60","maroon4","gold3","grey46","PowderBlue","sienna","azure4","grey20","burlywood2",
     "grey50","khaki2","NavyBlue","sienna3","DarkGreen","gold","magenta3","grey80","turquoise2","gold1","tomato3",
     "grey70","orange3","grey37","maroon1","grey19","tan2","green3" };
-static char *cscalestr[] = { /* colour scale RGB HEX values (to represent 49 steps of temperature) */
+static char* cscalestr[49] = { /* colour scale RGB HEX values (to represent 49 steps of temperature) */
   "#FF0000","#FF1500","#FF2B00","#FF4000","#FF5500","#FF6A00","#FF8000","#FF9500","#FFAA00","#FFBF00",
   "#FFD500","#FFEA00","#FFFF00","#EAFF00","#D5FF00","#BFFF00","#AAFF00","#95FF00","#80FF00","#6AFF00",
   "#55FF00","#40FF00","#2AFF00","#15FF00","#00FF00","#00FF15","#00FF2B","#00FF40","#00FF55","#00FF6A",
   "#00FF80","#00FF95","#00FFAA","#00FFBF","#00FFD4","#00FFEA","#00FFFF","#00EAFF","#00D4FF","#00BFFF",
   "#00AAFF","#00AAFF","#00AAFF","#006AFF","#0055FF","#0040FF","#002BFF","#0015FF","#0000FF" };
 /* strings to set interface greys 5 standards and 5 alternatives if allocation fails. */
-static char *gintstr[] = {
+static char* gintstr[13] = {
   "grey96","grey94","grey92","grey86","grey64","grey50",
   "grey95","grey93","grey91","grey85","grey63","grey49","grey43" };
 /* 86 strings to set greay scale for zones if zscalestr allocation fails. */
-static char *gscalestr[] = {
+static char* gscalestr[86] = {
   "grey97","grey96","grey95","grey94","grey93","grey92","grey91","grey90",
   "grey89","grey88","grey87","grey86","grey85","grey84","grey83","grey82","grey81","grey80",
   "grey79","grey78","grey77","grey76","grey75","grey74","grey73","grey72","grey71","grey70",
@@ -535,6 +444,7 @@ int clnblnk(msg)
   sl = (int) strlen(msg);
   n = sl;
   found = 0;
+  lm = 0;
   while(n > 0 && found==0 ) {
     n--;
     if ( msg[n] != ' ') found = 1;
@@ -555,11 +465,11 @@ long int *size;           /* pixel size for base window  */
 long int *ulx,*uly;       /* pixel upper left corner of base window  */
 {
   if ( *size >= 100 ) {
-    START_HEIGHT = *size;
-    START_WIDTH = *size*TEKX/TEKY;
+    START_HEIGHT = (int) *size;
+    START_WIDTH = (int) *size*TEKX/TEKY;
   }
-  if ( *ulx >= 1 )   START_ULX = *ulx;
-  if ( *uly >= 1 )   START_ULY = *uly;
+  if ( *ulx >= 1 )   START_ULX = (int) *ulx;
+  if ( *uly >= 1 )   START_ULY = (int) *uly;
   return;
 }
 
@@ -568,10 +478,10 @@ void sizehwxy_(sizeh,sizew,ulx,uly)
 long int *sizeh,*sizew;   /* pixel height & width for base window  */
 long int *ulx,*uly;       /* pixel upper left corner of base window  */
 {
-  if ( *sizeh >= 100 ) START_HEIGHT = *sizeh;
-  if ( *sizew >= 100 ) START_WIDTH = *sizew;
-  if ( *ulx >= 1 )   START_ULX = *ulx;
-  if ( *uly >= 1 )   START_ULY = *uly;
+  if ( *sizeh >= 100 ) START_HEIGHT = (int) *sizeh;
+  if ( *sizew >= 100 ) START_WIDTH = (int) *sizew;
+  if ( *ulx >= 1 )   START_ULX = (int) *ulx;
+  if ( *uly >= 1 )   START_ULY = (int) *uly;
   return;
 }
 
@@ -778,7 +688,7 @@ if (best == -1) {   /* look for a DirectColor, pref 24-bit */
 if (vinfo) XFree((char *) vinfo);
 
 /* create cursors as in xv */
-  arrow_cursor = XCreateFontCursor(theDisp,(u_int) curstype);
+  arrow_cursor = XCreateFontCursor(theDisp,(unsigned int) curstype);
   cross_cursor = XCreateFontCursor(theDisp,XC_crosshair);
   zoom_cursor  = XCreateFontCursor(theDisp,XC_pencil); /* XC_center_ptr */
   wait_cursor = XCreateFontCursor(theDisp,XC_watch);
@@ -956,8 +866,8 @@ xsh.y = START_ULY;
   winclr_(); /* clear the root window */
 
   pause_len = 1000;  /* inital pause loop length */
-  ter = *term;        /* remember initial terminal type */
-  child_ter = *term;  /* set initial child process initial terminal type */
+  ter = (int) *term;        /* remember initial terminal type */
+  child_ter = (int) *term;  /* set initial child process initial terminal type */
 
 /* initial clear of help display list */
   for ( i = 0; i < HELP_LIST_LEN-1; i++ ) {
@@ -1340,7 +1250,7 @@ char *name;
 long int *lix, *liy, *itime;
 int len;
 {
- Pixmap exbit,logobit,underit; /* bitmap from logo_bits data, pixmap of logo, area under */
+ Pixmap exbit,logobit,underit; /* bitmap from data, pixmap of logo, area under */
  long int iupx,iupy;
  box gmenubx;
  int ilen,x_hot,y_hot,result,persist;
@@ -1348,13 +1258,14 @@ int len;
  char name2[80];
  FILE *bf;
 
- iupx = *lix; iupy = *liy; persist = *itime;
+ iupx = *lix; iupy = *liy; persist = (int) *itime;
 /*
  * Terminate at fortran length, find actual string length and then reterminate.
  */
   f_to_c_l(name,&len,&ilen); strncpy(name2,name,(unsigned int)ilen); name2[ilen]='\0';
   if ((bf = fopen(name2,"r"))==NULL) {
     fprintf(stderr,"could not open bitmap file %s\n",name2);
+    fclose(bf);
     return;
   }
 /* Fill bitmap exbit from data file, make pixmap for under area and to hold transformed exbit data (logobit) */
@@ -1371,9 +1282,9 @@ int len;
    if ((iupy - (int) iheight) <= 0) {
      gmenubx.b_top = 10; gmenubx.b_bottom= 10 + (int) iheight;
    } else {
-     gmenubx.b_top = iupy - (int) iheight; gmenubx.b_bottom= iupy;
+     gmenubx.b_top = (int) iupy - (int) iheight; gmenubx.b_bottom= (int) iupy;
    }
-   gmenubx.b_left  = iupx;  gmenubx.b_right = iupx + iwidth;
+   gmenubx.b_left  = (int) iupx;  gmenubx.b_right = (int) iupx + iwidth;
 /* Save area of gmenubx to underit then copy logbit to gmenubx area and flush display */
    box_to_pix((Pixmap)win,gmenubx,(Pixmap)underit,(int) iwidth,(int) iheight);
    XFlush(theDisp); /* force drawing  */
@@ -1411,7 +1322,7 @@ long int *lreqx, *lreqy, *lreqwidth, *lreqheight, *lix, *liy;
 long int *boxulx, *boxuly, *boxlrx, *boxlry;
 int len;
 {
- Pixmap exbit,logobit,underit; /* bitmap from logo_bits data, pixmap of logo, area under */
+ Pixmap exbit,logobit,underit; /* bitmap from data, pixmap of logo, area under */
  long int ilreqx,ilreqy,ilreqwidth,ilreqheight;
  long int iupx,iupy;
  box gmenubx;
@@ -1427,6 +1338,7 @@ int len;
   f_to_c_l(name,&len,&ilen); strncpy(name2,name,(unsigned int)ilen); name2[ilen]='\0';
   if ((bf = fopen(name2,"r"))==NULL) {
     fprintf(stderr,"could not open bitmap file %s\n",name2);
+    fclose(bf);
     return;
   }
 /* Fill bitmap exbit from data file, make pixmap for under area and to hold transformed exbit data (logobit) */
@@ -1451,13 +1363,13 @@ int len;
  else if (result == BitmapSuccess) {
    underit = XCreatePixmap(theDisp,win,(unsigned int)ilreqwidth,(unsigned int)ilreqheight,dispDEEP);
    logobit = XCreatePixmap(theDisp,win,(unsigned int)ilreqwidth,(unsigned int)ilreqheight,dispDEEP);
-   XCopyPlane(theDisp,(Pixmap)exbit,(Pixmap)logobit,theGC,ilreqx,ilreqy,(unsigned int)ilreqwidth,(unsigned int)ilreqheight,0,0,(unsigned long) 1);
+   XCopyPlane(theDisp,(Pixmap)exbit,(Pixmap)logobit,theGC,(int)ilreqx,(int)ilreqy,(unsigned int)ilreqwidth,(unsigned int)ilreqheight,0,0,(unsigned long) 1);
    if ((iupy - (int) ilreqheight) <= 0) {
      gmenubx.b_top = 15; gmenubx.b_bottom= 15 + (int) ilreqheight;
    } else {
-     gmenubx.b_top = iupy - (int) ilreqheight; gmenubx.b_bottom= iupy;
+     gmenubx.b_top = (int) iupy - (int) ilreqheight; gmenubx.b_bottom= (int) iupy;
    }
-   gmenubx.b_left  = iupx;  gmenubx.b_right = iupx + ilreqwidth;
+   gmenubx.b_left  = (int) iupx;  gmenubx.b_right = (int) iupx + ilreqwidth;
 
 /* Save area of gmenubx to underit then copy logbit to gmenubx area and flush display */
    box_to_pix((Pixmap)win,gmenubx,(Pixmap)underit,(int) ilreqwidth,(int) ilreqheight);
@@ -1472,6 +1384,7 @@ int len;
   *boxulx=gmenubx.b_left; *boxuly=gmenubx.b_top;
   *boxlrx=gmenubx.b_left + ilreqwidth; *boxlry=gmenubx.b_top +ilreqheight;
  }
+ fclose(bf);
  return;
 }
 
@@ -1509,6 +1422,7 @@ int len;
   f_to_c_l(name,&len,&ilen); strncpy(name2,name,(unsigned int)ilen); name2[ilen]='\0';
   if ((bf = fopen(name2,"r"))==NULL) {
     fprintf(stderr,"could not open bitmap file %s\n",name2);
+    fclose(bf);
     return;
   }
 /* Fill bitmap exbit from data file, and if the result is ok find the positions it would take. */
@@ -1530,9 +1444,9 @@ int len;
    if ((iupy - (int) ilreqheight) <= 0) {
      gmenubx.b_top = 15; gmenubx.b_bottom= 15 + (int) ilreqheight;
    } else {
-     gmenubx.b_top = iupy - (int) ilreqheight; gmenubx.b_bottom= iupy;
+     gmenubx.b_top = (int) iupy - (int) ilreqheight; gmenubx.b_bottom= (int) iupy;
    }
-   gmenubx.b_left  = iupx;  gmenubx.b_right = iupx + ilreqwidth;
+   gmenubx.b_left  = (int) iupx;  gmenubx.b_right = (int) iupx + ilreqwidth;
 
    XFreePixmap(theDisp, exbit);
 
@@ -1540,53 +1454,14 @@ int len;
   *boxulx=gmenubx.b_left; *boxuly=gmenubx.b_top;
   *boxlrx=gmenubx.b_left + ilreqwidth; *boxlry=gmenubx.b_top +ilreqheight;
  }
- return;
-}
-
-/* ********* Displays the ESRU logo. */
-void showlogo_(itime,lix,liy)
-long int *itime,*lix, *liy; /* persistance, position from lower left of the 3dviewing image area */
-{
- Pixmap exbit,logobit,underit; /* bitmap from logo_bits data, pixmap of logo, area under */
- long int iupx,iupy;
- int persist;
- box gmenubx;
-
-/* Fill bitmap exbit from data, make pixmap for under area and to hold transformed exbit data (logobit) */
-/* Use XCopyPlane to transform exbit to logobit (seems to be required) */
- exbit = XCreateBitmapFromData(theDisp,win,(char *)logo_bits,(unsigned int)logo_width,(unsigned int)logo_height);
- underit = XCreatePixmap(theDisp,win,(unsigned int)logo_width,(unsigned int)logo_height,dispDEEP);
- logobit = XCreatePixmap(theDisp,win,(unsigned int)logo_width,(unsigned int)logo_height,dispDEEP);
- XSetForeground(theDisp,theGC,black);
- XSetBackground(theDisp,theGC,white);
- XCopyPlane(theDisp,(Pixmap)exbit,(Pixmap)logobit,theGC,0,0,(unsigned int)logo_width,(unsigned int)logo_height,0,0,
-   (unsigned long) 1);
- iupx = *lix; iupy = *liy; persist = *itime;
- gmenubx.b_top   = iupy - (logo_height); gmenubx.b_bottom= iupy;
- gmenubx.b_left  = iupx;  gmenubx.b_right = iupx + logo_width;
-/* Save area of gmenubx to underit then copy logbit to gmenubx area and flush display */
- box_to_pix((Pixmap)win,gmenubx,(Pixmap)underit,(int)logo_width,(int)logo_height);
- XFlush(theDisp);
- XCopyArea(theDisp,(Pixmap)logobit,(Pixmap)win,theGC,0,0,(unsigned int)logo_width,(unsigned int)logo_height,
-   gmenubx.b_left,gmenubx.b_top);
- XFlush(theDisp);
- if(persist >= 10) {
-   Timer(persist);
-/* Copy saved underit back to gmenubx area, force drawing and then clear the bitmaps */
-   XCopyArea(theDisp,(Pixmap)underit,(Pixmap)win,theGC,0,0,(unsigned int)logo_width,(unsigned int)logo_height,
-     gmenubx.b_left,gmenubx.b_top);
-   XFlush(theDisp);
- }
- XFreePixmap(theDisp, underit);
- XFreePixmap(theDisp, exbit);
- XFreePixmap(theDisp, logobit);
+ fclose(bf);
  return;
 }
 
 /* ********* Write a string beginning at pixel x and y to file. ******* */
 void wstxptwwc_(x,y,buff,len)
-char *buff;
 long int *x, *y;       /* x y is the position of the string */
+char *buff;
 int  len;        /* len is length passed from fortran */
 {
  int ilen;
@@ -1609,8 +1484,8 @@ long int *x, *y;       /* x y is the position of the string */
 int  len;        /* len is length passed from fortran */
 {
  XftDraw *draw;
- int ix = *x;
- int iy = *y;
+ int ix = (int) *x;
+ int iy = (int) *y;
  int ilen;
  f_to_c_l(buff,&len,&ilen);
 
@@ -1657,11 +1532,11 @@ int  len;         /* len is length passed from fortran */
  XftColor xft_current;
  unsigned long colid;	/* local X color id */
  long int xcolid;
- int ix = *x;
- int iy = *y;
+ int ix = (int) *x;
+ int iy = (int) *y;
  int ilen;
  int ic;
- ic = *n;
+ ic = (int) *n;
 
  f_to_c_l(buff,&len,&ilen);
  draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
@@ -1751,11 +1626,11 @@ int  len;        /* len is length passed from fortran */
  long int the_font;
  unsigned long colid;	/* local X color id */
  long int xcolid;
- int ix = *x;
- int iy = *y;
+ int ix = (int) *x;
+ int iy = (int) *y;
  int ilen;
  int ic;
- ic = *n;
+ ic = (int) *n;
  fsize = *size;
  if(fsize == 0) the_font=4;
  if(fsize == 1) the_font=4;
@@ -1907,6 +1782,7 @@ void charsusingfnt_(n,cw,nlines)
  int vfw,lt;
  int tf_height; /* tf_height is local font height in pixels */
  int tf_width;  /* tf_width is local font width in pixels */
+ tfst = fst_0;  /* initial assumption */
   if( *n == 0 ) {
     t0=(char *) getenv("EFONT_0");
     if ((t0 == NULL) || (t0  == "") || (strncmp(t0,"    ",4) == 0)) {
@@ -1935,6 +1811,7 @@ void charsusingfnt_(n,cw,nlines)
   lt = strlen(test);
   XftTextExtents8(theDisp,tfst,test,lt,&info);
   vfw = (info.xOff/lt);
+  tf_width = 1;
   if ( vfw > 1 ) tf_width = vfw;
   *nlines = (int) ((disp.b_bottom - disp.b_top) / (tf_height+1));
   *cw = ((disp.b_right - disp.b_left) / tf_width)-2;
@@ -2011,8 +1888,8 @@ void feedbox_(menu_char,d_lines,gw,gh)
   Bool exp = 1;
 
   saved_font = current_font;
-  menu_offset = *menu_char;    /* remember feedbox right character offset  */
-  fbb_b_lines = *d_lines;     /* remember feedbox bottom character margine */
+  menu_offset = (int) *menu_char;    /* remember feedbox right character offset  */
+  fbb_b_lines = (int) *d_lines;     /* remember feedbox bottom character margine */
   fbb.b_top   = 2;
   winfnt_(&butn_fnt); /* small font (used for continue text).  */
   label_ht = f_height+4;
@@ -2028,10 +1905,10 @@ void feedbox_(menu_char,d_lines,gw,gh)
   if (d_lines == 0){
     fbb.b_bottom= xrt_height - 5;
   } else {
-     fbb.b_bottom= xrt_height - ((f_height+4) * (*d_lines)) - 5;
+     fbb.b_bottom= (int) xrt_height - ((f_height+4) * (*d_lines)) - 5;
   }
   fbb.b_left  = 2;
-  fbb.b_right = xrt_width - (mf_width * (*menu_char)) -8;
+  fbb.b_right = (int) xrt_width - (mf_width * (*menu_char)) -8;
   hight = (unsigned int)(fbb.b_bottom-fbb.b_top);
   wid = (unsigned int)(fbb.b_right-fbb.b_left);
 
@@ -2154,8 +2031,8 @@ void win3d_(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gwht)
 
  saved_font = current_font;
  dbx1_avail = 1;        /* tell world that graphic box exists */
- c3dcl = *cl; c3dcr = *cr;   /* remember character offsets    */
- c3dct = *ct; c3dcb = *cb;
+ c3dcl = (int) *cl; c3dcr = (int) *cr;   /* remember character offsets    */
+ c3dct = (int) *ct; c3dcb = (int) *cb;
 /*
  In case the text display window has been opened set this display
  slightly above it. Remember that the text display font may be smaller
@@ -2173,7 +2050,7 @@ void win3d_(menu_char,cl,cr,ct,cb,vl,vr,vt,vb,gw,gwht)
    dbx1.b_bottom= xrt_height - ((f_height+4) * (dialogue_lines +1)) - 5;  /* !!!! 35 */
  }
  dbx1.b_left  = 8;
- dbx1.b_right = xrt_width - (mf_width * (*menu_char)) -16;
+ dbx1.b_right = (int) xrt_width - (mf_width * (*menu_char)) -16;
  xbox(dbx1,fg,white,BMCLEAR |BMEDGES);        /* draw outer box with edges  */
 
  viewbx.b_top = dbx1.b_top + (f_height * (*ct));
@@ -2218,8 +2095,8 @@ void win3dclr_()
 */
 void viewtextwwc_(msg,linep,side,size,len)
   char  *msg;              /* character string  */
-  int len;                 /* length from f77   */
   long int *linep, *side, *size;     /* position indicators */
+  int len;                 /* length from f77   */
 {
   int t_len;
 
@@ -2422,9 +2299,11 @@ void forceflush_()
 }
 
 /* ************* pause_for_milliseconds ********* */
-void Timer(msec)   /* from xvmisc.c */
- int  msec;
+void Timer(msec) int msec;
 {
+#ifdef MINGW
+#include <windows.h>
+#endif 
   long usec;
   struct timeval time;
 
@@ -2433,7 +2312,11 @@ void Timer(msec)   /* from xvmisc.c */
 
   time.tv_sec = usec / 1000000L;
   time.tv_usec = usec % 1000000L;
+#ifdef MINGW
+/*  Sleep((unsigned int) msec ); */
+#else
   select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time);
+#endif
   return;
 }
 
@@ -2441,17 +2324,24 @@ void Timer(msec)   /* from xvmisc.c */
 void pausems_(msec)   /* from xvmisc.c */
  long int  *msec;
 {
+#ifdef MINGW
+#include <windows.h>
+#endif 
   int msecond;
   long usec;
   struct timeval time;
 
-  msecond = *msec;
+  msecond = (int) *msec;
   if (msecond <= 0) return;
   usec = (long) msecond * 1000;
 
   time.tv_sec = usec / 1000000L;
   time.tv_usec = usec % 1000000L;
+#ifdef MINGW
+/*  Sleep((unsigned int) msecond ); */
+#else
   select(0, XV_FDTYPE NULL, XV_FDTYPE NULL, XV_FDTYPE NULL, &time);
+#endif
   return;
 }
 
@@ -2459,9 +2349,16 @@ void pausems_(msec)   /* from xvmisc.c */
 void pauses_(is)
   long int *is;
 {
+#ifdef MINGW
+#include <windows.h>
+#endif 
   int i;
-  i = *is;
+  i = (int) *is;
+#ifdef MINGW
+/*  Sleep((unsigned int) msecond * 1000); */
+#else
   sleep((unsigned int) i );
+#endif
   return;
 }
 
@@ -2482,8 +2379,7 @@ void drawswl(xa,ya,xb,yb)
 /*
  Write esymbol attributes to file.
 */
-void esymbolwwc_(x,y,sym,size)
-  long int *x, *y, *sym, *size;
+void esymbolwwc_(long int* x,long int* y,long int* sym,long int* size)
 {
 
 /* If echo send parameters to wwc file */
@@ -2500,15 +2396,14 @@ void esymbolwwc_(x,y,sym,size)
  esymbol is passed a pixel coord, a symbol index, and a size.
  currently there are 38 symbols.
 */
-void esymbol_(x,y,sym,size)
-  long int *x, *y, *sym, *size;
+void esymbol_(long int* x,long int* y,long int* sym,long int* size)
 {
   int isym,isize,ix,iy,width;
   XPoint p[12];
-  isym = *sym;
-  isize = *size;
-  ix = *x;
-  iy = *y;
+  isym = (int) *sym;
+  isize = (int) *size;
+  ix = (int) *x;
+  iy = (int) *y;
   width = 1;
 
 /* If echo send parameters to wwc file */
@@ -2972,7 +2867,7 @@ int *ino;
   Bool exp = 1;
   int	no_valid_event,config_altered;
   unsigned int start_height,start_width;
-  int popup_font = 5;  /* one up from smallest proportional font */
+  long int popup_font = 5;  /* one up from smallest proportional font */
 
   ilen = 0; iwth = 0;
   for(num=0;listptr[num]!=NULLPTR(char);num++){
@@ -2990,7 +2885,7 @@ int *ino;
   XGetWindowAttributes(theDisp,win,&wa);
   start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width; config_altered = 0;
 
-  xb = *impx;  yb = *impy;
+  xb = (int) *impx;  yb = (int) *impy;
   lt1 = (int) strlen(titleptr);  /* width of title */
   changed_font = 0;
   saved_font = use_font = current_font; /* save existing font  */
@@ -3628,7 +3523,7 @@ void openaskbox_(msg1,msg2,asklen,len1,len2)
   long int saved_font;
   int vfw,vfwm1,vfwm2;
 
-  ask_len = *asklen;
+  ask_len = (int) *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
@@ -3717,7 +3612,7 @@ void openaskaltbox_(msg1,msg2,alt,asklen,len1,len2,len3)
   long int saved_font;
   int vfw,vfwm1,vfwm2,vfwm3;
 
-  ask_len = *asklen;
+  ask_len = (int) *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
@@ -3914,7 +3809,7 @@ void openask2altbox_(msg1,msg2,alt,alt2,asklen,len1,len2,len3,len4)
   long int saved_font;
   int vfw,vfwm1,vfwm2,vfwm3,vfwm4;
 
-  ask_len = *asklen;
+  ask_len = (int) *asklen;
   askmsg1 = msg1; askmsg2 = msg2; /* remember prompt character strings */
   saved_font = current_font;
   if (saved_font != butn_fnt) winfnt_(&butn_fnt);
@@ -4126,10 +4021,10 @@ void updhelp_(items,nitmsptr,iw,len_items)
   int  len_items;           /* length of help string from f77    */
 {
   int	i,j,k;
-  int	nitms = *nitmsptr;
+  int	nitms = (int) *nitmsptr;
   char 	*item_local = items;	/* working copy of intput string */
 
-  help_width = *iw;	/* remember width of current help text */
+  help_width = (int) *iw;	/* remember width of current help text */
   help_lines = nitms;	/* remember number of help lines */
   if(help_lines == 0)return;	/* don't bother if no help */
 
@@ -4182,7 +4077,7 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
   static int blen = 0;
   unsigned int start_height,start_width;
   int vfw;
-  int help_font = 5;  /* one up from smallest proportional font */
+  long int help_font = 5;  /* one up from smallest proportional font */
 
   ilen = help_lines;
   if(ilen == 0)return;	/* don't bother if no help */
@@ -4191,15 +4086,15 @@ void egphelp_(impx,impy,ipflg,ishowmoreflg,uresp)
   XGetWindowAttributes(theDisp,win,&wa);
   start_height = (unsigned int)wa.height; start_width = (unsigned int)wa.width; config_altered = 0;
 
-  xb = *impx;  yb = *impy; pflg = *ipflg; showmoreflg = *ishowmoreflg;
+  xb = (int) *impx;  yb = (int) *impy; pflg = (int) *ipflg; showmoreflg = (int) *ishowmoreflg;
   changed_font = 0;
 
 /* Help messages can always be in proportional font. Save existing and reset if necessary */
   saved_font = use_font = current_font;
   if ( use_font != help_font ) { winfnt_(&help_font); use_font = help_font; changed_font = 1; }
   
+  h_height = (20*(f_height+1))+20;  /* include a bit of extra space  */
   if(ilen <= 20) h_height = (ilen*(f_height+1))+20;  /* include a bit of extra space  */
-  if(ilen > 20)  h_height = (20*(f_height+1))+20;  /* include a bit of extra space  */
   h_width = (help_width*f_width)+25;	  /* box slightly wider than longest line */
 
 /* Use XftTextExtents8 to loop through the help strings and
@@ -5740,7 +5635,7 @@ void abcdefbox_(msg1,msg2,opta,optb,optc,optd,opte,optf,optg,ok,len1,len2,len3,l
   lprompt = abox_left - vfwm2;       /* lower prompt left */
   tprompt = abox_left - vfwm1;       /* top prompt left */
   if (tprompt < 2 ) tprompt = 5;     /* keep from falling off the left */ 
-//  tprompt = msgbx.b_right - vfwm1; /* top prompt left */
+//  tprompt = msgbx.b_right - vfwm1;  top prompt left
 
 // Define local drawable for Xft font.
   draw = XftDrawCreate(theDisp,win,theVisual,theCmap);
@@ -5993,7 +5888,7 @@ void drscrollbar()
 void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
  long int *menu_char,*displ_l,*dialogue_l,*gdw,*gdh;
 {
- int lines = *displ_l; /* page length */
+ int lines = (int) *displ_l; /* page length */
  long int saved_font;       /* nominal font used within rest of application.  */
  int udh;		/* updown height */
  long int xt,yt,xb,yb; /* centre for up/down symbols  */
@@ -6035,7 +5930,7 @@ void opengdisp_(menu_char,displ_l,dialogue_l,gdw,gdh)
  if ((disp.b_bottom -((f_height+1) * lines)) <= 50) {
      disp.b_top = 50;
      *displ_l = (int) ((disp.b_bottom - disp.b_top) / (f_height+1));
-     disp_lines = *displ_l;        /* update no of available lines */
+     disp_lines = (int) *displ_l;        /* update no of available lines */
  } else {
      disp.b_top  = disp.b_bottom -((f_height+1) * lines) - 10;
  }
@@ -6202,7 +6097,7 @@ void egdisp_(msg,line,len)
 void espad_(llimit,llimtty,lline)
   long int *llimit,*llimtty,*lline;   /* same as spad common block */
 {
-  tfb_limit = *llimit; tfb_limtty = *llimtty; tfb_line = *lline;
+  tfb_limit = (int) *llimit; tfb_limtty = (int) *llimtty; tfb_line = (int) *lline;
   return;
 }
 /* NEXT 2 FUNCTIONS COMMENTED OUT */
@@ -6334,7 +6229,8 @@ void controlview_()
   int x_old,y_old,ifrlk,idx,idy;
   static int blen = 0;
   unsigned int start_height,start_width;
-  long int saved_font,bottom,left;
+  long int saved_font;
+  int bottom,left;
 
 /* remember position and size of the whole module (so as to detect changes) */
   XGetWindowAttributes(theDisp,win,&wa);
@@ -6539,8 +6435,7 @@ void elinewwc_(x,y,operation)
 	3=move to relitive pixel coord,
 	2=draw line to relitive pixel coord.
 */
-void eline_(x,y,operation)
-  long int *x, *y, *operation;
+void eline_(long int* x,long int* y,long int* operation)
 {
   int x1,y1,op;
 
@@ -6549,9 +6444,9 @@ void eline_(x,y,operation)
      fprintf(wwc,"*eline\n");
      fprintf(wwc,"%ld %ld %ld\n",*x,*y,*operation);
    }
-   x1 = *x;
-   y1 = *y;
-   op = *operation;
+   x1 = (int) *x;
+   y1 = (int) *y;
+   op = (int) *operation;
 
    if      (op == 0) {    /* LNDRAWABS */
      XDrawLine(theDisp,win,theGC,xold,yold,x1,y1);
@@ -6572,9 +6467,7 @@ void eline_(x,y,operation)
  Based on scaling data passed to linescale this returns the pixel
  co-ords for a particular sets of user data.
 */
-void u2pixel_(ux,uy,ix,iy)
-  float *ux, *uy;
-  long int *ix, *iy;
+void u2pixel_(float* ux,float* uy,long int* ix,long int* iy)
 {
   float x,y;
   x = *ux;
@@ -6593,9 +6486,7 @@ void u2pixel_(ux,uy,ix,iy)
  Based on scaling data passed to linescale this returns the grid
  co-ords for a particular set of input pixcel co-ords.
 */
-void pixel2u_(ux,uy,gx,gy)
-  long int *ux, *uy;
-  float *gx, *gy;
+void pixel2u_(long int* ux,long int* uy,float* gx,float* gy)
 {
   long int x,y;
   x = *ux;
@@ -6659,8 +6550,8 @@ void etplot_(ux,uy,updown,sym)
 
   x = *ux;
   y = *uy;
-  isymbol = *sym;
-  iupd = *updown;
+  isymbol = (int) *sym;
+  iupd = (int) *updown;
 
   x=(x + x_add) * x_scale;
   y=(y + y_add) * y_scale;
@@ -6763,8 +6654,7 @@ void edlinewwc_(x1,y1,x2,y2,ipdis)
  are 2 for a dense dotted line, 3 for a sparce one, values over 4 are
  probably not useful.
 */
-void edline_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void edline_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
   int ir,itrat,ix,iy,ldis,ldash;
   float xd,yd,r1,r2,xx1,xx2,yy1,yy2,xx3,yy3;
@@ -6776,7 +6666,7 @@ void edline_(x1,y1,x2,y2,ipdis)
     fprintf(wwc,"%ld %ld %ld %ld %ld\n",*x1,*y1,*x2,*y2,*ipdis);
   }
 
-  ldash = *ipdis;
+  ldash = (int) *ipdis;
   ix = (int) *x1;         /* first point in case of short line */
   iy = (int) *y1;
   xx1 = (float) *x1;  xx2 = (float) *x2;  /* use floats for calcs */
@@ -6906,8 +6796,7 @@ void drawvwl(xa,ya,xb,yb,width)
 
 /* *************** ESRU dashed line drawing to file. *************** */
 
-void edashwwc_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void edashwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
 
 /* If echo send parameters to wwc file */
@@ -6930,8 +6819,7 @@ void edashwwc_(x1,y1,x2,y2,ipdis)
  dash_on and dash_rem are cleared if edash call is made with ipdis = 0.
 
 */
-void edash_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void edash_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
   int ir1,ir2,ix1,iy1,ix2,iy2;
   int ix,iy,ixl,iyl,ix3,iy3,ldash,lrem,ldis;
@@ -7030,8 +6918,7 @@ void edash_(x1,y1,x2,y2,ipdis)
 /*
  Echainwwc writes chained line instructions to file.
 */
-void echainwwc_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void echainwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
 
 /* If echo send parameters to wwc file */
@@ -7054,8 +6941,7 @@ void echainwwc_(x1,y1,x2,y2,ipdis)
  dash_on and dash_rem are cleared if edash call is made with ipdis = 0.
 
 */
-void echain_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void echain_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
   int ir1,ir2,ix1,iy1,ix2,iy2;
   int ix,iy,ixl,iyl,ix3,iy3,ldash,lrem,ldis;
@@ -7207,7 +7093,7 @@ void erectan_(x,y,dx,dy,dt)
 
 /* convert into pixels and move to origin*/
   u2pixel_(&xo,&yo,&lix,&liy);
-  ix=lix; iy=liy;
+  ix=(int) lix; iy=(int) liy;
 
 /* find transforms (converting degrees into radians) */
   ri = 3.14159/180.0;
@@ -7220,17 +7106,17 @@ void erectan_(x,y,dx,dy,dt)
 
   x1=xo+xc; y1=yo+xs;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix1=lix; iy1=liy;
+  ix1=(int) lix; iy1=(int) liy;
   XDrawLine(theDisp,win,theGC,ix,iy,ix1,iy1);
 
   x1=x1-ys; y1=y1+yc;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix2=lix; iy2=liy;
+  ix2=(int) lix; iy2=(int) liy;
   XDrawLine(theDisp,win,theGC,ix1,iy1,ix2,iy2);
 
   x1=x1-xc; y1=y1-xs;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix3=lix; iy3=liy;
+  ix3=(int) lix; iy3=(int) liy;
   XDrawLine(theDisp,win,theGC,ix2,iy2,ix3,iy3);
   XDrawLine(theDisp,win,theGC,ix3,iy3,ix,iy);  /* back to origin  */
   return;
@@ -7258,11 +7144,11 @@ void egrbox_(x,y,dx,dy,gp)
 
 /* convert into pixels and move to origin*/
   u2pixel_(&xo,&yo,&lix,&liy);
-  ix=lix; iy=liy;
+  ix=(int) lix; iy=(int) liy;
 
   x1 = xo + dx1; y1 = yo + dy1;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix1=lix; iy1=liy;
+  ix1=(int) lix; iy1=(int) liy;
 
   gbox.b_bottom = iy; gbox.b_top = iy1;
   if((gbox.b_bottom-gbox.b_top)<=2)return; /* if no height return */
@@ -7307,7 +7193,7 @@ void etriang_(x,y,dx,dy,dt)
 
 /* convert into pixels and move to origin*/
   u2pixel_(&xo,&yo,&lix,&liy);
-  ix=lix; iy=liy;
+  ix=(int) lix; iy=(int) liy;
 
 /* find transforms (converting degrees into radians) */
   ri = 3.14159/180.0;
@@ -7320,12 +7206,12 @@ void etriang_(x,y,dx,dy,dt)
 
   x1=xo+xc;  y1=yo+xs;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix1=lix; iy1=liy;
+  ix1=(int) lix; iy1=(int) liy;
   XDrawLine(theDisp,win,theGC,ix,iy,ix1,iy1);
 
   x1=x1-ys;  y1=y1+yc;
   u2pixel_(&x1,&y1,&lix,&liy);
-  ix2=lix; iy2=liy;
+  ix2=(int) lix; iy2=(int)liy;
   XDrawLine(theDisp,win,theGC,ix1,iy1,ix2,iy2);
   XDrawLine(theDisp,win,theGC,ix2,iy2,ix,iy);  /* back to origin  */
   return;
@@ -7494,6 +7380,10 @@ void axiscale_(long int* gw,long int* gh,float* xmn,float* xmx,float* ymn,
    axgw=(float)*gw; axgh=(float)*gh;
    axxmn=(float)*xmn; axxmx=(float)*xmx;
    axymn=(float)*ymn; axymx=(float)*ymx;
+   axyadd=0.0;
+   axxadd=0.0;
+   axysc=0.0;
+   axxsc=0.0;
 
 /* Derive factors for horizontal axis. */
     if (axxmn < 0.0 && axxmx >= 0.0) {
@@ -7562,10 +7452,10 @@ void linescale_(long int* loff,float* ladd,float* lscale,long int* boff,float* b
 	float* bscale)
  {
 /* static variables defined @ beginning of wwlib.c */
-   x_off = *loff;
+   x_off = (int) *loff;
    x_add = *ladd;
    x_scale = *lscale;
-   y_off = *boff;
+   y_off = (int) *boff;
    y_add = *badd;
    y_scale = *bscale;
 
@@ -7587,8 +7477,9 @@ void linescale_(long int* loff,float* ladd,float* lscale,long int* boff,float* b
  returned.
 */
 void labelstr(n,val,WticC,sstr)
- long int *n, *WticC;
+ long int *n;
  float *val;
+ long int *WticC;
  char sstr[10];
 {
   int idum, n1, ticc;
@@ -7619,12 +7510,8 @@ void labelstr(n,val,WticC,sstr)
  Write to file vertical axis attributes.
 */
 
-void vrtaxisddwwc_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
-
- float *ymn, *ymx,  *yadd, *sca, *dddy;
- long int  *offl,*offb, *offt, *mode, *nny, *side;
- int  mlen;
- char  *msg;
+void vrtaxisddwwc_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen)
 {
  int ilen;
  char msg2[80];
@@ -7656,12 +7543,8 @@ void vrtaxisddwwc_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
        fixed value.
 */
 
-void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
-
- float *ymn, *ymx,  *yadd, *sca, *dddy;
- long int  *offl,*offb, *offt, *mode, *nny, *side;
- int  mlen;
- char  *msg;
+void vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen)
 {
 /*
  Local variables: WticL is the maximum character width of a tic label,
@@ -7718,7 +7601,7 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
 */
  yticv = *ymn;
  rintvl = (*ymx - *ymn) / ddy + 1.0;
- nintvl = rintvl;
+ nintvl = (int) rintvl;
  if (mde == 1) {
    resid = *ymn - (int) *ymn;
    if(*ymn < 0. && resid != 0.) {
@@ -7812,12 +7695,8 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
  Write horizontal axis attributes to file.
 */
 
-void horaxisddwwc_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
-
- float *xmn, *xmx, *sca, *xadd, *dddx;
- long int   *offl,*offr,*offb, *mode, *nnx;
- int   mlen;
- char  *msg;
+void horaxisddwwc_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen)
 {
  int ilen;
  char msg2[80];
@@ -7843,12 +7722,8 @@ void horaxisddwwc_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
  of decimal places to use.
 */
 
-void horaxisdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
-
- float *xmn, *xmx, *sca, *xadd, *dddx;
- long int   *offl,*offr,*offb, *mode, *nnx;
- int   mlen;
- char  *msg;
+void horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen)
 {
 /*
  Local variables:
@@ -7981,13 +7856,9 @@ void horaxisdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
       case of ind = 2 or 4 (otherwise ignored)
 */
 
-void horaxishdwdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,
-     ind,idiv,isjday,msg,mlen)
-
- float *xmn, *xmx, *sca, *xadd, *dddx;
- long int  *offl,*offr,*offb, *mode, *nnx, *ind, *idiv, *isjday;
- int   mlen;
- char  *msg;
+void horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx,long int *ind,
+	long int *idiv,long int *isjday,char* msg,int mlen)
 {
 /*
  Local variables:
@@ -9631,9 +9502,9 @@ void updwire_(avail)
     saved_font = current_font;
     bottom = disp.b_top; left = wire_left;
     doitbox(wire,"image control",13,15,&saved_font,&box_fnt,&bottom,&left,"wire",'-');
-    wire_avail = *avail;         /* tell the world it is available */
+    wire_avail = (int) *avail;         /* tell the world it is available */
   } else {
-    wire_avail = *avail;         /* tell the world it is available */
+    wire_avail = (int) *avail;         /* tell the world it is available */
   }
   return;
 } /* updwire_ */
@@ -9652,9 +9523,9 @@ void updcapt_(avail)
     doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"capture",'-');
     bottom = fbb.b_bottom; left = captext_left;
     doitbox(capture,"capture",7,9,&saved_font,&box_fnt,&bottom,&left,"captext",'-');
-    capture_avail = *avail;         /* tell the world it is available */
+    capture_avail = (int) *avail;         /* tell the world it is available */
   } else {
-    capture_avail = *avail;         /* tell the world it is available */
+    capture_avail = (int) *avail;         /* tell the world it is available */
   }
   return;
 } /* updcapt_ */
@@ -9699,9 +9570,9 @@ void updazi_(avail)
     doitbox(elev,"elevation",9,11,&saved_font,&box_fnt,&bottom,&left,"elev",'-');
 
     if (saved_font != butn_fnt) winfnt_(&saved_font);  /* restore std font */
-    azi_avail = *avail;         /* tell the world it is available */
+    azi_avail = (int) *avail;         /* tell the world it is available */
   } else {
-    azi_avail = *avail;         /* tell the world it is available */
+    azi_avail = (int) *avail;         /* tell the world it is available */
   }
 
   return;
@@ -9845,7 +9716,7 @@ void ipset(flag) int flag;{
 void nwkgflg_(ngf)
 long int *ngf;
 {
-network_gpc=*ngf;
+network_gpc= (int) *ngf;
 }
 /********* Switch between network drawing modes *********/
 void nwksmod_(sel,con,dat)
@@ -9853,9 +9724,9 @@ long int *sel;
 long int *con;
 long int *dat;
 {
-nselect=*sel;	/* if 1 then user can select/unselect icons */
-nconnect=*con;
-ndata=*dat;
+nselect= (int) *sel;	/* if 1 then user can select/unselect icons */
+nconnect=(int) *con;
+ndata= (int) *dat;
 }
 
 /* *************** ESRU fortan callable proforma for checkboxs and editing. *************** */
@@ -9920,13 +9791,13 @@ int lensstr,lentitle,lenlist;	/* fortrant passed lengths */
 
 /* local working string arrays */
 char *locsstr = sstr;
-int locnstr = *nstr;
+int locnstr = (int) *nstr;
 char *loctitle = title;
 char *loclist = list;
-int ilen = *nlist;
+int ilen = (int) *nlist;
 char *loclisttypes = listtypes;
 int iwhich;	/* local indicator of what has been selected */
-int iwth = *impcwth;	/* character width of proforma */
+int iwth = (int) *impcwth;	/* character width of proforma */
 
   if(ilen == 0){	/* don't bother if no list */
     if(XPending(theDisp) > 0) {
@@ -9934,7 +9805,7 @@ int iwth = *impcwth;	/* character width of proforma */
     }
     return;
   }
-  help_lines = *nhelp; /* set number of help lines setup for this display */
+  help_lines = (int) *nhelp; /* set number of help lines setup for this display */
 
   /* loop through text to display pass fortran array of strings into static
      display_list using same logic as updmenu_ */
@@ -9969,7 +9840,7 @@ int iwth = *impcwth;	/* character width of proforma */
   *ino = -1;	/* initial setting of parameter and local return index */
   iwhich = -1;
 
-  xb = *impx;  yb = *impy;
+  xb = (int) *impx;  yb = (int) *impy;
   lt1 = (int) strlen(loctitle);  /* width of title */
   changed_font = 0;
   saved_font = current_font; /* save existing font  */

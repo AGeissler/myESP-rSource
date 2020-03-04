@@ -63,8 +63,8 @@ extern gint f_width;
 
 /* ********* wstxptwwc_() write a string beginning at pixel x and y to file. ******* */
 void wstxptwwc_(x,y,buff,len)
-char *buff;
 long int *x, *y;       /* x y is the position of the string */
+char *buff;
 int  len;        /* len is length passed from fortran */
 {
  char buffer[248];
@@ -166,11 +166,11 @@ int  len;        /* len is length passed from fortran */
 
 /* ********* textatxywwc_() write a string at pixel x y in colour act & n. ******* */
 void textatxywwc_(x,y,buff,act,n,len)
-long int *x, *y;       /* x y is the position of the string */
+long int *x, *y;    /* x y is the position of the string */
 char *buff;
-char *act;  /* single character passed for colour set */
-long int *n;       /* colour index within the set */
-int  len;        /* len is length passed from fortran */
+char *act;          /* single character passed for colour set */
+long int *n;        /* colour index within the set */
+int  len;           /* len is length passed from fortran */
 {
 /* If echo send parameters to wwc file */
  if ( wwc_ok == 1) {
@@ -538,8 +538,8 @@ int  len;        /* len is length passed from fortran */
 */
 void viewtextwwc_(msg,linep,side,size,len)
   char  *msg;                    /* character string  */
-  int len;                 /* length from f77   */
   long int *linep, *side, *size;     /* position indicators */
+  int len;                 /* length from f77   */
 {
   int t_len;
   t_len = 0;
@@ -563,8 +563,8 @@ void viewtextwwc_(msg,linep,side,size,len)
 */
 void viewtext_(msg,linep,side,size,len)
   char  *msg;                    /* character string  */
-  int len;                 /* length from f77   */
   long int *linep, *side, *size;     /* position indicators */
+  int len;                 /* length from f77   */
 {
   PangoFontDescription *pfd;	/* to hold test font */
   PangoContext *context;	/* for use in finding font properties */
@@ -777,7 +777,7 @@ void esymbol_(x,y,sym,size)
   long int *x, *y, *sym, *size;
 {
   gint isym,isize,ix,iy,width;
-  GdkPoint p[12];
+  GdkPoint p[13];
   ix = (gint) *x;
   iy = (gint) *y;
   isym = (gint) *sym;
@@ -1423,8 +1423,7 @@ void testcscaleb_()
 /*
  eline commands to file.
 */
-void elinewwc_(x,y,operation)
-  long int *x, *y, *operation;
+void elinewwc_(long int* x,long int* y,long int* operation)
 {
 
 /* If echo send parameters to wwc file */
@@ -1444,8 +1443,7 @@ void elinewwc_(x,y,operation)
 	3=move to relitive pixel coord,
 	2=draw line to relitive pixel coord.
 */
-void eline_(x,y,operation)
-  long int *x, *y, *operation;
+void eline_(long int* x,long int* y,long int* operation)
 {
   gint x1,y1,op,width;
 
@@ -1479,8 +1477,7 @@ void eline_(x,y,operation)
 /*
  edline commands to file.
 */
-void edlinewwc_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void edlinewwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
 
 /* If echo send parameters to wwc file */
@@ -1499,8 +1496,7 @@ void edlinewwc_(x1,y1,x2,y2,ipdis)
  probably not useful. If the line is short then plot only the initial
  point.
 */
-void edline_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void edline_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
   gint ix1,iy1,ix2,iy2,ldis,ldash,width;
   double crow;
@@ -1558,8 +1554,7 @@ void edline_(x1,y1,x2,y2,ipdis)
 /*
  Edash commands to file.
 */
-void edashwwc_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void edashwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
 
 /* If echo send parameters to wwc file */
@@ -1707,8 +1702,7 @@ void edwline_(x1,y1,x2,y2)
 /*
  Echain commands to file.
 */
-void echainwwc_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void echainwwc_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
 
 /* If echo send parameters to wwc file */
@@ -1731,8 +1725,7 @@ void echainwwc_(x1,y1,x2,y2,ipdis)
  dash_on and dash_rem are cleared if edash call is made with ipdis = 0.
 
 */
-void echain_(x1,y1,x2,y2,ipdis)
-  long int *x1, *y1, *x2, *y2, *ipdis;
+void echain_(long int* x1,long int* y1,long int* x2,long int* y2,long int* ipdis)
 {
   gint ix1,iy1,ix2,iy2;
   gint ldash;
@@ -1840,6 +1833,10 @@ void axiscale_(long int* gw,long int* gh,float* xmn,float* xmx,float* ymn,
    axgw=(float)*gw; axgh=(float)*gh;
    axxmn=(float)*xmn; axxmx=(float)*xmx;
    axymn=(float)*ymn; axymx=(float)*ymx;
+   axyadd=0.0;
+   axxadd=0.0;
+   axysc=0.0;
+   axxsc=0.0;
 
 /* Derive factors for horizontal axis. */
     if (axxmn < 0.0 && axxmx >= 0.0) {
@@ -1929,9 +1926,7 @@ void linescale_(long int* loff,float* ladd,float* lscale,long int* boff,float* b
  Based on scaling data passed to linescale this returns the pixel
  co-ords for a particular sets of user data.
 */
-void u2pixel_(ux,uy,ix,iy)
-  float *ux, *uy;
-  long int *ix, *iy;
+void u2pixel_(float* ux,float* uy,long int* ix,long int* iy)
 {
   float x,y;
   x = *ux;
@@ -1950,9 +1945,7 @@ void u2pixel_(ux,uy,ix,iy)
  Based on scaling data passed to linescale this returns the grid
  co-ords for a particular set of input pixcel co-ords.
 */
-void pixel2u_(ux,uy,gx,gy)
-  long int *ux, *uy;
-  float *gx, *gy;
+void pixel2u_(long int* ux,long int* uy,float* gx,float* gy)
 {
   long int x,y;
   x = *ux;
@@ -2362,8 +2355,9 @@ void earc_(x,y,rad,ang1,ang2,operation)
  returned.
 */
 void labelstr(n,val,WticC,sstr)
- long int *n, *WticC;
+ long int *n;
  float *val;
+ long int *WticC;
  char sstr[10];
 {
   int idum, n1, ticc;
@@ -2497,12 +2491,8 @@ void etlabel_(msg,x,y,ipos,size,len)
  Version to write vert axis to file.
 */
 
-void vrtaxisddwwc_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
-
- float *ymn, *ymx,  *yadd, *sca, *dddy;
- long int  *offl,*offb, *offt, *mode, *nny, *side;
- int  mlen;
- char  *msg;
+void vrtaxisddwwc_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen)
 {
 /*
  Local variables: WticL is the maximum character width of a tic label,
@@ -2539,12 +2529,8 @@ void vrtaxisddwwc_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
        fixed value.
 */
 
-void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
-
- float *ymn, *ymx,  *yadd, *sca, *dddy;
- long int  *offl,*offb, *offt, *mode, *nny, *side;
- int  mlen;
- char  *msg;
+void vrtaxisdd_(float* ymn,float* ymx,long int* offl,long int* offb,long int* offt,
+	float* yadd,float* sca,long int* mode,float *dddy, long int *nny,long int* side,char* msg,int mlen)
 {
 /*
  Local variables: WticL is the maximum character width of a tic label,
@@ -2705,12 +2691,8 @@ void vrtaxisdd_(ymn,ymx,offl,offb,offt,yadd,sca,mode,dddy,nny,side,msg,mlen)
  Write horizontal axis attributes to file.
 */
 
-void horaxisddwwc_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
-
- float *xmn, *xmx, *sca, *xadd, *dddx;
- long int   *offl,*offr,*offb, *mode, *nnx;
- int   mlen;
- char  *msg;
+void horaxisddwwc_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen)
 {
  gint ilen;
  char msg2[80];
@@ -2737,12 +2719,8 @@ void horaxisddwwc_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
  of decimal places to use.
 */
 
-void horaxisdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
-
- float *xmn, *xmx, *sca, *xadd, *dddx;
- long int   *offl,*offr,*offb, *mode, *nnx;
- int   mlen;
- char  *msg;
+void horaxisdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx, char* msg,int mlen)
 {
 /*
  Local variables:
@@ -2879,12 +2857,9 @@ void horaxisdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,msg,mlen)
  left starting point is adjusted.
 */
 
-void horaxishdwdd_(xmn,xmx,offl,offr,offb,xadd,sca,mode,dddx,nnx,ind,idiv,isjday,msg,mlen)
-
- float *xmn, *xmx, *sca, *xadd, *dddx;
- long int   *offl,*offr,*offb, *mode, *nnx, *ind, *idiv, *isjday;
- int   mlen;
- char  *msg;
+void horaxishdwdd_(float *xmn,float *xmx,long int *offl,long int *offr,long int *offb,
+        float *xadd,float *sca,long int *mode,float *dddx, long int *nnx,long int *ind,
+	long int *idiv,long int *isjday,char* msg,int mlen)
 {
 /*
  Local variables:

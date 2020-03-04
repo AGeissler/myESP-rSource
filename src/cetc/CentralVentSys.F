@@ -926,9 +926,9 @@ c  None. Sums up Monthly HRV energy in H3KSTORE_DATA module
 #include "h3kstore_common.h"
 #include "Ventilation_Data.h"
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER IDAYN,iMonth
       LOGICAL bInStartup           !Function to see if still in start up mode.
 

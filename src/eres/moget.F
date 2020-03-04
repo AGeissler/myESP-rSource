@@ -484,8 +484,10 @@ C Pre calculated data (filtered).
 C Comfort parameters and hash table.
       common/cmftpar/WVEL,ACTL,CLO,iocut,iocuset
       common/timfltr/iwkdst,iwkdfn,isatst,isatfn,isunst,isunfn
-      
-C MRT Sensors via geometry.h.
+
+C Remember if we are dealing with surface information (longer names in reporting).
+      logical SLISTR
+      common/focussurf/SLISTR
 
       CHARACTER ITEM(36)*24, MTITLE*22, values*20
       CHARACTER ITEMS(19)*23
@@ -4272,7 +4274,12 @@ C have no impact.
         endif
       endif
 
-C Reset logical variables.
+C Reset logical variables. Remember if focus was surfaces for subsequent stats.
+      if(SLIST)then
+        SLISTR=.true.
+      else
+        SLISTR=.false.
+      endif
       SLIST=.false.
       NLIST=.false.
       MRTLIST=.false.

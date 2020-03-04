@@ -1277,9 +1277,9 @@ C     OUTPUT MONTHLY ENERGY VALUES of FC TO FILE (iFC_TimeStep_File_Number)
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/rcmd/LCMDFL
-      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       character outs*512
       character LCMDFL*144
       logical bInStartup        ! test for start-up period (function)
@@ -1402,8 +1402,8 @@ C Data pertaining to gas-fired water storage tank (may not exist in user's .pln)
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its 
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER   ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       INTEGER   iZONE,IDAYN,iMonth,ISTAT, I
       DIMENSION MTHNAM(12)
       CHARACTER MTHNAM*3

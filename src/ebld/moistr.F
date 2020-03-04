@@ -56,7 +56,7 @@ C *********************************************************************
 #include "building.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/VTHP30/ILTHPS,ILTHPZ(MCOM)
       COMMON/VTHP31/INTHPS,INTHPZ(MCOM)
       LOGICAL INTHPS,INTHPZ
@@ -693,7 +693,7 @@ C *********************************************************************
       SUBROUTINE MSLINK(ICOMP)
 #include "building.h"
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       COMMON/MBINFO/ZMBI(MCOM,4)
       COMMON/PREC6L/TQL1(MCOM,MT),TQL2(MCOM,MT),TQL3(MCOM,MT)
@@ -1294,7 +1294,7 @@ C *********************************************************************
       COMMON/MOIST64/Pnair,Fnair,Snair
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       CHARACTER*72 MSG
 
       DOUBLE PRECISION SUM,Pnew
@@ -1660,7 +1660,7 @@ C *********************************************************************
       SUBROUTINE WRITRH(ICOMP)
 #include "building.h"
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       COMMON/PREC7/ITCNST
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
@@ -1717,8 +1717,8 @@ C *********************************************************************
 #include "geometry.h"
 #include "moist.h"
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      integer       IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer       IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)

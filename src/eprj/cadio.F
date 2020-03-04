@@ -64,37 +64,13 @@ C Controls model export facilities.
       character ITEMS1*34,doit*248,outs*124,outs248*248
       character tmode*12
       character xfile*144,tg*1,delim*1,ffile*72,dvfil*72
-      character ETEXT*82
       character longtfile*144,longtfiledos*144,L144*144,lltmp*144
       character brw*8   ! to signal model is being browsed
       character fs*1
       character hold32*32
       logical oke,modcfg
-      logical found_xfig, found_ximage ! to test application existance
       integer NITMS,INO1 ! max items and current menu item
       integer lnradcf,lnltmp  ! lengths of file names
-
-C Passed parameters for cfgtogg.
-#ifdef OSI
-      integer icfg_type  ! model cfg type
-      integer icfgz      ! if non-zero then there are zones
-      integer icfgn      ! if non-zero then there are networks
-      integer icfgc      ! if non-zero then cfg file known
-      integer icfgdfn    ! if non-zero then cdf domain exists
-      integer iicfgz     ! there are zone related images
-      integer iicfgn     ! there are network related images
-      integer iicfgc     ! there are control related images
-      integer iicfgdfn   ! there are cfd related images
-#else
-      integer*8 icfg_type,icfgz,icfgn,icfgc,icfgdfn,iicfgz
-      integer*8 iicfgn,iicfgc,iicfgdfn
-#endif
-
-#ifdef OSI
-      integer iside,isize,ifont     ! passed to viewtext
-#else
-      integer*8 iside,isize,ifont     ! passed to viewtext
-#endif
 
 C For help messages.
       character helpinsub*24 ! subroutine name

@@ -132,3 +132,10 @@ C arran_led075 arran_led050 etc. are managed.
       integer iespercents   ! number steps of on percentages
       real iessteps         ! percentage for each step
       common/ieson/iespercents(10),iessteps(10,5)
+
+C Helper applications.
+      logical found_curl    ! able to download update_notes.txt
+      logical found_ximage  ! Radiance found
+      logical found_xfig    ! xfig is available
+      logical found_xterm   ! xterm is available
+      common/helperapps/found_curl,found_ximage,found_xfig,found_xterm

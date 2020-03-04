@@ -121,7 +121,7 @@ C integer INSSO() point to the volume which defines the small supply shape
      &        CGSENC(MCOM,MDTY,MGTY,MGPER),CGSENR(MCOM,MDTY,MGTY,MGPER),
      &        CGLAT(MCOM,MDTY,MGTY,MGPER),CGCTL(MCOM,2,MGTY)
       common/wkdtyp/idwe1,idwe2,wkd1,wkd2
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
 
       CHARACTER LRES(4)*24,LMON(4)*24,POLNAM*12

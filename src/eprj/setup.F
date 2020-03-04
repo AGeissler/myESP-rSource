@@ -353,7 +353,7 @@ C then check for spaces in name and change / to \.
         tmode='graph'
         if(teditor(1:2).eq.'vi')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' & '
+     &    longtfile(1:lnblnk(longtfile)),' &'
         call runit(doit,tmode)
 
 C Toggle trace/feedback level.
@@ -422,81 +422,3 @@ C Help text for menu.
       goto 33
      
       END
-
-C *********** isinstalled returns status=.TRUE. if application 'name' found.
-C Test if application [name] is in the user's path by
-C issuing a 'which' command and piping the result to a
-C temporary file, which is then read. If there are
-C characters in the file /tmp/foundit then we assume
-C the application exists. Only works for Linux & OSX.
-      subroutine isinstalled(name,status)
-      integer lnblnk  ! function definition
-      common/FILEP/IFIL
-      common/OUTIN/IUOUT,IUIN,IEOUT
-
-C Parameters.
-      character name*32
-      logical status
-
-C Local variables.
-      logical unixok,XST
-      character doit*124,hold32*32,hold32a*32,outs*124
-      character tmode*8
-      integer iunit,ltf,length
-      integer is   ! status
-
-      doit=' '; status=.false.
-
-C Check if Unix-based or DOS based.
-      call isunix(unixok)
-      if(unixok)then
-        IUNIT=IFIL+1
-        IF(IUNIT.NE.0)CALL ERPFREE(IUNIT,ISTAT)
-        tmode='-'
-        hold32='/tmp/foundit'; ltf=lnblnk(hold32); length=0
-        write(doit,'(3a)')'which ',name(1:lnblnk(name)),
-     &    ' >/tmp/foundit'
-
-C Use version of 'runit' that returns an error status and acts
-C on it. If 'which' did not find anything the return will be non-zero.
-        call runitv(doit,tmode,is)
-        if(is.gt.0.and.is.le.126)then
-          write(outs,*) 'Cannot find ',hold32a(1:lnblnk(hold32a)),' ',
-     &      name(1:lnblnk(name))
-          call edisp(iuout,' ')
-          call edisp(iuout,outs)
-          status=.false.
-          CALL ERPFREE(IUNIT,ISTAT)
-          return
-        endif
-        doit='ls -l /tmp/foundit'          
-cx        call runit(doit,tmode)
-        INQUIRE (FILE=hold32(1:ltf),EXIST=XST)
-        IF (XST) THEN
-          OPEN (IUNIT,FILE=hold32(1:ltf),ACCESS='SEQUENTIAL',
-     &          STATUS='OLD',IOSTAT=ISTAT)
-          CALL ERPFREE(IUNIT,ISTAT)  ! flush the buffer
-          OPEN (IUNIT,FILE=hold32(1:ltf),ACCESS='SEQUENTIAL',
-     &          STATUS='OLD',IOSTAT=ISTAT)
-          READ(IUNIT,'(a)',IOSTAT=IOS)hold32a
-          CALL ERPFREE(IUNIT,ISTAT)
-          length=lnblnk(hold32a)
-          if(length.gt.1)then
-            status=.true.
-          else
-            write(outs,*) 'Cannot find ',hold32a(1:lnblnk(hold32a)),
-     &        ' ',name(1:lnblnk(name))
-            call edisp(iuout,' ')
-            call edisp(iuout,outs)
-            status=.false.
-          endif
-          CALL EFDELET(IUNIT,ISTAT) ! clean up the temporary file
-          return
-        else
-          call usrmsg('Problem trying to open ',hold32,'W')
-          status=.false.
-          return
-        endif
-      endif
-      end  ! of isinstalled
-      

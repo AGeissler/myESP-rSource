@@ -255,6 +255,7 @@ C type='bw' boundary wind, 'bk' boundary known
 
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+      real COG1,COG2,COG3
       DIMENSION  COG1(3),COG2(3),COG3(3)
       character t13*13
       logical doname
@@ -333,6 +334,7 @@ C col is 'r' red  'g' grey
 
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
+      real COG1,COG2,COG3
       DIMENSION  COG1(3),COG2(3),COG3(3)
       character t13*13
       logical doname
@@ -429,6 +431,7 @@ C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       character col*1
       real tdis
 C      character outs*124
+      real COG1,COG2,COG3
       DIMENSION COG1(3),COG2(3),COG3(3)
 #ifdef OSI
       integer iix1,iiy1,iix2,iiy2,iicol
@@ -486,7 +489,7 @@ C      iicol=0  ! red
 
 
 C ************************* MFWFDRAWNC 
-C MFWFDRAW Fluid flow file: draw node & components from common block contents.
+C MFWFDRAWNC Fluid flow file: draw active node & components.
 C colour is either 'r' red or 'g' grey50 for components.
 C Omitt node names indnm=0 or component names icmpnm for clarity
       SUBROUTINE MFWFDRAWNC(col,indnm,icmpnm)
@@ -499,11 +502,24 @@ C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       integer net3ddelay  ! delay between timesteps in 3D network
       common/delay3d/net3ddelay
+
+      integer iuchoice  ! user selection from menuatol
+      integer nlistnode ! how many nodes were selected
+      integer listnode  ! list of node indices
+      integer nlistconn ! how many connections selected
+      integer listconn  ! list of connection indices
+      integer nlistcmp  ! how many components selected
+      integer listcmp   ! list of component indices
+      real fxmin,fxmax,fymin,fymax,fzmin,fzmax
+      common/lists3d/iuchoice,nlistnode,listnode(MNOD),
+     &  nlistconn,listconn(MCNN),nlistcmp,listcmp(MCMP),
+     &  fxmin,fxmax,fymin,fymax,fzmin,fzmax
+
       character col*1
       CHARACTER name*12
       real xc,yc,zc,xw,yw,zw
       integer idms
-      logical iswater
+      logical iswater,found
       character altcol*1
 
       altcol='b'  ! blue alternative colour
@@ -517,36 +533,43 @@ C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
 C Node data.
       IF(NNOD.gt.0)then
         do INOD=1,NNOD
-          name=NDNAM(INOD)
-          xw=HNOD(INOD,1);yw=HNOD(INOD,2); zw=HNOD(INOD,3)
-          if(NDTYP(INOD).eq.0)then
-            if(NDFLD(INOD).eq.1)then
-              call symbol_flow_nd(name,'iu',col,xw,yw,zw)
-            else
-              call symbol_flow_nd(name,'iu',altcol,xw,yw,zw)
+          found=.false.
+          do j=1,nlistnode
+            if(inod.eq.listnode(j))found=.true.
+          enddo
+          if(found)then
+            if(indnm.gt.0) name=NDNAM(INOD)
+            if(indnm.eq.0) name='- '
+            xw=HNOD(INOD,1); yw=HNOD(INOD,2); zw=HNOD(INOD,3)
+            if(NDTYP(INOD).eq.0)then
+              if(NDFLD(INOD).eq.1)then
+                call symbol_flow_nd(name,'iu',col,xw,yw,zw)
+              else
+                call symbol_flow_nd(name,'iu',altcol,xw,yw,zw)
+              endif
+              call pausems(idms)
+            elseif(NDTYP(INOD).eq.1)then
+              if(NDFLD(INOD).eq.1)then
+                call symbol_flow_nd(name,'ik',col,xw,yw,zw)
+              else
+                call symbol_flow_nd(name,'ik',altcol,xw,yw,zw)
+              endif
+              call pausems(idms)
+            elseif(NDTYP(INOD).eq.2)then
+              if(NDFLD(INOD).eq.1)then
+                call symbol_flow_nd(name,'bk',col,xw,yw,zw)
+              else
+                call symbol_flow_nd(name,'bk',altcol,xw,yw,zw)
+              endif
+              call pausems(idms)
+            elseif(NDTYP(INOD).eq.3)then
+              if(NDFLD(INOD).eq.1)then
+                call symbol_flow_nd(name,'bw',col,xw,yw,zw)
+              else
+                call symbol_flow_nd(name,'bw',altcol,xw,yw,zw)
+              endif
+              call pausems(idms)
             endif
-            call pausems(idms)
-          elseif(NDTYP(INOD).eq.1)then
-            if(NDFLD(INOD).eq.1)then
-              call symbol_flow_nd(name,'ik',col,xw,yw,zw)
-            else
-              call symbol_flow_nd(name,'ik',altcol,xw,yw,zw)
-            endif
-            call pausems(idms)
-          elseif(NDTYP(INOD).eq.2)then
-            if(NDFLD(INOD).eq.1)then
-              call symbol_flow_nd(name,'bk',col,xw,yw,zw)
-            else
-              call symbol_flow_nd(name,'bk',altcol,xw,yw,zw)
-            endif
-            call pausems(idms)
-          elseif(NDTYP(INOD).eq.3)then
-            if(NDFLD(INOD).eq.1)then
-              call symbol_flow_nd(name,'bw',col,xw,yw,zw)
-            else
-              call symbol_flow_nd(name,'bw',altcol,xw,yw,zw)
-            endif
-            call pausems(idms)
           endif
         enddo
       endif
@@ -557,147 +580,129 @@ C << CONSIDER NWPCMP()  >>
 
       IF(NCMP.gt.0)then
         DO ICMP=1,NCMP
-          if(icmpnm.gt.0) name=CMNAM(ICMP)
-          if(icmpnm.eq.0) name='- '
-          xc=HCMP(ICMP,1,1);yc=HCMP(ICMP,1,2); zc=HCMP(ICMP,1,3)
-          call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
+          found=.false.
+          do j=1,nlistcmp
+            if(icmp.eq.listcmp(j))found=.true.
+          enddo
+          if(found)then
+            if(icmpnm.gt.0) name=CMNAM(ICMP)
+            if(icmpnm.eq.0) name='- '
+            xc=HCMP(ICMP,1,1);yc=HCMP(ICMP,1,2); zc=HCMP(ICMP,1,3)
+            call ECLOSE(SUPCMP(ICMP,1),2.0,0.0001,iswater)
 
-          IF(ITPCMP(ICMP).EQ. 10) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law flow (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law flow (box)
+            IF(ITPCMP(ICMP).EQ. 10) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law flow (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law flow (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ. 11) THEN
+              continue  ! Self regulating vent
+            ELSE IF(ITPCMP(ICMP).EQ. 12) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law vol flow (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law vol flow (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ. 15) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law mass flow (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ. 17) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law mass flow (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ. 20) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law vol flow (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! quadratic law vol flow (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ. 25) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law mass flow (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! quadratic law mass flow (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ. 30) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant vol flow (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! constant vol flow (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ. 35) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant mass flow (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! constant mass flow (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ. 40) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Common orifice flow
+              else
+                call symbol_flow_cmp(name,'or',altcol,xc,yc,zc) ! Common orifice flow
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ. 50) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Laminar pipe vol
+              else
+                call symbol_flow_cmp(name,'cd',altcol,xc,yc,zc) ! Laminar pipe vol
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ.110) THEN
+              call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Specific air flow
+            ELSE IF(ITPCMP(ICMP).EQ.120) THEN
+              call symbol_flow_cmp(name,'cr',col,xc,yc,zc) ! Specific air flow crack 
+            ELSE IF(ITPCMP(ICMP).EQ.130) THEN
+              call symbol_flow_cmp(name,'bi',col,xc,yc,zc) ! Specific air flow door
+            ELSE IF(ITPCMP(ICMP).EQ.210) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! General flow conduit
+              else
+                call symbol_flow_cmp(name,'cd',altcol,xc,yc,zc) ! General flow conduit
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ.211) THEN
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Cowls and roof outlets (box)
+            ELSE IF(ITPCMP(ICMP).EQ.220) THEN
+              call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Conduit ending in conv 3 leg
+            ELSE IF(ITPCMP(ICMP).EQ.230) THEN
+              call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Conduit starts in diverg 3 leg
+            ELSE IF(ITPCMP(ICMP).EQ.240) THEN
+              call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Conduit ending in conv 4 leg
+            ELSE IF(ITPCMP(ICMP).EQ.250) THEN
+              call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Conduit starts in diverg 4 leg
+            ELSE IF(ITPCMP(ICMP).EQ.310) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow inducer (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! General flow inducer (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ.410) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow corrector (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! General flow corrector (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ.420) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Corrector polynomial (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! Corrector polynomial (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ.460) THEN
+              if(.NOT.iswater)then
+                call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Fixed flow rates controller (box)
+              else
+                call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! Fixed flow rates controller (box)
+              endif
+            ELSE IF(ITPCMP(ICMP).EQ.500) THEN
+              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! multi-configuration (box)
             endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ. 11) THEN
-            continue  ! Self regulating vent
-          ELSE IF(ITPCMP(ICMP).EQ. 12) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law vol flow (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law vol flow (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ. 15) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law mass flow (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ. 17) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! power law mass flow (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! power law mass flow (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ. 20) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law vol flow (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! quadratic law vol flow (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ. 25) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! quadratic law mass flow (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! quadratic law mass flow (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ. 30) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant vol flow (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! constant vol flow (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ. 35) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! constant mass flow (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! constant mass flow (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ. 40) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Common orifice flow
-            else
-              call symbol_flow_cmp(name,'or',altcol,xc,yc,zc) ! Common orifice flow
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ. 50) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Laminar pipe vol
-            else
-              call symbol_flow_cmp(name,'cd',altcol,xc,yc,zc) ! Laminar pipe vol
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.110) THEN
-            call symbol_flow_cmp(name,'or',col,xc,yc,zc) ! Specific air flow
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.120) THEN
-            call symbol_flow_cmp(name,'cr',col,xc,yc,zc) ! Specific air flow crack 
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.130) THEN
-            call symbol_flow_cmp(name,'bi',col,xc,yc,zc) ! Specific air flow door
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.210) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! General flow conduit
-            else
-              call symbol_flow_cmp(name,'cd',altcol,xc,yc,zc) ! General flow conduit
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.211) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Cowls and roof outlets (box)
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.220) THEN
-            call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Conduit ending in conv 3 leg
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.230) THEN
-            call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Conduit starts in diverg 3 leg
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.240) THEN
-            call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Conduit ending in conv 4 leg
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.250) THEN
-            call symbol_flow_cmp(name,'cd',col,xc,yc,zc) ! Conduit starts in diverg 4 leg
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.310) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow inducer (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! General flow inducer (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.410) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! General flow corrector (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! General flow corrector (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.420) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Corrector polynomial (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! Corrector polynomial (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.460) THEN
-            if(.NOT.iswater)then
-              call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! Fixed flow rates controller (box)
-            else
-              call symbol_flow_cmp(name,'bx',altcol,xc,yc,zc) ! Fixed flow rates controller (box)
-            endif
-            call pausems(idms)
-          ELSE IF(ITPCMP(ICMP).EQ.500) THEN
-            call symbol_flow_cmp(name,'bx',col,xc,yc,zc) ! multi-configuration (box)
-            call pausems(idms)
-          endif
-        ENDDO
+         endif
+        enddo
       endif
 
   100 RETURN
@@ -721,6 +726,7 @@ C      COMMON/OUTIN/IUOUT,IUIN,IEOUT
       real tdis,hdis
 C      character outs*124
       character t13*13
+      real COG1,COG2,COG3
       DIMENSION COG1(3),COG2(3),COG3(3)
 #ifdef OSI
       integer iix1,iiy1,iix2,iiy2,iicol,iid4,ibsize,ipixw

@@ -200,13 +200,6 @@ int len;
  return;
 }
 
-/* ********* Displays the ESRU logo. */
-void showlogo_(itime,lix,liy)
-long int *itime,*lix, *liy; /* persistance, position from lower left of the 3dviewing image area */
-{ 
- return;
-}
-
 /*
  * inside: return true if point x,y is inside the box.
  *  The top left edges are inside the box, the bottom right are not.

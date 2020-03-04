@@ -27,7 +27,7 @@ C Boston, MA 02111-1307 USA.
       DOUBLE PRECISION MTX, Y, X
       DOUBLE PRECISION AN, APP, AP, AM, AM1
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       COMMON/PREC7/ITCNST
       COMMON/WBULBO/IOPT
@@ -367,7 +367,7 @@ C********************************************************************
       DOUBLE PRECISION AN, APP, AP, AM, AM1
       INTEGER FLAG
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       COMMON/DRYTIM1/AN, APP, AP, AM, AM1, JJ
       COMMON/DRYTIM2/MTX(4,5),X(4),Y(2,8),DELTAT,CONINI,TWPFA,MZI,KJ      
@@ -493,7 +493,7 @@ C********************************************************************
 
       DOUBLE PRECISION MTX, Y, X, XMCS
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       COMMON/DRYTIM2/MTX(4,5),X(4),Y(2,8),DELTAT,CONINI,TWPFA,MZI,KJ 
 

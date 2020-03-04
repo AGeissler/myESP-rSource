@@ -3169,18 +3169,18 @@ c If MMOD set to valid index, assume it, dont ask.
       MM='     '
   10  IF(MM(1:5).EQ.'-6   '.OR.MODEL.EQ.-6)THEN
         MMOD=-6
-        LIMTTY=24
-        LIMIT=24
+        LIMTTY=30  ! allow a-z plus some headers and footers
+        LIMIT=30
         RETURN
       ELSEIF(MM(1:5).EQ.'-2   '.OR.MODEL.EQ.-2)THEN
         MMOD=-2
-        LIMTTY=24
-        LIMIT=24
+        LIMTTY=30
+        LIMIT=30
         RETURN
       ELSEIF(MM(1:5).EQ.'-1   '.OR.MODEL.EQ.-1)THEN
         MMOD=-1
-        LIMTTY=24
-        LIMIT=24
+        LIMTTY=30
+        LIMIT=30
         RETURN
       ELSEIF(MM(1:5).eq.'8    '.OR.MODEL.EQ.8)THEN
         MMOD = 8
@@ -3276,13 +3276,13 @@ C To conform to Fortran -> C passing conventions on 32bit and 64bit
       tmpa='                                                          '
 
 C First loop through items and find the longest string.
-      ITLENG=max(1,LNBLNK(NAME))
+      ITLENG=max(1,LNBLNK(NAME))  ! Title length
       ISLENG=0
       IMLENG=0
-      DO 80 IL=1,NITMS
+      DO IL=1,NITMS
         ISLENG=max(1,LNBLNK(ITEMS(IL)))
         IF(ISLENG.GT.IMLENG)IMLENG=ISLENG
-  80  CONTINUE
+      ENDDO
 
 C See if an even or odd number of items in list.
       im=MOD(NITMS,2)
@@ -3294,10 +3294,7 @@ C Generate menu depending on terminal.
 
 C Bitmapped screen :  do calls for raster menu, 0,0 are passed
 C to define std upper right position, IRPX,IRPY not used.
-        irpx=0
-        irpy=0
-        impx=0
-        impy=0
+        irpx=0; irpy=0; impx=0; impy=0
         CALL EWMENU(NAME,ITEMS,NITMS,impx,impy,irpx,irpy,INO)
         return
       else
@@ -3308,40 +3305,35 @@ C then restrict to a single column. If less than 36 characters
 C print double column.
         IF(IMLENG.GT.36.OR.NITMS.LE.6)THEN
           LN=max(1,LNBLNK(ITEMS(1)))
-          WRITE(IUOUT,900,iostat=ios,err=1)NAME(1:ITLENG),ITEMS(1)(1:LN)
-  900     FORMAT(/,1X,a,': ',a)
-          DO 92 K=2,NITMS
+          WRITE(IUOUT,'(/,2a)',iostat=ios,err=1)NAME(1:ITLENG),': '
+          DO K=1,NITMS
             LN=max(1,LNBLNK(ITEMS(K)))
-            WRITE(IUOUT,901,iostat=ios,err=2)tmpa(1:ITLENG),
-     &       ITEMS(K)(1:LN)
-  901       FORMAT(1X,a,'  ',a)
-   92     CONTINUE
+            WRITE(IUOUT,'(2a)',iostat=ios,err=2)tmpa(1:2),ITEMS(K)(1:LN)
+          ENDDO
         ELSEIF(IMLENG.LT.24)THEN
           MNULEN=NITMS/2
-          WRITE(IUOUT,902,iostat=ios,err=2)NAME(1:ITLENG),
-     &      ITEMS(1)(1:IMLENG),ITEMS(MNULEN+1)(1:IMLENG)
-  902     FORMAT(/,1X,a,':  ',a,'   ',a)
-          DO 93 K=2,MNULEN
-            WRITE(IUOUT,903,iostat=ios,err=2)tmpa(1:ITLENG),
-     &        ITEMS(K)(1:IMLENG),ITEMS(K+MNULEN)(1:IMLENG)
-  903       FORMAT(1X,a,'   ',a,'   ',a)
-   93     CONTINUE
+          WRITE(IUOUT,'(/,2a)',iostat=ios,err=1)NAME(1:ITLENG),': '
+          WRITE(IUOUT,'(4a)',iostat=ios,err=2)tmpa(1:2),
+     &      ITEMS(1)(1:IMLENG),'   ',ITEMS(MNULEN+1)(1:IMLENG)
+          DO K=2,MNULEN
+            WRITE(IUOUT,'(4a)',iostat=ios,err=2)tmpa(1:2),
+     &        ITEMS(K)(1:IMLENG),'   ',ITEMS(K+MNULEN)(1:IMLENG)
+          ENDDO
           IF(odd)THEN
             LN=max(1,LNBLNK(ITEMS(NITMS)))
-            WRITE(IUOUT,904,iostat=ios,err=2)tmpa(1:ITLENG),
+            WRITE(IUOUT,'(2a)',iostat=ios,err=2)tmpa(1:2),
      &        ITEMS(NITMS)(1:LN)
-  904       FORMAT (1X,a,':  ',a)
           ENDIF
         ELSEIF(IMLENG.GE.24.and.IMLENG.LE.36)THEN
           MNULEN=(NITMS/2)
           WRITE(IUOUT,'(2a)',iostat=ios,err=2)NAME(1:ITLENG),':'
-          DO 193 K=1,MNULEN
-            WRITE(IUOUT,'(2X,a,3x,a)',iostat=ios,err=2)
-     &        ITEMS(K)(1:IMLENG),ITEMS(K+MNULEN)(1:IMLENG)
-  193     CONTINUE
+          DO K=1,MNULEN
+            WRITE(IUOUT,'(4a)',iostat=ios,err=2)tmpa(1:2),
+     &        ITEMS(K)(1:IMLENG),'   ',ITEMS(K+MNULEN)(1:IMLENG)
+          ENDDO
           IF(odd)THEN
             LN=max(1,LNBLNK(ITEMS(NITMS)))
-            WRITE(IUOUT,'(2X,a)',iostat=ios,err=2)
+            WRITE(IUOUT,'(2a)',iostat=ios,err=2)tmpa(1:2),
      &        ITEMS(NITMS)(1:LN)
           ENDIF
         ENDIF
@@ -3355,14 +3347,14 @@ C Solicit Reply.
         ICUR=IFIRST(JJ)
 
 C TEST REPLY IS IN MENU
-        DO 23 JNO=1,NITMS
+        DO JNO=1,NITMS
           INO=JNO
           IF(ICUR.EQ.IFIRST(ITEMS(JNO)))RETURN
-  23    CONTINUE
-        DO 24 JNO=1,NITMS
+        ENDDO
+        DO JNO=1,NITMS
           INO=JNO
           IF(ICUR-32.EQ.IFIRST(ITEMS(JNO)))RETURN
-  24    CONTINUE
+        ENDDO
       ENDIF
    1  if(IOS.eq.2)then
         call edisp(IUOUT,'emenu: permission error composing prompt.')
@@ -4573,7 +4565,7 @@ C Control paging of pop-up help.
 
       if(act(1:6).eq.'create')then
         IST=1
-        MFULL=LIMTTY-2
+        MFULL=LIMTTY
         MCTL = 2
         MIFULL=MFULL-MCTL
         IF(ILEN.LE.MIFULL)THEN
@@ -5345,7 +5337,7 @@ C in the list (at the bottom).
       DIMENSION VERT(35),IVALS(MCOM)
       DIMENSION GERT(20),IGVAL(20)  ! For groups.
       CHARACTER VERT*23,gert*23,KEY*1,prompt2*36
-      character h*72,mod*1,outs*124,msg*96
+      character h*72,mod*1,outs*124,outsd*124,msg*96
 
 C Clear IVALS.
       IER=0
@@ -5456,17 +5448,40 @@ C Display a list of groups of associated zones.
         CALL EPICKS(INPIC,IGVAL,' ','Available groups:',
      &    23,nzgroup,gert,'group list',IER,1)
         CALL EPMENRC
-        write(msg,'(a,i2,a)') 'Includes ',izgnumber(IGVAL(1)),
-     &    'zones.'
+        write(msg,'(2a,i2,a)') 
+     &    zglbl(IGVAL(1))(1:lnblnk(zglbl(IGVAL(1)))),' includes ',
+     &    izgnumber(IGVAL(1)),' zones:'
         call edisp(iuout,msg)
         if(IGVAL(1).gt.0)then
+
+C Vonvert into a single string similar to logic used
+C in eres/utils.F ZNLIST.
           INPIC=0; limit=izgnumber(IGVAL(1))
-          do j=1,limit
+          length=0
+          do i=1,limit
+            lna=lnzname(izglist(IGVAL(1),i))
+            length=length+lna+1
             INPIC=INPIC+1
-            IVALS(INPIC)=izglist(IGVAL(1),j)
-            write(outs,*) 'including ',zname(IVALS(INPIC))
-            call edisp(iuout,outs)
+            IVALS(INPIC)=izglist(IGVAL(1),i)
           enddo
+          if(length.lt.124)then
+            WRITE(outs,5,iostat=ios,err=1)
+     &        (zname(izglist(IGVAL(1),i)),i=1,limit)
+    5       FORMAT(' Zones: ',20(a,' '))
+            call sdelim(outs,outsd,'S',IW)
+            call edisp(iuout,outsd)
+            return
+
+C I/O error trap.
+   1        return
+          else
+            do j=1,limit
+              INPIC=INPIC+1
+              IVALS(INPIC)=izglist(IGVAL(1),j)
+              write(outs,*) 'including ',zname(IVALS(INPIC))
+              call edisp(iuout,outs)
+            enddo
+          endif
           return
         endif
       ELSEIF(IVERT.EQ.(MVERT-3).AND.nzgroup.gt.0)THEN
@@ -5483,6 +5498,20 @@ C Display a list of groups of associated zones.
         INPIC=NCOMP
         call edisp(iuout,'All zones selected')
         return
+      ELSEIF(IVERT.EQ.(MVERT-4).AND.nzgroup.gt.0)THEN
+
+C If there are enough items allow paging control via EKPAGE.
+        IF(IPFLG.EQ.1)THEN
+          IPACT=EDIT
+          CALL EKPAGE(IPACT)
+        ENDIF
+      ELSEIF(IVERT.EQ.(MVERT-3).AND.nzgroup.eq.0)THEN
+
+C If there are enough items allow paging control via EKPAGE.
+        IF(IPFLG.EQ.1)THEN
+          IPACT=EDIT
+          CALL EKPAGE(IPACT)
+        ENDIF
       ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
 
 C Look through previous selections and see if IFOC is unique, if

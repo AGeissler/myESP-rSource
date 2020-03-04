@@ -552,8 +552,8 @@ C ------------------------------------------------------------------------------
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,itrclp,
      & ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)
@@ -1438,8 +1438,8 @@ C ------------------------------------------------------------------------------
 #include "ground_temp_mains_common.h"
 #include "dhw_common.h"
 
-      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      COMMON/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 
       COMMON/ptime/ptimep,ptimef
@@ -1904,8 +1904,8 @@ C ------------------------------------------------------------------------------
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER  ITCF,ITRACE,IZNTRC,ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/PITER/MAXITP,PERREL,PERTMP,PERFLX,PERMFL,
      & itrclp,ICSV(MPNODE,MPVAR),CSVI(MPNODE,MPVAR)
@@ -2550,8 +2550,8 @@ C-------------------------------------------------------------------------------
       LOGICAL bpltcon
       REAL lastTStp
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 
 C-------------------------------------------------------------------------------------------

@@ -150,7 +150,7 @@ C except where explicitly redefined.
       common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
      &         strspm(mspmnod,mspmres),unitspm(mspmnod,mspmres),
      &         txtspm(mspmnod,mspmres)
@@ -459,7 +459,7 @@ C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
      &         strspm(mspmnod,mspmres),unitspm(mspmnod,mspmres),
      &         txtspm(mspmnod,mspmres)
@@ -610,7 +610,7 @@ C convention except where explicitly redefined.
       common/tc/itc,icnt
       common/filep/ifil
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
      &         strspm(mspmnod,mspmres),unitspm(mspmnod,mspmres),
@@ -943,7 +943,7 @@ C except where explicitly redefined.
       common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
      &         strspm(mspmnod,mspmres),unitspm(mspmnod,mspmres),
      &         txtspm(mspmnod,mspmres)
@@ -1256,7 +1256,7 @@ C Special materials.
       integer izntrc  !- zone trace index
       integer itu     !- trace output unit number
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp    !- hour number of present time step
       integer ihrf    !- hour number of future time step
       integer idyp    !- day number of present time step
@@ -1265,7 +1265,7 @@ C Special materials.
       integer idwf    !- day of the week of future day
       integer nsinc   !- number of building side time increments
                       !  since start of simulation
-      integer its     !- current building time-step within current hour
+      integer its,idynow !- current building time-step within current hour
 
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
       real    tfc   !- construction node temperature at future time-row
@@ -1976,7 +1976,7 @@ C N.B. All parameters comply with the Fortran implicit naming
 C convention except where explicitly redefined.
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       common/resspm/ndatspm(mspmnod),dataspm(mspmnod,mspmres),
      &         strspm(mspmnod,mspmres),unitspm(mspmnod,mspmres),
@@ -2226,7 +2226,7 @@ C except where explicitly redefined.
       common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/spmfxst/ispmxist,spflnam
       common/spmatl/nspmnod,ispmloc(mspmnod,3),ispmtyp(mspmnod,2),
      &              nnodat(mspmnod),spmdat(mspmnod,mspmdat)
@@ -2411,7 +2411,7 @@ C N.B. All parameters comply with the Fortran implicit naming convention
 C except where explicitly redefined.
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/spmfxst/ispmxist,spflnam
       common/spmatl/nspmnod,ispmloc(mspmnod,3),ispmtyp(mspmnod,2),
      &              nnodat(mspmnod),spmdat(mspmnod,mspmdat)
@@ -2542,7 +2542,7 @@ C except where explicitly redefined.
       common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
       common/fvals/tfs(mcom,ms),qfs(mcom)
       common/zonspmf/zspmf1(mcom),zspmf2(mcom)
@@ -3159,7 +3159,7 @@ C except where explicitly redefined.
       common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/zonspmf/zspmf1(mcom),zspmf2(mcom)
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
       common/fvals/tfs(mcom,ms),qfs(mcom)
@@ -3546,7 +3546,7 @@ C except where explicitly redefined.
       common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/zonspmf/zspmf1(mcom),zspmf2(mcom)
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
       common/fvals/tfs(mcom,ms),qfs(mcom)
@@ -3950,7 +3950,7 @@ C except where explicitly redefined.
       common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pvalc/tpc(mcom,ms,mn),qpc(mcom)
       common/pvals/tps(mcom,ms),qps(mcom)
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
@@ -4443,8 +4443,8 @@ C by factor T^f).
       real T1,T2
       integer isp,k
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
@@ -4599,8 +4599,8 @@ C is offset by 0.5 ( shcsol + shcliq). C
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       INTEGER  IUOUT,IUIN,IEOUT
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
@@ -4669,8 +4669,8 @@ C Parameters.
       integer Debug   !- output of 'case' as defined below
 
 C Time common.
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C Phase change material parameters.
       common/pcmparm/tsoli,tmelt,sub,Lges,consol,conliq,shcsol,shcliq,
@@ -4910,13 +4910,6 @@ C Set new k.
          endif
       endif ! heating / cooling check
 
-C DEBUG
-cx      if (isp.eq.1) then
-cx      WRITE(98,'(a,i6,a,i2,a,i1,a,f8.4,a,f8.4,a,f10.4)')
-cx     & ' *** nsinc: ',nsinc,', storeThisTS(',isp,',',k,',',TnS,',',
-cx     &                                        TnS1,') = ',storeThisTS
-cx      endif
-
       return
       end
 
@@ -5143,7 +5136,7 @@ C except where explicitly redefined.
       common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pvalc/tpc(mcom,ms,mn),qpc(mcom)
       common/pvals/tps(mcom,ms),qps(mcom)
       common/fvalc/tfc(mcom,ms,mn),qfc(mcom)
@@ -5484,7 +5477,6 @@ C Trace output.
   999 return
       end
 
-C ***********************************************************************
 C ******************************* ReadDSCDataFile ***********************
 C Created by: Achim Geissler
 C Initial Creation Date: March 31, 2017

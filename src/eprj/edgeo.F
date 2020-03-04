@@ -1024,7 +1024,7 @@ C profile has not been defined.
 
 C Select surface USE for one or more surface, later update the
 C common blocks.
-            guesstype='any_type'
+            guesstype='any_type'; use1=' '; use2=' '
             call selectuse(guesstype,use1,use2)
 
           elseif(IRT.eq.5)then
@@ -3550,12 +3550,8 @@ C Force redraw of zone on entry to highlight focus surface.
       TOSMLCN=' '; TOOPT=' '; TOUSE1=' '; TOUSE2=' '
       iissmlci=0
 
-C Check which version.
-      call eclose(gversion(icomp),1.1,0.01,newgeo)
-
-C Check perimeter.
-      call zsurfprm(icomp,is,dupedges,perim)
-C      write(6,*) 'zsurfprm',icomp,is,dupedges,perim
+      call eclose(gversion(icomp),1.1,0.01,newgeo)  ! Check which version.
+      call zsurfprm(icomp,is,dupedges,perim)        ! Check perimeter.
       if(dupedges)then
         call edisp(iuout,
      &    'This surface probably wraps around another surface.')
@@ -3593,8 +3589,7 @@ C      write(6,*) 'zsurfprm',icomp,is,dupedges,perim
       WRITE(ISD(9),'(A,A)')   'f environment : ',
      &  SOTHER(icomp,iss,1)(1:17)
 
-C If newgeo include a line for sparent and one for suse.
-      if(newgeo)then
+      if(newgeo)then   ! If newgeo include a line for sparent and one for suse.
 
 C Info about children of this surface.
         if(nbchild(ioc).gt.0)then
@@ -3627,23 +3622,42 @@ C Info about children of this surface.
         endif
 
 C Report on associated boundary flow node and/ or flow component.
-
 C If SUSE set but no matching flow node or component then offer
 C to select an existing node or component and then update the
 C NODASSOC & CMPASSOC and their positions.
         found_association=.false.
-        call doesflowrefsurface(ICOMP,IS,inode,icmp)
+        call doesflowrefsurface(ICOMP,ISS,inode,icmp)
         if(inode.gt.0)then
           found_association=.true.
-          WRITE(ISD(14),'(2A)')    '  @ flow node: ',NDNAM(inode)
-        else
-          WRITE(ISD(14),'(A)')    '  --            '
+          WRITE(ISD(14),'(2A)')     '  @ flow node: ',NDNAM(inode)
+        else  ! If partition also check the other side.
+          if(ICT(ioc).eq.3)then
+            call doesflowrefsurface(IC2(ioc),IE2(ioc),inode,icmp)
+            if(inode.gt.0)then
+              found_association=.true.
+              WRITE(ISD(14),'(2A)') '  @ flow node: ',NDNAM(inode)
+            else
+              WRITE(ISD(14),'(A)')  '  --            '
+            endif
+          else
+            WRITE(ISD(14),'(A)')  '  --            '
+          endif
         endif
         if(icmp.gt.0)then
           found_association=.true.
-          WRITE(ISD(15),'(2A)')    '  @ flow cmp ',CMNAM(icmp)
+          WRITE(ISD(15),'(2A)')     '  @ flow cmp ',CMNAM(icmp)
         else
-          WRITE(ISD(15),'(A)')    '  --            '
+          if(ICT(ioc).eq.3)then
+            call doesflowrefsurface(IC2(ioc),IE2(ioc),inode,icmp)
+            if(inode.gt.0)then
+              found_association=.true.
+              WRITE(ISD(15),'(2A)') '  @ flow cmp ',CMNAM(icmp)
+            else
+              WRITE(ISD(15),'(A)')  '  --            '
+            endif
+          else
+            WRITE(ISD(15),'(A)')  '  --            '
+          endif
         endif
         
 C If flownetwork had an item that matches this surfaces name but the
@@ -3695,7 +3709,9 @@ C component or creating a new component.
 C If the user has selected a USE that reflects a flow node or component
 C and no entity in the flow network file points to this surface then
 C offer to add such a default entity to the flow network.
-            if(IAIRN.ge.3.and.ICAAS(ICOMP).ne.0)then
+C If connection NOT KNOWN then do not process flow!
+            ioc=IZSTOCN(icomp,iss)
+            if(IAIRN.ge.3.and.ICAAS(ICOMP).ne.0.and.ioc.ne.-1)then
               if(.NOT.found_association)then
                 updatenetwork=.false.
                 write(outs,'(5A)') SNAME(icomp,iss),' with USE ',
@@ -3733,6 +3749,7 @@ C file and we have a USE so no need to do anything.
               endif
               if(updatenetwork)then
                 call updatebothflownetworks(ier)
+                updatenetwork=.false.
               endif
             endif
           endif
@@ -3775,7 +3792,7 @@ C << report inside and outside hc regime here >>
           WRITE(ISD(19),'(2A)') '   location    : ',
      &      SVFC(IC2(ioc),IE2(ioc))
           WRITE(ISD(20),'(2A)') '   construction: ',
-     &      SMLCN(IC2(ioc),IE2(ioc))(1:12)
+     &      SMLCN(IC2(ioc),IE2(ioc))(1:16)
           WRITE(ISD(21),'(2A)') '   in zone     : ',ozn(1:lnblnk(ozn))
           if(newgeo)then
            WRITE(ISD(22),'(2A)')'   use type    : ',
@@ -4422,9 +4439,6 @@ C Cases to ignore.
      &         SUSE(ICOMP,iss,1)(1:5).eq.'STRUC'.or.
      &         SUSE(ICOMP,iss,1)(1:7).eq.'FIXTURE'.or.
      &         SUSE(ICOMP,iss,1)(1:6).eq.'PLANTS')then
-              goforit=.false.
-            endif
-            if(SUSE(ICOMP,iss,2)(1:6).eq.'CLOSED')then
               goforit=.false.
             endif
            
@@ -5821,7 +5835,7 @@ C If a partition then update the other surface use attribute.
         IRT=1
         CALL EASKATOG(' ','Surface DOOR USE attribute air leakage:',
      &    'closed','undercut','open','bidirectional',
-     &    'cancel',' ',' ',IRT,nbhelp)
+     &    'bi-dir ajar','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
           if(showother)then
@@ -5847,6 +5861,12 @@ C If a partition then update the other surface use attribute.
             TOUSE2=SUSE(IC2(icon),IE2(icon),2)
           endif
         elseif(IRT.eq.5)then
+          SUSE(iz,IS,2)='AJAR-BIDIR'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='AJAR-BIDIR'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
+        elseif(IRT.eq.6)then
           continue
         endif
       endif
@@ -5864,7 +5884,7 @@ C If a partition then update the other surface use attributes.
         IRT=1
         CALL EASKATOG(' ','Surface FICT USE air leakage choices:',
      &    'closed','crack','open','bidirectional',
-     &    'cancel',' ',' ',IRT,nbhelp)
+     &    'bi-dir ajar','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
           if(showother)then
@@ -5890,6 +5910,12 @@ C If a partition then update the other surface use attributes.
             TOUSE2=SUSE(IC2(icon),IE2(icon),2)
           endif
         elseif(IRT.eq.5)then
+          SUSE(iz,IS,2)='AJAR-BIDIR'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='AJAR-BIDIR'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
+        elseif(IRT.eq.6)then
           continue
         endif
       endif
@@ -5923,7 +5949,7 @@ C If a partition then update the other surface use attributes.
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
         CALL EASKATOG(' ','Surface FRAME USE air leakage choices:',
-     &    'closed','crack','vent','cancel',
+     &    'closed','crack','trickle vent','cancel',
      &    ' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
@@ -6097,7 +6123,7 @@ C If a partition then update the other surface use attributes.
         IRT=1
         CALL EASKATOG(' ','Surface WINDOW USE air leakage choices:',
      &    'closed','crack','open','sash ','bidirectional',
-     &    'cancel',' ',IRT,nbhelp)
+     &    'bi-dir ajar','cancel',IRT,nbhelp)
         if(IRT.eq.1)then
           SUSE(iz,IS,2)='CLOSED'
           if(showother)then
@@ -6129,6 +6155,12 @@ C If a partition then update the other surface use attributes.
             TOUSE2=SUSE(IC2(icon),IE2(icon),2)
           endif
         elseif(IRT.eq.6)then
+          SUSE(iz,IS,2)='AJAR-BIDIR'
+          if(showother)then
+            SUSE(IC2(icon),IE2(icon),2)='AJAR-BIDIR'
+            TOUSE2=SUSE(IC2(icon),IE2(icon),2)
+          endif
+        elseif(IRT.eq.7)then
           continue
         endif
       endif
@@ -6410,7 +6442,7 @@ C Add USE2 'PERIM-CR'
         IRT=1
         CALL EASKATOG(' ','Surface DOOR USE air leakage choices:',
      &    'closed','undercut','open','bidirectional',
-     &    'cancel',' ',' ',IRT,nbhelp)
+     &    'bi-dir ajar','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           USE2='CLOSED'
         elseif(IRT.eq.2)then
@@ -6420,6 +6452,8 @@ C Add USE2 'PERIM-CR'
         elseif(IRT.eq.4)then
           USE2='BIDIR'
         elseif(IRT.eq.5)then
+          USE2='AJAR-BIDIR'
+        elseif(IRT.eq.6)then
           continue
         endif
       endif
@@ -6431,7 +6465,7 @@ C Add USE2 'PERIM-CR'
         IRT=1
         CALL EASKATOG(' ','Surface FICT USE air leakage choices:',
      &    'closed','crack','open','bidirectional',
-     &    'cancel',' ',' ',IRT,nbhelp)
+     &    'bi-dir ajar','cancel',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           USE2='CLOSED'
         elseif(IRT.eq.2)then
@@ -6441,6 +6475,8 @@ C Add USE2 'PERIM-CR'
         elseif(IRT.eq.4)then
           USE2='BIDIR'
         elseif(IRT.eq.5)then
+          USE2='AJAR-BIDIR'
+        elseif(IRT.eq.6)then
           continue
         endif
       endif
@@ -6462,7 +6498,7 @@ C Add USE2 'PERIM-CR'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IRT=1
         CALL EASKATOG(' ','Surface FRAME USE air leakage choices:',
-     &    'closed','crack','vent','cancel',
+     &    'closed','crack','trickle vent','cancel',
      &    ' ',' ',' ',IRT,nbhelp)
         if(IRT.eq.1)then
           USE2='CLOSED'
@@ -6539,7 +6575,7 @@ C Do not need second tag if generating notional model
         IRT=1
         CALL EASKATOG(' ','Surface WINDOW USE air leakage choices:',
      &    'closed','crack','open','sash ','bidirectional',
-     &    'cancel',' ',IRT,nbhelp)
+     &    'bi-dir ajar','cancel',IRT,nbhelp)
         if(IRT.eq.1)then
           USE2='CLOSED'
         elseif(IRT.eq.2)then
@@ -6551,6 +6587,8 @@ C Do not need second tag if generating notional model
         elseif(IRT.eq.5)then
           USE2='BIDIR'
         elseif(IRT.eq.6)then
+          USE2='AJAR-BIDIR'
+        elseif(IRT.eq.7)then
           continue
         endif
       endif

@@ -262,7 +262,7 @@ C.....Common storing status of plant initialization.
       logical bInitialized(mpcom)
 
 C.....Simulation timestep
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp              ! not used in current context
       integer ihrf              ! not used in current context
       integer idyp              ! present day #
@@ -270,7 +270,7 @@ C.....Simulation timestep
       integer idwp              ! not used in current context
       integer idwf              ! not used in current context
       integer nsinc             ! time step number
-      integer its               ! not used in current context
+      integer its,idynow        ! not used in current context
 
 
 C----------------------------------------------------------------------

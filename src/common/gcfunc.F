@@ -29,7 +29,7 @@ C      CFFNGR: function generator.
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/GCLSOL/igf,IDTYPG,IPERG
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/btime/btimep,btimef
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,NIN
@@ -140,7 +140,7 @@ C CFFNGR is a function generator.
 #include "control.h"
 
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU

@@ -622,7 +622,7 @@ C << need to sort out changing to main project folder >>
         else
           write(doit,'(2a)') foldexe(1:lnblnk(foldexe)),' & '
           call usrmsg('Beginning folder view via',doit,'-')
-          tmode='graph'
+          tmode='-'
           call runit(doit,tmode)
         endif
       elseif(ino.eq.2)then
@@ -716,12 +716,12 @@ C and change any / to \.
               longtfile=' '
               longtfile=longtfiledos
             endif
-            tmode='graph'
+            tmode='-'
             if(teditor(1:2).eq.'  ')then
               call usrmsg(
      &      'The external word processor has not be defined. See your',
      &      'administrator about updating the esprc definition.','W')
-            elseif(teditor(1:2).eq.'vi')then
+            elseif(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')then
               tmode='text'
             endif
             write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
@@ -741,7 +741,7 @@ C Execute graphing tool.
           call tstamp('>','PRJ: start graphing tool')
           write(doit,'(2a)')grfexe(1:lnblnk(grfexe)),' & '
           call usrmsg('Beginning graphing tool via',doit,'-')
-          call runit(doit,'graph')
+          call runit(doit,'text')
         endif
       elseif(ino.eq.4)then
 
@@ -754,7 +754,7 @@ C Execute figure tool.
           call tstamp('>','PRJ: start xfig')
           write(doit,'(2a)')figexe(1:lnblnk(figexe)),' & '
           call usrmsg('Beginning figure tool via',doit,'-')
-          call runit(doit,'graph')
+          call runit(doit,'text')
         endif
       elseif(ino.eq.5)then
 
@@ -767,7 +767,7 @@ C Execute image viewer (get tool via prior scan of default file).
           call tstamp('>','PRJ: start xv')
           write(doit,'(2a)')fmtexe(1)(1:lnblnk(fmtexe(1))),' & '
           call usrmsg('Beginning image tool via',doit,'-')
-          call runit(doit,'graph')
+          call runit(doit,'text')
         endif
       elseif(ino.eq.8)then
         siteinfo=siteinfo+1
@@ -1135,8 +1135,8 @@ C then check for spaces in name and change / to \.
           longtfile=' '
           longtfile=longtfiledos
         endif
-        tmode='graph'
-        if(teditor(1:2).eq.'vi')tmode='text'
+        tmode='-'
+        if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
      &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
@@ -1267,7 +1267,6 @@ C Re-read sbem db and then the descriptive file.
 
 C Check if any of the address fields are known.
             if(certifname(1:15).eq.'not yet defined'.and.
-     &         certTel(1:15).eq.'not yet defined'.and.
      &         certaddress(1:15).eq.'not yet defined')then
               continue  ! nothing to write
             else
@@ -1277,29 +1276,17 @@ C Check if any of the address fields are known.
                 write(outs,'(2a)')'Simulationist name         ',
      &            certifname 
                 call edisp(itu,outs)     
-                write(outs,'(2a)')'Simulationist telephone    ',certTel 
-                call edisp(itu,outs)     
                 write(outs,'(2a)')'Simulationist address      ',
      &            certaddress   
                 call edisp(itu,outs)   
-                write(outs,'(2a)')'Simulationist city         ',certcity  
-                call edisp(itu,outs)    
-                write(outs,'(2a)')'Simulationist postcode     ',certPC  
-                call edisp(itu,outs)
                 call edisp(itu,
      &          '------------------------   ---------------')
               else
                 call edisp(itu,' ')
                 write(outs,'(2a)')'Simulationist name: ',certifname 
                 call edisp(itu,outs)     
-                write(outs,'(2a)')'Simulationist telephone: ',certTel 
-                call edisp(itu,outs)     
                 write(outs,'(2a)')'Simulationist address: ',certaddress   
                 call edisp(itu,outs)   
-                write(outs,'(2a)')'Simulationist city: ',certcity  
-                call edisp(itu,outs)    
-                write(outs,'(2a)')'Simulationist postcode: ',certPC  
-                call edisp(itu,outs)
               endif
             endif
             call edisp(itu,'  ')          
@@ -1320,38 +1307,20 @@ C Check if any of the address fields are known.
           else
             write(outs,'(2a)')'Project name: ',pjname(1:lnblnk(pjname))
             call edisp(itu,outs)
-            if(baddress(1:15).eq.'not yet defined'.and.
-     &         bcity(1:15).eq.'not yet defined'.and.
-     &         buildingPC(1:15).eq.'not yet defined')then
+            if(baddress(1:15).eq.'not yet defined')then
               continue  ! nothing to write
             else
               write(outs,'(2a)')'Building address: ',baddress
               call edisp(itu,outs)
-              write(outs,'(2a)')'Building city: ',bcity(1:lnblnk(bcity)) 
-              call edisp(itu,outs)
-              write(outs,'(2a)')'Building Postcode: ',buildingPC  
-              call edisp(itu,outs)    
               write(outs,'(2a)')'Building owner name: ',ownername
-              call edisp(itu,outs)   
-              write(outs,'(2a)')'Building owner telephone: ',ownertel
               call edisp(itu,outs)   
               write(outs,'(2a)')'Building owner address: ',owneraddr 
               call edisp(itu,outs) 
-              write(outs,'(2a)')'Building owner city: ',ownercity 
-              call edisp(itu,outs) 
-              write(outs,'(2a)')'Building owner Postcode: ',ownerPC
-              call edisp(itu,outs)     
               call edisp(itu,' ')
               write(outs,'(2a)')'Simulationist name: ',certifname 
               call edisp(itu,outs)     
-              write(outs,'(2a)')'Simulationist telephone: ',certTel 
-              call edisp(itu,outs)     
               write(outs,'(2a)')'Simulationist address: ',certaddress   
               call edisp(itu,outs)   
-              write(outs,'(2a)')'Simulationist city: ',certcity  
-              call edisp(itu,outs)    
-              write(outs,'(2a)')'Simulationist postcode: ',certPC  
-              call edisp(itu,outs)
             endif
           endif          
         endif

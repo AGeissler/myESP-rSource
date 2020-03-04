@@ -574,9 +574,9 @@ C Vertical axis label depending on generic type.
       ELSEIF(FOCUS(1:7).EQ.'GRNDRFL')THEN 
         LABEL1='ratio 0 to 1    '           
       ELSEIF(FOCUS(1:7).EQ.'SUPPLWT')THEN !Supply water temperature for pcloop.F PCL03
-        LABEL1='temperature deg C '   
+        LABEL1='temperature degC'   
       ELSEIF(FOCUS(1:7).EQ.'PUMPVFR')THEN !water volume flow rate for pcloop.F PCL08
-        LABEL1='vol flow rate l/h' 
+        LABEL1='vol flow rte l/h' 
       ELSE
 
 C Add in additional generic data definitions here.

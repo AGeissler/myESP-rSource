@@ -646,8 +646,11 @@ C and dialog.
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        LIMTTY=20
-        LIMIT =20
+        IMFS=4   ! Text mode set LIMTTY larger for paging menus.
+        IFS=4
+        ITFS=4
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to application title.

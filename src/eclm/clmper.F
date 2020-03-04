@@ -1282,12 +1282,12 @@ C and change any / to \.
             longtfile=' '
             longtfile=longtfiledos
           endif
-          tmode='graph'
+          tmode='-'
           if(teditor(1:2).eq.'  ')then
             call usrmsg(
      &    'The external word processor has not be defined. See your',
      &    'administrator about updating the esprc definition.','W')
-          elseif(teditor(1:2).eq.'vi')then
+          elseif(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')then
             tmode='text'
           endif
           write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
@@ -1343,12 +1343,12 @@ C and change any / to \.
           longtfile=' '
           longtfile=longtfiledos
         endif
-        tmode='graph'
+        tmode='-'
         if(teditor(1:2).eq.'  ')then
           call usrmsg(
      &    'The external word processor has not be defined. See your',
      &    'administrator about updating the esprc definition.','W')
-        elseif(teditor(1:2).eq.'vi')then
+        elseif(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')then
           tmode='text'
         endif
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),

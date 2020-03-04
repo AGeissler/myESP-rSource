@@ -1016,14 +1016,6 @@ C and used by various facilities.
         call stdate(iyear,iasumf,descr,descrfn)
         write(IFCFG,'(a,4i3,4a)')'*summer_t',id1,im1,id2,im2,
      &    ' # typical summer ',descrst,'--',descrfn
-        write(IFCFG,'(a)')'*help_start'
-        if(nbclmlhelp.eq.0)then
-          write(IFCFG,'(a)')' Supporting text has yet to be entered.'
-        else
-          do 442 ij=1,nbclmlhelp
-            write(IFCFG,'(a)') clmlhelp(ij)(1:lnblnk(clmlhelp(ij)))
- 442      continue
-        endif
         write(IFCFG,'(a)')'*season_end'
       endif
 
@@ -1325,29 +1317,19 @@ C Annual ipv report (if description included within cfg or external file).
         endif
       endif
 
-C Building and client address tokens (as in UK national calculation method).
+C Building and client address tokens.
       WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
      &  '# Name and address of building'
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-NAME ',
      &  pjname(1:lnblnk(pjname))
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-ADDRESS ',
      &  baddress(1:lnblnk(baddress))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-CITY ',
-     &  bcity(1:lnblnk(bcity))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*B-POSTCODE ',
-     &  buildingPC(1:lnblnk(buildingPC))
       WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
      &  '# Contact information for building owner'
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-NAME ',
      &  ownername(1:lnblnk(ownername))
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-ADDRESS ',
      &  owneraddr(1:lnblnk(owneraddr))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-CITY ',
-     &  ownercity(1:lnblnk(ownercity))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-POSTCODE ',
-     &  ownerPC(1:lnblnk(ownerPC))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*O-TELEPHONE ',
-     &  ownertel(1:lnblnk(ownertel))
 
 C Write out contact details of simulation team.
       WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) 
@@ -1356,13 +1338,6 @@ C Write out contact details of simulation team.
      &  certifname(1:lnblnk(certifname))
       WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-ADDRESS ',
      &  certaddress(1:lnblnk(certaddress))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-CITY ',
-     &  certcity(1:lnblnk(certcity))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-POSTCODE ',
-     &  certPC(1:lnblnk(certPC))
-      WRITE(IFCFG,'(2A)',IOSTAT=IOS,ERR=2)'*C-TELEPHONE ',
-     &  certTel(1:lnblnk(certTel))
-
 
 C Write project log file related to this model.
       WRITE(IFCFG,'(A)',IOSTAT=IOS,ERR=2) '* PROJ LOG'

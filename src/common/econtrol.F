@@ -1156,6 +1156,12 @@ C Reporting: Get a string describing the current sensor based on common.
 C Range checking.
         if((ifan(ii,1).gt.-3).or.(ifan(ii,1).lt.-4)) goto 1005
         if(ifan(ii,2).lt.0)goto 1063
+        if(ifan(ii,2).eq.0)then
+          write(outs,'(a,i3,a)') 'No type associated with flow control',
+     &      ii,'. Check the file and correct.'
+          call edisp(iuout,outs)
+          goto 99
+        endif
 
         IF(ifan(ii,1).eq.-4.AND.(ITPCMP(ifan(II,2)).EQ.220.OR.
      &    ITPCMP(ifan(II,2)).EQ.230.OR.ITPCMP(ifan(II,2)).EQ.240.OR.
@@ -3446,7 +3452,7 @@ C << there will not be sufficient room in the text buffer for 2nd
 C << and 3rd aux sensors so these need to be written to subsequent
 C << lines of the report.
 
- 79      continue
+ 79       continue
           call SDELIM(lmsg,message,'S',IW)
 C          call edisp248(6,message,80)
         ELSEIF(IBCLAW(II,JJ,KK).EQ.20)then

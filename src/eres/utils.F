@@ -686,10 +686,10 @@ C Get common block precz/lnprecz from geometry.h
       logical unixok
 
       length=0
-      do 42 i=1,NZ
+      do i=1,NZ
         lna=lnzname(NZNO(i))
         length=length+lna+1
-  42  continue
+      enddo
       if(length.lt.124)then
         WRITE(outs,5,iostat=ios,err=1)(zname(NZNO(I)),I=1,NZ)
     5   FORMAT(' Zones: ',20(a,' '))
@@ -763,11 +763,11 @@ C zone index that fit within 72 characters.
       if(mmod.ne.8) return
       length=0
       isecond=0
-      do 42 i=1,NZ
+      do i=1,NZ
         lna=lnzname(NZNO(i))
         length=length+lna+1
         if(length.lt.106)isecond=i
-  42  continue
+      enddo
 
       if(length.lt.106)then
 
@@ -782,7 +782,7 @@ C Set icx to last character position before looping through zones.
         call textpixwidth(word,ipixw)  ! get its width
         ipixright=iix+ipixw+3   ! pixel where next word should start
         icx=9
-        do 43 i=1,NZ
+        do i=1,NZ
 
 C Find x and y pixels for the current line and character postion.
 C Then get index of colour for this zone, then plot text in that colour.
@@ -797,7 +797,7 @@ C Then get index of colour for this zone, then plot text in that colour.
           call textpixwidth(word,ipixw)  ! get its width
           ipixright=iix+ipixw+3   ! pixel where next word should start
           icx=icx+lna+1
-  43    continue
+        enddo
         iicol=0
         call winscl('-',iicol)
         call forceflush()
@@ -817,7 +817,7 @@ C Set ix to last character position before looping through zones.
         ipixright=iix+ipixw+3   ! pixel where next word should start
         icx=9
         iloop=MIN0(isecond,NZ)
-        do 143 i=1,iloop
+        do i=1,iloop
 
 C Find x and y pixels for the current line and character postion.
 C Then get index of colour for this zone, then plot text in that colour.
@@ -831,14 +831,14 @@ C Then get index of colour for this zone, then plot text in that colour.
           iicol=NZNO(i)
           call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
           icx=icx+lna+1
- 143    continue
+        enddo
         call forceflush()
 
 C If there is a second line that can be created do it.
         inextloop=isecond+1
         if(inextloop.le.NZ)then
           icx=9; ipixright=ipixright2nd
-          do 144 i=inextloop,NZ
+          do i=inextloop,NZ
 
 C Find x and y pixels for the current line and character postion.
 C Then get index of colour for this zone, then plot text in that colour.
@@ -852,7 +852,7 @@ C Then get index of colour for this zone, then plot text in that colour.
             iicol=NZNO(i)
             call textsizeatxy(iix,iiy,word,ibsize,'z',iicol)
             icx=icx+lna+1
- 144      continue
+          enddo
         endif
         iicol=0
         call winscl('-',iicol)

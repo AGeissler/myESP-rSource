@@ -1891,7 +1891,7 @@ C Confirm use of default Alamdahri or an alternative for inside hc.
           elseif(INZOPT.eq.4)then
             goto 20
           endif
-          IHCFP = IHCFP(id) + 1
+          IHCFP(id) = IHCFP(id) + 1
           IN = IHCFP(id)
           do 252 J = 1,NS
             HCI(id,IN,J)= valin
@@ -1985,14 +1985,14 @@ C Recover and list out the available correlations.
         call edisp(iuout,'Index description')
         write(outs,'(2a)') ' -1 ',hclngdescr(-1)
         call edisp(iuout,outs)
-        do 42 ij=1,99
+        do ij=1,99
           if(hclngdescr(ij)(1:3).eq.'not')then
             continue
           else
             write(outs,'(i3,2a)') ij,' ',hclngdescr(ij)
             call edisp(iuout,outs)
           endif
-  42    continue
+        enddo
 
       ELSEIF(INO.EQ.NITEMS-2)then
 
@@ -2540,12 +2540,45 @@ C Determine type of control over calculations.
 C There is one IF ENDIF block for each of the options.
       IF(iw.eq.1) THEN
 
-C Fixed coefficients control: .
+C Fixed coefficients control.
         hcfpdescr(id,IN) = 'User supplied hc values'
+
+C Confirm use of default Alamdahri or an alternative for inside hc.
+        CALL EASKABCD('Initial HC assumptions for THIS PERIOD.',
+     &    'Options:','default inside & outside',
+     &    'user inside default outside','user inside and outside',
+     &    'accept current',INZOPT,nbhelp)
+        if(INZOPT.eq.1)then
+          valin= -1.0
+          valout= -1.0
+        elseif(INZOPT.eq.2)then
+          valin= -1.0
+          CALL EASKR(valin,' ','Initial inside coef [W/m2/degC]:',
+     &      -1.,'F',1000.,'F',-1.0,'inside hc',IER,nbhelp)
+          valout= -1.0
+        elseif(INZOPT.eq.3)then
+          valin= -1.0
+          CALL EASKR(valin,' ','Initial inside coef [W/m2/degC]:',
+     &      -1.,'F',1000.,'F',-1.0,'inside hc',IER,nbhelp)
+          valout= -1.0
+          CALL EASKR(valout,' ','Initial outside coef [W/m2/degC]:',
+     &      -1.,'F',1000.,'F',-1.0,'outside hc',IER,nbhelp)
+        elseif(INZOPT.eq.4)then
+          goto 42
+        endif
+        do J = 1,NS
+          HCI(id,IN,J)= valin
+          HCE(id,IN,J)= valout
+          IHCI(id,IN,J) = -1
+          IHCE(id,IN,J) = -1
+          do jj=1,8
+            CVdata(id,IN,J,jj) = 0.
+          enddo
+        enddo
 
 C Initialise zone vertex menu size variables based on window size.
 C IVERT is the menu position, MVERT the current number of menu lines.
-        MHEAD=1
+  42    MHEAD=1
         MCTL=3
         ILEN=NS
         IPACT=CREATE
@@ -3041,9 +3074,9 @@ C       jj=12-14 wall inside, partition, external
 
 C Also list the names of the surfaces of the zone use more than
 C one line if necessary.
-      do 42 ij=1,nzsur(icomp)
+      do ij=1,nzsur(icomp)
         sn(ij)=sname(icomp,ij)
-  42  continue
+      enddo
 
       call dstamp(dstmp)
       write(iuf,'(2a)',IOSTAT=ISTAT,ERR=990)  '*HC_CTL for zone ',
@@ -3430,10 +3463,12 @@ C held in a *.htc file.
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       character calename*32,calentag*12,calendayname*32
 
-      character outs*124
+      character outs*124,outs2*124,outs3*124
       character hcfpdescr*72
       logical indefault,outdefault   ! default treatment
+      logical indefault2,outdefault2 ! default treatment in 2nd column
       logical inuser,outuser         ! user defined
+      logical odd                    ! for double column reporting
 
 C Short and long descriptions of correlations.
       character hcshtdescr*32  ! short description
@@ -3482,27 +3517,100 @@ C Recover and list out the available correlations.
           call edisp(itru,outs)
           if(ICTL(L,I).eq.1) then
 
-C Convection coefficients.
-            call edisp(itru,'   Surface orientation  Inside    Outside')
-            DO 860 J=1,NS
-              call eclose(HCI(L,I,J),-1.0,0.01,indefault)
-              call eclose(HCE(L,I,J),-1.0,0.01,outdefault)
-              if(indefault.and.outdefault)then
-                WRITE(outs,'(I3,5a)') J,' ',SNAME(icomp,j),' (',
-     &          SVFC(icomp,j),')   default   default'
-              elseif(indefault.and.(.NOT.outdefault))then
-                WRITE(outs,'(I3,5a,F8.3)') J,' ',SNAME(icomp,j),' (',
-     &          SVFC(icomp,j),')   default ',HCE(L,I,J)
-              elseif(.NOT.indefault.and.outdefault)then
-                WRITE(outs,'(I3,5a,F8.3,a)') J,' ',SNAME(icomp,j),' (',
-     &          SVFC(icomp,j),')  ',HCI(L,I,J),'   default '
-              else
-                WRITE(outs,'(I3,5a,2(1X,F8.3))') J,' ',SNAME(icomp,j),
-     &          ' (',SVFC(icomp,j),') ',HCI(L,I,J),HCE(L,I,J)
-              endif
-              call edisp(itru,outs)
-  860       CONTINUE
+C Convection coefficients. If lots of surfaces double the reporting.
+            im=MOD(NS,2)
+            odd=.false.
+            if(im.eq.1) odd=.true.
+            if(NS.lt.12)then   ! Write as a single column
+            call edisp(itru,
+     &        '   Surface orientation    Inside    Outside')
+              DO 860 J=1,NS
+                call eclose(HCI(L,I,J),-1.0,0.01,indefault)
+                call eclose(HCE(L,I,J),-1.0,0.01,outdefault)
+                if(indefault.and.outdefault)then
+                  WRITE(outs,'(I3,5a)') J,' ',SNAME(icomp,j),' (',
+     &            SVFC(icomp,j),')   default   default'
+                elseif(indefault.and.(.NOT.outdefault))then
+                  WRITE(outs,'(I3,5a,F8.3)') J,' ',SNAME(icomp,j),' (',
+     &            SVFC(icomp,j),')   default ',HCE(L,I,J)
+                elseif(.NOT.indefault.and.outdefault)then
+                  WRITE(outs,'(I3,5a,F8.3,a)') J,' ',SNAME(icomp,j),
+     &            ' (',SVFC(icomp,j),')  ',HCI(L,I,J),'   default '
+                else
+                  WRITE(outs,'(I3,5a,2(1X,F8.3))') J,' ',SNAME(icomp,j),
+     &            ' (',SVFC(icomp,j),') ',HCI(L,I,J),HCE(L,I,J)
+                endif
+                call edisp(itru,outs)
+  860         CONTINUE
+            else
 
+C Write data as double column.
+              write(outs,'(2a)') 
+     &          '   Surface orientation    Inside    Outside',
+     &          '   Surface orientation    Inside    Outside'
+              call edisp(itru,outs)
+              MNU=(NS/2)
+              DO 193 J=1,MNU
+                call eclose(HCI(L,I,J),-1.0,0.01,indefault)
+                call eclose(HCE(L,I,J),-1.0,0.01,outdefault)
+                call eclose(HCI(L,I,J+MNU),-1.0,0.01,indefault2)
+                call eclose(HCE(L,I,J+MNU),-1.0,0.01,outdefault2)
+                if(indefault.and.outdefault)then   ! Generate text for 1st column.
+                  WRITE(outs,'(I3,5a)') J,' ',SNAME(icomp,j),' (',
+     &            SVFC(icomp,j),')   default   default'
+                elseif(indefault.and.(.NOT.outdefault))then
+                  WRITE(outs,'(I3,5a,F8.3)') J,' ',SNAME(icomp,j),' (',
+     &            SVFC(icomp,j),')   default ',HCE(L,I,J)
+                elseif(.NOT.indefault.and.outdefault)then
+                  WRITE(outs,'(I3,5a,F8.3,a)') J,' ',SNAME(icomp,j),
+     &            ' (',SVFC(icomp,j),')  ',HCI(L,I,J),'   default '
+                else
+                  WRITE(outs,'(I3,5a,2(1X,F8.3))') J,' ',SNAME(icomp,j),
+     &            ' (',SVFC(icomp,j),') ',HCI(L,I,J),HCE(L,I,J)
+                endif 
+                if(indefault2.and.outdefault2)then   ! Generate text for 2nd column.
+                  WRITE(outs2,'(I3,5a)') J+MNU,' ',SNAME(icomp,j+MNU),
+     &            ' (',SVFC(icomp,j+MNU),')   default   default'
+                elseif(indefault2.and.(.NOT.outdefault2))then
+                  WRITE(outs2,'(I3,5a,F8.3)') J+MNU,' ',
+     &            SNAME(icomp,j+MNU),' (',
+     &            SVFC(icomp,j+MNU),')   default ',HCE(L,I,J+MNU)
+                elseif(.NOT.indefault2.and.outdefault2)then
+                  WRITE(outs2,'(I3,5a,F8.3,a)') J+MNU,' ',
+     &            SNAME(icomp,j+MNU),' (',SVFC(icomp,j+MNU),')  ',
+     &            HCI(L,I,J+MNU),'   default '
+                else
+                  WRITE(outs2,'(I3,5a,2(1X,F8.3))') J+MNU,' ',
+     &            SNAME(icomp,j+MNU),' (',SVFC(icomp,j+MNU),') ',
+     &            HCI(L,I,J+MNU),HCE(L,I,J+MNU)
+                endif
+                write(outs3,'(3a)') outs(1:lnblnk(outs)),' ',
+     &            outs2(1:lnblnk(outs2))
+                call edisp(itru,outs3)
+  193         CONTINUE
+
+C Put odd vertex in left column.
+              if(odd)then
+                J=NS
+                call eclose(HCI(L,I,J),-1.0,0.01,indefault)
+                call eclose(HCE(L,I,J),-1.0,0.01,outdefault)
+                if(indefault.and.outdefault)then
+                  WRITE(outs,'(44x,I3,5a)') J,' ',SNAME(icomp,j),' (',
+     &            SVFC(icomp,j),')   default   default'
+                elseif(indefault.and.(.NOT.outdefault))then
+                  WRITE(outs,'(44x,I3,5a,F8.3)') J,' ',SNAME(icomp,j),
+     &            ' (',SVFC(icomp,j),')   default ',HCE(L,I,J)
+                elseif(.NOT.indefault.and.outdefault)then
+                  WRITE(outs,'(44x,I3,5a,F8.3,a)') J,' ',SNAME(icomp,j),
+     &            ' (',SVFC(icomp,j),')  ',HCI(L,I,J),'   default '
+                else
+                  WRITE(outs,'(44x,I3,5a,2(1X,F8.3))') J,' ',
+     &            SNAME(icomp,j),' (',
+     &            SVFC(icomp,j),') ',HCI(L,I,J),HCE(L,I,J)
+                endif
+                call edisp(itru,outs)
+              endif
+            endif
           elseif(ICTL(L,I).eq.2) then
 
 C Correlation indices.
@@ -3608,10 +3716,10 @@ C the in-built heat transfer correlations in ESP-r.
       integer ij  ! loop counter
 
 C Set all to not applicable and then instanciate available options.
-      do 42 ij=1,99
+      do ij=1,99
         hcshtdescr(ij)='not applicable'
         hclngdescr(ij)='not applicable'
-  42  continue
+      enddo
       
       hcshtdescr(-1)='default correlation             '
       hclngdescr(-1)='default hc correlation                          '

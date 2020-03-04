@@ -1696,7 +1696,7 @@ C=======================================================================
 #include "OffsiteUtilitiesPublic.h"
 #include "OffsiteUtilitiesPrivate.h"
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp           ! present hour
       integer ihrf           ! not used
       integer idyp           ! present day
@@ -1704,7 +1704,7 @@ C=======================================================================
       integer idwp           ! not used
       integer idwf           ! not used
       integer nsinc          ! timestep number
-      integer its            ! index of timestep in current hour
+      integer its,idynow     ! index of timestep in current hour
 
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       integer isd1
@@ -1824,7 +1824,7 @@ C=======================================================================
 #include "OffsiteUtilitiesPublic.h"
 #include "OffsiteUtilitiesPrivate.h"
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp           ! present hour
       integer ihrf           ! not used
       integer idyp           ! present day
@@ -1832,7 +1832,7 @@ C=======================================================================
       integer idwp           ! not used
       integer idwf           ! not used
       integer nsinc          ! not used
-      integer its            ! index of timestep in current hour
+      integer its,idynow     ! index of timestep in current hour
 
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       integer isd1
@@ -1913,7 +1913,7 @@ C.....Arguements
       integer iFuelIndex
       integer h3k_month
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp           ! present hour
       integer ihrf           ! not used
       integer idyp           ! present day
@@ -1921,7 +1921,7 @@ C.....Arguements
       integer idwp           ! not used
       integer idwf           ! not used
       integer nsinc          ! not used
-      integer its            ! index of timestep in current hour
+      integer its,idynow     ! index of timestep in current hour
 
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       integer isd1

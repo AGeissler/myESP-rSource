@@ -402,8 +402,8 @@ C then check for spaces in name and change / to \.
               longtfile=' '
               longtfile=longtfiledos
             endif
-            tmode='graph'
-            if(teditor(1:2).eq.'vi')tmode='text'
+            tmode='-'
+         if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
             write(doit,'(a,2x,a)') teditor(1:lnblnk(teditor)),
      &        longtfile(1:lnblnk(longtfile))
             call runit(doit,tmode)
@@ -868,8 +868,8 @@ C then check for spaces in name and change / to \.
               longtfile=' '
               longtfile=longtfiledos
             endif
-            tmode='graph'
-            if(teditor(1:2).eq.'vi')tmode='text'
+            tmode='-'
+         if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
             write(doit,'(a,2x,a)') teditor(1:lnblnk(teditor)),
      &        longtfile(1:lnblnk(longtfile))
             call runit(doit,tmode)
@@ -1786,8 +1786,8 @@ C then check for spaces in name and change / to \.
               longtfile=' '
               longtfile=longtfiledos
             endif
-            tmode='graph'
-            if(teditor(1:2).eq.'vi')tmode='text'
+            tmode='-'
+         if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
             write(doit,'(a,2x,a)') teditor(1:lnblnk(teditor)),
      &        longtfile(1:lnblnk(longtfile))
             call runit(doit,tmode)

@@ -79,7 +79,7 @@ C The ISO 15099:2003 correlations.
 #include "net_flow.h"
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/TC/ITC,ICNT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/Fisher/Vdot(MCOM),SAT(MCOM),ADJREF(MCOM,MS),DELTAR(MCOM)
       COMMON/HCcomb/iAandH,iassist
@@ -112,17 +112,23 @@ C be superceeded by user specifications.
       IF(ITRACE(6).EQ.0.OR.NSINC.GT.ITCF)goto  9999
       IF(IZNTRC(ICOMP).NE.1)goto 9999 ! check if zone output is rq'd
       IF( IHC(ICOMP).EQ.1 ) THEN
-        write(outs,'(A,I4,a,i3,a,i3,a)')
+        if(isur.eq.1)then
+          write(outs,'(A,I4,a,i3,a,i3,a)')
      &    ' Subroutine HTBUOY  Trace output',ICNT,
      &    ' for zone ',icomp,' & surface ',isur,
      &    ' (data may be superceeded by the zone convective regime).'
+        else
+          write(outs,'(A,I4,a,i3,a,i3,a)')
+     &    ' Subroutine HTBUOY  Trace output',ICNT,
+     &    ' for zone ',icomp,' & surface ',isur,'.'
+        endif
       else
         write(outs,'(A,I4,a,i3,a,i3)')
      &    ' Subroutine HTBUOY  Trace output',ICNT,
      &    ' for zone ',icomp,' & surface ',isur
       endif
       call edisp(itu,outs)
-      CALL DAYCLK(IDYP,BTIMEF,ITU)
+      CALL DAYCLK(idynow,BTIMEF,ITU)
       dotrace=.true.
  9999 continue
 
@@ -922,7 +928,7 @@ C the same correlation as vertical surfaces.
 
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/TC/ITC,ICNT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
 
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
@@ -938,7 +944,7 @@ C Trace output ?
       write(outs,'(A,I4)')
      &  ' Subroutine HTCEXT  Trace output',ICNT
       call edisp(itu,outs)
-      CALL DAYCLK(IDYP,BTIMEF,ITU)
+      CALL DAYCLK(idynow,BTIMEF,ITU)
       dotrace=.true.
  9999 continue
 

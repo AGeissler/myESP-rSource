@@ -343,7 +343,9 @@ C Check component data, beginning with possible duplication.
       I=0
    32 I=I+1
       IF(I.GT.1.AND.CMNAM(I).EQ.CMNAM(ICMP))then
-        call edisp(iuout,' Duplicate component!')
+        write(outs,'(a,i4,2a,i4,a)') 'Duplicate components! ',
+     &    I,CMNAM(I),' & ',ICMP,CMNAM(ICMP)
+        call edisp(iuout,outs)
         GOTO 999
       endif
       IF(I.LT.ICMP-1) GOTO 32
@@ -2186,7 +2188,7 @@ C Component data
         WRITE(IFPRB,'(a)',IOSTAT=IOS,ERR=999)
      &    '# tag name assoc zone & surface type C+ L+'
         WRITE(IFPRB,'(a)',IOSTAT=IOS,ERR=999)
-     &    'start&end positions  description'
+     &    '# start&end positions  description'
         WRITE(IFPRB,'(a)',IOSTAT=IOS,ERR=999) '# data'
 
         DO ICMP=1,NCMP
@@ -2450,7 +2452,6 @@ C Passed parameters:
 
       inode=0; icmp=0
       ioc=IZSTOCN(izone,isurf)
-
       if(IAIRN.ge.1.and.ICAAS(izone).ne.0)then ! Is there a flow network?
         if(IAIRN.eq.3)then                     ! Is it 3D?
           do loop=1,NNOD

@@ -223,7 +223,7 @@ C=======================================================================
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
       REAL QDATA,PCAOUT
       INTEGER napdat
@@ -260,7 +260,7 @@ C-------------------------------------------------------------------------
      &     IPOFS1,IPOFS2,NPCON,IPC1,
      &     IPN1,IPCT,IPC2,IPN2,IHRP,IHRF,
      &     IDYP,IDYF,IDWP,IDWF,NSINC,ITS,IMPEXP,NPEL,
-     &     IPFP,IPHP
+     &     IPFP,IPHP,idynow
       REAL PERREL,PERTMP,PERFLX,PERMFL
      &     ,CSVI,ADATA,BDATA,
      &     CDATA,CONVAR,

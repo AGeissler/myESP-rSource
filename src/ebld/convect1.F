@@ -49,7 +49,7 @@ C ******************** MZCONV ********************
       COMMON/PREC9/NCONST(MCOM),NELTS(MCOM,MS),NGAPS(MCOM,MS),
      &             NPGAP(MCOM,MS,MGP)
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
       COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
@@ -176,7 +176,7 @@ C or type 4 CEN specified hc).
           if(NCHDT(ICOMP).eq.1.or.NCHDT(ICOMP).eq.0)then
             L=1               ! all day types the same.
           else
-            L=icalender(idyp) ! follow model day types
+            L=icalender(idynow) ! follow model day types
           endif
 
 C---------Has the user specified fixed coefficients in the convection file
@@ -212,7 +212,7 @@ C Trace output ?
       write(outs,'(A,I4)')' Subroutine MZCONV     Trace output',ICNT
       call edisp(itu,outs)
       ICNT=ICNT+1
-      CALL DAYCLK(IDYP,BTIMEF,ITU)
+      CALL DAYCLK(idynow,BTIMEF,ITU)
 
 C Output computed convection coefficients.
       DO 9994 ICOMP=1,NCOMP
@@ -252,7 +252,7 @@ C specified in the .htc file.
 
 #include "building.h"
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
      &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
      &       HCFVE(MCOM,MDTY,MS,MBP)
@@ -273,7 +273,7 @@ C Check which day type is applicable.
       if(NCHDT(ICOMP).eq.1.or.NCHDT(ICOMP).eq.0)then
         L=1               ! all day types the same.
       else
-        L=icalender(idyp) ! follow model day types
+        L=icalender(idynow) ! follow model day types
       endif
       NP=NHCFP(ICOMP,L)
       DO 30 I=1,NP
@@ -336,7 +336,7 @@ C but the file can hold alternative values.
 #include "geometry.h"
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/TC/ITC,ICNT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
      &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
@@ -375,7 +375,7 @@ C Check which day type is applicable.
       if(NCHDT(ICOMP).eq.1.or.NCHDT(ICOMP).eq.0)then
         L=1               ! all day types the same.
       else
-        L=icalender(idyp) ! follow model day types
+        L=icalender(idynow) ! follow model day types
       endif
 
 C Check whether we are within one of the time intervals with type 4 control.
@@ -398,7 +398,7 @@ C be superceeded by user specifications.
      &  ' Subroutine HTOVERCEN  Trace output',ICNT,
      &  ' for zone ',icomp
       call edisp(itu,outs)
-      CALL DAYCLK(IDYP,BTIMEF,ITU)
+      CALL DAYCLK(idynow,BTIMEF,ITU)
       dotrace=.true.
  9999 continue
 
@@ -551,7 +551,7 @@ C approach to apply for each interior surface of the zone.
       COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/FVALC/TFC(MCOM,MS,MN),QFC(MCOM)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
 C ICORI(ICOMP,ISUR) holds an index for each `inside' surface of the building
 C                   indicating the surface convection approach to apply.
@@ -645,7 +645,7 @@ C the ICOR value reset and returned as a different value.
      &            IcEuse(MCOM,MDTY,MS,MBP),icnvKY(MCOM,MDTY,MS,MBP),
      &            CVdat(MS*MBP,8)
       COMMON/BTIME/BTIMEP,BTIMEF
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER
 
@@ -665,7 +665,7 @@ C Check which day type is applicable.
         if(NCHDT(ICOMP).eq.1)then
           L=1               ! all day types the same.
         else
-          L=icalender(idyp) ! follow model day types
+          L=icalender(idynow) ! follow model day types
         endif
 
 C Check each control period for `type 2' control.
@@ -703,7 +703,7 @@ C surface when `type 3' control over convection calculations is imposed.
 #include "building.h"
 #include "model.h"
 #include "geometry.h"
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/FVALS/TFS(MCOM,MS),QFS(MCOM)
       COMMON/FVALA/TFA(MCOM),QFA(MCOM)
       COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
@@ -734,7 +734,7 @@ C Check which day type is applicable.
       if(NCHDT(ICOMP).eq.1)then
         L=1               ! all day types the same.
       else
-        L=icalender(idyp) ! follow model day types
+        L=icalender(idynow) ! follow model day types
       endif
 
 C Firstly, determine whether adaptive control is to be applied...

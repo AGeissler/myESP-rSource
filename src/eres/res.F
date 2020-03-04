@@ -159,6 +159,7 @@ C Ask to overwrite flag.
       character firstbit*72,secondbit*72
       character longtmp*144
       character dstmp*24,uname*24,tfile*72
+      character hold32*32     ! for helper applications
 
       character cVnum*38      ! returned from ESPrVersionNum
       character pagestitle*68 ! for banner title via epages call
@@ -181,8 +182,8 @@ C Initialise global common data.
       IUIN=5
       ICOUT=0
       IFIL=10
-      LIMTTY=24
-      LIMIT =24
+      LIMTTY=30
+      LIMIT =30
       NSIGFIG=4
       IFS=0
       ITFS=1
@@ -309,11 +310,11 @@ C menus and dialog.
         call userfonts(IFS,ITFS,IMFS)
         call defaultfonts(IFS,ITFS,IMFS)  ! and remember these as defaults
       ELSE
-        IMFS=5
+        IMFS=5  ! Text mode set LIMTTY larger for paging menus.
         IFS=4
         ITFS=1
-        LIMTTY=16
-        LIMIT =16
+        LIMTTY=30
+        LIMIT =30
       ENDIF
 
 C Find the current ESP-r version number and add it to the application window title.
@@ -416,6 +417,15 @@ C All subsequent tstamp messages will be appended to this file.
         write(outs,'(a,a)')'Journal (results analysis) for:',
      &    uname(1:lnblnk(uname))
         call tstamp('>',outs)
+      endif
+
+C Confirm if there an an xterm available.
+      call isunix(unixok)
+      if(unixok)then
+        found_xterm=.false.; hold32='xterm'
+        call isinstalled(hold32,found_xterm)
+      else
+        found_xterm=.false.  ! not (yet) in Windows
       endif
 
 C Open the session file.
@@ -613,7 +623,7 @@ C Setup for menu text.
       ITEM(9)   ='e plant results        '
       ITEM(10)  ='f indoor environment   '
       ITEM(11)  ='g electrical results   '
-      ITEM(12)  ='h flow results         '
+      ITEM(12)  ='h flow results (CFD)   '
       ITEM(13)  ='i sensitivity results  '
       ITEM(14)  ='j IPV                  '
       ITEM(15)  ='  -------------------- '
@@ -901,7 +911,7 @@ C For most recent cfg file format, display image documentation as well.
                 write(dolist,'(a,2x,a,a)')
      &            fmtexe(imgv)(1:lnblnk(fmtexe(imgv))),
      &            ilist(1:lnblnk(ilist)),' &'
-                call runit(dolist,'graph')
+                call runit(dolist,'-')
                 iton=1
               endif
             endif

@@ -281,8 +281,8 @@ C Trace output.
       INTEGER ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
 C Simulation time step data.
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 C Plant component pointer.
       COMMON/C12PS/NPCDAT,IPOFS1,IPOFS2
@@ -569,8 +569,8 @@ C Trace output.
 
 
 C Simulation time step data.
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 C Plant simulation time step data.
       common/pstctr/nsincp,nsncpr

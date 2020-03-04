@@ -271,6 +271,7 @@ C act='p' iget parameters already set.
 
       COMMON/GETPIK/NGET,IGETNO(MZS,9)
       common/getmenu/menutype,igetind(65),igetflux(65)
+      COMMON/ZONPIK/NZ,NZNO(MCOM)
 
       character SLABEL*32,GLABEL*24,TABLABEL*36
       COMMON/GETLABEL/SLABEL(MZS),GLABEL(MZS),TABLABEL(MZS)
@@ -283,15 +284,18 @@ C act='p' iget parameters already set.
       common/grextras/graftitle,grlbl(10),ngrlbl,lblpx(10),lblpy(10)
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
-      logical HAVEIT   ! to signal data access via GETSTATS
+      logical HAVEIT            ! to signal data access via GETSTATS
 
-      integer ireportunit ! zero is default one is W two is kW three Joules
+      integer ireportunit       ! zero is default one is W two is kW three Joules
       common/repunit/ireportunit
-
+      real Yold,TIMEold         ! type for passing to C
       dimension Yold(MZS), TIMEold(MZS)
       dimension YSC(5), Yadd(5), igx(5), ilr(5)
+      integer lbthusfar,lbdelta ! how many labels have been drawn
+      integer lbypos(MS)        ! position of y of labels
+      logical lbclose           ! are we going to obscure a label
       character prompt*124
-      character ALABEL(6)*12,t20*24,act*1
+      character ALABEL(6)*12,t20*24,t36*36,act*1
       character graftitle*64,grlbl*24,t24*24
 
       integer YAXSET,ADDLIN,horaxisdiv
@@ -353,6 +357,12 @@ C First clear current selections.
         itru = icout
       endif
       if (MENUTYPE.eq.-1) return
+
+      lbthusfar=0   ! reset drawn labels
+      lbdelta=0
+      do loop=1,MS
+        lbypos(loop)=0
+      enddo
 
 C TSTART and TFINISH - start and finish times in hours from 0000 on the 
 C first day of output.
@@ -452,14 +462,17 @@ C  igx(3) is the `Int W/m^2' vertical axis
 C  igx(4) is the `Miscel vertical axis if placed in the centre.
 C  igx(5) does not have a label and is not part of the do 100 loop.
 C Set local values of vertical axis offset (in pixels) from right
-C end of horiz (in pixels) axis.
-      oneonright=115   ! was 110
-      twoonrighta=115   ! was 85 & 110
-      twoonrightb=175  ! was 135
-      threerighta=115   ! was 80 & 110
-      threerightb=175  ! was 135
+C end of horiz (in pixels) axis to make up for the fact that glr
+C is being shifted to the left as more axis are added. If iiw2 values
+C near line ~960 change then the values below might need tweaking.
+      oneonright=165   ! was 115  but with longer labels need more space
+      twoonrighta=165   ! was 115
+      twoonrightb=220  ! was 175
+      threerighta=165   ! was 115
+      threerightb=220  ! was 175
 
 C moghed uses similar YAXSET logic to know how many right axis to draw.
+C It works with current YASSET values.
       call MOGHED
       igx(1)=igl
       igx(2)=igr+threerightb
@@ -746,8 +759,13 @@ C If plotting colours for different zones then recall which
 C zone we are dealing with.  If zone not set then use black.
             if(colok)then
               if(IGETNO(IX,2).gt.0)then
-                iicol=IGETNO(IX,2)
-                call winscl('z',iicol)
+                if(NZ.eq.1)then   ! only 1 zone so colour by surface
+                  iicol=IGETNO(IX,3)
+                  call winscl('z',iicol)
+                else              ! multiple zones so colour by zone
+                  iicol=IGETNO(IX,2)
+                  call winscl('z',iicol)
+                endif
               else
                 iicol=0
                 call winscl('-',iicol)
@@ -776,15 +794,120 @@ C Finally label lines, matching zone line colour if used.
         Iax=IGETNO(I,8)
         call linescale(iigl,Xadd,TSC,iigb,Yadd(Iax),YSC(Iax))
         t20=GLABEL(I)
+        t36=TABLABEL(I)
         if(colok)then
           if(IGETNO(I,2).gt.0)then
-            iicol=IGETNO(I,2)
-            call winscl('z',iicol)
+            if(NZ.eq.1)then   ! only 1 zone so colour by surface
+              iicol=IGETNO(I,3)
+              call winscl('z',iicol)
+            else              ! multiple zones so colour by zone
+              iicol=IGETNO(I,2)
+              call winscl('z',iicol)
+            endif
           endif
         endif
         call u2pixel(TIMEold(I),Yold(I),iid1,iid2)
+
+C Is this close to a previous label position? Try up to six
+C variant positions to see if an un-obstructed Y can be found.
+        if(lbthusfar.eq.0)then
+          lbthusfar=1
+          lbypos(lbthusfar)=iid2
+        else
+          lbclose=.false.
+          do loop=1,lbthusfar
+            lbdelta=abs(lbypos(loop)-iid2)
+            if(lbdelta.lt.6) lbclose=.true.
+          enddo
+          if(lbclose)then        ! will obstruct try 7 pixels higher
+            lbclose=.false.
+            do loop=1,lbthusfar
+              lbdelta=abs(lbypos(loop)-(iid2-7))
+              if(lbdelta.lt.6) lbclose=.true.
+            enddo
+            if(.NOT.lbclose)then ! that will work so reset iid2
+              iid2=iid2-6
+              lbthusfar=lbthusfar+1
+              lbypos(lbthusfar)=iid2
+            else                 ! will obstruct try 14 pixels higher
+              lbclose=.false.
+              do loop=1,lbthusfar
+                lbdelta=abs(lbypos(loop)-(iid2-14))
+                if(lbdelta.lt.6) lbclose=.true.
+              enddo
+              if(.NOT.lbclose)then ! that will work so reset iid2
+                iid2=iid2-14
+                lbthusfar=lbthusfar+1
+                lbypos(lbthusfar)=iid2
+              else                 ! will obstruct try 21 pixels higher
+                lbclose=.false.
+                do loop=1,lbthusfar
+                  lbdelta=abs(lbypos(loop)-(iid2-21))
+                  if(lbdelta.lt.6) lbclose=.true.
+                enddo
+                if(.NOT.lbclose)then ! that will work so reset iid2
+                  iid2=iid2-21
+                  lbthusfar=lbthusfar+1
+                  lbypos(lbthusfar)=iid2
+                else                 ! will obstruct try 28 pixels higher
+                  lbclose=.false.
+                  do loop=1,lbthusfar
+                    lbdelta=abs(lbypos(loop)-(iid2-28))
+                    if(lbdelta.lt.6) lbclose=.true.
+                  enddo
+                  if(.NOT.lbclose)then ! that will work so reset iid2
+                    iid2=iid2-28
+                    lbthusfar=lbthusfar+1
+                    lbypos(lbthusfar)=iid2
+                  else               ! will obstruct try 7 pixels lower
+                    lbclose=.false.
+                    do loop=1,lbthusfar
+                      lbdelta=abs(lbypos(loop)-(iid2+7))
+                      if(lbdelta.lt.6) lbclose=.true.
+                    enddo
+                    if(.NOT.lbclose)then ! that will work so reset iid2
+                      iid2=iid2+6
+                      lbthusfar=lbthusfar+1
+                      lbypos(lbthusfar)=iid2
+                    else                 ! will obstruct try 14 pixels lower
+                      lbclose=.false.
+                      do loop=1,lbthusfar
+                        lbdelta=abs(lbypos(loop)-(iid2+14))
+                        if(lbdelta.lt.6) lbclose=.true.
+                      enddo
+                      if(.NOT.lbclose)then ! that will work so reset iid2
+                        iid2=iid2+14
+                        lbthusfar=lbthusfar+1
+                        lbypos(lbthusfar)=iid2
+                      else                 ! will obstruct try 21 pixels lower 
+                        lbclose=.false.
+                        do loop=1,lbthusfar
+                          lbdelta=abs(lbypos(loop)-(iid2+21))
+                          if(lbdelta.lt.6) lbclose=.true.
+                        enddo
+                        if(.NOT.lbclose)then ! that will work so reset iid2
+                          iid2=iid2+21
+                          lbthusfar=lbthusfar+1
+                          lbypos(lbthusfar)=iid2
+                        else                 ! give up
+                          lbthusfar=lbthusfar+1
+                          lbypos(lbthusfar)=iid2
+                          continue  ! give up shifting
+                        endif
+                      endif
+                    endif
+                  endif
+                endif
+              endif
+            endif
+          else                   ! no obstruction remember and proceed
+            lbthusfar=lbthusfar+1
+            lbypos(lbthusfar)=iid2
+          endif
+        endif
         ibsize=0
-        call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
+C        call textsizeatxy(iid1,iid2,t20,ibsize,'z',iicol)
+        call textsizeatxy(iid1,iid2,t36,ibsize,'z',iicol)
         if(colok)then
           iicol=0
           call winscl('-',iicol)
@@ -920,24 +1043,28 @@ C Set button font width so that space around graph is correct.
           if(onleft.eq.0)then
 
 C Setup and pass in parameters to win3d.
-            iiw1=3; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=3; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=34; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=9; iiw2=24; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=9; iiw2=34; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           endif
         elseif(onright.eq.1)then
           if(onleft.eq.0)then
-            iiw1=3; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=3; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=42; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=9; iiw2=32; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=9; iiw2=42; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
@@ -947,12 +1074,14 @@ C Setup and pass in parameters to win3d.
 C Set the right termination of the horizontal axis to 43 char in so that
 C there is room for two axis on the right.
           if(onleft.eq.0)then
-            iiw1=3; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=3; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=3; iiw2=53; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)
           else
-            iiw1=9; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
+C            iiw1=9; iiw2=43; iiw3=5; iiw4=3; iimenu=menuchw
+            iiw1=9; iiw2=53; iiw3=5; iiw4=3; iimenu=menuchw
             iigl=igl; iigr=igr; iigt=igt; iigb=igb; iigw=igw;iigwh=igwh
             CALL win3d(iimenu,iiw1,iiw2,iiw3,iiw4,
      &        iigl,iigr,iigt,iigb,iigw,iigwh)

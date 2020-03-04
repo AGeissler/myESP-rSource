@@ -1293,7 +1293,7 @@ C *********************************************************************
      &             NPGAP(MCOM,MS,MGP)
       COMMON/PREC12/EI(MCOM,MS),EE(MCOM,MS),AI(MCOM,MS),
      &              AE(MCOM,MS)
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/V2/CFB(MCOM,MST,MST)
       COMMON/GR3D132/T3F(MNOD3)
       COMMON/GRSD113/IST3F(MSNOD),AST3F(MSNOD),I1ST3F(MS),NTSNOD
@@ -1688,7 +1688,7 @@ C *********************************************************************
       subroutine TEMPSD (icomp)
 #include "building.h"
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/GR3D132/T3F(MNOD3)
       COMMON/GRSD41/RefWidth,NRow,NCol,NLay
       COMMON/GRSD100/IndxSt

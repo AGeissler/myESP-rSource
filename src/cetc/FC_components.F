@@ -647,8 +647,8 @@ C ------------------------------------------------------------------------------
       COMMON/TRACE/ITCF,ITRACE,IZNTRC,ITU
       INTEGER ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER  IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER  IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/BTIME/BTIMEP,BTIMEF
       REAL  BTIMEP,BTIMEF
@@ -2336,8 +2336,8 @@ C-------------------------------------------------------------------------------
       COMMON/PCTSTP/NTSTPP
       INTEGER  NTSTPP
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER  IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      INTEGER  IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
 
 C---------------------------------------------------------------------------------

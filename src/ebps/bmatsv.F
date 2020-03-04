@@ -80,7 +80,7 @@ C HOT3000: Fuel cell.
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep
       common/shad1/iml
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SET1/IYEAR,IBDOY,IEDOY,IFDAY,IFTIME
       common/clim/idif(mt),itmp(mt),idnr(mt),ivel(mt),idir(mt),
      &            ihum(mt),idiff,itmpf,idnrf,ivelf,idirf,ihumf
@@ -1035,10 +1035,17 @@ C Continue simulation on an hour-by-hour basis.
 C For type 6 time-step controller, loop until saved hour.
           if(irew.and.j.lt.ihrsv)goto 20
 
-C Set present and future hours.
+C Set present and future hours. If incrementing at midnight set
+C idynow to present day plus one so that the 0h00-1h00 period gets
+C the correct day.
           ihrp=j
           ihrf=j+1
-          if(ihrf.eq.25)ihrf=1
+          idynow=idyp         ! idynow is normally the same as idyp
+          if(ihrf.eq.25)then
+            ihrf=1
+            idynow=idyp+1     ! crossed midnight so increment
+            if(idynow.eq.366) idynow=1
+          endif
 
 C Check for uncertainty associated with control data. The
 C UACTL array will be zero during the base case run but will

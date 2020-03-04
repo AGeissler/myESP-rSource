@@ -91,7 +91,7 @@ C Switch off delay time memory common block
       COMMON/SOFDT/IDTM(MCOM,MLCOM)
 
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/prec7/itcnst
 
 C Common ncmtmstps is used as a flag to start counting simulation timesteps
@@ -1505,7 +1505,7 @@ C geometry.h provides commons G0/G1/G2/precz.
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
 C      COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
 
@@ -2162,7 +2162,7 @@ C gain control.
       common/filep/ifil
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/SHOUT/ICOUT
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
       COMMON/SUNPOS/SAZI,SALT,ISUNUP
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
@@ -2983,7 +2983,7 @@ C the visible transmittance.
       SUBROUTINE DWINVT(IZONE,ISURF,VT,BLIND)
 #include "building.h"
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 
       COMMON/TMCB1/IBCMT(MCOM,MTMC)
       COMMON/TMCB2/NBCTMC(MCOM,MTMC),IBCST(MCOM,MBP,MTMC),
@@ -3035,7 +3035,7 @@ C if ACTIVE=0. then no matching casual gain/occupants.
 #include "building.h"
 #include "schedule.h"
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       INTEGER NBDAYTYPE,NBCALDAYS,ICALENDER,IDTY
 

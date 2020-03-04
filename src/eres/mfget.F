@@ -71,6 +71,18 @@ C MOFLOWSU clears commons/ sets default values.
       COMMON/GRAF1/YMAX(6),YMIN(6),YAXSET(6),ADDLIN,horaxisdiv
       COMMON/IGETFLG/IOCUPF,ialstused,IROC
 
+      integer iuchoice  ! user selection from menuatol
+      integer nlistnode ! how many nodes were selected
+      integer listnode  ! list of node indices
+      integer nlistconn ! how many connections selected
+      integer listconn  ! list of connection indices
+      integer nlistcmp  ! how many components selected
+      integer listcmp   ! list of component indices
+      real fxmin,fxmax,fymin,fyma,fzmin,fzmax
+      common/lists3d/iuchoice,nlistnode,listnode(MNOD),
+     &  nlistconn,listconn(MCNN),nlistcmp,listcmp(MCMP),
+     &  fxmin,fxmax,fymin,fymax,fzmin,fzmax
+
 
       integer YAXSET,ADDLIN,horaxisdiv
 
@@ -95,7 +107,11 @@ C Reset to no choices and current result set.
         SMFLABEL(I)='  '; LNSMFLABEL(I)=0
         GLMFLABEL(I)='  '; LNGLMFLABEL(I)=0
  10   continue
-      ialstused=0
+      ialstused=0  ! Clear the associated nodes and components.
+      nlistnode=0
+      nlistconn=0
+      fxmin=1000.; fxmax=-1000.; fymin=1000.; fymax=-1000.
+      fzmin=1000.; fzmax=-1000.
 
       return
       end
@@ -122,6 +138,18 @@ C columns listed above.
       COMMON/CONTM0/NCONTM,NOCNTM,CONTMNAM(MCONTM)
 
       common/recov01/pifltog,lpifl
+
+      integer iuchoice  ! user selection from menuatol
+      integer nlistnode ! how many nodes were selected
+      integer listnode  ! list of node indices
+      integer nlistconn ! how many connections selected
+      integer listconn  ! list of connection indices
+      integer nlistcmp  ! how many components selected
+      integer listcmp   ! list of component indices
+      real fxmin,fxmax,fymin,fyma,fzmin,fzmax
+      common/lists3d/iuchoice,nlistnode,listnode(MNOD),
+     &  nlistconn,listconn(MCNN),nlistcmp,listcmp(MCMP),
+     &  fxmin,fxmax,fymin,fymax,fzmin,fzmax
 
       COMMON/MFPICK/NMFGET,IMFGETNO(MFRS,8)
       COMMON/MFPK2/NMFLST,IMFLIST(MFCNLST,MFCNEL+1)
@@ -161,7 +189,7 @@ C air flow reporting.
       CHARACTER PROMPT1*72,PROMPT2*72,CONTMNAM*12
       character graftitle*64,grlbl*24,t64*64,t24*24
       character ll1*12,ll2*12,ll3*12
-      character zn*12
+      character zn*12,msg*72
 
       DIMENSION ICPK(MCNN),INPK(MNOD),INPKT(MNOD),INPKT2(MNOD)
       DIMENSION ICtmPK(MCONTM)
@@ -171,6 +199,7 @@ C air flow reporting.
       integer NITMS,INO ! max items and current menu item
 
       logical CLIST,NLIST,CNLST,CRLST,OKL,CTLST
+      logical found
 #ifdef OSI
       integer iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #else
@@ -194,8 +223,13 @@ C  CTLST - contaminant list
  1    continue
       CLIST=.FALSE.; NLIST=.FALSE.; CNLST=.FALSE.
       CRLST=.FALSE.; CTLST=.FALSE.
+      fxmin=1000.; fxmax=-1000.; fymin=1000.; fymax=-1000.
+      fzmin=1000.; fzmax=-1000.
       IDH=1   ! assume no horizontal separator
       net3ddelay=2  ! assume 1 sec delay
+      igrl=0        ! initial assumption
+      itotal=0      ! initial assumption
+      inode=0       ! initial assumption
 
 C MNGET is the maximum number of metrics allowed to be chosen from the menu.
       if (MENUTYPE.eq.1) then
@@ -636,10 +670,10 @@ C Volume flow rate: IMFGET = 4.
         IMFGETNO(NMFGET,7)=3
         IMFGETNO(NMFGET,8)=0
 
-C Ask m^3/s or l/s.
+C Ask m^3/s or l/s or m^3/h.
         ifunits=0
-        CALL EASKAB('Volume flow expresed as:',' ','m^3/s',
-     &      'litres/s',ifunits,nbhelp)
+        CALL EASKABC('Volume flow expresed as:',' ','m^3/s',
+     &      'litres/s','m^3/h',ifunits,nbhelp)
         if(ifunits.eq.1)then
           IMFGETNO(NMFGET,8)=0
           SUFFIX=' m^3/s'
@@ -657,8 +691,18 @@ C Ask m^3/s or l/s.
             SMFLABEL(NMFGET)='Conn flow rate (l/s)'
             LNSMFLABEL(NMFGET)=20
           elseif(IROC.eq.1)then
-            SMFLABEL(NMFGET)='Conn flow rate cng (l/s/hr)'
-            LNSMFLABEL(NMFGET)=27
+            SMFLABEL(NMFGET)='Conn flow rate cng (l/s/h)'
+            LNSMFLABEL(NMFGET)=26
+          endif
+        elseif(ifunits.eq.3)then
+          IMFGETNO(NMFGET,8)=2
+          SUFFIX=' m^3/h'
+          if(IROC.eq.0)then
+            SMFLABEL(NMFGET)='Conn flow rate (m^3/h)'
+            LNSMFLABEL(NMFGET)=22
+          elseif(IROC.eq.1)then
+            SMFLABEL(NMFGET)='Conn flow rate cng (m^3/h/h)'
+            LNSMFLABEL(NMFGET)=28
           endif
         else  ! if no choice made revert to m^3/s.
           IMFGETNO(NMFGET,8)=0
@@ -1180,6 +1224,18 @@ C Ask for relevent nodes. If CTLST is true then ask for containments.
         helptopic='res_mass_flow_nod_select'
         call gethelptext(helpinsub,helptopic,nbhelp)
         call ASKMFNOD(INOPT,NNPK,INPK,PROMPT1,PROMPT2,nbhelp)
+        nlistnode=NNPK
+        do i=1,nlistnode      ! make up list of nodes and update bounds
+          listnode(i)=INPK(i)
+          j=listnode(i)
+          xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+          if(fxmin.gt.xw) fxmin=xw
+          if(fxmax.le.xw) fxmax=xw
+          if(fymin.gt.yw) fymin=yw
+          if(fymax.le.yw) fymax=yw
+          if(fzmin.gt.zw) fzmin=zw
+          if(fzmax.le.zw) fzmax=zw
+        enddo
         IF(CTLST)THEN
           IF(NCONTM.GT.0)THEN
             NCPK=NCONTM
@@ -1316,9 +1372,11 @@ C Ask if only flows associated with a single node.
      &   'e inter-nodal flow ','f cancel ',' ',' ',' ',' ',' ',
      &   ' ',IDH,IDNO,nbhelp)
           if(IDH.eq.1)then
+            iuchoice=1  ! remember individual connections
             INODE=0
             itotal=0
           elseif(IDH.eq.2)then
+            iuchoice=2  ! remember total of connections
             NNPK=1
             PROMPT1=
      &       'Select the node which is associated with the connections'
@@ -1326,11 +1384,24 @@ C Ask if only flows associated with a single node.
             helptopic='res_mass_flow_nod_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call ASKMFNOD(INOPT,NNPK,INPK,PROMPT1,PROMPT2,nbhelp)
+            nlistnode=NNPK
+            do i=1,nlistnode      ! make up list of nodes and bounds.
+              listnode(i)=INPK(i)
+              j=listnode(i)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+            enddo
             INODE=INPK(1)
             itotal=0
           elseif(IDH.eq.3)then
 
 C Note: return INPKT and NNPKT for total entering.
+            iuchoice=3  ! remember total entering
             NNPKT=NNOD
             PROMPT1=
      &       'Select node(s) for total entering:leaving flows.'
@@ -1338,24 +1409,56 @@ C Note: return INPKT and NNPKT for total entering.
             helptopic='res_mass_flow_nod_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call ASKMFNOD(INOPT,NNPKT,INPKT,PROMPT1,PROMPT2,nbhelp)
+            nlistnode=NNPKT
+            do i=1,nlistnode
+              listnode(i)=INPKT(i)
+              j=listnode(i)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+            enddo
             INODE=0
             itotal=1
           elseif(IDH.eq.4.or.idh.eq.5)then
             NNPKT=NNOD
-            IF(IDH.EQ.5)NNPKT=1
+            if(IDH.EQ.5)then
+              NNPKT=1
+              iuchoice=5  ! remember inter-nodal
+            elseif(IDH.eq.4)then
+              iuchoice=4  ! remember to-from ambient
+            endif
             PROMPT1='Select node for flow'
             PROMPT2=' '
             helptopic='res_mass_flow_nod_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call ASKMFNOD(INOPT,NNPKT,INPKT,PROMPT1,PROMPT2,nbhelp)
+            nlistnode=NNPKT
+            do i=1,nlistnode
+              listnode(i)=INPKT(i)
+              j=listnode(i)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+            enddo
             if(idh.eq.5)then
               NNPKT=NNOD
               PROMPT1='Select second node'
               call ASKMFNOD(INOPT2,NNPKT,INPKT2,PROMPT1,PROMPT2,nbhelp)
+              nlistnode=nlistnode+1         ! add the 2nd node
+              listnode(nlistnode)=INPKT2(1)
             endif
             INODE=0
             itotal=1
           elseif(IDH.eq.6)then
+            iuchoice=6  ! user aborted
             NMFGET=NMFGET-1
             goto 1
           endif
@@ -1379,6 +1482,18 @@ C ask for one.
             helptopic='res_mass_flow_nod_select'
             call gethelptext(helpinsub,helptopic,nbhelp)
             call ASKMFNOD(INOPT,NNPK,INPK,PROMPT1,PROMPT2,nbhelp)
+            nlistnode=NNPK
+            do i=1,nlistnode
+              listnode(i)=INPK(i)
+              j=listnode(i)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+            enddo
             IMFGETNO(NMFGET,3)=INPK(1)
           else
             IMFGETNO(NMFGET,3)=INODE
@@ -1388,7 +1503,88 @@ C ask for one.
 
 C Ask for connections if required otherwise use value of NNPK from
 C nodes questions above. I.E. total flow entering was requested.
-        if(itotal.eq.0)call ASKMFCON(INODE,NNPK,ICPK)
+        if(itotal.eq.0)then
+          call ASKMFCON(INODE,NNPK,ICPK)
+          nlistconn=NNPK
+          do i=1,NNPK
+            listconn(i)=ICPK(i)
+            ipp=NODPS(ICPK(I))  ! positive node
+            inn=NODNE(ICPK(I))  ! negative node
+            if(nlistnode.eq.0)then
+              listnode(1)=ipp; listnode(2)=inn; nlistnode=2
+              j=listnode(1)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+              j=listnode(2)
+              xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+              if(fxmin.gt.xw) fxmin=xw
+              if(fxmax.le.xw) fxmax=xw
+              if(fymin.gt.yw) fymin=yw
+              if(fymax.le.yw) fymax=yw
+              if(fzmin.gt.zw) fzmin=zw
+              if(fzmax.le.zw) fzmax=zw
+            else
+              found=.false.
+              do j=1,nlistnode
+                if(listnode(j).eq.ipp)then
+                  found=.true.   ! match found
+                endif
+              enddo
+              if(.NOT.found)then
+                nlistnode=nlistnode+1
+                listnode(nlistnode)=ipp
+                j=ipp
+                xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+                if(fxmin.gt.xw) fxmin=xw
+                if(fxmax.le.xw) fxmax=xw
+                if(fymin.gt.yw) fymin=yw
+                if(fymax.le.yw) fymax=yw
+                if(fzmin.gt.zw) fzmin=zw
+                if(fzmax.le.zw) fzmax=zw
+              endif
+              found=.false.
+              do j=1,nlistnode
+                if(listnode(j).eq.inn)then
+                  found=.true.   ! match found
+                endif
+              enddo
+              if(.NOT.found)then
+                nlistnode=nlistnode+1
+                listnode(nlistnode)=inn
+                j=inn
+                xw=HNOD(j,1); yw=HNOD(j,2); zw=HNOD(j,3)
+                if(fxmin.gt.xw) fxmin=xw
+                if(fxmax.le.xw) fxmax=xw
+                if(fymin.gt.yw) fymin=yw
+                if(fymax.le.yw) fymax=yw
+                if(fzmin.gt.zw) fzmin=zw
+                if(fzmax.le.zw) fzmax=zw
+              endif
+              icmp=ITPCON(ICPK(I))  ! also remember associated components
+              if(nlistcmp.eq.0)then
+                nlistcmp=1; listcmp(1)=icmp
+              else
+                found=.false.
+                do j=1,nlistcmp
+                  if(listcmp(j).eq.icmp)then
+                    found=.true.
+                  endif
+                enddo
+                if(.NOT.found)then
+                  nlistcmp=nlistcmp+1
+                  listcmp(nlistcmp)=icmp
+                endif
+              endif
+            endif
+          enddo  ! of nlistconn
+        write(6,*) 'node list is',nlistnode,(listnode(I),I=1,nlistnode)     
+        write(6,*) 'cmp list is',nlistcmp,(listcmp(I),I=1,nlistcmp) 
+        endif
 
 C Debug.
 C        write(6,*) 'after itotal & nnpk ',itotal,nnpk,inpk
@@ -1485,11 +1681,12 @@ C flow and the extra entry would be the -ive flow).
                   icompindex=ITPCON(ICPK(I))
                   icomptype=ITPCMP(icompindex)
                   if(icomptype.eq.130) then
+                    write(msg,'(2a)') 'Bi-directional flow component ',
+     &                CMNAM(ITPCON(ICPK(I)))
                     helptopic='res_mass_bidirectional'
                     call gethelptext(helpinsub,helptopic,nbhelp)
-                    call EASKAB('Bi-directional flow component ',
-     &                   'reporting options:','net flow',
-     &                   'individual flows',II,nbhelp)
+                    call EASKAB(msg,'reporting options:','net flow',
+     &                              'individual flows',II,nbhelp)
 
 C If net flow do nothing (the existing definition is sufficient)
 C otherwise add the extra entry.
@@ -1607,11 +1804,12 @@ C flow and the extra entry would be the -ive flow).
                   icompindex=ITPCON(ICPK(I))
                   icomptype=ITPCMP(icompindex)
                   if(icomptype.eq.130) then
+                    write(msg,'(2a)') 'Bi-directional flow component ',
+     &                CMNAM(ITPCON(ICPK(I)))
                     helptopic='res_mass_bidirectional'
                     call gethelptext(helpinsub,helptopic,nbhelp)
-                    call EASKAB('Bi-directional flow component ',
-     &                   'reporting options:','net flow',
-     &                   'individual flows',II,nbhelp)
+                    call EASKAB(msg,'reporting options:','net flow',
+     &                              'individual flows',II,nbhelp)
 
 C If net flow do nothing (the existing definition is sufficient)
 C otherwise add the extra entry.
@@ -1722,8 +1920,8 @@ C the previous IMFGETNO for use with additional connections.
                   write(GLMFLABEL(NMFGET),'(3a)')'ambient->',
      &              NDNAM(INPKT(I))(1:lln),SUFFIX(1:lsf)
                   LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
-                  NMFGET=NMFGET+1
-                  DO 211 NXT=1,7
+                  NMFGET=NMFGET+1  ! increment to next
+                  DO 211 NXT=1,8   ! copy remaining attributes
                     IMFGETNO(NMFGET,NXT)=IMFGETNO(NMFGET-1,NXT)
  211              CONTINUE
                   write(GLMFLABEL(NMFGET),'(3a)')'ambient<-',
@@ -1789,7 +1987,7 @@ C the previous IMFGETNO for use with additional connections.
      &              NDNAM(INPKT2(I))(1:lln2),SUFFIX(1:lsf)
                   LNGLMFLABEL(NMFGET)=lnblnk(GLMFLABEL(NMFGET))
                   NMFGET=NMFGET+1
-                  DO 261 NXT=1,7
+                  DO 261 NXT=1,8
                     IMFGETNO(NMFGET,NXT)=IMFGETNO(NMFGET-1,NXT)
  261              CONTINUE
                   write(GLMFLABEL(NMFGET),'(4a)')
@@ -2021,8 +2219,8 @@ C Return inter-node flow for two nodes
 
         elseif (IMFGETNO(I,1).eq.4) then
 
-C Connection net volume flow rate (m^3/s) or (l/s) depending on
-C the value of IMFGETNO(I,8).
+C Connection net volume flow rate (m^3/s) or (l/s) or (m^3/h)
+C depending on the value of IMFGETNO(I,8).
           if (IMFGETNO(I,2).gt.0) then
 
 C Single connection. Depending on IMFGETNO(I,4) return +ive, -ive or net flow.
@@ -2032,28 +2230,36 @@ C Single connection. Depending on IMFGETNO(I,4) return +ive, -ive or net flow.
                 FLOWVALS(I)=VFLOW1
               elseif(IMFGETNO(I,8).eq.1)then
                 FLOWVALS(I)=VFLOW1*1000.0
+              elseif(IMFGETNO(I,8).eq.2)then
+                FLOWVALS(I)=VFLOW1*3600.
               endif
             elseif (IMFGETNO(I,4).lt.0) then
               if(IMFGETNO(I,8).eq.0)then
                 FLOWVALS(I)=VFLOW2
               elseif(IMFGETNO(I,8).eq.1)then
                 FLOWVALS(I)=VFLOW2*1000.0
+              elseif(IMFGETNO(I,8).eq.2)then
+                FLOWVALS(I)=VFLOW2*3600.
               endif
             else
               if(IMFGETNO(I,8).eq.0)then  ! Net flow.
                 FLOWVALS(I)=VFLOW1+VFLOW2
               elseif(IMFGETNO(I,8).eq.1)then
                 FLOWVALS(I)=(VFLOW1+VFLOW2)*1000.0
+              elseif(IMFGETNO(I,8).eq.2)then
+                FLOWVALS(I)=(VFLOW1+VFLOW2)*3600.
               endif
             endif
           elseif(IMFGETNO(I,2).eq.0)then
 
-C All connections, return total flow into node.
+C All connections, return total flow into node in m^3/s and convert if needed.
             call MFSUMCON(I,2,VFLOW1,VFLOW2)
             if(IMFGETNO(I,8).eq.0)then
               FLOWVALS(I)=VFLOW1
             elseif(IMFGETNO(I,8).eq.1)then
               FLOWVALS(I)=VFLOW1*1000.0
+            elseif(IMFGETNO(I,8).eq.2)then
+              FLOWVALS(I)=VFLOW1*3600.
             endif
           elseif(IMFGETNO(I,2).eq.-1) then
 
@@ -2065,6 +2271,9 @@ C Return flow to and from ambient for this node.
             elseif(IMFGETNO(I,8).eq.1)then
               FLOWVALS(I)=VFLOW1*1000.0
               FLOWVALS(I+1)=VFLOW2*1000.0
+            elseif(IMFGETNO(I,8).eq.2)then
+              FLOWVALS(I)=VFLOW1*3600.
+              FLOWVALS(I+1)=VFLOW2*3600.
             endif
             NEXT=1
           elseif(IMFGETNO(I,2).eq.-2) then
@@ -2077,6 +2286,9 @@ C Return inter-node flow for two nodes
             elseif(IMFGETNO(I,8).eq.1)then
               FLOWVALS(I)=VFLOW1*1000.0
               FLOWVALS(I+1)=VFLOW2*1000.0
+            elseif(IMFGETNO(I,8).eq.2)then
+              FLOWVALS(I)=VFLOW1*3600.
+              FLOWVALS(I+1)=VFLOW2*3600.
             endif
             NEXT=1
           endif
@@ -2419,7 +2631,7 @@ C or first node then a +ive flow is leaving the node and vice versa).
       elseif(ABS(IMFGETNO(IG,4)).eq.IMFGETNO(IG,3)
      &       .AND.IMFGETNO(IG,2).EQ.-1)THEN
 
-C All valid connections to node=-1*IMFGETNO(IG,4) to/from ambient
+C All valid connections to node=-1*IMFGETNO(IG,4) to/from ambient.
         NODE=abs(IMFGETNO(IG,4))
         do 301 ICNN=1,NCNN
           IDPS=NODPS(ICNN)
@@ -2591,21 +2803,21 @@ C For help messages
       helpinsub='EDMFGOGET'  ! set for cfiles
 
 C Sort ORDER of IMFGETNO array for display purposes.
-      do 100 I=1,NMFGET
+      do I=1,NMFGET
         ORDER(I)=I
         OGET(I)=IMFGETNO(I,1)*10000 + IMFGETNO(I,2)*100 + IMFGETNO(I,3)
- 100  continue
+      enddo
       call SORTI(OGET,ORDER,NMFGET,2)
 
-C Set all values of incget to 1
-      do 5 I=1,NMFGET
+C Set all values of incget to 1 (i.e. all currently reported itmes).
+      do I=1,NMFGET
         INCGET(I)=1
- 5    continue
+      enddo
 
 C Initialise menu size variables based on window size.
 C IVERT is the menu position, MVERT the current number of menu lines.
       MHEAD=1
-      MCTL=3
+      MCTL=4
       ILEN=NMFGET
       IPACT=CREATE
       CALL EKPAGE(IPACT)
@@ -2644,8 +2856,9 @@ C If a long list include page facility text.
         WRITE(VERT(M+1),15)IPM,MPM
    15   FORMAT   ('0 page: ',I2,' of ',I2,' ---')
       ENDIF
-      VERT(M+2)  ='? help                     '
-      VERT(M+3)  ='- exit and activate changes'
+      VERT(M+2)  ='! clear all                '
+      VERT(M+3)  ='? help                     '
+      VERT(M+4)  ='- exit and activate changes'
 
 C Instanciate help strings for this menu.
       helptopic='menu_selection_editing'
@@ -2703,6 +2916,11 @@ C Remove inactive elements.
         helptopic='menu_selection_editing'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('metric selection',5,'-',0,0,IER)
+      ELSEIF(IVERT.EQ.(MVERT-2))THEN
+        do I=1,NMFGET  ! Set all values of incget to zero ad rest NMFGET.
+          INCGET(I)=0
+        enddo
+        NMFGET=0
       ELSEIF(IVERT.EQ.(MVERT-2))THEN
 
 C If there are enough items allow paging control via EKPAGE.

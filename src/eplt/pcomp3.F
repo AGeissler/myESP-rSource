@@ -46,7 +46,7 @@ c ******************** CMP30C ********************
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pctime/timsec
       common/pctc/tc(mpcom)
 
@@ -217,7 +217,7 @@ C            2 condensate flow rate (kg/s)
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pctime/timsec
       common/pctc/tc(mpcom)
 
@@ -583,7 +583,7 @@ C       being tested.
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PTIME/PTIMEP,PTIMEF
       common/pctime/timsec
       COMMON/PCTC/TC(MPCOM)
@@ -871,7 +871,7 @@ C           18 Azimuth of surface or tracking axis (degrees)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -1239,7 +1239,7 @@ C ************************************************
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/CLIM/IDIF(MT),ITMP(MT),IDNR(MT),IVEL(MT),IDIR(MT),
      &IHUM(MT),IDIFF,ITMPF,IDNRF,IVELF,IDIRF,IHUMF
 
@@ -1727,7 +1727,7 @@ C ************************************************
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
        
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
@@ -2060,7 +2060,7 @@ c    CDATA : None.
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pctc/tc(mpcom)
 
       common/pcequ/impexp,ratimp
@@ -2166,7 +2166,7 @@ C            2 Hot fluid temperature (C)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -2460,7 +2460,7 @@ C ************************************************
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
       COMMON/PCEQU/IMPEXP,RATIMP
@@ -2915,7 +2915,7 @@ C
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
@@ -3177,7 +3177,7 @@ C     CDATA: 1  Loading for CHP unit (%)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCTIME/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -3506,7 +3506,7 @@ C RI - refraction index
 
 #include "plant.h"
 #include "building.h"
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 

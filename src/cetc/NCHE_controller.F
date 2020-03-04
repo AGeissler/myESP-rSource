@@ -130,7 +130,7 @@ C-------------------------------------------------------------------------------
       common/tc/itc,icnt
       common/outin/iuout,iuin,ieout
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/c9/npcomp,nci(mpcom),cdata(mpcom,mmiscd)
       common/pclsol/icfp,idtypp,iperp
       common/pers/isd1,ism1,isd2,ism2,isds,isdf,ntstep 
@@ -1134,7 +1134,7 @@ C-------------------------------------------------------------------------------
 C     Required common blocks
 C-------------------------------------------------------------------------------------
       common/outin/iuout,iuin,ieout
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/ptime/ptimep,ptimef
       common/c9/npcomp,nci(mpcom),cdata(mpcom,mmiscd)
       common/pclsol/icfp,idtypp,iperp

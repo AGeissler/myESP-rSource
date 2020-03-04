@@ -87,7 +87,7 @@ C
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -285,7 +285,7 @@ C            1 Inter-node fluid heat capacity rate (W/K)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -649,7 +649,7 @@ C     CDATA: none
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -856,7 +856,7 @@ C     CDATA: none
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -1040,7 +1040,7 @@ C     CDATA: 1 Volume flow rate (m^3/s)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -1331,7 +1331,7 @@ C            2 Inter-node fluid heat capacity rate (W/K)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -1597,7 +1597,7 @@ C            1 Inter-node fluid heat capacity rate (W/K)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/BTIME/BTIMEP,BTIMEF
       COMMON/PTIME/PTIMEP,PTIMEF
@@ -1859,7 +1859,7 @@ C            2 Total radiator heat emission (W)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -2170,7 +2170,7 @@ C     PCDATF(IPCOMP,1): Supplied electrical energy (W).
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -2368,7 +2368,7 @@ c     cdata: mass flow fraction entering damper.
       common/outin/iuout,iuin,ieout
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pctime/timsec
       common/pctc/tc(mpcom)
 
@@ -2534,7 +2534,7 @@ C            4 Coil external heat transfer coefficient (W/m^2k)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -2787,7 +2787,7 @@ C
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -3004,9 +3004,6 @@ C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
             ALPHA=1.
         END IF
 
-cx      ... for now ... (movable, 30.10.2018)
-        ALPHA=1.
-
 C Establish matrix equation self- and cross-coupling coefficients.
         COUT(1)=ALPHA*(-C1-UA/2.)-CW1/TIMSEC
         COUT(2)=ALPHA*(-C2-UA/2.)-CW2/TIMSEC
@@ -3155,7 +3152,7 @@ C
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -3437,7 +3434,7 @@ C
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCTIME/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -3848,7 +3845,7 @@ C            1 Inter-node fluid heat capacity rate (W/K)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -4094,7 +4091,7 @@ C
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -4386,7 +4383,7 @@ C
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -4579,7 +4576,7 @@ C     CDATA: none
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -4777,7 +4774,7 @@ C     CDATA: 1 Mass flow rate (kg/s)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
       COMMON/PCTC/TC(MPCOM)
@@ -5017,8 +5014,8 @@ C            2 Inter-node fluid heat capacity rate (W/K)
       INTEGER ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       REAL TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
@@ -5454,8 +5451,8 @@ C            1 Inter-node fluid heat capacity rate (W/K)
       INTEGER ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       REAL TIMSEC
       COMMON/PCTC/TC(MPCOM)
@@ -5759,7 +5756,7 @@ C water outlet temperature and ambient temperature compensation can be applied [
 
       COMMON/ITERINDEX/ITERNU !plant iteration number
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -5824,7 +5821,7 @@ C Electrical details for specified plant components
       INTEGER lnblnk
       REAL SHTFLD
 
-      INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,
+      INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,idynow,
      &IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,IMPEXP
       INTEGER NPCDAT,IPOFS1,IPOFS2,ICON1,INOD1,napdat,
      &IPCOMP,ISTATS,I,ICONDX,ICONTP,IX1,NCI,NITMS,NPCOMP
@@ -6345,8 +6342,8 @@ C NTSBO       = total no. of timesteps boiler is to be off due to lockout
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       INTEGER ITCF,ITRACE,IZNTRC,ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
-      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
+      INTEGER IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/Pctime/TIMSEC
       REAL TIMSEC
@@ -7065,11 +7062,11 @@ C     ADATA: 1 Mass of component (solids+liquid) (kg)
 C            2 Mass weighted average specific heat node (J/kgK)
 C            3 UA modulus for component (W/K)
 
-C     BDATA: 1 COP model [1 - fixed COP 2 - modified Carnot efficiency; 3- f(dT) 4 - polynomial 5 - linear]
-C            2 Model coef a0 [model 5: offset SH]
-C            3 Model coef a1 [model 5: slope SH]
-C            4 Model coef a2 [model 5: offset DHW]
-C            5 Model coef a3 [model 5: slope DHW]
+C     BDATA: 1 COP model [1 - fixed COP 2 - modified Carnot efficiency; 3- f(dT) 4 - polynomial]
+C            2 Model coef a0
+C            3 Model coef a1
+C            4 Model coef a2
+C            5 Model coef a3
 C            6 Device power draw (kW) model [1 - fixed 2- polynomial 3-exponential b0*e^(b1)]
 C            7 Model coef b0
 C            8 Model coef b1
@@ -7086,8 +7083,8 @@ C           18 Tin max (degC)
 C           19 Ambient temp compensation on/off (-)
 C           20 Nominal water return temperature (Deg C)
 C           21 Nominal water return deadband (Deg C)
-C           22 Amb. air Temperature for temp compensation start [Deg C]
-C           23 Amb. air Temperature for temp compensation end [Deg C]
+C           22 Ground source temperature for temp compensation start [Deg C]
+C           23 Ground source temperature for temp compensation end [Deg C]
 C           24 Temp compensation gradient [deg C return/deg C ground source] (degCr/degCa)
 C           25 Heat pump lock out time (min)
 C           26 Ground source model [1 - standard profile 2 - user profile 3 - f(depth)]
@@ -7120,7 +7117,7 @@ C water outlet temperature and ambient temperature compensation can be applied [
 
       COMMON/ITERINDEX/ITERNU !plant iteration number
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -7214,7 +7211,7 @@ C Electrical details for specified plant components
       INTEGER lnblnk
       REAL SHTFLD
 
-      INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,
+      INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,idynow,
      &IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,IMPEXP
 
       INTEGER NPCDAT,IPOFS1,IPOFS2,ICON1,INOD1,napdat,
@@ -7337,16 +7334,15 @@ C Case where Tamb > Temp compensation saturation point
             ReturnSPH=ReturnSP+0.5*(NomRetTDeadB)
           ENDIF
 
-          IF(ReturnSPH.GT.TinMax) ReturnSPH=TinMax
-
           IF(ReturnSP.GT.TinMax)THEN
             ReturnSP=TinMax
-cx            ReturnSPH=ReturnSP
+            ReturnSPH=ReturnSP
           ENDIF
         ENDIF
       endif ! space heat rq'd
 
-cx ISTAT.eq.1 was here, previously (190904)
+C Generate coefficients for energy balance equation
+      IF (ISTATS.EQ.1) THEN
 
 C       Set ground source temperature based on BDATA.
         call eclose(BDATA(IPCOMP,26),1.0,0.001,bGrndSrc1)
@@ -7507,19 +7503,9 @@ C Calculate the COP based on the user-specified method.
           ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Tgrnd
             TL=Tgrnd
             TH=ReturnT
-            COP=min(COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.),
-     &               COPa0+(COPa1*(ToutMax-TL))
-     &                               +(COPa2*(ToutMax-TL)**2.))
+            COP=COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.)
           ELSEIF(COPModel.EQ.4)THEN
             COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ground T
-          ELSEIF(COPModel.EQ.5)THEN
-            TL=Tgrnd
-            TH=ToutMax
-            if (bSHrqd) then
-              COP=COPa0+COPa1*(TH-TL)
-            else
-              COP=COPa2+COPa3*(TH-TL)
-            endif
           ELSE
             WRITE(OUTS,'(a)')'Error in 1-node GSHP, COP model # '
             CALL EDISP(IUOUT,OUTS)
@@ -7570,7 +7556,7 @@ C       accordingly (assume controller is still operating).
         ENDIF
 
 C Generate coefficients for energy balance equation
-      IF (ISTATS.EQ.1) THEN
+cx      IF (ISTATS.EQ.1) THEN
 
 C Establish the nodal thermal capacities (see CMP36C).
         CM=CompMass*AveSpHt
@@ -7579,8 +7565,8 @@ C Node 1 water
         C1=DeviceFlow*SHTFLD(3,CONVAR(ICON1,1))
 
 C Set heat loss to zero if no containment defined
-        CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
-        IF(CLOSE) UAMod=0.0
+cx        CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
+cx        IF(CLOSE) UAMod=0.0
 
 C Calculate the electrical demand of the device assumung the controller is ON.
         CtlPower=CtlRating
@@ -7854,7 +7840,7 @@ C water outlet temperature and ground source temperature compensation can be app
 
       COMMON/ITERINDEX/ITERNU !plant iteration number
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -7943,7 +7929,7 @@ C Electrical details for specified plant components
       INTEGER lnblnk
       REAL SHTFLD
 
-      INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,
+      INTEGER ITC,ICNT,ITCF,ITRACE,IZNTRC,ITU,ITERNU,idynow,
      &IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,IMPEXP
 
       INTEGER NPCDAT,IPOFS1,IPOFS2,ICON1,INOD1,napdat,
@@ -8038,7 +8024,6 @@ C Pump circulates while there is a call for heat.
         BrinePumpPower=0.
         BrineFlow=0.0
       ENDIF
-        BrineFlow=BrineRatedFlow
 
 C Set return setpoints based on which function requires heat
       if (bDHWrqd) then
@@ -8178,12 +8163,11 @@ C Calculate the COP based on the user-specified method.
           ELSEIF(COPModel.EQ.3)THEN !quadratic based on Td-Ta
             TL=Tgrnd
             TH=ReturnT
-cx            TH=ToutMax
             COP=min(COPa0+(COPa1*(TH-TL))+(COPa2*(TH-TL)**2.),
      &               COPa0+(COPa1*(ToutMax-TL))
      &                               +(COPa2*(ToutMax-TL)**2.))
           ELSEIF(COPModel.EQ.4)THEN
-            COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ground T
+            COP=COPa0+COPa1*Tgrnd+COPa2*Tgrnd**2.+COPa3*Tgrnd**3. !cubic polymonial COP based on ambient T
           ELSE
             WRITE(OUTS,'(a)')'Error in 2node-GSHP, COP model # '
             CALL EDISP(IUOUT,OUTS)
@@ -8519,7 +8503,7 @@ C            2 Surface temperature of coupled wall in 1 (C)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -8692,7 +8676,7 @@ C            3 Surface temperature of mount wall in 1 (C)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -8861,7 +8845,7 @@ C            2 Surface temperature of coupled wall in 1 (C)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -9037,7 +9021,7 @@ C node 3 m_3 = (1-a) x m_1
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCTIME/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -9062,7 +9046,7 @@ C node 3 m_3 = (1-a) x m_1
      
       INTEGER IMPEXP,IPCOMP
 
-      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
+      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,idynow,
      &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
       integer ICONDX,ICON1,INOD1,INOD2,INOD3,IPN1,IPN2,IPC1,IPC2,NPCON,
      &IPCT,NPCDAT,NAPDAT,NCI,IPOFS1,IPOFS2,IX1,NITMS,I
@@ -9306,7 +9290,7 @@ C
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/PCTIME/TIMSEC
       COMMON/PCTC/TC(MPCOM)
 
@@ -9331,7 +9315,7 @@ C
 
       INTEGER IMPEXP,IPCOMP
 
-      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,
+      integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,idynow,
      &IDYP,IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,ICONTP,ISTATS
       integer ICONDX,ICON1,INOD1,INOD2,INOD3,IPN1,IPN2,IPC1,IPC2,NPCON,
      &IPCT,NPCDAT,NAPDAT,NCI,IPOFS1,IPOFS2,IX1,NITMS,I
@@ -9603,7 +9587,7 @@ C ----------------------------------------------------------------------
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/Pctime/TIMSEC
       COMMON/PTIME/PTIMEP,PTIMEF
 
@@ -9653,7 +9637,7 @@ C Commons for DWHStochastic calculation.
 
 
       integer itc,icnt,ITCF,ITRACE,IZNTRC,ITU,IHRP,IHRF,IDYP,
-     &IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,NCI,I,IHol,ITERNU,
+     &IDYF,IDWP,IDWF,NSINC,ITS,NPCOMP,NCI,I,IHol,ITERNU,idynow,
      &NPCDAT,IPOFS1,IPOFS2,ICONTP,ICONDX,NDMonth,igttype,ICON1
 
       integer IPCOMP,IX1,NAPDAT
@@ -10055,7 +10039,7 @@ C            2 water temperature (C)
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
 
       COMMON/C9/NPCOMP,NCI(MPCOM),CDATA(MPCOM,MMISCD)
       COMMON/C10/NPCON,IPC1(MPCON),IPN1(MPCON),IPCT(MPCON),
@@ -10159,7 +10143,7 @@ c     cdata: 1 Heat gain load (W)
       common/tc/itc,icnt
       common/trace/itcf,itrace(mtrace),izntrc(mcom),itu
 
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       common/pctime/timsec
       common/pctc/tc(mpcom)
 

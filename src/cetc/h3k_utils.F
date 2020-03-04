@@ -90,8 +90,8 @@ C idwp flag for weekday/weekend (present)
 C idwf flag for weekday/weekend (future)
 C nsinc timestep counter
 C its timestep counter (for current hour)
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-      integer ihrp, ihrf, idyp, idyf, idwp, idwf, nsinc, its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+      integer ihrp, ihrf, idyp, idyf, idwp, idwf, nsinc, its,idynow
 
 C isd1,ism1,isd2,ism2 are not used in current context
 C isds simulation reporting period start day (1->365)
@@ -229,14 +229,15 @@ C ------------------------------------------------------------------------------
 
         LOGICAL Function bCETC_OldStart()
         IMPLICIT NONE
-        common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+        common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+        INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
         COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
+        INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
         common/sus/issny
+        INTEGER ISSNY
         common/ptime/ptimep,ptimef
         REAL ptimep,ptimef
-        INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
-        INTEGER ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-        INTEGER ISSNY
+
 c Check if in startup period.
         bCETC_OldStart=.true.
         IF((ISSNY.EQ.1.AND.IDYP.EQ.365.AND.IHRP.EQ.24.AND.ISDS.EQ.1)
@@ -263,11 +264,12 @@ C ------------------------------------------------------------------------------
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
-        common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+        common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+        INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
         common/bldconpp/iBLTS
-        INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
         INTEGER IDAYN,iMonth,iBLTS
         logical bInStartUp, bTimeHasTimstep
+
         IF(iBLTS == nsinc) then
           bTimeHasTimstep = .false.    !Timestep has not changed
         ELSE
@@ -303,12 +305,13 @@ C ------------------------------------------------------------------------------
 #include "hvac_parameters.h"
 #include "h3kstore_parameters.h"
 #include "h3kstore_common.h"
-        common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+        common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
+        INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
         common/pltcon/bPltCon,LastTSTP
         Real LastTSTP
         Logical bPltCon      !Is it really a new timestep?
-        INTEGER ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,i1
         INTEGER IDAYN,iMonth
+        integer i1
         logical bInStartUp   !Are we in Startup?
         if (.not.bINStartUp() .and.bPltCon ) then
 c Get month of year and bin the timestep.
@@ -957,7 +960,7 @@ C     ESP-r commons
 C----------------------------------------------------------------------
 
 C.....Simulation timestep
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp              ! not used in current context
       integer ihrf              ! not used in current context
       integer idyp              ! present day #
@@ -965,7 +968,7 @@ C.....Simulation timestep
       integer idwp              ! not used in current context
       integer idwf              ! not used in current context
       integer nsinc             ! time step number
-      integer its               ! not used in current context
+      integer its,idynow        ! not used in current context
       common/pctinc/ipts        ! Plt timestep number
       integer ipts
 C----------------------------------------------------------------------
@@ -1005,7 +1008,7 @@ C     ESP-r commons
 C----------------------------------------------------------------------
 
 C.....Simulation timestep
-      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer ihrp              ! not used in current context
       integer ihrf              ! not used in current context
       integer idyp              ! present day #
@@ -1013,7 +1016,7 @@ C.....Simulation timestep
       integer idwp              ! not used in current context
       integer idwf              ! not used in current context
       integer nsinc             ! time step number
-      integer its               ! not used in current context
+      integer its,idynow        ! not used in current context
 
 C----------------------------------------------------------------------
 C     References

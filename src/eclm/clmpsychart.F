@@ -39,7 +39,7 @@ C esrures/psychart.F - revised to for plotting weather data.
       common/pixhist/ipixhist(8760,2)
      
       CHARACTER*26 ITEM(8)
-      CHARACTER puts*12,etext*72,gtext*72
+      CHARACTER puts*12,etext*82,gtext*82
       CHARACTER*42 CLMLOC
       character PERST1*14,PERST2*40,PERST3*40
       logical close,colok,cscaleok,ok

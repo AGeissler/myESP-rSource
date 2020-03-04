@@ -816,10 +816,10 @@ C and then resetn MODDB and chgdb if mod is true.
             ENDIF
           ELSEIF(IW.EQ.3)THEN
 
-C Derive non-homogeneous properties from two solid materials.
+C Derive non-homogeneous properties from two SOLID materials.
 C Copy info from first existing material (save & recover the
 C state of the menu when doing this).  
-            CALL USRMSG(' ','Select first material?','-')
+            CALL USRMSG(' ','Select first solid material?','-')
             CALL EPMENSV
             call allmat(imatarrayindex,ier)
             CALL EPMENRC
@@ -849,7 +849,7 @@ C state of the menu when doing this).
 
 C Copy info from second existing material (save & recover the
 C state of the menu when doing this).  
-            CALL USRMSG(' ','Select second material?','-')
+            CALL USRMSG(' ','Select second solid material?','-')
             CALL EPMENSV
             call allmat(imatarrayindex,ier)
             CALL EPMENRC

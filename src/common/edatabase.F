@@ -2076,7 +2076,7 @@ C << NOTE this code needs further debugging.
           endif
           Rsi=0.12
           Rso=0.06
-          call ADMIT(ITRU,IFOC,Rsi,Rso)
+          if(ITRC.gt.2)call ADMIT(ITRU,IFOC,Rsi,Rso)
         endif
       endif
 

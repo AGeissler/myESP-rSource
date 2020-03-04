@@ -660,7 +660,7 @@ C ndbph is number of data blocks/hr for monitor function.
       COMMON/SAVE/ISAVE
 
       COMMON/PERS/ISD1,ISM1,ISD2,ISM2,ISDS,ISDF,NTSTEP
-      COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS
+      common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
 C      common/recver/izver,ipver,iever
 
       COMMON/PVALC/TPC(MCOM,MS,MN),QPC(MCOM)
