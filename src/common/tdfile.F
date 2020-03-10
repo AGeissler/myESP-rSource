@@ -1428,8 +1428,8 @@ C     &        'raw tabular data',IER)
           call EGETAGWRA1K(loutstr25,K,iafil,IRVA,TABU,0.00,1.00,'-',
      &        'raw tabular data',IER)
           if(itrc.gt.1)then
-            write(outs,*) 'at time ',TIMEJD,'tabu is ',TABU
-            call edisp(iuout,outs)
+            write(loutstr25,*) 'at time ',TIMEJD,'tabu is ',TABU
+            call edisp(iuout,loutstr25)
           endif
           do 47 j=1,nwpr
             if(TABU(J).lt.TABUMN(J))TABUMN(J)=TABU(J)

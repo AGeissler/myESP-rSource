@@ -279,14 +279,21 @@ C component type's control variable (IPCVR)
 #include "plant.h"
 #include "building.h"
 #include "site.h"
+#include "net_flow.h"
+#include "tdf2.h"
 #include "control.h"
 
+      common/trc/itrc
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
 
       COMMON/SIMTIM/IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,idynow
       COMMON/CLIMIP/QFPP,QFFP,TPP,TFP,QDPP,QDFP,VPP,VFP,DPP,DFP,HPP,HFP
+
+      COMMON/PTIME/PTIMEP,PTIMEF
+
+      COMMON/ITERINDEX/ITERNU !plant iteration number
 
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
       COMMON/PCVAL/CSVF(MPNODE,MPVAR),CSVP(MPNODE,MPVAR)
@@ -303,9 +310,13 @@ C component type's control variable (IPCVR)
       common/pcfngr/clfgsd(MCF,6),pcfngn,IDAYPD
 
       character outs*124
-      
+C Contextual buffer
+      character cContext*124
+
       logical pcfngn,svcfgr,close
       
+      dimension VAL(MTABC+2)
+
       svcfgr=.false.
 
 C Trace output
@@ -513,6 +524,39 @@ C Sensor values are provided by a function generator.
       ELSE IF(IPS1.EQ.-6) THEN
            IFUNCT=IPS2
            CALL CLFNGR(IFUNCT,SVCTL)
+
+C Sensor values are read from a temporal data file (TDF).
+      ELSE IF(IPS1.EQ.-7) THEN
+cx           IFOC=IPSN(ICFP,2)
+cx           CALL RCTDFB(ITRC,ptimef,VAL,ISD,IFOC,IER)
+cx           SVCTL=VAL(ISD)
+C Retrieve data from BC data facility, code from eplt/adjp.F, lines 257 ff.
+C Initialize contextual buffer
+           write (cContext, '(A,I2,A)')
+     &       'Recovering control value for plant control loop ',
+     &       ICFP, ' from BC data facility.'
+
+C Input data
+           iBC_column = int(IPSN(ICFP,2))
+           iBC_interp = int(1.0) ! step-wise
+C Convert building/plant timestep #'s into real represeting
+C current day and fraction thereof
+           fDay = fConvert_current_TS_to_DAY()
+C Collect containment temperature
+           SVCTL = fGet_BC_data_by_col( iBC_column,
+     &                                  fDay,
+     &                                  iBC_interp,
+     &                                  cContext)
+
+C Debug.
+      if (ITERNU.eq.1)then
+cx           write(6,'(a,F10.6,3(a,I3),a,F4.2,a)')
+cx           write(6,'(a,F10.6,2(a,I3),a,F4.2,a)')
+cx     &       'tdf sens dat @',fDay,' for ctl loop ',ICFP,
+cx     &       ' is item ',iBC_column,', value=',svctl,';'
+cx     &       'tdf sens dat @',IDYF+(ptimef-1),' for ctl loop ',ICFP,
+cx     &       ' is item ',IFOC,', column ',isd,', value=',svctl,';'
+      endif
 
       ELSE
          call edisp(iuout,' CLVAR: illegal plant-side sensor rfrncd ')
@@ -753,6 +797,16 @@ C Sensor values are provided by a function generator.
            call epwait
            call epagend
            STOP
+
+C Sensor values are read from a temporal data file (TDF).
+        ELSE IF(IPS1.EQ.-7) THEN
+           IFOC=IPSN(ICFP,2)
+           CALL RCTDFB(ITRC,ptimef,VAL,ISD,IFOC,IER)
+           SVCTL=VAL(ISD)
+C Debug.
+           write(6,'(a,F10.6,3(a,I3),a,F4.2,a)')
+     &       'tdf aux-sens dat @',ptimef,' for ctl loop ',ICFP,
+     &       ' is item ',IFOC,', column ',isd,', value=',svctl,';'
 
         ELSE
            call edisp(iuout,' CLMVAR: illegal plant-side auxiliary

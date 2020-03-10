@@ -60,7 +60,8 @@ C << of reporing if from command line.
 #include "plant.h"
 #include "power.h"
 #include "prj3dv.h"
-      
+#include "bc_data.h"
+
       integer lnblnk  ! function definition
 
 C Parameters passed into subroutine:
@@ -91,6 +92,17 @@ C IFPNF is the unit for the plant network file.
 C LPNF (72 char) plant network file name.
       COMMON/C23/IFPNF,LPNF
       INTEGER :: IFPNF
+
+C BPF is the file name for boundary values file.
+C PBYFIL is the logical variable for existence check.
+      COMMON/C23a/BPF
+      COMMON/PBYDAT/PBYFIL,NSCVP,IPS
+
+      CHARACTER :: BPF*72
+      logical :: PBYFIL, autook
+
+      INTEGER :: NSCVP,IPS,IFBPF
+
       INTEGER :: IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
@@ -2190,6 +2202,8 @@ C If there is a plant network, scan it and report.
               IER=1
               CALL edisp(iuout,' problem opening plant network file...')
             ENDIF
+            WRITE(outs,240)
+            call edisp(itu,outs) ! write separation line
             call edisp(itu,' ')
             call edisp(itu,'The model includes a plant network.')
             call pltcfg(ifpnf,iunit1,itu,1)
@@ -2198,6 +2212,62 @@ C nnodes: This is necessary because the nnodes common block (pcdat)
 C is defined differently in bps, and the pltcfg.F file cannot be
 C built as part of bps if it includes the prj pcdat common.
             call CopyPltNodeCounts()
+          endif
+C Is a boundary data file (ESRU flavor) ...
+          if (BPF(1:4).eq.'UNKN'.or.BPF(1:2).eq.'  ') then
+            continue
+          else
+            xst=.false.
+            call FINDFIL(BPF,xst)
+            if (xst) then
+              IFBPF=IFIL+1 ! standard +9 seems to be used for QA output in prj ...
+              write(currentfile,'(a)') BPF(1:lnblnk(BPF))
+              CALL EFOPSEQ(ifbpf,BPF,1,IER)
+              IF(IER.LT.0)THEN
+                IER=1
+                CALL edisp(iuout,' problem opening bcd file...')
+              ENDIF
+              call edisp(itu,' ')
+              call edisp(itu,'The plant includes a boundary data file.')
+              WRITE(outs248,'(2A)')' BDFile: ',BPF(1:lnblnk(BPF))
+              call edisp248(itu,outs248,100)
+              call edisp(itu,' ') ! blank line
+            endif
+          endif
+C ... or is a boundary data file (CETC flavor) being used?
+          if (bBC_data_defined) then
+            xst=.false.
+            call FINDFIL(cBC_data_file_name,xst)
+            if (xst) then
+              IFBPF=IFIL+1
+              write(currentfile,'(a)')
+     &               cBC_data_file_name(1:lnblnk(cBC_data_file_name))
+              CALL EFOPSEQ(ifbpf,cBC_data_file_name,1,IER)
+C             Fill BC_data variables ...
+cx << either copy BC_data.F to eprj or make simplified processing function
+cx    only for qa report ... >>
+cx              call process_BC_data_file(IFIL,autook,bBC_data_err)
+              IF(IER.lt.0)THEN
+                IER=1
+                CALL edisp(iuout,' problem opening BC_data file...')
+              ENDIF
+              call edisp(itu,' ')
+              call edisp(itu,'The plant includes a BC_data file.')
+C             Give some information on file
+cx << doesn't currently work because variables are not initialised ... >>
+              WRITE(outs248,'(3A,f4.2)')' BDFile: ',
+     &                 cBC_data_file_name(1:lnblnk(cBC_data_file_name)),
+     &                 ', version ',fBC_file_version
+              call edisp248(itu,outs248,100)
+              WRITE(outs248,'(A,I3)')' Number of data columns: ',
+     &                   iBC_col_count
+              call edisp248(itu,outs248,100)
+              WRITE(outs248,'(A,I3,A,I4,A)')' Number of data rows: ',
+     &                   iBC_row_count,' @',NINT(fBC_frequency),
+     &                   ' seconds/sample'
+              call edisp248(itu,outs248,100)
+              call edisp(itu,' ') ! blank line
+            endif
           endif
         endif
       endif

@@ -542,7 +542,7 @@ C then new format file, otherwise old format so set IBSN(II,4)=0.
           IF(IER.NE.0)GOTO 99
 
 C Range checking.
-          if((ibsn(ii,1).lt.-6.or.ibsn(ii,1).gt.mcom)
+          if((ibsn(ii,1).lt.-7.or.ibsn(ii,1).gt.mcom)
      &        .and.ibsn(ii,1).ne.-99)goto 1003
           if(abs(ibsn(ii,4)).gt.mcf)goto  1002
           if((ibsn(ii,2).lt.0.or.ibsn(ii,3).lt.0)
@@ -828,7 +828,7 @@ C then new format file, otherwise old format so set IBSN(II,4)=0.
         CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'sensor',IER)
         IF(IER.NE.0)GOTO 99
         KG=0
-        CALL EGETWI(OUTSTR,KG,IVAL,-6,mcom,'F','sensor 1st',IER)
+        CALL EGETWI(OUTSTR,KG,IVAL,-7,mcom,'F','sensor 1st',IER)
         ipsn(ii,1)=IVAL
         CALL EGETWI(OUTSTR,KG,IVAL,0,0,'-','sensor 2nd ',IER)
         ipsn(ii,2)=IVAL
@@ -1620,7 +1620,7 @@ C Read global control functions information and perform checks.
         CALL STRIPC(IUNIT,OUTSTR,99,ND,1,'sensor',IER)
         IF(IER.NE.0)GOTO 99
         KG=0
-        CALL EGETWI(OUTSTR,KG,IVAL,-6,mcom,'-','sensor 1st',IER)
+        CALL EGETWI(OUTSTR,KG,IVAL,-7,mcom,'-','sensor 1st',IER)
         igsn(ii,1)=IVAL
         CALL EGETWI(OUTSTR,KG,IVAL,0,0,'-','sensor 2nd ',IER)
         igsn(ii,2)=IVAL
@@ -4462,6 +4462,9 @@ C Plant Sensor.
         ELSEIF(icsn(1).EQ.-6)THEN
           SSTR='sensed value from function generator.'
           SSTRB='sensed value from func gen.'
+        ELSEIF(icsn(1).EQ.-7)THEN
+          SSTR='reads from a temporal data file (TDF).'
+          SSTRB='reads from a TDF.'
         ENDIF
       elseif(icfoc.eq.2)then
 

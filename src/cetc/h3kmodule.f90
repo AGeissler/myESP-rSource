@@ -207,7 +207,7 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvPltQAddedH,rvPltWCHPumpEInput,rvPltHOut,rvPltCOP, &
          rvPltTambient,rvPltDeviceONOFF,rvPltReturnTSP,rvPltRealPow, &
          rvPltReacPow,rvPltApparPow,rvPltDefrostStat,rvPltDHWDrawStoch, &
-         rvPltDHWDrawStochTp,rvPltAmbientHeat,rvPltCallForHeat
+         rvPltDHWDrawStochTp,rvPltAmbientHeat,rvPltCallForHeat,rvPltRelCompFreq
 
    !Used by pcomp3.F
    Type(ReportVariable) :: rvPltQExtractedH
@@ -2149,6 +2149,12 @@ CONTAINS
       rvPltCallForHeat%VariableType = '(-)'
       rvPltCallForHeat%Description = 'xSHP: CallForHeat status'
       Call AddVariable(rvPltCallForHeat)
+
+      rvPltRelCompFreq%VariableName = 'plant/*/misc_data/RelCompFreq'
+      rvPltRelCompFreq%MetaType = 'units'
+      rvPltRelCompFreq%VariableType = '(-)'
+      rvPltRelCompFreq%Description = 'icGSHP: relative compressor frequency'
+      Call AddVariable(rvPltRelCompFreq)
 
       rvPltAmbientHeat%VariableName = 'plant/*/misc_data/AmbientHeatIn'
       rvPltAmbientHeat%MetaType = 'units'
