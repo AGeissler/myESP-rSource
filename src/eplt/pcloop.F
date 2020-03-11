@@ -624,6 +624,9 @@ C determines sensed condition SVCTLM(?,?).
      &SVCTLM(MCF,MPSEN),SNWGTP(MPSEN)
       character outs*124
 
+C Contextual buffer
+      character cContext*124
+
 C Trace output
       IF(ITC.GT.0.AND.NSINC.GE.ITC.AND.NSINC.LE.ITCF.AND.
      &   ITRACE(40).NE.0) WRITE(ITU,*) ' Entering subroutine CLMVAR'
@@ -800,13 +803,36 @@ C Sensor values are provided by a function generator.
 
 C Sensor values are read from a temporal data file (TDF).
         ELSE IF(IPS1.EQ.-7) THEN
-           IFOC=IPSN(ICFP,2)
-           CALL RCTDFB(ITRC,ptimef,VAL,ISD,IFOC,IER)
-           SVCTL=VAL(ISD)
+cx           IFOC=IPSN(ICFP,2)
+cx           CALL RCTDFB(ITRC,ptimef,VAL,ISD,IFOC,IER)
+cx           SVCTL=VAL(ISD)
+C Retrieve data from BC data facility, code from eplt/adjp.F, lines 257 ff.
+C Initialize contextual buffer
+           write (cContext, '(A,I2,A)')
+     &       'Recovering control value for aux. plant control loop ',
+     &       ICFP, ' from BC data facility.'
+
+C Input data
+           iBC_column = int(IPSN(ICFP,2))
+           iBC_interp = int(1.0) ! step-wise
+C Convert building/plant timestep #'s into real represeting
+C current day and fraction thereof
+           fDay = fConvert_current_TS_to_DAY()
+C Collect containment temperature
+           SVCTLM(ICFP,J) = fGet_BC_data_by_col( iBC_column,
+     &                                  fDay,
+     &                                  iBC_interp,
+     &                                  cContext)
+
 C Debug.
-           write(6,'(a,F10.6,3(a,I3),a,F4.2,a)')
-     &       'tdf aux-sens dat @',ptimef,' for ctl loop ',ICFP,
-     &       ' is item ',IFOC,', column ',isd,', value=',svctl,';'
+      if (ITERNU.eq.1)then
+cx           write(6,'(a,F10.6,3(a,I3),a,F4.2,a)')
+cx           write(6,'(a,F10.6,2(a,I3),a,F4.2,a)')
+cx     &       'tdf sens dat @',fDay,' for ctl loop ',ICFP,
+cx     &       ' is item ',iBC_column,', value=',svctl,';'
+cx     &       'tdf sens dat @',IDYF+(ptimef-1),' for ctl loop ',ICFP,
+cx     &       ' is item ',IFOC,', column ',isd,', value=',svctl,';'
+      endif
 
         ELSE
            call edisp(iuout,' CLMVAR: illegal plant-side auxiliary
