@@ -9269,7 +9269,7 @@ C Set heat loss to zero if no containment defined
 
 C Calculate the electrical demand of the device assumung the controller is ON.
         CtlPower=CtlRating
-        TotRealPower=CompPower+CtlPower+PumpPower
+        TotRealPower=1000.*CompPower+CtlPower+PumpPower ! [W]
 
 C Save the real power draw for use in an electrical power flow simulation.
         PWRP(IPCOMP)=-ABS(TotRealPower)
@@ -9278,7 +9278,7 @@ C Save the real power draw for use in an electrical power flow simulation.
         PWRQ=PQ
 
 c Calculate the compressor power draw.
-        CompressPower=CompPower*CompressPf !-(PumpPower+CtlPower)
+        CompressPower=1000.*CompPower*CompressPf ! [W] -(PumpPower+CtlPower)
         IF(CompressPower.LT.0.0)CompressPower=0.0
 
         TotReacPower=( ((CompressPower/CompressPf)**2)
