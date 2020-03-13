@@ -8815,7 +8815,7 @@ C       Either space heat or dhw needs heat
 
 C Pump circulates while there is a call for heat.
 cx <<extend with brine pump? >>
-        PumpPower=PumpRating
+        PumpPower=PumpRating/PumpPf
         if (bSHrqd) then
           DeviceFlow=RatedFlow
         else
@@ -9349,8 +9349,8 @@ C Addition output for results analysis.
           PCAOUT(IPCOMP,4)=0.
         endif
         PCAOUT(IPCOMP,5)=ReturnSP
-        PCAOUT(IPCOMP,6)=TotRealPower
-        PCAOUT(IPCOMP,7)=TotReacPower
+        PCAOUT(IPCOMP,6)=1000.*CompPower
+        PCAOUT(IPCOMP,7)=CtlPower+PumpPower
         PCAOUT(IPCOMP,8)=TotApparentPower
         PCAOUT(IPCOMP,9)=GroundHeatInput
 
