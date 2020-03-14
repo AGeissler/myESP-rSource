@@ -9245,8 +9245,10 @@ C Final heat output and ground heat extraction in (W)
 
       ELSE
 C     Device is 'off' (DeviceONOFF.eq.0), i.e. the heat pump is off,
-C     however the circulation pump remains on. Set parameters
+C     <<however the circulation pump remains on ??>>. Set parameters
 C     accordingly (assume controller is still operating).
+        PumpPower=0.
+        DeviceFlow=0.0
 
         CompPower=0.
         HeatOutput=0.

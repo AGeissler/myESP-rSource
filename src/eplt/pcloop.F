@@ -549,14 +549,14 @@ C Collect containment temperature
      &                                  cContext)
 
 C Debug.
-      if (ITERNU.eq.1)then
+        if (ITERNU.eq.1)then
 cx           write(6,'(a,F10.6,3(a,I3),a,F4.2,a)')
 cx           write(6,'(a,F10.6,2(a,I3),a,F4.2,a)')
 cx     &       'tdf sens dat @',fDay,' for ctl loop ',ICFP,
 cx     &       ' is item ',iBC_column,', value=',svctl,';'
 cx     &       'tdf sens dat @',IDYF+(ptimef-1),' for ctl loop ',ICFP,
 cx     &       ' is item ',IFOC,', column ',isd,', value=',svctl,';'
-      endif
+        endif
 
       ELSE
          call edisp(iuout,' CLVAR: illegal plant-side sensor rfrncd ')
@@ -3853,6 +3853,8 @@ C Work out logical relationship result if more than one master loop
               IF(CTRLD(ICT).AND.CTRLD(ICT+1))THEN
                 ICTL=1
                 IPREVON=1
+              else
+                ICTL=0
               ENDIF
             ENDIF
           ELSE
@@ -3865,6 +3867,8 @@ C Work out logical relationship result if more than one master loop
                IF(CTRLD(ICT+1).AND.(ICTL.EQ.1))THEN
                 ICTL=1
                 IPREVON=1
+              else
+                ICTL=0
               ENDIF
             ENDIF
           ENDIF
