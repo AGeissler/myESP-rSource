@@ -9265,10 +9265,6 @@ C Establish the nodal thermal capacities (see CMP36C).
 C Node 1 water
         C1=AMAX1(SMALL,DeviceFlow)*SHTFLD(3,CONVAR(ICON1,1))
 
-C Set heat loss to zero if no containment defined
-        CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)
-        IF(CLOSE) UAMod=0.0
-
 C Calculate the electrical demand of the device assumung the controller is ON.
         CtlPower=CtlRating
         TotRealPower=1000.*CompPower+CtlPower+PumpPower ! [W]
