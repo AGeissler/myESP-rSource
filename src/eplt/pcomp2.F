@@ -9248,7 +9248,7 @@ C     Device is 'off' (DeviceONOFF.eq.0), i.e. the heat pump is off,
 C     <<however the circulation pump remains on ??>>. Set parameters
 C     accordingly (assume controller is still operating).
         PumpPower=0.
-        DeviceFlow=0.0
+cx        DeviceFlow=0.000001
 
         CompPower=0.
         HeatOutput=0.
@@ -9288,7 +9288,7 @@ c Calculate the compressor power draw.
      &              +( ((PumpPower/PumpPf)**2)-(PumpPower**2) )**0.5
      &              +( ((CtlPower/CtlPf)**2) -(CtlPower**2) )**0.5
 
-        TotApparentPower=((TotRealPower**2)+(TotReacPower*2))**0.5
+        TotApparentPower=((TotRealPower**2)+(TotReacPower**2))**0.5
 
 C Calculate current component time-constant TC
         TC(IPCOMP)=CM/AMAX1(SMALL,(C1+UAMod))
