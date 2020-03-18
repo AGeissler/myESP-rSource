@@ -527,18 +527,6 @@ C Sensor values are read from a boundry data file.
          IDTCOL=IPSN(ICFP,2)
          CALL PCBDAT(idtcol,svctl)
 
-         if ( IPCVR .gt. 9 ) then
-           write(IPCVR_Chars, '(I2)')  IPCVR
-         else
-           write(IPCVR_Chars, '(A,I1)') '0', IPCVR
-         endif
-
-C        rvPltCmpCtlVal%VariableName = 'plant/*/ctlvar_*/svctl'
-         call AddToReport(rvPltCmpCtlVal%Identifier,
-     &         svctl,
-     &         pcname(IPCMP)(1:lnblnk(pcname(IPCMP))),
-     &         IPCVR_Chars)
-
 C Sensor values are provided by a function generator.
       ELSE IF(IPS1.EQ.-6) THEN
            IFUNCT=IPS2
@@ -604,6 +592,19 @@ C Trace output
          WRITE(ITU,*) ' Actuated component & variable = ',IPCMP,IPCVR
          WRITE(ITU,*) ' Leaving subroutine CLVAR'
       END IF
+
+C Write SVCTL to h3k data output.
+         if ( IPCVR .gt. 9 ) then
+           write(IPCVR_Chars, '(I2)')  IPCVR
+         else
+           write(IPCVR_Chars, '(A,I1)') '0', IPCVR
+         endif
+
+C        rvPltCmpCtlVal%VariableName = 'plant/*/ctlvar_*/svctl'
+         call AddToReport(rvPltCmpCtlVal%Identifier,
+     &         svctl,
+     &         pcname(IPCMP)(1:lnblnk(pcname(IPCMP))),
+     &         IPCVR_Chars)
 
       RETURN
       END
