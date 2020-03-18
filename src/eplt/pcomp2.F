@@ -9263,7 +9263,7 @@ C Establish the nodal thermal capacities (see CMP36C).
         CM=CompMass*AveSpHt
 
 C Node 1 water
-        C1=DeviceFlow*SHTFLD(3,CONVAR(ICON1,1))
+        C1=AMAX1(SMALL,DeviceFlow)*SHTFLD(3,CONVAR(ICON1,1))
 
 C Set heat loss to zero if no containment defined
         CALL ECLOSE(PCNTMF(IPCOMP),99.,0.0001,CLOSE)

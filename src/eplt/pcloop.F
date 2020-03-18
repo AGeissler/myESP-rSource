@@ -275,6 +275,7 @@ C actuated plant component (IPCMP), and number of this plant
 C component type's control variable (IPCVR)
 
       SUBROUTINE CLVAR(SVCTL,IPCMP,IPCVR)
+      use h3kmodule
 
 #include "plant.h"
 #include "building.h"
@@ -298,6 +299,10 @@ C component type's control variable (IPCVR)
       COMMON/PCLSOL/ICFP,IDTYPP,IPERP
       COMMON/PCVAL/CSVF(MPNODE,MPVAR),CSVP(MPNODE,MPVAR)
       COMMON/C12PS/NPCDAT(MPCOM,9),IPOFS1(MCOEFG),IPOFS2(MCOEFG,MPVAR)
+
+      common/pcnam/pcname(mpcom)        ! Plant component names
+      character*15, pcname
+
       COMMON/C14PS/NDCON(MPCOM,MNODEC),ISV(MPCOM,MNODEC)
       COMMON/PCRES/QDATA(MPCOM),PCAOUT(MPCOM,MPCRES),napdat(mpcom)
       REAL QDATA,PCAOUT
@@ -310,6 +315,8 @@ C component type's control variable (IPCVR)
       common/pcfngr/clfgsd(MCF,6),pcfngn,IDAYPD
 
       character outs*124
+      character*2  IPCVR_Chars
+
 C Contextual buffer
       character cContext*124
 
@@ -517,8 +524,20 @@ C Sensor measures outside condition.
 
 C Sensor values are read from a boundry data file.
       ELSE IF(IPS1.EQ.-5) THEN
-           IDTCOL=IPSN(ICFP,2)
-           CALL PCBDAT(idtcol,svctl)
+         IDTCOL=IPSN(ICFP,2)
+         CALL PCBDAT(idtcol,svctl)
+
+         if ( IPCVR .gt. 9 ) then
+           write(IPCVR_Chars, '(I2)')  IPCVR
+         else
+           write(IPCVR_Chars, '(A,I1)') '0', IPCVR
+         endif
+
+C        rvPltCmpCtlVal%VariableName = 'plant/*/ctlvar_*/svctl'
+         call AddToReport(rvPltCmpCtlVal%Identifier,
+     &         svctl,
+     &         pcname(IPCMP)(1:lnblnk(pcname(IPCMP))),
+     &         IPCVR_Chars)
 
 C Sensor values are provided by a function generator.
       ELSE IF(IPS1.EQ.-6) THEN

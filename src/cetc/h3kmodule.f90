@@ -202,6 +202,9 @@ MODULE h3kmodule
    Type(ReportVariable) :: rvBldMstRHnode,rvBldMstVapPressNode,rvBldMstStoreCap,rvBldMstStorage, &
         rvBldMstStorageMass,rvBldMstTNode,rvMstItCnt
 
+   !Used by pcloop.F
+   Type(ReportVariable) :: rvPltCmpCtlVal
+
    !Used by pcomp2.F
    !Claude - potential error found rvPltDefrostStat
    Type(ReportVariable) :: rvPltQAddedH,rvPltWCHPumpEInput,rvPltHOut,rvPltCOP, &
@@ -2106,6 +2109,13 @@ CONTAINS
       rvBldMstTNode%VariableType = '(C)'
       rvBldMstTNode%Description = 'Temperature at mnode (for mould analysis)'
       Call AddVariable(rvBldMstTNode)
+
+      !Used by pcloop.F
+      rvPltCmpCtlVal%VariableName = 'plant/*/ctlvar_*/svctl'
+      rvPltCmpCtlVal%MetaType = 'units'
+      rvPltCmpCtlVal%VariableType = '(-)'
+      rvPltCmpCtlVal%Description = 'Plant component control value'
+      Call AddVariable(rvPltCmpCtlVal)
 
       !Used by pcomp2.F
       rvPltQAddedH%VariableName = 'plant/*/misc_data/Q_added_heat'
