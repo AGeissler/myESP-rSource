@@ -6086,7 +6086,7 @@ C        TotRealPower=CompPower+PumpPower+CtlPower+FanPower
      &+(((CtlPower/CtlPf)**2)-(CtlPower**2))**0.5
      &+(((FanPower/FanPf)**2)-(FanPower**2))**0.5
 
-        TotApparentPower=((TotRealPower**2)+(TotReacPower*2))**0.5
+        TotApparentPower=((TotRealPower**2)+(TotReacPower**2))**0.5
 
 C Calculate current component time-constant TC
         TC(IPCOMP)=CM/AMAX1(SMALL,(C1+UAMod))
@@ -7594,7 +7594,7 @@ c Calculate the compressor power draw.
      &              +( ((PumpPower/PumpPf)**2)-(PumpPower**2) )**0.5
      &              +( ((CtlPower/CtlPf)**2)  -(CtlPower**2) )**0.5
 
-        TotApparentPower=((TotRealPower**2)+(TotReacPower*2))**0.5
+        TotApparentPower=((TotRealPower**2)+(TotReacPower**2))**0.5
 
 C Calculate current component time-constant TC
         TC(IPCOMP)=CM/AMAX1(SMALL,(C1+UAMod))
@@ -8263,7 +8263,7 @@ c Calculate the compressor power draw.
      &              +( ((BrinePumpPower/BrinePumpPf)**2)
      &                                       -(BrinePumpPower**2) )**0.5
 
-        TotApparentPower=((TotRealPower**2)+(TotReacPower*2))**0.5
+        TotApparentPower=((TotRealPower**2)+(TotReacPower**2))**0.5
 
 C Calculate current component time-constant TC
         TC(IPCOMP)=AMAX1(
