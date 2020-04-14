@@ -9153,10 +9153,14 @@ C         Heating and cooling power at current compressor frequency.
 C           COPmodel 5 is a "hidden mode" which tweaks the approximate
 C           COP-behaviour as function of the relative inverter frequency
 C           for a specific heat pump model (cta Optiheat Inverta Economy
-C           Compact, OH I 9ec).
-            CP=(RelCompFreq*(CP100-CP0)+CP0)*
+C           Compact, OH I 9ec). SH mode, only.
+            if (bSHrqd) then
+              CP=(RelCompFreq*(CP100-CP0)+CP0)*
      &          (1.0 + (-0.0015119 + 0.00022779 * (100.*RelCompFreq) +
      &           + (-1.2154e-5) * (100.*RelCompFreq)**2))
+            else
+              CP=RelCompFreq*(CP100-CP0)+CP0
+            endif
           endif
 
 cx          write(*,'(8(a,f7.3))')'Mode 3: Ta=',Ta,', Td=',Td,
