@@ -1282,7 +1282,7 @@ C Get date strings. For this test assume some values.
      &           NTSPH,2,0,PERST1,PERST2,PERST3,IER)
 
             CALL EDISP(ITRU,' ')
-            WRITE(OUTSTR,'(4A,I2,A)')' Day type ',CALENTAG(JJ),
+            WRITE(OUTSTR,'(5A,I2,A)')' Day type ',CALENTAG(JJ),
      &        ' is valid ',PERST3(9:lnblnk(PERST3)),' with ',
      &        NFCDP(II,JJ),' periods.'
             CALL EDISP(ITRU,OUTSTR)

@@ -2938,7 +2938,7 @@ C << on a separate line with a tag.
             write(ifilg,'(2a)',IOSTAT=IOS,ERR=13)
      &        outsd(1:lnblnk(outsd)),'  # surface attributes '
 
-            write(louts,'(a,124I4)',IOSTAT=ios,ERR=13) '*list ',
+            write(louts,'(a,102I4)',IOSTAT=ios,ERR=13) '*list ',
      &        isznver(nsz,isu),(iszjvn(nsz,isu,J),J=1,isznver(nsz,isu))
             call SDELIM(louts,loutsd,'C',IW)
             write(ifilg,'(2a,i2)',IOSTAT=IOS,ERR=13)

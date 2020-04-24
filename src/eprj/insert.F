@@ -936,7 +936,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
                     write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3,2a)')
      &                'New vertex ',iwhich3,' @',
      &                X(NTV),Y(NTV),Z(NTV),' is close (',offset,
-     &                ') to edge ',IWHICH1,' &',IWHICH2,
+     &                ') to edge ',IWHICH1,' & ',IWHICH2,
      &                ' of surface ',SNAME(ICOMP,ivj)
                     call edisp(iuout,outs)
 
@@ -971,7 +971,7 @@ C inserting the new vertex index.
                       iszjvn(icomp,ivj,ivjj+1)=iwhich3
 
 C Debug.
-C                      write(6,'(a,124i4)') 'now jvn is ',
+C                      write(6,'(a,102i4)') 'now jvn is ',
 C     &                  (JVN(ivj,ii),ii=1,NVER(ivj))
 
 C Surface (ivj) vertex list has been updated. Go on to next surface.
@@ -1181,7 +1181,7 @@ C some vertices and thus be beyond the normal limit of edges. If MV is
 C updated reflect this in the write(t248 statement).
               hold64='                                                '
               write(t248,'(3a)') hold64,hold64,hold64
-              WRITE(t248,'(124I4)')(JJVN(J),J=1,ijvn)
+              WRITE(t248,'(102I4)')(JJVN(J),J=1,ijvn)
               write(message,'(a)')'Vertices associated with new surface'
               ISTRW=72
               CALL EASKS248(t248,message,' ',
@@ -1986,7 +1986,7 @@ C ivimb=1 then we have an unmatched edge.
           ivimb=(abs((matchab+10)-(matchba+10)))
           if(ivimb.eq.2)then
             write(outs,'(a,i3,a,i3,3a)')
-     &        'The edge between vertices ',itv1(ip),' &',
+     &        'The edge between vertices ',itv1(ip),' & ',
      &        itv2(ip),' of ',SNAME(icomp,irelsur(ip)),
      &        ' may be adjacent to a reversed surface.'
             if(ivb.ne.0)then
@@ -2005,7 +2005,7 @@ C Incrememt hits for zone as well as for this surface.
           elseif(ivimb.eq.1)then
             icursur=irelsur(ip)  ! remember the current surface
             write(outs,'(a,i3,a,i3,3a)')
-     &        'The edge between vertices ',itv1(ip),' &',itv2(ip),
+     &        'The edge between vertices ',itv1(ip),' & ',itv2(ip),
      &        ' of ',SNAME(icomp,icursur),' may be unbounded.'
             if(ivb.ne.0)then
               call edisp(iuout,outs)
@@ -2049,7 +2049,7 @@ C Also check that the line has some length.
                     write(outs,'(a,i3,a,3f9.4,a,f6.4,a,i3,a,i3,2a)')
      &                'Vertex ',iwhich1,' @',X(iwhich1),Y(iwhich1),
      &                Z(iwhich1),' is close (',offset,') to edge ',
-     &                itv1(ip),' &',itv2(ip),' of surface ',
+     &                itv1(ip),' & ',itv2(ip),' of surface ',
      &                SNAME(icomp,icursur)
                     if(ivb.ne.0) call edisp(iuout,outs)
 
@@ -2062,7 +2062,7 @@ C list for itv1(ip) so insertion can come just after this point.
                       endif
                     enddo
                     ivtoadd=iwhich1  ! remember it
-                    write(louts,'(a,124i4)') 'cur list: ',
+                    write(louts,'(a,102i4)') 'cur list: ',
      &                (JVN(icursur,ii),ii=1,NVER(icursur))
                     if(ivb.ne.0) call edisp248(iuout,louts,100)
 
@@ -2108,7 +2108,7 @@ C If its location in the list is actually the last in the list?
                         iszjvn(icomp,icursur,itsposition+1)=ivtoadd
                       endif
 C Debug.
-                      write(louts,'(a,124i4)') 'adj list: ',
+                      write(louts,'(a,102i4)') 'adj list: ',
      &                  (JVN(icursur,ii),ii=1,NVER(icursur))
                       if(ivb.ne.0) call edisp248(iuout,louts,100)
                       iub=iub-1   ! decrement counter of unbounded
@@ -2171,7 +2171,7 @@ C        write(6,*) 'reversed hits per surface ',invesur
 C        write(6,*) 'edges per surface ',NVER
         DO IS=1,NSUR
           if(NVER(IS).gt.0.and.(invesur(IS).eq.NVER(IS)))then
-            write(louts,'(a,124i4)') 'current list: ',
+            write(louts,'(a,102i4)') 'current list: ',
      &        (JVN(is,ii),ii=1,NVER(is))
             call edisp248(iuout,louts,100)
             write(outs,'(3a)')
@@ -2192,7 +2192,7 @@ C        write(6,*) 'edges per surface ',NVER
                 JVN(is,iyy)=jvn1(izz)
                 iszjvn(icomp,is,iyy)=jvn1(izz)
   147         CONTINUE
-              write(louts,'(a,124i4)') 'inverted list is ',
+              write(louts,'(a,102i4)') 'inverted list is ',
      &          (JVN(is,ii),ii=1,NVER(is))
               call edisp248(iuout,louts,100)
             endif
@@ -2657,7 +2657,7 @@ C surface in the zone`. ICONO is the connection for the parent surface.
         endif
   151 CONTINUE
 C Debug
-C      write(6,'(a,2i3,124i4)') '151 jvn ',
+C      write(6,'(a,2i3,102i4)') '151 jvn ',
 C     &  nsur,NVER(nsur),(jvn(nsur,j),J=1,NVER(nsur))
       if(act(1:2).eq.'sw'.or.act(1:2).eq.'sd'.or.act(1:2).eq.'sp')then
         write(SN,'(a)') rsname(1:12)
@@ -2747,7 +2747,7 @@ C Process holes within a surface types.
         call mergechildinparent(1,icomp,IPS,ICS,IRT,ier)
 
 C Feedback.
-        write(louts,'(a,124i4)') 'parent surf after ',
+        write(louts,'(a,102i4)') 'parent surf after ',
      &    (jvn(IPS,j),J=1,NVER(IPS))
         call edisp248(iuout,louts,100)
 
@@ -2885,7 +2885,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
                 write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3,2a)')
      &            'Door vertex ',iwhich3,' @',
      &            X(NTV),Y(NTV),Z(NTV),' is close (',offset,
-     &            ') to edge ',IWHICH1,' &',IWHICH2,' of ',
+     &            ') to edge ',IWHICH1,' & ',IWHICH2,' of ',
      &            sname(icomp,ivj)
                 call edisp(iuout,outs)
 
@@ -2920,7 +2920,7 @@ C inserting the new vertex index.
                   iszjvn(icomp,ivj,ivjj+1)=iwhich3
 
 C Debug.
-C                  write(6,'(a,124i4)') 'now jvn is ',
+C                  write(6,'(a,102i4)') 'now jvn is ',
 C     &              (JVN(ivj,ii),ii=1,NVER(ivj))
 
 C Surface (ivj) vertex list has been updated. Go on to next surface.
@@ -3204,7 +3204,7 @@ C Feedback.
         return
       endif
       if(NVER(ICS).gt.0)then
-        write(louts,'(a,2i3,124i4)') 'door surf jvn ',
+        write(louts,'(a,2i3,102i4)') 'door surf jvn ',
      &    ICS,NVER(ICS),(jvn(ICS,j),J=1,NVER(ICS))
         if(itrc.gt.0)call edisp248(iuout,louts,100)
       else
@@ -3213,7 +3213,7 @@ C Feedback.
         return
       endif
       if(NVER(IPS).gt.0)then
-        write(louts,'(a,2i3,124i4)') 'parent surf jvn ',
+        write(louts,'(a,2i3,102i4)') 'parent surf jvn ',
      &    IPS,NVER(IPS),(jvn(IPS,j),J=1,NVER(IPS))
         if(itrc.gt.0)call edisp248(iuout,louts,100)
       else
@@ -3262,7 +3262,7 @@ C     &  icwhich1,icvwhich1,icwhich2,icvwhich2,ipwhich1a,ipvwhich1a,
 C     &  ipwhich1b,ipvwhich1b,ipwhich2a,ipvwhich2a,ipwhich2b,ipvwhich2b
       ivll=ipvwhich1a  ! remember it
 C Debug.
-C      write(6,'(a,i3,124i4)') 'ivll parent surf jvn ',
+C      write(6,'(a,i3,102i4)') 'ivll parent surf jvn ',
 C     &  ivll,(jvn(IPS,j),J=1,NVER(IPS))
 
 C Start at end of list and work backwards. Shift existing
@@ -3294,7 +3294,7 @@ C need to insert icwhich1. Use icstart logic for this.
       enddo
 
 C Feedback.
-      write(louts,'(a,i3,124i4)') 'parent surf after ',iyy,
+      write(louts,'(a,i3,102i4)') 'parent surf after ',iyy,
      &  (jvn(IPS,j),J=1,NVER(IPS))
       if(itrc.gt.0)call edisp248(iuout,louts,100)
       return
@@ -3331,10 +3331,10 @@ C Logic for merging vertices into the parent surface
 C based on what is closest.
 C Debug.
       isur=ICS
-      write(louts,'(a,i3,124i4)') 'parent surf jvn ',IPS,
+      write(louts,'(a,i3,102i4)') 'parent surf jvn ',IPS,
      &  (jvn(IPS,j),J=1,NVER(IPS))
       if(itrc.gt.0)call edisp248(iuout,louts,100)
-      write(louts,'(a,2i3,124i4)') 'child surf jvn ',
+      write(louts,'(a,2i3,102i4)') 'child surf jvn ',
      &  isur,NVER(isur),(jvn(isur,j),J=1,NVER(isur))
       if(itrc.gt.0)call edisp248(iuout,louts,100)
       CALL SURLEHI(IPS,XYMAX,ZMAX,llpos,lrpos,ulpos,urpos)
@@ -3458,7 +3458,7 @@ C icvert and then looping down each of the vertices in
 C the child followed by jvn(IPS,ipwhich).
         ivll=ipwhich  ! remember it
 C Debug.
-C        write(6,'(a,i3,124i4)') 'ivll parent surf jvn ',
+C        write(6,'(a,i3,102i4)') 'ivll parent surf jvn ',
 C     &    ivll,(jvn(IPS,j),J=1,NVER(IPS))
 
 C Expand the list by looping down (from one more than the current
@@ -3494,7 +3494,7 @@ C Add jvn(IPS,ipwhich) so as to rejoin the parent.
           iszjvn(IZ,IPS,n)=jvn(IPS,n)
 
 C Feedback.
-          write(louts,'(a,124i4)') 'parent surf after ',
+          write(louts,'(a,102i4)') 'parent surf after ',
      &      (jvn(IPS,j),J=1,NVER(IPS))
           if(itrc.gt.0)call edisp248(iuout,louts,100)
         else
@@ -3533,12 +3533,12 @@ C we reach iyy=0 then insert jvn(IPS,ipwhich).
               endif
             endif
 C Debug.
-C            write(6,'(a,124i4)') 'parent surf adj ',
+C            write(6,'(a,102i4)') 'parent surf adj ',
 C     &        (jvn(IPS,j),J=1,NVER(IPS))
           enddo
 
 C Feedback.
-          write(louts,'(a,124i4)') 'parent surf after ',
+          write(louts,'(a,102i4)') 'parent surf after ',
      &      (jvn(IPS,j),J=1,NVER(IPS))
           if(itrc.gt.0)call edisp248(iuout,louts,100)
         endif

@@ -4439,6 +4439,7 @@ C array IGETNO and KGET.
       common/recver/izver,ipver,iever
       common/PREC18/ZTRANA(MCOM)
       COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
+      integer icascf
       COMMON/CCTL/ICASCF(MCOM)
       COMMON/ZONPIK/NZ,NZNO(MCOM)
       COMMON/GETPIK/NGET,IGETNO(MZS,9)

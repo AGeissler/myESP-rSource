@@ -128,7 +128,7 @@ C ibridgeshr(MCON,MV) is:
      &          iedgshr(MCON,MV),imatshr(MCON,MV),ibridgeshr(MCON,MV)
 
 C G9 holds information on children of a surface and its parent.
-      integer,PARAMETER :: MCHILD=24
+      integer,PARAMETER :: MCHILD=12
       integer nbchild   ! how many children (up to MCHILD) for each connection
       integer nbgchild  ! how many grand children (up to MCHILD) for each connection
       integer ichild    ! list of children for each connection

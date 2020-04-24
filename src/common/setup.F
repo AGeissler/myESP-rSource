@@ -127,7 +127,7 @@ C If vi then spawn a new window to do the editing in.
         tmode='-'
         if(teditor(1:2).eq.'vi'.or.teditor(1:4).eq.'nano')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' &'
+     &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
       ELSEIF(INO1.EQ.8)THEN
 

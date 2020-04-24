@@ -5270,10 +5270,10 @@ C tmode as 'graphic'
           if(iappw.gt.0.and.iappw.le.200)then
             write(doit,'(3a,3i4,3a)') 'viewer -mode ',tmode,
      &        ' -s ',iappw,iappx+25,iappy+20,' -file ',
-     &        longtfile(1:lnblnk(longtfile)),' &'
+     &        longtfile(1:lnblnk(longtfile)),' & '
           else
             write(doit,'(5a)') 'viewer -mode ',tmode,
-     &        ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),' &'
+     &        ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),' & '
           endif
 C          call usrmsg(' ','Starting perspective viewer.','-')
           call runit(doit,tmode)

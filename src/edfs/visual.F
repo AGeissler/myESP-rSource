@@ -767,7 +767,7 @@ C Open file and write header.
         call efopseq(IUNIT,vecfil,4,ier)
         write(IUNIT,'(a)') '# dfs flow-vectors'
         write(IUNIT,'(a)') '# Flow vectors for each CFD grid point'
-        write(IUNIT,'(a,a)') '# i, j, k : X start & end, Y start &',
+        write(IUNIT,'(a,a)') '# i, j, k : X start & end, Y start & ',
      &                                  ' end, Z start & end, colour'
       endif
 

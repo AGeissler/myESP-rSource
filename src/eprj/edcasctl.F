@@ -851,7 +851,7 @@ C Edit the cgc control type.
             SIG=SPELEC(ICOMP,N)
             SLP=SLOPEM(ICOMP,N)
   45        WRITE(HOLD,'(F6.2,F8.4)')SPELEC(ICOMP,N),SLOPEM(ICOMP,N)
-            CALL EASKS(HOLD,' Night-time calibration lux value &',
+            CALL EASKS(HOLD,' Night-time calibration lux value & ',
      &        ' Control slope',40,' 15.0  -0.025',' calib & slope',
      &        IER,nbhelp)
             K=0
@@ -990,7 +990,7 @@ C External sensor associated surface and orientation.
           helptopic='ctl_external_location'
           call gethelptext(helpinsub,helptopic,nbhelp)
   37      WRITE(HOLD,'(2F6.2)')CGX(ICOMP,N,1),CGY(ICOMP,N,1)
-          CALL EASKS(HOLD,' Sensor surface number position &',
+          CALL EASKS(HOLD,' Sensor surface number position & ',
      &         'Orientation (0)-horizontal (1)-vertical ',40,' 1. 1.',
      &         ' sensor pos & orien',IER,nbhelp)
           K=0

@@ -2330,11 +2330,11 @@ C Get logical name of child process terminal type and create a string to drive p
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,3a)') 'pdb -mode ',tmode,
      &      ' -s ',iappwpc,iappx+10,iappy+40,' -file ',
-     &      longtfile(1:lnblnk(longtfile)),' &'
+     &      longtfile(1:lnblnk(longtfile)),' & '
         else
           write(doit,'(5a)') 'pdb -mode ',tmode,
      &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
-     &      ' &'
+     &      ' & '
         endif
         call runit(doit,tmode)
         goto 60  ! re-display menu
@@ -5451,11 +5451,11 @@ C Start the mould utility.
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,3a)') 'mld -mode ',tmode,
      &      ' -s ',iappwpc,iappx+10,iappy+40,' -file ',
-     &      longtfile(1:lnblnk(longtfile)),' &'
+     &      longtfile(1:lnblnk(longtfile)),' & '
         else
           write(doit,'(5a)') 'mld -mode ',tmode,
      &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
-     &      ' &'
+     &      ' & '
         endif
         call runit(doit,tmode)
         goto 60  ! redisplay menu.

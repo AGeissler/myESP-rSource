@@ -910,7 +910,7 @@ C For most recent cfg file format, display image documentation as well.
                 endif
                 write(dolist,'(a,2x,a,a)')
      &            fmtexe(imgv)(1:lnblnk(fmtexe(imgv))),
-     &            ilist(1:lnblnk(ilist)),' &'
+     &            ilist(1:lnblnk(ilist)),' & '
                 call runit(dolist,'-')
                 iton=1
               endif

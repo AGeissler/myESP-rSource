@@ -247,7 +247,7 @@ C Remember if each zone is fully attributed.
       dimension areamlc(MCOM)
       real areamlc
       character items*33
-      dimension items(25)
+      dimension items(27)
 
       character*72 LTMP
       character*72 GTGEOM
@@ -282,11 +282,16 @@ C For thermal bridge reporting
       
 C Topic variables: value of zero = none, one = compact, two = verbose,
 C three is very verbose
-C Initial assumption is verbose for each topic that is included
+C Initial assumption is verbose for most topics that are included
 C in the current model. A -1 means not applicable
       integer siteinfo,databaseinfo,contextinfo,controlinfo,netinfo
       integer plantinfo,geominfo,schedinfo,zoneextrainfo,fileinfo
       integer spminfo,enetinfo
+      integer zonecolumns,surfcolumns  ! patterns of zone and surface columns
+      common/qatopics/siteinfo,databaseinfo,contextinfo,controlinfo,
+     &  netinfo,plantinfo,geominfo,schedinfo,zoneextrainfo,fileinfo,
+     &  spminfo,enetinfo,zonecolumns,surfcolumns
+
       integer destination
 
       integer iercl  ! error state returned for scanning climate list.
@@ -396,13 +401,26 @@ C Check if Unix-based or DOS based.
         enetinfo=-1
       endif
       if(ncomp.gt.0)then
-        geominfo=2
-        schedinfo=2
-        zoneextrainfo=2
+        if(markdown)then
+          databaseinfo=1  ! medium mode for database reporting
+          geominfo=2
+          schedinfo=2
+          zoneextrainfo=2
+          zonecolumns=0   ! only name vol floor area and description
+          surfcolumns=0   ! summary surface reporting
+        else
+          geominfo=2
+          schedinfo=2
+          zoneextrainfo=2
+          zonecolumns=3   ! all columns of zone reporting
+          surfcolumns=3   ! all columns of surface reporting
+        endif
       else
         geominfo=-1
         schedinfo=-1
         zoneextrainfo=-1
+        zonecolumns=-1
+        surfcolumns=-1
       endif
 
 C Assume no extra file names required and no MLC selected for filter.
@@ -497,10 +515,12 @@ C Setup the selection menu.
       elseif(siteinfo.eq.2)then
         items(8)='a site info >> verbose'
       endif
-      if(databaseinfo.eq.0)then
+      if(databaseinfo.eq.-1)then
         items(9)='b databases >> none'
-      elseif(databaseinfo.eq.1)then
+      elseif(databaseinfo.eq.0)then
         items(9)='b databases >> compact'
+      elseif(databaseinfo.eq.1)then
+        items(9)='b databases >> medium'
       elseif(databaseinfo.eq.2)then
         items(9)='b databases >> verbose'
       elseif(databaseinfo.eq.3)then
@@ -544,83 +564,126 @@ C Setup the selection menu.
       endif
       items(14)='g zone selection'
       if(geominfo.eq.-1)then
-        items(15)='h geometry >> not applicable'
+        items(15)='g geometry >> not applicable'
       elseif(geominfo.eq.0)then
-        items(15)='h geometry >> none'
+        items(15)='g geometry >> none'
       elseif(geominfo.eq.1)then
-        items(15)='h geometry >> compact'
+        items(15)='g geometry >> compact'
       elseif(geominfo.eq.2)then
-        items(15)='h geometry >> verbose'
+        items(15)='g geometry >> verbose'
       elseif(geominfo.eq.3)then
-        items(15)='h geometry >> very verbose'
+        items(15)='g geometry >> very verbose'
+      endif
+      if(zonecolumns.eq.-1)then
+        items(16)='h                           '
+      elseif(zonecolumns.eq.0)then
+        items(16)='h zone columns >>  summary  '
+        call edisp(iuout,' ')
+        call edisp(iuout,'ID Name Volume Floor area Description.')
+      elseif(zonecolumns.eq.1)then
+        items(16)='h zone columns >>  sub-set A'
+        call edisp(iuout,' ')
+        call edisp(iuout,'ID Name Surface nb & areas Description.')
+      elseif(zonecolumns.eq.2)then
+        items(16)='h zone columns >>  sub-set B'
+        call edisp(iuout,' ')
+        call edisp(iuout,'ID Name Volume Surface areas Description.')
+      elseif(zonecolumns.eq.3)then
+        items(16)='h zone columns >>  all      '
+        call edisp(iuout,' ')
+        call edisp(iuout,
+     &  'ID Name Volume Surface nb & areas Floor area Description.')
+      endif
+      if(surfcolumns.eq.-1)then
+        items(17)='i                           '
+      elseif(surfcolumns.eq.0)then
+        items(17)='i surf columns >>  summary  '
+        call edisp(iuout,' ')
+        call edisp(iuout,
+     &  'ID area azim name USE-P composition boundary.')
+      elseif(surfcolumns.eq.1)then
+        items(17)='i surf columns >>  sub-set A'
+        call edisp(iuout,' ')
+        call edisp(iuout,
+     &'ID area azim name optics USE-P composition boundary.')
+      elseif(surfcolumns.eq.2)then
+        items(17)='i surf columns >>  sub-set B'
+        call edisp(iuout,' ')
+        call edisp(iuout,
+     &'ID area azim elev name optics USE-P-S composition boundary.')
+      elseif(surfcolumns.eq.3)then
+        items(17)='i surf columns >>  all      '
+        call edisp(iuout,' ')
+        call edisp(iuout,
+     &'ID area azim elev name optics loc USE-P-S composition boundary.')
       endif
       if(schedinfo.eq.-1)then
-        items(16)='i operations >> none'
+        items(18)='j operations >> none'
       elseif(schedinfo.eq.0)then
-        items(16)='i operations >> none'
+        items(18)='j operations >> none'
       elseif(schedinfo.eq.1)then
-        items(16)='i operations >> compact'
+        items(18)='j operations >> compact'
       elseif(schedinfo.eq.2)then
-        items(16)='i operations >> verbose'
+        items(18)='j operations >> verbose'
       endif
       if(zoneextrainfo.eq.-1)then
-        items(17)='j zone extras >> none'
+        items(19)='k zone extras >> none'
       elseif(zoneextrainfo.eq.0)then
-        items(17)='j zone extras >> none'
+        items(19)='k zone extras >> none'
       elseif(zoneextrainfo.eq.1)then
-        items(17)='j zone extras >> compact'
+        items(19)='k zone extras >> compact'
       elseif(zoneextrainfo.eq.2)then
-        items(17)='j zone extras >> verbose'
+        items(19)='k zone extras >> verbose'
       endif
       if(geominfo.ge.1)then
-        items(18)='k sort by surface attrbution'
+        items(20)='l sort by surface attrbution'
       else
-        items(18)='k n/a'
+        items(20)='l n/a'
       endif
       if(fileinfo.eq.0)then
-        items(19)='m file names >> none'
+        items(21)='m file names >> none'
       elseif(fileinfo.eq.1)then
-        items(19)='m file names >> included'
+        items(21)='m file names >> included'
       endif
       if(destination.eq.0)then
-        items(20)='> QA report >> text feedback'
+        items(22)='> QA report >> text feedback'
       elseif(destination.eq.1)then
         if(lmodelqa(1:4).eq.'UNKN'.or.lmodelqa(1:2).eq.'  ')then
-          items(20)='> QA report >> file UNKNOWN'
+          items(22)='> QA report >> file UNKNOWN'
         else
-          write(items(20),'(2a)') '> QA report >> ',lmodelqa(1:17) 
+          write(items(22),'(2a)') '> QA report >> ',lmodelqa(1:17) 
         endif
       endif
-      items(21)  ='! generate QA report       '
+      items(23)  ='! generate QA report       '
       if(destination.eq.0)then
         if(lmodelqa(1:4).eq.'UNKN'.or.lmodelqa(1:2).eq.'  ')then
-          items(22)='  QA report not yet defined'
+          items(24)='  QA report not yet defined'
         else
-          write(items(22),'(2a)') '* edit QA: ',lmodelqa(1:21) 
+          write(items(24),'(2a)') '* edit QA: ',lmodelqa(1:21) 
         endif
       elseif(destination.eq.1)then
         if(lmodelqa(1:4).eq.'UNKN'.or.lmodelqa(1:2).eq.'  ')then
-          items(22)='  QA report not yet defined'
+          items(24)='  QA report not yet defined'
         else
-          write(items(22),'(2a)') '* edit QA: ',lmodelqa(1:21) 
+          write(items(24),'(2a)') '* edit QA: ',lmodelqa(1:21) 
         endif
       endif
-      items(23)  ='  _________________________'
-      items(24)  ='? help                     '
-      items(25)  ='- exit menu                '
+      items(25)  ='  _________________________'
+      items(26)  ='? help                     '
+      items(27)  ='- exit menu                '
 
 C Help for menu.
       helptopic='setup_qa_report'
       call gethelptext(helpinsub,helptopic,nbhelp)
-      NITMS=25
+      NITMS=27
       call emenu('Model reports',items,NITMS,ino)
 
-      if(ino.eq.25)then
+      if(ino.eq.27)then
         if(changedit)then
           continue
         endif
         return
-      elseif(ino.eq.24)then
+      elseif(ino.eq.26)then
         helptopic='setup_qa_report'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('QA overview',nbhelp,'-',0,0,IER)
@@ -786,7 +849,7 @@ C Execute image viewer (get tool via prior scan of default file).
         if(siteinfo.gt.2)siteinfo=0
       elseif(ino.eq.9)then
         databaseinfo=databaseinfo+1  ! allow up to 3
-        if(databaseinfo.gt.3)databaseinfo=0
+        if(databaseinfo.gt.3)databaseinfo=-1
       elseif(ino.eq.10)then
         contextinfo=contextinfo+1
         if(contextinfo.gt.2)contextinfo=0
@@ -819,16 +882,26 @@ C If there are zones select from list.
           if(geominfo.gt.3)geominfo=0
         endif
       elseif(ino.eq.16)then
+        if(zonecolumns.ne.-1)then
+          zonecolumns=zonecolumns+1
+          if(zonecolumns.gt.3)zonecolumns=0
+        endif
+      elseif(ino.eq.17)then
+        if(surfcolumns.ne.-1)then
+          surfcolumns=surfcolumns+1
+          if(surfcolumns.gt.3)surfcolumns=0
+        endif
+      elseif(ino.eq.18)then
         if(schedinfo.ne.-1)then
           schedinfo=schedinfo+1
           if(schedinfo.gt.2)schedinfo=0
         endif
-      elseif(ino.eq.17)then
+      elseif(ino.eq.19)then
         if(zoneextrainfo.ne.-1)then
           zoneextrainfo=zoneextrainfo+1
           if(zoneextrainfo.gt.2)zoneextrainfo=0
         endif
-      elseif(ino.eq.18)then
+      elseif(ino.eq.20)then
 
 C Jump if no zones.
         if(inpic.eq.0) goto 3
@@ -1019,10 +1092,10 @@ C If writing to file call ctlexp to close it and switch back to text feedback.
         endif
         MODIFYVIEW=.TRUE.
         MODBND=.TRUE.
-      elseif(ino.eq.19)then
+      elseif(ino.eq.21)then
         fileinfo=fileinfo+1
         if(fileinfo.gt.1)fileinfo=0
-      elseif(ino.eq.20)then
+      elseif(ino.eq.22)then
 
 C Setup the name of the model contents report. If name already known
 C then use it in dialog, otherwise make up standard name in the doc
@@ -1103,12 +1176,12 @@ C          call ctlexp(xfile,ixopen,ixloc,ixunit,'T','QA text',IER)
           itu = iuout
         endif
 
-      elseif(ino.eq.21)then
+      elseif(ino.eq.23)then
 
 C Generate the report based on current options.
         goto 55
 
-      elseif(ino.eq.22)then
+      elseif(ino.eq.24)then
 
 C If user just wrote to a file then allow browse and then
 C edit of that QA file.  Use file browser if in GTK mode.
@@ -2179,8 +2252,10 @@ C If there is a flow network, rescan and list its contents.
             call edisp(itu,' ')
             call edisp(itu,'The model includes an air flow network.')
           endif
-          if(netinfo.eq.2)then
-            call mflist(itu)
+          if(netinfo.eq.1)then
+            call mflist(itu,'s')
+          elseif(netinfo.eq.2)then
+            call mflist(itu,'f')
           endif
           call edisp(itu,' ')
         endif
@@ -2299,24 +2374,74 @@ C Jump if no zones.
         call edisp(itu,' ')
         call edisp(itu,': Zone summary')
         call edisp(itu,' ')
-        write(outs,'(3a)') 
-     &  'ID  Zone name     Volume (m^3^)  Surfaces   ',
-     &  'Opaque (m^2^)    Transparent (m^2^)   Floor (m^2^) ',
-     &  '   Description'
-        call edisp(itu,outs)
-        write(outs2,'(3a)')
-     &  '--  ------------  -------------  --------   ',
-     &  '--------------   ------------------   -------------',
-     &  '   -------------------------------------------' 
-        call edisp(itu,outs2)
+        if(zonecolumns.eq.3)then
+          write(outs,'(3a)') 
+     &    'ID  Zone name     Volume (m^3^)  Surfaces   ',
+     &    'Opaque (m^2^)    Transparent (m^2^)   Floor (m^2^) ',
+     &    '   Description'
+          call edisp(itu,outs)
+          write(outs2,'(3a)')
+     &    '--  ------------  -------------  --------   ',
+     &    '--------------   ------------------   -------------',
+     &    '   -------------------------------------------' 
+          call edisp(itu,outs2)
+        elseif(zonecolumns.eq.2)then
+          write(outs,'(3a)') 
+     &    'ID  Zone name     Volume (m^3^)  Surfaces  ',
+     &    'Opaque (m^2^)  Transparent (m^2^)   ',
+     &    'Description'
+          call edisp(itu,outs)
+          write(outs2,'(3a)')
+     &    '--  ------------  -------------  --------  ',
+     &    '-------------  ------------------   ',
+     &    '-------------------------------------------' 
+          call edisp(itu,outs2)
+        elseif(zonecolumns.eq.1)then
+          write(outs,'(3a)') 
+     &    'ID  Zone name     Surfaces  ',
+     &    'Opaque (m^2^)   Transparent (m^2^)  Floor (m^2^) ',
+     &    '  Description'
+          call edisp(itu,outs)
+          write(outs2,'(3a)')
+     &    '--  ------------  --------  ',
+     &    '--------------  ------------------  -------------',
+     &    '  -------------------------------------------' 
+          call edisp(itu,outs2)
+        elseif(zonecolumns.eq.0)then
+          write(outs,'(2a)') 
+     &    'ID  Zone name     Volume (m^3^)  ',
+     &    'Floor (m^2^)  Description'
+          call edisp(itu,outs)
+          write(outs2,'(3a)')
+     &    '--  ------------  -------------  ',
+     &    '------------  -------------------------------------------' 
+          call edisp(itu,outs2)
+        endif
       else
         WRITE(outs,240)
         call edisp(itu,outs)
         call edisp(itu,' ')
-        outs='ID Zone         Volume|          Surface          '
-        call edisp(itu,outs)
-        outs='   Name         m^3   | No. Opaque  Transp  ~Floor'
-        call edisp(itu,outs)
+        if(zonecolumns.eq.3)then
+          outs='ID Zone         Volume|          Surface          '
+          call edisp(itu,outs)
+          outs='   Name         m^3   | No. Opaque  Transp  ~Floor'
+          call edisp(itu,outs)
+        elseif(zonecolumns.eq.2)then
+          outs='ID Zone         Volume|      Surface        Description'
+          call edisp(itu,outs)
+          outs='   Name         m^3   | No. Opaque  Transp        '
+          call edisp(itu,outs)
+        elseif(zonecolumns.eq.1)then
+          outs='ID Zone         |       Surface      Description'
+          call edisp(itu,outs)
+          outs='   Name         | No. Opaque  Transp        '
+          call edisp(itu,outs)
+        elseif(zonecolumns.eq.0)then
+          outs='ID Zone         Volume| ~Floor  Description       '
+          call edisp(itu,outs)
+          outs='   Name         m^3   |  area                     '
+          call edisp(itu,outs)
+        endif
       endif
       TVOL=0.
       TFLA=0.
@@ -2346,20 +2471,57 @@ C At this point CFC and CFC2 are not counted
           if(attribok(IVALS(IZ)))then
             aok=' attributed  '
             if(markdown)then
-              write(outs248,
-     &          '(i2,2x,a,f8.1,i13,11x,f8.1,13x,f8.1,8x,f9.1,5x,a)') 
-     &          IVALS(IZ),
-     &          zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
-     &          OPQ,TRN,ZBASEA(IVALS(IZ)),
-     &          zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
-              call edisp(itu,outs248)
+              if(zonecolumns.eq.3)then
+                write(outs248,
+     &            '(i2,2x,a,f8.1,i13,11x,f8.1,13x,f8.1,8x,f9.1,5x,a)') 
+     &            IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,ZBASEA(IVALS(IZ)),
+     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs248)
 C              call edisp248(itu,outs248,140)
+              elseif(zonecolumns.eq.2)then
+                write(outs248,
+     &            '(i2,2x,a,f8.1,i13,11x,f8.1,12x,f8.1,3x,a)') 
+     &            IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs248)
+              elseif(zonecolumns.eq.1)then
+                write(outs248,'(i2,2x,a,i10,8x,f8.1,12x,f8.1,2x,a)') 
+     &            IVALS(IZ),zname(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs248)
+              elseif(zonecolumns.eq.0)then
+                write(outs248,
+     &            '(i2,2x,a,f8.1,8x,f9.1,6x,a)') IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),ZBASEA(IVALS(IZ)),
+     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs248)
+              endif
             else
-              write(outs,'(i2,1x,a,f7.1,i4,3f8.1,2x,a)') IVALS(IZ),
-     &          zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
-     &          OPQ,TRN,ZBASEA(IVALS(IZ)),
-     &          zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
-              call edisp(itu,outs)
+              if(zonecolumns.eq.3)then
+                write(outs,'(i2,1x,a,f7.1,i4,3f8.1,2x,a)') IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,ZBASEA(IVALS(IZ)),
+     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs)
+              elseif(zonecolumns.eq.2)then
+                write(outs,'(i2,1x,a,f7.1,i4,2f8.1,2x,a)') IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs)
+              elseif(zonecolumns.eq.1)then
+                write(outs,'(i2,1x,a,i4,2f8.1,2x,a)') IVALS(IZ),
+     &            zname(IVALS(IZ)),NZSUR(ivals(iz)),
+     &            OPQ,TRN,zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs)
+              elseif(zonecolumns.eq.0)then
+                write(outs,'(i2,1x,a,f7.1,f8.1,2x,a)') IVALS(IZ),
+     &            zname(IVALS(IZ)),VOL(IVALS(IZ)),ZBASEA(IVALS(IZ)),
+     &            zdesc(IVALS(IZ))(1:lnzdesc(IVALS(IZ)))
+                call edisp(itu,outs)
+              endif
             endif
           else
             aok=' part-attributed '
@@ -2858,9 +3020,9 @@ C Put odd vertex in right column.
             icc=izstocn(izz,i)           ! find connection
             lsna=lnblnk(SNAME(izz,i))    ! get length of surf name
             if(markdown)then
-              write(louts,'(124I4)') (JVN(I,J),J=1,NVER(I))
+              write(louts,'(102I4)') (JVN(I,J),J=1,NVER(I))
             else
-              write(louts,'(a,i3,124I4)') '*edges ',NVER(I),
+              write(louts,'(a,i3,102I4)') '*edges ',NVER(I),
      &        (JVN(I,J),J=1,NVER(I))
             endif
             call SDELIM(louts,loutsd,'C',IW)  ! make comma separated
@@ -3087,11 +3249,16 @@ C then rescan that zone file with verbose setting.
             if(zoneextrainfo.eq.1)then
               call edisp(itu,
      &         ' Non-default convection regimes are used in this zone.')
+              call FINDFIL(LHCCO(ivz),XST)
+              IF(XST)THEN
+                call ehtcff(LHCCO(ivz),IUF,IER)
+                call listhtc(itu,ivz,'s',IER)
+              endif
             elseif(zoneextrainfo.eq.2)then
               call FINDFIL(LHCCO(ivz),XST)
               IF(XST)THEN
                 call ehtcff(LHCCO(ivz),IUF,IER)
-                call listhtc(itu,ivz,IER)
+                call listhtc(itu,ivz,'f',IER)
               endif
             endif
           endif
@@ -3412,7 +3579,7 @@ C if the zones are fully attributed.
 C MLC database reporting. If toggle set to 'verbose' only list out those
 C constructions which have been referenced in the model. If toggle is
 C set to 'verbose all' then include all of them.
-   57 if(databaseinfo.ge.1)then
+   57 if(databaseinfo.ge.0)then
         if(markdown)then
           call edisp(itu,' ')
           call edisp2tr(itu,'## Constructions  ')
@@ -3436,6 +3603,9 @@ C        write(6,*) 'nmlc is ',nmlc,databaseinfo
               call etmldb(iitrc,itu,imlc,imerr)
             elseif(databaseinfo.eq.1)then
               iitrc=1
+              call etmldb(iitrc,itu,imlc,imerr)
+            elseif(databaseinfo.eq.0)then
+              iitrc=0
               call etmldb(iitrc,itu,imlc,imerr)
             endif
             if(markdown)then

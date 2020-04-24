@@ -5,8 +5,8 @@ C  mfwfdraw - draws 3D flow network overlay on wireframe from commons passed col
 C  symbol_flow_nd - draws a flow node symbol passed name type colour & position
 C  symbol_flow_cmp - draws a flow component symbol passed name type colour & position
 C  draw_flow_link - draws a flow connection between two coordinates
-C  draw_connect_assoc - draws the nodes & components associated
-C                       with flow connection IFCN.
+C  draw_node_assoc - draws the connections & components associated with a node.
+C  draw_connect_assoc - draws the nodes & components associated with a connection.
 C  draw_surf_flow_symbol - places flow symbol after user chooses surface USE 
 
 C mfcompposition - user interactions eastablishing flow component position.
@@ -619,7 +619,7 @@ C For DOOR variants.
       if(SUSE(iz,is,1)(1:4).eq.'DOOR'.or.
      &   SUSE(iz,is,1)(1:6).eq.'P-DOOR'.or.
      &   SUSE(iz,is,1)(1:6).eq.'H-DOOR'.or.
-     &   SUSE(iz,is,1)(1:6).eq.'H-DOOR')then
+     &   SUSE(iz,is,1)(1:6).eq.'V-DOOR')then
         if(SUSE(iz,is,2)(1:6).eq.'CLOSED')then
 
 C Door crack - crack component, assume width = 2mm,
@@ -664,6 +664,7 @@ C Undercut at door - common orifice at lowest horizontal edge.
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Open door - common orifice component, (type 40) IVALCM(10) MF040I
+C There may or may not be an associated crack so do not draw it (yet).
           if(inthenetwork)then
             continue
           else
@@ -686,6 +687,7 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
      &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
 
 C Bidirectional door - door component,  IVALCM(14)=130 MF130I
+C There may or may not be an associated crack.
           if(inthenetwork)then
             continue
           else
@@ -1077,7 +1079,7 @@ C Fict bi-directional - door component IVALCM(14)=130 MF130I
       end
 
 C ***************** draw_node_assoc
-C draw_connect_assoc draws the connections & components associated
+C draw_node_assoc draws the connections & components associated
 C with flow node X.
       subroutine draw_node_assoc(IFNOD)
 #include "building.h"
@@ -1244,7 +1246,7 @@ C Draw the connection betwen node and component (but not to the other node).
         endif    ! node within viewing area
       endif      ! of graphic mode
       
-      end
+      end        ! of draw_node_assoc
 
 C ***************** draw_connect_assoc
 C draw_connect_assoc draws the nodes & components associated
@@ -1492,8 +1494,7 @@ C Force highlight both legs of connection plus component.
 
 C ***************** get_component_code
 C get_component_code returns a 2 character code for the component
-C type to use when drawing components.
-C with flow connection IFCN.
+C type to use when drawing components with flow connection IFCN.
       subroutine get_component_code(IFCN,twochar)
 #include "building.h"
 #include "net_flow.h"
@@ -1750,7 +1751,7 @@ C Extract XYZ values from the string.
       endif
       call usrmsg(' ',' ','-')
       RETURN
-      END
+      END    ! of mfcompposition
 
 C ***************** mfnodeposition
 C mfnodeposition does user interactions for flow node position.
@@ -1986,9 +1987,9 @@ C Extract XYZ values from the string.
       endif
       call usrmsg(' ',' ','-')
       RETURN
-      END
+      END    ! of mfnodeposition
 
-C ***********************************
+C ************** scan_flow_use
 C scan_flow_use scanns surface USE attributes related to mass flows,
 C extracts position information, fills flow common blocks and creates
 C both legacy and a 3D flow file while drawing over wireframe.
@@ -2184,7 +2185,8 @@ C unix and non-unix machine types).
      &  'Generating flow nodes for selected zones ...',' ','-')
       DO IZT=1,IZN
 
-C Setup default internal flow node for zone IZT.
+C Setup default internal flow node for zone IZT. This will also
+C have instanciated ICAAS array.
         call create_zone_node(IZT)
         call pausems(100)
       ENDDO
@@ -2218,6 +2220,11 @@ C Cases to ignore.
           CYCLE
         endif
 
+C Display the current zone/ components/ connections associated node IFNOD.         
+        IFNOD=ICAAS(iz)
+        call draw_node_assoc(IFNOD)
+        call pausems(1000)
+
 C Create a default boundary flow node or component based on surface attributes.
         call create_surface_node_cmp(iz,is)
 
@@ -2227,7 +2234,7 @@ C Create a default boundary flow node or component based on surface attributes.
       CALL ERPFREE(IUM,ISTAT)
 
 C List what we have thus far.
-      CALL MFLIST(iuout)
+      CALL MFLIST(iuout,'f')
 
 C Write 3D attributes and legacy version of flow networks.
       CALL ERPFREE(IUM,ISTAT)
@@ -2411,24 +2418,24 @@ C  zSWA - shortwave absorption (W).
       DIMENSION IVALS2(MCOM)
       CHARACTER outs*144,name*12
       character CXSTR*78
-      CHARACTER prompt*72,hold*32,fs*1,SN*12,zsn*28
+      CHARACTER prompt*96,hold*32,fs*1,SN*12,zsn*28
       character ccol*1
       logical ok,unixok
       logical dupedges
       integer loop
-      integer llpos,lrpos,ulpos,urpos     ! closest to BB corners for parent
-      integer CMPIS  ! index of component we just created
-      integer POS,NEG
+      integer llpos,lrpos,ulpos,urpos  ! closest to BB corners for parent
+      integer CMPIS                    ! index of component we just created
+      integer POS,NEG,POSCR            ! associated nodes
       logical iswater
       real edgelower,edgeupper  ! Z of current surface lower & upper edges.
-      real trwidth   ! width of trickle vent
+      real trwidth                     ! width of trickle vent
 
 C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
-      helpinsub='scan_flow_use'  ! set for subroutine
+      helpinsub='create_s_node_cmp'  ! set for subroutine
 
 C Set folder separator (fs) to \ or / as required.
       call isunix(unixok)
@@ -2506,7 +2513,7 @@ C For DOOR variants.
       if(SUSE(iz,is,1)(1:4).eq.'DOOR'.or.
      &   SUSE(iz,is,1)(1:6).eq.'P-DOOR'.or.
      &   SUSE(iz,is,1)(1:6).eq.'H-DOOR'.or.
-     &   SUSE(iz,is,1)(1:6).eq.'H-DOOR')then
+     &   SUSE(iz,is,1)(1:6).eq.'V-DOOR')then
         if(SUSE(iz,is,2)(1:6).eq.'CLOSED')then
 
 C Door crack - crack component, assume width = 2mm,
@@ -2531,12 +2538,6 @@ C length = perimeter, on centre line. OK
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
-          call pausems(100)
-
-C Report on Delta Height with associated .
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(100)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BD-Cr',iz,':',is
@@ -2737,8 +2738,8 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
           write(name,'(a,i2.2,a,i3.3)') 'DoOPz',iz,':',is
           xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=SURCOG(iz,is,3)
-          write(prompt,'(4a,f6.1,a,f6.1,a,f7.3,a,3f6.2)') zsn(1:lnzsn),
-     &      '  ',name,' door open width ',XYMAX,' height',ZMAX,
+          write(prompt,'(4a,f5.1,a,f5.1,a,f6.2,a,3f6.2)') zsn(1:lnzsn),
+     &      '  ',name,' door open w= ',XYMAX,' h=',ZMAX,
      &      ' area',SNA(iz,is),'m^2 COG @XYZ',xc,yc,zc
           NCMP=NCMP+1 ! use logic in MF110I
           CMNAM(NCMP)=name
@@ -2759,11 +2760,6 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
           SUPCMP(NCMP,3)=VAL2
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(100)
           if(ICT(loop).eq.0)then
@@ -2901,11 +2897,6 @@ C assume width = 100mm, height = door height, discharge factor = 0.5.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,zc)
           call pausems(100)
-
-C Report on Delta Height between surface COG and zone COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with base is',VAL4
-          call edisp(iuout,outs)
-          call pausems(100)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Bi',iz,':',is
             xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
@@ -3010,12 +3001,6 @@ C length = frame inside perimeter, on centre line. OK
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
-          call pausems(100)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(100)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Cr',iz,':',is
@@ -3126,12 +3111,6 @@ C height = 15mm, at highest horizontal edge.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(100)
-
-C Report on Delta Height with associated surf upper.
-          write(outs,'(a,f7.3)') 'Delta Zone with surf top is',
-     &      edgeupper-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(100)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Ve',iz,':',is
             xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
@@ -3236,12 +3215,6 @@ C length = frame inside perimeter, on centre line.
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
-          call pausems(100)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(100)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Cr',iz,':',is
@@ -3473,12 +3446,6 @@ C     SUPCMP(ICMP,6) - sum of local dynamic loss factors (-)
             endif
             call pausems(50)
           endif
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(50)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-IN',iz,':',is
             xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
@@ -3663,12 +3630,6 @@ C Based on ach against the volume of a particular zone.
             call symbol_flow_cmp(name,'bx','b',xc,yc,zc)
           endif
           call pausems(30)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-EX',iz,':',is
             xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
@@ -3782,12 +3743,6 @@ C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(30)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Op',iz,':',is
             xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
@@ -3900,13 +3855,6 @@ C length = window perimeter, at surface COG.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
           call pausems(30)
-
-C Report on Delta Height with associated surf lower.
-          write(outs,'(a,f7.3)') 
-     &      'Delta Zone with surface lower edge is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Cr',iz,':',is
             xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
@@ -3989,14 +3937,15 @@ C Most windows do not fully open so ask user the % of surfaces area.
           write(name,'(a,i2.2,a,i3.3)') 'WiOpz',iz,':',is
           xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=SURCOG(iz,is,3)
-          write(prompt,'(4a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') 
-     &      zsn(1:lnzsn),'  ',name,
-     &      ' width ',XYMAX,' height',ZMAX,
+          write(prompt,'(4a,f5.1,a,f5.1,a,f6.2,a,3f7.3)') 
+     &      zsn(1:lnzsn),'  ',name,' w= ',XYMAX,' h=',ZMAX,
      &      ' area',SNA(iz,is),'m^2 COG @Z',xc,yc,zc
           VAL2=25.0              ! 25% initial guess of area
           CALL EASKR(VAL2,prompt,'Area % for flow opening?',
      &      0.,'W',1.,'-',100.,'% area',IER,nbhelp)
           VAL=SNA(iz,is)*(VAL2*0.001)
+          write(outs,'(4a,f6.2,a,3f7.3)') 
+     &      zsn(1:lnzsn),'  ',name,' area',VAL,'m^2 COG @Z',xc,yc,zc
           call edisp(iuout,' ')
           call edisp(iuout,outs)
           NCMP=NCMP+1 ! use logic in MF040I
@@ -4017,12 +3966,6 @@ C Most windows do not fully open so ask user the % of surfaces area.
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-          call pausems(30)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Op',iz,':',is
@@ -4107,8 +4050,8 @@ C For upper opening, use surface width and ask user for height.
           write(name,'(a,i2.2,a,i3.3)') 'WiSLz',iz,':',is
           xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgelower
-          write(prompt,'(2a,f6.1,a,f6.1,a,f7.3,a,3f6.2)') 
-     &      zsn(1:lnzsn),' width ',XYMAX,' height',ZMAX,
+          write(prompt,'(2a,f5.1,a,f5.1,a,f6.2,a,3f6.2)') 
+     &      zsn(1:lnzsn),' w=',XYMAX,' h=',ZMAX,
      &      ' area',SNA(iz,is),'m2 sill @XYZ',xc,yc,zc
           VAL2=ZMAX*0.125
           CALL EASKR(VAL2,prompt,'Height (m) for lower opening?',
@@ -4137,13 +4080,6 @@ C For upper opening, use surface width and ask user for height.
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-          call pausems(30)
-
-C Report on Delta Height with associated surf lower.
-          write(outs,'(a,f7.3)') 
-     &      'Delta Zone with surface lower edge is',
-     &      edgelower-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(30)
 
 C If at boundary setup the lower boundary node.
@@ -4226,8 +4162,8 @@ C Now create the upper orifice.
           write(name,'(a,i2.2,a,i3.3)') 'WiSUz',iz,':',is
           xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=edgeupper
-          write(prompt,'(2a,f6.1,a,f6.1,a,f7.3,a,3f6.2)') 
-     &      zsn(1:lnzsn),' width ',XYMAX,' height',ZMAX,
+          write(prompt,'(2a,f5.1,a,f5.1,a,f6.2,a,3f6.2)') 
+     &      zsn(1:lnzsn),' w=',XYMAX,' h=',ZMAX,
      &      ' area',SNA(iz,is),'m2 head @XYZ',xc,yc,zc
           VAL2=ZMAX*0.125
           CALL EASKR(VAL2,prompt,'Height (m) for upper opening?',
@@ -4257,13 +4193,6 @@ C Now create the upper orifice.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(30)
-
-C Report on Delta Height with associated surf upper.
-          write(outs,'(a,f7.3)') 'Delta Zone with surf upper is',
-     &      edgeupper-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(30)
-
           if(ICT(loop).eq.0)then
 
 C Now the boundary at the upper orifice.
@@ -4395,12 +4324,6 @@ C Draw on the centre line. The VAL4 is Surf COG to Zone COG.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,zc)
           call pausems(30)
-
-C Report on Delta Height with associated door base.
-          write(outs,'(a,f7.3)') 
-     &      'Delta Zone with base of door is',VAL4
-          call edisp(iuout,outs)
-          call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Bi',iz,':',is
             xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
@@ -4502,13 +4425,6 @@ C length = window width, at lowest horizontal edge.
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
           call pausems(30)
-
-C Report on Delta Height with associated surf lower.
-          write(outs,'(a,f7.3)') 
-     &      'Delta Zone with surface lower edge is',
-     &      edgelower-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Cr',iz,':',is
             xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
@@ -4592,9 +4508,8 @@ C opening to moderate flows. As user the % of surface area.
           write(name,'(a,i2.2,a,i3.3)') 'FiOPz',iz,':',is
           xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
           zc=SURCOG(iz,is,3)
-          write(prompt,'(4a,f6.1,a,f6.1,a,f6.2,a,3f7.3)') 
-     &      zsn(1:lnzsn),'  ',name,
-     &      ' width ',XYMAX,' height',ZMAX,
+          write(prompt,'(4a,f5.1,a,f5.1,a,f6.2,a,3f6.2)') 
+     &      zsn(1:lnzsn),'  ',name,' w=',XYMAX,' h=',ZMAX,
      &      ' area',SNA(iz,is),'m^2 COG @Z',xc,yc,zc
           VAL2=25.0              ! 25% initial guess of area
           CALL EASKR(VAL2,prompt,'Area % for flow opening?',
@@ -4619,12 +4534,6 @@ C opening to moderate flows. As user the % of surface area.
           NWPCMP(NCMP)=0  ! start and end the same
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-          call pausems(30)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-Op',iz,':',is
@@ -4763,11 +4672,6 @@ C Make width = 0.1m height = height, discharge factor = 0.4
           HCMP(NCMP,1,1)=xc; HCMP(NCMP,1,2)=yc; HCMP(NCMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,VAL3)
           call pausems(30)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',VAL4
-          call edisp(iuout,outs)
-          call pausems(30)
           if(ICT(loop).eq.0)then
             write(name,'(a,i2.2,a,i3.3)') 'BW-BI',iz,':',is
             xw=x3+SURCOG(iz,is,1);yw=y3+SURCOG(iz,is,2)
@@ -4852,7 +4756,7 @@ C Subroutine to update position of an flow node.
       subroutine update_node_pos(indexofnode,X,Y,Z,sup1,sup2)
 
       return
-      end
+      end   ! of create_surface_node_cmp
 
 C *************************
 C Subroutine to update position of a flow component based on
@@ -4941,7 +4845,7 @@ C For DOOR variants.
       if(SUSE(iz,is,1)(1:4).eq.'DOOR'.or.
      &   SUSE(iz,is,1)(1:6).eq.'P-DOOR'.or.
      &   SUSE(iz,is,1)(1:6).eq.'H-DOOR'.or.
-     &   SUSE(iz,is,1)(1:6).eq.'H-DOOR')then
+     &   SUSE(iz,is,1)(1:6).eq.'V-DOOR')then
         if(SUSE(iz,is,2)(1:6).eq.'CLOSED')then
 
 C Door crack - crack component, assume width = 1mm,
@@ -4957,12 +4861,6 @@ C length = perimeter, on centre line. OK
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
-          call pausems(100)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(100)
 
         elseif(SUSE(iz,is,2)(1:8).eq.'UNDERCUT')then
@@ -4981,13 +4879,6 @@ C of 0.7 (checked against measurements in Gross & Habermann paper).
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(100)
 
-C Report on Delta Height with associated surf lower.
-          write(outs,'(a,f7.3)') 
-     &      'Delta Zone with surface lower edge is',
-     &      edgelower-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(100)
-
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Open door - common orifice component, (type 40) IVALCM(10) MF040I
@@ -5000,13 +4891,6 @@ C Open door - common orifice component, (type 40) IVALCM(10) MF040I
           call edisp(iuout,' ')
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-          call pausems(100)
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
      &         SUSE(iz,is,2)(1:10).eq.'AJAR-BIDIR')then
@@ -5039,11 +4923,6 @@ C edge.
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,zc)
           call pausems(100)
-
-C Report on Delta Height between surface COG and zone COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with base is',VAL4
-          call edisp(iuout,outs)
-          call pausems(100)
         endif
       elseif(SUSE(iz,is,1)(1:5).eq.'FRAME'.or.
      &       SUSE(iz,is,1)(1:7).eq.'F-FRAME')then
@@ -5067,12 +4946,6 @@ C length = frame inside perimeter, on centre line. OK
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
           call pausems(100)
 
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(100)
-
         elseif(SUSE(iz,is,2)(1:4).eq.'VENT')then
 
 C Frame trickle vent - air flow opening, calculate width,
@@ -5090,12 +4963,6 @@ C height = 10mm, at highest horizontal edge.
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-          call pausems(100)
-
-C Report on Delta Height with associated surf upper.
-          write(outs,'(a,f7.3)') 'Delta Zone with surf top is',
-     &      edgeupper-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(100)
         endif
       elseif(SUSE(iz,is,1)(1:5).eq.'GRILL')then
@@ -5119,12 +4986,6 @@ C length = frame inside perimeter, on centre line.
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
           call pausems(100)
 
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(100)
-
         elseif(SUSE(iz,is,2)(1:5).eq.'INLET')then
 
           write(name,'(a,i2.2,a,i3.3)') 'Grill ',iz,':',is
@@ -5140,12 +5001,6 @@ C Report on Delta Height with associated surf COG.
           else
             call symbol_flow_cmp(name,'cd','b',xc,yc,zc)
           endif
-          call pausems(50)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(50)
 
         elseif(SUSE(iz,is,2)(1:7).eq.'EXTRACT')then
@@ -5170,12 +5025,6 @@ C Grill extract - constant vol flow comp. (type 30) IVALCM(8), as in MF030I
           endif
           call pausems(30)
 
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(30)
-
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I
@@ -5191,13 +5040,6 @@ C Grill opening - common orifice component, (type 40) IVALCM(10) MF040I
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(30)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(30)
-
         endif
       elseif(SUSE(iz,is,1)(1:6).eq.'WINDOW'.or.
      &    SUSE(iz,is,1)(1:8).eq.'D-WINDOW'.or.
@@ -5219,14 +5061,6 @@ C length = window perimeter, at surface COG.
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
           call pausems(30)
-
-C Report on Delta Height with associated surf lower.
-          write(outs,'(a,f7.3)') 
-     &      'Delta Zone with surface lower edge is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(30)
-
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Window open - common orifice component, (type 40) IVALCM(10) MF040I
@@ -5241,12 +5075,6 @@ C Window open - common orifice component, (type 40) IVALCM(10) MF040I
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-          call pausems(30)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(30)
 
         elseif(SUSE(iz,is,2)(1:4).eq.'SASH')then
@@ -5265,13 +5093,6 @@ C Window sash - 2 common orifice component, (type 40) IVALCM(10) MF040I
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
           call pausems(30)
 
-C Report on Delta Height with associated surf lower.
-          write(outs,'(a,f7.3)') 
-     &      'Delta Zone with surface lower edge is',
-     &      edgelower-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(30)
-
 C Now the upper orifice.
           write(name,'(a,i2.2,a,i3.3)') 'WiSUz',iz,':',is
           xc=SURCOG(iz,is,1); yc=SURCOG(iz,is,2) ! remember
@@ -5284,13 +5105,6 @@ C Now the upper orifice.
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-          call pausems(30)
-
-C Report on Delta Height with associated surf upper.
-          write(outs,'(a,f7.3)') 
-     &      'Delta Zone with head of upper sash is',
-     &      edgeupper-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(30)
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
@@ -5323,12 +5137,6 @@ C Draw on the centre line. The VAL4 is Surf COG to Zone COG.
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,zc)
           call pausems(30)
-
-C Report on Delta Height with associated surf lower.
-          write(outs,'(a,f7.3)') 
-     &      'Delta Zone with sill of lower sash is',VAL4
-          call edisp(iuout,outs)
-          call pausems(30)
         endif
       elseif(SUSE(iz,is,1)(1:4).eq.'FICT')then
         if(SUSE(iz,is,2)(1:6).eq.'CLOSED'.or.
@@ -5347,13 +5155,6 @@ C length = window width, at lowest horizontal edge.
           call symbol_flow_cmp(name,'cr','r',xc,yc,zc)
           call pausems(30)
 
-C Report on Delta Height with associated surf lower.
-          write(outs,'(a,f7.3)') 
-     &      'Delta Zone with surface lower edge is',
-     &      edgelower-ZCOG(IZ,3)
-          call edisp(iuout,outs)
-          call pausems(30)
-
         elseif(SUSE(iz,is,2)(1:4).eq.'OPEN')then
 
 C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I
@@ -5368,12 +5169,6 @@ C Fict opening - common orifice component, (type 40) IVALCM(10) MF040I
           call edisp(iuout,outs)
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'or','r',xc,yc,zc)
-          call pausems(30)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',
-     &      SURCOG(iz,is,3)-ZCOG(IZ,3)
-          call edisp(iuout,outs)
           call pausems(30)
 
         elseif(SUSE(iz,is,2)(1:5).eq.'BIDIR'.or.
@@ -5407,11 +5202,6 @@ C Draw component at surf COG but the real base is at bottom edge.
           HCMP(ICMP,1,1)=xc; HCMP(ICMP,1,2)=yc; HCMP(ICMP,1,3)=zc
           call symbol_flow_cmp(name,'bi','r',xc,yc,VAL3)
           call pausems(30)
-
-C Report on Delta Height with associated surf COG.
-          write(outs,'(a,f7.3)') 'Delta Zone with surface COG is',VAL4
-          call edisp(iuout,outs)
-          call pausems(30)
         endif
       endif
 
@@ -5422,7 +5212,7 @@ C Subroutine to update position of a flow connection.
       subroutine update_cnn_pos(indexofcnn)
 
       return
-      end
+      end   ! of update_cmp_pos
 
 C *************************
 C isuseflowrelated tests whether surface attributes are flow related.
@@ -5479,7 +5269,7 @@ C For DOOR variants.
       if(SUSE(izone,isurf,1)(1:4).eq.'DOOR'.or.
      &   SUSE(izone,isurf,1)(1:6).eq.'P-DOOR'.or.
      &   SUSE(izone,isurf,1)(1:6).eq.'H-DOOR'.or.
-     &   SUSE(izone,isurf,1)(1:6).eq.'H-DOOR')then
+     &   SUSE(izone,isurf,1)(1:6).eq.'V-DOOR')then
         if(SUSE(izone,isurf,2)(1:6).eq.'CLOSED')then
           isrelated=.true.
         elseif(SUSE(izone,isurf,2)(1:8).eq.'UNDERCUT')then
@@ -5546,6 +5336,87 @@ C For GRILLs.
 
       return
       end ! of isuseflowrelated
+
+
+C *************************
+C isuseflowcontrol tests if surface attributes might need flow control.
+      subroutine isuseflowcontrol(izone,isurf,isbi,isopen)
+#include "building.h"
+#include "geometry.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+
+C Parameters passed.
+      integer izone,isurf  ! the zone and surface index
+      logical isbi,isopen  ! true is USE flow might need control
+      integer IZSTOCN
+      COMMON/C24/IZSTOCN(MCOM,MS)
+      COMMON/MFLOWIT/fndegc,imix
+
+      character CXSTR*78
+      integer loop
+
+C Set folder separator (fs) to \ or / as required.
+      IF(izone.eq.0.or.isurf.EQ.0)THEN
+        CALL USRMSG('Zone or surface index zero, returning.',' ','W')
+        isbi=.false.; isopen=.false.
+        return
+      ENDIF
+
+C Temporarily use same file unit as profiles db.
+      NDNAM(0)='    '
+      fndegc=20.0
+      imix=1
+      isbi=.false.; isopen=.false.
+
+      loop=IZSTOCN(izone,isurf)
+      call conxinfo(1,loop,CXSTR)
+
+      if(SUSE(izone,isurf,1)(1:1).eq.'-'.or.
+     &   SUSE(izone,isurf,1)(1:4).eq.'WALL'.or.
+     &   SUSE(izone,isurf,1)(1:5).eq.'FLOOR'.or.
+     &   SUSE(izone,isurf,1)(1:5).eq.'FURNI'.or.
+     &   SUSE(izone,isurf,1)(1:7).eq.'ITEQUIP'.or.
+     &   SUSE(izone,isurf,1)(1:5).eq.'PARTN'.or.
+     &   SUSE(izone,isurf,1)(1:4).eq.'ROOF'.or.
+     &   SUSE(izone,isurf,1)(1:5).eq.'STRUC'.or.
+     &   SUSE(izone,isurf,1)(1:7).eq.'FIXTURE'.or.
+     &   SUSE(izone,isurf,1)(1:6).eq.'PLANTS')then     ! Cases to ignore.
+        isbi=.false.; isopen=.false.
+        return
+      endif
+      if(SUSE(izone,isurf,1)(1:4).eq.'DOOR'.or.
+     &   SUSE(izone,isurf,1)(1:6).eq.'P-DOOR'.or.
+     &   SUSE(izone,isurf,1)(1:6).eq.'H-DOOR'.or.
+     &   SUSE(izone,isurf,1)(1:6).eq.'V-DOOR')then      ! For DOOR variants.
+        if(SUSE(izone,isurf,2)(1:4).eq.'OPEN')then
+          isopen=.true.
+        elseif(SUSE(izone,isurf,2)(1:5).eq.'BIDIR'.or.
+     &         SUSE(izone,isurf,2)(1:10).eq.'AJAR-BIDIR')then
+          isbi=.true.
+        endif
+      elseif(SUSE(izone,isurf,1)(1:5).eq.'FRAME'.or.
+     &       SUSE(izone,isurf,1)(1:7).eq.'F-FRAME')then  ! For FRAME vairants.
+        isbi=.false.; isopen=.false.
+      elseif(SUSE(izone,isurf,1)(1:5).eq.'GRILL')then    ! For GRILLs.
+        isbi=.false.; isopen=.false.
+      elseif(SUSE(izone,isurf,1)(1:6).eq.'WINDOW'.or.
+     &    SUSE(izone,isurf,1)(1:8).eq.'D-WINDOW'.or.
+     &    SUSE(izone,isurf,1)(1:8).eq.'S-WINDOW'.or.
+     &    SUSE(izone,isurf,1)(1:8).eq.'C-WINDOW')then    ! For Windows.
+        if(SUSE(izone,isurf,2)(1:4).eq.'OPEN')then
+          isopen=.true.
+        elseif(SUSE(izone,isurf,2)(1:5).eq.'BIDIR'.or.
+     &         SUSE(izone,isurf,2)(1:10).eq.'AJAR-BIDIR')then
+          isbi=.true.
+        endif
+      elseif(SUSE(izone,isurf,1)(1:4).eq.'FICT')then
+        isbi=.false.; isopen=.false.
+      endif
+
+      return
+      end ! of isuseflowcontrol
+
 
 C Subroutine to compare position of a flow connection and its associated
 C surface. Called from flow facilities as a reality check.

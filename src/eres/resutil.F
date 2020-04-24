@@ -168,7 +168,7 @@ C Read 3D flow network, report contents and draw the network.
           CALL MFCDAT
           CALL EMF3DREAD(IUM,'S',IER)
           call edisp(iuout,' ')
-          CALL MFLIST(iuout)
+          CALL MFLIST(iuout,'s')
           if(NNOD.gt.50.or.NCMP.gt.50)then
             call MFWFDRAW('r',0,0)  ! Draw flow network without names if complex
           else

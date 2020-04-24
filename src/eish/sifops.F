@@ -830,7 +830,7 @@ C Error handling.
       return
 
  1002 call edisp (iuout,' ')
-      call edisp(iuout,'Geometry referenced in zone shading &')
+      call edisp(iuout,'Geometry referenced in zone shading & ')
       call edisp(iuout,'insolation file is different to that currently')
       call edisp(iuout,'being used.')
       return

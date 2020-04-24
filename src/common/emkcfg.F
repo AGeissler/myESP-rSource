@@ -1718,7 +1718,7 @@ C Trap out of range IC1 and IE1 variables.
       ELSEIF(ICT(ICON).EQ.2.AND.ICF.GT.0)THEN
         WRITE(CXSTR,8983)ICON,SST1(1:lsn1),ZST1(1:lzn1),
      &                   IC2(ICON),IE2(ICON)
- 8983   FORMAT(I4,1X,a,' in ',a,' >|< Constant @',I3,' dC &',
+ 8983   FORMAT(I4,1X,a,' in ',a,' >|< Constant @',I3,' dC & ',
      &         I4,' W rad')
       ELSEIF(ICT(ICON).EQ.3.AND.ICF.GT.0)THEN
         ICM=IZSTOCN(IC2(ICON),IE2(ICON))

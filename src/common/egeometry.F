@@ -1137,7 +1137,7 @@ C Vertex list. << convert from G1 >>
       DO 970 I = 1,NZSUR(ICOMP)
       msg='edge list data line'
       WRITE(IFILG,5650,IOSTAT=ios,ERR=13)NVER(I),(JVN(I,J),J=1,NVER(I))
-5650    FORMAT(1X,124(I3,','))
+5650    FORMAT(1X,102(I3,','))
 970   CONTINUE
 
 C Unused index. Generate packed strings to write out on as many lines as reqd.
@@ -2824,7 +2824,7 @@ C Edge list. Write as a packed list comma separated.
      &  '# tag, number of vertices followed by list of associated vert'
 
       DO 970 I = 1,NZSUR(ICOMP)
-        write(louts,'(a,i4,124I4)',IOSTAT=ios,ERR=13) '*edges ',
+        write(louts,'(a,i4,102I4)',IOSTAT=ios,ERR=13) '*edges ',
      &    NVER(I),(JVN(I,J),J=1,NVER(I))
         call SDELIM(louts,loutsd,'C',IW)
         write(ifilg,'(2a,i3)',IOSTAT=IOS,ERR=13) 
@@ -4105,6 +4105,15 @@ C If context is .true. then give verbose description of the boundary.
 C Markdown flag.
       logical markdown
       common/markdownflag/markdown
+      
+C Topic variables: surfcolumns modifies what is reported.
+      integer siteinfo,databaseinfo,contextinfo,controlinfo,netinfo
+      integer plantinfo,geominfo,schedinfo,zoneextrainfo,fileinfo
+      integer spminfo,enetinfo
+      integer zonecolumns,surfcolumns  ! patterns of zone and surface columns
+      common/qatopics/siteinfo,databaseinfo,contextinfo,controlinfo,
+     &  netinfo,plantinfo,geominfo,schedinfo,zoneextrainfo,fileinfo,
+     &  spminfo,enetinfo,zonecolumns,surfcolumns
 
       logical context
       logical newgeo  ! to use for testing if new/old geometry file.
@@ -4134,34 +4143,98 @@ C Surface summary: print header, followed by surface information.
 C Write header based on current version number.
       if(newgeo)then
         if(markdown)then
-          write(outstr2,'(3a)')
-     &    'ID   Area (m^2^)  Azimuth   Elevation  Name          ',
-     &    'Optics        Location  Use primary  Use detail  ',
-     &    'Construction name    Environment other side'   
-          call edisp(ITRU,OUTSTR2)
-          write(outstr2,'(3a)')
-     &    '---  -----------  --------  ---------  ------------  ',
-     &    '------------  --------  -----------  ----------  ',
-     &    '-------------------  ----------------------'    
-          call edisp(ITRU,OUTSTR2)
+          if(surfcolumns.eq.3)then
+            write(outstr2,'(3a)')
+     &      'ID   Area (m^2^)  Azimuth   Elevation  Name          ',
+     &      'Optics        Location  Use primary  Use detail  ',
+     &      'Construction name    Environment other side'   
+            call edisp(ITRU,OUTSTR2)
+            write(outstr2,'(3a)')
+     &      '---  -----------  --------  ---------  ------------  ',
+     &      '------------  --------  -----------  ----------  ',
+     &      '-------------------  ------------------------'    
+            call edisp(ITRU,OUTSTR2)
+          elseif(surfcolumns.eq.2)then
+            write(outstr2,'(3a)')
+     &      'ID   Area (m^2^)  Azimuth   Elevation  Name          ',
+     &      'Optics        Use primary  Use detail  ',
+     &      'Construction name    Environment other side'   
+            call edisp(ITRU,OUTSTR2)
+            write(outstr2,'(3a)')
+     &      '---  -----------  --------  ---------  ------------  ',
+     &      '------------  -----------  ----------  ',
+     &      '-------------------  ------------------------'    
+            call edisp(ITRU,OUTSTR2)
+          elseif(surfcolumns.eq.1)then
+            write(outstr2,'(3a)')
+     &      'ID   Area (m^2^)  Azimuth   Elevation  Name          ',
+     &      'Use primary  Use detail  ',
+     &      'Construction name    Environment other side'   
+            call edisp(ITRU,OUTSTR2)
+            write(outstr2,'(3a)')
+     &      '---  -----------  --------  ---------  ------------  ',
+     &      '-----------  ----------  ',
+     &      '-------------------  ------------------------'    
+            call edisp(ITRU,OUTSTR2)
+          elseif(surfcolumns.eq.0)then
+            write(outstr2,'(3a)')
+     &      'ID   Area (m^2^)  Azimuth   Elevation  Name          ',
+     &      'Use primary  ',
+     &      'Construction name    Environment other side'   
+            call edisp(ITRU,OUTSTR2)
+            write(outstr2,'(3a)')
+     &      '---  -----------  --------  ---------  ------------  ',
+     &      '-----------  ',
+     &      '-------------------  ------------------------'    
+            call edisp(ITRU,OUTSTR2)
+          endif
         else
-          write(outstr,'(2a)')
-     &   ' Sur| Area  |Azim|Elev| surface    |    geometry            ',
-     &   '      | construction    |environment'
-          call edisp(ITRU,OUTSTR)
-          write(outstr,'(2a)')
+          if(surfcolumns.eq.3)then
+            write(outstr,'(2a)')
+     &   ' Sur| Area  |Azim|Elev|          Surface                    ',
+     &   '       | construction       |environment'
+            call edisp(ITRU,OUTSTR)
+            write(outstr,'(2a)')
      &   '    | m^2   |deg |deg | name       |optical|locat| use      ',
-     &   '      | name            |other side '
-          call edisp(ITRU,OUTSTR)
+     &   '       | name               |other side '
+            call edisp(ITRU,OUTSTR)
+          elseif(surfcolumns.eq.2)then
+            write(outstr,'(2a)')
+     &   ' Sur| Area  |Azim|Elev|          Surface               ',
+     &   '       | Construction      |Environment'
+            call edisp(ITRU,OUTSTR)
+            write(outstr,'(2a)')
+     &   '    | m^2   |deg |deg | name       |optical| use       ',
+     &   '       | name              |other side '
+            call edisp(ITRU,OUTSTR)
+          elseif(surfcolumns.eq.1)then
+            write(outstr,'(2a)')
+     &   ' Sur| Area  |Azim|Elev|        Surface        ',
+     &   '       | Construction      |Environment'
+            call edisp(ITRU,OUTSTR)
+            write(outstr,'(2a)')
+     &   '    | m^2   |deg |deg | name       | use      ',
+     &   '       | name              |other side '
+            call edisp(ITRU,OUTSTR)
+          elseif(surfcolumns.eq.0)then
+            write(outstr,'(2a)')
+     &   ' Sur| Area  |Azim|Elev|     Surface         ',
+     &   '| Construction      |Environment'
+            call edisp(ITRU,OUTSTR)
+            write(outstr,'(2a)')
+     &   '    | m^2   |deg |deg | name       |use     ',
+     &   '| name              |other side '
+            call edisp(ITRU,OUTSTR)
+          endif
         endif
       else
         write(outstr,'(2a)')
-     &  ' Sur| Area  |Azim|Elev| surface    | geometry |',
-     &  ' construction    |environment'
+     &    ' Sur| Area  |Azim|Elev| Surface    | Geometry |',
+     &    ' Construction    |Environment'
         call edisp(ITRU,OUTSTR)
         write(outstr,'(2a)')
-     &  '    | m^2   |deg |deg | name       |type |loca|',
-     &  ' name            |other side '
+     &    '    | m^2   |deg |deg | name       |type |loca|',
+     &    ' name            |other side '
         call edisp(ITRU,OUTSTR)
       endif
       if(.NOT.context)then
@@ -4171,24 +4244,72 @@ C Write header based on current version number.
           if(lnsmlcn.lt.15) lnsmlcn=15  ! at least 15 char for MLC
           if(newgeo)then
             if(markdown)then
- 895      FORMAT(I3,2X,A,F10.0,F11.0,6X,A,2X,A,5X,A,8X,A,4X,A,3X,A,2X,A)
               if(lnsmlcn.lt.19) lnsmlcn=19  ! at least 19 char for MLC
               if(lnsmlcn.gt.19) lnsmlcn=19  ! no more than 19 char for MLC
-              WRITE(OUTSTR2,895)I,SIGSTR(1:7),SPAZI(icomp,i),
-     &         SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
-     &         SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:8),
-     &         SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
-     &         SOTHER(icomp,i,1)(1:15)
-              call edisp(ITRU,OUTSTR2)
+              if(surfcolumns.eq.3)then
+                WRITE(OUTSTR2,895)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:10),
+     &           SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:8),
+     &           SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           SOTHER(icomp,i,1)(1:15)
+                call edisp(ITRU,OUTSTR2)
+              elseif(surfcolumns.eq.2)then
+                WRITE(OUTSTR2,8955)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:10),
+     &           SUSE(icomp,i,1)(1:8),
+     &           SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           SOTHER(icomp,i,1)(1:15)
+                call edisp(ITRU,OUTSTR2)
+              elseif(surfcolumns.eq.1)then
+                WRITE(OUTSTR2,8956)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),
+     &           SUSE(icomp,i,1)(1:8),
+     &           SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           SOTHER(icomp,i,1)(1:15)
+                call edisp(ITRU,OUTSTR2)
+              elseif(surfcolumns.eq.0)then
+                WRITE(OUTSTR2,8957)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),
+     &           SUSE(icomp,i,1)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           SOTHER(icomp,i,1)(1:15)
+                call edisp(ITRU,OUTSTR2)
+              endif
+ 895      FORMAT(I3,2X,A,F10.0,F11.0,6X,A,2X,A,5X,A,8X,A,4X,A,4X,A,2X,A)
+ 8955     FORMAT(I3,2X,A,F10.0,F11.0,6X,A,2X,A,4X,A,4X,A,3X,A,2X,A)
+ 8956     FORMAT(I3,2X,A,F10.0,F11.0,6X,A,2X,A,4X,A,3X,A,2X,A)
+ 8957     FORMAT(I3,2X,A,F10.0,F11.0,6X,A,2X,A,4X,A,2X,A)
             else
- 8951     FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A,2X,A)
+              if(lnsmlcn.lt.18) lnsmlcn=18  ! at least 18 char for MLC
               if(lnsmlcn.gt.18) lnsmlcn=18  ! no more than 18 char for MLC
-              WRITE(OUTSTR,8951)I,SIGSTR(1:7),SPAZI(icomp,i),
-     &         SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
-     &         SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:8),
-     &         SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
-     &         SOTHER(icomp,i,1)(1:15)
+              if(surfcolumns.eq.3)then
+                WRITE(OUTSTR,8951)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
+     &           SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:8),
+     &           SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           SOTHER(icomp,i,1)(1:15)
+              elseif(surfcolumns.eq.2)then
+                WRITE(OUTSTR,8952)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
+     &           SUSE(icomp,i,1)(1:8),
+     &           SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           SOTHER(icomp,i,1)(1:15)
+              elseif(surfcolumns.eq.1)then
+                WRITE(OUTSTR,8953)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),
+     &           SUSE(icomp,i,1)(1:8),
+     &           SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           SOTHER(icomp,i,1)(1:15)
+              elseif(surfcolumns.eq.0)then
+                WRITE(OUTSTR,8954)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),
+     &           SUSE(icomp,i,1)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           SOTHER(icomp,i,1)(1:15)
+              endif
               call edisp(ITRU,OUTSTR)
+ 8951     FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A,2X,A)
+ 8952     FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A,2X,A)
+ 8953     FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,2X,A)
+ 8954     FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,2X,A)
             endif
           else
  894        FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,2X,A)
@@ -4209,23 +4330,71 @@ C Write header based on current version number.
             if(markdown)then
               if(lnsmlcn.lt.19) lnsmlcn=19  ! at least 19 char for MLC
               if(lnsmlcn.gt.19) lnsmlcn=19  ! no more than 19 char for MLC
-              WRITE(OUTSTR2,7951)I,SIGSTR(1:7),SPAZI(icomp,i),
-     &         SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
-     &         SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:9),
-     &         SUSE(icomp,i,2)(1:9),SMLCN(icomp,i)(1:lnsmlcn),
-     &         OTHSTR(4:lnblnk(OTHSTR))  ! skip the ||< characters
-              call edisp(ITRU,OUTSTR2)
+              if(surfcolumns.eq.3)then
+                WRITE(OUTSTR2,7951)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:10),
+     &           SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:9),
+     &           SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           OTHSTR(4:lnblnk(OTHSTR))  ! skip the ||< characters
+                call edisp(ITRU,OUTSTR2)
+              elseif(surfcolumns.eq.2)then
+                WRITE(OUTSTR2,7955)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:10),
+     &           SUSE(icomp,i,1)(1:9),
+     &           SUSE(icomp,i,2)(1:9),SMLCN(icomp,i)(1:lnsmlcn),
+     &           OTHSTR(4:lnblnk(OTHSTR))  ! skip the ||< characters
+                call edisp(ITRU,OUTSTR2)
+              elseif(surfcolumns.eq.1)then
+                WRITE(OUTSTR2,7956)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),
+     &           SUSE(icomp,i,1)(1:9),
+     &           SUSE(icomp,i,2)(1:9),SMLCN(icomp,i)(1:lnsmlcn),
+     &           OTHSTR(4:lnblnk(OTHSTR))  ! skip the ||< characters
+                call edisp(ITRU,OUTSTR2)
+              elseif(surfcolumns.eq.0)then
+                WRITE(OUTSTR2,7957)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),
+     &           SUSE(icomp,i,1)(1:9),SMLCN(icomp,i)(1:lnsmlcn),
+     &           OTHSTR(4:lnblnk(OTHSTR))  ! skip the ||< characters
+                call edisp(ITRU,OUTSTR2)
+              endif
+ 7951     FORMAT(I3,2X,A,F10.0,F10.0,7X,A,2X,A,4X,A,6X,A,4X,A,4X,A,2X,A)
+ 7955     FORMAT(I3,2X,A,F10.0,F10.0,7X,A,2X,A,4X,A,4X,A,3X,A,2X,A)
+ 7956     FORMAT(I3,2X,A,F10.0,F10.0,7X,A,2X,A,4X,A,3X,A,2X,A)
+ 7957     FORMAT(I3,2X,A,F10.0,F10.0,7X,A,2X,A,4X,A,2X,A)
             else
+              if(lnsmlcn.lt.18) lnsmlcn=18  ! at least 18 char for MLC
               if(lnsmlcn.gt.18) lnsmlcn=18  ! no more than 18 char for MLC
-              WRITE(OUTSTR,795)I,SIGSTR(1:7),SPAZI(icomp,i),
-     &         SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
-     &         SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:8),
-     &         SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
-     &         OTHSTR(1:lnblnk(OTHSTR))
+              if(surfcolumns.eq.3)then
+                WRITE(OUTSTR,795)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
+     &           SVFC(icomp,i)(1:4),SUSE(icomp,i,1)(1:8),
+     &           SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           OTHSTR(1:lnblnk(OTHSTR))
+              elseif(surfcolumns.eq.2)then
+                WRITE(OUTSTR,7952)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),SOTF(icomp,i)(1:8),
+     &           SUSE(icomp,i,1)(1:8),
+     &           SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           OTHSTR(1:lnblnk(OTHSTR))
+              elseif(surfcolumns.eq.1)then
+                WRITE(OUTSTR,7953)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),
+     &           SUSE(icomp,i,1)(1:8),
+     &           SUSE(icomp,i,2)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           OTHSTR(1:lnblnk(OTHSTR))
+              elseif(surfcolumns.eq.0)then
+                WRITE(OUTSTR,7954)I,SIGSTR(1:7),SPAZI(icomp,i),
+     &           SPELV(icomp,i),SNAME(icomp,i),
+     &           SUSE(icomp,i,1)(1:8),SMLCN(icomp,i)(1:lnsmlcn),
+     &           OTHSTR(1:lnblnk(OTHSTR))
+              endif
               call edisp(ITRU,OUTSTR)
             endif
- 7951     FORMAT(I3,2X,A,F10.0,F10.0,7X,A,2X,A,6X,A,6X,A,4X,A,3X,A,2X,A)
  795      FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A)
+ 7952     FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A,1X,A)
+ 7953     FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A,1X,A)
+ 7954     FORMAT(I3,2X,A,F5.0,F5.0,1X,A,1X,A,1X,A,1X,A)
           else
             if(lnsmlcn.gt.18) lnsmlcn=18  ! no more than 18 char for MLC
             WRITE(OUTSTR,794)I,SIGSTR(1:7),SPAZI(icomp,i),
@@ -4279,11 +4448,11 @@ C the connections file).
               WRITE(OTHSTR,'(a)') '||< identical environment '
             else
               WRITE(OTHSTR,'(a,i3,a,i4,a)') '||< similar+- ',IC2(ICON),
-     &        'dC &',IE2(ICON),'W rad'
+     &        'dC & ',IE2(ICON),'W rad'
             endif
           ELSEIF(ICT(ICON).EQ.2)THEN
             WRITE(OTHSTR,'(a,i3,a,i4,a)')   '||< constant @',IC2(ICON),
-     &        'dC &',IE2(ICON),'W rad'
+     &        'dC & ',IE2(ICON),'W rad'
           ELSEIF(ICT(ICON).EQ.3)THEN
             icc=IZSTOCN(IC2(ICON),IE2(ICON))
             if(icc.gt.0)then
@@ -4318,7 +4487,7 @@ C CEN 13791 partition start.
               WRITE(OTHSTR,'(a)') '||< Identical CEN 13791 '
             else
               WRITE(OTHSTR,'(a,i3,a,i4,a)') '||< CEN13791+- ',IC2(ICON),
-     &        'dC &',IE2(ICON),'W rad'
+     &        'dC & ',IE2(ICON),'W rad'
             endif
 C CEN 13791 partition end.
           ENDIF
@@ -5864,7 +6033,7 @@ C Clear arrays.
           nbgchild(icc)=0    ! assume no grand children
           iparent(icc)=0     ! assume no parent
           igparent(icc)=0    ! assume no grandparent
-          do i=1,24             ! hard coded to match geometry.h
+          do i=1,12             ! hard coded to match geometry.h
             ichild(icc,i)=0     ! clear array holding children
             igchild(icc,i)=0    ! clear array holding grand children
           enddo  ! of i
@@ -6539,7 +6708,7 @@ C Surfaces with associated vertices.
           WRITE(LOUTSTR,9990)SNAME(icomp,I),NV,(JVN(I,J),J=1,100)
           call edisp248(ITRU,LOUTSTR,100)
         endif 
- 9990   FORMAT(A,I5,1x,124(',',I3))
+ 9990   FORMAT(A,I5,1x,102(',',I3))
  9991 CONTINUE
       RETURN
       END

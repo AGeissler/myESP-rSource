@@ -1120,7 +1120,7 @@ C         write(6,*) 'error state on return from enet ',ier
         if(ier.ne.0)then
 C          write(6,*) 'error state on filling common blocks ',ier
         endif
-        call mflist(iuout)
+        call mflist(iuout,'s')
 
 C << TODO: look at the attributes of the nodes to see
 C << if there is an associated zone.
@@ -2048,7 +2048,7 @@ C zone index so that the related commons are filled.
 
           helptopic='zone_name_description'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          write(msg,'(2a)') 'The original zone name was ',zname(NCOMP)
+          write(msg,'(2a)') 'The original zone name: ',zname(NCOMP)
           call edisp(iuout,' ')
           call edisp(iuout,msg)
  42       ZN=' '
@@ -2066,6 +2066,9 @@ C zone index so that the related commons are filled.
           endif
           LGEOM(NCOMP)=DFILE
 
+          write(outs,'(2a)') 'The original description: ',zdesc(NCOMP)
+          call edisp(iuout,' ')
+          call edisp(iuout,outs)
           write(zd,'(2a)') 
      &      zname(NCOMP)(1:lnzname(NCOMP)),' describes a '
   40      CALL EASKS(zd,'What does it represent?',
@@ -2082,9 +2085,10 @@ C file and then recover the zone commons.
             OKOB=.true.
             helptopic='options_for_copy_obs'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKOK(' ','Copy obstructions of source zone?',
-     &        OKOB,nbhelp)
-            if(OKOB)then
+            CALL EASKABC('The source zone had an obstructions file.',
+     &        'Options:','copy obstructions file','use source file',
+     &        'ignore it',IRT,nbhelp)
+            if(IRT.eq.1)then
               CALL ESCZONE(NCOMP)
               call FINDFIL(ZOBS(IC),XST)
               IF(XST)THEN
@@ -2102,6 +2106,14 @@ C file and then recover the zone commons.
                 CALL MKGOMST(IUF,ZOBS(NCOMP),NCOMP,IER)
               endif
               CALL ERCZONE(NCOMP)
+            elseif(IRT.eq.2)then
+              ZOBS(NCOMP)=ZOBS(IC)  ! point to the file
+              IOBS(NCOMP)=1 
+              OKOB=.false.          ! but do not transform it
+            elseif(IRT.eq.2)then
+              ZOBS(NCOMP)='UNKNOWN' ! clear name
+              IOBS(NCOMP)=0         ! dereference
+              OKOB=.false.          ! and do not attempt to transform
             endif
           elseif(IOBS(ic).eq.2)then
 
@@ -2417,6 +2429,9 @@ C Construction and zone TMC file.
           call FINDFIL(LTHRM(IC),XST)
           irop=1
           if(XST)then
+            write(outs,'(2a)')'Found: ',LTHRM(IC)(1:lnblnk(LTHRM(IC)))
+            call edisp(iuout,' ')
+            call edisp(iuout,outs)
             CALL EASKATOG(' ','Source zone has a constructions file:',
      &        'copy source file','use source file',
      &        'browse','cancel',' ',' ',' ',irop,nbhelp)
@@ -2567,6 +2582,9 @@ C point to it, otherwise offer option to browse for an existing file.
           call FINDFIL(LPROJ(IC),XST)
           irop=1
           if(XST)then
+            write(outs,'(2a)')'Found: ',LPROJ(IC)(1:lnblnk(LPROJ(IC)))
+            call edisp(iuout,' ')
+            call edisp(iuout,outs)
             CALL EASKATOG(
      &        'Source zone has an operations file.',
      &        'Options:','copy file','point to file',
@@ -2673,6 +2691,9 @@ C See if the source zone has a viewfactor file.
 C NOTE: any viewfactor block attributes will not yet be know by the
 C associated zone geometry file.
           if(IVF(ic).eq.1)then
+            write(outs,'(2a)')'Found: ',LVIEW(IC)(1:lnblnk(LVIEW(IC)))
+            call edisp(iuout,' ')
+            call edisp(iuout,outs)
             helptopic='copy_vwf_options'
             call gethelptext(helpinsub,helptopic,nbhelp)
             irop=1
@@ -2735,6 +2756,9 @@ C See if the source zone has a casual gain control file.
             helptopic='copy_cgc_options'
             call gethelptext(helpinsub,helptopic,nbhelp)
             irop=1
+            write(outs,'(2a)')'Found: ',LCGCIN(IC)(1:lnblnk(LCGCIN(IC)))
+            call edisp(iuout,' ')
+            call edisp(iuout,outs)
             CALL EASKATOG(
      &        'Source zone has a CG ctl file.',
      &        'Options:','copy file','point to file',
@@ -2836,6 +2860,9 @@ C See if the source zone has a convection regime file.
             helptopic='copy_hc_options'
             call gethelptext(helpinsub,helptopic,nbhelp)
             irop=1
+            write(outs,'(2a)')'Found: ',LHCCO(IC)(1:lnblnk(LHCCO(IC)))
+            call edisp(iuout,' ')
+            call edisp(iuout,outs)
             CALL EASKATOG('Source zone has a CC file.',
      &        'Options:','copy file','point file',
      &        'browse file','cancel',' ',' ',' ',irop,nbhelp)
@@ -3697,11 +3724,11 @@ C Confirm file names.
             write(doit,'(3a,3i4,5a)') 'grd -mode ',tmode,
      &        ' -s ',iappwpc,iappx+10,iappy+40,' -file ',
      &        longtfile(1:lnblnk(longtfile)),' -zone ',
-     &        ZN(1:lnblnk(ZN)),' &'
+     &        ZN(1:lnblnk(ZN)),' & '
           else
             write(doit,'(7a)') 'grd -mode ',tmode,
      &        ' -s 0 0 0 -file ',longtfile(:lnblnk(longtfile)),
-     &        ' -zone ',ZN(1:lnblnk(ZN)),' &'
+     &        ' -zone ',ZN(1:lnblnk(ZN)),' & '
           endif
           call usrmsg('starting gridding display via',doit,'-')
           if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
@@ -4751,10 +4778,10 @@ C string to drive VIEWER.
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,3a)') 'viewer -mode ',tmode,
      &        ' -s ',iappwpc,iappx+25,iappy+20,' -file ',
-     &        lltmp(1:lnblnk(lltmp)),' &'
+     &        lltmp(1:lnblnk(lltmp)),' & '
           else
             write(doit,'(5a)') 'viewer -mode ',tmode,
-     &        ' -s 0 0 0 -file ',lltmp(1:lnblnk(lltmp)),' &'
+     &        ' -s 0 0 0 -file ',lltmp(1:lnblnk(lltmp)),' & '
           endif
           call usrmsg('starting hidden line viewer via',doit,'-')
           if(tmode(1:7).eq.'graphic')then ! tmode for runit is different from
@@ -4874,10 +4901,10 @@ C an offset from prj start position.
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,4a)') 'e2r -mode ',tmode,
      &      ' -s ',iappwpc,iappx+35,iappy+40,' -file ',
-     &      longtfile(1:lnblnk(longtfile)),brw,' &'
+     &      longtfile(1:lnblnk(longtfile)),brw,' & '
         else
           write(doit,'(6a)') 'e2r -mode ',tmode,
-     &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),brw,' &'
+     &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),brw,' & '
         endif
         call usrmsg('starting Radiance desktop via',doit,'-')
         if(tmode(1:7).eq.'graphic')then ! tmode for runit is different from

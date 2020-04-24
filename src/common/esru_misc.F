@@ -4009,7 +4009,8 @@ C ******************* EASKSUR
 C EASKSUR presents a list of surfaces in a zone IZONE returning the
 C index IS. It assumes that a geometry file has been read in.
 C If MOD = '-' name list only, MOD = 'M' attribute Many, MOD = 'A'
-C show attributes in list.
+C show attributes in list, MOD = 'U' as 'A' but also include SUSE,
+C MOD = 'V' as 'M' but also include SUSE.
       SUBROUTINE EASKSUR(IZONE,IS,MOD,PROMPT1,PROMPT2,IER)
 #include "building.h"
 #include "geometry.h"
@@ -4023,10 +4024,11 @@ C show attributes in list.
       integer ifs,itfs,imfs
       COMMON/GFONT/IFS,ITFS,IMFS
 
-      DIMENSION VERT(35),VERTS(35)
+      DIMENSION VERT(35),VERTS(35),VERTU(35)
 
       CHARACTER*(*) PROMPT1,PROMPT2
-      CHARACTER H*72,VERT*32,VERTS*42,KEY*1,MOD*1,title*29
+      CHARACTER H*72,KEY*1,MOD*1,title*29
+      CHARACTER VERT*32,VERTS*42,VERTU*54
       LOGICAL SELECT
       integer loopstart,loopend,i,icc   ! for looping
       logical usesbasesimp
@@ -4050,12 +4052,22 @@ C IVERT is the menu position, MVERT the current number of menu lines.
         write(title,'(2a)')'  Surfaces in ',
      &    zname(IZONE)(1:lnzname(IZONE))
         MHEAD=1
-        VERTS(1)='  Name         Composition   Facing'
+        VERTS(1)='  Name         Composition     Facing'
       elseif(MOD.eq.'A')then
         write(title,'(2a)')'  Surfaces in ',
      &    zname(IZONE)(1:lnzname(IZONE))
         MHEAD=1
-        VERTS(1)='  Name         Composition   Facing'
+        VERTS(1)='  Name         Composition     Facing'
+      elseif(MOD.eq.'U')then
+        write(title,'(2a)')'  Surfaces in ',
+     &    zname(IZONE)(1:lnzname(IZONE))
+        MHEAD=1
+        VERTU(1)='  Name         Composition     Facing       USE'
+      elseif(MOD.eq.'V')then
+        write(title,'(2a)')'  Surfaces in ',
+     &    zname(IZONE)(1:lnzname(IZONE))
+        MHEAD=1
+        VERTU(1)='  Name         Composition     Facing       USE'
       endif
       MCTL=4
       ILEN=NZSUR(IZONE)
@@ -4093,6 +4105,10 @@ C Display surface name plus some context information.
             lnsmlcn=lnblnk(SMLCN(izone,L))
             if(lnsmlcn.lt.10) lnsmlcn=10
             lnoth=lnblnk(SOTHER(izone,L,1))
+            lnu=lnblnk(SUSE(izone,L,1))
+            lnu2=lnblnk(SUSE(izone,L,2))
+            lnu3=lnu2
+            if(lnu3.gt.6) lnu3=6
             if((lnn+lnsmlcn+lnoth).lt.36)then
               WRITE(VERTS(M),13)KEY,SNAME(izone,L)(1:lnn),
      &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth)
@@ -4101,8 +4117,28 @@ C Display surface name plus some context information.
      &          SMLCN(izone,L)(1:15),SOTHER(izone,L,1)(1:lnoth)
             endif
    13       FORMAT(A,1X,A,2X,A,2X,A)
+   15       FORMAT(A,1X,A,2X,A,2X,A,3X,A)
+   17       FORMAT(A,1X,A,2X,A,2X,A,3X,A,1X,A)
+            if((lnn+lnsmlcn+lnoth+lnu+lnu2).lt.42)then
+              WRITE(VERTU(M),17)KEY,SNAME(izone,L)(1:lnn),
+     &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth),
+     &          SUSE(izone,L,1)(1:lnu),SUSE(izone,L,2)(1:lnu2)
+            elseif((lnn+lnsmlcn+lnoth+lnu+lnu3).lt.42)then
+              WRITE(VERTU(M),17)KEY,SNAME(izone,L)(1:lnn),
+     &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth),
+     &          SUSE(izone,L,1)(1:lnu),SUSE(izone,L,2)(1:lnu3)
+            elseif((lnn+lnsmlcn+lnoth+lnu).lt.43)then
+              WRITE(VERTU(M),15)KEY,SNAME(izone,L)(1:lnn),
+     &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth),
+     &          SUSE(izone,L,1)(1:lnu)
+            else
+              WRITE(VERTU(M),15)KEY,SNAME(izone,L)(1:lnn),
+     &          SMLCN(izone,L)(1:15),SOTHER(izone,L,1)(1:lnoth),
+     &          SUSE(izone,L,1)(1:lnu)
+            endif
           else
             WRITE(VERTS(M),'(2a)')KEY,' unresolved surface...'
+            WRITE(VERTU(M),'(2a)')KEY,' unresolved surface...'
           endif
         ENDIF
    10 CONTINUE
@@ -4114,23 +4150,30 @@ C If a long list include page facility text.
       IF(IPFLG.EQ.0)THEN
         VERT(M+1) ='  _________________  '
         VERTS(M+1)='  _________________________  '
+        VERTU(M+1)='  _____________________________  '
       ELSE
         WRITE(VERT(M+1),16)IPM,MPM
         WRITE(VERTS(M+1),16)IPM,MPM
+        WRITE(VERTU(M+1),16)IPM,MPM
    16   FORMAT ('0 page --- part: ',I2,' of ',I2)
       ENDIF
 
 C If MOD has been passed as a M then return -2 to indicate further processing
       IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
         VERTS(M+2)='* attribute many    '
+      ELSEIF(MOD.EQ.'V'.OR.MOD.EQ.'v')THEN
+        VERTU(M+2)='* attribute many    '
       ELSE
         VERT(M+2) ='                    '
         VERTS(M+2)='                    '
+        VERTU(M+2)='                    '
       ENDIF
       VERT(M+3)   ='? help              '
       VERTS(M+3)  ='? help              '
+      VERTU(M+3)  ='? help              '
       VERT(M+4)   ='- exit              '
       VERTS(M+4)  ='- exit              '
+      VERTU(M+4)  ='- exit              '
 
 C Instantiate help message for this menu.
       H(1)='Select a surface from the menu.'
@@ -4141,8 +4184,14 @@ C Display the menu.
       call usrmsg(PROMPT1,PROMPT2,'-')
       if(MOD.eq.'-')then
         CALL EMENU(title,VERT,MVERT,IVERT)
-      else
+      elseif(MOD.EQ.'M'.OR.MOD.EQ.'m')then
         CALL EMENU(title,VERTS,MVERT,IVERT)
+      elseif(MOD.EQ.'A'.OR.MOD.EQ.'a')then
+        CALL EMENU(title,VERTS,MVERT,IVERT)
+      elseif(MOD.EQ.'U'.OR.MOD.EQ.'u')then
+        CALL EMENU(title,VERTU,MVERT,IVERT)
+      elseif(MOD.EQ.'V'.OR.MOD.EQ.'v')then
+        CALL EMENU(title,VERTU,MVERT,IVERT)
       endif
       IF(IVERT.LE.MHEAD)THEN
         IVERT=-1

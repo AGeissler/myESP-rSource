@@ -1792,7 +1792,7 @@ C ivimb=1 then we have an unmatched edge.
           ivimb=(abs((matchab+10)-(matchba+10)))
           if(ivimb.eq.2)then
             write(outs,'(a,i3,a,i3,3a)')
-     &        'The edge between vertices ',itv1(ip),' &',
+     &        'The edge between vertices ',itv1(ip),' & ',
      &        itv2(ip),' of ',SNAME(icomp,irelsur(ip)),
      &        ' may be adjacent to a reversed surface.'
             if(ivb.ne.0)then
@@ -1811,7 +1811,7 @@ C Incrememt hits for zone as well as for this surface.
           elseif(ivimb.eq.1)then
             icursur=irelsur(ip)  ! remember the current surface
             write(outs,'(a,i3,a,i3,3a)')
-     &        'The edge between vertices ',itv1(ip),' &',itv2(ip),
+     &        'The edge between vertices ',itv1(ip),' & ',itv2(ip),
      &        ' of ',SNAME(icomp,icursur),' may be unbounded.'
             if(ivb.ne.0)then
               call edisp(iuout,outs)
@@ -1849,7 +1849,7 @@ C added. If we have a corrupt JVN list (a zero entry) ignore.
                     write(outs,'(a,i3,a,3f9.4,a,f6.4,a,i3,a,i3,2a)')
      &                'Vertex ',iwhich1,' @',X(iwhich1),Y(iwhich1),
      &                Z(iwhich1),' is close (',offset,') to edge ',
-     &                itv1(ip),' &',itv2(ip),' of surface ',
+     &                itv1(ip),' & ',itv2(ip),' of surface ',
      &                SNAME(icomp,icursur)
                     if(ivb.ne.0) call edisp(iuout,outs)
 
@@ -4276,7 +4276,7 @@ C and change any / to \.
         tmode='graph'
         if(teditor(1:2).eq.'vi')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' &'
+     &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
       endif
 

@@ -626,11 +626,11 @@ C Interface to BASESIMP and visual entity definitions for this zone.
       ITEMS(ITEMC+19)='* list zone & surface details  '
       ITEMS(ITEMC+20)='! save                         '
       IF(ITRC.EQ.0)THEN
-        ITEMS(ITEMC+21)='t reporting >> silent  '
+        ITEMS(ITEMC+21)='t reporting & menus >> silent  '
       ELSEIF(ITRC.EQ.1)THEN
-        ITEMS(ITEMC+21)='t reporting >> summary '
+        ITEMS(ITEMC+21)='t reporting & menus >> summary '
       ELSEIF(ITRC.EQ.2)THEN
-        ITEMS(ITEMC+21)='t reporting >> detailed'
+        ITEMS(ITEMC+21)='t reporting & menus >> detailed'
       ENDIF
       if(icomp.gt.1.and.icomp.lt.NCOMP)then
         ITEMS(ITEMC+22)='< jump to previous zone      '
@@ -923,8 +923,13 @@ C zone. Trap option of multiple surface attribution.
         helptopic='geometry_main_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
    42   IS=0
-        CALL EASKSUR(ICOMP,IS,'M','Select surface(s) to attribute.',
-     &    ' ',IER)
+        if(ITRC.gt.1)then
+          CALL EASKSUR(ICOMP,IS,'V','Select surface(s) to attribute.',
+     &      ' ',IER)
+        else
+          CALL EASKSUR(ICOMP,IS,'M','Select surface(s) to attribute.',
+     &      ' ',IER)
+        endif
         if(IS.lt.0)then
 
 C Remind user of current surface boundary attributes.
@@ -3060,9 +3065,9 @@ C If any changes update and then save geometry file before invoking ish.
 C Allow user to start shading analysis. If user does not cancel suggest
 C a new file name, ask the user to confirm that name and update the model
 C cfg file and then if the user says do it now call comission ish.
-        CALL EASKABC(' ','Shading & insolation analysis options:',
-     &   'do now','do later','cancel',IW,nbhelp)
-        if(IW.eq.1.or.IW.eq.2)then
+        CALL EASKAB(' ','Shading & insolation analysis options:',
+     &   'do now','cancel',IW,nbhelp)
+        if(IW.eq.1)then
           if(ISI(ICOMP).eq.0)then
             if(zonepth(1:2).eq.'  '.or.zonepth(1:2).eq.'./')then
               WRITE(SFIL,'(A,A4)')ZN(1:lnblnk(ZN)),'.shd'
@@ -3541,7 +3546,7 @@ C statement should be kept up to date with MV changes.
       write(SN,'(a12)') SNAME(ICOMP,IS)
       write(message,'(2a)') ' Vertices associated with ',SN
       call edisp(iuout,message)
-      WRITE(t248,'(124I4)')(JVN(is,j),J=1,numv)
+      WRITE(t248,'(102I4)')(JVN(is,j),J=1,numv)
       call edisp248(iuout,t248,100)
 
 C Force redraw of zone on entry to highlight focus surface.
@@ -3696,7 +3701,7 @@ C component or creating a new component.
           if(SUSE(icomp,iss,1)(1:4).eq.'DOOR'.or.
      &       SUSE(icomp,iss,1)(1:6).eq.'P-DOOR'.or.
      &       SUSE(icomp,iss,1)(1:6).eq.'H-DOOR'.or.
-     &       SUSE(icomp,iss,1)(1:6).eq.'H-DOOR'.or.
+     &       SUSE(icomp,iss,1)(1:6).eq.'V-DOOR'.or.
      &       SUSE(icomp,iss,1)(1:5).eq.'FRAME'.or.
      &       SUSE(icomp,iss,1)(1:7).eq.'F-FRAME'.or.
      &       SUSE(icomp,iss,1)(1:5).eq.'GRILL'.or.
@@ -4450,7 +4455,7 @@ C If SUSE implies a flow component then....
               if(SUSE(ICOMP,iss,1)(1:4).eq.'DOOR'.or.
      &           SUSE(ICOMP,iss,1)(1:6).eq.'P-DOOR'.or.
      &           SUSE(ICOMP,iss,1)(1:6).eq.'H-DOOR'.or.
-     &           SUSE(ICOMP,iss,1)(1:6).eq.'H-DOOR'.or.
+     &           SUSE(ICOMP,iss,1)(1:6).eq.'V-DOOR'.or.
      &           SUSE(ICOMP,iss,1)(1:5).eq.'FRAME'.or.
      &           SUSE(ICOMP,iss,1)(1:7).eq.'F-FRAME'.or.
      &           SUSE(ICOMP,iss,1)(1:5).eq.'GRILL'.or.
@@ -7116,7 +7121,7 @@ C Considered close if less than CACC.
                     write(outs,'(a,i3,a,3f9.4,a,f6.4,a,i3,a,i3,2a)')
      &                'New vertex ',jwhich3,' @',X(jwhich3),Y(jwhich3),
      &                Z(jwhich3),' is close (',offset,') to edge ',
-     &                jWHICH1,' &',jWHICH2,' of surface ',
+     &                jWHICH1,' & ',jWHICH2,' of surface ',
      &                SNAME(icomp,jivj)
                     call edisp(itru,outs)
 
@@ -7154,7 +7159,7 @@ C Update the geometry file.
      &                  3,IER)
 
 C Debug...
-C                      write(6,'(a,124i4)') 'now jvn is ',
+C                      write(6,'(a,102i4)') 'now jvn is ',
 C     &                  (JVN(jivj,ii),ii=1,NVER(jivj))
  
 C Surface (ivj) vertex list has been updated. Go on to next surface.
@@ -7201,7 +7206,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
           if(.NOT.match) goto 3
           write(outs,'(a,i3,a,3f9.4,a,f6.4,a,i3,a,i3)')
      &     'Vertex ',iwhich3,' @',X(iwhich3),Y(iwhich3),
-     &     Z(iwhich3),' is ',offset,'(m) to edge ',IWHICH1,' &',IWHICH2
+     &    Z(iwhich3),' is ',offset,'(m) to edge ',IWHICH1,' & ',IWHICH2
           call edisp(itru,outs)
           MODIFYVIEW=.TRUE.; MODBND=.TRUE.
           iZBFLG(ICOMP)=0
@@ -7236,7 +7241,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
           if(.NOT.match) goto 3
           write(outs,'(a,i3,a,3f9.4,a,f6.4,a,i3,a,i3)')
      &     'Vertex ',iwhich3,' @',X(iwhich3),Y(iwhich3),
-     &     Z(iwhich3),' is ',offset,'(m) to edge ',IWHICH1,' &',IWHICH2
+     &    Z(iwhich3),' is ',offset,'(m) to edge ',IWHICH1,' & ',IWHICH2
            call edisp(itru,outs)
 
 C If the distance is greater than 1mm get the distance between the
@@ -7579,7 +7584,7 @@ C Considered close if within 4mm.
                     write(outs,'(a,i3,a,3f9.4,a,f6.4,a,i3,a,i3,2a)')
      &                'New vertex ',iwhich3,' @',X(NTV),Y(NTV),
      &                Z(NTV),' is close (',offset,') to edge ',
-     &                IWHICH1,' &',IWHICH2,' of surface ',
+     &                IWHICH1,' & ',IWHICH2,' of surface ',
      &                SNAME(icomp,ivj)
                     call edisp(itru,outs)
 
@@ -7607,7 +7612,7 @@ C inserting the new vertex index.
                       iszjvn(icomp,ivj,jivjj+1)=jwhich3
 
 C Debug...
-C                     write(6,'(a,124i4)') 'now jvn is ',
+C                     write(6,'(a,102i4)') 'now jvn is ',
 C     &                 (JVN(ivj,ii),ii=1,NVER(ivj))
 
 C Surface (ivj) vertex list has been updated. Go on to next surface.
@@ -9555,7 +9560,7 @@ C surface. Include surface name in the dialog. This write statement
 C should be kept up to date with MV changes. t248 is actually 496 char
       hold64='                                                      '
       write(t248,'(4a)') hold64,hold64,hold64,'                     '
-      WRITE(t248,'(124I4)')(JVN(IFOC,j),J=1,nv)
+      WRITE(t248,'(102I4)')(JVN(IFOC,j),J=1,nv)
       write(message,'(2a)') 'Vertices associated with ',
      &  SNAME(ICOMP,IFOC)
       istrw=72

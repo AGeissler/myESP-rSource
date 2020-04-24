@@ -2399,6 +2399,11 @@ C        call edisp248(itru,oprdesc(icomp),100)
 C No electrical data.
             DO 1270 I=1,NCAS(IDTY)
               jicgt=iabs(ICGT(IDTY,I))
+              if(jicgt.eq.0)then
+                write(6,*) 'Error scanning caskeytype on idty ',
+     &            idty,' gain ',I,' in zone ',ICOMP
+                goto 1270
+              endif
               if(caskeytype(icomp,jicgt)(1:13).eq.'dynamicpeople')then
                 if(markdown)then
                   write(llbl2,'(4a)')lodlabel(ICOMP,jicgt)(1:10),

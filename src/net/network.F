@@ -503,7 +503,7 @@ C flow network file.
             haveglobal=.TRUE. ! for use in MFWRIT
           endif
           CALL NETTOFLW(ier)
-          call mflist(iuout)
+          call mflist(iuout,'f')  ! Full listing
         endif
 
 C Also check for summary file. This is done each time a new graphic
@@ -1018,7 +1018,7 @@ C << this is new needs checking >>
 C If flow, update the flow commons and list them out.
         if(INWKTYP.eq.2.and.NWKTYPSTR(INWKTYP)(1:4).eq.'Flow')then
           CALL NETTOFLW(ier)
-          call mflist(iuout)
+          call mflist(iuout,'f')
         endif
 
       ELSEIF(INO.EQ.16)THEN
@@ -1090,7 +1090,7 @@ C Save current network to (graphics) file.
 C Update the flow commons, list and over-write legacy flow file.
         if(INWKTYP.eq.2.and.NWKTYPSTR(INWKTYP)(1:4).eq.'Flow')then
           CALL NETTOFLW(ier)
-          call mflist(iuout)
+          call mflist(iuout,'s')
    79     IUM=IFIL+6
           lnf=lnblnk(LAPROB)
           write(LTMP,'(2a)') LAPROB(1:lnf-3),'legacy'
@@ -1117,7 +1117,7 @@ C Save graphic network to a user specified file.
 C Update the flow commons, list them out and write legacy file.
         if(INWKTYP.eq.2.and.NWKTYPSTR(INWKTYP)(1:4).eq.'Flow')then
           CALL NETTOFLW(ier)
-          call mflist(iuout)
+          call mflist(iuout,'s')
    78     IUM=IFIL+6
           lnf=lnblnk(LAPROB)
           write(LTMP,'(2a)') LAPROB(1:lnf-3),'legacy'
@@ -1192,7 +1192,7 @@ C the screen.  << ?? do we need without fill common blocks ?? >>
         elseif(iwh.eq.2)then
           CALL NETREAD(INUNIT,'N',IER)
           CALL NETTOFLW(ier)
-          call mflist(iuout)
+          call mflist(iuout,'f')
         else
           continue
         endif

@@ -745,7 +745,7 @@ C Format statements.
  410  FORMAT(/,' DFS - Monitoring of residuals & variables',/,/,
      &'   ITER',8X,'U',10X,'V',10X,'W',10X,'P', 10X,'T',10X,'K',
      &7X,'Eps.',/)
- 420  FORMAT(/,' DFS - Monitoring of renormalized residuals &',
+ 420  FORMAT(/,' DFS - Monitoring of renormalized residuals & ',
      &' variables',/,/,'   ITER',8X,'U',10X,'V',10X,'W',10X,'P',
      &10X,'T',10X,'K',7X,'Eps.',/)
  1030 FORMAT(/,'ITIME =',I3)

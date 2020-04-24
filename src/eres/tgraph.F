@@ -216,13 +216,13 @@ C          write(6,*) SXMX,SXMN,SYMX,SYMN
 C          write(6,*) SXMN,SXMX,SYMN,SYMX,xsc,ysc,sca,Xadd,Yadd
           call linescale(iigl,Xadd,sca,iigb,Yadd,sca)
 
-C Read 3D flow network, report contents and draw the network.
+C Read 3D flow network, report summary of contents and draw the network.
           IUM=IFIL+6
           CALL ERPFREE(IUM,ISTAT)
           CALL MFCDAT
           CALL EMF3DREAD(IUM,'S',IER)
           call edisp(iuout,' ')
-          CALL MFLIST(iuout)
+          CALL MFLIST(iuout,'s')
           if(NNOD.gt.50.or.NCMP.gt.50)then
             call MFWFDRAW('r',0,0)  ! Draw flow network without names if complex
           else

@@ -1888,10 +1888,10 @@ C parent surface of windows and doors.
                 pxbase(loop)=pxbase(loop)
                 pybase(loop)=pybase(loop)
               enddo
-              write(louts,'(a,124f6.2)') 'X base points: ',
+              write(louts,'(a,102f6.2)') 'X base points: ',
      &          (pxbase(j),J=1,nbbase)
               CALL EDISP248(iuout,louts,100)
-              write(louts,'(a,124f6.2)') 'Y base points: ',
+              write(louts,'(a,102f6.2)') 'Y base points: ',
      &          (pybase(j),J=1,nbbase)
               CALL EDISP248(iuout,louts,100)
             else
@@ -4080,7 +4080,7 @@ C Consider close if less than 3mm.
                 write(outs,'(a,i3,a,3f9.4,a,f6.4,a,i3,a,i3,2a)')
      &            'New vertex ',iwhich3,' @',
      &            X(NTV),Y(NTV),Z(NTV),' is close (',offset,
-     &            ') to edge ',IWHICH1,' &',IWHICH2,' of ',
+     &            ') to edge ',IWHICH1,' & ',IWHICH2,' of ',
      &            sname(icomp,ivj)
                 call edisp(itru,outs)
 
@@ -4112,7 +4112,7 @@ C inserting the new vertex index.
                   call geowrite(IFIL+2,LGEOM(ICOMP),ICOMP,itru,3,IER)
 
 C Debug.
-C                   write(6,'(a,124i4)') 'now jvn is ',
+C                   write(6,'(a,102i4)') 'now jvn is ',
 C     &               (JVN(ivj,ii),ii=1,NVER(ivj))
 
 C Surface (ivj) vertex list has been updated. Go on to next surface.
@@ -4209,7 +4209,7 @@ C Report length of line. Use method of Ward/Radiance in fvect.c
             write(outs,'(a,i3,a,3f8.3,a,f6.4,a,i3,a,i3,2a)')
      &        'New vertex ',iwhich3,' @',
      &        X(NTV),Y(NTV),Z(NTV),' is close (',offset,
-     &        ') to edge ',IWHICH1,' &',IWHICH2,' of surface ',
+     &        ') to edge ',IWHICH1,' & ',IWHICH2,' of surface ',
      &        SNAME(ICOMP,ivj)
             call edisp(iuout,outs)
 
@@ -4240,7 +4240,7 @@ C inserting the new vertex index.
               JVN(ivj,ivjj+1)=iwhich3
 
 C Debug.
-C                write(6,'(a,124i4)') 'now jvn is ',
+C                write(6,'(a,102i4)') 'now jvn is ',
 C     &            (JVN(ivj,ii),ii=1,NVER(ivj))
 
 C Surface (ivj) vertex list has been updated. Go on to next surface.
@@ -4288,8 +4288,6 @@ C For the current list of XX YY and from last to first.
      &    offset,match)
         if(offset.lt.toll.and.match)then
           iv1=loop2; iv2=loop2+1
-C          write(6,'(a,3f7.3,a,2i3,7f7.3,2i4)') 'might be',px,py,pz,' &',
-C     &      iv1,iv2,xp1,yp1,zp1,xp2,yp2,zp2,offset
           write(outs,'(a,3f7.3,a,2i3,a,f6.3,a)') 'point ',px,py,pz,
      &      ' is between base v ',iv1,iv2,' with offset ',offset,'m'
           call edisp(iuout,outs)

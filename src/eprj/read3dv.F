@@ -195,7 +195,13 @@ C passed to Radiance).
           ier=-5
         endif
       ELSEIF(nznog(IZ).EQ.izgfoc)THEN
-        CALL ERCZONE(nznog(IZ))
+        if(nznog(IZ).gt.0)then
+          CALL ERCZONE(nznog(IZ))
+        else
+          call edisp(ieout,
+     &    'DRAWESP: Error recovering zone geometry from memory.')
+          ier=-5
+        endif
       ENDIF
 
 C If zone names are to be displayed place near the centre of zone.

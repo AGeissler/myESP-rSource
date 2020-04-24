@@ -412,10 +412,10 @@ C Set browsing to no.
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(a,3i4,4a)') 'e2r -s ',
      &        iappwpc,iappx+35,iappy+40,' -file ',
-     &        longtfile(1:lnblnk(longtfile)),brw,' &'
+     &        longtfile(1:lnblnk(longtfile)),brw,' & '
           else
             write(doit,'(4a)') 'e2r -s 0 0 0 -file ',
-     &        longtfile(1:lnblnk(longtfile)),brw,' &'
+     &        longtfile(1:lnblnk(longtfile)),brw,' & '
           endif
           call usrmsg('Starting Radiance conversion: ',doit,'-')
           call runit(doit,'-')
@@ -480,7 +480,7 @@ C Check if conversion to xfig wanted.
               call edisp(iuout,'fig2dev -L png -m 1.5 -S 4 -b 10 ')
               call edisp(iuout,'  xx.fig > xx.png')
               doit = ' '
-              write(doit,'(3a)') 'xfig ',ffile(1:lnblnk(ffile)),' &'
+              write(doit,'(3a)') 'xfig ',ffile(1:lnblnk(ffile)),' & '
               call usrmsg('Starting xfig: ',doit,'-')
               call runit(doit,'-')
             endif
@@ -930,7 +930,7 @@ C Create one or more dummy zones for gtool to work with.
         CALL EASKOK(' ',outs,OK,nbhelp)
         IF(OK)then
           call pausems(1000)
-          write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' &'
+          write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' & '
           call runit(doit,'-')
           call pausems(1000)
           call usrmsg(
@@ -1254,7 +1254,7 @@ C Create one or more dummy zones for gtool to work with.
         CALL EASKOK(' ',outs,OK,nbhelp)
         IF(OK)then
           call pausems(1000)
-          write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' &'
+          write(doit,'(2a)') cadexe(1:lnblnk(cadexe)),' & '
           call runit(doit,'-')
           call pausems(1000)
           call usrmsg(
@@ -2106,7 +2106,7 @@ C If act is g then use GEN bodies.
           ENDDO
 
           DO J=1,NSUR
-            WRITE(ioout,'(I5,124I4)')NVER(J),(JVN(J,K),K=1,NVER(J))
+            WRITE(ioout,'(I5,102I4)')NVER(J),(JVN(J,K),K=1,NVER(J))
             ndum(J)=0
           ENDDO
 

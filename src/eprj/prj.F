@@ -150,6 +150,18 @@ C Tolerance for surface matching.
       real SNACC  ! tolerance between surface areas
       integer IACC ! number of matching corners outside dist tolerance
       common/matching/ANGCC,CACC,DACC,COGCC,SNACC,IACC
+      
+C Topic variables: value of zero = none, one = compact, two = verbose,
+C three is very verbose
+C Initial assumption is verbose for most topics that are included
+C in the current model. A -1 means not applicable
+      integer siteinfo,databaseinfo,contextinfo,controlinfo,netinfo
+      integer plantinfo,geominfo,schedinfo,zoneextrainfo,fileinfo
+      integer spminfo,enetinfo
+      integer zonecolumns,surfcolumns  ! patterns of zone and surface columns
+      common/qatopics/siteinfo,databaseinfo,contextinfo,controlinfo,
+     &  netinfo,plantinfo,geominfo,schedinfo,zoneextrainfo,fileinfo,
+     &  spminfo,enetinfo,zonecolumns,surfcolumns
 
       integer iverb     ! verbosity passed on command line
       logical OK,CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,MODSIT,CFCDBOK
@@ -292,6 +304,20 @@ C that the default common data files will be defined explicitly).
       ipathapres=0; ipathoptdb=0; ipathpcdb=0; ipathprodb=0
       ipathmat=0; ipathmul=0; ipathclim=0; ipathsbem=0; ipathmsc=0
       ipathmould=0
+
+C Initial assumptions about QA reporting.
+      siteinfo=1      ! constrained site information
+      databaseinfo=1  ! constrained database reporting
+      contextinfo=1   ! constrained context information
+      controlinfo=-1  ! no control reporting
+      spminfo=-1      ! no special material reporting
+      netinfo=-1      ! no network reporting
+      enetinfo=-1     ! no electrical reporting
+      geominfo=2      ! full geometry
+      schedinfo=2     ! full schedules
+      zoneextrainfo=1 ! few anciliary files
+      zonecolumns=3   ! all columns of zone reporting
+      surfcolumns=3   ! all columns of surface reporting
 
 C Set initial values for surface-to-surface matching.
       ANGCC=10.0; CACC=0.025; DACC=5.0; COGCC=1.0; SNACC=0.5; IACC=0 
@@ -2045,12 +2071,12 @@ C an offset from the prj start position.
             write(doit,'(3a,3i4,7a)') 'bps -mode ',tmode,
      &        ' -s ',iappwpc,iappx+15,iappy+50,' -file ',
      &        longtfile(1:lnblnk(longtfile)),brw,' -p ',
-     &        spfdescr(isset)(1:lnblnk(spfdescr(isset))),aut,' &'
+     &        spfdescr(isset)(1:lnblnk(spfdescr(isset))),aut,' & '
           else
             write(doit,'(9a)') 'bps -mode ',tmode,
      &        ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
      &        brw,' -p ',spfdescr(isset)(1:lnblnk(spfdescr(isset))),aut,
-     &        ' &'
+     &        ' & '
           endif
           if(tmode(1:7).eq.'graphic')then ! tmode for runit is different from
                                           ! tmode ESP-r command line argument
@@ -2110,11 +2136,11 @@ C an offset from the prj start position.
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,4a)') 'bps -mode ',tmode,
      &        ' -s ',iappwpc,iappx+15,iappy+50,' -file ',
-     &        longtfile(1:lnblnk(longtfile)),brw,' &'
+     &        longtfile(1:lnblnk(longtfile)),brw,' & '
           else
             write(doit,'(6a)') 'bps -mode ',tmode,
      &        ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),
-     &        brw,' &'
+     &        brw,' & '
           endif
           if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
              call runit(doit,'-')
@@ -2146,9 +2172,9 @@ C an offset from the prj start position.
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,a)') 'mfs -mode ',tmode,
-     &        ' -s ',iappwpc,iappx+15,iappy+50,' &'
+     &        ' -s ',iappwpc,iappx+15,iappy+50,' & '
           else
-            write(doit,'(3a)') 'mfs -mode ',tmode,' -s 0 0 0 &'
+            write(doit,'(3a)') 'mfs -mode ',tmode,' -s 0 0 0 & '
           endif
           if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
              call runit(doit,'-')
@@ -2172,9 +2198,9 @@ C an offset from the prj start position.
           endif
           if(iappwpc.gt.0.and.iappwpc.le.200)then
             write(doit,'(3a,3i4,a)') 'dfs -mode ',tmode,
-     &        ' -s ',iappwpc,iappx+15,iappy+50,' &'
+     &        ' -s ',iappwpc,iappx+15,iappy+50,' & '
           else
-            write(doit,'(3a)') 'dfs -mode ',tmode,' -s 0 0 0 &'
+            write(doit,'(3a)') 'dfs -mode ',tmode,' -s 0 0 0 & '
           endif
           if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line 
              call runit(doit,'-')
@@ -2215,10 +2241,10 @@ C and change any / to \.
         if(iappwpc.gt.0.and.iappwpc.le.200)then
           write(doit,'(3a,3i4,4a)') 'e2r -mode ',tmode,
      &      ' -s ',iappwpc,iappx+35,iappy+40,' -file ',
-     &      longtfile(1:lnblnk(longtfile)),brw,' &'
+     &      longtfile(1:lnblnk(longtfile)),brw,' & '
         else
           write(doit,'(6a)') 'e2r -mode ',tmode,
-     &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),brw,' &'
+     &      ' -s 0 0 0 -file ',longtfile(1:lnblnk(longtfile)),brw,' & '
         endif
         if(tmode(1:7).eq.'graphic')then ! use '-' to request execute_command_line
            call runit(doit,'-')
@@ -4280,7 +4306,7 @@ C If recent version then display image documentation as well.
                 if(found_image)then
                   write(dolist,'(a,2x,a,a)')
      &            fmtexe(imgv)(1:lnblnk(fmtexe(imgv))),
-     &            ilist(1:lnblnk(ilist)),' &'
+     &            ilist(1:lnblnk(ilist)),' & '
                   call runit(dolist,'text')
                   iton=1
                 endif

@@ -652,11 +652,11 @@ C an offset from prj start position.
             write(doit,'(3a,3i4,5a)') 'mrt -mode ',tmode,
      &        ' -s ',iappwpc,iappx+20,iappy+30,' -file ',
      &        longtfile(:lnblnk(longtfile)),' -zone ',ZN(1:lnblnk(ZN)),
-     &        ' &'
+     &        ' & '
           else
             write(doit,'(7a)') 'mrt -mode ',tmode,
      &        ' -s 0 0 0 -file ',longtfile(:lnblnk(longtfile)),
-     &        ' -zone ',ZN(1:lnblnk(ZN)),' &'
+     &        ' -zone ',ZN(1:lnblnk(ZN)),' & '
           endif
           call usrmsg('starting mrt module via',doit,'-')
           call runit(doit,tmode)

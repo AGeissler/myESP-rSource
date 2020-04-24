@@ -830,7 +830,7 @@ C and change any / to \.
         tmode='graph'
         if(teditor(1:2).eq.'vi')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' &'
+     &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
       endif
 
@@ -1038,10 +1038,10 @@ C Invoke prj in same mode and size and initial start.
           write(doit,'(5a,3i4,3a)')  'cd ',
      &      cfgpath(1:lnblnk(cfgpath)),'; prj -mode ',tmode,
      &      ' -s ',iappwpc,iappx+10,iappy+10,' -file ',
-     &      thecfgis(1:lnblnk(thecfgis)),' &'
+     &      thecfgis(1:lnblnk(thecfgis)),' & '
         else
           write(doit,'(5a)') 'cd ',cfgpath(1:lnblnk(cfgpath)),
-     &      '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' &'
+     &      '; prj -file ',thecfgis(1:lnblnk(thecfgis)),' & '
         endif
         call edisp248(iuout,doit,100)
         call runit(doit,'-')
@@ -1537,7 +1537,7 @@ C and change any / to \.
         tmode='graph'
         if(teditor(1:2).eq.'vi')tmode='text'
         write(doit,'(a,2x,a,a)') teditor(1:lnblnk(teditor)),
-     &    longtfile(1:lnblnk(longtfile)),' &'
+     &    longtfile(1:lnblnk(longtfile)),' & '
         call runit(doit,tmode)
 
 C List files in databases folder.

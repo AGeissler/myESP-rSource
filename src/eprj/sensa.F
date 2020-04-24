@@ -4207,7 +4207,7 @@ C Local Calibro. ASK USER WHAT TO DO.
 
 C Issue command in background mode so prj is still live.
           write(doit,'(3a)') './',
-     &      calibro_local(0)(1:lnblnk(calibro_local(0))),' &' 
+     &      calibro_local(0)(1:lnblnk(calibro_local(0))),' & ' 
           tmode='text'
           call runit(doit,tmode)
           call pausems(5000)
@@ -4244,10 +4244,10 @@ C Clear tfcmdlistz.
 C If in parallel the created .json files can get confused.
 C                write(doit,'(3a)')'./',
 C     &            calibro_local(loopz)(1:lnblnk(calibro_local(loopz))),
-C     &            ' &' 
+C     &            ' & ' 
 C                write(6,'(2a)')
 C     &            calibro_local(loopz)(1:lnblnk(calibro_local(loopz))),
-C     &            ' &' 
+C     &            ' & ' 
                 tmode='text'
                 call runit(doit,tmode)
                 call pausems(6000)
@@ -4284,7 +4284,7 @@ C it 5-9 times.
      &        looph
             call edisp(iuout,outs)
             write(doit,'(2a)') 
-     &        calibro_mktar(0)(1:lnblnk(calibro_mktar(0))),' &'
+     &        calibro_mktar(0)(1:lnblnk(calibro_mktar(0))),' & '
             call edisp(iuout,'Invoking calibrateme')
             call runit(doit,tmode)
             call edisp(iuout,'Look out for the script to return.')
@@ -4331,7 +4331,7 @@ C calibration tasks.
 C Try to do it explicitly so it persists until finished.
                     write(doit,'(3a)') 'xterm -e ./',
      &             calibro_mktar(loopz)(1:lnblnk(calibro_mktar(loopz))),
-     &              ' &'
+     &              ' & '
                     call edisp248(iuout,doit,100)
                     tmode='graphic'
                     call runit(doit,tmode)
@@ -4339,7 +4339,7 @@ C Try to do it explicitly so it persists until finished.
                   else
                     write(doit,'(3a)') './',
      &             calibro_mktar(loopz)(1:lnblnk(calibro_mktar(loopz))),
-     &                ' &'
+     &                ' & '
                     call edisp248(iuout,doit,100)
                     tmode='text'
                     call runit(doit,tmode)

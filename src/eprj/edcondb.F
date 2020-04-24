@@ -4139,7 +4139,7 @@ C Add a classification.
               lnmlcmenu(ILNE)=lnblnk(mlcmenu(ILNE))
               write(mlcincat(ILNE),'(a)') mlccatname(mlccats)
               write(mlcdoc(ILNE),'(4a)') 'no documentation yet for ',
-     &          mlcname(ILNE)(1:lnmlcname(ILNE)),' in',
+     &          mlcname(ILNE)(1:lnmlcname(ILNE)),' in ',
      &          mlccatname(mlccats)(1:lnmlccatname(mlccats))
               write(mlctype(ILNE),'(a)') 'OPAQ'
               write(mlcoptical(ILNE),'(a)') 'OPAQUE'
@@ -4534,7 +4534,7 @@ C Ask for name of the new construction.
               lnmlcmenu(NMLC)=lnblnk(mlcmenu(NMLC))  ! remember length
               write(mlcincat(NMLC),'(a)') mlccatname(IC)
               write(mlcdoc(NMLC),'(4a)') 'no documentation yet for ',
-     &          mlcname(NMLC)(1:lnmlcname(NMLC)),' in',
+     &          mlcname(NMLC)(1:lnmlcname(NMLC)),' in ',
      &          mlccatname(IC)(1:lnmlccatname(IC))
             endif
 
