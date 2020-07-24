@@ -7905,7 +7905,7 @@ C on it. If 'which' did not find anything the return will be non-zero.
           return
         endif
         doit='ls -l /tmp/foundit'          
-        call runit(doit,tmode)
+cx        call runit(doit,tmode)
         INQUIRE (FILE=hold32(1:ltf),EXIST=XST)
         IF (XST) THEN
           OPEN (IUNIT,FILE=hold32(1:ltf),ACCESS='SEQUENTIAL',
