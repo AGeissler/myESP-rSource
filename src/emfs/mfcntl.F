@@ -923,7 +923,8 @@ C when version 2 of the law will be published
      &             DFLP,DFLF,HFLP,HFLF
 
 C Adaptive comfort common
-      COMMON/ADPCOM/PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR(MCOM)
+      COMMON/ADPCOM/PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR(MCOM),
+     &              TRMSTAT
 
       DIMENSION ICLM(24,6)
       PARAMETER (MMD=20)
@@ -947,7 +948,8 @@ C Remember previous state of window and fan
       IWIN=INT(PREVSTATWIN)
       IFANON=INT(PREVSTATFAN)
 
-C calculate outside daily mean temperature TODM and
+C Calculate outside daily mean temperature TODM for 20 (MMD) days
+C prior to the present day (IDYP).
       IYDS=IDYP-MMD
       IYDF=IDYP-1
       DO 3157 II=1,MMD
@@ -965,6 +967,7 @@ C calculate outside daily mean temperature TODM and
             PREVTEMP(ID)=REAL(ICLM(J,2))/10.+PREVTEMP(ID)
   656     CONTINUE
           PREVTEMP(ID)=PREVTEMP(ID)/24.
+
    55   CONTINUE
       ELSEIF(IYDS.LE.0)THEN
         IYDS=365+IYDS
@@ -1015,7 +1018,7 @@ c      DTfan=fmiscd(ICFP,IDTYPP,IPERP,11)
 c      AIsurf=fmiscd(ICFP,IDTYPP,IPERP,14)
       TRMSET=fmiscd(ICFP,IDTYPP,IPERP,14)
 
-C Calculate running mean outside air temperature TRM
+C Calculate (weighted) running mean outside air temperature TRM.
       COEFF=1.
       TRM=0.
       DO 245 I=1,MMD
@@ -1024,8 +1027,10 @@ C Calculate running mean outside air temperature TRM
         COEFF=COEFF*ALPHA
  245  CONTINUE
       TRM=(1.-ALPHA)*TRM
+      TRMSTAT=TRM ! Pass TRM to common for h3k.
 
-C Calculate operative (50% mean radiant, 50% dry bulb) temperature TOP for zone ICOMP
+C Calculate operative (50% mean radiant, 50% dry bulb) temperature
+C TOP for zone ICOMP.
       ICOMP=0
       INOD=IFSN(ICFP,3)
       DO 255 IZN=1,NCOMP
@@ -1033,7 +1038,7 @@ C Calculate operative (50% mean radiant, 50% dry bulb) temperature TOP for zone 
  255  CONTINUE
       IF(ICOMP.LE.0)THEN
         CALL EDISP(IUOUT,
-     &  'Node not specified for operative temperature using zone 1')
+     &  'Node not specified for operative temperature; using zone 1')
         ICOMP=1
       ENDIF
 
@@ -1117,9 +1122,11 @@ C The windows will be forced shut if alpha is set to 0.
         IWIN=0
       ENDIF
       
-      IF(TOUT.GT.(TOP+DTOP).AND.TRM.GT.TRMSET) IWIN=0
       IF(WNposs.GT.0.1.AND.TRM.GT.TRMSET) IWIN=1
-      IF(MODE.EQ.'AC')IWIN=0   
+c      IF(TOUT.GT.(TOP+DTOP).AND.TRM.GT.TRMSET) IWIN=0
+c      IF(TOUT.GT.(TOP+DTOP)) IWIN=0
+      IF(TRM.GT.(TRMSET+DTOP)) IWIN=0
+      IF(MODE.EQ.'AC')IWIN=0
       IF(ALPHA.LT.0.1)IWIN=0   
 
 C Door opening (Aizaz to enable functionality)
@@ -1196,7 +1203,6 @@ c      ENDIF
        GLNPWR=0.
 C Find total power of the equipment
       TOTPWR(ICOMP)=FNPWR+GLNPWR
- 
  
       GOTO 9999
   999 helptopic='flow_ctl_04_error'

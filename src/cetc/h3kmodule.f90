@@ -152,7 +152,7 @@ MODULE h3kmodule
          rvElecNetHybridComponentFlux, rvElecNetPowerOnlyComponents, &
          rvMfnTotalNodeFlowRate,rvMfnTotalNodeVolFlowRate,rvMfnTotalNodeTemp, &
          rvMfnConnectPressureDrop, rvMfnConnectFlowRate,rvMfnConnectVeloc, &
-         rvMfnContamCon, rvMfnConnectCtlOnFrac, rvZoneLabel
+         rvMfnContamCon, rvMfnConnectCtlOnFrac, rvMfnTRM, rvZoneLabel
    Type(ReportVariable) :: rvSurfaceArea, rvSurfLayMatnam, rvSurfLayDens, rvSurfLayThick, rvMLCArea
 
    !Used by SiteUtilities.F
@@ -1501,6 +1501,12 @@ CONTAINS
       rvMfnConnectCtlOnFrac%VariableType = '(-)'
       rvMfnConnectCtlOnFrac%Description = 'mfn connection control ON fraction'
       Call AddVariable(rvMfnConnectCtlOnFrac)
+
+      rvMfnTRM%VariableName = 'mfn/*/*/TRM'
+      rvMfnTRM%MetaType = 'units'
+      rvMfnTRM%VariableType = '(oC)'
+      rvMfnTRM%Description = 'mfn connection control running avg. temp'
+      Call AddVariable(rvMfnTRM)
 
       !Used by SiteUtilities.F
       rvTFuelAllEndEnergyContent%VariableName = 'total_fuel_use/*/all_end_uses/energy_content'
