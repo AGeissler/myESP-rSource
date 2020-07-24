@@ -930,7 +930,7 @@ C Adaptive comfort common
       REAL PREVTEMP(MMD)
       CHARACTER*72 LAPROB
       CHARACTER*2 MODE
-      REAL Wposs,Fposs,WNposs,ACavail,Havail,PF,PWRfan,FUNCW
+      REAL Wposs,Fposs,WNposs,ACavail,Havail,PF,PWRfan,FUNCW,TRMSET
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -941,7 +941,7 @@ C For help messages
 C initialise variables
       helpinsub='FCL04'  ! set for subroutine
       WPOSS=0; Fposs=0; WNposs=0; ACavail=0; Havail=0; PF=0
-      PWRfan=0; FUNCW=0
+      PWRfan=0; FUNCW=0; TRMSET=0.
 
 C Remember previous state of window and fan
       IWIN=INT(PREVSTATWIN)
@@ -1010,8 +1010,10 @@ c      Dposs=fmiscd(ICFP,IDTYPP,IPERP,8)
 c      PWRlight=fmiscd(ICFP,IDTYPP,IPERP,10)
 c      DTfan=fmiscd(ICFP,IDTYPP,IPERP,11)
       WD=fmiscd(ICFP,IDTYPP,IPERP,12)
-      FD=fmiscd(ICFP,IDTYPP,IPERP,13)
+      FD=0. ! fmiscd(ICFP,IDTYPP,IPERP,13)
+      DTOP=fmiscd(ICFP,IDTYPP,IPERP,13)
 c      AIsurf=fmiscd(ICFP,IDTYPP,IPERP,14)
+      TRMSET=fmiscd(ICFP,IDTYPP,IPERP,14)
 
 C Calculate running mean outside air temperature TRM
       COEFF=1.
@@ -1043,19 +1045,19 @@ C based on the control file being used hence is ignored.
       CALL MZMIXT(ICOMP,TMRT,TOP)
       TOP=0.5*TMRT+0.5*TNOD(INOD)
 
-C Calculate comfort temperature TCOMF (based on the summer and winter behaviours)
-C These are algorithm version 1 equations and will be overwritten
-C (retained for historic purposes)
+C Calculate comfort temperature TCOMF (based on the summer and winter
+C behaviours). These are algorithm version 1 equations and will be
+C overwritten (retained for historic purposes).
       IF(TRM.GE.10.)TCOMF=0.33*TRM+18.8
       IF(TRM.LT.10.)TCOMF=0.09*TRM+22.6
 
 C Pakistan mode determination (four modes)
 C Mode = AC air conditioning
-C Mode = NC night cooling
+C Mode = NC night cooling <<not coded?! 20200724>>
 C Mode = HT heating
 C Mode = FR free running (no heating or air conditioning, may have fan)
 C Calculate mode and Tcomfort.
-      IF(ACAVAIL.GT.0..AND.TRM.GT.28.1)THEN
+      IF(ACAVAIL.GT.0..AND.TRM.GT.TRMSET)THEN
         MODE='AC'
         TCOMF=0.416*TRM+16.5
       ELSEIF(Havail.GT.0..AND.TRM.LT.10.)THEN
@@ -1093,9 +1095,10 @@ C in AC mode. If Tout < 23.6 then fans are assumed to be off.
       IF(TRM.LT.23.6)IFANON=0
       
 C Pakistan window status determination. If Night cooling then window
-C open if Trm > 28.1, WNposs should only be set to 1 outside of the 
+C open if Trm > TRMSET(was hardcoded 28.1), WNposs should only be set
+C to 1 outside of the
 C occupied hours!! If window opening not effective for cooling then 
-C window is closed - this is currently defined as when Tout>(Top+4).
+C window is closed - this is currently defined as when Tout>(Top+DTOP).
 C The windows will be forced shut if alpha is set to 0.    
       IF(Wposs.GT.0.)THEN
         FUNCW=0.525*(TOP-TCOMF+(IWIN-0.5)*WD)
@@ -1114,8 +1117,8 @@ C The windows will be forced shut if alpha is set to 0.
         IWIN=0
       ENDIF
       
-      IF(TOUT.GT.(TOP+4.).AND.TRM.GT.28.1) IWIN=0
-      IF(WNposs.GT.0.1.AND.TRM.GT.28.1) IWIN=1      
+      IF(TOUT.GT.(TOP+DTOP).AND.TRM.GT.TRMSET) IWIN=0
+      IF(WNposs.GT.0.1.AND.TRM.GT.TRMSET) IWIN=1
       IF(MODE.EQ.'AC')IWIN=0   
       IF(ALPHA.LT.0.1)IWIN=0   
 
