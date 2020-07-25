@@ -1489,13 +1489,9 @@ cx          NRGRDT = 4
               if(markdown)then
                 WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',outs2
                 call edispxtr(itu,outs248)
-cx     &          'Calculated ground temp at 0.5m depth  ')
-cx                call edisp2tr(itu,outs2)
               else
                 WRITE(outs248,'(A,f4.1,A,A)')' ',ZDA(II),' m: ',outs2
                 call edispxtr(itu,outs248)
-cx                call edisp(itu,'Calculated ground temp at 0.5m depth')
-cx                call edisp(itu,outs2)
               endif
               ipos=itrunc+1
             end do

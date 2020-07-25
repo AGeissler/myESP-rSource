@@ -905,6 +905,8 @@ C by setting the ALPHA parameter = 0.
 #include "geometry.h"
 #include "control.h"
 
+#include "climate.h"
+
 C climate file commons
       COMMON/FILEP/IFIL
 
@@ -960,14 +962,12 @@ C prior to the present day (IDYP).
         DO 55 I=IYDS,IYDF
           ID=ID+1
           II=I
-          IREC=II
-          READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=999)((ICLM(J,K),K=1,6),
-     &           J=1,24)
+C Read climate data for current day into CMRVAL(). See commonclm.F.
+          call CLMGET(II)
           DO 656 J=1,24
-            PREVTEMP(ID)=REAL(ICLM(J,2))/10.+PREVTEMP(ID)
+            PREVTEMP(ID)=CMRVAL(1,J)+PREVTEMP(ID)
   656     CONTINUE
           PREVTEMP(ID)=PREVTEMP(ID)/24.
-
    55   CONTINUE
       ELSEIF(IYDS.LE.0)THEN
         IYDS=365+IYDS
@@ -975,11 +975,9 @@ C prior to the present day (IDYP).
         DO 550 I=IYDS,365
           ID=ID+1
           II=I
-          IREC=II
-          READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=999)((ICLM(J,K),K=1,6),
-     &           J=1,24)
+          call CLMGET(II)
           DO 657 J=1,24
-            PREVTEMP(ID)=REAL(ICLM(J,2))/10.+PREVTEMP(ID)
+            PREVTEMP(ID)=CMRVAL(1,J)+PREVTEMP(ID)
   657     CONTINUE
           PREVTEMP(ID)=PREVTEMP(ID)/24.
   550   CONTINUE
@@ -987,11 +985,9 @@ C prior to the present day (IDYP).
           DO 551 I=1,IDYF
             ID=ID+1
             II=I
-            IREC=II
-            READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=999)((ICLM(J,K),K=1,6),
-     &             J=1,24)
-            DO 658 J=1,24
-              PREVTEMP(ID)=REAL(ICLM(J,2))/10.+PREVTEMP(ID)
+          call CLMGET(II)
+          DO 658 J=1,24
+            PREVTEMP(ID)=CMRVAL(1,J)+PREVTEMP(ID)
   658       CONTINUE
             PREVTEMP(ID)=PREVTEMP(ID)/24.
   551     CONTINUE
