@@ -9,6 +9,7 @@ C 8 air gaps MGP and 16 layers ME 7.2012 updated
 C 82 zone 90 surface version 02.2017 updated - supports all exemplars
 C and thus is considered the default.
 C 82 edges per polygon version 08.2017 updated
+C 82 zone 120 surface version 03.2020 updated - supports all exemplars
 
 C Type declarations.
       integer MCOM,MCON,MTV,MV,ME,MGP,MN,MP,MDY,MT,MA,MC,MBP,MTMS

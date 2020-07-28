@@ -11,9 +11,9 @@ IFS=$'\n'
 
 # 1. Step : Set up some variables
 TEST=false
-#prefix="/Users/achim.geissler/Downloads"
-prefix="/Users/achim/Downloads"
-release="ESP-r_V13.3.9_Src"
+prefix="/Users/achim.geissler/Downloads"
+#prefix="/Users/achim/Downloads"
+release="ESP-r_V13.3.10_Src"
 
 # 2. Step : create file listings for the source root directory and
 #           subdirectories src, models, modish, data and doc:

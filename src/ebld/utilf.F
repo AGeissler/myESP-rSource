@@ -13,18 +13,14 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C This file contains the following routines:
-C    MZHCFV2: reads the convection-regime file (version 2)
-C    MZSHIN:  checks validity of a zone shading file
-C    MZVFIN:  reads geometric view factor between surface pairs from file
+C This file contains the following routines.
+C  MZHCFV2 - reads the convection-regime file (version 2).
+C  MZSHIN  - checks validity of a zone shading file.
+C  MZVFIN  - reads geometric view factor between surface pairs from file.
 
 C ******************** MZHCFV2 ********************
-C MZHCFV2 reads the convection-regime file (version 2)
+C Reads the convection-regime file (version 2).
 
       SUBROUTINE MZHCFV2(ICOMP)
 #include "building.h"
@@ -32,32 +28,29 @@ C MZHCFV2 reads the convection-regime file (version 2)
 #include "model.h"
 #include "espriou.h"
       
-      integer lnblnk  ! function definition
+      INTEGER lnblnk  ! function definition
 
       COMMON/ER/IER
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
       COMMON/TC/ITC,ICNT
-
       COMMON/T4/EMISI(MS),EMISE(MS),ABSI(MS),ABSE(MS)
-
       COMMON/HCFIX2/NCHDT(MCOM),NHCFP(MCOM,MDTY),HCFPST(MCOM,MDTY,MBP),
      &       HCFPFT(MCOM,MDTY,MBP),HCFVI(MCOM,MDTY,MS,MBP),
      &       HCFVE(MCOM,MDTY,MS,MBP)
-
-      common/HCTL/iCTLTP(MCOM,MDTY,MBP),IcIuse(MCOM,MDTY,MS,MBP),
+      COMMON/HCTL/iCTLTP(MCOM,MDTY,MBP),IcIuse(MCOM,MDTY,MS,MBP),
      &            IcEuse(MCOM,MDTY,MS,MBP),icnvKY(MCOM,MDTY,MS,MBP),
      &            CVdat(MS*MBP,8)
-      common/HCFPHI/hcfpdescr(MDTY,MBP)
+      COMMON/HCFPHI/hcfpdescr(MDTY,MBP)
       COMMON/VERTC/IAORZ,CWIDTH,CHEIGHT
       COMMON/HCCEN2/CENLOC(MCOM,MDTY,MBP,14)
 
-      character outs*124,OUTSTR*124,word*24
-      character hcfpdescr*72
-      logical OK,newer
+      CHARACTER outs*124,OUTSTR*124,word*24
+      CHARACTER hcfpdescr*72
+      LOGICAL OK,newer
 
-      dimension HCIA(MS),HCEA(MS),IHCIA(MS),IHCEA(MS)
+      DIMENSION HCIA(MS),HCEA(MS),IHCIA(MS),IHCEA(MS)
 
 C NHCFP(ICOMP,MDTY) is the number of control time intervals.
 C Variables used for `type 1' control:
@@ -412,10 +405,9 @@ C Fatal error trap.
 
       END
 
-c ******************** MZSHIN ********************
-
-C MZSHIN assigns the zone associated shading file for use
-C later within the simulation time-stepping.
+C ******************** MZSHIN ********************
+C Opens and checks the content of a pre-constructed zone shading/insolation
+C file for later access during simulations.
 
 C Format of a zone shading & insolation db:
 C Minimum width is 24 words, normal width is nzsur(icomp) words.
@@ -462,8 +454,7 @@ C   commences with an offset of y=2*(2*misur).
       COMMON/TC/ITC,ICNT
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-
-      common/rsolmax/maxrec(mcom)
+      COMMON/rsolmax/maxrec(mcom)
 
       CHARACTER LS*72
       character outs*124
@@ -473,24 +464,23 @@ C   commences with an offset of y=2*(2*misur).
       logical OK
       integer ier
 
-C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
 
       helpinsub='MZSHIN'  ! set for subroutine
 
-c Initialise shading file (unit number = IFIL+1).
+c Initialise shading file (use unit number = IFIL+1).
       JOUT=ITC
       IUNIT=IFIL+1
       LS=LSHAD(ICOMP)
-      maxrec(icomp)=24
+      maxrec(icomp)=24    ! set also in solar.F if ISIcalc=1
       if(NZSUR(icomp).gt.24)maxrec(icomp)=NZSUR(icomp)
       ier=0
       call EFOPRAN(IUNIT,LS,maxrec(icomp),1,IER)
       IF(ier.ne.0)goto 1000
 
-C Check file has been written to. If a problem the try again
+C Check file has been written to. If a problem detected try again
 C at maxrec=24 for older files. Remember maxrec for use in solar.F.
       IREC=2
       READ(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1001)INEXT,NS
@@ -514,12 +504,10 @@ C at maxrec=24 for older files. Remember maxrec for use in solar.F.
         endif
       endif
           
-C Trace output. MZSHIN is only called during input to no need
-C to put a simulation time limit on this trace option.
+C Trace output.
     3 IF(ITRACE(5).EQ.1.AND.IZNTRC(ICOMP).EQ.1) goto 1
 
-C If this point reached there was no request for trace so
-C close the file.
+C If this point reached there was no request for trace so close the file.
       CALL ERPFREE(IUNIT,ISTAT)
       IF(IER.EQ.1)then
         close(ieout)
@@ -529,34 +517,34 @@ C close the file.
         STOP
       endif
       RETURN
- 
 
-C Errors that also attempt to write trace output prior to
-C quitting.
+C Errors that also attempt to write trace output prior to quitting.
  1000 IER=1
-      write(outs,'(2A)') zname(ICOMP),' shading file error in '
+      write(outs,'(3A)') zname(ICOMP),
+     &     ' shading/insolation file error in ',LS
+      call edisp(iuout,' ')
       call edisp(iuout,outs)
-      call edisp(iuout,LS)
-      CALL edisp(iuout,' Run being terminated.')
-      goto 3  ! jump back to trace
+      goto 3
 
- 1001 CALL edisp(iuout,' Read error in shading file.')
-      goto 1000  ! write further error information
+ 1001 CALL edisp(iuout,'Read error in shading/insolation file.')
+      goto 1000
 
  1003 write(outs,'(a,i3,a,i3,a,i3)') 'Model nsur =',NSUR,' db ns =',
      &  ns,' inext=',INEXT
-      call edisp(iuout,' Mismatch between model and shading file.')
+      call edisp(iuout,' ')
+      call edisp(iuout,
+     &    'Mismatch between model and shading/insolation file.')
       call edisp(iuout,outs)
-      goto 1000  ! write further error information
+      goto 1000
 
-C Trace output follows. The binary file is scanned and the whole
-C years data for each of the selected zones is printed out. This
+C Trace output. The binary S/I file is scanned and the
+C yearly data for each selected zones is printed. This
 C only works if the user first selects the shading & insolation
-C trace and then re-scanns in the model cfg file.
+C trace and then re-scans in the model cfg file.
 
-C Code to read the file is out of date and differes from the
+C << Code to read the file is out of date and differs from the
 C logic within solar.F so diffuse shading and insolation data
-C is not presented. Direct shading is presented only.
+C is not presented. Direct shading only is presented. >>
     1 CONTINUE 
       write(outs,'(A,I4)')' Subroutine MZSHIN     Trace output',ICNT
       call edisp(itu,outs)
@@ -651,9 +639,9 @@ c Output PI.
 99961 CONTINUE
       goto 2
 
- 1005 CALL edisp(iuout,' Shading db read during trace.')
+ 1005 CALL edisp(iuout,'S/I file read error during trace.')
       goto 1008
- 1006 CALL edisp(iuout,' Shading index for month not correct type.')
+ 1006 CALL edisp(iuout,'S/I file index for month incorrect type.')
       goto 1008
  1008 JOUT=0
       goto 1000
@@ -672,19 +660,14 @@ c Output PI.
 
 
 c ******************** MZVFIN ********************
-
-c MZVFIN reads the black body geometric view factor between
+c Reads the black body geometric view factor between
 c each internal surface pair from a file prepared via
 c program ESRU: mrt.
-
-c Common block variables are:
-
-c CFB  - the black body view factor (sometimes known as the
-c        configuration or angle factor) between each internal
-c        surface polygon (defining opaque and transparent surfaces).
+c CFB - black body view factor between each internal surface
+c       polygon (defining opaque and transparent surfaces).
 
 c IVF - determines whether this information is available
-c        or not.
+c       or not.
 
       SUBROUTINE MZVFIN(ICOMP)
 #include "building.h"
@@ -711,8 +694,9 @@ c Transfer VEWF array to CFB.
         do 35 J=1,NSUR
           CFB(ICOMP,I,J)=VEWF(I,J)
           if(CFB(ICOMP,I,J).LT.0..OR.CFB(ICOMP,I,J).GT.1.)then
-            write(outs,'(A,2I3,A)') ' View between surfs ',I,J,
-     &                              ' out of range.'
+            write(outs,'(A,I3,A,I3,A)')
+     &    'View factor between surfaces ',I,' &',J,' out of range!'
+            call edisp(iuout,' ')
             call edisp(iuout,outs)
             goto  1000
           endif

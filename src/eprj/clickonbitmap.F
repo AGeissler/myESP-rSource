@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains:
 C  clickonbitmap: Control interface to define vertices or floor plan
@@ -1700,7 +1696,7 @@ C Reset to enter the clicking.
           elseif(izclear.eq.3)then
 
 C If adding another then use the previously defined names and
-C instanciate the common blocks.
+C instantiate the common blocks.
             if(addinganother)then
               icomp=incomp
               call st2name(ZN,zname(ICOMP))
@@ -1713,7 +1709,7 @@ C instanciate the common blocks.
             endif
             iicol=0
             call winscl('-',iicol)
-            call edisp(iuout,'Instanciating new objects...')
+            call edisp(iuout,'Instantiating new objects.')
             if(inpmode.eq.6)then
 
 C Create single ground surface.
@@ -2424,7 +2420,7 @@ C Reset to enter the clicking.
           elseif(izclear.eq.3)then
 
 C If adding another then use the previously defined names and
-C instanciate the common blocks.
+C instantiate the common blocks.
             if(addinganother)then
               icomp=incomp
               call st2name(ZN,zname(ICOMP))

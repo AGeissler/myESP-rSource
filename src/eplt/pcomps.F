@@ -4377,7 +4377,9 @@ C a type as expected by the corresponding coefficient generator routine.
 
 #include "plant.h"
 #include "building.h"
-C
+
+      integer lnblnk  ! function definition
+
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer iuout,iuin,ieout
       COMMON/TC/ITC,ICNT

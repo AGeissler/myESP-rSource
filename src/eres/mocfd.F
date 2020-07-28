@@ -13,12 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C mocfd.F contains the following:
+C This file contains the following subroutines.
 C MOCFD - Entry point for CFD menus.
 C RCFDLIBH - read CFD library header.
 C MCFDM - define the parameters for the visualization of results.
@@ -29,8 +25,8 @@ C GETIFRM - returns IFRAME for getting CFD results using RDCFDAT.
 C MCFDV - define CFD variables for text/graph reporting.
 
 C ******************** MOCFD ********************
-C MOCFD is the entry point for CFD menus.
-C It opens the CFD results library and chooses a domain.
+C The entry point for CFD menus. Opens the CFD results library and
+C chooses a domain.
 C If ACT is "M" will go to visualisation menu.
 C If ACT is "V" will go to variable reporting menu.
 
@@ -480,10 +476,10 @@ C Number of actual items displayed.
       ITEM(M+3)='! list current '
       ITEM(M+4)='> create image(s)   '
       ITEM(M+5)='? help     '
-      ITEM(M+6)='- exit this menu  '
+      ITEM(M+6)='- exit menu'
       INO=-4
 
-C Instanciate help strings for this menu.
+C Instantiate help strings for this menu.
       helptopic='res_cfd_2d_slice'
       call gethelptext(helpinsub,helptopic,nbhelp)
  
@@ -610,8 +606,8 @@ C Image frequency (dynamic flow viualisation only).
 C Add/ delete image definition.
         helptopic='res_cfd_new_view'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKATOG(' ','View definitions:','add one','delete one',
-     &    'MRT sensor','room COG','continue',' ',' ',
+        call EASKATOG(' ','View definition:','add ','delete',
+     &    'MRT sensor','zone COG','cancel',' ',' ',
      &    IW,nbhelp)
         if (IW.eq.1) then
 
@@ -621,15 +617,15 @@ C Add new image definition.
  101      helptopic='res_cfd_view_root_name'
           call gethelptext(helpinsub,helptopic,nbhelp)
           t12=' new_view'
-          CALL EASKS(t12,' ',' Name for image ? ',
+          CALL EASKS(t12,' ','Name for image?',
      &      12,'flowvis','image name',IER,nbhelp)
           if (t12(1:2).eq.'  ') goto 101
           LBITrt(ICOMP,NV)=t12
           helptopic='res_cfd_view_direc'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IWM=1
-          CALL EASKATOG('View direction:',' ','South','East',
-     &      'North','West','Top','Bottom','  ',IWM,nbhelp)
+          CALL EASKATOG('','View direction:','south','east',
+     &      'north','west','top','bottom','  ',IWM,nbhelp)
           ISURvw(ICOMP,NV)=IWM
  102      IER=0
 
@@ -640,57 +636,63 @@ C Display grid, to aid user in picking a plane.
           IF(IWM.EQ.1)THEN
 
 C View from south.
-            CALL EASKI(ilayer,'  ',' Which j layer ',
+            CALL EASKI(ilayer,' ','Which j layer?',
      &        1,'F',NJM2,'F',1,' Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 102
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   X-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Z-axis displayed vertically.')
+            call edisp(iuout,' ')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  X-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Z-axis displayed vertically.')
           ELSEIF(IWM.EQ.2)THEN
 
 C View from east.
-            CALL EASKI(ilayer,'  ',' Which i layer ',
+            CALL EASKI(ilayer,' ','Which i layer?',
      &        1,'F',NIM2,'F',1,' Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 102
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   Y-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Z-axis displayed vertically.')
+            call edisp(iuout,' ')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  Y-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Z-axis displayed vertically.')
           ELSEIF(IWM.EQ.3)THEN
 
 C View from north.
-            CALL EASKI(ilayer,'  ',' Which j layer ',
+            CALL EASKI(ilayer,' ','Which j layer?',
      &        1,'F',NJM2,'F',1,' Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 102
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   X-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Z-axis displayed vertically.')
+            call edisp(iuout,' ')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  X-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Z-axis displayed vertically.')
           ELSEIF(IWM.EQ.4)THEN
 
 C View from west.
-            CALL EASKI(ilayer,'  ',' Which i layer ',
+            CALL EASKI(ilayer,' ',' Which i layer?',
      &        1,'F',NIM2,'F',1,' Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 102
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   Y-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Z-axis displayed vertically.')
+            call edisp(iuout,' ')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  Y-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Z-axis displayed vertically.')
           ELSEIF(IWM.EQ.5)THEN
 
 C View from top.
-            CALL EASKI(ilayer,'  ',' Which k layer ',
+            CALL EASKI(ilayer,' ','Which k layer?',
      &        1,'F',NKM2,'F',1,' Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 102
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   X-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Y-axis displayed vertically.')
+            call edisp(iuout,' ')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  X-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Y-axis displayed vertically.')
           ELSEIF(IWM.EQ.6)THEN
 
 C View from bottom.
-            CALL EASKI(ilayer,'  ',' Which k layer ',
+            CALL EASKI(ilayer,'   ','Which k layer?',
      &        1,'F',NKM2,'F',1,' Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 102
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   X-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Y-axis displayed vertically.')
+            call edisp(iuout,' ')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  X-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Y-axis displayed vertically.')
           endif
           ILAYvw(ICOMP,NV) = ilayer + 1
 
@@ -707,14 +709,14 @@ C Set defaults for customisation and frequency variables.
           HLSCvw(ICOMP,NV)=1.0
           HTSCvw(ICOMP,NV)=1.0
           IFRQvw(ICOMP,NV)=4
-          write (outs,'(2a)')' Defaults set for arrow scaling factors ',
-     &                'and generation frequency. Edit via image pick. '
+          write (outs,'(2a)')'Defaults set for arrow scaling factors ',
+     &                'and generation frequency. Edit via image pick.'
           call edisp(iuout,outs)
 
         elseif (IW.eq.2) then
 
 C Remove an image definition.
-          CALL EASKI(NV,'  ',' Which view to remove? ',1,'F',
+          CALL EASKI(NV,' ','View to remove?',1,'F',
      &      Nview(ICOMP),'F',Nview(ICOMP),' View number',IER,nbhelp)
           if (IV.lt.Nview(ICOMP)) then
             do IV=NV,(Nview(ICOMP)-1)
@@ -744,7 +746,8 @@ C initialise CFD - building domain transformation matrices.
           endif
           CALL INIT_CFDTRANS(IER)
           if (IER.ne.0) then
-            call edisp(iuout,' Problem reading CFD axis vertices')
+            call edisp(iuout,' ')
+            call edisp(iuout,'Problem reading CFD axis vertices!')
           else
 C Find CFD point closest to MRT sensor.              
             CALL GRIDGEO
@@ -758,7 +761,8 @@ C Find CFD point closest to MRT sensor.
      &                      ZOC(IMRT)+DZC(IMRT)/2,XC,YC,ZC,IER)
             CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
             if (IER.ne.0) then
-              call edisp(iuout,' Problem finding CFD point')
+              call edisp(iuout,' ')
+              call edisp(iuout,'Problem finding CFD point!')
             endif
           endif
          
@@ -798,8 +802,8 @@ C Find CFD point closest to MRT sensor.
           HTSCvw(ICOMP,NV)=1.0
           IFRQvw(ICOMP,NV)=4
 
-          write (outs,'(2a)')' Defaults set for arrow scaling factors ',
-     &                'and generation frequency. Edit via image pick. '
+          write (outs,'(2a)')'Defaults set for arrow scaling factors ',
+     &                'and generation frequency. Edit via image pick.'
           call edisp(iuout,outs)
 
           goto 3
@@ -813,7 +817,8 @@ C Add XY, XZ and YZ planes intersecting at the room centre of gravity.
           ITBND=1
           CALL BNDOBJ(0,IER)
           if (IER.ne.0) then
-            call edisp(iuout,' Problem calculating zone COG')
+            call edisp(iuout,' ')
+            call edisp(iuout,'Problem calculating zone COG!')
             goto 3
           endif
 
@@ -824,7 +829,8 @@ C initialise CFD - building domain transformation matrices.
           endif
           CALL INIT_CFDTRANS(IER)
           if (IER.ne.0) then
-            call edisp(iuout,' Problem reading CFD axis vertices')
+            call edisp(iuout,' ')
+            call edisp(iuout,'Problem reading CFD axis vertices!')
             goto 3
           else
 C Find CFD plane closest to selected Z height.
@@ -833,7 +839,8 @@ C Find CFD plane closest to selected Z height.
      &        XC,YC,ZC,IER)
             CALL FDCFDPT(1,XC,YC,ZC,IIX,IIY,IIZ,IER)
             if (IER.ne.0) then
-              call edisp(iuout,' Problem finding CFD point')
+              call edisp(iuout,' ')
+              call edisp(iuout,'Problem finding CFD point.')
               goto 3
             endif
           endif
@@ -874,8 +881,8 @@ C Find CFD plane closest to selected Z height.
           HTSCvw(ICOMP,NV)=1.0
           IFRQvw(ICOMP,NV)=4
 
-          write (outs,'(2a)')' Defaults set for arrow scaling factors ',
-     &                'and generation frequency. Edit via image pick. '
+          write (outs,'(2a)')'Defaults set for arrow scaling factors ',
+     &                'and generation frequency. Edit via image pick.'
           call edisp(iuout,outs)
 
           goto 3
@@ -898,17 +905,17 @@ C Decode from the potentially long list to the zone number via KEYIND.
 C If delete or copy scene previously selected then new selection should 
 C be deleted or copied, respectively.
         NV=INO-MHEAD
- 200    write (outs,'(a,a,a)') 'For image definition ',
-     &        LBITrt(ICOMP,NV)(1:lnblnk(LBITrt(ICOMP,NV))),' edit:'
+ 200    write (outs,'(a,a)') 'For image definition ',
+     &        LBITrt(ICOMP,NV)(1:lnblnk(LBITrt(ICOMP,NV)))
         IWE=1
         helptopic='res_cfd_view_edit'  ! combined messages
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call EASKATOG(outs,' ','Name','View dir & layer','Resolution',
-     &    'Customise arrows','Continue','  ','  ',IWE,nbhelp)
+        call EASKATOG(outs,'Edit:','name','view dir & layer',
+     &    'resolution','arrows','cancel',' ',' ',IWE,nbhelp)
         if (IWE.eq.1) then
 
 C Image root name.
- 201      CALL EASKS(t12,' ',' Name for image ? ',
+ 201      CALL EASKS(t12,' ','Name for image?',
      &      12,'flowvis','image name',IER,nbhelp)
           if (t12(1:2).eq.'  ') goto 201
           LBITrt(ICOMP,NV)=t12
@@ -916,8 +923,8 @@ C Image root name.
 
 C View direction and layer.
           IWM=1
-          CALL EASKATOG('View direction:',' ','South','East',
-     &      'North','West','Top','Bottom','  ',IWM,nbhelp)
+          CALL EASKATOG(' ','View direction:','south','east',
+     &      'north','west','top','bottom',' ',IWM,nbhelp)
           ISURvw(ICOMP,NV)=IWM
  202      IER=0
 
@@ -928,63 +935,63 @@ C Display grid, to aid user in picking a plane.
           IF(IWM.EQ.1)THEN
 
 C View from north.
-            CALL EASKI(ilayer,'  ',' Which j layer ',
-     &        1,'F',NJM2,'F',1,' Slice number',IER,nbhelp)
+            CALL EASKI(ilayer,' ','Which j layer?',
+     &        1,'F',NJM2,'F',1,'Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 202
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   X-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Z-axis displayed vertically.')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  X-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Z-axis displayed vertically.')
           ELSEIF(IWM.EQ.2)THEN
 
 C View from east.
-            CALL EASKI(ilayer,'  ',' Which i layer ',
-     &        1,'F',NIM2,'F',1,' Slice number',IER,nbhelp)
+            CALL EASKI(ilayer,' ','Which i layer?',
+     &        1,'F',NIM2,'F',1,'Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 202
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   Y-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Z-axis displayed vertically.')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  Y-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Z-axis displayed vertically.')
           ELSEIF(IWM.EQ.3)THEN
 
 C View from south.
-            CALL EASKI(ilayer,'  ',' Which j layer ',
-     &        1,'F',NJM2,'F',1,' Slice number',IER,nbhelp)
+            CALL EASKI(ilayer,' ','Which j layer?',
+     &        1,'F',NJM2,'F',1,'Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 202
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   X-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Z-axis displayed vertically.')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  X-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Z-axis displayed vertically.')
           ELSEIF(IWM.EQ.4)THEN
 
 C View from west.
-            CALL EASKI(ilayer,'  ',' Which i layer ',
-     &        1,'F',NIM2,'F',1,' Slice number',IER,nbhelp)
+            CALL EASKI(ilayer,' ','Which i layer?',
+     &        1,'F',NIM2,'F',1,'Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 202
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   Y-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Z-axis displayed vertically.')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  Y-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Z-axis displayed vertically.')
           ELSEIF(IWM.EQ.5)THEN
 
 C View from top.
-            CALL EASKI(ilayer,'  ',' Which k layer ',
-     &        1,'F',NKM2,'F',1,' Slice number',IER,nbhelp)
+            CALL EASKI(ilayer,' ','Which k layer?',
+     &        1,'F',NKM2,'F',1,'Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 202
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   X-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Y-axis displayed vertically.')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  X-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Y-axis displayed vertically.')
           ELSEIF(IWM.EQ.6)THEN
 
 C View from bottom.
-            CALL EASKI(ilayer,'  ',' Which k layer ',
-     &        1,'F',NKM2,'F',1,' Slice number',IER,nbhelp)
+            CALL EASKI(ilayer,' ','Which k layer?',
+     &        1,'F',NKM2,'F',1,'Slice number',IER,nbhelp)
             IF(IER.NE.0) GOTO 202
-            CALL EDISP(IUOUT,' Axis orientation in image:')
-            CALL EDISP(IUOUT,'   X-axis displayed horizontally;')
-            CALL EDISP(IUOUT,'   Y-axis displayed vertically.')
+            CALL EDISP(IUOUT,'Axis orientation in image:')
+            CALL EDISP(IUOUT,'  X-axis displayed horizontally;')
+            CALL EDISP(IUOUT,'  Y-axis displayed vertically.')
           endif
           ILAYvw(ICOMP,NV) = ilayer + 1
 
 C Image resolution.
         elseif (IWE.eq.3) then
-          call EASKABC(' ','Image resolution?','Low','Medium','High',
+          call EASKABC(' ','Image resolution:','low','medium','high',
      &      IWR,nbhelp)
           IRESvw(ICOMP,NV)=IWR
         elseif (IWE.eq.4) then
@@ -996,7 +1003,7 @@ C Customise arrows.
           call gethelptext(helpinsub,helptopic,nbhelp)
           call EASKS(t24,
      &      'Scale factors: Shaft len; Shaft thK; Head len; Head thk',
-     &      '  ',24,' 1.0 1.0 1.0 1.0','scale factrs',IER,nbhep)
+     &      ' ',24,' 1.0 1.0 1.0 1.0','scale factrs',IER,nbhep)
           ISC = iCountWords(t24)
           if (ISC.ne.4) goto 203
           K=0
@@ -1020,15 +1027,14 @@ C Customise arrows.
       end
 
 C ******************** CFDPER ********************
-C CFDPER sets the CFD output period. 
-C IOPT=1 selects whole period
-C IOPT=2 user selects one time step
-C IOPT=3 user selects period
+C Sets the CFD output period. 
+C IOPT=1 whole period
+C IOPT=2 one time step
+C IOPT=3 user-specified period
 
       SUBROUTINE CFDPER(IOPT)
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-
       COMMON/cfdsmper/ICDYS,ICDYF,CFTS,CFTF
       COMMON/cfdotper/ICDYOS,ICDYOF,CFTOS,CFTOF
 
@@ -1045,7 +1051,7 @@ C In default mode then set output period to whole period.
         CFTOS=CFTS
         CFTOF=CFTF
       elseif (IOPT.eq.2) then
-        write (outs,'(2a)') 'Please pick a single timestep for flow ',
+        write (outs,'(2a)') 'Specify a timestep for flow ',
      &          'visualisation.'
         call edisp(iuout,outs)
         CALL EDAYR(ICDYS,IDs,IMs)
@@ -1053,7 +1059,7 @@ C In default mode then set output period to whole period.
         write(PDESCR,'(2(i3,a4,a,f5.2,a))')IDs,MTHNAM(IMs),', hr ',CFTS,
      &              ' to',IDf,MTHNAM(IMf),', hr ',CFTF,'.'
         write (outs,'(2a)')
-     &     'Current result set contains CFD data for the period:',PDESCR
+     &     'Result set contains CFD data for the period:',PDESCR
         call edisp(iuout,outs)
         call edisp(iuout,'Set a time within this period to plot.')
 
@@ -1069,17 +1075,17 @@ C Select a single timestep to plot output for.
 
 C Check that CFD active at this time.
         if (IDAY.lt.ICDYS.or.IDAY.gt.ICDYF) then
-          call edisp(iuout,'Time is outside simulated period.')
+          call edisp(iuout,'Time outside simulated period.')
           goto 10
         elseif (IDAY.eq.ICDYS.and.IDAY.eq.ICDYF.and.
      &          TIME.lt.CFTS.and.TIME.gt.CFTF) then
-          call edisp(iuout,'Time outside simulated period. Try again.')
+          call edisp(iuout,'Time outside simulated period; respecify.')
           goto 10
         elseif (IDAY.eq.ICDYS.and.TIME.lt.CFTS) then
-          call edisp(iuout,'Time is before start time. Try again.')
+          call edisp(iuout,'Time before start time; respecify.')
           goto 10
         elseif (IDAY.eq.ICDYF.and.TIME.gt.CFTF) then
-          call edisp(iuout,'Time is after finish time. Try again.')
+          call edisp(iuout,'Time after finish time; respecify.')
           goto 10
         endif
         ICDYOS=IDAY
@@ -1096,7 +1102,7 @@ C Check that CFD active at this time.
         write(PDESCR,'(2(i3,a4,a,f5.2,a))')IDs,MTHNAM(IMs),', hr ',CFTS,
      &              ' to',IDf,MTHNAM(IMf),', hr ',CFTF,'.'
         write (outs,'(2a)')
-     &     'Current result set contains CFD data for the period:',PDESCR
+     &     'Result set contains CFD data for the period:',PDESCR
         call edisp(iuout,outs)
  20     IFDAY=1
         call ASKRTIM(IFDAY,IMs,IDs,ICDYOS,CFTOS,IT,IER)
@@ -1104,13 +1110,13 @@ C Check that CFD active at this time.
 
 C Check that CFD active at this time.
         if (ICDYOS.lt.ICDYS.or.ICDYOF.gt.ICDYF) then
-          call edisp(iuout,'Time is outside simulated period.')
+          call edisp(iuout,'Time outside simulated period.')
           goto 20
         elseif (ICDYOS.eq.ICDYS.and.CFTOS.lt.CFTS) then
-          call edisp(iuout,'Time is before start.')
+          call edisp(iuout,'Time before start.')
           goto 20
         elseif (ICDYOF.eq.ICDYF.and.CFTOF.gt.CFTF) then
-          call edisp(iuout,'Time is after finish.')
+          call edisp(iuout,'Time after finish.')
           goto 20
         elseif (ICDYOS.eq.ICDYS.and.ICDYOF.eq.ICDYF.and.
      &          CFTOS.lt.CFTS.and.CFTOF.ge.CFTF) then
@@ -1123,9 +1129,9 @@ C Check that CFD active at this time.
       END
 
 C ******************** RDCFDAT ********************
-C RDCFDAT reads a timesteps worth of data into standard arrays.
-C   ICFTS - CFD timestep to read (use this value if +ive otherwise
-C      use first timestep of output period)
+C Reads a timesteps worth of data into standard arrays.
+C ICFTS - CFD timestep to read (use this value if +ve otherwise
+C         use first timestep of output period).
 
       SUBROUTINE RDCFDAT(ICFTS)
 #include "building.h"
@@ -1175,7 +1181,7 @@ C      use first timestep of output period)
 C Set unit number.
       iunit=IFIL+14
 
-C Calculate number of time steps into CFD results lib.
+C Calculate number of time steps in CFD results library.
       if (ICFTS.gt.0) then
         ITS=ICFTS
       else
@@ -1194,40 +1200,20 @@ C Read data from res file.
  10     continue
       endif
 
-C Debug.    
-c      write(6,*) 'ISTREC ',ISTREC,NCFDSZ,ITS,NRCFDOM(1),NRCFDOM(2)
-c      write(6,*)'ieqsv ',(ieqsv(i),i=1,5+NCTM(ICFD))
-
       IREC=ISTREC
       do 100 K=2,NK
         do 101 J=2,NJ
 
-C Read data from library. Adjust trace to file unit 6 if ntcelz>48.
+C Read data from library. Adjust trace to file unit 6 if ntcelz > 48.
           if (ICFDSV.eq.1) then
             IREC=IREC+1
             read(iunit,REC=IREC,IOSTAT=ISTAT,ERR=1000)(Uf(I,J,K),I=2,NI)
-
-C Debug.
-C            write(395,'(i5,48f9.5)') IREC,(Uf(I,J,K),I=2,NI)
-
             IREC=IREC+1
             read(iunit,REC=IREC,IOSTAT=ISTAT,ERR=1000)(Vf(I,J,K),I=2,NI)
-
-C Debug.
-C            write(395,'(i5,48f9.5)') IREC,(Vf(I,J,K),I=2,NI)
-
             IREC=IREC+1
             read(iunit,REC=IREC,IOSTAT=ISTAT,ERR=1000)(Wf(I,J,K),I=2,NI)
-
-C Debug.
-C            write(395,'(i5,48f9.5)') IREC,(Wf(I,J,K),I=2,NI)
-
             IREC=IREC+1
             read(iunit,REC=IREC,IOSTAT=ISTAT,ERR=1000)(Tf(I,J,K),I=2,NI)
-
-C Debug.
-C            write(395,'(i5,48f9.5)') IREC,(Tf(I,J,K),I=2,NI)
-
           else
           
 C Results library version 2 and 3.  Each metric is individually flagged
@@ -1236,63 +1222,39 @@ C if saved.
               IREC=IREC+1
               read(iunit,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &                                             (Uf(I,J,K),I=2,NI)
-
-C Debug.
-c              write(395,*) IREC,' Uf ',(Uf(I,J,K),I=2,NI)
-
             endif
             if (IEQSV(2).eq.1) then
               IREC=IREC+1
               read(iunit,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &                                             (Vf(I,J,K),I=2,NI)
-
-C Debug.
-c              write(395,*) IREC,' Vf ',(Vf(I,J,K),I=2,NI)
-
             endif
             if (IEQSV(3).eq.1) then
               IREC=IREC+1
               read(iunit,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &                                             (Wf(I,J,K),I=2,NI)
-
-C Debug.
-c              write(395,*) IREC,' Wf ',(Wf(I,J,K),I=2,NI)
-
             endif
             if (IEQSV(4).eq.1) then
               IREC=IREC+1
               read(iunit,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &                                             (Tf(I,J,K),I=2,NI)
-
-C Debug.
-c              write(395,*) IREC,' Tf ',(Tf(I,J,K),I=2,NI)
-
             endif
             if (IEQSV(5).eq.1) then
               IREC=IREC+1
               read(iunit,REC=IREC,IOSTAT=ISTAT,ERR=1000)
      &                                           (AGEf(I,J,K),I=2,NI)
-
-C Debug.
-c              write(395,*) IREC,' Age ',(AGEf(I,J,K),I=2,NI)
-
             endif
             DO 121 ICTM=1,NCTM(ICFD)
             if (IEQSV(5+NCTM(ICFD)).eq.1) then
               IREC=IREC+1
               read(iunit,REC=IREC,IOSTAT=ISTAT,ERR=1000)
-     &                                     (POLCONCf(ICTM,I,J,K),I=2,NI)
-
-C Debug.
-c                  write(395,*)IREC,' pol ',(POLCONCf(ICTM,I,J,K),I=2,NI)
-
+     &                                  (POLCONCf(ICTM,I,J,K),I=2,NI)
             endif
  121        CONTINUE
           endif
  101    continue
  100  continue
 
-C Create vector info.
+C Create vector information.
       do 200 K=2,NKM1
         do 201 J=2,NJM1
           do 202 I=2,NIM1
@@ -1310,21 +1272,19 @@ C Create vector info.
  200  continue
 
       RETURN
- 1000 call edisp(iuout,'CFD read data fault. Cannot read file.')
-
-C Debug.
-C      write(6,*) 'IREC ',IREC
+ 1000 call edisp(iuout,'CFD results file read error!')
 
       call erpfree(iunit,istat)
       return
       END
 
 C ******************** OPCFD ********************
-C OPCFD opens the CFD results library
-C act='c' - check to see if the library is already open, and if not,
+C Opens the CFD results library.
+C act='c' - check to see if the library is already open and if not,
 C           prompt the user for a file.
-C act='o' - close a file if one is already open, and prompt the user for
-C           a file.
+C act='o' - close a file if one is already open and prompt the user
+C           another file.
+
       SUBROUTINE OPCFD(ACT,is_open,IER)
 #include "building.h"
 #include "cfd.h"
@@ -1337,18 +1297,15 @@ C           a file.
       character LCFDFL*72
 
       character path*72,LCMDFL*144,ltmpc*144,LTMP*72,lpath*72
-      integer igraphiclib  ! external definition
+      integer igraphiclib      ! external definition
       character outs*124,ACT*1
       logical is_open,XST
       integer ISTRW
-
-C For help messages
       character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      character helptopic*24   ! string (unique) for topic
+      integer nbhelp           ! number of help lines found
 
-      helpinsub='OPCFD'  ! set for cfiles
-
+      helpinsub='OPCFD'        ! set for cfiles
       helptopic='res_cfd_lib_name'
       call gethelptext(helpinsub,helptopic,nbhelp)
       LTMP='UNKNOWN'
@@ -1364,23 +1321,24 @@ C Check if CFD results library has been opened.
         if (XST) then
           goto 926
         else
+
 C If no, ask for a file.
           goto 11
         endif
       elseif (ACT.eq.'o') then
 
-C Ask for a file either way
+C Ask for a file either way.
         goto 11
       else
-        call EDISP(iuout,' OPCFD: invalid ACT')
+        call EDISP(iuout,'OPCFD: invalid act variable.')
         return
       endif
 
 C Ask for CFD results library.
-C The X11 version will be returning only the name of the
-C file, while the GTK version will be returning the
-C name with the full path.
-   11 iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
+C The X11 version will return only the name of the
+C file, while the GTK version will return the
+C the full path.
+   11 iglib = igraphiclib()  ! find out if X1, GTK or text only.
       if(iglib.eq.1.or.iglib.eq.3)then
         if(llt.lt.72)then
           ISTRW=72
@@ -1408,37 +1366,27 @@ C name with the full path.
       IER=0
 
 C Find the path and local file name.
-
-C Debug.
-C      write(6,*) 'OPCFD: current path is ',path
-
       iunit=IFIL+14
       lpath=path
       call fdroot(LCMDFL,path,LTMP)
       LCFDFL=LTMP
-c      write(6,*)'lpath,LCMDFL,path,LTMP',lpath,LCMDFL,path,LTMP
       CALL ERPFREE(iunit,ISTAT)
       call FINDFIL(LTMP,XST)
       
-      IF(XST)THEN
-
 C Check that its a CFD results library.
+      IF(XST)THEN
         call EFOPRAN(iunit,LTMP,MCEL1D,1,IER)
         if(ier.eq.0) then
           irec=1
           read(iunit,rec=irec,iostat=istat) 
      &      IRLEN,ICFDSV,(IEQSV(J),J=1,5+MCTM)
-
-C Debug.
-C          write(6,*) IRLEN,ICFDSV,(IEQSV(J),J=1,5+MCTM)
-
           if (IRLEN.ne.MCEL1D) then
             path=lpath
             goto 924
           endif
         endif
       ELSE
-        call usrmsg(' Could not find: ',LTMP,'W')
+        call usrmsg('Could not find ',LTMP,'W')
         path=lpath
         goto 11
       ENDIF
@@ -1448,7 +1396,7 @@ C          write(6,*) IRLEN,ICFDSV,(IEQSV(J),J=1,5+MCTM)
       is_open=.true.
  925  RETURN
 
- 924  write(outs,'(a)')' OPCFD: problem opening CFD library'
+ 924  write(outs,'(a)')'OPCFD: problem opening CFD results library!'
       call edisp(iuout,outs)
       IER=1
       goto 925
@@ -1456,7 +1404,7 @@ C          write(6,*) IRLEN,ICFDSV,(IEQSV(J),J=1,5+MCTM)
       END
 
 C ******************** GETIFRM ********************
-C GETIFRM returns IFRAME for getting CFD results using RDCFDAT, based on
+C Returns IFRAME for getting CFD results using RDCFDAT, based on
 C day and time step indices IDAY and ITS. Returns IER=1 if CFD results
 C are not available for this timestep.
 
@@ -1468,10 +1416,7 @@ C are not available for this timestep.
       IER=0
 
 C Check if there are CFD results available for this time step.
-c      write(6,*)'IDAY,ICDYS,ICDYF',IDAY,ICDYS,ICDYF
       if (IDAY.eq.ICDYS.and.IDAY.eq.ICDYF) then              
-c        write(6,*)'ITS,int(CFTS*float(NTS)),int(CFTF*float(NTS))',
-c     &             ITS,int(CFTS*float(NTS)),int(CFTF*float(NTS))
         if (ITS.ge.int(CFTS*float(NTS)).and.
      &      ITS.le.int(CFTF*float(NTS))) then
           IFRAME=ITS-int(CFTS*float(NTS))+1
@@ -1479,8 +1424,6 @@ c     &             ITS,int(CFTS*float(NTS)),int(CFTF*float(NTS))
           goto 666
         endif
       elseif (IDAY.eq.ICDYS) then
-c        write(6,*)'ITS,int(CFTS*float(NTS))',
-c     &             ITS,int(CFTS*float(NTS))
         if (ITS.ge.int(CFTS*float(NTS))) then
           IFRAME=ITS-int(CFTS*float(NTS))+1
         else
@@ -1488,9 +1431,7 @@ c     &             ITS,int(CFTS*float(NTS))
         endif
       elseif (IDAY.gt.ICDYS.and.IDAY.lt.ICDYF) then
         IFRAME=ITS+int((float(IDAY-ICDYS)*24.0-CFTS)*float(NTS))
-      elseif (IDAY.eq.ICDYF) then            
-c        write(6,*)'ITS,int(CFTF*float(NTS))',
-c     &             ITS,int(CFTF*float(NTS))
+      elseif (IDAY.eq.ICDYF) then
         if (ITS.le.int(CFTF*float(NTS))) then
           IFRAME=ITS+int((float(IDAY-ICDYS)*24.0-CFTS)*float(NTS))
         else
@@ -1499,7 +1440,6 @@ c     &             ITS,int(CFTF*float(NTS))
       else
         goto 666
       endif
-c      write(6,*)'IFRAME',IFRAME
 
  999  RETURN
 
@@ -1508,13 +1448,12 @@ c      write(6,*)'IFRAME',IFRAME
       END
 
 C ******************** MCFDV ********************
-C MCFDV allows definition of CFD variables to be reported via the
-C graphical or timestep data facilities of res. Currently we hijack the
-C mass flow reporting data structures to do this.
+C Definition of CFD variables to be reported via the
+C graphical or data listing facilities of res. The mass
+C flow reporting data structures are used to this end
+C (code adapted from MFMENU of mfget.F).
 
-C Much of this code is adapted from MFMENU in mfget.F.
-
-C CFD metrics (for mass flow metrics, see mfget.F):
+C CFD metrics:
 C IMFGET = 15 U velocity component
 C IMFGET = 16 V velocity component
 C IMFGET = 17 W velocity component
@@ -1523,21 +1462,21 @@ C IMFGET = 19 Temperature
 C IMFGET = 20 Mean age of air
 C IMFGET = 21 Contaminant concentration
 
-C IMFGETNO contains all the information needed for specifying which data to recover
-C IMFGETNO(*,1): The IMFGET number - metric identifier
-C IMFGETNO(*,2): For contaminant concentration, selected contaminant.
+C IMFGETNO: information specifying which data to recover.
+C IMFGETNO(*,1): The IMFGET number (metric identifier).
+C IMFGETNO(*,2): For contaminant concentration, the selected contaminant.
 C                Also used to select line colour.
-C IMFGETNO(*,3): Domain number
-C IMFGETNO(*,4): LISTID for IMFLIST
-C IMFGETNO(*,5): Line type
-C IMFGETNO(*,6): Symbol index
-C IMFGETNO(*,7): Associated axis 1=temperature, 
-C                                2=pressure,
-C                                3=mass flow rate
-C                                4=misc, 
-C                                5=concentration g/kg,
-C                                6=velocity m/s
-C IMFGETNO(*,8): 0 = standard units 1 alternative units e.g. l/s rather than m^3/s
+C IMFGETNO(*,3): Domain number.
+C IMFGETNO(*,4): LISTID for IMFLIST.
+C IMFGETNO(*,5): Line type.
+C IMFGETNO(*,6): Symbol index.
+C IMFGETNO(*,7): Associated axis 1=temperature (C), 
+C                                2=pressure (N/m^2),
+C                                3=mass flow rate (m^3/s),
+C                                4=miscellaneous, 
+C                                5=concentration (g/kg),
+C                                6=velocity (m/s).
+C IMFGETNO(*,8): 0 = standard units, 1 = alternative units, e.g. l/s rather than m^3/s.
 
 C IMFLIST - selected cell to report:
 C   IMFLIST(LISTID,1) = X cell
@@ -1545,7 +1484,6 @@ C   IMFLIST(LISTID,2) = Y cell
 C   IMFLIST(LISTID,3) = Z cell
 
       SUBROUTINE MCFDV(idone)
-
 #include "building.h"
 #include "cfd.h"
 #include "net_flow.h"
@@ -1598,20 +1536,19 @@ C   IMFLIST(LISTID,3) = Z cell
       integer*8 iid1,iid2,iixx,iiyy,iik,iicol,ibsize
 #endif
 
-C For help messages
       character helpinsub*24   ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      character helptopic*24   ! string (unique) for topic
+      integer nbhelp           ! number of help lines found
 
-      helpinsub='MCFDV'  ! set for cfiles
+      helpinsub='MCFDV'        ! set for cfiles
 
-C We assume that the CFD library has been opened, and a domain selected.
+C Assume that the CFD library has been opened and a domain selected.
       XST=.true.
 
-C Do we need to select a CFD cell for this metric?
+C Select a CFD cell for this metric?
     1 SELCEL=.false.
 
-C Do we need to select a contaminant for this metric?
+C Select a contaminant for this metric?
       SELCTM=.false.
 
 C MNGET is the maximum number of metrics allowed to be chosen from the menu.
@@ -1621,7 +1558,7 @@ C MNGET is the maximum number of metrics allowed to be chosen from the menu.
         MTITLE='Frequency histogram'
         MNGET=1
       elseif (MENUTYPE.eq.3) then
-        MTITLE='Time series plot'
+        MTITLE='Parameter plot'
         MNGET=MFRS-1
       elseif (MENUTYPE.eq.4) then
         MTITLE='Performance metrics'
@@ -1699,9 +1636,9 @@ C Set up menu items.
       elseif(IROC.eq.1)then
         ITEM(19)='& data: rate of change'
       endif
-      if (MENUTYPE.eq.3) then
 
-C If a time series plot clear selections otherwise show state of occupancy filter.
+C If a parameter plot, clear selections otherwise show state of occupancy filter.
+      if (MENUTYPE.eq.3) then
         ITEM(20)='/ clear all selections'
       else
         if(iocut.eq.0)then
@@ -1712,9 +1649,9 @@ C If a time series plot clear selections otherwise show state of occupancy filte
           ITEM(20)='+ filter >> occup only'
         endif
       endif
-      if (MENUTYPE.eq.3) then
 
 C If plot indicate scale, otherwise toggle time format.
+      if (MENUTYPE.eq.3) then
         ITEM(21)='= set axis scale'
       else
         if(IHFLAG.eq.0)then
@@ -1723,9 +1660,9 @@ C If plot indicate scale, otherwise toggle time format.
           ITEM(21)='* time >> 0.4375  '
         endif
       endif
-      if (MENUTYPE.eq.3) then
 
 C If plot show add profile, otherwise toggle delimiter state.
+      if (MENUTYPE.eq.3) then
         ITEM(22)='+ add another profile'
       else
         if(delim.eq.'-')then
@@ -1740,9 +1677,9 @@ C If plot show add profile, otherwise toggle delimiter state.
           ITEM(22)='^ delim >> tagged  '
         endif
       endif
-      if(MENUTYPE.eq.3) then
 
 C If plot give graph command and labels command, otherwise list command.
+      if(MENUTYPE.eq.3) then
         ITEM(23)  ='@ labels           '
         ITEM(24)  ='! draw graph       '
         nl=2
@@ -1769,7 +1706,7 @@ C If plot give graph command and labels command, otherwise list command.
         INO=-2
       endif
 
-C Instanciate help strings for this menu.
+C Help string for this menu.
       helptopic='res_CFD_var_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -1796,13 +1733,12 @@ C Instanciate help strings for this menu.
         CALL MOSTYLE
         INO=-1
 
+C Ambient temperature:IMFGET = 9.
+C Note: overload IMFGETNO(NMFGET,2) so that weather values
+C can each have a different line colour.
       elseif(INO.EQ.5)then
-
-C Ambient temperature:IMFGET = 9
-C Note: overload IMFGETNO(NMFGET,2) so that climate values can
-C each have a different line colour.
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -1812,7 +1748,7 @@ C each have a different line colour.
         IMFGETNO(NMFGET,6)=1
         IMFGETNO(NMFGET,7)=1
         IMFGETNO(NMFGET,8)=0
-        GLMFLABEL(NMFGET)='Ambient dry bulb Temp'
+        GLMFLABEL(NMFGET)='Ambient dry bulb temp'
         LNGLMFLABEL(NMFGET)=21
         if(IROC.eq.0)then
           SMFLABEL(NMFGET)='Ambient db temperature (C)'
@@ -1822,14 +1758,13 @@ C each have a different line colour.
           LNSMFLABEL(NMFGET)=29
         endif
 
-C If timestep listing go back to see if any other data should be included.
+C If timestep listing, go back to see if any other data should be included.
         if(MENUTYPE.eq.4) goto 1
 
-      elseif(INO.EQ.6)then
-
 C Wind speed: IMFGET = 10
+      elseif(INO.EQ.6)then
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -1848,14 +1783,13 @@ C Wind speed: IMFGET = 10
           LNSMFLABEL(NMFGET)=28
         endif
 
-C If timestep listing go back to see if any other data should be included.
+C If timestep listing, go back to see if any other data should be included.
         if(MENUTYPE.eq.4) goto 1
 
-      elseif(INO.EQ.7)then
-
 C Wind direction: IMFGET = 11
+      elseif(INO.EQ.7)then
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -1874,14 +1808,13 @@ C Wind direction: IMFGET = 11
           LNSMFLABEL(NMFGET)=30
         endif
 
-C If timestep listing go back to see if any other data should be included.
+C If timestep listing, go back to see if any other data should be included.
         if(MENUTYPE.eq.4) goto 1
 
-      elseif(INO.EQ.8)then
-
 C Ambient RH: IMFGET = 12
+      elseif(INO.EQ.8)then
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -1901,14 +1834,13 @@ C Ambient RH: IMFGET = 12
           LNSMFLABEL(NMFGET)=24
         endif
 
-C If timestep listing go back to see if any other data should be included.
+C If timestep listing, go back to see if any other data should be included.
         if(MENUTYPE.eq.4) goto 1
 
-      elseif(INO.EQ.9)then
-
 C U velocity component: IMFGET = 15
+      elseif(INO.EQ.9)then
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -1929,11 +1861,10 @@ C U velocity component: IMFGET = 15
         endif
         SELCEL=.true.
 
-      elseif(INO.EQ.10)then
-
 C V velocity component: IMFGET = 16
+      elseif(INO.EQ.10)then
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -1954,11 +1885,10 @@ C V velocity component: IMFGET = 16
         endif
         SELCEL=.true.
 
-      elseif(INO.EQ.11)then
-
 C U velocity component: IMFGET = 17
+      elseif(INO.EQ.11)then
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -1979,11 +1909,10 @@ C U velocity component: IMFGET = 17
         endif
         SELCEL=.true.
 
-      elseif(INO.EQ.12)then
-
 C Velocity magnitude: IMFGET = 18
+      elseif(INO.EQ.12)then
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -2004,11 +1933,10 @@ C Velocity magnitude: IMFGET = 18
         endif
         SELCEL=.true.
 
-      elseif(INO.EQ.13)then
-
 C Temperature: IMFGET = 19
+      elseif(INO.EQ.13)then
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -2029,13 +1957,11 @@ C Temperature: IMFGET = 19
         endif
         SELCEL=.true.
 
-      elseif(INO.EQ.14)then
-
-        if (IEQSV(5).eq.0) goto 1
-
 C Mean age of air: IMFGET = 20
+      elseif(INO.EQ.14)then
+        if (IEQSV(5).eq.0) goto 1
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -2056,13 +1982,11 @@ C Mean age of air: IMFGET = 20
         endif
         SELCEL=.true.
 
-      elseif(INO.EQ.15)then
-
-        if (NCTM(ICFD).eq.0) goto 1
-
 C Contaminant concentration: IMFGET = 21
+      elseif(INO.EQ.15)then
+        if (NCTM(ICFD).eq.0) goto 1
         if((NMFGET+1).GT.MFRS)then
-          call usrmsg('Number of items exceeded.',' ','P')
+          call usrmsg(' ','Number of items exceeded.','P')
           goto 1
         endif
         NMFGET=NMFGET+1
@@ -2073,26 +1997,24 @@ C Contaminant concentration: IMFGET = 21
         IMFGETNO(NMFGET,7)=5
         IMFGETNO(NMFGET,8)=0
         if(IROC.eq.0)then
-          SMFLABEL(NMFGET)='Contaminant conc (g/kg)'
+          SMFLABEL(NMFGET)='Contaminant conc. (g/kg)'
           LNSMFLABEL(NMFGET)=23
         elseif(IROC.eq.1)then
-          SMFLABEL(NMFGET)='Contam conc change (g/kg)'
+          SMFLABEL(NMFGET)='Contam conc. change (g/kg)'
           LNSMFLABEL(NMFGET)=25
         endif
         SELCEL=.true.
         SELCTM=.true.
 
-      elseif(INO.EQ.17)then
-
 C Edit selections.
+      elseif(INO.EQ.17)then
         if(NMFGET.gt.0)then
           call EDMFGOGET
           goto 1
         endif
 
-      elseif(INO.EQ.18)then
-
 C Output redirect to graphics, tabular listing or a text report.
+      elseif(INO.EQ.18)then
         if(MENUTYPE.eq.3)then
           call ctlexp(xfile,ixopen,ixunit,ixpunit,'G','Graphics',IER)
         elseif(MENUTYPE.eq.4)then
@@ -2101,13 +2023,12 @@ C Output redirect to graphics, tabular listing or a text report.
           call ctlexp(xfile,ixopen,ixunit,ixpunit,'T','Text',IER)
         endif
 
-C If user request cancel reset ixopen to zero.
+C If user requests cancel, reset ixopen to zero.
         if(ier.eq.-3) ixopen=0
         goto 1
 
-      elseif(INO.EQ.19)then
-
 C Data presentation format (actual or rate of change).
+      elseif(INO.EQ.19)then
         call usrmsg('Switch from raw data to rate of change or data',
      &    'does not (yet) apply to CFD data ... ignored.','W')
 
@@ -2120,30 +2041,28 @@ C        endif
 C        helptopic='res_mass_flow_menu'
 C        call gethelptext(helpinsub,helptopic,nbhelp)
 C        CALL EASKABC('Data display options:',outs,
-C     &    'variable (default)','rate of change of variable','contine',
+C     &    'variable (default)','rate of change of variable','cancel',
 C     &    II,nbhelp)
 C        if(II.ne.3.and.(IROC.ne.(II-1)))then
 C          IROC=II-1
-C          call usrmsg ('Clearing current selections....','  ','W')
+C          call usrmsg (' ','Clearing current selections.','W')
 C          call MOFLOWSU
 C        endif
 
+C Clear all selections (parameter plot).
       elseif(INO.EQ.20)then
-
-C Clear all selections (time series plot).
         if(MENUTYPE.eq.3) then
           call MOFLOWSU
         else
 
-C Occupancy filter (all types except time series plot).
-C Occupancy filter for flow results requires the user to specify>>
+C Occupancy filter (all types except parameter plot).
+C Occupancy filter for flow results requires the user to specify
 C a thermal zone.
           if(iocupf.eq.0)then
 
-C Casual gain type.  Ask user which constitutes occupancy.
+C Casual gain type. Ask user which constitutes occupancy.
 C Labels for loads, use first zones labels as examples. If time
 C based set iocut=-1, if always occup set iocut=0.
-
 C << revise for additional casual gain types >>
             write(ll1,'(a)') lodlabel(1,1)
             write(ll2,'(a)') lodlabel(1,2)
@@ -2152,8 +2071,8 @@ C << revise for additional casual gain types >>
             helptopic='res_casual_gain_type'
             call gethelptext(helpinsub,helptopic,nbhelp)
  937        IOT=1
-            CALL EASKATOG('Which casual gain represents occupancy:',
-     &         '  ','Always occupied',ll1,ll2,ll3,'time',' ',' ',IOT,
+            CALL EASKATOG(' ','Casual gain representing occupancy:',
+     &         'always occupied',ll1,ll2,ll3,'time',' ',' ',IOT,
      &         nbhelp)
             if (IOT.gt.1.and.IOT.lt.5) then
               iocupf=1      
@@ -2162,7 +2081,7 @@ C << revise for additional casual gain types >>
               iocupf=1
               iocut=-1
               write(HOLD,'(a)') '  0  24  '
-              CALL EASKS(HOLD,' ',' Weekday occupancy period: ',
+              CALL EASKS(HOLD,' ','Weekday occupancy period:',
      &         24,' 0  24 ','wkd occup period',IER,nbhelp)
               K=0
               CALL EGETWI(HOLD,K,iwkdst,0,24,'W','iwkdst',IER)
@@ -2170,7 +2089,7 @@ C << revise for additional casual gain types >>
 
               write(HOLD,'(a)') '  0  24  '
               CALL EASKS(HOLD,' ',
-     &         ' First weekend day occupancy period: ',24,' 0  24 ',
+     &         'First weekend day occupancy period:',24,' 0  24 ',
      &         'sat occup period',IER,nbhelp)
               K=0
               CALL EGETWI(HOLD,K,isatst,0,24,'W','isatst',IER)
@@ -2178,7 +2097,7 @@ C << revise for additional casual gain types >>
 
               write(HOLD,'(a)') '  0  24  '
               CALL EASKS(HOLD,' ',
-     &         ' Second weekend day occupancy period: ',24,' 0  24 ',
+     &         'Second weekend day occupancy period:',24,' 0  24 ',
      &         'sun occup period',IER,nbhelp)
               K=0
               CALL EGETWI(HOLD,K,isunst,0,24,'W','isunst',IER)
@@ -2199,40 +2118,42 @@ C Get occupancy pattern from the zone associated with the CFD domain.
           goto 1
         endif
 
+C Set axis limits for the current plot.
       elseif(INO.EQ.21)then
         if(MENUTYPE.eq.3) then
-
-C Set axis limits for the current plot.
           helptopic='res_flow_axis_range'
           call gethelptext(helpinsub,helptopic,nbhelp)
           do 555 Iaxis=1,6
             if (YAXSET(Iaxis).gt.0) then
  501          write (values,'(8(f9.2,1x))') YMIN(Iaxis),YMAX(Iaxis)
               if (Iaxis.eq.1) then
-                call EASKS(values,'  ','Min &max for temperature axis?',
+                call EASKS(values,' ',
+     &            'Min & max for temperature axis?',
      &            20,' -10 30 ','temp axis',IER,nbhelp)
               elseif (Iaxis.eq.2) then
-                call EASKS(values,'  ','Min & max for pressure axis?',
+                call EASKS(values,' ','Min & max for pressure axis?',
      &            20,' -100 100 ','pres axis',IER,nbhelp)
               elseif (Iaxis.eq.3) then
-                call EASKS(values,'  ','Min & max for flow rate axis?',
+                call EASKS(values,' ','Min & max for flow rate axis?',
      &            20,' 0 1000 ','flow axis',IER,nbhelp)
               elseif (Iaxis.eq.4) then
-                call EASKS(values,'  ','Min & max for misc axis?',
+                call EASKS(values,' ',
+     &            'Min & max for miscellaneous axis?',
      &            20,' 0 100 ','misc axis',IER,nbhelp)
               elseif (Iaxis.eq.5) then
-                call EASKS(values,'  ','Min&max for concntration axis?',
+                call EASKS(values,' ',
+     &            'Min & max for concentration axis?',
      &            20,' 0 0.25 ','conc axis',IER,nbhelp)
               elseif (Iaxis.eq.6) then
-                call EASKS(values,'  ','Min & max for velocity axis?',
+                call EASKS(values,' ','Min & max for velocity axis?',
      &            20,' 0 0.5 ','vel axis',IER,nbhelp)
               endif
               K=0
               CALL EGETWR(values,K,YN,0.,0.,'-','Y min',IER)
               CALL EGETWR(values,K,YM,0.,0.,'-','Y max',IER)
               if (YN.gt.YM) then
-                call usrmsg('Maximum value is less than minimum value.',
-     &                    ' Please respecify. ','W')
+                call usrmsg('Maximum value less than minimum!',
+     &                    'Respecify.','W')
                 goto 501
               endif
               YMAX(Iaxis)=YM
@@ -2242,7 +2163,7 @@ C Set axis limits for the current plot.
  555      continue
 
 C Ask user preference for horizontal axis.
-          CALL EASKABCD('Horizontal axis divisions:',' ','default',
+          CALL EASKABCD(' ','Horizontal axis divisions:','default',
      &      'hours','days','weeks',horaxisdiv,nbhelp)
 
 C Redraw graph (if applicable).
@@ -2264,8 +2185,8 @@ C Toggle time format and day separators for all other display formats.
           endif
           helptopic='res_flow_hash_separator'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKAB('Include mark between days when ',
-     &      'displaying or writing data :','no','yes',IDH,nbhelp)
+          CALL EASKAB('Include mark between days when',
+     &      'displaying or writing data?','no','yes',IDH,nbhelp)
           IDHFLG=IDH-1
           goto 1
         endif
@@ -2273,7 +2194,7 @@ C Toggle time format and day separators for all other display formats.
       elseif(INO.EQ.22)then
         if(MENUTYPE.eq.3) then
 
-C Add another selection - time series plot only.
+C Add another selection - parameter plot only.
           INO=-4
           ADDLIN=1
         else
@@ -2282,9 +2203,9 @@ C Toggle delimeter.
           helptopic='res_flow_delimeter'
           call gethelptext(helpinsub,helptopic,nbhelp)
           IWM=1
-          CALL EASKATOG('Delimeter to use between columns of data:',' ',
-     &      'normal spaces','single space','tab','comma','tagged',
-     &      'continue',' ',IWM,nbhelp)
+          CALL EASKATOG(' ','Column  delimeter:',
+     &      'multi-space','single space','tab','comma','tagged',
+     &      'cancel',' ',IWM,nbhelp)
           if(iwm.eq.1)then
             delim = '-'
           elseif(iwm.eq.2)then
@@ -2299,16 +2220,15 @@ C Toggle delimeter.
           goto 1
         endif
 
-      elseif(INO.eq.23)then
-        if(MENUTYPE.eq.3) then
-
 C Control labels if graphic plot.
 C Add in a title for this graph 64 char string graftitle.
+      elseif(INO.eq.23)then
+        if(MENUTYPE.eq.3) then
  290      helptopic='res_mass_graph_title'
           call gethelptext(helpinsub,helptopic,nbhelp)
           t64=graftitle
-          CALL EASKS(t64,' Title for graph ? ',
-     &     ' ',64,'  ','graph title',IER,nbhelp)
+          CALL EASKS(t64,'Title for graph?',
+     &     ' ',64,' ','graph title',IER,nbhelp)
           if(t64(1:2).ne.'  '.and.t64(1:4).ne.'UNKN')then
             graftitle=t64
           else
@@ -2319,8 +2239,8 @@ C Add or clear labels within a graph.
           if(ngrlbl.eq.0)then
             helptopic='res_mass_graph_title'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKAB('Labels within graph options:',' ',
-     &        'edit/add labels','contine',igopt,nbhelp)
+            CALL EASKAB(' ','Graph label options:',
+     &        'edit/add','cancel',igopt,nbhelp)
             if(igopt.eq.1)then
               igrl=0
               grlbl(1)=' '; grlbl(2)=' '; grlbl(3)=' '; grlbl(4)=' '
@@ -2332,8 +2252,8 @@ C Add or clear labels within a graph.
           elseif(ngrlbl.gt.0)then
             helptopic='res_mass_graph_title'
             call gethelptext(helpinsub,helptopic,nbhelp)
-            CALL EASKABC('Labels within graph options:',' ',
-     &        'clear existing labels','edit/add labels','contine',
+            CALL EASKABC(' ','Graph label options',
+     &        'clear existing ','edit/add','cancel',
      &        igopt,nbhelp)
             if(igopt.eq.1)then
               ngrlbl=0
@@ -2355,7 +2275,7 @@ C If there are no labels or some label start at first, if more than 9 exit.
             ngrlbl=1
             igrl=1
           elseif(ngrlbl.gt.9)then
-            call usrmsg('Array of labels is full.',' ','W')
+            call usrmsg(' ','Array of labels is full.','W')
             goto 1
           else
             igrl=igrl+1
@@ -2364,8 +2284,8 @@ C If there are no labels or some label start at first, if more than 9 exit.
           call gethelptext(helpinsub,helptopic,nbhelp)
           t24=grlbl(igrl)
  292      CALL EASKS(t24,
-     &     'Label within graph (AFTER editing select a point on graph',
-     &     'for the label position).',24,'x','graph label',IER,nbhelp)
+     &     '(Specify then click graph for position.)',
+     &     'Graph label?',24,'x','graph label',IER,nbhelp)
           if(t24(1:2).ne.'  '.and.t24(1:4).ne.'UNKN')then
             grlbl(igrl)=t24
             if(igrl.gt.ngrlbl)ngrlbl=igrl
@@ -2381,7 +2301,7 @@ C Find out point where text should be drawn.
           t24=grlbl(igrl)
           iicol=0; ibsize=0
           call textsizeatxy(iid1,iid2,t24,ibsize,'-',iicol)
-          CALL EASKOK(' ','Include another user supplied label?',
+          CALL EASKOK(' ','Include another label?',
      &      OKL,nbhelp)
           if(OKL) goto 291
 
@@ -2410,17 +2330,9 @@ C Toggle tabular listing label format.
 
 C List out data to text feedback or to file or to graphics.
 
-C Debug.
-C        do 999 I=1,NMFGET
-C          write(6,*) (IMFGETNO(I,K),K=1,8)
-C          write(6,*) SMFLABEL(I)
-C          write(6,*) GLMFLABEL(I)
-C          write(6,*) '  '
-C 999    continue
-
         if (NMFGET.lt.1) then
-          call usrmsg('No data to list/ plot!',
-     &                'Please choose a metric.','W')
+          call usrmsg('No data to list/plot!',
+     &                'Choose a metric.','W')
           INO=-3
         else
 
@@ -2439,7 +2351,7 @@ C At this point we just fall past the end of the INO equals statements.
         goto 1
 
       elseif(INO.EQ.NITMS)then
-        call usrmsg('  ','  ','-')
+        call usrmsg(' ',' ','-')
         idone=1
         return
       else
@@ -2458,8 +2370,8 @@ C Select a CFD cell if needed.
 C Ask user how they want to specify a cell - MRT sensor, room COG, or
 C pick one manually.
   346   iopt=1
-        call EASKABC(' ','location: ','pick cell','MRT sensor',
-     &    'room COG',iopt,nbhelp)
+        call EASKABC(' ','Location:','pick cell','MRT sensor',
+     &    'zone COG',iopt,nbhelp)
 
         NMFLST=NMFLST+1
         IMFGETNO(NMFGET,4)=NMFLST
@@ -2474,19 +2386,19 @@ C If in graphic mode, display grid to aid user in picking a cell.
 
           ilayer=IMFLIST(NMFLST,1)
           if (ilayer.lt.1.or.ilayer.gt.NIM2) ilayer=1
-          CALL EASKI(ilayer,'  ',' Which i layer ',
+          CALL EASKI(ilayer,' ','Which i layer?',
      &        1,'F',NIM2,'F',1,' Slice number',IER,nbhelp)
           IMFLIST(NMFLST,1)=ilayer
 
           jlayer=IMFLIST(NMFLST,2)
           if (jlayer.lt.1.or.jlayer.gt.NJM2) jlayer=1
-          CALL EASKI(jlayer,'  ',' Which j layer ',
+          CALL EASKI(jlayer,' ','Which j layer?',
      &        1,'F',NJM2,'F',1,' Slice number',IER,nbhelp)
           IMFLIST(NMFLST,2)=jlayer
 
           klayer=IMFLIST(NMFLST,3)
           if (klayer.lt.1.or.klayer.gt.NKM2) klayer=1
-          CALL EASKI(klayer,'  ',' Which k layer ',
+          CALL EASKI(klayer,' ','Which k layer?',
      &        1,'F',NKM2,'F',1,' Slice number',IER,nbhelp)
           IMFLIST(NMFLST,3)=klayer
 
@@ -2516,7 +2428,8 @@ C Find CFD grid cell closest to an MRT sensor.
             jlayer=jlayer-1
             klayer=klayer-1
             if (IER.ne.0) then
-              call edisp(iuout,' Problem finding CFD point')
+              call edisp(iuout,' ')
+              call edisp(iuout,'Problem finding CFD point!')
             else
             endif
           endif
@@ -2536,7 +2449,8 @@ C Find CFD grid cell closest to room COG.
           ITBND=1
           CALL BNDOBJ(0,IER)
           if (IER.ne.0) then
-            call edisp(iuout,' Problem calculating zone COG')
+            call edisp(iuout,' ')
+            call edisp(iuout,'Problem calculating zone COG!')
           endif
           CALL INIT_CFDTRANS(IER)
           if (IER.eq.0) then
@@ -2552,7 +2466,8 @@ C Decrement ?layers, because FDCFDPT includes wall grid points.
             jlayer=jlayer-1
             klayer=klayer-1
             if (IER.ne.0) then
-              call edisp(iuout,' Problem finding CFD point')
+              call edisp(iuout,' ')
+              call edisp(iuout,'Problem finding CFD point!')
             endif
           endif
           IMFLIST(NMFLST,1)=ilayer
@@ -2561,7 +2476,7 @@ C Decrement ?layers, because FDCFDPT includes wall grid points.
 
         endif
 
-C This code deactivated pending further testing.
+C This code deactivated pending testing.
 
 C C If in graphic mode, highlight the cell and ask user to confirm this is
 C C the cell they want.
@@ -2614,10 +2529,10 @@ C If timestep listing go back to see if any other data should be included.
       END
 
 C ******************** GOCFDGET ********************
-C GOCFDGET retrieves data from CFD results library according to common
+C Retrieves data from CFD results library according to common
 C IMFGETNO. If ICFTS +ve then get results at this time step, if not use
 C first time step in library.
-C IDAY, IHR and ITS are only used for retrieving climate metrics.
+C IDAY, IHR and ITS are only used for retrieving weather parameters.
 
 C Only valid for CFD results library versions 3+.
 
@@ -2653,7 +2568,6 @@ C   IMFLIST(LISTID,2) = Y cell
 C   IMFLIST(LISTID,3) = Z cell
 
       SUBROUTINE GOCFDGET(ICFTS,IDAY,IHR,ITS,IER)
-
 #include "building.h"
 #include "cfd.h"
 #include "net_flow.h"
@@ -2706,8 +2620,8 @@ C Read data from res file.
  10     continue
       endif
 
-C TODO: Assume that we only have results from 1 domain selected.
-C Otherwise, need to add domain dimension to IEQSV.
+C <<TODO: Assume that we only have results from 1 domain selected.
+C Otherwise, need to add domain dimension to IEQSV.>>
 
       NEQ=0
       do I=1,5+NCTM(ICFD)
@@ -2858,7 +2772,7 @@ C Ambient RH.
 
       RETURN
 
- 1000 call edisp(iuout,' GOCFDGET: Cannot read CFD results libary.')
+ 1000 call edisp(iuout,'GOCFDGET: Cannot read CFD results libary!')
       call erpfree(iunit,istat)
       return
 

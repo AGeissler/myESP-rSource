@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This source file contains:
 C CFDCOMP - controls the editing of CFD input files.
@@ -43,7 +39,7 @@ C ASKMFCON- Asks for one or more mass flow connections (copy of mfoutp.F).
 C << TODO
 C << The introduction of cancel options for easki calls should be
 C << extended to ensure that data in a sequence of edits is only
-C << instanciated if no cancels are called in the sequence. Currently
+C << instantiated if no cancels are called in the sequence. Currently
 C << the code does not re-establish some of the earlier values in
 C << a mixed integer and real sequence of edits.
 
@@ -231,18 +227,18 @@ C Present menu of options for editing CFD input file.
       write (ITEM(2),'(a,a)') '  ',TITLE(ICFD)(1:30)
       ITEM(3) ='  -------------------------- '
       if (IFCFD(izone).eq.0) then
-        ITEM(4) ='a CFD coupling >> Off '
+        ITEM(4) ='CFD coupling >> Off '
       else
-        ITEM(4) ='a CFD coupling >> On  '
+        ITEM(4) ='CFD coupling >> On  '
       endif
-      ITEM(5) ='b Geometry and gridding '
-      ITEM(6) ='c Solution variables '
-      ITEM(7) ='d Boundary conditions '
+      ITEM(5) ='b geometry and gridding '
+      ITEM(6) ='c solution variables '
+      ITEM(7) ='d boundary conditions '
       ITEM(8) ='  -------------------------- '
-      ITEM(9) ='f Report domain details '
-      ITEM(10) ='> Save CFD input file '
-      ITEM(11)='? Help'
-      ITEM(12)='- exit this menu'
+      ITEM(9) ='f report domain details '
+      ITEM(10) ='> save CFD input file '
+      ITEM(11)='? help'
+      ITEM(12)='- exit menu'
       NITMS=12
 
       IF(MMOD.EQ.8)THEN
@@ -501,7 +497,7 @@ C Y axis end point).
           return
         endif
 
-C No cancels so instanciate variables.
+C No cancels so instantiate variables.
         IORG(ICFD)=iorgt
         ixend(ICFD)=ixendt; iyend(ICFD)=iyendt; izend(ICFD)=izendt
         IVISMOD=2
@@ -720,7 +716,7 @@ C Specify origin and axes of CFD domain.
           return
         endif
 
-C No cancels so instanciate variables.
+C No cancels so instantiate variables.
         IORG(ICFD)=iorgt
         ixend(ICFD)=ixendt; iyend(ICFD)=iyendt; izend(ICFD)=izendt
 
@@ -1072,7 +1068,7 @@ C Additional Z axis must be gridded.
               return
             endif
 
-C User did not cancel so instanciate values.
+C User did not cancel so instantiate values.
             izende(ICFD)=izendet
 
             zedis=crowxyz(X(ieorg),Y(ieorg),Z(ieorg),X(izende(ICFD)),
@@ -1247,17 +1243,17 @@ C Now create menu.
  121  CONTINUE
       if (.NOT.CALLMA(ICFD)) then
         WRITE(ITEM(5+NCTM(ICFD)),'(2A)')CHAR(100+NCTM(ICFD)),
-     &       ' Mean age of air >> not solved'
+     &       'Mean age of air >> not solved'
       else
         WRITE(ITEM(5+NCTM(ICFD)),'(2A)')CHAR(100+NCTM(ICFD)),
      &       ' Mean age of air >> solved'
       endif
       ITEM(6+NCTM(ICFD))= ' ------------------------------------- '
-      ITEM(7+NCTM(ICFD))= '# Edit solution parameters'
-      ITEM(8+NCTM(ICFD))= '* Reset to defaults'
+      ITEM(7+NCTM(ICFD))= '# edit solution parameters'
+      ITEM(8+NCTM(ICFD))= '* reset to defaults'
       ITEM(9+NCTM(ICFD))= ' ------------------------------------- '
-      ITEM(10+NCTM(ICFD))='? Help'
-      ITEM(11+NCTM(ICFD))='- exit this menu'
+      ITEM(10+NCTM(ICFD))='? help'
+      ITEM(11+NCTM(ICFD))='- exit menu'
       NITMS=11+NCTM(ICFD)
 
 C Help text for this menu.
@@ -1485,14 +1481,14 @@ C Now create menu.
      &                                                       TBAR(ICFD)
       endif
       ITEM(26)=' ------- Convergence criteria ------ '
-      write(ITEM(27),'(a,i5)')  't Maximum iterations: ',MAXITR(ICFD)
-      write(ITEM(28),'(a,f7.5)')'u Max sum of residuals: ',SRMAX(ICFD)
-      write(ITEM(29),'(a,3i4)') 'v Monitoring cell (i,j,k): ',
+      write(ITEM(27),'(a,i5)')  't maximum iterations: ',MAXITR(ICFD)
+      write(ITEM(28),'(a,f7.5)')'u max sum of residuals: ',SRMAX(ICFD)
+      write(ITEM(29),'(a,3i4)') 'v monitoring cell (i,j,k): ',
      &                        IMONT(ICFD)-1,JMONT(ICFD)-1,KMONT(ICFD)-1
       ITEM(30)=' ----------------------------------- '
       write(ITEM(31),'(a)')'+ Contaminants'
-      ITEM(32)='? Help'
-      ITEM(33)='- Exit this menu'
+      ITEM(32)='? help'
+      ITEM(33)='- exit menu'
 
       NITMS=33
 
@@ -1810,8 +1806,8 @@ C        write(6,*)'IND: ',IND
      &                        'Relaxation factor 2: ',URFCC2(ICFD,ICTM)
       enddo
       ITEM(NITMS-2)=' ------------------------------ '
-      ITEM(NITMS-1)='? Help'
-      ITEM(NITMS)=  '- Exit this menu'
+      ITEM(NITMS-1)='? help'
+      ITEM(NITMS)=  '- exit menu'
 
 C Help text for this menu.
       helptopic='cfd_contam_equ_to_edit'
@@ -3462,7 +3458,7 @@ C blobs just fine).
                   aieext(ne,5)=k;           aieext(ne,6)=aiext(2)
                 endif
 
-C Update current instanciated i entity extents.
+C Update current instantiated i entity extents.
                 if (aiestat(i).eq.1) then ! plane normal is in u direction
                   aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
                   aiext(3)=aieext(i,3); aiext(4)=aieext(i,5)
@@ -3492,7 +3488,7 @@ C stick.
                   aieext(i,5)=k
                 endif
 
-C Update current instanciated i entity extents.
+C Update current instantiated i entity extents.
                 if (aiestat(i).eq.1) then ! plane normal is in u direction
                   aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
                   aiext(3)=aieext(i,3); aiext(4)=aieext(i,5)
@@ -3526,7 +3522,7 @@ C positive end of the stick is engulfed, and we need to shorten it.
               aieext(i,6)=iengst-1
             endif
 
-C Update current instanciated i entity extents.
+C Update current instantiated i entity extents.
             if (aiestat(i).eq.1) then ! plane normal is in u direction
               aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
               aiext(3)=aieext(i,3); aiext(4)=aieext(i,5)
@@ -4051,7 +4047,7 @@ C planes just fine).
                   aieext(ne,5)=k;           aieext(ne,6)=aiext(6)
                 endif
 
-C Update current instanciated i entity extents.
+C Update current instantiated i entity extents.
                 aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
                 aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
                 aiext(5)=aieext(i,5); aiext(6)=aieext(i,6)
@@ -4074,7 +4070,7 @@ C off the block.
                   aieext(i,5)=k
                 endif
 
-C Update current instanciated i entity extents.
+C Update current instantiated i entity extents.
                 aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
                 aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
                 aiext(5)=aieext(i,5); aiext(6)=aieext(i,6)
@@ -4102,7 +4098,7 @@ C it.
               aieext(i,6)=iengst-1
             endif
 
-C Update current instanciated i entity extents.
+C Update current instantiated i entity extents.
             aiext(1)=aieext(i,1); aiext(2)=aieext(i,2)
             aiext(3)=aieext(i,3); aiext(4)=aieext(i,4)
             aiext(5)=aieext(i,5); aiext(6)=aieext(i,6)

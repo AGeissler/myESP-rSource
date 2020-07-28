@@ -13,30 +13,24 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C TRNFILE.F contains the following routines relating to the
+C This file contains the following routines relating to the
 C management of a zone transitional shading file.
-C TFILE1: Writes model geometry to the zone transitional shading
-C         file.
-C TFILE2: writes the transformed coordinates of surfaces to the
-C         zone transitional shading file.
-C TFILE3: Saves the hourly grid shading index values and overall
-C         surface shading factors to the zone transitional shading
-C         file.
-C RETRV1: Retrieves information from the header block of the zone
+C TFILE1 - writes model geometry to the zone transitional shading
+C          file.
+C TFILE2 - writes the transformed coordinates of surfaces to the
+C          zone transitional shading file.
+C TFILE3 - saves the hourly grid shading index values and overall
+C          surface shading factors to the zone transitional shading
+C          file.
+C RETRV1 - retrieves information from the header block of the zone
 C         transitional shading file.
 
-C ********** TFILE1 **********
+C ******************** TFILE1 ********************
 C Writes the model geometry to the zone transitional shading file.
 
       subroutine tfile1(icomp)
 #include "building.h"
-
-C geometry.h provides commons G0, G2, GS5, GS6.
 #include "geometry.h"
 
       common/outin/iuout,iuin,ieout
@@ -62,7 +56,7 @@ C geometry.h provides commons G0, G2, GS5, GS6.
       return
       end
 
-C ********** TFILE2 **********
+C ******************** TFILE2 ********************
 C Transfers the transformed coordinates of the target surface
 C to the zone transitional shading file.
 
@@ -106,7 +100,7 @@ C Recover and update irecs for surface `is`.
       return
       end
 
-C ********** TFILE3 **********
+C ******************** TFILE3 ********************
 C Saves the hourly direct shading index values, corresponding to
 C the target surface grid, to the zone transitional shading file
 C and computes the overall direct and diffuse shading factors.
@@ -191,9 +185,9 @@ C Sun not up.
       if(is1.eq.0.and.is2.eq.-2)goto 5
       if(is1.eq.-1.and.is2.eq.1)goto 6
 
-C << the value of is1 or is2 is for the current surface and the
+C << The value of is1 or is2 is for the current surface and the
 C << current hour. To store this will require a 2D array
-C << this information would need to be written out to the
+C << and this information would need to be written out to the
 C << ascii file as 24 columns (hours) * nzsur rows.
 
 C No direct shading, is2 = -2; write to zone transitional shading
@@ -330,14 +324,12 @@ C Trace output.
       return
       end
 
-C ********** RETRV1 **********
+C ******************** RETRV1 ********************
 C Retrives information from the header block of the zone transitional
 C shading file as previously written by tfile1 and tfile12.
 
       subroutine retrv1(icomp)
 #include "building.h"
-
-C geometry.h provides commons G0,G2,GS5,GS6,GS7,GS8.
 #include "geometry.h"
 
       common/outin/iuout,iuin,ieout

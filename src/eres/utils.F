@@ -13,11 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
 C SUM1V:  Generic sums and gains/losses for timestep arrays (AIN(MTS)).
 C CMXMN:  Returns maximum and minimum and their timesteps from AIN(MTS).
@@ -1767,8 +1762,8 @@ C Each call is a toggle.
           else
             ISTRW=96
           endif
-          CALL EASKF(xfile,'Export file name?',
-     &      ' ',ISTRW,'export.txt','binary events db',IER,nbhelp)
+          CALL EASKF(xfile,' ','Export file name?',
+     &      ISTRW,'export.txt','binary events db',IER,nbhelp)
 
 C If user request cancel then return after resetting ixopen to zero.
           if(ier.eq.-3)then
@@ -1776,7 +1771,7 @@ C If user request cancel then return after resetting ixopen to zero.
             return
           endif
         endif
-        write(outs248,'(3A)')' opened ',xfile(1:lnblnk(xfile)),
+        write(outs248,'(3A)')'Opened ',xfile(1:lnblnk(xfile)),
      &                       ' for export.'
         call edisp248(iuout,outs248,100)
         if(iw.eq.1)then
@@ -1824,7 +1819,7 @@ C and change any / to \.
      &    ' >> to ',xfile(1:lnblnk(xfile))
         call edisp248(iuout,outs248,100)
 
-C If tabular info then create the headder to the xvgr parameter file.
+C If tabular info then create the header to the xvgr parameter file.
 C This facility commented out.
         if(tg.eq.'X')then
 C          write(ixpunit,'(a)') '# ACE/gr parameter file'
@@ -1852,8 +1847,8 @@ C Many scripts expect this dialog. Consider how to depreciate it.
           helptopic='res_export_title_3rd'
           call gethelptext(helpinsub,helptopic,nbhelp)
           ttext = 'Simulation Results'
-          call easks(ttext,'Title for 3rd party graph: ',' ',42,
-     &      'Simulation Results ','3rd party title',IER,nbhelp)
+          call easks(ttext,' ','Title for 3rd party graph:',42,
+     &      'Simulation results','3rd party title',IER,nbhelp)
 C          write(ixpunit,'(a,a,a)') 'title "',
 C     &      ttext(1:lnblnk(ttext)),'"'
 C          write(ixpunit,'(a)') 'title font 4'
@@ -1908,9 +1903,10 @@ C          write(ixpunit,'(a)') '  legend char size 0.75000'
       END
 
 C ******** axisnorm  **********
-C axisnorm takes in a bin width, current data minimum and mxaimum
+C Takes in a bin width, current data minimum and mxaimum
 C and returns revised max and min rounded to slighting extended plotting
 C extremes.  Basic version, improvements could be made to intervals.
+
       subroutine axisnorm(bin,xmin,xmax,bxmin,bxmax)
       logical close1,close2,close5,close10,close100,closeh
       logical close
@@ -1971,10 +1967,6 @@ C extremes.  Basic version, improvements could be made to intervals.
           endif
         endif
       else
-
-C Debug.
-C        write(6,*) 'xdiff exception'
-
         XDIFF=(XMAX-XMIN)/100.0
         BXMIN = XMIN-XDIFF
         BXMAX = XMAX+XDIFF

@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Configuration control file definition.
 C This file contains the following subroutines:
@@ -82,6 +78,7 @@ C Usual proportional fonts used for non-control facilities.
 C mptback is pointer from position in display list to the control loop.
 C ipeerptbk is pointer from position in display to day type.
       dimension mptback(35),iperptbk(35)
+      dimension IVALS(MCOM)
       CHARACTER*56 VERT(35)
       CHARACTER CTLDOC*248,LCTLF*72,KEY*1
       CHARACTER outs*124,LASCI*72
@@ -572,7 +569,7 @@ C If a long list, include page facility text.
       VERT(M+3)  ='! list or check current control data      '
       VERT(M+4)  ='> save control data                       '
       VERT(M+5)  ='? help                                    '
-      VERT(M+6)  ='- exit this menu                          '
+      VERT(M+6)  ='- exit menu                               '
 
 C Help text for this menu.
       helptopic='sys_ctl_overview'
@@ -685,18 +682,46 @@ c Remember zero implies no control.
             endif
             ICASCF(1)=ica
           else
-            do 311 IJ=1,NZ
-              write(outs,'(3A,I2,A)')'for ',zname(IJ),'(',IJ,')?'
-              ica=ICASCF(IJ)
-              CALL EASKI(ICA,'Associated control function',outs,
-     &                 0,'F',MCOM,'F',0,
-     &                 'associated control',IER,nbhelp)
-              if(ieri.eq.-3)then
-                goto 311
-              else
-                ICASCF(IJ)=ica
+
+C Offer choice of looping through all zones or updating specific zones to a control loop.
+            CALL EASKABC(' ','Options:',
+     &        'loop through all zones','select subset of zones to link',
+     &        'abort',IW,nbhelp)
+            if(iw.eq.1)then
+              do IJ=1,NZ
+                write(outs,'(3A,I2,A)')'for ',zname(IJ),'(',IJ,')?'
+                ica=ICASCF(IJ)
+                CALL EASKI(ICA,'Associated control function',outs,
+     &            0,'F',MCOM,'F',0,'associated control',IER,nbhelp)
+                if(ieri.eq.-3)then
+                 goto 54
+                else
+                  ICASCF(IJ)=ica
+                endif
+              enddo
+            elseif(iw.eq.2)then
+              CALL EPMENSV  ! User selects one or more zones.
+              inpic=0
+              call askmultizone(inpic,ivals,'Select zones to link?',
+     &          'Zone list for links','-',ier)
+              CALL EPMENRC
+              if(inpic.gt.0)then
+                do IJ=1,inpic
+                  iz=ivals(IJ)    ! Cast to zone index.
+                  write(outs,'(3A,I2,A)')'for ',zname(iz),'(',iz,')?'
+                  ica=ICASCF(iz)
+                  CALL EASKI(ICA,'Associated control function',outs,
+     &            0,'F',MCOM,'F',0,'associated control',IER,nbhelp)
+                  if(ieri.eq.-3)then
+                    goto 54
+                  else
+                    ICASCF(iz)=ica
+                  endif
+                enddo
               endif
-  311       continue
+            elseif(iw.eq.3)then
+              goto 54
+            endif
           endif
 
 c Check for out-of-allowable range.
@@ -1440,6 +1465,15 @@ C Plant common required for building/plant flux linkage
      &               ndcon(mpcom,mnodec)
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       character calename*32,calentag*12,calendayname*32
+
+C High level controls (set when user first setup control file).
+      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
+      character syspattern*12     ! system pattern plus detail
+      character perpattern*12     ! period pattern plus detail
+      character diverspattern*12  ! diversity pattern plus detail
+      character comfortpattern*12 ! comfort pattern plus detail
+      common/hlcontrol/hcffpattern(2),syspattern(2),perpattern(2),
+     &  diverspattern(2),comfortpattern(2)
 
       DIMENSION SALT(24),IVALS(24)
       CHARACTER*82 VERT(20)
@@ -2849,8 +2883,8 @@ C Number of actual items displayed.
      &           cmlocal(idat_displayCM)
   963     continue     
           VERT2(M+1)='_______________________________________________'
-          VERT2(M+2)  ='? help                                    '
-          VERT2(M+3)  ='- exit this menu & save any changes       '
+          VERT2(M+2)='? help                                         '
+          VERT2(M+3)='- exit menu & save changes                     '
 
 C Now display the menu.
           CALL EMENU('Control for bidirectional datasets',VERT2,MVERT,
@@ -4500,7 +4534,7 @@ C Miscellaneous data for on / off controller.
           K=0
           CALL EGETWR(HOLD,K,cm(2),0.,0.,'-','set pt',IER)
           CALL EGETWR(HOLD,K,cm(3),-1.,1.,'F','action',IER)
-          CALL EGETWR(HOLD,K,cm(4),0.,1.,'F','fraction',IER)
+          CALL EGETWR(HOLD,K,cm(4),0.,5.,'F','fraction',IER)
           if(int(cm(3)).eq.0)goto 53
           if(ier.ne.0)goto 53
         elseif(iclaw.eq.1)then
@@ -4529,7 +4563,8 @@ C Miscellaneous data for range based controller.
           call gethelptext(helpinsub,helptopic,nbhelp)
           cm(1)=6.
   55      WRITE(HOLD,'(3f10.4)')cm(2),cm(3),cm(4)
-          CALL EASKS(HOLD,' ',
+          CALL EASKS(HOLD,
+     &      'Component nominal rate or area is used between low & mid.',
      &      'Range setpoints: low, mid, high?',
      &      42,' 0. 10. 20. ',' flow range controller',
      &      IER,nbhelp)
@@ -5333,7 +5368,7 @@ C If a long list include page facility text and info on portion seen.
    15   FORMAT ('0 page part: ',I1,' -- of:',I1)
       ENDIF
       VERT(M+2)  ='? help                  '
-      VERT(M+3)  ='- exit this menu        '
+      VERT(M+3)  ='- exit menu             '
       write(prompt2,'(a)')' '
 
 C Display the menu.
@@ -5400,7 +5435,7 @@ C For optical controls, always assume zone air point
             isn3=0
           elseif(IWN.eq.2)then
 
-C Work with local variables and only instanciate if ier is zero.
+C Work with local variables and only instantiate if ier is zero.
             ilayt=0
             isn3t=isn3
             call asksnode(isn1,isn2,ilayt,isn3t,ier)
@@ -5478,7 +5513,7 @@ C User has declined to measure difference between nodes.
 
         endif
 
-C If the user has not canceled instanciate from temporary values.
+C If the user has not canceled instantiate from temporary values.
         nsup=0
         isn1=isn1T
         isn2=isn2T
@@ -5521,7 +5556,7 @@ C In the case of mass flow this choice implies no supplemental
 C items, but return isense as the control law.
         if(icfoc.eq.2)isense=1
 
-C If the user has not canceled instanciate from temporary values.
+C If the user has not canceled instantiate from temporary values.
         nsup=0; isn1=isn1T; isn2=isn2T; isn3=isn3T
       elseif(ivert.eq.4.and.
      &      (icfoc.eq.0.or.icfoc.eq.1.or.icfoc.eq.2
@@ -6008,7 +6043,7 @@ C If a long list include page facility text and info on portion seen.
    15   FORMAT ('0 page part: ',I1,' -- of:',I1)
       ENDIF
       VERT(M+2)  ='? help                  '
-      VERT(M+3)  ='- exit this menu        '
+      VERT(M+3)  ='- exit menu             '
       write(prompt2,'(a)')' '
 
 C Display the menu.
@@ -6060,7 +6095,7 @@ C Decode from the potentially long list to the zone number via KEYIND.
             goto 33
           elseif(IWN.eq.2)then
 
-C Work with local variables and only instanciate if ier is zero.
+C Work with local variables and only instantiate if ier is zero.
             ilayt=0
             ian3t=ian3
             call asksnode(ian1,ian2,ilayt,ian3t,ier)
@@ -6461,6 +6496,16 @@ C Calendar data.
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
       character calename*32,calentag*12,calendayname*32
 
+C High level controls (set when user first setup control file).
+C << find a place to hold this information in model files >>
+      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
+      character syspattern*12     ! system pattern plus detail
+      character perpattern*12     ! period pattern plus detail
+      character diverspattern*12  ! diversity pattern plus detail
+      character comfortpattern*12 ! comfort pattern plus detail
+      common/hlcontrol/hcffpattern(2),syspattern(2),perpattern(2),
+     &  diverspattern(2),comfortpattern(2)
+
 C menu (32 char) menu text for each item
 C prompt1 (72 char) first easkr prompt
 C prompt2 (72 char) second easkr prompt
@@ -6734,7 +6779,7 @@ C control law to trap changes.
             IX=iclawcurrent
           endif
 
-C Re-instanciate help specifically for summary of control laws.
+C Re-instantiate help specifically for summary of control laws.
           helptopic='bld_ctl_period_data'
           call gethelptext(helpinsub,helptopic,nbhelp)
   63      CALL EPICKS(IX,IVALS,' ','Control law option:',
@@ -7341,6 +7386,15 @@ C   for control law one.
       common/sctlmenu/menu(misc),prompt1(misc),prompt2(misc)
       common/sctldata/ndec(misc),vmin(misc),vmax(misc),
      &  vdef(misc),nctlhelp,nmenulines
+
+C High level controls (set when user first setup control file).
+      character hcffpattern*12    ! heat, cool, or heat+cool plus detail
+      character syspattern*12     ! system pattern plus detail
+      character perpattern*12     ! period pattern plus detail
+      character diverspattern*12  ! diversity pattern plus detail
+      character comfortpattern*12 ! comfort pattern plus detail
+      common/hlcontrol/hcffpattern(2),syspattern(2),perpattern(2),
+     &  diverspattern(2),comfortpattern(2)
 
       character menu*32,prompt1*72,prompt2*72
 

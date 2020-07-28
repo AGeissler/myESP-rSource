@@ -13,13 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C SHDCON.F contains the following routines:
-
+C This file contains the following routines.
 C SHDCON: Sets up the parameters relating to shading computation.
 C FINDISC: Determines the values in array isc based on information in
 C          the zone geometry file and or user interactions.
@@ -32,13 +27,11 @@ C SHDTST: Tests each grid centre point of a user-specified grid to
 C         establish if it is within the target surface and shadow
 C         polygon.
 
-C ********** SHDCON **********
+C ******************** SHDCON ********************
 C Sets up the parameters relating to shading computation.
 
       subroutine shdcon(icomp,ier,act)
 #include "building.h"
-
-C geometry.h provides commons G0 and G2.
 #include "geometry.h"
       
       integer lnblnk  ! function definition
@@ -52,19 +45,18 @@ C geometry.h provides commons G0 and G2.
       integer multic,mons,monf
       common/mtfile/ltrns,multic,mons,monf
       common/ract/paction
+      common/shad0/ISIcalc,icalcD,icalcM
 
       dimension irecs(ms),iavdec(12)
       character tbase*72,outs*124
       character*3 month(12)
       character act*1,paction*16
       logical ok
-      logical newgeo  ! Used to test for new/old geometry file.
+      logical newgeo  ! used to test for new/old geometry file
       integer ier
-
-C For help messages
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp         ! number of help lines found
 
 C Day of average solar declination in each month.
       data iavdec/17,15,16,15,15,11,17,16,16,16,15,11/
@@ -74,7 +66,6 @@ C Day of average solar declination in each month.
       helpinsub='shdcon'  ! set for subroutine
       newgeo=.false.  ! Assume older format geometry.
       iunit=ifil
-
    35 call eclose(gversion(icomp),1.1,0.01,newgeo)
 
 C Make up help text for the following interactions.
@@ -89,12 +80,12 @@ C from the zone geometry file.
       if(icont.eq.0)then
          if(newgeo)then
             call edisp(iuout,
-     &      'No shading directives in zone geometry file - skipping!')
+     &      'No shading directives in zone geometry file, skipping!')
             return
          else
             if(act.eq.'s')then
               call edisp(iuout,
-     &        'No shading directives in zone geometry file-skippimg!')
+     &        'No shading directives in zone geometry file, skipping!')
               return
             else
                call easkok(
@@ -126,51 +117,59 @@ C Calculate shading for specified period.
          call edisp(iuout,
      &   '(otherwise they may be deleted manually).')
       endif
-
-      if(act.eq.'s')then
-         mons=1
-         monf=12
-         mon=mons
-      else
-         if(mons.gt.12) mons=1  ! if mons was clobbered reset
-         call easki(mons,' ','Start month number?',
-     &     1,'F',12,'F',1,'start month',ier,nbhelp)
-         if(ier.ne.0)return
-         if(monf.gt.12) monf=12  ! if monf was clobbered reset
-         call easki(monf,' ','End month number?',
-     &     mons,'F',12,'F',1,'end month',ier,nbhelp)
-         if(ier.ne.0)return
-         if(mons.eq.monf)multic=0
+      if(ISIcalc.eq.1)then  ! embedded S/I calculation case
+         mons=icalcM
+         monf=icalcM
+      elseif(ISIcalc.eq.2)then
+        if(act.eq.'s')then
+          mons=1
+          monf=12
+          mon=mons
+        else
+          if(mons.gt.12) mons=1  ! if mons was clobbered reset
+          call easki(mons,' ','Start month number?',
+     &      1,'F',12,'F',1,'start month',ier,nbhelp)
+          if(ier.ne.0)return
+          if(monf.gt.12) monf=12  ! if monf was clobbered reset
+          call easki(monf,' ','End month number?',
+     &      mons,'F',12,'F',1,'end month',ier,nbhelp)
+          if(ier.ne.0)return
+          if(mons.eq.monf)multic=0
+        endif
       endif
+
       do 601 mon=mons,monf
 
-C Convert day of average solar declination in month to a year
-C day number.
-         iday=iavdec(mon)
-         call eday(iday,mon,iyd)
+C For S/I file case, convert day of average solar declination
+C in month to a year day number. If ish called from bps, use
+C passed day and month.
+      iday=iavdec(mon)
+      imon=mon
+      if(ISIcalc.eq.1)iday=icalcD
+      call eday(iday,imon,iyd)
 
-C As a separate file will need to be created for each month of a 
+C As a separate file will be created for each month of a 
 C simulation, append 'Jan' or 'Feb' to the end of the base name to
 C identify them. Close any previous file on iunit and open a new one.
-         tbase=ltrns(1:lnblnk(ltrns))//month(mon)
-         irecw=ms+5
-         ier=0
-         call efopran(iunit,tbase,irecw,3,ier)
+      tbase=ltrns(1:lnblnk(ltrns))//month(mon)
+      irecw=ms+5
+      ier=0
+      call efopran(iunit,tbase,irecw,3,ier)
 
 C Write the first record of the zone transitional shading file.
-         irec=1
-         do 801 i=1,ms
-            irecs(i)=0
-  801    continue
-         write(iunit,rec=irec,iostat=istat,err=1000)(irecs(i),i=1,ms)
-         call tfile1(icomp)
-         call shadc(icomp)
-         call ssave(icomp,ier)
-         if(ier.ne.0)then
-            call usrmsg('Error condition detected during file save!',
-     &                  'Terminating calculation.','W')
-            return
-         endif
+      irec=1
+      do 801 i=1,ms
+         irecs(i)=0
+  801 continue
+      write(iunit,rec=irec,iostat=istat,err=1000)(irecs(i),i=1,ms)
+      call tfile1(icomp)
+      call shadc(icomp)
+      call ssave(icomp,ier)
+      if(ier.ne.0)then
+         call usrmsg('Error condition detected during file save!',
+     &               'Terminating calculation.','W')
+         return
+      endif
   601 continue
       return
 
@@ -181,13 +180,13 @@ C Write the first record of the zone transitional shading file.
       end
 
 
-C ********** findisc **********
+C ******************** findisc ********************
 C findisc determines the values in array isc based on information in
-C the zone geometry file and or user interactions. Initially taken from
-C code of SHDCON.
-C   icomp  - the zone index;
-C   act    - 's' for silent mode, '-' for user interaction mode.
-c   icont  - >0 if shaded surfaces were found
+C the zone geometry file and or user interactions.
+C   icomp - the zone index.
+C   act   - 's' for silent mode, '-' for user interaction mode.
+c   icont - >0 if shaded surfaces were found.
+
       subroutine findisc(icomp,ier,act,icont)
 #include "building.h"
 #include "geometry.h"
@@ -318,7 +317,7 @@ C Fill ishdirec array.
 
       end
 
-C ********** SHADC **********
+C ******************** SHADC ********************
 C Calculates the direct and diffuse solar shading. Called from shdcon.
 
       subroutine shadc(icomp)
@@ -688,13 +687,13 @@ C Output calculation progress report.
                endif
             endif
 
-   30    continue           ! hour loop
-   20 continue              ! target surface loop
+   30    continue     ! hour loop
+   20 continue        ! target surface loop
       ical =1
       return
       end
 
-C **********  DECOMP **********
+C ********************  DECOMP ********************
 C If a projected surface crosses the target plane the intersection
 C points are located and a modified shadow polygon produced.
 
@@ -924,7 +923,7 @@ C Trace output.
  9999 return
       end
 
-C **********  INTERSECT **********
+C ********************  INTERSECT ********************
 C Determines coordinates of intersection point of YT=0 plane and
 C a given line. Uses formula:
 C
@@ -990,7 +989,7 @@ C Trace output.
       return
       end
 
-C ********** SHDTST **********
+C ******************** SHDTST ********************
 C Tests each grid centre point of a user-specified grid to
 C establish if it is within the target surface and shadow polygon.
 

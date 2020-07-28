@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 C      MOSTAT
@@ -30,9 +26,8 @@ C      MORSTU
 C      MOSMSD
 
 C ******************** MOSTAT ********************
-
-C MOSTAT allows statistical analysis of the simulation
-C results. Available at present:
+C Allows statistical analysis of the simulation
+C results.
 
       SUBROUTINE MOSTAT
 #include "building.h"
@@ -156,7 +151,7 @@ C      ITEM(10)='e CEN statistics     '
         INO=-2
       endif
 
-C Instanciate help strings for the menu.
+C Instantiate help strings for the menu.
       helptopic='res_statistics_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 

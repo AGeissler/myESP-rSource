@@ -847,7 +847,7 @@ C Setup VectorC starting with fin element near pipe.
       DO icount=2,nNodes
         VectorC(icount)=FINt*FINrho*FINCp*Tp(irf,icount)*deltax/Dt
       END DO
-     	
+     
 C End of fin elements setup.
 
 C Setup cover elements starting with element closest to pipe.

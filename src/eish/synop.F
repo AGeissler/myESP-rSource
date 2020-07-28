@@ -13,20 +13,15 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C SYNOP.F of ish contains the following routines:
+C This file contains the following subroutines.
+C SHSYNP   - display table of direct and diffuse shading factors for analysed surfaces
+C            based on scan of transitional file.
+C SHADSYNP - display table of direct and diffuse shading factors for analysed surfaces
+C            based on common block data.
+C INSYNP   - display internal surface insolation proportions for analysed sources.
 
-C SHSYNP:   Display table of direct and diffuse shading factors for analysed surfaces
-C           based on scan of transitional file.
-C SHADSYNP: Display table of direct and diffuse shading factors for analysed surfaces
-C           based on common block data.
-C INSYNP:   Display internal surface insolation proportions for analysed sources.
-
-C ********** SHSYNP **********
+C ******************** SHSYNP ********************
 C Displays a table showing the percentage direct and diffuse
 C surface shading for each hour based on information held within
 C a zone transitional shading file.
@@ -37,7 +32,7 @@ C a zone transitional shading file.
       
       integer lnblnk  ! function definition
       integer icomp   ! focus zone
-      logical allsurf ! if true then do not ask user confirmation
+      logical allsurf ! if true then do not ask for user confirmation
 
       common/outin/iuout,iuin,ieout
       common/filep/ifil
@@ -115,14 +110,13 @@ C << read from the transitional file.
               if(iprint.eq.2)then
                  write(outs,'(i3,a)')j,':00   After sun-set'
                  call edisp(itru,outs)
-C Don't write again.
-                 iprint=-1
+                 iprint=-1  ! do not write again
               else
                  iprint=1
               endif
               pso(i,j)=0.0
               psof(i,j)=0.0
-           else  ! Sun up.
+           else            ! Sun up.
               if(iprint.eq.1)then
                  write(outs,'(i3,a)')j-1,':00   Before sun-rise'
                  call edisp(itru,outs)
@@ -132,7 +126,6 @@ C inds indicates whether direct shading is total, partial or zero.
 C << if inds were written to the ascii file then we would not need
 C << to use the transitional file for the summary it would need to
 C << be a 2D array of 24 columns * nzsur rows
-
               read(iunit,rec=irec,iostat=istat,err=1000)inds
               irec=irec+1
               iprint=2
@@ -220,7 +213,7 @@ C Determine if results are available for another surface?
       return
       end
 
-C ********** SHADSYNP **********
+C ******************** SHADSYNP ********************
 C Displays a table showing the percentage direct and diffuse
 C surface shading for each hour based on common block data.
 
@@ -266,7 +259,7 @@ C If output to file, alter the edisp unit number.
 C Retrieve shading information from common blocks
 C and display on a surface-by-surface basis.
 
-C Re-establish what isc(i) is.
+C Re-establish isc(i).
       icont=0
       call findisc(icomp,ier,'s',icont)
       do 10 i=1,nzsur(icomp)
@@ -300,8 +293,7 @@ C The value of isunupx indicates if sun is up.
               if(iprint.eq.2)then
                  write(outs,'(i3,a)')j,':00   After sun-set'
                  call edisp(itru,outs)
-C Don't write again.
-                 iprint=-1
+                 iprint=-1      ! do not write again
               else
                  iprint=1
               endif
@@ -317,7 +309,6 @@ C inds indicates whether direct shading is total, partial or zero.
 C the value is not recorded in the binary or ascii file (yet) so
 C assume format for mixed.
               iprint=2
-
 
 C Partial direct shading: increment irec by nox to skip over
 C ioshd array.
@@ -341,7 +332,7 @@ C ioshd array.
      &      '                           Diffuse = ',shdft/ishdh,'%'
         call edisp(itru,outs)
 
-C Determine if results are available for another surface?
+C Determine if results are required for another surface.
         if(i.eq.nzsur(icomp))return
         mores=0
         do 30 j=i+1,nzsur(icomp)
@@ -355,9 +346,10 @@ C Determine if results are available for another surface?
       return
       end
 
-C ********** INSYNP **********
+C ******************** INSYNP ********************
 C Outputs information on internal surface insolation.
-C parameter act (1 char) is 's' for silent mode and 'i' for interacitve
+C parameter act (1 char) is 's' for silent mode and 'i' for interacitve.
+
       subroutine insynp(icomp,act,allsurf)
 #include "building.h"
 #include "geometry.h"
@@ -432,8 +424,7 @@ C Sun not up.
             if(iprint.eq.2)then
               write(outs,'(i3,a)')j,':00  After sun-set'
               call edisp(itru,outs)
-C Don't write again.
-             iprint=-1
+             iprint=-1   ! do not write again
             else
              iprint=1
             endif

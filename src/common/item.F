@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C EBRSTAB: searches the item defs for tabular generic choices.
 C GENDAT:  holds cases of generic data.
@@ -61,7 +57,7 @@ C      ISGGT(M+2)='- Exit                      '
         WRITE(ISGGT(IT),'(3a)')GMENUS(IT),' ',GTYPES(IT)
     3 CONTINUE
 
-C Instanciateh() strings for this menu.
+C Instantiate h() strings for this menu.
       h(1)='The tab type menu does not yet have'
       h(2)='any help associated with it. '
 
@@ -72,12 +68,8 @@ C Make a menu of available generic items.
      &  'types',IER,nbhelp)
       INO=IVALSS(1)
       IFG=IVALSS(1)
-C Debug.
-C      write(6,*) 'picked ',ifg,ino
 
       RETURN
-      
-
       END
 
 C ************* GENDAT 

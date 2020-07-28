@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file comprises:
 C exportcad: controls model export facilities.
@@ -124,7 +120,7 @@ C Check if xfig exists.
       ITEMS1(10) ='! select zones to include  '
       ITEMS1(11) ='* adjust viewing parameters'
       ITEMS1(12) ='? help                     '
-      ITEMS1(13) ='- exit this menu           '
+      ITEMS1(13) ='- exit menu                '
 
 C Help text for this menu.
       helptopic='cad_export_choices'
@@ -1447,7 +1443,7 @@ C Present the display.
  142  ICOG= -2
       gitem(inl+1)=  '  _______________________________'
       gitem(inl+2)=  '? help                           '
-      gitem(inl+3)=  '- exit this menu                 '
+      gitem(inl+3)=  '- exit menu                      '
       NCOG=inl+3
       IW=0
       do 141 ij=1,NCOG
@@ -2283,7 +2279,7 @@ C Pass in critical dimensions and expect the data back via common G1.
         MODBND=.TRUE.; MODIFYVIEW=.TRUE.; MODLEN=.TRUE.
         iZBFLG(ICOMP)=0
 
-C Use subroutine filsur to instanciate G5 common block.
+C Use subroutine filsur to instantiate G5 common block.
         CALL FILSUR(ICOMP,0)
 
 C Update the connection list and hash.
@@ -2312,7 +2308,7 @@ C Update the G7 common blocks and then assign ZBASEA.
 
 C Update the global coordinates for this zones surfaces so that
 C the subsequent wireframe image can be drawn and the bounds of
-C the zone can be calculated. Also instanciate isznver and iszjvn
+C the zone can be calculated. Also instantiate isznver and iszjvn
 C for the new zone (as is done in subroutine zdata).
         DO 40 J=1,NZTV(ICOMP)
           szcoords(ICOMP,J,1)=X(J)

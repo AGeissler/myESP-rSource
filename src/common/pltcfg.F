@@ -31,7 +31,7 @@ C                2 = plant only
 
 C IFLWN       - plant fluid flow simulation index (1 = on)
 C ICFFS       - fluid flow network node associated with each plant
-C               component. NB fluid flow network and plant energy
+C               component. Note that a fluid flow and plant network
 C               network need not be matched
 
 C LPNAM       - the name of the plant system
@@ -76,7 +76,7 @@ C PCONSD      - Array containing a list of constant data items for the
 C               current connection.
 
 C NCONT       - total number of plant component containment conditions
-C               NB it is permissible to contain only some subset of the
+C               It is permissible to contain only some subset of the
 C               total number of components. Unreferenced components
 C               would then have no exchange with their environment
 
@@ -584,7 +584,7 @@ C Read number of plant component connections
 C Reporting.
         IF(ITRC.GE.1)THEN
           CALL EDISP(itu,'  ')
-          WRITE(OUTS,'(A,I2)')' Nb of plant component connections: ',
+          WRITE(OUTS,'(A,I2)')'Number of component connections: ',
      &      NPCON
           CALL EDISP(itu,OUTS)
           CALL EDISP(itu,
@@ -698,7 +698,8 @@ C One day, more checks will be performed on CNTDAT !
 C Reporting.
         IF(ITRC.GE.1)THEN
           CALL EDISP(itu,' ')
-          WRITE(OUTS,'(A,I2)')' No of component containments = ',NCONT
+          WRITE(OUTS,'(A,I2)')'Number of component containments = ',
+     &        NCONT
           CALL EDISP(itu,OUTS)
           CALL EDISP(itu,'  Component      | Containment descr. | Type')
         ENDIF

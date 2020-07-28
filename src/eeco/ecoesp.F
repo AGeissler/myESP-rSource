@@ -1,7 +1,6 @@
 C This file is part of the ESP-r system.
 C Copyright Energy Systems Research Unit, University of
-C Strathclyde, Glasgow Scotland, 2001 as well as
-C Stephane.Citherlet@epfl.ch
+C Strathclyde, Glasgow Scotland, 2001-.
 
 C ESP-r is free software.  You can redistribute it and/or
 C modify it under the terms of the GNU General Public
@@ -14,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C ************* ELISTCMOD 
 C ELISTCMOD: Controls display and editing of materials.
@@ -106,7 +101,7 @@ C Gather the names of the various classes and present this list.
         CLSDES(M+2)='                              '
         CLSDES(M+3)='                              '
         call edisp(iuout,' ')
-        call edisp(iuout,' Select classification to view items')
+        call edisp(iuout,'Select classification to view items.')
       endif
       CLSDES(M+4)=  '? help                        '
       CLSDES(M+5)=  '- exit                        '
@@ -173,8 +168,8 @@ C associated with this class.
           ENDIF
    42   continue
         call edisp(itu,' ')
-        call edisp(itu,' Units: Conduct W/(m deg.C), Density kg/m**3')
-        call edisp(itu,'        Specific Heat J/(kg deg.C) ')
+        call edisp(itu,' Units: Conduct W/(m.C), Density kg/m^3')
+        call edisp(itu,'        Specific Heat J/(kg.C) ')
         if(irpt.eq.2)then
           call ctlexp(xfile,ixopen,ixloc,ixunit,'T','prim db',IER)
         endif
@@ -303,7 +298,7 @@ C Remember the array index that goes with the menu position (m).
           PDBM(NC+5)=  't display >> Visible properties'
         ENDIF
         PDBM(NC+6)=  '? help                           '
-        PDBM(NC+7)=  '- exit this menu                 '
+        PDBM(NC+7)=  '- exit menu                      '
         NITMS=NC+7
         INO=-4
 
@@ -456,8 +451,8 @@ C If there is room add a note about its origin.
         ELSEIF(INO.EQ.NITMS-4)THEN
 
 C Add or delete and material from db.
-          CALL EASKABC(' ','Options: ',' Delete existing material',
-     &      ' Insert material','continue',IW,nbhelp)
+          CALL EASKABC(' ','Options:','delete material',
+     &      'insert material','cancel',IW,nbhelp)
           IF(IW.EQ.1)THEN
 
 C Ask the user which one to remove then loop through materials and
@@ -892,7 +887,7 @@ C If a long list include page facility text.
       ENDIF
       VERT(M+2)  ='* browse construction details     '
       VERT(M+3)  ='? help                            '
-      VERT(M+4)  ='- exit this menu                  '
+      VERT(M+4)  ='- exit menu                       '
 
 C Now display the menu.
       write(head,'(A,A)')' Composition of ',ZNAME(ICOMP)

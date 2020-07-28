@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Casual gain control file: creation, editing.
 C EDCASCTL - interface for creation and editing of cas gn data.
@@ -383,7 +379,7 @@ C treats CFC and CFC2 with opaque surfaces.
       ITEM(M+3)=          '! list casual gain control information  '
       ITEM(M+4)=          '> save casual gain control information  '
       ITEM(M+5)=          '? help                                  '
-      ITEM(M+6)=          '- exit this menu                        '
+      ITEM(M+6)=          '- exit menu                             '
       NITEMS=M+6
 
       INO = -2

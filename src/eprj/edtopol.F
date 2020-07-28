@@ -13,12 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C The file edtopol.f is a collection of support facilities for 
+C TThis file is a collection of support facilities for 
 C creating and editing the model topology ie. connection lists:
 C  EDCONN: Edit/check/clear connection attributes in common block C3
 C          and includes logic that use to be found in module cfg.
@@ -513,7 +509,7 @@ C If a long list include page facility text.
    15     FORMAT   ('0 page ------- Part: ',I2,' of ',I2,' -----')
         ENDIF
         VERT(M+2)  ='? help                                '
-        VERT(M+3)  ='- exit this menu                      '
+        VERT(M+3)  ='- exit menu                           '
 
 C Help text for this menu.
         helptopic='boundary_choice_menu'
@@ -1151,11 +1147,8 @@ C Ask user if some other type of connection. If M0SKP is true then
 C set connection to exterior and proceed.
             if(OTHEROK)then
               if(M0SKP)then
-                IC1(IC)=IZ
-                IE1(IC)=JS
-                ICT(IC)=0
-                IE2(IC)=0
-                IC2(IC)=0
+                IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=0
+                IE2(IC)=0; IC2(IC)=0
                 if(SO(1:8).ne.'EXTERIOR')then
                   TOTHER(JS,1)='EXTERIOR'
                   write(tother(JS,2),'(i2.2)') IC2(ic)
@@ -1196,11 +1189,8 @@ C Setup contextural help for boundary conditions.
                 if(IART.eq.0)then
                   continue
                 elseif(IART.eq.1)then
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=0
-                  IE2(IC)=0
-                  IC2(IC)=0
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=0
+                  IE2(IC)=0; IC2(IC)=0
                   if(SO(1:8).ne.'EXTERIOR')then
                     TOTHER(JS,1)='EXTERIOR'
                     write(tother(JS,2),'(i2.2)') IC2(ic)
@@ -1208,9 +1198,7 @@ C Setup contextural help for boundary conditions.
                     UPDGEO=.TRUE.
                   endif
                 elseif(IART.eq.2)then
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=1
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=1
                   IE2(IC)=0
                   IC2(IC)=0
                   if(SO(1:7).ne.'SIMILAR')then
@@ -1225,9 +1213,7 @@ C Setup contextural help for boundary conditions.
      &              IER,nbhelp)
                   CALL EASKR(VAL2,' ',' Constant rad (W/m^2) ? ',
      &              -999.,'F',999.,'F',0.,'adjacent rad',IER,nbhelp)
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=2
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=2
                   IE2(IC)=INT(VAL2)
                   IC2(IC)=INT(VAL)
                   if(SO(1:8).ne.'CONSTANT')then
@@ -1258,9 +1244,7 @@ C profile has not been defined.
                   iic2=ic2(IC)
   777             CALL EASKI(IIC2,' Monthly (standard) profile index?',
      &              ' ',1,'F',mgrdp,'F',1,'ground profile',IER,nbhelp)
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=4
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=4
                   IF(IIC2.GT.0)THEN
                     IC2(IC)=iic2
                     IE2(IC)=0
@@ -1291,9 +1275,7 @@ C profile has not been defined.
      &                'User defined ground profile index?',
      &                ' ',0,'F',9,'F',1,'user defined profile',
      &                IER,nbhelp)
-                    IC1(IC)=IZ
-                    IE1(IC)=JS
-                    ICT(IC)=4
+                    IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=4 
                     IC2(IC)=0
                     IE2(IC)=iie2
                     if(SO(1:6).ne.'GROUND')then
@@ -1310,11 +1292,8 @@ C profile has not been defined.
                 elseif(iart.eq.6)then 
 
 C Link to a 3D conduction model..
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=4
-                  IC2(IC)=-3
-                  IE2(IC)=0
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=4
+                  IC2(IC)=-3; IE2(IC)=0
                   if(SO(1:6).ne.'GROUND')then
                     TOTHER(IE1(JS),1)='GROUND'
                     write(tother(JS,2),'(i2.2)') IC2(ic)
@@ -1322,11 +1301,8 @@ C Link to a 3D conduction model..
                     UPDGEO=.TRUE.
                   endif
                 elseif(IART.eq.7)then
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=5
-                  IE2(IC)=0
-                  IC2(IC)=0
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=5
+                  IE2(IC)=0; IC2(IC)=0
                   if(SO(1:9).ne.'ADIABATIC')then
                     TOTHER(JS,1)='ADIABATIC'
                     write(tother(JS,2),'(i2.2)') IC2(ic)
@@ -1338,9 +1314,7 @@ C Link to a 3D conduction model..
 C BASESIMP start.
 C Get BASESIMP configuration via call to bsimtype. Save state of current
 C menu and recover after the call.
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=6
+                  IC1(IC)=IZ;  IE1(IC)=JS; ICT(IC)=6
                   IBS=IC2(IC)
                   call bsimtype(ibs)
                   IC2(IC)=IBS
@@ -1363,11 +1337,8 @@ C attribute to the surface under consideration.
                   endif
 C BASESIMP end.
                 elseif(IART.eq.9)then
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=7
-                  IE2(IC)=0
-                  IC2(IC)=0
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=7
+                  IE2(IC)=0; IC2(IC)=0
                   if(SO(1:7).ne.'IDENT_CEN')then
                     TOTHER(JS,1)='IDENT_CEN'
                     write(tother(JS,2),'(i2.2)') IC2(ic)
@@ -1377,11 +1348,8 @@ C BASESIMP end.
 
 C CEN 13791 partition end.
                 elseif(IART.eq.10)then
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=-1
-                  IE2(IC)=0
-                  IC2(IC)=0
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=-1
+                  IE2(IC)=0; IC2(IC)=0
                   if(SO(1:7).ne.'UNKNOWN')then
                     TOTHER(JS,1)='UNKNOWN'
                     write(tother(JS,2),'(i2.2)') IC2(ic)
@@ -1422,11 +1390,8 @@ C found to match.
             if(MMOD.eq.8)CALL CADJVIEW(IER)
             MODIFYVIEW=.TRUE.
             MODBND=.TRUE.
-            IC1(IC)=IZ
-            IE1(IC)=JS
-            ICT(IC)=3
-            IC2(IC)=II
-            IE2(IC)=JJ
+            IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=3
+            IC2(IC)=II; IE2(IC)=JJ
             call usrmsg(' ',bl,'-')
             if(MMOD.eq.8)then
               if(longpause)then
@@ -1480,31 +1445,22 @@ C make it a partition without bothering to ask the user.
      &              SN(1:lnblnk(SN)),' in current zone.'
                   call edisp(iuout,outs)
                 elseif(IRTA.eq.2)then
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=5
-                  IE2(IC)=0
-                  IC2(IC)=0
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=5
+                  IE2(IC)=0; IC2(IC)=0
                   TOTHER(JS,1)='ADIABATIC'
                   write(tother(JS,2),'(i2.2)') IC2(ic)
                   write(tother(JS,3),'(i3.3)') IE2(ic)
                   UPDGEO=.TRUE.
                 elseif(IRTA.eq.3)then
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=-1
-                  IE2(IC)=0
-                  IC2(IC)=0
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=-1
+                  IE2(IC)=0; IC2(IC)=0
                   TOTHER(JS,1)='UNKNOWN'
                   write(tother(JS,2),'(i2.2)') IC2(ic)
                   write(tother(JS,3),'(i3.3)') IE2(ic)
                   UPDGEO=.TRUE.
                 elseif(IRTA.eq.4)then
-                  IC1(IC)=IZ
-                  IE1(IC)=JS
-                  ICT(IC)=0
-                  IE2(IC)=0
-                  IC2(IC)=0
+                  IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=0
+                  IE2(IC)=0; IC2(IC)=0
                   if(SO(1:8).ne.'EXTERIOR')then
                     TOTHER(JS,1)='EXTERIOR'
                     write(tother(JS,2),'(i2.2)') IC2(ic)
@@ -1584,15 +1540,9 @@ C the view on it and calculate the angle of view to that box.
             endif
             do 843 ipml=1,iipmatch
               ITBND=0
-              VIEWM(1)=cx
-              VIEWM(2)=cy
-              VIEWM(3)=cz
-              XMN=sxmn
-              YMN=symn
-              ZMN=szmn
-              XMX=sxmx
-              YMX=symx
-              ZMX=szmx
+              VIEWM(1)=cx; VIEWM(2)=cy; VIEWM(3)=cz
+              XMN=sxmn; YMN=symn; ZMN=szmn
+              XMX=sxmx; YMX=symx; ZMX=szmx
               MODIFYVIEW=.TRUE.
               MODLEN=.TRUE.
               if(MMOD.eq.8)CALL INLNST(1)
@@ -1613,11 +1563,8 @@ C the view on it and calculate the angle of view to that box.
               call gethelptext(helpinsub,helptopic,nbhelp)
               CALL EASKOK(outs,'Accept?',OK,nbhelp)
               IF(OK)then
-                IC1(IC)=IZ
-                IE1(IC)=JS
-                ICT(IC)=3
-                IC2(IC)=II
-                IE2(IC)=JJ
+                IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=3
+                IC2(IC)=II; IE2(IC)=JJ
 
 C Update surface attributes and then restore the view points.
                 write(TOTHER(JS,1),'(a)') 'ANOTHER'
@@ -1649,41 +1596,30 @@ C If reached this point then no surface selected.
             if(irta.eq.1)then
               goto 840
             elseif(irta.eq.2)then
-              IC1(IC)=IZ
-              IE1(IC)=JS
-              ICT(IC)=-1   ! unknown connection is a -1
-              IE2(IC)=0
-              IC2(IC)=0
+              IC1(IC)=IZ; IE1(IC)=JS
+              ICT(IC)=-1            ! unknown connection is a -1
+              IE2(IC)=0; IC2(IC)=0
               TOTHER(JS,1)='UNKNOWN'
               write(tother(JS,2),'(i2.2)') IC2(ic)
               write(tother(JS,3),'(i3.3)') IE2(ic)
               UPDGEO=.TRUE.
             elseif(irta.eq.3)then
-              IC1(IC)=IZ
-              IE1(IC)=JS
-              ICT(IC)=0
-              IE2(IC)=0
-              IC2(IC)=0
+              IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=0
+              IE2(IC)=0;  IC2(IC)=0
               TOTHER(JS,1)='EXTERIOR'
               write(tother(JS,2),'(i2.2)') IC2(ic)
               write(tother(JS,3),'(i3.3)') IE2(ic)
               UPDGEO=.TRUE.
             elseif(irta.eq.4)then
-              IC1(IC)=IZ
-              IE1(IC)=JS
-              ICT(IC)=1
-              IE2(IC)=0
-              IC2(IC)=0
+              IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=1
+              IE2(IC)=0; IC2(IC)=0
               TOTHER(JS,1)='SIMILAR'
               write(tother(JS,2),'(i2.2)') IC2(ic)
               write(tother(JS,3),'(i3.3)') IE2(ic)
               UPDGEO=.TRUE.
             elseif(irta.eq.5)then
-              IC1(IC)=IZ
-              IE1(IC)=JS
-              ICT(IC)=5
-              IE2(IC)=0
-              IC2(IC)=0
+              IC1(IC)=IZ; IE1(IC)=JS; ICT(IC)=5
+              IE2(IC)=0; IC2(IC)=0
               TOTHER(JS,1)='ADIABATIC'
               write(tother(JS,2),'(i2.2)') IC2(ic)
               write(tother(JS,3),'(i3.3)') IE2(ic)
@@ -2138,8 +2074,9 @@ C Ask user if updated info should be saved to file.
       END
 
 C **************** anchor 
-C anchor defines and instanciates anchor points (a list of connections
-C associated with a concept).
+C Defines and anchor points (a list of connections associated
+C with a concept).
+
       subroutine anchor(ifoc,ier)
 #include "building.h"
 #include "model.h"
@@ -2271,7 +2208,7 @@ C If a long list include page facility text.
       ENDIF
       VERT(M+2)  ='* modify list                         '
       VERT(M+3)  ='? help                                '
-      VERT(M+4)  ='- exit this menu                      '
+      VERT(M+4)  ='- exit menu                           '
 
 C Now display the menu.
       CALL EMENU('  Anchor points',VERT,MVERT,IVERT)
@@ -2646,7 +2583,7 @@ C If a long list include page facility text.
       AVERT(M+1)  ='  ________________________________ '
       AVERT(M+2)  ='+ add/delete an anchor             '
       AVERT(M+3)  ='? help                             '
-      AVERT(M+4)  ='- exit this menu                   '
+      AVERT(M+4)  ='- exit menu                        '
 
 C Now display the menu.
       if(mmod.eq.8)then
@@ -2783,8 +2720,9 @@ C Pass one back for selection and manipulation.
       end
 
 C **************** group 
-C group defines and instanciates groups of zones (a list of zones
-C associated with a concept).
+C Defines groups of zones (a list of zones associated
+C with a concept).
+
       subroutine group(ifoc,ier)
 #include "building.h"
 #include "model.h"
@@ -2906,7 +2844,7 @@ C If a long list include page facility text.
       ENDIF
       VERT(M+2)  ='* add zones to current group   '
       VERT(M+3)  ='? help                         '
-      VERT(M+4)  ='- exit this menu               '
+      VERT(M+4)  ='- exit menu                    '
 
 C Now display the menu.
       CALL EMENU(' Groups of zones',VERT,MVERT,IVERT)
@@ -3109,7 +3047,7 @@ C If a long list include page facility text.
       AVERT(M+1)  ='  ______________________________ '
       AVERT(M+2)  ='+ add/delete an group            '
       AVERT(M+3)  ='? help                           '
-      AVERT(M+4)  ='- exit this menu                 '
+      AVERT(M+4)  ='- exit menu                      '
 
 C Now display the menu.
       if(mmod.eq.8)then
@@ -3267,7 +3205,7 @@ C If a long list include page facility text.
    15   FORMAT   ('0 page ------- Part: ',I2,' of ',I2,' -----')
       ENDIF
       VERT(M+2)  ='? help                                '
-      VERT(M+3)  ='- exit this menu                      '
+      VERT(M+3)  ='- exit menu                           '
 
 C Now display the menu.
       CALL EMENU(sel,VERT,MVERT,IVERT)
@@ -3293,7 +3231,7 @@ C If there are enough items allow paging control via EKPAGE.
       elseif(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))then
 
 C Mark identified by KEYIND. Increment ialoc counter and then
-C instanciate iconnpk with current connection number. If item
+C instantiate iconnpk with current connection number. If item
 C already selected, treat second selection as a toggle OFF.
         CALL KEYIND(MVERT,IVERT,IFOC,IO)
         FOUND=.FALSE.

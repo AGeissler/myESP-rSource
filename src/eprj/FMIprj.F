@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C FMIprj.F contains specification fortran functions for the FMI
 C implementation:
@@ -28,7 +24,6 @@ C ******************** FMI_ED
 C FMI_ED controls the definition and editing of FMI links.
 
       SUBROUTINE FMI_ED(IER)
-
 #include "building.h"
 #include "model.h"
 #include "FMI.h"
@@ -153,7 +148,7 @@ C Set up menu.
         ITEMS(5)=                  '! listing not currently available '
         ITEMS(6)=                  '> save FMI file'
         ITEMS(7)=                  '? help'
-        ITEMS(8)=                  '- exit this menu'
+        ITEMS(8)=                  '- exit menu'
         NITEMS=8
       else
         write(ITEMS(1),'(a,i1)')   'a FMU number >> ',IFMU
@@ -180,7 +175,7 @@ C Set up menu.
         ITEMS(11)=                 '! list FMU specification data'
         ITEMS(12)=                 '> save FMI file'
         ITEMS(13)=                 '? help'
-        ITEMS(14)=                 '- exit this menu'
+        ITEMS(14)=                 '- exit menu'
         NITEMS=14
       endif
 
@@ -596,7 +591,7 @@ C Control options.
       ITEMS(M+2)='+ add/delete/copy input                              '
       ITEMS(M+3)='! list inputs                                        '
       ITEMS(M+4)='? help                                               '
-      ITEMS(M+5)='- exit this menu                                     '
+      ITEMS(M+5)='- exit menu'
 
       NITEMS=M+MCTL
       CALL EMENU('FMU inputs',ITEMS,NITEMS,IPICK)
@@ -769,7 +764,7 @@ C Edit details for an input.
         write(ITEMS(9),'(2a)')'e FMU variable: ',FMUIVNM(IFMU,IINP)
         ITEMS(10)=' ---------------------------------------------------'
         ITEMS(11)= '? help'
-        ITEMS(12)='- exit this menu'
+        ITEMS(12)='- exit menu'
 
         NITEMS=12
         CALL EMENU('Edit FMU input data',ITEMS,NITEMS,IPICK)
@@ -828,7 +823,7 @@ C Remember index of variables participating in list.
               endif
             enddo
             ITEMS(itmp+1)=' -----------------------------'
-            ITEMS(itmp+2)='- exit this menu              '
+            ITEMS(itmp+2)='- exit menu'
             IPICK=-4
             NITEMS=itmp+2
             CALL EMENU('Pick a variable',ITEMS,NITEMS,IPICK)
@@ -852,7 +847,7 @@ C Remember index of variables participating in list.
               endif
             enddo
             ITEMS(itmp+1)=' -----------------------------'
-            ITEMS(itmp+2)='- exit this menu              '
+            ITEMS(itmp+2)='- exit menu'
             IPICK=-4
             NITEMS=itmp+2
             CALL EMENU('Pick a variable',ITEMS,NITEMS,IPICK)
@@ -1035,7 +1030,7 @@ C Control options.
       ITEMS(M+2)='+ add/delete/copy output                             '
       ITEMS(M+3)='! list outputs                                       '
       ITEMS(M+4)='? help                                               '
-      ITEMS(M+5)='- exit this menu                                     '
+      ITEMS(M+5)='- exit menu'
 
       NITEMS=M+MCTL
       CALL EMENU('FMU outputs',ITEMS,NITEMS,IPICK)
@@ -1206,7 +1201,7 @@ C Edit details for an output.
         write(ITEMS(9),'(2a)')'e FMU variable: ',FMUOVNM(IFMU,IOUT)
         ITEMS(10)=' ---------------------------------------------------'
         ITEMS(11)= '? help'
-        ITEMS(12)='- exit this menu'
+        ITEMS(12)='- exit menu'
 
         NITEMS=12
         CALL EMENU('Edit FMU output data',ITEMS,NITEMS,IPICK)
@@ -1274,7 +1269,7 @@ C Remember index of variables participating in list.
               endif
             enddo
             ITEMS(itmp+1)=' -----------------------------'
-            ITEMS(itmp+2)='- exit this menu              '
+            ITEMS(itmp+2)='- exit menu'
             IPICK=-4
             NITEMS=itmp+2
             CALL EMENU('Pick a variable',ITEMS,NITEMS,IPICK)
@@ -1298,7 +1293,7 @@ C Remember index of variables participating in list.
               endif
             enddo
             ITEMS(itmp+1)=' -----------------------------'
-            ITEMS(itmp+2)='- exit this menu              '
+            ITEMS(itmp+2)='- exit menu'
             IPICK=-4
             NITEMS=itmp+2
             CALL EMENU('Pick a variable',ITEMS,NITEMS,IPICK)

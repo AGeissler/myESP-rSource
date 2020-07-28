@@ -13,18 +13,10 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C This file (setres.f) contains the following routine:
+C ********************* SETUP *********************
+C Provides the menus and control logic for the res preference menu.
 
-C SETUP: provides the menus and control logic for the res preferences menu.
-
-C ********************* SETUP *****************************************
-
-C SETUP provides the menus and control logic for the res preference menu.
       SUBROUTINE SETUP(ITRU,IER)
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -89,10 +81,10 @@ C Menu-pick (performance information requested) data.
       endif
       SETUPM(7)=  ' ______________________________________         '
 
-      SETUPM(8)=  '? Help                                          '
-      SETUPM(9)=  '- Exit to main menu                             '
+      SETUPM(8)=  '? help'
+      SETUPM(9)=  '- exit menu'
 
-C Instanciate h() array for the menu.
+C Instantiate h() array for the menu.
       helptopic='res_preferences_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
       NITMS=9

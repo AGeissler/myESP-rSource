@@ -416,7 +416,7 @@ C Cylinder length equivalent to cylinder area without ends
          Ao=(3.14159*ID*RL)+(2.*3.14159*(ID/2.)**2.)
 C Modify heat transfer coefficients by adding shell thermal resistances (50% to each)
          KC=(1./((1./KC)+(Rp/2.)))
-         HC=(1./((1./(ho*Ao))+(Rp/2.)))	
+         HC=(1./((1./(ho*Ao))+(Rp/2.)))
 
 C Set up implicit/explicit weighting factor ALPHA (1 = fully implicit)
          IF(IMPEXP.EQ.1) THEN
@@ -645,12 +645,12 @@ C Mark current solid and water temperatures for iteration
         CSVI(INOD3,1)=CSVF(INOD3,1)
         ICSV(INOD4,1)=1
         CSVI(INOD4,1)=CSVF(INOD4,1)
-	CSVI(INOD5,1)=CSVF(INOD5,1)
+        CSVI(INOD5,1)=CSVF(INOD5,1)
         Tp1=CSVI(INOD1,1)
         Tp2=CSVI(INOD2,1)
         Tf3=CSVI(INOD3,1)
         Tf4=CSVI(INOD4,1)
-	Taj=CSVI(INOD5,1)
+        Taj=CSVI(INOD5,1)
 C Establish incoming water temperature & flow rates
         Tf0=CONVAR(ICON1,1)
         Rmf0=PCONDR(ICON1)*CONVAR(ICON1,2)
@@ -661,7 +661,7 @@ C Identify temperatures & flow rates of previous time step
         Tp2P=CSVP(INOD2,1)
         Tf3P=CSVP(INOD3,1)
         Tf4P=CSVP(INOD4,1)
-	TajP=CSVP(INOD5,1)
+        TajP=CSVP(INOD5,1)
 
 C Restore PCDATP values
         CsfP=PCDATP(IPCOMP,1)
@@ -685,7 +685,7 @@ C Identify the specified ADATA and CDATA
         Cs1=ADATA(IPCOMP,12) ! Ins. Heat Capacity
         Cs2=ADATA(IPCOMP,13) ! Pipe Heat Capacity
 
-        Di=CD-2*CT ! Carrier Pipe ID 	
+        Di=CD-2*CT ! Carrier Pipe ID 
         RTp2=log(CD/Di)/(2*3.14159*CTC) ! Pipe
         Ao=OD*3.14159*RL
         Ai=CD*3.14159*RL
@@ -787,8 +787,8 @@ C Determine matrix coefficients
         COUT(1)=2.*A(11,1)
         COUT(12)=0.
       else
-      	COUT(1)=-((RMp1*Cs1)/Timsec)-(ALPHA*(U1+C12))	
-      	COUT(12)=-(((RMp1*Cs1)/Timsec)*Tp1P)-(ALPHA*(U1-U2)*Te)
+        COUT(1)=-((RMp1*Cs1)/Timsec)-(ALPHA*(U1+C12))
+        COUT(12)=-(((RMp1*Cs1)/Timsec)*Tp1P)-(ALPHA*(U1-U2)*Te)
      &  -(ALPHA*U2*TajP)-(1-ALPHA)*(U1-U2)*(Te-Tp1P)
      &  -(1-ALPHA)*U2*(TajP-Tp1P)-(1-ALPHA)*C12*(Tp2P-Tp1P)
       endif
@@ -1069,8 +1069,8 @@ C Relative Flow Nodes
 C Valve opens bypass to balance flows between two circuits if FLW1>FLW2
 C If FLW2>FLW1 component acts as converging with flow delta into node 2.
       IF(FLW1.GE.FLW2)THEN
-        IF(FLW1.GT.0) THEN	
-      	  V_POS=(FLW1-FLW2)/FLW1
+        IF(FLW1.GT.0) THEN
+          V_POS=(FLW1-FLW2)/FLW1
         ELSE
           V_POS=0.
         ENDIF
@@ -1397,7 +1397,7 @@ C Node 1 = Primary (Controlled) Outlet 1, Node 2 = Outlet 2
 C Required input data (in plant configuration file)
 C     ADATA: 1 Outlet 2 RFF Node (99=bypass)
 C            2 Inlet RFF Node
-C	     3 Bypass RFF
+C            3 Bypass RFF
 C
 C     CDATA: 1 Relative Flow Factor (RFF) (-)
 
@@ -1476,15 +1476,15 @@ C Relative Flow Nodes
 C Check the specified valve position
       CSL=CDATA(IPCOMP,1)
       IF(OLN.NE.99)THEN
-	NODE(ILN)=CSL+NODE(OLN)
+        NODE(ILN)=CSL+NODE(OLN)
       ELSE
-	NODE(ILN)=CSL+BYP
+        NODE(ILN)=CSL+BYP
       ENDIF
 
       IF(NODE(ILN).GT.0)THEN
-	V_POS=CSL/NODE(ILN)
+        V_POS=CSL/NODE(ILN)
       ELSE
-	V_POS=1. ! Force to 1 under no flow conditions to avoid NaNs
+        V_POS=1. ! Force to 1 under no flow conditions to avoid NaNs
       END IF
 
       IF(V_POS.LT.0.OR.V_POS.GT.1.)THEN
@@ -1805,8 +1805,8 @@ C Type 1 is balance flow to make up difference for controlled outlet flow
         FLW3=CSVF(FN3,2)
 
 C Valve opens bypass to balance flows between two circuits
-        IF(FLW1.GT.FLW2)THEN	
-      	  V_POS=(FLW1-FLW2)/FLW3
+        IF(FLW1.GT.FLW2)THEN
+          V_POS=(FLW1-FLW2)/FLW3
           IF(V_POS.GT.1) V_POS=0.9999
         ELSE
           V_POS=0.0001 ! Avoid zero-flow circuit

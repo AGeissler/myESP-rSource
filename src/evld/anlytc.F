@@ -78,7 +78,7 @@ C      VlDirR='/usr/esru/esp-r/validation/analytical/conduction01'
       ITEM(9)='c compare results    '
       ITEM(10)='  __________________ '
       ITEM(11)='? help               '
-      ITEM(12)='- exit this menu     '
+      ITEM(12)='- exit menu          '
       MITEM=12
 
       CALL EMENU('Conduction test',ITEM,MITEM,INO)

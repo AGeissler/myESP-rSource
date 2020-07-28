@@ -13,22 +13,16 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
-C This is the stand-alone CFD display module. It takes an ASCII
-C CFD performance-at-a-timestep file and (currently) displays
-C a 3D vector image.
 
 C ********************* DFV *********************
-C DFV - Stand-alone CFD viewing module.
-C Passed :iappw, iappx, iappy as pixel width of application, left and top offsets.
-C if these are 0 then use default values.
+C Stand-alone CFD display module. It takes an ASCII CFD
+C performance-at-a-timestep file and displays a 3D vector image.
+C Passed :iappw, iappx, iappy as pixel width of application, left
+C and top offsets. If these are 0 then use default values.
 
 C Pass it both the DFD file and the timestep performance file.
 C As  cfdv -file room.dfd -actfile cfd3dascii_0??? -range T T
+
       program dfv
       USE START_UP
 #include "building.h"
@@ -247,7 +241,7 @@ C Initialization for matlab.
       xslice=.FALSE.; yslice=.FALSE.; zslice=.FALSE.
       doslice=.FALSE.
 
-C Initialise strings.
+C Initialise strings.instanc
       LVEC='UNKNOWN'
       LBIT='UNKNOWN'
       LCFDV='UNKNOWN'
@@ -442,7 +436,7 @@ C Scan the defaults file for default configuration.
 C Make temporary use of file unit IFL.
       call escdef(IFL,'-',IER)
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('dfv ',1)
 
 C Create and open a session log file based on user name, PID etc.
@@ -601,9 +595,9 @@ C Then in mocfd.F we go into local version of MAKS3DF.
           if(doslice)then
             CALL MAKS3DFISLICE(IFRAME,ISLICE)
             call pauses(1)
-            write(outs,'(a,i2,a)') 'Current I slice ',ISLICE,' Option:'
-            call EASKABC(outs,':','shift left','shift right',
-     &        'continue',IBR,nbhelp)
+            write(outs,'(a,i2,a)') 'Current I slice is ',ISLICE,'.'
+            call EASKABC(outs,'Option:','shift left','shift right',
+     &        'cancel',IBR,nbhelp)
             if(IBR.eq.1)then
               ISLICE=ISLICE-1; XST=.true.
               goto 77
@@ -618,7 +612,7 @@ C Then in mocfd.F we go into local version of MAKS3DF.
             call pauses(2)
           endif
         else
-          call usrmsg('CFD performance data file not defined.',
+          call usrmsg('CFD performance data file not defined!',
      &      'aborting.','W')
         endif
       ELSE
@@ -634,7 +628,7 @@ c      ifont=1
 c      call viewtext(etext,iside,isize,ifont)
 
 C From this point need to draw as in MOCFD->VISMAK->FTV-MAKS3D
-      call EASKABC('  ','Option:','Exit application',
+      call EASKABC('  ','Option:','exit application',
      &  'read another timestep','view an I slice',IBR,nbhelp)
       if(IBR.eq.1)then
         close(ieout)
@@ -674,7 +668,7 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             goto 77  ! redraw it
           elseif(iw.eq.3)then
             ISTRW=72
-            CALL EASKF(cfd3dasci,'Domain performance name?','  ',
+            CALL EASKF(cfd3dasci,' ','Domain performance name?',
      &        ISTRW,'cfd3dasci','Domain performance file',IER,nbhelp)
             XST=.FALSE.
             INQUIRE (FILE=cfd3dasci,EXIST=XST)
@@ -690,7 +684,7 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             goto 77  ! redraw it
           else
             ISTRW=72
-            CALL EASKF(cfd3dasci,'Domain performance name?','  ',
+            CALL EASKF(cfd3dasci,' ','Domain performance name?',
      &        ISTRW,'cfd3dasci','Domain performance file',IER,nbhelp)
             XST=.FALSE.
             INQUIRE (FILE=cfd3dasci,EXIST=XST)
@@ -706,7 +700,7 @@ C        write(6,*) 'next ',cfd3dascinext(1:lncfd3d)
             goto 77  ! redraw it
           else
             ISTRW=72
-            CALL EASKF(cfd3dasci,'Domain performance name?','  ',
+            CALL EASKF(cfd3dasci,' ','Domain performance name?',
      &        ISTRW,'cfd3dasci','Domain performance file',IER,nbhelp)
             XST=.FALSE.
             INQUIRE (FILE=cfd3dasci,EXIST=XST)
@@ -726,13 +720,12 @@ C Try just drawing half way along the I axis.
       END
 
 C ********************* readcfd3dascii *********************
-C readcfd3dascii - read ascii information from one timestep.
-C with simulation day and timestep returned via ISIMDAY SIMTIMEF
+C Read ascii information from one time step with simulation
+C day and time step returned via ISIMDAY & SIMTIMEF.
+
       SUBROUTINE readcfd3dascii(ICOMP,cfd3dasci,ISIMDAY,SIMTIMEF)
 #include "building.h"
 #include "cfd.h"
-
-C espriou.h provides currentfile.
 #include "espriou.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
@@ -784,7 +777,7 @@ C ICFDZ - thermal zone associated with each CFD domain
       character outs*124
       real VAL
 
-C For help messages
+C For help messages.
       character helpinsub*24   ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -817,7 +810,7 @@ C Set unit number.
         return
       elseif(WORD(1:7).eq.'head_1:')then
 
-C Read head_1: MCEL1D,ICFDSV,(IEQSV(J),J=1,5+NCTM(ICFD))
+C Read head_1: MCEL1D,ICFDSV,(IEQSV(J),J=1,5+NCTM(ICFD)).
         CALL EGETWI(LOUTSTR,K,NCEL1D,0,0,'-','MCEL1D',IER)
         CALL EGETWI(LOUTSTR,K,ICFDSV,0,0,'-','ICFDSV',IER)
         CALL EGETWI(LOUTSTR,K,ICFD,0,0,'-','ICFD',IER)
@@ -827,14 +820,14 @@ C Read head_1: MCEL1D,ICFDSV,(IEQSV(J),J=1,5+NCTM(ICFD))
         ENDDO
       elseif(WORD(1:7).eq.'head_2:')then
         
-C Read head_2: (abs(ICFAUX(I)),I=1,NCOMP)
+C Read head_2: (abs(ICFAUX(I)),I=1,NCOMP).
         DO I=1,NCOMP   ! where do we get NCOMP?
           CALL EGETWI(LOUTSTR,K,ICFAUX(I),0,0,'-','ICFAUX',IER)
         ENDDO
 
       elseif(WORD(1:7).eq.'head_3:')then
 
-C Read head_3: ICFDYS,ICFDYF,CFTIMS,CFTIMF
+C Read head_3: ICFDYS,ICFDYF,CFTIMS,CFTIMF.
         CALL EGETWI(LOUTSTR,K,ICFDYS,0,0,'-','ICFDYS',IER)
         CALL EGETWI(LOUTSTR,K,ICFDYF,0,0,'-','ICFDYF',IER)
         CALL EGETWR(LOUTSTR,K,CFTIMS,0.,23.,'W','CFTIMS',IER)
@@ -842,12 +835,12 @@ C Read head_3: ICFDYS,ICFDYF,CFTIMS,CFTIMF
 
       elseif(WORD(1:7).eq.'head_4:')then
 
-C Read head_4: NCTM(ICFD)
+C Read head_4: NCTM(ICFD).
         CALL EGETWI(LOUTSTR,K,NCTM(ICFD),0,0,'-','NCTM(ICFD)',IER)
 
       elseif(WORD(1:7).eq.'head_5:')then
 
-C Read head_5: ISIMDAY SIMTIMEF
+C Read head_5: ISIMDAY SIMTIMEF.
         K=12
         CALL EGETWI(LOUTSTR,K,ISIMDAY,0,0,'-','IDYP',IER)
         CALL EGETW(LOUTSTR,K,WORD,'W',' at ',IER)
@@ -855,19 +848,19 @@ C Read head_5: ISIMDAY SIMTIMEF
 
       elseif(WORD(1:4).eq.'POL:')then
 
-C Read POLNAM: loop POLNAM(ICTM,ICFD)
+C Read POLNAM: loop POLNAM(ICTM,ICFD).
         CALL EGETW(LOUTSTR,K,WORD,'W','header tags',IER)
         ICTM=ICTM+1
         write(POLNAM(ICTM,ICFD),'(a)') WORD(1:lnblnk(WORD))
 
       elseif(WORD(1:5).eq.'zone:')then
 
-C Read zone:
+C Read zone.
         CALL EGETWI(LOUTSTR,K,ICOMP,0,0,'-','ICOMP',IER)
 
       elseif(WORD(1:4).eq.'all:')then
 
-C Read all:
+C Read all.
         CALL EGETWI(LOUTSTR,K,NI,0,0,'-','NI',IER)
         CALL EGETWI(LOUTSTR,K,NJ,0,0,'-','NJ',IER)
         CALL EGETWI(LOUTSTR,K,NK,0,0,'-','NK',IER)
@@ -880,21 +873,21 @@ C Read all:
 
       elseif(WORD(1:3).eq.'XU:')then
 
-C Read XU:
+C Read XU.
         DO I=1,NI
           CALL EGETWR(LOUTSTR,K,XU(I),0.,0.,'-','XU(I)',IER)
         ENDDO
 
       elseif(WORD(1:3).eq.'YV:')then
 
-C Read YV:
+C Read YV.
         DO I=1,NJ
           CALL EGETWR(LOUTSTR,K,YV(I),0.,0.,'-','YV(I)',IER)
         ENDDO
 
       elseif(WORD(1:3).eq.'ZW:')then
 
-C Read ZW:
+C Read ZW.
         DO I=1,NK
           CALL EGETWR(LOUTSTR,K,ZW(I),0.,0.,'-','ZW(I)',IER)
         ENDDO
@@ -955,7 +948,7 @@ C Dummy routine (needed for call back from c).
       return
       end
 
-C Dummy subroutine needed to compile (called from library code).
+C Dummy subroutines needed to compile (called from library code).
       SUBROUTINE PLELEV(direc)
       CHARACTER direc*1
 
@@ -1045,9 +1038,7 @@ C Dummy subroutines needed by common3dv.F
       return
       end
 
-      
 C dintervalf: A fortran implementation of the c surboutine dinterval.
-C Copied from esrucom/esru_misc.F
       subroutine dintervalf(v1,v2,dv,ndec,mode)
       real v1,v2,dv
       integer ndec,mode
@@ -1191,8 +1182,9 @@ C If one parameter.
 
 C Draw a single slice at the I axis.
 C ********************* MAKS3DF *********************
-C MAKS3DF - draw flows in 3d on screen using scaling factors of 
+C Draw flows in 3d on screen using scaling factors of 
 C first view.
+
       SUBROUTINE MAKS3DFISLICE(IFRAME,ISLICE)
 #include "building.h"
 #include "cfd.h"

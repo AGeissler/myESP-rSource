@@ -13,29 +13,24 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
+C MZLS1  - saves details relating to the problem description.
+C MZLS2  - saves the simulation directive information.
+C MZLS3  - saves time step results as a function of the defined save level.
+C MZLS4  - saves the start address of the next result-set.
+C MZLS5  - sets the value of present time row state variables to the
+C          newly determined future time row values prior to time step
+C          advancement.
+C SURBAL - calculates surface energy balances as required by some save levels.
 
-C      MZLS1  - saves details relating to the problem description.
-C      MZLS2  - saves the simulation directive information.
-C      MZLS3  - saves time step results as a function of the defined save level.
-C      MZLS4  - saves the start address of the next result-set.
-C      MZLS5  - sets the value of present time row state variables to the
-C               newly determined future time row values prior to time step
-C               advancement.
-C      SURBAL - calculates surface energy balances as required by some save levels.
 
 C ******************** MZLS1 ********************
-C SAVES THE CONTENTS OF THE SYSTEM
-C CONFIGURATION FILE AND THE NAMES OF THE
-C PROJECT, GEOMETRY, SHADING AND THERMAL PROPERTY
-C FILES RELATING TO EACH ZONE.
-C SELECTED MISCELLANEOUS DATA SUCH AS SURFACE AREAS ETC.
-C AND THE CURRENTLY ASSIGNED CLIMATE FILE NAME ARE ALSO SAVED.
+C Saves the contents of the model configuration file and the
+C names of the project, geometry, shading and thermal property
+C files relating to each zone. Selected miscellaneous data
+C such as surface areas etc. and the currently assigned weather
+C file name are also saved.
 
       SUBROUTINE  MZLS1
 #include "building.h"
@@ -455,9 +450,9 @@ C (default) or half-hour centered.
 C The flag can be set in the .cfg file or within bps in the 
 C 'simulation toggles' menu.
       common/CWEC_SOL/iSlr_half_hr_flg
-      integer iSlr_half_hr_flg     !- flag indicating if solar radiation data in weather file
-                                   !- is hour-centered (default) or half-hour centered.
-                                   !- 0 = hour-centered; 1 = half-hour centered.
+      integer iSlr_half_hr_flg   ! set to 0 if solar radiation data in 
+                                 ! weather file is hour-centered (default)
+                                 ! or 1 if half-hour centered.
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -574,7 +569,8 @@ c hold in memory for subsequent simulation result entry to library.
 
 C Ask for result-set information phrase.
 C Ignore if in autoexec mode - used the default.
-      write(RSNAME,'(2a)') 'For ',cfgroot(1:lnblnk(cfgroot))
+      write(RSNAME,'(2a)')
+     &  'Results ',cfgroot(1:lnblnk(cfgroot))
       if (NRSIM.gt.1) then
         if (ISIM.eq.1) then
           RSNAME='Base case'
@@ -615,7 +611,6 @@ C first simulation set.
       endif
       IREC=NSIM+2
       WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)NST,IRECPL,RSNAME
-C      WRITE(6,*) 'at end of mzls2 ',NSIM,IREC,NST,IRECPL,RSNAME
     7 RETURN
 
  1000 write(outs,'(A,I5,A)')' MZLS2: error at record',IREC,'.'
@@ -1178,11 +1173,6 @@ C While in startup check if ISSNY is 1 and if IDAY is 1 reset ISSNY.
        return
       else
 
-C Debug.
-C       write(6,*) 'bInstartup is false'
-C       write(6,*) IHRP,IHRF,IDYP,IDYF,IDWP,IDWF,NSINC,ITS,BTIMEP,
-C     &    BTIMEF,ISSNY,IDAY,ISDS,ISDF
-
       endif
 
 C Previous implementation:
@@ -1209,7 +1199,7 @@ C  991 IUNIT=IFIL+2
       if(icntb.gt.ndbph) icntb=1
       
 C Once per hour results storage. Determine whether storage at this
-C time step is needed; ie only during last time step within
+C time step is needed, i.e. only during last time step within
 C current hour.
       if(irdact.gt.0) then
         if(its.eq.ntstep) then
@@ -1228,7 +1218,6 @@ C ipass ensures that this is done only once.
         else
           call zngrph(iday,isdf,0,1)
         endif
-C         call usrmsg(' ',' Monitoring now in progress...','-')
         ipass=1
         ibplot=1
       endif
@@ -1240,7 +1229,7 @@ c Determine mean control node temperature (same as mean air
 c temperature if control point node - CPN - is located at air
 c point).
 
-c If no control imposed assume CPN is air point.
+c If no control imposed, assume control node is air point.
       IF(NCF.EQ.0.OR.IC.EQ.0)goto 2
       IF(IBSN(IC,1).EQ.0)INODE=1
       IF(IBSN(IC,2).EQ.0.AND.IBSN(IC,3).EQ.0.AND.
@@ -1257,7 +1246,7 @@ c Control point is air node.
     2 TMCON=TMA
       goto 1
 
-c Control node is situated at a surface.
+c Control node is surface node.
     3 ISURF=IBSN(IC,2)
       if (IDAVER.EQ.1) then
         TMCON=TFS(ICOMP,ISURF)
@@ -1266,7 +1255,7 @@ c Control node is situated at a surface.
       endif
       goto 1
 
-c Control node is within a construction.
+c Control node is construction node.
     4 IPOS=IBSN(IC,3)
       ISURF=IBSN(IC,2)
       if (IDAVER.EQ.1) then
@@ -1276,7 +1265,7 @@ c Control node is within a construction.
       endif
       goto 1
 
-c Control node is at the zone weighted temperature point.
+c Control node is zone weighted temperature.
     5 ITER=ITER-1
       CALL MZMIXT(ICOMP,TMRT,TMIX)
       if (IDAVER.EQ.1) then
@@ -1291,17 +1280,17 @@ C Control point is external air temperature.
    51 TMCON=(TP+TF)*0.5
       goto 1
 
-c Control point is the air point in another zone.
+C Control point is air point in another zone.
    61 IZ=-IBSN(IC,1)
       TMCON=(TFA(IZ)+TPA(IZ))*0.5
       goto 1
 
-c Control point is a plant component node (nb to be implemented).
+C Control point is a plant component node (not yet implemented).
    71 TMCON=TMA
 
-c Compute mean energy injection/extraction at plant
-c interaction node (PIN). Also remember convective plant
-C injection (qma) for trace).
+C Compute mean flux injection/extraction at plant
+C interaction node (PIN). Also remember convective plant
+C injection (qma) for trace output.
     1 QM=0.
       qma=0.
       IF(NCF.EQ.0.OR.IC.EQ.0)goto 6
@@ -1321,7 +1310,7 @@ c PIN is air point.
       qma=QM
       goto 6
 
-c PIN is at surface.
+c PIN is surface node.
     8 if (IDAVER.EQ.1) then
         QM=QFS(ICOMP)
       else
@@ -1330,7 +1319,7 @@ c PIN is at surface.
       qma=0.
       goto 6
 
-c PIN is within construction.
+c PIN is construction node.
     9 if (IDAVER.EQ.1) then
         QM=QFC(ICOMP)
       else
@@ -1339,10 +1328,10 @@ c PIN is within construction.
       qma=0.
       goto 6
 
-c PIN is at a plant component node (NB not yet implemented).
+c PIN is plant component node (N.B. NOT YET IMPLEMENTED).
    91 goto 7
 
-c PIN is a mix of radiant/convective flux (eg radiator).
+C PIN is mixed radiant/convective flux (e.g. for a radiator).
    92 if (IDAVER.EQ.1) then
         QM=QPLTF(ICOMP)
       else
@@ -1352,7 +1341,7 @@ c PIN is a mix of radiant/convective flux (eg radiator).
 
  6    CONTINUE
 
-C Compute the zone-side latent load
+C Compute the zone latent load.
       if (IDAVER.eq.1) then
         ZLL=ZLLDF(ICOMP)
       else
@@ -1375,19 +1364,14 @@ C zone.
 C Store the currently computed value.
       ZSPMP1(ICOMP)=ZSPMF1(ICOMP)
       ZSPMP2(ICOMP)=ZSPMF2(ICOMP)    
- 
-C Write out solar zone info (to see if similar to that of solar.F)
 
-C Debug.
-C      write(6,*) 'solsum blibsv',BTIMEF,ICOMP,q1adjz(2),q1outs(2),
-C     &   q2adjz(2),q2lost(2),q2tmc(2),q2wall(2),q2rem(2)
-
-C Temporary statement for dumping structured mesh temperatures.
+C Output structured mesh temperatures.
 C      call TEMPSD(icomp)
-      if ((ISAVE.eq.0).or.(ISAVE.eq.6)) then
 
-C Save appropriate data for ISAVE=0. Initialise during first pass
-C of each zone. Find current month (IS0M) for the simulation day.
+C *** Results save level 0 or 6 (i.e. no results library transfers).
+C Initialise during first pass of each zone. Find current month (IS0M)
+C for the simulation day.
+      if ((ISAVE.eq.0).or.(ISAVE.eq.6)) then
         CALL EDAYR(IDAY,IS0D,IS0M)
         IF (ICOMP.EQ.1) LS3CNT=LS3CNT+1
         IF (LS3CNT.eq.1)then
@@ -1446,9 +1430,9 @@ C Increment zone cooling demand (total and monthly).
         ZPC(ICOMP)=QM
    22   TVMEM(ICOMP,4,1)=TIME
         TVMEM(ICOMP,4,2)=FLOAT(NDAY)
-      elseif (ISAVE.eq.1) then
 
-c Write to results library if ISAVE = 1.
+C *** Results save level 1.
+      elseif (ISAVE.eq.1) then
         if(irdact.eq.0) then
           WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)TMA,TMCON,QM
           IREC=IREC+1
@@ -1466,11 +1450,12 @@ c Write to results library if ISAVE = 1.
             sQM(ICOMP)=0.0
           endif
         endif
+
+C Results save level 2 (or above but not 6).
       elseif (ISAVE.ge.2) then
 
-C Need to compute additional averages.
-C Calculate surface based averages first: Internal T; External solar 
-C   abs; Internal solar abs.
+C Surface-related averages: internal temperature, external solar absorption
+C and C internal solar absorption.
         NSUR=NCONST(ICOMP)
         do 10 I=1,NSUR
           if (IDAVER.eq.1) then
@@ -1484,9 +1469,8 @@ C   abs; Internal solar abs.
           endif
  10     continue
 
-C Zone based averages: Infiltration; Ventilation [remember  
-C   ventilation conductance (CVV?M) is adjusted to outside 
-C   temperatures.]; 
+C Zone-related averages: infiltration, ventilation (N.B. the ventilation
+C conductance, CVV?M, is adjusted to outside temperatures). 
         if (IDAVER.eq.1) then
           QV1=CVIF*(TF-TFA(ICOMP))
           XV=TF
@@ -1496,7 +1480,7 @@ C   temperatures.];
           QV2=CVVFM*XV-CVVF*TFA(ICOMP)
 
 C Solar distribution values: QW1 slot used for solar entering from outside,
-C QW2 slot used for solar from adjacent zones and QSA is solar absorbed.
+C QW2 slot used for solar from adjacent zones, QSA is solar absorbed.
           QW1=q1outs(2)
           QW2=q1adjz(2)
           QSA=q2tmc(2)+q2wall(2)+q2rem(2)+q2cfc(2)
@@ -1511,7 +1495,7 @@ C Thermal bridges.
           IF(ABS(YV).LT.SMALL)YV=1.
           QV2=(CVVPM*YV-CVVP*TPA(ICOMP)+CVVFM*XV-CVVF*TFA(ICOMP))*0.5
 
-C Solar trace rather than default window stuff.
+C Solar trace.
           QW1=(q1outs(1)+q1outs(2))*0.5
           QW2=(q1adjz(1)+q1adjz(2))*0.5
           QSA=((q2tmc(1)+q2tmc(2))*0.5)+((q2wall(1)+q2wall(2))*0.5)+
@@ -1522,11 +1506,12 @@ C Thermal bridges.
      &            ((TF-TFA(icomp))+(TP-TPA(icomp)))*0.5
         endif
 
-C Total Real and reactive power consumptions for each zone. 
+C Total real and reactive power consumption. 
         ZONPP(ICOMP)=0.0
         ZONQP(ICOMP)=0.0
         EZONPP=0.0
         EZONQP=0.0
+
 C For each casual gain type.
         DO 77 K=1,MGTY
           ZONPP(ICOMP)=ZONPP(ICOMP)+PEZON(ICOMP,K)
@@ -1554,7 +1539,7 @@ C Casual gains and average FRACtion controlled.
           FRAC=1.0
         endif
 
-C Comput averages for each of the separate casual gains (after ctl applied).
+C Averages for each casual gain (after control applied).
         if (IDAVER.EQ.1) then
           avgctlperocupc=ctlperocupc(icomp,2)
           avgctlperocupr=ctlperocupr(icomp,2)
@@ -1595,9 +1580,9 @@ C Comput averages for each of the separate casual gains (after ctl applied).
      &                     ctlperotherl(icomp,2))/2.0
         endif
 
-C Save future to current for these casual gains. Note: the
-C future value is still needed for the trace so delay zeroing
-C the future value until after the trace logic (i.e. after 700).
+C Save future to current for these casual gains. Since the
+C future value is still needed for trace output, delay zeroing
+C until after this output if invoked).
         ctlperocupc(icomp,1)=ctlperocupc(icomp,2)
         ctlperocupr(icomp,1)=ctlperocupr(icomp,2)
         ctlperocupl(icomp,1)=ctlperocupl(icomp,2)
@@ -1611,7 +1596,7 @@ C the future value until after the trace logic (i.e. after 700).
         ctlperotherr(icomp,1)=ctlperotherr(icomp,2)
         ctlperotherl(icomp,1)=ctlperotherl(icomp,2)
 
-C Get the ratio between the W for all the casual gains
+C Get the ratio between the flux for all the casual gains
 C to use when writing out surface energy balance data.
         avgradtot=avgctlperequipr+avgctlperlightr+avgctlperocupr+
      &            avgctlperotherr
@@ -1627,9 +1612,9 @@ C to use when writing out surface energy balance data.
           fracroth=avgctlperotherr/avgradtot
         endif 
 
-C Loop through all of the surfaces and get the convective flux at
-C the inside and outside face to sum up for the air balance reporting.
-C Note: to express in terms of the air node negate the value.
+C Loop through all surfaces and get the convective flux at
+C the inside and outside face and sum for the air balance reporting.
+C To express in terms of the air node negate the value.
         outopq=0.
         outtrn=0.
         opqin=0.
@@ -1659,19 +1644,19 @@ C Non-exterior BC transparent.
           endif
   310   continue
 
-C Qair is written to the results file to improve the reporting
+C Qair is written to the results file to support the reporting
 C of energy balances.
          qair=real(ntstep)*0.33*VOL(ICOMP)*(TPA(ICOMP)-TFA(ICOMP))
 
-C For izver >=4 explicit casual gain information are written into
+C For izver >=4 explicit casual gain information is written to
 C the results library. The first record has appended to it the sensible
-C convective W for occup/light/equip/other as well as qair.
-C The second record has the sensible radiant W for occup/light/equip/other
-C as well as thermal bridge loss.
-C The third record has the latent W for occup/light/equip/other (there
-C is one un-used slot).
+C convective flux for occup/light/equip/other as well as qair.
+C The second record has the sensible radiant flux for occup/light/equip/other
+C as well as the thermal bridge loss. The third record has the
+C latent flux for occup/light/equip/other (one unused slot remains).
 
-C Now write to results library if ISAVE = 2, 3, 4.
+
+C Write to results library if results save level (ISAVE) is 2, 3 or 4.
         if(irdact.eq.0) then
           WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)TMA,QM,
      &        (TMS(I),I=1,NSUR),QV1,QV2,TMCON,outopq,outtrn,
@@ -1687,9 +1672,9 @@ C Now write to results library if ISAVE = 2, 3, 4.
 
 C Special materials/components output (TEMPORARILY) written to this slot. Due 
 C to limited space only ONE special output per zone is allowed, with a 
-C maximum of two variables stored. Separate latent casuals also appended.
-C To help with display of controlled casual gains the value of ICGCTL(icomp)
-C is written as well.
+C maximum of two variables stored. Separate latent casual gains are saved.
+C To help with display of controlled casual gains, the value of ICGCTL(icomp)
+C is saved.
           theonectld=ICGCTL(icomp) 
           WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)(QSE(I),I=1,NSUR),
      &      QCASR,QCASC,ZRH,ZLL,FRAC,SPM1,SPM2,
@@ -1727,7 +1712,8 @@ C          write(6,*) doit
 C          call runit(doit,'-')
 
 C If the BEMS flag is active then write out the current zone temperature to the BEMS
-C output file (fort.60). Currently only writes out data for optimum start/stop. 
+C output file (fort.60). Currently only writes out data for optimum start/stop
+C control. 
           if(ibems.gt.0) then
             WRITE(60,*) '#Zone  Day  Time   Temperature '
     
@@ -1862,8 +1848,8 @@ C Reset the saved values after having written the data.
           endif
         endif
 
-C If higher save level than 2 then calculate additional information.
-C ISAVE=3 - save also the intra-construction temperatures.
+
+C *** Results save level 3 (as level 2 plus intra-construction temperatures).
         if (ISAVE.eq.3) then
           DO 30 I=1,NSUR
             NN=NNDC(ICOMP,I)-1
@@ -1892,7 +1878,8 @@ C ISAVE=3 - save also the intra-construction temperatures.
             endif
    30     CONTINUE
 
-C ISAVE=4 - save also the surface fluxes.
+
+C *** Results save level 4 (as level 2 plus surface heat flux).
         elseif (ISAVE.eq.4) then
           IZFLG=0
           DO 300 ISF=1,NSUR
@@ -1932,10 +1919,9 @@ C Outside surface node temperature and average surface energy transfers.
               avqswrde=(qswrde(ICOMP,ISF,1)+qswrde(ICOMP,ISF,2))*0.5
             endif
 
-C Write out all of the information for ISAVE=4 including explicit
-C radiant casual gains for occupants, lights, small power and other
-C so no calculations are needed to reconstitute the radiant casual 
-C gains. 
+C Include radiant casual gains for occupants, lights, small power and other
+C so that no calculations are required to reconstitute the radiant casual 
+C gains in res. 
             if(irdact.eq.0) then
               WRITE(IUNIT,REC=IREC,IOSTAT=ISTAT,ERR=1000)TMC(1),
      &          avqswrdi,avqlwrdi,avqconvi,avqcondi,avqstori,
@@ -2013,11 +1999,11 @@ C Print the following zone data only once.
      &                     F7.1,' QPC=',F7.1,' QFC=',F7.1,' QM=',F7.1)
               call edisp(itu,outs)
 
-C Need to account for the storage of the air mass.
+C Need to account for the storage of the zone air mass.
               qair=real(ntstep)*0.33*VOL(ICOMP)*(TPA(ICOMP)-TFA(ICOMP))
 
 C Get sum at the air node. d1 to d6 are the present and future
-C portions of each of the saved variables. qma from QM calculation above.
+C portions of each of the saved variables. qma is from the QM calculation above.
 C              tot=QV1+QV2+QW1+QW2+QSA+QCASC+outopq+opqin+
 C     &                                           outtrn+trnin+qma+qair
 C QW1 and QW2 and QSA are used for solar trace output only.
@@ -2041,7 +2027,7 @@ C QW1 and QW2 and QSA are used for solar trace output only.
      &                                                  qbridge,d5,d6
               call edisp(itu,outs)
 
-C Solar distribution info.
+C Solar distribution.
               write(outs,'(A,3F9.2)')
      &          ' Solar from outside & adj zones and solar absorbed:',
      &          QW1,QW2,QSA
@@ -2226,7 +2212,7 @@ C Compute error term.
             call edisp(itu,outs)
             call edisp(itu,'  ')
 
-C Exterior side of surface, print more information.
+C Exterior side of surface, print additional information.
             IF(IE(icomp,ISF).EQ.0)THEN
               write(outs,8021)zsdes
  8021         format(' External flux balance for MLC surface: ',a)
@@ -2270,9 +2256,8 @@ C Compute error term.
             ENDIF
   700     continue
 
-C The arrays ctlperocupc(?,2) etc. have not been cleared because they
-C were used in the trace facility.  To match the other variable types
-C the future values are reset to zero at this point.
+C The arrays ctlperocupc(?,2) etc. have not been cleared because they were
+C used in the trace facility. The future values are now reset to zero.
           ctlperocupc(icomp,2)=0.0
           ctlperocupr(icomp,2)=0.0
           ctlperocupl(icomp,2)=0.0
@@ -2377,7 +2362,7 @@ C determined future time row values prior to time step advancement.
 
       COMMON/GENFLUX/GENFLXF(MCOM,MS,MN),GENFLXP(MCOM,MS,MN)
 
-C Now, for the next time-step, set the present temperature
+C For the next time-step, set the present temperature
 C and plant injection values equal to the future values.
       QPLTP(ICOMP)=QPLTF(ICOMP)
       QPA(ICOMP)= QFA(ICOMP)

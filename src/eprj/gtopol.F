@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Contents:
 C  GTOPOL - interface to ground topology 
@@ -156,7 +152,7 @@ C Begin with menu.
       ITEMS(9)=                '> save                           '
       ITEMS(10)=               '! list data                      '
       ITEMS(11)=               '? help                           '
-      ITEMS(12)=               '- exit this menu                 '
+      ITEMS(12)=               '- exit menu'
       nitms = 12
 
 C If ground needs drawing or updating do it here.
@@ -1898,8 +1894,8 @@ C If MOD has been passed as a M then return -2 to indicate further processing
       ENDIF
       VERT(M+3)   ='? help              '
       VERTS(M+3)  ='? help              '
-      VERT(M+4)   ='- exit this menu    '
-      VERTS(M+4)  ='- exit this menu    '
+      VERT(M+4)   ='- exit menu'
+      VERTS(M+4)  ='- exit menu'
 
 C Display the menu.
       helptopic='ground_surf_selection'

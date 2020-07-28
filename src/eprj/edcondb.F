@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C edcondb.F comprising:
 C  ELISTMAT: Controls display and editing of materials commons.
@@ -552,7 +548,7 @@ C a common data file.
           PDBM(NC+3)='                                 '
         endif
         PDBM(NC+4)=  '? help                           '
-        PDBM(NC+5)=  '- exit this menu                 '
+        PDBM(NC+5)=  '- exit menu                      '
         NITMS=NC+5
         INO=-4
 
@@ -1478,7 +1474,7 @@ C a common data file.
           PDBM(NC+3)='                                 '
         endif
         PDBM(NC+4)=  '? help                           '
-        PDBM(NC+5)=  '- exit this menu                 '
+        PDBM(NC+5)=  '- exit menu                      '
         NITMS=NC+5
         INO=-4
 
@@ -3134,7 +3130,7 @@ C If a long list include page facility text.
         MLCITM(M+5)='> save common data          '
       endif
       MLCITM(M+6)='? help                      '
-      MLCITM(M+7)='- exit this menu            '
+      MLCITM(M+7)='- exit menu                 '
       INO=-4
 
 C Help text for this menu.
@@ -3777,8 +3773,6 @@ C Parameters
       integer isel ! is the returned index in mlcdatarray
       integer ier     ! IER 0 OK IER 1 or 2 problem
 
-      COMMON/SPAD/MMOD,LIMIT,LIMTTY
-
       common/FILEP/IFIL
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       integer ifs,itfs,imfs
@@ -3798,10 +3792,11 @@ C CLSSEL (36 char) is an array for menu items for the selected class.
       character CLSSEL*36,CLSDES*38
       DIMENSION CLSDES(36),CLSSEL(30),ICLSSEL(30)
       CHARACTER*66 MLCITM(37)
+      CHARACTER*66 MLCITMDEL(37)
       character managearray*32  ! string array for material management
       dimension managearray(150)
-      integer pointback(36) ! to point back to item in list
-      integer iwhichmanage,iwhichmsel
+      integer pointback(42)     ! to point back to item in list ?? not used
+      integer iwhichmanage,iwhichmsel             ! << seems not to be used
       dimension iwhichmanage(150),iwhichmsel(150) ! for each management array point back
       integer iwhicharray   ! for each item in menu point back to array
       integer lsn,lfordoc   ! for detecting string lengths
@@ -3823,18 +3818,10 @@ C If this parameter is changed also change it in subroutine EDMLDB
       REAL TRNT(MPN),REF(MPN),OREF(MPN),OEMS(MPN)
       character heading*70
       logical mod   ! to signal whether an item has been altered.
-      integer iwhich2  ! 2nd material array index
       integer listc    ! for looping through classes
       integer NCO,ICO,NITMS,INO,IW  ! max items and current menu item
       integer mclist  ! counter for materials found to be in this category
-      integer listwidth,itemwid  ! keep track of width of longest line in menu.
       integer ISTRW
-
-#ifdef OSI
-      integer impx,impy,iwe
-#else
-      integer*8 impx,impy,iwe
-#endif
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -3857,9 +3844,7 @@ C Assume no changes to db amd user has not entered password.
       t32 = ' '
       IAF=IFIL+1
       iwhich=1   ! initial construction selections
-      iwhich2=1
       INO=0
-      listwidth=0; itemwid=0
 
 C Switch to fixed width font for the main EDMLDB2 menu.
 C lastmenufont & lastbuttonfont & lasttextfont for use when returning
@@ -4046,7 +4031,7 @@ C associated with this class.
                 pointback(matching)=loop
                 lfordoc = 72 - (lnmlcmenu(loop) +4)    ! space left for doc
                 WRITE(outs,'(2x,3a)')
-     &            mlcname(loop)(1:lnmlcmenu(loop)),' : ',
+     &            mlcmenu(loop)(1:lnmlcmenu(loop)),' : ',
      &            mlcdoc(loop)(1:lfordoc)
                 call edisp(itu,outs)
               endif
@@ -4243,10 +4228,8 @@ C        write(6,'(a,3i2)') 'EDMLDB2 4242 IFS,ITFS,IMFS',IFS,ITFS,IMFS
         CALL EKPAGE(IPACT)
 
 C Generate menu strings for constructions in the class. Could check string widths!
-    3   write(MLCITM(1),'(2a)') ' Constructions in category ',
-     &    mlccatname(IC)(1:lnmlccatname(IC))
-        itemwid=lnblnk(MLCITM(1))
-        if(itemwid.gt.listwidth) listwidth=itemwid
+    3   write(MLCITM(1),'(a)') 
+     &    ' Construction                 :Documentation'
         M=MHEAD
         ILEN=mlccatitems(IC) ! reset if constructions in this catetory changed
         mclist=0  ! counter for materials found to be in this category
@@ -4267,26 +4250,13 @@ C case a new construction or a copy re-check iwid.
               iwhicharray(M)=loop  ! menu position M relates to data array loop
               lsn=lnmlcname(loop)
               lsm=lnmlcmenu(loop)
-              lso=lnblnk(mlcoptical(loop))
-              if((lsn+lsm+lso+5).gt.iwid) iwid=lsn+lsm+lso+5
+              lfordoc = 66 - (lsm +4)    ! space left for doc
+              iwid=66
               CALL EMKEY(mclist,KEY,IER)
-              if(iwid.lt.66)then
-                lsn=lnmlcname(loop)
-                lsm=lnmlcmenu(loop)
-                lso=lnblnk(mlcoptical(loop))
-                WRITE(MLCITM(M),'(a,1x,5a)')KEY,mlcname(loop)(1:lsn),
-     &            '  ',mlcoptical(loop)(1:lso),' ',mlcmenu(loop)(1:lsm)          
-                itemwid=lnblnk(MLCITM(M))
-                if(itemwid.gt.listwidth) listwidth=itemwid
-              else
-                lsn=MIN0(lnmlcname(loop),23)
-                lsm=MIN0(lnmlcmenu(loop),23)
-                lso=MIN0(lnblnk(mlcoptical(loop)),14)
-                WRITE(MLCITM(M),'(a,1x,5a)')KEY,mlcname(loop)(1:lsn),
-     &            '  ',mlcoptical(loop)(1:14),' ',mlcmenu(loop)(1:lsm)
-                itemwid=lnblnk(MLCITM(M))
-                if(itemwid.gt.listwidth) listwidth=itemwid
-              endif         
+              WRITE(MLCITM(M),'(a,1x,3a)')KEY,mlcmenu(loop)(1:lsm),
+     &            ' :',mlcdoc(loop)(1:lfordoc)         
+              WRITE(MLCITMDEL(mclist),'(3a)') mlcmenu(loop)(1:lsm),
+     &            ' :',mlcdoc(loop)(1:lfordoc)         
             endif
           endif
         enddo
@@ -4298,6 +4268,7 @@ C If a long list include page facility text.
         ELSE
           WRITE(MLCITM(NC+1),15)IPM,MPM 
         ENDIF
+        WRITE(MLCITMDEL(mclist+1),'(a)') '  '  ! ensure no null character line         
 
         if(ACTION.eq.'M'.or.ACTION.eq.'m')then
           MLCITM(NC+2)='# view g-value'
@@ -4309,14 +4280,14 @@ C If a long list include page facility text.
             MLCITM(NC+5)='> save common data          '
           endif
           MLCITM(NC+6)='? help                      '
-          MLCITM(NC+7)='- exit this menu            '
+          MLCITM(NC+7)='- exit menu                 '
         elseif(ACTION.eq.'-')then
-          MLCITM(NC+2)='# view g-value'
-          MLCITM(NC+3)='                                 '
-          MLCITM(NC+4)='! list contents    '
-          MLCITM(NC+5)='                                 '
+          MLCITM(NC+2)='# view g-value              '
+          MLCITM(NC+3)='                            '
+          MLCITM(NC+4)='! list contents             '
+          MLCITM(NC+5)='                            '
           MLCITM(NC+6)='? help                      '
-          MLCITM(NC+7)='- exit this menu            '
+          MLCITM(NC+7)='- exit menu                 '
         endif
         NITMS=NC+7
         INO=-4
@@ -4330,14 +4301,7 @@ C Help text for this menu.
      &    mlccatname(IC)(1:lnmlccatname(IC)),' (',IC,') with ',
      &    mlccatitems(IC),' entries.'
 
-C Constrain the width of the menu if possible.
-        if(MMOD.EQ.8)then
-          impx=0; impy=0; iwe=listwidth+2
-          CALL VWMENU(heading,MLCITM,NITMS,
-     &    impx,impy,iwe,irpx,irpy,INO)
-        else
-          CALL EMENU(heading,MLCITM,NITMS,INO)
-        endif
+        CALL EMENU(heading,MLCITM,NITMS,INO)
         IF(INO.EQ.NITMS.OR.INO.EQ.0)THEN
           IF(MODDB.and.ACTION.eq.'M')THEN
 
@@ -4577,8 +4541,14 @@ C not to do recursive calls use epkmlc rather than EDMLDB2.
             if(mlcver.eq.0)then
               call epkmlc(iwhich,'Delete which construction?',' ',ierr)
             else
-              call epkmlc(iwhich,'Delete which construction?',
-     &          '(via this global list)',ierr)
+
+C Use MLCITMDEL string array and epicks to select MLC to copy.
+              NPICK=1
+              PROMP1='Delete which construction '
+              PROMP2='within the current category? '
+              CALL EPICKS(INPICK,IVALS,PROMP1,PROMP2,
+     &          66,mclist,MLCITMDEL,' ',IER,nbhelp)
+               iwhich=pointback(ivals(1))  ! Cast back to initial MLC array.
             endif
             CALL EPMENRC
             if(iwhich.eq.0) goto 2
@@ -4673,8 +4643,14 @@ C Copy an existing construction to a new one at end of list.
             if(mlcver.eq.0)then
               call epkmlc(iwhich,'Copy which construction?',' ',ierr)
             else
-              call epkmlc(iwhich,'Copy which construction?',
-     &          '(via this global list)',ierr)
+
+C Use MLCITMDEL string array and epicks to select MLC to copy.
+              NPICK=1
+              PROMP1='Copy which construction '
+              PROMP2='within the current category? '
+              CALL EPICKS(INPICK,IVALS,PROMP1,PROMP2,
+     &          66,mclist,MLCITMDEL,' ',IER,nbhelp)
+               iwhich=pointback(ivals(1))  ! Cast back to initial MLC array.
             endif
             CALL EPMENRC
             if(iwhich.eq.0) goto 3
@@ -4703,6 +4679,7 @@ C Find its category and increment its counter/
                 IC=loop  ! reset the focus category to one we have copied
                 write(6,*) 'Another item for ',mlccatname(loop),' ',
      &            mlccatitems(loop),' focus now ',IC
+                ILEN=mlccatitems(IC) ! reset for materials in this catetory 
               endif
             enddo
 
@@ -4742,8 +4719,9 @@ C When editing the construction name use a slightly wider string buffer.
               lnmlcname(NMLC)=lnblnk(mlcname(NMLC))  ! remember length
               write(mlcmenu(NMLC),'(a)') T32(1:32)
               lnmlcmenu(NMLC)=lnblnk(mlcmenu(NMLC))  ! remember length
-              write(mlcdoc(NMLC),'(2a)') 'no documentation yet for ',
-     &          mlcname(NMLC)(1:lnmlcname(NMLC))
+              write(mlcdoc(NMLC),'(3a)') 
+     &           mlcname(NMLC)(1:lnmlcname(NMLC)),'  ',
+     &           mlcdoc(IWHICH)(1:lnblnk(mlcdoc(IWHICH)))
             endif
 
 C Find its category and increment its counter/
@@ -4789,9 +4767,14 @@ C there is room in the database copy data to a new item.
               call epkmlc(iwhich,
      &        'Make inverted version of which construction?',' ',ierr)
             else
-              call epkmlc(iwhich,
-     &          'Make inverted version of which construction?',
-     &          '(via this global list)',ierr)
+
+C Use MLCITMDEL string array and epicks to select MLC to copy.
+              NPICK=1
+              PROMP1='Make inverted version of which construction '
+              PROMP2='within the current category? '
+              CALL EPICKS(INPICK,IVALS,PROMP1,PROMP2,
+     &          66,mclist,MLCITMDEL,' ',IER,nbhelp)
+               iwhich=pointback(ivals(1))  ! Cast back to initial MLC array.
             endif
             CALL EPMENRC
             if(iwhich.eq.0)then
@@ -5203,7 +5186,8 @@ C Note: size of MLED supports a dozen layers in a construction.
       character*72 LTMP
       CHARACTER NAM*72,KEY*1,GDESCR*36
       CHARACTER SOPT*12,LAYD*124
-      character T12*12,T14*14,T32*32,tdoc*248
+      character T12*12,T14*14,T32*32,T32orig*32
+      character tdoc*248
       CHARACTER outs*124,MLED*42,MMLAY*42
       character PNAM*72
       character ZN*12,SN*12
@@ -5214,6 +5198,7 @@ C Note: size of MLED supports a dozen layers in a construction.
       real currentu, deltau, curdeltau ! values for adjust
       real valx, valy, valz  ! for reading range and desired U value
       integer ISTRW
+      logical oktoreplace    ! signal update of MLC name references
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -5247,6 +5232,7 @@ C is true then the common blocks are filled.
         ier=2
         return
       endif
+      oktoreplace=.false.  ! clear initial assumption
 
 C Check version of CFC layers database.  If closecfc1
 C is true then the common blocks are filled.
@@ -5516,7 +5502,7 @@ C If possible to jump next.
       M=M+1
       MLED(M)='? help                           '
       M=M+1
-      MLED(M)='- exit this menu                 '
+      MLED(M)='- exit menu                      '
       NLED=M
       ILED=-4
 
@@ -5632,6 +5618,17 @@ C and then if it is linked to another `inverted` MLC save it as well.
                 call edisp(iuout,'Resetting construction to symmetric.')
               else
                 continue
+              endif
+            elseif(mlcsymetric(ifoc)(1:2).EQ.'  ')then
+              if(layermatch)then
+                mlcsymetric(ifoc)='SYMMETRIC   '
+                matsymindex(ifoc)=0
+                call edisp(iuout,'Resetting construction to symmetric.')
+              else
+                mlcsymetric(ifoc)='NONSYMMETRIC'
+                matsymindex(ifoc)=0
+                call edisp(iuout,
+     &            'Resetting construction to nonsymmetric.')
               endif
             else
 
@@ -6276,11 +6273,11 @@ C Check if layers no longer match.
 
 C Edit construction name, if it is linked to another MLC then the
 C linked MLC should point back to the edited name.
-        T32=mlcname(ifoc)
+        T32=mlcname(ifoc)      ! MLC working name
+        T32orig=mlcname(ifoc)  ! For search & replace of MLC name
         lnt32=lnblnk(T32)
 
-C If changing the name of construction then find out if
-C any of the surfaces in the model use this construction
+C Check if any of the surfaces in the model use this construction.
 C If they do then warn the user.
         if(ncon.gt.0)then
           modgeo=.false.
@@ -6306,16 +6303,15 @@ C If they do then warn the user.
           write(outs,'(a)') ' Checking surface attributes...done.'
           CALL USRMSG(' ',outs,'P')
           if(modgeo)then
-            call usrmsg(
-     &      'Surfaces use this construction so the name cannot be',
-     &      'changed. Replace these with another construction first.',
-     &      'W')
-            moddb = .false.
-            goto 3
+            oktoreplace=.false.
+            CALL EASKOK(
+     &       'Some surfaces use this MLC name. Update these to',
+     &       'use the new name?',oktoreplace,nbhelp)
+            if(.NOT.oktoreplace) goto 3
           endif
         endif
         if(mlcver.eq.0)then
-          write(T14,'(2a)') mlcname(ifoc)(1:12),'  '
+          write(T14,'(2a)') mlcname(ifoc)(1:12),'  '         ! new name
           CALL EASKS(T14,' ','Name of the construction?',
      &      14,' ','Construction name',IER,nbhelp)
           write(T12,'(a)') T14(1:12)
@@ -6326,14 +6322,11 @@ C If they do then warn the user.
           write(mlcincat(ifoc),'(a)') 'general constructions'
           mlcdoc(ifoc)='Not yet documented'
         else
-
-C Need to check whether logic elsewhere works with spaces in MLC name.
-          write(T32,'(a)') mlcname(ifoc)(1:lnmlcname(ifoc))
+          write(T32,'(a)') mlcname(ifoc)(1:lnmlcname(ifoc))  ! New name
           CALL EASKS(T32,' ','Name of the construction?',
      &      32,' ','Construction name',IER,nbhelp)
           write(mlcname(ifoc),'(a)') T32(1:lnblnk(T32))
           lnmlcname(ifoc)=lnblnk(mlcname(ifoc))  ! remember length
-C          call st2name(T32,mlcname(ifoc))   ! NOT SURE IF THIS STILL REQUIRED
         endif
 
         IF(mlctype(ifoc)(1:4).NE.'CFC2')THEN
@@ -6355,6 +6348,62 @@ C for the current item.
                 matsymindex(ifoc)=k           ! remember its array position
               endif
             enddo
+          endif
+
+C If surface attributes are to be updated do this search and replace.
+          if(oktoreplace.and.ncomp.gt.0)then
+            do iz=1,ncomp
+              write(zn,'(A)') zname(IZ)
+              write(outs,'(3a)') 'Search replace: ',zn(1:lnblnk(zn)),
+     &          ' attributes...'
+              CALL USRMSG(' ',outs,'-')
+              LTMP=LGEOM(IZ)
+              call georead(IUF,LTMP,IZ,1,iuout,IER)
+              WRITE(outs,'(2a)')
+     &        '           Sur|  Area  |Azim|Elev| surface    |',
+     &        'geometry| multilayer  |environment'
+              call edisp(iuout,outs)
+              WRITE(outs,'(2a)')
+     &        '              |  m^2   |deg |deg | name       |',
+     &        'type|loc| constr name |other side '
+              call edisp(iuout,outs)
+              modgeo=.false.
+
+C Loop to find surfaces which use this construction.
+              do i=1,nsur
+                ioc=IZSTOCN(IZ,i)
+                lnssmlc=lnblnk(SMLCN(IZ,i))
+                if(SMLCN(IZ,i)(1:lnssmlc).eq.
+     &             T32orig(1:lnblnk(T32orig)))then
+                  write(SMLCN(IZ,i),'(a)') T32(1:lnblnk(T32))
+                  write(sn,'(a)') SNAME(IZ,i)
+                  write(SOTF(IZ,i),'(a)') mlctype(ifoc)
+                  WRITE(outs,'(a,I3,1X,F7.2,F5.0,F5.0,1X,A,1X,A,
+     &              1X,A,1X,A,1X,A)')'updated:   ',I,
+     &              SNA(IZ,i),SPAZI(IZ,i),SPELV(IZ,i),SN,SOTF(IZ,i),
+     &              SVFC(IZ,i),T32(1:lnblnk(T32)),SOTHER(IZ,i,1)(1:13)
+                  call edisp(iuout,outs)
+                  modgeo=.true.
+                endif
+              enddo  ! of i
+
+C If SOFT has changed update the zone geometry file. Warn user about
+C out of date zone construction files.
+              if(modgeo)then
+                call eclose(gversion(iz),1.1,0.01,newgeo)
+                if(.NOT.newgeo)then
+                  gversion(iz) =1.1
+                  newgeo = .true.
+                endif
+                call geowrite(IUF,LTMP,IZ,ITRU,3,IER)
+                write(outs,'(3a)') ' Updating: ',zn(1:lnblnk(zn)),
+     &            ' attributes... done.'
+                CALL USRMSG(' ',outs,'-')
+              endif
+            enddo  ! of iz
+            call usrmsg(
+     &      'Zone construction files may need to be updated',
+     &      'after the database modifications are completed.','W')
           endif
           moddb = .true.
         ENDIF
@@ -6475,14 +6524,10 @@ C If SOFT has changed update the zone geometry file. Warn user about
 C out of date zone construction files.
             if(modgeo)then
               call eclose(gversion(iz),1.1,0.01,newgeo)
-              if(igupgrade.eq.2.and.(.NOT.newgeo))then
+              if(.NOT.newgeo)then
                 gversion(iz) =1.1
                 newgeo = .true.
-              endif
-              if(newgeo)then
                 call geowrite(IUF,LTMP,IZ,ITRU,3,IER)
-              else
-                call emkgeo(IUF,LTMP,IZ,3,IER)
               endif
               write(outs,'(3a)') ' Updating: ',zn(1:lnblnk(zn)),
      &          ' attributes... done.'
@@ -7075,7 +7120,7 @@ C If a long list include page facility text.
    15   FORMAT   ('0 page: ',I2,' of ',I2,' --------')
       ENDIF
       VERT(M+2)  ='? help                           '
-      VERT(M+3)  ='- exit this menu                 '
+      VERT(M+3)  ='- exit menu                      '
 
 C Help text for this menu.
       helptopic='select_from_materials'

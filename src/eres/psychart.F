@@ -13,18 +13,15 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C PSYCHART draws a window with a simplified version of
+C ******************** PSYCHART ********************
+C Draws a window with a simplified version of
 C the standard  psychrometric chart based on the current
 C user focus defined by act. act = 'f' for a flow network,
 C act = 'z' for zone air status, act = 'p' for plant
 C component status, act = 'u' for user supplied points.
-      SUBROUTINE PSYCHART(act)
 
+      SUBROUTINE PSYCHART(act)
 #include "building.h"
 #include "site.h"
 #include "plant.h"
@@ -156,7 +153,7 @@ C Display menu.
         INO=-2
       endif
 
-C Instanciate help strings for the menu and sub-dialogs.
+C Instantiate help strings for the menu and sub-dialogs.
       helptopic='res_psychromtric_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -770,9 +767,9 @@ C If a long list include page facility text.
 
       SVERT(M+4)  ='                   '
       SVERT(M+5)  ='? help             '
-      SVERT(M+6)  ='- exit             '
+      SVERT(M+6)  ='- exit menu'
 
-C Instanciate help strings for the menu and sub-dialogs.
+C Instantiate help strings for the menu and sub-dialogs.
       helptopic='plant_psychart_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 

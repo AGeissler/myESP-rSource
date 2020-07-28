@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C The file egbxml.F is a collection of support facilities for
 C reading gbXML files to create esp-r model meta files:
@@ -427,7 +423,7 @@ C Assume we are working with a poly shaped room.
       IER=0
 
 C For a poly shaped zone use similar logic to reading geometry file.
-C Instanciate nsur and ntv for use in escrot and filsur.
+C Instantiates nsur and ntv for use in escrot and filsur.
       NSUR=nbwalls(ICOMP)
       NZSUR(ICOMP)=nbwalls(ICOMP)
       NTV=nztv(icomp)
@@ -471,7 +467,7 @@ C Update the connection list.
         IC2(ICCC)=zboundarytype(icomp,icc,2)
         IE2(ICCC)=zboundarytype(icomp,icc,3)
 
-C Instanciate the surface attributes.
+C Instantiate the surface attributes.
         write(sname(icomp,icc),'(a)') hasname(icc)
         n=-1
         n=iachar(hasmlc(icc)(1:1))
@@ -581,7 +577,7 @@ C mark an unknownmlc so construction files are not created.
         endif
         SPARENT(icomp,icc)='-'
 
-C Use zboundarytype to instanciate sother.
+C Use zboundarytype to instantiate sother.
         IF(zboundarytype(icomp,icc,1).EQ.0)THEN
           SOTHER(icomp,icc,1)='EXTERIOR'
         ELSEIF(zboundarytype(icomp,icc,1).EQ.1)THEN
@@ -3473,7 +3469,7 @@ C Call silentxmlzone and then loop back for more possible definiitons.
 C We do not yet use an gbXML shade descriptions (these seem to be
 C polygons rather than block definitions). << consider approach >>.
 C If there are obstructions fill in relevant common blocks. Set iobs()=2
-C to signal that the common blocks have been instanciated and data should
+C to signal that the common blocks have been instantiated and data should
 C be included in the version 1.1 geometry file.
           if(nbobs(icomp).gt.0)then
             iobs(icomp)=2

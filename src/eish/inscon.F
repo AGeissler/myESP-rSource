@@ -13,26 +13,22 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This version includes some tests of diffuse shading
 C from 3D grid points.
 
-C File 'inscon.F' comprises:
-C  INSCON - readies the insolation computation and calls INSOLC.
-C  findtmc- searches for which surfaces are insolation sources:
-C  IGEOMS - establishes the surface grid.
-C  INWSHD - reads the zone transitional shading file to extract
-C           insolation source shading information.
-C  INSOLC - controls the insolation computation.
-C  INCAI  - computes areas and angles.
-C  INSORT - sets up mesh points for transparent surfaces.
-C  TRANSP - transforms a point on a surface to 3D coordinate space.
+C This file comprises the following subroutines.
+C INSCON - readies the insolation computation and calls INSOLC.
+C findtmc- searches for which surfaces are insolation sources:
+C IGEOMS - establishes the surface grid.
+C INWSHD - reads the zone transitional shading file to extract
+C          insolation source shading information.
+C INSOLC - controls the insolation computation.
+C INCAI  - computes areas and angles.
+C INSORT - sets up mesh points for transparent surfaces.
+C TRANSP - transforms a point on a surface to 3D coordinate space.
 
-C ********** INSCON **********
+C ******************** INSCON ********************
 C Controls the internal surface insolation calculation:
 C   icomp  - the zone index;
 C   icstat - computation status (1 if data exists);
@@ -40,8 +36,6 @@ C   act    - 's' for silent mode, '-' for user interaction mode.
 
       subroutine inscon(icomp,icstat,act)
 #include "building.h"
-
-C geometry.h provides commons G0/G2/c20/precz.
 #include "geometry.h"
       
       integer lnblnk  ! function definition
@@ -56,7 +50,7 @@ C                 in common.
       common/outin/iuout,iuin,ieout
       common/filep/ifil
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
-
+      common/shad0/ISIcalc,icalcD,icalcM
       character ltrns*72
       integer multic,mons,monf
       common/mtfile/ltrns,multic,mons,monf
@@ -74,7 +68,7 @@ C                 in common.
       integer ier
       integer irpt    ! level of graphic reporting and delay
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -137,7 +131,11 @@ C Use a 2nd call to findtmc to allow the user to select different surfaces.
       endif
 
 C Establish calculation period.
-      if(act.eq.'s')then
+      if(ISIcalc.eq.1)then
+         mons=icalcM
+         monf=icalcM
+         mon=icalcM
+      elseif(act.eq.'s')then
          mons=1
          monf=12
          mon=mons
@@ -159,22 +157,22 @@ C If in graphic mode ask about delay in graphic display of calcs.
           irpt=0  ! silent so do not bother with display
         else
           irpt=0
-          CALL EASKABCD(' Insolation display options:',' ',
-     &      'no display','quick display',
-     &      'slower display','slow display',irpt,nbhelp)
+          CALL EASKABCD(' ','Insolation display options:',
+     &      'none','quick',
+     &      'slower','slowest',irpt,nbhelp)
           irpt=irpt-1
         endif
       else
         irpt=0
       endif
 
-C For testing ask method
+C For testing ask method.
       icmethod=1   ! use legacy for now
-
 
 C Convert start month day of average solar declination to a year
 C day number.
   81  iday=iavdec(mon)
+      if(ISIcalc.eq.1)iday=icalcD
       call eday(iday,mon,iyd)
 
 C Attempt to open the relevant zone transitional shading file 
@@ -210,17 +208,22 @@ C update the zone shading & insolation db.
       call insolc(icomp,irpt)
       icstat=1
       call isave(icomp,ier)
+
+C Next month.
+      if(ISIcalc.eq.1)return  ! do only once if in embedded mode
+
       mon=mon+1
       if(mon.le.monf)goto 81
 
       return
       end
 
-C ********** findtmc **********
-C findtmc searches for which surfaces are insolation sources:
+C ******************** findtmc ********************
+C Searches for surfaces that are insolation sources.
 C   icomp  - the zone index;
 C   act    - 's' for silent mode, '-' for user interaction mode.
 c   ntmc   - how many insolation sources were found
+
       subroutine findtmc(icomp,act,ntmc)
 #include "building.h"
 #include "geometry.h"
@@ -386,7 +389,7 @@ C Fill ishdirec array.
       return
       end
       
-C ********** IGEOMS **********
+C ******************** IGEOMS ********************
 C Establishes the source surface grid if a zone transitional shading
 C file does not exist.
 
@@ -394,7 +397,7 @@ C file does not exist.
 #include "building.h"
 #include "geometry.h"
 
-C Parameter
+C Parameter.
       integer izone  ! index of zone
 
       common/tmc/itmc(ms),nwins
@@ -409,7 +412,7 @@ C Set default surface grid.
       return
       end
 
-C ********** INSOLC **********
+C ******************** INSOLC ********************
 C Calculates intra-zone solar insolation. Called from inscon.
 C insst()       - 0 if the entire surface is shaded, -1 if the sun
 C                 is not up; otherwise the index of the surface being
@@ -430,7 +433,7 @@ C            in the misur list.
 #include "geometry.h"
 #include "prj3dv.h"
 
-C Parameters
+C Parameters.
       integer icomp  ! focus zone
       integer irpt   ! level of graphic reporting 0=none 1=quick 2=slower 3=slow
 
@@ -833,7 +836,7 @@ C Sun not up.
       return
       end  ! of insolc
 
-C ********** inwshd **********
+C ******************** inwshd ********************
 C Reads the transitional shading file if one exists and extracts
 C surface shading information.
 
@@ -921,9 +924,10 @@ C Increment irec to skip record holding pso & psof
       return
       end
 
-C ********** INCAI **********
+C ******************** INCAI ********************
 C Much of what is calculated in incai is available elsewhere.
 c There are several opportunities to use other common blocks.
+
       subroutine incai(icomp,ihour)
 #include "building.h"
 #include "geometry.h"
@@ -1000,7 +1004,7 @@ C Trace output, check also that user has asked for detailed trace.
       return
       end
 
-C ********** INSORT **********
+C ******************** INSORT ********************
 C Parameters passed are: ii, the current surface being processed in inscon
 C at hour jj.
 
@@ -1202,9 +1206,11 @@ C If trace report pins and pinw.
       return
       end
 
-C **** Dumpigins prints a noz (row) x nox (column) array as a
+C ******************** Dumpigins ********************
+C Prints a noz (row) x nox (column) array as a
 C compact matrix (looking from the outside into the room). Called
 C if trace has been set.
+
       subroutine dumpigins(icomp,ihr)
 #include "building.h"
 #include "geometry.h"
@@ -1236,14 +1242,16 @@ C          ilist(loop)=igins(m,loop)  ! rotated 90 deg
       return
       end
 
-C **** Dumpnoznozr prints a noz (row) x nox (column) real array as a
+C ******************** Dumpnoznozr ********************
+C prints a noz (row) x nox (column) real array as a
 C compact matrix (looking from the outside into the room). Array is
 C assumed to be mox x moz. Called if trace has been set.
+
       subroutine dumpnoxnozr(icomp,ihr,vals)
 #include "building.h"
 #include "geometry.h"
 
-C Parameters
+C Parameters.
       integer icomp           ! the focus zone
       integer ihr             ! the focus hour
       real vals               ! noz  x nox array
@@ -1274,14 +1282,16 @@ C Parameters
       return
       end
 
-C **** Dumpnoznozi prints a noz (row) x nox (column) int array as a
+C ******************** Dumpnoznozi ********************
+C Prints a noz (row) x nox (column) int array as a
 C compact matrix (looking from the outside into the room). Array is
 C assumed to be mox x moz. Called if trace has been set.
+
       subroutine dumpnoxnozi(icomp,ihr,ivals)
 #include "building.h"
 #include "geometry.h"
 
-C Parameters
+C Parameters.
       integer icomp           ! the focus zone
       integer ihr             ! the focus hour
       integer ivals           ! noz  x nox array
@@ -1312,24 +1322,24 @@ C Parameters
       return
       end
 
-C ********** TRANSP **********
-C This routine transforms a grid point defined relative to a given
+C ******************** TRANSP ********************
+C Transforms a grid point defined relative to a given
 C surface back to global co-ordinates.
-C     1 - Recover equation of surface (eqn(4)) and centre of 
-C         gravity (vp(3)) via pleqn().
-C     2 - Set up eye point normal to plane at centre of gravity
-C         (ep(3)) and use eyemat() to establish matrix and 
-C         reverse matrix that transform surface to normal view.
-C     3 - Use orttrn() to find co-ordinates of origin (first
-C         surface vertex) when transformed to normal view and
-C         apply reverse transformation to give vertices in
-C         global co-ordinates.
+C 1 - Recover equation of surface (eqn(4)) and centre of 
+C     gravity (vp(3)) via pleqn().
+C 2 - Set up eye point normal to plane at centre of gravity
+C     (ep(3)) and use eyemat() to establish matrix and 
+C     reverse matrix that transform surface to normal view.
+C 3 - Use orttrn() to find co-ordinates of origin (first
+C     surface vertex) when transformed to normal view and
+C     apply reverse transformation to give vertices in
+C     global co-ordinates.
 
       subroutine  transp(icc,xx,yy,zz,dx,dz,xxw,yyw,zzw)
 #include "building.h"
 #include "geometry.h"
 
-C Parameters
+C Parameters.
       integer icc   ! the model surface connection index
       real xx,yy,zz    ! coordinates passed
       real dx,dz    ! grid location
@@ -1369,14 +1379,14 @@ C Take each grid point and apply transformation.
       return
       end
 
-C ******* ang3dvtx
-C ang3vtx: recover angle between three vertex (i.e. between two lines).
-C Angel between lines: finds angle A between two lines
-C given 3 vertex as in:    * 1
-C                           a \
+C ******************** ang3dvtx ********************
+C Determine angle A between two lines given 3 vertices as in:
+C                            * 1
+C                           A \
 C                     3 *------* 2
 C With the sign of the dot product also returned as either
 C 1.0 or -1.0
+
       SUBROUTINE ang3dvtx(x1,y1,z1,x2,y2,z2,x3,y3,z3,ang,sign)
       dimension vd21(3),vd32(3)
       PI = 4.0 * ATAN(1.0)

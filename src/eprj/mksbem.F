@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file includes:
 C High level controller subroutine
@@ -2620,8 +2616,8 @@ C Enter building, owner and verifier information
       ITEMS(29) = '# Enter all details            '
       ITEMS(30) = '  _____________________________'
       ITEMS(31) = '* list project details         '
-      ITEMS(32) = '? help                         '
-      ITEMS(33) = '- exit this menu               '
+      ITEMS(32) = '? help'
+      ITEMS(33) = '- exit menu'
       nitms=33
       WRITE(HEAD,'(2A)')'Project details for BRUKL/EPC'
 
@@ -2820,8 +2816,8 @@ C Enter energy assessor and additional building information
       ITEMS(27) = 's Complexity level of the project: '
       write(ITEMS(28),'(2A)') '  ',pjLevComplexity(1:48)
       ITEMS(29) = '  _____________________________'
-      ITEMS(30) = '? help                         '
-      ITEMS(31) = '- exit this menu               '
+      ITEMS(30) = '? help'
+      ITEMS(31) = '- exit menu'
       nitms=31
       WRITE(HEAD,'(A)')'Project details for BRUKL/EPC'
 
@@ -3217,8 +3213,8 @@ C If a long list include page facility text and info on portion seen.
         WRITE(ZITEMS(M+1),155)IPM,MPM
   155   FORMAT ('0 page: ',I1,' -- of:',I1)
       ENDIF
-      ZITEMS(M+2)= '? help                           '
-      ZITEMS(M+3)= '- exit this menu                 '
+      ZITEMS(M+2)= '? help'
+      ZITEMS(M+3)= '- exit menu'
       nitms=M+3
 
       CALL EMENU('zone air changes per hour',ZITEMS,nitms,INO)
@@ -3740,7 +3736,7 @@ C write 5 columns per unique activity entry
         DO 1 i=1,icountnotequal
 
 C Get first the location of the columns to use the right data during simulation.
-C Instanciate ITCOL for use later on in the subroutine.
+C Instantiate ITCOL for use later in this subroutine.
           iloc1=5*(i-1)+1
           ITCOL(i,12)=iloc1
           iloc2=5*(i-1)+2
@@ -4350,7 +4346,7 @@ C write 5 columns per unique activity entry
       DO 1 i=1,icountnotequal
 
 C Get first the location of the columns to use the right data during simulation.
-C Instanciate ITCOL for use later on in the subroutine.
+C Instantiate ITCOL for use later in this subroutine.
         iloc1=5*(i-1)+1
         ITCOL(i,12)=iloc1
         iloc2=5*(i-1)+2
@@ -4764,7 +4760,7 @@ C Set flag for cfg file that this is a notional model
 
 C Test to see if certain constructions are currently available
 C if if found remember their index in the constructions array
-C in order to instanciate smlcindex.
+C in order to instantiate smlcindex.
       call opendb(ier) ! make sure materials & constructions known
   41  mlcf=0
       do 6 ii=1,nmlc
@@ -6101,7 +6097,7 @@ C Set flag for cfg file that this is a notional model
 
 C Test to see if certain constructions are currently available
 C if if found remember their index in the constructions array
-C in order to instanciate smlcindex.
+C in order to instantiate smlcindex.
       call opendb(ier) ! make sure materials & constructions known
    41  mlcf=0
       do 6 ii=1,nmlc
@@ -15850,8 +15846,8 @@ C For help messages
         write(ITEMS(2),'(2A)') 'b AHU class: ',
      &       AHUleakage(isystCurrent)(1:24)
         ITEMS(3) = '  _____________________________'
-        ITEMS(4) = '? help                         '
-        ITEMS(5) = '- exit this menu               '
+        ITEMS(4) = '? help'
+        ITEMS(5) = '- exit menu'
         nitms=5
         write(head,'(a)')'Ductwork/AHU leakage details'
 
@@ -16120,9 +16116,11 @@ C make sure this information is written to file.
 
 C Algorithm follows that in EPW calculation with references given as:
 C 1. T. Kusuda, "Earth Temperatures Beneath Five Different Surfaces"
-C    Institute for Applied Technology, NBS Report 10-373, 1971, NBS, Washington DC 20234.
-C 2. T. Kusuda, Least Squares Technique for the Analysis of Periodic Temperature of the Earth's Surface Region, 
-C    NBS Journal of Research, Vol. 71C, Jan-Mar. 1967, pp 43-50.
+C    Institute for Applied Technology, NBS Report 10-373, 1971, NBS,
+C    Washington DC 20234.
+C 2. T. Kusuda, Least Squares Technique for the Analysis of Periodic
+C    Temperature of the Earth's Surface Region, NBS Journal of Research,
+C    Vol. 71C, Jan-Mar. 1967, pp 43-50.
 
       subroutine GTCALC(ZD,act,IER)
       implicit none
@@ -16209,10 +16207,11 @@ C As assumed in EPW (m2/day) - seems very low.
 C Calculate average monthly air temperature from climate file.
       DO 55 I=1,365
         II=I
-C Read climate data for current day into CMRVAL(). See commonclm.F.
-        call CLMGET(II)
+        IREC=II
+        READ(IFIL,REC=IREC,IOSTAT=ISTAT,ERR=103)((ICLM(J,K),K=1,6),
+     &         J=1,24)
         DO 656 J=1,24
-          TEMP=CMRVAL(1,J)
+          TEMP=REAL(ICLM(J,2))/10.
           IF(I.LE.31)THEN
             tTEMP(1)=tTEMP(1)+TEMP/(31.*24.)
           ELSEIF(I.LE.59)THEN

@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 C      VWLIN
@@ -28,7 +24,7 @@ C      VGHED
 
 C ******************** VWLIN ********************
 
-C VWLIN is the main controller routine for variable-v-variable
+C Main controller routine for variable-v-variable
 C graph construction. This output mode allows any pair of
 C time-dependent variables to be plotted for one or more zones.
 
@@ -137,7 +133,7 @@ C the image before presenting the command menu.
         MODIFYVIEW=.FALSE.
       endif
 
-C Instanciate help string arrays for this menu.
+C Instantiate help string arrays for this menu.
       helptopic='res_var_var_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
       CALL PHELPD('var var chart',nbhelp,'-',0,0,IER)

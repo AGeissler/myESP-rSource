@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 
@@ -190,10 +186,10 @@ C Instruction to pause assessment to allow rescan of a zone operation file.
 C Variables used in trace.
       common/CASGNTRC/QP(MCOM,2,MC,MPHAS),RP(MCOM,2,MC,MPHAS)
 
-C Adaptive comfort commons
+C Adaptive comfort.
       COMMON/ADPCOM/PREVSTATWIN,PREVSTATFAN,PREVSTATLIGHT,TOTPWR(MCOM),
      &              TRMSTAT
-C<< For dynamic people.
+C << For dynamic people.
 
       COMMON/CASGNSO/META1(MCOM,MDTY,MGTY,MGPER),
      &         NBMEN(MCOM,MDTY,MGTY,MGPER),NBWOM(MCOM,MDTY,MGTY,MGPER),
@@ -458,7 +454,7 @@ C definition.
       if(ICASUAL(icomp).ne.0)then
 
 C Data in temporal database (aggregate convective, radiant and
-C latent casual i.e. 3 columns). Also instanciate the future value
+C latent casual i.e. 3 columns). Also instantiate the future value
 C of equipment casual gain so that it can be used within MZLS3.
 C Equipment is an arbitrary choice for this aggregate data.
         IFOC=ICASUAL(icomp)
@@ -488,7 +484,7 @@ C Equipment is an arbitrary choice for this aggregate data.
       elseif(ICASUAL3(icomp).ne.0)then
 
 C Data in temporal database (convective, radiant, latent for 3 separate
-C slots i.e. 9 columns of gains). Also instanciate the future value of
+C slots i.e. 9 columns of gains). Also instantiate the future value of
 C each casual gain so that it can be used within MZLS3.
 C << any need for ICGUnit?  Probably always is W. >>
         IFOC=ICASUAL3(icomp)

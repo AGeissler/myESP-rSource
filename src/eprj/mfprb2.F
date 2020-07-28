@@ -13,13 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C ################### MFPRB2 
-C This file contains the following subroutines
+C This file contains the following subroutines.
 C     MF010I
 C     MF011I   Air inlet device self-adjustable, (polinomial)
 C     MF012I   Power law flow component with max flow or shut-off setp.
@@ -50,6 +45,7 @@ C ****************** MF010I
 C Fluid flow component supplementary data input for
 C power law volume flow resistance component (m = rho . a . dP^b [m^3/s])
 C Supports position - needs testing.
+
       SUBROUTINE MF010I(ICMP,IER)
 
 #include "building.h"
@@ -1095,7 +1091,7 @@ C constant volume flow rate component (m = rho . a)
       integer IZSTOCN
       COMMON/C24/IZSTOCN(MCOM,MS)
 
-      CHARACTER H*72,prompt*72,hold*32,outs*124,name*12,MSG*18
+      CHARACTER prompt*72,outs*124,name*12,MSG*18,act*1
       logical ok
       real VALHX,VALHY,VALHZ
       real cx,cy,cz
@@ -1158,7 +1154,7 @@ C Check if HCMP is more than 1m from the COG of the associated surface.
       endif
 
 C Input fluid type.
-  42  if(imix.eq.1)then
+      if(imix.eq.1)then
         SUPCMP(ICMP,1)=1.0
       elseif(imix.eq.2)then
         SUPCMP(ICMP,1)=2.0
@@ -1172,85 +1168,9 @@ C Input fluid type.
       endif
 
 C Offer shortcut definition but echo the current flow rate.
-      write(prompt,'(3a,F9.6,a)') 'Flow via ',CMNAM(ICMP),
-     &  ' (m^3/s) is ',SUPCMP(ICMP,2),'. Derive via:'
-      call edisp(iuout,prompt)
-C      write(prompt,'(3a)') 'Derive flow through ',CMNAM(ICMP),
-C     &  ' (m^3/s) via:'
-C      CALL EASKABCD(prompt,' ','direct edit','l/s/person',
-C     &  'm^3/hr','ach (use volume of node)',IW,nbhelp)
-      CALL EASKATOG(prompt,' ','direct edit','l/s/person',
-     &  'm^3/hr','ach (use volume of node)','accept current',
-     &  ' ',' ',IW,nbhelp)
-      if(iw.eq.1)then
-
-C Flow m^3/s (zero flow allowed).
-        VAL=SUPCMP(ICMP,2)
-        write(prompt,'(3a)') 'Flow through ',CMNAM(ICMP),' (m^3/s)?'
-   20   CALL EASKR(VAL,prompt,'(help for synopsis)',0.,'W',0.,'-',1.,
-     &    'flow in comp',IER,nbhelp)
-        IF(IER.NE.0) GOTO 20
-        SUPCMP(ICMP,2)=VAL
-      elseif(iw.eq.2)then
-
-C Derive from litres/second/person and nb of people.
-        write(prompt,'(3a,F8.5,a)') 'The current flow of ',CMNAM(ICMP),
-     &  ' (m^3/s) is ',SUPCMP(ICMP,2),'.'
-        call edisp(iuout,prompt)
-        hold = '  6.0    1.0 '
-  43    CALL EASKS(hold,' litres/sec/person and number of people?',
-     &    '(help for synopsis)',32,' 6.0 1 ','l/s/p',IER,nbhelp)
-        K=0
-        CALL EGETWR(hold,K,VAL2,0.1,99.,'W','l/s/p',IER)
-        CALL EGETWR(hold,K,VAL3,0.1,999.,'W','number people',IER)
-        IF(IER.NE.0) GOTO 43
-
-        VAL= (val2/1000.0) * val3
-        write(prompt,'(3a,F8.5,a)') 'The flow through ',CMNAM(ICMP),
-     &  ' (m^3/s) is now ',VAL,'.'
-        call easkok(prompt,'Is this ok?',OK,nbhelp)
-        if (.NOT.OK) goto 42
-        SUPCMP(ICMP,2)=VAL
-      elseif(iw.eq.3)then
-
-C Convert any existing value to m3/hr
-        write(prompt,'(3a,F8.5,a)') 'The current flow of ',CMNAM(ICMP),
-     &  ' (m^3/s) is ',SUPCMP(ICMP,2),'.'
-        call edisp(iuout,prompt)
-        VAL2=SUPCMP(ICMP,2)*3600.0
-        write(prompt,'(3a)') 'Flow through ',CMNAM(ICMP),' (m^3/hr) ?'
-   21   CALL EASKR(VAL2,prompt,'(help for synopsis)',0.,'W',0.,'-',10.,
-     &    'flow m3/hr in comp',IER,nbhelp)
-        IF(IER.NE.0) GOTO 21
-        if(val2.gt.0.0) VAL = (val2/3600.0)
-        write(prompt,'(3a,F8.5,a)') 'The flow through ',CMNAM(ICMP),
-     &  ' (m^3/s) is now ',VAL,'.'
-        call easkok(prompt,'Is this ok?',OK,nbhelp)
-        if (.NOT.OK) goto 42
-        SUPCMP(ICMP,2)=VAL
-      elseif(iw.eq.4)then
-
-C Based on ach against the volume of a particular node.
-        write(prompt,'(3a,F8.5,a)') 'The current flow of ',CMNAM(ICMP),
-     &  ' (m^3/s) is ',SUPCMP(ICMP,2),'.'
-        call edisp(iuout,prompt)
-        call ASKRNOD(' volume from which node','-',IV,IER)
-        write(prompt,*)'Associated node volume is ',SUPNOD(IV,2)
-        call edisp(iuout,prompt)
-        val2=1.0
-        write(prompt,'(3a)') 'Air changes for ',CMNAM(ICMP),' (ach) ?'
-   22   CALL EASKR(VAL2,prompt,'(help for synopsis)',0.,'W',0.,'-',
-     &    1.,'flow ach in comp',IER,nbhelp)
-        IF(IER.NE.0) GOTO 22
-        VAL = (SUPNOD(IV,2) * VAL2)/3600.0
-        write(prompt,'(3a,F8.5,a)') 'The flow through ',CMNAM(ICMP),
-     &  ' (m^3/s) is now ',VAL,'.'
-        call easkok(prompt,'Is this ok?',OK,nbhelp)
-        if (.NOT.OK) goto 42
-        SUPCMP(ICMP,2)=VAL
-      elseif(iw.eq.5)then
-        continue
-      endif
+C Ask user for the volume flow rate.
+      act='5'
+      call askforflowrate(act,icmp,ier)
 
 C Position in space if IAIRN=3.
       if(IAIRN.eq.3)then
@@ -1292,10 +1212,131 @@ C Refresh the network overly.
         endif
       endif
 
-C Does user want to revise data?
-C << TODO >>
       RETURN
       END
+
+C *************** askforflowrate
+C Generic request for a fixed volume flow rate.
+      subroutine askforflowrate(act,icmp,ier)
+#include "building.h"
+#include "net_flow.h"
+#include "net_flow_data.h"
+
+C Parameters passed:
+      character act*1  ! '4' offer 4 choice '5' offer 5 choice interface
+      integer icmp     ! focus component
+      integer ier      ! 0=no issue  1=error during specification
+      
+      COMMON/OUTIN/IUOUT,IUIN,IEOUT
+
+      CHARACTER prompt*72,hold*32,outs*124
+      logical ok
+
+C For help messages
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
+      integer nbhelp     ! number of help lines found
+
+      helpinsub='askforflowrate'  ! set for subroutine
+
+      WRITE(outs,'(A)') LTPCMP(ICMP)
+      call edisp(iuout,outs)
+      helptopic='askflowrate'
+      call gethelptext(helpinsub,helptopic,nbhelp)
+   
+      write(prompt,'(3a,F9.6,a)') 'Flow via ',CMNAM(ICMP),
+     &  ' (m^3/s) is ',SUPCMP(ICMP,2),'. Derive via:'
+      call edisp(iuout,prompt)
+      if(ACT(1:1).eq.'4')then
+        CALL EASKABCD(prompt,' ','direct edit','l/s/person',
+     &    'm^3/hr','ach (use volume of node)',IW,nbhelp)
+      elseif(ACT(1:1).eq.'5')then
+        CALL EASKATOG(prompt,' ','direct edit','l/s/person',
+     &    'm^3/hr','ach (use volume of node)','accept current',
+     &    ' ',' ',IW,nbhelp)
+      endif
+      if(iw.eq.1)then
+
+C Flow m^3/s (zero flow allowed).
+        VAL=SUPCMP(ICMP,2)
+        write(prompt,'(3a)') 'Flow through ',CMNAM(ICMP),' (m^3/s)?'
+   20   CALL EASKR(VAL,prompt,'(help for synopsis)',0.,'W',0.,'-',1.,
+     &    'flow in comp',IER,nbhelp)
+        IF(IER.NE.0) GOTO 20
+        SUPCMP(ICMP,2)=VAL
+      elseif(iw.eq.2)then
+
+C Derive from litres/second/person and nb of people.
+        write(prompt,'(3a,F8.5,a)') 'The current flow of ',CMNAM(ICMP),
+     &  ' (m^3/s) is ',SUPCMP(ICMP,2),'.'
+        call edisp(iuout,prompt)
+        hold = '  6.0    1.0 '
+  43    CALL EASKS(hold,' litres/sec/person and number of people?',
+     &    '(help for synopsis)',32,' 6.0 1 ','l/s/p',IER,nbhelp)
+        K=0
+        CALL EGETWR(hold,K,VAL2,0.1,99.,'W','l/s/p',IER)
+        CALL EGETWR(hold,K,VAL3,0.1,999.,'W','number people',IER)
+        IF(IER.NE.0) GOTO 43
+
+        VAL= (val2/1000.0) * val3
+        write(prompt,'(3a,F8.5,a)') 'The flow through ',CMNAM(ICMP),
+     &  ' (m^3/s) is now ',VAL,'.'
+        call easkok(prompt,'Is this ok?',OK,nbhelp)
+        if (.NOT.OK)then
+          ier=1
+          return
+        endif
+        SUPCMP(ICMP,2)=VAL
+      elseif(iw.eq.3)then
+
+C Convert any existing value to m3/hr
+        write(prompt,'(3a,F8.5,a)') 'The current flow of ',CMNAM(ICMP),
+     &  ' (m^3/s) is ',SUPCMP(ICMP,2),'.'
+        call edisp(iuout,prompt)
+        VAL2=SUPCMP(ICMP,2)*3600.0
+        write(prompt,'(3a)') 'Flow through ',CMNAM(ICMP),' (m^3/hr) ?'
+   21   CALL EASKR(VAL2,prompt,'(help for synopsis)',0.,'W',0.,'-',10.,
+     &    'flow m3/hr in comp',IER,nbhelp)
+        IF(IER.NE.0) GOTO 21
+        if(val2.gt.0.0) VAL = (val2/3600.0)
+        write(prompt,'(3a,F8.5,a)') 'The flow through ',CMNAM(ICMP),
+     &  ' (m^3/s) is now ',VAL,'.'
+        call easkok(prompt,'Is this ok?',OK,nbhelp)
+        if (.NOT.OK)then
+          ier=1
+          return
+        endif
+        SUPCMP(ICMP,2)=VAL
+      elseif(iw.eq.4)then
+
+C Based on ach against the volume of a particular node.
+        write(prompt,'(3a,F8.5,a)') 'The current flow of ',CMNAM(ICMP),
+     &  ' (m^3/s) is ',SUPCMP(ICMP,2),'.'
+        call edisp(iuout,prompt)
+        call ASKRNOD(' volume from which node','-',IV,IER)
+        write(prompt,*)'Associated node volume is ',SUPNOD(IV,2)
+        call edisp(iuout,prompt)
+        val2=1.0
+        write(prompt,'(3a)') 'Air changes for ',CMNAM(ICMP),' (ach) ?'
+   22   CALL EASKR(VAL2,prompt,'(help for synopsis)',0.,'W',0.,'-',
+     &    1.,'flow ach in comp',IER,nbhelp)
+        IF(IER.NE.0) GOTO 22
+        VAL = (SUPNOD(IV,2) * VAL2)/3600.0
+        write(prompt,'(3a,F8.5,a)') 'The flow through ',CMNAM(ICMP),
+     &  ' (m^3/s) is now ',VAL,'.'
+        call easkok(prompt,'Is this ok?',OK,nbhelp)
+        if (.NOT.OK)then
+          ier=1
+          return
+        endif
+        SUPCMP(ICMP,2)=VAL
+      elseif(iw.eq.5)then
+        continue
+      endif
+ 
+      return
+      end
+   
 
 C **************** MF035I 
 C Fluid flow component supplementary data input or check for
@@ -2859,7 +2900,7 @@ C                       only valid for q,min <= m/ro <= q,max )
 
 C << consider what would need to change to implement a cancel
 C << option within this interface and the degree to which the
-C << data instanciation needs to change.
+C << data instantiation needs to change.
 C << Position not yet done >>
       SUBROUTINE MF310I(ICMP,IER)
 

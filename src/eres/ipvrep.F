@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Subroutines in this file:
 C  ipvrep - manage and write out an integrated performance view.
@@ -351,7 +347,7 @@ C Interactive commands.
       ITEM(13)  ='- Exit            '
       NITMS=13
 
-C Instanciate help strings for this menu.
+C Instantiate help strings for this menu.
       helptopic='res_IPV_report_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -409,9 +405,9 @@ C Toggle delimeter.
         helptopic='res_IPV_report_delimeter'
         call gethelptext(helpinsub,helptopic,nbhelp)
         IWM=1
-        CALL EASKATOG('Delimeter to use between columns of data:',' ',
-     &    'normal spaces','single space','tab','comma','tagged',
-     &    'continue',' ',IWM,nbhelp)
+        CALL EASKATOG(' ','Column delimeter:',
+     &    'multi-space','single space','tab','comma','tagged',
+     &    'cancel',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           delim = '-'
           tab=' '
@@ -3493,8 +3489,8 @@ C Each call is a toggle.
             helptopic='res_IPV_export_folder'
             call gethelptext(helpinsub,helptopic,nbhelp)
             write(outs,'(A,A)') ' The model is in folder ',path
-            CALL EASKABC(outs,' place export file:',
-     &        'in the model folder','user defined folder','continue',
+            CALL EASKABC(outs,'Place export file:',
+     &        'in model folder','user defined folder','cancel',
      &        iw,nbhelp)
             if(iw.eq.3)then
               ixopen=0

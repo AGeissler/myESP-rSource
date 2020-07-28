@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Contains:
 C     ASKNOD:  Presents a selection list of mass flow nodes.
@@ -159,8 +155,8 @@ C Ability to delete node commented out until support code in place.
 C Allow a node to be added deleted or copied.
           helptopic='mfs_node_management'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABCD('Select option or continue',' ','Add','Delete',
-     &      'Copy','Continue',IOPT,nbhelp)
+          CALL EASKABCD(' ','Options:','add','delete',
+     &      'copy','cancel',IOPT,nbhelp)
           IF(IOPT.EQ.1)THEN
             IF(NNOD+1.LE.MNOD)THEN
               CALL MFNDES('A',99)        ! Add node.
@@ -170,12 +166,12 @@ C Allow a node to be added deleted or copied.
               IS=-1
               GOTO 92  ! instead of 3?
             ELSE
-              call usrmsg(' ',' Node list full!','W') 
+              call usrmsg(' ','Node list full!','W') 
               IS=0
               GOTO 3
             ENDIF
           ELSEIF(IOPT.EQ.2)THEN
-            call usrmsg('Delete which node ? ',' ','-') 
+            call usrmsg(' ','Delete which node?','-') 
             CALL EMENU(HEAD,VERT,MVERT,IDVERT)
             CALL KEYIND(MVERT,IDVERT,IFOC,IO)
             ID=IFOC
@@ -186,7 +182,7 @@ C Allow a node to be added deleted or copied.
             CALL EKPAGE(IPACT)
             GOTO 92
           ELSEIF(IOPT.EQ.3)THEN
-            call usrmsg('Copy which node ? ',' ','-') 
+            call usrmsg(' ','Copy which node?','-') 
             CALL EMENU(HEAD,VERT,MVERT,IDVERT)
             CALL KEYIND(MVERT,IDVERT,IFOC,IO)
             ID=IFOC
@@ -348,8 +344,8 @@ C Code to allow deletion commented out until support code in place.
 C Allow a component to be added deleted or copied.
            helptopic='mfs_component_management'
            call gethelptext(helpinsub,helptopic,nbhelp)
-           CALL EASKABCD('Select option or continue',' ','Add','Delete',
-     &'Copy','Continue',IOPT,nbhelp)
+           CALL EASKABCD(' ','Options:','add','delete',
+     &'copy','cancel',IOPT,nbhelp)
 
 C Add a component
            IF(IOPT.EQ.1)THEN
@@ -364,7 +360,7 @@ C Add a component
                IS=-1
                GOTO 3              
              ELSE
-               call usrmsg(' ',' Component list full!','W') 
+               call usrmsg(' ','Component list full!','W') 
                IS=0
                GOTO 3
              ENDIF
@@ -373,7 +369,7 @@ C Delete a component
            ELSEIF(IOPT.EQ.2)THEN
 
 C Select component to delete
-             call usrmsg('Delete which component ? ',' ','-') 
+             call usrmsg(' ','Delete which component?','-') 
              CALL EMENU(HEAD,VERT,MVERT,IDVERT)
              CALL KEYIND(MVERT,IDVERT,IFOC,IO)
              ID=IFOC
@@ -389,7 +385,7 @@ C Select component to delete
            ELSEIF(IOPT.EQ.3)THEN
 
 C Select component to copy
-             call usrmsg('Copy which component ? ',' ','-') 
+             call usrmsg(' ','Copy which component?','-') 
              CALL EMENU(HEAD,VERT,MVERT,IDVERT)
              CALL KEYIND(MVERT,IDVERT,IFOC,IO)
              ID=IFOC
@@ -448,6 +444,7 @@ C ASKCON presents a list of mass flow connections returning the
 C Starting and ending node numbers.
 C If MOD = 'M' then include option to add an item then the appropriate
 C          interaction is begun.
+
       SUBROUTINE ASKCON(head,MOD,INODPS,INODNE,IC,IER)
 #include "building.h"
 #include "net_flow.h"
@@ -514,8 +511,8 @@ C If MOD has been passed as a M then add an item at the end.
       ELSE
         VERT(M+2)='                   '
       ENDIF
-      VERT(M+3)  ='? Help             '
-      VERT(M+4)  ='- Exit             '
+      VERT(M+3)  ='? help             '
+      VERT(M+4)  ='- exit             '
 
 C Help text for this menu.
       helptopic='mfs_connection_menu'
@@ -545,8 +542,8 @@ C If no selection has been made before exit then return with 0.
 C Allow a connection to be added deleted or copied.
           helptopic='connection_management'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABCD('Select option or continue',' ','Add','Delete',
-     &      'Copy','Continue',IOPT,nbhelp)
+          CALL EASKABCD(' ','Options:','add','delete',
+     &      'copy','cancel',IOPT,nbhelp)
           IF(IOPT.EQ.1)THEN
             IF(NCNN+1.LE.MCNN)THEN
               CALL MFLDES('A',99)
@@ -556,7 +553,7 @@ C Allow a connection to be added deleted or copied.
               IVERT=-1
               GOTO 3
             ELSE
-              call usrmsg(' ',' Connection list full!','W') 
+              call usrmsg(' ','Connection list full!','W') 
               IVERT=-1
               GOTO 3
             ENDIF

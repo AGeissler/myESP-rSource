@@ -13,15 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C RevTime : Interface for the reverberation time module
-C Imgdisp : Dummy routine (needed for call back from c).
-
-C ************RevTime*************
+C ************ RevTime *************
 C Interface for reverberation time calculation. Handle the selection of:
 C - project and BCF file
 C - the zone selection for which the calculation has to be perform
@@ -514,93 +507,93 @@ C If BCF and ACO file supply, just read them
 
 C Main Menu
 10    INO = -4
-      write(ITEM(1),'(A,A22)')   'a Problem : ',LCFGF(1:22)
+      write(ITEM(1),'(A,A22)')   'a problem : ',LCFGF(1:22)
       write(ITEM(2),'(A,A25)')   '  Path : ',path(1:25)
       write(ITEM(3),'(A,A25)')   'b BCF  : ',BCFName(1:25)
       write(ITEM(4),'(A,A25)')   'c ACO  : ',ACOName(1:25)
       ITEM(5)=                 '  ---------- Zones --------------  '
-      write(ITEM(6),'(A)')   'd Select zone(s) to include '
+      write(ITEM(6),'(A)')   'd zone(s) to include '
       if (TxtZone(1:6).eq.'UNKNOW') then
-        write(ITEM(7),'(a)') '  People :  N/A'
+        write(ITEM(7),'(a)') '  People:  N/A'
       elseif (NbPub(1).EQ.0) then
-        write(ITEM(7),'(A)') '  People : none'
+        write(ITEM(7),'(A)') '  People: none'
       elseif (NbPub(2).GT.0) then
-        write(ITEM(7),'(A)') '  People : Several types ...'
+        write(ITEM(7),'(A)') '  People: Several types ...'
       else
-        write(ITEM(7),'(A,I3,1x,A)') '  People : ',NbPub(1),
+        write(ITEM(7),'(A,I3,1x,A)') '  People: ',NbPub(1),
      &                               PubType(1)
       endif
       if (TxtZone(1:6).eq.'UNKNOW') then
-        write(ITEM(8),'(a)') '  Furniture :  N/A'
+        write(ITEM(8),'(a)') '  Furniture:  N/A'
       elseif (IndexFur(1).EQ.0) then
-        write(ITEM(8),'(A)') '  Furniture : none'
+        write(ITEM(8),'(A)') '  Furniture: none'
       elseif (IndexFur(2).GT.0) then
-        write(ITEM(8),'(A)') '  Furniture : Several types ...'
+        write(ITEM(8),'(A)') '  Furniture: Several types ...'
       else
-        write(ITEM(8),'(A,F4.1,1x,A)') '  Furniture : ',XNbFur(1),
+        write(ITEM(8),'(A,F4.1,1x,A)') '  Furniture: ',XNbFur(1),
      &                               FurType(1)
       endif
       ITEM(9) =                ' ----------- Options ------------  '
       if(IOctave.eq.1)then
-        ITEM(10)=             'e  Frequency band >> 1 octave     '
+        ITEM(10)=             'e  frequency band >> 1 octave     '
       elseif(IOctave.eq.2)then
-        ITEM(10)=             'e  Frequency band >> 1/3 octave   '
+        ITEM(10)=             'e  frequency band >> 1/3 octave   '
       endif
       if(IDisp.eq.1)then
         if(IOctave.eq.1)then
-          ITEM(11)=           'f  Display >> Numeric (1 lines)'
+          ITEM(11)=           'f  display >> Numeric (1 lines)'
         elseif(IOctave.eq.2)then
-          ITEM(11)=           'f  Display >> Numeric (3 lines)'
+          ITEM(11)=           'f  display >> Numeric (3 lines)'
         endif
       elseif(IDisp.eq.2)then
-        ITEM(11)=             'f  Display >> Numeric (1 line)'
+        ITEM(11)=             'f  display >> Numeric (1 line)'
       endif
       if(ISE.eq.1)then
-        ITEM(12)=           'g  Output >> Only reverber. time'
+        ITEM(12)=           'g output >> Only reverber. time'
       elseif(ISE.eq.2)then
-        ITEM(12)=           'g  Output >> + Equivalent area '
+        ITEM(12)=           'g  output >> + Equivalent area '
       elseif(ISE.eq.3)then
-        ITEM(12)=           'g  Output >> + Coeff. + Equiv. area'
+        ITEM(12)=           'g  output >> + Coeff. + Equiv. area'
       endif
       if(IAirAb.eq.1)then
-        ITEM(13) =            'h  Air absorption >> included '
+        ITEM(13) =            'h  air absorption >> included '
         if(IairProp.eq.0)then
-          ITEM(14) =          'i  Air properties : Const. absorb.'         
+          ITEM(14) =          'i  air properties : Const. absorb.'         
         elseif(IairProp.eq.1)then
-          ITEM(14) =          'i  Air properties : Highest absorb.'         
+          ITEM(14) =          'i  air properties : Highest absorb.'         
         elseif(IairProp.eq.2)then
-          ITEM(14) =          'i  Air properties : Lowest absorb.'         
+          ITEM(14) =          'i  air properties : Lowest absorb.'         
         endif
       elseif(IAirAb.eq.2)then 
-        ITEM(13) =            'h  Air absorption >> Not included '
+        ITEM(13) =            'h  air absorption >> Not included '
         ITEM(14) =            '                                  '         
       else
         ITEM(14) =            '                                  '         
       endif
       ITEM(15)=               ' --------- Calculation ----------  '
-      write(ITEM(16),'(2A)')  'j  Method >> ',
+      write(ITEM(16),'(2A)')  'j  method >> ',
      &                          CalcName(MethodRT)(1:12)
       if ((TxtZone.eq.'N/A').or.(TxtZone.eq.'UNKNOWN')) then
-        write(ITEM(17),'(A)')  'g  Calculation N/A'
+        write(ITEM(17),'(A)')  'g  calculation N/A'
       else
         IF (BCFName.eq.'UNKNOWN') THEN
-          write(ITEM(17),'(A)')'k  Start N/A'
+          write(ITEM(17),'(A)')'k  start N/A'
         ELSE
-          write(ITEM(17),'(A)')'k  Start '
+          write(ITEM(17),'(A)')'k  start '
         ENDIF
       endif
       ITEM(18) =              ' --------------------------------- '
-      ITEM(19) =              'l Export results to file '
-      ITEM(20) =              'm Clear textual feedback           '
-      ITEM(21) =              '? Help                             '
-      ITEM(22) =              '- Exit Aco                         '
+      ITEM(19) =              'l export results                   '
+      ITEM(20) =              'm Clear text feedback              '
+      ITEM(21) =              '? help                             '
+      ITEM(22) =              '- exit acoustic module             '
       NITEMS = 22
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('aco ',1)
 
 C Present the main menu.
-      CALL EMENU('Reverberation time module',ITEM,NITEMS,INO)
+      CALL EMENU('Acoustic module',ITEM,NITEMS,INO)
       IF(INO.EQ.NITEMS)THEN
 
 c End program Aco.
@@ -652,26 +645,26 @@ C Reporting output display selection
 C Air absorption
          helptopic='aco_air_absorption'
          call gethelptext(helpinsub,helptopic,nbhelp)
-         CALL EASKAB('The air absorption','should be :','Inculded',
-     &               'NOT included ',IairAb,nbhelp)
+         CALL EASKAB(' ','Air absorptions options:','included',
+     &               'not included',IairAb,nbhelp)
       elseif (INO.EQ.14) THEN
 
 C Air properties
          helptopic='aco_air_properties'
          call gethelptext(helpinsub,helptopic,nbhelp)
-         CALL EASKAB('The air absorption should be :','  ',
-     &     'defined as constant ', 'extracted from res file ',
+         CALL EASKAB(' ','Air absorptionoptions:',
+     &     'constant','extracted from file',
      &     IAirProp,nbhelp)
          IF (IAirProp.EQ.1) THEN
            IairProp=0
            helptopic='air_temp_for_absorb'
            call gethelptext(helpinsub,helptopic,nbhelp)
-           CALL EASKR(RTair,' Give the ',' Air temperature [C]: ',0.,'
+           CALL EASKR(RTair,' ','Air temperature?',0.,'
      &       W', 50.,'W',20.,'Constant air temperature in zone',
      &       IER,nbhelp)
            helptopic='air_rh_for_absorb'
            call gethelptext(helpinsub,helptopic,nbhelp)
-           CALL EASKR(RHR,'Give the ','Air humidity [%] : ',
+           CALL EASKR(RHR,' ','Air humidity:',
      &       0.,'F',100.,'F',50.,'Constant air humidity in zone',
      &       IER,nbhelp)
          ELSE
@@ -687,7 +680,8 @@ C coefficient m.
            if(CLMRF(1:2).EQ.'  ') then
              goto 10
            else
-C If file exists, then open the file
+
+C If file exists then open it.
              CALL EFOPSEQ(ICLMRF,CLMRF,1,IER)
              IF (IER.LT.0) then
                WRITE (outs,'(2a)')'Error opening file!',
@@ -702,7 +696,7 @@ C If file exists, then open the file
                TMin=100.
                RHMax=0.
                RHMin=100.
-C When open, read its content
+C Read contents
                WRITE (outs,'(4(a, 5x))')'Time step','Temp. [C]',
      &                                         ' RH [%]', 'M [m-1]'
                CALL EDISP(iuout,Outs)
@@ -804,8 +798,8 @@ C Select/change BCF file.
         helptopic='model_bcf_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
   288   IF (BCFOK) THEN
-          call easkabc('A buiding construction file is loaded!',
-     &      'Options:','use it','load another','continue',
+          call easkabc('A buiding construction file is loaded.',
+     &      'Options:','use it','load another','cancel',
      &      Iw,nbhelp)
           if(iw.eq.3)then
             goto 10
@@ -861,12 +855,12 @@ C Attempt to read Aco (occupants and furniture file).
 
   290   IF (ACOOK) THEN
           call easkabc('ACO file is loaded.','Options:',
-     &      'use it','load another','continue',Iw,nbhelp)
+     &      'use it','load another','cancel',Iw,nbhelp)
           if(iw.eq.3)then
             goto 10
           elseif(iw.eq.2)then
             TTmp=AcoName
-            CALL EASKS(TTmp,' ','New ACO (Occupnats/Furniture) file ?',
+            CALL EASKS(TTmp,' ','Occupants/ furniture) file?',
      &        72, DACONam,'ACO file name',IER,nbhelp)
             AcoName=TTmp
             IF(ACOName(1:2).EQ.'  ') GOTO 10
@@ -874,12 +868,12 @@ C Attempt to read Aco (occupants and furniture file).
         ELSE
           if (CFGOK) then
             TTmp=AcoName
-            CALL EASKS(TTmp,' ','ACO (Occupnats/Furniture) file?',
+            CALL EASKS(TTmp,' ','Occupants/furniture) file?',
      &        72,DACONam,'ACO file name',IER,nbhelp)
             ACOName=TTmp
             IF(ACOName.EQ.' ')GOTO 290
           else
-            call edisp(iuout,' No ACO file has been loaded.')
+            call edisp(iuout,'No ACO file loaded.')
             goto 10
           endif
         ENDIF
@@ -896,7 +890,7 @@ C Attempt to read in the BCF file.
           call scnzoneaco(TxtZone,1,IER)
 
           IF (IER .GT. 0) THEN 
-            CALL EDISP(iuout,'Loading constructions not completed..')
+            CALL EDISP(iuout,'Loading constructions not completed!')
             BCFOK=.FALSE.
             BCFNAME='UNKNOWN'
             GOTO 10
@@ -906,7 +900,7 @@ C Attempt to read in the BCF file.
             call usrmsg(outs,' ','P')
           ENDIF
         ELSE
-          CALL usrmsg('File doesn`t exist...','Select again','W')
+          CALL usrmsg(' ','File does not exist, re-select.','W')
           GOTO 290
         ENDIF
         GOTO 10
@@ -916,7 +910,7 @@ C Display Zones list if project loaded and wait for INIPIC item selected.
         IF (CFGOK) THEN
           CALL Zoneslist
           IF (izgfoc.EQ.0) THEN
-            call edisp(iuout,' No zone has been selected.')
+            call edisp(iuout,'No zone selected.')
             GOTO 10
           ELSE
             Irep=0
@@ -989,7 +983,7 @@ C Return to main menu.
 
 C ************* imgdisp *************
 C Dummy routine (needed for call back from c).
-C keep it (SC)
+
       subroutine imgdisp(iforce,focus,ier)
 
       character focus*4

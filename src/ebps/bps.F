@@ -13,29 +13,18 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C SubBps: can be used where bps needs to be called as
-C    a subroutine rather than as an application.
-
-C ******************** bps
+C ******************** bps ********************
 C The main program initialises the user terminal and the
 C user-specified climate database and displays the main menu.
 
 C Common block variables are:
-
 C ier1    - input error index which ensures that those menu picks
 C           which are dependent on input data cannot be selected
 C           if any error was detected during the input sequence
-
 C iuout & - write and read unit numbers set via the following data
 C iuin      statement
-
 C icout   - write unit for rule scripts.
-
 C ifil    - basic file unit number. Actual file unit numbers are:
 C           ifil+0  climate file
 C           ifil+1  any temporarily opened file
@@ -62,7 +51,6 @@ C           ifil+21 Power flow results library
 C           ifil+22 any supplementery temporarily opened file
 C           ifil+23 first nochan (occupied utility file channel)
 C                   NB nochan+x is used in several places
-
 C           ifil+31 Read in vertical solar data
 C           ifil+32 (fort.42) Vertical solar output channel
 C           ifil+40 snow depth ASCII file
@@ -73,12 +61,10 @@ C           ifil+60 Structured mesh temperarture file.
 C           ifil+70 H3KOutput File
 C << file unit clash, consider ifil + 62
 C           ifil+72 Contaminant description file
-C
 C           ifil+71 CETC .fcts1 output file  )   These files are written
 C           ifil+72 CETC .fcts2 output file  )__ sequentially, and could all
 C           ifil+73 CETC .fcts3 output file  )   use the same channel to
 C           ifil+74 CETC .fcts4 output file  )   free up some file numbers
-C
 C           ifil+76 Runtime boundry condition definition file (BCD.tmp)
 C           ifil+77 Temporary binary file used when converting
 C                   hourly profiles 'Hrly_Load.tmp'
@@ -86,14 +72,8 @@ C           ifil+80 CETC month status IO channel
 C           ifil+81 Runtime lookup table data file
 C           ifil+82 File containing wind turbine power curve data
 C           ifil+83 Temporary file access for deleting "console_out.txt" prior to simulation
-
 C MMOD   -  index returned from the 'pages' routine
 C           and determines the device type attached to current job.
-
-C For details on bps's theoretical basis see publications listed
-C at the following Web site:
-
-C http://www.strath.ac.uk/Departments/ESRU
 
 C AIM-2.
 C#include "../cetc/aim2_module.F"
@@ -110,12 +90,7 @@ C#include "../cetc/AIMS_module.F"
 C GCEP.
 C#include "../cetc/GCEP_module.F"
 
-C======BlockData==========================
-C  This block data is used to initialize
-C  variables in the stratified_tank and NCHE
-C  commons
-
-#include "BlockData.h"
+#include "BlockData.h"   ! initialise variables in stratified_tank and NCHE commons
 
       program bps
       USE START_UP, ONLY: UsePassedCommandLine
@@ -140,8 +115,7 @@ C==========================================
 
       end program
 c*******************************************************************************
-c*******************************************************************************
-c*******************************************************************************
+
       subroutine PassInCommandLine(nParameters, CommandLineString,
      &            length)
       USE START_UP
@@ -165,12 +139,12 @@ C this is a good place to load in the harmonizer dll.
       call LoadDll
       end subroutine PassInCommandLine
 c*******************************************************************************
-c*******************************************************************************
-c*******************************************************************************
 
-C======SubBps=========================
-C SubBps can be used where bps needs to be called as
+
+C ******************** SubBps ********************
+C For use where bps needs to be called as
 C a subroutine rather than as an application.
+
       subroutine SubBps
       USE START_UP
       use h3kmodule
@@ -179,7 +153,6 @@ C a subroutine rather than as an application.
 #include "model.h"
 #include "geometry.h"
 #include "plant.h"
-C UA1 from uncertainty.h
 #include "uncertainty.h"
 #include "net_flow.h"
 #include "MultiYear_simulations.h"
@@ -220,24 +193,22 @@ C and dllmesg tells the details of the error.
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       common/appw/iappw,iappx,iappy
-
       common/er1/ier1
       common/wrnoff/iwmoff
       common/help/ihelpm
       common/avrage/idaver
 
-C Record lengths for zone (nzrl), plant (nprl), electrical(nerl) results libraries.
+C Record lengths for zone (nzrl), plant (nprl) and electrical(nerl)
+C results files.
       common/reclen/nzrl,nprl,nerl
       common/recver/izver,ipver,iever
       common/hcthry/ihct,icorexhct
       COMMON/DNORGH/IRTYPE
       COMMON/RESLIB/RFILE,PFILE,MSTRFILE,LAFRES,CFRESF
-      character RFILE*72,PFILE*72,MSTRFILE*72,LAFRES*72,
-     &  CFRESF*72
+      character RFILE*72,PFILE*72,MSTRFILE*72,LAFRES*72,CFRESF*72
       common/rdcgen/irdact
       common/rdcmfs/irdcm,sFLWTIM,sDRYB,sWDIR,sWSPD,sITER,sIOK,
      &              sTNOD(MNOD)
-
       COMMON/VTHP18/LNLTHP
       CHARACTER LNLTHP*72
       COMMON/VTHP31/INTHPS,INTHPZ(MCOM)
@@ -275,12 +246,15 @@ C CFD output channels.
 
 C CFD results library.
       common/CFDSV/IRECPC,ICFDSV,IEQSV(5+MCTM)
+
 C CFD visualisation.
       common/flvpar/Lflpar(MCOM)
       CHARACTER*72 Lflpar
       COMMON/ACT/ACTCNN(MCNN)
+
 C CFD small openings.
       common/SSOinit/areaSSO
+
 C CFD coupling toggles
       common/CFDTOGS/ACCON,CFD2BLD,CFD2MFS
 
@@ -315,7 +289,7 @@ C Active domain common (expand to other domains?).
 C Significant figure reporting limit (NSIGFIG).
       common/SFIG/NSIGFIG
 
-C Timeout information (not currently referenced)
+C Timeout information (not currently used).
 C      common/TIMEOUT/sTimeout,iTimeoutFlag
 C      character sTimeout*72
 C      integer iTimeoutFlag
@@ -349,7 +323,6 @@ C Logical flag for uncertainty header has been printed.
       LOGICAL OK,dok,OK3D
       LOGICAL INPOK,XST
       logical unixok,there,photon,flwvis,dll,ACTCNN,areaSSO
-C      logical gopher  ! not references
       logical concat
 
       character*29 item(15)
@@ -374,7 +347,7 @@ C Ask to overwrite flag.
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
 
-C Flags for multi-year simulation menus
+C Flags for multi-year simulation menus.
       logical bOptOut, bDone, bMY_clm_err, bExists, bCreate
       logical bautook
 
@@ -394,8 +367,6 @@ C Flags for multi-year simulation menus
       integer*8 iicapture   ! to pass to updcapt
 #endif
 
-
-C For help messages
       character helpinsub*24   ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -418,7 +389,7 @@ C Prior to commencing simulation, delete "console_out.txt", if found.
             CLOSE ( UNIT=ifil+83, STATUS='DELETE' )
       endif
 
-C mark in log file, start of simulation
+C Mark in log file, start of simulation.
       if( dll ) then
         open(UNIT=iLogFile, FILE=cLogFile,position='APPEND' )
         write( iLogFile, * ) "subroutine: bps() - dll run"
@@ -433,8 +404,7 @@ C mark in log file, start of simulation
         ACTCNN(I)=.TRUE.
  1    continue
 
- 
-C Disable h3k customizations by default 
+C Disable h3k customisations by default.
       bEnableH3kExtensions = .false. 
  
 C Assume that the configuration, mlc db, primitive db, control file
@@ -445,11 +415,11 @@ C have not been read in.
       CTLOK=.FALSE.
       spfileok=.false.
       LUALF='UNKNOWN'
-      RFILE='libb'
-      PFILE='libp'
-      LAFRES='libf'
-      CFRESF='libc'
-      MSTRFILE='libmstr'
+      RFILE='Bldres'
+      PFILE='PWrres'
+      LAFRES='FLWres'
+      CFRESF='CFDres'
+      MSTRFILE='MSTres'
       do 5 I=1,MCOM
         Lflpar(I)='UNKNOWN'
         UNMETHRS(I)=0  ! reset counter of unmet hours
@@ -462,9 +432,8 @@ C used to generate images for the preliminary flow field when the adaptive
 C conflation controller is active (not referenced).
       photon=.FALSE.
       flwvis=.FALSE.
-C      gopher = .false.
 
-C CFD results library: IRECPC=current record; ICFDSV=results version
+C CFD results library: IRECPC=current record; ICFDSV=results version.
       IRECPC=0
       ICFDSV=3
 
@@ -520,8 +489,6 @@ C all console write is rerouted to the log file
 C Get command line parameters from local subroutine parbps.
         call parbps(iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
      &    actf,mca,nbsets)
-C        write(6,*)iverb,MODL,iappw,iappx,iappy,inf,browsing,sps,aut,
-C     &    actf,mca,nbsets
         itrc=iverb    ! set trace after call to parsim
         if(mca(1:3).eq.'MCA')then
           IUNCMET=3
@@ -552,7 +519,7 @@ C Check for endless running mode.
         call tstamp('>','bps: Endless-running mode')
       endif
       
-C create new child thread to timeout simulation if required.
+C Create new child thread to timeout simulation if required.
 C << Note this is temporarily commented out and should be
 C << re-established for CETC use.
 C      if ( itimeoutflag .eq. 1)then
@@ -589,9 +556,7 @@ C at begining for details. These must not be changed elsewhere.
       ILWV=IFIL+15
       ITF3=IFIL+16
       IMSTR=IFIL+17
-      ICFLIB=IFIL+18
-C ICFMON assignment moved to MZUTIL, in case there are multiple CFD 
-C domains   
+      ICFLIB=IFIL+18  
       ICFTMP=IFIL+20
       nochan=ifil+23
       ISTemp=IFIL+60
@@ -601,9 +566,6 @@ C uncertainty analysis routines)
       call esppid(ipid)
       x=RSTART(ipid)
       uncertheadprinted=.false.
-
-C If your compiler does not support floating-point arithmetic
-C according to ANSI/IEEE Std 754-1985 comment out the following code.
 
 C Initialise output device: -10 forces user selection.
       MMOD=MODL
@@ -790,15 +752,15 @@ C        call edisp248(iuout,outs248,90)
         LCMDFL='UNKNOWN'
       endif
 
-C Inital climate assumption.
+C Inital weather assumption.
       LCLIM=DCLIM
       ICLIM=IFIL
 
-C Day & Time format preference.
+C Day & time format preference.
       IFDAY=2
       IFTIME=0
 
-C Initialize once per hour storage of results counter.
+C Initialise once per hour storage of results counter.
       irdact=0
       irdcm=1
 
@@ -842,8 +804,7 @@ C Default setting of IREP, reporting and range checking on.
 C If an input file has been specified then load it and then
 C return to the main menu.
       XST=.false.
-C Debug.
-C      write(*,*)'LCMDFL: ',LCMDFL
+
       if(LCMDFL(1:2).ne.'  '.and.LCMDFL(1:4).ne.'UNKN')then
         INQUIRE (FILE=LCMDFL,EXIST=XST)
         IF(XST)THEN
@@ -1002,7 +963,7 @@ C Set up initial menu.
       endif
       ITEM(12)   ='  _________________________  '
       ITEM(13)   ='? help                       '
-      ITEM(14)   ='- exit Integrated Simulator  '
+      ITEM(14)   ='- quit module                '
       nitms=14
 
 C And menu is to be displayed.
@@ -1293,34 +1254,31 @@ C Help via the askabout facility in esru_ask.F The zero requests display.
       elseif(ino.eq.NITMS)then
 
 C Clean up and exit.
-C Delete any temporal scratch file if temporal data associated with
-C the model.
-
         if(endless.or.issilient)then
           continue
         else
 
-C Debug write out unmet hours. Future action is to enable
-C unmet hours logic to reside in res.
-C          write(6,'(a)') 
-C     &      'Unmet hours for each zone at end of simulation.'
-C          do I=1,NCOMP
-C            write(6,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
-C          enddo
+C Write unmet hours to channel 27 before closing bps.
+C << Future action is to enable unmet hours recovery in res. >>
+          write(27,'(a)') 
+     &      'Unmet set-point hours for each zone at end of simulation.'
+          do I=1,NCOMP
+            write(27,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
+          enddo
         endif
+
+C Delete temporal scratch file.
         if(ITDFLG.ne.0)then
           CALL ERPFREE(IUTDF,ISTAT)
           lnts=lnblnk(LTDF)
           if(LTDF(lnts-15:lnts).eq.'.temporalscratch')then
-            call usrmsg('Deleting scratch file...',LTDF,'P')
             ier=0
             call EFOPRAN(iutdf,LTDF,1,1,IER)
             CALL EFDELET(iutdf,ISTAT)
-            call usrmsg('Deleting scratch file...done.',LTDF,'P')
           endif
         endif
 
-C Delete all the 3D temporary files.
+C Delete 3D temporary files.
         IF(BLDG3D)THEN
           DO 60 ICOMP=1,NCOMP
             IF(ZONE3D(ICOMP))THEN
@@ -1340,13 +1298,13 @@ C Delete all the 3D temporary files.
           CALL EFDELET(ITF3,ISTAT)
         ENDIF
 
-C Close moisture result library.
+C Close moisture result file.
         IF(MSTROK)CALL ERPFREE(IMSTR,ISTAT)
         call tstamp('>','Finish simulator')
         CALL ERPFREE(ICLIM,ISTAT)
         if( dll ) return
 
-C Clear allocatable arrays
+C Clear allocatable arrays.
         close(ieout)
         if(iecount.eq.0)then     ! if there were no warnings delete
           open(ieout,file=iefile,status='UNKNOWN')
@@ -1391,15 +1349,14 @@ C Error.
 
       end subroutine SubBps
 
-C ****************************************
-C Local variant of command line parsing for the simulator.
-C parbps parse command line paramters for ecnv.
+
+C ******************** parbps ********************
+C Command line parser for bps.
+
       subroutine parbps(iverb,termtype,iappw,iappx,iappy,inf,browse,
      &  sps,aut,actf,mca,nbsets)
       
       integer lnblnk  ! function definition
-
-C Declare  calling parameter types
       integer, intent(inout)  ::  iverb, termtype,iappw,iappx,iappy
       character(144), intent(inout)  :: inf
       character(96), intent(inout) :: actf
@@ -1411,7 +1368,6 @@ C Declare  calling parameter types
       integer, intent(inout)  ::  nbsets   ! number of sets to run
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-C Timeout information
       COMMON/TIMEOUT/sTimeout,iTimeoutFlag
       integer :: iTimeoutFlag
       integer :: err
@@ -1424,12 +1380,12 @@ C Timeout information
       logical unixok
 
       inf  = 'UNKNOWN'
-      mca  = '-'  ! assume not doing monti-carlo
+      mca  = '-'  ! assume not doing monte-carlo
       iverb = 0   ! assume not verbose
-      nbsets = 0  ! assume no monti-carlo sets
+      nbsets = 0  ! assume no monte-carlo sets
 
 C Get number of arguments and command name.
-      termtype = 8      ! assume graphic mode unless otherwise instructed
+      termtype = 8      ! assume graphic mode
       mode = 'graphic'
       aut  = 'default'
       browse = '    '
@@ -1447,28 +1403,19 @@ C If one parameter.
         if(i.gt.m)goto 42
         call getarg(i,argument)
         if(argument(1:5).eq.'-help')then
-         call edisp(iuout,'This is the ESP-r Simulator. ')
-         call edisp(iuout,'  Use: [-mode {text|graphic}]')
-         call edisp(iuout,'       [-file <configuration file>]')
-         call edisp(iuout,'       [-v|-vv] verbose or very verbose')
-         call edisp(iuout,'   [-p <param_set_name> <how>]')
-         call edisp(iuout,'   (where how {interactive|silent} defines')
-         call edisp(iuout,'    whether the user interacts')
-         call edisp(iuout,'   [-actf file providing bems commands')
-         call edisp(iuout,'   [-s < width, offset left & top>]')
-         call edisp(iuout,'   [-b {no|yes}]')
          call edisp(iuout,' ')
-         call edisp(iuout,'  where -mode options are:')
-         call edisp(iuout,'    text    = text mode')
-         call edisp(iuout,'    graphic = graphic mode')
-         call edisp(iuout,'    script = script mode')
-         call edisp(iuout,'  where -b (browse options) are used to')
-         call edisp(iuout,'    indicate that the user has requested')
-         call edisp(iuout,'    a simulation for a model they are')
-         call edisp(iuout,'    browsing (in which case the results')
-         call edisp(iuout,'    will be placed in the users home')
-         call edisp(iuout,'    folder. Default is no.')
-         call edisp(iuout,' ')
+         call edisp(iuout,'This is the ESP-r Simulator; use:')
+         call edisp(iuout,' [-mode {text|graphic/script}]')
+         call edisp(iuout,' [-file <model configuration file>]')
+         call edisp(iuout,' [-v|-vv]')
+         call edisp(iuout,'    verbose or very verbose')
+         call edisp(iuout,' [-p <par_set_name> {interactive|silent}]')
+         call edisp(iuout,' [-actf <BEMS commands file>')
+         call edisp(iuout,' [-s <width, offset left, offset top>]')
+         call edisp(iuotu,'    size of start-up window.')
+         call edisp(iuout,' [-b {no|yes} browse mode]')
+         call edisp(iuout,'    if yes, results are placed in the user')
+         call edisp(ioout,'    home folder, not the model folder.')
           stop
         elseif(argument(1:3).eq.'-vv')then
           iverb = 2   ! tell application to run with debug verbose
@@ -1592,10 +1539,10 @@ C calls in esru_lib.F
      &   JITOBS,JITSNR,JITGRD,JITORG,DIS,JITBND,JITDSP,JITHLS,JITHLZ,
      &   JITPPSW)
 
-C Passed paramters.
+C Passed parameters.
       real EVX,EVY,EVZ,VX,VY,VZ,EAN,DIS
 
-C Depending on computer type set integer size of passed parameters.
+C Depending on computer type, set integer size of passed parameters.
 #ifdef OSI
       integer JITZNM,JITSNM,JITVNO,JITOBS,JITVIS,JITVOBJ,JITSNR,JITGRD
       integer JITORG,JITBND,JITDSP,JITHLS,JITHLZ,JITPPSW
@@ -1671,15 +1618,15 @@ C Depending on computer type set integer size of passed parameters.
       return
       end
 
-C----------------------------------------------------
-C  Subroutine: SetDllParms
-C  Set parameters for esp-r engine as if running
-C  in silent mode and text mode
+C  ******************** SetDllParms ********************
+C  Sets parameters as if running in silent mode or text mode.
+C
 C      subroutine SetDllParms(termtype,iappw,iappx,iappy,inf,sps,aut,
 C     & actf)
+C
 C      character inf*144,sps*30,aut*12,fs*1,actf*96
 C      integer termtype,iappw,iappx,iappy
-
+C
 C Place holder (actual code omitted from this version of bps).
 C      return
 C      end

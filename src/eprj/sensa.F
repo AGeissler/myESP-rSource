@@ -16,10 +16,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Controling routines for parametric studies:
 C   UNCERTA:  This is the top level uncertainty definition menu. 
@@ -153,7 +149,7 @@ C Set up initial menu.
       ITEM(8) ='! list current uncertainties     '
       ITEM(9) ='> save uncertainties             '
       ITEM(10)='? help                           '
-      ITEM(11)='- exit this menu                 '
+      ITEM(11)='- exit menu'
       NITMS=11
 
    12 CALL EMENU('Uncertainty definition',ITEM,NITMS,INO)
@@ -293,7 +289,7 @@ C If a long list include page facility text.
       MLCITM(M+4)='! list current          '
       MLCITM(M+5)='> update library        '
       MLCITM(M+6)='? help                  '
-      MLCITM(M+7)='- exit this menu        '
+      MLCITM(M+7)='- exit menu'
       INO=-4
 
 C Depending on ityp display different headings for menu.
@@ -1136,7 +1132,7 @@ C Temporal locations (control and weather).
           return
         endif
 
-C Ok to instanciate the data and complete the editing.
+C Ok to instantiate the data and complete the editing.
         NTG(icurrent,1)=IDST  ! julian day start
         NTG(icurrent,2)=IHST  ! start hour
         NTG(icurrent,3)=IDFT  ! julian day finish
@@ -5209,7 +5205,7 @@ C Start by skipping blanks tabs before the JTAG.
       IF(A.EQ.lsquare) GOTO 10  ! continue past [
       if(A.EQ.dq) then
         K=K+1            ! increment to next character
-        A=STRING(K:K)    ! instanciate A
+        A=STRING(K:K)
         goto 20          ! proceed to copy
       elseif(A.EQ.dq) then
         continue
@@ -5234,12 +5230,12 @@ C Skip blanks tabs etc before PHRASE.
       IF(A.EQ.' '.OR.A.EQ.','.OR.(ICHAR(A).EQ.9)) GOTO 21
       if(A.EQ.simicol) then
         K=K+1            ! increment to next character after :
-        A=STRING(K:K)    ! instanciate A
+        A=STRING(K:K)
         goto 21          ! try next character
       endif
       if(A.EQ.dq) then
         K=K+1            ! increment to next character
-        A=STRING(K:K)    ! instanciate A
+        A=STRING(K:K)
         goto 30          ! now copy into PHRASE
       endif
 
@@ -5352,7 +5348,7 @@ C Start by skipping blanks tabs before the JTAG.
       IF(A.EQ.lsquare) GOTO 10  ! continue past [
       if(A.EQ.dq) then
         K=K+1            ! increment to next character
-        A=STRING(K:K)    ! instanciate A
+        A=STRING(K:K)
         goto 20          ! proceed to copy
       elseif(A.EQ.dq) then
         continue
@@ -5377,7 +5373,7 @@ C Skip blanks tabs etc before PHRASE. We do not expect any "
       IF(A.EQ.' '.OR.A.EQ.','.OR.(ICHAR(A).EQ.9)) GOTO 21
       if(A.EQ.simicol) then
         K=K+1            ! increment to next character after :
-        A=STRING(K:K)    ! instanciate A
+        A=STRING(K:K)
         goto 21          ! try next character
       endif
 
@@ -5577,7 +5573,7 @@ C Start by skipping blanks tabs before FIRST.
       IF(K.GT.LNLST) GOTO 100 ! past actual length
       A=STRING(K:K)
       IF(A.EQ.' '.OR.A.EQ.','.OR.(ICHAR(A).EQ.9)) GOTO 10
-      A=STRING(K:K)    ! instanciate A
+      A=STRING(K:K)
       goto 20          ! proceed to copy
 
 C Copy FIRST from STRING, character by character until CH is found.

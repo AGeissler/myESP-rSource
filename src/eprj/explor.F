@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C explor.f provides menu and help facilities for the main item exploration
 C editing and viweing sections of TDF.  Written by the staff of ESRU
@@ -355,12 +351,12 @@ C Begin with emenu.
           ITEMS(6)= 'f import UK NCM data            '
           ITEMS(7)= ' _____________________________ '
           ITEMS(8)= '? help                          '
-          ITEMS(9)= '- exit this menu                '
+          ITEMS(9)= '- exit menu'
           nitms=9
         else
           ITEMS(6)= ' _____________________________ '
           ITEMS(7)= '? help                          '
-          ITEMS(8)= '- exit this menu                '
+          ITEMS(8)= '- exit menu'
           nitms=8  
         endif
        

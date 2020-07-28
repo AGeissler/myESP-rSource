@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the routines which comprise the engine
 C of the CFD algorithm. 
@@ -35,6 +31,7 @@ C             certain cells.
 
 C ********************* CFCALC *********************
 C CFCALC - CFD solution manager.
+
       SUBROUTINE CFCALC(ITIMST,TSTEP,IMFSAC,IBLACT,CONVER)
 #include "building.h"
 #include "cfd.h"
@@ -604,10 +601,9 @@ C If mass residual is maximum.
           CALL ECLOSE(resorm,sorce,0.01,closer)
           IW=3  ! assume continue
           IF(CLOSER)THEN
-            call EASKABCD(
-     &        'Mass residual @ max. Lower velocity URF or iterate.',
+            call EASKABCD(' ',
      &        'Options:','lower velocity URF +10 iter','+10 mfs iter',
-     &        'mark converged','continue',IW,nbhelp)
+     &        'mark converged','cancel',IW,nbhelp)
           ENDIF
           if (IW.eq.1) then
             WRITE(OUT,'(A,I4,A)')'Solution did not converge in ',
@@ -649,9 +645,9 @@ C If mass residual is maximum.
 C If any of the velocity residuals are maximum probably the iterations
 C need to be done again using lower velocity URFs. Offer choice. 
           call EASKABCD(
-     &    'Did not converge. Lower velocity URF or iterate','Options:',
+     &    'Did not converge.','Options:',
      &    'lower velocity URF +500 iter','+500 iter','mark converged',
-     &    'continue',IW,nbhelp)
+     &    'cancel',IW,nbhelp)
           if (IW.eq.1) then
             NOMAXIT=MAXIT
             MAXIT=500+MAXIT

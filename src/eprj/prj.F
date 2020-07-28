@@ -10,18 +10,21 @@ C PURPOSE. See the GNU General Public License for more
 C details.
 
 
-C This file comprising
-C   MAIN: does what it says on the box.
-C   simula: commissions technical assessments and analysis.
-C   checkmodel: checks model prior to commissioning a simulation.
-C   imgdisp: displays images associated with start-up or at
-C   specific points.
-C   CFGVER: supports the creation of model variants.
-C   VERMAN: copies various ESP-r files and names them uniquely
-C          in order to build multiple variants of a base case model
-C   FNCNGR: changes the name of file ORIGNAM by appending APP
+C This file comprises the following routines.
+C prj        - main program.
+C simula     - commissions technical assessments and analysis.
+C checkmodel - checks model prior to commissioning a simulation.
+C imgdisp    - displays images associated with start-up or at
+C              specific points thereafter.
+C CFGVER     - supports the creation of model variants.
+C VERMAN     - copies model files and names them uniquely in
+C              order to build multiple variants of a base case model.
+C FNCNGR     - changes the name of file ORIGNAM by appending APP
 
-C ********** MAIN
+
+C ******************** prj ********************
+C Main program.
+
       program prj
       USE START_UP
 #include "building.h"
@@ -77,7 +80,7 @@ C Journal on/off, unit number, cmd, file name.
       common/journopt/journio,iuj,journcmd,jfile
       character journcmd*20,jfile*72
 
-C Session log file (for errors etc.)
+C Session log file (for errors etc.).
       character iefile*72
       common/logs/iefile
 
@@ -126,7 +129,7 @@ C IPV description via ipvdata.h.
       common/gzonpik/izgfoc,nzg,nznog(mcom)
       common/FOPENED/CFGOK,MLDBOK,MATDBOK,CTLOK,OPTKOK,CFCDBOK
 
-C IDST tool commands
+C IDST tool commands.
       common/idsta/CMDCFG,CMDCLM,CMDCLMN,CMDNOTE,CMDRES,CMDLBL(10),
      &             CMDLNAM(10)
       common/idstb/nidst
@@ -152,9 +155,8 @@ C Tolerance for surface matching.
       common/matching/ANGCC,CACC,DACC,COGCC,SNACC,IACC
       
 C Topic variables: value of zero = none, one = compact, two = verbose,
-C three is very verbose
-C Initial assumption is verbose for most topics that are included
-C in the current model. A -1 means not applicable
+C three = very verbose, -1 = applicable. Initial assumption is verbose
+C for most topics. 
       integer siteinfo,databaseinfo,contextinfo,controlinfo,netinfo
       integer plantinfo,geominfo,schedinfo,zoneextrainfo,fileinfo
       integer spminfo,enetinfo
@@ -221,7 +223,7 @@ C Returned parameters from silentread or silentxmlread.
       integer nbupdatecomments
       dimension updatecomment(20)
           
-C Passed parameters to cfgtogg
+C Passed parameters to cfgtogg.
 #ifdef OSI
       integer icfg_type  ! model cfg type
       integer icfgz      ! if non-zero then there are zones
@@ -341,7 +343,7 @@ C Set folder separator (fs) to \ or / as required.
       write(dbspth,'(a1,a1)')'.',fs
       write(bsmpth,'(a1,a1)')'.',fs
       write(hvacpth,'(a1,a1)')'.',fs
-      IYEAR=2007
+      IYEAR=2020
       IBDOY=1
       IEDOY=365
       cfgroot=' '
@@ -358,13 +360,13 @@ C Set folder separator (fs) to \ or / as required.
       bdmds='UNKNOWN'
       bidirfile='UNKNOWN'
 
-C Assume weekends are Saturday/ Sunday unless re-defined.
+C Assume weekends are Saturday & Sunday unless re-defined.
       idwe1=6
       idwe2=7
       wkd1='Saturday'
       wkd2='Sunday'
 
-C Set upgrade files flag to zero (no opinion yet)
+C Set upgrade files flag to zero (no opinion yet).
       igupgrade=0
 
 C Clear number of images and allow image browsing.
@@ -531,7 +533,6 @@ C within a model pwdinitial will end in cfg or cfg/ or cfg\
         pwdtocfg='!'             ! signal no need to append this
         lnpwdc=lnblnk(pwdtocfg)  ! remember its length
       endif
-
 
 C Find the user's home folder then get user's custom settings
 C if defined. If there is no .esprc file in the users home folder
@@ -700,8 +701,8 @@ C then set inact.
         inact='NONE'
       endif
 
-C Climate db is on channel IFIL (NB when not in use other binary
-C databases may make use of this unit temporarily).
+C Weather file is on channel IFIL (N.B. when not in use, other
+C files may make use of this unit temporarily).
       ICLIM=IFIL; ipathclim=0
       LCLIM=DCLIM
 
@@ -712,7 +713,7 @@ C full path.
       IFMUL=IFIL+3; ipathmul=0
       write(LFMUL,'(a)') DFMUL(1:lnblnk(DFMUL))
 
-C Common Materials on channel IFIL+4. Default file assumed with
+C Common materials on channel IFIL+4. Default file assumed with
 C full path.
       IFMAT=IFIL+4; ipathmat=0
       write(LFMAT,'(a)') DFCON(1:lnblnk(DFCON))
@@ -749,7 +750,7 @@ C Temporal information on channel IFIL+7.
       write(LTDFA,'(a)') 'UNKNOWN'
       ITDFLG=0
 
-C Text/graphic feedback redirection on channel ifil +9 
+C Text/graphic feedback redirection on channel IFIL+9.
       ixunit = ifil + 9
 
 C CFClayers on channel IFIL+10.
@@ -790,7 +791,7 @@ C If open, close the session log.
                 call efdelet(ieout,istat)
               endif
 
-C Clear allocatable arrays
+C Clear allocatable arrays.
               CALL DeallocateAllArrays
               CALL EPAGEND
               STOP
@@ -833,7 +834,7 @@ C If open, close the session log.
                 call efdelet(ieout,istat)
               endif
 
-C Clear allocatable arrays
+C Clear allocatable arrays.
               CALL DeallocateAllArrays
               CALL EPAGEND
               STOP
@@ -870,7 +871,7 @@ C Close the session log.
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
 
-C Clear allocatable arrays
+C Clear allocatable arrays.
               CALL DeallocateAllArrays
               CALL EPAGEND
               STOP
@@ -886,7 +887,7 @@ C Close the session log.
               close(ieout)
               CALL ERPFREE(ieout,ISTAT)
 
-C Clear allocatable arrays
+C Clear allocatable arrays.
               CALL DeallocateAllArrays
               CALL EPAGEND
               STOP
@@ -943,7 +944,7 @@ C Close the session log.
                 call efdelet(ieout,istat)
               endif
 
-C Clear allocatable arrays
+C Clear allocatable arrays.
               CALL DeallocateAllArrays
               CALL EPAGEND
               STOP
@@ -994,17 +995,13 @@ C Assume that the file name passed is not an exemplar.
 C Nothing on the command line and if we are in a cfg folder then
 C use the file browsing to see if there are any cfg files.
         if(pwdinitial(lnpwdi-2:lnpwdi).eq.'cfg')then
-          call edisp(iuout,' ')
-          call edisp(iuout,'Searching for model files ...')
           write(subpath,'(a)') pwdinitial(1:lnpwdi)
-
           call discovercfg(subpath,sfile,ier)
 
 C Return from discovercfg and derive the path and LCFGF portions
 C of the string sfile.
           if(ier.eq.0)then
             call fdroot(sfile,path,LCFGF)
-    
             lcfgr=lnblnk(LCFGF)
             lcfgl=lcfgr-3
             if(lcfgr.gt.4)then
@@ -1238,7 +1235,7 @@ C      ITRC=1  ! why reset this ?
       ENDIF
       ITEMS(26) =   '* preferences'
       ITEMS(27) =   '? help'
-      ITEMS(28) =   '- quit Project Manager'
+      ITEMS(28) =   '- quit module'
       MITEM=28
 
 C If user has defined model and perhaps resized the display then
@@ -1962,7 +1959,7 @@ C Display the simulation period.
         ITEMS(m+7) = 'v feedback: detailed'
       ENDIF
       ITEMS(M+8)   ='? help'
-      ITEMS(M+9)   ='- exit this menu'
+      ITEMS(M+9)   ='- exit menu'
       MITEM=M+9
 
 C At each pass update for recent parameter changes.
@@ -3503,18 +3500,20 @@ C error state.
    
       end
         
-C ********** checkmodel **********
-C Check model prior to commissioning a simulation. Return logical
-C variables for various topics for possible use by calling routines.
-C  mlcok looks for unattributed surface constructions
-C  bndryok looks for unattributed surface connections
-C  bndrysxc looks for surface connection attribute different from cnn list.
-C  confok looks for missing construction files.
-C  geofok looks for missing geometry files.
-C  oprfok looks for missing/old/unsorted operations files. 
-C  prob looks for contiguity cross-references
-C  tmcok looks for matching transparent partitions.
-C  shdok checks if shading files are readable.
+C ******************** checkmodel ********************
+C Check model files prior to commissioning a simulation. Returns
+C logical variables for possible use by calling routines.
+C
+C mlcok    - detect unattributed surface constructions
+C bndryok  - detect unattributed surface connections
+C bndrysxc - detect surface connection attribute different from cnn list
+C confok   - detect missing construction files
+C geofok   - detect missing geometry files
+C oprfok   - detect missing/old/unsorted operations files 
+C prob     - detect contiguity cross-references
+C tmcok    - detect matching transparent partitions
+C shdok    - detect if existing shading files are readable if
+C            S/I calculation method is file based
 
       subroutine checkmodel(mlcok,bndryok,bndrysxc,confok,geofok,
      &                      oprfok,prob,tmcok,shdok)
@@ -3523,48 +3522,39 @@ C  shdok checks if shading files are readable.
 #include "geometry.h"
 #include "CFC_common.h"
 
-      integer lnblnk  ! function definition
-
-C Get logical name of terminal type, expand model name
-C to include the path and create a string to drive the modules.
       common/OUTIN/IUOUT,IUIN,IEOUT
       integer childterminal  ! picks up mmod from starting of prj
       common/childt/childterminal
       common/FILEP/IFIL
-      
-      integer ncomp,ncon
-      COMMON/C1/NCOMP,NCON
-      COMMON/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
-
+      common/C1/NCOMP,NCON
+      common/C3/IC1(MCON),IE1(MCON),ICT(MCON),IC2(MCON),IE2(MCON)
+      common/C24/IZSTOCN(MCOM,MS)
+      common/shad0/ISIcalc,icalcD,icalcM
       common/spfldat/nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
-      INTEGER :: nsset,isset,isstup,isbnstep,ispnstep,issave,isavgh
-
-      COMMON/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
+      common/PRECTC/ITMCFL(MCOM,MS),TMCT(MCOM,MTMC,5),
      &       TMCA(MCOM,MTMC,ME,5),TMCREF(MCOM,MTMC),TVTR(MCOM,MTMC)
+      common/pophelp/h(60)   ! help pop-up
 
       character CXSTR*78
       character shdafile*72
-      CHARACTER*72 LS
+      character*72 LS
       character ZSDES*28,ZSDESC*20,ZSDESS*16
-      CHARACTER ZN*12,longtfile*144,longtfiledos*144
+      character ZN*12,longtfile*144,longtfiledos*144
       character DOIT*248,outs*248
+      character H*72
+      character helpinsub*24 ! subroutine name
+      character helptopic*24 ! string (unique) for topic
 
       logical XST,XSTA,asked,problem
       logical mlcok,bndryok,bndrysxc,confok,geofok,oprfok,prob,dup
       logical tmcok,shdok
       logical concat,unixok
+
+      integer lnblnk        ! function definition
       integer icple,iscple  ! coupled zone and surface for tmc check.
       integer itmc1,itmc2   ! non-zero if surface a tmc
       integer icz,ics       ! associated surface
-
-C For help.
-      common/pophelp/h(60)   ! needed for dynamic popup
-      character H*72
-      character helpinsub*24 ! subroutine name
-      character helptopic*24 ! string (unique) for topic
-      integer nbhelp     ! number of help lines found
+      integer nbhelp        ! number of help lines found
 
       helpinsub='checkmodel'  ! set for subroutine
 
@@ -3576,8 +3566,8 @@ C For help.
 C Check if Unix-based or DOS based.
       call isunix(unixok)
 
-C Do an initial check to see if the model is attributed and
-C constructions are known.
+C Initial check to see if the model is attributed and
+C constructions known.
       helptopic='has_unknown_attributes'
       call gethelptext(helpinsub,helptopic,nbhelp)
       mlcok=.true.
@@ -3595,7 +3585,7 @@ C constructions are known.
       if(.NOT.mlcok)then
         call tstamp('>','prj: found unattributed surfaces')
         call easkok(
-     &    'Some surfaces not fully attributed for construction!',
+     &    'Some surfaces not construction attributed!',
      &    'View surfaces?',asked,nbhelp)
         if(asked)then
           CALL PHELPD('lacking construction attrib',nbhelp,'-',0,0,IER)
@@ -3620,7 +3610,7 @@ C constructions are known.
       if(.NOT.bndryok)then
         call tstamp('>','prj: found some surfaces unattributed')
         call easkok(
-     &    'Some surfaces not fully attributed for boundary condition!',
+     &    'Some surfaces not boundary condition attributed!',
      &    'View surfaces?',asked,nbhelp)
         if(asked)then
           CALL PHELPD('questioned boundary attrib',nbhelp,'-',0,0,IER)
@@ -3642,9 +3632,9 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 
      &        'Boundary looking for EXTER in ',ZSDES
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'connection is ... ',CXSTR(1:50)
+            write(h(nbhelp),'(2a)') 'connection is ',CXSTR(1:50)
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'found surface attribute ... ',
+            write(h(nbhelp),'(2a)') 'found surface attribute.',
      &        SOTHER(icz,ics,1)
           endif
         endif
@@ -3655,9 +3645,9 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'Boundary looking for SIML in ',
      &        ZSDES
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'connection is ... ',CXSTR(1:50)
+            write(h(nbhelp),'(2a)') 'connection is ',CXSTR(1:50)
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'found surface attribute ... ',
+            write(h(nbhelp),'(2a)') 'found surface attribute.',
      &        SOTHER(icz,ics,1)
           endif
         endif
@@ -3668,9 +3658,9 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'Boundary looking for CONST in ',
      &       ZSDES
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'connection is ... ',CXSTR(1:50)
+            write(h(nbhelp),'(2a)') 'connection is ',CXSTR(1:50)
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'found surface attribute ... ',
+            write(h(nbhelp),'(2a)') 'found surface attribute.',
      &        SOTHER(icz,ics,1)
           endif
         endif
@@ -3681,9 +3671,9 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'Boundary unexpected CONST in ',
      &        ZSDES
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'connection... ',CXSTR(1:50)
+            write(h(nbhelp),'(2a)') 'connection is ',CXSTR(1:50)
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'found surface attribute ... ',
+            write(h(nbhelp),'(2a)') 'found surface attribute.',
      &        SOTHER(icz,ics,1)
           endif
         endif
@@ -3694,9 +3684,9 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'Boundary unexpected SIMIL in ',
      &        ZSDES
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
+            write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'found surface attribute ... ',
+            write(h(nbhelp),'(2a)') 'found surface attribute.',
      &        SOTHER(icz,ics,1)
           endif
         endif
@@ -3707,7 +3697,7 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'Boundary unexpected EXTER in ',
      &        ZSDES
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
+            write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
           endif
         endif
         if(ICT(i).eq.3.and.SOTHER(icz,ics,1)(1:5).eq.'GROUN')then
@@ -3717,7 +3707,7 @@ C constructions are known.
             write(h(nbhelp),'(2a)') 'Boundary unexpected GROUN in ',
      &        ZSDES
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
+            write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
           endif
         endif
 
@@ -3735,9 +3725,9 @@ C Do same check as in solar.F.
                 write(h(nbhelp),'(2a)') 'Opaque/Transp mismatch in ',
      &            ZSDES
                 nbhelp=nbhelp+1
-                write(h(nbhelp),'(2a)') 'connection is ... ',CXSTR(1:50)
+                write(h(nbhelp),'(2a)') 'connection is ',CXSTR(1:50)
                 nbhelp=nbhelp+1
-                write(h(nbhelp),'(2a)') 'for surface attribute ...',
+                write(h(nbhelp),'(2a)') 'for surface attribute.',
      &           SMLCN(icz,ics)
               endif
             endif
@@ -3751,9 +3741,9 @@ C Do same check as in solar.F.
             write(h(nbhelp),'(2a)') 'Boundary looking for GROUN in ',
      &        ZSDES
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
+            write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'found surface attribute ... ',
+            write(h(nbhelp),'(2a)') 'found surface attribute. ',
      &        SOTHER(icz,ics,1)
           endif
         endif
@@ -3764,9 +3754,9 @@ C Do same check as in solar.F.
             write(h(nbhelp),'(2a)') 'Boundary looking for ADIAB in ',
      &        ZSDES
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
+            write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'found surface attribute ... ',
+            write(h(nbhelp),'(2a)') 'found surface attribute.',
      &        SOTHER(icz,ics,1)
           endif
         endif
@@ -3779,14 +3769,14 @@ C HOT3000: BASESIMP.
             write(h(nbhelp),'(2a)') 'Boundary looking for BASES in ',
      &        ZSDES
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'connection ... ',CXSTR(1:50)
+            write(h(nbhelp),'(2a)') 'connection ',CXSTR(1:50)
             nbhelp=nbhelp+1
-            write(h(nbhelp),'(2a)') 'found surface attribute ... ',
+            write(h(nbhelp),'(2a)') 'found surface attribute',
      &        SOTHER(icz,ics,1)
           endif
         endif
-C HOT3000: BASESIMP.
  42   continue
+
       if(.NOT.bndrysxc)then
         call tstamp('>','prj: found surface attributions inconsistent')
         call easkok(
@@ -3869,8 +3859,8 @@ C Check to see if this connection only pointed to once in the whole list.
   290 continue
       if(prob)then
         call tstamp('>','prj: found topology inconsistent')
-        call usrmsg('Topology found to be inconsistent. This',
-     &  'should be resolved before running a simulation.','W')
+        call usrmsg('Topology found to be inconsistent!',
+     &  'Resolved before starting a simulation.','W')
         CALL PHELPD('boundary checks',nbhelp,'-',0,0,IER)
       endif
 
@@ -3900,7 +3890,7 @@ C Now look for unknown files.
  46   continue
       if(.NOT.geofok)then
         call usrmsg('Some zones do not reference a geometry file.',
-     &    'The model will not allow thermal simulation.','W')
+     &    'Model will not support thermal simulation.','W')
         CALL PHELPD('geometry checks',nbhelp,'-',0,0,IER)
       endif
 
@@ -3945,7 +3935,7 @@ C Do cursory check to see if the file is sorted.
       if(.NOT.oprfok)then
         call usrmsg(
      &  'Some zones lack operation details or have outdated files.',
-     &  'The model will not support thermal simulation.','W')
+     &  'Model will not support thermal simulation.','W')
         CALL PHELPD('operations checks',nbhelp,'-',0,0,IER)
       endif
 
@@ -4012,14 +4002,15 @@ C Zone construction file exists so attempt to scan it.
  45   continue
       if(.NOT.confok)then
         call usrmsg(
-     &   'Some zones do not reference a construction file. The',
-     &   'model will not allow thermal simulation.','W')
+     &   'Some zones do not reference a construction file.',
+     &   'Model will not support thermal simulation.','W')
         CALL PHELPD('constructions checks',nbhelp,'-',0,0,IER)
       endif
 
-C Check for existance of zone shading files and if missing but
-C there is an ASCII shading file convert it otherwise attempt
-C to calculate.
+C For existing S/I file case, check for existence of zone files and,
+C if missing but there is an ASCII S/I file convert it; otherwise,
+C invoke ish to calculate.
+      if(ISIcalc.eq.1)return  ! embedded S/I calculation mode
       helptopic='has_unknown_shading'
       call gethelptext(helpinsub,helptopic,nbhelp)
       shdok=.true.
@@ -4099,7 +4090,7 @@ C mzshin.
               call EFOPRAN(IFIL+1,LS,maxrec,1,IER)
               IF(ier.ne.0)goto 1000
 
-C Check file has been written to. If a problem the try again
+C Check file has been written to. If a problem then try again
 C at maxrec=24 for older files. Remember maxrec for use in solar.F.
               IREC=2
               READ(IFIL+1,REC=IREC,IOSTAT=ISTAT,ERR=1001)INEXT,NS
@@ -4149,10 +4140,9 @@ C at maxrec=24 for older files. Remember maxrec for use in solar.F.
       if(.NOT.shdok)then
         call usrmsg(
      &    'Some zones have missing or corrupt shading files.',
-     &    'The model will not allow thermal simulation.','W')
+     &    'Model will not support thermal simulation.','W')
         CALL PHELPD('shading checks',nbhelp,'-',0,0,IER)
       endif
-
       return
       end
 
@@ -4192,7 +4182,7 @@ C         'FDFS' is related to CFD domains
 C         'FPER' is related to predicted performance
 C         '****' is a general image displayed at startup
 C  limgfil (72 char) name of the image file << ?? longer string >>
-      character imgfmt*4  ! GIF XBMP TIF JPG
+      character imgfmt*4  ! GIF XBMP TIF JPG PNG
       character imgfoc*4  ! FZON FNET FCTL FDFS
       character limgfil*72  ! file name (extend to 144 char)
       character imgdoc*248  ! text associated with image
@@ -4327,6 +4317,7 @@ C Setup help text for the popup.
             if(imgfmt(img)(1:3).eq.'GIF'.or.
      &         imgfmt(img)(1:4).eq.'XBMP'.or.
      &         imgfmt(img)(1:3).eq.'TIF'.or.
+     &         imgfmt(img)(1:3).eq.'PNG'.or.
      &         imgfmt(img)(1:3).eq.'JPG')then
 
 C If focus is `****` then show images marked with `****` , otherwise
@@ -4493,7 +4484,7 @@ C Set up menu for different variants
       ITEMS2(30)= 'z mould and mycotoxins'
       ITEMS2(31)=' --------------------------------'
       ITEMS2(32)='? help'
-      ITEMS2(33)='- exit this menu'
+      ITEMS2(33)='- exit menu'
       MITEMS2=33
 
 C Help.

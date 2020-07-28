@@ -292,6 +292,7 @@ C season (1 char) '-' do not bother 's' indicate season.
 C seasons.h provides typper and typsea
 #include "climate.h"
 
+      COMMON/SPAD/MMOD,LIMIT,LIMTTY
       common/appcols/mdispl,nifgrey,ncset,ngset,nzonec
       COMMON/PERC/ID1,IM1,IT1,ID2,IM2,IT2,IDS,IDF,INEW
       integer menuchw,igl,igr,igt,igb,igw,igwh

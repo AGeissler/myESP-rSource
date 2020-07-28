@@ -13,13 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C This file contains the following routines:
-
+C This file contains the following routines.
 C  makeCFCfile          Creates a *.cfc file from imported GSLedit data.
 
 C  importGSLedit        Imports data from *.GSL files and stores in CFC
@@ -2337,7 +2332,7 @@ C If a long list include page facility text and info on portion seen.
         ENDIF
 
         VERT(M+2)  ='? help                  '
-        VERT(M+3)  ='- exit this menu        '
+        VERT(M+3)  ='- exit menu             '
 
 C Number of actual items displayed
         MVERT=M+MCTL

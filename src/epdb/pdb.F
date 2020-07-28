@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
       program pdb
       USE START_UP
@@ -581,23 +577,23 @@ C New file.
 C Build main menu.
   210  write(zitem(1),'(a,a)') 'a File: ',LTMP(1:19)
       zitem(2)='  _______________________   '
-      zitem(3)='b List & export components  '
-      zitem(4)='c Insert & import components'
-      zitem(5)='d Delete components         '
-      zitem(6)='e Edit a component          '
+      zitem(3)='b list & export components  '
+      zitem(4)='c insert & import components'
+      zitem(5)='d delete components         '
+      zitem(6)='e edit a component          '
       zitem(7)='  _______________________   '
-      zitem(8)='! Summary of entries        '
-      zitem(9)='? Help                      '
-      zitem(10)='- Finish                   '
+      zitem(8)='! summary of entries        '
+      zitem(9)='? help                      '
+      zitem(10)='- quit module              '
 
 C Display menu.
       NITEMS = 10
       INO = -5
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('pdb ',1)
 
-  220 CALL EMENU('  ESP-r plant components',ZITEM,NITEMS,INO)
+  220 CALL EMENU('ESP-r plant components',ZITEM,NITEMS,INO)
       if(imod.ne.1.and.ifchk.eq.0.and.
      &       (ino.eq.4.or.ino.eq.5.or.ino.eq.6)) then
 

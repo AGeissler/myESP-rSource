@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Clm.f is the main controlling code of the weather data display and 
 C analysis facility of the ESRU simulation suite of programs.
@@ -29,9 +25,7 @@ C climatic data sets compatible with ESP-r.
 #include "model.h"
 #include "esprdbfile.h"
 #include "espriou.h"
-      
 #include "seasons.h"
-C seasons.h provides typper and typsea
 #include "climate.h"
       
       integer lnblnk  ! function definition
@@ -168,8 +162,8 @@ C Initial assumptions. Pass module name to C code structure.
       IDF=365
       KDS=1
       KDF=24
-      IYEAR=2000
-      ICYEAR=2000
+      IYEAR=2020
+      ICYEAR=2020
       cfgroot='  '
       LCFGF='  '
       AUTOVR=.false.  ! by default, ask to overwrite files
@@ -577,9 +571,9 @@ C Derive string for focus period.
         ITEM(20)='^ delim >> space  '
       endif
       ITEM(21)=               '? help                    '
-      ITEM(22)=               '- end                     '
+      ITEM(22)=               '- exit weather analysis   '
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('clm ',1)
 
 C Present the opening display and control menu.
@@ -1458,7 +1452,7 @@ C Display of time of day.
       SETUPM(3)=  ' ________________________________   '
 
       SETUPM(4)=  '? help                              '
-      SETUPM(5)=  '- exit this menu                    '
+      SETUPM(5)=  '- exit menu                         '
       nitms=5
       CALL EMENU('clm preferences',SETUPM,nitms,ISETUP)
 

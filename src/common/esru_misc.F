@@ -13,15 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C The file esru_misc.F is a collection of support facilities for
-C reading and reporting ESP-r compatible files.
-
-C esru_misc.F contains the following:
+C esru_misc.F contains the following subroutines.
 C  CLRPRB : clears the zone based memory in preparation for reading
 C           a new model file.
 C  cfgpk:  Reacts to one of several configuration buttons and presents
@@ -67,16 +60,15 @@ C dintervalf: A fortran implementation of the c surboutine dinterval.
 
 
 C ************* CLRPRB
-C CLRPRB clears the zone based memory in preparation for reading
-C in a new model file.
+C Clears memory in preparation for reading in a new model file.
+
       SUBROUTINE CLRPRB
 
-      
       USE AIM2_InputData, ONLY: iAIM2,LAIM2
       USE AIM2, ONLY: AIM2_ClearAll
 
       IMPLICIT NONE
-      
+
 #include "building.h"
 #include "model.h"
 #include "site.h"
@@ -106,7 +98,7 @@ C nsurfinso nb of insolation sources, isurfinso() list of insolation sources.
       common/ishdirec/iaplic(MCOM,2),nsurfcalc(MCOM),lstsfcalc(MCOM,MS),
      &     nsurfinso(MCOM),isurfinso(MCOM,MS)
       INTEGER :: iaplic,nsurfcalc,nsurfinso,lstsfcalc,isurfinso
-      
+
 C HOT3000:HVAC
 C Flag indicating presence of HVAC models:
 C ihvacflag=1 indicates HVAC models are active; 0 indicates no HVAC models.
@@ -211,7 +203,7 @@ C Primary energy conversions and emissions.
       REAL :: phtco2,phtnox,phtsox,pclco2,pclnox,pclsox
       REAL :: pltco2,pltnox,pltsox,pfnco2,pfnnox,pfnsox
       REAL :: pspco2,pspnox,pspsox,phwco2,phwnox,phwsox
-      
+
 
 C CPCALC description
       common/CPCALC/icpcon,ble,bwi,bhi,blox,bloy,bloz,orient,irt,ra,
@@ -297,13 +289,13 @@ C IES lighting distribution files from model.h
       character GTGEOM*72,GTNAME*15,spflnam*72,lipvdatf*72
       character*10 wkd1, wkd2
       character spfdescr*30
-     
+
       INTEGER :: i,icc,ibe,ibu,j,ixs,ix,iivu,isystcurrent,imu
       INTEGER :: ies
- 
+
       call tstamp('>','PRJ: clearing model commons')
-      
-C Clear any allocated arrays      
+
+C Clear any allocated arrays
       CALL DeallocateAllArrays
 
 C Project level common blocks.
@@ -413,7 +405,7 @@ C Clear zone groups.
           izglist(i,j)=0
         enddo   ! of j
       enddo     ! of i
-      
+
 C Set initial primary conversions and emissions.
       ipconv=0
       pcnvht=1.0; pcnvcl=1.0; pcnvlt=1.0; pcnvfn=1.0; pcnvhw=1.0
@@ -435,7 +427,7 @@ C Clear derived model areas and U-values.
       xvthk = 0.0; xtoground = 0.0; xuavgtran = 0.0
       xuavwall = 0.0; xuavground = 0.0
       xfndthkg = 0.0; xperimlength = 0.0
-      xuavslproof = 0.0; xuavfltroof = 0.0; xuavgsky = 0.0 
+      xuavslproof = 0.0; xuavfltroof = 0.0; xuavgsky = 0.0
       xareatran = 0.0; xareawall = 0.0
       xareaslproof = 0.0; xareafltroof = 0.0; xareaskylt = 0.0
 
@@ -1234,7 +1226,7 @@ C (for use in mrt).  IER=0 OK, IER=1 problem IER=3 surface mismatch.
       integer lnblnk  ! function definition
 
       common/TOTAL/nsurmf, NGRID, NTRPOL
-      
+
       common/MRTF/FFL(MCUB,6,MSM),VEWF(MS,MS)
       common /cube5/fstgrp,fstsur,lstsur,strtgr
 
@@ -1343,7 +1335,7 @@ C << re-establish mrt blocks if they exist in geo file.
           return
         endif
       endif
-      
+
 C Test for number of MRT sensors. If zero in this file but NCUB(IC) is
 C non-zero then do not update NCUB. If > zero and NCUB(IC) is zero then do
 C update NCUB(IC).
@@ -1896,7 +1888,7 @@ C Error messages.
       END
 
 C ****** stuf4xyz
-C stuf4xyz instanciates 4 vertices in x(MV),y(MV),z(MV) from raw data.
+C stuf4xyz instantiates 4 vertices in x(MV),y(MV),z(MV) from raw data.
 C Useful for block shapes prior to call to PLEQN.
       subroutine stuf4xyz(x,y,z,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4)
 #include "building.h"
@@ -2294,7 +2286,7 @@ C Local variables:
       real XN,YN    ! 2D coordinate array (raw)
       real XPN,YPN    ! 2D coordinate array (plus offset)
       DIMENSION  XN(MV),YN(MV),XPN(MV),YPN(MV)
-      real XL,YL    ! ?? 
+      real XL,YL    ! ??
       DIMENSION  XL(MV),YL(MV)
       real AIL,BIL,CIL  ! defines inner lines
       DIMENSION AIL(MVS),BIL(MVS),CIL(MVS)
@@ -2394,11 +2386,11 @@ C Add offset to XN YN array.
   301 continue
 
 C Logic for determining frame coordinates.
-C Solve equation of perpendicular bisector and inner lines. 
+C Solve equation of perpendicular bisector and inner lines.
       I1=0      ! I1, I2 used to create maximum possible traiangles
       I2=0      ! using all vertices of the parent surface
       DTIN=FRW  ! distance moved in inner edge to create child surface
-      XMX=0.0; YMY=0.0; 
+      XMX=0.0; YMY=0.0;
       XAA=0.
 
 C A1,B1,C1,A2,B2,C2,C22 are used in equation of line.
@@ -2435,7 +2427,7 @@ C corner data.
         endif
         XMX= (XPN(I1)+XPN(I2))/2.0  ! half way along X
         YMY= (YPN(I1)+YPN(I2))/2.0  ! half way along Y
-             
+
 C Calculate equation of perpendicular bisector a1y+b1x=c1
         BCLOSE=.FALSE.
         CALL ECLOSE(DY,0.,0.01,BCLOSE)
@@ -2443,21 +2435,19 @@ C Calculate equation of perpendicular bisector a1y+b1x=c1
           A1=0.0   ! Y dist was zero
           B1=1.
           C1=XMX
-        ELSE  
-          CALL ECLOSE(DX,0.,0.01,BCLOSE) 
+        ELSE
+          CALL ECLOSE(DX,0.,0.01,BCLOSE)
           IF(BCLOSE) THEN
             A1=1.   ! X dist was zero
             B1=0.
-            C1=YMY      
+            C1=YMY
           ELSE
             A1=1.   ! X dist was non-zero
             B1=(DX/DY)
             C1=YMY+(B1*(XMX))
           ENDIF
         ENDIF
-C Debug.
-C        WRITE(6,*)'A1,B1,C1,BCLOSE',A1,B1,C1,BCLOSE
-             
+
 C Calculate equation of inner lines.
         ICLOSE=.FALSE.
         CALL ECLOSE(DY,0.,0.0001,ICLOSE)
@@ -2466,19 +2456,19 @@ C Calculate equation of inner lines.
           B2=0.
           C2 =YMY+DTIN
           C22=YMY-DTIN
-        ELSE  
-          CALL ECLOSE(DX,0.,0.0001,ICLOSE) 
+        ELSE
+          CALL ECLOSE(DX,0.,0.0001,ICLOSE)
           IF(ICLOSE) THEN
             A2=0.   ! X dist was zero
             B2=1.
             C2 =XMX+DTIN
-            C22=XMX-DTIN      
+            C22=XMX-DTIN
           ELSE
             A2=1.   ! X dist was non-zero
             B2= -(DY/DX)
 
 C << need to check to see that sin does not return zero >>
-            C2 =YMY+(B2*(XMX))+(DTIN / SIN(XAA)) 
+            C2 =YMY+(B2*(XMX))+(DTIN / SIN(XAA))
             C22=YMY+(B2*(XMX))-(DTIN / SIN(XAA))
           ENDIF
         ENDIF
@@ -2494,22 +2484,22 @@ C M' = (M'x,M'y)   M''=(M''x,M''y)
           RETURN
         ENDIF
         AMX= ((C1*A2)-(C2*A1))/((B1*A2)-(A1*B2))  ! at one side of bisector
-        AMY= ((C1*B2)-(C2*B1))/((A1*B2)-(A2*B1))        
+        AMY= ((C1*B2)-(C2*B1))/((A1*B2)-(A2*B1))
         AMXX=((C1*A2)-(C22*A1))/((B1*A2)-(A1*B2)) ! at other side of bisector
-        AMYY=((C1*B2)-(C22*B1))/((A1*B2)-(A2*B1))  
+        AMYY=((C1*B2)-(C22*B1))/((A1*B2)-(A2*B1))
 
 C Figure out if M'or M'' is  contained within polygon
         CALL PNPOLY(AMX,AMY,XPN,YPN,ITVX,IN_OUT)
         IF(IN_OUT.EQ.1) THEN
-          NWVERT=NWVERT+1  
+          NWVERT=NWVERT+1
           AIL(NWVERT)=A2
           BIL(NWVERT)=B2
           CIL(NWVERT)=C2
-        ELSE 
+        ELSE
           CALL PNPOLY(AMXX,AMYY,XPN,YPN,ITVX,IN_OUT)
           IF(IN_OUT.EQ.1) THEN
             C2=C22
-            NWVERT=NWVERT+1  
+            NWVERT=NWVERT+1
             AIL(NWVERT)=A2
             BIL(NWVERT)=B2
             CIL(NWVERT)=C2
@@ -2529,12 +2519,12 @@ C Debug.
         CALL EDISP248(IUOUT,LOUTSTR,100)
       endif
 
-C Solve equation to get intersections of the inner polygon 
+C Solve equation to get intersections of the inner polygon
 C XL,YL (2D points).
       DO 766 IV=1,NWVERT
         I1=IV
         I2=IV+1
-        IF(I1.EQ.NWVERT)I2=1 
+        IF(I1.EQ.NWVERT)I2=1
         XL(I1)= (((CIL(I1))*(AIL(I2)))-((CIL(I2))*(AIL(I1))))/
      &          (((BIL(I1))*(AIL(I2)))-((AIL(I1))*(BIL(I2))))
         YL(I1)= (((CIL(I1))*(BIL(I2)))-((CIL(I2))*(BIL(I1))))/
@@ -2549,7 +2539,7 @@ C the offsets.
      &      XL(I1),YL(I1),I1
           CALL EDISP(IUOUT,OUTSTR)
         ENDIF
- 766  CONTINUE  
+ 766  CONTINUE
 
 C Take frame coords and apply reverse transformation from 2D to 3D.
 C Adjust looping to prevent the first edge of the new polygon being
@@ -2581,76 +2571,76 @@ C vertical. Note: working within packed list.
       END
 
 
-C .................................................................. 
-C SUBROUTINE PNPOLY 
-C PURPOSE 
-C   TO DETERMINE WHETHER A POINT IS INSIDE A POLYGON 
-C USAGE 
-C   CALL PNPOLY (PX, PY, XX, YY, N, INOUT ) 
+C ..................................................................
+C SUBROUTINE PNPOLY
+C PURPOSE
+C   TO DETERMINE WHETHER A POINT IS INSIDE A POLYGON
+C USAGE
+C   CALL PNPOLY (PX, PY, XX, YY, N, INOUT )
 
-C DESCRIPTION OF THE PARAMETERS 
-C   PX   - X-COORDINATE OF POINT IN QUESTION. 
-C   PY   - Y-COORDINATE OF POINT IN QUESTION. 
-C   XX   - N LONG VECTOR CONTAINING X-COORDINATES OF 
+C DESCRIPTION OF THE PARAMETERS
+C   PX   - X-COORDINATE OF POINT IN QUESTION.
+C   PY   - Y-COORDINATE OF POINT IN QUESTION.
+C   XX   - N LONG VECTOR CONTAINING X-COORDINATES OF
 C          VERTICES OF POLYGON.
-C   YY   - N LONG VECTOR CONTAING Y-COORDINATES OF 
+C   YY   - N LONG VECTOR CONTAING Y-COORDINATES OF
 C          VERTICES OF POLYGON.
-C   N    - NUMBER OF VERTICES IN THE POLYGON. 
-C  INOUT - THE SIGNAL RETURNED: 
-C           -1 IF THE POINT IS OUTSIDE OF THE POLYGON, 
-C           0 IF THE POINT IS ON AN EDGE OR AT A VERTEX, 
-C           1 IF THE POINT IS INSIDE OF THE POLYGON. 
+C   N    - NUMBER OF VERTICES IN THE POLYGON.
+C  INOUT - THE SIGNAL RETURNED:
+C           -1 IF THE POINT IS OUTSIDE OF THE POLYGON,
+C           0 IF THE POINT IS ON AN EDGE OR AT A VERTEX,
+C           1 IF THE POINT IS INSIDE OF THE POLYGON.
 
-C REMARKS 
-C   THE VERTICES MAY BE LISTED CLOCKWISE OR ANTICLOCKWISE. 
-C   THE FIRST MAY OPTIONALLY BE REPEATED, IF SO N MAY C OPTIONALLY 
-C   BE INCREASED BY 1. 
-C   THE INPUT POLYGON MAY BE A COMPOUND POLYGON CONSISTING 
-C   OF SEVERAL SEPARATE SUBPOLYGONS. IF SO, THE FIRST VERTEX 
-C   OF EACH SUBPOLYGON MUST BE REPEATED, AND WHEN CALCULATING 
-C   N, THESE FIRST VERTICES MUST BE COUNTED TWICE. 
-C   INOUT IS THE ONLY PARAMETER WHOSE VALUE IS CHANGED. 
-C   THE SIZE OF THE ARRAYS MUST BE INCREASED IF N > MAXDIM 
-C 
+C REMARKS
+C   THE VERTICES MAY BE LISTED CLOCKWISE OR ANTICLOCKWISE.
+C   THE FIRST MAY OPTIONALLY BE REPEATED, IF SO N MAY C OPTIONALLY
+C   BE INCREASED BY 1.
+C   THE INPUT POLYGON MAY BE A COMPOUND POLYGON CONSISTING
+C   OF SEVERAL SEPARATE SUBPOLYGONS. IF SO, THE FIRST VERTEX
+C   OF EACH SUBPOLYGON MUST BE REPEATED, AND WHEN CALCULATING
+C   N, THESE FIRST VERTICES MUST BE COUNTED TWICE.
+C   INOUT IS THE ONLY PARAMETER WHOSE VALUE IS CHANGED.
+C   THE SIZE OF THE ARRAYS MUST BE INCREASED IF N > MAXDIM
+C
 C METHOD
-C   A VERTICAL LINE IS DRAWN THRU THE POINT IN QUESTION. IF IT 
-C   CROSSES THE POLYGON AN ODD NUMBER OF TIMES, THEN THE 
-C   POINT IS INSIDE OF THE POLYGON.  
-C .................................................................. 
+C   A VERTICAL LINE IS DRAWN THRU THE POINT IN QUESTION. IF IT
+C   CROSSES THE POLYGON AN ODD NUMBER OF TIMES, THEN THE
+C   POINT IS INSIDE OF THE POLYGON.
+C ..................................................................
       SUBROUTINE PNPOLY(PX,PY,XX,YY,N,INOUT)
       common/OUTIN/IUOUT,IUIN,IEOUT
-      REAL X(200),Y(200),XX(N),YY(N) 
-      LOGICAL MX,MY,NX,NY 
+      REAL X(200),Y(200),XX(N),YY(N)
+      LOGICAL MX,MY,NX,NY
       character outs*124
-      
-      MAXDIM=200 
+
+      MAXDIM=200
       IF(N.GT.MAXDIM)then
         WRITE(outs,'(a,i3,a)') 'Warning: ',N,' is beyond edge limits'
-        call edisp(iuout,outs) 
+        call edisp(iuout,outs)
         RETURN
       endif
-      DO 1 I=1,N 
-        X(I)=XX(I)-PX 
+      DO 1 I=1,N
+        X(I)=XX(I)-PX
         Y(I)=YY(I)-PY
  1    continue
-      INOUT=-1 
-      DO 2 I=1,N 
-        J=1+MOD(I,N) 
-        MX= (X(I).GE.0.0) 
+      INOUT=-1
+      DO 2 I=1,N
+        J=1+MOD(I,N)
+        MX= (X(I).GE.0.0)
         NX= (X(J).GE.0.0)
         MY= (Y(I).GE.0.0)
         NY= (Y(J).GE.0.0)
         IF(.NOT.((MY.OR.NY).AND.(MX.OR.NX)).OR.(MX.AND.NX)) GOTO 2
         IF(.NOT.(MY.AND.NY.AND.(MX.OR.NX).AND..NOT.(MX.AND.NX))) GOTO 3
-        INOUT=-INOUT 
+        INOUT=-INOUT
         GO TO 2
- 
+
  3      IF((Y(I)*X(J)-X(I)*Y(J))/(X(J)-X(I))) 2,4,5
- 4      INOUT=0 
-        RETURN 
- 5      INOUT=-INOUT 
- 2    CONTINUE 
-      RETURN 
+ 4      INOUT=0
+        RETURN
+ 5      INOUT=-INOUT
+ 2    CONTINUE
+      RETURN
       END
 
 
@@ -3179,20 +3169,20 @@ C list to be modified otherwise blank choice.  If user is browsing
 C no need to show additional options.
       if(browse)then
         VERT(M+2)  ='? help                   '
-        VERT(M+3)  ='- exit this menu         '
+        VERT(M+3)  ='- exit menu              '
       else
         IF(MOD.EQ.'M'.OR.MOD.EQ.'m')THEN
           VERT(M+2)='* add/delete/copy        '
           VERT(M+3)='? help                   '
-          VERT(M+4)='- exit this menu         '
+          VERT(M+4)='- exit menu              '
         ELSEIF(MOD.EQ.'T'.OR.MOD.EQ.'t')THEN
           VERT(M+2)='# update all zones       '
           VERT(M+3)='* non-linear properties  '
           VERT(M+4)='? help                   '
-          VERT(M+5)='- exit this menu         '
+          VERT(M+5)='- exit menu              '
         ELSE
           VERT(M+2)='? help                   '
-          VERT(M+3)='- exit this menu         '
+          VERT(M+3)='- exit menu              '
         ENDIF
       endif
 
@@ -3278,8 +3268,11 @@ C Allow a zone to be added or deleted.
             H(2)='and copy functions is provided.  Existing zones to'
             H(3)='be copied are transformed in space, given a new '
             H(4)='name and all partitions reset to external. '
-            CALL EASKABCD(' ','Action: ','add zone','delete zone',
-     &        'copy zone','cancel',IW,4)
+            CALL EASKATOG(' ','Action: ','add zone','delete zone',
+     &        'copy zone','copy zones or group','cancel',
+     &        ' ',' ',IW,4)
+C            CALL EASKABCD(' ','Action: ','add zone','delete zone',
+C     &        'copy zone','cancel',IW,4)
             if(IW.EQ.1)then
               delzone = .false.
               IZONE=NCOMP+1
@@ -3294,6 +3287,10 @@ C Allow a zone to be added or deleted.
               call usrmsg(' ','Select zone to copy... ','-')
               IVERT=-2
               goto 3
+            elseif(IW.EQ.4)then
+              cpyzone = .true.  ! Signal calling code to present multi-zones
+              IZONE=301
+              RETURN
             endif
 
 C Display nonlinear thermophysical menu.
@@ -3350,7 +3347,7 @@ C selection). It is assumed that the user will make one selection only.
 C MOD display modifier - `c` note constructions defined, `o` note
 C operations defined, `s` note shading defined, `z` note zone attrib
 C complete, `v` note view factors, `g` casual gain ctl, `d` domain flow,
-C `h` heat transfer (comvective) methods, `-` zone names only.
+C `h` heat transfer (convective) methods, `-` zone names only.
       SUBROUTINE ASKZONE(IZONE,IDZONE,prompt,title,mod,errmsg,IMW,IER)
 #include "building.h"
 #include "model.h"
@@ -3564,10 +3561,10 @@ C If a long list include page facility text and info on portion seen.
       if(MCTL.eq.5)then
         VERT(M+3)  ='* global tasks          '
         VERT(M+4)  ='? help                  '
-        VERT(M+5)  ='- exit this menu        '
+        VERT(M+5)  ='- exit menu             '
       else
         VERT(M+3)  ='? help                  '
-        VERT(M+4)  ='- exit this menu        '
+        VERT(M+4)  ='- exit menu             '
       endif
 
 C Help message for this menu.
@@ -3861,14 +3858,14 @@ C If groups defined.
       if(nzgroup.gt.0)then
         VERT(M+2)  ='! via group-of-zones    '
         VERT(M+3)  ='? help                  '
-        VERT(M+4)  ='- exit this menu        '
+        VERT(M+4)  ='- exit menu             '
       else
         VERT(M+2)  ='? help                  '
-        VERT(M+3)  ='- exit this menu        '
+        VERT(M+3)  ='- exit menu             '
       endif
       write(prompt2,'(a)') ' select one or more...'
 
-C Instanciate help message for this menu.
+C Instantiate help message for this menu.
       if(mod.eq.'-')then
         H(1)='Zones may be selected via the names in the list.'
         h(2)='If you have just updated a file it may not show up'
@@ -3945,8 +3942,6 @@ C Display a list of groups. Allow uset to select.
             write(outs,*) 'including ',zname(IVALS(INPIC))
             call edisp(iuout,outs)
           enddo
-          write(6,*) 'inpic is ',inpic
-          write(6,*) 'ivals is ',ivals
           return
         endif
       ELSEIF(IVERT.GT.MHEAD.AND.IVERT.LT.(MVERT-MCTL+1))THEN
@@ -4028,7 +4023,7 @@ C MOD = 'V' as 'M' but also include SUSE.
 
       CHARACTER*(*) PROMPT1,PROMPT2
       CHARACTER H*72,KEY*1,MOD*1,title*29
-      CHARACTER VERT*32,VERTS*42,VERTU*54
+      CHARACTER VERT*32,VERTS*44,VERTU*56
       LOGICAL SELECT
       integer loopstart,loopend,i,icc   ! for looping
       logical usesbasesimp
@@ -4089,51 +4084,70 @@ C current menu line index. Build up text strings for the menu.
           if(icc.lt.1)then
             continue
           else
+            lnn=lnblnk(SNAME(izone,L))
             lnsmlcn=lnblnk(SMLCN(izone,L))
-            if(lnsmlcn.gt.16) lnsmlcn=16
+            if((lnn+lnsmlcn+3).lt.32)then
+              continue
+            elseif((lnn+lnsmlcn).lt.32)then
+              lnsmlcn=lnsmlcn-3
+            elseif((lnn+16).lt.32)then
+              lnsmlcn=16
+            endif
             if(MOD.eq.'-')then
-              WRITE(VERT(M),14)KEY,SNAME(izone,L),
+              WRITE(VERT(M),14)KEY,SNAME(izone,L)(1:lnn),
      &          SMLCN(izone,L)(1:lnsmlcn)
    14         FORMAT(A1,1X,A,1X,A)
             endif
           endif
-   
+
 C Display surface name plus some context information.
           if(icc.gt.0)then
             lnn=lnblnk(SNAME(izone,L))
             if(lnn.lt.8) lnn=8
             lnsmlcn=lnblnk(SMLCN(izone,L))
             if(lnsmlcn.lt.10) lnsmlcn=10
+            if(lnsmlcn.gt.20)then
+              lnsmlcn20=20
+            else
+              lnsmlcn20=lnsmlcn
+            endif
             lnoth=lnblnk(SOTHER(izone,L,1))
             lnu=lnblnk(SUSE(izone,L,1))
             lnu2=lnblnk(SUSE(izone,L,2))
             lnu3=lnu2
             if(lnu3.gt.6) lnu3=6
-            if((lnn+lnsmlcn+lnoth).lt.36)then
+            if((lnn+lnsmlcn+lnoth).lt.38)then
               WRITE(VERTS(M),13)KEY,SNAME(izone,L)(1:lnn),
      &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth)
+            elseif((lnn+lnsmlcn20+lnoth).lt.38)then
+              WRITE(VERTS(M),13)KEY,SNAME(izone,L)(1:lnn),
+     &          SMLCN(izone,L)(1:lnsmlcn20),SOTHER(izone,L,1)(1:lnoth)
             else
               WRITE(VERTS(M),13)KEY,SNAME(izone,L)(1:lnn),
-     &          SMLCN(izone,L)(1:15),SOTHER(izone,L,1)(1:lnoth)
+     &          SMLCN(izone,L)(1:17),SOTHER(izone,L,1)(1:lnoth)
             endif
    13       FORMAT(A,1X,A,2X,A,2X,A)
    15       FORMAT(A,1X,A,2X,A,2X,A,3X,A)
    17       FORMAT(A,1X,A,2X,A,2X,A,3X,A,1X,A)
-            if((lnn+lnsmlcn+lnoth+lnu+lnu2).lt.42)then
+            if((lnn+lnsmlcn+lnoth+lnu+lnu2).lt.46)then
               WRITE(VERTU(M),17)KEY,SNAME(izone,L)(1:lnn),
      &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth),
      &          SUSE(izone,L,1)(1:lnu),SUSE(izone,L,2)(1:lnu2)
-            elseif((lnn+lnsmlcn+lnoth+lnu+lnu3).lt.42)then
+            elseif((lnn+lnsmlcn+lnoth+lnu+lnu3).lt.46)then
               WRITE(VERTU(M),17)KEY,SNAME(izone,L)(1:lnn),
      &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth),
      &          SUSE(izone,L,1)(1:lnu),SUSE(izone,L,2)(1:lnu3)
-            elseif((lnn+lnsmlcn+lnoth+lnu).lt.43)then
+            elseif((lnn+lnsmlcn+lnoth+lnu).lt.48)then
               WRITE(VERTU(M),15)KEY,SNAME(izone,L)(1:lnn),
      &          SMLCN(izone,L)(1:lnsmlcn),SOTHER(izone,L,1)(1:lnoth),
      &          SUSE(izone,L,1)(1:lnu)
+            elseif((lnn+lnsmlcn20+lnoth+lnu).lt.48)then
+              WRITE(VERTU(M),15)KEY,SNAME(izone,L)(1:lnn),
+     &          SMLCN(izone,L)(1:lnsmlcn20),SOTHER(izone,L,1)(1:lnoth),
+     &          SUSE(izone,L,1)(1:lnu)
             else
               WRITE(VERTU(M),15)KEY,SNAME(izone,L)(1:lnn),
-     &          SMLCN(izone,L)(1:15),SOTHER(izone,L,1)(1:lnoth),
+     &          SMLCN(izone,L)(1:17),SOTHER(izone,L,1)(1:lnoth),
      &          SUSE(izone,L,1)(1:lnu)
             endif
           else
@@ -4326,7 +4340,7 @@ C current menu line index. Build up text strings for the menu.
             lnsmlcn=lnblnk(SMLCN(izone,L))
             if(lnsmlcn.gt.16) lnsmlcn=16
           endif
-   
+
           if(icc.gt.0)then
             lnn=lnblnk(SNAME(izone,L))
             if(lnn.lt.8) lnn=8
@@ -4376,7 +4390,7 @@ C If a long list include page facility text.
       VERTS(M+2)  ='? help              '
       VERTS(M+3)  ='- exit              '
 
-C Instanciate help message for this menu.
+C Instantiate help message for this menu.
       H(1)='Surface(s) in the zone may be selected via its name'
       H(2)='in the list. Up to 8 surfaces can be deleted in one'
       H(3)='action.'
@@ -4435,7 +4449,7 @@ C Decode from the potential long list to the zone number via KEYIND.
           call edisp(iuout,outs)
         endif
       ELSE
-      
+
 C Not one of the legal menu choices.
         IVERT=-1
         goto 92
@@ -4510,7 +4524,7 @@ C Pick up the material name of each layer. Uses zero matarrayindex to signal gap
       ino=-1
       nitms=ndisp+footer
 
-C Instanciate help messages for this menu.
+C Instantiate help messages for this menu.
       h(1)='Choose a layer at which to situate a special'
       h(2)='materials node.                                     '
 
@@ -4809,7 +4823,7 @@ C -------- discovercfg
 C Discovercfg provides a list of model cfg files within a passed
 C folder and returns full path of selected in sfile. If user did
 C not select ier is -1, if there were no matching files ier is -2
-C and ier = 1 was an error in composition. 
+C and ier = 1 was an error in composition.
       subroutine discovercfg(subpath,sfile,ier)
 #include "espriou.h"
 #include "building.h"
@@ -4824,7 +4838,7 @@ C Local variables.
       logical unixok
 
       common/OUTIN/IUOUT,IUIN,IEOUT
-    
+
       integer nboflistf  ! how many folders or file names passed
       integer listfoldertype   ! zero if unused one if folder two if file
       integer lenlistfolder    ! width of each string
@@ -4912,14 +4926,14 @@ C the pwdtocfg part of the path.
 C        write(6,*) 'pwdtocfg is ',pwdtocfg(1:lnblnk(pwdtocfg))
 C        write(6,*) 'pwdinitial is ',pwdinitial(1:lnblnk(pwdinitial))
         CALL EPICKS(IX,ivlist,outs,' ',
-     &    maxw,nboflistf,listfc70s,'Available files',IER,nbhelp)
+     &    maxw,nboflistf,listfc70s,'Available models',IER,nbhelp)
         if(ix.eq.1)then
           if(pwdtocfg(1:1).eq.'!')then
-            write(sfile,'(3a)',IOSTAT=ios,ERR=17) 
+            write(sfile,'(3a)',IOSTAT=ios,ERR=17)
      &        pwdinitial(1:lnpwdi),fs,
      &        listfolders(ivlist(ix))(1:lenlistfolders(ivlist(ix)))
           else
-            write(sfile,'(5a)',IOSTAT=ios,ERR=17) 
+            write(sfile,'(5a)',IOSTAT=ios,ERR=17)
      &        pwdinitial(1:lnpwdi),fs,pwdtocfg(1:lnpwdc),fs,
      &        listfolders(ivlist(ix))(1:lenlistfolders(ivlist(ix)))
           endif
@@ -4954,12 +4968,12 @@ C Error conditions.
       end
 
 C ******* FDPWDTOCFG
-C FDPWDTOCFG: Given a file name (fstring) and using the current value
-C of pwdinitial (if applications have established this via a 
+C Given a file name (fstring) and using the current value
+C of pwdinitial (if applications have established this via a
 C call usrdir(pwdinitial) as they start) then this checks if fstring
-C contains a (pwdtocfg) and a file name (filen). Begins with similar 
+C contains a (pwdtocfg) and a file name (filen). Begins with similar
 C logic to fdroot from esru_lib.F and filen should be the same as
-C the file name returned in fdroot.  
+C the file name returned in fdroot.
 C fdpwdtocfg updates the common block variable pwdtocfg.
 
 C Ppath is returned for information purposes << consider removing this >>
@@ -4969,8 +4983,7 @@ C Ppath is returned for information purposes << consider removing this >>
 #include "model.h"
 
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-      CHARACTER*(*) ppath,filen,fstring
-C      character fstring*72
+      character*(*) ppath,filen,fstring
       character fs*1
       character testpwdtocfg*72
       logical unixok
@@ -5025,7 +5038,6 @@ C Arrived at the first character. There have been no file separators
 C so filen is fstring (truncated if necessary) and the path becomes
 C the equivalent of where-i-am-now.
         if(ipos.eq.1)then
-C          call edisp(iuout,'No folder separator found.')
           if(ilstr.ge.ilenfilen)then
             filen = ' '
             write(filen,'(a)',IOSTAT=IOS,ERR=1)fstring(1:ilenfilen)
@@ -5076,7 +5088,7 @@ C << not sure >>
       endif
       return
       end
-      
+
 
 C ******************** DeallocateAllArrays ****************************
 C *********************************************************************
@@ -5086,13 +5098,13 @@ C allocatable arrays.
 C *********************************************************************
 
       SUBROUTINE DeallocateAllArrays
-      
+
       USE AIM2, ONLY:AIM2_DEALLOCATE
-      
+
       IMPLICIT NONE
-     
+
       CALL AIM2_DEALLOCATE
-      
+
       END SUBROUTINE DeallocateAllArrays
 
 
@@ -5119,7 +5131,10 @@ C Should be the same logic as in esru_x.c.
         vr =  v / dz
         w = 10.0
         if (vr.lt.5.0) w = 5.0
+        if (vr.lt.3.0) w = 3.0
         if (vr.lt.2.0) w = 2.0
+        if (vr.lt.1.0) w = 1.0
+C        if (vr.lt.0.5) w = 0.5
 
         dvv = w * 0.1 * dz
         if (vv.lt.0.0) dvv = -dvv
@@ -5129,8 +5144,14 @@ C Should be the same logic as in esru_x.c.
           nd=nd-1
         elseif (w.eq.5.0)then
           nd = 1
+        elseif (w.eq.3.0)then
+          nd = 1
         elseif (w.eq.2.0)then
+          nd = 1
+        elseif (w.eq.1.0)then
           nd = 2
+C        elseif (w.eq.0.5)then
+C          nd = 1
         endif
         if (nd.lt.0) nd = 0
       else

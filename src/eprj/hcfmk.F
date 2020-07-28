@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains routines for creating and editing a zone
 C convection-calculation control file:
@@ -49,13 +45,11 @@ C control file.
 
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
-
       COMMON/gzonpik/izgfoc,nzg,nznog(mcom)
       COMMON/HCFP/IHCDT,IHCFP(MDTY),ST(MDTY,MBP),EN(MDTY,MBP),
      &            HCI(MDTY,MBP,MS),HCE(MDTY,MBP,MS),ICTL(MDTY,MBP),
      &            IHCI(MDTY,MBP,MS),IHCE(MDTY,MBP,MS),
      &            CVdata(MDTY,MBP,MS,8)
-
       common/HCFPHI/hcfpdescr(MDTY,MBP)
       CHARACTER hcfpdescr*72
       common/calena/calename,calentag(MDTY),calendayname(MDTY)
@@ -3725,7 +3719,7 @@ C the in-built heat transfer correlations in ESP-r.
       dimension hcshtdescr(-1:99),hclngdescr(-1:99)
       integer ij  ! loop counter
 
-C Set all to not applicable and then instanciate available options.
+C Set all to not applicable and then instantiate available options.
       do ij=1,99
         hcshtdescr(ij)='not applicable'
         hclngdescr(ij)='not applicable'

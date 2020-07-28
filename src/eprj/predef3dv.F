@@ -63,13 +63,20 @@ C Do a bound check on the current object and update display.
 C      write(6,'(a)') 'BNDOBJ XMN YMN ZMN XMX YMX ZMX'
 
 C Find the centroid of object and bounding box of the object. objbnds(3)
-      XMX=objbnds(1); YMX=objbnds(2); ZMX=objbnds(3)
+      XMX=objbnds(1)+0.1; YMX=objbnds(2)+0.1; ZMX=objbnds(3)+0.1
 
 C Set a bit of buffer on the left and bottom. If small object set at zero.
       XMN=(-0.1); YMN=(-0.1); ZMN=(-0.1)
       if(objbnds(1).lt.0.4) XMN=0.0
       if(objbnds(2).lt.0.4) YMN=0.0
       if(objbnds(3).lt.0.4) ZMN=0.0
+
+      if(objbnds(1).gt.0.4) XMX=objbnds(1)+0.2  ! and some buffer to right and top
+      if(objbnds(2).gt.0.4) YMX=objbnds(2)+0.2
+      if(objbnds(3).gt.0.4) ZMX=objbnds(3)+0.2
+      if(objbnds(1).gt.1.) XMX=objbnds(1)+0.3  ! and some buffer to right and top
+      if(objbnds(2).gt.1.) YMX=objbnds(2)+0.3
+      if(objbnds(3).gt.1.) ZMX=objbnds(3)+0.3
 
 C Calculate object centre within bounding box.
       call eclose(XMN,0.0,0.001,CLOSE)
@@ -288,12 +295,19 @@ C Display object name category description the top of the display.
         iside=4; isize=0; ifont=1
         call viewtext(etext,iside,isize,ifont)
       endif
+      if(nbobjnotes.gt.2)then
+        WRITE(ETEXT,'(2A)') objnotes(3)(1:lnblnk(objnotes(3)))
+        iside=5; isize=0; ifont=1
+        call viewtext(etext,iside,isize,ifont)
+      endif
       call forceflush()
 
 C Also show documentation in text feedback.
       do loop=1,nbobjnotes
         call edisp(iuout,objnotes(loop))
       enddo
+
+      call wiresymbol(0.0,0.0,0.0,2,33)  ! indicate origin
 
 C Draw any mass surfaces as double width lines with dot at vertices.
 C Setup ZX AY AZ arrays for transforms and XX YY ZZ for COG
@@ -426,7 +440,6 @@ C Now draw the bounding surfaces. Follow the usual pattern.
             XX(loop2) = vertmass(k,1); YY(loop2) = vertmass(k,2)
             ZZ(loop2) = vertmass(k,3)
             call wiresymbol(xx(loop2),yy(loop2),zz(loop2),2,32)  ! indicate vertex
-            write(6,*) loop2,k,xx(loop2),yy(loop2),zz(loop2)
             IANXT(loop2) = loop2 + 1
           enddo ! of loop2
           N = nbboundv(loop)

@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 C  MO3DPL: Plot a 3-D surface representation of a variable.
@@ -88,17 +84,17 @@ C For help messages
 C Set chosen result set.
       ISET=ISIM
 
-      ITEM(1) ='2 select result set   '
-      ITEM(2) ='3 define period       '
-      ITEM(3) ='4 select zones        '
+      ITEM(1) ='2 result set          '
+      ITEM(2) ='3 output period       '
+      ITEM(3) ='4 zones               '
       ITEM(4) ='  ___________________ '
       ITEM(5) ='a zone db temperature '
       ITEM(6) ='b ambient temperature '
-      ITEM(7) ='c control point temp  '
-      ITEM(8) ='d resultant temp      '
-      ITEM(9) ='e MRT                 '
+      ITEM(7) ='c control point temp. '
+      ITEM(8) ='d resultant temp.     '
+      ITEM(9) ='e mean radiant temp.  '
       ITEM(10)='  ___________________ '
-      ITEM(11)='f surface temps       '
+      ITEM(11)='f surface temp.       '
       ITEM(12)='g surface flux        '
       ITEM(13)='  ___________________ '
       ITEM(14)='i heating flux        '
@@ -107,15 +103,15 @@ C Set chosen result set.
       ITEM(17)='  ___________________ '
       ITEM(18)='l infiltration        '
       ITEM(19)='m ventilation         '
-      ITEM(20)='q zone casual gains   '
+      ITEM(20)='q casual gains        '
       ITEM(21)='  ___________________ '
-      ITEM(22)='r climate             '
+      ITEM(22)='r weather             '
       ITEM(23)='s comfort metrics     '
       ITEM(24)='  ___________________ '
       ITEM(25)='1 rotate view         '
       ITEM(26)='2 scale data          ' 
       ITEM(27)='! draw 3d plot        ' 
-      ITEM(28)='- exit                '
+      ITEM(28)='- exit menu'
 
       IUNIT=IFIL+6
       XR=45.0; ZR=45.0; YS=0.0
@@ -125,7 +121,7 @@ C Set chosen result set.
       INO=-2
     3 continue
 
-C Instanciate help array for the menu (including each of the
+C Instantiate help array for the menu (including each of the
 C sub-dialogs).
       helptopic='res_3D_plot_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
@@ -304,8 +300,8 @@ C IGET = 15  Casual gains  << ? expand, perhaps to total and perhaps by type >>
         if(ICRCG.eq.2)ITITLE = 'Casual gain radiant (w)'
       elseif(INO.EQ.22)then
         jclm=1
-        CALL EASKATOG('Climate data:',' ',
-     &    'Solar direct','Solar diffuse','Wind speed','Ambient rh',' ',
+        CALL EASKATOG('Weather parameter:',' ',
+     &    'solar direct','solar diffuse','wind speed','RH',' ',
      &    ' ',' ',jclm,nbhelp)
         zlist=.false.
         if(jclm.eq.1)then
@@ -336,16 +332,16 @@ C IGET = 23  Comfort, ask which index and initialise.
       elseif(INO.EQ.25)then
 
 C Set rotations.
-        CALL EASKR(XR,' ',' X-axis rotation ?',
+        CALL EASKR(XR,' ','X-axis rotation?',
      &    0.,'F',90.,'F',0.,'x-axis rotation',IER,nbhelp)
 
-        CALL EASKR(ZR,' ',' Z-axis rotation ?',
+        CALL EASKR(ZR,' ','Z-axis rotation?',
      &    0.,'F',360.,'F',0.,'z-axis rotation',IER,nbhelp)
         goto 61
       elseif(INO.EQ.26)then
 
 C Set scale.
-        CALL EASKR(YS,' ',' Data scale factor ?',
+        CALL EASKR(YS,' ','Data scale factor?',
      &    0.,'F',0.,'-',0.,'data scale',IER,nbhelp)
         goto 61
       elseif(INO.EQ.27)then
@@ -422,7 +418,7 @@ C get results (for complete day) for requested parameter.
 
 C Day by day recovery of results and transfer to
 C display file.
-      call usrmsg('Scanning data for range of values... ',' ','-')
+C      call usrmsg('Scanning data for range of values... ',' ','-')
       ISET=ISIM
       INIT = 0
       DO 30 I=IODS,IODF
@@ -565,8 +561,6 @@ C Provide an indication of data range.
   906     CONTINUE
   310   CONTINUE
 
-C ********
-
 C Stepping at defined output interval.
         IC=0
         N=24*NTS
@@ -592,8 +586,8 @@ C Terminate the temporary file with one record beyond standard data.
 
       write(outs,'(a,f9.2,a,f9.2)') 'The data range is ',
      &  XXMIN,' to ',XXMAX
-      call usrmsg('Scanning data for range of values...done.',outs,'P')
-      call usrmsg('  ','  ','-')
+C      call usrmsg('Scanning data for range of values...done.',outs,'P')
+C      call usrmsg(' ',' ','-')
       CALL EPWAIT
 
 C Invoke drawing routines passing the file unit for the data just
@@ -614,14 +608,14 @@ C an min.
 
 
 C ******************** SURF3 ********************
-
 C Plot a 3D surface representation of 2D arrays of time
-C series data ie. timesteps-vs-day-vs-data. 
+C series data ie. timesteps-vs-day-vs-data.
+
       SUBROUTINE SURF3(LU1,ROTNXX,ROTNYY,YS,ZS,xxmin,xxmax,zlist,ier)
 #include "building.h"
 #include "geometry.h"
 
-C Parameters passed
+C Parameters passed.
       integer LU1        ! file unit to read and write from
       real ROTNXX,ROTNYY ! rotation in X and Y axis
       real YS,ZS         ! scale factor for X and Y
@@ -1057,9 +1051,9 @@ C Draw arrow on axis.
       END
 
 C ******************** RWRAND ********************
-
 C Read and write binary random access file for drawing data.
 C ARRAY size passed in NA.
+
       SUBROUTINE RWRAND(LU,IRW,NPR,NA,ISTEP,IREC,NPNTS,ARRAY)
 
 C Parameters:-
@@ -1106,9 +1100,9 @@ C  ARRAY  = real array to hold transferred data size NA.
       END
 
 C ******************** COEF3D ********************
-
 C Calculate rotation coefficients for a 2D representation
 C of a 3D figure with rotations about the X & Y axis.
+
       SUBROUTINE COEF3D(ROTNX,ROTNY,COEFF)
 
       PARAMETER ( PID180=0.0174532925 )
@@ -1129,8 +1123,8 @@ C Convert rotation angles to radians.
       END
 
 C ******************** FRAMER ********************
-
 C Draw the frame (context of the surface plot).
+
       SUBROUTINE FRAMER(IVER,VERTEX,MASK,
      &           IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,COEFF)
 
@@ -1204,8 +1198,8 @@ C Should work with ydat, but doesn`t
       END
 
 C ******************** MASKED ********************
-
 C Enters edge of figure into array mask as the figure is drawn.
+
       SUBROUTINE MASKED(XL,YLAST,XN,YN,MASK)
       logical close
       INTEGER HIGH,MASK(2000)
@@ -1242,8 +1236,8 @@ C Check to see if any mask exists.
       END
 
 C ******************** MAXMIN ********************
-
 C Return maximum and minimum X & Y coords.
+
       SUBROUTINE MAXMIN(X,Y,XMAX,XMIN,YMAX,YMIN)
       logical close
 
@@ -1290,10 +1284,12 @@ C ******************** PLOT3E ********************
 C This subroutine is compiler sensitive. Code assumes that subroutines
 C calling PLOT3E might not pass the full arrays XDATA YDATA ZDATA. Newer
 C compilers are more strict.
+
       SUBROUTINE  PLOT3E(IVXYZ,XDATA,YDATA,ZDATA,XSCALE,YSCALE,ZSCALE,
      1              IPASS,XMAX,XMIN,YMAX,YMIN,SCALE,II,JVXYZ,INCI,
      2              NLINE,IFIRST,NPNTS,COEFF,MASK,VERTEX,
      3              XLT,YLT,IALT,XLAST,YLAST)
+
       integer menuchw,igl,igr,igt,igb,igw,igwh
       COMMON/VIEWPX/menuchw,igl,igr,igt,igb,igw,igwh
 
@@ -1619,8 +1615,8 @@ C Scale and rotate a 3D array to produce 2D representation.
       END
 
 C ******************** SETQUD ********************
-
 C Set default for drawing frame.
+
       SUBROUTINE SETQUD(ROTNY,IAXIS,IPOS,IZFRON,IZBACK,IZSTEP,
      1                  IXFRON,IXBACK,IXSTEP,NX,NZPNTS,IV,IVER)
 

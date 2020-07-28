@@ -219,7 +219,8 @@ C Error subroutine and error details for dll mode.
       integer lsn             ! length of currentfile
       real reader
       integer irange,icur     ! for looping
-      integer implieddaytype  ! counter for implied day types    
+      integer implieddaytype  ! counter for implied day types
+      logical isdynamic       ! true if reading a dynamicpeople  
       
       ijk=0
       ireader=0
@@ -668,11 +669,13 @@ C included the next time the file is written.
         nGain_types(ICOMP, IDTY) = IREADER     ! used for HOT3000 base loads 
         IF(NCAS(IDTY).EQ.0)goto 600
         DO 40 I=1,NCAS(IDTY)
+          isdynamic=.false.
           CALL STRIPC(IUO,OUTSTR,99,ND,1,'Period gain detail',IER)
+          numberofitems=ND
 
 C If there were 3 items on the line it could be 'Occupt Lights Equipt'
 C and if there is only 1 item on the line it is number of periods.
-          if(ND.eq.1.or.ND.eq.3)then
+          if(numberofitems.eq.1.or.numberofitems.eq.3)then
             ii=NBDAYTYPE
             NCAS(II)=3
             ICGS(II,1)=0; ICGF(II,1)=24; ICGUnit(II,1)=0
@@ -691,16 +694,15 @@ C and if there is only 1 item on the line it is number of periods.
             goto 40
           endif
 
-
 C If dynamicpeople then read into a different common block.
-C If there are 7, 9 11, 12 or ? items on the line then the first item will be
-C an overloaded casual gain index. The units implied depend on the value
-C of ip3ver. For ip3ver <21 a positive ICGT implies the unit is Watts. 
+C For newer files the first item will be an overloaded casual gain index.
+C The units implied depend on the value of ip3ver. For ip3ver <21 a 
+C positive ICGT implies the unit is Watts. 
 C If negative the unit is m2/p for occupants and W/m2 otherwise. 
 C Ip3ver 21+ will already have scanned *type lines. and the lodslot
 C value will be the same as iabs(ICGT).
           K=0
-          if(ND.eq.7.or.ND.eq.9.or.ND.eq.11.or.ND.eq.12)then
+          if(numberofitems.ge.7)then
             CALL EGETWI(OUTSTR,K,IREADER,-3,7,'W',
      &        'overloaded gain type',IER)
             ICGT(IDTY,I)=IREADER
@@ -719,15 +721,19 @@ C value will be the same as iabs(ICGT).
                 if(caskeytype(icomp,ipslot)(1:13).eq.
      &             'dynamicpeople')then
                   ICGUnit(IDTY,I)=3  ! number of people
+                  isdynamic=.true.
                 else
                   ICGUnit(IDTY,I)=0
+                  isdynamic=.false.
                 endif
               elseif(ireader.lt.0)then
                 if(caskeytype(icomp,ipslot)(1:13).eq.
      &             'dynamicpeople')then
                   ICGUnit(IDTY,I)=3  ! number of people
+                  isdynamic=.true.
                 elseif(caskeytype(icomp,ipslot)(1:6).eq.'people')then
                   ICGUnit(IDTY,I)=2
+                  isdynamic=.false.
                 else
                   ICGUnit(IDTY,I)=1
                 endif
@@ -744,129 +750,70 @@ C Debug.
 C          write(6,*) 'eroper 552 ',idty,i,ireader,ICGT(IDTY,I),
 C     &      ICGUnit(IDTY,I)
 
-          ! Added support of HOT3000 Base Loads BC data file linkage with
-          ! operations file.
-          if(ND.eq.9 .and. bH3KExtentionsActive())then 
-            ! two additional data are read in: BCD column
-            ! index and Base Load fraction
-
-          ! Make sure that BCD file has been defined. If not, display
-          ! error message and stop.
-            if ( .not. bBC_data_defined ) then
-              ! Display error message and stop.
-              write(outs,'(a,I3, a)') 
-     &         ' Error: Operations file for zone ',
-     &         icomp, ' expects BC data file which does not exist.'
-              call edisp(ieout,outs)
-              iecount=iecount+1
-
-C If open, close the session log.
-              close(ieout)
-              if(iecount.eq.0)then     ! if there were no warnings delete
-                open(ieout,file=iefile,status='UNKNOWN')
-                call efdelet(ieout,istat)
-              endif
-              stop 'Fatal Error'
-            endif
-
-          ! set flag for HOT3000 Base Loads
-            iH3K_Base_Loads(icomp) = 1
-
-            CALL EGETWI(OUTSTR,K,IREADER,1,100,'W','BCD column',IER)
-            iBCD_column(ICOMP,IDTY,I) = IREADER
-            CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','BL fraction',IER)
-            fBL_fraction(ICOMP,IDTY,I)=READER
+C If dynamicpeople then read into a different common block
+          if(isdynamic)then
             CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain st',IER)
             ICGS(IDTY,I)=IREADER
             CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain fn',IER)
             ICGF(IDTY,I)=IREADER
-
-          ! When BCD data is used with the HOT3000 base loads facility,
-          ! set CMGS and CMGL to sensible and latent fractions to account
-          ! for any base load that does not translate 100% into a 
-          ! internal heat gain (e.g., dishwasher or dryer) 
-            CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain sens',IER)
-            CMGS(IDTY,I)=READER
-            CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain latent',IER)
-            CMGL(IDTY,I)=READER
-
+            CMGS(IDTY,I)=0.0
+            CMGL(IDTY,I)=0.0
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','nb men',IER)
+            tnbmen(IDTY,I)=READER
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','nb women',IER)
+            tnbwomen(IDTY,I)=READER
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','nb children',IER)
+            tnbchild(IDTY,I)=READER
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','metabolic',IER)
+            metabolic(IDTY,I)=READER
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','clo value',IER)
+            clov(IDTY,I)=READER
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','nb ocup',IER)
+            airvel(IDTY,I)=READER
             CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain rad fr',IER)
             RADC(IDTY,I)=READER
             CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain conv fr',IER)
             CONC(IDTY,I)=READER
-
-          else ! default read sequence
-C Debug.
-C          write(6,*) 'eroper 552 ',idty,i,ireader,ICGT(IDTY,I),
-C     &      ICGUnit(IDTY,I)
-
-C If dynamicpeople then read into a different common block
-            if(ICGUnit(IDTY,I).eq.3)then
-              CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain st',IER)
-              ICGS(IDTY,I)=IREADER
-              CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain fn',IER)
-              ICGF(IDTY,I)=IREADER
-              CMGS(IDTY,I)=0.0
-              CMGL(IDTY,I)=0.0
-              CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','nb men',IER)
-              tnbmen(IDTY,I)=READER
-              CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','nb women',IER)
-              tnbwomen(IDTY,I)=READER
-              CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','nb children',IER)
-              tnbchild(IDTY,I)=READER
-              CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','metabolic',IER)
-              metabolic(IDTY,I)=READER
-              CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','clo value',IER)
-              clov(IDTY,I)=READER
-              CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','nb ocup',IER)
-              airvel(IDTY,I)=READER
-              CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain rad fr',IER)
-              RADC(IDTY,I)=READER
-              CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain conv fr',IER)
-              CONC(IDTY,I)=READER
-            else
-              CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain st',IER)
-              ICGS(IDTY,I)=IREADER
-              CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain fn',IER)
-              ICGF(IDTY,I)=IREADER
-              CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','gain sens',IER)
-              CMGS(IDTY,I)=READER
-              CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','gain latent',IER)
-              CMGL(IDTY,I)=READER
-              CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain rad fr',IER)
-              RADC(IDTY,I)=READER
-              CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain conv fr',IER)
-              CONC(IDTY,I)=READER
-            end if
+          else
+            CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain st',IER)
+            ICGS(IDTY,I)=IREADER
+            CALL EGETWI(OUTSTR,K,IREADER,0,24,'W','gain fn',IER)
+            ICGF(IDTY,I)=IREADER
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','gain sens',IER)
+            CMGS(IDTY,I)=READER
+            CALL EGETWR(OUTSTR,K,READER,0.,0.,'-','gain latent',IER)
+            CMGL(IDTY,I)=READER
+            CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain rad fr',IER)
+            RADC(IDTY,I)=READER
+            CALL EGETWR(OUTSTR,K,READER,0.,1.,'W','gain conv fr',IER)
+            CONC(IDTY,I)=READER
+          end if
 
 C Do reality checks on data thus far.
-            IF(ICGS(IDTY,I).GT.ICGF(IDTY,I))then
+          IF(ICGS(IDTY,I).GT.ICGF(IDTY,I))then
 
 C Found a period out of order, warn user and carry on.
-              write(loutstr,'(6a)')
-     &          ' daytype ',calentag(idty),
-     &          ' gains start-end mismatch in...',
-     &          outstr(1:50),' of operation file ',
-     &          currentfile(1:lnblnk(currentfile))
-                call edisp248(iuout,loutstr,100)
-                IER=1
-            endif
-            X=RADC(IDTY,I)+CONC(IDTY,I)
-            IF(X.GT.1.1)then
-              write(loutstr,'(6a)')
-     &        ' day type ',calentag(idty),
+            write(loutstr,'(6a)')' daytype ',calentag(idty),
+     &        ' gains start-end mismatch in...',
+     &        outstr(1:50),' of operation file ',
+     &        currentfile(1:lnblnk(currentfile))
+            call edisp248(iuout,loutstr,100)
+            IER=1
+          endif
+          X=RADC(IDTY,I)+CONC(IDTY,I)
+          IF(X.GT.1.1)then
+            write(loutstr,'(6a)') ' day type ',calentag(idty),
      &        ' rad & conv fractions > 1.0 in...',
      &        outstr(1:50),' of operation file ',
      &        currentfile(1:lnblnk(currentfile))
-              call edisp248(iuout,loutstr,100)
-              ier=1
-            endif
-            IF(X.LT..95.AND.ITRC.GT.1)call edisp(iuout,
-     &        ' Casual gain rad:con sum < 1.0')
+            call edisp248(iuout,loutstr,100)
+            ier=1
           endif
+          IF(X.LT..95.AND.ITRC.GT.1)call edisp(iuout,
+     &        ' Casual gain rad:con sum < 1.0')
           
 C Check if electrical data has also been saved.
-          if(ND.eq.12.or.ND.eq.15)then
+          if(.NOT.isdynamic.and.numberofitems.gt.7)then
             CALL EGETWR(OUTSTR,K,READER,0.,1.0,'W','wkd pf',IER)
             PF(IDTY,I)=READER
             CALL EGETWI(OUTSTR,K,IREADER,-1,1,'W','wkd lag lead',IER)
@@ -877,7 +824,7 @@ C Check if electrical data has also been saved.
             BVOLT(IDTY,I)=READER
             CALL EGETWI(OUTSTR,K,IREADER,1,4,'W','wkd phase',IER)
             IPHAS(IDTY,I)=IREADER
-            IELF(ICOMP)=1
+            IELF(ICOMP)=1  ! Make note of electrical data inclusion.
           endif
    40   CONTINUE
         IF(IER.NE.0) goto 1002
@@ -896,9 +843,8 @@ C for ip3ver < 21. Loop to see the magintude of icgt already referenced.
  701  continue
 
 C For older files now assume there are always at least 3 different labels.
-C Test that the number of labels matches what was found when
-C reading the period lines.
-      if(ip3ver(icomp).lt.21 .and.(.not.bH3KExtentionsActive()))then
+C Test if number of labels matches what was found when reading the period lines.
+      if(ip3ver(icomp).lt.21)then
         if(irange.lt.3) irange=3
       endif
 
@@ -1541,7 +1487,7 @@ C Check if electrical data has also been saved.
             BVOLTC(IDTY,I)=R
             CALL EGETWI(OUTSTR,K,IR,1,4,'W',' phase',IER)
             IPHASC(IDTY,I)=IR
-            IELFC=1
+            IELFC=1   ! Signal there is electrical data.
           endif
    40   CONTINUE
   600 CONTINUE
@@ -1772,6 +1718,7 @@ C Electrical data flag and elctrical data.
       REAL PF,PWR,BVOLT
       COMMON/OVRWT/AUTOVR
       logical AUTOVR
+      logical isdynamic       ! true if reading a dynamicpeople  
 
       character dstmp*24
       integer irange,icur  ! for looping
@@ -1921,11 +1868,15 @@ C through all the possible casual gain slots for this zone
 C and if lodslot is non-zero then write a *type line.
         WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) 
      &    '# casual user-label type-key-word slot attributes'
+        isdynamic=.false.       ! Assume no dynamic people.
         do ir= 1,MGTY
           if(lodslot(icomp,ir).ne.0)then
             WRITE(IUO,'(4A,3i3)',IOSTAT=IOS,ERR=1) '*type ',
      &        lodlabel(icomp,ir),' ',caskeytype(icomp,ir),
      &        lodslot(icomp,ir),lodatr1(icomp,ir),lodatr2(icomp,ir)
+            if(caskeytype(icomp,ir)(1:13).eq.'dynamicpeople')then
+               isdynamic=.true.  ! Signal different comments.
+            endif
           endif         
         enddo
         WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1) '*end_type '
@@ -1935,21 +1886,29 @@ C and if lodslot is non-zero then write a *type line.
         WRITE(IUO,'(1X,I5,2A)',IOSTAT=IOS,ERR=1)NCAS(IDTY),
      &  '   # number of casual gains in day type: ',calentag(idty)
         IF (NCAS(IDTY).GT.0)THEN
-          IF(IELF(ICOMP).EQ.1) THEN
+          IF(IELF(ICOMP).EQ.1) THEN  ! Electrical included.
             if(ip3ver(icomp).lt.21)then
               WRITE(IUO,'(a,a)',IOSTAT=IOS,ERR=1)
      &        '# slot, period, sensible, latent, rad_frac, ',
      &        'conv_frac, pf, +/-, power, volt, phase'  
-              DO 1159 I = 1,NCAS(IDTY)
+              DO I = 1,NCAS(IDTY)
                 WRITE(IUO,5470,IOSTAT=IOS,ERR=1)ICGT(IDTY,I),
      &          ICGS(IDTY,I),ICGF(IDTY,I),CMGS(IDTY,I),CMGL(IDTY,I),
      &          RADC(IDTY,I),CONC(IDTY,I),PF(IDTY,I),IPF(IDTY,I),
      &          PWR(IDTY,I),BVOLT(IDTY,I),IPHAS(IDTY,I) 
-1159          CONTINUE
-            else
-C << update to write out alternative lines for dynamic people >>
+              ENDDO
+            else  ! Newer file format assume no dynamicpeople if electrical.
+              WRITE(IUO,'(a,a)',IOSTAT=IOS,ERR=1)
+     &        '# slot, period, sensible, latent, rad_frac, ',
+     &        'conv_frac, pf, +/-, power, volt, phase'  
+              DO I = 1,NCAS(IDTY)
+                WRITE(IUO,5470,IOSTAT=IOS,ERR=1)ICGT(IDTY,I),
+     &          ICGS(IDTY,I),ICGF(IDTY,I),CMGS(IDTY,I),CMGL(IDTY,I),
+     &          RADC(IDTY,I),CONC(IDTY,I),PF(IDTY,I),IPF(IDTY,I),
+     &          PWR(IDTY,I),BVOLT(IDTY,I),IPHAS(IDTY,I) 
+              ENDDO
             endif
-          ELSE
+          ELSE   ! Electrical data not included in file.
             if(ip3ver(icomp).lt.21)then
               WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
      &         '# slot, period, sensible, latent, rad_frac, conv_frac'
@@ -1960,11 +1919,14 @@ C << update to write out alternative lines for dynamic people >>
      &           RADC(IDTY,I),',',CONC(IDTY,I)
               ENDDO  ! of I
             else
-              WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
-     &         '# slot, period, sensible, latent, rad_frac, conv_frac'
-              WRITE(IUO,'(2A)',IOSTAT=IOS,ERR=1)
-     &         '# slot, period, nb men, nb women, nb child,',
-     &         ' metabolic clo, air vel, rad_frac, conv_frac'
+              if(isdynamic)then
+                WRITE(IUO,'(2A)',IOSTAT=IOS,ERR=1)
+     &            '# slot, period, nb men, nb women, nb child,',
+     &            ' metabolic clo, air vel, rad_frac, conv_frac'
+              else
+                WRITE(IUO,'(A)',IOSTAT=IOS,ERR=1)
+     &          '# slot, period, sensible, latent, rad_frac, conv_frac'
+              endif
 
 C Key logic is to check caskeytype for each period for dynamicpeople.
               DO I = 1,NCAS(IDTY)
@@ -3338,11 +3300,13 @@ C See if first period is 0hr or 1hr and last period is 24.
 C ******************** UPDOPR 
 C UPDOPR  Updates all operations data when day types are incremented.
 
-      SUBROUTINE UPDOPR
+      SUBROUTINE UPDOPR(iudayt)
 #include "building.h"
 #include "model.h"
 #include "schedule.h"
 
+      integer iudayt    ! user preference 0 create default one period or
+                        ! >0 copy an existing day type pattern.
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       common/FILEP/IFIL
       
@@ -3400,42 +3364,87 @@ C Read operations file for this zone
             RETURN
           ENDIF
 
-C Initialise the air flows and casual gains to zero for new day type
-          NAC(NBDAYTYPE)=0
-          DO 200 I=NAC(NBDAYTYPE-1),MA
-            IACS(NBDAYTYPE,I)=0
-            IACF(NBDAYTYPE,I)=0
-            ACI(NBDAYTYPE,I)=0.
-            ACV(NBDAYTYPE,I)=0.
-            IPT(NBDAYTYPE,I)=0
-            TA(NBDAYTYPE,I)=0.
- 200      CONTINUE
-          NCAS(NBDAYTYPE)=3
-          DO 300 I=NCAS(NBDAYTYPE-1),MC
-            ICGT(NBDAYTYPE,I)=0
-            ICGS(NBDAYTYPE,I)=0
-            ICGF(NBDAYTYPE,I)=0
-            ICGUnit(NBDAYTYPE,I)=0  ! Assume Watts
-            CMGS(NBDAYTYPE,I)=0.
-            CMGL(NBDAYTYPE,I)=0.
-            RADC(NBDAYTYPE,I)=0.
-            CONC(NBDAYTYPE,I)=0.
-            PF(NBDAYTYPE,I)=0.
-            IPF(NBDAYTYPE,I)=0
-            PWR(NBDAYTYPE,I)=0.
-            BVOLT(NBDAYTYPE,I)=0.
-            IPHAS(NBDAYTYPE,I)=0
- 300      CONTINUE
+C Initialise the air flows and casual gains to zero for new day type but set other
+C values as typical.
+          if(iudayt.le.0)then        ! set placeholder infiltration & ventilation
+            NAC(NBDAYTYPE)=1
+            DO I=NAC(NBDAYTYPE-1),MA
+              IACS(NBDAYTYPE,I)=0
+              IACF(NBDAYTYPE,I)=24
+              ACI(NBDAYTYPE,I)=0.
+              ACV(NBDAYTYPE,I)=0.
+              IPT(NBDAYTYPE,I)=0
+              TA(NBDAYTYPE,I)=0.
+            ENDDO
+          else
+            NAC(NBDAYTYPE)=NAC(iudayt) ! copy pattern from iudayt
+            DO I=1,NAC(iudayt)
+              IACS(NBDAYTYPE,I)=IACS(iudayt,I)
+              IACF(NBDAYTYPE,I)=IACF(iudayt,I)
+              ACI(NBDAYTYPE,I)=ACI(iudayt,I)
+              ACV(NBDAYTYPE,I)=ACV(iudayt,I)
+              IPT(NBDAYTYPE,I)=IPT(iudayt,I)
+              TA(NBDAYTYPE,I)=TA(iudayt,I)
+            ENDDO
+          endif
+          if(iudayt.le.0)then          ! set placeholder casual gains
+            NCAS(NBDAYTYPE)=3
+            DO I=NCAS(NBDAYTYPE-1),MC
+              ICGT(NBDAYTYPE,I)=0
+              ICGS(NBDAYTYPE,I)=0
+              ICGF(NBDAYTYPE,I)=0
+              ICGUnit(NBDAYTYPE,I)=0   ! Assume Watts
+              CMGS(NBDAYTYPE,I)=0.
+              CMGL(NBDAYTYPE,I)=0.
+              RADC(NBDAYTYPE,I)=0.
+              CONC(NBDAYTYPE,I)=0.
+              PF(NBDAYTYPE,I)=0.
+              IPF(NBDAYTYPE,I)=0
+              PWR(NBDAYTYPE,I)=0.
+              BVOLT(NBDAYTYPE,I)=0.
+              IPHAS(NBDAYTYPE,I)=0
+            ENDDO
+          else
+            NCAS(NBDAYTYPE)=NCAS(iudayt) ! copy pattern from iudayt
+            DO I=1,NCAS(iudayt)
+              ICGT(NBDAYTYPE,I)=ICGT(iudayt,I)
+              ICGS(NBDAYTYPE,I)=ICGS(iudayt,I)
+              ICGF(NBDAYTYPE,I)=ICGF(iudayt,I)
+              ICGUnit(NBDAYTYPE,I)=ICGUnit(iudayt,I)
+              CMGS(NBDAYTYPE,I)=CMGS(iudayt,I)
+              CMGL(NBDAYTYPE,I)=CMGL(iudayt,I)
+              RADC(NBDAYTYPE,I)=RADC(iudayt,I)
+              CONC(NBDAYTYPE,I)=CONC(iudayt,I)
+              PF(NBDAYTYPE,I)=PF(iudayt,I)
+              IPF(NBDAYTYPE,I)=IPF(iudayt,I)
+              PWR(NBDAYTYPE,I)=PWR(iudayt,I)
+              BVOLT(NBDAYTYPE,I)=BVOLT(iudayt,I)
+              IPHAS(NBDAYTYPE,I)=IPHAS(iudayt,I)
+            ENDDO
+            ip3ver(icomp)=21   !  Write zone operations file.
+            CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
+            NBDAYTYPE=NBDAYTYPEHOLD  ! restore the origianl nb of day types
+            RETURN
+          endif
 
-C Make initial three gain periods (0-24) for occupancy, lights and small
-C power. 
+C For placeholder variant, make initial three gain periods (0-24) for occupancy,
+C lights and small power. 
           DO 400 I=1,NCAS(NBDAYTYPE)
             ICGT(NBDAYTYPE,I)=I
             ICGF(NBDAYTYPE,I)=24
+            if(I.eq.1)then
+              RADC(NBDAYTYPE,I)=0.6
+              CONC(NBDAYTYPE,I)=0.4
+            elseif(I.eq.2)then
+              RADC(NBDAYTYPE,I)=0.5
+              CONC(NBDAYTYPE,I)=0.5
+            elseif(I.eq.3)then
+              RADC(NBDAYTYPE,I)=0.4
+              CONC(NBDAYTYPE,I)=0.6
+            endif
  400      CONTINUE
 
-C Write zone operations file.
-          ip3ver(icomp)=21
+          ip3ver(icomp)=21   !  Write zone operations file.
           CALL EMKOPER(IUO,LPROJ(ICOMP),ICOMP,IER)
         ENDIF
  100  CONTINUE

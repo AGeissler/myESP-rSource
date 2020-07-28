@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Project Manager: file eddb.f providing manipulation of
 C standard data files:
@@ -295,7 +291,7 @@ C yet defined.
 
       ITEMS(17)='  _______________________________ '
       ITEMS(18)='? help                            '
-      ITEMS(19)='- exit this menu                  '
+      ITEMS(19)='- exit menu                       '
 
 C Try to compact the width of the menu.
       IW=0
@@ -2674,9 +2670,7 @@ C Predefined entities. Select which to focus on.
         goto 60
       endif
 
-      moddb=.true.
-      modcon=.true.
-      chgdb=.false.
+      moddb=.true.; modcon=.true.; chgdb=.false.  ! Reset.
       if(requestpreview)then
 
 C Read into commons the selected predefined entity.
@@ -4211,7 +4205,7 @@ C If so llclmdb will be expanded to the full path.
       helptopic='clm_db_manage'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
-C Just in case we got this far and ICLIM was not instanciated do it now.
+C Just in case we got this far and ICLIM was not instantiated do it now.
       if(ICLIM.eq.0)then
         ICLIM=IFIL
       endif

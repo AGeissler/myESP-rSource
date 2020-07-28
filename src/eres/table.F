@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
 C  MOTABL Produces tabular output for a 24 hour period.
@@ -26,13 +22,15 @@ C  CZMRT  returns one day's temperatures of zone mean radiant temp.
 C  CZRESL returns one day's temperatures of zone resultant temp.
 
 C ******************** MOTABL ********************
-C MOTABL produces tabular output for a 24 hour period.
+C Produces tabular output for a 24 hour period.
+
       SUBROUTINE MOTABL
 #include "building.h"
 #include "model.h"
 #include "prj3dv.h"
 #include "net_flow.h"
 #include "net_flow_data.h"
+
       COMMON/SPAD/MMOD,LIMIT,LIMTTY
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
       COMMON/FILEP/IFIL
@@ -137,7 +135,7 @@ C Default value for GRTOOL file = 0 (off), day hash marks off.
       NITMS=15
       INO=-2
 
-C Instanciate help string array for all interactions.
+C Instantiate help string array for all interactions.
       helptopic='res_tabular_menu'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -159,7 +157,6 @@ C Test for illegal menu pick.
       elseif(INO.EQ.6)then
 
 C Special material output. << use alternative data recovery >>.
-
       elseif(INO.EQ.7)then
 
 C Network flow tabular output. If iairn=3 we can display the

@@ -326,7 +326,7 @@ fi
 
 # xml support.
 if [ "$xml_support" = "yes" ] || [ "$xml_support" = "prompt" ]; then
-   if [ ! -d /usr/include/libxml2 ] && [ ! -d /usr/local/include/libxml2 ]; then
+   if [ ! -d /usr/include/libxml2 ] && [ ! -d /usr/local/include/libxml2 ] && [ ! -d /usr/local/opt/libxml2 ]; then
       xml_support="no"
       xml_libs_found="no"
       if [ "$mode" = "silent" ]; then
@@ -1747,18 +1747,21 @@ case "${MCTYPE}" in
          echo "*image_display,XBMP,iexplore.exe"        >> ${ESPdir}/esprc
          echo "*image_display,GIF,iexplore.exe"         >> ${ESPdir}/esprc
          echo "*image_display,XWD,iexplore.exe"         >> ${ESPdir}/esprc
+         echo "*image_display,PNG,iexplore.exe"         >> ${ESPdir}/esprc
     ;;
   osx)
          echo "*image_display,TIF,open"                 >> ${ESPdir}/esprc
          echo "*image_display,XBMP,open"                >> ${ESPdir}/esprc
          echo "*image_display,GIF,open"                 >> ${ESPdir}/esprc
          echo "*image_display,XWD,open"                 >> ${ESPdir}/esprc
+         echo "*image_display,PNG,open"                 >> ${ESPdir}/esprc
     ;;
   *)
          echo "*image_display,TIF,display"              >> ${ESPdir}/esprc
          echo "*image_display,XBMP,display"             >> ${ESPdir}/esprc
          echo "*image_display,GIF,display"              >> ${ESPdir}/esprc
          echo "*image_display,XWD,display"              >> ${ESPdir}/esprc
+         echo "*image_display,PNG,display"              >> ${ESPdir}/esprc
     ;;
 esac
 echo "*journal,OFF"                                     >> ${ESPdir}/esprc

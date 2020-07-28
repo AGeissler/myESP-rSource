@@ -13,12 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C TRNSFI.F comprises:
+C This file comprises the following subroutines.
 C TRNSF1I - Sets up the coefficients of the coordinate transformation
 C           equations.
 C TRNSF2I - Expresses the solar azimuth and altitude angles relative to
@@ -26,7 +22,7 @@ C           the transformed coordinate system.
 C TRNSF3I - Projects a window vertex and expresses the result relative
 C           to the transformed coordinate system.
 
-C ************** TRNSF1I
+C ******************** TRNSF1I ********************
 C Sets up the coefficients of the transform equations
 C (translation + z- then x- then y-axis rotations) that move
 C the site coordinate system to the local surface under
@@ -94,7 +90,7 @@ C rotation.
       c(4)=cos(al)*sin(be)*cos(ga)
       c(5)=cos(be)*cos(ga)
 
-C Get the current connection
+C Get the current connection.
       icc=izstocn(izone,is)
       ip1=iszjvn(izone,is,1)
       xor=szcoords(izone,ip1,1)
@@ -177,7 +173,7 @@ C Trace output.
       return
       end
 
-C ************** TRNSF2I 
+C ******************** TRNSF2I ********************
 C Convert solar angles (sazi1 and salt1) in original coordinate
 C system to corresponding angles (sazi2 and salt2) in transformed
 C coordinate system (target internal surface) to allow TMC grid
@@ -346,7 +342,7 @@ C Trace output.
       return
       end
 
-C ************** TRNSF3I
+C ******************** TRNSF3I ********************
 C Projects the given window grid point (xxw,yyw,zzw) onto the
 C internal surface under consideration. The projected points are
 C specified relative to the local internal surface coordinate system.
@@ -409,7 +405,7 @@ C of eta1 and eta2 respectively.
       ta2=sa2/ca2
       if(eta2.gt.0.0)ta2=-ta2
 
-C Perform translation then projection transformation
+C Perform translation then projection transformations.
 
 C Transform y (no need to project).
     1 yt=-(xxw-xor)*b(1)+(yyw-yor)*b(2)+(zzw-zor)*b(3)

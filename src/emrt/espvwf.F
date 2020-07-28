@@ -13,20 +13,14 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C ESRU: espvwf
+C ********** Program espvwf **********
+C Calculation of zone view factors.
 
-C Revised to take in configuration file and zone focus.
       program espvwf
       USE START_UP
 #include "building.h"
 #include "model.h"
-
-C geometry.h provides commons G0/G1/G2/c20/precz.
 #include "geometry.h"
 #include "esprdbfile.h"
 #include "material.h"
@@ -599,7 +593,7 @@ C index 0 present a list.
       ITEM(17)=                 '- exit vwf                   '
       NITEMS = 17
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('vwf ',1)
 
 20    CALL EMENU('  Viewfactors & MRT',ITEM,NITEMS,INO)
@@ -894,8 +888,8 @@ C default (area weighted) viewfactors and no MRT sensors.
         if(ier.ne.0)then
           helptopic='problem_reading_existing'
           call gethelptext(helpinsub,helptopic,nbhelp)
-          CALL EASKABC('Problem reading existing viewfactor file :',
-     &      ' ','read again','create new file','continue',irt,nbhelp)
+          CALL EASKABC('Problem reading viewfactor file!',
+     &      'Options:','reread','create new file','cancel',irt,nbhelp)
           if(irt.eq.1)then
             goto 43
           elseif(irt.eq.2)then

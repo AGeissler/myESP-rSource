@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C The file emeta.f is a collection of support facilities for
 C reading and creating esp-r model meta files:
@@ -227,7 +223,7 @@ C << but we might want to use what was already in the META file >>
 
 C If there is not a model specific season definition rescan
 C the `climatelist` file. Check if this climate is in the
-C list. If not instanciate season and typical start and end dates.
+C list. If not, instantiate season and typical start and end dates.
         if(ihaveseason.gt.0)then
           continue
         else
@@ -270,7 +266,7 @@ C Default season definitions.
 C Fall through if no climate located.
   74  if(nsset.gt.0)then
 
-C Instanciate the IPV data based on value of simact.
+C Instantiate the IPV data based on value of simact.
         call ipvdatinit(simact)
 
         if(nipvassmt.eq.1.or.nipvassmt.eq.3.or.nipvassmt.eq.5)then
@@ -594,7 +590,7 @@ C via common G1. ESCROT also works via G1.
       ELSEIF(ishape.eq.3)THEN
 
 C For a poly shaped zone use similar logic to reading geometry file.
-C Instanciate nsur and ntv for use in escrot and filsur.
+C Instantiate nsur and ntv for use in escrot and filsur.
         NSUR=nbwalls(ICOMP)
         NZSUR(ICOMP)=nbwalls(ICOMP)
         NTV=nztv(icomp)
@@ -646,7 +642,7 @@ C Update the connection list.
         IC2(ICCC)=zboundarytype(icomp,icc,2)
         IE2(ICCC)=zboundarytype(icomp,icc,3)
 
-C Instanciate the surface constructions.
+C Instantiate the surface constructions.
         write(sname(icomp,icc),'(a)') hasname(icc)
         write(smlcn(icomp,icc),'(a)') hasconstr(icc)
 
@@ -701,7 +697,7 @@ C the original model. In this case << ? >>
         SUSE(icomp,icc,1)='-'
         SUSE(icomp,icc,2)='-'
 
-C Use zboundarytype to instanciate sother.
+C Use zboundarytype to instantiate sother.
         IF(zboundarytype(icomp,icc,1).EQ.0)THEN
           SOTHER(icomp,icc,1)='EXTERIOR'
         ELSEIF(zboundarytype(icomp,icc,1).EQ.1)THEN
@@ -2240,7 +2236,7 @@ C        usefile(iz) = ' '
           icomp=icomp+1
 
 C If there are obstructions fill in relevant common blocks. Set iobs()=2
-C to signal that the common blocks have been instanciated and data should
+C to signal that the common blocks have been instantiated and data should
 C be included in the version 1.1 geometry file.
           if(nbobs(icomp).gt.0)then
             iobs(icomp)=2
@@ -2482,7 +2478,7 @@ C Indicate progress.
      &  subpath(1:lnblnk(subpath))
       call edisp(iuout,outs)
 
-C Instanciate the sz array structures. The logic is to scan all of the
+C Instantiate the sz array structures. The logic is to scan all of the
 C zone details and then write into the file.
       write(actions,'(a)') 'new'
       write(root,'(a)') cfgroot
@@ -2565,7 +2561,7 @@ C Simulation parameter sets.
         isilentncf=0   ! still to do
       endif
 
-C For each of the zones instanciate values.
+C For each of the zones instantiate values.
 C << todo - add in zone description >>
       do 42 iz=1,ncomp
         shape(iz) = 'poly'    ! zone shape is poly

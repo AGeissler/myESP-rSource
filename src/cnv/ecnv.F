@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Filter between various design tools.
 C AutoCAD Notes:
@@ -36,6 +32,7 @@ C to code from ABACUS, Department of Architecture & Building Science.
 #include "espriou.h"
 #include "control.h"
 #include "dxfdata.h"
+
       PARAMETER (MSTMC=20)
       
       integer lnblnk  ! function definition
@@ -313,7 +310,7 @@ C placed in the same folder.
         call fdroot(filname2,path,LCFGF)
         if(upgcfg(1:7).ne.'UNKNOWN')then
 
-C Instanciate and clear commons, scan the supplied problem
+C Instantiate and clear commons, scan the supplied problem
 C to update commons for configuration.
           call clrprb
           call edisp(iuout,' Scanning the problem before updating...')
@@ -1270,7 +1267,7 @@ C Comment for configuration index (upgrade registration level).
      &  '  # path to BASESIMP files'
       WRITE(ioout,'(A,i4,a)',IOSTAT=IOS,ERR=3) '*indx ',INDCFG,
      &  indxcmt(1:lnblnk(indxcmt))
-  30  FORMAT('# ESRU system configuration defined by file ',/,'# ',A)
+  30  FORMAT('# ESP-r system configuration defined by file ',/,'# ',A)
 
       WRITE(ioout,'(F7.3,2X,F7.3,a)')sitelat,sitelongdif,
      &'   # Latitude & Longitude diff'
@@ -3524,7 +3521,7 @@ C spaces.
         endif
  399  CONTINUE
 
-C Instanciate initial documentation for air schedules and casual gains.
+C Instantiate initial documentation for air schedules and casual gains.
       if(igu.eq.8)then
         write(oprdesc(icomp),'(2a)')
      &  'Nothing happens in this zone i.e. no occupants lights ',
@@ -3791,7 +3788,7 @@ C Trap for blank root name.
 
 C If we got this far in the 'i' mode clear common blocks. Note this
 C clear is not done when called in the 'sn' or 'sw' mode because
-C the meta file facility will have instanciated some common blocks
+C the meta file facility will have instantiated some common blocks
 C which should not be cleared.
         call clrprb
       endif
@@ -4074,7 +4071,7 @@ C Check longer paths cause the path variable to have a string buffer overflow.
         goto 289
       endif
 
-C Instanciate standard folder names for use within model configuration file.
+C Instantiate standard folder names for use within model configuration file.
       write(zonepth,'(3a)')'..',fs,'zones'
       write(netpth,'(3a)')'..',fs,'nets'
       write(ctlpth,'(3a)')'..',fs,'ctl'
@@ -4299,7 +4296,7 @@ C Ask for site position.
 
 C Ask for year, initialise and then print out the calendar if the
 C user does not cancel the operation. Because there have been no
-C day types created use a call to calenmanage to instanciate an
+C day types created use a call to calenmanage to instantiate an
 C initial set of days.
         helptopic='cfg_model_year'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -4680,6 +4677,7 @@ C Note that there is no specific logic to remind a user to update the
 C model cfg file if a change is made.
       subroutine calenmanage(act,ier)
       implicit none
+
 #include "epara.h"
 #include "building.h"
 #include "model.h"
@@ -4725,6 +4723,7 @@ C Local variables.
       integer icomp
       integer ipatday1,ipatday2,ipatday3,ipatday4,ipatday5,ipatday6  ! remember what the new day types are
       integer idol,idaynum,idtyy,idwknum,imthnum  ! for determining day of week
+      integer iudt         ! user preferences for new day types
       logical ok,xst
 
 C Variables for handling climate file.
@@ -4801,7 +4800,7 @@ C Assume 1 Jan is a holiday (users can change this later).
               nbcaldays(4)=nbcaldays(4)+1
             else
 
-C For julian day ijd find month and day of month and day of week.
+C For day-of-year ijd find month and day of month and day of week.
               call edayr(ijd,idayn,imthn)
               call eweekd(idayn,imthn,iyear,idwk)
               if(idwk.ge.1.and.idwk.le.5)then
@@ -4898,7 +4897,7 @@ C Manage day types.
         mj=2
         do 77 ij=1,nbdaytype
           CALL EMKEY(ij,KEY,IER)
-          write(citem(ij+mj),'(5a)') KEY,' ',calentag(ij),' ',
+          write(citem(ij+mj),'(5a)') KEY,' ',calentag(ij),' ',      ! text for menu
      &      calendayname(ij)
   77    continue
         mm=mj+nbdaytype
@@ -4924,7 +4923,7 @@ C there are seasonal periods defined for the current weather.
 C Note: the delete a day type is currently not implemented.
 
 C Rescan the `climatelist` file. Check if this climate is
-C in the list. If not instanciate season and typical start and end dates.
+C in the list. If not instantiate season and typical start and end dates.
           if(ihaveseason.gt.0)then
             continue
           else
@@ -4965,15 +4964,37 @@ C Default season definitions.
 C Dialog based on whether or not seasons have been found.
 
           if(nbdaytype.ge.3.and.nbdaytype.le.MDTY)then
-            CALL EASKABCD(' Options:',' ','add day type',
-     &        'add set of day types','delete (not available)',
-     &        'continue',IRT,nbhelp)
+            CALL EASKABCD(' ',' Options:','add day type',
+     &        'add set of day types','n/a',
+     &        'cancel',IRT,nbhelp)
             if(irt.eq.1)then
 
 C If there is a control file, scan it and then loop through each of the
 C existing control loops to add in what-will-become the new day type.
 C havectl is returned as true if there is a control file.
-              call  updatectlfornewdaytype(havectl,usecalendar,ier)
+C Offer options for repeat of existing day type or a free-float day type.
+              CALL EPMENSV
+              do ij=1,nbdaytype
+                write(citem(ij),'(3a)') calentag(ij),' ',
+     &            calendayname(ij)
+              enddo
+              write(citem(nbdaytype+1),'(a)') 
+     &          'create one period free floating'
+              write(citem(nbdaytype+2),'(a)') 
+     &          'copy last existing day type'
+              IX=1
+              CALL EPICKS(IX,IDVALS,
+     &          'New day type can use an existing day type pattern.',
+     &          ' Available day types & options:',
+     &          52,nbdaytype+2,citem,'Available day types & options',
+     &          IER,nbhelp)
+              CALL EPMENRC
+              if(ix.ne.0)then
+                idt=idvals(1)
+                if(idt.eq.nbdaytype+1) idt=0
+                if(idt.eq.nbdaytype+2) idt=nbdaytype
+              endif
+              call updatectlfornewdaytype(havectl,usecalendar,idt,ier)
 
 C Now increment nbdaytype and get its name and description.
               nbdaytype=nbdaytype+1
@@ -5009,7 +5030,7 @@ C that its name is known).
 
 C Deal with operation files. User will be asked if they want to
 C overwrite or save to new file names.
-              CALL UPDOPR
+              CALL UPDOPR(idt)
               modify=.true.
               goto 73
 
@@ -5035,7 +5056,9 @@ C the calendar to match this.
 C For the 1st retail day revise the controls and then the operations.
                   call edisp(iuout,' ')
                   call edisp(iuout,' Processing retail_open day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
 
 C Now increment nbdaytype and get its name and description. Update
 C the control file if it exists and then process zone operation files.
@@ -5047,11 +5070,13 @@ C the control file if it exists and then process zone operation files.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the 2nd retail day revise the controls and then the operations.
                   call edisp(iuout,' Processing retail_close day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
 
 C Now increment nbdaytype and get its name and description. Update
 C the control file if it exists and then process zone operation files.
@@ -5063,7 +5088,7 @@ C the control file if it exists and then process zone operation files.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C If user agrees apply these two new day types to the current calendar.
 C Loop through all days, if one of the original 3 day types revise them
@@ -5104,7 +5129,9 @@ C win_wkend, trn_wkday, trn_wkend, sum_wkday, sum_wkend.
 C For the win_wkday revise the controls and then the operations.
                   call edisp(iuout,' ')
                   call edisp(iuout,' Processing win_wkday day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
 
 C Now increment nbdaytype and get its name and description. Update
 C the control file if it exists and then process zone operation files.
@@ -5116,11 +5143,13 @@ C the control file if it exists and then process zone operation files.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the win_wkend revise the controls and then the operations.
                   call edisp(iuout,' Processing win_wkend day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
                   nbdaytype=nbdaytype+1
                   nbcaldays(nbdaytype)=0
                   ipatday2 = nbdaytype  ! remember this
@@ -5129,11 +5158,13 @@ C For the win_wkend revise the controls and then the operations.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the trn_wkday revise the controls and then the operations.
                   call edisp(iuout,' Processing trn_wkday day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
                   nbdaytype=nbdaytype+1
                   nbcaldays(nbdaytype)=0
                   ipatday3 = nbdaytype  ! remember this
@@ -5142,11 +5173,13 @@ C For the trn_wkday revise the controls and then the operations.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the trn_wkend revise the controls and then the operations.
                   call edisp(iuout,' Processing trn_wkend day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
                   nbdaytype=nbdaytype+1
                   nbcaldays(nbdaytype)=0
                   ipatday4 = nbdaytype  ! remember this
@@ -5155,11 +5188,13 @@ C For the trn_wkend revise the controls and then the operations.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the sum_wkday revise the controls and then the operations.
                   call edisp(iuout,' Processing sum_wkday day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
                   nbdaytype=nbdaytype+1
                   nbcaldays(nbdaytype)=0
                   ipatday5 = nbdaytype  ! remember this
@@ -5168,11 +5203,13 @@ C For the sum_wkday revise the controls and then the operations.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the sum_wkend revise the controls and then the operations.
                   call edisp(iuout,' Processing sum_wkend day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
                   nbdaytype=nbdaytype+1
                   nbcaldays(nbdaytype)=0
                   ipatday6 = nbdaytype  ! remember this
@@ -5181,7 +5218,7 @@ C For the sum_wkend revise the controls and then the operations.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C If user agrees apply these six new day types to the current calendar.
 C Loop through all days, if one of the original 3 day types revise them
@@ -5229,7 +5266,7 @@ C spring and autumn both get the transition day type.
                           ENDIF
                         endif
 
-C If the Julian day did not match then fall back on day of the week.
+C If the day type did not match then fall back on day of the week.
                         if(IDTYY.eq.0)then
                           IF(IDWKNUM.LT.6)THEN
                             IDTYY=1 ! WEEKDAY
@@ -5961,7 +5998,7 @@ C      return
 C ********** updatectlfornewdaytype
 C updatectlfornewdaytype adds an additional day type to each of the
 C model control domains. 
-      subroutine updatectlfornewdaytype(havectl,usecalendar,ier)
+      subroutine updatectlfornewdaytype(havectl,usecalendar,iudt,ier)
 #include "building.h"
 #include "control.h"
 
@@ -5969,10 +6006,14 @@ C Parameters passed
       logical havectl ! to remember if control file exists
       logical usecalendar  ! signal so easier to detect if other domains
                            ! have a different number of day types
+      integer iudt         ! user preference to replicat existing day type or free float
+                           ! or interactive (iudt = -1)
       integer ier          ! error state
 
       integer iuout,iuin,ieout
       common/OUTIN/IUOUT,IUIN,IEOUT
+      common/calena/calename,calentag(MDTY),calendayname(MDTY)
+      character calename*32,calentag*12,calendayname*32
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       integer nbdaytype,nbcaldays,icalender
       COMMON/FILEP/IFIL
@@ -6003,17 +6044,27 @@ C duplicate the last control day type in each loop.
 C The treatment of day types within addctld is based on an assumption
 C that nbdaytpe is not incremented until after the addctld call.
         IDT=nbdaytype     ! set to the not-yet-incremented value
-        IHDTP=1
-        CALL EASKABC(' ','Control pattern for new day type:',
-     &     'one period free floating',
-     &     'use pattern of last day type','cancel',IHDTP,nbhelp)
-        if(IHDTP.eq.1)then
+
+        if(IUDT.eq.0)then
           dayact='SA'       ! assume silent addition
-        elseif(IHDTP.eq.2)then
-          dayact='SC'       ! assume silent copy
-        elseif(IHDTP.eq.3)then
-          havectl=.false.   ! ignore control
-          return            ! do not bother processing control data
+        elseif(IUDT.eq.nbdaytype)then
+          dayact='SC'       ! assume silent copy of last
+        elseif(IUDT.gt.0.and.IUDT.lt.nbdaytype)then
+          dayact='EC'        ! assume silent existing copy of an existing day type
+          IDT=IUDT
+        elseif(IUDT.eq.-1)then
+          IHDTP=1             ! interactive session
+          CALL EASKABC('Control pattern for new day type (see help)?',
+     &      ' ','One period free floating',
+     &      'Use pattern of last day type','cancel',IHDTP,nbhelp)
+          if(IHDTP.eq.1)then
+            dayact='SA'       ! assume silent addition
+          elseif(IHDTP.eq.2)then
+            dayact='SC'       ! assume silent copy
+          elseif(IHDTP.eq.3)then
+            havectl=.false.   ! ignore control
+            return            ! do not bother processing control data
+          endif
         endif
         if(NCF.gt.0)then  ! zone loops
           icfoc=0
@@ -6133,7 +6184,7 @@ C Acquire help messages.
 C If interactive ask what to do, otherwise take passed directives.
       if(ACT(1:2).eq.'--')then
         CALL EASKABCD('Options: ',' ','delete day type',
-     &    'add day type','copy existing day type','continue',
+     &    'add day type','copy existing day type','cancel',
      &    IW,nbhelp)
       elseif(ACT(1:2).eq.'SD'.or.ACT(1:2).eq.'sd')then
         IW=1

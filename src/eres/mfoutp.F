@@ -13,19 +13,15 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C This file contains the following routines:
-C  MFOUTP - main controlling routine for mass flow line graphs, stats etc.
-C ASKMFNOD- Asks for one or more mass flow nodes.
-C ASKMFCON- Asks for one or more mass flow connections. 
-C MOMFGHED- outputs header information for flow network graphical display.
+C  MFOUTP   - main controlling routine for mass flow line graphs, stats etc.
+C  ASKMFNOD - asks for one or more mass flow nodes.
+C  ASKMFCON - asks for one or more mass flow connections. 
+C  MOMFGHED - outputs header information for flow network graphical display.
 
 C ******************** MFOUTP ********************
-C MFOUTP is the main controlling routine for mass flow line graph
+C Main controlling routine for mass flow line graph
 C output, stats, data above or below a setpoint, timestep listings and
 C histograms. Occupancy filtering (based on user selected zone) is
 C implemented for all but line graphs.
@@ -429,7 +425,7 @@ C For timestep listings generate initial lines.
       elseif (MENUTYPE.eq.15) then
         continue
       endif
-      call usrmsg('Scanning data for range of values...','  ','-')
+C      call usrmsg('Scanning data for range of values...','  ','-')
 
 C Reset stats values.Set query hours to zero.
       do 55 I=1,MFRS 
@@ -519,7 +515,7 @@ C Calculate average.
         if(NF(I).ne.0) FAVE(I)=FAVE(I)/real(NF(I))
   56  continue
 
-      call usrmsg('Scanning data for range of values...done.','  ','P')
+C      call usrmsg('Scanning data for range of values...done.','  ','P')
       if (MENUTYPE.eq.2) then
 
 C Inform user of the histo range and reset nb of bins and typcial bin size.

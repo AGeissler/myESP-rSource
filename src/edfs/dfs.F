@@ -13,19 +13,15 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C This is the stand-alone CFD module. It is able to simulate air flows
-C inside rectangular or cubic zones of buildings. It employs the finite
-C volume method in order to discretize the equations.
+
 
 C ********************* DFS *********************
-C DFS - Stand-alone CFD module.
-C Passed iappw, iappx, iappy as pixel width of application, left and top offsets.
-C if these are 0 then use default values.
+C Stand-alone CFD module for the simulation of fluid flow
+C within rectilinear zones.
+C Passed iappw, iappx, iappy as pixel width of application, left
+C and top offsets. If these are 0 then use default values.
+
       program dfs
       USE START_UP
 #include "building.h"
@@ -482,20 +478,20 @@ C Initialise gridding parameters
 
 C Let the user pick a menu item.
    10 INO=-4
-      ITEM(1) ='a Problem definition '
-      ITEM(2) ='b Grid visualisation '
+      ITEM(1) ='a problem definition '
+      ITEM(2) ='b grid visualisation '
       ITEM(3) =' ____________________'
-      ITEM(4) ='c Simulation toggles '
-      ITEM(5) ='d Initiate simulation'
+      ITEM(4) ='c simulation toggles '
+      ITEM(5) ='d initiate simulation'
       ITEM(6) =' ____________________'
-      ITEM(7) ='e Results analysis   '
+      ITEM(7) ='e results analysis   '
       ITEM(8) =' ____________________'
-      ITEM(9) ='f Model details      '
-      ITEM(10) ='? Help '
-      ITEM(11)='- Quit '
+      ITEM(9) ='f model details      '
+      ITEM(10) ='? help '
+      ITEM(11)='- quit module'
       NITMS=11
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('dfs ',1)
 
 C Plot grid
@@ -511,7 +507,7 @@ C << Note: array index 1 is hard coded below! >>
         helptopic='dfs_config_file_name'
         call gethelptext(helpinsub,helptopic,nbhelp)
         ISTRW=72
-  289   CALL EASKF(LCFD(1),'Domain flow definition file name?','  ',
+  289   CALL EASKF(LCFD(1),' ','Domain flow definition file name?',
      &    ISTRW,DFCFD,'Domain flow definition file',IER,nbhelp)
         call usrmsg('File selected is',LCFD(1),'-')
         IF(LCFD(1).EQ.'  ')GOTO 289
@@ -551,8 +547,8 @@ C Allow examination of grid.
 
 C Set simulation toggles.
         IF(.NOT.INPOK)then
-          CALL EDISP(IUOUT,'  ')
-          CALL EDISP(IUOUT,' Domain flow definition file not defined.')
+          CALL EDISP(IUOUT,' ')
+          CALL EDISP(IUOUT,'Domain flow definition file not defined.')
           goto 10
         ENDIF
  62     INOt=-5
@@ -568,7 +564,7 @@ C Set simulation toggles.
         endif
         ITEM(3) =' ___________________'
         ITEM(4) ='? help'
-        ITEM(5) ='- Exit'
+        ITEM(5) ='- exit menu'
         NITMS=5
 
 C Help text for this sub-menu.
@@ -587,7 +583,7 @@ C Help text for this sub-menu.
           if (ITURB(ICFD).ne.1.or.IBUOY(ICFD).eq.0) GGDH=.false.
         ELSEIF(INOt.EQ.4)THEN
 
-C HELP
+C Help.
           helptopic='dfs_simulation_toggles'
           call gethelptext(helpinsub,helptopic,nbhelp)
           CALL PHELPD('dfs simul toggles',nbhelp,'-',0,0,IER)
@@ -623,21 +619,21 @@ C option as it might only be of interest to experts.
         TIMAX=1.0E20
         TSTEP=1.0E20
 
-C        CALL EASKAB('  ','What kind of simulation is?',
-C     &    'Steady','Transient',IW,nbhelp)
+C        CALL EASKAB('  ','Simulation type?',
+C     &    'steady','transient',IW,nbhelp)
 C        IF(IW.EQ.1)then
 C          TIMAX=1.0E20
 C          TSTEP=1.0E20
 C          GOTO 60
 C        ENDIF
 C   50   V=TIMAX/3600.0
-C        CALL EASKR(V,'  ','Simulation period (h) ? ',
+C        CALL EASKR(V,' ','Simulation period (h)?',
 C     &    1E-5,'F',0.0,'-',24.0,'Simulation period',IER,nbhelp)
 C        IF(IER.NE.0) GOTO 50
 C        TIMAX=V*3600.0
 
 C   51   V=TSTEP/3600.0
-C        CALL EASKR(V,'  ','Simulation time-step (h) ? ',
+C        CALL EASKR(V,' ','Simulation time-step (h)?',
 C     &    1E-6,'F',TIMAX,'F',1.0,'Simulation time-step',IER,nbhelp)
 C        IF(IER.NE.0) GOTO 51
 C        TSTEP=V*3600.0
@@ -654,21 +650,21 @@ C Simulation termination checks.
 C 1) Error generated.
         IF (IER.NE.0) then
           SIMOK=.FALSE.
-          call usrmsg('Solution failed.','  ','W')
+          call usrmsg(' ','Solution failed.','W')
           goto 10
         endif
 
 C 2) Final timestep in transient simulation reached.
         IF (LAST) then
           SIMOK=.TRUE.
-          call usrmsg('Simulation complete.','  ','W')
+          call usrmsg(' ','Simulation complete.','W')
           goto 10
         endif
 
 C 3) Timestep longer than simulation time (i.e. steady state).
         IF (TSTEP.GE.TIMAX) then
           SIMOK=.TRUE.
-          call usrmsg('Simulation complete.','  ','W')
+          call usrmsg(' ','Simulation complete.','W')
           goto 10
         endif
 
@@ -687,8 +683,8 @@ C Increment time and simulate next timestep.
 
 C Check for model (set bounds on domain for visualisation).
         IF(.NOT.INPOK)then
-          CALL EDISP(IUOUT,'  ')
-          CALL EDISP(IUOUT,' Domain flow definition file not defined.')
+          CALL EDISP(IUOUT,' ')
+          CALL EDISP(IUOUT,'Domain flow definition file not defined.')
           goto 10
         ENDIF
    20   INO1=-5
@@ -697,8 +693,8 @@ C Check for model (set bounds on domain for visualisation).
         ITEM(3) ='c MATLAB analysis   '
         ITEM(4) ='d ParaView format file'
         ITEM(5) ='e TECPLOT format file'
-        ITEM(6) ='f Flow visualization '
-        ITEM(7) ='- Exit               '
+        ITEM(6) ='f Flow visualisation '
+        ITEM(7) ='- exit menu          '
         NITMS=7
 
 C Help text for results sub-menu.
@@ -713,13 +709,13 @@ C editor preference specified in the `dot' file.
 C Execute xten.
 C Get logical name of terminal type, expand problem name
 C to include the path and create a string to drive xten.
-  389     CALL EASKS(RESFL,'Result file name for DFS predictions?',
+  389     CALL EASKS(RESFL,'CFD results file name?',
      &      '  ',72,LPHI(1),' Result file',IER,nbhelp)
           IF(RESFL.EQ.'  ')GOTO 389
           INQUIRE (FILE=RESFL,EXIST=XST)
           IF(.NOT.XST)THEN
-            CALL EDISP(IUOUT,'  ')
-            CALL EDISP(IUOUT,' Result file not found.')
+            CALL EDISP(IUOUT,' ')
+            CALL EDISP(IUOUT,'Result file not found.')
             goto 20
           ELSE
             doit = '  '
@@ -771,10 +767,10 @@ C Let the user pick a menu item.
             xslice=.FALSE.
             yslice=.FALSE.
             zslice=.FALSE.
-            ITEM(1) ='a Slice in x-direction'
-            ITEM(2) ='b Slice in y-direction'
-            ITEM(3) ='c Slice in z-direction'
-            ITEM(4) ='- Exit                '
+            ITEM(1) ='a slice in x-direction'
+            ITEM(2) ='b slice in y-direction'
+            ITEM(3) ='c slice in z-direction'
+            ITEM(4) ='- exit menu           '
             NITMS=4
   72        CALL EMENU(' Matlab',ITEM,NITMS,INO2)
             IF(INO2.EQ.0)THEN
@@ -783,17 +779,17 @@ C Wrong pick.
               INO2=-1
               GOTO 72
             ELSEIF(INO2.EQ.1)THEN
-  74          CALL EASKI(islice,'  ','Enter X slice number ',
+  74          CALL EASKI(islice,' ','X slice number?',
      &          2,'F',nim1,'F',2,' Slice number',IER,nbhelp)
               IF(IER.NE.0) GOTO 74
               xslice=.TRUE.
             ELSEIF(INO2.EQ.2)THEN
-  76          CALL EASKI(jslice,'  ','Enter Y slice number ',
+  76          CALL EASKI(jslice,' ','Y slice number?',
      &          2,'F',njm1,'F',2,' Slice number',IER,nbhelp)
               IF(IER.NE.0) GOTO 76
               yslice=.TRUE.
             ELSEIF(INO2.EQ.3)THEN
-  78          CALL EASKI(kslice,'  ','Enter Z slice number ',
+  78          CALL EASKI(kslice,' ','Z slice number?',
      &          2,'F',nkm1,'F',2,' Slice number',IER,nbhelp)
               IF(IER.NE.0) GOTO 78
               zslice=.TRUE.

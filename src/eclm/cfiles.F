@@ -976,7 +976,7 @@ C zeros.
                 ICLM(J,K)=0
               enddo
             enddo
-            goto 20
+            goto 21    ! jump past the do 20 loop
           endif
 
           IF(IREAD.EQ.1)then
@@ -1180,7 +1180,8 @@ C The current column in the file is to be skipped over.
                 CALL EGETW(OUTSTR,K,WORD,'W','un-used colm',IER)
               endif
     6       continue
-   20     CONTINUE
+   20     continue
+   21     continue   ! jump point
 
 C Transfer this to the binary file.
           IREC=IDD

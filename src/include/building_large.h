@@ -9,7 +9,7 @@ C 8 air gaps MGP and 16 layers ME 7.2012 updated
 C 82 zone 150 surface version 02.2017 updated
 C 120 edges per polygon version 08.2017 updated
 C 200 surfaces per zone 500 vertex per zone 10.2017 updated
-C 250 surface per zone 92 zone 10.2018 updated
+C 250 surface per zone 96 zone 10.2018 updated
 
 C Type declarations.
       integer MCOM,MCON,MTV,MV,ME,MGP,MN,MP,MDY,MT,MA,MC,MBP,MTMS
@@ -27,7 +27,7 @@ C Type declarations.
       integer NTCELX,NTCELY,NTCELZ,MCEL1D,MNREG
 
 C Geometry.
-      PARAMETER (MCOM=92)      !- Zones.
+      PARAMETER (MCOM=97)      !- Zones.
       PARAMETER (MS=230)       !- Surfaces/zone (set MNSBZ in cfd.h to at least 2*MS).
       PARAMETER (MCON=5200)    !- Surfaces in model.
       PARAMETER (MTV=500)      !- Vertices/zone.

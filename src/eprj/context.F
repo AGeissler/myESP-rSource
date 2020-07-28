@@ -13,29 +13,27 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C context.F contains:
-C  EDSITE: edits site/general information for system configuration file
-C  Roaming:  manages data associated with rotating a model as a
+C This file contains the following subroutines.
+C  EDSITE - edits site/general information for system configuration file
+C  Roaming - manages data associated with rotating a model as a
 C            function of time.  .
-C  manageimages: allows the user to manage images associated with
+C  manageimages - allows the user to manage images associated with
 C            a model 
-C  Setuptemporal: coordinates access to and initial creation of
+C  Setuptemporal - coordinates access to and initial creation of
 C                 temporal data to be associated with a model.
-C  PECONV: conversion factors for primary energy units.
-C  Calenmanage: sets up and manages a calendar for ESP-r.
-C  Calenprint:  displays a calendar for year iyear (or a few months)
-C  EDDGTP:      sets up ground temperature profiles
-C  EDDSHD:      sets up shading and insolation files
+C  PECONV - conversion factors for primary energy units.
+C  Calenmanage - sets up and manages a calendar for ESP-r.
+C  Calenprint - displays a calendar for year iyear (or a few months)
+C  EDDGTP - sets up ground temperature profiles
+C  EDDSHD - sets up shading and insolation files
 
-C ************* EDSITE 
-C EDSITE Edits site/general information for system configuration file.
+C ******************** EDSITE ********************
+C Edits site/general information for a system configuration file.
 C ITRU unit number for user output, IER=0 indicates no error.
+
       SUBROUTINE EDSITE(ITRC,IER)
+
 #include "building.h"
 #include "model.h"
 #include "site.h"
@@ -157,7 +155,7 @@ C Begin with high level menu.
       ENDIF
       WRITE(ITEMS(7),'(4a)')    'g weekends: ',wkd1,'/',wkd2
       WRITE(ITEMS(8),'(a,I4)')  'h year: ',IYEAR
-      ITEMS(9) =                'i Julian calendar                '
+      ITEMS(9) =                'i project calendar               '
       ITEMS(10)=                'j building and client address    '
       ITEMS(11)=                'k simulationist address          '
       ITEMS(12)=                '  ___________________________    '
@@ -174,15 +172,15 @@ C Begin with high level menu.
       ITEMS(19)=                'q integrated performance view    '
       ITEMS(20)=                '  ___________________________    '
       ITEMS(21)=                'r pressure coefficients calc.    '
-      ITEMS(22)=                's use observed/temporal data     '
+      ITEMS(22)=                's temporal data                  '
       ITEMS(23)=                '  ___________________________    '
       WRITE(ITEMS(24),'(a,i3)') 't define images: ',noimg
       ITEMS(25)=                'u UK NCM specifications          '
 c      ITEMS(26)=                'v transient orientation         '
-      ITEMS(26)=                '          '
+      ITEMS(26)=                '                                 '
       ITEMS(27)=                ' _____________________________   '
       ITEMS(28)=                '? help                           '
-      ITEMS(29)=                '- exit this menu                 '
+      ITEMS(29)=                '- exit menu                      '
       nitms=29
 
 C Help text for this menu.
@@ -192,8 +190,8 @@ C Help text for this menu.
       CALL EMENU('Model context',ITEMS,nitms,INO)
       IF(INO.EQ.nitms)THEN
 
-C Update configuration if context changed. If lat/long changes then
-C check to see if any existing shading db need to be updated.
+C Update configuration if context changed. If lat/long changes,
+C check to see if existing shading files need to be updated.
         if(MODSIT.and.(.NOT.browse))then
           CALL EMKCFG('-',IER)
         endif
@@ -259,13 +257,14 @@ C starting up a new xterm (i.e. use '-' rather than 'text')
           endif
         endif
         RETURN
-      ELSEIF(INO.EQ.nitms-1)THEN
 
-C Produce help text for the menu.
+C Help text.
+      ELSEIF(INO.EQ.nitms-1)THEN
         helptopic='context_overview_menu'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL PHELPD('Model context',nbhelp,'-',0,0,IER)
 
+C Site latitude.
       ELSEIF(INO.EQ.1)THEN
         helptopic='context_lat_long'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -276,18 +275,20 @@ C Produce help text for the menu.
         MODSIT=.true.
         modish=.true.
 
+C Site longitude difference.
       ELSEIF(INO.EQ.2)THEN
         helptopic='context_lat_long'
         call gethelptext(helpinsub,helptopic,nbhelp)
         slon=sitelongdif  ! sitelongdif is in common C4 in site.h
         CALL EASKR(SLON,
-     &    'Longitude difference from time meridian',
+     &    'Site longitude difference from time meridian',
      &    '(East +ve, West -ve)?',-15.0,'W',15.0,'W',-4.1,
      &    'longitude difference',IER,nbhelp)
         IF(IER.EQ.0)sitelongdif=SLON
         MODSIT=.true.
         modish=.true.
 
+C Site altitude.
       ELSEIF(INO.EQ.3)THEN
         helptopic='context_lat_long'
         call gethelptext(helpinsub,helptopic,nbhelp)
@@ -296,9 +297,8 @@ C Produce help text for the menu.
      &    'site altitude',IER,nbhelp)
         MODSIT=.true.
 
+C Solar radiation timing.
       ELSEIF(INO.EQ.4)THEN
-
-C Solar radiation timing toggle.
         helptopic='context_solar_timing'
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(iSlr_half_hr_flg.eq.1)then
@@ -308,6 +308,7 @@ C Solar radiation timing toggle.
         endif
         MODSIT=.true.
 
+C Site exposure.
       ELSEIF(INO.EQ.5)THEN
         SALT(8)='user defined'
 
@@ -351,13 +352,12 @@ C Solar radiation timing toggle.
         ENDIF
         MODSIT=.true.
 
+C Ground reflectance.
       ELSEIF(INO.EQ.6)THEN
-
-C Ground reflectance type.
         helptopic='context_ground_refl'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        CALL EASKABCD(' ','Ground reflectance method?',
-     &    'constant','monthly simple','mnthly advanced','cancel',
+        CALL EASKABCD(' ','Ground reflectance:',
+     &    'constant','monthly simple','monthly detailed','cancel',
      &    IW,nbhelp)
 
 C Constant ground reflectance.       
@@ -366,10 +366,10 @@ C Constant ground reflectance.
           CALL EASKR(groundrefl,' ','Ground reflectance?',
      &        0.0,'W',0.99,'W',0.2,'ground reflectance',IER,nbhelp)
           MODSIT=.true.
-C Simple or advanced models, ask for monthly values.
+
+C Simple or detailed monthly.
         elseif (IW.EQ.2 .OR. IW.EQ.3) then
           groundreflmodel=IW
-          
    83     HOLD=' '
           WRITE(HOLD,'(1X,6F7.2)')(groundreflmonth(J),J=1,6)
           CALL EASKS(HOLD,' ',
@@ -400,11 +400,12 @@ C Simple or advanced models, ask for monthly values.
             groundreflmonth(J)=GV
    86     CONTINUE
           MODSIT=.true.
-C---- Simple model: ask for average albedo of snow, and number of days
-C     with snow on the ground
+
+C Simple model - ask for average albedo of snow, and number of days
+C with snow on the ground.
           if (IW.EQ.2) then
             CALL EASKR(snowgroundrefl,' ',
-     &        ' Average ground reflectance with snow?',
+     &        'Average ground reflectance with snow?',
      &        0.0,'W',0.99,'W',0.4,'snow reflectance',IER,nbhelp)
             MODSIT=.true.
    87       CONTINUE
@@ -436,16 +437,17 @@ C     with snow on the ground
               dayswithsnow(J)=IV
    90       CONTINUE
           endif
-C---- Advanced model: ask for albedo of fresh snow, and file containing
-C     hourly snow depths
+
+C Detailed model - ask for albedo of fresh snow and file containing
+C hourly snow depth.
           if (IW.EQ.3) then
             CALL EASKR(snowgroundrefl,' ',
-     &        ' Ground reflectance with fresh snow?',
+     &        'Ground reflectance with fresh snow?',
      &        0.0,'W',0.99,'W',0.5,'snow reflectance',IER,nbhelp)
     
    92       CONTINUE
-            CALL EASKS(SNFNAM,'Name of snow depth file',
-     &        ' ',72,' ','Snow depth file',IER,nbhelp)
+            CALL EASKS(SNFNAM,' ',
+     &        'Snow depth file?',72,' ','Snow depth file',IER,nbhelp)
             CALL FINDFIL(SNFNAM,FOUND)
             IF(.NOT.FOUND) THEN
               CALL EASKOK('File not found!','Retry?',OK,nbhelp)
@@ -454,12 +456,10 @@ C     hourly snow depths
           endif
         endif
 
+C Weekends definition.
       ELSEIF(INO.EQ.7)THEN
-
-C Weekends def.
         helptopic='context_weekends'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call edisp(iuout,'Please define weekend days.')
         idwe1T=idwe1
         CALL EASKI(idwe1T,'Day index (Mon=1,Tue=2, ...) for',
      &    'the first day of the weekend?',
@@ -467,7 +467,6 @@ C Weekends def.
         if(ieri.eq.-3) goto 3
         idwe1=idwe1T
         wkd1=wkday(idwe1)
-
         idwe2T=idwe2
         CALL EASKI(idwe2T,'Day index (Mon=1,Tue=2, ...) for',
      &    'the second day of the weekend?',
@@ -477,26 +476,25 @@ C Weekends def.
         wkd2=wkday(idwe2)
         MODSIT=.true.
 
-      ELSEIF(INO.EQ.8)THEN
-
 C Change the year and if calendar has not been set up initialise
-C and then list the months of the year.  If there is an existing
+C and then list the months of the year. If there is an existing
 C calendar with the default day types and the year has changed
-C then re-initialize the calendar.
+C then re-initialise.
+      ELSEIF(INO.EQ.8)THEN
         helptopic='context_model_year'
         call gethelptext(helpinsub,helptopic,nbhelp)
         iyeart=iyear
         CALL EASKI(iyeart,' ','Simulation year?',
-     &       1900,'W',2051,'W',2007,'year',IERI,nbhelp)
+     &       1900,'W',2051,'W',2020,'year',IERI,nbhelp)
         if(ieri.eq.-3) goto 3
         iyear=iyeart
         MODSIT=.true.
 
-C If no day types found use calenmanage to instanciate the initial set of
+C If no day types found use calenmanage to instantiate the initial set of
 C day types. If nbdaytype is 3 then we have a legacy assumption and leave
-C it alone. If more then 3 then use the calnedar function.
+C it alone. If more then 3 then use the calendar function.
         if(nbdaytype.eq.0)then
-          call calenmanage('i',ier) ! no known daytypes instanciate
+          call calenmanage('i',ier) ! no known daytypes instantiated
         elseif(nbdaytype.lt.3)then
           call calenmanage('i',ier) ! might not be necessary
         elseif(nbdaytype.eq.3)then
@@ -504,13 +502,13 @@ C it alone. If more then 3 then use the calnedar function.
         elseif(nbdaytype.gt.3)then
 
 C Perform check that calendar day types correspond with simulation year.
-C The logic below assumes that the first three day types are still weekday
-C saturday sunday. It loops through each Julian day and if the model
-C calendar day type is one of the standard 3 it checks that the model weekday
+C The logic below assumes that the first three day types are weekday,
+C saturday and sunday. It loops through each day-of-the-year and if the model
+C calendar day type is one of the standards it checks that the model weekday
 C is the same as a Julian weekday. Any calendar day types beyond 3 are 
 C retained. If no calendar was defined in the model then it should do the
 C work silently. (Same logic as in esystem.F). If there are more than 4
-C day types in the calendar the user probably has defined their own scheme.
+C day types in the calendar, the user probably has defined their own scheme.
           ICREPORT=0
           if(nbdaytype.gt.4)then
             continue
@@ -539,7 +537,7 @@ C day types in the calendar the user probably has defined their own scheme.
           if(ICREPORT.EQ.1)then
             CALL EDISP(IUOUT,'  ')
             CALL EDISP(IUOUT,
-     &        'Simulation year and calendar mismatch rectified')
+     &        'Simulation year and calendar mismatch rectified.')
           endif
         endif
         call easkok(' ','View calendar?',ok,nbhelp)
@@ -549,12 +547,10 @@ C day types in the calendar the user probably has defined their own scheme.
           call calenprint(iuout,'t',iyear,loopst,loop)
         endif
 
+C Calendar functions. If number of day types is zero or less than
+C the legacy assumption of 3  then initialise prior to entering
+C the interactive facility to allow user to manage the calendar.
       ELSEIF(INO.EQ.9)THEN
-
-C Calendar functions. If number of daytypes is zero or less than
-C the legacy assumption of 3 daytypes then initialise prior to
-C entering the interactive facility to allow user to manage the
-C calendar.
         if(nbdaytype.lt.3)then
           act = 'i'
           call calenmanage(act,ier)
@@ -562,27 +558,23 @@ C calendar.
         act = '-'
         call calenmanage(act,ier)
 
+C Address of the site and client.
       ELSEIF(INO.EQ.10)THEN
-
-C The address of the model and client (as entered in the ncm file).
         call edsbmbld()
 
+C Address of the model maker.
       ELSEIF(INO.EQ.11)THEN
-
-C The address of the simulation team (as entered in the ncm file).
         call edsbmbld()
 
+C Not used.
       ELSEIF(INO.EQ.12)THEN
-
-C Future option.
         continue
 
-      ELSEIF(INO.EQ.13)THEN
-
 C Ground topology.
+      ELSEIF(INO.EQ.13)THEN
         helptopic='context_ground_topology'
         call gethelptext(helpinsub,helptopic,nbhelp)
-        call easkabcd(' ','Ground topology defining options:',
+        call easkabcd(' ','Ground topology options:',
      &    'select current','create manually','create via bitmap',
      &    'cancel',iwgt,nbhelp)
         if(iwgt.eq.1)then
@@ -595,26 +587,23 @@ C Ground topology.
           iglib = igraphiclib()  ! find out if X11 or GTK or text support only.
           if(iglib.eq.1)then
             iz=0
+            call edisp(iuout,' ')
             call edisp(iuout,'In the bitmap facility you must toggle')
             call edisp(iuout,'to the ground topology input mode.')
             call clickonbitmap(iz,ier)
             call GTOPOL(itrc,ier)
             MODSIT=.true.
           elseif(iglib.eq.2)then
-            call usrmsg('Sorry: the clickonbitmap facility is not yet',
+            call usrmsg('Sorry: the click-on-bitmap facility is not',
      &        'operational with the current graphics library.','W')
           elseif(iglib.eq.3)then
-            call usrmsg('Must be in graphic mode to use the click on',
-     &      'bitmap facility to define ground toplogy.','W')
+            call usrmsg('You must be in graphic mode to use the',
+     &      'click-on-bitmap facility to define ground toplogy.','W')
           endif
         endif
 
-      ELSEIF(INO.EQ.14)THEN
-
 C Ground temperature profiles.
-C        call edisp(iuout,' ')  
-C        write(outs,'(a,i3,a)')' There are currently ',NGRDP,' profiles.'      
-C        call edisp(iuout,outs) 
+      ELSEIF(INO.EQ.14)THEN 
         helptopic='context_ground_temps'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABC(' ','Ground temperature profile options:',
@@ -622,7 +611,8 @@ C        call edisp(iuout,outs)
         if(IRT.eq.1)then
           if(NGRDP.gt.0)then
             do 22 igrdp=1,NGRDP    
-              CALL EDISP(iuout,' Profile for Jan. thro` Dec.:')
+              call edisp(iuout,' ')
+              CALL EDISP(iuout,'Profile for Jan. thro` Dec.:')
               WRITE(OUTS,'(12F6.1)')(UGRDTP(J,IGRDP),J=1,12)
               call edisp(iuout,outs)
  22         continue
@@ -635,7 +625,7 @@ C        call edisp(iuout,outs)
             if(ieri.eq.-3) goto 3
             goto 93
           else
-            call usrmsg('No profiles defined.','Choose add!','W')
+            call usrmsg('No profiles defined!','Choose add.','W')
             goto 3
           endif
         elseif(IRT.eq.3)then
@@ -674,15 +664,13 @@ C        call edisp(iuout,outs)
    96   CONTINUE
         MODSIT=.true.
 
+C 3-D Ground representation.
       ELSEIF(INO.EQ.15)THEN
-
-C 3-D Ground representations....
         call usrmsg('Please use program `grd` to define',
      &              '3D ground representations.','-')
 
-      ELSEIF(INO.EQ.17)THEN
-
 C Primary energy conversions.
+      ELSEIF(INO.EQ.17)THEN
         helptopic='context_PEC'
         call gethelptext(helpinsub,helptopic,nbhelp)
         CALL EASKABC(' ','Energy demand conversion options:',
@@ -694,14 +682,12 @@ C Primary energy conversions.
           call peconv('-')
         endif
 
-      ELSEIF(INO.EQ.18)THEN
-
 C Dispersed fan/pump/lift/DHW demands.
+      ELSEIF(INO.EQ.18)THEN
         call prjdmds(itrc,itru,iuo,ier)
 
+C IPV data in the case of a legacy model cfg file.
       ELSEIF(INO.EQ.19)THEN
-
-C IPV data in the case of a legacy model cfg file (depreciate).
         if(icfgv.lt.4)then
           lr=lnblnk(cfgroot)
           if(lnblnk(lipvdatf).eq.0)then
@@ -710,9 +696,9 @@ C IPV data in the case of a legacy model cfg file (depreciate).
             write(ltmp,'(2a)') cfgroot(1:lr),'.ipv'
           elseif(lipvdatf(1:8).eq.'internal')then
 
-C Legacy cfg with internl IPV description. If nipvassmt is still zero then
+C Legacy cfg with internal IPV description. If nipvassmt is zero then
 C nothing has been created yet so initialise and save to the
-C configuration file. If there is data call ipvdat and the update the
+C configuration file. If there is data, call ipvdat and update the
 C configuration file when exiting.
             if(nipvassmt.eq.0)then
               call ipvdat('i')     ! fill with defaults
@@ -750,7 +736,7 @@ C configuration file when exiting.
 C IPV data is held within the configurtion file. Reset the file
 C name (since it is not used). If nipvassmt is still zero then
 C nothing has been created yet so initialise and save to the
-C configuration file. If there is data call ipvdat and the update the
+C configuration file. If there is data, call ipvdat and update the
 C configuration file when exiting.
           lipvdatf='internal'
           if(nipvassmt.eq.0)then
@@ -764,30 +750,24 @@ C configuration file when exiting.
           endif
         endif
 
+C External surface pressure coefficients.
       ELSEIF(INO.EQ.21)THEN
-
-C Position specific pressure coef.
         call cpcdat
 
-      ELSEIF(INO.EQ.22)THEN
-
 C Temporal definitions.
+      ELSEIF(INO.EQ.22)THEN
         call setuptemporal(MODSIT,IER)
-C          MODSIT=.true.
 
+C Manage images associated with project.
       ELSEIF(INO.EQ.24)THEN
-
-C Manage images or browse by listing out current contents of image folder.
         call manageimages(modsit)
 
+C UK NCM related data.
       ELSEIF(INO.eq.25)then
-
-C Enter the definitions for UK NCM related data.
         call sbmedit(iuact,ier) ! generate stripped model and ncm file
 
+C Change model orientation as a function of time.
       ELSEIF(INO.eq.26)then
-
-C Changing orientation as a function of time.
 C        CALL ROAMING
         CONTINUE
       ELSE
@@ -797,11 +777,11 @@ C        CALL ROAMING
 
       END
 
-c ****** ROAMING *****
-C Manages data associated with rotating a model as afunction
-C of time. Important variables are defined in roam.h.
+c ******************** ROAMING ********************
+C Rotation of model coordinates as a function of time.
 
       SUBROUTINE ROAMING
+
 #include "building.h"
 #include "model.h"
 #include "roam.h"
@@ -815,7 +795,7 @@ C of time. Important variables are defined in roam.h.
       integer IOK
       logical OK
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -826,7 +806,7 @@ C Initialise variables
       IOK=0
       OK=.FALSE.
 
-C Help message
+C Help message.
       helptopic='roaming_choices'
       call gethelptext(helpinsub,helptopic,nbhelp)
       WRITE(DFLTNAME,'(2A)')CFGROOT(1:LNBLNK(CFGROOT)),'.roam'
@@ -853,11 +833,11 @@ C Help message
         ENDIF
       ENDIF
 
-C Display file contents
+C Display file contents.
       CALL EASKOK(' ','View location information?',OK,nbhelp)
       IF(OK)THEN
         CALL EDISP(IUOUT,' ')
-        WRITE(OUTS,'(A,F3.1)')'ESP-r Roaming file version number ',VERS
+        WRITE(OUTS,'(A,F3.1)')'Roaming file version number ',VERS
         CALL EDISP(IUOUT,OUTS)
         CALL EDISP(IUOUT,
      &  'Location                      Latitude Longitude')
@@ -891,10 +871,11 @@ C Update configuration file
       RETURN
       END
 
-C ****** manageimages
-C Allows the user to manage images associated with a model
-C including view and add images (delete not yet working).
+C ******************** manageimages ********************
+C Management of images associated with a model (delete not yet enabled).
+
       subroutine manageimages(modsit)
+
 #include "building.h"
 #include "model.h"
       
@@ -927,7 +908,7 @@ C and control of project images.
       integer nimgitms,INOI  ! max items and current menu item
       integer ISTRW
 
-C For help messages
+C For help messages.
       character helpinsub*24 ! subroutine name
       character helptopic*24 ! string (unique) for topic
       integer nbhelp     ! number of help lines found
@@ -960,7 +941,7 @@ C Set folder separator (fs) to \ or / as required.
       ITEMIMG(M+2)='+ add/delete image               '
       ITEMIMG(M+3)='! display current images         '
       ITEMIMG(m+4)='? help                           '
-      ITEMIMG(m+5)='- exit this menu                 '
+      ITEMIMG(m+5)='- exit menu                      '
       nimgitms=m+5
 
 C Help text for menu.
@@ -1131,7 +1112,7 @@ C Edit current image description if version allows.
       goto 36
       end
 
-C ************* setuptemporal
+C ******************** setuptemporal ********************
 C Coordinates access to and initial creation of
 C temporal data to be associated with a model.
 
@@ -1210,25 +1191,16 @@ C determine the state of the file:
       if(iabs(itdflg).eq.0)then
 C        call edisp(iuout,' ')
 C        call edisp(iuout,'No temporal data has been defined.')
-C        call edisp(iuout,' ')
-      elseif(iabs(itdflg).eq.1)then
 
-C If binary must convert before listing what is available in temporal
+      elseif(iabs(itdflg).eq.1.or.iabs(itdflg).eq.2)then
+
+C If binary, must convert before listing what is available in temporal
 C file, what is currently used and other management tasks.
         call edisp(iuout,' ')
         call edisp(iuout,'Temporal data is available for this model')
         call edisp(iuout,'but is held in an old format. Please')
         call edisp(iuout,'update via the edit/ list option.')
-        call edisp(iuout,' ')
-      elseif(iabs(itdflg).eq.2)then
 
-C If binary must convert before listing what is available in temporal
-C file, what is currently used and other management tasks.
-        call edisp(iuout,' ')
-        call edisp(iuout,'Temporal data is available for this model.')
-        call edisp(iuout,'but is held in an old format. Please')
-        call edisp(iuout,'udate via the edit/ list option.')
-        call edisp(iuout,' ')
       elseif(iabs(itdflg).eq.3)then
         continue
       endif
@@ -1253,11 +1225,11 @@ C Begin with high level menu.
      &   'are in browse mode no changes may be made.','W')
           return
         endif
-        WRITE(ITEMS(1),'(A)')'a create temporal entities file'
-        WRITE(ITEMS(2),'(A)')'b select temporal file '
-        WRITE(ITEMS(3),'(A)')'c not applicable '
-        WRITE(ITEMS(4),'(A)')'? help '
-        WRITE(ITEMS(5),'(A)')'- exit '
+        WRITE(ITEMS(1),'(A)')'a create temporal file'
+        WRITE(ITEMS(2),'(A)')'b select temporal file'
+        WRITE(ITEMS(3),'(A)')'c not applicable'
+        WRITE(ITEMS(4),'(A)')'? help'
+        WRITE(ITEMS(5),'(A)')'- exit ths menu'
         nitms=5
         CALL EMENU('Temporal file options',ITEMS,nitms,irt)
         if(irt.EQ.nitms)then
@@ -1275,17 +1247,17 @@ C Begin with high level menu.
       elseif(iabs(itdflg).eq.1)then
         if(browse)then
           call usrmsg(
-     &    'The temporal data is held in an outdated format. You must',
-     &    '`own` the model in order to update it.','W')
+     &    'Temporal data is held in an outdated format!.',
+     &    'Please update.','W')
           return
         endif
         WRITE(ITEMS(1),'(A)')'a view/edit temporal entities'
-        WRITE(ITEMS(2),'(A)')'b select temporal file '
+        WRITE(ITEMS(2),'(A)')'b select temporal file'
         WRITE(ITEMS(3),'(A)')'c dereference temporal file'
         WRITE(ITEMS(4),'(A)')'d list associations'
         WRITE(ITEMS(5),'(A)')'e manage associations'
-        WRITE(ITEMS(6),'(A)')'? help '
-        WRITE(ITEMS(7),'(A)')'- exit '
+        WRITE(ITEMS(6),'(A)')'? help'
+        WRITE(ITEMS(7),'(A)')'- exit menu'
         nitms=7
         CALL EMENU('Temporal file options',ITEMS,nitms,irt)
         if(irt.EQ.nitms)then
@@ -1301,8 +1273,8 @@ C Begin with high level menu.
           WRITE(ITEMS(1),'(A)')'a view temporal entities'
           WRITE(ITEMS(2),'(A)')'b not applicable'
           WRITE(ITEMS(3),'(A)')'c list associations'
-          WRITE(ITEMS(4),'(A)')'? help '
-          WRITE(ITEMS(5),'(A)')'- exit '
+          WRITE(ITEMS(4),'(A)')'? help'
+          WRITE(ITEMS(5),'(A)')'- exit menu'
           nitms=5
           CALL EMENU('Temporal file options:',ITEMS,nitms,irt)
           if(irt.EQ.nitms)then
@@ -1317,12 +1289,12 @@ C Begin with high level menu.
           endif
         else
           WRITE(ITEMS(1),'(A)')'a view/edit temporal entities'
-          WRITE(ITEMS(2),'(A)')'b select temporal file '
+          WRITE(ITEMS(2),'(A)')'b select temporal file'
           WRITE(ITEMS(3),'(A)')'c dereference temporal file'
           WRITE(ITEMS(4),'(A)')'d list associations'
           WRITE(ITEMS(5),'(A)')'e manage associations'
-          WRITE(ITEMS(6),'(A)')'? help '
-          WRITE(ITEMS(7),'(A)')'- exit '
+          WRITE(ITEMS(6),'(A)')'? help'
+          WRITE(ITEMS(7),'(A)')'- exit menu'
           nitms=7
           CALL EMENU('Temporal file options:',ITEMS,nitms,irt)
           if(irt.EQ.nitms)then
@@ -1339,8 +1311,8 @@ C Begin with high level menu.
           WRITE(ITEMS(1),'(A)')'a view temporal entities'
           WRITE(ITEMS(2),'(A)')'b not applicable'
           WRITE(ITEMS(3),'(A)')'c list associations'
-          WRITE(ITEMS(4),'(A)')'? help '
-          WRITE(ITEMS(5),'(A)')'- exit '
+          WRITE(ITEMS(4),'(A)')'? help'
+          WRITE(ITEMS(5),'(A)')'- exit menu'
           nitms=5
           CALL EMENU('Temporal file options:',ITEMS,nitms,irt)
           if(irt.EQ.nitms)then
@@ -1355,12 +1327,12 @@ C Begin with high level menu.
           endif
         else
           WRITE(ITEMS(1),'(A)')'a view/edit temporal entities'
-          WRITE(ITEMS(2),'(A)')'b select temporal file '
+          WRITE(ITEMS(2),'(A)')'b select temporal file'
           WRITE(ITEMS(3),'(A)')'c dereference temporal file'
           WRITE(ITEMS(4),'(A)')'d list associations'
           WRITE(ITEMS(5),'(A)')'e manage associations'
-          WRITE(ITEMS(6),'(A)')'? help '
-          WRITE(ITEMS(7),'(A)')'- exit '
+          WRITE(ITEMS(6),'(A)')'? help'
+          WRITE(ITEMS(7),'(A)')'- exit menu'
           nitms=7
           CALL EMENU('Temporal file options:',ITEMS,nitms,irt)
           if(irt.EQ.nitms)then
@@ -1375,17 +1347,17 @@ C Begin with high level menu.
       endif
       IF(IRT.LT.1.OR.IRT.GT.7)GOTO 3
   27  continue
+
       if(IRT.eq.1)then
 
-C Create a new file (itdflg = 0)
+C Create a new file (itdflg = 0).
 cx ... or view/edit entities (itdflg = 3) ... this seems to create trouble!
 C If browsing do not bother to confim the file name.
         if(browse)then
-          write(outs,'(2a)')' Temporal definitions ',LTDFA
+          write(outs,'(2a)')'Temporal definitions ',LTDFA
           call edisp(iuout,outs)
         else
 
-cx << ask for file again only for itdflg == 0??!
 C If LTDFA is still UNKNOWN set to default name.
           if(LTDFA(1:4).eq.'UNKN') LTDFA=DLTDF
           ltmp=LTDFA
@@ -1400,10 +1372,7 @@ C If LTDFA is still UNKNOWN set to default name.
 
 C If creating a new file assist by checking whether there
 C are simulation parameter sets and startup days to guide
-C the user
-
-C << might also be a place to generate the initial lines of
-C << asci header with the year of the model etc.
+C the user.
 
 C Go into the tdf editing menu.
         action='-'
@@ -1546,7 +1515,7 @@ C List associations.
   28        continue
             call edisp(iuout,' ')
           else
-            call edisp(iuout,'Currently no temporal items used.')
+            call edisp(iuout,'Currently no temporal entities used.')
           endif
         endif
         goto 42
@@ -1555,7 +1524,7 @@ C List associations.
 C Use/manage entity associations.
         if(itdflg.eq.0)then
           call usrmsg(
-     &    'No temporal file yet. You can only create associations',
+     &    'No temporal file! You can only create associations',
      &    'with existing entities. ','W')
           goto 42
         endif
@@ -1615,11 +1584,11 @@ C Befor management option list current db items and then associations.
 C Manage the list of DBTAG/DBTASK/DBZN/DBSN.
         itro=0
         if(ITEMSTD.eq.0)then
-          call easkabc(' ','Associations options:',
+          call easkabc(' ','Association options:',
      &      'n/a','add','cancel',ITRO,nbhelp)
           if(itro.eq.3) goto 42
         else
-          call easkabcd(' ','Associations options:',
+          call easkabcd(' ','Association options:',
      &      'delete','add','edit',
      &      'cancel',ITRO,nbhelp)
           if(itro.eq.4) goto 42
@@ -1760,7 +1729,7 @@ C Ask the user whether there has already been a control law defined
 C to use the setpoint. If so report on that control loop and offer
 C selected information to alter. Contol law 23 is the one used for this
 C temporal definition entity
-            write(outs,'(a,i2,a)')' There are currently ',ncf,
+            write(outs,'(a,i2,a)')'There are currently ',ncf,
      &        ' control loops.'
             call edisp(iuout,outs)
             call edisp(iuout,'  ')
@@ -1964,7 +1933,7 @@ C Add another controls
               write(DBZN(ITE),'(a5,i2)') 'loop_',ispl
             endif
 
-C Confirm which zone to use with this control. Then instanciate
+C Confirm which zone to use with this control. Then instantiate
 C all of the usual values for control-temporal links. Note that
 C even though cm(8) - cm(13) does not seem to be used set them.
             IC=-1
@@ -2254,7 +2223,7 @@ C Add another CFC control loop
             endif
 
 C Confirm which zone and which CFC type to use with this control.
-C Then instanciate all of the usual values for CFC control-temporal links.
+C Then instantiate all of the usual values for CFC control-temporal links.
             IC=-1
             CALL EPMENSV
  256        call askzone(ic,izdef,'Related zone for CFC tdf data?',
@@ -2475,7 +2444,7 @@ C If act = 'i' then initialise variables.
       WRITE(ITEMS(15),'(A,3F7.2)')'m hot water:',phwco2,phwnox,phwsox
       ITEMS(16)=                  '  ______________________________   '
       ITEMS(17)=                  '? help                             '
-      ITEMS(18)=                  '- exit this menu                   '
+      ITEMS(18)=                  '- exit menu                        '
       nitms=18
 
 C Help text for this menu.
@@ -2617,8 +2586,6 @@ C model cfg file if a change is made.
 #include "model.h"
 #include "esprdbfile.h"
 #include "espriou.h"  
-C espriou.h for climatelist file name.
-C #include "control.h"
 #include "schedule.h"
 
 #include "seasons.h"
@@ -2659,6 +2626,7 @@ C Local variables.
       integer icomp
       integer ipatday1,ipatday2,ipatday3,ipatday4,ipatday5,ipatday6  ! remember what the new day types are
       integer idol,idaynum,idtyy,idwknum,imthnum  ! for determining day of week
+      integer iudt         ! user preferences for new day types
       logical ok,xst
 
 C Variables for handling climate file.
@@ -2735,7 +2703,7 @@ C Assume 1 Jan is a holiday (users can change this later).
               nbcaldays(4)=nbcaldays(4)+1
             else
 
-C For julian day ijd find month and day of month and day of week.
+C For day-of-year ijd find month and day of month and day of week.
               call edayr(ijd,idayn,imthn)
               call eweekd(idayn,imthn,iyear,idwk)
               if(idwk.ge.1.and.idwk.le.5)then
@@ -2832,7 +2800,7 @@ C Manage day types.
         mj=2
         do 77 ij=1,nbdaytype
           CALL EMKEY(ij,KEY,IER)
-          write(citem(ij+mj),'(5a)') KEY,' ',calentag(ij),' ',
+          write(citem(ij+mj),'(5a)') KEY,' ',calentag(ij),' ',      ! text for menu
      &      calendayname(ij)
   77    continue
         mm=mj+nbdaytype
@@ -2858,7 +2826,7 @@ C there are seasonal periods defined for the current weather.
 C Note: the delete a day type is currently not implemented.
 
 C Rescan the `climatelist` file. Check if this climate is
-C in the list. If not instanciate season and typical start and end dates.
+C in the list. If not instantiate season and typical start and end dates.
           if(ihaveseason.gt.0)then
             continue
           else
@@ -2907,7 +2875,29 @@ C Dialog based on whether or not seasons have been found.
 C If there is a control file, scan it and then loop through each of the
 C existing control loops to add in what-will-become the new day type.
 C havectl is returned as true if there is a control file.
-              call  updatectlfornewdaytype(havectl,usecalendar,ier)
+C Offer options for repeat of existing day type or a free-float day type.
+              CALL EPMENSV
+              do ij=1,nbdaytype
+                write(citem(ij),'(3a)') calentag(ij),' ',
+     &            calendayname(ij)
+              enddo
+              write(citem(nbdaytype+1),'(a)') 
+     &          'create one period free floating'
+              write(citem(nbdaytype+2),'(a)') 
+     &          'copy last existing day type'
+              IX=1
+              CALL EPICKS(IX,IDVALS,
+     &          'New day type can use an existing day type pattern.',
+     &          ' Available day types & options:',
+     &          52,nbdaytype+2,citem,'Available day types & options',
+     &          IER,nbhelp)
+              CALL EPMENRC
+              if(ix.ne.0)then
+                idt=idvals(1)
+                if(idt.eq.nbdaytype+1) idt=0
+                if(idt.eq.nbdaytype+2) idt=nbdaytype
+              endif
+              call updatectlfornewdaytype(havectl,usecalendar,idt,ier)
 
 C Now increment nbdaytype and get its name and description.
               nbdaytype=nbdaytype+1
@@ -2943,7 +2933,7 @@ C that its name is known).
 
 C Deal with operation files. User will be asked if they want to
 C overwrite or save to new file names.
-              CALL UPDOPR
+              CALL UPDOPR(idt)
               modify=.true.
               goto 73
 
@@ -2969,7 +2959,9 @@ C the calendar to match this.
 C For the 1st retail day revise the controls and then the operations.
                   call edisp(iuout,' ')
                   call edisp(iuout,' Processing retail_open day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
 
 C Now increment nbdaytype and get its name and description. Update
 C the control file if it exists and then process zone operation files.
@@ -2981,11 +2973,13 @@ C the control file if it exists and then process zone operation files.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the 2nd retail day revise the controls and then the operations.
                   call edisp(iuout,' Processing retail_close day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
 
 C Now increment nbdaytype and get its name and description. Update
 C the control file if it exists and then process zone operation files.
@@ -2997,14 +2991,14 @@ C the control file if it exists and then process zone operation files.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C If user agrees apply these two new day types to the current calendar.
 C Loop through all days, if one of the original 3 day types revise them
 C to use the new Mon-Sat & Sunday types.
                   CALL EASKOK(' ',
-     &               'Apply new day types to current calendar?',
-     &                OK,nbhelp)
+     &              'Apply these day types to the model calendar?',
+     &              OK,nbhelp)
                   if(OK)then
                     DO 123 IDOL=1,365
                       IF(ICALENDER(IDOL).LE.3)THEN
@@ -3038,7 +3032,9 @@ C win_wkend, trn_wkday, trn_wkend, sum_wkday, sum_wkend.
 C For the win_wkday revise the controls and then the operations.
                   call edisp(iuout,' ')
                   call edisp(iuout,' Processing win_wkday day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
 
 C Now increment nbdaytype and get its name and description. Update
 C the control file if it exists and then process zone operation files.
@@ -3050,11 +3046,13 @@ C the control file if it exists and then process zone operation files.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the win_wkend revise the controls and then the operations.
                   call edisp(iuout,' Processing win_wkend day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
                   nbdaytype=nbdaytype+1
                   nbcaldays(nbdaytype)=0
                   ipatday2 = nbdaytype  ! remember this
@@ -3063,11 +3061,13 @@ C For the win_wkend revise the controls and then the operations.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the trn_wkday revise the controls and then the operations.
                   call edisp(iuout,' Processing trn_wkday day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
                   nbdaytype=nbdaytype+1
                   nbcaldays(nbdaytype)=0
                   ipatday3 = nbdaytype  ! remember this
@@ -3076,11 +3076,13 @@ C For the trn_wkday revise the controls and then the operations.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the trn_wkend revise the controls and then the operations.
                   call edisp(iuout,' Processing trn_wkend day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
                   nbdaytype=nbdaytype+1
                   nbcaldays(nbdaytype)=0
                   ipatday4 = nbdaytype  ! remember this
@@ -3089,11 +3091,13 @@ C For the trn_wkend revise the controls and then the operations.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the sum_wkday revise the controls and then the operations.
                   call edisp(iuout,' Processing sum_wkday day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
                   nbdaytype=nbdaytype+1
                   nbcaldays(nbdaytype)=0
                   ipatday5 = nbdaytype  ! remember this
@@ -3102,11 +3106,13 @@ C For the sum_wkday revise the controls and then the operations.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C For the sum_wkend revise the controls and then the operations.
                   call edisp(iuout,' Processing sum_wkend day...')
-                  call  updatectlfornewdaytype(havectl,usecalendar,ier)
+                  iudt=-1
+                  call updatectlfornewdaytype(havectl,usecalendar,
+     &              iudt,ier)
                   nbdaytype=nbdaytype+1
                   nbcaldays(nbdaytype)=0
                   ipatday6 = nbdaytype  ! remember this
@@ -3115,7 +3121,7 @@ C For the sum_wkend revise the controls and then the operations.
                   if(havectl)then
                     CALL CTLWRT(ICTLF,IER)
                   endif
-                  CALL UPDOPR
+                  CALL UPDOPR(iudt)
 
 C If user agrees apply these six new day types to the current calendar.
 C Loop through all days, if one of the original 3 day types revise them
@@ -3123,8 +3129,8 @@ C to use the new seasonal day types. The 5 sesaons in the weather data
 C are applied so that win1 and win2 both get the winter day types and
 C spring and autumn both get the transition day type.
                   CALL EASKOK(' ',
-     &               'Apply new day types to current calendar?',
-     &                OK,nbhelp)
+     &              'Apply these day types to model calendar?',
+     &              OK,nbhelp)
                   if(OK)then
 C Debug.
 C                    write(6,*) nbdaytype,ipatday1,ipatday2,ipatday3,
@@ -3167,7 +3173,7 @@ C     &is1sprs,is1sprf,is2sprs,is2sprf,is1sums,is1sumf
                           ENDIF
                         endif
 
-C If the julian day did not match then fall back on day of the week.
+C If the day type did not match then fall back on day of the week.
                         if(IDTYY.eq.0)then
                           IF(IDWKNUM.LT.6)THEN
                             IDTYY=1 ! WEEKDAY
@@ -3332,8 +3338,8 @@ C user can select one or more.
 C << potential place to support seasonal day type allocations >>
 
           IHDT=0
-          CALL EASKABC('How to add day types (see help)?',' ',
-     &    'One by one','Follow pattern','cancel',IHDT,nbhelp)
+          CALL EASKABC(' ','Add day types:',
+     &    'one-by-one','by pattern','cancel',IHDT,nbhelp)
           IF(IHDT.EQ.1)THEN
             idt=idvals(1)
             do 78 ld=1,365
@@ -3434,7 +3440,7 @@ C      return
 C ********** updatectlfornewdaytype
 C updatectlfornewdaytype adds an additional day type to each of the
 C model control domains. 
-      subroutine updatectlfornewdaytype(havectl,usecalendar,ier)
+      subroutine updatectlfornewdaytype(havectl,usecalendar,iudt,ier)
 
 #include "building.h"
 #include "control.h"
@@ -3443,10 +3449,14 @@ C Parameters passed
       logical havectl ! to remember if control file exists
       logical usecalendar  ! signal so easier to detect if other domains
                            ! have a different number of day types
+      integer iudt         ! user preference to replicat existing day type or free float
+                           ! or interactive (iudt = -1)
       integer ier          ! error state
 
       integer iuout,iuin,ieout
       common/OUTIN/IUOUT,IUIN,IEOUT
+      common/calena/calename,calentag(MDTY),calendayname(MDTY)
+      character calename*32,calentag*12,calendayname*32
       common/caleni/nbdaytype,nbcaldays(MDTY),icalender(365)
       integer nbdaytype,nbcaldays,icalender
       COMMON/FILEP/IFIL
@@ -3477,17 +3487,27 @@ C duplicate the last control day type in each loop.
 C The treatment of day types within addctld is based on an assumption
 C that nbdaytpe is not incremented until after the addctld call.
         IDT=nbdaytype     ! set to the not-yet-incremented value
-        IHDTP=1
-        CALL EASKABC('Control pattern for new day type (see help)?',
-     &    ' ','One period free floating',
-     &    'Use pattern of last day type','cancel',IHDTP,nbhelp)
-        if(IHDTP.eq.1)then
+
+        if(IUDT.eq.0)then
           dayact='SA'       ! assume silent addition
-        elseif(IHDTP.eq.2)then
-          dayact='SC'       ! assume silent copy
-        elseif(IHDTP.eq.3)then
-          havectl=.false.   ! ignore control
-          return            ! do not bother processing control data
+        elseif(IUDT.eq.nbdaytype)then
+          dayact='SC'       ! assume silent copy of last
+        elseif(IUDT.gt.0.and.IUDT.lt.nbdaytype)then
+          dayact='EC'        ! assume silent existing copy of an existing day type
+          IDT=IUDT
+        elseif(IUDT.eq.-1)then
+          IHDTP=1             ! interactive session
+          CALL EASKABC('Control pattern for new day type (see help)?',
+     &      ' ','One period free floating',
+     &      'Use pattern of last day type','cancel',IHDTP,nbhelp)
+          if(IHDTP.eq.1)then
+            dayact='SA'       ! assume silent addition
+          elseif(IHDTP.eq.2)then
+            dayact='SC'       ! assume silent copy
+          elseif(IHDTP.eq.3)then
+            havectl=.false.   ! ignore control
+            return            ! do not bother processing control data
+          endif
         endif
         if(NCF.gt.0)then  ! zone loops
           icfoc=0
@@ -3597,7 +3617,7 @@ C Text for each slot.
       CHARACTER*9 RAMONTH(12)
       DIMENSION ID(12),MDAYS(12)
 
-C ID is the number of days in each month, MDAYS is the julian
+C ID is the number of days in each month, MDAYS is the Julian (day-of-the-year)
 C start day of each month.
       DATA ID/31,28,31,30,31,30,31,31,30,31,30,31/
       DATA MDAYS/1,32,60,91,121,152,182,213,244,274,305,335/

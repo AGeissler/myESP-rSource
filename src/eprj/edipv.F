@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Subroutine included:
 C IPVDAT: define information used in generating IPV.
@@ -109,7 +105,7 @@ C is for an annual assessment.
       simact='------'  ! to signal initial state of choice
 
 C Rescan the `climatelist` file. Check if this climate is
-C in the list. If not instanciate season and typical start and end dates.
+C in the list. If not instantiate season and typical start and end dates.
       if(ihaveseason.gt.0)then
         continue
       else
@@ -310,7 +306,7 @@ C Scan any demands file.
       ITM(m+14)=   '5 re-scan climate for seasons or day ratios '
       ITM(m+15)=   '! list IPV data                             '
       ITM(m+16)=   '? help                                      '
-      ITM(m+17)=   '- exit this menu                            '
+      ITM(m+17)=   '- exit menu                                 '
       nitms=m+17
 
 C Help text for this menu.
@@ -867,7 +863,7 @@ C Deal with metrics (and then return to appropriate point in main menue).
       ITMM(M+1)=   '+ add/delete metric set            '
       ITMM(M+2)=   '! list metrics                     '
       ITMM(M+3)=   '? help                             '
-      ITMM(M+4)=   '- exit this menu                   '
+      ITMM(M+4)=   '- exit menu                        '
       nitmms=M+4
 
 C Help text for this menu.
@@ -1090,7 +1086,7 @@ C Find base area of each of the zones.
         goto 43
       else
 
-C Ok to instanciate the data and then jump to 42 to process it.
+C Ok to instantiate the data and then jump to 42 to process it.
         nzmg(ijj)=INPIC
         if(t12(1:2).ne.'  '.and.t12(1:4).ne.'UNKN')metgroup(ijj)=t12
         if(ierr.eq.0)emgflr(ijj)=TFLA
@@ -1123,7 +1119,7 @@ C Deal with energy sets (and then return to appropriate point in main menue).
       endif
       ITME(M+3)=   '! list demand sets             '
       ITME(M+4)=   '? help                         '
-      ITME(M+5)=   '- exit this menu               '
+      ITME(M+5)=   '- exit menu                    '
       nitmes=M+5
 
 C Help text for this menu.
@@ -1268,7 +1264,7 @@ C For help messages
       ITM(19)='s five seasons (user defined)    '
       ITM(20)='t default period                 '
       ITM(21)='? help                           '
-      ITM(22)='- exit this menu                 '
+      ITM(22)='- exit menu                      '
       nitms=22
 
       helptopic='ipv_assessment_regime'

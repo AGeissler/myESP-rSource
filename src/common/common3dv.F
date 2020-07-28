@@ -13,13 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C cmmon3dv.F contains the following Fortran subroutines:
-
 C  ADJVIEW: Adjusts the viewing transforms & boundaries if necessary.
 C  CHGAZI:  Called from C code with an increment or decrement of azimuth.
 C  CHGELEV: Called from C code with an increment or decrement of elevation.
@@ -1097,7 +1092,7 @@ C of nbvis(ifoc) is non-zero draw.
       call eclose(gversion(ifoc),1.1,0.01,newgeo)
 
 C << if geometry file was previously read then we will already
-C << have these common blocks instanciated and no need to read
+C << have these common blocks instantiated and no need to read
 C << them again...
 
 C If no visaul entities for this zone don't bother reading file.

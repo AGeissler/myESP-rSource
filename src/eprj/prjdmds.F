@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C Subroutines in this file:
 C  PRJDMDS: Creates and edits a dispersed demands data.
@@ -262,7 +258,7 @@ C No file was located. As the user what to do.
       ITEM(10)=               '  _________________________      '
       ITEM(11)=               '> save                           '
       ITEM(12)=               '? help                           '
-      ITEM(13)=               '- exit this menu                 '
+      ITEM(13)=               '- exit menu'
       NITEMS=13
 
 C Help text for this menu.
@@ -607,7 +603,7 @@ C If a long list include page facility text.
       VERT(M+3)  ='! apply scaling to one type   '
       VERT(M+4)  ='< import from profiles db     '
       VERT(M+5)  ='? help                        '
-      VERT(M+6)  ='- exit this menu              '
+      VERT(M+6)  ='- exit menu'
 
 C Help text for this menu.
       helptopic='dispersed_casual_ov'

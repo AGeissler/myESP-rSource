@@ -13,13 +13,7 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
-
 C This file contains the following routines:
-
 C      MZBCTL: control executive.
 C      MZMIXT: calculate weighted zone temperature.
 C      CFVAR:  get sensed condition for single sensor control.
@@ -32,7 +26,7 @@ C      BCL04:  fixed heat injection/extraction control.
 C      BCL05:  proportional+integral+derivative control action.
 C      BCL06:  plant to building linker.
 C      BCL07:  multi-stage controller with hysteresis.
-C      BCL08:  CAV HVAC variable supply temperature system.
+C      BCL08:  CAV, variable supply temperature system.
 C      BCL09:  heat pipe.
 C      BCL10:  on/off control.
 C      BCL11:  temperature brought to multi-sensor value (ideal).
@@ -50,28 +44,26 @@ C      BCL22:  VAV cooling with CAV heating.
 C      BCL23:  heating & cooling setpoints from temporal.
 C      BCL24:  adaptive human comfort model.
 C      BCL25_open_windows: switch between different 
-C             air flow computation methods.
+C              air flow computation methods.
 C      BCL26:  heat exchanger model controlling zone flux extraction.
 C      BCL27:  storage heater model controlling zone flux injection
 C      BCL28:  room heat injector complimentary to BCL27
 C      BCL29:  Simple idealized controller based on BCL01 with 
 C              limited support for free-cooling
-C      BCL30:  A heat injection extraction controller from temporal
-C      BCL31:  A heat transfer controller from given node of one zone
+C      BCL30:  heat injection extraction controller from temporal
+C      BCL31:  heat transfer controller from given node of one zone
 C              to air point node of another zone
-C      BCL32:  A multi-criteria controller to model pervasive control
+C      BCL32:  multi-criteria controller to model pervasive control
 C      BCL99:  constructional thermo-physical property variation.
 C      MZRCPL: mixed temperature iteration.
 C      ZRHCTL: relative humidity controlling routine.
 C      ZRH01:  relative humidity control (complements BCL01).
 C      FZINIT: intialise fuzzy membership variables.
 
-C ******************** MZBCTL
-
+C ******************** MZBCTL ********************
 C The main building control function executive.
 
       SUBROUTINE MZBCTL(ier,icomp)
-
 #include "building.h"
 #include "control.h"
 #include "FMI.h"
@@ -353,7 +345,7 @@ C Set ICALL to zero to signal nested control property substitution.
       RETURN
       END
 
-C ******************** MZMIXT
+C ******************** MZMIXT ********************
 
 C MZMIXT computes the zone weighted temperature
 C prevailing at the 'future' time-row of
@@ -467,7 +459,7 @@ C Compute weighted temperature.
     7 RETURN
       END
 
-C ******************** CFVAR
+C ******************** CFVAR ********************
 
 C CFVAR determines the sensed condition associated
 C with the sensor defined for the control function.
@@ -709,7 +701,7 @@ C     &       ' column ',isd,' value ',tctl,' for ctl loop ',icf
       endif
       END
 
-C ******************** CFMVAR
+C ******************** CFMVAR ********************
 C Recover control point data.
       SUBROUTINE CFMVAR(ier)
 
@@ -866,7 +858,7 @@ C     &       ' column ',isd,' value ',tctl,' for ctl loop ',icf
       RETURN
       END
 
-C ******************** BCL00
+C ******************** BCL00 ********************
 
 C This routine solves the air temperature/plant capacity
 C (perhaps carried through) equation (B1*T+B2*Q=B3) in
@@ -1007,9 +999,6 @@ C and we don't get the setpoint.
               continue
             else
               UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+(1.0/real(NTSTEP))
-C Debug.
-C              write(6,'(a,f8.2,a,i3)')' heating capacity insufficient ',
-C     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
             endif
           elseif ( QFUT.le.QH.and.TFUT.ge.TL)then  ! if within capacity and setpoint
             continue
@@ -1023,8 +1012,6 @@ C     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
               continue
             else
               UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+(1.0/real(NTSTEP))
-              write(6,'(a,f8.2,a,i3)')' cooling capacity insufficient ',
-     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
             endif
           elseif ( QFUT.le.QC.and.TFUT.le.TU)then  ! if within capacity and setpoint
             continue
@@ -1182,7 +1169,7 @@ C  Determine target temperature.
       INORP=INORP/10
       NDIV=NDIV+1
       GOTO 17
-   24 call edisp(iuout,' BCL00 error: iteration limit exceeded.')
+   24 call edisp(iuout,'BCL00: iteration limit exceeded!')
       write(outs,'(A,F7.2,A,I4)')' Time ',BTIMEF,' Year Day ',IDYP
       call edisp(iuout,outs)
       close(ieout)
@@ -1191,7 +1178,7 @@ C  Determine target temperature.
       call epagend
       STOP
    25 call edisp(iuout,
-     &  ' BCL00 error: +ve/-ve iteration limit exceeded.')
+     &  'BCL00: +ve/-ve iteration limit exceeded!')
       write(outs,'(A,F7.2,A,I4)')' Time ',BTIMEF,' Year Day ',IDYP
       call edisp(iuout,outs)
       close(ieout)
@@ -1242,14 +1229,14 @@ C Determine target air temperature for current time step.
       GOTO 17
 
 C Fixed heat injection/extraction period: is temperature
-C within control range ?
+C within control range?
    12 TU=BMISCD(ICF,IDTYP,IPER,5)
       TL=BMISCD(ICF,IDTYP,IPER,4)
       QH=BMISCD(ICF,IDTYP,IPER,2)
       QC=-BMISCD(ICF,IDTYP,IPER,3)
       IF(TMIX.LE.TU.AND.TMIX.GE.TL)GOTO 81
 
-C Is temperature too high ?
+C Is temperature too high?
       IF(TMIX.GT.TU)GOTO 19
 
 C Temperature too low: inject fixed heating.
@@ -1365,21 +1352,21 @@ C the negative bandwidth
           LASTC(IICOMP)='OFF'
       END IF
 
-C Switch on heater:
+C Switch on heater.
       IF(LASTH(IICOMP).EQ.'ON ')THEN
           QH=QHM
       ELSE
           QH=0.
       ENDIF
 
-C Switch on cooler:
+C Switch on cooler.
       IF(LASTC(IICOMP).EQ.'ON ')THEN
           QC=QCM
       ELSE
           QC=0.
       ENDIF
 
-C Total heating/cooling
+C Total heating/cooling.
       QMX=QH+QC
       QMN=0.
       Q=QH+QC
@@ -1405,35 +1392,36 @@ C Total heating/cooling
       STOP
       END
 
-C ******************** BCL01
+C ******************** BCL01 ********************
 C BCL01 is a legacy interface to BCL01_extended, which also offers 
 C a simplistic 'free-cool' algorithm or reading flux from temporal.
 C To enable legacy behavior, it invokes BCL01_extended with the 
 C behaviour flag set to 0
-C
+
       SUBROUTINE BCL01(IER)
       implicit none 
       
-C.....Error flag
+C Error flag.
       integer IER
       
-C Behaviour flag 
-C IBehaviour = 0 legacy 
-C            = 1 free cooling activited
-C            = 2 read flux injection from temporal
+C Behaviour flag:
+C IBehaviour = 0 legacy;
+C            = 1 free cooling activated;
+C            = 2 read flux injection from temporal file.
       integer IBehaviour 
       IBehaviour = 0     
       
-C.....Interface to extended BCL01       
+C Interface to extended BCL01.       
       call BCL01_extended(IER,IBehaviour)
       
       return 
       end 
 
 
-C ******************** BCL01_extended
-C Basic controller with symplistic free-cooling capabilities available
+C ******************** BCL01_extended ********************
+C Basic controller with free-cooling capabilities available
 C as an option.
+
       SUBROUTINE BCL01_extended(IER,IBehaviour)
       implicit none 
           
@@ -1463,7 +1451,7 @@ C as an option.
       COMMON/TRACE/ITCF,ITRACE(MTRACE),IZNTRC(MCOM),ITU
       integer ITCF, ITRACE, IZNTRC, ITU ! I/O parameters for trace
       
-C Climate data
+C Weather data.
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
       real QFP, QFF
       real TP, TF
@@ -1471,7 +1459,6 @@ C Climate data
       real VP, VF
       real DP, DF
       real HP, HF
-      
       
       common/simtim/ihrp,ihrf,idyp,idyf,idwp,idwf,nsinc,its,idynow
       integer IHRP, IHRF   ! Present and future hour of day
@@ -1642,7 +1629,7 @@ C then the cooling/heating capacity of the associated control law for
 C the zone law needs to be updated. The variable cooling/heating capacity 
 C is set at the approprite HVAC equipment simulation routine.
 
-C Set maximum heating capacity:
+C Set maximum heating capacity.
       if(cont_fun_heat_cap(IICOMP).gt.0. ) then
         QHM=cont_fun_heat_cap(IICOMP)
       else
@@ -1656,7 +1643,7 @@ C <GRM>
       if (NMCF.gt.0) then
         do imcf=1,NMCF
 
-C Gremlin mischief type 1: heating capacity = 0
+C Gremlin mischief type 1: heating capacity = 0.
           if (MCFTYP(imcf).eq.1) then
             QHM=0.
             QHN=0.
@@ -1734,17 +1721,16 @@ C free-cooling threshold (fFreeCoolTemp) is less than the zone
 C temperature (TFA(iComp)). 
       if ( IBehaviour.EQ.1 ) then 
         fFreeCoolTemp=BMISCD(ICF,IDTYP,IPER,8)
-C Note that free cooling temperature must be greater than zero 
+
+C Free cooling temperature must be greater than zero 
 C to ensure that mass-balance calculation is stable.
         fFreeCoolTemp = max( fFreeCoolTemp, 0.1 )
       endif 
-  
       
-C Determine if a RH is to be controlled. If this is the case store the set point
+C Determine if RH is to be controlled. If yes, store the set-point
 C for the zone and set the RH control flag. The control action takes place in 
 C MZVAPC, where the zone humidity and moisture content is calculated. 
-C (note: humidity control and simplistic free-cooling are mutually 
-C  exclusive.) 
+C (Note: humidity control and free-cooling are mutually exclusive.) 
       IRHCT(IICOMP)=0
       IF(INT(BMISCD(ICF,IDTYP,IPER,1)).GT.7 .and. .not. 
      & (IBehaviour.EQ.1) )THEN
@@ -1769,19 +1755,16 @@ C IRHCT flag.
         IF(IRHCTT.EQ.1) THEN
           IRHCT(IICOMP)=1
         ELSEIF(IRHCTT.EQ.2)THEN
-c          WRITE(*,*)' '
-c          WRITE(*,*)'Temperature control of RH'
+
 C If temperature control for alteration of RH is to be used then
 C check that the zone RH is in limits. If not then alter the
 C heating and cooling set points appropriately. 
           RHC=PCRH2(TFA(IICOMP),GFA(IICOMP),PATMOS)
-c          WRITE(*,*)'Current status ',TFA(IICOMP),GFA(IICOMP)
-c          WRITE(*,*)'Current RH',RHC
+
 C If moisture content above that for the target RH then implement
 C cooling (change cooling and heating set points).
           IF(RHC.GT.RHSPTU(IICOMP))THEN
-c            WRITE(*,*)'Target RH',RHSPTU(IICOMP)       
-c            WRITE(*,*)'RH too high ... heating'
+
 C Iteratively calculate the temperature needed to hit the target RH
 C Initiate the iterative temperature
 c            TITM=TFA(IICOMP)
@@ -1792,14 +1775,12 @@ C Set the target RH.
 
 C Calculate the RH at this temperature.
             ITER=1
-  404       RHI=PCRH2(TITM,GFA(IICOMP),PATMOS)
-c            WRITE(*,*)'New Iteration RH ...',RHI             
+  404       RHI=PCRH2(TITM,GFA(IICOMP),PATMOS)           
             CLOSERH=.TRUE.      
             CALL ECLOSE(RHI,RHT,0.1,CLOSERH)
             IF(.NOT.CLOSERH)THEN
               TITM=TITM+((RHI-RHT)*0.005)
-              ITER=ITER+1
-c              WRITE(*,*)'New Iteration temperature ...',TITM  
+              ITER=ITER+1 
             ENDIF
  
             IF(.NOT.CLOSERH.AND.RHI.GE.0.0.AND.RHI.LE.100.0.AND.
@@ -1807,37 +1788,31 @@ c              WRITE(*,*)'New Iteration temperature ...',TITM
   
             IF(CLOSERH.AND.TITM.GT.0..AND.TITM.LT.100.)THEN
               CSP=100.
-              HSP=TITM
-c              WRITE(*,*)'New heating and cooling set point',HSP,CSP    
+              HSP=TITM    
             ENDIF      
       
-          ELSEIF(RHC.LT.RHSPTL(IICOMP))THEN
-c            WRITE(*,*)'Target RH',RHSPTL(IICOMP)       
-c            WRITE(*,*)'RH too low ... cooling'
 C Iteratively calculate the temperature needed to hit the target RH
-C Initialte the iterative temperature
+C Initialte the iterative temperature.
+          ELSEIF(RHC.LT.RHSPTL(IICOMP))THEN
             TITM=TFA(IICOMP)
 
-C Set the target RH 
+C Set the target RH.
             RHT=RHSPTL(IICOMP)
 
-C Calculate the RH at the iterative temperature
+C Calculate the RH at the iterative temperature.
             ITER=1
-  405       RHI=PCRH2(TITM,GFA(IICOMP),PATMOS)
-c            WRITE(*,*)'New Iteration RH ...',RHI     
+  405       RHI=PCRH2(TITM,GFA(IICOMP),PATMOS)  
             CLOSERH=.TRUE.      
             CALL ECLOSE(RHI,RHT,0.1,CLOSERH)
             IF(.NOT.CLOSERH)THEN
               TITM=TITM-((RHT-RHI)*0.005)
-              ITER=ITER+1
-c              WRITE(*,*)'New Iteration temperature ...',TITM  
+              ITER=ITER+1 
             ENDIF 
             IF(.NOT.CLOSERH.AND.RHI.GE.0..AND.RHI.LE.100..AND.
      &ITER.LT.1000)GOTO 405  
             IF(CLOSERH.AND.TITM.GT.0..AND.TITM.LT.100.)THEN
               CSP=TITM
-              HSP=0.  
-c              WRITE(*,*)'New heating and cooling set point',HSP,CSP         
+              HSP=0.           
             ENDIF  
           ENDIF
         ENDIF
@@ -1849,14 +1824,14 @@ c              WRITE(*,*)'New heating and cooling set point',HSP,CSP
         IRHCT(IICOMP)=0
       ENDIF
 
-C Read heating capacity from temporal
+C Read heating capacity from temporal file.
       if(IBehaviour.eq.2)then
         if(nsinc.eq.1)then 
           Imax(ICF)=0 ; Imin(ICF)=0 ! deadband book-keeping
         endif
         T_core=TFA(iicomp)
 
-C Read static tdf items
+C Read static tdf items.
         IFOC=IStorageHeater(iicomp)
         Qmax=tmar(ifoc,1)            ! maximum charging
         N_cores=NINT(tmar(ifoc,2))   ! number of cores
@@ -1864,7 +1839,7 @@ C Read static tdf items
 c        T_hi_db=tmar(ifoc,3)         ! high set point dead band
         T_lo_db=tmar(ifoc,4)         !  low set point dead band
 
-C Read charging information and set up heat injection to space
+C Read charging information and set up heat injection to zone.
         if(ifoc.gt.0)then
           CALL RCTDFB(itrc,btimef,VAL,ISD,IFOC,IER)
           QHM=val(isd)/N_cores
@@ -1889,19 +1864,19 @@ C Read charging information and set up heat injection to space
       endif
 
 C Check if control is required and return if setpoints are met.    
-C << however if standby losses are enabled then alternative logic
+C << If standby losses are enabled then alternative logic
 C << is required to inject the standby losses.    
       IF(TCTL.LE.CSP.AND.TCTL.GE.HSP)RETURN
-
-c      WRITE(*,*)'Controlling zone to...',HSP,CSP,TCTL,TNP    
+  
 C Since sensed temperature is not within range, attempt to control
 C THIS zone's temperature.
       TCTL=TNP
 
+C <FOG>
 C Inserted for the EU Fog Project: if heating or cooling set point is set to
 C -1000., the controller will use the dew point temperature as the set point.
-C This is an alternative to humidification in that the zone RH is  maintained
-C at (approx.) 100% RH.
+C This is an alternative to humidification in that the zone RH is maintained
+C at ~100% RH.
       IF(int(CSP).EQ.-1000 .OR. int(HSP).EQ.-1000)THEN
         
 C Set point is the dew point temperature of the zone. 
@@ -1910,129 +1885,94 @@ C Set point is the dew point temperature of the zone.
         IF(HSP.LT.0.0)HSP=0.0
         IF(CSP.LT.0.0)CSP=0.0
       ENDIF
+C </FOG>
 
 C Check zone temperature and determine if heating or cooling functions 
 C should be invoked.
       HeatOrCool: if ( TCTL > CSP ) THEN 
-      
         IPLT=2     ! Indicate cooling mode
         QMX=QCM    ! Note that cooling is negative!
         QMN=QCN
         TCont=CSP  ! Use the cooling setpoint
-      
       else 
-        
         IPLT=1     ! Indicate heating mode
         QMX=QHM      
         QMN=QHN
         TCont=HSP  ! Use the heating setpoint
-            
       endif HeatOrCool
 
 C Determine required plant capacity.
-C << test setting TCont = 10.0 >>
       Q=(BB3-BB1*TCont)/BB2
 
 C Is heat flux determined according to surface area?
-      
-      if ( IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0) then 
-
+      if ( IBAN(ICF,1).EQ.IICOMP.AND.IBAN(ICF,2).GT.0) then
         bQBySurf = .true.  ! Yes
         ISUR=IBAN(ICF,2)
-      
       else   ! No.
         bQBySurf = .false.   
-        
       endif 
-      
-      
+
 C If necessary, multiply heat flux by surface area to convert 
 C from W/m^2 to W.
-
       if ( bQBySurf ) then 
-      
         fQTotal = Q * SNA(IICOMP,ISUR) 
-        
       else 
-      
         fQTotal = Q
-        
       endif 
       
-C Determine if this capacity can be delivered using free-cooling. 
-C (This is very simple algorithm at present, but it might one day connect
-C  to more sophisticated algorithms) 
-C  Apply free cooing if: 
-C 
-C    1. free cooling is enabled 
-C    2. Cooling is requested.
-C    3. Outdoor temperatue < ( zone temp - free cooling threshold )
-C
+C Determine if this capacity can be delivered using free-cooling 
+C (this is simple algorithm at present). Apply free cooing if: 
+C    1. free cooling is enabled;
+C    2. cooling is requested;
+C    3. outdoor temperature < (zone temp - free cooling threshold)
       if ( (IBehaviour.EQ.1)    .and. 
      &     fQTotal < 0. .and. 
      &     TF < ( TFA(IICOMP) - fFreeCoolTemp ) ) then 
-
         fQFreeCool = fQTotal
-        
         bFreeCoolActive = .true. 
         
 C Compute the 'conductivity' achieved by free cooling to 
-C append to zone mass-balance solution on next timestep. 
+C append to zone mass-balance solution at next timestep. 
 C
 C                              [ Free Cooling Load (W) ]
 C    conductivity (W/K) =  ------------------------------------
 C                          [ Zone temp (K) - Outdoor Temp (K) ]
 
-c        fCondFreeCool(IICOMP) = -1.*(fQFreeCool / ( TFA(IICOMP) - TF)) 
+C        fCondFreeCool(IICOMP) = -1.*(fQFreeCool / ( TFA(IICOMP) - TF)) 
 
-C ( Note that the the free cooling threshold (fFreeCoolTemp) must 
-C   be greater than 2, and the denomenator will never be zero. )
+C (Note that the the free cooling threshold (fFreeCoolTemp) must 
+C  be greater than 2, and the denomenator will never be zero.)
         
       else  
 
 C No free cooling.
-
         fQFreeCool = 0.
-        
         bFreeCoolActive = .false. 
         
-c        fCondFreeCool(IICOMP) = 0.
+C        fCondFreeCool(IICOMP) = 0.
       
-C Do we have enough heating/cooling capacity? 
+C Is there enough heating/cooling capacity? 
         if ( fQTotal > 0. ) then
-          
           if ( fQTotal > QMX ) fQTotal = QMX   ! constrain to maximum
           if ( fQTotal < QMN ) fQTotal = QMN   ! constrain to minimum
-
         else 
-     
           if ( fQTotal < QMX ) fQTotal = QMX   ! constrain to maximum
           if ( fQTotal > QMN ) fQTotal = QMN   ! constrain to minimum
-
         endif 
-      
       endif 
 
 C Save free-cooling for reporting later.
       fFreeCoolDelivered(IICOMP) = fQFreeCool * (-1.0)      
       
- 
 C Possibly convert back to W/m^2 if needed.      
-
       if ( bQBySurf ) then 
-      
         Q = fQTotal / SNA(IICOMP,ISUR)
-        
       else 
-      
         Q = fQTotal
-        
       endif 
-      
       
 C Recompute resultant temperature.       
       TFUT=(BB3-BB2*Q)/BB1
-      
       
 C Save future time-row plant injection.  
       if ( bFreeCoolActive ) then   
@@ -2041,8 +1981,6 @@ C Save future time-row plant injection.
         QFUT = Q      
       endif 
 
-C Debug.
-C      WRITE(6,*)'Heating/cooling flux and set points',QFUT,HSP,CSP
       IF(IBAN(ICF,1).EQ.-2)CALL MZRCPL(IICOMP,BB1,BB2,BB3,TCONT,0.05,
      &IPLT,QMX,QMN,TFUT,QFUT)
      
@@ -2050,7 +1988,7 @@ C Set QFUT for use by slave controller.
       Qmst(ICF)=QFUT
       bMasterFreeCoolFlag(ICF)=bFreeCoolActive
       
-C Trace output. Update the logic here to reflect more of the approach
+C << Trace output. Update the logic here to reflect the approach
 C used in BCL00.
       IF(atrace)then
         write(outs,'(A,F10.3,A,F10.3,A,F10.3,a)') ' Qfuture = ',QFUT,
@@ -2105,27 +2043,31 @@ C used in BCL00.
       ELSE
 
 C Keep track if trace is not active.
-        if ( IPLT.eq.1 ) THEN  ! we are heating
-          call eclose(QHM,QFUT,0.1,CLOSE)  ! and close to Maximum capacity
+        if ( IPLT.eq.1 ) THEN              ! heating required and close
+          call eclose(QHM,QFUT,0.1,CLOSE)  ! to maximum capacity
           if( QFUT.lt.0.1)then
             continue
           elseif (close.and.TFUT.lt.HSP)then
             if (bInStartup())then
               continue
             else
-              UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
 
-C Debug uncomment to see the evolution of unmet hours.
-C              write(6,'(a,f8.2,a,i3)')' heating capacity insufficient ',
-C     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
+C Temporary for BH project
+C              if( IICOMP.eq.1.and.(btimef.lt.5.0.or.btimef.ge.7.0))
+C     &            UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
+C              if( IICOMP.eq.2.and.((btimef.lt.5.0.or.btimef.ge.7.0).or.
+C     &           (btimef.lt.14.or.btimef.ge.16.0)))
+C     &            UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
+C /Temporary
+              UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
             endif
-         elseif ( QFUT.le.QHM.and.TFUT.ge.HSP)then  ! if within capacity and setpoint
+         elseif ( QFUT.le.QHM.and.TFUT.ge.HSP)then  ! if within capacity and at/above setpoint
             continue
-         elseif ( QFUT.le.QHM.and.TFUT.lt.HSP)then  ! if within capacity and setpoint
+         elseif ( QFUT.le.QHM.and.TFUT.lt.HSP)then  ! if within capacity and below than setpoint
             continue
           endif
         else
-          call eclose(QCM,QFUT,0.1,CLOSE)  ! and close to Maximum capacity
+          call eclose(QCM,QFUT,0.1,CLOSE)           ! cooling required and close maximum capacity
           if( QFUT.lt.0.1)then
             continue
           elseif (close.and.TFUT.gt.CSP)then
@@ -2133,19 +2075,17 @@ C     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
               continue
             else
               UNMETHRS(IICOMP)=UNMETHRS(IICOMP)+hrfrac
-              write(6,'(a,f8.2,a,i3)')' cooling capacity insufficient ',
-     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
             endif
-          elseif ( QFUT.le.QCM.and.TFUT.le.CSP)then  ! if within capacity and setpoint
+          elseif ( QFUT.le.QCM.and.TFUT.le.CSP)then  ! if within capacity and at/below setpoint
             continue
-          elseif ( QFUT.le.QCM.and.TFUT.gt.CSP)then  ! if within capacity and setpoint
+          elseif ( QFUT.le.QCM.and.TFUT.gt.CSP)then  ! if within capacity and above setpoint
             continue
           endif
         endif      
       END IF
      
       RETURN
-   99 write(outs,'(a)')' BCL01: data incomplete.'
+   99 write(outs,'(a)')' BCL01: data incomplete!'
       if(dll)then
         dllsubr='BCL01'
         dllmesg=outs
@@ -2161,9 +2101,8 @@ C     &          UNMETHRS(IICOMP),' hours in zone ',IICOMP
       endif
       END
 
-C ******************** BCL02
-
-C A free-float controller.
+C ******************** BCL02 ********************
+C Free-float controller.
 
       SUBROUTINE BCL02
 #include "building.h"
@@ -2208,7 +2147,7 @@ C Trace output.
       RETURN
       END
 
-C ******************** BCL03
+C ******************** BCL03 ********************
 
 C An exponential pre-heat (or cool) controller.
 
@@ -2367,7 +2306,7 @@ C Trace output.
       STOP
       END
 
-C ******************** BCL04
+C ******************** BCL04 ********************
 C A fixed heat injection/extraction controller.
 
       SUBROUTINE BCL04
@@ -2473,7 +2412,7 @@ C Trace output.
       STOP
       END
 
-C ******************** BCL05
+C ******************** BCL05 ********************
 
 C Proportional+intergral+derivative (P or P+I or P+D or PID) control action
 C suitable for use with controller types 0,35,36,37,38,39.
@@ -3222,7 +3161,7 @@ C Trace output.
       RETURN
       END
 
-C ******************** BCL07
+C ******************** BCL07 ********************
 
 C A multi-stage controller with hysteresis.
 
@@ -3454,7 +3393,7 @@ C Fatal errors.
       STOP
       END
 
-C ******************** BCL08
+C ******************** BCL08 ********************
 
 C 'BCL08' is a variable supply temperature system
 C with limit constraints.
@@ -3569,7 +3508,7 @@ C Trace output.
       STOP
       END
 
-C ******************** BCL09
+C ******************** BCL09 ********************
 
 C 'BCL09' is a heat pipe model (after Berthold Stanzel)
 C which operates by transfering heat from
@@ -3732,7 +3671,7 @@ c Convergence device.
       END
 
 
-C ******************** BCL10
+C ******************** BCL10 ********************
 
 C BCL10 is a general two position controller with separate flux ON
 C and flux OFF set points to be specified for both heating and cooling.
@@ -3913,7 +3852,7 @@ C Trace output.
       STOP
       END
       
-C ******************** BCL11
+C ******************** BCL11 ********************
 
 C BCL11 is a multi-sensor temperature controller.
 C This controller will bring the temperature of the
@@ -4190,7 +4129,7 @@ C Trace output.
       RETURN
       END
 
-C ******************** BCL12
+C ******************** BCL12 ********************
 
 C BCL12 is a multi-sensor on-off controller. It acts to bring the
 C associated zone temperature to some function of the secondary
@@ -4401,7 +4340,7 @@ C Trace output.
       RETURN
       END
 
-C ******************** BCL13
+C ******************** BCL13 ********************
 C BCL13 is time-proportioning on/off controller. In several ways
 C it extends the functionality offered by BCL10.
 C It is suitable for use with controllers types 0,35,36,37,38,39. 
@@ -4595,7 +4534,7 @@ C Trace output.
       STOP
       END
 
-C ******************** BCL14
+C ******************** BCL14 ********************
 C BCL14 is a floating action ('three-position') controller.
 C It is suitable for use with controller types 0,35,36,37,38,39. 
 C Heating and cooling restrictions are allowed.
@@ -4806,7 +4745,7 @@ C Trace output.
       STOP
       END
 
-C ******************** BCL15
+C ******************** BCL15 ********************
 
 C Logic Optimum Start (rewind) Controller.
 C Suitable for use with controller types 0,35,36,37,38,39. 
@@ -5073,7 +5012,7 @@ C TRACE OUTPUT,
       stop
       end
 
-C ******************** BCL16
+C ******************** BCL16 ********************
 C Logic Optimum Stop Controller.
 C Suitable for use with controller types 0,35,36,37,38,39.
 
@@ -5357,7 +5296,7 @@ C TRACE OUTPUT,
       stop
       end
 
-C ******************** BCL17
+C ******************** BCL17 ********************
 
 C Fuzzy Logic PI/PD Controller.
 
@@ -5685,7 +5624,7 @@ C Trace output.
 
       END
 
-C ******************** BCL18
+C ******************** BCL18 ********************
 
 C 'BCL18' is a null controller. The controller output
 C is identically the same as the sensor input.
@@ -5749,7 +5688,7 @@ C Trace output.
       RETURN
       END
 
-C ******************** bcl19
+C ******************** bcl19 ********************
 
 C This controller will activate heating/cooling to achieve
 C a desired temperature in the associated zone but it will
@@ -6002,7 +5941,7 @@ C Trace output.
       RETURN
       END
 
-C ******************** BCL20
+C ******************** BCL20 ********************
 C Encapsulation of an evaporative source (such as a swimming pool or
 C a wetted surface. The sensor location is used to define the zone
 C and surface. It has two operational modes:
@@ -6198,7 +6137,7 @@ C Trace output.
       STOP
       END
 
-C ******************** BCL21
+C ******************** BCL21 ********************
 C BCL21 - Slave Capacity Controller
 C BCL21 - control acts to sense in master zone and to deliver capacity
 C to slave zone (to be based on fraction of max capacity and to 
@@ -6437,7 +6376,7 @@ C Trace output.
             
       end
 
-C ******************** BCL22
+C ******************** BCL22 ********************
 C 'BCL22' is a variable supply volume cooling control which
 C reverts to a CAV system using reheat for heating mode.
 
@@ -6615,7 +6554,7 @@ C Trace output format depending on whether VAV or CAV active.
       STOP
       END
 
-C ******************** BCL23
+C ******************** BCL23 ********************
 C This subroutine dynamically allocates heating and cooling setpoint
 C temperatures from a previously defined temporal file based on column
 C numbers specifed in the contol law. It is a simplified implementation
@@ -6868,7 +6807,7 @@ C Trace output format depending on whether VAV or CAV active.
       endif
       END
 
-C ******************** BCL24
+C ******************** BCL24 ********************
 C Adaptive human comfort model works just like the basic controller
 C BCL01, but the comfort setpoints are continually changed based on a
 C running mean comfort temperature calculated from the climate database
@@ -7118,7 +7057,7 @@ C      write(6,*)trm,TOP,TCOMF,iheat,icool,QFUT,pw,rn
       RETURN
       END
 
-C ******************** BCL25_open_windows
+C ******************** BCL25_open_windows ********************
 C This is a fairly simple algorithm that sets a flag approximating
 C window operation in residential houses. It's primary purpose is 
 C to approximate occupant-response to overheating in passive-solar 
@@ -7365,7 +7304,7 @@ C Set error flag
       return 
       end subroutine BCL25_open_windows
 
-C ******************** BCL26
+C ******************** BCL26 ********************
 C A heat exchanger model (after Chunying Li) used to determine the heat
 C extracted (QFUT) from a zone established to represent the closed circuit
 C working fluid circulating in a building-connected network.
@@ -7691,7 +7630,7 @@ C Trace output.
       STOP
       END
 
-C ******************** bcl27
+C ******************** bcl27 ********************
 C storage heater model controlling zone flux injection, this controller
 C adds heat to a storage heater zone from tdf and loses heat from the same
 C zone based on a linear law. This linear law is a function of room set
@@ -7882,7 +7821,7 @@ C Trace output.
       STOP
       END
       
-C ******************** bcl28
+C ******************** bcl28 ********************
 C Room heater linked to the storage heater of BCL27. This controller
 C injects the heat lost from the storage heater to the room zone linked
 C to the heater
@@ -7949,7 +7888,7 @@ C Trace output.
       STOP
       END
       
-C ******************** bcl31
+C ******************** bcl31 ********************
 C This controller injects heat from a given node of a number of zones to
 C the air point of the actuated zone
       SUBROUTINE BCL31
@@ -8092,7 +8031,7 @@ C Trace output.
       RETURN
       END
 
-C ******************** bcl32
+C ******************** bcl32 ********************
 C Bespoke controller for CHP system developed for the project: 
 C TEDDI - Building Management Linking Energy Demand.
 C This controller acts based on the states of a number of sensors
@@ -8396,7 +8335,7 @@ c     &storeCap/(3600/NTSTEP),',',
       RETURN
       END
 
-C ******************** BCL99
+C ******************** BCL99 ********************
 C BCL99 modifies the thermo-physical properties of up to three 
 C multi-layered construction(s).
 C ICALL = 0 signals call from nested zone control
@@ -8667,7 +8606,7 @@ C Modify if computational time-step is less than one hour.
       stop
       end
 
-c ******************** MZRCPL
+c ******************** MZRCPL ********************
 
 c This routine is called by particular BCL?? routines
 c when plant has been specified as having a radiant
@@ -8878,7 +8817,7 @@ c TDIFF acceptable. Conduct backward substitution.
       RETURN
       END
 
-C *********************** SUBROUTINE FZINIT
+C ******************** SUBROUTINE FZINIT ********************
 C This routine is called every time-step to zeroise common variables
 C used in fuzzy logic control functions.
 

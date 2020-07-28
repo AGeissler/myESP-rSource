@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C edcon.f provides creation and editing facilities for zone construction
 C files:
@@ -484,7 +480,7 @@ C If a long list include page facility text.
       VERT(M+4)  ='3 linear thermal conductivity            '
       VERT(M+5)  ='> save construction data                 '
       VERT(M+6)  ='? help                                   '
-      VERT(M+7)  ='- exit this menu                         '
+      VERT(M+7)  ='- exit menu                              '
 
 C If editing the constructions and user has asked whether to save or
 C has resized the display, redraw.
@@ -958,7 +954,7 @@ C Find air gap resistance for this layer.
       M=M+1
       ISD(M)='? help                                   '
       M=M+1
-      ISD(M)='- exit this menu                         '
+      ISD(M)='- exit menu                              '
       INODA=-4
 
 C Size of the menu.

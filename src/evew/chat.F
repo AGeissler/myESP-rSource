@@ -129,7 +129,7 @@ C----------------------------------------------------
   20  INO=-2
       IPLN=0
 
-C Use askabout to instanciate the initial help messages (2nd parameter is one).
+C Use askabout to instantiate the initial help messages (2nd parameter is one).
       call askabout('vew ',1)
 
 C Main MENU.

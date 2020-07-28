@@ -129,7 +129,7 @@ C Additional strings associated with icons.
      &  NWICNME(MICN)
 
 C Variables describing the available entities in the icon database
-C which are instanciated in call to scanicondb.
+C which are instantiated in call to scanicondb.
       integer idomain  ! the domain for each possible network type
       integer nbcat   ! number of categories for each possible network type
       character cattag*12   ! tag (must be unique) for category

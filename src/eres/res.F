@@ -9,6 +9,7 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
+
 C This file comprises the following subroutines.
 C MAIN    - Initialises the user terminal and user-specified
 C           results file, then displays the menu.
@@ -16,7 +17,10 @@ C imgdisp - Display images associated with a model either at application
 C           start-up or at specific points thereafter.
 C Various dummy subroutines.
 
-C ********** MAIN
+C ******************** res ********************
+C Initialises the user terminal and user-specified
+C results file, then displays the menu.
+
       program res
       USE START_UP
 #include "building.h"
@@ -636,7 +640,7 @@ C Setup for menu text.
       ENDIF
       ITEM(17)=  '* preferences          '
       ITEM(18)=  '? help                 '
-      ITEM(19)=  '- quit Analyser        '
+      ITEM(19)=  '- quit module          '
 
       NITMS=19
       INO=-2
@@ -644,7 +648,7 @@ C Setup for menu text.
 C Use askabout to instantiate the initial help messages (2nd parameter is 1).
       call askabout('res ',1)
 
-    5 CALL EMENU('Analyser options',ITEM,NITMS,INO)
+    5 CALL EMENU('Module options',ITEM,NITMS,INO)
 
 C Test for illegal menu pick.
     6 IF(INO.EQ.0.OR.INO.EQ.5.OR.INO.EQ.15)goto 2
@@ -775,10 +779,10 @@ C Output menu error signal and allow re-selection from menu.
       goto 5
 
  901  call edisp(iuout,' ')
-      call edisp(iuout,'Error opening journal file ... continuing.')
+      call edisp(iuout,'Error opening journal file!')
       goto 902
  903  call edisp(iuout,' ')
-      call edisp(iuout,'Error opening session log ... continuing.')
+      call edisp(iuout,'Error opening session log!')
       goto 904
 
  999  END PROGRAM
@@ -814,7 +818,7 @@ C         'FDFS' for flow domains
 C         'FPER' for performance
 C         '****' for an image to be displayed at application start-up.
 C   limgfil (72 char) - name of the image file.
-      character imgfmt*4   ! GIF XBMP TIF JPG
+      character imgfmt*4   ! GIF XBMP TIF JPG PNG
       character imgfoc*4   ! FZON FNET FCTL FDFS
       character limgfil*72 ! file name (extend to 144 char)
       character imgdoc*248 ! text associated with image
@@ -931,6 +935,7 @@ C Help text for the popup.
             if(imgfmt(img)(1:3).eq.'GIF'.or.
      &         imgfmt(img)(1:4).eq.'XBMP'.or.
      &         imgfmt(img)(1:3).eq.'TIF'.or.
+     &         imgfmt(img)(1:3).eq.'PNG'.or.
      &         imgfmt(img)(1:3).eq.'JPG')then
 
 C If focus is `****` then show images marked with `****` or beginning

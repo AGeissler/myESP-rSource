@@ -77,7 +77,7 @@ C passed via -actf in the command line.
         smode='-'
         call simscene(smode)
 
-C Having finished that process Quit.
+C Having finished that process, quit.
         call tstamp('>','Finish automatic visual analysis')
         close(ieout)
         CALL ERPFREE(ieout,ISTAT)

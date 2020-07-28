@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C insert.F contains:
 C  ADDSUR : add, delete, copy a surface within a zone.
@@ -684,11 +680,29 @@ C the final name uses the allowed character set.
             goto 141
           endif
         endif
-        SOTF1=SOTF(ICOMP,IS)
-        SMLCN1=SMLCN(ICOMP,IS)
-        SVFC1=SVFC(ICOMP,IS)
-        SUSE11=SUSE(ICOMP,IS,1)
-        SUSE12=SUSE(ICOMP,IS,2)
+        if(same)then              ! copy to temporary array from current zone
+          SOTF1=SOTF(ICOMP,IS)
+          SMLCN1=SMLCN(ICOMP,IS)
+          SVFC1=SVFC(ICOMP,IS)
+          SUSE11=SUSE(ICOMP,IS,1)
+          SUSE12=SUSE(ICOMP,IS,2)
+        else                      ! copy to temporary array from other zone
+          SOTF1=SOTF(IZC,IS)
+          SMLCN1=SMLCN(IZC,IS)
+          SVFC1=SVFC(IZC,IS)
+          SUSE11=SUSE(IZC,IS,1)
+          SUSE12=SUSE(IZC,IS,2)
+        endif
+
+C Ensure no NULL character strings.
+        n=iachar(SMLCN1(1:1))
+        if(n.eq.0) SMLCN1='UNKNOWN'
+        n=iachar(SUSE11(1:1))
+        if(n.eq.0) SUSE11='-'
+        n=iachar(SUSE12(1:1))
+        if(n.eq.0) SUSE12='-'
+        n=iachar(SOTF1(1:1))
+        if(n.eq.0) SOTF1='OPAQUE'
 
 C Now re-read focus zone and copy the data into normal common
 C blocks. Because the surface to be added is not yet in the
@@ -2245,7 +2259,7 @@ C For the silent modes the initial name and construction and use
 C (rsname,rsotf,rsmlcn,rsuse1,rsuse2,rsparent) are passed as parameters. 
 
 C << Implementation of a cancel option will require the common block
-C << instanciation code blocks to be moved so that the data is only
+C << instantiation code blocks to be moved so that the data is only
 C << written at the end of the process. This has yet to be done.
 
       SUBROUTINE INSREC(ITRC,ITRU,ICOMP,IS,act,XO1,ZO1,XW,ZH,

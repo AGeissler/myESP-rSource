@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C ################# MFPRB1 
 C This file contains the following subroutines:
@@ -843,8 +839,6 @@ C << if IAIRN=3 could we use mfnodeposition ?? >>
       
       integer ncomp,ncon
       COMMON/C1/NCOMP,NCON
-      integer IZSTOCN
-      COMMON/C24/IZSTOCN(MCOM,MS)
       COMMON/MFLOWIT/fndegc,imix 
       COMMON/AFN/IAIRN,LAPROB,ICAAS(MCOM)
       INTEGER :: iairn,icaas
@@ -855,14 +849,9 @@ C << if IAIRN=3 could we use mfnodeposition ?? >>
       CHARACTER LAPROB*72
       CHARACTER MOD*1
       CHARACTER MSG*48
-      CHARACTER name*12,zn*12,sn*12
-      character altcol*1
-      character col*1
-      real xc,yc,zc,xw,yw,zw
       LOGICAL OK
-      logical inview
       integer IVV   ! for radio button
-      logical changed,found
+      logical changed
 
 C For help messages
       character helpinsub*24 ! subroutine name
@@ -1780,8 +1769,8 @@ C If a long list include page facility text.
  15         FORMAT   ('0 ---Page: ',I2,' of ',I2,' ---')
           ENDIF
           PCITM(M+2)=' '
-          PCITM(M+3)='? help                   '
-          PCITM(M+4)='- exit this menu         '
+          PCITM(M+3)='? help'
+          PCITM(M+4)='- exit menu'
           IVERT=-1
 
 C Help text for this menu.

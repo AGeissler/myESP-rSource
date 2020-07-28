@@ -13,12 +13,8 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
-C edobs.f contains code to allow the editing of site obstructions files.
+C This file contains code to allow the editing of site obstructions files.
 
 C EDOBS:  High level controller for editing obstruction blocks
 C ECROBS: Read in existing obstruction file or create a fresh one.
@@ -232,7 +228,7 @@ C If a long list include page facility text.
       VERT(M+5)  ='> shading & insol directives  '
       VERT(M+6)  ='! list obstruction details    '
       VERT(M+7)  ='? help                        '
-      VERT(M+8)  ='- exit this menu              '
+      VERT(M+8)  ='- exit menu                   '
 
 C If a modification has been done then update the obstruction
 C file and/or the zone geometry file so that changes can be drawn.
@@ -2220,7 +2216,7 @@ C If a long list include page facility text.
       endif
       VERT(M+4)  ='! list details                '
       VERT(M+5)  ='? help                        '
-      VERT(M+6)  ='- exit this menu              '
+      VERT(M+6)  ='- exit menu                   '
 
 C If a modification has been done then update the zone geometry file
 C so that changes can be drawn.
@@ -3715,7 +3711,7 @@ C One set of interface actions if type 'obs' or 'obs3'.
       elseif(IVERT.EQ.4)then
 
 C Edit the list of associated entities. First report on and then
-C clear the existing list and then instanciate from the user
+C clear the existing list and then instantiate from the user
 C selections.
         call edisp(iuout,'Current associations:')
         do ijb=1,NBVOBJLIST(ICOMP,iobj)

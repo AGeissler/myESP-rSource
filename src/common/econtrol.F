@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C econtrol.f includes the following subroutines:
 C  EZCTLR:  Reads the configuration control strategy file.
@@ -3787,7 +3783,7 @@ C << or a single sensor SLAVE control.
             call eclose(cm(ndx),-4.0,0.001,okb)
             if(okb)then
               inear=nint(cm(ndx+1))
-              write(msg1,'(2a)') ' sense node ',
+              write(msg1,'(2a)') ' @ node ',
      &          ndnam(inear)(1:lnblnk(ndnam(inear)))
             endif
             write(msg2,'(a,f7.2)') ' setpoint ',cm(ndx+4)
@@ -4918,7 +4914,7 @@ C Sensor located within a building zone.
       if(isn2.eq.0)goto 9
 
 C If this called from simulator NELTS will have been
-C instanciated so do a further check if node is within
+C instantiated so do a further check if node is within
 C the number of layers in this construction.
       if(NELTS(isn1,isn2).gt.0)then
         nn=2*NELTS(isn1,isn2)+1
@@ -4980,7 +4976,7 @@ C  131 if(ian2.lt.0.or.ian2.gt.nzsur(ian1))goto 1005
       if(isn2.eq.0)goto 20     ! necessary to avoid array out of bounds error in NELTS(isn1,isn2)
       
 C If this called from simulator NELTS will have been
-C instanciated so do a further check if node is within
+C instantiated so do a further check if node is within
 C the number of layers in this construction.
       if(NELTS(isn1,isn2).gt.0)then
         nn=2*NELTS(icfz,ian2)+1

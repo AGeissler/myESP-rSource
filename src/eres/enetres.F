@@ -13,10 +13,6 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C You should have received a copy of the GNU General Public
-C License along with ESP-r. If not, write to the Free
-C Software Foundation, Inc., 59 Temple Place, Suite 330,
-C Boston, MA 02111-1307 USA.
 
 C ************************************************************************************
 C The file contains the following routines:
@@ -138,24 +134,24 @@ C Set the focus for results analysis an initial parameters
       IFOCUS=1
 
 C Setup for menu text.
-    2 ITEM(1)   ='1 Select result db      '
-      ITEM(2)   ='  <Not applicable>      '
-      ITEM(3)   ='3 Define output period  '
+    2 ITEM(1)   ='1 result db             '
+      ITEM(2)   ='                        '
+      ITEM(3)   ='3 Output period         '
       ITEM(4)   ='  --------------------- '
-      ITEM(5)   ='a Graphs                '
-      ITEM(6)   ='b Tabular report        '
-      ITEM(7)   ='c Statistics            '
-      ITEM(8)   ='d Performance indicators'
+      ITEM(5)   ='a graph                 '
+      ITEM(6)   ='b tabular report        '
+      ITEM(7)   ='c statistics            '
+      ITEM(8)   ='d performance indicators'
       ITEM(9)   ='e IPV <N/A>             '
       ITEM(10)  ='  --------------------- '
       IF(ITRC.EQ.0)THEN
-        ITEM(11)='r Report >> ON          '
+        ITEM(11)='r report >> ON          '
       ELSE
-        ITEM(11)='r Report >> OFF         '
+        ITEM(11)='r report >> OFF         '
       ENDIF
       ITEM(12)=  '                        '
-      ITEM(13)=  '? Help                  '
-      ITEM(14)=  '- Exit                  '
+      ITEM(13)=  '? help                  '
+      ITEM(14)=  '- exit menu             '
 
 C Help text for this menu.
       helptopic='res_electrical_lib_menu'
@@ -670,8 +666,8 @@ C Clear all existing selections
       ELSEIF(INO.EQ.NITEMS-5)THEN
 
 C Change the mode
-        CALL EASKABCD('What output type do you want?',' ','Graphical',
-     &'Tabular','Statistics','Continue',IOPT,IER)
+        CALL EASKABCD(' ','Output type?','graphical',
+     &'tabular','statistical','cancel',IOPT,IER)
         IF(IOPT.EQ.1) THEN
           MODE='G'
         ELSEIF(IOPT.EQ.2)THEN
@@ -781,9 +777,9 @@ C Toggle delimeter.
             helptopic='res_electrical_delimiter'
             call gethelptext(helpinsub,helptopic,nbhelp)
             IWM=1
-            CALL EASKATOG('Delimeter to use between columns of data:',
-     &        ' ','normal spaces','single space','tab','comma','tagged',
-     &        'continue',' ',IWM,nbhelp)
+            CALL EASKATOG('Column delimeter:',
+     &        ' ','multi-space','single space','tab','comma','tagged',
+     &        'cancel',' ',IWM,nbhelp)
             if(iwm.eq.1)then
               delim = '-'
             elseif(iwm.eq.2)then

@@ -9,19 +9,18 @@ C warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 C PURPOSE. See the GNU General Public License for more
 C details.
 
-C This file contains the generic menus used within res.
-C They are:
 
-C GOMSETUP: Clear arrays/ set defaults.
-C GOMENU :  The main menu type used for: interogation, misc data 
-C           listings, graphs, frequency distributions.
-C GOGET :   The main menu type used for: interogation, misc data 
-C           listings, graphs, frequency distributions.
-C GOGETIT:  Retrieves data for one day from the result library according
-C           to array IGETNO and KGET. It sues GET1 & GET2 commons.
-C GETSTATS: Efficient routine to scan the zone results records for save
-C           levels 2-4 finding the stats for a single topic.
-C MMACAL:   Calculates stats for topics via calls to gogetit, valiav etc.
+C This file contains the generic menus used within res.
+C GOMSETUP - Clear arrays/ set defaults.
+C GOMENU   - The main menu type used for: interogation, misc data 
+C            listings, graphs, frequency distributions.
+C GOGET    - The main menu type used for: interogation, misc data 
+C            listings, graphs, frequency distributions.
+C GOGETIT  - Retrieves data for one day from the result library according
+C            to array IGETNO and KGET. It sues GET1 & GET2 commons.
+C GETSTATS - Efficient routine to scan the zone results records for save
+C            levels 2-4 finding the stats for a single topic.
+C MMACAL   - Calculates stats for topics via calls to gogetit, valiav etc.
 
 C MENUTYPE's are:
 C MENUTYPE 1: not used
@@ -337,7 +336,7 @@ C If a long list include page facility text.
       VERT(M+2)  ='? help                     '
       VERT(M+3)  ='- exit and activate changes'
 
-C Instanciate help messages for this menu.
+C Instantiate help messages for this menu.
       helptopic='res_metric_list_edit'
       call gethelptext(helpinsub,helptopic,nbhelp)
 
@@ -566,7 +565,7 @@ C        MNGET=1
         MTITLE='Frequency histogram'
         MNGET=1
       elseif (MENUTYPE.eq.3) then
-        MTITLE='Time series plot'
+        MTITLE='Parameter plot'
         MNGET=MZS-1
       elseif (MENUTYPE.eq.4) then
 
@@ -834,7 +833,7 @@ C to be normal units ??
         nl=0
       endif
       ITEM(30+nl)='? help           '
-      ITEM(31+nl)='- exit this menu '
+      ITEM(31+nl)='- exit menu'
 
       NITMS=31+nl
       if(MMOD.eq.8)then
@@ -938,21 +937,21 @@ C Weather metric sub-menu.
         icm=MCM+1
         ITEMCM(icm)='sky illuminance         '
         IX=1
-        CALL EPICKS(IX,IVALS,'Select a weather metric.',
-     &    ' Climate metrics:',24,icm,ITEMCM,'clm metrics',IER,nbhelp)
+        CALL EPICKS(IX,IVALS,' ',
+     &    'Weather metrics:',24,icm,ITEMCM,'clm metrics',IER,nbhelp)
 
         if(IX.eq.0)goto 1
         inoc=IVALS(1)
         if(inoc.eq.0)goto 1
         if (inoc.le.MCM) then
           if (.not.CMXST(inoc)) then
-            call usrmsg('Metric not present in weather file!',' ','P')
+            call usrmsg(' ','Parameter not in weather file!','P')
             goto 1
           endif
         endif
         call usrmsg('  ','  ','-')
         if((NGET+1).GT.MZS)then
-          call usrmsg('Number of graph items exceeded!',' ','P')
+          call usrmsg(' ','Number of graph items exceeded!','P')
           goto 1
         endif
         NGET=NGET+1
@@ -1175,7 +1174,7 @@ C Temperatures sub-menu.
         ITEMT(13)='sensor operative temp.     '
         IX=1
         CALL EPICKS(IX,IVALS,' ',
-     &    'Temperature metrics:',27,13,ITEMT,'Temperature metrics',
+     &    ' ',27,13,ITEMT,'Temperature metrics',
      &    IER,nbhelp)
 
         if(IX.eq.0)goto 1
@@ -3553,27 +3552,27 @@ C Data presentation format (actual or rate of change).
 C The following lines do not allow access to the 'integrate data'
 C functionality. Uncomment to activate this feature.
 C        CALL EASKABC(outs,'Data display options:',
-C     &    'variable','variable rate of change','continue',
+C     &    'parameter','parameter rate of change','cancel',
 C     &    II,6)
 C        if(II.ne.3.and.(IROC.ne.(II-1)))then 
 C         IROC=II-1
         CALL EASKABCD(outs,'Data display options:','integrated',
-     &    'variable','variable rate of change','continue',
+     &    'parameter','parameter rate of change','cancel',
      &    II,nbhelp)
         if(II.ne.4.and.(IROC.ne.(II-2)))then 
           IROC=II-2
-          call usrmsg ('Clearing current selections.','  ','W')
+          call usrmsg (' ','Clearing current selections.','W')
           call GOMSETUP
         endif
 
       elseif(INO.EQ.25)then
 
-C Clear all selections (time series plot).
+C Clear all selections (parameter plot).
         if(MENUTYPE.eq.3) then
           call GOMSETUP
         else
 
-C Occupancy filter (all types except time series plot).
+C Occupancy filter (all types except parameter plot).
           if(iocupf.eq.0)then
 
 C Casual gain type. Ask user which constitutes occupancy.
@@ -3650,16 +3649,16 @@ C Set axis limits.
             if (YAXSET(Iaxis).gt.0) then
  501          write (values,'(8(f9.2,1x))') YMIN(Iaxis),YMAX(Iaxis)
               if (Iaxis.eq.1) then
-                call EASKS(values,'  ','Min &max for temperature axis?',
+                call EASKS(values,' ','Min & max for temp. axis?',
      &            20,' -10 30 ','temp axis',IER,nbhelp)
               elseif (Iaxis.eq.2) then
-                call EASKS(values,'  ','Min & max for loads axis?',
+                call EASKS(values,' ','Min & max for loads axis?',
      &            20,' -100 100 ','temp axis',IER,nbhelp)
               elseif (Iaxis.eq.3) then
-                call EASKS(values,'  ','Min & max for intensity axis?',
+                call EASKS(values,' ','Min & max for intensity axis?',
      &            20,' 0 1000 ','temp axis',IER,nbhelp)
               elseif (Iaxis.eq.4) then
-                call EASKS(values,'  ','Min & max for misc axis?',
+                call EASKS(values,' ','Min & max for misc. axis?',
      &            20,' 0 100 ','temp axis',IER,nbhelp)
               endif
               K=0
@@ -3677,8 +3676,8 @@ C Set axis limits.
             endif
  555      continue
 
-C Ask user preference for horizontal axis.
-          CALL EASKABCD(' ','Horizontal axis divisions:','default',
+C Preference for horizontal axis.
+          CALL EASKABCD(' ','Horizontal axis division?','default',
      &      'hours','days','weeks',horaxisdiv,nbhelp)
 
 C Redraw graph (if applicable).
@@ -3732,7 +3731,7 @@ C Toggle headers.
 
         if(MENUTYPE.eq.3) then
 
-C Add another selection - time series plot only.
+C Add another selection - parameter plot only.
           INO=-4
           ADDLIN=1
         else
@@ -3760,7 +3759,6 @@ C Toggle delimeter.
       elseif(INO.EQ.29)then
 
 C Toggle flux units for all menu types.
-
 C << if there is something already in the graph then we need
 C << to modify the range in axis 2 (flux).
 
@@ -3769,7 +3767,7 @@ C << to modify the range in axis 2 (flux).
         IWM=0
         lastireportunit=ireportunit
         CALL EASKATOG(' ','Units when reporting flux:',
-     &    'normal','W or Kh','kW or KWh','continue',' ',
+     &    'normal','W or Wh','KW or KWh','cancel',' ',
      &    ' ',' ',IWM,nbhelp)
         if(iwm.eq.1)then
           ireportunit = 0
@@ -3801,7 +3799,7 @@ C as well.
       elseif(INO.eq.30.and.nl.ne.0) then
         if (NGET.lt.1) then
           call usrmsg('No data to list/ plot!',
-     &                'Please choose a metric.','W')
+     &                'Choose a metric.','W')
           INO=-3
         else
 
@@ -3830,7 +3828,7 @@ C Add or clear labels within a graph.
         call gethelptext(helpinsub,helptopic,nbhelp)
         if(ngrlbl.eq.0)then
           CALL EASKAB(' ','Graph label options:',
-     &    'edit/add labels','contine',igopt,nbhelp)
+     &    'edit/add','cancel',igopt,nbhelp)
           if(igopt.eq.1)then
             igrl=0
             grlbl(1)=' '; grlbl(2)=' '; grlbl(3)=' '; grlbl(4)=' '
@@ -3841,8 +3839,7 @@ C Add or clear labels within a graph.
           endif
         elseif(ngrlbl.gt.0)then
           CALL EASKABC(' ','Graph label options:',
-     &    'clear existing','edit/add labels','contine',
-     &    igopt,nbhelp)
+     &    'clear','edit/add','cancel',igopt,nbhelp)
           if(igopt.eq.1)then
             ngrlbl=0
             igrl=0
@@ -3863,7 +3860,7 @@ C If there are no labels or some label start at first, if more than 5 exit.
           ngrlbl=1
           igrl=1
         elseif(ngrlbl.gt.9)then
-          call usrmsg('Labels array is full!',' ','W')
+          call usrmsg(' ','Labels array full!','W')
           goto 1
         else
           igrl=igrl+1
@@ -3910,13 +3907,13 @@ C Check for new pick.
 
 C If sensitivity, allow only one zone.
       if (MENUTYPE.eq.6.and.NZ.gt.1) then
-        call usrmsg('Only one zone can be analysed.',' ','-')
+        call usrmsg(' ','Only one zone can be analysed.','-')
         CALL MOZDFN
       endif
 
 C Check at least one zone selected.
  99   if (NZ.lt.1) then
-        call usrmsg('One or more zones must be selected!',' ','-')
+        call usrmsg(' ','One or more zones must be selected!','-')
         CALL MOZDFN
       endif
 
