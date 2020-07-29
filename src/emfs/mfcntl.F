@@ -1029,7 +1029,8 @@ C  Mode = NC night cooling <<not coded @ 20200724>>
 C  Mode = HT heating
 C  Mode = FR free running (no heating or air conditioning, may have fan)
 C Calculate mode and Tcomfort.
-      IF(ACAVAIL.GT.0..AND.TRM.GT.TRMSET)THEN
+c      IF(ACAVAIL.GT.0..AND.TRM.GT.TRMSET)THEN
+      IF(ACAVAIL.GT.0..AND.TOUT.GT.(TOP+DTOP))THEN
         MODE='AC'
         TCOMF=0.416*TRM+16.5
       ELSEIF(Havail.GT.0..AND.TRM.LT.10.)THEN
@@ -1088,8 +1089,12 @@ C will be closed if alpha is set to 0.
         IWIN=0
       ENDIF
       
-      IF(WNposs.GT.0.1.AND.TRM.GT.TRMSET) IWIN=1
+c      IF(WNposs.GT.0.1.AND.TRM.LT.TRMSET) IWIN=1
+      IF(WNposs.GT.0.1.AND.TOUT.LT.(TOP+DTOP)) IWIN=1
+      IF(TOUT.GT.(TOP+DTOP).AND.TRM.GT.TRMSET) IWIN=0
+c      IF(TOUT.GT.(TOP+DTOP)) IWIN=0
       IF(TRM.GT.(TRMSET+DTOP)) IWIN=0
+c      IF(TRM.GT.(TRMSET+DTOP)) IWIN=0
       IF(MODE.EQ.'AC')IWIN=0
       IF(ALPHA.LT.0.1)IWIN=0   
 

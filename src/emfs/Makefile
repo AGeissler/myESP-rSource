@@ -83,7 +83,7 @@ install:
 
 clean:
 	rm -f core $(PROG) $(PROG).exe $(MODULE_OBJECTS) $(OBJECTS) $(MODULES) \
-	c2fdum.F ctlexp.F ctlwrt.F dossupport.F econtrol.F emfnetw.F gcfunc.F \
+	c2fdum.F commonclm.F ctlexp.F ctlwrt.F dossupport.F econtrol.F emfnetw.F gcfunc.F \
         initalc.F item.F nwkrewr.F psychro.F rnor.F startup.F tdfile.F tdrecbps.F
 
 distclean: clean
