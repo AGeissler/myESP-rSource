@@ -2100,7 +2100,7 @@ C Write out appropriate message.
         write(louts,'(a,a)')'Weather file: ',
      &                      LCLIM(1:lnblnk(LCLIM))
         call edisp248(icout,louts,100)
-        if(NCF.eq.0.and.NCL.eq.0)then
+        if(NCF.eq.0.and.NCL.eq.0.and.NCC.eq.0)then
           call edisp(icout,'Control: free-floating')
         else
           write(louts,'(a,a)')'Control file: ',
