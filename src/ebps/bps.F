@@ -1260,11 +1260,11 @@ C Clean up and exit.
 
 C Write unmet hours to channel 27 before closing bps.
 C << Future action is to enable unmet hours recovery in res. >>
-#          write(27,'(a)')
-#     &      'Unmet set-point hours for each zone at end of simulation.'
-#          do I=1,NCOMP
-#            write(27,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
-#          enddo
+cx          write(27,'(a)')
+cx     &      'Unmet set-point hours for each zone at end of simulation.'
+cx          do I=1,NCOMP
+cx            write(27,'(a,i2,1x,a,f8.1)') 'Zone ',I,zname(I),UNMETHRS(I)
+cx          enddo
         endif
 
 C Delete temporal scratch file.
