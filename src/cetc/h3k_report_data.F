@@ -172,8 +172,10 @@ C.....Surface orientation flags
      &     Cas_Lat_dat(MCOM)    !  - Latent (W)
       real Cas_Rad_dat, Cas_Con_dat, Cas_Lat_dat
 
-      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM)
+      COMMON/CasPowerDat/Cas_Lights(MCOM),Cas_Equip(MCOM),
+     &     Cas_Lights2(MCOM),Cas_Equip2(MCOM)
       real Cas_Lights, Cas_Equip     ! Electrical power of lights and equipment (casual gain data), W
+      real Cas_Lights2, Cas_Equip2   ! dito. for use w/o electrical net, W
 
 
 C.....Window properties
@@ -1901,7 +1903,6 @@ C.....Adverse internal gains
      &         cZone_Chars)
 
       if(bH3KExtentionsActive() .and. iQuick_run == 1)then
-C.......Lighting power (from casual gains)
 C       Set flag allowing h3kreports to scale this data fro seasonal
 C       reporting purposes. 3 = scale_gen
         if ( bFirst_call_bld  )
@@ -1910,12 +1911,6 @@ C       reporting purposes. 3 = scale_gen
      &      3,
      &      .true.)
 
-        call AddToReport(
-     &     rvBldZnLightPow%Identifier,
-     &     Cas_Lights(iZone),
-     &     cZone_Chars)
-
-C.......Equipment power (from casual gains)
 C.......Set for Quickrun 3 = scale_gen
         if ( bFirst_call_bld  )
      &     call SetAdditionalValues(
@@ -1923,12 +1918,19 @@ C.......Set for Quickrun 3 = scale_gen
      &      3,
      &      .true.)
 
-        call AddToReport(
-     &         rvBldZnEquipPow%Identifier,
-     &         Cas_Equip(iZone),
-     &         cZone_Chars)
-     
       end if
+
+C.....Lighting power (from casual gains)
+      call AddToReport(
+     &     rvBldZnLightPow%Identifier,
+     &     Cas_Lights2(iZone),
+     &     cZone_Chars)
+
+C.....Equipment power (from casual gains)
+      call AddToReport(
+     &         rvBldZnEquipPow%Identifier,
+     &         Cas_Equip2(iZone),
+     &         cZone_Chars)
 
 
 C-----------------------------------------------------------------------
