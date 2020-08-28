@@ -1294,7 +1294,7 @@ C 3D ground files.
           WRITE(IFCFG,'(A,i3)',IOSTAT=IOS,ERR=2)'*mgp ',NGRDP
           DO 932 I=1,NGRDP
             WRITE(IFCFG,933,IOSTAT=IOS,ERR=2)(UGRDTP(J,I),J=1,12)
-  933       FORMAT(12F6.2)
+  933       FORMAT(12F7.2)
   932     CONTINUE
         endif
         if(ngrdph.gt.0)then
