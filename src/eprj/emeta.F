@@ -1688,7 +1688,7 @@ C And this is followed by one line each for each profile.
         CALL EGETWI(OUTSTR,K,groundtempsets,1,MGRDP,'F','grn prfls',IER)
         IF(groundtempsets.eq.0) goto 43
         DO 28 IGRDP=1,groundtempsets
-          CALL EGETWRA(IUNIT,GVA,12,-9.,99.,'W','Gr tmp',IER)
+          CALL EGETWRA(IUNIT,GVA,12,-15.,99.,'W','Gr tmp',IER)
           DO 29 J=1,12
             groundtemps(J,IGRDP)=GVA(J)
    29     CONTINUE
