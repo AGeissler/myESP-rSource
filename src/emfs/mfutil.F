@@ -194,6 +194,8 @@ C     IFLD   - fluid type (1=air, 2=water)
 C     TEMP   - fluid temperature (C)
 
       FUNCTION DENSIT(IFLD,TEMP)
+#include "building.h"
+#include "site.h"
       COMMON/OUTIN/IUOUT,IUIN,IEOUT
 
       character outs*124
@@ -220,7 +222,13 @@ C Flag for inappropriate temperatures
            call edisp(iuout,outs)
          ENDIF
 
-         DENSIT=1.1881*293.15/(273.15+VTEMP)
+C Use atmospheric pressure for density calculation, if in boundaries
+C according to climate.h.
+         if (atmpres.lt.120000.and.atmpres.gt.31000) then
+           DENSIT=atmpres/(287.*(273.15+VTEMP))
+         else
+           DENSIT=1.1881*293.15/(273.15+VTEMP)
+         endif
 
       ELSE IF(IFLD.EQ.2) THEN
 

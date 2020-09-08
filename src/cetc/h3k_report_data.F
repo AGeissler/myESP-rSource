@@ -2520,6 +2520,9 @@ C*******************************************************************************
       use h3kmodule
       IMPLICIT NONE
 
+      include "building.h"
+      include "site.h"
+
 C.....Climate data (present time row)
       COMMON/CLIMI/QFP,QFF,TP,TF,QDP,QDF,VP,VF,DP,DF,HP,HF
 C QFP Diffuse horizontal radiation - present time row
@@ -2616,8 +2619,17 @@ C.....Sky temperature depression
 C.....Ambient air saturation temperature
       call AddToReport(
      &    rvClimateAmbientAirTsat%Identifier,
-     &    DEWPT(HUMR(TF,HF,1013.),1013.))
+     &    DEWPT(HUMR(TF,HF,1013.),atmpres/100.))
 
+C.....Atmospheric pressure
+      call AddToReport(
+     &    rvClimateAmbientAirPress%Identifier,
+     &    atmpres)
+
+C.....Ambient air density
+      call AddToReport(
+     &    rvClimateAmbientAirDens%Identifier,
+     &    extairden)
 
       RETURN
       END

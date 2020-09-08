@@ -132,7 +132,7 @@ MODULE h3kmodule
          rvClimateDryBulbTemperature, rvClimateRelativeHumidity, rvClimateWindVelocity, &
          rvClimateWindDirection, rvClimateCloudCover, rvClimateSkyTemperature, &
          rvClimateSkyTemperatureDepression, rvClimateAmbientAirTsat, rvClimateVapourPressure, &
-         rvBuildingAllZonesFreeCooling
+         rvClimateAmbientAirPress, rvClimateAmbientAirDens, rvBuildingAllZonesFreeCooling
    Type(ReportVariable) :: rvBuildingTimePresent, rvBuildingTimeFuture,rvBuildingHourPresent, &
          rvBuildingHourFuture,rvBuildingDayNumberPresent, rvBuildingDayNumberFuture,&
          rvBuildingYearPresent,rvBuildingYearFuture, rvBuildingDayPresent,rvBuildingMonth, &
@@ -1187,6 +1187,18 @@ CONTAINS
       rvClimateAmbientAirTsat%VariableType = '(oC)'
       rvClimateAmbientAirTsat%Description = 'ambient air saturation temperature'
       Call AddVariable(rvClimateAmbientAirTsat)
+
+      rvClimateAmbientAirPress%VariableName = 'climate/ambient_air_press'
+      rvClimateAmbientAirPress%MetaType = 'units'
+      rvClimateAmbientAirPress%VariableType = '(Pa)'
+      rvClimateAmbientAirPress%Description = 'atmospheric pressure'
+      Call AddVariable(rvClimateAmbientAirPress)
+
+      rvClimateAmbientAirDens%VariableName = 'climate/ambient_air_density'
+      rvClimateAmbientAirDens%MetaType = 'units'
+      rvClimateAmbientAirDens%VariableType = '(kg/m3)'
+      rvClimateAmbientAirDens%Description = 'ambient air density'
+      Call AddVariable(rvClimateAmbientAirDens)
 
       rvBuildingTimePresent%VariableName = 'building/time/present'
       rvBuildingTimePresent%MetaType = 'units'
